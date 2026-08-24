@@ -46,6 +46,7 @@ class PX4Accelerometer
 {
 public:
 	PX4Accelerometer(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
+	PX4Accelerometer(uint32_t device_id, enum Rotation rotation, bool external);
 	~PX4Accelerometer();
 
 	uint32_t get_device_id() const { return _device_id; }

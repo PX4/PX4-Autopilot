@@ -92,7 +92,6 @@ void MS5611::print_usage()
 #else
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 #endif
-	PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG();
 	PRINT_MODULE_USAGE_PARAM_STRING('T', "5611", "5607|5611", "Device type", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -108,7 +107,6 @@ extern "C" int ms5611_main(int argc, char *argv[])
 #else
 	BusCLIArguments cli {false, true};
 #endif
-	cli.support_onboard = true;
 	cli.default_spi_frequency = 16 * 1000 * 1000;
 	uint16_t dev_type_driver = DRV_BARO_DEVTYPE_MS5611;
 

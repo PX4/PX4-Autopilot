@@ -88,7 +88,6 @@ void RM3100::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG();
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -98,7 +97,6 @@ extern "C" int rm3100_main(int argc, char *argv[])
 	using ThisDriver = RM3100;
 	int ch;
 	BusCLIArguments cli{true, true};
-	cli.support_onboard = true;
 #if defined(CONFIG_I2C)
 	cli.default_i2c_frequency = 400000;
 #endif // CONFIG_I2C

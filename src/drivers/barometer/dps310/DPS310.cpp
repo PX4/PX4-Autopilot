@@ -48,12 +48,11 @@ static void getTwosComplement(T &raw, uint8_t length)
 
 DPS310::DPS310(const I2CSPIDriverConfig &config, device::Device *interface) :
 	I2CSPIDriver(config),
-	_px4_baro{interface->get_device_id()},
+	_px4_baro{interface->get_device_id(), config.external},
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors"))
 {
-	_px4_baro.set_external(config.external);
 	_interface->set_external(config.external);
 }
 

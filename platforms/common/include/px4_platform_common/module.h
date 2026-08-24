@@ -205,7 +205,6 @@ __EXPORT void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *des
 __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support);
 __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(uint8_t default_address);
 __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG(void);
-__EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG(void);
 __EXPORT void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val,
 		const char *description, bool is_optional);
 __EXPORT void PRINT_MODULE_USAGE_PARAM_FLOAT(char option_char, float default_val, float min_val, float max_val,

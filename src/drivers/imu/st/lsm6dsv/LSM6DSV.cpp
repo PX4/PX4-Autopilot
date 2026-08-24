@@ -49,8 +49,8 @@ LSM6DSV::LSM6DSV(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation),
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external),
 	_highg_variant_arg(config.custom1)
 {
 	if (config.drdy_gpio != 0) {

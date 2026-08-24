@@ -58,7 +58,6 @@ DPS310::print_usage()
 #else
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 #endif
-	PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG();
 	PRINT_MODULE_USAGE_PARAM_FLAG('8', "Drive DPS368", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -118,7 +117,6 @@ extern "C" int dps310_main(int argc, char *argv[])
 #else
 	BusCLIArguments cli {false, true};
 #endif // CONFIG_I2C
-	cli.support_onboard = true;
 
 	cli.default_spi_frequency = 10 * 1000 * 1000;
 

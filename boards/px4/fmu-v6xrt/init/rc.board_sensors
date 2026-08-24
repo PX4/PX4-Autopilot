@@ -124,7 +124,7 @@ ist8310 -X -b 1 -R 10 start
 bmp388 -I -b 3 -a 0x77 start
 
 # Internal baro, on a bus shared with the PM2 connector
-bmp388 -X -b 2 -O start
+bmp388 -I -b 2 start
 
 unset INA_CONFIGURED
 unset HAVE_PM2

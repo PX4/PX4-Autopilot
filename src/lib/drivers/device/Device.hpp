@@ -61,10 +61,11 @@ namespace device
 {
 
 /**
- * Fallback internal/external classification for a sensor from its device id: I2C and SPI
- * devices are classified by their bus, everything reached over a cable (UAVCAN, serial,
- * MAVLink) is external. Only valid when no explicit classification is available — a bus
- * shared between onboard sensors and an external connector misclassifies the onboard ones.
+ * Fallback sensor classification from a device id when no start-line classification exists.
+ *
+ * I2C/SPI: Internal bus → internal, External or Shared bus → external (Shared cannot be
+ * inferred; onboard chips on a Shared bus must call set_external(false) via -I/-s).
+ * UAVCAN, serial, MAVLink → external. Simulation → internal.
  */
 __EXPORT bool device_is_external(uint32_t device_id);
 
@@ -265,9 +266,7 @@ public:
 	/**
 	 * Is the sensor external to the flight controller board?
 	 *
-	 * Defaults to the device id's bus, which is only a guess: declare it explicitly with
-	 * set_external() (the -O start flag) for an onboard sensor on a bus that is also
-	 * routed to a connector.
+	 * I2C/SPI drivers set this from -I/-s vs -X/-S. Otherwise falls back to device_is_external().
 	 */
 	bool external() const { return _external_declared ? _external : device_is_external(_device_id.devid); }
 

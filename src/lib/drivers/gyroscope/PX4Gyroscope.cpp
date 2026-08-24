@@ -67,9 +67,16 @@ static constexpr uint8_t clipping(const int16_t samples[], uint8_t len)
 }
 
 PX4Gyroscope::PX4Gyroscope(uint32_t device_id, enum Rotation rotation) :
+	PX4Gyroscope(device_id, rotation, device::device_is_external(device_id))
+{
+	_external_forced = false;
+}
+
+PX4Gyroscope::PX4Gyroscope(uint32_t device_id, enum Rotation rotation, bool external) :
 	_device_id{device_id},
 	_rotation{rotation},
-	_is_external{device::device_is_external(device_id)}
+	_is_external{external},
+	_external_forced{true}
 {
 	// advertise immediately to keep instance numbering in sync
 	_sensor_pub.advertise();

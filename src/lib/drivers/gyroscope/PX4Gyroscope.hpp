@@ -45,6 +45,7 @@ class PX4Gyroscope
 {
 public:
 	PX4Gyroscope(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
+	PX4Gyroscope(uint32_t device_id, enum Rotation rotation, bool external);
 	~PX4Gyroscope();
 
 

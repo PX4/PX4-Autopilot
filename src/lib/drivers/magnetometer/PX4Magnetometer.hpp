@@ -44,6 +44,7 @@ class PX4Magnetometer
 {
 public:
 	PX4Magnetometer(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
+	PX4Magnetometer(uint32_t device_id, enum Rotation rotation, bool external);
 	~PX4Magnetometer();
 
 	void set_device_id(uint32_t device_id);

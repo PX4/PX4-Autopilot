@@ -45,6 +45,7 @@ class PX4Barometer
 {
 public:
 	PX4Barometer(uint32_t device_id);
+	PX4Barometer(uint32_t device_id, bool external);
 
 	void set_device_id(uint32_t device_id);
 	void set_external(bool external);

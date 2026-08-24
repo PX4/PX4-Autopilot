@@ -43,9 +43,8 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 IST8310::IST8310(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_mag(get_device_id(), config.rotation, config.external)
 {
-	_px4_mag.set_external(config.external);
 }
 
 IST8310::~IST8310()

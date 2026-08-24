@@ -107,13 +107,13 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support
 
 	// Note: this must be kept in sync with Tools/px4moduledoc/srcparser.py
 	if (i2c_support) {
-		PRINT_MODULE_USAGE_PARAM_FLAG('I', "Internal I2C bus(es)", true);
-		PRINT_MODULE_USAGE_PARAM_FLAG('X', "External I2C bus(es)", true);
+		PRINT_MODULE_USAGE_PARAM_FLAG('I', "Internal I2C bus(es) (onboard sensors; shared bus only if -b is given)", true);
+		PRINT_MODULE_USAGE_PARAM_FLAG('X', "External I2C bus(es) (connector sensors, including shared buses)", true);
 	}
 
 	if (spi_support) {
-		PRINT_MODULE_USAGE_PARAM_FLAG('s', "Internal SPI bus(es)", true);
-		PRINT_MODULE_USAGE_PARAM_FLAG('S', "External SPI bus", true);
+		PRINT_MODULE_USAGE_PARAM_FLAG('s', "Internal SPI bus(es) (onboard sensors; shared bus only if -b is given)", true);
+		PRINT_MODULE_USAGE_PARAM_FLAG('S', "External SPI bus (connector sensors, including shared buses)", true);
 	}
 
 	PRINT_MODULE_USAGE_PARAM_INT('b', -1, 0, 16, "board-specific bus (default=all) (external SPI: n-th bus (default=1))",
@@ -140,13 +140,6 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG()
 {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 	PRINT_MODULE_USAGE_PARAM_FLAG('k', "if initialization (probing) fails, keep retrying periodically", true);
-#endif
-}
-
-void PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG()
-{
-#ifndef CONSTRAINED_FLASH_NO_HELP
-	PRINT_MODULE_USAGE_PARAM_FLAG('O', "sensor is onboard the FMU (internal even on an external bus)", true);
 #endif
 }
 

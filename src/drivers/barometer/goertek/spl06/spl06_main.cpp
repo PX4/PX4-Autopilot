@@ -53,7 +53,6 @@ SPL06::print_usage()
 #else
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 #endif
-	PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG();
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -108,7 +107,6 @@ spl06_main(int argc, char *argv[])
 {
 	using ThisDriver = SPL06;
 	BusCLIArguments cli{true, true};
-	cli.support_onboard = true;
 #if defined(CONFIG_I2C)
 	cli.i2c_address = 0x76;
 	cli.default_i2c_frequency = 100 * 1000;

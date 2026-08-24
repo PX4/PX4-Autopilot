@@ -47,14 +47,14 @@ bool device_is_external(uint32_t device_id)
 	switch (id.devid_s.bus_type) {
 	case Device::DeviceBusType_I2C:
 #if defined(CONFIG_I2C)
-		return px4_i2c_bus_external(id.devid_s.bus);
+		return px4_i2c_bus_topology(id.devid_s.bus) != BusTopology::Internal;
 #else
 		return true;
 #endif // CONFIG_I2C
 
 	case Device::DeviceBusType_SPI:
 #if defined(CONFIG_SPI)
-		return px4_spi_bus_external(id.devid_s.bus);
+		return px4_spi_bus_topology(id.devid_s.bus) != BusTopology::Internal;
 #else
 		return true;
 #endif // CONFIG_SPI

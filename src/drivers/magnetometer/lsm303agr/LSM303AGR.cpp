@@ -64,7 +64,7 @@ static constexpr uint8_t LSM303AGR_WHO_AM_I_M = 0x40;
 LSM303AGR::LSM303AGR(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation),
+	_px4_mag(get_device_id(), config.rotation, config.external),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag_read")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
 	_bad_values(perf_alloc(PC_COUNT, MODULE_NAME": bad_val"))

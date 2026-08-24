@@ -38,13 +38,11 @@
  *
  * I2C1: PB6 (SCL), PB7 (SDA)
  *       Devices: DPS310 baro @ 0x76, IIS2MDC compass @ 0x1E
- *       This single bus is also broken out externally, so it is marked
- *       external to allow scanning for external compasses. The onboard baro
- *       and mag are started with -O to classify them as internal.
+ *       Shared with a connector; onboard chips are started with -I -b 1.
  * I2C4: External bus - PD12 (SCL), PD13 (SDA)
  */
 
 constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
-	initI2CBusExternal(1),
+	initI2CBusShared(1),
 	initI2CBusExternal(4),
 };

@@ -37,9 +37,16 @@
 #include <lib/drivers/device/Device.hpp>
 
 PX4Magnetometer::PX4Magnetometer(uint32_t device_id, enum Rotation rotation) :
+	PX4Magnetometer(device_id, rotation, device::device_is_external(device_id))
+{
+	_external_forced = false;
+}
+
+PX4Magnetometer::PX4Magnetometer(uint32_t device_id, enum Rotation rotation, bool external) :
 	_device_id{device_id},
 	_rotation{rotation},
-	_is_external{device::device_is_external(device_id)}
+	_is_external{external},
+	_external_forced{true}
 {
 }
 

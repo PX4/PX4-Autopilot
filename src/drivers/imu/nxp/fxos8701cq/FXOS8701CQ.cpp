@@ -56,9 +56,9 @@ const uint8_t FXOS8701CQ::_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS] = 
 FXOS8701CQ::FXOS8701CQ(device::Device *interface, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_interface(interface),
-	_px4_accel(interface->get_device_id(), config.rotation),
+	_px4_accel(interface->get_device_id(), config.rotation, config.external),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	_px4_mag(interface->get_device_id(), config.rotation),
+	_px4_mag(interface->get_device_id(), config.rotation, config.external),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag read")),
 #endif
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": acc read")),

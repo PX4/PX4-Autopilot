@@ -82,7 +82,7 @@ I2CSPIDriverConfig::I2CSPIDriverConfig(const BusCLIArguments &cli, const BusInst
 #endif // CONFIG_SPI
 	  bus_device_index(iterator.busDeviceIndex()),
 	  rotation(cli.rotation),
-	  external(cli.onboard ? false : iterator.external()),
+	  external(iterator.external()),
 	  quiet_start(cli.quiet_start),
 	  keep_running(cli.keep_running),
 	  custom1(cli.custom1),
@@ -142,10 +142,6 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 		*(p++) = 'b'; *(p++) = ':'; // bus
 		*(p++) = 'f'; *(p++) = ':'; // frequency
 		*(p++) = 'q'; // quiet flag
-
-		if (support_onboard) {
-			*(p++) = 'O'; // onboard (internal sensor classification)
-		}
 
 		// copy all options
 		const char *option = options;
@@ -227,10 +223,6 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 
 		case 'q':
 			quiet_start = true;
-			break;
-
-		case 'O':
-			onboard = true;
 			break;
 
 		case 'k':
@@ -438,6 +430,42 @@ I2CSPIInstance *BusInstanceIterator::instance() const
 	return *_current_instance;
 }
 
+bool BusInstanceIterator::alreadyRunningOnHardware() const
+{
+	const int current_bus = bus();
+	const int current_bus_device_index = busDeviceIndex();
+
+	for (const auto &modules : i2c_spi_module_instances) {
+		if (strcmp(modules->_module_name, _module_name) != 0) {
+			continue;
+		}
+
+		if (modules->_devid_driver_index != _devid_driver_index) {
+			continue;
+		}
+
+		if (modules->_bus != current_bus) {
+			continue;
+		}
+
+		if (modules->_bus_device_index != current_bus_device_index) {
+			continue;
+		}
+
+#if defined(CONFIG_I2C)
+
+		if (busType() == BOARD_I2C_BUS && modules->_i2c_address != (int8_t)_i2c_address) {
+			continue;
+		}
+
+#endif // CONFIG_I2C
+
+		return true;
+	}
+
+	return false;
+}
+
 void BusInstanceIterator::removeInstance()
 {
 	// find previous node
@@ -636,7 +664,7 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 	bool started = false;
 
 	while (iterator.next()) {
-		if (iterator.instance()) {
+		if (iterator.instance() || iterator.alreadyRunningOnHardware()) {
 			PX4_WARN("Already running on bus %i", iterator.bus());
 			continue;
 		}

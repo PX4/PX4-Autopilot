@@ -42,6 +42,13 @@ PX4Barometer::PX4Barometer(uint32_t device_id)
 	_report.temperature = 15; // if no temperature is set, report the sea level standard temperature of 15°C. As used in VehicleAirData
 }
 
+PX4Barometer::PX4Barometer(uint32_t device_id, bool external)
+{
+	set_device_id(device_id);
+	set_external(external);
+	_report.temperature = 15; // if no temperature is set, report the sea level standard temperature of 15°C. As used in VehicleAirData
+}
+
 void PX4Barometer::set_device_id(uint32_t device_id)
 {
 	_report.device_id = device_id;
