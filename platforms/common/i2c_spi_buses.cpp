@@ -435,6 +435,7 @@ bool BusInstanceIterator::alreadyRunningOnHardware() const
 	const int current_bus = bus();
 	const int current_bus_device_index = busDeviceIndex();
 
+	// NOLINTNEXTLINE(readability-use-anyofallof) custom List, CONFIG_I2C-gated match
 	for (const auto &modules : i2c_spi_module_instances) {
 		if (strcmp(modules->_module_name, _module_name) != 0) {
 			continue;

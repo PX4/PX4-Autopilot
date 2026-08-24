@@ -34,6 +34,3 @@
 #pragma once
 
 #include <px4_platform_common/i2c.h>
-
-
-

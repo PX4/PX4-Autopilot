@@ -35,4 +35,3 @@
 
 #include <px4_arch/hw_description.h>
 #include <px4_platform_common/i2c.h>
-

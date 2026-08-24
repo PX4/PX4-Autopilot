@@ -42,9 +42,6 @@
 
 #include <drivers/drv_hrt.h>
 
-#include <cstdarg>
-#include <cstdio>
-
 __BEGIN_DECLS
 
 hrt_abstime hrt_absolute_time()
@@ -54,20 +51,15 @@ hrt_abstime hrt_absolute_time()
 
 void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
 {
-	va_list args;
-	va_start(args, fmt);
-	printf("[%s] ", moduleName);
-	vprintf(fmt, args);
-	printf("\n");
-	va_end(args);
+	(void)level;
+	(void)moduleName;
+	(void)fmt;
 }
 
 void px4_log_raw(int level, const char *fmt, ...)
 {
-	va_list args;
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
+	(void)level;
+	(void)fmt;
 }
 
 __END_DECLS
