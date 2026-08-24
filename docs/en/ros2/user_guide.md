@@ -39,7 +39,7 @@ The generator uses the uORB message definitions in the source tree: [PX4-Autopil
 ROS 2 applications need to be built in a workspace that has the _same_ message definitions that were used to create the uXRCE-DDS client module in the PX4 Firmware.
 You can include these by cloning the interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs) into your ROS 2 workspace (branches in the repo correspond to the messages for different PX4 releases).
 
-Starting from PX4 v1.16, in which [message versioning](../middleware/uorb.md#message-versioning) was introduced, ROS2 applications may use a different version of message definitions than those used to build PX4.
+Starting from PX4 v1.16, in which [message versioning](../middleware/uorb.md#message-versioning) was introduced, ROS 2 applications may use a different version of message definitions than those used to build PX4.
 This requires the [ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md) to be running to ensure that messages can be converted and exchanged correctly.
 
 Note that the micro XRCE-DDS _agent_ itself has no dependency on client-side code.
@@ -413,7 +413,7 @@ To create and build the new workspace:
    ```
 
 ::: info
-The [ROS2 beginner tutorials](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html#source-the-overlay) recommend that you _open a new terminal_ for running your executables.
+The [ROS 2 beginner tutorials](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html#source-the-overlay) recommend that you _open a new terminal_ for running your executables.
 :::
 
 In a new terminal:
@@ -459,7 +459,7 @@ accelerometer_integral_dt: 4739
 
 <Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
-This example is built with PX4 and ROS2 versions that use the same message definitions.
+This example is built with PX4 and ROS 2 versions that use the same message definitions.
 If you were to use incompatible [message versions](../middleware/uorb.md#message-versioning) you would need to install and run the [Message Translation Node](./px4_ros2_msg_translation_node.md) as well, before running the example:
 
 1. Include the [Message Translation Node](../ros2/px4_ros2_msg_translation_node.md) into the example workspace or a separate workspace by running the following script:
@@ -560,22 +560,22 @@ When the uXRCE-DDS client runs on a flight controller and the agent runs on a co
 For Gazebo simulations the GZBridge sets the PX4 time on every sim step (see [Change simulation speed](../sim_gazebo_gz/index.md#change-simulation-speed)).
 Note that this is different from the [simulation lockstep](../sim_gazebo_classic/index.md#lockstep) procedure adopted with Gazebo Classic.
 
-ROS2 users have then two possibilities regarding the [time source](https://design.ros2.org/articles/clock_and_time.html) of their nodes.
+ROS 2 users have then two possibilities regarding the [time source](https://design.ros2.org/articles/clock_and_time.html) of their nodes.
 
-#### ROS2 nodes use the OS clock as time source
+#### ROS 2 nodes use the OS clock as time source
 
-This scenario, which is the one considered in this page and in the [offboard_control](./offboard_control.md) guide, is also the standard behaviour of the ROS2 nodes.
+This scenario, which is the one considered in this page and in the [offboard_control](./offboard_control.md) guide, is also the standard behaviour of the ROS 2 nodes.
 The OS clock acts as time source and therefore it can be used only when the simulation real time factor is very close to one.
-The time synchronizer of the uXRCE-DDS client then bridges the OS clock on the ROS2 side with the Gazebo clock on the PX4 side.
+The time synchronizer of the uXRCE-DDS client then bridges the OS clock on the ROS 2 side with the Gazebo clock on the PX4 side.
 No further action is required by the user.
 
-#### ROS2 nodes use the Gazebo clock as time source
+#### ROS 2 nodes use the Gazebo clock as time source
 
-In this scenario, ROS2 also uses the Gazebo `/clock` topic as time source.
-This approach makes sense if the Gazebo simulation is running with real time factor different from one, or if ROS2 needs to directly interact with Gazebo.
-On the ROS2 side, direct interaction with Gazebo is achieved by the [ros_gz_bridge](https://github.com/gazebosim/ros_gz) package of the [ros_gz](https://github.com/gazebosim/ros_gz) repository.
+In this scenario, ROS 2 also uses the Gazebo `/clock` topic as time source.
+This approach makes sense if the Gazebo simulation is running with real time factor different from one, or if ROS 2 needs to directly interact with Gazebo.
+On the ROS 2 side, direct interaction with Gazebo is achieved by the [ros_gz_bridge](https://github.com/gazebosim/ros_gz) package of the [ros_gz](https://github.com/gazebosim/ros_gz) repository.
 
-Use the following commands to install the correct ROS 2/gz interface packages (not just the bridge) for the ROS2 and Gazebo version(s) supported by PX4.
+Use the following commands to install the correct ROS 2/gz interface packages (not just the bridge) for the ROS 2 and Gazebo version(s) supported by PX4.
 
 :::: tabs
 
@@ -600,7 +600,7 @@ sudo apt install ros-humble-ros-gzharmonic
 ::::
 
 ::: info
-The [repo](https://github.com/gazebosim/ros_gz#readme) and [package](https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge#readme) READMEs show the package versions that need to be installed depending on your ROS2 and Gazebo versions.
+The [repo](https://github.com/gazebosim/ros_gz#readme) and [package](https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge#readme) READMEs show the package versions that need to be installed depending on your ROS 2 and Gazebo versions.
 :::
 
 Once the packages are installed and sourced, the node `parameter_bridge` provides the bridging capabilities and can be used to create an unidirectional `/clock` bridge:
@@ -609,10 +609,10 @@ Once the packages are installed and sourced, the node `parameter_bridge` provide
 ros2 run ros_gz_bridge parameter_bridge /clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock
 ```
 
-At this point, every ROS2 node must be instructed to use the newly bridged `/clock` topic as time source instead of the OS one, this is done by setting the parameter `use_sim_time` (of _each_ node) to `true` (see [ROS clock and Time design](https://design.ros2.org/articles/clock_and_time.html)).
+At this point, every ROS 2 node must be instructed to use the newly bridged `/clock` topic as time source instead of the OS one, this is done by setting the parameter `use_sim_time` (of _each_ node) to `true` (see [ROS clock and Time design](https://design.ros2.org/articles/clock_and_time.html)).
 
-This concludes the modifications required on the ROS2 side. On the PX4 side, you are only required to stop the uXRCE-DDS time synchronization, setting the parameter [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT) to `false`.
-By doing so, Gazebo will act as main and only time source for both ROS2 and PX4.
+This concludes the modifications required on the ROS 2 side. On the PX4 side, you are only required to stop the uXRCE-DDS time synchronization, setting the parameter [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT) to `false`.
+By doing so, Gazebo will act as main and only time source for both ROS 2 and PX4.
 
 ## ROS 2 Example Applications
 
@@ -770,9 +770,9 @@ int main(int argc, char *argv[])
 
 ### Offboard Control
 
-[ROS 2 Offboard control example](../ros2/offboard_control.md) provides a complete C++ reference example of how to use [offboard control](../flight_modes/offboard.md) of PX4 with ROS2.
+[ROS 2 Offboard control example](../ros2/offboard_control.md) provides a complete C++ reference example of how to use [offboard control](../flight_modes/offboard.md) of PX4 with ROS 2.
 
-[Python ROS2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard) provides a similar example for Python, and includes the scripts:
+[Python ROS 2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard) provides a similar example for Python, and includes the scripts:
 
 - `offboard_control.py`: Example of offboard position control using position setpoints
 - `visualizer.py`: Used for visualizing vehicle states in Rviz
@@ -902,7 +902,7 @@ A complete _offboard control_ example using the VehicleCommand service is provid
 
 The example closely follows the _offboard control_ example described in [ROS 2 Offboard Control Example](../ros2/offboard_control.md) but uses the `VehicleCommand` service to request mode changes, vehicle arming and vehicle disarming.
 
-First the ROS 2 application declares a service client of type `px4_msgs::srv::VehicleCommand` using `rclcpp::Client()` as shown (this is the same approach used for all ROS2 service clients):
+First the ROS 2 application declares a service client of type `px4_msgs::srv::VehicleCommand` using `rclcpp::Client()` as shown (this is the same approach used for all ROS 2 service clients):
 
 ```cpp
 rclcpp::Client<px4_msgs::srv::VehicleCommand>::SharedPtr vehicle_command_client_;
@@ -1099,10 +1099,10 @@ If any are missing, they can be added separately:
 
 ### ros_gz_bridge not publishing on the \clock topic
 
-If your [ROS2 nodes use the Gazebo clock as time source](../ros2/user_guide.md#ros2-nodes-use-the-gazebo-clock-as-time-source) but the `ros_gz_bridge` node doesn't publish anything on the `/clock` topic, you may have the wrong version installed.
+If your [ROS 2 nodes use the Gazebo clock as time source](../ros2/user_guide.md#ros2-nodes-use-the-gazebo-clock-as-time-source) but the `ros_gz_bridge` node doesn't publish anything on the `/clock` topic, you may have the wrong version installed.
 This might happen if you install ROS 2 Humble with the default "Ignition Fortress" packages, rather than using those for PX4, which uses "Gazebo Harmonic".
 
-The following commands uninstall the default Ignition Fortress topics and install the correct bridge and other interface topics for **Gazebo Harmonic** with ROS2 **Humble**:
+The following commands uninstall the default Ignition Fortress topics and install the correct bridge and other interface topics for **Gazebo Harmonic** with ROS 2 **Humble**:
 
 ```bash
 # Remove the wrong version (for Ignition Fortress)

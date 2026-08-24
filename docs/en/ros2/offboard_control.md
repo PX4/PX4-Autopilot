@@ -216,4 +216,4 @@ The param and command fields map to [MAVLink commands](https://mavlink.io/en/mes
 
 ## See Also
 
-- [Python ROS2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard).
+- [Python ROS 2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard).
