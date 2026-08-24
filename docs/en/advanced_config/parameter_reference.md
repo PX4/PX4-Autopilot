@@ -26974,6 +26974,10 @@ Mode 7 turns UART2 into a diagnostic port: the receiver keeps serving the autopi
 while UART2 outputs UBX at GPS_UBX_BAUD2 for u-center. Keep GPS_UBX_BAUD2 at 115200 or above,
 the diagnostic message set saturates a slower link. UBX input is left enabled on UART2, so
 anything attached there can also reconfigure the receiver.
+Mode 8 uses the free Galileo HAS corrections broadcast on E6 (ZED-X20P with HPG 2.10 or
+later) for a PPP solution of roughly 20 cm after a few minutes of convergence. The
+receiver only processes HAS while host corrections are off, so RTCM and SPARTN from the
+autopilot are ignored in this mode; use mode 0 whenever a correction link is available.
 
 **Values:**
 
@@ -26985,10 +26989,11 @@ anything attached there can also reconfigure the receiver.
 - `5`: Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
 - `6`: Ground Control Station (UART2 outputs NMEA)
 - `7`: u-center on UART2 (UART2 outputs UBX diagnostics)
+- `8`: Galileo HAS (X20P, PPP from E6, RTCM/SPARTN input disabled)
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 7        |           | 0       |      | &nbsp;    |
+| &check; | 0        | 8        |           | 0       |      | &nbsp;    |
 
 ### GPS_UBX_PPK (`INT32`) {#GPS_UBX_PPK}
 
