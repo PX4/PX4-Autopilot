@@ -91,6 +91,10 @@ msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_stat
 
 msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s &battery_status);
 
+msp_rendor_current_draw_t construct_rendor_CURRENT_DRAW(const battery_status_s &battery_status);
+
+msp_rendor_mah_drawn_t construct_rendor_MAH_DRAWN(const battery_status_s &battery_status);
+
 // construct an MSP_RAW_GPS struct
 msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 				const airspeed_validated_s &airspeed_validated);
@@ -105,6 +109,8 @@ msp_rendor_latitude_t construct_rendor_GPS_LAT(const sensor_gps_s &vehicle_gps_p
 msp_rendor_longitude_t construct_rendor_GPS_LON(const sensor_gps_s &vehicle_gps_position);
 
 msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicle_gps_position);
+
+msp_rendor_gps_speed_t construct_rendor_GPS_SPEED(const sensor_gps_s &vehicle_gps_position);
 
 // construct an MSP_ATTITUDE struct
 msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude);
@@ -131,5 +137,8 @@ msp_rc_t construct_MSP_RC(const input_rc_s &input_rc);
 
 // construct an MSP_STATUS struct
 msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status);
+
+// construct an MSP_CROSSHAIRS struct
+msp_rendor_crosshairs_t construct_rendor_CROSSHAIRS(const int pos_vertical_offset, const int pos_horizontal_offset);
 
 } // namespace msp_osd

@@ -55,7 +55,11 @@ jobs:
     - uses: ./.github/actions/setup-ccache
       id: ccache
       with:
-        cache-key-prefix: ccache-macos
+        # Keyed per OS: the two legs run different Apple clang builds, and
+        # ccache's compiler_check=content means objects cached by one are
+        # never reusable by the other. Sharing one key also made the legs
+        # race to save it, so one lost its cache every run.
+        cache-key-prefix: ccache-macos-${{ matrix.os }}
         max-size: 200M
 
     - name: Build px4_sitl
