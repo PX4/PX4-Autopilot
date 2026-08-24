@@ -41,6 +41,7 @@
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <parameters/param.h>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_gps.h>
 
 // FailureInjection.hpp transitively pulls in px4_platform_common/defines.h (via
@@ -104,6 +105,8 @@ constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
 constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
 constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
+constexpr uint8_t BATTERY = failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY;
+constexpr uint8_t TRAFFIC = failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE;
 
 constexpr uint8_t OK    = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF   = failure_injection_s::FAILURE_TYPE_OFF;
@@ -486,4 +489,111 @@ TEST(FailureInjectionConfig, ProcessEscWrongScalesTelemetryButStaysOnline)
 	EXPECT_FLOAT_EQ(status.esc[0].esc_current, 0.5f); // 5 * 0.1
 	EXPECT_EQ(status.esc[0].esc_rpm, 40000);          // 4000 * 10
 	EXPECT_FLOAT_EQ(status.esc[1].esc_voltage, 16.f); // other ESCs untouched
+}
+
+// ===========================================================================
+// Traffic avoidance (ADS-B): OFF-only, message-less consumers
+// ===========================================================================
+
+TEST(FailureInjectionConfig, TrafficOffSuppressesAtBothConsumers)
+{
+	Config config;
+	config.set(make_config(TRAFFIC, 0xFFFF, OFF));
+
+	// Both consumers (MavlinkReceiver ADS-B ingestion, DetectAndAvoid queue drain)
+	// and the ADS-B/FLARM heartbeat check call the message-less overload with
+	// uORB instance 0, which maps to failure instance 1.
+	EXPECT_FALSE(process(config, TRAFFIC, 0));
+	EXPECT_EQ(config.mode(TRAFFIC, 1), Mode::Off);
+}
+
+TEST(FailureInjectionConfig, TrafficOkLetsReportsThrough)
+{
+	Config config;
+	EXPECT_TRUE(process(config, TRAFFIC, 0));
+
+	config.set(make_config(TRAFFIC, 0xFFFF, OK));
+	EXPECT_TRUE(process(config, TRAFFIC, 0));
+	EXPECT_EQ(config.mode(TRAFFIC, 1), Mode::Ok);
+}
+
+TEST(FailureInjectionConfig, TrafficOffLeavesOtherUnitsUntouched)
+{
+	Config config;
+	config.set(make_config(TRAFFIC, 0xFFFF, OFF));
+
+	EXPECT_EQ(config.mode(GYRO, 1), Mode::Ok);
+	EXPECT_TRUE(process(config, GYRO, 0));
+}
+
+// ===========================================================================
+// process_battery(): SYS_FAIL_BAT_LVL severity mapping
+// ===========================================================================
+
+TEST(FailureInjectionConfig, ProcessBatteryWrongMapsSeverityToWarning)
+{
+	// The test runner has no work queue for the autosave param_set would schedule.
+	param_control_autosave(false);
+
+	Config config;
+	config.set(make_config(BATTERY, 0x1, WRONG));
+
+	const struct {
+		int32_t level;
+		uint8_t expected_warning;
+		const char *threshold_param;
+	} cases[] = {
+		{1, battery_status_s::WARNING_LOW, "BAT_LOW_THR"},
+		{2, battery_status_s::WARNING_CRITICAL, "BAT_CRIT_THR"},
+		{3, battery_status_s::WARNING_EMERGENCY, "BAT_EMERGEN_THR"},
+		{99, battery_status_s::WARNING_CRITICAL, "BAT_CRIT_THR"}, // out of range falls back to the default
+	};
+
+	for (const auto &c : cases) {
+		ASSERT_EQ(param_set(param_find("SYS_FAIL_BAT_LVL"), &c.level), 0);
+
+		float threshold{};
+		ASSERT_EQ(param_get(param_find(c.threshold_param), &threshold), 0);
+
+		battery_status_s status{};
+		status.remaining = 0.8f;
+		status.warning = battery_status_s::WARNING_NONE;
+
+		EXPECT_TRUE(process_battery(config, 1, status));
+		EXPECT_EQ(status.warning, c.expected_warning);
+		EXPECT_FLOAT_EQ(status.remaining, (threshold > 0.01f) ? (threshold - 0.01f) : 0.f);
+		EXPECT_LT(status.remaining, threshold);
+	}
+
+	const int32_t default_level = battery_status_s::WARNING_CRITICAL;
+	param_set(param_find("SYS_FAIL_BAT_LVL"), &default_level);
+}
+
+TEST(FailureInjectionConfig, ProcessBatteryOffSuppressesPublication)
+{
+	Config config;
+	config.set(make_config(BATTERY, 0x1, OFF));
+
+	battery_status_s status{};
+	status.remaining = 0.8f;
+	status.warning = battery_status_s::WARNING_NONE;
+
+	EXPECT_FALSE(process_battery(config, 1, status));
+	// Off suppresses instead of mutating.
+	EXPECT_FLOAT_EQ(status.remaining, 0.8f);
+	EXPECT_EQ(status.warning, battery_status_s::WARNING_NONE);
+}
+
+TEST(FailureInjectionConfig, ProcessBatteryLeavesUnselectedInstanceUntouched)
+{
+	Config config;
+	config.set(make_config(BATTERY, 0x2, WRONG)); // instance 2 only
+
+	battery_status_s status{};
+	status.remaining = 0.8f;
+	status.warning = battery_status_s::WARNING_NONE;
+
+	EXPECT_TRUE(process_battery(config, 1, status));
+	EXPECT_FLOAT_EQ(status.remaining, 0.8f);
+	EXPECT_EQ(status.warning, battery_status_s::WARNING_NONE);
 }
