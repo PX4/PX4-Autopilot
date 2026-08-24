@@ -25007,6 +25007,55 @@ relative to the vehicle heading (stick deflection to the right = land point move
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 2        |           | 2       |      | &nbsp;    |
 
+### FW_LND_PARA_ALT (`FLOAT`) {#FW_LND_PARA_ALT}
+
+Parachute landing release altitude above ground.
+
+Altitude the vehicle descends to and holds for the release. The release happens
+higher if the predicted touchdown point reaches the landing point while still on
+the approach slope, or lower for a vehicle that cannot hold the altitude, but
+never below 3 seconds of descent at FW_LND_PARA_SINK, so that the canopy has
+room to open.
+
+Lower values reduce the wind drift of the touchdown point.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 1.0      |          | 0.5       | 20.0    | m    | &nbsp;    |
+
+### FW_LND_PARA_EN (`INT32`) {#FW_LND_PARA_EN}
+
+Enable parachute landing on mission landing approach.
+
+If enabled, the vehicle follows the mission landing approach down to the release
+altitude (FW_LND_PARA_ALT) and releases the parachute by triggering flight
+termination, such that the predicted touchdown point under canopy lies on the
+landing point, accounting for ground speed, estimated wind drift during the descent
+(FW_LND_PARA_SINK) and the forward carry while the parachute deploys.
+
+The parachute is released through the flight termination failsafe outputs, or an
+external parachute system (COM_PARACHUTE). Not supported on VTOL.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### FW_LND_PARA_SINK (`FLOAT`) {#FW_LND_PARA_SINK}
+
+Sink rate under the deployed parachute.
+
+Expected steady-state sink rate under canopy. Used to predict the descent duration and
+therewith the wind drift of the touchdown point.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      |          | 0.1       | 5.0     | m/s  | &nbsp;    |
+
 ### FW_LND_TD_OFF (`FLOAT`) {#FW_LND_TD_OFF}
 
 Maximum lateral position offset for the touchdown point.
