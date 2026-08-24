@@ -376,6 +376,29 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<ranging_beacon_s>			_ranging_beacon_pub{ORB_ID(ranging_beacon)};
 
+#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+	// Ground-station anchor slots for RANGING_BEACON. Must match
+	// __max_num_ranging_beacons in mavlink_params.yaml.
+	static constexpr int RANGING_BEACON_MAX_ANCHORS = 4;
+
+	struct RangingBeaconAnchor {
+		param_t id_handle{PARAM_INVALID};
+		param_t lat_handle{PARAM_INVALID};
+		param_t lon_handle{PARAM_INVALID};
+		param_t amsl_handle{PARAM_INVALID};
+		int32_t id{-1};
+		int32_t lat_e7{0};
+		int32_t lon_e7{0};
+		float   amsl{0.f};
+	};
+
+	RangingBeaconAnchor _ranging_beacon_anchors[RANGING_BEACON_MAX_ANCHORS] {};
+
+	void initRangingBeaconAnchors();
+	void updateRangingBeaconAnchors();
+	const RangingBeaconAnchor *findRangingBeaconAnchor(uint16_t beacon_id) const;
+#endif // MAVLINK_MSG_ID_RANGING_BEACON
+
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 	uORB::Publication<esc_eeprom_write_s>			_esc_eeprom_write_pub {ORB_ID(esc_eeprom_write)};
 #endif
@@ -473,15 +496,7 @@ private:
 		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
 		(ParamInt<px4::params::BAT1_N_CELLS>)       _param_bat_cells_count,
 		(ParamFloat<px4::params::BAT1_V_CHARGED>)   _param_bat_v_charged,
-		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty,
-		(ParamInt<px4::params::RNG_1_ID>)           _param_rng1_id,
-		(ParamInt<px4::params::RNG_1_LAT>)          _param_rng1_lat,
-		(ParamInt<px4::params::RNG_1_LON>)          _param_rng1_lon,
-		(ParamFloat<px4::params::RNG_1_AMSL>)       _param_rng1_amsl,
-		(ParamInt<px4::params::RNG_2_ID>)           _param_rng2_id,
-		(ParamInt<px4::params::RNG_2_LAT>)          _param_rng2_lat,
-		(ParamInt<px4::params::RNG_2_LON>)          _param_rng2_lon,
-		(ParamFloat<px4::params::RNG_2_AMSL>)       _param_rng2_amsl
+		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty
 	);
 
 	// Disallow copy construction and move assignment.
