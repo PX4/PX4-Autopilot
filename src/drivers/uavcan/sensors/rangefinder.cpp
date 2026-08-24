@@ -36,11 +36,63 @@
  */
 
 #include <drivers/drv_hrt.h>
+#include <matrix/math.hpp>
 #include <parameters/param.h>
 #include "rangefinder.hpp"
 #include <math.h>
 
 const char *const UavcanRangefinderBridge::NAME = "rangefinder";
+
+namespace
+{
+static constexpr float COARSE_ORIENTATION_LSB_RAD = M_PI_F / 12.f;
+static constexpr float ORIENTATION_TOLERANCE = 1e-5f;
+
+matrix::Eulerf uavcan_orientation_to_euler(const uavcan::CoarseOrientation &orientation)
+{
+	const float roll = orientation.fixed_axis_roll_pitch_yaw[0] * COARSE_ORIENTATION_LSB_RAD;
+	const float pitch = orientation.fixed_axis_roll_pitch_yaw[1] * COARSE_ORIENTATION_LSB_RAD;
+	const float yaw = orientation.fixed_axis_roll_pitch_yaw[2] * COARSE_ORIENTATION_LSB_RAD;
+
+	return {roll, pitch, yaw};
+}
+
+uint8_t uavcan_orientation_to_distance_sensor_orientation(const uavcan::CoarseOrientation &orientation)
+{
+	if (!orientation.orientation_defined) {
+		return distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	}
+
+	// The beam runs along the sensor x-axis, so roll turns it about itself and cannot change where
+	// it points: pitch and yaw alone decide the direction. In body frame the beam is
+	// (cos(pitch)cos(yaw), cos(pitch)sin(yaw), -sin(pitch)).
+	const float pitch = orientation.fixed_axis_roll_pitch_yaw[1] * COARSE_ORIENTATION_LSB_RAD;
+	const float sin_pitch = sinf(pitch);
+
+	if (sin_pitch > 1.f - ORIENTATION_TOLERANCE) {
+		return distance_sensor_s::ROTATION_UPWARD_FACING;
+	}
+
+	if (sin_pitch < -1.f + ORIENTATION_TOLERANCE) {
+		return distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	}
+
+	// Horizontal beams are representable only in 45-degree yaw steps. Beyond +-90 degrees of pitch
+	// the beam points to the far side of the vehicle, so fold that back into the azimuth.
+	if (fabsf(sin_pitch) < ORIENTATION_TOLERANCE) {
+		const float yaw = orientation.fixed_axis_roll_pitch_yaw[2] * COARSE_ORIENTATION_LSB_RAD;
+		const float azimuth = (cosf(pitch) < 0.f) ? yaw + M_PI_F : yaw;
+		const float sector = matrix::wrap(azimuth, 0.f, 2.f * M_PI_F) / (M_PI_F / 4.f);
+		const float nearest_sector = roundf(sector);
+
+		if (fabsf(sector - nearest_sector) < ORIENTATION_TOLERANCE) {
+			return static_cast<uint8_t>(lroundf(nearest_sector) % 8);
+		}
+	}
+
+	return distance_sensor_s::ROTATION_CUSTOM;
+}
+} // namespace
 
 UavcanRangefinderBridge::UavcanRangefinderBridge(uavcan::INode &node) :
 	UavcanSensorBridgeBase("uavcan_rangefinder", ORB_ID(distance_sensor)),
@@ -108,13 +160,24 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		_inited = true;
 	}
 
+	const uint8_t orientation = uavcan_orientation_to_distance_sensor_orientation(msg.beam_orientation_in_body_frame);
+	rangefinder->set_orientation(orientation);
+
 	int8_t quality = -1;
 
 	if (msg.reading_type == uavcan::equipment::range_sensor::Measurement::READING_TYPE_VALID_RANGE) {
 		quality = 100;
 	}
 
-	rangefinder->update(hrt_absolute_time(), msg.range, quality);
+	if (orientation == distance_sensor_s::ROTATION_CUSTOM) {
+		const matrix::Quatf q_sensor{uavcan_orientation_to_euler(msg.beam_orientation_in_body_frame)};
+		float q[4];
+		q_sensor.copyTo(q);
+		rangefinder->update(hrt_absolute_time(), msg.range, quality, q);
+
+	} else {
+		rangefinder->update(hrt_absolute_time(), msg.range, quality);
+	}
 }
 
 int UavcanRangefinderBridge::init_driver(uavcan_bridge::Channel *channel)
