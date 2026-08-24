@@ -197,7 +197,7 @@ To create and build the workspace:
 
    ```sh
    git clone https://github.com/PX4/px4_msgs.git
-   
+
 
 4. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
 
@@ -1099,7 +1099,7 @@ If any are missing, they can be added separately:
 
 ### ros_gz_bridge not publishing on the \clock topic
 
-If your [ROS 2 nodes use the Gazebo clock as time source](../ros2/user_guide.md#ros2-nodes-use-the-gazebo-clock-as-time-source) but the `ros_gz_bridge` node doesn't publish anything on the `/clock` topic, you may have the wrong version installed.
+If your [ROS 2 nodes use the Gazebo clock as time source](../ros2/user_guide.md#ros-2-nodes-use-the-gazebo-clock-as-time-source) but the `ros_gz_bridge` node doesn't publish anything on the `/clock` topic, you may have the wrong version installed.
 This might happen if you install ROS 2 Humble with the default "Ignition Fortress" packages, rather than using those for PX4, which uses "Gazebo Harmonic".
 
 The following commands uninstall the default Ignition Fortress topics and install the correct bridge and other interface topics for **Gazebo Harmonic** with ROS 2 **Humble**:
