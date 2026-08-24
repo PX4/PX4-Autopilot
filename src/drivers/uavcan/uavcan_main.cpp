@@ -46,6 +46,7 @@
 #include <px4_platform_common/tasks.h>
 
 #include <inttypes.h>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
@@ -496,7 +497,24 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
-	_node.setName("org.pixhawk.pixhawk");
+	// NodeInfo.name is reverse-domain, lowercase, 80 characters max; px4_board_name() is
+	// <VENDOR>_<MODEL> in upper snake case.
+	char node_name[81] {};
+	const char *board = px4_board_name();
+	const char *model = strchr(board, '_');
+
+	if (model != nullptr) {
+		snprintf(node_name, sizeof(node_name), "org.%.*s.%s", static_cast<int>(model - board), board, model + 1);
+
+	} else {
+		snprintf(node_name, sizeof(node_name), "org.%s", board);
+	}
+
+	for (char *c = node_name; *c != '\0'; c++) {
+		*c = (*c == '_') ? '-' : static_cast<char>(tolower(static_cast<unsigned char>(*c)));
+	}
+
+	_node.setName(node_name);
 
 	_node.setNodeID(node_id);
 
