@@ -26902,15 +26902,18 @@ the expected application environment.
 
 **Values:**
 
+- `0`: portable
 - `2`: stationary
+- `3`: pedestrian
 - `4`: automotive
+- `5`: sea
 - `6`: airborne with <1g acceleration
 - `7`: airborne with <2g acceleration
 - `8`: airborne with <4g acceleration
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 9        |           | 7       |      | &nbsp;    |
+| &check; | 0        | 8        |           | 7       |      | &nbsp;    |
 
 ### GPS_UBX_JAM_DET (`INT32`) {#GPS_UBX_JAM_DET}
 
