@@ -51,7 +51,6 @@
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/geo/geo.h>
-#include <systemlib/system_time_source.h>
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -126,28 +125,31 @@ private:
 	void clockCallback(const gz::msgs::Clock &msg);
 	void airspeedCallback(const gz::msgs::AirSpeed &msg);
 	void airPressureCallback(const gz::msgs::FluidPressure &msg);
-	void imuCallback(const gz::msgs::IMU &msg);
+	void imuCallback(const gz::msgs::IMU &msg, uint8_t instance_index);
 	void poseInfoCallback(const gz::msgs::Pose_V &msg);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &msg);
-	void navSatCallback(const gz::msgs::NavSat &msg);
+	void navSatCallback(const gz::msgs::NavSat &msg, uint8_t instance_index);
 	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg);
 	void laserScanCallback(const gz::msgs::LaserScan &msg);
 	void opticalFlowCallback(const px4::msgs::OpticalFlow &msg);
-	void magnetometerCallback(const gz::msgs::Magnetometer &msg);
+	void magnetometerCallback(const gz::msgs::Magnetometer &msg, uint8_t instance_index);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 
 	static float generate_wgn();
 
 	void addGpsNoise(double &latitude, double &longitude, double &altitude,
-			 float &vel_north, float &vel_east, float &vel_down);
+			 float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index);
 
 	uORB::SubscriptionInterval                    _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	// simulated sensors using the general-purpose driver wrappers
-	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Magnetometer  _px4_mag{197388};    // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 3, TYPE: SIMULATION
+	static constexpr uint8_t _MAX_GPS_SENSORS      = 2;
+	static constexpr uint8_t _MAX_IMU_SENSORS      = 3;
+	static constexpr uint8_t _MAX_MAG_SENSORS      = 2;
+	PX4Accelerometer _px4_accel[_MAX_IMU_SENSORS]{{1310988}, {1310996}, {1311004}}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Gyroscope     _px4_gyro[_MAX_IMU_SENSORS]{{1310988}, {1310996}, {1311004}}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Magnetometer  _px4_mag[_MAX_MAG_SENSORS]{{197388}, {197644}};    // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 3, TYPE: SIMULATION
 	PX4Rangefinder   _px4_rangefinder{10092812}; // 10092812: DRV_DIST_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Barometer     _px4_baro{6619404};  // 6619404: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 
@@ -157,7 +159,7 @@ private:
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>   _lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
-	uORB::PublicationMulti<sensor_gps_s>          _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gps_s> 	      _sensor_gps_pub[_MAX_GPS_SENSORS]{{ORB_ID(sensor_gps)}, {ORB_ID(sensor_gps)}};
 	uORB::PublicationMulti<vehicle_odometry_s>    _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::PublicationMulti<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
@@ -185,12 +187,12 @@ private:
 	gz::transport::Node _node;
 
 	// GPS noise model
-	float _gps_pos_noise_n = 0.0f;
-	float _gps_pos_noise_e = 0.0f;
-	float _gps_pos_noise_d = 0.0f;
-	float _gps_vel_noise_n = 0.0f;
-	float _gps_vel_noise_e = 0.0f;
-	float _gps_vel_noise_d = 0.0f;
+	float _gps_pos_noise_n[_MAX_GPS_SENSORS]{0.0f, 0.0f};
+	float _gps_pos_noise_e[_MAX_GPS_SENSORS]{0.0f, 0.0f};
+	float _gps_pos_noise_d[_MAX_GPS_SENSORS]{0.0f, 0.0f};
+	float _gps_vel_noise_n[_MAX_GPS_SENSORS]{0.0f, 0.0f};
+	float _gps_vel_noise_e[_MAX_GPS_SENSORS]{0.0f, 0.0f};
+	float _gps_vel_noise_d[_MAX_GPS_SENSORS]{0.0f, 0.0f};
 	const float _pos_noise_amplitude = 0.8f;    // Position noise amplitude [m]
 	const float _pos_random_walk = 0.01f;       // Position random walk coefficient
 	const float _pos_markov_time = 0.95f;       // Position Markov process coefficient
@@ -207,7 +209,6 @@ private:
 		(ParamInt<px4::params::SIM_GZ_EN_ODOM>) _sim_gz_en_odom,
 		(ParamInt<px4::params::SIM_GZ_EN_GPS>) _sim_gz_en_gps,
 		(ParamInt<px4::params::SIM_GZ_EN_IMU>) _sim_gz_en_imu,
-		(ParamInt<px4::params::SIM_GZ_EN_MAG>) _sim_gz_en_mag,
-		(ParamInt<px4::params::SYS_TIME_SRC>) _param_sys_time_src
+		(ParamInt<px4::params::SIM_GZ_EN_MAG>) _sim_gz_en_mag
 	)
 };
