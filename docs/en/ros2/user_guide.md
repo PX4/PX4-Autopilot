@@ -758,7 +758,7 @@ int main(int argc, char *argv[])
 ## Using Flight Controller Hardware
 
 ROS 2 with PX4 running on a flight controller is almost the same as working with PX4 on the simulator.
-The only differences are:
+The differences are:
 
 - You need to ensure your PX4 firmware contains the client module.
 - You need to start both the agent _and the client_, with settings appropriate for the communication channel.
