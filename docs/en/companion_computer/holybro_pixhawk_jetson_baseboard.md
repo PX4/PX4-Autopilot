@@ -1297,7 +1297,7 @@ You can now start your ROS2 nodes and continue the development.
 
 ### ROS 2 Sensor Combined Tests
 
-You can test the Client and agent by using the `sensor_combined` example in [Build ROS 2 Workspace](../ros2/user_guide.md#build-ros-2-workspace) (ROS2 User Guide).
+You can test the Client and agent by using the `sensor_combined` example in [Running an example (optional)](../ros2/user_guide.md#running-an-example-optional) (ROS2 User Guide).
 
 ::: tip
 [VSCode over SSH](https://code.visualstudio.com/docs/remote/ssh) enables faster development and application of changes to your ROS 2 code!

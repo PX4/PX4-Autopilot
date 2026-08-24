@@ -76,8 +76,9 @@ To setup ROS 2 for use with PX4:
 
 - [Install PX4](#install-px4) (to use the PX4 simulator)
 - [Install ROS 2](#install-ros-2)
+- [Setup ROS 2 Workspace](#setup-ros-2-workspace)
 - [Setup Middleware](#setup-middleware)
-- [Build & Run ROS 2 Workspace](#build-ros-2-workspace)
+- [Running an example (optional)](#running-an-example-optional)
 
 Other dependencies of the architecture that are installed automatically, such as _Fast DDS_, are not covered.
 
@@ -622,7 +623,7 @@ The ROS 2 [listener examples](https://github.com/PX4/px4_ros_com/tree/main/src/e
 Here we consider the [sensor_combined_listener.cpp](https://github.com/PX4/px4_ros_com/blob/main/src/examples/listeners/sensor_combined_listener.cpp) node under `px4_ros_com/src/examples/listeners`, which subscribes to the [SensorCombined](../msg_docs/SensorCombined.md) message.
 
 ::: info
-[Build ROS 2 Workspace](#build-ros-2-workspace) shows how to build and run this example.
+[Running an example (optional)](#running-an-example-optional) shows how to build and run this example.
 :::
 
 The code first imports the C++ libraries needed to interface with the ROS 2 middleware and the header file for the `SensorCombined` message to which the node subscribes:
