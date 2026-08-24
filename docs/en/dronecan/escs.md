@@ -33,7 +33,7 @@ In addition to the general setup, such as setting `UAVCAN_ENABLE` to `3`:
 - Configure the [motor order and servo outputs](../config/actuators.md).
 
 When ESC output is enabled, PX4 publishes [ArmingStatus](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus) (`STATUS_FULLY_ARMED` while armed or during QGC actuator tests).
-ESCs that require that message (for example ARK32 with `REQUIRE_ARMING`) work for both flight and the Actuators page without setting [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM).
+ESCs that require that message work for both flight and the Actuators page without setting [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM).
 
 ## Reversible Motors {#reversible-motors}
 
