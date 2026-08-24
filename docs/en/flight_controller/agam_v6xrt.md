@@ -23,12 +23,12 @@ Order from the [Agam Robotics store](https://www.agamrobotics.com/product-page/a
 
 Agam Autopilot v6X-RT ships in two sensor-set variants (Sensor Set 1 and Sensor Set 3, per [Pixhawk Standards](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-020%20Pixhawk%20Autopilot%20v6X-RT%20Standard.pdf)):
 
-- Sensor Set 1 (`ver hwtypecmp AGAMV6XRT000`):
+- Sensor Set 1:
   - 2x [InvenSense ICM-42688-P IMU](https://www.invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/)
   - [Bosch BMI088 IMU](https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/)
   - [Bosch BMM150 Magnetometer](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf)
   - 2x [Bosch BMP388 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
-- Sensor Set 3 (`ver hwtypecmp AGAMV6XRT002`):
+- Sensor Set 3:
   - 2x [TDK InvenSense ICM-45686 IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686)
   - [Bosch BMI088 IMU](https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/)
   - [Bosch BMM350 Magnetometer](https://www.bosch-sensortec.com/en/products/motion-sensors/magnetometers/bmm350)
