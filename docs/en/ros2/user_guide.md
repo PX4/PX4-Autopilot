@@ -177,6 +177,7 @@ DDS is recommended for most users, as it is more established and has been more t
 :::
 
 Make sure that your firmware has the corresponding module enabled: the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) module is included by default in most builds, while the [zenoh](../middleware/zenoh.md#px4-firmware) module must be explicitly enabled.
+Please refer to the [using flight controller hardware](#using-flight-controller-hardware) setup section for more information about including the modules in you PX4 target.
 
 #### DDS {#dds_setup}
 
@@ -757,9 +758,32 @@ int main(int argc, char *argv[])
 ## Using Flight Controller Hardware
 
 ROS 2 with PX4 running on a flight controller is almost the same as working with PX4 on the simulator.
-The only difference is that you need to start both the agent _and the client_, with settings appropriate for the communication channel.
+The differences are:
 
-For more information see [Starting uXRCE-DDS](../middleware/uxrce_dds.md#starting-agent-and-client).
+- You need to ensure your PX4 firmware contains the client module.
+- You need to start both the agent _and the client_, with settings appropriate for the communication channel.
+
+:::: tabs
+
+::: tab uXRCE-DDS Client
+The key `CONFIG_MODULES_UXRCE_DDS_CLIENT=y` must be in your board's `default.px4board` [KConfig file](../hardware/porting_guide_config.md).
+
+See uXRCE-DDS client [firmware setup](../middleware/uxrce_dds.md#px4-firmware) for complete information.
+
+Client configuration is instead handled through PX4 parameters, see [Starting uXRCE-DDS](../middleware/uxrce_dds.md#starting-agent-and-client).
+:::
+
+::: tab Zenoh Client
+The key `CONFIG_MODULES_ZENOH=y` must be in your board's `default.px4board` [KConfig file](../hardware/porting_guide_config.md).
+
+After that it can be enabled on PX4 startup by setting the [ZENOH_ENABLE](../advanced_config/parameter_reference.md#ZENOH_ENABLE) parameter to `1`.
+
+Node configuration (network, pubishers options, topic mapping) is instead handled by configuration files (`zenoh/net.txt`, `zenoh/pub.csv`, `zenoh/sub.csv`) stored in the flight controller SD card and it can be modified at runtime using the `zenoh config` CLI tool.
+
+See Zenoh client [node setup](../middleware/zenoh.md#px4-zenoh-pico-node-setup) for complete information.
+:::
+
+::::
 
 ## Custom uORB Topics
 

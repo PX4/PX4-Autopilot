@@ -327,13 +327,27 @@ sudo MicroXRCEAgent serial --dev /dev/AMA0 -b 921600
 For more information about setting up communications channels see [Pixhawk + Companion Setup > Serial Port setup](../companion_computer/pixhawk_companion.md#serial-port-setup), and sub-documents.
 :::
 
+### PX4 Firmware
+
+The uXRCE-DDS client module [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is included by default in most firmware and simulator targets.
+
+You can check if the module is present on your board by searching for the key `CONFIG_MODULES_UXRCE_DDS_CLIENT=y` in your board's `default.px4board` [KConfig file](../hardware/porting_guide_config.md).
+For example, you can see that the module is present in `px4_fmu-v6x` build targets from [/boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board#L81).
+
+If `CONFIG_MODULES_UXRCE_DDS_CLIENT=y` is not preset you can add this key to your board configuration and rebuild.
+Note that due to flash constraints you may need to remove other components in order to include the module.
+
+::: tip
+You can check if uXRCE-DDS is present at runtime by using QGroundControl to [find the parameter](../advanced_config/parameters.md#finding-a-parameter) [UXRCE_DDS_CFG](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG).
+If present, the module is installed.
+:::
+
 ### Starting the Client
 
-The uXRCE-DDS client module ([uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client)) is included by default in all firmware and the simulator.
-This must be started with appropriate settings for the communication channel that you wish to use to communicate with the agent.
+`uxrce_dds_client` must be started with appropriate settings for the communication channel that you wish to use to communicate with the agent.
 
 ::: info
-The simulator automatically starts the client on localhost UDP port `8888` using the default uxrce-dds namespace.
+The simulator automatically starts the client on localhost UDP port `8888` using the default uxrce-dds namespace unless the `zenoh` target (`px4_sitl_zenoh`) is used.
 :::
 
 The configuration can be done using the [UXRCE-DDS parameters](../advanced_config/parameter_reference.md#uxrce-dds-client):
