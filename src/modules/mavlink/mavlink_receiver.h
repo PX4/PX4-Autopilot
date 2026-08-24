@@ -378,7 +378,7 @@ private:
 
 #if defined(MAVLINK_MSG_ID_RANGING_BEACON)
 	// Ground-station anchor slots for RANGING_BEACON. Must match
-	// __max_num_ranging_beacons in mavlink_params.yaml.
+	// __max_num_ranging_beacons in ekf2/params_ranging_beacon.yaml.
 	static constexpr int RANGING_BEACON_MAX_ANCHORS = 4;
 
 	struct RangingBeaconAnchor {

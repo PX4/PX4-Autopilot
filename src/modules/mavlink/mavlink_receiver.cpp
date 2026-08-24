@@ -2753,18 +2753,18 @@ MavlinkReceiver::initRangingBeaconAnchors()
 {
 	for (int i = 0; i < RANGING_BEACON_MAX_ANCHORS; i++) {
 		char name[17] {};
-		const int slot = i + 1; // params are 1-indexed: RNG_1_*, RNG_2_*, ...
+		const int slot = i + 1; // params are 1-indexed: RNGBC_1_*, RNGBC_2_*, ...
 
-		snprintf(name, sizeof(name), "RNG_%d_ID", slot);
+		snprintf(name, sizeof(name), "RNGBC_%d_ID", slot);
 		_ranging_beacon_anchors[i].id_handle = param_find(name);
 
-		snprintf(name, sizeof(name), "RNG_%d_LAT", slot);
+		snprintf(name, sizeof(name), "RNGBC_%d_LAT", slot);
 		_ranging_beacon_anchors[i].lat_handle = param_find(name);
 
-		snprintf(name, sizeof(name), "RNG_%d_LON", slot);
+		snprintf(name, sizeof(name), "RNGBC_%d_LON", slot);
 		_ranging_beacon_anchors[i].lon_handle = param_find(name);
 
-		snprintf(name, sizeof(name), "RNG_%d_AMSL", slot);
+		snprintf(name, sizeof(name), "RNGBC_%d_AMSL", slot);
 		_ranging_beacon_anchors[i].amsl_handle = param_find(name);
 	}
 

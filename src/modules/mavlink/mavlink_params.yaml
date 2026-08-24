@@ -1,5 +1,3 @@
-__max_num_ranging_beacons: &max_num_ranging_beacons 4
-
 module_name: mavlink
 parameters:
 - group: MAVLink
@@ -108,52 +106,3 @@ parameters:
       unit: s
       min: 1
       max: 250
-
-- group: RangingBeacon
-  definitions:
-    RNG_${i}_ID:
-      description:
-        short: Ranging beacon ${i} ID
-        long: |-
-          ID of the beacon whose position is taken from RNG_${i}_LAT/LON/AMSL instead of the
-          RANGING_BEACON message. Set to -1 to disable this slot.
-      type: int32
-      default: -1
-      min: -1
-      max: 65535
-      num_instances: *max_num_ranging_beacons
-      instance_start: 1
-    RNG_${i}_LAT:
-      description:
-        short: Ranging beacon ${i} latitude (deg * 1e7)
-        long: |-
-          Ranging beacon ${i} latitude in degrees multiplied by 1e7.
-      type: int32
-      default: 0
-      unit: deg*1e7
-      min: -900000000
-      max: 900000000
-      num_instances: *max_num_ranging_beacons
-      instance_start: 1
-    RNG_${i}_LON:
-      description:
-        short: Ranging beacon ${i} longitude (deg * 1e7)
-        long: |-
-          Ranging beacon ${i} longitude in degrees multiplied by 1e7.
-      type: int32
-      default: 0
-      unit: deg*1e7
-      min: -1800000000
-      max: 1800000000
-      num_instances: *max_num_ranging_beacons
-      instance_start: 1
-    RNG_${i}_AMSL:
-      description:
-        short: Ranging beacon ${i} altitude (m AMSL)
-        long: |-
-          Ranging beacon ${i} altitude in meters above mean sea level.
-      type: float
-      default: 0.0
-      unit: m
-      num_instances: *max_num_ranging_beacons
-      instance_start: 1
