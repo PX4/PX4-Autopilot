@@ -56,6 +56,9 @@ Loiter::on_activation()
 	// Snapshot the setpoint the previous mode left before resetting the triplet, so we can continue
 	// an already-established loiter (used by set_loiter_position()).
 	const position_setpoint_s previous_setpoint = _navigator->get_position_setpoint_triplet()->current;
+
+	const bool preserve_reference_altitude = _navigator->consume_navigation_mode_completed();
+
 	_navigator->reset_triplets();
 
 	if (_navigator->get_reposition_triplet()->current.valid
@@ -63,8 +66,7 @@ Loiter::on_activation()
 		reposition();
 
 	} else {
-		// this is executed when the flight mode is switched to Hold manually, not through a reposition
-		set_loiter_position(previous_setpoint);
+		set_loiter_position(previous_setpoint, preserve_reference_altitude);
 	}
 
 	// reset cruising speed to default
@@ -98,7 +100,7 @@ Loiter::on_inactive()
 }
 
 void
-Loiter::set_loiter_position(const position_setpoint_s &reference_setpoint)
+Loiter::set_loiter_position(const position_setpoint_s &reference_setpoint, bool preserve_reference_altitude)
 {
 	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED &&
 	    _navigator->get_land_detected()->landed) {
@@ -132,9 +134,11 @@ Loiter::set_loiter_position(const position_setpoint_s &reference_setpoint)
 			setLoiterFromLastLink(&_mission_item);
 
 		} else if (on_loiter) {
-			// Keep the established loiter geometry, but use the current altitude for Hold
 			setLoiterItemFromCurrentPositionSetpoint(_mission_item, reference_setpoint);
-			_mission_item.altitude = applyMinimumLoiterAltitude(_navigator->get_global_position()->alt);
+
+			if (!preserve_reference_altitude) {
+				_mission_item.altitude = applyMinimumLoiterAltitude(_navigator->get_global_position()->alt);
+			}
 
 		} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			setLoiterItemFromCurrentPositionWithBraking(&_mission_item);

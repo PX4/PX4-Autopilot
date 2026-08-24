@@ -742,7 +742,7 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s 
 }
 
 float
-MissionBlock::applyMinimumLoiterAltitude(float altitude_amsl)
+MissionBlock::applyMinimumLoiterAltitude(float altitude_amsl) const
 {
 	if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
 		altitude_amsl = math::max(altitude_amsl,
