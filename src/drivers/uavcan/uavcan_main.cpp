@@ -509,7 +509,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 #endif
 
-	// Publish ArmingStatus when ESC output is enabled. Many DroneCAN ESCs (e.g. ARK32)
+	// Publish ArmingStatus when ESC output is enabled. Many DroneCAN ESCs
 	// ignore RawCommand unless they see STATUS_FULLY_ARMED, including during actuator tests.
 	// UAVCAN_PUB_ARM still enables it for sensor-only buses.
 #if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
