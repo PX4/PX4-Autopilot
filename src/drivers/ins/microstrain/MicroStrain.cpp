@@ -1728,9 +1728,9 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 
 		gps.rtcm_injection_rate = 0;
 		gps.selected_rtcm_instance = 0;
-		gps.rtcm_crc_failed = 0;
+		gps.corrections_crc_failed = 0;
 
-		gps.rtcm_msg_used = 0;
+		gps.corrections_msg_used = 0;
 
 		gps.timestamp = hrt_absolute_time();
 
