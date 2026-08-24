@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,190 +31,79 @@
  *
  ****************************************************************************/
 
-/**
- * @file bmp388.h
- *
- * Shared defines for the bmp388 driver.
- */
 #pragma once
 
-#include <math.h>
 #include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
-#include <perf/perf_counter.h>
+#include <lib/drivers/device/i2c.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
 
-#include "board_config.h"
+#include <stddef.h>
+#include <stdint.h>
 
-// From https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3_defs.h
+namespace Bosch_BMP388
+{
 
-#define BMP388_CHIP_ID                    (0x50)
-#define BMP390_CHIP_ID                    (0x60)
+static constexpr uint32_t I2C_SPEED = 100 * 1000;
 
-/* Over sampling macros */
-#define BMP3_NO_OVERSAMPLING              (0x00)
-#define BMP3_OVERSAMPLING_2X              (0x01)
-#define BMP3_OVERSAMPLING_4X              (0x02)
-#define BMP3_OVERSAMPLING_8X              (0x03)
-#define BMP3_OVERSAMPLING_16X             (0x04)
-#define BMP3_OVERSAMPLING_32X             (0x05)
+static constexpr uint8_t BMP388_CHIP_ID = 0x50;
+static constexpr uint8_t BMP390_CHIP_ID = 0x60;
 
-/* Filter setting macros */
-#define BMP3_IIR_FILTER_DISABLE           (0x00)
-#define BMP3_IIR_FILTER_COEFF_1           (0x01)
-#define BMP3_IIR_FILTER_COEFF_3           (0x02)
-#define BMP3_IIR_FILTER_COEFF_7           (0x03)
-#define BMP3_IIR_FILTER_COEFF_15          (0x04)
-#define BMP3_IIR_FILTER_COEFF_31          (0x05)
-#define BMP3_IIR_FILTER_COEFF_63          (0x06)
-#define BMP3_IIR_FILTER_COEFF_127         (0x07)
+static constexpr uint8_t Bit0 = (1 << 0);
+static constexpr uint8_t Bit1 = (1 << 1);
+static constexpr uint8_t Bit2 = (1 << 2);
+static constexpr uint8_t Bit3 = (1 << 3);
+static constexpr uint8_t Bit4 = (1 << 4);
+static constexpr uint8_t Bit5 = (1 << 5);
+static constexpr uint8_t Bit6 = (1 << 6);
 
-/* Odr setting macros */
-#define BMP3_ODR_200_HZ                   (0x00)
-#define BMP3_ODR_100_HZ                   (0x01)
-#define BMP3_ODR_50_HZ                    (0x02)
-#define BMP3_ODR_25_HZ                    (0x03)
+enum class Register : uint8_t {
+	CHIP_ID = 0x00,
+	REV_ID = 0x01,
+	ERR_REG = 0x02,
+	STATUS = 0x03,
+	DATA_0 = 0x04, // pressure 0x04..0x06, temperature 0x07..0x09
+	PWR_CTRL = 0x1B,
+	OSR = 0x1C,
+	TRIM_CRC = 0x30, // CRC-8 over NVM_PAR_T1..NVM_PAR_P11 (bmp3_selftest.c)
+	NVM_PAR_T1 = 0x31, // calibration data 0x31..0x45
+	CMD = 0x7E,
+};
 
-/* Register Address */
-#define BMP3_CHIP_ID_ADDR                 (0x00)
-#define BMP3_REV_ID_ADDR                  (0x01)
-#define BMP3_ERR_REG_ADDR                 (0x02)
-#define BMP3_SENS_STATUS_REG_ADDR         (0x03)
-#define BMP3_DATA_ADDR                    (0x04)
-#define BMP3_PWR_CTRL_ADDR                (0x1B)
-#define BMP3_OSR_ADDR                     (0X1C)
-#define BMP3_CALIB_DATA_ADDR              (0x31)
-#define BMP3_CMD_ADDR                     (0x7E)
+// ERR_REG
+enum ERR_REG_BIT : uint8_t {
+	CMD_ERR = Bit1,
+};
 
-/* Error status macros */
-#define BMP3_FATAL_ERR                    (0x01)
-#define BMP3_CMD_ERR                      (0x02)
-#define BMP3_CONF_ERR                     (0x04)
+// STATUS
+enum STATUS_BIT : uint8_t {
+	DRDY_TEMP = Bit6,
+	DRDY_PRESS = Bit5,
+	CMD_RDY = Bit4,
+};
 
-/* Status macros */
-#define BMP3_CMD_RDY                      (0x10)
-#define BMP3_DRDY_PRESS                   (0x20)
-#define BMP3_DRDY_TEMP                    (0x40)
+// PWR_CTRL
+enum PWR_CTRL_BIT : uint8_t {
+	MODE_FORCED = Bit4, // mode[5:4]: 00 sleep, 01/10 forced, 11 normal
+	TEMP_EN = Bit1,
+	PRESS_EN = Bit0,
+};
 
-/* Power mode macros */
-#define BMP3_SLEEP_MODE                   (0x00)
-#define BMP3_FORCED_MODE                  (0x01)
-#define BMP3_NORMAL_MODE                  (0x03)
+// OSR
+enum OSR_BIT : uint8_t {
+	OSR_T_X2 = Bit3, // osr_t[5:3]: 2^n oversampling
+	OSR_P_X16 = Bit2, // osr_p[2:0]: 2^n oversampling
+};
 
-#define BMP3_ENABLE                       (0x01)
-#define BMP3_DISABLE                      (0x00)
+// CMD
+enum CMD_VALUE : uint8_t {
+	SOFTRESET = 0xB6,
+};
 
-/* Sensor component selection macros.  These values are internal for API implementation.
- * Don't relate this t0 data sheet.
- */
-#define BMP3_PRESS                        (1)
-#define BMP3_TEMP                         (1 << 1)
-#define BMP3_ALL                          (0x03)
-
-/* Macros related to size */
-#define BMP3_CALIB_DATA_LEN               (21)
-#define BMP3_P_T_DATA_LEN                 (7)
-
-/* Macros to select the which sensor settings are to be set by the user.
- * These values are internal for API implementation. Don't relate this to
- * data sheet. */
-#define BMP3_PRESS_EN_SEL                 (1 << 1)
-#define BMP3_TEMP_EN_SEL                  (1 << 2)
-#define BMP3_PRESS_OS_SEL                 (1 << 4)
-
-/* Macros for bit masking */
-#define BMP3_OP_MODE_MSK                  (0x30)
-#define BMP3_OP_MODE_POS                  (0x04)
-
-#define BMP3_PRESS_EN_MSK                 (0x01)
-
-#define BMP3_TEMP_EN_MSK                  (0x02)
-#define BMP3_TEMP_EN_POS                  (0x01)
-
-#define BMP3_IIR_FILTER_MSK               (0x0E)
-#define BMP3_IIR_FILTER_POS               (0x01)
-
-#define BMP3_ODR_MSK                      (0x1F)
-
-#define BMP3_PRESS_OS_MSK                 (0x07)
-
-#define BMP3_TEMP_OS_MSK                  (0x38)
-#define BMP3_TEMP_OS_POS                  (0x03)
-
-#define BMP3_SET_BITS(reg_data, bitname, data) \
-	((reg_data & ~(bitname##_MSK)) | \
-	 ((data << bitname##_POS) & bitname##_MSK))
-
-/* Macro variant to handle the bitname position if it is zero */
-#define BMP3_SET_BITS_POS_0(reg_data, bitname, data) \
-	((reg_data & ~(bitname##_MSK)) | \
-	 (data & bitname##_MSK))
-
-#define BMP3_GET_BITS(reg_data, bitname)       ((reg_data & (bitname##_MSK)) >> \
-		(bitname##_POS))
-
-/* Macro variant to handle the bitname position if it is zero */
-#define BMP3_GET_BITS_POS_0(reg_data, bitname) (reg_data & (bitname##_MSK))
-
-// From https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/self-test/bmp3_selftest.c
-#define BMP3_POST_SLEEP_WAIT_TIME         5000
-#define BMP3_POST_RESET_WAIT_TIME         2000
-#define BMP3_POST_INIT_WAIT_TIME          40000
-#define BMP3_TRIM_CRC_DATA_ADDR           0x30
-#define BPM3_CMD_SOFT_RESET               0xB6
-#define BMP3_ODR_ADDR                     0x1D
-#define BMP3_IIR_ADDR                     0x1F
-
-// https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
-/* Power control settings */
-#define POWER_CNTL            (0x0006)
-/* Odr and filter settings */
-#define ODR_FILTER            (0x00F0)
-/* Interrupt control settings */
-#define INT_CTRL              (0x0708)
-/* Advance settings */
-#define ADV_SETT              (0x1800)
-
-#pragma pack(push,1)
-struct calibration_s {
-	uint16_t par_t1;
-	uint16_t par_t2;
-	int8_t   par_t3;
-
-	int16_t  par_p1;
-	int16_t  par_p2;
-	int8_t   par_p3;
-	int8_t   par_p4;
-	uint16_t par_p5;
-	uint16_t par_p6;
-	int8_t   par_p7;
-	int8_t   par_p8;
-	int16_t  par_p9;
-	int8_t   par_p10;
-	int8_t   par_p11;
-
-}; //calibration data
-
-struct data_s {
-	uint8_t p_msb;
-	uint8_t p_lsb;
-	uint8_t p_xlsb;
-
-	uint8_t t_msb;
-	uint8_t t_lsb;
-	uint8_t t_xlsb;
-}; // data
-
-struct bmp3_reg_calib_data {
-	/**
-	 * @ Trim Variables
-	 */
-
-	/**@{*/
+#pragma pack(push, 1)
+// NVM_PAR_T1..NVM_PAR_P11 as laid out from 0x31, LSB first (BMP390 DS table 24)
+struct calib_data {
 	uint16_t par_t1;
 	uint16_t par_t2;
 	int8_t par_t3;
@@ -229,140 +118,79 @@ struct bmp3_reg_calib_data {
 	int16_t par_p9;
 	int8_t par_p10;
 	int8_t par_p11;
-	int64_t t_lin;
+};
 
-	/**@}*/
+// DATA_0..DATA_5 (0x04..0x09). DS 3.10 asks for one burst from press_xlsb to temp_msb.
+struct sensor_data {
+	uint8_t press_7_0;
+	uint8_t press_15_8;
+	uint8_t press_23_16;
+	uint8_t temp_7_0;
+	uint8_t temp_15_8;
+	uint8_t temp_23_16;
 };
 #pragma pack(pop)
 
-/*!
- * bmp3 sensor structure which comprises of temperature and pressure data.
- */
-struct bmp3_data {
-	/* Compensated temperature */
-	int64_t temperature;
+static_assert(sizeof(calib_data) == 21);
+static_assert(sizeof(sensor_data) == 6);
 
-	/* Compensated pressure */
-	uint64_t pressure;
-};
+} // namespace Bosch_BMP388
 
-/*!
- * Calibration data
- */
-struct bmp3_calib_data {
-	/*! Register data */
-	struct bmp3_reg_calib_data reg_calib_data;
-};
+using namespace Bosch_BMP388;
 
-/*!
- * bmp3 sensor structure which comprises of un-compensated temperature
- * and pressure data.
- */
-struct bmp3_uncomp_data {
-	/*! un-compensated pressure */
-	uint32_t pressure;
-
-	/*! un-compensated temperature */
-	uint32_t temperature;
-};
-
-struct fcalibration_s {
-	float t1;
-	float t2;
-	float t3;
-
-	float p1;
-	float p2;
-	float p3;
-	float p4;
-	float p5;
-	float p6;
-	float p7;
-	float p8;
-	float p9;
-};
-
-/*
- * BMP388 internal constants and data structures.
- */
-class IBMP388
+class BMP388 : public device::I2C, public I2CSPIDriver<BMP388>
 {
 public:
-	virtual ~IBMP388() = default;
+	BMP388(const I2CSPIDriverConfig &config);
+	~BMP388() override;
 
-	virtual int init() = 0;
-
-	// read reg value
-	virtual int get_reg(uint8_t addr, uint8_t *value) = 0;
-
-	// bulk read reg value
-	virtual int get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len) = 0;
-
-	// write reg value
-	virtual int set_reg(uint8_t value, uint8_t addr) = 0;
-
-	// bulk read of calibration data into buffer, return same pointer
-	virtual calibration_s *get_calibration(uint8_t addr) = 0;
-
-	virtual uint32_t get_device_id() const = 0;
-
-	virtual uint8_t get_device_address() const = 0;
-
-	virtual void set_device_type(uint8_t devtype) = 0;
-};
-
-class BMP388 : public I2CSPIDriver<BMP388>
-{
-public:
-	BMP388(const I2CSPIDriverConfig &config, IBMP388 *interface);
-	virtual ~BMP388();
-
-	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
-	virtual int		init();
+	int init() override;
+	void print_status() override;
 
-	void			print_status();
+	void RunImpl();
 
-	void 			RunImpl();
 private:
-	static constexpr uint8_t			osr_t{BMP3_OVERSAMPLING_2X};		// oversampling rate, temperature
-	static constexpr uint8_t			osr_p{BMP3_OVERSAMPLING_16X};		// oversampling rate, pressure
-	static constexpr uint8_t			odr{BMP3_ODR_50_HZ};			// output data rate (not used)
-	static constexpr uint8_t			iir_coef{BMP3_IIR_FILTER_DISABLE};	// IIR coefficient
+	int probe() override;
+
+	bool Configure();
+	bool Measure();
+	int Collect();
+	void Failure();
+
+	bool ReadCalibration();
+
+	int64_t CompensateTemperature(uint32_t uncomp_temp, int64_t &t_lin) const;
+	uint64_t CompensatePressure(uint32_t uncomp_press, int64_t t_lin) const;
+
+	bool RegisterRead(Register reg, void *buf, size_t len);
+	uint8_t RegisterRead(Register reg);
+	bool RegisterWrite(Register reg, uint8_t value);
 
 	PX4Barometer _px4_baro;
-	IBMP388			*_interface{nullptr};
 
-	unsigned		_measure_interval{0};			// interval in microseconds needed to measure
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+	perf_counter_t _conversion_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": conversion timeout")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_measure_perf;
-	perf_counter_t		_comms_errors;
+	enum class STATE : uint8_t {
+		RESET,
+		WAIT_FOR_RESET,
+		CONFIGURE,
+		MEASURE,
+		COLLECT,
+	} _state{STATE::RESET};
 
-	calibration_s		*_cal {nullptr}; // stored calibration constants
+	hrt_abstime _measure_timestamp{0};
+	int _failure_count{0};
+	int _configure_failures{0};
+	int _cmd_rdy_polls{0};
 
-	bool			_collect_phase{false};
+	uint8_t _chip_id{0};
+	uint8_t _rev_id{0};
+	uint32_t _conversion_time_typ_us{0};
+	uint32_t _conversion_time_max_us{0};
 
-	uint8_t                 _chip_id{0};
-	uint8_t                 _chip_rev_id{0};
-
-	void 			start();
-	int 			measure();
-	int			collect(); //get results and publish
-	uint32_t		get_measurement_time();
-
-	bool			soft_reset();
-	bool			get_calib_data();
-	bool			validate_trimming_param();
-	bool 			set_sensor_settings();
-	bool			set_op_mode(uint8_t op_mode);
-
-	bool 			get_sensor_data(uint8_t sensor_comp, struct bmp3_data *comp_data);
-	bool			compensate_data(uint8_t sensor_comp, const struct bmp3_uncomp_data *uncomp_data, struct bmp3_data *comp_data);
+	calib_data _calib{};
 };
-
-
-/* interface factories */
-extern IBMP388 *bmp388_spi_interface(uint8_t busnum, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
-extern IBMP388 *bmp388_i2c_interface(uint8_t busnum, uint32_t device, int bus_frequency);
