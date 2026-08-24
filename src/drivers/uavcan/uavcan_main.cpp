@@ -504,12 +504,19 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	int ret;
 
-	// UAVCAN_PUB_ARM
+#if defined(CONFIG_UAVCAN_ARMING_CONTROLLER) || defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+	int32_t uavcan_enable = 0;
+	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
+#endif
+
+	// Publish ArmingStatus when ESC output is enabled. Many DroneCAN ESCs (e.g. ARK32)
+	// ignore RawCommand unless they see STATUS_FULLY_ARMED, including during actuator tests.
+	// UAVCAN_PUB_ARM still enables it for sensor-only buses.
 #if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	int32_t uavcan_pub_arm = 0;
-	param_get(param_find("UAVCAN_PUB_ARM"), &uavcan_pub_arm);
+	(void)param_get(param_find("UAVCAN_PUB_ARM"), &uavcan_pub_arm);
 
-	if (uavcan_pub_arm == 1) {
+	if (uavcan_pub_arm == 1 || uavcan_enable > 2) {
 		ret = _arming_status_controller.init();
 
 		if (ret < 0) {
@@ -530,8 +537,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	// Actuators
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-	int32_t uavcan_enable = -1;
-	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 
 	if (uavcan_enable > 2) {
 
@@ -1002,7 +1007,7 @@ UavcanNode::Run()
 		}
 	}
 
-#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER) && defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	_arming_status_controller.setActuatorTestRunning(_mixing_interface_esc.isActuatorTestRunning());
 #endif
 

@@ -125,6 +125,13 @@ parameters:
         long: |-
           Enable UAVCAN Arming Status stream publication
           uavcan::equipment::safety::ArmingStatus
+
+          Published automatically when UAVCAN_ENABLE is 3 (ESC output),
+          so DroneCAN ESCs that require ArmingStatus work for flight and
+          QGC actuator tests without extra setup.
+
+          Enable this to also publish ArmingStatus when ESC output is not used
+          (sensor-only buses with peripherals that need arming state).
       type: boolean
       default: 0
       reboot_required: true
