@@ -2757,11 +2757,9 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
 
 	// Fill lat/lon/alt from the configured ground-station anchor when beacon_id matches a slot
-	// (lat/lon in deg * 1e7, alt AMSL); other beacons keep the message position. Intended as an
-	// intermediate solution while the RANGING_BEACON message arrives with empty lat/lon/alt.
 	if (_param_rng1_id.get() >= 0 && ranging_beacon.beacon_id == _param_rng1_id.get()) {
-		ranging_beacon.lat = static_cast<double>(_param_rng1_lat.get()) * 1e-7;
-		ranging_beacon.lon = static_cast<double>(_param_rng1_lon.get()) * 1e-7;
+		ranging_beacon.lat = static_cast<double>(_param_rng1_lat.get()) * 1e-7; //deg*1e7
+		ranging_beacon.lon = static_cast<double>(_param_rng1_lon.get()) * 1e-7; //deg*1e7
 		ranging_beacon.alt = _param_rng1_amsl.get();
 		ranging_beacon.alt_type = ranging_beacon_s::ALT_TYPE_MSL;
 
