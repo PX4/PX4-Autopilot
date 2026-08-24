@@ -338,7 +338,7 @@ If `CONFIG_MODULES_UXRCE_DDS_CLIENT=y` is not preset you can add this key to you
 Note that due to flash constraints you may need to remove other components in order to include the module.
 
 ::: tip
-You can check if uXRCE-DDS is present at runtime by using QGroundControl to [find the parameter](../advanced_config/parameters.md#UXRCE_DDS_CFG) [ZENOH_ENABLE](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG).
+You can check if uXRCE-DDS is present at runtime by using QGroundControl to [find the parameter](../advanced_config/parameters.md#finding-a-parameter) [UXRCE_DDS_CFG](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG).
 If present, the module is installed.
 :::
 
