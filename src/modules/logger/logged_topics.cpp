@@ -343,7 +343,6 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
 	add_topic("ranging_beacon");
-	add_topic("estimator_aid_src_ranging_beacon");
 	add_topic_multi("aux_global_position");
 	add_topic_multi("distance_sensor");
 }
