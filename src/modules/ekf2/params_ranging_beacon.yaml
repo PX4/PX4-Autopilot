@@ -1,4 +1,4 @@
-__max_num_ranging_beacons: &max_num_ranging_beacons 4
+__max_num_ranging_beacons: &max_num_ranging_beacons 6
 
 module_name: ekf2
 parameters:
