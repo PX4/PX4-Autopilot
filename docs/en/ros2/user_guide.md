@@ -174,8 +174,8 @@ A minimal ROS 2 workspace containing the [px4_msgs](https://github.com/PX4/px4_m
 
 This section shows how to create a ROS 2 workspace hosted in your home directory (modify the commands as needed to put the source code elsewhere).
 
-You should use a version of the px4_msgs package with the _same_ message definitions as the PX4 firmware you have installed in the step above.
-Tags and branches in the px4_msgs repo are named to correspond to the message definitions for different PX4 releases and release branches.
+You should use a version of the `px4_msgs` package with the _same_ message definitions as the PX4 firmware you have installed in the step above.
+Tags and branches in the `px4_msgs` repo are named to correspond to the message definitions for different PX4 releases and release branches.
 If for any reason you cannot ensure the same message definitions between your PX4 firmware and ROS 2 px4_msgs package, you will additionally need to [start the message translation node](#optional-starting-the-translation-node) as part of your setup process.
 
 To create and build the workspace:
@@ -196,6 +196,7 @@ To create and build the workspace:
 
    ```sh
    git clone https://github.com/PX4/px4_msgs.git
+   
 
 4. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
 
