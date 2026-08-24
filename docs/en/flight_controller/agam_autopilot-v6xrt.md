@@ -40,9 +40,21 @@ For enterprise, OEM, and bulk orders, contact Agam Robotics directly through the
 
 ### Sensors
 
-- Triple Redundant IMUs
-- Dual Redundant Barometers
-- Magnetometer
+Agam Autopilot 6X-RT ships in two hardware sensor-set variants (the NXP FMUv6X-RT reference design's hardware type 0 and hardware type 2; hardware type 1, the intermediate reference sensor set, is not manufactured on Agam hardware):
+
+- Hardware type 0:
+  - Dual TDK InvenSense ICM42688P IMUs (SPI)
+  - Bosch BMI088 IMU (accelerometer + gyroscope, SPI)
+  - Bosch BMM150 magnetometer (I2C)
+- Hardware type 2:
+  - Dual TDK InvenSense ICM45686 IMUs (SPI)
+  - Bosch BMI088 IMU (accelerometer + gyroscope, SPI)
+  - Bosch BMM350 magnetometer (I2C)
+
+Common to both variants:
+
+- Dual Bosch BMP388 barometers (internal + external)
+- Support for an external compass on the standard Pixhawk GPS/compass connector
 - Shock-mounted external IMU module
 - Temperature-controlled sensor board
 
