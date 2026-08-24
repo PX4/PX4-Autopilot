@@ -79,7 +79,11 @@ then
 	fi
 fi
 
-if ver hwtypecmp AGAMV6XRT000 AGAMV6XRT001
+# AGAMV6XRT001 (the intermediate NXP reference sensor set) is not populated on
+# any Agam-manufactured board and is intentionally left unhandled below --
+# there is no tested sensor combination to start for it.
+
+if ver hwtypecmp AGAMV6XRT000
 then
 	# Internal SPI bus ICM42686p (hard-mounted)
 	icm42688p -6 -R 12 -b 1 -s start
@@ -111,7 +115,7 @@ then
 	bmm150 -I start
 fi
 
-if ver hwtypecmp AGAMV6XRT001 AGAMV6XRT002
+if ver hwtypecmp AGAMV6XRT002
 then
 	# Internal magnetometer on I2c
 	bmm350 -I start
