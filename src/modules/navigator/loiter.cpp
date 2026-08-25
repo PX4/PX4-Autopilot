@@ -66,6 +66,7 @@ Loiter::on_activation()
 		reposition();
 
 	} else {
+		// No recent reposition target: initialize Hold from the previous setpoint.
 		set_loiter_position(previous_setpoint, preserve_reference_altitude);
 	}
 
