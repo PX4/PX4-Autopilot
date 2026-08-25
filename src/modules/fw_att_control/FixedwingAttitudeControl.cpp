@@ -246,6 +246,39 @@ void FixedwingAttitudeControl::Run()
 			return;
 		}
 
+		// Runway steering: while rolling on the runway the heading is controlled directly, and the
+		// resulting yaw rate setpoint is tracked by the steerable wheel and/or the rudder.
+		fixed_wing_runway_control_s runway_control{};
+		_fixed_wing_runway_control_sub.copy(&runway_control);
+		const bool runway_control_recent = hrt_elapsed_time(&runway_control.timestamp) < 1_s;
+		const bool runway_steering_enabled = _vcontrol_mode.flag_control_auto_enabled && runway_control_recent
+						     && runway_control.wheel_steering_enabled;
+
+		float runway_yaw_rate_setpoint = NAN;
+
+		if (runway_steering_enabled) {
+			// track the heading commanded by the mode manager (e.g. the runway bearing towards the
+			// takeoff waypoint); if none is provided, hold the heading captured when steering engaged
+			if (PX4_ISFINITE(runway_control.wheel_steering_yaw_setpoint)) {
+				_steering_wheel_yaw_setpoint = runway_control.wheel_steering_yaw_setpoint;
+
+			} else if (!PX4_ISFINITE(_steering_wheel_yaw_setpoint)) {
+				_steering_wheel_yaw_setpoint = euler_angles.psi();
+			}
+
+			runway_yaw_rate_setpoint = _wheel_ctrl.control_attitude(_steering_wheel_yaw_setpoint, euler_angles.psi());
+
+		} else {
+			_steering_wheel_yaw_setpoint = NAN;
+		}
+
+		// Steer with the rudder as well during the ground roll, which is the only yaw authority a tail
+		// dragger has. Limited to the states before climbout, as once airborne the yaw rate setpoint
+		// must come from turn coordination again.
+		const bool runway_yaw_rate_control_enabled = runway_steering_enabled
+				&& runway_control.runway_takeoff_state < fixed_wing_runway_control_s::STATE_CLIMBOUT
+				&& PX4_ISFINITE(runway_yaw_rate_setpoint);
+
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
 			/* Reset integrators if the aircraft is on ground
@@ -314,6 +347,12 @@ void FixedwingAttitudeControl::Run()
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 
+					// On the runway the heading loop owns the yaw axis: replace the turn coordination rate
+					// so that the rudder holds the runway bearing instead of coordinating a turn.
+					if (runway_yaw_rate_control_enabled) {
+						body_rates_setpoint(2) = runway_yaw_rate_setpoint;
+					}
+
 					// Tailsitter: rotate setpoint back from FW to MC frame (controller is in FW frame, interface in MC).
 					if (_vehicle_status.is_vtol_tailsitter) {
 						body_rates_setpoint = _q_mc_to_fw.rotateVectorInverse(body_rates_setpoint);
@@ -332,11 +371,7 @@ void FixedwingAttitudeControl::Run()
 		}
 
 		// steering wheel control
-		fixed_wing_runway_control_s runway_control{};
-		_fixed_wing_runway_control_sub.copy(&runway_control);
-		const bool runway_control_recent = hrt_elapsed_time(&runway_control.timestamp) < 1_s;
-		const bool wheel_controller_enabled = _param_fw_w_en.get() && _vcontrol_mode.flag_control_auto_enabled
-						      && runway_control_recent && runway_control.wheel_steering_enabled;
+		const bool wheel_controller_enabled = _param_fw_w_en.get() && runway_steering_enabled;
 
 		float groundspeed_scale = 1.f;
 		float wheel_u = 0.f;
@@ -359,29 +394,17 @@ void FixedwingAttitudeControl::Run()
 
 			}
 
-			// track the heading commanded by the mode manager (e.g. the runway bearing towards the
-			// takeoff waypoint); if none is provided, hold the heading captured when steering engaged
-			if (PX4_ISFINITE(runway_control.wheel_steering_yaw_setpoint)) {
-				_steering_wheel_yaw_setpoint = runway_control.wheel_steering_yaw_setpoint;
-
-			} else if (!PX4_ISFINITE(_steering_wheel_yaw_setpoint)) {
-				_steering_wheel_yaw_setpoint = euler_angles.psi();
-			}
-
-			_wheel_ctrl.control_attitude(_steering_wheel_yaw_setpoint, euler_angles.psi());
-
+			// the heading loop above already produced the yaw rate setpoint, only close the rate loop here
 			vehicle_angular_velocity_s angular_velocity{};
 			_vehicle_rates_sub.copy(&angular_velocity);
 
-			const float wheel_controller_output = wheel_controller_enabled ? _wheel_ctrl.control_bodyrate(dt,
-							      angular_velocity.xyz[2], _groundspeed,
-							      groundspeed_scale) : 0.f;
+			const float wheel_controller_output = _wheel_ctrl.control_bodyrate(dt, angular_velocity.xyz[2], _groundspeed,
+							      groundspeed_scale);
 
 			wheel_u = wheel_controller_output + runway_control.wheel_steering_nudging_rate;
 
 		} else {
 			_wheel_ctrl.reset_integrator();
-			_steering_wheel_yaw_setpoint = NAN;
 			wheel_u = _manual_control_setpoint.yaw; // direct yaw stick to wheel steering
 		}
 
