@@ -391,11 +391,16 @@ int CanIOManager::send(const CanFrame& frame, MonotonicTime tx_deadline, Monoton
                 int res = 0;
                 if (iface_mask & (1 << i))
                 {
-                    if (tx_queues_[i]->topPriorityHigherOrEqual(frame))
+                    // Anything already queued at this priority was handed to us first and must go
+                    // out first. Falling through to a direct send when sendFromTxQueue() reports 0
+                    // puts the newer frame on the wire ahead of it, which reorders the frames of a
+                    // multi-frame transfer and makes the receiver discard the whole thing.
+                    const bool queue_goes_first = tx_queues_[i]->topPriorityHigherOrEqual(frame);
+                    if (queue_goes_first)
                     {
                         res = sendFromTxQueue(i);                 // May return 0 if nothing to transmit (e.g. expired)
                     }
-                    if (res <= 0)
+                    if (res <= 0 && !queue_goes_first)
                     {
                         res = sendToIface(i, frame, tx_deadline, flags);
                         if (res > 0)
