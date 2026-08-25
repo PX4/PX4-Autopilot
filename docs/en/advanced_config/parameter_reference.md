@@ -26531,6 +26531,7 @@ SYS_FAIL_RC_INST.
 - `100`: Battery
 - `101`: Motor
 - `107`: Traffic avoidance
+- `200`: CAN bus
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
