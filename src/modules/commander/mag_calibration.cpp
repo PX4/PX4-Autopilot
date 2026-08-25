@@ -862,7 +862,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 
 						// Check that the average error across all samples (relative to internal mag) is less than the minimum earth field (~0.25 Gauss)
-						const float mag_error_gs = sqrt(min_mse / last_sample_index);
+						const float mag_error_gs = sqrtf(min_mse);
 						bool total_error_check_passed = (mag_error_gs < 0.25f);
 
 #if defined(DEBUG_BUILD)
