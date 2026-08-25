@@ -302,7 +302,7 @@ void InternalCombustionEngineControl::publishControl(const hrt_abstime now)
 	ice_control.user_request = static_cast<uint8_t>(_user_request);
 	_internal_combustion_engine_control_pub.publish(ice_control);
 
-	internal_combustion_engine_status_s ice_status;
+	internal_combustion_engine_status_s ice_status{};
 	ice_status.state = static_cast<uint8_t>(_state);
 	ice_status.substate = static_cast<uint8_t>(_sub_state);
 	ice_status.timestamp = now;
