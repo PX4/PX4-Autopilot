@@ -323,6 +323,7 @@
       - [Vertiq Motor/ESC Modules](peripherals/vertiq.md)
       - [VESC Project ESCs](peripherals/vesc.md)
       - [Zubax Telega ESCs](dronecan/zubax_telega.md)
+    - [Internal Combustion Engines](actuators/internal_combustion_engine.md)
   - [Manual Control](config/manual_control.md)
     - [Radio Control (RC)](getting_started/rc_transmitter_receiver.md)
       - [Radio Setup](config/radio.md)
