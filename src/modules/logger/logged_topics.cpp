@@ -174,10 +174,12 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("sensor_hygrometer", 500, 4);
 	add_optional_topic_multi("sensor_temp", 100, 4);
 	add_optional_topic_multi("rpm", 200);
-	add_optional_topic_multi("sensor_gnss_rf_block0", 5000, 2);
-	add_optional_topic_multi("sensor_gnss_rf_block1", 5000, 2);
-	add_optional_topic_multi("sensor_gnss_spectrum_block0", 5000, 2);
-	add_optional_topic_multi("sensor_gnss_spectrum_block1", 5000, 2);
+	add_topic_multi("sensor_gnss_rf_block0", 5000, 2);
+	add_topic_multi("sensor_gnss_rf_block1", 5000, 2);
+	add_topic_multi("sensor_gnss_rf_block2", 5000, 2);
+	add_topic_multi("sensor_gnss_spectrum_block0", 5000, 2);
+	add_topic_multi("sensor_gnss_spectrum_block1", 5000, 2);
+	add_topic_multi("sensor_gnss_spectrum_block2", 5000, 2);
 	add_topic_multi("timesync_status", 1000, 3);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
 
