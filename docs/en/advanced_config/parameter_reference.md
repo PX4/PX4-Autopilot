@@ -25152,6 +25152,20 @@ Launch is detected when the norm of body acceleration is above FW_LAUN_AC_THLD f
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
 | &nbsp; | 0        |          | 0.5       | 30.0    | m/s^2 | &nbsp;    |
 
+### FW_LAUN_CLR_ALT (`FLOAT`) {#FW_LAUN_CLR_ALT}
+
+Launch climbout clearance altitude.
+
+Height above the launch point below which the vehicle holds the wind-compensated launch bearing
+instead of the normal line-following guidance, and the roll limit is ramped linearly from 0 at
+the launch point up to FW_R_LIM at this altitude, so that a poor heading estimate or a bad launch
+cannot induce a large bank close to the ground. Only relevant for hand- or catapult-launched
+vehicles (FW_LAUN_DETCN_ON).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 1.0       | 5.0     | m    | &nbsp;    |
+
 ### FW_LAUN_CS_LK_DY (`FLOAT`) {#FW_LAUN_CS_LK_DY}
 
 Control surface launch delay.
