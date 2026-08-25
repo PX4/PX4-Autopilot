@@ -46,6 +46,7 @@
 #include <px4_platform_common/tasks.h>
 
 #include <inttypes.h>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
@@ -496,7 +497,24 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
-	_node.setName("org.pixhawk.pixhawk");
+	// NodeInfo.name is reverse-domain, lowercase, 80 characters max; px4_board_name() is
+	// <VENDOR>_<MODEL> in upper snake case.
+	char node_name[81] {};
+	const char *board = px4_board_name();
+	const char *model = strchr(board, '_');
+
+	if (model != nullptr) {
+		snprintf(node_name, sizeof(node_name), "org.%.*s.%s", static_cast<int>(model - board), board, model + 1);
+
+	} else {
+		snprintf(node_name, sizeof(node_name), "org.%s", board);
+	}
+
+	for (char *c = node_name; *c != '\0'; c++) {
+		*c = (*c == '_') ? '-' : static_cast<char>(tolower(static_cast<unsigned char>(*c)));
+	}
+
+	_node.setName(node_name);
 
 	_node.setNodeID(node_id);
 
@@ -504,12 +522,19 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	int ret;
 
-	// UAVCAN_PUB_ARM
+#if defined(CONFIG_UAVCAN_ARMING_CONTROLLER) || defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+	int32_t uavcan_enable = 0;
+	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
+#endif
+
+	// Publish ArmingStatus when ESC output is enabled. Many DroneCAN ESCs
+	// ignore RawCommand unless they see STATUS_FULLY_ARMED, including during actuator tests.
+	// UAVCAN_PUB_ARM still enables it for sensor-only buses.
 #if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	int32_t uavcan_pub_arm = 0;
-	param_get(param_find("UAVCAN_PUB_ARM"), &uavcan_pub_arm);
+	(void)param_get(param_find("UAVCAN_PUB_ARM"), &uavcan_pub_arm);
 
-	if (uavcan_pub_arm == 1) {
+	if (uavcan_pub_arm == 1 || uavcan_enable > 2) {
 		ret = _arming_status_controller.init();
 
 		if (ret < 0) {
@@ -530,8 +555,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	// Actuators
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-	int32_t uavcan_enable = -1;
-	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 
 	if (uavcan_enable > 2) {
 
@@ -774,6 +797,8 @@ UavcanNode::Run()
 
 	_node.spinOnce(); // expected to be non-blocking
 
+	apply_can_failure_injection();
+
 	publish_can_interface_statuses();
 
 	publish_node_statuses();
@@ -1002,7 +1027,7 @@ UavcanNode::Run()
 		}
 	}
 
-#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER) && defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	_arming_status_controller.setActuatorTestRunning(_mixing_interface_esc.isActuatorTestRunning());
 #endif
 
@@ -1022,6 +1047,39 @@ UavcanNode::Run()
 		ScheduleClear();
 		_instance = nullptr;
 	}
+}
+
+void UavcanNode::apply_can_failure_injection()
+{
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER) && defined(UAVCAN_STM32H7_NUTTX)
+	// FAILURE_UNIT_BUS_CAN: instance i+1 selects CAN interface i. FAILURE_TYPE_OFF holds
+	// the FDCAN peripheral in Init mode so the node leaves the bus entirely (no TX/RX/ACK);
+	// FAILURE_TYPE_OK rejoins it. No-op unless the failure-injection manager is built.
+	_failure_config.update();
+
+	for (uint8_t i = 0; i < can->driver.getNumIfaces(); i++) {
+		UAVCAN_DRIVER::CanIface *iface = can->driver.getIface(i);
+
+		if (iface == nullptr) {
+			continue;
+		}
+
+		const bool off = _failure_config.mode(failure_injection_s::FAILURE_UNIT_BUS_CAN, i + 1)
+				 == failure_injection::Mode::Off;
+
+		if (off == iface->isInInitMode()) {
+			continue;
+		}
+
+		if (off) {
+			iface->setOffline();
+
+		} else {
+			iface->setOnline();
+		}
+	}
+
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER && UAVCAN_STM32H7_NUTTX
 }
 
 void UavcanNode::publish_can_interface_statuses()

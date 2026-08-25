@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,52 +31,37 @@
  *
  ****************************************************************************/
 
-/**
- * @file arming_status.cpp
- *
- * @author Alex Klimaj <alex@arkelectron.com>
- */
+#include "ParachuteRelease.hpp"
 
-#include "arming_status.hpp"
+#include <mathlib/mathlib.h>
 
-UavcanArmingStatus::UavcanArmingStatus(uavcan::INode &node) :
-	_arming_status_pub(node),
-	_timer(node)
+float parachuteReleaseFloor(const float sink_rate)
 {
-	_arming_status_pub.setPriority(uavcan::TransferPriority::Default);
+	return math::max(sink_rate, kParachuteMinSinkRate) * kParachuteCanopyOpenTime;
 }
 
-int UavcanArmingStatus::init()
+float parachuteReleaseAltitude(const float release_alt_param, const float sink_rate)
 {
-	/*
-	 * Setup timer and call back function for periodic updates
-	 */
-	if (!_timer.isRunning()) {
-		_timer.setCallback(TimerCbBinder(this, &UavcanArmingStatus::periodic_update));
-		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
-	}
-
-	return 0;
+	return math::max(release_alt_param, parachuteReleaseFloor(sink_rate));
 }
 
-void UavcanArmingStatus::periodic_update(const uavcan::TimerEvent &)
+matrix::Vector2f parachuteCrosswindAimShift(const matrix::Vector2f &wind_vel,
+		const matrix::Vector2f &approach_direction, const float altitude_above_ground, const float release_alt,
+		const float release_floor, const float sink_rate)
 {
-	actuator_armed_s actuator_armed;
+	const float release_alt_expected = math::constrain(altitude_above_ground, release_floor, release_alt);
+	const matrix::Vector2f drift = wind_vel * release_alt_expected / math::max(sink_rate, kParachuteMinSinkRate);
 
-	if (!_actuator_armed_sub.copy(&actuator_armed)) {
-		return;
-	}
+	return drift - approach_direction * drift.dot(approach_direction);
+}
 
-	uavcan::equipment::safety::ArmingStatus cmd;
+float parachuteReleaseDistance(const matrix::Vector2f &ground_speed, const matrix::Vector2f &wind_vel,
+			       const bool wind_valid, const matrix::Vector2f &approach_direction, const float altitude_above_ground,
+			       const float sink_rate)
+{
+	const float ground_speed_along_track = math::max(ground_speed.dot(approach_direction), 0.f);
+	const float wind_along_track = wind_valid ? wind_vel.dot(approach_direction) : 0.f;
+	const float descent_time = altitude_above_ground / math::max(sink_rate, kParachuteMinSinkRate);
 
-	const bool lockdown_active = actuator_armed.lockdown || actuator_armed.termination || actuator_armed.kill;
-
-	if (!lockdown_active && (actuator_armed.armed || _is_actuator_test_running)) {
-		cmd.status = cmd.STATUS_FULLY_ARMED;
-
-	} else {
-		cmd.status = cmd.STATUS_DISARMED;
-	}
-
-	(void)_arming_status_pub.broadcast(cmd);
+	return ground_speed_along_track * kParachuteDeploymentTime + wind_along_track * descent_time;
 }

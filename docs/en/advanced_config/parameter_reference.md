@@ -25007,6 +25007,55 @@ relative to the vehicle heading (stick deflection to the right = land point move
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 2        |           | 2       |      | &nbsp;    |
 
+### FW_LND_PARA_ALT (`FLOAT`) {#FW_LND_PARA_ALT}
+
+Parachute landing release altitude above ground.
+
+Altitude the vehicle descends to and holds for the release. The release happens
+higher if the predicted touchdown point reaches the landing point while still on
+the approach slope, or lower for a vehicle that cannot hold the altitude, but
+never below 3 seconds of descent at FW_LND_PARA_SINK, so that the canopy has
+room to open.
+
+Lower values reduce the wind drift of the touchdown point.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 1.0      |          | 0.5       | 20.0    | m    | &nbsp;    |
+
+### FW_LND_PARA_EN (`INT32`) {#FW_LND_PARA_EN}
+
+Enable parachute landing on mission landing approach.
+
+If enabled, the vehicle follows the mission landing approach down to the release
+altitude (FW_LND_PARA_ALT) and releases the parachute by triggering flight
+termination, such that the predicted touchdown point under canopy lies on the
+landing point, accounting for ground speed, estimated wind drift during the descent
+(FW_LND_PARA_SINK) and the forward carry while the parachute deploys.
+
+The parachute is released through the flight termination failsafe outputs, or an
+external parachute system (COM_PARACHUTE). Not supported on VTOL.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### FW_LND_PARA_SINK (`FLOAT`) {#FW_LND_PARA_SINK}
+
+Sink rate under the deployed parachute.
+
+Expected steady-state sink rate under canopy. Used to predict the descent duration and
+therewith the wind drift of the touchdown point.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      |          | 0.1       | 5.0     | m/s  | &nbsp;    |
+
 ### FW_LND_TD_OFF (`FLOAT`) {#FW_LND_TD_OFF}
 
 Maximum lateral position offset for the touchdown point.
@@ -25102,6 +25151,20 @@ Launch is detected when the norm of body acceleration is above FW_LAUN_AC_THLD f
 | Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
 | &nbsp; | 0        |          | 0.5       | 30.0    | m/s^2 | &nbsp;    |
+
+### FW_LAUN_CLR_ALT (`FLOAT`) {#FW_LAUN_CLR_ALT}
+
+Launch climbout clearance altitude.
+
+Height above the launch point below which the vehicle holds the wind-compensated launch bearing
+instead of the normal line-following guidance, and the roll limit is ramped linearly from 0 at
+the launch point up to FW_R_LIM at this altitude, so that a poor heading estimate or a bad launch
+cannot induce a large bank close to the ground. Only relevant for hand- or catapult-launched
+vehicles (FW_LAUN_DETCN_ON).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 1.0       | 5.0     | m    | &nbsp;    |
 
 ### FW_LAUN_CS_LK_DY (`FLOAT`) {#FW_LAUN_CS_LK_DY}
 
@@ -26468,6 +26531,7 @@ SYS_FAIL_RC_INST.
 - `100`: Battery
 - `101`: Motor
 - `107`: Traffic avoidance
+- `200`: CAN bus
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -26853,15 +26917,18 @@ the expected application environment.
 
 **Values:**
 
+- `0`: portable
 - `2`: stationary
+- `3`: pedestrian
 - `4`: automotive
+- `5`: sea
 - `6`: airborne with <1g acceleration
 - `7`: airborne with <2g acceleration
 - `8`: airborne with <4g acceleration
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 9        |           | 7       |      | &nbsp;    |
+| &check; | 0        | 8        |           | 7       |      | &nbsp;    |
 
 ### GPS_UBX_JAM_DET (`INT32`) {#GPS_UBX_JAM_DET}
 
@@ -26922,6 +26989,10 @@ Mode 7 turns UART2 into a diagnostic port: the receiver keeps serving the autopi
 while UART2 outputs UBX at GPS_UBX_BAUD2 for u-center. Keep GPS_UBX_BAUD2 at 115200 or above,
 the diagnostic message set saturates a slower link. UBX input is left enabled on UART2, so
 anything attached there can also reconfigure the receiver.
+Mode 8 uses the free Galileo HAS corrections broadcast on E6 (ZED-X20P with HPG 2.10 or
+later) for a PPP solution of roughly 20 cm after a few minutes of convergence. The
+receiver only processes HAS while host corrections are off, so RTCM and SPARTN from the
+autopilot are ignored in this mode; use mode 0 whenever a correction link is available.
 
 **Values:**
 
@@ -26933,10 +27004,11 @@ anything attached there can also reconfigure the receiver.
 - `5`: Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
 - `6`: Ground Control Station (UART2 outputs NMEA)
 - `7`: u-center on UART2 (UART2 outputs UBX diagnostics)
+- `8`: Galileo HAS (X20P, PPP from E6, RTCM/SPARTN input disabled)
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 7        |           | 0       |      | &nbsp;    |
+| &check; | 0        | 8        |           | 0       |      | &nbsp;    |
 
 ### GPS_UBX_PPK (`INT32`) {#GPS_UBX_PPK}
 
