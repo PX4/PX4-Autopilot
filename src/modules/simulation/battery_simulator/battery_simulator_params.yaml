@@ -12,6 +12,20 @@ parameters:
       min: 0
       increment: 1
       unit: s
+    SIM_BAT${i}_DRAIN:
+      description:
+        short: Simulated battery ${i} full-discharge time
+        long: |-
+          Time in seconds for simulated battery ${i} to drain from 100% to 0% while armed,
+          overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
+          Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE.
+      type: float
+      default: [-1.0, -1.0, -1.0]
+      min: -1
+      increment: 1
+      unit: s
+      num_instances: 3
+      instance_start: 1
     SIM_BAT_MIN_PCT:
       description:
         short: Simulator Battery minimal percentage
@@ -24,3 +38,18 @@ parameters:
       max: 100
       increment: 0.1
       unit: '%'
+    SIM_BAT${i}_MIN_PCT:
+      description:
+        short: Simulated battery ${i} minimal percentage
+        long: |-
+          Lowest state of charge simulated battery ${i} drains down to, overriding
+          SIM_BAT_MIN_PCT for this battery only. Set to -1 to use SIM_BAT_MIN_PCT.
+          Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE.
+      type: float
+      default: [-1.0, -1.0, -1.0]
+      min: -1
+      max: 100
+      increment: 0.1
+      unit: '%'
+      num_instances: 3
+      instance_start: 1
