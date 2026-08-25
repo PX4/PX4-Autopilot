@@ -64,7 +64,7 @@ parameters:
         1: System ID only
         2: MAV state only
       default: 0
-    OSD_BAT_VOLT_X:
+    OSD_VOLT_X:
         description:
             short: Analog OSD battery voltage X position
         type: int32
@@ -72,7 +72,7 @@ parameters:
         max: 29
         default: 1
 
-    OSD_BAT_VOLT_Y:
+    OSD_VOLT_Y:
         description:
             short: Analog OSD battery voltage Y position
         type: int32
@@ -96,7 +96,7 @@ parameters:
         max: 15
         default: 2
 
-    OSD_SYSID_X:
+    OSD_ID_X:
         description:
             short: Analog OSD MAVLink system ID X position
         type: int32
@@ -104,7 +104,7 @@ parameters:
         max: 29
         default: 1
 
-    OSD_SYSID_Y:
+    OSD_ID_Y:
         description:
             short: Analog OSD MAVLink system ID Y position
         type: int32
@@ -345,17 +345,17 @@ parameters:
         max: 15
         default: 10
 
-    OSD_CURRENT_X:
+    OSD_PWR_X:
         description:
-            short: Analog OSD current X position
+            short: Analog OSD power draw X position
         type: int32
         min: 0
         max: 29
         default: 1
 
-    OSD_CURRENT_Y:
+    OSD_PWR_Y:
         description:
-            short: Analog OSD current Y position
+            short: Analog OSD power draw Y position
         type: int32
         min: 0
         max: 15
@@ -393,17 +393,17 @@ parameters:
         max: 15
         default: 5
 
-    OSD_PITCH_X:
+    OSD_ATT_X:
         description:
-            short: Analog OSD pitch angle X position
+            short: Analog OSD attitude X position
         type: int32
         min: 0
         max: 29
         default: 1
 
-    OSD_PITCH_Y:
+    OSD_ATT_Y:
         description:
-            short: Analog OSD pitch angle Y position
+            short: Analog OSD attitude Y position
         type: int32
         min: 0
         max: 15
@@ -441,17 +441,17 @@ parameters:
         max: 15
         default: 10
 
-    OSD_VTX_INFO_X:
+    OSD_VTX_X:
         description:
-            short: Analog OSD VTX info X position
+            short: Analog OSD VTX status X position
         type: int32
         min: 0
         max: 29
         default: 19
 
-    OSD_VTX_INFO_Y:
+    OSD_VTX_Y:
         description:
-            short: Analog OSD VTX info Y position
+            short: Analog OSD VTX status Y position
         type: int32
         min: 0
         max: 15

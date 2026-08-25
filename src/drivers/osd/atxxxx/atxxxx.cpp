@@ -461,12 +461,12 @@ OSDatxxxx::update_screen()
 
 	if (enabled(osd::Symbol::BatteryVoltage)) {
 		if (_param_osd_volt_mode.get() == 0) {
-			add_battery_voltage(battery, _param_osd_bat_volt_x.get(), _param_osd_bat_volt_y.get());
+			add_battery_voltage(battery, _param_osd_volt_x.get(), _param_osd_volt_y.get());
 
 		} else {
 			const float cell_voltage = battery.cell_count > 0 ? battery.voltage_v / battery.cell_count : 0.f;
 			snprintf(buf, sizeof(buf), "%c%4.2fV", OSD_SYMBOL_BATT_EMPTY, (double)cell_voltage);
-			add_string_to_screen(buf, _param_osd_bat_volt_x.get(), _param_osd_bat_volt_y.get(), 7);
+			add_string_to_screen(buf, _param_osd_volt_x.get(), _param_osd_volt_y.get(), 7);
 		}
 	}
 
@@ -484,7 +484,7 @@ OSDatxxxx::update_screen()
 			snprintf(buf, sizeof(buf), "%4.0fW", (double)(battery.voltage_v * current_a));
 		}
 
-		add_string_to_screen(buf, _param_osd_current_x.get(), _param_osd_current_y.get(), 6);
+		add_string_to_screen(buf, _param_osd_pwr_x.get(), _param_osd_pwr_y.get(), 6);
 	}
 
 	if (enabled(osd::Symbol::SystemId)) {
@@ -521,7 +521,7 @@ OSDatxxxx::update_screen()
 			break;
 		}
 
-		add_string_to_screen(buf, _param_osd_sysid_x.get(), _param_osd_sysid_y.get(), 8);
+		add_string_to_screen(buf, _param_osd_id_x.get(), _param_osd_id_y.get(), 8);
 	}
 
 	if (enabled(osd::Symbol::Rssi)) {
@@ -607,7 +607,7 @@ OSDatxxxx::update_screen()
 
 	if (enabled(osd::Symbol::Attitude)) {
 		snprintf(buf, sizeof(buf), "P%+4.0f R%+4.0f", (double)math::degrees(pitch_rad), (double)math::degrees(roll_rad));
-		add_string_to_screen(buf, _param_osd_pitch_x.get(), _param_osd_pitch_y.get(), 11);
+		add_string_to_screen(buf, _param_osd_att_x.get(), _param_osd_att_y.get(), 11);
 	}
 
 	if (enabled(osd::Symbol::MissionState)) {
@@ -718,7 +718,7 @@ OSDatxxxx::update_screen()
 			}
 		}
 
-		add_string_to_screen(buf, _param_osd_vtx_info_x.get(), _param_osd_vtx_info_y.get(), 12);
+		add_string_to_screen(buf, _param_osd_vtx_x.get(), _param_osd_vtx_y.get(), 12);
 	}
 
 #endif

@@ -34,33 +34,33 @@ Its default value, `16383`, enables bits 0 through 13, so the analog-only elemen
 Bits absent from the table below are defined by the MSP OSD and are not drawn by this driver.
 The ATXXXX meanings and corresponding position parameters are:
 
-| Bit | Element                                                     | Position parameters                  |
-| --: | ----------------------------------------------------------- | ------------------------------------ |
-|   0 | MAVLink system ID and MAV state, per `OSD_ID_MODE`          | `OSD_SYSID_X`, `OSD_SYSID_Y`         |
-|   1 | Armed/disarmed state                                        | `OSD_ARM_X`, `OSD_ARM_Y`             |
-|   2 | GPS latitude                                                | `OSD_GPS_LAT_X`, `OSD_GPS_LAT_Y`     |
-|   3 | GPS longitude                                               | `OSD_GPS_LON_X`, `OSD_GPS_LON_Y`     |
-|   4 | GPS satellite count                                         | `OSD_GPS_SAT_X`, `OSD_GPS_SAT_Y`     |
-|   5 | GPS ground speed in km/h                                    | `OSD_GPS_SPD_X`, `OSD_GPS_SPD_Y`     |
-|   6 | Distance to home in metres                                  | `OSD_HOME_DST_X`, `OSD_HOME_DST_Y`   |
-|   8 | Battery voltage, per `OSD_VOLT_MODE`                        | `OSD_BAT_VOLT_X`, `OSD_BAT_VOLT_Y`   |
-|   9 | Power draw, per `OSD_PWR_MODE`                              | `OSD_CURRENT_X`, `OSD_CURRENT_Y`     |
-|  10 | Consumed battery capacity in mAh                            | `OSD_MAH_X`, `OSD_MAH_Y`             |
-|  11 | RC RSSI                                                     | `OSD_RSSI_X`, `OSD_RSSI_Y`           |
-|  12 | Local altitude in metres                                    | `OSD_ALT_X`, `OSD_ALT_Y`             |
-|  13 | Vertical speed in m/s                                       | `OSD_VARIO_X`, `OSD_VARIO_Y`         |
-|  14 | Flight mode                                                 | `OSD_MODE_X`, `OSD_MODE_Y`           |
-|  16 | Pitch and roll in degrees                                   | `OSD_PITCH_X`, `OSD_PITCH_Y`         |
-|  18 | Centre crosshair                                            | `OSD_CH_POS_HOR`, `OSD_CH_POS_VER`   |
-|  22 | Mission state or sequence progress                          | `OSD_MISSION_X`, `OSD_MISSION_Y`     |
-|  23 | RC link quality                                             | `OSD_LQ_X`, `OSD_LQ_Y`               |
-|  24 | Elapsed armed flight time                                   | `OSD_FTIME_X`, `OSD_FTIME_Y`         |
-|  25 | PX4 log messages and vehicle status                         | `OSD_STATUS_X`, `OSD_STATUS_Y`       |
-|  26 | Artificial horizon                                          | `OSD_AH_X`, `OSD_AH_Y`               |
-|  27 | Heading in degrees                                          | `OSD_HEAD_X`, `OSD_HEAD_Y`           |
-|  28 | VTX status, per `OSD_VTX_MODE`                              | `OSD_VTX_INFO_X`, `OSD_VTX_INFO_Y`   |
-|  29 | Throttle percentage                                         | `OSD_THROT_X`, `OSD_THROT_Y`         |
-|  30 | GPS fix type, PDOP, and estimated horizontal position error | `OSD_GPS_INFO_X`, `OSD_GPS_INFO_Y`   |
+| Bit | Element                                                     | Position parameters                |
+| --: | ----------------------------------------------------------- | ---------------------------------- |
+|   0 | MAVLink system ID and MAV state, per `OSD_ID_MODE`          | `OSD_ID_X`, `OSD_ID_Y`             |
+|   1 | Armed/disarmed state                                        | `OSD_ARM_X`, `OSD_ARM_Y`           |
+|   2 | GPS latitude                                                | `OSD_GPS_LAT_X`, `OSD_GPS_LAT_Y`   |
+|   3 | GPS longitude                                               | `OSD_GPS_LON_X`, `OSD_GPS_LON_Y`   |
+|   4 | GPS satellite count                                         | `OSD_GPS_SAT_X`, `OSD_GPS_SAT_Y`   |
+|   5 | GPS ground speed in km/h                                    | `OSD_GPS_SPD_X`, `OSD_GPS_SPD_Y`   |
+|   6 | Distance to home in metres                                  | `OSD_HOME_DST_X`, `OSD_HOME_DST_Y` |
+|   8 | Battery voltage, per `OSD_VOLT_MODE`                        | `OSD_VOLT_X`, `OSD_VOLT_Y`         |
+|   9 | Power draw, per `OSD_PWR_MODE`                              | `OSD_PWR_X`, `OSD_PWR_Y`           |
+|  10 | Consumed battery capacity in mAh                            | `OSD_MAH_X`, `OSD_MAH_Y`           |
+|  11 | RC RSSI                                                     | `OSD_RSSI_X`, `OSD_RSSI_Y`         |
+|  12 | Local altitude in metres                                    | `OSD_ALT_X`, `OSD_ALT_Y`           |
+|  13 | Vertical speed in m/s                                       | `OSD_VARIO_X`, `OSD_VARIO_Y`       |
+|  14 | Flight mode                                                 | `OSD_MODE_X`, `OSD_MODE_Y`         |
+|  16 | Pitch and roll in degrees                                   | `OSD_ATT_X`, `OSD_ATT_Y`           |
+|  18 | Centre crosshair                                            | `OSD_CH_POS_HOR`, `OSD_CH_POS_VER` |
+|  22 | Mission state or sequence progress                          | `OSD_MISSION_X`, `OSD_MISSION_Y`   |
+|  23 | RC link quality                                             | `OSD_LQ_X`, `OSD_LQ_Y`             |
+|  24 | Elapsed armed flight time                                   | `OSD_FTIME_X`, `OSD_FTIME_Y`       |
+|  25 | PX4 log messages and vehicle status                         | `OSD_STATUS_X`, `OSD_STATUS_Y`     |
+|  26 | Artificial horizon                                          | `OSD_AH_X`, `OSD_AH_Y`             |
+|  27 | Heading in degrees                                          | `OSD_HEAD_X`, `OSD_HEAD_Y`         |
+|  28 | VTX status, per `OSD_VTX_MODE`                              | `OSD_VTX_X`, `OSD_VTX_Y`           |
+|  29 | Throttle percentage                                         | `OSD_THROT_X`, `OSD_THROT_Y`       |
+|  30 | GPS fix type, PDOP, and estimated horizontal position error | `OSD_GPS_INFO_X`, `OSD_GPS_INFO_Y` |
 
 Set and clear bits in QGroundControl's bitmask parameter editor, or enter the combined decimal value directly.
 
