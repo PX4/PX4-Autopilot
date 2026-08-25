@@ -298,7 +298,7 @@ void imxrt_flexio_clocking(void)
 
 	/* Set PLL3 PFD2 to 480 * 18 / CONFIG_PLL3_PFD2_FRAC */
 
-	reg |= ((uint32_t)(CONFIG_PLL3_PFD2_FRAC) << CCM_ANALOG_PFD_480_PFD3_FRAC_SHIFT);
+	reg |= ((uint32_t)(CONFIG_PLL3_PFD2_FRAC) << CCM_ANALOG_PFD_480_PFD2_FRAC_SHIFT);
 
 	putreg32(reg, IMXRT_CCM_ANALOG_PFD_480);
 
