@@ -37,7 +37,13 @@ MAV_MISSION_INVALID_PARAM6 = 11
 MAV_MISSION_INVALID_PARAM7 = 12
 
 MAV_RESULT_ACCEPTED = 0
+MAV_RESULT_TEMPORARILY_REJECTED = 1
 MAV_RESULT_DENIED = 2
+MAV_RESULT_UNSUPPORTED_MAV_FRAME = 9
+
+MAV_FRAME_LOCAL_NED = 1
+MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6
+MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
 
 MAV_FRAME_GLOBAL_INT = 5
 MAV_FRAME_GLOBAL_RELATIVE_ALT = 3
@@ -51,6 +57,8 @@ CMD_NAV_VTOL_TAKEOFF = 84
 CMD_NAV_VTOL_LAND = 85
 CMD_NAV_DELAY = 93
 CMD_COMPONENT_ARM_DISARM = 400
+CMD_DO_SET_ROI_LOCATION = 195
+CMD_DO_SET_ROI_NONE = 197
 CMD_IMAGE_STOP_CAPTURE = 2001
 
 NAN = float("nan")
@@ -181,6 +189,39 @@ def _send_command(
         )
         if msg and msg.command == cmd:
             return int(msg.result)
+    return None
+
+
+def _send_command_int(
+    mav: Any, cmd: int, frame: int, timeout: float,
+    p1: float = 0.0, p2: float = 0.0,
+    p3: float = 0.0, p4: float = 0.0,
+    x: int = 0, y: int = 0, z: float = 0.0,
+) -> Optional[int]:
+    """Send COMMAND_INT and return the MAV_RESULT from the ACK, or None."""
+    mav.mav.command_int_send(
+        mav.target_system, mav.target_component,
+        frame, cmd, 0, 0,
+        p1, p2, p3, p4,
+        x, y, z,
+    )
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        msg = mav.recv_match(
+            type="COMMAND_ACK", blocking=True, timeout=timeout,
+        )
+        if msg and msg.command == cmd:
+            return int(msg.result)
+    return None
+
+
+def _wait_home_position(mav: Any, timeout: float = 60.0) -> Optional[float]:
+    """Wait until PX4 reports a home position; return home altitude AMSL [m]."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        msg = mav.recv_match(type="HOME_POSITION", blocking=True, timeout=5.0)
+        if msg:
+            return float(msg.altitude) / 1e3
     return None
 
 
@@ -410,6 +451,83 @@ def run_command_tests(mav: Any, timeout: float) -> None:
     )
 
 
+def run_command_int_frame_tests(mav: Any, timeout: float) -> None:
+    print("\n=== COMMAND_INT frame tests (DO_SET_ROI_LOCATION) ===")
+
+    # Coordinates reused from the mission tests; ROI does not validate them.
+    LAT = 473_977_420  # 1e-7 deg
+    LON = 85_456_060   # 1e-7 deg
+
+    home_alt = _wait_home_position(mav)
+    print(f"  home altitude AMSL: {home_alt} m")
+
+    # 20. Global frame with absolute altitude: supported, z is AMSL.
+    result = _send_command_int(
+        mav, CMD_DO_SET_ROI_LOCATION, MAV_FRAME_GLOBAL_INT, timeout,
+        x=LAT, y=LON, z=500.0,
+    )
+    _check(
+        "ROI_LOCATION GLOBAL_INT -> ACCEPTED",
+        result, MAV_RESULT_ACCEPTED,
+    )
+
+    # 21. Relative altitude (INT variant): converted to AMSL at ingest
+    # once home is available.
+    result = _send_command_int(
+        mav, CMD_DO_SET_ROI_LOCATION, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        timeout, x=LAT, y=LON, z=50.0,
+    )
+    _check(
+        "ROI_LOCATION GLOBAL_RELATIVE_ALT_INT -> ACCEPTED",
+        result, MAV_RESULT_ACCEPTED,
+    )
+
+    # 22. Relative altitude (non-INT synonym).
+    result = _send_command_int(
+        mav, CMD_DO_SET_ROI_LOCATION, MAV_FRAME_GLOBAL_RELATIVE_ALT,
+        timeout, x=LAT, y=LON, z=50.0,
+    )
+    _check(
+        "ROI_LOCATION GLOBAL_RELATIVE_ALT -> ACCEPTED",
+        result, MAV_RESULT_ACCEPTED,
+    )
+
+    # 23. Local frame: x/y would be metres, not degrees; consumers read
+    # them as lat/lon and z as AMSL, so the frame must be rejected.
+    result = _send_command_int(
+        mav, CMD_DO_SET_ROI_LOCATION, MAV_FRAME_LOCAL_NED, timeout,
+        x=100_000, y=100_000, z=10.0,
+    )
+    _check(
+        "ROI_LOCATION LOCAL_NED -> UNSUPPORTED_MAV_FRAME",
+        result, MAV_RESULT_UNSUPPORTED_MAV_FRAME,
+    )
+
+    # 24. Mission frame is meaningless for a direct command.
+    result = _send_command_int(
+        mav, CMD_DO_SET_ROI_LOCATION, MAV_FRAME_MISSION, timeout,
+        x=LAT, y=LON, z=50.0,
+    )
+    _check(
+        "ROI_LOCATION MISSION -> UNSUPPORTED_MAV_FRAME",
+        result, MAV_RESULT_UNSUPPORTED_MAV_FRAME,
+    )
+
+    # 25. Terrain-relative altitude needs the terrain height at the target
+    # location, which the receiver cannot resolve: rejected for now.
+    result = _send_command_int(
+        mav, CMD_DO_SET_ROI_LOCATION, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT,
+        timeout, x=LAT, y=LON, z=50.0,
+    )
+    _check(
+        "ROI_LOCATION GLOBAL_TERRAIN_ALT_INT -> UNSUPPORTED_MAV_FRAME",
+        result, MAV_RESULT_UNSUPPORTED_MAV_FRAME,
+    )
+
+    # Clear the ROI again (best effort).
+    _send_command(mav, CMD_DO_SET_ROI_NONE, timeout)
+
+
 # Entry point
 
 
@@ -432,6 +550,7 @@ def main() -> int:
 
     run_mission_tests(mav, args.timeout)
     run_command_tests(mav, args.timeout)
+    run_command_int_frame_tests(mav, args.timeout)
 
     passed = sum(_results)
     total = len(_results)
