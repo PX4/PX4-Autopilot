@@ -40,6 +40,7 @@
 #include <matrix/math.hpp>
 
 #include <stdio.h>
+#include <string.h>
 
 using namespace time_literals;
 
@@ -122,8 +123,26 @@ void Telemetry::update_message_display(int log_level, MessageDisplay &display)
 				"EMERGENCY", "ALERT", "CRITICAL", "ERROR", "WARNING", "NOTICE", "INFO", "DEBUG"
 			};
 			const char *severity = _data.log_message.severity < 8 ? severity_names[_data.log_message.severity] : "STATUS";
+			const char *text = reinterpret_cast<const char *>(_data.log_message.text);
+
+			// px4_log prefixes the publishing module as "[name] ", which costs columns
+			// the display cannot spare
+			if (text[0] == '[') {
+				const char *end = strchr(text, ']');
+
+				if (end != nullptr) {
+					text = end[1] == ' ' ? end + 2 : end + 1;
+				}
+			}
+
 			char message[MSG_BUFFER_SIZE] {};
-			snprintf(message, sizeof(message), "%s: %s", severity, _data.log_message.text);
+			snprintf(message, sizeof(message), "%s: %s", severity, text);
+
+			// messages that are also sent as events end in a tab, which has no glyph
+			for (int i = strlen(message) - 1; i >= 0 && static_cast<unsigned char>(message[i]) <= ' '; --i) {
+				message[i] = '\0';
+			}
+
 			display.set(message);
 			_warning_display_timestamp = now;
 		}
@@ -136,9 +155,7 @@ void Telemetry::update_message_display(int log_level, MessageDisplay &display)
 
 const char *Telemetry::flight_mode() const
 {
-	return _data.status.nav_state < vehicle_status_s::NAVIGATION_STATE_MAX
-	       ? mode_util::nav_state_short_names[_data.status.nav_state]
-	       : "UNKNOWN";
+	return mode_util::nav_state_short_name(_data.status.nav_state, _data.status.vehicle_type);
 }
 
 float Telemetry::flight_time_s() const

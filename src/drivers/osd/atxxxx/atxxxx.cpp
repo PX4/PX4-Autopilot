@@ -452,63 +452,76 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::Crosshairs)) {
-		const int crosshair_x = _param_osd_cross_x.get();
-		const int crosshair_y = _param_osd_cross_y.get();
-		add_character_to_screen(OSD_SYMBOL_AH_CENTER, crosshair_x, crosshair_y);
+		// OSD_CH_POS_* are offsets from the centre of the screen, so the row they
+		// land on follows the active video standard rather than a fixed default
+		const int crosshair_x = OSD_CHARS_PER_ROW / 2 + _param_osd_ch_pos_hor.get();
+		const int crosshair_y = _num_rows / 2 + _param_osd_ch_pos_ver.get();
+		add_character_to_screen(OSD_SYMBOL_AH_CENTER, math::max(0, crosshair_x), math::max(0, crosshair_y));
 	}
 
-	if (enabled(osd::Symbol::MainBatteryVoltage)) {
-		add_battery_voltage(battery, _param_osd_bat_volt_x.get(), _param_osd_bat_volt_y.get());
+	if (enabled(osd::Symbol::BatteryVoltage)) {
+		if (_param_osd_volt_mode.get() == 0) {
+			add_battery_voltage(battery, _param_osd_bat_volt_x.get(), _param_osd_bat_volt_y.get());
+
+		} else {
+			const float cell_voltage = battery.cell_count > 0 ? battery.voltage_v / battery.cell_count : 0.f;
+			snprintf(buf, sizeof(buf), "%c%4.2fV", OSD_SYMBOL_BATT_EMPTY, (double)cell_voltage);
+			add_string_to_screen(buf, _param_osd_bat_volt_x.get(), _param_osd_bat_volt_y.get(), 7);
+		}
 	}
 
 	if (enabled(osd::Symbol::MahDrawn)) {
 		add_consumed_mah(battery, _param_osd_mah_x.get(), _param_osd_mah_y.get());
 	}
 
-	if (enabled(osd::Symbol::AverageCellVoltage)) {
-		const float cell_voltage = battery.cell_count > 0 ? battery.voltage_v / battery.cell_count : 0.f;
-		snprintf(buf, sizeof(buf), "%c%4.2fV", OSD_SYMBOL_BATT_EMPTY, (double)cell_voltage);
-		add_string_to_screen(buf, _param_osd_cell_v_x.get(), _param_osd_cell_v_y.get(), 7);
-	}
-
-	if (enabled(osd::Symbol::CurrentDraw)) {
+	if (enabled(osd::Symbol::PowerDraw)) {
 		const float current_a = PX4_ISFINITE(battery.current_a) ? battery.current_a : 0.f;
-		snprintf(buf, sizeof(buf), "%c%4.1fA", OSD_SYMBOL_AMP, (double)current_a);
+
+		if (_param_osd_pwr_mode.get() == 0) {
+			snprintf(buf, sizeof(buf), "%c%4.1fA", OSD_SYMBOL_AMP, (double)current_a);
+
+		} else {
+			snprintf(buf, sizeof(buf), "%4.0fW", (double)(battery.voltage_v * current_a));
+		}
+
 		add_string_to_screen(buf, _param_osd_current_x.get(), _param_osd_current_y.get(), 6);
 	}
 
-	if (enabled(osd::Symbol::Power)) {
-		const float current_a = PX4_ISFINITE(battery.current_a) ? battery.current_a : 0.f;
-		snprintf(buf, sizeof(buf), "%4.0fW", (double)(battery.voltage_v * current_a));
-		add_string_to_screen(buf, _param_osd_power_x.get(), _param_osd_power_y.get(), 5);
-	}
-
 	if (enabled(osd::Symbol::SystemId)) {
-		// vehicle_status carries the MAVLink system ID, so the driver does not depend on
-		// MAV_SYS_ID: that parameter only exists on boards that build the mavlink module
-		snprintf(buf, sizeof(buf), "S%03d", telemetry.status.system_id);
-		add_string_to_screen(buf, _param_osd_sysid_x.get(), _param_osd_sysid_y.get(), 4);
-	}
-
-	if (enabled(osd::Symbol::MavState)) {
-		const char *mav_state = "MAVINI";
+		const char *mav_state = "INI";
 
 		if (telemetry.actuator_armed.termination || telemetry.actuator_armed.kill ||
 		    (telemetry.actuator_armed.lockdown && telemetry.status.hil_state == vehicle_status_s::HIL_STATE_OFF)) {
-			mav_state = "MAVTRM";
+			mav_state = "TRM";
 
 		} else if (telemetry.status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-			mav_state = telemetry.status.failsafe ? "MAVCRT" : "MAVACT";
+			mav_state = telemetry.status.failsafe ? "CRT" : "ACT";
 
 		} else if (telemetry.status.calibration_enabled || telemetry.status.rc_calibration_in_progress ||
 			   telemetry.actuator_armed.in_esc_calibration_mode) {
-			mav_state = "MAVCAL";
+			mav_state = "CAL";
 
 		} else if (telemetry.status.pre_flight_checks_pass) {
-			mav_state = "MAVSTB";
+			mav_state = "STB";
 		}
 
-		add_centered_string_to_screen(mav_state, _param_osd_mav_state_x.get(), _param_osd_mav_state_y.get(), 6);
+		// vehicle_status carries the MAVLink system ID, so the driver does not depend on
+		// MAV_SYS_ID: that parameter only exists on boards that build the mavlink module
+		switch (_param_osd_id_mode.get()) {
+		case 1:
+			snprintf(buf, sizeof(buf), "S%03d", telemetry.status.system_id);
+			break;
+
+		case 2:
+			snprintf(buf, sizeof(buf), "%s", mav_state);
+			break;
+
+		default:
+			snprintf(buf, sizeof(buf), "S%03d %s", telemetry.status.system_id, mav_state);
+			break;
+		}
+
+		add_string_to_screen(buf, _param_osd_sysid_x.get(), _param_osd_sysid_y.get(), 8);
 	}
 
 	if (enabled(osd::Symbol::Rssi)) {
@@ -553,17 +566,6 @@ OSDatxxxx::update_screen()
 		add_string_to_screen(buf, _param_osd_gps_spd_x.get(), _param_osd_gps_spd_y.get(), 6);
 	}
 
-	if (enabled(osd::Symbol::GpsInfo)) {
-		const char *fix_type = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_3D ? "3D" :
-				       (telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D ? "2D" : "NO");
-		const float hdop = PX4_ISFINITE(telemetry.gps.hdop) ? telemetry.gps.hdop : 0.f;
-		const float vdop = PX4_ISFINITE(telemetry.gps.vdop) ? telemetry.gps.vdop : 0.f;
-		const float eph = PX4_ISFINITE(telemetry.gps.eph) ? telemetry.gps.eph : 0.f;
-		const float pdop = sqrtf(hdop * hdop + vdop * vdop);
-		snprintf(buf, sizeof(buf), "%s D%3.1f E%3.1f", fix_type, (double)pdop, (double)eph);
-		add_string_to_screen(buf, _param_osd_gps_info_x.get(), _param_osd_gps_info_y.get(), 12);
-	}
-
 	if (enabled(osd::Symbol::GpsLatitude)) {
 		const double latitude = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.latitude_deg)
 					? telemetry.gps.latitude_deg : 0.;
@@ -576,6 +578,17 @@ OSDatxxxx::update_screen()
 					 ? telemetry.gps.longitude_deg : 0.;
 		snprintf(buf, sizeof(buf), "LON%+.5f", longitude);
 		add_string_to_screen(buf, _param_osd_gps_lon_x.get(), _param_osd_gps_lon_y.get(), 14);
+	}
+
+	if (enabled(osd::Symbol::GpsInfo)) {
+		const char *fix_type = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_3D ? "3D" :
+				       (telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D ? "2D" : "NO");
+		const float hdop = PX4_ISFINITE(telemetry.gps.hdop) ? telemetry.gps.hdop : 0.f;
+		const float vdop = PX4_ISFINITE(telemetry.gps.vdop) ? telemetry.gps.vdop : 0.f;
+		const float eph = PX4_ISFINITE(telemetry.gps.eph) ? telemetry.gps.eph : 0.f;
+		const float pdop = sqrtf(hdop * hdop + vdop * vdop);
+		snprintf(buf, sizeof(buf), "%s D%3.1f E%3.1f", fix_type, (double)pdop, (double)eph);
+		add_string_to_screen(buf, _param_osd_gps_info_x.get(), _param_osd_gps_info_y.get(), 12);
 	}
 
 	if (enabled(osd::Symbol::Altitude)) {
@@ -592,14 +605,9 @@ OSDatxxxx::update_screen()
 		add_string_to_screen(buf, _param_osd_vario_x.get(), _param_osd_vario_y.get(), 7);
 	}
 
-	if (enabled(osd::Symbol::PitchAngle)) {
-		snprintf(buf, sizeof(buf), "P%+4.0f", (double)math::degrees(pitch_rad));
-		add_string_to_screen(buf, _param_osd_pitch_x.get(), _param_osd_pitch_y.get(), 6);
-	}
-
-	if (enabled(osd::Symbol::RollAngle)) {
-		snprintf(buf, sizeof(buf), "R%+4.0f", (double)math::degrees(roll_rad));
-		add_string_to_screen(buf, _param_osd_roll_x.get(), _param_osd_roll_y.get(), 6);
+	if (enabled(osd::Symbol::Attitude)) {
+		snprintf(buf, sizeof(buf), "P%+4.0f R%+4.0f", (double)math::degrees(pitch_rad), (double)math::degrees(roll_rad));
+		add_string_to_screen(buf, _param_osd_pitch_x.get(), _param_osd_pitch_y.get(), 11);
 	}
 
 	if (enabled(osd::Symbol::MissionState)) {
@@ -685,35 +693,32 @@ OSDatxxxx::update_screen()
 
 #if defined(CONFIG_DRIVERS_VTX)
 
-	if (enabled(osd::Symbol::VtxInfo)) {
-		if (telemetry.vtx.timestamp != 0 && telemetry.vtx.band >= 0 && telemetry.vtx.channel >= 0 &&
-		    telemetry.vtx.power_level >= 0 && telemetry.vtx.band_letter != 0) {
-			snprintf(buf, sizeof(buf), "VTX %c:%d:%d", telemetry.vtx.band_letter, telemetry.vtx.channel + 1,
-				 telemetry.vtx.power_level + 1);
+	if (enabled(osd::Symbol::VtxStatus)) {
+		const bool vtx_valid = telemetry.vtx.timestamp != 0;
+
+		if (_param_osd_vtx_mode.get() == 0) {
+			if (vtx_valid && telemetry.vtx.band >= 0 && telemetry.vtx.channel >= 0 &&
+			    telemetry.vtx.power_level >= 0 && telemetry.vtx.band_letter != 0) {
+				snprintf(buf, sizeof(buf), "VTX %c:%d:%d", telemetry.vtx.band_letter, telemetry.vtx.channel + 1,
+					 telemetry.vtx.power_level + 1);
+
+			} else {
+				strncpy(buf, "VTX -:0:0", sizeof(buf));
+			}
 
 		} else {
-			strncpy(buf, "VTX -:0:0", sizeof(buf));
+			const uint16_t frequency = vtx_valid ? telemetry.vtx.frequency : 0;
+
+			if (vtx_valid && telemetry.vtx.power_label[0] != 0) {
+				snprintf(buf, sizeof(buf), "%huM %.*sMW", frequency, (int)sizeof(telemetry.vtx.power_label),
+					 reinterpret_cast<const char *>(telemetry.vtx.power_label));
+
+			} else {
+				snprintf(buf, sizeof(buf), "%huM 0MW", frequency);
+			}
 		}
 
-		add_string_to_screen(buf, _param_osd_vtx_info_x.get(), _param_osd_vtx_info_y.get(), 11);
-	}
-
-	if (enabled(osd::Symbol::VtxFrequency)) {
-		const uint16_t frequency = telemetry.vtx.timestamp != 0 ? telemetry.vtx.frequency : 0;
-		snprintf(buf, sizeof(buf), "VTF: %huM", frequency);
-		add_string_to_screen(buf, _param_osd_vtx_freq_x.get(), _param_osd_vtx_freq_y.get(), 11);
-	}
-
-	if (enabled(osd::Symbol::VtxPower)) {
-		if (telemetry.vtx.timestamp != 0 && telemetry.vtx.power_level >= 0 && telemetry.vtx.power_label[0] != 0) {
-			snprintf(buf, sizeof(buf), "VTW: %.*sMW", (int)sizeof(telemetry.vtx.power_label),
-				 reinterpret_cast<const char *>(telemetry.vtx.power_label));
-
-		} else {
-			snprintf(buf, sizeof(buf), "VTW: 0MW");
-		}
-
-		add_string_to_screen(buf, _param_osd_vtx_power_x.get(), _param_osd_vtx_power_y.get(), 12);
+		add_string_to_screen(buf, _param_osd_vtx_info_x.get(), _param_osd_vtx_info_y.get(), 12);
 	}
 
 #endif
@@ -761,15 +766,13 @@ OSDatxxxx::update_screen()
 			} else if (failsafe_flags.home_position_invalid) {
 				strncpy(message, "NO HOME", sizeof(message));
 
-			} else if (telemetry.status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				strncpy(message, "ARMED", sizeof(message));
-
-			} else if (telemetry.status.pre_flight_checks_pass) {
-				strncpy(message, "READY", sizeof(message));
-
-			} else {
+			} else if (!telemetry.status.pre_flight_checks_pass
+				   && telemetry.status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 				strncpy(message, "NOT READY", sizeof(message));
 			}
+
+			// falling through leaves the row clear: an all-clear string would sit there
+			// permanently, and the arming element already reports armed state
 		}
 
 		add_centered_string_to_screen(message, _param_osd_status_x.get(), _param_osd_status_y.get(), FULL_MSG_LENGTH);

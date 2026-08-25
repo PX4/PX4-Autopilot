@@ -59,8 +59,10 @@
 namespace osd
 {
 
+// Bit positions in OSD_SYMBOLS, the element selection shared with the MSP OSD.
+// Gaps are bits the parameter defines but this driver does not draw; bits 22 and
+// up are elements only this driver provides.
 enum class Symbol : uint8_t {
-	CraftName = 0,
 	SystemId = 0,
 	Disarmed = 1,
 	GpsLatitude = 2,
@@ -68,30 +70,22 @@ enum class Symbol : uint8_t {
 	GpsSatellites = 4,
 	GpsSpeed = 5,
 	HomeDistance = 6,
-	HomeDirection = 7,
-	MissionState = 7,
-	MainBatteryVoltage = 8,
-	CurrentDraw = 9,
+	BatteryVoltage = 8,
+	PowerDraw = 9,
 	MahDrawn = 10,
 	Rssi = 11,
 	Altitude = 12,
 	NumericalVario = 13,
 	FlightMode = 14,
-	LinkQuality = 15,
-	PitchAngle = 16,
-	RollAngle = 17,
+	Attitude = 16,
 	Crosshairs = 18,
-	AverageCellVoltage = 19,
-	HorizonSidebars = 20,
-	MavState = 20,
-	Power = 21,
-	FlightTime = 22,
-	StatusMessage = 23,
-	ArtificialHorizon = 24,
-	Heading = 25,
-	VtxInfo = 26,
-	VtxFrequency = 27,
-	VtxPower = 28,
+	MissionState = 22,
+	LinkQuality = 23,
+	FlightTime = 24,
+	StatusMessage = 25,
+	ArtificialHorizon = 26,
+	Heading = 27,
+	VtxStatus = 28,
 	Throttle = 29,
 	GpsInfo = 30,
 };

@@ -15,6 +15,55 @@ parameters:
         2: PAL
       default: 0
       reboot_required: true
+
+    OSD_VOLT_MODE:
+      description:
+        short: Analog OSD battery voltage display
+        long: |-
+          Selects what the battery voltage element shows. Both readings come
+          from the same measurement, so only one is drawn.
+      type: enum
+      values:
+        0: Pack voltage
+        1: Average cell voltage
+      default: 0
+
+    OSD_PWR_MODE:
+      description:
+        short: Analog OSD power draw display
+        long: |-
+          Selects what the power draw element shows. Watts are derived from the
+          same current measurement, so only one is drawn.
+      type: enum
+      values:
+        0: Current in amps
+        1: Power in watts
+      default: 0
+
+    OSD_VTX_MODE:
+      description:
+        short: Analog OSD video transmitter display
+        long: |-
+          Selects what the VTX element shows: the configured band, channel and
+          power level, or the resulting frequency and output power.
+      type: enum
+      values:
+        0: Band, channel and power level
+        1: Frequency and power in mW
+      default: 0
+
+    OSD_ID_MODE:
+      description:
+        short: Analog OSD identification display
+        long: |-
+          Selects what the identification element shows: the MAVLink system ID,
+          the MAVLink vehicle state, or both.
+      type: enum
+      values:
+        0: System ID and MAV state
+        1: System ID only
+        2: MAV state only
+      default: 0
     OSD_BAT_VOLT_X:
         description:
             short: Analog OSD battery voltage X position
@@ -47,22 +96,6 @@ parameters:
         max: 15
         default: 2
 
-    OSD_CELL_V_X:
-        description:
-            short: Analog OSD average cell voltage X position
-        type: int32
-        min: 0
-        max: 29
-        default: 12
-
-    OSD_CELL_V_Y:
-        description:
-            short: Analog OSD average cell voltage Y position
-        type: int32
-        min: 0
-        max: 15
-        default: 1
-
     OSD_SYSID_X:
         description:
             short: Analog OSD MAVLink system ID X position
@@ -90,25 +123,6 @@ parameters:
     OSD_MISSION_Y:
         description:
             short: Analog OSD mission state Y position
-        type: int32
-        min: 0
-        max: 15
-        default: 0
-
-    OSD_MAV_STATE_X:
-        description:
-            short: Analog OSD MAVLink state X position
-            long: |
-              Centre column of the text, which is centred here rather than
-              starting here: the state name varies in length.
-        type: int32
-        min: 0
-        max: 29
-        default: 18
-
-    OSD_MAV_STATE_Y:
-        description:
-            short: Analog OSD MAVLink state Y position
         type: int32
         min: 0
         max: 15
@@ -331,22 +345,6 @@ parameters:
         max: 15
         default: 10
 
-    OSD_CROSS_X:
-        description:
-            short: Analog OSD crosshair center X position
-        type: int32
-        min: 0
-        max: 29
-        default: 15
-
-    OSD_CROSS_Y:
-        description:
-            short: Analog OSD crosshair center Y position
-        type: int32
-        min: 0
-        max: 15
-        default: 6
-
     OSD_CURRENT_X:
         description:
             short: Analog OSD current X position
@@ -362,22 +360,6 @@ parameters:
         min: 0
         max: 15
         default: 4
-
-    OSD_POWER_X:
-        description:
-            short: Analog OSD power X position
-        type: int32
-        min: 0
-        max: 29
-        default: 1
-
-    OSD_POWER_Y:
-        description:
-            short: Analog OSD power Y position
-        type: int32
-        min: 0
-        max: 15
-        default: 5
 
     OSD_THROT_X:
         description:
@@ -427,22 +409,6 @@ parameters:
         max: 15
         default: 7
 
-    OSD_ROLL_X:
-        description:
-            short: Analog OSD roll angle X position
-        type: int32
-        min: 0
-        max: 29
-        default: 1
-
-    OSD_ROLL_Y:
-        description:
-            short: Analog OSD roll angle Y position
-        type: int32
-        min: 0
-        max: 15
-        default: 8
-
     OSD_GPS_LAT_X:
         description:
             short: Analog OSD GPS latitude X position
@@ -490,38 +456,6 @@ parameters:
         min: 0
         max: 15
         default: 4
-
-    OSD_VTX_FREQ_X:
-        description:
-            short: Analog OSD VTX frequency X position
-        type: int32
-        min: 0
-        max: 29
-        default: 19
-
-    OSD_VTX_FREQ_Y:
-        description:
-            short: Analog OSD VTX frequency Y position
-        type: int32
-        min: 0
-        max: 15
-        default: 7
-
-    OSD_VTX_POWER_X:
-        description:
-            short: Analog OSD VTX power X position
-        type: int32
-        min: 0
-        max: 29
-        default: 18
-
-    OSD_VTX_POWER_Y:
-        description:
-            short: Analog OSD VTX power Y position
-        type: int32
-        min: 0
-        max: 15
-        default: 8
 
     OSD_CAM_VFOV:
         description:
