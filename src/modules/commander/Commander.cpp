@@ -822,6 +822,8 @@ Commander::Commander() :
 	param_t param_mav_sys_id = param_find("MAV_SYS_ID");
 	_param_mav_type = param_find("MAV_TYPE");
 	_param_rc_map_fltmode = param_find("RC_MAP_FLTMODE");
+	_param_trig_mode = param_find("TRIG_MODE");
+	_param_mnt_mode_in = param_find("MNT_MODE_IN");
 
 	int32_t value_int32 = 0;
 
@@ -1674,23 +1676,31 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL:
+	case vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL:
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST:
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL:
+	case vehicle_command_s::VEHICLE_CMD_OBLIQUE_SURVEY:
+		nackIfModuleDisabled(cmd, _param_trig_mode, 0);
+		break;
+
+	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL:
+	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE:
+	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
+		nackIfModuleDisabled(cmd, _param_mnt_mode_in, -1);
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
-	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL:
-	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE:
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_UAVCAN:
 	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY:
 	case vehicle_command_s::VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY:
 	case vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION:
-	case vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL:
-	case vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL:
-	case vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST:
-	case vehicle_command_s::VEHICLE_CMD_OBLIQUE_SURVEY:
-	case vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 	case vehicle_command_s::VEHICLE_CMD_SET_CAMERA_MODE:
 	case vehicle_command_s::VEHICLE_CMD_SET_CAMERA_ZOOM:
 	case vehicle_command_s::VEHICLE_CMD_SET_CAMERA_FOCUS:
@@ -1709,8 +1719,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE:
 	case vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN:
-	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
-	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 	case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
 	case vehicle_command_s::VEHICLE_CMD_ESC_REQUEST_EEPROM:
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE:
@@ -1826,6 +1834,23 @@ unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 
 	_actuator_test_pub.publish(actuator_test);
 	return vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+}
+
+void Commander::nackIfModuleDisabled(const vehicle_command_s &cmd, param_t enabled_param, int32_t disabled_value)
+{
+	int32_t value = disabled_value;
+
+	if (enabled_param != PARAM_INVALID) {
+		param_get(enabled_param, &value);
+	}
+
+	if (value == disabled_value) {
+		// Not compiled in (param never registered, value stays at disabled_value) or
+		// explicitly disabled at boot -- nothing else will answer this command.
+		answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+	}
+
+	// Otherwise stay silent -- the owning module is expected to ack this itself.
 }
 
 void Commander::executeActionRequest(const action_request_s &action_request)
