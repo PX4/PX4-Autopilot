@@ -797,6 +797,8 @@ UavcanNode::Run()
 
 	_node.spinOnce(); // expected to be non-blocking
 
+	apply_can_failure_injection();
+
 	publish_can_interface_statuses();
 
 	publish_node_statuses();
@@ -1045,6 +1047,39 @@ UavcanNode::Run()
 		ScheduleClear();
 		_instance = nullptr;
 	}
+}
+
+void UavcanNode::apply_can_failure_injection()
+{
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER) && defined(UAVCAN_STM32H7_NUTTX)
+	// FAILURE_UNIT_BUS_CAN: instance i+1 selects CAN interface i. FAILURE_TYPE_OFF holds
+	// the FDCAN peripheral in Init mode so the node leaves the bus entirely (no TX/RX/ACK);
+	// FAILURE_TYPE_OK rejoins it. No-op unless the failure-injection manager is built.
+	_failure_config.update();
+
+	for (uint8_t i = 0; i < can->driver.getNumIfaces(); i++) {
+		UAVCAN_DRIVER::CanIface *iface = can->driver.getIface(i);
+
+		if (iface == nullptr) {
+			continue;
+		}
+
+		const bool off = _failure_config.mode(failure_injection_s::FAILURE_UNIT_BUS_CAN, i + 1)
+				 == failure_injection::Mode::Off;
+
+		if (off == iface->isInInitMode()) {
+			continue;
+		}
+
+		if (off) {
+			iface->setOffline();
+
+		} else {
+			iface->setOnline();
+		}
+	}
+
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER && UAVCAN_STM32H7_NUTTX
 }
 
 void UavcanNode::publish_can_interface_statuses()
