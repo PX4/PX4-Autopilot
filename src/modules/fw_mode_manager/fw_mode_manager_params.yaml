@@ -304,6 +304,21 @@ parameters:
       min: 0.0
       decimal: 1
       increment: 0.1
+    FW_LAUN_CLR_ALT:
+      description:
+        short: Launch climbout clearance altitude
+        long: |-
+          Height above the launch point below which the vehicle holds the wind-compensated launch bearing
+          instead of the normal line-following guidance, and the roll limit is ramped linearly from 0 at
+          the launch point up to FW_R_LIM at this altitude, so that a poor heading estimate or a bad launch
+          cannot induce a large bank close to the ground. Only relevant for hand- or catapult-launched
+          vehicles (FW_LAUN_DETCN_ON).
+      type: float
+      default: 5.0
+      unit: m
+      min: 0.0
+      decimal: 1
+      increment: 1.0
     FW_FLAPS_TO_SCL:
       description:
         short: Flaps setting during take-off
