@@ -55,5 +55,10 @@ static constexpr uint32_t UavcanClassicBitrateMax = 1000000U;
 
 inline bool uavcanBitrateIsCanFd(uint32_t bitrate)
 {
+#if UAVCAN_SUPPORT_CANFD
 	return bitrate > UavcanClassicBitrateMax;
+#else
+	(void)bitrate;
+	return false;
+#endif
 }

@@ -347,7 +347,11 @@ public:
 	 */
 	int init(uavcan::uint32_t bitrate)
 	{
+#if UAVCAN_SUPPORT_CANFD
 		const bool canfd = bitrate > 1000000U;
+#else
+		const bool canfd = false;
+#endif
 		const uavcan::uint32_t nominal = canfd ? 1000000U : bitrate;
 		return driver.init(nominal, bitrate, CanIface::NormalMode, enabledInterfaces_, canfd);
 	}
@@ -369,7 +373,11 @@ public:
 	int init(uavcan::uint32_t &inout_bitrate = BitRateAutoDetect)
 	{
 		if (inout_bitrate > 0) {
+#if UAVCAN_SUPPORT_CANFD
 			const bool canfd = inout_bitrate > 1000000U;
+#else
+			const bool canfd = false;
+#endif
 			const uavcan::uint32_t nominal = canfd ? 1000000U : inout_bitrate;
 			return driver.init(nominal, inout_bitrate, CanIface::NormalMode, enabledInterfaces_, canfd);
 
