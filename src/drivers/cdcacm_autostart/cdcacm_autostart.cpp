@@ -47,10 +47,21 @@ __END_DECLS
 #include <px4_platform_common/posix.h>
 
 #include <errno.h>
+#include <stdlib.h>
+#include <sys/boardctl.h>
+
+#define USB_DEVICE_PATH "/dev/ttyACM0"
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_CDCACM_COMPOSITE)
+#  define USB_SLCAN_PATH "/dev/ttyACM1"
+#else
+#  define USB_SLCAN_PATH USB_DEVICE_PATH
+#endif
 
 ModuleBase::Descriptor CdcAcmAutostart::desc{task_spawn, custom_command, print_usage};
 
-#define USB_DEVICE_PATH "/dev/ttyACM0"
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_CDCACM_COMPOSITE)
+static void *g_composite_handle;
+#endif
 
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 #  undef SERIAL_PASSTHRU_UBLOX_DEV
@@ -81,6 +92,14 @@ CdcAcmAutostart::~CdcAcmAutostart()
 
 	if (_active_protocol == UsbProtocol::mavlink) {
 		stop_mavlink();
+
+	} else if (_active_protocol == UsbProtocol::slcan) {
+		stop_slcan();
+	}
+
+	if (_slcan_started) {
+		stop_slcan();
+		_slcan_started = false;
 	}
 
 	close_ttyacm();
@@ -178,6 +197,14 @@ void CdcAcmAutostart::state_connected()
 
 		if (_active_protocol == UsbProtocol::mavlink) {
 			stop_mavlink();
+
+		} else if (_active_protocol == UsbProtocol::slcan) {
+			stop_slcan();
+		}
+
+		if (_slcan_started) {
+			stop_slcan();
+			_slcan_started = false;
 		}
 
 		_state = UsbAutoStartState::disconnecting;
@@ -193,7 +220,7 @@ void CdcAcmAutostart::state_disconnected()
 	if (_vbus_present && _vbus_present_prev) {
 		PX4_DEBUG("starting sercon");
 
-		if (sercon_main(0, nullptr) == EXIT_SUCCESS) {
+		if (usbdev_connect() == 0) {
 			_state = UsbAutoStartState::connecting;
 			PX4_DEBUG("state connecting");
 		}
@@ -217,11 +244,10 @@ void CdcAcmAutostart::state_connecting()
 		goto fail;
 	}
 
-	// SYS_USB_AUTO=2: always start MAVLink. Probe the port first — CDC/ACM registers
-	// /dev/ttyACM0 immediately, but open() returns -ENOTCONN until the host has
-	// enumerated. mavlink exits if its own open retries run out, so only spawn it
-	// once the port is known to be openable, then release the probe.
-	if (_sys_usb_auto.get() == 2) {
+	// SYS_USB_AUTO=2: MAVLink. SYS_USB_AUTO=3: SLCAN for DroneCAN GUI Tool.
+	// Probe the port first — CDC/ACM registers /dev/ttyACM0 immediately, but
+	// open() returns -ENOTCONN until the host has enumerated.
+	if (_sys_usb_auto.get() == 2 || _sys_usb_auto.get() == 3) {
 		if (_ttyacm_fd < 0) {
 			_ttyacm_fd = px4_open(USB_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
 		}
@@ -232,11 +258,29 @@ void CdcAcmAutostart::state_connecting()
 		}
 
 		close_ttyacm();
+
+		if (_sys_usb_auto.get() == 3) {
+			PX4_INFO("Starting slcan on %s (SYS_USB_AUTO=3)", USB_DEVICE_PATH);
+
+			if (start_slcan()) {
+				_state = UsbAutoStartState::connected;
+				_active_protocol = UsbProtocol::slcan;
+				start_slcan_secondary();
+
+			} else {
+				_state = UsbAutoStartState::disconnecting;
+				_reschedule_time = 100_ms;
+			}
+
+			return;
+		}
+
 		PX4_INFO("Starting mavlink on %s (SYS_USB_AUTO=2)", USB_DEVICE_PATH);
 
 		if (start_mavlink()) {
 			_state = UsbAutoStartState::connected;
 			_active_protocol = UsbProtocol::mavlink;
+			start_slcan_secondary();
 
 		} else {
 			_state = UsbAutoStartState::disconnecting;
@@ -251,6 +295,7 @@ void CdcAcmAutostart::state_connecting()
 		close_ttyacm();
 		_state = UsbAutoStartState::connected;
 		_active_protocol = UsbProtocol::none;
+		start_slcan_secondary();
 		return;
 	}
 
@@ -265,6 +310,8 @@ void CdcAcmAutostart::state_connecting()
 		// Port not ready yet (e.g. USB power-only / not fully enumerated). Keep trying.
 		return;
 	}
+
+	start_slcan_secondary();
 
 	if ((px4_ioctl(_ttyacm_fd, FIONREAD, &bytes_available) != PX4_OK) ||
 	    (bytes_available < 3)) {
@@ -315,6 +362,7 @@ void CdcAcmAutostart::state_connecting()
 		if (start_mavlink()) {
 			_state = UsbAutoStartState::connected;
 			_active_protocol = UsbProtocol::mavlink;
+			start_slcan_secondary();
 
 		} else {
 			_state = UsbAutoStartState::disconnecting;
@@ -324,11 +372,33 @@ void CdcAcmAutostart::state_connecting()
 		return;
 	}
 
+	// Dual CDC: SLCAN lives on ttyACM1. Ignore LAWICEL on ACM0.
+#if !defined(CONFIG_USBDEV_COMPOSITE)
+
+	// Parse for LAWICEL SLCAN from DroneCAN GUI Tool (S8/O/...).
+	if (scan_buffer_for_slcan()) {
+		if (start_slcan()) {
+			_state = UsbAutoStartState::connected;
+			_active_protocol = UsbProtocol::slcan;
+
+		} else {
+			_state = UsbAutoStartState::disconnecting;
+			_reschedule_time = 100_ms;
+		}
+
+		return;
+	}
+
+#endif
+
+	start_slcan_secondary();
+
 	// Parse for carriage returns indicating someone is trying to use the nsh.
 	if (scan_buffer_for_carriage_returns()) {
 		if (start_nsh()) {
 			_state = UsbAutoStartState::connected;
 			_active_protocol = UsbProtocol::nsh;
+			start_slcan_secondary();
 
 		} else {
 			_state = UsbAutoStartState::disconnecting;
@@ -370,8 +440,7 @@ void CdcAcmAutostart::state_disconnecting()
 
 	close_ttyacm();
 
-	// Disconnect serial
-	serdis_main(0, NULL);
+	usbdev_disconnect();
 	_state = UsbAutoStartState::disconnected;
 	_active_protocol = UsbProtocol::none;
 }
@@ -472,6 +541,57 @@ bool CdcAcmAutostart::scan_buffer_for_mavlink_heartbeat()
 	return launch_mavlink;
 }
 
+bool CdcAcmAutostart::scan_buffer_for_slcan()
+{
+	// LAWICEL commands are ASCII and CR-terminated. GUI Tool typically sends
+	// "S8\r" then "O\r" (3 and 2 bytes). Wait for a complete command.
+	for (int i = 0; i < _bytes_read; i++) {
+		if (_buffer[i] != '\r') {
+			continue;
+		}
+
+		int start = 0;
+
+		for (int j = i - 1; j >= 0; j--) {
+			if (_buffer[j] == '\r' || _buffer[j] == '\n') {
+				start = j + 1;
+				break;
+			}
+
+			if (j == 0) {
+				start = 0;
+			}
+		}
+
+		const int cmd_len = i - start;
+
+		if (cmd_len < 1) {
+			continue;
+		}
+
+		const char c = _buffer[start];
+
+		if ((c == 'S' || c == 's') && cmd_len >= 2 &&
+		    _buffer[start + 1] >= '0' && _buffer[start + 1] <= '9') {
+			PX4_INFO("%s: launching slcan (LAWICEL bitrate)", USB_DEVICE_PATH);
+			return true;
+		}
+
+		if ((c == 'O' || c == 'C' || c == 'F' || c == 'V' || c == 'v' || c == 'N') &&
+		    cmd_len == 1) {
+			PX4_INFO("%s: launching slcan (LAWICEL %c)", USB_DEVICE_PATH, c);
+			return true;
+		}
+
+		if ((c == 'T' || c == 't' || c == 'D' || c == 'd') && cmd_len >= 5) {
+			PX4_INFO("%s: launching slcan (LAWICEL frame)", USB_DEVICE_PATH);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool CdcAcmAutostart::scan_buffer_for_carriage_returns()
 {
 	bool start_nsh = false;
@@ -534,6 +654,95 @@ void CdcAcmAutostart::stop_mavlink()
 {
 	char *stop_argv[] { (char *)"mavlink", (char *)"stop", (char *)"-d", (char *)USB_DEVICE_PATH, nullptr };
 	execute_process(stop_argv);
+}
+
+bool CdcAcmAutostart::start_slcan()
+{
+	char *argv[] { (char *)"slcan", (char *)"start", (char *)"-d", (char *)USB_DEVICE_PATH,
+		       (char *)"-i", (char *)"can0", nullptr
+		     };
+	return execute_process(argv) > 0;
+}
+
+void CdcAcmAutostart::start_slcan_secondary()
+{
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_CDCACM_COMPOSITE)
+
+	if (_slcan_started) {
+		return;
+	}
+
+	char *argv[] {
+		(char *)"slcan", (char *)"start", (char *)"-d", (char *)USB_SLCAN_PATH,
+		(char *)"-i", (char *)"can0", nullptr
+	};
+
+	if (execute_process(argv) > 0) {
+		_slcan_started = true;
+		PX4_INFO("Starting slcan on %s", USB_SLCAN_PATH);
+	}
+
+#endif
+}
+
+void CdcAcmAutostart::stop_slcan()
+{
+	char *stop_argv[] { (char *)"slcan", (char *)"stop", nullptr };
+	execute_process(stop_argv);
+	_slcan_started = false;
+}
+
+int CdcAcmAutostart::usbdev_connect()
+{
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_CDCACM_COMPOSITE)
+	struct boardioc_usbdev_ctrl_s ctrl {};
+
+	ctrl.usbdev = BOARDIOC_USBDEV_COMPOSITE;
+	ctrl.action = BOARDIOC_USBDEV_INITIALIZE;
+	ctrl.instance = 0;
+	ctrl.config = 0;
+	ctrl.handle = nullptr;
+
+	int ret = boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+
+	if (ret < 0) {
+		PX4_ERR("composite init failed: %d", ret);
+		return ret;
+	}
+
+	ctrl.action = BOARDIOC_USBDEV_CONNECT;
+	ctrl.handle = &g_composite_handle;
+	ret = boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+
+	if (ret < 0) {
+		PX4_ERR("composite connect failed: %d", ret);
+		return ret;
+	}
+
+	return 0;
+#else
+	return sercon_main(0, nullptr) == EXIT_SUCCESS ? 0 : -1;
+#endif
+}
+
+int CdcAcmAutostart::usbdev_disconnect()
+{
+#if defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_CDCACM_COMPOSITE)
+	struct boardioc_usbdev_ctrl_s ctrl {};
+
+	if (g_composite_handle == nullptr) {
+		return 0;
+	}
+
+	ctrl.usbdev = BOARDIOC_USBDEV_COMPOSITE;
+	ctrl.action = BOARDIOC_USBDEV_DISCONNECT;
+	ctrl.handle = &g_composite_handle;
+	(void)boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+	g_composite_handle = nullptr;
+	return 0;
+#else
+	return serdis_main(0, nullptr);
+#endif
 }
 
 bool CdcAcmAutostart::start_nsh()
@@ -651,6 +860,10 @@ int CdcAcmAutostart::print_status()
 	case UsbProtocol::ublox:
 		protocol = "ublox";
 		break;
+
+	case UsbProtocol::slcan:
+		protocol = "slcan";
+		break;
 	}
 
 	PX4_INFO("State: %s", state);
@@ -672,10 +885,13 @@ int CdcAcmAutostart::print_usage(const char *reason)
 ### Description
 Manages the USB CDC/ACM serial device (`/dev/ttyACM0`).
 
-`SYS_USB_AUTO` selects the protocol policy once USB VBUS is detected:
-- `0` Disabled: bring up the USB serial device only.
-- `1` Auto-detect: wait for host bytes and start MAVLink, nsh, or u-blox passthrough.
-- `2` MAVLink (default): start MAVLink immediately so the autopilot transmits first
+`SYS_USB_AUTO` selects the protocol on `/dev/ttyACM0`:
+- `0` Disabled: USB serial only
+- `1` Auto-detect: QGC heartbeat starts MAVLink; three CRs start nsh
+- `2` MAVLink (default): start MAVLink immediately
+- `3` SLCAN on ACM0 (single-CDC boards)
+
+On dual-CDC boards `/dev/ttyACM1` is always SLCAN for DroneCAN GUI Tool.
 
 )DESCR_STR");
 

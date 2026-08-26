@@ -1,0 +1,13 @@
+menuconfig DRIVERS_SLCAN
+	bool "slcan"
+	default n
+	depends on PLATFORM_NUTTX
+	depends on DRIVERS_UAVCAN || DRIVERS_UAVCANNODE
+	---help---
+		LAWICEL SLCAN bridge from a NuttX SocketCAN iface (can0/can1)
+		to a serial/USB port. Used by DroneCAN GUI Tool.
+
+		Requires NuttX CONFIG_NET_CAN. Does not take the CAN controller
+		from UAVCAN: it opens a second PF_CAN socket. Does not change
+		the bus bitrate (UAVCAN_BITRATE / CANNODE_BITRATE remains the
+		source of truth). Disabled while armed.

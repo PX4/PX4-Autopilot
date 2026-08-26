@@ -80,6 +80,7 @@ private:
 		mavlink,
 		nsh,
 		ublox,
+		slcan,
 	};
 
 	void Run() override;
@@ -97,12 +98,18 @@ private:
 
 	bool scan_buffer_for_mavlink_reboot();
 	bool scan_buffer_for_mavlink_heartbeat();
+	bool scan_buffer_for_slcan();
 	bool scan_buffer_for_carriage_returns();
 	bool scan_buffer_for_ublox_bytes();
 
 	bool start_mavlink();
 	void stop_mavlink();
 	bool start_nsh();
+	bool start_slcan();
+	void stop_slcan();
+	int usbdev_connect();
+	int usbdev_disconnect();
+	void start_slcan_secondary();
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 	bool start_ublox_serial_passthru(speed_t baudrate);
 #endif
@@ -113,6 +120,7 @@ private:
 
 	UsbAutoStartState _state{UsbAutoStartState::disconnected};
 	UsbProtocol _active_protocol{UsbProtocol::none};
+	bool _slcan_started{false};
 	bool _vbus_present{false};
 	bool _vbus_present_prev{false};
 	int _ttyacm_fd{-1};

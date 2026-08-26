@@ -5,11 +5,18 @@ parameters:
     SYS_USB_AUTO:
       description:
         short: Enable USB autostart
+        long: |-
+          Protocol on USB `/dev/ttyACM0` (QGC / nsh). On dual-CDC boards a
+          second port `/dev/ttyACM1` is always SLCAN for DroneCAN GUI Tool.
+
+          Auto-detect waits for a QGC heartbeat (MAVLink) or three carriage
+          returns (nsh) on ACM0.
       type: enum
       values:
         0: Disabled
         1: Auto-detect
         2: MAVLink
+        3: SLCAN
       default: 2
       reboot_required: true
     USB_MAV_MODE:

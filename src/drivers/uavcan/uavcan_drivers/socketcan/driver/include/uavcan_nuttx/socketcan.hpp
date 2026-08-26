@@ -119,6 +119,12 @@ public:
 	}
 
 	/**
+	 * Set bitrate (and CAN FD data bitrate when requested) and bring the iface up.
+	 * Must run before initIface() so bind() sees an UP interface.
+	 */
+	int configureIface(uint32_t index, uavcan::uint32_t bitrate, bool can_fd);
+
+	/**
 	 * Attempts to detect bit rate of the CAN bus.
 	 * This function may block for up to X seconds, where X is the number of bit rates to try.
 	 * This function is NOT guaranteed to reset the CAN controller upon return.
@@ -166,9 +172,11 @@ public:
 	enum { BitRateAutoDetect = 0 };
 
 	CanDriver driver;
+	uint32_t enabled_interfaces_;
 
-	CanInitHelper(uint32_t unused = 0x7) :
-		driver()
+	CanInitHelper(uint32_t enabled_interfaces = 0x7) :
+		driver(),
+		enabled_interfaces_(enabled_interfaces)
 	{
 	}
 
@@ -187,7 +195,17 @@ public:
 #endif
 
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
-			driver.initIface(i, can_fd);
+			if ((enabled_interfaces_ & (1u << i)) == 0) {
+				continue;
+			}
+
+			if (driver.configureIface(i, bitrate, can_fd) < 0) {
+				return -1;
+			}
+
+			if (driver.initIface(i, can_fd) < 0) {
+				return -1;
+			}
 		}
 
 		return driver.init(bitrate);
@@ -207,7 +225,7 @@ public:
 	int init(uavcan::uint32_t &bitrate = 1000000)
 	{
 		if (bitrate > 0) {
-			return driver.init(bitrate);
+			return init(static_cast<uavcan::uint32_t>(bitrate));
 		}
 
 		return -1;

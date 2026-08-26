@@ -48,8 +48,12 @@
 #include <sys/ioctl.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
+#include <inttypes.h>
 
+#include <nuttx/config.h>
 #include <nuttx/can.h>
+#include <nuttx/net/ioctl.h>
 #include <netpacket/can.h>
 
 #define MODULE_NAME "UAVCAN_SOCKETCAN"
@@ -298,16 +302,70 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 	return 1;
 }
 
-int CanDriver::init(uavcan::uint32_t bitrate)
+int CanDriver::configureIface(uint32_t index, uavcan::uint32_t bitrate, bool can_fd)
 {
-	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
-		pfds[i].fd     = if_[i].getFD();
-		pfds[i].events = POLLIN | POLLOUT;
+	if (index > (UAVCAN_SOCKETCAN_NUM_IFACES - 1) || bitrate == 0) {
+		return -1;
 	}
 
-	/*
-	 * TODO add filter configuration ioctl
-	 */
+	char ifname[IFNAMSIZ];
+	snprintf(ifname, sizeof(ifname), "can%lu", static_cast<unsigned long>(index));
+
+	const int s = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+
+	if (s < 0) {
+		PX4_ERR("%s socket", ifname);
+		return -1;
+	}
+
+	struct ifreq ifr {};
+
+	strlcpy(ifr.ifr_name, ifname, IFNAMSIZ);
+
+#ifdef CONFIG_NETDEV_CAN_BITRATE_IOCTL
+	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = can_fd ? 1000 : static_cast<uint16_t>(bitrate / 1000U);
+
+	ifr.ifr_ifru.ifru_can_data.arbi_samplep = 80;
+
+	ifr.ifr_ifru.ifru_can_data.data_bitrate = can_fd ? static_cast<uint16_t>(bitrate / 1000U) : 0;
+
+	ifr.ifr_ifru.ifru_can_data.data_samplep = 80;
+
+	if (ioctl(s, SIOCSCANBITRATE, &ifr) < 0) {
+		PX4_ERR("%s SIOCSCANBITRATE %" PRIu32, ifname, bitrate);
+		close(s);
+		return -1;
+	}
+
+#endif
+
+	if (ioctl(s, SIOCGIFFLAGS, &ifr) < 0) {
+		PX4_ERR("%s SIOCGIFFLAGS", ifname);
+		close(s);
+		return -1;
+	}
+
+	ifr.ifr_flags |= IFF_UP;
+
+	if (ioctl(s, SIOCSIFFLAGS, &ifr) < 0) {
+		PX4_ERR("%s ifup", ifname);
+		close(s);
+		return -1;
+	}
+
+	close(s);
+	return 0;
+}
+
+int CanDriver::init(uavcan::uint32_t bitrate)
+{
+	(void)bitrate;
+
+	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+		const int fd = if_[i].getFD();
+		pfds[i].fd = fd;
+		pfds[i].events = (fd >= 0) ? (POLLIN | POLLOUT) : 0;
+	}
 
 	return 0;
 }
@@ -339,6 +397,10 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 
 	if (poll(pfds, UAVCAN_SOCKETCAN_NUM_IFACES, timeout_usec / 1000) > 0) {
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+			if (pfds[i].fd < 0) {
+				continue;
+			}
+
 			if (pfds[i].revents & POLLIN) {
 				inout_masks.read |= 1U << i;
 			}

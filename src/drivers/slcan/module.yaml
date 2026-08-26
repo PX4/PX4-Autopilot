@@ -1,0 +1,9 @@
+module_name: slcan
+
+serial_config:
+    - command: slcan start -d ${SERIAL_DEV} -i can0
+      port_config_param:
+        name: SLCAN_CONFIG
+        group: SLCAN
+        label: SLCAN
+      num_instances: 1
