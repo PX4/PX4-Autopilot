@@ -320,24 +320,36 @@ int CanDriver::configureIface(uint32_t index, uavcan::uint32_t bitrate, bool can
 
 	struct ifreq ifr {};
 
+	/* NuttX rejects SIOCSCANBITRATE while the iface is UP. SLCAN or
+	 * rc.board_defaults may already have brought can0 up. ifdown is
+	 * best-effort (it fails if another socket still holds the iface). */
 	strlcpy(ifr.ifr_name, ifname, IFNAMSIZ);
 
+	if (ioctl(s, SIOCGIFFLAGS, &ifr) == 0) {
+		ifr.ifr_flags &= ~IFF_UP;
+		strlcpy(ifr.ifr_name, ifname, IFNAMSIZ);
+		(void)ioctl(s, SIOCSIFFLAGS, &ifr);
+	}
+
 #ifdef CONFIG_NETDEV_CAN_BITRATE_IOCTL
+	memset(&ifr, 0, sizeof(ifr));
+	strlcpy(ifr.ifr_name, ifname, IFNAMSIZ);
 	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = can_fd ? 1000 : static_cast<uint16_t>(bitrate / 1000U);
-
 	ifr.ifr_ifru.ifru_can_data.arbi_samplep = 80;
-
 	ifr.ifr_ifru.ifru_can_data.data_bitrate = can_fd ? static_cast<uint16_t>(bitrate / 1000U) : 0;
-
 	ifr.ifr_ifru.ifru_can_data.data_samplep = 80;
 
 	if (ioctl(s, SIOCSCANBITRATE, &ifr) < 0) {
-		PX4_ERR("%s SIOCSCANBITRATE %" PRIu32, ifname, bitrate);
-		close(s);
-		return -1;
+		/* Already UP (SLCAN won the race) — keep going; do not
+		 * wed the node in a retry loop. */
+		PX4_WARN("%s SIOCSCANBITRATE %" PRIu32 " (using existing iface config)",
+			 ifname, bitrate);
 	}
 
 #endif
+
+	memset(&ifr, 0, sizeof(ifr));
+	strlcpy(ifr.ifr_name, ifname, IFNAMSIZ);
 
 	if (ioctl(s, SIOCGIFFLAGS, &ifr) < 0) {
 		PX4_ERR("%s SIOCGIFFLAGS", ifname);
@@ -346,6 +358,7 @@ int CanDriver::configureIface(uint32_t index, uavcan::uint32_t bitrate, bool can
 	}
 
 	ifr.ifr_flags |= IFF_UP;
+	strlcpy(ifr.ifr_name, ifname, IFNAMSIZ);
 
 	if (ioctl(s, SIOCSIFFLAGS, &ifr) < 0) {
 		PX4_ERR("%s ifup", ifname);
