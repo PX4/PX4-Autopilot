@@ -197,7 +197,9 @@ To create and build the workspace:
 
    ```sh
    git clone https://github.com/PX4/px4_msgs.git
-   
+
+
+   ```
 
 4. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
 
@@ -397,6 +399,8 @@ To create and build the new workspace:
    ```sh
    mkdir -p ~/ws_sensor_combined/src/
    cd ~/ws_sensor_combined/src/
+
+   ```
 
 3. Clone the example repository to the `src` directory:
 
