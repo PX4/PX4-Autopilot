@@ -1295,6 +1295,11 @@ UavcanNode::print_info()
 			printf("\tIO errors: %" PRIu64 "\n", iface_perf_cnt.errors);
 			printf("\tRX frames: %" PRIu64 "\n", iface_perf_cnt.frames_rx);
 			printf("\tTX frames: %" PRIu64 "\n", iface_perf_cnt.frames_tx);
+
+			auto txq = _node.getDispatcher().getCanIOManager().getTxQueuePerfCounters(i);
+			printf("\tTX queue peak: %" PRIu16 "/%" PRIu16 " blocks\n", txq.peak_used_blocks, txq.block_limit);
+			printf("\tTX rejected:   %" PRIu32 " frames (%" PRIu32 " expired, %" PRIu32 " no memory)\n",
+			       txq.rejected_frames, txq.expired_frames, txq.out_of_memory_frames);
 		}
 	}
 

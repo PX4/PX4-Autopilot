@@ -26,6 +26,11 @@ void* LimitedPoolAllocator::allocate(std::size_t size)
     if (praw != UAVCAN_NULLPTR)
     {
         used_blocks_++;
+
+        if (used_blocks_ > peak_used_blocks_)
+        {
+            peak_used_blocks_ = used_blocks_;
+        }
     }
 
     return praw;
