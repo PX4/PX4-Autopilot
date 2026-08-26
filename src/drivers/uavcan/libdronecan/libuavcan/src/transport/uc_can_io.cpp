@@ -207,7 +207,7 @@ CanTxQueue::Entry* CanTxQueue::peek()
         {
             UAVCAN_TRACE("CanTxQueue", "Peek: Expired %s", p->toString().c_str());
             Entry* const next = p->getNextListNode();
-            registerRejectedFrame();
+            registerExpiredFrame();
             remove(p);
             p = next;
         }
