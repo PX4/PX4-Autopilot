@@ -130,9 +130,14 @@ OSDatxxxx::probe()
 
 	ret = readRegister(OSD_VM0, &data, 1);
 
-	if (ret != PX4_OK || data != OSD_VM0_DISABLE_VIDEO_BUFFER) {
-		PX4_DEBUG("probe failed: transfer %d, VM0 0x%02x", ret, data);
-		return ret != PX4_OK ? ret : PX4_ERROR;
+	if (ret != PX4_OK) {
+		return ret;
+	}
+
+	// Preserve the historical ATXXXX behavior: compatible parts may not echo
+	// this probe value exactly, but can still initialize and operate normally.
+	if (data != OSD_VM0_DISABLE_VIDEO_BUFFER) {
+		PX4_DEBUG("VM0 probe readback mismatch: 0x%02x", data);
 	}
 
 	return PX4_OK;
