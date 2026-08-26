@@ -73,7 +73,9 @@ if(NOT NUTTX_CONFIG STREQUAL "bootloader" AND NOT NUTTX_CONFIG STREQUAL "canboot
 		endif()
 	endforeach()
 
-	if(_px4_h7 AND _px4_uavcan AND (_px4_gpio_can1 OR _px4_gpio_can2))
+	if(CONSTRAINED_FLASH)
+		message(STATUS "NuttX: skipping SocketCAN/dual-CDC on constrained-flash ${PX4_CONFIG}")
+	elseif(_px4_h7 AND _px4_uavcan AND (_px4_gpio_can1 OR _px4_gpio_can2))
 		message(STATUS "NuttX: enabling SocketCAN FDCAN for ${PX4_CONFIG}")
 
 		set(_px4_can_cdc_fragment "CONFIG_NET=y\n")

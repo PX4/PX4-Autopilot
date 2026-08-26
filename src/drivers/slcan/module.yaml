@@ -5,5 +5,5 @@ serial_config:
       port_config_param:
         name: SLCAN_CONFIG
         group: SLCAN
-        label: SLCAN
+      label: SLCAN
       num_instances: 1

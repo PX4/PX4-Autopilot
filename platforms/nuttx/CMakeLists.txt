@@ -135,6 +135,10 @@ endif()
 if(CONFIG_NET)
 	list(APPEND nuttx_libs nuttx_net)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_net)
+	# SocketCAN / NET_CAN uses MM_IOB. Modules that open PF_CAN sockets are
+	# linked after the NuttX --start-group, so libnet.a can be pulled a
+	# second time without libmm.a following it.
+	target_link_libraries(nuttx_net INTERFACE nuttx_mm)
 endif()
 
 file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})
