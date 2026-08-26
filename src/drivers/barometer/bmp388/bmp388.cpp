@@ -101,9 +101,12 @@ void BMP388::RunImpl()
 	switch (_state) {
 	case STATE::RESET:
 
-		// the command decoder is not ready until tstartup (2 ms) after POR
-		if (RegisterRead(Register::STATUS) & STATUS_BIT::CMD_RDY) {
+		// the command decoder is not ready until tstartup (2 ms) after POR. Give up on the
+		// gate after 10 ms so a wedged sensor falls into the 100 ms retry below instead of
+		// polling this bus at 500 Hz forever.
+		if ((RegisterRead(Register::STATUS) & STATUS_BIT::CMD_RDY) || (_cmd_rdy_polls++ >= 5)) {
 			RegisterWrite(Register::CMD, CMD_VALUE::SOFTRESET);
+			_cmd_rdy_polls = 0;
 			_failure_count = 0;
 			_state = STATE::WAIT_FOR_RESET;
 			perf_count(_reset_perf);
@@ -131,11 +134,17 @@ void BMP388::RunImpl()
 
 	case STATE::CONFIGURE:
 		if (Configure()) {
+			_configure_failures = 0;
 			_state = STATE::MEASURE;
 			ScheduleNow();
 
 		} else {
-			PX4_DEBUG("configure failed, resetting");
+			// init() returns before the first configure, so this is the only place a bad
+			// calibration CRC or a dead sensor can be reported
+			if (++_configure_failures == 10) {
+				PX4_ERR("configure failed, not publishing");
+			}
+
 			_state = STATE::RESET;
 			ScheduleDelayed(100_ms);
 		}
@@ -193,19 +202,27 @@ bool BMP388::Measure()
 
 int BMP388::Collect()
 {
-	status_data data{};
+	// poll STATUS on its own: DS table 29, drdy is cleared by reading a DATA register,
+	// so bundling the data into the poll would drop a conversion that lands mid-burst
+	uint8_t status = 0;
 
-	if (!RegisterRead(Register::STATUS, &data, sizeof(data))) {
+	if (!RegisterRead(Register::STATUS, &status, sizeof(status))) {
 		return -EIO;
 	}
 
-	if ((data.status & (STATUS_BIT::DRDY_PRESS | STATUS_BIT::DRDY_TEMP)) != (STATUS_BIT::DRDY_PRESS | STATUS_BIT::DRDY_TEMP)) {
+	if ((status & (STATUS_BIT::DRDY_PRESS | STATUS_BIT::DRDY_TEMP)) != (STATUS_BIT::DRDY_PRESS | STATUS_BIT::DRDY_TEMP)) {
 		if (hrt_elapsed_time(&_measure_timestamp) < _conversion_time_max_us) {
 			return -EAGAIN;
 		}
 
 		perf_count(_conversion_timeout_perf);
 		return -ETIMEDOUT;
+	}
+
+	sensor_data data{};
+
+	if (!RegisterRead(Register::DATA_0, &data, sizeof(data))) {
+		return -EIO;
 	}
 
 	const uint32_t uncomp_press = ((uint32_t)data.press_23_16 << 16) | ((uint32_t)data.press_15_8 << 8) | data.press_7_0;

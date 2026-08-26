@@ -48,6 +48,11 @@ Used in field(s): [unit](#fld_unit)
 | <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL       | `uint8` | 105   |
 | <a id="#FAILURE_UNIT_SYSTEM_ESC"></a> FAILURE_UNIT_SYSTEM_ESC                             | `uint8` | 106   |
 | <a id="#FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE | `uint8` | 107   |
+| <a id="#FAILURE_UNIT_DATALINK_LTE"></a> FAILURE_UNIT_DATALINK_LTE                         | `uint8` | 150   |
+| <a id="#FAILURE_UNIT_DATALINK_WIFI"></a> FAILURE_UNIT_DATALINK_WIFI                       | `uint8` | 151   |
+| <a id="#FAILURE_UNIT_DATALINK_TELEM_RADIO"></a> FAILURE_UNIT_DATALINK_TELEM_RADIO         | `uint8` | 152   |
+| <a id="#FAILURE_UNIT_BUS_CAN"></a> FAILURE_UNIT_BUS_CAN                                   | `uint8` | 200   |
+| <a id="#FAILURE_UNIT_BUS_I2C"></a> FAILURE_UNIT_BUS_I2C                                   | `uint8` | 201   |
 
 ### FAILURE_TYPE {#FAILURE_TYPE}
 
@@ -111,6 +116,11 @@ uint8 FAILURE_UNIT_SYSTEM_RC_SIGNAL = 104
 uint8 FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL = 105
 uint8 FAILURE_UNIT_SYSTEM_ESC = 106
 uint8 FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE = 107
+uint8 FAILURE_UNIT_DATALINK_LTE = 150
+uint8 FAILURE_UNIT_DATALINK_WIFI = 151
+uint8 FAILURE_UNIT_DATALINK_TELEM_RADIO = 152
+uint8 FAILURE_UNIT_BUS_CAN = 200
+uint8 FAILURE_UNIT_BUS_I2C = 201
 
 uint16[4] instance_mask # Bit i targets instance (i+1); 0xFFFF = all instances
 

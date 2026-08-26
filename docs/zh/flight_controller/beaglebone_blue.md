@@ -31,6 +31,12 @@ The latest OS images at time of updating this document is [AM3358 Debian 10.3 20
 
 ## Cross Compiler Build (Recommend)
 
+:::warning
+The Linaro toolchain previously recommended has been discontinued.
+The instructions below have been updated to use its replacement (the Arm GNU Toolchain) but the changes **have not been tested**.
+Please add a PR to either remove this comment or fix the instructions if you try them!
+:::
+
 The recommended way to build PX4 for _BeagleBone Blue_ is to compile on a development computer and upload the PX4 executable binary directly to the BeagleBone Blue.
 
 :::tip
@@ -114,7 +120,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
          cd /opt/bbblue_toolchain/gcc-arm-linux-gnueabihf
          ```
 
-         The ARM Cross Compiler for _BeagleBone Blue_ can be found at [Linaro Toolchain Binaries site](https://www.linaro.org/downloads/#gnu_and_llvm).
+         The ARM Cross Compiler for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) site (the official successor to the Linaro toolchain releases previously used here).
 
          ::: tip
          GCC in the toolchain should be compatible with kernel in _BeagleBone Blue_.
@@ -122,13 +128,13 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
 :::
 
-         Download and unpack [gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz](https://snapshots.linaro.org/gnu-toolchain/13.0-2022.06-1/arm-linux-gnueabihf/gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz) to the bbblue_toolchain folder.
+         Download and unpack [arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz](https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz) to the bbblue_toolchain folder.
 
-         Different ARM Cross Compiler versions for _BeagleBone Blue_ can be found at [Linaro Toolchain Binaries site](https://www.linaro.org/downloads/).
+         Different ARM Cross Compiler versions for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) site.
 
          ```sh
-         wget https://snapshots.linaro.org/gnu-toolchain/13.0-2022.06-1/arm-linux-gnueabihf/gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz
-         tar -xf gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz
+         wget https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
+         tar -xf arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
          ```
 
          ::: tip
@@ -138,10 +144,24 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
          As a general rule of thumb is to choose a toolchain where the version of GCC is not higher than the version of GCC which comes with the OS image on _BeagleBone Blue_.
 
+         ::: warning
+         PX4's build for this board looks specifically for compiler binaries named `arm-linux-gnueabihf-*` (the naming used by the old Linaro toolchain), but the Arm GNU Toolchain ships them as `arm-none-linux-gnueabihf-*`.
+         Create matching symlinks so the build can find them:
+
+         ```sh
+         cd /opt/bbblue_toolchain/gcc-arm-linux-gnueabihf/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf/bin
+         for f in arm-none-linux-gnueabihf-*; do
+           ln -s "$f" "${f/arm-none-linux-gnueabihf/arm-linux-gnueabihf}"
+         done
+         ```
+
+
+:::
+
       2. Add it to the PATH in ~/.profile as shown below
 
          ```sh
-         export PATH=$PATH:/opt/bbblue_toolchain/gcc-arm-linux-gnueabihf/gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf/bin
+         export PATH=$PATH:/opt/bbblue_toolchain/gcc-arm-linux-gnueabihf/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf/bin
          ```
 
          ::: info

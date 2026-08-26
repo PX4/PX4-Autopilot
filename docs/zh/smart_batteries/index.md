@@ -6,10 +6,10 @@ This allows for more reliable flight planning notification of failure conditions
 
 PX4（至少）支持以下智能电池：
 
-- [Rotoye 电池监测器](../smart_batteries/rotoye_batmon.md)
+- [Rotoye Batmon](../smart_batteries/rotoye_batmon.md) (Discontinued)
 
 ### 更多信息
 
-- [Mavlink 电池协议](https://mavlink.io/en/services/battery.html)
-- [batt_smbus](../modules/modules_driver.md) - PX4 系统管理总线（SMBus）电池驱动文档
+- [Mavlink Battery Protocol](https://mavlink.io/en/services/battery.html)
+- [batt_smbus](../modules/modules_driver.md#batt_smbus) - PX4 SMBus Battery Driver docs
 - [安全 > 低电量故障保护](../config/safety.md#battery-level-failsafe)。

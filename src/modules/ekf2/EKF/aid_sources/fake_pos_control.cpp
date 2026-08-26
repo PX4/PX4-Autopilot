@@ -69,7 +69,8 @@ void Ekf::controlFakePosFusion()
 
 		updateAidSourceStatus(aid_src,
 				      _time_delayed_us,
-				      Vector2f(_gpos.latitude_deg(), _gpos.longitude_deg()), // observation
+				      matrix::Vector2d(_last_known_gpos.latitude_deg(),
+						       _last_known_gpos.longitude_deg()),      // observation
 				      obs_var,                                               // observation variance
 				      innovation,                       // innovation
 				      Vector2f(getStateVariance<State::pos>()) + obs_var,    // innovation variance
@@ -108,21 +109,7 @@ bool Ekf::runFakePosStateMachine(const bool enable_conditions_passing, bool stat
 {
 	if (status_flag) {
 		if (enable_conditions_passing) {
-			if (!aid_src.innovation_rejected) {
-				const LatLonAlt gpos_prev = _gpos;
-
-				for (unsigned i = 0; i < 2; i++) {
-					// recalculate using the updated state and variance
-					aid_src.innovation[i] += (_gpos - gpos_prev)(i);
-					aid_src.innovation_variance[i] = P(State::pos.idx + i, State::pos.idx + i) + aid_src.observation_variance[i];
-
-					fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
-								   aid_src.observation_variance[i], State::pos.idx + i);
-				}
-
-				aid_src.fused = true;
-				aid_src.time_last_fuse = _time_delayed_us;
-			}
+			fuseFakeHorizontalPosition(aid_src);
 
 			const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);
 

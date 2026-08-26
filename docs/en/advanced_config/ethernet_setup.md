@@ -241,7 +241,7 @@ To set up ROS 2:
    MicroXRCEAgent udp4 -p 8888
    ```
 
-4. Run a [listener node](../ros2/user_guide.md#running-the-example) in a new terminal to confirm the connection is established:
+4. Run a [listener node](../ros2/user_guide.md#running-an-example-optional) in a new terminal to confirm the connection is established:
 
    ```sh
    source ~/ws_sensor_combined/install/setup.bash

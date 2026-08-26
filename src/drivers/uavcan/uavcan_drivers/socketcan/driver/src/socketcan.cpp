@@ -47,6 +47,7 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <string.h>
+#include <errno.h>
 
 #include <nuttx/can.h>
 #include <netpacket/can.h>
@@ -198,10 +199,20 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 
 	if (res > 0) {
 		return 1;
-
-	} else {
-		return res;
 	}
+
+	/* The frame never reached a hardware mailbox. NuttX does not buffer it, so
+	 * report "not sent" rather than an error and let libuavcan re-queue it --
+	 * returning negative here loses the frame, which breaks any multi-frame
+	 * transfer in progress. A non-blocking send that the driver could not take
+	 * immediately comes back as ETIMEDOUT from net_timedwait(), not ENOBUFS.
+	 */
+	if (errno == ETIMEDOUT || errno == EAGAIN || errno == EWOULDBLOCK ||
+	    errno == ENOBUFS || errno == EINTR || errno == EBUSY) {
+		return 0;
+	}
+
+	return -1;
 }
 
 uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::MonotonicTime &out_ts_monotonic,
@@ -210,7 +221,14 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 	int32_t result = recvmsg(_fd, &_recv_msg, MSG_DONTWAIT);
 
 	if (result < 0) {
-		return result;
+		/* Nothing to read is not a driver failure; uc_can_io maps any negative
+		 * return onto -ErrDriver.
+		 */
+		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT) {
+			return 0;
+		}
+
+		return -1;
 	}
 
 	/* Copy SocketCAN frame to CanardFrame */
