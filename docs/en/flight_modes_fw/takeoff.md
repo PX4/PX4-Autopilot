@@ -98,6 +98,8 @@ In _catapult/hand-launch mode_ the vehicle waits to detect launch (based on acce
 On launch it enables the motor(s) and climbs with the maximum climb rate [FW_T_CLMB_MAX](#FW_T_CLMB_MAX) while keeping the pitch setpoint above [FW_TKO_PITCH_MIN](#FW_TKO_PITCH_MIN).
 Once it reaches [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT) it will automatically switch to [Hold mode](../flight_modes_fw/hold.md) and loiter.
 It is possible to delay the activation of the motors and control surfaces separately, see parameters [FW_LAUN_MOT_DEL](#FW_LAUN_MOT_DEL), [FW_LAUN_CS_LK_DY](#FW_LAUN_CS_LK_DY) and [CA_CS_LAUN_LK](#CA_CS_LAUN_LK). The later is also exposed in the actuator configuration page under the advanced view.
+Below [FW_LAUN_CLR_ALT](#FW_LAUN_CLR_ALT) (height above the launch point), the vehicle holds the wind-compensated launch bearing instead of the normal line-following guidance, and the roll limit is ramped linearly from 0 at the launch point up to [FW_R_LIM](../advanced_config/parameter_reference.md#FW_R_LIM) at that altitude.
+This keeps the vehicle level during the initial climbout, so that a poor heading estimate or a bad launch cannot induce a large bank close to the ground.
 
 All RC stick movement is ignored during the full takeoff sequence.
 
@@ -120,6 +122,7 @@ The _launch detector_ is affected by the following parameters:
 | <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)    | Delay from launch detection to motor spin up                                    |
 | <a id="FW_LAUN_CS_LK_DY"></a>[FW_LAUN_CS_LK_DY](../advanced_config/parameter_reference.md#FW_LAUN_CS_LK_DY) | Delay from launch detection to unlocking the control surfaces                   |
 | <a id="CA_CS_LAUN_LK"></a>[CA_CS_LAUN_LK](../advanced_config/parameter_reference.md#CA_CS_LAUN_LK)          | Bitmask to select which control surfaces are to be locked during launch         |
+| <a id="FW_LAUN_CLR_ALT"></a>[FW_LAUN_CLR_ALT](../advanced_config/parameter_reference.md#FW_LAUN_CLR_ALT)    | Launch climbout clearance altitude below which roll is limited to keep the vehicle level |
 
 ## Runway Takeoff {#runway_launch}
 
