@@ -34,9 +34,8 @@
 #include "AUAV_Absolute.hpp"
 
 AUAV_Absolute::AUAV_Absolute(const I2CSPIDriverConfig &config) :
-	AUAV(config)
-{
-}
+	AUAV(config, _status_byte_expected)
+{}
 
 void AUAV_Absolute::publish_pressure(const float pressure_p, const float temperature_c,
 				     const hrt_abstime timestamp_sample)
