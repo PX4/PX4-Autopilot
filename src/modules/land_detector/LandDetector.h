@@ -164,6 +164,7 @@ private:
 	void UpdateVehicleAtRest();
 
 	vehicle_land_detected_s _land_detected{};
+	bool _rotational_movement_since_publish{false};	///< latched: rotation above threshold seen at any update since the last publication
 	hrt_abstime _takeoff_time{0};
 	hrt_abstime _total_flight_time{0};	///< total vehicle flight time in microseconds
 

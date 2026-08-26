@@ -140,14 +140,18 @@ void LandDetector::Run()
 
 	const bool at_rest = landDetected && _at_rest;
 
-	// publish at 1 Hz, very first time, or when the result has changed
+	// report the peak rotational movement since last publication
+	_rotational_movement_since_publish |= _get_rotational_movement();
+
+	// publish at 1 Hz, very first time, when the result has changed, or when rotation was first detected
 	if ((hrt_elapsed_time(&_land_detected.timestamp) >= 1_s) ||
 	    (_land_detected.landed != landDetected) ||
 	    (_land_detected.freefall != freefallDetected) ||
 	    (_land_detected.maybe_landed != maybe_landedDetected) ||
 	    (_land_detected.ground_contact != ground_contactDetected) ||
 	    (_land_detected.in_ground_effect != in_ground_effect) ||
-	    (_land_detected.at_rest != at_rest)) {
+	    (_land_detected.at_rest != at_rest) ||
+	    (_rotational_movement_since_publish && !_land_detected.rotational_movement)) {
 
 		if (!landDetected && _land_detected.landed && _takeoff_time == 0) { /* only set take off time once, until disarming */
 			// We did take off
@@ -163,7 +167,8 @@ void LandDetector::Run()
 		_land_detected.has_low_throttle = _get_has_low_throttle();
 		_land_detected.horizontal_movement = _get_horizontal_movement();
 		_land_detected.vertical_movement = _get_vertical_movement();
-		_land_detected.rotational_movement = _get_rotational_movement();
+		_land_detected.rotational_movement = _rotational_movement_since_publish;
+		_rotational_movement_since_publish = false;
 		_land_detected.close_to_ground_or_skipped_check = _get_close_to_ground_or_skipped_check();
 		_land_detected.at_rest = at_rest;
 		_land_detected.timestamp = hrt_absolute_time();
