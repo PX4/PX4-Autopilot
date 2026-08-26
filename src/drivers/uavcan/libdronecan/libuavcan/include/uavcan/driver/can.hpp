@@ -29,37 +29,86 @@ struct UAVCAN_EXPORT CanFrame
     static const uint32_t FlagRTR = 1U << 30;                  ///< Remote transmission request
     static const uint32_t FlagERR = 1U << 29;                  ///< Error frame
 
+#if UAVCAN_SUPPORT_CANFD
+    static const uint8_t MaxDataLen = 64;
+#else
     static const uint8_t MaxDataLen = 8;
+#endif
 
     uint32_t id;                ///< CAN ID with flags (above)
     uint8_t data[MaxDataLen];
-    uint8_t dlc;                ///< Data Length Code
+    uint8_t dlc;                ///< Data Length Code (CAN FD: 0..15, not payload length)
+    bool canfd;
 
     CanFrame() :
         id(0),
-        dlc(0)
+        dlc(0),
+        canfd(false)
     {
         fill(data, data + MaxDataLen, uint8_t(0));
     }
 
-    CanFrame(uint32_t can_id, const uint8_t* can_data, uint8_t data_len) :
+    CanFrame(uint32_t can_id, const uint8_t* can_data, uint8_t data_len, bool canfd_frame = false) :
         id(can_id),
-        dlc((data_len > MaxDataLen) ? MaxDataLen : data_len)
+        dlc(0),
+        canfd(canfd_frame)
     {
         UAVCAN_ASSERT(can_data != UAVCAN_NULLPTR);
-        UAVCAN_ASSERT(data_len == dlc);
-        (void)copy(can_data, can_data + dlc, this->data);
+        fill(data, data + MaxDataLen, uint8_t(0));
+        const uint8_t copy_len = (data_len > MaxDataLen) ? MaxDataLen : data_len;
+        (void)copy(can_data, can_data + copy_len, this->data);
+        dlc = dataLengthToDlc(copy_len);
     }
+
+    bool isCanFDFrame() const { return canfd; }
 
     bool operator!=(const CanFrame& rhs) const { return !operator==(rhs); }
     bool operator==(const CanFrame& rhs) const
     {
-        return (id == rhs.id) && (dlc == rhs.dlc) && equal(data, data + dlc, rhs.data);
+        const uint8_t len = dlcToDataLength(dlc);
+        return (id == rhs.id) && (dlc == rhs.dlc) && (canfd == rhs.canfd) && equal(data, data + len, rhs.data);
     }
 
     bool isExtended()                  const { return id & FlagEFF; }
     bool isRemoteTransmissionRequest() const { return id & FlagRTR; }
     bool isErrorFrame()                const { return id & FlagERR; }
+
+    static uint8_t dlcToDataLength(uint8_t dlc_code)
+    {
+        static const uint8_t lut[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64 };
+        return lut[(dlc_code < 16) ? dlc_code : 15];
+    }
+
+    static uint8_t dataLengthToDlc(uint8_t data_length)
+    {
+        if (data_length <= 8) {
+            return data_length;
+        } else if (data_length <= 12) {
+            return 9;
+        } else if (data_length <= 16) {
+            return 10;
+        } else if (data_length <= 20) {
+            return 11;
+        } else if (data_length <= 24) {
+            return 12;
+        } else if (data_length <= 32) {
+            return 13;
+        } else if (data_length <= 48) {
+            return 14;
+        }
+        return 15;
+    }
+
+    static uint8_t getNumPaddingBytes(uint16_t payload_len)
+    {
+        if (payload_len > 63) {
+            payload_len = static_cast<uint16_t>(payload_len + 2u);
+        }
+        const uint8_t rest = static_cast<uint8_t>(payload_len % 63);
+        uint8_t padded = dlcToDataLength(dataLengthToDlc(static_cast<uint8_t>(rest + 1)));
+        padded = static_cast<uint8_t>(padded - 1);
+        return static_cast<uint8_t>(padded - rest);
+    }
 
 #if UAVCAN_TOSTRING
     enum StringRepresentation

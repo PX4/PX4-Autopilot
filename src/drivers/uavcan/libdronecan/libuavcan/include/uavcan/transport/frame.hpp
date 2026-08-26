@@ -16,8 +16,11 @@ namespace uavcan
 
 class UAVCAN_EXPORT Frame
 {
-    enum { PayloadCapacity = 7 };       // Will be redefined when CAN FD is available
-
+#if UAVCAN_SUPPORT_CANFD
+    enum { NonFDCANPayloadCapacity = 7, PayloadCapacity = 63 };
+#else
+    enum { PayloadCapacity = 7 };
+#endif
     uint8_t payload_[PayloadCapacity];
     TransferPriority transfer_priority_;
     TransferType transfer_type_;
@@ -29,6 +32,7 @@ class UAVCAN_EXPORT Frame
     bool start_of_transfer_;
     bool end_of_transfer_;
     bool toggle_;
+    bool canfd_frame_;
 
 public:
     Frame() :
@@ -36,14 +40,16 @@ public:
         payload_len_(0),
         start_of_transfer_(false),
         end_of_transfer_(false),
-        toggle_(false)
+        toggle_(false),
+        canfd_frame_(false)
     { }
 
     Frame(DataTypeID data_type_id,
           TransferType transfer_type,
           NodeID src_node_id,
           NodeID dst_node_id,
-          TransferID transfer_id) :
+          TransferID transfer_id,
+          bool canfd_frame = false) :
         transfer_priority_(TransferPriority::Default),
         transfer_type_(transfer_type),
         data_type_id_(data_type_id),
@@ -53,7 +59,8 @@ public:
         transfer_id_(transfer_id),
         start_of_transfer_(false),
         end_of_transfer_(false),
-        toggle_(false)
+        toggle_(false),
+        canfd_frame_(canfd_frame)
     {
         UAVCAN_ASSERT((transfer_type == TransferTypeMessageBroadcast) == dst_node_id.isBroadcast());
         UAVCAN_ASSERT(data_type_id.isValidForDataTypeKind(getDataTypeKindForTransferType(transfer_type)));
@@ -66,8 +73,15 @@ public:
     /**
      * Max payload length depends on the transfer type and frame index.
      */
+#if UAVCAN_SUPPORT_CANFD
+    uint8_t getPayloadCapacity() const { return canfd_frame_ ? PayloadCapacity : NonFDCANPayloadCapacity; }
+#else
     uint8_t getPayloadCapacity() const { return PayloadCapacity; }
+#endif
     uint8_t setPayload(const uint8_t* data, unsigned len);
+
+    void setCanFD(bool set) { canfd_frame_ = set; }
+    bool isCanFDFrame() const { return canfd_frame_; }
 
     unsigned getPayloadLen() const { return payload_len_; }
     const uint8_t* getPayloadPtr() const { return payload_; }

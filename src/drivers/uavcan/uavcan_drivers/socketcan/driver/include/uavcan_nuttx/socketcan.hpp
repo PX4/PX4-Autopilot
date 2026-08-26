@@ -112,7 +112,7 @@ private:
 	void pushLoopback(const uavcan::CanFrame &frame);
 
 public:
-	uavcan::uint32_t socketInit(uint32_t index);
+	uavcan::uint32_t socketInit(uint32_t index, bool can_fd = false);
 
 	uavcan::int16_t send(const uavcan::CanFrame &frame,
 			     uavcan::MonotonicTime tx_deadline,
@@ -179,13 +179,13 @@ public:
 	CanDriver() : update_event_(*this)
 	{}
 
-	uavcan::int32_t initIface(uint32_t index)
+	uavcan::int32_t initIface(uint32_t index, bool can_fd = false)
 	{
 		if (index > (UAVCAN_SOCKETCAN_NUM_IFACES - 1)) {
 			return -1;
 		}
 
-		return if_[index].socketInit(index);
+		return if_[index].socketInit(index, can_fd);
 	}
 
 	/**
@@ -250,8 +250,10 @@ public:
 	 */
 	int init(uavcan::uint32_t bitrate)
 	{
+		const bool can_fd = bitrate > 1000000U;
+
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
-			driver.initIface(i);
+			driver.initIface(i, can_fd);
 		}
 
 		return driver.init(bitrate);

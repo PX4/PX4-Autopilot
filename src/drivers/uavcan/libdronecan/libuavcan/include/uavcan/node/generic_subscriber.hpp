@@ -290,7 +290,9 @@ void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomi
     BitStream bitstream(transfer);
     ScalarCodec codec(bitstream);
 
-    const int decode_res = DataStruct::decode(rx_struct, codec);
+    const TailArrayOptimizationMode tao = this->node_.getDispatcher().isCanFdEnabled() ?
+                                          TailArrayOptDisabled : TailArrayOptEnabled;
+    const int decode_res = DataStruct::decode(rx_struct, codec, tao);
 
     // We don't need the data anymore, the memory can be reused from the callback:
     transfer.release();
