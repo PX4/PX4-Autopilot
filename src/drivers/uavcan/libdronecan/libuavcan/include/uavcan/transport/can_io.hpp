@@ -117,6 +117,8 @@ public:
     /// The 'or equal' condition is necessary to avoid frame reordering.
     bool topPriorityHigherOrEqual(const CanFrame& rhs_frame) const;
 
+    /// Total. Every drop is also counted in exactly one of the two below, so a total that exceeds
+    /// their sum means a drop path was added without classifying it.
     uint32_t getRejectedFrameCount() const { return rejected_frames_cnt_; }
 
     /// Frames dropped because their transmit deadline had already passed. Not a memory shortage.
