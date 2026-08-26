@@ -138,8 +138,9 @@ void Telemetry::update_message_display(int log_level, MessageDisplay &display)
 			display.set(message);
 			_warning_display_timestamp = now;
 		}
+	}
 
-	} else if (_warning_display_timestamp != 0 && now - _warning_display_timestamp > 30_s) {
+	if (_warning_display_timestamp != 0 && now - _warning_display_timestamp > 30_s) {
 		display.set("");
 		_warning_display_timestamp = 0;
 	}

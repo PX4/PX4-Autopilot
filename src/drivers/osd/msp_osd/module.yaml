@@ -9,34 +9,6 @@ parameters:
     - group: OSD
       definitions:
 
-        # OSD Parameters
-        # OSD Crosshairs Vertical Position
-        OSD_CH_POS_VER:
-            description:
-                short: OSD Crosshairs Vertical Position
-                long: |
-                  Controls the vertical position of the crosshair display.
-                  Resolution is limited by OSD to 15 discrete values. Negative
-                  values will display the crosshairs below the horizon
-            type: int32
-            default: 0
-            min: -8
-            max: 8
-
-        # OSD Crosshairs Horizontal Position
-        OSD_CH_POS_HOR:
-            description:
-                short: OSD Crosshairs Horizontal Position
-                long: |
-                  Controls the horizontal position of the crosshair display.
-                  Resolution is limited by OSD to 15 discrete values. Negative
-                  values will display the crosshairs left of the center of the screen
-            type: int32
-            default: 0
-            min: -8
-            max: 8
-
-
         # RC Stick input
         OSD_RC_STICK:
             description:

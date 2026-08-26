@@ -51,7 +51,7 @@
 using namespace time_literals;
 
 static constexpr uint32_t OSD_UPDATE_RATE{100_ms};	// 10 Hz
-static constexpr int OSD_MAX_UPDATES_PER_CYCLE{10};
+static constexpr int OSD_MAX_UPDATES_PER_CYCLE{20};
 static constexpr uint32_t OSD_RETRY_INTERVAL{500_ms};
 
 
@@ -294,7 +294,7 @@ void
 OSDatxxxx::add_battery_voltage(const battery_status_s &battery, uint8_t pos_x, uint8_t pos_y)
 {
 	char buf[10];
-	char batt_symbol = OSD_SYMBOL_BATT_EMPTY;
+	char batt_symbol = '?';
 	const float remaining = PX4_ISFINITE(battery.remaining) ? battery.remaining : -1.f;
 	const float voltage_v = battery.voltage_v;
 
@@ -403,7 +403,7 @@ OSDatxxxx::update_screen()
 	const float yaw_rad = telemetry.attitude_valid ? telemetry.yaw_rad : 0.f;
 	memset(_screen, ' ', sizeof(_screen));
 
-	if (enabled(osd::Symbol::ArtificialHorizon)) {
+	if (enabled(osd::Symbol::ArtificialHorizon) && telemetry.attitude_valid) {
 		float roll = -matrix::wrap_pi(roll_rad);
 
 		if (roll > M_PI_2_F) {
@@ -455,7 +455,10 @@ OSDatxxxx::update_screen()
 		// land on follows the active video standard rather than a fixed default
 		const int crosshair_x = OSD_CHARS_PER_ROW / 2 + _param_osd_ch_pos_hor.get();
 		const int crosshair_y = _num_rows / 2 - _param_osd_ch_pos_ver.get();
-		add_character_to_screen(OSD_SYMBOL_AH_CENTER, math::max(0, crosshair_x), math::max(0, crosshair_y));
+
+		if (crosshair_x >= 0 && crosshair_x < OSD_CHARS_PER_ROW && crosshair_y >= 0 && crosshair_y < _num_rows) {
+			add_character_to_screen(OSD_SYMBOL_AH_CENTER, crosshair_x, crosshair_y);
+		}
 	}
 
 	if (enabled(osd::Symbol::BatteryVoltage)) {
@@ -482,7 +485,7 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::MahDrawn)) {
-		if (telemetry.battery_valid && PX4_ISFINITE(battery.discharged_mah) && battery.discharged_mah >= 0.f) {
+		if (telemetry.battery_valid && PX4_ISFINITE(battery.discharged_mah) && battery.discharged_mah != -1.f) {
 			add_consumed_mah(battery, _param_osd_mah_x.get(), _param_osd_mah_y.get());
 
 		} else {
@@ -492,7 +495,7 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::PowerDraw)) {
-		const bool current_valid = telemetry.battery_valid && PX4_ISFINITE(battery.current_a) && battery.current_a >= 0.f;
+		const bool current_valid = telemetry.battery_valid && PX4_ISFINITE(battery.current_a) && battery.current_a != -1.f;
 
 		if (_param_osd_pwr_mode.get() == 0) {
 			if (current_valid) {
@@ -515,52 +518,73 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::SystemId)) {
-		const char *mav_state = "INI";
+		if (telemetry.status.timestamp == 0) {
+			switch (_param_osd_id_mode.get()) {
+			case 1:
+				strncpy(buf, "S---", sizeof(buf));
+				break;
 
-		if (telemetry.actuator_armed.termination || telemetry.actuator_armed.kill ||
-		    (telemetry.actuator_armed.lockdown && telemetry.status.hil_state == vehicle_status_s::HIL_STATE_OFF)) {
-			mav_state = "TRM";
+			case 2:
+				strncpy(buf, "---", sizeof(buf));
+				break;
 
-		} else if (telemetry.status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-			mav_state = telemetry.status.failsafe ? "CRT" : "ACT";
+			default:
+				strncpy(buf, "S--- ---", sizeof(buf));
+				break;
+			}
 
-		} else if (telemetry.status.calibration_enabled || telemetry.status.rc_calibration_in_progress ||
-			   telemetry.actuator_armed.in_esc_calibration_mode) {
-			mav_state = "CAL";
+		} else {
+			const char *mav_state = "INI";
 
-		} else if (telemetry.status.pre_flight_checks_pass) {
-			mav_state = "STB";
-		}
+			if (telemetry.actuator_armed.termination || telemetry.actuator_armed.kill ||
+			    (telemetry.actuator_armed.lockdown && telemetry.status.hil_state == vehicle_status_s::HIL_STATE_OFF)) {
+				mav_state = "TRM";
 
-		// vehicle_status carries the MAVLink system ID, so the driver does not depend on
-		// MAV_SYS_ID: that parameter only exists on boards that build the mavlink module
-		switch (_param_osd_id_mode.get()) {
-		case 1:
-			snprintf(buf, sizeof(buf), "S%03d", telemetry.status.system_id);
-			break;
+			} else if (telemetry.status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				mav_state = telemetry.status.failsafe ? "CRT" : "ACT";
 
-		case 2:
-			snprintf(buf, sizeof(buf), "%s", mav_state);
-			break;
+			} else if (telemetry.status.calibration_enabled || telemetry.status.rc_calibration_in_progress ||
+				   telemetry.actuator_armed.in_esc_calibration_mode) {
+				mav_state = "CAL";
 
-		default:
-			snprintf(buf, sizeof(buf), "S%03d %s", telemetry.status.system_id, mav_state);
-			break;
+			} else if (telemetry.status.pre_flight_checks_pass) {
+				mav_state = "STB";
+			}
+
+			// vehicle_status carries the MAVLink system ID, so the driver does not depend on
+			// MAV_SYS_ID: that parameter only exists on boards that build the mavlink module
+			switch (_param_osd_id_mode.get()) {
+			case 1:
+				snprintf(buf, sizeof(buf), "S%03d", telemetry.status.system_id);
+				break;
+
+			case 2:
+				snprintf(buf, sizeof(buf), "%s", mav_state);
+				break;
+
+			default:
+				snprintf(buf, sizeof(buf), "S%03d %s", telemetry.status.system_id, mav_state);
+				break;
+			}
 		}
 
 		add_string_to_screen(buf, _param_osd_id_x.get(), _param_osd_id_y.get(), 8);
 	}
 
 	if (enabled(osd::Symbol::Rssi)) {
-		const bool input_rc_valid = telemetry.input_rc.timestamp != 0 &&
-					    hrt_elapsed_time(&telemetry.input_rc.timestamp) < 1_s;
+		const bool input_rc_seen = telemetry.input_rc.timestamp != 0;
+		const bool input_rc_valid = input_rc_seen && hrt_elapsed_time(&telemetry.input_rc.timestamp) < 1_s;
 		bool rssi_available = false;
 		bool rssi_dbm_available = false;
 		float rssi_dbm = 0.f;
 		int rssi = 0;
 
 		if (input_rc_valid) {
-			if (!telemetry.input_rc.rc_lost && PX4_ISFINITE(telemetry.input_rc.rssi_dbm)) {
+			if (telemetry.input_rc.rc_lost || telemetry.input_rc.rc_failsafe) {
+				rssi = 0;
+				rssi_available = true;
+
+			} else if (PX4_ISFINITE(telemetry.input_rc.rssi_dbm)) {
 				rssi_dbm = telemetry.input_rc.rssi_dbm;
 				rssi_dbm_available = true;
 				rssi_available = true;
@@ -568,17 +592,15 @@ OSDatxxxx::update_screen()
 			} else if (telemetry.input_rc.rssi >= 0 && telemetry.input_rc.rssi <= input_rc_s::RSSI_MAX) {
 				rssi = telemetry.input_rc.rssi;
 				rssi_available = true;
-
-			} else if (telemetry.input_rc.rc_lost) {
-				rssi = 0;
-				rssi_available = true;
 			}
 		}
 
 		const bool radio_status_valid = telemetry.radio_status.timestamp != 0 &&
-						  hrt_elapsed_time(&telemetry.radio_status.timestamp) < 2_s;
+						hrt_elapsed_time(&telemetry.radio_status.timestamp) < 2_s;
 
-		if (!rssi_available && radio_status_valid) {
+		// A previously active RC topic going stale is itself a link problem. Do not
+		// mask that with an unrelated telemetry-radio RSSI value.
+		if (!rssi_available && (!input_rc_seen || input_rc_valid) && radio_status_valid) {
 			const int radio_rssi = telemetry.radio_status.remote_rssi < 255 ? telemetry.radio_status.remote_rssi :
 					       telemetry.radio_status.rssi;
 
@@ -602,66 +624,124 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::LinkQuality)) {
-		const int link_quality = telemetry.input_rc.timestamp != 0 && telemetry.input_rc.link_quality >= 0
-					 ? telemetry.input_rc.link_quality : 0;
-		snprintf(buf, sizeof(buf), "LQ%3d", link_quality);
+		const bool input_rc_valid = telemetry.input_rc.timestamp != 0 &&
+					    hrt_elapsed_time(&telemetry.input_rc.timestamp) < 1_s;
+
+		if (input_rc_valid && (telemetry.input_rc.rc_lost || telemetry.input_rc.rc_failsafe)) {
+			strncpy(buf, "LQ  0", sizeof(buf));
+
+		} else if (input_rc_valid && telemetry.input_rc.link_quality >= 0) {
+			snprintf(buf, sizeof(buf), "LQ%3d", telemetry.input_rc.link_quality);
+
+		} else {
+			strncpy(buf, "LQ---", sizeof(buf));
+		}
+
 		add_string_to_screen(buf, _param_osd_lq_x.get(), _param_osd_lq_y.get(), 5);
 	}
 
+	const bool gps_valid = telemetry.gps.timestamp != 0 &&
+			       hrt_elapsed_time(&telemetry.gps.timestamp) < 2_s;
+
 	if (enabled(osd::Symbol::GpsSatellites)) {
-		const int satellites = telemetry.gps.timestamp != 0 ? telemetry.gps.satellites_used : 0;
-		snprintf(buf, sizeof(buf), "%c%c%2d", OSD_SYMBOL_SAT_L, OSD_SYMBOL_SAT_R, satellites);
+		if (gps_valid) {
+			snprintf(buf, sizeof(buf), "%c%c%2d", OSD_SYMBOL_SAT_L, OSD_SYMBOL_SAT_R, telemetry.gps.satellites_used);
+
+		} else {
+			snprintf(buf, sizeof(buf), "%c%c--", OSD_SYMBOL_SAT_L, OSD_SYMBOL_SAT_R);
+		}
+
 		add_string_to_screen(buf, _param_osd_gps_sat_x.get(), _param_osd_gps_sat_y.get(), 4);
 	}
 
 	if (enabled(osd::Symbol::GpsSpeed)) {
-		const float speed = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.vel_m_s)
-				    ? telemetry.gps.vel_m_s * 3.6f : 0.f;
-		snprintf(buf, sizeof(buf), "SPD%3.0f", (double)speed);
+		if (gps_valid && telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && telemetry.gps.vel_ned_valid &&
+		    PX4_ISFINITE(telemetry.gps.vel_m_s)) {
+			snprintf(buf, sizeof(buf), "SPD%3.0f", (double)(telemetry.gps.vel_m_s * 3.6f));
+
+		} else {
+			strncpy(buf, "SPD---", sizeof(buf));
+		}
+
 		add_string_to_screen(buf, _param_osd_gps_spd_x.get(), _param_osd_gps_spd_y.get(), 6);
 	}
 
 	if (enabled(osd::Symbol::GpsLatitude)) {
-		const double latitude = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.latitude_deg)
-					? telemetry.gps.latitude_deg : 0.;
-		snprintf(buf, sizeof(buf), "LAT%+.5f", latitude);
+		if (gps_valid && telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.latitude_deg)) {
+			snprintf(buf, sizeof(buf), "LAT%+.5f", telemetry.gps.latitude_deg);
+
+		} else {
+			strncpy(buf, "LAT---", sizeof(buf));
+		}
+
 		add_string_to_screen(buf, _param_osd_gps_lat_x.get(), _param_osd_gps_lat_y.get(), 13);
 	}
 
 	if (enabled(osd::Symbol::GpsLongitude)) {
-		const double longitude = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.longitude_deg)
-					 ? telemetry.gps.longitude_deg : 0.;
-		snprintf(buf, sizeof(buf), "LON%+.5f", longitude);
+		if (gps_valid && telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.longitude_deg)) {
+			snprintf(buf, sizeof(buf), "LON%+.5f", telemetry.gps.longitude_deg);
+
+		} else {
+			strncpy(buf, "LON---", sizeof(buf));
+		}
+
 		add_string_to_screen(buf, _param_osd_gps_lon_x.get(), _param_osd_gps_lon_y.get(), 14);
 	}
 
 	if (enabled(osd::Symbol::GpsInfo)) {
-		const char *fix_type = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_3D ? "3D" :
-				       (telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D ? "2D" : "NO");
-		const float hdop = PX4_ISFINITE(telemetry.gps.hdop) ? telemetry.gps.hdop : 0.f;
-		const float vdop = PX4_ISFINITE(telemetry.gps.vdop) ? telemetry.gps.vdop : 0.f;
-		const float eph = PX4_ISFINITE(telemetry.gps.eph) ? telemetry.gps.eph : 0.f;
-		const float pdop = sqrtf(hdop * hdop + vdop * vdop);
-		snprintf(buf, sizeof(buf), "%s D%3.1f E%3.1f", fix_type, (double)pdop, (double)eph);
+		if (gps_valid) {
+			const char *fix_type = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_3D ? "3D" :
+					       (telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D ? "2D" : "NO");
+
+			if (telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.hdop) &&
+			    PX4_ISFINITE(telemetry.gps.vdop) && PX4_ISFINITE(telemetry.gps.eph)) {
+				const float pdop = sqrtf(telemetry.gps.hdop * telemetry.gps.hdop +
+						 telemetry.gps.vdop * telemetry.gps.vdop);
+				snprintf(buf, sizeof(buf), "%s D%3.1f E%3.1f", fix_type, (double)pdop, (double)telemetry.gps.eph);
+
+			} else {
+				snprintf(buf, sizeof(buf), "%s D--- E---", fix_type);
+			}
+
+		} else {
+			strncpy(buf, "-- D--- E---", sizeof(buf));
+		}
+
 		add_string_to_screen(buf, _param_osd_gps_info_x.get(), _param_osd_gps_info_y.get(), 12);
 	}
 
+	const bool local_position_valid = telemetry.local_position.timestamp != 0 &&
+					  hrt_elapsed_time(&telemetry.local_position.timestamp) < 1_s;
+
 	if (enabled(osd::Symbol::Altitude)) {
-		vehicle_local_position_s local_position{};
-		local_position.z = telemetry.local_position.z_valid && PX4_ISFINITE(telemetry.local_position.z)
-				   ? telemetry.local_position.z : 0.f;
-		add_altitude(local_position, _param_osd_alt_x.get(), _param_osd_alt_y.get());
+		if (local_position_valid && telemetry.local_position.z_valid && PX4_ISFINITE(telemetry.local_position.z)) {
+			add_altitude(telemetry.local_position, _param_osd_alt_x.get(), _param_osd_alt_y.get());
+
+		} else {
+			snprintf(buf, sizeof(buf), "%c----%c", OSD_SYMBOL_ARROW_NORTH, OSD_SYMBOL_M);
+			add_string_to_screen(buf, _param_osd_alt_x.get(), _param_osd_alt_y.get(), 9);
+		}
 	}
 
 	if (enabled(osd::Symbol::NumericalVario)) {
-		const float vertical_speed = telemetry.local_position.v_z_valid && PX4_ISFINITE(telemetry.local_position.vz)
-					     ? -telemetry.local_position.vz : 0.f;
-		snprintf(buf, sizeof(buf), "V%+4.1f", (double)vertical_speed);
+		if (local_position_valid && telemetry.local_position.v_z_valid && PX4_ISFINITE(telemetry.local_position.vz)) {
+			snprintf(buf, sizeof(buf), "V%+4.1f", (double)-telemetry.local_position.vz);
+
+		} else {
+			strncpy(buf, "V---", sizeof(buf));
+		}
+
 		add_string_to_screen(buf, _param_osd_vario_x.get(), _param_osd_vario_y.get(), 7);
 	}
 
 	if (enabled(osd::Symbol::Attitude)) {
-		snprintf(buf, sizeof(buf), "P%+4.0f R%+4.0f", (double)math::degrees(pitch_rad), (double)math::degrees(roll_rad));
+		if (telemetry.attitude_valid) {
+			snprintf(buf, sizeof(buf), "P%+4.0f R%+4.0f", (double)math::degrees(pitch_rad), (double)math::degrees(roll_rad));
+
+		} else {
+			strncpy(buf, "P--- R---", sizeof(buf));
+		}
+
 		add_string_to_screen(buf, _param_osd_att_x.get(), _param_osd_att_y.get(), 11);
 	}
 
@@ -705,8 +785,13 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::HomeDistance)) {
-		const float home_distance = telemetry.home_valid ? telemetry.home_distance_m : 0.f;
-		snprintf(buf, sizeof(buf), "%4.0f%c", (double)home_distance, OSD_SYMBOL_M);
+		if (telemetry.home_valid) {
+			snprintf(buf, sizeof(buf), "%4.0f%c", (double)telemetry.home_distance_m, OSD_SYMBOL_M);
+
+		} else {
+			snprintf(buf, sizeof(buf), "----%c", OSD_SYMBOL_M);
+		}
+
 		add_string_to_screen(buf, _param_osd_home_dst_x.get(), _param_osd_home_dst_y.get(), 6);
 	}
 
@@ -728,14 +813,24 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::Disarmed)) {
-		const char *arming_state = telemetry.status.arming_state == vehicle_status_s::ARMING_STATE_ARMED
-					   ? "ARMED" : "DISARMED";
-		add_centered_string_to_screen(arming_state, _param_osd_arm_x.get(), _param_osd_arm_y.get(), 8);
+		const char *arming_state = "NO STATUS";
+
+		if (telemetry.status.timestamp != 0) {
+			arming_state = telemetry.status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? "ARMED" : "DISARMED";
+		}
+
+		add_centered_string_to_screen(arming_state, _param_osd_arm_x.get(), _param_osd_arm_y.get(), 9);
 	}
 
 	if (enabled(osd::Symbol::Heading)) {
-		const int heading_deg = static_cast<int>(lroundf(math::degrees(yaw_rad))) % 360;
-		snprintf(buf, sizeof(buf), "%c%03d", OSD_SYMBOL_ARROW_NORTH, heading_deg);
+		if (telemetry.attitude_valid) {
+			const int heading_deg = static_cast<int>(lroundf(math::degrees(yaw_rad))) % 360;
+			snprintf(buf, sizeof(buf), "%c%03d", OSD_SYMBOL_ARROW_NORTH, heading_deg);
+
+		} else {
+			snprintf(buf, sizeof(buf), "%c---", OSD_SYMBOL_ARROW_NORTH);
+		}
+
 		add_string_to_screen(buf, _param_osd_head_x.get(), _param_osd_head_y.get(), 4);
 	}
 
@@ -743,9 +838,15 @@ OSDatxxxx::update_screen()
 		const bool manual_control_valid = telemetry.manual_control.valid && telemetry.manual_control.timestamp != 0 &&
 						  hrt_elapsed_time(&telemetry.manual_control.timestamp) < 1_s &&
 						  PX4_ISFINITE(telemetry.manual_control.throttle);
-		const float throttle = manual_control_valid
-				       ? math::constrain((telemetry.manual_control.throttle + 1.f) * 50.f, 0.f, 100.f) : 0.f;
-		snprintf(buf, sizeof(buf), "T%3.0f", (double)throttle);
+
+		if (manual_control_valid) {
+			const float throttle = math::constrain((telemetry.manual_control.throttle + 1.f) * 50.f, 0.f, 100.f);
+			snprintf(buf, sizeof(buf), "T%3.0f", (double)throttle);
+
+		} else {
+			strncpy(buf, "T---", sizeof(buf));
+		}
+
 		add_string_to_screen(buf, _param_osd_throt_x.get(), _param_osd_throt_y.get(), 4);
 	}
 
@@ -761,19 +862,15 @@ OSDatxxxx::update_screen()
 					 telemetry.vtx.power_level + 1);
 
 			} else {
-				strncpy(buf, "VTX -:0:0", sizeof(buf));
+				strncpy(buf, "VTX -:-:-", sizeof(buf));
 			}
+
+		} else if (vtx_valid && telemetry.vtx.power_label[0] != 0 && telemetry.vtx.frequency > 0) {
+			snprintf(buf, sizeof(buf), "%huM %.*sMW", telemetry.vtx.frequency, (int)sizeof(telemetry.vtx.power_label),
+				 reinterpret_cast<const char *>(telemetry.vtx.power_label));
 
 		} else {
-			const uint16_t frequency = vtx_valid ? telemetry.vtx.frequency : 0;
-
-			if (vtx_valid && telemetry.vtx.power_label[0] != 0) {
-				snprintf(buf, sizeof(buf), "%huM %.*sMW", frequency, (int)sizeof(telemetry.vtx.power_label),
-					 reinterpret_cast<const char *>(telemetry.vtx.power_label));
-
-			} else {
-				snprintf(buf, sizeof(buf), "%huM 0MW", frequency);
-			}
+			strncpy(buf, "----M ---MW", sizeof(buf));
 		}
 
 		add_string_to_screen(buf, _param_osd_vtx_x.get(), _param_osd_vtx_y.get(), 12);
@@ -782,7 +879,14 @@ OSDatxxxx::update_screen()
 #endif
 
 	if (enabled(osd::Symbol::FlightTime)) {
-		add_flighttime(_telemetry.flight_time_s(), _param_osd_ftime_x.get(), _param_osd_ftime_y.get());
+		if (telemetry.status.timestamp == 0 ||
+		    (telemetry.status.arming_state == vehicle_status_s::ARMING_STATE_ARMED && telemetry.status.armed_time == 0)) {
+			snprintf(buf, sizeof(buf), "%c--:--", OSD_SYMBOL_FLIGHT_TIME);
+			add_string_to_screen(buf, _param_osd_ftime_x.get(), _param_osd_ftime_y.get(), 7);
+
+		} else {
+			add_flighttime(_telemetry.flight_time_s(), _param_osd_ftime_x.get(), _param_osd_ftime_y.get());
+		}
 	}
 
 	_telemetry.update_message_display(_param_osd_log_level.get(), _display);
