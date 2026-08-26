@@ -485,7 +485,7 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::MahDrawn)) {
-		if (telemetry.battery_valid && PX4_ISFINITE(battery.discharged_mah) && battery.discharged_mah != -1.f) {
+		if (telemetry.battery_valid && PX4_ISFINITE(battery.discharged_mah) && battery.discharged_mah >= 0.f) {
 			add_consumed_mah(battery, _param_osd_mah_x.get(), _param_osd_mah_y.get());
 
 		} else {
@@ -495,7 +495,7 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::PowerDraw)) {
-		const bool current_valid = telemetry.battery_valid && PX4_ISFINITE(battery.current_a) && battery.current_a != -1.f;
+		const bool current_valid = telemetry.battery_valid && PX4_ISFINITE(battery.current_a) && battery.current_a >= 0.f;
 
 		if (_param_osd_pwr_mode.get() == 0) {
 			if (current_valid) {
@@ -696,7 +696,7 @@ OSDatxxxx::update_screen()
 			if (telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.hdop) &&
 			    PX4_ISFINITE(telemetry.gps.vdop) && PX4_ISFINITE(telemetry.gps.eph)) {
 				const float pdop = sqrtf(telemetry.gps.hdop * telemetry.gps.hdop +
-						 telemetry.gps.vdop * telemetry.gps.vdop);
+							 telemetry.gps.vdop * telemetry.gps.vdop);
 				snprintf(buf, sizeof(buf), "%s D%3.1f E%3.1f", fix_type, (double)pdop, (double)telemetry.gps.eph);
 
 			} else {
@@ -725,7 +725,7 @@ OSDatxxxx::update_screen()
 
 	if (enabled(osd::Symbol::NumericalVario)) {
 		if (local_position_valid && telemetry.local_position.v_z_valid && PX4_ISFINITE(telemetry.local_position.vz)) {
-			snprintf(buf, sizeof(buf), "V%+4.1f", (double)-telemetry.local_position.vz);
+			snprintf(buf, sizeof(buf), "V%+4.1f", (double)(-telemetry.local_position.vz));
 
 		} else {
 			strncpy(buf, "V---", sizeof(buf));
