@@ -52,6 +52,10 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 		progmem_dump.c
 	)
 
+	if(CONFIG_USBDEV_COMPOSITE AND CONFIG_ARCH_CHIP_STM32H7)
+		list(APPEND KERNEL_SRCS ${PX4_SOURCE_DIR}/platforms/nuttx/src/px4/stm/stm32h7/usb_composite.c)
+	endif()
+
 	# Kernel side & nuttx flat build common libraries
 	set(KERNEL_LIBS
 		arch_board_reset

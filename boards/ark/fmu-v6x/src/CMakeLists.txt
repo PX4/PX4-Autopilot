@@ -60,9 +60,6 @@ else()
 		timer_config.cpp
 		usb.c
 	)
-if(CONFIG_USBDEV_COMPOSITE)
-	target_sources(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/px4/stm/stm32h7/usb_composite.c)
-endif()
 	add_dependencies(drivers_board arch_board_hw_info)
 
 	target_link_libraries(drivers_board

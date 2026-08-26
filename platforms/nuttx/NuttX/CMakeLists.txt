@@ -49,6 +49,12 @@ if(DEFINED ENV{PX4_EXTRA_NUTTX_CONFIG})
 		file(APPEND ${EXTRA_NUTTX_CONFIG_FILE} "${OPTION}\n")
 	endforeach ()
 endif()
+if(DEFINED PX4_NUTTX_CAN_CDC_FRAGMENT AND EXISTS ${PX4_NUTTX_CAN_CDC_FRAGMENT})
+	file(READ ${PX4_NUTTX_CAN_CDC_FRAGMENT} _px4_can_cdc_extra)
+	if(NOT _px4_can_cdc_extra STREQUAL "")
+		file(APPEND ${EXTRA_NUTTX_CONFIG_FILE} "${_px4_can_cdc_extra}")
+	endif()
+endif()
 
 
 # inflate .config
@@ -64,6 +70,7 @@ add_custom_command(
 		${NUTTX_DIR}/defconfig
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx/Make.defs
 		${CMAKE_CURRENT_BINARY_DIR}/../defconfig_inflate_stamp
+		${EXTRA_NUTTX_CONFIG_FILE}
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	#USES_TERMINAL
 )

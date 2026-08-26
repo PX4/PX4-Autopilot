@@ -62,6 +62,15 @@
 #include <px4_platform/board_ctrl.h>
 #endif
 
+#if defined(CONFIG_NETDEV_LATEINIT)
+#  if defined(CONFIG_STM32H7_ETHMAC)
+extern "C" int stm32_ethinitialize(int intf);
+#  endif
+#  if defined(CONFIG_STM32H7_FDCAN1) || defined(CONFIG_STM32H7_FDCAN2)
+extern "C" int stm32_fdcansockinitialize(int intf);
+#  endif
+#endif
+
 #if !defined(CONFIG_BUILD_FLAT)
 typedef CODE void (*initializer_t)(void);
 extern initializer_t _sinit;
@@ -193,6 +202,34 @@ int px4_platform_init()
 	uorb_start();
 
 	px4_log_initialize();
+
+#if defined(CONFIG_NETDEV_LATEINIT)
+	/* SocketCAN FDCAN and ETH both provide arm_netinitialize(); LATEINIT
+	 * suppresses the automatic call so the board can init both. Do it here
+	 * so every STM32H7 UAVCAN board does not copy the same bring-up.
+	 */
+#  if defined(CONFIG_STM32H7_ETHMAC)
+
+	if (stm32_ethinitialize(0) < 0) {
+		syslog(LOG_ERR, "ETH init FAILED\n");
+	}
+
+#  endif
+#  if defined(CONFIG_STM32H7_FDCAN1)
+
+	if (stm32_fdcansockinitialize(0) < 0) {
+		syslog(LOG_ERR, "FDCAN1 SocketCAN init FAILED\n");
+	}
+
+#  endif
+#  if defined(CONFIG_STM32H7_FDCAN2)
+
+	if (stm32_fdcansockinitialize(1) < 0) {
+		syslog(LOG_ERR, "FDCAN2 SocketCAN init FAILED\n");
+	}
+
+#  endif
+#endif /* CONFIG_NETDEV_LATEINIT */
 
 	return PX4_OK;
 }

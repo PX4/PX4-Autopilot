@@ -69,6 +69,8 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_SRC_DIR}/M
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/.config)
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/defconfig)
 
+include(${CMAKE_CURRENT_LIST_DIR}/can_cdc_fragment.cmake)
+
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${NUTTX_DIR}/defconfig)
 
 execute_process(
@@ -108,6 +110,18 @@ foreach(NameAndValue ${ConfigContents})
 		set(${Name} ${Value} CACHE INTERNAL "NUTTX DEFCONFIG: ${Name}" FORCE)
 	endif()
 endforeach()
+
+# SLCAN needs SocketCAN. Enable the module on any UAVCAN board whose
+# inflated NuttX config actually has CONFIG_NET_CAN (H7 via the fragment
+# above, NXP via the existing defconfig).
+if((CONFIG_DRIVERS_UAVCAN OR CONFIG_DRIVERS_UAVCANNODE) AND CONFIG_NET_CAN)
+	list(FIND config_module_list drivers/slcan _px4_slcan_idx)
+	if(_px4_slcan_idx EQUAL -1)
+		list(APPEND config_module_list drivers/slcan)
+		message(STATUS "PX4: enabling drivers/slcan (SocketCAN)")
+	endif()
+	set(CONFIG_DRIVERS_SLCAN y CACHE INTERNAL "BOARD DEFCONFIG: CONFIG_DRIVERS_SLCAN" FORCE)
+endif()
 
 # Add CONFIG_ARCH_CHIP to boardconfig by merging
 execute_process(
