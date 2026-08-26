@@ -202,7 +202,7 @@ iis2mdc <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 48
+                 default: 30
 
    stop
 
