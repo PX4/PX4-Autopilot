@@ -242,7 +242,11 @@ uint32_t UavcanEscController::get_failures(uint8_t esc_index, uint8_t node_id)
 			}
 		}
 
-		return failures;
+		if (failures != 0) {
+			return failures;
+		}
+
+		// vendor reported ERROR/CRITICAL but set no recognized status bits, fall through to generic failure below
 	}
 
 	// Generic parsing
