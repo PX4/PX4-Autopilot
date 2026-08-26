@@ -78,6 +78,9 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 		if (_aid_src_optical_flow.innovation_variance[index] < _aid_src_optical_flow.observation_variance[index]) {
 			// we need to reinitialise the covariance matrix and abort this fusion step
 			ECL_ERR("Opt flow error - covariance reset");
+
+			// apply the correction accumulated so far before resetting the covariance
+			applyStateCorrection(state_correction);
 			initialiseCovariance();
 			return false;
 		}

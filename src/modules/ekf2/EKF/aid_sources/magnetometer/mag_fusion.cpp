@@ -90,6 +90,9 @@ bool Ekf::fuseMag(const float R_MAG, VectorState &H, estimator_aid_source3d_s &a
 		if (aid_src.innovation_variance[index] < R_MAG) {
 			ECL_ERR("mag numerical error covariance reset");
 
+			// keep the covariance and state consistent by applying the correction accumulated so far
+			applyStateCorrection(state_correction);
+
 			// we need to re-initialise covariances and abort this fusion step
 			if (update_all_states) {
 				resetQuatCov(_params.ekf2_head_noise);
