@@ -76,6 +76,10 @@
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
 
+#if defined(CONFIG_NETDEV_LATEINIT) && defined(CONFIG_STM32H7_FDCAN1)
+int stm32_fdcansockinitialize(int intf);
+#endif
+
 # if defined(FLASH_BASED_PARAMS)
 #  include <parameters/flashparams/flashfs.h>
 #endif
@@ -295,6 +299,15 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
+
+#if defined(CONFIG_NETDEV_LATEINIT) && defined(CONFIG_STM32H7_FDCAN1)
+
+	if (stm32_fdcansockinitialize(0) < 0) {
+		syslog(LOG_ERR, "[boot] FDCAN1 SocketCAN init FAILED\n");
+		led_on(LED_RED);
+	}
+
+#endif
 
 	/* Configure the SPIX_SYNC output */
 	spix_sync_servo_init(BOARD_SPIX_SYNC_FREQ);

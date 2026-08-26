@@ -24,6 +24,9 @@ param set-default HEATER1_TEMP 10.0
 
 param set-default UAVCAN_ESC_IFACE 2
 
+ifup can0
+ifup can1
+
 if ver hwtypecmp ARKV6X000
 then
 	param set-default HEATER1_SENS_ID 2818058

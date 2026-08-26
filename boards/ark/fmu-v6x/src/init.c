@@ -75,6 +75,15 @@
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
 
+#if defined(CONFIG_NETDEV_LATEINIT)
+#  if defined(CONFIG_STM32H7_ETHMAC)
+int stm32_ethinitialize(int intf);
+#  endif
+#  if defined(CONFIG_STM32H7_FDCAN1) || defined(CONFIG_STM32H7_FDCAN2)
+int stm32_fdcansockinitialize(int intf);
+#  endif
+#endif
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -288,6 +297,33 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
+
+#if defined(CONFIG_NETDEV_LATEINIT)
+#  if defined(CONFIG_STM32H7_ETHMAC)
+
+	if (stm32_ethinitialize(0) < 0) {
+		syslog(LOG_ERR, "[boot] ETH init FAILED\n");
+		led_on(LED_RED);
+	}
+
+#  endif
+#  if defined(CONFIG_STM32H7_FDCAN1)
+
+	if (stm32_fdcansockinitialize(0) < 0) {
+		syslog(LOG_ERR, "[boot] FDCAN1 SocketCAN init FAILED\n");
+		led_on(LED_RED);
+	}
+
+#  endif
+#  if defined(CONFIG_STM32H7_FDCAN2)
+
+	if (stm32_fdcansockinitialize(1) < 0) {
+		syslog(LOG_ERR, "[boot] FDCAN2 SocketCAN init FAILED\n");
+		led_on(LED_RED);
+	}
+
+#  endif
+#endif
 
 	return OK;
 }
