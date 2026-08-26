@@ -36,7 +36,7 @@ This allows ROS 2 and PlotJuggler to interpret the messages.
 If you're using unmodified PX4, the definitions from [PX4/px4_msgs](https://github.com/PX4/px4_msgs) can be used.
 
 ::: info
-This is the same process as covered in [Build ROS 2 Workspace](../ros2/user_guide.md#build-ros-2-workspace) in _ROS 2 Installation & Setup_.
+This is the same process as covered in [Running an example (optional)](../ros2/user_guide.md#running-an-example-optional) in _ROS 2 Installation & Setup_.
 :::
 
 Assuming your ROS 2 workspace is named `~/ros2_ws/`, fetch and build the `px4_msgs` package in a terminal as shown:
