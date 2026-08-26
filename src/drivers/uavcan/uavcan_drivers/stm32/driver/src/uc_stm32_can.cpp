@@ -297,7 +297,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline,
 			       uavcan::CanIOFlags flags)
 {
-	if (frame.isErrorFrame() || frame.dlc > 8) {
+	if (frame.isErrorFrame() || frame.canfd || frame.dlc > 8) {
 		return -ErrUnsupportedFrame;
 	}
 

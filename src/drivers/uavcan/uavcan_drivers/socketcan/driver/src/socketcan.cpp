@@ -70,14 +70,11 @@ struct BitTimingSettings {
 
 } // namespace
 
-uavcan::uint32_t CanIface::socketInit(uint32_t index)
+uavcan::uint32_t CanIface::socketInit(uint32_t index, bool can_fd)
 {
 
 	struct sockaddr_can addr;
 	struct ifreq ifr;
-
-	//FIXME Change this when we update to DroneCAN with CAN FD support
-	bool can_fd = 0;
 
 	_can_fd = can_fd;
 
@@ -181,8 +178,9 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	/* Copy CanardFrame to can_frame/canfd_frame */
 	if (_can_fd) {
 		_send_frame.can_id = frame.id | CAN_EFF_FLAG;
-		_send_frame.len = frame.dlc;
-		memcpy(&_send_frame.data, frame.data, frame.dlc);
+		_send_frame.len = uavcan::CanFrame::dlcToDataLength(frame.dlc);
+		_send_frame.flags = frame.canfd ? CANFD_BRS : 0;
+		memcpy(&_send_frame.data, frame.data, _send_frame.len);
 
 	} else {
 		struct can_frame *net_frame = (struct can_frame *)&_send_frame;
@@ -241,7 +239,9 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 			return -EFAULT;
 		}
 
-		out_frame.dlc = recv_frame->len;
+		out_frame.dlc = uavcan::CanFrame::dataLengthToDlc(recv_frame->len);
+		out_frame.canfd = (recv_frame->len > 8) || (recv_frame->flags & CANFD_BRS) ||
+				  (result == static_cast<int32_t>(CANFD_MTU));
 		memcpy(out_frame.data, &recv_frame->data, recv_frame->len);
 
 	} else {
@@ -253,6 +253,7 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 		}
 
 		out_frame.dlc = recv_frame->can_dlc;
+		out_frame.canfd = false;
 		memcpy(out_frame.data, &recv_frame->data, recv_frame->can_dlc);
 	}
 

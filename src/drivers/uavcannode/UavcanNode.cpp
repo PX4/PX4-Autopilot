@@ -33,6 +33,8 @@
 
 #include "UavcanNode.hpp"
 
+#include <inttypes.h>
+
 #include "boot_app_shared.h"
 #include "boot_alt_app_shared.h"
 
@@ -544,6 +546,14 @@ void UavcanNode::Run()
 				return;
 			}
 
+			const bool canfd = uavcanBitrateIsCanFd(static_cast<uint32_t>(_bitrate));
+			_node.getDispatcher().setCanFdEnabled(canfd);
+
+			if (canfd) {
+				PX4_INFO("CAN FD enabled: 1 Mbps arbitration, %" PRIu32 " bps data",
+					 static_cast<uint32_t>(_bitrate));
+			}
+
 			int rv = _node.start();
 
 			if (rv < 0) {
@@ -888,7 +898,8 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 	}
 
 	// Start
-	PX4_INFO("Node ID %" PRId32 ", bitrate %" PRId32, node_id, bitrate);
+	PX4_INFO("Node ID %" PRId32 ", bitrate %" PRId32 "%s", node_id, bitrate,
+		 uavcanBitrateIsCanFd(static_cast<uint32_t>(bitrate)) ? " (CAN FD)" : "");
 	int rv = uavcannode::UavcanNode::start(node_id, bitrate);
 
 	return rv;

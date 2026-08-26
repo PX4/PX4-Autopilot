@@ -125,6 +125,7 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
 
     NodeID self_node_id_;
     bool self_node_id_is_set_;
+    bool canfd_enabled_;
 
     void handleFrame(const CanRxFrame& can_frame);
 
@@ -142,6 +143,7 @@ public:
 #endif
         , self_node_id_(NodeID::Broadcast)  // Default
         , self_node_id_is_set_(false)
+        , canfd_enabled_(false)
     { }
 
     /**
@@ -226,6 +228,9 @@ public:
      * Refer to the specs to learn more about passive mode.
      */
     bool isPassiveMode() const { return !getNodeID().isUnicast(); }
+
+    void setCanFdEnabled(bool enabled) { canfd_enabled_ = enabled; }
+    bool isCanFdEnabled() const { return canfd_enabled_; }
 
     const ISystemClock& getSystemClock() const { return sysclock_; }
     ISystemClock& getSystemClock() { return sysclock_; }

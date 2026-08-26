@@ -26,9 +26,15 @@ void TransferSender::init(const DataTypeDescriptor& dtid, CanTxQueue::Qos qos)
 
 int TransferSender::send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
                          MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
-                         TransferID tid) const
+                         TransferID tid, bool force_std_can) const
 {
+#if UAVCAN_SUPPORT_CANFD
+    Frame frame(data_type_id_, transfer_type, dispatcher_.getNodeID(), dst_node_id, tid,
+                !force_std_can && dispatcher_.isCanFdEnabled());
+#else
+    (void)force_std_can;
     Frame frame(data_type_id_, transfer_type, dispatcher_.getNodeID(), dst_node_id, tid);
+#endif
 
     frame.setPriority(priority_);
     frame.setStartOfTransfer(true);
@@ -82,6 +88,13 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
         {
             TransferCRC crc = crc_base_;
             crc.add(payload, payload_len);
+            if (payload_len > 63 && frame.isCanFDFrame()) {
+                const uint8_t empty = 0;
+                const uint8_t padding = CanFrame::getNumPaddingBytes(static_cast<uint16_t>(payload_len));
+                for (uint8_t i = 0; i < padding; i++) {
+                    crc.add(&empty, 1);
+                }
+            }
 
             static const int BUFLEN = sizeof(static_cast<CanFrame*>(0)->data);
             uint8_t buf[BUFLEN];
@@ -144,7 +157,8 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
 }
 
 int TransferSender::send(const uint8_t* payload, unsigned payload_len, MonotonicTime tx_deadline,
-                         MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id) const
+                         MonotonicTime blocking_deadline, TransferType transfer_type, NodeID dst_node_id,
+                         bool force_std_can) const
 {
     /*
      * TODO: TID is not needed for anonymous transfers, this part of the code can be skipped?
@@ -167,7 +181,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
     tid->increment();
 
     return send(payload, payload_len, tx_deadline, blocking_deadline, transfer_type,
-                dst_node_id, this_tid);
+                dst_node_id, this_tid, force_std_can);
 }
 
 }

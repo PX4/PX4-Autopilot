@@ -16,10 +16,16 @@ parameters:
     CANNODE_BITRATE:
       description:
         short: UAVCAN CAN bus bitrate
+        long: |-
+          Classic CAN when 20000..1000000.
+
+          Values above 1000000 enable CAN FD on STM32H7 (and SocketCAN) nodes:
+          arbitration stays at 1 Mbps, and this parameter is the CAN FD data bitrate.
+          Typical data rates are 2000000 and 4000000. The whole bus must be CAN FD.
       type: int32
       default: 1000000
       min: 20000
-      max: 1000000
+      max: 8000000
     CANNODE_TERM:
       description:
         short: CAN built-in bus termination

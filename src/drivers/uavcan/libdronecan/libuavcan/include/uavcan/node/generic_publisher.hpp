@@ -165,7 +165,9 @@ int GenericPublisher<DataSpec, DataStruct>::doEncode(const DataStruct& message, 
 {
     BitStream bitstream(buffer);
     ScalarCodec codec(bitstream);
-    const int encode_res = DataStruct::encode(message, codec);
+    const TailArrayOptimizationMode tao = getNode().getDispatcher().isCanFdEnabled() ?
+                                          TailArrayOptDisabled : TailArrayOptEnabled;
+    const int encode_res = DataStruct::encode(message, codec, tao);
     if (encode_res <= 0)
     {
         UAVCAN_ASSERT(0);   // Impossible, internal error

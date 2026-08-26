@@ -727,6 +727,14 @@ UavcanNode::Run()
 			PX4_ERR("CAN driver init failed %i", can_init_res);
 
 		} else {
+			const bool canfd = uavcanBitrateIsCanFd(static_cast<uint32_t>(bitrate));
+			_instance->get_node().getDispatcher().setCanFdEnabled(canfd);
+
+			if (canfd) {
+				PX4_INFO("CAN FD enabled: 1 Mbps arbitration, %" PRIu32 " bps data",
+					 static_cast<uint32_t>(bitrate));
+			}
+
 			_instance->init(node_id, can->driver.updateEvent());
 
 			_node_init = true;
@@ -1601,7 +1609,8 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
 
 		// Start
-		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);
+		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32 "%s", node_id, bitrate,
+			 uavcanBitrateIsCanFd(static_cast<uint32_t>(bitrate)) ? " (CAN FD)" : "");
 		return UavcanNode::start(node_id, bitrate);
 	}
 
