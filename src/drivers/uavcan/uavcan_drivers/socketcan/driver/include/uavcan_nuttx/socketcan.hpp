@@ -180,7 +180,11 @@ public:
 	 */
 	int init(uavcan::uint32_t bitrate)
 	{
+#if UAVCAN_SUPPORT_CANFD
 		const bool can_fd = bitrate > 1000000U;
+#else
+		const bool can_fd = false;
+#endif
 
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
 			driver.initIface(i, can_fd);

@@ -74,7 +74,9 @@ endif()
 string(TOUPPER "${PX4_PLATFORM}" OS_UPPER)
 string(TOUPPER "${UAVCAN_DRIVER}" UAVCAN_DRIVER_UPPER)
 
-if("${UAVCAN_DRIVER}" STREQUAL "stm32h7" OR "${UAVCAN_DRIVER}" STREQUAL "socketcan")
+# UAVCAN_CANFD is the user-facing Kconfig. Also require an FD-capable
+# backend so bxCAN/FlexCAN stay classic even if the option is on.
+if(CONFIG_UAVCAN_CANFD AND ("${UAVCAN_DRIVER}" STREQUAL "stm32h7" OR "${UAVCAN_DRIVER}" STREQUAL "socketcan"))
 	set(UAVCAN_SUPPORT_CANFD 1)
 	set(UAVCAN_MEM_POOL_BLOCK_SIZE 128)
 else()
