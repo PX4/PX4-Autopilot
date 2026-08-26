@@ -205,9 +205,12 @@ int Slcan::open_can()
 
 #ifdef CONFIG_NETDEV_CAN_BITRATE_IOCTL
 			const bool can_fd = bitrate > 1000000;
-			ifr.ifr_ifru.ifru_can_data.arbi_bitrate = can_fd ? 1000 : static_cast<uint16_t>(bitrate / 1000);
+			const uint16_t kbps = static_cast<uint16_t>(bitrate / 1000);
+			ifr.ifr_ifru.ifru_can_data.arbi_bitrate = can_fd ? 1000 : kbps;
 			ifr.ifr_ifru.ifru_can_data.arbi_samplep = 80;
-			ifr.ifr_ifru.ifru_can_data.data_bitrate = can_fd ? static_cast<uint16_t>(bitrate / 1000) : 0;
+			/* data_bitrate 0 makes NuttX FDCAN bittiming fail and
+			 * leaves RX interrupts off (DNA never completes). */
+			ifr.ifr_ifru.ifru_can_data.data_bitrate = kbps;
 			ifr.ifr_ifru.ifru_can_data.data_samplep = 80;
 			(void)ioctl(_can_sock, SIOCSCANBITRATE, &ifr);
 			strlcpy(ifr.ifr_name, _can_iface, IFNAMSIZ);

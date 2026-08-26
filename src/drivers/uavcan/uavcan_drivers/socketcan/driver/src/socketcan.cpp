@@ -334,14 +334,19 @@ int CanDriver::configureIface(uint32_t index, uavcan::uint32_t bitrate, bool can
 #ifdef CONFIG_NETDEV_CAN_BITRATE_IOCTL
 	memset(&ifr, 0, sizeof(ifr));
 	strlcpy(ifr.ifr_name, ifname, IFNAMSIZ);
-	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = can_fd ? 1000 : static_cast<uint16_t>(bitrate / 1000U);
+	/* NuttX stm32_fdcan_sock fdcan_bittiming() rejects data_bitrate 0
+	 * (and on failure leaves FDCAN IE=0, so RX IRQs never fire and
+	 * DNA/esc frames sit in the FIFO). Classic CAN must program a
+	 * real data-phase rate; matching arbitration keeps BRSE off. */
+	const uint16_t kbps = static_cast<uint16_t>(bitrate / 1000U);
+	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = can_fd ? 1000 : kbps;
 	ifr.ifr_ifru.ifru_can_data.arbi_samplep = 80;
-	ifr.ifr_ifru.ifru_can_data.data_bitrate = can_fd ? static_cast<uint16_t>(bitrate / 1000U) : 0;
+	ifr.ifr_ifru.ifru_can_data.data_bitrate = kbps;
 	ifr.ifr_ifru.ifru_can_data.data_samplep = 80;
 
 	if (ioctl(s, SIOCSCANBITRATE, &ifr) < 0) {
-		/* Already UP (SLCAN won the race) — keep going; do not
-		 * wed the node in a retry loop. */
+		/* Do not wed the node in a retry loop if SLCAN already
+		 * holds the iface. */
 		PX4_WARN("%s SIOCSCANBITRATE %" PRIu32 " (using existing iface config)",
 			 ifname, bitrate);
 	}
