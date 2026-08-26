@@ -376,11 +376,13 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			const VectorState P_north = P.row(State::pos.idx);
 			VectorState P_east = P.row(State::pos.idx + 1);
 
+			VectorState state_correction;
+
 			{
 				const float innov_var_north = P_north(State::pos.idx) + R_small;
 				VectorState K = P_north / innov_var_north;
 				clearInhibitedStateKalmanGains(K);
-				fuse(K, innov(0));
+				state_correction -= K * innov(0);
 
 				P_east -= P_north * (P_north(State::pos.idx + 1) / innov_var_north);
 			}
@@ -388,13 +390,15 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			// The 2nd axis needs to be fused using the state covariance that would have been
 			// obtained with this artificially low observation variance
 			{
-				// recalculate the innovation using the state updated by the North fusion
-				const float innovation = (_gpos - gpos_corrected)(1);
+				// correct the innovation for the accumulated state correction
+				const float innovation = innov(1) + state_correction(State::pos.idx + 1);
 				const float innov_var_east = P_east(State::pos.idx + 1) + R_small;
 				VectorState K = P_east / innov_var_east;
 				clearInhibitedStateKalmanGains(K);
-				fuse(K, innovation);
+				state_correction -= K * innovation;
 			}
+
+			applyStateCorrection(state_correction);
 
 			// The update of the covariance matrix is performed with the correct observation variance
 			// to not artificially reduce the state uncertainty and cross-correlations.

@@ -158,6 +158,8 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 		if (innovation_variance(axis_index) < R_ACC) {
 			// calculation is badly conditioned
+			// keep the covariance and state consistent by applying the correction accumulated so far
+			applyStateCorrection(state_correction);
 			return;
 		}
 
