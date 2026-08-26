@@ -11,15 +11,29 @@ namespace uavcan
  */
 void* LimitedPoolAllocator::allocate(std::size_t size)
 {
-    if (used_blocks_ < max_blocks_)
-    {
-        used_blocks_++;
-        return allocator_.allocate(size);
-    }
-    else
+    if (used_blocks_ >= max_blocks_)
     {
         return UAVCAN_NULLPTR;
     }
+
+    /*
+     * Counting the block only once the underlying allocator has actually produced one. Counting the
+     * attempt instead spends quota on a block that deallocate() will never return, so a pool that is
+     * momentarily empty permanently shrinks every queue that asked it for memory while it was.
+     */
+    void* const praw = allocator_.allocate(size);
+
+    if (praw != UAVCAN_NULLPTR)
+    {
+        used_blocks_++;
+
+        if (used_blocks_ > peak_used_blocks_)
+        {
+            peak_used_blocks_ = used_blocks_;
+        }
+    }
+
+    return praw;
 }
 
 void LimitedPoolAllocator::deallocate(const void* ptr)
