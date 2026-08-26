@@ -109,7 +109,6 @@ struct TelemetryData {
 	vehicle_global_position_s global_position{};
 	vehicle_local_position_s local_position{};
 	vehicle_status_s status{};
-	uint64_t armed_timestamp{0};
 	float roll_rad{0.f};
 	float pitch_rad{0.f};
 	float yaw_rad{0.f};

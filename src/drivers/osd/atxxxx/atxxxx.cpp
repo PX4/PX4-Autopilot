@@ -296,7 +296,7 @@ OSDatxxxx::add_battery_voltage(const battery_status_s &battery, uint8_t pos_x, u
 	char buf[10];
 	char batt_symbol = OSD_SYMBOL_BATT_EMPTY;
 	const float remaining = PX4_ISFINITE(battery.remaining) ? battery.remaining : -1.f;
-	const float voltage_v = PX4_ISFINITE(battery.voltage_v) ? battery.voltage_v : 0.f;
+	const float voltage_v = battery.voltage_v;
 
 	if (remaining >= 0.875f) {
 		batt_symbol = OSD_SYMBOL_BATT_FULL;
@@ -330,9 +330,8 @@ void
 OSDatxxxx::add_consumed_mah(const battery_status_s &battery, uint8_t pos_x, uint8_t pos_y)
 {
 	char buf[7];
-	const float discharged_mah = PX4_ISFINITE(battery.discharged_mah) ? battery.discharged_mah : 0.f;
 
-	snprintf(buf, sizeof(buf), "%5d", (int)discharged_mah);
+	snprintf(buf, sizeof(buf), "%5d", (int)battery.discharged_mah);
 	buf[5] = OSD_SYMBOL_MAH;
 	buf[6] = '\0';
 
@@ -362,7 +361,7 @@ OSDatxxxx::add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y)
 	snprintf(buf, sizeof(buf), "%c%02d:%02d", OSD_SYMBOL_FLIGHT_TIME, minutes, seconds);
 	buf[sizeof(buf) - 1] = '\0';
 
-	add_string_to_screen(buf, pos_x, pos_y, 6);
+	add_string_to_screen(buf, pos_x, pos_y, 7);
 }
 
 int
@@ -398,7 +397,7 @@ OSDatxxxx::update_screen()
 	char buf[16] {};
 	const int horizon_x = _param_osd_ah_x.get();
 	const int horizon_y = _param_osd_ah_y.get();
-	const battery_status_s battery = telemetry.battery_valid ? telemetry.battery : battery_status_s{};
+	const battery_status_s &battery = telemetry.battery;
 	const float roll_rad = telemetry.attitude_valid ? telemetry.roll_rad : 0.f;
 	const float pitch_rad = telemetry.attitude_valid ? telemetry.pitch_rad : 0.f;
 	const float yaw_rad = telemetry.attitude_valid ? telemetry.yaw_rad : 0.f;
@@ -455,33 +454,61 @@ OSDatxxxx::update_screen()
 		// OSD_CH_POS_* are offsets from the centre of the screen, so the row they
 		// land on follows the active video standard rather than a fixed default
 		const int crosshair_x = OSD_CHARS_PER_ROW / 2 + _param_osd_ch_pos_hor.get();
-		const int crosshair_y = _num_rows / 2 + _param_osd_ch_pos_ver.get();
+		const int crosshair_y = _num_rows / 2 - _param_osd_ch_pos_ver.get();
 		add_character_to_screen(OSD_SYMBOL_AH_CENTER, math::max(0, crosshair_x), math::max(0, crosshair_y));
 	}
 
 	if (enabled(osd::Symbol::BatteryVoltage)) {
 		if (_param_osd_volt_mode.get() == 0) {
-			add_battery_voltage(battery, _param_osd_volt_x.get(), _param_osd_volt_y.get());
+			if (telemetry.battery_valid) {
+				add_battery_voltage(battery, _param_osd_volt_x.get(), _param_osd_volt_y.get());
+
+			} else {
+				snprintf(buf, sizeof(buf), "%c--.--V", OSD_SYMBOL_BATT_EMPTY);
+				add_string_to_screen(buf, _param_osd_volt_x.get(), _param_osd_volt_y.get(), 7);
+			}
 
 		} else {
-			const float cell_voltage = battery.cell_count > 0 ? battery.voltage_v / battery.cell_count : 0.f;
-			snprintf(buf, sizeof(buf), "%c%4.2fV", OSD_SYMBOL_BATT_EMPTY, (double)cell_voltage);
+			if (telemetry.battery_valid && battery.cell_count > 0) {
+				const float cell_voltage = battery.voltage_v / battery.cell_count;
+				snprintf(buf, sizeof(buf), "%c%4.2fV", OSD_SYMBOL_BATT_EMPTY, (double)cell_voltage);
+
+			} else {
+				snprintf(buf, sizeof(buf), "%c--.--V", OSD_SYMBOL_BATT_EMPTY);
+			}
+
 			add_string_to_screen(buf, _param_osd_volt_x.get(), _param_osd_volt_y.get(), 7);
 		}
 	}
 
 	if (enabled(osd::Symbol::MahDrawn)) {
-		add_consumed_mah(battery, _param_osd_mah_x.get(), _param_osd_mah_y.get());
+		if (telemetry.battery_valid && PX4_ISFINITE(battery.discharged_mah) && battery.discharged_mah >= 0.f) {
+			add_consumed_mah(battery, _param_osd_mah_x.get(), _param_osd_mah_y.get());
+
+		} else {
+			snprintf(buf, sizeof(buf), "-----%c", OSD_SYMBOL_MAH);
+			add_string_to_screen(buf, _param_osd_mah_x.get(), _param_osd_mah_y.get(), 6);
+		}
 	}
 
 	if (enabled(osd::Symbol::PowerDraw)) {
-		const float current_a = PX4_ISFINITE(battery.current_a) ? battery.current_a : 0.f;
+		const bool current_valid = telemetry.battery_valid && PX4_ISFINITE(battery.current_a) && battery.current_a >= 0.f;
 
 		if (_param_osd_pwr_mode.get() == 0) {
-			snprintf(buf, sizeof(buf), "%c%4.1fA", OSD_SYMBOL_AMP, (double)current_a);
+			if (current_valid) {
+				snprintf(buf, sizeof(buf), "%c%4.1fA", OSD_SYMBOL_AMP, (double)battery.current_a);
+
+			} else {
+				snprintf(buf, sizeof(buf), "%c--.-A", OSD_SYMBOL_AMP);
+			}
 
 		} else {
-			snprintf(buf, sizeof(buf), "%4.0fW", (double)(battery.voltage_v * current_a));
+			if (current_valid) {
+				snprintf(buf, sizeof(buf), "%4.0fW", (double)(battery.voltage_v * battery.current_a));
+
+			} else {
+				strncpy(buf, "-----W", sizeof(buf));
+			}
 		}
 
 		add_string_to_screen(buf, _param_osd_pwr_x.get(), _param_osd_pwr_y.get(), 6);
@@ -525,22 +552,50 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::Rssi)) {
-		const bool input_rc_valid = telemetry.input_rc.timestamp != 0;
+		const bool input_rc_valid = telemetry.input_rc.timestamp != 0 &&
+					    hrt_elapsed_time(&telemetry.input_rc.timestamp) < 1_s;
+		bool rssi_available = false;
+		bool rssi_dbm_available = false;
+		float rssi_dbm = 0.f;
+		int rssi = 0;
 
-		if (input_rc_valid && PX4_ISFINITE(telemetry.input_rc.rssi_dbm)) {
-			snprintf(buf, sizeof(buf), "%c%4.0f", OSD_SYMBOL_RSSI, (double)telemetry.input_rc.rssi_dbm);
+		if (input_rc_valid) {
+			if (!telemetry.input_rc.rc_lost && PX4_ISFINITE(telemetry.input_rc.rssi_dbm)) {
+				rssi_dbm = telemetry.input_rc.rssi_dbm;
+				rssi_dbm_available = true;
+				rssi_available = true;
+
+			} else if (telemetry.input_rc.rssi >= 0 && telemetry.input_rc.rssi <= input_rc_s::RSSI_MAX) {
+				rssi = telemetry.input_rc.rssi;
+				rssi_available = true;
+
+			} else if (telemetry.input_rc.rc_lost) {
+				rssi = 0;
+				rssi_available = true;
+			}
+		}
+
+		const bool radio_status_valid = telemetry.radio_status.timestamp != 0 &&
+						  hrt_elapsed_time(&telemetry.radio_status.timestamp) < 2_s;
+
+		if (!rssi_available && radio_status_valid) {
+			const int radio_rssi = telemetry.radio_status.remote_rssi < 255 ? telemetry.radio_status.remote_rssi :
+					       telemetry.radio_status.rssi;
+
+			if (radio_rssi < 255) {
+				rssi = lroundf(radio_rssi * 100.f / 254.f);
+				rssi_available = true;
+			}
+		}
+
+		if (rssi_dbm_available) {
+			snprintf(buf, sizeof(buf), "%c%4.0f", OSD_SYMBOL_RSSI, (double)rssi_dbm);
+
+		} else if (rssi_available) {
+			snprintf(buf, sizeof(buf), "%c%3d", OSD_SYMBOL_RSSI, rssi);
 
 		} else {
-			int rssi = input_rc_valid && telemetry.input_rc.rssi >= 0
-				   && telemetry.input_rc.rssi <= input_rc_s::RSSI_MAX ? telemetry.input_rc.rssi : 0;
-
-			if (rssi == 0 && telemetry.radio_status.timestamp != 0) {
-				const int radio_rssi = telemetry.radio_status.remote_rssi != 0 ? telemetry.radio_status.remote_rssi :
-						       telemetry.radio_status.rssi;
-				rssi = math::constrain(radio_rssi, 0, 254);
-			}
-
-			snprintf(buf, sizeof(buf), "%c%3d", OSD_SYMBOL_RSSI, rssi);
+			snprintf(buf, sizeof(buf), "%c---", OSD_SYMBOL_RSSI);
 		}
 
 		add_string_to_screen(buf, _param_osd_rssi_x.get(), _param_osd_rssi_y.get(), 5);
@@ -614,10 +669,13 @@ OSDatxxxx::update_screen()
 		const mission_s &mission = telemetry.mission;
 		const mission_result_s &result = telemetry.mission_result;
 		const bool stored = mission.timestamp != 0 && mission.count > 0;
-		// the feasibility check runs only once home, global position and the geofence are
-		// ready, and stamps the mission it ran against. An id mismatch means the uploaded
-		// mission has not been checked yet, which is not the same as it having been rejected
-		const bool checked = result.timestamp != 0 && result.mission_id == mission.mission_id;
+		// The feasibility result applies to the mission, geofence and home position
+		// it was generated against. A mismatch means the current mission is waiting
+		// for a new feasibility check, not that it was rejected.
+		const bool checked = result.timestamp != 0 &&
+				     result.mission_id == mission.mission_id &&
+				     result.geofence_id == mission.geofence_id &&
+				     result.home_position_counter == telemetry.home.update_count;
 
 		if (!stored) {
 			strncpy(buf, "MISNONE", sizeof(buf));

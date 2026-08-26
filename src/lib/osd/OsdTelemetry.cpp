@@ -76,22 +76,14 @@ void Telemetry::update()
 		_data.yaw_rad = matrix::wrap_2pi(euler.psi());
 	}
 
-	vehicle_status_s status{};
-
-	if (_status_sub.update(&status)) {
-		if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED &&
-		    _data.status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
-			_data.armed_timestamp = hrt_absolute_time();
-		}
-
-		_data.status = status;
-	}
+	_status_sub.update(&_data.status);
 
 	const uint64_t now = hrt_absolute_time();
 	_data.battery_valid = _data.battery.connected &&
 			      _data.battery.timestamp != 0 &&
 			      now - _data.battery.timestamp < 2_s &&
-			      PX4_ISFINITE(_data.battery.voltage_v);
+			      PX4_ISFINITE(_data.battery.voltage_v) &&
+			      _data.battery.voltage_v > 0.f;
 	_data.attitude_valid = _data.attitude.timestamp != 0 &&
 			       now - _data.attitude.timestamp < 1_s &&
 			       PX4_ISFINITE(_data.roll_rad) && PX4_ISFINITE(_data.pitch_rad) && PX4_ISFINITE(_data.yaw_rad);
@@ -155,17 +147,17 @@ void Telemetry::update_message_display(int log_level, MessageDisplay &display)
 
 const char *Telemetry::flight_mode() const
 {
-	return mode_util::nav_state_short_name(_data.status.nav_state, _data.status.vehicle_type);
+	return mode_util::nav_state_short_name(_data.status.nav_state_display, _data.status.vehicle_type);
 }
 
 float Telemetry::flight_time_s() const
 {
 	if (_data.status.arming_state != vehicle_status_s::ARMING_STATE_ARMED ||
-	    _data.armed_timestamp == 0) {
+	    _data.status.armed_time == 0) {
 		return 0.f;
 	}
 
-	return static_cast<float>(hrt_elapsed_time(&_data.armed_timestamp)) * 1e-6f;
+	return static_cast<float>(hrt_elapsed_time(&_data.status.armed_time)) * 1e-6f;
 }
 
 } // namespace osd
