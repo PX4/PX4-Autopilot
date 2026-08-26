@@ -234,4 +234,5 @@ See the [Using PX4's Navigation Filter (EKF2) > GPS](../advanced_config/tuning_t
 ## Подальша інформація
 
 - [RTK-GPS (PX4-Integration)](../advanced/rtk_gps.md): Developer information about integrating RTK-GPS support into PX4.
+- [u-blox Diagnostics with u-center](../gps_compass/u-center.md): bench-check RTCM reception and fix status on a u-blox rover/base.
 - [Real Time Kinematic](https://en.wikipedia.org/wiki/Real_Time_Kinematic) (Wikipedia)

@@ -5,7 +5,7 @@ PX4 не розробляє цей (або будь-який інший) авт�
 Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or compliance issues.
 :::
 
-The [Cube Orange+](https://www.cubepilot.com/#/cube/features) flight controller is a flexible autopilot intended primarily for manufacturers of commercial systems.
+The [Cube Orange+](https://cubepilot.org/#/cube/features) flight controller is a flexible autopilot intended primarily for manufacturers of commercial systems.
 Cube Orange+ is similar to Cube Orange, but has a more powerful dual-core processor (STM32H757), and some different sensor parts.
 
 ![Cube Orange](../../assets/flight_controller/cube/orangeplus/cubepilot_cube_orangeplus_standard_set.jpg)
@@ -20,7 +20,7 @@ For example, a carrier board for a commercial inspection vehicle might include c
 Cube має віброізоляцію на двох IMU, з третім фіксованим IMU в якості еталонного/резервного.
 
 :::tip
-The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube/introduction/specifications).
+The manufacturer [Cube User Guide](https://docs.cubepilot.org/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/autopilot/the-cube/introduction/specifications).
 :::
 
 :::info
@@ -43,7 +43,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-- [Reseller list](https://www.cubepilot.com/#/reseller/list)
+- [Reseller list](https://cubepilot.org/#/reseller/list)
 
 ## Збірка
 
@@ -251,5 +251,5 @@ Board schematics and other documentation can be found here: [The Cube Project](h
 
 - [Cube Wiring Quickstart](../assembly/quick_start_cube.md)
 - Cube Docs (виробник):
-  - [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube)
-  - [Mini Carrier Board](https://docs.cubepilot.org/user-guides/carrier-boards/mini-carrier-board)
+  - [Cube User Guide](https://docs.cubepilot.org/autopilot/the-cube)
+  - [Mini Carrier Board](https://docs.cubepilot.org/carrier-boards/mini-carrier-board)

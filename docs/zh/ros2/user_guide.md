@@ -4,20 +4,25 @@ ROS 2-PX4 架构在ROS 2和PX4之间进行了深度整合。 允许 ROS 2 订阅
 
 本指南介绍了系统架构和应用程序流程，并解释了如何与PX4一起安装和使用ROS2。
 
-:::info
-从 PX4 v1.14, ROS 2 使用 [uXRCE-DDS](../middleware/uxrce_dds.md) 中间件替换版本 1 中使用的 _FastRTPS_ 中间件. 3 (v1.13不支持uXRCE-DDS)。
-
-[migration guide](../middleware/uxrce_dds.md#fast-rtps-to-uxrce-dds-migration-guidelines) 解释您需要做什么来将ROS2 应用程序从 PX4 v1.13 迁移到 PX4 v1.14。
-
-If you're still working on PX4 v1.13, please follow the instructions in the [PX4 v1.13 Docs](https://docs.px4.io/v1.13/en/ros/ros2_comm).
-
-<!-- remove this when there are PX4 v1.14 docs for some months -->
-
-:::
-
 ## 综述
 
-得益于 [uXRCE-DDS](../middleware/uxrce_dds.md) 通信中间件的使用，ROS 2 的应用流程非常简单直接。
+PX4 supports two middleware options for bridging uORB topics to ROS 2: [uXRCE-DDS](#dds) (DDS) and [Zenoh](#zenoh).
+You must select which middleware to use and build your firmware accordingly (see [Installation & Setup](#installation-setup)).
+DDS is currently recommended for most users, as it is more established and has been more thoroughly tested with PX4.
+
+If you want to command the vehicle and create custom flight behaviours using ROS 2 (rather than just reading telemetry), you can create external modes using the [PX4 ROS 2 Interface Library](./px4_ros2_interface_lib.md), a ROS 2 native C++ library that works on top of either middleware.
+
+:::info
+The instructions below target simulation using Gazebo.
+The same concepts translate directly to real hardware: the middleware client, which bridges the uORB topics, runs on the flight controller, while the agent/router runs on your companion computer.
+See [Using Flight Controller Hardware](#using-flight-controller-hardware) for the hardware-specific differences.
+:::
+
+### DDS
+
+<Badge type="tip" text="PX4 v1.14" />
+
+The [uXRCE-DDS](../middleware/uxrce_dds.md) communications middleware is a large part of what makes the application pipeline for ROS 2 very straightforward.
 
 ![Architecture uXRCE-DDS with ROS 2](../../assets/middleware/xrce_dds/architecture_xrce-dds_ros2.svg)
 
@@ -43,26 +48,35 @@ ROS 2 应用程序需要在一个工作空间中构建，该工作空间需包�
 在使用 ROS 2 时，您通常需要同时启动客户端和代理。
 需要注意的是，uXRCE-DDS 客户端默认已内置到固件中，但除仿真器构建版本外，不会自动启动。
 
-:::info
-在 PX4 v1.13 及更早版本中，ROS 2 依赖于 [px4_ros_com](https://github.com/PX4/px4_ros_com) 中的消息定义。
-该代码仓库已不再需要，但其中包含一些实用的示例。
-:::
+See [uXRCE-DDS > Version selection](../middleware/uxrce_dds.md#version-selection) to check which Micro XRCE-DDS version to use for your ROS 2 distribution.
+
+### Zenoh
+
+<Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
+
+PX4 supports [Zenoh](../middleware/zenoh.md) as an alternative middleware for bridging uORB topics to ROS 2, via the ROS 2 [`rmw_zenoh`](https://github.com/ros2/rmw_zenoh) middleware.
+It provides a fast and lightweight way to connect PX4 to ROS 2.
+
+![Architecture PX4 Zenoh-Pico with ROS 2](../../assets/middleware/zenoh/architecture-px4-zenoh.svg)
+
+The Zenoh-based middleware consists of a client running on PX4 (the [PX4 `zenoh` module](../modules/modules_driver.md#zenoh), based on Zenoh-Pico) and a Zenoh router (typically [zenohd](https://github.com/eclipse-zenoh/zenoh/tree/main/zenohd)) running on the companion computer, with bi-directional data exchange between them over a UART, TCP, UDP, or multicast-UDP link.
+The router acts as a broker and discovery service, enabling PX4 to publish and subscribe to topics in the global Zenoh data space, and integrates seamlessly with ROS 2 nodes using `rmw_zenoh`.
+
+See the [Zenoh](../middleware/zenoh.md) middleware page for full architecture and configuration details.
 
 ## 安装与设置
 
-支持和推荐使用 PX4 的 ROS 2 平台是 Ubuntu 的 ROS 2 “简易” LTS 22.04。
+The supported and recommended ROS 2 platform for working with PX4 is ROS 2 "Jazzy" LTS on Ubuntu 24.04.
 
 :::tip
-如果您在 Ubuntu 20.04 上工作，我们建议您更新到 Ubuntu 22.04。
-同时，你可以在 Ubuntu 20.04 上使用 [Gazebo Class](../sim_gazebo_classic/index.md) 的 ROS 2 "Foxy" 。
-请注意，第二号外空系统“Foxy”在2023年5月到达寿命终结，但在撰写本报告时仍然稳定并与PX4合作。
+If you're working on Ubuntu 22.04 you can use ROS 2 "Humble" LTS instead.
 :::
 
 安装使用 PX4 的 ROS 2：
 
 - [Install PX4](#install-px4) (to use the PX4 simulator)
 - [Install ROS 2](#install-ros-2)
-- [Setup Micro XRCE-DDS Agent & Client](#setup-micro-xrce-dds-agent-client)
+- [Setup Middleware](#setup-middleware)
 - [Build & Run ROS 2 Workspace](#build-ros-2-workspace)
 
 该架构中会自动安装的其他依赖项（如 Fast DDS）未在此处提及。
@@ -99,6 +113,31 @@ make px4_sitl
 
    :::: tabs
 
+   ::: tab jazzy
+   To install ROS 2 "Jazzy" on Ubuntu 24.04:
+
+   ```sh
+   sudo apt update && sudo apt install locales
+   sudo locale-gen en_US en_US.UTF-8
+   sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+   export LANG=en_US.UTF-8
+   sudo apt install software-properties-common
+   sudo add-apt-repository universe
+   sudo apt update && sudo apt install curl -y
+   export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F'"' '{print $4}')
+   curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+   sudo dpkg -i /tmp/ros2-apt-source.deb
+   sudo apt update && sudo apt upgrade -y
+   sudo apt install ros-jazzy-desktop
+   sudo apt install ros-dev-tools
+   source /opt/ros/jazzy/setup.bash && echo "source /opt/ros/jazzy/setup.bash" >> .bashrc
+   ```
+
+   The instructions above are reproduced from the official installation guide: [Install ROS 2 Jazzy](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html).
+   You can install _either_ the desktop (`ros-jazzy-desktop`) _or_ bare-bones versions (`ros-jazzy-ros-base`), _and_ the development tools (`ros-dev-tools`).
+
+:::
+
    ::: tab humble
    To install ROS 2 "Humble" on Ubuntu 22.04:
 
@@ -123,15 +162,6 @@ make px4_sitl
 
 :::
 
-   ::: tab foxy
-   To install ROS 2 "Foxy" on Ubuntu 20.04:
-
-   - 按照官方安装指南： [Install ROS 2 Foxy](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html).
-
-   您可以安装 _either_ the desktop (`ros-foxy-desktop`) _or_ bare-bones versions (`ros-foxy-ros-base`), _and_ the development tools (`ros-dev-tools`).
-
-:::
-
    ::::
 
 2. 一些Python 依赖关系也必须安装 (使用 **`pip`** 或 **`apt`**):
@@ -140,11 +170,21 @@ make px4_sitl
    pip install --user -U empy==3.3.4 pyros-genmsg setuptools
    ```
 
-### 配置微型 XRCE-DDS 代理与客户端
+### Setup Middleware
+
+This section explains how to set up either the [DDS](#dds_setup) or [Zenoh](#zenoh_setup) middleware.
+
+:::tip
+DDS is recommended for most users, as it is more established and has been more thoroughly tested with PX4.
+:::
+
+Make sure that your firmware has the corresponding module enabled: the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) module is included by default in most builds, while the [zenoh](../middleware/zenoh.md#px4-firmware) module must be explicitly enabled.
+
+#### DDS {#dds_setup}
 
 要实现 ROS 2 与 PX4 的通信，[uXRCE-DDS client](../modules/modules_system.md#uxrce-dds-client)必须在 PX4 上运行，且需与运行在机载计算机上的微型 XRCE-DDS 代理建立连接。
 
-#### 设置代理(Agent)
+##### 设置代理(Agent)
 
 代理可以安装在机载计算机上 [number of ways](../middleware/uxrce_dds.md#micro-xrce-dds-agent-installation)。
 下文将介绍如何从源代码 “独立” 构建代理，并连接到运行在 PX4 仿真器上的客户端。
@@ -179,7 +219,7 @@ make px4_sitl
 需注意，每个连接通道仅允许运行一个代理
 :::
 
-#### 启动客户端(Client)
+##### Start the DDS Client
 
 PX4 仿真器会自动启动 uXRCE-DDS 客户端，并连接到本地主机上的 UDP 8888 端口。
 
@@ -187,31 +227,11 @@ PX4 仿真器会自动启动 uXRCE-DDS 客户端，并连接到本地主机上�
 
 1. 在之前安装好的 PX4 自动驾驶仪 代码仓库的根目录下，打开一个新的终端。
 
-   :::: tabs
+   使用 PX4 [Gazebo](../sim_gazebo_gz/index.md) 模拟：
 
-   ::: tab humble
-
-   - 使用 PX4 [Gazebo](../sim_gazebo_gz/index.md) 模拟：
-
-     ```sh
-     make px4_sitl gz_x500
-     ```
-
-
-:::
-
-   ::: tab foxy
-
-   - 使用 PX4 [Gazebo Classic](../sim_gazebo_classic/index.md) 模拟：
-
-     ```sh
-     make px4_sitl gazebo-classic
-     ```
-
-
-:::
-
-   ::::
+   ```sh
+   make px4_sitl gz_x500
+   ```
 
 代理和客户端现已运行并二者应已建立连接。
 
@@ -234,6 +254,51 @@ INFO  [uxrce_dds_client] successfully created rt/fmu/out/timesync_status data wr
 [1675929445.269521] info     | ProxyClient.cpp    | create_datawriter        | datawriter created     | client_key: 0x00000001, datawriter_id: 0x0DA(5), publisher_id: 0x0DA(3)
 [1675929445.270412] info     | ProxyClient.cpp    | create_topic             | topic created          | client_key: 0x00000001, topic_id: 0x0DF(2), participant_id: 0x001(1)
 ```
+
+#### Zenoh {#zenoh_setup}
+
+<Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
+
+For ROS 2 to communicate with PX4 via Zenoh, the [PX4 Zenoh-Pico Node](../middleware/zenoh.md) must be running on PX4, connected to a Zenoh router (`zenohd`) running on the companion computer.
+
+##### Setup the Router
+
+Install and start the Zenoh router using ROS 2:
+
+```sh
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+ros2 run rmw_zenoh_cpp rmw_zenohd
+```
+
+For more information about the Zenoh Router see the [rmw_zenoh](https://github.com/ros2/rmw_zenoh?tab=readme-ov-file#start-the-zenoh-router) documentation.
+
+:::info
+You can leave the router running in this terminal!
+:::
+
+##### Start the Zenoh Client
+
+启动模拟器(和客户端)：
+
+1. 在之前安装好的 PX4 自动驾驶仪 代码仓库的根目录下，打开一个新的终端。
+
+   Start a Zenoh-enabled PX4 [Gazebo](../sim_gazebo_gz/index.md) simulation using:
+
+   ```sh
+   make px4_sitl_zenoh gz_x500
+   ```
+
+2. In the PX4 shell, enable Zenoh and reboot to apply the change:
+
+   ```sh
+   param set ZENOH_ENABLE 1
+   reboot
+   ```
+
+The default Zenoh daemon address for the `px4_sitl_zenoh` target is `localhost`, so no further network configuration is needed for simulation.
+See [Zenoh > Configure Zenoh Network](../middleware/zenoh.md#configure-zenoh-network) if you need to connect to a router at a different address (such as on real hardware).
+
+Once the client and router are connected, you can inspect the available topics using standard ROS 2 CLI tools, e.g. `ros2 topic list`.
 
 ### 构建ROS 2 工作空间
 
@@ -280,22 +345,22 @@ px4_msgs 代码仓库中的分支均以特定名称命名，这些名称与不�
 
    :::: tabs
 
-   ::: tab humble
+   ::: tab jazzy
 
    ```sh
    cd ..
-   source /opt/ros/humble/setup.bash
+   source /opt/ros/jazzy/setup.bash
    colcon build
    ```
 
 
 :::
 
-   ::: tab foxy
+   ::: tab humble
 
    ```sh
    cd ..
-   source /opt/ros/foxy/setup.bash
+   source /opt/ros/humble/setup.bash
    colcon build
    ```
 
@@ -318,25 +383,25 @@ px4_msgs 代码仓库中的分支均以特定名称命名，这些名称与不�
 
 在新终端中：
 
-1. 进入工作空间目录的顶层，并加载 ROS 2 环境（本例中为 “Humble” 版本）：
+1. Navigate into the top level of your workspace directory and source the ROS 2 environment (in this case "Jazzy"):
 
    :::: tabs
+
+   ::: tab jazzy
+
+   ```sh
+   cd ~/ws_sensor_combined/
+   source /opt/ros/jazzy/setup.bash
+   ```
+
+
+:::
 
    ::: tab humble
 
    ```sh
    cd ~/ws_sensor_combined/
    source /opt/ros/humble/setup.bash
-   ```
-
-
-:::
-
-   ::: tab foxy
-
-   ```sh
-   cd ~/ws_sensor_combined/
-   source /opt/ros/foxy/setup.bash
    ```
 
 
@@ -500,22 +565,20 @@ uXRCE-DDS 客户端的时间同步器随后会将 ROS 2 端的操作系统时钟
 
 :::: tabs
 
+:::tab jazzy
+To install the bridge for use with ROS 2 "Jazzy" and Gazebo Harmonic (on Ubuntu 24.04):
+
+```sh
+sudo apt install ros-jazzy-ros-gzharmonic
+```
+
+:::
+
 :::tab humble
 在 Ubuntu 22.04 系统上，若需安装用于搭配 ROS 2 “Humble”与 Gazebo Harmonic的桥接功能包，可执行以下操作：
 
 ```sh
 sudo apt install ros-humble-ros-gzharmonic
-```
-
-:::
-
-:::tab foxy
-首先，您需要 [install Gazebo Garden](../sim_gazebo_gz/index.md#installation-ubuntu-linux)，因为默认情况下，Foxy预装的是 Gazebo Classic 11 <!-- note, garden is EOL Nov 2024 -->
-
-接下来，若要在 Ubuntu 20.04 系统上安装用于搭配 ROS 2 "Foxy"与 Gazebo的桥接功能包，操作如下：
-
-```sh
-sudo apt install ros-foxy-ros-gzgarden
 ```
 
 :::
@@ -980,19 +1043,19 @@ ros2 launch 命令用于启动一个 ROS 2 启动文件
 
   :::: tabs
 
-  ::: tab humble
+  ::: tab jazzy
 
   ```sh
-  sudo apt install ros-humble-eigen3-cmake-module
+  sudo apt install ros-jazzy-eigen3-cmake-module
   ```
 
 
 :::
 
-  ::: tab foxy
+  ::: tab humble
 
   ```sh
-  sudo apt install ros-foxy-eigen3-cmake-module
+  sudo apt install ros-humble-eigen3-cmake-module
   ```
 
 
