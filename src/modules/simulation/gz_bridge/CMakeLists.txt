@@ -138,7 +138,12 @@ if (gz-transport_FOUND)
 	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh @ONLY)
 
 else()
-	# Create fallback targets that provide helpful error messages when Gazebo dependencies are missing
+	# Create fallback targets that provide helpful error messages when Gazebo dependencies are missing.
+	# The worlds submodule (Tools/simulation/gz) is only initialized in the branch above, so the
+	# worlds glob can be empty here; the default-world targets must not depend on it.
+	file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
+	file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
+
 	foreach(gz_airframe IN LISTS gz_airframes)
 		set(model_name)
 		string(REGEX REPLACE ".*_gz_" "" model_name ${gz_airframe})
@@ -149,6 +154,19 @@ else()
 			COMMAND ${CMAKE_COMMAND} -E false
 			VERBATIM
 		)
+
+		foreach(world ${gz_worlds})
+			get_filename_component("world_name" ${world} NAME_WE)
+
+			if(NOT world_name STREQUAL "default")
+				add_custom_target(gz_${model_name}_${world_name}
+					COMMAND ${CMAKE_COMMAND} -E echo "ERROR: Gazebo simulation dependencies not found!"
+					COMMAND ${CMAKE_COMMAND} -E echo "  - For installation instructions, see: https://gazebosim.org/docs/harmonic/install_ubuntu/"
+					COMMAND ${CMAKE_COMMAND} -E false
+					VERBATIM
+				)
+			endif()
+		endforeach()
 	endforeach()
 
 	message(STATUS "Gazebo simulation bridge module disabled: missing dependencies")
