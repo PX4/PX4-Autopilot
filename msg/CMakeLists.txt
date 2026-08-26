@@ -270,6 +270,7 @@ set(msg_files
 	versioned/VehicleRatesSetpoint.msg
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
+	comp_filter_status.msg
 )
 list(SORT msg_files)
 

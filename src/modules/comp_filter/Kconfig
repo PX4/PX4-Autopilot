@@ -1,0 +1,5 @@
+config MODULES_COMP_FILTER
+	bool "comp_filter"
+	default y
+	---help---
+		Enable support for the complementary filter module.

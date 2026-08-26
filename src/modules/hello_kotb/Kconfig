@@ -1,0 +1,5 @@
+menuconfig MODULES_HELLO_KOTB
+	bool "hello_kotb"
+	default y
+	---help---
+		Enable support for hello_kotb

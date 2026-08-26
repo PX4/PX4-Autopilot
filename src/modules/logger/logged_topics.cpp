@@ -216,6 +216,9 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("vehicle_thrust_setpoint", 20, 2);
 	add_topic_multi("vehicle_torque_setpoint", 20, 2);
 
+	// Custom topics for logging
+	add_topic("comp_filter_status", 50);
+
 	// SYS_HITL: default ground truth logging for simulation
 	int32_t sys_hitl = 0;
 	param_get(param_find("SYS_HITL"), &sys_hitl);
