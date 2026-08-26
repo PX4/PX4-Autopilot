@@ -1,7 +1,7 @@
 # Descend Mode (Multicopter)
 
-_Descend_ is a [failsafe](../config/safety.md) fallback mode.
-It is activated automatically by PX4 and cannot be selected by the pilot. It only appears as a status label.
+_Descend_ is a [failsafe](../config/safety.md) fallback mode that is activated automatically by PX4.
+The mode is published when active but cannot be selected by the pilot.
 
 The vehicle descends open-loop: it keeps its attitude and reduces altitude, but does not control its horizontal position, so it drifts with the wind.
 It is the last resort used when the vehicle must come down but has no valid position estimate for a controlled descent.
@@ -14,21 +14,46 @@ It is the last resort used when the vehicle must come down but has no valid posi
 
 :::
 
-## When It Occurs
+## Technical Description
 
-Descend is the bottom of the failsafe chain (`Hold → Return → Land → Descend`).
-PX4 falls through to it whenever a failsafe needs to bring the vehicle down or hold position but the position estimate is missing, so none of the higher options can run. For example:
+### When It Occurs
+
+Descend mode is at the bottom of the failsafe chain (along with [Flight termination](../advanced_config/flight_termination.md)):
+
+```text
+Hold → Return → Land → ( Descend | Terminate )
+```
+
+::: tip
+[COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT) <Badge type="tip" text="main (PX4 v2.0)" /> selects whether `Descend` or `Terminate` is used as the failsafe.
+:::
+
+PX4 falls through to Descend mode whenever a failsafe needs to bring the vehicle down or hold position but the position estimate is missing, so none of the higher options can run.
+For example:
 
 - Losing the position estimate while landing, e.g. GNSS fails during [Land](../flight_modes_mc/land.md): the vehicle keeps descending, but now open-loop as _Descend_.
 - Losing the position estimate in [Hold](../flight_modes_mc/hold.md), [Mission](../flight_modes_mc/mission.md) or [Return](../flight_modes_mc/return.md): with no position to hold, fly to, or return with, the failsafe escalates down to _Descend_.
 - A Return or Land failsafe (from manual control loss, GCS/data link loss, low battery, geofence breach, …) triggered while no valid position estimate is available: Return and Land can't run, so it degrades to _Descend_.
 
-## Exiting Descend
+### Exiting Descend
 
-Descend ends when either:
+Descend ends when either the:
 
-- the failsafe condition is resolved (e.g. the position estimate recovers), and the vehicle returns to its previous mode; or
-- the pilot takes over by switching to a manual mode ([Position](../flight_modes_mc/position.md), [Altitude](../flight_modes_mc/altitude.md) or [Stabilized](../flight_modes_mc/manual_stabilized.md)). On a multicopter, moving the sticks does this [by default](../flight_modes_mc/land.md#MAN_OVERRIDE_SPD).
+- failsafe condition is resolved (e.g. the position estimate recovers), and the vehicle returns to its previous mode; or
+- pilot takes over by switching to a manual mode ([Position](../flight_modes_mc/position.md), [Altitude](../flight_modes_mc/altitude.md) or [Stabilized](../flight_modes_mc/manual_stabilized.md)).
+  On a multicopter, moving the sticks does this [by default](../flight_modes_mc/land.md#MAN_OVERRIDE_SPD).
+
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_descend -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_descend -->
 
 ## See Also
 

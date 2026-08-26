@@ -34,6 +34,9 @@
 
 #include <gtest/gtest.h>
 
+#include <cstring>
+
+#include "FailureStrings.hpp"
 #include "FailureTable.hpp"
 
 using namespace failure_injection;
@@ -45,6 +48,9 @@ namespace
 constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
 constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
+constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
+constexpr uint8_t TRAFFIC = failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE;
+constexpr uint8_t CAN   = failure_injection_s::FAILURE_UNIT_BUS_CAN;
 
 constexpr uint8_t OK      = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF     = failure_injection_s::FAILURE_TYPE_OFF;
@@ -60,14 +66,68 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(GYRO, WRONG));   // no gyro WRONG today
 	EXPECT_TRUE(FailureTable::isSupported(GPS, WRONG));
-	EXPECT_TRUE(FailureTable::isSupported(MOTOR, WRONG));
+	EXPECT_TRUE(FailureTable::isSupported(MOTOR, OFF));
+	EXPECT_FALSE(FailureTable::isSupported(MOTOR, STUCK)); // motor is off-only (actuation)
+	EXPECT_FALSE(FailureTable::isSupported(MOTOR, WRONG));
+	EXPECT_TRUE(FailureTable::isSupported(ESC, OFF));
+	EXPECT_TRUE(FailureTable::isSupported(ESC, WRONG));   // ESC: offline or wrong telemetry
+	EXPECT_FALSE(FailureTable::isSupported(ESC, STUCK));   // no frozen-telemetry (stuck) support
 	EXPECT_FALSE(FailureTable::isSupported(GYRO, GARBAGE)); // GARBAGE unimplemented
 	// Distance sensor (rangefinder) supports OFF/STUCK on hardware, but not WRONG.
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, WRONG));
+	// Traffic avoidance supports OFF (blind)
+	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OK));
+	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OFF));
+	EXPECT_FALSE(FailureTable::isSupported(TRAFFIC, STUCK));
+	EXPECT_FALSE(FailureTable::isSupported(TRAFFIC, WRONG));
+	// CAN bus: blackout on/off only.
+	EXPECT_TRUE(FailureTable::isSupported(CAN, OFF));
+	EXPECT_TRUE(FailureTable::isSupported(CAN, OK));
+	EXPECT_FALSE(FailureTable::isSupported(CAN, STUCK));
+	EXPECT_FALSE(FailureTable::isSupported(CAN, WRONG));
 	// Unimplemented units.
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL, OFF));
+	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_BUS_I2C, OFF));
+	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_DATALINK_LTE, OFF));
+}
+
+TEST(FailureTable, TrafficStuckIsRejectedWithoutChange)
+{
+	FailureTable table;
+	// The traffic picture is a queue of reports from several aircraft, so there is no
+	// single value to freeze: STUCK must NACK and leave the table untouched.
+	EXPECT_EQ(table.inject(TRAFFIC, STUCK, 0), AckResult::Unsupported);
+	EXPECT_FALSE(table.changed());
+	EXPECT_EQ(table.count(), 0);
+}
+
+TEST(FailureTable, TrafficOffIsAcceptedForAllInstances)
+{
+	FailureTable table;
+	EXPECT_EQ(table.inject(TRAFFIC, OFF, 0), AckResult::Accepted);
+	EXPECT_TRUE(table.changed());
+
+	failure_injection_s msg{};
+	table.fill(msg);
+	ASSERT_EQ(msg.count, 1);
+	EXPECT_EQ(msg.unit[0], TRAFFIC);
+	EXPECT_EQ(msg.failure_type[0], OFF);
+	// Both traffic consumers look the unit up with instance 0, which the config
+	// resolves as failure instance 1, so the entry has to cover it.
+	EXPECT_EQ(msg.instance_mask[0], 0xFFFF);
+}
+
+TEST(FailureTable, TrafficOkClearsOffEntry)
+{
+	FailureTable table;
+	ASSERT_EQ(table.inject(TRAFFIC, OFF, 0), AckResult::Accepted);
+	table.clearChanged();
+
+	EXPECT_EQ(table.inject(TRAFFIC, OK, 0), AckResult::Accepted);
+	EXPECT_TRUE(table.changed());
+	EXPECT_EQ(table.count(), 0);
 }
 
 TEST(FailureTable, UnsupportedIsRejectedWithoutChange)
@@ -228,4 +288,55 @@ TEST(FailureTable, InjectMaskUnsupportedIsRejected)
 	FailureTable table;
 	EXPECT_EQ(table.injectMask(GYRO, WRONG, 0x1), AckResult::Unsupported);
 	EXPECT_EQ(table.count(), 0);
+}
+
+TEST(FailureStrings, UnitAndTypeNames)
+{
+	EXPECT_STREQ(unitName(GYRO), "gyro");
+	EXPECT_STREQ(unitName(MOTOR), "motor");
+	EXPECT_STREQ(unitName(ESC), "esc");
+	EXPECT_STREQ(unitName(42), "unknown");
+
+	EXPECT_STREQ(typeName(OK), "ok");
+	EXPECT_STREQ(typeName(OFF), "off");
+	EXPECT_STREQ(typeName(STUCK), "stuck");
+	EXPECT_STREQ(typeName(0xFF), "unknown");
+}
+
+TEST(FailureStrings, InstancePhraseSingleInstance)
+{
+	char buf[64];
+	instancePhrase(0x0004, buf, sizeof(buf));
+	EXPECT_STREQ(buf, "instances 3");
+
+	instancePhrase(0x8000, buf, sizeof(buf));
+	EXPECT_STREQ(buf, "instances 16");
+}
+
+TEST(FailureStrings, InstancePhraseListsMultipleInstances)
+{
+	char buf[64];
+	instancePhrase(0x000B, buf, sizeof(buf)); // bits 0, 1, 3 -> instances 1, 2, 4
+	EXPECT_STREQ(buf, "instances 1,2,4");
+
+	instancePhrase(0x0003, buf, sizeof(buf));
+	EXPECT_STREQ(buf, "instances 1,2");
+}
+
+TEST(FailureStrings, InstancePhraseSpecialMasks)
+{
+	char buf[64];
+	instancePhrase(0xFFFF, buf, sizeof(buf));
+	EXPECT_STREQ(buf, "all instances");
+
+	instancePhrase(0, buf, sizeof(buf));
+	EXPECT_STREQ(buf, "no instances");
+}
+
+TEST(FailureStrings, InstancePhraseTruncatesSafely)
+{
+	char buf[8];
+	instancePhrase(0x7FFF, buf, sizeof(buf)); // needs far more than 8 bytes
+	EXPECT_EQ(buf[sizeof(buf) - 1], '\0');
+	EXPECT_LT(strlen(buf), sizeof(buf));
 }

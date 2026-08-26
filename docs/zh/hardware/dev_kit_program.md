@@ -20,7 +20,7 @@ A kit qualifies when it meets all five requirements:
 4. A guide, a focused tutorial, and a reference sheet included with the kit
 5. Third-party build quality verification
 
-The reference sheet must ship printed, in the box: pinouts, connectors, and specs at a glance, with no screen required ([example: ModalAI VOXL 2 reference sheet](https://docs.modalai.com/voxl2-d0014)).
+The reference sheet must ship printed, in the box: pinouts, connectors, and specs at a glance, with no screen required ([example: ModalAI VOXL 2 reference sheet](https://docs.modalai.com/voxl2-d0014/)).
 The guide and tutorial may ship as QR-code links.
 
 ## What Qualifying Looks Like in Practice

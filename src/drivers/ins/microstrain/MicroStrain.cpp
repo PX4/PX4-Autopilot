@@ -1728,9 +1728,9 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 
 		gps.rtcm_injection_rate = 0;
 		gps.selected_rtcm_instance = 0;
-		gps.rtcm_crc_failed = 0;
+		gps.corrections_crc_failed = 0;
 
-		gps.rtcm_msg_used = 0;
+		gps.corrections_msg_used = 0;
 
 		gps.timestamp = hrt_absolute_time();
 
@@ -2006,7 +2006,7 @@ int MicroStrain::print_usage(const char *reason)
 MicroStrain by HBK Inertial Sensor Driver.
 Currently supports the following sensors:
 
--[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference-units--vru-/3dm-cv7-ar)
+-[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference/3dm-cv7-ar)
 -[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading/3dm-cv7-ahrs)
 -[CV7-INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-ins)
 -[CV7-GNSS/INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-gnss-ins)

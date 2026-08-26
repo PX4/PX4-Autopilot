@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# board specific extras init
+#------------------------------------------------------------------------------
+
+# Enable the onboard AT7456E/MAX7456-compatible analog OSD.
+if ! param compare OSD_ATXXXX_CFG 0
+then
+	atxxxx start -s
+fi

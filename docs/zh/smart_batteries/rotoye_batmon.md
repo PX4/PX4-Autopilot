@@ -1,6 +1,12 @@
-# 补充信息
+# Rotoye Batmon (Discontinued)
 
-[Rotoye Batmon](https://shop.rotoye.com/batmon/) is a kit for adding smart battery functionality to off-the-shelf Lithium-Ion and LiPo batteries.
+<Badge type="info" text="Discontinued" />
+
+:::warning
+This product appears to have been discontinued and is no longer commercially available as of 2026-08 (formerly available at shop.rotoye.com/batmon/).
+:::
+
+_Rotoye Batmon_ is a kit for adding smart battery functionality to off-the-shelf Lithium-Ion and LiPo batteries.
 It can be purchased as a standalone unit or as part of a factory-assembled smart-battery.
 
 ![Rotoye 电池监控板](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye.jpg)
@@ -9,7 +15,7 @@ It can be purchased as a standalone unit or as part of a factory-assembled smart
 
 ## 购买渠道
 
-[Rotoye Store](https://shop.rotoye.com/product/BATMON-v5-devkit-p480893112): Batmon kits, custom smart-batteries, and accessories
+Unavailable
 
 ## Wiring/Connections
 

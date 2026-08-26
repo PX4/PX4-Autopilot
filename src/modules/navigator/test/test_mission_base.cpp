@@ -34,16 +34,7 @@
 /**
  * @file test_mission_base.cpp
  *
- * Unit tests for MissionBase position traversal helpers:
- *   - getNonJumpItem()
- *   - findNextPositionIndex()
- *   - findPreviousPositionIndex()
- *   - getNextPositionItems()
- *   - getPreviousPositionItems()
- *   - goToNextPositionItem()
- *   - goToPreviousPositionItem()
- *
- * These tests cover both traversal modes: Follow mission control flow and ignore DO_JUMP.
+ * MissionBase position traversal tests.
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -52,54 +43,18 @@
 #include <gtest/gtest.h>
 
 #include "mission_base.h"
+#include "navigator.h"
+#include "support/mission_route_cache_test_peer.h"
+#include "support/navigator_dataman_test.h"
 #include "support/vector_mission_item_store.h"
-
-#include <lib/parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
 #include <initializer_list>
 #include <vector>
 
-extern "C" int dataman_main(int argc, char *argv[]);
-
-class NavigatorDatamanRuntime
-{
-public:
-	NavigatorDatamanRuntime()
-	{
-		param_control_autosave(false);
-		px4::WorkQueueManagerStart();
-
-		char name[] = "dataman";
-		char start[] = "start";
-		char ram[] = "-r";
-		char *argv[] = {name, start, ram};
-		dataman_main(3, argv);
-	}
-
-	~NavigatorDatamanRuntime()
-	{
-		param_control_autosave(true);
-
-		char name[] = "dataman";
-		char stop[] = "stop";
-		char *argv[] = {name, stop};
-		dataman_main(2, argv);
-
-		px4::WorkQueueManagerStop();
-	}
-};
-
-static NavigatorDatamanRuntime &navigatorDatamanRuntime()
-{
-	static NavigatorDatamanRuntime runtime{};
-	return runtime;
-}
-
 class MissionBaseTestPeer : public MissionBase
 {
 public:
-	MissionBaseTestPeer() : MissionBase(nullptr, 8, 0) {}
+	explicit MissionBaseTestPeer(Navigator *navigator = nullptr) : MissionBase(navigator, 8, 0) {}
 
 	void setActiveMissionItems() override {}
 	bool setNextMissionItem() override { return false; }
@@ -112,6 +67,14 @@ public:
 	void loadTestMission(const std::vector<mission_item_s> &items)
 	{
 		_mission_store.setItems(items);
+		_mission.count = static_cast<int32_t>(_mission_store.itemCount());
+		_mission.current_seq = 0;
+	}
+
+	void loadTestMission(const std::vector<mission_item_s> &items, const mission_s &mission)
+	{
+		loadTestMission(items);
+		_mission = mission;
 		_mission.count = static_cast<int32_t>(_mission_store.itemCount());
 		_mission.current_seq = 0;
 	}
@@ -144,6 +107,7 @@ public:
 	using MissionBase::goToNextPositionItem;
 	using MissionBase::goToPreviousPositionItem;
 	using MissionBase::MissionTraversalType;
+	using MissionBase::resetMissionJumpCounter;
 
 private:
 	navigator_test::VectorMissionItemStore _mission_store{};
@@ -190,22 +154,88 @@ static mission_item_s makeVtolTransitionItem(int transition_mode)
 	return item;
 }
 
-template<typename TestPeer>
-class MissionBaseTraversalTestBase : public ::testing::Test
+class MissionBaseTraversalTest : public NavigatorDatamanTestBase
 {
 protected:
-	static void SetUpTestSuite()
-	{
-		(void)navigatorDatamanRuntime();
-	}
-
-	static void TearDownTestSuite() {}
-
-	TestPeer mission_base{};
+	MissionBaseTestPeer mission_base{};
 };
 
-class MissionBaseTraversalTest : public MissionBaseTraversalTestBase<MissionBaseTestPeer> {};
-class IgnoreDoJumpMissionBaseTraversalTest : public MissionBaseTraversalTestBase<IgnoreDoJumpMissionBaseTestPeer> {};
+class IgnoreDoJumpMissionBaseTraversalTest : public NavigatorDatamanTestBase
+{
+protected:
+	IgnoreDoJumpMissionBaseTestPeer mission_base{};
+};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+class MissionBaseRouteCacheSyncTest : public NavigatorDatamanTestBase
+{
+protected:
+	void SetUp() override
+	{
+		ASSERT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+		_navigator.get_mission_route_cache().invalidate();
+	}
+
+	void TearDown() override
+	{
+		_navigator.get_mission_route_cache().invalidate();
+	}
+
+	DatamanClient _dataman_client{};
+	Navigator _navigator{};
+	MissionBaseTestPeer _mission_base{&_navigator};
+};
+
+TEST_F(MissionBaseRouteCacheSyncTest, DoJumpWritesKeepRouteCacheCurrent)
+{
+	const std::vector<mission_item_s> items{
+		makeDoJump(1, 2),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+	};
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = 1;
+	mission.count = static_cast<uint16_t>(items.size());
+	mission.current_seq = 0;
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	_mission_base.loadTestMission(items, mission);
+
+	for (size_t i = 0; i < items.size(); ++i) {
+		mission_item_s item = items[i];
+		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, static_cast<uint32_t>(i),
+						      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
+	}
+
+	MissionRouteCache &route_cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(route_cache, mission,
+			[&] { return route_cache.missionItemsReady(mission); }));
+
+	int32_t mission_index = 0;
+	mission_item_s mission_item{};
+	ASSERT_EQ(_mission_base.getNonJumpItem(mission_index, mission_item,
+					       MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow, true), PX4_OK);
+
+	mission_item_s cached_item{};
+	ASSERT_TRUE(route_cache.loadMissionItem(mission, 0, cached_item));
+	EXPECT_EQ(cached_item.do_jump_current_count, 1);
+
+	mission_item_s stored_item{};
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
+					     reinterpret_cast<uint8_t *>(&stored_item), sizeof(stored_item)));
+	EXPECT_EQ(stored_item.do_jump_current_count, 1);
+
+	_mission_base.resetMissionJumpCounter();
+
+	ASSERT_TRUE(route_cache.loadMissionItem(mission, 0, cached_item));
+	EXPECT_EQ(cached_item.do_jump_current_count, 0);
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
+					     reinterpret_cast<uint8_t *>(&stored_item), sizeof(stored_item)));
+	EXPECT_EQ(stored_item.do_jump_current_count, 0);
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 // WHY: getNonJumpItem is used to find the next mission item.
 // WHAT: A non-DO_JUMP item is returned unchanged.

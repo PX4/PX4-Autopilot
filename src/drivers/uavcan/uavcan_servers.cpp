@@ -154,6 +154,44 @@ int UavcanServers::init()
 	return 0;
 }
 
+void UavcanServers::warn_if_node_id_allocation_table_full()
+{
+	/*
+	The table never evicts an entry, so a node ID spent on a board that is no longer present stays spent. Once
+	all of them are, every board the table has not seen before is refused a node ID, and the refusal is silent
+	on the bus and here - the node just never appears, which reads as a dead node rather than a full table.
+	Keep saying so: the table does not empty itself, so this is a fault someone has to clear.
+	*/
+	if (_server_instance.getNumAllocations() < uavcan::NodeID::MaxRecommendedForRegularNodes) {
+		return;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (_node_id_table_full_warned != 0 && now - _node_id_table_full_warned < NODE_ID_TABLE_FULL_WARN_INTERVAL) {
+		return;
+	}
+
+	_node_id_table_full_warned = now;
+	PX4_ERR("dynamic node ID table is full (%u/%u): no new node can join, delete %s and reboot",
+		static_cast<unsigned>(_server_instance.getNumAllocations()),
+		static_cast<unsigned>(uavcan::NodeID::MaxRecommendedForRegularNodes), UAVCAN_NODE_DB_PATH);
+}
+
+#ifdef CONFIG_MODULES_NFS_MOUNT
+void UavcanServers::check_nfs()
+{
+	nfs_up_s nfs_up{};
+
+	if (_nfs_up_sub.update(&nfs_up)) {
+		migrateFWFromRoot(UAVCAN_NFS_PATH, UAVCAN_NFS_STAGING_PATH);
+		_fw_version_checker.setFirmwareNfsBasePath(UAVCAN_NFS_PATH);
+		_fileserver_backend.setNfsRootPath(UAVCAN_NFS_PATH);
+		_node_info_retriever.invalidateAll();
+	}
+}
+#endif
+
 void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_path)
 {
 	/*
@@ -217,7 +255,7 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 	for (int i = 0; i < bin_count; i++) {
 		uavcan_posix::FirmwareVersionChecker::AppDescriptor descriptor{0};
 
-		snprintf(srcpath, sizeof(srcpath), "%s%s", sd_root_path, bin_names[i]);
+		snprintf(srcpath, sizeof(srcpath), "%s/%s", sd_root_path, bin_names[i]);
 
 		if (uavcan_posix::FirmwareVersionChecker::getFileInfo(srcpath, descriptor, 1024) != 0) {
 			continue;
@@ -239,7 +277,7 @@ int UavcanServers::copyFw(const char *dst, const char *src)
 {
 	int rv = 0;
 
-	int dfd = open(dst, O_WRONLY | O_CREAT, 0666);
+	int dfd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
 	if (dfd < 0) {
 		PX4_ERR("copyFw: couldn't open dst");

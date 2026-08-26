@@ -6,10 +6,10 @@ This allows for more reliable flight planning notification of failure conditions
 
 PX4는 (최소한) 다음과 같은 스마트 배터리를 지원합니다.
 
-- [Rotoye Batmon](../smart_batteries/rotoye_batmon.md)
+- [Rotoye Batmon](../smart_batteries/rotoye_batmon.md) (Discontinued)
 
 ### 추가 정보
 
 - [Mavlink Battery Protocol](https://mavlink.io/en/services/battery.html)
-- [batt_smbus](../modules/modules_driver.md) - PX4 SMBus Battery Driver docs
+- [batt_smbus](../modules/modules_driver.md#batt_smbus) - PX4 SMBus Battery Driver docs
 - [Safety > Low Battery Failsafe](../config/safety.md#battery-level-failsafe).

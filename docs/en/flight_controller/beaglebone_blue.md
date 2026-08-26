@@ -31,6 +31,12 @@ The latest OS images at time of updating this document is [AM3358 Debian 10.3 20
 
 ## Cross Compiler Build (Recommend)
 
+::: warning
+The Linaro toolchain previously recommended has been discontinued.
+The instructions below have been updated to use its replacement (the Arm GNU Toolchain) but the changes **have not been tested**.
+Please add a PR to either remove this comment or fix the instructions if you try them!
+:::
+
 The recommended way to build PX4 for _BeagleBone Blue_ is to compile on a development computer and upload the PX4 executable binary directly to the BeagleBone Blue.
 
 ::: tip
@@ -84,23 +90,23 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
       ```
 
       1. ENTER //no passphrase
-      1. ENTER
-      1. ENTER
+      2. ENTER
+      3. ENTER
 
-   1. Define the BeagleBone Blue board as `beaglebone` in **/etc/hosts** and copy the public SSH key to the board for password-less SSH access:
+   2. Define the BeagleBone Blue board as `beaglebone` in **/etc/hosts** and copy the public SSH key to the board for password-less SSH access:
 
       ```sh
       ssh-copy-id debian@beaglebone
       ```
 
-   1. Alternatively you can use the beaglebone's IP directly:
+   3. Alternatively you can use the beaglebone's IP directly:
 
       ```sh
       ssh-copy-id debian@<IP>
       ```
 
-   1. When prompted if you trust: yes
-   1. Enter root password
+   4. When prompted if you trust: yes
+   5. Enter root password
 
 1. Cross Compile Setup
    1. Toolchain download
@@ -113,20 +119,20 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
          cd /opt/bbblue_toolchain/gcc-arm-linux-gnueabihf
          ```
 
-         The ARM Cross Compiler for _BeagleBone Blue_ can be found at [Linaro Toolchain Binaries site](https://www.linaro.org/downloads/#gnu_and_llvm).
+         The ARM Cross Compiler for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) site (the official successor to the Linaro toolchain releases previously used here).
 
          ::: tip
          GCC in the toolchain should be compatible with kernel in _BeagleBone Blue_.
          General rule of thumb is to choose a toolchain where version of GCC is not higher than version of GCC which comes with the OS image on _BeagleBone Blue_.
          :::
 
-         Download and unpack [gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz](https://snapshots.linaro.org/gnu-toolchain/13.0-2022.06-1/arm-linux-gnueabihf/gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz) to the bbblue_toolchain folder.
+         Download and unpack [arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz](https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz) to the bbblue_toolchain folder.
 
-         Different ARM Cross Compiler versions for _BeagleBone Blue_ can be found at [Linaro Toolchain Binaries site](https://www.linaro.org/downloads/).
+         Different ARM Cross Compiler versions for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) site.
 
          ```sh
-         wget https://snapshots.linaro.org/gnu-toolchain/13.0-2022.06-1/arm-linux-gnueabihf/gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz
-         tar -xf gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz
+         wget https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
+         tar -xf arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
          ```
 
          ::: tip
@@ -135,17 +141,30 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
          As a general rule of thumb is to choose a toolchain where the version of GCC is not higher than the version of GCC which comes with the OS image on _BeagleBone Blue_.
 
-      1. Add it to the PATH in ~/.profile as shown below
+         ::: warning
+         PX4's build for this board looks specifically for compiler binaries named `arm-linux-gnueabihf-*` (the naming used by the old Linaro toolchain), but the Arm GNU Toolchain ships them as `arm-none-linux-gnueabihf-*`.
+         Create matching symlinks so the build can find them:
 
          ```sh
-         export PATH=$PATH:/opt/bbblue_toolchain/gcc-arm-linux-gnueabihf/gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf/bin
+         cd /opt/bbblue_toolchain/gcc-arm-linux-gnueabihf/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf/bin
+         for f in arm-none-linux-gnueabihf-*; do
+           ln -s "$f" "${f/arm-none-linux-gnueabihf/arm-linux-gnueabihf}"
+         done
+         ```
+
+         :::
+
+      2. Add it to the PATH in ~/.profile as shown below
+
+         ```sh
+         export PATH=$PATH:/opt/bbblue_toolchain/gcc-arm-linux-gnueabihf/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf/bin
          ```
 
          ::: info
          Logout and Login to apply the change, or execute the same line on your current shell.
          :::
 
-      1. Setup other dependencies by downloading the PX4 source code and then running the setup scripts:
+      3. Setup other dependencies by downloading the PX4 source code and then running the setup scripts:
 
          ````sh
          git clone https://github.com/PX4/PX4-Autopilot.git --recursive

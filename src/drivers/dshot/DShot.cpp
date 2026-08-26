@@ -431,10 +431,11 @@ uint16_t DShot::esc_armed_mask(uint16_t *outputs, uint8_t num_outputs)
 uint16_t DShot::calculate_output_value(uint16_t raw, int index)
 {
 	uint16_t output = raw;
+	const bool reversible = _mixing_output.reversibleOutputs() & (1u << index);
 
 	// Reverse output if required
-	if (_3d_enabled || (_mixing_output.reversibleOutputs() & (1u << index))) {
-		output = convert_output_to_3d_scaling(raw);
+	if (_3d_enabled || reversible) {
+		output = convert_output_to_3d_scaling(raw, reversible);
 	}
 
 	output = math::min(output, DSHOT_MAX_THROTTLE);
@@ -673,7 +674,7 @@ bool DShot::process_bdshot_telemetry()
 				}
 
 				if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
-					esc.current = static_cast<float>(value) / 2.f; // BDShot current is in 0.5A
+					esc.current = static_cast<float>(value); // EDT current is in 1A steps
 
 				} else {
 					esc.current = _esc_status.esc[motor_index].esc_current; // use previous
@@ -751,31 +752,33 @@ void DShot::consume_esc_data(const EscData &esc)
 	}
 }
 
-uint16_t DShot::convert_output_to_3d_scaling(uint16_t output)
+uint16_t DShot::convert_output_to_3d_scaling(uint16_t output, bool reversible)
 {
 	// DShot 3D splits the throttle ranges in two.
 	// This is in terms of DShot values, code below is in terms of actuator_output
 	// Direction 1) 48 is the slowest, 1047 is the fastest.
 	// Direction 2) 1049 is the slowest, 2047 is the fastest.
-	if (output >= _3d_dead_l && output <= _3d_dead_h) {
+
+	// The deadband guards a neutral, which only a reversible output has.
+	if (reversible && output >= _3d_dead_l && output <= _3d_dead_h) {
 		return DSHOT_DISARM_VALUE;
 	}
 
-	bool upper_range = output >= 1000;
+	bool upper_range = output >= DSHOT_3D_SPLIT;
 
 	if (upper_range) {
-		output -= 1000;
+		output -= DSHOT_3D_SPLIT;
 
 	} else {
-		output = 999 - output; // lower range is inverted
+		output = DSHOT_3D_SPLIT - 1 - output; // lower range is inverted
 	}
 
-	float max_output = 999.f;
+	float max_output = DSHOT_3D_SPLIT - 1;
 	float min_output = max_output * _dshot_min;
 	output = math::min(max_output, (min_output + output * (max_output - min_output) / max_output));
 
 	if (upper_range) {
-		output += 1000;
+		output += DSHOT_3D_SPLIT;
 	}
 
 	return output;
@@ -912,6 +915,28 @@ int DShot::get_pole_count(int motor_index) const
 	return 14;
 }
 
+void DShot::apply_min_values(uint32_t reversible)
+{
+	for (uint8_t i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+		if (reversible & (1u << i)) {
+			// Spans both halves, so neutral has to land on the split.
+			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
+
+		} else if (_3d_enabled) {
+			_mixing_output.minValue(i) = DSHOT_3D_FORWARD_START;
+
+		} else {
+			const float min_value = _dshot_min * (float)DSHOT_MAX_THROTTLE;
+			_mixing_output.minValue(i) = math::constrain((uint16_t)min_value, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
+		}
+	}
+}
+
+void DShot::reversibleMaskChanged(uint32_t reversible_mask)
+{
+	apply_min_values(reversible_mask);
+}
+
 void DShot::update_params()
 {
 	parameter_update_s pupdate;
@@ -927,18 +952,8 @@ void DShot::update_params()
 	_dshot_min = _param_dshot_min.get();
 	_esc_type = _param_dshot_esc_type.get();
 
-	// Calculate minimum DShot output as percent of throttle and constrain.
-	float min_value = _dshot_min * (float)DSHOT_MAX_THROTTLE;
-	uint16_t dshot_min_value = math::constrain((uint16_t)min_value, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
-
-	_mixing_output.setAllMinValues(dshot_min_value);
-
-	// Do not use the minimum parameter for reversible outputs
-	for (uint8_t i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-		if (_mixing_output.reversibleOutputs() & (1 << i)) {
-			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
-		}
-	}
+	// Re-apply after updateParams(), which reloads the minimums from the shared output params.
+	apply_min_values(_mixing_output.reversibleOutputs());
 
 	// Update per-motor pole count param handles and cached values
 	for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {

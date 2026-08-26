@@ -1,0 +1,257 @@
+{
+  "VEHICLE_TYPE_FIXED_WING": {
+    "NAVIGATION_STATE_MANUAL": [
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_ALTCTL": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_ALTITUDE_CRUISE": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_POSCTL": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_POSITION_SLOW": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_AUTO_MISSION": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_global_position_relaxed",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_mission",
+      "mode_req_wind_and_flight_time_compliance"
+    ],
+    "NAVIGATION_STATE_AUTO_LOITER": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_global_position_relaxed",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_wind_and_flight_time_compliance"
+    ],
+    "NAVIGATION_STATE_GUIDED_COURSE": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_wind_and_flight_time_compliance"
+    ],
+    "NAVIGATION_STATE_AUTO_RTL": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_global_position_relaxed",
+      "mode_req_home_position",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_prevent_arming"
+    ],
+    "NAVIGATION_STATE_ACRO": [
+      "mode_req_angular_velocity",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_DESCEND": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_prevent_arming"
+    ],
+    "NAVIGATION_STATE_TERMINATION": [
+      "mode_req_prevent_arming"
+    ],
+    "NAVIGATION_STATE_OFFBOARD": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_offboard_signal"
+    ],
+    "NAVIGATION_STATE_STAB": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_AUTO_TAKEOFF": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt"
+    ],
+    "NAVIGATION_STATE_AUTO_LAND": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_prevent_arming"
+    ],
+    "NAVIGATION_STATE_AUTO_FOLLOW_TARGET": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position",
+      "mode_req_prevent_arming",
+      "mode_req_wind_and_flight_time_compliance"
+    ],
+    "NAVIGATION_STATE_AUTO_PRECLAND": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position",
+      "mode_req_prevent_arming"
+    ],
+    "NAVIGATION_STATE_ORBIT": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position",
+      "mode_req_prevent_arming",
+      "mode_req_wind_and_flight_time_compliance"
+    ],
+    "NAVIGATION_STATE_AUTO_VTOL_TAKEOFF": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed"
+    ]
+  },
+  "VEHICLE_TYPE_ROTARY_WING": {
+    "NAVIGATION_STATE_MANUAL": [
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_ALTCTL": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_ALTITUDE_CRUISE": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_POSCTL": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_POSITION_SLOW": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_AUTO_MISSION": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_global_position",
+      "mode_req_local_alt",
+      "mode_req_local_position",
+      "mode_req_mission",
+      "mode_req_wind_and_flight_time_compliance"
+    ],
+    "NAVIGATION_STATE_AUTO_LOITER": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_global_position",
+      "mode_req_local_alt",
+      "mode_req_local_position",
+      "mode_req_wind_and_flight_time_compliance"
+    ],
+    "NAVIGATION_STATE_GUIDED_COURSE": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_wind_and_flight_time_compliance"
+    ],
+    "NAVIGATION_STATE_AUTO_RTL": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_global_position",
+      "mode_req_home_position",
+      "mode_req_local_alt",
+      "mode_req_local_position",
+      "mode_req_prevent_arming"
+    ],
+    "NAVIGATION_STATE_ACRO": [
+      "mode_req_angular_velocity",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_DESCEND": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_prevent_arming"
+    ],
+    "NAVIGATION_STATE_TERMINATION": [
+      "mode_req_prevent_arming"
+    ],
+    "NAVIGATION_STATE_OFFBOARD": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_offboard_signal"
+    ],
+    "NAVIGATION_STATE_STAB": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_manual_control"
+    ],
+    "NAVIGATION_STATE_AUTO_TAKEOFF": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position"
+    ],
+    "NAVIGATION_STATE_AUTO_LAND": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position_relaxed",
+      "mode_req_prevent_arming"
+    ],
+    "NAVIGATION_STATE_AUTO_FOLLOW_TARGET": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position",
+      "mode_req_prevent_arming",
+      "mode_req_wind_and_flight_time_compliance"
+    ],
+    "NAVIGATION_STATE_AUTO_PRECLAND": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position",
+      "mode_req_prevent_arming"
+    ],
+    "NAVIGATION_STATE_ORBIT": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position",
+      "mode_req_prevent_arming",
+      "mode_req_wind_and_flight_time_compliance"
+    ],
+    "NAVIGATION_STATE_AUTO_VTOL_TAKEOFF": [
+      "mode_req_angular_velocity",
+      "mode_req_attitude",
+      "mode_req_local_alt",
+      "mode_req_local_position"
+    ]
+  }
+}

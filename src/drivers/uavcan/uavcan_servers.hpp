@@ -46,6 +46,9 @@
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
 #include <uavcan_posix/firmware_version_checker.hpp>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/nfs_up.h>
+
 #include "uavcan_module.hpp"
 
 /**
@@ -68,9 +71,24 @@ public:
 
 	int init();
 
+	void warn_if_node_id_allocation_table_full();
+
+#ifdef CONFIG_MODULES_NFS_MOUNT
+	void check_nfs();
+#endif
+
 	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
 
+	void setArmed(bool armed) { _fw_version_checker.setArmed(armed); }
+
+	bool hasPendingFirmwareUpdates() const
+	{
+		return _fw_version_checker.hasUpdatingNodes();
+	}
+
 private:
+
+	static constexpr hrt_abstime NODE_ID_TABLE_FULL_WARN_INTERVAL{5_s};
 
 	void unpackFwFromROMFS(const char *sd_path, const char *romfs_path);
 	void migrateFWFromRoot(const char *sd_path, const char *sd_root_path);
@@ -85,4 +103,8 @@ private:
 	uavcan::BasicFileServer _fw_server;
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
+
+	hrt_abstime _node_id_table_full_warned{0};
+
+	uORB::Subscription _nfs_up_sub{ORB_ID(nfs_up)};
 };

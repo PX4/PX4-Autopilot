@@ -117,7 +117,7 @@ private:
 		int32_t priority_configured[MAX_SENSOR_COUNT] {};
 		uint8_t last_best_vote{0}; /**< index of the latest best vote */
 		uint8_t subscription_count{0};
-		bool advertised[MAX_SENSOR_COUNT] {false, false, false};
+		bool advertised[MAX_SENSOR_COUNT] {};
 	};
 
 	void initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max);

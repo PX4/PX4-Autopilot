@@ -253,10 +253,12 @@ else
 	fi
 
 	# To trigger a parameter reset during boot SYS_AUTOCONFIG was set to 1 before
+	set PARAM_RESET_DONE no
 	if param greater SYS_AUTOCONFIG 0
 	then
 		# Reset parameters except airframe, parameter version, sensor calibration, total flight time, flight UUID
-		param reset_all SYS_AUTOSTART SYS_PARAM_VER CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
+		param reset_all SYS_AUTOSTART SYS_PARAM_VER SYS_AUTOCFG_CAL CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
+		set PARAM_RESET_DONE yes
 	fi
 
 	#
@@ -312,6 +314,15 @@ else
 		echo "ERROR [init] No airframe file found for SYS_AUTOSTART value"
 		param set SYS_AUTOSTART 0
 		tune_control play error
+	fi
+
+	# Calibration defaults
+	if param greater SYS_AUTOCFG_CAL 0
+	then
+		if [ ${PARAM_RESET_DONE} = yes ]
+		then
+			param reset CAL_* SYS_AUTOCFG_CAL
+		fi
 	fi
 
 	# Check parameter version and reset upon airframe configuration version mismatch.
@@ -671,6 +682,11 @@ else
 		internal_combustion_engine_control start
 	fi
 
+	if param compare -s NFS_EN 1
+	then
+		nfs_mount start &
+	fi
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
@@ -760,6 +776,7 @@ unset LOGGER_BUF
 unset PARAM_FILE
 unset PARAM_BACKUP_FILE
 unset PARAM_DEFAULTS_VER
+unset PARAM_RESET_DONE
 unset RC_INPUT_ARGS
 unset STORAGE_AVAILABLE
 unset STORAGE_CHECK

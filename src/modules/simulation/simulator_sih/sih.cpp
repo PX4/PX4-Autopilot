@@ -437,7 +437,7 @@ void Sih::publish_esc_status()
 		_esc_status.esc_armed_flags = (1u << motor_idx) - 1;
 	}
 
-	_esc_status_pub.publish(_esc_status);
+	_esc_status_pub.publish(failure_injection::process_esc(_failure_config, _esc_status));
 }
 
 void Sih::generate_force_and_torques(const float dt)
@@ -466,7 +466,7 @@ void Sih::generate_force_and_torques(const float dt)
 		float u_sq[6];
 
 		for (int i = 0; i < 6; ++i) {
-			u_sq[i] = _u[i] * _u[i]; // quadratic thrust model, keep _u[i] intact for the filter
+			u_sq[i] = _u[i] * fabsf(_u[i]);
 		}
 
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+u_sq[0] + u_sq[1] + u_sq[2] + u_sq[3] + u_sq[4] + u_sq[5]));
@@ -766,9 +766,9 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
 
-	// pitot tube measures forward (body-x) airspeed
 	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_apparent_B(0) + generate_wgn() * 0.2f);
+	const float v_pitot = (_vehicle == VehicleType::TailsitterVTOL) ? -v_apparent_B(2) : v_apparent_B(0);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();

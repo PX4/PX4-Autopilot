@@ -134,6 +134,10 @@ Tuning is the final step, carried out only after most other setup and configurat
 - [MC Setpoint Tuning (Trajectory Generator)](../config_mc/mc_trajectory_tuning.md)
   - [MC Jerk-limited Type Trajectory](../config_mc/mc_jerk_limited_type_trajectory.md)
 - [Multicopter Racer Setup](../config_mc/racer_setup.md)
+- [Genius Tools](https://www.altitude-rd.com/genius-tools) — a commercial web app for interactive multicopter tuning from a flight log.
+  Bugs and questions should be addressed to the maintainer: [Altitude R&D](https://www.altitude-rd.com/home) (not the PX4 forums).
+
+![Genius Tools](../../assets/config/mc/genius_tools.webp)
 
 <!--
 - Explain what you have to tune on PX4, what you can tune, and what each topic covers

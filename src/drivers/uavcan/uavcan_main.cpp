@@ -46,6 +46,7 @@
 #include <px4_platform_common/tasks.h>
 
 #include <inttypes.h>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
@@ -58,6 +59,7 @@
 #include <uORB/topics/esc_status.h>
 
 #include <drivers/drv_hrt.h>
+#include <mathlib/math/Functions.hpp>
 
 #include "uavcan_module.hpp"
 #include "uavcan_main.hpp"
@@ -120,8 +122,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	}
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-	_mixing_interface_esc.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
-	_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanServoController::MAX_RATE_HZ);
+	_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / _servo_controller.max_rate_hz());
 #endif
 }
 
@@ -496,7 +497,24 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
-	_node.setName("org.pixhawk.pixhawk");
+	// NodeInfo.name is reverse-domain, lowercase, 80 characters max; px4_board_name() is
+	// <VENDOR>_<MODEL> in upper snake case.
+	char node_name[81] {};
+	const char *board = px4_board_name();
+	const char *model = strchr(board, '_');
+
+	if (model != nullptr) {
+		snprintf(node_name, sizeof(node_name), "org.%.*s.%s", static_cast<int>(model - board), board, model + 1);
+
+	} else {
+		snprintf(node_name, sizeof(node_name), "org.%s", board);
+	}
+
+	for (char *c = node_name; *c != '\0'; c++) {
+		*c = (*c == '_') ? '-' : static_cast<char>(tolower(static_cast<unsigned char>(*c)));
+	}
+
+	_node.setName(node_name);
 
 	_node.setNodeID(node_id);
 
@@ -504,12 +522,19 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	int ret;
 
-	// UAVCAN_PUB_ARM
+#if defined(CONFIG_UAVCAN_ARMING_CONTROLLER) || defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+	int32_t uavcan_enable = 0;
+	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
+#endif
+
+	// Publish ArmingStatus when ESC output is enabled. Many DroneCAN ESCs
+	// ignore RawCommand unless they see STATUS_FULLY_ARMED, including during actuator tests.
+	// UAVCAN_PUB_ARM still enables it for sensor-only buses.
 #if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	int32_t uavcan_pub_arm = 0;
-	param_get(param_find("UAVCAN_PUB_ARM"), &uavcan_pub_arm);
+	(void)param_get(param_find("UAVCAN_PUB_ARM"), &uavcan_pub_arm);
 
-	if (uavcan_pub_arm == 1) {
+	if (uavcan_pub_arm == 1 || uavcan_enable > 2) {
 		ret = _arming_status_controller.init();
 
 		if (ret < 0) {
@@ -530,8 +555,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	// Actuators
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-	int32_t uavcan_enable = -1;
-	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 
 	if (uavcan_enable > 2) {
 
@@ -540,6 +563,8 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		if (ret < 0) {
 			return ret;
 		}
+
+		_mixing_interface_esc.mixingOutput().setMaxTopicUpdateRate(1000000 / _esc_controller.max_rate_hz());
 	}
 
 #endif
@@ -751,11 +776,44 @@ UavcanNode::Run()
 		_node_info_retriever.invalidateAll();
 	}
 
+	// propagate armed state to firmware version checker
+	if (_actuator_armed_sub.updated() && _servers != nullptr) {
+		actuator_armed_s actuator_armed{};
+		_actuator_armed_sub.copy(&actuator_armed);
+		_servers->setArmed(actuator_armed.armed || actuator_armed.prearmed);
+	}
+
+	if (_servers != nullptr) {
+		_servers->warn_if_node_id_allocation_table_full();
+	}
+
+#ifdef CONFIG_MODULES_NFS_MOUNT
+
+	if (_servers != nullptr) {
+		_servers->check_nfs();
+	}
+
+#endif
+
 	_node.spinOnce(); // expected to be non-blocking
+
+	apply_can_failure_injection();
 
 	publish_can_interface_statuses();
 
 	publish_node_statuses();
+
+	if (_servers != nullptr) {
+		const bool pending = _servers->hasPendingFirmwareUpdates();
+
+		if (pending != _fw_update_pending_last) {
+			_fw_update_pending_last = pending;
+			uavcan_firmware_update_s fw_update{};
+			fw_update.timestamp = hrt_absolute_time();
+			fw_update.pending_updates = pending;
+			_fw_update_pub.publish(fw_update);
+		}
+	}
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
@@ -969,7 +1027,7 @@ UavcanNode::Run()
 		}
 	}
 
-#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER) && defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	_arming_status_controller.setActuatorTestRunning(_mixing_interface_esc.isActuatorTestRunning());
 #endif
 
@@ -989,6 +1047,39 @@ UavcanNode::Run()
 		ScheduleClear();
 		_instance = nullptr;
 	}
+}
+
+void UavcanNode::apply_can_failure_injection()
+{
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER) && defined(UAVCAN_STM32H7_NUTTX)
+	// FAILURE_UNIT_BUS_CAN: instance i+1 selects CAN interface i. FAILURE_TYPE_OFF holds
+	// the FDCAN peripheral in Init mode so the node leaves the bus entirely (no TX/RX/ACK);
+	// FAILURE_TYPE_OK rejoins it. No-op unless the failure-injection manager is built.
+	_failure_config.update();
+
+	for (uint8_t i = 0; i < can->driver.getNumIfaces(); i++) {
+		UAVCAN_DRIVER::CanIface *iface = can->driver.getIface(i);
+
+		if (iface == nullptr) {
+			continue;
+		}
+
+		const bool off = _failure_config.mode(failure_injection_s::FAILURE_UNIT_BUS_CAN, i + 1)
+				 == failure_injection::Mode::Off;
+
+		if (off == iface->isInInitMode()) {
+			continue;
+		}
+
+		if (off) {
+			iface->setOffline();
+
+		} else {
+			iface->setOnline();
+		}
+	}
+
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER && UAVCAN_STM32H7_NUTTX
 }
 
 void UavcanNode::publish_can_interface_statuses()
@@ -1102,6 +1193,22 @@ bool UavcanMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsig
 			if (mixingOutput().isFunctionSet(i)) {
 				output_array_size = i + 1;
 				break;
+			}
+		}
+
+		// Reversible motors: send reverse as a signed RawCommand (negative = reverse). Encoded in
+		// place so actuator_outputs reflects the actual wire value sent to the ESC. Done here rather
+		// than via minValue()/maxValue() (as DShot does for its 3D range) because those are uint16_t
+		// and can't hold the negative bound a signed RawCommand would need.
+		const uint32_t reversible = mixingOutput().reversibleOutputs();
+
+		for (unsigned i = 0; i < output_array_size; i++) {
+			// Encode armed outputs only; a stopped channel sits at the disarmed value and must
+			// not be inverted to full reverse (the disarmed < min invariant is not guaranteed).
+			if ((reversible & (1u << i)) && outputs[i] > (float)mixingOutput().disarmedValue(i)) {
+				const float min_i = (float)mixingOutput().minValue(i);
+				const float max_i = (float)mixingOutput().maxValue(i);
+				outputs[i] = math::interpolate(outputs[i], min_i, max_i, -max_i, max_i);
 			}
 		}
 

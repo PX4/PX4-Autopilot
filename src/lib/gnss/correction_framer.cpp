@@ -50,6 +50,10 @@ bool CorrectionFramer::isPreamble(uint8_t byte)
 		return true;
 	}
 
+	if (byte == UBX_SYNC1) {
+		return true;
+	}
+
 #if defined(CONFIG_GPS_SPARTN)
 
 	if (byte == SPARTN_PREAMBLE) {
@@ -96,6 +100,49 @@ CorrectionFramer::Probe CorrectionFramer::probeRtcm3(size_t *frame_len) const
 				      _buffer[len - 1];
 
 	if (calculated_crc != received_crc) {
+		return Probe::CrcError;
+	}
+
+	*frame_len = len;
+	return Probe::Complete;
+}
+
+CorrectionFramer::Probe CorrectionFramer::probeUbx(size_t *frame_len) const
+{
+	// Need sync1 + sync2 at minimum to reject a false preamble quickly
+	if (_buffer_len < 2) {
+		return Probe::NeedMoreData;
+	}
+
+	if (_buffer[1] != UBX_SYNC2) {
+		return Probe::InvalidHeader;
+	}
+
+	if (_buffer_len < UBX_HEADER_LEN) {
+		return Probe::NeedMoreData;
+	}
+
+	const size_t payload_len = static_cast<size_t>(_buffer[4]) |
+				   (static_cast<size_t>(_buffer[5]) << 8);
+
+	// Protocol allows larger payloads; reject beyond the injection cap so a
+	// garbage length cannot pin the buffer waiting for thousands of bytes.
+	if (payload_len > UBX_MAX_PAYLOAD_LEN) {
+		return Probe::InvalidHeader;
+	}
+
+	const size_t len = UBX_HEADER_LEN + payload_len + UBX_CK_LEN;
+
+	if (_buffer_len < len) {
+		return Probe::NeedMoreData;
+	}
+
+	// CK_A/CK_B cover Class..end of payload (not the sync bytes)
+	uint8_t ck_a = 0;
+	uint8_t ck_b = 0;
+	ubx_checksum(&_buffer[2], UBX_HEADER_LEN - 2 + payload_len, &ck_a, &ck_b);
+
+	if ((ck_a != _buffer[len - 2]) || (ck_b != _buffer[len - 1])) {
 		return Probe::CrcError;
 	}
 
@@ -174,7 +221,7 @@ CorrectionFramer::Probe CorrectionFramer::probeSpartn(size_t *frame_len) const
 const uint8_t *CorrectionFramer::getNextMessage(size_t *out_len, CorrectionProtocol *out_protocol)
 {
 	while (_buffer_len > 0) {
-		// Drop everything that cannot start a frame of either protocol
+		// Drop everything that cannot start a frame of any supported protocol
 		size_t to_drop = 0;
 
 		while ((to_drop < _buffer_len) && !isPreamble(_buffer[to_drop])) {
@@ -194,19 +241,23 @@ const uint8_t *CorrectionFramer::getNextMessage(size_t *out_len, CorrectionProto
 		CorrectionProtocol protocol = CorrectionProtocol::Rtcm3;
 		Probe result;
 
+		if (_buffer[0] == UBX_SYNC1) {
+			protocol = CorrectionProtocol::Ubx;
+			result = probeUbx(&frame_len);
+
 #if defined(CONFIG_GPS_SPARTN)
 
-		if (_buffer[0] == SPARTN_PREAMBLE) {
+		} else if (_buffer[0] == SPARTN_PREAMBLE) {
 			protocol = CorrectionProtocol::Spartn;
 			result = probeSpartn(&frame_len);
 
+#endif
+
 		} else {
+			// RTCM3 preamble (isPreamble already filtered other bytes)
+			protocol = CorrectionProtocol::Rtcm3;
 			result = probeRtcm3(&frame_len);
 		}
-
-#else
-		result = probeRtcm3(&frame_len);
-#endif
 
 		switch (result) {
 		case Probe::NeedMoreData:
@@ -243,11 +294,18 @@ void CorrectionFramer::consumeMessage(size_t len)
 	_messages_parsed++;
 	_total_frame_bytes += len;
 
-	if (_pending_protocol == CorrectionProtocol::Rtcm3) {
+	switch (_pending_protocol) {
+	case CorrectionProtocol::Rtcm3:
 		_rtcm3_messages++;
+		break;
 
-	} else {
+	case CorrectionProtocol::Spartn:
 		_spartn_messages++;
+		break;
+
+	case CorrectionProtocol::Ubx:
+		_ubx_messages++;
+		break;
 	}
 }
 

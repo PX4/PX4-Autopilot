@@ -25,6 +25,7 @@ See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/ma
 | Jacob Dahl | Simulation | [@dakejahl](https://github.com/dakejahl) | dakejahl | <dahl.jakejacob@gmail.com>
 | Balduin Dettling | VTOL | [@mbjd](https://github.com/mbjd) | m_balduin_jd |
 | Mahima Yoga | Fixed-Wing | [@mahima-yoga](https://github.com/mahima-yoga) | myoga_78681 |
+| Alexander Lerach | RTOS / Drivers | [@alexcekay](https://github.com/alexcekay) | alexcekay | <a-lerach@live.de>
 
 
 **Reviewers**

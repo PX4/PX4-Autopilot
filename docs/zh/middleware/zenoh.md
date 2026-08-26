@@ -215,7 +215,7 @@ The updated configuration will be loaded from the SD card during startup.
 Once your PX4 FMU is publishing data into ROS 2, you can inspect the available topics and their contents using standard ROS 2 CLI tools:
 
 ```sh
-ros2 topic list（ROS 2 话题列表命令）
+ros2 topic list
 ```
 
 Check topic type and publishers/subscribers:
