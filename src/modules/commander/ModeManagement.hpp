@@ -111,7 +111,7 @@ public:
 	const Mode &mode(uint8_t nav_state) const { return _modes[nav_state - FIRST_EXTERNAL_NAV_STATE]; }
 
 	bool hasFreeExternalModes() const;
-	uint8_t addExternalMode(const Mode &mode);
+	int addExternalMode(const Mode &mode);
 	bool removeExternalMode(uint8_t nav_state, const char *name);
 
 private:
@@ -171,7 +171,7 @@ public:
 
 private:
 	bool checkConfigControlSetpointUpdates(uint8_t vehicle_type);
-	void checkNewRegistrations(UpdateRequest &update_request);
+	void checkNewRegistrations(uint8_t user_intended_nav_state, UpdateRequest &update_request);
 	void checkUnregistrations(uint8_t user_intended_nav_state, UpdateRequest &update_request);
 	void checkConfigOverrides();
 
