@@ -80,11 +80,13 @@ typedef struct {
 
 typedef struct dshot_channel_t {
 	bool			init;
-	uint32_t 		data_seg1;
-	uint32_t 		irq_data;
-	dshot_state             state;
-	uint32_t                raw_response;
-	uint16_t                erpm;
+	bool			bdshot;
+	dshot_state		state;
+	uint32_t		data_seg1;
+	uint32_t		irq_data;
+	uint32_t		raw_response;
+	hrt_abstime		tx_started;	// 0 while nothing is in flight
+	int32_t			erpm;
 	bool			erpm_valid;
 	edt_sample_t		edt_temp;
 	edt_sample_t		edt_volt;
@@ -95,14 +97,12 @@ typedef struct dshot_channel_t {
 	uint16_t		consecutive_successes;
 	uint16_t		consecutive_failures;
 	bool			online;
-	bool                    bdshot;
-	uint32_t                bdshot_tcmp;
-	uint32_t                bdshot_training_mask;
-	uint8_t                 bdshot_training_count;
-	uint8_t                 bdshot_training_success;
-	bool                    bdshot_training_done;
-	int8_t                  bdshot_tcmp_offset;
-	hrt_abstime             rx_started;
+	uint32_t		bdshot_tcmp;
+	uint32_t		bdshot_training_mask;
+	uint8_t			bdshot_training_count;
+	uint8_t			bdshot_training_success;
+	bool			bdshot_training_done;
+	int8_t			bdshot_tcmp_offset;
 } dshot_channel_t;
 
 #define BDSHOT_OFFLINE_COUNT 200
@@ -118,12 +118,10 @@ static volatile dshot_channel_t dshot_inst[DSHOT_TIMERS] = {};
 
 static uint32_t dshot_tcmp;
 static unsigned dshot_speed;
-static uint32_t dshot_mask;
-static volatile uint32_t bdshot_recv_mask;
 static uint32_t bdshot_ready_mask;
+static hrt_abstime _bdshot_busy_us;
 static bool _edt_enabled = false;
 static bool _dshot_armed = false;
-static hrt_abstime _bdshot_rx_timeout;
 
 static inline uint32_t flexio_getreg32(uint32_t offset)
 {
@@ -188,19 +186,23 @@ static inline void flexio_dshot_set_tcmp(uint32_t channel)
 					  dshot_inst[channel].bdshot_tcmp_offset) & 0xFF);
 }
 
-static void flexio_dshot_output(uint32_t channel, uint32_t pin, uint32_t timcmp, bool inverted)
+// Shifter transmits on the FXIO pin. The timer runs in dual 8-bit baud mode and is triggered by the
+// shifter status flag (active low = buffer full), so writing SHIFTBUF starts the frame.
+static void flexio_dshot_output(uint32_t channel)
 {
-	/* Disable Shifter */
+	uint32_t pin = timer_io_channels[channel].dshot.flexio_pin;
+	bool inverted = dshot_inst[channel].bdshot;
+
+	// TIMCFG and TIMCMP may only be written while the timer is disabled
+	flexio_putreg32(0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
 	flexio_putreg32(0, IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
 
-	/* No start bit, stop bit low */
 	flexio_putreg32(FLEXIO_SHIFTCFG_INSRC(FLEXIO_SHIFTER_INPUT_FROM_PIN) |
 			FLEXIO_SHIFTCFG_PWIDTH(0) |
 			FLEXIO_SHIFTCFG_SSTOP(FLEXIO_SHIFTER_STOP_BIT_LOW) |
 			FLEXIO_SHIFTCFG_SSTART(FLEXIO_SHIFTER_START_BIT_DISABLED_LOAD_DATA_ON_ENABLE),
 			IMXRT_FLEXIO_SHIFTCFG0_OFFSET + channel * 0x4);
 
-	/* Transmit mode, output to FXIO pin, inverted output for bdshot */
 	flexio_putreg32(FLEXIO_SHIFTCTL_TIMSEL(channel) |
 			FLEXIO_SHIFTCTL_TIMPOL(FLEXIO_SHIFTER_TIMER_POLARITY_ON_POSITIVE) |
 			FLEXIO_SHIFTCTL_PINCFG(FLEXIO_PIN_CONFIG_OUTPUT) |
@@ -209,7 +211,6 @@ static void flexio_dshot_output(uint32_t channel, uint32_t pin, uint32_t timcmp,
 			FLEXIO_SHIFTCTL_SMOD(FLEXIO_SHIFTER_MODE_TRANSMIT),
 			IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
 
-	/* Start transmitting on trigger, disable on compare */
 	flexio_putreg32(FLEXIO_TIMCFG_TIMOUT(FLEXIO_TIMER_OUTPUT_ONE_NOT_AFFECTED_BY_RESET) |
 			FLEXIO_TIMCFG_TIMDEC(FLEXIO_TIMER_DEC_SRC_ON_FLEX_IO_CLOCK_SHIFT_TIMER_OUTPUT) |
 			FLEXIO_TIMCFG_TIMRST(FLEXIO_TIMER_RESET_NEVER) |
@@ -219,9 +220,8 @@ static void flexio_dshot_output(uint32_t channel, uint32_t pin, uint32_t timcmp,
 			FLEXIO_TIMCFG_TSTART(FLEXIO_TIMER_START_BIT_DISABLED),
 			IMXRT_FLEXIO_TIMCFG0_OFFSET + channel * 0x4);
 
-	flexio_putreg32(timcmp, IMXRT_FLEXIO_TIMCMP0_OFFSET + channel * 0x4);
+	flexio_putreg32(dshot_tcmp, IMXRT_FLEXIO_TIMCMP0_OFFSET + channel * 0x4);
 
-	/* Baud mode, Trigger on shifter write */
 	flexio_putreg32(FLEXIO_TIMCTL_TRGSEL((4 * channel) + 1) |
 			FLEXIO_TIMCTL_TRGPOL(FLEXIO_TIMER_TRIGGER_POLARITY_ACTIVE_LOW) |
 			FLEXIO_TIMCTL_TRGSRC(FLEXIO_TIMER_TRIGGER_SOURCE_INTERNAL) |
@@ -230,144 +230,125 @@ static void flexio_dshot_output(uint32_t channel, uint32_t pin, uint32_t timcmp,
 			FLEXIO_TIMCTL_PINPOL(FLEXIO_PIN_ACTIVE_LOW) |
 			FLEXIO_TIMCTL_TIMOD(FLEXIO_TIMER_MODE_DUAL8_BIT_BAUD_BIT),
 			IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
+}
 
+// Shifter receives from the FXIO pin. The timer is enabled by the first edge of the response and
+// clocks 21 bits at the trained baud.
+static void flexio_dshot_receive(uint32_t channel)
+{
+	uint32_t pin = timer_io_channels[channel].dshot.flexio_pin;
+
+	flexio_putreg32(0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
+
+	flexio_putreg32(FLEXIO_SHIFTCFG_INSRC(FLEXIO_SHIFTER_INPUT_FROM_PIN) |
+			FLEXIO_SHIFTCFG_PWIDTH(0) |
+			FLEXIO_SHIFTCFG_SSTOP(FLEXIO_SHIFTER_STOP_BIT_DISABLE) |
+			FLEXIO_SHIFTCFG_SSTART(FLEXIO_SHIFTER_START_BIT_DISABLED_LOAD_DATA_ON_SHIFT),
+			IMXRT_FLEXIO_SHIFTCFG0_OFFSET + channel * 0x4);
+
+	flexio_putreg32(FLEXIO_SHIFTCTL_TIMSEL(channel) |
+			FLEXIO_SHIFTCTL_TIMPOL(FLEXIO_SHIFTER_TIMER_POLARITY_ON_POSITIVE) |
+			FLEXIO_SHIFTCTL_PINCFG(FLEXIO_PIN_CONFIG_OUTPUT_DISABLED) |
+			FLEXIO_SHIFTCTL_PINSEL(pin) |
+			FLEXIO_SHIFTCTL_PINPOL(FLEXIO_PIN_ACTIVE_LOW) |
+			FLEXIO_SHIFTCTL_SMOD(FLEXIO_SHIFTER_MODE_RECEIVE),
+			IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
+
+	// The buffer-empty flag left by the transmit would otherwise read as a completed frame
+	clear_shifter_status_flags(1u << channel);
+
+	flexio_putreg32(FLEXIO_TIMCFG_TIMOUT(FLEXIO_TIMER_OUTPUT_ONE_AFFECTED_BY_RESET) |
+			FLEXIO_TIMCFG_TIMDEC(FLEXIO_TIMER_DEC_SRC_ON_FLEX_IO_CLOCK_SHIFT_TIMER_OUTPUT) |
+			FLEXIO_TIMCFG_TIMRST(FLEXIO_TIMER_RESET_ON_TIMER_PIN_RISING_EDGE) |
+			FLEXIO_TIMCFG_TIMDIS(FLEXIO_TIMER_DISABLE_ON_TIMER_COMPARE) |
+			FLEXIO_TIMCFG_TIMENA(FLEXIO_TIMER_ENABLE_ON_TRIGGER_BOTH_EDGE) |
+			FLEXIO_TIMCFG_TSTOP(FLEXIO_TIMER_STOP_BIT_ENABLE_ON_TIMER_DISABLE) |
+			FLEXIO_TIMCFG_TSTART(FLEXIO_TIMER_START_BIT_ENABLED),
+			IMXRT_FLEXIO_TIMCFG0_OFFSET + channel * 0x4);
+
+	flexio_putreg32(dshot_inst[channel].bdshot_tcmp, IMXRT_FLEXIO_TIMCMP0_OFFSET + channel * 0x4);
+
+	flexio_putreg32(FLEXIO_TIMCTL_TRGSEL(2 * pin) |
+			FLEXIO_TIMCTL_TRGPOL(FLEXIO_TIMER_TRIGGER_POLARITY_ACTIVE_HIGH) |
+			FLEXIO_TIMCTL_TRGSRC(FLEXIO_TIMER_TRIGGER_SOURCE_INTERNAL) |
+			FLEXIO_TIMCTL_PINCFG(FLEXIO_PIN_CONFIG_OUTPUT_DISABLED) |
+			FLEXIO_TIMCTL_PINSEL(0) |
+			FLEXIO_TIMCTL_PINPOL(FLEXIO_PIN_ACTIVE_LOW) |
+			FLEXIO_TIMCTL_TIMOD(FLEXIO_TIMER_MODE_DUAL8_BIT_BAUD_BIT),
+			IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
 }
 
 static void flexio_dshot_stop_channel(uint32_t channel)
 {
-	disable_shifter_status_interrupts(1 << channel);
-	disable_timer_status_interrupts(1 << channel);
+	disable_shifter_status_interrupts(1u << channel);
+	disable_timer_status_interrupts(1u << channel);
 	flexio_putreg32(0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
 	flexio_putreg32(0, IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
 }
 
-static void flexio_dshot_prepare_tx(uint32_t channel)
+// The shifter has loaded a full 21-bit frame into its buffer
+static void bdshot_latch_response(uint32_t channel)
 {
-	disable_shifter_status_interrupts(1 << channel);
-	disable_timer_status_interrupts(1 << channel);
-	dshot_inst[channel].state = DSHOT_START;
-	flexio_putreg32(0x0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
-	flexio_dshot_output(channel, timer_io_channels[channel].dshot.flexio_pin, dshot_tcmp,
-			    dshot_inst[channel].bdshot);
-	clear_timer_status_flags(1 << channel);
-	clear_shifter_status_flags(1 << channel);
-}
-
-// Caller must hold a critical section so this cannot race the FlexIO IRQ.
-static void bdshot_harvest_channel(uint32_t channel)
-{
-	volatile dshot_channel_t *ch = &dshot_inst[channel];
-
-	if (!ch->bdshot || ch->state != BDSHOT_RECEIVE) {
-		return;
-	}
-
-	if ((get_shifter_status_flags() & (1u << channel)) == 0) {
-		return;
-	}
-
 	disable_shifter_status_interrupts(1u << channel);
-	ch->raw_response = flexio_getreg32(IMXRT_FLEXIO_SHIFTBUFBIS0_OFFSET + channel * 0x4);
-	ch->state = BDSHOT_RECEIVE_COMPLETE;
-	bdshot_recv_mask |= (1u << channel);
+	dshot_inst[channel].raw_response = flexio_getreg32(IMXRT_FLEXIO_SHIFTBUFBIS0_OFFSET + channel * 0x4);
+	dshot_inst[channel].state = BDSHOT_RECEIVE_COMPLETE;
 }
 
 static int flexio_irq_handler(int irq, void *context, void *arg)
 {
-	uint32_t flags = get_shifter_status_flags();
-	uint32_t pending = flags & dshot_mask;
-	uint32_t channel;
+	// A status flag whose interrupt is masked belongs to a phase that already completed
+	uint32_t pending = get_shifter_status_flags() & flexio_getreg32(IMXRT_FLEXIO_SHIFTSIEN_OFFSET);
 
-	if (flags & ~dshot_mask) {
-		disable_shifter_status_interrupts(flags & ~dshot_mask);
-		clear_shifter_status_flags(flags & ~dshot_mask);
-	}
+	for (uint32_t channel = 0; pending != 0 && channel < DSHOT_TIMERS; channel++) {
+		uint32_t bit = 1u << channel;
 
-	for (channel = 0; pending && channel < DSHOT_TIMERS; channel++) {
-		if (pending & (1 << channel)) {
-			disable_shifter_status_interrupts(1 << channel);
+		if ((pending & bit) == 0) {
+			continue;
+		}
 
-			if (dshot_inst[channel].state == DSHOT_START) {
-				dshot_inst[channel].state = DSHOT_12BIT_FIFO;
-				flexio_putreg32(dshot_inst[channel].irq_data, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
+		pending &= ~bit;
+		volatile dshot_channel_t *ch = &dshot_inst[channel];
 
-			} else if (dshot_inst[channel].state == BDSHOT_RECEIVE) {
-				dshot_inst[channel].state = BDSHOT_RECEIVE_COMPLETE;
-				dshot_inst[channel].raw_response = flexio_getreg32(IMXRT_FLEXIO_SHIFTBUFBIS0_OFFSET + channel * 0x4);
-				bdshot_recv_mask |= (1 << channel);
-			}
+		if (ch->state == DSHOT_START) {
+			// First 24 sub-bits are in the shifter; queue the rest. The second load must not interrupt.
+			disable_shifter_status_interrupts(bit);
+			ch->state = DSHOT_12BIT_FIFO;
+			flexio_putreg32(ch->irq_data, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
+
+		} else if (ch->state == BDSHOT_RECEIVE) {
+			bdshot_latch_response(channel);
+
+		} else {
+			disable_shifter_status_interrupts(bit);
 		}
 	}
 
-	flags = get_timer_status_flags();
-	pending = flags & dshot_mask;
+	pending = get_timer_status_flags() & flexio_getreg32(IMXRT_FLEXIO_TIMIEN_OFFSET);
 
-	if (flags & ~dshot_mask) {
-		clear_timer_status_flags(flags & ~dshot_mask);
-	}
+	for (uint32_t channel = 0; pending != 0 && channel < DSHOT_TIMERS; channel++) {
+		uint32_t bit = 1u << channel;
 
-	for (channel = 0; pending && channel < DSHOT_TIMERS; channel++) {
-		if (pending & (1 << channel)) {
-			clear_timer_status_flags(1 << channel);
+		if ((pending & bit) == 0) {
+			continue;
+		}
 
-			if (dshot_inst[channel].state == DSHOT_12BIT_FIFO) {
-				dshot_inst[channel].state = DSHOT_12BIT_TRANSFERRED;
+		pending &= ~bit;
+		clear_timer_status_flags(bit);
+		volatile dshot_channel_t *ch = &dshot_inst[channel];
 
-			} else if (!dshot_inst[channel].bdshot && dshot_inst[channel].state == DSHOT_12BIT_TRANSFERRED) {
-				dshot_inst[channel].state = DSHOT_TRANSMIT_COMPLETE;
+		if (ch->state == DSHOT_12BIT_FIFO) {
+			ch->state = DSHOT_12BIT_TRANSFERRED;
 
-			} else if (dshot_inst[channel].bdshot && dshot_inst[channel].state == DSHOT_12BIT_TRANSFERRED) {
-				disable_shifter_status_interrupts(1 << channel);
-				dshot_inst[channel].state = BDSHOT_RECEIVE;
-				dshot_inst[channel].rx_started = hrt_absolute_time();
+		} else if (ch->state == DSHOT_12BIT_TRANSFERRED) {
+			if (ch->bdshot) {
+				// The frame is out. Only the shifter flag matters until the next transmit.
+				disable_timer_status_interrupts(bit);
+				ch->state = BDSHOT_RECEIVE;
+				flexio_dshot_receive(channel);
+				enable_shifter_status_interrupts(bit);
 
-				/* Transmit done, disable timer and reconfigure to receive*/
-				flexio_putreg32(0x0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
-
-				/* Input data from pin, no start/stop bit*/
-				flexio_putreg32(FLEXIO_SHIFTCFG_INSRC(FLEXIO_SHIFTER_INPUT_FROM_PIN) |
-						FLEXIO_SHIFTCFG_PWIDTH(0) |
-						FLEXIO_SHIFTCFG_SSTOP(FLEXIO_SHIFTER_STOP_BIT_DISABLE) |
-						FLEXIO_SHIFTCFG_SSTART(FLEXIO_SHIFTER_START_BIT_DISABLED_LOAD_DATA_ON_SHIFT),
-						IMXRT_FLEXIO_SHIFTCFG0_OFFSET + channel * 0x4);
-
-				/* Shifter receive mdoe, on FXIO pin input */
-				flexio_putreg32(FLEXIO_SHIFTCTL_TIMSEL(channel) |
-						FLEXIO_SHIFTCTL_TIMPOL(FLEXIO_SHIFTER_TIMER_POLARITY_ON_POSITIVE) |
-						FLEXIO_SHIFTCTL_PINCFG(FLEXIO_PIN_CONFIG_OUTPUT_DISABLED) |
-						FLEXIO_SHIFTCTL_PINSEL(timer_io_channels[channel].dshot.flexio_pin) |
-						FLEXIO_SHIFTCTL_PINPOL(FLEXIO_PIN_ACTIVE_LOW) |
-						FLEXIO_SHIFTCTL_SMOD(FLEXIO_SHIFTER_MODE_RECEIVE),
-						IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
-
-				/* Make sure there no shifter flags high from transmission */
-				clear_shifter_status_flags(1 << channel);
-
-				/* Enable on pin transition, resychronize through reset on rising edge */
-				flexio_putreg32(FLEXIO_TIMCFG_TIMOUT(FLEXIO_TIMER_OUTPUT_ONE_AFFECTED_BY_RESET) |
-						FLEXIO_TIMCFG_TIMDEC(FLEXIO_TIMER_DEC_SRC_ON_FLEX_IO_CLOCK_SHIFT_TIMER_OUTPUT) |
-						FLEXIO_TIMCFG_TIMRST(FLEXIO_TIMER_RESET_ON_TIMER_PIN_RISING_EDGE) |
-						FLEXIO_TIMCFG_TIMDIS(FLEXIO_TIMER_DISABLE_ON_TIMER_COMPARE) |
-						FLEXIO_TIMCFG_TIMENA(FLEXIO_TIMER_ENABLE_ON_TRIGGER_BOTH_EDGE) |
-						FLEXIO_TIMCFG_TSTOP(FLEXIO_TIMER_STOP_BIT_ENABLE_ON_TIMER_DISABLE) |
-						FLEXIO_TIMCFG_TSTART(FLEXIO_TIMER_START_BIT_ENABLED),
-						IMXRT_FLEXIO_TIMCFG0_OFFSET + channel * 0x4);
-
-				/* Enable on pin transition, resychronize through reset on rising edge */
-				flexio_putreg32(dshot_inst[channel].bdshot_tcmp, IMXRT_FLEXIO_TIMCMP0_OFFSET + channel * 0x4);
-
-				/* Trigger on FXIO pin transition, Baud mode */
-				flexio_putreg32(FLEXIO_TIMCTL_TRGSEL(2 * timer_io_channels[channel].dshot.flexio_pin) |
-						FLEXIO_TIMCTL_TRGPOL(FLEXIO_TIMER_TRIGGER_POLARITY_ACTIVE_HIGH) |
-						FLEXIO_TIMCTL_TRGSRC(FLEXIO_TIMER_TRIGGER_SOURCE_INTERNAL) |
-						FLEXIO_TIMCTL_PINCFG(FLEXIO_PIN_CONFIG_OUTPUT_DISABLED) |
-						FLEXIO_TIMCTL_PINSEL(0) |
-						FLEXIO_TIMCTL_PINPOL(FLEXIO_PIN_ACTIVE_LOW) |
-						FLEXIO_TIMCTL_TIMOD(FLEXIO_TIMER_MODE_DUAL8_BIT_BAUD_BIT),
-						IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
-
-				/* Enable shifter interrupt for receiving data */
-				enable_shifter_status_interrupts(1 << channel);
+			} else {
+				ch->state = DSHOT_TRANSMIT_COMPLETE;
 			}
 		}
 	}
@@ -467,8 +448,8 @@ static void bdshot_note_failure(volatile dshot_channel_t *ch, uint32_t channel)
 		ch->consecutive_failures++;
 	}
 
-	// Transient CRC noise recovers on the frozen TCMP. A wrong baud (ESC reset, drift)
-	// will not, so restart the offset sweep after a second offline period.
+	// The trained offset tracks the ESC oscillator, not the link, so a dropout keeps it. A baud
+	// that stays wrong (ESC swapped, drift) never recovers on its own, hence the second period.
 	if (ch->consecutive_failures >= BDSHOT_OFFLINE_COUNT) {
 		ch->online = false;
 	}
@@ -478,6 +459,7 @@ static void bdshot_note_failure(volatile dshot_channel_t *ch, uint32_t channel)
 	}
 }
 
+// Sweep the RX baud offset and settle on the centre of the range that decodes cleanly
 static void bdshot_train(volatile dshot_channel_t *ch, uint32_t channel, uint32_t value)
 {
 	uint16_t payload;
@@ -486,145 +468,127 @@ static void bdshot_train(volatile dshot_channel_t *ch, uint32_t channel, uint32_
 		ch->bdshot_training_success++;
 
 	} else if ((value & 0x1) == 0) {
+		// A framing error rules this offset out immediately
 		ch->bdshot_training_count = BDSHOT_TRAINING_TRIES - 1;
 	}
 
 	ch->bdshot_training_count++;
 
-	if (ch->bdshot_training_count == BDSHOT_TRAINING_TRIES) {
-		if (ch->bdshot_training_success >= BDSHOT_TRAINING_SUCCESS) {
-			ch->bdshot_training_mask |=
-				(1u << BDSHOT_TCMP_TO_MASK(ch->bdshot_tcmp_offset));
-		}
-
-		ch->bdshot_training_count = 0;
-		ch->bdshot_training_success = 0;
-		ch->bdshot_tcmp_offset++;
-
-		if (ch->bdshot_tcmp_offset > BDSHOT_TCMP_MAX_OFFSET) {
-
-			if (ch->bdshot_training_mask == 0) {
-				ch->bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
-
-			} else {
-				int low  = __builtin_ctz(ch->bdshot_training_mask);
-				int high = 31 - __builtin_clz(ch->bdshot_training_mask);
-				ch->bdshot_tcmp_offset = ((low + high) / 2) + BDSHOT_TCMP_MIN_OFFSET;
-				ch->bdshot_training_done = true;
-				ch->consecutive_failures = 0;
-				ch->consecutive_successes = BDSHOT_OFFLINE_COUNT;
-				ch->online = true;
-			}
-		}
-
-		flexio_dshot_set_tcmp(channel);
+	if (ch->bdshot_training_count < BDSHOT_TRAINING_TRIES) {
+		return;
 	}
+
+	if (ch->bdshot_training_success >= BDSHOT_TRAINING_SUCCESS) {
+		ch->bdshot_training_mask |= (1u << BDSHOT_TCMP_TO_MASK(ch->bdshot_tcmp_offset));
+	}
+
+	ch->bdshot_training_count = 0;
+	ch->bdshot_training_success = 0;
+	ch->bdshot_tcmp_offset++;
+
+	if (ch->bdshot_tcmp_offset > BDSHOT_TCMP_MAX_OFFSET) {
+		if (ch->bdshot_training_mask == 0) {
+			ch->bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
+
+		} else {
+			int low  = __builtin_ctz(ch->bdshot_training_mask);
+			int high = 31 - __builtin_clz(ch->bdshot_training_mask);
+			ch->bdshot_tcmp_offset = ((low + high) / 2) + BDSHOT_TCMP_MIN_OFFSET;
+			ch->bdshot_training_done = true;
+			ch->consecutive_failures = 0;
+			ch->consecutive_successes = BDSHOT_OFFLINE_COUNT;
+			ch->online = true;
+		}
+	}
+
+	flexio_dshot_set_tcmp(channel);
 }
 
-static void bdshot_process_responses(uint32_t recv_mask, const uint32_t *raw, uint32_t rx_busy)
+// Called once per transmit cycle for every capturing channel, response or not
+static void bdshot_process_response(uint32_t channel)
 {
-	for (uint8_t channel = 0; channel < DSHOT_TIMERS; channel++) {
-		volatile dshot_channel_t *ch = &dshot_inst[channel];
+	volatile dshot_channel_t *ch = &dshot_inst[channel];
 
-		if (!ch->init || !ch->bdshot) {
-			continue;
-		}
+	// DShot.cpp waits until every BDShot channel is ready, so a silent ESC must not stall the others
+	bdshot_ready_mask |= (1u << channel);
 
-		// DShot.cpp waits until every BDShot bit is set; a miss or CRC fail must not stall the others
-		bdshot_ready_mask |= (1u << channel);
-
-		if ((recv_mask & (1 << channel)) == 0) {
-			if (rx_busy & (1u << channel)) {
-				continue;
-			}
-
-			ch->no_response_cnt++;
-			bdshot_note_failure(ch, channel);
-			continue;
-		}
-
-		uint32_t value = ~raw[channel] & 0xFFFFF;
-
-		if (!ch->bdshot_training_done) {
-			bdshot_train(ch, channel, value);
-			continue;
-		}
-
-		uint16_t payload = 0;
-
-		if (!decode_gcr_payload(value, &payload)) {
-			if ((value & 0x1) == 0) {
-				ch->frame_error_cnt++;
-
-			} else {
-				ch->crc_error_cnt++;
-			}
-
-			bdshot_note_failure(ch, channel);
-			continue;
-		}
-
-		struct BDShotTelemetry packet = {};
-
-		decode_dshot_telemetry(payload, &packet);
-
-		switch (packet.type) {
-		case DSHOT_EDT_ERPM:
-			ch->erpm = packet.value;
-			ch->erpm_valid = true;
-			break;
-
-		case DSHOT_EDT_TEMPERATURE:
-			ch->edt_temp.value = packet.value;
-			ch->edt_temp.ready = true;
-			break;
-
-		case DSHOT_EDT_VOLTAGE:
-			ch->edt_volt.value = packet.value;
-			ch->edt_volt.ready = true;
-			break;
-
-		case DSHOT_EDT_CURRENT:
-			ch->edt_curr.value = packet.value;
-			ch->edt_curr.ready = true;
-			break;
-
-		default:
-			break;
-		}
-
-		bdshot_note_success(ch);
+	if (ch->state != BDSHOT_RECEIVE_COMPLETE) {
+		ch->no_response_cnt++;
+		bdshot_note_failure(ch, channel);
+		return;
 	}
+
+	uint32_t value = ~ch->raw_response & 0xFFFFF;
+
+	if (!ch->bdshot_training_done) {
+		bdshot_train(ch, channel, value);
+		return;
+	}
+
+	uint16_t payload = 0;
+
+	if (!decode_gcr_payload(value, &payload)) {
+		if ((value & 0x1) == 0) {
+			ch->frame_error_cnt++;
+
+		} else {
+			ch->crc_error_cnt++;
+		}
+
+		bdshot_note_failure(ch, channel);
+		return;
+	}
+
+	struct BDShotTelemetry packet = {};
+
+	decode_dshot_telemetry(payload, &packet);
+
+	switch (packet.type) {
+	case DSHOT_EDT_ERPM:
+		ch->erpm = packet.value;
+		ch->erpm_valid = true;
+		break;
+
+	case DSHOT_EDT_TEMPERATURE:
+		ch->edt_temp.value = packet.value;
+		ch->edt_temp.ready = true;
+		break;
+
+	case DSHOT_EDT_VOLTAGE:
+		ch->edt_volt.value = packet.value;
+		ch->edt_volt.ready = true;
+		break;
+
+	case DSHOT_EDT_CURRENT:
+		ch->edt_curr.value = packet.value;
+		ch->edt_curr.ready = true;
+		break;
+
+	default:
+		break;
+	}
+
+	bdshot_note_success(ch);
 }
 
 int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned dshot_pwm_freq, bool edt_enable)
 {
-	irqstate_t irqflags = px4_enter_critical_section();
-	_edt_enabled = edt_enable;
-	_dshot_armed = false;
-	bdshot_ready_mask = 0;
-	bdshot_recv_mask = 0;
-	dshot_mask = 0;
-	memset((void *)dshot_inst, 0, sizeof(dshot_inst));
-	px4_leave_critical_section(irqflags);
-
-	/* Calculate dshot timings based on dshot_pwm_freq */
-	dshot_tcmp = 0x2F00 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 3) / 2) - 1) & 0xFF);
-	dshot_speed = dshot_pwm_freq;
-
-	// ESC turnaround + 21-bit GCR at 5/4 dshot rate + margin. Skip the next TX while this is open.
-	unsigned freq = dshot_pwm_freq != 0 ? dshot_pwm_freq : 1;
-	_bdshot_rx_timeout = 30 + (21ull * 1000000ull * 4ull) / (5ull * freq) + 50;
-
-	/* Clock FlexIO peripheral */
 	imxrt_clockall_flexio1();
 
-	/* Reset FlexIO peripheral */
-	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET, 0,
-			   FLEXIO_CTRL_SWRST_MASK);
+	// Reset the peripheral before the driver state so a stale IRQ has nothing to service
+	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET, 0, FLEXIO_CTRL_SWRST_MASK);
 	flexio_putreg32(0, IMXRT_FLEXIO_CTRL_OFFSET);
 
-	/* Initialize FlexIO peripheral */
+	memset((void *)dshot_inst, 0, sizeof(dshot_inst));
+	bdshot_ready_mask = 0;
+	_dshot_armed = false;
+	_edt_enabled = edt_enable;
+	dshot_speed = dshot_pwm_freq;
+	dshot_tcmp = 0x2F00 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 3) / 2) - 1) & 0xFF);
+
+	// 16-bit frame, ESC turnaround, 21-bit GCR response at 5/4 rate, margin for IRQ latency
+	_bdshot_busy_us = (16u * 1000000u) / dshot_pwm_freq + 30u + (21u * 4u * 1000000u) / (5u * dshot_pwm_freq) + 50u;
+
 	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET,
 			   (FLEXIO_CTRL_DOZEN_MASK |
 			    FLEXIO_CTRL_DBGE_MASK |
@@ -634,53 +598,42 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 			    FLEXIO_CTRL_FASTACC(1) |
 			    FLEXIO_CTRL_FLEXEN(0)));
 
-	/* FlexIO IRQ handling */
-	up_enable_irq(IMXRT_IRQ_FLEXIO1);
 	irq_attach(IMXRT_IRQ_FLEXIO1, flexio_irq_handler, 0);
+	up_enable_irq(IMXRT_IRQ_FLEXIO1);
 
-	dshot_mask = 0x0;
+	uint32_t dshot_mask = 0;
 
-	for (unsigned channel = 0; (channel_mask != 0) && (channel < DSHOT_TIMERS); channel++) {
-		if (channel_mask & (1 << channel)) {
-
-			if (timer_io_channels[channel].dshot.pinmux == 0) { // board does not configure dshot on this pin
-				continue;
-			}
-
-			imxrt_config_gpio(timer_io_channels[channel].dshot.pinmux | IOMUX_PULL_UP);
-
-			if (bdshot_channel_mask & (1 << channel)) {
-				dshot_inst[channel].bdshot = true;
-				dshot_inst[channel].bdshot_training_mask = 0;
-				dshot_inst[channel].bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
-				dshot_inst[channel].bdshot_training_done = false;
-				flexio_dshot_set_tcmp(channel);
-
-			} else {
-				dshot_inst[channel].bdshot = false;
-			}
-
-			flexio_dshot_output(channel, timer_io_channels[channel].dshot.flexio_pin, dshot_tcmp, dshot_inst[channel].bdshot);
-
-			dshot_inst[channel].init = true;
-
-			dshot_mask |= (1 << channel);
-		}
-	}
-
-	// Channels requested for BDShot but not capturable must not block DShot.cpp's all-ready wait
 	for (unsigned channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
-		if ((bdshot_channel_mask & (1u << channel)) == 0) {
+		uint32_t bit = 1u << channel;
+
+		if (((channel_mask | bdshot_channel_mask) & bit) == 0) {
 			continue;
 		}
 
-		if (channel >= DSHOT_TIMERS || !dshot_inst[channel].bdshot) {
-			bdshot_ready_mask |= (1u << channel);
+		if (channel >= DSHOT_TIMERS || timer_io_channels[channel].dshot.pinmux == 0) {
+			// Cannot capture, so it must never hold up DShot.cpp's all-channels-ready wait
+			bdshot_ready_mask |= bit & bdshot_channel_mask;
+			PX4_WARN("no FlexIO DShot on output %u", channel);
+			continue;
 		}
+
+		volatile dshot_channel_t *ch = &dshot_inst[channel];
+
+		imxrt_config_gpio(timer_io_channels[channel].dshot.pinmux | IOMUX_PULL_UP);
+
+		ch->bdshot = (bdshot_channel_mask & bit) != 0;
+
+		if (ch->bdshot) {
+			ch->bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
+			flexio_dshot_set_tcmp(channel);
+		}
+
+		flexio_dshot_output(channel);
+		ch->init = true;
+		dshot_mask |= bit;
 	}
 
-	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET, 0,
-			   FLEXIO_CTRL_FLEXEN_MASK);
+	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET, 0, FLEXIO_CTRL_FLEXEN_MASK);
 
 	return dshot_mask;
 }
@@ -709,7 +662,7 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 	int status = -1;
 
 	if (dshot_inst[channel].erpm_valid) {
-		*erpm = (int)dshot_inst[channel].erpm;
+		*erpm = dshot_inst[channel].erpm;
 		status = 0;
 	}
 
@@ -771,25 +724,24 @@ int up_bdshot_channel_online(uint8_t channel)
 
 void up_bdshot_status(void)
 {
-	for (uint8_t channel = 0; (channel < DSHOT_TIMERS); channel++) {
+	for (uint8_t channel = 0; channel < DSHOT_TIMERS; channel++) {
+		volatile dshot_channel_t *ch = &dshot_inst[channel];
 
-		if (dshot_inst[channel].init) {
-			PX4_INFO("Channel %i %s Last erpm %i value", channel, up_bdshot_channel_online(channel) ? "online" : "offline",
-				 dshot_inst[channel].erpm);
-
-			if (_edt_enabled) {
-				PX4_INFO("EDT Temp %u C  Volt %.2f V  Curr %u A",
-					 dshot_inst[channel].edt_temp.value,
-					 (double)dshot_inst[channel].edt_volt.value * 0.25,
-					 dshot_inst[channel].edt_curr.value);
-			}
-
-			PX4_INFO("BDSHOT Training done: %s TCMP offset: %d", dshot_inst[channel].bdshot_training_done ? "YES" : "NO",
-				 dshot_inst[channel].bdshot_tcmp_offset);
-			PX4_INFO("CRC errors Frame error No response");
-			PX4_INFO("%10lu %11lu %11lu", dshot_inst[channel].crc_error_cnt, dshot_inst[channel].frame_error_cnt,
-				 dshot_inst[channel].no_response_cnt);
+		if (!ch->init) {
+			continue;
 		}
+
+		PX4_INFO("Channel %i %s Last erpm %li value", channel, ch->online ? "online" : "offline", ch->erpm);
+
+		if (_edt_enabled) {
+			PX4_INFO("EDT Temp %u C  Volt %.2f V  Curr %u A",
+				 ch->edt_temp.value, (double)ch->edt_volt.value * 0.25, ch->edt_curr.value);
+		}
+
+		PX4_INFO("BDSHOT Training done: %s TCMP offset: %d", ch->bdshot_training_done ? "YES" : "NO",
+			 ch->bdshot_tcmp_offset);
+		PX4_INFO("CRC errors Frame error No response");
+		PX4_INFO("%10lu %11lu %11lu", ch->crc_error_cnt, ch->frame_error_cnt, ch->no_response_cnt);
 	}
 }
 
@@ -799,65 +751,58 @@ void up_dshot_trigger(void)
 		return;
 	}
 
-	uint32_t recv_mask;
-	uint32_t rx_busy = 0;
 	uint32_t tx_mask = 0;
-	uint32_t raw[DSHOT_TIMERS];
 
+	// Interrupts off: the IRQ must not see DSHOT_START on a shifter still in receive mode, and a frame
+	// completing right now must be latched here rather than lost to the reconfiguration below.
 	irqstate_t irqflags = px4_enter_critical_section();
 	hrt_abstime now = hrt_absolute_time();
 
-	for (uint8_t channel = 0; channel < DSHOT_TIMERS; channel++) {
-		bdshot_harvest_channel(channel);
-	}
+	for (uint32_t channel = 0; channel < DSHOT_TIMERS; channel++) {
+		volatile dshot_channel_t *ch = &dshot_inst[channel];
+		uint32_t bit = 1u << channel;
 
-	recv_mask = bdshot_recv_mask;
-	bdshot_recv_mask = 0;
-
-	for (uint8_t channel = 0; channel < DSHOT_TIMERS; channel++) {
-		raw[channel] = dshot_inst[channel].raw_response;
-
-		if (dshot_inst[channel].bdshot && dshot_inst[channel].state == BDSHOT_RECEIVE
-		    && (now - dshot_inst[channel].rx_started) < _bdshot_rx_timeout) {
-			rx_busy |= (1u << channel);
-		}
-	}
-
-	// Reconfigure TX before releasing the IRQ so a just-arriving frame cannot land on DSHOT_START
-	for (uint8_t channel = 0; channel < DSHOT_TIMERS; channel++) {
-		if (!dshot_inst[channel].init || dshot_inst[channel].data_seg1 == 0) {
+		if (!ch->init || ch->data_seg1 == 0) {
 			continue;
 		}
 
-		if (rx_busy & (1u << channel)) {
-			continue;
+		if (ch->bdshot) {
+			if (ch->state == BDSHOT_RECEIVE && (get_shifter_status_flags() & bit)) {
+				bdshot_latch_response(channel);
+			}
+
+			// The ESC may still be driving the line
+			if (ch->state != BDSHOT_RECEIVE_COMPLETE && (now - ch->tx_started) < _bdshot_busy_us) {
+				continue;
+			}
+
+			if (ch->tx_started != 0) {
+				bdshot_process_response(channel);
+			}
+
+			flexio_dshot_output(channel);
 		}
 
-		if (dshot_inst[channel].bdshot) {
-			flexio_dshot_prepare_tx(channel);
-
-		} else {
-			dshot_inst[channel].state = DSHOT_START;
-		}
-
-		tx_mask |= (1u << channel);
+		ch->state = DSHOT_START;
+		ch->tx_started = now;
+		clear_shifter_status_flags(bit);
+		clear_timer_status_flags(bit);
+		tx_mask |= bit;
 	}
 
 	px4_leave_critical_section(irqflags);
 
-	bdshot_process_responses(recv_mask, raw, rx_busy);
-
-	for (uint8_t channel = 0; channel < DSHOT_TIMERS; channel++) {
+	for (uint32_t channel = 0; channel < DSHOT_TIMERS; channel++) {
 		if (tx_mask & (1u << channel)) {
 			flexio_putreg32(dshot_inst[channel].data_seg1, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
 		}
 	}
 
-	clear_timer_status_flags(tx_mask);
 	enable_shifter_status_interrupts(tx_mask);
 	enable_timer_status_interrupts(tx_mask);
 }
 
+// Each DShot bit becomes three shifter bits: 110 for a one, 100 for a zero
 static uint64_t dshot_expand_data(uint16_t packet)
 {
 	unsigned int mask;
@@ -878,47 +823,35 @@ static uint64_t dshot_expand_data(uint16_t packet)
 	return expanded;
 }
 
-/**
-* bits 	1-11	- throttle value (0-47 are reserved, 48-2047 give 2000 steps of throttle resolution)
-* bit 	12		- dshot telemetry enable/disable
-* bits 	13-16	- XOR checksum
-**/
+// bits  1-11  throttle (0-47 are commands, 48-2047 give 2000 steps of throttle)
+// bit   12    telemetry request
+// bits  13-16 XOR checksum, inverted for bidirectional
 void dshot_motor_data_set(uint8_t channel, uint16_t throttle, bool telemetry)
 {
-	if (channel < DSHOT_TIMERS && dshot_inst[channel].init) {
-		uint16_t csum_data;
-		uint16_t packet = 0;
-		uint16_t checksum = 0;
-
-		packet |= throttle << DSHOT_THROTTLE_POSITION;
-		packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
-
-		if (dshot_inst[channel].bdshot) {
-			csum_data = ~packet;
-
-		} else {
-			csum_data = packet;
-		}
-
-		/* XOR checksum calculation */
-		csum_data >>= NIBBLES_SIZE;
-
-		for (unsigned i = 0; i < DSHOT_NUMBER_OF_NIBBLES; i++) {
-			checksum ^= (csum_data & 0x0F); // XOR data by nibbles
-			csum_data >>= NIBBLES_SIZE;
-		}
-
-		packet |= (checksum & 0x0F);
-
-		uint64_t dshot_expanded = dshot_expand_data(packet);
-
-		dshot_inst[channel].data_seg1 = (uint32_t)(dshot_expanded & 0xFFFFFF);
-		dshot_inst[channel].irq_data = (uint32_t)(dshot_expanded >> 24);
-
-		if (!dshot_inst[channel].bdshot) {
-			dshot_inst[channel].state = DSHOT_START;
-		}
+	if (channel >= DSHOT_TIMERS || !dshot_inst[channel].init) {
+		return;
 	}
+
+	uint16_t packet = 0;
+	uint16_t checksum = 0;
+
+	packet |= throttle << DSHOT_THROTTLE_POSITION;
+	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
+
+	uint16_t csum_data = dshot_inst[channel].bdshot ? ~packet : packet;
+	csum_data >>= NIBBLES_SIZE;
+
+	for (unsigned i = 0; i < DSHOT_NUMBER_OF_NIBBLES; i++) {
+		checksum ^= (csum_data & 0x0F);
+		csum_data >>= NIBBLES_SIZE;
+	}
+
+	packet |= (checksum & 0x0F);
+
+	uint64_t dshot_expanded = dshot_expand_data(packet);
+
+	dshot_inst[channel].data_seg1 = (uint32_t)(dshot_expanded & 0xFFFFFF);
+	dshot_inst[channel].irq_data = (uint32_t)(dshot_expanded >> 24);
 }
 
 int up_dshot_arm(bool armed)
@@ -926,29 +859,19 @@ int up_dshot_arm(bool armed)
 	irqstate_t irqflags = px4_enter_critical_section();
 	_dshot_armed = armed;
 
-	for (uint8_t channel = 0; channel < DSHOT_TIMERS; channel++) {
+	for (uint32_t channel = 0; channel < DSHOT_TIMERS; channel++) {
 		if (!dshot_inst[channel].init) {
 			continue;
 		}
 
 		if (armed) {
-			flexio_dshot_prepare_tx(channel);
+			// Nothing is in flight; the first trigger must not count a missing response
+			dshot_inst[channel].tx_started = 0;
+			flexio_dshot_output(channel);
 
 		} else {
 			flexio_dshot_stop_channel(channel);
 		}
-	}
-
-	if (armed) {
-		bdshot_recv_mask = 0;
-		clear_shifter_status_flags(dshot_mask);
-		clear_timer_status_flags(dshot_mask);
-		enable_shifter_status_interrupts(dshot_mask);
-		enable_timer_status_interrupts(dshot_mask);
-
-	} else {
-		disable_shifter_status_interrupts(dshot_mask);
-		disable_timer_status_interrupts(dshot_mask);
 	}
 
 	px4_leave_critical_section(irqflags);
