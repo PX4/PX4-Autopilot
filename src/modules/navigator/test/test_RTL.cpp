@@ -51,6 +51,8 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/wind.h>
 
 #include "navigator.h"
@@ -59,6 +61,7 @@
 #include "mission_route_types.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
+#include "support/vector_mission_item_store.h"
 
 namespace
 {
@@ -211,6 +214,29 @@ public:
 		RtlDirectMissionLand(navigator, mission) {}
 
 	const mission_s &mission() const { return _mission; }
+
+	void loadTestMission(const std::vector<mission_item_s> &items)
+	{
+		_mission_store.setItems(items);
+		_mission.count = static_cast<int32_t>(_mission_store.itemCount());
+	}
+
+	void activateForTest()
+	{
+		_vehicle_status_sub.update();
+		on_activation();
+	}
+
+	uint16_t activeNavCommand() const { return _mission_item.nav_cmd; }
+
+protected:
+	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
+	{
+		return _mission_store.loadItem(index, mission_item);
+	}
+
+private:
+	navigator_test::VectorMissionItemStore _mission_store{};
 };
 
 class RTLTest : public NavigatorDatamanTestBase
@@ -259,6 +285,16 @@ protected:
 		if (_mission_pub != nullptr) {
 			orb_unadvertise(_mission_pub);
 			_mission_pub = nullptr;
+		}
+
+		if (_global_position_pub != nullptr) {
+			orb_unadvertise(_global_position_pub);
+			_global_position_pub = nullptr;
+		}
+
+		if (_land_detected_pub != nullptr) {
+			orb_unadvertise(_land_detected_pub);
+			_land_detected_pub = nullptr;
 		}
 
 		param_control_autosave(true);
@@ -335,6 +371,36 @@ protected:
 		}
 	}
 
+	void publishGlobalPosition(double lat, double lon, float altitude)
+	{
+		vehicle_global_position_s global_position{};
+		global_position.timestamp = hrt_absolute_time();
+		global_position.lat = lat;
+		global_position.lon = lon;
+		global_position.alt = altitude;
+
+		if (_global_position_pub == nullptr) {
+			_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_position);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_global_position), _global_position_pub, &global_position);
+		}
+	}
+
+	void publishLandDetected(bool landed)
+	{
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = hrt_absolute_time();
+		land_detected.landed = landed;
+
+		if (_land_detected_pub == nullptr) {
+			_land_detected_pub = orb_advertise(ORB_ID(vehicle_land_detected), &land_detected);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_land_detected), _land_detected_pub, &land_detected);
+		}
+	}
+
 	void publishWind(float windspeed_north, float windspeed_east)
 	{
 		wind_s wind{};
@@ -363,6 +429,8 @@ protected:
 	orb_advert_t _vehicle_status_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
 	orb_advert_t _mission_pub{nullptr};
+	orb_advert_t _global_position_pub{nullptr};
+	orb_advert_t _land_detected_pub{nullptr};
 	DatamanClient _dataman_client{};
 	uint32_t _safe_points_id{0};
 	uint32_t _safe_points_opaque_id{0};
@@ -410,6 +478,39 @@ TEST_F(RTLTest, DirectMissionLandStartsWithCurrentMission)
 	EXPECT_EQ(direct_mission_land.mission().land_start_index, mission.land_start_index);
 	EXPECT_EQ(direct_mission_land.mission().land_index, mission.land_index);
 	EXPECT_EQ(direct_mission_land.mission().mission_dataman_id, mission.mission_dataman_id);
+}
+
+TEST_F(RTLTest, DirectMissionLandKeepsVtolInMulticopterMode)
+{
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.current_seq = 0;
+	mission.land_start_index = 0;
+	mission.land_index = 2;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+
+	mission_item_s approach = makeLandApproachItem(kBaseLat, kBaseLon, kAlt, kApproachRadius);
+	approach.autocontinue = true;
+
+	mission_item_s land = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_VTOL_LAND);
+	land.autocontinue = true;
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlDirectMissionLandTestPeer direct_mission_land{&_navigator, mission};
+	direct_mission_land.loadTestMission({land_start, approach, land});
+	direct_mission_land.setRtlAlt(kAlt);
+
+	direct_mission_land.activateForTest();
+
+	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_DO_LAND_START);
 }
 
 // WHY: No land point means no usable approach bearing.

@@ -64,6 +64,24 @@ TEST_CASE("RTL direct Mission Land", "[vtol]")
 	tester.check_mission_land_within(5.0f);
 }
 
+TEST_CASE("RTL direct Mission Land preserves multicopter mode", "[vtol]")
+{
+	AutopilotTesterRtl tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+	tester.store_home();
+	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission_with_land_start.plan");
+	tester.set_rtl_type(1);
+	tester.arm();
+	// Start at DO_LAND_START.
+	tester.start_mission_raw_and_wait_for_sequence(6);
+	tester.transition_to_multicopter();
+	tester.wait_until_multicopter(std::chrono::seconds(60));
+	tester.execute_rtl();
+	tester.wait_until_disarmed_while_in_multicopter_mode(std::chrono::seconds(180));
+	tester.check_mission_land_within(5.0f);
+}
+
 TEST_CASE("RTL with Mission Landing", "[vtol]")
 {
 	AutopilotTesterRtl tester;
