@@ -40,6 +40,7 @@
 
 #include <px4_platform_common/getopt.h>
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 
@@ -434,7 +435,10 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 
 void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 {
-	const uint64_t timestamp = hrt_absolute_time();
+	const uint64_t timestamp_sample = msg.header().stamp().sec() * 1000000ULL + msg.header().stamp().nsec() / 1000ULL;
+
+	// The simulated clock can be marginally behind the header stamp due to topic delivery ordering
+	const uint64_t timestamp = std::min(timestamp_sample, hrt_absolute_time());
 
 	// FLU -> FRD
 	static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
