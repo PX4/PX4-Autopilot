@@ -257,7 +257,7 @@ static void flexio_dshot_receive(uint32_t channel)
 	// The buffer-empty flag left by the transmit would otherwise read as a completed frame
 	clear_shifter_status_flags(1u << channel);
 
-	flexio_putreg32(FLEXIO_TIMCFG_TIMOUT(FLEXIO_TIMER_OUTPUT_ONE_AFFECTED_BY_RESET) |
+	flexio_putreg32(FLEXIO_TIMCFG_TIMOUT(FLEXIO_TIMER_OUTPUT_ZERO_AFFECTED_BY_RESET) |
 			FLEXIO_TIMCFG_TIMDEC(FLEXIO_TIMER_DEC_SRC_ON_FLEX_IO_CLOCK_SHIFT_TIMER_OUTPUT) |
 			FLEXIO_TIMCFG_TIMRST(FLEXIO_TIMER_RESET_ON_TIMER_PIN_RISING_EDGE) |
 			FLEXIO_TIMCFG_TIMDIS(FLEXIO_TIMER_DISABLE_ON_TIMER_COMPARE) |
@@ -268,11 +268,13 @@ static void flexio_dshot_receive(uint32_t channel)
 
 	flexio_putreg32(dshot_inst[channel].bdshot_tcmp, IMXRT_FLEXIO_TIMCMP0_OFFSET + channel * 0x4);
 
+	// The timer pin is the channel pin so TIMRST resynchronises the baud counter on every falling
+	// edge of the response; a baud-mode reset leaves the 21-bit count alone.
 	flexio_putreg32(FLEXIO_TIMCTL_TRGSEL(2 * pin) |
 			FLEXIO_TIMCTL_TRGPOL(FLEXIO_TIMER_TRIGGER_POLARITY_ACTIVE_HIGH) |
 			FLEXIO_TIMCTL_TRGSRC(FLEXIO_TIMER_TRIGGER_SOURCE_INTERNAL) |
 			FLEXIO_TIMCTL_PINCFG(FLEXIO_PIN_CONFIG_OUTPUT_DISABLED) |
-			FLEXIO_TIMCTL_PINSEL(0) |
+			FLEXIO_TIMCTL_PINSEL(pin) |
 			FLEXIO_TIMCTL_PINPOL(FLEXIO_PIN_ACTIVE_LOW) |
 			FLEXIO_TIMCTL_TIMOD(FLEXIO_TIMER_MODE_DUAL8_BIT_BAUD_BIT),
 			IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
@@ -727,8 +729,8 @@ void up_bdshot_status(void)
 				 ch->edt_temp.value, (double)ch->edt_volt.value * 0.25, ch->edt_curr.value);
 		}
 
-		PX4_INFO("BDSHOT Training done: %s TCMP offset: %d", ch->bdshot_training_done ? "YES" : "NO",
-			 ch->bdshot_tcmp_offset);
+		PX4_INFO("BDSHOT Training done: %s TCMP offset: %d mask 0x%08lx", ch->bdshot_training_done ? "YES" : "NO",
+			 ch->bdshot_tcmp_offset, ch->bdshot_training_mask);
 		PX4_INFO("CRC errors Frame error No response");
 		PX4_INFO("%10lu %11lu %11lu", ch->crc_error_cnt, ch->frame_error_cnt, ch->no_response_cnt);
 	}
