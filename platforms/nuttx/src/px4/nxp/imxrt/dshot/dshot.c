@@ -278,18 +278,9 @@ static void flexio_dshot_receive(uint32_t channel)
 			IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
 }
 
-static void flexio_dshot_stop_channel(uint32_t channel)
-{
-	disable_shifter_status_interrupts(1u << channel);
-	disable_timer_status_interrupts(1u << channel);
-	flexio_putreg32(0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
-	flexio_putreg32(0, IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
-}
-
-// The shifter has loaded a full 21-bit frame into its buffer
+// The shifter has loaded a full 21-bit frame into its buffer. Reading it clears the status flag.
 static void bdshot_latch_response(uint32_t channel)
 {
-	disable_shifter_status_interrupts(1u << channel);
 	dshot_inst[channel].raw_response = flexio_getreg32(IMXRT_FLEXIO_SHIFTBUFBIS0_OFFSET + channel * 0x4);
 	dshot_inst[channel].state = BDSHOT_RECEIVE_COMPLETE;
 }
@@ -309,17 +300,15 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 		pending &= ~bit;
 		volatile dshot_channel_t *ch = &dshot_inst[channel];
 
+		// One event per phase: the first buffer load while transmitting, the frame while receiving
+		disable_shifter_status_interrupts(bit);
+
 		if (ch->state == DSHOT_START) {
-			// First 24 sub-bits are in the shifter; queue the rest. The second load must not interrupt.
-			disable_shifter_status_interrupts(bit);
 			ch->state = DSHOT_12BIT_FIFO;
 			flexio_putreg32(ch->irq_data, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
 
 		} else if (ch->state == BDSHOT_RECEIVE) {
 			bdshot_latch_response(channel);
-
-		} else {
-			disable_shifter_status_interrupts(bit);
 		}
 	}
 
@@ -751,13 +740,11 @@ void up_dshot_trigger(void)
 		return;
 	}
 
+	hrt_abstime now = hrt_absolute_time();
 	uint32_t tx_mask = 0;
 
-	// Interrupts off: the IRQ must not see DSHOT_START on a shifter still in receive mode, and a frame
-	// completing right now must be latched here rather than lost to the reconfiguration below.
-	irqstate_t irqflags = px4_enter_critical_section();
-	hrt_abstime now = hrt_absolute_time();
-
+	// Lock-free: the IRQ only acts on a channel whose interrupt is enabled, and a channel is only
+	// touched here once its cycle is over, so the two contexts never own the same channel at once.
 	for (uint32_t channel = 0; channel < DSHOT_TIMERS; channel++) {
 		volatile dshot_channel_t *ch = &dshot_inst[channel];
 		uint32_t bit = 1u << channel;
@@ -767,6 +754,7 @@ void up_dshot_trigger(void)
 		}
 
 		if (ch->bdshot) {
+			// A frame the IRQ has not consumed yet
 			if (ch->state == BDSHOT_RECEIVE && (get_shifter_status_flags() & bit)) {
 				bdshot_latch_response(channel);
 			}
@@ -783,23 +771,28 @@ void up_dshot_trigger(void)
 			flexio_dshot_output(channel);
 		}
 
-		ch->state = DSHOT_START;
-		ch->tx_started = now;
+		// Stale flags: the previous cycle's second buffer load, or the shifter re-enable above
 		clear_shifter_status_flags(bit);
 		clear_timer_status_flags(bit);
 		tx_mask |= bit;
 	}
 
-	px4_leave_critical_section(irqflags);
+	// The IRQ must queue the second word before the first 24 sub-bits are out (20 us at DShot1200), so
+	// preemption cannot be allowed between the buffer write and the interrupt enable. SHIFTSIEN/TIMIEN
+	// have no set/clear aliases, so the read-modify-write also has to be atomic against the IRQ's own.
+	irqstate_t irqflags = px4_enter_critical_section();
 
 	for (uint32_t channel = 0; channel < DSHOT_TIMERS; channel++) {
 		if (tx_mask & (1u << channel)) {
+			dshot_inst[channel].state = DSHOT_START;
+			dshot_inst[channel].tx_started = now;
 			flexio_putreg32(dshot_inst[channel].data_seg1, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
 		}
 	}
 
 	enable_shifter_status_interrupts(tx_mask);
 	enable_timer_status_interrupts(tx_mask);
+	px4_leave_critical_section(irqflags);
 }
 
 // Each DShot bit becomes three shifter bits: 110 for a one, 100 for a zero
@@ -856,24 +849,41 @@ void dshot_motor_data_set(uint8_t channel, uint16_t throttle, bool telemetry)
 
 int up_dshot_arm(bool armed)
 {
-	irqstate_t irqflags = px4_enter_critical_section();
-	_dshot_armed = armed;
+	uint32_t mask = 0;
 
 	for (uint32_t channel = 0; channel < DSHOT_TIMERS; channel++) {
-		if (!dshot_inst[channel].init) {
-			continue;
-		}
-
-		if (armed) {
-			// Nothing is in flight; the first trigger must not count a missing response
-			dshot_inst[channel].tx_started = 0;
-			flexio_dshot_output(channel);
-
-		} else {
-			flexio_dshot_stop_channel(channel);
+		if (dshot_inst[channel].init) {
+			mask |= 1u << channel;
 		}
 	}
 
-	px4_leave_critical_section(irqflags);
+	_dshot_armed = armed;
+
+	if (!armed) {
+		// Atomic against the IRQ's own SHIFTSIEN/TIMIEN updates; nothing fires once these are clear
+		irqstate_t irqflags = px4_enter_critical_section();
+		disable_shifter_status_interrupts(mask);
+		disable_timer_status_interrupts(mask);
+		px4_leave_critical_section(irqflags);
+
+		for (uint32_t channel = 0; channel < DSHOT_TIMERS; channel++) {
+			if (mask & (1u << channel)) {
+				flexio_putreg32(0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
+				flexio_putreg32(0, IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
+			}
+		}
+
+		return 0;
+	}
+
+	// Interrupts are off after init or disarm, so the IRQ cannot see this reconfiguration
+	for (uint32_t channel = 0; channel < DSHOT_TIMERS; channel++) {
+		if (mask & (1u << channel)) {
+			// Nothing is in flight; the first trigger must not count a missing response
+			dshot_inst[channel].tx_started = 0;
+			flexio_dshot_output(channel);
+		}
+	}
+
 	return 0;
 }
