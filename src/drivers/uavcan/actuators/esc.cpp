@@ -202,49 +202,46 @@ uint32_t UavcanEscController::get_failures(uint8_t esc_index, uint8_t node_id)
 		}
 	}
 
-	const bool failure = (node_health == dronecan_node_status_s::HEALTH_ERROR)
-			     || (node_health == dronecan_node_status_s::HEALTH_CRITICAL);
+	uint32_t failures = 0;
 
-	if (!failure) {
-		return 0;
-	}
+	if ((node_health == dronecan_node_status_s::HEALTH_ERROR)
+	    || (node_health == dronecan_node_status_s::HEALTH_CRITICAL)) {
+		// Parse VertiQ = iq_motion ESC error flags
+		device_information_s device_information{};
 
-	// Parse VertiQ = iq_motion ESC error flags
-	device_information_s device_information{};
+		if (_device_information_sub.copy(&device_information)
+		    && device_information.device_type == device_information_s::DEVICE_TYPE_ESC
+		    && device_information.device_id == esc_index
+		    && strstr(device_information.name, "iq_motion") != nullptr) {
+			static const struct {
+				uint8_t bit;
+				uint8_t failure_type;
+			} bit_to_failure_map[] = {
+				{0,  esc_report_s::FAILURE_OVER_VOLTAGE},
+				{1,  esc_report_s::FAILURE_OVER_VOLTAGE},
+				{2,  esc_report_s::FAILURE_OVER_VOLTAGE},
+				{3,  esc_report_s::FAILURE_OVER_CURRENT},
+				{4,  esc_report_s::FAILURE_OVER_CURRENT},
+				{5,  esc_report_s::FAILURE_OVER_ESC_TEMPERATURE},
+				{6,  esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE},
+				{7,  esc_report_s::FAILURE_GENERIC},
+				{8,  esc_report_s::FAILURE_OVER_RPM},
+				{9,  esc_report_s::FAILURE_WARN_ESC_TEMPERATURE},
+				{10, esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE},
+				{11, esc_report_s::FAILURE_OVER_VOLTAGE},
+			};
 
-	if (_device_information_sub.copy(&device_information)
-	    && device_information.device_type == device_information_s::DEVICE_TYPE_ESC
-	    && device_information.device_id == esc_index
-	    && strstr(device_information.name, "iq_motion") != nullptr) {
-		static const struct {
-			uint8_t bit;
-			uint8_t failure_type;
-		} bit_to_failure_map[] = {
-			{0,  esc_report_s::FAILURE_OVER_VOLTAGE},
-			{1,  esc_report_s::FAILURE_OVER_VOLTAGE},
-			{2,  esc_report_s::FAILURE_OVER_VOLTAGE},
-			{3,  esc_report_s::FAILURE_OVER_CURRENT},
-			{4,  esc_report_s::FAILURE_OVER_CURRENT},
-			{5,  esc_report_s::FAILURE_OVER_ESC_TEMPERATURE},
-			{6,  esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE},
-			{7,  esc_report_s::FAILURE_GENERIC},
-			{8,  esc_report_s::FAILURE_OVER_RPM},
-			{9,  esc_report_s::FAILURE_WARN_ESC_TEMPERATURE},
-			{10, esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE},
-			{11, esc_report_s::FAILURE_OVER_VOLTAGE},
-		};
-
-		uint32_t failures = 0;
-
-		for (const auto &mapping : bit_to_failure_map) {
-			if (vendor_specific_status_code & (1 << mapping.bit)) {
-				failures |= (1 << mapping.failure_type);
+			for (const auto &mapping : bit_to_failure_map) {
+				if (vendor_specific_status_code & (1 << mapping.bit)) {
+					failures |= (1 << mapping.failure_type);
+				}
 			}
 		}
 
-		return failures;
+		if (failures == 0) { // no specific error parsed
+			failures = (1 << esc_report_s::FAILURE_GENERIC);
+		}
 	}
 
-	// Generic parsing
-	return (1 << esc_report_s::FAILURE_GENERIC);
+	return failures;
 }

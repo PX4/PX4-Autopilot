@@ -161,11 +161,14 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 	const Vector2f position = measurement - _ev_pos_b_est.getBias();
 	const Vector2f pos_obs_var = measurement_var + _ev_pos_b_est.getBiasVar();
 
+	const LatLonAlt position_lla = localToGlobalPosition(position);
+
 	updateAidSourceStatus(aid_src,
 			      ev_sample.time_us,                                      // sample timestamp
-			      position,                                               // observation
+			      matrix::Vector2d(position_lla.latitude_deg(),
+					       position_lla.longitude_deg()),         // observation
 			      pos_obs_var,                                            // observation variance
-			      position_estimate - position,                           // innovation
+			      Vector2f((_gpos - position_lla).xy()),                   // innovation
 			      Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
 			      math::max(_params.ekf2_evp_gate, 1.f));             // innovation gate
 

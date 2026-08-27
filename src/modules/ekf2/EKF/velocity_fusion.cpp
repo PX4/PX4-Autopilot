@@ -37,11 +37,10 @@ bool Ekf::fuseHorizontalVelocity(estimator_aid_source2d_s &aid_src)
 {
 	// vx, vy
 	if (!aid_src.innovation_rejected) {
-		const Vector3f vel_prev = _state.vel;
-
 		for (unsigned i = 0; i < 2; i++) {
-			// recalculate using the updated state and variance
-			aid_src.innovation[i] += _state.vel(i) - vel_prev(i);
+			// recompute from the current state; another measurement fused earlier in this
+			// update can have moved the velocity through the state cross-covariances
+			aid_src.innovation[i] = _state.vel(i) - static_cast<float>(aid_src.observation[i]);
 			aid_src.innovation_variance[i] = P(State::vel.idx + i, State::vel.idx + i) + aid_src.observation_variance[i];
 
 			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
@@ -64,11 +63,10 @@ bool Ekf::fuseVelocity(estimator_aid_source3d_s &aid_src)
 {
 	// vx, vy, vz
 	if (!aid_src.innovation_rejected) {
-		const Vector3f vel_prev = _state.vel;
-
 		for (unsigned i = 0; i < 3; i++) {
-			// recalculate using the updated state and variance
-			aid_src.innovation[i] += _state.vel(i) - vel_prev(i);
+			// recompute from the current state; another measurement fused earlier in this
+			// update can have moved the velocity through the state cross-covariances
+			aid_src.innovation[i] = _state.vel(i) - static_cast<float>(aid_src.observation[i]);
 			aid_src.innovation_variance[i] = P(State::vel.idx + i, State::vel.idx + i) + aid_src.observation_variance[i];
 
 			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],

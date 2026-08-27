@@ -105,6 +105,26 @@ void CanTxQueue::registerRejectedFrame()
     }
 }
 
+void CanTxQueue::registerExpiredFrame()
+{
+    registerRejectedFrame();
+
+    if (rejected_expired_cnt_ < NumericTraits<uint32_t>::max())
+    {
+        rejected_expired_cnt_++;
+    }
+}
+
+void CanTxQueue::registerOutOfMemoryFrame()
+{
+    registerRejectedFrame();
+
+    if (rejected_oom_cnt_ < NumericTraits<uint32_t>::max())
+    {
+        rejected_oom_cnt_++;
+    }
+}
+
 void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos, CanIOFlags flags)
 {
     const MonotonicTime timestamp = sysclock_.getMonotonic();
@@ -112,7 +132,7 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
     if (timestamp >= tx_deadline)
     {
         UAVCAN_TRACE("CanTxQueue", "Push rejected: already expired");
-        registerRejectedFrame();
+        registerExpiredFrame();
         return;
     }
 
@@ -128,7 +148,7 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
             if (p->isExpired(timestamp))
             {
                 UAVCAN_TRACE("CanTxQueue", "Push: Expired %s", p->toString().c_str());
-                registerRejectedFrame();
+                registerExpiredFrame();
                 remove(p);
             }
             p = next;
@@ -139,7 +159,7 @@ void CanTxQueue::push(const CanFrame& frame, MonotonicTime tx_deadline, Qos qos,
     if (praw == UAVCAN_NULLPTR)
     {
         UAVCAN_TRACE("CanTxQueue", "Push OOM #2, QoS arbitration");
-        registerRejectedFrame();
+        registerOutOfMemoryFrame();
 
         // Find a frame with lowest QoS
         Entry* p = queue_.get();
@@ -187,7 +207,7 @@ CanTxQueue::Entry* CanTxQueue::peek()
         {
             UAVCAN_TRACE("CanTxQueue", "Peek: Expired %s", p->toString().c_str());
             Entry* const next = p->getNextListNode();
-            registerRejectedFrame();
+            registerExpiredFrame();
             remove(p);
             p = next;
         }
@@ -332,6 +352,22 @@ CanIfacePerfCounters CanIOManager::getIfacePerfCounters(uint8_t iface_index) con
     cnt.errors = iface->getErrorCount() + tx_queues_[iface_index]->getRejectedFrameCount();
     cnt.frames_rx = counters_[iface_index].frames_rx;
     cnt.frames_tx = counters_[iface_index].frames_tx;
+    return cnt;
+}
+
+CanTxQueuePerfCounters CanIOManager::getTxQueuePerfCounters(uint8_t iface_index) const
+{
+    if (iface_index >= num_ifaces_ || iface_index >= MaxCanIfaces || !tx_queues_[iface_index].isConstructed())
+    {
+        UAVCAN_ASSERT(0);
+        return CanTxQueuePerfCounters();
+    }
+    CanTxQueuePerfCounters cnt;
+    cnt.rejected_frames = tx_queues_[iface_index]->getRejectedFrameCount();
+    cnt.expired_frames = tx_queues_[iface_index]->getExpiredFrameCount();
+    cnt.out_of_memory_frames = tx_queues_[iface_index]->getOutOfMemoryFrameCount();
+    cnt.peak_used_blocks = tx_queues_[iface_index]->getPeakNumUsedBlocks();
+    cnt.block_limit = tx_queues_[iface_index]->getBlockLimit();
     return cnt;
 }
 
