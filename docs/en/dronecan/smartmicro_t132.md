@@ -24,7 +24,8 @@ Order this radar sensor from:
 
 - [Smartmicro](https://www.smartmicro.com/airborne/drone-altimeter/)
 
-Different cable options are available too.
+SmartMicro do not provide a cable that connects to Pixhawk-standard CAN bus connectors out of the box.
+You may however choose to purchase a "Plug and Play" cable, and replace its D-Sub-9 connector with the connector for your flight controller.
 
 ## Hardware Specifications
 
