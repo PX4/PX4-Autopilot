@@ -142,7 +142,7 @@ parameters:
           Delay before switching back to using airspeed sensor if checks indicate sensor is good.
           Set to a negative value to disable the re-enabling in flight.
       type: float
-      default: -1.0
+      default: 1.0
       unit: s
       min: -1.0
       decimal: 1
