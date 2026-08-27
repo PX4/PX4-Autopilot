@@ -771,8 +771,8 @@ bool FlightTaskAuto::isTargetModified() const
 
 bool FlightTaskAuto::_hasPassedCurrentWaypoint() const
 {
-	const Vector2f u_previous_to_current = Vector2f(_triplet_current - _triplet_previous).unit_or_zero();
-	return u_previous_to_current * Vector2f(_triplet_current - _position) < 0.f;
+	const Vector3f u_previous_to_current = (_triplet_current - _triplet_previous).unit_or_zero();
+	return u_previous_to_current * (_triplet_current - _position) < 0.f;
 }
 
 void FlightTaskAuto::_updateTrajConstraints()
