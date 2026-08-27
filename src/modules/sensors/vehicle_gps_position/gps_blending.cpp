@@ -391,6 +391,15 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 	gps_blended_state.vel_e_m_s = 0;
 	gps_blended_state.vel_d_m_s = 0;
 
+	// Accumulate the blended timestamps in double and round once at the end: casting each
+	// weighted term to uint64_t truncates it, which biases the result low by up to one
+	// microsecond per contributing receiver. Dividing by the accumulated weight also removes
+	// the float rounding error in the normalised weights, so receivers reporting an identical
+	// timestamp blend back to exactly that timestamp.
+	double blended_timestamp_us = 0.0;
+	double blended_timestamp_sample_us = 0.0;
+	double sum_of_timing_weights = 0.0;
+
 	// combine the the GPS states into a blended solution using the weights calculated in calc_blend_weights()
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 		// Assume blended error magnitude, DOP and sat count is equal to the best value from contributing receivers
@@ -398,8 +407,10 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 		if (blend_weights[i] > 0.0f) {
 
 			// blend the timing data
-			gps_blended_state.timestamp += (uint64_t)((double)_gps_state[i].timestamp * (double)blend_weights[i]);
-			gps_blended_state.timestamp_sample += (uint64_t)((double)_gps_state[i].timestamp_sample * (double)blend_weights[i]);
+			const double timing_weight = (double)blend_weights[i];
+			blended_timestamp_us += (double)_gps_state[i].timestamp * timing_weight;
+			blended_timestamp_sample_us += (double)_gps_state[i].timestamp_sample * timing_weight;
+			sum_of_timing_weights += timing_weight;
 
 			// calculate a blended average speed and velocity vector
 			gps_blended_state.vel_m_s += _gps_state[i].vel_m_s * blend_weights[i];
@@ -449,6 +460,11 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 			}
 		}
 
+	}
+
+	if (sum_of_timing_weights > 0.0) {
+		gps_blended_state.timestamp = (uint64_t)llround(blended_timestamp_us / sum_of_timing_weights);
+		gps_blended_state.timestamp_sample = (uint64_t)llround(blended_timestamp_sample_us / sum_of_timing_weights);
 	}
 
 	/*
