@@ -80,10 +80,21 @@ Points to note in the example above:
 - **RPM Input** must be on a channel that supports timer capture on your board.
 
 ::: warning
-Outputs are only driven while the vehicle is armed or [prearmed](../advanced_config/parameter_reference.md#COM_PREARM_MODE).
-While disarmed, every output — including ignition, choke, and starter — is held at its **Disarmed** value regardless of what the module commands.
+While the vehicle is disarmed, every output — including ignition, choke, and starter — is held at its **Disarmed** value, regardless of what the module commands.
+So unless the vehicle is _prearmed_, the engine can only be commanded while armed.
+:::
 
-If you want to start the engine before arming (for example with an AUX switch, see [ICE_ON_SOURCE](#start-stop-command-source)), you must set [COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) to `Always` (or `Safety button` and release the safety switch).
+Whether prearming happens at all is set by [COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE), which matters if you want to start the engine before arming (for example from an AUX switch, see [Start/Stop Command Source](#start-stop-command-source)):
+
+| `COM_PREARM_MODE`    | Effect on the engine outputs                                                                                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `Disabled` (default) | Never prearms, so the outputs stay at their **Disarmed** values until the vehicle is armed.                                             |
+| `Safety button`      | Outputs become live once the safety switch is released. Has no effect on boards that have no safety button — prearm then never engages. |
+| `Always`             | Outputs become live 5 s after boot.                                                                                                     |
+
+::: warning
+With `Always` the ignition, choke, and starter outputs are live shortly after power-up, before any arming check has run.
+The engine can be commanded to crank on a vehicle that was never armed, so treat the propeller as live whenever the vehicle is powered.
 :::
 
 ## Start/Stop Command Source {#start-stop-command-source}
@@ -187,15 +198,15 @@ That lag is part of the loop you are tuning and puts a practical ceiling on how 
 
 ## Troubleshooting
 
-| Symptom                                                                                               | Likely cause                                                                                                                                                                                          |
-| ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Nothing happens at all; `internal_combustion_engine_control status` reports the module is not running | `ICE_EN` is not set, or the module is not in the firmware. Check the [build configuration](#firmware-configuration) and reboot.                                                                       |
-| The engine runs but the state machine goes to [`Fault`](#state-machine)                               | The RPM sensor is not working or is misconfigured. Check `RPM_CAP_ENABLE`, `RPM_PULS_PER_REV`, and that the sensor is on a capture-capable pin; compare `rpm.rpm_estimate` against a hand tachometer. |
-| Outputs never move even though the state machine advances                                             | The vehicle is disarmed and not prearmed, so outputs are held at their **Disarmed** values. See the [note above](#actuator-configuration) on `COM_PREARM_MODE`.                                       |
-| The starter cranks but the engine never fires                                                         | Too little cranking time (`ICE_STRT_DUR`), wrong start throttle (`ICE_STRT_THR`), or too little/too much choke (`ICE_CHOKE_ST_DUR`).                                                                  |
-| The engine fires and then dies just after `Starting` finishes                                         | No idle governor. Set up the [idle governor](#idle-rpm-governor); with `ICE_IDLE_RPM = 0` there is nothing holding the engine up when the throttle demand is zero.                                    |
-| Repeated in-air restarts logged as `IC engine fault detected`                                         | `ICE_MIN_RUN_RPM` is set too close to the actual idle speed, so normal idle dips read as an engine stop. Raise the idle setpoint or lower the threshold.                                              |
-| The engine bogs down or stalls on throttle up                                                         | `ICE_THR_SLEW` is too high for the engine. Reduce it so the throttle opens more gradually.                                                                                                            |
+| Symptom                                                                                               | Likely cause                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nothing happens at all; `internal_combustion_engine_control status` reports the module is not running | `ICE_EN` is not set, or the module is not in the firmware. Check the [build configuration](#firmware-configuration) and reboot.                                                                                                                                                                      |
+| The engine runs but the state machine goes to [`Fault`](#state-machine)                               | The RPM sensor is not working or is misconfigured. Check `RPM_CAP_ENABLE`, `RPM_PULS_PER_REV`, and that the sensor is on a capture-capable pin; compare `rpm.rpm_estimate` against a hand tachometer.                                                                                                |
+| Outputs never move even though the state machine advances                                             | The vehicle is disarmed and not prearmed, so outputs are held at their **Disarmed** values. See the [note above](#actuator-configuration) on `COM_PREARM_MODE`.                                                                                                                                      |
+| The starter cranks but the engine never fires                                                         | There may be no fuel in the engine yet. Closing the choke is what draws fuel in, so a dry engine needs a longer priming window — increase `ICE_CHOKE_ST_DUR`. Also check the cranking time (`ICE_STRT_DUR`) and the start throttle (`ICE_STRT_THR`), and note that too much choke floods the engine. |
+| The engine fires and then dies just after `Starting` finishes                                         | No idle governor. Set up the [idle governor](#idle-rpm-governor); with `ICE_IDLE_RPM = 0` there is nothing holding the engine up when the throttle demand is zero.                                                                                                                                   |
+| Repeated in-air restarts logged as `IC engine fault detected`                                         | `ICE_MIN_RUN_RPM` is set too close to the actual idle speed, so normal idle dips read as an engine stop. Raise the idle setpoint or lower the threshold.                                                                                                                                             |
+| The engine bogs down or stalls on throttle up                                                         | `ICE_THR_SLEW` is too high for the engine. Reduce it so the throttle opens more gradually.                                                                                                                                                                                                           |
 
 ## Developer Information
 
@@ -264,7 +275,7 @@ One start attempt runs the following timeline, measured from entry into the atte
 | `ICE_IGN_DELAY + ICE_CHOKE_ST_DUR` | `ICE_IGN_DELAY + ICE_CHOKE_ST_DUR + ICE_STRT_DUR` | on       | `0`   | `1`     | `ICE_STRT_THR` |
 
 - [ICE_IGN_DELAY](../advanced_config/parameter_reference.md#ICE_IGN_DELAY) holds the starter off for a moment after the ignition is switched on, for ignition systems that need time to come up.
-- [ICE_CHOKE_ST_DUR](../advanced_config/parameter_reference.md#ICE_CHOKE_ST_DUR) is how long the choke stays closed. Note that the starter is already cranking during this window.
+- [ICE_CHOKE_ST_DUR](../advanced_config/parameter_reference.md#ICE_CHOKE_ST_DUR) is how long the choke stays closed. Closing the choke enriches the mixture and draws fuel into the engine, so this window is what primes a dry engine. Note that the starter is already cranking during it.
 - [ICE_STRT_DUR](../advanced_config/parameter_reference.md#ICE_STRT_DUR) is how much longer the starter cranks with the choke open before the attempt is declared timed out.
 
 If the attempt times out, the module rests for **1 second** with the ignition off and the throttle at its disarmed value (to reduce starter motor wear) and then begins the next attempt.
