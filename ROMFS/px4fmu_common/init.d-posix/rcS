@@ -120,11 +120,13 @@ else
 fi
 
 # To trigger a parameter reset during boot SYS_AUTOCONFIG was set to 1 before
+set PARAM_RESET_DONE no
 if param greater SYS_AUTOCONFIG 0
 then
-	# Reset parameters except airframe, parameter version, sensor calibration, total flight time, flight UUID
-	param reset_all SYS_AUTOSTART SYS_PARAM_VER CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
+	# Reset parameters except airframe, parameter version, sensor calibration, total flight time, flight UUID, MAVLink sys_id
+	param reset_all SYS_AUTOSTART SYS_PARAM_VER SYS_AUTOCFG_CAL CAL_* LND_FLIGHT* TC_* COM_FLIGHT* MAV_SYS_ID
 	set AUTOCNF yes
+	set PARAM_RESET_DONE yes
 fi
 
 # multi-instance setup
@@ -135,22 +137,25 @@ param set UXRCE_DDS_KEY $((px4_instance+1))
 if [ $AUTOCNF = yes ]
 then
 	param set SYS_AUTOSTART $SYS_AUTOSTART
-
-	param set CAL_ACC0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	param set CAL_GYRO0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	param set CAL_ACC1_ID 1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
-	param set CAL_GYRO1_ID 1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
-	param set CAL_ACC2_ID 1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
-	param set CAL_GYRO2_ID 1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
-
-	param set CAL_MAG0_ID 197388
-	param set CAL_MAG0_PRIO 50
-	param set CAL_MAG1_ID 197644
-	param set CAL_MAG1_PRIO 50
-
-	param set SENS_BOARD_X_OFF 0.000001
-	param set SENS_DPRES_OFF 0.001
 fi
+
+# Simulated sensor calibration, declared via SYS_AUTOCFG_CAL the same way a real airframe's built-in calibration would
+param set-default SYS_AUTOCFG_CAL 1
+
+param set-default CAL_ACC0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+param set-default CAL_GYRO0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+param set-default CAL_ACC1_ID 1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+param set-default CAL_GYRO1_ID 1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+param set-default CAL_ACC2_ID 1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+param set-default CAL_GYRO2_ID 1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+
+param set-default CAL_MAG0_ID 197388
+param set-default CAL_MAG0_PRIO 50
+param set-default CAL_MAG1_ID 197644
+param set-default CAL_MAG1_PRIO 50
+
+param set-default SENS_BOARD_X_OFF 0.000001
+param set-default SENS_DPRES_OFF 0.001
 
 param set-default BAT1_N_CELLS 4
 
@@ -229,6 +234,14 @@ elif [ ! -e "$autostart_file" ] && [ "$SYS_AUTOSTART" -ne "0" ]
 then
 	echo "Error: no autostart file found ($autostart_file)"
 	exit 1
+fi
+
+if param greater SYS_AUTOCFG_CAL 0
+then
+	if [ ${PARAM_RESET_DONE} = yes ]
+	then
+		param reset CAL_* SYS_AUTOCFG_CAL
+	fi
 fi
 
 # Allow overriding parameters via env variables: export PX4_PARAM_{name}={value}

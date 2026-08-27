@@ -13,7 +13,7 @@ It covers how to list, save and load parameters, and how to define them and make
 
 The PX4 [system console](../debug/system_console.md) offers the [param](../modules/modules_command.md#param) tool, which can be used to set parameters, read their value, save them, and export and restore to/from files.
 
-### Getting and Setting Parameters
+### Getting Parameters
 
 The `param show` command lists all system parameters:
 
@@ -41,6 +41,22 @@ param show -c
 ```
 
 You can use `param show-for-airframe` to show all parameters that have changed from their defaults for just the current airframe's definition file (and defaults it imports).
+
+### Setting Parameters
+
+Use `param set` to change a specific parameter:
+
+```sh
+param set SYS_AUTOSTART 1103   # Load airframe 1103 on next boot if SYS_AUTOCONFIG==1
+param set FW_T_F_ALT_ERR 20    # Enable TECS fast descend if >20m above altitude setpoint
+```
+
+Use `param bitset` and `param bitclear` to modify individual bits of a parameter (only for `INT32`):
+
+```sh
+param bitclear EKF2_SENS_EN 3  # Disable GPS fusion (lowest 2 bits -> 0b11), leaving other settings intact
+param bitset PWM_MAIN_REV 24   # Set output range for main PWM 4 and 5 to reversed (0b11000), leaving others intact
+```
 
 ### Exporting and Loading Parameters
 

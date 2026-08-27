@@ -8,11 +8,27 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 ::: info
 
 - This mode requires a global 3d position estimate (from GPS or inferred from a [local position](../ros/external_position_estimation.md#enabling-auto-modes-with-a-local-position)).
-- The vehicle must be armed before this mode can be engaged.
+- The mission will start once the vehicle is armed.
 - This mode is automatic - no user intervention is _required_ to control the vehicle.
-- RC control switches can be used to change flight modes on any vehicle.
+- Sticks/switches can be used to switch out of mission mode on any vehicle.
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_auto_mission -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_global_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_global_position_relaxed) — Position measurement updates in a global coordinate frame but accepts poor accuracy
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_mission`](../flight_modes/mode_requirements.md#mode_req_mission) — Valid mission in autopilot's storage
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_auto_mission -->
 
 ## Description
 
@@ -52,7 +68,7 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
    Enter the time to wait after landing before disarming the vehicle.
    :::
 
-Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Position mode](../flight_modes_fw/position.md)), and resumed by switching back to mission mode.
+Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Cruise mode](../flight_modes_fw/cruise.md)), and resumed by switching back to mission mode.
 If the vehicle was not capturing images when it was paused, on resuming it will head from its _current position_ towards the same waypoint as it as was heading towards originally.
 If the vehicle was capturing images (has camera trigger items) it will instead head from its current position towards the last waypoint it traveled through (before pausing), and then retrace its path at the same speed and with the same camera triggering behaviour.
 This ensures that in survey/camera missions the planned path is captured.
@@ -320,6 +336,44 @@ The parameters that affect flaring are listed below.
 | <a id="RWTO_PSP"></a>[RWTO_PSP](../advanced_config/parameter_reference.md#RWTO_PSP)                   | Pitch setpoint while on the runway. For tricycle gear, typically near zero. For tail draggers, positive.                                                            |
 | <a id="FW_THR_IDLE"></a>[FW_THR_IDLE](../advanced_config/parameter_reference.md#FW_THR_IDLE)          | Idle throttle setting. The vehicle will retain this setting throughout the flare and roll out.                                                                      |
 
+### Parachute Landing
+
+A mission landing can end in a parachute descent, releasing the parachute such that the vehicle touches down on the land waypoint ([MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND)).
+This allows recovery in areas where a rollout or belly landing is not possible.
+
+The feature is enabled with [FW_LND_PARA_EN](#FW_LND_PARA_EN) and requires a [parachute](../peripherals/parachute.md), either on a flight controller output (_Parachute_ output function) or as an external MAVLink parachute system ([COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE)).
+
+The vehicle follows the normal landing approach down to the release altitude ([FW_LND_PARA_ALT](#FW_LND_PARA_ALT)), then continues level towards the land waypoint.
+The parachute is released by triggering [flight termination](../advanced_config/flight_termination.md) once the predicted touchdown point under canopy lies on the land waypoint.
+The prediction accounts for the forward carry while the parachute deploys, and the drift with the estimated wind while the vehicle sinks at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK).
+Crosswind is compensated by aiming upwind of the land waypoint.
+
+:::warning
+The release triggers flight termination: the landing cannot be aborted after the release, and the vehicle must be rebooted before the next flight.
+[Operator abort](#operator-abort) works normally at any time before the release.
+:::
+
+Notes:
+
+- The touchdown point drifts with the wind, and the horizontal touchdown speed matches the wind speed.
+  Accuracy and touchdown quality degrade as the wind approaches the landing airspeed ([COM_WIND_MAX](../advanced_config/parameter_reference.md#COM_WIND_MAX) can enforce a wind limit).
+- Lowering the release altitude reduces the wind drift.
+  For safety reasons, the release altitude is clamped to a minimum of 3 seconds of descent at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK), so that the canopy has room to open before touchdown.
+- [FW_LND_PARA_ALT](#FW_LND_PARA_ALT) is the altitude the vehicle holds while waiting for the release point.
+  The release prediction always uses the actual altitude:
+  - A vehicle that holds the altitude releases at the configured altitude, or above it if the release point is reached while still on the approach slope.
+  - A vehicle that cannot hold the altitude (for example a motor-less glider) keeps sinking while the prediction adapts, and still releases such that it touches down on the land waypoint.
+    Only if it sinks to the minimum release altitude before reaching the release point does it release there, and touch down short of the waypoint.
+- Not supported on VTOL.
+
+#### Parachute Landing Parameters
+
+| Parameter                                                                                                   | Description                                                                             |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| <a id="FW_LND_PARA_EN"></a>[FW_LND_PARA_EN](../advanced_config/parameter_reference.md#FW_LND_PARA_EN)       | Enable parachute landing on the mission landing approach.                               |
+| <a id="FW_LND_PARA_ALT"></a>[FW_LND_PARA_ALT](../advanced_config/parameter_reference.md#FW_LND_PARA_ALT)    | Release altitude above the land waypoint.                                               |
+| <a id="FW_LND_PARA_SINK"></a>[FW_LND_PARA_SINK](../advanced_config/parameter_reference.md#FW_LND_PARA_SINK) | Expected sink rate under canopy, used to predict the wind drift of the touchdown point. |
+
 ### Abort
 
 #### Operator Abort
@@ -369,7 +423,7 @@ Note that if the wheel controller is enabled ([FW_W_EN](#FW_W_EN)), the controll
 
 ::: info
 Nudging should not be used to supplement poor position control tuning.
-If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/position.md) for instruction.
+If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/cruise.md) for instruction.
 :::
 
 | Parameter                                                                                          | Description                                                                        |

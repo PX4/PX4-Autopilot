@@ -40,7 +40,7 @@ To make sure the vehicle is stable enough for auto-tuning:
 
 1. Perform a normal preflight safety checklist to ensure the flight zone is clear and has enough space.
 
-2. Take off and <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">hover at 1m above ground in [Altitude mode](../flight_modes_mc/altitude.md) or [Stabilized mode](../flight_modes_mc/manual_stabilized.md)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">fly at cruise speed in [Position mode](../flight_modes_fw/position.md) or [Altitude mode](../flight_modes_fw/altitude.md)</div>.
+2. Take off and <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">hover at 1m above ground in [Altitude mode](../flight_modes_mc/altitude.md) or [Stabilized mode](../flight_modes_mc/manual_stabilized.md)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">fly at cruise speed in [Cruise mode](../flight_modes_fw/cruise.md) or [Altitude mode](../flight_modes_fw/altitude.md)</div>.
 
 3. Use the RC transmitter roll stick to perform the following maneuver, tilting the vehicle just a few degrees: _roll left > roll right > center_ (The whole maneuver should take about 3 seconds).
    The vehicle should stabilise itself within 2 oscillations.
@@ -129,7 +129,7 @@ Additional notes:
 </div>
 <div v-else-if="$frontmatter.frame === 'Plane'">
 
-- Autotuning can also be run in [Altitude mode](../flight_modes_fw/altitude.md) or [Position mode](../flight_modes_fw/position.md).
+- Autotuning can also be run in [Altitude mode](../flight_modes_fw/altitude.md) or [Cruise mode](../flight_modes_fw/cruise.md).
   However running the test while flying straight requires a larger safe area for tuning, and does not give a significantly better tuning result.
 
 </div>

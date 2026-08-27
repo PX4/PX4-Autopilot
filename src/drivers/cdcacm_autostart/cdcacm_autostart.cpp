@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,6 +46,8 @@ __END_DECLS
 #include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/posix.h>
 
+#include <errno.h>
+
 ModuleBase::Descriptor CdcAcmAutostart::desc{task_spawn, custom_command, print_usage};
 
 #define USB_DEVICE_PATH "/dev/ttyACM0"
@@ -77,11 +79,11 @@ CdcAcmAutostart::~CdcAcmAutostart()
 {
 	PX4_INFO("Stopping CDC/ACM autostart");
 
-	if (_ttyacm_fd >= 0) {
-		px4_close(_ttyacm_fd);
-		_ttyacm_fd = -1;
+	if (_active_protocol == UsbProtocol::mavlink) {
+		stop_mavlink();
 	}
 
+	close_ttyacm();
 	ScheduleClear();
 }
 
@@ -129,7 +131,7 @@ void CdcAcmAutostart::run_state_machine()
 #endif
 
 	// Do not reconfigure USB while flying
-	actuator_armed_s report;
+	actuator_armed_s report{};
 	_actuator_armed_sub.copy(&report);
 
 	if (report.armed) {
@@ -160,17 +162,30 @@ void CdcAcmAutostart::run_state_machine()
 	ScheduleDelayed(_reschedule_time);
 }
 
+void CdcAcmAutostart::close_ttyacm()
+{
+	if (_ttyacm_fd >= 0) {
+		px4_close(_ttyacm_fd);
+		_ttyacm_fd = -1;
+	}
+}
+
 void CdcAcmAutostart::state_connected()
 {
-	if (!_vbus_present && !_vbus_present_prev && (_active_protocol == UsbProtocol::mavlink)) {
-		PX4_DEBUG("lost vbus!");
-		sched_lock();
-		static const char app[] {"mavlink"};
-		static const char *stop_argv[] {"mavlink", "stop", "-d", USB_DEVICE_PATH, NULL};
-		exec_builtin(app, (char **)stop_argv, NULL, 0);
-		sched_unlock();
+	// Lost VBUS for two consecutive samples: tear down.
+	if (!_vbus_present && !_vbus_present_prev) {
+		PX4_DEBUG("lost vbus");
+
+		if (_active_protocol == UsbProtocol::mavlink) {
+			stop_mavlink();
+		}
+
 		_state = UsbAutoStartState::disconnecting;
 	}
+
+	// Deliberately no supervision of the mavlink instance here. mavlink is not
+	// expected to exit on its own, so if it does, leaving the USB link dead makes
+	// that visible instead of papering over it with a restart.
 }
 
 void CdcAcmAutostart::state_disconnected()
@@ -181,7 +196,6 @@ void CdcAcmAutostart::state_disconnected()
 		if (sercon_main(0, nullptr) == EXIT_SUCCESS) {
 			_state = UsbAutoStartState::connecting;
 			PX4_DEBUG("state connecting");
-			_reschedule_time = 1_s;
 		}
 
 	} else if (_vbus_present && !_vbus_present_prev) {
@@ -203,18 +217,21 @@ void CdcAcmAutostart::state_connecting()
 		goto fail;
 	}
 
-	if (_ttyacm_fd < 0) {
-		PX4_DEBUG("opening port");
-		_ttyacm_fd = px4_open(USB_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
-	}
-
-	if (_ttyacm_fd < 0) {
-		PX4_DEBUG("can't open port");
-		// fail silently and keep trying to open the port
-		return;
-	}
-
+	// SYS_USB_AUTO=2: always start MAVLink. Probe the port first — CDC/ACM registers
+	// /dev/ttyACM0 immediately, but open() returns -ENOTCONN until the host has
+	// enumerated. mavlink exits if its own open retries run out, so only spawn it
+	// once the port is known to be openable, then release the probe.
 	if (_sys_usb_auto.get() == 2) {
+		if (_ttyacm_fd < 0) {
+			_ttyacm_fd = px4_open(USB_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
+		}
+
+		if (_ttyacm_fd < 0) {
+			PX4_DEBUG("%s not ready", USB_DEVICE_PATH);
+			return;
+		}
+
+		close_ttyacm();
 		PX4_INFO("Starting mavlink on %s (SYS_USB_AUTO=2)", USB_DEVICE_PATH);
 
 		if (start_mavlink()) {
@@ -227,20 +244,31 @@ void CdcAcmAutostart::state_connecting()
 		}
 
 		return;
+	}
 
-	} else if (_sys_usb_auto.get() == 0) {
-		// Do nothing
+	// SYS_USB_AUTO=0: sercon only, no protocol.
+	if (_sys_usb_auto.get() == 0) {
+		close_ttyacm();
 		_state = UsbAutoStartState::connected;
 		_active_protocol = UsbProtocol::none;
 		return;
 	}
 
-	// Otherwise autodetect
+	// SYS_USB_AUTO=1: autodetect from host bytes.
+	if (_ttyacm_fd < 0) {
+		PX4_DEBUG("opening port");
+		_ttyacm_fd = px4_open(USB_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
+	}
+
+	if (_ttyacm_fd < 0) {
+		PX4_DEBUG("can't open port");
+		// Port not ready yet (e.g. USB power-only / not fully enumerated). Keep trying.
+		return;
+	}
 
 	if ((px4_ioctl(_ttyacm_fd, FIONREAD, &bytes_available) != PX4_OK) ||
 	    (bytes_available < 3)) {
 		PX4_DEBUG("bytes_available: %d", bytes_available);
-		// Return back to connecting state to check again soon
 		return;
 	}
 
@@ -263,7 +291,6 @@ void CdcAcmAutostart::state_connecting()
 
 	if (_bytes_read <= 0) {
 		PX4_DEBUG("no _bytes_read");
-		// Return back to connecting state to check again soon
 		return;
 	}
 
@@ -273,8 +300,9 @@ void CdcAcmAutostart::state_connecting()
 	baudrate = cfgetspeed(&uart_config);
 #endif
 	PX4_DEBUG("_bytes_read %d", _bytes_read);
-	px4_close(_ttyacm_fd);
-	_ttyacm_fd = -1;
+
+	// Release the probe open before starting any protocol that needs the device.
+	close_ttyacm();
 
 	// Parse for mavlink reboot command
 	if (scan_buffer_for_mavlink_reboot()) {
@@ -332,13 +360,7 @@ void CdcAcmAutostart::state_connecting()
 
 fail:
 	PX4_DEBUG("fail...");
-
-	// VBUS not present, open failed
-	if (_ttyacm_fd >= 0) {
-		px4_close(_ttyacm_fd);
-		_ttyacm_fd = -1;
-	}
-
+	close_ttyacm();
 	_state = UsbAutoStartState::disconnecting;
 }
 
@@ -346,10 +368,7 @@ void CdcAcmAutostart::state_disconnecting()
 {
 	PX4_DEBUG("state_disconnecting");
 
-	if (_ttyacm_fd > 0) {
-		px4_close(_ttyacm_fd);
-		_ttyacm_fd = -1;
-	}
+	close_ttyacm();
 
 	// Disconnect serial
 	serdis_main(0, NULL);
@@ -415,10 +434,10 @@ bool CdcAcmAutostart::scan_buffer_for_mavlink_reboot()
 bool CdcAcmAutostart::scan_buffer_for_mavlink_heartbeat()
 {
 	static constexpr int MAVLINK_HEARTBEAT_MIN_LENGTH = 9;
-	bool start_mavlink = false;
+	bool launch_mavlink = false;
 
 	if (_bytes_read < MAVLINK_HEARTBEAT_MIN_LENGTH) {
-		return start_mavlink;
+		return launch_mavlink;
 	}
 
 	// scan buffer for mavlink HEARTBEAT (v1 & v2)
@@ -432,7 +451,8 @@ bool CdcAcmAutostart::scan_buffer_for_mavlink_heartbeat()
 			//  buffer[5]: mavlink message id (0 for HEARTBEAT)
 			PX4_INFO("%s: launching mavlink (HEARTBEAT v1 from SYSID:%d COMPID:%d)",
 				 USB_DEVICE_PATH, _buffer[i + 3], _buffer[i + 4]);
-			start_mavlink = true;
+			launch_mavlink = true;
+			break;
 
 		} else if ((_buffer[i] == 0xFD) && (_buffer[i + 1] == 9)
 			   && (_buffer[i + 7] == 0) && (_buffer[i + 8] == 0) && (_buffer[i + 9] == 0)) {
@@ -444,11 +464,12 @@ bool CdcAcmAutostart::scan_buffer_for_mavlink_heartbeat()
 			//  buffer[7:9]: mavlink message id (0 for HEARTBEAT)
 			PX4_INFO("%s: launching mavlink (HEARTBEAT v2 from SYSID:%d COMPID:%d)",
 				 USB_DEVICE_PATH, _buffer[i + 5], _buffer[i + 6]);
-			start_mavlink = true;
+			launch_mavlink = true;
+			break;
 		}
 	}
 
-	return start_mavlink;
+	return launch_mavlink;
 }
 
 bool CdcAcmAutostart::scan_buffer_for_carriage_returns()
@@ -481,11 +502,12 @@ bool CdcAcmAutostart::scan_buffer_for_ublox_bytes()
 	}
 
 	// scan buffer looking for 0xb5 0x62 which indicates the start of a packet
-	for (int i = 0; i < _bytes_read; i++) {
+	for (int i = 0; i < _bytes_read - 1; i++) {
 		bool ub = _buffer[i] == 0xb5 && _buffer[i + 1] == 0x62;
 
-		if (ub && ((_buffer[i + 2 ] == 0x6 && (_buffer[i + 3 ] == 0xb8 || _buffer[i + 3 ] == 0x13)) ||
-			   (_buffer[i + 2 ] == 0xa && _buffer[i + 3 ] == 0x4))) {
+		if (ub && (i + 3) < _bytes_read &&
+		    ((_buffer[i + 2] == 0x6 && (_buffer[i + 3] == 0xb8 || _buffer[i + 3] == 0x13)) ||
+		     (_buffer[i + 2] == 0xa && _buffer[i + 3] == 0x4))) {
 			PX4_INFO("%s: launching ublox serial passthru", USB_DEVICE_PATH);
 			success = true;
 			break;
@@ -497,52 +519,53 @@ bool CdcAcmAutostart::scan_buffer_for_ublox_bytes()
 
 bool CdcAcmAutostart::start_mavlink()
 {
-	bool success = false;
-	char mavlink_mode_string[3];
+	char mavlink_mode_string[16];
 	snprintf(mavlink_mode_string, sizeof(mavlink_mode_string), "%ld", _usb_mav_mode.get());
-	static const char *argv[] {"mavlink", "start", "-d", USB_DEVICE_PATH, "-m", mavlink_mode_string, nullptr};
 
-	if (execute_process((char **)argv) > 0) {
-		success = true;
-	}
+	// Non-static argv: NuttX task_spawn copies argv into the new task stack before return.
+	char *argv[] { (char *)"mavlink", (char *)"start", (char *)"-d", (char *)USB_DEVICE_PATH,
+		       (char *)"-m", mavlink_mode_string, nullptr
+		     };
 
-	return success;
+	return execute_process(argv) > 0;
+}
+
+void CdcAcmAutostart::stop_mavlink()
+{
+	char *stop_argv[] { (char *)"mavlink", (char *)"stop", (char *)"-d", (char *)USB_DEVICE_PATH, nullptr };
+	execute_process(stop_argv);
 }
 
 bool CdcAcmAutostart::start_nsh()
 {
-	bool success = false;
-	static const char *argv[] {"nshterm", USB_DEVICE_PATH, nullptr};
-
-	if (execute_process((char **)argv) > 0) {
-		success = true;
-	}
-
-	return success;
+	char *argv[] { (char *)"nshterm", (char *)USB_DEVICE_PATH, nullptr };
+	return execute_process(argv) > 0;
 }
 
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 bool CdcAcmAutostart::start_ublox_serial_passthru(speed_t baudrate)
 {
-	bool success = false;
 	char baudstring[16];
 	snprintf(baudstring, sizeof(baudstring), "%ld", baudrate);
 
 	// Stop the GPS driver first
-	static const char *gps_argv[] {"gps", "stop", nullptr};
-	static const char *passthru_argv[] {"serial_passthru", "start", "-t", "-b", baudstring, "-e", USB_DEVICE_PATH, "-d", SERIAL_PASSTHRU_UBLOX_DEV, nullptr};
+	char *gps_argv[] { (char *)"gps", (char *)"stop", nullptr };
+	char *passthru_argv[] {
+		(char *)"serial_passthru", (char *)"start", (char *)"-t", (char *)"-b", baudstring,
+		(char *)"-e", (char *)USB_DEVICE_PATH, (char *)"-d", (char *)SERIAL_PASSTHRU_UBLOX_DEV, nullptr
+	};
 
-	if (execute_process((char **)gps_argv) > 0) {
-		if (execute_process((char **)passthru_argv) > 0) {
-			success = true;
+	if (execute_process(gps_argv) > 0) {
+		if (execute_process(passthru_argv) > 0) {
+			return true;
 		}
 	}
 
-	return success;
+	return false;
 }
 #endif
 
-int CdcAcmAutostart::execute_process(char **argv)
+int CdcAcmAutostart::execute_process(char *const *argv)
 {
 	int pid = -1;
 	sched_lock();
@@ -630,9 +653,11 @@ int CdcAcmAutostart::print_status()
 		break;
 	}
 
-	PX4_INFO("Running");
 	PX4_INFO("State: %s", state);
 	PX4_INFO("Protocol: %s", protocol);
+	PX4_INFO("VBUS: %s", _vbus_present ? "present" : "absent");
+	PX4_INFO("SYS_USB_AUTO: %ld", _sys_usb_auto.get());
+
 	return PX4_OK;
 }
 
@@ -645,10 +670,13 @@ int CdcAcmAutostart::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This module listens on USB and auto-configures the protocol depending on the bytes received.
-The supported protocols are: MAVLink, nsh, and ublox serial passthrough. If the parameter SYS_USB_AUTO=2
-the module will only try to start mavlink as long as the USB VBUS is detected. Otherwise it will spin
-and continue to check for VBUS and start mavlink once it is detected.
+Manages the USB CDC/ACM serial device (`/dev/ttyACM0`).
+
+`SYS_USB_AUTO` selects the protocol policy once USB VBUS is detected:
+- `0` Disabled: bring up the USB serial device only.
+- `1` Auto-detect: wait for host bytes and start MAVLink, nsh, or u-blox passthrough.
+- `2` MAVLink (default): start MAVLink immediately so the autopilot transmits first
+
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("cdcacm_autostart", "system");

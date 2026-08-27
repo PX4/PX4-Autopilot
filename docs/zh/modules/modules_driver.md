@@ -572,7 +572,7 @@ ina228 <command> [arguments...]
      [-a <val>]  I2C address
                  default: 69
      [-k]        if initialization (probing) fails, keep retrying periodically
-     [-t <val>]  battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
                  default: 1
 
    stop
@@ -1086,7 +1086,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
+Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
 
 ### Usage {#rgbled_usage}
 
@@ -1101,7 +1101,33 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 85
+                 default: 57
+     [-o <val>]  RGB PWM Assignment
+                 default: 123
+
+   stop
+
+   status        print status info
+```
+
+## rgbled_apa102
+
+Source: [drivers/lights/rgbled_apa102](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_apa102)
+
+### Usage {#rgbled_apa102_usage}
+
+```
+rgbled_apa102 <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es)
+     [-S]        External SPI bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
 
    stop
 

@@ -470,6 +470,14 @@ param <command> [arguments...]
      <param_name> <value> Parameter name and value to set
      [fail]      If provided, let the command fail if param is not found
 
+   bitset        Set bits of an int32 parameter (param |= mask)
+     <param_name> <mask> Parameter name and bitmask (decimal or 0x hex)
+     [fail]      If provided, let the command fail if param is not found
+
+   bitclear      Clear bits of an int32 parameter (param &= ~mask)
+     <param_name> <mask> Parameter name and bitmask (decimal or 0x hex)
+     [fail]      If provided, let the command fail if param is not found
+
    set-default   Set parameter default to a value
      [-s]        If provided, silent errors if parameter doesn't exists
      <param_name> <value> Parameter name and value to set
@@ -719,4 +727,9 @@ ver <command> [arguments...]
    hwbasecmp     Compare hardware base (returns 0 on match)
      <hwbase> [<hwbase2>] Hardware type to compare against (eg. V2). An OR
                  comparison is used if multiple are specified
+
+   hwpopcmp      Compare HW population option (returns 0 on match)
+     <value> [<value2>] Hex population option value(s) to compare against (eg.
+                 06, cafe, ffff). An OR comparison is used if multiple are
+                 specified
 ```

@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "FailureInjectionManager.hpp"
+#include "FailureStrings.hpp"
 
 #include <cmath>
 
@@ -127,14 +128,24 @@ void FailureInjectionManager::evaluateRcInjection()
 		const bool triggered = value > 0.5f;
 
 		if (triggered && !_rc_active) {
+			const int32_t raw = _param_sys_fail_rc_inst.get();
 			_rc_active_unit = static_cast<uint8_t>(_param_sys_fail_rc_unit.get());
-			_rc_active_instance = static_cast<uint8_t>(_param_sys_fail_rc_inst.get());
+			// SYS_FAIL_RC_INST is an instance bitmask (bit 0 = instance 1); 0 = all instances.
+			_rc_active_mask = (raw == 0) ? 0xFFFF : static_cast<uint16_t>(raw);
 			_rc_active = true;
 
-			_table.inject(_rc_active_unit, static_cast<uint8_t>(_param_sys_fail_rc_mode.get()), _rc_active_instance);
+			const uint8_t type = static_cast<uint8_t>(_param_sys_fail_rc_mode.get());
+
+			if (_table.injectMask(_rc_active_unit, type, _rc_active_mask) == failure_injection::FailureTable::AckResult::Accepted) {
+				announceFailure(_rc_active_unit, type, _rc_active_mask);
+			}
 
 		} else if (!triggered && _rc_active) {
-			_table.inject(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK, _rc_active_instance);
+			if (_table.injectMask(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK,
+					      _rc_active_mask) == failure_injection::FailureTable::AckResult::Accepted) {
+				announceFailure(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK, _rc_active_mask);
+			}
+
 			_rc_active = false;
 		}
 	}
@@ -145,14 +156,19 @@ void FailureInjectionManager::handleCommand(const vehicle_command_s &cmd)
 	const uint8_t unit = static_cast<uint8_t>(lroundf(cmd.param1));
 	const uint8_t type = static_cast<uint8_t>(lroundf(cmd.param2));
 
-	failure_injection::FailureTable::AckResult ack;
+	uint16_t mask;
 
 	if (PX4_ISFINITE(cmd.param3)) {
-		ack = _table.inject(unit, type, static_cast<uint8_t>(lroundf(cmd.param3)));
+		mask = failure_injection::FailureTable::instanceToMask(static_cast<uint8_t>(lroundf(cmd.param3)));
 
 	} else {
-		const uint16_t mask = PX4_ISFINITE(cmd.param4) ? static_cast<uint16_t>(lroundf(cmd.param4)) : 0;
-		ack = _table.injectMask(unit, type, mask);
+		mask = PX4_ISFINITE(cmd.param4) ? static_cast<uint16_t>(lroundf(cmd.param4)) : 0;
+	}
+
+	const failure_injection::FailureTable::AckResult ack = _table.injectMask(unit, type, mask);
+
+	if (ack == failure_injection::FailureTable::AckResult::Accepted && mask != 0) {
+		announceFailure(unit, type, mask);
 	}
 
 	uint8_t result;
@@ -173,6 +189,21 @@ void FailureInjectionManager::handleCommand(const vehicle_command_s &cmd)
 	}
 
 	publishAck(cmd, result);
+}
+
+void FailureInjectionManager::announceFailure(uint8_t unit, uint8_t type, uint16_t mask)
+{
+	char phrase[64];
+	failure_injection::instancePhrase(mask, phrase, sizeof(phrase));
+
+	if (type == failure_injection_s::FAILURE_TYPE_OK) {
+		mavlink_log_warning(&_mavlink_log_pub, "Cleared: %s, %s",
+				    failure_injection::unitName(unit), phrase);
+
+	} else {
+		mavlink_log_warning(&_mavlink_log_pub, "Injected: %s %s, %s",
+				    failure_injection::unitName(unit), failure_injection::typeName(type), phrase);
+	}
 }
 
 void FailureInjectionManager::publishAck(const vehicle_command_s &cmd, uint8_t result)

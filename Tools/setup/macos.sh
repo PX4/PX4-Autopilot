@@ -8,6 +8,11 @@
 ##	- Cross compilers for building hardware targets using NuttX
 ##	- With --sim-tools: Gazebo Harmonic and jMAVSim simulation stack
 ##
+## --ci trades freshness for reproducibility and is meant for automation,
+## not development machines. Today it pins the osrf/simulation tap to
+## gz-tap-pin.txt so Gazebo installs from bottles even while OSRF has
+## them pulled.
+##
 ## Homebrew 4.5+ no longer auto-resolves cross-tap dependencies, so
 ## every tap and package is listed explicitly here rather than hidden
 ## behind meta-formulae. See PX4/homebrew-px4#104 for background.
@@ -20,6 +25,8 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 REINSTALL_FORMULAS=""
 # Install simulation tools?
 INSTALL_SIM=""
+# Favour reproducibility over freshness (automation, not dev machines)?
+CI_MODE=""
 
 # Parse arguments
 for arg in "$@"
@@ -28,6 +35,8 @@ do
 		REINSTALL_FORMULAS=$arg
 	elif [[ $arg == "--sim-tools" ]]; then
 		INSTALL_SIM=$arg
+	elif [[ $arg == "--ci" ]]; then
+		CI_MODE=$arg
 	fi
 done
 
@@ -40,16 +49,25 @@ then
 	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 fi
 
+# discoteq/discoteq used to be the only source of flock (required by the
+# NuttX apps archive step), but homebrew/core now carries the identical
+# formula (same upstream, same version). Drop the old tap so `flock`
+# resolves unambiguously from homebrew/core instead of erroring with
+# "installed from the discoteq/discoteq tap but you are trying to install
+# it from homebrew/core" on machines that still have it tapped.
+if brew tap | grep -q '^discoteq/discoteq$'; then
+	brew uninstall flock 2>/dev/null
+	brew untap discoteq/discoteq
+fi
+
 # Required taps. Homebrew 4.5+ no longer auto-resolves cross-tap
 # dependencies, so every tap that a package lives in must be added
 # explicitly here before `brew install`.
 #
 # - osx-cross/arm: arm-gcc-bin@13 (ARM cross-compiler)
 # - PX4/px4:       fastdds, genromfs, kconfig-frontends (PX4-specific)
-# - discoteq/discoteq: flock (required by NuttX apps archive step)
 brew tap osx-cross/arm
 brew tap PX4/px4
-brew tap discoteq/discoteq
 
 # Homebrew 6.0+ refuses to load formulae from third-party taps unless they
 # are explicitly trusted ("Refusing to load formula ... from untrusted tap").
@@ -60,7 +78,6 @@ brew tap discoteq/discoteq
 if brew trust --help &> /dev/null; then
 	brew trust osx-cross/arm
 	brew trust PX4/px4
-	brew trust discoteq/discoteq
 fi
 
 # Package list. This replaces the px4-dev meta-formula, which is kept
@@ -121,6 +138,32 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	# osrf/simulation: gz-harmonic (Gazebo Harmonic meta-formula)
 	brew tap osrf/simulation
 
+	# Under --ci only: OSRF drops the gz bottle blocks within minutes of a
+	# breaking homebrew-core dependency bump and rebuilds them days later,
+	# so an unpinned tap compiles Gazebo from source for a large part of
+	# the year. Development machines keep tracking the tap normally, and
+	# get the newer formulae at the cost of that build. See gz-tap-pin.txt.
+	GZ_TAP_PIN=""
+	if [[ -n $CI_MODE ]]; then
+		GZ_TAP_PIN=$(grep -v '^#' "${DIR}/gz-tap-pin.txt" | tr -d '[:space:]')
+	fi
+	if [[ -n $GZ_TAP_PIN ]]; then
+		GZ_TAP_DIR=$(brew --repo osrf/simulation)
+		echo "[macos.sh] Pinning osrf/simulation to ${GZ_TAP_PIN}"
+		# brew taps are shallow clones, so the pinned commit has to be
+		# fetched by SHA before it can be checked out.
+		git -C "$GZ_TAP_DIR" fetch --quiet origin "$GZ_TAP_PIN" 2>/dev/null
+		if git -C "$GZ_TAP_DIR" checkout --quiet "$GZ_TAP_PIN"; then
+			# `brew update` walks local taps and would reset the pin.
+			# homebrew-core resolves through the JSON API, not this
+			# clone, so nothing else goes stale.
+			export HOMEBREW_NO_AUTO_UPDATE=1
+		else
+			echo "[macos.sh] WARNING: could not pin osrf/simulation to ${GZ_TAP_PIN}," \
+				"continuing on tap HEAD (gz may build from source)"
+		fi
+	fi
+
 	# Homebrew 6.0+ refuses to load formulae from untrusted third-party
 	# taps (see the toolchain trust block above). Without this, the
 	# gz-harmonic install aborts and the script still exits successfully,
@@ -129,12 +172,14 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		brew trust osrf/simulation
 	fi
 
+	# opencv@4: the unversioned formula is OpenCV 5, which PX4-OpticalFlow
+	# does not build against.
 	PX4_SIM_BREW_PACKAGES=(
 		exiftool
 		glog
 		graphviz
 		gstreamer
-		opencv
+		opencv@4
 		osrf/simulation/gz-harmonic
 		protobuf
 	)

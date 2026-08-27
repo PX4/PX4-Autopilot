@@ -56,8 +56,10 @@ If camera capture is enabled, then trigger information from the camera capture p
 otherwise trigger information at the point the camera was commanded to trigger is published
 (from the `camera_trigger` module).
 
-The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates.
-`CameraCapture` topics are also logged and can be used for geotagging.
+The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates,
+unless `CAM_CAP_REPORT` is disabled (for cameras that report captures themselves, e.g. cameras
+implementing the MAVLink Camera Protocol). `CameraCapture` topics are always logged and can be used
+for geotagging regardless.
 
 ### Імплементація
 
@@ -88,10 +90,13 @@ Source: [drivers/cdcacm_autostart](https://github.com/PX4/PX4-Autopilot/tree/mai
 
 ### Опис
 
-This module listens on USB and auto-configures the protocol depending on the bytes received.
-The supported protocols are: MAVLink, nsh, and ublox serial passthrough. If the parameter SYS_USB_AUTO=2
-the module will only try to start mavlink as long as the USB VBUS is detected. Otherwise it will spin
-and continue to check for VBUS and start mavlink once it is detected.
+Manages the USB CDC/ACM serial device (`/dev/ttyACM0`).
+
+`SYS_USB_AUTO` selects the protocol policy once USB VBUS is detected:
+
+- `0` Disabled: bring up the USB serial device only.
+- `1` Auto-detect: wait for host bytes and start MAVLink, nsh, or u-blox passthrough.
+- `2` MAVLink (default): start MAVLink immediately so the autopilot transmits first
 
 ### Usage {#cdcacm_autostart_usage}
 
@@ -704,6 +709,27 @@ netman <command> [arguments...]
    save          Save the current network parameters to the SD card.
      [-i <val>]  Set the interface name
                  default: eth0
+```
+
+## nfs_mount
+
+Source: [modules/nfs_mount](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/nfs_mount)
+
+### Опис
+
+Mounts an NFS filesystem from NFS_IP on NFS_MOUNT_MOUNT_POINT.
+Started automatically by rcS when NFS_EN is set.
+
+### Usage {#nfs_mount_usage}
+
+```
+nfs_mount <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
 ```
 
 ## pwm_input

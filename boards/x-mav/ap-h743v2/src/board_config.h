@@ -107,8 +107,6 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
-
 
 /* Spare GPIO */
 #define GPIO_PA4                       	/* PA4 */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN4)

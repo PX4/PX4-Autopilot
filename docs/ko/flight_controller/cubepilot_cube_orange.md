@@ -5,7 +5,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or compliance issues.
 :::
 
-The [Cube Orange](https://www.cubepilot.com/#/cube/features) flight controller is a flexible autopilot intended primarily for manufacturers of commercial systems.
+The [Cube Orange](https://cubepilot.org/#/cube/features) flight controller is a flexible autopilot intended primarily for manufacturers of commercial systems.
 
 ![Cube Orange](../../assets/flight_controller/cube/orange/cube_orange_hero.jpg)
 
@@ -19,7 +19,7 @@ This is automatically configured and enabled in the default PX4 firmware.
 Cube에는 2 개의 IMU에 진동 차단이 포함되어 있으며, 세 번째 고정 IMU는 참조 백업용으로 사용됩니다.
 
 :::tip
-The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube/introduction/specifications).
+The manufacturer [Cube User Guide](https://docs.cubepilot.org/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/autopilot/the-cube/introduction/specifications).
 :::
 
 :::info
@@ -42,7 +42,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-- [Reseller list](https://www.cubepilot.com/#/reseller/list)
+- [Reseller list](https://cubepilot.org/#/reseller/list)
 
 ## 조립
 
@@ -246,5 +246,5 @@ Board schematics and other documentation can be found here: [The Cube Project](h
 
 - [Cube Wiring Quickstart](../assembly/quick_start_cube.md)
 - Cube 문서 (제조사) :
-  - [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube)
-  - [Mini Carrier Board](https://docs.cubepilot.org/user-guides/carrier-boards/mini-carrier-board)
+  - [Cube User Guide](https://docs.cubepilot.org/autopilot/the-cube)
+  - [Mini Carrier Board](https://docs.cubepilot.org/carrier-boards/mini-carrier-board)

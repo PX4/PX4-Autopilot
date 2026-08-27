@@ -35,7 +35,9 @@
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 
+#include <parameters/param.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_gps.h>
 
 namespace failure_injection
 {
@@ -72,7 +74,7 @@ Mode Config::mode(uint8_t unit, uint8_t instance) const
 
 		// instance == 0 matches any instance of the unit; otherwise match the
 		// 1-based instance against the bitmask (0xFFFF covers all instances).
-		if (instance == 0 || (_instance_mask[i] & (1u << (instance - 1)))) {
+		if (instance == 0 || (instance <= 16 && (_instance_mask[i] & (1u << (instance - 1))))) {
 			return _failure_type[i];
 		}
 	}
@@ -80,15 +82,122 @@ Mode Config::mode(uint8_t unit, uint8_t instance) const
 	return Mode::Ok;
 }
 
-void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status)
+bool process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status)
 {
-	if (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY, instance) != Mode::Off) {
-		return;
+	const Mode mode = config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY, instance);
+	static constexpr float trigger_margin = 0.01f; // report remaining charge just below the threshold
+
+	if (mode == Mode::Off) {
+		// Suppress the publication so the pack reads disconnected.
+		return false;
 	}
 
-	// Report a depleted pack so the low-battery failsafe triggers.
-	battery_status.remaining = 0.f;
-	battery_status.warning = battery_status_s::WARNING_EMERGENCY;
+	if (mode != Mode::Wrong) {
+		return true;
+	}
+
+	static const param_t level_handle = param_find("SYS_FAIL_BAT_LVL");
+	static const param_t low_thr_handle = param_find("BAT_LOW_THR");
+	static const param_t crit_thr_handle = param_find("BAT_CRIT_THR");
+	static const param_t emergen_thr_handle = param_find("BAT_EMERGEN_THR");
+
+	int32_t level = battery_status_s::WARNING_CRITICAL;
+	param_get(level_handle, &level);
+
+	param_t threshold_handle = crit_thr_handle;
+
+	switch (level) {
+	case battery_status_s::WARNING_LOW:
+		threshold_handle = low_thr_handle;
+		break;
+
+	case battery_status_s::WARNING_EMERGENCY:
+		threshold_handle = emergen_thr_handle;
+		break;
+
+	case battery_status_s::WARNING_CRITICAL:
+	default:
+		level = battery_status_s::WARNING_CRITICAL;
+		threshold_handle = crit_thr_handle;
+		break;
+	}
+
+	battery_status.warning = level;
+
+
+	// Report the remaining charge just below the selected threshold so the
+	// matching stage of the low-battery failsafe triggers.
+	float threshold = 0.f;
+	param_get(threshold_handle, &threshold);
+	battery_status.remaining = (threshold > trigger_margin) ? (threshold - trigger_margin) : 0.f;
+
+	return true;
+}
+
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sensor_gps,
+		  Stuck<sensor_gps_s> &stuck)
+{
+	const Mode mode = config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, uorb_instance + 1);
+
+	// Off and Stuck are message-agnostic; run them first so the Stuck cache keeps the
+	// uncorrupted sample and a later Stuck replays a healthy fix.
+	if (!process(mode, sensor_gps, stuck)) {
+		return false;
+	}
+
+	if (mode == Mode::Wrong) {
+		static const param_t fix_type_handle = param_find("SYS_FAIL_GPS_WRG");
+
+		int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
+		param_get(fix_type_handle, &fix_type);
+		sensor_gps.fix_type = (uint8_t)fix_type;
+
+		static const param_t jamming_state_handle = param_find("SYS_FAIL_GPS_JAM");
+
+		int32_t jamming_state = sensor_gps_s::JAMMING_STATE_UNKNOWN;
+		param_get(jamming_state_handle, &jamming_state);
+
+		if (jamming_state != sensor_gps_s::JAMMING_STATE_UNKNOWN) {
+			sensor_gps.jamming_state = (uint8_t)jamming_state;
+		}
+	}
+
+	return true;
+}
+
+esc_status_s process_esc(const Config &config, const esc_status_s &status)
+{
+	esc_status_s result = status;
+
+	for (int i = 0; i < result.esc_count && i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+		const uint8_t function = result.esc[i].actuator_function;
+
+		if (function < esc_report_s::ACTUATOR_FUNCTION_MOTOR1 || function > esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX) {
+			continue; // not a motor output
+		}
+
+		const uint8_t instance = function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 1; // 1-based ESC instance
+
+		switch (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_ESC, instance)) {
+		case Mode::Off:
+			result.esc_online_flags &= ~(1u << i);
+			result.esc_armed_flags &= ~(1u << i);
+			result.esc[i] = esc_report_s{};
+			result.esc[i].actuator_function = function;
+			break;
+
+		case Mode::Wrong:
+			result.esc[i].esc_voltage *= 0.1f;
+			result.esc[i].esc_current *= 0.1f;
+			result.esc[i].esc_rpm *= 10;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return result;
 }
 
 } // namespace failure_injection

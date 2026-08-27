@@ -406,6 +406,7 @@ public:
 
 	const GnssChecks::gps_check_fail_status_u &gps_check_fail_status() const { return _gnss_checks.getFailStatus(); }
 	const decltype(GnssChecks::gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gnss_checks.getFailStatus().flags; }
+	uint16_t gps_check_fail_status_enabled_mask() const { return _gnss_checks.getEnabledChecksFailStatusMask(); }
 
 	bool gps_checks_passed() const { return _gnss_checks.passed(); };
 
@@ -754,6 +755,8 @@ private:
 
 	// fuse body frame drag specific forces for multi-rotor wind estimation
 	void fuseDrag(const dragSample &drag_sample);
+
+	Vector3f getRelativeWindBody() const;
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	void resetVelocityTo(const Vector3f &vel, const Vector3f &new_vel_var);
@@ -774,6 +777,7 @@ private:
 	void resetHorizontalPositionTo(const Vector2f &new_pos, const Vector2f &new_horz_pos_var);
 
 	Vector2f getLocalHorizontalPosition() const;
+	LatLonAlt localToGlobalPosition(const Vector2f &pos_ne) const;
 
 	Vector2f computeDeltaHorizontalPosition(const double &new_latitude, const double &new_longitude) const;
 	void updateHorizontalPositionResetStatus(const Vector2f &delta);
@@ -792,7 +796,9 @@ private:
 					     const float observation, const float observation_variance, const float innovation_gate = 1.f) const;
 
 	// horizontal and vertical position fusion
+	bool fuseHorizontalPositionCore(estimator_aid_source2d_s &pos_aid_src);
 	bool fuseHorizontalPosition(estimator_aid_source2d_s &pos_aid_src);
+	bool fuseFakeHorizontalPosition(estimator_aid_source2d_s &pos_aid_src);
 	bool fuseVerticalPosition(estimator_aid_source1d_s &hgt_aid_src);
 
 	// 2d & 3d velocity fusion

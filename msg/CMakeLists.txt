@@ -147,6 +147,7 @@ set(msg_files
 	NavigatorMissionItem.msg
 	NavigatorStatus.msg
 	NeuralControl.msg
+	NfsUp.msg
 	NormalizedUnsignedSetpoint.msg
 	ObstacleDistance.msg
 	OffboardControlMode.msg
@@ -228,6 +229,7 @@ set(msg_files
 	TrajectorySetpoint6dof.msg
 	TransponderReport.msg
 	TuneControl.msg
+	UavcanFirmwareUpdate.msg
 	UavcanParameterRequest.msg
 	UavcanParameterValue.msg
 	UlogStream.msg

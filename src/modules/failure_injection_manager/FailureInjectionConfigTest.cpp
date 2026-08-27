@@ -39,7 +39,10 @@
 #include <gtest/gtest.h>
 
 #include <lib/failure_injection/FailureInjection.hpp>
+#include <parameters/param.h>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_gps.h>
 
 // FailureInjection.hpp transitively pulls in px4_platform_common/defines.h (via
 // uORB Subscription), which defines an OK macro that would clash with the local
@@ -76,9 +79,34 @@ failure_injection_s make_config(uint8_t unit, uint16_t instance_mask, uint8_t fa
 	return cfg;
 }
 
+// Healthy 3D-fix sample, as a GNSS driver would publish it.
+sensor_gps_s clean_gps()
+{
+	sensor_gps_s gps{};
+	gps.timestamp = 1000;
+	gps.timestamp_sample = 900;
+	gps.fix_type = sensor_gps_s::FIX_TYPE_3D;
+	gps.latitude_deg = 47.0;
+	gps.longitude_deg = 8.0;
+	gps.altitude_msl_m = 500.0;
+	gps.altitude_ellipsoid_m = 500.0;
+	gps.eph = 0.9f;
+	gps.epv = 1.78f;
+	gps.satellites_used = 25;
+	gps.vel_n_m_s = 1.f;
+	gps.vel_e_m_s = 2.f;
+	gps.vel_d_m_s = 0.5f;
+	gps.vel_m_s = 2.236f;
+	gps.vel_ned_valid = true;
+	return gps;
+}
+
 constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
 constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
+constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
+constexpr uint8_t BATTERY = failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY;
+constexpr uint8_t TRAFFIC = failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE;
 
 constexpr uint8_t OK    = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF   = failure_injection_s::FAILURE_TYPE_OFF;
@@ -266,4 +294,306 @@ TEST(FailureInjectionConfig, ProcessMessageLessSuppressesOnlyOff)
 	// Convenience overload maps the 0-based uORB instance to the 1-based failure instance.
 	EXPECT_FALSE(process(config, GYRO, 1));
 	EXPECT_TRUE(process(config, GYRO, 0));
+}
+
+// ===========================================================================
+// process_gnss()
+// ===========================================================================
+
+TEST(FailureInjectionConfig, ProcessGnssWrongSetsConfiguredFixType)
+{
+	// The test runner has no work queue for the autosave param_set would schedule.
+	param_control_autosave(false);
+
+	Config config;
+	config.set(make_config(GPS, 0x1, WRONG)); // uORB instance 0 -> failure instance 1
+
+	const int32_t fix_types[] = {
+		sensor_gps_s::FIX_TYPE_2D,
+		sensor_gps_s::FIX_TYPE_NONE,
+		sensor_gps_s::FIX_TYPE_RTK_FLOAT,
+		sensor_gps_s::FIX_TYPE_RTK_FIXED,
+	};
+
+	for (const int32_t expected : fix_types) {
+		ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &expected), 0);
+
+		Stuck<sensor_gps_s> stuck;
+		sensor_gps_s gps = clean_gps();
+
+		EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
+		EXPECT_EQ(gps.fix_type, (uint8_t)expected);
+	}
+
+	const int32_t default_fix_type = sensor_gps_s::FIX_TYPE_2D;
+	param_set(param_find("SYS_FAIL_GPS_WRG"), &default_fix_type);
+}
+
+TEST(FailureInjectionConfig, ProcessGnssWrongLeavesPositionUntouched)
+{
+	param_control_autosave(false);
+
+	const int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &fix_type), 0);
+
+	Config config;
+	config.set(make_config(GPS, 0x1, WRONG));
+
+	Stuck<sensor_gps_s> stuck;
+	const sensor_gps_s truth = clean_gps();
+	sensor_gps_s gps = truth;
+
+	EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
+
+	// Only the fix type changes: the reported solution stays coherent with the truth.
+	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_2D);
+	EXPECT_DOUBLE_EQ(gps.latitude_deg, truth.latitude_deg);
+	EXPECT_DOUBLE_EQ(gps.longitude_deg, truth.longitude_deg);
+	EXPECT_DOUBLE_EQ(gps.altitude_msl_m, truth.altitude_msl_m);
+	EXPECT_DOUBLE_EQ(gps.altitude_ellipsoid_m, truth.altitude_ellipsoid_m);
+	EXPECT_FLOAT_EQ(gps.vel_n_m_s, truth.vel_n_m_s);
+	EXPECT_FLOAT_EQ(gps.vel_e_m_s, truth.vel_e_m_s);
+	EXPECT_FLOAT_EQ(gps.vel_d_m_s, truth.vel_d_m_s);
+	EXPECT_FLOAT_EQ(gps.vel_m_s, truth.vel_m_s);
+	EXPECT_FLOAT_EQ(gps.eph, truth.eph);
+	EXPECT_EQ(gps.satellites_used, truth.satellites_used);
+}
+
+TEST(FailureInjectionConfig, ProcessGnssWrongLeavesUnselectedInstanceUntouched)
+{
+	param_control_autosave(false);
+
+	const int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &fix_type), 0);
+
+	Config config;
+	config.set(make_config(GPS, 0x2, WRONG)); // failure instance 2 -> uORB instance 1
+
+	Stuck<sensor_gps_s> stuck;
+	sensor_gps_s gps = clean_gps();
+
+	EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
+	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_3D);
+
+	// The addressed instance is degraded.
+	Stuck<sensor_gps_s> stuck_1;
+	sensor_gps_s gps_1 = clean_gps();
+
+	EXPECT_TRUE(process_gnss(config, 1, gps_1, stuck_1));
+	EXPECT_EQ(gps_1.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_2D);
+}
+
+TEST(FailureInjectionConfig, ProcessGnssOffSuppressesPublication)
+{
+	Config config;
+	config.set(make_config(GPS, 0x1, OFF));
+
+	Stuck<sensor_gps_s> stuck;
+	sensor_gps_s gps = clean_gps();
+
+	EXPECT_FALSE(process_gnss(config, 0, gps, stuck));
+	// Off suppresses instead of mutating.
+	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_3D);
+}
+
+TEST(FailureInjectionConfig, ProcessGnssStuckReplaysLastGoodSample)
+{
+	Config config;
+	Stuck<sensor_gps_s> stuck;
+
+	// A healthy cycle records the last good sample.
+	sensor_gps_s good = clean_gps();
+	EXPECT_TRUE(process_gnss(config, 0, good, stuck));
+
+	config.set(make_config(GPS, 0x1, STUCK));
+
+	sensor_gps_s moved = clean_gps();
+	moved.timestamp = 2000;
+	moved.timestamp_sample = 1900;
+	moved.latitude_deg = 48.0;
+	moved.longitude_deg = 9.0;
+
+	EXPECT_TRUE(process_gnss(config, 0, moved, stuck));
+
+	// The frozen position comes back, with the live timestamps.
+	EXPECT_DOUBLE_EQ(moved.latitude_deg, good.latitude_deg);
+	EXPECT_DOUBLE_EQ(moved.longitude_deg, good.longitude_deg);
+	EXPECT_EQ(moved.timestamp, 2000u);
+	EXPECT_EQ(moved.timestamp_sample, 1900u);
+}
+
+// ===========================================================================
+// process_esc(): ESC Off / Wrong on the multi-instance esc_status
+// ===========================================================================
+
+namespace
+{
+
+esc_status_s make_esc_status(uint8_t num_motors)
+{
+	esc_status_s status{};
+	status.esc_count = num_motors;
+	status.esc_online_flags = (1u << num_motors) - 1; // all online
+
+	for (uint8_t i = 0; i < num_motors; i++) {
+		status.esc[i].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + i;
+		status.esc[i].timestamp = 1000;
+		status.esc[i].esc_voltage = 16.f;
+		status.esc[i].esc_current = 5.f;
+		status.esc[i].esc_rpm = 4000;
+	}
+
+	return status;
+}
+
+} // namespace
+
+TEST(FailureInjectionConfig, ProcessEscOffReportsOffline)
+{
+	Config config;
+	config.set(make_config(ESC, 0x1, OFF)); // ESC 1
+
+	esc_status_s status = make_esc_status(4);
+	status = process_esc(config, status);
+
+	EXPECT_EQ(status.esc_online_flags & 0x1u, 0u);   // motor 1 reported offline
+	EXPECT_EQ(status.esc_online_flags & 0xEu, 0xEu); // motors 2-4 untouched
+}
+
+TEST(FailureInjectionConfig, ProcessEscMapsByActuatorFunction)
+{
+	// Motor 3 sits on ESC slot 0; failing motor 3 must take slot 0 offline.
+	Config config;
+	config.set(make_config(ESC, 0x4, OFF)); // ESC 3 -> instance bit (3 - 1)
+
+	esc_status_s status{};
+	status.esc_count = 1;
+	status.esc_online_flags = 0x1;
+	status.esc[0].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 2; // Motor 3
+
+	status = process_esc(config, status);
+
+	EXPECT_EQ(status.esc_online_flags & 0x1u, 0u);
+}
+
+TEST(FailureInjectionConfig, ProcessEscWrongScalesTelemetryButStaysOnline)
+{
+	Config config;
+	config.set(make_config(ESC, 0x1, WRONG)); // ESC 1
+
+	esc_status_s status = make_esc_status(4);
+	status = process_esc(config, status);
+
+	EXPECT_EQ(status.esc_online_flags & 0xFu, 0xFu);  // all still online
+	EXPECT_FLOAT_EQ(status.esc[0].esc_voltage, 1.6f); // 16 * 0.1
+	EXPECT_FLOAT_EQ(status.esc[0].esc_current, 0.5f); // 5 * 0.1
+	EXPECT_EQ(status.esc[0].esc_rpm, 40000);          // 4000 * 10
+	EXPECT_FLOAT_EQ(status.esc[1].esc_voltage, 16.f); // other ESCs untouched
+}
+
+// ===========================================================================
+// Traffic avoidance (ADS-B): OFF-only, message-less consumers
+// ===========================================================================
+
+TEST(FailureInjectionConfig, TrafficOffSuppressesAtBothConsumers)
+{
+	Config config;
+	config.set(make_config(TRAFFIC, 0xFFFF, OFF));
+
+	// Both consumers (MavlinkReceiver ADS-B ingestion, DetectAndAvoid queue drain)
+	// and the ADS-B/FLARM heartbeat check call the message-less overload with
+	// uORB instance 0, which maps to failure instance 1.
+	EXPECT_FALSE(process(config, TRAFFIC, 0));
+	EXPECT_EQ(config.mode(TRAFFIC, 1), Mode::Off);
+}
+
+TEST(FailureInjectionConfig, TrafficOkLetsReportsThrough)
+{
+	Config config;
+	EXPECT_TRUE(process(config, TRAFFIC, 0));
+
+	config.set(make_config(TRAFFIC, 0xFFFF, OK));
+	EXPECT_TRUE(process(config, TRAFFIC, 0));
+	EXPECT_EQ(config.mode(TRAFFIC, 1), Mode::Ok);
+}
+
+TEST(FailureInjectionConfig, TrafficOffLeavesOtherUnitsUntouched)
+{
+	Config config;
+	config.set(make_config(TRAFFIC, 0xFFFF, OFF));
+
+	EXPECT_EQ(config.mode(GYRO, 1), Mode::Ok);
+	EXPECT_TRUE(process(config, GYRO, 0));
+}
+
+// ===========================================================================
+// process_battery(): SYS_FAIL_BAT_LVL severity mapping
+// ===========================================================================
+
+TEST(FailureInjectionConfig, ProcessBatteryWrongMapsSeverityToWarning)
+{
+	// The test runner has no work queue for the autosave param_set would schedule.
+	param_control_autosave(false);
+
+	Config config;
+	config.set(make_config(BATTERY, 0x1, WRONG));
+
+	const struct {
+		int32_t level;
+		uint8_t expected_warning;
+		const char *threshold_param;
+	} cases[] = {
+		{1, battery_status_s::WARNING_LOW, "BAT_LOW_THR"},
+		{2, battery_status_s::WARNING_CRITICAL, "BAT_CRIT_THR"},
+		{3, battery_status_s::WARNING_EMERGENCY, "BAT_EMERGEN_THR"},
+		{99, battery_status_s::WARNING_CRITICAL, "BAT_CRIT_THR"}, // out of range falls back to the default
+	};
+
+	for (const auto &c : cases) {
+		ASSERT_EQ(param_set(param_find("SYS_FAIL_BAT_LVL"), &c.level), 0);
+
+		float threshold{};
+		ASSERT_EQ(param_get(param_find(c.threshold_param), &threshold), 0);
+
+		battery_status_s status{};
+		status.remaining = 0.8f;
+		status.warning = battery_status_s::WARNING_NONE;
+
+		EXPECT_TRUE(process_battery(config, 1, status));
+		EXPECT_EQ(status.warning, c.expected_warning);
+		EXPECT_FLOAT_EQ(status.remaining, (threshold > 0.01f) ? (threshold - 0.01f) : 0.f);
+		EXPECT_LT(status.remaining, threshold);
+	}
+
+	const int32_t default_level = battery_status_s::WARNING_CRITICAL;
+	param_set(param_find("SYS_FAIL_BAT_LVL"), &default_level);
+}
+
+TEST(FailureInjectionConfig, ProcessBatteryOffSuppressesPublication)
+{
+	Config config;
+	config.set(make_config(BATTERY, 0x1, OFF));
+
+	battery_status_s status{};
+	status.remaining = 0.8f;
+	status.warning = battery_status_s::WARNING_NONE;
+
+	EXPECT_FALSE(process_battery(config, 1, status));
+	// Off suppresses instead of mutating.
+	EXPECT_FLOAT_EQ(status.remaining, 0.8f);
+	EXPECT_EQ(status.warning, battery_status_s::WARNING_NONE);
+}
+
+TEST(FailureInjectionConfig, ProcessBatteryLeavesUnselectedInstanceUntouched)
+{
+	Config config;
+	config.set(make_config(BATTERY, 0x2, WRONG)); // instance 2 only
+
+	battery_status_s status{};
+	status.remaining = 0.8f;
+	status.warning = battery_status_s::WARNING_NONE;
+
+	EXPECT_TRUE(process_battery(config, 1, status));
+	EXPECT_FLOAT_EQ(status.remaining, 0.8f);
+	EXPECT_EQ(status.warning, battery_status_s::WARNING_NONE);
 }

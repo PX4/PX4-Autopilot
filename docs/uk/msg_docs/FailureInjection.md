@@ -29,24 +29,25 @@ vehicle_command cannot propagate to the consumers applying the failures.
 
 Used in field(s): [unit](#fld_unit)
 
-| Назва                                                                                                                                                                     | Тип     | Значення | Опис |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ---- |
-| <a id="#FAILURE_UNIT_SENSOR_GYRO"></a> FAILURE_UNIT_SENSOR_GYRO                                            | `uint8` | 0        |      |
-| <a id="#FAILURE_UNIT_SENSOR_ACCEL"></a> FAILURE_UNIT_SENSOR_ACCEL                                          | `uint8` | 1        |      |
-| <a id="#FAILURE_UNIT_SENSOR_MAG"></a> FAILURE_UNIT_SENSOR_MAG                                              | `uint8` | 2        |      |
-| <a id="#FAILURE_UNIT_SENSOR_BARO"></a> FAILURE_UNIT_SENSOR_BARO                                            | `uint8` | 3        |      |
-| <a id="#FAILURE_UNIT_SENSOR_GPS"></a> FAILURE_UNIT_SENSOR_GPS                                              | `uint8` | 4        |      |
-| <a id="#FAILURE_UNIT_SENSOR_OPTICAL_FLOW"></a> FAILURE_UNIT_SENSOR_OPTICAL_FLOW       | `uint8` | 5        |      |
-| <a id="#FAILURE_UNIT_SENSOR_VIO"></a> FAILURE_UNIT_SENSOR_VIO                                              | `uint8` | 6        |      |
-| <a id="#FAILURE_UNIT_SENSOR_DISTANCE_SENSOR"></a> FAILURE_UNIT_SENSOR_DISTANCE_SENSOR | `uint8` | 7        |      |
-| <a id="#FAILURE_UNIT_SENSOR_AIRSPEED"></a> FAILURE_UNIT_SENSOR_AIRSPEED                                    | `uint8` | 8        |      |
-| <a id="#FAILURE_UNIT_SYSTEM_BATTERY"></a> FAILURE_UNIT_SYSTEM_BATTERY                                      | `uint8` | 100      |      |
-| <a id="#FAILURE_UNIT_SYSTEM_MOTOR"></a> FAILURE_UNIT_SYSTEM_MOTOR                                          | `uint8` | 101      |      |
-| <a id="#FAILURE_UNIT_SYSTEM_SERVO"></a> FAILURE_UNIT_SYSTEM_SERVO                                          | `uint8` | 102      |      |
-| <a id="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                  | `uint8` | 103      |      |
-| <a id="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL             | `uint8` | 104      |      |
-| <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL   | `uint8` | 105      |      |
-| <a id="#FAILURE_UNIT_SYSTEM_ESC"></a> FAILURE_UNIT_SYSTEM_ESC                                              | `uint8` | 106      |      |
+| Назва                                                                                                                                                                         | Тип     | Значення | Опис |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ---- |
+| <a id="#FAILURE_UNIT_SENSOR_GYRO"></a> FAILURE_UNIT_SENSOR_GYRO                                                | `uint8` | 0        |      |
+| <a id="#FAILURE_UNIT_SENSOR_ACCEL"></a> FAILURE_UNIT_SENSOR_ACCEL                                              | `uint8` | 1        |      |
+| <a id="#FAILURE_UNIT_SENSOR_MAG"></a> FAILURE_UNIT_SENSOR_MAG                                                  | `uint8` | 2        |      |
+| <a id="#FAILURE_UNIT_SENSOR_BARO"></a> FAILURE_UNIT_SENSOR_BARO                                                | `uint8` | 3        |      |
+| <a id="#FAILURE_UNIT_SENSOR_GPS"></a> FAILURE_UNIT_SENSOR_GPS                                                  | `uint8` | 4        |      |
+| <a id="#FAILURE_UNIT_SENSOR_OPTICAL_FLOW"></a> FAILURE_UNIT_SENSOR_OPTICAL_FLOW           | `uint8` | 5        |      |
+| <a id="#FAILURE_UNIT_SENSOR_VIO"></a> FAILURE_UNIT_SENSOR_VIO                                                  | `uint8` | 6        |      |
+| <a id="#FAILURE_UNIT_SENSOR_DISTANCE_SENSOR"></a> FAILURE_UNIT_SENSOR_DISTANCE_SENSOR     | `uint8` | 7        |      |
+| <a id="#FAILURE_UNIT_SENSOR_AIRSPEED"></a> FAILURE_UNIT_SENSOR_AIRSPEED                                        | `uint8` | 8        |      |
+| <a id="#FAILURE_UNIT_SYSTEM_BATTERY"></a> FAILURE_UNIT_SYSTEM_BATTERY                                          | `uint8` | 100      |      |
+| <a id="#FAILURE_UNIT_SYSTEM_MOTOR"></a> FAILURE_UNIT_SYSTEM_MOTOR                                              | `uint8` | 101      |      |
+| <a id="#FAILURE_UNIT_SYSTEM_SERVO"></a> FAILURE_UNIT_SYSTEM_SERVO                                              | `uint8` | 102      |      |
+| <a id="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                      | `uint8` | 103      |      |
+| <a id="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL                 | `uint8` | 104      |      |
+| <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL       | `uint8` | 105      |      |
+| <a id="#FAILURE_UNIT_SYSTEM_ESC"></a> FAILURE_UNIT_SYSTEM_ESC                                                  | `uint8` | 106      |      |
+| <a id="#FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE | `uint8` | 107      |      |
 
 ### FAILURE_TYPE {#FAILURE_TYPE}
 
@@ -62,6 +63,7 @@ Used in field(s): [failure_type](#fld_failure_type)
 | <a id="#FAILURE_TYPE_SLOW"></a> FAILURE_TYPE_SLOW                 | `uint8` | 5        |      |
 | <a id="#FAILURE_TYPE_DELAYED"></a> FAILURE_TYPE_DELAYED           | `uint8` | 6        |      |
 | <a id="#FAILURE_TYPE_INTERMITTENT"></a> FAILURE_TYPE_INTERMITTENT | `uint8` | 7        |      |
+| <a id="#FAILURE_TYPE_DRIFT"></a> FAILURE_TYPE_DRIFT               | `uint8` | 8        |      |
 
 ## Constants
 
@@ -109,6 +111,7 @@ uint8 FAILURE_UNIT_SYSTEM_AVOIDANCE = 103
 uint8 FAILURE_UNIT_SYSTEM_RC_SIGNAL = 104
 uint8 FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL = 105
 uint8 FAILURE_UNIT_SYSTEM_ESC = 106
+uint8 FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE = 107
 
 uint16[4] instance_mask # Bit i targets instance (i+1); 0xFFFF = all instances
 
@@ -123,6 +126,7 @@ uint8 FAILURE_TYPE_WRONG = 4
 uint8 FAILURE_TYPE_SLOW = 5
 uint8 FAILURE_TYPE_DELAYED = 6
 uint8 FAILURE_TYPE_INTERMITTENT = 7
+uint8 FAILURE_TYPE_DRIFT = 8
 ```
 
 :::

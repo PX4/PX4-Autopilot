@@ -59,6 +59,37 @@ auav <command> [arguments...]
    status        print status info
 ```
 
+## dlvr
+
+Source: [drivers/differential_pressure/dlvr](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure/dlvr)
+
+### 描述
+
+I2C driver for _Amphenol All Sensors_ Digital Low Voltage R-Series (DLVR) pressure sensors
+(continuous-sampling variants only).
+
+The driver is enabled for specific sensor-variants using the parameter "SENS_EN_DLVR".
+
+### Usage {#dlvr_usage}
+
+```
+dlvr <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 40
+
+   stop
+
+   status        print status info
+```
+
 ## ets_airspeed
 
 Source: [drivers/differential_pressure/ets](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure/ets)

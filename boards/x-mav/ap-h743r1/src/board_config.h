@@ -116,8 +116,6 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   7
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
-
 /* PWM Power */
 #define GPIO_PWM_VOLT_SEL               /* PA8  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
 #define PWM_5V_VOLT_SEL(on_true)        px4_arch_gpiowrite(GPIO_PWM_VOLT_SEL, (on_true))
