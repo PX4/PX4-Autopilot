@@ -392,16 +392,6 @@ static void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *pac
 	}
 }
 
-static void bdshot_restart_training(volatile dshot_channel_t *ch, uint32_t channel)
-{
-	ch->bdshot_training_done = false;
-	ch->bdshot_training_mask = 0;
-	ch->bdshot_training_count = 0;
-	ch->bdshot_training_success = 0;
-	ch->bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
-	flexio_dshot_set_tcmp(channel);
-}
-
 static void bdshot_note_success(volatile dshot_channel_t *ch)
 {
 	ch->consecutive_failures = 0;
@@ -415,7 +405,7 @@ static void bdshot_note_success(volatile dshot_channel_t *ch)
 	}
 }
 
-static void bdshot_note_failure(volatile dshot_channel_t *ch, uint32_t channel)
+static void bdshot_note_failure(volatile dshot_channel_t *ch)
 {
 	if (!ch->bdshot_training_done) {
 		return;
@@ -427,9 +417,10 @@ static void bdshot_note_failure(volatile dshot_channel_t *ch, uint32_t channel)
 		ch->consecutive_failures++;
 	}
 
+	// The trained TCMP offset tracks the ESC oscillator, not the link, so it survives a dropout:
+	// train once on first connect and recover on the hysteresis alone.
 	if (ch->consecutive_failures >= BDSHOT_OFFLINE_COUNT) {
 		ch->online = false;
-		bdshot_restart_training(ch, channel);
 	}
 }
 
@@ -449,14 +440,14 @@ static void bdshot_train(volatile dshot_channel_t *ch, uint32_t channel, uint32_
 	if (ch->bdshot_training_count == BDSHOT_TRAINING_TRIES) {
 		if (ch->bdshot_training_success >= BDSHOT_TRAINING_SUCCESS) {
 			ch->bdshot_training_mask |=
-				(1 << BDSHOT_TCMP_TO_MASK(ch->bdshot_tcmp_offset));
+				(1u << BDSHOT_TCMP_TO_MASK(ch->bdshot_tcmp_offset));
 		}
 
 		ch->bdshot_training_count = 0;
 		ch->bdshot_training_success = 0;
 		ch->bdshot_tcmp_offset++;
 
-		if (ch->bdshot_tcmp_offset == BDSHOT_TCMP_MAX_OFFSET) {
+		if (ch->bdshot_tcmp_offset > BDSHOT_TCMP_MAX_OFFSET) {
 
 			if (ch->bdshot_training_mask == 0) {
 				ch->bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
@@ -490,7 +481,7 @@ static void bdshot_process_responses(uint32_t recv_mask, const uint32_t *raw)
 
 		if ((recv_mask & (1 << channel)) == 0) {
 			ch->no_response_cnt++;
-			bdshot_note_failure(ch, channel);
+			bdshot_note_failure(ch);
 			continue;
 		}
 
@@ -511,7 +502,7 @@ static void bdshot_process_responses(uint32_t recv_mask, const uint32_t *raw)
 				ch->crc_error_cnt++;
 			}
 
-			bdshot_note_failure(ch, channel);
+			bdshot_note_failure(ch);
 			continue;
 		}
 
@@ -644,10 +635,7 @@ int up_bdshot_num_errors(uint8_t channel)
 
 int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 {
-	if (channel >= MAX_TIMER_IO_CHANNELS) {
-		return -1;
-	}
-
+	// Channels without capture keep their permanent ready bit, so return before clearing it
 	if (channel >= DSHOT_TIMERS || !dshot_inst[channel].bdshot) {
 		return -1;
 	}
@@ -852,6 +840,7 @@ int up_dshot_arm(bool armed)
 		}
 
 		if (armed) {
+			dshot_inst[channel].state = DSHOT_START;
 			flexio_dshot_output(channel, timer_io_channels[channel].dshot.flexio_pin, dshot_tcmp,
 					    dshot_inst[channel].bdshot);
 
@@ -861,6 +850,7 @@ int up_dshot_arm(bool armed)
 	}
 
 	if (armed) {
+		bdshot_recv_mask = 0;
 		enable_shifter_status_interrupts(dshot_mask);
 		enable_timer_status_interrupts(dshot_mask);
 
