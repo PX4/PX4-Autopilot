@@ -148,6 +148,8 @@ px4_add_module(
 		UavcanNode.hpp
 		UavcanNodeParamManager.hpp
 		UavcanNodeParamManager.cpp
+		UavcanNodeShell.hpp
+		UavcanNodeShell.cpp
 	MODULE_CONFIG
 		uavcannode_params.yaml
 	DEPENDS
