@@ -671,6 +671,7 @@ void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude
 void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 {
 	const uint64_t timestamp = hrt_absolute_time();
+	_failure_config.update();
 
 	// initialize gps position
 	if (!_pos_ref.isInitialized()) {
@@ -754,7 +755,9 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	sensor_gps.vel_ned_valid = true;
 	sensor_gps.satellites_used = _sim_gps_used.get();
 
-	_sensor_gps_pub.publish(sensor_gps);
+	if (failure_injection::process_gnss(_failure_config, _sensor_gps_pub.get_instance(), sensor_gps, _gps_stuck)) {
+		_sensor_gps_pub.publish(sensor_gps);
+	}
 }
 
 void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
