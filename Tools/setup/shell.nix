@@ -61,5 +61,6 @@ in pkgs.mkShell {
 		six
 		toml
 		wheel
+        kconfiglib
 	]);
 }
