@@ -102,13 +102,12 @@ Order from the [Agam Robotics store](https://www.agamrobotics.com/product-page/a
 Agam Autopilot v6X-RT is a Pixhawk-standard v6X-RT board, electrically and mechanically identical to the NXP reference design, differing from it only in enclosure.
 Wiring is similar to the [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md#connections) and other boards that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 
-<!-- TBD - provide sample wiring diagram. -->
+For wiring and assembly, follow the [Pixhawk 6X Wiring Quick Start](../assembly/quick_start_pixhawk6x.md), which applies to this board other than the enclosure.
 
 ## Connections
 
-<!--
-No wiring/connector-layout diagram ?
--->
+The connectors follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf), which defines the pinout of each port type.
+For the physical layout of the ports on the board see the [Agam Autopilot v6X-RT baseboard ports](https://agamrobotics.gitbook.io/docs/autopilots-flight-controller/quickstart/baseboard-port) documentation.
 
 ## Pinouts
 
@@ -155,12 +154,6 @@ _Agam Autopilot v6X-RT_ can be triple-redundant on the power supply if three pow
 The three power rails are: **POWER1**, **POWER2** and **USB**.
 The **POWER1** & **POWER2** ports use a 6-circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/en-us/products/part-detail/5024430670).
 
-<!--
-The specific voltage thresholds below are carried over from the NXP reference design and Holybro Pixhawk 6X-RT documentation
-on the assumption that Agam Autopilot v6X-RT's power input circuitry is unchanged from the reference design (as claimed under
-"Assembly/Setup" above). Can you confirm?
--->
-
 ### Normal Operation Maximum Ratings
 
 Under these conditions all power sources will be used in this order to power the system:
@@ -176,10 +169,8 @@ Under these conditions the system will not draw any power (will not be operation
 2. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
 3. Servo input: VDD_SERVO pin of **FMU PWM OUT** (0V to 42V undamaged)
 
-<!--
-What Voltage monitoring method (e.g. whether digital I2C battery monitoring is enabled by default, and whether analog/ADC battery
-monitoring is supported on this baseboard) ?
--->
+Digital I2C battery monitoring is enabled by default.
+Analog/ADC battery monitoring is also supported.
 
 ## Building Firmware
 
@@ -196,25 +187,23 @@ make agam-robotics_fmu-v6xrt_default
 
 ## Debug Port {#debug_port}
 
-The Agam Autopilot v6X-RT **FMU Debug** port uses a JST-SH, 1mm pitch, 10-pin connector:
+The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 
-| Pin        | Signal             | Volt  |
-| ---------- | ------------------ | ----- |
-| 1 (red)    | `FMU_VDD_3V3`      | +3.3V |
-| 2 (black)  | `FMU_USART_TX`     | +3.3V |
-| 3 (black)  | `FMU_USART_RX`     | +3.3V |
-| 4 (black)  | `FMU_SWD_IO`       | +3.3V |
-| 5 (black)  | `FMU_SWD_CK`       | +3.3V |
-| 6 (black)  | `SPI_SCK_EXTERNAL` | +3.3V |
-| 7 (black)  | NFC GPIO           | +3.3V |
-| 8 (black)  | PH11               | +3.3V |
-| 9 (black)  | `FMU_nRST`         | +3.3V |
-| 10 (black) | `GND`              | GND   |
+The pinout and connector comply with the [Pixhawk Debug Full](../debug/swd_debug.md#pixhawk-debug-full) interface defined in the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (JST SH 1mm pitch, 10-pin connector).
+Pin 6 is `SPI6_MOSI_EXTERNAL1`, which is the pad's `JTAG_TDO` function and carries `SWO` when the debug port is in serial-wire mode.
 
-<!--
-Pin 6 is documented as `SPI_SCK_EXTERNAL` (https://agamrobotics.gitbook.io/docs/autopilots-flight-controller/quickstart/baseboard-port), whereas the equivalent pin on the Pixhawk "Debug Full" connector used by the NXP reference design and Holybro Pixhawk 6X-RT is SWO.
-I.e is this actually a Pixhawk Debug Full standard connector? If so we can say that, if not we should not that it is similar but not the same.
--->
+| Pin        | Signal         | Volt  |
+| ---------- | -------------- | ----- |
+| 1 (red)    | `FMU_VDD_3V3`  | +3.3V |
+| 2 (black)  | `FMU_USART_TX` | +3.3V |
+| 3 (black)  | `FMU_USART_RX` | +3.3V |
+| 4 (black)  | `FMU_SWD_IO`   | +3.3V |
+| 5 (black)  | `FMU_SWD_CK`   | +3.3V |
+| 6 (black)  | `SWO`          | +3.3V |
+| 7 (black)  | NFC GPIO       | +3.3V |
+| 8 (black)  | PH11           | +3.3V |
+| 9 (black)  | `FMU_nRST`     | +3.3V |
+| 10 (black) | `GND`          | GND   |
 
 For information about using this port see:
 
@@ -228,8 +217,7 @@ For information about using this port see:
 - [Agam GNSS Base RTK](https://agamrobotics.gitbook.io/docs/gnss-and-rtk-systems/agam-gnss-base-rtk)
 - [Agam FloRange Sensor](https://agamrobotics.gitbook.io/docs/sensors/agam-florange-sensor)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
-
-<!-- Any other particular recommended telemetry radio modules ?  -->
+- [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 
 ## Further info
 
