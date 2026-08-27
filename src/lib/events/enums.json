@@ -87,6 +87,10 @@
                             "name": "altitude_cruise",
                             "description": "Altitude Cruise"
                         },
+                        "512": {
+                            "name": "manual_parking",
+                            "description": "Manual Parking"
+                        },
                         "1024": {
                             "name": "acro",
                             "description": "Acro"
@@ -612,6 +616,10 @@
                             "name": "descend",
                             "description": "Descend"
                         },
+                        "27": {
+                            "name": "manual_parking",
+                            "description": "Manual Parking"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
@@ -744,6 +752,7 @@
                     "6": [33751040],
                     "7": [319029248],
                     "8": [720896],
+                    "9": [786432],
                     "10": [327680],
                     "12": [335806464],
                     "14": [393216],
