@@ -15,37 +15,6 @@ The engine can be commanded to start automatically (for example on arming, or on
 - Verify that the engine stop functionality (ignition off, chocke closed) reliably stops the engine before you rely on it.
 :::
 
-## How It Works
-
-![ICE control architecture](../../assets/hardware/ice/ice_control_diagram.png)
-
-The module sits between the [control allocator](../config/actuators.md) and the outputs:
-
-- It takes the **throttle demand** from `actuator_motors.control[0]`, i.e. the thrust that allocation computed for _Motor 1_.
-  The engine is therefore configured as motor 1 of the airframe; it does not need an output assigned to the `Motor 1` function.
-- It runs the start/stop state machine and publishes [InternalCombustionEngineControl](../msg_docs/InternalCombustionEngineControl.md) with the setpoints for ignition, throttle, choke, and starter.
-- The mixer maps those four fields to the four `IC Engine *` [output functions](../config/actuators.md), which is where you wire the engine hardware.
-- It subscribes to [Rpm](../msg_docs/Rpm.md) to know whether the engine is actually turning, and publishes [InternalCombustionEngineStatus](../msg_docs/InternalCombustionEngineStatus.md) with the current state.
-
-The module runs at 50 Hz.
-
-### Output Functions
-
-| Output function      | Field in `InternalCombustionEngineControl` | Meaning                                                                                     |
-| -------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `IC Engine Ignition` | `ignition_on`                              | Spark/ignition enable. `false` cuts the spark and stops the engine (optional, many engine spark boxes always run when powered).                         |
-| `IC Engine Throttle` | `throttle_control`                         | Throttle servo setpoint, `0`…`1`. `NAN` while the engine is commanded off (see note below). |
-| `IC Engine Choke`    | `choke_control`                            | Choke servo setpoint, `0`…`1`, where `1` is fully closed (richest mixture). Optional actuator.                |
-| `IC Engine Starter`  | `starter_engine_control`                   | Electric starter motor setpoint, `0`…`1`. Optional actuator, engine can also be hand-started.                                                           |
-
-All four setpoints are in the range `[0, 1]` and are mapped to the `[-1, 1]` servo range before being scaled to the output's **Minimum**/**Maximum** values.
-In other words a setpoint of `0` produces the configured **Minimum** output and `1` produces the configured **Maximum** output (or the reverse, if **Rev Range** is ticked).
-
-::: info
-In the `Stopped` state the throttle setpoint is `NAN`, which by definition drives the output to its configured **Disarmed** value rather than to **Minimum**.
-This lets you park the throttle servo at an idle-stop position that is different from the closed-throttle position used to switch off the engine.
-:::
-
 ## Hardware Requirements
 
 - **Throttle servo** connected to a PWM/AUX output.
@@ -81,13 +50,26 @@ Set the following and reboot:
 - [RPM_CAP_ENABLE](../advanced_config/parameter_reference.md#RPM_CAP_ENABLE) to `Enabled`.
 - [RPM_PULS_PER_REV](../advanced_config/parameter_reference.md#RPM_PULS_PER_REV) to the number of sensor pulses per crankshaft revolution (for example `2` for a two-magnet setup, or `1` for a single ignition pulse per revolution on a two-stroke).
 
-Then tune the remaining `ICE_*` parameters as described in the sections below.
+Then work through the remaining `ICE_*` parameters:
+
+- [Actuator Configuration](#actuator-configuration) — wire up the engine outputs.
+- [Start/Stop Command Source](#start-stop-command-source) — choose what commands the engine on and off.
+- [Idle RPM Governor](#idle-rpm-governor) — set up and tune closed-loop idle, and the `ICE_IDLE_*` parameters.
+- [Parameter Reference](#parameter-reference) — the full list, including the start sequence timing.
 
 ## Actuator Configuration
 
 Assign the four engine functions and the RPM input in [Actuator Configuration](../config/actuators.md), for example:
 
 ![Actuator setup for ICE](../../assets/hardware/ice/ice_actuator_setup.png)
+
+Each setpoint is in the range `[0, 1]` and is mapped to the `[-1, 1]` servo range before being scaled to the output's **Minimum**/**Maximum** values.
+In other words a setpoint of `0` produces the configured **Minimum** output and `1` produces the configured **Maximum** output (or the reverse, if **Rev Range** is ticked).
+
+::: info
+When the engine is commanded off the throttle setpoint is `NAN`, which by definition drives the output to its configured **Disarmed** value rather than to **Minimum**.
+This lets you park the throttle servo at an idle-stop position that is different from the closed-throttle position used to switch off the engine.
+:::
 
 Points to note in the example above:
 
@@ -119,56 +101,6 @@ If you want to start the engine before arming (for example with an AUX switch, s
 For the AUX sources, values between `-0.5` and `0.5` leave the request unchanged.
 This dead zone means a three-position switch has a middle position that does not change the engine state, and it avoids a channel that is momentarily centred (or lost and defaulted to zero) from cutting the engine.
 :::
-
-## State Machine
-
-![ICE control state machine](../../assets/hardware/ice/ice_control_state_machine.png)
-
-The module has four states, reported in `InternalCombustionEngineStatus.state`:
-
-| State      | Ignition | Throttle                                | Choke                                 | Starter                               |
-| ---------- | -------- | --------------------------------------- | ------------------------------------- | ------------------------------------- |
-| `Stopped`  | off      | `NAN` (→ **Disarmed** value)            | `ICE_STOP_CHOKE ? 1 : 0`              | `0`                                   |
-| `Starting` | on       | `ICE_STRT_THR`                          | see [start sequence](#start-sequence) | see [start sequence](#start-sequence) |
-| `Running`  | on       | motor 1 demand, or idle governor output | `0`                                   | `0`                                   |
-| `Fault`    | off      | `0`                                     | `ICE_STOP_CHOKE ? 1 : 0`              | `0`                                   |
-
-Transitions:
-
-- `Stopped` → `Starting` when the engine is requested on and the start attempt budget is not exhausted.
-- `Starting` → `Running` as soon as the measured RPM exceeds [ICE_MIN_RUN_RPM](../advanced_config/parameter_reference.md#ICE_MIN_RUN_RPM). This can happen part way through an attempt.
-- `Starting` → `Fault` when all attempts have been used without the engine coming up.
-- `Running` → `Starting` if the RPM drops back below the threshold and [ICE_RUN_FAULT_D](../advanced_config/parameter_reference.md#ICE_RUN_FAULT_D) is enabled — this is the automatic in-air restart. An `IC engine fault detected` event is emitted.
-- Any state → `Stopped` when the engine is requested off. This also resets the attempt counter, so switching the request off and on again is the way to clear a `Fault`.
-
-::: info
-The throttle setpoint is rate limited by [ICE_THR_SLEW](../advanced_config/parameter_reference.md#ICE_THR_SLEW) in all states, which protects the engine from abrupt throttle steps that would make it bog down or stall.
-The limit does not apply to the `NAN` used in `Stopped`; the slew state is reset to zero instead, so the next start ramps up from closed throttle.
-:::
-
-### Start Sequence
-
-One start attempt runs the following timeline, measured from entry into the attempt:
-
-| From                               | To                                                | Ignition | Choke | Starter | Throttle       |
-| ---------------------------------- | ------------------------------------------------- | -------- | ----- | ------- | -------------- |
-| `0`                                | `ICE_IGN_DELAY`                                   | on       | `1`   | `0`     | `ICE_STRT_THR` |
-| `ICE_IGN_DELAY`                    | `ICE_IGN_DELAY + ICE_CHOKE_ST_DUR`                | on       | `1`   | `1`     | `ICE_STRT_THR` |
-| `ICE_IGN_DELAY + ICE_CHOKE_ST_DUR` | `ICE_IGN_DELAY + ICE_CHOKE_ST_DUR + ICE_STRT_DUR` | on       | `0`   | `1`     | `ICE_STRT_THR` |
-
-- [ICE_IGN_DELAY](../advanced_config/parameter_reference.md#ICE_IGN_DELAY) holds the starter off for a moment after the ignition is switched on, for ignition systems that need time to come up.
-- [ICE_CHOKE_ST_DUR](../advanced_config/parameter_reference.md#ICE_CHOKE_ST_DUR) is how long the choke stays closed. Note that the starter is already cranking during this window.
-- [ICE_STRT_DUR](../advanced_config/parameter_reference.md#ICE_STRT_DUR) is how much longer the starter cranks with the choke open before the attempt is declared timed out.
-
-If the attempt times out, the module rests for **1 second** with the ignition off and the throttle at its disarmed value (to reduce starter motor wear) and then begins the next attempt.
-
-::: info
-Choke and ignition delay are applied on the **first** attempt only.
-Retries crank with the choke open immediately, on the assumption that the first attempt already primed the engine and that further choking would flood it.
-:::
-
-[ICE_STRT_ATTEMPT](../advanced_config/parameter_reference.md#ICE_STRT_ATTEMPT) caps the number of attempts before the module gives up and enters `Fault`.
-A value of `0` means a single attempt with no retry.
 
 ## Idle RPM Governor
 
@@ -233,13 +165,6 @@ Both `internal_combustion_engine_*` topics are logged when the module is running
 That lag is part of the loop you are tuning and puts a practical ceiling on how high the gains can go before the governor starts hunting.
 :::
 
-## Status and Telemetry
-
-- [InternalCombustionEngineControl](../msg_docs/InternalCombustionEngineControl.md) carries the commanded setpoints and the current user request.
-- [InternalCombustionEngineStatus](../msg_docs/InternalCombustionEngineStatus.md) carries the state machine state and the governor's integrator.
-  The same topic is used by the [DroneCAN](../dronecan/index.md) ICE bridge (`UAVCAN_SUB_ICE`), which fills in the richer engine telemetry — temperatures, pressures, fuel flow — reported by a smart ECU.
-- The status topic is streamed to a ground station as the MAVLink [EFI_STATUS](https://mavlink.io/en/messages/common.html#EFI_STATUS) message.
-
 ## Parameter Reference
 
 | Parameter                                                                      | Unit | Default | Description                                                                  |
@@ -265,12 +190,99 @@ That lag is part of the loop you are tuning and puts a practical ceiling on how 
 | Symptom                                                                                               | Likely cause                                                                                                                                                                                          |
 | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Nothing happens at all; `internal_combustion_engine_control status` reports the module is not running | `ICE_EN` is not set, or the module is not in the firmware. Check the [build configuration](#firmware-configuration) and reboot.                                                                       |
-| The engine runs but the state machine goes to `Fault`                                                 | The RPM sensor is not working or is misconfigured. Check `RPM_CAP_ENABLE`, `RPM_PULS_PER_REV`, and that the sensor is on a capture-capable pin; compare `rpm.rpm_estimate` against a hand tachometer. |
+| The engine runs but the state machine goes to [`Fault`](#state-machine)                               | The RPM sensor is not working or is misconfigured. Check `RPM_CAP_ENABLE`, `RPM_PULS_PER_REV`, and that the sensor is on a capture-capable pin; compare `rpm.rpm_estimate` against a hand tachometer. |
 | Outputs never move even though the state machine advances                                             | The vehicle is disarmed and not prearmed, so outputs are held at their **Disarmed** values. See the [note above](#actuator-configuration) on `COM_PREARM_MODE`.                                       |
 | The starter cranks but the engine never fires                                                         | Too little cranking time (`ICE_STRT_DUR`), wrong start throttle (`ICE_STRT_THR`), or too little/too much choke (`ICE_CHOKE_ST_DUR`).                                                                  |
 | The engine fires and then dies just after `Starting` finishes                                         | No idle governor. Set up the [idle governor](#idle-rpm-governor); with `ICE_IDLE_RPM = 0` there is nothing holding the engine up when the throttle demand is zero.                                    |
 | Repeated in-air restarts logged as `IC engine fault detected`                                         | `ICE_MIN_RUN_RPM` is set too close to the actual idle speed, so normal idle dips read as an engine stop. Raise the idle setpoint or lower the threshold.                                              |
 | The engine bogs down or stalls on throttle up                                                         | `ICE_THR_SLEW` is too high for the engine. Reduce it so the throttle opens more gradually.                                                                                                            |
+
+## Developer Information
+
+### How It Works
+
+![ICE control architecture](../../assets/hardware/ice/ice_control_diagram.png)
+
+The module sits between the [control allocator](../config/actuators.md) and the outputs:
+
+- It takes the **throttle demand** from `actuator_motors.control[0]`, i.e. the thrust that allocation computed for _Motor 1_.
+  The engine is therefore configured as motor 1 of the airframe, but the throttle reaches the servo through the `IC Engine Throttle` function rather than through `Motor 1`.
+- It runs the start/stop state machine and publishes [InternalCombustionEngineControl](../msg_docs/InternalCombustionEngineControl.md) with the setpoints for ignition, throttle, choke, and starter.
+- The mixer maps those four fields to the four `IC Engine *` [output functions](../config/actuators.md), which is where you wire the engine hardware.
+- It subscribes to [Rpm](../msg_docs/Rpm.md) to know whether the engine is actually turning, and publishes [InternalCombustionEngineStatus](../msg_docs/InternalCombustionEngineStatus.md) with the current state.
+
+The module runs at 50 Hz.
+
+::: info
+Because the throttle is routed through `IC Engine Throttle` instead of `Motor 1`, the motor slot itself stays unassigned, and the actuator configuration screen reports it as an unassigned signal.
+Assign the motor to an unused output to silence the warning; it has no effect on the engine.
+:::
+
+#### Output Functions
+
+| Output function      | Field in `InternalCombustionEngineControl` | Meaning                                                                                                                         |
+| -------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `IC Engine Ignition` | `ignition_on`                              | Spark/ignition enable. `false` cuts the spark and stops the engine (optional, many engine spark boxes always run when powered). |
+| `IC Engine Throttle` | `throttle_control`                         | Throttle servo setpoint, `0`…`1`. `NAN` while the engine is commanded off.                                                      |
+| `IC Engine Choke`    | `choke_control`                            | Choke servo setpoint, `0`…`1`, where `1` is fully closed (richest mixture). Optional actuator.                                  |
+| `IC Engine Starter`  | `starter_engine_control`                   | Electric starter motor setpoint, `0`…`1`. Optional actuator, engine can also be hand-started.                                   |
+
+### State Machine
+
+![ICE control state machine](../../assets/hardware/ice/ice_control_state_machine.png)
+
+The module has four states, reported in `InternalCombustionEngineStatus.state`:
+
+| State      | Ignition | Throttle                                | Choke                                 | Starter                               |
+| ---------- | -------- | --------------------------------------- | ------------------------------------- | ------------------------------------- |
+| `Stopped`  | off      | `NAN` (→ **Disarmed** value)            | `ICE_STOP_CHOKE ? 1 : 0`              | `0`                                   |
+| `Starting` | on       | `ICE_STRT_THR`                          | see [start sequence](#start-sequence) | see [start sequence](#start-sequence) |
+| `Running`  | on       | motor 1 demand, or idle governor output | `0`                                   | `0`                                   |
+| `Fault`    | off      | `0`                                     | `ICE_STOP_CHOKE ? 1 : 0`              | `0`                                   |
+
+Transitions:
+
+- `Stopped` → `Starting` when the engine is requested on and the start attempt budget is not exhausted.
+- `Starting` → `Running` as soon as the measured RPM exceeds [ICE_MIN_RUN_RPM](../advanced_config/parameter_reference.md#ICE_MIN_RUN_RPM). This can happen part way through an attempt.
+- `Starting` → `Fault` when all attempts have been used without the engine coming up.
+- `Running` → `Starting` if the RPM drops back below the threshold and [ICE_RUN_FAULT_D](../advanced_config/parameter_reference.md#ICE_RUN_FAULT_D) is enabled — this is the automatic in-air restart. An `IC engine fault detected` event is emitted.
+- Any state → `Stopped` when the engine is requested off. This also resets the attempt counter, so switching the request off and on again is the way to clear a `Fault`.
+
+::: info
+The throttle setpoint is rate limited by [ICE_THR_SLEW](../advanced_config/parameter_reference.md#ICE_THR_SLEW) in all states, which protects the engine from abrupt throttle steps that would make it bog down or stall.
+The limit does not apply to the `NAN` used in `Stopped`; the slew state is reset to zero instead, so the next start ramps up from closed throttle.
+:::
+
+#### Start Sequence
+
+One start attempt runs the following timeline, measured from entry into the attempt:
+
+| From                               | To                                                | Ignition | Choke | Starter | Throttle       |
+| ---------------------------------- | ------------------------------------------------- | -------- | ----- | ------- | -------------- |
+| `0`                                | `ICE_IGN_DELAY`                                   | on       | `1`   | `0`     | `ICE_STRT_THR` |
+| `ICE_IGN_DELAY`                    | `ICE_IGN_DELAY + ICE_CHOKE_ST_DUR`                | on       | `1`   | `1`     | `ICE_STRT_THR` |
+| `ICE_IGN_DELAY + ICE_CHOKE_ST_DUR` | `ICE_IGN_DELAY + ICE_CHOKE_ST_DUR + ICE_STRT_DUR` | on       | `0`   | `1`     | `ICE_STRT_THR` |
+
+- [ICE_IGN_DELAY](../advanced_config/parameter_reference.md#ICE_IGN_DELAY) holds the starter off for a moment after the ignition is switched on, for ignition systems that need time to come up.
+- [ICE_CHOKE_ST_DUR](../advanced_config/parameter_reference.md#ICE_CHOKE_ST_DUR) is how long the choke stays closed. Note that the starter is already cranking during this window.
+- [ICE_STRT_DUR](../advanced_config/parameter_reference.md#ICE_STRT_DUR) is how much longer the starter cranks with the choke open before the attempt is declared timed out.
+
+If the attempt times out, the module rests for **1 second** with the ignition off and the throttle at its disarmed value (to reduce starter motor wear) and then begins the next attempt.
+
+::: info
+Choke and ignition delay are applied on the **first** attempt only.
+Retries crank with the choke open immediately, on the assumption that the first attempt already primed the engine and that further choking would flood it.
+:::
+
+[ICE_STRT_ATTEMPT](../advanced_config/parameter_reference.md#ICE_STRT_ATTEMPT) caps the number of attempts before the module gives up and enters `Fault`.
+A value of `0` means a single attempt with no retry.
+
+### Status and Telemetry
+
+- [InternalCombustionEngineControl](../msg_docs/InternalCombustionEngineControl.md) carries the commanded setpoints and the current user request.
+- [InternalCombustionEngineStatus](../msg_docs/InternalCombustionEngineStatus.md) carries the state machine state and the governor's integrator.
+  The same topic is used by the [DroneCAN](../dronecan/index.md) ICE bridge (`UAVCAN_SUB_ICE`), which fills in the richer engine telemetry — temperatures, pressures, fuel flow — reported by a smart ECU.
+- The status topic is streamed to a ground station as the MAVLink [EFI_STATUS](https://mavlink.io/en/messages/common.html#EFI_STATUS) message.
 
 ## See Also
 
