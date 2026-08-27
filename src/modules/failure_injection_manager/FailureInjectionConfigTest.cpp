@@ -599,7 +599,7 @@ TEST(FailureInjectionConfig, ProcessBatteryLeavesUnselectedInstanceUntouched)
 }
 
 // ===========================================================================
-// process_motor(): motor Off -> soft failure_mask (default) / hard stop_mask
+// process_motor(): motor Off -> annunciated failure_mask (default) / un-annunciated stop_mask
 // ===========================================================================
 
 TEST(FailureInjectionConfig, ProcessMotorDefaultsToSoftFailureMask)

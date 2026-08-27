@@ -71,8 +71,8 @@ enum class Mode : uint8_t {
 
 /** Masks of motors failed by injection, bit i = motor instance i+1. */
 struct MotorFailureMasks {
-	uint16_t stop_mask{0};    ///< outputs stopped without informing the allocator (hard)
-	uint16_t failure_mask{0}; ///< reported as failed motors, removed from allocation (soft)
+	uint16_t stop_mask{0};    ///< outputs stopped without informing the allocator (un-annunciated)
+	uint16_t failure_mask{0}; ///< reported as failed motors, removed from allocation (annunciated)
 };
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
@@ -231,9 +231,9 @@ esc_status_s process_esc(const Config &config, const esc_status_s &status);
 /**
  * Motor counterpart to process(): derive the masks of motors failed by
  * FAILURE_UNIT_SYSTEM_MOTOR Off. SYS_FAIL_MOT_OFF (read once at first use, the parameter
- * requires a reboot) selects whether the failed motors are applied soft (failure_mask,
- * reported as failed motors and removed from the allocation) or hard (stop_mask, outputs
- * stopped without informing the allocator). Call after Config::update().
+ * requires a reboot) selects whether the failed motors are applied annunciated (failure_mask,
+ * reported as failed motors and removed from the allocation) or un-annunciated (stop_mask,
+ * outputs stopped without informing the allocator). Call after Config::update().
  */
 MotorFailureMasks process_motor(const Config &config);
 
