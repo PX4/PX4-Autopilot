@@ -141,7 +141,10 @@ if param compare SENS_INT_BARO_EN 1
 then
 	if ver hwtypecmp V6X001 V6X006 V6X008
 	then
-		icp201xx -I -a 0x64 start
+		if ! icp201xx -I -a 0x64 -q start
+		then
+			bmp581 -I -a 0x46 start
+		fi
 	else
 		bmp388 -I -a 0x77 start
 	fi
@@ -152,7 +155,10 @@ if ver hwtypecmp V6X001
 then
 	icp201xx -X start
 else
-	bmp388 -X start
+	if ! bmp388 -X -q start
+	then
+		bmp581 -X -a 0x46 start
+	fi
 fi
 
 unset INA_CONFIGURED
