@@ -364,7 +364,7 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 		const float baro_alt = baro_data.baro_alt_meter;
 
 		if (_last_baro_timestamp != 0) {
-			const float dt = baro_data.timestamp - _last_baro_timestamp;
+			const float dt = 1e-6f * (baro_data.timestamp - _last_baro_timestamp);
 			_lpf_baro.update(baro_alt, dt);
 
 		} else {
