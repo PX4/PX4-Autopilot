@@ -850,6 +850,7 @@
     - [FAQ](debug/faq.md)
     - [Consoles/Shells](debug/consoles.md)
       - [MAVLink Shell](debug/mavlink_shell.md)
+      - [DroneCAN Shell](debug/dronecan_shell.md)
       - [System Console](debug/system_console.md)
     - [Debugging with GDB](debug/gdb_debugging.md)
       - [SWD Debug Port](debug/swd_debug.md)
