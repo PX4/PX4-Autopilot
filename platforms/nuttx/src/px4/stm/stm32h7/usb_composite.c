@@ -95,4 +95,19 @@ void *board_composite_connect(int port, int configid)
 	return composite_initialize(2, dev);
 }
 
+#else
+
+int board_composite_initialize(int port)
+{
+	(void)port;
+	return -ENOSYS;
+}
+
+void *board_composite_connect(int port, int configid)
+{
+	(void)port;
+	(void)configid;
+	return NULL;
+}
+
 #endif

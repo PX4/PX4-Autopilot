@@ -102,11 +102,12 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index, bool can_fd)
 	addr.can_ifindex = ifr.ifr_ifindex;
 
 	const int on = 1;
-	/* RX Timestamping */
+	/* RX timestamping is optional. NuttX can_callback() can hardfault when
+	 * SO_TIMESTAMP is set and d_appdata is NULL (STM32H7 FDCAN HPWORK).
+	 */
 
 	if (setsockopt(_fd, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
-		PX4_ERR("SO_TIMESTAMP is disabled");
-		return -1;
+		PX4_WARN("SO_TIMESTAMP not available, using local clock");
 	}
 
 	/* NuttX Feature: Enable TX deadline when sending CAN frames
@@ -261,9 +262,12 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 		memcpy(out_frame.data, &recv_frame->data, recv_frame->can_dlc);
 	}
 
-	/* Read SO_TIMESTAMP value */
+	out_ts_monotonic = clock.getMonotonic();
 
-	if (_recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP) {
+	/* Prefer SO_TIMESTAMP when the kernel provided one. */
+
+	if (_recv_cmsg != nullptr &&
+	    _recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP) {
 		struct timeval *tv = (struct timeval *)CMSG_DATA(_recv_cmsg);
 		out_ts_monotonic = uavcan::MonotonicTime::fromUSec(tv->tv_sec * 1000000ULL + tv->tv_usec);
 	}

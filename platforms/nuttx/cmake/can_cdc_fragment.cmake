@@ -90,7 +90,10 @@ if(NOT NUTTX_CONFIG STREQUAL "bootloader" AND NOT NUTTX_CONFIG STREQUAL "canboot
 		string(APPEND _px4_can_cdc_fragment "CONFIG_NET_CAN_RAW_FILTER_MAX=4\n")
 		string(APPEND _px4_can_cdc_fragment "CONFIG_NET_CAN_RAW_TX_DEADLINE=y\n")
 		string(APPEND _px4_can_cdc_fragment "CONFIG_NET_CAN_SOCK_OPTS=y\n")
-		string(APPEND _px4_can_cdc_fragment "CONFIG_NET_TIMESTAMP=y\n")
+		# SO_TIMESTAMP stamps into d_appdata[d_len] in NuttX can_callback().
+		# On STM32H7 FDCAN HPWORK that pointer can be NULL and hardfaults
+		# wq:uavcan (IMPRECISERR). UAVCAN falls back to the local clock.
+		string(APPEND _px4_can_cdc_fragment "# CONFIG_NET_TIMESTAMP is not set\n")
 		string(APPEND _px4_can_cdc_fragment "# CONFIG_STM32H7_FDCAN_LPWORK is not set\n")
 		string(APPEND _px4_can_cdc_fragment "CONFIG_STM32H7_FDCAN_HPWORK=y\n")
 
