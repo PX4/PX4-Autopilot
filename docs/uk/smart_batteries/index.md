@@ -6,10 +6,10 @@ This allows for more reliable flight planning notification of failure conditions
 
 PX4 підтримує (принаймні) наступні розумні батарейки:
 
-- [Rotoye Batmon](../smart_batteries/rotoye_batmon.md)
+- [Rotoye Batmon](../smart_batteries/rotoye_batmon.md) (Discontinued)
 
 ### Подальша інформація
 
 - [Mavlink Battery Protocol](https://mavlink.io/en/services/battery.html)
-- [batt_smbus](../modules/modules_driver.md) - PX4 SMBus Battery Driver docs
+- [batt_smbus](../modules/modules_driver.md#batt_smbus) - PX4 SMBus Battery Driver docs
 - [Safety > Low Battery Failsafe](../config/safety.md#battery-level-failsafe).

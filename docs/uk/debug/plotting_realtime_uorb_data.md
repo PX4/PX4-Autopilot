@@ -13,7 +13,7 @@ The video below demonstrates this for a simulated vehicle — the approach works
 Follow the [ROS 2 Installation & Setup](../ros2/user_guide.md#installation-setup) instructions in the _ROS2 user guide_ to install:
 
 - ROS 2
-- [Micro XRCE-DDS Agent](../ros2/user_guide.md#setup-micro-xrce-dds-agent-client)
+- [Micro XRCE-DDS Agent](../ros2/user_guide.md#setup-the-agent)
 - [PX4/px4_msgs](https://github.com/PX4/px4_msgs): PX4/ROS2 shared message definitions.
 - PX4 source code and build the simulator.
 

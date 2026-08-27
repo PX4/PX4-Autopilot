@@ -14,7 +14,7 @@ const { site } = useData();
 
 PX4 릴리스 노트는 각 릴리스의 변경 사항들을 설명합니다.
 
-- [main](../releases/main.md) (changes planned for v1.19 or later)
+- [main](../releases/main.md) (changes planned for v2.0 or later)
 - [v1.18](../releases/1.18.md) (changes in v1.18, since v1.17)
 - [v1.17](../releases/1.17.md)
 - [v1.16](../releases/1.16.md)

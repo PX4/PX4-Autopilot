@@ -25007,6 +25007,55 @@ relative to the vehicle heading (stick deflection to the right = land point move
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 2        |           | 2       |      | &nbsp;    |
 
+### FW_LND_PARA_ALT (`FLOAT`) {#FW_LND_PARA_ALT}
+
+Parachute landing release altitude above ground.
+
+Altitude the vehicle descends to and holds for the release. The release happens
+higher if the predicted touchdown point reaches the landing point while still on
+the approach slope, or lower for a vehicle that cannot hold the altitude, but
+never below 3 seconds of descent at FW_LND_PARA_SINK, so that the canopy has
+room to open.
+
+Lower values reduce the wind drift of the touchdown point.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 1.0      |          | 0.5       | 20.0    | m    | &nbsp;    |
+
+### FW_LND_PARA_EN (`INT32`) {#FW_LND_PARA_EN}
+
+Enable parachute landing on mission landing approach.
+
+If enabled, the vehicle follows the mission landing approach down to the release
+altitude (FW_LND_PARA_ALT) and releases the parachute by triggering flight
+termination, such that the predicted touchdown point under canopy lies on the
+landing point, accounting for ground speed, estimated wind drift during the descent
+(FW_LND_PARA_SINK) and the forward carry while the parachute deploys.
+
+The parachute is released through the flight termination failsafe outputs, or an
+external parachute system (COM_PARACHUTE). Not supported on VTOL.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### FW_LND_PARA_SINK (`FLOAT`) {#FW_LND_PARA_SINK}
+
+Sink rate under the deployed parachute.
+
+Expected steady-state sink rate under canopy. Used to predict the descent duration and
+therewith the wind drift of the touchdown point.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      |          | 0.1       | 5.0     | m/s  | &nbsp;    |
+
 ### FW_LND_TD_OFF (`FLOAT`) {#FW_LND_TD_OFF}
 
 Maximum lateral position offset for the touchdown point.
@@ -25102,6 +25151,20 @@ Launch is detected when the norm of body acceleration is above FW_LAUN_AC_THLD f
 | Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
 | &nbsp; | 0        |          | 0.5       | 30.0    | m/s^2 | &nbsp;    |
+
+### FW_LAUN_CLR_ALT (`FLOAT`) {#FW_LAUN_CLR_ALT}
+
+Launch climbout clearance altitude.
+
+Height above the launch point below which the vehicle holds the wind-compensated launch bearing
+instead of the normal line-following guidance, and the roll limit is ramped linearly from 0 at
+the launch point up to FW_R_LIM at this altitude, so that a poor heading estimate or a bad launch
+cannot induce a large bank close to the ground. Only relevant for hand- or catapult-launched
+vehicles (FW_LAUN_DETCN_ON).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 1.0       | 5.0     | m    | &nbsp;    |
 
 ### FW_LAUN_CS_LK_DY (`FLOAT`) {#FW_LAUN_CS_LK_DY}
 
@@ -25749,6 +25812,18 @@ disables trim throttle and minimum airspeed compensation based on weight.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          | 0.5       | -1.0    | kg   | &nbsp;    |
 
+### WEIGHT_FUEL (`FLOAT`) {#WEIGHT_FUEL}
+
+Mass of a full fuel load.
+
+If set together with WEIGHT_BASE and WEIGHT_GROSS, the weight used for
+performance scaling is reduced by the burned fuel reported in the fuel tank status.
+Only a single fuel tank is supported. A zero or negative value disables fuel-based weight compensation.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          | 0.1       | -1.0    | kg   | &nbsp;    |
+
 ### WEIGHT_GROSS (`FLOAT`) {#WEIGHT_GROSS}
 
 Vehicle gross weight.
@@ -25756,6 +25831,7 @@ Vehicle gross weight.
 This is the actual weight of the vehicle at any time. This value will differ from WEIGHT_BASE in case weight was added
 or removed from the base weight. Examples are the addition of payloads or larger batteries. A zero or negative value
 disables trim throttle and minimum airspeed compensation based on weight.
+If fuel-based weight compensation is enabled (WEIGHT_FUEL), set this to the takeoff weight with a full fuel load.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -26299,6 +26375,46 @@ WARNING: the failures can easily cause crashes and are to be used with caution!
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### SYS_FAIL_BAT_LVL (`INT32`) {#SYS_FAIL_BAT_LVL}
+
+Battery failure injection severity.
+
+Battery warning level reported while a battery 'wrong' failure
+injection is active. The injected remaining charge is set just below
+the matching threshold (BAT_LOW_THR, BAT_CRIT_THR or
+BAT_EMERGEN_THR).
+
+**Values:**
+
+- `1`: Warn
+- `2`: Critical
+- `3`: Emergency
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 3       |      | &nbsp;    |
+
+### SYS_FAIL_GPS_JAM (`INT32`) {#SYS_FAIL_GPS_JAM}
+
+GPS Wrong-failure jamming state.
+
+GNSS jamming state reported by the addressed receiver while a GPS 'wrong'
+failure injection is active. The reported position is left untouched, so
+'Detected' simulates a receiver that still delivers a valid fix while
+reporting interference. Leave at 'Unchanged' to keep the simulated
+receiver's own jamming state.
+
+**Values:**
+
+- `0`: Unchanged
+- `1`: OK
+- `2`: Mitigated
+- `3`: Detected
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
 ### SYS_FAIL_GPS_WRG (`INT32`) {#SYS_FAIL_GPS_WRG}
 
 GPS Wrong-failure fix type.
@@ -26324,14 +26440,33 @@ better solution than the receiver really has.
 
 ### SYS_FAIL_RC_INST (`INT32`) {#SYS_FAIL_RC_INST}
 
-Instance failed by the RC switch.
+Instances failed by the RC switch.
 
-Which instance of SYS_FAIL_RC_UNIT the SYS_FAIL_RC_SRC trigger affects.
-1-based, or 0 for all instances (motor number for motors).
+Bitmask of instances of SYS_FAIL_RC_UNIT that the SYS_FAIL_RC_SRC trigger
+affects (bit 0 = instance 1, motor number for motors). 0 = all instances.
+
+**Bitmask:**
+
+- `0`: Instance 1
+- `1`: Instance 2
+- `2`: Instance 3
+- `3`: Instance 4
+- `4`: Instance 5
+- `5`: Instance 6
+- `6`: Instance 7
+- `7`: Instance 8
+- `8`: Instance 9
+- `9`: Instance 10
+- `10`: Instance 11
+- `11`: Instance 12
+- `12`: Instance 13
+- `13`: Instance 14
+- `14`: Instance 15
+- `15`: Instance 16
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 16       |           | 1       |      | &nbsp;    |
+| &check; | 0        | 65535    |           | 1       |      | &nbsp;    |
 
 ### SYS_FAIL_RC_MODE (`INT32`) {#SYS_FAIL_RC_MODE}
 
@@ -26395,6 +26530,8 @@ SYS_FAIL_RC_INST.
 - `8`: Airspeed
 - `100`: Battery
 - `101`: Motor
+- `107`: Traffic avoidance
+- `200`: CAN bus
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -26780,15 +26917,18 @@ the expected application environment.
 
 **Values:**
 
+- `0`: portable
 - `2`: stationary
+- `3`: pedestrian
 - `4`: automotive
+- `5`: sea
 - `6`: airborne with <1g acceleration
 - `7`: airborne with <2g acceleration
 - `8`: airborne with <4g acceleration
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 9        |           | 7       |      | &nbsp;    |
+| &check; | 0        | 8        |           | 7       |      | &nbsp;    |
 
 ### GPS_UBX_JAM_DET (`INT32`) {#GPS_UBX_JAM_DET}
 
@@ -26849,6 +26989,10 @@ Mode 7 turns UART2 into a diagnostic port: the receiver keeps serving the autopi
 while UART2 outputs UBX at GPS_UBX_BAUD2 for u-center. Keep GPS_UBX_BAUD2 at 115200 or above,
 the diagnostic message set saturates a slower link. UBX input is left enabled on UART2, so
 anything attached there can also reconfigure the receiver.
+Mode 8 uses the free Galileo HAS corrections broadcast on E6 (ZED-X20P with HPG 2.10 or
+later) for a PPP solution of roughly 20 cm after a few minutes of convergence. The
+receiver only processes HAS while host corrections are off, so RTCM and SPARTN from the
+autopilot are ignored in this mode; use mode 0 whenever a correction link is available.
 
 **Values:**
 
@@ -26860,10 +27004,11 @@ anything attached there can also reconfigure the receiver.
 - `5`: Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
 - `6`: Ground Control Station (UART2 outputs NMEA)
 - `7`: u-center on UART2 (UART2 outputs UBX diagnostics)
+- `8`: Galileo HAS (X20P, PPP from E6, RTCM/SPARTN input disabled)
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 7        |           | 0       |      | &nbsp;    |
+| &check; | 0        | 8        |           | 0       |      | &nbsp;    |
 
 ### GPS_UBX_PPK (`INT32`) {#GPS_UBX_PPK}
 
@@ -34128,9 +34273,21 @@ select the transmission standard.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
-### OSD_CH_HEIGHT (`INT32`) {#OSD_CH_HEIGHT}
+### OSD_CH_POS_HOR (`INT32`) {#OSD_CH_POS_HOR}
 
-OSD Crosshairs Height.
+OSD Crosshairs Horizontal Position.
+
+Controls the horizontal position of the crosshair display.
+Resolution is limited by OSD to 15 discrete values. Negative
+values will display the crosshairs left of the center of the screen
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -8       | 8        |           | 0       |      | &nbsp;    |
+
+### OSD_CH_POS_VER (`INT32`) {#OSD_CH_POS_VER}
+
+OSD Crosshairs Vertical Position.
 
 Controls the vertical position of the crosshair display.
 Resolution is limited by OSD to 15 discrete values. Negative
@@ -34196,21 +34353,21 @@ Configure / toggle support display options.
 - `4`: GPS_SATS
 - `5`: GPS_SPEED
 - `6`: HOME_DIST
-- `7`: HOME_DIR
-- `8`: MAIN_BATT_VOLTAGE
+- `7`: (unused) HOME_DIR
+- `8`: (unused) MAIN_BATT_VOLTAGE
 - `9`: CURRENT_DRAW
 - `10`: MAH_DRAWN
 - `11`: RSSI_VALUE
 - `12`: ALTITUDE
-- `13`: NUMERICAL_VARIO
+- `13`: (unused) NUMERICAL_VARIO
 - `14`: (unused) FLYMODE
 - `15`: (unused) ESC_TMP
-- `16`: (unused) PITCH_ANGLE
-- `17`: (unused) ROLL_ANGLE
+- `16`: PITCH_ANGLE
+- `17`: ROLL_ANGLE
 - `18`: CROSSHAIRS
 - `19`: AVG_CELL_VOLTAGE
 - `20`: (unused) HORIZON_SIDEBARS
-- `21`: POWER
+- `21`: (unused) POWER
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -41099,6 +41256,37 @@ SMBUS Smart battery driver BQ40Z50 and BQ40Z80.
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### SENS_EN_DLVR (`INT32`) {#SENS_EN_DLVR}
+
+Amphenol DLVR Low Voltage Digital Pressure Sensor Series.
+
+Enables the DLVR series. If set to 0, the sensor is disabled.
+If the driver is started manually while this parameter is 0,
+it will be treated as an L10D model by default.
+
+**Values:**
+
+- `0`: Sensor disabled
+- `1`: DLVR F50D
+- `2`: DLVR L01D
+- `3`: DLVR L02D
+- `4`: DLVR L05D
+- `5`: DLVR L10D
+- `6`: DLVR L20D
+- `7`: DLVR L30D
+- `8`: DLVR L60D
+- `9`: DLVR L01G
+- `10`: DLVR L02G
+- `11`: DLVR L05G
+- `12`: DLVR L10G
+- `13`: DLVR L20G
+- `14`: DLVR L30G
+- `15`: DLVR L60G
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
 ### SENS_EN_ETSASPD (`INT32`) {#SENS_EN_ETSASPD}
 
 Eagle Tree airspeed sensor (external I2C).
@@ -47092,7 +47280,7 @@ UAVCAN CAN bus bitrate.
 
 UAVCAN fuel tank fuel type.
 
-This parameter defines the type of fuel used in the vehicle's fuel tank.
+This parameter defines the type of fuel used in the vehicle's fuel tanks.
 
 0: Unknown
 1: Liquid (e.g., gasoline, diesel)
@@ -47108,11 +47296,31 @@ This parameter defines the type of fuel used in the vehicle's fuel tank.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2        |           | 1       |      | &nbsp;    |
 
-### UAVCAN_ECU_MAXF (`FLOAT`) {#UAVCAN_ECU_MAXF}
+### UAVCAN_ECU_MAXF1 (`FLOAT`) {#UAVCAN_ECU_MAXF1}
 
-UAVCAN fuel tank maximum capacity.
+Fuel tank 1 maximum capacity.
 
-This parameter defines the maximum fuel capacity of the vehicle's fuel tank.
+Maximum fuel capacity of fuel tank 1.
+
+| Reboot  | minValue | maxValue | increment | default | unit   | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ------ | --------- |
+| &check; | 0.0      | 100000.0 | 0.1       | 15.0    | liters | &nbsp;    |
+
+### UAVCAN_ECU_MAXF2 (`FLOAT`) {#UAVCAN_ECU_MAXF2}
+
+Fuel tank 2 maximum capacity.
+
+Maximum fuel capacity of fuel tank 2.
+
+| Reboot  | minValue | maxValue | increment | default | unit   | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ------ | --------- |
+| &check; | 0.0      | 100000.0 | 0.1       | 15.0    | liters | &nbsp;    |
+
+### UAVCAN_ECU_MAXF3 (`FLOAT`) {#UAVCAN_ECU_MAXF3}
+
+Fuel tank 3 maximum capacity.
+
+Maximum fuel capacity of fuel tank 3.
 
 | Reboot  | minValue | maxValue | increment | default | unit   | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ------ | --------- |
@@ -47161,6 +47369,14 @@ starve other nodes on the bus.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 1        | 255      |           | 255     |      | &nbsp;    |
+
+### UAVCAN_ESC_RTMAX (`INT32`) {#UAVCAN_ESC_RTMAX}
+
+Maximum UAVCAN ESC output rate.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 1        | 1000     |           | 400     | Hz   | &nbsp;    |
 
 ### UAVCAN_LGT_FN0 (`INT32`) {#UAVCAN_LGT_FN0}
 
@@ -47232,7 +47448,7 @@ This determines which physical LED responds to commands for this light slot.
 
 UAVCAN Navigation light operating mode.
 
-This parameter defines the minimum condition under which the system will command
+Minimum condition under which the system will command
 Navigation lights to turn on. Affects lights with functions: Anti-collision, Colored Navigation Lights or Hybrid lights.
 
 For hybrid functions (StatusOrAntiCollision, etc.), the light
@@ -47329,7 +47545,7 @@ uavcan::equipment::gnss::RTCMStream
 
 UAVCAN rangefinder maximum range.
 
-This parameter defines the maximum valid range for a rangefinder connected via UAVCAN.
+Maximum valid range for a rangefinder connected via UAVCAN.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -47339,7 +47555,7 @@ This parameter defines the maximum valid range for a rangefinder connected via U
 
 UAVCAN rangefinder minimum range.
 
-This parameter defines the minimum valid range for a rangefinder connected via UAVCAN.
+Minimum valid range for a rangefinder connected via UAVCAN.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -47595,6 +47811,14 @@ uavcan::equipment::range_sensor::Measurement
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### UAVCAN_SV_RTMAX (`INT32`) {#UAVCAN_SV_RTMAX}
+
+Maximum UAVCAN servo output rate.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 1        | 400      |           | 50      | Hz   | &nbsp;    |
 
 ### UAVCAN_TRACE_EN (`INT32`) {#UAVCAN_TRACE_EN}
 
@@ -49051,12 +49275,12 @@ VTX table channel 1-16
 
 VTX device.
 
-Specific VTX device useful for workarounds and optimizations
+Specific VTX model, only used to enable device-specific workarounds.
+Leave at Generic unless your VTX is listed.
 
 **Values:**
 
-- `0`: SmartAudio v1, v2, v2.1 Protocol
-- `100`: Tramp Protocol
+- `0`: Generic
 - `5120`: Peak THOR T67
 - `10240`: Rush MAX SOLO
 
@@ -49139,6 +49363,22 @@ VTX transmission power level 1-16
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### VTX_PROTOCOL (`INT32`) {#VTX_PROTOCOL}
+
+VTX protocol.
+
+Wire protocol used to communicate with the VTX. Select the protocol
+listed in the manual of your VTX.
+
+**Values:**
+
+- `0`: SmartAudio v1, v2, v2.1
+- `100`: Tramp
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
 
 ### VTX_SER_CFG (`INT32`) {#VTX_SER_CFG}
 

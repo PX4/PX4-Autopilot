@@ -193,7 +193,7 @@ void MspOsd::SendConfig()
 	msp_osd_config.osd_crosshairs_pos = LOCATION_HIDDEN;
 
 	if (enabled(SymbolIndex::CROSSHAIRS)) {
-		msp_osd_config.osd_crosshairs_pos = osd_crosshairs_pos - 32 * _param_osd_ch_height.get();
+		msp_osd_config.osd_crosshairs_pos = osd_crosshairs_pos - 32 * _param_osd_ch_pos_ver.get();
 	}
 
 	// possibly available, but not currently used
@@ -365,9 +365,20 @@ void MspOsd::Run()
 		const auto msg_original = msp_osd::construct_BATTERY_STATE(battery_status);
 		this->Send(MSP_BATTERY_STATE, &msg_original);
 
-		const auto msg = msp_osd::construct_rendor_BATTERY_STATE(battery_status);
-		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_battery_state_t));
+		if (enabled(SymbolIndex::AVG_CELL_VOLTAGE)) {
+			const auto msg = msp_osd::construct_rendor_BATTERY_STATE(battery_status);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_battery_state_t));
+		}
 
+		if (enabled(SymbolIndex::CURRENT_DRAW)) {
+			const auto msg = msp_osd::construct_rendor_CURRENT_DRAW(battery_status);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_current_draw_t));
+		}
+
+		if (enabled(SymbolIndex::MAH_DRAWN)) {
+			const auto msg = msp_osd::construct_rendor_MAH_DRAWN(battery_status);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_mah_drawn_t));
+		}
 	}
 
 	// MSP_RAW_GPS
@@ -389,6 +400,11 @@ void MspOsd::Run()
 			const auto msg = msp_osd::construct_rendor_GPS_NUM(vehicle_gps_position);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_satellites_used_t));
 		}
+
+		if (enabled(SymbolIndex::GPS_SPEED)) {
+			const auto msg = msp_osd::construct_rendor_GPS_SPEED(vehicle_gps_position);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_gps_speed_t));
+		}
 	}
 
 	// MSP_COMP_GPS
@@ -401,7 +417,6 @@ void MspOsd::Run()
 
 		if (enabled(SymbolIndex::HOME_DIST)) {
 			const auto msg =  msp_osd::construct_rendor_distanceToHome(home_position, vehicle_global_position);
-
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_distanceToHome_t));
 		}
 	}
@@ -412,12 +427,16 @@ void MspOsd::Run()
 		_vehicle_attitude_sub.copy(&vehicle_attitude);
 
 		{
-			const auto msg = msp_osd::construct_rendor_PITCH(vehicle_attitude);
-			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_pitch_t));
+			if (enabled(SymbolIndex::PITCH_ANGLE)) {
+				const auto msg = msp_osd::construct_rendor_PITCH(vehicle_attitude);
+				this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_pitch_t));
+			}
 		}
 		{
-			const auto msg = msp_osd::construct_rendor_ROLL(vehicle_attitude);
-			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_roll_t));
+			if (enabled(SymbolIndex::ROLL_ANGLE)) {
+				const auto msg = msp_osd::construct_rendor_ROLL(vehicle_attitude);
+				this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_roll_t));
+			}
 		}
 	}
 
@@ -465,6 +484,15 @@ void MspOsd::Run()
 
 		const auto msg = msp_osd::construct_MSP_STATUS(vehicle_status);
 		this->Send(MSP_STATUS, &msg, sizeof(msp_status_t));
+	}
+
+	// MSP_CROSSHAIRS
+	{
+		if (enabled(SymbolIndex::CROSSHAIRS)) {
+			const auto msg = msp_osd::construct_rendor_CROSSHAIRS(_param_osd_ch_pos_ver.get(), _param_osd_ch_pos_hor.get());
+
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_crosshairs_t));
+		}
 	}
 
 	subcmd = MSP_DP_DRAW_SCREEN;

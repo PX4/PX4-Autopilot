@@ -58,4 +58,5 @@ If using RTK with a fixed base station the secondary GPS will show the RTK state
 ## 추가 정보
 
 - [ZED-F9P Moving base applications (Application note)](https://content.u-blox.com/sites/default/files/documents/ZED-F9P-MovingBase_AppNote_UBX-19009093.pdf) - General setup/instructions.
+- [u-blox Diagnostics with u-center](../gps_compass/u-center.md) - UART2 diagnostic mode (not available with heading/moving-base modes, which already use UART2 for RTCM).
 - [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)
