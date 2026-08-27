@@ -427,25 +427,26 @@ static void bdshot_restart_training(volatile dshot_channel_t *ch, uint32_t chann
 	flexio_dshot_set_tcmp(channel);
 }
 
-static void bdshot_note_failure(volatile dshot_channel_t *ch, uint32_t channel)
+// A missing response means the ESC is gone, not that the baud is wrong: it takes the channel offline
+// but never restarts the sweep. Only frames that arrive and fail to decode can, after a second period.
+static void bdshot_note_failure(volatile dshot_channel_t *ch, uint32_t channel, bool decoded_wrong)
 {
 	if (!ch->bdshot_training_done) {
 		return;
 	}
 
 	ch->consecutive_successes = 0;
+	uint16_t limit = decoded_wrong ? BDSHOT_RETRAIN_COUNT : BDSHOT_OFFLINE_COUNT;
 
-	if (ch->consecutive_failures < BDSHOT_RETRAIN_COUNT) {
+	if (ch->consecutive_failures < limit) {
 		ch->consecutive_failures++;
 	}
 
-	// The trained offset tracks the ESC oscillator, not the link, so a dropout keeps it. A baud
-	// that stays wrong (ESC swapped, drift) never recovers on its own, hence the second period.
 	if (ch->consecutive_failures >= BDSHOT_OFFLINE_COUNT) {
 		ch->online = false;
 	}
 
-	if (ch->consecutive_failures >= BDSHOT_RETRAIN_COUNT) {
+	if (decoded_wrong && ch->consecutive_failures >= BDSHOT_RETRAIN_COUNT) {
 		bdshot_restart_training(ch, channel);
 	}
 }
@@ -505,7 +506,7 @@ static void bdshot_process_response(uint32_t channel)
 
 	if (ch->state != BDSHOT_RECEIVE_COMPLETE) {
 		ch->no_response_cnt++;
-		bdshot_note_failure(ch, channel);
+		bdshot_note_failure(ch, channel, false);
 		return;
 	}
 
@@ -526,7 +527,7 @@ static void bdshot_process_response(uint32_t channel)
 			ch->crc_error_cnt++;
 		}
 
-		bdshot_note_failure(ch, channel);
+		bdshot_note_failure(ch, channel, true);
 		return;
 	}
 
