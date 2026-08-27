@@ -32,7 +32,7 @@ parameters:
           neural network. Divided by 100 000
       type: float
       default: 1.2
-      min: 0.0
+      min: 0.01
       max: 5.0
     MC_NN_MANL_CTRL:
       description:
