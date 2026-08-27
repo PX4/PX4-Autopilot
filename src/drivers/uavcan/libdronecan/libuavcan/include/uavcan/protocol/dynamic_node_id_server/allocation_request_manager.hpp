@@ -246,6 +246,7 @@ public:
         {
             return res;
         }
+        allocation_pub_.getTransferSender().setAlwaysClassic(true);
         allocation_pub_.setTxTimeout(MonotonicDuration::fromMSec(Allocation::FOLLOWUP_TIMEOUT_MS));
 
         res = allocation_sub_.start(AllocationCallback(this, &AllocationRequestManager::handleAllocation));

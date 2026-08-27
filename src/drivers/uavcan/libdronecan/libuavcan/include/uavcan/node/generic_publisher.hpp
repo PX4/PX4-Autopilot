@@ -166,7 +166,9 @@ int GenericPublisher<DataSpec, DataStruct>::doEncode(const DataStruct& message, 
     BitStream bitstream(buffer);
     ScalarCodec codec(bitstream);
 #if UAVCAN_SUPPORT_CANFD
-    const TailArrayOptimizationMode tao = getNode().getDispatcher().isCanFdEnabled() ?
+    const bool canfd = getNode().getDispatcher().isCanFdEnabled() &&
+                       !getTransferSender().isAlwaysClassic();
+    const TailArrayOptimizationMode tao = canfd ?
                                           TailArrayOptDisabled : TailArrayOptEnabled;
     const int encode_res = DataStruct::encode(message, codec, tao);
 #else

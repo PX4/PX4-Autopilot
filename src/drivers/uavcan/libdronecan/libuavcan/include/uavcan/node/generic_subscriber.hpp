@@ -291,7 +291,9 @@ void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomi
     ScalarCodec codec(bitstream);
 
 #if UAVCAN_SUPPORT_CANFD
-    const TailArrayOptimizationMode tao = this->node_.getDispatcher().isCanFdEnabled() ?
+    // TAO follows the received frame FDF bit, not the node's global FD flag.
+    // DNA is still classic TAO-packed even when the data phase is 2/4 Mbps.
+    const TailArrayOptimizationMode tao = transfer.isCanFD() ?
                                           TailArrayOptDisabled : TailArrayOptEnabled;
     const int decode_res = DataStruct::decode(rx_struct, codec, tao);
 #else

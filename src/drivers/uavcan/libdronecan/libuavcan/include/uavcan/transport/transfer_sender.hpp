@@ -30,6 +30,7 @@ class UAVCAN_EXPORT TransferSender
     CanIOFlags flags_;
     uint8_t iface_mask_;
     bool allow_anonymous_transfers_;
+    bool always_classic_;
 
     void registerError() const;
 
@@ -50,6 +51,7 @@ public:
         , flags_(CanIOFlags(0))
         , iface_mask_(AllIfacesMask)
         , allow_anonymous_transfers_(false)
+        , always_classic_(false)
     {
         init(data_type, qos);
     }
@@ -62,6 +64,7 @@ public:
         , flags_(CanIOFlags(0))
         , iface_mask_(AllIfacesMask)
         , allow_anonymous_transfers_(false)
+        , always_classic_(false)
     { }
 
     void init(const DataTypeDescriptor& dtid, CanTxQueue::Qos qos);
@@ -89,6 +92,13 @@ public:
      * to send anonymous transfers from passive mode.
      */
     void allowAnonymousTransfers() { allow_anonymous_transfers_ = true; }
+
+    /**
+     * Force classic CAN + TAO packing even if the dispatcher has CAN FD enabled.
+     * Required for DNA: Allocation is still a classic 8-byte TAO transfer.
+     */
+    void setAlwaysClassic(bool v) { always_classic_ = v; }
+    bool isAlwaysClassic() const { return always_classic_; }
 
     /**
      * Send with explicit Transfer ID.

@@ -192,6 +192,7 @@ int DynamicNodeIDClient::start(const UniqueID& unique_id,
     {
         return res;
     }
+    dnida_pub_.getTransferSender().setAlwaysClassic(true);
     dnida_pub_.allowAnonymousTransfers();
     dnida_pub_.setPriority(transfer_priority);
 
