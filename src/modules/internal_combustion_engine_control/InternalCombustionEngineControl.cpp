@@ -123,34 +123,33 @@ void InternalCombustionEngineControl::Run()
 
 	switch (static_cast<ICESource>(_param_ice_on_source.get())) {
 	case ICESource::ArmingState: {
-			_user_request = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? UserOnOffRequest::On :
-					UserOnOffRequest::Off;
+			_user_request_motor_on = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 		}
 		break;
 
 	case ICESource::Aux1: {
 			if (manual_control_setpoint.aux1 > 0.5f) {
-				_user_request = UserOnOffRequest::On;
+				_user_request_motor_on = true;
 
 			} else if (manual_control_setpoint.aux1 < -0.5f) {
-				_user_request = UserOnOffRequest::Off;
+				_user_request_motor_on = false;
 			}
 		}
 		break;
 
 	case ICESource::Aux2: {
 			if (manual_control_setpoint.aux2 > 0.5f) {
-				_user_request = UserOnOffRequest::On;
+				_user_request_motor_on = true;
 
 			} else if (manual_control_setpoint.aux2 < -0.5f) {
-				_user_request = UserOnOffRequest::Off;
+				_user_request_motor_on = false;
 			}
 		}
 		break;
 
 	case ICESource::VtolStatus: {
-			_user_request = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-					 || vehicle_status.in_transition_to_fw) ? UserOnOffRequest::On : UserOnOffRequest::Off;
+			_user_request_motor_on = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+						 || vehicle_status.in_transition_to_fw;
 		}
 		break;
 	}
@@ -159,7 +158,7 @@ void InternalCombustionEngineControl::Run()
 	case State::Stopped: {
 			controlEngineStop();
 
-			if (_user_request == UserOnOffRequest::On && !maximumAttemptsReached()) {
+			if (_user_request_motor_on && !maximumAttemptsReached()) {
 
 				_state = State::Starting;
 				_state_start_time = now;
@@ -170,7 +169,7 @@ void InternalCombustionEngineControl::Run()
 
 	case State::Starting: {
 
-			if (_user_request == UserOnOffRequest::Off) {
+			if (!_user_request_motor_on) {
 				_state = State::Stopped;
 				_starting_retry_cycle = 0;
 				PX4_INFO("ICE: Stopped");
@@ -241,7 +240,7 @@ void InternalCombustionEngineControl::Run()
 				controlEngineRunning(throttle_in);
 			}
 
-			if (_user_request == UserOnOffRequest::Off) {
+			if (!_user_request_motor_on) {
 				_state = State::Stopped;
 				_starting_retry_cycle = 0;
 				PX4_INFO("ICE: Stopped");
@@ -262,7 +261,7 @@ void InternalCombustionEngineControl::Run()
 
 	case State::Fault: {
 
-			if (_user_request == UserOnOffRequest::Off) {
+			if (!_user_request_motor_on) {
 				_state = State::Stopped;
 				_starting_retry_cycle = 0;
 				PX4_INFO("ICE: Stopped");
@@ -299,7 +298,7 @@ void InternalCombustionEngineControl::publishControl(const hrt_abstime now)
 	ice_control.ignition_on = _ignition_on;
 	ice_control.starter_engine_control = _starter_engine_control;
 	ice_control.throttle_control = _throttle_control;
-	ice_control.user_request = static_cast<uint8_t>(_user_request);
+	ice_control.user_request_motor_on = _user_request_motor_on;
 	_internal_combustion_engine_control_pub.publish(ice_control);
 
 	internal_combustion_engine_status_s ice_status{};
