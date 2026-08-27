@@ -412,6 +412,10 @@ OSDatxxxx::get_flight_mode(uint8_t nav_state)
 		flight_mode = "CRUISE";
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
+		flight_mode = "MANUAL PARKING";
+		break;
+
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		flight_mode = "POSITION";
 		break;
