@@ -125,6 +125,6 @@ If FluxGrip does not respond:
 ## Дивіться також
 
 - [FluxGrip: Integration with PX4](https://forum.zubax.com/t/fluxgrip-integration-with-px4/2863) (Zubax Forum)
-- [FluxGrip Quickstart Guide](https://forum.zubax.com/t/fluxgrip-quickstart-guide/2335) (Zubax Forum)
+- [FluxGrip Quickstart Guide](https://forum.zubax.com/t/fluxgrip-quickstart-guide-v1-1/2864) (Zubax Forum)
 - [DroneCAN](../dronecan/index.md)
 - [Grippers](gripper.md)

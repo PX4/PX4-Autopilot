@@ -346,3 +346,52 @@ TEST_F(EkfAirspeedTest, testExternalWindResetOnGround)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBetaFusion());
 	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 }
+
+TEST_F(EkfAirspeedTest, testExternalPosResetWithCorrelatedPosUncertainty)
+{
+	// GIVEN: a fixed-wing dead-reckoning on airspeed and sideslip without magnetometer.
+	// The heading uncertainty makes the velocity error perpendicular to the velocity vector,
+	// which correlates the North and East velocity errors when flying diagonally. Integrating
+	// that over time correlates the horizontal position errors.
+	_ekf_wrapper.setMagFuseTypeNone();
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->set_is_fixed_wing(true);
+
+	const float eph = 50.f;
+	const float epv = 1.f;
+
+	// the first call only initialises the origin
+	_ekf->resetGlobalPosToExternalObservation(-15.0000005, -115.0000005, 1500.f, eph, epv, 0);
+
+	_ekf_wrapper.enableBetaFusion();
+	_sensor_simulator.startAirspeedSensor();
+	_sensor_simulator._airspeed.setData(15.f, 15.f);
+	_sensor_simulator.runSeconds(300);
+
+	const float pos_var_n = _ekf->stateCovariance(State::pos.idx, State::pos.idx);
+	const float pos_var_e = _ekf->stateCovariance(State::pos.idx + 1, State::pos.idx + 1);
+	const float pos_corr_ne = _ekf->stateCovariance(State::pos.idx, State::pos.idx + 1)
+				  / sqrtf(pos_var_n * pos_var_e);
+	ASSERT_LT(pos_corr_ne, -0.5f);
+
+	// WHEN: an external position observation close enough to the estimate to be fused
+	// instead of hard reset is sent
+	const LatLonAlt gpos_before_reset = _ekf->getLatLonAlt();
+	const LatLonAlt gpos_obs = gpos_before_reset + Vector3f(110.f, 110.f, 0.f);
+
+	_ekf->resetGlobalPosToExternalObservation(gpos_obs.latitude_deg(), gpos_obs.longitude_deg(), 1500.f, eph, epv,
+			_sensor_simulator.getTime());
+
+	const LatLonAlt gpos_est = _ekf->getLatLonAlt();
+	const Vector2f pos_err = (gpos_est - gpos_obs).xy();
+
+	EXPECT_LT(pos_err.norm(), 1.f);
+
+	// AND: the position jump reported to the controllers matches the jump that was applied
+	const Vector2f actual_jump = (gpos_est - gpos_before_reset).xy();
+	const Vector2f reported_jump = _ekf->state_reset_status().posNE_change;
+	EXPECT_NEAR(reported_jump(0), actual_jump(0), 1.f);
+	EXPECT_NEAR(reported_jump(1), actual_jump(1), 1.f);
+}

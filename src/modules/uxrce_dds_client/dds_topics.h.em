@@ -99,7 +99,6 @@ struct SendTopicsSubs {
 };
 
 bool SendTopicsSubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace) {
-	bool ret = true;
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		if (fds[idx].events == 0) {
 			fds[idx].fd = orb_subscribe_multi(send_subscriptions[idx].orb_meta, send_subscriptions[idx].orb_instance);
@@ -110,10 +109,10 @@ bool SendTopicsSubs::init(uxrSession *session, uxrStreamId reliable_out_stream_i
 		if (!create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].topic,
 								   send_subscriptions[idx].message_version, send_subscriptions[idx].orb_instance,
 								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer)) {
-			ret = false;
+			return false;
 		}
 	}
-	return ret;
+	return true;
 }
 
 void SendTopicsSubs::reset() {
@@ -289,14 +288,20 @@ bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id
 	{
 			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['simple_base_type']))) * 2; // use a bit larger queue size than internal
 			uint32_t message_version = get_message_version<@(sub['simple_base_type'])_s>();
-			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth);
+
+			if (!create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth)) {
+				return false;
+			}
 	}
 @[    end for]@
 @[    for idx, sub in enumerate(subscriptions_multi)]@
 	{
 			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['topic_simple']))) * @(sub.get('max_instances', 2)); // scale queue for multiple sources
 			uint32_t message_version = get_message_version<@(sub['simple_base_type'])_s>();
-			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx + len(subscriptions)), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth);
+
+			if (!create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx + len(subscriptions)), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth)) {
+				return false;
+			}
 	}
 @[    end for]@
 
