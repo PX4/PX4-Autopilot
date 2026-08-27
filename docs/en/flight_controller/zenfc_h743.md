@@ -1,7 +1,7 @@
 # ZenFC H743
 
 <!-- TODO: set to the PX4 release this target first merges into -->
-<Badge type="tip" text="PX4 v1.18" />
+<Badge type="tip" text="PX4 main (v2.0)" />
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
@@ -11,11 +11,7 @@ Contact the [manufacturer](https://www.zenithratech.com/contact) for hardware su
 The _ZenFC H743_ is a flight controller designed by Zenithra Tech.
 It is built around the STM32H743 processor with dual Bosch BMI088 IMUs for sensor redundancy, an onboard barometer, and an integrated OSD.
 
-
-<p align="center">
-  <img src="../../assets/flight_controller/zenfc_h743/zenfc_h743.png" alt="ZenFC H743" width="600"/>
-</p>
-
+![ZenFC H743 Flight Controller](../../assets/flight_controller/zenfc_h743/zenfc_h743.png)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -47,16 +43,11 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Dimensions
 
-
 - **Mounting:** 30.5 mm x 30.5 mm /Φ4mm hole
 - **Dimensions:** 35mm x 35mm x 8mm
 - **Weight:** 9g
 
-
-<p align="center">
-  <img src="../../assets/flight_controller/zenfc_h743/zenfc_h743_dimensions.png" alt="ZenFC H743 Dimensions" width="700"/>
-</p>
-
+![ZenFC H743 Dimensions](../../assets/flight_controller/zenfc_h743/zenfc_h743_dimensions.png)
 
 ## Where to Buy
 
@@ -64,13 +55,9 @@ Order from [Zenithra Tech](https://www.zenithratech.com/solutions/components).
 
 ## Flight Controller Layout
 
-<p align="center">
-  <img src="../../assets/flight_controller/zenfc_h743/zenfc_h743_layout_front.png" alt="ZenFC H743 Layout Front" width="450"/>
-</p>
+![ZenFC H743 Layout Front](../../assets/flight_controller/zenfc_h743/zenfc_h743_layout_front.png)
 
-<p align="center">
-  <img src="../../assets/flight_controller/zenfc_h743/zenfc_h743_layout_back.png" alt="ZenFC H743 Layout Back" width="450"/>
-</p>
+![ZenFC H743 Layout Back](../../assets/flight_controller/zenfc_h743/zenfc_h743_layout_back.png)
 
 ## Serial Port Mapping
 
@@ -84,20 +71,15 @@ Order from [Zenithra Tech](https://www.zenithratech.com/solutions/components).
 | UART7  | /dev/ttyS5 | TEL2     |
 | UART8  | /dev/ttyS6 | URT6     |
 
-
 ## Connectors & Pinout
 
 Board uses JST SH connectors for all interfaces.
 
-<p align="center">
-  <img src="../../assets/flight_controller/zenfc_h743/zenfc_h743_pinouts_front.png" alt="ZenFC H743 Pinouts Front" width="600"/>
-</p>
+![ZenFC H743 Pinouts Front](../../assets/flight_controller/zenfc_h743/zenfc_h743_pinouts_front.png)
 
-<p align="center">
-  <img src="../../assets/flight_controller/zenfc_h743/zenfc_h743_pinouts_back.png" alt="ZenFC H743 Pinouts Back" width="600"/>
-</p>
+![ZenFC H743 Pinouts Back](../../assets/flight_controller/zenfc_h743/zenfc_h743_pinouts_back.png)
 
-**Note** - SBus pin on DJI O3/O4 port is internally connected to RX6 (RCIN).
+**Note** - SBus pin on DJI O3/O4 port is internally connected to RX6 (`RCIN`).
 
 ### PWM Outputs
 
@@ -114,8 +96,8 @@ Note: All outputs support PWM and Dshot protocol.
 In addition to the [basic configuration](../config/index.md), the following
 parameter is important:
 
-| Parameter                                                            | Setting                                                                                                  |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Parameter                                                            | Setting                                                                                                    |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | Disabled by default since the board has no internal magnetometer. Enable it if you attach an external mag. |
 
 ## Building Firmware
@@ -141,4 +123,4 @@ The firmware can be installed in any of the normal ways:
 
 ## Further info
 
-- [Zenithra Tech.](https://www.zenithratech.com/contact)
+- [Zenithra Tech](https://www.zenithratech.com/contact)
