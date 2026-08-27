@@ -80,7 +80,13 @@ int test_uart_send(int argc, char *argv[])
 	uint64_t start_time = hrt_absolute_time();
 
 	for (i = 0; i < 30000; i++) {
-		n = sprintf(sample_test_uart, "SAMPLE #%d\n", i);
+		n = snprintf(sample_test_uart, sizeof(sample_test_uart), "SAMPLE #%d\n", i);
+
+		// snprintf() returns the length it would have written, clamp to what fit
+		if (n > (int)sizeof(sample_test_uart) - 1) {
+			n = (int)sizeof(sample_test_uart) - 1;
+		}
+
 		write(test_uart, sample_test_uart, n);
 	}
 
