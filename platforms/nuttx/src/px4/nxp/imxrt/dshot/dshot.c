@@ -347,7 +347,7 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 	return OK;
 }
 
-static bool decode_gcr_payload(uint32_t value, uint16_t *payload)
+static inline bool decode_gcr_payload(uint32_t value, uint16_t *payload)
 {
 	uint32_t data;
 	uint32_t csum_data;
