@@ -771,8 +771,8 @@ void up_dshot_trigger(void)
 			flexio_dshot_output(channel);
 		}
 
-		// Stale flags: the previous cycle's second buffer load, or the shifter re-enable above
-		clear_shifter_status_flags(bit);
+		// SSF is the timer trigger (active low): it reads "buffer empty" here and only the SHIFTBUF
+		// write may clear it, or the timer starts on an empty shifter. TSF is just a stale flag.
 		clear_timer_status_flags(bit);
 		tx_mask |= bit;
 	}
