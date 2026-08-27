@@ -296,7 +296,7 @@ void MulticopterNeuralNetworkControl::generate_trajectory_setpoint(float dt)
 
 void MulticopterNeuralNetworkControl::PopulateInputTensor()
 {
-	// Creates a 15 element input tensor for the neural network [pos_err(3), lin_vel(3), att(6), ang_vel(3)]
+	// Creates a 15 element input tensor for the neural network [pos_err(3), att(6), lin_vel(3), ang_vel(3)]
 
 	// transform observations in correct frame
 	matrix::Dcmf frame_transf;
@@ -414,7 +414,7 @@ inline void MulticopterNeuralNetworkControl::RescaleActions()
 
 		_output_tensor->data.f[i] = _output_tensor->data.f[i] + 1.0f;
 		float rps = _output_tensor->data.f[i] / thrust_coeff;
-		rps = sqrt(rps);
+		rps = sqrtf(rps);
 		float rpm = rps * 60.0f;
 		_output_tensor->data.f[i] = (rpm * 2.0f - max_rpm - min_rpm) / (max_rpm - min_rpm);
 		_output_tensor->data.f[i] = a * (((_output_tensor->data.f[i] + 1.0f) / 2.0f + tmp1) * ((
