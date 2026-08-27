@@ -172,10 +172,12 @@ private:
 	// first principle check
 	bool _first_principle_check_failed{false}; ///< first principle check has detected failure
 	float _aspd_fp_t_window{0.f}; ///< time window for first principle check
-	FilteredDerivative<float> _IAS_derivative; ///< indicated airspeed derivative for first principle check
-	AlphaFilter<float> _pitch_filtered; ///< filtered pitch for first principle check
-	hrt_abstime _time_last_first_principle_check{0}; ///< time airspeed first principle was last checked (uSec)
 	hrt_abstime _time_last_first_principle_check_passing{0}; ///< time airspeed first principle was last passing (uSec)
+
+	// filtered airspeed derivative and pitch (decoupled from the first principle check, also published in airspeed_validated)
+	FilteredDerivative<float> _IAS_derivative; ///< filtered indicated airspeed derivative
+	AlphaFilter<float> _pitch_filtered; ///< filtered pitch
+	hrt_abstime _time_last_airspeed_derivative_update{0}; ///< time the airspeed derivative filter was last updated (uSec)
 	float _param_psp_off{0.0f}; ///< parameter pitch in level flight [rad]
 	float _param_throttle_max{0.0f}; ///< parameter maximum throttle value
 
@@ -208,6 +210,7 @@ private:
 	void check_load_factor(float accel_z);
 	void check_first_principle(const uint64_t timestamp, const float throttle, const float throttle_trim,
 				   const uint64_t tecs_timestamp, const Quatf &att_q);
+	bool update_filtered_airspeed_derivative(const uint64_t timestamp, const float pitch);
 	void update_airspeed_valid_status(const uint64_t timestamp);
 	void reset();
 	void reset_CAS_scale_check();
