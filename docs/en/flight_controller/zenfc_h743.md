@@ -69,7 +69,7 @@ Order from [Zenithra Tech](https://www.zenithratech.com/solutions/components).
 | UART5  | /dev/ttyS3 | TEL1     |
 | USART6 | /dev/ttyS4 | RC       |
 | UART7  | /dev/ttyS5 | TEL2     |
-| UART8  | /dev/ttyS6 | URT6     |
+| UART8  | /dev/ttyS6 | UART6    |
 
 ## Connectors & Pinout
 
@@ -89,7 +89,21 @@ The 8 outputs are in 3 groups:
 - Outputs 5-6 in group2
 - Outputs 7-8 in group3
 
-Note: All outputs support PWM and Dshot protocol.
+Note: All outputs support PWM and [DShot](../peripherals/dshot.md) protocol.
+Outputs 1-4 default to DShot300 ([PWM_MAIN_TIM0](../advanced_config/parameter_reference.md#PWM_MAIN_TIM0) = `-4`); outputs 5-6 and 7-8 default to PWM at 400 Hz.
+Each group's protocol can be changed independently using the corresponding `PWM_MAIN_TIMx` parameter, including to [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) (BDShot) for ESC telemetry.
+
+### Debug Port {#debug_port}
+
+TBD
+
+## Radio Control
+
+A [Radio Control (RC) system](../getting_started/rc_transmitter_receiver.md) is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+See [Radio Control modules](../modules/modules_driver_radio_control.md) for the list of supported protocols.
+
+RC input is mapped to **USART6** (`/dev/ttyS4`, `RC` port).
+The port supports both single-wire inverted SBUS and full-duplex protocols with telemetry return (such as CRSF), and the receiver protocol is auto-detected by default ([RC_INPUT_PROTO](../advanced_config/parameter_reference.md#RC_INPUT_PROTO) = `-1`).
 
 ## PX4 Configuration
 
@@ -120,6 +134,8 @@ The firmware can be installed in any of the normal ways:
 
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.
   You can use either pre-built firmware or your own custom firmware.
+
+The board uses the standard PX4 bootloader, so it follows the same generic LED indications as most other boards (Red = Bootloader/Error, Blue = Active/Activity, Green = Powered).
 
 ## Further info
 
