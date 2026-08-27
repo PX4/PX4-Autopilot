@@ -166,6 +166,7 @@
       - [3DR Control N1](/flight_controller/3dr_ctrl-n1.md)
       - [Accton Godwit GA1](/flight_controller/accton-godwit_ga1.md)
       - [AEDROX AEDROXH7](/flight_controller/aedrox_aedroxh7.md)
+      - [Agam Autopilot v6X-RT](/flight_controller/agam_v6xrt.md)
       - [AirMind MindPX](/flight_controller/mindpx.md)
       - [AirMind MindRacer](/flight_controller/mindracer.md)
       - [Amovlab Flycore](/flight_controller/amovlab_flycore.md)
