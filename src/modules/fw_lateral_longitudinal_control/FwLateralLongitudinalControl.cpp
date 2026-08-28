@@ -58,7 +58,7 @@ static constexpr float COS_HEADING_TRACK_ANGLE_NOT_PUSHED_BACK{0.09f}; ///< Cos 
 static constexpr float COS_HEADING_TRACK_ANGLE_PUSHED_BACK{0.f}; ///< Cos of Heading to track angle above which it is assumed that the vehicle is pushed back by the wind
 
 // [s] Timeout that has to pass in roll-constraining failsafe before warning is triggered
-static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
+static constexpr hrt_abstime ROLL_WARNING_TIMEOUT = 2_s;
 
 // [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
 static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
@@ -67,10 +67,10 @@ static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 static constexpr float ASPD_SP_SLEW_RATE = 1.f;
 
 // [us] time constant of the fuel fraction filter, needs to be slow enough to reject fuel sloshing
-static constexpr uint64_t FUEL_FRACTION_FILTER_TIME_CONST = 30000000; // 30 s
+static constexpr hrt_abstime FUEL_FRACTION_FILTER_TIME_CONST = 30000000; // 30 s
 
 // [us] maximum time step used to advance the fuel fraction filter on a new sample
-static constexpr uint64_t FUEL_FRACTION_FILTER_MAX_DT = 10000000; // 10 s
+static constexpr hrt_abstime FUEL_FRACTION_FILTER_MAX_DT = 10000000; // 10 s
 
 FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	ModuleParams(nullptr),
@@ -83,7 +83,7 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	_flight_phase_estimation_pub.advertise();
 	_fixed_wing_lateral_status_pub.advertise();
 
-	_fuel_fraction_filter.setParameters(uint64_t{0}, FUEL_FRACTION_FILTER_TIME_CONST);
+	_fuel_fraction_filter.setParameters(hrt_abstime{0}, FUEL_FRACTION_FILTER_TIME_CONST);
 
 	parameters_update();
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
@@ -485,8 +485,8 @@ void FwLateralLongitudinalControl::updateFuelState()
 			_fuel_fraction_filter.reset(fuel_fraction_remaining);
 
 		} else if (fuel_tank_status.timestamp > _time_last_fuel_fraction_update) {
-			const uint64_t dt_us = math::min(fuel_tank_status.timestamp - _time_last_fuel_fraction_update,
-							 FUEL_FRACTION_FILTER_MAX_DT);
+			const hrt_abstime dt_us = math::min(fuel_tank_status.timestamp - _time_last_fuel_fraction_update,
+							    FUEL_FRACTION_FILTER_MAX_DT);
 			_fuel_fraction_filter.update(fuel_fraction_remaining, dt_us);
 
 		} else {

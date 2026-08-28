@@ -53,7 +53,7 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_index(index < 1 || index > 9 ? 1 : index),
 	_source(source)
 {
-	const uint64_t expected_filter_dt_us = static_cast<uint64_t>(sample_interval_us);
+	const hrt_abstime expected_filter_dt_us = static_cast<hrt_abstime>(sample_interval_us);
 	_current_average_filter_a.setParameters(expected_filter_dt_us, 50_s);
 	_ocv_filter_v.setParameters(expected_filter_dt_us, 1_s);
 	_cell_voltage_filter_v.setParameters(expected_filter_dt_us, 1_s);

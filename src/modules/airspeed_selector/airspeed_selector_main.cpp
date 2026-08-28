@@ -73,7 +73,7 @@
 using namespace time_literals;
 
 static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};	/**< The schedule interval in usec (10 Hz) */
-static constexpr uint64_t _kThrottleFilterTimeConstant{500_ms};
+static constexpr hrt_abstime _kThrottleFilterTimeConstant{500_ms};
 
 using matrix::Dcmf;
 using matrix::Quatf;

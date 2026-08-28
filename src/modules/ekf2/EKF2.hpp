@@ -486,8 +486,8 @@ private:
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	uint64_t _last_geoid_height_update_us{0};
-	static constexpr uint64_t kGeoidHeightLpfTimeConstant = 10_s;
+	hrt_abstime _last_geoid_height_update_us{0};
+	static constexpr hrt_abstime kGeoidHeightLpfTimeConstant = 10_s;
 	AlphaFilter<float> _geoid_height_lpf;  ///< height offset between AMSL and ellipsoid
 
 	hrt_abstime _last_gps_status_published{0};

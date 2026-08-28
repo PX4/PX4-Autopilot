@@ -87,7 +87,7 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 			_last_timestamp = timestamp;
 		}
 
-		const uint64_t dt_us = timestamp - _last_timestamp;
+		const hrt_abstime dt_us = timestamp - _last_timestamp;
 		_last_timestamp = timestamp;
 
 		if (_analog_params.v_filt > FLT_EPSILON) {
