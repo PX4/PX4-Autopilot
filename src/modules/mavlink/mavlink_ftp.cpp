@@ -192,16 +192,20 @@ MavlinkFTP::_process_request(
 
 	// check the sequence number: if this is a resent request, resend the last response
 	if (_last_reply_valid) {
-		mavlink_file_transfer_protocol_t *last_reply = reinterpret_cast<mavlink_file_transfer_protocol_t *>(_last_reply);
-		PayloadHeader *last_payload = reinterpret_cast<PayloadHeader *>(&last_reply->payload[0]);
+		const mavlink_file_transfer_protocol_t *last_reply = reinterpret_cast<const mavlink_file_transfer_protocol_t *>
+				(_last_reply);
+		const PayloadHeader *last_payload = reinterpret_cast<const PayloadHeader *>(&last_reply->payload[0]);
 
 		if (payload->seq_number + 1 == last_payload->seq_number
 		    && last_reply->target_system == target_system_id
 		    && last_reply->target_component == target_comp_id) {
 			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
-			// resent the request
+			// resent the request. The request buffer is no longer needed, so expand the compact cache into it;
+			// the serializer reads the whole message.
+			memset(ftp_req, 0, sizeof(*ftp_req));
+			memcpy(ftp_req, _last_reply, sizeof(_last_reply));
 			_mavlink.lock_send();
-			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), last_reply);
+			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), ftp_req);
 			_mavlink.unlock_send();
 			return;
 		}
@@ -347,6 +351,9 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 {
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
 
+	// clear any not used payload data to correctly trim mavlink ftp message reply
+	memset(&payload->data[payload->size], 0, kMaxDataLength - payload->size);
+
 	// keep a copy of the last sent response ((n)ack), so that if it gets lost and the GCS resends the request,
 	// we can simply resend the response.
 	// we only keep small responses to reduce RAM usage and avoid large memcpy's. The larger responses are all data
@@ -355,9 +362,6 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 		_last_reply_valid = true;
 		memcpy(_last_reply, ftp_req, sizeof(_last_reply));
 	}
-
-	// clear any not used payload data to correctly trim mavlink ftp message reply
-	memset(&payload->data[payload->size], 0, kMaxDataLength - payload->size);
 
 	PX4_DEBUG("FTP: %s seq_number: %" PRIu16, payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
 
