@@ -310,6 +310,9 @@ private:
 	// [us] time stamp of (runway/catapult) launch detection
 	hrt_abstime _time_launch_detected{0};
 
+	// [us] time stamp of the start of the climbout, 0 while the takeoff has not started climbing yet
+	hrt_abstime _time_climbout_started{0};
+
 	// [deg] global position of the vehicle at the time launch is detected (using launch detector) or takeoff is started (runway)
 	Vector2d _takeoff_init_position{0, 0};
 
@@ -914,6 +917,7 @@ private:
 		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
 		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
 		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
+		(ParamFloat<px4::params::FW_TKO_CLMB_T>) _param_fw_tko_clmb_t,
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
