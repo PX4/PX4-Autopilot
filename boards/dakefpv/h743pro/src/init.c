@@ -48,6 +48,15 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#if defined(BOARD_TEL3_SWAP_RXTX)
+/* TIOCSSWAP/SER_SWAP_ENABLED are not reachable via termios.h or sys/ioctl.h */
+#  include <errno.h>
+#  include <fcntl.h>
+#  include <unistd.h>
+#  include <sys/ioctl.h>
+#  include <nuttx/serial/tioctl.h>
+#endif
+
 #include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <arch/board/board.h>
@@ -318,6 +327,35 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 				}
 			}
 		}
+	}
+
+#endif
+
+#if defined(BOARD_TEL3_SWAP_RXTX)
+	/* The HD VTX connector is wired pin 3 -> PB8 and pin 4 -> PB9, i.e. reversed
+	 * with respect to the SoC's UART4 pinout (TX is only available on PB9, RX
+	 * only on PB8). Swap the peripheral so pin 3 carries TX as a standard 6-pin
+	 * DJI/OpenIPC harness expects.
+	 *
+	 * Done here rather than in a driver: USART_CR2_SWAP survives up_setup(),
+	 * up_set_format() and up_shutdown() -- all of which read-modify-write CR2 --
+	 * so a single ioctl at boot covers every consumer of the port, whether
+	 * TELEM3 is later used for msp_osd, mavlink or anything else.
+	 */
+	int tel3 = open(CONFIG_BOARD_SERIAL_TEL3, O_RDWR | O_NONBLOCK);
+
+	if (tel3 < 0) {
+		boot_log(LOG_ERR, "[boot] TELEM3 open for RX/TX swap failed: %d\n", errno);
+
+	} else {
+		if (ioctl(tel3, TIOCSSWAP, SER_SWAP_ENABLED) < 0) {
+			boot_log(LOG_ERR, "[boot] TELEM3 RX/TX swap failed: %d\n", errno);
+
+		} else {
+			boot_log(LOG_INFO, "[boot] TELEM3 RX/TX swapped\n");
+		}
+
+		close(tel3);
 	}
 
 #endif
