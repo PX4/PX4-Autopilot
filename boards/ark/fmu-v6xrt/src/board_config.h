@@ -422,9 +422,7 @@
 #define HRT_PPM_CHANNEL         /* GPIO_EMC_B1_09 GPIO_GPT5_CAPTURE1_1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* GPIO_EMC_B1_09 GPT1_CAPTURE2 */ (GPIO_GPT5_CAPTURE1_1 | GENERAL_INPUT_IOMUX)
 
-#define RC_SERIAL_SINGLEWIRE            1 // Suport Single wire wiring
-#define RC_SERIAL_SWAP_RXTX             1 // Set Swap (but not supported in HW) to use Single wire
-#define RC_SERIAL_SWAP_USING_SINGLEWIRE 1 // Set to use Single wire swap as HW does not support swap
+/* PAB X1-70 (RC) is LPUART6_RX. The NXP v6XRT template single-wires on TX. */
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* FLEXSPI4 */
@@ -457,16 +455,13 @@
 
 #define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
 /*
- * FMU-V6RT has a separate RC_IN and PPM
- *
- * GPIO PPM_IN on GPIO_EMC_B1_09 GPIO1 Pin 9 GPT5_CAPTURE1
- * SPEKTRUM_RX (it's TX or RX in Bind) on TX UART6_TX_TO_IO__RC_INPUT GPIO_EMC_B1_40 GPIO2 Pin 8
- *   Inversion is possible in the UART and can drive GPIO PPM_IN as an output
+ * PPM on GPIO_EMC_B1_09 (PAB FMU_PPM_INPUT). Spektrum bind on LPUART6_RX
+ * (PAB X1-70 / carrier RC pin 2), GPIO_EMC_B1_41 GPIO2_IO9.
  */
 
-#define GPIO_UART_AS_OUT             /* GPIO_EMC_B1_40 GPIO2_IO8 */ (GPIO_PORT2 | GPIO_PIN8 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | GENERAL_OUTPUT_IOMUX)
+#define GPIO_UART_AS_OUT             /* GPIO_EMC_B1_41 GPIO2_IO9 */ (GPIO_PORT2 | GPIO_PIN9 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | GENERAL_OUTPUT_IOMUX)
 #define SPEKTRUM_RX_AS_GPIO_OUTPUT()   px4_arch_configgpio(GPIO_UART_AS_OUT)
-#define SPEKTRUM_RX_AS_UART()          px4_arch_configgpio(GPIO_LPUART6_TX_1)
+#define SPEKTRUM_RX_AS_UART()          px4_arch_configgpio(GPIO_LPUART6_RX_1)
 #define SPEKTRUM_OUT(_one_true)        px4_arch_gpiowrite(GPIO_UART_AS_OUT, (_one_true))
 
 
