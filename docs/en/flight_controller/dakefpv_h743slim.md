@@ -116,6 +116,23 @@ Analog OSD and digital HD OSD can run at the same time.
 
 The digital VTX (DJI/HDZero/OpenIPC) uses MSP DisplayPort on the `T4`/`R4` pads — UART4, PX4 TELEM3 (`/dev/ttyS3`), which is the `MSP_OSD_CONFIG 103` default.
 
+MSP DisplayPort only uses the flight controller's TX line, so `T4` and a ground are enough;
+`R4` is not needed unless the VTX also talks back.
+
+::: info `Dji`/`VTX` solder jumper
+The three-pad solder jumper silkscreened `Dji` and `VTX` selects what the HD VTX connector's
+RX4 pin carries: UART4 RX for a digital air unit, or the analog composite video signal when the
+connector drives an analog VTX. It is not in the OSD's transmit path, so it does not affect
+MSP DisplayPort output.
+:::
+
+::: tip
+UART4 is on PB8/PB9 here, the same as on the H743 Pro. On the Pro the HD VTX connector is wired
+with pin 3 — the pin a standard DJI/OpenIPC harness expects to carry the flight controller's TX —
+on PB8, so PX4 swaps the UART4 peripheral there. This variant is not swapped. If the OSD does not
+appear over the HD VTX connector, see the [H743 Pro](dakefpv_h743pro.md) page for that behaviour.
+:::
+
 ## CAN
 
 CAN1 is on PD0 (RX) and PD1 (TX) with a silent pin on PD2. Enable DroneCAN peripherals via the `UAVCAN_ENABLE` parameter.

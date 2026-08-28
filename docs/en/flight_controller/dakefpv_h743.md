@@ -94,6 +94,21 @@ Analog OSD and digital HD OSD can run at the same time.
 
 The digital VTX (DJI/HDZero/OpenIPC) connects to the `T4`/`R4` pads — UART4, PX4 TELEM3 (`/dev/ttyS3`), which is the `MSP_OSD_CONFIG 103` default.
 
+MSP DisplayPort only uses the flight controller's TX line, so `T4` and a ground are enough;
+`R4` is not needed unless the VTX also talks back.
+
+::: info UART4 pin mapping
+UART4 is on PD0 (RX) and PD1 (TX) on this variant, and no peripheral swap is applied. (The H743
+Pro places UART4 on PB8/PB9 and does swap it to match its HD VTX connector; see its board page.)
+:::
+
+::: info `Dji`/`VTX` solder jumper
+The three-pad solder jumper silkscreened `Dji` and `VTX` selects what the HD VTX connector's
+RX4 pin carries: UART4 RX for a digital air unit, or the analog composite video signal when the
+connector drives an analog VTX. It is not in the OSD's transmit path, so it does not affect
+MSP DisplayPort output.
+:::
+
 ## Camera Switching and VTX Power
 
 | GPIO | Function                                | Default state |
