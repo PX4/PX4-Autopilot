@@ -25396,6 +25396,19 @@ If set <= 0, FW_AIRSPD_MIN will be set by default.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1.0     |          | 0.1       | -1.0    | m/s  | &nbsp;    |
 
+### FW_TKO_CLMB_T (`FLOAT`) {#FW_TKO_CLMB_T}
+
+Takeoff climbout duration.
+
+Ends the takeoff climbout this many seconds after the vehicle started climbing, instead of
+when the takeoff altitude is reached.
+
+If set to 0, the climbout ends at the takeoff altitude.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 1.0       | 0.0     | s    | &nbsp;    |
+
 ### FW_TKO_PITCH_MIN (`FLOAT`) {#FW_TKO_PITCH_MIN}
 
 Minimum pitch during takeoff.
