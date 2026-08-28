@@ -82,7 +82,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("gps_dump");
 	add_optional_topic("gimbal_controls", 200);
 	add_optional_topic("gripper");
-	add_optional_topic_multi("heater_status");
+	add_optional_topic_multi("heater_status", 1000);
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
