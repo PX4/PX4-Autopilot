@@ -83,11 +83,8 @@ fi
 # Internal magnetometer IIS2MDC on I2C3
 iis2mdc -R 4 -I -b 3 start
 
-# Internal Baro BMP390 on I2C2
-if param compare SENS_INT_BARO_EN 1
-then
-	bmp388 -X -b 2 start
-fi
+# Onboard baro BMP390 on I2C2 (shared with the PM2 connector)
+bmp388 -X -b 2 start
 
 # Start an external PWM generator
 if param greater PCA9685_EN_BUS 0
