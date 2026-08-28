@@ -1040,7 +1040,7 @@ void MavlinkFTP::send()
 
 	} else if (_session_info.fd != -1) {
 		// close session without activity
-		if (hrt_elapsed_time(&_last_work_buffer_access) > 10_s) {
+		if (hrt_elapsed_time(&_last_work_buffer_access) > 30_s) {
 			::close(_session_info.fd);
 			_session_info.fd = -1;
 			_session_info.stream_download = false;
