@@ -295,7 +295,6 @@ parameters:
       default: 0.0
       unit: s
       min: 0.0
-      max: 60.0
       decimal: 1
       increment: 1.0
     FW_LAUN_DETCN_ON:
