@@ -44,6 +44,7 @@
 #include <drivers/drv_hrt.h>
 
 #include "mavlink_bridge_header.h"
+#include "mavlink_ftp_param.h"
 
 class Mavlink;
 
@@ -144,6 +145,12 @@ private:
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
+	bool _session_open() const;
+	void _close_session();
+
+	/// Read from the open session. Returns bytes read, 0 at EOF, -1 on error with _our_errno set.
+	int _read_session(uint32_t offset, uint8_t *buf, uint16_t count);
+
 	/**
 	 * Construct local path by appending `path` to `_root_dir` and storing the result in `dst`.
 	 */
@@ -174,6 +181,7 @@ private:
 		uint8_t		stream_target_system_id;
 		uint8_t         stream_target_component_id;
 		unsigned	stream_chunk_transmitted;
+		ParamPckFile	param;			///< virtual parameter file, open instead of fd
 	};
 	struct SessionInfo _session_info {};	///< Session info, fd=-1 for no active session
 
