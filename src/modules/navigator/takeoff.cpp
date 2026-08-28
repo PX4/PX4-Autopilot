@@ -68,7 +68,7 @@ Takeoff::on_active()
 
 		switch (_fw_takeoff_state) {
 		case fw_takeoff_state::CLIMBOUT: {
-				if (_navigator->get_global_position()->alt >= _loiter_altitude_msl) {
+				if (_navigator->fw_climbout_completed(_loiter_altitude_msl)) {
 
 					setLoiterItemCommonFields(&_mission_item);
 

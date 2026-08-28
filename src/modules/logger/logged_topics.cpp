@@ -163,6 +163,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
 	add_optional_topic("fixed_wing_lateral_status", 100);
 	add_optional_topic("fixed_wing_runway_control", 100);
+	add_optional_topic("fixed_wing_takeoff_status", 100);
 	add_optional_topic("ranging_beacon", 100);
 
 	// multi topics
