@@ -398,7 +398,11 @@ void DShot::update_motor_commands(int num_outputs)
 			command_sent = true;
 		}
 
-		up_dshot_motor_command(i, command, false);
+		// Bluejay/BLHeli_S discard commands unless the tlm bit is set. It stays clear on commands answered
+		// over the telemetry UART: AM32 reads it as a KISS request and starts that frame on the same wire,
+		// then aborts it a few loop iterations later to send the EEPROM dump.
+		const bool request_telemetry = command != DSHOT_CMD_MOTOR_STOP && !_current_command.expect_response;
+		up_dshot_motor_command(i, command, request_telemetry);
 	}
 
 	if (command_sent) {
