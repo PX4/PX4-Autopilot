@@ -212,7 +212,7 @@ private:
 
 	AlphaFilter<float> _geoid_height_lpf;
 	uint64_t _last_geoid_height_update_us{0};
-	static constexpr float kGeoidHeightLpfTimeConstant = 10.f;
+	static constexpr uint64_t kGeoidHeightLpfTimeConstant = 10_s;
 
 	MapProjection _pos_ref{};
 	double _ref_alt = 0;

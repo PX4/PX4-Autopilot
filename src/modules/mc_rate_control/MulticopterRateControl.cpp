@@ -220,7 +220,7 @@ MulticopterRateControl::Run()
 				_rate_control.update(rates, _rates_setpoint, angular_accel, dt, _maybe_landed || _landed);
 
 			// apply low-pass filtering on yaw axis to reduce high frequency torque caused by rotor acceleration
-			torque_setpoint(2) = _output_lpf_yaw.update(torque_setpoint(2), dt);
+			torque_setpoint(2) = _output_lpf_yaw.update(torque_setpoint(2), static_cast<uint64_t>(dt * 1e6f));
 
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};

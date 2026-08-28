@@ -45,7 +45,7 @@ public:
 			return NAN;
 		}
 
-		_difference_filter.setParameters(dt_s, .05f);
+		_difference_filter.setParameters(static_cast<uint64_t>(dt_s * 1e6f), uint64_t{50000});	// 50 ms
 
 		// Leave _diff at 0.0f if we don't have a _last_value yet.
 		if (PX4_ISFINITE(_last_value)) {

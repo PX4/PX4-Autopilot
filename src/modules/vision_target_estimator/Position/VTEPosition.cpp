@@ -796,8 +796,7 @@ bool VTEPosition::updateBiasAveraging(const Vector3f &bias_sample, const hrt_abs
 	const Vector3f filtered_bias_before_update = _bias.initial_lpf.getState();
 	const float bias_delta = (bias_sample - filtered_bias_before_update).norm();
 
-	const float dt = static_cast<float>(sample_time - _bias.last_sample_time) * kMicrosecondsToSeconds;
-	_bias.initial_lpf.update(bias_sample, dt);
+	_bias.initial_lpf.update(bias_sample, sample_time - _bias.last_sample_time);
 	_bias.last_sample_time = sample_time;
 
 	const Vector3f filtered_bias_logged = _bias.initial_lpf.getState();

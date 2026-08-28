@@ -415,7 +415,7 @@ private:
 		uint8_t stable_delta_count{0};
 		hrt_abstime averaging_start_time{0};
 		hrt_abstime last_sample_time{0};
-		AlphaFilter<matrix::Vector3f> initial_lpf{kInitialBiasLpfTimeConstantS};
+		AlphaFilter<matrix::Vector3f> initial_lpf{static_cast<uint64_t>(kInitialBiasLpfTimeConstantS * 1e6f)};
 	};
 
 	bool _gps_pos_is_offset{false};

@@ -1771,8 +1771,8 @@ void MicroStrain::updateGeoidHeight(float geoid_height, float t)
 		_last_geoid_height_update_us = t;
 
 	} else if (t > _last_geoid_height_update_us) {
-		const float dt = 1e-6f * (t - _last_geoid_height_update_us);
-		_geoid_height_lpf.setParameters(dt, kGeoidHeightLpfTimeConstant);
+		_geoid_height_lpf.setParameters(static_cast<uint64_t>(t - _last_geoid_height_update_us),
+						kGeoidHeightLpfTimeConstant);
 		_geoid_height_lpf.update(geoid_height);
 		_last_geoid_height_update_us = t;
 	}

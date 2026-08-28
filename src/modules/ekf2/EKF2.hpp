@@ -50,6 +50,8 @@
 
 #include <containers/LockGuard.hpp>
 #include <drivers/drv_hrt.h>
+
+using namespace time_literals;
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/mavlink_log.h>
@@ -485,7 +487,7 @@ private:
 #if defined(CONFIG_EKF2_GNSS)
 
 	uint64_t _last_geoid_height_update_us{0};
-	static constexpr float kGeoidHeightLpfTimeConstant = 10.f;
+	static constexpr uint64_t kGeoidHeightLpfTimeConstant = 10_s;
 	AlphaFilter<float> _geoid_height_lpf;  ///< height offset between AMSL and ellipsoid
 
 	hrt_abstime _last_gps_status_published{0};
