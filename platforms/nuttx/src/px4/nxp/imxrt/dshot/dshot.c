@@ -111,8 +111,8 @@ typedef struct dshot_channel_t {
 #define BDSHOT_TCMP_MIN_OFFSET -16
 #define BDSHOT_TCMP_MAX_OFFSET 15
 #define BDSHOT_TCMP_TO_MASK(x) ((x) - BDSHOT_TCMP_MIN_OFFSET)
-#define BDSHOT_TRAINING_TRIES 200
-#define BDSHOT_TRAINING_SUCCESS 198
+#define BDSHOT_TRAINING_TRIES 25
+#define BDSHOT_TRAINING_SUCCESS 24
 
 static volatile dshot_channel_t dshot_inst[DSHOT_TIMERS] = {};
 
