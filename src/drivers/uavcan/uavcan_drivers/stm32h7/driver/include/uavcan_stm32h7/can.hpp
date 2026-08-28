@@ -130,7 +130,8 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 	bool canfd_;
 	uint8_t fifo_element_words_;
 
-	int computeTimings(uavcan::uint32_t target_bitrate, Timings &out_timings, uint32_t max_prescaler = 1024);
+	int computeTimings(uavcan::uint32_t target_bitrate, Timings &out_timings, uint32_t max_prescaler = 1024,
+			   bool fd_data_phase = false);
 
 	virtual uavcan::int16_t send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline,
 				     uavcan::CanIOFlags flags);
@@ -178,6 +179,8 @@ public:
 	 */
 	int init(const uavcan::uint32_t nominal_bitrate, const uavcan::uint32_t data_bitrate,
 		 const OperatingMode mode, bool canfd);
+
+	bool isCanFd() const { return canfd_; }
 
 	/**
 	 * Failure injection: take this interface off the CAN bus / bring it back.
@@ -305,6 +308,13 @@ public:
 	int init(const uavcan::uint32_t nominal_bitrate, const uavcan::uint32_t data_bitrate,
 		 const CanIface::OperatingMode mode, const uavcan::uint32_t EnabledInterfaces, bool canfd);
 
+	/**
+	 * Per-interface bitrates. Values above 1 Mbps enable CAN FD on that iface
+	 * (1 Mbps arbitration, parameter is the data bitrate).
+	 */
+	int init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates,
+		 const CanIface::OperatingMode mode, const uavcan::uint32_t EnabledInterfaces);
+
 	virtual CanIface *getIface(uavcan::uint8_t iface_index);
 
 	virtual uavcan::uint8_t getNumIfaces() const { return UAVCAN_STM32H7_NUM_IFACES; }
@@ -345,15 +355,20 @@ public:
 	 * Bitrate value must be positive.
 	 * @return  Negative value on error; non-negative on success. Refer to constants Err*.
 	 */
+	int init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates)
+	{
+		return driver.init(bitrates, num_bitrates, CanIface::NormalMode, enabledInterfaces_);
+	}
+
 	int init(uavcan::uint32_t bitrate)
 	{
-#if UAVCAN_SUPPORT_CANFD
-		const bool canfd = bitrate > 1000000U;
-#else
-		const bool canfd = false;
-#endif
-		const uavcan::uint32_t nominal = canfd ? 1000000U : bitrate;
-		return driver.init(nominal, bitrate, CanIface::NormalMode, enabledInterfaces_, canfd);
+		uavcan::uint32_t bitrates[UAVCAN_STM32H7_NUM_IFACES];
+
+		for (unsigned i = 0; i < UAVCAN_STM32H7_NUM_IFACES; i++) {
+			bitrates[i] = bitrate;
+		}
+
+		return init(bitrates, UAVCAN_STM32H7_NUM_IFACES);
 	}
 
 	/**

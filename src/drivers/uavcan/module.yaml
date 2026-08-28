@@ -97,8 +97,10 @@ actuator_output:
     - param: 'UAVCAN_ENABLE'
       label: 'Configure'
       function: 'enable'
-    - param: 'UAVCAN_BITRATE'
-      label: 'Bitrate'
+    - param: 'UAVCAN_BAUD1'
+      label: 'CAN1 Bitrate'
+    - param: 'UAVCAN_BAUD2'
+      label: 'CAN2 Bitrate'
   output_groups:
     - param_prefix: UAVCAN_EC
       group_label: 'ESCs'

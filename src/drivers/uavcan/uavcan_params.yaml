@@ -37,24 +37,28 @@ parameters:
       type: boolean
       default: 1
       reboot_required: true
-    UAVCAN_BITRATE:
+    UAVCAN_BAUD${i}:
       description:
-        short: UAVCAN CAN bus bitrate
+        short: UAVCAN CAN${i} bitrate
         long: |-
-          Classic CAN when 20000..1000000.
+          Bitrate for this CAN port. Classic CAN when 125000..1000000.
 
           On firmware built with UAVCAN_CANFD (STM32H7 FDCAN or SocketCAN),
-          values above 1000000 enable CAN FD: arbitration stays at 1 Mbps,
-          and this parameter is the data bitrate. Typical rates are 2000000
-          and 4000000. All nodes on the bus must support CAN FD.
+          values above 1000000 enable CAN FD on this port only: arbitration
+          stays at 1 Mbps, and this parameter is the data bitrate.
 
-          The data bitrate must divide the FDCAN clock (usually the HSE crystal).
-          A 16 MHz crystal supports 2 Mbps and 4 Mbps, not 5 Mbps.
-      type: int32
+          Do not mix classic CAN and CAN FD nodes on the same physical bus.
+          Different ports may use different rates (e.g. classic GPS on CAN1
+          and CAN FD ESCs on CAN2). DNA Allocation remains classic CAN.
+          For CAN FD ESC output, set UAVCAN_ESC_IFACE to only the FD port.
+
+          Only rates the board FDCAN/HSE clock can generate are listed.
+      type: enum
+      can_bitrate: true
+      num_instances: 2
+      instance_start: 1
       default: 1000000
       unit: bit/s
-      min: 20000
-      max: 8000000
       reboot_required: true
     UAVCAN_RNG_MIN:
       description:

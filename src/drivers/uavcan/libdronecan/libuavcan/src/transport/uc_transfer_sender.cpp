@@ -30,7 +30,7 @@ int TransferSender::send(const uint8_t* payload, unsigned payload_len, Monotonic
 {
 #if UAVCAN_SUPPORT_CANFD
     Frame frame(data_type_id_, transfer_type, dispatcher_.getNodeID(), dst_node_id, tid,
-                !force_std_can && dispatcher_.isCanFdEnabled());
+                !force_std_can && useCanFd());
 #else
     (void)force_std_can;
     Frame frame(data_type_id_, transfer_type, dispatcher_.getNodeID(), dst_node_id, tid);

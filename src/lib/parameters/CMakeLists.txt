@@ -76,6 +76,21 @@ if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
 
+set(uavcan_param_args)
+if(config_uavcan_num_ifaces)
+	list(APPEND uavcan_param_args --uavcan-num-ifaces ${config_uavcan_num_ifaces})
+endif()
+if(CONFIG_UAVCAN_CANFD)
+	list(APPEND uavcan_param_args --uavcan-canfd)
+endif()
+if(PX4_BOARD_DIR)
+	list(APPEND uavcan_param_args --board-dir ${PX4_BOARD_DIR})
+endif()
+set(board_h ${PX4_BOARD_DIR}/nuttx-config/include/board.h)
+if(NOT EXISTS ${board_h})
+	unset(board_h)
+endif()
+
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
@@ -89,12 +104,14 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 		--timer-config ${PX4_BOARD_DIR}/src/timer_config.cpp
 		--config-files ${module_config_files}
 		--board ${PX4_BOARD}
+		${uavcan_param_args}
 		#--verbose
 	DEPENDS
 		${module_config_files}
 		${jinja_templates}
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
+		${board_h}
 	COMMENT "Generating serial_params.c"
 )
 

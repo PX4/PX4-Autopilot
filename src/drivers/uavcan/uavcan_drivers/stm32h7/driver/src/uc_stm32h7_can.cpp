@@ -261,7 +261,7 @@ void CanIface::RxQueue::reset()
  */
 
 int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out_timings,
-			     uint32_t max_prescaler)
+			     uint32_t max_prescaler, bool fd_data_phase)
 {
 	if (target_bitrate < 1) {
 		return -ErrInvalidBitRate;
@@ -276,8 +276,10 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 	const uavcan::uint32_t pclk = STM32_HSE_FREQUENCY;
 #endif
 
-	static const int MaxBS1 = 16;
-	static const int MaxBS2 = 8;
+	// FDCAN DBTP maxima (DTSEG1 1..32, DTSEG2 1..16). Nominal still uses a
+	// 10-tq cap below; FD data targets 75% sample point like ARK32.
+	static const int MaxBS1 = 32;
+	static const int MaxBS2 = 16;
 
 	/*
 	 * Ref. "Automatic Baudrate Detection in CANopen Networks", U. Koppe, MicroControl GmbH & Co. KG
@@ -290,11 +292,12 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 	 *   250  kbps      16      17
 	 *   125  kbps      16      17
 	 */
-	const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
+	const int max_quanta_per_bit = fd_data_phase ? (MaxBS1 + MaxBS2) :
+				       ((target_bitrate >= 1000000) ? 10 : 17);
 
 	UAVCAN_ASSERT(max_quanta_per_bit <= (MaxBS1 + MaxBS2));
 
-	static const int MaxSamplePointLocation = 900;
+	const int MaxSamplePointLocation = fd_data_phase ? 800 : 900;
 
 	/*
 	 * Computing (prescaler * BS):
@@ -367,12 +370,17 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 		bool isValid() const { return (bs1 >= 1) && (bs1 <= MaxBS1) && (bs2 >= 1) && (bs2 <= MaxBS2); }
 	};
 
-	// First attempt with rounding to nearest
-	BsPair solution(bs1_bs2_sum, uavcan::uint8_t(((7 * bs1_bs2_sum - 1) + 4) / 8));
+	// First attempt with rounding to nearest. Nominal targets 7/8, FD data 3/4.
+	const uavcan::uint8_t bs1_near = fd_data_phase ?
+					 uavcan::uint8_t(((3 * bs1_bs2_sum - 1) + 2) / 4) :
+					 uavcan::uint8_t(((7 * bs1_bs2_sum - 1) + 4) / 8);
+	BsPair solution(bs1_bs2_sum, bs1_near);
 
-	if (solution.sample_point_permill > MaxSamplePointLocation) {
-		// Second attempt with rounding to zero
-		solution = BsPair(bs1_bs2_sum, uavcan::uint8_t((7 * bs1_bs2_sum - 1) / 8));
+	if (solution.sample_point_permill > MaxSamplePointLocation || !solution.isValid()) {
+		const uavcan::uint8_t bs1_down = fd_data_phase ?
+						 uavcan::uint8_t((3 * bs1_bs2_sum - 1) / 4) :
+						 uavcan::uint8_t((7 * bs1_bs2_sum - 1) / 8);
+		solution = BsPair(bs1_bs2_sum, bs1_down);
 	}
 
 	/*
@@ -393,7 +401,19 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 			   int(1 + solution.bs1 + solution.bs2), double(solution.sample_point_permill) / 10.);
 
 	out_timings.prescaler = uavcan::uint16_t(prescaler - 1U);
-	out_timings.sjw = 0;                                        // Which means one
+	{
+		uavcan::uint8_t sjw = fd_data_phase ? solution.bs2 : 1;
+
+		if (sjw < 1) {
+			sjw = 1;
+		}
+
+		if (sjw > solution.bs2) {
+			sjw = solution.bs2;
+		}
+
+		out_timings.sjw = uavcan::uint8_t(sjw - 1);
+	}
 	out_timings.bs1 = uavcan::uint8_t(solution.bs1 - 1);
 	out_timings.bs2 = uavcan::uint8_t(solution.bs2 - 1);
 	return 0;
@@ -728,7 +748,7 @@ int CanIface::init(const uavcan::uint32_t nominal_bitrate, const uavcan::uint32_
 	Timings data_timings = timings;
 
 	if (canfd_ && (data_bitrate != nominal_bitrate)) {
-		const int data_res = computeTimings(data_bitrate, data_timings, 32);
+		const int data_res = computeTimings(data_bitrate, data_timings, 32, true);
 
 		if (data_res < 0) {
 			can_->CCCR &= ~FDCAN_CCCR_INIT;
@@ -760,7 +780,18 @@ int CanIface::init(const uavcan::uint32_t nominal_bitrate, const uavcan::uint32_
 
 		if (data_bitrate > nominal_bitrate) {
 			can_->DBTP |= FDCAN_DBTP_TDC;
-			uint32_t tdco = static_cast<uint32_t>(data_timings.bs1) + 2U;
+#ifdef STM32_FDCANCLK
+			const uavcan::uint32_t canclk = STM32_FDCANCLK;
+#else
+			const uavcan::uint32_t canclk = STM32_HSE_FREQUENCY;
+#endif
+			// TDCO is in kernel clocks (mtq), not data tq. 125 ns matches
+			// ARK32 (10 ticks at 80 MHz) and typical transceiver delay.
+			uint32_t tdco = (canclk + 4000000U) / 8000000U;
+
+			if (tdco < 1U) {
+				tdco = 1U;
+			}
 
 			if (tdco > 0x7FU) {
 				tdco = 0x7FU;
@@ -1223,6 +1254,101 @@ void CanDriver::initOnce()
 # endif
 # undef IRQ_ATTACH
 #endif
+}
+
+static uavcan::uint32_t bitrateForIface(const uavcan::uint32_t *bitrates, uint8_t num_bitrates, uint8_t iface)
+{
+	if (bitrates == UAVCAN_NULLPTR || num_bitrates == 0) {
+		return 1000000U;
+	}
+
+	return bitrates[(iface < num_bitrates) ? iface : 0];
+}
+
+static void splitBitrate(uavcan::uint32_t bitrate, uavcan::uint32_t &nominal, uavcan::uint32_t &data, bool &canfd)
+{
+#if UAVCAN_SUPPORT_CANFD
+	canfd = bitrate > 1000000U;
+#else
+	canfd = false;
+#endif
+	nominal = canfd ? 1000000U : bitrate;
+	data = bitrate;
+}
+
+int CanDriver::init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates,
+		    const CanIface::OperatingMode mode, const uavcan::uint32_t enabledInterfaces)
+{
+	int res = 0;
+
+	enabledInterfaces_ = enabledInterfaces;
+
+	static bool initialized_once = false;
+
+	if (!initialized_once) {
+		initialized_once = true;
+		UAVCAN_STM32H7_LOG("First initialization");
+		initOnce();
+	}
+
+	/*
+	 * FDCAN1
+	 */
+	if (enabledInterfaces_ & 1) {
+		uavcan::uint32_t nominal = 0;
+		uavcan::uint32_t data = 0;
+		bool canfd = false;
+		splitBitrate(bitrateForIface(bitrates, num_bitrates, 0), nominal, data, canfd);
+
+		num_ifaces_ = 1;
+		UAVCAN_STM32H7_LOG("Initing iface 0 bitrate %lu/%lu CAN-FD %d",
+				   static_cast<unsigned long>(nominal),
+				   static_cast<unsigned long>(data), int(canfd));
+		ifaces[0] = &if0_;
+		res = if0_.init(nominal, data, mode, canfd);
+
+		if (res < 0) {
+			UAVCAN_STM32H7_LOG("Iface 0 init failed %i", res);
+			ifaces[0] = UAVCAN_NULLPTR;
+			goto fail;
+		}
+	}
+
+	/*
+	 * FDCAN2
+	 */
+#if UAVCAN_STM32H7_NUM_IFACES > 1
+
+	if (enabledInterfaces_ & 2) {
+		uavcan::uint32_t nominal = 0;
+		uavcan::uint32_t data = 0;
+		bool canfd = false;
+		splitBitrate(bitrateForIface(bitrates, num_bitrates, 1), nominal, data, canfd);
+
+		num_ifaces_ = 2;
+		UAVCAN_STM32H7_LOG("Initing iface 1 bitrate %lu/%lu CAN-FD %d",
+				   static_cast<unsigned long>(nominal),
+				   static_cast<unsigned long>(data), int(canfd));
+		ifaces[1] = &if1_;
+		res = if1_.init(nominal, data, mode, canfd);
+
+		if (res < 0) {
+			UAVCAN_STM32H7_LOG("Iface 1 init failed %i", res);
+			ifaces[1] = UAVCAN_NULLPTR;
+			goto fail;
+		}
+	}
+
+#endif
+
+	UAVCAN_STM32H7_LOG("CAN drv init OK");
+	UAVCAN_ASSERT(res >= 0);
+	return res;
+
+fail:
+	UAVCAN_STM32H7_LOG("CAN drv init failed %i", res);
+	UAVCAN_ASSERT(res < 0);
+	return res;
 }
 
 int CanDriver::init(const uavcan::uint32_t nominal_bitrate, const uavcan::uint32_t data_bitrate,

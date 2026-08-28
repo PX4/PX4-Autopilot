@@ -920,9 +920,22 @@ void CanDriver::initOnce()
 int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode,
 		    const uavcan::uint32_t enabledInterfaces)
 {
-	int res = 0;
+	uavcan::uint32_t bitrates[UAVCAN_STM32_NUM_IFACES];
 
-	UAVCAN_STM32_LOG("Bitrate %lu mode %d", static_cast<unsigned long>(bitrate), static_cast<int>(mode));
+	for (unsigned i = 0; i < UAVCAN_STM32_NUM_IFACES; i++) {
+		bitrates[i] = bitrate;
+	}
+
+	return init(bitrates, UAVCAN_STM32_NUM_IFACES, mode, enabledInterfaces);
+}
+
+int CanDriver::init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates, const CanIface::OperatingMode mode,
+		    const uavcan::uint32_t enabledInterfaces)
+{
+	int res = 0;
+	const uavcan::uint32_t br0 = (bitrates != UAVCAN_NULLPTR && num_bitrates > 0) ? bitrates[0] : 1000000U;
+
+	UAVCAN_STM32_LOG("Bitrate %lu mode %d", static_cast<unsigned long>(br0), static_cast<int>(mode));
 
 	static bool initialized_once = false;
 
@@ -938,7 +951,7 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 	if (enabledInterfaces & 1) {
 		UAVCAN_STM32_LOG("Initing iface 0...");
 		ifaces[0] = &if0_;                          // This link must be initialized first,
-		res = if0_.init(bitrate, mode);             // otherwise an IRQ may fire while the interface is not linked yet;
+		res = if0_.init(br0, mode);             // otherwise an IRQ may fire while the interface is not linked yet;
 
 		if (res < 0) {                              // a typical race condition.
 			UAVCAN_STM32_LOG("Iface 0 init failed %i", res);
@@ -953,9 +966,10 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 #if UAVCAN_STM32_NUM_IFACES > 1
 
 	if (enabledInterfaces & 2) {
+		const uavcan::uint32_t br1 = (bitrates != UAVCAN_NULLPTR && num_bitrates > 1) ? bitrates[1] : br0;
 		UAVCAN_STM32_LOG("Initing iface 1...");
 		ifaces[1] = &if1_;                          // Same thing here.
-		res = if1_.init(bitrate, mode);
+		res = if1_.init(br1, mode);
 
 		if (res < 0) {
 			UAVCAN_STM32_LOG("Iface 1 init failed %i", res);

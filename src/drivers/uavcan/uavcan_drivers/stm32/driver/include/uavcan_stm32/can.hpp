@@ -270,6 +270,8 @@ public:
 	 * Returns negative value if failed (e.g. invalid bitrate).
 	 */
 	int init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode, const uavcan::uint32_t EnabledInterfaces);
+	int init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates, const CanIface::OperatingMode mode,
+		 const uavcan::uint32_t EnabledInterfaces);
 
 	virtual CanIface *getIface(uavcan::uint8_t iface_index);
 
@@ -311,9 +313,20 @@ public:
 	 * Bitrate value must be positive.
 	 * @return  Negative value on error; non-negative on success. Refer to constants Err*.
 	 */
+	int init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates)
+	{
+		return driver.init(bitrates, num_bitrates, CanIface::NormalMode, enabledInterfaces_);
+	}
+
 	int init(uavcan::uint32_t bitrate)
 	{
-		return driver.init(bitrate, CanIface::NormalMode, enabledInterfaces_);
+		uavcan::uint32_t bitrates[UAVCAN_STM32_NUM_IFACES];
+
+		for (unsigned i = 0; i < UAVCAN_STM32_NUM_IFACES; i++) {
+			bitrates[i] = bitrate;
+		}
+
+		return init(bitrates, UAVCAN_STM32_NUM_IFACES);
 	}
 
 	/**

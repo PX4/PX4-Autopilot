@@ -80,6 +80,11 @@ int UavcanEscController::init()
 		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
 	}
 
+	// Classic RawCommand until the ESC is fully up. ARK32 stays in MAINT
+	// and will not send Status until it sees RawCommand; that traffic must
+	// stay 8-byte classic so it does not fight DNA on the FD data phase.
+	_uavcan_pub_raw_cmd.getTransferSender().setAlwaysClassic(true);
+
 	int32_t rate_max{400};
 
 	if (param_get(param_find("UAVCAN_ESC_RTMAX"), &rate_max) == OK) {

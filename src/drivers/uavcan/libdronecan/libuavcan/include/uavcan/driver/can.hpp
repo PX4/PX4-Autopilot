@@ -238,6 +238,12 @@ public:
      * Arbitration lost should not be treated as a hardware error.
      */
     virtual uint64_t getErrorCount() const = 0;
+
+    /**
+     * True if this interface was initialized in CAN FD mode.
+     * Classic-only drivers leave the default.
+     */
+    virtual bool isCanFd() const { return false; }
 };
 
 /**

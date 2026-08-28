@@ -30,6 +30,7 @@ class UAVCAN_EXPORT TransferSender
     CanIOFlags flags_;
     uint8_t iface_mask_;
     bool allow_anonymous_transfers_;
+    bool always_classic_;
 
     void registerError() const;
 
@@ -50,6 +51,11 @@ public:
         , flags_(CanIOFlags(0))
         , iface_mask_(AllIfacesMask)
         , allow_anonymous_transfers_(false)
+#if UAVCAN_SUPPORT_CANFD
+        , always_classic_(true)
+#else
+        , always_classic_(false)
+#endif
     {
         init(data_type, qos);
     }
@@ -62,6 +68,11 @@ public:
         , flags_(CanIOFlags(0))
         , iface_mask_(AllIfacesMask)
         , allow_anonymous_transfers_(false)
+#if UAVCAN_SUPPORT_CANFD
+        , always_classic_(true)
+#else
+        , always_classic_(false)
+#endif
     { }
 
     void init(const DataTypeDescriptor& dtid, CanTxQueue::Qos qos);
@@ -89,6 +100,52 @@ public:
      * to send anonymous transfers from passive mode.
      */
     void allowAnonymousTransfers() { allow_anonymous_transfers_ = true; }
+
+    /**
+     * Classic CAN + TAO packing. Default is classic: DNA, NodeStatus and
+     * services stay 8-byte frames even when an iface is in CAN FD mode.
+     * High-rate actuator publishers opt into FD with setAlwaysClassic(false).
+     */
+    void setAlwaysClassic(bool v) { always_classic_ = v; }
+    bool isAlwaysClassic() const { return always_classic_; }
+
+    /**
+     * Encode/send CAN FD only when every selected destination iface is FD.
+     * Mixed classic+FD broadcasts stay classic (FD nodes still accept classic frames).
+     */
+    bool useCanFd() const
+    {
+#if UAVCAN_SUPPORT_CANFD
+        if (always_classic_ || !dispatcher_.isCanFdEnabled()) {
+            return false;
+        }
+
+        const uint8_t n = dispatcher_.getCanIOManager().getNumIfaces();
+        bool any_selected_fd = false;
+
+        for (uint8_t i = 0; i < n; i++) {
+            if ((iface_mask_ & (1U << i)) == 0) {
+                continue;
+            }
+
+            const ICanIface* const iface = dispatcher_.getCanIOManager().getCanDriver().getIface(i);
+
+            if (iface == UAVCAN_NULLPTR) {
+                continue;
+            }
+
+            if (!iface->isCanFd()) {
+                return false;
+            }
+
+            any_selected_fd = true;
+        }
+
+        return any_selected_fd;
+#else
+        return false;
+#endif
+    }
 
     /**
      * Send with explicit Transfer ID.

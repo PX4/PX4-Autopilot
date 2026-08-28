@@ -59,7 +59,7 @@ Set the following parameters in QGroundControl, and then reboot the flight contr
 | Parameter                                                                    | Value                            | Description                                                                                           |
 | ---------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE)     | `Sensors Automatic Config` (`2`) | Enables DroneCAN and dynamic node allocation. Use `3` instead if the vehicle also uses DroneCAN ESCs. |
-| [UAVCAN_BITRATE](../advanced_config/parameter_reference.md#UAVCAN_BITRATE)   | `1000000`                        | Sets the CAN bus bitrate to 1 Mbit/s.                                                                 |
+| [UAVCAN_BAUD1](../advanced_config/parameter_reference.md#UAVCAN_BAUD1)       | `1 Mbps (Classic)`               | Sets CAN1 bitrate to 1 Mbit/s.                                                                        |
 | [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) | `Binary Grab/Release` (`0`)      | Enables the binary grab/release gripper interface used by the EPM.                                    |
 
 ::: info
@@ -117,7 +117,7 @@ Check the power supply and wiring, and contact [Zubax support](mailto:support@zu
 If FluxGrip does not respond:
 
 1. Run `uavcan status` and confirm that the DroneCAN driver is running and FluxGrip is visible on the bus.
-2. Check that `UAVCAN_ENABLE` and `UAVCAN_BITRATE` are set as described above.
+2. Check that `UAVCAN_ENABLE` and `UAVCAN_BAUD1` are set as described above.
 3. Check CAN wiring, bus termination, and the EPM power supply.
 4. Run `payload_deliverer status` and confirm that the gripper is valid.
 5. If `payload_deliverer` is not available, rebuild the firmware with `CONFIG_MODULES_PAYLOAD_DELIVERER=y`.

@@ -32,7 +32,7 @@ VESC ID should have the same motor numbering as in PX4 convention, starting at `
 However the `UAVCAN ESC Index` starts from `0`, and as such it is always one index lower than the `VESC ID`.
 For example, in a quadcopter the bottom left motor will have `VESC ID = 2` and `UAVCAN ESC Index = 1`.
 
-Finally the `CAN Baud Rate` must match the value set in [UAVCAN_BITRATE](../advanced_config/parameter_reference.md#UAVCAN_BITRATE).
+Finally the `CAN Baud Rate` must match the value set in [UAVCAN_BAUD1](../advanced_config/parameter_reference.md#UAVCAN_BAUD1) (and [UAVCAN_BAUD2](../advanced_config/parameter_reference.md#UAVCAN_BAUD2) if the ESCs are on CAN2).
 
 ## Flight Controller Setup
 

@@ -105,10 +105,11 @@ depends on DRIVERS_UAVCAN || DRIVERS_UAVCANNODE
     bool "DroneCAN CAN FD"
     default y
     ---help---
-        Interpret UAVCAN_BITRATE / CANNODE_BITRATE values above 1 Mbps as
+        Interpret UAVCAN_BAUDn / CANNODE_BITRATE values above 1 Mbps as
         CAN FD (1 Mbps arbitration, the parameter is the data bitrate).
         Requires the STM32H7 FDCAN driver or SocketCAN. Uses a larger
         UAVCAN memory pool. Disable to keep classic CAN only.
+        Each CAN port has its own bitrate parameter.
 
 menuconfig BOARD_UAVCAN_PERIPHERALS
 depends on DRIVERS_UAVCAN

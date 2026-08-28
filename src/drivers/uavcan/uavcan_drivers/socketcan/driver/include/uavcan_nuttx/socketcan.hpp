@@ -134,6 +134,7 @@ public:
 
 	bool hasLoopbackPending() const { return _loopback_count > 0; }
 
+	bool isCanFd() const { return _can_fd; }
 
 	/**
 	 * Read the counters from the driver into the cache. NuttX descriptor
@@ -248,19 +249,32 @@ public:
 	 * Bitrate value must be positive.
 	 * @return  Negative value on error; non-negative on success. Refer to constants Err*.
 	 */
-	int init(uavcan::uint32_t bitrate)
+	int init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates)
 	{
-#if UAVCAN_SUPPORT_CANFD
-		const bool can_fd = bitrate > 1000000U;
-#else
-		const bool can_fd = false;
-#endif
-
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+			const uavcan::uint32_t bitrate = (bitrates != nullptr && num_bitrates > 0) ?
+							 bitrates[(i < num_bitrates) ? i : 0] : 1000000U;
+#if UAVCAN_SUPPORT_CANFD
+			const bool can_fd = bitrate > 1000000U;
+#else
+			(void)bitrate;
+			const bool can_fd = false;
+#endif
 			driver.initIface(i, can_fd);
 		}
 
-		return driver.init(bitrate);
+		return driver.init((bitrates != nullptr && num_bitrates > 0) ? bitrates[0] : 1000000U);
+	}
+
+	int init(uavcan::uint32_t bitrate)
+	{
+		uavcan::uint32_t bitrates[UAVCAN_SOCKETCAN_NUM_IFACES];
+
+		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+			bitrates[i] = bitrate;
+		}
+
+		return init(bitrates, UAVCAN_SOCKETCAN_NUM_IFACES);
 	}
 
 	/**

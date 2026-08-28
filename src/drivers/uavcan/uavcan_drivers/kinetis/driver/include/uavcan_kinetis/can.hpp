@@ -308,6 +308,7 @@ public:
 	 * Returns negative value if failed (e.g. invalid bitrate).
 	 */
 	int init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode);
+	int init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates, const CanIface::OperatingMode mode);
 
 	virtual CanIface *getIface(uavcan::uint8_t iface_index);
 
@@ -351,16 +352,27 @@ public:
 	 * Bitrate value must be positive.
 	 * @return  Negative value on error; non-negative on success. Refer to constants Err*.
 	 */
+	int init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates)
+	{
+		return driver.init(bitrates, num_bitrates, CanIface::NormalMode);
+	}
+
 	int init(uavcan::uint32_t bitrate)
 	{
-		return driver.init(bitrate, CanIface::NormalMode);
+		uavcan::uint32_t bitrates[UAVCAN_KINETIS_NUM_IFACES];
+
+		for (unsigned i = 0; i < UAVCAN_KINETIS_NUM_IFACES; i++) {
+			bitrates[i] = bitrate;
+		}
+
+		return init(bitrates, UAVCAN_KINETIS_NUM_IFACES);
 	}
 
 	/**
 	 * This function can either initialize the driver at a fixed bit rate, or it can perform
 	 * automatic bit rate detection. For theory please refer to the CiA application note #801.
 	 *
-     * @param inout_bitrate     Fixed bit rate or zero. Zero invokes the bit rate detection process.
+	* @param inout_bitrate     Fixed bit rate or zero. Zero invokes the bit rate detection process.
 	 *                          If auto detection was used, the function will update the argument
 	 *                          with established bit rate. In case of an error the value will be undefined.
 	 *
