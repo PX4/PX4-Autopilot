@@ -21,7 +21,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 | `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
 | `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
 | `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `gps`             | —                       | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                      | `off`, `stuck`, `wrong` |
+| `gps`             | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                      | `off`, `stuck`, `wrong` |
 | `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                               | —                       |
 | `vio`             | —                       | —                       | `off`                                        | —                       |
 | `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong`          |
@@ -35,8 +35,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 
 ::: info
 
-- `gps off | stuck | wrong` on Gazebo (Gz): only available if [SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) is set to `0` to use the injectable simulated-GPS module.
-  By default Gazebo publishes GPS from the simulator's own GNSS sensor (`SIM_GZ_EN_GPS` = 1), which is not injectable.
+- `gps off | stuck | wrong` on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
 - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
 - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.

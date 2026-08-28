@@ -422,6 +422,31 @@ TEST(FailureInjectionConfig, ProcessGnssStuckReplaysLastGoodSample)
 	EXPECT_EQ(moved.timestamp_sample, 1900u);
 }
 
+TEST(FailureInjectionConfig, ProcessGnssRecoveryUsesLiveSample)
+{
+	Config config;
+	Stuck<sensor_gps_s> stuck;
+
+	sensor_gps_s initial = clean_gps();
+	EXPECT_TRUE(process_gnss(config, 0, initial, stuck));
+
+	config.set(make_config(GPS, 0x1, STUCK));
+	sensor_gps_s frozen = clean_gps();
+	frozen.latitude_deg = 48.0;
+	EXPECT_TRUE(process_gnss(config, 0, frozen, stuck));
+	EXPECT_DOUBLE_EQ(frozen.latitude_deg, initial.latitude_deg);
+
+	config.set(make_config(GPS, 0x1, OFF));
+	sensor_gps_s suppressed = clean_gps();
+	EXPECT_FALSE(process_gnss(config, 0, suppressed, stuck));
+
+	config.set(failure_injection_s{});
+	sensor_gps_s recovered = clean_gps();
+	recovered.latitude_deg = 48.0;
+	EXPECT_TRUE(process_gnss(config, 0, recovered, stuck));
+	EXPECT_DOUBLE_EQ(recovered.latitude_deg, 48.0);
+}
+
 // ===========================================================================
 // process_esc(): ESC Off / Wrong on the multi-instance esc_status
 // ===========================================================================
