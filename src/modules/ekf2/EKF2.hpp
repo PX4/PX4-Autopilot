@@ -50,8 +50,6 @@
 
 #include <containers/LockGuard.hpp>
 #include <drivers/drv_hrt.h>
-
-using namespace time_literals;
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/mavlink_log.h>
@@ -129,6 +127,8 @@ using namespace time_literals;
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 # include <uORB/topics/ranging_beacon.h>
 #endif // CONFIG_EKF2_RANGING_BEACON
+
+using namespace time_literals;
 
 extern pthread_mutex_t ekf2_module_mutex;
 
