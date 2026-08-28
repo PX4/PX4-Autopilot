@@ -129,6 +129,17 @@
 #define RC_SERIAL_PORT          "/dev/ttyS4"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
+/* UART4/TELEM3 RX/TX pin swap (HD VTX connector).
+ *
+ * The board routes the HD VTX connector's pin 3 -- silkscreened TX, and the pin
+ * a standard 6-pin DJI/OpenIPC harness expects to carry the flight controller's
+ * TX -- to PB8, and pin 4 to PB9. The STM32H743 only offers UART4 TX on PB9 and
+ * RX on PB8, so the peripheral itself has to be swapped for the connector to
+ * match the standard pinout. Applied once in board_app_initialize() via
+ * USART_CR2_SWAP so it covers every consumer of TELEM3, not just one driver.
+ */
+#define BOARD_TEL3_SWAP_RXTX 1
+
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
