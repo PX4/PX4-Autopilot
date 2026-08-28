@@ -549,11 +549,11 @@ private:
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
 
-	static constexpr float _kAccelHorizLpfTimeConstant = 1.f;
+	static constexpr uint64_t _kAccelHorizLpfTimeConstant = 1000000; // 1 s
 	AlphaFilter<Vector2f> _accel_horiz_lpf{_kAccelHorizLpfTimeConstant}; ///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
 
 #if defined(CONFIG_EKF2_WIND)
-	static constexpr float _kHeightRateLpfTimeConstant = 10.f;
+	static constexpr uint64_t _kHeightRateLpfTimeConstant = 10000000; // 10 s
 	AlphaFilter<float> _height_rate_lpf{_kHeightRateLpfTimeConstant};
 #endif // CONFIG_EKF2_WIND
 
@@ -582,11 +582,11 @@ private:
 	Vector3f _ref_body_rate{};
 
 	Vector2f _flow_vel_body{};                      ///< velocity from corrected flow measurement (body frame)(m/s)
-	AlphaFilter<Vector2f> _flow_vel_body_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
+	AlphaFilter<Vector2f> _flow_vel_body_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
 	uint32_t _flow_counter{0};                      ///< number of flow samples read for initialization
 
 	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
-	AlphaFilter<Vector2f> _flow_rate_compensated_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};
+	AlphaFilter<Vector2f> _flow_rate_compensated_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -643,15 +643,15 @@ private:
 
 	// Variables used by the initial filter alignment
 	bool _is_first_imu_sample{true};
-	static constexpr float _kSensorLpfTimeConstant = 0.09f;
-	AlphaFilter<Vector3f> _accel_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered accelerometer measurement used to align tilt (m/s/s)
-	AlphaFilter<Vector3f> _gyro_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
+	static constexpr uint64_t _kSensorLpfTimeConstant = 90000; // 90 ms
+	AlphaFilter<Vector3f> _accel_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered accelerometer measurement used to align tilt (m/s/s)
+	AlphaFilter<Vector3f> _gyro_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	estimator_aid_source1d_s _aid_src_baro_hgt {};
 
 	// Variables used to perform in flight resets and switch between height sources
-	AlphaFilter<float> _baro_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered barometric height measurement (m)
+	AlphaFilter<float> _baro_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered barometric height measurement (m)
 	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation
 
 	HeightBiasEstimator _baro_b_est{HeightSensor::BARO, _height_sensor_ref};
@@ -660,12 +660,12 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// used by magnetometer fusion mode selection
-	AlphaFilter<float> _mag_heading_innov_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};
+	AlphaFilter<float> _mag_heading_innov_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};
 	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
 
 	estimator_aid_source3d_s _aid_src_mag{};
 
-	AlphaFilter<Vector3f> _mag_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered magnetometer measurement for instant reset (Gauss)
+	AlphaFilter<Vector3f> _mag_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered magnetometer measurement for instant reset (Gauss)
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
 
 	// Variables used to control activation of post takeoff functionality
@@ -1086,8 +1086,8 @@ private:
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	HeightBiasEstimator _ev_hgt_b_est {HeightSensor::EV, _height_sensor_ref};
 	PositionBiasEstimator _ev_pos_b_est{PositionSensor::EV, _position_sensor_ref};
-	static constexpr float _kQuatErrorLpfTimeConstant = 10.f;
-	AlphaFilter<Quatf> _ev_q_error_filt{_dt_ekf_avg, _kQuatErrorLpfTimeConstant};
+	static constexpr uint64_t _kQuatErrorLpfTimeConstant = 10000000; // 10 s
+	AlphaFilter<Quatf> _ev_q_error_filt{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kQuatErrorLpfTimeConstant};
 	bool _ev_q_error_initialized{false};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 

@@ -1763,7 +1763,7 @@ void MicroStrain::initializeRefPos()
 	PX4_DEBUG("Reference position initialized");
 }
 
-void MicroStrain::updateGeoidHeight(float geoid_height, float t)
+void MicroStrain::updateGeoidHeight(float geoid_height, hrt_abstime t)
 {
 	// Updates the low pass filter for geoid height
 	if (_last_geoid_height_update_us == 0) {
@@ -1771,8 +1771,7 @@ void MicroStrain::updateGeoidHeight(float geoid_height, float t)
 		_last_geoid_height_update_us = t;
 
 	} else if (t > _last_geoid_height_update_us) {
-		const float dt = 1e-6f * (t - _last_geoid_height_update_us);
-		_geoid_height_lpf.setParameters(dt, kGeoidHeightLpfTimeConstant);
+		_geoid_height_lpf.setParameters(t - _last_geoid_height_update_us, kGeoidHeightLpfTimeConstant);
 		_geoid_height_lpf.update(geoid_height);
 		_last_geoid_height_update_us = t;
 	}

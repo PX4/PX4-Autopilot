@@ -73,7 +73,7 @@
 using namespace time_literals;
 
 static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};	/**< The schedule interval in usec (10 Hz) */
-static constexpr float _kThrottleFilterTimeConstant{0.5f};
+static constexpr hrt_abstime _kThrottleFilterTimeConstant{500_ms};
 
 using matrix::Dcmf;
 using matrix::Quatf;
@@ -846,14 +846,14 @@ void AirspeedModule::update_throttle_filter(hrt_abstime now)
 					       vehicle_rates_setpoint.thrust_body[2] * vehicle_rates_setpoint.thrust_body[2]);
 		}
 
-		const float dt = static_cast<float>(now - _t_last_throttle_fw) * 1e-6f;
+		const hrt_abstime dt_us = now - _t_last_throttle_fw;
 		_t_last_throttle_fw = now;
 
-		if (dt < FLT_EPSILON || dt > 1.f) {
+		if (dt_us == 0 || dt_us > 1_s) {
 			_throttle_filtered.reset(forward_thrust);
 
 		} else {
-			_throttle_filtered.update(forward_thrust, dt);
+			_throttle_filtered.update(forward_thrust, dt_us);
 		}
 	}
 }

@@ -164,7 +164,7 @@ TEST(AlphaFilterTest, convergenceVector3fAlpha)
 	const Vector3f input = {3.f, 7.f, -11.f};
 	const float tau = 18.f;
 	const float dt = 1.f;
-	filter_v3.setParameters(dt, tau);
+	filter_v3.setParameters(static_cast<uint64_t>(dt * 1e6f), static_cast<uint64_t>(tau * 1e6f));
 
 	// WHEN we run the filter 18 times (1 * time constant)
 	for (int i = 0; i < 18; i++) {
@@ -186,7 +186,7 @@ TEST(AlphaFilterTest, convergenceVector3fTauDt)
 	const Vector3f input = {51.f, 7.f, -11.f};
 	const float tau = 2.f;
 	const float dt = 0.1f;
-	filter_v3.setParameters(dt, tau);
+	filter_v3.setParameters(static_cast<uint64_t>(dt * 1e6f), static_cast<uint64_t>(tau * 1e6f));
 
 	// WHEN we run the filter (1 * time constant)
 	const float n = tau / dt;
@@ -220,10 +220,10 @@ TEST(AlphaFilterTest, AllZeroTest)
 	EXPECT_FLOAT_EQ(_alpha_filter.getState(), 0.f);
 }
 
-TEST(AlphaFilterTest, AlphaOneTest)
+TEST(AlphaFilterTest, AlphaZeroTest)
 {
 	AlphaFilter<float> _alpha_filter;
-	_alpha_filter.setParameters(1e-5f, 1e5f);
+	_alpha_filter.setParameters(uint64_t{10}, uint64_t{100000000000});
 
 	for (int i = 0; i < 100; i++) {
 		_alpha_filter.update(1.f);
@@ -231,10 +231,10 @@ TEST(AlphaFilterTest, AlphaOneTest)
 	}
 }
 
-TEST(AlphaFilterTest, AlphaZeroTest)
+TEST(AlphaFilterTest, AlphaOneTest)
 {
 	AlphaFilter<float> _alpha_filter;
-	_alpha_filter.setParameters(.1f, 0.f);
+	_alpha_filter.setParameters(uint64_t{100000}, uint64_t{0});
 
 	for (int i = 0; i < 100; i++) {
 		const float new_smaple = static_cast<float>(i);
@@ -262,7 +262,7 @@ TEST(AlphaFilterTest, SetFrequencyTest)
 TEST(AlphaFilterTest, ConvergenceTest)
 {
 	AlphaFilter<float> _alpha_filter;
-	_alpha_filter.setParameters(.1f, 1.f);
+	_alpha_filter.setParameters(uint64_t{100000}, uint64_t{1000000});
 
 	float last_value{0.f};
 

@@ -87,15 +87,15 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 			_last_timestamp = timestamp;
 		}
 
-		const float dt = (timestamp - _last_timestamp) / 1e6f;
+		const hrt_abstime dt_us = timestamp - _last_timestamp;
 		_last_timestamp = timestamp;
 
 		if (_analog_params.v_filt > FLT_EPSILON) {
-			voltage_v = _voltage_filter.update(fmaxf(voltage_v, 0.f), dt);
+			voltage_v = _voltage_filter.update(fmaxf(voltage_v, 0.f), dt_us);
 		}
 
 		if (_analog_params.i_filt > FLT_EPSILON) {
-			current_a = _current_filter.update(fmaxf(current_a, 0.f), dt);
+			current_a = _current_filter.update(fmaxf(current_a, 0.f), dt_us);
 		}
 	}
 
@@ -146,11 +146,11 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.i_filt, &_analog_params.i_filt);
 
 	if (_analog_params.v_filt > FLT_EPSILON) {
-		_voltage_filter = AlphaFilter<float>(_analog_params.v_filt);
+		_voltage_filter = AlphaFilter<float>(static_cast<uint64_t>(_analog_params.v_filt * 1e6f));
 	}
 
 	if (_analog_params.i_filt > FLT_EPSILON) {
-		_current_filter = AlphaFilter<float>(_analog_params.i_filt);
+		_current_filter = AlphaFilter<float>(static_cast<uint64_t>(_analog_params.i_filt * 1e6f));
 	}
 
 	Battery::updateParams();
