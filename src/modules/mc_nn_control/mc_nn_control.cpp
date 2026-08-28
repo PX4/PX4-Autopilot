@@ -395,30 +395,9 @@ void MulticopterNeuralNetworkControl::PublishOutput(float *command_actions)
 
 inline void MulticopterNeuralNetworkControl::RescaleActions()
 {
-	const float thrust_coeff = _param_thrust_coeff.get() / 100000.0f;
-	const float min_rpm = _param_min_rpm.get();
-	const float max_rpm = _param_max_rpm.get();
-	const float a = 0.8f;
-	const float b = (1.0f - 0.8f);
-	const float tmp1 = b / (2.f * a);
-	const float tmp2 = b * b / (4.f * a * a);
-
 	for (int i = 0; i < 4; i++) {
-
-		if (_output_tensor->data.f[i] < -1.0f) {
-			_output_tensor->data.f[i] = -1.0f;
-
-		} else if (_output_tensor->data.f[i] > 1.0f) {
-			_output_tensor->data.f[i] = 1.0f;
-		}
-
-		_output_tensor->data.f[i] = _output_tensor->data.f[i] + 1.0f;
-		float rps = _output_tensor->data.f[i] / thrust_coeff;
-		rps = sqrtf(rps);
-		float rpm = rps * 60.0f;
-		_output_tensor->data.f[i] = (rpm * 2.0f - max_rpm - min_rpm) / (max_rpm - min_rpm);
-		_output_tensor->data.f[i] = a * (((_output_tensor->data.f[i] + 1.0f) / 2.0f + tmp1) * ((
-				_output_tensor->data.f[i] + 1.0f) / 2.0f + tmp1) - tmp2);
+		_output_tensor->data.f[i] = nn_control::rescale_action(_output_tensor->data.f[i],
+					    _param_thrust_coeff.get(), _param_min_rpm.get(), _param_max_rpm.get());
 	}
 }
 
