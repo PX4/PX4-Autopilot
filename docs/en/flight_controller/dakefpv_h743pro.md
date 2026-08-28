@@ -92,6 +92,31 @@ Analog OSD and digital HD OSD can run at the same time.
 The digital VTX (DJI/HDZero/OpenIPC) uses MSP DisplayPort on the `T4`/`R4` pads, which is UART4 — PX4 TELEM3 (`/dev/ttyS3`).
 This is the default: `MSP_OSD_CONFIG` is set to `103` (TELEM3).
 
+The 6-pin HD VTX connector follows the usual DJI/OpenIPC signal order: 1 = VCC (12 V here),
+2 = GND, 3 = flight controller TX, 4 = flight controller RX, 5 = signal GND, 6 = SBUS.
+MSP DisplayPort only uses the flight controller's TX line, so pin 3 and a ground are enough;
+leave pin 4 unconnected unless the VTX also talks back.
+
+::: info UART4 is swapped in firmware to match the connector
+On this board the HD VTX connector's pin 3 is routed to **PB8** and pin 4 to **PB9** — the
+opposite way round to the signals those positions carry on a standard harness. The STM32H743
+offers UART4 TX only on PB9 and RX only on PB8, so this cannot be corrected by choosing
+different pins.
+
+PX4 therefore swaps the UART4 peripheral itself (`USART_CR2_SWAP`, applied once during board
+start-up), so pin 3 carries TX and a stock DJI/OpenIPC harness works as labelled. This is
+automatic — there is nothing to configure. ArduPilot exposes the same swap as a runtime option
+(`SERIAL4_OPTIONS` bit 3, `SwapTXRX`); PX4 has no equivalent parameter, which is why it is
+applied in board support.
+:::
+
+::: info `Dji`/`VTX` solder jumper
+The three-pad solder jumper silkscreened `Dji` and `VTX` selects what the HD VTX connector's
+RX4 pin carries: UART4 RX for a digital air unit, or the analog composite video signal when the
+connector drives an analog VTX. It is not in the OSD's transmit path, so it does not affect
+MSP DisplayPort output.
+:::
+
 ## CAN
 
 CAN1 is on PD0 (RX) and PD1 (TX) with a silent pin on PD2. Enable DroneCAN peripherals via the `UAVCAN_ENABLE` parameter.
