@@ -220,7 +220,7 @@ TEST(AlphaFilterTest, AllZeroTest)
 	EXPECT_FLOAT_EQ(_alpha_filter.getState(), 0.f);
 }
 
-TEST(AlphaFilterTest, AlphaOneTest)
+TEST(AlphaFilterTest, AlphaZeroTest)
 {
 	AlphaFilter<float> _alpha_filter;
 	_alpha_filter.setParameters(1e-5f, 1e5f);
@@ -231,7 +231,7 @@ TEST(AlphaFilterTest, AlphaOneTest)
 	}
 }
 
-TEST(AlphaFilterTest, AlphaZeroTest)
+TEST(AlphaFilterTest, AlphaOneTest)
 {
 	AlphaFilter<float> _alpha_filter;
 	_alpha_filter.setParameters(.1f, 0.f);
