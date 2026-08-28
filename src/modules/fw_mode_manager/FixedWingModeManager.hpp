@@ -72,6 +72,7 @@
 #include <uORB/topics/fixed_wing_lateral_guidance_status.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/fixed_wing_runway_control.h>
+#include <uORB/topics/fixed_wing_takeoff_status.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
@@ -204,6 +205,7 @@ private:
 	uORB::PublicationData<fixed_wing_longitudinal_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 	uORB::Publication<fixed_wing_lateral_guidance_status_s> _fixed_wing_lateral_guidance_status_pub{ORB_ID(fixed_wing_lateral_guidance_status)};
 	uORB::Publication<fixed_wing_runway_control_s> _fixed_wing_runway_control_pub{ORB_ID(fixed_wing_runway_control)};
+	uORB::Publication<fixed_wing_takeoff_status_s> _fixed_wing_takeoff_status_pub{ORB_ID(fixed_wing_takeoff_status)};
 
 	position_setpoint_triplet_s _pos_sp_triplet{};
 	vehicle_control_mode_s _control_mode{};
@@ -670,6 +672,8 @@ private:
 
 	void reset_takeoff_state();
 	void reset_landing_state();
+
+	void publishTakeoffStatus(const bool waiting_for_launch, const float clearance_altitude_amsl);
 
 	/**
 	 * @brief Releases the parachute by triggering flight termination.

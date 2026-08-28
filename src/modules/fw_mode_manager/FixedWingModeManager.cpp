@@ -1323,6 +1323,11 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 	_flaps_setpoint = _param_fw_flaps_to_scl.get();
 
+	const bool waiting_for_launch = _runway_takeoff.runwayTakeoffEnabled()
+					? _runway_takeoff.getState() < RunwayTakeoffState::CLIMBOUT
+					: _launchDetector.getLaunchDetected() == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
+	publishTakeoffStatus(waiting_for_launch, clearance_altitude_amsl);
+
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(pos_sp_curr);
 	}
@@ -1454,6 +1459,11 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 	}
 
 	_flaps_setpoint = _param_fw_flaps_to_scl.get();
+
+	const bool waiting_for_launch = _runway_takeoff.runwayTakeoffEnabled()
+					? _runway_takeoff.getState() < RunwayTakeoffState::CLIMBOUT
+					: _launchDetector.getLaunchDetected() == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
+	publishTakeoffStatus(waiting_for_launch, current_setpoint_altitude_amsl);
 }
 
 void
@@ -2451,6 +2461,16 @@ FixedWingModeManager::reset_takeoff_state()
 	_time_launch_detected = 0;
 
 	_takeoff_ground_alt = _current_altitude;
+}
+
+void
+FixedWingModeManager::publishTakeoffStatus(const bool waiting_for_launch, const float clearance_altitude_amsl)
+{
+	fixed_wing_takeoff_status_s fixed_wing_takeoff_status{};
+	fixed_wing_takeoff_status.timestamp = hrt_absolute_time();
+	fixed_wing_takeoff_status.climbout_completed = !waiting_for_launch && _current_altitude >= clearance_altitude_amsl;
+
+	_fixed_wing_takeoff_status_pub.publish(fixed_wing_takeoff_status);
 }
 
 void
