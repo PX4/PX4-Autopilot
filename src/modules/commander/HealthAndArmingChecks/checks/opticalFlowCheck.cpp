@@ -39,14 +39,25 @@ void OpticalFlowCheck::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
-	const bool exists = _vehicle_optical_flow_sub.advertised();
+	int num_valid = 0;
+	bool any_advertised = false;
 
-	if (exists) {
-		vehicle_optical_flow_s flow_sens;
-		const bool valid = _vehicle_optical_flow_sub.copy(&flow_sens) && (hrt_elapsed_time(&flow_sens.timestamp) < 1_s);
+	for (auto &sub : _vehicle_optical_flow_subs) {
+		if (sub.advertised()) {
+			any_advertised = true;
+
+			vehicle_optical_flow_s flow_sens;
+
+			if (sub.copy(&flow_sens) && (hrt_elapsed_time(&flow_sens.timestamp) < 1_s)) {
+				num_valid++;
+			}
+		}
+	}
+
+	if (any_advertised) {
 		reporter.setIsPresent(health_component_t::optical_flow);
 
-		if (!valid) {
+		if (num_valid < _param_sys_has_num_of.get()) {
 			/* EVENT
 			 */
 			reporter.healthFailure(NavModes::All, health_component_t::optical_flow,

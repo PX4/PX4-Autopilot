@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,63 +42,139 @@
 
 void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 {
-	_fc.of.available = (_params.ekf2_of_ctrl != 0);
+	bool any_ctrl_enabled = false;
 
-	if (!_flow_buffer || !_fc.of.intended()) {
-		stopFlowFusion();
+	for (uint8_t slot = 0; slot < MAX_OF_INSTANCES; slot++) {
+		any_ctrl_enabled |= (_flow_src[slot].params.ctrl != 0);
+	}
+
+	_fc.of.available = any_ctrl_enabled;
+
+	// apply at most one correction per update, rotating the scan priority for fairness
+	bool fused_this_update = false;
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		const uint8_t slot = (_flow_scan_start + i) % MAX_OF_INSTANCES;
+
+		if (_flow_src[slot].update(*this, imu_delayed, !fused_this_update)) {
+			fused_this_update = true;
+			_flow_scan_start = (slot + 1) % MAX_OF_INSTANCES;
+		}
+	}
+
+	bool any_active = false;
+	bool any_terrain = false;
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		any_active |= _flow_src[i]._active;
+		any_terrain |= _flow_src[i]._terrain;
+	}
+
+	_control_status.flags.opt_flow = any_active;
+	_control_status.flags.opt_flow_terrain = any_terrain;
+
+	if (!_control_status.flags.opt_flow) {
+		_fault_status.flags.bad_optflow_X = false;
+		_fault_status.flags.bad_optflow_Y = false;
+	}
+}
+
+bool OpticalFlowSource::allocate(const uint8_t buffer_length)
+{
+	if (_buffer == nullptr) {
+		_buffer = new TimestampedRingBuffer<flowSample>(buffer_length);
+
+		if (_buffer == nullptr || !_buffer->valid()) {
+			delete _buffer;
+			_buffer = nullptr;
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void OpticalFlowSource::setData(const flowSample &flow, const uint64_t min_obs_interval_us, const float dt_ekf_avg)
+{
+	if (_buffer == nullptr) {
 		return;
 	}
 
-	VectorState H;
+	// the measurement delay is already compensated in the sample timestamp (SENS_FLOW<i>_DELAY)
+	const int64_t time_us = flow.time_us
+				- static_cast<int64_t>(dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	// limit data rate to prevent data being lost
+	if (time_us >= static_cast<int64_t>(_buffer->get_newest().time_us + min_obs_interval_us)) {
+
+		flowSample optflow_sample_new{flow};
+		optflow_sample_new.time_us = time_us;
+
+		_buffer->push(optflow_sample_new);
+
+	} else {
+		ECL_WARN("optical flow %d data too fast %" PRIi64 " < %" PRIu64 " + %" PRIu64, _slot, time_us,
+			 _buffer->get_newest().time_us, min_obs_interval_us);
+	}
+}
+
+bool OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, const bool allow_fusion)
+{
+	if (!_buffer || !ekf.isFlowSlotIntended(_slot)) {
+		stop();
+		return false;
+	}
+
+	Ekf::VectorState H;
 
 	// New optical flow data is available and is ready to be fused when the midpoint of the sample falls behind the fusion time horizon
-	if (_flow_buffer->pop_first_older_than(imu_delayed.time_us, &_flow_sample_delayed)) {
+	if (_buffer->pop_first_older_than(imu_delayed.time_us, &_sample_delayed)) {
 
 		// flow gyro has opposite sign convention
-		_ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - getGyroBias());
+		ekf._ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - ekf.getGyroBias());
 
 		// ensure valid flow sample gyro rate before proceeding
-		switch (static_cast<FlowGyroSource>(_params.ekf2_of_gyr_src)) {
+		switch (static_cast<FlowGyroSource>(params.gyr_src)) {
 		default:
 
 		/* FALLTHROUGH */
 		case FlowGyroSource::Auto:
-			if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(0)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_rate(1))) {
-				_flow_sample_delayed.gyro_rate = _ref_body_rate;
+			if (!PX4_ISFINITE(_sample_delayed.gyro_rate(0)) || !PX4_ISFINITE(_sample_delayed.gyro_rate(1))) {
+				_sample_delayed.gyro_rate = ekf._ref_body_rate;
 			}
 
-			if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(2))) {
+			if (!PX4_ISFINITE(_sample_delayed.gyro_rate(2))) {
 				// Some flow modules only provide X ind Y angular rates. If this is the case, complete the vector with our own Z gyro
-				_flow_sample_delayed.gyro_rate(2) = _ref_body_rate(2);
+				_sample_delayed.gyro_rate(2) = ekf._ref_body_rate(2);
 			}
 
 			break;
 
 		case FlowGyroSource::Internal:
-			_flow_sample_delayed.gyro_rate = _ref_body_rate;
+			_sample_delayed.gyro_rate = ekf._ref_body_rate;
 			break;
 		}
 
-		const flowSample &flow_sample = _flow_sample_delayed;
+		const flowSample &flow_sample = _sample_delayed;
 
-		const int32_t min_quality = _control_status.flags.in_air
-					    ? _params.ekf2_of_qmin
-					    : _params.ekf2_of_qmin_gnd;
+		const int32_t min_quality = ekf._control_status.flags.in_air
+					    ? params.qmin
+					    : params.qmin_gnd;
 
 		const bool is_quality_good = (flow_sample.quality >= min_quality);
 
 		bool is_tilt_good = true;
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-		is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
+		is_tilt_good = (ekf._R_to_earth(2, 2) > ekf._params.range_cos_max_tilt);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
-		calcOptFlowBodyRateComp(flow_sample);
+		calcBodyRateComp(ekf._ref_body_rate);
 
 		// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 		// correct for gyro bias errors in the data used to do the motion compensation
 		// Note the sign convention used: A positive LOS rate is a RH rotation of the scene about that axis.
-		const Vector3f flow_gyro_corrected = flow_sample.gyro_rate - _flow_gyro_bias;
+		const Vector3f flow_gyro_corrected = flow_sample.gyro_rate - _gyro_bias;
 		const Vector2f flow_compensated = flow_sample.flow_rate - flow_gyro_corrected.xy();
 
 		// calculate the optical flow observation variance
@@ -106,193 +182,211 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 		const float epsilon = 1e-3f;
 		Vector2f innov_var;
-		sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, R_LOS, epsilon, &innov_var, &H);
+		sym::ComputeFlowXyInnovVarAndHx(ekf._state.vector(), ekf.P, R_LOS, epsilon, &innov_var, &H);
+
+		_aid_src.device_id = flow_sample.device_id;
 
 		// run the innovation consistency check and record result
-		updateAidSourceStatus(_aid_src_optical_flow,
-				      flow_sample.time_us,                                 // sample timestamp
-				      flow_compensated,                                    // observation
-				      Vector2f{R_LOS, R_LOS},                              // observation variance
-				      predictFlow(flow_gyro_corrected) - flow_compensated, // innovation
-				      innov_var,                                           // innovation variance
-				      math::max(_params.ekf2_of_gate, 1.f));            // innovation gate
+		ekf.updateAidSourceStatus(_aid_src,
+					  flow_sample.time_us,                                               // sample timestamp
+					  flow_compensated,                                                  // observation
+					  Vector2f{R_LOS, R_LOS},                                            // observation variance
+					  ekf.predictFlow(_pos_body, flow_gyro_corrected) - flow_compensated, // innovation
+					  innov_var,                                                         // innovation variance
+					  math::max(params.gate, 1.f));                                      // innovation gate
 
 		// logging
-		_flow_rate_compensated = flow_compensated;
+		_rate_compensated = flow_compensated;
 
 		// compute the velocities in body and local frames from corrected optical flow measurement for logging only
-		const float range = predictFlowRange();
-		_flow_vel_body(0) = -flow_compensated(1) * range;
-		_flow_vel_body(1) =  flow_compensated(0) * range;
+		const float range = ekf.predictFlowRange(_pos_body);
+		_vel_body(0) = -flow_compensated(1) * range;
+		_vel_body(1) =  flow_compensated(0) * range;
 
-		if (_flow_counter == 0) {
-			_flow_vel_body_lpf.reset(_flow_vel_body);
-			_flow_rate_compensated_lpf.reset(_flow_rate_compensated);
-			_flow_counter = 1;
+		if (_counter == 0) {
+			_vel_body_lpf.setParameters(ekf._dt_ekf_avg, ekf._kSensorLpfTimeConstant);
+			_rate_compensated_lpf.setParameters(ekf._dt_ekf_avg, ekf._kSensorLpfTimeConstant);
+
+			_vel_body_lpf.reset(_vel_body);
+			_rate_compensated_lpf.reset(_rate_compensated);
+			_counter = 1;
 
 		} else {
 
-			_flow_vel_body_lpf.update(_flow_vel_body);
-			_flow_rate_compensated_lpf.update(_flow_rate_compensated);
-			_flow_counter++;
+			_vel_body_lpf.update(_vel_body);
+			_rate_compensated_lpf.update(_rate_compensated);
+			_counter++;
+		}
+
+		// another sensor already applied a correction during this update: monitoring only
+		if (!allow_fusion) {
+			return false;
 		}
 
 		// Check if we are in-air and require optical flow to control position drift
-		bool is_flow_required = _control_status.flags.in_air
-					&& (_control_status.flags.inertial_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
-					    || isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow));
+		bool is_flow_required = ekf._control_status.flags.in_air
+					&& (ekf._control_status.flags.inertial_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
+					    || ekf.isOnlyActiveSourceOfHorizontalAiding(ekf._control_status.flags.opt_flow));
 
-		const bool is_within_sensor_dist = (getHagl() >= _flow_min_distance) && (getHagl() <= _flow_max_distance);
+		const bool is_within_sensor_dist = (ekf.getHagl() >= _min_distance) && (ekf.getHagl() <= _max_distance);
 
 		const bool is_magnitude_good = flow_sample.flow_rate.isAllFinite()
-					       && !flow_sample.flow_rate.longerThan(_flow_max_rate)
-					       && !flow_compensated.longerThan(_flow_max_rate);
+					       && !flow_sample.flow_rate.longerThan(_max_rate)
+					       && !flow_compensated.longerThan(_max_rate);
 
-		const bool continuing_conditions_passing = _fc.of.intended()
-				&& _control_status.flags.tilt_align
+		const bool continuing_conditions_passing = ekf.isFlowSlotIntended(_slot)
+				&& ekf._control_status.flags.tilt_align
 				&& is_within_sensor_dist;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& is_quality_good
 				&& is_magnitude_good
 				&& is_tilt_good
-				&& (_flow_counter > 10)
-				&& (isHeightAboveGroundEstimateValid() || isHorizontalAidingActive())
-				&& isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
+				&& (_counter > 10)
+				&& (ekf.isHeightAboveGroundEstimateValid() || ekf.isHorizontalAidingActive())
+				&& ekf.isTimedOut(_aid_src.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
 
 		// If the height is relative to the ground, terrain height cannot be observed.
-		_control_status.flags.opt_flow_terrain = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
+		_terrain = _active && !(ekf._height_sensor_ref == HeightSensor::RANGE);
 
-		if (_control_status.flags.opt_flow) {
+		bool applied = false;
+
+		if (_active) {
 			if (continuing_conditions_passing) {
 
 				if (is_quality_good && is_magnitude_good && is_tilt_good) {
-					fuseOptFlow(H, _control_status.flags.opt_flow_terrain);
+					applied = ekf.fuseOptFlow(*this, H, _terrain);
 				}
 
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
-				if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)) {
+				if (ekf.isTimedOut(_aid_src.time_last_fuse, ekf._params.no_aid_timeout_max)) {
 					if (is_flow_required && is_quality_good && is_magnitude_good) {
-						resetFlowFusion(flow_sample);
+						reset(ekf);
+						applied = true;
 
-						if (_control_status.flags.opt_flow_terrain && !isTerrainEstimateValid()) {
-							resetTerrainToFlow();
+						if (_terrain && !ekf.isTerrainEstimateValid()) {
+							resetTerrain(ekf);
 						}
 
 					} else {
-						stopFlowFusion();
+						stop();
 					}
 				}
 
 			} else {
-				stopFlowFusion();
+				stop();
 			}
 
 		} else {
 			if (starting_conditions_passing) {
 				// If the height is relative to the ground, terrain height cannot be observed.
-				_control_status.flags.opt_flow_terrain = (_height_sensor_ref != HeightSensor::RANGE);
+				const bool terrain_observable = (ekf._height_sensor_ref != HeightSensor::RANGE);
 
-				if (isHorizontalAidingActive()) {
-					if (fuseOptFlow(H, _control_status.flags.opt_flow_terrain)) {
-						ECL_INFO("starting optical flow");
-						_control_status.flags.opt_flow = true;
+				if (ekf.isHorizontalAidingActive()) {
+					if (ekf.fuseOptFlow(*this, H, terrain_observable)) {
+						ECL_INFO("starting optical flow %d", _slot);
+						_active = true;
+						applied = true;
 
-					} else if (_control_status.flags.opt_flow_terrain && !_control_status.flags.rng_terrain) {
-						ECL_INFO("starting optical flow, resetting terrain");
-						resetTerrainToFlow();
-						_control_status.flags.opt_flow = true;
+					} else if (terrain_observable && !ekf._control_status.flags.rng_terrain) {
+						ECL_INFO("starting optical flow %d, resetting terrain", _slot);
+						resetTerrain(ekf);
+						_active = true;
+						applied = true;
 					}
 
 				} else {
-					if (isHeightAboveGroundEstimateValid()) {
-						ECL_INFO("starting optical flow, resetting");
-						resetFlowFusion(flow_sample);
-						_control_status.flags.opt_flow = true;
+					if (ekf.isHeightAboveGroundEstimateValid()) {
+						ECL_INFO("starting optical flow %d, resetting", _slot);
+						reset(ekf);
+						_active = true;
+						applied = true;
 
-					} else if (_control_status.flags.opt_flow_terrain) {
-						ECL_INFO("starting optical flow, resetting terrain");
-						resetTerrainToFlow();
-						_control_status.flags.opt_flow = true;
+					} else if (terrain_observable) {
+						ECL_INFO("starting optical flow %d, resetting terrain", _slot);
+						resetTerrain(ekf);
+						_active = true;
+						applied = true;
 					}
 				}
 
-				_control_status.flags.opt_flow_terrain = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
+				_terrain = _active && terrain_observable;
 			}
 		}
 
-	} else if (_control_status.flags.opt_flow && isTimedOut(_flow_sample_delayed.time_us, _params.reset_timeout_max)) {
-		stopFlowFusion();
+		return applied;
+
+	} else if (_active && ekf.isTimedOut(_sample_delayed.time_us, ekf._params.reset_timeout_max)) {
+		stop();
 	}
+
+	return false;
 }
 
-void Ekf::resetFlowFusion(const flowSample &flow_sample)
+void OpticalFlowSource::reset(Ekf &ekf)
 {
-	ECL_INFO("reset velocity to flow");
-	_information_events.flags.reset_vel_to_flow = true;
+	ECL_INFO("reset velocity to flow %d", _slot);
+	ekf._information_events.flags.reset_vel_to_flow = true;
 
-	const float flow_vel_var = sq(predictFlowRange()) * calcOptFlowMeasVar(flow_sample);
-	resetHorizontalVelocityTo(getFilteredFlowVelNE(), flow_vel_var);
+	const float flow_vel_var = sq(ekf.predictFlowRange(_pos_body)) * calcOptFlowMeasVar(_sample_delayed);
+	ekf.resetHorizontalVelocityTo(ekf.getFilteredFlowVelNE(_slot), flow_vel_var);
 
-	resetAidSourceStatusZeroInnovation(_aid_src_optical_flow);
+	ekf.resetAidSourceStatusZeroInnovation(_aid_src);
 }
 
-void Ekf::resetTerrainToFlow()
+void OpticalFlowSource::resetTerrain(Ekf &ekf)
 {
-	ECL_INFO("reset hagl to flow");
+	ECL_INFO("reset hagl to flow %d", _slot);
 
-	float new_terrain = -_gpos.altitude() + _params.ekf2_min_rng;
+	float new_terrain = -ekf._gpos.altitude() + ekf._params.ekf2_min_rng;
 
-	if (isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow)) {
+	if (ekf.isOtherSourceOfHorizontalAidingThan(ekf._control_status.flags.opt_flow)) {
 		// ||vel_NE|| = ||( R * flow_body * range).xy()||
 		// range = ||vel_NE|| / ||P * R * flow_body||
 		constexpr float kProjXY[2][3] = {{1.f, 0.f, 0.f}, {0.f, 1.f, 0.f}};
 		const matrix::Matrix<float, 2, 3> proj(kProjXY);
 
-		const Vector3f flow_body(-_flow_rate_compensated_lpf.getState()(1), _flow_rate_compensated_lpf.getState()(0), 0.f);
-		const float denom = Vector2f(proj * _R_to_earth * flow_body).norm();
+		const Vector3f flow_body(-_rate_compensated_lpf.getState()(1), _rate_compensated_lpf.getState()(0), 0.f);
+		const float denom = Vector2f(proj * ekf._R_to_earth * flow_body).norm();
 
 		if (denom > 1e-6f) {
-			const float range = _state.vel.xy().norm() / denom;
-			new_terrain = -_gpos.altitude() + max(range, _params.ekf2_min_rng);
+			const float range = ekf._state.vel.xy().norm() / denom;
+			new_terrain = -ekf._gpos.altitude() + math::max(range, ekf._params.ekf2_min_rng);
 		}
 	}
 
-	const float delta_terrain = new_terrain - _state.terrain;
-	_state.terrain = new_terrain;
-	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, 100.f);
+	const float delta_terrain = new_terrain - ekf._state.terrain;
+	ekf._state.terrain = new_terrain;
+	ekf.P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, 100.f);
 
-	resetAidSourceStatusZeroInnovation(_aid_src_optical_flow);
+	ekf.resetAidSourceStatusZeroInnovation(_aid_src);
 
 	// record the state change
-	if (_state_reset_status.reset_count.hagl == _state_reset_count_prev.hagl) {
-		_state_reset_status.hagl_change = delta_terrain;
+	if (ekf._state_reset_status.reset_count.hagl == ekf._state_reset_count_prev.hagl) {
+		ekf._state_reset_status.hagl_change = delta_terrain;
 
 	} else {
 		// there's already a reset this update, accumulate total delta
-		_state_reset_status.hagl_change += delta_terrain;
+		ekf._state_reset_status.hagl_change += delta_terrain;
 	}
 
-	_state_reset_status.reset_count.hagl++;
+	ekf._state_reset_status.reset_count.hagl++;
 }
 
-void Ekf::stopFlowFusion()
+void OpticalFlowSource::stop()
 {
-	if (_control_status.flags.opt_flow) {
-		ECL_INFO("stopping optical flow fusion");
-		_control_status.flags.opt_flow = false;
-		_control_status.flags.opt_flow_terrain = false;
+	if (_active) {
+		ECL_INFO("stopping optical flow fusion %d", _slot);
+		_active = false;
+		_terrain = false;
 
-		_fault_status.flags.bad_optflow_X = false;
-		_fault_status.flags.bad_optflow_Y = false;
-
-		_flow_counter = 0;
+		_counter = 0;
 	}
 }
 
-void Ekf::calcOptFlowBodyRateComp(const flowSample &flow_sample)
+void OpticalFlowSource::calcBodyRateComp(const Vector3f &ref_body_rate)
 {
 	// calculate the bias estimate using a combined LPF and spike filter
-	_flow_gyro_bias = 0.99f * _flow_gyro_bias
-			  + 0.01f * matrix::constrain(flow_sample.gyro_rate - _ref_body_rate, -0.1f, 0.1f);
+	_gyro_bias = 0.99f * _gyro_bias
+		     + 0.01f * matrix::constrain(_sample_delayed.gyro_rate - ref_body_rate, -0.1f, 0.1f);
 }

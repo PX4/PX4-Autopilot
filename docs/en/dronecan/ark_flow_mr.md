@@ -47,7 +47,7 @@ The recommended mounting orientation is with the connectors on the board pointin
 
 ![ARK Flow MR align with Pixhawk](../../assets/hardware/sensors/optical_flow/ark_flow_orientation.png)
 
-This corresponds to the default value (`0`) of the parameter [SENS_FLOW_ROT](../advanced_config/parameter_reference.md#SENS_FLOW_ROT).
+This corresponds to the default value (`0`) of the parameter [SENS_FLOW0_ROT](../advanced_config/parameter_reference.md#SENS_FLOW0_ROT).
 Change the parameter appropriately if using a different orientation.
 
 The sensor can be mounted anywhere on the frame, but you will need to specify the focal point position, relative to vehicle centre of gravity, during [PX4 configuration](#px4-configuration).
@@ -87,7 +87,7 @@ You need to set the EKF optical flow parameters to enable fusing optical flow me
 
 Set the following parameters in _QGroundControl_:
 
-- Enable optical flow fusion by setting [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL).
+- Enable optical flow fusion by setting [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL).
 - To optionally disable GPS aiding, set [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to `0`.
 - Enable [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW).
 - Enable [UAVCAN_SUB_RNG](../advanced_config/parameter_reference.md#UAVCAN_SUB_RNG).
@@ -96,10 +96,10 @@ Set the following parameters in _QGroundControl_:
 - Set [EKF2_RNG_QLTY_T](../advanced_config/parameter_reference.md#EKF2_RNG_QLTY_T) to `0.2`.
 - Set [UAVCAN_RNG_MIN](../advanced_config/parameter_reference.md#UAVCAN_RNG_MIN) to `0.08`.
 - Set [UAVCAN_RNG_MAX](../advanced_config/parameter_reference.md#UAVCAN_RNG_MAX) to `50`.
-- Set [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) to `0.08`.
-- Set [SENS_FLOW_MAXHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MAXHGT) to `25`.
-- Set [SENS_FLOW_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW_MAXR) to `7.4` to match the PAW3902 maximum angular flow rate.
-- The parameters [EKF2_OF_POS_X](../advanced_config/parameter_reference.md#EKF2_OF_POS_X), [EKF2_OF_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF_POS_Y) and [EKF2_OF_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF_POS_Z) can be set to account for the offset of the Ark Flow MR from the vehicle centre of gravity.
+- Set [SENS_FLOW0_HMIN](../advanced_config/parameter_reference.md#SENS_FLOW0_HMIN) to `0.08`.
+- Set [SENS_FLOW0_HMAX](../advanced_config/parameter_reference.md#SENS_FLOW0_HMAX) to `25`.
+- Set [SENS_FLOW0_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW0_MAXR) to `7.4` to match the PAW3902 maximum angular flow rate.
+- The parameters [SENS_FLOW0_POS_X](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_X), [SENS_FLOW0_POS_Y](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Y) and [SENS_FLOW0_POS_Z](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Z) can be set to account for the offset of the Ark Flow MR from the vehicle centre of gravity.
 
 ## Ark Flow MR Configuration
 

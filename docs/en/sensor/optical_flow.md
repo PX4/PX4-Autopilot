@@ -19,6 +19,7 @@ An Optical Flow setup requires a downward facing camera and a downward facing [d
 These can be combined in a single product, such as the [ARK Flow](../dronecan/ark_flow.md), [ARK Flow MR](../dronecan/ark_flow_mr.md) and [Holybro H-Flow](https://holybro.com/products/h-flow), or they may be separate sensors.
 
 The sensor(s) can be connected via MAVLink, I2C or any other bus that supports the peripheral.
+Up to two optical flow sensors can be used at the same time (see [Multiple Optical Flow Sensors](#multiple-flow-sensors)).
 
 ::: info
 If connected to PX4 via MAVLink the Optical Flow camera sensor must publish the [OPTICAL_FLOW_RAD](https://mavlink.io/en/messages/common.html#OPTICAL_FLOW_RAD) message, and the distance sensor must publish the [DISTANCE_SENSOR](https://mavlink.io/en/messages/common.html#DISTANCE_SENSOR) message.
@@ -46,7 +47,7 @@ The approach used for fusing sensor data and any offsets from the center of the 
 ### Scale Factor
 
 For pure rotations the `OPTICAL_FLOW_RAD.integrated_xgyro` and `OPTICAL_FLOW_RAD.integrated_x` (respectively `integrated_ygyro` and `integrated_y`) have to be the same.
-If this is not the case, the optical flow scale factor can be adjusted using [SENS_FLOW_SCALE](../advanced_config/parameter_reference.md#SENS_FLOW_SCALE).
+If this is not the case, the optical flow scale factor can be adjusted using [SENS_FLOW0_SCALE](../advanced_config/parameter_reference.md#SENS_FLOW0_SCALE).
 
 :::tip
 The low resolution of common optical flow sensors can cause slow oscillations when hovering at a high altitude above ground (> 20m).
@@ -97,14 +98,42 @@ Optical Flow based navigation is enabled by both [EKF2](#ekf2) and LPE (deprecat
 
 ### Extended Kalman Filter (EKF2) {#ekf2}
 
-For optical flow fusion using EKF2, set [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL).
+For optical flow fusion using EKF2, set [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL).
 
 If your optical flow sensor is offset from the vehicle centre, you can set this using the following parameters.
 
 | Parameter                                                                                          | Description                                                             |
 | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| <a id="EKF2_OF_POS_X"></a>[EKF2_OF_POS_X](../advanced_config/parameter_reference.md#EKF2_OF_POS_X) | X position of optical flow focal point in body frame (default is 0.0m). |
-| <a id="EKF2_OF_POS_Y"></a>[EKF2_OF_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF_POS_Y) | Y position of optical flow focal point in body frame (default is 0.0m). |
-| <a id="EKF2_OF_POS_Z"></a>[EKF2_OF_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF_POS_Z) | Z position of optical flow focal point in body frame (default is 0.0m). |
+| <a id="SENS_FLOW0_POS_X"></a>[SENS_FLOW0_POS_X](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_X) | X position of optical flow focal point in body frame (default is 0.0m). |
+| <a id="SENS_FLOW0_POS_Y"></a>[SENS_FLOW0_POS_Y](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Y) | Y position of optical flow focal point in body frame (default is 0.0m). |
+| <a id="SENS_FLOW0_POS_Z"></a>[SENS_FLOW0_POS_Z](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Z) | Z position of optical flow focal point in body frame (default is 0.0m). |
 
 See [Using PX4's Navigation Filter (EKF2) > Optical flow](../advanced_config/tuning_the_ecl_ekf.md#optical-flow) for more information.
+
+## Multiple Optical Flow Sensors {#multiple-flow-sensors}
+
+<Badge type="tip" text="main (planned for PX4 v1.17)" />
+
+PX4 supports up to two optical flow sensors at the same time.
+A second sensor can add redundancy, or extend the usable envelope by combining sensors with different operating ranges.
+Both sensors are fused, each at its own measurement rate, with EKF2 applying at most one optical flow correction per filter update: when both sensors deliver a measurement for the same update, they are fused alternately.
+A sensor that temporarily cannot be fused (for example when it leaves its operating range) keeps being processed for monitoring, and its data is used again as soon as it recovers.
+
+Each sensor is bound to a parameter "slot" `n` (`0` or `1`) using its device ID:
+
+- [SENS_FLOW0_ID](../advanced_config/parameter_reference.md#SENS_FLOW0_ID) and [SENS_FLOW1_ID](../advanced_config/parameter_reference.md#SENS_FLOW1_ID) record the device ID of the sensor bound to the `SENS_FLOWn_*` parameters.
+  While an ID parameter is `0` (default), the first unbound sensor that delivers data is bound to it, and the assignment is saved so that it remains stable across reboots.
+  The EKF uses the same slot numbering: `EKF2_OFn_*` parameters apply to the sensor bound to `SENS_FLOWn_ID`.
+- Fusion is enabled per slot using [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL) and [EKF2_OF1_CTRL](../advanced_config/parameter_reference.md#EKF2_OF1_CTRL).
+  Only slot 0 is enabled by default.
+- All other optical flow parameters exist once per sensor: sensor properties such as delay, rotation, and mounting position in `SENS_FLOW0_*`/`SENS_FLOW1_*`, and fusion tuning such as noise and quality thresholds in `EKF2_OF0_*`/`EKF2_OF1_*`, so each sensor can be configured independently.
+
+Note the following requirements and behaviour:
+
+- All flow sensors must be mounted facing downwards.
+  The sensors do not need to have the same yaw orientation (set individually using `SENS_FLOWn_ROT`), and each sensor has its own position offset (`SENS_FLOWn_POS_X` and so on).
+- Flow sensors are not paired with specific [distance sensors](../sensor/rangefinders.md).
+  The EKF estimates a single height above ground that is used for all flow sensors, corrected for each sensor's position offset.
+  The minimum and maximum operating distance reported by each sensor is applied individually.
+- A distance measurement provided by a flow sensor itself (as on the [ARK Flow](../dronecan/ark_flow.md)) can substitute for a missing distance sensor.
+  Only the measurement from the lowest enabled slot is used for this purpose.

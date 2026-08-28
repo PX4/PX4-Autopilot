@@ -185,19 +185,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
 	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_param_ekf2_of_ctrl(_params->ekf2_of_ctrl),
-	_param_ekf2_of_gyr_src(_params->ekf2_of_gyr_src),
-	_param_ekf2_of_delay(_params->ekf2_of_delay),
-	_param_ekf2_of_n_min(_params->ekf2_of_n_min),
-	_param_ekf2_of_n_max(_params->ekf2_of_n_max),
-	_param_ekf2_of_qmin(_params->ekf2_of_qmin),
-	_param_ekf2_of_qmin_gnd(_params->ekf2_of_qmin_gnd),
-	_param_ekf2_of_gate(_params->ekf2_of_gate),
-	_param_ekf2_of_pos_x(_params->flow_pos_body(0)),
-	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
-	_param_ekf2_of_pos_z(_params->flow_pos_body(2)),
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	_param_ekf2_drag_ctrl(_params->ekf2_drag_ctrl),
 	_param_ekf2_drag_noise(_params->ekf2_drag_noise),
@@ -220,6 +207,10 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_tau(_params->ekf2_abl_tau),
 	_param_ekf2_gyr_b_lim(_params->ekf2_gyr_b_lim)
 {
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	_optical_flow.initParameters(_ekf);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
 	initFusionControl();
 	AdvertiseTopics();
 }
@@ -358,12 +349,7 @@ void EKF2::AdvertiseTopics()
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-
-		if (_param_ekf2_of_ctrl.get()) {
-			_estimator_optical_flow_vel_pub.advertise();
-			_estimator_aid_src_optical_flow_pub.advertise();
-		}
-
+		_optical_flow.advertiseEnabledPublications(_ekf);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -462,6 +448,11 @@ void EKF2::Run()
 
 		// update parameters from storage
 		updateParams();
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+		_optical_flow.updateParameters(_ekf);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
 		initFusionControl();
 
 		VerifyParams();
@@ -805,7 +796,7 @@ void EKF2::Run()
 		UpdateExtVisionSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-		UpdateFlowSample(ekf2_timestamps);
+		_optical_flow.updateSamples(_ekf, ekf2_timestamps, _last_range_sensor_update);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
 		UpdateGpsSample(ekf2_timestamps);
@@ -869,7 +860,7 @@ void EKF2::Run()
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-			PublishOpticalFlowVel(now);
+			_optical_flow.publishFlowVel(_ekf, now, _replay_mode);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 			UpdateAccelCalibration(now);
@@ -971,11 +962,7 @@ void EKF2::VerifyParams()
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-
-	if (_param_ekf2_of_delay.get() > delay_max) {
-		delay_max = _param_ekf2_of_delay.get();
-	}
-
+	delay_max = math::max(delay_max, _optical_flow.maxEnabledDelayMs(_ekf));
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -1169,8 +1156,7 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// optical flow
-	PublishAidSourceStatus(timestamp, _ekf.aid_src_optical_flow(), _status_optical_flow_pub_last,
-			       _estimator_aid_src_optical_flow_pub);
+	_optical_flow.publishAidSourceStatus(_ekf, timestamp, _instance, _replay_mode);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
@@ -1457,9 +1443,9 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// Optical flow
-	innovations.flow[0] = _ekf.aid_src_optical_flow().innovation[0];
-	innovations.flow[1] = _ekf.aid_src_optical_flow().innovation[1];
+	// Optical flow (primary slot only, per-slot data is in estimator_aid_src_optical_flow)
+	innovations.flow[0] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).innovation[0];
+	innovations.flow[1] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).innovation[1];
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// heading
@@ -1550,9 +1536,9 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// Optical flow
-	test_ratios.flow[0] = _ekf.aid_src_optical_flow().test_ratio[0];
-	test_ratios.flow[1] = _ekf.aid_src_optical_flow().test_ratio[1];
+	// Optical flow (primary slot only, per-slot data is in estimator_aid_src_optical_flow)
+	test_ratios.flow[0] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).test_ratio[0];
+	test_ratios.flow[1] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).test_ratio[1];
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// heading
@@ -1643,9 +1629,9 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// Optical flow
-	variances.flow[0] = _ekf.aid_src_optical_flow().innovation_variance[0];
-	variances.flow[1] = _ekf.aid_src_optical_flow().innovation_variance[1];
+	// Optical flow (primary slot only, per-slot data is in estimator_aid_src_optical_flow)
+	variances.flow[0] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).innovation_variance[0];
+	variances.flow[1] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).innovation_variance[1];
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// heading
@@ -2206,39 +2192,6 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 }
 #endif // CONFIG_EKF2_WIND
 
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
-{
-	const hrt_abstime timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
-
-	if ((timestamp_sample != 0) && (timestamp_sample > _optical_flow_vel_pub_last)) {
-
-		vehicle_optical_flow_vel_s flow_vel{};
-		flow_vel.timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
-
-		_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
-		_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
-
-		_ekf.getFilteredFlowVelBody().copyTo(flow_vel.vel_body_filtered);
-		_ekf.getFilteredFlowVelNE().copyTo(flow_vel.vel_ne_filtered);
-
-		_ekf.getFlowUncompensated().copyTo(flow_vel.flow_rate_uncompensated);
-		_ekf.getFlowCompensated().copyTo(flow_vel.flow_rate_compensated);
-
-		_ekf.getFlowGyro().copyTo(flow_vel.gyro_rate);
-
-		_ekf.getFlowGyroBias().copyTo(flow_vel.gyro_bias);
-		_ekf.getFlowRefBodyRate().copyTo(flow_vel.ref_gyro);
-
-		flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-
-		_estimator_optical_flow_vel_pub.publish(flow_vel);
-
-		_optical_flow_vel_pub_last = timestamp_sample;
-	}
-}
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 #if defined(CONFIG_EKF2_AIRSPEED)
 void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 {
@@ -2541,77 +2494,6 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 	return new_ev_odom;
 }
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
-{
-	// EKF flow sample
-	bool new_optical_flow = false;
-	vehicle_optical_flow_s optical_flow;
-
-	if (_vehicle_optical_flow_sub.update(&optical_flow)) {
-
-		const float dt = 1e-6f * (float)optical_flow.integration_timespan_us;
-		Vector2f flow_rate;
-		Vector3f gyro_rate;
-
-		if (dt > FLT_EPSILON) {
-			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
-			// is produced by a RH rotation of the image about the sensor axis.
-			flow_rate = Vector2f(-optical_flow.pixel_flow[0], -optical_flow.pixel_flow[1]) / dt;
-			gyro_rate = Vector3f(-optical_flow.delta_angle[0], -optical_flow.delta_angle[1], -optical_flow.delta_angle[2]) / dt;
-
-		} else if (optical_flow.quality == 0) {
-			// handle special case of SITL and PX4Flow where dt is forced to zero when the quaity is 0
-			flow_rate.zero();
-			gyro_rate.zero();
-		}
-
-		flowSample flow {
-			.time_us = optical_flow.timestamp_sample - optical_flow.integration_timespan_us / 2, // correct timestamp to midpoint of integration interval as the data is converted to rates
-			.flow_rate = flow_rate,
-			.gyro_rate = gyro_rate,
-			.quality = optical_flow.quality
-		};
-
-		if (Vector2f(optical_flow.pixel_flow).isAllFinite() && optical_flow.integration_timespan_us < 1e6) {
-
-			// Save sensor limits reported by the optical flow sensor
-			_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
-						     optical_flow.max_ground_distance);
-
-			_ekf.setOpticalFlowData(flow);
-
-			new_optical_flow = true;
-		}
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-
-		// use optical_flow distance as range sample if distance_sensor unavailable
-		if (PX4_ISFINITE(optical_flow.distance_m) && (ekf2_timestamps.timestamp > _last_range_sensor_update + 1_s)) {
-
-			int8_t quality = static_cast<float>(optical_flow.quality) / static_cast<float>(UINT8_MAX) * 100.f;
-
-			estimator::sensor::rangeSample range_sample {
-				.time_us = optical_flow.timestamp_sample,
-				.rng = optical_flow.distance_m,
-				.quality = quality,
-			};
-			_ekf.setRangeData(range_sample);
-
-			// set sensor limits
-			_ekf.set_rangefinder_limits(optical_flow.min_ground_distance, optical_flow.max_ground_distance);
-		}
-
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-		ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
-				(int64_t)ekf2_timestamps.timestamp / 100);
-	}
-
-	return new_optical_flow;
-}
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_GNSS)
 void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)

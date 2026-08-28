@@ -43,12 +43,13 @@ using namespace time_literals;
 
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 
-VehicleOpticalFlow::VehicleOpticalFlow() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
+VehicleOpticalFlow::VehicleOpticalFlow(uint8_t instance, SensorSlotBinder &slot_binder, Publications &pubs) :
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	_pubs(pubs),
+	_sensor_flow_sub(this, ORB_ID(sensor_optical_flow), instance),
+	_instance(instance),
+	_slot_binder(slot_binder)
 {
-	_vehicle_optical_flow_pub.advertise();
-
 	_gyro_integrator.set_reset_samples(1);
 }
 
@@ -89,10 +90,85 @@ void VehicleOpticalFlow::ParametersUpdate()
 		parameter_update_s param_update;
 		_params_sub.copy(&param_update);
 
-		updateParams();
-
-		_flow_rotation = get_rot_matrix((enum Rotation)_param_sens_flow_rot.get());
+		UpdateParameters();
 	}
+}
+
+bool VehicleOpticalFlow::UpdateParamSlot(uint32_t device_id)
+{
+	// map the sensor to its SENS_FLOW<i> parameter slot by device ID; a sensor without a
+	// device ID may only fall back to its uORB instance if that slot is not bound to another sensor
+	int8_t slot = _slot_binder.slotForInstance(_instance, device_id);
+
+	if (slot < 0) {
+		if (_slot_binder.isSlotBound(_instance)) {
+			return false;
+		}
+
+		slot = _instance;
+	}
+
+	if (slot == _param_slot) {
+		return true;
+	}
+
+	_param_slot = slot;
+
+	char param_name[20] {};
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_ROT", slot);
+	_param_handles.rot = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_SCALE", slot);
+	_param_handles.scale = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_HMIN", slot);
+	_param_handles.hmin = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_HMAX", slot);
+	_param_handles.hmax = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_MAXR", slot);
+	_param_handles.maxr = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_RATE", slot);
+	_param_handles.rate = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_DELAY", slot);
+	_param_handles.delay = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_POS_X", slot);
+	_param_handles.pos_x = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_POS_Y", slot);
+	_param_handles.pos_y = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_POS_Z", slot);
+	_param_handles.pos_z = param_find(param_name);
+
+	UpdateParameters();
+
+	return true;
+}
+
+void VehicleOpticalFlow::UpdateParameters()
+{
+	if (_param_handles.rot == PARAM_INVALID) {
+		return;
+	}
+
+	param_get(_param_handles.rot, &_params.rot);
+	param_get(_param_handles.scale, &_params.scale);
+	param_get(_param_handles.hmin, &_params.hmin);
+	param_get(_param_handles.hmax, &_params.hmax);
+	param_get(_param_handles.maxr, &_params.maxr);
+	param_get(_param_handles.rate, &_params.rate);
+	param_get(_param_handles.delay, &_params.delay);
+	param_get(_param_handles.pos_x, &_params.pos(0));
+	param_get(_param_handles.pos_y, &_params.pos(1));
+	param_get(_param_handles.pos_z, &_params.pos(2));
+
+	_flow_rotation = get_rot_matrix((enum Rotation)_params.rot);
 }
 
 void VehicleOpticalFlow::Run()
@@ -109,7 +185,8 @@ void VehicleOpticalFlow::Run()
 
 	sensor_optical_flow_s sensor_optical_flow;
 
-	if (_sensor_flow_sub.update(&sensor_optical_flow)) {
+	if (_sensor_flow_sub.update(&sensor_optical_flow)
+	    && UpdateParamSlot(sensor_optical_flow.device_id)) {
 
 		// clear data accumulation if there's a gap in data
 		const uint64_t integration_gap_threshold_us = sensor_optical_flow.integration_timespan_us * 2;
@@ -211,10 +288,10 @@ void VehicleOpticalFlow::Run()
 
 		bool publish = true;
 
-		if (_param_sens_flow_rate.get() > 0) {
-			const float interval_us = 1e6f / _param_sens_flow_rate.get();
+		if (_params.rate > 0) {
+			const float interval_us = 1e6f / _params.rate;
 
-			// don't allow publishing faster than SENS_FLOW_RATE
+			// don't allow publishing faster than SENS_FLOW<i>_RATE
 			if (_integration_timespan_us < interval_us) {
 				publish = false;
 			}
@@ -226,7 +303,17 @@ void VehicleOpticalFlow::Run()
 			vehicle_optical_flow.timestamp_sample = sensor_optical_flow.timestamp_sample;
 			vehicle_optical_flow.device_id = sensor_optical_flow.device_id;
 
-			_flow_integral *= _param_sens_flow_scale.get();
+			// SENS_FLOW<i>_DELAY
+			const hrt_abstime delay_us = static_cast<hrt_abstime>(_params.delay * 1000.f);
+
+			if (vehicle_optical_flow.timestamp_sample > delay_us) {
+				vehicle_optical_flow.timestamp_sample -= delay_us;
+			}
+
+			// SENS_FLOW<i>_POS_*
+			_params.pos.copyTo(vehicle_optical_flow.position_offset);
+
+			_flow_integral *= _params.scale;
 			_flow_integral.copyTo(vehicle_optical_flow.pixel_flow);
 			_delta_angle.copyTo(vehicle_optical_flow.delta_angle);
 
@@ -241,44 +328,44 @@ void VehicleOpticalFlow::Run()
 				vehicle_optical_flow.distance_m = NAN;
 			}
 
-			// SENS_FLOW_MAXR
+			// SENS_FLOW<i>_MAXR
 			if (PX4_ISFINITE(sensor_optical_flow.max_flow_rate)
-			    && (sensor_optical_flow.max_flow_rate <= _param_sens_flow_maxr.get())) {
+			    && (sensor_optical_flow.max_flow_rate <= _params.maxr)) {
 
 				vehicle_optical_flow.max_flow_rate = sensor_optical_flow.max_flow_rate;
 
 			} else {
-				vehicle_optical_flow.max_flow_rate = _param_sens_flow_maxr.get();
+				vehicle_optical_flow.max_flow_rate = _params.maxr;
 			}
 
-			// SENS_FLOW_MINHGT
+			// SENS_FLOW<i>_HMIN
 			if (PX4_ISFINITE(sensor_optical_flow.min_ground_distance)
-			    && (sensor_optical_flow.min_ground_distance >= _param_sens_flow_minhgt.get())) {
+			    && (sensor_optical_flow.min_ground_distance >= _params.hmin)) {
 
 				vehicle_optical_flow.min_ground_distance = sensor_optical_flow.min_ground_distance;
 
 			} else {
-				vehicle_optical_flow.min_ground_distance = _param_sens_flow_minhgt.get();
+				vehicle_optical_flow.min_ground_distance = _params.hmin;
 			}
 
-			// SENS_FLOW_MAXHGT
+			// SENS_FLOW<i>_HMAX
 			if (PX4_ISFINITE(sensor_optical_flow.max_ground_distance)
-			    && (sensor_optical_flow.max_ground_distance <= _param_sens_flow_maxhgt.get())) {
+			    && (sensor_optical_flow.max_ground_distance <= _params.hmax)) {
 
 				vehicle_optical_flow.max_ground_distance = sensor_optical_flow.max_ground_distance;
 
 			} else {
-				vehicle_optical_flow.max_ground_distance = _param_sens_flow_maxhgt.get();
+				vehicle_optical_flow.max_ground_distance = _params.hmax;
 			}
 
 
-			// rotate (SENS_FLOW_ROT)
+			// rotate (SENS_FLOW<i>_ROT)
 			float zeroval = 0.f;
-			rotate_3f((enum Rotation)_param_sens_flow_rot.get(), vehicle_optical_flow.pixel_flow[0],
+			rotate_3f((enum Rotation)_params.rot, vehicle_optical_flow.pixel_flow[0],
 				  vehicle_optical_flow.pixel_flow[1], zeroval);
 
 			vehicle_optical_flow.timestamp = hrt_absolute_time();
-			_vehicle_optical_flow_pub.publish(vehicle_optical_flow);
+			_pubs.flow[_param_slot].publish(vehicle_optical_flow);
 
 			// vehicle_optical_flow_vel if distance is available (for logging)
 			if (_distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {
@@ -336,7 +423,7 @@ void VehicleOpticalFlow::Run()
 
 				flow_vel.timestamp = hrt_absolute_time();
 
-				_vehicle_optical_flow_vel_pub.publish(flow_vel);
+				_pubs.flow_vel[_param_slot].publish(flow_vel);
 			}
 
 			ClearAccumulatedData();
@@ -486,7 +573,7 @@ void VehicleOpticalFlow::ClearAccumulatedData()
 
 void VehicleOpticalFlow::PrintStatus()
 {
-
+	PX4_INFO_RAW("vehicle_optical_flow: %" PRIu8 ", param slot: %d\n", _instance, _param_slot);
 }
 
 }; // namespace sensors

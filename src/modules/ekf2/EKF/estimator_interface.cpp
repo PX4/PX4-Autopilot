@@ -61,9 +61,6 @@ EstimatorInterface::~EstimatorInterface()
 #if defined(CONFIG_EKF2_AIRSPEED)
 	delete _airspeed_buffer;
 #endif // CONFIG_EKF2_AIRSPEED
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	delete _flow_buffer;
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	delete _ext_vision_buffer;
 #endif // CONFIG_EKF2_EXTERNAL_VISION
@@ -324,40 +321,13 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
+void EstimatorInterface::setOpticalFlowData(const flowSample &flow, uint8_t instance)
 {
-	if (!_initialised) {
+	if (!_initialised || (instance >= MAX_OF_INSTANCES)) {
 		return;
 	}
 
-	// Allocate the required buffer size if not previously done
-	if (_flow_buffer == nullptr) {
-		_flow_buffer = new TimestampedRingBuffer<flowSample>(_imu_buffer_length);
-
-		if (_flow_buffer == nullptr || !_flow_buffer->valid()) {
-			delete _flow_buffer;
-			_flow_buffer = nullptr;
-			printBufferAllocationFailed("flow");
-			return;
-		}
-	}
-
-	const int64_t time_us = flow.time_us
-				- static_cast<int64_t>(_params.ekf2_of_delay * 1000)
-				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
-
-	// limit data rate to prevent data being lost
-	if (time_us >= static_cast<int64_t>(_flow_buffer->get_newest().time_us + _min_obs_interval_us)) {
-
-		flowSample optflow_sample_new{flow};
-		optflow_sample_new.time_us = time_us;
-
-		_flow_buffer->push(optflow_sample_new);
-
-	} else {
-		ECL_WARN("optical flow data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _flow_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
-	}
+	_flow_src[instance].setData(flow, _min_obs_interval_us, _dt_ekf_avg);
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 

@@ -77,6 +77,10 @@ Sensors::Sensors(bool hil_enabled) :
 	_vehicle_angular_velocity.Start();
 #endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
+#if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+	_flow_slot_binder.init("SENS_FLOW%u_ID", VehicleOpticalFlow::MAX_FLOW_INSTANCES);
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
+
 	param_find("SYS_FAC_CAL_MODE");
 
 	// Parameters controlling the on-board sensor thermal calibrator
@@ -135,9 +139,11 @@ Sensors::~Sensors()
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 
-	if (_vehicle_optical_flow) {
-		_vehicle_optical_flow->Stop();
-		delete _vehicle_optical_flow;
+	for (auto &vehicle_optical_flow : _vehicle_optical_flow) {
+		if (vehicle_optical_flow) {
+			vehicle_optical_flow->Stop();
+			delete vehicle_optical_flow;
+		}
 	}
 
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
@@ -482,14 +488,26 @@ void Sensors::InitializeVehicleMagnetometer()
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 void Sensors::InitializeVehicleOpticalFlow()
 {
-	if (_vehicle_optical_flow == nullptr) {
-		uORB::Subscription sensor_optical_flow_sub{ORB_ID(sensor_optical_flow)};
+	for (uint8_t i = 0; i < VehicleOpticalFlow::MAX_FLOW_INSTANCES; i++) {
+		if (_vehicle_optical_flow[i] == nullptr) {
+			uORB::Subscription sensor_optical_flow_sub{ORB_ID(sensor_optical_flow), i};
 
-		if (sensor_optical_flow_sub.advertised()) {
-			_vehicle_optical_flow = new VehicleOpticalFlow();
+			if (sensor_optical_flow_sub.advertised()) {
+				// advertise all instances in index order so that uORB instance == SENS_FLOW<i> slot
+				if (!_vehicle_optical_flow_pubs_advertised) {
+					for (uint8_t slot = 0; slot < VehicleOpticalFlow::MAX_FLOW_INSTANCES; slot++) {
+						_vehicle_optical_flow_pubs.flow[slot].advertise();
+						_vehicle_optical_flow_pubs.flow_vel[slot].advertise();
+					}
 
-			if (_vehicle_optical_flow) {
-				_vehicle_optical_flow->Start();
+					_vehicle_optical_flow_pubs_advertised = true;
+				}
+
+				_vehicle_optical_flow[i] = new VehicleOpticalFlow(i, _flow_slot_binder, _vehicle_optical_flow_pubs);
+
+				if (_vehicle_optical_flow[i]) {
+					_vehicle_optical_flow[i]->Start();
+				}
 			}
 		}
 	}
@@ -697,9 +715,11 @@ int Sensors::print_status()
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 
-	if (_vehicle_optical_flow) {
-		PX4_INFO_RAW("\n");
-		_vehicle_optical_flow->PrintStatus();
+	for (auto &vehicle_optical_flow : _vehicle_optical_flow) {
+		if (vehicle_optical_flow) {
+			PX4_INFO_RAW("\n");
+			vehicle_optical_flow->PrintStatus();
+		}
 	}
 
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
