@@ -582,7 +582,7 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 	} else {
 		_constructPath(_work_buffer1, _work_buffer1_len, path);
 
-		if (!_validatePath(_work_buffer1)) {
+		if (!_validatePath(_work_buffer1) || (for_write && !_validatePathIsWritable(_work_buffer1))) {
 			return kErrFailFileProtected;
 		}
 
@@ -679,10 +679,6 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 	}
 
 	if (_session_info.param.is_open()) {
-		return kErrFailFileProtected;
-	}
-
-	if (!_validatePathIsWritable(_work_buffer1)) {
 		return kErrFailFileProtected;
 	}
 
