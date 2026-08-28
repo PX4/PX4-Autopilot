@@ -60,8 +60,60 @@ MavlinkFTP::MavlinkFTP(Mavlink &mavlink) :
 
 MavlinkFTP::~MavlinkFTP()
 {
+	_close_session();
 	delete[] _work_buffer1;
 	delete[] _work_buffer2;
+}
+
+bool
+MavlinkFTP::_session_open() const
+{
+	return (_session_info.fd >= 0) || _session_info.param.is_open();
+}
+
+void
+MavlinkFTP::_close_session()
+{
+	if (_session_info.fd >= 0) {
+		::close(_session_info.fd);
+	}
+
+	_session_info.fd = -1;
+	_session_info.param.close();
+	_session_info.stream_download = false;
+	_session_info.file_size = 0;
+}
+
+int
+MavlinkFTP::_read_session(uint32_t offset, uint8_t *buf, uint16_t count)
+{
+	if (_session_info.param.is_open()) {
+		const int bytes_read = _session_info.param.read(offset, buf, count);
+
+		if (bytes_read < 0) {
+			_our_errno = EIO;
+		}
+
+		return bytes_read;
+	}
+
+	// lseek allows seeking past EOF, so test it ourselves
+	if (offset >= _session_info.file_size) {
+		return 0;
+	}
+
+	if (lseek(_session_info.fd, offset, SEEK_SET) < 0) {
+		_our_errno = errno;
+		return -1;
+	}
+
+	const int bytes_read = ::read(_session_info.fd, buf, count);
+
+	if (bytes_read < 0) {
+		_our_errno = errno;
+	}
+
+	return bytes_read;
 }
 
 unsigned
@@ -506,55 +558,65 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 {
-	if (_session_info.fd >= 0) {
+	if (_session_open()) {
 		PX4_ERR("FTP: Open failed - out of sessions");
 		return kErrNoSessionsAvailable;
 	}
 
-	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
+	const char *path = _data_as_cstring(payload);
+	const bool for_write = (oflag & O_ACCMODE) != O_RDONLY;
+	uint32_t file_size = 0;
 
-	if (!_validatePath(_work_buffer1)) {
-		return kErrFailFileProtected;
-	}
+	if (ParamPckFile::is_param_path(path)) {
+		if (for_write) {
+			return kErrFailFileProtected;
+		}
 
-	PX4_DEBUG("FTP: open '%s'", _work_buffer1);
+		if (!_session_info.param.open(path, kMaxDataLength)) {
+			_our_errno = EINVAL;
+			return kErrFailErrno;
+		}
 
-	uint32_t fileSize = 0;
-	struct stat st;
+		file_size = _session_info.param.size();
 
-	PX4_DEBUG("stat: %s", _work_buffer1);
+	} else {
+		_constructPath(_work_buffer1, _work_buffer1_len, path);
 
-	if (stat(_work_buffer1, &st) != 0) {
-		// fail only if requested open for read
-		if (oflag & O_RDONLY) {
+		if (!_validatePath(_work_buffer1)) {
+			return kErrFailFileProtected;
+		}
+
+		PX4_DEBUG("FTP: open '%s'", _work_buffer1);
+
+		struct stat st;
+
+		if (stat(_work_buffer1, &st) == 0) {
+			file_size = st.st_size;
+
+		} else if (!for_write) {
 			_our_errno = errno;
 			PX4_ERR("stat failed read: %s", strerror(_our_errno));
 			return kErrFailErrno;
-
-		} else {
-			st.st_size = 0;
 		}
+
+		// Set mode to 666 incase oflag has O_CREAT
+		int fd = ::open(_work_buffer1, oflag, PX4_O_MODE_666);
+
+		if (fd < 0) {
+			_our_errno = errno;
+			PX4_ERR("open failed: %s", strerror(_our_errno));
+			return kErrFailErrno;
+		}
+
+		_session_info.fd = fd;
 	}
 
-	fileSize = st.st_size;
-
-	PX4_DEBUG("open: %s", _work_buffer1);
-	// Set mode to 666 incase oflag has O_CREAT
-	int fd = ::open(_work_buffer1, oflag, PX4_O_MODE_666);
-
-	if (fd < 0) {
-		_our_errno = errno;
-		PX4_ERR("open failed: %s", strerror(_our_errno));
-		return kErrFailErrno;
-	}
-
-	_session_info.fd = fd;
-	_session_info.file_size = fileSize;
+	_session_info.file_size = file_size;
 	_session_info.stream_download = false;
 
 	payload->session = 0;
 	payload->size = sizeof(uint32_t);
-	std::memcpy(payload->data, &fileSize, payload->size);
+	std::memcpy(payload->data, &file_size, payload->size);
 
 	return kErrNone;
 }
@@ -563,33 +625,22 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workRead(PayloadHeader *payload)
 {
-	if (payload->session != 0 || _session_info.fd < 0) {
+	if ((payload->session != 0) || !_session_open()) {
 		return kErrInvalidSession;
 	}
 
-	PX4_DEBUG("FTP: read offset:%ld" PRIu32, payload->offset);
+	PX4_DEBUG("FTP: read offset:%" PRIu32, payload->offset);
 
-	// We have to test seek past EOF ourselves, lseek will allow seek past EOF
-	if (payload->offset >= _session_info.file_size) {
-		PX4_WARN("request past EOF");
-		return kErrEOF;
-	}
-
-	PX4_DEBUG("lseek with offset: %ld", payload->offset);
-
-	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
-		_our_errno = errno;
-		PX4_ERR("seek fail: %s", strerror(_our_errno));
-		return kErrFailErrno;
-	}
-
-	int bytes_read = ::read(_session_info.fd, &payload->data[0], payload->size);
+	const int bytes_read = _read_session(payload->offset, payload->data, payload->size);
 
 	if (bytes_read < 0) {
-		// Negative return indicates error other than eof
-		_our_errno = errno;
-		PX4_ERR("read fail %d, %s", bytes_read, strerror(_our_errno));
+		PX4_ERR("read fail: %s", strerror(_our_errno));
 		return kErrFailErrno;
+	}
+
+	if (bytes_read == 0) {
+		PX4_WARN("request past EOF");
+		return kErrEOF;
 	}
 
 	payload->size = bytes_read;
@@ -601,7 +652,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id)
 {
-	if (payload->session != 0 || _session_info.fd < 0) {
+	if ((payload->session != 0) || !_session_open()) {
 		PX4_DEBUG("_workBurst: no session or no fd");
 		return kErrInvalidSession;
 	}
@@ -622,9 +673,13 @@ MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workWrite(PayloadHeader *payload)
 {
-	if (payload->session != 0 || _session_info.fd < 0) {
+	if ((payload->session != 0) || !_session_open()) {
 		PX4_DEBUG("_workWrite: no session or no fd");
 		return kErrInvalidSession;
+	}
+
+	if (_session_info.param.is_open()) {
+		return kErrFailFileProtected;
 	}
 
 	if (!_validatePathIsWritable(_work_buffer1)) {
@@ -632,8 +687,8 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 	}
 
 	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
-		// Unable to see to the specified location
-		PX4_ERR("seek fail");
+		_our_errno = errno;
+		PX4_ERR("seek fail: %s", strerror(_our_errno));
 		return kErrFailErrno;
 	}
 
@@ -797,14 +852,12 @@ MavlinkFTP::_workTruncateFile(PayloadHeader *payload)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workTerminate(PayloadHeader *payload)
 {
-	if (payload->session != 0 || _session_info.fd < 0) {
+	if ((payload->session != 0) || !_session_open()) {
 		return kErrInvalidSession;
 	}
 
 	PX4_DEBUG("work terminate: close");
-	::close(_session_info.fd);
-	_session_info.fd = -1;
-	_session_info.stream_download = false;
+	_close_session();
 
 	payload->size = 0;
 
@@ -816,12 +869,7 @@ MavlinkFTP::ErrorCode
 MavlinkFTP::_workReset(PayloadHeader *payload)
 {
 	PX4_DEBUG("work reset: close");
-
-	if (_session_info.fd != -1) {
-		::close(_session_info.fd);
-		_session_info.fd = -1;
-		_session_info.stream_download = false;
-	}
+	_close_session();
 
 	payload->size = 0;
 
@@ -1038,12 +1086,10 @@ void MavlinkFTP::send()
 			}
 		}
 
-	} else if (_session_info.fd != -1) {
+	} else if (_session_open()) {
 		// close session without activity
 		if (hrt_elapsed_time(&_last_work_buffer_access) > 30_s) {
-			::close(_session_info.fd);
-			_session_info.fd = -1;
-			_session_info.stream_download = false;
+			_close_session();
 			_last_reply_valid = false;
 			PX4_WARN("Session was closed without activity");
 		}
@@ -1084,32 +1130,20 @@ void MavlinkFTP::send()
 
 		PX4_DEBUG("stream send: offset %" PRIu32, _session_info.stream_offset);
 
-		// We have to test seek past EOF ourselves, lseek will allow seek past EOF
-		if (_session_info.stream_offset >= _session_info.file_size) {
+		const int bytes_read = _read_session(payload->offset, &payload->data[0], kMaxDataLength);
+
+		if (bytes_read < 0) {
+			error_code = kErrFailErrno;
+			PX4_WARN("stream download: read fail: %s", strerror(_our_errno));
+
+		} else if (bytes_read == 0) {
 			error_code = kErrEOF;
 			PX4_DEBUG("stream download: sending Nak EOF");
-		}
 
-		if (error_code == kErrNone) {
-			if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
-				error_code = kErrFailErrno;
-				PX4_WARN("stream download: seek fail");
-			}
-		}
-
-		if (error_code == kErrNone) {
-			int bytes_read = ::read(_session_info.fd, &payload->data[0], kMaxDataLength);
-
-			if (bytes_read < 0) {
-				// Negative return indicates error other than eof
-				error_code = kErrFailErrno;
-				PX4_WARN("stream download: read fail");
-
-			} else {
-				payload->size = bytes_read;
-				_session_info.stream_offset += bytes_read;
-				_session_info.stream_chunk_transmitted += bytes_read;
-			}
+		} else {
+			payload->size = bytes_read;
+			_session_info.stream_offset += bytes_read;
+			_session_info.stream_chunk_transmitted += bytes_read;
 		}
 
 		if (error_code != kErrNone) {
