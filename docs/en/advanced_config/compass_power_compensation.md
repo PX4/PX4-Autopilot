@@ -1,33 +1,91 @@
 # Compass Power Compensation
 
-Compensate magnetometer readings for magnetic fields from motor current when the compass cannot be moved away from the wiring. Cables must be fixed in place; moving them invalidates the coefficients.
+Compasses (magnetometers) should be mounted as far as possible from cables that carry large currents, as these induce magnetic fields that may corrupt the compass readings.
 
-[CAL_MAG_COMP_TYP](../advanced_config/parameter_reference.md#CAL_MAG_COMP_TYP) is 1 for thrust, 2 or 3 for battery current instance 0 or 1.
+This topic explains how to compensate for the induced magnetic fields in the cases where moving the compass is not realistic.
 
-## Flight log
+:::tip
+Moving the compass away from power-carrying cables is the easiest and most effective way to fix this issue, because the strength of the magnetic fields decreases quadratically with the distance from the cable.
+:::
 
-1. [Compass calibration](../config/compass.md#compass-calibration).
-2. [CAL_MAG_COMP_TYP](../advanced_config/parameter_reference.md#CAL_MAG_COMP_TYP) = 0.
-3. Enable [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) bit 11 (High rate sensors).
+::: info
+The process is demonstrated for a multicopter, but is equally valid for other vehicle types.
+:::
+
+## When is Power Compensation Applicable?
+
+Performing this power compensation is advisable only if all the following statements are true:
+
+1. The compass cannot be moved away from the power-carrying cables.
+2. There is a strong correlation between the compass readings and the thrust setpoint, and/or the battery current.
+
+   ![Corrupted mag](../../assets/advanced_config/corrupted_mag.png)
+
+3. The drone cables are all fixed in place/do not move (calculated compensation parameters will be invalid if the current-carrying cables can move).
+
+## How to Compensate the Compass
+
+1. Make sure your drone runs a Firmware version supporting power compensation (current master, or releases from v.1.11.0).
+2. Perform the [standard compass calibration](../config/compass.md#compass-calibration).
+3. Set the parameter [SDLOG_MODE](../advanced_config/parameter_reference.md#SDLOG_MODE) to 2 to enable logging of data from boot.
+4. Set the parameter [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) checkbox for _Sensor comparison_ (bit 6) to get more data points.
+5. Secure the drone so that it cannot move, and attach the propellers (so the motors can draw the same current as in flight).
+   This example secures the vehicle using straps.
+
+   ![strap](../../assets/advanced_config/strap.png)
+
+6. Power the vehicle and switch into [ACRO flight mode](../flight_modes_mc/acro.md) (using this mode ensures the vehicle won't attempt to compensate for movement resulting from the straps).
+   - Arm the vehicle and slowly raise the throttle to the maximum
+   - Slowly lower the throttle down to zero
+   - Disarm the vehicle
+
+   ::: info
+   Perform the test carefully and closely monitor the vibrations.
+   :::
+
+7. Retrieve the ulog and use the python script [mag_compensation.py](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/sensors/vehicle_magnetometer/mag_compensation/python/mag_compensation.py) to identify the compensation parameters.
+
+   ```sh
+   python mag_compensation.py ~/path/to/log/logfile.ulg <type> [--instance <number>]
+   ```
+
+   where:
+   - `<type>`: `current` or `thrust` (power signal used for compensation)
+   - `--instance <number>` (optional): The number is `0` (default) or `1`, the instance of the current or thrust signal to use.
+
+   ::: info
+   If your log does not contain battery current measurements, you will need to comment out the respective lines in the Python script, such that it does the calculation for thrust only.
+   :::
+
+8. The script will return the parameter identification for thrust as well as for current and print them to the console.
+   The figures that pop up from the script show the "goodness of fit" for each compass instance, and how the data would look if compensated with the suggested values.
+   If a current measurement is available, using the current-compensation usually yields the better results.
+   Here is an example of a log, where the current fit is good, but the thrust parameters are unusable as the relationship is not linear.
+
+   ![line fit](../../assets/advanced_config/line_fit.png)
+
+9. Once the parameters are identified, the power compensation must be enabled by setting [CAL_MAG_COMP_TYP](../advanced_config/parameter_reference.md#CAL_MAG_COMP_TYP) to 1 (when using thrust parameters) or 2 (when using current parameters).
+   Additionally, the compensation parameters for each axis of each compass must be set.
+
+   ![comp params](../../assets/advanced_config/comp_params.png)
+
+## From a Flight Log
+
+The restrained throttle ramp above is the original identification method. The same parameters can also be identified from a normal flight using [mag_compensation_flight.py](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/sensors/vehicle_magnetometer/mag_compensation/python/mag_compensation_flight.py).
+
+1. Perform the [standard compass calibration](../config/compass.md#compass-calibration).
+2. Set [CAL_MAG_COMP_TYP](../advanced_config/parameter_reference.md#CAL_MAG_COMP_TYP) to 0.
+3. Enable [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) bit 11 (_High rate sensors_) so magnetometer data is logged at a high enough rate to estimate delay.
 4. Fly a couple of minutes with throttle changes.
+5. Retrieve the ulog and run:
 
-```sh
-python src/modules/sensors/vehicle_magnetometer/mag_compensation/python/mag_compensation_flight.py LOG.ulg
-```
+   ```sh
+   python mag_compensation_flight.py ~/path/to/log/logfile.ulg
+   ```
 
-Optional second argument: `current` (default if battery current is in the log) or `thrust`. `--instance N` selects the battery/thrust instance.
+   Optional second argument: `current` (default if battery current is in the log) or `thrust`. `--instance <number>` selects the battery or thrust instance (`0` or `1`).
 
-The script prints `CAL_MAG_COMP_TYP` and `CAL_MAGx_{X,Y,Z}COMP`. It estimates a bulk delay from the field norm vs current, then fits per-axis coefficients after removing the Earth field using `vehicle_attitude`. Current compensation is preferred when battery current is logged.
-
-## Restrained throttle ramp
-
-Vehicle secured, props on, [ACRO](../flight_modes_mc/acro.md), [CAL_MAG_COMP_TYP](../advanced_config/parameter_reference.md#CAL_MAG_COMP_TYP) = 0. Arm, raise throttle to maximum, lower to zero, disarm. [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) bit 6 (Sensor comparison) is enough.
-
-```sh
-python src/modules/sensors/vehicle_magnetometer/mag_compensation/python/mag_compensation.py LOG.ulg current --instance 0
-```
-
-`current` or `thrust`. This script fits each mag axis directly against the power signal; do not use it on a flight log.
+The script estimates a bulk delay from the field norm versus current, then fits per-axis coefficients after removing the Earth field using `vehicle_attitude`. It prints `CAL_MAG_COMP_TYP` and `CAL_MAGx_{X,Y,Z}COMP`. Enable compensation with those values as in step 9 above. Do not use `mag_compensation.py` on a flight log; it fits each mag axis directly against the power signal and will absorb attitude motion into the coefficients.
 
 ## See Also
 
