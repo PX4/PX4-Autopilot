@@ -105,7 +105,7 @@ typedef struct dshot_channel_t {
 	int8_t			bdshot_tcmp_offset;
 } dshot_channel_t;
 
-#define BDSHOT_OFFLINE_COUNT 200
+#define BDSHOT_OFFLINE_COUNT 200 // If there are no responses for 200 setpoints ESC is offline
 #define BDSHOT_RETRAIN_COUNT (2 * BDSHOT_OFFLINE_COUNT)
 
 #define BDSHOT_TCMP_MIN_OFFSET -16
@@ -193,16 +193,20 @@ static void flexio_dshot_output(uint32_t channel)
 	uint32_t pin = timer_io_channels[channel].dshot.flexio_pin;
 	bool inverted = dshot_inst[channel].bdshot;
 
-	// TIMCFG and TIMCMP may only be written while the timer is disabled
+	/* Disable timer, TIMCFG and TIMCMP may only be written while it is disabled */
 	flexio_putreg32(0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
+
+	/* Disable Shifter */
 	flexio_putreg32(0, IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
 
+	/* No start bit, stop bit low */
 	flexio_putreg32(FLEXIO_SHIFTCFG_INSRC(FLEXIO_SHIFTER_INPUT_FROM_PIN) |
 			FLEXIO_SHIFTCFG_PWIDTH(0) |
 			FLEXIO_SHIFTCFG_SSTOP(FLEXIO_SHIFTER_STOP_BIT_LOW) |
 			FLEXIO_SHIFTCFG_SSTART(FLEXIO_SHIFTER_START_BIT_DISABLED_LOAD_DATA_ON_ENABLE),
 			IMXRT_FLEXIO_SHIFTCFG0_OFFSET + channel * 0x4);
 
+	/* Transmit mode, output to FXIO pin, inverted output for bdshot */
 	flexio_putreg32(FLEXIO_SHIFTCTL_TIMSEL(channel) |
 			FLEXIO_SHIFTCTL_TIMPOL(FLEXIO_SHIFTER_TIMER_POLARITY_ON_POSITIVE) |
 			FLEXIO_SHIFTCTL_PINCFG(FLEXIO_PIN_CONFIG_OUTPUT) |
@@ -211,6 +215,7 @@ static void flexio_dshot_output(uint32_t channel)
 			FLEXIO_SHIFTCTL_SMOD(FLEXIO_SHIFTER_MODE_TRANSMIT),
 			IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
 
+	/* Start transmitting on trigger, disable on compare */
 	flexio_putreg32(FLEXIO_TIMCFG_TIMOUT(FLEXIO_TIMER_OUTPUT_ONE_NOT_AFFECTED_BY_RESET) |
 			FLEXIO_TIMCFG_TIMDEC(FLEXIO_TIMER_DEC_SRC_ON_FLEX_IO_CLOCK_SHIFT_TIMER_OUTPUT) |
 			FLEXIO_TIMCFG_TIMRST(FLEXIO_TIMER_RESET_NEVER) |
@@ -222,6 +227,7 @@ static void flexio_dshot_output(uint32_t channel)
 
 	flexio_putreg32(dshot_tcmp, IMXRT_FLEXIO_TIMCMP0_OFFSET + channel * 0x4);
 
+	/* Baud mode, Trigger on shifter write */
 	flexio_putreg32(FLEXIO_TIMCTL_TRGSEL((4 * channel) + 1) |
 			FLEXIO_TIMCTL_TRGPOL(FLEXIO_TIMER_TRIGGER_POLARITY_ACTIVE_LOW) |
 			FLEXIO_TIMCTL_TRGSRC(FLEXIO_TIMER_TRIGGER_SOURCE_INTERNAL) |
@@ -238,14 +244,17 @@ static void flexio_dshot_receive(uint32_t channel)
 {
 	uint32_t pin = timer_io_channels[channel].dshot.flexio_pin;
 
+	/* Transmit done, disable timer and reconfigure to receive */
 	flexio_putreg32(0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
 
+	/* Input data from pin, no start/stop bit */
 	flexio_putreg32(FLEXIO_SHIFTCFG_INSRC(FLEXIO_SHIFTER_INPUT_FROM_PIN) |
 			FLEXIO_SHIFTCFG_PWIDTH(0) |
 			FLEXIO_SHIFTCFG_SSTOP(FLEXIO_SHIFTER_STOP_BIT_DISABLE) |
 			FLEXIO_SHIFTCFG_SSTART(FLEXIO_SHIFTER_START_BIT_DISABLED_LOAD_DATA_ON_SHIFT),
 			IMXRT_FLEXIO_SHIFTCFG0_OFFSET + channel * 0x4);
 
+	/* Shifter receive mode, on FXIO pin input */
 	flexio_putreg32(FLEXIO_SHIFTCTL_TIMSEL(channel) |
 			FLEXIO_SHIFTCTL_TIMPOL(FLEXIO_SHIFTER_TIMER_POLARITY_ON_POSITIVE) |
 			FLEXIO_SHIFTCTL_PINCFG(FLEXIO_PIN_CONFIG_OUTPUT_DISABLED) |
@@ -254,9 +263,10 @@ static void flexio_dshot_receive(uint32_t channel)
 			FLEXIO_SHIFTCTL_SMOD(FLEXIO_SHIFTER_MODE_RECEIVE),
 			IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
 
-	// The buffer-empty flag left by the transmit would otherwise read as a completed frame
+	/* Make sure there are no shifter flags high from transmission, they would read as a completed frame */
 	clear_shifter_status_flags(1u << channel);
 
+	/* Enable on pin transition, resynchronize through reset on rising edge */
 	flexio_putreg32(FLEXIO_TIMCFG_TIMOUT(FLEXIO_TIMER_OUTPUT_ZERO_AFFECTED_BY_RESET) |
 			FLEXIO_TIMCFG_TIMDEC(FLEXIO_TIMER_DEC_SRC_ON_FLEX_IO_CLOCK_SHIFT_TIMER_OUTPUT) |
 			FLEXIO_TIMCFG_TIMRST(FLEXIO_TIMER_RESET_ON_TIMER_PIN_RISING_EDGE) |
@@ -268,8 +278,9 @@ static void flexio_dshot_receive(uint32_t channel)
 
 	flexio_putreg32(dshot_inst[channel].bdshot_tcmp, IMXRT_FLEXIO_TIMCMP0_OFFSET + channel * 0x4);
 
-	// The timer pin is the channel pin so TIMRST resynchronises the baud counter on every falling
-	// edge of the response; a baud-mode reset leaves the 21-bit count alone.
+	/* Trigger on FXIO pin transition, Baud mode. The timer pin is the channel pin so TIMRST
+	 * resynchronizes the baud counter on every falling edge of the response; a baud-mode reset
+	 * leaves the 21-bit count alone. */
 	flexio_putreg32(FLEXIO_TIMCTL_TRGSEL(2 * pin) |
 			FLEXIO_TIMCTL_TRGPOL(FLEXIO_TIMER_TRIGGER_POLARITY_ACTIVE_HIGH) |
 			FLEXIO_TIMCTL_TRGSRC(FLEXIO_TIMER_TRIGGER_SOURCE_INTERNAL) |
@@ -336,6 +347,8 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 				disable_timer_status_interrupts(bit);
 				ch->state = BDSHOT_RECEIVE;
 				flexio_dshot_receive(channel);
+
+				/* Enable shifter interrupt for receiving data */
 				enable_shifter_status_interrupts(bit);
 
 			} else {
@@ -352,17 +365,21 @@ static inline bool decode_gcr_payload(uint32_t value, uint16_t *payload)
 	uint32_t data;
 	uint32_t csum_data;
 
+	/* if lowest significant bit isn't 1 we've got a framing error */
 	if ((value & 0x1) == 0) {
 		return false;
 	}
 
+	/* Decode RLL */
 	value = value ^ (value >> 1);
 
+	/* Decode GCR */
 	data = gcr_decode[value & 0x1fU];
 	data |= gcr_decode[(value >> 5U) & 0x1fU] << 4U;
 	data |= gcr_decode[(value >> 10U) & 0x1fU] << 8U;
 	data |= gcr_decode[(value >> 15U) & 0x1fU] << 12U;
 
+	/* Calculate checksum */
 	csum_data = data;
 	csum_data = csum_data ^ (csum_data >> 8U);
 	csum_data = csum_data ^ (csum_data >> NIBBLES_SIZE);
@@ -386,9 +403,9 @@ static void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *pac
 		packet->value = payload & 0x00FF;
 
 	} else {
-		uint8_t exponent = ((payload >> 9) & 0x7);
-		uint16_t period = (payload & 0x1FF);
-		period = period << exponent;
+		uint8_t exponent = ((payload >> 9) & 0x7); /* 3 bit: exponent */
+		uint16_t period = (payload & 0x1FF); /* 9 bit: period base */
+		period = period << exponent; /* Period in usec */
 
 		packet->type = DSHOT_EDT_ERPM;
 
@@ -457,13 +474,15 @@ static void bdshot_train(volatile dshot_channel_t *ch, uint32_t channel, uint32_
 	uint16_t payload;
 
 	if (decode_gcr_payload(value, &payload)) {
+		// Count successful responses
 		ch->bdshot_training_success++;
 
 	} else if ((value & 0x1) == 0) {
-		// A framing error rules this offset out immediately
+		// Invalidate frame error immediately
 		ch->bdshot_training_count = BDSHOT_TRAINING_TRIES - 1;
 	}
 
+	// Keep count and check if a training round finished
 	ch->bdshot_training_count++;
 
 	if (ch->bdshot_training_count < BDSHOT_TRAINING_TRIES) {
@@ -480,9 +499,11 @@ static void bdshot_train(volatile dshot_channel_t *ch, uint32_t channel, uint32_
 
 	if (ch->bdshot_tcmp_offset > BDSHOT_TCMP_MAX_OFFSET) {
 		if (ch->bdshot_training_mask == 0) {
+			// No candidates retry
 			ch->bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
 
 		} else {
+			// Training done, use mask to find best offset
 			int low  = __builtin_ctz(ch->bdshot_training_mask);
 			int high = 31 - __builtin_clz(ch->bdshot_training_mask);
 			ch->bdshot_tcmp_offset = ((low + high) / 2) + BDSHOT_TCMP_MIN_OFFSET;
@@ -493,6 +514,7 @@ static void bdshot_train(volatile dshot_channel_t *ch, uint32_t channel, uint32_
 		}
 	}
 
+	// Update TCMP
 	flexio_dshot_set_tcmp(channel);
 }
 
@@ -512,6 +534,8 @@ static void bdshot_process_response(uint32_t channel)
 
 	uint32_t value = ~ch->raw_response & 0xFFFFF;
 
+	// BDSHOT ESC hardware varies and timings differ between units.
+	// Run training to estimate the correct baudrate to lock onto.
 	if (!ch->bdshot_training_done) {
 		bdshot_train(ch, channel, value);
 		return;
@@ -565,9 +589,10 @@ static void bdshot_process_response(uint32_t channel)
 
 int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned dshot_pwm_freq, bool edt_enable)
 {
+	/* Clock FlexIO peripheral */
 	imxrt_clockall_flexio1();
 
-	// Reset the peripheral before the driver state so a stale IRQ has nothing to service
+	/* Reset FlexIO peripheral, before the driver state so a stale IRQ has nothing to service */
 	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET, 0, FLEXIO_CTRL_SWRST_MASK);
 	flexio_putreg32(0, IMXRT_FLEXIO_CTRL_OFFSET);
 
@@ -575,12 +600,15 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 	bdshot_ready_mask = 0;
 	_dshot_armed = false;
 	_edt_enabled = edt_enable;
+
+	/* Calculate dshot timings based on dshot_pwm_freq */
 	dshot_speed = dshot_pwm_freq;
 	dshot_tcmp = 0x2F00 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 3) / 2) - 1) & 0xFF);
 
 	// 16-bit frame, ESC turnaround, 21-bit GCR response at 5/4 rate, margin for IRQ latency
 	_bdshot_busy_us = (16u * 1000000u) / dshot_pwm_freq + 30u + (21u * 4u * 1000000u) / (5u * dshot_pwm_freq) + 50u;
 
+	/* Initialize FlexIO peripheral */
 	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET,
 			   (FLEXIO_CTRL_DOZEN_MASK |
 			    FLEXIO_CTRL_DBGE_MASK |
@@ -590,6 +618,7 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 			    FLEXIO_CTRL_FASTACC(1) |
 			    FLEXIO_CTRL_FLEXEN(0)));
 
+	/* FlexIO IRQ handling */
 	irq_attach(IMXRT_IRQ_FLEXIO1, flexio_irq_handler, 0);
 	up_enable_irq(IMXRT_IRQ_FLEXIO1);
 
@@ -602,6 +631,7 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 			continue;
 		}
 
+		// board does not configure dshot on this pin
 		if (channel >= DSHOT_TIMERS || timer_io_channels[channel].dshot.pinmux == 0) {
 			// Cannot capture, so it must never hold up DShot.cpp's all-channels-ready wait
 			bdshot_ready_mask |= bit & bdshot_channel_mask;
@@ -622,6 +652,8 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 
 		flexio_dshot_output(channel);
 		ch->init = true;
+
+		// Mask channel to be active on dshot
 		dshot_mask |= bit;
 	}
 
@@ -767,6 +799,7 @@ void up_dshot_trigger(void)
 				continue;
 			}
 
+			// Calc data now since we're not event driven
 			if (ch->tx_started != 0) {
 				bdshot_process_response(channel);
 			}
@@ -798,7 +831,8 @@ void up_dshot_trigger(void)
 	px4_leave_critical_section(irqflags);
 }
 
-// Each DShot bit becomes three shifter bits: 110 for a one, 100 for a zero
+/* Expand packet from 16 bits to 48 to get T0H and T1H timing, each DShot bit becomes three
+ * shifter bits: 110 for a one, 100 for a zero */
 static uint64_t dshot_expand_data(uint16_t packet)
 {
 	unsigned int mask;
@@ -819,9 +853,11 @@ static uint64_t dshot_expand_data(uint16_t packet)
 	return expanded;
 }
 
-// bits  1-11  throttle (0-47 are commands, 48-2047 give 2000 steps of throttle)
-// bit   12    telemetry request
-// bits  13-16 XOR checksum, inverted for bidirectional
+/**
+* bits 	1-11	- throttle value (0-47 are reserved, 48-2047 give 2000 steps of throttle resolution)
+* bit 	12		- dshot telemetry enable/disable
+* bits 	13-16	- XOR checksum
+**/
 void dshot_motor_data_set(uint8_t channel, uint16_t throttle, bool telemetry)
 {
 	if (channel >= DSHOT_TIMERS || !dshot_inst[channel].init) {
@@ -835,10 +871,12 @@ void dshot_motor_data_set(uint8_t channel, uint16_t throttle, bool telemetry)
 	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
 
 	uint16_t csum_data = dshot_inst[channel].bdshot ? ~packet : packet;
+
+	/* XOR checksum calculation */
 	csum_data >>= NIBBLES_SIZE;
 
 	for (unsigned i = 0; i < DSHOT_NUMBER_OF_NIBBLES; i++) {
-		checksum ^= (csum_data & 0x0F);
+		checksum ^= (csum_data & 0x0F); // XOR data by nibbles
 		csum_data >>= NIBBLES_SIZE;
 	}
 
