@@ -109,6 +109,31 @@ connector drives an analog VTX. It is not in the OSD's transmit path, so it does
 MSP DisplayPort output.
 :::
 
+## Blackbox Storage
+
+Logs are written to the onboard 16 MB SPI NOR flash (SPI3), mounted as a littlefs filesystem at
+`/fs/microsd`. There is no SD card slot.
+
+::: info Two different flash parts are fitted
+These boards have shipped with either of two 16 MB parts, and the two need different NuttX
+drivers, so PX4 probes for both at start-up and uses whichever answers:
+
+| JEDEC ID   | Part                  | Driver |
+| ---------- | --------------------- | ------ |
+| `ef 40 18` | Winbond W25Q128       | `w25`  |
+| `20 ba 18` | Micron MT25Q/N25Q128  | `m25p` |
+
+Neither driver accepts the other's manufacturer ID, so a build supporting only one leaves half
+the boards with no usable storage. The detected ID is reported at boot, visible with `dmesg`:
+
+```
+[boot] flash: chip ok (JEDEC ef 40 18), registering MTD...
+```
+
+If a board reports `chip not recognised`, that line gives the ID the part actually returned.
+All-`00` or all-`ff` means the SPI transaction failed rather than the chip being unknown.
+:::
+
 ## Camera Switching and VTX Power
 
 | GPIO | Function                                | Default state |
