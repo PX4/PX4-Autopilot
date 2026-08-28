@@ -67,10 +67,10 @@ static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 static constexpr float ASPD_SP_SLEW_RATE = 1.f;
 
 // [us] time constant of the fuel fraction filter, needs to be slow enough to reject fuel sloshing
-static constexpr hrt_abstime FUEL_FRACTION_FILTER_TIME_CONST = 30000000; // 30 s
+static constexpr hrt_abstime FUEL_FRACTION_FILTER_TIME_CONST = 30_s;
 
 // [us] maximum time step used to advance the fuel fraction filter on a new sample
-static constexpr hrt_abstime FUEL_FRACTION_FILTER_MAX_DT = 10000000; // 10 s
+static constexpr hrt_abstime FUEL_FRACTION_FILTER_MAX_DT = 10_s;
 
 FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	ModuleParams(nullptr),
