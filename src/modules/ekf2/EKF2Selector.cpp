@@ -731,7 +731,9 @@ void EKF2Selector::Run()
 		}
 	}
 
-	if (updated) {
+	// keep re-evaluating while the primary is unhealthy: a silent primary
+	// produces no further updates and the fallback below is time based
+	if (updated || !_instance[_selected_instance].healthy.get_state()) {
 		const uint8_t available_instances_prev = _available_instances;
 		const uint8_t selected_instance_prev = _selected_instance;
 		const uint32_t instance_changed_count_prev = _instance_changed_count;
