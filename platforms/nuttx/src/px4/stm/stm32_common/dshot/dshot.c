@@ -168,6 +168,7 @@ static volatile erpm_data_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
 static volatile edt_data_t _edt_temp[MAX_TIMER_IO_CHANNELS] = {};
 static volatile edt_data_t _edt_volt[MAX_TIMER_IO_CHANNELS] = {};
 static volatile edt_data_t _edt_curr[MAX_TIMER_IO_CHANNELS] = {};
+static volatile edt_data_t _edt_state[MAX_TIMER_IO_CHANNELS] = {};
 
 static float calculate_rate_hz(uint64_t last_timestamp, float last_rate_hz, uint64_t timestamp);
 
@@ -750,7 +751,8 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 		}
 
 	case DSHOT_EDT_STATE_EVENT:
-		// TODO: Handle these?
+		_edt_state[output_channel].value = packet.value;
+		_edt_state[output_channel].ready = true;
 		break;
 
 	default:
@@ -1041,6 +1043,15 @@ int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
 		if (_edt_curr[channel].ready) {
 			*value = _edt_curr[channel].value;
 			_edt_curr[channel].ready = false;
+			result = PX4_OK;
+		}
+
+		break;
+
+	case DSHOT_EDT_STATE_EVENT:
+		if (_edt_state[channel].ready) {
+			*value = _edt_state[channel].value;
+			_edt_state[channel].ready = false;
 			result = PX4_OK;
 		}
 
