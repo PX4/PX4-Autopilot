@@ -91,10 +91,20 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 		_last_timestamp = timestamp;
 
 		if (_analog_params.v_filt > FLT_EPSILON) {
+			if (!_voltage_filter_seeded) {
+				_voltage_filter.reset(fmaxf(voltage_v, 0.f));
+				_voltage_filter_seeded = true;
+			}
+
 			voltage_v = _voltage_filter.update(fmaxf(voltage_v, 0.f), dt_us);
 		}
 
 		if (_analog_params.i_filt > FLT_EPSILON) {
+			if (!_current_filter_seeded) {
+				_current_filter.reset(fmaxf(current_a, 0.f));
+				_current_filter_seeded = true;
+			}
+
 			current_a = _current_filter.update(fmaxf(current_a, 0.f), dt_us);
 		}
 	}
