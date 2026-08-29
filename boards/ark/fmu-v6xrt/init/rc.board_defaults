@@ -22,7 +22,14 @@ param set-default SENS_IMU_MODE 1
 
 if ver hwtypecmp ARKV6XRT000
 then
-	# regulate on the primary IMU, the ICM-45686 on SPI1
+	# ICM-45686 on SPI1 is the primary IMU: seed its calibration slot with a
+	# higher voter priority so selection is deterministic rather than a boot
+	# race between the three equal-priority IMUs, falling back to the
+	# LSM6DSV80X / IIM-20670 only if it degrades. The heater regulates on it too.
+	param set-default CAL_ACC0_ID 3407882
+	param set-default CAL_GYRO0_ID 3407882
+	param set-default CAL_ACC0_PRIO 100
+	param set-default CAL_GYRO0_PRIO 100
 	param set-default HEATER1_SENS_ID 3407882
 fi
 
