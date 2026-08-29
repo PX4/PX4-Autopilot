@@ -9,7 +9,8 @@ import zipfile
 
 artifacts = Path(sys.argv[1] if len(sys.argv) > 1 else "artifacts")
 cannode = artifacts / "cannode"
-files = sorted(cannode.glob("*/*.uavcan.bin")) if cannode.is_dir() else []
+# .uavcan.bin (app) and *_canbootloader.bin (SWD); pathlib suffix of both is .bin
+files = sorted(cannode.glob("*/*.bin")) if cannode.is_dir() else []
 
 if not files:
     print("no cannode images to zip")
