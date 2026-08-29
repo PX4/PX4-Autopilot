@@ -159,11 +159,8 @@ private:
 	bool _validatePath(const char *path);
 	bool _validatePathIsWritable(const char *path);
 
-	/**
-	 * make sure that the working buffers _work_buffer* are allocated
-	 * @return true if buffers exist, false if allocation failed
-	 */
-	bool _ensure_buffers_exist();
+	/// Stamp last request time; drives the 30 s idle session close.
+	void _ensure_buffers_exist();
 
 	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
 	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
@@ -191,12 +188,11 @@ private:
 	MavlinkFTP(const MavlinkFTP &);
 	MavlinkFTP operator=(const MavlinkFTP &);
 
-	/* work buffers: they're allocated as soon as we get the first request (lazy, since FTP is rarely used) */
-	char *_work_buffer1{nullptr};
 	static constexpr int _work_buffer1_len = kMaxDataLength;
-	char *_work_buffer2{nullptr};
 	static constexpr int _work_buffer2_len = 256;
-	hrt_abstime _last_work_buffer_access{0}; ///< timestamp when the buffers were last accessed
+	char _work_buffer1[_work_buffer1_len];
+	char _work_buffer2[_work_buffer2_len];
+	hrt_abstime _last_work_buffer_access{0};
 
 	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
 	// Path traversal via ".." is rejected by _validatePath().

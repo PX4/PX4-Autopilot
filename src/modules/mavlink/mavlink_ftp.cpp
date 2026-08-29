@@ -61,8 +61,6 @@ MavlinkFTP::MavlinkFTP(Mavlink &mavlink) :
 MavlinkFTP::~MavlinkFTP()
 {
 	_close_session();
-	delete[] _work_buffer1;
-	delete[] _work_buffer2;
 }
 
 bool
@@ -82,6 +80,7 @@ MavlinkFTP::_close_session()
 	_session_info.param.close();
 	_session_info.stream_download = false;
 	_session_info.file_size = 0;
+	_last_reply_valid = false;
 }
 
 int
@@ -176,12 +175,7 @@ MavlinkFTP::_process_request(
 
 	ErrorCode errorCode = kErrNone;
 
-	if (!_ensure_buffers_exist()) {
-		PX4_ERR("Failed to allocate buffers");
-		errorCode = kErrFailErrno;
-		_our_errno = ENOMEM;
-		goto out;
-	}
+	_ensure_buffers_exist();
 
 	// basic sanity checks; must validate length before use
 	if (payload->size > kMaxDataLength) {
@@ -330,19 +324,9 @@ out:
 	}
 }
 
-bool MavlinkFTP::_ensure_buffers_exist()
+void MavlinkFTP::_ensure_buffers_exist()
 {
 	_last_work_buffer_access = hrt_absolute_time();
-
-	if (!_work_buffer1) {
-		_work_buffer1 = new char[_work_buffer1_len];
-	}
-
-	if (!_work_buffer2) {
-		_work_buffer2 = new char[_work_buffer2_len];
-	}
-
-	return _work_buffer1 && _work_buffer2;
 }
 
 /// @brief Sends the specified FTP response message out through mavlink
@@ -565,8 +549,9 @@ MavlinkFTP::ErrorCode
 MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 {
 	if (_session_open()) {
-		PX4_ERR("FTP: Open failed - out of sessions");
-		return kErrNoSessionsAvailable;
+		// One session. A lost Terminate on a slow link otherwise NAKs every retry
+		// until the 30 s idle close.
+		_close_session();
 	}
 
 	const char *path = _data_as_cstring(payload);
@@ -1073,28 +1058,9 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 
 void MavlinkFTP::send()
 {
-
-	if (_work_buffer1 || _work_buffer2) {
-		// free the work buffers if they are not used for a while
-		if (hrt_elapsed_time(&_last_work_buffer_access) > 2_s) {
-			if (_work_buffer1) {
-				delete[] _work_buffer1;
-				_work_buffer1 = nullptr;
-			}
-
-			if (_work_buffer2) {
-				delete[] _work_buffer2;
-				_work_buffer2 = nullptr;
-			}
-		}
-
-	} else if (_session_open()) {
-		// close session without activity
-		if (hrt_elapsed_time(&_last_work_buffer_access) > 30_s) {
-			_close_session();
-			_last_reply_valid = false;
-			PX4_WARN("Session was closed without activity");
-		}
+	if (_session_open() && (hrt_elapsed_time(&_last_work_buffer_access) > 30_s)) {
+		_close_session();
+		PX4_WARN("Session was closed without activity");
 	}
 
 	// Anything to stream?
