@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* The STM32F412 has 1M of FLASH beginning at address 0x0800:0000 and
+/* The STM32F412VG has 1MB of FLASH beginning at address 0x0800:0000 and
  * 256Kb of SRAM. SRAM is split up into three blocks:
  *
  * 1) 112Kb of SRAM beginning at address 0x2000:0000
@@ -45,12 +45,13 @@
  * where the code expects to begin execution by jumping to the entry point in
  * the 0x0800:0000 address range.
  *
- * The first 0x10000 of flash is reserved for the bootloader.
+ * The first 0x10000 of flash is reserved for the bootloader (32K) and
+ * flash-backed parameters (32K).
  */
 
 MEMORY
 {
-    flash (rx)   : ORIGIN = 0x08010000, LENGTH = 928K
+    flash (rx)   : ORIGIN = 0x08010000, LENGTH = 960K
     sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 192K
 }
 
