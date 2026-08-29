@@ -84,7 +84,7 @@ fi
 iis2mdc -R 4 -I -b 3 start
 
 # Onboard baro BMP390 on I2C2 (shared with the PM2 connector)
-bmp388 -X -b 2 start
+bmp388 -I -b 2 start
 
 # Start an external PWM generator
 if param greater PCA9685_EN_BUS 0

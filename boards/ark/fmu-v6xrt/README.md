@@ -47,7 +47,7 @@ Publish rate is `IMU_GYRO_RATEMAX` (800 on this board) rounded to whole FIFO sam
 - **LSM6DSV80X — the ±16 g low-g channel is the flight accel; the ±80 g high-g channel is unused.** The part carries two independent accelerometers. The driver publishes the low-g one: ±12 mg zero-g offset, 0.07 mg/°C, 60 µg/√Hz — tighter than the ICM-45686. The high-g element is a sports-impact sensor (±1.5 g typical offset, 2 mg/°C, 1000 µg/√Hz) and is left powered down; high-g coverage on this board is the IIM-20670's ±65.5 g. The 80X and 320X share `WHO_AM_I`, which is why the installed part is declared with `-T`.
 - **ICM-45686** — nothing to watch. FIR anti-alias filter and interpolator on (`GYRO/ACCEL_SRC_CTRL=2`), UI low-pass bypassed. `HEATER1_SENS_ID` targets this die (`3407882`): the heater pad warms the whole board, this only picks the primary IMU as the temperature feedback.
 
-Also on the board: IIS2MDC magnetometer on I2C3 (0x1E; its temperature reads ~25 °C regardless) and a BMP390 barometer on I2C2 (0x76, started with `-X` because I2C2 is an external bus).
+Also on the board: IIS2MDC magnetometer on I2C3 (0x1E; its temperature reads ~25 °C regardless) and a BMP390 barometer on I2C2 (0x76; I2C2 is Shared with the PM2 connector, started `-I -b 2`).
 
 ## Dependencies
 
