@@ -156,7 +156,12 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.i_filt, &_analog_params.i_filt);
 
 	if (_analog_params.v_filt > FLT_EPSILON) {
+		const float voltage_state = _voltage_filter.getState();
 		_voltage_filter = AlphaFilter<float>(static_cast<uint64_t>(_analog_params.v_filt * 1e6f));
+
+		if (_voltage_filter_seeded) {
+			_voltage_filter.reset(voltage_state);
+		}
 
 	} else {
 		// reseed from the next sample if the filter is enabled again
@@ -164,7 +169,12 @@ AnalogBattery::updateParams()
 	}
 
 	if (_analog_params.i_filt > FLT_EPSILON) {
+		const float current_state = _current_filter.getState();
 		_current_filter = AlphaFilter<float>(static_cast<uint64_t>(_analog_params.i_filt * 1e6f));
+
+		if (_current_filter_seeded) {
+			_current_filter.reset(current_state);
+		}
 
 	} else {
 		// reseed from the next sample if the filter is enabled again
