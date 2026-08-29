@@ -357,8 +357,10 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	// keep a copy of the last sent response ((n)ack), so that if it gets lost and the GCS resends the request,
 	// we can simply resend the response.
 	// we only keep small responses to reduce RAM usage and avoid large memcpy's. The larger responses are all data
-	// retrievals without side-effects, meaning it's ok to reexecute them if a response gets lost
-	if (payload->size <= sizeof(uint32_t) && payload->data[0] != kErrNoSessionsAvailable) {
+	// retrievals without side-effects, meaning it's ok to reexecute them if a response gets lost.
+	// Skip only a no-sessions NAK so a retry can Open again. data[0] on an Open ACK is the file-size LSB, not an error code.
+	if (payload->size <= sizeof(uint32_t)
+	    && !(payload->opcode == kRspNak && payload->data[0] == kErrNoSessionsAvailable)) {
 		_last_reply_valid = true;
 		memcpy(_last_reply, ftp_req, sizeof(_last_reply));
 	}
