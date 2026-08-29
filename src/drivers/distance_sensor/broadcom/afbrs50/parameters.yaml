@@ -4,58 +4,73 @@ parameters:
   definitions:
     SENS_AFBR_MODE:
       description:
-        short: AFBR Rangefinder Mode
-        long: This parameter defines the mode of the AFBR Rangefinder.
+        short: AFBR Rangefinder Measurement Mode
+        long: |-
+          Auto selects the module's default measurement mode as defined by the
+          AFBR-S50 API (LV85D/LX85D: Long Range). A mode the API rejects for
+          the detected module falls back to the module default.
       type: enum
       values:
+        -1: Auto (module default)
         0: Short Range Mode
         1: Long Range Mode
         2: High Speed Short Range Mode
         3: High Speed Long Range Mode
+        4: High Precision Short Range Mode
+      default: -1
+      reboot_required: true
+      min: -1
+      max: 4
+    SENS_AFBR_RATE:
+      description:
+        short: AFBR Rangefinder Measurement Rate
+        long: |-
+          0 selects the per-module default: on the LV85D and LX85D the rate of
+          the SENS_AFBR_PROF profile, on other modules the measurement mode's
+          default frame time. Lower rates increase the exposure budget per
+          frame and thus the radiometric range. The API limits the frame time
+          to 200 ms, so values below 5 Hz are clamped to 5 Hz.
+      type: int32
       default: 0
+      unit: Hz
+      reboot_required: true
+      min: 0
+      max: 100
+    SENS_AFBR_DFM:
+      description:
+        short: AFBR Rangefinder Dual Frequency Mode
+        long: |-
+          Dual frequency mode multiplies the module's base unambiguous range
+          (LV85D 12.5 m, LX85D 25 m) by 4 or 8, at the cost of frame time and,
+          at low signal, of wrong-window returns when the subframes disagree.
+          Auto selects DFM 4X on the LV85D and LX85D, which measured better
+          than the mode-default 8X on validity, spread and wrong-window returns
+          at every rate flown, and the measurement mode's default elsewhere.
+      type: enum
+      values:
+        -1: Auto
+        0: DFM Off
+        1: DFM 4X
+        2: DFM 8X
+      default: -1
+      reboot_required: true
+      min: -1
+      max: 2
+    SENS_AFBR_SNM:
+      description:
+        short: AFBR Rangefinder Shot Noise Monitor Mode
+        long: This parameter defines the mode of the AFBR Rangefinder's shot noise
+          monitor.
+      type: enum
+      values:
+        0: Static Indoor Mode
+        1: Static Outdoor Mode
+        2: Dynamic Mode
+        3: Dynamic Plus Mode
+      default: 3
       reboot_required: true
       min: 0
       max: 3
-    SENS_AFBR_S_RATE:
-      description:
-        short: AFBR Rangefinder Short Range Rate
-        long: This parameter defines measurement rate of the AFBR Rangefinder in short
-          range mode.
-      type: int32
-      default: 50
-      min: 1
-      max: 100
-    SENS_AFBR_L_RATE:
-      description:
-        short: AFBR Rangefinder Long Range Rate
-        long: This parameter defines measurement rate of the AFBR Rangefinder in long
-          range mode.
-      type: int32
-      default: 25
-      min: 1
-      max: 100
-    SENS_AFBR_THRESH:
-      description:
-        short: AFBR Rangefinder Short/Long Range Threshold
-        long: |-
-          This parameter defines the threshold for switching between short and long range mode.
-          The mode will switch from short to long range when the distance is greater than the threshold plus the hysteresis.
-          The mode will switch from long to short range when the distance is less than the threshold minus the hysteresis.
-      type: int32
-      default: 4
-      unit: m
-      min: 1
-      max: 50
-    SENS_AFBR_HYSTER:
-      description:
-        short: AFBR Rangefinder Short/Long Range Threshold Hysteresis
-        long: This parameter defines the hysteresis for switching between short and
-          long range mode.
-      type: int32
-      default: 1
-      unit: m
-      min: 1
-      max: 10
     SENS_AFBR_ROT:
       description:
         short: AFBR Rangefinder Orientation
@@ -76,3 +91,56 @@ parameters:
       reboot_required: true
       min: 0
       max: 25
+    SENS_AFBR_PROF:
+      description:
+        short: AFBR Rangefinder Performance Profile
+        long: |-
+          Trades detection range against update rate on the LV85D and LX85D;
+          other modules ignore it. Range: the highest rate that does not cost
+          reliable range (LV85D 20 Hz, LX85D 15 Hz). Fast: the module's native
+          rate (LV85D 50 Hz, LX85D 25 Hz) for optical flow and terrain
+          following near the ground; costs a few metres of reliable range in
+          bright light, none in low ambient light. Both profiles use DFM 4X.
+          An explicit SENS_AFBR_RATE or SENS_AFBR_DFM overrides the profile.
+      type: enum
+      values:
+        0: Range
+        1: Fast
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+    SENS_AFBR_QMIN:
+      description:
+        short: AFBR Rangefinder Minimum Signal Quality
+        long: |-
+          Measurements with a signal quality below this value are published as
+          out of range. Raising it rejects unreliable readings but also the
+          weak long-range returns, since those are the low quality ones.
+          0 publishes every valid measurement.
+      type: int32
+      default: 0
+      min: 0
+      max: 100
+    SENS_AFBR_OFS_LO:
+      description:
+        short: AFBR Rangefinder Range Offset (low power)
+        long: |-
+          Global range offset for the low laser power stage, applied on top of
+          the factory calibration at startup. Written by 'afbrs50 cal'.
+          0 leaves the factory offset unchanged.
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 5
+    SENS_AFBR_OFS_HI:
+      description:
+        short: AFBR Rangefinder Range Offset (high power)
+        long: |-
+          Global range offset for the high laser power stage, applied on top of
+          the factory calibration at startup. Written by 'afbrs50 cal'.
+          0 leaves the factory offset unchanged.
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 5
