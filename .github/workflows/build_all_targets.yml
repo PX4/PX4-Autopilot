@@ -27,6 +27,8 @@
 # GitHub Releases:
 #   - All version tags create a draft GitHub Release
 #   - Pre-releases (alpha/beta/rc suffixes) are automatically marked as such
+#   - CAN node firmware is attached as <target>.uavcan.bin plus cannode.zip
+#     (GitHub assets are flat; the zip preserves per-target folders)
 #
 # IMPORTANT: Version tags do NOT upload to stable/ or beta/. Only the
 # corresponding branch pushes control those directories. This prevents
@@ -244,11 +246,19 @@ jobs:
     outputs:
       uploadlocation: ${{ steps.upload-location.outputs.uploadlocation }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
       - name: Download Artifacts
         uses: actions/download-artifact@v8
         with:
           path: artifacts/
           merge-multiple: true
+
+      # Zip after merge-multiple so every group's cannode images land in one archive.
+      - name: Zip CAN node firmware
+        run: python3 Tools/ci/zip_cannode_artifacts.py
 
       - name: Choose Upload Location
         id: upload-location
@@ -304,6 +314,8 @@ jobs:
           preserve_order: true
           files: |
             artifacts/*.px4
+            artifacts/*.uavcan.bin
+            artifacts/cannode.zip
             artifacts/*.deb
             artifacts/**/*.sbom.spdx.json
           name: ${{ steps.upload-location.outputs.uploadlocation }}
