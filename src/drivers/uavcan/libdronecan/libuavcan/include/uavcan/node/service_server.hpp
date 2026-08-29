@@ -125,9 +125,10 @@ private:
         {
             publisher_.setPriority(request.getPriority());      // Responding at the same priority.
 
-            publisher_.setIfaceMask(respond_on_request_iface_ ?
-                                    uint8_t(1U << request.getIfaceIndex()) :
-                                    uint8_t(TransferSender::AllIfacesMask));
+            if (respond_on_request_iface_)
+            {
+                publisher_.setIfaceMask(uint8_t(1U << request.getIfaceIndex()));
+            }
 
             const int res = publisher_.publish(response, TransferTypeServiceResponse, request.getSrcNodeID(),
                                                request.getTransferID());
