@@ -54,7 +54,7 @@ public:
 	const char *name;
 	uint16_t id;
 
-	StreamListItem(MavlinkStream * (*inst)(Mavlink *mavlink), const char *_name, uint16_t _id) :
+	constexpr StreamListItem(MavlinkStream * (*inst)(Mavlink *mavlink), const char *_name, uint16_t _id) :
 		new_instance(inst),
 		name(_name),
 		id(_id) {}
@@ -64,7 +64,7 @@ public:
 };
 
 template <class T>
-static StreamListItem create_stream_list_item()
+static constexpr StreamListItem create_stream_list_item()
 {
 	return StreamListItem(&T::new_instance, T::get_name_static(), T::get_id_static());
 }
