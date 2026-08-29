@@ -92,11 +92,7 @@
  *
  */
 #define OPT_WAIT_FOR_GETNODEINFO                    0
-/* The ARK CANnode uses PH1 for GPIO_BOOT_CONFIG but it is not
- * compatible with px4_arch_gpioread as Port H = 7 which is greater
- * than STM32_NPORTS
- * #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO        0
- */
+/* PH1 is OSC_OUT for the HSE clock, not a boot jumper. */
 #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 1
 
 #define OPT_ENABLE_WD           1
