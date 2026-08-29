@@ -11,7 +11,9 @@ The USA-built ARKV6X-RT flight controller is an NXP i.MX RT1176 variant of the [
 
 With triple synced IMUs, data averaging, voting, and filtering is possible.
 
-<!-- TODO: board photo. Add the image to docs/assets/flight_controller/arkv6xrt/ and reference it here. -->
+![ARKV6X-RT Top](../../assets/flight_controller/arkv6xrt/ark_v6xrt_top.jpg)
+
+![ARKV6X-RT Bottom](../../assets/flight_controller/arkv6xrt/ark_v6xrt_bottom.jpg)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -25,9 +27,7 @@ Which ports and outputs are physically broken out depends on the carrier.
 
 ## Where to Buy {#store}
 
-Order from [ARK Electronics](https://arkelectron.com/) (US).
-
-<!-- TODO: point the link above at the ARKV6X-RT product page once the board is listed. -->
+Order from [ARK Electronics](https://arkelectron.com/product/arkv6xrt) (US).
 
 ## Specifications {#specifications}
 
@@ -39,10 +39,10 @@ Order from [ARK Electronics](https://arkelectron.com/) (US).
   - **IMU:** [InvenSense ICM-45686](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-45686/) (SPI1), [InvenSense IIM-20670](https://invensense.tdk.com/products/motion-tracking/6-axis/iim-20670/) (SPI2), [ST LSM6DSV80X](https://www.st.com/en/mems-and-sensors/lsm6dsv80x.html) (SPI3)
   - **Barometer:** [Bosch BMP390](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/) (I2C2)
   - **Magnetometer:** [ST IIS2MDC](https://www.st.com/en/mems-and-sensors/iis2mdc.html) (I2C3)
-  - **Heater:** closed loop on the LSM6DSV80X die temperature
+  - **Heater:** closed loop on the ICM-45686 die temperature
 - **Interfaces**
   - **PWM outputs:** 12 FMU outputs, plus 8 more from PX4IO on carriers that fit one
-  - **Serial ports:** 8 (`GPS1`, `GPS2`, `TELEM1`, `TELEM2`, `TELEM3`, `EXT2`, PX4IO/`RC`, Debug Console)
+  - **Serial ports:** 8 (`GPS1`, `GPS2`, `TELEM1`, `TELEM2`, `TELEM3`, `TELEM4`, PX4IO/`RC`, Debug Console)
   - **I2C buses:** 4 (I2C3 internal, the rest external)
   - **SPI buses:** 4, of which SPI6 is external with 2 chip selects and 2 data-ready lines
   - **CAN buses:** 2 enabled by default. PAB pins out a third; no ARK carrier breaks it out.
@@ -52,12 +52,12 @@ Order from [ARK Electronics](https://arkelectron.com/) (US).
   - **Parameter storage:** FRAM (FM25V02A) on FlexSPI2
   - **SD card:** MicroSD slot
 - **Electrical data**
-  - **Input voltage:** TODO: supply voltage range at the PAB connector (V)
-  - **Current draw:** TODO: typical current draw (mA), heater on and off
+  - **Input voltage:** 5 V
+  - **Current draw:** 500 mA (300 mA main system, 200 mA heater)
   - **Power monitoring:** 2 digital power bricks, INA226 by default
 - **Mechanical data**
-  - **Dimensions:** TODO: dimensions (mm)
-  - **Weight:** TODO: weight (g)
+  - **Dimensions:** 3.6 x 2.9 x 0.5 cm
+  - **Weight:** 5.0 g
   - **Form factor:** [Pixhawk Autopilot Bus (PAB)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
 
 ## IMUs {#imus}
@@ -68,14 +68,15 @@ Each IMU sits on its own SPI bus with an independent power rail and data-ready l
 | ---------- | ---- | ------------------- | ------------ |
 | ICM-45686  | SPI1 | ±32 g / ±4000 dps   | 800 Hz       |
 | IIM-20670  | SPI2 | ±65.5 g / ±1966 dps | 1000 Hz      |
-| LSM6DSV80X | SPI3 | ±80 g / ±4000 dps   | 768 Hz       |
+| LSM6DSV80X | SPI3 | ±16 g / ±4000 dps   | 768 Hz       |
 
-Start order sets the sensor instance and the voter prefers the lowest instance at equal priority, so the ICM-45686 is the primary.
+The ICM-45686 is the primary.
 The IIM-20670 is started last deliberately: its on-chip gyro low-pass cannot be set above 60 Hz, which is too much group delay for the rate loop, so it serves as a navigation and fallback IMU.
 
-The LSM6DSV80X publishes its ±80 g high-g accelerometer rather than the ±16 g channel, so the range never changes in flight.
-That channel's zero-g offset drifts roughly 2 mg/°C — about 30× the other two IMUs — so [HEATER1_SENS_ID](../advanced_config/parameter_reference.md#HEATER1_SENS_ID) defaults to this die.
-Run the [accelerometer calibration](../config/accelerometer.md) only after `heater status` reports the setpoint has been reached, and expect an `Accel 1 inconsistent` warning on a cold board until the heater catches up.
+The LSM6DSV80X publishes its ±16 g accelerometer; the part's ±80 g high-g element is unused.
+
+[HEATER1_SENS_ID](../advanced_config/parameter_reference.md#HEATER1_SENS_ID) defaults to the ICM-45686.
+Run the [accelerometer calibration](../config/accelerometer.md) only after `heater status` reports the setpoint has been reached.
 
 ## Pinout
 
@@ -92,7 +93,7 @@ For the pinout of the ARKV6X-RT see the [DS-010 Pixhawk Autopilot Bus Standard](
 | LPUART6  | /dev/ttyS4 | PX4IO / `RC`    |      No      |
 | LPUART8  | /dev/ttyS5 | `TELEM2`        |     Yes      |
 | LPUART10 | /dev/ttyS6 | `TELEM3`        |     Yes      |
-| LPUART11 | /dev/ttyS7 | `EXT2`          |      No      |
+| LPUART11 | /dev/ttyS7 | `TELEM4`        |      No      |
 
 ::: info
 The mapping above applies to the running PX4 firmware.
