@@ -51,9 +51,9 @@
  *           value[4]
  *           default[4]                  only when flag bit 0 is set, i.e. value != default
  *
- * Zero bytes before an entry are padding so a value never straddles a read block of
- * block_size bytes. The path accepts a query `?start=N&count=N&withdefaults=0|1`;
- * count 0 means all parameters from start.
+ * Zero bytes before an entry are padding so the trailing value (and default, when
+ * present) never straddles a read block of block_size bytes. The path accepts a
+ * query `?start=N&count=N&withdefaults=0|1`; count 0 means all parameters from start.
  *
  * Entries are generated on demand from a cursor that follows sequential reads, so a
  * burst download costs one pass over the parameter table; open() makes one more pass
@@ -63,7 +63,7 @@ class ParamPckFile
 {
 public:
 	static constexpr size_t kHeaderLen = 6;
-	static constexpr size_t kMaxEntryLen = 3 + 2 + 16 + 4 + 4; ///< pad + header + name + value + default
+	static constexpr size_t kMaxEntryLen = 7 + 2 + 16 + 4 + 4; ///< pad + header + name + value + default
 
 	/// True if path names the packed parameter file, with or without a query
 	static bool is_param_path(const char *path);
