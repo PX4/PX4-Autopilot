@@ -93,7 +93,23 @@ private:
 	struct cmsghdr     *_recv_cmsg {};
 	uint8_t            _recv_control[sizeof(struct cmsghdr) + sizeof(struct timeval)] {};
 
-	SystemClock clock;
+	/* Frames sent with CanIOFlagLoopback are handed back from receive() with
+	 * the time they entered a hardware mailbox. NuttX has no TX echo, so this
+	 * stands in for the true transmission timestamp; the bias is the
+	 * mailbox wait, bounded by one frame time when the frame wins arbitration.
+	 */
+	struct LoopbackItem {
+		uavcan::CanFrame      frame;
+		uavcan::MonotonicTime ts_mono;
+		uavcan::UtcTime       ts_utc;
+	};
+
+	static constexpr unsigned LoopbackDepth = 4;
+	LoopbackItem _loopback[LoopbackDepth];
+	unsigned     _loopback_head{0};
+	unsigned     _loopback_count{0};
+
+	void pushLoopback(const uavcan::CanFrame &frame);
 
 public:
 	uavcan::uint32_t socketInit(uint32_t index);
@@ -115,6 +131,8 @@ public:
 	uavcan::uint16_t getNumFilters() const override;
 
 	int getFD();
+
+	bool hasLoopbackPending() const { return _loopback_count > 0; }
 
 
 	/**
@@ -155,7 +173,6 @@ class CanDriver
 {
 	BusEvent update_event_;
 	CanIface if_[UAVCAN_SOCKETCAN_NUM_IFACES];
-	SystemClock clock;
 	struct pollfd pfds[UAVCAN_SOCKETCAN_NUM_IFACES];
 
 public:

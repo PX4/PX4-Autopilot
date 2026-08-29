@@ -200,6 +200,10 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	res = sendmsg(_fd, &_send_msg, MSG_DONTWAIT);
 
 	if (res > 0) {
+		if (flags & uavcan::CanIOFlagLoopback) {
+			pushLoopback(frame);
+		}
+
 		return 1;
 	}
 
@@ -217,9 +221,39 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	return -1;
 }
 
+void CanIface::pushLoopback(const uavcan::CanFrame &frame)
+{
+	const SystemClock &clock = SystemClock::instance();
+	LoopbackItem &item = _loopback[(_loopback_head + _loopback_count) % LoopbackDepth];
+	item.frame = frame;
+	item.ts_mono = clock.getMonotonic();
+	item.ts_utc = clock.utcFromMonotonic(item.ts_mono);
+
+	if (_loopback_count < LoopbackDepth) {
+		_loopback_count++;
+
+	} else {
+		// Ring full: the oldest echo is overwritten and lost
+		_loopback_head = (_loopback_head + 1) % LoopbackDepth;
+	}
+}
+
 uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::MonotonicTime &out_ts_monotonic,
 				  uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags)
 {
+	if (_loopback_count > 0) {
+		const LoopbackItem &item = _loopback[_loopback_head];
+		out_frame = item.frame;
+		out_ts_monotonic = item.ts_mono;
+		out_ts_utc = item.ts_utc;
+		out_flags = uavcan::CanIOFlagLoopback;
+		_loopback_head = (_loopback_head + 1) % LoopbackDepth;
+		_loopback_count--;
+		return 1;
+	}
+
+	out_flags = 0;
+
 	int32_t result = recvmsg(_fd, &_recv_msg, MSG_DONTWAIT);
 
 	if (result < 0) {
@@ -263,7 +297,12 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 	if (_recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP) {
 		struct timeval *tv = (struct timeval *)CMSG_DATA(_recv_cmsg);
 		out_ts_monotonic = uavcan::MonotonicTime::fromUSec(tv->tv_sec * 1000000ULL + tv->tv_usec);
+
+	} else {
+		out_ts_monotonic = SystemClock::instance().getMonotonic();
 	}
+
+	out_ts_utc = SystemClock::instance().utcFromMonotonic(out_ts_monotonic);
 
 	return result;
 }
@@ -473,7 +512,7 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 				  const uavcan::CanFrame * (&)[uavcan::MaxCanIfaces],
 				  uavcan::MonotonicTime blocking_deadline)
 {
-	std::int64_t timeout_usec = (blocking_deadline - clock.getMonotonic()).toUSec();
+	std::int64_t timeout_usec = (blocking_deadline - SystemClock::instance().getMonotonic()).toUSec();
 
 	if (timeout_usec < 0) {
 		timeout_usec = 0;
@@ -481,6 +520,13 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 
 	inout_masks.read = 0;
 	inout_masks.write = 0;
+
+	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+		if (if_[i].hasLoopbackPending()) {
+			inout_masks.read |= 1U << i;
+			timeout_usec = 0;
+		}
+	}
 
 	if (poll(pfds, UAVCAN_SOCKETCAN_NUM_IFACES, timeout_usec / 1000) > 0) {
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
