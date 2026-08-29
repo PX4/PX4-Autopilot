@@ -384,8 +384,9 @@ TEST_F(MavlinkFtpParam, FrozenMembershipLiveValues)
 	ASSERT_FALSE(d0.entries.empty());
 	const uint32_t size0 = file.size();
 
-	const auto find = [](const Decoded &d, const char *name) -> const Entry * {
-		for (const Entry &e : d.entries) {
+	const auto find = [](const Decoded & d, const char *name) -> const Entry * {
+		for (const Entry &e : d.entries)
+		{
 			if (e.name == name) {
 				return &e;
 			}
