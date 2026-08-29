@@ -323,6 +323,85 @@ int CanIface::pollErrors() const
 #endif
 }
 
+int CanIface::setBitRate(uint32_t bitrate)
+{
+	if (_fd < 0 || bitrate == 0) {
+		return -1;
+	}
+
+	struct ifreq ifr {};
+
+	snprintf(ifr.ifr_name, IFNAMSIZ, "can%" PRIu32, _index);
+
+	const uint16_t kbps = bitrate / 1000;
+
+	if (ioctl(_fd, SIOCGCANBITRATE, &ifr) < 0) {
+		PX4_WARN("can%" PRIu32 ": cannot read bit rate (%d), leaving it as configured", _index, errno);
+		return 0;
+	}
+
+	if (ifr.ifr_ifru.ifru_can_data.arbi_bitrate == kbps) {
+		return 0;
+	}
+
+#ifndef SIOCGCANERRORS
+	/* Before the PX4/NuttX change that added SIOCGCANERRORS, SIOCSCANBITRATE
+	 * restarted a running controller from inside the driver, which on FlexCAN
+	 * with ECC RAM initialisation is a bus fault. Keep the configured rate.
+	 */
+	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %u kbit/s needs a newer NuttX, staying at %u kbit/s",
+		 _index, kbps, ifr.ifr_ifru.ifru_can_data.arbi_bitrate);
+	return 0;
+#else
+	/* Only the nominal rate changes; the data phase keeps the driver's
+	 * settings so an FD-capable controller is never told data_bitrate 0.
+	 * The driver applies the timing at the next ifup, so the interface is
+	 * taken down around the request and brought back up whatever happens.
+	 */
+	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = kbps;
+
+	struct ifreq flags {};
+
+	snprintf(flags.ifr_name, IFNAMSIZ, "can%" PRIu32, _index);
+
+	if (ioctl(_fd, SIOCGIFFLAGS, &flags) < 0) {
+		PX4_ERR("can%" PRIu32 ": cannot read interface flags (%d)", _index, errno);
+		return -1;
+	}
+
+	const bool was_up = flags.ifr_flags & IFF_UP;
+
+	/* NuttX takes IFF_DOWN / IFF_UP as requests, not as a state mask */
+	if (was_up) {
+		flags.ifr_flags = IFF_DOWN;
+
+		if (ioctl(_fd, SIOCSIFFLAGS, &flags) < 0) {
+			PX4_ERR("can%" PRIu32 ": cannot take the interface down (%d)", _index, errno);
+			return -1;
+		}
+	}
+
+	const int res = ioctl(_fd, SIOCSCANBITRATE, &ifr);
+	const int set_errno = errno;
+
+	if (was_up) {
+		flags.ifr_flags = IFF_UP;
+
+		if (ioctl(_fd, SIOCSIFFLAGS, &flags) < 0) {
+			PX4_ERR("can%" PRIu32 ": cannot bring the interface back up (%d)", _index, errno);
+			return -1;
+		}
+	}
+
+	if (res < 0) {
+		PX4_ERR("can%" PRIu32 ": %u kbit/s rejected (%d)", _index, kbps, set_errno);
+		return -1;
+	}
+
+	return 0;
+#endif
+}
+
 const char *CanIface::busStateName(uint8_t state)
 {
 	switch (state) {
@@ -349,6 +428,10 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
 		pfds[i].fd     = if_[i].getFD();
 		pfds[i].events = POLLIN | POLLOUT;
+
+		if (if_[i].getFD() >= 0 && if_[i].setBitRate(bitrate) < 0) {
+			return -1;
+		}
 	}
 
 	/*

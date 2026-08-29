@@ -136,6 +136,13 @@ public:
 	}
 
 	static const char *busStateName(uint8_t state);
+
+	/**
+	 * Program the controller's nominal bit rate if it differs from what is
+	 * running. Returns 0 on success or when the ioctl is unavailable,
+	 * negative if the controller rejected the rate.
+	 */
+	int setBitRate(uint32_t bitrate);
 };
 
 /**
