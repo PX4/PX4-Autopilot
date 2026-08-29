@@ -46,6 +46,7 @@
 
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <inttypes.h>
 #include <string.h>
 #include <errno.h>
 
@@ -80,6 +81,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 	bool can_fd = 0;
 
 	_can_fd = can_fd;
+	_index = index;
 
 	/* open socket */
 	if ((_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
@@ -276,8 +278,8 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 
 uavcan::uint64_t CanIface::getErrorCount() const
 {
-	//FIXME query SocketCAN network stack
-	return 0;
+	pollErrors();
+	return _bus_errors_valid ? _bus_errors.errors : 0;
 }
 
 uavcan::uint16_t CanIface::getNumFilters() const
@@ -289,6 +291,51 @@ uavcan::uint16_t CanIface::getNumFilters() const
 int CanIface::getFD()
 {
 	return _fd;
+}
+
+int CanIface::pollErrors() const
+{
+#ifdef SIOCGCANERRORS
+
+	if (_fd < 0) {
+		return -1;
+	}
+
+	struct ifreq ifr {};
+
+	snprintf(ifr.ifr_name, IFNAMSIZ, "can%" PRIu32, _index);
+
+	if (ioctl(_fd, SIOCGCANERRORS, &ifr) < 0) {
+		return -1;
+	}
+
+	const struct can_ioctl_errors_s &e = ifr.ifr_ifru.ifru_can_errors;
+
+	_bus_errors.state = e.state;
+	_bus_errors.tec = e.txerr;
+	_bus_errors.rec = e.rxerr;
+	_bus_errors.errors = e.errors;
+	_bus_errors.rx_overruns = e.rx_overruns;
+	_bus_errors_valid = true;
+	return 0;
+#else
+	return -1;
+#endif
+}
+
+const char *CanIface::busStateName(uint8_t state)
+{
+	switch (state) {
+	case BusErrors::Active:  return "error-active";
+
+	case BusErrors::Warning: return "error-warning";
+
+	case BusErrors::Passive: return "error-passive";
+
+	case BusErrors::BusOff:  return "bus-off";
+	}
+
+	return "unknown";
 }
 
 uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
@@ -313,13 +360,29 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 
 uavcan::uint32_t CanDriver::getRxQueueOverflowCount() const
 {
-	//FIXME query SocketCAN network stack
-	return 0;
+	uint32_t total = 0;
+
+	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+		CanIface::BusErrors e;
+
+		if (if_[i].lastErrors(e)) {
+			total += e.rx_overruns;
+		}
+	}
+
+	return total;
 }
 
 bool CanDriver::isInBusOffState() const
 {
-	//FIXME no interface available yet, maybe make a NuttX ioctl
+	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+		CanIface::BusErrors e;
+
+		if (if_[i].lastErrors(e) && e.state == CanIface::BusErrors::BusOff) {
+			return true;
+		}
+	}
+
 	return false;
 }
 
