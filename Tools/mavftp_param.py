@@ -45,8 +45,10 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import os
 import struct
 import sys
+import tempfile
 import time
 
 try:
@@ -72,6 +74,19 @@ def _safe_add_message(messages, mtype, msg):
 
 
 mavutil.add_message = _safe_add_message
+
+# PX4 has one FTP session and always ACKs session 0. pymavlink increments the
+# session on an Open retry, then discards the ACK as the wrong session.
+_orig_ftp_send = mavftp.MAVFTP._MAVFTP__send
+
+
+def _ftp_send_session0(self, op):
+    self.session = 0
+    op.session = 0
+    return _orig_ftp_send(self, op)
+
+
+mavftp.MAVFTP._MAVFTP__send = _ftp_send_session0
 
 # packed type 3/4 vs MAV_PARAM_TYPE_INT32/REAL32
 _MAV_TO_PCK = {6: 3, 9: 4}
@@ -123,21 +138,100 @@ def collect_param_value(m, timeout: float) -> dict[str, tuple[int, int]]:
     return got, expected
 
 
-def ftp_get(m, remote: str, timeout: float):
-    ftp = mavftp.MAVFTP(m, target_system=m.target_system, target_component=m.target_component)
-    ftp.ftp_settings.burst_read_size = 239
-    ftp.ftp_settings.idle_detection_time = 1.2
+def _radio_link(port: str, baud: int) -> bool:
+    p = port.lower()
+    if p.startswith(("udp", "tcp", "udpin", "tcpin")):
+        return False
+    if "ttyacm" in p or "fmu" in p or "cdc" in p:
+        return False
+    return baud <= 115200
+
+
+def _ftp_settings(port: str, baud: int):
+    # MAVFTP.__init__ ResetSessions uses process_ftp_reply timeout=5, which asserts
+    # timeout > idle_detection_time. idle must also be > read_retry_time.
+    # On SiK, a 0.5s burst retry restarts the stream while radio frames are still
+    # in flight and blows a hole the gap-filler then has to walk.
+    radio = _radio_link(port, baud)
+    if radio:
+        idle, read_retry, retry = 2.5, 2.0, 2.0
+    else:
+        idle, read_retry, retry = 1.2, 1.0, 0.5
+    return mavftp.MAVFTPSettings([
+        ("debug", int, 0),
+        ("pkt_loss_tx", int, 0),
+        ("pkt_loss_rx", int, 0),
+        ("max_backlog", int, 5),
+        ("burst_read_size", int, 239),
+        ("write_size", int, 80),
+        ("write_qsize", int, 5),
+        ("idle_detection_time", float, idle),
+        ("read_retry_time", float, read_retry),
+        ("retry_time", float, retry),
+    ]), radio
+
+
+def _complete_pck(data) -> bool:
+    if not data or len(data) < 6:
+        return False
+    magic, num, _total = struct.unpack("<HHH", data[:6])
+    if magic not in (0x671B, 0x671C):
+        return False
+    packed = decode_pck(data)
+    return packed is not None and len(packed) == num
+
+
+def _drain_ftp(m, quiet: float, cap: float) -> int:
+    """Discard in-flight FILE_TRANSFER_PROTOCOL until the link is quiet."""
+    n = 0
+    deadline = time.time() + cap
+    quiet_since = time.time()
+    while time.time() < deadline:
+        msg = m.recv_match(type="FILE_TRANSFER_PROTOCOL", blocking=True,
+                           timeout=min(0.2, quiet))
+        if msg is None:
+            if time.time() - quiet_since >= quiet:
+                break
+            continue
+        n += 1
+        quiet_since = time.time()
+    return n
+
+
+def ftp_get(m, remote: str, timeout: float, settings, drain: bool):
+    ftp = mavftp.MAVFTP(m, target_system=m.target_system, target_component=m.target_component,
+                        settings=settings)
+    if drain:
+        _drain_ftp(m, quiet=0.4, cap=4.0)
     holder = {"data": None}
 
     def cb(fh):
         if fh is not None:
+            pos = fh.tell()
+            fh.seek(0)
             holder["data"] = fh.read()
+            fh.seek(pos)
 
-    ret = ftp.cmd_get([remote], callback=cb)
-    if ret.error_code != mavftp.FtpError.Success:
-        return None, ret
-    ret = ftp.process_ftp_reply("OpenFileRO", timeout=timeout)
-    return holder["data"], ret
+    # pymavlink writes self.filename after the callback even when using BytesIO
+    fd, local = tempfile.mkstemp(prefix="mavftp-param-", suffix=".pck")
+    os.close(fd)
+    try:
+        ret = ftp.cmd_get([remote, local], callback=cb)
+        if ret.error_code != mavftp.FtpError.Success:
+            return None, ret
+        ret = ftp.process_ftp_reply("OpenFileRO", timeout=timeout)
+        data = holder["data"]
+        if not _complete_pck(data) and os.path.isfile(local):
+            with open(local, "rb") as f:
+                on_disk = f.read()
+            if _complete_pck(on_disk):
+                data = on_disk
+        return data, ret
+    finally:
+        try:
+            os.unlink(local)
+        except OSError:
+            pass
 
 
 def decode_pck(data: bytes):
@@ -160,6 +254,7 @@ def main() -> int:
     p.add_argument("port", help="MAVLink connection (serial device, udp:HOST:PORT, tcp:HOST:PORT)")
     p.add_argument("--baudrate", "-b", type=int, default=57600, help="serial baud rate (default: %(default)s)")
     p.add_argument("--timeout", type=float, default=60, help="seconds for FTP and PARAM_VALUE (default: %(default)s)")
+    p.add_argument("--attempts", type=int, default=3, help="FTP Open/burst attempts (default: %(default)s)")
     p.add_argument("--withdefaults", action="store_true", default=True,
                    help="request ?withdefaults=1 (default)")
     p.add_argument("--no-withdefaults", action="store_false", dest="withdefaults")
@@ -185,14 +280,35 @@ def main() -> int:
               (f" (of {expected})" if expected else "") +
               f" in {time.time() - t0:.2f}s")
 
+    settings, radio = _ftp_settings(args.port, args.baudrate)
+    if radio:
+        print(f"radio timings (baud={args.baudrate}): idle={settings.idle_detection_time}s "
+              f"open-retry={settings.read_retry_time}s burst-retry={settings.retry_time}s")
+        n = _drain_ftp(m, quiet=0.4, cap=4.0)
+        if n:
+            print(f"drained {n} leftover FTP frames")
+
     t0 = time.time()
-    data, ret = ftp_get(m, remote, args.timeout)
+    data, ret = None, None
+    for attempt in range(1, max(1, args.attempts) + 1):
+        data, ret = ftp_get(m, remote, args.timeout, settings, drain=radio)
+        if _complete_pck(data):
+            break
+        nbytes = 0 if data is None else len(data)
+        err = "?" if ret is None else f"error={ret.error_code} errno={ret.system_error}"
+        print(f"FTP attempt {attempt}/{args.attempts} failed: {err} bytes={nbytes}")
+        if attempt < args.attempts:
+            if radio:
+                _drain_ftp(m, quiet=0.4, cap=4.0)
+            else:
+                time.sleep(0.5)
     t_ftp = time.time() - t0
     nbytes = 0 if data is None else len(data)
-    print(f"FTP {remote}: error={ret.error_code} errno={ret.system_error} {t_ftp:.2f}s bytes={nbytes}")
+    err = "?" if ret is None else f"error={ret.error_code} errno={ret.system_error}"
+    print(f"FTP {remote}: {err} {t_ftp:.2f}s bytes={nbytes}")
     m.close()
 
-    if data is None or ret.error_code != mavftp.FtpError.Success:
+    if not _complete_pck(data):
         return 1
 
     if args.save:
