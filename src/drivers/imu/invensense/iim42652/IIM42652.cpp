@@ -687,10 +687,17 @@ void IIM42652::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 		// The 16 bit FIFO registers hold data[19:4] of the 20 bit hires sample, which always spans
 		// the full range (scale set in Configure()). The 20 bit extension nibble is unused so the
 		// published scale stays constant instead of toggling with batch content.
-		gyro.x[gyro.samples] = combine(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0);
-		gyro.y[gyro.samples] = combine(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0);
-		gyro.z[gyro.samples] = combine(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0);
-		gyro.samples++;
+		const int16_t gyro_x = combine(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0);
+		const int16_t gyro_y = combine(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0);
+		const int16_t gyro_z = combine(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0);
+
+		// sample invalid if -32768 (16 bit truncation of the hires invalid marker -524288)
+		if (gyro_x != INT16_MIN && gyro_y != INT16_MIN && gyro_z != INT16_MIN) {
+			gyro.x[gyro.samples] = gyro_x;
+			gyro.y[gyro.samples] = gyro_y;
+			gyro.z[gyro.samples] = gyro_z;
+			gyro.samples++;
+		}
 	}
 
 	// correct frame for publication
