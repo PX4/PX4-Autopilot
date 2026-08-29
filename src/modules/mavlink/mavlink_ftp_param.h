@@ -55,16 +55,17 @@
  * present) never straddles a read block of block_size bytes. The path accepts a
  * query `?start=N&count=N&withdefaults=0|1`; count 0 means all parameters from start.
  *
- * open() walks the used set once and keeps the packed bytes. Reads are memcpy of that
- * snapshot, so a param_set during the download cannot shift later entries or splice
- * two generations of a value across a retried block. Typical size is ~20 KB, held
- * until the FTP session closes.
+ * open() freezes which used parameters appear and whether each includes a default
+ * (~1 KB of bitsets). Values are read live. Padding keeps each value/default inside
+ * one FTP block, so a param_set during the download cannot shift later entries or
+ * splice two generations of a number across a retried block.
  */
 class ParamPckFile
 {
 public:
 	static constexpr size_t kHeaderLen = 6;
 	static constexpr size_t kMaxEntryLen = 7 + 2 + 16 + 4 + 4; ///< pad + header + name + value + default
+	static constexpr unsigned kMaxParams = 4096;
 
 	ParamPckFile() = default;
 	~ParamPckFile() { close(); }
@@ -74,7 +75,7 @@ public:
 	/// True if path names the packed parameter file, with or without a query
 	static bool is_param_path(const char *path);
 
-	/// Parse the query and build the snapshot. False on an invalid query, empty range, or OOM.
+	/// Parse the query and freeze membership. False on an invalid query or empty range.
 	bool open(const char *path, uint16_t block_size);
 	void close();
 	bool is_open() const { return _open; }
@@ -83,7 +84,7 @@ public:
 
 	/**
 	 * Copy up to count bytes starting at offset.
-	 * @return bytes copied, 0 at EOF
+	 * @return bytes copied, 0 at EOF, -1 on a parameter that cannot be packed
 	 */
 	int read(uint32_t offset, uint8_t *buf, uint16_t count);
 
@@ -92,33 +93,32 @@ private:
 	static constexpr uint16_t kMagicWithDefaults = 0x671C;
 	static constexpr uint8_t kTypeInt32 = 3;
 	static constexpr uint8_t kTypeFloat = 4;
+	static constexpr unsigned kBitBytes = kMaxParams / 8;
 
 	/// Pack one entry starting at file offset ofs. Returns its length including padding, 0 on error.
 	size_t pack(uint8_t *buf, param_t param, uint32_t ofs) const;
 
-	/// Move the cursor to the next parameter in range without consuming it. False at the end.
+	/// Move the cursor to the next frozen parameter without consuming it. False at the end.
 	bool next_param(param_t &param);
 
 	/// Consume the parameter at the cursor, whose entry ends at ofs
 	void advance(param_t param, uint32_t ofs);
 
 	void rewind();
-	bool grow(uint32_t cap);
-	void write_header();
+	bool bit(const uint8_t *bits, param_t param) const;
+	void set_bit(uint8_t *bits, param_t param);
+	bool default_differs(param_t param) const;
 
 	bool _open{false};
 	bool _with_defaults{false};
 	uint16_t _block_size{0};
-	uint16_t _start{0};
 	uint16_t _num{0};
 	uint16_t _total{0};
 	uint32_t _size{0};
-	uint32_t _cap{0};
-	uint8_t *_data{nullptr};
+	uint8_t _included[kBitBytes] {};
+	uint8_t _has_default[kBitBytes] {};
 
-	// cursor used only while building the snapshot
 	uint32_t _cursor_ofs{kHeaderLen};
 	unsigned _cursor_index{0};    ///< param_for_index() index
-	uint16_t _cursor_used{0};     ///< used-parameter index of _cursor_index
 	char _prev_name[17] {};
 };
