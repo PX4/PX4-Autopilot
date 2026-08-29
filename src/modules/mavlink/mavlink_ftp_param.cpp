@@ -188,12 +188,13 @@ size_t ParamPckFile::pack(uint8_t *buf, param_t param, uint32_t ofs) const
 	const uint8_t type = is_int32 ? kTypeInt32 : kTypeFloat;
 	const size_t packed_len = 2 + name_len + sizeof(value.b) + (add_default ? sizeof(default_value) : 0);
 
-	// pad so the trailing value does not straddle a block
+	// pad so the trailing value, and default when present, do not straddle a block
 	size_t pad = 0;
+	const size_t data_len = sizeof(value.b) + (add_default ? sizeof(default_value) : 0);
 	const uint32_t end_mod = (ofs + packed_len) % _block_size;
 
-	if ((end_mod > 0) && (end_mod < sizeof(value.b))) {
-		pad = sizeof(value.b) - end_mod;
+	if ((end_mod > 0) && (end_mod < data_len)) {
+		pad = data_len - end_mod;
 	}
 
 	memset(buf, 0, pad);

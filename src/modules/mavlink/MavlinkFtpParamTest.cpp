@@ -376,15 +376,19 @@ TEST_F(MavlinkFtpParam, RandomAccessMatchesSequential)
 
 TEST_F(MavlinkFtpParam, ValueNeverStraddlesBlock)
 {
-	for (const uint16_t block : {16, 239}) {
-		ParamPckFile file;
-		ASSERT_TRUE(file.open("@PARAM/param.pck", block));
+	for (const char *path : {"@PARAM/param.pck", "@PARAM/param.pck?withdefaults=1"}) {
+		for (const uint16_t block : {16, 239}) {
+			ParamPckFile file;
+			ASSERT_TRUE(file.open(path, block));
 
-		Decoded d;
-		ASSERT_TRUE(decode(download(file, block), d));
+			Decoded d;
+			ASSERT_TRUE(decode(download(file, block), d));
 
-		for (const Entry &e : d.entries) {
-			EXPECT_EQ(e.value_ofs / block, (e.value_ofs + 3) / block) << e.name << " block " << block;
+			for (const Entry &e : d.entries) {
+				const size_t data_len = 4 + (e.has_default ? 4 : 0);
+				EXPECT_EQ(e.value_ofs / block, (e.value_ofs + data_len - 1) / block)
+						<< e.name << " block " << block << " " << path;
+			}
 		}
 	}
 }
