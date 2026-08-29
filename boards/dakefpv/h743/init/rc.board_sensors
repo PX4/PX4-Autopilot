@@ -17,4 +17,4 @@ icm42688p -s -b 1 start
 icm42688p -s -b 4 -R 4 start
 
 # Internal baro SPL06 on I2C2
-spl06 start -X -b 2
+spl06 start -I -b 2
