@@ -157,10 +157,18 @@ AnalogBattery::updateParams()
 
 	if (_analog_params.v_filt > FLT_EPSILON) {
 		_voltage_filter = AlphaFilter<float>(static_cast<uint64_t>(_analog_params.v_filt * 1e6f));
+
+	} else {
+		// reseed from the next sample if the filter is enabled again
+		_voltage_filter_seeded = false;
 	}
 
 	if (_analog_params.i_filt > FLT_EPSILON) {
 		_current_filter = AlphaFilter<float>(static_cast<uint64_t>(_analog_params.i_filt * 1e6f));
+
+	} else {
+		// reseed from the next sample if the filter is enabled again
+		_current_filter_seeded = false;
 	}
 
 	Battery::updateParams();
