@@ -42,9 +42,6 @@
  *
  * The first 0x10000 of flash is reserved for the bootloader (32K) and
  * flash-backed parameters (32K).
- *
- * The sram region below bounds .data and .bss only; the heap runs on to
- * CONFIG_RAM_END.
  */
 
 MEMORY
