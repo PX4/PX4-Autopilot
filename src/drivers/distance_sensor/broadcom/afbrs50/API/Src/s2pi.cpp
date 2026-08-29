@@ -41,6 +41,17 @@ typedef struct {
 	uint8_t *spi_rx_data;
 	size_t spi_frame_size;
 
+	/*! Incremented by S2PI_Abort to invalidate a transfer that is already
+	 *  in flight on the work queue. */
+	volatile uint8_t Generation;
+
+	/*! Set while the work queue thread is inside the SPI exchange. */
+	volatile bool InFlight;
+
+	/*! Callback of an aborted in-flight transfer, invoked with ERROR_ABORTED
+	 *  once the exchange physically completes. */
+	s2pi_callback_t AbortedCallback;
+
 	/*! The mapping of the GPIO blocks and pins for this device. */
 	const uint32_t GPIOs[ S2PI_IRQ + 1 ];
 }
@@ -70,41 +81,61 @@ private:
 };
 
 AFBRS50_SPI::AFBRS50_SPI():
-	// WARNING: SPI0 only exists for nxp and raspberry pi, so we hijack it here
-
-	// NOTE: we use SPI0 WQ since it is the 2nd highest priority thread (behind rate_ctrl).
-	// TODO: we should fix how SPI comms work. Async SPI comms is
-	// undesirable. We should use SPI TX DMA complete callback
-	// instead of relying on a high priority thread.
+	// Transfers can be requested from interrupt context (the API's periodic
+	// timer runs on an hrt callout), so the blocking exchange is deferred to
+	// a work queue. SPI0 only exists on nxp and raspberry pi targets and is
+	// hijacked here for its priority (2nd highest, behind rate_ctrl): the
+	// library expects the transfer callback to have run before the data-ready
+	// interrupt fires, ~60 us after the last SPI clock.
+	// TODO: use the SPI TX DMA complete callback instead of a high priority thread.
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::SPI0)
 {
-	// Anything to do?
 }
 
 void AFBRS50_SPI::Run()
 {
+	IRQ_LOCK();
+
+	if (s2pi_.Status != STATUS_BUSY) {
+		// Transfer was aborted before it started.
+		IRQ_UNLOCK();
+		return;
+	}
+
+	const uint8_t generation = s2pi_.Generation;
+	uint8_t *tx_data = s2pi_.spi_tx_data;
+	uint8_t *rx_data = s2pi_.spi_rx_data;
+	const size_t frame_size = s2pi_.spi_frame_size;
+	s2pi_.InFlight = true;
+
+	IRQ_UNLOCK();
+
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 0);
-	SPI_EXCHANGE(s2pi_.spidev, s2pi_.spi_tx_data, s2pi_.spi_rx_data, s2pi_.spi_frame_size);
+	SPI_EXCHANGE(s2pi_.spidev, tx_data, rx_data, frame_size);
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 1);
 
-	//// WARNING!
-	// After the last SPI TX we have ~60us to execute the below
-	// callback otherwise the IRQ will fire and we're screwed.
-	// The proper way to solve this problem is to either fix
-	// the API or to configure SPI TX DMA callback complete
-	// to execute the below callback immediately.
-
-
-	// If we are pre-empted here and the IRQ fires before the
-	// callback has been invoked -- we're screwed.
-
 	IRQ_LOCK();
-	s2pi_.Status = STATUS_IDLE;
+	s2pi_.InFlight = false;
 
-	if (s2pi_.Callback != 0) {
-		s2pi_callback_t callback = s2pi_.Callback;
-		s2pi_.Callback = 0;
-		callback(STATUS_OK, s2pi_.CallbackData);
+	if (s2pi_.Generation == generation) {
+		s2pi_.Status = STATUS_IDLE;
+
+		if (s2pi_.Callback != 0) {
+			s2pi_callback_t callback = s2pi_.Callback;
+			s2pi_.Callback = 0;
+			callback(STATUS_OK, s2pi_.CallbackData);
+		}
+
+	} else {
+		// Aborted mid-exchange: the bus only now became free, so complete
+		// the abort here (see S2PI_Abort).
+		s2pi_.Status = STATUS_IDLE;
+
+		if (s2pi_.AbortedCallback != 0) {
+			s2pi_callback_t callback = s2pi_.AbortedCallback;
+			s2pi_.AbortedCallback = 0;
+			callback(ERROR_ABORTED, s2pi_.CallbackData);
+		}
 	}
 
 	IRQ_UNLOCK();
@@ -159,9 +190,13 @@ status_t S2PI_Init(s2pi_slave_t defaultSlave, uint32_t baudRate_Bps)
 	// has been configured. This prevents erroneous interrupts from occuring.
 	px4_arch_gpiosetevent(BROADCOM_AFBR_S50_S2PI_IRQ, false, true, false, callback, NULL);
 
-	irq_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": irq callback");
+	if (irq_perf == NULL) {
+		irq_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": irq callback");
+	}
 
-	_spi_iface = new AFBRS50_SPI();
+	if (_spi_iface == nullptr) {
+		_spi_iface = new AFBRS50_SPI();
+	}
 
 	return S2PI_SetBaudRate(baudRate_Bps);
 }
@@ -448,17 +483,41 @@ status_t S2PI_Abort(s2pi_slave_t slave)
 {
 	(void)slave;
 
-	status_t status = s2pi_.Status;
+	IRQ_LOCK();
 
 	/* Check if something is ongoing. */
-	if (status == STATUS_IDLE) {
+	if (s2pi_.Status != STATUS_BUSY) {
+		IRQ_UNLOCK();
 		return STATUS_OK;
 	}
 
-	/* Abort SPI transfer. */
-	if (status == STATUS_BUSY) {
+	s2pi_.Generation++;
+
+	if (s2pi_.InFlight) {
+		/* The exchange is physically on the wires and cannot be stopped
+		 * (and must not be waited on: abort may run in interrupt context).
+		 * Keep the status BUSY so nobody touches the bus and defer the
+		 * ERROR_ABORTED completion to the work item's tail. A repeated
+		 * abort leaves the already-stashed callback in place. */
+		if (s2pi_.Callback != 0) {
+			s2pi_.AbortedCallback = s2pi_.Callback;
+			s2pi_.Callback = 0;
+		}
+
+	} else {
+		/* Not started yet: cancel the pending work item and complete. */
 		_spi_iface->schedule_clear();
+		s2pi_.Status = STATUS_IDLE;
+
+		s2pi_callback_t callback = s2pi_.Callback;
+		s2pi_.Callback = 0;
+
+		if (callback != 0) {
+			callback(ERROR_ABORTED, s2pi_.CallbackData);
+		}
 	}
+
+	IRQ_UNLOCK();
 
 	return STATUS_OK;
 }
