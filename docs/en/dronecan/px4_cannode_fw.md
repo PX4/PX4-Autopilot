@@ -20,6 +20,10 @@ make ark_can-flow_default
 
 This will create an output in **build/ark_can-flow_default** named **XX-X.X.XXXXXXXX.uavcan.bin**. Follow the instructions at [DroneCAN firmware update](index.md#firmware-update) to flash the firmware.
 
+## Pre-built Firmware
+
+PX4 releases attach `<target>.uavcan.bin` (e.g. `ark_can-flow_default.uavcan.bin`) and `cannode.zip`, which has one named folder per target holding the original `XX-X.X.XXXXXXXX.uavcan.bin` image. Flash those; the `.px4` envelope is not used on DroneCAN nodes. The unzipped tree is also on S3 at `Firmware/<version>/cannode/`.
+
 ## Configuration
 
 ### Static Node ID

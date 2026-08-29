@@ -1,7 +1,27 @@
 #!/usr/bin/env bash
 
 mkdir artifacts
-cp **/**/*.px4 artifacts/ 2>/dev/null || true
+
+# DroneCAN flashing uses the APDescriptor image, not the .px4 envelope.
+# Named folders stay on S3; GitHub Releases flatten paths, so the upload job
+# zips this tree into cannode.zip and also attaches <target>.uavcan.bin.
+for uavcan_bin in build/*/*.uavcan.bin; do
+  [ -f "$uavcan_bin" ] || continue
+  build_dir=$(basename "$(dirname "$uavcan_bin")")
+  mkdir -p "artifacts/cannode/${build_dir}"
+  cp "$uavcan_bin" "artifacts/cannode/${build_dir}/"
+  cp "$uavcan_bin" "artifacts/${build_dir}.uavcan.bin"
+done
+
+for px4_file in build/*/*.px4; do
+  [ -f "$px4_file" ] || continue
+  build_dir=$(basename "$(dirname "$px4_file")")
+  if [ -d "artifacts/cannode/${build_dir}" ]; then
+    continue
+  fi
+  cp "$px4_file" artifacts/
+done
+
 cp **/**/*.elf artifacts/ 2>/dev/null || true
 cp **/**/*.deb artifacts/ 2>/dev/null || true
 for build_dir_path in build/*/ ; do
