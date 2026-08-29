@@ -374,30 +374,52 @@ TEST_F(MavlinkFtpParam, RandomAccessMatchesSequential)
 	}
 }
 
-TEST_F(MavlinkFtpParam, SnapshotIgnoresLaterChanges)
+TEST_F(MavlinkFtpParam, FrozenMembershipLiveValues)
 {
 	ParamPckFile file;
 	ASSERT_TRUE(file.open("@PARAM/param.pck?withdefaults=1", 239));
 
-	const std::vector<uint8_t> before = download(file, 239);
 	Decoded d0;
-	ASSERT_TRUE(decode(before, d0));
+	ASSERT_TRUE(decode(download(file, 239), d0));
 	ASSERT_FALSE(d0.entries.empty());
+	const uint32_t size0 = file.size();
 
-	// boot-style churn: value crosses default, a used param drops, a new one appears
-	g_params[0].value = bits(42.f);
-	g_params[4].value = g_params[4].default_value;
-	g_params[3].used = false;
+	const auto find = [](const Decoded &d, const char *name) -> const Entry * {
+		for (const Entry &e : d.entries) {
+			if (e.name == name) {
+				return &e;
+			}
+		}
+
+		return nullptr;
+	};
+
+	ASSERT_NE(find(d0, "MPC_XY_P"), nullptr);
+	ASSERT_NE(find(d0, "MPC_Z_P"), nullptr);
+	ASSERT_TRUE(find(d0, "SYS_AUTOSTART")->has_default);
+
+	// value crosses default, a used param drops, a new one appears
+	g_params[0].value = bits(42.f);                 // MPC_XY_P, was at default
+	g_params[4].value = g_params[4].default_value;  // SYS_AUTOSTART, had a default field
+	g_params[3].used = false;                       // MPC_Z_P
 	g_params.push_back(i32("NEW_PARAM", true, 1, 0));
 
-	const std::vector<uint8_t> after = download(file, 239);
-	EXPECT_EQ(after, before);
-	EXPECT_EQ(after.size(), file.size());
-
 	Decoded d1;
-	ASSERT_TRUE(decode(after, d1));
-	EXPECT_EQ(d1.entries.size(), d0.entries.size());
-	EXPECT_EQ(d1.entries[0].value, d0.entries[0].value);
+	ASSERT_TRUE(decode(download(file, 239), d1));
+	EXPECT_EQ(file.size(), size0);
+	ASSERT_EQ(d1.entries.size(), d0.entries.size());
+
+	for (size_t i = 0; i < d0.entries.size(); i++) {
+		EXPECT_EQ(d1.entries[i].name, d0.entries[i].name);
+		EXPECT_EQ(d1.entries[i].has_default, d0.entries[i].has_default);
+	}
+
+	EXPECT_EQ(find(d1, "MPC_XY_P")->value, bits(42.f));
+	EXPECT_FALSE(find(d1, "MPC_XY_P")->has_default);
+	EXPECT_EQ(find(d1, "SYS_AUTOSTART")->value, g_params[4].default_value);
+	EXPECT_TRUE(find(d1, "SYS_AUTOSTART")->has_default);
+	EXPECT_NE(find(d1, "MPC_Z_P"), nullptr);
+	EXPECT_EQ(find(d1, "NEW_PARAM"), nullptr);
 }
 
 TEST_F(MavlinkFtpParam, ValueNeverStraddlesBlock)

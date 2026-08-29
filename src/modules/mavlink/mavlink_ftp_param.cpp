@@ -44,6 +44,37 @@ bool ParamPckFile::is_param_path(const char *path)
 	return (strncmp(path, kPath, kPathLen) == 0) && ((path[kPathLen] == '\0') || (path[kPathLen] == '?'));
 }
 
+bool ParamPckFile::bit(const uint8_t *bits, param_t param) const
+{
+	return (param < kMaxParams) && ((bits[param / 8] & (1u << (param % 8))) != 0);
+}
+
+void ParamPckFile::set_bit(uint8_t *bits, param_t param)
+{
+	bits[param / 8] |= (uint8_t)(1u << (param % 8));
+}
+
+bool ParamPckFile::default_differs(param_t param) const
+{
+	union {
+		int32_t i;
+		float f;
+		uint8_t b[4];
+	} value, def {};
+
+	const bool is_int32 = (param_type(param) == PARAM_TYPE_INT32);
+
+	if ((is_int32 ? param_get(param, &value.i) : param_get(param, &value.f)) != 0) {
+		return false;
+	}
+
+	if (param_get_default_value(param, def.b) != 0) {
+		return false;
+	}
+
+	return memcmp(value.b, def.b, sizeof(value.b)) != 0;
+}
+
 bool ParamPckFile::open(const char *path, uint16_t block_size)
 {
 	close();
@@ -67,12 +98,13 @@ bool ParamPckFile::open(const char *path, uint16_t block_size)
 	}
 
 	const unsigned long used = param_count_used();
+	const unsigned nparams = param_count();
 
-	if ((start >= used) || (count >= UINT16_MAX) || (with_defaults > 1) || (block_size == 0)) {
+	if ((start >= used) || (count >= UINT16_MAX) || (with_defaults > 1) || (block_size == 0)
+	    || (nparams > kMaxParams)) {
 		return false;
 	}
 
-	_start = start;
 	_total = used;
 	_num = used - start;
 
@@ -83,107 +115,75 @@ bool ParamPckFile::open(const char *path, uint16_t block_size)
 	_with_defaults = (with_defaults == 1);
 	_block_size = block_size;
 
-	// one pass: pack into a heap snapshot so a param_set during the download cannot
-	// change later entry lengths or splice a retried block with a new value
-	if (!grow(kHeaderLen + (uint32_t)_num * 16)) {
-		close();
-		return false;
+	const uint16_t end_used = start + _num;
+	uint16_t used_i = 0;
+
+	for (unsigned i = 0; i < nparams; i++) {
+		const param_t param = param_for_index(i);
+
+		if (!param_used(param)) {
+			continue;
+		}
+
+		if ((used_i >= start) && (used_i < end_used)) {
+			set_bit(_included, param);
+
+			if (_with_defaults && default_differs(param)) {
+				set_bit(_has_default, param);
+			}
+		}
+
+		used_i++;
 	}
 
 	rewind();
-	write_header();
-
 	param_t param;
 	uint8_t entry[kMaxEntryLen];
 
 	while (next_param(param)) {
 		const size_t len = pack(entry, param, _cursor_ofs);
 
-		if ((len == 0) || !grow(_cursor_ofs + len)) {
+		if (len == 0) {
 			close();
 			return false;
 		}
 
-		memcpy(_data + _cursor_ofs, entry, len);
 		advance(param, _cursor_ofs + len);
 	}
 
 	_size = _cursor_ofs;
+	rewind();
 	_open = true;
 	return true;
 }
 
 void ParamPckFile::close()
 {
-	delete[] _data;
-	_data = nullptr;
-	_cap = 0;
+	memset(_included, 0, sizeof(_included));
+	memset(_has_default, 0, sizeof(_has_default));
 	_size = 0;
 	_open = false;
-}
-
-bool ParamPckFile::grow(uint32_t cap)
-{
-	if (cap <= _cap) {
-		return true;
-	}
-
-	uint32_t ncap = (_cap > 0) ? _cap : 256;
-
-	while (ncap < cap) {
-		ncap *= 2;
-	}
-
-	uint8_t *data = new uint8_t[ncap];
-
-	if (data == nullptr) {
-		return false;
-	}
-
-	if ((_data != nullptr) && (_cursor_ofs > 0)) {
-		memcpy(data, _data, _cursor_ofs);
-	}
-
-	delete[] _data;
-	_data = data;
-	_cap = ncap;
-	return true;
-}
-
-void ParamPckFile::write_header()
-{
-	const uint16_t magic = _with_defaults ? kMagicWithDefaults : kMagic;
-	memcpy(&_data[0], &magic, sizeof(magic));
-	memcpy(&_data[2], &_num, sizeof(_num));
-	memcpy(&_data[4], &_total, sizeof(_total));
 }
 
 void ParamPckFile::rewind()
 {
 	_cursor_ofs = kHeaderLen;
 	_cursor_index = 0;
-	_cursor_used = 0;
 	memset(_prev_name, 0, sizeof(_prev_name));
 }
 
 bool ParamPckFile::next_param(param_t &param)
 {
 	const unsigned count = param_count();
-	const uint16_t end_used = _start + _num;
 
-	while ((_cursor_index < count) && (_cursor_used < end_used)) {
+	while (_cursor_index < count) {
 		param = param_for_index(_cursor_index);
 
-		if (!param_used(param)) {
-			_cursor_index++;
-
-		} else if (_cursor_used < _start) {
-			_cursor_index++;
-			_cursor_used++;
-
-		} else {
+		if (bit(_included, param)) {
 			return true;
 		}
+
+		_cursor_index++;
 	}
 
 	return false;
@@ -195,7 +195,6 @@ void ParamPckFile::advance(param_t param, uint32_t ofs)
 	_prev_name[sizeof(_prev_name) - 1] = '\0';
 	_cursor_ofs = ofs;
 	_cursor_index++;
-	_cursor_used++;
 }
 
 size_t ParamPckFile::pack(uint8_t *buf, param_t param, uint32_t ofs) const
@@ -235,15 +234,16 @@ size_t ParamPckFile::pack(uint8_t *buf, param_t param, uint32_t ofs) const
 		float f;
 		uint8_t b[4];
 	} value;
-	uint8_t default_value[4];
-	bool add_default = false;
+	uint8_t default_value[4] {};
 
 	if ((is_int32 ? param_get(param, &value.i) : param_get(param, &value.f)) != 0) {
 		return 0;
 	}
 
-	if (_with_defaults && (param_get_default_value(param, default_value) == 0)) {
-		add_default = (memcmp(value.b, default_value, sizeof(value.b)) != 0);
+	const bool add_default = bit(_has_default, param);
+
+	if (add_default && (param_get_default_value(param, default_value) != 0)) {
+		memset(default_value, 0, sizeof(default_value));
 	}
 
 	const uint8_t type = is_int32 ? kTypeInt32 : kTypeFloat;
@@ -278,11 +278,60 @@ size_t ParamPckFile::pack(uint8_t *buf, param_t param, uint32_t ofs) const
 
 int ParamPckFile::read(uint32_t offset, uint8_t *buf, uint16_t count)
 {
-	if (!_open || (_data == nullptr) || (count == 0) || (offset >= _size)) {
+	if (!_open || (count == 0) || (offset >= _size)) {
 		return 0;
 	}
 
-	const uint32_t n = ((uint32_t)count < (_size - offset)) ? count : (_size - offset);
-	memcpy(buf, _data + offset, n);
-	return n;
+	if (offset + count > _size) {
+		count = _size - offset;
+	}
+
+	uint16_t copied = 0;
+
+	if (offset < kHeaderLen) {
+		const uint16_t magic = _with_defaults ? kMagicWithDefaults : kMagic;
+		uint8_t hdr[kHeaderLen];
+		memcpy(&hdr[0], &magic, sizeof(magic));
+		memcpy(&hdr[2], &_num, sizeof(_num));
+		memcpy(&hdr[4], &_total, sizeof(_total));
+
+		const size_t n = ((kHeaderLen - offset) < count) ? (kHeaderLen - offset) : count;
+		memcpy(buf, &hdr[offset], n);
+		copied = n;
+		offset += n;
+	}
+
+	if (offset < _cursor_ofs) {
+		rewind();
+	}
+
+	param_t param;
+	uint8_t entry[kMaxEntryLen];
+
+	while ((copied < count) && next_param(param)) {
+		const size_t len = pack(entry, param, _cursor_ofs);
+
+		if (len == 0) {
+			return -1;
+		}
+
+		const uint32_t entry_end = _cursor_ofs + len;
+
+		if (offset < entry_end) {
+			const size_t skip = offset - _cursor_ofs;
+			const size_t avail = len - skip;
+			const size_t n = (avail < static_cast<size_t>(count - copied)) ? avail : (count - copied);
+			memcpy(buf + copied, entry + skip, n);
+			copied += n;
+			offset += n;
+		}
+
+		if (offset < entry_end) {
+			break;
+		}
+
+		advance(param, entry_end);
+	}
+
+	return copied;
 }
