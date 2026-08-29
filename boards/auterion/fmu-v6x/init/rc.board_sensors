@@ -76,11 +76,8 @@ then
 	# Internal magnetometer (BMM150) on I2C
 	bmm150 -I -R 0 start
 
-	# Possible internal Baro
-	if param compare SENS_INT_BARO_EN 1
-	then
-		bmp388 -I -a 0x77 start
-	fi
+	# Internal baro
+	bmp388 -I -a 0x77 start
 
 	# External baro
 	bmp388 -X start
@@ -91,11 +88,8 @@ else
 	# Internal magnetometer (BMM350) on I2C
 	bmm350 -I -R 4 start
 
-	# Possible internal Baro
-	if param compare SENS_INT_BARO_EN 1
-	then
-		bmp581 -I -a 0x47 start
-	fi
+	# Internal baro
+	bmp581 -I -a 0x47 start
 
 	# External baro
 	bmp581 -X start

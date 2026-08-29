@@ -125,7 +125,7 @@ bool VehicleAirData::ParametersUpdate(bool force)
 				} else {
 					// change relative priority to incorporate any sensor faults
 					int priority_change = priority_new - priority_old;
-					_priority[instance] = math::constrain(_priority[instance] + priority_change, 1, 100);
+					_priority[instance] = (priority_new == 0) ? 0 : math::constrain(_priority[instance] + priority_change, 1, 100);
 				}
 			}
 		}
@@ -179,51 +179,49 @@ void VehicleAirData::Run()
 					_priority[uorb_index] = _calibration[uorb_index].priority();
 				}
 
-				if (_calibration[uorb_index].enabled()) {
-
-					if (!was_advertised) {
-						if (uorb_index > 0) {
-							/* the first always exists, but for each further sensor, add a new validator */
-							if (!_voter.add_new_validator()) {
-								PX4_ERR("failed to add validator for %s %i", _calibration[uorb_index].SensorString(), uorb_index);
-							}
+				if (!was_advertised) {
+					if (uorb_index > 0) {
+						/* the first always exists, but for each further sensor, add a new validator */
+						if (!_voter.add_new_validator()) {
+							PX4_ERR("failed to add validator for %s %i", _calibration[uorb_index].SensorString(), uorb_index);
 						}
-
-						if (_selected_sensor_sub_index < 0) {
-							_sensor_sub[uorb_index].registerCallback();
-						}
-
-						if (!_calibration[uorb_index].calibrated()) {
-							_calibration[uorb_index].set_device_id(report.device_id);
-							_calibration[uorb_index].ParametersSave(uorb_index);
-							param_notify_changes();
-						}
-
-						ParametersUpdate(true);
 					}
 
-					if (estimator_status_flags_updated && _selected_sensor_sub_index >= 0 && _selected_sensor_sub_index == uorb_index
-					    && estimator_status_flags.cs_baro_fault && !_last_status_baro_fault) {
-						_priority[uorb_index] = 1; // 1 is min priority while still being enabled
+					if (_selected_sensor_sub_index < 0) {
+						_sensor_sub[uorb_index].registerCallback();
 					}
 
-					// pressure corrected with offset (if available)
-					_calibration[uorb_index].SensorCorrectionsUpdate();
-					const float pressure_corrected = _calibration[uorb_index].Correct(report.pressure);
-					const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
+					if (!_calibration[uorb_index].calibrated()) {
+						_calibration[uorb_index].ParametersSave(uorb_index);
+						param_notify_changes();
+					}
 
-					float data_array[3] {pressure_corrected, report.temperature, getAltitudeFromPressure(pressure_corrected, pressure_sealevel_pa)};
-					_voter.put(uorb_index, report.timestamp, data_array, report.error_count, _priority[uorb_index]);
-
-					_timestamp_sample_sum[uorb_index] += report.timestamp_sample;
-					_data_sum[uorb_index] += pressure_corrected;
-					_temperature_sum[uorb_index] += report.temperature;
-					_data_sum_count[uorb_index]++;
-
-					_last_data[uorb_index] = pressure_corrected;
-
-					updated[uorb_index] = true;
+					ParametersUpdate(true);
 				}
+
+				if (estimator_status_flags_updated && _selected_sensor_sub_index >= 0 && _selected_sensor_sub_index == uorb_index
+				    && estimator_status_flags.cs_baro_fault && !_last_status_baro_fault && (_priority[uorb_index] > 0)) {
+					_priority[uorb_index] = 1; // 1 is min priority while still being enabled
+				}
+
+				// pressure corrected with offset (if available)
+				_calibration[uorb_index].SensorCorrectionsUpdate();
+				const float pressure_corrected = _calibration[uorb_index].Correct(report.pressure);
+				const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
+
+				float data_array[3] {pressure_corrected, report.temperature, getAltitudeFromPressure(pressure_corrected, pressure_sealevel_pa)};
+
+				// a priority of 0 keeps the sensor tracked and logged but excluded from selection
+				_voter.put(uorb_index, report.timestamp, data_array, report.error_count, _priority[uorb_index]);
+
+				_timestamp_sample_sum[uorb_index] += report.timestamp_sample;
+				_data_sum[uorb_index] += pressure_corrected;
+				_temperature_sum[uorb_index] += report.temperature;
+				_data_sum_count[uorb_index]++;
+
+				_last_data[uorb_index] = pressure_corrected;
+
+				updated[uorb_index] = true;
 			}
 		}
 	}
@@ -236,27 +234,36 @@ void VehicleAirData::Run()
 	int best_index = 0;
 	_voter.get_best(time_now_us, &best_index);
 
-	if (best_index >= 0) {
-		// handle selection change (don't process on same iteration as parameter update)
-		if ((_selected_sensor_sub_index != best_index) && !parameter_update) {
-			// clear all registered callbacks
-			for (auto &sub : _sensor_sub) {
-				sub.unregisterCallback();
-			}
+	// handle selection change (don't process on same iteration as parameter update)
+	// best_index is -1 when every barometer is disabled, which has to clear the selection
+	if ((_selected_sensor_sub_index != best_index) && !parameter_update) {
+		// clear all registered callbacks
+		for (auto &sub : _sensor_sub) {
+			sub.unregisterCallback();
+		}
 
-			if (_selected_sensor_sub_index >= 0) {
+		if (_selected_sensor_sub_index >= 0) {
+			if (best_index >= 0) {
 				PX4_INFO("%s switch from #%" PRId8 " -> #%d", _calibration[_selected_sensor_sub_index].SensorString(),
 					 _selected_sensor_sub_index, best_index);
-			}
 
-			_selected_sensor_sub_index = best_index;
+			} else {
+				PX4_INFO("%s #%" PRId8 " deselected, no barometer available",
+					 _calibration[_selected_sensor_sub_index].SensorString(), _selected_sensor_sub_index);
+			}
+		}
+
+		_selected_sensor_sub_index = best_index;
+
+		if (_selected_sensor_sub_index >= 0) {
 			_sensor_sub[_selected_sensor_sub_index].registerCallback();
 		}
 	}
 
 	estimator_status_flags_s latest_estimator_status_flags;
 
-	if (_estimator_status_flags_sub.copy(&latest_estimator_status_flags) && !latest_estimator_status_flags.cs_in_air) {
+	if (_selected_sensor_sub_index >= 0
+	    && _estimator_status_flags_sub.copy(&latest_estimator_status_flags) && !latest_estimator_status_flags.cs_in_air) {
 		if (!_relative_calibration_done) {
 			_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
 
@@ -413,8 +420,10 @@ void VehicleAirData::CheckFailover(const hrt_abstime &time_now_us)
 					_last_error_message = time_now_us;
 				}
 
-				// reduce priority of failed sensor to the minimum
-				_priority[failover_index] = 1;
+				// reduce priority of failed sensor to the minimum, without re-enabling a disabled one
+				if (_priority[failover_index] > 0) {
+					_priority[failover_index] = 1;
+				}
 			}
 		}
 
@@ -424,44 +433,63 @@ void VehicleAirData::CheckFailover(const hrt_abstime &time_now_us)
 
 void VehicleAirData::UpdateStatus()
 {
-	if (_selected_sensor_sub_index >= 0) {
-		sensors_status_s sensors_status{};
-		sensors_status.device_id_primary = _calibration[_selected_sensor_sub_index].device_id();
+	sensors_status_s sensors_status{};
+	sensors_status.device_id_primary = (_selected_sensor_sub_index >= 0) ?
+					   _calibration[_selected_sensor_sub_index].device_id() : 0;
 
-		float mean{};
-		int sensor_count = 0;
+	float mean{};
+	int sensor_count = 0;
+	int known_count = 0;
 
-		for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
-			if ((_calibration[sensor_index].device_id() != 0) && (_calibration[sensor_index].enabled())) {
+	for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
+		if (_calibration[sensor_index].device_id() != 0) {
+			known_count++;
+
+			// the mean is the reference the inconsistency is measured against, so only
+			// the sensors actually eligible for use contribute to it
+			if (_calibration[sensor_index].enabled()) {
 				sensor_count++;
 				mean += _last_data[sensor_index];
 			}
 		}
+	}
 
-		if (sensor_count > 0) {
-			mean /= sensor_count;
-		}
+	if (known_count == 0) {
+		return;
+	}
 
-		for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
-			if (_calibration[sensor_index].device_id() != 0) {
+	if (sensor_count > 0) {
+		mean /= sensor_count;
+	}
 
-				_sensor_diff[sensor_index] = 0.95f * _sensor_diff[sensor_index] + 0.05f * (_last_data[sensor_index] - mean);
+	for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
+		if (_calibration[sensor_index].device_id() != 0) {
 
-				sensors_status.device_ids[sensor_index] = _calibration[sensor_index].device_id();
-				sensors_status.inconsistency[sensor_index] = _sensor_diff[sensor_index];
-				sensors_status.healthy[sensor_index] = (_voter.get_sensor_state(sensor_index) == DataValidator::ERROR_FLAG_NO_ERROR);
-				sensors_status.priority[sensor_index] = _voter.get_sensor_priority(sensor_index);
-				sensors_status.enabled[sensor_index] = _calibration[sensor_index].enabled();
-				sensors_status.external[sensor_index] = _calibration[sensor_index].external();
+			if (sensor_count > 0) {
+				const float diff = _last_data[sensor_index] - mean;
+				// re-seed rather than filter when coming back from having no reference
+				_sensor_diff[sensor_index] = PX4_ISFINITE(_sensor_diff[sensor_index]) ?
+							     (0.95f * _sensor_diff[sensor_index] + 0.05f * diff) : diff;
 
 			} else {
-				sensors_status.inconsistency[sensor_index] = NAN;
+				// with nothing enabled there is no reference to measure against
+				_sensor_diff[sensor_index] = NAN;
 			}
-		}
 
-		sensors_status.timestamp = hrt_absolute_time();
-		_sensors_status_baro_pub.publish(sensors_status);
+			sensors_status.device_ids[sensor_index] = _calibration[sensor_index].device_id();
+			sensors_status.inconsistency[sensor_index] = _sensor_diff[sensor_index];
+			sensors_status.healthy[sensor_index] = (_voter.get_sensor_state(sensor_index) == DataValidator::ERROR_FLAG_NO_ERROR);
+			sensors_status.priority[sensor_index] = _voter.get_sensor_priority(sensor_index);
+			sensors_status.enabled[sensor_index] = _calibration[sensor_index].enabled();
+			sensors_status.external[sensor_index] = _calibration[sensor_index].external();
+
+		} else {
+			sensors_status.inconsistency[sensor_index] = NAN;
+		}
 	}
+
+	sensors_status.timestamp = hrt_absolute_time();
+	_sensors_status_baro_pub.publish(sensors_status);
 }
 
 void VehicleAirData::PrintStatus()
@@ -475,7 +503,7 @@ void VehicleAirData::PrintStatus()
 	_voter.print();
 
 	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-		if (_advertised[i] && (_priority[i] > 0)) {
+		if (_advertised[i]) {
 			_calibration[i].PrintStatus();
 		}
 	}

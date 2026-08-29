@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 Todd Stellanova. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,9 +12,9 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be  used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -31,38 +31,43 @@
  *
  ****************************************************************************/
 
-#ifndef ECL_TESTS_COMMON_H
-#define ECL_TESTS_COMMON_H
-
-#include <validation/data_validator.h>
-
 /**
- * Insert a series of samples around a mean value
- * @param validator The validator under test
- * @param mean The mean value
- * @param count The number of samples to insert in the validator
- * @param rms_err (out) calculated rms error of the inserted samples
- * @param timestamp_io (in/out) in: start timestamp, out: last timestamp
+ * @file DataValidatorTestStubs.cpp
+ *
+ * DataValidator is a leaf library, but its print() methods reach for the logging macros and
+ * the high-resolution timer. Satisfying those from px4_platform drags uORB, the work queues
+ * and the POSIX daemon into a host unit test. Defining them here keeps the tests linked
+ * against nothing but the code under test.
  */
-void insert_values_around_mean(DataValidator *validator, const float mean, uint32_t count, float *rms_err,
-			       uint64_t *timestamp_io);
 
-/**
- * Print out the state of a DataValidator
- * @param validator
- */
-void dump_validator_state(DataValidator *validator);
+#include <drivers/drv_hrt.h>
 
-/**
- * Insert a time series of samples into the validator
- * @param validator
- * @param incr_value The amount to increment the value by on each iteration
- * @param value_io (in/out) in: initial value, out: final value
- * @param timestamp_io (in/out) in: initial timestamp, out: final timestamp
- */
-void fill_validator_with_samples(DataValidator *validator,
-				 const float incr_value,
-				 float *value_io,
-				 uint64_t *timestamp_io);
+#include <cstdarg>
+#include <cstdio>
 
-#endif //ECL_TESTS_COMMON_H
+__BEGIN_DECLS
+
+hrt_abstime hrt_absolute_time()
+{
+	return 0;
+}
+
+void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	printf("[%s] ", moduleName);
+	vprintf(fmt, args);
+	printf("\n");
+	va_end(args);
+}
+
+void px4_log_raw(int level, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+
+__END_DECLS
