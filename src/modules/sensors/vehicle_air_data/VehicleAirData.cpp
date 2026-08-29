@@ -175,7 +175,7 @@ void VehicleAirData::Run()
 				sensor_sub_updates++;
 
 				if (_calibration[uorb_index].device_id() != report.device_id) {
-					_calibration[uorb_index].set_device_id(report.device_id);
+					_calibration[uorb_index].set_device_id(report.device_id, report.is_external);
 					_priority[uorb_index] = _calibration[uorb_index].priority();
 				}
 

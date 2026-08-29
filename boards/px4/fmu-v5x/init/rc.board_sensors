@@ -109,6 +109,6 @@ if ver hwtypecmp V5X000
 then
 	bmp388 -I start
 else
-	bmp388 -X -b 2 start
+	bmp388 -I -b 2 start
 fi
 unset HAVE_PM2

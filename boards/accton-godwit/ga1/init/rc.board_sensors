@@ -87,9 +87,9 @@ ist8310 -X -b 1 -R 10 start
 icp201xx -I -a 0x64 start
 dps310 -I start
 
-#external baro
-icp201xx -X start
-dps310 -X start
+# Onboard baro on I2C2 (shared with the PM2 connector)
+icp201xx -I -b 2 start
+dps310 -I -b 2 start
 
 unset INA_CONFIGURED
 unset HAVE_PM2

@@ -59,7 +59,7 @@ static constexpr int32_t combine(uint8_t hh, uint8_t hm,  uint8_t hl)
 AK09940A::AK09940A(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_mag(get_device_id(), config.rotation, config.external)
 {
 }
 

@@ -84,7 +84,7 @@ float insert_values_around_mean(DataValidator &validator, float mean, uint32_t c
 
 	for (uint32_t i = 0; i < count; i++) {
 		const float value = mean + ((i % 2) == 0 ? swing : -swing);
-		const double deviation = value - mean;
+		const double deviation = static_cast<double>(value) - static_cast<double>(mean);
 		sum_dev_squares += deviation * deviation;
 		*timestamp_io += kTimestampIncrUsec;
 		validator.put(*timestamp_io, value, 0, kPriority);

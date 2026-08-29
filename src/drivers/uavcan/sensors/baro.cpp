@@ -127,6 +127,7 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 	sensor_baro_s sensor_baro{};
 	sensor_baro.timestamp_sample = timestamp_sample;
 	sensor_baro.device_id = device_id;
+	sensor_baro.is_external = true;
 	sensor_baro.pressure = msg.static_pressure;
 
 	if (PX4_ISFINITE(_last_temperature_kelvin) && (_last_temperature_kelvin >= 0.f)) {
@@ -178,6 +179,7 @@ void UavcanBarometerBridge::raw_air_data_sub_cb(const
 	sensor_baro_s sensor_baro{};
 	sensor_baro.timestamp_sample = timestamp_sample;
 	sensor_baro.device_id = device_id;
+	sensor_baro.is_external = true;
 	sensor_baro.pressure = msg.static_pressure;
 
 	float temperature = msg.static_air_temperature;

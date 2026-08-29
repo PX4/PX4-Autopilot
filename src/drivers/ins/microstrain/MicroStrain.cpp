@@ -75,6 +75,7 @@ MicroStrain::MicroStrain(const char *uart_port) :
 	_px4_mag.set_device_id(_dev_id);
 
 	_sensor_baro.device_id = _dev_id;
+	_sensor_baro.is_external = true;
 	_sensor_baro.pressure = 0;
 	_sensor_baro.temperature = 0;
 	_sensor_baro.error_count = 0;

@@ -93,6 +93,8 @@ struct I2CSPIDriverConfig {
 
 	Rotation rotation;
 
+	bool external; ///< sensor classification from -I/-s (false) vs -X/-S (true), independent of bus topology
+
 	bool quiet_start;
 	bool keep_running;
 
@@ -221,6 +223,7 @@ public:
 	bool next();
 
 	I2CSPIInstance *instance() const;
+	bool alreadyRunningOnHardware() const;
 	void removeInstance();
 	board_bus_types busType() const;
 	int bus() const;
