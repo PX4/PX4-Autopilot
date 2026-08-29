@@ -32,3 +32,22 @@ param set-default MSP_OSD_CONFIG 103
 param set-default SER_TEL3_BAUD 115200
 # Analog OSD (AT7456E) is fitted on all variants; 2 = PAL, 1 = NTSC, 0 = disabled
 param set-default OSD_ATXXXX_CFG 2
+
+# Logging goes to the onboard SPI NOR flash: there is no SD card on this board.
+# NOR must erase before it can write, and littlefs periodically compacts blocks,
+# so the write path stalls for seconds at a time. Measured on H743 Pro hardware
+# at the default logging profile (~31 KiB/s), dropouts over a 45 s run were:
+#
+#    64 KiB buffer (the tree-wide default)   65 dropouts
+#   128 KiB                                  36 dropouts
+#   256 KiB                                  27 dropouts
+#
+# Larger still keeps helping but leaves no heap: a 512 KiB request was clamped
+# to the 451 KiB of free memory, i.e. all of it. 256 KiB peaked at 169 KiB used
+# and leaves room for everything else.
+set LOGGER_BUF 256
+
+# A single log file cannot exceed the 16 MB part. The 1024 MiB default makes the
+# logger's cleanup threshold unreachable, so it runs its free-space path on every
+# start and reports "14 MiB free, threshold 1025 MiB".
+param set-default SDLOG_MAX_SIZE 12
