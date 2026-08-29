@@ -742,6 +742,32 @@ icm45686 <command> [arguments...]
    status        print status info
 ```
 
+## iim20670
+
+Source: [drivers/imu/invensense/iim20670](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/iim20670)
+
+### Usage {#iim20670_usage}
+
+```
+iim20670 <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es)
+     [-S]        External SPI bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-R <val>]  Rotation
+                 default: 0
+
+   stop
+
+   status        print status info
+```
+
 ## iim42652
 
 Source: [drivers/imu/invensense/iim42652](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/iim42652)
@@ -873,6 +899,9 @@ lsm6dsv <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-R <val>]  Rotation
+                 default: 0
+     [-T <val>]  High-g variant for WHO_AM_I 0x73 (80 = LSM6DSV80X, 320 =
+                 LSM6DSV320X)
                  default: 0
 
    stop
