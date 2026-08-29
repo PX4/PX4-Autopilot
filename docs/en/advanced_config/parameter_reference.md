@@ -42333,21 +42333,6 @@ Sensors hub IMU mode.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 1       |      | &nbsp;    |
 
-### SENS_INT_BARO_EN (`INT32`) {#SENS_INT_BARO_EN}
-
-Enable internal barometers.
-
-For systems with an external barometer, this should be set to false to make sure that the external is used.
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-| Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
-| &check; |          |          |           | Enabled (1) |      | &nbsp;    |
-
 ### SENS_LEDDAR1_CFG (`INT32`) {#SENS_LEDDAR1_CFG}
 
 Serial Configuration for LeddarOne Rangefinder.
