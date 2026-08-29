@@ -529,7 +529,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	vcmd.confirmation = cmd_mavlink.confirmation;
 	vcmd.from_external = true;
 
-	handle_message_command_both(msg, cmd_mavlink, vcmd);
+	handle_message_command_both(msg, vcmd);
 }
 
 bool
@@ -654,55 +654,54 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.confirmation = false;
 	vcmd.from_external = true;
 
-	handle_message_command_both(msg, cmd_mavlink, vcmd);
+	handle_message_command_both(msg, vcmd);
 }
 
-template <class T>
-void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
-		const vehicle_command_s &vehicle_command)
+void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const vehicle_command_s &vehicle_command)
 {
-	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
+	bool target_ok = evaluate_target_ok(vehicle_command.command, vehicle_command.target_system, vehicle_command.target_component);
 	bool send_ack = true;
 	uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 	uint8_t progress = 0; // TODO: should be 255, 0 for backwards compatibility
 
 	if (!target_ok) {
 		if (!_mavlink.get_forwarding_on()
-		    || !_mavlink.component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
+		    || !_mavlink.component_was_seen(vehicle_command.target_system, vehicle_command.target_component, _mavlink)) {
 			PX4_INFO("Ignore command %d from %d/%d to %d/%d",
-				 cmd_mavlink.command, msg->sysid, msg->compid, cmd_mavlink.target_system, cmd_mavlink.target_component);
+				 (int)vehicle_command.command, msg->sysid, msg->compid, vehicle_command.target_system,
+				 vehicle_command.target_component);
 		}
 
 		return;
 	}
 
 	uint8_t zero_mask = 0;
-	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(cmd_mavlink.command, false, _vehicle_type_bitmask,
+	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(vehicle_command.command, false, _vehicle_type_bitmask,
 				    vehicle_command.param1, vehicle_command.param2,
 				    vehicle_command.param3, vehicle_command.param4,
 				    vehicle_command.param5, vehicle_command.param6, vehicle_command.param7,
 				    &zero_mask);
 
 	if (command_invalid > 0) {
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+		acknowledge(msg->sysid, msg->compid, vehicle_command.command,
 			    vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 		return;
 	}
 
-	if (command_invalid < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)cmd_mavlink.command); }
+	if (command_invalid < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)vehicle_command.command); }
 
-	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)cmd_mavlink.command, zero_mask); }
+	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)vehicle_command.command, zero_mask); }
 
-	if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+	if (vehicle_command.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval(
-			    (int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3, cmd_mavlink.param4, vehicle_command.param7)) {
+			    (int)(vehicle_command.param1 + 0.5f), vehicle_command.param2, vehicle_command.param3, vehicle_command.param4, vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
-	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
-		get_message_interval((int)(cmd_mavlink.param1 + 0.5f));
+	} else if (vehicle_command.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
+		get_message_interval((int)(vehicle_command.param1 + 0.5f));
 
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
+	} else if (vehicle_command.command == MAV_CMD_REQUEST_MESSAGE) {
 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
 
@@ -717,7 +716,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		} else
 #endif
 			if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
-				get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+				get_message_interval((int)(vehicle_command.param2 + 0.5f));
 
 			} else {
 				result = handle_request_message_command(message_id,
@@ -725,7 +724,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 									vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
 			}
 
-	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
+	} else if (vehicle_command.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink.failure_injection_enabled()) {
 			_cmd_pub.publish(vehicle_command);
 			send_ack = false;
@@ -735,11 +734,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			send_ack = true;
 		}
 
-	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_MODE) {
+	} else if (vehicle_command.command == MAV_CMD_DO_SET_MODE) {
 		_cmd_pub.publish(vehicle_command);
 		send_ack = false;	//Acknowledgement handled by Commander
 
-	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
+	} else if (vehicle_command.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
 
 		bool has_module = true;
 		autotune_attitude_control_status_s status{};
@@ -850,7 +849,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			return;
 		}
 
-		if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
+		if (vehicle_command.command == MAV_CMD_LOGGING_START) {
 			// check that we have enough bandwidth available: this is given by the configured logger topics
 			// and rates. The 5000 is somewhat arbitrary, but makes sure that we cannot enable log streaming
 			// on a radio link
@@ -876,7 +875,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	}
 
 	if (send_ack) {
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, result, progress);
+		acknowledge(msg->sysid, msg->compid, vehicle_command.command, result, progress);
 	}
 }
 
