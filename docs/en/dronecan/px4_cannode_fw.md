@@ -22,7 +22,12 @@ This will create an output in **build/ark_can-flow_default** named **XX-X.X.XXXX
 
 ## Pre-built Firmware
 
-PX4 releases attach `<target>.uavcan.bin` (e.g. `ark_can-flow_default.uavcan.bin`) and `cannode.zip`, which has one named folder per target holding the original `XX-X.X.XXXXXXXX.uavcan.bin` image. Flash those; the `.px4` envelope is not used on DroneCAN nodes. The unzipped tree is also on S3 at `Firmware/<version>/cannode/`.
+PX4 releases attach two images per CAN node, plus `cannode.zip` with the same files in named folders:
+
+- `<target>.uavcan.bin` — application, flashed over DroneCAN
+- `<target>_canbootloader.bin` — bootloader, SWD-flashed (STM32: `0x08000000`)
+
+The `.px4` envelope is not used on these targets. The unzipped tree is also on S3 at `Firmware/<version>/cannode/`.
 
 ## Configuration
 
