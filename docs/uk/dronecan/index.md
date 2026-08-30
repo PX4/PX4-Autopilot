@@ -75,6 +75,7 @@ DroneCAN was previously known as UAVCAN v0 (or just UAVCAN).
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
+  - [Smartmicro Drone Altimeter](smartmicro_t132.md)
 
 - Захоплювачі
   - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
@@ -153,6 +154,7 @@ For example, [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_F
 
 For example, to use a connected DroneCAN smart battery you would enable the [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) parameter, which would subscribe PX4 to receive [BatteryInfo](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#batteryinfo) DroneCAN messages.
 If using a peripheral that needs to know if PX4 is armed, you would need to set the [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) parameter so that PX4 starts publishing [ArmingStatus](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus) messages.
+ArmingStatus is published automatically when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is `3` (ESC output).
 
 The parameter names are prefixed with `UAVCAN_SUB_` and `UAVCAN_PUB_` to indicate whether they enable PX4 subscribing or publishing.
 Решта назви вказує на конкретне повідомлення/функцію, яка встановлюється.
@@ -167,7 +169,7 @@ Note that a peripheral might not use `CANNODE_` parameters, in which case it may
 
 #### Датчики
 
-Параметри/підписки сенсора DroneCAN, які можна активувати (у PX4 v1.14):
+The DroneCAN sensor parameters/subscriptions that you can enable are (from PX4 v1.14):
 
 - [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD): Airspeed
 - [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO): Barometer
@@ -282,6 +284,7 @@ If the rangefinder is connected via DroneCAN (whether inbuilt or separate), you 
 Параметри PX4 DroneCAN:
 
 - [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) ([Arming Status](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus)): Publish when using DroneCAN components that require the PX4 arming status as a precondition for use.
+  Not required for DroneCAN ESCs: ArmingStatus is published automatically when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is `3`.
 
 #### Захоплювачі
 

@@ -2,7 +2,7 @@
 
 This topic shows how you can graph the "live" values of [uORB topics](../msg_docs/index.md) (in real time) using [PlotJuggler](../log/flight_log_analysis.md#plotjuggler) and the _uXRCE-DDS Agent_.
 
-This technique uses PX4 [uXRCE-DDS](../middleware/uxrce_dds.md) middleware to export uORB topics as ROS2 topics, which can then be read and plotted by PlotJuggler as they change (PlotJuggler cannot directly read uORB topics, but the values of the corresponding ROS 2 topics are the same).
+This technique uses PX4 [uXRCE-DDS](../middleware/uxrce_dds.md) middleware to export uORB topics as ROS 2 topics, which can then be read and plotted by PlotJuggler as they change (PlotJuggler cannot directly read uORB topics, but the values of the corresponding ROS 2 topics are the same).
 
 The video below demonstrates this for a simulated vehicle — the approach works equally well on real hardware.
 
@@ -14,7 +14,7 @@ Follow the [ROS 2 Installation & Setup](../ros2/user_guide.md#installation-setup
 
 - ROS 2
 - [Micro XRCE-DDS Agent](../ros2/user_guide.md#setup-the-agent)
-- [PX4/px4_msgs](https://github.com/PX4/px4_msgs): PX4/ROS2 shared message definitions.
+- [PX4/px4_msgs](https://github.com/PX4/px4_msgs): PX4/ROS 2 shared message definitions.
 - PX4 source code and build the simulator.
 
   ::: tip
@@ -24,7 +24,7 @@ Follow the [ROS 2 Installation & Setup](../ros2/user_guide.md#installation-setup
 
 You will also need to install:
 
-- [PlotJuggler for ROS2](https://github.com/PlotJuggler/PlotJuggler)
+- [PlotJuggler for ROS 2](https://github.com/PlotJuggler/PlotJuggler)
 
   ::: tip
   Use the Debian packages (the snap files are not supported).
@@ -38,7 +38,7 @@ This allows ROS 2 and PlotJuggler to interpret the messages.
 If you're using unmodified PX4, the definitions from [PX4/px4_msgs](https://github.com/PX4/px4_msgs) can be used.
 
 :::info
-This is the same process as covered in [Build ROS 2 Workspace](../ros2/user_guide.md#build-ros-2-workspace) in _ROS 2 Installation & Setup_.
+This is the same process as covered in [Running an example (optional)](../ros2/user_guide.md#running-an-example-optional) in _ROS 2 Installation & Setup_.
 :::
 
 Assuming your ROS 2 workspace is named `~/ros2_ws/`, fetch and build the `px4_msgs` package in a terminal as shown:
@@ -108,11 +108,11 @@ If working with real hardware you will need to build and [install](../config/fir
 
 ### Modified Messages
 
-If you have modified any uORB messages you must update the ROS2 messages used by PlotJuggler.
+If you have modified any uORB messages you must update the ROS 2 messages used by PlotJuggler.
 
 You will need to rebuild PX4 with your new messages, and replace the `px4_msgs` (from the repository) in your workspace with the new ones.
 
-Assuming that you have already built PX4 in the directory `~/PX4-Autopilot/`, and that `~/ros2_ws` is your ROS2 workspace, enter the following commands to copy the messages across and rebuild your workspace:
+Assuming that you have already built PX4 in the directory `~/PX4-Autopilot/`, and that `~/ros2_ws` is your ROS 2 workspace, enter the following commands to copy the messages across and rebuild your workspace:
 
 ```sh
 rm -f ~/ros2_ws/src/px4_msgs/msg/*.msg
