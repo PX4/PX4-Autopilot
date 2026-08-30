@@ -195,6 +195,19 @@ TEST(ServiceServer, ResponseIfaceFromRequest)
     node.spin(clock_driver.getMonotonic() + uavcan::MonotonicDuration::fromUSec(10000));
     ASSERT_EQ(2, can_driver.ifaces[0].tx.size());
     ASSERT_EQ(0, can_driver.ifaces[1].tx.size());
+
+    while (!can_driver.ifaces[0].tx.empty())
+    {
+        (void)can_driver.ifaces[0].popTxFrame();
+    }
+
+    server.setRespondOnRequestIface(false);
+
+    // Disabling must restore the all-interface mask, not keep the last request iface.
+    pushStringServiceRequest(can_driver, clock_driver, 1, 0x10, 3);
+    node.spin(clock_driver.getMonotonic() + uavcan::MonotonicDuration::fromUSec(10000));
+    ASSERT_EQ(2, can_driver.ifaces[0].tx.size());
+    ASSERT_EQ(2, can_driver.ifaces[1].tx.size());
 }
 
 
