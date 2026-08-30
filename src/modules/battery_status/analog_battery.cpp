@@ -91,10 +91,20 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 		_last_timestamp = timestamp;
 
 		if (_analog_params.v_filt > FLT_EPSILON) {
+			if (!_voltage_filter_seeded) {
+				_voltage_filter.reset(fmaxf(voltage_v, 0.f));
+				_voltage_filter_seeded = true;
+			}
+
 			voltage_v = _voltage_filter.update(fmaxf(voltage_v, 0.f), dt_us);
 		}
 
 		if (_analog_params.i_filt > FLT_EPSILON) {
+			if (!_current_filter_seeded) {
+				_current_filter.reset(fmaxf(current_a, 0.f));
+				_current_filter_seeded = true;
+			}
+
 			current_a = _current_filter.update(fmaxf(current_a, 0.f), dt_us);
 		}
 	}
@@ -146,11 +156,29 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.i_filt, &_analog_params.i_filt);
 
 	if (_analog_params.v_filt > FLT_EPSILON) {
+		const float voltage_state = _voltage_filter.getState();
 		_voltage_filter = AlphaFilter<float>(static_cast<uint64_t>(_analog_params.v_filt * 1e6f));
+
+		if (_voltage_filter_seeded) {
+			_voltage_filter.reset(voltage_state);
+		}
+
+	} else {
+		// reseed from the next sample if the filter is enabled again
+		_voltage_filter_seeded = false;
 	}
 
 	if (_analog_params.i_filt > FLT_EPSILON) {
+		const float current_state = _current_filter.getState();
 		_current_filter = AlphaFilter<float>(static_cast<uint64_t>(_analog_params.i_filt * 1e6f));
+
+		if (_current_filter_seeded) {
+			_current_filter.reset(current_state);
+		}
+
+	} else {
+		// reseed from the next sample if the filter is enabled again
+		_current_filter_seeded = false;
 	}
 
 	Battery::updateParams();
