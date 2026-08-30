@@ -11,5 +11,5 @@ PX4（至少）支持以下智能电池：
 ### 更多信息
 
 - [Mavlink Battery Protocol](https://mavlink.io/en/services/battery.html)
-- [batt_smbus](../modules/modules_driver.md#batt_smbus) - PX4 SMBus Battery Driver docs
+- [batt_smbus](../modules/modules_driver.md#batt-smbus) - PX4 SMBus Battery Driver docs
 - [安全 > 低电量故障保护](../config/safety.md#battery-level-failsafe)。
