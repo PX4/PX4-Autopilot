@@ -24,6 +24,30 @@ int GenericSubscriberBase::genericStart(TransferListener* listener,
     return 0;
 }
 
+bool GenericSubscriberBase::decodeTransfer(IncomingTransfer& transfer, void* rx_struct,
+                                           int (*decode_fn)(void* rx_struct, ScalarCodec& codec))
+{
+    /*
+     * Decoding into the temporary storage
+     */
+    BitStream bitstream(transfer);
+    ScalarCodec codec(bitstream);
+
+    const int decode_res = decode_fn(rx_struct, codec);
+
+    // We don't need the data anymore, the memory can be reused from the callback:
+    transfer.release();
+
+    if (decode_res <= 0)
+    {
+        UAVCAN_TRACE("GenericSubscriber", "Unable to decode the message [%i]", decode_res);
+        failure_count_++;
+        node_.getDispatcher().getTransferPerfCounter().addError();
+        return false;
+    }
+    return true;
+}
+
 void GenericSubscriberBase::stop(TransferListener* listener)
 {
     if (listener != UAVCAN_NULLPTR)
