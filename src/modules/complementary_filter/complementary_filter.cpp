@@ -11,7 +11,7 @@ ComplementaryFilter::ComplementaryFilter()
 
     // Initialize the debug message once (name field doesn't change per cycle)
     memset(&_debug_data, 0, sizeof(_debug_data));
-    strncpy(_debug_data.name, "COMP_FILT", sizeof(_debug_data.name) - 1);
+  strlcpy(_debug_data.name, "COMP_FILT", sizeof(_debug_data.name));
     _debug_data.name[sizeof(_debug_data.name) - 1] = '\0';
 }
 
