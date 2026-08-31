@@ -31,12 +31,12 @@
  *
  ****************************************************************************/
 
-#include "IIM42652.hpp"
+#include <IIM4265X.hpp>
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void IIM42652::print_usage()
+static void print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("iim42652", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
@@ -50,7 +50,6 @@ void IIM42652::print_usage()
 extern "C" int iim42652_main(int argc, char *argv[])
 {
 	int ch;
-	using ThisDriver = IIM42652;
 	BusCLIArguments cli{false, true};
 	cli.default_spi_frequency = SPI_SPEED;
 
@@ -69,24 +68,25 @@ extern "C" int iim42652_main(int argc, char *argv[])
 	const char *verb = cli.optArg();
 
 	if (!verb) {
-		ThisDriver::print_usage();
+		print_usage();
 		return -1;
 	}
 
+	cli.custom2 = DRV_IMU_DEVTYPE_IIM42652;
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_IIM42652);
 
 	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
+		return IIM4265X::module_start(cli, iterator, &print_usage);
 	}
 
 	if (!strcmp(verb, "stop")) {
-		return ThisDriver::module_stop(iterator);
+		return I2CSPIDriverBase::module_stop(iterator);
 	}
 
 	if (!strcmp(verb, "status")) {
-		return ThisDriver::module_status(iterator);
+		return I2CSPIDriverBase::module_status(iterator);
 	}
 
-	ThisDriver::print_usage();
+	print_usage();
 	return -1;
 }
