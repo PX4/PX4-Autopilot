@@ -127,6 +127,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 20);
 	add_topic("vehicle_roi", 1000);
 	add_topic("vehicle_status");
+	add_topic("debug_vect");
 	add_optional_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
 
