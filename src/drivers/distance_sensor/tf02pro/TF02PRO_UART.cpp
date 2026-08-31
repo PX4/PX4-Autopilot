@@ -30,11 +30,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
  * @file TF02PRO_UART.cpp
  *
  * UART driver for the Benewake TF02 Pro distance sensor.
  */
+
 #include "TF02PRO_UART.hpp"
 
 #include <fcntl.h>

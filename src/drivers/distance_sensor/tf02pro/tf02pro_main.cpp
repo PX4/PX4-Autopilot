@@ -30,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
  * @file tf02pro_main.cpp
  *
@@ -37,6 +38,7 @@
  * Interface selected by parameter SENS_EN_TF02PRO:
  *   0 = Disabled, 1 = I2C, 2 = UART
  */
+
 #include "TF02PRO.hpp"
 #include "TF02PRO_UART.hpp"
 
@@ -138,8 +140,13 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 	// Administrative routing first: allow stop/status even if SENS_EN_TF02PRO was
 	// changed to Disabled after a UART instance was already started.
 	if (tf02pro::g_dev_uart != nullptr) {
-		if (!strcmp(verb, "stop"))  { return tf02pro::uart_stop(); }
-		if (!strcmp(verb, "status")) { return tf02pro::uart_status(); }
+		if (!strcmp(verb, "stop")) {
+			return tf02pro::uart_stop();
+		}
+
+		if (!strcmp(verb, "status")) {
+			return tf02pro::uart_status();
+		}
 	}
 
 	// Now read the interface selector
@@ -163,10 +170,17 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 
 	if (iface == 2) {
 		/* ---- UART path: px4_getopt + g_dev pattern (TFMINI style) ---- */
+
 		while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
 			switch (ch) {
-			case 'R': rotation = (uint8_t)atoi(myoptarg); break;
-			case 'd': dev_path = myoptarg; break;
+			case 'R':
+				rotation = (uint8_t)atoi(myoptarg);
+				break;
+
+			case 'd':
+				dev_path = myoptarg;
+				break;
+
 			default:
 				PX4_WARN("Unknown option!");
 				return PX4_ERROR;
@@ -180,9 +194,17 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 
 		const char *uart_verb = argv[myoptind];
 
-		if (!strcmp(uart_verb, "start"))  { return tf02pro::uart_start(dev_path, rotation); }
-		if (!strcmp(uart_verb, "stop"))   { return tf02pro::uart_stop(); }
-		if (!strcmp(uart_verb, "status")) { return tf02pro::uart_status(); }
+		if (!strcmp(uart_verb, "start")) {
+			return tf02pro::uart_start(dev_path, rotation);
+		}
+
+		if (!strcmp(uart_verb, "stop")) {
+			return tf02pro::uart_stop();
+		}
+
+		if (!strcmp(uart_verb, "status")) {
+			return tf02pro::uart_status();
+		}
 
 		TF02PRO::print_usage();
 		return -1;
@@ -190,6 +212,7 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 	} else {
 #if defined(CONFIG_I2C)
 		/* ---- I2C path: existing BusCLIArguments + I2CSPIDriver::module_start() ---- */
+
 		using ThisDriver = TF02PRO;
 		BusCLIArguments cli{true, false};
 		cli.rotation = (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING;
@@ -198,8 +221,13 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 
 		while ((ch = cli.getOpt(argc, argv, "R:d:")) != EOF) {
 			switch (ch) {
-			case 'R': cli.rotation = (Rotation)atoi(cli.optArg()); break;
-			case 'd': /* ignored in I2C mode */ break;
+			case 'R':
+				cli.rotation = (Rotation)atoi(cli.optArg());
+				break;
+
+			case 'd':
+				/* ignored in I2C mode */
+				break;
 			}
 		}
 
@@ -212,12 +240,21 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 
 		BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_TF02PRO);
 
-		if (!strcmp(i2c_verb, "start"))  { return ThisDriver::module_start(cli, iterator); }
-		if (!strcmp(i2c_verb, "stop"))   { return ThisDriver::module_stop(iterator); }
-		if (!strcmp(i2c_verb, "status")) { return ThisDriver::module_status(iterator); }
+		if (!strcmp(i2c_verb, "start")) {
+			return ThisDriver::module_start(cli, iterator);
+		}
+
+		if (!strcmp(i2c_verb, "stop")) {
+			return ThisDriver::module_stop(iterator);
+		}
+
+		if (!strcmp(i2c_verb, "status")) {
+			return ThisDriver::module_status(iterator);
+		}
 
 		ThisDriver::print_usage();
 		return -1;
+
 #else
 		PX4_ERR("I2C mode not supported on this platform.");
 		return -1;
