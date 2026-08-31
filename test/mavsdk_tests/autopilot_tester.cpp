@@ -53,7 +53,10 @@ AutopilotTester::AutopilotTester() :
 
 AutopilotTester::~AutopilotTester()
 {
-	_events->unsubscribe_events(_events_handle);
+	// connect() can fail before the plugins exist, and a destructor that dereferences them
+	// turns the reported timeout into a segfault that hides it
+	if (_events) {
+		_events->unsubscribe_events(_events_handle);
 	_should_exit = true;
 	_real_time_report_thread.join();
 }
