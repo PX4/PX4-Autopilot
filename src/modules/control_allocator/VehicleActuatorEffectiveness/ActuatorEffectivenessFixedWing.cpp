@@ -64,15 +64,21 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 		ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
 {
-	// disable selected control surfaces during launch
-	launch_detection_status_s launch_detection_status;
+	// keep selected control surfaces at the disarmed value until the configured time after takeoff has passed
+	if (_param_ca_cs_lk_delay.get() < FLT_EPSILON) {
+		return;
+	}
 
-	if (_launch_detection_status_sub.copy(&launch_detection_status)) {
-		if (launch_detection_status.selected_control_surface_disarmed
-		    && hrt_elapsed_time(&launch_detection_status.timestamp) < 100_ms) {
+	vehicle_status_s vehicle_status;
 
+	if (_vehicle_status_sub.copy(&vehicle_status)) {
+		// takeoff_time is 0 while disarmed and until a takeoff is detected
+		const bool before_takeoff = vehicle_status.takeoff_time == 0;
+		const bool within_lock_delay = hrt_elapsed_time(&vehicle_status.takeoff_time)
+					       < (hrt_abstime)(_param_ca_cs_lk_delay.get() * 1_s);
+
+		if (before_takeoff || within_lock_delay) {
 			_control_surfaces.applyLaunchLock(_first_control_surface_idx, actuator_sp);
-
 		}
 	}
 }

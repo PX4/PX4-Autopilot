@@ -290,15 +290,12 @@ void FixedwingRateControl::Run()
 				_rate_control.resetIntegral();
 			}
 
-			launch_detection_status_s launch_detection_status{};
-			_launch_detection_status_sub.copy(&launch_detection_status);
-
-			bool control_surfaces_locked = false;
-
-			if (hrt_elapsed_time(&launch_detection_status.timestamp) < 100_ms
-			    && launch_detection_status.selected_control_surface_disarmed) {
-				control_surfaces_locked = true;
-			}
+			// mirrors the lock condition in ActuatorEffectivenessFixedWing::updateSetpoint()
+			const bool lock_enabled = _param_ca_cs_lk_delay.get() > FLT_EPSILON;
+			const bool before_takeoff = _vehicle_status.takeoff_time == 0;
+			const bool within_lock_delay = hrt_elapsed_time(&_vehicle_status.takeoff_time)
+						       < (hrt_abstime)(_param_ca_cs_lk_delay.get() * 1_s);
+			const bool control_surfaces_locked = lock_enabled && (before_takeoff || within_lock_delay);
 
 			// Reset integrators if the aircraft is on ground or not in a state where the fw attitude controller is run
 			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition || control_surfaces_locked) {

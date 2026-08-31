@@ -305,19 +305,6 @@ parameters:
           Not compatible with runway takeoff.
       type: boolean
       default: 0
-    FW_LAUN_CS_LK_DY:
-      description:
-        short: Control surface launch delay
-        long: |-
-          Locks control surfaces during pre-launch (armed) and until this time since launch has passed.
-          Only affects control surfaces that have corresponding flag set, and not active for runway takeoff.
-          Set to 0 to disable any surface locking after arming.
-      type: float
-      default: 0.0
-      unit: s
-      min: 0.0
-      decimal: 1
-      increment: 0.1
     FW_LAUN_CLR_ALT:
       description:
         short: Launch climbout clearance altitude

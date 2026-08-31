@@ -307,9 +307,6 @@ private:
 	// true if a launch, specifically using the launch detector, has been detected
 	bool _launch_detected{false};
 
-	// [us] time stamp of (runway/catapult) launch detection
-	hrt_abstime _time_launch_detected{0};
-
 	// [us] time stamp of the start of the climbout, 0 while the takeoff has not started climbing yet
 	hrt_abstime _time_climbout_started{0};
 
@@ -899,7 +896,6 @@ private:
 
 		// Launch detection parameters
 		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
-		(ParamFloat<px4::params::FW_LAUN_CS_LK_DY>) _param_fw_laun_cs_lk_dy,
 		(ParamFloat<px4::params::FW_LAUN_CLR_ALT>) _param_fw_laun_clr_alt,
 
 		// external parameters
