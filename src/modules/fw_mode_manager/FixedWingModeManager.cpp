@@ -1281,8 +1281,6 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 			_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_limit));
 
-			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
-							   _param_fw_thr_idle.get() : NAN;
 			const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 				.timestamp = now,
 				.altitude = NAN,
@@ -1295,7 +1293,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
 			_ctrl_configuration_handler.setPitchMin(radians(_takeoff_pitch_min.get()));
-			_ctrl_configuration_handler.setThrottleMax(max_takeoff_throttle);
+			_ctrl_configuration_handler.setThrottleMax(NAN);
 			_ctrl_configuration_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
 			_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
 
@@ -1430,8 +1428,6 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-		const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
-						   _param_fw_thr_idle.get() : NAN;
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = now,
 			.altitude = NAN,
@@ -1444,7 +1440,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
 		_ctrl_configuration_handler.setPitchMin(radians(_takeoff_pitch_min.get()));
-		_ctrl_configuration_handler.setThrottleMax(max_takeoff_throttle);
+		_ctrl_configuration_handler.setThrottleMax(NAN);
 		_ctrl_configuration_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
 		_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
 

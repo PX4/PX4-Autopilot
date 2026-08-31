@@ -50,6 +50,24 @@ parameters:
             default: 2
 
         # Motor parameters
+        CA_R_LK_DELAY:
+            description:
+                short: Motor lock delay
+                long: |-
+                  Keeps the motors at their disarmed value while the vehicle has not taken off yet,
+                  and until this time since takeoff detection has passed. Use it for catapult or
+                  hand launches, where the motors must not spin up before the vehicle is clear.
+                  This applies in all flight modes, so a vehicle that has to take off under its own
+                  power must leave this at 0.
+                  Set to 0 to disable motor locking.
+            type: float
+            unit: s
+            min: 0.0
+            max: 10.0
+            decimal: 1
+            increment: 0.5
+            default: 0.0
+
         CA_R_REV:
             description:
                 short: Bidirectional/Reversible motors

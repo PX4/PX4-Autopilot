@@ -103,10 +103,11 @@ The vehicle always respects normal FW max/min throttle settings during takeoff (
 In _catapult/hand-launch mode_ the vehicle waits to detect launch (based on acceleration trigger).
 On launch it enables the motor(s) and climbs with the maximum climb rate [FW_T_CLMB_MAX](#FW_T_CLMB_MAX) while keeping the pitch setpoint above [FW_TKO_PITCH_MIN](#FW_TKO_PITCH_MIN).
 Once it reaches [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT) it will automatically switch to [Hold mode](../flight_modes_fw/hold.md) and loiter.
-It is possible to delay the activation of the motors and control surfaces separately, see parameters [FW_LAUN_MOT_DEL](#FW_LAUN_MOT_DEL), [CA_CS_LK_DELAY](#CA_CS_LK_DELAY) and [CA_CS_LAUN_LK](#CA_CS_LAUN_LK). The later is also exposed in the actuator configuration page under the advanced view.
+It is possible to delay the activation of the motors and control surfaces separately, see parameters [CA_R_LK_DELAY](#CA_R_LK_DELAY), [CA_CS_LK_DELAY](#CA_CS_LK_DELAY) and [CA_CS_LAUN_LK](#CA_CS_LAUN_LK). The later is also exposed in the actuator configuration page under the advanced view.
 
 ::: info
-The control surface lock is not specific to _Takeoff mode_: it is applied in every flight mode, from arming until [CA_CS_LK_DELAY](#CA_CS_LK_DELAY) seconds after takeoff is detected.
+Neither lock is specific to _Takeoff mode_: both are applied in every flight mode, from arming until [CA_CS_LK_DELAY](#CA_CS_LK_DELAY) / [CA_R_LK_DELAY](#CA_R_LK_DELAY) seconds after takeoff is detected.
+Because the motor lock also holds on the ground, a vehicle that has to take off under its own power must leave [CA_R_LK_DELAY](#CA_R_LK_DELAY) at 0.
 :::
 
 All RC stick movement is ignored during the full takeoff sequence.
@@ -127,7 +128,7 @@ The _launch detector_ is affected by the following parameters:
 | <a id="FW_LAUN_DETCN_ON"></a>[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON) | Enable automatic launch detection. If disabled motors spin up on arming already |
 | <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)    | Acceleration threshold (norm of acceleration must be above this value)          |
 | <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)             | Trigger time (acceleration must be above threshold for this amount of seconds)  |
-| <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)    | Delay from launch detection to motor spin up                                    |
+| <a id="CA_R_LK_DELAY"></a>[CA_R_LK_DELAY](../advanced_config/parameter_reference.md#CA_R_LK_DELAY)          | Delay from takeoff detection to motor spin up                                   |
 | <a id="CA_CS_LK_DELAY"></a>[CA_CS_LK_DELAY](../advanced_config/parameter_reference.md#CA_CS_LK_DELAY)       | Delay from takeoff detection to unlocking the control surfaces                  |
 | <a id="CA_CS_LAUN_LK"></a>[CA_CS_LAUN_LK](../advanced_config/parameter_reference.md#CA_CS_LAUN_LK)          | Bitmask to select which control surfaces are to be locked                       |
 

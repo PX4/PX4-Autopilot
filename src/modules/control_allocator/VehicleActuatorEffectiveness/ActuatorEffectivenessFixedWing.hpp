@@ -66,6 +66,7 @@ private:
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::CA_CS_LK_DELAY>) _param_ca_cs_lk_delay
+		(ParamFloat<px4::params::CA_CS_LK_DELAY>) _param_ca_cs_lk_delay,
+		(ParamFloat<px4::params::CA_R_LK_DELAY>) _param_ca_r_lk_delay
 	)
 };

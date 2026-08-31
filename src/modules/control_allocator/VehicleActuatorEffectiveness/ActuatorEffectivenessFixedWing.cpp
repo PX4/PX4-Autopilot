@@ -64,21 +64,35 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 		ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
 {
-	// keep selected control surfaces at the disarmed value until the configured time after takeoff has passed
-	if (_param_ca_cs_lk_delay.get() < FLT_EPSILON) {
+	const float surface_lock_delay = _param_ca_cs_lk_delay.get();
+	const float motor_lock_delay = _param_ca_r_lk_delay.get();
+
+	if (surface_lock_delay < FLT_EPSILON && motor_lock_delay < FLT_EPSILON) {
 		return;
 	}
 
 	vehicle_status_s vehicle_status;
 
-	if (_vehicle_status_sub.copy(&vehicle_status)) {
-		// takeoff_time is 0 while disarmed and until a takeoff is detected
-		const bool before_takeoff = vehicle_status.takeoff_time == 0;
-		const bool within_lock_delay = hrt_elapsed_time(&vehicle_status.takeoff_time)
-					       < (hrt_abstime)(_param_ca_cs_lk_delay.get() * 1_s);
+	if (!_vehicle_status_sub.copy(&vehicle_status)) {
+		return;
+	}
 
-		if (before_takeoff || within_lock_delay) {
-			_control_surfaces.applyLaunchLock(_first_control_surface_idx, actuator_sp);
+	// takeoff_time is 0 while disarmed and until a takeoff is detected
+	const bool before_takeoff = vehicle_status.takeoff_time == 0;
+	const hrt_abstime time_since_takeoff = hrt_elapsed_time(&vehicle_status.takeoff_time);
+
+	// keep selected control surfaces at the disarmed value until the configured time after takeoff has passed
+	if (surface_lock_delay > FLT_EPSILON
+	    && (before_takeoff || time_since_takeoff < (hrt_abstime)(surface_lock_delay * 1_s))) {
+		_control_surfaces.applyLaunchLock(_first_control_surface_idx, actuator_sp);
+	}
+
+	// keep the motors at the disarmed value until the configured time after takeoff has passed
+	if (motor_lock_delay > FLT_EPSILON
+	    && (before_takeoff || time_since_takeoff < (hrt_abstime)(motor_lock_delay * 1_s))) {
+		// the motors take up the actuators of the first matrix ahead of the control surfaces
+		for (int i = 0; i < _first_control_surface_idx; ++i) {
+			actuator_sp(i) = NAN;
 		}
 	}
 }

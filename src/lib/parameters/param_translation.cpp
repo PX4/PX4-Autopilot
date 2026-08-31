@@ -367,5 +367,15 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-08-31: the motor start delay moved from the launch detector into the control allocator
+	// and now applies in all flight modes, so FW_LAUN_MOT_DEL became CA_R_LK_DELAY
+	{
+		if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp("FW_LAUN_MOT_DEL", node->name) == 0)) {
+			strcpy(node->name, "CA_R_LK_DELAY");
+			PX4_INFO("copying %s -> %s", "FW_LAUN_MOT_DEL", "CA_R_LK_DELAY");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }
