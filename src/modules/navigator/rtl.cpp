@@ -546,7 +546,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 				// A cache miss is expected while Navigator is asynchronously loading the item.
 				if ((!mission_route_cache.missionLandItemUpdatePending()
 				     || mission_route_cache.missionLandItemAttemptFailed()) && !_mission_land_failure_reported) {
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
+					/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 					events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
 						     "Mission land item could not be read");
 					_mission_land_failure_mission_id = mission.mission_id;

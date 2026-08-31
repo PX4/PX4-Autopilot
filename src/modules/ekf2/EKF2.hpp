@@ -397,7 +397,6 @@ private:
 	hrt_abstime _status_sideslip_pub_last {0};
 #endif // CONFIG_EKF2_SIDESLIP
 
-	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

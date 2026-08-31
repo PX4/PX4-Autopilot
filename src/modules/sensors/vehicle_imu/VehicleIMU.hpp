@@ -166,7 +166,6 @@ private:
 	uint64_t    _last_accel_clipping_notify_total_count{0};
 	uint64_t    _last_gyro_clipping_notify_total_count{0};
 
-	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uint32_t _backup_schedule_timeout_us{20000};
 

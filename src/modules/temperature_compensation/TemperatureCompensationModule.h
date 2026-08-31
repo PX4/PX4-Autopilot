@@ -143,7 +143,6 @@ private:
 
 	perf_counter_t _loop_perf;			/**< loop performance counter */
 
-	orb_advert_t _mavlink_log_pub{nullptr};
 
 	/* sensor thermal compensation */
 	TemperatureCompensation _temperature_compensation;

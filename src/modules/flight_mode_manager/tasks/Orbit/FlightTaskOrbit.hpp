@@ -130,7 +130,6 @@ private:
 	HeadingSmoothing _heading_smoothing;
 	SlewRate<float> _slew_rate_velocity;
 
-	orb_advert_t _mavlink_log_pub{nullptr};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
 	DEFINE_PARAMETERS(

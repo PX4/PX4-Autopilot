@@ -137,7 +137,6 @@ private:
 	uint8_t			_trigger_rate_exceeded_counter{0};
 	px4::atomic<bool> _trigger_rate_failure{false};
 
-	orb_advert_t _mavlink_log_pub{nullptr};
 
 	// Signal capture callback
 	void			capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
