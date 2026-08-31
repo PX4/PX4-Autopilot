@@ -25,6 +25,8 @@ if(MAVSDK_FOUND)
         # autopilot_tester_follow_me.cpp
         test_multicopter_basics.cpp
         test_multicopter_control_allocation.cpp
+        test_ekf2_selector.cpp
+        test_multicopter_ekf_failover.cpp
         test_multicopter_failure_injection.cpp
         test_multicopter_failsafe.cpp
         test_multicopter_mission.cpp
