@@ -125,7 +125,11 @@ failure gps off
 
 int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t instance, int32_t mask)
 {
-	uORB::Subscription command_ack_sub{ORB_ID(vehicle_command_ack)};
+	// Subscribe before publishing the command. vehicle_command_ack is queued and
+	// a new Subscription starts with the latest retained sample available; using
+	// SubscriptionData consumes that sample here so it cannot be mistaken for
+	// the reply to the command below.
+	uORB::SubscriptionData<vehicle_command_ack_s> command_ack_sub{ORB_ID(vehicle_command_ack)};
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	vehicle_command_s command{};
@@ -149,11 +153,11 @@ int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t ins
 	command.timestamp = hrt_absolute_time();
 	command_pub.publish(command);
 
-	vehicle_command_ack_s ack;
-
 	while (hrt_elapsed_time(&command.timestamp) < 1_s) {
-		if (command_ack_sub.update(&ack)) {
-			if (ack.command == command.command) {
+		if (command_ack_sub.update()) {
+			const vehicle_command_ack_s &ack = command_ack_sub.get();
+
+			if (ack.command == command.command && !ack.from_external) {
 				if (ack.result != vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
 					PX4_ERR("Result: %d", ack.result);
 					return 1;
