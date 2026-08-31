@@ -44,7 +44,7 @@ int tf02pro_parse(uint8_t c, uint8_t *buf, unsigned *buf_idx,
 
 	switch (*state) {
 	case TF02PRO_PARSE_STATE::STATE9_GOT_CHECKSUM:
-		// Fall through — re-sync immediately after a completed frame
+		// Fall through -- re-sync immediately after a completed frame
 	case TF02PRO_PARSE_STATE::STATE0_UNSYNC:
 		if (c == 0x59) {
 			*state = TF02PRO_PARSE_STATE::STATE1_SYNC_1;
@@ -116,7 +116,7 @@ int tf02pro_parse(uint8_t c, uint8_t *buf, unsigned *buf_idx,
 			*state = TF02PRO_PARSE_STATE::STATE9_GOT_CHECKSUM;
 
 		} else {
-			// Checksum mismatch — discard frame, attempt re-sync
+			// Checksum mismatch -- discard frame, attempt re-sync
 			*state = TF02PRO_PARSE_STATE::STATE0_UNSYNC;
 		}
 

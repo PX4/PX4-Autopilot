@@ -47,7 +47,7 @@
 #include <uORB/topics/distance_sensor.h>
 #include "tf02pro_parser.h"
 
-/* Physical constants — identical to the I2C driver */
+/* Physical constants -- identical to the I2C driver */
 #define TF02PRO_UART_MIN_DISTANCE (0.10f)
 #define TF02PRO_UART_MAX_DISTANCE (35.00f)
 #define TF02PRO_DEFAULT_PORT      "/dev/ttyS3"
