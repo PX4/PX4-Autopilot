@@ -43,6 +43,7 @@ px4_add_module(
 		tf02pro_main.cpp
 	MODULE_CONFIG
 		module.yaml
+		parameters.yaml
 	DEPENDS
 		drivers_rangefinder
 		px4_work_queue

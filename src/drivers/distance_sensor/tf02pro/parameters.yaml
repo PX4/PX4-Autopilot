@@ -1,9 +1,4 @@
 module_name: tf02pro
-serial_config:
-  - command: tf02pro start -d ${SERIAL_DEV}
-    port_config_param:
-      name: SENS_TF02PRO_CFG
-      group: Sensors
 parameters:
 - group: Sensors
   definitions:
