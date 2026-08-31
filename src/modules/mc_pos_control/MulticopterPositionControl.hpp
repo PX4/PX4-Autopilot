@@ -91,6 +91,8 @@ public:
 	bool init();
 
 private:
+	friend class PositionControlTestPeer;
+
 	void Run() override;
 
 	TakeoffHandling _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
