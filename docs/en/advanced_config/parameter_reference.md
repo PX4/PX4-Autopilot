@@ -40484,7 +40484,7 @@ INA228 Power Monitor Max Current.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0.1      | 327.68   | 0.1       | 327.68  |      | &nbsp;    |
+| &check; | 0.1      | 1638.4   | 0.1       | 327.68  |      | &nbsp;    |
 
 ### INA228_SHUNT (`FLOAT`) {#INA228_SHUNT}
 
@@ -40500,7 +40500,7 @@ INA238 Power Monitor Max Current.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0.1      | 327.68   | 0.1       | 327.68  |      | &nbsp;    |
+| &check; | 0.1      | 1638.4   | 0.1       | 327.68  |      | &nbsp;    |
 
 ### INA238_SHUNT (`FLOAT`) {#INA238_SHUNT}
 
