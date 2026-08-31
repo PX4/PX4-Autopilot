@@ -119,7 +119,6 @@ private:
 
 	bool get_differential_pressure();
 	hrt_abstime last_sample_time = hrt_absolute_time();
-	orb_advert_t 	_mavlink_log_pub {nullptr}; //log send to
 
 
 	uint32_t _measure_interval{CONVERSION_INTERVAL};

@@ -68,9 +68,6 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_avionics_power_missing"),
 				       events::Log::Error, "Power module not connected");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Power module not connected");
-		}
 
 		return;
 	}
@@ -115,10 +112,6 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 								     events::ID("check_avionics_power_low"),
 								     events::Log::Error, "Avionics Power low: {1:.2} Volt", _latest_low_failure_val, low_error_threshold);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Avionics Power low: %6.2f Volt",
-							     (double)_latest_low_failure_val);
-				}
 
 			} else if (_voltage_high_hysteresis.get_state()) {
 				/* EVENT
@@ -133,10 +126,6 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 								     events::ID("check_avionics_power_high"),
 								     events::Log::Error, "Avionics Power high: {1:.2} Volt", _latest_high_failure_val, high_error_threshold);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Avionics Power high: %6.2f Volt",
-							     (double)_latest_high_failure_val);
-				}
 			}
 
 			const int power_module_count = math::countSetBits(system_power.brick_valid);
@@ -155,10 +144,6 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 						events::ID("check_avionics_power_redundancy"),
 						events::Log::Error, "Power redundancy not met", power_module_count, _param_com_power_count.get());
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Power redundancy not met: %d of %" PRId32 "",
-							     power_module_count, _param_com_power_count.get());
-				}
 			}
 
 			// Overcurrent detection
@@ -204,8 +189,5 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_missing_system_power"),
 				       events::Log::Error, "System power unavailable");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: system power unavailable");
-		}
 	}
 }

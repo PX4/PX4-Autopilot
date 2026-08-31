@@ -65,9 +65,5 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.armingCheckFailure(NavModes::None, health_component_t::system,
 					    events::ID("check_rally_point_missing"),
 					    events::Log::Warning, "No rally point configured");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_warning(reporter.mavlink_log_pub(), "No rally point configured\t");
-		}
 	}
 }

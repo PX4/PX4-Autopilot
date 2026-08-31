@@ -65,9 +65,6 @@ void DistanceSensorChecks::checkAndReport(const Context &context, Report &report
 								events::ID("check_distance_sensor_missing"),
 								events::Log::Error, "Distance sensor {1} missing", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Distance Sensor %u missing", instance);
-				}
 
 			} else if (!valid) {
 				/* EVENT
@@ -76,9 +73,6 @@ void DistanceSensorChecks::checkAndReport(const Context &context, Report &report
 								events::ID("check_distance_sensor_invalid"),
 								events::Log::Error, "No valid data from distance sensor {1}", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No valid distance sensor %u data", instance);
-				}
 			}
 		}
 	}

@@ -66,10 +66,6 @@ void BaroChecks::checkAndReport(const Context &context, Report &reporter)
 				       events::ID("check_baro_none_enabled"),
 				       events::Log::Error, "No barometer enabled");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no barometer enabled");
-		}
-
 	} else if (status_valid && (sensors_status.device_id_primary == 0)) {
 		// enabled barometers exist but none of them is usable, so no instance below is the primary
 		/* EVENT
@@ -79,10 +75,6 @@ void BaroChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.healthFailure(NavModes::All, health_component_t::absolute_pressure,
 				       events::ID("check_baro_none_selected"),
 				       events::Log::Error, "No valid barometer data");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no valid barometer data");
-		}
 	}
 
 	// only the barometer actually in use has to be healthy; the others are spares, and a disabled
@@ -116,9 +108,6 @@ void BaroChecks::checkAndReport(const Context &context, Report &reporter)
 								events::ID("check_baro_missing"),
 								events::Log::Error, "Barometer {1} missing", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: barometer %u missing", instance);
-				}
 
 			} else if (!is_valid) {
 				/* EVENT
@@ -127,9 +116,6 @@ void BaroChecks::checkAndReport(const Context &context, Report &reporter)
 								events::ID("check_baro_no_data"),
 								events::Log::Error, "No valid data from barometer {1}", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No valid data from Baro %u", instance);
-				}
 			}
 		}
 	}

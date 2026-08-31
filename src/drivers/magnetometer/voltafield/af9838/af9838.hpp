@@ -78,7 +78,6 @@ public:
 	static void print_usage();
 
 private:
-	orb_advert_t _mavlink_log_pub{nullptr};
 	int8_t _last_accuracy{-1};
 
 	using device::I2C::transfer;

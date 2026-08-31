@@ -92,9 +92,6 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::magnetometer, events::ID("check_mag_missing"),
 								events::Log::Error, "Compass sensor {1} missing", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Compass Sensor %u missing", instance);
-				}
 
 			} else if (!is_valid) {
 				/* EVENT
@@ -102,9 +99,6 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::magnetometer, events::ID("check_mag_no_data"),
 								events::Log::Error, "No valid data from Compass {1}", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No valid data from Compass %u", instance);
-				}
 
 			} else if (!is_calibration_valid) {
 				/* EVENT
@@ -113,9 +107,6 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 								     events::ID("check_mag_not_calibrated"),
 								     events::Log::Error, "Compass {1} uncalibrated", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Compass %u uncalibrated", instance);
-				}
 
 			} else if (is_mag_fault) {
 				/* EVENT
@@ -125,9 +116,6 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 				reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::magnetometer, events::ID("check_mag_fault"),
 								     events::Log::Error, "Estimator fault due to Compass {1}", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Compass %u fault", instance);
-				}
 			}
 
 			had_failure = true;
@@ -150,10 +138,6 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 					events::ID("check_mag_sys_has_mag_missing"),
 					events::Log::Error, "Found {1} compass (required: {2})", num_enabled_and_valid_calibration, _param_sys_has_mag.get());
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Found %i compass (required: %" PRId32 ")",
-						     num_enabled_and_valid_calibration, _param_sys_has_mag.get());
-			}
 		}
 	}
 }
@@ -217,9 +201,5 @@ void MagnetometerChecks::consistencyCheck(const Context &context, Report &report
 						     events::ID("check_mag_consistency"),
 						     events::Log::Error, "Compass inconsistent by {1} degrees", inconsistency_angle_deg);
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Compasses %d° inconsistent",
-					     inconsistency_angle_deg);
-		}
 	}
 }

@@ -40,33 +40,6 @@ using namespace time_literals;
 using esc_fault_reason_t = events::px4::enums::esc_fault_reason_t;
 static_assert(esc_report_s::ESC_FAILURE_COUNT == (static_cast<uint8_t>(esc_fault_reason_t::_max) + 1)
 	      , "ESC fault flags mismatch!");
-static constexpr const char *esc_fault_reason_str(esc_fault_reason_t esc_fault_reason)
-{
-	switch (esc_fault_reason) {
-	case esc_fault_reason_t::over_current: return "over current";
-
-	case esc_fault_reason_t::over_voltage: return "over voltage";
-
-	case esc_fault_reason_t::motor_over_temp: return "motor critical temperature";
-
-	case esc_fault_reason_t::over_rpm: return "over RPM";
-
-	case esc_fault_reason_t::inconsistent_cmd: return "control failure";
-
-	case esc_fault_reason_t::motor_stuck: return "motor stall";
-
-	case esc_fault_reason_t::failure_generic: return "hardware failure";
-
-	case esc_fault_reason_t::motor_warn_temp: return "motor over temperature";
-
-	case esc_fault_reason_t::esc_warn_temp: return "over temperature";
-
-	case esc_fault_reason_t::esc_over_temp: return "critical temperature";
-	}
-
-	return "";
-};
-
 
 void EscChecks::checkAndReport(const Context &context, Report &reporter)
 {
@@ -109,9 +82,6 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.healthFailure(NavModes::All, health_component_t::motors_escs, events::ID("check_escs_telem_missing"),
 				       events::Log::Critical, "ESC telemetry missing");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: ESC telemetry missing");
-		}
 	}
 }
 
@@ -119,7 +89,6 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 {
 	// Check if one or more the ESCs are offline
 	uint16_t mask = 0;
-	char esc_fail_msg[esc_status_s::CONNECTED_ESC_MAX * 6 + 1] = "";
 
 	for (int esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
 		if (!math::isInRange(esc_status.esc[esc_index].actuator_function,
@@ -143,14 +112,9 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 			 */
 			reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs, events::ID("check_escs_offline"),
 							events::Log::Critical, "ESC {1} offline", esc_nr);
-			snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", esc_nr);
-			esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
 		}
 	}
 
-	if (reporter.mavlink_log_pub() && esc_fail_msg[0] != '\0') {
-		mavlink_log_critical(reporter.mavlink_log_pub(), "%soffline. %s\t", esc_fail_msg, context.isArmed() ? "Land now!" : "");
-	}
 
 	return mask;
 }
@@ -180,18 +144,15 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 			}
 
 			esc_fault_reason_t fault_reason_index = static_cast<esc_fault_reason_t>(fault_index);
-			const char *user_action = "";
 			events::px4::enums::suggested_action_t action = events::px4::enums::suggested_action_t::none;
 
 			if (context.isArmed()) {
 				if (fault_reason_index == esc_fault_reason_t::motor_warn_temp
 				    || fault_reason_index == esc_fault_reason_t::esc_warn_temp
 				    || fault_reason_index == esc_fault_reason_t::over_rpm) {
-					user_action = "Reduce throttle";
 					action = events::px4::enums::suggested_action_t::reduce_throttle;
 
 				} else {
-					user_action = "Land now!";
 					action = events::px4::enums::suggested_action_t::land;
 				}
 			}
@@ -208,10 +169,6 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 				NavModes::All, health_component_t::motors_escs, events::ID("check_failure_detector_arm_esc"),
 				events::Log::Critical, "ESC {1}: {2}", esc_index + 1, fault_reason_index, action);
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_emergency(reporter.mavlink_log_pub(), "ESC%d: %s. %s \t", esc_index + 1,
-						      esc_fault_reason_str(fault_reason_index), user_action);
-			}
 		}
 	}
 
@@ -221,9 +178,6 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_status)
 {
 	const float warn_temp = _param_esc_temp_warn_th.get();
-
-	uint8_t hottest_esc_index = UINT8_MAX;
-	float max_temperature = -FLT_MAX;
 
 	for (uint8_t esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
 		if (!math::isInRange(esc_status.esc[esc_index].actuator_function,
@@ -235,11 +189,6 @@ void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_st
 
 		if (!PX4_ISFINITE(temperature)) {
 			continue;
-		}
-
-		if (temperature > max_temperature) {
-			max_temperature = temperature;
-			hottest_esc_index = esc_index;
 		}
 
 		if (temperature > warn_temp) {
@@ -255,20 +204,6 @@ void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_st
 					"ESC {1} temperature warning, {2:C}",
 					static_cast<uint8_t>(esc_index + 1), static_cast<uint8_t>(temperature));
 		}
-	}
-
-	if (hottest_esc_index == UINT8_MAX) {
-		return;
-	}
-
-	if (max_temperature >= warn_temp) {
-		if (!_esc_over_temp_warned && reporter.mavlink_log_pub()) {
-			mavlink_log_warning(reporter.mavlink_log_pub(), "High ESC temperature. Reduce throttle!");
-			_esc_over_temp_warned = true;
-		}
-
-	} else if (max_temperature < warn_temp - 5.f) {
-		_esc_over_temp_warned = false;
 	}
 }
 
@@ -338,10 +273,6 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 								events::ID("check_motor_undercurrent"),
 								events::Log::Critical, "Motor {1} undercurrent detected", actuator_function_index + 1);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d undercurrent detected",
-							     actuator_function_index + 1);
-				}
 			}
 
 			if (_esc_overcurrent_hysteresis[i].get_state()) {
@@ -355,10 +286,6 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 								events::ID("check_motor_overcurrent"),
 								events::Log::Critical, "Motor {1} overcurrent detected", actuator_function_index + 1);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d overcurrent detected",
-							     actuator_function_index + 1);
-				}
 			}
 		}
 
@@ -393,9 +320,6 @@ void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const
 					       events::ID("check_escs_not_all_armed"),
 					       events::Log::Critical, "Not all ESCs are armed");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "ESC failure: Not all ESCs are armed. Land now!");
-			}
 
 			reporter.failsafeFlags().fd_esc_arming_failure = true;
 		}

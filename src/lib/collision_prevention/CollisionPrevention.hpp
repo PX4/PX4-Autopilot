@@ -173,7 +173,6 @@ private:
 
 	float _min_dist_to_keep{};
 
-	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	matrix::Quatf _vehicle_attitude{};

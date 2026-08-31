@@ -68,9 +68,6 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_missing_cpuload"),
 				       events::Log::Error, "No CPU and RAM load information");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No CPU and RAM load information");
-		}
 
 	} else {
 		const float cpuload_percent = cpuload.load * 100.f;
@@ -91,9 +88,6 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.healthFailure<float>(NavModes::All, health_component_t::system, events::ID("check_cpuload_too_high"),
 						      events::Log::Error, "CPU load too high: {1:.1}%", cpuload_percent);
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: CPU load too high: %3.1f%%", (double)cpuload_percent);
-			}
 		}
 
 		const float ram_usage_percent = cpuload.ram_usage * 100.f;
@@ -111,10 +105,6 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.healthFailure<float>(NavModes::All, health_component_t::system, events::ID("check_ram_usage_too_high"),
 						      events::Log::Error, "RAM usage too high: {1:.1}%", ram_usage_percent);
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: RAM usage too high: %3.1f%%",
-						     (double)ram_usage_percent);
-			}
 		}
 	}
 }

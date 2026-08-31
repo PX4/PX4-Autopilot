@@ -48,8 +48,5 @@ void ArmPermissionChecks::checkAndReport(const Context &context, Report &reporte
 					    events::ID("check_armable_configuration"),
 					    events::Log::Error, "Vehicle is in safety configuration");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Vehicle is in safety configuration");
-		}
 	}
 }

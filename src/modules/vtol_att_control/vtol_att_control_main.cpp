@@ -195,9 +195,6 @@ void
 VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
 	if (!_vtol_vehicle_status.fixed_wing_system_failure) {
-		// only publish generic warning through mavlink to safe flash
-		mavlink_log_critical(&_mavlink_log_pub, "Quad-chute triggered\t");
-
 		switch (reason) {
 		case QuadchuteReason::TransitionTimeout:
 			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical,

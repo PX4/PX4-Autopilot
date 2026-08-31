@@ -69,7 +69,6 @@ private:
 
 	uint16_t _motor_failure_mask = 0;
 	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {};
-	bool _esc_over_temp_warned{false};
 	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_arm_hysteresis;

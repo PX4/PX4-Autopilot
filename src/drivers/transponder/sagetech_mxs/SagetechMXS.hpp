@@ -114,7 +114,6 @@ private:
 
 	// Publications
 	uORB::Publication<transponder_report_s> _transponder_report_pub{ORB_ID(transponder_report)};
-	orb_advert_t _mavlink_log_pub{nullptr};
 
 
 	// Subscriptions

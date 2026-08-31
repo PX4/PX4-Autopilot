@@ -103,7 +103,6 @@ void SpacecraftPositionControl::updateParams()
 		if (_param_mpc_vel_cruise.get() > _param_mpc_vel_max.get()) {
 			_param_mpc_vel_cruise.set(_param_mpc_vel_max.get());
 			_param_mpc_vel_cruise.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>SPC_VEL_CRUISE</param> is set to {1:.0}.
 			 */
@@ -114,7 +113,6 @@ void SpacecraftPositionControl::updateParams()
 		if (_param_mpc_vel_manual.get() > _param_mpc_vel_max.get()) {
 			_param_mpc_vel_manual.set(_param_mpc_vel_max.get());
 			_param_mpc_vel_manual.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>SPC_VEL_MANUAL</param> is set to {1:.0}.
 			 */

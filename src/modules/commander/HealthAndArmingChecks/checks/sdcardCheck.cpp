@@ -63,9 +63,6 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 					    events::ID("check_missing_fmu_sdcard"),
 					    events::Log::Error, "Missing FMU SD Card");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Missing FMU SD Card");
-		}
 	}
 
 #endif // CONFIG_BOARD_NO_SDCARD
@@ -110,9 +107,6 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 				       events::ID("check_hardfault_present"),
 				       events::Log::Error, "Crash dumps present on SD card");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Crash dumps present on SD");
-		}
 	}
 
 #if CONFIG_MODULES_TASK_WATCHDOG
@@ -159,9 +153,6 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 				       events::ID("check_task_watchdog_present"),
 				       events::Log::Error, "Task watchdog dumps present on SD card");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Task watchdog dumps present on SD");
-		}
 	}
 
 #endif /* CONFIG_MODULES_TASK_WATCHDOG */

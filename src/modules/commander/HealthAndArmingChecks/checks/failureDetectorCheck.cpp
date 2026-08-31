@@ -56,9 +56,6 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_roll"),
 					    events::Log::Critical, "Attitude failure detected");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Attitude failure (roll)");
-		}
 
 	} else if (report_attitude_failure && fd_status.fd_pitch) {
 		/* EVENT
@@ -72,9 +69,6 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_pitch"),
 					    events::Log::Critical, "Attitude failure detected");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Attitude failure (pitch)");
-		}
 	}
 
 	if (fd_status.fd_alt) {
@@ -83,9 +77,6 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_alt"),
 					    events::Log::Critical, "Altitude failure detected");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Altitude failure");
-		}
 	}
 
 	if (fd_status.fd_ext) {
@@ -98,9 +89,6 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_ext"),
 					    events::Log::Critical, "Failure triggered by external system");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: triggered by external system");
-		}
 	}
 
 	reporter.failsafeFlags().fd_critical_failure = fd_status.fd_roll || fd_status.fd_pitch || fd_status.fd_ext;
@@ -120,8 +108,5 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_imbalanced_prop"),
 				       events::Log::Critical, "Imbalanced propeller detected");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Imbalanced propeller detected");
-		}
 	}
 }
