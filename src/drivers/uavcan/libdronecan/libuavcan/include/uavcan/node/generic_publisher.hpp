@@ -73,6 +73,8 @@ public:
     TransferPriority getPriority() const { return sender_.getPriority(); }
     void setPriority(const TransferPriority prio) { sender_.setPriority(prio); }
 
+    void setIfaceMask(uint8_t iface_mask) { sender_.setIfaceMask(iface_mask); }
+
     INode& getNode() const { return node_; }
 };
 

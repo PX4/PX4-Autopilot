@@ -42,10 +42,12 @@ using namespace time_literals;
 IIS2MDC::IIS2MDC(device::Device *interface, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_interface(interface),
-	_px4_mag(interface->get_device_id(), config.rotation),
+	_px4_mag(interface->get_device_id(), config.rotation, config.external),
 	_sample_count(perf_alloc(PC_COUNT, "iis2mdc_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "iis2mdc_comms_errors"))
-{}
+{
+	_interface->set_external(config.external);
+}
 
 IIS2MDC::~IIS2MDC()
 {

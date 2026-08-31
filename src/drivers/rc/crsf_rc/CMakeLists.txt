@@ -47,3 +47,11 @@ px4_add_module(
 	MODULE_CONFIG
 		module.yaml
 	)
+
+px4_add_unit_gtest(
+	SRC CrsfParserContractTest.cpp
+	EXTRA_SRCS
+		CrsfParser.cpp
+		QueueBuffer.cpp
+		Crc8.cpp
+	)

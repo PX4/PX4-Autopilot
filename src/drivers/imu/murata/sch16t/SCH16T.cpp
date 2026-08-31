@@ -45,8 +45,8 @@ SCH16T::SCH16T(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
 	ModuleParams(nullptr),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation),
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external),
 	_drdy_gpio(config.drdy_gpio)
 {
 	if (_drdy_gpio != 0) {

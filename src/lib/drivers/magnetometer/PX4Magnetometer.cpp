@@ -37,9 +37,32 @@
 #include <lib/drivers/device/Device.hpp>
 
 PX4Magnetometer::PX4Magnetometer(uint32_t device_id, enum Rotation rotation) :
-	_device_id{device_id},
-	_rotation{rotation}
+	PX4Magnetometer(device_id, rotation, device::device_is_external(device_id))
 {
+	_external_forced = false;
+}
+
+PX4Magnetometer::PX4Magnetometer(uint32_t device_id, enum Rotation rotation, bool external) :
+	_device_id{device_id},
+	_rotation{rotation},
+	_is_external{external},
+	_external_forced{true}
+{
+}
+
+void PX4Magnetometer::set_device_id(uint32_t device_id)
+{
+	_device_id = device_id;
+
+	if (!_external_forced) {
+		_is_external = device::device_is_external(device_id);
+	}
+}
+
+void PX4Magnetometer::set_external(bool external)
+{
+	_is_external = external;
+	_external_forced = true;
 }
 
 PX4Magnetometer::~PX4Magnetometer()
@@ -65,6 +88,7 @@ void PX4Magnetometer::update(const hrt_abstime &timestamp_sample, float x, float
 	sensor_mag_s report;
 	report.timestamp_sample = timestamp_sample;
 	report.device_id = _device_id;
+	report.is_external = _is_external;
 	report.temperature = _temperature;
 	report.error_count = _error_count;
 

@@ -50,15 +50,13 @@ static constexpr int32_t sum(const int16_t samples[], uint8_t len)
 	return sum;
 }
 
-static constexpr uint8_t clipping(const int16_t samples[], uint8_t len)
+static constexpr uint8_t clipping(const int16_t samples[], uint8_t len, int16_t clip_limit)
 {
 	unsigned clip_count = 0;
 
 	for (int n = 0; n < len; n++) {
-		// - consider data clipped/saturated if it's INT16_MIN/INT16_MAX or within 1
-		// - this accommodates rotated data (|INT16_MIN| = INT16_MAX + 1)
-		//   and sensors that may re-use the lowest bit for other purposes (sync indicator, etc)
-		if ((samples[n] <= INT16_MIN + 1) || (samples[n] >= INT16_MAX - 1)) {
+		// symmetric about zero: rotation negates samples and |INT16_MIN| = INT16_MAX + 1
+		if ((samples[n] <= -clip_limit) || (samples[n] >= clip_limit)) {
 			clip_count++;
 		}
 	}
@@ -67,13 +65,36 @@ static constexpr uint8_t clipping(const int16_t samples[], uint8_t len)
 }
 
 PX4Accelerometer::PX4Accelerometer(uint32_t device_id, enum Rotation rotation) :
+	PX4Accelerometer(device_id, rotation, device::device_is_external(device_id))
+{
+	_external_forced = false;
+}
+
+PX4Accelerometer::PX4Accelerometer(uint32_t device_id, enum Rotation rotation, bool external) :
 	_device_id{device_id},
-	_rotation{rotation}
+	_rotation{rotation},
+	_is_external{external},
+	_external_forced{true}
 {
 	// advertise immediately to keep instance numbering in sync
 	_sensor_pub.advertise();
 
 	param_get(param_find("IMU_GYRO_RATEMAX"), &_imu_gyro_rate_max);
+}
+
+void PX4Accelerometer::set_device_id(uint32_t device_id)
+{
+	_device_id = device_id;
+
+	if (!_external_forced) {
+		_is_external = device::device_is_external(device_id);
+	}
+}
+
+void PX4Accelerometer::set_external(bool external)
+{
+	_is_external = external;
+	_external_forced = true;
 }
 
 PX4Accelerometer::~PX4Accelerometer()
@@ -121,6 +142,7 @@ void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, floa
 
 	report.timestamp_sample = timestamp_sample;
 	report.device_id = _device_id;
+	report.is_external = _is_external;
 	report.temperature = _temperature;
 	report.error_count = _error_count;
 	report.x = x * _scale;
@@ -150,6 +172,7 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 	}
 
 	sample.device_id = _device_id;
+	sample.is_external = _is_external;
 	sample.scale = _scale;
 	sample.timestamp = hrt_absolute_time();
 
@@ -168,6 +191,7 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 	sensor_accel_s report;
 	report.timestamp_sample = sample.timestamp_sample;
 	report.device_id = _device_id;
+	report.is_external = _is_external;
 	report.temperature = _temperature;
 	report.error_count = _error_count;
 
@@ -181,9 +205,13 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 	_last_sample[1] = sample.y[N - 1];
 	_last_sample[2] = sample.z[N - 1];
 
-	report.clip_counter[0] = clipping(sample.x, N);
-	report.clip_counter[1] = clipping(sample.y, N);
-	report.clip_counter[2] = clipping(sample.z, N);
+	// The declared range is not the int16 rail on every part (ST high-g and dps scales leave
+	// headroom in the word), so clip against range/scale like update() does. The 0.999 margin
+	// in _clip_limit also covers sensors that reuse the lowest bit for a sync flag.
+	const int16_t clip_limit = static_cast<int16_t>(math::min(_clip_limit, (float)(INT16_MAX - 1)));
+	report.clip_counter[0] = clipping(sample.x, N, clip_limit);
+	report.clip_counter[1] = clipping(sample.y, N, clip_limit);
+	report.clip_counter[2] = clipping(sample.z, N, clip_limit);
 	report.samples = N;
 	report.timestamp = hrt_absolute_time();
 

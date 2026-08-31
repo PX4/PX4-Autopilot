@@ -58,7 +58,7 @@ static constexpr float COS_HEADING_TRACK_ANGLE_NOT_PUSHED_BACK{0.09f}; ///< Cos 
 static constexpr float COS_HEADING_TRACK_ANGLE_PUSHED_BACK{0.f}; ///< Cos of Heading to track angle above which it is assumed that the vehicle is pushed back by the wind
 
 // [s] Timeout that has to pass in roll-constraining failsafe before warning is triggered
-static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
+static constexpr hrt_abstime ROLL_WARNING_TIMEOUT = 2_s;
 
 // [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
 static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
@@ -66,11 +66,11 @@ static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 // [m/s/s] slew rate limit for airspeed setpoint changes
 static constexpr float ASPD_SP_SLEW_RATE = 1.f;
 
-// [s] time constant of the fuel fraction filter, needs to be slow enough to reject fuel sloshing
-static constexpr float FUEL_FRACTION_FILTER_TIME_CONST = 30.f;
+// [us] time constant of the fuel fraction filter, needs to be slow enough to reject fuel sloshing
+static constexpr hrt_abstime FUEL_FRACTION_FILTER_TIME_CONST = 30_s;
 
-// [s] maximum time step used to advance the fuel fraction filter on a new sample
-static constexpr float FUEL_FRACTION_FILTER_MAX_DT = 10.f;
+// [us] maximum time step used to advance the fuel fraction filter on a new sample
+static constexpr hrt_abstime FUEL_FRACTION_FILTER_MAX_DT = 10_s;
 
 FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	ModuleParams(nullptr),
@@ -83,7 +83,7 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	_flight_phase_estimation_pub.advertise();
 	_fixed_wing_lateral_status_pub.advertise();
 
-	_fuel_fraction_filter.setParameters(0.f, FUEL_FRACTION_FILTER_TIME_CONST);
+	_fuel_fraction_filter.setParameters(hrt_abstime{0}, FUEL_FRACTION_FILTER_TIME_CONST);
 
 	parameters_update();
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
@@ -485,9 +485,9 @@ void FwLateralLongitudinalControl::updateFuelState()
 			_fuel_fraction_filter.reset(fuel_fraction_remaining);
 
 		} else if (fuel_tank_status.timestamp > _time_last_fuel_fraction_update) {
-			const float dt = math::min((fuel_tank_status.timestamp - _time_last_fuel_fraction_update) * 1e-6f,
-						   FUEL_FRACTION_FILTER_MAX_DT);
-			_fuel_fraction_filter.update(fuel_fraction_remaining, dt);
+			const hrt_abstime dt_us = math::min(fuel_tank_status.timestamp - _time_last_fuel_fraction_update,
+							    FUEL_FRACTION_FILTER_MAX_DT);
+			_fuel_fraction_filter.update(fuel_fraction_remaining, dt_us);
 
 		} else {
 			// out-dated sample

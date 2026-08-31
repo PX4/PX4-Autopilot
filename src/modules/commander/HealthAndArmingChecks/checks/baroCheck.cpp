@@ -41,8 +41,56 @@ void BaroChecks::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
+	// until vehicle_air_data has published, which barometers are enabled is unknown, so fall
+	// back to requiring the first instance as before
+	sensors_status_s sensors_status{};
+	const bool status_valid = _sensors_status_baro_sub.copy(&sensors_status) && (sensors_status.timestamp != 0);
+
+	bool any_enabled = false;
+
+	for (int i = 0; i < kMaxSensorCount; i++) {
+		if ((sensors_status.device_ids[i] != 0) && sensors_status.enabled[i]) {
+			any_enabled = true;
+			break;
+		}
+	}
+
+	if (status_valid && !any_enabled) {
+		/* EVENT
+		 * @description
+		 * There is no barometer, or every barometer has been disabled by setting its
+		 * <param>CAL_BARO0_PRIO</param> (or CAL_BARO1/2/3_PRIO) to zero. Set
+		 * <param>SYS_HAS_BARO</param> to 0 if the vehicle is meant to fly without one.
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::absolute_pressure,
+				       events::ID("check_baro_none_enabled"),
+				       events::Log::Error, "No barometer enabled");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no barometer enabled");
+		}
+
+	} else if (status_valid && (sensors_status.device_id_primary == 0)) {
+		// enabled barometers exist but none of them is usable, so no instance below is the primary
+		/* EVENT
+		 * @description
+		 * Every enabled barometer is unavailable or unhealthy.
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::absolute_pressure,
+				       events::ID("check_baro_none_selected"),
+				       events::Log::Error, "No valid barometer data");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no valid barometer data");
+		}
+	}
+
+	// only the barometer actually in use has to be healthy; the others are spares, and a disabled
+	// one must never block arming
 	for (int instance = 0; instance < _sensor_baro_sub.size(); instance++) {
-		const bool is_required = instance == 0 || isBaroRequired(instance);
+		const bool is_required = status_valid
+					 ? (isBaroPrimary(instance, sensors_status) || isBaroRequired(instance))
+					 : (instance == 0);
 
 		if (!is_required) {
 			continue;
@@ -85,6 +133,17 @@ void BaroChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 		}
 	}
+}
+
+bool BaroChecks::isBaroPrimary(int instance, const sensors_status_s &sensors_status)
+{
+	sensor_baro_s sensor_baro;
+
+	if (!_sensor_baro_sub[instance].copy(&sensor_baro) || (sensor_baro.device_id == 0)) {
+		return false;
+	}
+
+	return sensors_status.device_id_primary == sensor_baro.device_id;
 }
 
 bool BaroChecks::isBaroRequired(int instance)

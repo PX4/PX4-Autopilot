@@ -44,7 +44,7 @@ Ensure that the drone can go into [Altitude](../flight_modes_mc/altitude.md) / [
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Open QGC and navigate to MAVLink Console
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Type `gps off` to disable GPS
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Type `gps stop` to disable GPS
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Drone should maintain position hold via optical flow
 

@@ -27,6 +27,8 @@
 # GitHub Releases:
 #   - All version tags create a draft GitHub Release
 #   - Pre-releases (alpha/beta/rc suffixes) are automatically marked as such
+#   - CAN node firmware is attached as <target>.uavcan.bin and
+#     <target>_canbootloader.bin
 #
 # IMPORTANT: Version tags do NOT upload to stable/ or beta/. Only the
 # corresponding branch pushes control those directories. This prevents
@@ -327,6 +329,8 @@ jobs:
           preserve_order: true
           files: |
             artifacts/*.px4
+            artifacts/*.uavcan.bin
+            artifacts/*_canbootloader.bin
             artifacts/*.deb
             artifacts/**/*.sbom.spdx.json
           name: ${{ steps.upload-location.outputs.uploadlocation }}

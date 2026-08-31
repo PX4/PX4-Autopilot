@@ -407,7 +407,7 @@ private:
 	Vector3fStamped _target_gps_vel {};
 #endif // CONFIG_VTEST_MOVING
 
-	static constexpr float kInitialBiasLpfTimeConstantS{0.3f};
+	static constexpr hrt_abstime kInitialBiasLpfTimeConstant{300_ms};
 
 	struct BiasState {
 		bool set{false};
@@ -415,7 +415,7 @@ private:
 		uint8_t stable_delta_count{0};
 		hrt_abstime averaging_start_time{0};
 		hrt_abstime last_sample_time{0};
-		AlphaFilter<matrix::Vector3f> initial_lpf{kInitialBiasLpfTimeConstantS};
+		AlphaFilter<matrix::Vector3f> initial_lpf{kInitialBiasLpfTimeConstant};
 	};
 
 	bool _gps_pos_is_offset{false};

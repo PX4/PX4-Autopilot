@@ -779,7 +779,7 @@ void VTEPosition::startBiasAveraging(const Vector3f &bias_sample, const hrt_abst
 
 bool VTEPosition::updateBiasAveraging(const Vector3f &bias_sample, const hrt_abstime sample_time)
 {
-	static constexpr float kInitialBiasLpfMinTimeFactor{2.f};
+	static constexpr unsigned kInitialBiasLpfMinTimeFactor{2};
 	static constexpr uint8_t kRequiredStableBiasDeltas{5};
 
 	if (!_bias.averaging_active) {
@@ -796,8 +796,7 @@ bool VTEPosition::updateBiasAveraging(const Vector3f &bias_sample, const hrt_abs
 	const Vector3f filtered_bias_before_update = _bias.initial_lpf.getState();
 	const float bias_delta = (bias_sample - filtered_bias_before_update).norm();
 
-	const float dt = static_cast<float>(sample_time - _bias.last_sample_time) * kMicrosecondsToSeconds;
-	_bias.initial_lpf.update(bias_sample, dt);
+	_bias.initial_lpf.update(bias_sample, sample_time - _bias.last_sample_time);
 	_bias.last_sample_time = sample_time;
 
 	const Vector3f filtered_bias_logged = _bias.initial_lpf.getState();
@@ -812,8 +811,7 @@ bool VTEPosition::updateBiasAveraging(const Vector3f &bias_sample, const hrt_abs
 		_bias.stable_delta_count = 0;
 	}
 
-	const hrt_abstime min_averaging_time_us = static_cast<hrt_abstime>(
-				kInitialBiasLpfMinTimeFactor * kInitialBiasLpfTimeConstantS * 1e6f);
+	const hrt_abstime min_averaging_time_us = kInitialBiasLpfMinTimeFactor * kInitialBiasLpfTimeConstant;
 	const bool min_time_elapsed = (sample_time >= _bias.averaging_start_time)
 				      && ((sample_time - _bias.averaging_start_time) >= min_averaging_time_us);
 	const bool stable = (_bias.stable_delta_count >= kRequiredStableBiasDeltas) && min_time_elapsed;
