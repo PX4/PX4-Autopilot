@@ -159,7 +159,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	}
 
 	if (msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING) {
-		_battery_status[instance].warning = battery_status_s::STATE_CHARGING;
+		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
 
 	} else {
 		_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
@@ -334,7 +334,7 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	_battery_status[instance].id = msg.battery_id;
 
 	if (msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING) {
-		_battery_status[instance].warning = battery_status_s::STATE_CHARGING;
+		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
 	}
 
 	publishBattery(msg.getSrcNodeID().get(), instance);
