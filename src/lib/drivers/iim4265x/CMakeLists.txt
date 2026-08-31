@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,14 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__imu__invensense__iim42653
-	MAIN iim42653
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-		#-DDEBUG_BUILD
-	SRCS
-		iim42653_main.cpp
-	DEPENDS
-		drivers_iim4265x
-	)
+
+px4_add_library(drivers_iim4265x
+	IIM4265X.cpp
+	IIM4265X.hpp
+	InvenSense_IIM4265X_registers.hpp
+)
+target_compile_options(drivers_iim4265x PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(drivers_iim4265x PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(drivers_iim4265x PRIVATE px4_work_queue drivers_accelerometer drivers_gyroscope)
