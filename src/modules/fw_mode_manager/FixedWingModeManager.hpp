@@ -40,7 +40,6 @@
 #ifndef FIXEDWINGMODEMANAGER_HPP_
 #define FIXEDWINGMODEMANAGER_HPP_
 
-#include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
 #include "ControllerConfigurationHandler.hpp"
 #include "FirstOrderHoldAltitude.hpp"
@@ -98,7 +97,6 @@
 #include <uORB/topics/figure_eight_status.h>
 #endif // CONFIG_FIGURE_OF_EIGHT
 
-using namespace launchdetection;
 using namespace runwaytakeoff;
 using namespace time_literals;
 
@@ -191,11 +189,11 @@ private:
 	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};
-	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 	uORB::Publication<landing_gear_s> _landing_gear_pub {ORB_ID(landing_gear)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
@@ -262,7 +260,6 @@ private:
 	float _pitch{0.0f}; // [rad] current pitch angle from attitude
 	float _throttle{0.0f}; // [0-1] last set throttle
 
-	float _body_acceleration_norm{0.f};
 	float _body_velocity_x{0.f};
 
 	MapProjection _global_local_proj_ref{};
@@ -302,10 +299,14 @@ private:
 	float _takeoff_ground_alt{0.0f};
 
 	// class handling launch detection methods for fixed-wing takeoff
-	LaunchDetector _launchDetector;
 
 	// true if a launch, specifically using the launch detector, has been detected
 	bool _launch_detected{false};
+
+	// state of the launch detection state machine, owned and published by the fixed-wing land detector.
+	// Defaults to flying because that detector does not run on a VTOL, and it is also what gets published
+	// whenever launch detection is disabled or the vehicle is disarmed.
+	uint8_t _launch_detection_state{launch_detection_status_s::STATE_FLYING};
 
 	// [us] time stamp of the start of the climbout, 0 while the takeoff has not started climbing yet
 	hrt_abstime _time_climbout_started{0};
@@ -589,7 +590,7 @@ private:
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_auto_takeoff(const hrt_abstime &now, const float control_interval, const Vector2d &global_position,
+	void control_auto_takeoff(const hrt_abstime &now, const Vector2d &global_position,
 				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr);
 
 	/**
@@ -599,7 +600,7 @@ private:
 	 * @param control_interval Time since last position control call [s]
 	 * @param altitude_setpoint_amsl Altitude setpoint, AMSL [m]
 	 */
-	void control_auto_takeoff_no_nav(const hrt_abstime &now, const float control_interval,
+	void control_auto_takeoff_no_nav(const hrt_abstime &now,
 					 const float altitude_setpoint_amsl);
 
 	/**
@@ -895,7 +896,6 @@ private:
 		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_t_spdweight,
 
 		// Launch detection parameters
-		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
 		(ParamFloat<px4::params::FW_LAUN_CLR_ALT>) _param_fw_laun_clr_alt,
 
 		// external parameters

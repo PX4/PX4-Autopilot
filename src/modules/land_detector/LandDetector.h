@@ -72,7 +72,7 @@ using namespace time_literals;
 namespace land_detector
 {
 
-class LandDetector : public ModuleBase, ModuleParams, px4::ScheduledWorkItem
+class LandDetector : public ModuleBase, public ModuleParams, px4::ScheduledWorkItem
 {
 public:
 	static Descriptor desc;

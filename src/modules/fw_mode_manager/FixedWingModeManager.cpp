@@ -56,7 +56,6 @@ FixedWingModeManager::FixedWingModeManager() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
-	_launchDetector(this),
 	_runway_takeoff(this)
 #ifdef CONFIG_FIGURE_OF_EIGHT
 	, _figure_eight(_directional_guidance, _wind_vel)
@@ -66,7 +65,6 @@ FixedWingModeManager::FixedWingModeManager() :
 	_local_pos_sub.set_interval_ms(20);
 
 	_pos_ctrl_landing_status_pub.advertise();
-	_launch_detection_status_pub.advertise();
 	_landing_gear_pub.advertise();
 	_flaps_setpoint_pub.advertise();
 	_spoilers_setpoint_pub.advertise();
@@ -251,9 +249,6 @@ FixedWingModeManager::vehicle_attitude_poll()
 		const Eulerf euler_angles(R);
 		_yaw = euler_angles(2);
 		_pitch = euler_angles(1);
-
-		const Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
-		_body_acceleration_norm = body_acceleration.norm();
 
 		const Vector3f body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
 		_body_velocity_x = body_velocity(0);
@@ -1098,8 +1093,8 @@ FixedWingModeManager::control_auto_path(const float control_interval, const Vect
 }
 
 void
-FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float control_interval,
-		const Vector2d &global_position, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
+FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const Vector2d &global_position,
+		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
 {
 	if (!_control_mode.flag_armed) {
 		reset_takeoff_state();
@@ -1206,23 +1201,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		_fixed_wing_runway_control_pub.publish(fw_runway_control);
 
 	} else {
-		/* Perform launch detection */
-		if (!_skipping_takeoff_detection && _param_fw_laun_detcn_on.get() &&
-		    _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
-
-			if (_control_mode.flag_armed) {
-				/* Perform launch detection */
-
-				/* Detect launch using body acceleration norm */
-				_launchDetector.update(control_interval, _body_acceleration_norm);
-			}
-
-		} else	{
-			/* no takeoff detection --> fly */
-			_launchDetector.forceSetFlyState();
-		}
-
-		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
+		if (!_launch_detected && _launch_detection_state > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 			_launch_detected = true;
 			_takeoff_init_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
@@ -1248,7 +1227,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		}
 
 		/* Set control values depending on the detection state */
-		if (_launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
+		if (_launch_detection_state > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 			/* Launch has been detected, hence we have to control the plane. */
 
 			fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
@@ -1312,18 +1291,13 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			long_control_sp.throttle_direct = _param_fw_thr_idle.get();
 			_longitudinal_ctrl_sp_pub.publish(long_control_sp);
 		}
-
-		launch_detection_status_s launch_detection_status;
-		launch_detection_status.timestamp = now;
-		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
-		_launch_detection_status_pub.publish(launch_detection_status);
 	}
 
 	_flaps_setpoint = _param_fw_flaps_to_scl.get();
 
 	const bool waiting_for_launch = _runway_takeoff.runwayTakeoffEnabled()
 					? _runway_takeoff.getState() < RunwayTakeoffState::CLIMBOUT
-					: _launchDetector.getLaunchDetected() == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
+					: _launch_detection_state == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
 	publishTakeoffStatus(waiting_for_launch, clearance_altitude_amsl);
 
 	if (!_vehicle_status.in_transition_to_fw) {
@@ -1332,7 +1306,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 }
 
 void
-FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const float control_interval,
+FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now,
 		const float current_setpoint_altitude_amsl)
 {
 	if (!_control_mode.flag_armed) {
@@ -1401,21 +1375,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		_fixed_wing_runway_control_pub.publish(fw_runway_control);
 
 	} else {
-		/* Perform launch detection */
-		if (!_skipping_takeoff_detection && _param_fw_laun_detcn_on.get() &&
-		    _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
-
-			if (_control_mode.flag_armed) {
-				/* Detect launch using body acceleration norm */
-				_launchDetector.update(control_interval, _body_acceleration_norm);
-			}
-
-		} else	{
-			/* no takeoff detection --> fly */
-			_launchDetector.forceSetFlyState();
-		}
-
-		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
+		if (!_launch_detected && _launch_detection_state > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 			_launch_detected = true;
 			_takeoff_ground_alt = _current_altitude;
 		}
@@ -1443,18 +1403,13 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		_ctrl_configuration_handler.setThrottleMax(NAN);
 		_ctrl_configuration_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
 		_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
-
-		launch_detection_status_s launch_detection_status;
-		launch_detection_status.timestamp = now;
-		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
-		_launch_detection_status_pub.publish(launch_detection_status);
 	}
 
 	_flaps_setpoint = _param_fw_flaps_to_scl.get();
 
 	const bool waiting_for_launch = _runway_takeoff.runwayTakeoffEnabled()
 					? _runway_takeoff.getState() < RunwayTakeoffState::CLIMBOUT
-					: _launchDetector.getLaunchDetected() == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
+					: _launch_detection_state == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
 	publishTakeoffStatus(waiting_for_launch, current_setpoint_altitude_amsl);
 }
 
@@ -2266,6 +2221,12 @@ FixedWingModeManager::Run()
 			}
 		}
 
+		launch_detection_status_s launch_detection_status;
+
+		if (_launch_detection_status_sub.update(&launch_detection_status)) {
+			_launch_detection_state = launch_detection_status.launch_detection_state;
+		}
+
 		airspeed_poll();
 		manual_control_setpoint_poll();
 		vehicle_attitude_poll();
@@ -2366,12 +2327,12 @@ FixedWingModeManager::Run()
 			}
 
 		case FW_POSCTRL_MODE_AUTO_TAKEOFF: {
-				control_auto_takeoff(now, control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
+				control_auto_takeoff(now, curr_pos, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
 
 		case FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV: {
-				control_auto_takeoff_no_nav(_local_pos.timestamp, control_interval, _pos_sp_triplet.current.alt);
+				control_auto_takeoff_no_nav(_local_pos.timestamp, _pos_sp_triplet.current.alt);
 				break;
 			}
 
@@ -2445,8 +2406,6 @@ void
 FixedWingModeManager::reset_takeoff_state()
 {
 	_runway_takeoff.reset();
-
-	_launchDetector.reset();
 
 	_launch_detected = false;
 

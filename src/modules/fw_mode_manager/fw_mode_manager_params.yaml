@@ -297,14 +297,6 @@ parameters:
       min: 0.0
       decimal: 1
       increment: 1.0
-    FW_LAUN_DETCN_ON:
-      description:
-        short: Fixed-wing launch detection
-        long: |-
-          Enables automatic launch detection based on measured acceleration. Use for hand- or catapult-launched vehicles.
-          Not compatible with runway takeoff.
-      type: boolean
-      default: 0
     FW_LAUN_CLR_ALT:
       description:
         short: Launch climbout clearance altitude
