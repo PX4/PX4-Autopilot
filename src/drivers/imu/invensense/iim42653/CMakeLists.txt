@@ -38,11 +38,6 @@ px4_add_module(
 		#-DDEBUG_BUILD
 	SRCS
 		iim42653_main.cpp
-		IIM42653.cpp
-		IIM42653.hpp
-		InvenSense_IIM42653_registers.hpp
 	DEPENDS
-		px4_work_queue
-		drivers_accelerometer
-		drivers_gyroscope
+		drivers_iim4265x
 	)
