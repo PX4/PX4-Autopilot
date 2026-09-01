@@ -30,7 +30,7 @@
 #   - CAN node firmware is attached as <target>.uavcan.bin and
 #     <target>_canbootloader.bin
 #   - FMU/H7 bootloaders are attached as <target>_bootloader.bin (raw SWD
-#     image at 0x08000000). The matching .px4 is the USB uploader envelope.
+#     image). Bootloader .px4 files are not attached.
 #
 # IMPORTANT: Version tags do NOT upload to stable/ or beta/. Only the
 # corresponding branch pushes control those directories. This prevents

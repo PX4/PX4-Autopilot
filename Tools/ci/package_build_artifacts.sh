@@ -26,8 +26,9 @@ for px4_file in build/*/*.px4; do
   if [ -f "artifacts/${build_dir}.uavcan.bin" ]; then
     continue
   fi
-  # canbootloader .px4 is unused; FMU *_bootloader still ships .px4 plus .bin
-  if [[ "$build_dir" == *_canbootloader ]]; then
+  # Bootloader .px4 is unused: SWD uses the raw .bin, and USB flashing would
+  # write it into the application slot.
+  if [[ "$build_dir" == *bootloader* ]]; then
     continue
   fi
   cp "$px4_file" artifacts/
