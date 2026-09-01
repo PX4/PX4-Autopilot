@@ -56,6 +56,24 @@ set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config CACHE FILEPATH "PX4 NuttX con
 set(NUTTX_DEFCONFIG ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig CACHE FILEPATH "path to defconfig" FORCE)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${NUTTX_DEFCONFIG})
 
+# A label whose config is nsh/defconfig plus a few options may ship a
+# defconfig.fragment instead of a full copy of it. The fragment is appended to
+# the shared base and olddefconfig resolves the result, so the label follows
+# nsh/defconfig instead of freezing a snapshot of it.
+set(NUTTX_DEFCONFIG_FRAGMENT ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig.fragment)
+if(EXISTS ${NUTTX_DEFCONFIG_FRAGMENT})
+	file(READ ${NUTTX_CONFIG_DIR}/nsh/defconfig nuttx_defconfig_base)
+	file(READ ${NUTTX_DEFCONFIG_FRAGMENT} nuttx_defconfig_overlay)
+	file(WRITE ${PX4_BINARY_DIR}/NuttX/merged_defconfig.tmp "${nuttx_defconfig_base}${nuttx_defconfig_overlay}")
+	execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		${PX4_BINARY_DIR}/NuttX/merged_defconfig.tmp ${PX4_BINARY_DIR}/NuttX/merged_defconfig)
+	execute_process(COMMAND ${CMAKE_COMMAND} -E remove -f ${PX4_BINARY_DIR}/NuttX/merged_defconfig.tmp)
+	set(NUTTX_DEFCONFIG ${PX4_BINARY_DIR}/NuttX/merged_defconfig CACHE FILEPATH "path to defconfig" FORCE)
+	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+		${NUTTX_CONFIG_DIR}/nsh/defconfig ${NUTTX_DEFCONFIG_FRAGMENT})
+endif()
+
+
 set(NUTTX_SRC_DIR  ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX)
 set(NUTTX_DIR      ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx CACHE FILEPATH "NuttX directory" FORCE)
 set(NUTTX_APPS_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/apps CACHE FILEPATH "NuttX apps directory" FORCE)
@@ -82,6 +100,23 @@ execute_process(
 	WORKING_DIRECTORY ${NUTTX_DIR}
 )
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/.config ${PX4_BINARY_DIR}/NuttX/nuttx/.config)
+
+# olddefconfig silently drops symbols whose dependencies are not met (eg
+# NET_CAN depends on NET). For a fragment the label would then quietly fall
+# back to the bare base config, so check that the overlay survived. Only
+# positive assignments are checked: a dropped "is not set" line leaves the
+# symbol at its default, which is what the line asked for anyway.
+if(EXISTS ${NUTTX_DEFCONFIG_FRAGMENT})
+	file(STRINGS ${NUTTX_DEFCONFIG_FRAGMENT} nuttx_fragment_options REGEX "^CONFIG_")
+	file(READ ${NUTTX_DIR}/.config nuttx_inflated_config)
+	foreach(option ${nuttx_fragment_options})
+		string(FIND "${nuttx_inflated_config}" "\n${option}\n" option_found)
+		if(option_found EQUAL -1)
+			message(FATAL_ERROR "defconfig.fragment option '${option}' did not survive olddefconfig for ${NUTTX_CONFIG}: its dependencies are no longer met by nsh/defconfig")
+		endif()
+	endforeach()
+endif()
+
 
 ###############################################################################
 # NuttX cmake defconfig
