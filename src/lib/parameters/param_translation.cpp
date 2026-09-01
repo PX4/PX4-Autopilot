@@ -43,6 +43,16 @@
 #include <lib/mathlib/mathlib.h>
 #include <uORB/topics/vtx.h>
 
+// Migration notices are one-shot boot chatter; constrained boards cannot afford
+// the format strings.
+#if defined(CONSTRAINED_FLASH)
+#define PARAM_MIGRATE_INFO(...)
+#define PARAM_MIGRATE_WARN(...)
+#else
+#define PARAM_MIGRATE_INFO(...) PX4_INFO(__VA_ARGS__)
+#define PARAM_MIGRATE_WARN(...) PX4_WARN(__VA_ARGS__)
+#endif
+
 static uint32_t serial_claimed_ports;
 static int32_t serial_rc_input_proto = INT32_MIN;
 static int32_t serial_rc_port = INT32_MIN;
@@ -162,7 +172,7 @@ static void apply_rc_serial_import()
 			}
 		}
 
-		PX4_INFO("migrating RC_INPUT_PROTO PPM -> RC_PPM_EN");
+		PARAM_MIGRATE_INFO("migrating RC_INPUT_PROTO PPM -> RC_PPM_EN");
 		return;
 	}
 
@@ -170,7 +180,7 @@ static void apply_rc_serial_import()
 		if (port != 0 && serial_prot_name(port) != nullptr && serial_claim(port)) {
 			int32_t z = 0;
 			param_set(param_find(serial_prot_name(port)), &z);
-			PX4_INFO("migrating RC_INPUT_PROTO None -> %s=0", serial_prot_name(port));
+			PARAM_MIGRATE_INFO("migrating RC_INPUT_PROTO None -> %s=0", serial_prot_name(port));
 		}
 
 		return;
@@ -183,13 +193,13 @@ static void apply_rc_serial_import()
 	}
 
 	if (!serial_claim(port)) {
-		PX4_WARN("dropping RC_PORT_CONFIG, %s already assigned", dest);
+		PARAM_MIGRATE_WARN("dropping RC_PORT_CONFIG, %s already assigned", dest);
 		return;
 	}
 
 	int32_t id = proto;
 	param_set(param_find(dest), &id);
-	PX4_INFO("migrating RC -> %s=%" PRId32, dest, id);
+	PARAM_MIGRATE_INFO("migrating RC -> %s=%" PRId32, dest, id);
 }
 
 static void mav_copy_int(const char *fmt, int to, int32_t snap)
@@ -270,7 +280,7 @@ static void permute_mav_params(const int new_of_old[kMavInstances])
 			}
 		}
 
-		PX4_INFO("migrating MAV_%d_* -> MAV_%d_*", old_i, new_i);
+		PARAM_MIGRATE_INFO("migrating MAV_%d_* -> MAV_%d_*", old_i, new_i);
 	}
 }
 
@@ -303,7 +313,7 @@ static void apply_mav_serial_import()
 		}
 
 		if (serial_prot_name(cfg[n]) == nullptr) {
-			PX4_WARN("dropping MAV_%d_CONFIG, unknown port %" PRId32, n, cfg[n]);
+			PARAM_MIGRATE_WARN("dropping MAV_%d_CONFIG, unknown port %" PRId32, n, cfg[n]);
 			continue;
 		}
 
@@ -334,13 +344,13 @@ static void apply_mav_serial_import()
 		int32_t proto = 1;
 
 		if (proto_p == PARAM_INVALID || !serial_claim(uart_port[i])) {
-			PX4_WARN("dropping MAV_%d_CONFIG, %s already assigned", uart_old[i], dest);
+			PARAM_MIGRATE_WARN("dropping MAV_%d_CONFIG, %s already assigned", uart_old[i], dest);
 			continue;
 		}
 
 		param_set(proto_p, &proto);
 		new_of_old[uart_old[i]] = assigned;
-		PX4_INFO("migrating MAV_%d_CONFIG -> %s=1 (instance %d)", uart_old[i], dest, assigned);
+		PARAM_MIGRATE_INFO("migrating MAV_%d_CONFIG -> %s=1 (instance %d)", uart_old[i], dest, assigned);
 		assigned++;
 	}
 
@@ -349,12 +359,12 @@ static void apply_mav_serial_import()
 		const param_t eth_p = param_find("MAV_ETH_EN");
 
 		if (eth_p == PARAM_INVALID || assigned >= kMavInstances) {
-			PX4_WARN("dropping ethernet MAVLink");
+			PARAM_MIGRATE_WARN("dropping ethernet MAVLink");
 
 		} else {
 			param_set(eth_p, &one);
 			new_of_old[eth_old] = assigned;
-			PX4_INFO("migrating MAV_%d_CONFIG -> MAV_ETH_EN (instance %d)", eth_old, assigned);
+			PARAM_MIGRATE_INFO("migrating MAV_%d_CONFIG -> MAV_ETH_EN (instance %d)", eth_old, assigned);
 		}
 	}
 
@@ -385,7 +395,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			}
 
 			strcpy(node->name, "FW_USE_AIRSPD");
-			PX4_INFO("copying and inverting %s -> %s", "FW_ARSP_MODE", "FW_USE_AIRSPD");
+			PARAM_MIGRATE_INFO("copying and inverting %s -> %s", "FW_ARSP_MODE", "FW_USE_AIRSPD");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -397,7 +407,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				node->i32 = 0;
 
 				strcpy(node->name, "SYS_HAS_NUM_ASPD");
-				PX4_INFO("copying %s -> %s", "CBRK_AIRSPD_CHK", "SYS_HAS_NUM_ASPD");
+				PARAM_MIGRATE_INFO("copying %s -> %s", "CBRK_AIRSPD_CHK", "SYS_HAS_NUM_ASPD");
 
 			}
 
@@ -478,7 +488,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	{
 		if (strcmp("ASPD_FALLBACK_GW", node->name) == 0) {
 			strcpy(node->name, "ASPD_FALLBACK");
-			PX4_INFO("copying %s -> %s", "ASPD_FALLBACK_GW", "ASPD_FALLBACK");
+			PARAM_MIGRATE_INFO("copying %s -> %s", "ASPD_FALLBACK_GW", "ASPD_FALLBACK");
 		}
 	}
 
@@ -490,7 +500,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 
 				int32_t sdlog_backend_val = 0;
 				param_set(param_find("SDLOG_BACKEND"), &sdlog_backend_val);
-				PX4_INFO("migrating %s -> %s", "SDLOG_MODE", "SDLOG_BACKEND");
+				PARAM_MIGRATE_INFO("migrating %s -> %s", "SDLOG_MODE", "SDLOG_BACKEND");
 			}
 		}
 	}
@@ -503,7 +513,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				float mnt_min_pitch = static_cast<float>(-node->d) * 0.5f;
 				param_set(param_find("MNT_MAX_PITCH"), &mnt_max_pitch);
 				param_set(param_find("MNT_MIN_PITCH"), &mnt_min_pitch);
-				PX4_INFO("migrating %s -> %s, %s", "MNT_RANGE_PITCH", "MNT_MAX_PITCH", "MNT_MIN_PITCH");
+				PARAM_MIGRATE_INFO("migrating %s -> %s, %s", "MNT_RANGE_PITCH", "MNT_MAX_PITCH", "MNT_MIN_PITCH");
 			}
 
 		}
@@ -513,19 +523,19 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	{
 		if (strcmp("EKF2_GPS_POS_X", node->name) == 0) {
 			strcpy(node->name, "SENS_GPS0_OFFX");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GPS0_OFFX");
+			PARAM_MIGRATE_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GPS0_OFFX");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
 		if (strcmp("EKF2_GPS_POS_Y", node->name) == 0) {
 			strcpy(node->name, "SENS_GPS0_OFFY");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GPS0_OFFY");
+			PARAM_MIGRATE_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GPS0_OFFY");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
 		if (strcmp("EKF2_GPS_POS_Z", node->name) == 0) {
 			strcpy(node->name, "SENS_GPS0_OFFZ");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GPS0_OFFZ");
+			PARAM_MIGRATE_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GPS0_OFFZ");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -536,7 +546,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			int32_t delay_ms = static_cast<int32_t>(node->d);
 			param_set(param_find("SENS_GPS0_DELAY"), &delay_ms);
 			param_set(param_find("SENS_GPS1_DELAY"), &delay_ms);
-			PX4_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GPS0_DELAY", "SENS_GPS1_DELAY");
+			PARAM_MIGRATE_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GPS0_DELAY", "SENS_GPS1_DELAY");
 		}
 	}
 
@@ -549,7 +559,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				param_set(param_find(name), &node->i32);
 			}
 
-			PX4_INFO("migrating %s -> DSHOT_MOT_POL1-12 (value=%" PRId32 ")", "MOT_POLE_COUNT", node->i32);
+			PARAM_MIGRATE_INFO("migrating %s -> DSHOT_MOT_POL1-12 (value=%" PRId32 ")", "MOT_POLE_COUNT", node->i32);
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
@@ -559,7 +569,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		if (strcmp("EKF2_ENGINE_WRM", node->name) == 0) {
 			int32_t delay_ms = static_cast<int32_t>(node->d);
 			param_set(param_find("EKF2_POS_LOCK"), &delay_ms);
-			PX4_INFO("migrating %s -> %s", "EKF2_ENGINE_WRM", "EKF2_POS_LOCK");
+			PARAM_MIGRATE_INFO("migrating %s -> %s", "EKF2_ENGINE_WRM", "EKF2_POS_LOCK");
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
@@ -570,7 +580,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		    && strstr(node->name, "_REV") != nullptr) {
 			node->i32 = (node->d < 0.0) ? -1 : 1;
 			node->type = bson_type_t::BSON_INT32;
-			PX4_INFO("migrating %s from float to int32", node->name);
+			PARAM_MIGRATE_INFO("migrating %s from float to int32", node->name);
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -581,7 +591,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			node->d = -1.0;
 			node->type = bson_type_t::BSON_DOUBLE;
 			strcpy(node->name, "MAN_OVERRIDE_SPD");
-			PX4_INFO("migrating %s -> %s (disabled)", "COM_RC_OVERRIDE", "MAN_OVERRIDE_SPD");
+			PARAM_MIGRATE_INFO("migrating %s -> %s (disabled)", "COM_RC_OVERRIDE", "MAN_OVERRIDE_SPD");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -596,7 +606,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			char new_name[16];
 			snprintf(new_name, sizeof(new_name), "HEATER%c_SENS_ID", node->name[6]);
 			strcpy(node->name, new_name);
-			PX4_INFO("migrating %s -> %s", old_name, new_name);
+			PARAM_MIGRATE_INFO("migrating %s -> %s", old_name, new_name);
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -612,7 +622,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				param_set(param_find("MPC_AUTO_NUDGING"), &nudging);
 			}
 
-			PX4_INFO("migrating MPC_LAND_RC_HELP -> MPC_AUTO_NUDGING bit 1 (value=%" PRId32 ")", node->i32);
+			PARAM_MIGRATE_INFO("migrating MPC_LAND_RC_HELP -> MPC_AUTO_NUDGING bit 1 (value=%" PRId32 ")", node->i32);
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
@@ -634,7 +644,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			}
 
 			strcpy(node->name, "COM_TRAFF_AVOID");
-			PX4_INFO("migrating %s -> %s", "COM_ARM_TRAFF", "COM_TRAFF_AVOID");
+			PARAM_MIGRATE_INFO("migrating %s -> %s", "COM_ARM_TRAFF", "COM_TRAFF_AVOID");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -671,8 +681,8 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			if (device >= 0) {
 				node->i32 = device;
 				param_set(param_find("VTX_PROTOCOL"), &protocol);
-				PX4_INFO("migrating VTX_DEVICE -> VTX_DEVICE %" PRId32 " + VTX_PROTOCOL %" PRId32,
-					 device, protocol);
+				PARAM_MIGRATE_INFO("migrating VTX_DEVICE -> VTX_DEVICE %" PRId32 " + VTX_PROTOCOL %" PRId32,
+						   device, protocol);
 				return param_modify_on_import_ret::PARAM_MODIFIED;
 			}
 		}
@@ -682,7 +692,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	{
 		if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp("UAVCAN_ECU_MAXF", node->name) == 0)) {
 			strcpy(node->name, "UAVCAN_ECU_MAXF1");
-			PX4_INFO("copying %s -> %s", "UAVCAN_ECU_MAXF", "UAVCAN_ECU_MAXF1");
+			PARAM_MIGRATE_INFO("copying %s -> %s", "UAVCAN_ECU_MAXF", "UAVCAN_ECU_MAXF1");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -692,7 +702,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	{
 		if (strcmp("USB_MAV_MODE", node->name) == 0) {
 			strcpy(node->name, "MAV_USB_MODE");
-			PX4_INFO("migrating USB_MAV_MODE -> MAV_USB_MODE");
+			PARAM_MIGRATE_INFO("migrating USB_MAV_MODE -> MAV_USB_MODE");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
@@ -789,14 +799,14 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 
 				strcpy(node->name, old.ethernet_param);
 				node->i32 = 1;
-				PX4_INFO("migrating %s -> %s", old.name, old.ethernet_param);
+				PARAM_MIGRATE_INFO("migrating %s -> %s", old.name, old.ethernet_param);
 				return param_modify_on_import_ret::PARAM_MODIFIED;
 			}
 
 			if (value == 0) {
 				if (old.default_port != 0 && serial_claim(old.default_port)) {
 					strcpy(node->name, serial_prot_name(old.default_port));
-					PX4_INFO("migrating %s -> %s (disabled)", old.name, node->name);
+					PARAM_MIGRATE_INFO("migrating %s -> %s (disabled)", old.name, node->name);
 					return param_modify_on_import_ret::PARAM_MODIFIED;
 				}
 
@@ -816,13 +826,13 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			}
 
 			if (!serial_claim(value)) {
-				PX4_WARN("dropping %s, %s already assigned", old.name, dest);
+				PARAM_MIGRATE_WARN("dropping %s, %s already assigned", old.name, dest);
 				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 			}
 
 			strcpy(node->name, dest);
 			node->i32 = old.protocol_id;
-			PX4_INFO("migrating %s -> %s=%" PRId32, old.name, dest, old.protocol_id);
+			PARAM_MIGRATE_INFO("migrating %s -> %s=%" PRId32, old.name, dest, old.protocol_id);
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
