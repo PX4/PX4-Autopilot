@@ -32,15 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file IIM42652.hpp
+ * @file IIM4265X.hpp
  *
- * Driver for the Invensense IIM42652 connected via SPI.
+ * Driver for the Invensense IIM4265X connected via SPI.
  *
  */
 
 #pragma once
 
-#include "InvenSense_IIM42652_registers.hpp"
+#include "InvenSense_IIM4265X_registers.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
@@ -51,15 +51,15 @@
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
-using namespace InvenSense_IIM42652;
+using namespace InvenSense_IIM4265X;
 
-class IIM42652 : public device::SPI, public I2CSPIDriver<IIM42652>
+class IIM4265X : public device::SPI, public I2CSPIDriver<IIM4265X>
 {
 public:
-	IIM42652(const I2CSPIDriverConfig &config);
-	~IIM42652() override;
+	IIM4265X(const I2CSPIDriverConfig &config);
+	~IIM4265X() override;
 
-	static void print_usage();
+	static int module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator, void (*print_usage)());
 
 	void RunImpl();
 
@@ -67,6 +67,8 @@ public:
 	void print_status() override;
 
 private:
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
+
 	void exit_and_cleanup() override;
 
 	// Sensor Configuration
@@ -147,6 +149,11 @@ private:
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
+	// true when driving an IIM-42653 (otherwise an IIM-42652); the two chips share this
+	// driver and differ only in WHOAMI, full-scale range, clock input selection and the
+	// AUX1 configuration
+	const bool _iim42653;
+
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO empty")};
@@ -186,8 +193,8 @@ private:
 		{ Register::BANK_0::FIFO_CONFIG,          FIFO_CONFIG_BIT::FIFO_MODE_STOP_ON_FULL, 0 },
 		{ Register::BANK_0::INTF_CONFIG1,         INTF_CONFIG1_BIT::AFSR_SET, INTF_CONFIG1_BIT::AFSR_CLEAR}, // RTC_MODE[2] set at runtime
 		{ Register::BANK_0::PWR_MGMT0,            PWR_MGMT0_BIT::GYRO_MODE_LOW_NOISE | PWR_MGMT0_BIT::ACCEL_MODE_LOW_NOISE, 0 },
-		{ Register::BANK_0::GYRO_CONFIG0,         GYRO_CONFIG0_BIT::GYRO_FS_SEL_2000_DPS | GYRO_CONFIG0_BIT::GYRO_ODR_8KHZ_SET, GYRO_CONFIG0_BIT::GYRO_ODR_8KHZ_CLEAR },
-		{ Register::BANK_0::ACCEL_CONFIG0,        ACCEL_CONFIG0_BIT::ACCEL_FS_SEL_16G | ACCEL_CONFIG0_BIT::ACCEL_ODR_8KHZ_SET, ACCEL_CONFIG0_BIT::ACCEL_ODR_8KHZ_CLEAR },
+		{ Register::BANK_0::GYRO_CONFIG0,         GYRO_CONFIG0_BIT::GYRO_FS_SEL_MAX_RANGE | GYRO_CONFIG0_BIT::GYRO_ODR_8KHZ_SET, GYRO_CONFIG0_BIT::GYRO_ODR_8KHZ_CLEAR },
+		{ Register::BANK_0::ACCEL_CONFIG0,        ACCEL_CONFIG0_BIT::ACCEL_FS_SEL_MAX_RANGE | ACCEL_CONFIG0_BIT::ACCEL_ODR_8KHZ_SET, ACCEL_CONFIG0_BIT::ACCEL_ODR_8KHZ_CLEAR },
 		{ Register::BANK_0::GYRO_CONFIG1,         0, GYRO_CONFIG1_BIT::GYRO_UI_FILT_ORD },
 		{ Register::BANK_0::GYRO_ACCEL_CONFIG0,   0, GYRO_ACCEL_CONFIG0_BIT::ACCEL_UI_FILT_BW | GYRO_ACCEL_CONFIG0_BIT::GYRO_UI_FILT_BW },
 		{ Register::BANK_0::ACCEL_CONFIG1,        0, ACCEL_CONFIG1_BIT::ACCEL_UI_FILT_ORD },
@@ -212,11 +219,21 @@ private:
 	};
 
 	uint8_t _checked_register_bank2{0};
-	static constexpr uint8_t size_register_bank2_cfg{3};
+	// the first entries apply to both chips, the trailing AUX1 entries only exist on the
+	// IIM-42653; _register_bank2_count selects how many are used at runtime
+	static constexpr uint8_t size_register_bank2_cfg{8};
+	static constexpr uint8_t size_register_bank2_cfg_iim42652{3};
+	const uint8_t _register_bank2_count;
 	register_bank2_config_t _register_bank2_cfg[size_register_bank2_cfg] {
 		// Register                              | Set bits, Clear bits
 		{ Register::BANK_2::ACCEL_CONFIG_STATIC2, ACCEL_CONFIG_STATIC2_BIT::ACCEL_AAF_DELT_585HZ_SET, ACCEL_CONFIG_STATIC2_BIT::ACCEL_AAF_DELT_585HZ_CLEAR | ACCEL_CONFIG_STATIC2_BIT::ACCEL_AAF_DIS },
 		{ Register::BANK_2::ACCEL_CONFIG_STATIC3, ACCEL_CONFIG_STATIC3_BIT::ACCEL_AAF_DELTSQR_LSB_585HZ_SET, ACCEL_CONFIG_STATIC3_BIT::ACCEL_AAF_DELTSQR_LSB_585HZ_CLEAR },
 		{ Register::BANK_2::ACCEL_CONFIG_STATIC4, ACCEL_CONFIG_STATIC4_BIT::ACCEL_AAF_BITSHIFT_585HZ_SET | ACCEL_CONFIG_STATIC4_BIT::ACCEL_AAF_DELTSQR_MSB_SET, ACCEL_CONFIG_STATIC4_BIT::ACCEL_AAF_BITSHIFT_585HZ_CLEAR | ACCEL_CONFIG_STATIC4_BIT::ACCEL_AAF_DELTSQR_MSB_CLEAR },
+		// IIM-42653 only
+		{ Register::BANK_2::AUX1_CONFIG1,         0, AUX1_CONFIG1_BIT::AUX1_ACCEL_LP_CLK_SEL | AUX1_CONFIG1_BIT::GYRO_AUX1_EN | AUX1_CONFIG1_BIT::ACCEL_AUX1_EN},
+		{ Register::BANK_2::AUX1_CONFIG2,         AUX1_CONFIG2_BIT::GYRO_AUX1_HPF_DIS, 0},
+		{ Register::BANK_2::AUX1_SPI_REG1,        AUX1_SPI_REG1_BIT::AUX1_SPI_REG1_SET, AUX1_SPI_REG1_BIT::AUX1_SPI_REG1_CLEAR },
+		{ Register::BANK_2::AUX1_SPI_REG2,        AUX1_SPI_REG2_BIT::AUX1_SPI_REG2_SET, AUX1_SPI_REG2_BIT::AUX1_SPI_REG2_CLEAR },
+		{ Register::BANK_2::AUX1_SPI_REG3,        AUX1_SPI_REG3_BIT::AUX1_SPI_REG3_SET, AUX1_SPI_REG3_BIT::AUX1_SPI_REG3_CLEAR },
 	};
 };

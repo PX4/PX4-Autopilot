@@ -270,7 +270,7 @@
 *(.text.acosf)
 *(.text._ZN14ImuDownSampler5resetEv)
 *(.text._ZN3Ekf31checkVerticalAccelerationHealthERKN9estimator9imuSampleE)
-*(.text._ZN6matrix6MatrixIfLj3ELj1EEC1ERKS1_)
+*(.text._ZN6matrix6MatrixIfLj3ELj1EEC1ERKS1_) /* itcm-check-ignore */
 *(.text.udp_pollsetup)
 *(.text._ZL14timer_callbackPv)
 *(.text._ZN3Ekf4fuseERKN6matrix6VectorIfLj24EEEf)
@@ -576,7 +576,7 @@
 *(.text._ZN3Ekf19controlAuxVelFusionERKN9estimator9imuSampleE)
 *(.text._ZNK6matrix6MatrixIfLj2ELj1EEplERKS1_)
 *(.text._ZThn24_N7Sensors3RunEv)
-*(.text._ZN6matrix6MatrixIfLj2ELj1EEC1ERKS1_)
+*(.text._ZN6matrix6MatrixIfLj2ELj1EEC1ERKS1_) /* itcm-check-ignore */
 *(.text._ZN10FlightTask10reActivateEv)
 *(.text._ZN5PX4IO17io_publish_raw_rcEv)
 *(.text._ZNK15PositionControl19getAttitudeSetpointER27vehicle_attitude_setpoint_s)
@@ -611,7 +611,7 @@
 *(.text._ZN3Ekf18updateGroundEffectEv)
 *(.text.nxsem_init)
 *(.text._ZN9Commander16vtolStatusUpdateEv)
-*(.text._ZN6matrix6MatrixIfLj4ELj1EEC1EPKf)
+*(.text._ZN6matrix6MatrixIfLj4ELj1EEC1EPKf) /* itcm-check-ignore */
 *(.text._ZN11ControlMath20setZeroIfNanVector3fERN6matrix7Vector3IfEE)
 *(.text._ZThn8_N3ADC3RunEv)
 *(.text._ZN11StickTiltXYC1EP12ModuleParams)
@@ -667,7 +667,7 @@
 *(.text._ZN11MissionBase11on_inactiveEv)
 *(.text._ZN21FailureDetectorChecks14checkAndReportERK7ContextR6Report)
 *(.text._ZN12SystemChecks14checkAndReportERK7ContextR6Report)
-*(.text._ZN6matrix6MatrixIfLj3ELj1EEC1EPKf)
+*(.text._ZN6matrix6MatrixIfLj3ELj1EEC1EPKf) /* itcm-check-ignore */
 *(.text.imxrt_padmux_address)
 *(.text._ZN19MavlinkStreamVFRHUD8get_sizeEv)
 *(.text._ZN15EstimatorChecks15checkSensorBiasERK7ContextR6Report8NavModes)

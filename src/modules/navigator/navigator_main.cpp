@@ -535,7 +535,6 @@ void Navigator::run()
 					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 				} else {
-					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence\t");
 					events::send(events::ID("navigator_reposition_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
 						     "Reposition is outside geofence");
 				}
@@ -562,7 +561,6 @@ void Navigator::run()
 						_course.set_altitude(new_alt);
 
 					} else {
-						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
 						events::send(events::ID("navigator_course_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
 							     "Altitude change is outside geofence");
 					}
@@ -634,7 +632,6 @@ void Navigator::run()
 						_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 					} else {
-						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
 						events::send(events::ID("navigator_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
 							     "Altitude change is outside geofence");
 					}
@@ -1065,7 +1062,6 @@ void Navigator::run()
 			vehicle_command.command = NAV_CMD_DO_VTOL_TRANSITION;
 			vehicle_command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 			publish_vehicle_command(vehicle_command);
-			mavlink_log_info(&_mavlink_log_pub, "Transition to hover mode and descend.\t");
 			events::send(events::ID("navigator_transition_descend"), events::Log::Critical,
 				     "Transition to hover mode and descend");
 		}
@@ -1129,8 +1125,6 @@ void Navigator::run()
 			case PlannerStatus::OutOfRange:
 			case PlannerStatus::Degenerate:
 			case PlannerStatus::DijkstraFailed:
-				mavlink_log_warning(&_mavlink_log_pub, "Geofence data invalid (code %d), RTL will fly directly\t",
-						    (int) planner_status);
 				events::send<uint8_t>(events::ID("rtl_avoidance_build_failed"), {events::Log::Warning, events::LogInternal::Info},
 						      "Geofence data invalid (code {1}), RTL will fly directly", (uint8_t)planner_status);
 				break;
@@ -1146,7 +1140,6 @@ void Navigator::run()
 			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
 
 			if (planner_status == PlannerStatus::DestinationInvalid) {
-				mavlink_log_warning(&_mavlink_log_pub, "RTL destination invalid, not updating\t");
 				events::send(
 					events::ID("rtl_destination_invalid"),
 					events::LogLevels(events::Log::Warning, events::LogInternal::Info),
@@ -1156,7 +1149,6 @@ void Navigator::run()
 			}
 
 			if (planner_status == PlannerStatus::DestinationBreachesGeofence) {
-				mavlink_log_warning(&_mavlink_log_pub, "RTL destination breaches geofence, will fly directly\t");
 				events::send(
 					events::ID("rtl_destination_breaches"),
 					events::LogLevels(events::Log::Warning, events::LogInternal::Info),
@@ -1593,7 +1585,6 @@ void Navigator::set_mission_failure_heading_timeout()
 	if (!_mission_result.failure) {
 		_mission_result.failure = true;
 		set_mission_result_updated();
-		mavlink_log_critical(&_mavlink_log_pub, "unable to reach heading within timeout\t");
 		events::send(events::ID("navigator_mission_failure_heading"), events::Log::Critical,
 			     "Mission failure: unable to reach heading within timeout");
 	}
@@ -1909,7 +1900,6 @@ void Navigator::neutralize_gimbal_if_control_activated()
 
 void Navigator::sendWarningDescentStoppedDueToTerrain()
 {
-	mavlink_log_critical(&_mavlink_log_pub, "Terrain collision risk, descent is stopped\t");
 	events::send(events::ID("navigator_terrain_collision_risk"), events::Log::Critical,
 		     "Terrain collision risk, descent is stopped");
 }

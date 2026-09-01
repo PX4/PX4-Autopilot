@@ -428,8 +428,6 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		send_mission_ack(sysid, compid, MAV_MISSION_ERROR);
 
 		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
-			mavlink_log_critical(_mavlink.get_mavlink_log_pub(),
-					     "Mission storage: Unable to read from storage, type: %" PRId8 "\t", (uint8_t)_mission_type);
 			/* EVENT
 			 * @description Mission type: {1}
 			 */

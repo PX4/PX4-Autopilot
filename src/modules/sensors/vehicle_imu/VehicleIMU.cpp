@@ -390,7 +390,6 @@ bool VehicleIMU::UpdateAccel()
 				const uint64_t clipping_total = _status.accel_clipping[0] + _status.accel_clipping[1] + _status.accel_clipping[2];
 
 				if (clipping_total > _last_accel_clipping_notify_total_count + 1000) {
-					mavlink_log_critical(&_mavlink_log_pub, "Accel %" PRIu8 " clipping, not safe to fly!\t", _instance);
 					/* EVENT
 					 * @description Land now, and check the vehicle setup.
 					 * Clipping can lead to fly-aways.
@@ -519,7 +518,6 @@ bool VehicleIMU::UpdateGyro()
 				const uint64_t clipping_total = _status.gyro_clipping[0] + _status.gyro_clipping[1] + _status.gyro_clipping[2];
 
 				if (clipping_total > _last_gyro_clipping_notify_total_count + 1000) {
-					mavlink_log_critical(&_mavlink_log_pub, "Gyro %" PRIu8 " clipping, not safe to fly!\t", _instance);
 					/* EVENT
 					 * @description Land now, and check the vehicle setup.
 					 * Clipping can lead to fly-aways.

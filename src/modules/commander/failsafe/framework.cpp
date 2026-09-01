@@ -181,9 +181,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 	PX4_DEBUG("User notification: failsafe triggered (action=%i, delayed_action=%i, cause=%i, delay=%is)", (int)action,
 		  (int)delayed_action, (int)cause, delay_s);
 
-#ifdef EMSCRIPTEN_BUILD
-	(void)_mavlink_log_pub;
-#else
+#ifndef EMSCRIPTEN_BUILD
 
 	px4_custom_mode custom_mode = get_px4_custom_mode(user_intended_mode);
 	uint32_t mavlink_mode = custom_mode.data;
@@ -215,7 +213,6 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			(uint16_t) delay_s, failsafe_cause);
 		}
 
-		mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated: entering Hold for %i seconds\t", delay_s);
 
 	} else { // no delay
 		failsafe_action_t failsafe_action = (failsafe_action_t)action;
@@ -291,10 +288,6 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				{events::Log::Critical, events::LogInternal::Warning},
 				"{3}: switching to {2}", mavlink_mode, failsafe_action, failsafe_cause);
 			}
-		}
-
-		if (action != Action::Warn) {
-			mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
 		}
 	}
 

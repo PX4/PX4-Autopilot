@@ -31,7 +31,9 @@
  *
  ****************************************************************************/
 
-#include "IIM42653.hpp"
+#include "IIM4265X.hpp"
+
+#include <drivers/drv_sensor.h>
 
 using namespace time_literals;
 
@@ -45,12 +47,14 @@ static constexpr uint16_t combine_uint(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-IIM42653::IIM42653(const I2CSPIDriverConfig &config) :
+IIM4265X::IIM4265X(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio),
 	_px4_accel(get_device_id(), config.rotation, config.external),
-	_px4_gyro(get_device_id(), config.rotation, config.external)
+	_px4_gyro(get_device_id(), config.rotation, config.external),
+	_iim42653(config.custom2 == DRV_IMU_DEVTYPE_IIM42653),
+	_register_bank2_count(_iim42653 ? size_register_bank2_cfg : size_register_bank2_cfg_iim42652)
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
@@ -68,7 +72,18 @@ IIM42653::IIM42653(const I2CSPIDriverConfig &config) :
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }
 
-IIM42653::~IIM42653()
+I2CSPIDriverBase *IIM4265X::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
+{
+	IIM4265X *instance = new IIM4265X(config);
+	return init_instance(instance, instance ? instance->init() : PX4_ERROR);
+}
+
+int IIM4265X::module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator, void (*print_usage)())
+{
+	return I2CSPIDriverBase::module_start(cli, iterator, print_usage, &IIM4265X::instantiate);
+}
+
+IIM4265X::~IIM4265X()
 {
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
@@ -78,7 +93,7 @@ IIM42653::~IIM42653()
 	perf_free(_drdy_missed_perf);
 }
 
-int IIM42653::init()
+int IIM4265X::init()
 {
 	int ret = SPI::init();
 
@@ -90,7 +105,7 @@ int IIM42653::init()
 	return Reset() ? 0 : -1;
 }
 
-bool IIM42653::Reset()
+bool IIM4265X::Reset()
 {
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
@@ -99,13 +114,13 @@ bool IIM42653::Reset()
 	return true;
 }
 
-void IIM42653::exit_and_cleanup()
+void IIM4265X::exit_and_cleanup()
 {
 	DataReadyInterruptDisable();
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-void IIM42653::print_status()
+void IIM4265X::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
@@ -120,7 +135,7 @@ void IIM42653::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
-int IIM42653::probe()
+int IIM4265X::probe()
 {
 	for (int i = 0; i < 3; i++) {
 		// force bank 0: the actual register bank after a soft reset is unknown,
@@ -130,7 +145,7 @@ int IIM42653::probe()
 
 		uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
 
-		if (whoami == WHOAMI) {
+		if (whoami == (_iim42653 ? WHOAMI_IIM42653 : WHOAMI_IIM42652)) {
 			return PX4_OK;
 		}
 
@@ -140,7 +155,7 @@ int IIM42653::probe()
 	return PX4_ERROR;
 }
 
-void IIM42653::RunImpl()
+void IIM4265X::RunImpl()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -155,7 +170,7 @@ void IIM42653::RunImpl()
 		break;
 
 	case STATE::WAIT_FOR_RESET:
-		if ((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI)
+		if ((RegisterRead(Register::BANK_0::WHO_AM_I) == (_iim42653 ? WHOAMI_IIM42653 : WHOAMI_IIM42652))
 		    && (RegisterRead(Register::BANK_0::DEVICE_CONFIG) == 0x00)
 		    && (RegisterRead(Register::BANK_0::INT_STATUS) & INT_STATUS_BIT::RESET_DONE_INT)) {
 
@@ -299,7 +314,7 @@ void IIM42653::RunImpl()
 					_last_config_check_timestamp = now;
 					_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
 					_checked_register_bank1 = (_checked_register_bank1 + 1) % size_register_bank1_cfg;
-					_checked_register_bank2 = (_checked_register_bank2 + 1) % size_register_bank2_cfg;
+					_checked_register_bank2 = (_checked_register_bank2 + 1) % _register_bank2_count;
 
 				} else {
 					// register check failed, force reset
@@ -313,7 +328,7 @@ void IIM42653::RunImpl()
 	}
 }
 
-void IIM42653::ConfigureSampleRate(int sample_rate)
+void IIM4265X::ConfigureSampleRate(int sample_rate)
 {
 	// round down to nearest FIFO sample dt
 	const float min_interval = FIFO_SAMPLE_DT;
@@ -327,7 +342,7 @@ void IIM42653::ConfigureSampleRate(int sample_rate)
 	ConfigureFIFOWatermark(_fifo_gyro_samples);
 }
 
-void IIM42653::ConfigureFIFOWatermark(uint8_t samples)
+void IIM4265X::ConfigureFIFOWatermark(uint8_t samples)
 {
 	// FIFO watermark threshold in number of bytes
 	const uint16_t fifo_watermark_threshold = samples * sizeof(FIFO::DATA);
@@ -344,12 +359,17 @@ void IIM42653::ConfigureFIFOWatermark(uint8_t samples)
 	}
 }
 
-void IIM42653::ConfigureCLKIN()
+void IIM4265X::ConfigureCLKIN()
 {
 	for (auto &r0 : _register_bank0_cfg) {
 		if (r0.reg == Register::BANK_0::INTF_CONFIG1) {
-			r0.set_bits = r0.set_bits | INTF_CONFIG1_BIT::RTC_MODE | INTF_CONFIG1_BIT::CLKSEL;
-			r0.clear_bits = r0.clear_bits | INTF_CONFIG1_BIT::CLKSEL_CLEAR;
+			if (_iim42653) {
+				r0.set_bits = r0.set_bits | INTF_CONFIG1_BIT::RTC_MODE | INTF_CONFIG1_BIT::CLKSEL;
+				r0.clear_bits = r0.clear_bits | INTF_CONFIG1_BIT::CLKSEL_CLEAR;
+
+			} else {
+				r0.set_bits = r0.set_bits | INTF_CONFIG1_BIT::RTC_MODE;
+			}
 		}
 	}
 
@@ -361,7 +381,7 @@ void IIM42653::ConfigureCLKIN()
 	}
 }
 
-void IIM42653::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force)
+void IIM4265X::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force)
 {
 	if (bank != _last_register_bank || force) {
 		// select BANK_0
@@ -374,7 +394,7 @@ void IIM42653::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force)
 	}
 }
 
-bool IIM42653::Configure()
+bool IIM4265X::Configure()
 {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_bank0_cfg) {
@@ -385,7 +405,8 @@ bool IIM42653::Configure()
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
 	}
 
-	for (const auto &reg_cfg : _register_bank2_cfg) {
+	for (uint8_t i = 0; i < _register_bank2_count; i++) {
+		const auto &reg_cfg = _register_bank2_cfg[i];
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
 	}
 
@@ -404,36 +425,45 @@ bool IIM42653::Configure()
 		}
 	}
 
-	for (const auto &reg_cfg : _register_bank2_cfg) {
-		if (!RegisterCheck(reg_cfg)) {
+	for (uint8_t i = 0; i < _register_bank2_count; i++) {
+		if (!RegisterCheck(_register_bank2_cfg[i])) {
 			success = false;
 		}
 	}
 
 	// 20-bits data format used
-	//  the only FSR settings that are operational are ±4000dps for gyroscope and ±32g for accelerometer
 	// data is published from the 16 bit FIFO registers (data[19:4]), which always span the full range
-	_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
-	_px4_gyro.set_range(math::radians(4000.f));
-	_px4_accel.set_scale(32.f * CONSTANTS_ONE_G / 32768.f);
-	_px4_gyro.set_scale(math::radians(4000.f / 32768.f));
+	if (_iim42653) {
+		//  the only FSR settings that are operational are ±4000dps for gyroscope and ±32g for accelerometer
+		_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
+		_px4_gyro.set_range(math::radians(4000.f));
+		_px4_accel.set_scale(32.f * CONSTANTS_ONE_G / 32768.f);
+		_px4_gyro.set_scale(math::radians(4000.f / 32768.f));
+
+	} else {
+		//  the only FSR settings that are operational are ±2000dps for gyroscope and ±16g for accelerometer
+		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+		_px4_gyro.set_range(math::radians(2000.f));
+		_px4_accel.set_scale(16.f * CONSTANTS_ONE_G / 32768.f);
+		_px4_gyro.set_scale(math::radians(2000.f / 32768.f));
+	}
 
 	return success;
 }
 
-int IIM42653::DataReadyInterruptCallback(int irq, void *context, void *arg)
+int IIM4265X::DataReadyInterruptCallback(int irq, void *context, void *arg)
 {
-	static_cast<IIM42653 *>(arg)->DataReady();
+	static_cast<IIM4265X *>(arg)->DataReady();
 	return 0;
 }
 
-void IIM42653::DataReady()
+void IIM4265X::DataReady()
 {
 	_drdy_timestamp_sample.store(hrt_absolute_time());
 	ScheduleNow();
 }
 
-bool IIM42653::DataReadyInterruptConfigure()
+bool IIM4265X::DataReadyInterruptConfigure()
 {
 	if (_drdy_gpio == 0) {
 		return false;
@@ -443,7 +473,7 @@ bool IIM42653::DataReadyInterruptConfigure()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
 }
 
-bool IIM42653::DataReadyInterruptDisable()
+bool IIM4265X::DataReadyInterruptDisable()
 {
 	if (_drdy_gpio == 0) {
 		return false;
@@ -453,7 +483,7 @@ bool IIM42653::DataReadyInterruptDisable()
 }
 
 template <typename T>
-bool IIM42653::RegisterCheck(const T &reg_cfg)
+bool IIM4265X::RegisterCheck(const T &reg_cfg)
 {
 	bool success = true;
 
@@ -473,7 +503,7 @@ bool IIM42653::RegisterCheck(const T &reg_cfg)
 }
 
 template <typename T>
-uint8_t IIM42653::RegisterRead(T reg)
+uint8_t IIM4265X::RegisterRead(T reg)
 {
 	uint8_t cmd[2] {};
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
@@ -483,7 +513,7 @@ uint8_t IIM42653::RegisterRead(T reg)
 }
 
 template <typename T>
-void IIM42653::RegisterWrite(T reg, uint8_t value)
+void IIM4265X::RegisterWrite(T reg, uint8_t value)
 {
 	uint8_t cmd[2] { (uint8_t)reg, value };
 	SelectRegisterBank(reg);
@@ -491,7 +521,7 @@ void IIM42653::RegisterWrite(T reg, uint8_t value)
 }
 
 template <typename T>
-void IIM42653::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits)
+void IIM4265X::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits)
 {
 	const uint8_t orig_val = RegisterRead(reg);
 
@@ -502,7 +532,7 @@ void IIM42653::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits
 	}
 }
 
-uint16_t IIM42653::FIFOReadCount()
+uint16_t IIM4265X::FIFOReadCount()
 {
 	// read FIFO count
 	uint8_t fifo_count_buf[3] {};
@@ -517,7 +547,7 @@ uint16_t IIM42653::FIFOReadCount()
 	return combine(fifo_count_buf[1], fifo_count_buf[2]);
 }
 
-bool IIM42653::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
+bool IIM4265X::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
@@ -607,7 +637,7 @@ bool IIM42653::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 	return false;
 }
 
-void IIM42653::FIFOReset()
+void IIM4265X::FIFOReset()
 {
 	perf_count(_fifo_reset_perf);
 
@@ -618,7 +648,7 @@ void IIM42653::FIFOReset()
 	_drdy_timestamp_sample.store(0);
 }
 
-void IIM42653::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+void IIM4265X::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
@@ -668,7 +698,7 @@ void IIM42653::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	}
 }
 
-void IIM42653::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+void IIM4265X::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
@@ -718,7 +748,7 @@ void IIM42653::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	}
 }
 
-bool IIM42653::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples)
+bool IIM4265X::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples)
 {
 	int16_t temperature[FIFO_MAX_SAMPLES];
 	float temperature_sum{0};

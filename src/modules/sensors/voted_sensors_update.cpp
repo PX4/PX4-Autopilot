@@ -305,14 +305,6 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 				const hrt_abstime now = hrt_absolute_time();
 
 				if (now - _last_error_message > 3_s) {
-					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i fail: %s%s%s%s%s!\t",
-							      sensor_name,
-							      failover_index,
-							      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
-							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
 
 					events::px4::enums::sensor_failover_reason_t failover_reason{};
 

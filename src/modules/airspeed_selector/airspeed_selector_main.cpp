@@ -281,12 +281,10 @@ AirspeedModule::init()
 				      _number_of_airspeed_sensors));
 
 		if (_number_of_airspeed_sensors == 0) {
-			mavlink_log_info(&_mavlink_log_pub, "No airspeed sensor detected. Switch to non-airspeed mode.\t");
 			events::send(events::ID("airspeed_selector_switch"), events::Log::Info,
 				     "No airspeed sensor detected, switching to non-airspeed mode");
 
 		} else {
-			mavlink_log_info(&_mavlink_log_pub, "Primary airspeed index bigger than number connected sensors. Take last sensor.\t");
 			events::send(events::ID("airspeed_selector_prim_too_high"), events::Log::Info,
 				     "Primary airspeed index bigger than number connected sensors, taking last sensor");
 		}
@@ -693,32 +691,25 @@ void AirspeedModule::select_airspeed_and_publish()
 		if (_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED
 		    && _prev_airspeed_src > AirspeedSource::GROUND_MINUS_WIND
 		    && prev_airspeed_index <= MAX_NUM_AIRSPEED_SENSORS) {
-			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Check connection and reboot.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure_disarmed"), events::Log::Critical,
 				     "Airspeed sensor failure detected. Check connection and reboot");
 
 		} else if (_prev_airspeed_src > AirspeedSource::GROUND_MINUS_WIND
 			   && prev_airspeed_index <= MAX_NUM_AIRSPEED_SENSORS) {
-			mavlink_log_critical(&_mavlink_log_pub,
-					     "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure"), events::Log::Critical,
 				     "Airspeed sensor failure detected. Return to launch (RTL) is advised");
 
 		} else if (_prev_airspeed_src == AirspeedSource::GROUND_MINUS_WIND
 			   && _valid_airspeed_src == AirspeedSource::DISABLED) {
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation invalid\t");
 			events::send(events::ID("airspeed_selector_estimation_invalid"), events::Log::Error,
 				     "Airspeed estimation invalid");
 
 		} else if (_prev_airspeed_src == AirspeedSource::DISABLED
 			   && _valid_airspeed_src == AirspeedSource::GROUND_MINUS_WIND) {
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation valid\t");
 			events::send(events::ID("airspeed_selector_estimation_valid"), events::Log::Info,
 				     "Airspeed estimation valid");
 
 		} else {
-			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor healthy, start using again (%i, %i)\t", prev_airspeed_index,
-					     valid_airspeed_index);
 			/* EVENT
 			 * @description Previously selected sensor index: {1}, current sensor index: {2}.
 			 */

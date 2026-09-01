@@ -67,8 +67,4 @@ void DaaChecks::checkAndReport(const Context &context, Report &reporter)
 	reporter.armingCheckFailure(NavModes::All, health_component_t::traffic_avoidance,
 				    events::ID("check_daa_conflict"),
 				    events::Log::Error, "Air conflict detected");
-
-	if (reporter.mavlink_log_pub()) {
-		mavlink_log_critical(reporter.mavlink_log_pub(), "In conflict with automated DAA action\t");
-	}
 }

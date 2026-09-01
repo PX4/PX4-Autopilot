@@ -42,6 +42,21 @@ class Euler;
 template <typename Type>
 class AxisAngle;
 
+template <typename Type>
+class Dcm;
+
+template<typename Type>
+class Quaternion;
+
+namespace detail
+{
+// Shared bodies of the Quaternion conversion constructors (see
+// dcm_from_quaternion note).
+template<typename Type> void quaternion_from_dcm(Quaternion<Type> &q, const Dcm<Type> &R);
+template<typename Type> void quaternion_from_euler(Quaternion<Type> &q, const Euler<Type> &euler);
+template<typename Type> void quaternion_from_axis_angle(Quaternion<Type> &q, const AxisAngle<Type> &aa);
+} // namespace detail
+
 /**
  * Quaternion class
  *
@@ -97,41 +112,7 @@ public:
 	 */
 	Quaternion(const Dcm<Type> &R)
 	{
-		Quaternion &q = *this;
-		Type t = R.trace();
-
-		if (t > Type(0)) {
-			t = std::sqrt(Type(1) + t);
-			q(0) = Type(0.5) * t;
-			t = Type(0.5) / t;
-			q(1) = (R(2, 1) - R(1, 2)) * t;
-			q(2) = (R(0, 2) - R(2, 0)) * t;
-			q(3) = (R(1, 0) - R(0, 1)) * t;
-
-		} else if (R(0, 0) > R(1, 1) && R(0, 0) > R(2, 2)) {
-			t = std::sqrt(Type(1) + R(0, 0) - R(1, 1) - R(2, 2));
-			q(1) = Type(0.5) * t;
-			t = Type(0.5) / t;
-			q(0) = (R(2, 1) - R(1, 2)) * t;
-			q(2) = (R(1, 0) + R(0, 1)) * t;
-			q(3) = (R(0, 2) + R(2, 0)) * t;
-
-		} else if (R(1, 1) > R(2, 2)) {
-			t = std::sqrt(Type(1) - R(0, 0) + R(1, 1) - R(2, 2));
-			q(2) = Type(0.5) * t;
-			t = Type(0.5) / t;
-			q(0) = (R(0, 2) - R(2, 0)) * t;
-			q(1) = (R(1, 0) + R(0, 1)) * t;
-			q(3) = (R(2, 1) + R(1, 2)) * t;
-
-		} else {
-			t = std::sqrt(Type(1) - R(0, 0) - R(1, 1) + R(2, 2));
-			q(3) = Type(0.5) * t;
-			t = Type(0.5) / t;
-			q(0) = (R(1, 0) - R(0, 1)) * t;
-			q(1) = (R(0, 2) + R(2, 0)) * t;
-			q(2) = (R(2, 1) + R(1, 2)) * t;
-		}
+		detail::quaternion_from_dcm(*this, R);
 	}
 
 	/**
@@ -145,21 +126,7 @@ public:
 	 */
 	Quaternion(const Euler<Type> &euler)
 	{
-		Quaternion &q = *this;
-		Type cosPhi_2 = Type(std::cos(euler.phi() / Type(2)));
-		Type cosTheta_2 = Type(std::cos(euler.theta() / Type(2)));
-		Type cosPsi_2 = Type(std::cos(euler.psi() / Type(2)));
-		Type sinPhi_2 = Type(std::sin(euler.phi() / Type(2)));
-		Type sinTheta_2 = Type(std::sin(euler.theta() / Type(2)));
-		Type sinPsi_2 = Type(std::sin(euler.psi() / Type(2)));
-		q(0) = cosPhi_2 * cosTheta_2 * cosPsi_2 +
-		       sinPhi_2 * sinTheta_2 * sinPsi_2;
-		q(1) = sinPhi_2 * cosTheta_2 * cosPsi_2 -
-		       cosPhi_2 * sinTheta_2 * sinPsi_2;
-		q(2) = cosPhi_2 * sinTheta_2 * cosPsi_2 +
-		       sinPhi_2 * cosTheta_2 * sinPsi_2;
-		q(3) = cosPhi_2 * cosTheta_2 * sinPsi_2 -
-		       sinPhi_2 * sinTheta_2 * cosPsi_2;
+		detail::quaternion_from_euler(*this, euler);
 	}
 
 	/**
@@ -169,21 +136,7 @@ public:
 	 */
 	Quaternion(const AxisAngle<Type> &aa)
 	{
-		Quaternion &q = *this;
-		Type angle = aa.norm();
-		Vector<Type, 3> axis = aa.unit();
-
-		if (angle < Type(1e-10)) {
-			q(0) = Type(1);
-			q(1) = q(2) = q(3) = 0;
-
-		} else {
-			Type magnitude = std::sin(angle / Type(2));
-			q(0) = std::cos(angle / Type(2));
-			q(1) = axis(0) * magnitude;
-			q(2) = axis(1) * magnitude;
-			q(3) = axis(2) * magnitude;
-		}
+		detail::quaternion_from_axis_angle(*this, aa);
 	}
 
 	/**
@@ -545,5 +498,87 @@ using Quaternionf = Quaternion<float>;
 
 using Quatd = Quaternion<double>;
 using Quaterniond = Quaternion<double>;
+
+namespace detail
+{
+
+template<typename Type>
+void quaternion_from_dcm(Quaternion<Type> &q, const Dcm<Type> &R)
+{
+	Type t = R.trace();
+
+	if (t > Type(0)) {
+		t = std::sqrt(Type(1) + t);
+		q(0) = Type(0.5) * t;
+		t = Type(0.5) / t;
+		q(1) = (R(2, 1) - R(1, 2)) * t;
+		q(2) = (R(0, 2) - R(2, 0)) * t;
+		q(3) = (R(1, 0) - R(0, 1)) * t;
+
+	} else if (R(0, 0) > R(1, 1) && R(0, 0) > R(2, 2)) {
+		t = std::sqrt(Type(1) + R(0, 0) - R(1, 1) - R(2, 2));
+		q(1) = Type(0.5) * t;
+		t = Type(0.5) / t;
+		q(0) = (R(2, 1) - R(1, 2)) * t;
+		q(2) = (R(1, 0) + R(0, 1)) * t;
+		q(3) = (R(0, 2) + R(2, 0)) * t;
+
+	} else if (R(1, 1) > R(2, 2)) {
+		t = std::sqrt(Type(1) - R(0, 0) + R(1, 1) - R(2, 2));
+		q(2) = Type(0.5) * t;
+		t = Type(0.5) / t;
+		q(0) = (R(0, 2) - R(2, 0)) * t;
+		q(1) = (R(1, 0) + R(0, 1)) * t;
+		q(3) = (R(2, 1) + R(1, 2)) * t;
+
+	} else {
+		t = std::sqrt(Type(1) - R(0, 0) - R(1, 1) + R(2, 2));
+		q(3) = Type(0.5) * t;
+		t = Type(0.5) / t;
+		q(0) = (R(1, 0) - R(0, 1)) * t;
+		q(1) = (R(0, 2) + R(2, 0)) * t;
+		q(2) = (R(2, 1) + R(1, 2)) * t;
+	}
+}
+
+template<typename Type>
+void quaternion_from_euler(Quaternion<Type> &q, const Euler<Type> &euler)
+{
+	Type cosPhi_2 = Type(std::cos(euler.phi() / Type(2)));
+	Type cosTheta_2 = Type(std::cos(euler.theta() / Type(2)));
+	Type cosPsi_2 = Type(std::cos(euler.psi() / Type(2)));
+	Type sinPhi_2 = Type(std::sin(euler.phi() / Type(2)));
+	Type sinTheta_2 = Type(std::sin(euler.theta() / Type(2)));
+	Type sinPsi_2 = Type(std::sin(euler.psi() / Type(2)));
+	q(0) = cosPhi_2 * cosTheta_2 * cosPsi_2 +
+	       sinPhi_2 * sinTheta_2 * sinPsi_2;
+	q(1) = sinPhi_2 * cosTheta_2 * cosPsi_2 -
+	       cosPhi_2 * sinTheta_2 * sinPsi_2;
+	q(2) = cosPhi_2 * sinTheta_2 * cosPsi_2 +
+	       sinPhi_2 * cosTheta_2 * sinPsi_2;
+	q(3) = cosPhi_2 * cosTheta_2 * sinPsi_2 -
+	       sinPhi_2 * sinTheta_2 * cosPsi_2;
+}
+
+template<typename Type>
+void quaternion_from_axis_angle(Quaternion<Type> &q, const AxisAngle<Type> &aa)
+{
+	Type angle = aa.norm();
+	Vector<Type, 3> axis = aa.unit();
+
+	if (angle < Type(1e-10)) {
+		q(0) = Type(1);
+		q(1) = q(2) = q(3) = 0;
+
+	} else {
+		Type magnitude = std::sin(angle / Type(2));
+		q(0) = std::cos(angle / Type(2));
+		q(1) = axis(0) * magnitude;
+		q(2) = axis(1) * magnitude;
+		q(3) = axis(2) * magnitude;
+	}
+}
+
+} // namespace detail
 
 } // namespace matrix

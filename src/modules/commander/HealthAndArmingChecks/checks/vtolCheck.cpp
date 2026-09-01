@@ -50,9 +50,6 @@ void VtolChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error,
 						    "VTOL fixed-wing system failure detected. Verify reason for failure, and reboot the vehicle once confirmed safe");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_info(reporter.mavlink_log_pub(), "Preflight Fail: VTOL fixed-wing system failure detected\t");
-			}
 		}
 	}
 }

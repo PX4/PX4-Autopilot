@@ -301,6 +301,13 @@ protected:
 	static int module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator, void(*print_usage)(),
 				instantiate_method instantiate);
 
+	/**
+	 * Type-independent tail of instantiate_default(): checks the allocation and the init()
+	 * result, deleting the instance on failure. Kept out of line so the templated
+	 * instantiate_default() only has to construct and initialize the driver instance.
+	 */
+	static I2CSPIDriverBase *init_instance(I2CSPIDriverBase *instance, int init_ret);
+
 private:
 	static void custom_method_trampoline(void *argument);
 
@@ -356,17 +363,8 @@ private:
 	static I2CSPIDriverBase *instantiate_default(const I2CSPIDriverConfig &config, int runtime_instance)
 	{
 		T *instance = new T(config);
-
-		if (!instance) {
-			PX4_ERR("alloc failed");
-			return nullptr;
-		}
-
-		if (OK != instance->init()) {
-			delete instance;
-			return nullptr;
-		}
-
-		return instance;
+		// init() is resolved on T: it is not part of I2CSPIDriverBase, but inherited from the
+		// device base class (e.g. I2C/SPI), so it has to be called from the template
+		return I2CSPIDriverBase::init_instance(instance, instance ? instance->init() : PX4_ERROR);
 	}
 };

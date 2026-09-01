@@ -39,9 +39,6 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 	    (hrt_absolute_time() - context.status().takeoff_time) > (1_s * _param_com_flt_time_max.get())) {
 		reporter.failsafeFlags().flight_time_limit_exceeded = true;
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Maximum flight time reached\t");
-		}
 
 		/* EVENT
 		 * @description
@@ -74,10 +71,6 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 			if (floored_remaining_flight_time_sec <= 60 && _last_flight_time_warning_sec == -1) {
 				// less than or equal to a minute remaining on first pass
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_warning(reporter.mavlink_log_pub(), "Approaching max flight time (system will RTL in %i seconds)\t",
-							    floored_remaining_flight_time_sec);
-				}
 
 				/* EVENT
 				 * @description
@@ -91,10 +84,6 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 
 				const int floored_remaining_flight_time_min = (int)(remaining_flight_time_sec * 0.016666667f);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_warning(reporter.mavlink_log_pub(), "Approaching max flight time (system will RTL in %i minutes)\t",
-							    floored_remaining_flight_time_min);
-				}
 
 				/* EVENT
 				 * @description

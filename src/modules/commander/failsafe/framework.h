@@ -288,8 +288,6 @@ private:
 	int _next_caller_id{sizeof(failsafe_flags_s) + 1};
 	bool _duplicate_reported_once{false};
 
-	orb_advert_t _mavlink_log_pub{nullptr};
-
 	UserCallback _on_notify_user_cb{nullptr};
 	void *_on_notify_user_arg{nullptr};
 

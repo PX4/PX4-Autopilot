@@ -368,7 +368,6 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				size_t i = map_rc.parameter_rc_channel_index;
 
 				if (i >= sizeof(_rc_param_map.param_index) / sizeof(_rc_param_map.param_index[0])) {
-					mavlink_log_warning(_mavlink.get_mavlink_log_pub(), "parameter_rc_channel_index out of bounds\t");
 					events::send(events::ID("mavlink_param_rc_chan_out_of_bounds"), events::Log::Warning,
 						     "parameter_rc_channel_index out of bounds");
 					break;
