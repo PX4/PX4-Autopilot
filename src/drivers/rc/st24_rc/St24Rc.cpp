@@ -212,6 +212,14 @@ void St24Rc::Run()
 
 				input_rc.channel_count = valid_chans;
 
+				if ((_param_rc_rssi_pwm_chan.get() > 0) && (_param_rc_rssi_pwm_chan.get() < input_rc.channel_count)) {
+					const int32_t rssi_pwm_chan = _param_rc_rssi_pwm_chan.get();
+					const int32_t rssi_pwm_min = _param_rc_rssi_pwm_min.get();
+					const int32_t rssi_pwm_max = _param_rc_rssi_pwm_max.get();
+					int rc_rssi = ((input_rc.values[rssi_pwm_chan - 1] - rssi_pwm_min) * 100) / (rssi_pwm_max - rssi_pwm_min);
+					input_rc.rssi = math::constrain(rc_rssi, 0, 100);
+				}
+
 				if (valid_chans == 0) {
 					input_rc.rssi = 0;
 				}
