@@ -191,10 +191,6 @@ private:
 	ModeExecutors _mode_executors;
 	Modes _modes;
 
-	static constexpr int kReplyCacheSize = 5;
-	uint64_t _reply_cache[kReplyCacheSize] {};
-	int _reply_cache_head{0};
-
 	bool _failsafe_action_active{false};
 	int _mode_executor_in_charge{ModeExecutors::AUTOPILOT_EXECUTOR_ID};
 
