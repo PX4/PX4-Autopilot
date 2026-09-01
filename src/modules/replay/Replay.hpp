@@ -186,7 +186,7 @@ protected:
 
 	/**
 	 * handle delay until topic can be published.
-	 * @param next_file_timestamp timestamp of next message to publish
+	 * @param next_file_time timestamp of next message to publish
 	 * @param timestamp_offset offset between file start time and replay start time
 	 * @return timestamp that the message to publish should have
 	 */
