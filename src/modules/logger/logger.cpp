@@ -1623,14 +1623,10 @@ void Logger::handle_file_write_error()
 	}
 }
 
-void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
+void Logger::perf_iterate_callback(const char *counter_line, void *user)
 {
 	perf_callback_data_t *callback_data = (perf_callback_data_t *)user;
-	const int buffer_length = 220;
-	char buffer[buffer_length];
 	const char *perf_name;
-
-	perf_print_counter_buffer(buffer, buffer_length, handle);
 
 	switch (callback_data->reason) {
 	case PrintLoadReason::Preflight:
@@ -1647,7 +1643,7 @@ void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
 		break;
 	}
 
-	callback_data->logger->write_info_multiple(LogType::Full, perf_name, buffer, callback_data->counter != 0);
+	callback_data->logger->write_info_multiple(LogType::Full, perf_name, counter_line, callback_data->counter != 0);
 	++callback_data->counter;
 }
 
