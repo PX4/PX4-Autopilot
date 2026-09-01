@@ -200,7 +200,7 @@ int ILabs::print_usage(const char *reason)
 
 Serial bus driver for the ILabs sensors.
 
-Start the driver by setting a UART's SER_<port>_PROTO parameter to InertialLabs.
+Start the driver by setting a UART's SER_*_PROTO parameter to InertialLabs.
 After that you can use the ILABS_MODE parameter to config outputs:
 
 - Only raw sensor output (the default).

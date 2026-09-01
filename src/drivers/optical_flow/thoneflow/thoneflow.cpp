@@ -426,7 +426,7 @@ usage()
 
 Serial bus driver for the ThoneFlow-3901U optical flow sensor.
 
-Start the driver by setting a UART's SER_<port>_PROTO parameter to ThoneFlow.
+Start the driver by setting a UART's SER_*_PROTO parameter to ThoneFlow.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/pmw3901.html#thone-thoneflow-3901u
 

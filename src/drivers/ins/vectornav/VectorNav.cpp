@@ -855,7 +855,7 @@ int VectorNav::print_usage(const char *reason)
 
 Serial bus driver for the VectorNav VN-100, VN-200, VN-300.
 
-Start the driver by setting a UART's SER_<port>_PROTO parameter to VectorNav.
+Start the driver by setting a UART's SER_*_PROTO parameter to VectorNav.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/vectornav.html
 
