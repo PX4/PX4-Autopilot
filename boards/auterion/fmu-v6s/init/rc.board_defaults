@@ -5,8 +5,13 @@
 
 # Set the backend of the dataman to SRAM
 param set-default SYS_DM_BACKEND 1
-# Set TELEM1 as default mavlink connection
-param set-default SER_TEL1_PROTO 0
+# SOM link is TELEM1 (ttyS0)
+param set-default SER_TEL1_PROTO 1
+param set-default SER_TEL1_BAUD 3000000
+param set-default MAV_0_MODE 11
+param set-default MAV_0_RATE 290000
+param set-default MAV_0_FLOW_CTRL 1
+param set-default MAV_0_FORWARD 0
 # Disable logger writing to FRAM, only stream over MAVLINK
 param set-default SDLOG_BACKEND 2
 # Disable UAVCAN tracing
