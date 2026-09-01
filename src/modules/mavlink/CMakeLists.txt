@@ -164,6 +164,18 @@ px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 		modules__mavlink
 	)
 
+px4_add_unit_gtest(SRC MavlinkFTPTest.cpp
+	INCLUDES
+		${MAVLINK_LIBRARY_DIR}
+		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}
+		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}
+	COMPILE_FLAGS
+		-Wno-address-of-packed-member # TODO: fix in c_library_v2
+		-Wno-cast-align # TODO: fix
+	LINKLIBS
+		modules__mavlink
+	)
+
 if(CONFIG_NET AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	target_link_libraries(modules__mavlink PRIVATE nuttx_apps) # netlib_get_ipv4netmask
 endif()
