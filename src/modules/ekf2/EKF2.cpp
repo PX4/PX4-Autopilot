@@ -226,6 +226,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 
 EKF2::~EKF2()
 {
+	px4_lockstep_unregister_component(_lockstep_component);
 	perf_free(_ekf_update_perf);
 	perf_free(_msg_missed_imu_perf);
 }
@@ -508,6 +509,13 @@ void EKF2::Run()
 		if (!_callback_registered) {
 			ScheduleDelayed(10_ms);
 			return;
+		}
+
+		if (_replay_mode) {
+			// let the replay module wait for this instance: it publishes the next imu sample only
+			// once every registered component reported progress, and without this the estimator
+			// (running on a work queue) can be handed a new sample before it consumed the last one
+			_lockstep_component = px4_lockstep_register_component();
 		}
 	}
 
@@ -888,6 +896,12 @@ void EKF2::Run()
 
 	// re-schedule as backup timeout
 	ScheduleDelayed(100_ms);
+
+	if (imu_updated && _replay_mode) {
+		// releases the replay module to publish the next sample, so nothing of this update may be
+		// left to do below
+		px4_lockstep_progress(_lockstep_component);
+	}
 }
 
 void EKF2::VerifyParams()
