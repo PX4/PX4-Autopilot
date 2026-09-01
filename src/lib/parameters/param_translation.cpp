@@ -447,7 +447,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			return false;
 		};
 
-		auto prot_name = [&](int32_t index) -> const char * {
+		auto prot_name = [&](int32_t index) -> const char* {
 			for (const auto &p : kPorts)
 			{
 				if (p.index == index) {

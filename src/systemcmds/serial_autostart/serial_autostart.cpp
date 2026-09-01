@@ -511,6 +511,13 @@ static void start_ports()
 			continue;
 		}
 
+		const char *primary_dev = collect_dev[i][0];
+		const char *primary_baud = collect_baud[i][0];
+
+		if (primary_dev == nullptr || primary_baud == nullptr) {
+			continue;
+		}
+
 		char dual[96] {};
 
 		if (collect_n[i] > 1 && kSerialProtocols[i].secondary_command != nullptr) {
@@ -522,9 +529,9 @@ static void start_ports()
 		}
 
 #if !defined(CONSTRAINED_FLASH)
-		PX4_INFO("Starting %s on %s", kSerialProtocols[i].name, collect_dev[i][0]);
+		PX4_INFO("Starting %s on %s", kSerialProtocols[i].name, primary_dev);
 #endif
-		start_expanded(kSerialProtocols[i].command, collect_dev[i][0], collect_baud[i][0], nullptr, dual);
+		start_expanded(kSerialProtocols[i].command, primary_dev, primary_baud, nullptr, dual);
 	}
 
 	for (unsigned i = 0; i < kSerialProtocolCount; i++) {
