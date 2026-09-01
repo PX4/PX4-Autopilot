@@ -143,6 +143,25 @@ static void apply_rc_serial_import()
 	if (proto == -2) {
 		int32_t one = 1;
 		param_set(param_find("RC_PPM_EN"), &one);
+
+		// PPM is not a UART protocol. The old scanner did not open the RC
+		// serial port; leaving SER_RC_PROTO at the SBUS default makes
+		// shared-pin boards refuse ppm_rc start.
+		int32_t z = 0;
+		const char *rc = serial_prot_name(300);
+
+		if (rc != nullptr && serial_claim(300)) {
+			param_set(param_find(rc), &z);
+		}
+
+		if (port != 0 && port != 300) {
+			const char *dest = serial_prot_name(port);
+
+			if (dest != nullptr && serial_claim(port)) {
+				param_set(param_find(dest), &z);
+			}
+		}
+
 		PX4_INFO("migrating RC_INPUT_PROTO PPM -> RC_PPM_EN");
 		return;
 	}
