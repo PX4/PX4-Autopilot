@@ -22,24 +22,24 @@ The configuration makes it easy to (for example):
 
 Each UART has two parameters, named from the port tag (`TEL1`, `GPS1`, `RC`, …):
 
-- [SER_TEL1_PROT](../advanced_config/parameter_reference.md#SER_TEL1_PROT) (and `SER_<tag>_PROT`) — protocol started on that port.
+- [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO) (and `SER_<tag>_PROTO`) — protocol started on that port.
 - [SER_TEL1_BAUD](../advanced_config/parameter_reference.md#SER_TEL1_BAUD) (and `SER_<tag>_BAUD`) — baud rate.
 
 _QGroundControl_ only lists protocols compiled into the connected firmware.
 A protocol already running on another port cannot be started a second time (except MAVLink, up to three UART instances, and GPS/Septentrio, up to two ports).
 
 MAVLink still has per-instance settings ([MAV_0_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE), [MAV_0_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE), [MAV_0_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD), …).
-Instance 0 is the first UART whose `SER_*_PROT` is MAVLink (by port-tag index), instance 1 the next, instance 2 the third.
+Instance 0 is the first UART whose `SER_*_PROTO` is MAVLink (by port-tag index), instance 1 the next, instance 2 the third.
 Ethernet MAVLink is [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN) and uses instance 2.
 
 ## How to Configure a Port
 
-1. Set `SER_<tag>_PROT` for the silkscreen port (`SER_TEL2_PROT` = GPS, `SER_RC_PROT` = CRSF, …).
+1. Set `SER_<tag>_PROTO` for the silkscreen port (`SER_TEL2_PROTO` = GPS, `SER_RC_PROTO` = CRSF, …).
 1. Reboot.
 1. Set `SER_<tag>_BAUD` if the driver does not autodetect.
 1. Set module-specific parameters (MAVLink mode/rate, GPS protocol, CRSF telemetry, …).
 
-[GPS/Compass > Secondary GPS](../gps_compass/index.md#dual_gps) is the dual-GPS example: set a second port's `SER_*_PROT` to GPS.
+[GPS/Compass > Secondary GPS](../gps_compass/index.md#dual_gps) is the dual-GPS example: set a second port's `SER_*_PROTO` to GPS.
 [MAVLink Peripherals](../peripherals/mavlink_peripherals.md) covers MAVLink modes.
 [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md#px4-mavlink-serial-port-configuration) covers UDP MAVLink.
 
@@ -58,17 +58,17 @@ These port mappings can be disabled by setting the associated configuration para
 
 The following ports are commonly mapped to specific functions on all boards:
 
-- `GPS 1`: [SER_GPS1_PROT](../advanced_config/parameter_reference.md#SER_GPS1_PROT) = GPS, [SER_GPS1_BAUD](../advanced_config/parameter_reference.md#SER_GPS1_BAUD) = Auto.
-- `RC IN` on an FMU UART: [SER_RC_PROT](../advanced_config/parameter_reference.md#SER_RC_PROT) = SBUS.
+- `GPS 1`: [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO) = GPS, [SER_GPS1_BAUD](../advanced_config/parameter_reference.md#SER_GPS1_BAUD) = Auto.
+- `RC IN` on an FMU UART: [SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO) = SBUS.
   On IO boards the RC connector is scanned by the IO firmware; it is not a `SER_*` slot.
-- `TELEM 1`: [SER_TEL1_PROT](../advanced_config/parameter_reference.md#SER_TEL1_PROT) = MAVLink (instance 0, Normal).
-- `TELEM 2`: disabled (`SER_TEL2_PROT` = Disabled). Set it to MAVLink for a companion link (instance 1 defaults to Onboard).
+- `TELEM 1`: [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO) = MAVLink (instance 0, Normal).
+- `TELEM 2`: disabled (`SER_TEL2_PROTO` = Disabled). Set it to MAVLink for a companion link (instance 1 defaults to Onboard).
 - Ethernet: [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN) (MAVLink instance 2). See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md#px4-mavlink-serial-port-configuration).
 
 - `USB-C` (the USB-C port normally used for connecting to QGroundControl)
 
   This is configured by default as a MAVLink port the onboard profile (for companion computers).
-  The configuration for MAVLink is unique to this port (it does not use `SER_*_PROT`).
+  The configuration for MAVLink is unique to this port (it does not use `SER_*_PROTO`).
   - [SYS_USB_AUTO](../advanced_config/parameter_reference.md#SYS_USB_AUTO) sets whether the port is set to no particular protocol, autodetects the protocol, or sets the comms link to MAVLink.
   - [USB_MAV_MODE](../advanced_config/parameter_reference.md#USB_MAV_MODE) sets the MAVLink profile that is used if MAVLink is set or detected.
 

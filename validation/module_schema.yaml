@@ -10,7 +10,7 @@ module_name:
 serial_config:
     # UART configuration (optional)
     # A module registers a stable protocol_id and an autostart command.
-    # generate_config.py emits SER_<tag>_PROT enums and starts the command
+    # generate_config.py emits SER_<tag>_PROTO enums and starts the command
     # on each board UART whose protocol param matches protocol_id.
     type: list
     minlength: 1
@@ -23,7 +23,7 @@ serial_config:
                 min: 1
                 required: true
             protocol_name:
-                # Enum label shown in SER_*_PROT metadata.
+                # Enum label shown in SER_*_PROTO metadata.
                 # If omitted, module_name is used.
                 type: string
             command:

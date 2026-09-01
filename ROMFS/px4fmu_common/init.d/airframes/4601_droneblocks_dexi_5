@@ -73,7 +73,7 @@ param set-default MPC_THR_MIN 0.025
 param set-default MPC_VEL_MANUAL 5
 param set-default MPC_XY_VEL_MAX 8
 
-param set-default SER_RC_PROT 12
+param set-default SER_RC_PROTO 12
 param set-default RC_CRSF_TEL_EN 1
 
 param set-default RTL_RETURN_ALT 15

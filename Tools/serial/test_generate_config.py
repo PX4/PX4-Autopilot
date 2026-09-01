@@ -152,11 +152,11 @@ serial_config:
             self.assertEqual(proc.returncode, 0, proc.stderr)
             self.assertEqual(rc_text.strip(), 'serial_autostart')
             self.assertNotIn('param compare', rc_text)
-            self.assertIn('SER_TEL1_PROT', params_text)
+            self.assertIn('SER_TEL1_PROTO', params_text)
             self.assertIn('kSerialKindCollect', header_text)
             self.assertIn('gps start -d ${SERIAL_DEV}', header_text)
             self.assertIn('-e ${SERIAL_DEV} -g p:${BAUD_PARAM}', header_text)
-            self.assertIn('SER_TEL1_PROT', header_text)
+            self.assertIn('SER_TEL1_PROTO', header_text)
             self.assertIn('/dev/ttyS6', header_text)
 
 

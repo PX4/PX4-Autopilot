@@ -53,6 +53,6 @@ PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_BAUD, {{ serial_device.default_ba
  * @group Serial
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_PROT, {{ serial_device.default_protocol }});
+PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_PROTO, {{ serial_device.default_protocol }});
 
 {% endfor %}

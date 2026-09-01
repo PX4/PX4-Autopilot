@@ -3,7 +3,7 @@ menuconfig SYSTEMCMDS_SERIAL_AUTOSTART
 	default y
 	depends on BOARD_ROMFSROOT != ""
 	---help---
-		Walk SER_*_PROT / SER_*_BAUD and start the matching serial drivers.
+		Walk SER_*_PROTO / SER_*_BAUD and start the matching serial drivers.
 
 menuconfig USER_SERIAL_AUTOSTART
 	bool "serial_autostart running as userspace module"

@@ -357,7 +357,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2026-08-31: invert serial mapping (*_CONFIG port index) to SER_<tag>_PROT
+	// 2026-08-31: invert serial mapping (*_CONFIG port index) to SER_<tag>_PROTO
 	if (node->type == bson_type_t::BSON_INT32) {
 		if (strcmp("RC_INPUT_PROTO", node->name) == 0) {
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
@@ -369,17 +369,17 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		};
 
 		static constexpr PortTag kPorts[] = {
-			{6, "SER_URT6_PROT"},
-			{101, "SER_TEL1_PROT"},
-			{102, "SER_TEL2_PROT"},
-			{103, "SER_TEL3_PROT"},
-			{104, "SER_TEL4_PROT"},
-			{201, "SER_GPS1_PROT"},
-			{202, "SER_GPS2_PROT"},
-			{203, "SER_GPS3_PROT"},
-			{300, "SER_RC_PROT"},
-			{301, "SER_WIFI_PROT"},
-			{401, "SER_EXT2_PROT"},
+			{6, "SER_URT6_PROTO"},
+			{101, "SER_TEL1_PROTO"},
+			{102, "SER_TEL2_PROTO"},
+			{103, "SER_TEL3_PROTO"},
+			{104, "SER_TEL4_PROTO"},
+			{201, "SER_GPS1_PROTO"},
+			{202, "SER_GPS2_PROTO"},
+			{203, "SER_GPS3_PROTO"},
+			{300, "SER_RC_PROTO"},
+			{301, "SER_WIFI_PROTO"},
+			{401, "SER_EXT2_PROTO"},
 		};
 
 		struct OldConfig {
@@ -447,7 +447,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			return false;
 		};
 
-		auto prot_name = [&](int32_t index) -> const char* {
+		auto prot_name = [&](int32_t index) -> const char * {
 			for (const auto &p : kPorts)
 			{
 				if (p.index == index) {

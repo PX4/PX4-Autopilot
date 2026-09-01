@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate serial (UART) parameters, autostart tables, and the ROMFS startup script.
 
-Port -> protocol: each board UART tag gets SER_<tag>_PROT / SER_<tag>_BAUD.
+Port -> protocol: each board UART tag gets SER_<tag>_PROTO / SER_<tag>_BAUD.
 Drivers declare a stable protocol_id in module.yaml serial_config.
 rc.serial is a one-liner that runs serial_autostart; the C module walks ports.
 """

@@ -83,13 +83,13 @@ param set-default BAT1_N_CELLS 4
 param set-default BAT1_V_DIV 10.133
 
 # TELEM1 ttyS1
-param set-default SER_TEL1_PROT 1
+param set-default SER_TEL1_PROTO 1
 param set-default MAV_0_MODE 0
 param set-default MAV_0_FORWARD 1
 param set-default SER_TEL1_BAUD 57600
 
 # TELEM2 ttyS2
-param set-default SER_TEL2_PROT 1
+param set-default SER_TEL2_PROTO 1
 param set-default MAV_1_MODE 2
 param set-default MAV_1_FORWARD 1
 param set-default MAV_1_RATE 800000

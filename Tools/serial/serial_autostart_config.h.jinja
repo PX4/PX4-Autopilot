@@ -11,7 +11,7 @@ static constexpr uint8_t kSerialKindCollect = 2;
 struct SerialPortConfig {
 	const char *tag;
 	const char *device;
-	const char *prot_param;
+	const char *proto_param;
 	const char *baud_param;
 };
 
@@ -28,7 +28,7 @@ struct SerialProtocolConfig {
 
 static constexpr SerialPortConfig kSerialPorts[] = {
 {% for serial_device in serial_devices %}
-	{ "{{ serial_device.tag }}", "{{ serial_device.device }}", "SER_{{ serial_device.tag }}_PROT", "SER_{{ serial_device.tag }}_BAUD" },
+	{ "{{ serial_device.tag }}", "{{ serial_device.device }}", "SER_{{ serial_device.tag }}_PROTO", "SER_{{ serial_device.tag }}_BAUD" },
 {% else %}
 	{ nullptr, nullptr, nullptr, nullptr },
 {% endfor %}
