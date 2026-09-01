@@ -6,7 +6,7 @@
 # Set the backend of the dataman to SRAM
 param set-default SYS_DM_BACKEND 1
 # Set TELEM1 as default mavlink connection
-param set-default MAV_0_CONFIG 0
+param set-default SER_TEL1_PROTO 0
 # Disable logger writing to FRAM, only stream over MAVLINK
 param set-default SDLOG_BACKEND 2
 # Disable UAVCAN tracing
@@ -25,7 +25,7 @@ param set-default BAT1_V_DIV 21
 # Skynode: use the "custom participant", IP=10.41.10.1 config for uxrce_dds_client
 param set-default UXRCE_DDS_PTCFG 2
 param set-default UXRCE_DDS_AG_IP 170461697
-param set-default UXRCE_DDS_CFG 1000
+param set-default UXRCE_DDS_ETH 1
 
 # Mount NFS export from the SOM (10.41.10.1)
 param set-default NFS_EN 1

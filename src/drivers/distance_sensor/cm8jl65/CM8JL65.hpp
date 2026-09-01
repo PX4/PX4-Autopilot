@@ -36,8 +36,7 @@
  * @author Claudio Micheli <claudio@auterion.com>
  *
  * Driver for the Lanbao PSK-CM8JL65-CC5 distance sensor.
- * Make sure to disable MAVLINK messages (MAV_0_CONFIG PARAMETER)
- * on the serial port you connect the sensor,i.e TELEM2.
+ * Make sure the UART is not assigned MAVLink (SER_<tag>_PROTO).
  *
  */
 

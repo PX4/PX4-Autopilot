@@ -8,7 +8,7 @@ then
 	# Skynode: use the "custom participant", IP=10.41.10.1 config for uxrce_dds_client
 	param set-default UXRCE_DDS_PTCFG 2
 	param set-default UXRCE_DDS_AG_IP 170461697
-	param set-default UXRCE_DDS_CFG 1000
+	param set-default UXRCE_DDS_ETH 1
 
 	# The buzzer draws too much power (0.2A) on the GPS power rail (limit 0.45A).
 	param set-default CBRK_BUZZER 782097
@@ -17,8 +17,8 @@ then
 	param set-default -s EKF2_MULTI_IMU 0
 	param set-default SENS_IMU_MODE 1
 else
-	# Mavlink ethernet (CFG 1000)
-	param set-default MAV_2_CONFIG 1000
+	# Mavlink ethernet
+	param set-default MAV_ETH_EN 1
 	param set-default MAV_2_BROADCAST 1
 	param set-default MAV_2_MODE 0
 	param set-default MAV_2_RADIO_CTL 0
@@ -26,6 +26,9 @@ else
 	param set-default MAV_2_REMOTE_PRT 14550
 	param set-default MAV_2_UDP_PRT 14550
 fi
+
+# IO owns SBUS/PPM/DSM; leave the FMU RC UART free for CRSF/GHST.
+param set-default SER_RC_PROTO 0
 
 safety_button start
 
