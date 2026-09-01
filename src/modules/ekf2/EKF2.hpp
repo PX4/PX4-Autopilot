@@ -279,6 +279,7 @@ private:
 	static constexpr float sq(float x) { return x * x; };
 
 	const bool _replay_mode{false};			///< true when we use replay data from a log
+	int _lockstep_component{-1};			///< replay only: barrier the replay module waits on
 	const bool _multi_mode;
 	int _instance{0};
 
