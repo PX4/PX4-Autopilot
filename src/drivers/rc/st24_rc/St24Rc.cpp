@@ -34,6 +34,7 @@
 #include "St24Rc.hpp"
 
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include <lib/mathlib/mathlib.h>
 #include <termios.h>
 #include <unistd.h>
@@ -171,6 +172,19 @@ void St24Rc::Run()
 		}
 
 		dsm_config(_rcs_fd);
+
+		if (board_rc_swap_rxtx(_device)) {
+#if defined(TIOCSSWAP)
+			ioctl(_rcs_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+#endif
+		}
+
+		if (board_rc_singlewire(_device)) {
+#if defined(TIOCSSINGLEWIRE)
+			ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+#endif
+		}
+
 		tcflush(_rcs_fd, TCIOFLUSH);
 
 	} else if (_rc_scan_locked
@@ -184,7 +198,6 @@ void St24Rc::Run()
 			bool decoded = false;
 
 			for (int i = 0; i < newBytes; i++) {
-				st24_rssi = input_rc_s::RSSI_MAX;
 				decoded |= (OK == st24_decode(rcs_buf[i], &st24_rssi, &lost_count, &raw_rc_count,
 							      raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
 			}
