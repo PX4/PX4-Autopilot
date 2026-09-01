@@ -35,12 +35,146 @@
 
 
 #include <inttypes.h>
+#include <limits.h>
 #include <px4_platform_common/log.h>
 #include <lib/drivers/device/Device.hpp>
 #include <drivers/drv_sensor.h>
 #include <lib/parameters/param.h>
 #include <lib/mathlib/mathlib.h>
 #include <uORB/topics/vtx.h>
+
+static uint32_t serial_claimed_ports;
+static int32_t serial_rc_input_proto = INT32_MIN;
+static int32_t serial_rc_port = INT32_MIN;
+
+void param_modify_on_import_begin()
+{
+	serial_claimed_ports = 0;
+	serial_rc_input_proto = INT32_MIN;
+	serial_rc_port = INT32_MIN;
+}
+
+static const char *serial_prot_name(int32_t index)
+{
+	struct PortTag {
+		int32_t index;
+		const char *prot_name;
+	};
+
+	static constexpr PortTag kPorts[] = {
+		{6, "SER_URT6_PROTO"},
+		{101, "SER_TEL1_PROTO"},
+		{102, "SER_TEL2_PROTO"},
+		{103, "SER_TEL3_PROTO"},
+		{104, "SER_TEL4_PROTO"},
+		{201, "SER_GPS1_PROTO"},
+		{202, "SER_GPS2_PROTO"},
+		{203, "SER_GPS3_PROTO"},
+		{300, "SER_RC_PROTO"},
+		{301, "SER_WIFI_PROTO"},
+		{401, "SER_EXT2_PROTO"},
+	};
+
+	for (const auto &p : kPorts) {
+		if (p.index == index) {
+			return p.prot_name;
+		}
+	}
+
+	return nullptr;
+}
+
+static bool serial_claim(int32_t index)
+{
+	static constexpr int32_t kIndexes[] = {6, 101, 102, 103, 104, 201, 202, 203, 300, 301, 401};
+
+	for (unsigned i = 0; i < sizeof(kIndexes) / sizeof(kIndexes[0]); i++) {
+		if (kIndexes[i] == index) {
+			if (serial_claimed_ports & (1u << i)) {
+				return false;
+			}
+
+			serial_claimed_ports |= (1u << i);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static int32_t map_rc_input_proto(int32_t value)
+{
+	// Old RC_INPUT_PROTO: -1 Auto, 0 None, 1 PPM, 2 SBUS, 3 DSM, 4 ST24, 5 SUMD, 6 CRSF, 7 GHST.
+	// Auto and missing become SBUS. PPM is not a UART protocol (-2).
+	switch (value) {
+	case 0: return 0;
+
+	case 1: return -2;
+
+	case 2: return 10;
+
+	case 3: return 11;
+
+	case 4: return 15;
+
+	case 5: return 14;
+
+	case 6: return 12;
+
+	case 7: return 13;
+
+	default: return 10;
+	}
+}
+
+static void apply_rc_serial_import()
+{
+	const int32_t proto = (serial_rc_input_proto == INT32_MIN) ? 10 : map_rc_input_proto(serial_rc_input_proto);
+	const int32_t port = (serial_rc_port == INT32_MIN) ? 300 : serial_rc_port;
+
+	if (proto == -2) {
+		int32_t one = 1;
+		param_set(param_find("RC_PPM_EN"), &one);
+		PX4_INFO("migrating RC_INPUT_PROTO PPM -> RC_PPM_EN");
+		return;
+	}
+
+	if (proto == 0 || port == 0) {
+		if (port != 0 && serial_prot_name(port) != nullptr && serial_claim(port)) {
+			int32_t z = 0;
+			param_set(param_find(serial_prot_name(port)), &z);
+			PX4_INFO("migrating RC_INPUT_PROTO None -> %s=0", serial_prot_name(port));
+		}
+
+		return;
+	}
+
+	const char *dest = serial_prot_name(port);
+
+	if (dest == nullptr) {
+		return;
+	}
+
+	if (!serial_claim(port)) {
+		PX4_WARN("dropping RC_PORT_CONFIG, %s already assigned", dest);
+		return;
+	}
+
+	int32_t id = proto;
+	param_set(param_find(dest), &id);
+	PX4_INFO("migrating RC -> %s=%" PRId32, dest, id);
+}
+
+void param_modify_on_import_end()
+{
+	if (serial_rc_input_proto != INT32_MIN || serial_rc_port != INT32_MIN) {
+		apply_rc_serial_import();
+	}
+
+	serial_claimed_ports = 0;
+	serial_rc_input_proto = INT32_MIN;
+	serial_rc_port = INT32_MIN;
+}
 
 param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 {
@@ -360,27 +494,14 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	// 2026-08-31: invert serial mapping (*_CONFIG port index) to SER_<tag>_PROTO
 	if (node->type == bson_type_t::BSON_INT32) {
 		if (strcmp("RC_INPUT_PROTO", node->name) == 0) {
+			serial_rc_input_proto = node->i32;
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 
-		struct PortTag {
-			int32_t index;
-			const char *prot_name;
-		};
-
-		static constexpr PortTag kPorts[] = {
-			{6, "SER_URT6_PROTO"},
-			{101, "SER_TEL1_PROTO"},
-			{102, "SER_TEL2_PROTO"},
-			{103, "SER_TEL3_PROTO"},
-			{104, "SER_TEL4_PROTO"},
-			{201, "SER_GPS1_PROTO"},
-			{202, "SER_GPS2_PROTO"},
-			{203, "SER_GPS3_PROTO"},
-			{300, "SER_RC_PROTO"},
-			{301, "SER_WIFI_PROTO"},
-			{401, "SER_EXT2_PROTO"},
-		};
+		if (strcmp("RC_PORT_CONFIG", node->name) == 0) {
+			serial_rc_port = node->i32;
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
 
 		struct OldConfig {
 			const char *name;
@@ -401,7 +522,6 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			{"RC_DSM_PRT_CFG", 11, 0, nullptr},
 			{"RC_CRSF_PRT_CFG", 12, 0, nullptr},
 			{"RC_GHST_PRT_CFG", 13, 0, nullptr},
-			{"RC_PORT_CONFIG", 10, 300, nullptr},
 			{"UXRCE_DDS_CFG", 20, 0, "UXRCE_DDS_ETH"},
 			{"TEL_FRSKY_CONFIG", 21, 0, nullptr},
 			{"TEL_HOTT_CONFIG", 22, 0, nullptr},
@@ -430,36 +550,6 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			{"MXS_SER_CFG", 55, 0, nullptr},
 		};
 
-		static uint32_t claimed_ports;
-
-		auto claim = [&](int32_t index) {
-			for (unsigned i = 0; i < sizeof(kPorts) / sizeof(kPorts[0]); i++) {
-				if (kPorts[i].index == index) {
-					if (claimed_ports & (1u << i)) {
-						return false;
-					}
-
-					claimed_ports |= (1u << i);
-					return true;
-				}
-			}
-
-			return false;
-		};
-
-		auto prot_name = [&](int32_t index) {
-			const char *name = nullptr;
-
-			for (const auto &p : kPorts) {
-				if (p.index == index) {
-					name = p.prot_name;
-					break;
-				}
-			}
-
-			return name;
-		};
-
 		for (const auto &old : kOld) {
 			if (strcmp(old.name, node->name) != 0) {
 				continue;
@@ -470,8 +560,8 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			if (value == 1000 && old.ethernet_param) {
 				if (old.default_port != 0) {
 					int32_t z = 0;
-					param_set(param_find(prot_name(old.default_port)), &z);
-					claim(old.default_port);
+					param_set(param_find(serial_prot_name(old.default_port)), &z);
+					serial_claim(old.default_port);
 				}
 
 				strcpy(node->name, old.ethernet_param);
@@ -481,8 +571,8 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			}
 
 			if (value == 0) {
-				if (old.default_port != 0 && claim(old.default_port)) {
-					strcpy(node->name, prot_name(old.default_port));
+				if (old.default_port != 0 && serial_claim(old.default_port)) {
+					strcpy(node->name, serial_prot_name(old.default_port));
 					PX4_INFO("migrating %s -> %s (disabled)", old.name, node->name);
 					return param_modify_on_import_ret::PARAM_MODIFIED;
 				}
@@ -490,7 +580,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 			}
 
-			const char *dest = prot_name(value);
+			const char *dest = serial_prot_name(value);
 
 			if (dest == nullptr) {
 				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
@@ -498,11 +588,11 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 
 			if (old.default_port != 0 && value != old.default_port) {
 				int32_t z = 0;
-				param_set(param_find(prot_name(old.default_port)), &z);
-				claim(old.default_port);
+				param_set(param_find(serial_prot_name(old.default_port)), &z);
+				serial_claim(old.default_port);
 			}
 
-			if (!claim(value)) {
+			if (!serial_claim(value)) {
 				PX4_WARN("dropping %s, %s already assigned", old.name, dest);
 				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 			}

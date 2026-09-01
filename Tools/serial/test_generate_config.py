@@ -158,6 +158,70 @@ serial_config:
             self.assertIn('-e ${SERIAL_DEV} -g p:${BAUD_PARAM}', header_text)
             self.assertIn('SER_TEL1_PROTO', header_text)
             self.assertIn('/dev/ttyS6', header_text)
+            self.assertIn('collect_rank', header_text)
+
+    def test_gps_collect_rank_prefers_gps_tags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            yaml_path = os.path.join(tmp, 'mod.yaml')
+            write_yaml(yaml_path, """
+module_name: GPS
+serial_config:
+    - command: gps start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} ${DUAL_GPS_ARGS}
+      secondary_command: set DUAL_GPS_ARGS "-e ${SERIAL_DEV} -g p:${BAUD_PARAM}"
+      protocol_id: 5
+      protocol_name: GPS
+      default: GPS1
+""")
+            proc, _, header_text, _ = run_generate(
+                [yaml_path],
+                extra_args=['--serial-ports', 'TEL2:/dev/ttyS4', 'GPS1:/dev/ttyS0', 'GPS2:/dev/ttyS1'])
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertIn('"GPS1"', header_text)
+            gps1 = header_text.find('"GPS1"')
+            gps2 = header_text.find('"GPS2"')
+            tel2 = header_text.find('"TEL2"')
+            self.assertGreater(gps1, 0)
+            self.assertGreater(gps2, gps1)
+            # collect_rank 0/1/2 for GPS tags, 255 for TEL2
+            self.assertRegex(header_text[gps1:gps1 + 120], r',\s*0\s*\}')
+            self.assertRegex(header_text[gps2:gps2 + 120], r',\s*1\s*\}')
+            self.assertRegex(header_text[tel2:tel2 + 120], r',\s*255\s*\}')
+
+    def test_board_with_io_skips_rc_sbus_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            yaml_path = os.path.join(tmp, 'mod.yaml')
+            write_yaml(yaml_path, """
+module_name: SBUS RC Input Driver
+serial_config:
+    - command: "sbus_rc start -d ${SERIAL_DEV}"
+      protocol_id: 10
+      protocol_name: SBUS
+      default: RC
+""")
+            proc, _, _, params_text = run_generate(
+                [yaml_path],
+                extra_args=['--serial-ports', 'RC:/dev/ttyS5', '--board-with-io'])
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertIn('PARAM_DEFINE_INT32(SER_RC_PROTO, 0)', params_text)
+
+    def test_iridium_success_command_in_header(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            yaml_path = os.path.join(tmp, 'mod.yaml')
+            write_yaml(yaml_path, """
+module_name: Iridium
+serial_config:
+    - command: usleep 200000; iridiumsbd start -d ${SERIAL_DEV}
+      success_command: mavlink start -d /dev/iridium -m iridium -b 115200
+      fail_command: tune_control play error
+      protocol_id: 23
+      protocol_name: Iridium
+""")
+            proc, _, header_text, _ = run_generate([yaml_path])
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertIn('iridiumsbd start -d ${SERIAL_DEV}', header_text)
+            self.assertIn('mavlink start -d /dev/iridium', header_text)
+            self.assertIn('tune_control play error', header_text)
+            self.assertNotIn('if iridiumsbd', header_text)
 
 
 if __name__ == '__main__':

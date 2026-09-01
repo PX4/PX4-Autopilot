@@ -186,6 +186,7 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	 */
 	if (node->type == BSON_EOO) {
 		debug("end of parameters");
+		param_modify_on_import_end();
 		return 0;
 	}
 
@@ -277,6 +278,8 @@ param_import_internal()
 		debug("flash read failed (%d)", read_result);
 		return read_result;
 	}
+
+	param_modify_on_import_begin();
 
 	if (bson_decoder_init_buf(&decoder, buffer, buf_size, param_import_callback)) {
 		debug("decoder init failed");

@@ -41,4 +41,6 @@ enum class param_modify_on_import_ret {
 	PARAM_MODIFIED = 2
 };
 
+__EXPORT void param_modify_on_import_begin();
+__EXPORT void param_modify_on_import_end();
 __EXPORT param_modify_on_import_ret param_modify_on_import(bson_node_t node);

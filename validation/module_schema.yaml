@@ -46,6 +46,15 @@ serial_config:
             ethernet_param:
                 # Optional boolean param that starts this protocol on UDP/ethernet.
                 type: string
+            ethernet_command:
+                # Command run when ethernet_param is true (UDP path).
+                type: string
+            success_command:
+                # Optional. Run after command returns 0.
+                type: string
+            fail_command:
+                # Optional. Run after command returns non-zero.
+                type: string
             label:
                 # Optional command label (e.g. used in the autostart script).
                 # If omitted, protocol_name is used.
