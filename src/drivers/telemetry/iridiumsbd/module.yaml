@@ -9,6 +9,6 @@ serial_config:
         else
             tune_control play error
         fi
-      port_config_param:
-        name: ISBD_CONFIG
-        group: Iridium SBD
+      protocol_id: 23
+      protocol_name: Iridium
+

@@ -1,0 +1,14 @@
+module_name: PPM RC Input Driver
+parameters:
+    - group: RC Input
+      definitions:
+        RC_PPM_EN:
+            description:
+                short: Enable PPM RC input
+                long: |
+                    Start the PPM capture driver on the FMU PPM pin.
+                    Do not enable this if that pin is shared with a UART
+                    that already has SER_*_PROT set.
+            type: boolean
+            reboot_required: true
+            default: 0

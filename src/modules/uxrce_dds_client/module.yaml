@@ -8,10 +8,10 @@ serial_config:
         fi
         uxrce_dds_client start ${UXRCE_DDS_ARGS}
 
-      port_config_param:
-        name: UXRCE_DDS_CFG
-        group: UXRCE-DDS Client
+      protocol_id: 20
+      protocol_name: uXRCE-DDS
       supports_networking: true
+      ethernet_param: UXRCE_DDS_ETH
 
 parameters:
     - group: UXRCE-DDS Client
@@ -37,6 +37,18 @@ parameters:
             type: int32
             reboot_required: true
             default: 1
+
+        UXRCE_DDS_ETH:
+            description:
+                short: Enable uXRCE-DDS on Ethernet (UDP)
+                long: |
+                    Start the uXRCE-DDS client over UDP. Ignored if a serial port
+                    is already assigned the uXRCE-DDS protocol.
+
+            type: boolean
+            reboot_required: true
+            default: false
+            requires_ethernet: true
 
         UXRCE_DDS_PRT:
             description:

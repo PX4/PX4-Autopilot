@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,13 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__rc_input
-	MAIN rc_input
+	MODULE drivers__rc__sumd_rc
+	MAIN sumd_rc
 	COMPILE_FLAGS
 	SRCS
-		RCInput.cpp
-		crsf_telemetry.cpp
-		ghst_telemetry.cpp
+		SumdRc.cpp
+		SumdRc.hpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

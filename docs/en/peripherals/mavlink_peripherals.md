@@ -2,8 +2,9 @@
 
 Ground Control Stations (GCS), [MAVLink On-Screen Displays (OSD)](../peripherals/osd.md#mavlink-osd), MAVLink [Cameras](../camera/mavlink_v2_camera.md) and [Gimbals](../advanced/gimbal_control.md), [Remote IDs](../peripherals/remote_id.md), Companion Computers, [ADS-B receivers](../peripherals/adsb_flarm.md), and other MAVLink peripherals interact with PX4 using separate MAVLink streams, sent via different serial ports.
 
-In order to configure that a particular serial port is used for MAVLink traffic with a particular peripheral, we use [Serial Port Configuration](../peripherals/serial_configuration.md), assigning one of the abstract "MAVLink instance" configuration parameters to the desired port.
-We then set other properties of the MAVLink channel using the parameters associated with our selected MAVLink instance, so that they match the requirements of our particular peripheral.
+Set `SER_<tag>_PROT` to MAVLink on the UART (see [Serial Port Configuration](../peripherals/serial_configuration.md)).
+Instance 0 is the first such UART (by port-tag index), instance 1 the next, instance 2 the third.
+Then set `MAV_X_MODE`, `MAV_X_RATE`, `MAV_X_FORWARD` for that instance.
 
 The most relevant parameters are described below (the full set are listed in the [Parameter Reference > MAVLink](../advanced_config/parameter_reference.md#mavlink)).
 
@@ -11,31 +12,14 @@ The most relevant parameters are described below (the full set are listed in the
 
 In order to assign a particular peripheral to a serial port we use the concept of a _MAVLink instance_.
 
-Each MAVLink instance represents a particular MAVLink configuration that you can apply to a particular port.
-At time of writing three MAVLink _instances_ are defined, each represented by a parameter [MAV_X_CONFIG](#MAV_X_CONFIG), where X is 0, 1, 2.
+Each MAVLink instance is the configuration for one UART (or Ethernet) MAVLink stream.
+UARTs with `SER_*_PROT` = MAVLink are numbered 0, 1, 2 in port-tag order.
 
-Each instance has associated parameters that you can use to define the properties of the instance on that port, such as the set of streamed messages (see [MAV_X_MODE](#MAV_X_MODE) below), data rate ([MAV_X_RATE](#MAV_X_RATE)), whether incoming traffic is forwarded to other MAVLink instances ([MAV_X_FORWARD](#MAV_X_FORWARD)), and so on.
+- <a id="MAV_X_MODE"></a>[MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) — [MAVLink profile](../mavlink/mavlink_profiles.md) (Normal, Onboard, OSD, …).
+- <a id="MAV_X_RATE"></a>[MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE) — max data rate (bytes/second). 0 is half the theoretical baud.
+- <a id="MAV_X_FORWARD"></a>[MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD) — forward incoming packets to other MAVLink instances.
 
-::: info
-MAVLink instances are an abstract concept for a particular MAVLink configuration.
-The number in the name means nothing; you can assign any instance to any port.
-:::
-
-The parameters for each instance are:
-
-- <a id="MAV_X_CONFIG"></a>[MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) - Set the serial port (UART) for this instance "X", where X is 0, 1, 2.
-  It can be any unused port, e.g.: `TELEM2`, `TELEM3`, `GPS2` etc.
-  For more information see [Serial Port Configuration](../peripherals/serial_configuration.md).
-- <a id="MAV_X_MODE"></a>[MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) - Specify the [MAVLink profile](../mavlink/mavlink_profiles.md) for the instance, such as _Normal_ or _OSD_.
-  Profiles define a particular set of streamed messages and their rates — you should choose a profile that is appropriate for your channel and the peripheral.
-- <a id="MAV_X_RATE"></a>[MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_0_MODE) - Set the maximum _data rate_ for this instance (bytes/second).
-  - This is the combined rate for all streams of individual message (the rates for individual messages are reduced if the total rate exceeds this value).
-  - The default setting will generally be acceptable, but might be reduced if the telemetry link becomes saturated and too many messages are being dropped.
-  - A value of 0 sets the data rate to half the theoretical value.
-- <a id="MAV_X_FORWARD"></a>[MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD) - Enable forwarding of MAVLink packets received by the current instance onto other interfaces.
-  This might be used, for example, to transfer messages between a GCS and a companion computer so that the GCS can talk to a MAVLink enabled camera connected to the companion computer.
-
-Next you need to set the baud rate for the serial port you assigned above (in `MAV_X_CONFIG`).
+Set the UART baud with `SER_<tag>_BAUD`.
 
 :::tip
 You will need to reboot PX4 to make the parameter available (i.e. in QGroundControl).
@@ -50,33 +34,29 @@ The value you use will depend on the type of connection and the capabilities of 
 
 The `TELEM 1` port is almost always configured by default for the GCS telemetry stream ("Normal").
 
-To support this there is a [default serial port mapping](../peripherals/serial_configuration.md#default_port_mapping) of MAVLink instance 0 as shown below:
+Default mapping of MAVLink instance 0:
 
-- [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) = `TELEM 1`
+- [SER_TEL1_PROT](../advanced_config/parameter_reference.md#SER_TEL1_PROT) = MAVLink
 - [MAV_0_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) = `Normal`
-- [MAV_0_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE)= `1200` Bytes/s
+- [MAV_0_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE) = `1200` Bytes/s
 - [MAV_0_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD) = `True`
 - [SER_TEL1_BAUD](../advanced_config/parameter_reference.md#SER_TEL1_BAUD) = `57600`
 
 ### TELEM2
 
-The `TELEM 2` port usually configured by default for a companion computer telemetry stream ("Onboard").
+`TELEM 2` is disabled by default. For a companion computer set [SER_TEL2_PROT](../advanced_config/parameter_reference.md#SER_TEL2_PROT) = MAVLink (this becomes instance 1 if TELEM 1 is also MAVLink):
 
-To support this there is a [default serial port mapping](../peripherals/serial_configuration.md#default_port_mapping) of MAVLink instance 0 as shown below:
-
-- [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) = `TELEM 2`
-- [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) = `Onboard`
-- [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE)= `0` (Half maximum)
-- [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD) = `Disabled`
+- [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = `Onboard`
+- [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) = `0` (half maximum)
+- [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) = `Disabled`
 - [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD) = `921600`
 
 ### ETHERNET
 
 Pixhawk 5x devices (and later) that have an Ethernet port, configure it by default to connect to a GCS:
 
-On this hardware, there is a [default serial port mapping](../peripherals/serial_configuration.md#default_port_mapping) of MAVLink instance 2 as shown below:
+Enable with [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN) (MAVLink instance 2). UART MAVLink is then limited to instances 0 and 1.
 
-- [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG) = `Ethernet` (1000)
 - [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST) = `1`
 - [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) = `0` (normal/GCS)
 - [MAV_2_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_2_RADIO_CTL) = `0`

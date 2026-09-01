@@ -357,5 +357,160 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-08-31: invert serial mapping (*_CONFIG port index) to SER_<tag>_PROT
+	if (node->type == bson_type_t::BSON_INT32) {
+		if (strcmp("RC_INPUT_PROTO", node->name) == 0) {
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+
+		struct PortTag {
+			int32_t index;
+			const char *prot_name;
+		};
+
+		static constexpr PortTag kPorts[] = {
+			{6, "SER_URT6_PROT"},
+			{101, "SER_TEL1_PROT"},
+			{102, "SER_TEL2_PROT"},
+			{103, "SER_TEL3_PROT"},
+			{104, "SER_TEL4_PROT"},
+			{201, "SER_GPS1_PROT"},
+			{202, "SER_GPS2_PROT"},
+			{203, "SER_GPS3_PROT"},
+			{300, "SER_RC_PROT"},
+			{301, "SER_WIFI_PROT"},
+			{401, "SER_EXT2_PROT"},
+		};
+
+		struct OldConfig {
+			const char *name;
+			int32_t protocol_id;
+			int32_t default_port;
+			const char *ethernet_param;
+		};
+
+		static constexpr OldConfig kOld[] = {
+			{"MAV_0_CONFIG", 1, 101, "MAV_ETH_EN"},
+			{"MAV_1_CONFIG", 1, 0, "MAV_ETH_EN"},
+			{"MAV_2_CONFIG", 1, 0, "MAV_ETH_EN"},
+			{"GPS_1_CONFIG", 5, 201, nullptr},
+			{"GPS_2_CONFIG", 5, 0, nullptr},
+			{"SEP_PORT1_CFG", 6, 0, nullptr},
+			{"SEP_PORT2_CFG", 6, 0, nullptr},
+			{"RC_SBUS_PRT_CFG", 10, 0, nullptr},
+			{"RC_DSM_PRT_CFG", 11, 0, nullptr},
+			{"RC_CRSF_PRT_CFG", 12, 0, nullptr},
+			{"RC_GHST_PRT_CFG", 13, 0, nullptr},
+			{"RC_PORT_CONFIG", 10, 300, nullptr},
+			{"UXRCE_DDS_CFG", 20, 0, "UXRCE_DDS_ETH"},
+			{"TEL_FRSKY_CONFIG", 21, 0, nullptr},
+			{"TEL_HOTT_CONFIG", 22, 0, nullptr},
+			{"ISBD_CONFIG", 23, 0, nullptr},
+			{"MSP_OSD_CONFIG", 24, 0, nullptr},
+			{"VTX_SER_CFG", 25, 0, nullptr},
+			{"DSHOT_TEL_CFG", 26, 0, nullptr},
+			{"SENS_TFMINI_CFG", 30, 0, nullptr},
+			{"SENS_SF0X_CFG", 31, 0, nullptr},
+			{"SENS_EN_SF45_CFG", 32, 0, nullptr},
+			{"SENS_LEDDAR1_CFG", 33, 0, nullptr},
+			{"SENS_CM8JL65_CFG", 34, 0, nullptr},
+			{"SENS_ULAND_CFG", 35, 0, nullptr},
+			{"SENS_EN_GRF_CFG", 36, 0, nullptr},
+			{"SENS_ASDT1_CFG", 37, 0, nullptr},
+			{"SENS_VN_CFG", 40, 0, nullptr},
+			{"SENS_MS_CFG", 41, 0, nullptr},
+			{"SENS_ILABS_CFG", 42, 0, nullptr},
+			{"SENS_SBG_CFG", 43, 0, nullptr},
+			{"SENS_BAHRS_CFG", 44, 0, nullptr},
+			{"UWB_PORT_CFG", 50, 0, nullptr},
+			{"SENS_FTX_CFG", 51, 0, nullptr},
+			{"RBCLW_SER_CFG", 52, 0, nullptr},
+			{"VERTIQ_IO_CFG", 53, 0, nullptr},
+			{"SENS_TFLOW_CFG", 54, 0, nullptr},
+			{"MXS_SER_CFG", 55, 0, nullptr},
+		};
+
+		static uint32_t claimed_ports;
+
+		auto claim = [&](int32_t index) {
+			for (unsigned i = 0; i < sizeof(kPorts) / sizeof(kPorts[0]); i++) {
+				if (kPorts[i].index == index) {
+					if (claimed_ports & (1u << i)) {
+						return false;
+					}
+
+					claimed_ports |= (1u << i);
+					return true;
+				}
+			}
+
+			return false;
+		};
+
+		auto prot_name = [&](int32_t index) -> const char* {
+			for (const auto &p : kPorts)
+			{
+				if (p.index == index) {
+					return p.prot_name;
+				}
+			}
+
+			return nullptr;
+		};
+
+		for (const auto &old : kOld) {
+			if (strcmp(old.name, node->name) != 0) {
+				continue;
+			}
+
+			const int32_t value = node->i32;
+
+			if (value == 1000 && old.ethernet_param) {
+				if (old.default_port != 0) {
+					int32_t z = 0;
+					param_set(param_find(prot_name(old.default_port)), &z);
+					claim(old.default_port);
+				}
+
+				strcpy(node->name, old.ethernet_param);
+				node->i32 = 1;
+				PX4_INFO("migrating %s -> %s", old.name, old.ethernet_param);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+
+			if (value == 0) {
+				if (old.default_port != 0 && claim(old.default_port)) {
+					strcpy(node->name, prot_name(old.default_port));
+					PX4_INFO("migrating %s -> %s (disabled)", old.name, node->name);
+					return param_modify_on_import_ret::PARAM_MODIFIED;
+				}
+
+				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+			}
+
+			const char *dest = prot_name(value);
+
+			if (dest == nullptr) {
+				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+			}
+
+			if (old.default_port != 0 && value != old.default_port) {
+				int32_t z = 0;
+				param_set(param_find(prot_name(old.default_port)), &z);
+				claim(old.default_port);
+			}
+
+			if (!claim(value)) {
+				PX4_WARN("dropping %s, %s already assigned", old.name, dest);
+				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+			}
+
+			strcpy(node->name, dest);
+			node->i32 = old.protocol_id;
+			PX4_INFO("migrating %s -> %s=%" PRId32, old.name, dest, old.protocol_id);
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

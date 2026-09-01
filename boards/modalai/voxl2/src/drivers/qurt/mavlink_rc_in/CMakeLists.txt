@@ -37,8 +37,6 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-cast-align
 		-Wno-address-of-packed-member
-	INCLUDES
-		${PX4_SOURCE_DIR}/src/drivers/rc_input
 	SRCS
 		mavlink_rc_in.cpp
 	DEPENDS

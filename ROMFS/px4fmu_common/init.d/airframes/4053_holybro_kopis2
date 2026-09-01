@@ -17,8 +17,7 @@
 
 param set-default BAT1_N_CELLS 4
 
-param set-default GPS_1_CONFIG 0
-param set-default RC_PORT_CONFIG 201
+param set-default SER_GPS1_PROT 10
 
 param set-default IMU_GYRO_CUTOFF 80
 param set-default IMU_DGYRO_CUTOFF 50
@@ -44,7 +43,7 @@ param set-default MPC_MANTHR_MIN 0
 param set-default MPC_MAN_TILT_MAX 60
 
 param set-default OSD_ATXXXX_CFG 1
-param set-default TEL_FRSKY_CONFIG 300
+param set-default SER_RC_PROT 21
 
 param set-default THR_MDL_FAC 0.35
 

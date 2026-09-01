@@ -1,9 +1,9 @@
 module_name: Lightware SF45 Rangefinder (serial)
 serial_config:
     - command: lightware_sf45_serial start -d ${SERIAL_DEV}
-      port_config_param:
-        name: SENS_EN_SF45_CFG
-        group: Sensors
+      protocol_id: 32
+      protocol_name: Lightware SF45
+
       num_instances: 1
       supports_networking: false
 

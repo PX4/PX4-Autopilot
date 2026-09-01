@@ -1,9 +1,8 @@
 module_name: MSP OSD
 serial_config:
     - command: msp_osd start -d ${SERIAL_DEV}
-      port_config_param:
-        name: MSP_OSD_CONFIG
-        group: OSD
+      protocol_id: 24
+      protocol_name: MSP OSD
 
 parameters:
     - group: OSD
