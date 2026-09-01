@@ -3,13 +3,22 @@
 # PX4 FMUv4 specific board extras init
 #------------------------------------------------------------------------------
 
-# Run FrSky Telemetry on the dedicated FrSky port if FrSky is not already a SER_* protocol.
+# Run FrSky Telemetry on the dedicated FrSky port unless a SER_* port already runs it.
+set FRSKY_ON_SER no
 if param compare -s SER_TEL1_PROTO 21
 then
-elif param compare -s SER_TEL2_PROTO 21
+	set FRSKY_ON_SER yes
+fi
+if param compare -s SER_TEL2_PROTO 21
 then
-elif param compare -s SER_WIFI_PROTO 21
+	set FRSKY_ON_SER yes
+fi
+if param compare -s SER_WIFI_PROTO 21
 then
-else
+	set FRSKY_ON_SER yes
+fi
+if [ $FRSKY_ON_SER = no ]
+then
 	frsky_telemetry start -d /dev/ttyS6 -t 15
 fi
+unset FRSKY_ON_SER
