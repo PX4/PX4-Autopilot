@@ -71,7 +71,7 @@ For ExpressLRS receivers wire to the flight controller UART as shown below (wiri
 ### Firmware Configuration/Build
 
 CRSF telemetry support is not included in any PX4 firmware by default.
-To use this feature you must build and upload custom firmware that includes [crsf-rc](../modules/modules_driver_radio_control.md#crsf-rc) and removes [rc_input](../modules/modules_driver_radio_control.md#rc-input).
+To use this feature you must build and upload custom firmware that includes [crsf_rc](../modules/modules_driver_radio_control.md#crsf-rc) (part of Common RC on most boards).
 
 The steps are:
 
@@ -91,13 +91,7 @@ The steps are:
    make ark_fmu-v6x_default boardconfig
    ```
 
-1. In the PX4 board config tool:
-   - Disable the default `rc_input` module
-     1. Navigate to the `drivers` submenu, then scroll down to highlight `rc_input`.
-     1. Use the enter key to remove the `*` from `rc_input` checkbox.
-   - Enable the `crsf_rc` module
-     1. Scroll to highlight the `RC` submenu, then press enter to open it.
-     1. Scroll to highlight `crsf_rc` and press enter to enable it.
+1. In the PX4 board config tool, enable `crsf_rc` under `drivers` → `RC` if it is not already selected (Common RC includes it).
 
    Save and exit the PX4 board config tool.
 
