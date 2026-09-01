@@ -55,10 +55,6 @@ serial_config:
             fail_command:
                 # Optional. Run after command returns non-zero.
                 type: string
-            label:
-                # Optional command label (e.g. used in the autostart script).
-                # If omitted, protocol_name is used.
-                type: string
             num_instances:
                 # Max number of serial ports that may run this protocol.
                 # >1 without secondary_command starts one process per port
