@@ -33385,7 +33385,7 @@ Airmode is used to keep torque authority with zero thrust (see MC_AIRMODE).
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 1        | 0.01      | 0.08    | norm | &nbsp;    |
+| &nbsp; | 0        | 0.5      | 0.01      | 0.08    | norm | &nbsp;    |
 
 ### MPC_MAN_TILT_MAX (`FLOAT`) {#MPC_MAN_TILT_MAX}
 
@@ -33473,7 +33473,7 @@ The hover thrust is important for land detection to work correctly.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0.1      | 0.8      | 0.01      | 0.5     | norm | &nbsp;    |
+| &nbsp; | 0.1      | 0.9      | 0.01      | 0.5     | norm | &nbsp;    |
 
 ### MPC_THR_MAX (`FLOAT`) {#MPC_THR_MAX}
 
