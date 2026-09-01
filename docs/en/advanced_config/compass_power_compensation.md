@@ -69,6 +69,24 @@ Performing this power compensation is advisable only if all the following statem
 
    ![comp params](../../assets/advanced_config/comp_params.png)
 
+## From a Flight Log
+
+The restrained throttle ramp above is the original identification method. The same parameters can also be identified from a normal flight using [mag_compensation_flight.py](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/sensors/vehicle_magnetometer/mag_compensation/python/mag_compensation_flight.py).
+
+1. Perform the [standard compass calibration](../config/compass.md#compass-calibration).
+2. Set [CAL_MAG_COMP_TYP](../advanced_config/parameter_reference.md#CAL_MAG_COMP_TYP) to 0.
+3. Enable [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) bit 11 (_High rate sensors_) so magnetometer data is logged at a high enough rate to estimate delay.
+4. Fly a couple of minutes with throttle changes.
+5. Retrieve the ulog and run:
+
+   ```sh
+   python mag_compensation_flight.py ~/path/to/log/logfile.ulg
+   ```
+
+   Optional second argument: `current` (default if battery current is in the log) or `thrust`. `--instance <number>` selects the battery or thrust instance (`0` or `1`).
+
+The script estimates a bulk delay from the field norm versus current, then fits per-axis coefficients after removing the Earth field using `vehicle_attitude`. It prints `CAL_MAG_COMP_TYP` and `CAL_MAGx_{X,Y,Z}COMP`. Enable compensation with those values as in step 9 above. Do not use `mag_compensation.py` on a flight log; it fits each mag axis directly against the power signal and will absorb attitude motion into the coefficients.
+
 ## See Also
 
 - [OEM/Factory Configuration](../advanced_config/oem.md)
