@@ -39,6 +39,8 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "../rc_uart.hpp"
+
 ModuleBase::Descriptor SumdRc::desc{task_spawn, custom_command, print_usage};
 
 SumdRc::SumdRc(const char *device) :
@@ -172,18 +174,7 @@ void SumdRc::Run()
 		}
 
 		dsm_config(_rcs_fd);
-
-		if (board_rc_swap_rxtx(_device)) {
-#if defined(TIOCSSWAP)
-			ioctl(_rcs_fd, TIOCSSWAP, SER_SWAP_ENABLED);
-#endif
-		}
-
-		if (board_rc_singlewire(_device)) {
-#if defined(TIOCSSINGLEWIRE)
-			ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
-#endif
-		}
+		rc_uart_configure(_rcs_fd, _device);
 
 		tcflush(_rcs_fd, TCIOFLUSH);
 

@@ -35,6 +35,8 @@
 
 #include <termios.h>
 
+#include "../rc_uart.hpp"
+
 ModuleBase::Descriptor SbusRc::desc{task_spawn, custom_command, print_usage};
 
 SbusRc::SbusRc(const char *device) :
@@ -170,6 +172,7 @@ void SbusRc::Run()
 		}
 
 		sbus_config(_rcs_fd, board_rc_singlewire(_device));
+		rc_uart_configure(_rcs_fd, _device);
 
 		// First check if the board provides a board-specific inversion method (e.g. via GPIO),
 		// and if not use an IOCTL

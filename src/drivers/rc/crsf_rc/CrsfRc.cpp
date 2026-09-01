@@ -182,7 +182,12 @@ void CrsfRc::Run()
 		}
 
 		if (board_rc_swap_rxtx(_device)) {
-			_uart->setSwapRxTxMode();
+			if (!_uart->setSwapRxTxMode()) {
+#if defined(RC_SERIAL_SWAP_USING_SINGLEWIRE)
+				_is_singlewire = true;
+				_uart->setSingleWireMode();
+#endif
+			}
 		}
 
 		if (board_rc_singlewire(_device)) {

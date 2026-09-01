@@ -36,6 +36,8 @@
 #include <termios.h>
 #include <math.h>
 
+#include "../rc_uart.hpp"
+
 ModuleBase::Descriptor GhstRc::desc{task_spawn, custom_command, print_usage};
 
 GhstRc::GhstRc(const char *device) :
@@ -172,6 +174,7 @@ void GhstRc::Run()
 		}
 
 		ghst_config(_rcs_fd);
+		rc_uart_configure(_rcs_fd, _device);
 
 		// flush serial buffer and any existing buffered data
 		tcflush(_rcs_fd, TCIOFLUSH);
@@ -222,16 +225,16 @@ void GhstRc::Run()
 				_timestamp_last_signal = cycle_timestamp;
 				rc_updated = true;
 
-				if (valid_chans > 0) {
-					_rc_scan_locked = true;
-				}
-
-				if (!_rc_scan_locked && !_ghst_telemetry && _param_rc_ghst_tel_en.get()) {
+				if (!_ghst_telemetry && _param_rc_ghst_tel_en.get()) {
 					_ghst_telemetry = new GHSTTelemetry(_rcs_fd);
 				}
 
 				if (_ghst_telemetry) {
 					_ghst_telemetry->update(cycle_timestamp);
+				}
+
+				if (valid_chans > 0) {
+					_rc_scan_locked = true;
 				}
 			}
 		}
