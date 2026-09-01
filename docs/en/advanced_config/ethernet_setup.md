@@ -166,7 +166,7 @@ PX4 configures the serial port to connect to a GCS via MAVLink, using the parame
 
 | Parameter                                                                      | Value  | Description                                                  |
 | ------------------------------------------------------------------------------ | ------ | ------------------------------------------------------------ |
-| [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG)         | 1000   | Configure Ethernet port                                      |
+| [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN)             | 1      | Enable MAVLink on Ethernet                                   |
 | [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST)   | 1      | Broadcast `HEARTBEAT` messages                               |
 | [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE)             | 0      | Send the "normal" set of MAVLink messages (i.e. the GCS set) |
 | [MAV_2_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_2_RADIO_CTL)   | 0      | Disable software throttling of MAVLink traffic               |

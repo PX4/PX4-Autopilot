@@ -85,7 +85,7 @@ See also [Distance Sensor/Range Finder in _DroneCAN > Subscriptions and Publicat
 
 If connecting via a UART set the following parameters in _QGroundControl_:
 
-- Set [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) to the port the sensor is connected to.
+- Set `SER_<tag>_PROTO` to MAVLink on the UART the sensor is connected to.
 - Set [MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD) to `0` (off).
 - Set [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) to `7` or `13` to (Minimal or Low Bandwidth) to reduce memory usage.
 - Set `SER_XXX_BAUD` to `115200`, where `XXX` is specific to the port you are using (such as [SER_GPS2_BAUD](../advanced_config/parameter_reference.md#SER_GPS2_BAUD)).

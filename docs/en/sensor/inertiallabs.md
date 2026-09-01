@@ -57,7 +57,7 @@ To use the Inertial Labs driver:
 2. [Set the parameter](../advanced_config/parameters.md) [SENS_ILABS_CFG](../advanced_config/parameter_reference.md#SENS_ILABS_CFG) to the hardware port connected to the sensor, such as a spare `GPS` or `TELEM`.
 
    ::: warning
-   Disable or change port of other sensors that are using the same one, for example [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG) if using GPS1 port.
+   Disable or change port of other sensors that are using the same one, for example [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO) if using GPS1 port.
    :::
 
 3. Allow the Inerital Labs driver to initialize by restarting PX4.

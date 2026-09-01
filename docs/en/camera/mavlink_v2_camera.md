@@ -110,7 +110,7 @@ Then configure the selected port as a [MAVLink Peripheral](../peripherals/mavlin
 
 The linked document explains how, but in summary:
 
-1. Modify an unused `MAV_n_CONFIG` parameter, such as [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG), so that it is assigned to port to which you connected the camera/companion computer.
+1. Set `SER_<tag>_PROTO` to MAVLink on the UART the camera/companion computer is connected to.
 1. Set the corresponding [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) to `2` (Onboard).
    This ensures that the right set of MAVLink messages are emitted for a companion computer (or camera).
 1. Set [MAV_2_FORWARD](../advanced_config/parameter_reference.md#MAV_2_FORWARD) to enable forwarding of communications from the port to other ports, such as the one that is connected to the ground station.

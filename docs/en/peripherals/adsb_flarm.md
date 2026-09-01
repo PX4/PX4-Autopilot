@@ -51,7 +51,7 @@ The recommended port configuration for this receiver is:
 
 | Parameter                                                                    | Recommended Value |
 | ---------------------------------------------------------------------------- | ----------------- |
-| [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)       | `TELEM 2`         |
+| [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO)   | MAVLink           |
 | [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)           | uAvionix          |
 | [MAV_X_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_1_RADIO_CTL) | Disabled          |
 
@@ -81,7 +81,7 @@ The recommended configuration for most devices (unless they have device-specific
 
 | Parameter                                                                | Recommended Value                 |
 | ------------------------------------------------------------------------ | --------------------------------- |
-| [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)   | `TELEM 2`                         |
+| [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) | MAVLink                           |
 | [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)       | Normal                            |
 | [MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE)       | 0 (default sending rate for port) |
 | [MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) | Enabled                           |
