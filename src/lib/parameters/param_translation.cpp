@@ -72,52 +72,71 @@ void param_modify_on_import_begin()
 	mav_config[2] = INT32_MIN;
 }
 
-static const char *serial_prot_name(int32_t index)
+struct SerialPortTag {
+	int32_t index;
+	const char *prot_name;
+};
+
+static constexpr SerialPortTag kSerialPortTags[] = {
+	{6, "SER_URT6_PROTO"},
+	{101, "SER_TEL1_PROTO"},
+	{102, "SER_TEL2_PROTO"},
+	{103, "SER_TEL3_PROTO"},
+	{104, "SER_TEL4_PROTO"},
+	{201, "SER_GPS1_PROTO"},
+	{202, "SER_GPS2_PROTO"},
+	{203, "SER_GPS3_PROTO"},
+	{300, "SER_RC_PROTO"},
+	{301, "SER_WIFI_PROTO"},
+	{401, "SER_EXT2_PROTO"},
+};
+
+static int serial_port_bit(int32_t index)
 {
-	struct PortTag {
-		int32_t index;
-		const char *prot_name;
-	};
-
-	static constexpr PortTag kPorts[] = {
-		{6, "SER_URT6_PROTO"},
-		{101, "SER_TEL1_PROTO"},
-		{102, "SER_TEL2_PROTO"},
-		{103, "SER_TEL3_PROTO"},
-		{104, "SER_TEL4_PROTO"},
-		{201, "SER_GPS1_PROTO"},
-		{202, "SER_GPS2_PROTO"},
-		{203, "SER_GPS3_PROTO"},
-		{300, "SER_RC_PROTO"},
-		{301, "SER_WIFI_PROTO"},
-		{401, "SER_EXT2_PROTO"},
-	};
-
-	for (const auto &p : kPorts) {
-		if (p.index == index) {
-			return p.prot_name;
+	for (unsigned i = 0; i < sizeof(kSerialPortTags) / sizeof(kSerialPortTags[0]); i++) {
+		if (kSerialPortTags[i].index == index) {
+			return static_cast<int>(i);
 		}
 	}
 
-	return nullptr;
+	return -1;
+}
+
+static const char *serial_prot_name(int32_t index)
+{
+	const int bit = serial_port_bit(index);
+	return bit < 0 ? nullptr : kSerialPortTags[bit].prot_name;
+}
+
+static bool serial_port_claimed(int32_t index)
+{
+	const int bit = serial_port_bit(index);
+	return bit >= 0 && (serial_claimed_ports & (1u << bit));
 }
 
 static bool serial_claim(int32_t index)
 {
-	static constexpr int32_t kIndexes[] = {6, 101, 102, 103, 104, 201, 202, 203, 300, 301, 401};
+	const int bit = serial_port_bit(index);
 
-	for (unsigned i = 0; i < sizeof(kIndexes) / sizeof(kIndexes[0]); i++) {
-		if (kIndexes[i] == index) {
-			if (serial_claimed_ports & (1u << i)) {
-				return false;
-			}
-
-			serial_claimed_ports |= (1u << i);
-			return true;
-		}
+	if (bit < 0 || (serial_claimed_ports & (1u << bit))) {
+		return false;
 	}
 
-	return false;
+	serial_claimed_ports |= (1u << bit);
+	return true;
+}
+
+// The new param defaults to a protocol on this port. Clear it unless another
+// old param already took the port, and leave the port unclaimed so a later
+// node or the deferred MAVLink/RC pass can still take it.
+static void serial_clear_default(int32_t index)
+{
+	const char *name = serial_prot_name(index);
+
+	if (name != nullptr && !serial_port_claimed(index)) {
+		int32_t z = 0;
+		param_set(param_find(name), &z);
+	}
 }
 
 static int32_t map_rc_input_proto(int32_t value)
@@ -202,17 +221,6 @@ static void apply_rc_serial_import()
 	PARAM_MIGRATE_INFO("migrating RC -> %s=%" PRId32, dest, id);
 }
 
-static void mav_copy_int(const char *fmt, int to, int32_t snap)
-{
-	char name[20];
-	snprintf(name, sizeof(name), fmt, to);
-	const param_t p = param_find(name);
-
-	if (p != PARAM_INVALID) {
-		param_set(p, &snap);
-	}
-}
-
 static void permute_mav_params(const int new_of_old[kMavInstances])
 {
 	bool moved = false;
@@ -232,19 +240,31 @@ static void permute_mav_params(const int new_of_old[kMavInstances])
 		"MAV_%d_MODE", "MAV_%d_RATE", "MAV_%d_FORWARD", "MAV_%d_RADIO_CTL",
 		"MAV_%d_FLOW_CTRL", "MAV_%d_UDP_PRT", "MAV_%d_REMOTE_PRT", "MAV_%d_BROADCAST"
 	};
-	int32_t ints[kMavInstances][sizeof(kIntFmt) / sizeof(kIntFmt[0])] {};
-	bool have_int[kMavInstances][sizeof(kIntFmt) / sizeof(kIntFmt[0])] {};
+	static constexpr unsigned kNumInt = sizeof(kIntFmt) / sizeof(kIntFmt[0]);
+
+	// Snapshot before any write: a slot can be both source and destination.
+	// Board defaults (rc.board_defaults) are not applied yet at import time, so
+	// a value that only reflects the compiled default is reset in the
+	// destination rather than copied, unless the two instances compile to
+	// different defaults (MAV_1_MODE is Onboard, MAV_0_MODE is Normal).
+	int32_t ints[kMavInstances][kNumInt] {};
+	int32_t defs[kMavInstances][kNumInt] {};
+	bool custom_int[kMavInstances][kNumInt] {};
+	bool have_int[kMavInstances][kNumInt] {};
 	float hl[kMavInstances] {};
+	bool custom_hl[kMavInstances] {};
 	bool have_hl[kMavInstances] {};
 
 	for (int i = 0; i < kMavInstances; i++) {
-		for (unsigned p = 0; p < sizeof(kIntFmt) / sizeof(kIntFmt[0]); p++) {
+		for (unsigned p = 0; p < kNumInt; p++) {
 			char name[20];
 			snprintf(name, sizeof(name), kIntFmt[p], i);
 			const param_t ph = param_find(name);
 
-			if (ph != PARAM_INVALID && param_get(ph, &ints[i][p]) == PX4_OK) {
+			if (ph != PARAM_INVALID && param_get(ph, &ints[i][p]) == PX4_OK
+			    && param_get_system_default_value(ph, &defs[i][p]) == PX4_OK) {
 				have_int[i][p] = true;
+				custom_int[i][p] = !param_value_is_default(ph);
 			}
 		}
 
@@ -254,6 +274,7 @@ static void permute_mav_params(const int new_of_old[kMavInstances])
 
 		if (ph != PARAM_INVALID && param_get(ph, &hl[i]) == PX4_OK) {
 			have_hl[i] = true;
+			custom_hl[i] = !param_value_is_default(ph);
 		}
 	}
 
@@ -264,23 +285,70 @@ static void permute_mav_params(const int new_of_old[kMavInstances])
 			continue;
 		}
 
-		for (unsigned p = 0; p < sizeof(kIntFmt) / sizeof(kIntFmt[0]); p++) {
-			if (have_int[old_i][p]) {
-				mav_copy_int(kIntFmt[p], new_i, ints[old_i][p]);
+		for (unsigned p = 0; p < kNumInt; p++) {
+			if (!have_int[old_i][p] || !have_int[new_i][p]) {
+				continue;
+			}
+
+			char name[20];
+			snprintf(name, sizeof(name), kIntFmt[p], new_i);
+			const param_t ph = param_find(name);
+
+			if (custom_int[old_i][p] || defs[old_i][p] != defs[new_i][p]) {
+				param_set(ph, &ints[old_i][p]);
+
+			} else {
+				param_reset(ph);
 			}
 		}
 
-		if (have_hl[old_i]) {
+		if (have_hl[old_i] && have_hl[new_i]) {
 			char name[20];
 			snprintf(name, sizeof(name), "MAV_%d_HL_FREQ", new_i);
 			const param_t ph = param_find(name);
 
-			if (ph != PARAM_INVALID) {
+			if (custom_hl[old_i]) {
 				param_set(ph, &hl[old_i]);
+
+			} else {
+				param_reset(ph);
 			}
 		}
 
 		PARAM_MIGRATE_INFO("migrating MAV_%d_* -> MAV_%d_*", old_i, new_i);
+	}
+
+	// Slots that only lost an instance keep nothing of the old link.
+	for (int k = 0; k < kMavInstances; k++) {
+		bool is_dest = false;
+
+		for (int j = 0; j < kMavInstances; j++) {
+			if (new_of_old[j] == k) {
+				is_dest = true;
+			}
+		}
+
+		if (is_dest || new_of_old[k] < 0 || new_of_old[k] == k) {
+			continue;
+		}
+
+		for (unsigned p = 0; p < kNumInt; p++) {
+			char name[20];
+			snprintf(name, sizeof(name), kIntFmt[p], k);
+			const param_t ph = param_find(name);
+
+			if (ph != PARAM_INVALID) {
+				param_reset(ph);
+			}
+		}
+
+		char name[20];
+		snprintf(name, sizeof(name), "MAV_%d_HL_FREQ", k);
+		const param_t ph = param_find(name);
+
+		if (ph != PARAM_INVALID) {
+			param_reset(ph);
+		}
 	}
 }
 
@@ -290,11 +358,13 @@ static void apply_mav_serial_import()
 		return;
 	}
 
-	// Unseen instances keep the old firmware defaults: MAV_0 on TEL1, MAV_1/2 disabled.
+	// Unseen instances keep the old defaults: MAV_0 on TEL1, MAV_1 disabled,
+	// MAV_2 on ethernet where the board has it.
+	const param_t eth_p = param_find("MAV_ETH_EN");
 	const int32_t cfg[kMavInstances] = {
 		mav_config[0] == INT32_MIN ? kMavTel1 : mav_config[0],
 		mav_config[1] == INT32_MIN ? 0 : mav_config[1],
-		mav_config[2] == INT32_MIN ? 0 : mav_config[2],
+		mav_config[2] == INT32_MIN ? (eth_p == PARAM_INVALID ? 0 : kMavEthernet) : mav_config[2],
 	};
 
 	int uart_port[kMavInstances] {};
@@ -354,9 +424,11 @@ static void apply_mav_serial_import()
 		assigned++;
 	}
 
+	// SER_TEL1_PROTO defaults to MAVLink; the old config decides whether it stays.
+	serial_clear_default(kMavTel1);
+
 	if (eth_old >= 0) {
 		int32_t one = 1;
-		const param_t eth_p = param_find("MAV_ETH_EN");
 
 		if (eth_p == PARAM_INVALID || assigned >= kMavInstances) {
 			PARAM_MIGRATE_WARN("dropping ethernet MAVLink");
@@ -366,6 +438,12 @@ static void apply_mav_serial_import()
 			new_of_old[eth_old] = assigned;
 			PARAM_MIGRATE_INFO("migrating MAV_%d_CONFIG -> MAV_ETH_EN (instance %d)", eth_old, assigned);
 		}
+
+	} else if (eth_p != PARAM_INVALID) {
+		// Boards default MAV_ETH_EN on; the old config had no ethernet instance.
+		int32_t zero = 0;
+		param_set(eth_p, &zero);
+		PARAM_MIGRATE_INFO("no MAV_n_CONFIG on ethernet -> MAV_ETH_EN=0");
 	}
 
 	permute_mav_params(new_of_old);
@@ -792,9 +870,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 
 			if (value == 1000 && old.ethernet_param) {
 				if (old.default_port != 0) {
-					int32_t z = 0;
-					param_set(param_find(serial_prot_name(old.default_port)), &z);
-					serial_claim(old.default_port);
+					serial_clear_default(old.default_port);
 				}
 
 				strcpy(node->name, old.ethernet_param);
@@ -804,7 +880,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			}
 
 			if (value == 0) {
-				if (old.default_port != 0 && serial_claim(old.default_port)) {
+				if (old.default_port != 0 && !serial_port_claimed(old.default_port)) {
 					strcpy(node->name, serial_prot_name(old.default_port));
 					PARAM_MIGRATE_INFO("migrating %s -> %s (disabled)", old.name, node->name);
 					return param_modify_on_import_ret::PARAM_MODIFIED;
@@ -820,9 +896,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			}
 
 			if (old.default_port != 0 && value != old.default_port) {
-				int32_t z = 0;
-				param_set(param_find(serial_prot_name(old.default_port)), &z);
-				serial_claim(old.default_port);
+				serial_clear_default(old.default_port);
 			}
 
 			if (!serial_claim(value)) {
