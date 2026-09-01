@@ -39,6 +39,9 @@
 */
 
 #include "mc_nn_control.hpp"
+#include <px4_platform_common/events.h>
+
+using namespace time_literals;
 #ifdef __PX4_NUTTX
 #include <drivers/drv_hrt.h>
 #else
@@ -87,7 +90,77 @@ bool MulticopterNeuralNetworkControl::init()
 		return false;
 	}
 
+	updateParams();
+	UpdateMotorLimits();
+
 	return true;
+}
+
+void MulticopterNeuralNetworkControl::UpdateMotorLimits()
+{
+	const float thrust_coeff = _param_thrust_coeff.get();
+	const float min_rpm = _param_min_rpm.get();
+	const float max_rpm = _param_max_rpm.get();
+
+	if (!nn_control::valid_motor_limits(thrust_coeff, min_rpm, max_rpm)) {
+		// The mapping keeps whatever was valid before, so a write while flying does
+		// not step the motors. The arming check reply refuses the mode until the
+		// parameters are corrected, and the error repeats while they stand.
+		if (_motor_limits_valid || (_last_invalid_limits_report == 0)) {
+			ReportInvalidLimits();
+		}
+
+		_motor_limits_valid = false;
+		return;
+	}
+
+	// Any parameter on the system triggers an update, so only report when the
+	// limits themselves changed
+	const bool unchanged = _mapping_valid && (thrust_coeff == _mapping_thrust_coeff) && (min_rpm == _mapping_min_rpm)
+			       && (max_rpm == _mapping_max_rpm);
+	_motor_limits_valid = true;
+
+	if (unchanged) {
+		return;
+	}
+
+	_mapping_thrust_coeff = thrust_coeff;
+	_mapping_min_rpm = min_rpm;
+	_mapping_max_rpm = max_rpm;
+	_mapping_valid = true;
+
+	ReportActionRange();
+}
+
+void MulticopterNeuralNetworkControl::ReportInvalidLimits()
+{
+	_last_invalid_limits_report = hrt_absolute_time();
+	/* EVENT
+	 * @description
+	 * The limits have to be finite, with MC_NN_THRST_COEF above zero, MC_NN_MIN_RPM at least zero and
+	 * below MC_NN_MAX_RPM, and reaching at least part of the network's action range. The mapping keeps
+	 * the last valid set and the mode refuses the arming check until they are corrected.
+	 */
+	events::send<int32_t, int32_t, float>(events::ID("mc_nn_control_motor_limits_invalid"), events::Log::Error,
+					      "Neural control: invalid motor limits, MC_NN_MIN_RPM {2}, MC_NN_MAX_RPM {1}, MC_NN_THRST_COEF {3:.2}",
+					      (int32_t)_param_max_rpm.get(), (int32_t)_param_min_rpm.get(), _param_thrust_coeff.get());
+}
+
+void MulticopterNeuralNetworkControl::ReportActionRange()
+{
+	// Say which part of the action range this motor can reproduce, so a mismatch
+	// between the thrust coefficient and the rpm limits is visible rather than
+	// silently clipped in flight. Sent when the limits change and when the mode
+	// is entered, since a message from boot can pass before a link is up.
+	float lowest = 0.f;
+	float highest = 0.f;
+	nn_control::achievable_action_range(_mapping_thrust_coeff, _mapping_min_rpm, _mapping_max_rpm, lowest, highest);
+
+	if ((lowest > -0.95f) || (highest < 0.95f)) {
+		events::send<float, float>(events::ID("mc_nn_control_action_range"), events::Log::Warning,
+					   "Neural control: motor limits cover actions {1:.2} to {2:.2} of -1 to 1",
+					   math::max(lowest, -1.f), math::min(highest, 1.f));
+	}
 }
 
 int MulticopterNeuralNetworkControl::InitializeNetwork()
@@ -193,13 +266,20 @@ void MulticopterNeuralNetworkControl::ConfigureNeuralFlightMode(int8 mode_id)
 void MulticopterNeuralNetworkControl::ReplyToArmingCheck(int8 request_id)
 {
 	// Reply to the arming check request
-	arming_check_reply_s arming_check_reply;
+	arming_check_reply_s arming_check_reply{};
 	arming_check_reply.timestamp = hrt_absolute_time();
 	arming_check_reply.request_id = request_id;
 	arming_check_reply.registration_id = _arming_check_id;
 	arming_check_reply.health_component_index = arming_check_reply.HEALTH_COMPONENT_INDEX_NONE;
 	arming_check_reply.num_events = 0;
-	arming_check_reply.can_arm_and_run = true;
+	arming_check_reply.can_arm_and_run = _motor_limits_valid;
+
+	// The reason is a standalone event, repeated while the limits stay invalid so
+	// it is not lost on a link that came up later
+	if (!_motor_limits_valid && (hrt_elapsed_time(&_last_invalid_limits_report) > 10_s)) {
+		ReportInvalidLimits();
+	}
+
 	arming_check_reply.mode_req_angular_velocity = true;
 	arming_check_reply.mode_req_local_position = true;
 	arming_check_reply.mode_req_attitude = true;
@@ -373,6 +453,7 @@ void MulticopterNeuralNetworkControl::PublishOutput(float *command_actions)
 
 	actuator_motors_s actuator_motors;
 	actuator_motors.timestamp = hrt_absolute_time();
+	actuator_motors.timestamp_sample = _angular_velocity.timestamp_sample;
 
 	actuator_motors.control[0] = PX4_ISFINITE(command_actions[0]) ? command_actions[0] : NAN;
 	actuator_motors.control[1] = PX4_ISFINITE(command_actions[1]) ? command_actions[1] : NAN;
@@ -397,7 +478,7 @@ inline void MulticopterNeuralNetworkControl::RescaleActions()
 {
 	for (int i = 0; i < 4; i++) {
 		_output_tensor->data.f[i] = nn_control::rescale_action(_output_tensor->data.f[i],
-					    _param_thrust_coeff.get(), _param_min_rpm.get(), _param_max_rpm.get());
+					    _mapping_thrust_coeff, _mapping_min_rpm, _mapping_max_rpm);
 	}
 }
 
@@ -474,6 +555,7 @@ void MulticopterNeuralNetworkControl::Run()
 
 		if (!prev_use_neural && _use_neural) {
 			ConfigureNeuralFlightMode(_mode_id);
+			ReportActionRange();
 		}
 	}
 
@@ -481,9 +563,10 @@ void MulticopterNeuralNetworkControl::Run()
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 		updateParams();
+		UpdateMotorLimits();
 	}
 
-	if (!_use_neural) {
+	if (!_use_neural || !_mapping_valid) {
 		// If the neural network flight mode is not enabled, do nothing
 		perf_end(_loop_perf);
 		return;
@@ -543,6 +626,7 @@ void MulticopterNeuralNetworkControl::Run()
 
 		if (invoke_status != kTfLiteOk) {
 			PX4_ERR("Invoke() failed");
+			perf_end(_loop_perf);
 			return;
 		}
 
@@ -550,6 +634,7 @@ void MulticopterNeuralNetworkControl::Run()
 
 		if (_output_tensor == nullptr) {
 			PX4_ERR("Output tensor is null");
+			perf_end(_loop_perf);
 			return;
 		}
 
