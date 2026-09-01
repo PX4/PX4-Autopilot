@@ -111,6 +111,8 @@ void PpmRc::Run()
 		updateParams();
 	}
 
+	_analog_rssi.update();
+
 #if defined(HRT_PPM_CHANNEL)
 
 	uint16_t values[PPM_MAX_CHANNELS];
@@ -156,6 +158,8 @@ void PpmRc::Run()
 			input_rc.rssi = math::constrain(rc_rssi, 0, 100);
 		}
 
+		_analog_rssi.fill_missing(input_rc.rssi);
+
 		if (valid_chans == 0) {
 			input_rc.rssi = 0;
 		}
@@ -192,6 +196,7 @@ int PpmRc::print_status()
 #else
 	PX4_INFO("PPM not supported on this board");
 #endif
+	_analog_rssi.print_status();
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_publish_interval_perf);
 	return 0;

@@ -44,6 +44,8 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/parameter_update.h>
 
+#include "../AnalogRcRssi.hpp"
+
 #if defined(HRT_PPM_CHANNEL)
 # include <systemlib/ppm_decode.h>
 #endif
@@ -74,6 +76,8 @@ private:
 	hrt_abstime _timestamp_last_signal {0};
 	bool _locked{false};
 #endif
+
+	AnalogRcRssi _analog_rssi;
 
 	static constexpr unsigned _current_update_interval{4000};
 
