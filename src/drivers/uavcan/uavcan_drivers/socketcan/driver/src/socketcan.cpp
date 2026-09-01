@@ -387,7 +387,7 @@ int CanIface::setBitRate(uint32_t bitrate)
 	 * restarted a running controller from inside the driver, which on FlexCAN
 	 * with ECC RAM initialisation is a bus fault. Keep the configured rate.
 	 */
-	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %u kbit/s needs a newer NuttX, staying at %u kbit/s",
+	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %u kbit/s needs a newer NuttX, staying at %" PRIu32 " kbit/s",
 		 _index, kbps, ifr.ifr_ifru.ifru_can_data.arbi_bitrate);
 	return 0;
 #else
