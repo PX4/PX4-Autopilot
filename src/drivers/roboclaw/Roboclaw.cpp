@@ -507,7 +507,7 @@ It performs two tasks:
 
 In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
 your flight controller's UART port should be connected to the Roboclaw as shown in the documentation.
-The driver needs to be enabled using the parameter `RBCLW_SER_CFG`, the baudrate needs to be set correctly and
+The driver needs to be enabled by setting a UART's `SER_<port>_PROTO` parameter to Roboclaw, the baudrate needs to be set correctly and
 the address `RBCLW_ADDRESS` needs to match the ESC configuration.
 
 The command to start this driver is: `$ roboclaw start <UART device> <baud rate>`
