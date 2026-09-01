@@ -1102,8 +1102,7 @@ The easiest way is to connect the Pixhawk to your development computer via the P
 The instructions below assume you're entering commands in the MAVLink shell:
 
 ```sh
-param set MAV_1_CONFIG 0  # Disable MAVLINK on TELEM2 (so it can be used for XRCE-DDS)
-param set UXRCE_DDS_CFG 102 # Set UXRCE_DDS_CFG to TELEM2
+param set SER_TEL2_PROTO 20  # uXRCE-DDS on TELEM2 (replaces MAVLink)
 ```
 
 ::: info
@@ -1130,8 +1129,8 @@ You can [modify the parameters](../advanced_config/parameters.md) in QGroundCont
 Enter the following commands to change the values in the MAVLink shell:
 
 ```sh
-param set MAV_2_CONFIG 0  # Disable MAVLINK on Ethernet (so Ethernet can be used for XRCE-DDS)
-param set UXRCE_DDS_CFG 1000 # Ethernet
+param set MAV_ETH_EN 0  # Disable MAVLink on Ethernet (so Ethernet can be used for XRCE-DDS)
+param set UXRCE_DDS_ETH 1 # Ethernet uXRCE-DDS
 param set UXRCE_DDS_PRT 8888  # Set port to 8888 (default)
 param set UXRCE_DDS_AG_IP 170461697 # The int32 version of 10.41.10.1
 ```

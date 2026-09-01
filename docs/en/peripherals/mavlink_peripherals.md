@@ -3,7 +3,7 @@
 Ground Control Stations (GCS), [MAVLink On-Screen Displays (OSD)](../peripherals/osd.md#mavlink-osd), MAVLink [Cameras](../camera/mavlink_v2_camera.md) and [Gimbals](../advanced/gimbal_control.md), [Remote IDs](../peripherals/remote_id.md), Companion Computers, [ADS-B receivers](../peripherals/adsb_flarm.md), and other MAVLink peripherals interact with PX4 using separate MAVLink streams, sent via different serial ports.
 
 Set `SER_<tag>_PROTO` to MAVLink on the UART (see [Serial Port Configuration](../peripherals/serial_configuration.md)).
-Instance 0 is the first such UART (by port-tag index), instance 1 the next, instance 2 the third.
+UARTs are numbered 0, 1, 2 in port-tag order. Ethernet ([MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN)) takes the next free instance (or the instance that already has `MAV_n_UDP_PRT` set).
 Then set `MAV_X_MODE`, `MAV_X_RATE`, `MAV_X_FORWARD` for that instance.
 
 The most relevant parameters are described below (the full set are listed in the [Parameter Reference > MAVLink](../advanced_config/parameter_reference.md#mavlink)).
@@ -13,7 +13,7 @@ The most relevant parameters are described below (the full set are listed in the
 In order to assign a particular peripheral to a serial port we use the concept of a _MAVLink instance_.
 
 Each MAVLink instance is the configuration for one UART (or Ethernet) MAVLink stream.
-UARTs with `SER_*_PROTO` = MAVLink are numbered 0, 1, 2 in port-tag order.
+UARTs with `SER_*_PROTO` = MAVLink are numbered 0, 1, 2 in port-tag order. Ethernet uses the next free instance.
 
 - <a id="MAV_X_MODE"></a>[MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) — [MAVLink profile](../mavlink/mavlink_profiles.md) (Normal, Onboard, OSD, …).
 - <a id="MAV_X_RATE"></a>[MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE) — max data rate (bytes/second). 0 is half the theoretical baud.
@@ -55,7 +55,7 @@ Default mapping of MAVLink instance 0:
 
 Pixhawk 5x devices (and later) that have an Ethernet port, configure it by default to connect to a GCS:
 
-Enable with [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN) (MAVLink instance 2). UART MAVLink is then limited to instances 0 and 1.
+Enable with [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN). Board defaults put the UDP ports on instance 2 (`MAV_2_UDP_PRT` = 14550).
 
 - [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST) = `1`
 - [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) = `0` (normal/GCS)

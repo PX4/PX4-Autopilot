@@ -338,7 +338,7 @@ If `CONFIG_MODULES_UXRCE_DDS_CLIENT=y` is not preset you can add this key to you
 Note that due to flash constraints you may need to remove other components in order to include the module.
 
 ::: tip
-You can check if uXRCE-DDS is present at runtime by using QGroundControl to [find the parameter](../advanced_config/parameters.md#finding-a-parameter) [UXRCE_DDS_CFG](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG).
+You can check if uXRCE-DDS is present at runtime by using QGroundControl to [find the parameter](../advanced_config/parameters.md#finding-a-parameter) [UXRCE_DDS_DOM_ID](../advanced_config/parameter_reference.md#UXRCE_DDS_DOM_ID).
 If present, the module is installed.
 :::
 
@@ -352,7 +352,7 @@ The simulator automatically starts the client on localhost UDP port `8888` using
 
 The configuration can be done using the [UXRCE-DDS parameters](../advanced_config/parameter_reference.md#uxrce-dds-client):
 
-- [UXRCE_DDS_CFG](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG): Set the port to connect on, such as `TELEM2`, `Ethernet`, or `Wifi`.
+- Set `SER_<tag>_PROTO` to uXRCE-DDS on the UART, or [UXRCE_DDS_ETH](../advanced_config/parameter_reference.md#UXRCE_DDS_ETH) for Ethernet.
 - If using an Ethernet connection:
   - [UXRCE_DDS_PRT](../advanced_config/parameter_reference.md#UXRCE_DDS_PRT):
     Use this to specify the agent UDP listening port.
@@ -404,8 +404,7 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
 Many ports already have a default configuration.
 To use these ports you must first disable the existing configuration:
 
-- `TELEM1` and `TELEM2` are set up by default to connect via MAVLink to a GCS and a companion computer (respectively).
-  Disable by setting [MAV_0_CONFIG=0](../advanced_config/parameter_reference.md#MAV_0_CONFIG) or [MAV_1_CONFIG=0](../advanced_config/parameter_reference.md#MAV_1_CONFIG) to zero.
+- `TELEM1` defaults to MAVLink. Set [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO) (or `SER_TEL2_PROTO`) to uXRCE-DDS to use that UART for the client.
   See [MAVLink Peripherals](../peripherals/mavlink_peripherals.md) for more information.
 - Other ports can similarly be configured.
   See [Serial port configuration](../peripherals/serial_configuration.md#serial-port-configuration).

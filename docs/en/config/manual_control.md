@@ -43,7 +43,7 @@ If you have multiple control sources, such as an RC system and/or one or more Jo
 - `7`: RC priority, then MAVLink (higher instance before lower) — `RC > MAVLink 2 > MAVLink 1`
 - `8`: MAVLink priority (higher instance before lower), then RC — `MAVLink 2 > MAVLink 1 > RC`
 
-The [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances) refers to an instance assigned to a serial port, such as [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG).
+The [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances) is the stream on a UART whose `SER_*_PROTO` is MAVLink (instance 0 is the first such UART).
 
 Notes:
 

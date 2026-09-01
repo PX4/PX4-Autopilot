@@ -57,7 +57,7 @@ You also need to make sure no other driver is [configured to use this serial por
 
 ::: warning
 By default, the `GPS` module will be configured to use the `GPS 1` port.
-Make sure to set `GPS_1_CONFIG` to `Disabled`.
+Make sure to set [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO) to Disabled if the receiver is not on GPS1.
 :::
 
 PX4 should then automatically configure the connected receiver(s), after which the position will become visible in _QGroundControl_ and its GPS icon will display general status information.

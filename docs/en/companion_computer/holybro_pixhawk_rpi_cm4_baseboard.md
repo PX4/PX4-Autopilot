@@ -166,7 +166,7 @@ To enable this MAVLink instance on the FC:
    ![Image of baseboard showing FC USB-C connector](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fc_usb_c.jpg)
 
 1. [Set the parameters](../advanced_config/parameters.md):
-   - `MAV_1_CONFIG` = `102`
+   - `SER_TEL2_PROTO` = MAVLink
    - `MAV_1_MODE = 2`
    - `SER_TEL2_BAUD` = `921600`
 
@@ -356,18 +356,18 @@ Next we enable `XRCE-DDS` on the new Ethernet Link.
 You can [modify the required parameters](../advanced_config/parameters.md) in QGroundControl parameter editor, or using `param set` in the [MAVLINK shell](../debug/mavlink_shell.md).
 Below we show the settings assuming you're setting the parameters using the shell.
 
-First ensure `MAV_2_CONFIG` is not set to use the Ethernet port (`1000`) as this would clash with XRCE-DDS (see [enable MAVLINK on Ethernet](../advanced_config/ethernet_setup.md#px4-mavlink-serial-port-configuration)):
+First ensure Ethernet MAVLink is off so it does not clash with XRCE-DDS (see [enable MAVLINK on Ethernet](../advanced_config/ethernet_setup.md#px4-mavlink-serial-port-configuration)):
 
 ```sh
 nsh>
-param set MAV_2_CONFIG     0           # Change to 0 IFF value is 1000
+param set MAV_ETH_EN 0
 ```
 
 Then enable uXRCE-DDS on the Ethernet port (see [starting uXRCE-DDS client](../middleware/uxrce_dds.md#starting-the-client)):
 
 ```sh
 param set UXRCE_DDS_AG_IP  170461697   # The int32 version of 10.41.10.1
-param set UXRCE_DDS_CFG    1000        # Set Serial Configuration for uXRCE-DDS Client to Ethernet
+param set UXRCE_DDS_ETH    1           # uXRCE-DDS on Ethernet
 param set UXRCE_DDS_DOM_ID 0           # Set uXRCE-DDS domain ID
 param set UXRCE_DDS_KEY    1           # Set uXRCE-DDS session key
 param set UXRCE_DDS_PRT    8888        # Set uXRCE-DDS UDP port

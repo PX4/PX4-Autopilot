@@ -53,7 +53,7 @@ To use the sbgECom driver:
 2. [Set the parameter](../advanced_config/parameters.md) [SENS_SBG_CFG](../advanced_config/parameter_reference.md#SENS_SBG_CFG) to the hardware port connected to the SBG Systems product (for more information see [Serial Port Configuration](../peripherals/serial_configuration.md)).
 
    ::: warning
-   Disable or change port of other sensors that are using the same one, for example [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG) if using GPS1 port.
+   Disable or change port of other sensors that are using the same one, for example [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO) if using GPS1 port.
    :::
 
 3. Set [SBG_BAUDRATE](../advanced_config/parameter_reference.md#SBG_BAUDRATE) to the desired default baudrate value.

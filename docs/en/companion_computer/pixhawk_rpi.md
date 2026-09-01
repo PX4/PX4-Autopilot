@@ -196,8 +196,7 @@ First check the Pixhawk `TELEM 2` configuration:
 1. [Check/change the following parameters](../advanced_config/parameters.md) in QGroundControl:
 
    ```ini
-   MAV_1_CONFIG = TELEM2
-   UXRCE_DDS_CFG = 0 (Disabled)
+   SER_TEL2_PROTO = MAVLink
    SER_TEL2_BAUD = 57600
    ```
 
@@ -254,14 +253,13 @@ The configuration steps are:
 1. [Check/change the following parameters](../advanced_config/parameters.md) in QGroundControl:
 
    ```ini
-   MAV_1_CONFIG = 0 (Disabled)
-   UXRCE_DDS_CFG = 102 (TELEM2)
+   SER_TEL2_PROTO = uXRCE-DDS
    SER_TEL2_BAUD = 921600
    ```
 
-   [MAV_1_CONFIG=0](../advanced_config/parameter_reference.md#MAV_1_CONFIG) and [UXRCE_DDS_CFG=102](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG) disable MAVLink on TELEM2 and enable the uXRCE-DDS client on TELEM2, respectively.
+   [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) = uXRCE-DDS starts the client on TELEM2 (replacing MAVLink on that UART).
    The `SER_TEL2_BAUD` rate sets the comms link data rate.
-   You could similarly configure a connection to `TELEM1` using either `MAV_1_CONFIG` or `MAV_0_CONFIG`.
+   You could similarly set [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO) for `TELEM1`.
 
    ::: info
    You will need to reboot the flight controller to apply any changes to these parameters.

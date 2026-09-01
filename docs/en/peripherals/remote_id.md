@@ -117,7 +117,7 @@ Remote ID hardware connected to a serial port is configured in the same way as a
 
 Assuming you have connected the device to the `TELEM2` port, [set the parameters](../advanced_config/parameters.md) as shown:
 
-- [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) = `TELEM 2`
+- [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) = MAVLink
 - [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = Normal
 - [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) = 0 (default sending rate for port).
 - [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) = Enabled

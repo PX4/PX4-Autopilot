@@ -333,11 +333,9 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 
 [Find and set](../advanced_config/parameters.md) the following parameters:
 
-1. Set [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) to the port that is connected to the CRSF receiver (such as `TELEM1`).
+1. Set `SER_<tag>_PROTO` to CRSF on the UART connected to the receiver (for example [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO)).
 
-   This [configures the serial port](../peripherals/serial_configuration.md) to use the CRSF protocol.
-   Note that some serial ports may already have a [default serial port mapping](../peripherals/serial_configuration.md#default-serial-port-configuration) or [default MAVLink serial port mapping](../peripherals/mavlink_peripherals.md#default-mavlink-ports) that you will have to un-map before you can assign the port to CRSF.
-   For example, if you want to use `TELEM1` or `TELEM2` you first need to modify [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) or [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) to stop setting those ports.
+   That assignment is unique; a port already set to MAVLink is switched to CRSF by changing its `SER_*_PROTO`.
 
    There is no need to set the baud rate for the port, as this is configured by the driver.
 
