@@ -236,6 +236,23 @@ if(CONFIG_NET)
 	add_nuttx_dir(net net y -D__KERNEL__ all)
 endif()
 
+if(NUTTX_DEFCONFIG_SAVE_FRAGMENT)
+	set(NUTTX_SAVEDEFCONFIG_COMMAND
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/platforms/nuttx/cmake/diff_defconfig.py
+			${NUTTX_DEFCONFIG_BASE} ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG_SAVE_FRAGMENT}
+	)
+elseif(NUTTX_DEFCONFIG_FRAGMENTS)
+	set(NUTTX_SAVEDEFCONFIG_COMMAND
+		COMMAND ${CMAKE_COMMAND} -E echo
+			"savedefconfig refuses multiple NuttX fragments (${NUTTX_CONFIG}); edit the fragment files"
+		COMMAND ${PYTHON_EXECUTABLE} -c "raise SystemExit(1)"
+	)
+else()
+	set(NUTTX_SAVEDEFCONFIG_COMMAND
+		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG}
+	)
+endif()
+
 ###############################################################################
 # NuttX oldconfig: Update a configuration using a provided .config as base
 add_custom_target(oldconfig_nuttx
@@ -249,7 +266,7 @@ add_custom_target(oldconfig_nuttx
 # NuttX oldconfig + savedefconfig back to PX4
 add_custom_target(oldconfig
 	COMMAND make --no-print-directory --silent savedefconfig
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG}
+	${NUTTX_SAVEDEFCONFIG_COMMAND}
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/.config
 	DEPENDS oldconfig_nuttx
 	WORKING_DIRECTORY ${NUTTX_DIR}
@@ -270,7 +287,7 @@ add_custom_target(olddefconfig_nuttx
 # NuttX olddefconfig + savedefconfig back to PX4
 add_custom_target(olddefconfig
 	COMMAND make --no-print-directory --silent savedefconfig
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG}
+	${NUTTX_SAVEDEFCONFIG_COMMAND}
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/.config
 	DEPENDS olddefconfig_nuttx
 	WORKING_DIRECTORY ${NUTTX_DIR}
@@ -291,7 +308,7 @@ add_custom_target(menuconfig_nuttx
 # NuttX menuconfig + savedefconfig back to PX4
 add_custom_target(menuconfig
 	COMMAND make --no-print-directory --silent savedefconfig
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG}
+	${NUTTX_SAVEDEFCONFIG_COMMAND}
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/.config
 	DEPENDS menuconfig_nuttx
 	WORKING_DIRECTORY ${NUTTX_DIR}
@@ -312,7 +329,7 @@ add_custom_target(qconfig_nuttx
 # NuttX qconfig + savedefconfig back to PX4
 add_custom_target(qconfig
 	COMMAND make --no-print-directory --silent savedefconfig
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG}
+	${NUTTX_SAVEDEFCONFIG_COMMAND}
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/.config
 	DEPENDS qconfig_nuttx
 	WORKING_DIRECTORY ${NUTTX_DIR}

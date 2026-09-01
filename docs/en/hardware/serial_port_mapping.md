@@ -46,12 +46,12 @@ Alternatively you can launch boardconfig using `make px4_fmu-v5 boardconfig` and
         ()  TEL5 tty port
 ```
 
-### nsh/defconfig
+### default.defconfig
 
-The _nsh/defconfig_ allows you to determine which ports are defined, whether they are UART or USARTs, and the mapping between USART/UART and device.
+The board NuttX defconfig lists which ports are defined, whether they are UART or USARTs, and the mapping between USART/UART and device.
 You can also determine which port is used for the [serial/debug console](../debug/system_console.md).
 
-Open the board's defconfig file, for example: [/boards/px4/fmu-v5/nuttx-config/nsh/defconfig](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/nuttx-config/nsh/defconfig#L215-L221)
+Open the board's defconfig file, for example: [/boards/px4/fmu-v5/nuttx-config/default.defconfig](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/nuttx-config/default.defconfig#L215-L221)
 
 Search for the text "ART" until you find a section like with entries formatted like `CONFIG_STM32xx_USARTn=y` (where `xx` is a processor type and `n` is a port number).
 For example:
@@ -81,7 +81,7 @@ ttyS5 CONFIG_STM32F7_UART7=y
 ttyS6 CONFIG_STM32F7_UART8=y
 ```
 
-To get the DEBUG console mapping we search the [defconfig file](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/nuttx-config/nsh/defconfig#L212) for `SERIAL_CONSOLE`.
+To get the DEBUG console mapping we search the [defconfig file](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/nuttx-config/default.defconfig#L212) for `SERIAL_CONSOLE`.
 Below we see that the console is on UART7:
 
 ```
