@@ -108,6 +108,7 @@ It is possible to delay the activation of the motors and control surfaces separa
 ::: info
 Neither lock is specific to _Takeoff mode_: both are applied in every flight mode, from arming until [CA_CS_LK_DELAY](#CA_CS_LK_DELAY) / [CA_R_LK_DELAY](#CA_R_LK_DELAY) seconds after takeoff is detected.
 Launch detection runs in every flight mode as well, so that a vehicle waiting on the launcher is not mistaken for one that has taken off, which is what keeps the locks engaged until it is actually launched.
+A vehicle uses either launch detection or [runway takeoff](#runway_launch), never both: [RWTO_TKOFF](../advanced_config/parameter_reference.md#RWTO_TKOFF) takes precedence, and [FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON) has no effect while it is enabled.
 Because the motor lock also holds on the ground, a vehicle that has to take off under its own power must leave [CA_R_LK_DELAY](#CA_R_LK_DELAY) at 0.
 :::
 

@@ -7,9 +7,10 @@ parameters:
         short: Fixed-wing launch detection
         long: |-
           Enables automatic launch detection based on measured acceleration. Use for hand- or catapult-launched vehicles.
-          Not compatible with runway takeoff.
           Launch detection runs in every flight mode, not only in Takeoff mode: while it waits for a launch the vehicle
           is held in the landed state, so that handling it on the launcher cannot be mistaken for a takeoff.
+          Has no effect while runway takeoff (RWTO_TKOFF) is enabled, as the two are alternatives and a takeoff
+          rolling down a runway never produces the acceleration this waits for.
       type: boolean
       default: 0
     FW_LAUN_AC_THLD:

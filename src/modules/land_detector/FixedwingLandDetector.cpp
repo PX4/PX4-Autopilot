@@ -47,11 +47,21 @@ namespace land_detector
 {
 
 FixedwingLandDetector::FixedwingLandDetector()
+	: _param_rwto_tkoff_handle(param_find("RWTO_TKOFF"))
 {
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndfw_trig_time.get() * 1_s);
 
 	_launch_detection_status_pub.advertise();
+}
+
+void FixedwingLandDetector::_update_params()
+{
+	int32_t runway_takeoff_enabled = 0;
+
+	if (param_get(_param_rwto_tkoff_handle, &runway_takeoff_enabled) == PX4_OK) {
+		_runway_takeoff_enabled = runway_takeoff_enabled != 0;
+	}
 }
 
 void FixedwingLandDetector::_update_topics()
@@ -77,9 +87,14 @@ void FixedwingLandDetector::updateLaunchDetection()
 	const bool moving = _airspeed_filtered > _param_lndfw_airspd.get()
 			    || _velocity_xy_filtered > _param_lndfw_vel_xy_max.get();
 
-	if (!_param_fw_laun_detcn_on.get() || !_armed || !_landed_hysteresis.get_state() || moving) {
-		// either no launch detection is configured, or the vehicle is not sitting on the ground
-		// waiting for one (it may have been armed in the air, or launched in an earlier mode)
+	// The two takeoff methods are alternatives rather than options that combine, and a takeoff rolling
+	// down a runway never produces the acceleration a launch detection waits for, so runway takeoff
+	// takes precedence over a launch detection left enabled alongside it.
+	const bool awaiting_a_launch = _param_fw_laun_detcn_on.get() && !_runway_takeoff_enabled;
+
+	if (!awaiting_a_launch || !_armed || !_landed_hysteresis.get_state() || moving) {
+		// either no launch is awaited, or the vehicle is not sitting on the ground waiting for one
+		// (it may have been armed in the air, or launched in an earlier mode)
 		_launch_detector.forceSetFlyState();
 
 	} else if (_time_last_launch_detector_update != 0) {

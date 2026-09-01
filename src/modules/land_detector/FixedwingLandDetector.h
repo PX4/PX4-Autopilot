@@ -68,6 +68,7 @@ protected:
 
 	bool _get_landed_state() override;
 	void _update_topics() override;
+	void _update_params() override;
 
 private:
 	/**
@@ -79,6 +80,11 @@ private:
 
 	launchdetection::LaunchDetector _launch_detector{this};
 	hrt_abstime _time_last_launch_detector_update{0};
+
+	// runway takeoff is configured in a module that is not built on every board, so its parameter
+	// is looked up rather than declared
+	const param_t _param_rwto_tkoff_handle;
+	bool _runway_takeoff_enabled{false};
 
 	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 
