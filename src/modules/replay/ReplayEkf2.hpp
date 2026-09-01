@@ -109,6 +109,8 @@ private:
 	uint16_t _vehicle_gps_position_msg_id = msg_id_invalid;
 	uint16_t _vehicle_land_detected_msg_id = msg_id_invalid;
 	uint16_t _vehicle_status_msg_id = msg_id_invalid;
+	uint16_t _sensor_selection_msg_id = msg_id_invalid;
+	uint16_t _launch_detection_status_msg_id = msg_id_invalid;
 
 	bool _ekf2_timestamps_exists{false};
 	uint64_t _last_sensor_combined_timestamp{0};
