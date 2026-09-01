@@ -30,7 +30,6 @@ set IOFW "/etc/extras/px4_io-v2_default.bin"
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
 set PARAM_BACKUP_FILE ""
-
 set STORAGE_AVAILABLE no
 set STORAGE_CHECK yes
 set SDCARD_EXT_PATH ${BOARD_ROOT_PATH}/ext_autostart
@@ -767,7 +766,6 @@ unset PARAM_FILE
 unset PARAM_BACKUP_FILE
 unset PARAM_DEFAULTS_VER
 unset PARAM_RESET_DONE
-
 unset STORAGE_AVAILABLE
 unset STORAGE_CHECK
 unset SDCARD_EXT_PATH

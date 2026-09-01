@@ -3,5 +3,3 @@ serial_config:
     - command: sagetech_mxs start -d ${SERIAL_DEV}
       protocol_id: 55
       protocol_name: Sagetech MXS
-
-      label: Sagetech MXS Serial Port

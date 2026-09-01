@@ -157,8 +157,6 @@ def parse_yaml_serial_config(yaml_config):
             raise Exception("{:}: serial_config entry missing protocol_id".format(module_name))
         if 'protocol_name' not in serial_config:
             serial_config['protocol_name'] = module_name
-        if 'label' not in serial_config:
-            serial_config['label'] = serial_config['protocol_name']
         ret.append(serial_config)
     return ret
 
@@ -270,7 +268,6 @@ for serial_command in serial_commands:
     protocols.append({
         'id': protocol_id,
         'name': serial_command['protocol_name'],
-        'label': serial_command['label'],
         'command': compact_command(serial_command['command'], kind),
         'secondary_command': compact_secondary(secondary_command),
         'success_command': compact_command(serial_command.get('success_command'), 'single') or None,
