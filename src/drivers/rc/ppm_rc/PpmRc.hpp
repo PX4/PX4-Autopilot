@@ -13,7 +13,9 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/parameter_update.h>
 
 #if defined(HRT_PPM_CHANNEL)
 # include <systemlib/ppm_decode.h>
@@ -37,6 +39,7 @@ public:
 private:
 	void Run() override;
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::PublicationMulti<input_rc_s> _input_rc_pub{ORB_ID(input_rc)};
 	perf_counter_t _cycle_perf;
 	perf_counter_t _publish_interval_perf;
@@ -46,4 +49,10 @@ private:
 #endif
 
 	static constexpr unsigned _current_update_interval{4000};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
+		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
+		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max
+	)
 };

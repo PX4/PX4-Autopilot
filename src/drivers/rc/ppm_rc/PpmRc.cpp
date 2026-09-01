@@ -6,6 +6,8 @@
 
 #include "PpmRc.hpp"
 
+#include <string.h>
+
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <px4_platform_common/getopt.h>
@@ -19,6 +21,7 @@ PpmRc::PpmRc() :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_publish_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval"))
 {
+	updateParams();
 }
 
 PpmRc::~PpmRc()
@@ -48,14 +51,14 @@ int PpmRc::task_spawn(int argc, char *argv[])
 	px4_arch_unconfiggpio(RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX);
 #endif
 
-	px4_arch_configgpio(GPIO_PPM_IN);
-
 	PpmRc *instance = new PpmRc();
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
 		return PX4_ERROR;
 	}
+
+	px4_arch_configgpio(GPIO_PPM_IN);
 
 	desc.object.store(instance);
 	desc.task_id = task_id_is_work_queue;
@@ -73,34 +76,66 @@ void PpmRc::Run()
 
 	perf_begin(_cycle_perf);
 
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+		updateParams();
+	}
+
 #if defined(HRT_PPM_CHANNEL)
 
-	if ((ppm_last_valid_decode != _timestamp_last_signal) && ppm_decoded_channels > 3) {
+	uint16_t values[PPM_MAX_CHANNELS];
+	unsigned decoded;
+	uint16_t frame_length;
+	hrt_abstime last_decode;
+
+	irqstate_t flags = px4_enter_critical_section();
+	decoded = ppm_decoded_channels;
+	last_decode = ppm_last_valid_decode;
+	frame_length = ppm_frame_length;
+	memcpy(values, ppm_buffer, sizeof(values));
+	px4_leave_critical_section(flags);
+
+	if ((last_decode != _timestamp_last_signal) && decoded > 3) {
 		input_rc_s input_rc{};
-		input_rc.timestamp_last_signal = ppm_last_valid_decode;
-		input_rc.channel_count = math::min((unsigned)ppm_decoded_channels,
-						   (unsigned)input_rc_s::RC_INPUT_MAX_CHANNELS);
+		input_rc.timestamp_last_signal = last_decode;
+		input_rc.channel_count = math::min(decoded,
+						   math::min((unsigned)PPM_MAX_CHANNELS,
+								   (unsigned)input_rc_s::RC_INPUT_MAX_CHANNELS));
 		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
 		input_rc.rssi = -1;
 		input_rc.link_quality = -1;
 		input_rc.rssi_dbm = NAN;
-		input_rc.rc_ppm_frame_length = ppm_frame_length;
+		input_rc.rc_ppm_frame_length = frame_length;
 
 		unsigned valid_chans = 0;
 
 		for (unsigned i = 0; i < input_rc.channel_count; i++) {
-			input_rc.values[i] = ppm_buffer[i];
+			input_rc.values[i] = values[i];
 
-			if (ppm_buffer[i] != 0) {
+			if (values[i] != 0) {
 				valid_chans++;
 			}
+		}
+
+		if ((_param_rc_rssi_pwm_chan.get() > 0) && (_param_rc_rssi_pwm_chan.get() < input_rc.channel_count)) {
+			const int32_t rssi_pwm_chan = _param_rc_rssi_pwm_chan.get();
+			const int32_t rssi_pwm_min = _param_rc_rssi_pwm_min.get();
+			const int32_t rssi_pwm_max = _param_rc_rssi_pwm_max.get();
+			int rc_rssi = ((input_rc.values[rssi_pwm_chan - 1] - rssi_pwm_min) * 100) /
+				      (rssi_pwm_max - rssi_pwm_min);
+			input_rc.rssi = math::constrain(rc_rssi, 0, 100);
+		}
+
+		if (valid_chans == 0) {
+			input_rc.rssi = 0;
 		}
 
 		input_rc.rc_lost = (valid_chans == 0);
 		input_rc.timestamp = hrt_absolute_time();
 		_input_rc_pub.publish(input_rc);
 		perf_count(_publish_interval_perf);
-		_timestamp_last_signal = ppm_last_valid_decode;
+		_timestamp_last_signal = last_decode;
 
 		if (valid_chans > 0 && !_locked) {
 			_locked = true;

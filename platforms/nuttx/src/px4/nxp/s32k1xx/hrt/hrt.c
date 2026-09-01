@@ -629,10 +629,7 @@ hrt_init(void)
 	sq_init(&callout_queue);
 	hrt_tim_init();
 
-#ifdef HRT_PPM_CHANNEL
-	/* configure the PPM input pin */
-	px4_arch_configgpio(GPIO_PPM_IN);
-#endif
+	/* Leave GPIO_PPM_IN unmuxed so a shared UART RX can take the pad. */
 }
 
 /**
