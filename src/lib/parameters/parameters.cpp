@@ -1226,6 +1226,7 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	 */
 	if (node->type == BSON_EOO) {
 		PX4_DEBUG("end of parameters");
+		param_modify_on_import_end();
 		return 0;
 	}
 
@@ -1321,6 +1322,7 @@ param_import_internal(int fd)
 
 	for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 		bson_decoder_s decoder{};
+		param_modify_on_import_begin();
 
 		if (bson_decoder_init_file(&decoder, fd, param_import_callback) == 0) {
 			int result = -1;

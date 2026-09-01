@@ -1,17 +1,11 @@
 module_name: UXRCE-DDS Client
 serial_config:
-    - command: |
-        if [ $SERIAL_DEV != ethernet ]; then
-            set UXRCE_DDS_ARGS "-t serial -d ${SERIAL_DEV} -b p:${BAUD_PARAM}"
-        else
-            set UXRCE_DDS_ARGS "-t udp"
-        fi
-        uxrce_dds_client start ${UXRCE_DDS_ARGS}
-
+    - command: uxrce_dds_client start -t serial -d ${SERIAL_DEV} -b p:${BAUD_PARAM}
       protocol_id: 20
       protocol_name: uXRCE-DDS
       supports_networking: true
       ethernet_param: UXRCE_DDS_ETH
+      ethernet_command: uxrce_dds_client start -t udp
 
 parameters:
     - group: UXRCE-DDS Client

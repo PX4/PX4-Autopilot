@@ -286,15 +286,19 @@ static int start_expanded(const char *tmpl, const char *device, const char *baud
 		return -1;
 	}
 
-	const int ret = run_line(expanded);
+	return run_line(expanded);
+}
 
-	if (strstr(tmpl, "iridiumsbd") != nullptr) {
-		if (ret == 0) {
-			run_line("mavlink start -d /dev/iridium -m iridium -b 115200");
+static int start_protocol_on_port(const SerialProtocolConfig &protocol, const char *device,
+				  const char *baud, const char *dual)
+{
+	const int ret = start_expanded(protocol.command, device, baud, nullptr, dual);
 
-		} else {
-			run_line("tune_control play error");
-		}
+	if (ret == 0 && protocol.success_command != nullptr) {
+		run_line(protocol.success_command);
+
+	} else if (ret != 0 && protocol.fail_command != nullptr) {
+		run_line(protocol.fail_command);
 	}
 
 	return ret;
@@ -319,7 +323,7 @@ static int32_t param_int(const char *fmt, int instance, int32_t fallback)
 
 static int start_mavlink(int instance, const char *device, const char *baud_param, bool ethernet)
 {
-	// Instance flags used to live in the yaml nsh snippet.
+	// Instance flags come from MAV_${i}_*.
 	char *argv[24];
 	int argc = 0;
 	char b_buf[24];
@@ -430,23 +434,35 @@ static bool ethernet_on(const SerialProtocolConfig &protocol)
 	return get_int32(protocol.ethernet_param, &value) && value == 1;
 }
 
+static int ethernet_mav_instance(int mav_next)
+{
+	if (mav_next >= static_cast<int>(kMavlinkCap)) {
+		return -1;
+	}
+
+	// Next free instance after the UART MAVLink ports. Prefer a still-free
+	// instance that already has MAV_n_UDP_PRT set so board defaults and
+	// stored ethernet configs (historically MAV_2_*) keep their UDP ports.
+	for (int i = mav_next; i < static_cast<int>(kMavlinkCap); i++) {
+		if (param_int("MAV_%d_UDP_PRT", i, 0) > 0) {
+			return i;
+		}
+	}
+
+	return mav_next;
+}
+
 static void start_ports()
 {
 	int mav_next = 0;
-	int mav_lim = static_cast<int>(kMavlinkCap);
-
-	for (unsigned i = 0; i < kSerialProtocolCount; i++) {
-		if (kSerialProtocols[i].kind == kSerialKindInstance && ethernet_on(kSerialProtocols[i])) {
-			mav_lim = 2;
-			break;
-		}
-	}
+	const int mav_lim = static_cast<int>(kMavlinkCap);
 
 	constexpr unsigned taken_len = kSerialProtocolCount > 0 ? kSerialProtocolCount : 1;
 	bool taken[taken_len] {};
 	uint8_t collect_n[taken_len] {};
 	const char *collect_dev[taken_len][2] {};
 	const char *collect_baud[taken_len][2] {};
+	uint8_t collect_rank[taken_len][2] {};
 
 	for (unsigned p = 0; p < kSerialPortCount; p++) {
 		const SerialPortConfig &port = kSerialPorts[p];
@@ -486,8 +502,20 @@ static void start_ports()
 				continue;
 			}
 
-			collect_dev[idx][collect_n[idx]] = port.device;
-			collect_baud[idx][collect_n[idx]] = port.baud_param;
+			// GPS1/GPS2/GPS3 before any other UART with the same protocol.
+			unsigned n = collect_n[idx];
+			unsigned at = n;
+
+			while (at > 0 && port.collect_rank < collect_rank[idx][at - 1]) {
+				collect_dev[idx][at] = collect_dev[idx][at - 1];
+				collect_baud[idx][at] = collect_baud[idx][at - 1];
+				collect_rank[idx][at] = collect_rank[idx][at - 1];
+				at--;
+			}
+
+			collect_dev[idx][at] = port.device;
+			collect_baud[idx][at] = port.baud_param;
+			collect_rank[idx][at] = port.collect_rank;
 			collect_n[idx]++;
 			continue;
 		}
@@ -502,7 +530,7 @@ static void start_ports()
 #if !defined(CONSTRAINED_FLASH)
 		PX4_INFO("Starting %s on %s", protocol->name, port.device);
 #endif
-		start_expanded(protocol->command, port.device, port.baud_param, nullptr, "");
+		start_protocol_on_port(*protocol, port.device, port.baud_param, "");
 		taken[idx] = true;
 	}
 
@@ -531,7 +559,7 @@ static void start_ports()
 #if !defined(CONSTRAINED_FLASH)
 		PX4_INFO("Starting %s on %s", kSerialProtocols[i].name, primary_dev);
 #endif
-		start_expanded(kSerialProtocols[i].command, primary_dev, primary_baud, nullptr, dual);
+		start_protocol_on_port(kSerialProtocols[i], primary_dev, primary_baud, dual);
 	}
 
 	for (unsigned i = 0; i < kSerialProtocolCount; i++) {
@@ -540,7 +568,16 @@ static void start_ports()
 		}
 
 		if (kSerialProtocols[i].kind == kSerialKindInstance) {
-			start_mavlink(2, nullptr, nullptr, true);
+			const int inst = ethernet_mav_instance(mav_next);
+
+			if (inst < 0) {
+#if !defined(CONSTRAINED_FLASH)
+				PX4_WARN("%s instance limit", kSerialProtocols[i].name);
+#endif
+				continue;
+			}
+
+			start_mavlink(inst, nullptr, nullptr, true);
 			continue;
 		}
 

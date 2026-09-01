@@ -120,6 +120,8 @@ parser.add_argument('--params-file', type=str, action='store',
                     help='Parameter output file', default=None)
 parser.add_argument('--ethernet', action='store_true',
                     help='Ethernet support')
+parser.add_argument('--board-with-io', action='store_true',
+                    help='Board has PX4IO; do not default the RC UART to SBUS')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 
@@ -132,6 +134,7 @@ serial_params_output_file = args.params_file
 generate_for_all_ports = args.all_ports
 constrained_flash = args.constrained_flash
 ethernet_supported = args.ethernet
+board_with_io = args.board_with_io
 
 if generate_for_all_ports:
     board_ports = [(key, "") for key in serial_ports]
@@ -160,16 +163,12 @@ def parse_yaml_serial_config(yaml_config):
     return ret
 
 def compact_command(command, kind):
-    """Reduce yaml nsh snippets to an argv template the C walker can exec."""
+    """Reduce a yaml command to a single line the C walker can exec."""
     if kind == 'instance':
         # MAVLink flags are assembled in C from MAV_${i}_*.
         return 'mavlink start'
     if command is None:
         return ''
-    if 'iridiumsbd' in command:
-        return 'usleep 200000; iridiumsbd start -d ${SERIAL_DEV}'
-    if 'uxrce_dds_client' in command:
-        return 'uxrce_dds_client start -t serial -d ${SERIAL_DEV} -b p:${BAUD_PARAM}'
     lines = []
     for line in command.splitlines():
         stripped = line.strip()
@@ -211,12 +210,14 @@ for tag, device in board_ports:
         raise Exception("Unknown serial port {:}. "
             "You might have to add it to serial_ports in\n {:}".format(tag,
                 os.path.realpath(__file__)))
+    collect_rank = {'GPS1': 0, 'GPS2': 1, 'GPS3': 2}.get(tag, 255)
     serial_devices.append({
         'tag': tag,
         'device': device,
         'label': serial_ports[tag]["label"],
         'index': serial_ports[tag]["index"],
-        'default_baudrate': serial_ports[tag]["default_baudrate"]
+        'default_baudrate': serial_ports[tag]["default_baudrate"],
+        'collect_rank': collect_rank,
         })
 
 # Sort ports by index so MAVLink/GPS instance order is stable
@@ -255,14 +256,16 @@ for serial_command in serial_commands:
                 default_tag, serial_command['protocol_name']))
         if default_tag in tag_defaults:
             raise Exception("Multiple protocols default to {:}".format(default_tag))
-        # Only apply default if the board has that tag (or --all-ports)
-        if default_tag in dict(board_ports).keys():
+        # IO firmware owns SBUS/PPM/DSM on the RC connector. Keep the RC UART
+        # configurable (CRSF/GHST) but do not start sbus_rc on it by default.
+        skip_rc_default = board_with_io and default_tag == 'RC'
+        if default_tag in dict(board_ports).keys() and not skip_rc_default:
             tag_defaults[default_tag] = protocol_id
 
     ethernet_param = serial_command.get('ethernet_param')
-    ethernet_command = None
-    if ethernet_param and 'uxrce_dds_client' in serial_command['command']:
-        ethernet_command = 'uxrce_dds_client start -t udp'
+    ethernet_command = serial_command.get('ethernet_command')
+    if ethernet_command:
+        ethernet_command = compact_command(ethernet_command, 'single')
 
     protocols.append({
         'id': protocol_id,
@@ -270,6 +273,8 @@ for serial_command in serial_commands:
         'label': serial_command['label'],
         'command': compact_command(serial_command['command'], kind),
         'secondary_command': compact_secondary(secondary_command),
+        'success_command': compact_command(serial_command.get('success_command'), 'single') or None,
+        'fail_command': compact_command(serial_command.get('fail_command'), 'single') or None,
         'kind': kind,
         'kind_id': {'single': 0, 'instance': 1, 'collect': 2}[kind],
         'num_instances': num_instances,

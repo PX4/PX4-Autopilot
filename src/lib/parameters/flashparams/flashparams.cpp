@@ -495,6 +495,7 @@ param_import_internal(bool *legacy)
 {
 	int result = 0;
 	log_stale = false;
+	param_modify_on_import_begin();
 	int n = parameter_flashfs_walk(parameters_legacy_token, import_one_entry, &result);
 	*legacy = n > 0;
 
@@ -526,6 +527,10 @@ param_import_internal(bool *legacy)
 		debug("BSON error decoding parameters");
 		return result;
 	}
+
+	/* Cross-parameter translations need every entry: a later delta overrides
+	 * an earlier one, so they run once after the walk, not per entry. */
+	param_modify_on_import_end();
 
 	return 0;
 }
