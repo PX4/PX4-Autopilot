@@ -66,8 +66,6 @@ make px4_fmu-v6x_bootloader
 This will build the bootloader binary as `build/px4_fmu-v6x_bootloader/px4_fmu-v6x_bootloader.elf`, which can be flashed via SWD or DFU.
 If you are building the bootloader you should be familiar with one of these options already.
 
-PX4 GitHub releases attach `<target>_bootloader.bin` for SWD (STM32: `0x08000000`).
-
 If you need a HEX file instead of an ELF file, use objcopy:
 
 ```sh
@@ -80,11 +78,15 @@ PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://githu
 
 The instructions in the repo README explain how to use it.
 
+## Pre-built Bootloader
+
+PX4 GitHub releases attach `<target>_bootloader.bin` for SWD (STM32: `0x08000000`). The `.px4` envelope is not used.
+
 ## Debug Probe Bootloader Update
 
 The following steps explain how you can "manually" update the bootloader using a [compatible Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware):
 
-1. Get a binary containing the bootloader (either from dev team or [build it yourself](#building-the-px4-bootloader)).
+1. Get a bootloader image: `<target>_bootloader.bin` from a [GitHub release](https://github.com/PX4/PX4-Autopilot/releases), or the `.elf` from [building it](#building-the-px4-bootloader).
 2. Get a [Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware).
    Connect the probe to your PC via USB and setup the `gdbserver`.
 3. Go into the directory containing the binary and run the command for your target bootloader in the terminal:
