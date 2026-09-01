@@ -113,6 +113,9 @@ private:
 	void PublishOutput(float *command_actions);
 	void RescaleActions();
 	int InitializeNetwork();
+	void UpdateMotorLimits();
+	void ReportInvalidLimits();
+	void ReportActionRange();
 	int32_t GetTime();
 	void RegisterNeuralFlightMode();
 	void UnregisterNeuralFlightMode(int8 arming_check_id, int8 mode_id);
@@ -145,6 +148,17 @@ private:
 	// Variables
 	bool _use_neural{false};
 	bool _sent_mode_registration{false};
+
+	// Motor limits the mapping runs with. Only a set that passed validation is
+	// copied here, so a bad parameter write cannot reach the motors. _motor_limits_valid
+	// follows the current parameters and gates the arming check, _mapping_valid says a
+	// set has been copied and gates the controller.
+	bool _motor_limits_valid{false};
+	bool _mapping_valid{false};
+	hrt_abstime _last_invalid_limits_report{0};
+	float _mapping_thrust_coeff{0.f};
+	float _mapping_min_rpm{0.f};
+	float _mapping_max_rpm{0.f};
 	perf_counter_t _loop_perf; /**< loop duration performance counter */
 	hrt_abstime _last_run{0};
 	uint8 _mode_request_id{231}; //Random value

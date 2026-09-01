@@ -11,7 +11,9 @@ parameters:
       description:
         short: Max motor RPM for neural network normalization
         long: The maximum RPM of the motors. Used to normalize the output of the neural
-          network
+          network. Has to be above MC_NN_MIN_RPM. Together with MC_NN_THRST_COEF it
+          sets the part of the action range the motor can reproduce, which the module
+          reports at startup.
       type: int32
       default: 22000
       min: 0
@@ -20,7 +22,7 @@ parameters:
       description:
         short: Min motor RPM for neural network normalization
         long: The minimum RPM of the motors. Used to normalize the output of the neural
-          network
+          network. Actions that ask for less than this idle the motor.
       type: int32
       default: 1000
       min: 0
