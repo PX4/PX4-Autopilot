@@ -477,8 +477,23 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 	case MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS:
 		handle_message_gimbal_device_attitude_status(&msg);
 		break;
+		
+	case MAVLINK_MSG_ID_COMMAND_LONG: {
+			mavlink_command_long_t cmd;
+			mavlink_msg_command_long_decode(&msg, &cmd);
+
+			if (cmd.command == MAV_CMD_SET_MESSAGE_INTERVAL ||
+			    cmd.command == MAV_CMD_GET_MESSAGE_INTERVAL ||
+			    cmd.command == MAV_CMD_REQUEST_MESSAGE) {
+				handle_message_command_long(&msg);
+			}
+		}
+		break;
 	}
 
+	/* handle packet with timesync component */
+	_mavlink_timesync.handle_message(&msg);
+	
 	// Message forwarding
 	_mavlink.handle_message(&msg);
 }
