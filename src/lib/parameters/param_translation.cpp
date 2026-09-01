@@ -141,7 +141,9 @@ static void serial_clear_default(int32_t index)
 
 static int32_t map_rc_input_proto(int32_t value)
 {
-	// Old RC_INPUT_PROTO: -1 Auto, 0 None, 1 PPM, 2 SBUS, 3 DSM, 4 ST24, 5 SUMD, 6 CRSF, 7 GHST.
+	// Old RC_INPUT_PROTO cast straight to RCInput::RC_SCAN: -1 Auto, 0 None,
+	// 1 PPM, 2 SBUS, 3 DSM, 4 SUMD, 5 ST24, 6 CRSF, 7 GHST. The enum labels
+	// swapped 4 and 5 relative to the parameter metadata; the enum is what ran.
 	// Auto and missing become SBUS. PPM is not a UART protocol (-2).
 	switch (value) {
 	case 0: return 0;
@@ -152,9 +154,9 @@ static int32_t map_rc_input_proto(int32_t value)
 
 	case 3: return 11;
 
-	case 4: return 15;
+	case 4: return 14;
 
-	case 5: return 14;
+	case 5: return 15;
 
 	case 6: return 12;
 
