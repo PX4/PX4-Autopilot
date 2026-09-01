@@ -2467,6 +2467,14 @@ Mavlink::task_main(int argc, char *argv[])
 		_mode = MAVLINK_MODE_NORMAL;
 	}
 
+#if defined(MAVLINK_UDP)
+
+	if (get_protocol() == Protocol::UDP && _datarate == 0) {
+		_datarate = 100000;
+	}
+
+#endif // MAVLINK_UDP
+
 	if (_datarate == 0) {
 		/* convert bits to bytes and use 1/2 of bandwidth by default */
 		_datarate = _baudrate / 20;

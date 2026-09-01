@@ -1,20 +1,8 @@
 module_name: Roboclaw Driver
 serial_config:
   - command: roboclaw start ${SERIAL_DEV} ${BAUD_PARAM}
-    port_config_param:
-      name: RBCLW_SER_CFG
-      group: Roboclaw
-
-actuator_output:
-  output_groups:
-    - param_prefix: RBCLW
-      channel_label: 'Channel'
-      standard_params:
-        disarmed: { min: 127, max: 127, default: 127 }
-        min: { min: 0, max: 127, default: 0 }
-        max: { min: 127, max: 254, default: 254 }
-        failsafe: { min: 0, max: 257 }
-      num_channels: 2
+    protocol_id: 52
+    protocol_name: Roboclaw
 
 parameters:
   - group: Roboclaw Driver

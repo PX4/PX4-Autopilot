@@ -37,6 +37,8 @@
 
 #include <termios.h>
 
+#include "../rc_uart.hpp"
+
 using namespace time_literals;
 
 ModuleBase::Descriptor DsmRc::desc{task_spawn, custom_command, print_usage};
@@ -133,10 +135,8 @@ int DsmRc::task_spawn(int argc, char *argv[])
 void DsmRc::Run()
 {
 	if (should_exit()) {
-
-		close(_rcs_fd);
-
 		dsm_deinit();
+		_rcs_fd = -1;
 
 		exit_and_cleanup(desc);
 		return;
@@ -228,10 +228,9 @@ void DsmRc::Run()
 
 		// Configure serial port
 		if (_rcs_fd < 0) {
-			_rcs_fd = open(_device, O_RDWR | O_NONBLOCK);
+			_rcs_fd = dsm_init(_device);
+			rc_uart_configure(_rcs_fd, _device);
 		}
-
-		dsm_config(_rcs_fd);
 
 		// flush serial buffer and any existing buffered data
 		tcflush(_rcs_fd, TCIOFLUSH);
@@ -296,7 +295,7 @@ void DsmRc::Run()
 		_rc_scan_begin = 0;
 		_rc_scan_locked = false;
 
-		close(_rcs_fd);
+		dsm_deinit();
 		_rcs_fd = -1;
 	}
 

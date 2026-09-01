@@ -130,7 +130,7 @@ Additional device-specific configuration may be provided in PX4 or manufacturer 
 
 Primary GPS configuration on Pixhawk is handled transparently for U-Blox GPS modules — simply connect the GPS module to the port labeled `GPS1`, `GPS&SAFETY`, or `GPS` (if there is only one GPS port), and everything should work.
 
-The default [Serial Port Configuration](../peripherals/serial_configuration.md#default_port_mapping) configures `GPS1` as a GPS port using [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG), sets the protocol to `u-blox` with [GPS_1_PROTOCOL](../advanced_config/parameter_reference.md#GPS_1_PROTOCOL), and a baud rate of `0: Auto` with [SER_GPS1_BAUD](../advanced_config/parameter_reference.md#SER_GPS1_BAUD).
+The default [Serial Port Configuration](../peripherals/serial_configuration.md#default_port_mapping) configures `GPS1` as a GPS port using [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO), sets the protocol to `u-blox` with [GPS_1_PROTOCOL](../advanced_config/parameter_reference.md#GPS_1_PROTOCOL), and a baud rate of `0: Auto` with [SER_GPS1_BAUD](../advanced_config/parameter_reference.md#SER_GPS1_BAUD).
 
 For GPS types like Trimble, Emlid, MTK, you will need to change the `GPS_1_PROTOCOL` appropriately.
 For _Trimble MB-Two_ you will also need to modify `SER_GPS1_BAUD` to set the rate to 115200 baud.
@@ -142,13 +142,13 @@ For _Trimble MB-Two_ you will also need to modify `SER_GPS1_BAUD` to set the rat
 To use a secondary GPS, you will generally attach it to the port named `GPS2`, if present, and otherwise attach it to any free UART port.
 The port may be pre-configured, but unlike the primary port, this is not guaranteed.
 
-To ensure the port is set up correctly perform a [Serial Port Configuration](../peripherals/serial_configuration.md) to assign [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to the selected port.
+To ensure the port is set up correctly perform a [Serial Port Configuration](../peripherals/serial_configuration.md) to set [SER_GPS2_PROTO](../advanced_config/parameter_reference.md#SER_GPS2_PROTO) (or `SER_<tag>_PROTO` on another UART) to GPS.
 
 The following steps show how to configure a secondary GPS on the `GPS 2` port in _QGroundControl_:
 
-1. [Find and set](../advanced_config/parameters.md) the parameter [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to **GPS 2**.
+1. [Find and set](../advanced_config/parameters.md) [SER_GPS2_PROTO](../advanced_config/parameter_reference.md#SER_GPS2_PROTO) to **GPS**.
    - Open _QGroundControl_ and navigate to the **Vehicle Setup > Parameters** section.
-   - Select the **GPS** tab, then open the [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) parameter and select `GPS 2` from the dropdown list.
+   - Select the **Serial** tab, then open [SER_GPS2_PROTO](../advanced_config/parameter_reference.md#SER_GPS2_PROTO) and select `GPS`.
 
      ![QGC Serial Example](../../assets/peripherals/qgc_serial_config_example.png)
 

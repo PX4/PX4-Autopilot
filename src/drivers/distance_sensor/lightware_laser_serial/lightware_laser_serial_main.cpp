@@ -102,7 +102,7 @@ static int usage()
 
 Serial bus driver for the LightWare SF02/F, SF10/a, SF10/b, SF10/c, SF11/c Laser rangefinders.
 
-Most boards are configured to enable/start the driver on a specified UART using the SENS_SF0X_CFG parameter.
+Start the driver by setting a UART's SER_*_PROTO parameter to Lightware Laser.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 

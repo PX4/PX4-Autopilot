@@ -7,14 +7,9 @@ set LOGGER_BUF 128
 
 param set-default EKF2_MULTI_IMU 0
 
-# Mavlink ethernet (CFG 1000)
-param set-default MAV_2_CONFIG 1000
-param set-default MAV_2_BROADCAST 1
-param set-default MAV_2_MODE 0
-param set-default MAV_2_RADIO_CTL 0
-param set-default MAV_2_RATE 100000
-param set-default MAV_2_REMOTE_PRT 14550
-param set-default MAV_2_UDP_PRT 14550
+# Mavlink ethernet
+param set-default MAV_ETH_EN 1
+param set-default MAV_1_MODE 0
 
 param set-default SENS_EN_INA226 1
 param set-default SENS_EN_THERMAL 1
@@ -33,8 +28,7 @@ then
 	param set-default HEATER1_SENS_ID 3407882
 fi
 
-param set-default RC_CRSF_PRT_CFG 300
-param set-default RC_SBUS_PRT_CFG 0
+param set-default SER_RC_PROTO 12
 
 param set-default UAVCAN_ESC_IFACE 2
 

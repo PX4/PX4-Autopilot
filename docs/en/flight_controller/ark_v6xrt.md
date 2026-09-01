@@ -117,7 +117,7 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 
 RC shares LPUART6 with PX4IO.
 On a carrier fitted with PX4IO, the IO processor decodes SBUS, PPM, and DSM/DSMX.
-CRSF is decoded on the FMU instead and is enabled by default ([RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) is set to the `RC` port); [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) is off so that the FMU driver does not contend with PX4IO.
+CRSF is decoded on the FMU instead and is enabled by default ([SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO) = CRSF). IO continues to own SBUS/PPM/DSM.
 
 ## GPS & Compass {#gps_compass}
 

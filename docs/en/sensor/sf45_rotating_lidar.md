@@ -48,7 +48,7 @@ The [parameters to change](../advanced_config/parameters.md) are listed in the t
 
 | Parameter                                                                                                   | Description                                              |
 | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| <a id="SENS_EN_SF45_CFG"></a>[SENS_EN_SF45_CFG](../advanced_config/parameter_reference.md#SENS_EN_SF45_CFG) | Set to the serial port you have the sensor connected to. |
+| `SER_<tag>_PROTO`                                                                                           | Set to Lightware SF45 on the sensor's serial port.       |
 | <a id="SF45_ORIENT_CFG"></a>[SF45_ORIENT_CFG](../advanced_config/parameter_reference.md#SF45_ORIENT_CFG)    | Set the orientation of the sensor (facing up or down)    |
 | <a id="SF45_UPDATE_CFG"></a>[SF45_UPDATE_CFG](../advanced_config/parameter_reference.md#SF45_UPDATE_CFG)    | Set the update rate                                      |
 | <a id="SF45_YAW_CFG"></a>[SF45_YAW_CFG](../advanced_config/parameter_reference.md#SF45_YAW_CFG)             | Set the yaw orientation                                  |

@@ -69,7 +69,7 @@ The provided telemetry includes:
 To enable this feature (on ESCs that support it):
 
 1. Join all the telemetry wires from all the ESCs together, and then connect them to one of the RX pins on an unused flight controller serial port.
-2. Enable telemetry on that serial port using [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG).
+2. Enable telemetry on that serial port by setting its `SER_<tag>_PROTO` to DShot Telemetry.
 
 :::tip
 You may have to configure the per-motor pole count parameters ([`DSHOT_MOT_POL1`–`DSHOT_MOT_POL12`](../advanced_config/parameter_reference.md#DSHOT_MOT_POL1)) to get correct RPM values.
@@ -134,7 +134,7 @@ PX4 can read and write AM32 ESC firmware settings (EEPROM) via a ground station,
 
 ### Requirements
 
-- ESCs running [AM32 firmware](https://github.com/am32-firmware/AM32) with serial telemetry connected ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG))
+- ESCs running [AM32 firmware](https://github.com/am32-firmware/AM32) with serial telemetry connected (`SER_<tag>_PROTO` = DShot Telemetry)
 - `DSHOT_ESC_TYPE` set to `1` (AM32)
 - Ground station with ESC EEPROM support (QGroundControl feature in development)
 - MAVLink development dialect enabled on the flight controller

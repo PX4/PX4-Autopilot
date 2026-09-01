@@ -267,8 +267,6 @@
 #  define RC_SERIAL RC_SERIAL_PORT
 #elif defined(CONFIG_BOARD_SERIAL_RC)
 #  define RC_SERIAL CONFIG_BOARD_SERIAL_RC
-#else
-#  error Board needs to define either CONFIG_BOARD_SERIAL_RC or RC_SERIAL_PORT
 #endif
 
 /*

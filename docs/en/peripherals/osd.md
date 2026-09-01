@@ -59,8 +59,8 @@ Then rebuild and flash.
 
 ### PX4 configuration
 
-1. Assign the selected serial port to MSP OSD with [`MSP_OSD_CONFIG`](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG).
-2. Set the matching `SER_<PORT>_BAUD` to `115200`.
+1. Set `SER_*_PROTO` to MSP OSD on the selected UART (for example [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO)).
+2. Set the matching `SER_*_BAUD` to `115200`.
 3. Reboot.
 4. Tune the display via the [`OSD_*` parameters](../advanced_config/parameter_reference.md#osd):
    - [`OSD_SYMBOLS`](../advanced_config/parameter_reference.md#OSD_SYMBOLS) — bitmask selecting which items appear.
@@ -82,7 +82,7 @@ PX4 exposes this via a dedicated MAVLink stream profile.
 
 To use a MAVLink OSD:
 
-1. Choose an unused MAVLink instance ([`MAV_X_CONFIG`](../peripherals/mavlink_peripherals.md#default_ports)) and assign it to the serial port connected to the display.
+1. Set the `SER_<tag>_PROTO` of the serial port connected to the display to MAVLink and note its [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances).
 2. Configure the mode of the selected MAVLink instance with [`MAV_X_MODE`](./mavlink_peripherals.md#MAV_X_MODE) by setting it to **`OSD`**.
    The `OSD` mode uses a built-in rate table tuned for low-bandwidth OSD consumption.
 3. Set the matching `SER_<PORT>_BAUD` to the baud rate the display expects.

@@ -1,9 +1,9 @@
 module_name: Lightware GRF Rangefinder (serial)
 serial_config:
     - command: lightware_grf_serial start -d ${SERIAL_DEV}
-      port_config_param:
-        name: SENS_EN_GRF_CFG
-        group: Sensors
+      protocol_id: 36
+      protocol_name: Lightware GRF
+
       num_instances: 1
       supports_networking: false
 

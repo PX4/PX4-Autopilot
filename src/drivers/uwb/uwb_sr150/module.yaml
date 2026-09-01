@@ -1,9 +1,8 @@
 module_name: Ultrawideband position sensor driver
 serial_config:
   - command: uwb_sr150 start -d ${SERIAL_DEV} -b p:${BAUD_PARAM}
-    port_config_param:
-      name: UWB_PORT_CFG
-      group: UWB
+    protocol_id: 50
+    protocol_name: UWB
 
 parameters:
     - group: UWB

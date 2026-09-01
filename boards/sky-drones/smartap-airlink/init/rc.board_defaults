@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 
 # Telemetry for onboard computer
-param set-default MAV_1_CONFIG 102 	# TELEM2
+param set-default SER_TEL2_PROTO 1 	# TELEM2
 param set-default MAV_1_MODE 0 			# Normal
 param set-default SER_TEL2_BAUD 921600  	# 921600
 

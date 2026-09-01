@@ -81,7 +81,7 @@ The lidar can be connected to any unused _serial port_ (UART), e.g.: TELEM2, TEL
 
 ### Parameter Setup {#serial_parameter_setup}
 
-[Configure the serial port](../peripherals/serial_configuration.md) on which the lidar will run using [SENS_SF0X_CFG](../advanced_config/parameter_reference.md#SENS_SF0X_CFG).
+[Configure the serial port](../peripherals/serial_configuration.md) on which the lidar will run by setting the port's `SER_<tag>_PROTO` to Lightware Laser.
 There is no need to set the baud rate for the port, as this is configured by the driver.
 
 ::: info

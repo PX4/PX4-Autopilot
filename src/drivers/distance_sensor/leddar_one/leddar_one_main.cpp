@@ -101,7 +101,7 @@ static int usage()
 
 Serial bus driver for the LeddarOne LiDAR.
 
-Most boards are configured to enable/start the driver on a specified UART using the SENS_LEDDAR1_CFG parameter.
+Start the driver by setting a UART's SER_*_PROTO parameter to LeddarOne.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/leddar_one.html
 

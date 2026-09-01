@@ -130,6 +130,8 @@ As general guidance, receivers connect to the flight controller using the port a
 - PPM receivers that have an individual wire for each channel must connect to the RCIN channel _via_ a PPM encoder [like this one](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
 - TBS Crossfire/Express LRS Receivers using [CRSF Telemetry](../telemetry/crsf_telemetry.md) connect via a spare UART.
 
+On boards without an IO co-processor the receiver protocol is selected with [SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO) (SBUS by default) and PPM is enabled with [RC_PPM_EN](../advanced_config/parameter_reference.md#RC_PPM_EN); there is no auto-detection.
+
 Flight controllers usually include appropriate cables for connecting common receiver types.
 
 Instructions for connecting to specific flight controllers are given in their [quick-start](../assembly/index.md) guides (such as [CUAV Pixhawk V6X Wiring Quick Start: Radio Control](../assembly/quick_start_cuav_pixhawk_v6x.md#radio-control) or [Holybro Pixhawk 6X Wiring Quick Start: Radio Control](../assembly/quick_start_pixhawk6x.md#radio-control)).

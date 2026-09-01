@@ -104,7 +104,7 @@ static int usage()
 Serial bus driver for the FT Technologies Digital Wind Sensor FT742. This driver is required to operate alongside
 a RS485 to UART signal transfer module.
 
-Most boards are configured to enable/start the driver on a specified UART using the SENS_FTX_CFG parameter.
+Start the driver by setting a UART's SER_*_PROTO parameter to FT7 Wind.
 
 ### Examples
 

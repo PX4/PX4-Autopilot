@@ -1,16 +1,11 @@
 module_name: Septentrio
 
 serial_config:
-    - command: set DUAL_GPS_ARGS "-e ${SERIAL_DEV} -g p:${BAUD_PARAM}"
-      port_config_param:
-        name: SEP_PORT2_CFG
-        group: Septentrio
-      label: Secondary GPS port
     - command: septentrio start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} ${DUAL_GPS_ARGS}
-      port_config_param:
-        name: SEP_PORT1_CFG
-        group: Septentrio
-      label: GPS Port
+      secondary_command: set DUAL_GPS_ARGS "-e ${SERIAL_DEV} -g p:${BAUD_PARAM}"
+      protocol_id: 6
+      protocol_name: Septentrio
+      num_instances: 2
 
 parameters:
   - group: Septentrio

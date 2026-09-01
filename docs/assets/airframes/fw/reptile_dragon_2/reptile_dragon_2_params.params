@@ -29,7 +29,7 @@ param set-default FW_RR_P 0.1994
 param set-default FW_R_RMAX 110.0000
 param set-default FW_R_TC 0.1459
 param set-default GF_ACTION 0
-param set-default MSP_OSD_CONFIG 202
+param set-default SER_GPS2_PROTO 24
 param set-default OSD_DWELL_TIME 100
 param set-default OSD_LOG_LEVEL 4
 param set-default OSD_SCROLL_RATE 50

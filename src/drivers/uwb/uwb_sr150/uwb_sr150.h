@@ -130,7 +130,6 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
 		(ParamFloat<px4::params::UWB_INIT_OFF_X>) 		_offset_x,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_offset_y,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) 		_offset_z,

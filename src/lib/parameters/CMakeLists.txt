@@ -65,6 +65,7 @@ endif()
 set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)
 set(generated_serial_params_file ${generated_params_dir}/serial_params.c)
 set(generated_module_params_file ${generated_params_dir}/module_params.c)
+set(generated_autostart_header ${generated_params_dir}/serial_autostart_config.h)
 file(GLOB jinja_templates ${PX4_SOURCE_DIR}/Tools/serial/*.jinja)
 if (px4_constrained_flash_build)
 	set(constrained_flash_arg --constrained-flash)
@@ -76,11 +77,11 @@ if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
 
-add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
+add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file} ${generated_autostart_header}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--params-file ${generated_serial_params_file}
-		--serial-ports ${board_serial_ports} ${added_arguments} ${constrained_flash_arg}
+		--serial-ports ${board_serial_ports} ${added_arguments} ${constrained_flash_arg} ${board_with_io_arg}
 		--config-files ${module_config_files}
 		#--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
@@ -97,6 +98,11 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 		${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
 	COMMENT "Generating serial_params.c"
 )
+add_custom_target(serial_autostart_config DEPENDS ${generated_autostart_header})
+
+if(TARGET systemcmds__serial_autostart)
+	add_dependencies(systemcmds__serial_autostart serial_autostart_config)
+endif()
 
 # readonly params config (used by both px_process_params.py and px_generate_params.py)
 set(READONLY_PARAMS_CONFIG "${PX4_BOARD_DIR}/readonly_params.yaml")

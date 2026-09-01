@@ -22,7 +22,7 @@ These instructions explain how to setup the connection if you're not using Ether
 ### Pixhawk Configuration
 
 PX4 expects companion computers to connect via `TELEM2` for offboard control.
-The port is configured by default to interface using MAVLink.
+Set [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) to MAVLink.
 
 If using MAVLink, no other PX4-side configuration should be required.
 To use MAVLink on another port, and/or disable it on `TELEM2`, see [MAVLink Peripherals (GCS/OSD/Companion)](../peripherals/mavlink_peripherals.md) and [Serial Port Configuration](../peripherals/serial_configuration.md).

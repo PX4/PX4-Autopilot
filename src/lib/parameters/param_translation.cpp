@@ -35,12 +35,432 @@
 
 
 #include <inttypes.h>
+#include <limits.h>
 #include <px4_platform_common/log.h>
 #include <lib/drivers/device/Device.hpp>
 #include <drivers/drv_sensor.h>
 #include <lib/parameters/param.h>
 #include <lib/mathlib/mathlib.h>
 #include <uORB/topics/vtx.h>
+
+// Migration notices are one-shot boot chatter; constrained boards cannot afford
+// the format strings.
+#if defined(CONSTRAINED_FLASH)
+#define PARAM_MIGRATE_INFO(...)
+#define PARAM_MIGRATE_WARN(...)
+#else
+#define PARAM_MIGRATE_INFO(...) PX4_INFO(__VA_ARGS__)
+#define PARAM_MIGRATE_WARN(...) PX4_WARN(__VA_ARGS__)
+#endif
+
+static uint32_t serial_claimed_ports;
+static int32_t serial_rc_input_proto = INT32_MIN;
+static int32_t serial_rc_port = INT32_MIN;
+static int32_t mav_config[3] = {INT32_MIN, INT32_MIN, INT32_MIN};
+
+static constexpr int kMavInstances = 3;
+static constexpr int32_t kMavEthernet = 1000;
+static constexpr int32_t kMavTel1 = 101;
+
+void param_modify_on_import_begin()
+{
+	serial_claimed_ports = 0;
+	serial_rc_input_proto = INT32_MIN;
+	serial_rc_port = INT32_MIN;
+	mav_config[0] = INT32_MIN;
+	mav_config[1] = INT32_MIN;
+	mav_config[2] = INT32_MIN;
+}
+
+struct SerialPortTag {
+	int32_t index;
+	const char *prot_name;
+};
+
+static constexpr SerialPortTag kSerialPortTags[] = {
+	{6, "SER_URT6_PROTO"},
+	{101, "SER_TEL1_PROTO"},
+	{102, "SER_TEL2_PROTO"},
+	{103, "SER_TEL3_PROTO"},
+	{104, "SER_TEL4_PROTO"},
+	{201, "SER_GPS1_PROTO"},
+	{202, "SER_GPS2_PROTO"},
+	{203, "SER_GPS3_PROTO"},
+	{300, "SER_RC_PROTO"},
+	{301, "SER_WIFI_PROTO"},
+	{401, "SER_EXT2_PROTO"},
+};
+
+static int serial_port_bit(int32_t index)
+{
+	for (unsigned i = 0; i < sizeof(kSerialPortTags) / sizeof(kSerialPortTags[0]); i++) {
+		if (kSerialPortTags[i].index == index) {
+			return static_cast<int>(i);
+		}
+	}
+
+	return -1;
+}
+
+static const char *serial_prot_name(int32_t index)
+{
+	const int bit = serial_port_bit(index);
+	return bit < 0 ? nullptr : kSerialPortTags[bit].prot_name;
+}
+
+static bool serial_port_claimed(int32_t index)
+{
+	const int bit = serial_port_bit(index);
+	return bit >= 0 && (serial_claimed_ports & (1u << bit));
+}
+
+static bool serial_claim(int32_t index)
+{
+	const int bit = serial_port_bit(index);
+
+	if (bit < 0 || (serial_claimed_ports & (1u << bit))) {
+		return false;
+	}
+
+	serial_claimed_ports |= (1u << bit);
+	return true;
+}
+
+// The new param defaults to a protocol on this port. Clear it unless another
+// old param already took the port, and leave the port unclaimed so a later
+// node or the deferred MAVLink/RC pass can still take it.
+static void serial_clear_default(int32_t index)
+{
+	const char *name = serial_prot_name(index);
+
+	if (name != nullptr && !serial_port_claimed(index)) {
+		int32_t z = 0;
+		param_set(param_find(name), &z);
+	}
+}
+
+static int32_t map_rc_input_proto(int32_t value)
+{
+	// Old RC_INPUT_PROTO cast straight to RCInput::RC_SCAN: -1 Auto, 0 None,
+	// 1 PPM, 2 SBUS, 3 DSM, 4 SUMD, 5 ST24, 6 CRSF, 7 GHST. The enum labels
+	// swapped 4 and 5 relative to the parameter metadata; the enum is what ran.
+	// Auto and missing become SBUS. PPM is not a UART protocol (-2).
+	switch (value) {
+	case 0: return 0;
+
+	case 1: return -2;
+
+	case 2: return 10;
+
+	case 3: return 11;
+
+	case 4: return 14;
+
+	case 5: return 15;
+
+	case 6: return 12;
+
+	case 7: return 13;
+
+	default: return 10;
+	}
+}
+
+static void apply_rc_serial_import()
+{
+	const int32_t proto = (serial_rc_input_proto == INT32_MIN) ? 10 : map_rc_input_proto(serial_rc_input_proto);
+	const int32_t port = (serial_rc_port == INT32_MIN) ? 300 : serial_rc_port;
+
+	if (proto == -2) {
+		int32_t one = 1;
+		param_set(param_find("RC_PPM_EN"), &one);
+
+		// PPM is not a UART protocol. The old scanner did not open the RC
+		// serial port; leaving SER_RC_PROTO at the SBUS default makes
+		// shared-pin boards refuse ppm_rc start.
+		int32_t z = 0;
+		const char *rc = serial_prot_name(300);
+
+		if (rc != nullptr && serial_claim(300)) {
+			param_set(param_find(rc), &z);
+		}
+
+		if (port != 0 && port != 300) {
+			const char *dest = serial_prot_name(port);
+
+			if (dest != nullptr && serial_claim(port)) {
+				param_set(param_find(dest), &z);
+			}
+		}
+
+		PARAM_MIGRATE_INFO("migrating RC_INPUT_PROTO PPM -> RC_PPM_EN");
+		return;
+	}
+
+	if (proto == 0 || port == 0) {
+		if (port != 0 && serial_prot_name(port) != nullptr && serial_claim(port)) {
+			int32_t z = 0;
+			param_set(param_find(serial_prot_name(port)), &z);
+			PARAM_MIGRATE_INFO("migrating RC_INPUT_PROTO None -> %s=0", serial_prot_name(port));
+		}
+
+		return;
+	}
+
+	const char *dest = serial_prot_name(port);
+
+	if (dest == nullptr) {
+		return;
+	}
+
+	if (!serial_claim(port)) {
+		PARAM_MIGRATE_WARN("dropping RC_PORT_CONFIG, %s already assigned", dest);
+		return;
+	}
+
+	int32_t id = proto;
+	param_set(param_find(dest), &id);
+	PARAM_MIGRATE_INFO("migrating RC -> %s=%" PRId32, dest, id);
+}
+
+static void permute_mav_params(const int new_of_old[kMavInstances])
+{
+	bool moved = false;
+
+	for (int i = 0; i < kMavInstances; i++) {
+		if (new_of_old[i] >= 0 && new_of_old[i] != i) {
+			moved = true;
+			break;
+		}
+	}
+
+	if (!moved) {
+		return;
+	}
+
+	static const char *const kIntFmt[] = {
+		"MAV_%d_MODE", "MAV_%d_RATE", "MAV_%d_FORWARD", "MAV_%d_RADIO_CTL",
+		"MAV_%d_FLOW_CTRL", "MAV_%d_UDP_PRT", "MAV_%d_REMOTE_PRT", "MAV_%d_BROADCAST"
+	};
+	static constexpr unsigned kNumInt = sizeof(kIntFmt) / sizeof(kIntFmt[0]);
+
+	// Snapshot before any write: a slot can be both source and destination.
+	// Board defaults (rc.board_defaults) are not applied yet at import time, so
+	// a value that only reflects the compiled default is reset in the
+	// destination rather than copied, unless the two instances compile to
+	// different defaults (MAV_1_MODE is Onboard, MAV_0_MODE is Normal).
+	int32_t ints[kMavInstances][kNumInt] {};
+	int32_t defs[kMavInstances][kNumInt] {};
+	bool custom_int[kMavInstances][kNumInt] {};
+	bool have_int[kMavInstances][kNumInt] {};
+	float hl[kMavInstances] {};
+	bool custom_hl[kMavInstances] {};
+	bool have_hl[kMavInstances] {};
+
+	for (int i = 0; i < kMavInstances; i++) {
+		for (unsigned p = 0; p < kNumInt; p++) {
+			char name[20];
+			snprintf(name, sizeof(name), kIntFmt[p], i);
+			const param_t ph = param_find(name);
+
+			if (ph != PARAM_INVALID && param_get(ph, &ints[i][p]) == PX4_OK
+			    && param_get_system_default_value(ph, &defs[i][p]) == PX4_OK) {
+				have_int[i][p] = true;
+				custom_int[i][p] = !param_value_is_default(ph);
+			}
+		}
+
+		char name[20];
+		snprintf(name, sizeof(name), "MAV_%d_HL_FREQ", i);
+		const param_t ph = param_find(name);
+
+		if (ph != PARAM_INVALID && param_get(ph, &hl[i]) == PX4_OK) {
+			have_hl[i] = true;
+			custom_hl[i] = !param_value_is_default(ph);
+		}
+	}
+
+	for (int old_i = 0; old_i < kMavInstances; old_i++) {
+		const int new_i = new_of_old[old_i];
+
+		if (new_i < 0 || new_i == old_i) {
+			continue;
+		}
+
+		for (unsigned p = 0; p < kNumInt; p++) {
+			if (!have_int[old_i][p] || !have_int[new_i][p]) {
+				continue;
+			}
+
+			char name[20];
+			snprintf(name, sizeof(name), kIntFmt[p], new_i);
+			const param_t ph = param_find(name);
+
+			if (custom_int[old_i][p] || defs[old_i][p] != defs[new_i][p]) {
+				param_set(ph, &ints[old_i][p]);
+
+			} else {
+				param_reset(ph);
+			}
+		}
+
+		if (have_hl[old_i] && have_hl[new_i]) {
+			char name[20];
+			snprintf(name, sizeof(name), "MAV_%d_HL_FREQ", new_i);
+			const param_t ph = param_find(name);
+
+			if (custom_hl[old_i]) {
+				param_set(ph, &hl[old_i]);
+
+			} else {
+				param_reset(ph);
+			}
+		}
+
+		PARAM_MIGRATE_INFO("migrating MAV_%d_* -> MAV_%d_*", old_i, new_i);
+	}
+
+	// Slots that only lost an instance keep nothing of the old link.
+	for (int k = 0; k < kMavInstances; k++) {
+		bool is_dest = false;
+
+		for (int j = 0; j < kMavInstances; j++) {
+			if (new_of_old[j] == k) {
+				is_dest = true;
+			}
+		}
+
+		if (is_dest || new_of_old[k] < 0 || new_of_old[k] == k) {
+			continue;
+		}
+
+		for (unsigned p = 0; p < kNumInt; p++) {
+			char name[20];
+			snprintf(name, sizeof(name), kIntFmt[p], k);
+			const param_t ph = param_find(name);
+
+			if (ph != PARAM_INVALID) {
+				param_reset(ph);
+			}
+		}
+
+		char name[20];
+		snprintf(name, sizeof(name), "MAV_%d_HL_FREQ", k);
+		const param_t ph = param_find(name);
+
+		if (ph != PARAM_INVALID) {
+			param_reset(ph);
+		}
+	}
+}
+
+static void apply_mav_serial_import()
+{
+	if (mav_config[0] == INT32_MIN && mav_config[1] == INT32_MIN && mav_config[2] == INT32_MIN) {
+		return;
+	}
+
+	// Unseen instances keep the old defaults: MAV_0 on TEL1, MAV_1 disabled,
+	// MAV_2 on ethernet where the board has it.
+	const param_t eth_p = param_find("MAV_ETH_EN");
+	const int32_t cfg[kMavInstances] = {
+		mav_config[0] == INT32_MIN ? kMavTel1 : mav_config[0],
+		mav_config[1] == INT32_MIN ? 0 : mav_config[1],
+		mav_config[2] == INT32_MIN ? (eth_p == PARAM_INVALID ? 0 : kMavEthernet) : mav_config[2],
+	};
+
+	int uart_port[kMavInstances] {};
+	int uart_old[kMavInstances] {};
+	int n_uart = 0;
+	int eth_old = -1;
+
+	for (int n = 0; n < kMavInstances; n++) {
+		if (cfg[n] == 0) {
+			continue;
+		}
+
+		if (cfg[n] == kMavEthernet) {
+			eth_old = n;
+			continue;
+		}
+
+		if (serial_prot_name(cfg[n]) == nullptr) {
+			PARAM_MIGRATE_WARN("dropping MAV_%d_CONFIG, unknown port %" PRId32, n, cfg[n]);
+			continue;
+		}
+
+		uart_port[n_uart] = cfg[n];
+		uart_old[n_uart] = n;
+		n_uart++;
+	}
+
+	for (int i = 0; i < n_uart; i++) {
+		for (int j = i + 1; j < n_uart; j++) {
+			if (uart_port[j] < uart_port[i]) {
+				const int32_t tp = uart_port[i];
+				uart_port[i] = uart_port[j];
+				uart_port[j] = tp;
+				const int to = uart_old[i];
+				uart_old[i] = uart_old[j];
+				uart_old[j] = to;
+			}
+		}
+	}
+
+	int new_of_old[kMavInstances] = { -1, -1, -1 };
+	int assigned = 0;
+
+	for (int i = 0; i < n_uart; i++) {
+		const char *dest = serial_prot_name(uart_port[i]);
+		const param_t proto_p = param_find(dest);
+		int32_t proto = 1;
+
+		if (proto_p == PARAM_INVALID || !serial_claim(uart_port[i])) {
+			PARAM_MIGRATE_WARN("dropping MAV_%d_CONFIG, %s already assigned", uart_old[i], dest);
+			continue;
+		}
+
+		param_set(proto_p, &proto);
+		new_of_old[uart_old[i]] = assigned;
+		PARAM_MIGRATE_INFO("migrating MAV_%d_CONFIG -> %s=1 (instance %d)", uart_old[i], dest, assigned);
+		assigned++;
+	}
+
+	// SER_TEL1_PROTO defaults to MAVLink; the old config decides whether it stays.
+	serial_clear_default(kMavTel1);
+
+	if (eth_old >= 0) {
+		int32_t one = 1;
+
+		if (eth_p == PARAM_INVALID || assigned >= kMavInstances) {
+			PARAM_MIGRATE_WARN("dropping ethernet MAVLink");
+
+		} else {
+			param_set(eth_p, &one);
+			new_of_old[eth_old] = assigned;
+			PARAM_MIGRATE_INFO("migrating MAV_%d_CONFIG -> MAV_ETH_EN (instance %d)", eth_old, assigned);
+		}
+
+	} else if (eth_p != PARAM_INVALID) {
+		// Boards default MAV_ETH_EN on; the old config had no ethernet instance.
+		int32_t zero = 0;
+		param_set(eth_p, &zero);
+		PARAM_MIGRATE_INFO("no MAV_n_CONFIG on ethernet -> MAV_ETH_EN=0");
+	}
+
+	permute_mav_params(new_of_old);
+}
+
+void param_modify_on_import_end()
+{
+	apply_mav_serial_import();
+
+	if (serial_rc_input_proto != INT32_MIN || serial_rc_port != INT32_MIN) {
+		apply_rc_serial_import();
+	}
+
+	param_modify_on_import_begin();
+}
 
 param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 {
@@ -55,7 +475,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			}
 
 			strcpy(node->name, "FW_USE_AIRSPD");
-			PX4_INFO("copying and inverting %s -> %s", "FW_ARSP_MODE", "FW_USE_AIRSPD");
+			PARAM_MIGRATE_INFO("copying and inverting %s -> %s", "FW_ARSP_MODE", "FW_USE_AIRSPD");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -67,7 +487,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				node->i32 = 0;
 
 				strcpy(node->name, "SYS_HAS_NUM_ASPD");
-				PX4_INFO("copying %s -> %s", "CBRK_AIRSPD_CHK", "SYS_HAS_NUM_ASPD");
+				PARAM_MIGRATE_INFO("copying %s -> %s", "CBRK_AIRSPD_CHK", "SYS_HAS_NUM_ASPD");
 
 			}
 
@@ -148,7 +568,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	{
 		if (strcmp("ASPD_FALLBACK_GW", node->name) == 0) {
 			strcpy(node->name, "ASPD_FALLBACK");
-			PX4_INFO("copying %s -> %s", "ASPD_FALLBACK_GW", "ASPD_FALLBACK");
+			PARAM_MIGRATE_INFO("copying %s -> %s", "ASPD_FALLBACK_GW", "ASPD_FALLBACK");
 		}
 	}
 
@@ -160,7 +580,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 
 				int32_t sdlog_backend_val = 0;
 				param_set(param_find("SDLOG_BACKEND"), &sdlog_backend_val);
-				PX4_INFO("migrating %s -> %s", "SDLOG_MODE", "SDLOG_BACKEND");
+				PARAM_MIGRATE_INFO("migrating %s -> %s", "SDLOG_MODE", "SDLOG_BACKEND");
 			}
 		}
 	}
@@ -173,7 +593,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				float mnt_min_pitch = static_cast<float>(-node->d) * 0.5f;
 				param_set(param_find("MNT_MAX_PITCH"), &mnt_max_pitch);
 				param_set(param_find("MNT_MIN_PITCH"), &mnt_min_pitch);
-				PX4_INFO("migrating %s -> %s, %s", "MNT_RANGE_PITCH", "MNT_MAX_PITCH", "MNT_MIN_PITCH");
+				PARAM_MIGRATE_INFO("migrating %s -> %s, %s", "MNT_RANGE_PITCH", "MNT_MAX_PITCH", "MNT_MIN_PITCH");
 			}
 
 		}
@@ -183,19 +603,19 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	{
 		if (strcmp("EKF2_GPS_POS_X", node->name) == 0) {
 			strcpy(node->name, "SENS_GPS0_OFFX");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GPS0_OFFX");
+			PARAM_MIGRATE_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GPS0_OFFX");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
 		if (strcmp("EKF2_GPS_POS_Y", node->name) == 0) {
 			strcpy(node->name, "SENS_GPS0_OFFY");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GPS0_OFFY");
+			PARAM_MIGRATE_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GPS0_OFFY");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
 		if (strcmp("EKF2_GPS_POS_Z", node->name) == 0) {
 			strcpy(node->name, "SENS_GPS0_OFFZ");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GPS0_OFFZ");
+			PARAM_MIGRATE_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GPS0_OFFZ");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -206,7 +626,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			int32_t delay_ms = static_cast<int32_t>(node->d);
 			param_set(param_find("SENS_GPS0_DELAY"), &delay_ms);
 			param_set(param_find("SENS_GPS1_DELAY"), &delay_ms);
-			PX4_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GPS0_DELAY", "SENS_GPS1_DELAY");
+			PARAM_MIGRATE_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GPS0_DELAY", "SENS_GPS1_DELAY");
 		}
 	}
 
@@ -219,7 +639,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				param_set(param_find(name), &node->i32);
 			}
 
-			PX4_INFO("migrating %s -> DSHOT_MOT_POL1-12 (value=%" PRId32 ")", "MOT_POLE_COUNT", node->i32);
+			PARAM_MIGRATE_INFO("migrating %s -> DSHOT_MOT_POL1-12 (value=%" PRId32 ")", "MOT_POLE_COUNT", node->i32);
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
@@ -229,7 +649,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		if (strcmp("EKF2_ENGINE_WRM", node->name) == 0) {
 			int32_t delay_ms = static_cast<int32_t>(node->d);
 			param_set(param_find("EKF2_POS_LOCK"), &delay_ms);
-			PX4_INFO("migrating %s -> %s", "EKF2_ENGINE_WRM", "EKF2_POS_LOCK");
+			PARAM_MIGRATE_INFO("migrating %s -> %s", "EKF2_ENGINE_WRM", "EKF2_POS_LOCK");
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
@@ -240,7 +660,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		    && strstr(node->name, "_REV") != nullptr) {
 			node->i32 = (node->d < 0.0) ? -1 : 1;
 			node->type = bson_type_t::BSON_INT32;
-			PX4_INFO("migrating %s from float to int32", node->name);
+			PARAM_MIGRATE_INFO("migrating %s from float to int32", node->name);
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -251,7 +671,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			node->d = -1.0;
 			node->type = bson_type_t::BSON_DOUBLE;
 			strcpy(node->name, "MAN_OVERRIDE_SPD");
-			PX4_INFO("migrating %s -> %s (disabled)", "COM_RC_OVERRIDE", "MAN_OVERRIDE_SPD");
+			PARAM_MIGRATE_INFO("migrating %s -> %s (disabled)", "COM_RC_OVERRIDE", "MAN_OVERRIDE_SPD");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -266,7 +686,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			char new_name[16];
 			snprintf(new_name, sizeof(new_name), "HEATER%c_SENS_ID", node->name[6]);
 			strcpy(node->name, new_name);
-			PX4_INFO("migrating %s -> %s", old_name, new_name);
+			PARAM_MIGRATE_INFO("migrating %s -> %s", old_name, new_name);
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -282,7 +702,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				param_set(param_find("MPC_AUTO_NUDGING"), &nudging);
 			}
 
-			PX4_INFO("migrating MPC_LAND_RC_HELP -> MPC_AUTO_NUDGING bit 1 (value=%" PRId32 ")", node->i32);
+			PARAM_MIGRATE_INFO("migrating MPC_LAND_RC_HELP -> MPC_AUTO_NUDGING bit 1 (value=%" PRId32 ")", node->i32);
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
@@ -304,7 +724,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			}
 
 			strcpy(node->name, "COM_TRAFF_AVOID");
-			PX4_INFO("migrating %s -> %s", "COM_ARM_TRAFF", "COM_TRAFF_AVOID");
+			PARAM_MIGRATE_INFO("migrating %s -> %s", "COM_ARM_TRAFF", "COM_TRAFF_AVOID");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -341,8 +761,8 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			if (device >= 0) {
 				node->i32 = device;
 				param_set(param_find("VTX_PROTOCOL"), &protocol);
-				PX4_INFO("migrating VTX_DEVICE -> VTX_DEVICE %" PRId32 " + VTX_PROTOCOL %" PRId32,
-					 device, protocol);
+				PARAM_MIGRATE_INFO("migrating VTX_DEVICE -> VTX_DEVICE %" PRId32 " + VTX_PROTOCOL %" PRId32,
+						   device, protocol);
 				return param_modify_on_import_ret::PARAM_MODIFIED;
 			}
 		}
@@ -352,7 +772,143 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	{
 		if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp("UAVCAN_ECU_MAXF", node->name) == 0)) {
 			strcpy(node->name, "UAVCAN_ECU_MAXF1");
-			PX4_INFO("copying %s -> %s", "UAVCAN_ECU_MAXF", "UAVCAN_ECU_MAXF1");
+			PARAM_MIGRATE_INFO("copying %s -> %s", "UAVCAN_ECU_MAXF", "UAVCAN_ECU_MAXF1");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-08-31: USB_MAV_MODE -> MAV_USB_MODE. MAV_S_* / MAV_SOM_* removed;
+	// the SOM UART is a normal SER_*_PROTO MAVLink port.
+	{
+		if (strcmp("USB_MAV_MODE", node->name) == 0) {
+			strcpy(node->name, "MAV_USB_MODE");
+			PARAM_MIGRATE_INFO("migrating USB_MAV_MODE -> MAV_USB_MODE");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("MAV_S_MODE", node->name) == 0 || strcmp("MAV_SOM_MODE", node->name) == 0
+		    || strcmp("MAV_S_FORWARD", node->name) == 0 || strcmp("MAV_SOM_FORWARD", node->name) == 0) {
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
+	// 2026-08-31: invert serial mapping (*_CONFIG port index) to SER_<tag>_PROTO
+	if (node->type == bson_type_t::BSON_INT32) {
+		if (strcmp("MAV_0_CONFIG", node->name) == 0) {
+			mav_config[0] = node->i32;
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+
+		if (strcmp("MAV_1_CONFIG", node->name) == 0) {
+			mav_config[1] = node->i32;
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+
+		if (strcmp("MAV_2_CONFIG", node->name) == 0) {
+			mav_config[2] = node->i32;
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+
+		if (strcmp("RC_INPUT_PROTO", node->name) == 0) {
+			serial_rc_input_proto = node->i32;
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+
+		if (strcmp("RC_PORT_CONFIG", node->name) == 0) {
+			serial_rc_port = node->i32;
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+
+		struct OldConfig {
+			const char *name;
+			int32_t protocol_id;
+			int32_t default_port;
+			const char *ethernet_param;
+		};
+
+		static constexpr OldConfig kOld[] = {
+			{"GPS_1_CONFIG", 5, 201, nullptr},
+			{"GPS_2_CONFIG", 5, 0, nullptr},
+			{"SEP_PORT1_CFG", 6, 0, nullptr},
+			{"SEP_PORT2_CFG", 6, 0, nullptr},
+			{"RC_SBUS_PRT_CFG", 10, 0, nullptr},
+			{"RC_DSM_PRT_CFG", 11, 0, nullptr},
+			{"RC_CRSF_PRT_CFG", 12, 0, nullptr},
+			{"RC_GHST_PRT_CFG", 13, 0, nullptr},
+			{"UXRCE_DDS_CFG", 20, 0, "UXRCE_DDS_ETH"},
+			{"TEL_FRSKY_CONFIG", 21, 0, nullptr},
+			{"TEL_HOTT_CONFIG", 22, 0, nullptr},
+			{"ISBD_CONFIG", 23, 0, nullptr},
+			{"MSP_OSD_CONFIG", 24, 0, nullptr},
+			{"VTX_SER_CFG", 25, 0, nullptr},
+			{"DSHOT_TEL_CFG", 26, 0, nullptr},
+			{"SENS_TFMINI_CFG", 30, 0, nullptr},
+			{"SENS_SF0X_CFG", 31, 0, nullptr},
+			{"SENS_EN_SF45_CFG", 32, 0, nullptr},
+			{"SENS_LEDDAR1_CFG", 33, 0, nullptr},
+			{"SENS_CM8JL65_CFG", 34, 0, nullptr},
+			{"SENS_ULAND_CFG", 35, 0, nullptr},
+			{"SENS_EN_GRF_CFG", 36, 0, nullptr},
+			{"SENS_ASDT1_CFG", 37, 0, nullptr},
+			{"SENS_VN_CFG", 40, 0, nullptr},
+			{"SENS_MS_CFG", 41, 0, nullptr},
+			{"SENS_ILABS_CFG", 42, 0, nullptr},
+			{"SENS_SBG_CFG", 43, 0, nullptr},
+			{"SENS_BAHRS_CFG", 44, 0, nullptr},
+			{"UWB_PORT_CFG", 50, 0, nullptr},
+			{"SENS_FTX_CFG", 51, 0, nullptr},
+			{"RBCLW_SER_CFG", 52, 0, nullptr},
+			{"VERTIQ_IO_CFG", 53, 0, nullptr},
+			{"SENS_TFLOW_CFG", 54, 0, nullptr},
+			{"MXS_SER_CFG", 55, 0, nullptr},
+		};
+
+		for (const auto &old : kOld) {
+			if (strcmp(old.name, node->name) != 0) {
+				continue;
+			}
+
+			const int32_t value = node->i32;
+
+			if (value == 1000 && old.ethernet_param) {
+				if (old.default_port != 0) {
+					serial_clear_default(old.default_port);
+				}
+
+				strcpy(node->name, old.ethernet_param);
+				node->i32 = 1;
+				PARAM_MIGRATE_INFO("migrating %s -> %s", old.name, old.ethernet_param);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+
+			if (value == 0) {
+				if (old.default_port != 0 && !serial_port_claimed(old.default_port)) {
+					strcpy(node->name, serial_prot_name(old.default_port));
+					PARAM_MIGRATE_INFO("migrating %s -> %s (disabled)", old.name, node->name);
+					return param_modify_on_import_ret::PARAM_MODIFIED;
+				}
+
+				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+			}
+
+			const char *dest = serial_prot_name(value);
+
+			if (dest == nullptr) {
+				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+			}
+
+			if (old.default_port != 0 && value != old.default_port) {
+				serial_clear_default(old.default_port);
+			}
+
+			if (!serial_claim(value)) {
+				PARAM_MIGRATE_WARN("dropping %s, %s already assigned", old.name, dest);
+				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+			}
+
+			strcpy(node->name, dest);
+			node->i32 = old.protocol_id;
+			PARAM_MIGRATE_INFO("migrating %s -> %s=%" PRId32, old.name, dest, old.protocol_id);
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}

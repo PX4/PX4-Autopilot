@@ -68,15 +68,15 @@ The driver uses the following parameters:
 
 | Parameter                                                                    | Description                                                                                                                                                |
 | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [SENS_ASDT1_CFG](../advanced_config/parameter_reference.md#SENS_ASDT1_CFG)   | Selects the serial port and enables driver autostart on boot.                                                                                              |
+| `SER_<port>_PROTO`                                                           | Set to `Sony AS-DT1` on the sensor's serial port; enables driver autostart on boot.                                                                        |
 | [SENS_ASDT1_MODE](../advanced_config/parameter_reference.md#SENS_ASDT1_MODE) | Selects the AS-DT1 measurement range mode. The driver configures the sensor mode and publishes matching `obstacle_distance` metadata.                      |
 | [SENS_ASDT1_ROT](../advanced_config/parameter_reference.md#SENS_ASDT1_ROT)   | Sets the sensor yaw offset, in degrees, relative to vehicle forward. This is published as `obstacle_distance.angle_offset`; positive values are clockwise. |
 
-`SENS_ASDT1_MODE` and `SENS_ASDT1_ROT` may not appear until `SENS_ASDT1_CFG` is enabled and the flight controller has rebooted once.
+`SENS_ASDT1_MODE` and `SENS_ASDT1_ROT` may not appear until a port's `SER_<port>_PROTO` is set to `Sony AS-DT1` and the flight controller has rebooted once.
 
 Reboot the flight controller, or restart the driver manually, after changing these parameters.
 
-[Configure the serial port](../peripherals/serial_configuration.md) on which the sensor will run using [SENS_ASDT1_CFG](../advanced_config/parameter_reference.md#SENS_ASDT1_CFG).
+[Configure the serial port](../peripherals/serial_configuration.md) on which the sensor will run by setting its `SER_<port>_PROTO` to `Sony AS-DT1`.
 There is no need to set the baud rate for the port, as this is configured by the driver.
 
 Set [SENS_ASDT1_MODE](../advanced_config/parameter_reference.md#SENS_ASDT1_MODE) to the required measurement mode and reboot the flight controller.

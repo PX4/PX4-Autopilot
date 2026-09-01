@@ -6,7 +6,18 @@
 # Skynode: use the "custom participant", IP=10.41.10.1 config for uxrce_dds_client
 param set-default UXRCE_DDS_PTCFG 2
 param set-default UXRCE_DDS_AG_IP 170461697
-param set-default UXRCE_DDS_CFG 1000
+param set-default UXRCE_DDS_ETH 1
+
+# SOM link is TELEM2 (ttyS4)
+param set-default SER_TEL2_PROTO 1
+param set-default SER_TEL2_BAUD 3000000
+param set-default MAV_1_MODE 11
+param set-default MAV_1_RATE 290000
+param set-default MAV_1_FLOW_CTRL 1
+param set-default MAV_1_RADIO_CTL 0
+
+# IO owns SBUS/PPM/DSM; leave the FMU RC UART free for CRSF/GHST.
+param set-default SER_RC_PROTO 0
 
 # The buzzer draws too much power (0.2A) on the GPS power rail (limit 0.45A).
 param set-default CBRK_BUZZER 782097

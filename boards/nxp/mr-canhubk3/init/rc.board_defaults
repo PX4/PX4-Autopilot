@@ -5,22 +5,18 @@
 
 # FIXME TELEM
 
-# Mavlink ethernet (CFG 1000)
-param set-default MAV_1_CONFIG 1000
-param set-default MAV_1_BROADCAST 1
+# Mavlink ethernet
+param set-default MAV_ETH_EN 1
 param set-default MAV_1_MODE 0
-param set-default MAV_1_RADIO_CTL 0
-param set-default MAV_1_RATE 100000
-param set-default MAV_1_REMOTE_PRT 14550
-param set-default MAV_1_UDP_PRT 14550
 
 param set-default SENS_EXT_I2C_PRB 0
 param set-default CYPHAL_ENABLE 0
 
 if ver hwtypecmp MR-CANHUBK3-ADAP
 then
-	param set-default GPS_1_CONFIG 202
-	param set-default RC_PORT_CONFIG 104
+	param set-default SER_GPS2_PROTO 5
+	param set-default SER_GPS1_PROTO 0
+	param set-default SER_TEL4_PROTO 10
 	param set-default SYS_HAS_BARO 0
 	# MR-CANHUBK3-ADAP voltage divider
 	param set-default BAT1_V_DIV 13.158

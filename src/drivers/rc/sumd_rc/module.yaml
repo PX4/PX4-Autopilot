@@ -1,0 +1,5 @@
+module_name: SUMD RC Input Driver
+serial_config:
+    - command: "sumd_rc start -d ${SERIAL_DEV}"
+      protocol_id: 14
+      protocol_name: SUMD

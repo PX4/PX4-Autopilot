@@ -51,6 +51,8 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/parameter_update.h>
 
+#include "../AnalogRcRssi.hpp"
+
 using namespace time_literals;
 
 class SbusRc : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
@@ -95,6 +97,8 @@ private:
 	perf_counter_t	_cycle_perf;
 	perf_counter_t	_publish_interval_perf;
 	uint32_t	_bytes_rx{0};
+
+	AnalogRcRssi	_analog_rssi;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,

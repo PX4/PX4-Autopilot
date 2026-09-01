@@ -3,13 +3,11 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-# Mavlink ethernet (CFG 1000)
-param set-default MAV_2_CONFIG 1000
-param set-default MAV_2_BROADCAST 1
-param set-default MAV_2_MODE 0
-param set-default MAV_2_RADIO_CTL 0
-param set-default MAV_2_RATE 100000
-param set-default MAV_2_REMOTE_PRT 14550
-param set-default MAV_2_UDP_PRT 14550
+# Mavlink ethernet
+param set-default MAV_ETH_EN 1
+param set-default MAV_1_MODE 0
+
+# IO owns SBUS/PPM/DSM; leave the FMU RC UART free for CRSF/GHST.
+param set-default SER_RC_PROTO 0
 
 safety_button start

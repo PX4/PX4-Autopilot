@@ -54,10 +54,10 @@ To use the Inertial Labs driver:
    - Include the module in firmware in the [kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) by setting the kconfig variables: `CONFIG_DRIVERS_INS_ILABS`.
      In the kconfig interface: Drivers -> INS -> ilabs.
 
-2. [Set the parameter](../advanced_config/parameters.md) [SENS_ILABS_CFG](../advanced_config/parameter_reference.md#SENS_ILABS_CFG) to the hardware port connected to the sensor, such as a spare `GPS` or `TELEM`.
+2. Set `SER_*_PROTO` to InertialLabs on the UART connected to the sensor (for example [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) or [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO)).
 
    ::: warning
-   Disable or change port of other sensors that are using the same one, for example [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG) if using GPS1 port.
+   Disable or change port of other sensors that are using the same one, for example [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO) if using GPS1 port.
    :::
 
 3. Allow the Inerital Labs driver to initialize by restarting PX4.

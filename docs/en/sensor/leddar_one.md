@@ -22,7 +22,7 @@ Build a cable following your board and pinout and LeddarOne pinout (shown below)
 
 ## Parameter Setup
 
-[Configure the serial port](../peripherals/serial_configuration.md) on which the lidar will run using [SENS_LEDDAR1_CFG](../advanced_config/parameter_reference.md#SENS_LEDDAR1_CFG).
+[Configure the serial port](../peripherals/serial_configuration.md) on which the lidar will run by setting the port's `SER_<tag>_PROTO` to LeddarOne.
 There is no need to set the baud rate for the port, as this is configured by the driver.
 
 ::: info

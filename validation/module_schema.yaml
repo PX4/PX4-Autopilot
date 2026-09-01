@@ -9,15 +9,23 @@ module_name:
 
 serial_config:
     # UART configuration (optional)
-    # A module can register autostart command(s) that are associated with a
-    # configuration parameter, so that a user can select on which serial port to
-    # run the command.
-    # One or several commands can be defined.
+    # A module registers a stable protocol_id and an autostart command.
+    # generate_config.py emits SER_<tag>_PROTO enums and starts the command
+    # on each board UART whose protocol param matches protocol_id.
     type: list
     minlength: 1
     schema:
         type: dict
         schema:
+            protocol_id:
+                # Stable integer. Never reuse. 0 is Disabled.
+                type: integer
+                min: 1
+                required: true
+            protocol_name:
+                # Enum label shown in SER_*_PROTO metadata.
+                # If omitted, module_name is used.
+                type: string
             command:
                 # script command that is executed on autostart.
                 # These variables can be used:
@@ -27,52 +35,31 @@ serial_config:
                 # It's possible to use multiple lines.
                 type: string
                 required: true
-
-            port_config_param:
-                # Parameter definition to configure on which port to run the
-                # command
-                type: dict
-                required: true
-                schema:
-                    name:
-                        # Parameter name (e.g. TEL_FRSKY_CONFIG, MAV_${i}_CONFIG)
-                        type: string
-                        regex: '[0-9A-Z_]+(\$\{i\}[0-9A-Z_]*)?_(CONFIG|CFG)'
-                        required: true
-                    group:
-                        # Associated parameter group (e.g. GPS)
-                        type: string
-                        required: true
-                    default:
-                        # Default value(s). This can be a string to specify the
-                        # serial tag (e.g. GPS1, TEL1, ...) or a list of strings
-                        # for multiple instances.
-                        # If omitted, the command is disabled by default.
-                        anyof:
-                            - type: string
-                            - type: list
-                              minlength: 1
-                              schema:
-                                  type: string
-                    depends_on_port:
-                        # Optional serial tag dependency (e.g. GPS1). If a board
-                        # does not specify this serial port, the parameter will
-                        # not be included in the build (i.e. it's not
-                        # configurable)
-                        type: string
-                    description_extended:
-                        # Optional extended description
-                        type: string
-            label:
-                # Optional command label (e.g. used in the autostart script).
-                # If omitted, module_name is used.
+            secondary_command:
+                # Optional. If set, ports with this protocol are collected
+                # (first device runs command, extras run secondary_command first).
+                # Used for dual GPS.
+                type: string
+            default:
+                # Serial tag this protocol occupies by default (e.g. TEL1, GPS1, RC).
+                type: string
+            ethernet_param:
+                # Optional boolean param that starts this protocol on UDP/ethernet.
+                type: string
+            ethernet_command:
+                # Command run when ethernet_param is true (UDP path).
+                type: string
+            success_command:
+                # Optional. Run after command returns 0.
+                type: string
+            fail_command:
+                # Optional. Run after command returns non-zero.
                 type: string
             num_instances:
-                # Allow to configure and run multiple instances of a command.
-                # For multiple instances, '${i}' can be used to refer to
-                # an instance, for example in the parameter name or script
-                # command.
-                # Default: 1
+                # Max number of serial ports that may run this protocol.
+                # >1 without secondary_command starts one process per port
+                # (MAVLink) and sets ${i}.
+                # Default: 1, or 2 if secondary_command is set.
                 type: integer
                 min: 1
             supports_networking:

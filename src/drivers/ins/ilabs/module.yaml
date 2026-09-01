@@ -2,9 +2,8 @@ module_name: InertialLabs
 
 serial_config:
     - command: ilabs start -d ${SERIAL_DEV}
-      port_config_param:
-        name: SENS_ILABS_CFG
-        group: Sensors
+      protocol_id: 42
+      protocol_name: InertialLabs
 
 parameters:
     - group: Sensors

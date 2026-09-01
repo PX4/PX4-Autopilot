@@ -35,6 +35,8 @@
 
 #include <termios.h>
 
+#include "../rc_uart.hpp"
+
 ModuleBase::Descriptor SbusRc::desc{task_spawn, custom_command, print_usage};
 
 SbusRc::SbusRc(const char *device) :
@@ -143,6 +145,8 @@ void SbusRc::Run()
 		updateParams();
 	}
 
+	_analog_rssi.update();
+
 	const hrt_abstime cycle_timestamp = hrt_absolute_time();
 
 	bool rc_updated = false;
@@ -168,6 +172,7 @@ void SbusRc::Run()
 		}
 
 		sbus_config(_rcs_fd, board_rc_singlewire(_device));
+		rc_uart_configure(_rcs_fd, _device);
 
 		// First check if the board provides a board-specific inversion method (e.g. via GPIO),
 		// and if not use an IOCTL
@@ -221,6 +226,8 @@ void SbusRc::Run()
 					int rc_rssi = ((input_rc.values[rssi_pwm_chan - 1] - rssi_pwm_min) * 100) / (rssi_pwm_max - rssi_pwm_min);
 					input_rc.rssi = math::constrain(rc_rssi, 0, 100);
 				}
+
+				_analog_rssi.fill_missing(input_rc.rssi);
 
 				if (valid_chans == 0) {
 					input_rc.rssi = 0;
@@ -288,6 +295,8 @@ int SbusRc::print_status()
 	}
 
 	PX4_INFO("RC state: %s", _rc_scan_locked ? "found" : "searching for signal");
+
+	_analog_rssi.print_status();
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_publish_interval_perf);

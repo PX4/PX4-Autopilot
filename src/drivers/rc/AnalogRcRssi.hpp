@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,61 +31,89 @@
  *
  ****************************************************************************/
 
-/**
- * @file ghst_telemetry.hpp
- *
- * IRC Ghost (Immersion RC Ghost) telemetry.
- *
- * @author Igor Misic <igy1000mb@gmail.com>
- * @author Juraj Ciberlin <jciberlin1@gmail.com>
- */
-
 #pragma once
 
+#include <board_config.h>
+#include <drivers/drv_adc.h>
+#include <lib/mathlib/mathlib.h>
+#include <px4_platform_common/log.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/sensor_gps.h>
-#include <drivers/drv_hrt.h>
+#include <uORB/topics/adc_report.h>
+
+#if defined(ADC_RC_RSSI_CHANNEL)
+# define RC_ANALOG_RSSI_CHANNEL ADC_RC_RSSI_CHANNEL
+#elif defined(ADC_RSSI_IN_CHANNEL)
+# define RC_ANALOG_RSSI_CHANNEL ADC_RSSI_IN_CHANNEL
+#endif
 
 /**
- * High-level class that handles sending of GHST telemetry data
+ * Analog RSSI from the board RSSI ADC pin, used when the RC protocol
+ * does not provide a value (SBUS, PPM).
  */
-class GHSTTelemetry
+class AnalogRcRssi
 {
 public:
-	/**
-	 * @param uart_fd file descriptor for the UART to use. It is expected to be configured
-	 * already.
-	 */
-	explicit GHSTTelemetry(int uart_fd);
+	void update()
+	{
+#if defined(RC_ANALOG_RSSI_CHANNEL)
 
-	~GHSTTelemetry() = default;
+		if (_adc_report_sub.updated()) {
+			adc_report_s adc;
 
-	/**
-	 * Send telemetry data. Call this regularly (i.e. at 100Hz), it will automatically
-	 * limit the sending rate.
-	 * @return true if new data sent
-	 */
-	bool update(const hrt_abstime &now);
+			if (_adc_report_sub.copy(&adc)) {
+				for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+					if (adc.channel_id[i] == RC_ANALOG_RSSI_CHANNEL) {
+						const float adc_volt = adc.raw_data[i] *
+								       adc.v_ref /
+								       adc.resolution;
+
+						if (_volt < 0.0f) {
+							_volt = adc_volt;
+						}
+
+						_volt = _volt * 0.995f + adc_volt * 0.005f;
+
+						/* only allow this to be used if we see a high RSSI once */
+						if (_volt > 2.5f) {
+							_stable = true;
+						}
+
+						break;
+					}
+				}
+			}
+		}
+
+#endif
+	}
+
+	void fill_missing(int32_t &rssi) const
+	{
+#if defined(RC_ANALOG_RSSI_CHANNEL)
+
+		if ((rssi < 0) && _stable) {
+			const float rssi_analog = ((_volt - 0.2f) / 3.0f) * 100.0f;
+			rssi = math::constrain((int)rssi_analog, 0, 100);
+		}
+
+#endif
+	}
+
+	void print_status() const
+	{
+#if defined(RC_ANALOG_RSSI_CHANNEL)
+
+		if (_stable) {
+			PX4_INFO("vrssi: %dmV", (int)(_volt * 1000.0f));
+		}
+
+#endif
+	}
 
 private:
-	bool send_battery_status();
-	bool send_gps1_status();
-	bool send_gps2_status();
-
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
-	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
-
-	int _uart_fd;
-	hrt_abstime _last_update {0U};
-	uint32_t _next_type {0U};
-
-	static constexpr uint32_t NUM_DATA_TYPES {3U};	// number of different telemetry data types
-	static constexpr uint32_t UPDATE_RATE_HZ {10U};	// update rate [Hz]
-
-	// Factors that should be applied to get correct values
-	static constexpr float FACTOR_VOLTS_TO_10MV {100.0F};
-	static constexpr float FACTOR_AMPS_TO_10MA {100.0F};
-	static constexpr float FACTOR_MAH_TO_10MAH {0.1F};
-
+#if defined(RC_ANALOG_RSSI_CHANNEL)
+	uORB::Subscription _adc_report_sub {ORB_ID(adc_report)};
+	float _volt{-1.0f};
+	bool _stable{false};
+#endif
 };

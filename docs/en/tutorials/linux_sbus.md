@@ -15,10 +15,10 @@ Then [Start the PX4 RC Driver](#start_driver) on the device, as shown below.
 To start the RC driver on a particular UART (e.g. in this case `/dev/ttyS2`):
 
 ```sh
-rc_input start -d /dev/ttyS2
+sbus_rc start -d /dev/ttyS2
 ```
 
-For other driver usage information see: [rc_input](../modules/modules_driver_radio_control.md#rc-input).
+For other driver usage information see: [sbus_rc](../modules/modules_driver_radio_control.md#sbus-rc).
 
 ## Signal Inverter Circuit (S.Bus only) {#signal_inverter_circuit}
 

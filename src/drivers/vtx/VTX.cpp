@@ -389,6 +389,11 @@ int VTX::task_spawn(int argc, char *argv[])
 	}
 
 	if (device_name && (access(device_name, R_OK | W_OK) == 0)) {
+#ifdef CONFIG_VTXTABLE_USE_STORAGE
+		// The table used to be loaded from rcS, which cannot tell whether a port selected VTX.
+		vtxtable_load(nullptr);
+#endif
+
 		auto *const instance = new VTX(device_name);
 
 		if (instance == nullptr) {
