@@ -410,7 +410,9 @@ static int start_mavlink(int instance, const char *device, const char *baud_para
 
 static const SerialProtocolConfig *protocol_by_id(int32_t id)
 {
-	for (unsigned i = 0; i < kSerialProtocolCount; i++) {
+	// Signed bound: unsigned i < constexpr 0 is always-false under -Wtype-limits
+	// when the board has no serial_config protocols.
+	for (int i = 0; i < static_cast<int>(kSerialProtocolCount); i++) {
 		if (kSerialProtocols[i].id == id) {
 			return &kSerialProtocols[i];
 		}
@@ -455,11 +457,11 @@ static void start_ports()
 	const char *collect_baud[taken_len][2] {};
 	uint8_t collect_rank[taken_len][2] {};
 
-	for (unsigned p = 0; p < kSerialPortCount; p++) {
+	for (int p = 0; p < static_cast<int>(kSerialPortCount); p++) {
 		const SerialPortConfig &port = kSerialPorts[p];
 		int32_t prot = 0;
 
-		if (!get_int32(port.proto_param, &prot) || prot == 0) {
+		if (port.proto_param == nullptr || !get_int32(port.proto_param, &prot) || prot == 0) {
 			continue;
 		}
 
@@ -525,7 +527,7 @@ static void start_ports()
 		taken[idx] = true;
 	}
 
-	for (unsigned i = 0; i < kSerialProtocolCount; i++) {
+	for (int i = 0; i < static_cast<int>(kSerialProtocolCount); i++) {
 		if (kSerialProtocols[i].kind != kSerialKindCollect || collect_n[i] == 0) {
 			continue;
 		}
@@ -553,7 +555,7 @@ static void start_ports()
 		start_protocol_on_port(kSerialProtocols[i], primary_dev, primary_baud, dual);
 	}
 
-	for (unsigned i = 0; i < kSerialProtocolCount; i++) {
+	for (int i = 0; i < static_cast<int>(kSerialProtocolCount); i++) {
 		if (!ethernet_on(kSerialProtocols[i])) {
 			continue;
 		}
