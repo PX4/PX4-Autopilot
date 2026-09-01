@@ -46,12 +46,20 @@
 static uint32_t serial_claimed_ports;
 static int32_t serial_rc_input_proto = INT32_MIN;
 static int32_t serial_rc_port = INT32_MIN;
+static int32_t mav_config[3] = {INT32_MIN, INT32_MIN, INT32_MIN};
+
+static constexpr int kMavInstances = 3;
+static constexpr int32_t kMavEthernet = 1000;
+static constexpr int32_t kMavTel1 = 101;
 
 void param_modify_on_import_begin()
 {
 	serial_claimed_ports = 0;
 	serial_rc_input_proto = INT32_MIN;
 	serial_rc_port = INT32_MIN;
+	mav_config[0] = INT32_MIN;
+	mav_config[1] = INT32_MIN;
+	mav_config[2] = INT32_MIN;
 }
 
 static const char *serial_prot_name(int32_t index)
@@ -165,15 +173,184 @@ static void apply_rc_serial_import()
 	PX4_INFO("migrating RC -> %s=%" PRId32, dest, id);
 }
 
+static void mav_copy_int(const char *fmt, int to, int32_t snap)
+{
+	char name[20];
+	snprintf(name, sizeof(name), fmt, to);
+	const param_t p = param_find(name);
+
+	if (p != PARAM_INVALID) {
+		param_set(p, &snap);
+	}
+}
+
+static void permute_mav_params(const int new_of_old[kMavInstances])
+{
+	bool moved = false;
+
+	for (int i = 0; i < kMavInstances; i++) {
+		if (new_of_old[i] >= 0 && new_of_old[i] != i) {
+			moved = true;
+			break;
+		}
+	}
+
+	if (!moved) {
+		return;
+	}
+
+	static const char *const kIntFmt[] = {
+		"MAV_%d_MODE", "MAV_%d_RATE", "MAV_%d_FORWARD", "MAV_%d_RADIO_CTL",
+		"MAV_%d_FLOW_CTRL", "MAV_%d_UDP_PRT", "MAV_%d_REMOTE_PRT", "MAV_%d_BROADCAST"
+	};
+	int32_t ints[kMavInstances][sizeof(kIntFmt) / sizeof(kIntFmt[0])] {};
+	bool have_int[kMavInstances][sizeof(kIntFmt) / sizeof(kIntFmt[0])] {};
+	float hl[kMavInstances] {};
+	bool have_hl[kMavInstances] {};
+
+	for (int i = 0; i < kMavInstances; i++) {
+		for (unsigned p = 0; p < sizeof(kIntFmt) / sizeof(kIntFmt[0]); p++) {
+			char name[20];
+			snprintf(name, sizeof(name), kIntFmt[p], i);
+			const param_t ph = param_find(name);
+
+			if (ph != PARAM_INVALID && param_get(ph, &ints[i][p]) == PX4_OK) {
+				have_int[i][p] = true;
+			}
+		}
+
+		char name[20];
+		snprintf(name, sizeof(name), "MAV_%d_HL_FREQ", i);
+		const param_t ph = param_find(name);
+
+		if (ph != PARAM_INVALID && param_get(ph, &hl[i]) == PX4_OK) {
+			have_hl[i] = true;
+		}
+	}
+
+	for (int old_i = 0; old_i < kMavInstances; old_i++) {
+		const int new_i = new_of_old[old_i];
+
+		if (new_i < 0 || new_i == old_i) {
+			continue;
+		}
+
+		for (unsigned p = 0; p < sizeof(kIntFmt) / sizeof(kIntFmt[0]); p++) {
+			if (have_int[old_i][p]) {
+				mav_copy_int(kIntFmt[p], new_i, ints[old_i][p]);
+			}
+		}
+
+		if (have_hl[old_i]) {
+			char name[20];
+			snprintf(name, sizeof(name), "MAV_%d_HL_FREQ", new_i);
+			const param_t ph = param_find(name);
+
+			if (ph != PARAM_INVALID) {
+				param_set(ph, &hl[old_i]);
+			}
+		}
+
+		PX4_INFO("migrating MAV_%d_* -> MAV_%d_*", old_i, new_i);
+	}
+}
+
+static void apply_mav_serial_import()
+{
+	if (mav_config[0] == INT32_MIN && mav_config[1] == INT32_MIN && mav_config[2] == INT32_MIN) {
+		return;
+	}
+
+	// Unseen instances keep the old firmware defaults: MAV_0 on TEL1, MAV_1/2 disabled.
+	const int32_t cfg[kMavInstances] = {
+		mav_config[0] == INT32_MIN ? kMavTel1 : mav_config[0],
+		mav_config[1] == INT32_MIN ? 0 : mav_config[1],
+		mav_config[2] == INT32_MIN ? 0 : mav_config[2],
+	};
+
+	int uart_port[kMavInstances] {};
+	int uart_old[kMavInstances] {};
+	int n_uart = 0;
+	int eth_old = -1;
+
+	for (int n = 0; n < kMavInstances; n++) {
+		if (cfg[n] == 0) {
+			continue;
+		}
+
+		if (cfg[n] == kMavEthernet) {
+			eth_old = n;
+			continue;
+		}
+
+		if (serial_prot_name(cfg[n]) == nullptr) {
+			PX4_WARN("dropping MAV_%d_CONFIG, unknown port %" PRId32, n, cfg[n]);
+			continue;
+		}
+
+		uart_port[n_uart] = cfg[n];
+		uart_old[n_uart] = n;
+		n_uart++;
+	}
+
+	for (int i = 0; i < n_uart; i++) {
+		for (int j = i + 1; j < n_uart; j++) {
+			if (uart_port[j] < uart_port[i]) {
+				const int32_t tp = uart_port[i];
+				uart_port[i] = uart_port[j];
+				uart_port[j] = tp;
+				const int to = uart_old[i];
+				uart_old[i] = uart_old[j];
+				uart_old[j] = to;
+			}
+		}
+	}
+
+	int new_of_old[kMavInstances] = { -1, -1, -1 };
+	int assigned = 0;
+
+	for (int i = 0; i < n_uart; i++) {
+		const char *dest = serial_prot_name(uart_port[i]);
+		const param_t proto_p = param_find(dest);
+		int32_t proto = 1;
+
+		if (proto_p == PARAM_INVALID || !serial_claim(uart_port[i])) {
+			PX4_WARN("dropping MAV_%d_CONFIG, %s already assigned", uart_old[i], dest);
+			continue;
+		}
+
+		param_set(proto_p, &proto);
+		new_of_old[uart_old[i]] = assigned;
+		PX4_INFO("migrating MAV_%d_CONFIG -> %s=1 (instance %d)", uart_old[i], dest, assigned);
+		assigned++;
+	}
+
+	if (eth_old >= 0) {
+		int32_t one = 1;
+		const param_t eth_p = param_find("MAV_ETH_EN");
+
+		if (eth_p == PARAM_INVALID || assigned >= kMavInstances) {
+			PX4_WARN("dropping ethernet MAVLink");
+
+		} else {
+			param_set(eth_p, &one);
+			new_of_old[eth_old] = assigned;
+			PX4_INFO("migrating MAV_%d_CONFIG -> MAV_ETH_EN (instance %d)", eth_old, assigned);
+		}
+	}
+
+	permute_mav_params(new_of_old);
+}
+
 void param_modify_on_import_end()
 {
+	apply_mav_serial_import();
+
 	if (serial_rc_input_proto != INT32_MIN || serial_rc_port != INT32_MIN) {
 		apply_rc_serial_import();
 	}
 
-	serial_claimed_ports = 0;
-	serial_rc_input_proto = INT32_MIN;
-	serial_rc_port = INT32_MIN;
+	param_modify_on_import_begin();
 }
 
 param_modify_on_import_ret param_modify_on_import(bson_node_t node)
@@ -491,8 +668,44 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-08-31: USB_MAV_MODE -> MAV_USB_MODE, MAV_S_* -> MAV_SOM_*
+	{
+		if (strcmp("USB_MAV_MODE", node->name) == 0) {
+			strcpy(node->name, "MAV_USB_MODE");
+			PX4_INFO("migrating USB_MAV_MODE -> MAV_USB_MODE");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("MAV_S_MODE", node->name) == 0) {
+			strcpy(node->name, "MAV_SOM_MODE");
+			PX4_INFO("migrating MAV_S_MODE -> MAV_SOM_MODE");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("MAV_S_FORWARD", node->name) == 0) {
+			strcpy(node->name, "MAV_SOM_FORWARD");
+			PX4_INFO("migrating MAV_S_FORWARD -> MAV_SOM_FORWARD");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	// 2026-08-31: invert serial mapping (*_CONFIG port index) to SER_<tag>_PROTO
 	if (node->type == bson_type_t::BSON_INT32) {
+		if (strcmp("MAV_0_CONFIG", node->name) == 0) {
+			mav_config[0] = node->i32;
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+
+		if (strcmp("MAV_1_CONFIG", node->name) == 0) {
+			mav_config[1] = node->i32;
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+
+		if (strcmp("MAV_2_CONFIG", node->name) == 0) {
+			mav_config[2] = node->i32;
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+
 		if (strcmp("RC_INPUT_PROTO", node->name) == 0) {
 			serial_rc_input_proto = node->i32;
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
@@ -511,9 +724,6 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		};
 
 		static constexpr OldConfig kOld[] = {
-			{"MAV_0_CONFIG", 1, 101, "MAV_ETH_EN"},
-			{"MAV_1_CONFIG", 1, 0, "MAV_ETH_EN"},
-			{"MAV_2_CONFIG", 1, 0, "MAV_ETH_EN"},
 			{"GPS_1_CONFIG", 5, 201, nullptr},
 			{"GPS_2_CONFIG", 5, 0, nullptr},
 			{"SEP_PORT1_CFG", 6, 0, nullptr},

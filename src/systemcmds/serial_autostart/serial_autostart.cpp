@@ -440,15 +440,6 @@ static int ethernet_mav_instance(int mav_next)
 		return -1;
 	}
 
-	// Next free instance after the UART MAVLink ports. Prefer a still-free
-	// instance that already has MAV_n_UDP_PRT set so board defaults and
-	// stored ethernet configs (historically MAV_2_*) keep their UDP ports.
-	for (int i = mav_next; i < static_cast<int>(kMavlinkCap); i++) {
-		if (param_int("MAV_%d_UDP_PRT", i, 0) > 0) {
-			return i;
-		}
-	}
-
 	return mav_next;
 }
 

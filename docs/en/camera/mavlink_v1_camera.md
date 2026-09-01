@@ -85,7 +85,7 @@ You can then configure the port as a [MAVLink Peripheral](../peripherals/mavlink
 The document explains how, but in summary:
 
 1. Set `SER_<tag>_PROTO` to MAVLink on the UART the camera is connected to.
-1. Set the corresponding [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) to `2` (Onboard).
+1. Set `MAV_n_MODE` for that instance to `2` (Onboard).
    This ensures that the right set of MAVLink messages are emitted and forwarded.
 1. You may need to set some of the other parameters, depending on your connection - such as the baud rate.
 

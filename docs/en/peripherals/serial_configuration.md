@@ -30,7 +30,7 @@ A protocol already running on another port cannot be started a second time (exce
 
 MAVLink still has per-instance settings ([MAV_0_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE), [MAV_0_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE), [MAV_0_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD), …).
 Instance 0 is the first UART whose `SER_*_PROTO` is MAVLink (by port-tag index), instance 1 the next, instance 2 the third.
-Ethernet MAVLink is [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN) and takes the next free instance, or a still-free instance that already has `MAV_n_UDP_PRT` set (board defaults typically use instance 2).
+Ethernet MAVLink is [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN) and takes the next free instance after the UART MAVLink ports.
 
 ## How to Configure a Port
 
@@ -70,7 +70,7 @@ The following ports are commonly mapped to specific functions on all boards:
   This is configured by default as a MAVLink port the onboard profile (for companion computers).
   The configuration for MAVLink is unique to this port (it does not use `SER_*_PROTO`).
   - [SYS_USB_AUTO](../advanced_config/parameter_reference.md#SYS_USB_AUTO) sets whether the port is set to no particular protocol, autodetects the protocol, or sets the comms link to MAVLink.
-  - [USB_MAV_MODE](../advanced_config/parameter_reference.md#USB_MAV_MODE) sets the MAVLink profile that is used if MAVLink is set or detected.
+  - [MAV_USB_MODE](../advanced_config/parameter_reference.md#MAV_USB_MODE) sets the MAVLink profile that is used if MAVLink is set or detected.
 
 Other ports generally have no assigned functions by default (are disabled).
 
