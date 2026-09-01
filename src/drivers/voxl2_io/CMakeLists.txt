@@ -45,6 +45,7 @@ px4_add_module(
 	DEPENDS
 		px4_work_queue
 		mixer_module
+		rc
 	MODULE_CONFIG
 		module.yaml
 		voxl2_io_params.yaml
