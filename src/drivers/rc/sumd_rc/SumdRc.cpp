@@ -34,6 +34,7 @@
 #include "SumdRc.hpp"
 
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include <lib/mathlib/mathlib.h>
 #include <termios.h>
 #include <unistd.h>
@@ -171,6 +172,19 @@ void SumdRc::Run()
 		}
 
 		dsm_config(_rcs_fd);
+
+		if (board_rc_swap_rxtx(_device)) {
+#if defined(TIOCSSWAP)
+			ioctl(_rcs_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+#endif
+		}
+
+		if (board_rc_singlewire(_device)) {
+#if defined(TIOCSSINGLEWIRE)
+			ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+#endif
+		}
+
 		tcflush(_rcs_fd, TCIOFLUSH);
 
 	} else if (_rc_scan_locked
@@ -185,7 +199,6 @@ void SumdRc::Run()
 			bool decoded = false;
 
 			for (int i = 0; i < newBytes; i++) {
-				sumd_rssi = input_rc_s::RSSI_MAX;
 				decoded |= (OK == sumd_decode(rcs_buf[i], &sumd_rssi, &rx_count, &raw_rc_count,
 							      raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS, &sumd_failsafe));
 			}
