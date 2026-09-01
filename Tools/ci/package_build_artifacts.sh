@@ -4,7 +4,9 @@ mkdir artifacts
 
 # Flash images that are not the .px4 envelope:
 # - CAN node application APDescriptor (.uavcan.bin)
-# - Bootloaders (FMU *_bootloader and CAN *_canbootloader): raw .bin for SWD
+# - Bootloaders (*_bootloader and *_canbootloader): raw .bin for SWD
+#   *_bootloader_* variants (e.g. bootloader_secureboot) are omitted;
+#   those images are baked with in-tree test keys.
 for uavcan_bin in build/*/*.uavcan.bin; do
   [ -f "$uavcan_bin" ] || continue
   build_dir=$(basename "$(dirname "$uavcan_bin")")
@@ -39,6 +41,11 @@ cp **/**/*.deb artifacts/ 2>/dev/null || true
 for build_dir_path in build/*/ ; do
   build_dir_path=${build_dir_path::${#build_dir_path}-1}
   build_dir=${build_dir_path#*/}
+  # GitHub Releases attach artifacts/**/*.sbom.spdx.json; bootloader SBOMs
+  # are not a recovery artifact.
+  case "$build_dir" in
+    *_bootloader|*_bootloader_*|*_canbootloader) continue ;;
+  esac
   mkdir -p artifacts/$build_dir
   find artifacts/ -maxdepth 1 -type f -name "*$build_dir*"
   # Airframe (NuttX: build root, SITL: docs/ subdirectory)
