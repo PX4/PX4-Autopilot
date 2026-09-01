@@ -92,9 +92,6 @@ ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &repl
 
 		return true;
 
-	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)
-		   || sub.orb_meta == ORB_ID(vehicle_gps_position)) {
-		return publishTopic(sub, data);
 	} // else: do not publish
 
 	return false;
@@ -142,16 +139,22 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(ranging_beacon)) {
 		_ranging_beacon_msg_id = msg_id;
 
+	} else if (sub.orb_meta == ORB_ID(vehicle_gps_position)) {
+		_vehicle_gps_position_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_land_detected)) {
+		_vehicle_land_detected_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_status)) {
+		_vehicle_status_msg_id = msg_id;
+
 	} else if (sub.orb_meta == ORB_ID(ekf2_timestamps)) {
 		_ekf2_timestamps_exists = true;
 	}
 
-	// the main loop should only handle publication of the following topics, the sensor topics are
-	// handled separately in publishEkf2Topics()
-	// Note: the GPS is not treated here since not missing data is more important than the accuracy of the timestamp
-	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(vehicle_status)
-		      && sub.orb_meta != ORB_ID(vehicle_land_detected) && sub.orb_meta != ORB_ID(vehicle_gps_position)
-		      && sub.orb_meta != ORB_ID(sensor_combined);
+	// the main loop should only handle publication of the following topics, everything ekf2
+	// consumes is published from within the lockstep barrier in publishEkf2Topics()
+	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(sensor_combined);
 }
 
 bool
@@ -165,6 +168,9 @@ ReplayEkf2::publishEkf2Topics(sensor_combined_s &sensor_combined, std::ifstream 
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_visual_odometry_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _aux_global_position_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _ranging_beacon_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_gps_position_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_land_detected_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_status_msg_id, replay_file);
 
 	// sensor_combined: publish last because ekf2 is polling on this
 	if (_last_sensor_combined_timestamp > 0) {
@@ -204,6 +210,14 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	handle_sensor_publication(0, _vehicle_local_position_groundtruth_msg_id);
 	handle_sensor_publication(0, _vehicle_global_position_groundtruth_msg_id);
 	handle_sensor_publication(0, _vehicle_attitude_groundtruth_msg_id);
+
+	// These have no relative timestamp in ekf2_timestamps, so reproduce what the original run saw:
+	// everything published up to the current ekf2 update. Publishing them here rather than from the
+	// main loop keeps them inside the lockstep barrier, which is what makes the cycle they land in
+	// reproducible.
+	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_gps_position_msg_id, replay_file);
+	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_land_detected_msg_id, replay_file);
+	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_status_msg_id, replay_file);
 
 	// sensor_combined: publish last because ekf2 is polling on this
 	if (!findTimestampAndPublish(ekf2_timestamps.timestamp, _sensor_combined_msg_id, replay_file)) {
