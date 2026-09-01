@@ -1199,12 +1199,6 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 		att.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_attitude_pub.publish(att);
-
-	}  else if (_replay_mode) {
-		// in replay mode we have to tell the replay module not to wait for an update
-		// we do this by publishing an attitude with zero timestamp
-		vehicle_attitude_s att{};
-		_attitude_pub.publish(att);
 	}
 }
 
