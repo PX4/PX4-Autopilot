@@ -40,8 +40,8 @@ int PpmRc::task_spawn(int argc, char *argv[])
 #ifdef RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
 	int32_t rc_prot = 0;
 
-	if (param_get(param_find("SER_RC_PROT"), &rc_prot) == PX4_OK && rc_prot != 0) {
-		PX4_ERR("PPM shares the RC UART pin; set SER_RC_PROT to Disabled");
+	if (param_get(param_find("SER_RC_PROTO"), &rc_prot) == PX4_OK && rc_prot != 0) {
+		PX4_ERR("PPM shares the RC UART pin; set SER_RC_PROTO to Disabled");
 		return PX4_ERROR;
 	}
 

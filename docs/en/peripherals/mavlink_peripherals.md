@@ -2,7 +2,7 @@
 
 Ground Control Stations (GCS), [MAVLink On-Screen Displays (OSD)](../peripherals/osd.md#mavlink-osd), MAVLink [Cameras](../camera/mavlink_v2_camera.md) and [Gimbals](../advanced/gimbal_control.md), [Remote IDs](../peripherals/remote_id.md), Companion Computers, [ADS-B receivers](../peripherals/adsb_flarm.md), and other MAVLink peripherals interact with PX4 using separate MAVLink streams, sent via different serial ports.
 
-Set `SER_<tag>_PROT` to MAVLink on the UART (see [Serial Port Configuration](../peripherals/serial_configuration.md)).
+Set `SER_<tag>_PROTO` to MAVLink on the UART (see [Serial Port Configuration](../peripherals/serial_configuration.md)).
 Instance 0 is the first such UART (by port-tag index), instance 1 the next, instance 2 the third.
 Then set `MAV_X_MODE`, `MAV_X_RATE`, `MAV_X_FORWARD` for that instance.
 
@@ -13,7 +13,7 @@ The most relevant parameters are described below (the full set are listed in the
 In order to assign a particular peripheral to a serial port we use the concept of a _MAVLink instance_.
 
 Each MAVLink instance is the configuration for one UART (or Ethernet) MAVLink stream.
-UARTs with `SER_*_PROT` = MAVLink are numbered 0, 1, 2 in port-tag order.
+UARTs with `SER_*_PROTO` = MAVLink are numbered 0, 1, 2 in port-tag order.
 
 - <a id="MAV_X_MODE"></a>[MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) — [MAVLink profile](../mavlink/mavlink_profiles.md) (Normal, Onboard, OSD, …).
 - <a id="MAV_X_RATE"></a>[MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE) — max data rate (bytes/second). 0 is half the theoretical baud.
@@ -36,7 +36,7 @@ The `TELEM 1` port is almost always configured by default for the GCS telemetry 
 
 Default mapping of MAVLink instance 0:
 
-- [SER_TEL1_PROT](../advanced_config/parameter_reference.md#SER_TEL1_PROT) = MAVLink
+- [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO) = MAVLink
 - [MAV_0_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) = `Normal`
 - [MAV_0_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE) = `1200` Bytes/s
 - [MAV_0_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD) = `True`
@@ -44,7 +44,7 @@ Default mapping of MAVLink instance 0:
 
 ### TELEM2
 
-`TELEM 2` is disabled by default. For a companion computer set [SER_TEL2_PROT](../advanced_config/parameter_reference.md#SER_TEL2_PROT) = MAVLink (this becomes instance 1 if TELEM 1 is also MAVLink):
+`TELEM 2` is disabled by default. For a companion computer set [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) = MAVLink (this becomes instance 1 if TELEM 1 is also MAVLink):
 
 - [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = `Onboard`
 - [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) = `0` (half maximum)

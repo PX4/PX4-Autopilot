@@ -33,7 +33,7 @@
 
 /**
  * @file serial_autostart.cpp
- * Walk SER_<tag>_PROT / SER_<tag>_BAUD and start the matching driver.
+ * Walk SER_<tag>_PROTO / SER_<tag>_BAUD and start the matching driver.
  */
 
 #include "serial_autostart_config.h"
@@ -452,14 +452,14 @@ static void start_ports()
 		const SerialPortConfig &port = kSerialPorts[p];
 		int32_t prot = 0;
 
-		if (!get_int32(port.prot_param, &prot) || prot == 0) {
+		if (!get_int32(port.proto_param, &prot) || prot == 0) {
 			continue;
 		}
 
 		const SerialProtocolConfig *protocol = protocol_by_id(prot);
 
 		if (protocol == nullptr) {
-			PX4_ERR("%s=%" PRId32 " is not a known protocol", port.prot_param, prot);
+			PX4_ERR("%s=%" PRId32 " is not a known protocol", port.proto_param, prot);
 			continue;
 		}
 
@@ -560,7 +560,7 @@ static void start_ports()
 
 static void print_usage()
 {
-	PRINT_MODULE_DESCRIPTION("Start serial drivers from SER_<tag>_PROT / SER_<tag>_BAUD.\n");
+	PRINT_MODULE_DESCRIPTION("Start serial drivers from SER_<tag>_PROTO / SER_<tag>_BAUD.\n");
 	PRINT_MODULE_USAGE_NAME_SIMPLE("serial_autostart", "command");
 }
 

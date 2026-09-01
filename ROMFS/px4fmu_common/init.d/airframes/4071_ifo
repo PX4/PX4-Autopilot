@@ -62,14 +62,14 @@ param set-default IMU_DGYRO_CUTOFF 70
 param set-default NAV_RCL_ACT 6
 
 # TELEM1 ttyS1 - Wifi module
-param set-default SER_TEL1_PROT 1
+param set-default SER_TEL1_PROTO 1
 param set-default MAV_0_RATE 0
 # onboard
 param set-default MAV_0_MODE 2
 param set-default SER_TEL1_BAUD 921600
 
 # TELEM2 ttyS2 - Sub 1-Ghz
-param set-default SER_TEL2_PROT 1
+param set-default SER_TEL2_PROTO 1
 # normal
 param set-default MAV_1_MODE 0
 param set-default SER_TEL2_BAUD 57600
