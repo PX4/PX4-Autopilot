@@ -1012,7 +1012,7 @@ See [MAVLink-Bridge](https://docs.holybro.com/autopilot/pixhawk-baseboards/pixha
 ### Serial Connection
 
 The Jetson and Pixhawk are internally connected using a serial cable from Pixhawk `TELEM2` to Jetson `THS1`.
-The Pixhawk `TELEM2` interface is configured to use MAVLink by default ([MAVLink Peripherals (GCS/OSD/Companion) > TELEM2](../peripherals/mavlink_peripherals.md#telem2)), so you don't have to do anything in particular to get it working.
+Set [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) to MAVLink on the Pixhawk ([MAVLink Peripherals (GCS/OSD/Companion) > TELEM2](../peripherals/mavlink_peripherals.md#telem2)).
 
 An easy way to test the link is to run [MAVSDK-Python](https://github.com/mavlink/MAVSDK-Python) example code on the Jetson.
 

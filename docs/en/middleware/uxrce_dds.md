@@ -402,7 +402,7 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
 
 ::: info
 Many ports already have a default configuration.
-To use these ports you must first disable the existing configuration:
+Setting the port's `SER_<tag>_PROTO` to uXRCE-DDS replaces it:
 
 - `TELEM1` defaults to MAVLink. Set [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO) (or `SER_TEL2_PROTO`) to uXRCE-DDS to use that UART for the client.
   See [MAVLink Peripherals](../peripherals/mavlink_peripherals.md) for more information.

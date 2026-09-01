@@ -19,7 +19,7 @@ TFmini can be connected to any unused _serial port_ (UART), such as: `TELEM2`, `
 
 ## Parameter Setup
 
-[Configure the serial port](../peripherals/serial_configuration.md) on which the lidar will run using [SENS_TFMINI_CFG](../advanced_config/parameter_reference.md#SENS_TFMINI_CFG).
+[Configure the serial port](../peripherals/serial_configuration.md) on which the lidar will run by setting the port's `SER_<tag>_PROTO` to TFmini.
 There is no need to set the baud rate (this is hard coded in the sensor driver as only one rate is supported).
 
 ::: info

@@ -133,7 +133,7 @@ Both the receive line (`RX6`, internally invert-capable for SBUS) and the transm
 - ExpressLRS (ELRS)
 - FPort, Spektrum DSM, Graupner SUMD, and others
 
-Configure the receiver protocol with the relevant `RC_*_PRT_CFG` parameter from QGroundControl, pointing it at the `RC` slot.
+Configure the receiver protocol with [SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO) from QGroundControl.
 
 ### PWM Output Groups
 

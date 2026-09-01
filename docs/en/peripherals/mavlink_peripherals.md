@@ -3,7 +3,7 @@
 Ground Control Stations (GCS), [MAVLink On-Screen Displays (OSD)](../peripherals/osd.md#mavlink-osd), MAVLink [Cameras](../camera/mavlink_v2_camera.md) and [Gimbals](../advanced/gimbal_control.md), [Remote IDs](../peripherals/remote_id.md), Companion Computers, [ADS-B receivers](../peripherals/adsb_flarm.md), and other MAVLink peripherals interact with PX4 using separate MAVLink streams, sent via different serial ports.
 
 Set `SER_<tag>_PROTO` to MAVLink on the UART (see [Serial Port Configuration](../peripherals/serial_configuration.md)).
-UARTs are numbered 0, 1, 2 in port-tag order. Ethernet ([MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN)) takes the next free instance.
+UARTs are numbered 0, 1, 2 in [port order](../peripherals/serial_configuration.md#configuration-parameters). Ethernet ([MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN)) takes the next free instance.
 Then set `MAV_X_MODE`, `MAV_X_RATE`, `MAV_X_FORWARD` for that instance.
 
 The most relevant parameters are described below (the full set are listed in the [Parameter Reference > MAVLink](../advanced_config/parameter_reference.md#mavlink)).
@@ -13,7 +13,7 @@ The most relevant parameters are described below (the full set are listed in the
 In order to assign a particular peripheral to a serial port we use the concept of a _MAVLink instance_.
 
 Each MAVLink instance is the configuration for one UART (or Ethernet) MAVLink stream.
-UARTs with `SER_*_PROTO` = MAVLink are numbered 0, 1, 2 in port-tag order. Ethernet uses the next free instance.
+UARTs with `SER_*_PROTO` = MAVLink are numbered 0, 1, 2 in [port order](../peripherals/serial_configuration.md#configuration-parameters). Ethernet uses the next free instance.
 
 - <a id="MAV_X_MODE"></a>[MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) — [MAVLink profile](../mavlink/mavlink_profiles.md) (Normal, Onboard, OSD, …).
 - <a id="MAV_X_RATE"></a>[MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE) — max data rate (bytes/second). 0 is half the theoretical baud.
@@ -44,7 +44,7 @@ Default mapping of MAVLink instance 0:
 
 ### TELEM2
 
-`TELEM 2` is disabled by default. For a companion computer set [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) = MAVLink (instance 1 if TELEM 1 is also MAVLink and ethernet is off):
+`TELEM 2` is disabled by default. For a companion computer set [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) = MAVLink (instance 1 if TELEM 1 is also MAVLink):
 
 - [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = `Onboard`
 - [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) = `0` (half maximum)
@@ -61,7 +61,7 @@ Enable with [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN). 
 - [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = `0` (normal/GCS)
 - [MAV_1_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_1_RADIO_CTL) = `0`
 - [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) = `100000`
-- [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT)= `14550` (GCS)
+- [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT) = `14550` (GCS)
 - [MAV_1_UDP_PRT](../advanced_config/parameter_reference.md#MAV_1_UDP_PRT) = `14550` (GCS)
 
 For more information see: [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md)

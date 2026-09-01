@@ -70,8 +70,8 @@ For ExpressLRS receivers wire to the flight controller UART as shown below (wiri
 
 ### Firmware Configuration/Build
 
-CRSF telemetry support is not included in any PX4 firmware by default.
-To use this feature you must build and upload custom firmware that includes [crsf_rc](../modules/modules_driver_radio_control.md#crsf-rc) (part of Common RC on most boards).
+[crsf_rc](../modules/modules_driver_radio_control.md#crsf-rc) is part of Common RC and in most default PX4 firmware.
+Build and upload custom firmware only if `boardconfig` shows it missing for your board.
 
 The steps are:
 
@@ -122,8 +122,7 @@ Alternatively you can use QGroundControl to install the firmware, as described i
 1. Set `SER_<tag>_PROTO` to CRSF on the UART connected to the receiver (for example [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO) or [SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO)).
 
    This [configures the serial port](../peripherals/serial_configuration.md) to use the CRSF protocol.
-   Note that some serial ports may already have a [default serial port mapping](../peripherals/serial_configuration.md#default-serial-port-configuration) or [default MAVLink serial port mapping](../peripherals/mavlink_peripherals.md#default-mavlink-ports) that you will have to un-map before you can assign the port to CRSF.
-   A port already assigned another protocol (for example TELEM1 MAVLink) must be set to CRSF; that assignment is unique.
+   Setting `SER_<tag>_PROTO` replaces whatever the port ran before, including a [default mapping](../peripherals/serial_configuration.md#default_port_mapping) such as MAVLink on TELEM1.
 
    There is no need to set the baud rate for the port, as this is configured by the driver.
 

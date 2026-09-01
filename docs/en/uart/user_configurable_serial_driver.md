@@ -39,7 +39,7 @@ To make driver configurable:
      Pick an integer that no other **module.yaml** uses, and never reuse or renumber one: stored parameter values refer to it.
      `protocol_name` is the label shown in the parameter metadata, and defaults to `module_name`.
 
-     Optional keys: `default` names a serial tag (`TEL2`, `GPS1`, …) the protocol occupies out of the box, `num_instances` raises the limit of ports that may run it at once, and `secondary_command` runs on the extra ports when more than one is assigned.
+     Optional keys: `default` names a serial tag (`TEL2`, `GPS1`, …) the protocol occupies out of the box; `secondary_command` (dual GPS) is expanded with the second port's device and baud and substituted for `${DUAL_GPS_ARGS}` in the single `command` run for the first port; `num_instances` > 1 without `secondary_command` runs `command` once per port with `${i}` set, which only MAVLink uses.
 
      ::: info
      The full documentation of the module configuration file can be found in the [validation/module_schema.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/validation/module_schema.yaml) file.

@@ -24,7 +24,7 @@ US-D1 can be connected to any unused _serial port_ (UART), e.g.: TELEM2, TELEM3,
 
 ## Parameter Setup
 
-[Configure the serial port](../peripherals/serial_configuration.md) on which the lidar will run using [SENS_ULAND_CFG](../advanced_config/parameter_reference.md#SENS_ULAND_CFG).
+[Configure the serial port](../peripherals/serial_configuration.md) on which the lidar will run by setting the port's `SER_<tag>_PROTO` to uLanding.
 There is no need to set the baud rate for the port, as this is configured by the driver.
 
 ::: info
