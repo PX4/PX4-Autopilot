@@ -12,7 +12,7 @@ parameters:
         2: MAVLink
       default: 2
       reboot_required: true
-    USB_MAV_MODE:
+    MAV_USB_MODE:
       description:
         short: Specify USB MAVLink mode
       type: enum

@@ -21,4 +21,4 @@ param set-default CA_AIRFRAME 0
 param set-default CA_ROTOR_COUNT 4
 param set-default CBRK_SUPPLY_CHK 894281
 
-param set-default USB_MAV_MODE 5
+param set-default MAV_USB_MODE 5

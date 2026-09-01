@@ -124,6 +124,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SYS_USB_AUTO>) _sys_usb_auto,
-		(ParamInt<px4::params::USB_MAV_MODE>) _usb_mav_mode
+		(ParamInt<px4::params::MAV_USB_MODE>) _usb_mav_mode
 	)
 };

@@ -3,7 +3,7 @@
 # Auterion FMUv6s specific board MAVLink startup script.
 #------------------------------------------------------------------------------
 
-if param compare MAV_S_FORWARD 1
+if param compare MAV_SOM_FORWARD 1
 then
 	set S_FORWARD "-f"
 else
@@ -12,8 +12,5 @@ fi
 
 # TELEM1 is mapped to USART1 with flow control
 mavlink start -d /dev/ttyS0 -b 3000000 -r 290000 -m onboard_low_bandwidth -x -z $S_FORWARD
-
-# Ensure nothing else starts on TEL1
-set PRT_TEL1_ 1
 
 unset S_FORWARD

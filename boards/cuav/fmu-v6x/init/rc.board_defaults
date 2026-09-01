@@ -5,14 +5,14 @@
 
 # Mavlink ethernet
 param set-default MAV_ETH_EN 1
-param set-default MAV_2_BROADCAST 1
-param set-default MAV_2_MODE 0
-param set-default MAV_2_RADIO_CTL 0
-param set-default MAV_2_RATE 100000
-param set-default MAV_2_REMOTE_PRT 14550
-param set-default MAV_2_UDP_PRT 14550
+param set-default MAV_1_BROADCAST 1
+param set-default MAV_1_MODE 0
+param set-default MAV_1_RADIO_CTL 0
+param set-default MAV_1_RATE 100000
+param set-default MAV_1_REMOTE_PRT 14550
+param set-default MAV_1_UDP_PRT 14550
 
-param set-default USB_MAV_MODE 5
+param set-default MAV_USB_MODE 5
 
 safety_button start
 

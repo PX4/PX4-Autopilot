@@ -165,7 +165,7 @@ parameters:
             default: [0.015, 0.015, 0.015]
             reboot_required: true
 
-        MAV_S_MODE:
+        MAV_SOM_MODE:
             description:
                 short: MAVLink Mode for SOM to FMU communication channel
                 long: |
@@ -192,7 +192,7 @@ parameters:
             reboot_required: true
             default: 11
 
-        MAV_S_FORWARD:
+        MAV_SOM_FORWARD:
             description:
                 short: Enable MAVLink forwarding on TELEM2
                 long : |
@@ -207,9 +207,8 @@ parameters:
                 short: Enable MAVLink on Ethernet
                 long: |
                     Starts MAVLink on UDP using the next instance after the UART
-                    MAVLink ports. If that instance already has MAV_n_UDP_PRT set
-                    (typically MAV_2_UDP_PRT), that instance is used. Configure
-                    mode and UDP ports on that instance.
+                    MAVLink ports. Configure that instance with MAV_n_MODE,
+                    MAV_n_UDP_PRT, and MAV_n_REMOTE_PRT.
 
             type: boolean
             reboot_required: true

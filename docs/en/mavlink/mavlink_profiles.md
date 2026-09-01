@@ -44,8 +44,8 @@ The profile associated with a particular MAVLink instance is set using the assoc
 
 There are also dedicated profile parameters for ports that are not configured via MAVLink instances:
 
-- [USB_MAV_MODE](../advanced_config/parameter_reference.md#USB_MAV_MODE): Profile for the USB port (used when MAVLink is set or detected on USB).
-- [MAV_S_MODE](../advanced_config/parameter_reference.md#MAV_S_MODE): Profile for the internal SOM (System on Module) to FMU communication channel, used on boards where the FMU and companion computer are co-located on the same module.
+- [MAV_USB_MODE](../advanced_config/parameter_reference.md#MAV_USB_MODE): Profile for the USB port (used when MAVLink is set or detected on USB).
+- [MAV_SOM_MODE](../advanced_config/parameter_reference.md#MAV_SOM_MODE): Profile for the internal SOM (System on Module) to FMU communication channel, used on boards where the FMU and companion computer are co-located on the same module.
 
 Note that not all profiles can necessarily be set on these ports.
 
