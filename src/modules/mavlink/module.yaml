@@ -37,16 +37,12 @@ serial_config:
             set MAV_ARGS "${MAV_ARGS} -F p:MAV_${i}_HL_FREQ"
         fi
         mavlink start ${MAV_ARGS} -x
-      port_config_param:
-        name: MAV_${i}_CONFIG
-        group: MAVLink
-        # MAVLink instances:
-        # 0: Telem1 Port (Telemetry Link)
-        # 1: Telem2 Port (Companion Link). Disabled by default to reduce RAM usage
-        # 2: Board-specific / no fixed function or port
-        default: [TEL1, "", ""]
+      protocol_id: 1
+      protocol_name: MAVLink
+      default: TEL1
       num_instances: *max_num_config_instances
       supports_networking: true
+      ethernet_param: MAV_ETH_EN
 
 parameters:
     - group: MAVLink
@@ -238,3 +234,16 @@ parameters:
             type: boolean
             reboot_required: true
             default: false
+
+        MAV_ETH_EN:
+            description:
+                short: Enable MAVLink on Ethernet
+                long: |
+                    Starts MAVLink instance 2 on UDP. UART MAVLink is limited to
+                    instances 0 and 1 while this is enabled. Configure instance 2
+                    with MAV_2_MODE, MAV_2_UDP_PRT, and MAV_2_REMOTE_PRT.
+
+            type: boolean
+            reboot_required: true
+            default: false
+            requires_ethernet: true

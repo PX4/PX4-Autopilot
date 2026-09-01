@@ -30,7 +30,7 @@ set IOFW "/etc/extras/px4_io-v2_default.bin"
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
 set PARAM_BACKUP_FILE ""
-set RC_INPUT_ARGS ""
+
 set STORAGE_AVAILABLE no
 set STORAGE_CHECK yes
 set SDCARD_EXT_PATH ${BOARD_ROOT_PATH}/ext_autostart
@@ -401,7 +401,7 @@ else
 		sensors start -h
 
 		# disable GPS
-		param set GPS_1_CONFIG 0
+		param set SER_GPS1_PROT 0
 
 		# start the simulator in hardware if needed
 		if param compare SYS_HITL 2
@@ -607,8 +607,11 @@ else
 		zenoh start
 	fi
 
-	# Must be started after the serial config is read
-	rc_input start $RC_INPUT_ARGS
+	# PPM capture is not a serial protocol
+	if param compare -s RC_PPM_EN 1
+	then
+		ppm_rc start
+	fi
 
 	# Manages USB interface
 	if param greater -s SYS_USB_AUTO -1
@@ -777,7 +780,7 @@ unset PARAM_FILE
 unset PARAM_BACKUP_FILE
 unset PARAM_DEFAULTS_VER
 unset PARAM_RESET_DONE
-unset RC_INPUT_ARGS
+
 unset STORAGE_AVAILABLE
 unset STORAGE_CHECK
 unset SDCARD_EXT_PATH

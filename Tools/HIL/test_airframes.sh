@@ -32,13 +32,13 @@ do
 	${DIR}/nsh_param_set.py --device ${SERIAL_DEVICE} --name CBRK_BUZZER    --value 782097
 
 	# enable all mavlink instances
-	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_0_CONFIG 101' || true
-	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_1_CONFIG 102' || true
-	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_2_CONFIG 103' || true
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set SER_TEL1_PROT 1' || true
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set SER_TEL2_PROT 1' || true
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set SER_TEL3_PROT 1' || true
 
 	# enable all GPS
-	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set GPS_1_CONFIG 201' || true
-	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set GPS_1_CONFIG 202' || true
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set SER_GPS1_PROT 5' || true
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set SER_GPS2_PROT 5' || true
 
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param reset SYS_HITL'
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param status'

@@ -1,22 +1,8 @@
 module_name: Vertiq IO
 serial_config:
     - command: vertiq_io start -d ${SERIAL_DEV}
-      port_config_param:
-        name: VERTIQ_IO_CFG
-        group: Vertiq IO
-
-actuator_output:
-  output_groups:
-    - param_prefix: VTQ_IO
-      group_label: 'CVIs'
-      channel_label: 'CVI'
-      instance_start: 0
-      standard_params:
-        disarmed: { min: 0, max: 65535, default: 0 }
-        min: { min: 0, max: 65535, default: 0 }
-        max: { min: 0, max: 65535, default: 65535 }
-        failsafe: { min: 0, max: 500 }
-      num_channels: 16
+      protocol_id: 53
+      protocol_name: Vertiq IO
 
 parameters:
     - group: Vertiq IO

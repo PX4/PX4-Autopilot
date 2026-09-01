@@ -2,9 +2,8 @@ module_name: sbgECom
 
 serial_config:
     - command: sbgecom start -d ${SERIAL_DEV}
-      port_config_param:
-        name: SENS_SBG_CFG
-        group: Sensors
+      protocol_id: 43
+      protocol_name: SBG
 
 parameters:
     - group: Sensors

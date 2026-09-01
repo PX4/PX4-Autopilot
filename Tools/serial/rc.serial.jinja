@@ -2,31 +2,162 @@
 
 # serial autostart script generated with generate_serial_config.py
 
-
-set PRT_F ${R}etc/init.d/rc.serial_port
-
-{% for command in commands -%}
-set PRT {{ command.port_param_name }}
-{% if command.multi_instance -%}
-set i {{ command.instance }}
-{% endif -%}
-# get the device & baudrate
-. $PRT_F
-if [ $SERIAL_DEV != none ]; then
-{% if not constrained_flash -%}
-	echo "Starting {{ command.label }} on $SERIAL_DEV"
-{% endif -%}
-	{{ command.command }}
+set MAV_NEXT 0
+set MAV_LIM 3
+set DUAL_GPS_ARGS ""
+{% for protocol in protocols -%}
+{% if protocol.ethernet_param and protocol.kind == 'instance' -%}
+if param compare {{ protocol.ethernet_param }} 1
+then
+	set MAV_LIM 2
 fi
-
+{% endif -%}
+{% endfor -%}
+{% for protocol in protocols -%}
+{% if protocol.kind == 'single' -%}
+set {{ protocol.taken_var }} 0
+{% elif protocol.kind == 'collect' -%}
+set {{ protocol.collect_prefix }}d0 none
+set {{ protocol.collect_prefix }}b0 none
+set {{ protocol.collect_prefix }}d1 none
+set {{ protocol.collect_prefix }}b1 none
+{% endif -%}
 {% endfor %}
 
 {% for serial_device in serial_devices -%}
-unset PRT_{{ serial_device.tag }}_
+# {{ serial_device.label }}
+{% for protocol in protocols -%}
+if param compare SER_{{ serial_device.tag }}_PROT {{ protocol.id }}
+then
+	set SERIAL_DEV {{ serial_device.device }}
+	set BAUD_PARAM SER_{{ serial_device.tag }}_BAUD
+{% if protocol.kind == 'instance' %}
+	if [ $MAV_NEXT = $MAV_LIM ]
+	then
+{% if not constrained_flash %}
+		echo "{{ protocol.name }} instance limit"
+{% endif %}
+	else
+		if [ $MAV_NEXT = 0 ]
+		then
+			set i 0
+			set MAV_NEXT 1
+		else
+			if [ $MAV_NEXT = 1 ]
+			then
+				set i 1
+				set MAV_NEXT 2
+			else
+				set i 2
+				set MAV_NEXT 3
+			fi
+		fi
+{% if not constrained_flash %}
+		echo "Starting {{ protocol.name }} $i on $SERIAL_DEV"
+{% endif %}
+		{{ protocol.command }}
+	fi
+{% elif protocol.kind == 'collect' %}
+	if [ ${{ protocol.collect_prefix }}d0 = none ]
+	then
+		set {{ protocol.collect_prefix }}d0 $SERIAL_DEV
+		set {{ protocol.collect_prefix }}b0 $BAUD_PARAM
+	else
+		if [ ${{ protocol.collect_prefix }}d1 = none ]
+		then
+			set {{ protocol.collect_prefix }}d1 $SERIAL_DEV
+			set {{ protocol.collect_prefix }}b1 $BAUD_PARAM
+		else
+{% if not constrained_flash %}
+			echo "{{ protocol.name }} already assigned to two ports"
+{% endif %}
+		fi
+	fi
+{% else %}
+	if [ ${{ protocol.taken_var }} = 0 ]
+	then
+{% if not constrained_flash %}
+		echo "Starting {{ protocol.name }} on $SERIAL_DEV"
+{% endif %}
+		{{ protocol.command }}
+		set {{ protocol.taken_var }} 1
+	else
+{% if not constrained_flash %}
+		echo "{{ protocol.name }} already started"
+{% endif %}
+	fi
+{% endif %}
+fi
+{% endfor %}
+
+{% endfor %}
+
+{% for protocol in protocols -%}
+{% if protocol.kind == 'collect' %}
+# start {{ protocol.name }}
+if [ ${{ protocol.collect_prefix }}d1 != none ]
+then
+	set SERIAL_DEV ${{ protocol.collect_prefix }}d1
+	set BAUD_PARAM ${{ protocol.collect_prefix }}b1
+	{{ protocol.secondary_command }}
+fi
+if [ ${{ protocol.collect_prefix }}d0 != none ]
+then
+	set SERIAL_DEV ${{ protocol.collect_prefix }}d0
+	set BAUD_PARAM ${{ protocol.collect_prefix }}b0
+{% if not constrained_flash %}
+	echo "Starting {{ protocol.name }} on $SERIAL_DEV"
+{% endif %}
+	{{ protocol.command }}
+fi
+{% endif -%}
+{% endfor %}
+
+{% for protocol in protocols -%}
+{% if protocol.ethernet_param and ethernet_configuration %}
+if param compare {{ protocol.ethernet_param }} 1
+then
+	set SERIAL_DEV ethernet
+{% if protocol.kind == 'instance' %}
+	set MAV_LIM 2
+	set i 2
+{% if not constrained_flash %}
+	echo "Starting {{ protocol.name }} 2 on ethernet"
+{% endif %}
+	{{ protocol.command }}
+{% else %}
+	if [ ${{ protocol.taken_var }} = 0 ]
+	then
+{% if not constrained_flash %}
+		echo "Starting {{ protocol.name }} on ethernet"
+{% endif %}
+		{{ protocol.command }}
+		set {{ protocol.taken_var }} 1
+	else
+{% if not constrained_flash %}
+		echo "{{ protocol.name }} already started"
+{% endif %}
+	fi
+{% endif %}
+fi
+{% endif -%}
+{% endfor %}
+
+{% for protocol in protocols -%}
+{% if protocol.kind == 'single' -%}
+unset {{ protocol.taken_var }}
+{% elif protocol.kind == 'collect' -%}
+unset {{ protocol.collect_prefix }}d0
+unset {{ protocol.collect_prefix }}b0
+unset {{ protocol.collect_prefix }}d1
+unset {{ protocol.collect_prefix }}b1
+{% endif -%}
 {% endfor %}
 unset i
 unset SERIAL_DEV
-unset PRT
-unset PRT_F
 unset BAUD_PARAM
 unset MAV_ARGS
+unset MAV_NEXT
+unset MAV_LIM
+unset DUAL_GPS_ARGS
+unset UXRCE_DDS_ARGS
