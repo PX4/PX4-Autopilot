@@ -3,4 +3,3 @@ serial_config:
     - command: frsky_telemetry start -d ${SERIAL_DEV}
       protocol_id: 21
       protocol_name: FrSky Telemetry
-

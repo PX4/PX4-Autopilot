@@ -447,15 +447,17 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			return false;
 		};
 
-		auto prot_name = [&](int32_t index) -> const char* {
-			for (const auto &p : kPorts)
-			{
+		auto prot_name = [&](int32_t index) {
+			const char *name = nullptr;
+
+			for (const auto &p : kPorts) {
 				if (p.index == index) {
-					return p.prot_name;
+					name = p.prot_name;
+					break;
 				}
 			}
 
-			return nullptr;
+			return name;
 		};
 
 		for (const auto &old : kOld) {

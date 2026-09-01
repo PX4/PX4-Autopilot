@@ -3,4 +3,3 @@ serial_config:
     - command: lightware_laser_serial start -d ${SERIAL_DEV}
       protocol_id: 31
       protocol_name: Lightware Laser
-

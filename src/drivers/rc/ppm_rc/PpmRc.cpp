@@ -120,7 +120,11 @@ int PpmRc::custom_command(int argc, char *argv[])
 
 int PpmRc::print_status()
 {
+#if defined(HRT_PPM_CHANNEL)
 	PX4_INFO("RC state: %s", _locked ? "found" : "searching for signal");
+#else
+	PX4_INFO("PPM not supported on this board");
+#endif
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_publish_interval_perf);
 	return 0;

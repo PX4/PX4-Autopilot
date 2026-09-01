@@ -40,8 +40,10 @@ private:
 	uORB::PublicationMulti<input_rc_s> _input_rc_pub{ORB_ID(input_rc)};
 	perf_counter_t _cycle_perf;
 	perf_counter_t _publish_interval_perf;
-	hrt_abstime _timestamp_last_signal{0};
+#if defined(HRT_PPM_CHANNEL)
+	hrt_abstime _timestamp_last_signal {0};
 	bool _locked{false};
+#endif
 
 	static constexpr unsigned _current_update_interval{4000};
 };
