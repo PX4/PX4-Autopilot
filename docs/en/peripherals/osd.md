@@ -82,7 +82,7 @@ PX4 exposes this via a dedicated MAVLink stream profile.
 
 To use a MAVLink OSD:
 
-1. Choose an unused MAVLink instance ([`MAV_X_CONFIG`](../peripherals/mavlink_peripherals.md#default_ports)) and assign it to the serial port connected to the display.
+1. Set the `SER_<tag>_PROTO` of the serial port connected to the display to MAVLink and note its [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances).
 2. Configure the mode of the selected MAVLink instance with [`MAV_X_MODE`](./mavlink_peripherals.md#MAV_X_MODE) by setting it to **`OSD`**.
    The `OSD` mode uses a built-in rate table tuned for low-bandwidth OSD consumption.
 3. Set the matching `SER_<PORT>_BAUD` to the baud rate the display expects.

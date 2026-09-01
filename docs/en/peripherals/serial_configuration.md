@@ -29,7 +29,7 @@ _QGroundControl_ only lists protocols compiled into the connected firmware.
 A protocol already running on another port cannot be started a second time (except MAVLink, up to three instances including ethernet, and GPS/Septentrio, up to two ports). Dual GPS prefers the `GPS1` / `GPS2` board tags as primary/secondary.
 
 MAVLink still has per-instance settings ([MAV_0_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE), [MAV_0_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE), [MAV_0_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD), …).
-Instance 0 is the first UART whose `SER_*_PROTO` is MAVLink (by port-tag index), instance 1 the next, instance 2 the third.
+Instance 0 is the first UART whose `SER_*_PROTO` is MAVLink in port order (URT6, TELEM1-4, GPS1-3, RC, WIFI, EXT2), instance 1 the next, instance 2 the third.
 Ethernet MAVLink is [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN) and takes the next free instance after the UART MAVLink ports.
 
 ## How to Configure a Port
@@ -53,13 +53,13 @@ Startup skips extra copies of a singleton driver and extra MAVLink instances bey
 ## Default Serial Port Configuration
 
 :::tip
-These port mappings can be disabled by setting the associated configuration parameter to _Disabled_.
+These port mappings can be disabled by setting the port's `SER_<tag>_PROTO` to _Disabled_.
 :::
 
 The following ports are commonly mapped to specific functions on all boards:
 
 - `GPS 1`: [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO) = GPS, [SER_GPS1_BAUD](../advanced_config/parameter_reference.md#SER_GPS1_BAUD) = Auto.
-- `RC IN` on an FMU UART: [SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO) = SBUS.
+- `RC IN` on an FMU UART: [SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO) = SBUS. DSM/SUMD/ST24 receivers need `SER_RC_PROTO` set to their protocol (there is no auto-detection); PPM is enabled with [RC_PPM_EN](../advanced_config/parameter_reference.md#RC_PPM_EN).
   On IO boards the RC connector is scanned by the IO firmware for SBUS/PPM/DSM; the FMU RC UART stays a `SER_*` slot (disabled by default) for CRSF/GHST.
 - `TELEM 1`: [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO) = MAVLink (instance 0, Normal).
 - `TELEM 2`: disabled (`SER_TEL2_PROTO` = Disabled). Set it to MAVLink for a companion link (instance 1 defaults to Onboard).

@@ -114,8 +114,8 @@ Heading will work automatically when one of these is connected and has two anten
 
 The other is to use two separate receivers attached to two ports, each with one antenna.
 In that case the [SEP_HARDW_SETUP](../advanced_config/parameter_reference.md#SEP_HARDW_SETUP) parameter has to be set to `Moving base`.
-The first Septentrio UART (GPS1 preferred) is the rover.
-To switch rover and base, swap which ports are GPS1 vs GPS2 or physically swap the connected receivers.
+The receiver on the lowest-ranked port (GPS1 < GPS2 < GPS3 < other UARTs) is the rover.
+To switch rover and base, physically swap the connected receivers.
 
 It is important that the antennas are positioned at least 30 cm apart for a stable heading result.
 In a normal setup, the main antenna is behind the auxiliary one.

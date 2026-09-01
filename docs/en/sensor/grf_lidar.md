@@ -54,7 +54,7 @@ The [parameters to change](../advanced_config/parameters.md) are listed in the t
 
 | Parameter                                                                                                | Description                                        |
 | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| <a id="SENS_EN_GRF_CFG"></a>[SENS_EN_GRF_CFG](../advanced_config/parameter_reference.md#SENS_EN_GRF_CFG) | Set to the serial port the sensor is connected to. |
+| `SER_<tag>_PROTO`                                                                                        | Set to Lightware GRF on the sensor's serial port.  |
 | <a id="GRF_RATE_CFG"></a>[GRF_RATE_CFG](../advanced_config/parameter_reference.md#GRF_RATE_CFG)          | Set the update rate.                               |
 | <a id="GRF_SENS_MODEL"></a>[GRF_SENS_MODEL](../advanced_config/parameter_reference.md#GRF_SENS_MODEL)    | Set the sensor model to use.                       |
 
