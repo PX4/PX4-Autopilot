@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Generate serial (UART) parameters and the ROMFS startup script.
+"""Generate serial (UART) parameters, autostart tables, and the ROMFS startup script.
 
 Port -> protocol: each board UART tag gets SER_<tag>_PROT / SER_<tag>_BAUD.
 Drivers declare a stable protocol_id in module.yaml serial_config.
+rc.serial is a one-liner that runs serial_autostart; the C module walks ports.
 """
 
 import argparse
 import os
+import re
 import sys
 
 try:
@@ -157,6 +159,34 @@ def parse_yaml_serial_config(yaml_config):
         ret.append(serial_config)
     return ret
 
+def compact_command(command, kind):
+    """Reduce yaml nsh snippets to an argv template the C walker can exec."""
+    if kind == 'instance':
+        # MAVLink flags are assembled in C from MAV_${i}_*.
+        return 'mavlink start'
+    if command is None:
+        return ''
+    if 'iridiumsbd' in command:
+        return 'usleep 200000; iridiumsbd start -d ${SERIAL_DEV}'
+    if 'uxrce_dds_client' in command:
+        return 'uxrce_dds_client start -t serial -d ${SERIAL_DEV} -b p:${BAUD_PARAM}'
+    lines = []
+    for line in command.splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith('#'):
+            lines.append(stripped)
+    return ' '.join(lines)
+
+
+def compact_secondary(secondary_command):
+    if not secondary_command:
+        return None
+    match = re.search(r'"([^"]*)"', secondary_command)
+    if match:
+        return match.group(1)
+    return secondary_command.strip()
+
+
 serial_commands = []
 for yaml_file in args.config_files:
     with open(yaml_file, 'r') as stream:
@@ -205,6 +235,7 @@ for serial_command in serial_commands:
         if seen_ids[protocol_id] != serial_command['protocol_name']:
             raise Exception("duplicate protocol_id {:}: {:} and {:}".format(
                 protocol_id, seen_ids[protocol_id], serial_command['protocol_name']))
+        # Same-name duplicate (voxl2 ghst_rc vs src/drivers/rc/ghst_rc).
         continue
     seen_ids[protocol_id] = serial_command['protocol_name']
 
@@ -228,18 +259,23 @@ for serial_command in serial_commands:
         if default_tag in dict(board_ports).keys():
             tag_defaults[default_tag] = protocol_id
 
+    ethernet_param = serial_command.get('ethernet_param')
+    ethernet_command = None
+    if ethernet_param and 'uxrce_dds_client' in serial_command['command']:
+        ethernet_command = 'uxrce_dds_client start -t udp'
+
     protocols.append({
         'id': protocol_id,
         'name': serial_command['protocol_name'],
         'label': serial_command['label'],
-        'command': serial_command['command'],
-        'secondary_command': secondary_command,
+        'command': compact_command(serial_command['command'], kind),
+        'secondary_command': compact_secondary(secondary_command),
         'kind': kind,
+        'kind_id': {'single': 0, 'instance': 1, 'collect': 2}[kind],
         'num_instances': num_instances,
         'supports_networking': serial_command.get('supports_networking', False),
-        'ethernet_param': serial_command.get('ethernet_param'),
-        'taken_var': '_t{:d}'.format(protocol_id),
-        'collect_prefix': '_p{:d}'.format(protocol_id),
+        'ethernet_param': ethernet_param,
+        'ethernet_command': ethernet_command,
         })
 
 protocols.sort(key=lambda p: p['id'])
@@ -260,9 +296,16 @@ if verbose:
     print("Protocols: {:}".format([(p['id'], p['name'], p['kind']) for p in protocols]))
 
 
+def c_escape(value):
+    if value is None:
+        return ''
+    return value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
+
 jinja_env = Environment(loader=FileSystemLoader(
     os.path.dirname(os.path.realpath(__file__))),
     keep_trailing_newline=True)
+jinja_env.filters['c_escape'] = c_escape
 
 if rc_serial_output_dir is not None:
     if generate_for_all_ports:
@@ -276,17 +319,24 @@ if rc_serial_output_dir is not None:
     else:
         template = jinja_env.get_template('rc.serial.jinja')
         with open(rc_serial_output_file, 'w') as fid:
-            fid.write(template.render(
-                serial_devices=serial_devices,
-                protocols=protocols,
-                ethernet_configuration=ethernet_configuration,
-                constrained_flash=constrained_flash))
+            fid.write(template.render())
 
 if serial_params_output_file is not None:
     if verbose:
         print("Generating {:}".format(serial_params_output_file))
     template = jinja_env.get_template('serial_params.c.jinja')
     with open(serial_params_output_file, 'w') as fid:
+        fid.write(template.render(
+            serial_devices=serial_devices,
+            protocols=protocols,
+            ethernet_configuration=ethernet_configuration))
+
+    autostart_header = os.path.join(os.path.dirname(os.path.abspath(
+        serial_params_output_file)), 'serial_autostart_config.h')
+    if verbose:
+        print("Generating {:}".format(autostart_header))
+    template = jinja_env.get_template('serial_autostart_config.h.jinja')
+    with open(autostart_header, 'w') as fid:
         fid.write(template.render(
             serial_devices=serial_devices,
             protocols=protocols,
