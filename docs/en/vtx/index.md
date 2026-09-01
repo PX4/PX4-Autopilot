@@ -18,7 +18,7 @@ Configuration is device-specific and set up using the command line interface.
 Connect the SmartAudio or Tramp pin of the VTX to the TX pin of a free serial port on the flight controller.
 Then set the following parameters:
 
-- `VTX_SER_CFG`: Select the serial port used for VTX communication.
+- `SER_<port>_PROTO`: Set the serial port the VTX is wired to, to `VTX SmartAudio`.
 - `VTX_PROTOCOL`: Selects the wire protocol (SmartAudio or Tramp).
 - `VTX_DEVICE`: Selects the specific VTX model.
 
@@ -251,7 +251,7 @@ Key configuration options:
 
 ### Configuration Parameters
 
-- `VTX_SER_CFG`: Serial port assignment for VTX communication
+- `SER_<port>_PROTO`: Serial port assignment for VTX communication
 - `VTX_MAP_CONFIG`: Controls how VTX settings are mapped:
   - Without `VTX_CRSF_MSP_SUPPORT`:
     - `0`: Disabled

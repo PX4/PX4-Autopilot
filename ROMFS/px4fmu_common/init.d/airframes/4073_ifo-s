@@ -33,7 +33,7 @@ param set-default SENS_BOARD_ROT 10
 # Yaw 180
 param set-default SENS_FLOW_ROT 4
 # TFMini on TELEM3
-param set-default SENS_TFMINI_CFG 103
+param set-default -s SER_TEL3_PROTO 30
 
 # Smart Battery
 param set-default SENS_EN_BATT 1

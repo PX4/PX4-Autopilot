@@ -113,7 +113,7 @@ usage()
 
 Serial bus driver for the Benewake TFmini LiDAR.
 
-Most boards are configured to enable/start the driver on a specified UART using the SENS_TFMINI_CFG parameter.
+Start the driver by setting a UART's SER_<port>_PROTO parameter to TFmini.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/tfmini.html
 

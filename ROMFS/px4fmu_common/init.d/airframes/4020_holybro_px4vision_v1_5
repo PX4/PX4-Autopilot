@@ -79,11 +79,11 @@ param set-default RTL_DESCEND_ALT 5
 param set-default RTL_RETURN_ALT 5
 
 # Sensors Parameters
-param set-default SENS_CM8JL65_CFG 202
+param set-default -s SER_GPS2_PROTO 34
 param set-default SENS_FLOW_MAXHGT 25
 param set-default SENS_FLOW_MINHGT 0.5
 param set-default IMU_GYRO_CUTOFF 100
-param set-default SENS_TFLOW_CFG 103
+param set-default -s SER_TEL3_PROTO 54
 
 # Power Parameters
 param set-default BAT1_N_CELLS 4
