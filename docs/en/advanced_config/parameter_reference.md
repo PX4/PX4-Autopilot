@@ -37549,6 +37549,78 @@ If set to 1, add an ID to the log, which uniquely identifies the vehicle
 
 ## SITL
 
+### SIM_BAT1_DRAIN (`FLOAT`) {#SIM_BAT1_DRAIN}
+
+Simulated battery 1 full-discharge time.
+
+Time in seconds for simulated battery 1 to drain from 100% to 0% while armed,
+overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
+Only has an effect if battery 1 is enabled through BAT1_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       |          | 1         | -1.0    | s    | &nbsp;    |
+
+### SIM_BAT1_MIN_PCT (`FLOAT`) {#SIM_BAT1_MIN_PCT}
+
+Simulated battery 1 minimal percentage.
+
+Lowest state of charge simulated battery 1 drains down to, overriding
+SIM_BAT_MIN_PCT for this battery only. Set to -1 to use SIM_BAT_MIN_PCT.
+Only has an effect if battery 1 is enabled through BAT1_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 100      | 0.1       | -1.0    | %    | &nbsp;    |
+
+### SIM_BAT2_DRAIN (`FLOAT`) {#SIM_BAT2_DRAIN}
+
+Simulated battery 2 full-discharge time.
+
+Time in seconds for simulated battery 2 to drain from 100% to 0% while armed,
+overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
+Only has an effect if battery 2 is enabled through BAT2_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       |          | 1         | -1.0    | s    | &nbsp;    |
+
+### SIM_BAT2_MIN_PCT (`FLOAT`) {#SIM_BAT2_MIN_PCT}
+
+Simulated battery 2 minimal percentage.
+
+Lowest state of charge simulated battery 2 drains down to, overriding
+SIM_BAT_MIN_PCT for this battery only. Set to -1 to use SIM_BAT_MIN_PCT.
+Only has an effect if battery 2 is enabled through BAT2_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 100      | 0.1       | -1.0    | %    | &nbsp;    |
+
+### SIM_BAT3_DRAIN (`FLOAT`) {#SIM_BAT3_DRAIN}
+
+Simulated battery 3 full-discharge time.
+
+Time in seconds for simulated battery 3 to drain from 100% to 0% while armed,
+overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
+Only has an effect if battery 3 is enabled through BAT3_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       |          | 1         | -1.0    | s    | &nbsp;    |
+
+### SIM_BAT3_MIN_PCT (`FLOAT`) {#SIM_BAT3_MIN_PCT}
+
+Simulated battery 3 minimal percentage.
+
+Lowest state of charge simulated battery 3 drains down to, overriding
+SIM_BAT_MIN_PCT for this battery only. Set to -1 to use SIM_BAT_MIN_PCT.
+Only has an effect if battery 3 is enabled through BAT3_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 100      | 0.1       | -1.0    | %    | &nbsp;    |
+
 ### SIM_BAT_DRAIN (`FLOAT`) {#SIM_BAT_DRAIN}
 
 Simulated battery full-discharge time.
