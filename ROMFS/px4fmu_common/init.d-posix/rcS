@@ -281,23 +281,6 @@ manual_control start
 sensors start
 commander start
 
-#
-# state estimator selection
-if param compare -s EKF2_EN 1
-then
-	ekf2 start &
-fi
-
-if param compare -s LPE_EN 1
-then
-	local_position_estimator start
-fi
-
-if param compare -s ATT_EN 1
-then
-	attitude_estimator_q start
-fi
-
 if ! pwm_out_sim start -m sim
 then
 	tune_control play error
@@ -381,6 +364,28 @@ fi
 
 # execute autostart post script if any
 [ -e "$autostart_file".post ] && . "$autostart_file".post
+
+#
+# State estimator selection.
+#
+# Started last, right before logging: every estimator update published before the logger opens the
+# file is lost, and ekf2 replay needs the log to cover the filter from its very first update. The
+# logger cannot move up instead - it drops optional topics that are not advertised yet, and most of
+# the modules above own one.
+if param compare -s EKF2_EN 1
+then
+	ekf2 start &
+fi
+
+if param compare -s LPE_EN 1
+then
+	local_position_estimator start
+fi
+
+if param compare -s ATT_EN 1
+then
+	attitude_estimator_q start
+fi
 
 # Run script to start logging
 if param compare -s EKF2_EN 1
