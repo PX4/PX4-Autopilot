@@ -80,13 +80,13 @@ The instructions in the repo README explain how to use it.
 
 ## Pre-built Bootloader
 
-PX4 GitHub releases attach `<target>_bootloader.bin` for SWD (STM32: `0x08000000`). The `.px4` envelope is not used.
+PX4 GitHub releases attach `<target>_bootloader.bin` for in-tree bootloader targets (FMUv6X and later). Flash that raw image over SWD (STM32: `0x08000000`) with ST-Link, CubeProgrammer, or OpenOCD. The `.px4` envelope is not used.
 
 ## Debug Probe Bootloader Update
 
 The following steps explain how you can "manually" update the bootloader using a [compatible Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware):
 
-1. Get a bootloader image: `<target>_bootloader.bin` from a [GitHub release](https://github.com/PX4/PX4-Autopilot/releases), or the `.elf` from [building it](#building-the-px4-bootloader).
+1. Get a bootloader `.elf` by [building it](#building-the-px4-bootloader).
 2. Get a [Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware).
    Connect the probe to your PC via USB and setup the `gdbserver`.
 3. Go into the directory containing the binary and run the command for your target bootloader in the terminal:
