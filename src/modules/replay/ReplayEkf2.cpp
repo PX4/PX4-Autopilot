@@ -150,11 +150,18 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 
 	} else if (sub.orb_meta == ORB_ID(ekf2_timestamps)) {
 		_ekf2_timestamps_exists = true;
+
+		if (_sensor_combined_msg_id != msg_id_invalid) {
+			_subscriptions[_sensor_combined_msg_id]->ignored = true;
+		}
 	}
 
-	// the main loop should only handle publication of the following topics, everything ekf2
-	// consumes is published from within the lockstep barrier in publishEkf2Topics()
-	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(sensor_combined);
+	// The main loop only drives ekf2_timestamps, everything ekf2 consumes is published from within
+	// the lockstep barrier in publishEkf2Topics(). sensor_combined carries the same timestamp as
+	// ekf2_timestamps, so leaving it to the main loop would let it win the tie and consume the
+	// sample without publishing it, shifting the whole IMU stream one update ahead of the sensors.
+	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps)
+		      && !(sub.orb_meta == ORB_ID(sensor_combined) && !_ekf2_timestamps_exists);
 }
 
 bool
@@ -219,6 +226,8 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_land_detected_msg_id, replay_file);
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_status_msg_id, replay_file);
 
+	publishUnmatchedImuSamples(ekf2_timestamps.timestamp, replay_file);
+
 	// sensor_combined: publish last because ekf2 is polling on this
 	if (!findTimestampAndPublish(ekf2_timestamps.timestamp, _sensor_combined_msg_id, replay_file)) {
 		if (_sensor_combined_msg_id == msg_id_invalid) {
@@ -236,6 +245,29 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	}
 
 	return true;
+}
+
+void
+ReplayEkf2::publishUnmatchedImuSamples(uint64_t timestamp, std::ifstream &replay_file)
+{
+	if (_sensor_combined_msg_id == msg_id_invalid) {
+		return;
+	}
+
+	Subscription &sub = *_subscriptions[_sensor_combined_msg_id];
+
+	// A sample without a matching ekf2_timestamps entry (the log started before ekf2 was being
+	// logged, or an ekf2_timestamps message was lost) would be overwritten by the one below before
+	// ekf2 gets to run, so give it a lockstep cycle of its own instead of dropping it.
+	while (sub.orb_meta && sub.next_timestamp < timestamp) {
+		if (!sub.published) {
+			readTopicDataToBuffer(sub, replay_file);
+			publishTopic(sub, _read_buffer.data());
+			px4_lockstep_wait_for_components();
+		}
+
+		nextDataMessage(replay_file, sub, _sensor_combined_msg_id);
+	}
 }
 
 bool
