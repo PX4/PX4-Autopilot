@@ -3,4 +3,3 @@ serial_config:
     - command: "ghst_rc start -d ${SERIAL_DEV}"
       protocol_id: 13
       protocol_name: GHST
-

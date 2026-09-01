@@ -3,4 +3,3 @@ serial_config:
     - command: leddar_one start -d ${SERIAL_DEV}
       protocol_id: 33
       protocol_name: LeddarOne
-

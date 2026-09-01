@@ -4,4 +4,3 @@ serial_config:
     - command: eulernav_bahrs start -d ${SERIAL_DEV}
       protocol_id: 44
       protocol_name: EulerNav BAHRS
-

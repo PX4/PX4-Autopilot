@@ -3,4 +3,3 @@ serial_config:
     - command: ulanding_radar start -d ${SERIAL_DEV}
       protocol_id: 35
       protocol_name: uLanding
-

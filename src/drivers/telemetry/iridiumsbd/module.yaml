@@ -11,4 +11,3 @@ serial_config:
         fi
       protocol_id: 23
       protocol_name: Iridium
-

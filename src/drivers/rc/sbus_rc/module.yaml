@@ -4,4 +4,3 @@ serial_config:
       protocol_id: 10
       protocol_name: SBUS
       default: RC
-

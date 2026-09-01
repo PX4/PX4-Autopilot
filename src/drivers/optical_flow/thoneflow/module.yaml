@@ -3,4 +3,3 @@ serial_config:
     - command: thoneflow start -d ${SERIAL_DEV}
       protocol_id: 54
       protocol_name: ThoneFlow
-

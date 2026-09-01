@@ -3,5 +3,3 @@ serial_config:
     - command: "st24_rc start -d ${SERIAL_DEV}"
       protocol_id: 15
       protocol_name: ST24
-      
-

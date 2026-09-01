@@ -3,4 +3,3 @@ serial_config:
     - command: hott_telemetry start -d ${SERIAL_DEV}
       protocol_id: 22
       protocol_name: HoTT Telemetry
-
