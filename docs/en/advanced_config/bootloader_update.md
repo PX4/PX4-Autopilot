@@ -66,7 +66,7 @@ make px4_fmu-v6x_bootloader
 This will build the bootloader binary as `build/px4_fmu-v6x_bootloader/px4_fmu-v6x_bootloader.elf`, which can be flashed via SWD or DFU.
 If you are building the bootloader you should be familiar with one of these options already.
 
-PX4 GitHub releases attach `<target>_bootloader.bin` for SWD (STM32: `0x08000000`). `<target>_bootloader.px4` is the USB uploader envelope, not a raw flash image.
+PX4 GitHub releases attach `<target>_bootloader.bin` for SWD (STM32: `0x08000000`).
 
 If you need a HEX file instead of an ELF file, use objcopy:
 
