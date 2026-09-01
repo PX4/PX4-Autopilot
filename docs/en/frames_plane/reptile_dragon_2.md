@@ -325,13 +325,7 @@ make ark_fmu-v6x_default boardconfig
 ### `crsf_rc` Module
 
 PX4 includes a standalone CRSF parser module which supports telemetry and CRSF LinkStatistics.
-To use this module, the default `rc_input` module must be disabled and the `crsf_rc` module must be enabled.
-
-1. In the PX4 board config tool, navigate to the `drivers` submenu, then scroll down to highlight `rc_input`.
-2. Use the enter key to remove the `*` from `rc_input` checkbox.
-3. Scroll to highlight the `RC` submenu, then press enter to open it.
-4. Scroll to highlight `crsf_rc` and press enter to enable it.
-5. Save and exit the PX4 board config tool.
+Enable `crsf_rc` under `drivers` → `RC` if it is not already selected (Common RC includes it).
 
 For more information see [TBS Crossfire (CRSF) Telemetry](../telemetry/crsf_telemetry.md).
 
@@ -346,7 +340,7 @@ The Caddx Vista Air Unit supports listening to MSP telemetry and will show the r
 
 ### Building & Flashing
 
-Once the `msp_osd` and `crsf_rc` modules are enabled and the `rc_input` module is disabled, the firmware source must be compiled and the resulting image flashed to the FMU.
+Once the `msp_osd` and `crsf_rc` modules are enabled, the firmware source must be compiled and the resulting image flashed to the FMU.
 
 To compile and flash the firmware, connect the FMU/Carrier to the build host PC via USB and run:
 
@@ -366,7 +360,7 @@ Load the file via QGC using the instructions at [Parameters> Tools](https://docs
 You may need to modify some parameters for your build
 In particular you should check:
 
-- [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) param must match serial port which is connected to the Caddx Vista (in this build, `/dev/ttyS7`).
+- The UART connected to the Caddx Vista (`/dev/ttyS7` in this build) must have `SER_*_PROTO` set to MSP OSD.
 - [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO) must be CRSF (the ELRS RX is on `Telem 1` in this build).
 
 ### Radio Setup

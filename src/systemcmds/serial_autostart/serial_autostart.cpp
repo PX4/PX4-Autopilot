@@ -33,7 +33,7 @@
 
 /**
  * @file serial_autostart.cpp
- * Walk SER_<tag>_PROTO / SER_<tag>_BAUD and start the matching driver.
+ * Walk SER_*_PROTO / SER_*_BAUD and start the matching driver.
  */
 
 #include "serial_autostart_config.h"
@@ -597,7 +597,7 @@ static void start_ports()
 
 static void print_usage()
 {
-	PRINT_MODULE_DESCRIPTION("Start serial drivers from SER_<tag>_PROTO / SER_<tag>_BAUD.\n");
+	PRINT_MODULE_DESCRIPTION("Start serial drivers from SER_*_PROTO / SER_*_BAUD.\n");
 	PRINT_MODULE_USAGE_NAME_SIMPLE("serial_autostart", "command");
 }
 

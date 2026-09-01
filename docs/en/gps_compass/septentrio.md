@@ -52,26 +52,25 @@ If you don't see the `Septentrio` parameter group, then you will need to set `CO
 
 Next you need to tell PX4 which serial port the receiver is connected to.
 The serial port name is usually indicated by a label above the port on the flight controller.
-If you plugged in the receiver into the port labeled `GPS 1` or `GPS & SAFETY`, you need to set the [SEP_PORT1_CFG](../advanced_config/parameter_reference.md#SEP_PORT1_CFG) parameter to `GPS 1`.
+If you plugged in the receiver into the port labeled `GPS 1` or `GPS & SAFETY`, set [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO) to Septentrio.
 You also need to make sure no other driver is [configured to use this serial port](../peripherals/serial_configuration.md).
 
 ::: warning
-By default, the `GPS` module will be configured to use the `GPS 1` port.
-Make sure to set [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO) to Disabled if the receiver is not on GPS1.
+`GPS 1` defaults to GPS. Set [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO) to Septentrio (not GPS) for a Septentrio on that port.
 :::
 
 PX4 should then automatically configure the connected receiver(s), after which the position will become visible in _QGroundControl_ and its GPS icon will display general status information.
 
 Note that you can also use a secondary Septentrio GNSS module, which is configured in a similar way.
-It is common to connect a second module to the port labeled `GPS 2`
-The port is configured using the [SEP_PORT2_CFG](../advanced_config/parameter_reference.md#SEP_PORT2_CFG) parameter.
+It is common to connect a second module to the port labeled `GPS 2`.
+Set [SER_GPS2_PROTO](../advanced_config/parameter_reference.md#SER_GPS2_PROTO) to Septentrio.
 
 ## Serial Configuration
 
 Septentrio GNSS receivers make use of a serial connection to the autopilot.
-There are two types of parameters available to configure this connection.
-First there are the parameters under the `Septentrio` group in QGC, which can be used to select the physical port the receiver is connected to.
-If for example one receiver is connected to the port labelled "GPS 2", then you need to set `SEP_PORT1_CFG` to `GPS 2`, meaning the main receiver (hence the 1 in `SEP_PORT1_CFG`) is connected to the secondary GPS port (`GPS 2`).
+Set `SER_*_PROTO` to Septentrio on each UART that has a receiver (up to two).
+GPS1 then GPS2 then GPS3 are used as primary then secondary when more than one port has that protocol.
+If the main receiver is on `GPS 2`, set [SER_GPS2_PROTO](../advanced_config/parameter_reference.md#SER_GPS2_PROTO) to Septentrio and leave other GPS ports disabled or on a different protocol.
 
 The baud rate used for the serial connection is also configurable.
 It can be set to any of baud rates supported by Septentrio GNSS receivers.
@@ -114,8 +113,9 @@ The first is to use a receiver based on the mosaic-H receiver module, like the m
 Heading will work automatically when one of these is connected and has two antennas attached.
 
 The other is to use two separate receivers attached to two ports, each with one antenna.
-In that case the [SEP_HARDW_SETUP](../advanced_config/parameter_reference.md#SEP_HARDW_SETUP) parameter has to be set to `Moving base` and the main receiver (set by `SEP_PORT1_CFG`) will act as the rover.
-To switch rover and base in the moving base setup, switch `SEP_PORT1_CFG` and `SEP_PORT2_CFG` or physically swap the connected receivers.
+In that case the [SEP_HARDW_SETUP](../advanced_config/parameter_reference.md#SEP_HARDW_SETUP) parameter has to be set to `Moving base`.
+The first Septentrio UART (GPS1 preferred) is the rover.
+To switch rover and base, swap which ports are GPS1 vs GPS2 or physically swap the connected receivers.
 
 It is important that the antennas are positioned at least 30 cm apart for a stable heading result.
 In a normal setup, the main antenna is behind the auxiliary one.
