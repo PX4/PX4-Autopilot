@@ -176,6 +176,7 @@ private:
 	void checkConfigOverrides();
 
 	void removeModeExecutor(int mode_executor_id);
+	bool resendIfCachedRequest(const register_ext_component_request_s &request);
 
 	uORB::Subscription _setpoint_config_sub{ORB_ID(setpoint_config)};
 	uORB::Publication<setpoint_config_reply_s> _setpoint_config_reply_pub{ORB_ID(setpoint_config_reply)};
@@ -189,6 +190,10 @@ private:
 	ExternalChecks &_external_checks;
 	ModeExecutors _mode_executors;
 	Modes _modes;
+
+	static constexpr int kReplyCacheSize = 5;
+	uint64_t _reply_cache[kReplyCacheSize] {};
+	int _reply_cache_head{0};
 
 	bool _failsafe_action_active{false};
 	int _mode_executor_in_charge{ModeExecutors::AUTOPILOT_EXECUTOR_ID};

@@ -222,6 +222,40 @@ ModeManagement::ModeManagement(ExternalChecks &external_checks)
 	_external_checks.setExternalNavStates(Modes::FIRST_EXTERNAL_NAV_STATE, Modes::LAST_EXTERNAL_NAV_STATE);
 }
 
+bool ModeManagement::resendIfCachedRequest(const register_ext_component_request_s &request)
+{
+	if (request.request_id == 0) { return false; }
+
+	for (int i = 0; i < kReplyCacheSize; ++i) {
+		if (_reply_cache[i] == request.request_id) {
+			for (int j = Modes::FIRST_EXTERNAL_NAV_STATE; j <= Modes::LAST_EXTERNAL_NAV_STATE; ++j) {
+
+				if (_modes.valid(j) && strncmp(_modes.mode(j).name, request.name, sizeof(request.name)) == 0) {
+
+					const Modes::Mode &m = _modes.mode(j);
+					register_ext_component_reply_s reply{};
+					reply.timestamp = hrt_absolute_time();
+					reply.request_id = request.request_id;
+					reply.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
+					static_assert(sizeof(request.name) == sizeof(reply.name), "size mismatch");
+					memcpy(reply.name, request.name, sizeof(reply.name));
+					reply.not_user_selectable = request.not_user_selectable;
+					reply.success = true;
+					reply.mode_id = j;
+					reply.arming_check_id = m.arming_check_registration_id;
+					reply.mode_executor_id = m.mode_executor_registration_id;
+					_register_ext_component_reply_pub.publish(reply);
+					PX4_DEBUG("resent reply for request_id %llu", request.request_id);
+					return true;
+				}
+			}
+		}
+
+	}
+
+	return false;
+}
+
 void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 {
 	register_ext_component_request_s request;
@@ -230,6 +264,11 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 	while (!update_request.change_user_intended_nav_state && _register_ext_component_request_sub.update(&request)
 	       && --max_updates >= 0) {
 		request.name[sizeof(request.name) - 1] = '\0';
+
+		if (resendIfCachedRequest(request)) {
+			continue;
+		}
+
 		PX4_DEBUG("got registration request: %s %llu, arming: %i mode: %i executor: %i", request.name, request.request_id,
 			  request.register_arming_check, request.register_mode, request.register_mode_executor);
 		register_ext_component_reply_s reply{};
@@ -340,6 +379,12 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 		}
 
 		reply.timestamp = hrt_absolute_time();
+
+		if (reply.success) {
+			_reply_cache[_reply_cache_head] = request.request_id;
+			_reply_cache_head = (_reply_cache_head + 1) % kReplyCacheSize;
+		}
+
 		_register_ext_component_reply_pub.publish(reply);
 	}
 }
