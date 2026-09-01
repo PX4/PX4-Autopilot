@@ -34,56 +34,86 @@
 #pragma once
 
 #include <board_config.h>
-#include <drivers/drv_hrt.h>
-#include <lib/perf/perf_counter.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/input_rc.h>
-#include <uORB/topics/parameter_update.h>
+#include <drivers/drv_adc.h>
+#include <lib/mathlib/mathlib.h>
+#include <px4_platform_common/log.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/adc_report.h>
 
-#include "../AnalogRcRssi.hpp"
-
-#if defined(HRT_PPM_CHANNEL)
-# include <systemlib/ppm_decode.h>
+#if defined(ADC_RC_RSSI_CHANNEL)
+# define RC_ANALOG_RSSI_CHANNEL ADC_RC_RSSI_CHANNEL
+#elif defined(ADC_RSSI_IN_CHANNEL)
+# define RC_ANALOG_RSSI_CHANNEL ADC_RSSI_IN_CHANNEL
 #endif
 
-using namespace time_literals;
-
-class PpmRc : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
+/**
+ * Analog RSSI from the board RSSI ADC pin, used when the RC protocol
+ * does not provide a value (SBUS, PPM).
+ */
+class AnalogRcRssi
 {
 public:
-	static Descriptor desc;
+	void update()
+	{
+#if defined(RC_ANALOG_RSSI_CHANNEL)
 
-	PpmRc();
-	virtual ~PpmRc();
+		if (_adc_report_sub.updated()) {
+			adc_report_s adc;
 
-	static int task_spawn(int argc, char *argv[]);
-	static int custom_command(int argc, char *argv[]);
-	static int print_usage(const char *reason = nullptr);
-	int print_status() override;
+			if (_adc_report_sub.copy(&adc)) {
+				for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
+					if (adc.channel_id[i] == RC_ANALOG_RSSI_CHANNEL) {
+						const float adc_volt = adc.raw_data[i] *
+								       adc.v_ref /
+								       adc.resolution;
+
+						if (_volt < 0.0f) {
+							_volt = adc_volt;
+						}
+
+						_volt = _volt * 0.995f + adc_volt * 0.005f;
+
+						/* only allow this to be used if we see a high RSSI once */
+						if (_volt > 2.5f) {
+							_stable = true;
+						}
+
+						break;
+					}
+				}
+			}
+		}
+
+#endif
+	}
+
+	void fill_missing(int32_t &rssi) const
+	{
+#if defined(RC_ANALOG_RSSI_CHANNEL)
+
+		if ((rssi < 0) && _stable) {
+			const float rssi_analog = ((_volt - 0.2f) / 3.0f) * 100.0f;
+			rssi = math::constrain((int)rssi_analog, 0, 100);
+		}
+
+#endif
+	}
+
+	void print_status() const
+	{
+#if defined(RC_ANALOG_RSSI_CHANNEL)
+
+		if (_stable) {
+			PX4_INFO("vrssi: %dmV", (int)(_volt * 1000.0f));
+		}
+
+#endif
+	}
 
 private:
-	void Run() override;
-
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::PublicationMulti<input_rc_s> _input_rc_pub{ORB_ID(input_rc)};
-	perf_counter_t _cycle_perf;
-	perf_counter_t _publish_interval_perf;
-#if defined(HRT_PPM_CHANNEL)
-	hrt_abstime _timestamp_last_signal {0};
-	bool _locked{false};
+#if defined(RC_ANALOG_RSSI_CHANNEL)
+	uORB::Subscription _adc_report_sub {ORB_ID(adc_report)};
+	float _volt{-1.0f};
+	bool _stable{false};
 #endif
-
-	AnalogRcRssi _analog_rssi;
-
-	static constexpr unsigned _current_update_interval{4000};
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
-		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
-		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max
-	)
 };
