@@ -11,10 +11,10 @@ param set-default BAT1_V_EMPTY 3.2
 param set-default SYS_HAS_MAG 0
 #param set-default SENS_EN_SPA06 1
 param set-default PWM_MAIN_TIM0 -4
-param set-default RC_INPUT_PROTO -1
 
-param set-default MAV_2_CONFIG 104
+param set-default SER_TEL4_PROTO 1
 param set-default SER_TEL4_BAUD 115200
+param set-default MAV_1_MODE 0
 
 param set-default IMU_GYRO_CUTOFF 80
 param set-default MC_PITCHRATE_K 0.4
