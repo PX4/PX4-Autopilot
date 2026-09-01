@@ -668,7 +668,8 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2026-08-31: USB_MAV_MODE -> MAV_USB_MODE, MAV_S_* -> MAV_SOM_*
+	// 2026-08-31: USB_MAV_MODE -> MAV_USB_MODE. MAV_S_* / MAV_SOM_* removed;
+	// the SOM UART is a normal SER_*_PROTO MAVLink port.
 	{
 		if (strcmp("USB_MAV_MODE", node->name) == 0) {
 			strcpy(node->name, "MAV_USB_MODE");
@@ -676,16 +677,9 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
-		if (strcmp("MAV_S_MODE", node->name) == 0) {
-			strcpy(node->name, "MAV_SOM_MODE");
-			PX4_INFO("migrating MAV_S_MODE -> MAV_SOM_MODE");
-			return param_modify_on_import_ret::PARAM_MODIFIED;
-		}
-
-		if (strcmp("MAV_S_FORWARD", node->name) == 0) {
-			strcpy(node->name, "MAV_SOM_FORWARD");
-			PX4_INFO("migrating MAV_S_FORWARD -> MAV_SOM_FORWARD");
-			return param_modify_on_import_ret::PARAM_MODIFIED;
+		if (strcmp("MAV_S_MODE", node->name) == 0 || strcmp("MAV_SOM_MODE", node->name) == 0
+		    || strcmp("MAV_S_FORWARD", node->name) == 0 || strcmp("MAV_SOM_FORWARD", node->name) == 0) {
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
 
