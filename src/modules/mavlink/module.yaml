@@ -51,7 +51,7 @@ parameters:
 
                     If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
                     This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-                    8N1-configured links).
+                    8N1-configured links). On ethernet 0 selects 100000 B/s.
 
             type: int32
             min: 0
@@ -93,26 +93,24 @@ parameters:
             description:
                 short: MAVLink Network Port for instance ${i}
                 long: |
-                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
-                    selected udp port will be set and used in MAVLink instance ${i}.
+                    Local UDP port used when instance ${i} runs on ethernet (MAV_ETH_EN).
 
             type: int32
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: [14556, 0, 0]
+            default: [14550, 14550, 14550]
             requires_ethernet: true
 
         MAV_${i}_REMOTE_PRT:
             description:
                 short: MAVLink Remote Port for instance ${i}
                 long: |
-                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
-                    selected remote port will be set and used in MAVLink instance ${i}.
+                    Remote UDP port used when instance ${i} runs on ethernet (MAV_ETH_EN).
 
             type: int32
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: [14550, 0, 0]
+            default: [14550, 14550, 14550]
             requires_ethernet: true
 
         MAV_${i}_BROADCAST:
@@ -128,7 +126,7 @@ parameters:
                 1: Always broadcast
                 2: Only multicast
             num_instances: *max_num_config_instances
-            default: [1, 0, 0]
+            default: [1, 1, 1]
             requires_ethernet: true
 
         MAV_${i}_FLOW_CTRL:

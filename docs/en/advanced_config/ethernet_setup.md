@@ -162,19 +162,14 @@ This includes the set of MAVLink messages that are streamed, the data rate, the 
 You must separately configure the PX4 IP address and other _network settings_ ([as shown previously](#px4-ethernet-network-setup)).
 :::
 
-PX4 configures the serial port to connect to a GCS via MAVLink, using the parameters shown below:
+PX4 connects to a GCS via MAVLink on Ethernet using the parameters shown below:
 
-| Parameter                                                                      | Value  | Description                                                  |
-| ------------------------------------------------------------------------------ | ------ | ------------------------------------------------------------ |
-| [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN)             | 1      | Enable MAVLink on Ethernet                                   |
-| [MAV_1_BROADCAST](../advanced_config/parameter_reference.md#MAV_1_BROADCAST)   | 1      | Broadcast `HEARTBEAT` messages                               |
-| [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)             | 0      | Send the "normal" set of MAVLink messages (i.e. the GCS set) |
-| [MAV_1_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_1_RADIO_CTL)   | 0      | Disable software throttling of MAVLink traffic               |
-| [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE)             | 100000 | Maximum sending rate                                         |
-| [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT) | 14550  | MAVLink Remote Port of 14550 (GCS)                           |
-| [MAV_1_UDP_PRT](../advanced_config/parameter_reference.md#MAV_1_UDP_PRT)       | 14550  | MAVLink Network Port of 14550 (GCS)                          |
+| Parameter                                                          | Value | Description                                                  |
+| ------------------------------------------------------------------ | ----- | ------------------------------------------------------------ |
+| [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN) | 1     | Enable MAVLink on Ethernet                                   |
+| [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) | 0     | Send the "normal" set of MAVLink messages (i.e. the GCS set) |
 
-TELEM1 is instance 0, so ethernet is instance 1. If another UART is also MAVLink, ethernet moves to the next instance.
+TELEM1 is instance 0, so ethernet is instance 1. If another UART is also MAVLink, ethernet moves to the next instance. Every instance defaults to broadcasting `HEARTBEAT` ([MAV_1_BROADCAST](../advanced_config/parameter_reference.md#MAV_1_BROADCAST) = 1), UDP port 14550 for both [MAV_1_UDP_PRT](../advanced_config/parameter_reference.md#MAV_1_UDP_PRT) and [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT), and 100000 B/s when [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) is 0.
 
 Normally a companion computer would use port `14540` (rather than `14550`) and stream the set of MAVLink messages specified in the `Onboard` profile.
 You can configure this setup by changing [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT) and [MAV_1_UDP_PRT](../advanced_config/parameter_reference.md#MAV_1_UDP_PRT) to `14540` and [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) to `2` (Onboard).

@@ -55,14 +55,7 @@ Default mapping of MAVLink instance 0:
 
 Pixhawk 5x devices (and later) that have an Ethernet port, configure it by default to connect to a GCS:
 
-Enable with [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN). With TELEM1 as the only UART MAVLink port, ethernet is instance 1 (`MAV_1_UDP_PRT` = 14550).
-
-- [MAV_1_BROADCAST](../advanced_config/parameter_reference.md#MAV_1_BROADCAST) = `1`
-- [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = `0` (normal/GCS)
-- [MAV_1_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_1_RADIO_CTL) = `0`
-- [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) = `100000`
-- [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT) = `14550` (GCS)
-- [MAV_1_UDP_PRT](../advanced_config/parameter_reference.md#MAV_1_UDP_PRT) = `14550` (GCS)
+Enable with [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN). With TELEM1 as the only UART MAVLink port, ethernet is instance 1 and the board sets [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = `0` (normal/GCS). Every instance defaults to broadcast on, UDP port `14550` for both [MAV_1_UDP_PRT](../advanced_config/parameter_reference.md#MAV_1_UDP_PRT) and [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT), and `100000` B/s on ethernet.
 
 For more information see: [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md)
 
