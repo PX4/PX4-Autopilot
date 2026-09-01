@@ -43,7 +43,9 @@
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_gps.h>
@@ -148,6 +150,12 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(vehicle_status)) {
 		_vehicle_status_msg_id = msg_id;
 
+	} else if (sub.orb_meta == ORB_ID(sensor_selection)) {
+		_sensor_selection_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(launch_detection_status)) {
+		_launch_detection_status_msg_id = msg_id;
+
 	} else if (sub.orb_meta == ORB_ID(ekf2_timestamps)) {
 		_ekf2_timestamps_exists = true;
 
@@ -178,6 +186,8 @@ ReplayEkf2::publishEkf2Topics(sensor_combined_s &sensor_combined, std::ifstream 
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_gps_position_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_land_detected_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_status_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _sensor_selection_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _launch_detection_status_msg_id, replay_file);
 
 	// sensor_combined: publish last because ekf2 is polling on this
 	if (_last_sensor_combined_timestamp > 0) {
@@ -225,6 +235,8 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_gps_position_msg_id, replay_file);
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_land_detected_msg_id, replay_file);
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_status_msg_id, replay_file);
+	findTimestampAndPublish(ekf2_timestamps.timestamp, _sensor_selection_msg_id, replay_file);
+	findTimestampAndPublish(ekf2_timestamps.timestamp, _launch_detection_status_msg_id, replay_file);
 
 	publishUnmatchedImuSamples(ekf2_timestamps.timestamp, replay_file);
 
