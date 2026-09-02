@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Board specific sensors init
+#------------------------------------------------------------------------------
+# TODO: start all three instances
+board_adc start
+
+
+# SPI1, SPI2 isolated
+# SPI4 fixed
+
+# SPI1
+ms5611 -s -b 1 start -c 13
+if ! icm42688p -s -b 1 -q -R 2 -c 9 start
+then
+    icm45686 -s -b 1 -R 2 -c 9 start
+fi
+
+# SPI2
+rm3100 -s -b 2 -R 6 start -c 15
+if ! icm42688p -s -b 2 -q -R 10 -c 14 start
+then
+    icm45686 -s -b 2 -R 10 -c 14 start
+fi
+
+# SPI4
+if ! icm20649 -s -b 4 -q -R 10 -c 5 start
+then
+    icm45686 -s -b 4 -R 12 -c 5 start
+fi
+ms5611 -s -b 4 start -c 2
+
+# Start the bridge driver that talks to the CubeRed Secondary over UART7.
+cubered_bridge_primary start
