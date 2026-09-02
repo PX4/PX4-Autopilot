@@ -77,10 +77,13 @@ if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
 
+set(generated_serial_metadata_file ${PX4_BINARY_DIR}/serial.json)
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file} ${generated_autostart_header}
+	${generated_serial_metadata_file} ${generated_serial_metadata_file}.xz
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--params-file ${generated_serial_params_file}
+		--metadata-file ${generated_serial_metadata_file} --compress
 		--serial-ports ${board_serial_ports} ${added_arguments} ${constrained_flash_arg} ${board_with_io_arg}
 		--config-files ${module_config_files}
 		#--verbose
@@ -99,6 +102,7 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 	COMMENT "Generating serial_params.c"
 )
 add_custom_target(serial_autostart_config DEPENDS ${generated_autostart_header})
+add_custom_target(serial_json DEPENDS ${generated_serial_metadata_file})
 
 if(TARGET systemcmds__serial_autostart)
 	add_dependencies(systemcmds__serial_autostart serial_autostart_config)

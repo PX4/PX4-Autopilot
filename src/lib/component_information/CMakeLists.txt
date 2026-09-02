@@ -38,6 +38,7 @@
 # 3: COMP_METADATA_TYPE_PERIPHERALS
 # 4: COMP_METADATA_TYPE_EVENTS
 # 5: COMP_METADATA_TYPE_ACTUATORS
+# 6: serial bus configuration (serial.json), pending a COMP_METADATA_TYPE entry
 set(comp_metadata_types)
 set(comp_metadata_board "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}")
 set(s3_url "https://px4-travis.s3.amazonaws.com")
@@ -79,6 +80,17 @@ else()
 endif()
 list(APPEND comp_metadata_types "--type" "5,${PX4_BINARY_DIR}/actuators.json.xz,${comp_metadata_actuators_uri},${comp_metadata_actuators_uri_fallback},")
 
+set(comp_metadata_serial_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/serial.json.xz")
+list(FIND config_romfs_extra_dependencies "serial_json" index)
+if (${index} EQUAL -1)
+	set(comp_metadata_serial_uri ${comp_metadata_serial_uri_board})
+	set(comp_metadata_serial_uri_fallback "")
+else()
+	set(comp_metadata_serial_uri "mftp://etc/extras/serial.json.xz")
+	set(comp_metadata_serial_uri_fallback ${comp_metadata_serial_uri_board})
+endif()
+list(APPEND comp_metadata_types "--type" "6,${PX4_BINARY_DIR}/serial.json.xz,${comp_metadata_serial_uri},${comp_metadata_serial_uri_fallback},")
+
 
 set(component_general_json ${PX4_BINARY_DIR}/component_general.json)
 set(component_information_header ${CMAKE_CURRENT_BINARY_DIR}/checksums.h)
@@ -100,6 +112,8 @@ add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
 		events_json
 		${PX4_BINARY_DIR}/actuators.json.xz
 		actuators_json
+		${PX4_BINARY_DIR}/serial.json.xz
+		serial_json
 		ver_gen
 		generate_crc.py
 	COMMENT "Generating component_general.json and checksums.h"

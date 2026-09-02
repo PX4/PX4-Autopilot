@@ -7,6 +7,7 @@ rc.serial is a one-liner that runs serial_autostart; the C module walks ports.
 """
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -122,6 +123,10 @@ parser.add_argument('--ethernet', action='store_true',
                     help='Ethernet support')
 parser.add_argument('--board-with-io', action='store_true',
                     help='Board has PX4IO; do not default the RC UART to SBUS')
+parser.add_argument('--metadata-file', type=str, action='store',
+                    help='Serial component metadata JSON output file', default=None)
+parser.add_argument('--compress', action='store_true',
+                    help='Also write an xz-compressed copy of the metadata file')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 
@@ -135,6 +140,7 @@ generate_for_all_ports = args.all_ports
 constrained_flash = args.constrained_flash
 ethernet_supported = args.ethernet
 board_with_io = args.board_with_io
+metadata_output_file = args.metadata_file
 
 if generate_for_all_ports:
     board_ports = [(key, "") for key in serial_ports]
@@ -142,9 +148,9 @@ else:
     board_ports = [tuple(port.split(":")) for port in arg_board_serial_ports]
 
 
-if rc_serial_output_dir is None and serial_params_output_file is None:
-    raise Exception("At least one of --rc-dir or --params-file "
-        "(e.g. serial_params.c) needs to be specified")
+if rc_serial_output_dir is None and serial_params_output_file is None and metadata_output_file is None:
+    raise Exception("At least one of --rc-dir, --params-file "
+        "(e.g. serial_params.c) or --metadata-file needs to be specified")
 
 
 def parse_yaml_serial_config(yaml_config):
@@ -152,11 +158,19 @@ def parse_yaml_serial_config(yaml_config):
         return []
     ret = []
     module_name = yaml_config['module_name']
+    # Parameters with an instance placeholder belong to whichever port runs
+    # instance i; the GCS shows them under that port.
+    instance_params = []
+    for group in yaml_config.get('parameters', []):
+        for name in group.get('definitions', {}):
+            if '${i}' in name:
+                instance_params.append(name)
     for serial_config in yaml_config['serial_config']:
         if 'protocol_id' not in serial_config:
             raise Exception("{:}: serial_config entry missing protocol_id".format(module_name))
         if 'protocol_name' not in serial_config:
             serial_config['protocol_name'] = module_name
+        serial_config['instance_params'] = instance_params
         ret.append(serial_config)
     return ret
 
@@ -283,6 +297,7 @@ for serial_command in serial_commands:
         'num_instances': num_instances,
         'ethernet_param': ethernet_param,
         'ethernet_command': ethernet_command,
+        'instance_params': serial_command['instance_params'] if kind == 'instance' else [],
         })
 
 protocols.sort(key=lambda p: p['id'])
@@ -348,3 +363,52 @@ if serial_params_output_file is not None:
             serial_devices=serial_devices,
             protocols=protocols,
             ethernet_configuration=ethernet_configuration))
+
+if metadata_output_file is not None:
+    # Static COMPONENT_METADATA describing the serial buses, the port-selects-
+    # protocol counterpart of actuators.json. Ports are listed in instance
+    # order: the n-th port running an "instance" protocol is instance n, and
+    # ethernet takes the next free instance.
+    ports = []
+    for dev in serial_devices:
+        ports.append({
+            'id': dev['tag'],
+            'label': dev['label'],
+            'device': dev['device'],
+            'protocolParam': 'SER_{:}_PROTO'.format(dev['tag']),
+            'baudParam': 'SER_{:}_BAUD'.format(dev['tag']),
+            'defaultBaud': dev['default_baudrate'],
+            })
+    protocol_list = [{'id': 0, 'name': 'Disabled'}]
+    for protocol in protocols:
+        entry = {
+            'id': protocol['id'],
+            'name': protocol['name'],
+            'maxPorts': protocol['num_instances'],
+            }
+        if protocol['instance_params']:
+            entry['instanceParams'] = protocol['instance_params']
+        if protocol['ethernet_param']:
+            entry['ethernetParam'] = protocol['ethernet_param']
+        protocol_list.append(entry)
+    metadata = {
+        'version': 1,
+        'buses': {
+            'serial': {
+                'ports': ports,
+                'protocols': protocol_list,
+                'ethernet': ethernet_supported,
+                },
+            },
+        }
+    if verbose:
+        print("Generating {:}".format(metadata_output_file))
+    with open(metadata_output_file, 'w') as fid:
+        json.dump(metadata, fid, indent=2, sort_keys=True)
+        fid.write('\n')
+    if args.compress:
+        import lzma
+        with open(metadata_output_file, 'r') as fid:
+            content = fid.read()
+        with lzma.open(metadata_output_file + '.xz', 'wt', preset=9) as fid:
+            fid.write(content)

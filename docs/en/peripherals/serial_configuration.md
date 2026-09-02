@@ -104,6 +104,32 @@ make <vendor>_<board>_<label> boardconfig
 
 You will then need to build the firmware for your platform, as described in [Building PX4 Software](../dev_setup/building_px4.md).
 
+## Serial Metadata
+
+Each firmware build embeds `serial.json` and lists it in the component metadata (`component_general.json`, type 6) so a ground station can build a serial configuration page without knowing any parameter names.
+
+```json
+{
+  "version": 1,
+  "buses": {
+    "serial": {
+      "ethernet": true,
+      "ports": [
+        { "id": "TEL1", "label": "TELEM 1", "device": "/dev/ttyS6",
+          "protocolParam": "SER_TEL1_PROTO", "baudParam": "SER_TEL1_BAUD", "defaultBaud": 57600 }
+      ],
+      "protocols": [
+        { "id": 0, "name": "Disabled" },
+        { "id": 1, "name": "MAVLink", "maxPorts": 3,
+          "instanceParams": ["MAV_${i}_MODE", "MAV_${i}_RATE"], "ethernetParam": "MAV_ETH_EN" }
+      ]
+    }
+  }
+}
+```
+
+Ports are listed in instance order: the n-th port whose protocol has `instanceParams` runs instance `n`, and `${i}` in those names is that instance. A protocol with `ethernetParam` also runs over UDP when that parameter is set, taking the next free instance. Protocol names and ids match the `protocolParam` enum, and `maxPorts` is how many ports may select the protocol at once.
+
 ## Further Information
 
 - [MAVLink Peripherals (OSD/GCS/Companion Computers/etc.)](../peripherals/mavlink_peripherals.md)
