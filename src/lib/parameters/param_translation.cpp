@@ -171,6 +171,12 @@ static void apply_rc_serial_import()
 	const int32_t proto = (serial_rc_input_proto == INT32_MIN) ? 10 : map_rc_input_proto(serial_rc_input_proto);
 	const int32_t port = (serial_rc_port == INT32_MIN) ? 300 : serial_rc_port;
 
+	// RC_PORT_CONFIG was a board default on boards without an RC slot; the
+	// board default for that port already carries the receiver protocol.
+	if (serial_rc_port == INT32_MIN && serial_prot_name(300) == nullptr) {
+		return;
+	}
+
 	if (proto == -2) {
 		int32_t one = 1;
 		param_set(param_find("RC_PPM_EN"), &one);
@@ -221,6 +227,11 @@ static void apply_rc_serial_import()
 	int32_t id = proto;
 	param_set(param_find(dest), &id);
 	PARAM_MIGRATE_INFO("migrating RC -> %s=%" PRId32, dest, id);
+
+	// The receiver moved off the RC port, which still defaults to SBUS.
+	if (port != 300) {
+		serial_clear_default(300);
+	}
 }
 
 static void permute_mav_params(const int new_of_old[kMavInstances])
@@ -436,7 +447,12 @@ static void apply_mav_serial_import()
 			PARAM_MIGRATE_WARN("dropping ethernet MAVLink");
 
 		} else {
-			param_set(eth_p, &one);
+			// An unseen MAV_n_CONFIG was a board default; the new board
+			// default decides MAV_ETH_EN, only a stored 1000 forces it on.
+			if (mav_config[eth_old] != INT32_MIN) {
+				param_set(eth_p, &one);
+			}
+
 			new_of_old[eth_old] = assigned;
 			PARAM_MIGRATE_INFO("migrating MAV_%d_CONFIG -> MAV_ETH_EN (instance %d)", eth_old, assigned);
 		}
