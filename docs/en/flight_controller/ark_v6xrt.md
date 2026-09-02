@@ -115,9 +115,15 @@ A remote control (RC) radio system is required if you want to _manually_ control
 
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-RC shares `LPUART6` with PX4IO.
-On a carrier fitted with PX4IO, the IO processor decodes SBUS, PPM, and DSM/DSMX.
-CRSF is decoded on the FMU instead and is enabled by default ([RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) is set to the `RC` port); [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) is off so that the FMU driver does not contend with PX4IO.
+The `RC` port on your carrier board will behave differently depending on whether or not it includes an IO board:
+
+- **Carrier without PX4IO** (`RC` wired to FMU):
+  - CRSF receivers are enabled by default.
+  - You can enable other protocols by mapping them to the port using their associated parameters, such as [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG), [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG).
+    Note that only one protocol can be active on a port, so you will have to first disable `RC_CRSF_PRT_CFG`.
+- **Carrier with PX4IO** (`RC` wired to PX4IO):
+  - The IO board autodetects and connects to receivers that use [protocols supported by the IO driver](../modules/modules_driver.md#px4io): PPM (CPPM), S.BUS, S.BUS2, Spektrum DSM / DSM2 / DSM-X, Yuneec ST24, Graupner SUMD.
+  - For other protocols, connect your receiver to any unused FMU serial port and enable the corresponding parameter as shown above (you will need to do this for GHST and CRSF receivers).
 
 ## GPS & Compass {#gps_compass}
 
