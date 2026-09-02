@@ -268,7 +268,7 @@
 
 /* RC Serial port */
 
-#define RC_SERIAL_PORT                     "/dev/ttyS4"
+#define RC_SERIAL_PORT                     "/dev/ttyS5"
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
