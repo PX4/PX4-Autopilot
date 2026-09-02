@@ -76,14 +76,11 @@ then
 	# Internal magnetometer (BMM150) on I2C
 	bmm150 -I -R 0 start
 
-	# Possible internal Baro
-	if param compare SENS_INT_BARO_EN 1
-	then
-		bmp388 -I -a 0x77 start
-	fi
+	# Internal baro
+	bmp388 -I -a 0x77 start
 
-	# External baro
-	bmp388 -X start
+	# Onboard baro on I2C2 (shared with the PM2 connector)
+	bmp388 -I -b 2 start
 else
 	# Internal SPI bus ICM45686
 	icm45686 -R 0 -s start
@@ -91,14 +88,11 @@ else
 	# Internal magnetometer (BMM350) on I2C
 	bmm350 -I -R 4 start
 
-	# Possible internal Baro
-	if param compare SENS_INT_BARO_EN 1
-	then
-		bmp581 -I -a 0x47 start
-	fi
+	# Internal baro
+	bmp581 -I -a 0x47 start
 
-	# External baro
-	bmp581 -X start
+	# Onboard baro on I2C2 (shared with the PM2 connector)
+	bmp581 -I -b 2 start
 fi
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)

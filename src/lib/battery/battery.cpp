@@ -53,10 +53,10 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_index(index < 1 || index > 9 ? 1 : index),
 	_source(source)
 {
-	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1_s;
-	_current_average_filter_a.setParameters(expected_filter_dt, 50.f);
-	_ocv_filter_v.setParameters(expected_filter_dt, 1.f);
-	_cell_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
+	const hrt_abstime expected_filter_dt_us = static_cast<hrt_abstime>(sample_interval_us);
+	_current_average_filter_a.setParameters(expected_filter_dt_us, 50_s);
+	_ocv_filter_v.setParameters(expected_filter_dt_us, 1_s);
+	_cell_voltage_filter_v.setParameters(expected_filter_dt_us, 1_s);
 
 	if (index > 9 || index < 1) {
 		PX4_ERR("Battery index must be between 1 and 9 (inclusive). Received %d. Defaulting to 1.", index);
@@ -410,7 +410,7 @@ float Battery::computeRemainingTime(float current_a)
 		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
 					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
 			if (_dt > FLT_EPSILON) {
-				_current_average_filter_a.update(fmaxf(current_a, 0.f), _dt);
+				_current_average_filter_a.update(fmaxf(current_a, 0.f), static_cast<uint64_t>(_dt * 1e6f));
 
 			} else {
 				_current_average_filter_a.update(fmaxf(current_a, 0.f));

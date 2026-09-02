@@ -52,6 +52,7 @@ parameters:
           100: Battery
           101: Motor
           107: Traffic avoidance
+          200: CAN bus
       SYS_FAIL_RC_MODE:
         description:
           short: Failure type applied by the RC switch

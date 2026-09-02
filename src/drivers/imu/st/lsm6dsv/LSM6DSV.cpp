@@ -42,15 +42,16 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 
 static constexpr bool IsSupportedWhoAmI(uint8_t whoami)
 {
-	return (whoami == WHO_AM_I_ID) || (whoami == WHO_AM_I_DSK320X);
+	return (whoami == WHO_AM_I_ID) || (whoami == WHO_AM_I_DSK320X) || (whoami == WHO_AM_I_HIGHG);
 }
 
 LSM6DSV::LSM6DSV(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external),
+	_highg_variant_arg(config.custom1)
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
@@ -61,7 +62,6 @@ LSM6DSV::LSM6DSV(const I2CSPIDriverConfig &config) :
 
 LSM6DSV::~LSM6DSV()
 {
-	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
@@ -92,6 +92,16 @@ int LSM6DSV::init()
 	case DeviceVariant::LSM6DSK320X:
 		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ST_LSM6DSK320X);
 		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ST_LSM6DSK320X);
+		break;
+
+	case DeviceVariant::LSM6DSV320X:
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ST_LSM6DSV320X);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ST_LSM6DSV320X);
+		break;
+
+	case DeviceVariant::LSM6DSV80X:
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ST_LSM6DSV80X);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ST_LSM6DSV80X);
 		break;
 	}
 
@@ -125,15 +135,22 @@ void LSM6DSV::print_status()
 	case DeviceVariant::LSM6DSV32X:   variant_str = "LSM6DSV32X";   break;
 
 	case DeviceVariant::LSM6DSK320X:  variant_str = "LSM6DSK320X";  break;
+
+	case DeviceVariant::LSM6DSV320X:  variant_str = "LSM6DSV320X";  break;
+
+	case DeviceVariant::LSM6DSV80X:   variant_str = "LSM6DSV80X";   break;
 	}
 
 	PX4_INFO("Device variant: %s", variant_str);
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz), %ld samples per cycle",
 		 _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us, (long)_fifo_gyro_samples);
-	PX4_INFO("Sensor ODR: %u Hz (HAODR mode1), FIFO sample dt: %.0f us",
-		 (unsigned)GYRO_ODR, (double)FIFO_SAMPLE_DT);
+	PX4_INFO("Sensor ODR: %u Hz (HAODR), FIFO sample dt: %.1f us, %u words/period",
+		 (unsigned)_sensor_odr, (double)_fifo_sample_dt, (unsigned)_fifo_words_per_period);
 
-	perf_print_counter(_bad_register_perf);
+	if (_dsv80x_family) {
+		PX4_INFO("Accel channel: low-g, full-scale +/-16 g (high-g channel unused)");
+	}
+
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
@@ -143,11 +160,47 @@ void LSM6DSV::print_status()
 
 int LSM6DSV::probe()
 {
-	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
+	// The first SPI transaction after power-up can return garbage while the device's shared
+	// I2C/I3C/SPI interface latches onto SPI (selected by the first CS falling edge), so retry
+	// the WHO_AM_I read a few times before giving up.
+	uint8_t whoami = 0;
+
+	for (int attempt = 0; attempt < 3; attempt++) {
+		whoami = RegisterRead(Register::WHO_AM_I);
+
+		if (IsSupportedWhoAmI(whoami)) {
+			break;
+		}
+
+		px4_usleep(1000);
+	}
 
 	if (whoami == WHO_AM_I_DSK320X) {
 		_device_variant = DeviceVariant::LSM6DSK320X;
 		PX4_INFO("detected LSM6DSK320X");
+		UpdateVariantRegisterConfig();
+		return PX4_OK;
+	}
+
+	if (whoami == WHO_AM_I_HIGHG) {
+		// The LSM6DSV80X and LSM6DSV320X share this WHO_AM_I and register map and cannot be told
+		// apart over SPI, so the physically-installed part is selected explicitly at start with the
+		// -T argument (config.custom1): 320 -> LSM6DSV320X, otherwise (incl. 80 / unset) -> 80X.
+		if (_highg_variant_arg == 320) {
+			_device_variant = DeviceVariant::LSM6DSV320X;
+			PX4_INFO("LSM6DSV320X selected (WHO_AM_I 0x73)");
+
+		} else {
+			_device_variant = DeviceVariant::LSM6DSV80X;
+
+			if (_highg_variant_arg != 80) {
+				PX4_WARN("WHO_AM_I 0x73 is ambiguous (80X/320X); defaulting to LSM6DSV80X. Pass -T 80 or -T 320.");
+
+			} else {
+				PX4_INFO("LSM6DSV80X selected (WHO_AM_I 0x73)");
+			}
+		}
+
 		UpdateVariantRegisterConfig();
 		return PX4_OK;
 	}
@@ -270,15 +323,17 @@ void LSM6DSV::RunImpl()
 
 			} else {
 				// FIFO unread word count: 9-bit field (FIFO_STATUS2 bit0 is bit8)
-				// Each sample period produces 2 words (1 gyro word + 1 accel word)
+				// Each sample period produces _fifo_words_per_period words (gyro + accel)
 				uint16_t fifo_words = fifo_status.STATUS1;
 
 				if (fifo_status.STATUS2 & static_cast<uint8_t>(FIFO_STATUS2_BIT::DIFF_FIFO_8)) {
 					fifo_words |= (1u << 8);
 				}
 
-				// Convert word count to sample periods for comparisons against _fifo_gyro_samples / FIFO_MAX_SAMPLES
-				const uint16_t sample_periods = fifo_words / 2;
+				// Drain whole sample periods only. A period that was still being batched when the
+				// status was read stays in the FIFO for the next cycle, so a batch never carries a
+				// partial period and the per-channel sample counts always agree.
+				uint16_t sample_periods = fifo_words / _fifo_words_per_period;
 
 				if (sample_periods == 0) {
 					perf_count(_fifo_empty_perf);
@@ -292,11 +347,11 @@ void LSM6DSV::RunImpl()
 
 					// tolerate minor jitter, leave sample to next iteration if behind by only 1
 					if (sample_periods == static_cast<uint16_t>(_fifo_gyro_samples) + 1) {
-						timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
-						fifo_words -= 2;
+						timestamp_sample -= static_cast<int>(_fifo_sample_dt);
+						sample_periods--;
 					}
 
-					if (FIFORead(timestamp_sample, fifo_words)) {
+					if (FIFORead(timestamp_sample, sample_periods * _fifo_words_per_period)) {
 						success = true;
 
 						if (_failure_count > 0) {
@@ -315,23 +370,10 @@ void LSM6DSV::RunImpl()
 				}
 			}
 
-			// periodically check configuration registers
-			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-				if (RegisterCheck(_register_cfg[_checked_register])) {
-					_last_config_check_timestamp = now;
-					_checked_register = (_checked_register + 1) % size_register_cfg;
-
-				} else {
-					perf_count(_bad_register_perf);
-					Reset();
-				}
-
-			} else {
-				// periodically update temperature (~1 Hz)
-				if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
-					UpdateTemperature();
-					_temperature_update_timestamp = now;
-				}
+			// periodically update temperature (~1 Hz)
+			if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
+				UpdateTemperature();
+				_temperature_update_timestamp = now;
 			}
 		}
 
@@ -341,30 +383,91 @@ void LSM6DSV::RunImpl()
 
 void LSM6DSV::ConfigureSampleRate(int sample_rate)
 {
-	const float min_interval = FIFO_SAMPLE_DT;
+	const float min_interval = _fifo_sample_dt;
 	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
-	_fifo_gyro_samples = roundf(math::min((float)_fifo_empty_interval_us / (1e6f / GYRO_RATE), (float)FIFO_MAX_SAMPLES));
+	_fifo_gyro_samples = roundf(math::min((float)_fifo_empty_interval_us / _fifo_sample_dt, (float)FIFO_MAX_SAMPLES));
 
-	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / GYRO_RATE);
+	_fifo_empty_interval_us = _fifo_gyro_samples * _fifo_sample_dt;
 
 	ConfigureFIFOWatermark(_fifo_gyro_samples);
 }
 
 void LSM6DSV::UpdateVariantRegisterConfig()
 {
-	for (auto &r : _register_cfg) {
-		if (r.reg == Register::CTRL6) {
-			r.set_bits = (_device_variant == DeviceVariant::LSM6DSK320X)
-				     ? CTRL6_BIT::FS_G_2000DPS_DSK320X
-				     : CTRL6_BIT::FS_G_2000DPS;
+	_dsv80x_family = (_device_variant == DeviceVariant::LSM6DSV80X)
+			 || (_device_variant == DeviceVariant::LSM6DSV320X);
 
-		} else if (r.reg == Register::CTRL8) {
+	// the 80X / 320X run the 7.68 kHz HAODR set (HAODR_SEL=00)
+	_sensor_odr = _dsv80x_family ? ODR_DSV80X : GYRO_ODR;
+
+	_fifo_words_per_period = 2; // gyro + low-g accel
+
+	_fifo_sample_dt = 1e6f / (float)_sensor_odr;
+
+	for (auto &r : _register_cfg) {
+		switch (r.reg) {
+		case Register::CTRL6: // gyroscope full-scale
+			switch (_device_variant) {
+			case DeviceVariant::LSM6DSV80X:
+			case DeviceVariant::LSM6DSV320X:
+				r.set_bits = CTRL6_BIT::FS_G_4000DPS_HIGHG; // ±4000 dps (CTRL6 bit3 = 1)
+				break;
+
+			case DeviceVariant::LSM6DSK320X:
+				r.set_bits = CTRL6_BIT::FS_G_2000DPS_DSK320X;
+				break;
+
+			default:
+				r.set_bits = CTRL6_BIT::FS_G_2000DPS;
+				break;
+			}
+
+			break;
+
+		case Register::CTRL8: // low-g accelerometer full-scale (±16 g) + LPF2 bandwidth
 			r.set_bits = (_device_variant == DeviceVariant::LSM6DSV32X)
 				     ? static_cast<uint8_t>(CTRL8_BIT::FS_XL_16G_DSV32X | CTRL8_BIT::LPF2_BW_ODR_DIV_10)
 				     : static_cast<uint8_t>(CTRL8_BIT::FS_XL_16G | CTRL8_BIT::LPF2_BW_ODR_DIV_10);
+			break;
+
+		case Register::HAODR_CFG: // HAODR ODR set selection
+			if (_dsv80x_family) {
+				r.set_bits = 0;                              // HAODR_SEL=00 (1920/3840/7680 Hz set)
+				r.clear_bits = HAODR_CFG_BIT::HAODR_SEL_MASK;
+
+			} else {
+				r.set_bits = HAODR_CFG_BIT::HAODR_MODE1;     // HAODR_SEL=01 (2000 Hz set)
+				r.clear_bits = 0;
+			}
+
+			break;
+
+		case Register::CTRL1: // accelerometer ODR + high-accuracy ODR mode
+			r.set_bits = _dsv80x_family
+				     ? static_cast<uint8_t>(HAODR_SEL0_ODR_7680HZ | CTRL1_BIT::CTRL1_MODE_HAODR)
+				     : static_cast<uint8_t>(HAODR_MODE1_ODR_2000HZ | CTRL1_BIT::CTRL1_MODE_HAODR);
+			break;
+
+		case Register::CTRL2: // gyroscope ODR + high-accuracy ODR mode
+			r.set_bits = _dsv80x_family
+				     ? static_cast<uint8_t>(HAODR_SEL0_ODR_7680HZ | CTRL2_BIT::CTRL2_MODE_HAODR)
+				     : static_cast<uint8_t>(HAODR_MODE1_ODR_2000HZ | CTRL2_BIT::CTRL2_MODE_HAODR);
+			break;
+
+		case Register::FIFO_CTRL3: // FIFO batch data rate (gyro + low-g accel)
+			r.set_bits = _dsv80x_family
+				     ? static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_7680 | FIFO_CTRL3_BIT::BDR_XL_7680)
+				     : static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_HAODR | FIFO_CTRL3_BIT::BDR_XL_HAODR);
+			break;
+
+		default:
+			break;
 		}
 	}
+
+	// recompute FIFO timing / watermark for the (possibly changed) ODR and word count
+	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }
 
 bool LSM6DSV::Configure()
@@ -383,11 +486,20 @@ bool LSM6DSV::Configure()
 		}
 	}
 
-	// Gyroscope: ±2000 dps, 70 mdps/LSB (ST datasheet)
-	_px4_gyro.set_scale(math::radians(70.f / 1000.f));
-	_px4_gyro.set_range(math::radians(2000.f));
+	// Scale and range are set once here and never touched again, so every published batch carries
+	// the same scale factor.
+	if (_dsv80x_family) {
+		// Gyroscope: ±4000 dps, 140 mdps/LSB (ST datasheet) — LSM6DSV80X / LSM6DSV320X
+		_px4_gyro.set_scale(math::radians(140.f / 1000.f));
+		_px4_gyro.set_range(math::radians(4000.f));
 
-	// Accelerometer: ±16g, 0.488 mg/LSB (ST datasheet)
+	} else {
+		// Gyroscope: ±2000 dps, 70 mdps/LSB (ST datasheet)
+		_px4_gyro.set_scale(math::radians(70.f / 1000.f));
+		_px4_gyro.set_range(math::radians(2000.f));
+	}
+
+	// Accelerometer (low-g on every variant): ±16 g, 0.488 mg/LSB (ST datasheet)
 	_px4_accel.set_scale(0.488f * (CONSTANTS_ONE_G / 1000.f));
 	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 
@@ -438,87 +550,99 @@ void LSM6DSV::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cle
 	}
 }
 
-bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
+bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 {
+	// Drain the requested words in one burst. RunImpl() hands over whole sample periods, at most
+	// FIFO_MAX_SAMPLES of them; clamp defensively so transfer_size can never run past the buffer.
+	const uint16_t words_to_read = math::min<uint16_t>(words, FIFO_MAX_SAMPLES * _fifo_words_per_period);
+	const size_t transfer_size = words_to_read * FIFO::WORD_SIZE + 1;
+
+	// _fifo_buffer is reused across cycles. transfer() clobbers the command byte with the byte
+	// clocked in alongside it, so restore it; the rest needs no clearing because only the words
+	// covered by transfer_size are ever parsed.
+	_fifo_buffer.cmd = static_cast<uint8_t>(Register::FIFO_DATA_OUT_TAG) | DIR_READ;
+
+	if (transfer((uint8_t *)&_fifo_buffer, (uint8_t *)&_fifo_buffer, transfer_size) != PX4_OK) {
+		perf_count(_bad_transfer_perf);
+		return false;
+	}
+
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = 0;
-	gyro.dt = FIFO_SAMPLE_DT;
+	gyro.dt = _fifo_sample_dt;
 
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
-	accel.dt = FIFO_SAMPLE_DT;
+	accel.dt = _fifo_sample_dt;
 
-	// Read FIFO word by word: each word is 7 bytes (tag + 6 data)
-	for (uint16_t i = 0; i < samples; i++) {
-		// Read tag + data in one transfer (1 cmd byte + 7 data bytes)
-		struct FIFOWordTransfer {
-			uint8_t cmd{static_cast<uint8_t>(Register::FIFO_DATA_OUT_TAG) | DIR_READ};
-			uint8_t TAG{0};
-			uint8_t DATA_X_L{0};
-			uint8_t DATA_X_H{0};
-			uint8_t DATA_Y_L{0};
-			uint8_t DATA_Y_H{0};
-			uint8_t DATA_Z_L{0};
-			uint8_t DATA_Z_H{0};
-		} buffer{};
+	// set if the tag stream carries more samples of a channel than the drain should have produced
+	bool tag_mismatch = false;
 
-		if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, sizeof(buffer)) != PX4_OK) {
-			perf_count(_bad_transfer_perf);
-			continue;
-		}
+	for (uint16_t i = 0; i < words_to_read; i++) {
+		const FIFOWord &word = _fifo_buffer.words[i];
 
 		// Decode tag from upper 5 bits
-		const uint8_t tag_id = buffer.TAG >> 3;
+		const uint8_t tag_id = word.TAG >> 3;
 
-		const int16_t data_x = combine(buffer.DATA_X_H, buffer.DATA_X_L);
-		const int16_t data_y = combine(buffer.DATA_Y_H, buffer.DATA_Y_L);
-		const int16_t data_z = combine(buffer.DATA_Z_H, buffer.DATA_Z_L);
+		// sensor's frame is +x forward, +y left, +z up
+		//  flip y & z to publish right handed with z down (x forward, y right, z down)
+		const int16_t data_x = combine(word.DATA_X_H, word.DATA_X_L);
+		const int16_t y = combine(word.DATA_Y_H, word.DATA_Y_L);
+		const int16_t z = combine(word.DATA_Z_H, word.DATA_Z_L);
+		const int16_t data_y = (y == INT16_MIN) ? INT16_MAX : -y;
+		const int16_t data_z = (z == INT16_MIN) ? INT16_MAX : -z;
 
 		if (tag_id == static_cast<uint8_t>(FifoTag::GYRO_NC)) {
-			if (gyro.samples < (sizeof(gyro.x) / sizeof(gyro.x[0]))) {
-				gyro.x[gyro.samples] = data_x;
-				gyro.y[gyro.samples] = data_y;
-				gyro.z[gyro.samples] = data_z;
-				gyro.samples++;
+			if (gyro.samples >= FIFO_MAX_SAMPLES) {
+				tag_mismatch = true;
+				break;
 			}
+
+			gyro.x[gyro.samples] = data_x;
+			gyro.y[gyro.samples] = data_y;
+			gyro.z[gyro.samples] = data_z;
+			gyro.samples++;
 
 		} else if (tag_id == static_cast<uint8_t>(FifoTag::ACCEL_NC)) {
-			if (accel.samples < (sizeof(accel.x) / sizeof(accel.x[0]))) {
-				accel.x[accel.samples] = data_x;
-				accel.y[accel.samples] = data_y;
-				accel.z[accel.samples] = data_z;
-				accel.samples++;
+			if (accel.samples >= FIFO_MAX_SAMPLES) {
+				tag_mismatch = true;
+				break;
 			}
 
-		} else if (tag_id == static_cast<uint8_t>(FifoTag::TEMPERATURE)) {
-			const int16_t temp_raw = combine(buffer.DATA_X_H, buffer.DATA_X_L);
-			const float temperature = (temp_raw / 256.0f) + 25.0f;
-
-			if (PX4_ISFINITE(temperature)) {
-				_px4_accel.set_temperature(temperature);
-				_px4_gyro.set_temperature(temperature);
-			}
+			accel.x[accel.samples] = data_x;
+			accel.y[accel.samples] = data_y;
+			accel.z[accel.samples] = data_z;
+			accel.samples++;
 		}
 
-		// Other tags (TIMESTAMP, etc.) are silently ignored
+		// Other tags are ignored. FIFO_CTRL4 leaves ODR_T_BATCH and DEC_TS_BATCH at 0, so neither
+		// temperature nor timestamp is batched; temperature comes from UpdateTemperature().
 	}
 
-	// Publish
+	if (tag_mismatch) {
+		// the drain is bounded to whole sample periods, so a channel overrunning its share means
+		// the tag stream no longer matches the configured batching - resync rather than publish it
+		perf_count(_bad_transfer_perf);
+		FIFOReset();
+		return false;
+	}
+
+	const uint32_t error_count = perf_event_count(_bad_transfer_perf) +
+				     perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+
 	if (gyro.samples > 0) {
-		_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-					  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+		_px4_gyro.set_error_count(error_count);
 		_px4_gyro.updateFIFO(gyro);
 	}
 
 	if (accel.samples > 0) {
-		_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-					   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+		_px4_accel.set_error_count(error_count);
 		_px4_accel.updateFIFO(accel);
 	}
 
-	return (accel.samples > 0) && (gyro.samples > 0);
+	return (gyro.samples > 0) && (accel.samples > 0);
 }
 
 void LSM6DSV::FIFOReset()
@@ -590,8 +714,9 @@ bool LSM6DSV::DataReadyInterruptDisable()
 
 void LSM6DSV::ConfigureFIFOWatermark(uint8_t samples)
 {
-	// accel + gyro = 2 FIFO words per sample period
-	const uint8_t fifo_watermark = samples * 2;
+	// _fifo_words_per_period FIFO words per sample period (gyro + accel).
+	// WTM is the 8-bit FIFO_CTRL1 field; samples is capped at FIFO_MAX_SAMPLES (32) so this fits.
+	const uint8_t fifo_watermark = samples * _fifo_words_per_period;
 
 	for (auto &r : _register_cfg) {
 		if (r.reg == Register::FIFO_CTRL1) {

@@ -64,6 +64,8 @@ bool FlightTaskManualAltitude::activate(const trajectory_setpoint_s &last_setpoi
 	_acceleration_setpoint = Vector3f(0.f, 0.f, NAN); // altitude is controlled from position/velocity
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.f;
+	_terrain_hold = false;
+	_dist_to_ground_lock = NAN;
 	_stick_yaw.reset(_yaw, _unaided_yaw);
 	_setDefaultConstraints();
 
@@ -132,8 +134,9 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 				} else {
 					_position_setpoint(2) = _position(2);
-					_dist_to_ground_lock = NAN;
 				}
+
+				_dist_to_ground_lock = NAN;
 			}
 
 		} else {

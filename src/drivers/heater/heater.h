@@ -151,7 +151,7 @@ private:
 #endif
 
 	hrt_abstime _battery_status_last_update_time{0};
-	float _nominal_multiplier = 0.0f;
+	float _nominal_multiplier = 1.0f;
 
 	int _controller_time_on_usec = 0;
 
@@ -170,7 +170,6 @@ private:
 
 	float _temperature_last{NAN};
 	float _supply_voltage{NAN};
-	float _heater_current{NAN};
 	bool _temperature_activation_threshold_met{false};
 	const uint8_t _instance; //! 1-based
 

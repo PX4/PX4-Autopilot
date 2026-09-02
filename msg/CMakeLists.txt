@@ -100,6 +100,7 @@ set(msg_files
 	FixedWingLateralGuidanceStatus.msg
 	FixedWingLateralStatus.msg
 	FixedWingRunwayControl.msg
+	FixedWingTakeoffStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg

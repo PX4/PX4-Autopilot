@@ -1010,6 +1010,14 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 	mission_item_s new_mission;
 
 	for (uint16_t jump_count = 0u; jump_count < MAX_JUMP_ITERATION; jump_count++) {
+		if (new_mission_index >= _mission.count || new_mission_index < 0) {
+			// Running off either end of the mission while skipping over jumps is a normal
+			// outcome, for example when the last item is a DO_JUMP that has used up its
+			// repeats. Report it the same way an out of range index is reported on entry
+			// rather than as a storage failure.
+			return PX4_ERROR;
+		}
+
 		/* read mission item from datamanager */
 		bool success = loadMissionItemFromCache(new_mission_index, new_mission);
 

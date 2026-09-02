@@ -128,14 +128,31 @@ if (os.path.exists('src/modules/mavlink/mavlink/.git')):
 
 # NuttX
 if (os.path.exists('platforms/nuttx/NuttX/nuttx/.git')):
-    nuttx_git_tags = subprocess.check_output('git -c versionsort.suffix=- tag --sort=v:refname'.split(),
-                                  cwd='platforms/nuttx/NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip()
-    # may be empty if shallow clone
-    if (len(nuttx_git_tags) > 0):
-        nuttx_git_tag = re.findall(r'nuttx-[0-9]+\.[0-9]+\.[0-9]+', nuttx_git_tags)[-1].replace("nuttx-", "v")
-        nuttx_git_tag = re.sub('-.*', '.0', nuttx_git_tag)
+    # The PX4/NuttX fork branch name recorded in .gitmodules is the
+    # authoritative kernel version: px4_firmware_nuttx-X.Y.Z+ is updated
+    # in the same commit as every kernel upgrade. Fall back to git
+    # describe for checkouts that do not follow the fork convention
+    # (e.g. upstream apache/nuttx directly, which carries release tags).
+    nuttx_git_tag = "v0.0.0"
+    try:
+        nuttx_branch = subprocess.check_output(
+            'git config -f .gitmodules submodule.platforms/nuttx/NuttX/nuttx.branch'.split(),
+            stderr=subprocess.STDOUT).decode('utf-8').strip()
+        branch_version = re.match(r'^px4_firmware_nuttx-([0-9]+\.[0-9]+\.[0-9]+)\+?$', nuttx_branch)
+    except subprocess.CalledProcessError:
+        branch_version = None
+    if branch_version:
+        nuttx_git_tag = "v" + branch_version.group(1)
     else:
-        nuttx_git_tag = "v0.0.0"
+        try:
+            nuttx_describe = subprocess.check_output(
+                'git describe --tags --match nuttx-*'.split(),
+                cwd='platforms/nuttx/NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip()
+            describe_version = re.match(r'^nuttx-([0-9]+\.[0-9]+\.[0-9]+)', nuttx_describe)
+            if describe_version:
+                nuttx_git_tag = "v" + describe_version.group(1)
+        except subprocess.CalledProcessError:
+            pass
     nuttx_git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),
                                       cwd='platforms/nuttx/NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip()
     nuttx_git_version_short = nuttx_git_version[0:16]

@@ -105,7 +105,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	reporter.failsafeFlags().gnss_lost = below_required || divergence_triggers_failsafe;
 
 	if (below_required || dropped_below_peak) {
-		const bool block_arming = below_required && act_configured;
+		const bool block_arming = below_required  && (act_configured || !context.isArmed());
 		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
 		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
 		const int expected = below_required ? _param_sys_has_num_gnss.get() : _peak_fixed_count;
@@ -139,7 +139,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	}
 
 	if (_divergence_hysteresis.get_state()) {
-		const bool block_arming = divergence_triggers_failsafe && act_configured;
+		const bool block_arming = divergence_triggers_failsafe && (act_configured || !context.isArmed());
 		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
 		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
 

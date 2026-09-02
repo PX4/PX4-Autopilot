@@ -19,8 +19,10 @@ It can be enabled with the "SENS_EN_ASP5033" parameter set to 1.
 asp5033 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -45,14 +47,49 @@ auav <command> [arguments...]
    start
      [-D]        Differential pressure sensing
      [-A]        Absolute pressure sensing
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
                  default: 38
+
+   stop
+
+   status        print status info
+```
+
+## dlvr
+
+Source: [drivers/differential_pressure/dlvr](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure/dlvr)
+
+### 描述
+
+I2C driver for _Amphenol All Sensors_ Digital Low Voltage R-Series (DLVR) pressure sensors
+(continuous-sampling variants only).
+
+The driver is enabled for specific sensor-variants using the parameter "SENS_EN_DLVR".
+
+### Usage {#dlvr_usage}
+
+```
+dlvr <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 40
 
    stop
 
@@ -69,8 +106,10 @@ Source: [drivers/differential_pressure/ets](https://github.com/PX4/PX4-Autopilot
 ets_airspeed <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -93,8 +132,10 @@ Source: [drivers/differential_pressure/ms4515](https://github.com/PX4/PX4-Autopi
 ms4515 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -117,8 +158,10 @@ Source: [drivers/differential_pressure/ms4525do](https://github.com/PX4/PX4-Auto
 ms4525do <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -141,8 +184,10 @@ Source: [drivers/differential_pressure/ms5525dso](https://github.com/PX4/PX4-Aut
 ms5525dso <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -165,8 +210,10 @@ Source: [drivers/differential_pressure/sdp3x](https://github.com/PX4/PX4-Autopil
 sdp3x <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz

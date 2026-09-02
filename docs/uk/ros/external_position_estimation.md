@@ -259,7 +259,7 @@ See [this video](https://www.youtube.com/watch?v=cNZaFEghTBU) for a tutorial on 
 
 #### Steps on the _Motive_ MoCap software
 
-- Align your robot's forward direction with the [system +x-axis](https://v20.wiki.optitrack.com/index.php?title=Template:Coordinate_System)
+- Align your robot's forward direction with the [system +x-axis](https://docs.optitrack.com/motive/calibration)
 - [Define a rigid body in the Motive software](https://www.youtube.com/watch?v=1e6Qqxqe-k0). Give the robot a name that does not contain spaces, e.g. `robot1` instead of `Rigidbody 1`
 - [Enable Frame Broadacst and VRPN streaming](https://www.youtube.com/watch?v=yYRNG58zPFo)
 - Встановіть вісь Up на ось Z (за замовчуванням - Y)

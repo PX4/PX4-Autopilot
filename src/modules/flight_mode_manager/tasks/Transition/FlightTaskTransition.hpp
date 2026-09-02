@@ -61,9 +61,9 @@ public:
 	bool update() override;
 
 private:
-	static constexpr float kVerticalVelocityTimeConstant = 2.0f;
+	static constexpr hrt_abstime kVerticalVelocityTimeConstant = 2_s;
 	static constexpr float kDecelerationIntegratorLimit = 0.3f;
-	static constexpr float kAccelerationFilterTimeConstant = 0.05f;
+	static constexpr hrt_abstime kAccelerationFilterTimeConstant = 50_ms;
 
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_position_sp_triplet{ORB_ID(position_setpoint_triplet)};

@@ -12423,6 +12423,186 @@ Note: this is only useful for servos.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 4095     |           | 0       |      | &nbsp;    |
 
+### UAVCAN_SV_CENT1 (`INT32`) {#UAVCAN_SV_CENT1}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 1 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT10 (`INT32`) {#UAVCAN_SV_CENT10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 10 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT11 (`INT32`) {#UAVCAN_SV_CENT11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 11 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT12 (`INT32`) {#UAVCAN_SV_CENT12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 12 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT13 (`INT32`) {#UAVCAN_SV_CENT13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 13 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT14 (`INT32`) {#UAVCAN_SV_CENT14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 14 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT15 (`INT32`) {#UAVCAN_SV_CENT15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 15 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT2 (`INT32`) {#UAVCAN_SV_CENT2}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 2 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT3 (`INT32`) {#UAVCAN_SV_CENT3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 3 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT4 (`INT32`) {#UAVCAN_SV_CENT4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 4 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT5 (`INT32`) {#UAVCAN_SV_CENT5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 5 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT6 (`INT32`) {#UAVCAN_SV_CENT6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 6 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT7 (`INT32`) {#UAVCAN_SV_CENT7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 7 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT8 (`INT32`) {#UAVCAN_SV_CENT8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 8 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT9 (`INT32`) {#UAVCAN_SV_CENT9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 9 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
 ### UAVCAN_SV_DIS1 (`INT32`) {#UAVCAN_SV_DIS1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -25007,6 +25187,55 @@ relative to the vehicle heading (stick deflection to the right = land point move
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 2        |           | 2       |      | &nbsp;    |
 
+### FW_LND_PARA_ALT (`FLOAT`) {#FW_LND_PARA_ALT}
+
+Parachute landing release altitude above ground.
+
+Altitude the vehicle descends to and holds for the release. The release happens
+higher if the predicted touchdown point reaches the landing point while still on
+the approach slope, or lower for a vehicle that cannot hold the altitude, but
+never below 3 seconds of descent at FW_LND_PARA_SINK, so that the canopy has
+room to open.
+
+Lower values reduce the wind drift of the touchdown point.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 1.0      |          | 0.5       | 20.0    | m    | &nbsp;    |
+
+### FW_LND_PARA_EN (`INT32`) {#FW_LND_PARA_EN}
+
+Enable parachute landing on mission landing approach.
+
+If enabled, the vehicle follows the mission landing approach down to the release
+altitude (FW_LND_PARA_ALT) and releases the parachute by triggering flight
+termination, such that the predicted touchdown point under canopy lies on the
+landing point, accounting for ground speed, estimated wind drift during the descent
+(FW_LND_PARA_SINK) and the forward carry while the parachute deploys.
+
+The parachute is released through the flight termination failsafe outputs, or an
+external parachute system (COM_PARACHUTE). Not supported on VTOL.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### FW_LND_PARA_SINK (`FLOAT`) {#FW_LND_PARA_SINK}
+
+Sink rate under the deployed parachute.
+
+Expected steady-state sink rate under canopy. Used to predict the descent duration and
+therewith the wind drift of the touchdown point.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      |          | 0.1       | 5.0     | m/s  | &nbsp;    |
+
 ### FW_LND_TD_OFF (`FLOAT`) {#FW_LND_TD_OFF}
 
 Maximum lateral position offset for the touchdown point.
@@ -25103,6 +25332,20 @@ Launch is detected when the norm of body acceleration is above FW_LAUN_AC_THLD f
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
 | &nbsp; | 0        |          | 0.5       | 30.0    | m/s^2 | &nbsp;    |
 
+### FW_LAUN_CLR_ALT (`FLOAT`) {#FW_LAUN_CLR_ALT}
+
+Launch climbout clearance altitude.
+
+Height above the launch point below which the vehicle holds the wind-compensated launch bearing
+instead of the normal line-following guidance, and the roll limit is ramped linearly from 0 at
+the launch point up to FW_R_LIM at this altitude, so that a poor heading estimate or a bad launch
+cannot induce a large bank close to the ground. Only relevant for hand- or catapult-launched
+vehicles (FW_LAUN_DETCN_ON).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 1.0       | 5.0     | m    | &nbsp;    |
+
 ### FW_LAUN_CS_LK_DY (`FLOAT`) {#FW_LAUN_CS_LK_DY}
 
 Control surface launch delay.
@@ -25152,6 +25395,19 @@ If set <= 0, FW_AIRSPD_MIN will be set by default.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1.0     |          | 0.1       | -1.0    | m/s  | &nbsp;    |
+
+### FW_TKO_CLMB_T (`FLOAT`) {#FW_TKO_CLMB_T}
+
+Takeoff climbout duration.
+
+Ends the takeoff climbout this many seconds after the vehicle started climbing, instead of
+when the takeoff altitude is reached.
+
+If set to 0, the climbout ends at the takeoff altitude.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 1.0       | 0.0     | s    | &nbsp;    |
 
 ### FW_TKO_PITCH_MIN (`FLOAT`) {#FW_TKO_PITCH_MIN}
 
@@ -26468,6 +26724,7 @@ SYS_FAIL_RC_INST.
 - `100`: Battery
 - `101`: Motor
 - `107`: Traffic avoidance
+- `200`: CAN bus
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -26853,15 +27110,18 @@ the expected application environment.
 
 **Values:**
 
+- `0`: portable
 - `2`: stationary
+- `3`: pedestrian
 - `4`: automotive
+- `5`: sea
 - `6`: airborne with <1g acceleration
 - `7`: airborne with <2g acceleration
 - `8`: airborne with <4g acceleration
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 9        |           | 7       |      | &nbsp;    |
+| &check; | 0        | 8        |           | 7       |      | &nbsp;    |
 
 ### GPS_UBX_JAM_DET (`INT32`) {#GPS_UBX_JAM_DET}
 
@@ -26922,6 +27182,10 @@ Mode 7 turns UART2 into a diagnostic port: the receiver keeps serving the autopi
 while UART2 outputs UBX at GPS_UBX_BAUD2 for u-center. Keep GPS_UBX_BAUD2 at 115200 or above,
 the diagnostic message set saturates a slower link. UBX input is left enabled on UART2, so
 anything attached there can also reconfigure the receiver.
+Mode 8 uses the free Galileo HAS corrections broadcast on E6 (ZED-X20P with HPG 2.10 or
+later) for a PPP solution of roughly 20 cm after a few minutes of convergence. The
+receiver only processes HAS while host corrections are off, so RTCM and SPARTN from the
+autopilot are ignored in this mode; use mode 0 whenever a correction link is available.
 
 **Values:**
 
@@ -26933,10 +27197,11 @@ anything attached there can also reconfigure the receiver.
 - `5`: Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
 - `6`: Ground Control Station (UART2 outputs NMEA)
 - `7`: u-center on UART2 (UART2 outputs UBX diagnostics)
+- `8`: Galileo HAS (X20P, PPP from E6, RTCM/SPARTN input disabled)
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 7        |           | 0       |      | &nbsp;    |
+| &check; | 0        | 8        |           | 0       |      | &nbsp;    |
 
 ### GPS_UBX_PPK (`INT32`) {#GPS_UBX_PPK}
 
@@ -33120,7 +33385,7 @@ Airmode is used to keep torque authority with zero thrust (see MC_AIRMODE).
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 1        | 0.01      | 0.08    | norm | &nbsp;    |
+| &nbsp; | 0        | 0.5      | 0.01      | 0.08    | norm | &nbsp;    |
 
 ### MPC_MAN_TILT_MAX (`FLOAT`) {#MPC_MAN_TILT_MAX}
 
@@ -33208,7 +33473,7 @@ The hover thrust is important for land detection to work correctly.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0.1      | 0.8      | 0.01      | 0.5     | norm | &nbsp;    |
+| &nbsp; | 0.1      | 0.9      | 0.01      | 0.5     | norm | &nbsp;    |
 
 ### MPC_THR_MAX (`FLOAT`) {#MPC_THR_MAX}
 
@@ -37284,6 +37549,78 @@ If set to 1, add an ID to the log, which uniquely identifies the vehicle
 
 ## SITL
 
+### SIM_BAT1_DRAIN (`FLOAT`) {#SIM_BAT1_DRAIN}
+
+Simulated battery 1 full-discharge time.
+
+Time in seconds for simulated battery 1 to drain from 100% to 0% while armed,
+overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
+Only has an effect if battery 1 is enabled through BAT1_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       |          | 1         | -1.0    | s    | &nbsp;    |
+
+### SIM_BAT1_MIN_PCT (`FLOAT`) {#SIM_BAT1_MIN_PCT}
+
+Simulated battery 1 minimal percentage.
+
+Lowest state of charge simulated battery 1 drains down to, overriding
+SIM_BAT_MIN_PCT for this battery only. Set to -1 to use SIM_BAT_MIN_PCT.
+Only has an effect if battery 1 is enabled through BAT1_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 100      | 0.1       | -1.0    | %    | &nbsp;    |
+
+### SIM_BAT2_DRAIN (`FLOAT`) {#SIM_BAT2_DRAIN}
+
+Simulated battery 2 full-discharge time.
+
+Time in seconds for simulated battery 2 to drain from 100% to 0% while armed,
+overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
+Only has an effect if battery 2 is enabled through BAT2_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       |          | 1         | -1.0    | s    | &nbsp;    |
+
+### SIM_BAT2_MIN_PCT (`FLOAT`) {#SIM_BAT2_MIN_PCT}
+
+Simulated battery 2 minimal percentage.
+
+Lowest state of charge simulated battery 2 drains down to, overriding
+SIM_BAT_MIN_PCT for this battery only. Set to -1 to use SIM_BAT_MIN_PCT.
+Only has an effect if battery 2 is enabled through BAT2_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 100      | 0.1       | -1.0    | %    | &nbsp;    |
+
+### SIM_BAT3_DRAIN (`FLOAT`) {#SIM_BAT3_DRAIN}
+
+Simulated battery 3 full-discharge time.
+
+Time in seconds for simulated battery 3 to drain from 100% to 0% while armed,
+overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
+Only has an effect if battery 3 is enabled through BAT3_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       |          | 1         | -1.0    | s    | &nbsp;    |
+
+### SIM_BAT3_MIN_PCT (`FLOAT`) {#SIM_BAT3_MIN_PCT}
+
+Simulated battery 3 minimal percentage.
+
+Lowest state of charge simulated battery 3 drains down to, overriding
+SIM_BAT_MIN_PCT for this battery only. Set to -1 to use SIM_BAT_MIN_PCT.
+Only has an effect if battery 3 is enabled through BAT3_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 100      | 0.1       | -1.0    | %    | &nbsp;    |
+
 ### SIM_BAT_DRAIN (`FLOAT`) {#SIM_BAT_DRAIN}
 
 Simulated battery full-discharge time.
@@ -40219,7 +40556,7 @@ INA228 Power Monitor Max Current.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0.1      | 327.68   | 0.1       | 327.68  |      | &nbsp;    |
+| &check; | 0.1      | 1638.4   | 0.1       | 327.68  |      | &nbsp;    |
 
 ### INA228_SHUNT (`FLOAT`) {#INA228_SHUNT}
 
@@ -40235,7 +40572,7 @@ INA238 Power Monitor Max Current.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0.1      | 327.68   | 0.1       | 327.68  |      | &nbsp;    |
+| &check; | 0.1      | 1638.4   | 0.1       | 327.68  |      | &nbsp;    |
 
 ### INA238_SHUNT (`FLOAT`) {#INA238_SHUNT}
 
@@ -42067,21 +42404,6 @@ Sensors hub IMU mode.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 1       |      | &nbsp;    |
-
-### SENS_INT_BARO_EN (`INT32`) {#SENS_INT_BARO_EN}
-
-Enable internal barometers.
-
-For systems with an external barometer, this should be set to false to make sure that the external is used.
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-| Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
-| &check; |          |          |           | Enabled (1) |      | &nbsp;    |
 
 ### SENS_LEDDAR1_CFG (`INT32`) {#SENS_LEDDAR1_CFG}
 

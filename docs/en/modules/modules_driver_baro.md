@@ -10,10 +10,13 @@ Source: [drivers/barometer/bmp280](https://github.com/PX4/PX4-Autopilot/tree/mai
 bmp280 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -22,8 +25,9 @@ bmp280 <command> [arguments...]
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
                  default: 118
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -46,8 +50,10 @@ Source: [drivers/barometer/bmp388](https://github.com/PX4/PX4-Autopilot/tree/mai
 bmp388 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -70,10 +76,13 @@ Source: [drivers/barometer/bmp581](https://github.com/PX4/PX4-Autopilot/tree/mai
 bmp581 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -98,10 +107,13 @@ Source: [drivers/barometer/dps310](https://github.com/PX4/PX4-Autopilot/tree/mai
 dps310 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -110,8 +122,9 @@ dps310 <command> [arguments...]
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
                  default: 119
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -135,8 +148,10 @@ Source: [drivers/barometer/invensense/icp101xx](https://github.com/PX4/PX4-Autop
 icp101xx <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -159,8 +174,10 @@ Source: [drivers/barometer/invensense/icp201xx](https://github.com/PX4/PX4-Autop
 icp201xx <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -183,10 +200,13 @@ Source: [drivers/barometer/lps22hb](https://github.com/PX4/PX4-Autopilot/tree/ma
 lps22hb <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -209,10 +229,13 @@ Source: [drivers/barometer/lps25h](https://github.com/PX4/PX4-Autopilot/tree/mai
 lps25h <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -235,10 +258,13 @@ Source: [drivers/barometer/lps33hw](https://github.com/PX4/PX4-Autopilot/tree/ma
 lps33hw <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -264,8 +290,10 @@ Source: [drivers/barometer/maiertek/mpc2520](https://github.com/PX4/PX4-Autopilo
 mpc2520 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -288,8 +316,10 @@ Source: [drivers/barometer/mpl3115a2](https://github.com/PX4/PX4-Autopilot/tree/
 mpl3115a2 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -312,18 +342,22 @@ Source: [drivers/barometer/ms5611](https://github.com/PX4/PX4-Autopilot/tree/mai
 ms5611 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
      [-m <val>]  SPI mode
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -348,8 +382,10 @@ Source: [drivers/barometer/ms5837](https://github.com/PX4/PX4-Autopilot/tree/mai
 ms5837 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -370,10 +406,13 @@ Source: [drivers/barometer/goertek/spa06](https://github.com/PX4/PX4-Autopilot/t
 spa06 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -382,8 +421,9 @@ spa06 <command> [arguments...]
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
                  default: 118
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -406,10 +446,13 @@ Source: [drivers/barometer/goertek/spl06](https://github.com/PX4/PX4-Autopilot/t
 spl06 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -418,8 +461,9 @@ spl06 <command> [arguments...]
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
                  default: 118
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)

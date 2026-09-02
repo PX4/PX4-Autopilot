@@ -176,6 +176,7 @@ private:
 	void checkConfigOverrides();
 
 	void removeModeExecutor(int mode_executor_id);
+	bool resendIfCachedRequest(const register_ext_component_request_s &request);
 
 	uORB::Subscription _setpoint_config_sub{ORB_ID(setpoint_config)};
 	uORB::Publication<setpoint_config_reply_s> _setpoint_config_reply_pub{ORB_ID(setpoint_config_reply)};

@@ -55,4 +55,4 @@ The library provides three high-level interfaces for developers:
 
 При відкритті запиту на PX4, CI запускає тест з інтеграції до бібліотеки.
 
-For more information see [PX4 ROS2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md).
+For more information see [PX4 ROS 2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md).

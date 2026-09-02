@@ -138,7 +138,7 @@ private:
 
 	hrt_abstime _last_run{0};
 
-	static constexpr float _kAirspeedFilterTimeConstant{1.f};
+	static constexpr hrt_abstime _kAirspeedFilterTimeConstant{1_s};
 	AlphaFilter<float> _airspeed_filter_for_torque_scaling{_kAirspeedFilterTimeConstant};
 
 	float _airspeed_scaling{1.0f};
