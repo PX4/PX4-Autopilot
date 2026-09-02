@@ -81,14 +81,24 @@ public:
 
 static const auto *global_env = ::testing::AddGlobalTestEnvironment(new MulticopterPositionControlTestEnvironment());
 
-class PositionControlTestPeer
+class MulticopterPositionControlTestPeer
 {
 public:
 	static void adjustSetpointForEKFResets(MulticopterPositionControl &controller,
 					       const vehicle_local_position_s &vehicle_local_position,
 					       trajectory_setpoint_s &setpoint)
 	{
-		controller.adjustSetpointForEKFResets(vehicle_local_position, setpoint);
+		// the cases that do not care about the fallback pass a throwaway one
+		trajectory_setpoint_s unused_fallback{};
+		controller.adjustSetpointForEKFResets(vehicle_local_position, setpoint, unused_fallback);
+	}
+
+	static void adjustSetpointForEKFResets(MulticopterPositionControl &controller,
+					       const vehicle_local_position_s &vehicle_local_position,
+					       trajectory_setpoint_s &setpoint,
+					       trajectory_setpoint_s &fallback_setpoint)
+	{
+		controller.adjustSetpointForEKFResets(vehicle_local_position, setpoint, fallback_setpoint);
 	}
 
 	static void setVelocityFilterState(MulticopterPositionControl &controller, const matrix::Vector2f &xy, float z)
@@ -177,7 +187,7 @@ TEST_F(MulticopterPositionControlTest, NoResetLeavesTheSetpointAlone)
 	trajectory_setpoint_s setpoint = makeSetpoint();
 	const trajectory_setpoint_s original = setpoint;
 
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
 	EXPECT_FLOAT_EQ(setpoint.position[0], original.position[0]);
 	EXPECT_FLOAT_EQ(setpoint.position[1], original.position[1]);
@@ -196,7 +206,7 @@ TEST_F(MulticopterPositionControlTest, VerticalResetShiftsTheSetpointByTheSameDe
 	trajectory_setpoint_s setpoint = makeSetpoint();
 	const float expected = setpoint.position[2] + local_position.delta_z;
 
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
 	EXPECT_FLOAT_EQ(setpoint.position[2], expected);
 	// only the axis that was reset moves
@@ -214,7 +224,7 @@ TEST_F(MulticopterPositionControlTest, HorizontalResetShiftsTheSetpointByTheSame
 
 	trajectory_setpoint_s setpoint = makeSetpoint();
 
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
 	EXPECT_FLOAT_EQ(setpoint.position[0], 12.5f);
 	EXPECT_FLOAT_EQ(setpoint.position[1], 16.5f);
@@ -233,7 +243,7 @@ TEST_F(MulticopterPositionControlTest, VelocityResetShiftsTheVelocitySetpoint)
 
 	trajectory_setpoint_s setpoint = makeSetpoint();
 
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
 	EXPECT_FLOAT_EQ(setpoint.velocity[0], 1.5f);
 	EXPECT_FLOAT_EQ(setpoint.velocity[1], 1.75f);
@@ -250,11 +260,11 @@ TEST_F(MulticopterPositionControlTest, SameResetIsNotAppliedTwice)
 	local_position.delta_z = -1.5f;
 
 	trajectory_setpoint_s setpoint = makeSetpoint();
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 	const float after_first = setpoint.position[2];
 
 	local_position.timestamp = hrt_absolute_time();
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
 	EXPECT_FLOAT_EQ(setpoint.position[2], after_first);
 }
@@ -270,7 +280,7 @@ TEST_F(MulticopterPositionControlTest, SetpointNewerThanTheEstimateIsNotShifted)
 	trajectory_setpoint_s setpoint = makeSetpoint();
 	setpoint.timestamp = local_position.timestamp + 100_ms;
 
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
 	EXPECT_FLOAT_EQ(setpoint.position[2], -30.f);
 }
@@ -284,12 +294,12 @@ TEST_F(MulticopterPositionControlTest, UnsetSetpointIsNotShiftedAndStillLatchesT
 	local_position.delta_z = -1.5f;
 
 	trajectory_setpoint_s empty{};
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, empty);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, empty);
 	EXPECT_FLOAT_EQ(empty.position[2], 0.f);
 
 	trajectory_setpoint_s setpoint = makeSetpoint();
 	local_position.timestamp = hrt_absolute_time();
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
 	EXPECT_FLOAT_EQ(setpoint.position[2], -30.f);
 }
@@ -305,10 +315,9 @@ TEST_F(MulticopterPositionControlTest, HeadingResetShiftsYawAndWraps)
 	trajectory_setpoint_s setpoint = makeSetpoint();
 	setpoint.yaw = 3.f;
 
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
-	// 3 + 3 is outside +-pi, so it wraps to 6 - 2*pi rather than staying at 6.
-	// The expected value is written out so this does not just restate the production call.
+	// 3 + 3 is outside +-pi, so it wraps to 6 - 2*pi rather than staying at 6
 	EXPECT_NEAR(setpoint.yaw, -0.283185307f, 1e-6f);
 }
 
@@ -323,7 +332,7 @@ TEST_F(MulticopterPositionControlTest, SetpointStampedWithTheEstimateIsNotShifte
 	trajectory_setpoint_s setpoint = makeSetpoint();
 	setpoint.timestamp = local_position.timestamp;
 
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
 	EXPECT_FLOAT_EQ(setpoint.position[2], -30.f);
 }
@@ -338,12 +347,12 @@ TEST_F(MulticopterPositionControlTest, SkippedShiftStillLatchesTheCounter)
 
 	trajectory_setpoint_s newer = makeSetpoint();
 	newer.timestamp = local_position.timestamp + 100_ms;
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, newer);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, newer);
 	EXPECT_FLOAT_EQ(newer.position[2], -30.f);
 
 	trajectory_setpoint_s older = makeSetpoint();
 	local_position.timestamp = hrt_absolute_time();
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, older);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, older);
 
 	EXPECT_FLOAT_EQ(older.position[2], -30.f);
 }
@@ -369,7 +378,7 @@ TEST_F(MulticopterPositionControlTest, AllCountersChangingInOneSampleShiftEveryA
 
 	trajectory_setpoint_s setpoint = makeSetpoint();
 
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
 	EXPECT_FLOAT_EQ(setpoint.velocity[0], 1.25f);
 	EXPECT_FLOAT_EQ(setpoint.velocity[1], 1.5f);
@@ -385,7 +394,7 @@ TEST_F(MulticopterPositionControlTest, AllCountersChangingInOneSampleShiftEveryA
 // filter has to be moved by the same delta as the state it tracks.
 TEST_F(MulticopterPositionControlTest, VelocityResetCarriesTheVelocityFilterState)
 {
-	PositionControlTestPeer::setVelocityFilterState(*_controller, matrix::Vector2f(4.f, -2.f), 1.f);
+	MulticopterPositionControlTestPeer::setVelocityFilterState(*_controller, matrix::Vector2f(4.f, -2.f), 1.f);
 
 	vehicle_local_position_s local_position = makeLocalPosition();
 	local_position.vxy_reset_counter = 1;
@@ -396,12 +405,12 @@ TEST_F(MulticopterPositionControlTest, VelocityResetCarriesTheVelocityFilterStat
 
 	trajectory_setpoint_s setpoint = makeSetpoint();
 
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
-	const matrix::Vector2f filter_xy = PositionControlTestPeer::velocityFilterStateXy(*_controller);
+	const matrix::Vector2f filter_xy = MulticopterPositionControlTestPeer::velocityFilterStateXy(*_controller);
 	EXPECT_FLOAT_EQ(filter_xy(0), 4.5f);
 	EXPECT_FLOAT_EQ(filter_xy(1), -3.5f);
-	EXPECT_FLOAT_EQ(PositionControlTestPeer::velocityFilterStateZ(*_controller), 1.25f);
+	EXPECT_FLOAT_EQ(MulticopterPositionControlTestPeer::velocityFilterStateZ(*_controller), 1.25f);
 }
 
 // WHY: the filter reset sits outside the timestamp guard on purpose. The guard is about
@@ -409,7 +418,7 @@ TEST_F(MulticopterPositionControlTest, VelocityResetCarriesTheVelocityFilterStat
 // so a setpoint newer than the estimate must still leave the filters corrected.
 TEST_F(MulticopterPositionControlTest, FilterStateIsCarriedEvenWhenTheSetpointShiftIsSkipped)
 {
-	PositionControlTestPeer::setVelocityFilterState(*_controller, matrix::Vector2f(4.f, -2.f), 1.f);
+	MulticopterPositionControlTestPeer::setVelocityFilterState(*_controller, matrix::Vector2f(4.f, -2.f), 1.f);
 
 	vehicle_local_position_s local_position = makeLocalPosition();
 	local_position.vxy_reset_counter = 1;
@@ -422,15 +431,101 @@ TEST_F(MulticopterPositionControlTest, FilterStateIsCarriedEvenWhenTheSetpointSh
 	trajectory_setpoint_s setpoint = makeSetpoint();
 	setpoint.timestamp = local_position.timestamp + 100_ms;
 
-	PositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, setpoint);
 
 	// the setpoint is untouched
 	EXPECT_FLOAT_EQ(setpoint.velocity[0], 1.f);
 	EXPECT_FLOAT_EQ(setpoint.velocity[2], 3.f);
 
 	// but the filters still moved with the estimate
-	const matrix::Vector2f filter_xy = PositionControlTestPeer::velocityFilterStateXy(*_controller);
+	const matrix::Vector2f filter_xy = MulticopterPositionControlTestPeer::velocityFilterStateXy(*_controller);
 	EXPECT_FLOAT_EQ(filter_xy(0), 4.5f);
 	EXPECT_FLOAT_EQ(filter_xy(1), -3.5f);
-	EXPECT_FLOAT_EQ(PositionControlTestPeer::velocityFilterStateZ(*_controller), 1.25f);
+	EXPECT_FLOAT_EQ(MulticopterPositionControlTestPeer::velocityFilterStateZ(*_controller), 1.25f);
+}
+
+// WHY: Run() adjusts the incoming setpoint and stores a fallback for the case where the
+// control update rejects it. Both describe the same frame, so a reset has to move both in
+// the same cycle. The counters are latched once, so anything not shifted here is never
+// shifted at all.
+TEST_F(MulticopterPositionControlTest, FallbackSetpointIsShiftedInTheSameCycleAsTheCurrentOne)
+{
+	vehicle_local_position_s local_position = makeLocalPosition();
+	local_position.z_reset_counter = 1;
+	local_position.delta_z = -1.5f;
+	local_position.xy_reset_counter = 1;
+	local_position.delta_xy[0] = 2.5f;
+	local_position.delta_xy[1] = -3.5f;
+
+	trajectory_setpoint_s current = makeSetpoint();
+	trajectory_setpoint_s last_valid = makeSetpoint();
+
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, current, last_valid);
+
+	EXPECT_FLOAT_EQ(current.position[2], -31.5f);
+	EXPECT_FLOAT_EQ(last_valid.position[2], -31.5f);
+	EXPECT_FLOAT_EQ(last_valid.position[0], 12.5f);
+	EXPECT_FLOAT_EQ(last_valid.position[1], 16.5f);
+}
+
+// WHY: the fallback is stored across cycles, so a reset already applied to it must not be
+// applied again on the next sample.
+TEST_F(MulticopterPositionControlTest, FallbackSetpointIsNotShiftedTwice)
+{
+	vehicle_local_position_s local_position = makeLocalPosition();
+	local_position.z_reset_counter = 1;
+	local_position.delta_z = -1.5f;
+
+	trajectory_setpoint_s current = makeSetpoint();
+	trajectory_setpoint_s last_valid = makeSetpoint();
+
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, current, last_valid);
+	EXPECT_FLOAT_EQ(last_valid.position[2], -31.5f);
+
+	local_position.timestamp = hrt_absolute_time();
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, current, last_valid);
+
+	EXPECT_FLOAT_EQ(last_valid.position[2], -31.5f);
+}
+
+// WHY: the fallback carries its own timestamp, so it gets the same guard as any other
+// setpoint rather than inheriting the decision made for the current one.
+TEST_F(MulticopterPositionControlTest, FallbackSetpointHonoursItsOwnTimestampGuard)
+{
+	vehicle_local_position_s local_position = makeLocalPosition();
+	local_position.z_reset_counter = 1;
+	local_position.delta_z = -1.5f;
+
+	trajectory_setpoint_s current = makeSetpoint();
+	trajectory_setpoint_s last_valid = makeSetpoint();
+	last_valid.timestamp = local_position.timestamp + 100_ms;
+
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, current, last_valid);
+
+	EXPECT_FLOAT_EQ(current.position[2], -31.5f);
+	EXPECT_FLOAT_EQ(last_valid.position[2], -30.f);
+}
+
+// WHY: two setpoints are adjusted in one call but there was only one reset, so the velocity
+// filter must move by one delta, not two.
+TEST_F(MulticopterPositionControlTest, VelocityFilterMovesOnceWhenBothSetpointsAreAdjusted)
+{
+	MulticopterPositionControlTestPeer::setVelocityFilterState(*_controller, matrix::Vector2f(4.f, -2.f), 1.f);
+
+	vehicle_local_position_s local_position = makeLocalPosition();
+	local_position.vxy_reset_counter = 1;
+	local_position.delta_vxy[0] = 0.5f;
+	local_position.delta_vxy[1] = -1.5f;
+	local_position.vz_reset_counter = 1;
+	local_position.delta_vz = 0.25f;
+
+	trajectory_setpoint_s current = makeSetpoint();
+	trajectory_setpoint_s last_valid = makeSetpoint();
+
+	MulticopterPositionControlTestPeer::adjustSetpointForEKFResets(*_controller, local_position, current, last_valid);
+
+	const matrix::Vector2f filter_xy = MulticopterPositionControlTestPeer::velocityFilterStateXy(*_controller);
+	EXPECT_FLOAT_EQ(filter_xy(0), 4.5f);
+	EXPECT_FLOAT_EQ(filter_xy(1), -3.5f);
+	EXPECT_FLOAT_EQ(MulticopterPositionControlTestPeer::velocityFilterStateZ(*_controller), 1.25f);
 }

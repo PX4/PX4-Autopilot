@@ -91,7 +91,7 @@ public:
 	bool init();
 
 private:
-	friend class PositionControlTestPeer;
+	friend class MulticopterPositionControlTestPeer;
 
 	void Run() override;
 
@@ -255,7 +255,10 @@ private:
 	 *
 	 * @param[in] vehicle_local_position struct containing EKF reset deltas and counters
 	 * @param[out] setpoint trajectory setpoint struct to be adjusted
+	 * @param[out] fallback_setpoint the stored last valid setpoint, adjusted with the same
+	 *             deltas because it is applied later in the same cycle, after the counters
+	 *             below have been latched
 	 */
 	void adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position,
-					trajectory_setpoint_s &setpoint);
+					trajectory_setpoint_s &setpoint, trajectory_setpoint_s &fallback_setpoint);
 };
