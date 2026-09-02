@@ -114,14 +114,17 @@ struct AircraftState {
 	float h{ALT_INIT};
 };
 
-AircraftState aircraft_step(float dt, float throttle, float pitch_cmd, AircraftState s)
+AircraftState aircraft_step(float dt, float throttle, float pitch_cmd, AircraftState s, float pitch_offset = 0.f)
 {
 	// Mirrors the throttle_predicted formula in _calcThrottleControlOutput.
 	const float ste_rate = (throttle >= THROTTLE_TRIM)
 			       ? (throttle - THROTTLE_TRIM) * STE_RATE_MAX     / (THROTTLE_MAX  - THROTTLE_TRIM)
 			       : (throttle - THROTTLE_TRIM) * STE_RATE_MIN_ABS / (THROTTLE_TRIM - THROTTLE_MIN);
 
-	const float h_dot    = s.V * pitch_cmd; // Only correct in a linearised sense (close to level)
+	// pitch_offset models a pitch-to-flight-path offset the controller does not know
+	// about (trim AoA not captured by FW_PSP_OFF, attitude rigging error): the plant
+	// flies level only at pitch_cmd == pitch_offset.
+	const float h_dot    = s.V * (pitch_cmd - pitch_offset); // Only correct in a linearised sense (close to level)
 	const float spe_rate = G * h_dot;
 	const float ske_rate = ste_rate - spe_rate;
 	const float V_dot    = (s.V > 0.1f) ? ske_rate / s.V : 0.f; // If V < 0.1 we have long stalled...
@@ -149,6 +152,7 @@ protected:
 	float _alt_ref_rate {0.f};
 	float _V_prev       {V_TRIM};     ///< for TAS-rate finite-difference
 	float _pitch_prev   {0.f};        ///< pitch command from previous step, for altitude_rate input
+	float _plant_pitch_offset {0.f};  ///< pitch-to-flight-path offset of the plant, unknown to TECS
 
 	struct SimulationStats {
 		float max_airspeed_error{0.f};
@@ -255,7 +259,7 @@ protected:
 	{
 		return {
 			.altitude      = _state.h,
-			.altitude_rate = _state.V * _pitch_prev,
+			.altitude_rate = _state.V * (_pitch_prev - _plant_pitch_offset),
 			.tas           = _state.V,
 			.tas_rate      = (_state.V - _V_prev) / DT,
 		};
@@ -307,7 +311,7 @@ protected:
 
 			_V_prev     = _state.V;
 			_pitch_prev = _tecs.getPitchSetpoint();
-			_state      = aircraft_step(DT, _tecs.getThrottleSetpoint(), _pitch_prev, _state);
+			_state      = aircraft_step(DT, _tecs.getThrottleSetpoint(), _pitch_prev, _state, _plant_pitch_offset);
 			updateSimStats(_state, _tecs.getDebugOutput());
 
 			if (csv) {
@@ -544,6 +548,91 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownLowAccel)
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
 
+
+// --- Plant pitch-to-flight-path offset (model mismatch) -----------------------
+//
+// The plant flies level at pitch_cmd = 10 deg instead of 0 (e.g. trim AoA not
+// captured by FW_PSP_OFF, attitude rigging error).  TECS cannot know this; the
+// pitch integrator must absorb the offset.  A robust controller converges to
+// the setpoints with standing integrator states; the feedforward must not
+// re-export the absorbed offset as an energy demand.
+
+TEST_F(TECSClosedLoopTest, SteadyStateCruisePitchOffset)
+{
+	initAircraftState();
+	_plant_pitch_offset = math::radians(10.f);
+
+	initParams();
+	initTecs();
+
+	// Settle: integrators wind up to absorb the offset
+	run(120.f);
+
+	resetSimStats();
+	run(60.f);
+
+	EXPECT_NEAR(_state.V, _V_sp,   0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_RECOVERY_ERR);
+}
+
+TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
+{
+	initAircraftState();
+	_plant_pitch_offset = math::radians(10.f);
+
+	initParams();
+	initTecs();
+
+	run(120.0f);
+	setAltitudeSetpoint(ALT_INIT + 50.f);
+	resetSimStats();
+	run(200.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, 1.0f);
+	EXPECT_NEAR(_state.V, _V_sp,   0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+}
+
+TEST_F(TECSClosedLoopTest, AltitudeStepUpHighSpeedWeightPitchOffset)
+{
+	initAircraftState();
+	_plant_pitch_offset = math::radians(10.f);
+
+	initParams();
+	_params.pitch_speed_weight = 1.8f;
+
+	initTecs();
+
+	run(120.0f);
+	setAltitudeSetpoint(ALT_INIT + 50.f);
+	resetSimStats();
+	run(200.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, 1.0f);
+	EXPECT_NEAR(_state.V, _V_sp,   0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+}
+
+TEST_F(TECSClosedLoopTest, AltitudeStepDownHighSpeedWeightPitchOffset)
+{
+	initAircraftState();
+	_plant_pitch_offset = math::radians(10.f);
+
+	initParams();
+	_params.pitch_speed_weight = 1.8f;
+
+	initTecs();
+
+	run(120.0f);
+	setAltitudeSetpoint(ALT_INIT - 50.f);
+	resetSimStats();
+	run(200.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, 1.0f);
+	EXPECT_NEAR(_state.V, _V_sp,   0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+}
 
 // --- Airspeed setpoint change -------------------------------------------------
 // Step the airspeed setpoint while holding altitude.  The throttle loop must
