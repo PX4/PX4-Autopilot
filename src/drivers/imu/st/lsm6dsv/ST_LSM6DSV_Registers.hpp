@@ -55,7 +55,7 @@ static constexpr uint8_t Bit7 = (1 << 7);
 namespace ST_LSM6DSV
 {
 
-static constexpr uint32_t SPI_SPEED = 8 * 1000 * 1000; // 8 MHz SPI data clock
+static constexpr uint32_t SPI_SPEED = 10 * 1000 * 1000; // 10 MHz SPI data clock (device max)
 
 static constexpr uint8_t DIR_READ = 0x80;
 
@@ -67,14 +67,14 @@ static constexpr uint8_t WHO_AM_I_DSK320X  = 0x75; // LSM6DSK320X (unique ID)
 // therefore selected explicitly at driver start (-T 80 | -T 320) so the device type is right.
 static constexpr uint8_t WHO_AM_I_HIGHG    = 0x73; // LSM6DSV80X / LSM6DSV320X (shared ID)
 
-// Default-variant (16X / 32X / DSK320X) ODR: HAODR_SEL=01, code 0x0A = 2000 Hz
+// Default-variant (16X / DSK320X) ODR: HAODR_SEL=01, code 0x0A = 2000 Hz
 static constexpr uint32_t GYRO_ODR  = 2000;
 static constexpr uint32_t ACCEL_ODR = 2000;
 
 // HAODR mode-1 (HAODR_SEL=01) ODR code (written to CTRL1/CTRL2 [3:0] and FIFO BDR [3:0])
 static constexpr uint8_t HAODR_MODE1_ODR_2000HZ = 0x0A;
 
-// LSM6DSV80X / LSM6DSV320X ODR: HAODR_SEL=00, code 0x0C = 7680 Hz (device max)
+// HAODR_SEL=00, code 0x0C = 7680 Hz (32X / 80X / 320X)
 static constexpr uint32_t ODR_DSV80X = 7680;
 static constexpr uint8_t HAODR_SEL0_ODR_7680HZ = 0x0C;
 

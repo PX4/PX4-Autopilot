@@ -104,8 +104,8 @@ private:
 	FIFOTransferBuffer _fifo_buffer{};
 
 	// Sensor ODR is variant-dependent (set in UpdateVariantRegisterConfig()):
-	//   default (16X/32X/DSK320X): 2000 Hz
-	//   LSM6DSV80X / 320X:         7680 Hz
+	//   default (16X / DSK320X):   2000 Hz (HAODR_SEL=01)
+	//   LSM6DSV32X / 80X / 320X:   7680 Hz (HAODR_SEL=00)
 	// Every variant batches 2 FIFO words per period: gyro + low-g accel.
 	uint32_t _sensor_odr{GYRO_ODR};
 	float    _fifo_sample_dt{1e6f / GYRO_ODR};
@@ -146,6 +146,7 @@ private:
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO empty")};
 	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO overflow")};
@@ -153,8 +154,10 @@ private:
 	perf_counter_t _drdy_missed_perf{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
+	hrt_abstime _last_config_check_timestamp{0};
 	hrt_abstime _temperature_update_timestamp{0};
 	int _failure_count{0};
+	uint8_t _checked_register{0};
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
@@ -183,7 +186,7 @@ private:
 
 	// LSM6DSV80X / LSM6DSV320X: 7.68 kHz HAODR set and a ±4000 dps gyro. Their second, high-g
 	// accelerometer is left powered down: the ±16 g low-g channel is the published one.
-	// LSM6DSV32X publishes the UI channel at ±32 g / ±4000 dps (no separate high-g element).
+	// LSM6DSV32X publishes the UI channel at ±32 g / ±4000 dps / 7680 Hz (no separate high-g element).
 	// The 80X/320X high-g element is a sports-impact sensor (±1.5 g typ zero-g offset, ±2 mg/°C
 	// tempco against ±12 mg / ±0.07 mg/°C for low-g) and is no use as a flight accelerometer.
 	bool _dsv80x_family{false};
@@ -205,8 +208,8 @@ private:
 		{ Register::CTRL3,          CTRL3_BIT::BDU | CTRL3_BIT::IF_INC,                     CTRL3_BIT::SW_RESET },
 		{ Register::HAODR_CFG,      HAODR_CFG_BIT::HAODR_MODE1,                             0 },
 		{ Register::CTRL6,          CTRL6_BIT::FS_G_2000DPS,                                 0 },
-		{ Register::CTRL8,          CTRL8_BIT::FS_XL_16G | CTRL8_BIT::LPF2_BW_ODR_DIV_10,   0 },
-		{ Register::CTRL9,          CTRL9_BIT::LPF2_XL_EN,                                   0 },
+		{ Register::CTRL8,          CTRL8_BIT::FS_XL_16G,                                   0 },
+		{ Register::CTRL9,          0,                                                       CTRL9_BIT::LPF2_XL_EN },
 		{ Register::CTRL4,          CTRL4_BIT::DRDY_PULSED,                                  0 },
 		{ Register::INT1_CTRL,      INT1_CTRL_BIT::INT1_FIFO_TH,                             0 },
 		{ Register::FIFO_CTRL1,     0, 0 }, // WTM[7:0] set at runtime by ConfigureFIFOWatermark()

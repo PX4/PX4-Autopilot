@@ -62,6 +62,7 @@ LSM6DSV::LSM6DSV(const I2CSPIDriverConfig &config) :
 
 LSM6DSV::~LSM6DSV()
 {
+	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
@@ -154,6 +155,7 @@ void LSM6DSV::print_status()
 		PX4_INFO("Accel channel: low-g, full-scale +/-16 g (high-g channel unused)");
 	}
 
+	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
@@ -373,6 +375,18 @@ void LSM6DSV::RunImpl()
 				}
 			}
 
+			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
+				if (RegisterCheck(_register_cfg[_checked_register])) {
+					_last_config_check_timestamp = now;
+					_checked_register = (_checked_register + 1) % size_register_cfg;
+
+				} else {
+					perf_count(_bad_register_perf);
+					Reset();
+					return;
+				}
+			}
+
 			// periodically update temperature (~1 Hz)
 			if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
 				UpdateTemperature();
@@ -401,8 +415,9 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 	_dsv80x_family = (_device_variant == DeviceVariant::LSM6DSV80X)
 			 || (_device_variant == DeviceVariant::LSM6DSV320X);
 
-	// the 80X / 320X run the 7.68 kHz HAODR set (HAODR_SEL=00)
-	_sensor_odr = _dsv80x_family ? ODR_DSV80X : GYRO_ODR;
+	// 32X / 80X / 320X: HAODR_SEL=00 set, ODR code 0x0C = 7680 Hz
+	const bool odr_7680 = _dsv80x_family || (_device_variant == DeviceVariant::LSM6DSV32X);
+	_sensor_odr = odr_7680 ? ODR_DSV80X : GYRO_ODR;
 
 	_fifo_words_per_period = 2; // gyro + low-g accel
 
@@ -433,19 +448,19 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 
 			break;
 
-		case Register::CTRL8: // accelerometer full-scale + LPF2 bandwidth
+		case Register::CTRL8: // accelerometer full-scale (LPF2 off: PX4 owns filtering)
 			if (_device_variant == DeviceVariant::LSM6DSV32X) {
-				r.set_bits = static_cast<uint8_t>(CTRL8_BIT::FS_XL_32G_DSV32X | CTRL8_BIT::LPF2_BW_ODR_DIV_10);
+				r.set_bits = CTRL8_BIT::FS_XL_32G_DSV32X;
 				r.clear_bits = CTRL8_BIT::XL_DualC_EN; // single-channel UI at ±32 g
 
 			} else {
-				r.set_bits = static_cast<uint8_t>(CTRL8_BIT::FS_XL_16G | CTRL8_BIT::LPF2_BW_ODR_DIV_10);
+				r.set_bits = CTRL8_BIT::FS_XL_16G;
 			}
 
 			break;
 
 		case Register::HAODR_CFG: // HAODR ODR set selection
-			if (_dsv80x_family) {
+			if (odr_7680) {
 				r.set_bits = 0;                              // HAODR_SEL=00 (1920/3840/7680 Hz set)
 				r.clear_bits = HAODR_CFG_BIT::HAODR_SEL_MASK;
 
@@ -457,19 +472,19 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 			break;
 
 		case Register::CTRL1: // accelerometer ODR + high-accuracy ODR mode
-			r.set_bits = _dsv80x_family
+			r.set_bits = odr_7680
 				     ? static_cast<uint8_t>(HAODR_SEL0_ODR_7680HZ | CTRL1_BIT::CTRL1_MODE_HAODR)
 				     : static_cast<uint8_t>(HAODR_MODE1_ODR_2000HZ | CTRL1_BIT::CTRL1_MODE_HAODR);
 			break;
 
 		case Register::CTRL2: // gyroscope ODR + high-accuracy ODR mode
-			r.set_bits = _dsv80x_family
+			r.set_bits = odr_7680
 				     ? static_cast<uint8_t>(HAODR_SEL0_ODR_7680HZ | CTRL2_BIT::CTRL2_MODE_HAODR)
 				     : static_cast<uint8_t>(HAODR_MODE1_ODR_2000HZ | CTRL2_BIT::CTRL2_MODE_HAODR);
 			break;
 
 		case Register::FIFO_CTRL3: // FIFO batch data rate (gyro + low-g accel)
-			r.set_bits = _dsv80x_family
+			r.set_bits = odr_7680
 				     ? static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_7680 | FIFO_CTRL3_BIT::BDR_XL_7680)
 				     : static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_HAODR | FIFO_CTRL3_BIT::BDR_XL_HAODR);
 			break;
@@ -501,26 +516,24 @@ bool LSM6DSV::Configure()
 
 	// Scale and range are set once here and never touched again, so every published batch carries
 	// the same scale factor.
+	// Accel LSB is FS / 32768 (datasheet 0.122/0.244/0.488/0.976 mg/LSB is that quotient rounded).
+	// Gyro LSB is not FS / 32768: ST specifies 70 mdps/LSB at ±2000 dps and 140 mdps/LSB at ±4000 dps.
 	if (_device_variant == DeviceVariant::LSM6DSV32X) {
-		// LSM6DSV32X: ±4000 dps (140 mdps/LSB), ±32 g (0.976 mg/LSB)
-		_px4_gyro.set_scale(math::radians(140.f / 1000.f));
+		_px4_gyro.set_scale(math::radians(0.140f));
 		_px4_gyro.set_range(math::radians(4000.f));
-		_px4_accel.set_scale(0.976f * (CONSTANTS_ONE_G / 1000.f));
+		_px4_accel.set_scale(32.f * CONSTANTS_ONE_G / 32768.f);
 		_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
 
 	} else if (_dsv80x_family) {
-		// Gyroscope: ±4000 dps, 140 mdps/LSB (ST datasheet) — LSM6DSV80X / LSM6DSV320X
-		_px4_gyro.set_scale(math::radians(140.f / 1000.f));
+		_px4_gyro.set_scale(math::radians(0.140f));
 		_px4_gyro.set_range(math::radians(4000.f));
-		// Accelerometer (low-g channel): ±16 g, 0.488 mg/LSB
-		_px4_accel.set_scale(0.488f * (CONSTANTS_ONE_G / 1000.f));
+		_px4_accel.set_scale(16.f * CONSTANTS_ONE_G / 32768.f);
 		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 
 	} else {
-		// Gyroscope: ±2000 dps, 70 mdps/LSB (ST datasheet)
-		_px4_gyro.set_scale(math::radians(70.f / 1000.f));
+		_px4_gyro.set_scale(math::radians(0.070f));
 		_px4_gyro.set_range(math::radians(2000.f));
-		_px4_accel.set_scale(0.488f * (CONSTANTS_ONE_G / 1000.f));
+		_px4_accel.set_scale(16.f * CONSTANTS_ONE_G / 32768.f);
 		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 	}
 
