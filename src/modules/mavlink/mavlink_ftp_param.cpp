@@ -157,12 +157,43 @@ bool ParamPckFile::open(const char *path, uint16_t block_size)
 	return true;
 }
 
+bool ParamPckFile::open_write()
+{
+	close();
+	_write = true;
+	_write_failed = false;
+	_header_done = false;
+	_write_num = 0;
+	_write_file_len = 0;
+	_write_seen = 0;
+	_applied = 0;
+	_write_ofs = 0;
+	_pending_len = 0;
+	memset(_pending, 0, sizeof(_pending));
+	memset(_prev_name, 0, sizeof(_prev_name));
+	_open = true;
+	return true;
+}
+
 void ParamPckFile::close()
 {
+	if (_write && (_applied > 0)) {
+		param_notify_changes();
+	}
+
 	memset(_included, 0, sizeof(_included));
 	memset(_has_default, 0, sizeof(_has_default));
 	_size = 0;
 	_open = false;
+	_write = false;
+	_write_failed = false;
+	_header_done = false;
+	_write_num = 0;
+	_write_file_len = 0;
+	_write_seen = 0;
+	_applied = 0;
+	_write_ofs = 0;
+	_pending_len = 0;
 }
 
 void ParamPckFile::rewind()
@@ -278,8 +309,8 @@ size_t ParamPckFile::pack(uint8_t *buf, param_t param, uint32_t ofs) const
 
 int ParamPckFile::read(uint32_t offset, uint8_t *buf, uint16_t count)
 {
-	if (!_open || (count == 0) || (offset >= _size)) {
-		return 0;
+	if (!_open || _write || (count == 0) || (offset >= _size)) {
+		return _write ? -1 : 0;
 	}
 
 	if (offset + count > _size) {
@@ -334,4 +365,242 @@ int ParamPckFile::read(uint32_t offset, uint8_t *buf, uint16_t count)
 	}
 
 	return copied;
+}
+
+uint8_t ParamPckFile::packed_value_len(uint8_t ptype)
+{
+	switch (ptype) {
+	case kTypeInt8:
+		return 1;
+
+	case kTypeInt16:
+		return 2;
+
+	case kTypeInt32:
+	case kTypeFloat:
+		return 4;
+
+	default:
+		return 0;
+	}
+}
+
+bool ParamPckFile::apply_entry(const char *name, uint8_t ptype, const uint8_t *raw)
+{
+	const param_t param = param_find_no_notification(name);
+
+	if ((param == PARAM_INVALID) || param_is_readonly(param)) {
+		return true;
+	}
+
+	const param_type_t dest = param_type(param);
+	union {
+		int32_t i;
+		float f;
+		uint8_t b[4];
+	} value {};
+
+	int32_t as_int = 0;
+	float as_float = 0.f;
+
+	switch (ptype) {
+	case kTypeInt8:
+		as_int = static_cast<int8_t>(raw[0]);
+		as_float = static_cast<float>(as_int);
+		break;
+
+	case kTypeInt16: {
+			int16_t v;
+			memcpy(&v, raw, sizeof(v));
+			as_int = v;
+			as_float = static_cast<float>(v);
+			break;
+		}
+
+	case kTypeInt32:
+		memcpy(&as_int, raw, sizeof(as_int));
+		as_float = static_cast<float>(as_int);
+		break;
+
+	case kTypeFloat:
+		memcpy(&as_float, raw, sizeof(as_float));
+		as_int = static_cast<int32_t>(as_float);
+		break;
+
+	default:
+		return false;
+	}
+
+	if (dest == PARAM_TYPE_INT32) {
+		value.i = as_int;
+
+	} else if (dest == PARAM_TYPE_FLOAT) {
+		value.f = as_float;
+
+	} else {
+		return true;
+	}
+
+	if (param_set_no_notification(param, value.b) == 0) {
+		_applied++;
+	}
+
+	return true;
+}
+
+bool ParamPckFile::parse_pending()
+{
+	if (!_header_done) {
+		if (_pending_len < kHeaderLen) {
+			return true;
+		}
+
+		uint16_t magic;
+		memcpy(&magic, _pending, sizeof(magic));
+		memcpy(&_write_num, _pending + 2, sizeof(_write_num));
+		memcpy(&_write_file_len, _pending + 4, sizeof(_write_file_len));
+
+		if ((magic != kMagic) || (_write_file_len < kHeaderLen)) {
+			return false;
+		}
+
+		memmove(_pending, _pending + kHeaderLen, _pending_len - kHeaderLen);
+		_pending_len -= kHeaderLen;
+		_header_done = true;
+	}
+
+	while (_pending_len > 0) {
+		if (_pending[0] == 0) {
+			memmove(_pending, _pending + 1, _pending_len - 1);
+			_pending_len--;
+			continue;
+		}
+
+		if (_pending_len < 2) {
+			return true;
+		}
+
+		const uint8_t ptype = _pending[0] & 0x0F;
+		const uint8_t flags = _pending[0] >> 4;
+		const uint8_t common_len = _pending[1] & 0x0F;
+		const uint8_t name_len = (_pending[1] >> 4) + 1;
+		const uint8_t vlen = packed_value_len(ptype);
+		const size_t prev_len = strlen(_prev_name);
+
+		if ((flags != 0) || (vlen == 0) || ((common_len + name_len) > 16) || (common_len > prev_len)) {
+			return false;
+		}
+
+		const size_t need = 2 + name_len + vlen;
+
+		if (need > sizeof(_pending)) {
+			return false;
+		}
+
+		if (_pending_len < need) {
+			return true;
+		}
+
+		char name[17];
+		memcpy(name, _prev_name, common_len);
+		memcpy(name + common_len, _pending + 2, name_len);
+		name[common_len + name_len] = '\0';
+
+		if (!apply_entry(name, ptype, _pending + 2 + name_len)) {
+			return false;
+		}
+
+		strncpy(_prev_name, name, sizeof(_prev_name) - 1);
+		_prev_name[sizeof(_prev_name) - 1] = '\0';
+		memmove(_pending, _pending + need, _pending_len - need);
+		_pending_len -= need;
+		_write_seen++;
+	}
+
+	return true;
+}
+
+bool ParamPckFile::ingest(const uint8_t *data, uint16_t count)
+{
+	while (count > 0) {
+		if (_pending_len == sizeof(_pending)) {
+			if (!parse_pending() || (_pending_len == sizeof(_pending))) {
+				return false;
+			}
+		}
+
+		const uint16_t room = static_cast<uint16_t>(sizeof(_pending) - _pending_len);
+		const uint16_t n = (count < room) ? count : room;
+		memcpy(_pending + _pending_len, data, n);
+		_pending_len += n;
+		data += n;
+		count -= n;
+		_write_ofs += n;
+
+		if (!parse_pending()) {
+			return false;
+		}
+
+		if (_header_done && (_write_ofs > _write_file_len)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+int ParamPckFile::write(uint32_t offset, const uint8_t *buf, uint16_t count)
+{
+	if (!_open || !_write || _write_failed) {
+		return -1;
+	}
+
+	if (count == 0) {
+		return 0;
+	}
+
+	const uint32_t end = offset + count;
+
+	if (end <= _write_ofs) {
+		return count;
+	}
+
+	if (offset > _write_ofs) {
+		_write_failed = true;
+		return -1;
+	}
+
+	const uint16_t skip = static_cast<uint16_t>(_write_ofs - offset);
+
+	if (!ingest(buf + skip, count - skip)) {
+		_write_failed = true;
+		return -1;
+	}
+
+	return count;
+}
+
+bool ParamPckFile::finish_write()
+{
+	if (!_open || !_write || _write_failed) {
+		return false;
+	}
+
+	if (!parse_pending()) {
+		_write_failed = true;
+		return false;
+	}
+
+	while ((_pending_len > 0) && (_pending[0] == 0)) {
+		memmove(_pending, _pending + 1, _pending_len - 1);
+		_pending_len--;
+	}
+
+	if (!_header_done || (_pending_len != 0) || (_write_ofs != _write_file_len)
+	    || (_write_seen != _write_num)) {
+		_write_failed = true;
+		return false;
+	}
+
+	return true;
 }

@@ -199,3 +199,75 @@ TEST_CASE("Parameters download via MAVLink FTP", "[multicopter]")
 	CHECK(compared == packed.size());
 	std::cout << "Compared " << compared << " parameters, " << data.size() << " bytes packed" << std::endl;
 }
+
+std::vector<uint8_t> encode_one_float(const std::string &name, float value)
+{
+	std::vector<uint8_t> body;
+	body.push_back(4);
+	body.push_back(static_cast<uint8_t>((name.size() - 1) << 4));
+	body.insert(body.end(), name.begin(), name.end());
+	uint8_t bits[4];
+	memcpy(bits, &value, 4);
+	body.insert(body.end(), bits, bits + 4);
+
+	std::vector<uint8_t> out(6 + body.size());
+	const uint16_t magic = 0x671B;
+	const uint16_t num = 1;
+	const uint16_t flen = static_cast<uint16_t>(out.size());
+	memcpy(out.data(), &magic, 2);
+	memcpy(out.data() + 2, &num, 2);
+	memcpy(out.data() + 4, &flen, 2);
+	memcpy(out.data() + 6, body.data(), body.size());
+	return out;
+}
+
+TEST_CASE("Parameters upload via MAVLink FTP", "[multicopter]")
+{
+	using namespace std::chrono_literals;
+
+	AutopilotTesterParamFtp tester;
+	tester.connect(connection_url);
+
+	mavsdk::Param param(tester.system());
+	const mavsdk::Param::AllParams all = param.get_all_params();
+	REQUIRE_FALSE(all.float_params.empty());
+
+	const std::string name = all.float_params.front().name;
+	const float original = all.float_params.front().value;
+	const float updated = original + 1.f;
+	CAPTURE(name);
+
+	const std::filesystem::path local_dir = std::filesystem::temp_directory_path() / "px4_mavsdk_tests_param_ftp_up";
+	std::filesystem::remove_all(local_dir);
+	std::filesystem::create_directories(local_dir);
+	const std::filesystem::path local_file = local_dir / "param.pck";
+
+	{
+		const std::vector<uint8_t> packed = encode_one_float(name, updated);
+		std::ofstream out(local_file, std::ios::binary);
+		REQUIRE(out.good());
+		out.write(reinterpret_cast<const char *>(packed.data()), static_cast<std::streamsize>(packed.size()));
+	}
+
+	mavsdk::Ftp ftp(tester.system());
+	std::promise<mavsdk::Ftp::Result> done;
+	auto result = done.get_future();
+	bool finished = false;
+
+	ftp.upload_async(local_file.string(), "@PARAM",
+	[&](mavsdk::Ftp::Result r, mavsdk::Ftp::ProgressData) {
+		if ((r != mavsdk::Ftp::Result::Next) && !finished) {
+			finished = true;
+			done.set_value(r);
+		}
+	});
+
+	REQUIRE(result.wait_for(60s) == std::future_status::ready);
+	REQUIRE(result.get() == mavsdk::Ftp::Result::Success);
+
+	const auto got = param.get_param_float(name);
+	REQUIRE(got.first == mavsdk::Param::Result::Success);
+	CHECK(got.second == Approx(updated));
+
+	REQUIRE(param.set_param_float(name, original) == mavsdk::Param::Result::Success);
+}
