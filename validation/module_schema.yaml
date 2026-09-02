@@ -57,14 +57,11 @@ serial_config:
                 type: string
             num_instances:
                 # Max number of serial ports that may run this protocol.
-                # >1 without secondary_command starts one process per port
-                # (MAVLink) and sets ${i}.
+                # >1 without secondary_command is only valid for mavlink,
+                # which starts one process per port from MAV_<i>_*.
                 # Default: 1, or 2 if secondary_command is set.
                 type: integer
                 min: 1
-            supports_networking:
-                # set to true if the module supports networking (UDP)
-                type: boolean
 
 
 parameters:

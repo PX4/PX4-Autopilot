@@ -62,7 +62,6 @@ __END_DECLS
 
 static constexpr unsigned kCmdBuf = 320;
 static constexpr unsigned kMaxArgs = 16;
-static constexpr unsigned kMavlinkCap = 3;
 
 static bool get_int32(const char *name, int32_t *value)
 {
@@ -82,28 +81,36 @@ static int run_argv(char *argv[], int argc)
 	}
 
 #ifdef __PX4_NUTTX
+	// Same sequence as nsh_builtin: the lock keeps the child from running to
+	// completion before waitpid registers, which would report ECHILD.
 	sched_lock();
 	const int pid = exec_builtin(argv[0], argv, nullptr, 0);
-	sched_unlock();
 
 	if (pid < 0) {
+		sched_unlock();
 		PX4_ERR("failed to start %s", argv[0]);
 		return pid;
 	}
 
 #  ifdef CONFIG_SCHED_WAITPID
 	int status = 0;
+	int ret = 0;
 
 	if (waitpid(pid, &status, 0) < 0) {
-		return -errno;
+		// Without SCHED_HAVE_PARENT an already-exited child reports ECHILD.
+		ret = (errno == ECHILD) ? 0 : -errno;
+
+	} else if (WIFEXITED(status)) {
+		ret = WEXITSTATUS(status);
+
+	} else {
+		ret = -1;
 	}
 
-	if (WIFEXITED(status)) {
-		return WEXITSTATUS(status);
-	}
-
-	return -1;
+	sched_unlock();
+	return ret;
 #  else
+	sched_unlock();
 	return 0;
 #  endif
 
@@ -321,6 +328,24 @@ static int32_t param_int(const char *fmt, int instance, int32_t fallback)
 	return value;
 }
 
+// MAV_${i}_* defaults describe the serial link an instance usually runs on;
+// ethernet takes whichever instance is free, so a default only applies there
+// when the user set it.
+static bool param_is_user_set(const char *fmt, int instance)
+{
+	char name[24];
+	snprintf(name, sizeof(name), fmt, instance);
+	const param_t p = param_find(name);
+
+	if (p == PARAM_INVALID) {
+		return false;
+	}
+
+	int32_t value = 0;
+	int32_t def = 0;
+	return param_get(p, &value) == PX4_OK && param_get_default_value(p, &def) == PX4_OK && value != def;
+}
+
 static int start_mavlink(int instance, const char *device, const char *baud_param, bool ethernet)
 {
 	// Instance flags come from MAV_${i}_*.
@@ -364,15 +389,19 @@ static int start_mavlink(int instance, const char *device, const char *baud_para
 	snprintf(m_buf, sizeof(m_buf), "p:MAV_%d_MODE", instance);
 	argv[argc++] = (char *)"-m";
 	argv[argc++] = m_buf;
-	snprintf(r_buf, sizeof(r_buf), "p:MAV_%d_RATE", instance);
-	argv[argc++] = (char *)"-r";
-	argv[argc++] = r_buf;
 
-	if (param_is_one("MAV_%d_FORWARD", instance)) {
+	if (!ethernet || param_is_user_set("MAV_%d_RATE", instance)) {
+		snprintf(r_buf, sizeof(r_buf), "p:MAV_%d_RATE", instance);
+		argv[argc++] = (char *)"-r";
+		argv[argc++] = r_buf;
+	}
+
+	if (param_is_one("MAV_%d_FORWARD", instance) && (!ethernet || param_is_user_set("MAV_%d_FORWARD", instance))) {
 		argv[argc++] = (char *)"-f";
 	}
 
-	if (param_is_one("MAV_%d_RADIO_CTL", instance)) {
+	// Radio throttling follows RADIO_STATUS from a serial radio.
+	if (!ethernet && param_is_one("MAV_%d_RADIO_CTL", instance)) {
 		argv[argc++] = (char *)"-s";
 	}
 
@@ -436,19 +465,9 @@ static bool ethernet_on(const SerialProtocolConfig &protocol)
 	return get_int32(protocol.ethernet_param, &value) && value == 1;
 }
 
-static int ethernet_mav_instance(int mav_next)
-{
-	if (mav_next >= static_cast<int>(kMavlinkCap)) {
-		return -1;
-	}
-
-	return mav_next;
-}
-
 static void start_ports()
 {
 	int mav_next = 0;
-	const int mav_lim = static_cast<int>(kMavlinkCap);
 
 	constexpr unsigned taken_len = kSerialProtocolCount > 0 ? kSerialProtocolCount : 1;
 	bool taken[taken_len] {};
@@ -475,7 +494,7 @@ static void start_ports()
 		const unsigned idx = protocol_index(protocol);
 
 		if (protocol->kind == kSerialKindInstance) {
-			if (mav_next >= mav_lim) {
+			if (mav_next >= protocol->num_instances) {
 #if !defined(CONSTRAINED_FLASH)
 				PX4_WARN("%s instance limit", protocol->name);
 #endif
@@ -561,16 +580,15 @@ static void start_ports()
 		}
 
 		if (kSerialProtocols[i].kind == kSerialKindInstance) {
-			const int inst = ethernet_mav_instance(mav_next);
-
-			if (inst < 0) {
+			if (mav_next >= kSerialProtocols[i].num_instances) {
 #if !defined(CONSTRAINED_FLASH)
 				PX4_WARN("%s instance limit", kSerialProtocols[i].name);
 #endif
 				continue;
 			}
 
-			start_mavlink(inst, nullptr, nullptr, true);
+			start_mavlink(mav_next, nullptr, nullptr, true);
+			mav_next++;
 			continue;
 		}
 

@@ -5,7 +5,6 @@ serial_config:
       protocol_name: Lightware GRF
 
       num_instances: 1
-      supports_networking: false
 
 parameters:
     - group: Sensors
