@@ -224,5 +224,49 @@ serial_config:
             self.assertNotIn('if iridiumsbd', header_text)
 
 
+class MetadataTests(unittest.TestCase):
+    def test_serial_json_lists_ports_in_instance_order(self):
+        import json
+        with tempfile.TemporaryDirectory() as tmp:
+            yaml_path = os.path.join(tmp, 'mod.yaml')
+            write_yaml(yaml_path, """
+module_name: mavlink
+serial_config:
+    - command: mavlink start -d ${SERIAL_DEV}
+      protocol_id: 1
+      protocol_name: MAVLink
+      num_instances: 3
+      ethernet_param: MAV_ETH_EN
+parameters:
+    - group: MAVLink
+      definitions:
+        MAV_${i}_MODE:
+            type: enum
+            num_instances: 3
+            default: [0, 2, 0]
+        MAV_ETH_EN:
+            type: boolean
+            default: false
+""")
+            out = os.path.join(tmp, 'serial.json')
+            cmd = [sys.executable, SCRIPT, '--metadata-file', out, '--compress', '--ethernet',
+                   '--serial-ports', 'GPS1:/dev/ttyS0', 'TEL1:/dev/ttyS6',
+                   '--config-files', yaml_path]
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertTrue(os.path.exists(out + '.xz'))
+            with open(out) as handle:
+                serial = json.load(handle)['buses']['serial']
+            self.assertEqual([p['id'] for p in serial['ports']], ['TEL1', 'GPS1'])
+            self.assertEqual(serial['ports'][0]['protocolParam'], 'SER_TEL1_PROTO')
+            self.assertEqual(serial['ports'][0]['baudParam'], 'SER_TEL1_BAUD')
+            self.assertTrue(serial['ethernet'])
+            mavlink = [p for p in serial['protocols'] if p['id'] == 1][0]
+            self.assertEqual(mavlink['maxPorts'], 3)
+            self.assertEqual(mavlink['instanceParams'], ['MAV_${i}_MODE'])
+            self.assertEqual(mavlink['ethernetParam'], 'MAV_ETH_EN')
+            self.assertEqual(serial['protocols'][0], {'id': 0, 'name': 'Disabled'})
+
+
 if __name__ == '__main__':
     unittest.main()

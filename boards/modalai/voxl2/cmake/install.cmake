@@ -77,6 +77,7 @@ install(FILES
 	${PX4_BINARY_DIR}/actuators.json.xz
 	${PX4_BINARY_DIR}/component_general.json.xz
 	${PX4_BINARY_DIR}/parameters.json.xz
+	${PX4_BINARY_DIR}/serial.json.xz
 	DESTINATION ../data/px4/etc/extras
 	OPTIONAL
 )
