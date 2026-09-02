@@ -506,8 +506,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	imxrt_spiinitialize();
 
-	px4_platform_configure();
-
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
 		       board_get_hw_type_name());
@@ -556,6 +554,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* Do the I2C init late BOARD_I2C_LATEINIT */
 
 	px4_platform_i2c_init();
+
+	/* PAB 24LC64T is on I2C3_BASE = LPI2C6 (X1_8/10). Manifest MTD talks I2C, so it
+	 * runs after those pins are I2C and VDD_5V_PERIPH is on. FlexSPI FRAM does not care. */
+	px4_platform_configure();
 
 	/* Configure the Actual SPI interfaces (after we determined the HW version)  */
 
