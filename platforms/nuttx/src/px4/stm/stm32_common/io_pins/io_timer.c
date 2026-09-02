@@ -579,6 +579,20 @@ void io_timer_capture_dma_req(uint8_t timer, uint8_t timer_channel_index, bool e
 	}
 }
 
+static dshot_timing_t dshot_timings[MAX_IO_TIMERS];
+// Seeded with a rate nobody asks for so the first lookup always computes.
+static unsigned dshot_timing_rate[MAX_IO_TIMERS] = { [0 ...(MAX_IO_TIMERS - 1)] = ~0u };
+
+const dshot_timing_t *io_timer_get_dshot_timing(uint8_t timer, unsigned dshot_pwm_freq)
+{
+	if (dshot_timing_rate[timer] != dshot_pwm_freq) {
+		dshot_timings[timer] = dshot_timing(io_timers[timer].clock_freq, dshot_pwm_freq);
+		dshot_timing_rate[timer] = dshot_pwm_freq;
+	}
+
+	return &dshot_timings[timer];
+}
+
 int io_timer_set_dshot_burst_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_burst_length)
 {
 	int ret_val = OK;
@@ -601,9 +615,9 @@ int io_timer_set_dshot_burst_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_
 	}
 
 	if (OK == ret_val) {
-		const uint32_t bit_width = dshot_motor_pwm_bit_width(io_timers[timer].clock_freq);
-		rARR(timer)  = bit_width;
-		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq) / bit_width) - 1;
+		const dshot_timing_t *timing = io_timer_get_dshot_timing(timer, dshot_pwm_freq);
+		rARR(timer)  = timing->ticks - 1;
+		rPSC(timer)  = timing->prescaler - 1;
 		rEGR(timer)  = ATIM_EGR_UG;
 
 		// find the lowest channel index for the timer (they are not necessarily in ascending order)
@@ -640,8 +654,7 @@ int io_timer_set_dshot_capture_mode(uint8_t timer, uint8_t timer_channel_index, 
 	// Timer Autor Reload Register max value
 	rARR(timer) = 0xFFFFFFFF;
 	// Timer Prescalar
-	const uint32_t bit_width = dshot_motor_pwm_bit_width(io_timers[timer].clock_freq);
-	rPSC(timer) = ((int)(io_timers[timer].clock_freq / (dshot_pwm_freq * 5 / 4)) / bit_width) - 1;
+	rPSC(timer) = io_timer_get_dshot_timing(timer, dshot_pwm_freq)->capture_prescaler - 1;
 
 	switch (timer_channel_index) {
 	case 0:
