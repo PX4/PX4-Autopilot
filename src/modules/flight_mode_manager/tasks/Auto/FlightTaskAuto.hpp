@@ -195,5 +195,6 @@ private:
 	bool _evaluatePositionSetpointTriplet();
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
+	bool _hasPassedCurrentWaypoint() const; /**< True if the vehicle is past the current waypoint */
 	void _set_heading_from_mode(); /**< @see  MPC_YAW_MODE */
 };

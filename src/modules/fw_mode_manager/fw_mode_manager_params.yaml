@@ -283,6 +283,20 @@ parameters:
       min: -1.0
       decimal: 1
       increment: 0.1
+    FW_TKO_CLMB_T:
+      description:
+        short: Takeoff climbout duration
+        long: |-
+          Ends the takeoff climbout this many seconds after the vehicle started climbing, instead of
+          when the takeoff altitude is reached.
+
+          If set to 0, the climbout ends at the takeoff altitude.
+      type: float
+      default: 0.0
+      unit: s
+      min: 0.0
+      decimal: 1
+      increment: 1.0
     FW_LAUN_DETCN_ON:
       description:
         short: Fixed-wing launch detection

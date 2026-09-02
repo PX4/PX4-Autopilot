@@ -50,8 +50,33 @@ namespace uavcan_socketcan
 class CanIface : public uavcan::ICanIface
 	, uavcan::Noncopyable
 {
+public:
+	/**
+	 * Controller fault confinement and error counters, from the NuttX
+	 * SIOCGCANERRORS ioctl. `errors` counts bus errors the driver has seen
+	 * since the interface came up and only ever grows; `tec`/`rec` are the
+	 * live CAN error counters, which fall again as the bus recovers.
+	 */
+	struct BusErrors {
+		uint8_t  state{0};
+		uint8_t  tec{0};
+		uint8_t  rec{0};
+		uint32_t errors{0};
+		uint32_t rx_overruns{0};
+
+		static constexpr uint8_t Active  = 0;
+		static constexpr uint8_t Warning = 1;
+		static constexpr uint8_t Passive = 2;
+		static constexpr uint8_t BusOff  = 3;
+	};
+
+private:
 	int               _fd{-1};
+	uint32_t          _index{0};
 	bool              _can_fd{false};
+
+	mutable BusErrors _bus_errors;
+	mutable bool      _bus_errors_valid{false};
 
 	//// Send msg structure
 	struct iovec       _send_iov {};
@@ -68,7 +93,23 @@ class CanIface : public uavcan::ICanIface
 	struct cmsghdr     *_recv_cmsg {};
 	uint8_t            _recv_control[sizeof(struct cmsghdr) + sizeof(struct timeval)] {};
 
-	SystemClock clock;
+	/* Frames sent with CanIOFlagLoopback are handed back from receive() with
+	 * the time they entered a hardware mailbox. NuttX has no TX echo, so this
+	 * stands in for the true transmission timestamp; the bias is the
+	 * mailbox wait, bounded by one frame time when the frame wins arbitration.
+	 */
+	struct LoopbackItem {
+		uavcan::CanFrame      frame;
+		uavcan::MonotonicTime ts_mono;
+		uavcan::UtcTime       ts_utc;
+	};
+
+	static constexpr unsigned LoopbackDepth = 4;
+	LoopbackItem _loopback[LoopbackDepth];
+	unsigned     _loopback_head{0};
+	unsigned     _loopback_count{0};
+
+	void pushLoopback(const uavcan::CanFrame &frame);
 
 public:
 	uavcan::uint32_t socketInit(uint32_t index);
@@ -90,6 +131,36 @@ public:
 	uavcan::uint16_t getNumFilters() const override;
 
 	int getFD();
+
+	bool hasLoopbackPending() const { return _loopback_count > 0; }
+
+
+	/**
+	 * Read the counters from the driver into the cache. NuttX descriptor
+	 * tables are per task group, so this must run on the uavcan work queue
+	 * that owns the socket; getErrorCount() does that every status period.
+	 * Returns 0 on success, -1 if the ioctl is unavailable on this build.
+	 */
+	int pollErrors() const;
+
+	/**
+	 * Last polled counters, readable from any task (`uavcan status` runs in
+	 * the nsh task). Returns false until the first successful poll.
+	 */
+	bool lastErrors(BusErrors &out) const
+	{
+		out = _bus_errors;
+		return _bus_errors_valid;
+	}
+
+	static const char *busStateName(uint8_t state);
+
+	/**
+	 * Program the controller's nominal bit rate if it differs from what is
+	 * running. Returns 0 on success or when the ioctl is unavailable,
+	 * negative if the controller rejected the rate.
+	 */
+	int setBitRate(uint32_t bitrate);
 };
 
 /**
@@ -102,7 +173,6 @@ class CanDriver
 {
 	BusEvent update_event_;
 	CanIface if_[UAVCAN_SOCKETCAN_NUM_IFACES];
-	SystemClock clock;
 	struct pollfd pfds[UAVCAN_SOCKETCAN_NUM_IFACES];
 
 public:

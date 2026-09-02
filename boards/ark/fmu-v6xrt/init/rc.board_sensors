@@ -1,0 +1,95 @@
+#!/bin/sh
+#
+# ARK V6X-RT specific board sensors init
+#------------------------------------------------------------------------------
+#
+# UART mapping on ARK V6X-RT:
+#
+# LPUART1       /dev/ttyS0      CONSOLE
+# LPUART3       /dev/ttyS1      GPS
+# LPUART4       /dev/ttyS2      TELEM1
+# LPUART5       /dev/ttyS3      GPS2
+# LPUART6       /dev/ttyS4      PX4IO
+# LPUART8       /dev/ttyS5      TELEM2
+# LPUART10      /dev/ttyS6      TELEM3
+# LPUART11      /dev/ttyS7      TELEM4
+#
+#------------------------------------------------------------------------------
+
+set HAVE_PM2 yes
+
+if mft query -q -k MFT -s MFT_PM2 -v 0
+then
+	set HAVE_PM2 no
+fi
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+fi
+
+if ver hwtypecmp ARKV6XRT000
+then
+	# Start order sets the sensor instance, and the voter keeps the lowest instance at equal
+	# priority. The IIM-20670 goes last: its gyro filter tops out at 60 Hz, so it should only
+	# ever be the fallback.
+
+	# Internal SPI1 ICM-45686 Accel/Gyro
+	icm45686 -R 6 -b 1 -s start
+
+	# Internal SPI3 LSM6DSV80X Accel/Gyro (mounted at 45deg, pin 1 bottom-left)
+	lsm6dsv -R 1 -b 3 -s -T 80 start
+
+	# Internal SPI2 IIM-20670 Accel/Gyro
+	iim20670 -R 2 -b 2 -s start
+else
+	echo "ERROR [init] unsupported FMU hwtype, internal IMUs not started"
+fi
+
+# Internal magnetometer IIS2MDC on I2C3
+iis2mdc -R 4 -I -b 3 start
+
+# Onboard baro BMP390 on I2C2 (shared with the PM2 connector)
+bmp388 -I -b 2 start
+
+# Start an external PWM generator
+if param greater PCA9685_EN_BUS 0
+then
+	pca9685_pwm_out start -X
+fi
+
+unset HAVE_PM2

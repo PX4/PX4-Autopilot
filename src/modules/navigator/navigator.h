@@ -76,6 +76,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/distance_sensor_mode_change_request.h>
 #include <uORB/topics/fixed_wing_lateral_guidance_status.h>
+#include <uORB/topics/fixed_wing_takeoff_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/home_position.h>
@@ -201,6 +202,12 @@ public:
 	bool home_alt_valid() { return (_home_pos.valid_alt); }
 
 	bool home_global_position_valid() { return (_home_pos.valid_alt && _home_pos.valid_hpos); }
+
+	/**
+	 * Whether the fixed-wing mode manager has finished the climbout of the current takeoff.
+	 * Falls back to the given altitude when no takeoff is being flown.
+	 */
+	bool fw_climbout_completed(float fallback_altitude_amsl);
 
 	Geofence &get_geofence() { return _geofence; }
 
@@ -368,6 +375,7 @@ private:
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
+	uORB::Subscription _fw_takeoff_status_sub{ORB_ID(fixed_wing_takeoff_status)};	/**< fixed-wing takeoff status subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
 
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};

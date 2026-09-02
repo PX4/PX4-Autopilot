@@ -97,6 +97,12 @@ public:
 
 };
 
+// Counts calls to FailsafeBase::notifyUser(), which is what emits the user-facing failsafe events.
+static void countNotification(void *arg)
+{
+	++(*static_cast<int *>(arg));
+}
+
 
 TEST_F(FailsafeTest, General)
 {
@@ -794,4 +800,139 @@ TEST_F(FailsafeTest, FallbackStabilizedRequiresManualControl)
 	// checkModeFallback returns RTL from NAV_RCL_ACT. The framework then cascades RTL -> Land -> Descend
 	// because local altitude loss blocks both AUTO_RTL and AUTO_LAND.
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
+}
+
+TEST_F(FailsafeTest, NoNotificationWhileDisarmed)
+{
+	// Reproduces a bench case where losing the position estimate in PosCtl while disarmed emitted
+	// "Failsafe warning:". checkModeFallback() registers a condition, but getSelectedAction() returns
+	// None while disarmed, so there is no failsafe to report.
+	Failsafe failsafe(nullptr);
+
+	int notifications = 0;
+	failsafe.setOnNotifyUserCallback(&countNotification, &notifications);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = false;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	const int notifications_before = notifications;
+
+	// Position estimate lost while sitting on the bench
+	failsafe_flags.local_position_invalid = true;
+	failsafe_flags.local_position_invalid_relaxed = true;
+	failsafe_flags.local_velocity_invalid = true;
+	failsafe_flags.global_position_invalid = true;
+	failsafe_flags.global_position_invalid_relaxed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	EXPECT_EQ(notifications, notifications_before);
+
+	// Arming with the same flags must report it, otherwise the check above passes trivially
+	state.armed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	EXPECT_NE(failsafe.selectedAction(), FailsafeBase::Action::None);
+	EXPECT_GT(notifications, notifications_before);
+}
+
+TEST_F(FailsafeTest, NoNotificationAfterTermination)
+{
+	// Termination is latched and irreversible, so conditions failing afterwards cannot be acted upon
+	// and must not produce a burst of warnings.
+	FailsafeTester failsafe(nullptr);
+
+	int notifications = 0;
+	failsafe.setOnNotifyUserCallback(&countNotification, &notifications);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+	const int notifications_before = notifications;
+
+	// Links dropping out during termination
+	failsafe_flags.gcs_connection_lost = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+	EXPECT_EQ(notifications, notifications_before);
+
+	failsafe_flags.manual_control_signal_lost = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+	EXPECT_EQ(notifications, notifications_before);
+}
+
+TEST_F(FailsafeTest, NotifiesAboutSubsumedCondition)
+{
+	// A new condition less severe than the active action still has to be reported once.
+	FailsafeTester failsafe(nullptr);
+
+	int notifications = 0;
+	failsafe.setOnNotifyUserCallback(&countNotification, &notifications);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	// Offboard signal lost -> Hold (not delayed)
+	failsafe_flags.offboard_control_signal_lost = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	const int notifications_before = notifications;
+
+	// Warn is subsumed by the active Hold, so the action does not escalate, but the user is informed
+	failsafe_flags.navigator_failure = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	EXPECT_EQ(notifications, notifications_before + 1);
+}
+
+TEST_F(FailsafeTest, NoNotificationForDisabledFailsafe)
+{
+	// A condition configured with Action::None is disabled and must stay silent.
+	FailsafeTester failsafe(nullptr);
+
+	int notifications = 0;
+	failsafe.setOnNotifyUserCallback(&countNotification, &notifications);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	const int notifications_before = notifications;
+
+	failsafe_flags.fd_imbalanced_prop = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	EXPECT_EQ(notifications, notifications_before);
 }

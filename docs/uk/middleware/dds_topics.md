@@ -165,6 +165,7 @@ See messages
 - [FixedWingLateralGuidanceStatus](../msg_docs/FixedWingLateralGuidanceStatus.md)
 - [FixedWingLateralStatus](../msg_docs/FixedWingLateralStatus.md)
 - [FixedWingRunwayControl](../msg_docs/FixedWingRunwayControl.md)
+- [FixedWingTakeoffStatus](../msg_docs/FixedWingTakeoffStatus.md)
 - [FlightPhaseEstimation](../msg_docs/FlightPhaseEstimation.md)
 - [FollowTarget](../msg_docs/FollowTarget.md)
 - [FollowTargetEstimator](../msg_docs/FollowTargetEstimator.md)

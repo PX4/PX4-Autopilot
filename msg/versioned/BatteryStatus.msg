@@ -41,14 +41,14 @@ float32 max_cell_voltage_delta # [V] Max difference between individual cell volt
 bool is_powering_off # Power off event imminent indication, false if unknown
 bool is_required # Set if the battery is explicitly required before arming
 
-uint8 warning # [@enum WARNING STATE] Current battery warning
+uint8 warning # [@enum WARNING] Current battery warning
 uint8 WARNING_NONE = 0 # No battery low voltage warning active
 uint8 WARNING_LOW = 1 # Low voltage warning
 uint8 WARNING_CRITICAL = 2 # Critical voltage, return / abort immediately
 uint8 WARNING_EMERGENCY = 3 # Immediate landing required
 uint8 WARNING_FAILED = 4 # Battery has failed completely
-uint8 STATE_UNHEALTHY = 6 # Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field
-uint8 STATE_CHARGING = 7 # Battery is charging
+uint8 WARNING_UNHEALTHY = 6 # Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field
+uint8 WARNING_CHARGING = 7 # Battery is charging
 
 uint16 faults # [@enum FAULT] Smart battery supply status/fault flags (bitmask) for health indication
 uint8 FAULT_DEEP_DISCHARGE = 0 # Battery has deep discharged

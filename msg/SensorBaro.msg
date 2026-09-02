@@ -7,6 +7,7 @@ uint64 timestamp         # [us] Time of publication (since system start)
 uint64 timestamp_sample  # [us] Time of raw data capture
 
 uint32 device_id     # [-] Unique device ID for the sensor that does not change between power cycles
+bool is_external     # [-] True if the sensor is not mounted on the flight controller board itself
 float32 pressure     # [Pa] Static pressure measurement
 float32 temperature  # [°C] Temperature.
 uint32 error_count   # [-] Number of errors detected by driver.

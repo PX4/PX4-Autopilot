@@ -39,7 +39,7 @@ using namespace time_literals;
 ICP201XX::ICP201XX(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_baro{get_device_id()}
+	_px4_baro{get_device_id(), config.external}
 {
 }
 

@@ -62,7 +62,8 @@ Vector2f StickTiltXY::generateAccelerationSetpoints(Vector2f stick_xy, const flo
 		const float yaw_setpoint)
 {
 	Sticks::limitStickUnitLengthXY(stick_xy);
-	_man_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
+	_man_input_filter.setParameters(static_cast<uint64_t>(dt * 1e6f),
+					static_cast<uint64_t>(math::max(_param_mc_man_tilt_tau.get(), 0.f) * 1e6f));
 	stick_xy = _man_input_filter.update(stick_xy);
 	Sticks::rotateIntoHeadingFrameXY(stick_xy, yaw, yaw_setpoint);
 	return stick_xy * _maximum_acceleration;

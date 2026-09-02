@@ -136,28 +136,25 @@ fi
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
 
-# Possible internal Baro
-if param compare SENS_INT_BARO_EN 1
+# Internal baro
+if ver hwtypecmp V6X001 V6X006 V6X008
 then
-	if ver hwtypecmp V6X001 V6X006 V6X008
+	if ! icp201xx -I -a 0x64 -q start
 	then
-		if ! icp201xx -I -a 0x64 -q start
-		then
-			bmp581 -I -a 0x46 start
-		fi
-	else
-		bmp388 -I -a 0x77 start
+		bmp581 -I -a 0x46 start
 	fi
+else
+	bmp388 -I -a 0x77 start
 fi
 
-#external baro
+# Onboard baro on I2C2 (shared with the PM2 connector)
 if ver hwtypecmp V6X001
 then
-	icp201xx -X start
+	icp201xx -I -b 2 start
 else
-	if ! bmp388 -X -q start
+	if ! bmp388 -I -b 2 -q start
 	then
-		bmp581 -X -a 0x46 start
+		bmp581 -I -b 2 -a 0x46 start
 	fi
 fi
 

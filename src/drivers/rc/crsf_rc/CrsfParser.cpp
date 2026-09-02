@@ -60,11 +60,11 @@ enum CRSF_PAYLOAD_SIZE {
 	CRSF_PAYLOAD_SIZE_GPS = 15,
 	CRSF_PAYLOAD_SIZE_BATTERY = 8,
 	CRSF_PAYLOAD_SIZE_LINK_STATISTICS = 10,
-	CRSF_PAYLOAD_SIZE_LINK_STATISTICS_TX = -1,
+	CRSF_PAYLOAD_MIN_SIZE_LINK_STATISTICS_TX = 6,
 	CRSF_PAYLOAD_SIZE_RC_CHANNELS = 22,
 	CRSF_PAYLOAD_SIZE_ATTITUDE = 6,
-	CRSF_PAYLOAD_SIZE_MSP_WRITE = -1, // -1 means variable length
-	CRSF_PAYLOAD_SIZE_ELRS_STATUS = -1, // unclear how large this message is
+	CRSF_PAYLOAD_MIN_SIZE_MSP_WRITE = 5,
+	CRSF_PAYLOAD_MIN_SIZE_ELRS_STATUS = 6,
 };
 
 enum CRSF_PACKET_TYPE {
@@ -121,10 +121,16 @@ enum PARSER_STATE {
 	PARSER_STATE_CRC,
 };
 
+enum class CrsfSizePolicy : uint8_t {
+	Exact,
+	Minimum,
+};
+
 typedef struct {
-	uint8_t packet_type;
-	int32_t packet_size;
-	bool (*processor)(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
+	uint8_t packet_type; ///< CRSF frame type byte.
+	uint32_t payload_size; ///< Payload bytes, excluding the type byte and CRC.
+	CrsfSizePolicy payload_size_policy; ///< Exact size or minimum accepted size.
+	bool (*processor)(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet); ///< Called with the validated payload.
 } CrsfPacketDescriptor_t;
 
 static bool ProcessChannelData(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
@@ -136,12 +142,12 @@ static bool ProcessMspWrite(const uint8_t *data, const uint32_t size, CrsfPacket
 #endif
 
 static const CrsfPacketDescriptor_t crsf_packet_descriptors[] = {
-	{CRSF_PACKET_TYPE_RC_CHANNELS_PACKED, CRSF_PAYLOAD_SIZE_RC_CHANNELS, ProcessChannelData},
-	{CRSF_PACKET_TYPE_LINK_STATISTICS, CRSF_PAYLOAD_SIZE_LINK_STATISTICS, ProcessLinkStatistics},
-	{CRSF_PACKET_TYPE_LINK_STATISTICS_TX, CRSF_PAYLOAD_SIZE_LINK_STATISTICS_TX, ProcessLinkStatisticsTx},
-	{CRSF_PACKET_TYPE_ELRS_STATUS, CRSF_PAYLOAD_SIZE_ELRS_STATUS, ProcessElrsStatus},
+	{CRSF_PACKET_TYPE_RC_CHANNELS_PACKED, CRSF_PAYLOAD_SIZE_RC_CHANNELS, CrsfSizePolicy::Exact, ProcessChannelData},
+	{CRSF_PACKET_TYPE_LINK_STATISTICS, CRSF_PAYLOAD_SIZE_LINK_STATISTICS, CrsfSizePolicy::Exact, ProcessLinkStatistics},
+	{CRSF_PACKET_TYPE_LINK_STATISTICS_TX, CRSF_PAYLOAD_MIN_SIZE_LINK_STATISTICS_TX, CrsfSizePolicy::Minimum, ProcessLinkStatisticsTx},
+	{CRSF_PACKET_TYPE_ELRS_STATUS, CRSF_PAYLOAD_MIN_SIZE_ELRS_STATUS, CrsfSizePolicy::Minimum, ProcessElrsStatus},
 #ifdef CONFIG_VTX_CRSF_MSP_SUPPORT
-	{CRSF_PACKET_TYPE_MSP_WRITE, CRSF_PAYLOAD_SIZE_MSP_WRITE, ProcessMspWrite},
+	{CRSF_PACKET_TYPE_MSP_WRITE, CRSF_PAYLOAD_MIN_SIZE_MSP_WRITE, CrsfSizePolicy::Minimum, ProcessMspWrite},
 #endif
 };
 #define CRSF_PACKET_DESCRIPTOR_COUNT  (sizeof(crsf_packet_descriptors) / sizeof(CrsfPacketDescriptor_t))
@@ -264,8 +270,11 @@ static bool ProcessElrsStatus(const uint8_t *data, const uint32_t size, CrsfPack
 	new_packet->elrs_status.packets_bad = data[2];
 	new_packet->elrs_status.packets_good = (data[3] << 8) | data[4];
 	new_packet->elrs_status.flags = data[5];
-	strncpy(new_packet->elrs_status.message, (const char *)&data[6], sizeof(new_packet->elrs_status.message) - 1);
-	new_packet->elrs_status.message[sizeof(new_packet->elrs_status.message) - 1] = '\0';
+	const uint32_t message_size = size - CRSF_PAYLOAD_MIN_SIZE_ELRS_STATUS;
+	const uint32_t copy_size = message_size < sizeof(new_packet->elrs_status.message) - 1 ?
+				   message_size : sizeof(new_packet->elrs_status.message) - 1;
+	memcpy(new_packet->elrs_status.message, &data[CRSF_PAYLOAD_MIN_SIZE_ELRS_STATUS], copy_size);
+	new_packet->elrs_status.message[copy_size] = '\0';
 
 	return true;
 }
@@ -410,10 +419,11 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			// If we know what this packet is...
 			if (working_descriptor != NULL) {
 				// Validate length
-				if (working_descriptor->packet_size == -1) {
+				if (working_descriptor->payload_size_policy == CrsfSizePolicy::Minimum) {
 					working_segment_size = packet_size - PACKET_SIZE_TYPE_SIZE;
 
-					if (working_index + working_segment_size + CRC_SIZE > CRSF_MAX_PACKET_LEN) {
+					if (working_segment_size < working_descriptor->payload_size
+					    || working_index + working_segment_size + CRC_SIZE > CRSF_MAX_PACKET_LEN) {
 						parser_statistics->invalid_known_packet_sizes++;
 						parser_state = PARSER_STATE_HEADER;
 						working_segment_size = HEADER_SIZE;
@@ -423,7 +433,7 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 					}
 
 				} else {
-					if (packet_size != working_descriptor->packet_size + PACKET_SIZE_TYPE_SIZE) {
+					if (packet_size != working_descriptor->payload_size + PACKET_SIZE_TYPE_SIZE) {
 						parser_statistics->invalid_known_packet_sizes++;
 						parser_state = PARSER_STATE_HEADER;
 						working_segment_size = HEADER_SIZE;
@@ -432,7 +442,7 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 						continue;
 					}
 
-					working_segment_size = working_descriptor->packet_size;
+					working_segment_size = working_descriptor->payload_size;
 				}
 
 			} else {

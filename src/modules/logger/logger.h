@@ -256,7 +256,7 @@ private:
 	/**
 	 * callback to write the performance counters
 	 */
-	static void perf_iterate_callback(perf_counter_t handle, void *user);
+	static void perf_iterate_callback(const char *counter_line, void *user);
 
 	/**
 	 * callback for print_load_buffer() to print the process load
