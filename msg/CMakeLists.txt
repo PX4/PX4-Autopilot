@@ -207,6 +207,7 @@ set(msg_files
 	SensorGnssRelative.msg
 	SensorGnssStatus.msg
 	SensorGps.msg
+	SensorGpsChecks.msg
 	SensorGyro.msg
 	SensorGyroFft.msg
 	SensorGyroFifo.msg

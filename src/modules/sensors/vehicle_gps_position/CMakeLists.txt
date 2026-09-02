@@ -34,6 +34,8 @@
 px4_add_library(vehicle_gps_position
 	VehicleGPSPosition.cpp
 	VehicleGPSPosition.hpp
+	gnss_checks.cpp
+	gnss_checks.hpp
 	gps_blending.cpp
 	gps_blending.hpp
 	PpsTimeSync.cpp
