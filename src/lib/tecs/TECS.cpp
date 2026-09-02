@@ -231,6 +231,7 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 	control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
 
 	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input, param)};
+	_spe_rate_setpoint = specific_energy_rate.spe_rate.setpoint;
 
 	_detectUnderspeed(input, param, flag);
 
@@ -282,6 +283,13 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 	}
 
 	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input, param)};
+
+	// Slew rate limit the potential energy rate demand like the pitch setpoint is rate limited (vertical acceleration
+	// limit, see _calcPitchControl), so that the throttle does not fund a climb rate change before pitch may fly it.
+	const float spe_rate_setpoint_increment = dt * CONSTANTS_ONE_G * param.vert_accel_limit;
+	_spe_rate_setpoint = constrain(specific_energy_rate.spe_rate.setpoint,
+				       _spe_rate_setpoint - spe_rate_setpoint_increment, _spe_rate_setpoint + spe_rate_setpoint_increment);
+	specific_energy_rate.spe_rate.setpoint = _spe_rate_setpoint;
 
 	_detectUnderspeed(input, param, flag);
 
