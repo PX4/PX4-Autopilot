@@ -75,8 +75,11 @@ enum class SetpointTypeResult : uint8_t {
 };
 
 /**
- * Check if a setpoint type is valid for a given vehicle type
+ * Check if a setpoint type is valid for a given vehicle type.
+ * @param is_vtol true if the vehicle is a VTOL, regardless of its current (multicopter or
+ *                 fixed-wing) form. This allows a VTOL to register fixed-wing-only setpoint
+ *                 types before ever having transitioned, e.g. to command its first transition.
  */
-SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type);
+SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type, bool is_vtol);
 
 } // namespace mode_util

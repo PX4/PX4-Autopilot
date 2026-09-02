@@ -164,7 +164,7 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 	}
 }
 
-SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type)
+SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type, bool is_vtol)
 {
 	switch (setpoint_type) {
 	case SetpointType::Invalid:
@@ -181,7 +181,10 @@ SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehic
 		return SetpointTypeResult::Unsupported;
 
 	case SetpointType::FixedwingLateralLongitudinal:
-		if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		// A VTOL is allowed to register this even while currently in its
+		// multicopter form, since it may need to command its own transition
+		// to fixed-wing (e.g. from an external mode).
+		if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || is_vtol) {
 			return SetpointTypeResult::Success;
 		}
 

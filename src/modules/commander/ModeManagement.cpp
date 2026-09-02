@@ -406,7 +406,8 @@ void ModeManagement::checkUnregistrations(uint8_t user_intended_nav_state, Updat
 	}
 }
 
-void ModeManagement::update(uint8_t vehicle_type, bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request)
+void ModeManagement::update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state,
+			    UpdateRequest &update_request)
 {
 	_external_checks.update();
 
@@ -450,7 +451,7 @@ void ModeManagement::update(uint8_t vehicle_type, bool armed, uint8_t user_inten
 		checkUnregistrations(user_intended_nav_state, update_request);
 	}
 
-	update_request.control_setpoint_update = checkConfigControlSetpointUpdates(vehicle_type);
+	update_request.control_setpoint_update = checkConfigControlSetpointUpdates(vehicle_type, is_vtol);
 	checkConfigOverrides();
 }
 
@@ -644,7 +645,7 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 	}
 }
 
-bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type)
+bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type, bool is_vtol)
 {
 	bool had_update = false;
 	setpoint_config_s setpoint_config;
@@ -659,7 +660,7 @@ bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type)
 			Modes::Mode &mode = _modes.mode(setpoint_config.source_id);
 
 			const auto setpoint_type = static_cast<mode_util::SetpointType>(setpoint_config.type);
-			reply.result = static_cast<uint8_t>(mode_util::isSetpointTypeValid(setpoint_type, vehicle_type));
+			reply.result = static_cast<uint8_t>(mode_util::isSetpointTypeValid(setpoint_type, vehicle_type, is_vtol));
 
 			if (reply.result == setpoint_config_reply_s::RESULT_SUCCESS) {
 				// Get control mode
