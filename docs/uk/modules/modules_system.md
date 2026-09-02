@@ -397,7 +397,8 @@ i2c_launcher <command> [arguments...]
  Commands:
    start
      -b <val>    Bus number
-     -t <val>    battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
+                 default: 1
 
    stop
 
