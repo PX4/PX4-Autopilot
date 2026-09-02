@@ -36,6 +36,30 @@
 
 #include <px4_platform_common/defines.h>
 
+TEST(StickYawTest, ResetClearsYawspeedFilter)
+{
+	param_control_autosave(false);
+
+	StickYaw stick_yaw{nullptr};
+	float yawspeed_sp = 0.f;
+	float yaw_sp = NAN;
+	const float dt = 0.01f;
+
+	// GIVEN: the filter charged up by a sustained full-deflection yaw stick
+	for (int i = 0; i < 500; i++) {
+		stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 1.f, 0.f, dt);
+	}
+
+	EXPECT_GT(yawspeed_sp, 0.1f);
+
+	// WHEN: reset with no unaided yaw available, then the centred stick is sampled
+	stick_yaw.reset(0.f);
+	stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.f, dt);
+
+	// THEN: no yawspeed is commanded
+	EXPECT_EQ(yawspeed_sp, 0.f);
+}
+
 TEST(StickYawTest, UnaidedYawNanTransitionNoYawJump)
 {
 	// When unaided_yaw transitions from finite to NAN mid-flight,
