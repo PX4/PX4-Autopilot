@@ -1077,6 +1077,14 @@ Source: [drivers/px4io](https://github.com/PX4/PX4-Autopilot/tree/main/src/drive
 
 Output driver communicating with the IO co-processor.
 
+On its RC input, the IO co-processor supports:
+
+- PPM (CPPM)
+- S.BUS and S.BUS2
+- Spektrum DSM / DSM2 / DSM-X (10-bit and 11-bit)
+- Yuneec ST24
+- Graupner SUMD
+
 ### Usage {#px4io_usage}
 
 ```

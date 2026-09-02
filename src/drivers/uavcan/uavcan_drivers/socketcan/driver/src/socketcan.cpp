@@ -46,6 +46,7 @@
 
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <inttypes.h>
 #include <string.h>
 #include <errno.h>
 
@@ -80,6 +81,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 	bool can_fd = 0;
 
 	_can_fd = can_fd;
+	_index = index;
 
 	/* open socket */
 	if ((_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
@@ -198,6 +200,10 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	res = sendmsg(_fd, &_send_msg, MSG_DONTWAIT);
 
 	if (res > 0) {
+		if (flags & uavcan::CanIOFlagLoopback) {
+			pushLoopback(frame);
+		}
+
 		return 1;
 	}
 
@@ -215,9 +221,39 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	return -1;
 }
 
+void CanIface::pushLoopback(const uavcan::CanFrame &frame)
+{
+	const SystemClock &clock = SystemClock::instance();
+	LoopbackItem &item = _loopback[(_loopback_head + _loopback_count) % LoopbackDepth];
+	item.frame = frame;
+	item.ts_mono = clock.getMonotonic();
+	item.ts_utc = clock.utcFromMonotonic(item.ts_mono);
+
+	if (_loopback_count < LoopbackDepth) {
+		_loopback_count++;
+
+	} else {
+		// Ring full: the oldest echo is overwritten and lost
+		_loopback_head = (_loopback_head + 1) % LoopbackDepth;
+	}
+}
+
 uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::MonotonicTime &out_ts_monotonic,
 				  uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags)
 {
+	if (_loopback_count > 0) {
+		const LoopbackItem &item = _loopback[_loopback_head];
+		out_frame = item.frame;
+		out_ts_monotonic = item.ts_mono;
+		out_ts_utc = item.ts_utc;
+		out_flags = uavcan::CanIOFlagLoopback;
+		_loopback_head = (_loopback_head + 1) % LoopbackDepth;
+		_loopback_count--;
+		return 1;
+	}
+
+	out_flags = 0;
+
 	int32_t result = recvmsg(_fd, &_recv_msg, MSG_DONTWAIT);
 
 	if (result < 0) {
@@ -261,7 +297,12 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 	if (_recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP) {
 		struct timeval *tv = (struct timeval *)CMSG_DATA(_recv_cmsg);
 		out_ts_monotonic = uavcan::MonotonicTime::fromUSec(tv->tv_sec * 1000000ULL + tv->tv_usec);
+
+	} else {
+		out_ts_monotonic = SystemClock::instance().getMonotonic();
 	}
+
+	out_ts_utc = SystemClock::instance().utcFromMonotonic(out_ts_monotonic);
 
 	return result;
 }
@@ -276,8 +317,8 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 
 uavcan::uint64_t CanIface::getErrorCount() const
 {
-	//FIXME query SocketCAN network stack
-	return 0;
+	pollErrors();
+	return _bus_errors_valid ? _bus_errors.errors : 0;
 }
 
 uavcan::uint16_t CanIface::getNumFilters() const
@@ -291,6 +332,130 @@ int CanIface::getFD()
 	return _fd;
 }
 
+int CanIface::pollErrors() const
+{
+#ifdef SIOCGCANERRORS
+
+	if (_fd < 0) {
+		return -1;
+	}
+
+	struct ifreq ifr {};
+
+	snprintf(ifr.ifr_name, IFNAMSIZ, "can%" PRIu32, _index);
+
+	if (ioctl(_fd, SIOCGCANERRORS, &ifr) < 0) {
+		return -1;
+	}
+
+	const struct can_ioctl_errors_s &e = ifr.ifr_ifru.ifru_can_errors;
+
+	_bus_errors.state = e.state;
+	_bus_errors.tec = e.txerr;
+	_bus_errors.rec = e.rxerr;
+	_bus_errors.errors = e.errors;
+	_bus_errors.rx_overruns = e.rx_overruns;
+	_bus_errors_valid = true;
+	return 0;
+#else
+	return -1;
+#endif
+}
+
+int CanIface::setBitRate(uint32_t bitrate)
+{
+	if (_fd < 0 || bitrate == 0) {
+		return -1;
+	}
+
+	struct ifreq ifr {};
+
+	snprintf(ifr.ifr_name, IFNAMSIZ, "can%" PRIu32, _index);
+
+	const uint16_t kbps = bitrate / 1000;
+
+	if (ioctl(_fd, SIOCGCANBITRATE, &ifr) < 0) {
+		PX4_WARN("can%" PRIu32 ": cannot read bit rate (%d), leaving it as configured", _index, errno);
+		return 0;
+	}
+
+	if (ifr.ifr_ifru.ifru_can_data.arbi_bitrate == kbps) {
+		return 0;
+	}
+
+#ifndef SIOCGCANERRORS
+	/* Before the PX4/NuttX change that added SIOCGCANERRORS, SIOCSCANBITRATE
+	 * restarted a running controller from inside the driver, which on FlexCAN
+	 * with ECC RAM initialisation is a bus fault. Keep the configured rate.
+	 */
+	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %u kbit/s needs a newer NuttX, staying at %u kbit/s",
+		 _index, kbps, ifr.ifr_ifru.ifru_can_data.arbi_bitrate);
+	return 0;
+#else
+	/* Only the nominal rate changes; the data phase keeps the driver's
+	 * settings so an FD-capable controller is never told data_bitrate 0.
+	 * The driver applies the timing at the next ifup, so the interface is
+	 * taken down around the request and brought back up whatever happens.
+	 */
+	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = kbps;
+
+	struct ifreq flags {};
+
+	snprintf(flags.ifr_name, IFNAMSIZ, "can%" PRIu32, _index);
+
+	if (ioctl(_fd, SIOCGIFFLAGS, &flags) < 0) {
+		PX4_ERR("can%" PRIu32 ": cannot read interface flags (%d)", _index, errno);
+		return -1;
+	}
+
+	const bool was_up = flags.ifr_flags & IFF_UP;
+
+	/* NuttX takes IFF_DOWN / IFF_UP as requests, not as a state mask */
+	if (was_up) {
+		flags.ifr_flags = IFF_DOWN;
+
+		if (ioctl(_fd, SIOCSIFFLAGS, &flags) < 0) {
+			PX4_ERR("can%" PRIu32 ": cannot take the interface down (%d)", _index, errno);
+			return -1;
+		}
+	}
+
+	const int res = ioctl(_fd, SIOCSCANBITRATE, &ifr);
+	const int set_errno = errno;
+
+	if (was_up) {
+		flags.ifr_flags = IFF_UP;
+
+		if (ioctl(_fd, SIOCSIFFLAGS, &flags) < 0) {
+			PX4_ERR("can%" PRIu32 ": cannot bring the interface back up (%d)", _index, errno);
+			return -1;
+		}
+	}
+
+	if (res < 0) {
+		PX4_ERR("can%" PRIu32 ": %u kbit/s rejected (%d)", _index, kbps, set_errno);
+		return -1;
+	}
+
+	return 0;
+#endif
+}
+
+const char *CanIface::busStateName(uint8_t state)
+{
+	switch (state) {
+	case BusErrors::Active:  return "error-active";
+
+	case BusErrors::Warning: return "error-warning";
+
+	case BusErrors::Passive: return "error-passive";
+
+	case BusErrors::BusOff:  return "bus-off";
+	}
+
+	return "unknown";
+}
+
 uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 {
 	//FIXME
@@ -302,6 +467,10 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
 		pfds[i].fd     = if_[i].getFD();
 		pfds[i].events = POLLIN | POLLOUT;
+
+		if (if_[i].getFD() >= 0 && if_[i].setBitRate(bitrate) < 0) {
+			return -1;
+		}
 	}
 
 	/*
@@ -313,13 +482,29 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 
 uavcan::uint32_t CanDriver::getRxQueueOverflowCount() const
 {
-	//FIXME query SocketCAN network stack
-	return 0;
+	uint32_t total = 0;
+
+	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+		CanIface::BusErrors e;
+
+		if (if_[i].lastErrors(e)) {
+			total += e.rx_overruns;
+		}
+	}
+
+	return total;
 }
 
 bool CanDriver::isInBusOffState() const
 {
-	//FIXME no interface available yet, maybe make a NuttX ioctl
+	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+		CanIface::BusErrors e;
+
+		if (if_[i].lastErrors(e) && e.state == CanIface::BusErrors::BusOff) {
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -327,7 +512,7 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 				  const uavcan::CanFrame * (&)[uavcan::MaxCanIfaces],
 				  uavcan::MonotonicTime blocking_deadline)
 {
-	std::int64_t timeout_usec = (blocking_deadline - clock.getMonotonic()).toUSec();
+	std::int64_t timeout_usec = (blocking_deadline - SystemClock::instance().getMonotonic()).toUSec();
 
 	if (timeout_usec < 0) {
 		timeout_usec = 0;
@@ -335,6 +520,13 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 
 	inout_masks.read = 0;
 	inout_masks.write = 0;
+
+	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+		if (if_[i].hasLoopbackPending()) {
+			inout_masks.read |= 1U << i;
+			timeout_usec = 0;
+		}
+	}
 
 	if (poll(pfds, UAVCAN_SOCKETCAN_NUM_IFACES, timeout_usec / 1000) > 0) {
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {

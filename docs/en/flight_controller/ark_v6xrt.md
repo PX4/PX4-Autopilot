@@ -9,7 +9,7 @@ Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware sup
 
 The USA-built ARKV6X-RT flight controller is an NXP i.MX RT1176 variant of the [ARKV6X](../flight_controller/ark_v6x.md), derived from the [FMUv6X-RT and Pixhawk Autopilot Bus open source standards](https://github.com/pixhawk/Pixhawk-Standards).
 
-With triple synced IMUs, data averaging, voting, and filtering is possible.
+With triple synced IMUs, data averaging, voting, and filtering are possible.
 
 ![ARKV6X-RT Top](../../assets/flight_controller/arkv6xrt/ark_v6xrt_top.jpg)
 
@@ -32,7 +32,7 @@ Order from [ARK Electronics](https://arkelectron.com/product/arkv6xrt) (US).
 ## Specifications {#specifications}
 
 - **Processor**
-  - **Main FMU processor:** [NXP i.MX RT1176](https://www.nxp.com/products/i.MX-RT1170) (Arm® Cortex®-M7 at 996 MHz, 2 MB RAM). The second Cortex-M4 core is unused by PX4.
+  - **Main FMU processor:** [NXP i.MX RT1176](https://www.nxp.com/products/i.MX-RT1170) (Arm® Cortex®-M7 at 996 MHz, 2 MB RAM). The second Cortex®-M4 core is unused by PX4.
   - **Code store:** no internal flash. Code executes in place from a 64 MB external octal NOR on FlexSPI1, of which PX4 uses the first 4 MB.
   - **IO processor:** PX4IO v2, on carriers that fit one.
 - **Sensors**
@@ -71,9 +71,9 @@ Each IMU sits on its own SPI bus with an independent power rail and data-ready l
 | LSM6DSV80X | SPI3 | ±16 g / ±4000 dps   | 768 Hz       |
 
 The ICM-45686 is the primary.
-The IIM-20670 is started last deliberately: its on-chip gyro low-pass cannot be set above 60 Hz, which is too much group delay for the rate loop, so it serves as a navigation and fallback IMU.
+The IIM-20670 is started last deliberately: its on-chip gyro low-pass cannot be set above 60 Hz, which introduces too much group delay for the rate loop, so it serves as a navigation and fallback IMU.
 
-The LSM6DSV80X publishes its ±16 g accelerometer; the part's ±80 g high-g element is unused.
+The LSM6DSV80X publishes its ±16 g accelerometer channel; the part's ±80 g high-g element is unused.
 
 [HEATER1_SENS_ID](../advanced_config/parameter_reference.md#HEATER1_SENS_ID) defaults to the ICM-45686.
 Run the [accelerometer calibration](../config/accelerometer.md) only after `heater status` reports the setpoint has been reached.
@@ -107,7 +107,7 @@ How many reach a connector depends on the carrier board.
 
 FMU outputs 1-8 support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry); outputs 9-12 are PWM only.
 
-Each FMU output has its own FlexPWM submodule, so unlike an STM32 target there are no output groups: protocol and rate can be set per output.
+Each FMU output has its own FlexPWM submodule, so, unlike an STM32 target, there are no output groups: protocol and rate can be set per output.
 
 ## Radio Control {#radio_control}
 
@@ -115,9 +115,15 @@ A remote control (RC) radio system is required if you want to _manually_ control
 
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-RC shares LPUART6 with PX4IO.
-On a carrier fitted with PX4IO, the IO processor decodes SBUS, PPM, and DSM/DSMX.
-CRSF is decoded on the FMU instead and is enabled by default ([RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) is set to the `RC` port); [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) is off so that the FMU driver does not contend with PX4IO.
+The `RC` port on your carrier board will behave differently depending on whether or not it includes an IO board:
+
+- **Carrier without PX4IO** (`RC` wired to FMU):
+  - CRSF receivers are enabled by default.
+  - You can enable other protocols by mapping them to the port using their associated parameters, such as [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG), [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG).
+    Note that only one protocol can be active on a port, so you will have to first disable `RC_CRSF_PRT_CFG`.
+- **Carrier with PX4IO** (`RC` wired to PX4IO):
+  - The IO board autodetects and connects to receivers that use [protocols supported by the IO driver](../modules/modules_driver.md#px4io): PPM (CPPM), S.BUS, S.BUS2, Spektrum DSM / DSM2 / DSM-X, Yuneec ST24, Graupner SUMD.
+  - For other protocols, connect your receiver to any unused FMU serial port and enable the corresponding parameter as shown above (you will need to do this for GHST and CRSF receivers).
 
 ## GPS & Compass {#gps_compass}
 

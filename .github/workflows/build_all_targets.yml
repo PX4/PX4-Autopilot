@@ -29,6 +29,8 @@
 #   - Pre-releases (alpha/beta/rc suffixes) are automatically marked as such
 #   - CAN node firmware is attached as <target>.uavcan.bin and
 #     <target>_canbootloader.bin
+#   - In-tree *_bootloader targets are attached as <target>_bootloader.bin
+#     (raw SWD image). Bootloader .px4 files are not attached.
 #
 # IMPORTANT: Version tags do NOT upload to stable/ or beta/. Only the
 # corresponding branch pushes control those directories. This prevents
@@ -330,6 +332,7 @@ jobs:
           files: |
             artifacts/*.px4
             artifacts/*.uavcan.bin
+            artifacts/*_bootloader.bin
             artifacts/*_canbootloader.bin
             artifacts/*.deb
             artifacts/**/*.sbom.spdx.json

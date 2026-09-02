@@ -4,7 +4,7 @@ Modes ("flight modes", "drive modes", and so on) are special operational states 
 They are loosely grouped into _manual_, _assisted_ and _auto_ modes, based on the level/type of control provided by the autopilot.
 飞手使用遥控器上的开关或者 ground control station 在飞行模式之间进行切换。
 
-Modes can be implemented as [PX4 internal modes](#px4-internal-modes) running on the flight controller, or as [PX4 external (ROS2) modes](#px4-external-modes) running on a companion computer.
+Modes can be implemented as [PX4 internal modes](#px4-internal-modes) running on the flight controller, or as [PX4 external (ROS 2) modes](#px4-external-modes) running on a companion computer.
 From the perspective of a ground station (MAVLink), the origin of a mode is indistinguishable.
 
 This topic links to documentation for the supported modes, compares PX4 internal and external modes, provides implementation hints, and provides links to how PX4 modes can be used with MAVLink.
@@ -108,7 +108,7 @@ The requirements for all modes are set in `getModeRequirements()` in [src/module
 When adding a new mode you will need to add appropriate requirements in that method.
 
 :::tip
-Readers may note that this image is from [PX4 ROS2 Control Interface > Failsafes and mode requirements](../ros2/px4_ros2_control_interface.md#failsafes-and-mode-requirements).
+Readers may note that this image is from [PX4 ROS 2 Control Interface > Failsafes and mode requirements](../ros2/px4_ros2_control_interface.md#failsafes-and-mode-requirements).
 The requirements and concepts are the same (though defined in different places).
 The main difference is that ROS 2 modes _infer_ the correct requirements to use, while modes in PX4 source code must explicitly specify them.
 :::

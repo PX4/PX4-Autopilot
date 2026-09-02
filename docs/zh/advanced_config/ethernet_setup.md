@@ -26,6 +26,7 @@ PX4 supports Ethernet connectivity on [Pixhawk 5X-standard](https://github.com/p
 支持的飞行控制器包括:
 
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md)
+- [ARK Electronics ARKV6X-RT](../flight_controller/ark_v6xrt.md)
 - [ARK Electronics ARKV6S](../flight_controller/ark_v6s.md)
 - [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md)
 - [CUAV X25 EVO](../flight_controller/cuav_x25-evo.md)
@@ -249,7 +250,7 @@ MAVSDK can connect to the PX4 on port `14550` if you don't modify the PX4 Ethern
    MicroXRCEAgent udp4 -p 8888
    ```
 
-4. Run a [listener node](../ros2/user_guide.md#running-the-example) in a new terminal to confirm the connection is established:
+4. Run a [listener node](../ros2/user_guide.md#running-an-example-optional) in a new terminal to confirm the connection is established:
 
    ```sh
    source ~/ws_sensor_combined/install/setup.bash

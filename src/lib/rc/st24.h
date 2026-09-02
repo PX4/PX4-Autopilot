@@ -150,7 +150,7 @@ typedef struct {
 /**
  * CRC8 implementation for ST24 protocol
  *
- * @param prt Pointer to the data to CRC
+ * @param ptr Pointer to the data to CRC
  * @param len number of bytes to accumulate in the checksum
  * @return the checksum of these bytes over len
  */

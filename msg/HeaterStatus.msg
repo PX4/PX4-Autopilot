@@ -2,7 +2,7 @@ uint64 timestamp	# time since system start (microseconds)
 
 uint32 device_id
 
-bool heater_on
+bool heater_on			# element driven this control period (controller_time_on_usec > 0)
 bool temperature_target_met
 bool temperature_activation_threshold_met
 
@@ -16,9 +16,7 @@ float32 proportional_value
 float32 integrator_value
 float32 feed_forward_value
 
-float32 supply_voltage		# Supply voltage (V)
-float32 heater_current		# Heater current (A)
-float32 nominal_multiplier
+float32 nominal_multiplier	# duty scaling from HEATERn_NOM_V: (V_nom/V)^2 above V_nom, 1 without compensation, 0 without battery data
 
 uint8 MODE_GPIO  = 1
 uint8 MODE_PX4IO = 2
