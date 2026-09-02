@@ -56,6 +56,8 @@
 // Include model
 #include "control_net.hpp"
 #include "actions_rescale.hpp"
+#include "nn_control_checks.hpp"
+#include "nn_control_model.hpp"
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>

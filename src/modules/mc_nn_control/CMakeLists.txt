@@ -43,6 +43,8 @@ px4_add_module(
 		mc_nn_control.cpp
 		mc_nn_control.hpp
 		actions_rescale.hpp
+		nn_control_checks.hpp
+		nn_control_model.hpp
 		control_net.cpp
 		control_net.hpp
 	MODULE_CONFIG

@@ -52,17 +52,6 @@ ModuleBase::Descriptor MulticopterNeuralNetworkControl::desc{task_spawn, custom_
 
 namespace
 {
-// This number should be the number of operations in the model, like tanh and fully connected
-using NNControlOpResolver = tflite::MicroMutableOpResolver<3>;
-
-TfLiteStatus RegisterOps(NNControlOpResolver &op_resolver)
-{
-	// Add the operations to you need to the op_resolver
-	TF_LITE_ENSURE_STATUS(op_resolver.AddFullyConnected());
-	TF_LITE_ENSURE_STATUS(op_resolver.AddRelu());
-	TF_LITE_ENSURE_STATUS(op_resolver.AddAdd());
-	return kTfLiteOk;
-}
 }  // namespace
 
 MulticopterNeuralNetworkControl::MulticopterNeuralNetworkControl() :
@@ -176,10 +165,17 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 	// Initialize the neural network
 	const tflite::Model *control_model = ::tflite::GetModel(control_net_tflite);
 
-	// Set up the interpreter
-	static NNControlOpResolver resolver;
+	// Checked before the interpreter touches it, a model from another schema
+	// cannot be parsed
+	if (control_model->version() != TFLITE_SCHEMA_VERSION) {
+		PX4_ERR("model rejected: schema version %d, expected %d", (int)control_model->version(), TFLITE_SCHEMA_VERSION);
+		return -1;
+	}
 
-	if (RegisterOps(resolver) != kTfLiteOk) {
+	// Set up the interpreter
+	static nn_control::OpResolver resolver;
+
+	if (nn_control::register_ops(resolver) != kTfLiteOk) {
 		PX4_ERR("Failed to register ops");
 		return -1;
 	}
@@ -204,11 +200,36 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 	}
 
 	_input_tensor = _interpreter->input(0);
+	TfLiteTensor *output_tensor = _interpreter->output(0);
 
-	if (_input_tensor == nullptr) {
-		PX4_ERR("Input tensor is null");
+	if ((_input_tensor == nullptr) || (output_tensor == nullptr)) {
+		PX4_ERR("model has no input or output tensor");
 		delete _interpreter;
 		_interpreter = nullptr;
+		return -1;
+	}
+
+	// The documentation tells users to swap the model array, so check that what was
+	// loaded is the shape this module feeds and reads
+	auto element_count = [](const TfLiteTensor * tensor) {
+		int count = 1;
+
+		for (int i = 0; i < tensor->dims->size; i++) {
+			count *= tensor->dims->data[i];
+		}
+
+		return count;
+	};
+
+	const char *problem = nn_control::model_layout_problem(control_model->version(), TFLITE_SCHEMA_VERSION,
+			      (int)_interpreter->inputs_size(), element_count(_input_tensor), _input_tensor->type == kTfLiteFloat32,
+			      (int)_interpreter->outputs_size(), element_count(output_tensor), output_tensor->type == kTfLiteFloat32);
+
+	if (problem != nullptr) {
+		PX4_ERR("model rejected: %s", problem);
+		delete _interpreter;
+		_interpreter = nullptr;
+		_input_tensor = nullptr;
 		return -1;
 	}
 
