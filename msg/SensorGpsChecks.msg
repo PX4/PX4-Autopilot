@@ -2,8 +2,11 @@
 uint64 timestamp		# time since system start (microseconds)
 uint64 timestamp_sample
 
-
 uint32 device_id                # unique device ID for the sensor that does not change between power cycles
+
+float32 position_drift_rate_horizontal_m_s # Horizontal position rate magnitude (m/s)
+float32 position_drift_rate_vertical_m_s   # Vertical position rate magnitude (m/s)
+float32 filtered_horizontal_speed_m_s      # Filtered horizontal velocity magnitude (m/s)
 
 uint32 GNSS_OK             = 0        # default, no failures
 uint32 GNSS_FIX_FAIL       = 1        # 1 << 0
