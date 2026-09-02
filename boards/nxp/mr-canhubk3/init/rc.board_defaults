@@ -14,9 +14,10 @@ param set-default CYPHAL_ENABLE 0
 
 if ver hwtypecmp MR-CANHUBK3-ADAP
 then
-	param set-default SER_GPS2_PROTO 5
-	param set-default SER_GPS1_PROTO 0
-	param set-default SER_TEL4_PROTO 10
+	# fmu variant only
+	param set-default -s SER_GPS2_PROTO 5
+	param set-default -s SER_GPS1_PROTO 0
+	param set-default -s SER_TEL4_PROTO 10
 	param set-default SYS_HAS_BARO 0
 	# MR-CANHUBK3-ADAP voltage divider
 	param set-default BAT1_V_DIV 13.158
