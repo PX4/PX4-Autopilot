@@ -39,7 +39,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
 - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
-- `motor off` also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
+- `motor off` also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE), and behaves as selected by [SYS_FAIL_MOT_OFF](../advanced_config/parameter_reference.md#SYS_FAIL_MOT_OFF): annunciated addresses a single motor, un-annunciated any number of them.
 - `esc off` reports the addressed ESC as offline and blanks its telemetry; `esc wrong` keeps it online but reports implausible telemetry (voltage and current at 10% of the real value, RPM 10x). ESCs are addressed by motor instance (the ESC's actuator function), so `-i 1` targets the ESC driving motor 1.
 - On hardware, ESC injection is applied only by the UAVCAN (DroneCAN) ESC driver; the other ESC drivers (DShot, Cyphal, VOXL, TAP ESC) publish their telemetry unmodified.
 - `can off` takes the addressed CAN bus offline entirely, so every node on it stops responding; the instance selects the bus. Only applied on fmu-v6x-class hardware.
@@ -121,7 +121,7 @@ A failure can also be injected from an RC switch, without a console or telemetry
 - [SYS_FAIL_RC_MODE](../advanced_config/parameter_reference.md#SYS_FAIL_RC_MODE): the failure type (the `FAILURE_TYPE` value; e.g. `1` = off).
 - [SYS_FAIL_RC_INST](../advanced_config/parameter_reference.md#SYS_FAIL_RC_INST): the affected instances, as a bitmask (bit 0 = instance 1, e.g. `5` = instances 1 and 3; `0` = all instances).
 
-While the selected aux switch is on the configured failure is injected; switching it back off clears the failure. The injection goes through the same path as the console/MAVLink commands, so for a motor it stops the motor exactly as `failure motor off` does (which also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)).
+While the selected aux switch is on the configured failure is injected; switching it back off clears the failure. The injection goes through the same path as the console/MAVLink commands, so for a motor it stops the motor exactly as `failure motor off` does, with the same [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) and [SYS_FAIL_MOT_OFF](../advanced_config/parameter_reference.md#SYS_FAIL_MOT_OFF) requirements: a `SYS_FAIL_RC_INST` mask addressing several motors only takes effect un-annunciated.
 
 ## MAVSDK Failure Plugin
 
@@ -147,11 +147,14 @@ To test the GPS failsafe by stopping GPS:
 
 ## Example: Motor
 
-To stop a motor mid-flight without the system anticipating it or excluding it from allocation effectiveness:
+To fail a motor mid-flight:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 2. Enable [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) parameter to allow turning off motors.
-3. Enter the following commands on the MAVLink console or SITL _pxh shell_:
+3. Select the failure behavior with [SYS_FAIL_MOT_OFF](../advanced_config/parameter_reference.md#SYS_FAIL_MOT_OFF):
+   - `0` Annunciated (default): the motor is reported as a failed motor and removed from the control allocation, so the allocator knows about the failure and compensates with the remaining motors (according to `CA_FAILURE_MODE`). Only a single failed motor is recovered from, so an instance mask addressing several motors is reported and then left untouched.
+   - `1` Un-annunciated: the motor output is stopped without the system anticipating it or excluding it from allocation effectiveness (no-feedback case, e.g. PWM ESCs). Any number of motors can be addressed.
+4. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
    # Turn off first motor

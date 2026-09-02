@@ -69,6 +69,12 @@ enum class Mode : uint8_t {
 	Intermittent = failure_injection_s::FAILURE_TYPE_INTERMITTENT,
 };
 
+/** Masks of motors failed by injection, bit i = motor instance i+1. */
+struct MotorFailureMasks {
+	uint16_t stop_mask{0};    ///< outputs stopped without informing the allocator (un-annunciated)
+	uint16_t failure_mask{0}; ///< reported as failed motors, removed from allocation (annunciated)
+};
+
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 
 class Config
@@ -222,6 +228,15 @@ bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sen
  */
 esc_status_s process_esc(const Config &config, const esc_status_s &status);
 
+/**
+ * Motor counterpart to process(): derive the masks of motors failed by
+ * FAILURE_UNIT_SYSTEM_MOTOR Off. SYS_FAIL_MOT_OFF (read once at first use, the parameter
+ * requires a reboot) selects whether the failed motors are applied annunciated (failure_mask,
+ * reported as failed motors and removed from the allocation) or un-annunciated (stop_mask,
+ * outputs stopped without informing the allocator). Call after Config::update().
+ */
+MotorFailureMasks process_motor(const Config &config);
+
 #else // !CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 class Config
@@ -252,6 +267,8 @@ inline bool process_battery(const Config &, uint8_t, battery_status_s &) { retur
 inline bool process_gnss(const Config &, uint8_t, sensor_gps_s &, Stuck<sensor_gps_s> &) { return true; }
 
 inline esc_status_s process_esc(const Config &, const esc_status_s &status) { return status; }
+
+inline MotorFailureMasks process_motor(const Config &) { return {}; }
 
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
