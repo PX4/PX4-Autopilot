@@ -182,8 +182,9 @@ private:
 	const int _highg_variant_arg;
 
 	// LSM6DSV80X / LSM6DSV320X: 7.68 kHz HAODR set and a ±4000 dps gyro. Their second, high-g
-	// accelerometer is left powered down: the ±16 g low-g channel is the published one on every
-	// variant. The high-g element is a sports-impact sensor (±1.5 g typ zero-g offset, ±2 mg/°C
+	// accelerometer is left powered down: the ±16 g low-g channel is the published one.
+	// LSM6DSV32X publishes the UI channel at ±32 g / ±4000 dps (no separate high-g element).
+	// The 80X/320X high-g element is a sports-impact sensor (±1.5 g typ zero-g offset, ±2 mg/°C
 	// tempco against ±12 mg / ±0.07 mg/°C for low-g) and is no use as a flight accelerometer.
 	bool _dsv80x_family{false};
 
