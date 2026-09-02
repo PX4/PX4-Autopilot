@@ -8,7 +8,6 @@ serial_config:
       protocol_name: MAVLink
       default: TEL1
       num_instances: *max_num_config_instances
-      supports_networking: true
       ethernet_param: MAV_ETH_EN
 
 parameters:
@@ -83,6 +82,7 @@ parameters:
                     `txbuf` field reported by radio_status.
 
                     Requires a radio to send the mavlink message RADIO_STATUS.
+                    Serial links only.
 
             type: boolean
             reboot_required: true

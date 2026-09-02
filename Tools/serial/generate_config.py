@@ -230,19 +230,25 @@ for serial_command in serial_commands:
     protocol_id = int(serial_command['protocol_id'])
     if protocol_id <= 0:
         raise Exception("protocol_id must be > 0 (0 is Disabled)")
+    identity = (serial_command['protocol_name'], compact_command(serial_command['command'], 'single'))
     if protocol_id in seen_ids:
-        if seen_ids[protocol_id] != serial_command['protocol_name']:
+        if seen_ids[protocol_id] != identity:
             raise Exception("duplicate protocol_id {:}: {:} and {:}".format(
-                protocol_id, seen_ids[protocol_id], serial_command['protocol_name']))
-        # Same-name duplicate (voxl2 ghst_rc vs src/drivers/rc/ghst_rc).
+                protocol_id, seen_ids[protocol_id][0], serial_command['protocol_name']))
+        # Same module built from two trees (voxl2 ghst_rc vs src/drivers/rc/ghst_rc).
         continue
-    seen_ids[protocol_id] = serial_command['protocol_name']
+    seen_ids[protocol_id] = identity
 
     secondary_command = serial_command.get('secondary_command')
     num_instances = serial_command.get('num_instances', 2 if secondary_command else 1)
     if secondary_command:
         kind = 'collect'
     elif num_instances > 1:
+        # The C walker assembles per-instance flags from MAV_${i}_*, so only
+        # mavlink can run one process per port.
+        if not compact_command(serial_command['command'], 'single').startswith('mavlink start'):
+            raise Exception("{:}: num_instances > 1 requires secondary_command".format(
+                serial_command['protocol_name']))
         kind = 'instance'
     else:
         kind = 'single'
@@ -275,7 +281,6 @@ for serial_command in serial_commands:
         'kind': kind,
         'kind_id': {'single': 0, 'instance': 1, 'collect': 2}[kind],
         'num_instances': num_instances,
-        'supports_networking': serial_command.get('supports_networking', False),
         'ethernet_param': ethernet_param,
         'ethernet_command': ethernet_command,
         })

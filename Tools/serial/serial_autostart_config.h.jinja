@@ -41,7 +41,7 @@ static constexpr unsigned kSerialPortCount = {{ serial_devices|length }};
 
 static constexpr SerialProtocolConfig kSerialProtocols[] = {
 {% for protocol in protocols %}
-	{ {{ protocol.id }}, "{{ protocol.name|c_escape }}", {{ protocol.kind_id }}, {{ protocol.num_instances }}, "{{ protocol.command|c_escape }}", {% if protocol.secondary_command %}"{{ protocol.secondary_command|c_escape }}"{% else %}nullptr{% endif %}, {% if protocol.success_command %}"{{ protocol.success_command|c_escape }}"{% else %}nullptr{% endif %}, {% if protocol.fail_command %}"{{ protocol.fail_command|c_escape }}"{% else %}nullptr{% endif %}, {% if protocol.ethernet_param %}"{{ protocol.ethernet_param }}"{% else %}nullptr{% endif %}, {% if protocol.ethernet_command %}"{{ protocol.ethernet_command|c_escape }}"{% else %}nullptr{% endif %} },
+	{ {{ protocol.id }}, "{{ protocol.name|c_escape }}", {{ protocol.kind_id }}, {{ protocol.num_instances }}, "{{ protocol.command|c_escape }}", {% if protocol.secondary_command %}"{{ protocol.secondary_command|c_escape }}"{% else %}nullptr{% endif %}, {% if protocol.success_command %}"{{ protocol.success_command|c_escape }}"{% else %}nullptr{% endif %}, {% if protocol.fail_command %}"{{ protocol.fail_command|c_escape }}"{% else %}nullptr{% endif %}, {% if protocol.ethernet_param %}"{{ protocol.ethernet_param|c_escape }}"{% else %}nullptr{% endif %}, {% if protocol.ethernet_command %}"{{ protocol.ethernet_command|c_escape }}"{% else %}nullptr{% endif %} },
 {% else %}
 	{ 0, nullptr, 0, 0, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr },
 {% endfor %}

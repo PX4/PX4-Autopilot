@@ -3,7 +3,6 @@ serial_config:
     - command: uxrce_dds_client start -t serial -d ${SERIAL_DEV} -b p:${BAUD_PARAM}
       protocol_id: 20
       protocol_name: uXRCE-DDS
-      supports_networking: true
       ethernet_param: UXRCE_DDS_ETH
       ethernet_command: uxrce_dds_client start -t udp
 
