@@ -445,9 +445,11 @@ private:
 	 *
 	 * @param control_setpoint is the controlles altitude and airspeed rate setpoints.
 	 * @param input is the current input measurement of the UAS.
+	 * @param param is the control parameters.
 	 * @return Specific energy rates in [m²/s³].
 	 */
-	SpecificEnergyRates _calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint, const Input &input) const;
+	SpecificEnergyRates _calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint, const Input &input,
+			const Param &param) const;
 	/**
 	 * @brief Detect underspeed.
 	 *
@@ -503,12 +505,13 @@ private:
 	 *
 	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
+	 * @param spe_rate_setpoint is the specific potential energy rate setpoint in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 * @return pitch setpoint angle above trim [rad].
 	 */
-	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
-				      const Flag &flag) const;
+	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float spe_rate_setpoint,
+				      const Param &param, const Flag &flag) const;
 
 	/**
 	 * @brief Update controlled throttle setpoint.

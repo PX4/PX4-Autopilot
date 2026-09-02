@@ -230,14 +230,14 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 
 	control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
 
-	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
+	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input, param)};
 
 	_detectUnderspeed(input, param, flag);
 
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rate)};
 
-	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, param, flag);
+	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, specific_energy_rate.spe_rate.setpoint, param, flag);
 
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
 
@@ -281,7 +281,7 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 		control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
 	}
 
-	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
+	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input, param)};
 
 	_detectUnderspeed(input, param, flag);
 
@@ -340,7 +340,7 @@ float TECSControl::_calcAltitudeControlOutput(const Setpoint &setpoint, const In
 }
 
 TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint,
-		const Input &input) const
+		const Input &input, const Param &param) const
 {
 	SpecificEnergyRates specific_energy_rates;
 	// Calculate specific energy rate demands in units of (m**2/sec**3)
@@ -409,7 +409,7 @@ void TECSControl::_calcPitchControl(float dt, const Input &input, const Specific
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rates)};
 
 	_calcPitchControlUpdate(dt, input, seb_rate, param);
-	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, param, flag)};
+	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, specific_energy_rates.spe_rate.setpoint, param, flag)};
 
 	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
 	// NOTE: at zero airspeed, the pitch increment is unbounded
@@ -485,8 +485,8 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 	}
 }
 
-float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
-		const Flag &flag) const
+float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate,
+		const float spe_rate_setpoint, const Param &param, const Flag &flag) const
 {
 	float airspeed_for_seb_rate = param.equivalent_airspeed_trim;
 
