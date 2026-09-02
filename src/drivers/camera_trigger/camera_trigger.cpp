@@ -618,6 +618,7 @@ CameraTrigger::Run()
 			if (cmd.param1 > 0.0f) {
 				_interval = cmd.param1;
 				param_set_no_notification(_p_interval, &(_interval));
+				update_intervalometer();
 			}
 
 			// We can only control the shutter integration time of the camera in GPIO mode
