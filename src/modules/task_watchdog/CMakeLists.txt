@@ -34,8 +34,13 @@
 px4_add_module(
 	MODULE modules__task_watchdog
 	MAIN task_watchdog
+	COMPILE_FLAGS
+		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
 	SRCS
 		TaskWatchdog.cpp
+	INCLUDES
+		${PX4_SOURCE_DIR}/src/drivers/uavcan/libdronecan/libuavcan/include
+		${PX4_SOURCE_DIR}/src/drivers/uavcan/libdronecan/libuavcan/include/dsdlc_generated
 	DEPENDS
 		version
 )
