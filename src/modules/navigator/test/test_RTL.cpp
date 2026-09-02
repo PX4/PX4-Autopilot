@@ -58,6 +58,8 @@
 #include "navigator.h"
 #include "rtl.h"
 #include "rtl_direct_mission_land.h"
+#include "rtl_mission_fast.h"
+#include "rtl_mission_fast_reverse.h"
 #include "mission_route_types.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
@@ -207,27 +209,28 @@ public:
 	}
 };
 
-class RtlDirectMissionLandTestPeer : public RtlDirectMissionLand
+template <typename RtlMissionType>
+class RtlMissionTestPeer : public RtlMissionType
 {
 public:
-	RtlDirectMissionLandTestPeer(Navigator *navigator, const mission_s &mission) :
-		RtlDirectMissionLand(navigator, mission) {}
+	RtlMissionTestPeer(Navigator *navigator, const mission_s &mission) :
+		RtlMissionType(navigator, mission) {}
 
-	const mission_s &mission() const { return _mission; }
+	const mission_s &mission() const { return this->_mission; }
 
 	void loadTestMission(const std::vector<mission_item_s> &items)
 	{
 		_mission_store.setItems(items);
-		_mission.count = static_cast<int32_t>(_mission_store.itemCount());
+		this->_mission.count = static_cast<int32_t>(_mission_store.itemCount());
 	}
 
 	void activateForTest()
 	{
-		_vehicle_status_sub.update();
-		on_activation();
+		this->_vehicle_status_sub.update();
+		this->on_activation();
 	}
 
-	uint16_t activeNavCommand() const { return _mission_item.nav_cmd; }
+	uint16_t activeNavCommand() const { return this->_mission_item.nav_cmd; }
 
 protected:
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
@@ -238,6 +241,10 @@ protected:
 private:
 	navigator_test::VectorMissionItemStore _mission_store{};
 };
+
+using RtlDirectMissionLandTestPeer = RtlMissionTestPeer<RtlDirectMissionLand>;
+using RtlMissionFastTestPeer = RtlMissionTestPeer<RtlMissionFast>;
+using RtlMissionFastReverseTestPeer = RtlMissionTestPeer<RtlMissionFastReverse>;
 
 class RTLTest : public NavigatorDatamanTestBase
 {
@@ -515,6 +522,68 @@ TEST_F(RTLTest, DirectMissionLandKeepsVtolInMulticopterMode)
 
 // WHY: No land point means no usable approach bearing.
 // WHAT: The chooser should return an invalid loiter.
+TEST_F(RTLTest, MissionFastKeepsVtolInMulticopterMode)
+{
+	// A VTOL flying in multicopter mode continues the mission as a multicopter.
+	// The attitude controller refuses a transition to fixed wing during RTL, so
+	// asking for one here left the vehicle waiting on it forever.
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.current_seq = 0;
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	mission_item_s first = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = makeSafePointItem(second_position.lat, second_position.lon, kAlt, NAV_FRAME_GLOBAL,
+				NAV_CMD_WAYPOINT);
+	second.autocontinue = true;
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlMissionFastTestPeer mission_fast{&_navigator, mission};
+	mission_fast.loadTestMission({first, second});
+
+	mission_fast.activateForTest();
+
+	EXPECT_EQ(mission_fast.activeNavCommand(), NAV_CMD_WAYPOINT);
+}
+
+TEST_F(RTLTest, MissionFastReverseKeepsVtolInMulticopterMode)
+{
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.current_seq = 0;
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	mission_item_s first = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = makeSafePointItem(second_position.lat, second_position.lon, kAlt, NAV_FRAME_GLOBAL,
+				NAV_CMD_WAYPOINT);
+	second.autocontinue = true;
+
+	// At the second waypoint, so the reverse mission has a previous item to fly to
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(second_position.lat, second_position.lon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, mission};
+	mission_fast_reverse.loadTestMission({first, second});
+
+	mission_fast_reverse.activateForTest();
+
+	EXPECT_EQ(mission_fast_reverse.activeNavCommand(), NAV_CMD_WAYPOINT);
+}
+
 TEST_F(RTLTest, ChooseBestLandingApproachRequiresLandLocation)
 {
 	// GIVEN: A valid loiter and no land point.
