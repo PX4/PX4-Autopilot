@@ -361,6 +361,25 @@ int CanIface::pollErrors() const
 #endif
 }
 
+/* Retuning through SIOCSCANBITRATE takes the interface down and brings it back
+ * up again. The FlexCAN drivers (i.MX RT, S32K, Kinetis) re-run their ECC RAM
+ * initialisation on ifup, which faults once the controller has been started, so
+ * the rate the driver was configured with is kept on those chips instead.
+ *
+ * SIOCGCANERRORS only says that the driver can report error counters, which is
+ * a separate capability from being able to retune, so it cannot gate this on
+ * its own.
+ */
+#if defined(SIOCGCANERRORS) && \
+    !defined(CONFIG_ARCH_CHIP_IMXRT) && \
+    !defined(CONFIG_ARCH_CHIP_S32K1XX) && \
+    !defined(CONFIG_ARCH_CHIP_S32K3XX) && \
+    !defined(CONFIG_ARCH_CHIP_KINETIS)
+#  define PX4_SOCKETCAN_SAFE_RETUNE 1
+#else
+#  define PX4_SOCKETCAN_SAFE_RETUNE 0
+#endif
+
 int CanIface::setBitRate(uint32_t bitrate)
 {
 	if (_fd < 0 || bitrate == 0) {
@@ -382,12 +401,8 @@ int CanIface::setBitRate(uint32_t bitrate)
 		return 0;
 	}
 
-#ifndef SIOCGCANERRORS
-	/* Before the PX4/NuttX change that added SIOCGCANERRORS, SIOCSCANBITRATE
-	 * restarted a running controller from inside the driver, which on FlexCAN
-	 * with ECC RAM initialisation is a bus fault. Keep the configured rate.
-	 */
-	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %u kbit/s needs a newer NuttX, staying at %" PRIu32 " kbit/s",
+#if !PX4_SOCKETCAN_SAFE_RETUNE
+	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %u kbit/s not applied, staying at %" PRIu32 " kbit/s",
 		 _index, kbps, ifr.ifr_ifru.ifru_can_data.arbi_bitrate);
 	return 0;
 #else
@@ -409,9 +424,11 @@ int CanIface::setBitRate(uint32_t bitrate)
 
 	const bool was_up = flags.ifr_flags & IFF_UP;
 
-	/* NuttX takes IFF_DOWN / IFF_UP as requests, not as a state mask */
+	/* NuttX acts on the IFF_UP request bit: setting it brings the interface up,
+	 * clearing it takes the interface down. IFF_DOWN was removed in NuttX 12.
+	 */
 	if (was_up) {
-		flags.ifr_flags = IFF_DOWN;
+		IFF_CLR_UP(flags.ifr_flags);
 
 		if (ioctl(_fd, SIOCSIFFLAGS, &flags) < 0) {
 			PX4_ERR("can%" PRIu32 ": cannot take the interface down (%d)", _index, errno);
