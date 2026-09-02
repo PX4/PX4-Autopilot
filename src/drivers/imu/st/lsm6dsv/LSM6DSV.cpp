@@ -448,13 +448,18 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 
 			break;
 
-		case Register::CTRL8: // accelerometer full-scale (LPF2 off: PX4 owns filtering)
+		case Register::CTRL8: // accelerometer full-scale + LPF2 bandwidth
+
+			// LPF2 is the only anti-alias stage: PX4 decimates the FIFO to the publish rate with a plain mean,
+			// so anything up to ODR/2 folds down without it. ODR/10 (768 Hz at 7.68 kHz, 200 Hz at 2 kHz) is
+			// the nearest match to the 585 Hz AAF the Invensense drivers run. The gyro needs nothing: its
+			// LPF2 is fixed by ODR (537 Hz at 7.68 kHz).
 			if (_device_variant == DeviceVariant::LSM6DSV32X) {
-				r.set_bits = CTRL8_BIT::FS_XL_32G_DSV32X;
+				r.set_bits = static_cast<uint8_t>(CTRL8_BIT::FS_XL_32G_DSV32X | CTRL8_BIT::LPF2_BW_ODR_DIV_10);
 				r.clear_bits = CTRL8_BIT::XL_DualC_EN; // single-channel UI at ±32 g
 
 			} else {
-				r.set_bits = CTRL8_BIT::FS_XL_16G;
+				r.set_bits = static_cast<uint8_t>(CTRL8_BIT::FS_XL_16G | CTRL8_BIT::LPF2_BW_ODR_DIV_10);
 			}
 
 			break;

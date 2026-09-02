@@ -208,8 +208,8 @@ private:
 		{ Register::CTRL3,          CTRL3_BIT::BDU | CTRL3_BIT::IF_INC,                     CTRL3_BIT::SW_RESET },
 		{ Register::HAODR_CFG,      HAODR_CFG_BIT::HAODR_MODE1,                             0 },
 		{ Register::CTRL6,          CTRL6_BIT::FS_G_2000DPS,                                 0 },
-		{ Register::CTRL8,          CTRL8_BIT::FS_XL_16G,                                   0 },
-		{ Register::CTRL9,          0,                                                       CTRL9_BIT::LPF2_XL_EN },
+		{ Register::CTRL8,          CTRL8_BIT::FS_XL_16G | CTRL8_BIT::LPF2_BW_ODR_DIV_10,   0 },
+		{ Register::CTRL9,          CTRL9_BIT::LPF2_XL_EN,                                   0 },
 		{ Register::CTRL4,          CTRL4_BIT::DRDY_PULSED,                                  0 },
 		{ Register::INT1_CTRL,      INT1_CTRL_BIT::INT1_FIFO_TH,                             0 },
 		{ Register::FIFO_CTRL1,     0, 0 }, // WTM[7:0] set at runtime by ConfigureFIFOWatermark()
