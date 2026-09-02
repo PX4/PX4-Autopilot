@@ -229,13 +229,13 @@ TEST_CASE("Parameters upload via MAVLink FTP", "[multicopter]")
 	tester.connect(connection_url);
 
 	mavsdk::Param param(tester.system());
-	const mavsdk::Param::AllParams all = param.get_all_params();
-	REQUIRE_FALSE(all.float_params.empty());
-
-	const std::string name = all.float_params.front().name;
-	const float original = all.float_params.front().value;
+	const std::string name = "MPC_XY_P";
+	const auto before = param.get_param_float(name);
+	REQUIRE(before.first == mavsdk::Param::Result::Success);
+	const float original = before.second;
 	const float updated = original + 1.f;
 	CAPTURE(name);
+	CAPTURE(original);
 
 	const std::filesystem::path local_dir = std::filesystem::temp_directory_path() / "px4_mavsdk_tests_param_ftp_up";
 	std::filesystem::remove_all(local_dir);
