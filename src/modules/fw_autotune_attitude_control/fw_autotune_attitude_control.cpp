@@ -306,7 +306,7 @@ bool FwAutotuneAttitudeControl::isAuxEnableSwitchEnabled()
 		return false;
 	}
 
-	return aux_enable_channel > .5f;
+	return PX4_ISFINITE(aux_enable_channel) && aux_enable_channel > .5f;
 }
 
 void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
