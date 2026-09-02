@@ -86,6 +86,7 @@ private:
 		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
 
 	uORB::Publication<sensor_gps_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
+	uORB::Publication<sensor_gps_checks_s> _vehicle_gps_position_checks_pub{ORB_ID(vehicle_gps_position_checks)};
 	uORB::PublicationMulti<sensor_gps_checks_s> _sensor_gps_checks_pub[GPS_MAX_RECEIVERS] {
 		ORB_ID(sensor_gps_checks),
 		ORB_ID(sensor_gps_checks)
@@ -106,6 +107,7 @@ private:
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	GnssChecks _gnss_checks[GPS_MAX_RECEIVERS];
+	GnssChecks _vehicle_gps_position_checks;
 	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
 
