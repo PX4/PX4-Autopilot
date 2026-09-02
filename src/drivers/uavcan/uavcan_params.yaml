@@ -49,8 +49,9 @@ parameters:
 
           Do not mix classic CAN and CAN FD nodes on the same physical bus.
           Different ports may use different rates (e.g. classic GPS on CAN1
-          and CAN FD ESCs on CAN2). DNA Allocation remains classic CAN.
-          For CAN FD ESC output, set UAVCAN_ESC_IFACE to only the FD port.
+          and CAN FD ESCs on CAN2). DNA Allocation remains classic CAN
+          (8-byte TAO). ESC RawCommand uses the port bitrate: CAN FD when
+          UAVCAN_ESC_IFACE is only FD ports.
 
           Only rates the board FDCAN/HSE clock can generate are listed.
       type: enum

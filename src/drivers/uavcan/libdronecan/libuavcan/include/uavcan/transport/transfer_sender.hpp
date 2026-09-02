@@ -102,9 +102,10 @@ public:
     void allowAnonymousTransfers() { allow_anonymous_transfers_ = true; }
 
     /**
-     * Classic CAN + TAO packing. Default is classic: DNA, NodeStatus and
-     * services stay 8-byte frames even when an iface is in CAN FD mode.
-     * High-rate actuator publishers opt into FD with setAlwaysClassic(false).
+     * Force classic CAN + TAO packing. Default is classic: DNA, NodeStatus
+     * and services stay 8-byte frames even when an iface is in CAN FD mode.
+     * High-rate actuator publishers opt into FD with setAlwaysClassic(false)
+     * once destinations can decode it (see useCanFd()). DNA stays classic.
      */
     void setAlwaysClassic(bool v) { always_classic_ = v; }
     bool isAlwaysClassic() const { return always_classic_; }
