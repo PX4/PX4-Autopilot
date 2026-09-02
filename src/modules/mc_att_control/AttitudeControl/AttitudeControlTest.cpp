@@ -319,13 +319,17 @@ TEST_F(AttitudeControlFeedforwardTest, UnlockedHeadingDoesNotWindUpWhenVehicleCa
 		_attitude_control.setAttitudeSetpoint(q_stuck, commanded, (i == 0) ? -1.f : kDt);
 	}
 
-	// WHEN: evaluated at the actual (stuck) attitude, so a runaway reference would show up as a P term
-	const Vector3f rate_setpoint = _attitude_control.update(q_stuck);
+	// WHEN: evaluated at the actual (stuck) attitude, where a runaway reference shows up as a P term.
+	// MC_REF_FF does not scale the P law, so both ends of its range need checking.
+	for (const float ff_gain : {0.f, 1.f}) {
+		_attitude_control.setFeedForwardGain(ff_gain);
+		const Vector3f rate_setpoint = _attitude_control.update(q_stuck);
 
-	// THEN: the output is still just the commanded rate
-	EXPECT_NEAR(rate_setpoint(2), commanded, 1e-3f);
-	EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f);
-	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
+		// THEN: the output is still just the commanded rate
+		EXPECT_NEAR(rate_setpoint(2), commanded, 1e-3f) << "MC_REF_FF = " << ff_gain;
+		EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f) << "MC_REF_FF = " << ff_gain;
+		EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f) << "MC_REF_FF = " << ff_gain;
+	}
 
 	// AND: the reference heading has not drifted off the setpoint
 	EXPECT_NEAR(Eulerf(_attitude_control.getReferenceAttitude()).psi(), 0.f, 1e-3f);
