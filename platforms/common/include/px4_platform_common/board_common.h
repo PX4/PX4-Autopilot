@@ -261,12 +261,13 @@
 #endif
 
 /*
- * Support both RC_SERIAL_PORT and CONFIG_BOARD_SERIAL_RC
+ * The px4board serial tags are the source of truth; RC_SERIAL_PORT in
+ * board_config.h only covers variants without an RC tag.
  */
-#if defined(RC_SERIAL_PORT)
-#  define RC_SERIAL RC_SERIAL_PORT
-#elif defined(CONFIG_BOARD_SERIAL_RC)
+#if defined(CONFIG_BOARD_SERIAL_RC)
 #  define RC_SERIAL CONFIG_BOARD_SERIAL_RC
+#elif defined(RC_SERIAL_PORT)
+#  define RC_SERIAL RC_SERIAL_PORT
 #endif
 
 /*
