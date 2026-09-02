@@ -1896,7 +1896,12 @@ class Uploader:
     # After reboot-to-bootloader the USB CDC device disappears and comes back
     # under a different product string (app vs bootloader). Give it this long
     # to re-enumerate before giving up on this attempt.
-    REBOOT_REDISCOVER_TIMEOUT = 5.0
+    #
+    # The reboot itself is immediate, so this only has to cover re-enumeration.
+    # Waiting longer is actively harmful: a board sits in its bootloader for
+    # BOOTLOADER_DELAY (3s on some boards, 5s on most) before it jumps to the
+    # application, and time spent here is time not spent trying other ports.
+    REBOOT_REDISCOVER_TIMEOUT = 1.0
 
     def _try_identify(
         self, transport: SerialTransport, protocol: BootloaderProtocol
