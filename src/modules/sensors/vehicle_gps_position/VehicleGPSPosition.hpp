@@ -41,12 +41,16 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gps_checks.h>
 #include <uORB/topics/pps_capture.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
+#include "gnss_checks.hpp"
 #include "gps_blending.hpp"
 #include "PpsTimeSync.hpp"
 
@@ -82,6 +86,10 @@ private:
 		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
 
 	uORB::Publication<sensor_gps_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
+	uORB::PublicationMulti<sensor_gps_checks_s> _sensor_gps_checks_pub[GPS_MAX_RECEIVERS] {
+		ORB_ID(sensor_gps_checks),
+		ORB_ID(sensor_gps_checks)
+	};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -91,9 +99,13 @@ private:
 	};
 
 	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+
+	vehicle_land_detected_s _vehicle_land_detected;
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
+	GnssChecks _gnss_checks[GPS_MAX_RECEIVERS];
 	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
 
@@ -116,7 +128,19 @@ private:
 		(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy,
 		(ParamFloat<px4::params::SENS_GPS1_OFFZ>) _param_sens_gps1_offz,
 		(ParamInt<px4::params::SENS_GPS0_DELAY>) _param_sens_gps0_delay,
-		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay
+		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay,
+		(ParamInt<px4::params::GPS_CHECK>)	 _param_gps_check,
+		(ParamInt<px4::params::REQ_NSATS>) 	_param_req_nsats,
+		(ParamFloat<px4::params::REQ_HDOP>) 	_param_req_hdop,
+		(ParamFloat<px4::params::REQ_VDOP>) 	_param_req_vdop,
+		(ParamFloat<px4::params::REQ_EPH>) 	_param_req_eph,
+		(ParamFloat<px4::params::REQ_EPV>) 	_param_req_epv,
+		(ParamFloat<px4::params::REQ_SACC>) 	_param_req_sacc,
+		(ParamFloat<px4::params::REQ_HDRIFT>)	_param_req_hdrift,
+		(ParamFloat<px4::params::REQ_VDRIFT>) 	_param_req_vdrift,
+		(ParamInt<px4::params::REQ_FIX>) 	_param_req_fix,
+		(ParamFloat<px4::params::REQ_GPS_H>) 	_param_req_gps_h,
+		(ParamFloat<px4::params::EKF2_VEL_LIM>)	_param_ekf2_vel_lim
 	)
 };
 }; // namespace sensors

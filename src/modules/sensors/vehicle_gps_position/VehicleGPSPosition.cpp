@@ -40,6 +40,51 @@
 
 namespace sensors
 {
+
+inline gnssChecksSample gnssSampleFromSensorGps(const sensor_gps_s &gps)
+{
+	gnssChecksSample sample{};
+
+	sample.time_us = gps.timestamp_sample;
+
+	sample.lat = gps.latitude_deg;
+	sample.lon = gps.longitude_deg;
+	sample.alt = static_cast<float>(gps.altitude_msl_m);
+
+	sample.vel = matrix::Vector3f(gps.vel_n_m_s, gps.vel_e_m_s, gps.vel_d_m_s);
+
+	sample.hacc = gps.eph;
+	sample.vacc = gps.epv;
+	sample.sacc = gps.s_variance_m_s;
+
+	sample.fix_type = gps.fix_type;
+	sample.nsats    = gps.satellites_used;
+	sample.hdop     = gps.hdop;
+	sample.vdop     = gps.vdop;
+
+	sample.spoofed = gps.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED;
+	sample.jammed  = gps.jamming_state  == sensor_gps_s::JAMMING_STATE_DETECTED;
+
+	return sample;
+}
+
+inline sensor_gps_checks_s sensorGpsChecksFromGnssChecks(const GnssChecks& checks, uint64_t timestamp_sample, uint32_t device_id)
+{
+	sensor_gps_checks_s msg{};
+
+	msg.timestamp = hrt_absolute_time();
+	msg.timestamp_sample = timestamp_sample;
+
+	msg.device_id = device_id;
+
+	msg.flags = checks.getFailStatus().value;
+
+	msg.checks_passed = checks.passed();
+	msg.initial_checks_passed = checks.initialChecksPassed();
+
+	return msg;
+}
+
 VehicleGPSPosition::VehicleGPSPosition() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
@@ -92,6 +137,23 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			}
 		}
 
+		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+			_gnss_checks[i].setParams(
+				_param_gps_check.get(),
+				_param_req_nsats.get(),
+				_param_req_hdop.get(),
+				_param_req_vdop.get(),
+				_param_req_eph.get(),
+				_param_req_epv.get(),
+				_param_req_sacc.get(),
+				_param_req_hdrift.get(),
+				_param_req_vdrift.get(),
+				_param_req_fix.get(),
+				_param_ekf2_vel_lim.get(),
+				_param_req_gps_h.get()
+			);
+		}
+
 		_gps_blending.setBlendingUseSpeedAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_SPD_ACC);
 		_gps_blending.setBlendingUseHPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_HPOS_ACC);
 		_gps_blending.setBlendingUseVPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_VPOS_ACC);
@@ -126,6 +188,7 @@ void VehicleGPSPosition::Run()
 	if (_pps_capture_sub.update(&pps_capture)) {
 		_pps_time_sync.process_pps(pps_capture);
 	}
+	_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 
 	// Check all GPS instance
 	bool any_gps_updated = false;
@@ -169,6 +232,10 @@ void VehicleGPSPosition::Run()
 					gps_data.timestamp_sample = gps_data.timestamp - delay_us;
 				}
 			}
+
+			_gnss_checks[i].run(gnssSampleFromSensorGps(gps_data), !_vehicle_land_detected.landed, _vehicle_land_detected.at_rest);
+			sensor_gps_checks_s checks_msg = sensorGpsChecksFromGnssChecks(_gnss_checks[i], gps_data.timestamp_sample, gps_data.device_id);
+			_sensor_gps_checks_pub[i].publish(checks_msg);
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
 			_gps_blending.setGpsData(gps_data, i);
