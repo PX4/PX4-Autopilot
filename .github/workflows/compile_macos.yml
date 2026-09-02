@@ -49,7 +49,7 @@ jobs:
 
     - name: setup
       run: |
-        ./Tools/setup/macos.sh --sim-tools --ci
+        ./Tools/setup/macos.sh --sim-tools
         echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
 
     - uses: ./.github/actions/setup-ccache
