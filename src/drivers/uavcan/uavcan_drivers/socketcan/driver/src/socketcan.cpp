@@ -390,20 +390,18 @@ int CanIface::setBitRate(uint32_t bitrate)
 
 	snprintf(ifr.ifr_name, IFNAMSIZ, "can%" PRIu32, _index);
 
-	const uint16_t kbps = bitrate / 1000;
-
 	if (ioctl(_fd, SIOCGCANBITRATE, &ifr) < 0) {
 		PX4_WARN("can%" PRIu32 ": cannot read bit rate (%d), leaving it as configured", _index, errno);
 		return 0;
 	}
 
-	if (ifr.ifr_ifru.ifru_can_data.arbi_bitrate == kbps) {
+	if (ifr.ifr_ifru.ifru_can_data.arbi_bitrate == bitrate) {
 		return 0;
 	}
 
 #if !PX4_SOCKETCAN_SAFE_RETUNE
-	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %u kbit/s not applied, staying at %" PRIu32 " kbit/s",
-		 _index, kbps, ifr.ifr_ifru.ifru_can_data.arbi_bitrate);
+	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %" PRIu32 " bit/s not applied, staying at %" PRIu32 " bit/s",
+		 _index, bitrate, ifr.ifr_ifru.ifru_can_data.arbi_bitrate);
 	return 0;
 #else
 	/* Only the nominal rate changes; the data phase keeps the driver's
@@ -411,7 +409,7 @@ int CanIface::setBitRate(uint32_t bitrate)
 	 * The driver applies the timing at the next ifup, so the interface is
 	 * taken down around the request and brought back up whatever happens.
 	 */
-	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = kbps;
+	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = bitrate;
 
 	struct ifreq flags {};
 
@@ -449,7 +447,7 @@ int CanIface::setBitRate(uint32_t bitrate)
 	}
 
 	if (res < 0) {
-		PX4_ERR("can%" PRIu32 ": %u kbit/s rejected (%d)", _index, kbps, set_errno);
+		PX4_ERR("can%" PRIu32 ": %u bit/s rejected (%d)", _index, bitrate, set_errno);
 		return -1;
 	}
 
