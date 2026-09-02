@@ -211,8 +211,6 @@ void DsmRc::Run()
 
 	bool rc_updated = false;
 
-	constexpr hrt_abstime rc_scan_max = 3_s;
-
 	// read all available data from the serial RC input UART
 	uint8_t rcs_buf[DSM_BUFFER_SIZE] {};
 	int newBytes = ::read(_rcs_fd, &rcs_buf[0], DSM_BUFFER_SIZE);
@@ -235,8 +233,7 @@ void DsmRc::Run()
 		// flush serial buffer and any existing buffered data
 		tcflush(_rcs_fd, TCIOFLUSH);
 
-	} else if (_rc_scan_locked
-		   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+	} else {
 
 		if (newBytes > 0) {
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
@@ -291,12 +288,6 @@ void DsmRc::Run()
 			}
 		}
 
-	} else {
-		_rc_scan_begin = 0;
-		_rc_scan_locked = false;
-
-		dsm_deinit();
-		_rcs_fd = -1;
 	}
 
 	if (!rc_updated && !_armed && (hrt_elapsed_time(&_timestamp_last_signal) > 1_s)) {

@@ -153,8 +153,6 @@ void SumdRc::Run()
 
 	bool rc_updated = false;
 
-	constexpr hrt_abstime rc_scan_max = 3_s;
-
 	// read all available data from the serial RC input UART
 	uint8_t rcs_buf[64] {};
 	int newBytes = ::read(_rcs_fd, &rcs_buf[0], sizeof(rcs_buf));
@@ -178,8 +176,7 @@ void SumdRc::Run()
 
 		tcflush(_rcs_fd, TCIOFLUSH);
 
-	} else if (_rc_scan_locked
-		   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+	} else {
 
 		if (newBytes > 0) {
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
@@ -210,8 +207,6 @@ void SumdRc::Run()
 						valid_chans++;
 					}
 				}
-
-				input_rc.channel_count = valid_chans;
 
 				if ((_param_rc_rssi_pwm_chan.get() > 0) && (_param_rc_rssi_pwm_chan.get() < input_rc.channel_count)) {
 					const int32_t rssi_pwm_chan = _param_rc_rssi_pwm_chan.get();
@@ -245,12 +240,6 @@ void SumdRc::Run()
 			}
 		}
 
-	} else {
-		_rc_scan_begin = 0;
-		_rc_scan_locked = false;
-
-		close(_rcs_fd);
-		_rcs_fd = -1;
 	}
 
 	if (!rc_updated && (hrt_elapsed_time(&_timestamp_last_signal) > 1_s)) {

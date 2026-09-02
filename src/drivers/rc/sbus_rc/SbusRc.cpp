@@ -127,6 +127,11 @@ int SbusRc::task_spawn(int argc, char *argv[])
 void SbusRc::Run()
 {
 	if (should_exit()) {
+		if (_rcs_fd >= 0 && !board_rc_invert_input(_device, false)) {
+#if defined(TIOCSINVERT)
+			ioctl(_rcs_fd, TIOCSINVERT, 0);
+#endif
+		}
 
 		close(_rcs_fd);
 
@@ -150,8 +155,6 @@ void SbusRc::Run()
 	const hrt_abstime cycle_timestamp = hrt_absolute_time();
 
 	bool rc_updated = false;
-
-	constexpr hrt_abstime rc_scan_max = 3_s;
 
 	// read all available data from the serial RC input UART
 	uint8_t rcs_buf[SBUS_BUFFER_SIZE] {};
@@ -185,8 +188,7 @@ void SbusRc::Run()
 		// flush serial buffer and any existing buffered data
 		tcflush(_rcs_fd, TCIOFLUSH);
 
-	} else if (_rc_scan_locked
-		   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+	} else {
 
 		if (newBytes > 0) {
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
@@ -253,12 +255,6 @@ void SbusRc::Run()
 			}
 		}
 
-	} else {
-		_rc_scan_begin = 0;
-		_rc_scan_locked = false;
-
-		close(_rcs_fd);
-		_rcs_fd = -1;
 	}
 
 	if (!rc_updated && (hrt_elapsed_time(&_timestamp_last_signal) > 1_s)) {

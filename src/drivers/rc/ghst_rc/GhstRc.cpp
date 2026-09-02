@@ -152,8 +152,6 @@ void GhstRc::Run()
 
 	bool rc_updated = false;
 
-	constexpr hrt_abstime rc_scan_max = 3_s;
-
 	// read all available data from the serial RC input UART
 	static constexpr size_t RC_MAX_BUFFER_SIZE{64};
 	uint8_t rcs_buf[RC_MAX_BUFFER_SIZE] {};
@@ -179,8 +177,7 @@ void GhstRc::Run()
 		// flush serial buffer and any existing buffered data
 		tcflush(_rcs_fd, TCIOFLUSH);
 
-	} else if (_rc_scan_locked
-		   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+	} else {
 
 		if (newBytes > 0) {
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
@@ -239,12 +236,6 @@ void GhstRc::Run()
 			}
 		}
 
-	} else {
-		_rc_scan_begin = 0;
-		_rc_scan_locked = false;
-
-		close(_rcs_fd);
-		_rcs_fd = -1;
 	}
 
 	if (!rc_updated && (hrt_elapsed_time(&_timestamp_last_signal) > 1_s)) {
