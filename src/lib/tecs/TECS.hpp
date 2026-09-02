@@ -505,7 +505,7 @@ private:
 	 *
 	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
-	 * @param spe_rate_setpoint is the specific potential energy rate setpoint in [m²/s³].
+	 * @param spe_rate_setpoint is the specific potential energy rate setpoint in [m²/s³], fed forward.
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 * @return pitch setpoint angle above trim [rad].

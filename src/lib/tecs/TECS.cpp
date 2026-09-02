@@ -498,10 +498,11 @@ float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValu
 	// Calculate derivative from change in climb angle to rate of change of specific energy balance
 	const float climb_angle_to_SEB_rate = airspeed_for_seb_rate * CONSTANTS_ONE_G;
 
-	// Calculate a specific energy correction that doesn't include the integrator contribution
+	// Calculate a specific energy correction that doesn't include the integrator contribution. Feed forward the
+	// potential energy rate demand only, i.e. fly the demanded climb angle: the throttle funds the kinetic energy
+	// rate demand, and the speed weighting acts on the energy balance rate error (damping, integrator) alone.
 	float SEB_rate_correction = _getControlError(seb_rate) * param.pitch_damping_gain +
-				    param.seb_rate_ff *
-				    seb_rate.setpoint;
+				    param.seb_rate_ff * spe_rate_setpoint;
 
 	// Convert the specific energy balance rate correction to a target pitch angle. This calculation assumes:
 	// a) The climb angle follows pitch angle with a lag that is small enough not to destabilise the control loop.
