@@ -36,6 +36,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -49,6 +50,7 @@ struct FakeParam {
 	bool used;
 	uint32_t value;
 	uint32_t default_value;
+	bool readonly{false};
 };
 
 std::vector<FakeParam> g_params;
@@ -65,9 +67,9 @@ FakeParam f32(const char *name, bool used, float value, float default_value)
 	return {name, PARAM_TYPE_FLOAT, used, bits(value), bits(default_value)};
 }
 
-FakeParam i32(const char *name, bool used, int32_t value, int32_t default_value)
+FakeParam i32(const char *name, bool used, int32_t value, int32_t default_value, bool readonly = false)
 {
-	return {name, PARAM_TYPE_INT32, used, static_cast<uint32_t>(value), static_cast<uint32_t>(default_value)};
+	return {name, PARAM_TYPE_INT32, used, static_cast<uint32_t>(value), static_cast<uint32_t>(default_value), readonly};
 }
 
 std::vector<FakeParam> used_params()
@@ -200,6 +202,7 @@ protected:
 			f32("ABCDEFGHIJKLMNOP", true, 2.f, 2.f),
 			f32("ABCDEFGHIJKLMNOQ", true, 3.f, 2.f),
 			i32("B", true, 7, 7),
+			i32("CAL_GYRO0_ID", true, 99, 0, true),
 		};
 
 		for (int i = 0; i < 300; i++) {
@@ -224,6 +227,27 @@ const char *param_name(param_t param) { return g_params[param].name.c_str(); }
 param_type_t param_type(param_t param) { return g_params[param].type; }
 int param_get(param_t param, void *val) { memcpy(val, &g_params[param].value, 4); return 0; }
 int param_get_default_value(param_t param, void *val) { memcpy(val, &g_params[param].default_value, 4); return 0; }
+param_t param_find_no_notification(const char *name)
+{
+	for (size_t i = 0; i < g_params.size(); i++) {
+		if (g_params[i].name == name) {
+			return static_cast<param_t>(i);
+		}
+	}
+
+	return PARAM_INVALID;
+}
+bool param_is_readonly(param_t param) { return (param < g_params.size()) && g_params[param].readonly; }
+int param_set_no_notification(param_t param, const void *val)
+{
+	if ((param >= g_params.size()) || g_params[param].readonly) {
+		return -1;
+	}
+
+	memcpy(&g_params[param].value, val, 4);
+	return 0;
+}
+void param_notify_changes() {}
 
 TEST_F(MavlinkFtpParam, Path)
 {
@@ -440,4 +464,177 @@ TEST_F(MavlinkFtpParam, ValueNeverStraddlesBlock)
 			}
 		}
 	}
+}
+
+namespace
+{
+
+struct UploadEntry {
+	std::string name;
+	uint8_t ptype;
+	std::vector<uint8_t> value;
+};
+
+UploadEntry up_i8(const char *name, int8_t v)
+{
+	return {name, 1, {static_cast<uint8_t>(v)}};
+}
+
+UploadEntry up_i32(const char *name, int32_t v)
+{
+	uint8_t b[4];
+	memcpy(b, &v, 4);
+	return {name, 3, {b, b + 4}};
+}
+
+UploadEntry up_f32(const char *name, float v)
+{
+	uint8_t b[4];
+	memcpy(b, &v, 4);
+	return {name, 4, {b, b + 4}};
+}
+
+std::vector<uint8_t> encode_upload(const std::vector<UploadEntry> &entries, uint16_t magic = 0x671B)
+{
+	std::vector<uint8_t> body;
+	std::string prev;
+
+	for (const auto &e : entries) {
+		size_t common = 0;
+
+		while ((common < e.name.size()) && (common < prev.size()) && (e.name[common] == prev[common])) {
+			common++;
+		}
+
+		size_t name_len = e.name.size() - common;
+
+		if (name_len == 0) {
+			name_len = 1;
+			common--;
+		}
+
+		body.push_back(e.ptype);
+		body.push_back(static_cast<uint8_t>(common | ((name_len - 1) << 4)));
+		body.insert(body.end(), e.name.begin() + common, e.name.end());
+		body.insert(body.end(), e.value.begin(), e.value.end());
+		prev = e.name;
+	}
+
+	std::vector<uint8_t> out(ParamPckFile::kHeaderLen + body.size());
+	const uint16_t num = static_cast<uint16_t>(entries.size());
+	const uint16_t flen = static_cast<uint16_t>(out.size());
+	memcpy(out.data(), &magic, 2);
+	memcpy(out.data() + 2, &num, 2);
+	memcpy(out.data() + 4, &flen, 2);
+	memcpy(out.data() + ParamPckFile::kHeaderLen, body.data(), body.size());
+	return out;
+}
+
+bool upload_bytes(ParamPckFile &file, const std::vector<uint8_t> &f, uint16_t chunk)
+{
+	if (!file.open_write()) {
+		return false;
+	}
+
+	for (size_t ofs = 0; ofs < f.size();) {
+		const uint16_t n = static_cast<uint16_t>(std::min<size_t>(chunk, f.size() - ofs));
+
+		if (file.write(static_cast<uint32_t>(ofs), f.data() + ofs, n) != n) {
+			return false;
+		}
+
+		ofs += n;
+	}
+
+	return file.finish_write();
+}
+
+uint32_t param_bits(const char *name)
+{
+	const param_t p = param_find_no_notification(name);
+	return g_params[p].value;
+}
+
+} // namespace
+
+TEST_F(MavlinkFtpParam, UploadAppliesAndSkips)
+{
+	const std::vector<uint8_t> f = encode_upload({
+		up_f32("MPC_XY_P", 1.5f),
+		up_i8("SYS_HITL", 1),
+		up_i32("SYS_AUTOSTART", 4002),
+		up_i32("CAL_GYRO0_ID", 1234),
+		up_f32("NO_SUCH_PARAM", 9.f),
+	});
+
+	ParamPckFile file;
+	ASSERT_TRUE(upload_bytes(file, f, 8));
+	file.close();
+
+	EXPECT_EQ(param_bits("MPC_XY_P"), bits(1.5f));
+	EXPECT_EQ(param_bits("SYS_HITL"), static_cast<uint32_t>(1));
+	EXPECT_EQ(param_bits("SYS_AUTOSTART"), static_cast<uint32_t>(4002));
+	EXPECT_EQ(param_bits("CAL_GYRO0_ID"), static_cast<uint32_t>(99));
+}
+
+TEST_F(MavlinkFtpParam, UploadPrefixAndRetry)
+{
+	const std::vector<uint8_t> f = encode_upload({
+		up_f32("ABCDEFGHIJKLMNOP", 8.f),
+		up_f32("ABCDEFGHIJKLMNOQ", 9.f),
+	});
+
+	ParamPckFile file;
+	ASSERT_TRUE(file.open_write());
+	ASSERT_EQ(file.write(0, f.data(), 6), 6);
+	ASSERT_EQ(file.write(0, f.data(), 6), 6); // retry of the header
+	ASSERT_EQ(file.write(6, f.data() + 6, static_cast<uint16_t>(f.size() - 6)),
+		  static_cast<int>(f.size() - 6));
+	ASSERT_TRUE(file.finish_write());
+	file.close();
+
+	EXPECT_EQ(param_bits("ABCDEFGHIJKLMNOP"), bits(8.f));
+	EXPECT_EQ(param_bits("ABCDEFGHIJKLMNOQ"), bits(9.f));
+}
+
+TEST_F(MavlinkFtpParam, UploadRejectsDefaultsMagicAndHoles)
+{
+	ParamPckFile file;
+	const std::vector<uint8_t> with_defaults = encode_upload({up_f32("MPC_XY_P", 1.f)}, 0x671C);
+	EXPECT_FALSE(upload_bytes(file, with_defaults, 80));
+	file.close();
+	EXPECT_EQ(param_bits("MPC_XY_P"), bits(0.95f));
+
+	const std::vector<uint8_t> ok = encode_upload({up_f32("MPC_Z_P", 4.f)});
+	ASSERT_TRUE(file.open_write());
+	EXPECT_EQ(file.write(3, ok.data(), static_cast<uint16_t>(ok.size())), -1);
+	EXPECT_FALSE(file.finish_write());
+	file.close();
+
+	std::vector<uint8_t> truncated = encode_upload({up_i32("SYS_HITL", 2), up_i32("SYS_AUTOSTART", 1)});
+	truncated.resize(truncated.size() - 3);
+	EXPECT_FALSE(upload_bytes(file, truncated, 80));
+}
+
+TEST_F(MavlinkFtpParam, UploadRoundtripDownload)
+{
+	ParamPckFile src;
+	ASSERT_TRUE(src.open("@PARAM/param.pck", 239));
+	const std::vector<uint8_t> downloaded = download(src, 239);
+	src.close();
+
+	// download header total_params is the used count; rewrite as file length
+	std::vector<uint8_t> f = downloaded;
+	const uint16_t flen = static_cast<uint16_t>(f.size());
+	memcpy(f.data() + 4, &flen, 2);
+
+	g_params[0].value = bits(0.1f);
+	g_params[4].value = 0;
+
+	ParamPckFile dst;
+	ASSERT_TRUE(upload_bytes(dst, f, 80));
+	dst.close();
+
+	EXPECT_EQ(param_bits("MPC_XY_P"), bits(0.95f));
+	EXPECT_EQ(param_bits("SYS_AUTOSTART"), static_cast<uint32_t>(4001));
 }

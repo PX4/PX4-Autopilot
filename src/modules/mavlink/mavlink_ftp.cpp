@@ -564,15 +564,18 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 
 	if (ParamPckFile::is_param_path(path)) {
 		if (for_write) {
-			return kErrFailFileProtected;
-		}
+			if (!_session_info.param.open_write()) {
+				_our_errno = EINVAL;
+				return kErrFailErrno;
+			}
 
-		if (!_session_info.param.open(path, kMaxDataLength)) {
+		} else if (!_session_info.param.open(path, kMaxDataLength)) {
 			_our_errno = EINVAL;
 			return kErrFailErrno;
-		}
 
-		file_size = _session_info.param.size();
+		} else {
+			file_size = _session_info.param.size();
+		}
 
 	} else {
 		_constructPath(_work_buffer1, _work_buffer1_len, path);
@@ -681,7 +684,20 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 	}
 
 	if (_session_info.param.is_open()) {
-		return kErrFailFileProtected;
+		if (!_session_info.param.is_writing()) {
+			return kErrFailFileProtected;
+		}
+
+		const int bytes_written = _session_info.param.write(payload->offset, payload->data, payload->size);
+
+		if (bytes_written < 0) {
+			_our_errno = EINVAL;
+			return kErrFailErrno;
+		}
+
+		payload->size = sizeof(uint32_t);
+		std::memcpy(payload->data, &bytes_written, payload->size);
+		return kErrNone;
 	}
 
 	// The path is authorized in _workOpen(), which is where the descriptor this writes to
@@ -859,7 +875,14 @@ MavlinkFTP::_workTerminate(PayloadHeader *payload)
 	}
 
 	PX4_DEBUG("work terminate: close");
+
+	const bool write_ok = !_session_info.param.is_writing() || _session_info.param.finish_write();
 	_close_session();
+
+	if (!write_ok) {
+		_our_errno = EINVAL;
+		return kErrFailErrno;
+	}
 
 	payload->size = 0;
 
