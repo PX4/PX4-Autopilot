@@ -55,6 +55,10 @@ static constexpr uint64_t kMaxLocalPositionAge = 100000;
 static constexpr uint64_t kMaxAttitudeAge = 50000;
 static constexpr uint64_t kMaxAngularVelocityAge = 10000;
 
+// The controller runs on angular velocity updates. If they stop, a delayed run
+// this long after the last one is what notices.
+static constexpr uint64_t kAngularVelocityWatchdog = 2 * kMaxAngularVelocityAge;
+
 enum class ObservationFault : uint8_t {
 	None = 0,
 	PositionInvalid = 1,

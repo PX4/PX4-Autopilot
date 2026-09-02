@@ -46,7 +46,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <matrix/matrix/math.hpp>
 
 #include <tflite_micro/tensorflow/lite/micro/micro_mutable_op_resolver.h>
@@ -84,7 +84,7 @@
 
 using namespace time_literals; // For the 1_s in the subscription interval
 class MulticopterNeuralNetworkControl : public ModuleBase, public ModuleParams,
-	public px4::WorkItem
+	public px4::ScheduledWorkItem
 {
 public:
 
@@ -116,6 +116,8 @@ private:
 	void RescaleActions();
 	int InitializeNetwork();
 	void UpdateMotorLimits();
+	void CheckObservations();
+	void HoldLastCommand();
 	void ReportInvalidLimits();
 	void ReportActionRange();
 	int32_t GetTime();
@@ -157,6 +159,22 @@ private:
 	// set has been copied and gates the controller.
 	bool _motor_limits_valid{false};
 	bool _mapping_valid{false};
+
+	// Why the network is not being run on the current observations, checked every
+	// cycle so the arming check reply always describes the current state
+	nn_control::ObservationFault _observation_fault{nn_control::ObservationFault::PositionInvalid};
+	// The first fault of an outage, reported once. Everything goes stale together when
+	// a sensor stops, so the later faults of the same outage are not reported.
+	nn_control::ObservationFault _reported_observation_fault{nn_control::ObservationFault::None};
+
+	// A network that produced a non finite output is not trusted again until the
+	// mode is left
+	bool _output_fault{false};
+
+	// The last command sent in this session of the mode, repeated while the
+	// commander leaves the mode after a fault. Cleared whenever the mode is not active.
+	float _last_command[4] {};
+	bool _have_last_command{false};
 	hrt_abstime _last_invalid_limits_report{0};
 	float _mapping_thrust_coeff{0.f};
 	float _mapping_min_rpm{0.f};
@@ -170,7 +188,7 @@ private:
 	TfLiteTensor *_input_tensor{nullptr};
 	TfLiteTensor *_output_tensor{nullptr};
 	float _input_data[15];
-	trajectory_setpoint_s _trajectory_setpoint;
+	trajectory_setpoint_s _trajectory_setpoint{};
 	vehicle_angular_velocity_s _angular_velocity;
 	vehicle_local_position_s _position;
 	vehicle_attitude_s _attitude;
