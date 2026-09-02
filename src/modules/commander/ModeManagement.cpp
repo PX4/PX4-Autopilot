@@ -103,7 +103,7 @@ bool Modes::hasFreeExternalModes() const
 	return false;
 }
 
-uint8_t Modes::addExternalMode(const Modes::Mode &mode)
+int Modes::addExternalMode(const Modes::Mode &mode)
 {
 	int32_t mode_name_hash = (int32_t)events::util::hash_32_fnv1a_const(mode.name);
 
@@ -140,21 +140,12 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 	int new_mode_idx = -1;
 
 	if (matching_idx != -1) {
-		// If we found a match, try to use it but check for hash collisions or duplicate mode name
 		if (_modes[matching_idx].valid) {
-			// This can happen when restarting modes while armed
-			PX4_WARN("Mode '%s' already registered (as '%s')", mode.name, _modes[matching_idx].name);
-
-			if (first_unused_idx != -1) {
-				new_mode_idx = first_unused_idx;
-				// Do not update the hash
-
-			} else {
-				// Need to overwrite a hash. Reset it as we can't store duplicate hashes anyway
-				new_mode_idx = first_invalid_idx;
-				need_to_update_param = true;
-				mode_name_hash = 0;
-			}
+			// Hash collision with a currently registered mode, should not happen in practice
+			// with 32-bit FNV-1a over 8 names. Stale same-name registrations are evicted before
+			// this is called, so this branch is a logic error.
+			PX4_ERR("Mode '%s' already registered (hash collision or logic error)", mode.name);
+			return -1;
 
 		} else {
 			new_mode_idx = matching_idx;
@@ -222,7 +213,7 @@ ModeManagement::ModeManagement(ExternalChecks &external_checks)
 	_external_checks.setExternalNavStates(Modes::FIRST_EXTERNAL_NAV_STATE, Modes::LAST_EXTERNAL_NAV_STATE);
 }
 
-void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
+void ModeManagement::checkNewRegistrations(uint8_t user_intended_nav_state, UpdateRequest &update_request)
 {
 	register_ext_component_request_s request;
 	int max_updates = 5;
@@ -255,9 +246,33 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 
 		reply.success = false;
 
+		bool restore_executor_in_charge = false;
+		bool evicted_active_mode = false;
+
 		if (request_valid) {
 			// check free space
 			reply.success = true;
+
+			if (request.register_mode) {
+				// Evict stale registration with the same name. Happens if the external app that drives the mode:
+				// - Restarted or crashed
+				// - Re-registers fast enough that its not yet flagged unresponsive
+				// - or is the current active mode and thus never gets removed automatically
+				// Must run before free-slot checks so freed slots count.
+				for (int i = Modes::FIRST_EXTERNAL_NAV_STATE; i <= Modes::LAST_EXTERNAL_NAV_STATE; ++i) {
+					if (_modes.valid(i) && strncmp(_modes.mode(i).name, request.name, sizeof(request.name)) == 0) {
+						PX4_WARN("Mode '%s' re-registered, evicting stale slot", request.name);
+						const Modes::Mode &stale_mode = _modes.mode(i);
+						restore_executor_in_charge = request.register_mode_executor && (_mode_executor_in_charge == stale_mode.mode_executor_registration_id);
+						evicted_active_mode = (i == user_intended_nav_state);
+
+						_external_checks.removeRegistration(stale_mode.arming_check_registration_id, i);
+						_modes.removeExternalMode(i, stale_mode.name);
+						removeModeExecutor(stale_mode.mode_executor_registration_id);
+						break;
+					}
+				}
+			}
 
 			if (request.register_arming_check && !_external_checks.hasFreeRegistrations()) {
 				PX4_WARN("No free slots for arming checks");
@@ -290,7 +305,7 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 				reply.success = false;
 			}
 
-			// register component(s)
+			// try to register component(s)
 			if (reply.success) {
 				int nav_mode_id = -1;
 
@@ -306,36 +321,53 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 
 					nav_mode_id = _modes.addExternalMode(mode);
 					reply.mode_id = nav_mode_id;
+
+					if (nav_mode_id == -1) {
+						reply.success = false;
+					}
 				}
 
-				if (request.register_mode_executor) {
-					ModeExecutors::ModeExecutor executor{};
-					executor.owned_nav_state = nav_mode_id;
-					int registration_id = _mode_executors.addExecutor(executor);
+				if (reply.success) {
+					if (request.register_mode_executor) {
+						ModeExecutors::ModeExecutor executor{};
+						executor.owned_nav_state = nav_mode_id;
+						int registration_id = _mode_executors.addExecutor(executor);
 
-					if (nav_mode_id != -1) {
-						_modes.mode(nav_mode_id).mode_executor_registration_id = registration_id;
+						if (nav_mode_id != -1) {
+							_modes.mode(nav_mode_id).mode_executor_registration_id = registration_id;
+						}
+
+						reply.mode_executor_id = registration_id;
+
+						if (restore_executor_in_charge) {
+							_mode_executor_in_charge = registration_id;
+						}
 					}
 
-					reply.mode_executor_id = registration_id;
-				}
+					if (request.register_arming_check) {
+						int8_t replace_nav_state = request.enable_replace_internal_mode ? request.replace_internal_mode : -1;
+						int registration_id = _external_checks.addRegistration(nav_mode_id, replace_nav_state);
 
-				if (request.register_arming_check) {
-					int8_t replace_nav_state = request.enable_replace_internal_mode ? request.replace_internal_mode : -1;
-					int registration_id = _external_checks.addRegistration(nav_mode_id, replace_nav_state);
+						if (nav_mode_id != -1) {
+							_modes.mode(nav_mode_id).arming_check_registration_id = registration_id;
+						}
 
-					if (nav_mode_id != -1) {
-						_modes.mode(nav_mode_id).arming_check_registration_id = registration_id;
+						reply.arming_check_id = registration_id;
 					}
 
-					reply.arming_check_id = registration_id;
+					// Activate the mode?
+					if (request.register_mode_executor && request.activate_mode_immediately && nav_mode_id != -1) {
+						update_request.change_user_intended_nav_state = true;
+						update_request.user_intended_nav_state = nav_mode_id;
+					}
 				}
+			}
 
-				// Activate the mode?
-				if (request.register_mode_executor && request.activate_mode_immediately && nav_mode_id != -1) {
-					update_request.change_user_intended_nav_state = true;
-					update_request.user_intended_nav_state = nav_mode_id;
-				}
+			if (evicted_active_mode && !reply.success) {
+				// New registration failed after evicting the active mode, fall back to AUTO_LOITER
+				// rather than leaving the vehicle in an unregistered nav_state.
+				update_request.change_user_intended_nav_state = true;
+				update_request.user_intended_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 			}
 		}
 
@@ -414,7 +446,7 @@ void ModeManagement::update(uint8_t vehicle_type, bool armed, uint8_t user_inten
 
 		// As we're disarmed we can use the user intended mode, as no failsafe will be active.
 		// Note that this might not be true if COM_MODE_ARM_CHK is set
-		checkNewRegistrations(update_request);
+		checkNewRegistrations(user_intended_nav_state, update_request);
 		checkUnregistrations(user_intended_nav_state, update_request);
 	}
 
