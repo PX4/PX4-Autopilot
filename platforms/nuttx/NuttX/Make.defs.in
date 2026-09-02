@@ -160,6 +160,7 @@ CFLAGS = $(ARCHINCLUDES) \
 	-std=gnu11 \
 	${CMAKE_C_FLAGS} \
 	$(FLAGS) \
+	$(ARCHDEFINES) \
 	-Wno-bad-function-cast \
 	-Wno-float-equal \
 	-Wno-implicit-fallthrough \
@@ -180,6 +181,7 @@ CXXFLAGS = $(ARCHXXINCLUDES) \
 	-nostdinc++ \
 	${CMAKE_CXX_FLAGS} \
 	$(FLAGS) \
+	$(ARCHDEFINES) \
 	-fcheck-new \
 	-fno-builtin \
 	-fno-exceptions \
