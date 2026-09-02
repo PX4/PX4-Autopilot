@@ -564,6 +564,7 @@ private:
 private:
 	// State
 	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
+	AlphaFilter<float> _ste_rate_setpoint_filter;		///< Setpoint filter matching the estimate filter lag for the feedback error.
 	float _spe_rate_setpoint{0.0f};				///< Slew rate limited specific potential energy rate setpoint [m²/s³].
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
