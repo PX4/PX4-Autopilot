@@ -59,9 +59,10 @@ static constexpr float CONSTANTS_EARTH_SPIN_RATE = 7.2921150e-5f;				// radians/
 
 // XXX remove
 struct crosstrack_error_s {
-	bool past_end;		// Flag indicating we are past the end of the line/arc segment
-	float distance;		// Distance in meters to closest point on line/arc
-	float bearing;		// Bearing in radians to closest point on line/arc
+	bool past_end{false};		// Flag indicating we are past the end of the line/arc segment
+	bool before_start{false};	// Flag indicating we are before the start of the line/arc segment
+	float distance{0.0f};		// Distance in meters to closest point on line/arc
+	float bearing{0.0f};		// Bearing in radians to closest point on line/arc
 } ;
 
 
@@ -133,7 +134,7 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 /*
  * Calculate distance in global frame
  */
-float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float alt_now,
+float get_distance_to_point_global_spherical(double lat_now, double lon_now, float alt_now,
 		double lat_next, double lon_next, float alt_next,
 		float *dist_xy, float *dist_z);
 
