@@ -1,0 +1,10 @@
+module_name: dfrobot_gas
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_DFGAS:
+      description:
+        short: Enable DFRobot Gravity electrochemical gas sensor
+      type: boolean
+      default: 0
+      reboot_required: true
