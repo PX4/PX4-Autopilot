@@ -58,20 +58,20 @@ typedef struct dshot_timing_t {
 // Wide enough that some tick count divides the common timer clocks exactly, and narrow
 // enough that a bit still resolves to better than a tenth of itself.
 #define DSHOT_MIN_BIT_TICKS 12u
-#define DSHOT_MAX_BIT_TICKS 32u
+#define DSHOT_MAX_BIT_TICKS 40u
 
 // Ticks the bidirectional capture timer counts in one response bit.
 #define DSHOT_CAPTURE_TICKS_PER_BIT 20u
 
 static inline dshot_timing_t dshot_timing(uint32_t timer_clock, uint32_t dshot_rate)
 {
-	dshot_timing_t best = {DSHOT_MAX_BIT_TICKS, 1u, 12u, 24u, 1u};
+	dshot_timing_t best = {DSHOT_MAX_BIT_TICKS, 1u, (3u * DSHOT_MAX_BIT_TICKS + 4u) / 8u, (3u * DSHOT_MAX_BIT_TICKS + 2u) / 4u, 1u};
 
 	if (timer_clock == 0u || dshot_rate == 0u) {
 		return best;
 	}
 
-	uint64_t best_rate_error = UINT64_MAX;
+	uint32_t best_rate_error = UINT32_MAX;
 	uint32_t best_duty_error = UINT32_MAX;
 
 	for (uint32_t ticks = DSHOT_MIN_BIT_TICKS; ticks <= DSHOT_MAX_BIT_TICKS; ticks++) {
@@ -83,9 +83,10 @@ static inline dshot_timing_t dshot_timing(uint32_t timer_clock, uint32_t dshot_r
 		}
 
 		// The emitted rate is timer_clock / (ticks * prescaler); comparing the cycle
-		// counts instead keeps this in integers.
-		const uint64_t cycles = (uint64_t)ticks * prescaler * dshot_rate;
-		const uint64_t rate_error = cycles > timer_clock ? cycles - timer_clock : timer_clock - cycles;
+		// counts instead keeps this in integers, and the rounded prescaler puts the
+		// product within half a bit of timer_clock, so 32 bits hold it.
+		const uint32_t cycles = ticks * prescaler * dshot_rate;
+		const uint32_t rate_error = cycles > timer_clock ? cycles - timer_clock : timer_clock - cycles;
 
 		const uint32_t bit_1 = (3u * ticks + 2u) / 4u;   // round(0.75 * ticks)
 		const uint32_t bit_0 = (3u * ticks + 4u) / 8u;   // round(0.375 * ticks)

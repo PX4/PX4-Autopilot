@@ -580,7 +580,8 @@ void io_timer_capture_dma_req(uint8_t timer, uint8_t timer_channel_index, bool e
 }
 
 static dshot_timing_t dshot_timings[MAX_IO_TIMERS];
-static unsigned dshot_timing_rate[MAX_IO_TIMERS];
+// Seeded with a rate nobody asks for so the first lookup always computes.
+static unsigned dshot_timing_rate[MAX_IO_TIMERS] = { [0 ...(MAX_IO_TIMERS - 1)] = ~0u };
 
 const dshot_timing_t *io_timer_get_dshot_timing(uint8_t timer, unsigned dshot_pwm_freq)
 {
