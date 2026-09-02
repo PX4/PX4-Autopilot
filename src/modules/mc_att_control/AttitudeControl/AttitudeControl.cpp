@@ -88,9 +88,9 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	//    frame, and form the small-angle error vector from q_ref to q_d.
 	const Quatf q_ref_inv = qinv(_q_ref);
 	const Vector3f yaw_axis_body = qzaxis(q_ref_inv); // world yaw axis expressed in q_ref's body frame
-	const Vector3f omega_command = PX4_ISFINITE(yawspeed_setpoint)
-				       ? yaw_axis_body * yawspeed_setpoint
-				       : Vector3f{};
+
+	// Commanded (analytical) reference rate, kept separate so update() can feed it forward at unity.
+	_omega_command = PX4_ISFINITE(yawspeed_setpoint) ? yaw_axis_body * yawspeed_setpoint : Vector3f{};
 
 	Quatf q_err = qmul(q_ref_inv, qd);
 	q_err.canonicalize();
@@ -110,19 +110,16 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	const float gamma = _kq * dt * emt;
 	const float delta = (1.f - w_dt) * emt;
 
+	// While a yaw rate is commanded, StickYaw unlocks the heading and sets the setpoint yaw to the
+	// measurement, so on that axis q_d carries no reference for the model to filter.
+	const bool heading_unlocked = PX4_ISFINITE(yawspeed_setpoint) && (fabsf(yawspeed_setpoint) > FLT_EPSILON);
+	const Vector3f e_heading = heading_unlocked ? e.dot(yaw_axis_body) * yaw_axis_body : Vector3f{};
+	const Vector3f e_filtered = e - e_heading;
+
 	// Propagate the error-driven correction in tangent space (the 2nd-order state). delta_phi is the integral
 	//    of omega over [0, dt]; the correction part collapses to e(0) - e(dt) since e_dot = -correction.
-	const Vector3f delta_phi = (1.f - a) * e + b * _omega_correction + omega_command * dt;
-	_omega_correction = gamma * e + delta * _omega_correction;
-
-	// Yaw-rate command: the heading setpoint just follows the measured yaw, so feeding the error-driven
-	// rate forward closes a positive-feedback loop. Keep only the commanded rate (omega_command) on the yaw axis.
-	if (PX4_ISFINITE(yawspeed_setpoint) && (fabsf(yawspeed_setpoint) > FLT_EPSILON)) {
-		_omega_correction -= _omega_correction.dot(yaw_axis_body) * yaw_axis_body;
-	}
-
-	// Commanded (analytical) reference rate, kept separate so update() can exempt it from the feedforward limit.
-	_omega_command = omega_command;
+	const Vector3f delta_phi = (1.f - a) * e_filtered + b * _omega_correction + e_heading;
+	_omega_correction = gamma * e_filtered + delta * _omega_correction;
 
 	_q_ref     = qmul(_q_ref, Quatf(AxisAnglef(delta_phi)));
 	_q_ref.normalize();
