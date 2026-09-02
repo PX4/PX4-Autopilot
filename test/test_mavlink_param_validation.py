@@ -58,6 +58,7 @@ CMD_NAV_VTOL_LAND = 85
 CMD_NAV_DELAY = 93
 CMD_COMPONENT_ARM_DISARM = 400
 CMD_DO_SET_ROI_LOCATION = 195
+CMD_DO_SET_HOME = 179
 CMD_DO_SET_ROI_NONE = 197
 CMD_IMAGE_STOP_CAPTURE = 2001
 
@@ -524,8 +525,104 @@ def run_command_int_frame_tests(mav: Any, timeout: float) -> None:
         result, MAV_RESULT_UNSUPPORTED_MAV_FRAME,
     )
 
+    # 26. NaN altitude under a relative frame means no altitude was given.
+    # The receiver passes it through untouched instead of converting it.
+    result = _send_command_int(
+        mav, CMD_DO_SET_ROI_LOCATION, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        timeout, x=LAT, y=LON, z=float("nan"),
+    )
+    _check(
+        "ROI_LOCATION GLOBAL_RELATIVE_ALT_INT NaN z -> ACCEPTED",
+        result, MAV_RESULT_ACCEPTED,
+    )
+
     # Clear the ROI again (best effort).
     _send_command(mav, CMD_DO_SET_ROI_NONE, timeout)
+
+
+def _wait_home(mav: Any, timeout: float = 60.0) -> Any:
+    """Wait for a HOME_POSITION message and return it, or None."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        msg = mav.recv_match(type="HOME_POSITION", blocking=True, timeout=5.0)
+        if msg:
+            return msg
+    return None
+
+
+def _wait_home_altitude_change(
+    mav: Any, previous_alt_m: float, timeout: float = 30.0,
+) -> Optional[float]:
+    """Wait until HOME_POSITION reports an altitude at least 1 m away from
+    previous_alt_m; return the new altitude AMSL [m], or None."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        msg = mav.recv_match(type="HOME_POSITION", blocking=True, timeout=5.0)
+        if msg:
+            alt = float(msg.altitude) / 1e3
+            if abs(alt - previous_alt_m) >= 1.0:
+                return alt
+    return None
+
+
+def run_do_set_home_frame_tests(mav: Any, timeout: float) -> None:
+    print("\n=== COMMAND_INT frame tests (DO_SET_HOME) ===")
+
+    home = _wait_home(mav)
+    if home is None:
+        _check("HOME_POSITION available", None, "message")
+        return
+
+    lat = int(home.latitude)
+    lon = int(home.longitude)
+    alt = float(home.altitude) / 1e3
+    print(f"  home before: lat {lat} lon {lon} alt {alt:.1f} m AMSL")
+
+    # 27. Explicit location under a relative frame: z is converted with the
+    # home altitude, so the new home ends up 50 m above the old one, not at
+    # 50 m AMSL.
+    result = _send_command_int(
+        mav, CMD_DO_SET_HOME, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT, timeout,
+        p1=0.0, x=lat, y=lon, z=50.0,
+    )
+    _check(
+        "DO_SET_HOME explicit GLOBAL_RELATIVE_ALT_INT -> ACCEPTED",
+        result, MAV_RESULT_ACCEPTED,
+    )
+    new_alt = _wait_home_altitude_change(mav, alt)
+    print(f"  home after:  alt {new_alt} m AMSL")
+    _check(
+        "DO_SET_HOME relative z=50 -> home altitude raised by 50 m",
+        None if new_alt is None else round(new_alt - alt), 50,
+    )
+
+    # 28. Explicit location under a local frame: x/y would be metres and z
+    # a local down coordinate, the commander would read them as lat/lon/AMSL.
+    result = _send_command_int(
+        mav, CMD_DO_SET_HOME, MAV_FRAME_LOCAL_NED, timeout,
+        p1=0.0, x=100_000, y=100_000, z=10.0,
+    )
+    _check(
+        "DO_SET_HOME explicit LOCAL_NED -> UNSUPPORTED_MAV_FRAME",
+        result, MAV_RESULT_UNSUPPORTED_MAV_FRAME,
+    )
+
+    # 29. use_current ignores the location, so the frame must not matter and
+    # the command has to keep working as before.
+    result = _send_command_int(
+        mav, CMD_DO_SET_HOME, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT, timeout,
+        p1=1.0, x=0, y=0, z=0.0,
+    )
+    _check(
+        "DO_SET_HOME use_current GLOBAL_RELATIVE_ALT_INT -> ACCEPTED",
+        result, MAV_RESULT_ACCEPTED,
+    )
+
+    # Put the original home back (best effort).
+    _send_command_int(
+        mav, CMD_DO_SET_HOME, MAV_FRAME_GLOBAL_INT, timeout,
+        p1=0.0, x=lat, y=lon, z=alt,
+    )
 
 
 # Entry point
@@ -551,6 +648,7 @@ def main() -> int:
     run_mission_tests(mav, args.timeout)
     run_command_tests(mav, args.timeout)
     run_command_int_frame_tests(mav, args.timeout)
+    run_do_set_home_frame_tests(mav, args.timeout)
 
     passed = sum(_results)
     total = len(_results)

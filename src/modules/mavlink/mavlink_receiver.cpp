@@ -594,13 +594,13 @@ MavlinkReceiver::command_has_location(uint16_t command)
 }
 
 bool
-MavlinkReceiver::command_int_requires_global_frame(uint16_t command)
+MavlinkReceiver::command_int_requires_global_frame(const mavlink_command_int_t &cmd)
 {
 	// Commands whose consumers read param5/param6 as global lat/lon (deg) and param7 as altitude AMSL.
 	// Not the same set as command_has_location(): e.g. NAV_LAND lands at the current position,
-	// DO_SET_HOME with use_current=true must work before home exists, NAV_ROI/DO_SET_ROI have
-	// mode-dependent param7, and DO_SET_GLOBAL_ORIGIN defines the reference other frames need.
-	switch (command) {
+	// NAV_ROI/DO_SET_ROI have mode-dependent param7, and DO_SET_GLOBAL_ORIGIN defines the reference
+	// other frames need.
+	switch (cmd.command) {
 	case MAV_CMD_NAV_TAKEOFF:
 	case MAV_CMD_NAV_VTOL_TAKEOFF:
 	case MAV_CMD_DO_REPOSITION:
@@ -608,6 +608,12 @@ MavlinkReceiver::command_int_requires_global_frame(uint16_t command)
 	case MAV_CMD_DO_FIGURE_EIGHT:
 	case MAV_CMD_DO_SET_ROI_LOCATION:
 		return true;
+
+	case MAV_CMD_DO_SET_HOME:
+		// With use_current (param1) the location is ignored and the command must work before a
+		// home exists. With an explicit location the commander reads param5/6/7 as lat/lon/AMSL
+		// like the commands above. Same test of param1 as the commander's.
+		return !(cmd.param1 > 0.5f);
 
 	default:
 		return false;
@@ -675,7 +681,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.confirmation = false;
 	vcmd.from_external = true;
 
-	if (command_int_requires_global_frame(cmd_mavlink.command)) {
+	if (command_int_requires_global_frame(cmd_mavlink)) {
 		switch (cmd_mavlink.frame) {
 		case MAV_FRAME_GLOBAL:
 		case MAV_FRAME_GLOBAL_INT:
@@ -684,6 +690,9 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 		case MAV_FRAME_GLOBAL_RELATIVE_ALT:
 		case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+
+			// A NaN z means no altitude was given. The consumers keep their current altitude
+			// for NaN (reposition, orbit), so it is passed through untouched rather than converted.
 			if (PX4_ISFINITE(cmd_mavlink.z)) {
 				home_position_s home_position{};
 				_home_position_sub.copy(&home_position);
