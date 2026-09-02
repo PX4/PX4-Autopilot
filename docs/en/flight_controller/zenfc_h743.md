@@ -90,14 +90,15 @@ The 8 outputs are in 3 groups:
 - Outputs 7-8 in group3
 
 **Note**:
-- All outputs support PWM and [DShot](../peripherals/dshot.md) protocol. Output 1-6 and 8 support "bidirectional DShot" (or "BDShot") telemetry.
+- All outputs support PWM and [DShot](../peripherals/dshot.md) protocol.
+  Outputs 1-6 and 8 support "bidirectional DShot" (or "BDShot") telemetry.
 - Outputs 1-4 default to DShot300 ([PWM_MAIN_TIM0](../advanced_config/parameter_reference.md#PWM_MAIN_TIM0) = `-4`); outputs 5-6 and 7-8 default to PWM at 400 Hz.
 - Each group's protocol can be changed independently using the corresponding `PWM_MAIN_TIMx` parameter, including to [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) (BDShot) for ESC telemetry.
 
 ### Debug Port
 
-This board does not configure a dedicated UART as a system console. Use the
-[MAVLink Shell](../debug/mavlink_shell.md) over USB for console/NSH access using QGroundControl.
+This board does not configure a dedicated UART as a system console.
+Use the [MAVLink Shell](../debug/mavlink_shell.md) over USB for console/NSH access using QGroundControl.
 
 **SWD**
 
