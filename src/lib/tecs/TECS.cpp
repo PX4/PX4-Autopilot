@@ -349,6 +349,19 @@ TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const Alt
 	specific_energy_rates.ske_rate.setpoint = control_setpoint.tas_setpoint *
 			control_setpoint.tas_rate_setpoint; // kinetic energy rate of change
 
+	// Back off the potential energy rate demand such that the total energy rate demand stays within the
+	// envelope the throttle can deliver. Otherwise the pitch loop flies a climb or sink the throttle cannot
+	// fund, and the energy deficit or surplus comes out of or goes into the airspeed. The kinetic energy rate
+	// demand takes priority within the envelope: airspeed (stall margin) outranks climb or sink rate.
+	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
+	// During fast descend the throttle is faded to its minimum, and so is the deliverable energy rate.
+	const float ste_rate_max = math::lerp(limit.STE_rate_max, limit.STE_rate_min, param.fast_descend);
+	// The throttle additionally has to fund the induced drag rise in turns (see _calcThrottleControlSteRate).
+	const float turn_drag_offset = param.load_factor_correction * (param.load_factor - 1.f);
+	specific_energy_rates.spe_rate.setpoint = constrain(specific_energy_rates.spe_rate.setpoint,
+			limit.STE_rate_min - turn_drag_offset - specific_energy_rates.ske_rate.setpoint,
+			ste_rate_max - turn_drag_offset - specific_energy_rates.ske_rate.setpoint);
+
 	// Calculate specific energy rates in units of (m**2/sec**3)
 	specific_energy_rates.spe_rate.estimate = input.altitude_rate * CONSTANTS_ONE_G; // potential energy rate of change
 	specific_energy_rates.ske_rate.estimate = input.tas * input.tas_rate;// kinetic energy rate of change

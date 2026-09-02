@@ -442,6 +442,8 @@ private:
 	float _calcAltitudeControlOutput(const Setpoint &setpoint, const Input &input, const Param &param) const;
 	/**
 	 * @brief Calculate specific energy rates.
+	 * The potential energy rate setpoint is backed off such that the total energy rate setpoint stays
+	 * within the envelope the throttle can deliver; the kinetic energy rate setpoint has priority.
 	 *
 	 * @param control_setpoint is the controlles altitude and airspeed rate setpoints.
 	 * @param input is the current input measurement of the UAS.
