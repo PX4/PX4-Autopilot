@@ -77,6 +77,10 @@ inline sensor_gps_checks_s sensorGpsChecksFromGnssChecks(const GnssChecks& check
 
 	msg.device_id = device_id;
 
+	msg.position_drift_rate_horizontal_m_s = checks.horizontal_position_drift_rate_m_s();
+	msg.position_drift_rate_vertical_m_s = checks.vertical_position_drift_rate_m_s();
+	msg.filtered_horizontal_speed_m_s = checks.filtered_horizontal_velocity_m_s();
+
 	msg.flags = checks.getFailStatus().value;
 
 	msg.checks_passed = checks.passed();

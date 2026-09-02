@@ -65,25 +65,9 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	if (_gps_data_ready) {
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
-		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
-
-		if (_gnss_checks.run(gnss_sample, _time_delayed_us)) {
-			if (_gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
-				// First time checks are passing, latching.
-				_information_events.flags.gps_checks_passed = true;
-			}
-
-		} else {
-			// Skip this sample
-			_gps_data_ready = false;
-
-			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
-			const bool gnss_checks_pass_timeout = isTimedOut(_gnss_checks.getLastPassUs(), _params.reset_timeout_max);
-
-			if (using_gnss && gnss_checks_pass_timeout) {
-				stopGnssFusion();
-				ECL_WARN("GNSS quality poor - stopping use");
-			}
+		if (!_initial_checks_passed_prev) {
+			// First time checks are passing, latching.
+			_information_events.flags.gps_checks_passed = true;
 		}
 
 		updateGnssPos(gnss_sample, _aid_src_gnss_pos);
@@ -133,7 +117,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_fault
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
+	const bool starting_conditions_passing = continuing_conditions_passing;
 
 	if (_control_status.flags.gnss_vel) {
 		if (continuing_conditions_passing) {
@@ -190,8 +174,8 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
-	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gnss_checks.passed();
+	const bool starting_conditions_passing = continuing_conditions_passing;
+	const bool gpos_init_conditions_passing = gnss_pos_enabled;
 
 	if (_control_status.flags.gnss_pos) {
 		if (continuing_conditions_passing) {
@@ -463,10 +447,6 @@ void Ekf::resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src)
 
 void Ekf::stopGnssFusion()
 {
-	if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) {
-		_gnss_checks.reset();
-	}
-
 	stopGnssVelFusion();
 	stopGnssPosFusion();
 	stopGpsHgtFusion();
@@ -482,11 +462,6 @@ void Ekf::stopGnssVelFusion()
 	if (_control_status.flags.gnss_vel) {
 		ECL_INFO("stopping GNSS velocity fusion");
 		_control_status.flags.gnss_vel = false;
-
-		//TODO: what if gnss yaw or height is used?
-		if (!_control_status.flags.gnss_pos) {
-			_gnss_checks.reset();
-		}
 	}
 }
 
@@ -495,11 +470,6 @@ void Ekf::stopGnssPosFusion()
 	if (_control_status.flags.gnss_pos) {
 		ECL_INFO("stopping GNSS position fusion");
 		_control_status.flags.gnss_pos = false;
-
-		//TODO: what if gnss yaw or height is used?
-		if (!_control_status.flags.gnss_vel) {
-			_gnss_checks.reset();
-		}
 	}
 }
 
