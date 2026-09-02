@@ -5,6 +5,7 @@
 
 import argparse
 import os
+import re
 import sys
 from copy import deepcopy
 
@@ -35,6 +36,12 @@ parser.add_argument('--board', type=str, action='store',
 parser.add_argument('--board-with-io', dest='board_with_io', action='store_true',
                     help='Indicate that the board as an IO for extra PWM',
                     default=False)
+parser.add_argument('--board-dir', type=str, default=None,
+                    help='Board directory (used to parse FDCAN/HSE clock for CAN bitrate enums)')
+parser.add_argument('--uavcan-num-ifaces', type=int, default=None,
+                    help='Number of UAVCAN CAN interfaces on this board')
+parser.add_argument('--uavcan-canfd', dest='uavcan_canfd', action='store_true',
+                    help='Firmware is built with UAVCAN CAN FD')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 
@@ -49,6 +56,81 @@ board = args.board
 
 root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../..")
 output_functions_file = os.path.join(root_dir,"src/lib/mixer_module/output_functions.yaml")
+
+CLASSIC_CAN_RATES = [125000, 250000, 500000, 1000000]
+FD_CAN_RATES = [2000000, 4000000, 5000000, 8000000]
+
+
+def parse_board_can_clock_hz(board_dir):
+    """FDCAN kernel clock is HSE on PX4 STM32H7 boards (STM32_BOARD_XTAL)."""
+    if not board_dir:
+        return None
+    board_h = os.path.join(board_dir, 'nuttx-config', 'include', 'board.h')
+    if not os.path.isfile(board_h):
+        return None
+    with open(board_h, 'r') as f:
+        text = f.read()
+    match = re.search(r'#define\s+STM32_BOARD_XTAL\s+([0-9]+)', text)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+def fdcan_bitrate_achievable(pclk, target_bitrate, max_prescaler=1024):
+    """Match stm32h7 CanIface::computeTimings() so the enum matches hardware."""
+    if pclk is None or target_bitrate < 1:
+        return False
+    max_bs1 = 16
+    max_bs2 = 8
+    max_quanta_per_bit = 10 if target_bitrate >= 1000000 else 17
+    prescaler_bs = pclk // target_bitrate
+    bs1_bs2_sum = max_quanta_per_bit - 1
+    while (prescaler_bs % (1 + bs1_bs2_sum)) != 0:
+        if bs1_bs2_sum <= 2:
+            return False
+        bs1_bs2_sum -= 1
+    prescaler = prescaler_bs // (1 + bs1_bs2_sum)
+    if prescaler < 1 or prescaler > max_prescaler:
+        return False
+    bs1 = ((7 * bs1_bs2_sum - 1) + 4) // 8
+    bs2 = bs1_bs2_sum - bs1
+    sample_point_permill = 1000 * (1 + bs1) // (1 + bs1 + bs2)
+    if sample_point_permill > 900:
+        bs1 = (7 * bs1_bs2_sum - 1) // 8
+        bs2 = bs1_bs2_sum - bs1
+    if not (1 <= bs1 <= max_bs1 and 1 <= bs2 <= max_bs2):
+        return False
+    actual = pclk // (prescaler * (1 + bs1 + bs2))
+    return actual == target_bitrate
+
+
+def bitrate_enum_label(rate):
+    if rate > 1000000:
+        if rate % 1000000 == 0:
+            return '{} Mbps (CAN FD)'.format(rate // 1000000)
+        return '{} kbps (CAN FD)'.format(rate // 1000)
+    if rate == 1000000:
+        return '1 Mbps (Classic)'
+    return '{} kbps (Classic)'.format(rate // 1000)
+
+
+def supported_can_bitrate_values(can_clock_hz, canfd):
+    values = {}
+    for rate in CLASSIC_CAN_RATES:
+        if can_clock_hz is None or fdcan_bitrate_achievable(can_clock_hz, rate):
+            values[rate] = bitrate_enum_label(rate)
+    if canfd:
+        for rate in FD_CAN_RATES:
+            if can_clock_hz is None:
+                # Unknown clock: keep 2/4 Mbps, the common H7 HSE-supported FD rates.
+                if rate in (2000000, 4000000):
+                    values[rate] = bitrate_enum_label(rate)
+            elif (fdcan_bitrate_achievable(can_clock_hz, 1000000)
+                  and fdcan_bitrate_achievable(can_clock_hz, rate, 32)):
+                values[rate] = bitrate_enum_label(rate)
+    if 1000000 not in values:
+        values[1000000] = bitrate_enum_label(1000000)
+    return values
 
 def process_module_name(module_name):
     if module_name == '${PWM_MAIN_OR_AUX}':
@@ -101,6 +183,16 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                 if param.get('requires_ethernet', False) and not ethernet_supported:
                     continue
                 num_instances = param.get('num_instances', 1)
+                if param.get('can_bitrate', False):
+                    if '${i}' in param_name and args.uavcan_num_ifaces is not None:
+                        num_instances = args.uavcan_num_ifaces
+                    can_clock_hz = parse_board_can_clock_hz(args.board_dir)
+                    param['values'] = supported_can_bitrate_values(can_clock_hz, args.uavcan_canfd)
+                    param['min'] = min(param['values'].keys())
+                    param['max'] = max(param['values'].keys())
+                    if verbose:
+                        print('CAN bitrate enum for {:}: clock={:} canfd={:} values={:}'.format(
+                            param_name, can_clock_hz, args.uavcan_canfd, param['values']))
                 instance_start = param.get('instance_start', 0) # offset
                 instance_start_label = param.get('instance_start_label', instance_start)
 

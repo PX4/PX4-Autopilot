@@ -80,6 +80,11 @@ int UavcanEscController::init()
 		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
 	}
 
+	// RawCommand follows the port bitrate: CAN FD when UAVCAN_ESC_IFACE
+	// is only FD ports (useCanFd()). Mixed classic+FD destinations stay
+	// classic. DNA Allocation is always classic.
+	_uavcan_pub_raw_cmd.getTransferSender().setAlwaysClassic(false);
+
 	int32_t rate_max{400};
 
 	if (param_get(param_find("UAVCAN_ESC_RTMAX"), &rate_max) == OK) {

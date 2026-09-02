@@ -43,6 +43,7 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	_uavcan_pub_array_cmd(node)
 {
 	_uavcan_pub_array_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
+	_uavcan_pub_array_cmd.getTransferSender().setAlwaysClassic(false);
 	_max_rate_hz = (unsigned)_param_sv_rtmax.get();
 }
 

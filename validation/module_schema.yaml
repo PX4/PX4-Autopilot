@@ -225,6 +225,11 @@ parameters:
                             # param is only added if the board has ethernet
                             # support
                             type: boolean
+                        can_bitrate:
+                            # Generate an enum of CAN bitrates the board FDCAN/HSE
+                            # clock can produce. Classic rates plus CAN FD data
+                            # rates when UAVCAN_CANFD is enabled.
+                            type: boolean
 
 # Configuration for output drivers
 actuator_output:

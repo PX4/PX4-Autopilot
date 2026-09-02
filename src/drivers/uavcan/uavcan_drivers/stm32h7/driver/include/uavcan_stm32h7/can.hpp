@@ -127,8 +127,11 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 	uavcan::uint8_t peak_tx_mailbox_index_;
 	const uavcan::uint8_t self_index_;
 	bool had_activity_;
+	bool canfd_;
+	uint8_t fifo_element_words_;
 
-	int computeTimings(uavcan::uint32_t target_bitrate, Timings &out_timings);
+	int computeTimings(uavcan::uint32_t target_bitrate, Timings &out_timings, uint32_t max_prescaler = 1024,
+			   bool fd_data_phase = false);
 
 	virtual uavcan::int16_t send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline,
 				     uavcan::CanIOFlags flags);
@@ -161,6 +164,8 @@ public:
 		, peak_tx_mailbox_index_(0)
 		, self_index_(self_index)
 		, had_activity_(false)
+		, canfd_(false)
+		, fifo_element_words_(4)
 	{
 		UAVCAN_ASSERT(self_index_ < UAVCAN_STM32H7_NUM_IFACES);
 	}
@@ -172,7 +177,10 @@ public:
 	 *   - Iface has been resetted via RCC
 	 *   - Caller will configure NVIC by itself
 	 */
-	int init(const uavcan::uint32_t bitrate, const OperatingMode mode);
+	int init(const uavcan::uint32_t nominal_bitrate, const uavcan::uint32_t data_bitrate,
+		 const OperatingMode mode, bool canfd);
+
+	bool isCanFd() const { return canfd_; }
 
 	/**
 	 * Failure injection: take this interface off the CAN bus / bring it back.
@@ -297,7 +305,15 @@ public:
 	 * Returns zero if OK.
 	 * Returns negative value if failed (e.g. invalid bitrate).
 	 */
-	int init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode, const uavcan::uint32_t EnabledInterfaces);
+	int init(const uavcan::uint32_t nominal_bitrate, const uavcan::uint32_t data_bitrate,
+		 const CanIface::OperatingMode mode, const uavcan::uint32_t EnabledInterfaces, bool canfd);
+
+	/**
+	 * Per-interface bitrates. Values above 1 Mbps enable CAN FD on that iface
+	 * (1 Mbps arbitration, parameter is the data bitrate).
+	 */
+	int init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates,
+		 const CanIface::OperatingMode mode, const uavcan::uint32_t EnabledInterfaces);
 
 	virtual CanIface *getIface(uavcan::uint8_t iface_index);
 
@@ -339,9 +355,20 @@ public:
 	 * Bitrate value must be positive.
 	 * @return  Negative value on error; non-negative on success. Refer to constants Err*.
 	 */
+	int init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates)
+	{
+		return driver.init(bitrates, num_bitrates, CanIface::NormalMode, enabledInterfaces_);
+	}
+
 	int init(uavcan::uint32_t bitrate)
 	{
-		return driver.init(bitrate, CanIface::NormalMode, enabledInterfaces_);
+		uavcan::uint32_t bitrates[UAVCAN_STM32H7_NUM_IFACES];
+
+		for (unsigned i = 0; i < UAVCAN_STM32H7_NUM_IFACES; i++) {
+			bitrates[i] = bitrate;
+		}
+
+		return init(bitrates, UAVCAN_STM32H7_NUM_IFACES);
 	}
 
 	/**
@@ -361,7 +388,13 @@ public:
 	int init(uavcan::uint32_t &inout_bitrate = BitRateAutoDetect)
 	{
 		if (inout_bitrate > 0) {
-			return driver.init(inout_bitrate, CanIface::NormalMode, enabledInterfaces_);
+#if UAVCAN_SUPPORT_CANFD
+			const bool canfd = inout_bitrate > 1000000U;
+#else
+			const bool canfd = false;
+#endif
+			const uavcan::uint32_t nominal = canfd ? 1000000U : inout_bitrate;
+			return driver.init(nominal, inout_bitrate, CanIface::NormalMode, enabledInterfaces_, canfd);
 
 		} else {
 			static const uavcan::uint32_t StandardBitRates[] = {
@@ -374,7 +407,8 @@ public:
 			for (uavcan::uint8_t br = 0; br < sizeof(StandardBitRates) / sizeof(StandardBitRates[0]); br++) {
 				inout_bitrate = StandardBitRates[br];
 
-				const int res = driver.init(inout_bitrate, CanIface::SilentMode, enabledInterfaces_);
+				const int res = driver.init(inout_bitrate, inout_bitrate, CanIface::SilentMode,
+							    enabledInterfaces_, false);
 
 				usleep(1000000);
 
@@ -382,7 +416,8 @@ public:
 					for (uavcan::uint8_t iface = 0; iface < driver.getNumIfaces(); iface++) {
 						if (!driver.getIface(iface)->isRxBufferEmpty()) {
 							// Re-initializing in normal mode
-							return driver.init(inout_bitrate, CanIface::NormalMode, enabledInterfaces_);
+							return driver.init(inout_bitrate, inout_bitrate, CanIface::NormalMode,
+									   enabledInterfaces_, false);
 						}
 					}
 				}

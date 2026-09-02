@@ -168,6 +168,13 @@
 #endif
 
 /**
+ * Enables CAN FD frames (up to 64-byte payloads). Increases frame and pool block size.
+ */
+#ifndef UAVCAN_SUPPORT_CANFD
+# define UAVCAN_SUPPORT_CANFD 0
+#endif
+
+/**
  * Run time checks.
  * Resolves to the standard assert() by default.
  * Disabled completely if UAVCAN_NO_ASSERTIONS is defined.
