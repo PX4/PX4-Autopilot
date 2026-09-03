@@ -59,8 +59,7 @@ inline gnssChecksSample gnssSampleFromSensorGpsMsg(const sensor_gps_s &gps)
 
 	sample.fix_type = gps.fix_type;
 	sample.nsats    = gps.satellites_used;
-	sample.hdop     = gps.hdop;
-	sample.vdop     = gps.vdop;
+	sample.pdop     = sqrtf(gps.hdop * gps.hdop + gps.vdop * gps.vdop);
 
 	sample.spoofed = gps.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED;
 	sample.jammed  = gps.jamming_state  == sensor_gps_s::JAMMING_STATE_DETECTED;
@@ -150,8 +149,7 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			_gnss_checks[i].setParams(
 				_param_gps_check.get(),
 				_param_req_nsats.get(),
-				_param_req_hdop.get(),
-				_param_req_vdop.get(),
+				_param_req_pdop.get(),
 				_param_req_eph.get(),
 				_param_req_epv.get(),
 				_param_req_sacc.get(),
@@ -166,8 +164,7 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		_vehicle_gps_position_checks.setParams(
 				_param_gps_check.get(),
 				_param_req_nsats.get(),
-				_param_req_hdop.get(),
-				_param_req_vdop.get(),
+				_param_req_pdop.get(),
 				_param_req_eph.get(),
 				_param_req_epv.get(),
 				_param_req_sacc.get(),

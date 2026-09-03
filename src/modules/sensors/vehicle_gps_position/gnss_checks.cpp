@@ -39,14 +39,13 @@
 #include "gnss_checks.hpp"
 
 
-void GnssChecks::setParams(int32_t check_mask, int32_t req_nsats, float req_hdop, float req_vdop, float req_eph, float req_epv,
+void GnssChecks::setParams(int32_t check_mask, int32_t req_nsats, float req_pdop, float req_eph, float req_epv,
 		float req_sacc, float req_hdrift, float req_vdrift, int32_t req_fix, float vel_lim,
 		uint32_t min_health_time_us)
 {
 	_params.check_mask 		= check_mask;
 	_params.req_nsats 		= req_nsats;
-	_params.req_hdop 		= req_hdop;
-	_params.req_vdop 		= req_vdop;
+	_params.req_pdop 		= req_pdop;
 	_params.req_eph 		= req_eph;
 	_params.req_epv 		= req_epv;
 	_params.req_sacc 		= req_sacc;
@@ -141,8 +140,7 @@ bool GnssChecks::runInitialFixChecks(const gnssChecksSample &gnss, bool in_air, 
 	_check_fail_status.flags.nsats = (gnss.nsats < _params.req_nsats);
 
 	// Check the position dilution of precision
-	_check_fail_status.flags.hdop = (gnss.hdop > _params.req_hdop);
-	_check_fail_status.flags.vdop = (gnss.vdop > _params.req_vdop);
+	_check_fail_status.flags.pdop = (gnss.pdop > _params.req_pdop);
 
 	// Check the reported horizontal and vertical position accuracy
 	_check_fail_status.flags.hacc = (gnss.hacc > _params.req_eph);
@@ -172,8 +170,7 @@ bool GnssChecks::runInitialFixChecks(const gnssChecksSample &gnss, bool in_air, 
 	if (
 		(_check_fail_status.flags.fix     && isCheckEnabled(GnssChecksMask::kFix)) ||
 		(_check_fail_status.flags.nsats   && isCheckEnabled(GnssChecksMask::kNsats)) ||
-		(_check_fail_status.flags.hdop    && isCheckEnabled(GnssChecksMask::kHdop)) ||
-		(_check_fail_status.flags.vdop    && isCheckEnabled(GnssChecksMask::kVdop)) ||
+		(_check_fail_status.flags.pdop    && isCheckEnabled(GnssChecksMask::kPdop)) ||
 		(_check_fail_status.flags.hacc    && isCheckEnabled(GnssChecksMask::kHacc)) ||
 		(_check_fail_status.flags.vacc    && isCheckEnabled(GnssChecksMask::kVacc)) ||
 		(_check_fail_status.flags.sacc    && isCheckEnabled(GnssChecksMask::kSacc)) ||

@@ -47,8 +47,7 @@ struct gnssChecksSample {
 	float       sacc{};       ///< 1-std speed error (m/sec)
 	uint8_t     fix_type{};   ///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time
 	uint8_t     nsats{};      ///< number of satellites used
-	float       hdop{};       ///< horizontal position dilution of precision
-	float       vdop{};       ///< vertical position dilution of precision
+	float       pdop{};       ///< position dilution of precision
 	bool        spoofed{};    ///< true if GNSS data is spoofed
 	bool        jammed{};     ///< true if GNSS data is jammed
 };
@@ -57,17 +56,16 @@ union gnssChecks {
 	struct {
 		uint32_t fix    : 1; ///< 0 - true if the fix type is insufficient (no 3D solution)
 		uint32_t nsats  : 1; ///< 1 - true if number of satellites used is insufficient
-		uint32_t hdop   : 1; ///< 2 - true if horizontal position dilution of precision is insufficient
-		uint32_t vdop   : 1; ///< 3 - true if vertical position dilution of precision is insufficient
-		uint32_t hacc   : 1; ///< 4 - true if reported horizontal accuracy is insufficient
-		uint32_t vacc   : 1; ///< 5 - true if reported vertical accuracy is insufficient
-		uint32_t sacc   : 1; ///< 6 - true if reported speed accuracy is insufficient
-		uint32_t hdrift : 1; ///< 7 - true if horizontal drift is excessive (can only be used when stationary on ground)
-		uint32_t vdrift : 1; ///< 8 - true if vertical drift is excessive (can only be used when stationary on ground)
-		uint32_t hspeed : 1; ///< 9 - true if horizontal speed is excessive (can only be used when stationary on ground)
-		uint32_t vspeed : 1; ///< 10 - true if vertical speed error is excessive
-		uint32_t spoofed: 1; ///< 11 - true if the GNSS data is spoofed
-		uint32_t jammed : 1; ///< 12 - true if the GNSS data is jammed
+		uint32_t pdop   : 1; ///< 2 - true if horizontal position dilution of precision is insufficient
+		uint32_t hacc   : 1; ///< 3 - true if reported horizontal accuracy is insufficient
+		uint32_t vacc   : 1; ///< 4 - true if reported vertical accuracy is insufficient
+		uint32_t sacc   : 1; ///< 5 - true if reported speed accuracy is insufficient
+		uint32_t hdrift : 1; ///< 6 - true if horizontal drift is excessive (can only be used when stationary on ground)
+		uint32_t vdrift : 1; ///< 7 - true if vertical drift is excessive (can only be used when stationary on ground)
+		uint32_t hspeed : 1; ///< 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
+		uint32_t vspeed : 1; ///< 9 - true if vertical speed error is excessive
+		uint32_t spoofed: 1; ///< 10 - true if the GNSS data is spoofed
+		uint32_t jammed : 1; ///< 11 - true if the GNSS data is jammed
 	} flags;
 	uint32_t value;
 };
@@ -78,7 +76,7 @@ public:
 	GnssChecks() = default;
 	~GnssChecks() = default;
 
-	void setParams(int32_t check_mask, int32_t req_nsats, float req_hdop, float req_vdop, float req_eph, float req_epv,
+	void setParams(int32_t check_mask, int32_t req_nsats, float req_pdop, float req_eph, float req_epv,
 		   float req_sacc, float req_hdrift, float req_vdrift, int32_t req_fix, float vel_lim,
 		   uint32_t min_health_time_us);
 	/**
@@ -92,8 +90,7 @@ public:
 		gnssChecks mask{};
 		mask.flags.fix     = isCheckEnabled(GnssChecksMask::kFix);
 		mask.flags.nsats   = isCheckEnabled(GnssChecksMask::kNsats);
-		mask.flags.hdop    = isCheckEnabled(GnssChecksMask::kHdop);
-		mask.flags.vdop    = isCheckEnabled(GnssChecksMask::kVdop);
+		mask.flags.pdop    = isCheckEnabled(GnssChecksMask::kPdop);
 		mask.flags.hacc    = isCheckEnabled(GnssChecksMask::kHacc);
 		mask.flags.vacc    = isCheckEnabled(GnssChecksMask::kVacc);
 		mask.flags.sacc    = isCheckEnabled(GnssChecksMask::kSacc);
@@ -138,18 +135,17 @@ public:
 private:
 	enum class GnssChecksMask : int32_t {
 		kNsats   = (1 << 0),
-		kHdop    = (1 << 1),
-		kVdop    = (1 << 2),
-		kHacc    = (1 << 3),
-		kVacc    = (1 << 4),
-		kSacc    = (1 << 5),
-		kHdrift  = (1 << 6),
-		kVdrift  = (1 << 7),
-		kHspd    = (1 << 8),
-		kVspd    = (1 << 9),
-		kSpoofed = (1 << 10),
-		kFix     = (1 << 11),
-		kJammed  = (1 << 12)
+		kPdop    = (1 << 1),
+		kHacc    = (1 << 2),
+		kVacc    = (1 << 3),
+		kSacc    = (1 << 4),
+		kHdrift  = (1 << 5),
+		kVdrift  = (1 << 6),
+		kHspd    = (1 << 7),
+		kVspd    = (1 << 8),
+		kSpoofed = (1 << 9),
+		kFix     = (1 << 10),
+		kJammed  = (1 << 11)
 	};
 
 	bool isCheckEnabled(GnssChecksMask check) const { return (_params.check_mask & static_cast<int32_t>(check)); }
@@ -186,8 +182,7 @@ private:
 	struct Params {
 		int32_t check_mask;
 		int32_t req_nsats;
-		float req_hdop;
-		float req_vdop;
+		float req_pdop;
 		float req_eph;
 		float req_epv;
 		float req_sacc;

@@ -160,24 +160,14 @@ parameters:
             max: 12
             default: 6
 
-        REQ_HDOP:
+        REQ_PDOP:
             description:
-                short: Maximum HDOP to use GPS.
+                short: Maximum PDOP to use GPS.
 
             type: float
             min: 1.5
             max: 5.0
             default: 2.5
-
-        REQ_VDOP:
-            description:
-                short: Maximum VDOP to use GPS.
-
-            type: float
-            min: 1.5
-            max: 5.0
-            default: 2.5
-
 
         REQ_EPH:
             description:
