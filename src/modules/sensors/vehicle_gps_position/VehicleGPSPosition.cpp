@@ -94,6 +94,11 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vehicle_gps_position_pub.advertise();
+	_vehicle_gps_position_checks_pub.advertise();
+
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		_sensor_gps_checks_pub[i].advertise();
+	}
 }
 
 VehicleGPSPosition::~VehicleGPSPosition()
