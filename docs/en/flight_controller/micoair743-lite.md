@@ -67,6 +67,26 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ![MicoAir743-Lite Size](../../assets/flight_controller/micoair743_lite/size.png)
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 14 FMU PWM outputs (MAIN).
+
+Outputs:
+
+- Outputs 1-8, 11-12 support [DShot](../peripherals/dshot.md).
+- Outputs 9-10, 13-14 do not support DShot.
+- Outputs 1-8, 11-12 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 14 outputs are in 5 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-8 in group2 (Timer3)
+- Outputs 11-12 in group3 (Timer4)
+- Outputs 13-14 in group4 (Timer12)
+- Outputs 9-10 in group5 (Timer15)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where to Buy {#store}
 
 Order from [MicoAir Tech Store](https://store.micoair.com/product/micoair743-lite/).
