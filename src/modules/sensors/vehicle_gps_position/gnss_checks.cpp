@@ -40,8 +40,8 @@
 
 
 void GnssChecks::setParams(int32_t check_mask, int32_t req_nsats, float req_pdop, float req_eph, float req_epv,
-		float req_sacc, float req_hdrift, float req_vdrift, int32_t req_fix, float vel_lim,
-		uint32_t min_health_time_us)
+			   float req_sacc, float req_hdrift, float req_vdrift, int32_t req_fix, float vel_lim,
+			   uint32_t min_health_time_us)
 {
 	_params.check_mask 		= check_mask;
 	_params.req_nsats 		= req_nsats;
@@ -243,8 +243,8 @@ void GnssChecks::runOnGroundGnssChecks(const gnssChecksSample &gnss, bool in_air
 
 		// hspeed: check the magnitude of the filtered horizontal GNSS velocity
 		const matrix::Vector2f vel_ne = matrix::constrain(matrix::Vector2f(gnss.vel.xy()),
-					-10.0f * _params.req_hdrift,
-					10.0f * _params.req_hdrift);
+						-10.0f * _params.req_hdrift,
+						10.0f * _params.req_hdrift);
 		_vel_ne_filt = vel_ne * filter_coef + _vel_ne_filt * (1.0f - filter_coef);
 		_filtered_horizontal_velocity_m_s = _vel_ne_filt.norm();
 		_check_fail_status.flags.hspeed = (_filtered_horizontal_velocity_m_s > _params.req_hdrift);

@@ -55,13 +55,13 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		sensor_gps_checks_s gps_checks{};
 
 		const bool has_gps = _sensor_gps_sub[i].copy(&gps);
-        	const bool has_checks = _sensor_gps_checks_sub[i].copy(&gps_checks);
+		const bool has_checks = _sensor_gps_checks_sub[i].copy(&gps_checks);
 
 		if (has_gps && has_checks
 		    && (gps.device_id != 0)
 		    && (gps.device_id == gps_checks.device_id)
 		    && (hrt_elapsed_time(&gps.timestamp) < 1_s)
-    		    && (hrt_elapsed_time(&gps_checks.timestamp) < 1_s)) {
+		    && (hrt_elapsed_time(&gps_checks.timestamp) < 1_s)) {
 			gps_online[i] = true;
 
 			if (gps_checks.checks_passed) {
