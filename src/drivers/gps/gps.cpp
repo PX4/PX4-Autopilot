@@ -69,8 +69,9 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
 #include <uORB/topics/sensor_gnss_rf.h>
+#if defined(CONFIG_GPS_UBX_SPAN)
 #include <uORB/topics/sensor_gnss_spectrum.h>
-
+#endif
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/gnss/correction_framer.h>
 
@@ -150,7 +151,11 @@ struct GPS_Sat_Info {
 	satellite_info_s _data;
 };
 
+#if defined(CONFIG_GPS_UBX_SPAN)
 static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2750);
+#else
+static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2040);
+#endif
 
 
 class GPS : public ModuleBase, public device::Device
@@ -248,11 +253,13 @@ private:
 		{ORB_ID(sensor_gnss_rf_block1)},
 		{ORB_ID(sensor_gnss_rf_block2)},
 	};
+#if defined(CONFIG_GPS_UBX_SPAN)
 	uORB::PublicationMulti<sensor_gnss_spectrum_s> _sensor_gnss_spectrum_block_pub[kMaxBlocks] {
 		{ORB_ID(sensor_gnss_spectrum_block0)},
 		{ORB_ID(sensor_gnss_spectrum_block1)},
 		{ORB_ID(sensor_gnss_spectrum_block2)},
 	};
+#endif
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
 	failure_injection::Config _failure_config;
@@ -298,8 +305,9 @@ private:
 	static px4::atomic_bool _is_gps_main_advertised;
 	static px4::atomic_bool _is_sat_info_main_advertised;
 	static px4::atomic_bool _is_rf_block_main_advertised[kMaxBlocks];
+#if defined(CONFIG_GPS_UBX_SPAN)
 	static px4::atomic_bool _is_spectrum_block_main_advertised[kMaxBlocks];
-
+#endif
 	static px4::atomic<GPS *> _secondary_instance;
 
 	px4::atomic<int> _scheduled_reset{(int)GPSRestartType::None};
@@ -329,10 +337,12 @@ private:
 	 */
 	void 				publishRF(sensor_gnss_rf_s &gnss_rf);
 
+#if defined(CONFIG_GPS_UBX_SPAN)
 	/**
 	 * Publish spectrum
 	 */
 	void 				publishSpectrum(sensor_gnss_spectrum_s &gnss_spectrum);
+#endif
 
 	/**
 	 * This is an abstraction for the poll on serial used.
@@ -406,7 +416,9 @@ private:
 px4::atomic_bool GPS::_is_gps_main_advertised{false};
 px4::atomic_bool GPS::_is_sat_info_main_advertised{false};
 px4::atomic_bool GPS::_is_rf_block_main_advertised[kMaxBlocks] {};
+#if defined(CONFIG_GPS_UBX_SPAN)
 px4::atomic_bool GPS::_is_spectrum_block_main_advertised[kMaxBlocks] {};
+#endif
 px4::atomic<GPS *> GPS::_secondary_instance{nullptr};
 ModuleBase::Descriptor GPS::desc{task_spawn, custom_command, print_usage};
 
@@ -588,12 +600,14 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 
 		break;
 
+#if defined(CONFIG_GPS_UBX_SPAN)
 	case GPSCallbackType::gotSpectrumMessage:
 		if (data1 && data2 == sizeof(sensor_gnss_spectrum_s)) {
 			gps->publishSpectrum(*static_cast<sensor_gnss_spectrum_s *>(data1));
 		}
 
 		break;
+#endif
 
 	case GPSCallbackType::surveyInStatus:
 		/* not used */
@@ -1057,12 +1071,14 @@ GPS::run()
 		param_get(handle, &jam_det_sensitivity_hi);
 	}
 
+#if defined(CONFIG_GPS_UBX_SPAN)
 	handle = param_find("GPS_UBX_SPECTRUM");
 	int32_t gps_ubx_spectrum = 0;
 
 	if (handle != PARAM_INVALID) {
 		param_get(handle, &gps_ubx_spectrum);
 	}
+#endif // CONFIG_GPS_UBX_SPAN
 
 #endif // CONFIG_GPS_UBX
 
@@ -1169,7 +1185,9 @@ GPS::run()
 					.uart2_baudrate = f9p_uart2_baudrate,
 					.ppk_output = ppk_output > 0,
 					.jam_det_sensitivity_hi = jam_det_sensitivity_hi > 0,
+#if defined(CONFIG_GPS_UBX_SPAN)
 					.spectrum_analyzer = gps_ubx_spectrum > 0,
+#endif
 					.mode = ubx_mode,
 				};
 
@@ -1700,6 +1718,7 @@ GPS::publishRF(sensor_gnss_rf_s &gnss_rf)
 	}
 }
 
+#if defined(CONFIG_GPS_UBX_SPAN)
 void
 GPS::publishSpectrum(sensor_gnss_spectrum_s &gnss_spectrum)
 {
@@ -1715,6 +1734,7 @@ GPS::publishSpectrum(sensor_gnss_spectrum_s &gnss_spectrum)
 		_is_spectrum_block_main_advertised[gnss_spectrum.block_id].store(true);
 	}
 }
+#endif
 
 int
 GPS::custom_command(int argc, char *argv[])

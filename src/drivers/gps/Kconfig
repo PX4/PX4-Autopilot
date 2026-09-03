@@ -52,6 +52,12 @@ if DRIVERS_GPS
 			Enable on targets that receive a SPARTN correction service.
 			Left off, the SPARTN framer is not built and the receiver only
 			ever sees RTCM3, which is the common RTK setup.
+	config GPS_UBX_SPAN
+		bool "Support for UBX_MON_SPAN message handling"
+		default !BOARD_CONSTRAINED_FLASH
+		depends on GPS_UBX
+		---help---
+			Enables reading UBX_MON_SPAN messages from u-blox receivers.
 endif # DRIVERS_GPS
 
 menuconfig USER_GPS
