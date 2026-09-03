@@ -150,7 +150,9 @@ TEST(PurePursuitTest, OutOfLookahead)
 				      Vector2f(0.f, 0.f), Vector2f(10.f, 20.f), lookahead_distance);
 
 	EXPECT_NEAR(target_bearing1, M_PI_2_F + M_PI_4_F, FLT_EPSILON); // Fallback: Bearing to closest point on path
-	EXPECT_NEAR(target_bearing2, -M_PI_F, FLT_EPSILON); 		// Fallback: Bearing to closest point on path
+	// -pi and +pi are the same bearing, and which side of the branch cut the arithmetic
+	// lands on is not portable, so compare the wrapped difference instead of the raw value.
+	EXPECT_NEAR(wrap_pi(target_bearing2 - (-M_PI_F)), 0.f, 1e-6f);	// Fallback: Bearing to closest point on path
 	EXPECT_NEAR(target_bearing3, M_PI_F - atan2f(10, 10), FLT_EPSILON); // Fallback: Bearing to previous waypoint
 	EXPECT_NEAR(target_bearing4, -M_PI_F + atan2f(10, 10), FLT_EPSILON); // Fallback: Bearing to current waypoint
 }
@@ -202,7 +204,8 @@ TEST(PurePursuitTest, CurrAndPrevSameNorthCoordinate)
 	EXPECT_NEAR(target_bearing1, M_PI_2_F, FLT_EPSILON);
 	EXPECT_NEAR(target_bearing2, M_PI_2_F + M_PI_4_F, FLT_EPSILON);
 	EXPECT_NEAR(target_bearing3, -(M_PI_2_F + M_PI_4_F), FLT_EPSILON);
-	EXPECT_NEAR(target_bearing4, -M_PI_F, FLT_EPSILON); // Fallback: Bearing to closest point on path
+	// See above: compare across the +-pi branch cut with the wrapped difference.
+	EXPECT_NEAR(wrap_pi(target_bearing4 - (-M_PI_F)), 0.f, 1e-6f); // Fallback: Bearing to closest point on path
 }
 
 TEST(PurePursuitTest, CrosstrackError)

@@ -122,19 +122,20 @@ TEST_F(AdsbConflictTest, RejectsInvalidAircraftState)
 	detect_and_avoid_s daa_output{};
 	transponder_report_s report = create_relative_report(valid_traffic);
 	const float nan = std::numeric_limits<float>::quiet_NaN();
+	const double nan_d = std::numeric_limits<double>::quiet_NaN();
 	const float inf = std::numeric_limits<float>::infinity();
 
 	// non-finite ownship coordinate
-	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(nan, uav_lat_lon_(1)), uav_alt_,
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(nan_d, uav_lat_lon_(1)), uav_alt_,
 			stationary_uav_vel_ned_, report), daa_output));
-	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(uav_lat_lon_(0), nan), uav_alt_,
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(uav_lat_lon_(0), nan_d), uav_alt_,
 			stationary_uav_vel_ned_, report), daa_output));
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(90.1, uav_lat_lon_(1)), uav_alt_,
 			stationary_uav_vel_ned_, report), daa_output));
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(uav_lat_lon_(0), -180.1), uav_alt_,
 			stationary_uav_vel_ned_, report), daa_output));
 
-	report.lat = nan;
+	report.lat = nan_d;
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
 			stationary_uav_vel_ned_, report), daa_output));
 	report = create_relative_report(valid_traffic);
