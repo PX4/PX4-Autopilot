@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# NWBlue Pro H757 specific board MAVLink startup
+#------------------------------------------------------------------------------
+# TEL1 (UART7) and TEL2 (USART6) MAVLink instances are started from rc.serial
+# based on MAV_*_CONFIG params. No board-specific overrides for now.

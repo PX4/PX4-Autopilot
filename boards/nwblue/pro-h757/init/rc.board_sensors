@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# NWBlue Pro H757 specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Internal magnetometer on I2C3
+iis2mdc -I -b 3 start
+
+# Internal IMU (ICM45686) on SPI3 inside the CubeNode module.
+# No rotation: the module is aligned with the carrier. Note that the ArduPilot
+# hwdef for this board specifies ROTATION_ROLL_180, which does not match what
+# this board reads - their board support is not hardware tested.
+icm45686 -s start
+
+# Internal barometer (DPS368) on SPI3 (handled by the dps310 driver)
+dps310 -s -8 start
