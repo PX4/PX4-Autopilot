@@ -77,8 +77,8 @@ public:
 	~GnssChecks() = default;
 
 	void setParams(int32_t check_mask, int32_t req_nsats, float req_pdop, float req_eph, float req_epv,
-		   float req_sacc, float req_hdrift, float req_vdrift, int32_t req_fix, float vel_lim,
-		   uint32_t min_health_time_us);
+		       float req_sacc, float req_hdrift, float req_vdrift, int32_t req_fix, float vel_lim,
+		       uint32_t min_health_time_us);
 	/**
 	 * Fail-status flags (gnssChecks layout) of the checks enabled by GPS_CHECK.
 	 * The param bit order (GnssChecksMask) and the status bit order are not parallel, so they are
