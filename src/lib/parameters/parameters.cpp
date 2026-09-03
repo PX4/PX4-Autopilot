@@ -645,6 +645,13 @@ static int param_reset_internal(param_t param, bool notify = true, bool autosave
 		user_config.reset(param);
 	}
 
+	if (param_found) {
+		/* Persist the reset. Flash-param saves append only unsaved params,
+		 * so a reset has to show up as a tombstone or replay keeps the
+		 * previous override. */
+		params_unsaved.set(param, true);
+	}
+
 	if (autosave) {
 		param_autosave();
 	}

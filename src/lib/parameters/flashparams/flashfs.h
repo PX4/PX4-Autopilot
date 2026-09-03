@@ -157,6 +157,22 @@ __EXPORT int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffe
 __EXPORT int parameter_flashfs_read(flash_file_token_t ft, uint8_t **buffer, size_t *buf_size);
 
 /****************************************************************************
+ * Name: parameter_flashfs_walk
+ *
+ * Description:
+ *   Call cb for every valid entry matching token, in the order they were
+ *   written. cb returns 0 to continue, or a negative errno to abort.
+ *
+ * Returned value:
+ *   Number of entries visited, or a negative errno (including from cb).
+ *
+ ****************************************************************************/
+
+typedef int (*parameter_flashfs_walk_cb)(uint8_t *buffer, size_t buf_size, void *arg);
+
+__EXPORT int parameter_flashfs_walk(flash_file_token_t token, parameter_flashfs_walk_cb cb, void *arg);
+
+/****************************************************************************
  * Name: parameter_flashfs_blank
  *
  * Description:
@@ -178,8 +194,10 @@ __EXPORT int parameter_flashfs_blank(void);
  * Name: parameter_flashfs_write
  *
  * Description:
- *   This function writes user data from the buffer allocated with a previous call
- *   to parameter_flashfs_alloc. flash starting at the given address
+ *   Append a new entry. Previous valid entries are left intact so a boot
+ *   replay can apply the whole log; the caller erases and rewrites a
+ *   snapshot when the sector should be compacted. Returns -ENOSPC if the
+ *   new entry does not fit.
  *
  * Input Parameters:
  *   token      - File Token File to read
@@ -212,21 +230,21 @@ __EXPORT int parameter_flashfs_write(flash_file_token_t ft, uint8_t *buffer, siz
 __EXPORT int parameter_flashfs_erase(void);
 
 /****************************************************************************
- * Name: parameter_flashfs_compact_if_full
+ * Name: parameter_flashfs_needs_compact
  *
  * Description:
- *   If the sector lacks room for another entry the size of the stored one,
- *   rewrite it through the normal wrap path now (sector erase + rewrite).
- *   Called at boot so the erase, which stalls every read of its flash bank
- *   while it runs, cannot land on a save made once the vehicle is armed.
+ *   True when the parameter log should be rewritten as a single snapshot
+ *   at the start of the first sector: more than one live entry, or the
+ *   only live entry is not at the sector start (stale entries in front).
+ *   The erase that compact uses stalls every read of that flash bank, so
+ *   callers should run it at boot before sensors and DShot start.
  *
  * Returned value:
- *   1 if a compaction was performed, 0 if there was enough space or nothing
- *   is stored, or a negative errno.
+ *   1 if compact is needed, 0 if not, or a negative errno.
  *
  ****************************************************************************/
 
-__EXPORT int parameter_flashfs_compact_if_full(void);
+__EXPORT int parameter_flashfs_needs_compact(void);
 
 /****************************************************************************
  * Name: parameter_flashfs_alloc

@@ -570,71 +570,75 @@ static flash_entry_header_t *find_free(data_size_t required)
 }
 
 /****************************************************************************
- * Name: get_next_sector_descriptor
+ * Name: for_each_valid_entry
  *
  * Description:
- *   Given a pointer to sector_descriptor_t, this helper function
- *   returns a pointer to the next sector_descriptor_t
- *
- * Input Parameters:
- *   current      - A pointer to the current sector_descriptor_t
- *
- * Returned value:
- *  On Success A pointer to the next sector_descriptor_t,
- *  otherwise NULL
- *
+ *   Visit every CRC-valid, not-erased entry matching token, oldest first.
+ *   cb returns 0 to continue, <0 to abort with that errno.
  *
  ****************************************************************************/
 
-static sector_descriptor_t *get_next_sector_descriptor(sector_descriptor_t *
-		current)
+static int for_each_valid_entry(flash_file_token_t token,
+				int (*cb)(flash_entry_header_t *pf, void *arg),
+				void *arg)
 {
-	for (int s = 0; sector_map[s].address; s++) {
-		if (current == &sector_map[s]) {
-			if (sector_map[s + 1].address) {
-				s++;
+	int n = 0;
 
-			} else {
-				s = 0;
+	if (sector_map == NULL) {
+		return -ENXIO;
+	}
+
+	for (int s = 0; sector_map[s].address; s++) {
+
+		h_magic_t *pmagic = (h_magic_t *) sector_map[s].address;
+		h_magic_t *pe = pmagic + (sector_map[s].size / sizeof(h_magic_t)) - 1;
+
+cont:
+
+		while (pmagic < pe && !valid_magic(pmagic)) {
+			pmagic++;
+		}
+
+		if (pmagic >= pe) { continue; }
+
+		flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
+
+		if (pf + 1 > (flash_entry_header_t *)pe) { continue; }
+
+		const uint8_t *crc_start = entry_crc_start(pf);
+		data_size_t crc_length = entry_crc_length(pf);
+
+		if (crc_start + crc_length > (uint8_t *)pe) { continue; }
+
+		if (pf->crc == crc32(crc_start, crc_length)) {
+
+			if (valid_entry(pf) && pf->file_token.t == token.t) {
+				if (cb != NULL) {
+					int rv = cb(pf, arg);
+
+					if (rv < 0) {
+						return rv;
+					}
+				}
+
+				n++;
 			}
 
-			return &sector_map[s];
+			pf = next_entry(pf);
+			pmagic = (h_magic_t *) pf;
+
+			if (pmagic >= pe || blank_entry(pf)) {
+				continue;
+			}
+
+		} else {
+			pmagic++;
 		}
+
+		goto cont;
 	}
 
-	return NULL;
-}
-
-/****************************************************************************
- * Name: get_sector_info
- *
- * Description:
- *   Given a pointer to a flash entry header returns the sector descriptor
- *   for the file is located in
- *
- * Input Parameters:
- *   current      - A pointer to the current flash entry header
- *
- * Returned value:
- *  On Success A pointer to the next sector_descriptor_t,
- *  otherwise NULL
- *
- *
- ****************************************************************************/
-
-static sector_descriptor_t *get_sector_info(flash_entry_header_t *current)
-{
-	for (int s = 0; sector_map[s].address != 0; s++) {
-		uint8_t *pb = (uint8_t *) sector_map[s].address;
-		uint8_t *pe = pb + sector_map[s].size - 1;
-		uint8_t *pc = (uint8_t *) current;
-
-		if (pc >= pb && pc <= pe) {
-			return &sector_map[s];
-		}
-	}
-
-	return 0;
+	return n;
 }
 
 /****************************************************************************
@@ -678,65 +682,6 @@ static int erase_sector(sector_descriptor_t *sm, flash_entry_header_t *pf)
 	}
 
 	return rv;
-}
-
-/****************************************************************************
- * Name: erase_entry
- *
- * Description:
- *   Given a pointer to a flash entry header erases the entry
- *
- * Input Parameters:
- *   pf  - A pointer to the current flash entry header
- *
- *
- * Returned value:
- *  >0 On Success or a negative errno
- *
- *
- ****************************************************************************/
-
-static int erase_entry(flash_entry_header_t *pf)
-{
-	h_flag_t data = ErasedEntry;
-	size_t size = sizeof(h_flag_t);
-#if defined(BOARD_USE_EXTERNAL_FLASH)
-	int rv = up_progmem_ext_write((size_t) &pf->flag, &data, size);
-#else
-	int rv = up_progmem_write((size_t) &pf->flag, &data, size);
-#endif
-	return rv;
-}
-
-/****************************************************************************
- * Name: check_free_space_in_sector
- *
- * Description:
- *   Given a pointer to a flash entry header and a new size
- *
- * Input Parameters:
-*   pf       - A pointer to the current flash entry header
- *   new_size - The total number of bytes to be written
-  *
- * Returned value:
- *  0 if there is enough space left to write new size
- *  If not it returns the flash_file_sector_t * that needs to be erased.
- *
- ****************************************************************************/
-
-static sector_descriptor_t *check_free_space_in_sector(flash_entry_header_t
-		*pf, size_t new_size)
-{
-	sector_descriptor_t *sm = get_sector_info(pf);
-	uint8_t *psector_first = (uint8_t *) sm->address;
-	uint8_t *psector_last = psector_first + sm->size - 1;
-	uint8_t *pnext_end = (uint8_t *)(valid_magic((h_magic_t *)pf) ? next_entry(pf) : pf) + new_size;
-
-	if (pnext_end >= psector_first && pnext_end <= psector_last) {
-		sm = 0;
-	}
-
-	return sm;
 }
 
 /****************************************************************************
@@ -815,8 +760,7 @@ int parameter_flashfs_blank(void)
  * Name: parameter_flashfs_write
  *
  * Description:
- *   This function writes user data from the buffer allocated with a previous call
- *   to parameter_flashfs_alloc. flash starting at the given address
+ *   Append a new entry. Previous valid entries are left intact.
  *
  * Input Parameters:
  *   token      - File Token File to read
@@ -846,82 +790,11 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 		size_t  size_adjust = ((total_size + alignment) & ~alignment) - total_size;
 		total_size += size_adjust;
 
-		/* Is this and existing entry */
+		/* Append. Compaction (sector erase) is the caller's job, done at boot. */
+		flash_entry_header_t *pf = find_free(total_size);
 
-		flash_entry_header_t *pf = find_entry(token);
-
-		if (!pf) {
-
-			/* No Entry exists for this token so find a place for it */
-
-			pf = find_free(total_size);
-
-			/* No Space */
-
-			if (pf == 0) {
-				return -ENOSPC;
-			}
-
-		} else {
-
-			/* Do we have space after the entry in the sector for the update */
-
-			sector_descriptor_t *current_sector = check_free_space_in_sector(pf,
-							      total_size);
-
-
-			if (current_sector == 0) {
-
-				/* Mark the last entry erased */
-
-				/* todo:consider a 2 stage erase or write before erase and do a fs check
-				 * at start up
-				 */
-
-				rv = erase_entry(pf);
-
-				if (rv < 0) {
-					return rv;
-				}
-
-				/* We had space and marked the last entry erased so use the  Next Free */
-
-				pf = next_entry(pf);
-
-			} else {
-
-				/*
-				 * We did not have space in the current sector so select the next sector
-				 */
-
-				current_sector = get_next_sector_descriptor(current_sector);
-
-				/* Will the data fit */
-
-				if (current_sector->size < total_size) {
-					return -ENOSPC;
-				}
-
-				/* Mark the last entry erased */
-
-				/* todo:consider a 2 stage erase or write before erase and do a fs check
-				 * at start up
-				 */
-
-				rv = erase_entry(pf);
-
-				if (rv < 0) {
-					return rv;
-				}
-
-				pf = (flash_entry_header_t *) current_sector->address;
-
-				if (!blank_check(pf, total_size)) {
-					rv = erase_sector(current_sector, pf);
-				}
-
-			}
-
+		if (pf == 0) {
+			return -ENOSPC;
 		}
 
 		flash_entry_header_t *pn = (flash_entry_header_t *)(buffer - sizeof(flash_entry_header_t));
@@ -948,6 +821,62 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 	}
 
 	return rv;
+}
+
+/****************************************************************************
+ * Name: parameter_flashfs_walk
+ ****************************************************************************/
+
+struct walk_pack {
+	parameter_flashfs_walk_cb cb;
+	void *arg;
+};
+
+static int walk_one(flash_entry_header_t *pf, void *arg)
+{
+	struct walk_pack *w = (struct walk_pack *)arg;
+	return w->cb(entry_data(pf), entry_data_length(pf), w->arg);
+}
+
+int parameter_flashfs_walk(flash_file_token_t token, parameter_flashfs_walk_cb cb, void *arg)
+{
+	struct walk_pack w = { cb, arg };
+	return for_each_valid_entry(token, walk_one, &w);
+}
+
+/****************************************************************************
+ * Name: parameter_flashfs_needs_compact
+ ****************************************************************************/
+
+static int note_first_entry(flash_entry_header_t *pf, void *arg)
+{
+	flash_entry_header_t **first = (flash_entry_header_t **)arg;
+
+	if (*first == NULL) {
+		*first = pf;
+	}
+
+	return 0;
+}
+
+int parameter_flashfs_needs_compact(void)
+{
+	flash_entry_header_t *first = NULL;
+	int n = for_each_valid_entry(parameters_token, note_first_entry, &first);
+
+	if (n < 0) {
+		return n;
+	}
+
+	if (n == 0) {
+		return 0;
+	}
+
+	if (n > 1) {
+		return 1;
+	}
+
+	return (uintptr_t)first != (uintptr_t)sector_map[0].address;
 }
 
 /****************************************************************************

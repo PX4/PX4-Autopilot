@@ -66,8 +66,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define FLASH_FLAG_ROW_SIZE 16 ///< size in h_flag_t units of a flash row
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -579,71 +577,75 @@ static flash_entry_header_t *find_free(data_size_t required)
 }
 
 /****************************************************************************
- * Name: get_next_sector_descriptor
+ * Name: for_each_valid_entry
  *
  * Description:
- *   Given a pointer to sector_descriptor_t, this helper function
- *   returns a pointer to the next sector_descriptor_t
- *
- * Input Parameters:
- *   current      - A pointer to the current sector_descriptor_t
- *
- * Returned value:
- *  On Success A pointer to the next sector_descriptor_t,
- *  otherwise NULL
- *
+ *   Visit every CRC-valid, not-erased entry matching token, oldest first.
+ *   cb returns 0 to continue, <0 to abort with that errno.
  *
  ****************************************************************************/
 
-static sector_descriptor_t *get_next_sector_descriptor(sector_descriptor_t *
-		current)
+static int for_each_valid_entry(flash_file_token_t token,
+				int (*cb)(flash_entry_header_t *pf, void *arg),
+				void *arg)
 {
-	for (int s = 0; sector_map[s].address; s++) {
-		if (current == &sector_map[s]) {
-			if (sector_map[s + 1].address) {
-				s++;
+	int n = 0;
 
-			} else {
-				s = 0;
+	if (sector_map == NULL) {
+		return -ENXIO;
+	}
+
+	for (int s = 0; sector_map[s].address; s++) {
+
+		h_magic_t *pmagic = (h_magic_t *) sector_map[s].address;
+		h_magic_t *pe = pmagic + (sector_map[s].size / sizeof(h_magic_t)) - 1;
+
+cont:
+
+		while (pmagic < pe && !valid_magic(pmagic)) {
+			pmagic++;
+		}
+
+		if (pmagic >= pe) { continue; }
+
+		flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
+
+		if (pf + 1 > (flash_entry_header_t *)pe) { continue; }
+
+		const uint8_t *crc_start = entry_crc_start(pf);
+		data_size_t crc_length = entry_crc_length(pf);
+
+		if (crc_start + crc_length > (uint8_t *)pe) { continue; }
+
+		if (pf->crc == crc32(crc_start, crc_length)) {
+
+			if (valid_entry(pf) && pf->file_token.t == token.t) {
+				if (cb != NULL) {
+					int rv = cb(pf, arg);
+
+					if (rv < 0) {
+						return rv;
+					}
+				}
+
+				n++;
 			}
 
-			return &sector_map[s];
+			pf = next_entry(pf);
+			pmagic = (h_magic_t *) pf;
+
+			if (pmagic >= pe || blank_entry(pf)) {
+				continue;
+			}
+
+		} else {
+			pmagic++;
 		}
+
+		goto cont;
 	}
 
-	return NULL;
-}
-
-/****************************************************************************
- * Name: get_sector_info
- *
- * Description:
- *   Given a pointer to a flash entry header returns the sector descriptor
- *   for the file is located in
- *
- * Input Parameters:
- *   current      - A pointer to the current flash entry header
- *
- * Returned value:
- *  On Success A pointer to the next sector_descriptor_t,
- *  otherwise NULL
- *
- *
- ****************************************************************************/
-
-static sector_descriptor_t *get_sector_info(flash_entry_header_t *current)
-{
-	for (int s = 0; sector_map[s].address != 0; s++) {
-		uint8_t *pb = (uint8_t *) sector_map[s].address;
-		uint8_t *pe = pb + sector_map[s].size - 1;
-		uint8_t *pc = (uint8_t *) current;
-
-		if (pc >= pb && pc <= pe) {
-			return &sector_map[s];
-		}
-	}
-
-	return 0;
+	return n;
 }
 
 /****************************************************************************
@@ -705,63 +707,6 @@ static int erase_sector(sector_descriptor_t *sm, flash_entry_header_t *pf)
 	}
 
 	return rv;
-}
-
-/****************************************************************************
- * Name: erase_entry
- *
- * Description:
- *   Given a pointer to a flash entry header erases the entry
- *
- * Input Parameters:
- *   pf  - A pointer to the current flash entry header
- *
- *
- * Returned value:
- *  >0 On Success or a negative errno
- *
- *
- ****************************************************************************/
-
-static int erase_entry(flash_entry_header_t *pf)
-{
-	/* Need to write entire 32-byte line */
-	h_flag_t data[FLASH_FLAG_ROW_SIZE] = {0xffff};
-	data[0] = ErasedEntry;
-	size_t size = FLASH_FLAG_ROW_SIZE * sizeof(h_flag_t);
-	int rv = up_progmem_write((size_t) &pf->flag_erased, data, size);
-	return rv;
-}
-
-/****************************************************************************
- * Name: check_free_space_in_sector
- *
- * Description:
- *   Given a pointer to a flash entry header and a new size
- *
- * Input Parameters:
- *   pf       - A pointer to the current flash entry header
- *   new_size - The total number of bytes to be written
- *
- * Returned value:
- *  0 if there is enough space left to write new size
- *  If not it returns the flash_file_sector_t * that needs to be erased.
- *
- ****************************************************************************/
-
-static sector_descriptor_t *check_free_space_in_sector(flash_entry_header_t
-		*pf, size_t new_size)
-{
-	sector_descriptor_t *sm = get_sector_info(pf);
-	uint8_t *psector_first = (uint8_t *) sm->address;
-	uint8_t *psector_last = psector_first + sm->size - 1;
-	uint8_t *pnext_end = (uint8_t *)(valid_magic((h_magic_t *)pf) ? next_entry(pf) : pf) + new_size;
-
-	if (pnext_end >= psector_first && pnext_end <= psector_last) {
-		sm = 0;
-	}
-
-	return sm;
 }
 
 /****************************************************************************
@@ -886,8 +831,7 @@ int parameter_flashfs_blank(void)
  * Name: parameter_flashfs_write
  *
  * Description:
- *   This function writes user data from the buffer allocated with a previous call
- *   to parameter_flashfs_alloc. flash starting at the given address
+ *   Append a new entry. Previous valid entries are left intact.
  *
  * Input Parameters:
  *   token      - File Token File to read
@@ -916,80 +860,11 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 		size_t  size_adjust = ((total_size + alignment) & ~alignment) - total_size;
 		total_size += size_adjust;
 
-		/* Is this and existing entry */
+		/* Append. Compaction (sector erase) is the caller's job, done at boot. */
+		flash_entry_header_t *pf = find_free(total_size);
 
-		flash_entry_header_t *pf = find_entry(token);
-
-		if (!pf) {
-
-			/* No Entry exists for this token so find a place for it */
-			pf = find_free(total_size);
-
-			/* No Space */
-
-			if (pf == 0) {
-				return -ENOSPC;
-			}
-
-		} else {
-
-			/* Do we have space after the entry in the sector for the update */
-
-			sector_descriptor_t *current_sector = check_free_space_in_sector(pf,
-							      total_size);
-
-
-			if (current_sector == 0) {
-
-				/* Mark the last entry erased */
-
-				/* todo:consider a 2 stage erase or write before erase and do a fs check
-				 * at start up
-				 */
-
-				rv = erase_entry(pf);
-
-				if (rv < 0) {
-					return rv;
-				}
-
-				/* We had space and marked the last entry erased so use the  Next Free */
-
-				pf = next_entry(pf);
-
-			} else {
-
-				/*
-				 * We did not have space in the current sector so select the next sector
-				 */
-
-				current_sector = get_next_sector_descriptor(current_sector);
-
-				/* Will the data fit */
-
-				if (current_sector->size < total_size) {
-					return -ENOSPC;
-				}
-
-				/* Mark the last entry erased */
-
-				/* todo:consider a 2 stage erase or write before erase and do a fs check
-				 * at start up
-				 */
-
-				rv = erase_entry(pf);
-
-				if (rv < 0) {
-					return rv;
-				}
-
-				pf = (flash_entry_header_t *) current_sector->address;
-
-				if (!blank_check(pf, total_size)) {
-					rv = erase_sector(current_sector, pf);
-				}
-			}//free_space_in_sector returned not-zero
-
+		if (pf == 0) {
+			return -ENOSPC;
 		}
 
 		flash_entry_header_t *pn = (flash_entry_header_t *)(buffer - sizeof(flash_entry_header_t));
@@ -1108,80 +983,59 @@ int parameter_flashfs_erase(void)
 
 
 /****************************************************************************
- * Name: parameter_flashfs_compact_if_full
- *
- * Description:
- *   If the sector cannot take another entry the size of the one it holds
- *   (plus a growth margin), rewrite that entry now through the normal write
- *   path, which wraps and erases the sector.
- *
- *   An erase stalls every read of the bank the sector lives in until it
- *   completes, which for a 128 KB sector on STM32H7 is on the order of a
- *   second. Where the firmware image shares that bank, execution halts for
- *   the duration. A save can be triggered at any time - including the
- *   autosave released on disarm - so paying the wrap here bounds that halt
- *   to a point where the vehicle is not yet armed and nothing is being
- *   controlled. In-service saves then stay append-only (a few 32-byte row
- *   programs). If the stored data outgrows the margin between boots, the
- *   save-time wrap still covers it.
- *
- *   Cost: a boot that compacts takes one erase longer to reach the rest of
- *   board init. Every other boot pays only the free-space check below.
- *
- * Returned value:
- *   1 if a compaction (sector erase + rewrite) was performed, 0 if there
- *   was enough space or nothing is stored, or a negative errno.
- *
+ * Name: parameter_flashfs_walk
  ****************************************************************************/
 
-int parameter_flashfs_compact_if_full(void)
+struct walk_pack {
+	parameter_flashfs_walk_cb cb;
+	void *arg;
+};
+
+static int walk_one(flash_entry_header_t *pf, void *arg)
 {
-	if (sector_map == NULL) {
-		return -ENXIO;
+	struct walk_pack *w = (struct walk_pack *)arg;
+	return w->cb(entry_data(pf), entry_data_length(pf), w->arg);
+}
+
+int parameter_flashfs_walk(flash_file_token_t token, parameter_flashfs_walk_cb cb, void *arg)
+{
+	struct walk_pack w = { cb, arg };
+	return for_each_valid_entry(token, walk_one, &w);
+}
+
+/****************************************************************************
+ * Name: parameter_flashfs_needs_compact
+ ****************************************************************************/
+
+static int note_first_entry(flash_entry_header_t *pf, void *arg)
+{
+	flash_entry_header_t **first = (flash_entry_header_t **)arg;
+
+	if (*first == NULL) {
+		*first = pf;
 	}
 
-	flash_entry_header_t *pf = find_entry(parameters_token);
+	return 0;
+}
 
-	if (pf == NULL) {
+int parameter_flashfs_needs_compact(void)
+{
+	flash_entry_header_t *first = NULL;
+	int n = for_each_valid_entry(parameters_token, note_first_entry, &first);
+
+	if (n < 0) {
+		return n;
+	}
+
+	if (n == 0) {
 		return 0;
 	}
 
-	/* Headroom kept beyond one more copy of the current entry. Each save
-	 * stores the same parameter set give or take a few values, so a couple
-	 * of KB covers normal growth over a run of saves; data that outgrows it
-	 * takes the save-time wrap once, as before.
-	 */
-
-	const size_t growth_margin = 2048;
-
-	size_t data_length = entry_data_length(pf);
-	size_t entry_total = sizeof(flash_entry_header_t) + data_length + SizeMask;
-	size_t reserve = entry_total + growth_margin;
-
-	if (check_free_space_in_sector(pf, reserve) == NULL) {
-		return 0;
+	if (n > 1) {
+		return 1;
 	}
 
-	/* The entry data lives in the flash about to be erased: copy it out first. */
-
-	uint8_t *buffer;
-	size_t buffer_size = data_length;
-	int rv = parameter_flashfs_alloc(parameters_token, &buffer, &buffer_size);
-
-	if (rv != 0) {
-		return rv;
-	}
-
-	if (buffer_size < data_length) {
-		parameter_flashfs_free();
-		return -ENOMEM;
-	}
-
-	memcpy(buffer, entry_data(pf), data_length);
-	rv = parameter_flashfs_write(parameters_token, buffer, data_length);
-	parameter_flashfs_free();
-
-	return rv >= 0 ? 1 : rv;
+	return (uintptr_t)first != (uintptr_t)sector_map[0].address;
 }
 
 /****************************************************************************
@@ -1238,14 +1092,6 @@ int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16
 		// A positive return value means flash space has been erased successfully.
 		if (rv > 0) {
 			rv = 0;
-		}
-
-	} else {
-		// Pay the sector-wrap erase here at boot, not on a save at the disarm edge.
-		int compacted = parameter_flashfs_compact_if_full();
-
-		if (compacted < 0) {
-			rv = compacted;
 		}
 	}
 
