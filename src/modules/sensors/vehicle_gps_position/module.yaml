@@ -134,17 +134,17 @@ parameters:
                     Each threshold value is defined by the parameter indicated next to the check. Drift and offset checks only run when the vehicle is on ground and stationary.
                     Bitmask:
 
-                        0: Sat count (EKF2_REQ_NSATS)
-                        1: PDOP (EKF2_REQ_PDOP)
-                        2: EPH (EKF2_REQ_EPH)
-                        3: EPV (EKF2_REQ_EPV)
-                        4: Speed accuracy (EKF2_REQ_SACC)
-                        5: Horizontal position drift (EKF2_REQ_HDRIFT)
-                        6: Vertical position drift (EKF2_REQ_VDRIFT)
-                        7: Horizontal speed offset (EKF2_REQ_HDRIFT)
-                        8: Vertical speed offset (EKF2_REQ_VDRIFT)
+                        0: Sat count (REQ_NSATS)
+                        1: PDOP (REQ_PDOP)
+                        2: EPH (REQ_EPH)
+                        3: EPV (REQ_EPV)
+                        4: Speed accuracy (REQ_SACC)
+                        5: Horizontal position drift (REQ_HDRIFT)
+                        6: Vertical position drift (REQ_VDRIFT)
+                        7: Horizontal speed offset (REQ_HDRIFT)
+                        8: Vertical speed offset (REQ_VDRIFT)
                         9: Spoofing
-                        10: GPS fix type (EKF2_REQ_FIX)
+                        10: GPS fix type (REQ_FIX)
                         11: Jamming
             type: int32
             min: 0
