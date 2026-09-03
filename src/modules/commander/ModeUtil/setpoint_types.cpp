@@ -181,9 +181,6 @@ SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehic
 		return SetpointTypeResult::Unsupported;
 
 	case SetpointType::FixedwingLateralLongitudinal:
-		// A VTOL is allowed to register this even while currently in its
-		// multicopter form, since it may need to command its own transition
-		// to fixed-wing (e.g. from an external mode).
 		if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || is_vtol) {
 			return SetpointTypeResult::Success;
 		}
