@@ -10,17 +10,19 @@ A running combustion engine with a propeller attached is dangerous.
 The engine can be commanded to start automatically (for example on arming, or on a VTOL transition to fixed-wing), and the starter motor will crank the propeller without further warning.
 
 - Always do first bench tests with the propeller removed.
-- For continuious operation without propeller a fly wheel is recommended.
+- For continuous operation without a propeller, a flywheel is recommended.
 - Keep clear of the propeller arc whenever the vehicle is powered.
-- Verify that the engine stop functionality (ignition off, chocke closed) reliably stops the engine before you rely on it.
+- Verify that the engine stop functionality (ignition off, choke closed) reliably stops the engine before you rely on it.
 :::
 
 ## Hardware Requirements
 
 - **Throttle servo** connected to a PWM/AUX output.
-- **Ignition cut** on an output, typically through a relay or opto-isolated switch that shorts or interrupts the ignition circuit. Optional.
+- **Ignition cut** on an output, typically through a relay or opto-isolated switch that shorts or interrupts the ignition circuit.
+  Optional.
 - **Choke servo** on an output (optional if the engine has no choke, or an automatic one — set [ICE_CHOKE_ST_DUR](../advanced_config/parameter_reference.md#ICE_CHOKE_ST_DUR) to `0` and leave the function unassigned).
-- **Electric starter** on an output, typically through a relay or an ESC driving the starter motor. Optional, engine can also be hand-started.
+- **Electric starter** on an output, typically through a relay or an ESC driving the starter motor.
+  Optional, engine can also be hand-started.
 - **RPM sensor** feeding the `RPM Input` function on a timer-capture-capable PWM pin, for example a Hall-effect or optical sensor on the crankshaft, or an ignition-pulse pickup.
 
 ::: warning
@@ -34,7 +36,7 @@ Without a working RPM sensor the module will exhaust its start attempts and latc
 The module and the RPM capture driver are not in the default builds.
 Add them to the [board configuration](../hardware/porting_guide_config.md) for your flight controller:
 
-```
+```text
 CONFIG_MODULES_INTERNAL_COMBUSTION_ENGINE_CONTROL=y
 CONFIG_DRIVERS_RPM_CAPTURE=y
 ```
@@ -141,9 +143,12 @@ throttle = ICE_IDLE_THR_FF + P · e + ∫ I · e dt
 
 The `1e-3` scaling is what makes the gains convenient to reason about:
 
-- [ICE_IDLE_RPM_P](../advanced_config/parameter_reference.md#ICE_IDLE_RPM_P) is the normalized throttle added per **1000 RPM** of error. `ICE_IDLE_RPM_P = 1` means an engine running 500 RPM slow gets `+0.5` throttle.
-- [ICE_IDLE_RPM_I](../advanced_config/parameter_reference.md#ICE_IDLE_RPM_I) is the normalized throttle added per **1000 RPM·s** of accumulated error. `ICE_IDLE_RPM_I = 1` means a steady 100 RPM error winds the output up by `0.1` every second.
-- [ICE_IDLE_THR_FF](../advanced_config/parameter_reference.md#ICE_IDLE_THR_FF) is the throttle that holds the idle speed on its own, so the PI terms only have to correct for the difference. It is applied as a constant offset whenever the governor is active.
+- [ICE_IDLE_RPM_P](../advanced_config/parameter_reference.md#ICE_IDLE_RPM_P) is the normalized throttle added per **1000 RPM** of error.
+  `ICE_IDLE_RPM_P = 1` means an engine running 500 RPM slow gets `+0.5` throttle.
+- [ICE_IDLE_RPM_I](../advanced_config/parameter_reference.md#ICE_IDLE_RPM_I) is the normalized throttle added per **1000 RPM·s** of accumulated error.
+  `ICE_IDLE_RPM_I = 1` means a steady 100 RPM error winds the output up by `0.1` every second.
+- [ICE_IDLE_THR_FF](../advanced_config/parameter_reference.md#ICE_IDLE_THR_FF) is the throttle that holds the idle speed on its own, so the PI terms only have to correct for the difference.
+  It is applied as a constant offset whenever the governor is active.
 
 The integrator is limited to `±1` and uses conditional integration: it stops winding up in whichever direction is already driving the output into saturation.
 It is reset to zero every time the engine reaches `Running`, so a start never inherits wind-up from a previous run.
@@ -152,12 +157,24 @@ It is reset to zero every time the engine reaches `Running`, so a start never in
 
 Do this on the ground, with the propeller removed or the vehicle firmly restrained, and with the engine warm.
 
-1. **Find the idle speed.** Pick the [ICE_IDLE_RPM](../advanced_config/parameter_reference.md#ICE_IDLE_RPM) you want — low enough not to produce useful thrust, high enough that the engine runs smoothly and can accelerate without hesitating. The engine's specification or a hand-throttled test is the starting point.
-2. **Find the feed-forward.** With the governor still off (`ICE_IDLE_RPM = 0`), start the engine and hold it at that RPM with the throttle stick in a manual mode. Read the commanded throttle off the log (`internal_combustion_engine_control.throttle_control`), set [ICE_IDLE_THR_FF](../advanced_config/parameter_reference.md#ICE_IDLE_THR_FF) to it, and set `ICE_IDLE_RPM` to the target.
-3. **Verify feed-forward only.** With both gains still at `0`, restart and let the engine idle. It should settle near the setpoint. A large steady offset means the feed-forward is wrong — correct it before adding gains, because the PI terms are only meant to trim.
-4. **Add proportional gain.** Raise [ICE_IDLE_RPM_P](../advanced_config/parameter_reference.md#ICE_IDLE_RPM_P) in steps (`0.2` is a reasonable first step) until the engine recovers briskly when you disturb it — for example by briefly blipping the throttle up and releasing it. Back off as soon as you see the RPM hunting or the throttle oscillating.
-5. **Add integral gain.** Raise [ICE_IDLE_RPM_I](../advanced_config/parameter_reference.md#ICE_IDLE_RPM_I) just enough to remove any remaining steady-state RPM offset within a few seconds. Too much integral shows up as a slow oscillation around the setpoint.
-6. **Check the handover.** Sweep the throttle demand up and back down through the idle point and confirm there is no jump or dead spot as the sub-state switches between `Idle` and `Run`.
+1. **Find the idle speed.**
+   Pick the [ICE_IDLE_RPM](../advanced_config/parameter_reference.md#ICE_IDLE_RPM) you want — low enough not to produce useful thrust, high enough that the engine runs smoothly and can accelerate without hesitating.
+   The engine's specification or a hand-throttled test is the starting point.
+2. **Find the feed-forward.**
+   With the governor still off (`ICE_IDLE_RPM = 0`), start the engine and hold it at that RPM with the throttle stick in a manual mode.
+   Read the commanded throttle off the log (`internal_combustion_engine_control.throttle_control`), set [ICE_IDLE_THR_FF](../advanced_config/parameter_reference.md#ICE_IDLE_THR_FF) to it, and set `ICE_IDLE_RPM` to the target.
+3. **Verify feed-forward only.**
+   With both gains still at `0`, restart and let the engine idle.
+   It should settle near the setpoint.
+   A large steady offset means the feed-forward is wrong — correct it before adding gains, because the PI terms are only meant to trim.
+4. **Add proportional gain.**
+   Raise [ICE_IDLE_RPM_P](../advanced_config/parameter_reference.md#ICE_IDLE_RPM_P) in steps (`0.2` is a reasonable first step) until the engine recovers briskly when you disturb it — for example by briefly blipping the throttle up and releasing it.
+   Back off as soon as you see the RPM hunting or the throttle oscillating.
+5. **Add integral gain.**
+   Raise [ICE_IDLE_RPM_I](../advanced_config/parameter_reference.md#ICE_IDLE_RPM_I) just enough to remove any remaining steady-state RPM offset within a few seconds.
+   Too much integral shows up as a slow oscillation around the setpoint.
+6. **Check the handover.**
+   Sweep the throttle demand up and back down through the idle point and confirm there is no jump or dead spot as the sub-state switches between `Idle` and `Run`.
 
 The signals to look at in the [flight log](../log/flight_log_analysis.md):
 
@@ -254,10 +271,13 @@ The module has four states, reported in `InternalCombustionEngineStatus.state`:
 Transitions:
 
 - `Stopped` → `Starting` when the engine is requested on and the start attempt budget is not exhausted.
-- `Starting` → `Running` as soon as the measured RPM exceeds [ICE_MIN_RUN_RPM](../advanced_config/parameter_reference.md#ICE_MIN_RUN_RPM). This can happen part way through an attempt.
+- `Starting` → `Running` as soon as the measured RPM exceeds [ICE_MIN_RUN_RPM](../advanced_config/parameter_reference.md#ICE_MIN_RUN_RPM).
+  This can happen part way through an attempt.
 - `Starting` → `Fault` when all attempts have been used without the engine coming up.
-- `Running` → `Starting` if the RPM drops back below the threshold and [ICE_RUN_FAULT_D](../advanced_config/parameter_reference.md#ICE_RUN_FAULT_D) is enabled — this is the automatic in-air restart. An `IC engine fault detected` event is emitted.
-- Any state → `Stopped` when the engine is requested off. This also resets the attempt counter, so switching the request off and on again is the way to clear a `Fault`.
+- `Running` → `Starting` if the RPM drops back below the threshold and [ICE_RUN_FAULT_D](../advanced_config/parameter_reference.md#ICE_RUN_FAULT_D) is enabled — this is the automatic in-air restart.
+  An `IC engine fault detected` event is emitted.
+- Any state → `Stopped` when the engine is requested off.
+  This also resets the attempt counter, so switching the request off and on again is the way to clear a `Fault`.
 
 ::: info
 The throttle setpoint is rate limited by [ICE_THR_SLEW](../advanced_config/parameter_reference.md#ICE_THR_SLEW) in all states, which protects the engine from abrupt throttle steps that would make it bog down or stall.
@@ -275,7 +295,8 @@ One start attempt runs the following timeline, measured from entry into the atte
 | `ICE_IGN_DELAY + ICE_CHOKE_ST_DUR` | `ICE_IGN_DELAY + ICE_CHOKE_ST_DUR + ICE_STRT_DUR` | on       | `0`   | `1`     | `ICE_STRT_THR` |
 
 - [ICE_IGN_DELAY](../advanced_config/parameter_reference.md#ICE_IGN_DELAY) holds the starter off for a moment after the ignition is switched on, for ignition systems that need time to come up.
-- [ICE_CHOKE_ST_DUR](../advanced_config/parameter_reference.md#ICE_CHOKE_ST_DUR) is how long the choke stays closed. Closing the choke enriches the mixture and draws fuel into the engine, so this window is what primes a dry engine. Note that the starter is already cranking during it.
+- [ICE_CHOKE_ST_DUR](../advanced_config/parameter_reference.md#ICE_CHOKE_ST_DUR) is how long the choke stays closed.
+  Note that the starter is already cranking during this window.
 - [ICE_STRT_DUR](../advanced_config/parameter_reference.md#ICE_STRT_DUR) is how much longer the starter cranks with the choke open before the attempt is declared timed out.
 
 If the attempt times out, the module rests for **1 second** with the ignition off and the throttle at its disarmed value (to reduce starter motor wear) and then begins the next attempt.
