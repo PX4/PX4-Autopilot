@@ -442,12 +442,16 @@ private:
 	float _calcAltitudeControlOutput(const Setpoint &setpoint, const Input &input, const Param &param) const;
 	/**
 	 * @brief Calculate specific energy rates.
+	 * The potential energy rate setpoint is backed off such that the total energy rate setpoint stays
+	 * within the envelope the throttle can deliver; the kinetic energy rate setpoint has priority.
 	 *
 	 * @param control_setpoint is the controlles altitude and airspeed rate setpoints.
 	 * @param input is the current input measurement of the UAS.
+	 * @param param is the control parameters.
 	 * @return Specific energy rates in [m²/s³].
 	 */
-	SpecificEnergyRates _calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint, const Input &input) const;
+	SpecificEnergyRates _calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint, const Input &input,
+			const Param &param) const;
 	/**
 	 * @brief Detect underspeed.
 	 *
@@ -503,12 +507,13 @@ private:
 	 *
 	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
+	 * @param spe_rate_setpoint is the specific potential energy rate setpoint in [m²/s³], fed forward.
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 * @return pitch setpoint angle above trim [rad].
 	 */
-	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
-				      const Flag &flag) const;
+	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float spe_rate_setpoint,
+				      const Param &param, const Flag &flag) const;
 
 	/**
 	 * @brief Update controlled throttle setpoint.
@@ -558,7 +563,8 @@ private:
 
 private:
 	// State
-	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
+	AlphaFilter<float> _ste_rate_error_filter;		///< Low pass filter for the specific total energy rate error (feedback).
+	float _spe_rate_setpoint{0.0f};				///< Slew rate limited specific potential energy rate setpoint [m²/s³].
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
 
