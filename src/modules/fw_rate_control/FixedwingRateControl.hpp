@@ -137,6 +137,9 @@ private:
 	perf_counter_t _loop_perf;
 
 	hrt_abstime _last_run{0};
+	hrt_abstime _last_control_allocator_status[2] {};
+
+	matrix::Vector3f _unallocated_torque{};
 
 	static constexpr float _kAirspeedFilterTimeConstant{1.f};
 	AlphaFilter<float> _airspeed_filter_for_torque_scaling{_kAirspeedFilterTimeConstant};
