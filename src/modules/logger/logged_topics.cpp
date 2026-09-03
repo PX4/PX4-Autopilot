@@ -180,6 +180,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("timesync_status", 1000, 3);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
 
+#if defined(CONFIG_GPS_UBX_SPAN)
 	int32_t gps_ubx_spectrum = 0;
 	param_get(param_find("GPS_UBX_SPECTRUM"), &gps_ubx_spectrum);
 
@@ -188,6 +189,7 @@ void LoggedTopics::add_default_topics()
 		add_topic_multi("sensor_gnss_spectrum_block1", 5000, 2);
 		add_topic_multi("sensor_gnss_spectrum_block2", 5000, 2);
 	}
+#endif
 
 	// EKF multi topics
 	{
