@@ -217,6 +217,12 @@ void AutopilotTester::transition_to_multicopter()
 	REQUIRE(result == Action::Result::Success);
 }
 
+void AutopilotTester::wait_until_multicopter(std::chrono::seconds timeout)
+{
+	REQUIRE(poll_condition_with_timeout(
+	[this]() { return _telemetry->vtol_state() == Telemetry::VtolState::Mc; }, timeout));
+}
+
 void AutopilotTester::wait_until_disarmed(std::chrono::seconds timeout_duration)
 {
 	REQUIRE(poll_condition_with_timeout(
