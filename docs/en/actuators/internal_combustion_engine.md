@@ -25,6 +25,9 @@ The engine can be commanded to start automatically (for example on arming, or on
   Optional, engine can also be hand-started.
 - **RPM sensor** feeding the `RPM Input` function on a timer-capture-capable PWM pin, for example a Hall-effect or optical sensor on the crankshaft, or an ignition-pulse pickup.
 
+  Note that many IC engines have an inbuilt sensor for spark timing.
+  If not, consider options in [Tachometers](../sensor/tachometers.md).
+
 ::: warning
 RPM feedback is **required**.
 The state machine only leaves `Starting` for `Running` once it sees a measured engine speed above [ICE_MIN_RUN_RPM](../advanced_config/parameter_reference.md#ICE_MIN_RUN_RPM).
