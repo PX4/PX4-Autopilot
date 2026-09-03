@@ -50,10 +50,15 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/wind.h>
 
 #include "navigator.h"
 #include "rtl.h"
+#include "rtl_direct_mission_land.h"
+#include "rtl_mission_fast.h"
+#include "rtl_mission_fast_reverse.h"
 #include "support/vector_mission_item_store.h"
 
 extern "C" int dataman_main(int argc, char *argv[]);
@@ -279,6 +284,55 @@ private:
 	navigator_test::VectorMissionItemStore _safe_point_store{};
 };
 
+// The release branch constructs RtlDirectMissionLand without a mission, the mission
+// classes take one, so this adapter gives the peer template a single shape.
+class RtlDirectMissionLandWithMission : public RtlDirectMissionLand
+{
+public:
+	RtlDirectMissionLandWithMission(Navigator *navigator, const mission_s &mission) :
+		RtlDirectMissionLand(navigator)
+	{
+		_mission = mission;
+	}
+};
+
+template <typename RtlMissionType>
+class RtlMissionTestPeer : public RtlMissionType
+{
+public:
+	RtlMissionTestPeer(Navigator *navigator, const mission_s &mission) :
+		RtlMissionType(navigator, mission) {}
+
+	const mission_s &mission() const { return this->_mission; }
+
+	void loadTestMission(const std::vector<mission_item_s> &items)
+	{
+		_mission_store.setItems(items);
+		this->_mission.count = static_cast<int32_t>(_mission_store.itemCount());
+	}
+
+	void activateForTest()
+	{
+		this->_vehicle_status_sub.update();
+		this->on_activation();
+	}
+
+	uint16_t activeNavCommand() const { return this->_mission_item.nav_cmd; }
+
+protected:
+	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
+	{
+		return _mission_store.loadItem(index, mission_item);
+	}
+
+private:
+	navigator_test::VectorMissionItemStore _mission_store{};
+};
+
+using RtlDirectMissionLandTestPeer = RtlMissionTestPeer<RtlDirectMissionLandWithMission>;
+using RtlMissionFastTestPeer = RtlMissionTestPeer<RtlMissionFast>;
+using RtlMissionFastReverseTestPeer = RtlMissionTestPeer<RtlMissionFastReverse>;
+
 /**
  * @brief Shared fixture for RTL helper tests.
  */
@@ -323,6 +377,16 @@ protected:
 			_wind_pub = nullptr;
 		}
 
+		if (_global_position_pub != nullptr) {
+			orb_unadvertise(_global_position_pub);
+			_global_position_pub = nullptr;
+		}
+
+		if (_land_detected_pub != nullptr) {
+			orb_unadvertise(_land_detected_pub);
+			_land_detected_pub = nullptr;
+		}
+
 		param_control_autosave(true);
 	}
 
@@ -359,6 +423,36 @@ protected:
 		}
 	}
 
+	void publishGlobalPosition(double lat, double lon, float altitude)
+	{
+		vehicle_global_position_s global_position{};
+		global_position.timestamp = hrt_absolute_time();
+		global_position.lat = lat;
+		global_position.lon = lon;
+		global_position.alt = altitude;
+
+		if (_global_position_pub == nullptr) {
+			_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_position);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_global_position), _global_position_pub, &global_position);
+		}
+	}
+
+	void publishLandDetected(bool landed)
+	{
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = hrt_absolute_time();
+		land_detected.landed = landed;
+
+		if (_land_detected_pub == nullptr) {
+			_land_detected_pub = orb_advertise(ORB_ID(vehicle_land_detected), &land_detected);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_land_detected), _land_detected_pub, &land_detected);
+		}
+	}
+
 	void publishWind(float windspeed_north, float windspeed_east)
 	{
 		wind_s wind{};
@@ -386,10 +480,107 @@ protected:
 	orb_advert_t _home_pub{nullptr};
 	orb_advert_t _vehicle_status_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
+	orb_advert_t _global_position_pub{nullptr};
+	orb_advert_t _land_detected_pub{nullptr};
 };
+
+TEST_F(RTLTest, DirectMissionLandKeepsVtolInMulticopterMode)
+{
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.current_seq = 0;
+	mission.land_start_index = 0;
+	mission.land_index = 2;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+
+	mission_item_s approach = makeLandApproachItem(kBaseLat, kBaseLon, kAlt, kApproachRadius);
+	approach.autocontinue = true;
+
+	mission_item_s land = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_VTOL_LAND);
+	land.autocontinue = true;
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlDirectMissionLandTestPeer direct_mission_land{&_navigator, mission};
+	direct_mission_land.loadTestMission({land_start, approach, land});
+	direct_mission_land.setRtlAlt(kAlt);
+
+	direct_mission_land.activateForTest();
+
+	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_DO_LAND_START);
+}
 
 // WHY: No land point means no usable approach bearing.
 // WHAT: The chooser should return an invalid loiter.
+TEST_F(RTLTest, MissionFastKeepsVtolInMulticopterMode)
+{
+	// A VTOL flying in multicopter mode continues the mission as a multicopter.
+	// The attitude controller refuses a transition to fixed wing during RTL, so
+	// asking for one here left the vehicle waiting on it forever.
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.current_seq = 0;
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	mission_item_s first = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = makeSafePointItem(second_position.lat, second_position.lon, kAlt, NAV_FRAME_GLOBAL,
+				NAV_CMD_WAYPOINT);
+	second.autocontinue = true;
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlMissionFastTestPeer mission_fast{&_navigator, mission};
+	mission_fast.loadTestMission({first, second});
+
+	mission_fast.activateForTest();
+
+	EXPECT_EQ(mission_fast.activeNavCommand(), NAV_CMD_WAYPOINT);
+}
+
+TEST_F(RTLTest, MissionFastReverseKeepsVtolInMulticopterMode)
+{
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.current_seq = 0;
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	mission_item_s first = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = makeSafePointItem(second_position.lat, second_position.lon, kAlt, NAV_FRAME_GLOBAL,
+				NAV_CMD_WAYPOINT);
+	second.autocontinue = true;
+
+	// At the second waypoint, so the reverse mission has a previous item to fly to
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(second_position.lat, second_position.lon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, mission};
+	mission_fast_reverse.loadTestMission({first, second});
+
+	mission_fast_reverse.activateForTest();
+
+	EXPECT_EQ(mission_fast_reverse.activeNavCommand(), NAV_CMD_WAYPOINT);
+}
+
 TEST_F(RTLTest, ChooseBestLandingApproachRequiresLandLocation)
 {
 	// GIVEN: A valid loiter and no land point.
