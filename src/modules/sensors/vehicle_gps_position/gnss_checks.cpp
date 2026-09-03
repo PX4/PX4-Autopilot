@@ -33,7 +33,7 @@
 
 /**
  * @file gnss_checks.cpp
- * PerformGNSS quality checks
+ * Perform GNSS quality checks
  */
 
 #include "gnss_checks.hpp"
