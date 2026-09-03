@@ -120,6 +120,16 @@ menu "Toolchain"
         help
             optional to prefix on the Linker script.
 
+    config BOARD_NUTTX
+        string "NuttX defconfig"
+        default ""
+        help
+            Named NuttX config under boards/<vendor>/<model>/nuttx-config/.
+            A single name selects <name>.defconfig (or <name>/defconfig).
+            name+fragment[+fragment] overlays nuttx-config/<fragment>.fragment
+            onto that defconfig; last assignment wins.
+            Empty keeps the historical fallback (label directory, else nsh).
+
     config BOARD_COMPILE_DEFINITIONS
         string "add custom compile definitions"
         help

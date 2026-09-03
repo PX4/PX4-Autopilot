@@ -51,10 +51,9 @@ endif()
 
 set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config CACHE FILEPATH "PX4 NuttX config" FORCE)
 
-# NuttX defconfig
-#  cmake should trigger reconfigure if defconfig changes
-set(NUTTX_DEFCONFIG ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig CACHE FILEPATH "path to defconfig" FORCE)
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${NUTTX_DEFCONFIG})
+include(nuttx_defconfig)
+px4_nuttx_resolve_defconfig()
+
 
 set(NUTTX_SRC_DIR  ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX)
 set(NUTTX_DIR      ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx CACHE FILEPATH "NuttX directory" FORCE)
@@ -82,6 +81,11 @@ execute_process(
 	WORKING_DIRECTORY ${NUTTX_DIR}
 )
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/.config ${PX4_BINARY_DIR}/NuttX/nuttx/.config)
+
+# olddefconfig silently drops symbols whose dependencies are not met.
+# A dropped fragment option would quietly reduce the label to the base.
+px4_nuttx_check_fragments(${NUTTX_DIR}/.config)
+
 
 ###############################################################################
 # NuttX cmake defconfig
