@@ -1,10 +1,11 @@
 name: macOS - Refresh gz tap pin
 
-# Tools/setup/macos.sh pins osrf/simulation to a known-bottled commit so
-# --sim-tools installs Gazebo from a binary instead of compiling it (see
-# Tools/setup/gz-tap-pin.txt for why). That pin goes stale as OSRF's bot
-# rebuilds bottles for newer commits. This checks weekly whether the tap's
-# current HEAD is fully bottled and, if so, opens a PR bumping the pin.
+# Tools/setup/macos.sh pins osrf/simulation to Tools/setup/gz-tap-pin.txt so
+# --sim-tools pours Gazebo bottles instead of compiling them (see that file).
+# OSRF advances the tap several times a week, so once a week this moves the
+# pin to the newest commit whose Gazebo formulae are all bottled and opens a
+# PR for it. Tools/ci/refresh_gz_tap_pin.sh does the work and can be run by
+# hand on any Mac.
 
 on:
   schedule:
@@ -12,93 +13,38 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
-  check-pin:
-    runs-on: macos-latest
+  refresh:
+    # Oldest macOS in compile_macos.yml's matrix. Homebrew pours a bottle
+    # built on an older macOS onto a newer one, never the reverse, so the
+    # oldest leg is the one a new pin can break.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v6
 
-      - name: Tap osrf/simulation
-        id: tap
-        run: |
-          brew tap osrf/simulation
-          if brew trust --help &> /dev/null; then
-            brew trust osrf/simulation
-          fi
-          GZ_TAP_DIR=$(brew --repo osrf/simulation)
-          echo "dir=${GZ_TAP_DIR}" >> "$GITHUB_OUTPUT"
-          echo "head=$(git -C "${GZ_TAP_DIR}" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Check whether tap HEAD is fully bottled
-        id: bottled
-        run: |
-          # Same package list as the --sim-tools block in macos.sh. Kept in
-          # sync manually since the formula names aren't easy to extract
-          # from the script without duplicating its parsing.
-          PACKAGES=(
-            exiftool
-            glog
-            graphviz
-            gstreamer
-            opencv@4
-            osrf/simulation/gz-harmonic
-            protobuf
-          )
-
-          if brew install --dry-run --formula "${PACKAGES[@]}" 2>&1 | tee /tmp/dry-run.txt | grep -q "from source"; then
-            echo "[refresh] tap HEAD (${{ steps.tap.outputs.head }}) would build at least one formula from source, skipping"
-            echo "fully_bottled=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "[refresh] tap HEAD (${{ steps.tap.outputs.head }}) is fully bottled"
-            echo "fully_bottled=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Compare against current pin
-        if: steps.bottled.outputs.fully_bottled == 'true'
-        id: compare
-        run: |
-          CURRENT_PIN=$(grep -v '^#' Tools/setup/gz-tap-pin.txt | tr -d '[:space:]')
-          NEW_PIN="${{ steps.tap.outputs.head }}"
-          if [[ "$CURRENT_PIN" == "$NEW_PIN" ]]; then
-            echo "[refresh] pin is already current (${CURRENT_PIN})"
-            echo "needs_bump=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "[refresh] bumping pin ${CURRENT_PIN} -> ${NEW_PIN}"
-            echo "needs_bump=true" >> "$GITHUB_OUTPUT"
-            echo "new_pin=${NEW_PIN}" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Find the newest fully bottled osrf/simulation commit
+        id: pin
+        run: ./Tools/ci/refresh_gz_tap_pin.sh
 
       - name: Open PR with the new pin
-        if: steps.compare.outputs.needs_bump == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}
-          NEW_PIN: ${{ steps.compare.outputs.new_pin }}
-        run: |
-          git config user.name "px4buildbot"
-          git config user.email "buildbot@px4.io"
+        if: steps.pin.outputs.needs_bump == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          # The PX4BuildBot PAT rather than GITHUB_TOKEN so the PR runs the
+          # MacOS build workflow, which is what verifies the new pin.
+          token: ${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}
+          author: ${{ secrets.PX4BUILDBOT_USER }} <${{ secrets.PX4BUILDBOT_EMAIL }}>
+          committer: ${{ secrets.PX4BUILDBOT_USER }} <${{ secrets.PX4BUILDBOT_EMAIL }}>
+          branch: px4buildbot/gz-tap-pin
+          delete-branch: true
+          add-paths: Tools/setup/gz-tap-pin.txt
+          commit-message: "build(macos): bump gz tap pin to ${{ steps.pin.outputs.new_pin_short }}"
+          title: "build(macos): bump gz tap pin to ${{ steps.pin.outputs.new_pin_short }}"
+          body: |
+            Weekly check found that osrf/simulation commit `${{ steps.pin.outputs.new_pin }}` is the newest one where every osrf/simulation formula `macos.sh --sim-tools` poured at the previous pin still has a bottle Homebrew pours on macos-15, and every bottle tarball is still served. Moves `Tools/setup/gz-tap-pin.txt` from `${{ steps.pin.outputs.old_pin }}` to it.
 
-          BRANCH="chore/gz-tap-pin-${NEW_PIN:0:12}"
-          git checkout -b "$BRANCH"
+            Tap changes: https://github.com/osrf/homebrew-simulation/compare/${{ steps.pin.outputs.old_pin }}...${{ steps.pin.outputs.new_pin }}
 
-          sed -i '' "s/^[0-9a-f]\{40\}$/${NEW_PIN}/" Tools/setup/gz-tap-pin.txt
-          git add Tools/setup/gz-tap-pin.txt
-          git commit -m "chore(macos): bump gz tap pin to ${NEW_PIN:0:12}"
-          git push origin "$BRANCH"
-
-          PR_BODY_FILE=$(mktemp)
-          {
-            echo "Weekly check found that osrf/simulation HEAD (\`${NEW_PIN}\`) has bottles"
-            echo "for every formula \`macos.sh --sim-tools\` installs. Bumping"
-            echo "\`Tools/setup/gz-tap-pin.txt\` to this commit."
-            echo ""
-            echo "Verify the compile_macos.yml legs pass before merging."
-          } > "$PR_BODY_FILE"
-
-          gh pr create \
-            --base main \
-            --head "$BRANCH" \
-            --title "chore(macos): bump gz tap pin to ${NEW_PIN:0:12}" \
-            --body-file "$PR_BODY_FILE"
+            The MacOS build legs on this PR are the real test. Merge once both pour the gz bottles without compiling anything from osrf/simulation.
