@@ -1547,7 +1547,7 @@ parameters:
       max: 18
     RC_RETURN_TH:
       description:
-        short: Threshold for selecting return to launch mode
+        short: Threshold for selecting Return mode
         long: |-
           0-1 indicate where in the full channel range the threshold sits
           0 : min

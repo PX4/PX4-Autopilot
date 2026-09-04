@@ -700,9 +700,9 @@ void AirspeedModule::select_airspeed_and_publish()
 		} else if (_prev_airspeed_src > AirspeedSource::GROUND_MINUS_WIND
 			   && prev_airspeed_index <= MAX_NUM_AIRSPEED_SENSORS) {
 			mavlink_log_critical(&_mavlink_log_pub,
-					     "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
+					     "Airspeed sensor failure detected. Return mode is advised.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure"), events::Log::Critical,
-				     "Airspeed sensor failure detected. Return to launch (RTL) is advised");
+				     "Airspeed sensor failure detected. Return mode is advised");
 
 		} else if (_prev_airspeed_src == AirspeedSource::GROUND_MINUS_WIND
 			   && _valid_airspeed_src == AirspeedSource::DISABLED) {
