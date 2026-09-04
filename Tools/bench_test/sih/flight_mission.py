@@ -5,7 +5,7 @@ Scripted SIH flight on real hardware: switch the board to a SIH airframe
 restore the original configuration.
 
 Covers the flight-logic paths the rest of the bench suite cannot: commander
-arming, navigator/mission progression, auto takeoff, RTL, land detection and
+arming, navigator/mission progression, auto takeoff, Return, land detection and
 auto-disarm, all on real NuttX scheduling. The physics is simulated; real
 sensor drivers and real outputs are not exercised (pwm_out_sim replaces them,
 so nothing on the output rails is ever driven).
@@ -48,7 +48,7 @@ WP_OFFSET_DEG = 0.0005          # ~55 m legs
 
 
 def build_flight_mission(alt):
-    """Takeoff, 3-waypoint square leg, RTL. Reuses px4bench.missions.Item."""
+    """Takeoff, 3-waypoint square leg, Return. Reuses px4bench.missions.Item."""
     home_lat = int(BASE_LAT * 1e7)
     home_lon = int(BASE_LON * 1e7)
     off = int(WP_OFFSET_DEG * 1e7)
@@ -65,7 +65,7 @@ def build_flight_mission(alt):
 
     rtl = Item(len(items), 0, 0, 0, 0)
     rtl.command = MAV_CMD_NAV_RETURN_TO_LAUNCH
-    # RTL carries no coordinates; the position frame would (correctly) fail
+    # Return carries no coordinates; the position frame would (correctly) fail
     # the parameter validation added in #27541 with INVALID_PARAM5_X.
     rtl.frame = mavutil.mavlink.MAV_FRAME_MISSION
     rtl.param2 = 0.0
@@ -285,7 +285,7 @@ def fly(report, mav, shell, alt, report_dir):
                 f.write(out)
             report.info('captured in-flight uorb top')
     report.check('waypoints', len(reached) >= n_wp - 2,
-                 'reached {} of {} pre-RTL items'.format(len(reached), n_wp - 2))
+                 'reached {} of {} pre-Return items'.format(len(reached), n_wp - 2))
     if len(reached) < n_wp - 2:
         return False
 

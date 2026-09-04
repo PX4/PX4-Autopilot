@@ -75,7 +75,7 @@ param set-default CP_GO_NO_DATA 1
 # Navigator Parameters
 param set-default NAV_ACC_RAD 2
 
-# RTL Parameters
+# Return Parameters
 param set-default RTL_DESCEND_ALT 5
 param set-default RTL_RETURN_ALT 5
 
