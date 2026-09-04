@@ -50,6 +50,24 @@ parameters:
             default: 2
 
         # Motor parameters
+        CA_R_LK_DELAY:
+            description:
+                short: Motor lock delay
+                long: |-
+                  Keeps the motors at their disarmed value while the vehicle has not taken off yet,
+                  and until this time since takeoff detection has passed. Use it for catapult or
+                  hand launches, where the motors must not spin up before the vehicle is clear.
+                  This applies in all flight modes, so a vehicle that has to take off under its own
+                  power must leave this at 0.
+                  Set to 0 to disable motor locking.
+            type: float
+            unit: s
+            min: 0.0
+            max: 10.0
+            decimal: 1
+            increment: 0.5
+            default: 0.0
+
         CA_R_REV:
             description:
                 short: Bidirectional/Reversible motors
@@ -370,7 +388,9 @@ parameters:
         CA_CS_LAUN_LK:
             description:
                 short: Control surface launch lock enabled
-                long: If actuator launch lock is enabled, this surface is kept at the disarmed value.
+                long: |-
+                  If launch lock is enabled, this surface is kept at the disarmed value while
+                  the lock is active, see CA_CS_LK_DELAY.
             type: bitmask
             bit:
                 0: Control Surface 1
@@ -382,6 +402,21 @@ parameters:
                 6: Control Surface 7
                 7: Control Surface 8
             default: 0
+
+        CA_CS_LK_DELAY:
+            description:
+                short: Control surface lock delay
+                long: |-
+                  Locks the control surfaces selected in CA_CS_LAUN_LK at their disarmed value while the
+                  vehicle has not taken off yet, and until this time since takeoff detection has passed.
+                  This applies in all flight modes.
+                  Set to 0 to disable control surface locking.
+            type: float
+            unit: s
+            min: 0.0
+            decimal: 1
+            increment: 0.1
+            default: 0.0
 
         # Tilts
         CA_SV_TL_COUNT:

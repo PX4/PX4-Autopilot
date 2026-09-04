@@ -49,6 +49,9 @@
 #include <uORB/topics/vehicle_attitude.h>
 
 #include "LandDetector.h"
+#include "LaunchDetector.h"
+
+#include <uORB/Publication.hpp>
 
 using namespace time_literals;
 
@@ -64,10 +67,28 @@ public:
 protected:
 
 	bool _get_landed_state() override;
+	void _update_topics() override;
+	void _update_params() override;
 
 private:
+	/**
+	 * Runs the launch detection state machine and publishes its state. While it waits for a launch
+	 * the vehicle is held in the landed state, which is what keeps a catapult- or hand-launched
+	 * vehicle on the ground until it is actually thrown, in any flight mode.
+	 */
+	void updateLaunchDetection();
+
+	launchdetection::LaunchDetector _launch_detector{this};
+	hrt_abstime _time_last_launch_detector_update{0};
+
+	// runway takeoff is configured in a module that is not built on every board, so its parameter
+	// is looked up rather than declared
+	const param_t _param_rwto_tkoff_handle;
+	bool _runway_takeoff_enabled{false};
+
+	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
+
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
-	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 	uORB::Subscription _fixed_wing_runway_control_sub{ORB_ID(fixed_wing_runway_control)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
@@ -84,7 +105,8 @@ private:
 		(ParamFloat<px4::params::LNDFW_VEL_XY_MAX>) _param_lndfw_vel_xy_max,
 		(ParamFloat<px4::params::LNDFW_VEL_Z_MAX>)  _param_lndfw_vel_z_max,
 		(ParamFloat<px4::params::LNDFW_ROT_MAX>)    _param_lndfw_rot_max,
-		(ParamFloat<px4::params::LNDFW_TRIG_TIME>)  _param_lndfw_trig_time
+		(ParamFloat<px4::params::LNDFW_TRIG_TIME>)  _param_lndfw_trig_time,
+		(ParamBool<px4::params::FW_LAUN_DETCN_ON>)  _param_fw_laun_detcn_on
 	);
 };
 

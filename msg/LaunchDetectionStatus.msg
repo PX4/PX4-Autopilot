@@ -3,9 +3,7 @@
 uint64 timestamp # time since system start (microseconds)
 
 uint8 STATE_WAITING_FOR_LAUNCH 			= 0 # waiting for launch
-uint8 STATE_LAUNCH_DETECTED_DISABLED_MOTOR 	= 1 # launch detected, but keep motor(s) disabled (e.g. because it can't spin freely while on catapult)
+# value 1 was STATE_LAUNCH_DETECTED_DISABLED_MOTOR, the motor lock moved to the control allocator (CA_R_LK_DELAY)
 uint8 STATE_FLYING 				= 2 # launch detected, use normal takeoff/flying configuration
 
 uint8 launch_detection_state
-
-bool selected_control_surface_disarmed		# [-] flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation)

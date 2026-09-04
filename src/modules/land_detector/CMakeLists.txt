@@ -37,6 +37,7 @@ px4_add_module(
 	SRCS
 		land_detector_main.cpp
 		LandDetector.cpp
+		LaunchDetector.cpp
 		MulticopterLandDetector.cpp
 		FixedwingLandDetector.cpp
 		VtolLandDetector.cpp
@@ -46,6 +47,7 @@ px4_add_module(
 		land_detector_params.yaml
 		land_detector_params_fw.yaml
 		land_detector_params_mc.yaml
+		launchdetection_params.yaml
 	DEPENDS
 		hysteresis
 	)

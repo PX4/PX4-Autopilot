@@ -2,6 +2,17 @@ module_name: launchdetection
 parameters:
 - group: FW Auto Takeoff
   definitions:
+    FW_LAUN_DETCN_ON:
+      description:
+        short: Fixed-wing launch detection
+        long: |-
+          Enables automatic launch detection based on measured acceleration. Use for hand- or catapult-launched vehicles.
+          Launch detection runs in every flight mode, not only in Takeoff mode: while it waits for a launch the vehicle
+          is held in the landed state, so that handling it on the launcher cannot be mistaken for a takeoff.
+          Has no effect while runway takeoff (RWTO_TKOFF) is enabled, as the two are alternatives and a takeoff
+          rolling down a runway never produces the acceleration this waits for.
+      type: boolean
+      default: 0
     FW_LAUN_AC_THLD:
       description:
         short: Trigger acceleration threshold
@@ -25,14 +36,3 @@ parameters:
       max: 5.0
       decimal: 2
       increment: 0.05
-    FW_LAUN_MOT_DEL:
-      description:
-        short: Motor delay
-        long: Start the motor(s) this amount of seconds after launch is detected.
-      type: float
-      default: 0.0
-      unit: s
-      min: 0.0
-      max: 10.0
-      decimal: 1
-      increment: 0.5
