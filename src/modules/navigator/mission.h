@@ -35,7 +35,7 @@
  *
  * Mission mode class that handles everything related to executing a mission.
  * This class gets included as one of the 'modes' in the Navigator, along with other
- * modes like RTL, Loiter, etc.
+ * modes like Return, Loiter, etc.
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>

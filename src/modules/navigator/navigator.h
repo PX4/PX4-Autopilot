@@ -242,7 +242,7 @@ public:
 	 *
 	 * True only if the setpoint is a valid ORBIT-pattern loiter and the vehicle is within
 	 * one acceptance radius of the loiter circle. Used to decide whether a Hold/pause,
-	 * geofence loiter or RTL climb should continue the existing orbit instead of
+	 * geofence loiter or Return climb should continue the existing orbit instead of
 	 * re-centering it on the current position.
 	 *
 	 * @param sp the loiter setpoint to test against
@@ -315,7 +315,7 @@ public:
 
 	bool get_mission_start_land_available() { return _mission.get_land_start_available(); }
 
-	// RTL
+	// Return
 	bool in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
 	bool abort_landing();
@@ -391,7 +391,7 @@ private:
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
 
 	// Subscriptions
-	home_position_s					_home_pos{};		/**< home position for RTL */
+	home_position_s					_home_pos{};		/**< home position for Return */
 	mission_result_s				_mission_result{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
 	sensor_gps_s				_gps_pos{};		/**< gps position */
@@ -415,7 +415,7 @@ private:
 	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< RTL/auto path planner that routes around fences (visibility graph + Dijkstra) */
+	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< Return/auto path planner that routes around fences (visibility graph + Dijkstra) */
 	float _last_geofence_avoidance_margin{NAN}; /**< margin used for the last polygon rebuild; rebuild when it changes */
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
@@ -437,7 +437,7 @@ private:
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
-	RTL 		_rtl;				/**< class that handles RTL */
+	RTL 		_rtl;				/**< class that handles Return */
 	Course		_course;			/**< class that handles course */
 #if CONFIG_NAVIGATOR_ADSB
 	DetectAndAvoid _detect_and_avoid;
@@ -497,7 +497,7 @@ private:
 		(ParamInt<px4::params::NAV_FORCE_VT>)       _param_nav_force_vt,	/**< acceptance radius for multicopter alt */
 		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
 		(ParamFloat<px4::params::NAV_MIN_GND_DIST>)
-		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and RTL)*/
+		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and Return)*/
 
 		// non-navigator parameters: Mission (MIS_*)
 		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>)    _param_mis_takeoff_alt,

@@ -532,7 +532,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 			const float triplet_yaw = position_setpoint_triplet.current.yaw;
 
 			if (PX4_ISFINITE(triplet_yaw)) {
-				// End of RTL changes yaw once, precision land can change it all the time
+				// End of Return changes yaw once, precision land can change it all the time
 				const bool yaw_changed = !PX4_ISFINITE(_triplet_yaw)
 							 || fabsf(wrap_pi(triplet_yaw - _triplet_yaw)) > 1e-4f;
 

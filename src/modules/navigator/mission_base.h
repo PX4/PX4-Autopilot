@@ -380,7 +380,7 @@ protected:
 	 * @brief Traversal mode used by this navigation mode when walking position items.
 	 *
 	 * Mission mode follows active DO_JUMP control flow by default. Derived modes such as
-	 * mission-based RTL can override this to walk the geometric mission path instead.
+	 * mission-based Return can override this to walk the geometric mission path instead.
 	 * Traversal helpers use this policy unless the caller explicitly overrides it.
 	 */
 	virtual MissionTraversalType traversalType() const

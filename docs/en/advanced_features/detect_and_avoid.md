@@ -867,7 +867,7 @@ Under those assumptions, the expected operator-visible messages for each scenari
   - `DAA Main: 9F3FA3 lvl UP 2. 1773 m.`
   - Return triggered on augmented NMAC breach: `DAA 9F3FA3: Return! lvl 2. 1773 m.`
     - `[commander] Returning to launch`
-    - `[navigator] RTL: start return at 519 m (30 m above destination)`
+    - `[navigator] Return: start return at 519 m (30 m above destination)`
   - `DAA Main: 9F3FA3 lvl 2. 849 m.` (the periodic most-urgent status, emitted because the level held at 2 for [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE) since the previous `9F3FA3` message)
   - `DAA Main: 9F3FA3 lvl UP 3. 527 m.`
   - Land triggered on WC breach: `DAA 9F3FA3: Land! lvl 3. 527 m.`

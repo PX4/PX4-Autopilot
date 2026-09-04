@@ -33,7 +33,7 @@
 /**
  * @file rtl.cpp
  *
- * Helper class to access RTL
+ * Helper class to access Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -383,7 +383,7 @@ void RTL::setRtlTypeAndDestination()
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	// Update destination of geofence avoidance planner. Depending on the
-	// RTL type it is the position of the loiter or mission landing.
+	// Return type it is the position of the loiter or mission landing.
 
 	GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
 	matrix::Vector2d planner_destination{(double)NAN, (double)NAN};
@@ -660,7 +660,7 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 			_rtl_mission_type_handle->initialize();
 		}
 
-		// RTL type is either direct or mission land have to set it later.
+		// Return type is either direct or mission land have to set it later.
 		break;
 
 	case RtlType::RTL_MISSION_FAST:

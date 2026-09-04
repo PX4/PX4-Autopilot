@@ -2,7 +2,7 @@
 
 ## Objective
 
-To test the auto modes such as Mission, Takeoff, Hold, and RTL for fixed wing vehicles.
+To test the auto modes such as Mission, Takeoff, Hold, and Return for fixed wing vehicles.
 
 ## Preflight
 
@@ -10,7 +10,7 @@ Plan a mission on the ground. Ensure the mission has:
 
 - Takeoff as first waypoint
 - Changes in altitude throughout the mission
-- Last waypoint is an RTL
+- Last waypoint is an Return
 - Duration of 1 to 2 minutes
 
 ## Flight Tests
@@ -29,7 +29,7 @@ Plan a mission on the ground. Ensure the mission has:
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Verify changes in altitude throughout the mission
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Verify Mission Ends in RTL
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Verify Mission Ends in Return
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Duration of 1 to 2 minutes
 
@@ -43,7 +43,7 @@ Plan a mission on the ground. Ensure the mission has:
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Orbit radius and direction should match parameters
 
-❏ RTL
+❏ Return
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Arm and takeoff in any manual mode
 
@@ -51,7 +51,7 @@ Plan a mission on the ground. Ensure the mission has:
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Engage Return mode
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Vehicle should climb to RTL altitude if below it
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Vehicle should climb to Return altitude if below it
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Vehicle should return to home and hold or land
 
@@ -60,5 +60,5 @@ Plan a mission on the ground. Ensure the mission has:
 - Mission should upload on first attempt
 - Vehicle should automatically takeoff upon engaging Auto
 - Waypoint tracking should be smooth with appropriate turn radius
-- Vehicle should adjust height to RTL altitude before returning home
+- Vehicle should adjust height to Return altitude before returning home
 - Landing approach should be stable (if auto-land is configured)

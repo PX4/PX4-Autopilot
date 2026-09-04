@@ -19,7 +19,7 @@ uint8 MODE_SLOT_NUM     = 6      # number of slots
 uint8 mode_slot                  # the slot a specific model selector is in
 
 uint8 arm_switch                 # arm/disarm switch: _DISARMED_, ARMED
-uint8 return_switch              # return to launch 2 position switch (mandatory): _NORMAL_, RTL
+uint8 return_switch              # Return 2 position switch (mandatory): _NORMAL_, RETURN
 uint8 loiter_switch              # loiter 2 position switch (optional): _MISSION_, LOITER
 uint8 offboard_switch            # offboard 2 position switch (optional): _NORMAL_, OFFBOARD
 uint8 kill_switch                # throttle kill: _NORMAL_, KILL

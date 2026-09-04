@@ -35,7 +35,7 @@
 
 /**
  * @file geofence_avoidance_planner.h
- * Ensures vehicle waypoints during RTL and autonomous modes remain
+ * Ensures vehicle waypoints during Return and autonomous modes remain
  * inside inclusion fences and outside exclusion fences.
  */
 

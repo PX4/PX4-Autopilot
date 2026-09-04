@@ -2,7 +2,7 @@
 
 ## Objective
 
-To test the auto modes such as Mission, RTL, etc...
+To test the auto modes such as Mission, Return, etc...
 
 ## Preflight
 
@@ -10,7 +10,7 @@ Plan a mission on the ground. Ensure the mission has
 
 - Takeoff as first waypoint
 - Changes in Altitude throughout the mission
-- Last waypoint is an RTL
+- Last waypoint is a Return
 - Duration of 5 to 6 minutes
 
 ## Flight Tests
@@ -23,7 +23,7 @@ Plan a mission on the ground. Ensure the mission has
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ First waypoint set to Takeoff
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Enable Mission End RTL
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Enable Mission End Return
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Duration of 5 to 6 minutes
 
@@ -35,26 +35,26 @@ Plan a mission on the ground. Ensure the mission has
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Engage Auto (Mission Mode) to trigger take-off
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Observe tracking, cornering and proper RTL performance
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Observe tracking, cornering and proper Return performance
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Upon touching ground, copter should disarm automatically within 2 seconds (disarm time set by parameter: [COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND))
 
-❏ RTL
+❏ Return
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Arm and takeoff in position mode
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Fly out ~10m from start point
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Engage RTL Mode
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Engage Return Mode
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Observe tracking, cornering and proper RTL performance
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Observe tracking, cornering and proper Return performance
 
 ## Expected Results
 
 - Take-off should be smooth as throttle is raised
 - Mission should upload on first attempt
 - Vehicle should automatically take-off upon engaging Auto
-- Vehicle should adjust height to RTL altitude before returning home
+- Vehicle should adjust height to Return altitude before returning home
 - Upon landing, copter should not bounce on the ground
 
 <!--

@@ -50,7 +50,7 @@ namespace mission_route
 {
 
 /**
- * @brief Safe-point data source for the RTL landing-approach scans.
+ * @brief Safe-point data source for the Return landing-approach scans.
  *
  * Navigator passes MissionRouteCache here. Tests can pass an in-memory provider,
  * which keeps the scan logic independent from dataman and uORB.

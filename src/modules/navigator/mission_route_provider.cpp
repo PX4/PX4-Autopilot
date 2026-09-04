@@ -35,7 +35,7 @@
  * @file mission_route_provider.cpp
  *
  * Default implementations for the mission-route Provider interface:
- * the VTOL landing-approach block scanning shared by RTL features.
+ * the VTOL landing-approach block scanning shared by Return features.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
