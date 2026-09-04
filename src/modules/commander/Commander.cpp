@@ -2593,8 +2593,8 @@ void Commander::checkAndInformReadyForTakeoff()
 void Commander::modeManagementUpdate()
 {
 	ModeManagement::UpdateRequest mode_management_update{};
-	_mode_management.update(_vehicle_status.vehicle_type, isArmed(), _vehicle_status.nav_state_user_intention,
-				mode_management_update);
+	_mode_management.update(_vehicle_status.vehicle_type, _vehicle_status.is_vtol, isArmed(),
+				_vehicle_status.nav_state_user_intention, mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
 		_user_mode_intention.change(mode_management_update.user_intended_nav_state);
