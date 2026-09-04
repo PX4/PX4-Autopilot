@@ -1194,7 +1194,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			/* switch to Return which ends the mission */
 			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, getSourceFromCommand(cmd))) {
 				mavlink_log_info(&_mavlink_log_pub, "Executing Return\t");
-				events::send(events::ID("commander_rtl"), events::Log::Info, "Executing Return");
+				events::send(events::ID("commander_rtl"), events::Log::Info, "Switching to Return");
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
