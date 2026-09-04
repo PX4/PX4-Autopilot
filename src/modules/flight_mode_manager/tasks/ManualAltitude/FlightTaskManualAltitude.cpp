@@ -37,6 +37,7 @@
 
 #include "FlightTaskManualAltitude.hpp"
 #include <float.h>
+#include <lib/hagl_limits/hagl_limits.hpp>
 #include <mathlib/mathlib.h>
 #include <geo/geo.h>
 
@@ -84,7 +85,7 @@ void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
 	}
 
 	if (!PX4_ISFINITE(_max_distance_to_ground) && PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_max_z)) {
-		_max_distance_to_ground = _sub_vehicle_local_position.get().hagl_max_z;
+		_max_distance_to_ground = hagl_limits::withMarginZ(_sub_vehicle_local_position.get().hagl_max_z);
 	}
 }
 

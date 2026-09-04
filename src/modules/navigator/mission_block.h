@@ -227,5 +227,9 @@ protected:
 	float _command_timeout{0.f}; ///< Time in seconds any item_has_timeout() command should be waited for before continuing the mission
 
 private:
+	/**
+	 * Trigger the HAGL failsafe if the altitude setpoint is above the maximum height above the ground
+	 * reported by the estimator.
+	 */
 	void updateMaxHaglFailsafe();
 };
