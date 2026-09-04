@@ -170,7 +170,7 @@ parameters:
       description:
         short: Delay between failsafe condition triggered and failsafe reaction
         long: |-
-          Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
+          Before entering failsafe (Return, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
           for the user to realize.
           During that time the user can switch modes, but cannot take over control via the manual control override feature (see MAN_OVERRIDE_SPD).
           Afterwards the configured failsafe action is triggered and the user may use manual control override.
@@ -449,7 +449,7 @@ parameters:
         long: |-
           Specify modes in which stick input is ignored and no failsafe action is triggered.
           External modes requiring stick input will still failsafe.
-          Auto modes are: Hold, Takeoff, Land, RTL, Descend, Follow Target, Precland, Orbit.
+          Auto modes are: Hold, Takeoff, Land, Return, Descend, Follow Target, Precland, Orbit.
       type: bitmask
       bit:
         0: Mission
@@ -655,11 +655,11 @@ parameters:
         long: |-
           The vehicle aborts the current operation and returns to launch when
           the time since takeoff is above this value. It is not possible to resume the
-          mission or switch to any auto mode other than RTL or Land. Taking over in any manual
+          mission or switch to any auto mode other than Return or Land. Taking over in any manual
           mode is still possible.
 
           Starting from 90% of the maximum flight time, a warning message will be sent
-          every 1 minute with the remaining time until automatic RTL.
+          every 1 minute with the remaining time until automatic Return.
 
           Set to -1 to disable.
       type: int32
@@ -685,7 +685,7 @@ parameters:
           Action the system takes when a wind speed above the specified threshold is detected.
           See COM_WIND_MAX to set the failsafe threshold.
           If enabled, it is not possible to resume the mission or switch to any auto mode other than
-          RTL or Land if this threshold is exceeded. Taking over in any manual
+          Return or Land if this threshold is exceeded. Taking over in any manual
           mode is still possible.
       type: enum
       values:
@@ -779,7 +779,7 @@ parameters:
         short: Remaining flight time low failsafe
         long: |-
           Action the system takes when the remaining flight time is below
-          the estimated time it takes to reach the RTL destination.
+          the estimated time it takes to reach the Return destination.
       type: enum
       values:
         0: None

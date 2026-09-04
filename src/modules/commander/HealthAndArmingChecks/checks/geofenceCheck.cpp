@@ -107,10 +107,10 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_gf_no_home"),
-					    events::Log::Error, "Geofence RTL requires valid home");
+					    events::Log::Error, "Geofence Return requires valid home");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Geofence RTL requires valid home");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Geofence Return requires valid home");
 		}
 	}
 }
