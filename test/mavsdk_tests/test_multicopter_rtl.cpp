@@ -35,10 +35,10 @@
 
 
 // TODO: Add test cases for these scenarios:
-// - "RTL type 6 home within reach with no rally points", "[multicopter]"
-// - "RTL type 6 home within reach with rally points and home is the closest", "[multicopter]"
-// - "RTL type 6 home within reach with rally points and home is not the closest", "[multicopter]"
-// - "RTL type 6 home out of reach with rally points and at least one rally point within reach", "[multicopter]"
+// - "Return type 6 home within reach with no rally points", "[multicopter]"
+// - "Return type 6 home within reach with rally points and home is the closest", "[multicopter]"
+// - "Return type 6 home within reach with rally points and home is not the closest", "[multicopter]"
+// - "Return type 6 home out of reach with rally points and at least one rally point within reach", "[multicopter]"
 
 TEST_CASE("RTL_TYPE=6 time_remaining_s NaN with no rally points", "[multicopter]")
 {
