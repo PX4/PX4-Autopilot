@@ -393,6 +393,10 @@ MissionBlock::is_mission_item_reached_or_completed()
 		}
 	}
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	update_precision_takeoff(now);
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	// Update the 'waypoint position reached' status (only for rotary wing flight)
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
@@ -1077,3 +1081,32 @@ void MissionBlock::updateMaxHaglFailsafe()
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+void
+MissionBlock::update_precision_takeoff(const hrt_abstime now)
+{
+	PrecTakeoff *prec_takeoff = _navigator->get_prec_takeoff();
+
+	if (!prec_takeoff->enabled()) {
+		return;
+	}
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	// Vertical takeoffs only
+	const bool takeoff_item = _mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF;
+	const bool vertical_takeoff = takeoff_item
+				      && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+				      && pos_sp_triplet->current.valid
+				      && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+
+	if (!vertical_takeoff) {
+		return;
+	}
+
+	if (prec_takeoff->run(*_navigator->get_local_position(), pos_sp_triplet->current, _waypoint_position_reached, now)) {
+		_navigator->set_position_setpoint_triplet_updated();
+	}
+}
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
