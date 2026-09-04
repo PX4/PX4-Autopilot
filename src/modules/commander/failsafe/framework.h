@@ -103,7 +103,7 @@ public:
 
 		case Action::Hold: return "Hold";
 
-		case Action::RTL: return "RTL";
+		case Action::RTL: return "Return";
 
 		case Action::Land: return "Land";
 
