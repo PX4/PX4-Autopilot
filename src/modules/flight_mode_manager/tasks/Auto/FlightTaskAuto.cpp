@@ -99,6 +99,9 @@ bool FlightTaskAuto::updateInitialize()
 	_sub_vehicle_status.update();
 	_position_setpoint_triplet_sub.update();
 	_takeoff_status_sub.update();
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_prec_takeoff_status_sub.update();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	// require valid reference and valid target
 	ret = ret && _evaluateGlobalReference() && _evaluatePositionSetpointTriplet();
@@ -160,7 +163,8 @@ bool FlightTaskAuto::update()
 			_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
 		}
 
-		if (Vector2f(_takeoff_liftoff_position).isAllFinite()) {
+		// Hold the liftoff position, unless navigator steers the takeoff onto the landing target
+		if (Vector2f(_takeoff_liftoff_position).isAllFinite() && !_isPrecisionTakeoffActive()) {
 			_position_setpoint.xy() = _takeoff_liftoff_position.xy();
 		}
 
@@ -837,4 +841,13 @@ void FlightTaskAuto::updateParams()
 
 	// make sure that alt1 is above alt2
 	_param_mpc_land_alt1.set(math::max(_param_mpc_land_alt1.get(), _param_mpc_land_alt2.get()));
+}
+
+bool FlightTaskAuto::_isPrecisionTakeoffActive() const
+{
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	return _prec_takeoff_status_sub.get().state == prec_takeoff_status_s::PREC_TAKEOFF_STATE_ONGOING;
+#else
+	return false;
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }

@@ -46,6 +46,9 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/takeoff_status.h>
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include <uORB/topics/prec_takeoff_status.h>
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <lib/geo/geo.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/motion_planning/HeadingSmoothing.hpp>
@@ -110,6 +113,9 @@ protected:
 	/** determines when to trigger a takeoff (ignored in flight) */
 	bool _checkTakeoff() override { return _want_takeoff; };
 
+	/** true while navigator steers the takeoff setpoint onto the landing target */
+	bool _isPrecisionTakeoffActive() const;
+
 	void _prepareLandSetpoints();
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 
@@ -124,6 +130,9 @@ protected:
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<takeoff_status_s> _takeoff_status_sub{ORB_ID(takeoff_status)};
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	uORB::SubscriptionData<prec_takeoff_status_s> _prec_takeoff_status_sub {ORB_ID(prec_takeoff_status)};
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
 

@@ -142,6 +142,9 @@ Navigator::Navigator() :
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_land(this),
 	_precland(this),
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_prec_takeoff(this),
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_rtl(this),
 	_course(this)
 #if CONFIG_NAVIGATOR_ADSB
@@ -1082,6 +1085,10 @@ void Navigator::run()
 				_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 			}
 		}
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+		_prec_takeoff.publish_status();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 		/* if nothing is running, set position setpoint triplet invalid once */
 		if (_navigation_mode == nullptr && !_pos_sp_triplet_published_invalid_once) {

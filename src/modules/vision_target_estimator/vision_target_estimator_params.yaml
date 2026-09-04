@@ -30,6 +30,7 @@ parameters:
           2 : Set to true to use the target relative position from vision-based data if available. (+4)
           3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
           4 : Set to true to use the target GNSS velocity if available. (+16)
+          5 : Set to true to use the home position as pad reference during precision takeoff. Ignored if target GNSS position enabled. (+32)
       type: bitmask
       bit:
         0: target GNSS position
@@ -37,6 +38,7 @@ parameters:
         2: vision relative position
         3: mission position
         4: target GNSS velocity
+        5: home position (precision takeoff)
       default: 14
     VTE_TASK_MASK:
       description:
@@ -45,10 +47,12 @@ parameters:
           Set bits in the following positions to enable:
           0 : Set to true to use the vision target estimator for precision landing. (+1)
           1 : DEBUG, always active. (+2)
+          2 : Set to true to use the vision target estimator for precision takeoff. (+4)
       type: bitmask
       bit:
         0: precision landing
         1: DEBUG, always active
+        2: precision takeoff
       default: 1
     VTE_BTOUT:
       description:

@@ -51,6 +51,9 @@
 #include "navigator_mode.h"
 #include "rtl.h"
 #include "takeoff.h"
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include "prec_takeoff.h"
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #if CONFIG_NAVIGATOR_ADSB
 #include "DetectAndAvoid/detect_and_avoid.h"
 #endif // CONFIG_NAVIGATOR_ADSB
@@ -188,6 +191,9 @@ public:
 	MissionRouteCache           &get_mission_route_cache() { return _mission_route_cache; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	PrecTakeoff *get_prec_takeoff() { return &_prec_takeoff; } /**< used by MissionBlock during vertical takeoffs */
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	Course *get_course() { return &_course; }
 #if CONFIG_NAVIGATOR_ADSB
 	DetectAndAvoid *get_detect_and_avoid() { return &_detect_and_avoid; }
@@ -437,6 +443,9 @@ private:
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	PrecTakeoff	_prec_takeoff;			/**< keeps vertical takeoffs over the landing target */
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	RTL 		_rtl;				/**< class that handles RTL */
 	Course		_course;			/**< class that handles course */
 #if CONFIG_NAVIGATOR_ADSB

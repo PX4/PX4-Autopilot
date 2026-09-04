@@ -141,6 +141,8 @@ public:
 		       || _vte_aid_mask.flags.use_mission_pos;
 	}
 
+	bool missionPosAidEnabled() const { return _vte_aid_mask.flags.use_mission_pos; }
+
 	void print_status() const;
 
 protected:

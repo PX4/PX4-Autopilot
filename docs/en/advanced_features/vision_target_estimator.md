@@ -183,6 +183,7 @@ Set the indicated bit to enable the corresponding task.
 | --- | --------------------- |
 | 0   | Precision landing     |
 | 1   | DEBUG (always active) |
+| 2   | Precision takeoff     |
 
 ::: warning
 The controller only consumes the VTE output once the landing waypoint is configured for precision landing (see [Mission precision landing](../advanced_features/precland.md#mission)).
@@ -190,6 +191,20 @@ Without it, the VTE keeps running but its estimates are ignored.
 
 Yaw alignment is additionally gated by [PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN), which is disabled by default.
 With precision landing enabled but `PLD_YAW_EN` disabled, only the position estimate is tracked.
+:::
+
+### Precision Takeoff
+
+With bit 2 set and [MIS_TKO_PREC](../advanced_config/parameter_reference.md#MIS_TKO_PREC) enabled, the estimator runs while a vertical takeoff is active and [Navigator](../modules/modules_controller.md#navigator) keeps the takeoff setpoint over the target until the takeoff altitude is reached.
+This applies to multicopters and to VTOLs in hover.
+Set bit 5 of [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) to use the home position as absolute pad reference.
+Home is only used if it is within 10 m of the vehicle GNSS fix while landed, and it is ignored when target GNSS position (bit 0) is enabled.
+If no valid target estimate is available the vehicle climbs straight up as usual.
+
+::: warning
+The estimator cannot tell which pad a target GNSS position (`target_gnss`) describes.
+If the vehicle takes off from one pad and lands on another, the companion must publish the takeoff pad while [`prec_takeoff_status`](../msg_docs/PrecTakeoffStatus.md) is `ONGOING` and the landing pad while [`prec_land_status`](../msg_docs/PrecLandStatus.md) is active, or not publish it at all during takeoff.
+Vision is not affected: the camera sees the pad below the vehicle.
 :::
 
 ### Sensor Fusion Selection
@@ -203,6 +218,7 @@ With precision landing enabled but `PLD_YAW_EN` disabled, only the position esti
 | 2   | Vision-based relative pose                                                                                                          |
 | 3   | Mission landing waypoint                                                                                                            |
 | 4   | Target GNSS velocity ([moving mode](../advanced_features/vision_target_estimator_advanced.md#moving-target-mode-experimental) only) |
+| 5   | Home position ([precision takeoff](#precision-takeoff) only)                                                                        |
 
 Bit 2 also enables processing of `fiducial_marker_yaw_report` in the orientation filter.
 
@@ -222,6 +238,7 @@ Each source observes a different combination of states (see the per-source obser
 
 **Target GNSS position and mission landing waypoint are mutually exclusive.**
 Both provide the absolute reference for the same GNSS/vision bias, and only one bias can be estimated at a time.
+The same applies to the home position during precision takeoff (bit 5).
 If both bits are set, the module disables the mission landing waypoint at startup and prints a warning, but it is cleaner to pick one explicitly: use target GNSS when a receiver is mounted on the target (most accurate), and the mission landing waypoint when no receiver is available.
 :::
 
@@ -236,8 +253,8 @@ The state symbols used in the `H` column ($r$, $v^{uav}$, $b$, $v^{t}$, $\psi$) 
 
 | Source                             | uORB topic                                                                   | H structure                                                           | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ---------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Target GNSS position               | [`target_gnss`](../msg_docs/TargetGnss.md)                                   | $z = r + b$ once the bias is observable, otherwise $z = r$            | The vehicle GNSS sample is interpolated to the target timestamp using the vehicle velocity so the two receivers share a common epoch. Requires [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 0. Before bias activation, this source is held back if the estimator is already vision-referenced.                                                                                                                                                                                                                                                                                                                                       |
-| Mission landing waypoint           | `navigator_mission_item` with validated `position_setpoint_triplet` fallback | $z = r$                                                               | Provides a fallback absolute reference when target GNSS is unavailable. At precision-land task start VTE caches the logical landing waypoint published by [Navigator](../modules/modules_controller.md#navigator) and keeps using that cached point even after precland rewrites the live triplet. The triplet remains a fallback for modes that do not publish `navigator_mission_item`. Enable [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 3 and avoid combining it with target GNSS because only one GNSS bias can be estimated. Before bias activation, this source is held back if the estimator is already vision-referenced. |
+| Target GNSS position               | [`target_gnss`](../msg_docs/TargetGnss.md)                                   | $z = r + b$ once the bias is observable, otherwise $z = r$            | The vehicle GNSS sample is interpolated to the target timestamp using the vehicle velocity so the two receivers share a common epoch. Requires [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 0. Before bias activation, this source is held back if the estimator is already vision-referenced. Must describe the pad of the active task, see [Precision Takeoff](#precision-takeoff).                                                                                                                                                                                                                                                                                                                                       |
+| Mission landing waypoint           | `navigator_mission_item` with validated `position_setpoint_triplet` fallback | $z = r$                                                               | Provides a fallback absolute reference when target GNSS is unavailable. At precision-land task start VTE caches the logical landing waypoint published by [Navigator](../modules/modules_controller.md#navigator) and keeps using that cached point even after precland rewrites the live triplet. The triplet remains a fallback for modes that do not publish `navigator_mission_item`. During precision takeoff the home position takes this role instead (bit 5), if it is within 10 m of the vehicle while landed. Enable [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 3 and avoid combining it with target GNSS because only one GNSS bias can be estimated. Before bias activation, this source is held back if the estimator is already vision-referenced. |
 | Vision pose                        | [`fiducial_marker_pos_report`](../msg_docs/FiducialMarkerPosReport.md)       | $z = r$ after rotating the measurement (`rel_pos`) into NED using `q` | Uses the message variances, lower-bounded by [VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE). Recent vision fusions are required for EKF aiding. During the initial GNSS/vision bias averaging phase, valid vision samples update the bias low-pass filter but are not fused into the position state yet. This averaging phase only exists when GNSS became the active reference first.                                                                                                                                                                                                                                                   |
 | Vehicle GNSS velocity              | `sensor_gps`                                                                 | $z = v^{uav}$                                                         | Removes rotation-induced velocity using the vehicle GPS antenna offset parameters (`SENS_GPS0_OFF*`). Enable [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 1.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Target GNSS velocity (moving mode) | `target_gnss`                                                                | $z = v^{t}$                                                           | Only used by the experimental [Moving-target mode](../advanced_features/vision_target_estimator_advanced.md#moving-target-mode-experimental).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -379,6 +396,8 @@ If the state visibly diverges between measurements and snaps back when a new sam
   Under-reporting variance is the most common cause of overshoots.
   The [Sensor noise floors](#noise) only clamp the lower bound and cannot rescue an over-confident sensor.
 - **Set the coordinate frame** for [TARGET_RELATIVE](https://mavlink.io/en/messages/development.html#TARGET_RELATIVE) (`TARGET_OBS_FRAME`) and provide the `q_sensor` rotation when the camera frame differs from vehicle-carried NED.
+- **Match the target GNSS position to the active task.** Publish the takeoff pad while `prec_takeoff_status` is `ONGOING` and the landing pad while `prec_land_status` is active.
+  The estimator fuses whatever it receives and cannot detect a mismatch.
 
 ### Bypassing MAVLink
 
@@ -454,4 +473,6 @@ For deeper inspection, the following uORB topics are the most useful entry point
   Without it, the VTE estimates are ignored even when the filter is running.
 - For yaw alignment during landing, also enable [PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN).
   With precision landing enabled but `PLD_YAW_EN` disabled, only the position estimate is tracked.
+- For [precision takeoff](#precision-takeoff), set [MIS_TKO_PREC](../advanced_config/parameter_reference.md#MIS_TKO_PREC)=1 and enable bit 2 of `VTE_TASK_MASK`.
+  Add bit 5 of `VTE_AID_MASK` to use home as pad reference.
 - For extended parameter tuning see [Balancing process and observation noise](../advanced_features/vision_target_estimator_advanced.md#balancing-process-and-observation-noise), for log-analysis checklists see [Troubleshooting checklist](../advanced_features/vision_target_estimator_advanced.md#troubleshooting-checklist), and for developer workflows see [Development and debugging tips](../advanced_features/vision_target_estimator_advanced.md#development-and-debugging-tips).

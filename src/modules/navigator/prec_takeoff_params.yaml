@@ -1,0 +1,13 @@
+module_name: navigator
+parameters:
+- group: Mission
+  definitions:
+    MIS_TKO_PREC:
+      description:
+        short: Precision takeoff
+        long: |-
+          Keep the vehicle over the landing target during vertical takeoffs (multicopter and VTOL in hover),
+          using the landing target estimate. Requires the vision target estimator with bit 2 of
+          VTE_TASK_MASK set. Without a valid target estimate the takeoff is unchanged.
+      type: boolean
+      default: 0
