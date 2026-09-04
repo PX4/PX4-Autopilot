@@ -453,7 +453,10 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 	if (user_config.store(param, new_value)) {
-		params_unsaved.set(param, !mark_saved && param_changed);
+		if (param_changed) {
+			params_unsaved.set(param, !mark_saved);
+		}
+
 		result = PX4_OK;
 
 	} else {
@@ -1213,6 +1216,11 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 
 	// Handle setting the parameter from the node
 	switch (node->type) {
+	case BSON_nullptr:
+	case BSON_UNDEFINED:
+		user_config.reset(param);
+		return 1;
+
 	case BSON_INT32: {
 			if (param_type(param) == PARAM_TYPE_INT32) {
 				int32_t i = node->i32;
@@ -1361,7 +1369,7 @@ static int flash_load_locked()
 	param_reset_all_internal(false);
 	int result = flash_param_import();
 
-	if (result >= 0) {
+	if (result == 0 || result == 1) {
 		params_unsaved.reset();
 	}
 

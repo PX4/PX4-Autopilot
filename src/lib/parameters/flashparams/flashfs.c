@@ -112,7 +112,7 @@ typedef begin_packed_struct struct flash_entry_header_t {
  * Private Data
  ****************************************************************************/
 static uint8_t *working_buffer;
-static uint16_t working_buffer_size;
+static size_t working_buffer_size;
 static bool working_buffer_static;
 static sector_descriptor_t *sector_map;
 static int last_erased;
@@ -218,46 +218,6 @@ static bool blank_check(flash_entry_header_t *pf,
 static inline int valid_magic(h_magic_t *pm)
 {
 	return *pm == MagicSig;
-}
-
-/****************************************************************************
- * Name: blank_magic
- *
- * Description:
- *   This helper function returns true if the pointer points to a valid
- *   blank magic signature
- *
- * Input Parameters:
- *   pm   - A pointer to memory aligned on sizeof(h_magic_t) boundaries
- *
- * Returned value:
- *   true if magic is valid
- *
- *
- ****************************************************************************/
-
-static inline int blank_magic(h_magic_t *pm)
-{
-	return *pm == BlankSig;
-}
-/****************************************************************************
- * Name: erased_entry
- *
- * Description:
- *   This helper function returns true if the entry is Erased
- *
- * Input Parameters:
- *   fi            - A pointer to the current flash entry header
- *
- * Returned value:
- *   true if  erased
- *
- *
- ****************************************************************************/
-
-static inline int erased_entry(flash_entry_header_t *fi)
-{
-	return (fi->flag & MaskEntry) == ErasedEntry;
 }
 
 /****************************************************************************
@@ -424,19 +384,40 @@ static inline data_size_t entry_crc_length(flash_entry_header_t *fi)
 	return fi->size - offsetof(flash_entry_header_t, size);
 }
 
+static bool crc_header_ok(flash_entry_header_t *pf, h_magic_t *pe)
+{
+	if (pf + 1 > (flash_entry_header_t *)pe) {
+		return false;
+	}
+
+	if (pf->size < sizeof(flash_entry_header_t)) {
+		return false;
+	}
+
+	const uint8_t *crc_start = entry_crc_start(pf);
+	data_size_t crc_length = entry_crc_length(pf);
+
+	if (crc_start + crc_length > (uint8_t *)pe) {
+		return false;
+	}
+
+	return pf->crc == crc32(crc_start, crc_length);
+}
+
+static bool slot_is_free(flash_entry_header_t *pf, int s, size_t required)
+{
+	uint8_t *begin = (uint8_t *)sector_map[s].address;
+	uint8_t *end = begin + sector_map[s].size;
+
+	if ((uint8_t *)pf < begin || required == 0 || (uint8_t *)pf + required > end) {
+		return false;
+	}
+
+	return blank_entry(pf) && blank_check(pf, required);
+}
+
 /****************************************************************************
  * Name: find_entry
- *
- * Description:
- *   This helper function locates an "file" from the the file token
- *
- * Input Parameters:
- *   token        - A flash file token, the pseudo file name
- *
- * Returned value:
- *  On Success a pointer to flash entry header or NULL on failure
- *
- *
  ****************************************************************************/
 
 static flash_entry_header_t *find_entry(flash_file_token_t token)
@@ -446,57 +427,30 @@ static flash_entry_header_t *find_entry(flash_file_token_t token)
 		h_magic_t *pmagic = (h_magic_t *) sector_map[s].address;
 		h_magic_t *pe = pmagic + (sector_map[s].size / sizeof(h_magic_t)) - 1;
 
-		/* Hunt for Magic Signature */
 cont:
 
 		while (pmagic < pe && !valid_magic(pmagic)) {
 			pmagic++;
 		}
 
-		/* Did we reach the end
-		 * if so try the next sector */
-
 		if (pmagic >= pe) { continue; }
-
-		/* Found a magic So assume it is a file header */
 
 		flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
 
-		/* Ensure that the header is fully inside the current sector */
-
-		if (pf + 1 > (flash_entry_header_t *)pe) { continue; }
-
-		const uint8_t *crc_start = entry_crc_start(pf);
-		data_size_t crc_length = entry_crc_length(pf);
-
-		if (crc_start + crc_length > (uint8_t *)pe) { continue; }
-
-		if (pf->crc == crc32(crc_start, crc_length)) {
-
-			/* Good CRC is it the one we are looking for ?*/
+		if (crc_header_ok(pf, pe)) {
 
 			if (valid_entry(pf) && pf->file_token.t == token.t) {
-
 				return pf;
+			}
 
-			} else {
+			pf = next_entry(pf);
+			pmagic = (h_magic_t *) pf;
 
-				/* Not the one we wanted but we can trust the size */
-
-				pf = next_entry(pf);
-				pmagic = (h_magic_t *) pf;
-
-				/* If the next one is erased */
-
-				if (pmagic >= pe || blank_entry(pf)) {
-					continue;
-				}
+			if (pmagic >= pe || blank_entry(pf)) {
+				continue;
 			}
 
 		} else {
-
-			/* invalid CRC so keep looking */
-
 			pmagic++;
 		}
 
@@ -507,63 +461,83 @@ cont:
 }
 
 /****************************************************************************
- * Name: find_free
+ * Name: find_append
  *
  * Description:
- *   This helper function locates free space for the number of bytes required
- *
- * Input Parameters:
- *   required  - Number of bytes required
- *
- * Returned value:
- *  On Success a pointer to flash entry header or NULL on failure
- *
+ *   Return the address of a blank run that sits after every CRC-valid
+ *   header in sector-map order. First-fit holes before later live data are
+ *   not used; those are fragmentation and belong to compact.
  *
  ****************************************************************************/
 
-static flash_entry_header_t *find_free(data_size_t required)
+static flash_entry_header_t *find_append(size_t required)
 {
-	for (int s = 0; sector_map[s].address; s++) {
+	if (sector_map == NULL || required == 0) {
+		return NULL;
+	}
 
+	flash_entry_header_t *last = NULL;
+	int last_s = -1;
+
+	for (int s = 0; sector_map[s].address; s++) {
 		h_magic_t *pmagic = (h_magic_t *) sector_map[s].address;
 		h_magic_t *pe = pmagic + (sector_map[s].size / sizeof(h_magic_t)) - 1;
 
-		/* Hunt for Magic Signature */
-
-		do {
-
-			if (valid_magic(pmagic)) {
-
-				flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
-
-				/* Ensure that the header is fully inside the current sector */
-
-				if (pf + 1 > (flash_entry_header_t *)pe) { break; }
-
-				/* Test the CRC */
-
-				if (pf->crc == crc32(entry_crc_start(pf), entry_crc_length(pf))) {
-
-					/* Valid Magic and CRC look for the next record*/
-
-					pmagic = ((uint32_t *) next_entry(pf));
-
-				} else {
-
-					pmagic++;
-				}
+		while (pmagic < pe) {
+			if (!valid_magic(pmagic)) {
+				pmagic++;
+				continue;
 			}
 
-			if (pmagic + (required / sizeof(h_magic_t)) <= pe && blank_magic(pmagic)) {
+			flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
 
-				flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
+			if (crc_header_ok(pf, pe)) {
+				last = pf;
+				last_s = s;
+				pmagic = (h_magic_t *) next_entry(pf);
 
-				if (blank_entry(pf) && blank_check(pf, required)) {
-					return pf;
-				}
-
+			} else {
+				pmagic++;
 			}
-		}  while (++pmagic < pe);
+		}
+	}
+
+	const int start_s = (last == NULL) ? 0 : last_s;
+	h_magic_t *pmagic = (last == NULL)
+			    ? (h_magic_t *) sector_map[0].address
+			    : (h_magic_t *) next_entry(last);
+
+	for (int s = start_s; sector_map[s].address; s++) {
+		if (s != start_s) {
+			pmagic = (h_magic_t *) sector_map[s].address;
+		}
+
+		h_magic_t *pe = (h_magic_t *) sector_map[s].address
+				+ (sector_map[s].size / sizeof(h_magic_t)) - 1;
+
+		if ((uint8_t *)pmagic < (uint8_t *)sector_map[s].address
+		    || (uint8_t *)pmagic >= (uint8_t *)sector_map[s].address + sector_map[s].size) {
+			if (s == start_s) {
+				continue;
+			}
+
+			pmagic = (h_magic_t *) sector_map[s].address;
+		}
+
+		while (pmagic < pe) {
+			flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
+
+			if (valid_magic(pmagic) && crc_header_ok(pf, pe)) {
+				pmagic = (h_magic_t *) next_entry(pf);
+				continue;
+			}
+
+			if (slot_is_free(pf, s, required)) {
+				return pf;
+			}
+
+			pmagic++;
+		}
 	}
 
 	return NULL;
@@ -575,6 +549,8 @@ static flash_entry_header_t *find_free(data_size_t required)
  * Description:
  *   Visit every CRC-valid, not-erased entry matching token, oldest first.
  *   cb returns 0 to continue, <0 to abort with that errno.
+ *   A torn or oversize header advances one magic word; it must not skip
+ *   the rest of the sector (later valid records would be invisible).
  *
  ****************************************************************************/
 
@@ -603,14 +579,7 @@ cont:
 
 		flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
 
-		if (pf + 1 > (flash_entry_header_t *)pe) { continue; }
-
-		const uint8_t *crc_start = entry_crc_start(pf);
-		data_size_t crc_length = entry_crc_length(pf);
-
-		if (crc_start + crc_length > (uint8_t *)pe) { continue; }
-
-		if (pf->crc == crc32(crc_start, crc_length)) {
+		if (crc_header_ok(pf, pe)) {
 
 			if (valid_entry(pf) && pf->file_token.t == token.t) {
 				if (cb != NULL) {
@@ -790,8 +759,12 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 		size_t  size_adjust = ((total_size + alignment) & ~alignment) - total_size;
 		total_size += size_adjust;
 
-		/* Append. Compaction (sector erase) is the caller's job. */
-		flash_entry_header_t *pf = find_free(total_size);
+		if (total_size > UINT16_MAX) {
+			return -EFBIG;
+		}
+
+		/* Append after the last CRC-valid record. Compaction is the caller's job. */
+		flash_entry_header_t *pf = find_append(total_size);
 
 		if (pf == 0) {
 			return -ENOSPC;
@@ -848,37 +821,90 @@ int parameter_flashfs_walk(flash_file_token_t token, parameter_flashfs_walk_cb c
  * Name: parameter_flashfs_needs_compact
  ****************************************************************************/
 
-static int note_first_entry(flash_entry_header_t *pf, void *arg)
-{
-	flash_entry_header_t **first = (flash_entry_header_t **)arg;
+struct compact_note {
+	flash_entry_header_t *first;
+	int n;
+};
 
-	if (*first == NULL) {
-		*first = pf;
+static int note_entries(flash_entry_header_t *pf, void *arg)
+{
+	struct compact_note *note = (struct compact_note *)arg;
+
+	if (note->first == NULL) {
+		note->first = pf;
 	}
 
+	note->n++;
 	return 0;
+}
+
+size_t parameter_flashfs_max_payload(void)
+{
+	if (sector_map == NULL) {
+		return 0;
+	}
+
+	size_t max_sector = 0;
+
+	for (int s = 0; sector_map[s].address; s++) {
+		if (sector_map[s].size > max_sector) {
+			max_sector = sector_map[s].size;
+		}
+	}
+
+	const size_t overhead = sizeof(flash_entry_header_t) + sizeof(h_magic_t) - 1;
+
+	if (max_sector <= overhead) {
+		return 0;
+	}
+
+	return max_sector - overhead;
 }
 
 int parameter_flashfs_needs_compact(void)
 {
-	flash_entry_header_t *first = NULL;
-	int n = for_each_valid_entry(parameters_token, note_first_entry, &first);
+	struct compact_note note = { NULL, 0 };
+	int n = for_each_valid_entry(parameters_token, note_entries, &note);
 
 	if (n <= 0) {
 		return n;
 	}
 
-	/* Keep enough free space for a QGC burst of deltas. A disarm-edge
-	 * UUID append is a few 32-byte rows and must not force a boot erase.
-	 * If the only live entry is already at the sector start, compacting
-	 * cannot create more room than it already occupies. */
-	const size_t delta_headroom = 4096;
+	size_t max_sector = 0;
+	int nsectors = 0;
 
-	if (find_free(delta_headroom) != NULL) {
+	for (int s = 0; sector_map[s].address; s++) {
+		if (sector_map[s].size > max_sector) {
+			max_sector = sector_map[s].size;
+		}
+
+		nsectors++;
+	}
+
+	/* Keep room after the log for a burst the size of the current snapshot
+	 * (reset-all tombstones, airframe PARAM_SET), floored so a UUID append
+	 * does not force a boot erase. */
+	size_t headroom = 8192;
+
+	if (note.first != NULL && note.first->size > headroom) {
+		headroom = note.first->size;
+	}
+
+	if (headroom > max_sector) {
+		headroom = max_sector;
+	}
+
+	const bool packed = (uintptr_t)note.first == (uintptr_t)sector_map[0].address;
+
+	if (!packed) {
+		return 1;
+	}
+
+	if (find_append(headroom) != NULL) {
 		return 0;
 	}
 
-	if (n == 1 && (uintptr_t)first == (uintptr_t)sector_map[0].address) {
+	if (note.n == 1 && nsectors == 1) {
 		return 0;
 	}
 
@@ -1021,31 +1047,9 @@ int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16
 
 	/* Sanity check */
 
-	flash_entry_header_t *pf = find_entry(parameters_token);
-
-	/*  No parameters */
-
-	if (pf == NULL) {
-		size_t total_size = size + sizeof(flash_entry_header_t);
-		size_t alignment = sizeof(h_magic_t) - 1;
-		size_t  size_adjust = ((total_size + alignment) & ~alignment) - total_size;
-		total_size += size_adjust;
-
-		/* Do we have free space ?*/
-
-		if (find_free(total_size) == NULL) {
-
-			/* No paramates and no free space => neeed erase */
-
-			rv  = parameter_flashfs_erase();
-
-			/* A positive return value means flash space has been erased successfully */
-
-			if (rv > 0) {
-				rv = 0;
-			}
-		}
-	}
+	/* A non-blank store with no valid entry is torn or foreign; import
+	 * reports -EILSEQ. Erasing here would hide a successful retry after
+	 * a torn write. */
 
 	return rv;
 }

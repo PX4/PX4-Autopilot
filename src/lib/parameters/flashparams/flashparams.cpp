@@ -113,6 +113,15 @@ encode_params(bson_encoder_s *encoder, param_filter_func filter, bool snapshot)
 			continue;
 		}
 
+		if (!snapshot && (!user_config.contains(param) || param_value_is_default(param))) {
+			if (bson_encoder_append_null(encoder, param_name(param))) {
+				debug("BSON append failed for '%s'", param_name(param));
+				return -1;
+			}
+
+			continue;
+		}
+
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32:
 			if (bson_encoder_append_int32(encoder, param_name(param), user_config.get(param).i)) {
@@ -235,8 +244,13 @@ compact_to_snapshot(param_filter_func filter)
 		return result;
 	}
 
+	if (enc_size > parameter_flashfs_max_payload()) {
+		parameter_flashfs_free();
+		return -ENOSPC;
+	}
+
 	/* Encode and the write buffer are ready: only now erase. A malloc
-	 * failure must not drop the log that is still on flash. */
+	 * failure or a snapshot that cannot fit a sector must not drop the log. */
 	if (parameter_flashfs_blank() != 1) {
 		int rv = parameter_flashfs_erase();
 
@@ -246,12 +260,28 @@ compact_to_snapshot(param_filter_func filter)
 		}
 	}
 
-	return commit_write_buffer(buffer, enc_size);
+	result = parameter_flashfs_write(parameters_token, buffer, enc_size);
+
+	if (result != (int)enc_size && parameter_flashfs_blank() == 1) {
+		result = parameter_flashfs_write(parameters_token, buffer, enc_size);
+	}
+
+	parameter_flashfs_free();
+
+	if (result == (int)enc_size) {
+		return OK;
+	}
+
+	return result < 0 ? result : -EFBIG;
 }
 
 static int
 param_export_internal(param_filter_func filter)
 {
+	if (parameter_flashfs_blank() == 1) {
+		return compact_to_snapshot(nullptr);
+	}
+
 	if (any_unsaved(filter)) {
 		int result = export_and_write(filter, false);
 
@@ -259,15 +289,13 @@ param_export_internal(param_filter_func filter)
 			return result;
 		}
 
-		/* Same-bank erase stalls the CPU for ~1 s; only take that path when
-		 * the log no longer fits. Compact writes the full RAM snapshot so a
-		 * filtered save cannot drop params that were not in the delta. */
+		/* Same-bank erase stalls the CPU for ~1 s; last resort when a
+		 * single save does not fit the tail. Compact writes the full RAM
+		 * snapshot so a filtered save cannot drop params not in the delta. */
 		PX4_WARN("flashparams: param sector full, compacting");
 		return compact_to_snapshot(nullptr);
 	}
 
-	/* Nothing unsaved. Still persist a snapshot if the store is empty so
-	 * load-or-init does not treat a first-boot save as blank. */
 	uint8_t *existing = nullptr;
 	size_t existing_size = 0;
 	int read_result = parameter_flashfs_read(parameters_token, &existing, &existing_size);
@@ -317,6 +345,12 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	 */
 
 	switch (node->type) {
+	case BSON_nullptr:
+	case BSON_UNDEFINED:
+		user_config.reset(param);
+		result = 1;
+		goto out;
+
 	case BSON_INT32:
 		if (param_type(param) != PARAM_TYPE_INT32) {
 			PX4_WARN("unexpected type for %s", node->name);
@@ -350,8 +384,8 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 		goto out;
 	}
 
-	/* A delta tombstone stores the default so replay overrides an earlier
-	 * snapshot. Drop it from user_config so the next snapshot omits it. */
+	/* Legacy deltas stored a reset as the then-current default. Drop it
+	 * so the next snapshot omits it. New tombstones are BSON null. */
 	if (param_value_is_default(param)) {
 		user_config.reset(param);
 	}
@@ -455,7 +489,11 @@ int flash_param_import()
 	int result = param_import_internal();
 
 	if (result == 0) {
-		compact_after_import();
+		int cr = compact_after_import();
+
+		if (cr < 0) {
+			return cr;
+		}
 	}
 
 	return result;

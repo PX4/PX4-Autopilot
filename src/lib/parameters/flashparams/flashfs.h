@@ -48,6 +48,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 
 
@@ -194,10 +195,10 @@ __EXPORT int parameter_flashfs_blank(void);
  * Name: parameter_flashfs_write
  *
  * Description:
- *   Append a new entry. Previous valid entries are left intact so a boot
- *   replay can apply the whole log; the caller erases and rewrites a
- *   snapshot when a burst of deltas would no longer fit.
- *   Returns -ENOSPC if the new entry does not fit.
+ *   Append a new entry after the last CRC-valid record. Previous valid
+ *   entries are left intact so a boot replay can apply the whole log; the
+ *   caller erases and rewrites a snapshot when a burst of deltas would no
+ *   longer fit. Returns -ENOSPC if the new entry does not fit after the log.
  *
  * Input Parameters:
  *   token      - File Token File to read
@@ -234,11 +235,11 @@ __EXPORT int parameter_flashfs_erase(void);
  *
  * Description:
  *   True when the parameter log should be rewritten as a single snapshot:
- *   not enough free space remains for a burst of deltas, and compacting
- *   would actually reclaim room (more than one live entry, or a single
- *   entry not at the sector start). A disarm-edge UUID append is not a
- *   reason to erase. The erase stalls every read of that flash bank, so
- *   callers should run it at boot before sensors and DShot start.
+ *   the live records are not a packed prefix of sector 0, or the tail after
+ *   the last CRC-valid record cannot hold a burst the size of the current
+ *   snapshot (floored at 8 KB so a UUID append does not force a boot erase).
+ *   The erase stalls every read of that flash bank, so callers should run
+ *   it at boot before sensors and DShot start.
  *
  * Returned value:
  *   1 if compact is needed, 0 if not, or a negative errno.
@@ -246,6 +247,16 @@ __EXPORT int parameter_flashfs_erase(void);
  ****************************************************************************/
 
 __EXPORT int parameter_flashfs_needs_compact(void);
+
+/****************************************************************************
+ * Name: parameter_flashfs_max_payload
+ *
+ * Description:
+ *   Largest user payload that fits in one mapped sector, or 0.
+ *
+ ****************************************************************************/
+
+__EXPORT size_t parameter_flashfs_max_payload(void);
 
 /****************************************************************************
  * Name: parameter_flashfs_alloc
