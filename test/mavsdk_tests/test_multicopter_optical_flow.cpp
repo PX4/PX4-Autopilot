@@ -76,7 +76,7 @@ constexpr float kHeadingSweep = 360.f;
 
 } // namespace
 
-TEST_CASE("Optical flow: orbit tracks the ground truth velocity", "[optical_flow]")
+TEST_CASE("Optical flow - orbit tracks the ground truth velocity", "[optical_flow]")
 {
 	AutopilotTesterFlow tester;
 	tester.connect(connection_url);
