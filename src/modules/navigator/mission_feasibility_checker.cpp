@@ -150,6 +150,64 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 						      i + 1);
 				return false;
 			}
+
+			if (!checkLoiterPerimeterAgainstGeofence(missionitem)) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for loiter radius of waypoint %zu\t",
+						     i + 1);
+				// clang-tidy misparses the explicit "<int16_t>" template argument
+				// together with the call's parentheses as a chained relational
+				// comparison ("send < int16_t > (...)"); this is not one.
+				// NOLINTNEXTLINE(bugprone-chained-comparison)
+				events::send<int16_t>(events::ID("navigator_mis_geofence_violation_loiter"), {events::Log::Error, events::LogInternal::Info},
+						      "Geofence violation for loiter radius of waypoint {1}",
+						      i + 1);
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+bool
+MissionFeasibilityChecker::checkLoiterPerimeterAgainstGeofence(const mission_item_s &item)
+{
+	switch (item.nav_cmd) {
+	case NAV_CMD_LOITER_UNLIMITED:
+	case NAV_CMD_LOITER_TIME_LIMIT:
+	case NAV_CMD_LOITER_TO_ALT:
+		break;
+
+	default:
+		return true;
+	}
+
+	// negative radius means counter-clockwise; the geometry is the same either way
+	const float radius = fabsf(item.loiter_radius);
+
+	if (!PX4_ISFINITE(radius) || radius < FLT_EPSILON) {
+		return true;
+	}
+
+	// Sample the perimeter finely enough that the chord between two samples cannot
+	// step over a small geofence, but keep the count bounded so that upload time
+	// stays predictable for large radii.
+	static constexpr float kMaxArcStep = 10.f;   // metres between samples
+	static constexpr int kMinSamples = 8;
+	static constexpr int kMaxSamples = 64;
+
+	const int num_samples = math::constrain(static_cast<int>(ceilf(2.f * M_PI_F * radius / kMaxArcStep)),
+						kMinSamples, kMaxSamples);
+
+	for (int s = 0; s < num_samples; s++) {
+		const float bearing = (2.f * M_PI_F * static_cast<float>(s)) / static_cast<float>(num_samples);
+		double lat = 0.0;
+		double lon = 0.0;
+
+		waypoint_from_heading_and_distance(item.lat, item.lon, bearing, radius, &lat, &lon);
+
+		if (!_navigator->get_geofence().checkPointAgainstAllGeofences(lat, lon, item.altitude)) {
+			return false;
 		}
 	}
 
