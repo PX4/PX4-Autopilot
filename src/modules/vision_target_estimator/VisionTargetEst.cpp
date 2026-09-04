@@ -329,7 +329,7 @@ void VisionTargetEst::printAidMask()
 
 	if (_vte_aid_mask.flags.use_target_gps_vel) {PX4_DEBUG("    target GPS velocity fusion enabled");}
 
-	if (_vte_aid_mask.flags.use_mission_pos) {PX4_DEBUG("    %s fusion enabled", _current_task_ptr == &_prec_takeoff_task ? "home position" : "mission land position");}
+	if (_vte_aid_mask.flags.use_mission_pos) {PX4_DEBUG("    pad reference position fusion enabled");}
 
 	if (_vte_aid_mask.flags.use_uav_gps_vel) {PX4_DEBUG("    UAV GPS velocity fusion enabled");}
 
@@ -720,6 +720,8 @@ bool VisionTargetEst::updateWhenIntervalElapsed(hrt_abstime &last_time, const hr
 int VisionTargetEst::print_status()
 {
 	const auto yes_no = [](const bool value) { return value ? "yes" : "no"; };
+	SensorFusionMaskU configured_aid_mask{};
+	configured_aid_mask.value = static_cast<uint16_t>(_param_vte_aid_mask.get());
 
 	PX4_INFO("VTE running");
 #if defined(CONFIG_VTEST_MOVING)
@@ -737,14 +739,14 @@ int VisionTargetEst::print_status()
 		 yes_no(isTaskMaskBitEnabled(task_bits::kDebug)));
 	PX4_INFO("aid mask: configured 0x%04x, effective 0x%04x",
 		 static_cast<unsigned>(_param_vte_aid_mask.get()), static_cast<unsigned>(_vte_aid_mask.value));
-	PX4_INFO("  vision pos: %s, target gps pos: %s, %s: %s",
-		 yes_no(_vte_aid_mask.flags.use_vision_pos),
-		 yes_no(_vte_aid_mask.flags.use_target_gps_pos),
-		 _current_task_ptr == &_prec_takeoff_task ? "home pos" : "mission pos",
-		 yes_no(_vte_aid_mask.flags.use_mission_pos));
+	PX4_INFO("  vision pos: %s, target gps pos: %s, mission land pos: %s, home pos: %s",
+		 yes_no(configured_aid_mask.flags.use_vision_pos),
+		 yes_no(configured_aid_mask.flags.use_target_gps_pos),
+		 yes_no(configured_aid_mask.flags.use_mission_pos),
+		 yes_no(configured_aid_mask.flags.use_home_pos));
 	PX4_INFO("  uav gps vel: %s, target gps vel: %s",
-		 yes_no(_vte_aid_mask.flags.use_uav_gps_vel),
-		 yes_no(_vte_aid_mask.flags.use_target_gps_vel));
+		 yes_no(configured_aid_mask.flags.use_uav_gps_vel),
+		 yes_no(configured_aid_mask.flags.use_target_gps_vel));
 
 	PX4_INFO("position vte: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s",
 		 yes_no(_param_vte_pos_en.get()),

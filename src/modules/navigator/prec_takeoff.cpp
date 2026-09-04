@@ -52,6 +52,7 @@ static constexpr hrt_abstime kTargetTimeoutUs = 1_s;
 PrecTakeoff::PrecTakeoff(ModuleParams *parent) :
 	ModuleParams(parent)
 {
+	_status_pub.advertise();
 }
 
 bool PrecTakeoff::run(const vehicle_local_position_s &local_pos, position_setpoint_s &current_sp,
