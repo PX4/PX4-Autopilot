@@ -682,6 +682,9 @@ void FwLateralLongitudinalControl::updateAttitude() {
 		_tecs.set_equivalent_airspeed_min(
 			_performance_model.getMinimumCalibratedAirspeed(_load_factor_from_bank_angle, _flaps_setpoint)
 		);
+		_tecs.set_equivalent_airspeed_stall(
+			_performance_model.getCalibratedStallAirspeed(_load_factor_from_bank_angle, _flaps_setpoint)
+		);
 	}
 }
 
