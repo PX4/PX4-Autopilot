@@ -74,7 +74,7 @@ constexpr float kHeadingSweep = 360.f;
 
 } // namespace
 
-TEST_CASE("Optical flow: VTOL loiter tracks the ground truth velocity", "[optical_flow_vtol]")
+TEST_CASE("Optical flow - VTOL loiter tracks the ground truth velocity", "[optical_flow_vtol]")
 {
 	AutopilotTesterFlow tester;
 	tester.connect(connection_url);
