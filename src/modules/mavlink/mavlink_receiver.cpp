@@ -3838,6 +3838,8 @@ MavlinkReceiver::run()
 #if defined(MAVLINK_UDP)
 
 			else if (_mavlink.get_protocol() == Protocol::UDP) {
+				nread = 0;
+
 				if (fds[0].revents & POLLIN) {
 					nread = recvfrom(_mavlink.get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
 				}
@@ -3862,6 +3864,24 @@ MavlinkReceiver::run()
 						_mavlink.set_client_source_initialized();
 
 						PX4_INFO("partner IP: %s", inet_ntoa(srcaddr.sin_addr));
+					}
+
+				} else if (nread > 0) {
+					if ((srcaddr.sin_addr.s_addr == srcaddr_last.sin_addr.s_addr)
+					    && (srcaddr.sin_port == srcaddr_last.sin_port)) {
+						// Our client is still there, keep the address latched.
+						_mavlink.mark_client_source_seen();
+
+					} else if (_mavlink.client_source_can_be_replaced()) {
+						// Our client stopped talking to us a while ago and someone else is
+						// talking to us now. This is what a client which was restarted looks
+						// like, as it comes back with a new source port, so switch over to it.
+						srcaddr_last.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
+						srcaddr_last.sin_port = srcaddr.sin_port;
+
+						_mavlink.set_client_source_initialized();
+
+						PX4_INFO("new partner IP: %s:%d", inet_ntoa(srcaddr.sin_addr), ntohs(srcaddr.sin_port));
 					}
 				}
 			}
