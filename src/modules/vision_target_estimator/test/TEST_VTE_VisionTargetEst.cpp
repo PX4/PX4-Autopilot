@@ -977,7 +977,7 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffHomeReferenceRequiresLandedAndNearby
 	double home_lat;
 	double home_lon;
 	waypoint_from_heading_and_distance(lat, lon, 0.f, vte::PrecTakeoffTask::kMaxHomeDistM + 1.f,
-					    &home_lat, &home_lon);
+					   &home_lat, &home_lon);
 	publishHomePosition(home_lat, home_lon, alt, vte_test::advanceMicroseconds(kStepUs));
 
 	// THEN: Home is rejected.
@@ -986,7 +986,7 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffHomeReferenceRequiresLandedAndNearby
 
 	// GIVEN: Home is just inside the limit.
 	waypoint_from_heading_and_distance(lat, lon, 0.f, vte::PrecTakeoffTask::kMaxHomeDistM - 1.f,
-					    &home_lat, &home_lon);
+					   &home_lat, &home_lon);
 	publishHomePosition(home_lat, home_lon, alt, vte_test::advanceMicroseconds(kStepUs));
 
 	// THEN: Home is cached as pad reference.
