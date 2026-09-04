@@ -88,7 +88,7 @@ void establish_work_orbit(AutopilotTesterLoiter &tester)
 
 } // namespace
 
-TEST_CASE("Loiter: RTL climbs on an established non-default-radius loiter", "[loiter]")
+TEST_CASE("Loiter: RTL climbs on an established non-default-radius loiter", "[vtol]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
@@ -99,13 +99,16 @@ TEST_CASE("Loiter: RTL climbs on an established non-default-radius loiter", "[lo
 	tester.set_rtl_altitude(rtl_altitude);
 	tester.execute_rtl();
 
+	// Accept the altitude the controller itself considers "reached", with 20% margin on top.
+	const float altitude_tolerance = 1.2f * tester.fw_altitude_acceptance_radius();
+
 	// RTL must climb to the return altitude while continuing to circle the very same loiter
 	// (same center and non-default radius), not re-center a new circle.
 	tester.check_climbs_on_loiter(kWorkCenter, kNonDefaultRadius, kRadiusTolerance, rtl_altitude,
-				      kAltitudeTolerance, 180s);
+				      altitude_tolerance, 180s);
 }
 
-TEST_CASE("Loiter: Hold during an altitude change keeps the loiter and locks the current altitude", "[loiter]")
+TEST_CASE("Loiter: Hold during an altitude change keeps the loiter and locks the current altitude", "[vtol]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
@@ -132,7 +135,7 @@ TEST_CASE("Loiter: Hold during an altitude change keeps the loiter and locks the
 	tester.check_stays_on_loiter(kWorkCenter, kNonDefaultRadius, kRadiusTolerance, 40s);
 }
 
-TEST_CASE("Loiter: Hold while transiting creates a new loiter at the current position", "[loiter]")
+TEST_CASE("Loiter: Hold while transiting creates a new loiter at the current position", "[vtol]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
@@ -155,7 +158,7 @@ TEST_CASE("Loiter: Hold while transiting creates a new loiter at the current pos
 	tester.check_never_reaches(far_center, 150.f, 40s);
 }
 
-TEST_CASE("Loiter: Hold on a figure-eight reverts to a plain circular loiter", "[loiter]")
+TEST_CASE("Loiter: Hold on a figure-eight reverts to a plain circular loiter", "[vtol]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
@@ -176,7 +179,7 @@ TEST_CASE("Loiter: Hold on a figure-eight reverts to a plain circular loiter", "
 	tester.check_stays_within(hold_position, default_radius + 70.f, 40s);
 }
 
-TEST_CASE("Loiter: altitude-only reposition keeps the loiter and only changes altitude", "[loiter]")
+TEST_CASE("Loiter: altitude-only reposition keeps the loiter and only changes altitude", "[vtol]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
