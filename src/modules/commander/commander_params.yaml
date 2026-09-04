@@ -653,7 +653,7 @@ parameters:
       description:
         short: Maximum allowed flight time
         long: |-
-          The vehicle aborts the current operation and returns to launch when
+          The vehicle aborts the current operation and Returns when
           the time since takeoff is above this value. It is not possible to resume the
           mission or switch to any auto mode other than Return or Land. Taking over in any manual
           mode is still possible.
