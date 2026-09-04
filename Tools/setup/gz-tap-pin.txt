@@ -4,5 +4,6 @@
 # dependency bump and rebuilds them days later. The tarballs stay on S3, so
 # pinning keeps the install binary instead of compiling Gazebo from source.
 # Move it to the newest commit where every gz formula macos.sh installs still
-# carries a bottle block.
-c90f81ac7ea8046e195c5e303cc4e1175642e587
+# carries a bottle block. Tools/ci/refresh_gz_tap_pin.rb does that, weekly
+# from .github/workflows/macos_gz_tap_pin_refresh.yml or by hand.
+43aee9cc6e02aa8b7327d0a8d3e895f93a99440f

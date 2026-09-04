@@ -47,7 +47,7 @@
 
 #include "board_config.h"
 
-#include <barriers.h>
+#include <arch/barriers.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -190,9 +190,9 @@ void imxrt_octl_flash_initialize(void)
 	ROM_FLEXSPI_NorFlash_Init(instance, (struct flexspi_nor_config_s *)&g_bootConfig);
 	ROM_FLEXSPI_NorFlash_ClearCache(1);
 
-	ARM_DSB();
-	ARM_ISB();
-	ARM_DMB();
+	arm_dsb();
+	arm_isb();
+	arm_dmb();
 }
 #endif
 
@@ -406,9 +406,9 @@ void imxrt_flash_setup_prefetch_partition(void)
 				  FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
 				  FLEXSPI_AHBRXBUFCR0_REGIONEN(0);
 
-	ARM_DSB();
-	ARM_ISB();
-	ARM_DMB();
+	arm_dsb();
+	arm_isb();
+	arm_dmb();
 }
 
 
@@ -506,8 +506,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	imxrt_spiinitialize();
 
-	px4_platform_configure();
-
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
 		       board_get_hw_type_name());
@@ -557,6 +555,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	px4_platform_i2c_init();
 
+	/* PAB 24LC64T is on I2C3_BASE = LPI2C6 (X1_8/10). Manifest MTD talks I2C, so it
+	 * runs after those pins are I2C and VDD_5V_PERIPH is on. FlexSPI FRAM does not care. */
+	px4_platform_configure();
+
 	/* Configure the Actual SPI interfaces (after we determined the HW version)  */
 
 	imxrt_spiinitialize();
@@ -582,7 +584,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
-#ifdef CONFIG_BOARD_CRASHDUMP
+#ifdef CONFIG_BOARD_CRASHDUMP_CUSTOM
 
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_RED);

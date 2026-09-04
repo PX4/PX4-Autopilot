@@ -41,7 +41,10 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		return;
 	}
 
-	if (fd_status.fd_roll) {
+	// don't warn while the vehicle is tilted during calibration
+	const bool report_attitude_failure = !context.status().calibration_enabled;
+
+	if (report_attitude_failure && fd_status.fd_roll) {
 		/* EVENT
 		 * @description
 		 * The vehicle exceeded the maximum configured roll angle.
@@ -57,7 +60,7 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Attitude failure (roll)");
 		}
 
-	} else if (fd_status.fd_pitch) {
+	} else if (report_attitude_failure && fd_status.fd_pitch) {
 		/* EVENT
 		 * @description
 		 * The vehicle exceeded the maximum configured pitch angle.

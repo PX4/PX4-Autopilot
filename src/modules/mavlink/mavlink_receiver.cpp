@@ -455,6 +455,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	_mavlink.handle_message(msg);
 }
 
+static bool gimbal_mode_command_allowed(uint16_t command)
+{
+	return command == MAV_CMD_SET_MESSAGE_INTERVAL
+	       || command == MAV_CMD_GET_MESSAGE_INTERVAL
+	       || command == MAV_CMD_REQUEST_MESSAGE;
+}
+
 void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 {
 	switch (msg.msgid) {
@@ -476,6 +483,30 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 
 	case MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS:
 		handle_message_gimbal_device_attitude_status(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_COMMAND_LONG: {
+			mavlink_command_long_t cmd;
+			mavlink_msg_command_long_decode(&msg, &cmd);
+
+			if (gimbal_mode_command_allowed(cmd.command)) {
+				handle_message_command_long(&msg);
+			}
+		}
+		break;
+
+	case MAVLINK_MSG_ID_COMMAND_INT: {
+			mavlink_command_int_t cmd;
+			mavlink_msg_command_int_decode(&msg, &cmd);
+
+			if (gimbal_mode_command_allowed(cmd.command)) {
+				handle_message_command_int(&msg);
+			}
+		}
+		break;
+
+	case MAVLINK_MSG_ID_TIMESYNC:
+		_mavlink_timesync.handle_message(&msg);
 		break;
 	}
 
@@ -2752,7 +2783,7 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 
 	ranging_beacon_s ranging_beacon{};
 	ranging_beacon.timestamp = hrt_absolute_time();
-	ranging_beacon.timestamp_sample = beacon_pos.time_usec;
+	ranging_beacon.timestamp_sample = _mavlink_timesync.sync_stamp(beacon_pos.time_usec);
 	ranging_beacon.beacon_id = beacon_pos.beacon_id;
 	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
 	ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
