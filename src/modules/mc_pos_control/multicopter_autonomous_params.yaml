@@ -49,7 +49,7 @@ parameters:
     MPC_XY_CRUISE:
       description:
         short: Default horizontal velocity in autonomous modes
-        long: e.g. in Missions, RTL, Goto if the waypoint does not specify differently
+        long: e.g. in Missions, Return, Goto if the waypoint does not specify differently
       type: float
       default: 5.0
       unit: m/s
