@@ -123,34 +123,33 @@ void InternalCombustionEngineControl::Run()
 
 	switch (static_cast<ICESource>(_param_ice_on_source.get())) {
 	case ICESource::ArmingState: {
-			_user_request = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? UserOnOffRequest::On :
-					UserOnOffRequest::Off;
+			_user_request_motor_on = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 		}
 		break;
 
 	case ICESource::Aux1: {
 			if (manual_control_setpoint.aux1 > 0.5f) {
-				_user_request = UserOnOffRequest::On;
+				_user_request_motor_on = true;
 
 			} else if (manual_control_setpoint.aux1 < -0.5f) {
-				_user_request = UserOnOffRequest::Off;
+				_user_request_motor_on = false;
 			}
 		}
 		break;
 
 	case ICESource::Aux2: {
 			if (manual_control_setpoint.aux2 > 0.5f) {
-				_user_request = UserOnOffRequest::On;
+				_user_request_motor_on = true;
 
 			} else if (manual_control_setpoint.aux2 < -0.5f) {
-				_user_request = UserOnOffRequest::Off;
+				_user_request_motor_on = false;
 			}
 		}
 		break;
 
 	case ICESource::VtolStatus: {
-			_user_request = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-					 || vehicle_status.in_transition_to_fw) ? UserOnOffRequest::On : UserOnOffRequest::Off;
+			_user_request_motor_on = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+						 || vehicle_status.in_transition_to_fw;
 		}
 		break;
 	}
@@ -159,7 +158,7 @@ void InternalCombustionEngineControl::Run()
 	case State::Stopped: {
 			controlEngineStop();
 
-			if (_user_request == UserOnOffRequest::On && !maximumAttemptsReached()) {
+			if (_user_request_motor_on && !maximumAttemptsReached()) {
 
 				_state = State::Starting;
 				_state_start_time = now;
@@ -170,7 +169,7 @@ void InternalCombustionEngineControl::Run()
 
 	case State::Starting: {
 
-			if (_user_request == UserOnOffRequest::Off) {
+			if (!_user_request_motor_on) {
 				_state = State::Stopped;
 				_starting_retry_cycle = 0;
 				PX4_INFO("ICE: Stopped");
@@ -241,7 +240,7 @@ void InternalCombustionEngineControl::Run()
 				controlEngineRunning(throttle_in);
 			}
 
-			if (_user_request == UserOnOffRequest::Off) {
+			if (!_user_request_motor_on) {
 				_state = State::Stopped;
 				_starting_retry_cycle = 0;
 				PX4_INFO("ICE: Stopped");
@@ -262,7 +261,7 @@ void InternalCombustionEngineControl::Run()
 
 	case State::Fault: {
 
-			if (_user_request == UserOnOffRequest::Off) {
+			if (!_user_request_motor_on) {
 				_state = State::Stopped;
 				_starting_retry_cycle = 0;
 				PX4_INFO("ICE: Stopped");
@@ -299,10 +298,10 @@ void InternalCombustionEngineControl::publishControl(const hrt_abstime now)
 	ice_control.ignition_on = _ignition_on;
 	ice_control.starter_engine_control = _starter_engine_control;
 	ice_control.throttle_control = _throttle_control;
-	ice_control.user_request = static_cast<uint8_t>(_user_request);
+	ice_control.user_request_motor_on = _user_request_motor_on;
 	_internal_combustion_engine_control_pub.publish(ice_control);
 
-	internal_combustion_engine_status_s ice_status;
+	internal_combustion_engine_status_s ice_status{};
 	ice_status.state = static_cast<uint8_t>(_state);
 	ice_status.substate = static_cast<uint8_t>(_sub_state);
 	ice_status.timestamp = now;
@@ -413,55 +412,36 @@ int InternalCombustionEngineControl::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 
-The module controls internal combustion engine (ICE) features including:
-ignition (on/off), throttle and choke level, starter engine delay, and user request.
+Controls a spark-ignition internal combustion engine (ICE): ignition, throttle, choke, and
+electric starter motor. A state machine sequences the start attempts, restarts the engine if
+it stops in flight, and runs a closed loop idle RPM governor.
+
+The throttle demand is taken from motor 1 of the control allocator. The resulting setpoints are
+published in [InternalCombustionEngineControl.msg](../msg_docs/InternalCombustionEngineControl.md),
+which the mixer maps to the four `IC Engine *` output functions (ignition, throttle, choke, starter).
+In the "Stopped" state the throttle setpoint is NAN, which by definition drives the output to
+the disarmed value configured for that output.
+
+The engine speed is read from [Rpm.msg](../msg_docs/Rpm.md) and is required for operation: the
+state machine only declares the engine running once the measured RPM exceeds ICE_MIN_RUN_RPM.
+The state machine state is reported in
+[InternalCombustionEngineStatus.msg](../msg_docs/InternalCombustionEngineStatus.md).
 
 ### Enabling
 
-This feature is not enabled by default needs to be configured in the
-build target for your board together with the rpm capture driver:
+The module and the RPM capture driver are not in the default builds and have to be added to the
+board configuration:
 
 ```
 CONFIG_MODULES_INTERNAL_COMBUSTION_ENGINE_CONTROL=y
 CONFIG_DRIVERS_RPM_CAPTURE=y
 ```
 
-Additionally, to enable the module:
+The module is then started at boot if
+[ICE_EN](../advanced_config/parameter_reference.md#ICE_EN) is set.
 
-- Set [ICE_EN](../advanced_config/parameter_reference.md#ICE_EN)
-to true and adjust the other `ICE_` module parameters according to your needs.
-- Set [RPM_CAP_ENABLE](../advanced_config/parameter_reference.md#RPM_CAP_ENABLE) to true.
-
-The module outputs control signals for ignition, throttle, and choke,
-and takes inputs from an RPM sensor.
-These must be mapped to AUX outputs/inputs in the [Actuator configuration](../config/actuators.md),
-similar to the setup shown below.
-
-![Actuator setup for ICE](../../assets/hardware/ice/ice_actuator_setup.png)
-
-### Implementation
-
-The ICE is implemented with a (4) state machine:
-
-![Architecture](../../assets/hardware/ice/ice_control_state_machine.png)
-
-The state machine:
-
-- Checks if [Rpm.msg](../msg_docs/Rpm.md) is updated to know if the engine is running
-- Allows for user inputs from:
-  - Manual control AUX
-  - Arming state in [VehicleStatus.msg](../msg_docs/VehicleStatus.md)
-- In the state "Stopped" the throttle is set to NAN, which by definition will set the
-  throttle output to the disarmed value configured for the specific output.
-
-
-The module publishes [InternalCombustionEngineControl.msg](../msg_docs/InternalCombustionEngineControl.md).
-
-The architecture is as shown below:
-
-![Architecture](../../assets/hardware/ice/ice_control_diagram.png)
-
-<a id="internal_combustion_engine_control_usage"></a>
+See [Internal Combustion Engines](../actuators/internal_combustion_engine.md) for the hardware
+setup, actuator configuration, start sequence timing, and idle governor tuning.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("internal_combustion_engine_control", "system");
