@@ -42,7 +42,7 @@ parameters:
       increment: 0.5
     RTL_MIN_DIST:
       description:
-        short: Min distance for RTL cone altitude calculation
+        short: Min distance for Return cone altitude calculation
         long: |-
           Horizontal radius from return point within which special rules for return mode apply
 
@@ -103,10 +103,10 @@ parameters:
       max: 90
     RTL_PLD_MD:
       description:
-        short: RTL precision land mode
+        short: Return precision land mode
         long: |-
-          Use precision landing when doing an RTL landing phase.
-          This setting does not apply for RTL destinations planned as part of a mission.
+          Use precision landing when doing a Return landing phase.
+          This setting does not apply for Return destinations planned as part of a mission.
       type: enum
       values:
         0: No precision landing
@@ -115,7 +115,7 @@ parameters:
       default: 0
     RTL_LOITER_RAD:
       description:
-        short: Loiter radius for rtl descend
+        short: Loiter radius for Return descend
         long: Set the radius for loitering to a safe altitude for VTOL transition.
       type: float
       default: 80.0
@@ -127,9 +127,9 @@ parameters:
   definitions:
     RTL_TIME_FACTOR:
       description:
-        short: RTL time estimate safety margin factor
+        short: Return time estimate safety margin factor
         long: |-
-          Safety factor that is used to scale the actual RTL time estimate.
+          Safety factor that is used to scale the actual Return time estimate.
           Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
       type: float
       default: 1.1
@@ -139,7 +139,7 @@ parameters:
       increment: 0.1
     RTL_TIME_MARGIN:
       description:
-        short: RTL time estimate safety margin offset
+        short: Return time estimate safety margin offset
         long: |-
           Margin that is added to the time estimate, after it has already been scaled
           Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
@@ -152,9 +152,9 @@ parameters:
       increment: 1
     RTL_APPR_FORCE:
       description:
-        short: RTL force approach landing
+        short: Return force approach landing
         long: |-
-          Only consider home/rally RTL points that have a VTOL approach loiter.
+          Only consider home/rally Return points that have a VTOL approach loiter.
           A VTOL approach loiter is a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude.
       type: boolean
       default: 0

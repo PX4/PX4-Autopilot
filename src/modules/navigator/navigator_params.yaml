@@ -129,9 +129,9 @@ parameters:
       increment: 0.5
     NAV_MIN_GND_DIST:
       description:
-        short: Minimum height above ground during Mission and RTL
+        short: Minimum height above ground during Mission and Return
         long: |-
-          Minimum height above ground the vehicle is allowed to descend to during Mission and RTL,
+          Minimum height above ground the vehicle is allowed to descend to during Mission and Return,
           excluding landing commands.
           Requires a distance sensor to be set up.
           Note: only prevents the vehicle from descending further, but does not force it to climb.

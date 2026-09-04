@@ -91,7 +91,7 @@ bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_
 		break;
 
 	default:
-		PX4_WARN("RTL: unsupported rally frame");
+		PX4_WARN("Return: unsupported rally frame");
 		return false;
 	}
 

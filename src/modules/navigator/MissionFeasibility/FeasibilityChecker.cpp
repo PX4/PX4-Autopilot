@@ -508,9 +508,9 @@ bool FeasibilityChecker::checkLandPatternValidity(mission_item_s &mission_item, 
 	} else if (mission_item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
 		if (land_start_found && _do_land_start_index < current_index) {
 			mavlink_log_critical(_mavlink_log_pub,
-					     "Mission rejected: land start item before RTL item not possible.\t");
+					     "Mission rejected: land start item before Return item not possible.\t");
 			events::send(events::ID("navigator_mis_land_before_rtl"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: land start item before RTL item is not possible");
+				     "Mission rejected: land start item before Return item is not possible");
 			return false;
 		}
 	}

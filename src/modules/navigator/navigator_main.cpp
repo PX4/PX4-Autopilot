@@ -1129,10 +1129,11 @@ void Navigator::run()
 			case PlannerStatus::OutOfRange:
 			case PlannerStatus::Degenerate:
 			case PlannerStatus::DijkstraFailed:
-				mavlink_log_warning(&_mavlink_log_pub, "Geofence data invalid (code %d), RTL will fly directly\t",
+				mavlink_log_warning(&_mavlink_log_pub, "Geofence data invalid (code %d), Return will fly directly\t",
 						    (int) planner_status);
 				events::send<uint8_t>(events::ID("rtl_avoidance_build_failed"), {events::Log::Warning, events::LogInternal::Info},
-						      "Geofence data invalid (code {1}), RTL will fly directly", (uint8_t)planner_status);
+						      "Geofence data invalid (code {1}), Return will fly directly",
+						      (uint8_t)planner_status);
 				break;
 
 			default:
@@ -1146,21 +1147,21 @@ void Navigator::run()
 			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
 
 			if (planner_status == PlannerStatus::DestinationInvalid) {
-				mavlink_log_warning(&_mavlink_log_pub, "RTL destination invalid, not updating\t");
+				mavlink_log_warning(&_mavlink_log_pub, "Return destination invalid, not updating\t");
 				events::send(
 					events::ID("rtl_destination_invalid"),
 					events::LogLevels(events::Log::Warning, events::LogInternal::Info),
-					"RTL destination invalid, not updating"
+					"Return destination invalid, not updating"
 				);
 				_geofence_avoidance_planner.resetStatus();
 			}
 
 			if (planner_status == PlannerStatus::DestinationBreachesGeofence) {
-				mavlink_log_warning(&_mavlink_log_pub, "RTL destination breaches geofence, will fly directly\t");
+				mavlink_log_warning(&_mavlink_log_pub, "Return destination breaches geofence, will fly directly\t");
 				events::send(
 					events::ID("rtl_destination_breaches"),
 					events::LogLevels(events::Log::Warning, events::LogInternal::Info),
-					"RTL destination breaches geofence, will fly directly"
+					"Return destination breaches geofence, will fly directly"
 				);
 				_geofence_avoidance_planner.resetStatus();
 			}
@@ -1729,7 +1730,7 @@ void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)
 
 void Navigator::publish_distance_sensor_mode_request()
 {
-	// Send request to enable distance sensor when in the landing phase of a mission or RTL
+	// Send request to enable distance sensor when in the landing phase of a mission or Return
 	if (((_navigation_mode == &_rtl) && _rtl.isLanding()) || ((_navigation_mode == &_mission) && _mission.isLanding())) {
 
 		if (_distance_sensor_mode_change_request_pub.get().request_on_off !=
@@ -1924,7 +1925,7 @@ int Navigator::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
-takeoff and RTL.
+takeoff and Return.
 It is also responsible for geofence violation checking.
 
 ### Implementation
