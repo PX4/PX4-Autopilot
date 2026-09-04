@@ -540,6 +540,7 @@ bool ADIS16448::Configure()
 	_px4_accel.set_scale(0.833f * 1e-3f * CONSTANTS_ONE_G); // 0.833 mg/LSB
 	_px4_gyro.set_scale(math::radians(0.04f));              // 0.04 °/sec/LSB
 	_px4_mag.set_scale(142.9f * 1e-6f);                     // μgauss/LSB
+	_px4_mag.set_range(19.f);                               // +/-1900 uT
 
 	_px4_accel.set_range(18.f * CONSTANTS_ONE_G);
 	_px4_gyro.set_range(math::radians(1000.f));

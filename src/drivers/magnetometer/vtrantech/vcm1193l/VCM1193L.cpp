@@ -250,6 +250,7 @@ bool VCM1193L::Configure()
 	}
 
 	_px4_mag.set_scale(1.f / 3000.f); // 3000 LSB/Gauss (Field Range = ±8G)
+	_px4_mag.set_range(8.f);
 
 	return success;
 }
