@@ -57,11 +57,8 @@ constexpr float kFlightAltitude = 10.f;
 constexpr float kLoiterRadius = 100.f;
 
 // Band the vehicle has to enter to count as established on the loiter, and the band the flown
-// (ground truth) circle is checked against afterwards. The latter has to swallow how tightly the
-// fixed wing tracks the circle plus the drift of the flow only position estimate, observed is
-// ~1.6 m.
-constexpr float kLoiterCaptureTolerance = 20.f;
-constexpr float kLoiterRadiusTolerance = 10.f;
+// (ground truth) circle is checked against afterwards.
+constexpr float kLoiterTolerance = 20.f;
 
 // The estimate has to track the truth: the two streams are paired by arrival, so a short
 // acceleration between the two samples being compared already shows up as an error. Observed is
@@ -101,7 +98,7 @@ TEST_CASE("Optical flow - VTOL loiter tracks the ground truth velocity", "[optic
 	const AutopilotTesterFlow::LocalCoordinate loiter_center{position[0], position[1]};
 
 	tester.command_orbit(loiter_center, kLoiterRadius, NAN /* velocity: up to the vehicle */, kFlightAltitude);
-	tester.wait_until_on_circle(loiter_center, kLoiterRadius, kLoiterCaptureTolerance, 180s);
+	tester.wait_until_on_circle(loiter_center, kLoiterRadius, kLoiterTolerance, 180s);
 
 	tester.start_ground_truth_comparison();
 
@@ -110,6 +107,6 @@ TEST_CASE("Optical flow - VTOL loiter tracks the ground truth velocity", "[optic
 	tester.wait_until_heading_swept(kHeadingSweep, 180s);
 	tester.stop_ground_truth_comparison();
 
-	tester.check_ground_truth_on_circle(loiter_center, kLoiterRadius, kLoiterRadiusTolerance);
+	tester.check_ground_truth_on_circle(loiter_center, kLoiterRadius, kLoiterTolerance);
 	tester.check_velocity_error_below(kMeanVelocityErrorTolerance, kMaxVelocityErrorTolerance);
 }
