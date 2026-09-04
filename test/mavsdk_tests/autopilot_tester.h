@@ -222,27 +222,6 @@ protected:
 		return _home;
 	}
 
-private:
-	void start_offboard_with_retry(const std::function<void()> &resend_setpoint);
-
-	mavsdk::Mission::MissionItem create_mission_item(
-		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
-		const MissionOptions &mission_options,
-		const mavsdk::geometry::CoordinateTransformation &ct);
-
-	bool ground_truth_horizontal_position_far_from(const Telemetry::GroundTruth &target_pos, float min_distance_m);
-	bool estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
-	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
-	void start_and_wait_for_mission_sequence(int sequence_number);
-	void start_and_wait_for_mission_sequence_raw(int sequence_number);
-	void wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout);
-	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
-	void wait_for_mission_finished(std::chrono::seconds timeout);
-	void wait_for_mission_raw_finished(std::chrono::seconds timeout);
-	void move_mission_raw_here(std::vector<mavsdk::MissionRaw::MissionItem> &mission_items);
-
-	void report_speed_factor();
-
 	/**
 	 * @brief Continue polling until condition returns true or we have a timeout
 	 *
@@ -297,6 +276,28 @@ private:
 
 		return true;
 	}
+
+private:
+	void start_offboard_with_retry(const std::function<void()> &resend_setpoint);
+
+	mavsdk::Mission::MissionItem create_mission_item(
+		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
+		const MissionOptions &mission_options,
+		const mavsdk::geometry::CoordinateTransformation &ct);
+
+	bool ground_truth_horizontal_position_far_from(const Telemetry::GroundTruth &target_pos, float min_distance_m);
+	bool estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
+	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
+	void start_and_wait_for_mission_sequence(int sequence_number);
+	void start_and_wait_for_mission_sequence_raw(int sequence_number);
+	void wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout);
+	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
+	void wait_for_mission_finished(std::chrono::seconds timeout);
+	void wait_for_mission_raw_finished(std::chrono::seconds timeout);
+	void move_mission_raw_here(std::vector<mavsdk::MissionRaw::MissionItem> &mission_items);
+
+	void report_speed_factor();
+
 
 
 	mavsdk::Mavsdk _mavsdk{Mavsdk::Configuration{ComponentType::GroundStation}};
