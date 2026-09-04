@@ -1070,6 +1070,11 @@ void Navigator::run()
 				     "Transition to hover mode and descend");
 		}
 
+		// Clear completion state unless transitioning directly to Hold.
+		if (_navigation_mode != navigation_mode_new && navigation_mode_new != &_loiter) {
+			_navigation_mode_completed = false;
+		}
+
 		_navigation_mode = navigation_mode_new;
 
 		if (_wait_for_vehicle_status_timestamp != 0 && _vstatus.timestamp > _wait_for_vehicle_status_timestamp) {
@@ -1855,6 +1860,10 @@ void Navigator::preproject_stop_point(double &lat, double &lon)
 
 void Navigator::mode_completed(uint8_t nav_state, uint8_t result)
 {
+	if (result == mode_completed_s::RESULT_SUCCESS) {
+		_navigation_mode_completed = true;
+	}
+
 	mode_completed_s mode_completed{};
 	mode_completed.timestamp = hrt_absolute_time();
 	mode_completed.result = result;

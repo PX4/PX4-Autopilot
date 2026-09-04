@@ -352,6 +352,13 @@ public:
 
 	void mode_completed(uint8_t nav_state, uint8_t result = mode_completed_s::RESULT_SUCCESS);
 
+	bool consume_navigation_mode_completed()
+	{
+		const bool completed = _navigation_mode_completed;
+		_navigation_mode_completed = false;
+		return completed;
+	}
+
 	void set_failsafe_status(uint8_t nav_state, bool failsafe);
 
 	void sendWarningDescentStoppedDueToTerrain();
@@ -427,6 +434,7 @@ private:
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
+	bool		_navigation_mode_completed{false};		/**< set when the active navigation mode completes successfully */
 
 	MissionRouteCache _mission_route_cache{&_mavlink_log_pub};
 	Mission		_mission;			/**< class that handles the missions */
