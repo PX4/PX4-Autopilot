@@ -1,0 +1,6 @@
+module_name: Benewake TF02 Pro Rangefinder
+serial_config:
+  - command: tf02pro start -d ${SERIAL_DEV}
+    port_config_param:
+      name: SENS_TF02PRO_CFG
+      group: Sensors
