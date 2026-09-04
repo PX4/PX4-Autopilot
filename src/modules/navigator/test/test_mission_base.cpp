@@ -819,7 +819,7 @@ TEST_F(MissionBaseTraversalTest, GetPreviousPositionItemsFollowsActiveDoJump)
 	EXPECT_EQ(previous_items[0], 0);
 }
 
-// WHY: Mission-based RTL configures position traversal to skip DO_JUMP loops consistently.
+// WHY: Mission-based Return configures position traversal to skip DO_JUMP loops consistently.
 // WHAT: [DO_JUMP->2, WP1, WP2] from current_seq=-1 lands on idx 1 with the configured traversal.
 TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGoToNextPositionItem)
 {
@@ -839,7 +839,7 @@ TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGo
 	EXPECT_EQ(mission_base.currentSequence(), 1);
 }
 
-// WHY: Reverse mission-path RTL must skip DO_JUMP loops for backward progression too.
+// WHY: Reverse mission-path Return must skip DO_JUMP loops for backward progression too.
 // WHAT: [WP0, WP1, DO_JUMP->0, WP3] from current_seq=3 lands on idx 1 with the configured traversal.
 TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGoToPreviousPositionItem)
 {

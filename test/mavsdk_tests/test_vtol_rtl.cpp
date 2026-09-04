@@ -33,7 +33,7 @@
 
 #include "autopilot_tester_rtl.h"
 
-TEST_CASE("RTL direct Home", "[vtol]")
+TEST_CASE("Return direct Home", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
@@ -49,7 +49,7 @@ TEST_CASE("RTL direct Home", "[vtol]")
 	tester.check_home_within(5.0f);
 }
 
-TEST_CASE("RTL direct Mission Land", "[vtol]")
+TEST_CASE("Return direct Mission Land", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
@@ -64,7 +64,7 @@ TEST_CASE("RTL direct Mission Land", "[vtol]")
 	tester.check_mission_land_within(5.0f);
 }
 
-TEST_CASE("RTL with Mission Landing", "[vtol]")
+TEST_CASE("Return with Mission Landing", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
@@ -78,7 +78,7 @@ TEST_CASE("RTL with Mission Landing", "[vtol]")
 	tester.wait_until_disarmed(std::chrono::seconds(150));
 }
 
-TEST_CASE("RTL with Reverse Mission", "[vtol]")
+TEST_CASE("Return with Reverse Mission", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
@@ -93,7 +93,7 @@ TEST_CASE("RTL with Reverse Mission", "[vtol]")
 	tester.wait_until_disarmed(std::chrono::seconds(150));
 }
 
-TEST_CASE("RTL direct home without approaches", "[vtol]")
+TEST_CASE("Return direct home without approaches", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
@@ -112,7 +112,7 @@ TEST_CASE("RTL direct home without approaches", "[vtol]")
 	tester.check_home_within(5.0f);
 }
 
-TEST_CASE("RTL direct home without approaches forced", "[vtol]")
+TEST_CASE("Return direct home without approaches forced", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
@@ -131,7 +131,7 @@ TEST_CASE("RTL direct home without approaches forced", "[vtol]")
 	tester.check_mission_land_within(5.f);
 }
 
-TEST_CASE("RTL direct home with approaches", "[vtol]")
+TEST_CASE("Return direct home with approaches", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
@@ -150,7 +150,7 @@ TEST_CASE("RTL direct home with approaches", "[vtol]")
 	tester.check_home_within(5.0f);
 }
 
-TEST_CASE("RTL direct home not as rally point", "[vtol]")
+TEST_CASE("Return direct home not as rally point", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
@@ -168,7 +168,7 @@ TEST_CASE("RTL direct home not as rally point", "[vtol]")
 	tester.check_mission_land_within(5.0f);
 }
 
-TEST_CASE("RTL direct rally without approaches", "[vtol]")
+TEST_CASE("Return direct rally without approaches", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
@@ -188,7 +188,7 @@ TEST_CASE("RTL direct rally without approaches", "[vtol]")
 	tester.check_home_not_within(20.);
 }
 
-TEST_CASE("RTL direct rally without approaches forced", "[vtol]")
+TEST_CASE("Return direct rally without approaches forced", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
@@ -207,7 +207,7 @@ TEST_CASE("RTL direct rally without approaches forced", "[vtol]")
 	tester.check_mission_land_within(5.f);
 }
 
-TEST_CASE("RTL direct rally with approaches", "[vtol]")
+TEST_CASE("Return direct rally with approaches", "[vtol]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);

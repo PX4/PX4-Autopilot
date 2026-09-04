@@ -387,7 +387,7 @@ TEST_F(FeasibilityCheckerTest, fixed_wing_landing)
 	checker.processNextItem(mission_item, 0, 2);
 	ASSERT_EQ(checker.someCheckFailed(), true);
 
-	// cannot have land start before RTL
+	// cannot have land start before Return
 	checker.reset();
 	checker.publishVehicleType(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	mission_item.nav_cmd = NAV_CMD_DO_LAND_START;

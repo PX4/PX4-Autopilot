@@ -215,7 +215,7 @@ def run_mission_tests(mav: Any, timeout: float) -> None:
         result, MAV_MISSION_INVALID_PARAM3,
     )
 
-    # 3. NAV_RTL with param1 set (mask 0x00, no params). RTL is only a valid
+    # 3. NAV_RTL with param1 set (mask 0x00, no params). Return is only a valid
     # mission item under MAV_FRAME_MISSION (no coordinates) in PX4; sending
     # it as MAV_FRAME_GLOBAL_INT hits the frame switch's default case
     # (MAV_MISSION_UNSUPPORTED) once params pass, regardless of param values.

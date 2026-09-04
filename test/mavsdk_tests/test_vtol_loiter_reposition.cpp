@@ -33,9 +33,9 @@
 
 // Integration tests for fixed-wing loiter / reposition / Hold interaction.
 //
-// These exercise how a Hold (MAV_CMD_DO_REPOSITION pause) and RTL interact with an already
+// These exercise how a Hold (MAV_CMD_DO_REPOSITION pause) and Return interact with an already
 // established loiter:
-//   1. RTL while established on a non-default-radius loiter climbs on that same loiter.
+//   1. Return while established on a non-default-radius loiter climbs on that same loiter.
 //   2. A Hold (all-NaN reposition) while established keeps the loiter but holds the current altitude.
 //   3. A Hold while still transiting toward a loiter creates a fresh loiter at the current position.
 //   4. A Hold while flying a figure-eight reverts to a plain circular loiter (patterns are not mixed).
@@ -50,8 +50,8 @@ using namespace std::chrono_literals;
 namespace
 {
 
-// Home-relative center used for the "work" loiter. Placed well away from home so that RTL climbs to
-// the full return altitude (close to home the RTL cone would cap the climb).
+// Home-relative center used for the "work" loiter. Placed well away from home so that Return climbs to
+// the full return altitude (close to home the Return cone would cap the climb).
 const AutopilotTesterLoiter::LocalCoordinate kWorkCenter{250.0, 0.0};
 
 constexpr float kTakeoffAltitude = 40.f;
@@ -88,18 +88,18 @@ void establish_work_orbit(AutopilotTesterLoiter &tester)
 
 } // namespace
 
-TEST_CASE("Loiter: RTL climbs on an established non-default-radius loiter", "[loiter]")
+TEST_CASE("Loiter: Return climbs on an established non-default-radius loiter", "[loiter]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
 	establish_work_orbit(tester);
 
-	// Climb clearly above the loiter altitude when RTL is engaged.
+	// Climb clearly above the loiter altitude when Return is engaged.
 	const float rtl_altitude = 80.f;
 	tester.set_rtl_altitude(rtl_altitude);
 	tester.execute_rtl();
 
-	// RTL must climb to the return altitude while continuing to circle the very same loiter
+	// Return must climb to the return altitude while continuing to circle the very same loiter
 	// (same center and non-default radius), not re-center a new circle.
 	tester.check_climbs_on_loiter(kWorkCenter, kNonDefaultRadius, kRadiusTolerance, rtl_altitude,
 				      kAltitudeTolerance, 180s);

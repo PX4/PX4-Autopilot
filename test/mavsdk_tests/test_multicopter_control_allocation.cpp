@@ -84,7 +84,7 @@ TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
 	tester.stop_checking_altitude();
 	tester.ensure_motor_stopped(motor_instance - 1, num_motors); // just to be sure
 
-	// RTL
+	// Return
 	tester.execute_rtl();
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
@@ -138,8 +138,8 @@ TEST_CASE("Control Allocation - Remove two motors", "[controlallocation]")
 	tester.execute_mission();
 	tester.stop_checking_altitude();
 
-	// RTL with two motors out won't work because navigator will wait forever until
-	// the yaw setpoint is reached during RTL, and it won't land.
+	// Return with two motors out won't work because navigator will wait forever until
+	// the yaw setpoint is reached during Return, and it won't land.
 	tester.land();
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
@@ -210,7 +210,7 @@ TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocati
 	tester.set_param_fd_act_en(true);	// Enable motor failure detection
 	tester.set_param_mc_airmode(1);		// Enable airmode for control allocation with motor failure
 	tester.set_param_ca_failure_mode(1);	// Enable control allocation handling of failed motor
-	tester.set_param_com_act_fail_act(3);	// RTL on motor failure
+	tester.set_param_com_act_fail_act(3);	// Return on motor failure
 	tester.set_takeoff_altitude(flight_altitude);
 	tester.store_home();
 	tester.sleep_for(std::chrono::seconds(1));  // Necessary for the takeoff altitude to be applied properly
@@ -222,7 +222,7 @@ TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocati
 	tester.wait_until_altitude(flight_altitude, std::chrono::seconds(30));
 	tester.wait_until_speed_lower_than(hover_speed_tolerance, std::chrono::seconds(30));
 
-	// TODO: Minor improvement, fly forward for a little bit before triggering motor failure to distinguish "RTL" and "Land only"
+	// TODO: Minor improvement, fly forward for a little bit before triggering motor failure to distinguish "Return" and "Land only"
 
 	// Motor failure mid-air
 	const int motor_instance = 1;
@@ -230,7 +230,7 @@ TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocati
 			      mavsdk::Failure::Result::Success);
 	tester.sleep_for(std::chrono::seconds(1));
 
-	// Wait for RTL to trigger automatically
+	// Wait for Return to trigger automatically
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 	tester.check_home_within(5.f);

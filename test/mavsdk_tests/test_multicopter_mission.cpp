@@ -48,7 +48,7 @@ TEST_CASE("Takeoff and Land", "[multicopter][vtol]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Fly square Multicopter Missions including RTL", "[multicopter]")
+TEST_CASE("Fly square Multicopter Missions including Return", "[multicopter]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
@@ -63,7 +63,7 @@ TEST_CASE("Fly square Multicopter Missions including RTL", "[multicopter]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Fly square Multicopter Missions with manual RTL", "[multicopter]")
+TEST_CASE("Fly square Multicopter Missions with manual Return", "[multicopter]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
