@@ -47,6 +47,7 @@ The boards in this category are:
 - [MicoAir H743 Lite](../flight_controller/micoair743-lite.md)
 - [ModalAI VOXL 2](../flight_controller/modalai_voxl_2.md)
 - [mRo Control Zero](../flight_controller/mro_control_zero_f7.md)
+- [NWBlue Pro H757](../flight_controller/nwblue_pro-h757.md)
 - [Radiolink PIX6](../flight_controller/radiolink_pix6.md)
 - [Sky-Drones AIRLink](../flight_controller/airlink.md)
 - [SPRacing SPRacingH7EXTREME](../flight_controller/spracingh7extreme.md)
