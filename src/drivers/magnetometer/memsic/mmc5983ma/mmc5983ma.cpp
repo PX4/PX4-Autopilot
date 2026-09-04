@@ -41,7 +41,9 @@ MMC5983MA::MMC5983MA(device::Device *interface, const I2CSPIDriverConfig &config
 	_px4_mag(interface->get_device_id(), config.rotation, config.external),
 	_sample_count(perf_alloc(PC_COUNT, "mmc5983ma_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mmc5983ma_comms_errors"))
-{}
+{
+	_px4_mag.set_range(8.f);
+}
 
 MMC5983MA::~MMC5983MA()
 {

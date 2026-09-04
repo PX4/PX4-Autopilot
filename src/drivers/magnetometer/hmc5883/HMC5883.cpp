@@ -116,6 +116,8 @@ int HMC5883::set_range(unsigned range)
 		_range_ga = 8.1f;
 	}
 
+	_px4_mag.set_range(_range_ga);
+
 	/*
 	 * Send the command to set the range
 	 */

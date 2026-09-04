@@ -266,6 +266,7 @@ bool AK8963::Configure()
 
 	// in 16-bit sampling mode (ST2 BITM) the mag resolution is 1.5 milli Gauss per bit (0.15 μT/LSB)
 	_px4_mag.set_scale(1.5e-3f);
+	_px4_mag.set_range(49.12f); // +/-4912 uT
 
 	return success;
 }

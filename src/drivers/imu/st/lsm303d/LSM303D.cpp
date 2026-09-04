@@ -249,28 +249,29 @@ LSM303D::mag_set_range(unsigned max_ga)
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG6_FULL_SCALE_BITS_M;
 	float new_scale_ga_digit = 0.0f;
+	float new_range_ga = 0.0f;
 
 	if (max_ga == 0) {
 		max_ga = 12;
 	}
 
 	if (max_ga <= 2) {
-		// mag_range_ga = 2;
+		new_range_ga = 2.f;
 		setbits |= REG6_FULL_SCALE_2GA_M;
 		new_scale_ga_digit = 0.080e-3f;
 
 	} else if (max_ga <= 4) {
-		// mag_range_ga = 4;
+		new_range_ga = 4.f;
 		setbits |= REG6_FULL_SCALE_4GA_M;
 		new_scale_ga_digit = 0.160e-3f;
 
 	} else if (max_ga <= 8) {
-		// mag_range_ga = 8;
+		new_range_ga = 8.f;
 		setbits |= REG6_FULL_SCALE_8GA_M;
 		new_scale_ga_digit = 0.320e-3f;
 
 	} else if (max_ga <= 12) {
-		// mag_range_ga = 12;
+		new_range_ga = 12.f;
 		setbits |= REG6_FULL_SCALE_12GA_M;
 		new_scale_ga_digit = 0.479e-3f;
 
@@ -279,6 +280,7 @@ LSM303D::mag_set_range(unsigned max_ga)
 	}
 
 	_px4_mag.set_scale(new_scale_ga_digit);
+	_px4_mag.set_range(new_range_ga);
 
 	modify_reg(ADDR_CTRL_REG6, clearbits, setbits);
 

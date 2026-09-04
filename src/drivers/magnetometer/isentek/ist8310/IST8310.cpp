@@ -271,6 +271,7 @@ bool IST8310::Configure()
 	}
 
 	_px4_mag.set_scale(1.f / 1320.f); // 1320 LSB/Gauss
+	_px4_mag.set_range(16.f); // +/-1600 uT
 
 	return success;
 }
