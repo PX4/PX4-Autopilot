@@ -24,7 +24,7 @@ Whether or not you `Land` depends on whether the package can safely be deployed 
 Since a gripper cannot lower packages safely, multicopter and VTOL vehicles will often land to deploy packages when using a gripper.
 
 After the deployment device [indicates completion](#package-release-feedback), the vehicle will proceed to the next waypoint.
-Note that if landed, the next mission item after deployment should be another `Waypoint` or a `Takeoff` mission item ([it must not be a `RETURN`](#rtl-waypoint-for-package-delivery-with-landing).)
+Note that if landed, the next mission item after deployment should be another `Waypoint` or a `Takeoff` mission item ([it must not be a `RETURN`](#return-waypoint-for-package-delivery-with-landing).)
 
 ## Creating a Package Delivery Mission
 
@@ -74,12 +74,12 @@ Note how the altitude graph shows the `Land` item.
 
 ### Notes
 
-#### RTL Waypoint for Package Delivery with Landing
+#### Return Waypoint for Package Delivery with Landing
 
 Do not plan a mission with a delivery like this: `LAND` > `GRIPPER` > `RETURN TO LAUNCH`.
 
 For safety reasons "Return To Launch" is disabled when vehicle is landed ([related issue](https://github.com/PX4/PX4-Autopilot/pull/20044)).
-So if you land, release the cargo, then have an RTL waypoint, the vehicle will idle at the landing coordinate.
+So if you land, release the cargo, then have a Return waypoint, the vehicle will idle at the landing coordinate.
 
 #### Manual Control of Gripper in Missions
 

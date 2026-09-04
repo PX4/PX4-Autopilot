@@ -235,7 +235,7 @@ void GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destina
 	_destination_healthy = _polygons.setDestination(dest_local);
 
 	if (!_destination_healthy) {
-		// Keep the (breaching) destination so RTL can still fall back to a straight
+		// Keep the (breaching) destination so Return can still fall back to a straight
 		// line; just flag it for the user-facing warning.
 		_status = Status::DestinationBreachesGeofence;
 		return;
@@ -284,10 +284,10 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 {
 	// Populate _path so consumers can blindly follow it:
 	//  - append the saved valid start (anchor) if the current `start` is outside the fence
-	//  - then fill the RTL return path by walking the DAG produced by the dijkstra solver
+	//  - then fill the return path by walking the DAG produced by the dijkstra solver
 
 	// Could also avoid storing _path entirely and build it ad-hoc from _next_node_buffer.
-	// Pro: less state, easier implementation of replanning on fence change during RTL
+	// Pro: less state, easier implementation of replanning on fence change during Return
 	// Con: introduces a lot of new edge cases (safe anchoring / replanning conflict somewhat)
 
 	int path_index = 0;  // points to the first empty slot, increment after writing

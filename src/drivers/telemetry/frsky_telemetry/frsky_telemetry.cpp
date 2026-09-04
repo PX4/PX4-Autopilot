@@ -107,7 +107,7 @@ uint16_t get_telemetry_flight_mode(int px4_flight_mode)
 
 	case 5:
 	case 6:
-	case 7: return 28; // rtl
+	case 7: return 28; // return
 
 	case 10: return 19; // acro
 

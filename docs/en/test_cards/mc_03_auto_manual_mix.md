@@ -8,7 +8,7 @@ To test switching between various modes
 
 - Takeoff as first waypoint
 - Changes in Altitude throughout the mission
-- Last waypoint is a NOT RTL, but a normal waypoint
+- Last waypoint is a NOT Return, but a normal waypoint
 - Duration of 5 to 6 minutes
 
 ## Flight Tests
@@ -31,7 +31,7 @@ To test switching between various modes
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;❏ Pitch/Roll/Yaw response set to Pitch/Roll/Yaw rates
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Engage RTL
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Engage Return
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Upon touching ground, copter should disarm automatically within 2 seconds (disarm time set by parameter: COM_DISARM_LAND)
 

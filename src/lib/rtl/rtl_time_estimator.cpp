@@ -34,7 +34,7 @@
 /**
  * @file rtl_time_estimator.cpp
  *
- * Helper class to calculate the remaining time estimate to go to RTL landing point.
+ * Helper class to calculate the remaining time estimate to go to Return landing point.
  *
  */
 
@@ -139,14 +139,14 @@ float RtlTimeEstimator::getCruiseGroundSpeed(const matrix::Vector2f &direction_n
 		const float wind_along_dir = wind.dot(direction_norm);
 		const float wind_across_dir = matrix::Vector2f(wind - direction_norm * wind_along_dir).norm();
 
-		// Note: use fminf so that we don't _rely_ on tailwind towards direction to make RTL more efficient
+		// Note: use fminf so that we don't _rely_ on tailwind towards direction to make Return more efficient
 		const float ground_speed = sqrtf(cruise_speed * cruise_speed - wind_across_dir * wind_across_dir) + fminf(
 						   0.f, wind_along_dir);
 
 		// Assume that minimum ground speed is always satisfied. If
 		//   windspeed < cas2tas(FW_AIRSPD_MAX) - FW_GND_SPD_MIN
 		// the assumption always holds. Otherwise it breaks down when
-		// flying upwind, and the RTL time estimate is optimistic.
+		// flying upwind, and the Return time estimate is optimistic.
 
 		float fw_gnd_spd_min = 5.0f;
 

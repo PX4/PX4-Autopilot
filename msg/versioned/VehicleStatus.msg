@@ -85,7 +85,7 @@ uint8 FAILSAFE_DEFER_STATE_DISABLED = 0
 uint8 FAILSAFE_DEFER_STATE_ENABLED = 1
 uint8 FAILSAFE_DEFER_STATE_WOULD_FAILSAFE = 2 # Failsafes deferred, but would trigger a failsafe
 
-bool failsafe # true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
+bool failsafe # true if system is in failsafe state (e.g.:Return, Hover, Terminate, ...)
 bool failsafe_and_user_took_over # true if system is in failsafe state but the user took over control
 uint8 failsafe_defer_state # one of FAILSAFE_DEFER_STATE_*
 

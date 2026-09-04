@@ -59,7 +59,7 @@ A mode defined using the interface library has the following properties:
 #### Mode Executor
 
 A mode executor is an optional component for scheduling modes.
-For example, the mode executor for a custom payload delivery or survey mode might first trigger a take-off, then switch to the custom mode, and when that completes trigger an RTL.
+For example, the mode executor for a custom payload delivery or survey mode might first trigger a take-off, then switch to the custom mode, and when that completes trigger a Return.
 
 Specifically, it has the following properties:
 
@@ -733,8 +733,8 @@ This makes it independent of startup ordering in case of multiple external modes
 
 ### Replacing an Internal Mode
 
-An external mode can replace an existing internal mode, such as [Return](../flight_modes/return.md) mode (RTL).
-By doing so, whenever RTL gets selected (through the user or a failsafe situation), the external mode is used instead of the internal one.
+An external mode can replace an existing internal mode, such as [Return](../flight_modes/return.md) mode.
+By doing so, whenever Return gets selected (through the user or a failsafe situation), the external mode is used instead of the internal one.
 The internal one is only used as a fallback when the external one becomes unresponsive or crashes.
 
 The replacement mode can be set in the settings of the `ModeBase` constructor:
