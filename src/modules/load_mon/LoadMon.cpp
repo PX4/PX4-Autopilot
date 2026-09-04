@@ -111,6 +111,8 @@ void LoadMon::Run()
 
 #endif
 
+	perf_end(_cycle_perf);
+
 	if (should_exit()) {
 		ScheduleClear();
 #if defined (__PX4_LINUX)
@@ -119,8 +121,6 @@ void LoadMon::Run()
 		exit_and_cleanup(desc);
 		return;
 	}
-
-	perf_end(_cycle_perf);
 }
 
 void LoadMon::cpuload()
