@@ -79,8 +79,9 @@ struct param_wbuf_s {
  * Same-bank program/erase stalls instruction fetch on STM32H7. A full
  * snapshot rewrite is tens of ms; a 128 KB sector erase is ~1 s. In-service
  * saves therefore append a delta of unsaved params (a few 32-byte rows).
- * The sector is compacted back to one snapshot at boot, before sensors
- * or DShot start.
+ * At boot, before sensors or DShot start, compact to one snapshot only when
+ * the sector cannot fit a burst of deltas — so a disarm-edge UUID save does
+ * not pay the erase every flight.
  */
 
 static bool
@@ -139,25 +140,35 @@ encode_params(bson_encoder_s *encoder, param_filter_func filter, bool snapshot)
 }
 
 static int
-write_encoded(bson_encoder_s *encoder)
+alloc_and_fill_write_buffer(bson_encoder_s *encoder, uint8_t **buffer, size_t *enc_size)
 {
 	void *enc_buff = bson_encoder_buf_data(encoder);
-	size_t enc_size = bson_encoder_buf_size(encoder);
+	*enc_size = bson_encoder_buf_size(encoder);
 
 	if (enc_buff == nullptr) {
 		return -ENOMEM;
 	}
 
-	size_t alloc_size = enc_size;
-	uint8_t *buffer;
-	int result = parameter_flashfs_alloc(parameters_token, &buffer, &alloc_size);
+	size_t alloc_size = *enc_size;
+	int result = parameter_flashfs_alloc(parameters_token, buffer, &alloc_size);
 
 	if (result != OK) {
 		return result;
 	}
 
-	memcpy(buffer, enc_buff, enc_size);
-	result = parameter_flashfs_write(parameters_token, buffer, enc_size);
+	if (alloc_size < *enc_size) {
+		parameter_flashfs_free();
+		return -ENOMEM;
+	}
+
+	memcpy(*buffer, enc_buff, *enc_size);
+	return OK;
+}
+
+static int
+commit_write_buffer(uint8_t *buffer, size_t enc_size)
+{
+	int result = parameter_flashfs_write(parameters_token, buffer, enc_size);
 	parameter_flashfs_free();
 
 	if (result == (int)enc_size) {
@@ -165,6 +176,20 @@ write_encoded(bson_encoder_s *encoder)
 	}
 
 	return result < 0 ? result : -EFBIG;
+}
+
+static int
+write_encoded(bson_encoder_s *encoder)
+{
+	uint8_t *buffer;
+	size_t enc_size;
+	int result = alloc_and_fill_write_buffer(encoder, &buffer, &enc_size);
+
+	if (result != OK) {
+		return result;
+	}
+
+	return commit_write_buffer(buffer, enc_size);
 }
 
 static int
@@ -189,15 +214,39 @@ export_and_write(param_filter_func filter, bool snapshot)
 static int
 compact_to_snapshot(param_filter_func filter)
 {
+	bson_encoder_s encoder{};
+	bson_encoder_init_buf(&encoder, nullptr, 0);
+
+	int result = encode_params(&encoder, filter, true);
+
+	if (result != 0) {
+		free(bson_encoder_buf_data(&encoder));
+		return result;
+	}
+
+	bson_encoder_fini(&encoder);
+
+	uint8_t *buffer;
+	size_t enc_size;
+	result = alloc_and_fill_write_buffer(&encoder, &buffer, &enc_size);
+	free(bson_encoder_buf_data(&encoder));
+
+	if (result != OK) {
+		return result;
+	}
+
+	/* Encode and the write buffer are ready: only now erase. A malloc
+	 * failure must not drop the log that is still on flash. */
 	if (parameter_flashfs_blank() != 1) {
 		int rv = parameter_flashfs_erase();
 
 		if (rv < 0) {
+			parameter_flashfs_free();
 			return rv;
 		}
 	}
 
-	return export_and_write(filter, true);
+	return commit_write_buffer(buffer, enc_size);
 }
 
 static int
@@ -211,9 +260,10 @@ param_export_internal(param_filter_func filter)
 		}
 
 		/* Same-bank erase stalls the CPU for ~1 s; only take that path when
-		 * the log no longer fits. Compact at boot is meant to keep this rare. */
+		 * the log no longer fits. Compact writes the full RAM snapshot so a
+		 * filtered save cannot drop params that were not in the delta. */
 		PX4_WARN("flashparams: param sector full, compacting");
-		return compact_to_snapshot(filter);
+		return compact_to_snapshot(nullptr);
 	}
 
 	/* Nothing unsaved. Still persist a snapshot if the store is empty so
@@ -226,7 +276,7 @@ param_export_internal(param_filter_func filter)
 		return 0;
 	}
 
-	return compact_to_snapshot(filter);
+	return compact_to_snapshot(nullptr);
 }
 
 
@@ -376,8 +426,8 @@ compact_after_import()
 	}
 
 	/* Same-bank erase stalls instruction fetch for ~1 s on H7. Do it here
-	 * at boot, before sensors or DShot start, so in-service saves stay
-	 * append-only (a few 32-byte rows for a delta of unsaved params). */
+	 * at boot, before sensors or DShot start, and only when a burst of
+	 * deltas would no longer fit. */
 	PX4_INFO("flashparams: compacting param sector");
 	int rv = compact_to_snapshot(nullptr);
 
@@ -395,14 +445,9 @@ int flash_param_save(param_filter_func filter)
 
 int flash_param_load()
 {
-	param_reset_all();
-	int result = param_import_internal();
-
-	if (result == 0) {
-		compact_after_import();
-	}
-
-	return result;
+	/* Reset is the caller's job (without autosave). Compacting here
+	 * would race ParamAutosave if reset_all() had queued a save. */
+	return flash_param_import();
 }
 
 int flash_param_import()

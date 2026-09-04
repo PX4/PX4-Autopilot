@@ -919,7 +919,7 @@ param_load_default()
 	const char *filename = param_get_default_file();
 
 	if (!filename) {
-		return flash_param_load();
+		return param_load(-1);
 	}
 
 	int fd_load = ::open(filename, O_RDONLY);
@@ -1330,11 +1330,54 @@ param_import_internal(int fd)
 	return -1;
 }
 
+#if defined(FLASH_BASED_PARAMS)
+static int flash_backend_locked(int (*op)())
+{
+	/* Same order as param_save_default: mutex then shutdown lock. Autosave
+	 * uses a trylock, so a compact holds it off the flash programming. */
+	pthread_mutex_lock(&file_mutex);
+
+	int shutdown_lock_ret = px4_shutdown_lock();
+
+	if (shutdown_lock_ret != 0) {
+		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
+	}
+
+	int result = op();
+
+	pthread_mutex_unlock(&file_mutex);
+
+	if (shutdown_lock_ret == 0) {
+		px4_shutdown_unlock();
+	}
+
+	return result;
+}
+
+static int flash_load_locked()
+{
+	/* Reset under the lock so a pending autosave cannot append tombstones
+	 * of the just-cleared RAM before import/compact run. */
+	param_reset_all_internal(false);
+	int result = flash_param_import();
+
+	if (result >= 0) {
+		params_unsaved.reset();
+	}
+
+	return result;
+}
+#endif
+
 int
 param_import(int fd)
 {
 	if (fd < 0) {
+#if defined(FLASH_BASED_PARAMS)
+		return flash_backend_locked(flash_param_import);
+#else
 		return flash_param_import();
+#endif
 	}
 
 	return param_import_internal(fd);
@@ -1344,11 +1387,21 @@ int
 param_load(int fd)
 {
 	if (fd < 0) {
+#if defined(FLASH_BASED_PARAMS)
+		return flash_backend_locked(flash_load_locked);
+#else
 		return flash_param_load();
+#endif
 	}
 
 	param_reset_all_internal(false);
-	return param_import_internal(fd);
+	int result = param_import_internal(fd);
+
+	if (result >= 0) {
+		params_unsaved.reset();
+	}
+
+	return result;
 }
 
 void

@@ -790,7 +790,7 @@ parameter_flashfs_write(flash_file_token_t token, uint8_t *buffer, size_t buf_si
 		size_t  size_adjust = ((total_size + alignment) & ~alignment) - total_size;
 		total_size += size_adjust;
 
-		/* Append. Compaction (sector erase) is the caller's job, done at boot. */
+		/* Append. Compaction (sector erase) is the caller's job. */
 		flash_entry_header_t *pf = find_free(total_size);
 
 		if (pf == 0) {
@@ -864,19 +864,25 @@ int parameter_flashfs_needs_compact(void)
 	flash_entry_header_t *first = NULL;
 	int n = for_each_valid_entry(parameters_token, note_first_entry, &first);
 
-	if (n < 0) {
+	if (n <= 0) {
 		return n;
 	}
 
-	if (n == 0) {
+	/* Keep enough free space for a QGC burst of deltas. A disarm-edge
+	 * UUID append is a few 32-byte rows and must not force a boot erase.
+	 * If the only live entry is already at the sector start, compacting
+	 * cannot create more room than it already occupies. */
+	const size_t delta_headroom = 4096;
+
+	if (find_free(delta_headroom) != NULL) {
 		return 0;
 	}
 
-	if (n > 1) {
-		return 1;
+	if (n == 1 && (uintptr_t)first == (uintptr_t)sector_map[0].address) {
+		return 0;
 	}
 
-	return (uintptr_t)first != (uintptr_t)sector_map[0].address;
+	return 1;
 }
 
 /****************************************************************************
@@ -1075,6 +1081,7 @@ __EXPORT void test(void)
 	int rv = 0;
 
 	for (int a = 0; a <= 4; a++) {
+		parameter_flashfs_erase();
 		rv =  parameter_flashfs_alloc(parameters_token, &fbuffer, &buf_size);
 		memcpy(fbuffer, test_buf, a);
 		buf_size = a;
@@ -1091,6 +1098,7 @@ __EXPORT void test(void)
 	int block = 2048;
 
 	for (int a = 0; a <= 8; a++) {
+		parameter_flashfs_erase();
 		rv =  parameter_flashfs_alloc(parameters_token, &fbuffer, &buf_size);
 		memcpy(fbuffer, test_buf, block);
 		buf_size = block;

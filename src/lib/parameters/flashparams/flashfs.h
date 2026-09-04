@@ -196,8 +196,8 @@ __EXPORT int parameter_flashfs_blank(void);
  * Description:
  *   Append a new entry. Previous valid entries are left intact so a boot
  *   replay can apply the whole log; the caller erases and rewrites a
- *   snapshot when the sector should be compacted. Returns -ENOSPC if the
- *   new entry does not fit.
+ *   snapshot when a burst of deltas would no longer fit.
+ *   Returns -ENOSPC if the new entry does not fit.
  *
  * Input Parameters:
  *   token      - File Token File to read
@@ -233,10 +233,11 @@ __EXPORT int parameter_flashfs_erase(void);
  * Name: parameter_flashfs_needs_compact
  *
  * Description:
- *   True when the parameter log should be rewritten as a single snapshot
- *   at the start of the first sector: more than one live entry, or the
- *   only live entry is not at the sector start (stale entries in front).
- *   The erase that compact uses stalls every read of that flash bank, so
+ *   True when the parameter log should be rewritten as a single snapshot:
+ *   not enough free space remains for a burst of deltas, and compacting
+ *   would actually reclaim room (more than one live entry, or a single
+ *   entry not at the sector start). A disarm-edge UUID append is not a
+ *   reason to erase. The erase stalls every read of that flash bank, so
  *   callers should run it at boot before sensors and DShot start.
  *
  * Returned value:
