@@ -297,7 +297,9 @@ uint16_t VisionTargetEst::adjustAidMask(const int input_vte_aid_mask)
 	// for precision landing, home for precision takeoff.
 	const bool prec_takeoff = _current_task_ptr == &_prec_takeoff_task;
 	const char *reference_name = prec_takeoff ? "home position" : "mission land position";
-	new_aid_mask.flags.use_mission_pos = prec_takeoff ? new_aid_mask.flags.use_home_pos : new_aid_mask.flags.use_mission_pos;
+	const bool home_position_requested = new_aid_mask.flags.use_home_pos;
+	new_aid_mask.flags.use_home_pos = false;
+	new_aid_mask.flags.use_mission_pos = prec_takeoff ? home_position_requested : new_aid_mask.flags.use_mission_pos;
 
 #if defined(CONFIG_VTEST_MOVING)
 
@@ -331,7 +333,7 @@ void VisionTargetEst::printAidMask()
 
 	if (_vte_aid_mask.flags.use_uav_gps_vel) {PX4_DEBUG("    UAV GPS velocity fusion enabled");}
 
-	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
+	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion for the current task. Modify VTE_AID_MASK");}
 }
 
 void VisionTargetEst::resetAccDownsample()
@@ -733,12 +735,13 @@ int VisionTargetEst::print_status()
 		 yes_no(isTaskMaskBitEnabled(task_bits::kPrecLand)),
 		 yes_no(isTaskMaskBitEnabled(task_bits::kPrecTakeoff)),
 		 yes_no(isTaskMaskBitEnabled(task_bits::kDebug)));
-	PX4_INFO("aid mask (effective): 0x%04x", static_cast<unsigned>(_vte_aid_mask.value));
-	PX4_INFO("  vision pos: %s, target gps pos: %s, mission/home pos: %s (home for prec_takeoff: %s)",
+	PX4_INFO("aid mask: configured 0x%04x, effective 0x%04x",
+		 static_cast<unsigned>(_param_vte_aid_mask.get()), static_cast<unsigned>(_vte_aid_mask.value));
+	PX4_INFO("  vision pos: %s, target gps pos: %s, %s: %s",
 		 yes_no(_vte_aid_mask.flags.use_vision_pos),
 		 yes_no(_vte_aid_mask.flags.use_target_gps_pos),
-		 yes_no(_vte_aid_mask.flags.use_mission_pos),
-		 yes_no(_vte_aid_mask.flags.use_home_pos));
+		 _current_task_ptr == &_prec_takeoff_task ? "home pos" : "mission pos",
+		 yes_no(_vte_aid_mask.flags.use_mission_pos));
 	PX4_INFO("  uav gps vel: %s, target gps vel: %s",
 		 yes_no(_vte_aid_mask.flags.use_uav_gps_vel),
 		 yes_no(_vte_aid_mask.flags.use_target_gps_vel));

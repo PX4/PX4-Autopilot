@@ -36,8 +36,8 @@
  * @brief Implements the precision-takeoff VTE task.
  *
  * The task follows prec_takeoff_status published by Navigator. On start it seeds the position
- * estimator with the home position, which is where the vehicle sits on the pad, so the GNSS
- * bias between home and the true pad center is estimated like the mission land point is.
+ * estimator with home as an approximate pad position, so its GNSS bias from the true pad center
+ * is estimated like the mission land point's.
  * Home fusion is gated by VTE_AID_MASK bit 5.
  *
  * @author Jonas Perolini <jonspero@me.com>
@@ -50,9 +50,14 @@
 #include <px4_platform_common/log.h>
 
 #include "../Position/VTEPosition.h"
+#include "../common.h"
 
 namespace vision_target_estimator
 {
+
+static constexpr hrt_abstime kGpsDataTimeoutUs = 1_s;
+// vehicle_land_detected has a 1 Hz heartbeat, so allow one full period plus scheduling jitter.
+static constexpr hrt_abstime kLandDetectedTimeoutUs = 2_s;
 
 void PrecTakeoffTask::pollStatus()
 {
@@ -67,49 +72,58 @@ void PrecTakeoffTask::onActivate()
 {
 	_home_ref = {};
 	_home_dist_warned = false;
-	updateHomeReference();
+	updateHomeReference(false);
 }
 
 void PrecTakeoffTask::onPosEstStart(VTEPosition &pos)
 {
-	if (!pos.missionPosAidEnabled()) {
-		return;
-	}
+	// Replace any reference cached by the previous task, even while home aiding is disabled.
+	const bool home_aid_enabled = pos.missionPosAidEnabled();
 
-	if (_home_ref.valid || updateHomeReference()) {
+	if (_home_ref.valid || updateHomeReference(home_aid_enabled)) {
 		pos.setMissionPosition(_home_ref.lat_deg, _home_ref.lon_deg, _home_ref.alt_m);
 
 	} else {
-		PX4_WARN("VTE for precision takeoff, home position cannot be used.");
-		pos.setMissionPosition(0.0, 0.0, NAN);
+		if (home_aid_enabled) {
+			PX4_WARN("VTE for precision takeoff, home position cannot be used.");
+		}
+
+		pos.clearMissionPosition();
 	}
 }
 
-bool PrecTakeoffTask::updateHomeReference()
+bool PrecTakeoffTask::updateHomeReference(const bool report_distance_warning)
 {
 	home_position_s home;
 
-	if (!_home_position_sub.copy(&home) || !home.valid_hpos || !home.valid_alt) {
+	if (!_home_position_sub.copy(&home) || !home.valid_hpos || !home.valid_alt
+	    || !PX4_ISFINITE(home.lat) || !PX4_ISFINITE(home.lon) || !PX4_ISFINITE(home.alt)) {
 		return false;
 	}
 
 	// Only trust home while on the ground, where the vehicle sits on the pad.
 	vehicle_land_detected_s land_detected;
+	const hrt_abstime now = TimeSourceProvider::nowUs();
 
-	if (!_vehicle_land_detected_sub.copy(&land_detected) || !land_detected.landed) {
+	if (!_vehicle_land_detected_sub.copy(&land_detected) || !land_detected.landed
+	    || land_detected.timestamp == 0 || land_detected.timestamp > now
+	    || now - land_detected.timestamp >= kLandDetectedTimeoutUs) {
 		return false;
 	}
 
 	sensor_gps_s gps;
 
-	if (!_vehicle_gps_position_sub.copy(&gps)) {
+	if (!_vehicle_gps_position_sub.copy(&gps) || gps.fix_type < sensor_gps_s::FIX_TYPE_3D
+	    || gps.timestamp_sample == 0 || gps.timestamp_sample > now
+	    || now - gps.timestamp_sample >= kGpsDataTimeoutUs
+	    || !PX4_ISFINITE(gps.latitude_deg) || !PX4_ISFINITE(gps.longitude_deg)) {
 		return false;
 	}
 
 	const float dist_m = get_distance_to_next_waypoint(home.lat, home.lon, gps.latitude_deg, gps.longitude_deg);
 
 	if (!PX4_ISFINITE(dist_m) || dist_m > kMaxHomeDistM) {
-		if (!_home_dist_warned) {
+		if (report_distance_warning && !_home_dist_warned) {
 			PX4_WARN("VTE for precision takeoff, home is %.1f m from the vehicle, not used.", (double)dist_m);
 			_home_dist_warned = true;
 		}

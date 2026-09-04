@@ -41,9 +41,11 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <memory>
 
 #include <drivers/drv_hrt.h>
+#include <lib/geo/geo.h>
 #include <parameters/param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -195,6 +197,16 @@ public:
 	bool updatePrecTakeoffHomeReference() { return _prec_takeoff_task.updateHomeReference(); }
 	bool precTakeoffHomeReferenceValid() const { return _prec_takeoff_task._home_ref.valid; }
 	double precTakeoffHomeReferenceLat() const { return _prec_takeoff_task._home_ref.lat_deg; }
+	void seedPrecTakeoffPositionReference() { _prec_takeoff_task.onPosEstStart(_vte_position); }
+	void setCachedMissionPosition(double lat, double lon, float alt) { _vte_position.setMissionPosition(lat, lon, alt); }
+	bool missionPositionValid() const { return _vte_position._mission_land_position.valid; }
+	bool missionPositionMatches(double lat, double lon, float alt) const
+	{
+		return _vte_position._mission_land_position.valid
+		       && std::fabs(_vte_position._mission_land_position.lat_deg - lat) < 1e-9
+		       && std::fabs(_vte_position._mission_land_position.lon_deg - lon) < 1e-9
+		       && std::fabs(_vte_position._mission_land_position.alt_m - alt) < 1e-6f;
+	}
 };
 
 class VisionTargetEstTest : public ::testing::Test
@@ -312,7 +324,7 @@ protected:
 		ASSERT_TRUE(_home_position_pub->publish(msg));
 	}
 
-	void publishHomePosition(double lat, double lon, float alt_amsl, hrt_abstime timestamp)
+	void publishHomePosition(double lat, double lon, float alt_amsl, hrt_abstime timestamp, bool manual_home = false)
 	{
 		home_position_s msg{};
 		msg.timestamp = timestamp;
@@ -321,13 +333,21 @@ protected:
 		msg.alt = alt_amsl;
 		msg.valid_hpos = true;
 		msg.valid_alt = true;
+		msg.manual_home = manual_home;
 		ASSERT_TRUE(_home_position_pub->publish(msg));
 	}
 
-	void publishUavGpsAt(double lat, double lon, float alt_amsl, hrt_abstime timestamp)
+	void publishUavGpsAt(double lat, double lon, float alt_amsl, hrt_abstime timestamp,
+			     uint8_t fix_type = sensor_gps_s::FIX_TYPE_3D)
 	{
-		ASSERT_TRUE(vte_test::publishUavGps(*_uav_gps_pub, lat, lon, alt_amsl, 0.5f, 0.5f, matrix::Vector3f{}, 0.1f, true,
-						    timestamp));
+		sensor_gps_s msg{};
+		msg.timestamp = timestamp;
+		msg.timestamp_sample = timestamp;
+		msg.latitude_deg = lat;
+		msg.longitude_deg = lon;
+		msg.altitude_msl_m = alt_amsl;
+		msg.fix_type = fix_type;
+		ASSERT_TRUE(_uav_gps_pub->publish(msg));
 	}
 
 	void publishNavigatorMissionItem(const navigator_mission_item_s &mission_item)
@@ -440,6 +460,7 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskMapsHomePositionForPrecisionTakeoff)
 	// THEN: Only the mission land point bit enables the absolute reference (never on moving-target builds).
 	adjusted.value = _vte->adjustAidMask(home_only.value);
 	EXPECT_FALSE(adjusted.flags.use_mission_pos);
+	EXPECT_FALSE(adjusted.flags.use_home_pos);
 	adjusted.value = _vte->adjustAidMask(mission_only.value);
 #if defined(CONFIG_VTEST_MOVING)
 	EXPECT_FALSE(adjusted.flags.use_mission_pos);
@@ -454,6 +475,7 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskMapsHomePositionForPrecisionTakeoff)
 	adjusted.value = _vte->adjustAidMask(mission_only.value);
 	EXPECT_FALSE(adjusted.flags.use_mission_pos);
 	adjusted.value = _vte->adjustAidMask(home_only.value);
+	EXPECT_FALSE(adjusted.flags.use_home_pos);
 #if defined(CONFIG_VTEST_MOVING)
 	EXPECT_FALSE(adjusted.flags.use_mission_pos);
 #else
@@ -467,6 +489,7 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskMapsHomePositionForPrecisionTakeoff)
 	adjusted.value = _vte->adjustAidMask(home_only.value);
 	EXPECT_TRUE(adjusted.flags.use_target_gps_pos);
 	EXPECT_FALSE(adjusted.flags.use_mission_pos);
+	EXPECT_FALSE(adjusted.flags.use_home_pos);
 }
 
 #if defined(CONFIG_VTEST_MOVING)
@@ -916,8 +939,8 @@ TEST_F(VisionTargetEstTest, PrecisionLandTaskHasPriorityOverPrecisionTakeoff)
 	EXPECT_TRUE(_vte->isCurrentTaskPrecLand());
 }
 
-// WHY: A stale or manual home must not become the pad reference.
-// WHAT: Home is only accepted while landed and close to the vehicle GNSS fix.
+// WHY: Stale position data or a distant home could identify the wrong pad.
+// WHAT: Accept home only while landed and within 5 m of a recent 3D GNSS fix.
 TEST_F(VisionTargetEstTest, PrecisionTakeoffHomeReferenceRequiresLandedAndNearby)
 {
 	const double lat = 47.0;
@@ -933,21 +956,84 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffHomeReferenceRequiresLandedAndNearby
 	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
 	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
 
-	// GIVEN: Landed, but home is about 110 m away.
+	// GIVEN: Landed with a nearby home, but an invalid GNSS fix.
 	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
-	publishHomePosition(lat + 0.001, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGpsAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs), sensor_gps_s::FIX_TYPE_NONE);
+
+	// THEN: The invalid fix cannot validate the home-to-vehicle distance.
+	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	// GIVEN: The latest GNSS sample is valid but stale.
+	publishUavGpsAt(lat, lon, alt, vte_test::nowUs() - 2_s);
+
+	// THEN: The stale position cannot validate home either.
+	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	// GIVEN: Home is just outside the 5 m limit.
+	publishUavGpsAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	double home_lat;
+	double home_lon;
+	waypoint_from_heading_and_distance(lat, lon, 0.f, vte::PrecTakeoffTask::kMaxHomeDistM + 1.f,
+					    &home_lat, &home_lon);
+	publishHomePosition(home_lat, home_lon, alt, vte_test::advanceMicroseconds(kStepUs));
 
 	// THEN: Home is rejected.
 	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
 	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
 
-	// GIVEN: Landed with home about 1 m away.
-	publishHomePosition(lat + 0.00001, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	// GIVEN: Home is just inside the limit.
+	waypoint_from_heading_and_distance(lat, lon, 0.f, vte::PrecTakeoffTask::kMaxHomeDistM - 1.f,
+					    &home_lat, &home_lon);
+	publishHomePosition(home_lat, home_lon, alt, vte_test::advanceMicroseconds(kStepUs));
 
 	// THEN: Home is cached as pad reference.
 	EXPECT_TRUE(_vte->updatePrecTakeoffHomeReference());
 	EXPECT_TRUE(_vte->precTakeoffHomeReferenceValid());
-	EXPECT_DOUBLE_EQ(_vte->precTakeoffHomeReferenceLat(), lat + 0.00001);
+	EXPECT_DOUBLE_EQ(_vte->precTakeoffHomeReferenceLat(), home_lat);
+
+	// GIVEN: A manually assigned home is also nearby.
+	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs), true);
+
+	// THEN: Manual home is accepted.
+	EXPECT_TRUE(_vte->updatePrecTakeoffHomeReference());
+	EXPECT_DOUBLE_EQ(_vte->precTakeoffHomeReferenceLat(), lat);
+}
+
+// WHY: The mission-position cache survives filter resets, so every task must replace it.
+// WHAT: Even with home aiding disabled at activation, precision takeoff seeds its own reference for a later mask change.
+TEST_F(VisionTargetEstTest, PrecisionTakeoffReplacesInactiveHomeAidReference)
+{
+	const double old_lat = 47.1;
+	const double old_lon = 8.1;
+	const float old_alt = 510.f;
+	const double home_lat = 47.0;
+	const double home_lon = 8.0;
+	const float home_alt = 500.f;
+
+	_vte->setCachedMissionPosition(old_lat, old_lon, old_alt);
+	vte::SensorFusionMaskU vision_only{};
+	vision_only.flags.use_vision_pos = 1;
+	_vte->_vte_position.setVteAidMask(vision_only.value);
+	publishLandDetected(true, 0);
+
+	_vte->setPrecTakeoffActive(true);
+	_vte->_prec_takeoff_task.onActivate();
+	_vte->seedPrecTakeoffPositionReference();
+
+	// No usable home must invalidate, rather than retain, the previous task's reference.
+	EXPECT_FALSE(_vte->missionPositionValid());
+
+	publishUavGpsAt(home_lat, home_lon, home_alt, vte_test::advanceMicroseconds(kStepUs));
+	publishHomePosition(home_lat, home_lon, home_alt, vte_test::advanceMicroseconds(kStepUs));
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
+
+	_vte->_prec_takeoff_task.onActivate();
+	_vte->seedPrecTakeoffPositionReference();
+
+	EXPECT_TRUE(_vte->missionPositionMatches(home_lat, home_lon, home_alt));
 }
 
 // WHY: Estimator restarts in flight must reuse the pad reference cached on the ground.

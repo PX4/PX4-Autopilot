@@ -120,16 +120,9 @@ protected:
 		ASSERT_TRUE(_target_pub.publish(msg));
 	}
 
-	bool readStatus(uint8_t &state)
+	bool readStatus(prec_takeoff_status_s &status)
 	{
-		prec_takeoff_status_s status;
-
-		if (_status_sub.update(&status)) {
-			state = status.state;
-			return true;
-		}
-
-		return false;
+		return _status_sub.update(&status);
 	}
 
 	matrix::Vector2f setpointLocal() const
@@ -182,6 +175,12 @@ TEST_F(PrecTakeoffTest, StaleOrInvalidTargetKeepsSetpoint)
 	publishTarget(3.f, 4.f, true, kNow - 100_ms);
 	EXPECT_FALSE(_prec_takeoff.run(_local_pos, _sp, false, kNow));
 
+	// GIVEN: The target was expressed in the local origin from before a reference reset
+	_local_pos.xy_global = true;
+	_local_pos.ref_timestamp = kNow - 50_ms;
+	publishTarget(3.f, 4.f, true, kNow - 100_ms);
+	EXPECT_FALSE(_prec_takeoff.run(_local_pos, _sp, false, kNow));
+
 	// THEN: The setpoint never moved
 	EXPECT_DOUBLE_EQ(_sp.lat, kRefLat);
 	EXPECT_DOUBLE_EQ(_sp.lon, kRefLon);
@@ -200,37 +199,57 @@ TEST_F(PrecTakeoffTest, ReachedTakeoffKeepsSetpoint)
 
 TEST_F(PrecTakeoffTest, StatusFollowsTakeoffLifecycle)
 {
-	uint8_t state{};
+	prec_takeoff_status_s status{};
 
-	// GIVEN: No takeoff active, nothing to report
+	// GIVEN: No takeoff is active
 	_prec_takeoff.publish_status();
-	EXPECT_FALSE(readStatus(state));
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_STOPPED);
+	EXPECT_FALSE(status.setpoint_adjusted);
 
-	// WHEN: A takeoff is active
+	// WHEN: A takeoff is active but no valid target has arrived
 	_prec_takeoff.run(_local_pos, _sp, false, kNow);
 	_prec_takeoff.publish_status();
 
-	// THEN: ONGOING is published once
-	ASSERT_TRUE(readStatus(state));
-	EXPECT_EQ(state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_ONGOING);
+	// THEN: VTE is requested, but FlightTask must keep the normal liftoff-position hold
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_ONGOING);
+	EXPECT_FALSE(status.setpoint_adjusted);
+
+	// WHEN: A valid target adjusts the setpoint
+	publishTarget(3.f, 4.f, true, kNow - 100_ms);
 	_prec_takeoff.run(_local_pos, _sp, false, kNow);
 	_prec_takeoff.publish_status();
-	EXPECT_FALSE(readStatus(state));
+
+	// THEN: The flag remains set without a new target sample
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_ONGOING);
+	EXPECT_TRUE(status.setpoint_adjusted);
+	_prec_takeoff.run(_local_pos, _sp, false, kNow);
+	_prec_takeoff.publish_status();
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_TRUE(status.setpoint_adjusted);
 
 	// WHEN: The takeoff altitude is reached
 	_prec_takeoff.run(_local_pos, _sp, true, kNow);
 	_prec_takeoff.publish_status();
 
-	// THEN: DONE is published
-	ASSERT_TRUE(readStatus(state));
-	EXPECT_EQ(state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_DONE);
+	// THEN: DONE is published without restoring the liftoff position while yaw may still be pending
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_DONE);
+	EXPECT_TRUE(status.setpoint_adjusted);
+	_prec_takeoff.run(_local_pos, _sp, true, kNow);
+	_prec_takeoff.publish_status();
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_TRUE(status.setpoint_adjusted);
 
 	// WHEN: The takeoff item is no longer active
 	_prec_takeoff.publish_status();
 
 	// THEN: STOPPED is published
-	ASSERT_TRUE(readStatus(state));
-	EXPECT_EQ(state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_STOPPED);
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_STOPPED);
+	EXPECT_FALSE(status.setpoint_adjusted);
 }
 
 TEST_F(PrecTakeoffTest, ParamEnablesHelper)

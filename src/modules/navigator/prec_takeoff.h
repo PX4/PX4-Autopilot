@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,7 +74,7 @@ public:
 		 hrt_abstime now);
 
 	/**
-	 * Call once per navigator cycle after the modes ran. Publishes state transitions and
+	 * Call once per navigator cycle after the modes ran. Publishes the current state and
 	 * falls back to STOPPED when run() was not called this cycle.
 	 */
 	void publish_status();
@@ -87,9 +87,10 @@ private:
 
 	MapProjection _map_ref{};
 
-	uint8_t _state{prec_takeoff_status_s::PREC_TAKEOFF_STATE_STOPPED};
 	bool _active{false}; /**< run() was called this cycle */
+	bool _was_active{false}; /**< run() was called in the previous cycle */
 	bool _reached{false};
+	bool _setpoint_adjusted{false}; /**< a valid target adjusted the current takeoff setpoint */
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::MIS_TKO_PREC>) _param_mis_tko_prec
