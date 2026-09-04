@@ -60,6 +60,11 @@
 #include <initializer_list>
 #include <vector>
 
+#include <cstring>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/mavlink_log.h>
+
+#include "navigator.h"
 extern "C" int dataman_main(int argc, char *argv[]);
 
 class NavigatorDatamanRuntime
@@ -99,7 +104,7 @@ static NavigatorDatamanRuntime &navigatorDatamanRuntime()
 class MissionBaseTestPeer : public MissionBase
 {
 public:
-	MissionBaseTestPeer() : MissionBase(nullptr, 8, 0) {}
+	explicit MissionBaseTestPeer(Navigator *navigator = nullptr) : MissionBase(navigator, 8, 0) {}
 
 	void setActiveMissionItems() override {}
 	bool setNextMissionItem() override { return false; }
@@ -335,6 +340,91 @@ TEST_F(MissionBaseTraversalTest, GetNonJumpItemReturnsErrorForOutOfBoundsDoJumpT
 	// THEN: The helper returns an error.
 	EXPECT_EQ(ret, PX4_ERROR);
 	EXPECT_EQ(mission_index, 0);
+}
+
+// Fixture with a real Navigator so the storage failure path is observable, it
+// publishes to mavlink_log through the navigator instead of a null pointer.
+class MissionBasePastBoundsTraversalTest : public ::testing::Test
+{
+protected:
+	static void SetUpTestSuite()
+	{
+		(void)navigatorDatamanRuntime();
+	}
+
+	static void TearDownTestSuite() {}
+
+	bool storageErrorPublished()
+	{
+		mavlink_log_s report;
+
+		while (_mavlink_log_sub.update(&report)) {
+			if (strstr(reinterpret_cast<const char *>(report.text), "could not be read") != nullptr) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	Navigator _navigator{};
+	MissionBaseTestPeer mission_base{&_navigator};
+	uORB::Subscription _mavlink_log_sub{ORB_ID(mavlink_log)};
+};
+
+// WHY: Walking off the end of the mission while skipping an exhausted DO_JUMP is the
+// normal end of a mission, not a storage failure.
+// WHAT: [WP0, DO_JUMP->0 done] entered at the DO_JUMP returns PX4_ERROR without
+// publishing a storage error.
+TEST_F(MissionBasePastBoundsTraversalTest, GetNonJumpItemReturnsErrorPastMissionEnd)
+{
+	// GIVEN: A mission whose last item is a DO_JUMP with no repeats left.
+	mission_base.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
+		makeDoJump(0, 1, 1), // idx 1
+	});
+
+	int32_t mission_index = 1;
+	mission_item_s mission_item{};
+	(void)storageErrorPublished(); // drain anything already queued
+
+	// WHEN: The helper skips the exhausted jump while traversing forward.
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow,
+			false, false);
+
+	// THEN: It reports no further item, exactly like an out of range entry index,
+	// and no "could not be read" error is published.
+	EXPECT_EQ(ret, PX4_ERROR);
+	EXPECT_EQ(mission_index, 1);
+	EXPECT_FALSE(storageErrorPublished());
+}
+
+// WHY: The same walk moving backward can step in front of the first item.
+// WHAT: [DO_JUMP->1 done, WP1] entered at the DO_JUMP backward returns PX4_ERROR
+// without publishing a storage error.
+TEST_F(MissionBasePastBoundsTraversalTest, GetNonJumpItemReturnsErrorPastMissionStart)
+{
+	// GIVEN: A mission that starts with a DO_JUMP with no repeats left.
+	mission_base.loadTestMission({
+		makeDoJump(1, 1, 1), // idx 0
+		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 1
+	});
+
+	int32_t mission_index = 0;
+	mission_item_s mission_item{};
+	(void)storageErrorPublished(); // drain anything already queued
+
+	// WHEN: The helper skips the exhausted jump while traversing backward.
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow,
+			false, true);
+
+	// THEN: It reports no further item, exactly like an out of range entry index,
+	// and no "could not be read" error is published.
+	EXPECT_EQ(ret, PX4_ERROR);
+	EXPECT_EQ(mission_index, 0);
+	EXPECT_FALSE(storageErrorPublished());
 }
 
 // WHY: Geometry-only position traversal must skip non-position mission items.
