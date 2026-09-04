@@ -109,6 +109,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("pure_pursuit_status", 100);
 	add_topic("goto_setpoint", 200);
 	add_topic("position_setpoint_triplet", 200);
+	add_optional_topic("prec_takeoff_status");
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
 	add_optional_topic("rover_attitude_setpoint", 100);

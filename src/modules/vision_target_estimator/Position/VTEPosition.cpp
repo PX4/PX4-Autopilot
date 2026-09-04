@@ -1532,7 +1532,7 @@ void VTEPosition::print_status() const
 	PX4_INFO("  position inputs: local pos: %s age %.3f s, local vel: %s age %.3f s",
 		 yes_no(_local_position.valid), age_s(_local_position.timestamp),
 		 yes_no(_local_velocity.valid), age_s(_local_velocity.timestamp));
-	PX4_INFO("    uav gps pos: %s age %.3f s, uav gps vel: %s age %.3f s, mission pos: %s",
+	PX4_INFO("    uav gps pos: %s age %.3f s, uav gps vel: %s age %.3f s, pad reference pos: %s",
 		 yes_no(_uav_gps_position.valid), age_s(_uav_gps_position.timestamp),
 		 yes_no(_uav_gps_vel.valid), age_s(_uav_gps_vel.timestamp),
 		 yes_no(_mission_land_position.valid));

@@ -36,9 +36,9 @@ parameters:
         0: target GNSS position
         1: UAV GNSS velocity
         2: vision relative position
-        3: mission position
+        3: mission land position
         4: target GNSS velocity
-        5: home position (static precision takeoff)
+        5: home position
       default: 14
     VTE_TASK_MASK:
       description:
