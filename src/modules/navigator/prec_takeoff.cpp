@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,6 +57,11 @@ PrecTakeoff::PrecTakeoff(ModuleParams *parent) :
 bool PrecTakeoff::run(const vehicle_local_position_s &local_pos, position_setpoint_s &current_sp,
 		      bool takeoff_reached, hrt_abstime now)
 {
+	// Reset for a new takeoff, but keep the flag set while Navigator waits for takeoff yaw.
+	if (!_was_active || (_reached && !takeoff_reached)) {
+		_setpoint_adjusted = false;
+	}
+
 	_active = true;
 	_reached = takeoff_reached;
 
@@ -64,7 +69,9 @@ bool PrecTakeoff::run(const vehicle_local_position_s &local_pos, position_setpoi
 		return false;
 	}
 
-	return update_setpoint(local_pos, current_sp, now);
+	const bool setpoint_updated = update_setpoint(local_pos, current_sp, now);
+	_setpoint_adjusted |= setpoint_updated;
+	return setpoint_updated;
 }
 
 bool PrecTakeoff::update_setpoint(const vehicle_local_position_s &local_pos, position_setpoint_s &current_sp,
@@ -79,8 +86,10 @@ bool PrecTakeoff::update_setpoint(const vehicle_local_position_s &local_pos, pos
 	const bool target_fresh = target_pose.timestamp <= now && now - target_pose.timestamp < kTargetTimeoutUs;
 	const bool target_valid = target_pose.abs_pos_valid && PX4_ISFINITE(target_pose.x_abs)
 				  && PX4_ISFINITE(target_pose.y_abs);
+	const bool target_uses_current_origin = local_pos.ref_timestamp > 0
+						&& target_pose.timestamp >= local_pos.ref_timestamp;
 
-	if (!target_fresh || !target_valid || !local_pos.xy_global) {
+	if (!target_fresh || !target_valid || !target_uses_current_origin || !local_pos.xy_global) {
 		return false;
 	}
 
@@ -102,16 +111,16 @@ void PrecTakeoff::publish_status()
 			: prec_takeoff_status_s::PREC_TAKEOFF_STATE_ONGOING;
 	}
 
-	_active = false;
-
-	if (state == _state) {
-		return;
-	}
-
-	_state = state;
-
 	prec_takeoff_status_s status{};
 	status.timestamp = hrt_absolute_time();
 	status.state = state;
+	status.setpoint_adjusted = _active && _setpoint_adjusted;
 	_status_pub.publish(status);
+
+	_was_active = _active;
+	_active = false;
+
+	if (!_was_active) {
+		_setpoint_adjusted = false;
+	}
 }

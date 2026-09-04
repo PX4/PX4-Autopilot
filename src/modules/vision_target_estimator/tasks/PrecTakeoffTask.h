@@ -61,7 +61,7 @@ class PrecTakeoffTask final : public VteTask
 {
 public:
 	// Home is only used as pad reference if it is this close to the vehicle GNSS fix while landed.
-	static constexpr float kMaxHomeDistM = 10.f;
+	static constexpr float kMaxHomeDistM = 5.f;
 
 	/* VteTask interface */
 	uint8_t maskBit() const override { return task_bits::kPrecTakeoff; }
@@ -72,8 +72,8 @@ public:
 	void onActivate() override;
 	void onPosEstStart(VTEPosition &pos) override;
 
-	// Cache home as pad reference. Accepted only while landed and within kMaxHomeDistM of the GNSS fix.
-	bool updateHomeReference();
+	// Cache home as the pad reference if it is near the landed vehicle's recent GNSS fix.
+	bool updateHomeReference(bool report_distance_warning = true);
 
 private:
 	friend class ::VisionTargetEstTest;

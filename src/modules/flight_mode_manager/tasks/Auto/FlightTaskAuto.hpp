@@ -113,8 +113,8 @@ protected:
 	/** determines when to trigger a takeoff (ignored in flight) */
 	bool _checkTakeoff() override { return _want_takeoff; };
 
-	/** true while navigator steers the takeoff setpoint onto the landing target */
-	bool _isPrecisionTakeoffActive() const;
+	/** true after navigator has adjusted the takeoff setpoint using a valid target */
+	bool _isPrecisionTakeoffSetpointAdjusted() const;
 
 	void _prepareLandSetpoints();
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
