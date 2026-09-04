@@ -126,3 +126,126 @@ parameters:
             max: 300
             num_instances: *max_num_gps_instances
             instance_start: 0
+
+        GPS_CHECK:
+            description:
+                short: Integer bitmask controlling GPS checks.
+                long: |
+                    Each threshold value is defined by the parameter indicated next to the check. Drift and offset checks only run when the vehicle is on ground and stationary.
+                    Bitmask:
+
+                        0: Sat count (REQ_NSATS)
+                        1: PDOP (REQ_PDOP)
+                        2: EPH (REQ_EPH)
+                        3: EPV (REQ_EPV)
+                        4: Speed accuracy (REQ_SACC)
+                        5: Horizontal position drift (REQ_HDRIFT)
+                        6: Vertical position drift (REQ_VDRIFT)
+                        7: Horizontal speed offset (REQ_HDRIFT)
+                        8: Vertical speed offset (REQ_VDRIFT)
+                        9: Spoofing
+                        10: GPS fix type (REQ_FIX)
+                        11: Jamming
+            type: int32
+            min: 0
+            max: 4095
+            default: 2047
+
+        REQ_NSATS:
+            description:
+                short: Required satellite count to use GNSS.
+
+            type: int32
+            min: 4
+            max: 12
+            default: 6
+
+        REQ_PDOP:
+            description:
+                short: Maximum PDOP to use GPS.
+
+            type: float
+            min: 1.5
+            max: 5.0
+            default: 2.5
+
+        REQ_EPH:
+            description:
+                short: Required EPH to use GPS.
+
+            type: float
+            min: 0.1
+            max: 100
+            default: 3.0
+            unit: m
+
+        REQ_EPV:
+            description:
+                short: Required EPV to use GPS.
+
+            type: float
+            min: 0.1
+            max: 100
+            default: 5.0
+            unit: m
+
+        REQ_SACC:
+            description:
+                short: Required speed accuracy to use GPS.
+
+            type: float
+            min: 0.5
+            max: 5.0
+            default: 0.5
+            unit: m/s
+
+        REQ_HDRIFT:
+            description:
+                short: Maximum horizontal drift speed to use GPS.
+
+            type: float
+            min: 0.1
+            max: 1.0
+            default: 0.1
+            unit: m/s
+
+        REQ_VDRIFT:
+            description:
+                short: Maximum vertical drift speed to use GPS.
+
+            type: float
+            min: 0.1
+            max: 1.5
+            default: 0.2
+            unit: m/s
+
+        REQ_FIX:
+            description:
+                short: Required GPS fix.
+                long: |
+                    Minimum GPS fix type required for GPS usage.
+
+                    Values:
+
+                        0: No fix required
+                        2: 2D fix
+                        3: 3D fix
+                        4: RTCM code differential
+                        5: RTK float
+                        6: RTK fixed
+                        8: Extrapolated
+
+            type: int32
+            default: 3
+
+        REQ_GPS_H:
+            description:
+                short: Required GPS health time on startup.
+                long: |
+                    Minimum continuous period without GPS failure required to mark a healthy GPS status.
+                    It can be reduced to speed up initialization, but it's recommended to keep this unchanged for a vehicle.
+
+            type: float
+            min: 0.1
+            default: 10.0
+            unit: s

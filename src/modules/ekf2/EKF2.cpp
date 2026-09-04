@@ -864,7 +864,6 @@ void EKF2::Run()
 			}
 
 #if defined(CONFIG_EKF2_GNSS)
-			PublishGpsStatus(now);
 			PublishYawEstimatorStatus(now);
 #endif // CONFIG_EKF2_GNSS
 
@@ -1377,44 +1376,6 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 		_global_position_pub.publish(global_pos);
 	}
 }
-
-#if defined(CONFIG_EKF2_GNSS)
-void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
-{
-	const hrt_abstime timestamp_sample = _ekf.get_gps_sample_delayed().time_us;
-
-	if (timestamp_sample == _last_gps_status_published) {
-		return;
-	}
-
-	estimator_gps_status_s estimator_gps_status{};
-	estimator_gps_status.timestamp_sample = timestamp_sample;
-
-	estimator_gps_status.position_drift_rate_horizontal_m_s = _ekf.gps_horizontal_position_drift_rate_m_s();
-	estimator_gps_status.position_drift_rate_vertical_m_s   = _ekf.gps_vertical_position_drift_rate_m_s();
-	estimator_gps_status.filtered_horizontal_speed_m_s      = _ekf.gps_filtered_horizontal_velocity_m_s();
-
-	estimator_gps_status.checks_passed = _ekf.gps_checks_passed();
-
-	estimator_gps_status.check_fail_gps_fix          = _ekf.gps_check_fail_status_flags().fix;
-	estimator_gps_status.check_fail_min_sat_count    = _ekf.gps_check_fail_status_flags().nsats;
-	estimator_gps_status.check_fail_max_pdop         = _ekf.gps_check_fail_status_flags().pdop;
-	estimator_gps_status.check_fail_max_horz_err     = _ekf.gps_check_fail_status_flags().hacc;
-	estimator_gps_status.check_fail_max_vert_err     = _ekf.gps_check_fail_status_flags().vacc;
-	estimator_gps_status.check_fail_max_spd_err      = _ekf.gps_check_fail_status_flags().sacc;
-	estimator_gps_status.check_fail_max_horz_drift   = _ekf.gps_check_fail_status_flags().hdrift;
-	estimator_gps_status.check_fail_max_vert_drift   = _ekf.gps_check_fail_status_flags().vdrift;
-	estimator_gps_status.check_fail_max_horz_spd_err = _ekf.gps_check_fail_status_flags().hspeed;
-	estimator_gps_status.check_fail_max_vert_spd_err = _ekf.gps_check_fail_status_flags().vspeed;
-	estimator_gps_status.check_fail_spoofed_gps      = _ekf.gps_check_fail_status_flags().spoofed;
-
-	estimator_gps_status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-	_estimator_gps_status_pub.publish(estimator_gps_status);
-
-
-	_last_gps_status_published = timestamp_sample;
-}
-#endif // CONFIG_EKF2_GNSS
 
 void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 {
@@ -1946,11 +1907,6 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.timestamp_sample = _ekf.time_delayed_us();
 
 	_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
-
-#if defined(CONFIG_EKF2_GNSS)
-	// only report enabled GPS check failures
-	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value & _ekf.gps_check_fail_status_enabled_mask();
-#endif // CONFIG_EKF2_GNSS
 
 	status.control_mode_flags = _ekf.control_status().value;
 	status.filter_fault_flags = _ekf.fault_status().value;

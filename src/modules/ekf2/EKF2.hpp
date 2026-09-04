@@ -222,7 +222,6 @@ private:
 	float altEllipsoidToAmsl(float ellipsoid_alt) const;
 	float altAmslToEllipsoid(float amsl_alt) const;
 
-	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
