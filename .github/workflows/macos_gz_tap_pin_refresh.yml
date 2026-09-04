@@ -4,8 +4,8 @@ name: macOS - Refresh gz tap pin
 # --sim-tools pours Gazebo bottles instead of compiling them (see that file).
 # OSRF advances the tap several times a week, so once a week this moves the
 # pin to the newest commit whose Gazebo formulae are all bottled and opens a
-# PR for it. Tools/ci/refresh_gz_tap_pin.sh does the work and can be run by
-# hand on any Mac.
+# PR for it. Tools/ci/refresh_gz_tap_pin.rb does the work under Homebrew's
+# Ruby and can be run by hand on any Mac.
 
 on:
   schedule:
@@ -26,7 +26,7 @@ jobs:
 
       - name: Find the newest fully bottled osrf/simulation commit
         id: pin
-        run: ./Tools/ci/refresh_gz_tap_pin.sh
+        run: brew ruby Tools/ci/refresh_gz_tap_pin.rb
 
       - name: Open PR with the new pin
         if: steps.pin.outputs.needs_bump == 'true'
