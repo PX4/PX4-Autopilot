@@ -67,7 +67,7 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 							_param_com_flt_time_max.get();
 
 		if (remaining_flight_time_sec < 0.1f * _param_com_flt_time_max.get()) {
-			// send warnings every minute until RTL
+			// send warnings every minute until Return
 
 			const int floored_remaining_flight_time_sec = int(remaining_flight_time_sec);
 
@@ -75,7 +75,7 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 				// less than or equal to a minute remaining on first pass
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_warning(reporter.mavlink_log_pub(), "Approaching max flight time (system will RTL in %i seconds)\t",
+					mavlink_log_warning(reporter.mavlink_log_pub(), "Approaching max flight time (system will Return in %i seconds)\t",
 							    floored_remaining_flight_time_sec);
 				}
 
@@ -84,7 +84,7 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 				 * Maximal flight time warning (less than 1min remaining)
 				 */
 				events::send<int16_t>(events::ID("commander_max_flight_time_warning_seconds"), events::Log::Warning,
-						      "Approaching max flight time (system will RTL in {1} seconds)", floored_remaining_flight_time_sec);
+						      "Approaching max flight time (system will Return in {1} seconds)", floored_remaining_flight_time_sec);
 
 			} else if ((floored_remaining_flight_time_sec % 60) == 0 && floored_remaining_flight_time_sec >= 60
 				   && floored_remaining_flight_time_sec != _last_flight_time_warning_sec) {
@@ -92,7 +92,7 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 				const int floored_remaining_flight_time_min = (int)(remaining_flight_time_sec * 0.016666667f);
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_warning(reporter.mavlink_log_pub(), "Approaching max flight time (system will RTL in %i minutes)\t",
+					mavlink_log_warning(reporter.mavlink_log_pub(), "Approaching max flight time (system will Return in %i minutes)\t",
 							    floored_remaining_flight_time_min);
 				}
 
@@ -101,7 +101,7 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 				 * Maximal flight time warning (more than 1min remaining)
 				 */
 				events::send<int16_t>(events::ID("commander_max_flight_time_warning_minutes"), events::Log::Warning,
-						      "Approaching max flight time (system will RTL in {1} minutes)", floored_remaining_flight_time_min);
+						      "Approaching max flight time (system will Return in {1} minutes)", floored_remaining_flight_time_min);
 			}
 
 			_last_flight_time_warning_sec = floored_remaining_flight_time_sec;
