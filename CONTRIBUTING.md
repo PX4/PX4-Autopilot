@@ -66,7 +66,7 @@ The scope identifies which part of PX4 is affected. Common scopes:
 | `ekf2` | Extended Kalman Filter (state estimation) |
 | `mavlink` | MAVLink messaging protocol |
 | `commander` | Commander and mode management |
-| `navigator` | Mission, RTL, Land, and other navigation modes |
+| `navigator` | Mission, Return, Land, and other navigation modes |
 | `sensors` | Sensor drivers and processing |
 | `drivers` | Hardware drivers |
 | `boards/px4_fmu-v6x` | Board-specific changes (use the board name) |
@@ -99,7 +99,7 @@ feat(ekf2)!: remove deprecated height fusion API
 ```
 feat(ekf2): add height fusion timeout
 fix(mavlink): correct BATTERY_STATUS_V2 parsing
-refactor(navigator): simplify RTL altitude logic
+refactor(navigator): simplify Return altitude logic
 ci(workflows): migrate to reusable workflows
 docs(ekf2): update tuning guide
 feat(boards/px4_fmu-v6x)!: remove deprecated driver API
