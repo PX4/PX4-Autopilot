@@ -117,6 +117,7 @@ void LoadMon::Run()
 		fclose(_proc_fd);
 #endif
 		exit_and_cleanup(desc);
+		return;
 	}
 
 	perf_end(_cycle_perf);
