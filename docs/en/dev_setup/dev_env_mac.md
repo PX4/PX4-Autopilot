@@ -7,6 +7,7 @@ This environment can be used to build PX4 for:
 - [Gazebo Simulation](../sim_gazebo_gz/index.md) (Gazebo Harmonic)
 
 It works on both Intel and Apple Silicon Macs.
+PX4 CI exercises this setup on Apple Silicon runners only; Intel is not covered by CI.
 
 ::: tip
 This setup is supported by the PX4 dev team.
@@ -17,15 +18,16 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
 
 ### Prerequisites
 
-1. **Install Xcode Command Line Tools** — provides `git`, `make`, and the Apple `clang` compiler:
+1. **Install Xcode Command Line Tools**, which provide `git`, `make`, and the Apple `clang` compiler:
 
    ```sh
    xcode-select --install
    ```
 
 2. **Install Homebrew** by following the [installation instructions](https://brew.sh).
+   The setup script below also installs Homebrew if it is missing.
 
-3. **Increase the open-file limit.** The PX4 build opens many files simultaneously and the macOS default limit (256) is too low — you may see `"LD: too many open files"` errors without this.
+3. **Increase the open-file limit.** The PX4 build opens many files simultaneously and the macOS default limit (256) is too low. You may see `"LD: too many open files"` errors without this.
 
    Add the following line to your shell startup file so it applies to every new terminal session.
    macOS defaults to **zsh** since Catalina, so add it to `~/.zshrc` (use `~/.bashrc` if you use bash):
@@ -35,12 +37,6 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
    ```
 
    Then **open a new terminal** (or run `source ~/.zshrc`) for the change to take effect.
-
-4. **Ensure Python 3 is available.** Some PX4 build scripts require `python3` and `pip3` to be in your `PATH`. The Xcode Command Line Tools include Python 3 by default.
-
-   ::: tip
-   If you need to install or manage a different Python version, we recommend [pyenv](https://github.com/pyenv/pyenv), which lets you set global and per-directory Python versions.
-   :::
 
 ### Install Development Tools
 
@@ -70,37 +66,34 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
    You'll need to re-run this command in each new terminal session. To activate it automatically when you `cd` into the repo, consider a tool like [direnv](https://direnv.net/) or add the activation to your `~/.zshrc`.
    :::
 
-   This installs:
-   - **Toolchain packages** from the `osx-cross/arm` and `PX4/px4` Homebrew taps — ARM cross-compiler (`arm-gcc-bin@13`), `cmake`, `ninja`, `ccache`, `fastdds`, `genromfs`, `kconfig-frontends`, and other build tools
-   - **Python packages** from `requirements.txt`
-   - **`px4-sim`** (via `--sim-tools`) — Gazebo Harmonic simulation (`gz-harmonic`) and related tools
+   The script installs the NuttX cross-compiler and build tools, the Python dependencies (into the `.venv` described above), and with `--sim-tools` the Gazebo simulation stack.
+   It is the source of truth for what gets installed; read [macos.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh) for the details.
 
    ::: info
    Omit `--sim-tools` if you only need to build for NuttX hardware and don't need simulation.
+   All Gazebo dependencies are optional at build time, so `make px4_sitl` still works without them.
 
-   Use `--reinstall` to force reinstallation of all Homebrew formulas (useful if something is broken).
+   Use `--reinstall` to force reinstallation of the Homebrew formulas (useful if something is broken).
+   :::
+
+   ::: info
+   The script installs from third-party Homebrew taps and marks them as trusted (`brew trust`) on Homebrew 6.0 and later, which refuses to load formulae from untrusted taps.
+   With `--sim-tools` it will prompt for your password, since the XQuartz installer and the JDK link into `/Library/Java/JavaVirtualMachines` need `sudo`.
    :::
 
 ### Gazebo Simulation
 
-The `--sim-tools` flag installs the `px4-sim` Homebrew formula, which pulls in Gazebo Harmonic.
+The `--sim-tools` flag installs Gazebo and the libraries PX4's simulation modules build against.
 
-If you skipped `--sim-tools` during initial setup and want to add simulation later:
+If you skipped `--sim-tools` during initial setup and want to add simulation later, re-run the setup script with the flag (it is safe to run repeatedly):
 
 ```sh
-brew tap PX4/px4
-brew install px4-sim
+./Tools/setup/macos.sh --sim-tools
 ```
 
 ::: info
-Gazebo requires **XQuartz** for display on macOS.
-If you don't already have it installed:
-
-```sh
-brew install --cask xquartz
-```
-
-You may need to log out and back in after installing XQuartz.
+The script also installs **XQuartz**.
+macOS may require you to log out and back in after XQuartz is first installed.
 :::
 
 ### Verify Installation
@@ -108,7 +101,7 @@ You may need to log out and back in after installing XQuartz.
 After installation, verify the key tools are available:
 
 ```sh
-# NuttX cross-compiler (from arm-gcc-bin@13)
+# NuttX cross-compiler
 arm-none-eabi-gcc --version
 
 # Build tools
@@ -119,7 +112,7 @@ ninja --version
 gz sim --versions
 ```
 
-Quick smoke test — build and run a simulation target:
+As a quick smoke test, build and run a simulation target:
 
 ```sh
 make px4_sitl gz_x500
