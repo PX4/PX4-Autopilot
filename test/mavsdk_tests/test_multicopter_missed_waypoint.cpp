@@ -92,7 +92,7 @@ public:
 		} subscriptions{mavlink, {}};
 
 		subscriptions.handles.emplace_back(MAVLINK_MSG_ID_HOME_POSITION,
-			mavlink->subscribe_message(MAVLINK_MSG_ID_HOME_POSITION, [state, system_id](const mavlink_message_t &message) {
+		mavlink->subscribe_message(MAVLINK_MSG_ID_HOME_POSITION, [state, system_id](const mavlink_message_t &message) {
 			if (message.sysid != system_id) {
 				return;
 			}
@@ -103,7 +103,7 @@ public:
 		}));
 
 		subscriptions.handles.emplace_back(MAVLINK_MSG_ID_MISSION_CURRENT,
-			mavlink->subscribe_message(MAVLINK_MSG_ID_MISSION_CURRENT, [state, system_id](const mavlink_message_t &message) {
+		mavlink->subscribe_message(MAVLINK_MSG_ID_MISSION_CURRENT, [state, system_id](const mavlink_message_t &message) {
 			if (message.sysid != system_id) {
 				return;
 			}
@@ -115,7 +115,7 @@ public:
 		}));
 
 		subscriptions.handles.emplace_back(MAVLINK_MSG_ID_GLOBAL_POSITION_INT,
-			mavlink->subscribe_message(MAVLINK_MSG_ID_GLOBAL_POSITION_INT, [state, system_id](const mavlink_message_t &message) {
+		mavlink->subscribe_message(MAVLINK_MSG_ID_GLOBAL_POSITION_INT, [state, system_id](const mavlink_message_t &message) {
 			if (message.sysid != system_id) {
 				return;
 			}
@@ -229,7 +229,7 @@ public:
 
 				const double altitude_error_m = sample.position.alt / 1000.0 - (target_home_altitude_m + 20.0);
 				const bool pending = sample.sequence == 2
-						&& getTelemetry()->flight_mode() == Telemetry::FlightMode::Mission;
+						     && getTelemetry()->flight_mode() == Telemetry::FlightMode::Mission;
 				const double distance_m = std::hypot(along_m, cross_m);
 
 				if (pending && along_m < -2.0 && std::fabs(cross_m) < 2.0) {
@@ -258,8 +258,8 @@ public:
 					}
 
 					const double radial_velocity_m_s = distance_m > 0.01
-							 ? (along_m * sample.position.vx / 100.0 + cross_m * sample.position.vy / 100.0) / distance_m
-							 : 0.0;
+									   ? (along_m * sample.position.vx / 100.0 + cross_m * sample.position.vy / 100.0) / distance_m
+									   : 0.0;
 
 					if (pending && distance_m > 2.1 && radial_velocity_m_s > 0.3 && std::fabs(altitude_error_m) <= 0.8) {
 						const double time_s = sample.position.time_boot_ms / 1000.0;
