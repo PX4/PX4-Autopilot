@@ -34,6 +34,7 @@
 #include "CrsfRc.hpp"
 #include "CrsfParser.hpp"
 #include "Crc8.hpp"
+#include "CrsfUartSetup.hpp"
 
 #include <fcntl.h>
 
@@ -154,49 +155,39 @@ void CrsfRc::Run()
 		return;
 	}
 
+	// Schedule setup retries so this callback yields the work queue between attempts.
 	if (_uart == nullptr) {
-		// Create the UART port instance
 		_uart = new Serial(_device);
 
 		if (_uart == nullptr) {
 			PX4_ERR("Error creating serial device %s", _device);
-			px4_sleep(1);
+			ScheduleDelayed(1_s);
 			return;
 		}
 	}
 
-	if (! _uart->isOpen()) {
-		// Configure the desired baudrate if one was specified by the user.
-		// Otherwise the default baudrate will be used.
-		if (! _uart->setBaudrate(CRSF_BAUDRATE)) {
-			PX4_ERR("Error setting baudrate to %u on %s", CRSF_BAUDRATE, _device);
-			px4_sleep(1);
-			return;
-		}
+	const bool singlewire = board_rc_singlewire(_device);
+	const CrsfUartSetupResult setup_result = CrsfUartSetup(*_uart, CRSF_BAUDRATE, board_rc_swap_rxtx(_device), singlewire);
 
-		// Open the UART. If this is successful then the UART is ready to use.
-		if (! _uart->open()) {
-			PX4_ERR("Error opening serial device  %s", _device);
-			px4_sleep(1);
-			return;
-		}
+	if (setup_result == CrsfUartSetupResult::BaudrateError) {
+		PX4_ERR("Error setting baudrate to %u on %s", CRSF_BAUDRATE, _device);
+		ScheduleDelayed(1_s);
+		return;
 
-		if (board_rc_swap_rxtx(_device)) {
-			_uart->setSwapRxTxMode();
-		}
+	} else if (setup_result == CrsfUartSetupResult::OpenError) {
+		PX4_ERR("Error opening serial device  %s", _device);
+		ScheduleDelayed(1_s);
+		return;
+	}
 
-		if (board_rc_singlewire(_device)) {
-			_is_singlewire = true;
-			_uart->setSingleWireMode();
-		}
+	if (setup_result == CrsfUartSetupResult::Opened) {
+		_is_singlewire = singlewire;
 
 		PX4_INFO("Crsf serial opened sucessfully");
 
 		if (_is_singlewire) {
 			PX4_INFO("Crsf serial is single wire. Telemetry disabled");
 		}
-
-		_uart->flush();
 
 		Crc8Init(0xd5);
 
