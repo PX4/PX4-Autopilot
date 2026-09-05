@@ -92,7 +92,6 @@ using namespace time_literals;
 #include "flashparams/flashparams.h"
 #else
 inline static int flash_param_save(param_filter_func filter) { return -1; }
-inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
 #endif
 
@@ -1398,7 +1397,7 @@ param_load(int fd)
 #if defined(FLASH_BASED_PARAMS)
 		return flash_backend_locked(flash_load_locked);
 #else
-		return flash_param_load();
+		return PX4_ERROR;
 #endif
 	}
 

@@ -81,12 +81,14 @@ typedef struct flash_file_token_t {
 } flash_file_token_t;
 
 /*
- * Define the parameter "file name" Currently there is only
- * and it is hard coded. If more are added the
- * parameter_flashfs_write would need to support a backing buffer
- * for when a sector is erased.
+ * Parameter "file names". parameters_token marks records of the append log
+ * (a snapshot followed by deltas, replayed in order). parameters_legacy_token
+ * is the single-snapshot record written by firmware before the log format;
+ * that firmware ignores parameters_token records, so it boots on defaults
+ * from a log-format store rather than a partial set.
  */
 __EXPORT extern const flash_file_token_t parameters_token;
+__EXPORT extern const flash_file_token_t parameters_legacy_token;
 
 /* Define the elements of the array passed to the
  * parameter_flashfs_init function
@@ -234,19 +236,20 @@ __EXPORT int parameter_flashfs_erase(void);
  * Name: parameter_flashfs_needs_compact
  *
  * Description:
- *   True when the parameter log should be rewritten as a single snapshot:
- *   the live records are not a packed prefix of sector 0, or the tail after
- *   the last CRC-valid record cannot hold a burst the size of the current
- *   snapshot (floored at 8 KB so a UUID append does not force a boot erase).
- *   The erase stalls every read of that flash bank, so callers should run
- *   it at boot before sensors and DShot start.
+ *   True when the log for token should be rewritten as one snapshot of
+ *   snapshot_size payload bytes: the live records are not a packed prefix
+ *   of sector 0, or the tail after the last CRC-valid record cannot hold a
+ *   burst the size of that snapshot (floored at 8 KB so a UUID append does
+ *   not force a boot erase) and a compacted layout would. The erase stalls
+ *   every read of that flash bank, so callers run it at boot before sensors
+ *   and DShot start.
  *
  * Returned value:
  *   1 if compact is needed, 0 if not, or a negative errno.
  *
  ****************************************************************************/
 
-__EXPORT int parameter_flashfs_needs_compact(void);
+__EXPORT int parameter_flashfs_needs_compact(flash_file_token_t token, size_t snapshot_size);
 
 /****************************************************************************
  * Name: parameter_flashfs_max_payload

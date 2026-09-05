@@ -128,6 +128,10 @@ static sector_descriptor_t *sector_map;
  ****************************************************************************/
 
 const flash_file_token_t parameters_token = {
+	.n = {'p', 'l', 'o', 'g'},
+};
+
+const flash_file_token_t parameters_legacy_token = {
 	.n = {'p', 'a', 'r', 'm'},
 };
 
@@ -390,9 +394,16 @@ static inline data_size_t entry_crc_length(flash_entry_header_t *fi)
 	return fi->size - offsetof(flash_entry_header_t, size);
 }
 
+/* The parameter sector can be the last one on the chip, so no header
+ * field may be read until the whole header is known to lie inside it. */
+static inline bool header_fits(flash_entry_header_t *pf, h_magic_t *pe)
+{
+	return pf + 1 <= (flash_entry_header_t *)pe;
+}
+
 static bool crc_header_ok(flash_entry_header_t *pf, h_magic_t *pe)
 {
-	if (pf + 1 > (flash_entry_header_t *)pe) {
+	if (!header_fits(pf, pe)) {
 		return false;
 	}
 
@@ -419,51 +430,32 @@ static bool slot_is_free(flash_entry_header_t *pf, int s, size_t required)
 		return false;
 	}
 
+	/* Entries start on a flash row. up_progmem_write only asserts that in
+	 * debug builds, so a slot found by the word-wise scan behind a torn
+	 * record would otherwise be programmed misaligned. */
+	if (((uintptr_t)pf & SizeMask) != 0) {
+		return false;
+	}
+
 	return blank_entry(pf) && blank_check(pf, required);
 }
 
-/****************************************************************************
- * Name: find_entry
- ****************************************************************************/
+static int for_each_valid_entry(flash_file_token_t token,
+				int (*cb)(flash_entry_header_t *pf, void *arg),
+				void *arg);
 
+static int stop_at_first(flash_entry_header_t *pf, void *arg)
+{
+	*(flash_entry_header_t **)arg = pf;
+	return -ECANCELED;
+}
+
+/* Oldest valid entry for token, or NULL. */
 static flash_entry_header_t *find_entry(flash_file_token_t token)
 {
-	for (int s = 0; sector_map[s].address; s++) {
-
-		h_magic_t *pmagic = (h_magic_t *) sector_map[s].address;
-		h_magic_t *pe = pmagic + (sector_map[s].size / sizeof(h_magic_t)) - 1;
-
-cont:
-
-		while (pmagic < pe && !valid_magic(pmagic)) {
-			pmagic++;
-		}
-
-		if (pmagic >= pe) { continue; }
-
-		flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
-
-		if (crc_header_ok(pf, pe)) {
-
-			if (valid_entry(pf) && pf->file_token.t == token.t) {
-				return pf;
-			}
-
-			pf = next_entry(pf);
-			pmagic = (h_magic_t *) pf;
-
-			if (pmagic >= pe || blank_entry(pf)) {
-				continue;
-			}
-
-		} else {
-			pmagic++;
-		}
-
-		goto cont;
-	}
-
-	return NULL;
+	flash_entry_header_t *pf = NULL;
+	for_each_valid_entry(token, stop_at_first, &pf);
+	return pf;
 }
 
 /****************************************************************************
@@ -501,6 +493,14 @@ static flash_entry_header_t *find_append(size_t required)
 				last = pf;
 				last_s = s;
 				pmagic = (h_magic_t *) next_entry(pf);
+				pf = (flash_entry_header_t *) pmagic;
+
+				/* Same stop rule as for_each_valid_entry: a record behind a
+				 * blank header is invisible to replay, so it must not anchor
+				 * the append point either. */
+				if (pmagic >= pe || !header_fits(pf, pe) || blank_entry(pf)) {
+					break;
+				}
 
 			} else {
 				pmagic++;
@@ -602,7 +602,7 @@ cont:
 			pf = next_entry(pf);
 			pmagic = (h_magic_t *) pf;
 
-			if (pmagic >= pe || blank_entry(pf)) {
+			if (pmagic >= pe || !header_fits(pf, pe) || blank_entry(pf)) {
 				continue;
 			}
 
@@ -979,23 +979,6 @@ int parameter_flashfs_walk(flash_file_token_t token, parameter_flashfs_walk_cb c
  * Name: parameter_flashfs_needs_compact
  ****************************************************************************/
 
-struct compact_note {
-	flash_entry_header_t *first;
-	int n;
-};
-
-static int note_entries(flash_entry_header_t *pf, void *arg)
-{
-	struct compact_note *note = (struct compact_note *)arg;
-
-	if (note->first == NULL) {
-		note->first = pf;
-	}
-
-	note->n++;
-	return 0;
-}
-
 size_t parameter_flashfs_max_payload(void)
 {
 	if (sector_map == NULL) {
@@ -1019,54 +1002,49 @@ size_t parameter_flashfs_max_payload(void)
 	return max_sector - overhead;
 }
 
-int parameter_flashfs_needs_compact(void)
+int parameter_flashfs_needs_compact(flash_file_token_t token, size_t snapshot_size)
 {
-	struct compact_note note = { NULL, 0 };
-	int n = for_each_valid_entry(parameters_token, note_entries, &note);
-
-	if (n <= 0) {
-		return n;
+	if (sector_map == NULL) {
+		return -ENXIO;
 	}
 
-	size_t max_sector = 0;
-	int nsectors = 0;
+	flash_entry_header_t *first = find_entry(token);
 
-	for (int s = 0; sector_map[s].address; s++) {
-		if (sector_map[s].size > max_sector) {
-			max_sector = sector_map[s].size;
-		}
-
-		nsectors++;
+	if (first == NULL) {
+		return 0;
 	}
 
-	/* Keep room after the log for a burst the size of the current snapshot
-	 * (reset-all tombstones, airframe PARAM_SET), floored so a UUID append
-	 * does not force a boot erase. */
-	size_t headroom = 8192;
-
-	if (note.first != NULL && note.first->size > headroom) {
-		headroom = note.first->size;
-	}
-
-	if (headroom > max_sector) {
-		headroom = max_sector;
-	}
-
-	const bool packed = (uintptr_t)note.first == (uintptr_t)sector_map[0].address;
-
-	if (!packed) {
+	/* Dead records ahead of the live data (a torn write, or the erased
+	 * prefix the single-snapshot writer left) only go away with an erase. */
+	if ((uintptr_t)first != (uintptr_t)sector_map[0].address) {
 		return 1;
 	}
+
+	/* Keep room after the log for a burst the size of the snapshot
+	 * (reset-all tombstones, airframe PARAM_SET), floored so a UUID append
+	 * does not force a boot erase. */
+	const size_t align = SizeMask;
+	const size_t snapshot_total = (snapshot_size + sizeof(flash_entry_header_t) + align) & ~align;
+	const size_t headroom = snapshot_total > 8192 ? snapshot_total : 8192;
 
 	if (find_append(headroom) != NULL) {
 		return 0;
 	}
 
-	if (note.n == 1 && nsectors == 1) {
-		return 0;
+	/* Compaction leaves the snapshot at the start of sector 0 and every
+	 * other sector blank. Erase only if that layout has the room this one
+	 * lacks, or every boot would pay the erase for nothing. */
+	if (sector_map[0].size >= snapshot_total + headroom) {
+		return 1;
 	}
 
-	return 1;
+	for (int s = 1; sector_map[s].address; s++) {
+		if (sector_map[s].size >= headroom) {
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 /****************************************************************************
