@@ -48,6 +48,7 @@
 #include <float.h>
 #include <stdint.h>
 
+#include <lib/geo/geo.h>
 #include <matrix/math.hpp>
 
 namespace mission_route
@@ -94,13 +95,14 @@ struct ProjectionReferenceBatch {
 struct RouteSegmentView {
 	Segment segment{};
 	SegmentPositions positions{};
-	matrix::Vector2f segment_vector{0.f, 0.f}; /**< Cached start->end NED vector; zero for zero-length segments. */
+	MapProjection map_projection{}; /**< Centered on the segment start and reused for every reference in the batch. */
+	matrix::Vector2f segment_vector{0.f, 0.f}; /**< Cached start->end map vector; zero for zero-length segments. */
 
 	float start_dist_along_route_m{0.f}; /**< Along-route distance accumulated up to this segment's start. */
 	float length_m{0.f};
 
 	bool first_segment{false};
-	bool last_segment{false};
+	bool last_segment{false}; /**< Last nominal segment; trailing jump edges may still follow. */
 	bool zero_length_xy{false};
 };
 
@@ -162,8 +164,9 @@ private:
 bool isIndexInProjectionSegment(const Segment &segment, int32_t mission_index, bool is_flying_reverse);
 
 /**
- * @brief Required VEHICLE_VTOL_STATE on one segment: set by the last DO_VTOL_TRANSITION item before
- * its state anchor, else @p vtol_state_on_mission_upload (also for invalid segments).
+ * @brief Required VEHICLE_VTOL_STATE on one segment: set by the last explicit transition or
+ * implicit VTOL_TAKEOFF front transition before its target waypoint (DO_JUMP for jump edges),
+ * else @p vtol_state_on_mission_upload (also for invalid segments).
  */
 uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
 			    uint8_t vtol_state_on_mission_upload);

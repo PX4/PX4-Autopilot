@@ -34,7 +34,7 @@
 /**
  * @file mission_route_internal_types.h
  *
- * Internal route-scanning and goal-selection data. None of these types are part of the planner's consumer.
+ * Internal route-scanning and goal-selection data, outside the planner's public interface.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -213,7 +213,7 @@ struct PlannerParameters {
 	float altitude_acceptance_radius_m{0.f};
 	float home_altitude_amsl{NAN};
 	float fw_u_turn_penalty_m{4000.f}; /**< FW-only cost of a u-turn (default estimated from turn time and route deviation)*/
-	/** Fallback VTOL state for segments with no preceding DO_VTOL_TRANSITION item. */
+	/** Fallback VTOL state when no preceding explicit or implicit (e.g. VTOL_TAKEOFF) transition establishes the state. */
 	uint8_t vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
 
 	bool validForVehicleProjection() const;

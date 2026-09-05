@@ -1174,8 +1174,8 @@ TEST_F(MissionRoutePlannerTest, VtolStateForSegmentUsesLastTransitionBeforeSegme
 	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 5), kVtolFw), kVtolMc);
 }
 
-// Loop jump segments anchor on the loop start item: the vehicle enters the jump from there.
-TEST_F(MissionRoutePlannerTest, VtolStateForSegmentLoopAnchorsOnLoopStart)
+// Loop jump segments use the state reached before DO_JUMP, including the route to its source.
+TEST_F(MissionRoutePlannerTest, VtolStateForSegmentLoopUsesStateBeforeJump)
 {
 	const std::vector<mission_item_s> mission{
 		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
@@ -1198,6 +1198,7 @@ TEST_F(MissionRoutePlannerTest, VtolStateForSegmentFallsBackForInvalidSegments)
 
 	EXPECT_EQ(mission_route::vtolStateForSegment(provider, mission_route::Segment{}, kVtolMc), kVtolMc);
 	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 99), kVtolFw), kVtolFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 1, 99), kVtolFw), kVtolFw);
 }
 
 // An unreadable item is skipped and the scan continues toward the route start.
@@ -1306,6 +1307,24 @@ TEST_F(MissionRoutePlannerTest, MissionResumePlanRequestsFrontTransitionOnFwSegm
 	request.is_vtol = false;
 
 	ASSERT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNone);
+	EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kNone);
+}
+
+// VTOL takeoff already performs the front transition even when the mission was uploaded in MC.
+TEST_F(MissionRoutePlannerTest, MissionResumeAfterVtolTakeoffKeepsFw)
+{
+	std::vector<mission_item_s> mission = uturn_penalty_dataset::mission();
+	mission[0].nav_cmd = NAV_CMD_VTOL_TAKEOFF;
+	TestPlanner planner(mission);
+	mission_route::MissionResumeRequest request =
+		makeMissionResumeRequest(uturn_penalty_dataset::vehiclePosition(), 1);
+	request.is_vtol = true;
+	request.is_fixed_wing = true;
+	request.vtol_state_on_mission_upload = kVtolMc;
+	mission_route::MissionResumePlan plan{};
+
+	ASSERT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.valid());
 	EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kNone);
 }
 
