@@ -33,9 +33,12 @@
 
 #include "autopilot_tester.h"
 #include "math_helpers.h"
+#include <algorithm>
 #include <atomic>
+#include <cstdlib>
 #include <iostream>
 #include <future>
+#include <mutex>
 #include <thread>
 #include <unistd.h>
 #include <cmath>
@@ -53,7 +56,12 @@ AutopilotTester::AutopilotTester() :
 
 AutopilotTester::~AutopilotTester()
 {
-	_events->unsubscribe_events(_events_handle);
+	// connect() can fail before the plugins exist, and a destructor that dereferences them
+	// turns the reported timeout into a segfault that hides it
+	if (_events) {
+		_events->unsubscribe_events(_events_handle);
+	}
+
 	_should_exit = true;
 	_real_time_report_thread.join();
 }
@@ -79,6 +87,7 @@ void AutopilotTester::connect(const std::string uri)
 	_param.reset(new Param(system));
 	_telemetry.reset(new Telemetry(system));
 	_events.reset(new Events(system));
+	_shell.reset(new Shell(system));
 	_mavlink_passthrough.reset(new MavlinkPassthrough(system));
 
 	_events_handle = _events->subscribe_events([](const Events::Event & event) {
@@ -338,6 +347,538 @@ void AutopilotTester::execute_mission_and_lose_baro()
 		auto result = _mission->is_mission_finished();
 		return result.first == Mission::Result::Success && result.second;
 	}, std::chrono::seconds(90)));
+}
+
+// How far the vehicle is allowed to leave its altitude while an IMU fault is active,
+// measured against the simulator rather than the estimator being disturbed.
+static constexpr float kFailoverGroundTruthBandM = 5.f;
+
+// How far the hovering vehicle may drop below the altitude it was holding while an IMU is
+// clipping. It hovers at 20 m, so this keeps it well clear of the ground.
+static constexpr float kSelectorAltitudeFloorM = 12.f;
+
+// And how far it may climb. A railed accelerometer reads as falling, so the controller answers
+// with thrust and the vehicle goes up rather than down. That transient reaches 25 m in the
+// worst run measured here, while losing the second estimator instead sends it past 50 m and it
+// never comes back, so this sits between the two.
+static constexpr float kSelectorAltitudeCeilingM = 40.f;
+
+// How far it may still be from where it started once the faults are cleared and it has
+// settled again.
+static constexpr float kSelectorRecoveryToleranceM = 3.f;
+
+// SIH_FAULT_VIBE amplitude used to clip an accelerometer. It is the standard deviation of the
+// injected noise, and the driver reports a sample as clipped once it reaches the 16 g
+// measurement range, about 157 m/s2. At this amplitude about three quarters of raw samples
+// reach the rail, which keeps EKF2's clipping counter climbing rather than sitting near the
+// break even point where it steps back down.
+static constexpr float kImuClippingFaultAmplitude = 500.f;
+
+// SCALED_IMU reports the integrated vehicle_imu acceleration in milli g, not raw samples, so
+// the railed samples are averaged with the clean ones over each integration window. A hovering
+// quad sits near 1000 and cannot exceed its thrust to weight ceiling of about 2000 whatever it
+// is commanded, while a clipped IMU still reports many thousands. The bands do not overlap.
+static constexpr int kClippedImuPeakMg = 4000;
+static constexpr int kCleanImuPeakMg = 3000;
+
+// Clears the injected fault however the scope is left. A failing REQUIRE throws, and without
+// this the simulator would keep clipping an accelerometer for the rest of the process.
+class ImuFaultGuard
+{
+public:
+	explicit ImuFaultGuard(mavsdk::Param *param) : _param(param) {}
+	~ImuFaultGuard()
+	{
+		if (_param != nullptr) {
+			_param->set_param_int("SIH_FAULT_IMU", 0);
+			_param->set_param_float("SIH_FAULT_VIBE", 0.f);
+		}
+	}
+
+	ImuFaultGuard(const ImuFaultGuard &) = delete;
+	ImuFaultGuard &operator=(const ImuFaultGuard &) = delete;
+
+private:
+	mavsdk::Param *_param;
+};
+
+// A parameter write has to reach SIH and the samples already in flight have to drain before
+// the next phase starts measuring.
+static constexpr std::chrono::seconds kFaultSettleTime{3};
+
+// Long enough to collect many SCALED_IMU samples at 50 Hz and to outlast the 3 second
+// BADACC_PROBATION that EKF2 holds after clipping stops, so one phase does not bleed into
+// the next.
+static constexpr std::chrono::seconds kFaultMeasureTime{17};
+
+// Ground truth arrives as HIL_STATE_QUATERNION, about 15 Hz of simulated time here. Requiring
+// a third of that over a window catches a stream that stalled or was starved under the speed
+// factor, which would otherwise leave every maximum at its starting value and read as a pass.
+static constexpr int kMinGroundTruthRateHz = 5;
+
+// How long the selector may take to leave the instance behind a clipped IMU. Measured here
+// it takes a few seconds, most of that the health debounce.
+static constexpr std::chrono::seconds kHandoverTimeout{30};
+
+int AutopilotTester::primary_estimator_instance()
+{
+	// The reply arrives in chunks on the receive thread, so collect until the field and the
+	// end of its line are both there.
+	auto output = std::make_shared<std::string>();
+	auto output_mutex = std::make_shared<std::mutex>();
+	Shell::ReceiveHandle handle = _shell->subscribe_receive([output, output_mutex](std::string chunk) {
+		std::lock_guard<std::mutex> lock(*output_mutex);
+		*output += chunk;
+	});
+
+	const Shell::Result send_result = _shell->send("listener estimator_selector_status -n 1\n");
+	const std::string field = "primary_instance:";
+	int instance = -1;
+
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+
+	while (std::chrono::steady_clock::now() < deadline) {
+		{
+			std::lock_guard<std::mutex> lock(*output_mutex);
+			const size_t begin = output->find(field);
+
+			if ((begin != std::string::npos) && (output->find('\n', begin) != std::string::npos)) {
+				instance = std::atoi(output->c_str() + begin + field.size());
+				break;
+			}
+		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+	}
+
+	_shell->unsubscribe_receive(handle);
+
+	if (instance < 0) {
+		std::lock_guard<std::mutex> lock(*output_mutex);
+		std::cout << time_str() << "no primary_instance in the shell reply, send result " << send_result
+			  << ", reply: " << *output << std::endl;
+	}
+
+	return instance;
+}
+
+void AutopilotTester::execute_alternating_imu_faults()
+{
+	// SCALED_IMU and SCALED_IMU2 carry vehicle_imu instance 0 and 1. Clipping one
+	// accelerometer shows up there as a large swing on that stream and on no other, so
+	// watching both is what tells this test the fault landed on the IMU it asked for.
+	// SIH_FAULT_IMU is 1 based, so 1 is the stream behind SCALED_IMU and 2 is SCALED_IMU2.
+	auto peak_imu1_mg = std::make_shared<std::atomic<int>>(0);
+	auto peak_imu2_mg = std::make_shared<std::atomic<int>>(0);
+
+	request_message_interval(MAVLINK_MSG_ID_SCALED_IMU, 50.f);
+	request_message_interval(MAVLINK_MSG_ID_SCALED_IMU2, 50.f);
+
+	auto samples_imu1 = std::make_shared<std::atomic<int>>(0);
+	auto samples_imu2 = std::make_shared<std::atomic<int>>(0);
+
+	auto track_peak = [](std::shared_ptr<std::atomic<int>> peak, std::shared_ptr<std::atomic<int>> samples,
+	int16_t zacc) {
+		const int magnitude = std::abs((int)zacc);
+
+		// A load followed by a store would let a callback that read the old peak write it back
+		// after the phase reset, carrying a faulted value into a clean window.
+		int previous = peak->load();
+
+		while ((magnitude > previous) && !peak->compare_exchange_weak(previous, magnitude)) {
+		}
+
+		samples->fetch_add(1);
+	};
+
+	add_mavlink_message_callback(MAVLINK_MSG_ID_SCALED_IMU, [peak_imu1_mg, samples_imu1, track_peak](
+	const mavlink_message_t &message) {
+		mavlink_scaled_imu_t imu;
+		mavlink_msg_scaled_imu_decode(&message, &imu);
+		track_peak(peak_imu1_mg, samples_imu1, imu.zacc);
+	});
+
+	add_mavlink_message_callback(MAVLINK_MSG_ID_SCALED_IMU2, [peak_imu2_mg, samples_imu2, track_peak](
+	const mavlink_message_t &message) {
+		mavlink_scaled_imu2_t imu;
+		mavlink_msg_scaled_imu2_decode(&message, &imu);
+		track_peak(peak_imu2_mg, samples_imu2, imu.zacc);
+	});
+
+	// The recovery is judged against the simulator rather than the estimator, which is the
+	// thing these faults are disturbing.
+	auto truth_altitude_m = std::make_shared<std::atomic<float>>(NAN);
+	auto truth_altitude_start_m = std::make_shared<std::atomic<float>>(NAN);
+	auto truth_lowest_m = std::make_shared<std::atomic<float>>(0.f);
+	auto truth_highest_m = std::make_shared<std::atomic<float>>(0.f);
+	auto truth_samples = std::make_shared<std::atomic<int>>(0);
+	auto truth_handle = _telemetry->subscribe_ground_truth([truth_altitude_m, truth_altitude_start_m,
+			  truth_lowest_m, truth_highest_m, truth_samples](Telemetry::GroundTruth ground_truth) {
+		const float altitude_m = ground_truth.absolute_altitude_m;
+
+		if (!std::isfinite(altitude_m)) {
+			return;
+		}
+
+		truth_altitude_m->store(altitude_m);
+
+		const float start_m = truth_altitude_start_m->load();
+
+		if (std::isfinite(start_m)) {
+			// Tracked signed so the two directions can be bounded separately
+			const float offset_m = altitude_m - start_m;
+
+			float lowest = truth_lowest_m->load();
+
+			while ((offset_m < lowest) && !truth_lowest_m->compare_exchange_weak(lowest, offset_m)) {
+			}
+
+			float highest = truth_highest_m->load();
+
+			while ((offset_m > highest) && !truth_highest_m->compare_exchange_weak(highest, offset_m)) {
+			}
+
+			truth_samples->fetch_add(1);
+		}
+	});
+
+	REQUIRE(poll_condition_with_timeout(
+	[peak_imu1_mg, peak_imu2_mg, truth_altitude_m]() {
+		return (peak_imu1_mg->load() > 0) && (peak_imu2_mg->load() > 0)
+		       && std::isfinite(truth_altitude_m->load());
+	}, std::chrono::seconds(20)));
+
+	// From here on every ground truth sample feeds the running maximum, so a dip and a
+	// recovery inside one phase cannot hide between two samples.
+	truth_altitude_start_m->store(truth_altitude_m->load());
+
+	// Where the selector starts. SIH brings both instances up together and the selector
+	// takes the first one, so the handovers below are changes rather than coincidences.
+	const int initial_instance = primary_estimator_instance();
+	std::cout << time_str() << "primary estimator instance before the faults " << initial_instance << std::endl;
+	CHECK(initial_instance == 0);
+
+	// Each measurement window has to have been observed at a sane rate, otherwise a stalled
+	// ground truth stream leaves the extrema at zero and every altitude check passes.
+	const int min_truth_samples = kFaultMeasureTime.count() * kMinGroundTruthRateHz;
+
+	ImuFaultGuard fault_guard(_param.get());
+
+	// Clip the accelerometer behind the first instance. If the parameters are missing there is
+	// nothing left to test, so stop rather than fly the rest of the sequence. Each phase gives
+	// the write time to reach SIH and lets the samples already in flight drain, then zeroes
+	// the peaks and measures, otherwise the previous phase's clipping lands in this one.
+	REQUIRE(_param->set_param_float("SIH_FAULT_VIBE", kImuClippingFaultAmplitude) == Param::Result::Success);
+	REQUIRE(_param->set_param_int("SIH_FAULT_IMU", 1) == Param::Result::Success);
+	sleep_for(kFaultSettleTime);
+	peak_imu1_mg->store(0);
+	peak_imu2_mg->store(0);
+	samples_imu1->store(0);
+	samples_imu2->store(0);
+	truth_samples->store(0);
+	sleep_for(kFaultMeasureTime);
+
+	// A stream that stopped arriving would leave its peak at zero and satisfy every clean
+	// check, so each phase proves it measured something first.
+	REQUIRE(samples_imu1->load() > 0);
+	REQUIRE(samples_imu2->load() > 0);
+	REQUIRE(truth_samples->load() >= min_truth_samples);
+
+	// The first IMU is being clipped and the second one is not.
+	CHECK(peak_imu1_mg->load() > kClippedImuPeakMg);
+	CHECK(peak_imu2_mg->load() < kCleanImuPeakMg);
+
+	// The selector has to have left the instance behind the clipped IMU.
+	const int instance_with_first_imu_clipped = primary_estimator_instance();
+	std::cout << time_str() << "primary estimator instance with the first IMU clipped "
+		  << instance_with_first_imu_clipped << ", ground truth samples " << truth_samples->load() << std::endl;
+	CHECK(instance_with_first_imu_clipped == 1);
+
+	// Move the clipping to the other IMU. The fault has to follow the parameter, which is
+	// what says the injection is per instance rather than shared.
+	REQUIRE(_param->set_param_int("SIH_FAULT_IMU", 2) == Param::Result::Success);
+	sleep_for(kFaultSettleTime);
+	peak_imu1_mg->store(0);
+	peak_imu2_mg->store(0);
+	samples_imu1->store(0);
+	samples_imu2->store(0);
+	truth_samples->store(0);
+	sleep_for(kFaultMeasureTime);
+
+	REQUIRE(samples_imu1->load() > 0);
+	REQUIRE(samples_imu2->load() > 0);
+	REQUIRE(truth_samples->load() >= min_truth_samples);
+
+	CHECK(peak_imu2_mg->load() > kClippedImuPeakMg);
+	CHECK(peak_imu1_mg->load() < kCleanImuPeakMg);
+
+	// And back again, now that the clipping has moved to the other one.
+	const int instance_with_second_imu_clipped = primary_estimator_instance();
+	std::cout << time_str() << "primary estimator instance with the second IMU clipped "
+		  << instance_with_second_imu_clipped << ", ground truth samples " << truth_samples->load() << std::endl;
+	CHECK(instance_with_second_imu_clipped == 0);
+
+	// Clear it and both have to settle back down.
+	REQUIRE(_param->set_param_int("SIH_FAULT_IMU", 0) == Param::Result::Success);
+	REQUIRE(_param->set_param_float("SIH_FAULT_VIBE", 0.f) == Param::Result::Success);
+	sleep_for(kFaultSettleTime);
+	peak_imu1_mg->store(0);
+	peak_imu2_mg->store(0);
+	samples_imu1->store(0);
+	samples_imu2->store(0);
+	truth_samples->store(0);
+	sleep_for(kFaultMeasureTime);
+
+	REQUIRE(samples_imu1->load() > 0);
+	REQUIRE(samples_imu2->load() > 0);
+	REQUIRE(truth_samples->load() >= min_truth_samples);
+
+	CHECK(peak_imu1_mg->load() < kCleanImuPeakMg);
+	CHECK(peak_imu2_mg->load() < kCleanImuPeakMg);
+
+	// Either instance is a legitimate choice once both are clean, so this is recorded rather
+	// than asserted.
+	std::cout << time_str() << "primary estimator instance after the faults cleared "
+		  << primary_estimator_instance() << ", ground truth samples " << truth_samples->load() << std::endl;
+
+	// Judged against the simulator, not the estimator the faults are disturbing. Clipping an
+	// accelerometer does push a hovering vehicle around, so what this asserts is that it comes
+	// back once the fault clears, not that it was never moved. The excursion while the fault
+	// is active is reported for the record rather than bounded.
+	_telemetry->unsubscribe_ground_truth(truth_handle);
+
+	const float recovered_deviation_m = fabsf(truth_altitude_m->load() - truth_altitude_start_m->load());
+	std::cout << time_str() << "ground truth altitude relative to the hover, lowest "
+		  << truth_lowest_m->load() << " m, highest " << truth_highest_m->load()
+		  << " m, after recovery " << recovered_deviation_m << " m" << std::endl;
+
+	// Losing height is the outcome that ends on the ground, so that is the one with a hard
+	// floor. The caller hovers at 20 m, so this keeps it well clear of the ground rather than
+	// only requiring that it came back afterwards.
+	CHECK(truth_lowest_m->load() > -kSelectorAltitudeFloorM);
+	CHECK(truth_highest_m->load() < kSelectorAltitudeCeilingM);
+	CHECK(recovered_deviation_m < kSelectorRecoveryToleranceM);
+}
+
+void AutopilotTester::check_tracks_mission_ground_truth(float corridor_radius_m)
+{
+	auto mission = _mission->download_mission();
+	REQUIRE(mission.first == Mission::Result::Success);
+
+	std::vector<Mission::MissionItem> mission_items = mission.second.mission_items;
+	REQUIRE(mission_items.size() >= 2);
+	auto ct = get_coordinate_transformation();
+
+	// Horizontal only. The vertical behaviour is asserted separately, and mixing an AMSL
+	// ground truth altitude with a mission relative altitude would compare two datums.
+	_truth_corridor_radius_m = corridor_radius_m;
+	_truth_corridor_worst_m.store(0.f);
+	_truth_corridor_leg_count = mission_items.size();
+	_truth_corridor_leg_samples = std::make_unique<std::atomic<int>[]>(_truth_corridor_leg_count);
+
+	_truth_corridor_handle = _telemetry->subscribe_ground_truth([ct, mission_items,
+	    this](Telemetry::GroundTruth ground_truth) {
+		// The item being flown to is read here rather than delivered with the sample, so a
+		// sample queued just before a waypoint switch can arrive with the next item current.
+		// Measuring against the leg being flown and the one before it, as finite segments,
+		// keeps such a sample on the leg it belongs to rather than on the extension of the
+		// next one.
+		auto progress = _mission->mission_progress();
+
+		if ((progress.current <= 0) || (progress.current >= (int)mission_items.size())) {
+			return;
+		}
+
+		if (!std::isfinite(ground_truth.latitude_deg) || !std::isfinite(ground_truth.longitude_deg)) {
+			return;
+		}
+
+		using GlobalCoordinate = CoordinateTransformation::GlobalCoordinate;
+		const auto local = ct.local_from_global(GlobalCoordinate{ground_truth.latitude_deg, ground_truth.longitude_deg});
+
+		const std::array<float, 3> current { (float)local.north_m, (float)local.east_m, 0.f };
+
+		auto leg_distance = [&](int item) {
+			std::array<float, 3> start = get_local_mission_item<float>(mission_items[item - 1], ct);
+			std::array<float, 3> end = get_local_mission_item<float>(mission_items[item], ct);
+			start[2] = 0.f;
+			end[2] = 0.f;
+			return point_to_segment_distance(current, start, end);
+		};
+
+		float distance_m = leg_distance(progress.current);
+
+		if (progress.current >= 2) {
+			distance_m = std::min(distance_m, leg_distance(progress.current - 1));
+		}
+
+		float worst = _truth_corridor_worst_m.load();
+
+		while ((distance_m > worst) && !_truth_corridor_worst_m.compare_exchange_weak(worst, distance_m)) {
+		}
+
+		_truth_corridor_leg_samples[progress.current].fetch_add(1);
+	});
+}
+
+void AutopilotTester::stop_tracking_mission_ground_truth()
+{
+	_telemetry->unsubscribe_ground_truth(_truth_corridor_handle);
+
+	std::cout << time_str() << "worst ground truth distance from the mission legs "
+		  << _truth_corridor_worst_m.load() << " m, samples per leg";
+
+	for (size_t item = 1; item < _truth_corridor_leg_count; item++) {
+		std::cout << " " << _truth_corridor_leg_samples[item].load();
+	}
+
+	std::cout << std::endl;
+
+	// A maximum of zero because a leg was never measured would read as a pass, so every leg
+	// has to have been seen.
+	for (size_t item = 1; item < _truth_corridor_leg_count; item++) {
+		REQUIRE(_truth_corridor_leg_samples[item].load() > 0);
+	}
+
+	CHECK(_truth_corridor_worst_m.load() < _truth_corridor_radius_m);
+}
+
+void AutopilotTester::execute_mission_and_degrade_primary_imu()
+{
+	// SCALED_IMU carries vehicle_imu instance 0, the one this test clips. Watching its peak
+	// vertical acceleration is what says the fault was really injected. Without it the test
+	// would pass on a build where the injection silently does nothing.
+	auto peak_imu1_mg = std::make_shared<std::atomic<int>>(0);
+	auto imu_samples = std::make_shared<std::atomic<int>>(0);
+	request_message_interval(MAVLINK_MSG_ID_SCALED_IMU, 50.f);
+	add_mavlink_message_callback(MAVLINK_MSG_ID_SCALED_IMU, [peak_imu1_mg,
+	imu_samples](const mavlink_message_t &message) {
+		mavlink_scaled_imu_t imu;
+		mavlink_msg_scaled_imu_decode(&message, &imu);
+		const int magnitude = std::abs((int)imu.zacc);
+		int previous = peak_imu1_mg->load();
+
+		while ((magnitude > previous) && !peak_imu1_mg->compare_exchange_weak(previous, magnitude)) {
+		}
+
+		imu_samples->fetch_add(1);
+	});
+
+	// Inject on a progress event rather than on a poll. Polling samples on a wall clock grid
+	// while the mission advances on the simulator clock, so under a speed factor the mission
+	// can pass the whole window between two samples. Waiting on the event instead means the
+	// injection starts from a point where the mission was still running.
+	// The callback owns its state through shared pointers rather than capturing this
+	// scope by reference, so if a REQUIRE below aborts the test the subscription that
+	// outlives it still has nothing dangling to touch.
+	auto injection_window = std::make_shared<std::promise<void>>();
+	auto window_signalled = std::make_shared<std::atomic<bool>>(false);
+	auto injection_window_reached = injection_window->get_future();
+
+	Mission::MissionProgressHandle progress_handle = _mission->subscribe_mission_progress(
+	[injection_window, window_signalled](Mission::MissionProgress progress) {
+		if ((progress.current >= 1) && (progress.current < progress.total) && !window_signalled->exchange(true)) {
+			injection_window->set_value();
+		}
+	});
+
+	REQUIRE(_mission->start_mission() == Mission::Result::Success);
+	REQUIRE(injection_window_reached.wait_for(std::chrono::seconds(120)) == std::future_status::ready);
+	_mission->unsubscribe_mission_progress(progress_handle);
+
+	// The vehicle is judged against the simulator, not against the estimator these faults
+	// are deliberately disturbing. An estimator based band cannot be used here, because a
+	// handover steps the estimate on purpose and the same band would have to both allow
+	// that step and catch a real excursion.
+	auto truth_reference_m = std::make_shared<std::atomic<float>>(NAN);
+	auto truth_max_deviation_m = std::make_shared<std::atomic<float>>(0.f);
+	auto truth_samples = std::make_shared<std::atomic<int>>(0);
+	auto truth_handle = _telemetry->subscribe_ground_truth([truth_reference_m, truth_max_deviation_m,
+			   truth_samples](Telemetry::GroundTruth ground_truth) {
+		const float reference = truth_reference_m->load();
+
+		if (!std::isfinite(ground_truth.absolute_altitude_m) || !std::isfinite(reference)) {
+			return;
+		}
+
+		const float deviation = fabsf(ground_truth.absolute_altitude_m - reference);
+		float worst = truth_max_deviation_m->load();
+
+		while ((deviation > worst) && !truth_max_deviation_m->compare_exchange_weak(worst, deviation)) {
+		}
+
+		truth_samples->fetch_add(1);
+	});
+
+	REQUIRE(poll_condition_with_timeout(
+	[peak_imu1_mg]() { return peak_imu1_mg->load() > 0; }, std::chrono::seconds(20)));
+
+	const float truth_altitude_at_injection_m = _telemetry->ground_truth().absolute_altitude_m;
+	REQUIRE(std::isfinite(truth_altitude_at_injection_m));
+	truth_reference_m->store(truth_altitude_at_injection_m);
+
+	// Where the selector starts, so the handover below is a change rather than a coincidence.
+	const int initial_instance = primary_estimator_instance();
+	std::cout << time_str() << "primary estimator instance before the fault " << initial_instance << std::endl;
+	CHECK(initial_instance == 0);
+
+	ImuFaultGuard fault_guard(_param.get());
+
+	// Sustained clipping degrades the estimator instance behind this IMU without silencing
+	// the sensor. A silenced sensor is a different failure mode and is already covered by
+	// failure injection.
+	REQUIRE(_param->set_param_float("SIH_FAULT_VIBE", kImuClippingFaultAmplitude) == Param::Result::Success);
+	REQUIRE(_param->set_param_int("SIH_FAULT_IMU", 1) == Param::Result::Success);
+
+	// Measure only what arrives after the fault is in.
+	peak_imu1_mg->store(0);
+	imu_samples->store(0);
+	truth_samples->store(0);
+	const double fault_start_s = autopilot_time_s();
+
+	auto mission_still_running = [this]() {
+		auto result = _mission->is_mission_finished();
+		return result.first == Mission::Result::Success && !result.second;
+	};
+
+	// The clipping has to be visible while the mission is still running. Without this the
+	// test would pass when the injection silently did nothing, and a progress event that
+	// arrived late could put the whole fault after the mission had already ended.
+	REQUIRE(poll_condition_with_timeout(
+	[peak_imu1_mg]() { return peak_imu1_mg->load() > kClippedImuPeakMg; }, std::chrono::seconds(20)));
+	REQUIRE(mission_still_running());
+
+	// The selector has to leave the instance behind the clipped IMU, and do so before the
+	// mission ends. That is the handover the rest of the mission then rides through.
+	REQUIRE(poll_condition_with_timeout(
+	[this]() { return primary_estimator_instance() == 1; }, kHandoverTimeout));
+	REQUIRE(mission_still_running());
+	std::cout << time_str() << "primary estimator instance moved to 1 with the mission still running" << std::endl;
+
+	// The mission has to run to the end through the handover.
+	REQUIRE(poll_condition_with_timeout(
+	[this]() {
+		auto result = _mission->is_mission_finished();
+		return result.first == Mission::Result::Success && result.second;
+	}, std::chrono::seconds(180)));
+
+	const double fault_window_s = autopilot_time_s() - fault_start_s;
+
+	// Clear the fault before the caller flies home. Landing on a clipping accelerometer is a
+	// different test, and leaving it on would quietly make the disarm timeout load bearing.
+	REQUIRE(_param->set_param_int("SIH_FAULT_IMU", 0) == Param::Result::Success);
+	REQUIRE(_param->set_param_float("SIH_FAULT_VIBE", 0.f) == Param::Result::Success);
+
+	// The vehicle itself has to hold its altitude through the fault, measured against the
+	// simulator rather than against the estimate. A maximum of zero because the stream
+	// stalled would otherwise read as a pass, so the window has to have been sampled at a
+	// sane rate first.
+	_telemetry->unsubscribe_ground_truth(truth_handle);
+	std::cout << time_str() << "ground truth samples through the fault " << truth_samples->load()
+		  << " over " << fault_window_s << " s, worst altitude deviation " << truth_max_deviation_m->load()
+		  << " m" << std::endl;
+	REQUIRE(truth_samples->load() >= fault_window_s * kMinGroundTruthRateHz);
+	CHECK(truth_max_deviation_m->load() < kFailoverGroundTruthBandM);
 }
 
 void AutopilotTester::execute_mission_and_get_baro_stuck()
@@ -866,6 +1407,20 @@ void AutopilotTester::execute_rtl_when_reaching_mission_sequence(int sequence_nu
 void AutopilotTester::send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command)
 {
 	_mavlink_passthrough->send_command_int(command);
+}
+
+void AutopilotTester::request_message_interval(uint16_t message_id, float rate_hz)
+{
+	// The onboard mode this test connects to does not stream the IMU messages by default,
+	// so ask for them. PX4 resolves the message id to a stream and enables it.
+	MavlinkPassthrough::CommandInt command{};
+	command.target_sysid = _mavlink_passthrough->get_target_sysid();
+	command.target_compid = _mavlink_passthrough->get_target_compid();
+	command.command = MAV_CMD_SET_MESSAGE_INTERVAL;
+	command.frame = MAV_FRAME_GLOBAL;
+	command.param1 = (float)message_id;
+	command.param2 = 1e6f / rate_hz;
+	REQUIRE((_mavlink_passthrough->send_command_int(command) == MavlinkPassthrough::Result::Success));
 }
 
 void AutopilotTester::add_mavlink_message_callback(uint16_t message_id,

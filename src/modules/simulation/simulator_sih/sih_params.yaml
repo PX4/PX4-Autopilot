@@ -381,3 +381,44 @@ parameters:
       default: 6000.0
       min: 0.1
       decimal: 1
+    SIH_IMU_COUNT:
+      description:
+        short: Number of simulated IMUs
+        long: |-
+          How many IMUs SIH publishes. Set this to 2 together with EKF2_MULTI_IMU 2
+          and SENS_IMU_MODE 0 to run one EKF instance per IMU, which is what the
+          estimator instance selector needs. The default of 1 keeps the single IMU
+          setup, so a simulation that does not need multi-EKF does not pay for a
+          second estimator.
+      type: int32
+      default: 1
+      min: 1
+      max: 2
+      reboot_required: true
+    SIH_FAULT_IMU:
+      description:
+        short: IMU index for fault injection
+        long: |-
+          Selects which simulated IMU receives injected faults.
+          0 disables fault injection. 1 selects IMU 0, 2 selects IMU 1.
+          Can be changed at runtime to start/stop faults mid-flight.
+      type: int32
+      default: 0
+      min: 0
+      max: 2
+    SIH_FAULT_VIBE:
+      description:
+        short: Accel vibration amplitude for fault injection
+        long: |-
+          Standard deviation of zero mean noise added to the Z axis of the selected IMU,
+          railed at the 16 g measurement range. It is a noise amplitude, not a threshold,
+          so the fraction of samples that reach the rail and are reported as clipped rises
+          smoothly with this value. Around 500 m/s^2 roughly three quarters of samples
+          reach the rail. Set to 0 to disable vibration injection even when
+          SIH_FAULT_IMU is set.
+      type: float
+      default: 0.0
+      unit: m/s^2
+      min: 0.0
+      max: 2000.0
+      decimal: 1
