@@ -167,7 +167,7 @@ static uint8_t temp_queue_buffer[RX_QUEUE_BUFFER_SIZE];
 static uint8_t process_buffer[CRSF_MAX_PACKET_LEN];
 static CrsfPacketDescriptor_t *working_descriptor = NULL;
 
-static CrsfPacketDescriptor_t *FindCrsfDescriptor(const enum CRSF_PACKET_TYPE packet_type);
+static CrsfPacketDescriptor_t *FindCrsfDescriptor(const uint8_t packet_type);
 
 void CrsfParser_Init(void)
 {
@@ -334,7 +334,7 @@ static bool ProcessMspWrite(const uint8_t *data, const uint32_t size, CrsfPacket
 }
 #endif
 
-static CrsfPacketDescriptor_t *FindCrsfDescriptor(const enum CRSF_PACKET_TYPE packet_type)
+static CrsfPacketDescriptor_t *FindCrsfDescriptor(const uint8_t packet_type)
 {
 	uint32_t i;
 
@@ -414,7 +414,7 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 				continue;
 			}
 
-			working_descriptor = FindCrsfDescriptor((enum CRSF_PACKET_TYPE)packet_type);
+			working_descriptor = FindCrsfDescriptor(packet_type);
 
 			// If we know what this packet is...
 			if (working_descriptor != NULL) {
