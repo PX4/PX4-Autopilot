@@ -48,6 +48,7 @@ RM3100::RM3100(device::Device *interface, const I2CSPIDriverConfig &config) :
 {
 	_interface->set_external(config.external);
 	_px4_mag.set_scale(1.f / (RM3100_SENSITIVITY * UTESLA_TO_GAUSS));
+	_px4_mag.set_range(8.f); // +/-800 uT
 }
 
 RM3100::~RM3100()

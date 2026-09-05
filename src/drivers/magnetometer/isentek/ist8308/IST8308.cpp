@@ -245,6 +245,7 @@ bool IST8308::Configure()
 
 	// 1 Microtesla = 0.01 Gauss
 	_px4_mag.set_scale(1.f / 13.2f * 0.01f); // 13.2 LSB/uT
+	_px4_mag.set_range(5.f); // +/-500 uT
 
 	return success;
 }

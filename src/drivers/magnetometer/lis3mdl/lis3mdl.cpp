@@ -248,6 +248,8 @@ int LIS3MDL::set_range(unsigned range)
 		_range_ga = 16.0f;
 	}
 
+	_px4_mag.set_range(_range_ga);
+
 	/*
 	 * Send the command to set the range
 	 */
