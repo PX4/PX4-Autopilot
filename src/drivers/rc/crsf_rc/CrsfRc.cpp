@@ -34,6 +34,7 @@
 #include "CrsfRc.hpp"
 #include "CrsfParser.hpp"
 #include "Crc8.hpp"
+#include "CrsfTelemetryEncoding.hpp"
 
 #include <fcntl.h>
 
@@ -280,8 +281,8 @@ void CrsfRc::Run()
 							      new_crsf_packet.link_statistics.uplink_rssi_1);
 
 				if (time_now_us - _last_stats_tx_seen > 500_ms) {
-					// We haven't received link statistics tx in a while, use an approximation
-					_input_rc.rssi = (1.f - _input_rc.rssi_dbm / -130.f) * _input_rc.RSSI_MAX;
+					// Keep the dBm fallback within the percentage contract used by input_rc.
+					_input_rc.rssi = crsfRssiDbmToPercent(_input_rc.rssi_dbm, input_rc_s::RSSI_MAX);
 				}
 
 				_input_rc.link_quality = new_crsf_packet.link_statistics.uplink_link_quality;
@@ -315,9 +316,9 @@ void CrsfRc::Run()
 				if (_battery_status_sub.update(&battery_status)) {
 					uint16_t voltage = battery_status.voltage_v * 10;
 					uint16_t current = battery_status.current_a * 10;
-					int fuel = battery_status.discharged_mah;
+					float fuel = battery_status.discharged_mah;
 					uint8_t remaining = battery_status.remaining * 100;
-					this->SendTelemetryBattery(voltage, current, fuel, remaining);
+					this->sendTelemetryBattery(voltage, current, fuel, remaining);
 				}
 
 				break;
@@ -330,9 +331,9 @@ void CrsfRc::Run()
 					int32_t longitude = static_cast<int32_t>(round(sensor_gps.longitude_deg * 1e7));
 					uint16_t groundspeed = sensor_gps.vel_m_s * 3.6f * 10.f;   // 0.1 km/h
 					uint16_t gps_heading = math::degrees(matrix::wrap_2pi(sensor_gps.cog_rad)) * 100.f;
-					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m) + 1000;   // meters + 1000 offset
+					uint16_t altitude = crsfGpsAltitudeToWire(sensor_gps.altitude_msl_m);
 					uint8_t num_satellites = sensor_gps.satellites_used;
-					this->SendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
+					this->sendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
 				}
 
 				break;
@@ -345,7 +346,7 @@ void CrsfRc::Run()
 					int16_t pitch = attitude(1) * 1e4f;
 					int16_t roll = attitude(0) * 1e4f;
 					int16_t yaw = attitude(2) * 1e4f;
-					this->SendTelemetryAttitude(pitch, roll, yaw);
+					this->sendTelemetryAttitude(pitch, roll, yaw);
 				}
 
 				break;
@@ -414,7 +415,7 @@ void CrsfRc::Run()
 						flight_mode = "Unknown";
 					}
 
-					this->SendTelemetryFlightMode(flight_mode);
+					this->sendTelemetryFlightMode(flight_mode);
 				}
 
 				break;
@@ -432,7 +433,7 @@ void CrsfRc::Run()
 						vertical_speed = lroundf(math::constrain(-local_position.vz * 100.f, (float)INT16_MIN, (float)INT16_MAX));
 					}
 
-					this->SendTelemetryBaroAltitude(altitude, vertical_speed);
+					this->sendTelemetryBaroAltitude(altitude, vertical_speed);
 				}
 
 				break;
@@ -496,7 +497,7 @@ static inline void write_uint16_t(uint8_t *buf, int &offset, uint16_t value)
 /**
  * write an uint24_t value to a buffer at a given offset and increment the offset
  */
-static inline void write_uint24_t(uint8_t *buf, int &offset, int value)
+static inline void write_uint24_t(uint8_t *buf, int &offset, uint32_t value)
 {
 	// Big endian
 	buf[offset] = value >> 16;
@@ -531,7 +532,7 @@ void CrsfRc::WriteFrameCrc(uint8_t *buf, int &offset, const int buf_size)
 	write_uint8_t(buf, offset, Crc8Calc(buf + 2, buf_size - 3));
 }
 
-bool CrsfRc::SendTelemetryBattery(const uint16_t voltage, const uint16_t current, const int fuel,
+bool CrsfRc::sendTelemetryBattery(const uint16_t voltage, const uint16_t current, const float fuel,
 				  const uint8_t remaining)
 {
 	uint8_t buf[(uint8_t)crsf_payload_size_t::battery_sensor + 4];
@@ -539,14 +540,14 @@ bool CrsfRc::SendTelemetryBattery(const uint16_t voltage, const uint16_t current
 	WriteFrameHeader(buf, offset, crsf_frame_type_t::battery_sensor, (uint8_t)crsf_payload_size_t::battery_sensor);
 	write_uint16_t(buf, offset, voltage);
 	write_uint16_t(buf, offset, current);
-	write_uint24_t(buf, offset, fuel);
+	write_uint24_t(buf, offset, crsfFuelToWire(fuel));
 	write_uint8_t(buf, offset, remaining);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
+	return crsfWriteComplete(_uart->write((void *) buf, (size_t) offset), offset);
 
 }
 
-bool CrsfRc::SendTelemetryGps(const int32_t latitude, const int32_t longitude, const uint16_t groundspeed,
+bool CrsfRc::sendTelemetryGps(const int32_t latitude, const int32_t longitude, const uint16_t groundspeed,
 			      const uint16_t gps_heading, const uint16_t altitude, const uint8_t num_satellites)
 {
 	uint8_t buf[(uint8_t)crsf_payload_size_t::gps + 4];
@@ -559,10 +560,10 @@ bool CrsfRc::SendTelemetryGps(const int32_t latitude, const int32_t longitude, c
 	write_uint16_t(buf, offset, altitude);
 	write_uint8_t(buf, offset, num_satellites);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
+	return crsfWriteComplete(_uart->write((void *) buf, (size_t) offset), offset);
 }
 
-bool CrsfRc::SendTelemetryAttitude(const int16_t pitch, const int16_t roll, const int16_t yaw)
+bool CrsfRc::sendTelemetryAttitude(const int16_t pitch, const int16_t roll, const int16_t yaw)
 {
 	uint8_t buf[(uint8_t)crsf_payload_size_t::attitude + 4];
 	int offset = 0;
@@ -571,10 +572,10 @@ bool CrsfRc::SendTelemetryAttitude(const int16_t pitch, const int16_t roll, cons
 	write_uint16_t(buf, offset, roll);
 	write_uint16_t(buf, offset, yaw);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
+	return crsfWriteComplete(_uart->write((void *) buf, (size_t) offset), offset);
 }
 
-bool CrsfRc::SendTelemetryBaroAltitude(const uint16_t altitude, const int16_t vertical_speed)
+bool CrsfRc::sendTelemetryBaroAltitude(const uint16_t altitude, const int16_t vertical_speed)
 {
 	uint8_t buf[(uint8_t)crsf_payload_size_t::baro_altitude + 4];
 	int offset = 0;
@@ -582,10 +583,10 @@ bool CrsfRc::SendTelemetryBaroAltitude(const uint16_t altitude, const int16_t ve
 	write_uint16_t(buf, offset, altitude);
 	write_uint16_t(buf, offset, (uint16_t)vertical_speed);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
+	return crsfWriteComplete(_uart->write((void *) buf, (size_t) offset), offset);
 }
 
-bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
+bool CrsfRc::sendTelemetryFlightMode(const char *flight_mode)
 {
 	const int max_length = 16;
 	int length = strlen(flight_mode) + 1;
@@ -601,7 +602,7 @@ bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
 	offset += length;
 	buf[offset - 1] = 0; // ensure null-terminated string
 	WriteFrameCrc(buf, offset, length + 4);
-	return _uart->write((void *) buf, (size_t) offset);
+	return crsfWriteComplete(_uart->write((void *) buf, (size_t) offset), offset);
 }
 
 bool CrsfRc::BindCRSF()
