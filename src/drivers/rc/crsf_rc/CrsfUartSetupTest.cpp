@@ -42,17 +42,20 @@ class FakeSerial
 public:
 	bool isOpen() const { return is_open; }
 	bool setBaudrate(uint32_t value) { baudrate = value; ++set_baudrate_calls; return set_baudrate_result; }
-	bool open() { ++open_calls; is_open = open_result; return open_result; }
+	bool open() { ++open_calls; resource_acquired = true; is_open = open_result; return open_result; }
+	bool close() { ++close_calls; resource_acquired = false; is_open = false; return true; }
 	void setSwapRxTxMode() { ++swap_calls; }
 	void setSingleWireMode() { ++singlewire_calls; }
 	void flush() { ++flush_calls; }
 
 	bool is_open{false};
+	bool resource_acquired{false};
 	bool set_baudrate_result{true};
 	bool open_result{true};
 	uint32_t baudrate{0};
 	int set_baudrate_calls{0};
 	int open_calls{0};
+	int close_calls{0};
 	int swap_calls{0};
 	int singlewire_calls{0};
 	int flush_calls{0};
@@ -83,6 +86,9 @@ TEST(CrsfUartSetupTest, ReportsOpenFailureWithoutApplyingPortModes)
 	FakeSerial serial;
 	serial.open_result = false;
 	EXPECT_EQ(CrsfUartSetup(serial, 420000, true, true), CrsfUartSetupResult::OpenError);
+	EXPECT_EQ(serial.close_calls, 1);
+	EXPECT_FALSE(serial.resource_acquired);
+	EXPECT_FALSE(serial.is_open);
 	EXPECT_EQ(serial.swap_calls, 0);
 	EXPECT_EQ(serial.singlewire_calls, 0);
 	EXPECT_EQ(serial.flush_calls, 0);

@@ -65,6 +65,9 @@ CrsfUartSetupResult CrsfUartSetup(SerialType &uart, uint32_t baudrate, bool swap
 	}
 
 	if (!uart.open()) {
+		// open() may acquire a descriptor before configuration fails. Ensure a retry
+		// starts from a clean state instead of overwriting and leaking that descriptor.
+		(void)uart.close();
 		return CrsfUartSetupResult::OpenError;
 	}
 
