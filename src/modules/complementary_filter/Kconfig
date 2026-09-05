@@ -1,0 +1,3 @@
+config MODULES_COMPLEMENTARY_FILTER
+    bool "complementary_filter"
+    default y
