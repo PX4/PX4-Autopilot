@@ -120,10 +120,8 @@ RawSegmentProjection projectReferenceToSegment(const Position &reference_positio
 	// Orthogonal projection of the reference point P onto the segment A (start) -> B (end).
 	matrix::Vector2f reference_vector; // A to P
 
-	// NED vectors avoid extra trigonometry
-	get_vector_to_next_waypoint(segment_positions.start.lat, segment_positions.start.lon,
-				    reference_position.lat, reference_position.lon,
-				    &reference_vector(0), &reference_vector(1));
+	segment_view.map_projection.project(reference_position.lat, reference_position.lon,
+					    reference_vector(0), reference_vector(1));
 
 	// t = dot(A to P, A to B) / |A to B|^2, unclamped.
 	const float path_len_sq = segment_vector.norm_squared();
@@ -160,12 +158,11 @@ bool buildProjectionCandidate(const RouteSegmentView &segment_view,
 		return candidate.valid();
 	}
 
-	// Reconstruct the projected lat/lon from the local NED offset vector.
+	// Invert the same map projection used for the segment and reference vectors.
 	double lat_res;
 	double lon_res;
-	add_vector_to_global_position(segment_positions.start.lat, segment_positions.start.lon,
-				      projection.projection_vector(0), projection.projection_vector(1),
-				      &lat_res, &lon_res);
+	segment_view.map_projection.reproject(projection.projection_vector(0), projection.projection_vector(1),
+					      lat_res, lon_res);
 	candidate.projection.lat = lat_res;
 	candidate.projection.lon = matrix::wrap(lon_res, -180.0, 180.0);
 	candidate.projection.alt = segment_positions.start.alt
@@ -408,11 +405,10 @@ void RouteSegmentCursor::prepareSegmentView(SegmentBoundary boundary, RouteSegme
 		&& fabs(_positions.start.lon - _positions.end.lon) <= kCornerLatLonTolDeg;
 
 	if (!view.zero_length_xy) {
-		view.length_m = get_distance_to_next_waypoint(_positions.start.lat, _positions.start.lon,
-				_positions.end.lat, _positions.end.lon);
-		get_vector_to_next_waypoint(_positions.start.lat, _positions.start.lon,
-					    _positions.end.lat, _positions.end.lon,
-					    &view.segment_vector(0), &view.segment_vector(1));
+		view.map_projection.initReference(_positions.start.lat, _positions.start.lon);
+		view.map_projection.project(_positions.end.lat, _positions.end.lon,
+					    view.segment_vector(0), view.segment_vector(1));
+		view.length_m = view.segment_vector.norm();
 	}
 }
 
@@ -531,15 +527,29 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 		boundary = SegmentBoundary::kIntermediate;
 		break;
 
-	case CursorItemType::kJump:
-		// Process the jump on the next call, after the nominal segment.
-		_index = item.index;
-		boundary = SegmentBoundary::kIntermediate;
-		break;
+	case CursorItemType::kJump: {
+			// Process the jump on the next call, after the nominal segment.
+			_index = item.index;
+
+			// Jump corners belong to nominal segments, so only a later nominal position
+			// makes this endpoint intermediate. Terminal jumps must keep this endpoint final.
+			LoadedPosition next_position{};
+			const PositionLookupStatus next_position_status = findNextMissionPosition(_provider, _home_altitude_amsl,
+					item.index + 1, next_position);
+
+			if (next_position_status == PositionLookupStatus::kFound) {
+				boundary = SegmentBoundary::kIntermediate;
+
+			} else if (next_position_status != PositionLookupStatus::kNoPositionFound) {
+				return fail(positionLookupFailureReason(next_position_status, FailureReason::kInternalError));
+			}
+
+			break;
+		}
 	}
 
 	prepareNominalSegment(segment_end.endpoint, segment_end.position, boundary, view);
-	_done = boundary == SegmentBoundary::kFinal;
+	_done = item.type == CursorItemType::kEnd;
 	return true;
 }
 
@@ -626,12 +636,13 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
 	const int mission_count = provider.missionCount();
 
 	if (!segment.valid() || mission_count <= 0
-	    || segment.start.idx >= mission_count || segment.end.idx >= mission_count) {
+	    || segment.start.idx >= mission_count || segment.end.idx >= mission_count
+	    || segment.jump_item_index >= mission_count) {
 		return vtol_state_on_mission_upload;
 	}
 
-	// Loop jump segments (e.g. 7->2) anchor on the loop start: the vehicle enters the jump from there.
-	const int32_t state_anchor = segment.isLoop() ? segment.start.idx : segment.end.idx;
+	// A jump executes every command between its source position and DO_JUMP before flying the edge.
+	const int32_t state_anchor = segment.isLoop() ? segment.jump_item_index : segment.end.idx;
 
 	for (int32_t i = state_anchor - 1; i >= 0; --i) {
 		mission_item_s mission_item{};
@@ -639,6 +650,11 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
 		if (!provider.loadMissionItem(i, mission_item)) {
 			PX4_WARN("VTOL state: item %d read failed", static_cast<int>(i));
 			continue;
+		}
+
+		// VTOL_TAKEOFF includes a front transition before continuing to the next mission item.
+		if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+			return vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 		}
 
 		if (mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
