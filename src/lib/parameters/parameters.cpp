@@ -839,6 +839,17 @@ int param_save_default(bool blocking)
 	int res = PX4_ERROR;
 	const char *filename = param_get_default_file();
 
+	/* A param_set that lands while the export runs is not in what gets
+	 * written. Remember what was pending at the start and clear only that,
+	 * so the late change keeps its bit and reaches the next save. */
+	px4::AtomicBitset<param_info_count> pending;
+
+	for (param_t param = 0; handle_in_range(param); param++) {
+		if (params_unsaved[param]) {
+			pending.set(param);
+		}
+	}
+
 	if (filename) {
 		static constexpr int MAX_ATTEMPTS = 3;
 
@@ -879,7 +890,11 @@ int param_save_default(bool blocking)
 		PX4_ERR("param export failed (%d)", res);
 
 	} else {
-		params_unsaved.reset();
+		for (param_t param = 0; handle_in_range(param); param++) {
+			if (pending[param]) {
+				params_unsaved.set(param, false);
+			}
+		}
 
 		// backup file
 		if (param_backup_file) {
