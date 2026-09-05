@@ -221,115 +221,115 @@ public:
 					(void)mavlink->send_command_long(request);
 				}
 
-				if (!home_chane_sent || !home_change_accepted || !sample.have_home
-                    || std::fabs(sample.home.altitude / 1000.0 - target_home_altitude_m) >= 0.15) {
-                    last_along_m = along_m;
-                    continue;
-                }
+				if (!home_change_sent || !home_change_accepted || !sample.have_home
+				    || std::fabs(sample.home.altitude / 1000.0 - target_home_altitude_m) >= 0.15) {
+					last_along_m = along_m;
+					continue;
+				}
 
-                const double altitude_error_m = sample.position.alt / 1000.0 - (target_home_altitude_m + 20.0);
-                const bool pending = sample.sequence == 2
-                               && getTelemetry()->flight_mode() == Telemetry::FlightMode::Mission;
-                const double distance_m = std::hypot(along_m, cross_m);
+				const double altitude_error_m = sample.position.alt / 1000.0 - (target_home_altitude_m + 20.0);
+				const bool pending = sample.sequence == 2
+						&& getTelemetry()->flight_mode() == Telemetry::FlightMode::Mission;
+				const double distance_m = std::hypot(along_m, cross_m);
 
-                if (pending && along_m < -2.0 && std::fabs(cross_m) < 2.0) {
-                    approached = true;
-                }
+				if (pending && along_m < -2.0 && std::fabs(cross_m) < 2.0) {
+					approached = true;
+				}
 
-                if (approached && pending && last_along_m <= 0.0 && along_m > 0.0
-                    && std::fabs(cross_m) < 2.0 && std::fabs(altitude_error_m) > 0.8) {
-                    crossed = true;
-                }
+				if (approached && pending && last_along_m <= 0.0 && along_m > 0.0
+				    && std::fabs(cross_m) < 2.0 && std::fabs(altitude_error_m) > 0.8) {
+					crossed = true;
+				}
 
-                if (crossed && pending && along_m > 2.1 && std::fabs(altitude_error_m) > 0.8) {
-                    missed = true;
-                }
+				if (crossed && pending && along_m > 2.1 && std::fabs(altitude_error_m) > 0.8) {
+					missed = true;
+				}
 
-                if (missed) {
-                    maximum_distance_m = std::max(maximum_distance_m, distance_m);
+				if (missed) {
+					maximum_distance_m = std::max(maximum_distance_m, distance_m);
 
-                    if (maximum_distance_m > 2.1 && distance_m <= 2.0 && std::fabs(altitude_error_m) <= 0.8
-                        && sample.position.vx < -10) {
-                        returned = true;
-                    }
+					if (maximum_distance_m > 2.1 && distance_m <= 2.0 && std::fabs(altitude_error_m) <= 0.8
+					    && sample.position.vx < -10) {
+						returned = true;
+					}
 
-                    if (returned && sample.sequence > 2) {
-                        accepted_after_return = true;
-                    }
+					if (returned && sample.sequence > 2) {
+						accepted_after_return = true;
+					}
 
-                    const double radial_velocity_m_s = distance_m > 0.01
-                                     ? (along_m * sample.position.vx / 100.0 + cross_m * sample.position.vy / 100.0) / distance_m
-                                     : 0.0;
+					const double radial_velocity_m_s = distance_m > 0.01
+							 ? (along_m * sample.position.vx / 100.0 + cross_m * sample.position.vy / 100.0) / distance_m
+							 : 0.0;
 
-                    if (pending && distance_m > 2.1 && radial_velocity_m_s > 0.3 && std::fabs(altitude_error_m) <= 0.8) {
-                        const double time_s = sample.position.time_boot_ms / 1000.0;
+					if (pending && distance_m > 2.1 && radial_velocity_m_s > 0.3 && std::fabs(altitude_error_m) <= 0.8) {
+						const double time_s = sample.position.time_boot_ms / 1000.0;
 
-                        if (outward_since_s < 0.0) {
-                            outward_since_s = time_s;
-                            outward_start_distance_m = distance_m;
-                        }
+						if (outward_since_s < 0.0) {
+							outward_since_s = time_s;
+							outward_start_distance_m = distance_m;
+						}
 
-                        if (time_s - outward_since_s >= 10.0 && distance_m - outward_start_distance_m >= 10.0) {
-                            diverged = true;
-                        }
+						if (time_s - outward_since_s >= 10.0 && distance_m - outward_start_distance_m >= 10.0) {
+							diverged = true;
+						}
 
-                    } else {
-                        outward_since_s = -1.0;
-                    }
-                }
+					} else {
+						outward_since_s = -1.0;
+					}
+				}
 
-                last_along_m = along_m;
-            }
+				last_along_m = along_m;
+			}
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
 
-        CAPTURE(home_change_sent);
-        CAPTURE(home_change_accepted);
-        CAPTURE(approached);
-        CAPTURE(crossed);
-        CAPTURE(missed);
-        CAPTURE(returned);
-        CAPTURE(accepted_after_return);
-        CAPTURE(diverged);
-        REQUIRE(home_chane_sent);
-        REQUIRE(home_change_accepted);
-        REQUIRE(missed);
-        REQUIRE_FALSE(diverged);
-        REQUIRE(returned);
-        REQUIRE(accepted_after_return);
+		CAPTURE(home_change_sent);
+		CAPTURE(home_change_accepted);
+		CAPTURE(approached);
+		CAPTURE(crossed);
+		CAPTURE(missed);
+		CAPTURE(returned);
+		CAPTURE(accepted_after_return);
+		CAPTURE(diverged);
+		REQUIRE(home_change_sent);
+		REQUIRE(home_change_accepted);
+		REQUIRE(missed);
+		REQUIRE_FALSE(diverged);
+		REQUIRE(returned);
+		REQUIRE(accepted_after_return);
 
-        bool mission_complete = false;
-        const auto mission_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
+		bool mission_complete = false;
+		const auto mission_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
 
-        while (std::chrono::steady_clock::now() < mission_deadline) {
-            const auto result = getMissionRaw()->is_mission_finished();
+		while (std::chrono::steady_clock::now() < mission_deadline) {
+			const auto result = getMissionRaw()->is_mission_finished();
 
-            if (result.first == MissionRaw::Result::Success && result.second) {
-                mission_complete = true;
-                break;
-            }
+			if (result.first == MissionRaw::Result::Success && result.second) {
+				mission_complete = true;
+				break;
+			}
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        }
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		}
 
-        REQUIRE(mission_complete);
-        wait_until_disarmed(std::chrono::seconds(60));
-    }
+		REQUIRE(mission_complete);
+		wait_until_disarmed(std::chrono::seconds(60));
+	}
 
 private:
-    void set_param_float(const std::string &name, float value)
-    {
-        REQUIRE(getParams()->set_param_float(name, value) == Param::Result::Success);
-        const auto result = getParams()->get_param_float(name);
-        REQUIRE(result.first == Param::Result::Success);
-        REQUIRE(std::fabs(result.second - value) < 0.01f);
-    }
+	void set_param_float(const std::string &name, float value)
+	{
+		REQUIRE(getParams()->set_param_float(name, value) == Param::Result::Success);
+		const auto result = getParams()->get_param_float(name);
+		REQUIRE(result.first == Param::Result::Success);
+		REQUIRE(std::fabs(result.second - value) < 0.01f);
+	}
 };
 } // namespace
 
 TEST_CASE("Multicopter recovers after missing a waypoint during a home-altitude change", "[multicopter][mission]")
 {
-    MissedWaypointRecoveryTester tester;
-    tester.run();
+	MissedWaypointRecoveryTester tester;
+	tester.run();
 }
