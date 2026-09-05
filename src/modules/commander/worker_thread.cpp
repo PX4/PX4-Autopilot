@@ -39,7 +39,9 @@
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "level_calibration.h"
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 #include "mag_calibration.h"
+#endif
 #include "rc_calibration.h"
 
 #include <px4_platform_common/events.h>
@@ -111,9 +113,22 @@ void WorkerThread::threadEntry()
 		_ret_value = do_gyro_calibration(&_mavlink_log_pub);
 		break;
 
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
+
 	case Request::MagCalibration:
 		_ret_value = do_mag_calibration(&_mavlink_log_pub);
 		break;
+
+	case Request::MagCalibrationQuick:
+		_ret_value = do_mag_calibration_quick(&_mavlink_log_pub, _heading_radians, _latitude, _longitude);
+		break;
+#else
+
+	case Request::MagCalibration:
+	case Request::MagCalibrationQuick:
+		_ret_value = -1;
+		break;
+#endif
 
 	case Request::RCTrimCalibration:
 		_ret_value = do_trim_calibration(&_mavlink_log_pub);
@@ -137,10 +152,6 @@ void WorkerThread::threadEntry()
 
 	case Request::ESCCalibration:
 		_ret_value = do_esc_calibration(&_mavlink_log_pub);
-		break;
-
-	case Request::MagCalibrationQuick:
-		_ret_value = do_mag_calibration_quick(&_mavlink_log_pub, _heading_radians, _latitude, _longitude);
 		break;
 
 	case Request::BaroCalibration:
