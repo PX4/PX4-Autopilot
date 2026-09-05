@@ -266,7 +266,7 @@ struct auxVelSample {
 
 struct rangingBeaconSample {
 	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
-	uint8_t     beacon_id{};   ///< beacon identifier
+	uint16_t    beacon_id{};   ///< beacon identifier
 	float       range_m{};     ///< measured range to beacon (m)
 	float       range_var{};   ///< range measurement variance (m^2)
 	double      beacon_lat{};  ///< beacon latitude (degrees)

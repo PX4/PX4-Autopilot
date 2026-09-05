@@ -124,6 +124,10 @@ MavlinkReceiver::MavlinkReceiver(Mavlink &parent) :
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_param_vte_en = param_find("VTE_EN");
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
+#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+	initRangingBeaconAnchors();
+#endif // MAVLINK_MSG_ID_RANGING_BEACON
 }
 
 void
@@ -2776,6 +2780,56 @@ MavlinkReceiver::handle_message_global_position_sensor(mavlink_message_t *msg)
 
 #if defined(MAVLINK_MSG_ID_RANGING_BEACON)
 void
+MavlinkReceiver::initRangingBeaconAnchors()
+{
+	for (int i = 0; i < RANGING_BEACON_MAX_ANCHORS; i++) {
+		char name[17] {};
+		const int slot = i + 1; // params are 1-indexed: RNGBC_1_*, RNGBC_2_*, ...
+
+		snprintf(name, sizeof(name), "RNGBC_%d_ID", slot);
+		_ranging_beacon_anchors[i].id_handle = param_find(name);
+
+		snprintf(name, sizeof(name), "RNGBC_%d_LAT", slot);
+		_ranging_beacon_anchors[i].lat_handle = param_find(name);
+
+		snprintf(name, sizeof(name), "RNGBC_%d_LON", slot);
+		_ranging_beacon_anchors[i].lon_handle = param_find(name);
+
+		snprintf(name, sizeof(name), "RNGBC_%d_AMSL", slot);
+		_ranging_beacon_anchors[i].amsl_handle = param_find(name);
+	}
+
+	updateRangingBeaconAnchors();
+}
+
+void
+MavlinkReceiver::updateRangingBeaconAnchors()
+{
+	for (auto &anchor : _ranging_beacon_anchors) {
+		if (anchor.id_handle == PARAM_INVALID) {
+			continue;
+		}
+
+		param_get(anchor.id_handle, &anchor.id);
+		param_get(anchor.lat_handle, &anchor.lat_e7);
+		param_get(anchor.lon_handle, &anchor.lon_e7);
+		param_get(anchor.amsl_handle, &anchor.amsl);
+	}
+}
+
+const MavlinkReceiver::RangingBeaconAnchor *
+MavlinkReceiver::findRangingBeaconAnchor(uint16_t beacon_id) const
+{
+	for (const auto &anchor : _ranging_beacon_anchors) {
+		if (anchor.id >= 0 && beacon_id == anchor.id) {
+			return &anchor;
+		}
+	}
+
+	return nullptr;
+}
+
+void
 MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 {
 	mavlink_ranging_beacon_t beacon_pos;
@@ -2786,10 +2840,23 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 	ranging_beacon.timestamp_sample = _mavlink_timesync.sync_stamp(beacon_pos.time_usec);
 	ranging_beacon.beacon_id = beacon_pos.beacon_id;
 	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
-	ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
-	ranging_beacon.lon = static_cast<double>(beacon_pos.lon) * 1e-7;
-	ranging_beacon.alt = beacon_pos.alt;
-	ranging_beacon.alt_type = beacon_pos.alt_type;
+
+	// Fill lat/lon/alt from the configured ground-station anchor when beacon_id matches a slot
+	const RangingBeaconAnchor *anchor = findRangingBeaconAnchor(ranging_beacon.beacon_id);
+
+	if (anchor != nullptr) {
+		ranging_beacon.lat = static_cast<double>(anchor->lat_e7) * 1e-7; //deg*1e7
+		ranging_beacon.lon = static_cast<double>(anchor->lon_e7) * 1e-7; //deg*1e7
+		ranging_beacon.alt = anchor->amsl;
+		ranging_beacon.alt_type = ranging_beacon_s::ALT_TYPE_MSL;
+
+	} else {
+		ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
+		ranging_beacon.lon = static_cast<double>(beacon_pos.lon) * 1e-7;
+		ranging_beacon.alt = beacon_pos.alt;
+		ranging_beacon.alt_type = beacon_pos.alt_type;
+	}
+
 	ranging_beacon.hacc = (beacon_pos.hacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.hacc_est) * 1e-3f : NAN;
 	ranging_beacon.vacc = (beacon_pos.vacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.vacc_est) * 1e-3f : NAN;
 	ranging_beacon.sequence_nr = beacon_pos.sequence;
@@ -4190,6 +4257,10 @@ MavlinkReceiver::updateParams()
 {
 	// update parameters from storage
 	ModuleParams::updateParams();
+
+#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+	updateRangingBeaconAnchors();
+#endif // MAVLINK_MSG_ID_RANGING_BEACON
 }
 
 void *MavlinkReceiver::start_trampoline(void *context)
