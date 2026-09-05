@@ -793,6 +793,15 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CON
 		PX4_WARN("hardware flow control not supported");
 	}
 
+#if defined(__PX4_LINUX)
+
+	if (_flow_control_mode == FLOW_CONTROL_AUTO) {
+		// Allow a startup grace period before disabling hardware flow control.
+		_last_write_success_time = hrt_absolute_time();
+	}
+
+#endif
+
 	return _uart_fd;
 }
 
@@ -877,7 +886,15 @@ Mavlink::get_free_tx_buf()
 #else
 		// No FIONSPACE on Linux todo:use SIOCOUTQ  and queue size to emulate FIONSPACE
 		//Linux cp210x does not support TIOCOUTQ
+		int modem_status = 0;
 		buf_free = MAVLINK_MAX_PACKET_LEN;
+
+		if (_flow_control_mode == FLOW_CONTROL_AUTO
+		    && ioctl(_uart_fd, TIOCMGET, &modem_status) == 0
+		    && !(modem_status & TIOCM_CTS)) {
+			buf_free = 0;
+		}
+
 #endif
 
 		if (_flow_control_mode == FLOW_CONTROL_AUTO && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
