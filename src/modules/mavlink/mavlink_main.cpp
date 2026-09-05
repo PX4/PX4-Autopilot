@@ -298,6 +298,15 @@ Mavlink::mavlink_update_parameters()
 	// receiver doesn't read the (non-atomic) ModuleParams members directly.
 	_use_hil_gps_atomic.store(_param_mav_usehilgps.get());
 
+	int32_t gps_input_mode = 0;
+
+	if ((_gps_input_mode_handle == PARAM_INVALID)
+	    || (param_get(_gps_input_mode_handle, &gps_input_mode) != PX4_OK)) {
+		gps_input_mode = 0;
+	}
+
+	_gps_input_mode_atomic.store(gps_input_mode);
+
 	setProtocolVersion(_param_mav_proto_ver.get());
 
 	if (_param_mav_type.get() < 0 || _param_mav_type.get() >= MAV_TYPE_ENUM_END) {

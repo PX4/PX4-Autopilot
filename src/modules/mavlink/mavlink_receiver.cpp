@@ -241,6 +241,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gps_rtcm_data(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GPS_INPUT:
+		if (_mavlink.get_gps_input_mode() != 0) {
+			handle_message_gps_input(msg);
+		}
+
+		break;
+
 	case MAVLINK_MSG_ID_BATTERY_STATUS:
 		handle_message_battery_status(msg);
 		break;
@@ -2689,6 +2696,92 @@ MavlinkReceiver::publish_hil_battery()
 	}
 
 	_battery_pub.publish(hil_battery_status);
+}
+
+void
+MavlinkReceiver::handle_message_gps_input(mavlink_message_t *msg)
+{
+	// The GPS_INPUT source must never own sensor_gps instance 0: GPS_RAW_INT and anything else
+	// that reads that instance directly bypasses the GPS_INPUT_MODE filter in
+	// vehicle_gps_position. Like the secondary receiver in GPS::publish(), hold off until the
+	// primary has advertised so PublicationMulti hands out instance 1, which is what GPS2_RAW
+	// and vehicle_gps_position watch. A second GPS receiver would push this source to instance
+	// 2, where neither looks.
+	if (!_sensor_gps_pub.advertised() && (orb_exists(ORB_ID(sensor_gps), 0) == PX4_ERROR)) {
+		if (!_warned_gps_input_waiting_once) {
+			PX4_WARN("GPS_INPUT dropped until the primary GPS advertises sensor_gps instance 0");
+			_warned_gps_input_waiting_once = true;
+		}
+
+		return;
+	}
+
+	mavlink_gps_input_t gps_input;
+	mavlink_msg_gps_input_decode(msg, &gps_input);
+
+	sensor_gps_s gps{};
+
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.bus = _mavlink.get_instance_id();
+	device_id.devid_s.address = gps_input.gps_id;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_MAVLINK;
+
+	gps.device_id = device_id.devid;
+
+	gps.latitude_deg = gps_input.lat * 1e-7;
+	gps.longitude_deg = gps_input.lon * 1e-7;
+	gps.fix_type = gps_input.fix_type;
+	gps.satellites_used = gps_input.satellites_visible;
+
+	if (!(gps_input.ignore_flags & GPS_INPUT_IGNORE_FLAG_ALT)) {
+		gps.altitude_msl_m = gps_input.alt;
+		gps.altitude_ellipsoid_m = gps_input.alt;
+	}
+
+	// Accuracies the sender opted out of fall back to values the EKF2 GPS checks reject,
+	// so a zero-filled field is never mistaken for a perfect measurement.
+	gps.hdop = (gps_input.ignore_flags & GPS_INPUT_IGNORE_FLAG_HDOP) ? 99.f : gps_input.hdop;
+	gps.vdop = (gps_input.ignore_flags & GPS_INPUT_IGNORE_FLAG_VDOP) ? 99.f : gps_input.vdop;
+	gps.eph = (gps_input.ignore_flags & GPS_INPUT_IGNORE_FLAG_HORIZONTAL_ACCURACY) ? 100.f : gps_input.horiz_accuracy;
+	gps.epv = (gps_input.ignore_flags & GPS_INPUT_IGNORE_FLAG_VERTICAL_ACCURACY) ? 100.f : gps_input.vert_accuracy;
+	gps.s_variance_m_s = (gps_input.ignore_flags & GPS_INPUT_IGNORE_FLAG_SPEED_ACCURACY) ? 10.f :
+			     gps_input.speed_accuracy;
+	gps.c_variance_rad = 0.5f;
+
+	// sensor_gps carries a single validity flag for the whole NED triplet, so a partially
+	// ignored velocity is published as invalid rather than fusing a fabricated zero.
+	const bool vel_horiz_valid = !(gps_input.ignore_flags & GPS_INPUT_IGNORE_FLAG_VEL_HORIZ);
+	const bool vel_vert_valid = !(gps_input.ignore_flags & GPS_INPUT_IGNORE_FLAG_VEL_VERT);
+
+	if (vel_horiz_valid) {
+		gps.vel_n_m_s = gps_input.vn;
+		gps.vel_e_m_s = gps_input.ve;
+		gps.vel_m_s = sqrtf(gps_input.vn * gps_input.vn + gps_input.ve * gps_input.ve);
+		gps.cog_rad = matrix::wrap_pi(atan2f(gps_input.ve, gps_input.vn));
+	}
+
+	if (vel_vert_valid) {
+		gps.vel_d_m_s = gps_input.vd;
+	}
+
+	gps.vel_ned_valid = vel_horiz_valid && vel_vert_valid;
+
+	// yaw is a MAVLink extension field: 0 means unavailable, 36000 means north
+	gps.heading = (gps_input.yaw == 0) ? NAN : matrix::wrap_pi(math::radians(gps_input.yaw * 1e-2f)); // cdeg -> rad
+	gps.heading_offset = NAN;
+
+	// time_usec is specified as either UNIX epoch or time since boot, distinguished only by
+	// magnitude. Forward it as UTC only when it is large enough to be a real epoch value,
+	// otherwise the RTC and log timestamps get set from a boot-relative counter.
+	static constexpr uint64_t kMinPlausibleUtcUsec = 1000000000000000ULL; // 2001-09-09
+	gps.time_utc_usec = (gps_input.time_usec > kMinPlausibleUtcUsec) ? gps_input.time_usec : 0;
+	gps.timestamp_time_relative = 0;
+
+	gps.timestamp_sample = hrt_absolute_time();
+	gps.timestamp = hrt_absolute_time();
+
+	_sensor_gps_pub.publish(gps);
 }
 
 void

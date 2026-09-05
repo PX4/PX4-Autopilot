@@ -196,6 +196,7 @@ private:
 	void handle_message_generator_status(mavlink_message_t *msg);
 	void handle_message_set_gps_global_origin(mavlink_message_t *msg);
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
+	void handle_message_gps_input(mavlink_message_t *msg);
 	void handle_message_heartbeat(mavlink_message_t *msg);
 	void handle_message_hil_gps(mavlink_message_t *msg);
 	void handle_message_hil_optical_flow(mavlink_message_t *msg);
@@ -316,6 +317,7 @@ private:
 	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
 	unsigned _component_states_count{0};
 	bool _warned_component_states_full_once{false};
+	bool _warned_gps_input_waiting_once{false};
 
 	bool _message_statistics_enabled {false};
 #if !defined(CONSTRAINED_FLASH)
