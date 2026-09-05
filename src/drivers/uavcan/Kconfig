@@ -90,6 +90,10 @@ if DRIVERS_UAVCAN
         bool "Subscribe to Safety Button:               ardupilot::indication::Button"
         default y
 
+    config UAVCAN_CANNODE_CONFIGURATOR
+        bool "Apply parameter defaults to peripheral nodes at startup"
+        default y
+
 endif #DRIVERS_UAVCAN
 
 
