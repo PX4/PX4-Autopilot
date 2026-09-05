@@ -39,4 +39,5 @@ px4_add_functional_gtest(SRC test_mission_route_cache.cpp LINKLIBS modules__navi
 
 if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 	px4_add_functional_gtest(SRC test_prec_takeoff.cpp LINKLIBS modules__navigator modules__dataman)
+	px4_add_functional_gtest(SRC test_prec_takeoff_integration.cpp LINKLIBS modules__navigator modules__dataman)
 endif()

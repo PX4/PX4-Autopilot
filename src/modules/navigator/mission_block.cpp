@@ -1106,6 +1106,10 @@ MissionBlock::update_precision_takeoff(const hrt_abstime now)
 	}
 
 	if (prec_takeoff->run(*_navigator->get_local_position(), pos_sp_triplet->current, _waypoint_position_reached, now)) {
+		// Preserve the corrected position when the setpoint is rebuilt, e.g. for VTOL heading alignment.
+		_mission_item.lat = pos_sp_triplet->current.lat;
+		_mission_item.lon = pos_sp_triplet->current.lon;
+
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
