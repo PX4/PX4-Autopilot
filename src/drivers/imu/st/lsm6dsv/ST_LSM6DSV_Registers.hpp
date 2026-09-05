@@ -55,7 +55,7 @@ static constexpr uint8_t Bit7 = (1 << 7);
 namespace ST_LSM6DSV
 {
 
-static constexpr uint32_t SPI_SPEED = 8 * 1000 * 1000; // 8 MHz SPI data clock
+static constexpr uint32_t SPI_SPEED = 10 * 1000 * 1000; // 10 MHz SPI data clock (device max)
 
 static constexpr uint8_t DIR_READ = 0x80;
 
@@ -67,14 +67,14 @@ static constexpr uint8_t WHO_AM_I_DSK320X  = 0x75; // LSM6DSK320X (unique ID)
 // therefore selected explicitly at driver start (-T 80 | -T 320) so the device type is right.
 static constexpr uint8_t WHO_AM_I_HIGHG    = 0x73; // LSM6DSV80X / LSM6DSV320X (shared ID)
 
-// Default-variant (16X / 32X / DSK320X) ODR: HAODR_SEL=01, code 0x0A = 2000 Hz
+// Default-variant (16X / DSK320X) ODR: HAODR_SEL=01, code 0x0A = 2000 Hz
 static constexpr uint32_t GYRO_ODR  = 2000;
 static constexpr uint32_t ACCEL_ODR = 2000;
 
 // HAODR mode-1 (HAODR_SEL=01) ODR code (written to CTRL1/CTRL2 [3:0] and FIFO BDR [3:0])
 static constexpr uint8_t HAODR_MODE1_ODR_2000HZ = 0x0A;
 
-// LSM6DSV80X / LSM6DSV320X ODR: HAODR_SEL=00, code 0x0C = 7680 Hz (device max)
+// HAODR_SEL=00, code 0x0C = 7680 Hz (32X / 80X / 320X)
 static constexpr uint32_t ODR_DSV80X = 7680;
 static constexpr uint8_t HAODR_SEL0_ODR_7680HZ = 0x0C;
 
@@ -154,20 +154,22 @@ enum CTRL4_BIT : uint8_t {
 
 // CTRL6 — Gyroscope full-scale
 enum CTRL6_BIT : uint8_t {
-	// FS_G [2:0]
-	FS_G_2000DPS         = 0x04, // ±2000 dps (16X / 32X)
+	// FS_G [3:0]
+	FS_G_2000DPS         = 0x04, // ±2000 dps (16X / 32X), FS_G=0100
+	FS_G_4000DPS_DSV32X  = 0x0C, // ±4000 dps (16X / 32X), FS_G=1100; OIS gyro chain must stay off
 	FS_G_2000DPS_DSK320X = 0x0C, // ±2000 dps with bit3=1 for DSK320X (0x04 | Bit3)
 	FS_G_4000DPS_HIGHG   = 0x0D, // ±4000 dps for 80X/320X (FS_G=101 | bit3); CTRL6 bit3 must be 1
 };
 
 // CTRL8 — Accelerometer full-scale + LPF2 bandwidth
 enum CTRL8_BIT : uint8_t {
-	// bit2 is hardware-reserved and differs by variant:
-	//   16X / DSK320X / 80X = 0 (value OR'd with FS_XL)
-	//   32X = 1 (must be preserved)
-	// FS_XL [1:0] in bits [1:0]
-	FS_XL_16G          = 0x03, // ±16 g for 16X / DSK320X / 80X (bit2=0)
+	// LSM6DSV32X CTRL8: bit2 must be 1, bit4 must be 0, XL_DualC_EN (bit3) selects dual-channel.
+	// FS_XL [1:0] in bits [1:0]: 00=±4 g, 01=±8 g, 10=±16 g, 11=±32 g
+	// Other variants: bit2 is 0; FS_XL 11 = ±16 g
+	FS_XL_16G          = 0x03, // ±16 g for 16X / DSK320X / 80X (bit2=0, FS_XL=11)
 	FS_XL_16G_DSV32X   = 0x06, // ±16 g for 32X (bit2=1, FS_XL=10)
+	FS_XL_32G_DSV32X   = 0x07, // ±32 g for 32X (bit2=1, FS_XL=11)
+	XL_DualC_EN        = Bit3, // 32X dual-channel (leave 0: UI chain at FS_XL)
 
 	// HP_LPF2_XL_BW [2:0] in bits [7:5] — when LPF2 enabled via CTRL9
 	LPF2_BW_ODR_DIV_10 = Bit5, // 0x20 → ODR/10

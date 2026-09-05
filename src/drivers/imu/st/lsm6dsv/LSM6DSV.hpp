@@ -104,8 +104,8 @@ private:
 	FIFOTransferBuffer _fifo_buffer{};
 
 	// Sensor ODR is variant-dependent (set in UpdateVariantRegisterConfig()):
-	//   default (16X/32X/DSK320X): 2000 Hz
-	//   LSM6DSV80X / 320X:         7680 Hz
+	//   default (16X / DSK320X):   2000 Hz (HAODR_SEL=01)
+	//   LSM6DSV32X / 80X / 320X:   7680 Hz (HAODR_SEL=00)
 	// Every variant batches 2 FIFO words per period: gyro + low-g accel.
 	uint32_t _sensor_odr{GYRO_ODR};
 	float    _fifo_sample_dt{1e6f / GYRO_ODR};
@@ -146,6 +146,7 @@ private:
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO empty")};
 	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO overflow")};
@@ -153,8 +154,10 @@ private:
 	perf_counter_t _drdy_missed_perf{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
+	hrt_abstime _last_config_check_timestamp{0};
 	hrt_abstime _temperature_update_timestamp{0};
 	int _failure_count{0};
+	uint8_t _checked_register{0};
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
@@ -182,8 +185,9 @@ private:
 	const int _highg_variant_arg;
 
 	// LSM6DSV80X / LSM6DSV320X: 7.68 kHz HAODR set and a ±4000 dps gyro. Their second, high-g
-	// accelerometer is left powered down: the ±16 g low-g channel is the published one on every
-	// variant. The high-g element is a sports-impact sensor (±1.5 g typ zero-g offset, ±2 mg/°C
+	// accelerometer is left powered down: the ±16 g low-g channel is the published one.
+	// LSM6DSV32X publishes the UI channel at ±32 g / ±4000 dps / 7680 Hz (no separate high-g element).
+	// The 80X/320X high-g element is a sports-impact sensor (±1.5 g typ zero-g offset, ±2 mg/°C
 	// tempco against ±12 mg / ±0.07 mg/°C for low-g) and is no use as a flight accelerometer.
 	bool _dsv80x_family{false};
 
