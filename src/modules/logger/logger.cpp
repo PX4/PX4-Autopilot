@@ -2543,7 +2543,7 @@ $ logger on
 					 "Poll on a topic instead of running with fixed rate (Log rate and topic intervals are ignored if this is set)", true);
 	PRINT_MODULE_USAGE_PARAM_FLOAT('c', 1.0, 0.2, 2.0, "Log rate factor (higher is faster)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "start logging now, override arming (logger must be running)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "stop logging now, override arming (logger must be running)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "remove manual override; logging follows SDLOG_MODE (logger must be running)");
 #ifdef __PX4_NUTTX
 	PRINT_MODULE_USAGE_COMMAND_DESCR("trigger_watchdog", "manually trigger the watchdog now");
 #endif

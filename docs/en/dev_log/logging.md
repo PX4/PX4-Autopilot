@@ -16,7 +16,7 @@ A new log file is created for each arming session on the SD card.
 To display the current state, use `logger status` on the console.
 If you want to start logging immediately, use `logger on`.
 This overrides the arming state, as if the system was armed.
-`logger off` undoes this.
+`logger off` removes this override, returning logging control to the behavior defined by `SDLOG_MODE`.
 
 If logging stops due to a write error, or reaching the [maximum file size](#file-size-limitations), PX4 will automatically restart logging in a new file.
 
