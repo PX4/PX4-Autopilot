@@ -113,6 +113,7 @@ void VisionTargetEst::Run()
 	// If a new task is available, stop the estimators if they were already running
 	if (setNewTaskIfAvailable()) {
 		stopAllEstimators();
+		updateAidMask();
 	}
 
 	// No task running: switch to a low-rate polling mode instead of waking up on every attitude update
@@ -147,6 +148,7 @@ void VisionTargetEst::Run()
 	if (task_completed) {
 		stopAllEstimators();
 		_current_task_ptr = nullptr;
+		updateAidMask();
 		return;
 	}
 
@@ -237,21 +239,7 @@ void VisionTargetEst::updateParams()
 		}
 	}
 
-	const uint16_t requested_aid_mask = adjustAidMask(_param_vte_aid_mask.get());
-	const bool aid_mask_changed = requested_aid_mask != _vte_aid_mask.value;
-	_vte_aid_mask.value = requested_aid_mask;
-
-	if (_vte_position_enabled) {
-		_vte_position.setVteAidMask(requested_aid_mask);
-	}
-
-	if (_vte_orientation_enabled) {
-		_vte_orientation.setVteAidMask(requested_aid_mask);
-	}
-
-	if (aid_mask_changed) {
-		printAidMask();
-	}
+	updateAidMask();
 
 	const hrt_abstime vte_timeout_us = static_cast<hrt_abstime>(_param_vte_btout.get() * 1_s);
 	_vte_position.setVteTimeout(vte_timeout_us);
@@ -281,23 +269,50 @@ void VisionTargetEst::updateParams()
 	}
 }
 
+void VisionTargetEst::updateAidMask()
+{
+	const uint16_t requested_aid_mask = adjustAidMask(_param_vte_aid_mask.get());
+	const bool aid_mask_changed = requested_aid_mask != _vte_aid_mask.value;
+	_vte_aid_mask.value = requested_aid_mask;
+
+	if (_vte_position_enabled) {
+		_vte_position.setVteAidMask(requested_aid_mask);
+	}
+
+	if (_vte_orientation_enabled) {
+		_vte_orientation.setVteAidMask(requested_aid_mask);
+	}
+
+	if (aid_mask_changed) {
+		printAidMask();
+	}
+}
+
 uint16_t VisionTargetEst::adjustAidMask(const int input_vte_aid_mask)
 {
 	SensorFusionMaskU new_aid_mask{};
 	new_aid_mask.value = input_vte_aid_mask;
 
+	// One absolute pad reference, fused through the mission position path: the mission land point
+	// for precision landing, home for precision takeoff.
+	const bool prec_takeoff = _current_task_ptr == &_prec_takeoff_task;
+	const char *reference_name = prec_takeoff ? "home position" : "mission land position";
+	const bool home_position_requested = new_aid_mask.flags.use_home_pos;
+	new_aid_mask.flags.use_home_pos = false;
+	new_aid_mask.flags.use_mission_pos = prec_takeoff ? home_position_requested : new_aid_mask.flags.use_mission_pos;
+
 #if defined(CONFIG_VTEST_MOVING)
 
 	if (new_aid_mask.flags.use_mission_pos) {
-		PX4_WARN("VTE for moving target. Disabling mission land position data fusion.");
+		PX4_WARN("VTE for moving target. Disabling %s data fusion.", reference_name);
 		new_aid_mask.flags.use_mission_pos = false;
 	}
 
 #endif // CONFIG_VTEST_MOVING
 
 	if (new_aid_mask.flags.use_target_gps_pos && new_aid_mask.flags.use_mission_pos) {
-		PX4_WARN("VTE invalid aid mask: both target GPS and mission land enabled.");
-		PX4_WARN("Disabling mission land position fusion.");
+		PX4_WARN("VTE invalid aid mask: both target GPS and %s enabled.", reference_name);
+		PX4_WARN("Disabling %s fusion.", reference_name);
 		new_aid_mask.flags.use_mission_pos = false;
 	}
 
@@ -314,11 +329,11 @@ void VisionTargetEst::printAidMask()
 
 	if (_vte_aid_mask.flags.use_target_gps_vel) {PX4_DEBUG("    target GPS velocity fusion enabled");}
 
-	if (_vte_aid_mask.flags.use_mission_pos) {PX4_DEBUG("    mission land position fusion enabled");}
+	if (_vte_aid_mask.flags.use_mission_pos) {PX4_DEBUG("    pad reference position fusion enabled");}
 
 	if (_vte_aid_mask.flags.use_uav_gps_vel) {PX4_DEBUG("    UAV GPS velocity fusion enabled");}
 
-	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
+	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion for the current task. Modify VTE_AID_MASK");}
 }
 
 void VisionTargetEst::resetAccDownsample()
@@ -705,6 +720,8 @@ bool VisionTargetEst::updateWhenIntervalElapsed(hrt_abstime &last_time, const hr
 int VisionTargetEst::print_status()
 {
 	const auto yes_no = [](const bool value) { return value ? "yes" : "no"; };
+	SensorFusionMaskU configured_aid_mask{};
+	configured_aid_mask.value = static_cast<uint16_t>(_param_vte_aid_mask.get());
 
 	PX4_INFO("VTE running");
 #if defined(CONFIG_VTEST_MOVING)
@@ -715,18 +732,21 @@ int VisionTargetEst::print_status()
 #endif // CONFIG_VTEST_MOVING
 	PX4_INFO("work queue: %s", px4::wq_configurations::vte.name);
 	PX4_INFO("current task: %s", _current_task_ptr ? _current_task_ptr->name() : "none");
-	PX4_INFO("task mask: 0x%02x (prec_land: %s, debug: %s)",
+	PX4_INFO("task mask: 0x%02x (prec_land: %s, prec_takeoff: %s, debug: %s)",
 		 static_cast<unsigned>(_vte_task_mask),
 		 yes_no(isTaskMaskBitEnabled(task_bits::kPrecLand)),
+		 yes_no(isTaskMaskBitEnabled(task_bits::kPrecTakeoff)),
 		 yes_no(isTaskMaskBitEnabled(task_bits::kDebug)));
-	PX4_INFO("aid mask: 0x%04x", static_cast<unsigned>(_vte_aid_mask.value));
-	PX4_INFO("  vision pos: %s, target gps pos: %s, mission pos: %s",
-		 yes_no(_vte_aid_mask.flags.use_vision_pos),
-		 yes_no(_vte_aid_mask.flags.use_target_gps_pos),
-		 yes_no(_vte_aid_mask.flags.use_mission_pos));
+	PX4_INFO("aid mask: configured 0x%04x, effective 0x%04x",
+		 static_cast<unsigned>(_param_vte_aid_mask.get()), static_cast<unsigned>(_vte_aid_mask.value));
+	PX4_INFO("  vision pos: %s, target gps pos: %s, mission land pos: %s, home pos: %s",
+		 yes_no(configured_aid_mask.flags.use_vision_pos),
+		 yes_no(configured_aid_mask.flags.use_target_gps_pos),
+		 yes_no(configured_aid_mask.flags.use_mission_pos),
+		 yes_no(configured_aid_mask.flags.use_home_pos));
 	PX4_INFO("  uav gps vel: %s, target gps vel: %s",
-		 yes_no(_vte_aid_mask.flags.use_uav_gps_vel),
-		 yes_no(_vte_aid_mask.flags.use_target_gps_vel));
+		 yes_no(configured_aid_mask.flags.use_uav_gps_vel),
+		 yes_no(configured_aid_mask.flags.use_target_gps_vel));
 
 	PX4_INFO("position vte: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s",
 		 yes_no(_param_vte_pos_en.get()),

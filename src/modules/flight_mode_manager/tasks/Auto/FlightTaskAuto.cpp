@@ -97,6 +97,10 @@ bool FlightTaskAuto::updateInitialize()
 
 	_sub_home_position.update();
 	_sub_vehicle_status.update();
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	// Read status first so setpoint_adjusted cannot be paired with an older triplet.
+	_prec_takeoff_status_sub.update();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_position_setpoint_triplet_sub.update();
 	_takeoff_status_sub.update();
 
@@ -160,7 +164,8 @@ bool FlightTaskAuto::update()
 			_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
 		}
 
-		if (Vector2f(_takeoff_liftoff_position).isAllFinite()) {
+		// Hold the liftoff position until Navigator has acquired the target and adjusted the takeoff setpoint.
+		if (Vector2f(_takeoff_liftoff_position).isAllFinite() && !_isPrecisionTakeoffSetpointAdjusted()) {
 			_position_setpoint.xy() = _takeoff_liftoff_position.xy();
 		}
 
@@ -837,4 +842,13 @@ void FlightTaskAuto::updateParams()
 
 	// make sure that alt1 is above alt2
 	_param_mpc_land_alt1.set(math::max(_param_mpc_land_alt1.get(), _param_mpc_land_alt2.get()));
+}
+
+bool FlightTaskAuto::_isPrecisionTakeoffSetpointAdjusted() const
+{
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	return _prec_takeoff_status_sub.get().setpoint_adjusted;
+#else
+	return false;
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }

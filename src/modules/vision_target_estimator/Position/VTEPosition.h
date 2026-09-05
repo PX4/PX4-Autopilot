@@ -63,6 +63,8 @@
 #include <uORB/topics/vte_aid_source3d.h>
 #include <vtest_derivation/generated/state.h>
 
+class VisionTargetEstTestable;
+
 namespace vision_target_estimator
 {
 
@@ -85,8 +87,10 @@ public:
 	/** Drop the estimator state. Cached external inputs (local pos/vel, offsets) are preserved. */
 	void resetFilter();
 
-	/** Cache the precision-land mission waypoint used to build the mission GNSS observation. */
+	/** Cache the task-specific absolute reference used to build the mission GNSS observation. */
 	void setMissionPosition(double lat_deg, double lon_deg, float alt_m);
+	/** Clear the task-specific absolute reference without reporting an invalid measurement. */
+	void clearMissionPosition() { _mission_land_position = {}; }
 
 	/** Feed the latest EKF2 local NED velocity. Used for init and to compensate GNSS latency. */
 	void setLocalVelocity(const matrix::Vector3f &vel_xyz, bool valid, hrt_abstime timestamp);
@@ -141,6 +145,8 @@ public:
 		       || _vte_aid_mask.flags.use_mission_pos;
 	}
 
+	bool missionPosAidEnabled() const { return _vte_aid_mask.flags.use_mission_pos; }
+
 	void print_status() const;
 
 protected:
@@ -165,6 +171,8 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
+	friend class ::VisionTargetEstTestable;
+
 	// Observation types used by the estimator. Keep ordering stable for array indexing.
 	enum class ObsType : uint8_t {
 		kTargetGpsPos,

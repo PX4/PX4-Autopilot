@@ -142,6 +142,9 @@ Navigator::Navigator() :
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_land(this),
 	_precland(this),
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_prec_takeoff(this),
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_rtl(this),
 	_course(this)
 #if CONFIG_NAVIGATOR_ADSB
@@ -1092,6 +1095,11 @@ void Navigator::run()
 		if (_pos_sp_triplet_updated) {
 			publish_position_setpoint_triplet();
 		}
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+		// Publish the triplet before the status that allows FlightTask to use it.
+		_prec_takeoff.publish_status();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 		if (_mission_result_updated) {
 			publish_mission_result();

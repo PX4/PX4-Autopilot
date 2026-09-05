@@ -66,6 +66,13 @@ To use this feature you must [build a firmware that includes the module](../adva
 Without this, `vte_orientation` is never published and [PLD_YAW_EN](#PLD_YAW_EN) has no effect.
 :::
 
+### Precision Takeoff
+
+The Vision Target Estimator can also keep the vehicle over the pad during a vertical takeoff.
+Set [MIS_TKO_PREC](../advanced_config/parameter_reference.md#MIS_TKO_PREC)=1 and enable bit 2 of [VTE_TASK_MASK](../advanced_config/parameter_reference.md#VTE_TASK_MASK).
+In static-target builds, bit 5 of [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) lets the estimator use home as the pad reference.
+See [Precision Takeoff](../advanced_features/vision_target_estimator.md#precision-takeoff) for details.
+
 ## Initiating a Precision Landing
 
 Precision landing can be used in missions, during the landing phase in _Return mode_, or by entering the _Precision Land_ mode.
