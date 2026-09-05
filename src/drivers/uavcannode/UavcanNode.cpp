@@ -47,6 +47,10 @@ extern "C" __attribute__((weak)) const char *board_get_uavcan_hw_name(void)
 #include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+#include <errno.h>
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
+
 #if defined(CONFIG_UAVCANNODE_BATTERY_INFO)
 #include "Publishers/BatteryInfo.hpp"
 #endif // CONFIG_UAVCANNODE_BATTERY_INFO
@@ -176,6 +180,9 @@ UavcanNode::UavcanNode(CanInitHelper *can_init, uint32_t bitrate, uavcan::ICanDr
 	_node(can_driver, system_clock, _pool_allocator),
 	_time_sync_slave(_node),
 	_fw_update_listner(_node),
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+	_command_shell_server(_node),
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
 	_param_server(_node),
 	_dyn_node_id_client(_node),
 	_reset_timer(_node)
@@ -213,6 +220,10 @@ UavcanNode::~UavcanNode()
 
 		} while (_instance);
 	}
+
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+	close_shell();
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
 
 	_publisher_list.clear();
 	_subscriber_list.clear();
@@ -356,6 +367,81 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 	}
 }
 
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+
+void UavcanNode::close_shell()
+{
+	delete _shell;
+	_shell = nullptr;
+}
+
+void UavcanNode::shell_recv(const uavcan::ReceivedDataStructure<UavcanNode::AccessCommandShell::Request> &req)
+{
+	if (req.input.size() > 0) {
+		uint8_t input_buf[decltype(req.input)::MaxSize];
+
+		for (size_t i = 0; i < req.input.size(); ++i) {
+			input_buf[i] = req.input[i];
+		}
+
+		_shell->write(input_buf, req.input.size());
+	}
+}
+
+void UavcanNode::shell_send(uavcan::ServiceResponseDataStructure<UavcanNode::AccessCommandShell::Response> &rsp)
+{
+	uint8_t output_buf[decltype(rsp.output)::MaxSize];
+	const size_t available = _shell->available();
+	// cap to the response's max payload size
+	const size_t to_read = math::min(available, sizeof(output_buf));
+	const size_t n = to_read > 0 ? _shell->read(output_buf, to_read) : 0;
+
+	for (size_t i = 0; i < n; ++i) {
+		rsp.output.push_back(output_buf[i]);
+	}
+}
+
+void UavcanNode::cb_access_command_shell(const uavcan::ReceivedDataStructure<UavcanNode::AccessCommandShell::Request>
+		&req, uavcan::ServiceResponseDataStructure<UavcanNode::AccessCommandShell::Response> &rsp)
+{
+	const uavcan::NodeID source = req.getSrcNodeID();
+
+	if (req.flags & req.FLAG_RESET_SHELL) {
+		// applies regardless of current owner
+		close_shell();
+	}
+
+	if (_shell != nullptr && _shell_owner != source) {
+		// single shared session
+		close_shell();
+	}
+
+	if (_shell == nullptr) {
+		_shell = new uavcannode::UavcanNodeShell();
+
+		if (_shell == nullptr || _shell->start() < 0) {
+			PX4_ERR("AccessCommandShell: failed to start shell");
+			delete _shell;
+			_shell = nullptr;
+			rsp.flags = rsp.FLAG_SHELL_ERROR;
+			rsp.last_exit_status = -ENOMEM;
+			return;
+		}
+
+		_shell_owner = source;
+	}
+
+	shell_recv(req);
+	shell_send(rsp);
+
+	// shell_send() may not have drained everything that fit in one response
+	if (_shell->available() > 0) {
+		rsp.flags |= rsp.FLAG_HAS_PENDING_STDOUT;
+	}
+}
+
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
+
 int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
 	_node.setName(board_get_uavcan_hw_name());
@@ -373,6 +459,15 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 		PX4_ERR("firmware update listener start failed");
 		return PX4_ERROR;
 	}
+
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+
+	if (_command_shell_server.start(AccessCommandShellCallback(this, &UavcanNode::cb_access_command_shell)) < 0) {
+		PX4_ERR("command shell server start failed");
+		return PX4_ERROR;
+	}
+
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
 
 #if defined(CONFIG_UAVCANNODE_BATTERY_INFO)
 	_publisher_list.add(new BatteryInfo(this, _node));
