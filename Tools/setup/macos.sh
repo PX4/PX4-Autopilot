@@ -163,8 +163,36 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		brew trust osrf/simulation
 	fi
 
+	# The pinned gz-harmonic bottles ship protobuf gencode and refuse to
+	# compile against a different protobuf runtime ("Protobuf C++ gencode is
+	# built with an incompatible version" #error). homebrew-core moves
+	# protobuf forward faster than OSRF rebuilds the gz bottles for it, so
+	# install the exact protobuf the gz pin was built against instead of
+	# homebrew-core HEAD. See protobuf-pin.txt. This must run before
+	# gz-harmonic below so its unversioned `depends_on "protobuf"` resolves to
+	# the pinned keg rather than pulling the current one.
+	PROTOBUF_PIN=$(grep -v '^#' "${DIR}/protobuf-pin.txt" | tr -d '[:space:]')
+	if [[ -n $PROTOBUF_PIN ]]; then
+		PROTOBUF_FORMULA_URL="https://raw.githubusercontent.com/Homebrew/homebrew-core/${PROTOBUF_PIN}/Formula/p/protobuf.rb"
+		echo "[macos.sh] Pinning protobuf to homebrew-core ${PROTOBUF_PIN}"
+		# Replace any protobuf already present (a newer one from the runner
+		# image or an earlier install) so the gz bottles get the runtime they
+		# were built against. Nothing we install has been poured yet, so
+		# dropping it here is safe.
+		if brew list --versions protobuf &> /dev/null; then
+			brew unpin protobuf 2>/dev/null || true
+			brew uninstall --ignore-dependencies --force protobuf
+		fi
+		brew install "$PROTOBUF_FORMULA_URL"
+		# Keep the gz-harmonic install below from upgrading it.
+		brew pin protobuf
+	fi
+
 	# opencv@4: the unversioned formula is OpenCV 5, which PX4-OpticalFlow
 	# does not build against.
+	#
+	# protobuf is installed and pinned above, so it is intentionally absent
+	# here; gz-harmonic pulls it in as a dependency and finds the pinned keg.
 	PX4_SIM_BREW_PACKAGES=(
 		exiftool
 		glog
@@ -172,7 +200,6 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		gstreamer
 		opencv@4
 		osrf/simulation/gz-harmonic
-		protobuf
 	)
 
 	if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then

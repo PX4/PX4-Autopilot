@@ -1,0 +1,20 @@
+# homebrew-core revision used by macos.sh --sim-tools to install protobuf.
+#
+# The osrf/simulation gz-harmonic bottles macos.sh pours (pinned to
+# gz-tap-pin.txt) ship pre-generated protobuf C++ gencode. Protobuf's runtime
+# refuses gencode built against an incompatible version (the "Protobuf C++
+# gencode is built with an incompatible version" poison-pill #error), so the
+# installed protobuf has to be the same version those bottles were built
+# against, not whatever homebrew-core currently ships.
+#
+# homebrew-core advances protobuf faster than OSRF rebuilds the gz bottles
+# against it, so an unpinned protobuf breaks the pinned gz bottles for days at
+# a time. Pinning protobuf here decouples the two: install the exact
+# homebrew-core protobuf the gz pin was built for. Move this together with
+# gz-tap-pin.txt whenever OSRF rebuilds the Harmonic stack against a newer
+# protobuf. The bottle tags in the pinned formula must cover every macOS in
+# compile_macos.yml's matrix so both legs pour instead of building from source.
+#
+# protobuf 35.1_2 (compatibility_version 4), the last homebrew-core protobuf
+# before the 36.x bump, which the pinned gz-harmonic bottles were built for.
+61aace0c801d8af80f7e09ee0a0d39e7b59ce5f3
