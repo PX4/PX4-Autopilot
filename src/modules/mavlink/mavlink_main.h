@@ -255,6 +255,10 @@ public:
 	// mavlink_update_parameters().
 	bool			get_use_hil_gps() { return _use_hil_gps_atomic.load(); }
 
+	// Snapshot of GPS_INPUT_MODE, read by the receiver thread in handle_message().
+	// Refreshed in mavlink_update_parameters().
+	int32_t			get_gps_input_mode() { return _gps_input_mode_atomic.load(); }
+
 	bool			get_forward_externalsp() { return _param_mav_fwdextsp.get(); }
 
 	bool			get_flow_control_enabled() { return _flow_control_mode; }
@@ -609,6 +613,13 @@ private:
 	// Atomic snapshot of MAV_USEHILGPS, written from the main mavlink thread
 	// in mavlink_update_parameters() and read from the receiver thread.
 	px4::atomic_bool _use_hil_gps_atomic{false};
+
+	// GPS_INPUT_MODE is owned by vehicle_gps_position, which is not built on every board that
+	// builds MAVLink, so it is resolved by name instead of through DEFINE_PARAMETERS. A missing
+	// param leaves GPS_INPUT ingest disabled, which is what we want when nothing downstream
+	// would consume it. Snapshot handling matches _use_hil_gps_atomic.
+	const param_t		_gps_input_mode_handle{param_find_no_notification("GPS_INPUT_MODE")};
+	px4::atomic<int32_t>	_gps_input_mode_atomic{0};
 
 	px4::atomic<unsigned>	_bytes_tx{0};
 	px4::atomic<unsigned>	_bytes_txerr{0};

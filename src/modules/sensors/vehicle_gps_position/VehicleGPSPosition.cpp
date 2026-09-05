@@ -33,10 +33,22 @@
 
 #include "VehicleGPSPosition.hpp"
 
+#include <drivers/drv_sensor.h>
+#include <lib/drivers/device/Device.hpp>
 #include <px4_platform_common/log.h>
 #include <lib/geo/geo.h>
 #include <lib/gnss/SensorGpsSelector.hpp>
 #include <lib/mathlib/mathlib.h>
+
+namespace
+{
+bool isMavlinkGpsInput(const sensor_gps_s &gps_data)
+{
+	device::Device::DeviceId device_id{};
+	device_id.devid = gps_data.device_id;
+	return device_id.devid_s.devtype == DRV_GPS_DEVTYPE_MAVLINK;
+}
+}
 
 namespace sensors
 {
@@ -138,9 +150,25 @@ void VehicleGPSPosition::Run()
 		sensor_gps_s gps_data;
 
 		if (gps_updated) {
-			any_gps_updated = true;
-
 			_sensor_gps_sub[i].copy(&gps_data);
+
+			// GPS_INPUT_MODE=1 puts the MAVLink GPS_INPUT source in shadow mode. Keep the raw
+			// sensor_gps instance available to the logger and MAVLink GPS_RAW_INT/GPS2_RAW streams, but
+			// never submit it to vehicle_gps_position for selection or blending. Mode 2 ingests the same
+			// data and submits it normally so it can contribute to the GPS solution.
+			if ((_param_gps_input_mode.get() == 1) && isMavlinkGpsInput(gps_data)) {
+				// Clear any state cached while mode 2 was active so switching to shadow mode
+				// cannot use the previous solution until the normal GPS timeout expires.
+				_gps_blending.resetGpsData(i);
+
+				if (!_sensor_gps_sub[i].registered()) {
+					_sensor_gps_sub[i].registerCallback();
+				}
+
+				continue;
+			}
+
+			any_gps_updated = true;
 
 			// Match device_id to receiver slot
 			matrix::Vector3f antenna_offset{};
@@ -218,6 +246,7 @@ void VehicleGPSPosition::Run()
 void VehicleGPSPosition::PrintStatus()
 {
 	PX4_INFO_RAW("[vehicle_gps_position] selected GPS: %d\n", _gps_blending.getSelectedGps());
+	PX4_INFO_RAW("[vehicle_gps_position] GPS_INPUT mode: %" PRId32 "\n", _param_gps_input_mode.get());
 }
 
 }; // namespace sensors
