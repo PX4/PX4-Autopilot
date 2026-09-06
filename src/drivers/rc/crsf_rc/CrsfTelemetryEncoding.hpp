@@ -39,5 +39,8 @@ uint8_t crsfRssiDbmToPercent(float rssi_dbm, uint8_t maximum);
 /** @return MSL altitude as a saturated CRSF uint16 wire value [m], including its 1000 m offset; NaN maps to zero. */
 uint16_t crsfGpsAltitudeToWire(double altitude_msl_m);
 
+/** @return Altitude in CRSF baro format: offset decimeters, or flagged meters above that format's range. */
+uint16_t crsfBaroAltitudeToWire(float altitude_m);
+
 /** @return Consumed capacity in [0, 0xFFFFFF] mAh; values saturate and NaN maps to zero. */
 uint32_t crsfFuelToWire(float fuel_mah);

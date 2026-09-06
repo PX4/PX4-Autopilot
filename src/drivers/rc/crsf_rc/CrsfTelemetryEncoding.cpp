@@ -42,6 +42,15 @@ constexpr float kRssiMinimumDbm{-130.f};
 // CRSF shifts GPS altitude so negative mean-sea-level heights fit the unsigned field [m].
 constexpr int32_t kGpsAltitudeOffsetM{1000};
 
+// CRSF shifts the fine-resolution baro format so negative altitudes fit [dm].
+constexpr int32_t kBaroAltitudeOffsetDm{10000};
+
+// The high bit selects whole meters instead of offset decimeters.
+constexpr uint16_t kBaroAltitudeExtendedFlag{0x8000};
+
+// Largest altitude represented by the extended whole-meter format [m].
+constexpr int32_t kBaroAltitudeMaximumM{0x7FFF};
+
 // Upper saturation limit for consumed capacity in the unsigned 24-bit CRSF field [mAh].
 constexpr uint32_t kFuelMaximumMah{0xFFFFFF};
 
@@ -80,6 +89,27 @@ uint16_t crsfGpsAltitudeToWire(double altitude_msl_m)
 
 	// Quantize before applying the offset to retain the established whole-meter encoding.
 	return static_cast<uint16_t>(static_cast<int32_t>(altitude_msl_m) + kGpsAltitudeOffsetM);
+}
+
+uint16_t crsfBaroAltitudeToWire(float altitude_m)
+{
+	const int32_t altitude_dm = lroundf(altitude_m * 10.f) + kBaroAltitudeOffsetDm;
+
+	if (altitude_dm < 0) {
+		return 0;
+	}
+
+	if (altitude_dm < kBaroAltitudeExtendedFlag) {
+		return static_cast<uint16_t>(altitude_dm);
+	}
+
+	int32_t altitude_full_m = lroundf(altitude_m);
+
+	if (altitude_full_m > kBaroAltitudeMaximumM) {
+		altitude_full_m = kBaroAltitudeMaximumM;
+	}
+
+	return static_cast<uint16_t>(altitude_full_m) | kBaroAltitudeExtendedFlag;
 }
 
 uint32_t crsfFuelToWire(float fuel_mah)

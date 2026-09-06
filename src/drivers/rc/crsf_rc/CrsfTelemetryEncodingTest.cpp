@@ -60,6 +60,18 @@ TEST(CrsfTelemetryEncodingTest, SaturatesGpsAltitudeAfterOffset)
 	EXPECT_EQ(crsfGpsAltitudeToWire(std::numeric_limits<double>::infinity()), UINT16_MAX);
 }
 
+TEST(CrsfTelemetryEncodingTest, EncodesBaroAltitudeInBothFormats)
+{
+	EXPECT_EQ(crsfBaroAltitudeToWire(-2000.f), 0);
+	EXPECT_EQ(crsfBaroAltitudeToWire(-1000.f), 0);
+	EXPECT_EQ(crsfBaroAltitudeToWire(0.f), 10000);
+	EXPECT_EQ(crsfBaroAltitudeToWire(2276.7f), 0x7FFF);
+	EXPECT_EQ(crsfBaroAltitudeToWire(2277.f), 0x8000 | 2277);
+	EXPECT_EQ(crsfBaroAltitudeToWire(5000.f), 0x8000 | 5000);
+	EXPECT_EQ(crsfBaroAltitudeToWire(10000.f), 0x8000 | 10000);
+	EXPECT_EQ(crsfBaroAltitudeToWire(50000.f), UINT16_MAX);
+}
+
 TEST(CrsfTelemetryEncodingTest, SaturatesUnsignedFuelField)
 {
 	EXPECT_EQ(crsfFuelToWire(-1.f), 0u);

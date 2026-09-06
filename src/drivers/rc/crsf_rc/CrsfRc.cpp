@@ -115,31 +115,6 @@ int CrsfRc::task_spawn(int argc, char *argv[])
 	return PX4_OK;
 }
 
-/**
- * pack an altitude for the barometric altitude frame: decimeters + 10000 offset,
- * or meters with the MSB set when above the decimeter range
- */
-static uint16_t pack_baro_altitude(const float altitude_m)
-{
-	int32_t altitude_dm = lroundf(altitude_m * 10.f) + 10000;
-
-	if (altitude_dm < 0) {
-		return 0;
-	}
-
-	if (altitude_dm < 0x8000) {
-		return (uint16_t)altitude_dm;
-	}
-
-	int32_t altitude_full_m = lroundf(altitude_m);
-
-	if (altitude_full_m > 0x7FFF) {
-		altitude_full_m = 0x7FFF;
-	}
-
-	return (uint16_t)altitude_full_m | 0x8000;
-}
-
 void CrsfRc::Run()
 {
 	if (should_exit()) {
@@ -426,7 +401,7 @@ void CrsfRc::Run()
 				vehicle_local_position_s local_position;
 
 				if (_vehicle_local_position_sub.update(&local_position) && local_position.z_valid) {
-					uint16_t altitude = pack_baro_altitude(-local_position.z);
+					uint16_t altitude = crsfBaroAltitudeToWire(-local_position.z);
 					int16_t vertical_speed = 0;
 
 					if (local_position.v_z_valid) {
