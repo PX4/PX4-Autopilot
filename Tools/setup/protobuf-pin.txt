@@ -15,11 +15,14 @@
 # protobuf. The bottle tags in the pinned formula must cover every macOS in
 # compile_macos.yml's matrix so both legs pour instead of building from source.
 #
-# protobuf 36.0 (compatibility_version 5). The pinned gz-harmonic bottles
-# (gz-tap-pin.txt 43aee9cc) were rebuilt on 2026-08-23 ("gz-harmonic: rebuild
-# dependencies"), when homebrew-core protobuf was 36.0, so their gencode is
-# compatibility_version 5. protobuf 36.1 (compatibility_version 6) is what
-# breaks CI; 35.1_2 (compatibility_version 4) would break it too. Both the
-# arm64_tahoe (macos-latest) and arm64_sequoia (macos-15) bottles are present
-# in this formula, so both compile_macos.yml legs pour instead of building.
+# protobuf 36.0 (compatibility_version 5). The pinned osrf/simulation tap
+# (gz-tap-pin.txt 43aee9cc) ships gz-msgs10 10.4.0_2, rebuilt on 2026-08-23
+# ("gz-harmonic: rebuild dependencies", osrf/homebrew-simulation f1bf9f4f) when
+# homebrew-core protobuf was 36.0, so its gencode is compatibility_version 5.
+# The next osrf commit (c6c3580, "Remove bottles broken by protobuf 36.1")
+# revision-bumped the bottle away, confirming 36.0 is the last protobuf these
+# bottles accept: 36.1 (compatibility_version 6) and 35.1_2 (4) both trip the
+# "Protobuf C++ gencode is built with an incompatible version" poison-pill.
+# This formula's bottle block covers arm64_tahoe (macos-latest) and
+# arm64_sequoia (macos-15), so both compile_macos.yml legs pour.
 7436b93ad425ff90ed56ab9e8fe798a7c113a584

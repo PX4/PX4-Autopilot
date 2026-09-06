@@ -173,8 +173,26 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	# the pinned keg rather than pulling the current one.
 	PROTOBUF_PIN=$(grep -v '^#' "${DIR}/protobuf-pin.txt" | tr -d '[:space:]')
 	if [[ -n $PROTOBUF_PIN ]]; then
-		PROTOBUF_FORMULA_URL="https://raw.githubusercontent.com/Homebrew/homebrew-core/${PROTOBUF_PIN}/Formula/p/protobuf.rb"
 		echo "[macos.sh] Pinning protobuf to homebrew-core ${PROTOBUF_PIN}"
+		# `brew install <url>` no longer accepts a raw formula URL, and a
+		# versioned protobuf@N keg would not satisfy gz-harmonic's unversioned
+		# `depends_on "protobuf"`. So drop the pinned homebrew-core formula
+		# (keg name "protobuf") into a local tap and install it from there,
+		# mirroring the osrf/simulation pin above. Injecting the homebrew-core
+		# bottle root_url (which core formulae omit because it is implied only
+		# for the core tap) pours the exact bottle the gz bottles were built
+		# against; if that ever fails, fall back to building the same version.
+		PROTOBUF_TAP="px4/localprotobuf"
+		PROTOBUF_TAP_DIR=$(brew --repo "$PROTOBUF_TAP")
+		rm -rf "$PROTOBUF_TAP_DIR"
+		brew tap-new "$PROTOBUF_TAP"
+		if brew trust --help &> /dev/null; then
+			brew trust "$PROTOBUF_TAP"
+		fi
+		PROTOBUF_RB="${PROTOBUF_TAP_DIR}/Formula/protobuf.rb"
+		curl -fsSL "https://raw.githubusercontent.com/Homebrew/homebrew-core/${PROTOBUF_PIN}/Formula/p/protobuf.rb" -o "$PROTOBUF_RB"
+		awk '1; /^  bottle do$/ { print "    root_url \"https://ghcr.io/v2/homebrew/core\"" }' \
+			"$PROTOBUF_RB" > "${PROTOBUF_RB}.tmp" && mv "${PROTOBUF_RB}.tmp" "$PROTOBUF_RB"
 		# Replace any protobuf already present (a newer one from the runner
 		# image or an earlier install) so the gz bottles get the runtime they
 		# were built against. Nothing we install has been poured yet, so
@@ -183,7 +201,10 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 			brew unpin protobuf 2>/dev/null || true
 			brew uninstall --ignore-dependencies --force protobuf
 		fi
-		brew install "$PROTOBUF_FORMULA_URL"
+		if ! HOMEBREW_NO_AUTO_UPDATE=1 brew install "${PROTOBUF_TAP}/protobuf"; then
+			echo "[macos.sh] pinned protobuf bottle unavailable, building from source"
+			HOMEBREW_NO_AUTO_UPDATE=1 brew install --build-from-source "${PROTOBUF_TAP}/protobuf"
+		fi
 		# Keep the gz-harmonic install below from upgrading it.
 		brew pin protobuf
 	fi
