@@ -32,7 +32,7 @@ At the bottom of the form, click **Submit report**.
 3. **Fix**: The fix is developed as a normal pull request against `main`, in the open. See [How Fixes Are Developed](#how-fixes-are-developed).
 4. **Release**: The fix is public once the pull request is merged. Where it applies to a supported release branch it is backported, and it appears in the release notes. If a report warrants a published advisory or a CVE, we publish it through GitHub and credit the reporter unless they request anonymity.
 
-If you do not receive acknowledgment within 7 days, please follow up by emailing the [release managers](MAINTAINERS.md).
+If you do not receive acknowledgment within 7 days, please follow up by emailing the security maintainers or the release managers listed in [MAINTAINERS.md](MAINTAINERS.md).
 
 ## How Fixes Are Developed
 
