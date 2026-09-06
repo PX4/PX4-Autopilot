@@ -76,11 +76,10 @@ public:
 
 			uavcan::equipment::ahrs::RawIMU raw_imu{};
 
-			raw_imu.timestamp.usec = getNode().getUtcTime().toUSec() - (hrt_absolute_time() -
-						 vehicle_imu.timestamp_sample);
+			raw_imu.timestamp.usec = bus_timestamp_usec(getNode().getUtcTime().toUSec(), vehicle_imu.timestamp_sample);
 
-			raw_imu.integration_interval = vehicle_imu.delta_angle_dt;
-			// raw_imu.integration_interval = vehicle_imu.delta_velocity_dt;
+			// integration_interval is in seconds; delta_angle_dt is in microseconds
+			raw_imu.integration_interval = vehicle_imu.delta_angle_dt * 1e-6f;
 
 			raw_imu.rate_gyro_latest[0] = (vehicle_imu.delta_angle[0] / vehicle_imu.delta_angle_dt) * 1000000;
 			raw_imu.rate_gyro_latest[1] = (vehicle_imu.delta_angle[1] / vehicle_imu.delta_angle_dt) * 1000000;

@@ -37,9 +37,21 @@
 #include <uavcan/uavcan.hpp>
 
 #include <uavcan/node/publisher.hpp>
+#include <drivers/drv_hrt.h>
 
 namespace uavcannode
 {
+
+// Acquisition time in the bus shared time base for a sample taken at sample_hrt.
+// The bus time is 0 until the time-sync master disciplines our clock, and the
+// subtraction is unsigned, so publish UNKNOWN rather than underflow the uint56
+// field.
+inline uint64_t bus_timestamp_usec(uint64_t bus_time_us, hrt_abstime sample_hrt)
+{
+	const uint64_t sample_age_us = hrt_absolute_time() - sample_hrt;
+	return (bus_time_us > sample_age_us) ? (bus_time_us - sample_age_us) : 0;
+}
+
 
 class UavcanPublisherBase : public IntrusiveSortedListNode<UavcanPublisherBase *>
 {
