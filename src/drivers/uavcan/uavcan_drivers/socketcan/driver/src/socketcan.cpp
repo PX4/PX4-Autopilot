@@ -211,9 +211,14 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	 * returning negative here loses the frame, which breaks any multi-frame
 	 * transfer in progress. A non-blocking send that the driver could not take
 	 * immediately comes back as ETIMEDOUT from net_timedwait(), not ENOBUFS.
+	 * ENOMEM would mean the stack could not get a buffer for the frame; that
+	 * is transient, so it is retried like the others.  ENETDOWN is transient
+	 * too: a bitrate change takes the interface down and back up, and the
+	 * deadline of the frame bounds how long it can wait for that.
 	 */
 	if (errno == ETIMEDOUT || errno == EAGAIN || errno == EWOULDBLOCK ||
-	    errno == ENOBUFS || errno == EINTR || errno == EBUSY) {
+	    errno == ENOBUFS || errno == EINTR || errno == EBUSY || errno == ENOMEM ||
+	    errno == ENETDOWN) {
 		return 0;
 	}
 
