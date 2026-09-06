@@ -96,23 +96,23 @@ struct Channel {
 	uint8_t iface_index{0};
 };
 
-// Nodes stamp their acquisition time in the bus shared time base, and the CAN
-// ISR stamps each received transfer in that same base, so the sample age is the
-// difference between the two no matter how the bus base relates to HRT (the FC
-// seeds its bus clock from HRT only after its own init, and may be a slave to
-// another master). An undisciplined node stamps UNKNOWN, and a node stamping a
-// foreign epoch lands outside any plausible transport window; both get the
-// receive time.
-inline hrt_abstime sample_timestamp(uint64_t node_timestamp_us, uint64_t rx_bus_timestamp_us, hrt_abstime rx_time)
+// Node timestamps are in the bus shared time base, whose offset from HRT is
+// arbitrary: the FC seeds its bus clock from HRT at whatever phase the driver's
+// free-running timer happens to be, and a lower node ID master can discipline
+// it. Subtracting the bus-time age from an HRT reading taken at the same
+// instant cancels the offset; the ISR receive stamp would leave the transfer
+// and scheduling latency in the result. UNKNOWN, unconverged and foreign-epoch
+// stamps fall back to the receive time.
+inline hrt_abstime sample_timestamp(uint64_t node_timestamp_us, uint64_t bus_now_us, hrt_abstime now)
 {
 	static constexpr uint64_t kMaxTransportDelay = 100_ms;
 
-	if (node_timestamp_us > 0 && rx_bus_timestamp_us >= node_timestamp_us
-	    && (rx_bus_timestamp_us - node_timestamp_us) < kMaxTransportDelay) {
-		return rx_time - (rx_bus_timestamp_us - node_timestamp_us);
+	if (node_timestamp_us > 0 && bus_now_us >= node_timestamp_us
+	    && (bus_now_us - node_timestamp_us) < kMaxTransportDelay) {
+		return now - (bus_now_us - node_timestamp_us);
 	}
 
-	return rx_time;
+	return now;
 }
 } // namespace uavcan_bridge
 

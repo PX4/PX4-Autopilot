@@ -76,7 +76,7 @@ public:
 
 			uavcan::equipment::ahrs::RawIMU raw_imu{};
 
-			raw_imu.timestamp.usec = bus_timestamp_usec(getNode().getUtcTime().toUSec(), vehicle_imu.timestamp_sample);
+			raw_imu.timestamp.usec = bus_timestamp_usec(getNode(), vehicle_imu.timestamp_sample);
 
 			// integration_interval is in seconds; delta_angle_dt is in microseconds
 			raw_imu.integration_interval = vehicle_imu.delta_angle_dt * 1e-6f;
