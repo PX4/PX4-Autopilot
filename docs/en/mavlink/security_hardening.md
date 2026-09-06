@@ -4,15 +4,22 @@
 
 MAVLink is an open communication protocol designed for lightweight, low-latency communication between drones and ground stations.
 By default, all MAVLink messages are unauthenticated.
-This is intentional for development and testing, but **production deployments must enable [message signing](message_signing.md)** to prevent unauthorized access.
+This is intentional for development and testing, but **production deployments must secure the link** to prevent unauthorized access.
+
+There are two ways to do that, and they are not exclusive:
+
+- **Encrypt the link below MAVLink**, using an encrypted radio, a VPN or IPsec.
+  This uses standard, reviewed cryptography, gives confidentiality as well as authentication, and protects every interface on the link rather than only MAVLink.
+- **Enable [MAVLink message signing](message_signing.md)**, which authenticates MAVLink frames without encrypting them.
+  This is the mechanism PX4 itself ships, and it is described in this guide.
 
 ::: warning
-Without message signing enabled, any device that can send MAVLink messages to the vehicle (via radio, network, or serial) can execute any command, including shell access, file operations, parameter changes, mission uploads, arming, and flight termination.
+On an unsecured link, any device that can send MAVLink messages to the vehicle (via radio, network, or serial) can execute any command, including shell access, file operations, parameter changes, mission uploads, arming, and flight termination.
 :::
 
 ## What Is at Risk
 
-When MAVLink signing is not enabled, an attacker within communication range can:
+On an unsecured link, an attacker within communication range can:
 
 | Capability                    | MAVLink mechanism                                |
 | ----------------------------- | ------------------------------------------------ |
@@ -27,13 +34,15 @@ When MAVLink signing is not enabled, an attacker within communication range can:
 | Reboot the vehicle            | `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN`              |
 
 All of these are standard MAVLink capabilities used by ground control stations.
-Without signing, there is no distinction between a legitimate GCS and an unauthorized sender.
+Until the link is secured, there is no distinction between a legitimate GCS and an unauthorized sender.
 
 ## Hardening Checklist
 
-### 1. Enable Message Signing
+### 1. Secure the Link
 
-Message signing provides cryptographic authentication for all MAVLink communication.
+If the link is carried over an encrypted radio, a VPN or IPsec, that covers authentication and confidentiality for everything on it, and the rest of this step is optional.
+
+Otherwise, use message signing, which provides cryptographic authentication for all MAVLink communication.
 See [Message Signing](message_signing.md) for full details.
 
 Steps:
@@ -67,6 +76,7 @@ If your threat model includes physical access, secure the SD card slot and debug
 
 ### 3. Secure Network Links
 
+- Prefer an encrypted transport where one is available: an encrypted radio link, a VPN, or IPsec.
 - Do not expose MAVLink UDP/TCP ports to untrusted networks or the internet.
 - Place MAVLink communication links behind firewalls or VPNs.
 - Segment MAVLink networks from business or public networks.
