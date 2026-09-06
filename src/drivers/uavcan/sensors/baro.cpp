@@ -199,6 +199,7 @@ void UavcanBarometerBridge::raw_air_data_sub_cb(const
 int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
 {
 	channel->h_driver = new uORB::PublicationMulti<sensor_baro_s>(ORB_ID(sensor_baro));
+	channel->h_driver_free = [](void *p) { delete static_cast<uORB::PublicationMulti<sensor_baro_s> *>(p); };
 
 	if (channel->h_driver == nullptr) {
 		return PX4_ERROR;

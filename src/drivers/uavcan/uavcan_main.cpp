@@ -155,6 +155,23 @@ UavcanNode::~UavcanNode()
 	// Removing the sensor bridges
 	_sensor_bridges.clear();
 
+	/* The status publishers hold multi instance advertisements. Give them back,
+	 * or the next start of the node takes fresh instances and they run out.
+	 */
+	for (auto &handle : _can_status_pub_handles) {
+		if (handle != nullptr) {
+			orb_unadvertise(handle);
+			handle = nullptr;
+		}
+	}
+
+	for (auto &handle : _node_status_pub_handles) {
+		if (handle != nullptr) {
+			orb_unadvertise(handle);
+			handle = nullptr;
+		}
+	}
+
 	pthread_mutex_destroy(&_node_mutex);
 
 	perf_free(_cycle_perf);
@@ -488,6 +505,7 @@ UavcanNode::busevent_signal_trampoline()
 {
 	if (_instance) {
 		// trigger the work queue (Note, this is called from IRQ context)
+		_instance->_event_wake.store(true);
 		_instance->ScheduleNow();
 	}
 }
@@ -1068,6 +1086,21 @@ UavcanNode::Run()
 		_mixing_interface_servo.ScheduleClear();
 #endif
 		ScheduleClear();
+
+#if defined(UAVCAN_SOCKETCAN_NUTTX)
+		/* CanInitHelper is kept across a restart, so its sockets would stay
+		 * open and bound with nothing reading them. Give them back here; the
+		 * next start opens them again in can->init(). NuttX descriptor tables
+		 * belong to a task group, and this is the work queue that opened
+		 * them.
+		 */
+
+		if (can != nullptr) {
+			can->driver.closeIfaces();
+		}
+
+#endif
+
 		_instance = nullptr;
 	}
 }

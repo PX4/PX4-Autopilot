@@ -123,7 +123,16 @@ private:
 	void pushLoopback(const uavcan::CanFrame &frame);
 
 public:
+	~CanIface() { closeSocket(); }
+
 	uavcan::uint32_t socketInit(uint32_t index);
+
+	/**
+	 * Disarm the receive notification and close the socket. The socket is
+	 * bound to its interface for as long as it is open, so closing it is
+	 * what gives the CAN connection back; socketInit() opens a new one.
+	 */
+	void closeSocket();
 
 	uavcan::int16_t send(const uavcan::CanFrame &frame,
 			     uavcan::MonotonicTime tx_deadline,
@@ -209,8 +218,6 @@ public:
 	CanDriver() : update_event_(*this)
 	{}
 
-	~CanDriver();
-
 	/**
 	 * Runs on the high priority work queue when a socket has received frames,
 	 * and signals the bus event so the node runs without waiting for the tick.
@@ -224,6 +231,18 @@ public:
 		}
 
 		return if_[index].socketInit(index);
+	}
+
+	/**
+	 * Close the socket of every interface. CanInitHelper outlives the node,
+	 * so the sockets are given back here when the node stops and opened
+	 * again by initIface() when it starts.
+	 */
+	void closeIfaces()
+	{
+		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+			if_[i].closeSocket();
+		}
 	}
 
 	/**

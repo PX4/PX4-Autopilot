@@ -46,6 +46,7 @@
 
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 #include <inttypes.h>
 #include <string.h>
 #include <errno.h>
@@ -81,6 +82,11 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	_can_fd = can_fd;
 	_index = index;
+
+	/* A previous socket of this interface is still bound and still holding a
+	 * CAN connection, so it goes first.
+	 */
+	closeSocket();
 
 	/* open socket */
 	if ((_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
@@ -491,6 +497,23 @@ int CanIface::setRxNotify(worker_t worker, void *arg)
 }
 #endif
 
+void CanIface::closeSocket()
+{
+	if (_fd < 0) {
+		return;
+	}
+
+#ifdef CAN_RAW_RXNOTIFY
+	/* Nothing may call back into this object once the socket is gone */
+	setRxNotify(nullptr, nullptr);
+#endif
+
+	::close(_fd);
+	_fd = -1;
+	_rx_valid = false;
+	_tx_pending = false;
+}
+
 const char *CanIface::busStateName(uint8_t state)
 {
 	switch (state) {
@@ -543,21 +566,6 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 	 */
 
 	return 0;
-}
-
-CanDriver::~CanDriver()
-{
-#ifdef CAN_RAW_RXNOTIFY
-
-	/* Nothing may call back into this object once it is gone */
-
-	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
-		if (if_[i].getFD() >= 0) {
-			if_[i].setRxNotify(nullptr, nullptr);
-		}
-	}
-
-#endif
 }
 
 void CanDriver::rxNotifyWorker(void *arg)
@@ -647,6 +655,7 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
 			pfds[i].events = POLLIN | (((write_request >> i) & 1U) ? POLLOUT : 0);
 		}
+
 
 		if (poll(pfds, UAVCAN_SOCKETCAN_NUM_IFACES, timeout_usec / 1000) > 0) {
 			for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {

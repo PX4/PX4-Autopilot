@@ -94,6 +94,7 @@ int UavcanGyroBridge::init_driver(uavcan_bridge::Channel *channel)
 	uint32_t device_id = make_uavcan_device_id(static_cast<uint8_t>(channel->node_id), channel->iface_index);
 
 	channel->h_driver = new PX4Gyroscope(device_id);
+	channel->h_driver_free = [](void *p) { delete static_cast<PX4Gyroscope *>(p); };
 
 	if (channel->h_driver == nullptr) {
 		return PX4_ERROR;

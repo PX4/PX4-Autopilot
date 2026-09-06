@@ -250,6 +250,25 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
  */
 UavcanSensorBridgeBase::~UavcanSensorBridgeBase()
 {
+	/* Multi instance advertisements are held per channel. Give them back, or
+	 * the next start of the node takes fresh instances and they run out.
+	 */
+	for (unsigned i = 0; i < _max_channels; i++) {
+		if (_channels[i].orb_advert != nullptr) {
+			orb_unadvertise(_channels[i].orb_advert);
+			_channels[i].orb_advert = nullptr;
+		}
+
+		/* The driver object of a channel holds its own publication, so it has
+		 * to go the same way. Only the bridge that allocated it knows its
+		 * type, which is why it left a deleter behind.
+		 */
+		if (_channels[i].h_driver != nullptr && _channels[i].h_driver_free != nullptr) {
+			_channels[i].h_driver_free(_channels[i].h_driver);
+			_channels[i].h_driver = nullptr;
+		}
+	}
+
 	delete [] _channels;
 }
 
