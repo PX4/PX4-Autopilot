@@ -134,21 +134,28 @@ status_t AFBRS50::measurementReadyCallback(status_t status, argus_hnd_t *hnd)
 		return ERROR_FAIL;
 	}
 
-	STATE state = STATE::COLLECT;
-
-	if (up_interrupt_context() || (status != STATUS_OK)) {
+	if (status != STATUS_OK) {
 		dev->recordCallbackError();
-		status = ERROR_FAIL;
-		state = STATE::TRIGGER;
 	}
 
-	dev->schedule(state);
+	// Always collect, error or not: Argus_EvaluateData is what releases the
+	// API's raw data buffer, and after two unreleased buffers the API refuses
+	// to start measurements and rejects configuration writes. COLLECT reports
+	// the non-OK result and publishes it as out of range.
+	dev->schedule(STATE::COLLECT);
 
 	return status;
 }
 
 void AFBRS50::schedule(STATE state)
 {
+	// A stale completion (an abort issued by recoverFromTriggerStall, or a
+	// frame that was in flight when the calibration finished) must not pull
+	// the state machine out of a reconfiguration.
+	if (_state == STATE::CONFIGURE) {
+		return;
+	}
+
 	_state = state;
 	ScheduleNow();
 }
@@ -571,14 +578,25 @@ void AFBRS50::recoverFromTriggerStall(const char *reason)
 	PX4_ERR("no trigger progress after %u attempts (%s), aborting and reconfiguring",
 		(uint)kMaxTriggerRetries, reason);
 
+	// Enter CONFIGURE before aborting so the abort completion, whether it
+	// arrives synchronously or once the in-flight SPI exchange drains, is
+	// dropped by schedule() instead of restarting the trigger loop.
+	_trigger_retry_count = 0;
+	_state = STATE::CONFIGURE;
+
+	// A lost completion leaves its raw buffer allocated, and the API rejects
+	// configuration writes while a buffer awaits evaluation.
+	for (unsigned i = 0; (i < 2) && Argus_IsDataEvaluationPending(_hnd); i++) {
+		argus_results_t res{};
+		Argus_EvaluateData(_hnd, &res);
+	}
+
 	status_t status = Argus_Abort(_hnd);
 
 	if (status != STATUS_OK) {
 		PX4_ERR("Argus_Abort failed: %i", (int)status);
 	}
 
-	_trigger_retry_count = 0;
-	_state = STATE::CONFIGURE;
 	ScheduleDelayed(350_ms);
 }
 

@@ -117,7 +117,7 @@ void AFBRS50::runCalibration()
 	// forever (a RUNNING calibration also blocks 'afbrs50 stop').
 	const hrt_abstime wait_start = hrt_absolute_time();
 
-	while (Argus_GetStatus(_hnd) > STATUS_IDLE) {
+	while (Argus_GetStatus(_hnd) != STATUS_IDLE) {
 		if (hrt_elapsed_time(&wait_start) > 1_s) {
 			_cal_result_status = ERROR_TIMEOUT;
 			_cal_state = CalState::FAILED;
