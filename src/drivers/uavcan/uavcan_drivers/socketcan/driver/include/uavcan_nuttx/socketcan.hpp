@@ -182,6 +182,15 @@ public:
 	 * negative if the controller rejected the rate.
 	 */
 	int setBitRate(uint32_t bitrate);
+
+#ifdef CAN_RAW_RXNOTIFY
+	/**
+	 * Ask the stack to run `worker` whenever this socket retains a batch of
+	 * received frames, or disarm the notification with a null worker.
+	 * Returns 0 on success, negative if the stack refused the option.
+	 */
+	int setRxNotify(worker_t worker, void *arg);
+#endif
 };
 
 /**
@@ -199,6 +208,14 @@ class CanDriver
 public:
 	CanDriver() : update_event_(*this)
 	{}
+
+	~CanDriver();
+
+	/**
+	 * Runs on the high priority work queue when a socket has received frames,
+	 * and signals the bus event so the node runs without waiting for the tick.
+	 */
+	static void rxNotifyWorker(void *arg);
 
 	uavcan::int32_t initIface(uint32_t index)
 	{

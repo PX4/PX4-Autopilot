@@ -304,6 +304,9 @@ private:
 	perf_counter_t			_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t			_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 
+	px4::atomic_bool		_event_wake{false};	///< set by the bus event, cleared at the top of Run()
+	hrt_abstime			_last_periodic{0};	///< last run that did the periodic work
+
 	failure_injection::Config	_failure_config;			///< active failure-injection config
 
 	void handle_time_sync(const uavcan::TimerEvent &);

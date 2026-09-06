@@ -479,6 +479,18 @@ int CanIface::setBitRate(uint32_t bitrate)
 #endif
 }
 
+#ifdef CAN_RAW_RXNOTIFY
+int CanIface::setRxNotify(worker_t worker, void *arg)
+{
+	struct can_rxnotify_s notify {};
+
+	notify.worker = worker;
+	notify.arg = arg;
+
+	return setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_RXNOTIFY, &notify, sizeof(notify));
+}
+#endif
+
 const char *CanIface::busStateName(uint8_t state)
 {
 	switch (state) {
@@ -505,9 +517,25 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
 		pfds[i].fd     = if_[i].getFD();
 
-		if (if_[i].getFD() >= 0 && if_[i].setBitRate(bitrate) < 0) {
+		if (if_[i].getFD() < 0) {
+			continue;
+		}
+
+		if (if_[i].setBitRate(bitrate) < 0) {
 			return -1;
 		}
+
+#ifdef CAN_RAW_RXNOTIFY
+		/* Have the stack signal the bus event as soon as it retains a batch of
+		 * received frames. The periodic tick stays as the fallback, so an
+		 * interface that will not take the option keeps working.
+		 */
+
+		if (if_[i].setRxNotify(&CanDriver::rxNotifyWorker, this) < 0) {
+			PX4_WARN("can%d: CAN_RAW_RXNOTIFY rejected (%d), frames wait for the tick", i, errno);
+		}
+
+#endif
 	}
 
 	/*
@@ -515,6 +543,32 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 	 */
 
 	return 0;
+}
+
+CanDriver::~CanDriver()
+{
+#ifdef CAN_RAW_RXNOTIFY
+
+	/* Nothing may call back into this object once it is gone */
+
+	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+		if (if_[i].getFD() >= 0) {
+			if_[i].setRxNotify(nullptr, nullptr);
+		}
+	}
+
+#endif
+}
+
+void CanDriver::rxNotifyWorker(void *arg)
+{
+	/* Runs on the high priority work queue, once per batch of received
+	 * frames. The bus event signal reaches UavcanNode::ScheduleNow() through
+	 * the callback the node registered, and ScheduleNow() is idempotent while
+	 * the work item is queued, so a burst collapses into one node run.
+	 */
+
+	static_cast<CanDriver *>(arg)->update_event_.signalFromInterrupt();
 }
 
 uavcan::uint32_t CanDriver::getRxQueueOverflowCount() const

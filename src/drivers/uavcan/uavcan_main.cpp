@@ -702,6 +702,16 @@ UavcanNode::handle_time_sync(const uavcan::TimerEvent &)
 void
 UavcanNode::Run()
 {
+	/* A run is event driven when the bus event signalled since the last run,
+	 * and tick driven when the periodic work is due again. It can be both.
+	 */
+	bool expected = true;
+	const bool event_run = _event_wake.compare_exchange(&expected, false);
+	/* 500us short of the interval so tick jitter cannot push the periodic work
+	 * out to the run after next.
+	 */
+	const bool tick_run = !event_run || (hrt_elapsed_time(&_last_periodic) >= (ScheduleIntervalMs * 1000 - 500));
+
 	if (!_node_init) {
 		// Node ID
 		int32_t node_id = 1;
@@ -764,8 +774,21 @@ UavcanNode::Run()
 	}
 
 
+	if (!tick_run) {
+		/*
+		 * An event driven wakeup exists to move the received frames out of the
+		 * socket, nothing more. Everything periodic, the teardown check at the
+		 * bottom included, stays on the 3 ms tick, which is still scheduled.
+		 */
+		_node.spinOnce();
+		pthread_mutex_unlock(&_node_mutex);
+		return;
+	}
+
+	const hrt_abstime cycle_start = hrt_absolute_time();
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
+	_last_periodic = cycle_start;
 
 	for (auto &br : _sensor_bridges) {
 		br->update();
