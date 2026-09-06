@@ -94,6 +94,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (!ifr.ifr_ifindex) {
 		PX4_ERR("if_nametoindex");
+		closeSocket();
 		return -1;
 	}
 
@@ -106,6 +107,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (setsockopt(_fd, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
 		PX4_ERR("SO_TIMESTAMP is disabled");
+		closeSocket();
 		return -1;
 	}
 
@@ -115,6 +117,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
 		PX4_ERR("CAN_RAW_TX_DEADLINE is disabled");
+		closeSocket();
 		return -1;
 	}
 
@@ -127,6 +130,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (bind(_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		PX4_ERR("bind");
+		closeSocket();
 		return -1;
 	}
 
@@ -199,6 +203,8 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	res = sendmsg(_fd, &_send_msg, MSG_DONTWAIT);
 
 	if (res > 0) {
+		_tx_pending = false;
+
 		if (flags & uavcan::CanIOFlagLoopback) {
 			pushLoopback(frame);
 		}
@@ -219,10 +225,32 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	if (errno == ETIMEDOUT || errno == EAGAIN || errno == EWOULDBLOCK ||
 	    errno == ENOBUFS || errno == EINTR || errno == EBUSY || errno == ENOMEM ||
 	    errno == ENETDOWN) {
+		_tx_pending = true;
 		return 0;
 	}
 
 	return -1;
+}
+
+bool CanIface::fillRx()
+{
+	if (_rx_valid) {
+		return true;
+	}
+
+	/* recvmsg() reports the control length it used, so the size of the
+	 * control buffer has to be handed back for every call. Without this the
+	 * first read that finds the socket empty leaves the length at zero and no
+	 * later frame gets an SO_TIMESTAMP cmsg.
+	 */
+	_recv_msg.msg_controllen = sizeof(_recv_control);
+
+	if (recvmsg(_fd, &_recv_msg, MSG_DONTWAIT) > 0) {
+		_rx_valid = true;
+		return true;
+	}
+
+	return false;
 }
 
 void CanIface::pushLoopback(const uavcan::CanFrame &frame)
@@ -258,18 +286,11 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 
 	out_flags = 0;
 
-	int32_t result = recvmsg(_fd, &_recv_msg, MSG_DONTWAIT);
-
-	if (result < 0) {
-		/* Nothing to read is not a driver failure; uc_can_io maps any negative
-		 * return onto -ErrDriver.
-		 */
-		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT) {
-			return 0;
-		}
-
-		return -1;
+	if (!_rx_valid) {
+		return 0;
 	}
+
+	_rx_valid = false;
 
 	/* Copy SocketCAN frame to CanardFrame */
 
@@ -298,7 +319,8 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 
 	/* Read SO_TIMESTAMP value */
 
-	if (_recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP) {
+	if (_recv_msg.msg_controllen >= sizeof(struct cmsghdr) &&
+	    _recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP) {
 		struct timeval *tv = (struct timeval *)CMSG_DATA(_recv_cmsg);
 		out_ts_monotonic = uavcan::MonotonicTime::fromUSec(tv->tv_sec * 1000000ULL + tv->tv_usec);
 
@@ -308,7 +330,13 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 
 	out_ts_utc = SystemClock::instance().utcFromMonotonic(out_ts_monotonic);
 
-	return result;
+	/* The frame is out of the receive buffers, so the next one can be read
+	 * into them right away and the next select() answered without a poll().
+	 * The read that comes back empty is what ends a burst.
+	 */
+	fillRx();
+
+	return 1;
 }
 
 
@@ -331,7 +359,7 @@ uavcan::uint16_t CanIface::getNumFilters() const
 	return 0;
 }
 
-int CanIface::getFD()
+int CanIface::getFD() const
 {
 	return _fd;
 }
@@ -476,7 +504,6 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 {
 	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
 		pfds[i].fd     = if_[i].getFD();
-		pfds[i].events = POLLIN | POLLOUT;
 
 		if (if_[i].getFD() >= 0 && if_[i].setBitRate(bitrate) < 0) {
 			return -1;
@@ -522,33 +549,66 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 				  const uavcan::CanFrame * (&)[uavcan::MaxCanIfaces],
 				  uavcan::MonotonicTime blocking_deadline)
 {
-	std::int64_t timeout_usec = (blocking_deadline - SystemClock::instance().getMonotonic()).toUSec();
+	const uavcan::uint8_t read_request = inout_masks.read;
+	const uavcan::uint8_t write_request = inout_masks.write;
 
-	if (timeout_usec < 0) {
-		timeout_usec = 0;
-	}
-
-	inout_masks.read = 0;
-	inout_masks.write = 0;
+	uavcan::uint8_t read_ready = 0;
+	uavcan::uint8_t write_ready = 0;
 
 	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
-		if (if_[i].hasLoopbackPending()) {
-			inout_masks.read |= 1U << i;
+		if (if_[i].getFD() < 0) {
+			/* No socket on this interface: neither readable nor writable */
+			continue;
+		}
+
+		if (if_[i].hasReadyRx()) {
+			read_ready |= 1U << i;
+		}
+
+		if (!if_[i].hasPendingTx()) {
+			write_ready |= 1U << i;
+		}
+	}
+
+	/* Answer from what the driver already holds whenever it can: a read that
+	 * a frame in the lookahead or a loopback echo already satisfies, or a
+	 * write on an interface that is not sitting on a frame the controller
+	 * refused, needs no poll() at all. A burst of frames then costs one
+	 * poll() for the whole burst.
+	 */
+
+	if ((read_ready & read_request) == 0 &&
+	    (write_request == 0 || (write_ready & write_request) == 0)) {
+		std::int64_t timeout_usec = (blocking_deadline - SystemClock::instance().getMonotonic()).toUSec();
+
+		if (timeout_usec < 0) {
 			timeout_usec = 0;
 		}
-	}
 
-	if (poll(pfds, UAVCAN_SOCKETCAN_NUM_IFACES, timeout_usec / 1000) > 0) {
+		/* Ask for POLLOUT only on the interfaces libuavcan has a frame queued
+		 * for. Asking for it runs the transmit path of the driver, so an
+		 * interface with nothing to send must not be polled for writability.
+		 */
+
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
-			if (pfds[i].revents & POLLIN) {
-				inout_masks.read |= 1U << i;
-			}
+			pfds[i].events = POLLIN | (((write_request >> i) & 1U) ? POLLOUT : 0);
+		}
 
-			if (pfds[i].revents & POLLOUT) {
-				inout_masks.write |= 1U << i;
+		if (poll(pfds, UAVCAN_SOCKETCAN_NUM_IFACES, timeout_usec / 1000) > 0) {
+			for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+				if ((pfds[i].revents & POLLIN) && if_[i].fillRx()) {
+					read_ready |= 1U << i;
+				}
+
+				if (pfds[i].revents & POLLOUT) {
+					write_ready |= 1U << i;
+				}
 			}
 		}
 	}
+
+	inout_masks.read = read_ready;
+	inout_masks.write = write_ready;
 
 	return 0;           // Return value doesn't matter as long as it is non-negative
 }

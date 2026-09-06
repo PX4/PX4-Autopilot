@@ -108,6 +108,18 @@ private:
 	unsigned     _loopback_head{0};
 	unsigned     _loopback_count{0};
 
+	/* One frame of lookahead. The receive buffers above hold a frame that has
+	 * been read out of the socket but not handed to libuavcan yet, so select()
+	 * can answer for this interface without a poll() and receive() never
+	 * reports a frame the driver does not have in hand.
+	 */
+	bool _rx_valid{false};
+
+	/* Set when send() had to tell libuavcan the frame was not taken, so the
+	 * frame sits in its transmit queue and this interface still wants POLLOUT.
+	 */
+	bool _tx_pending{false};
+
 	void pushLoopback(const uavcan::CanFrame &frame);
 
 public:
@@ -129,9 +141,19 @@ public:
 
 	uavcan::uint16_t getNumFilters() const override;
 
-	int getFD();
+	int getFD() const;
 
-	bool hasLoopbackPending() const { return _loopback_count > 0; }
+	/**
+	 * Read one frame into the lookahead, unless it already holds one.
+	 * Returns true when a frame is in hand, false when the socket had none.
+	 */
+	bool fillRx();
+
+	/** A frame is in hand, so receive() will return one without a syscall. */
+	bool hasReadyRx() const { return _rx_valid || _loopback_count > 0; }
+
+	/** libuavcan is still holding a frame this interface could not take. */
+	bool hasPendingTx() const { return _tx_pending; }
 
 
 	/**
@@ -229,8 +251,6 @@ public:
 template <unsigned RxQueueCapacity = 128>
 class CanInitHelper
 {
-	//CanRxItem queue_storage_[UAVCAN_KINETIS_NUM_IFACES][RxQueueCapacity];
-
 public:
 	enum { BitRateAutoDetect = 0 };
 
