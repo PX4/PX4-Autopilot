@@ -96,18 +96,20 @@ struct Channel {
 	uint8_t iface_index{0};
 };
 
-// Nodes stamp their acquisition time in the bus shared time base, which the FC
-// seeds with its own HRT and then disciplines as time-sync master, so a synced
-// stamp is directly usable. A node whose clock is not yet disciplined, or one
-// stamping a foreign epoch, lands outside any plausible transport window; use
-// the receive time there rather than feeding a bogus sample time downstream.
-inline hrt_abstime sample_timestamp(uint64_t node_timestamp_us, hrt_abstime rx_time)
+// Nodes stamp their acquisition time in the bus shared time base, and the CAN
+// ISR stamps each received transfer in that same base, so the sample age is the
+// difference between the two no matter how the bus base relates to HRT (the FC
+// seeds its bus clock from HRT only after its own init, and may be a slave to
+// another master). An undisciplined node stamps UNKNOWN, and a node stamping a
+// foreign epoch lands outside any plausible transport window; both get the
+// receive time.
+inline hrt_abstime sample_timestamp(uint64_t node_timestamp_us, uint64_t rx_bus_timestamp_us, hrt_abstime rx_time)
 {
-	static constexpr hrt_abstime kMaxTransportDelay = 100_ms;
+	static constexpr uint64_t kMaxTransportDelay = 100_ms;
 
-	if (node_timestamp_us > 0 && node_timestamp_us <= rx_time
-	    && (rx_time - node_timestamp_us) < kMaxTransportDelay) {
-		return static_cast<hrt_abstime>(node_timestamp_us);
+	if (node_timestamp_us > 0 && rx_bus_timestamp_us >= node_timestamp_us
+	    && (rx_bus_timestamp_us - node_timestamp_us) < kMaxTransportDelay) {
+		return rx_time - (rx_bus_timestamp_us - node_timestamp_us);
 	}
 
 	return rx_time;
