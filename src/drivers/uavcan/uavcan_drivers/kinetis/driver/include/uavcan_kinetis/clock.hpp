@@ -17,8 +17,6 @@ namespace uavcan_kinetis
  */
 namespace clock
 {
-void init();
-
 uavcan::MonotonicTime getMonotonic();
 
 /**

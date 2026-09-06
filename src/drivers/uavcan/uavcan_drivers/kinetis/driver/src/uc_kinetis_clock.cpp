@@ -31,11 +31,6 @@ uavcan::uint64_t utcNow()
 
 }
 
-void init()
-{
-	initialized = true;
-}
-
 uavcan::MonotonicTime getMonotonic()
 {
 	return uavcan::MonotonicTime::fromUSec(hrt_absolute_time());
@@ -86,7 +81,7 @@ SystemClock &SystemClock::instance()
 
 	if (!clock::initialized) {
 		MutexLocker mlocker(clock::mutex);
-		clock::init();
+		clock::initialized = true;
 		new (ptr)SystemClock();
 	}
 

@@ -16,8 +16,6 @@ namespace uavcan_stm32h7
  */
 namespace clock
 {
-void init();
-
 uavcan::MonotonicTime getMonotonic();
 
 /**
