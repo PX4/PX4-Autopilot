@@ -53,6 +53,11 @@ The [Hardware Selection & Setup](hardware/drone_parts.md) section covers flight 
 
 Read [Operations](config/operations.md) to understand safety features and failsafe behavior before your first flight. Then see [Basic Flying (Multicopter)](flying/basic_flying_mc.md) or the equivalent for your frame type.
 
+## Security
+
+PX4 ships with every control interface unauthenticated, unsigned and unencrypted, so securing a deployment is the integrator's responsibility.
+The [Security](security/index.md) section collects the hardening documentation, and links to the [security policy](https://github.com/PX4/PX4-Autopilot/blob/main/SECURITY.md) for reporting a vulnerability.
+
 ## Support
 
 Get help on the [discussion forums](https://discuss.px4.io/) or [Discord](https://discord.com/invite/dronecode). See the [Support](contribute/support.md) page for diagnosing problems, reporting bugs, and joining the [weekly dev call](contribute/dev_call.md).
