@@ -293,7 +293,7 @@ For Gazebo-specific environment variables (such as `PX4_GZ_WORLD`, `PX4_GZ_STAND
 ## Середовище симуляції HITL
 
 У симуляції з апаратним забезпеченням у контурі (HITL) звичайна прошивка PX4 виконується на реальному обладнані.
-The HITL Simulation Environment in documented in: [HITL Simulation](../simulation/hitl.md).
+The HITL Simulation Environment is documented in: [HITL Simulation](../simulation/hitl.md).
 
 ## Інтеграція джойстиків/геймпада
 
