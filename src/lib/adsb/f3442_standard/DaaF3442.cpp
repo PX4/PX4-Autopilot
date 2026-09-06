@@ -157,8 +157,12 @@ uint8_t DaaF3442::calculate_daa_stats(const aircraft_state_s &uav_state, const a
 {
 	float horizontal_dist{0.f};
 	float vertical_dist{0.f};
+	// Wrap traffic longitude to handle the -180/180 antimeridian boundary
+	double delta_lon_rad = math::radians(traffic_state.lat_lon(1) - uav_state.lat_lon(1));
+	double wrapped_traffic_lon = uav_state.lat_lon(1) + math::degrees(matrix::wrap_pi(delta_lon_rad));
+
 	get_distance_to_point_global_spherical(uav_state.lat_lon(0), uav_state.lat_lon(1), uav_state.altitude,
-					       traffic_state.lat_lon(0), traffic_state.lat_lon(1), traffic_state.altitude, &horizontal_dist, &vertical_dist);
+					       traffic_state.lat_lon(0), wrapped_traffic_lon, traffic_state.altitude, &horizontal_dist, &vertical_dist);
 
 	const float aircraft_dist = hypotf(horizontal_dist, vertical_dist);
 	daa_stats.aircraft_dist = aircraft_dist;
