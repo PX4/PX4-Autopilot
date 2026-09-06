@@ -330,6 +330,10 @@ public:
 	const SegmentDistanceAlong &bounds() const { return _bounds; }
 
 private:
+	// observe() calls this for each segment the scan emits until the current segment is found.
+	// Segments stream in route order, so the vehicle's segment and its along-route interval are only
+	// known once the walk reaches it. Candidate selection later prefers candidates near that interval,
+	// so the vehicle rejoins the route close to where it left the mission.
 	bool fill(const RouteSegmentView &segment_view)
 	{
 		const Segment &segment = segment_view.segment;
@@ -348,7 +352,11 @@ private:
 			return _bounds.valid();
 		}
 
-		// At or before the first position item (flying nominal) the vehicle has not entered the route yet.
+		if (segment.isLoop()) {
+			return false;
+		}
+
+		// Before the first position item, nominal flight has not entered the route yet.
 		if (segment_view.first_segment && !_request.is_flying_reverse
 		    && _request.mission_index <= segment.start.idx) {
 			_bounds.start_dist_along_route_m = 0.f;
@@ -358,8 +366,12 @@ private:
 			return true;
 		}
 
-		if (!segment.isLoop()
-		    && isIndexInProjectionSegment(segment, _request.mission_index, _request.is_flying_reverse)) {
+		// A trailing command in nominal flight retains the last flown segment, so continuity
+		// is measured from its nearer endpoint, just as for an index within the segment.
+		const bool after_last_position = segment_view.last_segment && !_request.is_flying_reverse
+						 && _request.mission_index > segment.end.idx;
+
+		if (after_last_position || isIndexInProjectionSegment(segment, _request.mission_index, _request.is_flying_reverse)) {
 			_bounds.start_dist_along_route_m = segment_view.start_dist_along_route_m;
 			_bounds.end_dist_along_route_m = segment_view.start_dist_along_route_m + segment_view.length_m;
 			PX4_DEBUG("Route current segment bounds: [%.3f, %.3f]",
@@ -603,7 +615,7 @@ void MissionRouteProjection::pruneProjectionCandidates(ProjectionCandidateBuffer
 {
 	const int buffer_size = min(candidate_buffer.count, kMaxSegmentCandidates);
 
-	// The buffer is sorted by ascending xtrack, break after first outside of limit
+	// Drop trailing candidates outside the cross-track window.
 	for (int index = buffer_size - 1; index >= 0; --index) {
 		if (candidate_buffer.candidates[index].dist.xtrack_m <= xtrack_limit_m) {
 			candidate_buffer.count = index + 1;
@@ -630,6 +642,16 @@ bool isIndexInProjectionSegment(const Segment &projection_segment, int32_t missi
 	return mission_index > projection_segment.start.idx && mission_index <= projection_segment.end.idx;
 }
 
+// A mission index equal to a segment's start means the vehicle is still flying the previous segment,
+// except for the initial TAKEOFF: nothing precedes it, so while TAKEOFF is the current item the
+// vertical segment leaving it is the segment being flown.
+static bool isCurrentInitialTakeoffStack(const Segment &segment, float along_route_m, float segment_length_m,
+		int32_t mission_index, bool is_flying_reverse)
+{
+	return !is_flying_reverse && !segment.isLoop() && isTakeoffCmd(segment.start.nav_cmd)
+	       && mission_index == segment.start.idx && along_route_m <= 0.f && segment_length_m <= 0.f;
+}
+
 uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
 			    uint8_t vtol_state_on_mission_upload)
 {
@@ -641,43 +663,76 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
 		return vtol_state_on_mission_upload;
 	}
 
-	// A jump executes every command between its source position and DO_JUMP before flying the edge.
-	const int32_t state_anchor = segment.isLoop() ? segment.jump_item_index : segment.end.idx;
+	uint8_t state = vtol_state_on_mission_upload;
 
-	for (int32_t i = state_anchor - 1; i >= 0; --i) {
-		mission_item_s mission_item{};
+	// The last transition in an executed command range determines the state, if there is one.
+	auto resolve_state_in_range = [&](int32_t first_index, int32_t end_index) {
+		for (int32_t i = end_index - 1; i >= first_index; --i) {
+			mission_item_s mission_item{};
 
-		if (!provider.loadMissionItem(i, mission_item)) {
-			PX4_WARN("VTOL state: item %d read failed", static_cast<int>(i));
-			continue;
+			if (!provider.loadMissionItem(i, mission_item)) {
+				PX4_WARN("VTOL state: item %d read failed", static_cast<int>(i));
+				continue;
+			}
+
+			// VTOL_TAKEOFF includes a front transition before continuing to the next mission item.
+			if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+				state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				return true;
+			}
+
+			if (mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+				continue;
+			}
+
+			// DO_VTOL_TRANSITION stores the MAV_VTOL_STATE target in params[0] (matches VEHICLE_VTOL_STATE).
+			const float transition_target = roundf(mission_item.params[0]);
+
+			// Check the range before converting, including non-finite or malformed parameters.
+			if (transition_target >= 0.f && transition_target <= UINT8_MAX) {
+				const uint8_t target_state = static_cast<uint8_t>(transition_target);
+
+				if (target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
+				    || target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+					state = target_state;
+				}
+			}
+
+			return true;
 		}
 
-		// VTOL_TAKEOFF includes a front transition before continuing to the next mission item.
-		if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
-			return vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		return false;
+	};
+
+	if (segment.isLoop()) {
+		mission_item_s jump_item{};
+
+		if (!provider.loadMissionItem(segment.jump_item_index, jump_item)) {
+			PX4_WARN("VTOL state: jump item %d read failed", static_cast<int>(segment.jump_item_index));
+			return state;
 		}
 
-		if (mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
-			continue;
+		if (jump_item.nav_cmd != NAV_CMD_DO_JUMP || jump_item.do_jump_mission_index < 0
+		    || jump_item.do_jump_mission_index > segment.end.idx) {
+			return state;
 		}
 
-		// DO_VTOL_TRANSITION stores the MAV_VTOL_STATE target in params[0] (matches VEHICLE_VTOL_STATE).
-		const int transition_target = static_cast<int>(roundf(mission_item.params[0]));
-
-		if (transition_target == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
-		    || transition_target == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-			return static_cast<uint8_t>(transition_target);
+		// The jump may target commands before its resolved waypoint. Those commands run last,
+		// so their transitions override the state reached before DO_JUMP.
+		if (resolve_state_in_range(jump_item.do_jump_mission_index, segment.end.idx)) {
+			return state;
 		}
-
-		return vtol_state_on_mission_upload;
 	}
 
-	return vtol_state_on_mission_upload;
+	// Include every command between the source waypoint and DO_JUMP when there was no target transition.
+	resolve_state_in_range(0, segment.isLoop() ? segment.jump_item_index : segment.end.idx);
+	return state;
 }
 
 void MissionRouteProjection::processCandidateForSegment(const Position &reference_position,
 		const RouteSegmentView &segment_view,
 		float xtrack_margin_m,
+		bool force_candidate,
 		CandidateSearchState &state,
 		ProjectionCandidateBuffer &candidate_buffer,
 		ProjectionScanStats &stats) const
@@ -686,15 +741,25 @@ void MissionRouteProjection::processCandidateForSegment(const Position &referenc
 
 	state.projection_on_end_for_segment = projection.projection_on_end;
 
-	if (!localMinimumOnSegment(projection.projection_on_start, projection.projection_on_end,
-				   state.prev_projection_on_end, segment_view.segment.isLoop(), segment_view.last_segment)) {
-		return;
+	if (!force_candidate) {
+		// The final two waypoints may share latitude/longitude, e.g. a waypoint directly above LAND.
+		// Keep that location only when the reference projects onto the end of the incoming horizontal leg.
+		// For an entirely vertical route, the initial corner state keeps the final point.
+		if (segment_view.zero_length_xy && segment_view.last_segment && !state.prev_projection_on_end) {
+			return;
+		}
+
+		if (!localMinimumOnSegment(projection.projection_on_start, projection.projection_on_end,
+					   state.prev_projection_on_end, segment_view.segment.isLoop(), segment_view.last_segment)) {
+			return;
+		}
 	}
 
 	stats.local_min_found++;
 
-	// Reject non-finite or out-of-window projections before the more expensive lat/lon reconstruction.
-	if (!projection.valid || projection.xtrack_m >= state.xtrack_limit_m) {
+	// Positive margins include the boundary; zero margin keeps only the first closest candidate.
+	if (!projection.valid || projection.xtrack_m > state.xtrack_limit_m
+	    || (xtrack_margin_m <= 0.f && projection.xtrack_m >= state.min_xtrack_m)) {
 		return;
 	}
 
@@ -721,7 +786,8 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 {
 	distance_summary = {};
 
-	if (batch.count == 0 || batch.count > kMaxSafePointBatch || !(request.xtrack_margin_m >= 0.f)) {
+	if (batch.count == 0 || batch.count > kMaxSafePointBatch
+	    || !PX4_ISFINITE(request.xtrack_margin_m) || request.xtrack_margin_m < 0.f) {
 		return FailureReason::kInvalidRequest;
 	}
 
@@ -750,32 +816,41 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 
 	while (cursor.next(segment_view)) {
 		stats.segments_processed++;
+		bounds_tracker.observe(segment_view);
 
-		if (segment_view.zero_length_xy && !segment_view.last_segment && !segment_view.first_segment) {
-			// Interior zero-length stacks cannot contribute a unique XY projection candidate.
-			bounds_tracker.observe(segment_view);
+		// Keep the vertical segment the vehicle is currently flying (e.g. B' -> LAND while descending)
+		// even after a small drift toward the horizontal leg, which the geometry alone would prefer.
+		// Not while a jump is active: the vehicle then flies the jump edge, although the jump target
+		// index also ends a nominal vertical segment. Safe point scans carry no mission index.
+		const bool flying_vertical_segment = segment_view.zero_length_xy && !segment_view.segment.isLoop()
+						     && !active_jump.valid()
+						     && (isCurrentInitialTakeoffStack(segment_view.segment, segment_view.start_dist_along_route_m,
+								     segment_view.length_m, request.mission_index, request.is_flying_reverse)
+								     || isIndexInProjectionSegment(segment_view.segment, request.mission_index,
+										     request.is_flying_reverse));
+
+		// Skip other vertical segments; the next horizontal leg provides the candidate at their
+		// location. Preserve the previous corner state, including true at the route start.
+		if (segment_view.zero_length_xy && !segment_view.last_segment && !flying_vertical_segment) {
 			continue;
 		}
 
 		for (uint8_t i = 0; i < batch.count; ++i) {
 			processCandidateForSegment(batch.items[i].position, segment_view, request.xtrack_margin_m,
-						   batch.items[i].search_state, batch.items[i].candidate_buffer,
-						   stats);
+						   flying_vertical_segment, batch.items[i].search_state,
+						   batch.items[i].candidate_buffer, stats);
 		}
 
-		bounds_tracker.observe(segment_view);
-
-		if (segment_view.segment.isLoop()) {
-			// Loop edges are not part of the nominal route.
+		// Only horizontal nominal legs update the corner state.
+		// Loop edges are not part of the nominal route.
+		if (segment_view.segment.isLoop() || segment_view.zero_length_xy) {
 			continue;
 		}
 
-		// Carry the end-corner state for V-corner detection (see localMinimumOnSegment);
-		// a zero-length segment cannot form a V apex.
+		// Carry the end-corner state for V-corner detection (see localMinimumOnSegment).
 		for (uint8_t i = 0; i < batch.count; ++i) {
 			CandidateSearchState &search_state = batch.items[i].search_state;
-			search_state.prev_projection_on_end =
-				segment_view.zero_length_xy ? false : search_state.projection_on_end_for_segment;
+			search_state.prev_projection_on_end = search_state.projection_on_end_for_segment;
 		}
 	}
 
@@ -881,7 +956,16 @@ FailureReason MissionRouteProjection::selectBranchInCandidate(
 			}
 
 		} else {
-			priority_match = isIndexInProjectionSegment(candidate.segment, mission_index, is_flying_reverse);
+			// The segment containing the mission index wins.
+			// Special case handling: while TAKEOFF is current, the vertical
+			// segment above it counts too. Its score alone does not guarantee this: the score is the
+			// cross-track plus the along-route offset to the current segment bounds (the route start
+			// here). With the vehicle 2 m along the route both candidates score 2 m (stack: 2 + 0,
+			// first leg: 0 + 2). Without the priority the strict comparison below keeps the leg, and
+			// the plan climbs to the leg altitude instead of returning to TAKEOFF at the current one.
+			priority_match = isCurrentInitialTakeoffStack(candidate.segment, candidate.dist.along_route_m,
+					 candidate.dist.segment_length_m, mission_index, is_flying_reverse)
+					 || isIndexInProjectionSegment(candidate.segment, mission_index, is_flying_reverse);
 
 			if (priority_match) {
 				PX4_DEBUG("Route UAV proj prioritizing cand %u (segment match)", static_cast<unsigned>(i));

@@ -164,9 +164,10 @@ private:
 bool isIndexInProjectionSegment(const Segment &segment, int32_t mission_index, bool is_flying_reverse);
 
 /**
- * @brief Required VEHICLE_VTOL_STATE on one segment: set by the last explicit transition or
- * implicit VTOL_TAKEOFF front transition before its target waypoint (DO_JUMP for jump edges),
- * else @p vtol_state_on_mission_upload (also for invalid segments).
+ * @brief Required VEHICLE_VTOL_STATE on one segment: the last explicit transition or implicit
+ * VTOL_TAKEOFF front transition before its target waypoint. Jump edges use the state before
+ * DO_JUMP, overridden by transitions between the jump target and its resolved waypoint.
+ * Falls back to @p vtol_state_on_mission_upload if no transition is found or the segment is invalid.
  */
 uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
 			    uint8_t vtol_state_on_mission_upload);
@@ -223,6 +224,23 @@ private:
 	 *
 	 *    The terminal route endpoint (last segment, projection on end) is also accepted because
 	 *    there is no following segment to compare against.
+	 *    Stacked route end, e.g. A -> B -> B' -> LAND where B, B' and LAND share one location:
+	 *
+	 *      A ─────────●──────── B/B'/LAND        R2
+	 *                 ↑
+	 *                 R1
+	 *
+	 *    R1 lies off to the side of the leg A -> B. Its only candidate is on A -> B; the LAND
+	 *    location is not a candidate, exactly as for a route A -> LAND without the stack.
+	 *    R2 lies past the route end. Its projection on A -> B falls on B, so the LAND location
+	 *    is kept as the candidate. A route with no horizontal leg keeps its final point.
+	 *
+	 *    Vehicle exception: the vertical segment the vehicle is flying (B' -> LAND while landing,
+	 *    or the segment above TAKEOFF while TAKEOFF is current) is always a candidate, unless a
+	 *    jump is active. Otherwise a small drift toward A during the descent would put the vehicle
+	 *    on A -> B like R1, the first target would become B instead of LAND, and the plan would
+	 *    climb back to the leg altitude instead of continuing the landing. The cross-track window
+	 *    still applies. Safe point scans carry no mission index and get no exception.
 	 *
 	 * 3. DO_JUMP loop-edge corner projections are rejected because those corners already belong
 	 *    to their nominal route segments, so only interior projections on the loop jump segment
@@ -242,10 +260,14 @@ private:
 	/**
 	 * @brief Project one reference point onto one segment, apply local-minimum rules,
 	 * and maintain the shrinking cross-track candidate window.
+	 *
+	 * @param force_candidate Skip the local-minimum rules; set for the vertical segment the
+	 * vehicle is currently flying.
 	 */
 	void processCandidateForSegment(const Position &reference_position,
 					const RouteSegmentView &segment_view,
 					float xtrack_margin_m,
+					bool force_candidate,
 					CandidateSearchState &state,
 					ProjectionCandidateBuffer &candidate_buffer,
 					ProjectionScanStats &stats) const;

@@ -61,6 +61,7 @@ public:
 	 * The provider must outlive the planner.
 	 *
 	 * Planning calls use shared fixed-memory scratch and must run serially on the Navigator task.
+	 * Jump targets may include non-position commands before their waypoint. Jump chains are not supported.
 	 */
 	explicit MissionRoutePlanner(const mission_route::Provider &provider);
 	MissionRoutePlanner(const MissionRoutePlanner &) = delete;

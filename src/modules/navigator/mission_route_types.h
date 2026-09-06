@@ -106,7 +106,7 @@ struct ActiveJumpAnchor {
 	bool validForMission(int mission_count) const;
 };
 
-/** @brief Inputs used only when planning a join mission execution. */
+/** @brief Inputs for planning a join back into mission execution. */
 struct MissionResumeRequest {
 	Position vehicle_position{};
 	int32_t mission_index{-1};
@@ -133,7 +133,8 @@ struct RtlRouteRequest {
 	int32_t mission_land_index{-1};
 	bool current_route_direction_reversed{false}; /**< Route direction being flown before replanning. */
 	ActiveJumpAnchor active_jump_anchor{};
-	float home_altitude_amsl{NAN}; /**< May be NAN when every relevant item uses absolute altitude. */
+	/** May be NAN for absolute-altitude items; required for a mission-takeoff fallback goal. */
+	float home_altitude_amsl{NAN};
 	float projection_search_distance_m{0.f};
 	float safe_point_projection_search_distance_m{0.f};
 	float acceptance_radius_m{0.f};

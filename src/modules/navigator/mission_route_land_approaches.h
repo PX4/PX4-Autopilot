@@ -55,13 +55,14 @@ namespace mission_route
 land_approaches_s getVtolLandApproachesNearLocation(const Provider &provider,
 		const PositionYawSetpoint &rtl_position, float home_altitude_amsl);
 
-/** @brief Read the landing-approach block attached to one exact rally-point item. */
+/** @brief Read the block attached to one valid rally point; an invalid or unreadable anchor returns an empty block. */
 land_approaches_s getVtolLandApproachesAtSafePointIndex(const Provider &provider, int safe_point_index,
 		float home_altitude_amsl);
 
 bool hasVtolLandApproachesNearLocation(const Provider &provider, const PositionYawSetpoint &rtl_position,
 				       float home_altitude_amsl);
 
+/** @brief Check for an approach attached to one valid rally point, stopping at the first valid approach. */
 bool hasVtolLandApproachesAtSafePointIndex(const Provider &provider, int safe_point_index,
 		float home_altitude_amsl);
 

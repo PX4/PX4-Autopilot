@@ -570,6 +570,76 @@ TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackDoesNotRescanNonLandConfi
 	EXPECT_NEAR(plan.goal_position.lon, mission[0].lon, kLatLonToleranceDeg);
 }
 
+// Returning to TAKEOFF uses home altitude, never the takeoff item's climb altitude.
+TEST_F(MissionRoutePlannerTest, MissionTakeoffFallbackRequiresHomeAltitude)
+{
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+	TestPlanner planner(mission);
+	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	request.home_altitude_amsl = kAlt - 100.f;
+	mission_route::RtlRoutePlan plan{};
+
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kMissionTakeoff);
+	EXPECT_FLOAT_EQ(plan.goal_position.alt, request.home_altitude_amsl);
+
+	request.home_altitude_amsl = NAN;
+	EXPECT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNoValidSafePoints);
+	EXPECT_FALSE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kNone);
+}
+
+// Without home altitude, an absolute-altitude LAND still works even when TAKEOFF is closer.
+TEST_F(MissionRoutePlannerTest, MissingHomeAltitudeKeepsAbsoluteMissionLandFallback)
+{
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt - 100.f),
+	};
+	TestPlanner planner(mission);
+	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	request.home_altitude_amsl = NAN;
+	request.mission_land_index = 2;
+	mission_route::RtlRoutePlan plan{};
+
+	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kMissionLand);
+	EXPECT_FALSE(plan.direction_reversed);
+	EXPECT_FLOAT_EQ(plan.goal_position.alt, mission[2].altitude);
+}
+
+// Missing home altitude does not reject a usable rally point with an absolute altitude.
+TEST_F(MissionRoutePlannerTest, MissingHomeAltitudeKeepsAbsoluteSafePointGoal)
+{
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 50.f, kAlt - 100.f),
+	};
+	TestPlanner planner(mission, safe_points);
+	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	request.home_altitude_amsl = NAN;
+	mission_route::RtlRoutePlan plan{};
+
+	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 0);
+	EXPECT_FLOAT_EQ(plan.goal_position.alt, safe_points[0].altitude);
+}
+
 // The route ends at the first LAND item, not at the last uploaded item.
 TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesLandRouteDistance)
 {
@@ -654,6 +724,189 @@ TEST_F(MissionRoutePlannerTest, SafePointAfterMissionLandBranchesFromLandEndpoin
 	EXPECT_EQ(plan.branch_off_mission_item_index, land_index);
 	EXPECT_NEAR(plan.branch_off_position.lat, mission[land_index].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.branch_off_position.lon, mission[land_index].lon, kLatLonToleranceDeg);
+}
+
+// Waypoints above LAND share its latitude/longitude. They must not create an extra branch-off
+// at LAND when the rally's closest point on the incoming leg is inside that leg.
+TEST_F(MissionRoutePlannerTest, StackedLandKeepsInteriorSafePointBranchOff)
+{
+	// Top view, north increases to the right (metres). B, B' and LAND differ only in altitude.
+	// A(0) -------- Q(50) -------- B/B'/LAND(100) -- V(105)
+	//               |
+	//               R (10 m east)
+	// Expected return: V -> landing location -> Q -> R.
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 50.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 75.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt - 50.f),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 50.f, 10.f, kAlt),
+	};
+	TestPlanner planner(mission, safe_points);
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 105.f, 0.f, kAlt + 75.f);
+	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 2);
+	request.current_route_direction_reversed = true;
+	request.safe_point_projection_search_distance_m = 50.f; // Would admit the ~51 m endpoint candidate.
+	request.fw_u_turn_penalty_m = 0.f;
+	// Disable route-skip shortcuts to test branch-off selection itself.
+	request.acceptance_radius_m = 0.f;
+	request.direct_goal_acceptance_radius_m = 0.f;
+	mission_route::RtlRoutePlan plan{};
+
+	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 0);
+	EXPECT_FALSE(plan.fly_direct_to_goal);
+	EXPECT_TRUE(plan.direction_reversed);
+	// In reverse, Q replaces the target A (index 0) on the A -> B segment.
+	EXPECT_EQ(plan.branch_off_mission_item_index, 0);
+	EXPECT_NEAR(plan.branch_off_position.lat, safe_points[0].lat, kLatLonToleranceDeg);
+	EXPECT_NEAR(plan.branch_off_position.lon, mission[0].lon, kLatLonToleranceDeg);
+}
+
+// Takeoff and its next two waypoints share latitude/longitude. The rally must project onto
+// the outgoing horizontal leg, without an extra branch-off at the takeoff location.
+TEST_F(MissionRoutePlannerTest, StackedTakeoffKeepsInteriorSafePointBranchOff)
+{
+	// Top view, north increases to the right (metres). T/T1/T2 are the vertical climb.
+	// V(-5) -- T/T1/T2(0) -------- Q(50) -------- C(100)
+	//                              |
+	//                              R (10 m east)
+	// Expected return: V -> takeoff location at T2's altitude -> Q -> R.
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 50.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 75.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 75.f),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 50.f, 10.f, kAlt + 75.f),
+	};
+	TestPlanner planner(mission, safe_points);
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, -5.f, 0.f, kAlt + 75.f);
+	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 1);
+	request.safe_point_projection_search_distance_m = 50.f; // Would admit the ~51 m takeoff candidate.
+	request.fw_u_turn_penalty_m = 0.f;
+	// Disable route-skip shortcuts to test branch-off selection itself.
+	request.acceptance_radius_m = 0.f;
+	request.direct_goal_acceptance_radius_m = 0.f;
+	mission_route::RtlRoutePlan plan{};
+
+	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 0);
+	EXPECT_FALSE(plan.fly_direct_to_goal);
+	EXPECT_FALSE(plan.direction_reversed);
+	// In nominal direction, Q replaces the target C (index 3) on the T2 -> C segment.
+	EXPECT_EQ(plan.branch_off_mission_item_index, 3);
+	EXPECT_NEAR(plan.branch_off_position.lat, safe_points[0].lat, kLatLonToleranceDeg);
+	EXPECT_NEAR(plan.branch_off_position.lon, mission[0].lon, kLatLonToleranceDeg);
+}
+
+// RTL during the descent onto a stacked LAND with the mission landing as goal: a small drift toward
+// the approach leg must not turn the join into a climb. LAND stays the target at the current altitude.
+TEST_F(MissionRoutePlannerTest, RtlDuringStackedLandingKeepsCurrentAltitude)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 50.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 75.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt - 50.f),
+	};
+	TestPlanner planner(mission);
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 98.f, 0.5f, kAlt + 10.f);
+	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 3);
+	request.mission_land_index = 3;
+	mission_route::RtlRoutePlan plan{};
+
+	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kMissionLand);
+	EXPECT_EQ(plan.first_mission_item_index, 3);
+	EXPECT_FALSE(plan.direction_reversed);
+	EXPECT_TRUE(plan.use_current_altitude);
+	EXPECT_TRUE(plan.fly_direct_to_goal);
+	EXPECT_FLOAT_EQ(plan.join_position.alt, vehicle_position.alt);
+}
+
+// While TAKEOFF is the current item no segment contains its index, since nothing precedes it.
+// Inward drift must still return to TAKEOFF at the current altitude instead of climbing first.
+TEST_F(MissionRoutePlannerTest, RtlDuringInitialStackedTakeoffKeepsCurrentAltitude)
+{
+	for (const bool preceding_command : {false, true}) {
+		std::vector<mission_item_s> mission{
+			makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 25.f),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 50.f),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 75.f),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 75.f),
+		};
+
+		if (preceding_command) {
+			mission_item_s speed_change{};
+			speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+			mission.insert(mission.begin(), speed_change);
+		}
+
+		const int32_t takeoff_index = preceding_command ? 1 : 0;
+		TestPlanner planner(mission);
+
+		// Cover drift directly along the route as well as slightly off to one side.
+		for (const float east_m : {0.f, 0.5f}) {
+			SCOPED_TRACE(::testing::Message() << "TAKEOFF index=" << takeoff_index << ", east=" << east_m);
+			const auto vehicle_position = makePositionFromOffset(kBaseLat, kBaseLon, 2.f, east_m, kAlt + 10.f);
+			const auto request = makeRtlRouteRequest(vehicle_position, takeoff_index);
+			mission_route::RtlRoutePlan plan{};
+			ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+			ASSERT_TRUE(plan.valid());
+			EXPECT_EQ(plan.goal_type, mission_route::GoalType::kMissionTakeoff);
+			EXPECT_EQ(plan.first_mission_item_index, takeoff_index);
+			EXPECT_TRUE(plan.direction_reversed);
+			EXPECT_TRUE(plan.use_current_altitude);
+			EXPECT_TRUE(plan.fly_direct_to_goal);
+			EXPECT_FLOAT_EQ(plan.join_position.alt, vehicle_position.alt);
+		}
+	}
+}
+
+// RTL during the climb above TAKEOFF with the takeoff location as goal: the vehicle returns at its
+// current altitude instead of first climbing to the top of the stack.
+TEST_F(MissionRoutePlannerTest, RtlDuringStackedTakeoffClimbKeepsCurrentAltitude)
+{
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 50.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 75.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 75.f),
+	};
+	TestPlanner planner(mission);
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 2.f, 0.5f, kAlt + 20.f);
+	const mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 1);
+	mission_route::RtlRoutePlan plan{};
+
+	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kMissionTakeoff);
+	EXPECT_EQ(plan.first_mission_item_index, 0);
+	EXPECT_TRUE(plan.direction_reversed);
+	EXPECT_TRUE(plan.use_current_altitude);
+	EXPECT_TRUE(plan.fly_direct_to_goal);
+	EXPECT_FLOAT_EQ(plan.join_position.alt, vehicle_position.alt);
 }
 
 // All safe points have an invalid frame and no mission endpoint is available as a fallback.
@@ -937,7 +1190,7 @@ TEST_F(MissionRoutePlannerTest, RejectsStaleJumpAnchorAfterCommandChanges)
 	EXPECT_EQ(route_plan.goal_type, mission_route::GoalType::kNone);
 }
 
-// Mission honors active repeats while RTL ignores their path.
+// Mission completes the active repeat; RTL chooses the shorter exit from the same jump.
 TEST_F(MissionRoutePlannerTest, MissionHonorsAndRtlIgnoresActiveJumpRepeats)
 {
 	std::vector<mission_item_s> mission{
@@ -981,6 +1234,73 @@ TEST_F(MissionRoutePlannerTest, MissionHonorsAndRtlIgnoresActiveJumpRepeats)
 	EXPECT_EQ(rtl_plan.first_mission_item_index, 2);
 	EXPECT_TRUE(rtl_plan.direction_reversed);
 	EXPECT_EQ(rtl_plan.branch_off_mission_item_index, 1);
+}
+
+// Even an unusable jump defines the geometric search window, matching pre-flight projections.
+TEST_F(MissionRoutePlannerTest, InactiveJumpStillDefinesSafePointProjectionWindow)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 1000.f, kAlt),
+		makeDoJump(0, 3, 0),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 1000.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 300.f, kAlt),
+	};
+	TestPlanner planner(mission, safe_points);
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
+	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 1);
+	request.safe_point_projection_search_distance_m = 0.f;
+	mission_route::RtlRoutePlan plan{};
+
+	// With zero margin only the jump remains. It cannot be used from the nominal vehicle segment.
+	EXPECT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNoValidCandidateFound);
+	EXPECT_FALSE(plan.valid());
+
+	// A wider geometric window also admits the nominal leg, which has a usable return path.
+	request.safe_point_projection_search_distance_m = 400.f;
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 0);
+	EXPECT_EQ(plan.branch_off_mission_item_index, 1);
+	EXPECT_TRUE(plan.active_jump_anchor.empty());
+}
+
+// The selected jump remains a usable branch-off when both vehicle and safe point project onto it.
+TEST_F(MissionRoutePlannerTest, ActiveJumpRemainsAvailableForSafePointProjection)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 1000.f, kAlt),
+		makeDoJump(0, 3, 0),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 1000.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 300.f, kAlt),
+	};
+	TestPlanner planner(mission, safe_points);
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt);
+	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 0);
+	request.active_jump_anchor = {3};
+	request.safe_point_projection_search_distance_m = 0.f;
+	mission_route::RtlRoutePlan plan{};
+
+	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 0);
+	EXPECT_EQ(plan.active_jump_anchor.jump_item_index, 3);
+	EXPECT_TRUE(plan.direction_reversed);
+	EXPECT_EQ(plan.first_mission_item_index, 2);
+	EXPECT_EQ(plan.branch_off_mission_item_index, 2);
 }
 
 // Loop case where the cheapest path is nominal: rally 3, branch-off on [7-9].

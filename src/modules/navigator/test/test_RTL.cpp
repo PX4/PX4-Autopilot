@@ -780,6 +780,48 @@ TEST_F(RTLTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockAtMissionEnd)
 	EXPECT_EQ(countValidApproaches(scanned_block), 0);
 }
 
+TEST_F(RTLTest, IndexedLandApproachQueriesRequireValidRallyAnchor)
+{
+	const mission_item_s approach = makeLandApproachItem(kBaseLat, kBaseLon, kAlt + 30.f, kApproachRadius);
+	VectorProvider provider({
+		approach,                                                       // 0: loiter with no rally before it
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL),  // 1: valid rally
+		approach,                                                       // 2: loiter in rally 1's block
+		approach,                                                       // 3: loiter in rally 1's block
+		makeSafePointItem(91.0, kBaseLon, kAlt, NAV_FRAME_GLOBAL),      // 4: rally with an invalid latitude
+		approach,                                                       // 5
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_MISSION), // 6: rally with an unsupported frame
+		approach,                                                       // 7
+	});
+
+	// No block for anything that is not a valid rally point, even when a loiter follows it:
+	// -1 and safePointCount() are out of range, 0 and 2 are loiter items, 4 and 6 are unusable rally points.
+	for (const int index : {-1, 0, 2, 4, 6, provider.safePointCount()}) {
+		SCOPED_TRACE(index);
+		EXPECT_FALSE(mission_route::hasVtolLandApproachesAtSafePointIndex(provider, index, kAlt));
+		const land_approaches_s block = mission_route::getVtolLandApproachesAtSafePointIndex(provider, index, kAlt);
+		EXPECT_FALSE(block.isAnyApproachValid());
+		EXPECT_FALSE(block.land_location_lat_lon.isAllFinite());
+	}
+
+	EXPECT_TRUE(mission_route::hasVtolLandApproachesAtSafePointIndex(provider, 1, kAlt));
+	EXPECT_TRUE(mission_route::getVtolLandApproachesAtSafePointIndex(provider, 1, kAlt).isAnyApproachValid());
+}
+
+TEST_F(RTLTest, IndexedLandApproachQueriesRequireReadableRallyAnchor)
+{
+	VectorProvider provider({
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(kBaseLat, kBaseLon, kAlt + 30.f, kApproachRadius),
+	}, {0});
+
+	// A readable approach cannot be used when the rally point before it failed to load.
+	EXPECT_FALSE(mission_route::hasVtolLandApproachesAtSafePointIndex(provider, 0, kAlt));
+	const land_approaches_s block = mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
+	EXPECT_FALSE(block.isAnyApproachValid());
+	EXPECT_FALSE(block.land_location_lat_lon.isAllFinite());
+}
+
 /**
  * @brief Read-failure cases while scanning a safe-point approach block.
  */

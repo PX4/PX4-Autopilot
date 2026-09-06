@@ -51,6 +51,15 @@ namespace mission_route
 namespace
 {
 
+bool loadSafePointPosition(const Provider &provider, int safe_point_index, float home_altitude_amsl,
+			   Position &position)
+{
+	mission_item_s safe_point_item{};
+	return safe_point_index >= 0 && safe_point_index < provider.safePointCount()
+	       && provider.loadSafePointItem(safe_point_index, safe_point_item)
+	       && extractSafePointPosition(safe_point_item, home_altitude_amsl, position);
+}
+
 bool scanVtolLandApproachBlock(const Provider &provider, int safe_point_index, float home_altitude_amsl,
 			       land_approaches_s *result)
 {
@@ -144,12 +153,9 @@ land_approaches_s getVtolLandApproachesNearLocation(const Provider &provider,
 land_approaches_s getVtolLandApproachesAtSafePointIndex(const Provider &provider, int safe_point_index,
 		float home_altitude_amsl)
 {
-	mission_item_s safe_point_item{};
 	Position safe_point_position{};
 
-	if (!provider.loadSafePointItem(safe_point_index, safe_point_item)
-	    || safe_point_item.nav_cmd != NAV_CMD_RALLY_POINT
-	    || !extractSafePointPosition(safe_point_item, home_altitude_amsl, safe_point_position)) {
+	if (!loadSafePointPosition(provider, safe_point_index, home_altitude_amsl, safe_point_position)) {
 		return {};
 	}
 
@@ -166,13 +172,15 @@ bool hasVtolLandApproachesNearLocation(const Provider &provider, const PositionY
 	mission_item_s safe_point_item{};
 
 	return findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_item)
-	       && hasVtolLandApproachesAtSafePointIndex(provider, safe_point_index, home_altitude_amsl);
+	       && scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, nullptr);
 }
 
 bool hasVtolLandApproachesAtSafePointIndex(const Provider &provider, int safe_point_index,
 		float home_altitude_amsl)
 {
-	return scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, nullptr);
+	Position safe_point_position{};
+	return loadSafePointPosition(provider, safe_point_index, home_altitude_amsl, safe_point_position)
+	       && scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, nullptr);
 }
 
 bool anySafePointHasVtolLandApproach(const Provider &provider, float home_altitude_amsl)
@@ -180,21 +188,11 @@ bool anySafePointHasVtolLandApproach(const Provider &provider, float home_altitu
 	const int safe_point_count = provider.safePointCount();
 
 	for (int safe_point_index = 0; safe_point_index < safe_point_count; ++safe_point_index) {
-		mission_item_s safe_point_item{};
-
 		// Only rally points with a valid position can anchor a landing-approach block.
-		if (!provider.loadSafePointItem(safe_point_index, safe_point_item)
-		    || safe_point_item.nav_cmd != NAV_CMD_RALLY_POINT) {
-			continue;
-		}
-
 		Position safe_point_position{};
 
-		if (!extractSafePointPosition(safe_point_item, home_altitude_amsl, safe_point_position)) {
-			continue;
-		}
-
-		if (hasVtolLandApproachesAtSafePointIndex(provider, safe_point_index, home_altitude_amsl)) {
+		if (loadSafePointPosition(provider, safe_point_index, home_altitude_amsl, safe_point_position)
+		    && scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, nullptr)) {
 			return true;
 		}
 	}

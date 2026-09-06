@@ -528,7 +528,6 @@ FailureReason selectSafePoint(const Provider &provider,
 		return FailureReason::kNoValidSafePoints;
 	}
 
-	// Safe points use their own search window and do not need current segment bounds.
 	ProjectionScanRequest scan_request{};
 	scan_request.home_altitude_amsl = config.parameters.home_altitude_amsl;
 	scan_request.xtrack_margin_m = config.parameters.safe_point_projection_search_dist_m;
@@ -537,7 +536,8 @@ FailureReason selectSafePoint(const Provider &provider,
 	FailureReason scan_failure_reason = FailureReason::kNone;
 	int safe_point_cursor = 0;
 
-	// The full mission route is scanned once per batch.
+	// The vehicle's branch-in point has already been chosen. Project safe points in bounded
+	// batches, then score the return paths from that branch-in point to each candidate.
 	while (safe_point_cursor < safe_point_count) {
 		const int batch_start_index = safe_point_cursor;
 		// always advances the cursor, so every pass makes progress.
@@ -610,18 +610,17 @@ GoalSelection selectMissionEndpointFallback(const Provider &provider,
 	RoutePath path_to_takeoff{};
 	Position takeoff_position{};
 
-	if (findMissionTakeoffItem(provider, mission_count, takeoff_index, takeoff_item)
+	// Takeoff carries the climb altitude, so its location is only a usable return goal
+	// when the caller also supplies the home altitude for the destination.
+	if (PX4_ISFINITE(config.parameters.home_altitude_amsl)
+	    && findMissionTakeoffItem(provider, mission_count, takeoff_index, takeoff_item)
 	    && extractMissionPosition(takeoff_item, config.parameters.home_altitude_amsl, takeoff_position)) {
+		takeoff_position.alt = config.parameters.home_altitude_amsl;
 		path_to_takeoff = findShortestPathAlongRoute(mission_count, 0.f, projection_context, config,
 				  PathDirectionMode::kForceReverse, GoalProjectionLocation::kOutsideActiveLoopJump);
 	}
 
 	const bool path_to_takeoff_valid = path_to_takeoff.valid();
-
-	// The takeoff item carries the climb altitude; the return goal is the takeoff location at home altitude.
-	if (path_to_takeoff_valid && PX4_ISFINITE(config.parameters.home_altitude_amsl)) {
-		takeoff_position.alt = config.parameters.home_altitude_amsl;
-	}
 
 	mission_item_s land_item{};
 	RoutePath path_to_land{};
@@ -719,7 +718,7 @@ bool closeToBranchOffSegment(const Position &position,
 
 	const Position &branch_off_projection = selection.branch_off.projection;
 
-	// NED vectors avoid extra trigonometry
+	// Compare the vehicle and branch-off leg in the same local north/east frame.
 	matrix::Vector2f branch_vector{};   // branch-off projection -> goal (safe point)
 	matrix::Vector2f position_vector{}; // branch-off projection -> vehicle position
 	get_vector_to_next_waypoint(branch_off_projection.lat, branch_off_projection.lon,
