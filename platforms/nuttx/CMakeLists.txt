@@ -135,6 +135,11 @@ endif()
 if(CONFIG_NET)
 	list(APPEND nuttx_libs nuttx_net)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_net)
+
+	# libmm comes before libnet on the link line, so a libnet member pulled
+	# in after the NuttX archive group cannot reach the IOB allocator any
+	# more.  Let libnet ask for libmm so it follows it as well.
+	target_link_libraries(nuttx_net INTERFACE nuttx_mm)
 endif()
 
 file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})

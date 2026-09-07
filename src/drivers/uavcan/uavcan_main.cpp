@@ -155,6 +155,23 @@ UavcanNode::~UavcanNode()
 	// Removing the sensor bridges
 	_sensor_bridges.clear();
 
+	/* The status publishers hold multi instance advertisements. Give them back,
+	 * or the next start of the node takes fresh instances and they run out.
+	 */
+	for (auto &handle : _can_status_pub_handles) {
+		if (handle != nullptr) {
+			orb_unadvertise(handle);
+			handle = nullptr;
+		}
+	}
+
+	for (auto &handle : _node_status_pub_handles) {
+		if (handle != nullptr) {
+			orb_unadvertise(handle);
+			handle = nullptr;
+		}
+	}
+
 	pthread_mutex_destroy(&_node_mutex);
 
 	perf_free(_cycle_perf);
@@ -488,6 +505,7 @@ UavcanNode::busevent_signal_trampoline()
 {
 	if (_instance) {
 		// trigger the work queue (Note, this is called from IRQ context)
+		_instance->_event_wake.store(true);
 		_instance->ScheduleNow();
 	}
 }
@@ -702,6 +720,16 @@ UavcanNode::handle_time_sync(const uavcan::TimerEvent &)
 void
 UavcanNode::Run()
 {
+	/* A run is event driven when the bus event signalled since the last run,
+	 * and tick driven when the periodic work is due again. It can be both.
+	 */
+	bool expected = true;
+	const bool event_run = _event_wake.compare_exchange(&expected, false);
+	/* 500us short of the interval so tick jitter cannot push the periodic work
+	 * out to the run after next.
+	 */
+	const bool tick_run = !event_run || (hrt_elapsed_time(&_last_periodic) >= (ScheduleIntervalMs * 1000 - 500));
+
 	if (!_node_init) {
 		// Node ID
 		int32_t node_id = 1;
@@ -764,8 +792,21 @@ UavcanNode::Run()
 	}
 
 
+	if (!tick_run) {
+		/*
+		 * An event driven wakeup exists to move the received frames out of the
+		 * socket, nothing more. Everything periodic, the teardown check at the
+		 * bottom included, stays on the 3 ms tick, which is still scheduled.
+		 */
+		_node.spinOnce();
+		pthread_mutex_unlock(&_node_mutex);
+		return;
+	}
+
+	const hrt_abstime cycle_start = hrt_absolute_time();
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
+	_last_periodic = cycle_start;
 
 	for (auto &br : _sensor_bridges) {
 		br->update();
@@ -1045,6 +1086,21 @@ UavcanNode::Run()
 		_mixing_interface_servo.ScheduleClear();
 #endif
 		ScheduleClear();
+
+#if defined(UAVCAN_SOCKETCAN_NUTTX)
+		/* CanInitHelper is kept across a restart, so its sockets would stay
+		 * open and bound with nothing reading them. Give them back here; the
+		 * next start opens them again in can->init(). NuttX descriptor tables
+		 * belong to a task group, and this is the work queue that opened
+		 * them.
+		 */
+
+		if (can != nullptr) {
+			can->driver.closeIfaces();
+		}
+
+#endif
+
 		_instance = nullptr;
 	}
 }

@@ -108,10 +108,31 @@ private:
 	unsigned     _loopback_head{0};
 	unsigned     _loopback_count{0};
 
+	/* One frame of lookahead. The receive buffers above hold a frame that has
+	 * been read out of the socket but not handed to libuavcan yet, so select()
+	 * can answer for this interface without a poll() and receive() never
+	 * reports a frame the driver does not have in hand.
+	 */
+	bool _rx_valid{false};
+
+	/* Set when send() had to tell libuavcan the frame was not taken, so the
+	 * frame sits in its transmit queue and this interface still wants POLLOUT.
+	 */
+	bool _tx_pending{false};
+
 	void pushLoopback(const uavcan::CanFrame &frame);
 
 public:
+	~CanIface() { closeSocket(); }
+
 	uavcan::uint32_t socketInit(uint32_t index);
+
+	/**
+	 * Disarm the receive notification and close the socket. The socket is
+	 * bound to its interface for as long as it is open, so closing it is
+	 * what gives the CAN connection back; socketInit() opens a new one.
+	 */
+	void closeSocket();
 
 	uavcan::int16_t send(const uavcan::CanFrame &frame,
 			     uavcan::MonotonicTime tx_deadline,
@@ -129,9 +150,19 @@ public:
 
 	uavcan::uint16_t getNumFilters() const override;
 
-	int getFD();
+	int getFD() const;
 
-	bool hasLoopbackPending() const { return _loopback_count > 0; }
+	/**
+	 * Read one frame into the lookahead, unless it already holds one.
+	 * Returns true when a frame is in hand, false when the socket had none.
+	 */
+	bool fillRx();
+
+	/** A frame is in hand, so receive() will return one without a syscall. */
+	bool hasReadyRx() const { return _rx_valid || _loopback_count > 0; }
+
+	/** libuavcan is still holding a frame this interface could not take. */
+	bool hasPendingTx() const { return _tx_pending; }
 
 
 	/**
@@ -160,6 +191,15 @@ public:
 	 * negative if the controller rejected the rate.
 	 */
 	int setBitRate(uint32_t bitrate);
+
+#ifdef CAN_RAW_RXNOTIFY
+	/**
+	 * Ask the stack to run `worker` whenever this socket retains a batch of
+	 * received frames, or disarm the notification with a null worker.
+	 * Returns 0 on success, negative if the stack refused the option.
+	 */
+	int setRxNotify(worker_t worker, void *arg);
+#endif
 };
 
 /**
@@ -178,6 +218,12 @@ public:
 	CanDriver() : update_event_(*this)
 	{}
 
+	/**
+	 * Runs on the high priority work queue when a socket has received frames,
+	 * and signals the bus event so the node runs without waiting for the tick.
+	 */
+	static void rxNotifyWorker(void *arg);
+
 	uavcan::int32_t initIface(uint32_t index)
 	{
 		if (index > (UAVCAN_SOCKETCAN_NUM_IFACES - 1)) {
@@ -185,6 +231,18 @@ public:
 		}
 
 		return if_[index].socketInit(index);
+	}
+
+	/**
+	 * Close the socket of every interface. CanInitHelper outlives the node,
+	 * so the sockets are given back here when the node stops and opened
+	 * again by initIface() when it starts.
+	 */
+	void closeIfaces()
+	{
+		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+			if_[i].closeSocket();
+		}
 	}
 
 	/**
@@ -229,8 +287,6 @@ public:
 template <unsigned RxQueueCapacity = 128>
 class CanInitHelper
 {
-	//CanRxItem queue_storage_[UAVCAN_KINETIS_NUM_IFACES][RxQueueCapacity];
-
 public:
 	enum { BitRateAutoDetect = 0 };
 

@@ -46,6 +46,7 @@
 
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 #include <inttypes.h>
 #include <string.h>
 #include <errno.h>
@@ -82,6 +83,11 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 	_can_fd = can_fd;
 	_index = index;
 
+	/* A previous socket of this interface is still bound and still holding a
+	 * CAN connection, so it goes first.
+	 */
+	closeSocket();
+
 	/* open socket */
 	if ((_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
 		PX4_ERR("socket");
@@ -94,6 +100,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (!ifr.ifr_ifindex) {
 		PX4_ERR("if_nametoindex");
+		closeSocket();
 		return -1;
 	}
 
@@ -106,6 +113,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (setsockopt(_fd, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
 		PX4_ERR("SO_TIMESTAMP is disabled");
+		closeSocket();
 		return -1;
 	}
 
@@ -115,6 +123,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
 		PX4_ERR("CAN_RAW_TX_DEADLINE is disabled");
+		closeSocket();
 		return -1;
 	}
 
@@ -127,6 +136,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (bind(_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		PX4_ERR("bind");
+		closeSocket();
 		return -1;
 	}
 
@@ -199,6 +209,8 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	res = sendmsg(_fd, &_send_msg, MSG_DONTWAIT);
 
 	if (res > 0) {
+		_tx_pending = false;
+
 		if (flags & uavcan::CanIOFlagLoopback) {
 			pushLoopback(frame);
 		}
@@ -211,13 +223,40 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	 * returning negative here loses the frame, which breaks any multi-frame
 	 * transfer in progress. A non-blocking send that the driver could not take
 	 * immediately comes back as ETIMEDOUT from net_timedwait(), not ENOBUFS.
+	 * ENOMEM would mean the stack could not get a buffer for the frame; that
+	 * is transient, so it is retried like the others.  ENETDOWN is transient
+	 * too: a bitrate change takes the interface down and back up, and the
+	 * deadline of the frame bounds how long it can wait for that.
 	 */
 	if (errno == ETIMEDOUT || errno == EAGAIN || errno == EWOULDBLOCK ||
-	    errno == ENOBUFS || errno == EINTR || errno == EBUSY) {
+	    errno == ENOBUFS || errno == EINTR || errno == EBUSY || errno == ENOMEM ||
+	    errno == ENETDOWN) {
+		_tx_pending = true;
 		return 0;
 	}
 
 	return -1;
+}
+
+bool CanIface::fillRx()
+{
+	if (_rx_valid) {
+		return true;
+	}
+
+	/* recvmsg() reports the control length it used, so the size of the
+	 * control buffer has to be handed back for every call. Without this the
+	 * first read that finds the socket empty leaves the length at zero and no
+	 * later frame gets an SO_TIMESTAMP cmsg.
+	 */
+	_recv_msg.msg_controllen = sizeof(_recv_control);
+
+	if (recvmsg(_fd, &_recv_msg, MSG_DONTWAIT) > 0) {
+		_rx_valid = true;
+		return true;
+	}
+
+	return false;
 }
 
 void CanIface::pushLoopback(const uavcan::CanFrame &frame)
@@ -253,18 +292,11 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 
 	out_flags = 0;
 
-	int32_t result = recvmsg(_fd, &_recv_msg, MSG_DONTWAIT);
-
-	if (result < 0) {
-		/* Nothing to read is not a driver failure; uc_can_io maps any negative
-		 * return onto -ErrDriver.
-		 */
-		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT) {
-			return 0;
-		}
-
-		return -1;
+	if (!_rx_valid) {
+		return 0;
 	}
+
+	_rx_valid = false;
 
 	/* Copy SocketCAN frame to CanardFrame */
 
@@ -293,7 +325,8 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 
 	/* Read SO_TIMESTAMP value */
 
-	if (_recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP) {
+	if (_recv_msg.msg_controllen >= sizeof(struct cmsghdr) &&
+	    _recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP) {
 		struct timeval *tv = (struct timeval *)CMSG_DATA(_recv_cmsg);
 		out_ts_monotonic = uavcan::MonotonicTime::fromUSec(tv->tv_sec * 1000000ULL + tv->tv_usec);
 
@@ -303,7 +336,13 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 
 	out_ts_utc = SystemClock::instance().utcFromMonotonic(out_ts_monotonic);
 
-	return result;
+	/* The frame is out of the receive buffers, so the next one can be read
+	 * into them right away and the next select() answered without a poll().
+	 * The read that comes back empty is what ends a burst.
+	 */
+	fillRx();
+
+	return 1;
 }
 
 
@@ -326,7 +365,7 @@ uavcan::uint16_t CanIface::getNumFilters() const
 	return 0;
 }
 
-int CanIface::getFD()
+int CanIface::getFD() const
 {
 	return _fd;
 }
@@ -446,6 +485,35 @@ int CanIface::setBitRate(uint32_t bitrate)
 #endif
 }
 
+#ifdef CAN_RAW_RXNOTIFY
+int CanIface::setRxNotify(worker_t worker, void *arg)
+{
+	struct can_rxnotify_s notify {};
+
+	notify.worker = worker;
+	notify.arg = arg;
+
+	return setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_RXNOTIFY, &notify, sizeof(notify));
+}
+#endif
+
+void CanIface::closeSocket()
+{
+	if (_fd < 0) {
+		return;
+	}
+
+#ifdef CAN_RAW_RXNOTIFY
+	/* Nothing may call back into this object once the socket is gone */
+	setRxNotify(nullptr, nullptr);
+#endif
+
+	::close(_fd);
+	_fd = -1;
+	_rx_valid = false;
+	_tx_pending = false;
+}
+
 const char *CanIface::busStateName(uint8_t state)
 {
 	switch (state) {
@@ -471,11 +539,26 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 {
 	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
 		pfds[i].fd     = if_[i].getFD();
-		pfds[i].events = POLLIN | POLLOUT;
 
-		if (if_[i].getFD() >= 0 && if_[i].setBitRate(bitrate) < 0) {
+		if (if_[i].getFD() < 0) {
+			continue;
+		}
+
+		if (if_[i].setBitRate(bitrate) < 0) {
 			return -1;
 		}
+
+#ifdef CAN_RAW_RXNOTIFY
+		/* Have the stack signal the bus event as soon as it retains a batch of
+		 * received frames. The periodic tick stays as the fallback, so an
+		 * interface that will not take the option keeps working.
+		 */
+
+		if (if_[i].setRxNotify(&CanDriver::rxNotifyWorker, this) < 0) {
+			PX4_WARN("can%d: CAN_RAW_RXNOTIFY rejected (%d), frames wait for the tick", i, errno);
+		}
+
+#endif
 	}
 
 	/*
@@ -483,6 +566,17 @@ int CanDriver::init(uavcan::uint32_t bitrate)
 	 */
 
 	return 0;
+}
+
+void CanDriver::rxNotifyWorker(void *arg)
+{
+	/* Runs on the high priority work queue, once per batch of received
+	 * frames. The bus event signal reaches UavcanNode::ScheduleNow() through
+	 * the callback the node registered, and ScheduleNow() is idempotent while
+	 * the work item is queued, so a burst collapses into one node run.
+	 */
+
+	static_cast<CanDriver *>(arg)->update_event_.signalFromInterrupt();
 }
 
 uavcan::uint32_t CanDriver::getRxQueueOverflowCount() const
@@ -517,33 +611,67 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 				  const uavcan::CanFrame * (&)[uavcan::MaxCanIfaces],
 				  uavcan::MonotonicTime blocking_deadline)
 {
-	std::int64_t timeout_usec = (blocking_deadline - SystemClock::instance().getMonotonic()).toUSec();
+	const uavcan::uint8_t read_request = inout_masks.read;
+	const uavcan::uint8_t write_request = inout_masks.write;
 
-	if (timeout_usec < 0) {
-		timeout_usec = 0;
-	}
-
-	inout_masks.read = 0;
-	inout_masks.write = 0;
+	uavcan::uint8_t read_ready = 0;
+	uavcan::uint8_t write_ready = 0;
 
 	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
-		if (if_[i].hasLoopbackPending()) {
-			inout_masks.read |= 1U << i;
+		if (if_[i].getFD() < 0) {
+			/* No socket on this interface: neither readable nor writable */
+			continue;
+		}
+
+		if (if_[i].hasReadyRx()) {
+			read_ready |= 1U << i;
+		}
+
+		if (!if_[i].hasPendingTx()) {
+			write_ready |= 1U << i;
+		}
+	}
+
+	/* Answer from what the driver already holds whenever it can: a read that
+	 * a frame in the lookahead or a loopback echo already satisfies, or a
+	 * write on an interface that is not sitting on a frame the controller
+	 * refused, needs no poll() at all. A burst of frames then costs one
+	 * poll() for the whole burst.
+	 */
+
+	if ((read_ready & read_request) == 0 &&
+	    (write_request == 0 || (write_ready & write_request) == 0)) {
+		std::int64_t timeout_usec = (blocking_deadline - SystemClock::instance().getMonotonic()).toUSec();
+
+		if (timeout_usec < 0) {
 			timeout_usec = 0;
 		}
-	}
 
-	if (poll(pfds, UAVCAN_SOCKETCAN_NUM_IFACES, timeout_usec / 1000) > 0) {
+		/* Ask for POLLOUT only on the interfaces libuavcan has a frame queued
+		 * for. Asking for it runs the transmit path of the driver, so an
+		 * interface with nothing to send must not be polled for writability.
+		 */
+
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
-			if (pfds[i].revents & POLLIN) {
-				inout_masks.read |= 1U << i;
-			}
+			pfds[i].events = POLLIN | (((write_request >> i) & 1U) ? POLLOUT : 0);
+		}
 
-			if (pfds[i].revents & POLLOUT) {
-				inout_masks.write |= 1U << i;
+
+		if (poll(pfds, UAVCAN_SOCKETCAN_NUM_IFACES, timeout_usec / 1000) > 0) {
+			for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+				if ((pfds[i].revents & POLLIN) && if_[i].fillRx()) {
+					read_ready |= 1U << i;
+				}
+
+				if (pfds[i].revents & POLLOUT) {
+					write_ready |= 1U << i;
+				}
 			}
 		}
 	}
+
+	inout_masks.read = read_ready;
+	inout_masks.write = write_ready;
 
 	return 0;           // Return value doesn't matter as long as it is non-negative
 }

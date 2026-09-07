@@ -92,6 +92,7 @@ struct Channel {
 	orb_advert_t orb_advert{nullptr};
 	int instance{-1};
 	void *h_driver{nullptr};
+	void (*h_driver_free)(void *){nullptr};	///< deletes h_driver with its real type
 	uint8_t iface_index{0};
 };
 } // namespace uavcan_bridge
