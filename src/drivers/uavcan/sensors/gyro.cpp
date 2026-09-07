@@ -77,10 +77,9 @@ void UavcanGyroBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 
 	const hrt_abstime timestamp_sample = uavcan_bridge::sample_timestamp(msg.timestamp.usec,
 					     _sub_imu_data.getNode().getUtcTime().toUSec(), hrt_absolute_time());
-	gyro->update(timestamp_sample,
-		     msg.rate_gyro_latest[0],
-		     msg.rate_gyro_latest[1],
-		     msg.rate_gyro_latest[2]);
+	const uavcan_bridge::ImuRateSample sample = uavcan_bridge::imu_rate_sample(timestamp_sample,
+			msg.integration_interval, msg.rate_gyro_latest, msg.rate_gyro_integral);
+	gyro->update(sample.timestamp_sample, sample.x, sample.y, sample.z);
 
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {

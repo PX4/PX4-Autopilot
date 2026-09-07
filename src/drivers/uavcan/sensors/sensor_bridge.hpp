@@ -114,6 +114,38 @@ inline hrt_abstime sample_timestamp(uint64_t node_timestamp_us, uint64_t bus_now
 
 	return now;
 }
+
+/**
+ * Rate and sample time to publish from a RawIMU field pair.
+ *
+ * When an integral is present its mean over the interval is preferred over the
+ * point sample: it is float32 rather than float16, it is anti-aliased against the
+ * node's full-rate stream, and successive means spaced one interval apart
+ * integrate back to the node's exact deltas in VehicleIMU. A mean belongs at the
+ * centroid of its window, half an interval before the acquisition timestamp that
+ * closes it. Without an integral the point sample is used at the timestamp.
+ */
+static constexpr float kMaxImuIntegrationInterval = 0.1f;
+
+struct ImuRateSample {
+	hrt_abstime timestamp_sample;
+	float x;
+	float y;
+	float z;
+};
+
+template<typename LatestT, typename IntegralT>
+inline ImuRateSample imu_rate_sample(hrt_abstime timestamp_sample, float integration_interval,
+				     const LatestT &latest, const IntegralT &integral)
+{
+	if (integration_interval > 0.f && integration_interval < kMaxImuIntegrationInterval) {
+		const float inv_dt = 1.f / integration_interval;
+		const hrt_abstime half_interval = static_cast<hrt_abstime>(integration_interval * 0.5e6f);
+		return {timestamp_sample - half_interval, integral[0] *inv_dt, integral[1] *inv_dt, integral[2] *inv_dt};
+	}
+
+	return {timestamp_sample, latest[0], latest[1], latest[2]};
+}
 } // namespace uavcan_bridge
 
 /**

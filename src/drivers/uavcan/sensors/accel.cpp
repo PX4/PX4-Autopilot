@@ -78,8 +78,10 @@ void UavcanAccelBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		return;
 	}
 
+	const uavcan_bridge::ImuRateSample sample = uavcan_bridge::imu_rate_sample(timestamp_sample,
+			msg.integration_interval, msg.accelerometer_latest, msg.accelerometer_integral);
 	accel->set_error_count(0);
-	accel->update(timestamp_sample, msg.accelerometer_latest[0], msg.accelerometer_latest[1], msg.accelerometer_latest[2]);
+	accel->update(sample.timestamp_sample, sample.x, sample.y, sample.z);
 
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {
