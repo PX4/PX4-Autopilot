@@ -547,7 +547,13 @@ void FlightTaskAuto::_set_heading_from_mode()
 		// We only adjust yaw if vehicle is outside of acceptance radius. Once we enter acceptance
 		// radius, lock yaw to current yaw.
 		// This prevents excessive yawing.
-		if (v.longerThan(_target_acceptance_radius)) {
+		// ---Sees.ai---
+		// Floor the radius used for this check. With a very small acceptance radius (e.g. NAV_ACC_RAD 0.05),
+		// position jitter while hovering over the target (takeoff, hold) swings the bearing to it around
+		// and the vehicle yaws continuously.
+		static constexpr float MIN_HEADING_UPDATE_RADIUS = 1.f; // [m]
+
+		if (v.longerThan(math::max(_target_acceptance_radius, MIN_HEADING_UPDATE_RADIUS))) {
 			if (_compute_heading_from_2D_vector(_yaw_setpoint, v)) {
 				_yaw_lock = true;
 			}
