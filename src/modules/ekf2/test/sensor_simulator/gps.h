@@ -72,8 +72,10 @@ private:
 	void send(uint64_t time) override;
 
 	static constexpr uint64_t kGpsDelayUs{110000};
+	static constexpr uint64_t kGpsChecksDelayUs{100000};
 
 	gnssSample _gps_data{};
+	gnssChecksSample _gps_checks_data{};
 	Vector3f _gps_pos_rate{};
 };
 

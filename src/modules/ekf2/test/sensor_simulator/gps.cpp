@@ -7,6 +7,9 @@ namespace sensor
 
 Gps::Gps(std::shared_ptr<Ekf> ekf): Sensor(ekf)
 {
+	_gps_checks_data.check_fail_status.value = 0;
+	_gps_checks_data.checks_passed = true;
+	_gps_checks_data.initial_checks_passed = true;
 }
 
 Gps::~Gps()
@@ -18,6 +21,7 @@ void Gps::send(const uint64_t time)
 	const float dt = static_cast<float>(time - _gps_data.time_us - kGpsDelayUs) * 1e-6f;
 
 	_gps_data.time_us = time - kGpsDelayUs;
+	_gps_checks_data.time_us = time - kGpsChecksDelayUs;
 
 	if (fabsf(_gps_pos_rate(0)) > FLT_EPSILON || fabsf(_gps_pos_rate(1)) > FLT_EPSILON) {
 		stepHorizontalPositionByMeters(Vector2f(_gps_pos_rate) * dt);
@@ -27,6 +31,7 @@ void Gps::send(const uint64_t time)
 		stepHeightByMeters(-_gps_pos_rate(2) * dt);
 	}
 
+	_ekf->setGpsChecksData(_gps_checks_data);
 	_ekf->setGpsData(_gps_data);
 }
 

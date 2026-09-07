@@ -39,6 +39,7 @@
 #include <px4_platform_common/param.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gps_checks.h>
 
 // to run: make tests TESTFILTER=gnssRedundancyChecks
 
@@ -90,6 +91,18 @@ public:
 		return gps;
 	}
 
+	sensor_gps_checks_s makeGpsChecks(uint16_t flags = 0b0000000000000000)
+	{
+		sensor_gps_checks_s gps_checks{};
+		gps_checks.timestamp = hrt_absolute_time();
+		gps_checks.device_id = 1;
+		gps_checks.flags = flags;
+		gps_checks.checks_passed = true;
+		gps_checks.initial_checks_passed = true;
+
+		return gps_checks;
+	}
+
 	// Run the check and store results in _failsafe_flags and _health_warning_gps.
 	void runCheck(bool armed = false)
 	{
@@ -107,7 +120,10 @@ public:
 	}
 
 	uORB::PublicationMulti<sensor_gps_s> _gps0_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gps_checks_s> _gps0_checks_pub{ORB_ID(sensor_gps_checks)};
 	uORB::PublicationMulti<sensor_gps_s> _gps1_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gps_checks_s> _gps1_checks_pub{ORB_ID(sensor_gps_checks)};
+
 	failsafe_flags_s  _failsafe_flags{};
 	bool              _health_warning_gps{false};
 	GnssRedundancyChecks _check;
@@ -206,7 +222,9 @@ TEST_F(GnssRedundancyChecksTest, BelowRequiredSetsGnssLost)
 TEST_F(GnssRedundancyChecksTest, DroppedBelowPeakSetsHealthWarning)
 {
 	_gps0_pub.publish(makeGps(BASE_LAT, BASE_LON));
+	_gps0_checks_pub.publish(makeGpsChecks());
 	_gps1_pub.publish(makeGps(AGREEING_LAT, BASE_LON));
+	_gps1_checks_pub.publish(makeGpsChecks());
 	runCheck();
 	EXPECT_FALSE(_health_warning_gps); // both present, no warning
 

@@ -67,6 +67,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 			if (gps_checks.checks_passed) {
 				gps_has_passed[i] = true;
 				passed_gps[i] = gps;
+				passed_count++;
 			}
 		}
 	}
