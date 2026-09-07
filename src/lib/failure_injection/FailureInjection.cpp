@@ -202,10 +202,14 @@ esc_status_s process_esc(const Config &config, const esc_status_s &status)
 
 MotorFailureMasks process_motor(const Config &config)
 {
+	// SYS_FAIL_MOT_OFF values
+	static constexpr int32_t MOTOR_OFF_DETECTED = 0;
+	static constexpr int32_t MOTOR_OFF_UNDETECTED = 1;
+
 	static int32_t motor_off_behavior = -1;
 
 	if (motor_off_behavior < 0) {
-		motor_off_behavior = 0;
+		motor_off_behavior = MOTOR_OFF_DETECTED;
 		int32_t value{0};
 
 		if (param_get(param_find("SYS_FAIL_MOT_OFF"), &value) == PX4_OK) {
@@ -223,7 +227,7 @@ MotorFailureMasks process_motor(const Config &config)
 
 	MotorFailureMasks masks{};
 
-	if (motor_off_behavior == 1) {
+	if (motor_off_behavior == MOTOR_OFF_UNDETECTED) {
 		masks.stop_mask = motors_off;
 
 	} else {

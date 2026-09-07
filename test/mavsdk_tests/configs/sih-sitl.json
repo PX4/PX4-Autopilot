@@ -29,12 +29,12 @@
         },
         {
             "model": "hex",
-            "test_filter": "[motor_failure_injection]",
+            "test_filter": "[motor_failure_injection_detected]",
             "timeout_min": 10
         },
         {
             "model": "hex",
-            "test_filter": "[motor_failure_injection_hard]",
+            "test_filter": "[motor_failure_injection_undetected]",
             "timeout_min": 10,
             "env": {
                 "PX4_PARAM_SYS_FAIL_MOT_OFF": 1

@@ -599,10 +599,10 @@ TEST(FailureInjectionConfig, ProcessBatteryLeavesUnselectedInstanceUntouched)
 }
 
 // ===========================================================================
-// process_motor(): motor Off -> annunciated failure_mask (default) / un-annunciated stop_mask
+// process_motor(): motor Off -> detected failure_mask (default) / undetected stop_mask
 // ===========================================================================
 
-TEST(FailureInjectionConfig, ProcessMotorDefaultsToSoftFailureMask)
+TEST(FailureInjectionConfig, ProcessMotorDefaultsToDetectedFailureMask)
 {
 	Config config;
 	config.set(make_config(MOTOR, 0x5, OFF)); // motors 1 and 3
