@@ -747,6 +747,9 @@ void UavcanNode::PrintInfo()
 	printf("UAVCAN Time:\n");
 	printf("\tMonotonic time: %llu\n", _node.getMonotonicTime().toUSec());
 	printf("\tUtc time:       %llu\n", _node.getUtcTime().toUSec());
+	const uavcan_hrt_clock::SyncStatus sync = UAVCAN_DRIVER::clock::getSyncStatus();
+	printf("\tSync:           %lu adjustments, last %ld us, rate %ld ppb\n", (unsigned long)sync.adjustments,
+	       (long)sync.last_adjustment_usec, (long)sync.rate_ppb);
 
 	printf("\n");
 

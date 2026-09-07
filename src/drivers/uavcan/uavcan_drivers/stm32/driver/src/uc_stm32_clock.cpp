@@ -17,16 +17,7 @@ namespace
 
 Mutex mutex;
 bool initialized = false;
-
-// Written under a critical section so the CAN interrupt, which reads them
-// without locking, never sees a torn 64-bit offset.
-bool utc_set = false;
-uavcan::int64_t utc_offset_usec = 0;
-
-uavcan::uint64_t utcNow()
-{
-	return utc_set ? uavcan::uint64_t(uavcan::int64_t(hrt_absolute_time()) + utc_offset_usec) : 0;
-}
+uavcan_hrt_clock::Clock hrt_clock;
 
 }
 
@@ -37,33 +28,27 @@ uavcan::MonotonicTime getMonotonic()
 
 uavcan::UtcTime getUtc()
 {
-	CriticalSectionLocker locker;
-	return uavcan::UtcTime::fromUSec(utcNow());
+	return uavcan::UtcTime::fromUSec(hrt_clock.utcUsec());
 }
 
 uavcan::uint64_t getUtcUSecFromCanInterrupt()
 {
-	return utcNow();
+	return hrt_clock.utcUsecFromInterrupt();
 }
 
 void setUtc(uavcan::UtcTime time)
 {
-	CriticalSectionLocker locker;
-	utc_offset_usec = uavcan::int64_t(time.toUSec()) - uavcan::int64_t(hrt_absolute_time());
-	utc_set = true;
+	hrt_clock.setUtc(time.toUSec());
 }
 
 void adjustUtc(uavcan::UtcDuration adjustment)
 {
-	CriticalSectionLocker locker;
+	hrt_clock.adjustUtc(adjustment.toUSec());
+}
 
-	if (utc_set) {
-		utc_offset_usec = utc_offset_usec + adjustment.toUSec();
-
-	} else {
-		utc_offset_usec = adjustment.toUSec() - uavcan::int64_t(hrt_absolute_time());
-		utc_set = true;
-	}
+uavcan_hrt_clock::SyncStatus getSyncStatus()
+{
+	return hrt_clock.status();
 }
 
 } // namespace clock
