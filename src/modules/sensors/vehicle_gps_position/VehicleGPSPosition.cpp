@@ -299,11 +299,7 @@ void VehicleGPSPosition::Run()
 			sensor_gps_checks_s checks_msg = sensorGpsChecksMsgFromGnssChecks(_vehicle_gps_position_checks, gps_output.timestamp_sample,
 							 gps_output.device_id);
 
-			if ((_vehicle_gps_position_checks.passed() && !_vehicle_land_detected.landed) ||
-			    (_vehicle_gps_position_checks.initialChecksPassed() && _vehicle_land_detected.landed)) {
-				_vehicle_gps_position_pub.publish(gps_output);
-			}
-
+			_vehicle_gps_position_pub.publish(gps_output);
 			_vehicle_gps_position_checks_pub.publish(checks_msg);
 		}
 	}
