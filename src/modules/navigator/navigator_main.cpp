@@ -239,6 +239,7 @@ void Navigator::run()
 	reset_position_setpoint(_reposition_triplet.previous);
 	reset_position_setpoint(_reposition_triplet.current);
 	reset_position_setpoint(_reposition_triplet.next);
+	reset_position_setpoint(_reposition_triplet.next_next);
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[4] {};
@@ -1381,6 +1382,7 @@ void Navigator::reset_triplets()
 	reset_position_setpoint(_pos_sp_triplet.previous);
 	reset_position_setpoint(_pos_sp_triplet.current);
 	reset_position_setpoint(_pos_sp_triplet.next);
+	reset_position_setpoint(_pos_sp_triplet.next_next);
 
 	_pos_sp_triplet_updated = true;
 }
