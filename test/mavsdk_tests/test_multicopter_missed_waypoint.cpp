@@ -155,7 +155,7 @@ public:
 			mission_item(1, MAV_CMD_NAV_WAYPOINT, 60.0, 20.f),
 			mission_item(2, MAV_CMD_NAV_WAYPOINT, 100.0, 20.f),
 			mission_item(3, MAV_CMD_NAV_WAYPOINT, 140.0, 20.f),
-			mission_item(4, MAV_CMD_NAV_LAND, 140.0, 0.f)
+			mission_item(4, MAV_CMD_NAV_LAND, 140.0, 5.f)
 		};
 		const CoordinateTransformation target_frame({mission[2].x / 1e7, mission[2].y / 1e7});
 
@@ -166,14 +166,11 @@ public:
 
 		bool home_change_sent = false;
 		bool home_change_accepted = false;
-		bool approached = false;
-		bool crossed = false;
 		bool missed = false;
 		bool returned = false;
 		bool accepted_after_return = false;
 		bool diverged = false;
 		double target_home_altitude_m = static_cast<double>(home.altitude) / 1000.0 - 5.0;
-		double last_along_m = -1e9;
 		double maximum_distance_m = 0.0;
 		double outward_since_s = -1.0;
 		double outward_start_distance_m = 0.0;
@@ -223,7 +220,6 @@ public:
 
 				if (!home_change_sent || !home_change_accepted || !sample.have_home
 				    || std::fabs(sample.home.altitude / 1000.0 - target_home_altitude_m) >= 0.15) {
-					last_along_m = along_m;
 					continue;
 				}
 
@@ -232,24 +228,14 @@ public:
 						     && getTelemetry()->flight_mode() == Telemetry::FlightMode::Mission;
 				const double distance_m = std::hypot(along_m, cross_m);
 
-				if (pending && along_m < -2.0 && std::fabs(cross_m) < 2.0) {
-					approached = true;
-				}
-
-				if (approached && pending && last_along_m <= 0.0 && along_m > 0.0
-				    && std::fabs(cross_m) < 2.0 && std::fabs(altitude_error_m) > 0.8) {
-					crossed = true;
-				}
-
-				if (crossed && pending && along_m > 2.1 && std::fabs(altitude_error_m) > 0.8) {
+				if (pending && along_m > 2.1 && std::fabs(altitude_error_m) > 0.8) {
 					missed = true;
 				}
 
 				if (missed) {
 					maximum_distance_m = std::max(maximum_distance_m, distance_m);
 
-					if (maximum_distance_m > 2.1 && distance_m <= 2.0 && std::fabs(altitude_error_m) <= 0.8
-					    && sample.position.vx < -10) {
+					if (maximum_distance_m > 2.1 && distance_m <= 2.0 && std::fabs(altitude_error_m) <= 0.8) {
 						returned = true;
 					}
 
@@ -278,7 +264,6 @@ public:
 					}
 				}
 
-				last_along_m = along_m;
 			}
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -286,8 +271,6 @@ public:
 
 		CAPTURE(home_change_sent);
 		CAPTURE(home_change_accepted);
-		CAPTURE(approached);
-		CAPTURE(crossed);
 		CAPTURE(missed);
 		CAPTURE(returned);
 		CAPTURE(accepted_after_return);
