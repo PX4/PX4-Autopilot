@@ -455,6 +455,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	_mavlink.handle_message(msg);
 }
 
+static bool gimbal_mode_command_allowed(uint16_t command)
+{
+	return command == MAV_CMD_SET_MESSAGE_INTERVAL
+	       || command == MAV_CMD_GET_MESSAGE_INTERVAL
+	       || command == MAV_CMD_REQUEST_MESSAGE;
+}
+
 void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 {
 	switch (msg.msgid) {
@@ -476,6 +483,30 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 
 	case MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS:
 		handle_message_gimbal_device_attitude_status(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_COMMAND_LONG: {
+			mavlink_command_long_t cmd;
+			mavlink_msg_command_long_decode(&msg, &cmd);
+
+			if (gimbal_mode_command_allowed(cmd.command)) {
+				handle_message_command_long(&msg);
+			}
+		}
+		break;
+
+	case MAVLINK_MSG_ID_COMMAND_INT: {
+			mavlink_command_int_t cmd;
+			mavlink_msg_command_int_decode(&msg, &cmd);
+
+			if (gimbal_mode_command_allowed(cmd.command)) {
+				handle_message_command_int(&msg);
+			}
+		}
+		break;
+
+	case MAVLINK_MSG_ID_TIMESYNC:
+		_mavlink_timesync.handle_message(&msg);
 		break;
 	}
 
@@ -529,7 +560,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	vcmd.confirmation = cmd_mavlink.confirmation;
 	vcmd.from_external = true;
 
-	handle_message_command_both(msg, cmd_mavlink, vcmd);
+	handle_message_command_both(msg, vcmd);
 }
 
 bool
@@ -654,55 +685,54 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.confirmation = false;
 	vcmd.from_external = true;
 
-	handle_message_command_both(msg, cmd_mavlink, vcmd);
+	handle_message_command_both(msg, vcmd);
 }
 
-template <class T>
-void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
-		const vehicle_command_s &vehicle_command)
+void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const vehicle_command_s &vehicle_command)
 {
-	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
+	bool target_ok = evaluate_target_ok(vehicle_command.command, vehicle_command.target_system, vehicle_command.target_component);
 	bool send_ack = true;
 	uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 	uint8_t progress = 0; // TODO: should be 255, 0 for backwards compatibility
 
 	if (!target_ok) {
 		if (!_mavlink.get_forwarding_on()
-		    || !_mavlink.component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
+		    || !_mavlink.component_was_seen(vehicle_command.target_system, vehicle_command.target_component, _mavlink)) {
 			PX4_INFO("Ignore command %d from %d/%d to %d/%d",
-				 cmd_mavlink.command, msg->sysid, msg->compid, cmd_mavlink.target_system, cmd_mavlink.target_component);
+				 (int)vehicle_command.command, msg->sysid, msg->compid, vehicle_command.target_system,
+				 vehicle_command.target_component);
 		}
 
 		return;
 	}
 
 	uint8_t zero_mask = 0;
-	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(cmd_mavlink.command, false, _vehicle_type_bitmask,
+	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(vehicle_command.command, false, _vehicle_type_bitmask,
 				    vehicle_command.param1, vehicle_command.param2,
 				    vehicle_command.param3, vehicle_command.param4,
 				    vehicle_command.param5, vehicle_command.param6, vehicle_command.param7,
 				    &zero_mask);
 
 	if (command_invalid > 0) {
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+		acknowledge(msg->sysid, msg->compid, vehicle_command.command,
 			    vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 		return;
 	}
 
-	if (command_invalid < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)cmd_mavlink.command); }
+	if (command_invalid < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)vehicle_command.command); }
 
-	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)cmd_mavlink.command, zero_mask); }
+	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)vehicle_command.command, zero_mask); }
 
-	if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+	if (vehicle_command.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval(
-			    (int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3, cmd_mavlink.param4, vehicle_command.param7)) {
+			    (int)(vehicle_command.param1 + 0.5f), vehicle_command.param2, vehicle_command.param3, vehicle_command.param4, vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
-	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
-		get_message_interval((int)(cmd_mavlink.param1 + 0.5f));
+	} else if (vehicle_command.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
+		get_message_interval((int)(vehicle_command.param1 + 0.5f));
 
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
+	} else if (vehicle_command.command == MAV_CMD_REQUEST_MESSAGE) {
 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
 
@@ -717,7 +747,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		} else
 #endif
 			if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
-				get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+				get_message_interval((int)(vehicle_command.param2 + 0.5f));
 
 			} else {
 				result = handle_request_message_command(message_id,
@@ -725,7 +755,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 									vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
 			}
 
-	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
+	} else if (vehicle_command.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink.failure_injection_enabled()) {
 			_cmd_pub.publish(vehicle_command);
 			send_ack = false;
@@ -735,11 +765,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			send_ack = true;
 		}
 
-	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_MODE) {
+	} else if (vehicle_command.command == MAV_CMD_DO_SET_MODE) {
 		_cmd_pub.publish(vehicle_command);
 		send_ack = false;	//Acknowledgement handled by Commander
 
-	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
+	} else if (vehicle_command.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
 
 		bool has_module = true;
 		autotune_attitude_control_status_s status{};
@@ -850,7 +880,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			return;
 		}
 
-		if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
+		if (vehicle_command.command == MAV_CMD_LOGGING_START) {
 			// check that we have enough bandwidth available: this is given by the configured logger topics
 			// and rates. The 5000 is somewhat arbitrary, but makes sure that we cannot enable log streaming
 			// on a radio link
@@ -876,7 +906,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	}
 
 	if (send_ack) {
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, result, progress);
+		acknowledge(msg->sysid, msg->compid, vehicle_command.command, result, progress);
 	}
 }
 
@@ -2025,6 +2055,12 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 		}
 	}
 
+	_failure_config.update();
+
+	if (!failure_injection::process_battery(_failure_config, 1, battery_status)) {
+		return;
+	}
+
 	_battery_pub.publish(battery_status);
 }
 
@@ -2600,6 +2636,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		sensor_baro_s sensor_baro{};
 		sensor_baro.timestamp_sample = timestamp;
 		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+		sensor_baro.is_external = false;
 		sensor_baro.pressure = hil_sensor.abs_pressure * 100.0f; // hPa to Pa
 		sensor_baro.temperature = hil_sensor.temperature;
 		sensor_baro.error_count = 0;
@@ -2643,6 +2680,12 @@ MavlinkReceiver::publish_hil_battery()
 
 	for (auto cell_count = 0; cell_count < hil_battery_status.cell_count; cell_count++) {
 		hil_battery_status.voltage_cell_v[cell_count] = cells_v;
+	}
+
+	_failure_config.update();
+
+	if (!failure_injection::process_battery(_failure_config, 1, hil_battery_status)) {
+		return;
 	}
 
 	_battery_pub.publish(hil_battery_status);
@@ -2740,7 +2783,7 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 
 	ranging_beacon_s ranging_beacon{};
 	ranging_beacon.timestamp = hrt_absolute_time();
-	ranging_beacon.timestamp_sample = beacon_pos.time_usec;
+	ranging_beacon.timestamp_sample = _mavlink_timesync.sync_stamp(beacon_pos.time_usec);
 	ranging_beacon.beacon_id = beacon_pos.beacon_id;
 	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
 	ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
@@ -2885,6 +2928,12 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	static_assert(transponder_report_s::PX4_ADSB_FLAGS_SOURCE_UAT == ADSB_FLAGS_SOURCE_UAT);
 
 	//PX4_INFO("code: %d callsign: %s, vel: %8.4f, tslc: %d", (int)t.ICAO_address, t.callsign, (double)t.hor_velocity, (int)t.tslc);
+
+	_failure_config.update();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0)) {
+		return;
+	}
 
 	_transponder_report_pub.publish(t);
 }
@@ -3480,12 +3529,16 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		_mavlink.lock_telemetry_status();
 		telemetry_status_s &tstatus = _mavlink.telemetry_status();
 
+		_failure_config.update();
+		const bool traffic_avoidance_ok = failure_injection::process(_failure_config,
+						  failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0);
+
 		tstatus.heartbeat_type_antenna_tracker         = (t <= TIMEOUT + _heartbeat_type_antenna_tracker);
 		tstatus.heartbeat_type_gcs                     = (t <= TIMEOUT + _heartbeat_type_gcs);
 		tstatus.heartbeat_type_onboard_controller      = (t <= TIMEOUT + _heartbeat_type_onboard_controller);
 		tstatus.heartbeat_type_gimbal                  = (t <= TIMEOUT + _heartbeat_type_gimbal);
-		tstatus.heartbeat_type_adsb                    = (t <= TIMEOUT + _heartbeat_type_adsb);
-		tstatus.heartbeat_type_flarm                   = (t <= TIMEOUT + _heartbeat_type_flarm);
+		tstatus.heartbeat_type_adsb                    = traffic_avoidance_ok && (t <= TIMEOUT + _heartbeat_type_adsb);
+		tstatus.heartbeat_type_flarm                   = traffic_avoidance_ok && (t <= TIMEOUT + _heartbeat_type_flarm);
 		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
 		tstatus.heartbeat_type_parachute               = (t <= TIMEOUT + _heartbeat_type_parachute);
 		tstatus.heartbeat_type_open_drone_id           = (t <= TIMEOUT + _heartbeat_type_open_drone_id);

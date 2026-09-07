@@ -64,12 +64,7 @@ public:
 	// WorkItems sorted by name
 	bool operator<=(const WorkItem &rhs) const { return (strcmp(ItemName(), rhs.ItemName()) <= 0); }
 
-	inline void ScheduleNow()
-	{
-		if (_wq != nullptr) {
-			_wq->Add(this);
-		}
-	}
+	void ScheduleNow();
 
 	virtual void print_run_status();
 

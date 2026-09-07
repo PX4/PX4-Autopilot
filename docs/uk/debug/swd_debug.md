@@ -220,6 +220,6 @@ Where possible, we highly recommend that you create or obtain an adapter board r
 
 <!-- Reference links used above -->
 
-[swd]: https://developer.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-
-[itm]: https://developer.arm.com/documentation/ddi0403/d/Appendices/Debug-ITM-and-DWT-Packet-Protocol?lang=en
-[etm]: https://developer.arm.com/documentation/ihi0064/latest/
+[swd]: https://support.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-
+[itm]: https://support.arm.com/documentation/ddi0403/d/Appendices/Debug-ITM-and-DWT-Packet-Protocol?lang=en
+[etm]: https://support.arm.com/documentation/ihi0064/latest/

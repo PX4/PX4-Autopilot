@@ -73,7 +73,7 @@ private:
 				sensor_mag_s sensor_mag;
 
 				if (_sensor_mag_subs[mag].update(&sensor_mag) && (sensor_mag.device_id != 0)) {
-					calibration::Magnetometer calibration{sensor_mag.device_id};
+					calibration::Magnetometer calibration{sensor_mag.device_id, sensor_mag.is_external};
 
 					if (calibration.calibrated()) {
 						mavlink_mag_cal_report_t msg{};

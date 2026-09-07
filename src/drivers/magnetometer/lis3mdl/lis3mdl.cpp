@@ -44,7 +44,7 @@
 
 LIS3MDL::LIS3MDL(device::Device *interface, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
-	_px4_mag(interface->get_device_id(), config.rotation),
+	_px4_mag(interface->get_device_id(), config.rotation, config.external),
 	_interface(interface),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
 	_conf_errors(perf_alloc(PC_COUNT, MODULE_NAME": conf_errors")),

@@ -168,8 +168,10 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 	 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
 	 * points to, and changes of the stick input are linear.
 	 */
-	_man_roll_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
-	_man_pitch_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
+	const hrt_abstime dt_us = static_cast<hrt_abstime>(dt * 1e6f);
+	const hrt_abstime man_tilt_tau_us = static_cast<hrt_abstime>(math::max(_param_mc_man_tilt_tau.get(), 0.f) * 1e6f);
+	_man_roll_input_filter.setParameters(dt_us, man_tilt_tau_us);
+	_man_pitch_input_filter.setParameters(dt_us, man_tilt_tau_us);
 
 	// we want to fly towards the direction of (roll, pitch)
 	Vector2f v = Vector2f(_man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max),

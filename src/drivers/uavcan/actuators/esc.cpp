@@ -80,6 +80,12 @@ int UavcanEscController::init()
 		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
 	}
 
+	int32_t rate_max{400};
+
+	if (param_get(param_find("UAVCAN_ESC_RTMAX"), &rate_max) == OK) {
+		_max_rate_hz = (unsigned)rate_max;
+	}
+
 	_initialized = true;
 
 	return res;
@@ -87,10 +93,9 @@ int UavcanEscController::init()
 
 void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], uint8_t output_array_size)
 {
-	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
 
-	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
+	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / _max_rate_hz)) {
 		return;
 	}
 
@@ -108,6 +113,7 @@ void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], uint8_t o
 void UavcanEscController::set_rotor_count(uint8_t count)
 {
 	_rotor_count = count;
+	_seen_status_mask = 0; // the set of reporting ESC indices may change with the mixer configuration
 }
 
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
@@ -123,15 +129,23 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		esc_report.esc_errorcount = msg.error_count;
 		esc_report.failures = get_failures(msg.esc_index, msg.getSrcNodeID().get());
 
-		_esc_status.esc_count = _rotor_count;
-		_esc_status.counter += 1;
-		_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
-		_esc_status.esc_online_flags = check_escs_status();
-		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
-		_esc_status.timestamp = esc_report.timestamp;
+		// A repeated ESC index marks the start of a new round; publish once per round.
+		const uint16_t index_bit = 1u << msg.esc_index;
 
-		_failure_config.update();
-		_esc_status_pub.publish(failure_injection::process_esc(_failure_config, _esc_status));
+		if (_seen_status_mask & index_bit) {
+			_seen_status_mask = 0;
+			_esc_status.esc_count = _rotor_count;
+			_esc_status.counter += 1;
+			_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+			_esc_status.esc_online_flags = check_escs_status();
+			_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
+			_esc_status.timestamp = esc_report.timestamp;
+
+			_failure_config.update();
+			_esc_status_pub.publish(failure_injection::process_esc(_failure_config, _esc_status));
+		}
+
+		_seen_status_mask |= index_bit;
 	}
 
 	// Register device capability for each ESC channel
@@ -188,49 +202,46 @@ uint32_t UavcanEscController::get_failures(uint8_t esc_index, uint8_t node_id)
 		}
 	}
 
-	const bool failure = (node_health == dronecan_node_status_s::HEALTH_ERROR)
-			     || (node_health == dronecan_node_status_s::HEALTH_CRITICAL);
+	uint32_t failures = 0;
 
-	if (!failure) {
-		return 0;
-	}
+	if ((node_health == dronecan_node_status_s::HEALTH_ERROR)
+	    || (node_health == dronecan_node_status_s::HEALTH_CRITICAL)) {
+		// Parse VertiQ = iq_motion ESC error flags
+		device_information_s device_information{};
 
-	// Parse VertiQ = iq_motion ESC error flags
-	device_information_s device_information{};
+		if (_device_information_sub.copy(&device_information)
+		    && device_information.device_type == device_information_s::DEVICE_TYPE_ESC
+		    && device_information.device_id == esc_index
+		    && strstr(device_information.name, "iq_motion") != nullptr) {
+			static const struct {
+				uint8_t bit;
+				uint8_t failure_type;
+			} bit_to_failure_map[] = {
+				{0,  esc_report_s::FAILURE_OVER_VOLTAGE},
+				{1,  esc_report_s::FAILURE_OVER_VOLTAGE},
+				{2,  esc_report_s::FAILURE_OVER_VOLTAGE},
+				{3,  esc_report_s::FAILURE_OVER_CURRENT},
+				{4,  esc_report_s::FAILURE_OVER_CURRENT},
+				{5,  esc_report_s::FAILURE_OVER_ESC_TEMPERATURE},
+				{6,  esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE},
+				{7,  esc_report_s::FAILURE_GENERIC},
+				{8,  esc_report_s::FAILURE_OVER_RPM},
+				{9,  esc_report_s::FAILURE_WARN_ESC_TEMPERATURE},
+				{10, esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE},
+				{11, esc_report_s::FAILURE_OVER_VOLTAGE},
+			};
 
-	if (_device_information_sub.copy(&device_information)
-	    && device_information.device_type == device_information_s::DEVICE_TYPE_ESC
-	    && device_information.device_id == esc_index
-	    && strstr(device_information.name, "iq_motion") != nullptr) {
-		static const struct {
-			uint8_t bit;
-			uint8_t failure_type;
-		} bit_to_failure_map[] = {
-			{0,  esc_report_s::FAILURE_OVER_VOLTAGE},
-			{1,  esc_report_s::FAILURE_OVER_VOLTAGE},
-			{2,  esc_report_s::FAILURE_OVER_VOLTAGE},
-			{3,  esc_report_s::FAILURE_OVER_CURRENT},
-			{4,  esc_report_s::FAILURE_OVER_CURRENT},
-			{5,  esc_report_s::FAILURE_OVER_ESC_TEMPERATURE},
-			{6,  esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE},
-			{7,  esc_report_s::FAILURE_GENERIC},
-			{8,  esc_report_s::FAILURE_OVER_RPM},
-			{9,  esc_report_s::FAILURE_WARN_ESC_TEMPERATURE},
-			{10, esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE},
-			{11, esc_report_s::FAILURE_OVER_VOLTAGE},
-		};
-
-		uint32_t failures = 0;
-
-		for (const auto &mapping : bit_to_failure_map) {
-			if (vendor_specific_status_code & (1 << mapping.bit)) {
-				failures |= (1 << mapping.failure_type);
+			for (const auto &mapping : bit_to_failure_map) {
+				if (vendor_specific_status_code & (1 << mapping.bit)) {
+					failures |= (1 << mapping.failure_type);
+				}
 			}
 		}
 
-		return failures;
+		if (failures == 0) { // no specific error parsed
+			failures = (1 << esc_report_s::FAILURE_GENERIC);
+		}
 	}
 
-	// Generic parsing
-	return (1 << esc_report_s::FAILURE_GENERIC);
+	return failures;
 }

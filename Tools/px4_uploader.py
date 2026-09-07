@@ -143,6 +143,32 @@ def _present_ports() -> Optional[set]:
         return None
 
 
+_BY_ID_DIR = "/dev/serial/by-id"
+
+
+def _by_id_name(port: str) -> str:
+    """Prefer the stable /dev/serial/by-id name for a port, when one exists.
+
+    A by-id name says which device it is; ttyACM numbers are handed out in plug
+    order and mean nothing to a reader with more than one board on the bus.
+    Linux only -- elsewhere, and for ports with no symlink, the path is
+    returned unchanged.
+    """
+    if port.startswith(_BY_ID_DIR):
+        return port
+
+    try:
+        real = os.path.realpath(port)
+        for name in sorted(os.listdir(_BY_ID_DIR)):
+            link = os.path.join(_BY_ID_DIR, name)
+            if os.path.realpath(link) == real:
+                return link
+    except OSError as e:
+        logger.debug(f"Cannot resolve by-id name for {port}: {e}")
+
+    return port
+
+
 # =============================================================================
 # Exception Hierarchy
 # =============================================================================
@@ -1443,8 +1469,19 @@ class PortDetector:
                 ports.discard(port)
         result.extend(sorted(ports))
 
-        logger.info(f"Detected {len(result)} potential ports: {result}")
-        return result
+        # Report by-id names, and collapse the duplicates that leaves: one
+        # device is routinely matched both by a by-id pattern and by the
+        # /dev/ttyACM* catch-all.
+        named = []
+        seen = set()
+        for port in result:
+            port = _by_id_name(port)
+            if port not in seen:
+                seen.add(port)
+                named.append(port)
+
+        logger.info(f"Detected {len(named)} potential ports: {named}")
+        return named
 
     def _detect_by_vid_pid(self) -> list[str]:
         """Detect ports by USB Vendor/Product ID.
@@ -1527,7 +1564,7 @@ class PortDetector:
             else:
                 logger.debug(f"Exact port not present: {pattern}")
 
-        return list(dict.fromkeys(ports))
+        return list(dict.fromkeys(_by_id_name(port) for port in ports))
 
 
 # =============================================================================
@@ -1896,7 +1933,12 @@ class Uploader:
     # After reboot-to-bootloader the USB CDC device disappears and comes back
     # under a different product string (app vs bootloader). Give it this long
     # to re-enumerate before giving up on this attempt.
-    REBOOT_REDISCOVER_TIMEOUT = 5.0
+    #
+    # The reboot itself is immediate, so this only has to cover re-enumeration.
+    # Waiting longer is actively harmful: a board sits in its bootloader for
+    # BOOTLOADER_DELAY (3s on some boards, 5s on most) before it jumps to the
+    # application, and time spent here is time not spent trying other ports.
+    REBOOT_REDISCOVER_TIMEOUT = 1.0
 
     def _try_identify(
         self, transport: SerialTransport, protocol: BootloaderProtocol
@@ -2020,9 +2062,10 @@ class Uploader:
 
         now = _present_ports()
         appeared = (now - ports_before) if now is not None else set()
+        known = {os.path.realpath(port) for port in ports}
         for port in sorted(appeared):
-            if port not in ports:
-                ports.append(port)
+            if os.path.realpath(port) not in known:
+                ports.append(_by_id_name(port))
 
         def rank(port: str) -> int:
             if port in appeared or os.path.realpath(port) in appeared:

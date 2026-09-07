@@ -469,6 +469,15 @@ struct msp_rendor_satellites_used_t {
 	char str[3]; // 99
 } __attribute__((packed));
 
+struct msp_rendor_gps_speed_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x9F; //mps icon
+
+	char str[7]; // 115.25
+} __attribute__((packed));
 
 // MSP_COMP_GPS reply
 struct msp_comp_gps_t {
@@ -876,12 +885,40 @@ struct msp_battery_state_t {
 } __attribute__((packed));
 
 struct msp_rendor_battery_state_t {
-	uint8_t subCommand; // 0x03 write string. fixed
+	uint8_t subCommand = 0x03; // 0x03 write string. fixed
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
-	uint8_t iconAttrs;
+	uint8_t iconAttrs = 0x00;
 	uint8_t iconIndex;
 	char str[5];
+} __attribute__((packed));
+
+struct msp_rendor_current_draw_t {
+	uint8_t subCommand = 0x03; // 0x03 write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x9A;
+	char str[7]; // 100.00
+} __attribute__((packed));
+
+struct msp_rendor_mah_drawn_t {
+	uint8_t subCommand = 0x03; // 0x03 write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x07;
+	char str[8]; // 10000.0
+} __attribute__((packed));
+
+struct msp_rendor_crosshairs_t {
+	uint8_t subCommand = 0x03; // 0x03 write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x72; //SYM_AH_CENTER_LINE
+	uint8_t iconIndex2 = 0x73; //SYM_AH_CENTER
+	uint8_t iconIndex3 = 0x74; //SYM_AH_CENTER_LINE_RIGHT
 } __attribute__((packed));
 
 // MSP_STATUS reply customized for BF/DJI

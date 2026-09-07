@@ -182,6 +182,11 @@ bool FlightTaskAuto::update()
 	_checkEmergencyBraking();
 	Vector3f waypoints[] = {_triplet_previous, _position_setpoint, _triplet_next};
 
+	if (_type == WaypointType::position && _hasPassedCurrentWaypoint()) {
+		// Anchor the leg at the current position to not extrapolate past an unreached waypoint
+		waypoints[0] = _position;
+	}
+
 	if (isTargetModified()) {
 		// In case the target has been modified, we take this as the next waypoints
 		waypoints[2] = _position_setpoint;
@@ -191,6 +196,13 @@ bool FlightTaskAuto::update()
 					       && !_yaw_sp_aligned;
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
 	_updateTrajConstraints();
+
+	if (_is_emergency_braking_active) {
+		// Re-seed the trajectory to the measured state every cycle so controller saturation doesn't
+		// cause a velocity error inversion during emergency braking.
+		_position_smoothing.forceSetVelocity(_velocity);
+		_position_smoothing.forceSetPosition(_position);
+	}
 
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
 	_position_smoothing.generateSetpoints(
@@ -719,10 +731,10 @@ void FlightTaskAuto::_checkEmergencyBraking()
 		}
 
 	} else {
-		// deactivate emergency braking when the vehicle has come to a full stop
-		if (_position_smoothing.getCurrentVelocityZ() < 0.01f
-		    && _position_smoothing.getCurrentVelocityZ() > -0.01f
-		    && !_position_smoothing.getCurrentVelocityXY().longerThan(0.01f)) {
+		// Deactivate emergency braking once slow enough for ordinary guidance to finish the stop.
+		// Must clear velocity estimate noise, otherwise braking latches and guidance never resumes.
+		if (math::isInRange(_position_smoothing.getCurrentVelocityZ(), -1.f, 1.f)
+		    && !_position_smoothing.getCurrentVelocityXY().longerThan(1.f)) {
 			_is_emergency_braking_active = false;
 		}
 	}
@@ -754,6 +766,12 @@ bool FlightTaskAuto::isTargetModified() const
 	return xy_modified || z_modified;
 }
 
+bool FlightTaskAuto::_hasPassedCurrentWaypoint() const
+{
+	const Vector3f u_previous_to_current = (_triplet_current - _triplet_previous).unit_or_zero();
+	return u_previous_to_current * (_triplet_current - _position) < 0.f;
+}
+
 void FlightTaskAuto::_updateTrajConstraints()
 {
 	// update params of the position smoothing
@@ -774,12 +792,6 @@ void FlightTaskAuto::_updateTrajConstraints()
 		// acceleration in 1s on all axes for fast braking
 		_position_smoothing.setMaxAcceleration({CONSTANTS_ONE_G, CONSTANTS_ONE_G, CONSTANTS_ONE_G});
 		_position_smoothing.setMaxJerk(CONSTANTS_ONE_G);
-
-		// If the current velocity is beyond the usual constraints, tell
-		// the controller to exceptionally increase its saturations to avoid
-		// cutting out the feedforward
-		_constraints.speed_down = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_down);
-		_constraints.speed_up = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_up);
 
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();

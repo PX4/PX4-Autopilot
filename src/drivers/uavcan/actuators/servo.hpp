@@ -41,12 +41,12 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
+#include <px4_platform_common/module_params.h>
 
-class UavcanServoController
+class UavcanServoController : public ModuleParams
 {
 public:
 	static constexpr int MAX_ACTUATORS = 15;
-	static constexpr unsigned MAX_RATE_HZ = 50;
 	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 6;	///< 0..31, inclusive, 0 - highest, 31 - lowest
 
 	UavcanServoController(uavcan::INode &node);
@@ -54,7 +54,16 @@ public:
 
 	void update_outputs(float outputs[MAX_ACTUATORS], unsigned num_outputs);
 
+	unsigned max_rate_hz() const { return _max_rate_hz; }
+
 private:
-	uavcan::INode								&_node;
-	uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand> _uavcan_pub_array_cmd;
+	unsigned _max_rate_hz{50};
+
+	uavcan::MonotonicTime						_prev_cmd_pub;
+	uavcan::INode							&_node;
+	uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>	_uavcan_pub_array_cmd;
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::UAVCAN_SV_RTMAX>) _param_sv_rtmax
+	)
 };

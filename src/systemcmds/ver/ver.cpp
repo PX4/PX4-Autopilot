@@ -44,6 +44,7 @@
 #include <px4_platform_common/module.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <version/version.h>
 
@@ -53,6 +54,9 @@ static const char sz_ver_hwcmp_str[]    = "hwcmp";
 static const char sz_ver_hwtypecmp_str[]    = "hwtypecmp";
 #if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
 static const char sz_ver_hwbasecmp_str[]    = "hwbasecmp";
+#endif
+#if defined(HW_INFO_POP_MASK)
+static const char sz_ver_hwpopcmp_str[]    = "hwpopcmp";
 #endif
 static const char sz_ver_git_str[] 	= "git";
 static const char sz_ver_bdate_str[]    = "bdate";
@@ -91,6 +95,12 @@ static void usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("hwbasecmp", "Compare hardware base (returns 0 on match)");
 	PRINT_MODULE_USAGE_ARG("<hwbase> [<hwbase2>]",
 			       "Hardware type to compare against (eg. V2). An OR comparison is used if multiple are specified", false);
+#endif
+#if defined(HW_INFO_POP_MASK)
+	PRINT_MODULE_USAGE_COMMAND_DESCR("hwpopcmp", "Compare HW population option (returns 0 on match)");
+	PRINT_MODULE_USAGE_ARG("<value> [<value2>]",
+			       "Hex population option value(s) to compare against (eg. 06, cafe, ffff). An OR comparison is used if multiple are specified",
+			       false);
 #endif
 }
 
@@ -151,6 +161,27 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 
 				} else {
 					PX4_ERR("Not enough arguments, try 'ver hwbasecmp {000...999}[1:*]'");
+				}
+
+				return 1;
+			}
+
+#endif
+
+#if defined(HW_INFO_POP_MASK)
+
+			if (!strncmp(argv[1], sz_ver_hwpopcmp_str, sizeof(sz_ver_hwpopcmp_str))) {
+				if (argc >= 3 && argv[2] != nullptr) {
+					uint32_t population = GET_HW_POP_ID();
+
+					for (int i = 2; i < argc; ++i) {
+						if (population == (uint32_t)strtol(argv[i], nullptr, 16)) {
+							return 0; // if one of the arguments match, return success
+						}
+					}
+
+				} else {
+					PX4_ERR("Not enough arguments, try 'ver hwpopcmp {0..ffff}[1:*]");
 				}
 
 				return 1;

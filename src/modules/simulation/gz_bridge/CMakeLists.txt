@@ -91,6 +91,11 @@ if (gz-transport_FOUND)
 	target_include_directories(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 	target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 
+	px4_add_functional_gtest(
+		SRC GZBridgeTest.cpp
+		LINKLIBS modules__simulation__gz_bridge ${GZ_TRANSPORT_TARGET} geo
+	)
+
 	include(ExternalProject)
 	ExternalProject_Add(gz
 		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz

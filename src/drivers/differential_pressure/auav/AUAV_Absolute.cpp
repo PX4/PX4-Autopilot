@@ -34,7 +34,8 @@
 #include "AUAV_Absolute.hpp"
 
 AUAV_Absolute::AUAV_Absolute(const I2CSPIDriverConfig &config) :
-	AUAV(config)
+	AUAV(config),
+	_baro_external(config.external)
 {
 }
 
@@ -45,6 +46,7 @@ void AUAV_Absolute::publish_pressure(const float pressure_p, const float tempera
 	sensor_baro.timestamp = hrt_absolute_time();
 	sensor_baro.timestamp_sample = timestamp_sample;
 	sensor_baro.device_id = get_device_id();
+	sensor_baro.is_external = _baro_external;
 	sensor_baro.pressure = pressure_p;
 	sensor_baro.temperature = temperature_c;
 	sensor_baro.error_count = perf_event_count(_comms_errors);

@@ -474,6 +474,7 @@ void EulerNavDriver::handleNavigationDataMessage(const uint8_t* data)
 			pressure.timestamp = time;
 			pressure.timestamp_sample = time;
 			pressure.device_id = DRV_INS_DEVTYPE_BAHRS;
+			pressure.is_external = true;
 			pressure.temperature = NAN;
 
 			_barometer_pub.publish(pressure);

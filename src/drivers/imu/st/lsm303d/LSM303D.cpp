@@ -56,8 +56,8 @@ static constexpr uint8_t _checked_registers[] = {
 LSM303D::LSM303D(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_mag(get_device_id(), config.rotation),
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_mag(get_device_id(), config.rotation, config.external),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: acc_read")),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: mag_read")),
 	_bad_registers(perf_alloc(PC_COUNT, "lsm303d: bad_reg")),

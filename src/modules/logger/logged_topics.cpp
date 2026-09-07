@@ -76,14 +76,13 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("follow_target_status", 400);
 	add_optional_topic("flaps_setpoint", 1000);
 	add_optional_topic("flight_phase_estimation", 1000);
-	add_optional_topic("fuel_tank_status", 10);
 	add_optional_topic("gain_compression", 100);
 	add_topic("gimbal_manager_set_attitude", 500);
 	add_optional_topic("generator_status");
 	add_topic("gps_dump");
 	add_optional_topic("gimbal_controls", 200);
 	add_optional_topic("gripper");
-	add_optional_topic_multi("heater_status");
+	add_optional_topic_multi("heater_status", 1000);
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
@@ -164,12 +163,14 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
 	add_optional_topic("fixed_wing_lateral_status", 100);
 	add_optional_topic("fixed_wing_runway_control", 100);
+	add_optional_topic("fixed_wing_takeoff_status", 100);
 	add_optional_topic("ranging_beacon", 100);
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
 	add_optional_topic_multi("airspeed_wind", 1000, 4);
 	add_optional_topic_multi("control_allocator_status", 200, 2);
+	add_topic_multi("fuel_tank_status", 200, 3);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
 	add_optional_topic_multi("sensor_hygrometer", 500, 4);
 	add_optional_topic_multi("sensor_temp", 100, 4);

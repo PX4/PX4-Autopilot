@@ -18,7 +18,7 @@ The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) is a C++ li
 
 Розробники використовують бібліотеку для створення і динамічної реєстрації режимів, написаних за допомогою ROS 2.
 Ці режими динамічно реєструються в PX4 і здаються частиною PX4 для наземної станції або іншої зовнішньої системи.
-Вони навіть можуть замінити стандартні режими в PX4 на покращені версії ROS 2, відновлюючи оригінальну версію, якщо режим ROS2 не вдасться.
+They can even replace the default modes in PX4 with enhanced ROS 2 versions, falling back to the original version if the ROS 2 mode fails.
 
 Бібліотека також надає класи для надсилання різних типів налаштувань, починаючи від багаторівневих навігаційних завдань на високому рівні аж до прямого контролю приводу.
 Ці класи абстрагують внутрішні встановлені точки, які використовуються PX4, і, отже, їх можна використовувати для надання послідовного інтерфейсу ROS 2 для майбутніх версій PX4 і ROS.
@@ -36,7 +36,7 @@ You are welcome to add and contribute missing classes.
 
 Ця діаграма надає концептуального уявлення про те, як режими інтерфейсу і режими керування будуть взаємодіяти з PX4.
 
-![ROS2 modes overview diagram](../../assets/middleware/ros2/px4_ros2_interface_lib/ros2_modes_overview.svg)
+![ROS 2 modes overview diagram](../../assets/middleware/ros2/px4_ros2_interface_lib/ros2_modes_overview.svg)
 
 <!-- Source: https://docs.google.com/drawings/d/1WByCfgcytnaow7r41VhYJL8OGrw1RjFO51GoPMQBCNA/edit -->
 

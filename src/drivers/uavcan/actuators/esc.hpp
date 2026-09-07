@@ -62,7 +62,6 @@ class UavcanEscController
 {
 public:
 	static constexpr int MAX_ACTUATORS = esc_status_s::CONNECTED_ESC_MAX;
-	static constexpr unsigned MAX_RATE_HZ = 400;
 
 	static_assert(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize >= MAX_ACTUATORS, "Too many actuators");
 
@@ -84,6 +83,8 @@ public:
 	void set_node_info_publisher(NodeInfoPublisher *publisher) { _node_info_publisher = publisher; }
 
 	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
+
+	unsigned max_rate_hz() const { return _max_rate_hz; }
 
 	esc_status_s &esc_status() { return _esc_status; }
 
@@ -118,6 +119,8 @@ private:
 
 	bool _initialized = false;
 
+	unsigned _max_rate_hz{400};
+
 	esc_status_s	_esc_status{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
@@ -125,6 +128,11 @@ private:
 	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
+
+	// bitmask of ESC indices seen since the last publish; a repeat marks a new round
+	uint16_t	_seen_status_mask{0};
+	static_assert(esc_status_s::CONNECTED_ESC_MAX <= 8 * sizeof(_seen_status_mask),
+		      "_seen_status_mask cannot hold CONNECTED_ESC_MAX bits");
 
 	failure_injection::Config _failure_config;
 

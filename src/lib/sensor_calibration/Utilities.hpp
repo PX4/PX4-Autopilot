@@ -142,11 +142,4 @@ Rotation GetBoardRotation();
  */
 matrix::Dcmf GetBoardRotationMatrix();
 
-/**
- * @brief Determine if device is on an external bus
- *
- * @return true if device is on an external bus
- */
-bool DeviceExternal(uint32_t device_id);
-
 } // namespace calibration

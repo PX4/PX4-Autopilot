@@ -289,7 +289,7 @@ For Gazebo-specific environment variables (such as `PX4_GZ_WORLD`, `PX4_GZ_STAND
 ## HITL Simulation Environment
 
 With Hardware-in-the-Loop (HITL) simulation the normal PX4 firmware is run on real hardware.
-The HITL Simulation Environment in documented in: [HITL Simulation](../simulation/hitl.md).
+The HITL Simulation Environment is documented in: [HITL Simulation](../simulation/hitl.md).
 
 ## Joystick/Gamepad Integration
 

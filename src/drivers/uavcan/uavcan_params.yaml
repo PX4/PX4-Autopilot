@@ -49,7 +49,7 @@ parameters:
     UAVCAN_RNG_MIN:
       description:
         short: UAVCAN rangefinder minimum range
-        long: This parameter defines the minimum valid range for a rangefinder connected
+        long: Minimum valid range for a rangefinder connected
           via UAVCAN.
       type: float
       default: 0.0
@@ -57,18 +57,19 @@ parameters:
     UAVCAN_RNG_MAX:
       description:
         short: UAVCAN rangefinder maximum range
-        long: This parameter defines the maximum valid range for a rangefinder connected
+        long: Maximum valid range for a rangefinder connected
           via UAVCAN.
       type: float
       default: 999.0
       unit: m
-    UAVCAN_ECU_MAXF:
+    UAVCAN_ECU_MAXF${i}:
       description:
-        short: UAVCAN fuel tank maximum capacity
-        long: This parameter defines the maximum fuel capacity of the vehicle's fuel
-          tank.
+        short: Fuel tank ${i} maximum capacity
+        long: Maximum fuel capacity of fuel tank ${i}.
       type: float
-      default: 15.0
+      num_instances: 3
+      instance_start: 1
+      default: [15.0, 15.0, 15.0]
       min: 0.0
       max: 100000.0
       unit: liters
@@ -79,7 +80,7 @@ parameters:
       description:
         short: UAVCAN fuel tank fuel type
         long: |-
-          This parameter defines the type of fuel used in the vehicle's fuel tank.
+          This parameter defines the type of fuel used in the vehicle's fuel tanks.
 
           0: Unknown
           1: Liquid (e.g., gasoline, diesel)
@@ -97,7 +98,7 @@ parameters:
       description:
         short: UAVCAN Navigation light operating mode
         long: |-
-          This parameter defines the minimum condition under which the system will command
+          Minimum condition under which the system will command
           Navigation lights to turn on. Affects lights with functions: Anti-collision, Colored Navigation Lights or Hybrid lights.
 
           For hybrid functions (StatusOrAntiCollision, etc.), the light
