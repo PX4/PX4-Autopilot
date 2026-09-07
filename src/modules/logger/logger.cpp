@@ -163,12 +163,12 @@ int Logger::custom_command(int argc, char *argv[])
 #endif
 
 	if (!strcmp(argv[0], "on")) {
-		get_instance<Logger>(desc)->set_arm_override(true);
+		get_instance<Logger>(desc)->set_manual_logging(true);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "off")) {
-		get_instance<Logger>(desc)->set_arm_override(false);
+		get_instance<Logger>(desc)->set_manual_logging(false);
 		return 0;
 	}
 
@@ -1130,6 +1130,21 @@ bool Logger::start_stop_logging()
 {
 	bool updated = false;
 	bool desired_state = false;
+	int command = _manual_logging_command.load();
+	const bool manual_command_received = command != (int)ManualLoggingCommand::None
+					     && _manual_logging_command.compare_exchange(&command, (int)ManualLoggingCommand::None);
+
+	if (manual_command_received) {
+		_manual_start_override = command == (int)ManualLoggingCommand::Start;
+		_manual_stop_active = command == (int)ManualLoggingCommand::Stop
+				      && _writer.is_started(LogType::Full, LogWriter::BackendFile);
+
+		// A manually stopped continuous log falls back to arm/disarm logging until reboot.
+		if (_manual_stop_active
+		    && (_log_mode == LogMode::boot_until_shutdown || _log_mode == LogMode::arm_until_shutdown)) {
+			_log_mode = LogMode::while_armed;
+		}
+	}
 
 	if (_log_mode == LogMode::rc_aux1) {
 		// aux1-based logging
@@ -1153,7 +1168,7 @@ bool Logger::start_stop_logging()
 
 			if (full_log_continues) {
 				if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
-					if (armed || _manually_logging_override.load()) {
+					if (armed || _manual_start_override) {
 						if (_writer.is_started(LogType::Full, LogWriter::BackendFile)) {
 							start_log_file(LogType::Mission);
 						}
@@ -1174,10 +1189,21 @@ bool Logger::start_stop_logging()
 		}
 	}
 
-	desired_state = desired_state || _manually_logging_override.load();
+	if (manual_command_received) {
+		updated = true;
+	}
+
+	// Suppress automatic restarts until the current arming or AUX logging condition ends.
+	if (updated && !manual_command_received && !desired_state && _manual_stop_active) {
+		_manual_stop_active = false;
+	}
+
+	desired_state = (desired_state || _manual_start_override) && !_manual_stop_active;
+	const bool state_changed = _prev_file_log_start_state != desired_state;
+	const bool stop_requested = manual_command_received && _manual_stop_active;
 
 	// only start/stop if this is a state transition
-	if (updated && _prev_file_log_start_state != desired_state) {
+	if (updated && (state_changed || stop_requested)) {
 		_prev_file_log_start_state = desired_state;
 
 		if (desired_state) {

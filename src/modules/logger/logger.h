@@ -149,7 +149,10 @@ public:
 
 	void print_statistics(LogType type);
 
-	void set_arm_override(bool override) { _manually_logging_override.store(override); }
+	void set_manual_logging(bool enabled)
+	{
+		_manual_logging_command.store(enabled ? (int)ManualLoggingCommand::Start : (int)ManualLoggingCommand::Stop);
+	}
 
 	void trigger_watchdog_now()
 	{
@@ -159,6 +162,11 @@ public:
 	}
 
 private:
+	enum class ManualLoggingCommand {
+		None,
+		Start,
+		Stop,
+	};
 
 	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
@@ -350,7 +358,9 @@ private:
 	LogFileName					_file_name[(int)LogType::Count];
 
 	bool						_prev_file_log_start_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
-	px4::atomic_bool				_manually_logging_override{false};
+	bool						_manual_start_override{false};
+	bool						_manual_stop_active{false};
+	px4::atomic_int				_manual_logging_command{(int)ManualLoggingCommand::None};
 
 	Statistics					_statistics[(int)LogType::Count];
 	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
