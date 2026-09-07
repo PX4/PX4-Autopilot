@@ -190,6 +190,15 @@ private:
 	static constexpr int _work_buffer2_len = 256;
 	hrt_abstime _last_work_buffer_access{0}; ///< timestamp when the buffers were last accessed
 
+#if defined(__PX4_POSIX)
+	/**
+	 * Check that `path` stays inside `_root_dir` once symlinks are resolved.
+	 * `_validatePath()` only filters the string, and POSIX file operations follow
+	 * symlinks, so a link inside the tree can otherwise point out of it.
+	 */
+	static bool _validatePathIsInRoot(const char *path);
+#endif
+
 	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
 	// Path traversal via ".." is rejected by _validatePath().
 	static constexpr const char _root_dir[] = PX4_ROOTFSDIR;

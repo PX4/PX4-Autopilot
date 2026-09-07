@@ -45,6 +45,10 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <cstring>
+#if defined(__PX4_POSIX)
+#include <limits.h>
+#include <stdlib.h>
+#endif
 
 #include "mavlink_ftp.h"
 #include "mavlink_main.h"
@@ -1180,8 +1184,61 @@ bool MavlinkFTP::_validatePath(const char *path)
 		p++;
 	}
 
+#if defined(__PX4_POSIX)
+
+	if (!_validatePathIsInRoot(path)) {
+		return false;
+	}
+
+#endif
+
 	return true;
 }
+
+#if defined(__PX4_POSIX)
+bool MavlinkFTP::_validatePathIsInRoot(const char *path)
+{
+	char real_root[PATH_MAX];
+
+	if (realpath(_root_dir, real_root) == nullptr) {
+		PX4_ERR("FTP: cannot resolve root %s", _root_dir);
+		return false;
+	}
+
+	// The requested path need not exist yet, for CreateFile and CreateDirectory, so walk up
+	// to the deepest ancestor that does and check where that lands.
+	char candidate[PATH_MAX];
+	strncpy(candidate, path, sizeof(candidate) - 1);
+	candidate[sizeof(candidate) - 1] = '\0';
+
+	char real_path[PATH_MAX];
+
+	while (realpath(candidate, real_path) == nullptr) {
+		char *separator = strrchr(candidate, '/');
+
+		if (separator == nullptr) {
+			// A bare name with no separator is created directly inside the root.
+			return true;
+		}
+
+		*separator = '\0';
+
+		if (candidate[0] == '\0') {
+			return false;
+		}
+	}
+
+	const size_t real_root_len = strlen(real_root);
+
+	if (strncmp(real_path, real_root, real_root_len) != 0
+	    || (real_path[real_root_len] != '\0' && real_path[real_root_len] != '/')) {
+		PX4_ERR("FTP: rejecting path resolving outside root: %s", path);
+		return false;
+	}
+
+	return true;
+}
+#endif
 
 bool MavlinkFTP::_validatePathIsWritable(const char *path)
 {
