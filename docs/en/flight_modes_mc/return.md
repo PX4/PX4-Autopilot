@@ -4,7 +4,7 @@
 
 The _Return_ flight mode is used to _fly a vehicle to safety_ on an unobstructed path to a safe destination, where it can land.
 
-Multicopters use a [home/rally point return type](../flight_modes/return.md#home_return) by default.
+Multicopters use a [home/rally point return type](../flight_modes/return.md#rtl_type_0) by default.
 In this return type vehicles ascend to a safe altitude above obstructions if needed, fly to the closest safe landing point (a rally point or the home position) via the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness), descend to the "descent altitude", wait briefly, and then land.
 The return altitude, descent altitude, and landing delay are normally set to conservative "safe" values, but can be changed if needed.
 
@@ -28,7 +28,7 @@ The default type is recommended.
 
 ## Technical Summary
 
-Multicopters use the [home/rally point return type](../flight_modes/return.md#home_return) by default. ([RTL_TYPE=0](../advanced_config/parameter_reference.md#RTL_TYPE)).
+Multicopters use the [home/rally point return type](../flight_modes/return.md#rtl_type_0) by default. ([RTL_TYPE=0](../advanced_config/parameter_reference.md#RTL_TYPE)).
 For this return type the copter:
 
 - Ascends to the [minimum return altitude](#minimum-return-altitude) (safely above any expected obstacles).
@@ -38,6 +38,22 @@ For this return type the copter:
 - On arrival at its destination, it rapidly descends to the "descent altitude" ([RTL_DESCEND_ALT](#RTL_DESCEND_ALT)).
 - It waits for a configurable time ([RTL_LAND_DELAY](#RTL_LAND_DELAY)), which may be used for deploying landing gear.
 - Then lands.
+
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_rtl -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_global_position`](../flight_modes/mode_requirements.md#mode_req_global_position) — Position measurement updates in a global coordinate frame
+- [`mode_req_home_position`](../flight_modes/mode_requirements.md#mode_req_home_position) — Global home reference must be set
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_rtl -->
 
 ### Minimum Return Altitude
 
@@ -53,7 +69,7 @@ The cone affects the minimum return altitude if return mode is triggered within 
 Inside the cone, the vehicle returns at an altitude calculated from the cone geometry, up to `RTL_RETURN_ALT`.
 After reaching the destination, it descends to `RTL_DESCEND_ALT` (if above that altitude) before landing or loitering.
 
-For more information on this return type see [Home/Rally Point Return Type (RTL_TYPE=0)](../flight_modes/return.md#home_return)
+For more information on this return type see [Home/Rally Point Return Type (RTL_TYPE=0)](../flight_modes/return.md#rtl_type_0)
 
 ## Parameters
 

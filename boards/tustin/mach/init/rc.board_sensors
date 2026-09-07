@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Internal SPI2 BMI088 accel/gyro
+bmi088 -s -b 2 -A -R 0 start
+bmi088 -s -b 2 -G -R 0 start
+
+# Internal SPI3 ICM45686
+icm45686 -s -b 3 -R 0 start
+
+# Internal I2C2 IST8310 magnetometer (7-bit address 0x0e)
+ist8310 -I -b 2 -a 0x0e -R 0 start
+
+# Internal I2C2 ICP201xx barometer (7-bit address 0x63)
+icp201xx -I -b 2 -a 0x63 start

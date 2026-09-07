@@ -1572,6 +1572,13 @@ Mavlink::update_rate_mult()
 	_rate_mult = math::constrain(_rate_mult, 0.05f, 1.0f);
 }
 
+bool
+Mavlink::radio_status_critical() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_critical;
+}
+
 void
 Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
@@ -3327,18 +3334,26 @@ Mavlink::display_status()
 	printf("\tmavlink chan: #%u\n", static_cast<unsigned>(_channel));
 
 	if (_tstatus.timestamp > 0) {
+		radio_status_s radio_status{};
+		bool radio_status_available = false;
+
+		{
+			LockGuard lg{_radio_status_mutex};
+			radio_status_available = _radio_status_available;
+			radio_status = _rstatus;
+		}
 
 		printf("\ttype:\t\t");
 
-		if (_radio_status_available) {
+		if (radio_status_available) {
 			printf("RADIO Link\n");
-			printf("\t  rssi:\t\t%" PRIu8 "\n", _rstatus.rssi);
-			printf("\t  remote rssi:\t%" PRIu8 "\n", _rstatus.remote_rssi);
-			printf("\t  txbuf:\t%" PRIu8 "\n", _rstatus.txbuf);
-			printf("\t  noise:\t%" PRIu8 "\n", _rstatus.noise);
-			printf("\t  remote noise:\t%" PRIu8 "\n", _rstatus.remote_noise);
-			printf("\t  rx errors:\t%" PRIu16 "\n", _rstatus.rxerrors);
-			printf("\t  fixed:\t%" PRIu16 "\n", _rstatus.fix);
+			printf("\t  rssi:\t\t%" PRIu8 "\n", radio_status.rssi);
+			printf("\t  remote rssi:\t%" PRIu8 "\n", radio_status.remote_rssi);
+			printf("\t  txbuf:\t%" PRIu8 "\n", radio_status.txbuf);
+			printf("\t  noise:\t%" PRIu8 "\n", radio_status.noise);
+			printf("\t  remote noise:\t%" PRIu8 "\n", radio_status.remote_noise);
+			printf("\t  rx errors:\t%" PRIu16 "\n", radio_status.rxerrors);
+			printf("\t  fixed:\t%" PRIu16 "\n", radio_status.fix);
 
 		} else if (_tstatus.type == telemetry_status_s::LINK_TYPE_USB) {
 			printf("USB CDC\n");

@@ -44,7 +44,6 @@ public:
 
 	void update();
 
-	void manipulateEscStatus(esc_status_s &status);
 	uint32_t getMotorStopMask() { return _motor_stop_mask; }
 private:
 	// Rebuild the motor masks from the active failure_injection configuration.
@@ -53,6 +52,4 @@ private:
 	failure_injection::Config _failure_config;
 
 	uint32_t _motor_stop_mask{};
-	uint32_t _esc_telemetry_blocked_mask{};
-	uint32_t _esc_telemetry_wrong_mask{};
 };

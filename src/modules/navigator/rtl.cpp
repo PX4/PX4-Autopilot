@@ -60,6 +60,7 @@ static constexpr int RTL_TYPE_MISSION_FAST = 2;
 static constexpr int RTL_TYPE_DIRECT_WITH_MISSION_LAND = 3;
 static constexpr int RTL_TYPE_MISSION_FAST_OR_REVERSE = 4;
 static constexpr int RTL_TYPE_SAFE_POINT_DIRECT = 5;
+static constexpr int RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT = 6;
 static constexpr hrt_abstime RTL_REPLAN_INTERVAL{2_s};
 static constexpr uint8_t RTL_STATUS_NO_SAFE_POINT{UINT8_MAX};
 static_assert(DM_KEY_SAFE_POINTS_MAX < RTL_STATUS_NO_SAFE_POINT,
@@ -139,7 +140,6 @@ void RTL::on_activation()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
-
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {
@@ -289,6 +289,58 @@ void RTL::setRtlTypeAndDestination()
 			new_rtl_type = RtlType::RTL_DIRECT;
 		}
 
+	} else if (_param_rtl_type.get() == RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT) {
+		// Set _rtl_direct with the home destination so calc_rtl_time_estimate() can check its reachability
+		const float rtl_alt_home = computeReturnAltitude(destination);
+		_rtl_direct.setRtlAlt(rtl_alt_home);
+		_rtl_direct.setRtlPosition(destination, landing_loiter);
+
+		const rtl_time_estimate_s time_to_home = _rtl_direct.calc_rtl_time_estimate();
+
+		// Take the worst (smallest) remaining time across all connected batteries, matching the
+		// battery_low_remaining_time failsafe check in BatteryChecks::rtlEstimateCheck()
+		float worst_battery_time_s{NAN};
+
+		for (auto &battery_sub : _battery_status_subs) {
+			battery_status_s battery;
+
+			if (!battery_sub.copy(&battery)) {
+				continue;
+			}
+
+			if (battery.connected
+			    && PX4_ISFINITE(battery.time_remaining_s)
+			    && (!PX4_ISFINITE(worst_battery_time_s) || (battery.time_remaining_s < worst_battery_time_s))) {
+				worst_battery_time_s = battery.time_remaining_s;
+			}
+		}
+
+		const bool home_within_reach = time_to_home.valid
+					       && PX4_ISFINITE(worst_battery_time_s)
+					       && (time_to_home.safe_time_estimate < worst_battery_time_s);
+
+		if (!home_within_reach) {
+			// If battery data is valid, home is out of range: pick the closest rally point unconditionally
+			// If battery data is unavailable (NaN), we cannot assess reachability: pick the closest home or rally point
+			const float min_dist = PX4_ISFINITE(worst_battery_time_s)
+					       ? FLT_MAX
+					       : get_distance_to_next_waypoint(_global_pos_sub.get().lat,
+							       _global_pos_sub.get().lon,
+							       _home_pos_sub.get().lat,
+							       _home_pos_sub.get().lon);
+
+			PositionYawSetpoint safe_point = findClosestSafePoint(min_dist, safe_point_index);
+
+			if (safe_point_index != UINT8_MAX) {
+				destination = safe_point;
+				destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+			}
+
+			// If no rally points are closer (or none are defined), fall back to home (already set as the destination)
+		}
+
+		new_rtl_type = RtlType::RTL_DIRECT;
+
 	} else {
 		// check the closest allowed destination.
 		findRtlDestination(destination_type, destination, safe_point_index);
@@ -414,7 +466,8 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 		const bool far_from_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
 					   candidate_setpoint.lat, candidate_setpoint.lon) > mission_route::kLandApproachAssociationDistanceM;
 
-		if (far_from_home || (_param_rtl_type.get() == RTL_TYPE_SAFE_POINT_DIRECT)) {
+		if (far_from_home || (_param_rtl_type.get() == RTL_TYPE_SAFE_POINT_DIRECT)
+		    || (_param_rtl_type.get() == RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT)) {
 			const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
 					 candidate_setpoint.lat, candidate_setpoint.lon)};
 

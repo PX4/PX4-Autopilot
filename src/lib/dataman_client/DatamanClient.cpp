@@ -614,8 +614,11 @@ bool DatamanCache::loadWait(dm_item_t item, uint32_t index, uint8_t *buffer, uin
 		}
 	}
 
-	if (!success && (timeout > 0)) {
+	if (!success) {
 		perf_count(_cache_miss_perf);
+	}
+
+	if (!success && (timeout > 0)) {
 		success = _client.readSync(item, index, buffer, length, timeout);
 
 		// Cache the item if not found already (it could be in the process of being loaded)
@@ -658,6 +661,31 @@ bool DatamanCache::writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, ui
 	}
 
 	return success;
+}
+
+bool DatamanCache::updateCachedItem(dm_item_t item, uint32_t index, const uint8_t *buffer, uint32_t length)
+{
+	if (!_items || buffer == nullptr || _num_items == 0) {
+		return false;
+	}
+
+	if (length > g_per_item_size[item]) {
+		PX4_ERR("Length  %" PRIu32 " can't fit in data size for item  %" PRIi8, length, static_cast<uint8_t>(item));
+		return false;
+	}
+
+	// Only patch data that is fully received and stable. Slots in other states are skipped:
+	// an in-flight async read will fetch the new SD card data shortly anyway, and invalidated
+	// slots can still carry a stale key match for the same item/index.
+	for (uint32_t i = 0; i < _num_items; ++i) {
+		if ((_items[i].response.item == item) && (_items[i].response.index == index)
+		    && (_items[i].cache_state == State::ResponseReceived)) {
+			memcpy(_items[i].response.data, buffer, length);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void DatamanCache::update()

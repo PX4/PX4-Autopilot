@@ -104,11 +104,11 @@ private:
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_FAILED;
 					break;
 
-				case (battery_status_s::STATE_UNHEALTHY):
+				case (battery_status_s::WARNING_UNHEALTHY):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNHEALTHY;
 					break;
 
-				case (battery_status_s::STATE_CHARGING):
+				case (battery_status_s::WARNING_CHARGING):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_CHARGING;
 					break;
 

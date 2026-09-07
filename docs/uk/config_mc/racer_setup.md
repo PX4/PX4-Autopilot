@@ -44,14 +44,14 @@ If you switch into [position mode](../flight_modes_mc/position.md) during that t
 ## Налаштування програмного забезпечення
 
 Наступні абзаци описують кілька важливих моментів під час будівництва транспортного засобу.
-If you need complete build instructions, you can follow the [QAV-R 5" KISS ESC Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md) build log.
+If you need complete build instructions, you can follow the [QAV-R 5" KISS ESC Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer) build log.
 
 ### Налаштування вібрації
 
 Існують різні підходи до кріплення для зменшення вібрацій.
-For example, the flight controller can be mounted with vibration dampening foam, or using [O-rings](../frames_multicopter/qav_r_5_kiss_esc_racer.md#mounting).
+For example, the flight controller can be mounted with vibration dampening foam, or using [O-rings](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer#mounting).
 
-While there is no single best method, you will typically have fewer problems with vibrations if you use high-quality components (frame, motors, props) as for example used in the [QAV-R 5" KISS ESC Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md).
+While there is no single best method, you will typically have fewer problems with vibrations if you use high-quality components (frame, motors, props) as for example used in the [QAV-R 5" KISS ESC Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer).
 
 Make sure to use **balanced props**.
 

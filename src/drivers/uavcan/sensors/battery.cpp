@@ -42,10 +42,14 @@ const char *const UavcanBatteryBridge::NAME = "battery";
 void UavcanBatteryBridge::publishBattery(int node_id, uint8_t instance)
 {
 	_failure_config.update();
-	const uint8_t id = _battery_status[instance].id;
-	failure_injection::process_battery(_failure_config, id > 0 ? id : instance + 1, _battery_status[instance]);
 
-	publish(node_id, &_battery_status[instance]);
+	battery_status_s battery_status = _battery_status[instance];
+
+	if (!failure_injection::process_battery(_failure_config, instance + 1, battery_status)) {
+		return;
+	}
+
+	publish(node_id, &battery_status);
 }
 
 UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
@@ -154,7 +158,12 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 		_battery_status[instance].cell_count = 1;
 	}
 
-	_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
+	if (msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING) {
+		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
+
+	} else {
+		_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
+	}
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		publishBattery(msg.getSrcNodeID().get(), instance);
@@ -323,6 +332,10 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	_battery_status[instance] = _battery[instance]->getBatteryStatus();
 	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 	_battery_status[instance].id = msg.battery_id;
+
+	if (msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING) {
+		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
+	}
 
 	publishBattery(msg.getSrcNodeID().get(), instance);
 

@@ -1,0 +1,5 @@
+menuconfig DRIVERS_LIGHTS_RGBLED_APA102
+	bool "rgbled_apa102"
+	default n
+	---help---
+		Enable support for rgbled_apa102

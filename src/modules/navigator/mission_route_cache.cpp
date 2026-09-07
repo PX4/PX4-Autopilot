@@ -33,10 +33,11 @@
 /**
  * @file mission_route_cache.cpp
  *
- * Navigator-owned cache of the dataman-backed data RTL destination selection
- * needs. It preloads the rally (safe) points and the published mission land
- * item asynchronously, so RTL can evaluate destinations without blocking
- * Navigator on dataman or SD-card reads.
+ * Dataman-backed Provider for mission-route planning. It composes the optional
+ * full-mission cache with the published mission land item and safe-point caches so
+ * the planner can scan route geometry without blocking Navigator on dataman or
+ * SD-card reads. Normal mission execution can keep using smaller sliding caches;
+ * use this cache when a caller needs access to the full route.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -47,14 +48,30 @@
 
 #include <px4_platform_common/log.h>
 
+// The mission and land caches only accept these dataman storages as their source.
+static bool isMissionDatamanIdValid(uint8_t dataman_id)
+{
+	return dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1;
+}
+
+MissionRouteCache::MissionRouteCache(orb_advert_t *mavlink_log_pub)
+	: _full_mission_cache(mavlink_log_pub)
+{
+}
+
+MissionRouteCache::~MissionRouteCache() = default;
+
 void MissionRouteCache::update(const mission_s &mission)
 {
+	_full_mission_cache.update(mission);
 	updateMissionLandItemCache(mission);
 	updateSafePointCache(mission);
 }
 
 void MissionRouteCache::invalidate()
 {
+	_full_mission_cache.invalidate();
+
 	_mission_land = {};
 	_dataman_cache_land_item.invalidate();
 
@@ -92,7 +109,8 @@ bool MissionRouteCache::safePointCacheFullyLoaded() const
 	// A miss means async preloading did not finish cleanly.
 	for (int32_t index = 0; index < _safe_point.read_stats.num_items; ++index) {
 		if (!_dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_safe_point.read_stats.dataman_id), index,
-						       reinterpret_cast<uint8_t *>(&safe_point_item), sizeof(safe_point_item), 0)) {
+						       reinterpret_cast<uint8_t *>(&safe_point_item), sizeof(safe_point_item),
+						       kCacheOnlyLoadWait)) {
 			return false;
 		}
 	}
@@ -134,6 +152,31 @@ void MissionRouteCache::resetSafePointCacheState(bool clear_source_identity)
 	_safe_point.source_dataman_id = source_dataman_id;
 }
 
+bool MissionRouteCache::missionItemsReady(const mission_s &mission) const
+{
+	return _full_mission_cache.missionItemsReady(mission);
+}
+
+int MissionRouteCache::missionCount() const
+{
+	return _full_mission_cache.missionCount();
+}
+
+bool MissionRouteCache::loadMissionItem(int index, mission_item_s &mission_item) const
+{
+	return _full_mission_cache.loadMissionItem(index, mission_item);
+}
+
+bool MissionRouteCache::getMissionView(const mission_s &mission, MissionView &view) const
+{
+	return _full_mission_cache.getMissionView(mission, view);
+}
+
+bool MissionRouteCache::missionViewStillValid(const MissionView &view) const
+{
+	return _full_mission_cache.missionViewStillValid(view);
+}
+
 int MissionRouteCache::safePointCount() const
 {
 	return safePointsReady() ? _safe_point.cached_stats.num_items : 0;
@@ -171,21 +214,68 @@ bool MissionRouteCache::getMissionLandItem(int32_t &index, mission_item_s &land_
 	return true;
 }
 
+bool MissionRouteCache::loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const
+{
+	return missionItemsReady(mission) && loadMissionItem(index, mission_item);
+}
+
+MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index,
+		const mission_item_s &mission_item)
+{
+	// Update the land cache even if the full cache is unavailable.
+	syncMissionLandItem(mission, index, mission_item);
+	return _full_mission_cache.syncMissionItem(mission, index, mission_item);
+}
+
+void MissionRouteCache::syncMissionLandItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
+{
+	// Ignore writes outside the tracked mission land item.
+	if (index < 0 || index != _mission_land.index || !missionLandMatchesCache(mission)) {
+		return;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (_mission_land.ready) {
+		const bool patched = _dataman_cache_land_item.updateCachedItem(
+					     static_cast<dm_item_t>(_mission_land.dataman_id), index,
+					     reinterpret_cast<const uint8_t *>(&mission_item), sizeof(mission_item));
+
+		if (!patched || !mission_route::isLandingCmd(mission_item.nav_cmd)) {
+			_dataman_cache_land_item.invalidate();
+			_mission_land.ready = false;
+			_mission_land.validation_pending = false;
+			_mission_land.retry.scheduleRetry(now);
+		}
+
+	} else {
+		_dataman_cache_land_item.invalidate();
+		_mission_land.validation_pending = false;
+		_mission_land.retry.clear();
+
+		if (mission_route::isLandingCmd(mission_item.nav_cmd)) {
+			_mission_land.validation_pending = queueMissionLandItem();
+
+			if (!_mission_land.validation_pending) {
+				_mission_land.retry.scheduleRetry(now);
+			}
+
+		} else {
+			_mission_land.retry.scheduleRetry(now);
+		}
+	}
+}
+
 void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 {
 	MissionLandState &state = _mission_land;
 	const hrt_abstime now = hrt_absolute_time();
 	// Trust the published land_index, no mission rescanning.
-	const bool valid_dataman_id = mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0
-				      || mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1;
+	const bool valid_dataman_id = isMissionDatamanIdValid(mission.mission_dataman_id);
 	const bool valid_land_index = mission.land_index >= 0 && mission.land_index < mission.count;
 	const int32_t land_index = (valid_dataman_id && valid_land_index) ? mission.land_index : -1;
-	const bool mission_land_changed = mission.mission_id != state.mission_id
-					  || mission.count != state.count
-					  || mission.mission_dataman_id != state.dataman_id
-					  || land_index != state.index;
 
-	if (mission_land_changed) {
+	if (!missionLandMatchesCache(mission) || land_index != state.index) {
 		state = {};
 		state.mission_id = mission.mission_id;
 		state.dataman_id = mission.mission_dataman_id;
@@ -399,4 +489,11 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 			break;
 		}
 	}
+}
+
+bool MissionRouteCache::missionLandMatchesCache(const mission_s &mission) const
+{
+	return _mission_land.mission_id == mission.mission_id
+	       && _mission_land.count == mission.count
+	       && _mission_land.dataman_id == mission.mission_dataman_id;
 }

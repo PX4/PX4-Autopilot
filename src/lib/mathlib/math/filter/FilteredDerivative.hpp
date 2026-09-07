@@ -57,16 +57,18 @@ public:
 	/**
 	 * Set filter parameters for time abstraction
 	 *
-	 * Both parameters have to be provided in the same units.
-	 *
-	 * @param sample_interval interval between two samples
-	 * @param time_constant filter time constant determining convergence
+	 * @param sample_interval_us interval between two samples in microseconds
+	 * @param time_constant_us filter time constant determining convergence in microseconds
 	 */
-	void setParameters(float sample_interval, float time_constant)
+	void setParameters(uint64_t sample_interval_us, uint64_t time_constant_us)
 	{
-		_alpha_filter.setParameters(sample_interval, time_constant);
-		_sample_interval = sample_interval;
+		_alpha_filter.setParameters(sample_interval_us, time_constant_us);
+		_sample_interval = static_cast<float>(sample_interval_us) * 1e-6f;
 	}
+
+	void setParameters(float sample_interval, float time_constant) = delete;
+	void setParameters(uint64_t sample_interval_us, float time_constant) = delete;
+	void setParameters(float sample_interval, uint64_t time_constant_us) = delete;
 
 	/**
 	 * Set filter state to an initial value

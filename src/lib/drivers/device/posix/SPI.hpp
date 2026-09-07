@@ -186,8 +186,6 @@ protected:
 
 	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 
-	virtual bool	external() const override { return px4_spi_bus_external(get_device_bus()); }
-
 };
 
 } // namespace device

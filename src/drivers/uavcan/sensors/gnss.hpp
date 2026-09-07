@@ -179,7 +179,9 @@ private:
 	bool _rel_heading_valid{false};
 
 	perf_counter_t _rtcm_stream_pub_perf{nullptr};
+	perf_counter_t _rtcm_stream_pub_failed_perf{nullptr};
 	perf_counter_t _moving_baseline_data_pub_perf{nullptr};
+	perf_counter_t _moving_baseline_data_pub_failed_perf{nullptr};
 	perf_counter_t _moving_baseline_data_sub_perf{nullptr};
 
 	hrt_abstime _last_rate_measurement{0};

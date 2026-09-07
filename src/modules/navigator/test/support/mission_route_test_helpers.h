@@ -119,20 +119,6 @@ static inline mission_item_s makeLandItemFromOffset(double base_lat, double base
 	return makePositionItemFromOffset(base_lat, base_lon, north_m, east_m, alt, NAV_CMD_LAND, false);
 }
 
-static inline mission_item_s makeTakeoffItem(double lat, double lon, float alt)
-{
-	mission_item_s item = makePositionItem(lat, lon, alt, NAV_CMD_TAKEOFF);
-	item.autocontinue = false;
-	return item;
-}
-
-static inline mission_item_s makeLandItem(double lat, double lon, float alt)
-{
-	mission_item_s item = makePositionItem(lat, lon, alt, NAV_CMD_LAND);
-	item.autocontinue = false;
-	return item;
-}
-
 static inline mission_item_s makeDoJump(int16_t jump_target_index, uint16_t repeat_count,
 					uint16_t current_count = 0)
 {
@@ -200,7 +186,6 @@ using navigator_test::kAltitudeTolerance;
 using navigator_test::kDistanceTolerance;
 using navigator_test::kLatLonToleranceDeg;
 using navigator_test::makeDoJump;
-using navigator_test::makeLandItem;
 using navigator_test::makeLandItemFromOffset;
 using navigator_test::makePositionAbsolute;
 using navigator_test::makePositionFromOffset;
@@ -208,6 +193,5 @@ using navigator_test::makePositionItem;
 using navigator_test::makePositionItemFromOffset;
 using navigator_test::makeSafePointAbsolute;
 using navigator_test::makeSafePointFromOffset;
-using navigator_test::makeTakeoffItem;
 using navigator_test::makeTakeoffItemFromOffset;
 using navigator_test::makeVtolTransitionItem;

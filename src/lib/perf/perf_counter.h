@@ -81,6 +81,10 @@ __EXPORT extern perf_counter_t	perf_alloc_once(enum perf_counter_type type, cons
 /**
  * Free a counter.
  *
+ * If one or more perf_iterate_all() calls are in progress, the counter is
+ * hidden from subsequent callbacks immediately and deleted after the last
+ * iteration ends.
+ *
  * @param handle		The performance counter's handle.
  */
 __EXPORT extern void		perf_free(perf_counter_t handle);
@@ -190,14 +194,15 @@ __EXPORT extern int		perf_print_counter_buffer(char *buffer, int length, perf_co
 __EXPORT extern void		perf_print_all(void);
 
 
-typedef void (*perf_callback)(perf_counter_t handle, void *user);
+typedef void (*perf_callback)(const char *counter_line, void *user);
 
 /**
  * Iterate over all performance counters using a callback.
  *
- * Caution: This will aquire the mutex, so do not call any other perf_* method
- * that aquire the mutex as well from the callback (If this is needed, configure
- * the mutex to be reentrant).
+ * The callback gets each counter formatted as with perf_print_counter_buffer();
+ * the string is only valid during the call. The internal mutex is released
+ * while the callback runs, therefore blocking inside the callback (e.g. on I/O)
+ * does not stall other perf callers, and the callback may itself call perf methods.
  *
  * @param cb callback method
  * @param user custom argument for the callback

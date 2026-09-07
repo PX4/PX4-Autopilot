@@ -44,14 +44,14 @@ If you switch into [position mode](../flight_modes_mc/position.md) during that t
 ## 硬件安装
 
 以下各段叙述了在构建穿越机时的几个重要问题。
-If you need complete build instructions, you can follow the [QAV-R 5" KISS ESC Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md) build log.
+If you need complete build instructions, you can follow the [QAV-R 5" KISS ESC Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer) build log.
 
 ### 振动设置
 
 有各种安装方法来减少振动。
-For example, the flight controller can be mounted with vibration dampening foam, or using [O-rings](../frames_multicopter/qav_r_5_kiss_esc_racer.md#mounting).
+For example, the flight controller can be mounted with vibration dampening foam, or using [O-rings](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer#mounting).
 
-While there is no single best method, you will typically have fewer problems with vibrations if you use high-quality components (frame, motors, props) as for example used in the [QAV-R 5" KISS ESC Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md).
+While there is no single best method, you will typically have fewer problems with vibrations if you use high-quality components (frame, motors, props) as for example used in the [QAV-R 5" KISS ESC Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer).
 
 Make sure to use **balanced props**.
 

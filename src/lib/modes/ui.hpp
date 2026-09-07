@@ -104,6 +104,26 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 };
 
 /**
+ * @return Human-readable name for a nav_state, taking the vehicle type into account.
+ *
+ * The position control mode is shown as "Cruise" for fixed-wing vehicles (including VTOLs in
+ * forward flight, which report VEHICLE_TYPE_FIXED_WING) and as "Position" for all other types.
+ */
+static inline const char *nav_state_name(uint8_t nav_state, uint8_t vehicle_type)
+{
+	if (nav_state >= vehicle_status_s::NAVIGATION_STATE_MAX) {
+		return "(unknown)";
+	}
+
+	if (nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL
+	    && vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		return "Cruise";
+	}
+
+	return nav_state_names[nav_state];
+}
+
+/**
  * @return returns true for advanced modes
  */
 static inline bool isAdvanced(uint8_t nav_state)

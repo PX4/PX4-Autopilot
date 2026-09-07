@@ -20,8 +20,11 @@ else
 	bmm350 -I -R 8 start
 fi
 
-# BARO on I2C4
-bmp388 -I -b 4 -a 0x77 start
+# BARO on I2C4.
+# Depending on market availability one of the two sensors may be populated.
+# Try to start both sensors and one will probe successfully.
+bmp388 -I -b 4 -a 0x77 -q start
+bmp581 -I -b 4 -a 0x47 -q start
 
 
 # External sensors on I2C1

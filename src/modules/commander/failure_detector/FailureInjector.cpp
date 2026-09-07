@@ -33,9 +33,6 @@
 
 #include "FailureInjector.hpp"
 
-#include <cstring>
-#include <uORB/topics/actuator_motors.h>
-
 void FailureInjector::update()
 {
 	if (_failure_config.update()) {
@@ -46,47 +43,10 @@ void FailureInjector::update()
 void FailureInjector::rebuildMasks()
 {
 	_motor_stop_mask = 0;
-	_esc_telemetry_blocked_mask = 0;
-	_esc_telemetry_wrong_mask = 0;
 
 	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-		switch (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1)) {
-		case failure_injection::Mode::Off:
+		if (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1) == failure_injection::Mode::Off) {
 			_motor_stop_mask |= 1u << i;
-			break;
-
-		case failure_injection::Mode::Stuck:
-			_esc_telemetry_blocked_mask |= 1u << i;
-			break;
-
-		case failure_injection::Mode::Wrong:
-			_esc_telemetry_wrong_mask |= 1u << i;
-			break;
-
-		default:
-			break;
-		}
-	}
-}
-
-void FailureInjector::manipulateEscStatus(esc_status_s &status)
-{
-	if (_esc_telemetry_blocked_mask != 0 || _esc_telemetry_wrong_mask != 0) {
-		for (int i = 0; i < status.esc_count; i++) {
-			const unsigned i_esc = status.esc[i].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
-
-			if (_esc_telemetry_blocked_mask & (1 << i_esc)) {
-				unsigned function = status.esc[i].actuator_function;
-				memset(&status.esc[i], 0, sizeof(status.esc[i]));
-				status.esc[i].actuator_function = function;
-				status.esc_online_flags &= ~(1 << i);
-
-			} else if (_esc_telemetry_wrong_mask & (1 << i_esc)) {
-				// Create wrong rerport for this motor by scaling key values up and down
-				status.esc[i].esc_voltage *= 0.1f;
-				status.esc[i].esc_current *= 0.1f;
-				status.esc[i].esc_rpm *= 10.0f;
-			}
 		}
 	}
 }

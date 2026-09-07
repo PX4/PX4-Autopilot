@@ -56,8 +56,8 @@ using namespace time_literals;
 ADIS16477::ADIS16477(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation),
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
 	_drdy_gpio(config.drdy_gpio)

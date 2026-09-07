@@ -15,7 +15,7 @@ For example, a carrier board for a commercial inspection vehicle might include c
 Cube에는 2 개의 IMU에 진동 차단이 포함되어 있으며, 세 번째 고정 IMU는 참조 백업용으로 사용됩니다.
 
 :::tip
-The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube/introduction/specifications).
+The manufacturer [Cube User Guide](https://docs.cubepilot.org/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/autopilot/the-cube/introduction/specifications).
 :::
 
 :::info
@@ -38,7 +38,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-- [Reseller list](https://www.cubepilot.com/#/reseller/list)
+- [Reseller list](https://cubepilot.org/#/reseller/list)
 
 ## 조립
 
@@ -144,5 +144,5 @@ Cube의 CAN1과 CAN2의 실크 스크린이 뒤집힙니다. CAN1은 CAN2이고 
 
 - [Cube Wiring Quickstart](../assembly/quick_start_cube.md)
 - Cube 문서 (제조사) :
-  - [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube)
-  - [Mini Carrier Board](https://docs.cubepilot.org/user-guides/carrier-boards/mini-carrier-board)
+  - [Cube User Guide](https://docs.cubepilot.org/autopilot/the-cube)
+  - [Mini Carrier Board](https://docs.cubepilot.org/carrier-boards/mini-carrier-board)

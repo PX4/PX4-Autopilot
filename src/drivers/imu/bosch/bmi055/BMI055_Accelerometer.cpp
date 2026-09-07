@@ -42,7 +42,7 @@ namespace Bosch::BMI055::Accelerometer
 
 BMI055_Accelerometer::BMI055_Accelerometer(const I2CSPIDriverConfig &config) :
 	BMI055(config),
-	_px4_accel(get_device_id(), config.rotation)
+	_px4_accel(get_device_id(), config.rotation, config.external)
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_accel: DRDY missed");

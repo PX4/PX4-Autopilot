@@ -57,6 +57,8 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/systemlib/mavlink_log.h>
+
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -169,11 +171,10 @@ private:
 	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
 
 	/**
-	 * Common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t.
+	 * Common method to handle both mavlink command types, operating on the
+	 * already-normalized vehicle command.
 	 */
-	template<class T>
-	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
-					 const vehicle_command_s &vehicle_command);
+	void handle_message_command_both(mavlink_message_t *msg, const vehicle_command_s &vehicle_command);
 
 	uint8_t handle_request_message_command(uint16_t message_id, float param2 = 0.0f, float param3 = 0.0f,
 					       float param4 = 0.0f, float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
@@ -410,6 +411,8 @@ private:
 	uORB::Publication<transponder_report_s>  _transponder_report_pub{ORB_ID(transponder_report)};
 	uORB::Publication<vehicle_command_s>     _cmd_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	failure_injection::Config _failure_config;
 
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};

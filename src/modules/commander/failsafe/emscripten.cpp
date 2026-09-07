@@ -102,6 +102,12 @@ void param_set_used(param_t param)
 	used_params[param] = p;
 }
 
+int param_get_mark_used(param_t param, void *val)
+{
+	param_set_used(param);
+	return param_get(param, val);
+}
+
 std::vector<std::string> get_used_params()
 {
 	std::vector<std::string> ret;

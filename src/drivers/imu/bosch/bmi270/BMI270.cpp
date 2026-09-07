@@ -102,8 +102,8 @@ BMI270::BMI270(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external)
 {
 	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
@@ -530,7 +530,8 @@ void BMI270::ConfigureFIFOWatermark(uint8_t samples)
 {
 	// FIFO_WTM: 13 bit FIFO watermark level value
 	// unit of the fifo watermark is one byte
-	const uint16_t fifo_watermark_threshold = samples * sizeof(FIFO::Data);
+	// each combined accel+gyro frame is 1 header byte + 6 gyro bytes + 6 accel bytes
+	const uint16_t fifo_watermark_threshold = samples * (2 * sizeof(FIFO::Data) + FIFO::HEADER_SIZE);
 
 	for (auto &r : _register_cfg) {
 		if (r.reg == Register::FIFO_WTM_0) {

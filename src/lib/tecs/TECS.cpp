@@ -526,7 +526,8 @@ void TECSControl::_calcThrottleControl(float dt, const SpecificEnergyRates &spec
 
 	// Update STE rate estimate LP filter
 	const float STE_rate_estimate_raw = specific_energy_rates.spe_rate.estimate + specific_energy_rates.ske_rate.estimate;
-	_ste_rate_estimate_filter.setParameters(dt, param.ste_rate_time_const);
+	_ste_rate_estimate_filter.setParameters(static_cast<uint64_t>(dt * 1e6f),
+						static_cast<uint64_t>(math::max(param.ste_rate_time_const, 0.f) * 1e6f));
 	_ste_rate_estimate_filter.update(STE_rate_estimate_raw);
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rates, param)};
 	float throttle_setpoint{param.throttle_min};

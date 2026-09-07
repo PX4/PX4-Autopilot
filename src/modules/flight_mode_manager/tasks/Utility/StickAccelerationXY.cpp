@@ -33,10 +33,12 @@
 
 #include "StickAccelerationXY.hpp"
 
+#include <drivers/drv_hrt.h>
 #include <geo/geo.h>
 #include <lib/sticks/Sticks.hpp>
 
 using namespace matrix;
+using namespace time_literals;
 
 StickAccelerationXY::StickAccelerationXY(ModuleParams *parent) :
 	ModuleParams(parent)
@@ -168,7 +170,7 @@ void StickAccelerationXY::applyJerkLimit(const float dt)
 Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const float dt, const Vector2f &stick_xy,
 		const Vector2f &vel_sp)
 {
-	_brake_boost_filter.setParameters(dt, .8f);
+	_brake_boost_filter.setParameters(static_cast<uint64_t>(dt * 1e6f), 800_ms);
 
 	if (stick_xy.norm_squared() < FLT_EPSILON) {
 		_brake_boost_filter.update(math::max(2.f, sqrtf(_param_mpc_vel_manual.get())));

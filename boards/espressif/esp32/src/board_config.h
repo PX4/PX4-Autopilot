@@ -89,9 +89,6 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS      4
 
-// Has pwm outputs
-#define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
-
 // #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_USB_VBUS_VALID));
 int esp32_spiflash_init(void);
 int esp32_partition_init(void);

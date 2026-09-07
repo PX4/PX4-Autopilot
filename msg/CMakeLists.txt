@@ -100,6 +100,7 @@ set(msg_files
 	FixedWingLateralGuidanceStatus.msg
 	FixedWingLateralStatus.msg
 	FixedWingRunwayControl.msg
+	FixedWingTakeoffStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
@@ -229,6 +230,7 @@ set(msg_files
 	TrajectorySetpoint6dof.msg
 	TransponderReport.msg
 	TuneControl.msg
+	UavcanFirmwareUpdate.msg
 	UavcanParameterRequest.msg
 	UavcanParameterValue.msg
 	UlogStream.msg

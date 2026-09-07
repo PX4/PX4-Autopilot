@@ -82,6 +82,16 @@ void ModeExecutors::printStatus(int executor_in_charge) const
 	}
 }
 
+Modes::Modes()
+{
+	char hash_param_name[17];
+
+	for (int i = 0; i < MAX_NUM; i++) {
+		snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", i);
+		_mode_hash_handles[i] = param_find(hash_param_name);
+	}
+}
+
 bool Modes::hasFreeExternalModes() const
 {
 	for (int i = 0; i < MAX_NUM; ++i) {
@@ -108,9 +118,7 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 	int matching_idx = -1;
 
 	for (int i = 0; i < MAX_NUM; ++i) {
-		char hash_param_name[17];
-		snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", i);
-		const param_t handle = param_find(hash_param_name);
+		const param_t handle = _mode_hash_handles[i];
 		int32_t current_hash{};
 
 		if (handle != PARAM_INVALID && param_get(handle, &current_hash) == 0) {
@@ -165,9 +173,7 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 
 	if (new_mode_idx != -1 && !_modes[new_mode_idx].valid) {
 		if (need_to_update_param) {
-			char hash_param_name[17];
-			snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", new_mode_idx);
-			const param_t handle = param_find(hash_param_name);
+			const param_t handle = _mode_hash_handles[new_mode_idx];
 
 			if (handle != PARAM_INVALID) {
 				param_set_no_notification(handle, &mode_name_hash);
@@ -216,6 +222,33 @@ ModeManagement::ModeManagement(ExternalChecks &external_checks)
 	_external_checks.setExternalNavStates(Modes::FIRST_EXTERNAL_NAV_STATE, Modes::LAST_EXTERNAL_NAV_STATE);
 }
 
+bool ModeManagement::resendIfCachedRequest(const register_ext_component_request_s &request)
+{
+	int8_t nav_mode_id = -1;
+	int arming_check_id = _external_checks.findByRequestId(request.request_id, nav_mode_id);
+
+	if (arming_check_id == -1) { return false; }
+
+	register_ext_component_reply_s reply{};
+	reply.timestamp = hrt_absolute_time();
+	reply.request_id = request.request_id;
+	reply.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
+	static_assert(sizeof(request.name) == sizeof(reply.name), "size mismatch");
+	memcpy(reply.name, request.name, sizeof(reply.name));
+	reply.not_user_selectable = request.not_user_selectable;
+	reply.success = true;
+	reply.mode_id = nav_mode_id;
+	reply.arming_check_id = arming_check_id;
+
+	if (nav_mode_id != -1 && _modes.valid(nav_mode_id)) {
+		reply.mode_executor_id = _modes.mode(nav_mode_id).mode_executor_registration_id;
+	}
+
+	_register_ext_component_reply_pub.publish(reply);
+	PX4_DEBUG("resent reply for request_id %llu", request.request_id);
+	return true;
+}
+
 void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 {
 	register_ext_component_request_s request;
@@ -224,6 +257,11 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 	while (!update_request.change_user_intended_nav_state && _register_ext_component_request_sub.update(&request)
 	       && --max_updates >= 0) {
 		request.name[sizeof(request.name) - 1] = '\0';
+
+		if (resendIfCachedRequest(request)) {
+			continue;
+		}
+
 		PX4_DEBUG("got registration request: %s %llu, arming: %i mode: %i executor: %i", request.name, request.request_id,
 			  request.register_arming_check, request.register_mode, request.register_mode_executor);
 		register_ext_component_reply_s reply{};
@@ -316,7 +354,7 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 
 				if (request.register_arming_check) {
 					int8_t replace_nav_state = request.enable_replace_internal_mode ? request.replace_internal_mode : -1;
-					int registration_id = _external_checks.addRegistration(nav_mode_id, replace_nav_state);
+					int registration_id = _external_checks.addRegistration(nav_mode_id, replace_nav_state, request.request_id);
 
 					if (nav_mode_id != -1) {
 						_modes.mode(nav_mode_id).arming_check_registration_id = registration_id;
@@ -368,7 +406,8 @@ void ModeManagement::checkUnregistrations(uint8_t user_intended_nav_state, Updat
 	}
 }
 
-void ModeManagement::update(uint8_t vehicle_type, bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request)
+void ModeManagement::update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state,
+			    UpdateRequest &update_request)
 {
 	_external_checks.update();
 
@@ -412,7 +451,7 @@ void ModeManagement::update(uint8_t vehicle_type, bool armed, uint8_t user_inten
 		checkUnregistrations(user_intended_nav_state, update_request);
 	}
 
-	update_request.control_setpoint_update = checkConfigControlSetpointUpdates(vehicle_type);
+	update_request.control_setpoint_update = checkConfigControlSetpointUpdates(vehicle_type, is_vtol);
 	checkConfigOverrides();
 }
 
@@ -606,7 +645,7 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 	}
 }
 
-bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type)
+bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type, bool is_vtol)
 {
 	bool had_update = false;
 	setpoint_config_s setpoint_config;
@@ -621,7 +660,7 @@ bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type)
 			Modes::Mode &mode = _modes.mode(setpoint_config.source_id);
 
 			const auto setpoint_type = static_cast<mode_util::SetpointType>(setpoint_config.type);
-			reply.result = static_cast<uint8_t>(mode_util::isSetpointTypeValid(setpoint_type, vehicle_type));
+			reply.result = static_cast<uint8_t>(mode_util::isSetpointTypeValid(setpoint_type, vehicle_type, is_vtol));
 
 			if (reply.result == setpoint_config_reply_s::RESULT_SUCCESS) {
 				// Get control mode

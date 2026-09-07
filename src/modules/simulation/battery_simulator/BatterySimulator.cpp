@@ -38,18 +38,54 @@ ModuleBase::Descriptor BatterySimulator::desc{task_spawn, custom_command, print_
 
 BatterySimulator::BatterySimulator() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_battery(1, this, BATTERY_SIMLATOR_SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
+		_batteries[i] = new Battery(i + 1, this, BATTERY_SIMLATOR_SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE);
+
+		if (_batteries[i] == nullptr) {
+			PX4_ERR("battery %d alloc failed", i + 1);
+		}
+
+		char param_name[17]; // 16 chars for parameter name + null terminator
+
+		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_DRAIN", i + 1);
+		_drain_handles[i] = param_find(param_name);
+
+		if (_drain_handles[i] == PARAM_INVALID) {
+			PX4_ERR("Could not find parameter with name %s", param_name);
+		}
+
+		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_MIN_PCT", i + 1);
+		_min_pct_handles[i] = param_find(param_name);
+
+		if (_min_pct_handles[i] == PARAM_INVALID) {
+			PX4_ERR("Could not find parameter with name %s", param_name);
+		}
+
+		_battery_percentage[i] = 1.f;
+	}
+
+	updateParams();
 }
 
 BatterySimulator::~BatterySimulator()
 {
+	for (Battery *battery : _batteries) {
+		delete battery;
+	}
+
 	perf_free(_loop_perf);
 }
 
 bool BatterySimulator::init()
 {
+	for (Battery *battery : _batteries) {
+		if (battery == nullptr) {
+			return false;
+		}
+	}
+
 	ScheduleOnInterval(BATTERY_SIMLATOR_SAMPLE_INTERVAL_US);
 	return true;
 }
@@ -83,35 +119,67 @@ void BatterySimulator::Run()
 
 	const hrt_abstime now_us = hrt_absolute_time();
 
-	// Limit to +1.0 s to guard against division by 0
-	const float discharge_interval_us = math::max(_param_sim_bat_drain.get(), 1.0f) * 1000 * 1000;
+	const float ibatt = -1.0f; // no current sensor in simulation
 
-	if (_armed) {
-		if (_last_integration_us != 0) {
-			_battery_percentage -= (now_us - _last_integration_us) / discharge_interval_us;
+	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
+		// Limit to +1.0 s to guard against division by 0
+		const float discharge_interval_us = math::max(fullDischargeTime(i), 1.0f) * 1000 * 1000;
+
+		if (_armed) {
+			if (_last_integration_us != 0) {
+				_battery_percentage[i] -= (now_us - _last_integration_us) / discharge_interval_us;
+			}
+
+		} else {
+			_battery_percentage[i] = 1.f;
 		}
 
-		_last_integration_us = now_us;
+		_battery_percentage[i] = math::max(_battery_percentage[i], minimumPercentage(i) / 100.f);
 
-	} else {
-		_battery_percentage = 1.f;
-		_last_integration_us = 0;
+		Battery &battery = *_batteries[i];
+
+		float vbatt = math::interpolate(_battery_percentage[i], 0.f, 1.f, battery.empty_cell_voltage(),
+						battery.full_cell_voltage());
+
+		vbatt *= battery.cell_count();
+
+		battery.setConnected(true);
+		battery.updateVoltage(vbatt);
+		battery.updateCurrent(ibatt);
+		battery.updateAndPublishBatteryStatus(now_us);
 	}
 
-	float ibatt = -1.0f; // no current sensor in simulation
-
-	_battery_percentage = math::max(_battery_percentage, _param_bat_min_pct.get() / 100.f);
-	float vbatt = math::interpolate(_battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(),
-					_battery.full_cell_voltage());
-
-	vbatt *= _battery.cell_count();
-
-	_battery.setConnected(true);
-	_battery.updateVoltage(vbatt);
-	_battery.updateCurrent(ibatt);
-	_battery.updateAndPublishBatteryStatus(now_us);
+	// All batteries integrate over the same interval, so this is only advanced once they are all done
+	_last_integration_us = _armed ? now_us : 0;
 
 	perf_end(_loop_perf);
+}
+
+void BatterySimulator::updateParams()
+{
+	ModuleParams::updateParams();
+
+	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
+		if (_drain_handles[i] != PARAM_INVALID) {
+			param_get(_drain_handles[i], &_drain_override_s[i]);
+		}
+
+		if (_min_pct_handles[i] != PARAM_INVALID) {
+			param_get(_min_pct_handles[i], &_min_pct_override[i]);
+		}
+	}
+}
+
+float BatterySimulator::fullDischargeTime(int battery_index) const
+{
+	// A non-positive override means: use the drain time shared by all batteries
+	return (_drain_override_s[battery_index] > 0.f) ? _drain_override_s[battery_index] : _param_sim_bat_drain.get();
+}
+
+float BatterySimulator::minimumPercentage(int battery_index) const
+{
+	// Only a negative override means: use the floor shared by all batteries. Zero is a valid floor.
+	return (_min_pct_override[battery_index] >= 0.f) ? _min_pct_override[battery_index] : _param_bat_min_pct.get();
 }
 
 int BatterySimulator::task_spawn(int argc, char *argv[])
