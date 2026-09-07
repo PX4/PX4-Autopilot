@@ -218,3 +218,55 @@ TEST_F(TrajectoryConstraintsTest, test10AngleCloseNext)
 
 	EXPECT_LT(close_speed, normal_speed);
 }
+
+TEST_F(TrajectoryConstraintsTest, testStraightCloseNextWithLookahead)
+{
+	// GIVEN: a survey-like pattern: target, a collinear next waypoint 15m behind it and a far waypoint after next
+	config.max_jerk = 4.f;
+	config.max_speed_xy = 15.f;
+	config.xy_accept_rad = 10.f;
+	vehicle_location = Vector3f(70, 0, 5); // 10m before the target, i.e. inside the braking zone
+	target = Vector3f(80, 0, 5);
+	next_target = Vector3f(95, 0, 5);
+	Vector3f next_next_target = Vector3f(180, 0, 5);
+
+	// WHEN: we get the speed without knowing the waypoint after next
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+	float speed_without_lookahead = computeXYSpeedFromWaypoints<3>(waypoints, config);
+
+	// THEN: the vehicle has to plan a stop 15m after the target, which caps the speed at the target well below cruise
+	float stop_in_15m_speed = computeMaxSpeedFromDistance(config.max_jerk, config.max_acc_xy, 15.f, 0.f);
+	EXPECT_NEAR(stop_in_15m_speed, 6.f, 0.01f);
+	EXPECT_LT(speed_without_lookahead, config.max_speed_xy);
+
+	// WHEN: we get the speed knowing the waypoint after next
+	Vector3f lookahead_waypoints[4] = {vehicle_location, target, next_target, next_next_target};
+	float speed_with_lookahead = computeXYSpeedFromWaypoints<4>(lookahead_waypoints, config);
+
+	// THEN: the straight line can be flown at cruise speed
+	EXPECT_GT(speed_with_lookahead, speed_without_lookahead);
+	EXPECT_FLOAT_EQ(speed_with_lookahead, config.max_speed_xy);
+}
+
+TEST_F(TrajectoryConstraintsTest, testCornerAfterNextWithLookahead)
+{
+	// GIVEN: target, a close collinear next waypoint and a 90 degree corner right after it
+	config.max_jerk = 4.f;
+	config.max_speed_xy = 15.f;
+	config.xy_accept_rad = 10.f;
+	vehicle_location = Vector3f(70, 0, 5);
+	target = Vector3f(80, 0, 5);
+	next_target = Vector3f(95, 0, 5);
+	Vector3f next_next_target = Vector3f(95, 100, 5);
+
+	// WHEN: we get the speed with and without lookahead
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+	float speed_without_lookahead = computeXYSpeedFromWaypoints<3>(waypoints, config);
+	Vector3f lookahead_waypoints[4] = {vehicle_location, target, next_target, next_next_target};
+	float speed_with_lookahead = computeXYSpeedFromWaypoints<4>(lookahead_waypoints, config);
+
+	// THEN: the corner after next still limits the speed well below cruise, the lookahead only removes the
+	// full-stop assumption at the next waypoint
+	EXPECT_GT(speed_with_lookahead, speed_without_lookahead);
+	EXPECT_LT(speed_with_lookahead, 0.5f * config.max_speed_xy);
+}
