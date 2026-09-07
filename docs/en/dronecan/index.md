@@ -64,6 +64,7 @@ Supported hardware includes (this is not an exhaustive list):
   - [Holybro RM3100 Professional Grade Compass](https://holybro.com/products/dronecan-rm3100-compass)
   - [RaccoonLab RM3100 Magnetometer](https://docs.raccoonlab.co/guide/gps_mag_baro/mag_rm3100.html)
 - Distance sensors
+  - [Agam FloRange](agam_florange.md)
   - [ARK Dist](ark_dist.md)
   - [Ark Dist MR](ark_dist_mr.md)
   - [ARK Flow](ark_flow.md)
@@ -74,6 +75,7 @@ Supported hardware includes (this is not an exhaustive list):
 - Grippers
   - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
 - Optical Flow
+  - [Agam FloRange](agam_florange.md)
   - [Ark Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
 
