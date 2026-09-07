@@ -53,7 +53,7 @@ To run PX4 SITL without setting up a build environment, [pre-built packages and 
 | **Community/Ecosystem**   | Large Gazebo community, model repos       | PX4-internal                                                        |
 | **Faster-than-Realtime**  | Yes                                       | Yes                                                                 |
 | **Runs on FC Hardware**   | No                                        | Yes (SYS_HITL=2)                                                    |
-| **macOS Apple Silicon**   | Unstable (known issues)                   | Works natively                                                      |
+| **macOS Apple Silicon**   | Works (via Homebrew)                      | Works natively                                                      |
 | **Lockstep**              | Yes                                       | Yes                                                                 |
 
 :::tip
@@ -63,7 +63,7 @@ For a detailed analysis of PX4 simulation user needs, priorities, and pain point
 ### Which Simulator Should I Use?
 
 - **Full-featured simulation with 3D rendering, custom worlds, camera/lidar sensors, or rich sensor ecosystems:** Use [Gazebo](../sim_gazebo_gz/index.md). Largest ecosystem, custom models and plugins, photorealistic rendering, extensive sensor library, large community.
-- **Fast headless iteration, controls research, zero-dependency setup, or macOS:** Use [SIH](../sim_sih/index.md). Runs entirely inside PX4 with no external dependencies, headless by default for maximum speed, physics parameters directly tunable via `SIH_*` params. Supports ROS 2 via uXRCE-DDS.
+- **Fast headless iteration, controls research, or zero-dependency setup:** Use [SIH](../sim_sih/index.md). Runs entirely inside PX4 with no external dependencies, headless by default for maximum speed, physics parameters directly tunable via `SIH_*` params. Supports ROS 2 via uXRCE-DDS.
 - **Hardware integration testing without propellers:** Use [SIH on flight controller hardware](../sim_sih/index.md#sih-on-flight-controller-hardware) (`SYS_HITL=2`).
 
 :::info
