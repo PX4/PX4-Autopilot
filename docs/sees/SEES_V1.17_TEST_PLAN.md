@@ -1,27 +1,38 @@
-# Sees Fork: Test Plan for Porting Custom Commits onto v1.17.0-dev
+# Verification Plan: Sees Fork
 
-**Companion to:** `SEES_V1.17_MIGRATION.md` (architecture/porting assessment)
-**Purpose:** test-driven release — for every Sees-specific behavior change carried over from `v1.13.1_dev`, define a test that proves the behavior on `v1.17.0-dev` matches (or knowingly improves on) the behavior on `v1.13.1_dev`, before we ship.
-**Source:** commit diffs (`v1.13.1_dev` vs `v1.17.0-dev`) + the original GitHub PR descriptions for PRs #26–#99 in `SEESAI/Firmware`, which included problem statements, linked Jira tickets, and (for several) prior Notion test write-ups.
+* Verification plan for custom modifications applied to Sees fork of open-source [PX4 firmware](https://github.com/PX4/PX4-Autopilot).
+* Branch v1.17.0-dev
+* Companion to: `docs/sees/migration_plan_v1.17.md`
 
 ---
 
-## 1. Methodology
+## Methodology
 
-For each PR we're porting, a test case defines: the behavior, how to exercise it, what "pass" looked like on `v1.13.1_dev`, and what "pass" must look like on `v1.17.0-dev` post-port. Four execution lanes, cheapest first:
+A test case defines the behavior, how to exercise it, and pass criteria. There are four execution lanes for verification, cheapest first:
 
 | Lane | What it covers | Tooling |
 |---|---|---|
-| **Unit** | Pure logic (filters, conversions, param clamping) | `make tests`, gtest (Sees already has `SeesSOCTest.cpp` precedent from PR #95) |
-| **SITL** | Module interaction, failsafe/mode-transition logic, mavlink streams | `make px4_sitl`, MAVSDK/pymavlink scripts, `simulator_mavlink` failure injection |
-| **HITL/Bench** | Driver-level behavior needing real peripherals (CAN GPS, batmon, IMU, radios) | Bench rig with the specific sensor/radio, `nsh` console, log inspection (`ulog`) |
-| **Flight** | End-to-end behavior only observable in flight (GPS RTK quality, magnetic interference, RF link budget) | Test flight per existing Sees flight-test procedure |
-
-**Pass criterion, generally:** behavior on `v1.17.0-dev` == behavior on `v1.13.1_dev`, captured as a `ulog` diff or MAVSDK assertion, *unless* the migration assessment already found the behavior superseded by an upstream mechanism — in which case the test proves the *outcome* is preserved even though the *implementation* differs (see §5).
-
-**Baseline capture:** before writing/running any "after" test, run it against `v1.13.1_dev` first (or against existing flight logs where the bug/fix is already documented) to pin down the actual current behavior — several of these PRs reference incidents (e.g. #97's 3m altitude drop) that are worth reproducing once on the old baseline so the "after" assertion is concrete, not assumed.
+| Unit | Pure logic | `make tests` |
+| SITL | Module interaction, failsafe/mode-transition logic, mavlink streams | `make px4_sitl`, MAVSDK/pymavlink scripts, `simulator_mavlink` failure injection |
+| HITL (bench) | Driver-level behavior needing real peripherals (CAN GPS, batmon, IMU, radios) | Bench rig with the specific sensor/radio, `nsh` console, log inspection (`ulog`) |
+| Flight | End-to-end behavior only observable in flight (GPS RTK quality, magnetic interference, RF link budget) | Test flight per existing Sees flight-test procedure |
 
 ---
+
+## Tests
+
+### Ports
+
+ID | (#PR) Behaviour | Test lane: pass criteria | result (Pass/Fail)
+---|-----------------|--------------------------|-------------------
+SYS-?? | (#101) No unexpected yaw on auto-takeoff | Flight: **(**TODO: Write what exercises failure mode**)** | --
+SYS-?? | (#103) Hygrometer (SHT3x) driver enabled by default | Bench: boot board → `hygrometer status` / `dmesg` shows driver active | --
+SYS-?? | (#104) SI2 indicates whether valid RTK corrections are being received | Flight: **??** need to check flag toggling on RTK status | --
+SYS-?? | (#107) Audible BVLOS compliant tone on kill-switch and entry into AUTO_RTL | SITL: **??** Confirm tone | -- |
+SYS-?? | (#108) Four MAVLink instances are available | SITL: **??** | --
+SYS-?? | (#109) SI2 receives STATUSTEXT notifications | SITL: **??** | --
+
+
 
 ## 2. Test case catalog, by feature area
 
@@ -103,7 +114,7 @@ PRs: #59, #65, #40, #64, #60, #84.
 
 | ID | Behavior | Test | Notes |
 |---|---|---|---|
-| NAV-01 | Garbage `NAV_ACC_RAD` value doesn't cause uncontrolled yaw on auto-takeoff (#59) | SITL: set `NAV_ACC_RAD` to an out-of-range/garbage value → auto-takeoff → assert acceptance radius clamps to 1.0 and yaw stays controlled | Original bug had a documented flight incident |
+| NAV-01 | Small `NAV_ACC_RAD` value doesn't cause uncontrolled yaw on auto-takeoff or hold (#59) | SITL: set `NAV_ACC_RAD 0.05` → auto-takeoff → hold → assert yaw stays controlled and `NAV_ACC_RAD` is not rewritten; repeat at 2 m | Original bug had a documented flight incident |
 | NAV-02 | GPS loss in Hold or Offboard falls back to Altitude (if manual control + height source present), else Stabilised (if manual control but no height source), instead of straight to Descend/Terminate (#65) | SITL: simulate GPS loss (using GPS-08's failure injector) while in Hold and while in Offboard, with/without a valid manual-control source → assert correct fallback mode in each combination | 4 combinations to cover: {Hold, Offboard} × {manual source present, absent} |
 | NAV-03 | Precision-land holds position after beacon-search retries exhausted, instead of falling through to normal land (#40) | SITL/bench: run precision land with no beacon present → assert vehicle climbs/descends to search altitude and holds, rather than executing a normal land | Safety behavior — verify it doesn't silently regress to old "just land" behavior |
 | NAV-04 | AWS audible/telemetry triggers fire in all required BVLOS scenarios (#64): all Land-family modes (Land, Precision Land, Descent), all Low-Battery warning levels including Emergency (<5%), and all kill paths (RC kill, BackupGCS forced-disarm) | SITL: exercise each of the 3 scenario groups individually → assert AWS trigger fires each time, specifically confirming the Emergency/<5% SOC case (explicitly called out as a prior PX4 bug where it didn't) | |
@@ -114,7 +125,6 @@ PRs: #59, #65, #40, #64, #60, #84.
 
 | ID | PR | Behavior | Test |
 |---|---|---|---|
-| SYS-01 | #32 | Hygrometer (SHT3x) driver enabled by default on cubeorange | Bench: boot board → `hygrometer status` / `dmesg` shows driver active |
 | SYS-02 | #37 | `GPS_RTCM_DATA` stream flags valid RTK correction reception to SI2 | SITL/bench: feed RTCM corrections → assert stream reflects reception |
 | SYS-03 | #47 | `landing_target_estimator` auto-starts on boot (not requiring SD-card hotfix) | Bench: fresh boot with `SENS_EN_IRLOCK=1` → assert module running without manual `extras.txt` |
 | SYS-04 | #48 | Accelerometer error flags (FIFO overflow/empty, bad transfer/register, temp fault) visible via `dmesg` | Bench: induce each error condition (or mock at driver level) → assert distinct flag/message per error type, not a single generic counter |
@@ -156,21 +166,16 @@ For the 15 commits the migration assessment marked obsolete/superseded, don't sk
 
 | PR | Original behavior | Verify on v1.17.0-dev |
 |---|---|---|
-| #28 | Mavlink shell fflush fix | Confirm mavlink shell/console works normally (no hang) — should already pass, upstream fix present |
-| #39 | Log list refresh bug + stdio redirect | Confirm log listing doesn't require a "refresh" workaround |
 | #44 | Mag always logged + rate tuning | Confirm mag topic present in default log at adequate rate for FFT analysis |
 | #46 | CAN GPS node-125-only stopgap | Superseded by #50/#69's approach — covered by GPS-01/02 |
-| #51 | Drag-estimator default, log spam removal, `PLD_TARGET_YAW`, `SENS_MAG_LP_CUT` | Confirm precland/LTE don't spam `mavlink_log_info`; confirm removed params aren't referenced anywhere in current configs/scripts |
 | #55 | Unlimited high-rate FFT topics | Confirm `vehicle_torque_setpoint`/`vehicle_thrust_setpoint` are logged at effectively unlimited rate by default — covers the same FFT-analysis need as #85 |
 | #70 | ADS-B vertical separation + time-to-flyby | Confirm `NAV_TRAFF_A_VER`/`NAV_TRAFF_COLL_T` produce equivalent traffic-avoidance behavior to the old params |
 | #81 | GPS_INPUT accuracy fields | Confirm downstream consumers (SI2/MAVSDK) don't depend on the removed outbound stream; if they do, this needs to flip back to "port with adaptation" |
-| #82 | CMake ≥3.25 fix | Just confirm the build succeeds with current CMake — no behavioral test needed |
 | #85 | High-rate actuator/torque logging for FFT | Confirm equivalent to #55's check above |
 | #88 | Offboard-acceleration mode survives position loss | SITL: repeat the original scenario (position loss while in offboard acceleration mode) → assert control is retained via the new `attitude_invalid` gating |
 | #90 | CI artifact/runner versions | N/A — CI plumbing only |
 | #93 | Geofence predictive-stop (`GF_SEES_STOP`) | SITL: trigger a geofence breach while in a mode that would loiter → confirm vehicle stops/holds at (approximately) current position with default `GF_PREDICT=0`, not a projected point |
 | #98 | Distance-sensor pre-arm check discarded-return bug | Bench: remove/fault the distance sensor when it's required → confirm arming is correctly blocked (new `HealthAndArmingChecks` framework should already do this correctly) |
-| #99 | Custom-DSDL `noise_per_ms` over UAVCAN | Confirm `sensor_gps.noise_per_ms` is populated end-to-end via the new (non-DSDL) mechanism already on v1.17.0-dev |
 
 ---
 
@@ -202,16 +207,15 @@ These 8 items need an answer from flight-test/ops/RF engineering before a test c
 | #36 | Mag/GPS bug fixes | MAG-03, GPS-04 | Port with adaptation |
 | #37 | GPS_RTCM_DATA stream | SYS-02 | Port as-is |
 | #38 | Manual control source | MC-01 | Port with adaptation |
-| #40 | Precland hold | NAV-03 | Port as-is |
-| #41 | RFD stream budget | TLM-06 | Needs domain review |
+~~| #40 | Precland hold | NAV-03 | Port as-is |~~
+~~| #41 | RFD stream budget | TLM-06 | Needs domain review |~~
 | #45 | Horus telemetry | TLM-05 | Port with adaptation |
-| #47 | LTE autostart | SYS-03 | Port as-is |
+~~| #47 | LTE autostart | SYS-03 | Port as-is |~~
 | #48 | Accel error flags | SYS-04 | Port as-is |
 | #50 | CAN GPS ordering | GPS-01, GPS-02 | Needs domain review |
 | #52 | GPS_INPUT UTC velocity stream | *(new stream — add a test once recreated)* | Port with adaptation |
 | #53 | Mag filter warning | MAG-04 | Needs domain review |
 | #54 | UAVCAN param dequeue | SYS-05 | Port as-is |
-| #56, #57 | Batmon deci-current | BAT-04, BAT-05 | Port as-is |
 | #58 | Control-source display fix | MC-02 | Port with adaptation |
 | #59 | Yaw-on-takeoff | NAV-01 | Port as-is |
 | #60 | Kill/RTL beeps | NAV-05 | Port as-is |
@@ -226,7 +230,6 @@ These 8 items need an answer from flight-test/ops/RF engineering before a test c
 | #72 | Manual control re-check on toggle | MC-08 | Port with adaptation |
 | #74 | In-flight GPS failure injector | GPS-08 | Port as-is |
 | #84 | Offboard accel frame fix | NAV-06 | Port as-is |
-| #86 | IRLock default logging | SYS-08 | Port as-is |
 | #89 | Yaw max acceleration param | *(needs new test — `StickYaw` rebuilt upstream)* | Port with adaptation |
 | #92 | GPS submodule F9P/baud tuning | GPS-05, GPS-06 | Needs domain review |
 | #94, #96 | UAVCAN COMPID params | GPS-07 | Port with adaptation |
@@ -234,3 +237,30 @@ These 8 items need an answer from flight-test/ops/RF engineering before a test c
 | #97 | RC/flight-mode transition fixes | MC-09, MC-10, MC-11 | Port with adaptation |
 
 *(PRs already listed as obsolete in §5, and pure-CI/tooling PRs #82/#90, are intentionally excluded from this matrix — see §5.)*
+
+
+===================================
+
+
+## DEFER_UNTIL_TEST items
+
+| Commit | PR | Subject | Note | I/E/R score, Action |
+|---|---|---|---|--|
+| `f9e0294f` | #44 | Mag-always-log + rate tuning | `logged_topics.cpp` rewritten; mag already logged by default | PORTED - FIX IMPLEMENTED IN vilas/fix/v1.17 |
+| `53a4ad59` | #55 | Unlimited high-rate topics for FFT | Upstream defaults already log these near-unlimited | PORTED - FIX IMPLEMENTED IN vilas/fix/v1.17 |
+| `1dd11de2` | #59 | Sanity-guard `NAV_ACC_RAD` in `get_default_acceptance_radius()` to stop uncontrolled yaw on auto-takeoff | Not fixed upstream by PX4#22532 (takeoff still uses `FlightTaskAuto::_set_heading_from_mode()`). Guard replaced by a 1 m floor on the heading-update radius in `FlightTaskAuto`; `NAV_ACC_RAD` no longer rewritten | REPLACED - FIX IMPLEMENTED IN vilas/fix/v1.17 |
+| `39110b7b` | #30 | Coulomb-counting SOC estimator + low-cell-voltage warning | `battery.cpp` rewritten (RLS estimator); rebuild against new API | DEFER_UNTIL_TEST - H/M/M |
+| `d8b4aeb7` | #46 | CAN GPS hardcoded-node stop-gap | Superseded by the author's own follow-up `e116be69` (#50) | DEFER_UNTIL_TEST, LIKELY_OBSOLETE |
+| `e116be69` | #50 | Delay GPS node-124 publish until node-125 (Rover) claims uORB instance 0 | Confirm dual-CAN-GPS node-ID assumptions still match fleet config; upstream now uses a different channel-index mechanism | DEFER_UNTIL_TEST, POSSIBLY BACKPORT FROM LATEST MASTER |
+| `8786adcc` | #70 | ADS-B vertical separation + time-to-flyby params | Traffic avoidance rewritten with equivalent `NAV_TRAFF_A_VER`/`NAV_TRAFF_COLL_T` params | DEFER_UNTIL_TEST M/?/?, LIKELY_OBSOLETE |
+| `5a450f6a` | #74 | In-flight GPS failure injector (`VEHICLE_CMD_INJECT_FAILURE`) | No upstream equivalent; also enable `CONFIG_SYSTEMCMDS_FAILURE` on the 2 boards | DEFER_UNTIL_TEST - L/M/H, PORTABLE_AS_IS |
+| `a98af32c` | #81 | GPS_INPUT accuracy fields + mavlink submodule bump | Stream removed entirely upstream; submodule already newer | DEFER_UNTIL_TEST, LIKELY_OBSOLETE |
+| `28e74b0b` | #84 | Offboard acceleration frame fix (use yaw-only rotation, matching velocity handling) | Bug still present and unfixed upstream | DEFER_UNTIL_TEST - H/M/H, PORTABLE_AS_IS |
+| `f2d54bbc` | #85 | High-rate actuator/torque logging for FFT plots | Already logged at max rate unconditionally upstream | DEFER_UNTIL_TEST, LIKELY_OBSOLETE |
+| `319cdf8d` | #88 | Keep offboard-acceleration mode alive on position loss | New gating condition (`attitude_invalid` vs `local_velocity_invalid`) already achieves this | DEFER_UNTIL_TEST, LIKELY_OBSOLETE |
+| `b90eb056` | #89 | `MC_YAW_ACC_MAX` param via SlewRate limiter on yaw stick | `StickYaw` moved to `src/lib/stick_yaw/`, rewritten to an LPF/error-convergence approach — no SlewRate member left | DEFER_UNTIL_TEST - H/L/L |
+| `253ec2c0` | #90 | CI action/runner version bumps | Stale; CI has long since moved past these versions | DEFER_UNTIL_TEST L/L/L, LIKELY_OBSOLETE |
+| `57ca578a` | #93 | `GF_SEES_STOP` — geofence loiter holds at current position | New `GF_PREDICT=0` default already produces the same stop-and-hold behavior | DEFER_UNTIL_TEST - H/M/H, LIKELY_OBSOLETE |
+| `b7aa8c4b` + `f918007e` | #94, #96 | `UAVCAN_COMPID_1/2` auto-detection for param-management tooling | Needs the (unported) rover-ID prerequisite logic re-anchored first | DEFER_UNTIL_TEST - H/L/L |
+| `218c1095` | #98 | Fix discarded-return-value bug in distance-sensor pre-arm check | `PreFlightCheck.cpp` replaced by `HealthAndArmingChecks/`; new code doesn't have this bug | DEFER_UNTIL_TEST - M/L/L, LIKELY_OBSOLETE |
+

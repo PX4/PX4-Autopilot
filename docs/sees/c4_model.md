@@ -1,13 +1,12 @@
 # PX4 Flight Stack — C4 Model
 
-A [C4 model](https://c4model.com/) (Context → Containers → Components → Dynamic) of this Sees fork of
+A [C4 model](https://c4model.com/) (Context → Containers → Components → Dynamic) of the Sees fork of
 PX4-Autopilot: what the flight stack talks to, what actually gets deployed, how the ~50 runtime modules
 divide responsibility, and how that maps onto `src/` on disk.
 
 Rendered version (with light/dark theming and a section nav): [PX4 Flight Stack artifact](https://claude.ai/artifact/8MDFmfvCbTmD6xeyJxAHLo).
 
-Generated from a static read of `vilas/fix/v1.17` — directory listing, module `PRINT_MODULE_DESCRIPTION` text,
-and `SEES_V1.17_MIGRATION.md`. Re-derive after any module reshuffle.
+> Note: Generated from a static read of `v1.17.0-dev` branch _before migration from v1.13 was started_. Re-derive after any module reshuffle.
 
 ## Legend
 
@@ -254,8 +253,7 @@ How the directories in this repository correspond to the elements drawn above.
 
 ## 5. Fork overlay — where the Sees customizations land
 
-This is not stock PX4 — it's PX4 v1.17.0-dev with Sees-specific features layered on top (per
-`SEES_V1.17_MIGRATION.md`). None of these change the model above; they extend specific components.
+v1.17.0-dev with Sees-specific features layered on top (per `docs/sees/migration_plan_v1.17.md`) could be as shown below. None of these change the model above; they extend specific components.
 
 | Feature | Touches |
 |---|---|
