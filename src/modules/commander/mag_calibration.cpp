@@ -75,6 +75,9 @@ static constexpr float MAG_SPHERE_RADIUS_DEFAULT = 0.4f;
 static constexpr unsigned int calibration_total_points = 240;	///< The total points per magnetometer
 static constexpr unsigned int calibraton_duration_s = 42; 	///< The total duration the routine is allowed to take
 
+static constexpr float kWorstCaseEarthField = 0.65f;		///< [Gauss] maximum earth field magnitude
+static constexpr float kUnknownRangeFallback = 1.9f;		///< [Gauss] assumed full-scale range when the driver reports none
+
 calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_mask);
 
 /// Data passed to calibration worker routine
@@ -660,9 +663,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					result = calibrate_return_error;
 
 				} else {
-					// offset + worst-case earth field (~0.65 Ga) must fit in the sensor range; 1.3 Ga fallback assumes the historical ~1.9 Ga full-scale parts
 					const float range = worker_data.sensor_range[cur_mag];
-					const float offset_limit = (range > 0.f) ? (range - 0.65f) : 1.3f;
+					const float offset_limit = ((range > 0.f) ? range : kUnknownRangeFallback) - kWorstCaseEarthField;
 
 					if (sphere[cur_mag].longerThan(offset_limit)) {
 						fail_reason = "large offsets";

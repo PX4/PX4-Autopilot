@@ -568,7 +568,7 @@ int BMM350::Configure()
 
 	// microTesla -> Gauss
 	_px4_mag.set_scale(0.01f);
-	_px4_mag.set_range(20.f); // +/-2000 uT
+	_px4_mag.set_range(microTesla2Gauss(2000.f));
 
 	return ret;
 }

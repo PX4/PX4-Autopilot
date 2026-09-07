@@ -40,6 +40,8 @@
 
 #include <lib/failure_injection/FailureInjection.hpp>
 
+static constexpr float microTesla2Gauss(float micro_tesla) { return micro_tesla * 0.01f; }
+
 class PX4Magnetometer
 {
 public:
