@@ -55,6 +55,7 @@
 #define FLAG_LSEEK 2
 
 #define LOG_PATH PX4_STORAGEDIR
+#define MAX_WRITE_CHUNK 4096U
 
 /*
   return a predictable value for any file offset to allow detection of corruption
@@ -198,6 +199,12 @@ int test_file2(int argc, char *argv[])
 
 		case 'c':
 			write_chunk = strtoul(myoptarg, NULL, 0);
+
+			if (write_chunk > MAX_WRITE_CHUNK || write_chunk <= 0) {
+				fprintf(stderr, "invalid IO chunk size (expected 1-%u)\n", MAX_WRITE_CHUNK);
+				return -EINVAL;
+			}
+
 			break;
 
 		case 'h':
