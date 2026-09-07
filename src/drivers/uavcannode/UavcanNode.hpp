@@ -149,6 +149,7 @@ private:
 
 	void fill_node_info();
 	int init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
+	void checkForNewPublisherInstances();
 
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
