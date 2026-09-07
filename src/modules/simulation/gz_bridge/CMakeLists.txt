@@ -138,9 +138,9 @@ if (gz-transport_FOUND)
 	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh @ONLY)
 
 else()
-	# Create fallback targets that provide helpful error messages when Gazebo dependencies are missing.
-	# The worlds submodule (Tools/simulation/gz) is only initialized in the branch above, so the
-	# worlds glob can be empty here; the default-world targets must not depend on it.
+# Fallback targets with helpful error messages when Gazebo deps are missing.
+# gz_worlds may be empty here since the worlds submodule isn't cloned in this branch.
+
 	file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
 	file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
 
