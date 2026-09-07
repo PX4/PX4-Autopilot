@@ -521,6 +521,13 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 		return kErrFailFileProtected;
 	}
 
+	// CreateFile and OpenFileWO create or truncate the file as part of the open, so the
+	// effect lands before any write arrives and has to be authorized here.
+	if ((oflag & (O_WRONLY | O_RDWR | O_CREAT | O_TRUNC)) != 0
+	    && !_validatePathIsWritable(_work_buffer1)) {
+		return kErrFailFileProtected;
+	}
+
 	PX4_DEBUG("FTP: open '%s'", _work_buffer1);
 
 	uint32_t fileSize = 0;
@@ -631,9 +638,9 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 		return kErrInvalidSession;
 	}
 
-	if (!_validatePathIsWritable(_work_buffer1)) {
-		return kErrFailFileProtected;
-	}
+	// The path is authorized in _workOpen(), which is where the descriptor this writes to
+	// was bound. Re-checking here would validate _work_buffer1, a scratch buffer any
+	// intervening request overwrites, rather than the path behind _session_info.fd.
 
 	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
 		// Unable to see to the specified location
