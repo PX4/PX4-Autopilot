@@ -1680,6 +1680,7 @@ Change heading/course. param1: heading type (0=course-over-ground, 1=heading). p
 | <a id="#FAILURE_TYPE_SLOW"></a> FAILURE_TYPE_SLOW                                                         | `uint8`  | 5     |
 | <a id="#FAILURE_TYPE_DELAYED"></a> FAILURE_TYPE_DELAYED                                                   | `uint8`  | 6     |
 | <a id="#FAILURE_TYPE_INTERMITTENT"></a> FAILURE_TYPE_INTERMITTENT                                         | `uint8`  | 7     |
+| <a id="#FAILURE_TYPE_DRIFT"></a> FAILURE_TYPE_DRIFT                                                       | `uint8`  | 8     |
 | <a id="#RC_TYPE_SPEKTRUM"></a> RC_TYPE_SPEKTRUM                                                           | `uint8`  | 0     |
 | <a id="#RC_TYPE_CRSF"></a> RC_TYPE_CRSF                                                                   | `uint8`  | 1     |
 | <a id="#RC_SUB_TYPE_SPEKTRUM_DSM2"></a> RC_SUB_TYPE_SPEKTRUM_DSM2                                         | `uint8`  | 0     |
@@ -1891,6 +1892,7 @@ uint8 FAILURE_TYPE_WRONG = 4
 uint8 FAILURE_TYPE_SLOW = 5
 uint8 FAILURE_TYPE_DELAYED = 6
 uint8 FAILURE_TYPE_INTERMITTENT = 7
+uint8 FAILURE_TYPE_DRIFT = 8
 
 # Used as param1 in DO_CHANGE_SPEED command.
 uint8 SPEED_TYPE_AIRSPEED = 0

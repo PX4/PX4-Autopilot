@@ -263,7 +263,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorPreflightMag](SensorPreflightMag.md) — Pre-flight sensor check metrics. The topic will not be updated when the vehicle is armed.
 - [SensorSelection](SensorSelection.md) — Sensor ID's for the voted sensors output on the sensor_combined topic. Will be updated on startup of the sensor module and when sensor selection changes.
 - [SensorTemp](SensorTemp.md)
-- [SensorUwb](SensorUwb.md) — UWB distance contains the distance information measured by an ultra-wideband positioning system,. such as Pozyx or NXP Rddrone.
+- [SensorUwb](SensorUwb.md) — Ultra-wideband (UWB) distance sensor.
 - [SensorsStatus](SensorsStatus.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SystemPower](SystemPower.md)
