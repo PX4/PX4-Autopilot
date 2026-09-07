@@ -6,4 +6,4 @@
 # Move it to the newest commit where every gz formula macos.sh installs still
 # carries a bottle block. Tools/ci/refresh_gz_tap_pin.rb does that, weekly
 # from .github/workflows/macos_gz_tap_pin_refresh.yml or by hand.
-43aee9cc6e02aa8b7327d0a8d3e895f93a99440f
+9403d12a474c239604243c77751fa53ad95ba16f
