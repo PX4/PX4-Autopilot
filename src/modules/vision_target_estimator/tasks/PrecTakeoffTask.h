@@ -34,7 +34,7 @@
 /**
  * @file PrecTakeoffTask.h
  * @brief Precision-takeoff VteTask: runs the estimator while a vertical takeoff is active and
- * uses the home position as pad reference.
+ * fuses home as the pad's absolute position.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -60,7 +60,7 @@ class VTEPosition;
 class PrecTakeoffTask final : public VteTask
 {
 public:
-	// Home is only used as pad reference if it is this close to the vehicle GNSS fix while landed.
+	// Home is only fused if it is this close to the vehicle GNSS fix while landed.
 	static constexpr float kMaxHomeDistM = 5.f;
 
 	/* VteTask interface */
@@ -72,7 +72,7 @@ public:
 	void onActivate() override;
 	void onPosEstStart(VTEPosition &pos) override;
 
-	// Cache home as the pad reference if it is near the landed vehicle's recent GNSS fix.
+	// Cache home as the pad's absolute position if it is near the landed vehicle's recent GNSS fix.
 	bool updateHomeReference(bool report_distance_warning = true);
 
 private:

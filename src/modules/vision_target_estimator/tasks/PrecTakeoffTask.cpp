@@ -35,10 +35,9 @@
  * @file PrecTakeoffTask.cpp
  * @brief Implements the precision-takeoff VTE task.
  *
- * The task follows prec_takeoff_status published by Navigator. On start it seeds the position
- * estimator with home as an approximate pad position, so its GNSS bias from the true pad center
+ * The task follows prec_takeoff_status published by Navigator. Bit 5 of VTE_AID_MASK fuses home
+ * as the pad's absolute position during precision takeoff, so the GNSS bias to the true pad center
  * is estimated like the mission land point's.
- * Home fusion is gated by VTE_AID_MASK bit 5.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
