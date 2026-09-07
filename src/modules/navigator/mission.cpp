@@ -173,8 +173,9 @@ Mission::do_need_move_to_takeoff()
 
 void Mission::setActiveMissionItems()
 {
-	/* Get mission item that comes after current if available */
-	static constexpr size_t max_num_next_items{2u};
+	/* Get mission items that come after current if available (up to 3, the last one is only
+	 * needed as speed-planning lookahead when the current item is a gate) */
+	static constexpr size_t max_num_next_items{3u};
 	int32_t next_mission_items_index[max_num_next_items];
 	size_t num_found_items;
 
@@ -202,6 +203,9 @@ void Mission::setActiveMissionItems()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
+
+	// The lookahead waypoint is only set in the branches below where it is known, never keep a stale one
+	pos_sp_triplet->next_next.valid = false;
 
 	/* Skip VTOL/FW Takeoff item if in air, fixed-wing and didn't start the takeoff already*/
 	if ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) &&
@@ -258,6 +262,12 @@ void Mission::setActiveMissionItems()
 				/* got next mission item, update setpoint triplet */
 				mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->next);
 
+				/* provide the waypoint after next as lookahead, so the trajectory planner does not
+				 * have to assume a full stop at the next waypoint */
+				if (num_found_items >= 2u) {
+					mission_item_to_position_setpoint(next_mission_items[1u], &pos_sp_triplet->next_next);
+				}
+
 			} else {
 				/* next mission item is not available */
 				pos_sp_triplet->next.valid = false;
@@ -280,6 +290,10 @@ void Mission::setActiveMissionItems()
 		if (num_found_items >= 2u) {
 			/* got next mission item, update setpoint triplet */
 			mission_item_to_position_setpoint(next_mission_items[1u], &pos_sp_triplet->next);
+
+			if (num_found_items >= 3u) {
+				mission_item_to_position_setpoint(next_mission_items[2u], &pos_sp_triplet->next_next);
+			}
 
 		} else {
 			pos_sp_triplet->next.valid = false;

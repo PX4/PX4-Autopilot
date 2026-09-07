@@ -590,6 +590,7 @@ void MissionBase::setEndOfMissionItems()
 	pos_sp_triplet->previous.valid = false;
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
+	pos_sp_triplet->next_next.valid = false;
 
 	// set mission finished
 	_navigator->get_mission_result()->finished = true;
