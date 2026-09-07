@@ -64,15 +64,35 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 		ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
 {
-	// disable selected control surfaces during launch
-	launch_detection_status_s launch_detection_status;
+	const float surface_lock_delay = _param_ca_cs_lk_delay.get();
+	const float motor_lock_delay = _param_ca_r_lk_delay.get();
 
-	if (_launch_detection_status_sub.copy(&launch_detection_status)) {
-		if (launch_detection_status.selected_control_surface_disarmed
-		    && hrt_elapsed_time(&launch_detection_status.timestamp) < 100_ms) {
+	if (surface_lock_delay < FLT_EPSILON && motor_lock_delay < FLT_EPSILON) {
+		return;
+	}
 
-			_control_surfaces.applyLaunchLock(_first_control_surface_idx, actuator_sp);
+	vehicle_status_s vehicle_status;
 
+	if (!_vehicle_status_sub.copy(&vehicle_status)) {
+		return;
+	}
+
+	// takeoff_time is 0 while disarmed and until a takeoff is detected
+	const bool before_takeoff = vehicle_status.takeoff_time == 0;
+	const hrt_abstime time_since_takeoff = hrt_elapsed_time(&vehicle_status.takeoff_time);
+
+	// keep selected control surfaces at the disarmed value until the configured time after takeoff has passed
+	if (surface_lock_delay > FLT_EPSILON
+	    && (before_takeoff || time_since_takeoff < (hrt_abstime)(surface_lock_delay * 1_s))) {
+		_control_surfaces.applyLaunchLock(_first_control_surface_idx, actuator_sp);
+	}
+
+	// keep the motors at the disarmed value until the configured time after takeoff has passed
+	if (motor_lock_delay > FLT_EPSILON
+	    && (before_takeoff || time_since_takeoff < (hrt_abstime)(motor_lock_delay * 1_s))) {
+		// the motors take up the actuators of the first matrix ahead of the control surfaces
+		for (int i = 0; i < _first_control_surface_idx; ++i) {
+			actuator_sp(i) = NAN;
 		}
 	}
 }

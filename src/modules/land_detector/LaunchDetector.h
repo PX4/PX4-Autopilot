@@ -86,11 +86,6 @@ public:
 
 private:
 	/**
-	 * Motor delay counter [s]
-	 */
-	float motor_delay_counter_{0.f};
-
-	/**
 	 * Info delay counter (to publish info every kInfoDelay seconds) [s]
 	 */
 	float info_delay_counter_s_{kInfoDelay};
@@ -107,8 +102,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_LAUN_AC_THLD>) param_fw_laun_ac_thld_,
-		(ParamFloat<px4::params::FW_LAUN_AC_T>) param_fw_laun_ac_t_,
-		(ParamFloat<px4::params::FW_LAUN_MOT_DEL>) param_fw_laun_mot_del_
+		(ParamFloat<px4::params::FW_LAUN_AC_T>) param_fw_laun_ac_t_
 	)
 };
 

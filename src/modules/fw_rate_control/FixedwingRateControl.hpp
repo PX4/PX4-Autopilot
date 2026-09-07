@@ -70,7 +70,6 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
-#include <uORB/topics/launch_detection_status.h>
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -113,7 +112,6 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
-	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
 	uORB::SubscriptionMultiArray<control_allocator_status_s, 2> _control_allocator_status_subs{ORB_ID::control_allocator_status};
 
@@ -214,7 +212,9 @@ private:
 		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw,
 
 		(ParamInt<px4::params::FW_SPOILERS_MAN>) _param_fw_spoilers_man,
-		(ParamInt<px4::params::FW_FLAPS_MAN>) _param_fw_flaps_man
+		(ParamInt<px4::params::FW_FLAPS_MAN>) _param_fw_flaps_man,
+
+		(ParamFloat<px4::params::CA_CS_LK_DELAY>) _param_ca_cs_lk_delay
 	)
 
 	RateControl _rate_control; ///< class for rate control calculations

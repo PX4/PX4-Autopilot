@@ -31,11 +31,9 @@
 #
 ############################################################################
 
-add_subdirectory(launchdetection)
 add_subdirectory(runway_takeoff)
 
 set(POSCONTROL_DEPENDENCIES
-	launchdetection
 	npfg
 	runway_takeoff
 	SlewRate

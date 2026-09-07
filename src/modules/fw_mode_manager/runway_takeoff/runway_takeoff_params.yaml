@@ -5,6 +5,8 @@ parameters:
     RWTO_TKOFF:
       description:
         short: Runway takeoff with landing gear
+        long: |-
+          Takes precedence over launch detection: FW_LAUN_DETCN_ON has no effect while this is enabled.
       type: boolean
       default: 0
     RWTO_MAX_THR:
