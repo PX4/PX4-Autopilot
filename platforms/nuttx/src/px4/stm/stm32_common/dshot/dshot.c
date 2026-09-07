@@ -51,8 +51,6 @@
 
 // DShot protocol definitions
 #define ONE_MOTOR_DATA_SIZE         16u
-#define MOTOR_PWM_BIT_1             14u
-#define MOTOR_PWM_BIT_0             7u
 #define DSHOT_THROTTLE_POSITION     5u
 #define DSHOT_TELEMETRY_POSITION    4u
 #define NIBBLES_SIZE                4u
@@ -954,9 +952,13 @@ void dshot_motor_data_set(uint8_t channel, uint16_t data, bool telemetry)
 	uint8_t num_motors = mapping->channel_count_including_gaps;
 	uint8_t timer_channel = timer_io_channels[channel].timer_channel - mapping->lowest_timer_channel;
 
+	// The high times are compare counts, so they follow whatever tick count this timer's
+	// clock and the requested rate settled on in io_timer_set_dshot_burst_mode().
+	const dshot_timing_t *timing = io_timer_get_dshot_timing(timer_index, _dshot_frequency);
+
 	for (uint8_t motor_data_index = 0; motor_data_index < ONE_MOTOR_DATA_SIZE; motor_data_index++) {
 		dshot_output_buffer[timer_index][motor_data_index * num_motors + timer_channel] =
-			(packet & 0x8000) ? MOTOR_PWM_BIT_1 : MOTOR_PWM_BIT_0;  // MSB first
+			(packet & 0x8000) ? timing->bit_1 : timing->bit_0;  // MSB first
 		packet <<= 1;
 	}
 }

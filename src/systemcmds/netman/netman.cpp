@@ -50,6 +50,7 @@
 #include <px4_platform_common/log.h>
 #include <arpa/inet.h>
 #include <px4_platform_common/shutdown.h>
+#include <net/if.h>
 
 constexpr char DEFAULT_NETMAN_CONFIG[] = CONFIG_BOARD_ROOT_PATH "/net.cfg";
 #if defined(CONFIG_NETINIT_DHCPC)
@@ -457,6 +458,10 @@ int netman_main(int argc, char *argv[])
 		switch (ch) {
 
 		case 'i':
+			if (strlen(myoptarg) >= IFNAMSIZ) {
+				PX4_ERR("Interface name too long");
+				return -ENAMETOOLONG;
+			}
 			netdev = myoptarg;
 			break;
 

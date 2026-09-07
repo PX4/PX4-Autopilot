@@ -51,7 +51,6 @@
 #include <errno.h>
 
 #include <nuttx/can.h>
-#include <netpacket/can.h>
 
 #define MODULE_NAME "UAVCAN_SOCKETCAN"
 
@@ -372,14 +371,14 @@ int CanIface::setBitRate(uint32_t bitrate)
 
 	snprintf(ifr.ifr_name, IFNAMSIZ, "can%" PRIu32, _index);
 
-	const uint16_t kbps = bitrate / 1000;
-
 	if (ioctl(_fd, SIOCGCANBITRATE, &ifr) < 0) {
 		PX4_WARN("can%" PRIu32 ": cannot read bit rate (%d), leaving it as configured", _index, errno);
 		return 0;
 	}
 
-	if (ifr.ifr_ifru.ifru_can_data.arbi_bitrate == kbps) {
+	const uint32_t configured = ifr.ifr_ifru.ifru_can_data.arbi_bitrate;
+
+	if (configured == bitrate) {
 		return 0;
 	}
 
@@ -388,8 +387,8 @@ int CanIface::setBitRate(uint32_t bitrate)
 	 * restarted a running controller from inside the driver, which on FlexCAN
 	 * with ECC RAM initialisation is a bus fault. Keep the configured rate.
 	 */
-	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %u kbit/s needs a newer NuttX, staying at %u kbit/s",
-		 _index, kbps, ifr.ifr_ifru.ifru_can_data.arbi_bitrate);
+	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %" PRIu32 " bit/s needs a newer NuttX, staying at %" PRIu32 " bit/s",
+		 _index, bitrate, configured);
 	return 0;
 #else
 	/* Only the nominal rate changes; the data phase keeps the driver's
@@ -397,7 +396,7 @@ int CanIface::setBitRate(uint32_t bitrate)
 	 * The driver applies the timing at the next ifup, so the interface is
 	 * taken down around the request and brought back up whatever happens.
 	 */
-	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = kbps;
+	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = bitrate;
 
 	struct ifreq flags {};
 
@@ -410,9 +409,11 @@ int CanIface::setBitRate(uint32_t bitrate)
 
 	const bool was_up = flags.ifr_flags & IFF_UP;
 
-	/* NuttX takes IFF_DOWN / IFF_UP as requests, not as a state mask */
+	/* NuttX acts on the IFF_UP request bit: setting it brings the interface up,
+	 * clearing it takes the interface down. IFF_DOWN was removed in NuttX 12.
+	 */
 	if (was_up) {
-		flags.ifr_flags = IFF_DOWN;
+		IFF_CLR_UP(flags.ifr_flags);
 
 		if (ioctl(_fd, SIOCSIFFLAGS, &flags) < 0) {
 			PX4_ERR("can%" PRIu32 ": cannot take the interface down (%d)", _index, errno);
@@ -433,8 +434,12 @@ int CanIface::setBitRate(uint32_t bitrate)
 	}
 
 	if (res < 0) {
-		PX4_ERR("can%" PRIu32 ": %u kbit/s rejected (%d)", _index, kbps, set_errno);
-		return -1;
+		/* The interface is back up at the rate the driver was configured with.
+		 * Running DroneCAN at that rate beats not running it at all, which is
+		 * what CanDriver::init() does with a negative return.
+		 */
+		PX4_ERR("can%" PRIu32 ": %" PRIu32 " bit/s rejected (%d), staying at %" PRIu32 " bit/s",
+			_index, bitrate, set_errno, configured);
 	}
 
 	return 0;
