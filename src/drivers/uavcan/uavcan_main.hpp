@@ -130,7 +130,12 @@ public:
 	UavcanMixingInterfaceESC(pthread_mutex_t &node_mutex, UavcanEscController &esc_controller)
 		: OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::uavcan),
 		  _node_mutex(node_mutex),
-		  _esc_controller(esc_controller) {}
+		  _esc_controller(esc_controller)
+	{
+		int32_t signed_mask = 0;
+		param_get(param_find("UAVCAN_EC_SIGNED"), &signed_mask);
+		_signed_mask = static_cast<uint32_t>(signed_mask);
+	}
 
 	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
@@ -147,6 +152,7 @@ private:
 	pthread_mutex_t &_node_mutex;
 	UavcanEscController &_esc_controller;
 	MixingOutput _mixing_output{"UAVCAN_EC", UavcanEscController::MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	uint32_t _signed_mask{0};
 };
 
 /**

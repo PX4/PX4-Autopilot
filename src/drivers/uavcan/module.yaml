@@ -47,6 +47,30 @@ parameters:
         0: Hobbywing 1-based esc_index
       default: 0
       reboot_required: true
+    UAVCAN_EC_SIGNED:
+      description:
+        short: Signed command for non-motor ESC channels
+        long: For motors, use CA_R_REV; bits set here for motor channels are ignored.
+          Select ESC channels assigned a non-motor function (e.g. Peripheral via
+          Actuator Set or Servo) to send signed RawCommand values from -MAX (full
+          reverse) to +MAX (full forward), with 0 as neutral. Keep MIN at its default
+          of 1 so full reverse remains distinct from disarmed and failsafe values of 0.
+      type: bitmask
+      bit:
+        0: ESC1
+        1: ESC2
+        2: ESC3
+        3: ESC4
+        4: ESC5
+        5: ESC6
+        6: ESC7
+        7: ESC8
+        8: ESC9
+        9: ESC10
+        10: ESC11
+        11: ESC12
+      default: 0
+      reboot_required: true
     UAVCAN_LGT_NUM:
       description:
         short: Number of UAVCAN lights to configure
@@ -117,6 +141,11 @@ actuator_output:
         min: { min: 0, max: 8191, default: 1 }
         max: { min: 0, max: 8191, default: 8191 }
         failsafe: { min: 0, max: 8191 }
+      custom_params:
+        - name: 'SIGNED'
+          label: "Signed Cmd\n(non-motor)"
+          index_offset: -1
+          show_as: bitset
       num_channels: 12
     - param_prefix: UAVCAN_SV
       group_label: 'Servos'
