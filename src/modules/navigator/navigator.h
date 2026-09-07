@@ -100,6 +100,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/mode_completed.h>
 #include <uORB/uORB.h>
 
@@ -189,6 +190,8 @@ public:
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
 	void set_rtl_return_alt_min(bool enable) { _rtl.set_return_alt_min(enable); }
 	MissionRouteCache           &get_mission_route_cache() { return _mission_route_cache; }
+	/** VTOL state when Navigator observed the current mission source, before executing its transitions. */
+	uint8_t getMissionVtolStateOnUpload() const { return _mission_vtol_state_on_upload; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
@@ -365,6 +368,14 @@ public:
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
 private:
+	friend class NavigatorMissionStateTestPeer;
+	void updateMissionVtolStateOnUpload(const mission_s &mission);
+	uint32_t _mission_vtol_source_id{0};
+	uint16_t _mission_vtol_source_count{0};
+	uint8_t _mission_vtol_source_dataman_id{0};
+	bool _mission_vtol_source_received{false};
+	uint8_t _mission_vtol_state_on_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
+
 
 	orb_sub_t _local_pos_sub{ORB_SUB_INVALID};
 	orb_sub_t _mission_sub{ORB_SUB_INVALID};
