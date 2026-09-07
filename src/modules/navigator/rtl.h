@@ -50,6 +50,7 @@
 #include "rtl_direct_mission_land.h"
 #include "rtl_mission_fast.h"
 #include "rtl_mission_fast_reverse.h"
+#include "rtl_route_safe_point.h"
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -63,7 +64,6 @@
 #include <uORB/topics/rtl_time_estimate.h>
 
 class Navigator;
-class MissionRouteCache;
 class RTLTestPeer;
 
 class RTL : public NavigatorMode, public ModuleParams
@@ -71,7 +71,7 @@ class RTL : public NavigatorMode, public ModuleParams
 public:
 	RTL(Navigator *navigator);
 
-	~RTL() = default;
+	~RTL() override;
 
 	enum class RtlType {
 		NONE = rtl_status_s::RTL_STATUS_TYPE_NONE,
@@ -79,9 +79,11 @@ public:
 		RTL_DIRECT_MISSION_LAND = rtl_status_s::RTL_STATUS_TYPE_DIRECT_MISSION_LAND,
 		RTL_MISSION_FAST = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION,
 		RTL_MISSION_FAST_REVERSE = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE,
+		RTL_MISSION_SAFE_POINT_FOLLOW = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT,
 	};
 
 	void on_inactive() override;
+	void on_inactivation() override;
 	void on_activation() override;
 	void on_active() override;
 
@@ -91,13 +93,17 @@ public:
 
 	bool isLanding();
 
+protected:
+	virtual bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+
 private:
 	friend class RTLTestPeer;
 
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
-		DESTINATION_TYPE_SAFE_POINT
+		DESTINATION_TYPE_SAFE_POINT,
+		DESTINATION_TYPE_MISSION_TAKEOFF
 	};
 
 	/**
@@ -114,6 +120,12 @@ private:
 	 */
 	bool reverseIsFurther() const;
 
+	bool routePlanMissionMatches(const mission_s &mission) const;
+	bool routePlanSourceStillValid() const;
+	static DestinationType routePlanDestinationType(RtlRouteSafePoint::Goal goal_type);
+	void applyRouteSafePointFallback(RtlType &new_rtl_type, DestinationType &destination_type,
+					 PositionYawSetpoint &destination, uint8_t &safe_point_index);
+
 	void setRtlTypeAndDestination();
 
 	/**
@@ -127,12 +139,14 @@ private:
 	 *
 	 */
 	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
+	void findRtlDestinationForType(int rtl_type, DestinationType &destination_type,
+				       PositionYawSetpoint &destination, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Find RTL destination if only safe points are considered
 	 *
 	 */
-	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
+	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index, int rtl_type);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
@@ -149,11 +163,7 @@ private:
 	 */
 	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
 
-	/**
-	 * @brief initialize RTL mission type
-	 *
-	 */
-	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+	void stopAndDeleteRtlMissionType(bool preserve_route_loop_segment);
 
 	/**
 	 * @brief Update parameters
@@ -187,6 +197,7 @@ private:
 	bool _one_rally_point_has_land_approach{false}; ///< Flag if a rally point has a land approach defined
 
 	RtlDirect _rtl_direct;
+	RtlRouteSafePoint _route_safe_point;
 
 	bool _enforce_rtl_alt{false};
 

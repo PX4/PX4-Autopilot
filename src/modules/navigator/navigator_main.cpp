@@ -221,6 +221,30 @@ void Navigator::params_update()
 	_mission.set_command_timeout(_param_mis_command_tout.get());
 }
 
+void Navigator::updateMissionVtolStateOnUpload(const mission_s &mission)
+{
+	if (_mission_vtol_source_received
+	    && _mission_vtol_source_id == mission.mission_id
+	    && _mission_vtol_source_count == mission.count
+	    && _mission_vtol_source_dataman_id == mission.mission_dataman_id) {
+		return;
+	}
+
+	_mission_vtol_source_received = true;
+	_mission_vtol_source_id = mission.mission_id;
+	_mission_vtol_source_count = mission.count;
+	_mission_vtol_source_dataman_id = mission.mission_dataman_id;
+	_mission_vtol_state_on_upload = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+	if (mission.count > 0 && _vstatus.timestamp != 0 && _vstatus.is_vtol) {
+		// A transition in progress is treated as MC, matching the planner's upload-state contract.
+		_mission_vtol_state_on_upload = _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+						&& !_vstatus.in_transition_mode
+						? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+						: vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	}
+}
+
 void Navigator::run()
 {
 
@@ -280,8 +304,6 @@ void Navigator::run()
 			continue;
 		}
 
-		perf_begin(_loop_perf);
-
 		const bool navigator_input_updated = (fds[0].revents & POLLIN)
 						     || (fds[1].revents & POLLIN)
 						     || (fds[2].revents & POLLIN);
@@ -289,6 +311,7 @@ void Navigator::run()
 		const bool run_navigator_update = navigator_input_updated || minimum_update_due;
 
 		if (run_navigator_update) {
+			perf_begin(_loop_perf);
 			last_navigator_update = hrt_absolute_time();
 			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
@@ -296,6 +319,7 @@ void Navigator::run()
 
 		if (fds[2].revents & POLLIN) {
 			if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == PX4_OK) {
+				updateMissionVtolStateOnUpload(mission);
 				mission_received = true;
 
 				if (mission.geofence_id != geofence_id) {
@@ -312,7 +336,6 @@ void Navigator::run()
 
 		// Cache-only wakeups advance the load without running Navigator at Dataman rate.
 		if (!run_navigator_update) {
-			perf_end(_loop_perf);
 			continue;
 		}
 
