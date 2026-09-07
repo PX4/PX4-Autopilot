@@ -156,6 +156,24 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 
 	set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/rootfs)
 	file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
+
+	# Stage the generated ROMFS into the working directory instead of letting PX4 symlink
+	# it there at startup. MAVLink FTP is rooted at the working directory and validates
+	# paths as strings while the file operations follow symlinks, so a link pointing at the
+	# build tree let FTP requests resolve outside the root it advertises. A real directory
+	# has nothing to follow, and PX4 leaves an existing etc directory alone.
+	if(config_romfs_root)
+		add_custom_command(OUTPUT ${SITL_WORKING_DIR}/etc.stamp
+			COMMAND ${CMAKE_COMMAND} -E remove_directory ${SITL_WORKING_DIR}/etc
+			COMMAND ${CMAKE_COMMAND} -E copy_directory ${PX4_BINARY_DIR}/etc ${SITL_WORKING_DIR}/etc
+			COMMAND ${CMAKE_COMMAND} -E touch ${SITL_WORKING_DIR}/etc.stamp
+			DEPENDS romfs_gen_files_target
+			COMMENT "SITL: staging ROMFS into ${SITL_WORKING_DIR}/etc"
+			)
+		add_custom_target(sitl_rootfs_etc ALL DEPENDS ${SITL_WORKING_DIR}/etc.stamp)
+		add_dependencies(px4 sitl_rootfs_etc)
+	endif()
+
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/posix.lldbinit ${SITL_WORKING_DIR}/.lldbinit COPYONLY)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/posix.gdbinit ${SITL_WORKING_DIR}/.gdbinit COPYONLY)
 
