@@ -54,7 +54,11 @@ public:
 	GZMixingInterfaceESC(gz::transport::Node &node) :
 		OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::rate_ctrl),
 		_node(node)
-	{}
+	{
+		int32_t bidi = 0;
+		param_get(param_find("SIM_GZ_EC_BIDI"), &bidi);
+		_bidi_mask = static_cast<uint32_t>(bidi);
+	}
 
 	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
@@ -74,6 +78,8 @@ private:
 	void Run() override;
 
 	void motorSpeedCallback(const gz::msgs::Actuators &actuators);
+
+	uint32_t _bidi_mask{0};
 
 	gz::transport::Node &_node;
 	pthread_mutex_t _node_mutex;

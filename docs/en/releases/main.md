@@ -40,6 +40,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Hardware Support
 
 - [DroneCAN ESCs](../dronecan/escs.md) no longer need to set `UAVCAN_PUB_ARM` as `ArmingStatus` is published automatically whenever `UAVCAN_ENABLE` is `3` (ESC output enabled). ([PX4-Autopilot#28364](https://github.com/PX4/PX4-Autopilot/pull/28364))
+- [DroneCAN ESC](../dronecan/escs.md) channels assigned a *Peripheral via Actuator Set* function can be driven bidirectionally via `UAVCAN_EC_BIDI` (signed RawCommand, 0 = neutral). ([PX4-Autopilot#26903](https://github.com/PX4/PX4-Autopilot/pull/26903))
 
 ### Common
 
