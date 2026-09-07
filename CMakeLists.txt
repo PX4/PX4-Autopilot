@@ -360,6 +360,11 @@ if(${PX4_PLATFORM} STREQUAL "posix")
 	if (NOT CMAKE_INSTALL_PREFIX)
 		set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix" FORCE)
 	endif()
+
+	# mavsdk integration tests — defined as an ExternalProject_Add target;
+	# EXCLUDE_FROM_ALL, so only built when explicitly requested
+	# (e.g. `make mavsdk_tests` or `make tests_integration`).
+	include(mavsdk_tests)
 endif()
 
 include(ccache)

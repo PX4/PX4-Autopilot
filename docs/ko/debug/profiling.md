@@ -48,7 +48,7 @@ Then pass in the appropriate device using the `--gdbdev` argument like this:
 ### 실행
 
 프로파일러의 기본 사용법은 빌드 시스템을 통하여 사용할 수 있습니다.
-For example, the following command builds and profiles px4_fmu-v4pro target with 10000 samples (fetching \_FlameGraph_ and adding it to the path as needed).
+For example, the following command builds and profiles px&#x34;_&#x66;mu-v4pro target with 10000 samples (fetching \_FlameGraph_ and adding it to the path as needed).
 
 ```sh
 make px4_fmu-v4pro_default profile

@@ -63,7 +63,7 @@ bool McAutotuneAttitudeControl::init()
 		return false;
 	}
 
-	_signal_filter.setParameters(_publishing_dt_s, .2f); // runs in the slow publishing loop
+	_signal_filter.setParameters(static_cast<uint64_t>(_publishing_dt_s * 1e6f), 200_ms); // runs in the slow publishing loop
 
 	return true;
 }
@@ -598,7 +598,6 @@ void McAutotuneAttitudeControl::saveGainsToParams()
 void McAutotuneAttitudeControl::stopAutotune()
 {
 	_vehicle_cmd_start_autotune = false;
-	_vehicle_torque_setpoint_sub.unregisterCallback();
 }
 
 const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()

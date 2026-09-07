@@ -76,7 +76,7 @@ You might have to adjust the per-motor pole count (`DSHOT_MOT_POL1`–`DSHOT_MOT
 
 The following parameters should be set to enable and configure dynamic notch filters:
 
-| 参数                                                                                                                                                                         | 描述                                                                                                                                                                            |
+| Parameter                                                                                                                                                                  | 描述                                                                                                                                                                            |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="IMU_GYRO_DNF_EN"></a>[IMU_GYRO_DNF_EN](../advanced_config/parameter_reference.md#IMU_GYRO_DNF_EN)    | Enable IMU gyro dynamic notch filtering (bitmask). Bit `0`: ESC RPM, Bit `1`: Onboard FFT. |
 | <a id="IMU_GYRO_FFT_EN"></a>[IMU_GYRO_FFT_EN](../advanced_config/parameter_reference.md#IMU_GYRO_FFT_EN)    | Enable onboard FFT (required if bit `1` of `IMU_GYRO_DNF_EN` is set).                                                                      |

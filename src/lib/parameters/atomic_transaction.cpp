@@ -34,5 +34,28 @@
 #include "atomic_transaction.h"
 
 #ifdef __PX4_POSIX
-_MutexHolder  AtomicTransaction::_mutex_holder = _MutexHolder {};
+// The mutex is recursive because a param lookup walks the layered param stack
+// holding the lock and delegates to the parent layer (Layer::get() ->
+// _parent->get()), which takes the same mutex again on the same thread.
+//
+// The recursive attribute is set at runtime rather than via a static initializer:
+// PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP is a glibc extension that is not portable
+// (unavailable on e.g. QURT, and gated behind _GNU_SOURCE elsewhere). initialize()
+// is called from param_init(), before any thread accesses parameters, so there is
+// no lazy-init race.
+static pthread_mutex_t _param_mutex;
+
+void AtomicTransaction::initialize()
+{
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&_param_mutex, &attr);
+	pthread_mutexattr_destroy(&attr);
+}
+
+pthread_mutex_t *AtomicTransaction::_get_mutex()
+{
+	return &_param_mutex;
+}
 #endif

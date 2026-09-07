@@ -14,7 +14,7 @@ param set-default CBRK_SUPPLY_CHK 894281
 param set-default COM_ARM_HFLT_CHK 0
 
 #Missing params
-param set-default CP_DIST -1.0
+param set-default CP_DIST -1
 
 # Default to MoCap fusion
 param set-default ATT_EXT_HDG_M 2

@@ -166,3 +166,45 @@ TEST(ActuatorEffectivenessRotors, Tilt)
 	axis = ActuatorEffectivenessRotors::tiltedAxis(-M_PI_F / 2.f, M_PI_F / 2.f);
 	EXPECT_EQ(axis, axis_expected);
 }
+
+
+TEST(ActuatorEffectivenessRotors, isAlignedWithCoordinateAxis)
+{
+	// Exactly along z axis
+	Vector3f vec = {0.f, 0.f, 1.f};
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 0));
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 1));
+	EXPECT_TRUE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 2));
+
+	// Approximately along x axis (atan(0.1) = 5.7 deg, below 10 deg tolerance)
+	vec = Vector3f{1.f, 0.f, -0.1f};
+	EXPECT_TRUE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 0));
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 1));
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 2));
+
+	// Approximately along x axis (atan(0.2) = 11.3 deg, above 10 deg tolerance)
+	vec = Vector3f{1.f, 0.f, -0.2f};
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 0));
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 1));
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 2));
+
+	// Approximately along y axis, with both other axes slightly off
+	// (atan(0.1 sqrt(2)) = 8.05 deg, below 10 deg tolerance)
+	vec = Vector3f{0.1f, 1.0f, -0.1f};
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 0));
+	EXPECT_TRUE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 1));
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 2));
+
+	// Same but with larger offset: atan(0.2 sqrt(2)) = 15.79 deg
+	vec = Vector3f{0.2f, 1.0f, -0.2f};
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 0));
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 1));
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 2));
+
+	// Random vector far from any axes
+	vec = Vector3f{-100.f, -100.f, 100.f};
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 0));
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 1));
+	EXPECT_FALSE(ActuatorEffectivenessRotors::isAlignedWithCoordinateAxis(vec, 2));
+
+}

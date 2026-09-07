@@ -32,6 +32,13 @@ publications:
       rel: reliable
       express: true
 
+  - topic: /fmu/out/setpoint_config_reply
+    type: px4_msgs::msg::SetpointConfigReply
+    options:
+      cc: block
+      rel: reliable
+      express: true
+
   - topic: /fmu/out/mode_completed
     type: px4_msgs::msg::ModeCompleted
     options:
@@ -120,6 +127,13 @@ publications:
   - topic: /fmu/out/airspeed_validated
     type: px4_msgs::msg::AirspeedValidated
 
+  - topic: /fmu/out/config_overrides_confirm
+    type: px4_msgs::msg::ConfigOverrides
+    options:
+      cc: block
+      rel: reliable
+      express: true
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -127,6 +141,9 @@ subscriptions:
 
   - topic: /fmu/in/unregister_ext_component
     type: px4_msgs::msg::UnregisterExtComponent
+
+  - topic: /fmu/in/setpoint_config
+    type: px4_msgs::msg::SetpointConfig
 
   - topic: /fmu/in/config_overrides_request
     type: px4_msgs::msg::ConfigOverrides
@@ -136,9 +153,6 @@ subscriptions:
 
   - topic: /fmu/in/mode_completed
     type: px4_msgs::msg::ModeCompleted
-
-  - topic: /fmu/in/config_control_setpoints
-    type: px4_msgs::msg::VehicleControlMode
 
   - topic: /fmu/in/distance_sensor
     type: px4_msgs::msg::DistanceSensor

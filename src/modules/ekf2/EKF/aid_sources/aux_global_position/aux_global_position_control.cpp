@@ -106,6 +106,7 @@ bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 	if (_buffer.pop_first_older_than(imu_delayed.time_us, &sample)) {
 
 		if (!ekf._fc.agp[_slot].intended()) {
+			_state = State::kStopped;
 			return true;
 		}
 

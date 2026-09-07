@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022-2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -76,7 +76,7 @@ px4_add_module(
 		SagetechMXS.cpp
 		SagetechMXS.hpp
 	DEPENDS
-		adsb
+		geo
 		px4_work_queue
 	MODULE_CONFIG
 		module.yaml

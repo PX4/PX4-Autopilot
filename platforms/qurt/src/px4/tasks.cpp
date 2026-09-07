@@ -273,6 +273,40 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	return px4_task_spawn_internal(name, priority, entry, argv);
 }
 
+int px4_task_join(px4_task_t id)
+{
+	if (id < 0 || id >= PX4_MAX_TASKS) {
+		return -EINVAL;
+	}
+
+	if (!task_mutex_initialized) {
+		return -EINVAL;
+	}
+
+	pthread_mutex_lock(&task_mutex);
+	pthread_t pid = taskmap[id].tid;
+	pthread_mutex_unlock(&task_mutex);
+
+	if (pid == 0 || pthread_self() == pid) {
+		return -EINVAL;
+	}
+
+	int rv = pthread_join(pid, nullptr);
+
+	if (rv == 0) {
+		pthread_mutex_lock(&task_mutex);
+
+		if (taskmap[id].isused && taskmap[id].tid == pid) {
+			pthread_attr_destroy(&taskmap[id].attr);
+			taskmap[id].isused = false;
+		}
+
+		pthread_mutex_unlock(&task_mutex);
+	}
+
+	return rv;
+}
+
 int px4_task_delete(px4_task_t id)
 {
 	int rv = 0;

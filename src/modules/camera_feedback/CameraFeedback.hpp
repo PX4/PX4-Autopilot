@@ -53,6 +53,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/camera_capture.h>
 #include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
@@ -85,9 +86,13 @@ private:
 	uORB::Subscription	_gpos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription	_att_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription	_gimbal_sub{ORB_ID(gimbal_device_attitude_status)};
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	uORB::Publication<camera_capture_s>	_capture_pub{ORB_ID(camera_capture)};
 
 	param_t _p_cam_cap_fback;
 	int32_t _cam_cap_fback{0};
+
+	param_t _p_cam_cap_report;
+	int32_t _cam_cap_report{1};
 };

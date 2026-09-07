@@ -38,7 +38,7 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 
 ### Модуль живлення
 
-**Screw**- Socket Cap Screw M2.5_6 8pcs | Locknut M3 4pcs |Nylon Standoff M3_5 4pcs | Screw M3\*14 4pcs
+**Screw**- Socket Cap Screw M2.&#x35;_&#x36; 8pcs | Locknut M3 4pcs |Nylon Standoff M&#x33;_&#x35; 4pcs | Screw M3\*14 4pcs
 
 [![Assembly5](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly5.png)](https://youtu.be/0knU3Q_opEo))
 
@@ -150,7 +150,7 @@ Pixhawk 6C запитується за допомогою плати живле�
 
 ### Супутній комп'ютер (необов'язково)
 
-**Screw-** Socket Cap Screw M2.5_12 4pcs | Nylon Standoff M2.5_5 4pcs Locknut M2.5 4pcs
+**Screw-** Socket Cap Screw M2.&#x35;_&#x31;2 4pcs | Nylon Standoff M2.&#x35;_&#x35; 4pcs Locknut M2.5 4pcs
 
 Набір X500 забезпечує місце для супутнього комп'ютера, такого як Raspberry Pi або Jetson nano, що можуть бути розміщені тут [TBD].
 

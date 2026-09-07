@@ -41,6 +41,7 @@
 
 #include "mission_base.h"
 
+#include "mission_item_utils.h"
 #include "px4_platform_common/defines.h"
 
 #include "mission_feasibility_checker.h"
@@ -73,8 +74,8 @@ MissionBase::updateDatamanCache()
 {
 	if ((_mission.count > 0) && (_mission.current_seq != _load_mission_index)) {
 
-		const int32_t start_index = math::constrain(_mission.current_seq, INT32_C(0), int32_t(_mission.count) - 1);
-		const int32_t end_index = math::constrain(start_index + _dataman_cache_size_signed, INT32_C(0),
+		const int32_t start_index = math::constrain(_mission.current_seq, int32_t{0}, int32_t(_mission.count) - 1);
+		const int32_t end_index = math::constrain(start_index + _dataman_cache_size_signed, int32_t{0},
 					  int32_t(_mission.count) - 1);
 
 		for (int32_t index = start_index; index != end_index; index += math::signNoZero(_dataman_cache_size_signed)) {
@@ -98,7 +99,7 @@ void MissionBase::updateMavlinkMission()
 		const bool mission_data_changed = checkMissionDataChanged(new_mission);
 
 		if (new_mission.current_seq < 0) {
-			new_mission.current_seq = math::constrain(_mission.current_seq, INT32_C(0),
+			new_mission.current_seq = math::constrain(_mission.current_seq, int32_t{0},
 						  static_cast<int32_t>(new_mission.count) - 1);
 		}
 
@@ -203,6 +204,9 @@ MissionBase::on_inactivation()
 void
 MissionBase::on_activation()
 {
+	// reset triplets, modes should be explicit about which fields they want to set
+	_navigator->reset_triplets();
+
 	/* reset the current mission to the start sequence if needed.*/
 	checkMissionRestart();
 
@@ -450,6 +454,11 @@ void MissionBase::update_mission()
 	_navigator->reset_vroi();
 
 	if (_navigator->get_mission_result()->valid) {
+		/* re-issue the climb ticket on cursor change while in takeoff phase */
+		if (_land_detected_sub.get().landed || _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+			checkClimbRequired(_mission.current_seq);
+		}
+
 		/* reset work item if new mission has been accepted */
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 
@@ -533,15 +542,30 @@ MissionBase::set_mission_items()
 
 bool MissionBase::loadCurrentMissionItem()
 {
-	const bool success = loadMissionItemFromCache(_mission.current_seq, _mission_item);
+	// _mission.current_seq may point directly at a DO_JUMP item: it can be set verbatim by an
+	// external MISSION_SET_CURRENT (which does no jump resolution), or returned by a jump
+	// resolution that gave up. A DO_JUMP is not an executable current item, so resolve it to the
+	// next non-jump item here. We follow the jump to its target but do NOT consume a repetition
+	// (write_jumps == false), since a set-current is an out-of-band action, not a normal traversal.
+	// For an already-resolved (non-jump) current item this is a no-op.
+	int32_t resolved_index = _mission.current_seq;
+	mission_item_s resolved_item;
+
+	const bool success = getNonJumpItem(resolved_index, resolved_item, MissionTraversalType::FollowMissionControlFlow,
+					    /*write_jumps*/ false, /*mission_direction_backward*/ false) == PX4_OK;
 
 	if (!success) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission item could not be set.\t");
 		events::send(events::ID("mission_item_set_failed"), events::Log::Error,
 			     "Mission item could not be set");
+		return false;
 	}
 
-	return success;
+	// Persist the resolved index (republishes the mission topic only if it actually changed).
+	setMissionIndex(resolved_index);
+	_mission_item = resolved_item;
+
+	return true;
 }
 
 void MissionBase::setEndOfMissionItems()
@@ -555,10 +579,10 @@ void MissionBase::setEndOfMissionItems()
 		if (pos_sp_triplet->current.valid &&
 		    (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
 		     pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)) {
-			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+			setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current);
 
 		} else {
-			setLoiterItemFromCurrentPosition(&_mission_item);
+			setLoiterItemFromCurrentPosition(_mission_item);
 		}
 	}
 
@@ -986,6 +1010,14 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 	mission_item_s new_mission;
 
 	for (uint16_t jump_count = 0u; jump_count < MAX_JUMP_ITERATION; jump_count++) {
+		if (new_mission_index >= _mission.count || new_mission_index < 0) {
+			// Running off either end of the mission while skipping over jumps is a normal
+			// outcome, for example when the last item is a DO_JUMP that has used up its
+			// repeats. Report it the same way an out of range index is reported on entry
+			// rather than as a storage failure.
+			return PX4_ERROR;
+		}
+
 		/* read mission item from datamanager */
 		bool success = loadMissionItemFromCache(new_mission_index, new_mission);
 
@@ -1017,6 +1049,9 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 						events::send(events::ID("mission_failed_to_write_do_jump"), events::Log::Error,
 							     "DO JUMP waypoint could not be written");
 						// Still continue searching for next non jump item.
+
+					} else {
+						syncMissionRouteCacheItem(new_mission_index, new_mission);
 					}
 
 					report_do_jump_mission_changed(new_mission_index, new_mission.do_jump_repeat_count - new_mission.do_jump_current_count);
@@ -1036,6 +1071,14 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 		} else {
 			break;
 		}
+	}
+
+	if (new_mission.nav_cmd == NAV_CMD_DO_JUMP) {
+		// Ran out of iterations while still on a DO_JUMP (e.g. a jump loop or a chain longer than
+		// MAX_JUMP_ITERATION). Report failure instead of returning an unresolved jump as a valid
+		// item, which would otherwise be loaded as the current mission item.
+		PX4_ERR("Do Jump could not be resolved within %u iterations.", MAX_JUMP_ITERATION);
+		return PX4_ERROR;
 	}
 
 	mission_index = new_mission_index;
@@ -1075,6 +1118,13 @@ bool MissionBase::loadMissionItemFromCache(int32_t index, mission_item_s &missio
 					  MAX_DATAMAN_LOAD_WAIT);
 }
 
+void MissionBase::syncMissionRouteCacheItem(int32_t index, const mission_item_s &mission_item)
+{
+	if (_navigator != nullptr) {
+		_navigator->get_mission_route_cache().syncMissionItem(_mission, index, mission_item);
+	}
+}
+
 bool MissionBase::findNextPositionIndex(int32_t start_index, int32_t &next_index,
 					MissionTraversalType traversal_type)
 {
@@ -1086,7 +1136,7 @@ bool MissionBase::findNextPositionIndex(int32_t start_index, int32_t &next_index
 			return false;
 		}
 
-		if (item_contains_position(mission_item)) {
+		if (mission_item_contains_position(mission_item)) {
 			next_index = traversed_index;
 			return true;
 		}
@@ -1108,7 +1158,7 @@ bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previo
 			return false;
 		}
 
-		if (item_contains_position(mission_item)) {
+		if (mission_item_contains_position(mission_item)) {
 			previous_index = traversed_index;
 			return true;
 		}
@@ -1277,7 +1327,7 @@ int MissionBase::setMissionToClosestItem(double lat, double lon, float alt, floa
 			return PX4_ERROR;
 		}
 
-		if (MissionBlock::item_contains_position(mission)) {
+		if (mission_item_contains_position(mission)) {
 			// do not consider land waypoints for a fw
 			if (!((mission.nav_cmd == NAV_CMD_LAND) &&
 			      (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
@@ -1359,6 +1409,8 @@ void MissionBase::resetMissionJumpCounter()
 				PX4_ERR("Could not write mission item for jump count reset.");
 				break;
 			}
+
+			syncMissionRouteCacheItem(static_cast<int32_t>(mission_index), mission_item);
 		}
 	}
 }
@@ -1538,7 +1590,7 @@ void MissionBase::updateMissionAltAfterHomeChanged()
 {
 	if (_navigator->get_home_position()->update_count > _home_update_counter) {
 
-		if (item_contains_position(_mission_item)) {
+		if (mission_item_contains_position(_mission_item)) {
 			const float new_alt = get_absolute_altitude_for_item(_mission_item);
 			const float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
 

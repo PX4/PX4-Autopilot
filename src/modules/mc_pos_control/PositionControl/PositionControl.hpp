@@ -192,7 +192,7 @@ public:
 
 private:
 	// The range limits of the hover thrust configuration/estimate
-	static constexpr float HOVER_THRUST_MIN = 0.05f;
+	static constexpr float HOVER_THRUST_MIN = 0.1f;
 	static constexpr float HOVER_THRUST_MAX = 0.9f;
 
 	bool _inputValid();

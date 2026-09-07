@@ -232,6 +232,18 @@ __EXPORT size_t		param_size(param_t param);
 __EXPORT int		param_get(param_t param, void *val);
 
 /**
+ * Mark a parameter as used and copy its value.
+ *
+ * Combines param_set_used() and param_get() into a single out-of-line call,
+ * saving flash at the many Param<> constructor call sites.
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @param val		Where to return the value, assumed to point to suitable storage for the parameter type.
+ * @return		Zero if the parameter's value could be returned, nonzero otherwise.
+ */
+__EXPORT int		param_get_mark_used(param_t param, void *val);
+
+/**
  * Copy the (airframe-specific) default value of a parameter.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
@@ -359,8 +371,9 @@ __EXPORT int		param_export(const char *filename, param_filter_func filter);
  * This function merges the imported parameters with the current parameter set.
  *
  * @param fd		File descriptor to import from (-1 selects the FLASH storage).
- * @return		Zero on success, nonzero if an error occurred during import.
- *			Note that in the failure case, parameters may be inconsistent.
+ * @return		Zero on success, 1 if the source is blank (nothing stored
+ *			yet), negative if an error occurred during import. Note that
+ *			in the error case, parameters may be inconsistent.
  */
 __EXPORT int		param_import(int fd);
 
@@ -371,8 +384,10 @@ __EXPORT int		param_import(int fd);
  * values from a file.
  *
  * @param fd		File descriptor to import from (-1 selects the FLASH storage).
- * @return		Zero on success, nonzero if an error occurred during import.
- *			Note that in the failure case, parameters may be inconsistent.
+ * @return		Zero on success, 1 if the source is blank (all parameters
+ *			were reset to defaults), negative if an error occurred during
+ *			import. Note that in the error case, parameters may be
+ *			inconsistent.
  */
 __EXPORT int		param_load(int fd);
 
@@ -472,7 +487,6 @@ __EXPORT void	param_control_autosave(bool enable);
  * Parameter value union.
  */
 union param_value_u {
-	void		*p;
 	int32_t		i;
 	float		f;
 };

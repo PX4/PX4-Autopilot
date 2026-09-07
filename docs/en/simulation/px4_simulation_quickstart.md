@@ -1,6 +1,6 @@
 # PX4 Simulation QuickStart
 
-First install [Docker](https://docs.docker.com/get-docker/) (a free tool that runs containers).
+First install [Docker](https://docs.docker.com/get-started/get-docker/) (a free tool that runs containers).
 
 The following command will then run a PX4 quadrotor simulation that you can connect to [QGroundControl](https://qgroundcontrol.com), [MAVSDK](https://mavsdk.mavlink.io/) or [ROS 2](../ros2/user_guide.md) (on Linux, macOS, and Windows):
 

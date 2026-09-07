@@ -69,6 +69,12 @@ if (gz-transport_FOUND)
 			GZGimbal.cpp
 			GZGimbal.hpp
 		DEPENDS
+			drivers_accelerometer
+			drivers_gyroscope
+			drivers_magnetometer
+			drivers_rangefinder
+			drivers_barometer
+			failure_injection
 			mixer_module
 			px4_work_queue
 			${GZ_TRANSPORT_TARGET}
@@ -84,6 +90,11 @@ if (gz-transport_FOUND)
 
 	target_include_directories(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 	target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
+
+	px4_add_functional_gtest(
+		SRC GZBridgeTest.cpp
+		LINKLIBS modules__simulation__gz_bridge ${GZ_TRANSPORT_TARGET} geo
+	)
 
 	include(ExternalProject)
 	ExternalProject_Add(gz

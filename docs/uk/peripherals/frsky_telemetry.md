@@ -185,7 +185,7 @@ Note that the X series receivers listed below are recommended (e.g. XSR, X8R). �
 | RX8R        | 1.5km | S.Bus (16)                               | Smart Port                    | 46.25x26.6x14.2мм     | 12.1г |
 | RX8R PRO    | 1.5km | S.Bus (16)                               | Smart Port                    | 46.25x26.6x14.2мм     | 12.1г |
 | R-XSR       | 1.5km | S.Bus (16) / CPPM (8) | Smart Port                    | 16x11x5.4мм                                           | 1.5г  |
-| G-RX8       | 1.5km | S.Bus (16)                               | Smart Port + integrated vario | 55.26_17_8mm                                          | 5.8г  |
+| G-RX8       | 1.5km | S.Bus (16)                               | Smart Port + integrated vario | 55.2&#x36;_&#x31;&#x37;_&#x38;mm                      | 5.8г  |
 | R9          | 10км                  | S.Bus (16)                               | Smart Port                    | 43.3x26.8x13.9мм      | 15,8г                 |
 | R9 slim     | 10км                  | S.Bus (16)                               | Smart Port                    | 43.3x26.8x13.9мм      | 15,8г                 |
 

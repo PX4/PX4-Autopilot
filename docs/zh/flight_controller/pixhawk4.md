@@ -45,7 +45,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
   - 伺服导轨输入电压：0~36V
 - 重量和尺寸:
   - 重量：15.8g
-  - 尺寸：44_84_12mm
+  - 尺寸：4&#x34;_&#x38;&#x34;_&#x31;2mm
 - 其它特性:
   - 工作温度：-40 ~ 85°C
 

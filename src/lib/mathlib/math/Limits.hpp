@@ -50,9 +50,33 @@
 namespace math
 {
 
+#if defined(__PX4_QURT)
+namespace HexagonDSPMath
+{
+static inline constexpr bool isNan(float val) { return __builtin_isnan(val); }
+static inline constexpr bool isNan(double val) { return __builtin_isnan(val); }
+static inline constexpr bool isNan(long double val) { return __builtin_isnan(val); }
+
+template<typename _Tp>
+static inline constexpr bool isNan(_Tp)
+{
+	return false;
+}
+} // namespace HexagonDSPMath
+#endif // __PX4_QURT
+
 template<typename _Tp>
 constexpr _Tp min(_Tp a, _Tp b)
 {
+#if defined(__PX4_QURT)
+
+	// The Hexagon compiler can lower this pattern to sfmin, which does not preserve NaN semantics.
+	if (HexagonDSPMath::isNan(a) || HexagonDSPMath::isNan(b)) {
+		return b;
+	}
+
+#endif // __PX4_QURT
+
 	return (a < b) ? a : b;
 }
 
@@ -65,6 +89,15 @@ constexpr _Tp min(_Tp a, _Tp b, _Tp c)
 template<typename _Tp>
 constexpr _Tp max(_Tp a, _Tp b)
 {
+#if defined(__PX4_QURT)
+
+	// The Hexagon compiler can lower this pattern to sfmax, which does not preserve NaN semantics.
+	if (HexagonDSPMath::isNan(a) || HexagonDSPMath::isNan(b)) {
+		return b;
+	}
+
+#endif // __PX4_QURT
+
 	return (a > b) ? a : b;
 }
 
@@ -77,6 +110,15 @@ constexpr _Tp max(_Tp a, _Tp b, _Tp c)
 template<typename _Tp>
 constexpr _Tp constrain(_Tp val, _Tp min_val, _Tp max_val)
 {
+#if defined(__PX4_QURT)
+
+	// The Hexagon compiler lowers this clamp pattern to sfmin, which does not preserve NaN semantics.
+	if (HexagonDSPMath::isNan(val)) {
+		return val;
+	}
+
+#endif // __PX4_QURT
+
 	return (val < min_val) ? min_val : ((val > max_val) ? max_val : val);
 }
 

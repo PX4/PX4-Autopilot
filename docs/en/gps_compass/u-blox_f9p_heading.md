@@ -39,6 +39,8 @@ Ideally the two antennas should be identical, on the same level/horizontal plane
   - Main GPS = Rover
   - Secondary GPS = Moving Base
 - Set [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `Heading` (1)
+- Set [GPS_UBX_BAUD1](../advanced_config/parameter_reference.md#GPS_UBX_BAUD1) if a UART1 rate other than the default is required (0 keeps 115200). Use a higher rate for high update rates or when RTCM is sent on UART1 ([GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) 3/4), and a lower rate on long serial cables.
+- Set [GPS_UBX_BAUD2](../advanced_config/parameter_reference.md#GPS_UBX_BAUD2) if a UART2 rate other than the default (230400) is required. UART2 carries RTCM between the modules in this setup.
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter bit 3 must be set (see [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
 - [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET) may need to be set (see [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
 - Reboot and wait until both devices have GPS reception.
@@ -55,4 +57,5 @@ If using RTK with a fixed base station the secondary GPS will show the RTK state
 ## Further Information
 
 - [ZED-F9P Moving base applications (Application note)](https://content.u-blox.com/sites/default/files/documents/ZED-F9P-MovingBase_AppNote_UBX-19009093.pdf) - General setup/instructions.
+- [u-blox Diagnostics with u-center](../gps_compass/u-center.md) - UART2 diagnostic mode (not available with heading/moving-base modes, which already use UART2 for RTCM).
 - [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)

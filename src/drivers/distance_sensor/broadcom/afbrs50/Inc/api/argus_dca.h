@@ -452,10 +452,22 @@ typedef struct argus_cfg_dca_t {
 	/*! The minimum analog integration depth in UQ10.6 format,
 	 *  i.e. the minimum pattern count per sample.
 	 *
+	 *  This values is applied in low laser power stage.
+	 *
 	 *  Valid values: #ARGUS_CFG_DCA_DEPTH_MIN, ... #ARGUS_CFG_DCA_DEPTH_MAX
 	 *  Note further that the following condition must hold:
 	 *  'MIN' <= DepthLow <= DepthNom <= DepthHigh <= 'MAX' */
-	uq10_6_t DepthMin;
+	uq10_6_t DepthMin_LowPower;
+
+	/*! The minimum analog integration depth in UQ10.6 format,
+	 *  i.e. the minimum pattern count per sample.
+	 *
+	 *  This values is applied in high laser power stage.
+	 *
+	 *  Valid values: #ARGUS_CFG_DCA_DEPTH_MIN, ... #ARGUS_CFG_DCA_DEPTH_MAX
+	 *  Note further that the following condition must hold:
+	 *  'MIN' <= DepthLow <= DepthNom <= DepthHigh <= 'MAX' */
+	uq10_6_t DepthMin_HighPower;
 
 	/*! The maximum analog integration depth in UQ10.6 format,
 	 *  i.e. the maximum pattern count per sample.
@@ -507,6 +519,10 @@ typedef struct argus_cfg_dca_t {
 	 *
 	 *  Range: 0x00, .., 0xFF; set 0 to disable. */
 	uq0_8_t PowerSavingRatio;
+
+	/*! Disables the laser power save in low power stage.
+	 *  I.e. it keeps the laser bias on during integration pauses. */
+	uint8_t DisablePowerSaveInLowPowerStage;
 
 } argus_cfg_dca_t;
 

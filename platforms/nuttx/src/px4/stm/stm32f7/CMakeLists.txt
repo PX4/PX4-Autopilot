@@ -44,5 +44,9 @@ add_subdirectory(../stm32_common/spi spi)
 add_subdirectory(../stm32_common/tone_alarm tone_alarm)
 add_subdirectory(../stm32_common/version version)
 
+if(CONFIG_SERIALPASSTHROUGH_BITBANG)
+	add_subdirectory(../stm32_common/bitbang_uart bitbang_uart)
+endif()
+
 add_subdirectory(px4io_serial)
 add_subdirectory(watchdog)

@@ -20,6 +20,15 @@ make ark_can-flow_default
 
 This will create an output in **build/ark_can-flow_default** named **XX-X.X.XXXXXXXX.uavcan.bin**. Follow the instructions at [DroneCAN firmware update](index.md#firmware-update) to flash the firmware.
 
+## Pre-built Firmware
+
+PX4 releases attach two images per CAN node:
+
+- `<target>.uavcan.bin` — application, flashed over DroneCAN
+- `<target>_canbootloader.bin` — bootloader, SWD-flashed (STM32: `0x08000000`)
+
+The `.px4` envelope is not used on these targets.
+
 ## Налаштування
 
 ### Static Node ID
@@ -29,7 +38,7 @@ However, you can configure a static node ID using the [CANNODE_NODE_ID](../advan
 
 To configure a static node ID:
 
-1. Set [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) to a value between 1-127 using [QGroundControl](index.md#qgc-cannode-parameter-configuration)
+1. Set [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) to a value between 1-125 using [QGroundControl](index.md#qgc-cannode-parameter-configuration)
 2. Reboot the device
 
 To return to dynamic allocation, set `CANNODE_NODE_ID` back to 0.

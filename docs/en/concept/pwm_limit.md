@@ -24,4 +24,4 @@ Provides a delay between assertion of "armed" and a ramp-up of throttle on asser
 
 ## State Transition Diagram
 
-![PWM Limit state machine diagram](../../assets/diagrams/pwm_limit_state_diagram.svg)
+<img src="../../assets/diagrams/pwm_limit_state_diagram.svg" alt="PWM Limit state machine diagram" class="diagram-invert">

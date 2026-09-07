@@ -42,6 +42,8 @@ PayloadDeliverer::PayloadDeliverer()
 
 bool PayloadDeliverer::init()
 {
+	configure_gripper();
+
 	ScheduleOnInterval(100_ms);
 
 	if (!_vehicle_command_sub.registerCallback()) {
@@ -49,7 +51,6 @@ bool PayloadDeliverer::init()
 		return false;
 	}
 
-	configure_gripper();
 	return true;
 }
 

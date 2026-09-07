@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 #pragma once
+#include <stdbool.h>
 #include <stdint.h>
 
 __BEGIN_DECLS
@@ -44,9 +45,11 @@ typedef struct {
 	int              *partition_block_counts;
 	int              *partition_types;
 	const char       **partition_names;
+	bool             *partition_bypass_ftl;
 	struct mtd_dev_s **part_dev;
 	uint32_t         devid;
 	unsigned         n_partitions_current;
+	bool             bulk_erase;
 } mtd_instance_s;
 
 /*

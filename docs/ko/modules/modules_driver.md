@@ -31,8 +31,9 @@ It can be enabled with the OSD_ATXXXX_CFG parameter.
 atxxxx <command> [arguments...]
  Commands:
    start
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -88,8 +89,10 @@ batmon start -X -a 11 -b 4
 batmon <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -130,8 +133,10 @@ batt_smbus -X write_flash 19069 2 27 0
 batt_smbus <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -171,8 +176,10 @@ Source: [drivers/telemetry/bst](https://github.com/PX4/PX4-Autopilot/tree/main/s
 bst <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -358,7 +365,7 @@ Source: [drivers/gps](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers
 ### 설명
 
 GPS driver module that handles the communication with the device and publishes the position via uORB.
-It supports multiple protocols (device vendors) and by default automatically selects the correct one.
+The available device protocols are selected at build time.
 
 The module supports a secondary GPS device, specified via `-e` parameter. The position will be published
 on the second uORB topic instance, but it's currently not used by the rest of the system (however the
@@ -401,7 +408,8 @@ gps <command> [arguments...]
                  values: spi|uart, default: uart
      [-j <val>]  secondary GPS interface
                  values: spi|uart, default: uart
-     [-p <val>]  GPS Protocol (default=auto select)
+     [-p <val>]  GPS protocol (availability depends on build; default from
+                 GPS_x_PROTOCOL)
                  values: ubx|mtk|ash|eml|fem|nmea
 
    stop
@@ -484,8 +492,10 @@ this flag set, the battery must be plugged in before starting the driver.
 ina220 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -522,8 +532,10 @@ will retry initialization every 500 ms so the battery can be plugged in later.
 ina226 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -562,8 +574,10 @@ this flag set, the battery must be plugged in before starting the driver.
 ina228 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -571,7 +585,7 @@ ina228 <command> [arguments...]
      [-a <val>]  I2C address
                  default: 69
      [-k]        if initialization (probing) fails, keep retrying periodically
-     [-t <val>]  battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
                  default: 1
 
    stop
@@ -598,8 +612,10 @@ will retry initialization every 500 ms so the battery can be plugged in later.
 ina238 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -653,8 +669,10 @@ Source: [drivers/irlock](https://github.com/PX4/PX4-Autopilot/tree/main/src/driv
 irlock <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -697,8 +715,9 @@ Source: [drivers/magnetometer/lsm303agr](https://github.com/PX4/PX4-Autopilot/tr
 lsm303agr <command> [arguments...]
  Commands:
    start
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -723,8 +742,10 @@ Source: [lib/drivers/mcp_common](https://github.com/PX4/PX4-Autopilot/tree/main/
 mcp230xx <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -757,8 +778,10 @@ Source: [drivers/temperature_sensor/mcp9808](https://github.com/PX4/PX4-Autopilo
 mcp9808 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -841,8 +864,9 @@ Source: [drivers/optical_flow/paa3905](https://github.com/PX4/PX4-Autopilot/tree
 paa3905 <command> [arguments...]
  Commands:
    start
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -867,8 +891,9 @@ Source: [drivers/optical_flow/paw3902](https://github.com/PX4/PX4-Autopilot/tree
 paw3902 <command> [arguments...]
  Commands:
    start
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -931,8 +956,9 @@ Source: [drivers/optical_flow/pmw3901](https://github.com/PX4/PX4-Autopilot/tree
 pmw3901 <command> [arguments...]
  Commands:
    start
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -1027,8 +1053,10 @@ Source: [drivers/optical_flow/px4flow](https://github.com/PX4/PX4-Autopilot/tree
 px4flow <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -1093,8 +1121,10 @@ Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tr
 rgbled <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -1103,6 +1133,31 @@ rgbled <command> [arguments...]
                  default: 57
      [-o <val>]  RGB PWM Assignment
                  default: 123
+
+   stop
+
+   status        print status info
+```
+
+## rgbled_apa102
+
+Source: [drivers/lights/rgbled_apa102](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_apa102)
+
+### Usage {#rgbled_apa102_usage}
+
+```
+rgbled_apa102 <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
 
    stop
 
@@ -1119,8 +1174,10 @@ Source: [drivers/lights/rgbled_aw2023](https://github.com/PX4/PX4-Autopilot/tree
 rgbled_aw2023 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -1143,8 +1200,10 @@ Source: [drivers/lights/rgbled_is31fl3195](https://github.com/PX4/PX4-Autopilot/
 rgbled_is31fl3195 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -1179,8 +1238,10 @@ The driver is included by default in firmware (KConfig key DRIVERS_LIGHTS_RGBLED
 rgbled_lp5562 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -1319,6 +1380,40 @@ septentrio <command> [arguments...]
      cold|warm|hot Specify reset type
 ```
 
+## serialpassthrough
+
+Source: [drivers/serialpassthrough](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/serialpassthrough)
+
+### 설명
+
+Serial passthrough driver driven by MAVLink SERIAL_CONTROL messages.
+Bridges a MAVLink stream to a hardware UART or an ESC signal pin (bitbang).
+
+Only a single sender is supported at a time. Simultaneous SERIAL_CONTROL
+messages from multiple senders produce undefined behaviour.
+
+Up to 8 instances can run simultaneously, one per device.
+
+### Usage {#serialpassthrough_usage}
+
+```
+serialpassthrough <command> [arguments...]
+ Commands:
+   start
+     [-d <val>]  Serial device path
+                 values: <dev>
+     [-b <val>]  Baudrate
+                 default: 115200
+     [-x]        Swap RX/TX pins
+     [-s]        Single-wire (half-duplex) mode
+     [-e <val>]  ESC bitbang channel (0-7), instead of -d
+     [-i <val>]  Internal: instance registry key (injected by startForDevice())
+
+   stop
+
+   status
+```
+
 ## sht3x
 
 Source: [drivers/hygrometer/sht3x](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/hygrometer/sht3x)
@@ -1361,8 +1456,10 @@ Reinitialize senzor, reset flags
 sht3x <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -1424,8 +1521,10 @@ Source: [drivers/temperature_sensor/tmp102](https://github.com/PX4/PX4-Autopilot
 tmp102 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -1610,8 +1709,10 @@ Source: [drivers/power_monitor/voxlpm](https://github.com/PX4/PX4-Autopilot/tree
 ```
 voxlpm [arguments...]
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz

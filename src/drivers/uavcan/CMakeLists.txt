@@ -71,6 +71,12 @@ if(NOT config_uavcan_num_ifaces)
 	message(FATAL_ERROR "config_uavcan_num_ifaces not set")
 endif()
 
+if(CONFIG_LIB_TFLM)
+	set(UAVCAN_IMPLEMENT_PLACEMENT_NEW 0)
+else()
+	set(UAVCAN_IMPLEMENT_PLACEMENT_NEW 1)
+endif()
+
 string(TOUPPER "${PX4_PLATFORM}" OS_UPPER)
 string(TOUPPER "${UAVCAN_DRIVER}" UAVCAN_DRIVER_UPPER)
 add_definitions(
@@ -80,7 +86,7 @@ add_definitions(
 	-DUAVCAN_NUM_IFACES=${config_uavcan_num_ifaces}
 	-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
 	-DUAVCAN_DRIVER=uavcan_${UAVCAN_DRIVER}
-	-DUAVCAN_IMPLEMENT_PLACEMENT_NEW=1
+	-DUAVCAN_IMPLEMENT_PLACEMENT_NEW=${UAVCAN_IMPLEMENT_PLACEMENT_NEW}
 	-DUAVCAN_MEM_POOL_BLOCK_SIZE=48
 	-DUAVCAN_NO_ASSERTIONS
 	-DUAVCAN_PLATFORM=${UAVCAN_PLATFORM}
@@ -189,6 +195,7 @@ px4_add_module(
 		px4_uavcan_dsdlc
 
 		button_publisher
+		clock_offset_estimator
 		drivers_rangefinder
 		led
 		mixer_module
@@ -202,4 +209,6 @@ px4_add_module(
 
 		# within libuavcan
 		uavcan
+
+		failure_injection
 	)

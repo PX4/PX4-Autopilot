@@ -19,8 +19,8 @@ Order this module from:
     - [AIM+ jamming protection](https://www.septentrio.com/en/learn-more/advanced-positioning-technology/aim-anti-jamming-protection)
     - Update rate of 100 Hz
   - ST IIS2MDC Magnetometer
-  - [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/pressure-sensors-bmp390.html)
-  - [Invensense ICM-42688-P 6-Axis IMU](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/)
+  - [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/pressure-sensors-bmp390.html)
+  - [Invensense ICM-42688-P 6-Axis IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p)
 - STM32F412VGH6 MCU
 - Connections
   - Two Pixhawk Standard CAN Connectors (4 Pin JST-GH, 5V Input)

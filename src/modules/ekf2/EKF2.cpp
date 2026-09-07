@@ -239,6 +239,7 @@ void EKF2::AdvertiseTopics()
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
+	_estimator_fc_pub.advertise();
 
 	if (_multi_mode) {
 		// only force advertise these in multi mode to ensure consistent uORB instance numbering
@@ -520,7 +521,8 @@ void EKF2::Run()
 			command_ack.target_system = vehicle_command.source_system;
 			command_ack.target_component = vehicle_command.source_component;
 
-			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN
+			    || vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN) {
 				double latitude = vehicle_command.param5;
 				double longitude = vehicle_command.param6;
 				float altitude = vehicle_command.param7;
@@ -1758,7 +1760,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Distance to bottom surface (ground) in meters, must be positive
-	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid() || (_ekf.getHeightSensorRef() == HeightSensor::RANGE);
+	lpos.dist_bottom_valid = _ekf.isHeightAboveGroundEstimateValid();
 	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
 	lpos.dist_bottom_var = _ekf.getHaglVariance();
 	_ekf.get_hagl_reset(&lpos.delta_dist_bottom, &lpos.dist_bottom_reset_counter);
@@ -1946,9 +1948,8 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
 
 #if defined(CONFIG_EKF2_GNSS)
-	// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
-	// the GPS Fix bit, which is always checked)
-	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value & (((uint16_t)_params->ekf2_gps_check << 1) | 1);
+	// only report enabled GPS check failures
+	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value & _ekf.gps_check_fail_status_enabled_mask();
 #endif // CONFIG_EKF2_GNSS
 
 	status.control_mode_flags = _ekf.control_status().value;
@@ -2679,8 +2680,8 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			_last_geoid_height_update_us = gnss_sample.time_us;
 
 		} else if (gnss_sample.time_us > _last_geoid_height_update_us) {
-			const float dt = 1e-6f * (gnss_sample.time_us - _last_geoid_height_update_us);
-			_geoid_height_lpf.setParameters(dt, kGeoidHeightLpfTimeConstant);
+			_geoid_height_lpf.setParameters(gnss_sample.time_us - _last_geoid_height_update_us,
+							kGeoidHeightLpfTimeConstant);
 			_geoid_height_lpf.update(geoid_height);
 			_last_geoid_height_update_us = gnss_sample.time_us;
 		}

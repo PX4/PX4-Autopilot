@@ -223,6 +223,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		// publish sensor_baro
 		sensor_baro_s sensor_baro{};
 		sensor_baro.device_id = 0; // TODO: DRV_INS_DEVTYPE_VN300;
+		sensor_baro.is_external = true;
 		sensor_baro.pressure = pressure;
 		sensor_baro.temperature = temperature;
 		sensor_baro.timestamp = hrt_absolute_time();
@@ -872,7 +873,6 @@ $ vectornav stop
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Driver status");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
 
 	return PX4_OK;
 }

@@ -40,5 +40,6 @@ px4_add_module(
 		lps33hw_spi.cpp
 		lps33hw_main.cpp
 	DEPENDS
+		drivers_barometer
 		px4_work_queue
 	)

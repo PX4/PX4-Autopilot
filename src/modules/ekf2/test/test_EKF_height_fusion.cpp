@@ -208,6 +208,34 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	EXPECT_NEAR(_ekf->aid_src_rng_hgt().innovation, 0.f, 0.2f);
 }
 
+TEST_F(EkfHeightFusionTest, gpsHeightFusionStopsWhenGpsNotEnabled)
+{
+	// GIVEN: GPS reference with GPS height fusion active
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	// WHEN: GPS is no longer intended at runtime without a new GNSS sample
+	_sensor_simulator.stopGps();
+	_ekf_wrapper.setGpsEnabled(false);
+	_sensor_simulator.runSeconds(0.1);
+
+	// THEN: GPS height fusion stops and does not restart while GPS is disabled
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	_sensor_simulator.runSeconds(0.1);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	// AND WHEN: GPS is intended again
+	_sensor_simulator.startGps();
+	_ekf_wrapper.setGpsEnabled(true);
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: GPS height fusion can restart
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+}
+
 TEST_F(EkfHeightFusionTest, gpsRefNoAltFusion)
 {
 	// GIVEN: GNSS alt reference but not selected as an aiding source
@@ -232,6 +260,87 @@ TEST_F(EkfHeightFusionTest, gpsRefNoAltFusion)
 	// We cannot check the value of the bias estimate as the status is only updatad when the bias estimator is
 	// active. Since the estimator had a baro fallback, the baro bias estimate is not actively updated.
 	// EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, _sensor_simulator._baro.getData() - _sensor_simulator._gps.getData().alt, 0.2f);
+}
+
+TEST_F(EkfHeightFusionTest, gpsRefDeadReckoningStopRestart)
+{
+	// GIVEN: GNSS altitude as the configured height reference, dead-reckoning
+	// GNSS mode, fusing both GNSS and baro height
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.setGnssDeadReckonMode();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: GNSS is the reference and the baro bias is estimated against it
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+
+	const float baro_rel = _sensor_simulator._baro.getData() - _sensor_simulator._gps.getData().alt;
+	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_rel, 0.6f);
+
+	// WHEN: GNSS height fusion stops (no more data)
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the reference falls back to baro (checkHeightSensorRefFallback) and,
+	// since baro is now the reference, the baro bias estimator goes inactive
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	// WHEN: GNSS data comes back (consistent with the current estimate, so
+	// fusion can start without a reset)
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: GNSS height fusion restarts and, since it could start without a
+	// reset, GNSS regains the height reference privilege
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+
+	// AND: the baro bias estimator becomes active again and tracks the
+	// baro-to-GNSS offset
+	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_rel, 0.6f);
+}
+
+TEST_F(EkfHeightFusionTest, gpsRefDeadReckoningStopRestartInconsistent)
+{
+	// GIVEN: GNSS altitude as the configured height reference, dead-reckoning
+	// GNSS mode, fusing both GNSS and baro height
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.setGnssDeadReckonMode();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(10);
+
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+
+	// WHEN: GNSS height fusion stops (no more data)
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the reference falls back to baro
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	const float frozen_baro_bias = _ekf->getBaroBiasEstimatorStatus().bias;
+
+	// WHEN: GNSS data comes back but disagrees strongly with the (baro-defined)
+	// estimate, so its innovation is rejected and fusion cannot start cleanly
+	_sensor_simulator._gps.stepHeightByMeters(50.f);
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: because a reset to GNSS is not allowed in dead-reckoning mode while
+	// baro is still aiding, and the measurement cannot be fused without a reset,
+	// GNSS height fusion does NOT restart and baro remains the reference
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
+
+	// AND: the baro bias estimator stays inactive, so its reported bias is frozen
+	EXPECT_EQ(_ekf->getBaroBiasEstimatorStatus().bias, frozen_baro_bias);
 }
 
 TEST_F(EkfHeightFusionTest, baroRefFailOver)

@@ -114,7 +114,7 @@ SmartAP AIRLink's Core edition is intended for medium to high volume production 
 
 ![AIRLink Core](../../assets/flight_controller/airlink/airlink-core.jpg)
 
-| 参数                  | AIRLink Enterprise                                                          | AIRLink Core                                                                                        |
+| Parameter           | AIRLink Enterprise                                                          | AIRLink Core                                                                                        |
 | ------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Enclosure           | Aluminum, with integrated heatsink and fan mounting option. | External heatsink or reasonable power dissipation should be provided by the design. |
 | 尺寸                  | L103 x W61 x H37 mm                                                         | L100 x W57 x H22 mm                                                                                 |

@@ -52,7 +52,7 @@ You will need to configure PX4 to indicate the serial port to which the sensor i
 
 The [parameters to change](../advanced_config/parameters.md) are listed in the table.
 
-| 매개변수                                                                                                                                                                    | 설명                                                                 |
+| Parameter                                                                                                                                                               | 설명                                                                 |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | <a id="SENS_EN_GRF_CFG"></a>[SENS_EN_GRF_CFG](../advanced_config/parameter_reference.md#SENS_EN_GRF_CFG) | Set to the serial port the sensor is connected to. |
 | <a id="GRF_RATE_CFG"></a>[GRF_RATE_CFG](../advanced_config/parameter_reference.md#GRF_RATE_CFG)                               | Set the update rate.                               |

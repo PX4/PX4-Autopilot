@@ -53,6 +53,7 @@ add_executable(failsafe_test EXCLUDE_FROM_ALL
 	emscripten.cpp
 	failsafe.cpp
 	framework.cpp
+	${PX4_SOURCE_DIR}/platforms/common/module_params.cpp
 	)
 set_property(TARGET failsafe_test PROPERTY UNITY_BUILD ON) # avoids some method calls to e.g. param_name or param_type
 set_property(TARGET failsafe_test PROPERTY LINK_DEPENDS ${html_output_file})

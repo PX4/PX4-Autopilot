@@ -16,7 +16,8 @@
   - 支持新的 [airframes](../dev_airframes/index.md)。
 - 学习如何将PX4集成到新的硬件上：
   - 支持新的传感器和执行器, 包括摄像头、测距仪等。
-  - 修改PX4使之能够在新的自驾仪硬件上运行。
+  - Modify PX4 to run on [new autopilot hardware](../hardware/porting_guide.md).
+  - As a manufacturer, [get your board officially supported by PX4](../hardware/board_support_guide.md).
 - 获取一个[最小的开发者设置](../dev_setup/config_initial.md), [从源代码生成PX4](../dev_setup/building_px4.md) 并部署在[众多支持的自动化设备](../flight_controller/index.md)。
 - 与外部机器人的 API 进行联调通信/集成。
 

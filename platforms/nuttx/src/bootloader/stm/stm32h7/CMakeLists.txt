@@ -32,3 +32,13 @@
 ############################################################################
 
 add_subdirectory(../stm32_common arch_bootloader)
+
+target_sources(arch_bootloader
+	PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}/ecc_scrub.c
+)
+
+target_include_directories(arch_bootloader
+	PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}
+)

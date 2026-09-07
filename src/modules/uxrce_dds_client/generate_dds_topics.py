@@ -102,6 +102,26 @@ def process_message_type(msg_type):
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
 
+    # publish_interval_ms: maps the optional rate_limit (Hz) to the orb_set_interval
+    # gate, which is expressed in integer milliseconds. An unlimited rate (0) also
+    # makes the bridge drain the whole uORB queue each poll wakeup instead of
+    # forwarding only the latest sample (see SendTopicsSubs::update).
+    #   absent                  -> None: template uses UXRCE_DEFAULT_POLL_INTERVAL_MS
+    #   0 or 'unlimited'/'off'   -> 0: rate limiting disabled, drain the whole queue
+    #   N > 0                    -> round(1000/N), clamped to a >=1ms floor (anything finer
+    #                               than 1ms cannot be expressed and must use 'unlimited')
+    rate = msg_type.get('rate_limit', None)
+    if rate is None:
+        msg_type['publish_interval_ms'] = None
+    elif (isinstance(rate, str) and rate.strip().lower() in ('unlimited', 'off', 'none')) \
+            or (isinstance(rate, (int, float)) and rate <= 0):
+        msg_type['publish_interval_ms'] = 0
+    elif isinstance(rate, (int, float)):
+        msg_type['publish_interval_ms'] = max(1, round(1000.0 / float(rate)))
+    else:
+        raise ValueError(f"invalid rate_limit {rate!r} for topic {msg_type['topic']}: "
+                         "expected a positive number, 0, or 'unlimited'")
+
     # Optional per-publisher QoS options from YAML 'options:' field.
     # Converts e.g. {cc: block, express: true} -> "cc=block,express=true"
     opts = msg_type.get('options', None)

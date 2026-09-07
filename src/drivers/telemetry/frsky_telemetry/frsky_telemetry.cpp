@@ -396,7 +396,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		float filtered_alt = NAN;
 		float last_baro_alt = 0.f;
-		int airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
+		orb_sub_t airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 
 		uint32_t lastBATV_ms = 0;
 		uint32_t lastCUR_ms = 0;

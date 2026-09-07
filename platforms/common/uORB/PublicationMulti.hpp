@@ -51,8 +51,27 @@ namespace uORB
 /**
  * Base publication multi wrapper class
  */
+class PublicationMultiBase : public PublicationBase
+{
+public:
+	bool advertise();
+
+	int get_instance();
+
+protected:
+	PublicationMultiBase(ORB_ID id) :
+		PublicationBase(id)
+	{}
+
+	// type-independent publish; data points to a message of the topic's type
+	bool publish(const void *data);
+};
+
+/**
+ * Publication multi wrapper class
+ */
 template<typename T>
-class PublicationMulti : public PublicationBase
+class PublicationMulti : public PublicationMultiBase
 {
 public:
 
@@ -62,45 +81,18 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 */
 	PublicationMulti(ORB_ID id) :
-		PublicationBase(id)
+		PublicationMultiBase(id)
 	{}
 
 	PublicationMulti(const orb_metadata *meta) :
-		PublicationBase(static_cast<ORB_ID>(meta->o_id))
+		PublicationMultiBase(static_cast<ORB_ID>(meta->o_id))
 	{}
-
-	bool advertise()
-	{
-		if (!advertised()) {
-			int instance = 0;
-			_handle = orb_advertise_multi(get_topic(), nullptr, &instance);
-		}
-
-		return advertised();
-	}
 
 	/**
 	 * Publish the struct
 	 * @param data The uORB message struct we are updating.
 	 */
-	bool publish(const T &data)
-	{
-		if (!advertised()) {
-			advertise();
-		}
-
-		return (orb_publish(get_topic(), _handle, &data) == PX4_OK);
-	}
-
-	int get_instance()
-	{
-		// advertise if not already advertised
-		if (advertise()) {
-			return Manager::orb_get_instance(_handle);
-		}
-
-		return -1;
-	}
+	bool publish(const T &data) { return PublicationMultiBase::publish(&data); }
 };
 
 /**

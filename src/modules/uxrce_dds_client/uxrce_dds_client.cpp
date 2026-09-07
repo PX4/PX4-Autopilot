@@ -609,6 +609,10 @@ void UxrceddsClient::syncSystemClock(uxrSession *session)
 		return;
 	}
 
+	if (!(_param_sys_time_src.get() & SYS_TIME_SRC_DDS)) {
+		return;
+	}
+
 	ts.tv_sec = agent_utc / 1_s;
 	ts.tv_nsec = (agent_utc % 1_s) * 1000;
 
@@ -673,10 +677,10 @@ void UxrceddsClient::run()
 			int orb_poll_timeout_ms = 1;
 
 			if (_fd >= 0) {
-				px4_pollfd_struct_t transport_pollfd {};
+				struct pollfd transport_pollfd {};
 				transport_pollfd.fd = _fd;
 				transport_pollfd.events = POLLIN;
-				const int transport_poll = px4_poll(&transport_pollfd, 1, 0);
+				const int transport_poll = poll(&transport_pollfd, 1, 0);
 
 				if (transport_poll > 0) {
 					orb_poll_timeout_ms = 0;

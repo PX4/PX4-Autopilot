@@ -8,11 +8,27 @@ _Режим місії_ змушує транспортний засіб вик�
 ::: info
 
 - Цей режим потребує глобальної оцінки 3D-позиції (з GPS або виведеної з [локальної позиції](../ros/external_position_estimation.md#enabling-auto-modes-with-a-local-position)).
-- Транспортний засіб повинен бути озброєний перед тим, як цей режим може бути активований.
+- The mission will start once the vehicle is armed.
 - Цей режим є автоматичним - для керування автомобілем не потрібно втручання користувача.
-- Перемикачі керування RC можуть використовуватися для зміни режимів польоту на будь-якому транспортному засобі.
+- Sticks/switches can be used to switch out of mission mode on any vehicle.
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_auto_mission -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_global_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_global_position_relaxed) — Position measurement updates in a global coordinate frame but accepts poor accuracy
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_mission`](../flight_modes/mode_requirements.md#mode_req_mission) — Valid mission in autopilot's storage
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_auto_mission -->
 
 ## Опис
 
@@ -57,7 +73,7 @@ _Режим місії_ змушує транспортний засіб вик�
 
 :::
 
-Місії можна призупинити, переключившись з режиму місії на будь-який інший режим (наприклад, [режим утримання](../flight_modes_fw/hold.md) або [режим позиціонування](../flight_modes_fw/position.md)), і продовжити, переключившись назад в режим місії.
+Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Cruise mode](../flight_modes_fw/cruise.md)), and resumed by switching back to mission mode.
 Якщо транспортний засіб не захоплював зображення, коли він був призупинений, під час відновлення він рухатиметься зі своєї _поточної позиції_ до тієї ж точки шляху, до якої він спочатку рухався.
 Якщо транспортний засіб захоплював зображення (має елементи спуску камери), він замість цього рухатиметься зі своєї поточної позиції до останньої точки шляху, якою він проїхав (перед зупинкою), а потім пройде свій шлях з тією самою швидкістю та з такою самою поведінкою спуску камери.
 Це забезпечує, що планований шлях зафіксований під час місій з опитування/камери.
@@ -110,14 +126,14 @@ _QGroundControl_ надає додаткову підтримку обробки
 
 Загальні параметри:
 
-| Параметр                                                                                                                                     | Опис                                                                                                                                                                                                        |
+| Parameter                                                                                                                                    | Опис                                                                                                                                                                                                        |
 | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)       | Режим аварійного відновлення зв'язку RC (що робить транспортний засіб, якщо втрачає зв'язок RC) - наприклад, увійти в режим утримання, режим повернення, завершити тощо. |
 | <a id="NAV_LOITER_RAD"></a>[NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_RCL_ACT) | Фіксований радіус утримання крил.                                                                                                                                                           |
 
 Параметри, пов'язані з [перевірками можливостей місії](#mission-feasibility-checks):
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                                                                                                                   |
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                   |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="MIS_DIST_1WP"></a>[MIS_DIST_1WP](../advanced_config/parameter_reference.md#MIS_DIST_1WP)                                  | There is a warning message if the distance of the first waypoint to Home is more than this value. Вимкнено, якщо значення дорівнює 0 або менше.                        |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)                                        | Максимальний кут нахилу підйому.                                                                                                                                                       |
@@ -222,6 +238,23 @@ This is defined by the "L1 distance", which is computed from two parameters: [NP
 
 $$L_{1_{distance}}=\frac{1}{\pi}L_{1_{damping}}L_{1_{period}}\left \| \vec{v}_{ {xy}_{ground} } \right \|$$
 
+## Altitude Changes Between Waypoints
+
+When the target altitude changes from one waypoint to the next, PX4 does not change the altitude setpoint in a single step.
+Instead it ramps the altitude setpoint linearly (a first order hold, FOH) from the vehicle's **current altitude** to the new target altitude, reaching the target by the time the vehicle arrives at the acceptance radius of the current waypoint.
+The result is a smooth diagonal climb or descent along the leg, rather than an immediate climb/descent followed by level flight.
+
+![Fixed-wing altitude profile for a climbing mission leg](../../assets/flight_modes/fw_waypoint_altitude_foh.png)
+
+The ramp is anchored at the altitude the vehicle is at when the new target is received, and its progress is measured by the vehicle's horizontal approach to the waypoint (not by time).
+
+If the vehicle cannot follow the ramp (for example when the required climb or sink rate exceeds what the aircraft can achieve), the altitude setpoint still reaches the full target altitude at the acceptance radius.
+Any remaining altitude error is then removed by climbing or sinking once the vehicle reaches the horizontal position of the waypoint.
+
+:::info
+The ramp is (re)started whenever the target altitude changes; consecutive waypoints at the same altitude are held level.
+:::
+
 ## Місія зліт
 
 Початок польотів з місією зльоту (і посадка за допомогою місії посадки) є рекомендованим способом автономної роботи літака.
@@ -278,7 +311,7 @@ A fixed-wing mission requires a `Takeoff` mission item to takeoff; if however th
 
 Параметри, які впливають на посадковий захід, перераховані нижче.
 
-| Параметр                                                                                                                                      | Опис                                                                                                                                                                       |
+| Parameter                                                                                                                                     | Опис                                                                                                                                                                       |
 | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)           | Максимальний досяжний кут нахилу під час посадки. Зверніть увагу, що менші кути все ще можуть бути вказані через пункт місії посадки.      |
 | [FW_LND_EARLYCFG](../advanced_config/parameter_reference.md#FW_LND_EARLYCFG)                        | Необов'язково розгортати конфігурацію посадкового спуску під час посадкової орбіти (наприклад, закрилки, спойлери, швидкість посадки).  |
@@ -297,7 +330,7 @@ A fixed-wing mission requires a `Takeoff` mission item to takeoff; if however th
 
 Параметри, які впливають на вогнення, перераховані нижче.
 
-| Параметр                                                                                                                                                             | Опис                                                                                                                                                                                                                                                          |
+| Parameter                                                                                                                                                            | Опис                                                                                                                                                                                                                                                          |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FW_LND_FL_TIME"></a>[FW_LND_FL_TIME](../advanced_config/parameter_reference.md#FW_LND_FL_TIME) | Час до удару (при поточній швидкості спуску), коли транспортний засіб повинен піднятися.                                                                                                                                   |
 | <a id="FW_LND_FL_SINK"></a>[FW_LND_FL_SINK](../advanced_config/parameter_reference.md#FW_LND_FL_SINK) | Поверхотинна швидкість опускання літака буде слідувати під час розкриття.                                                                                                                                                                     |
@@ -307,6 +340,44 @@ A fixed-wing mission requires a `Takeoff` mission item to takeoff; if however th
 | <a id="FW_LND_TD_TIME"></a>[FW_LND_TD_TIME](../advanced_config/parameter_reference.md#FW_LND_TD_TIME) | Час після початку спалаху, коли транспортний засіб повинен опустити ніс.                                                                                                                                                                      |
 | <a id="RWTO_PSP"></a>[RWTO_PSP](../advanced_config/parameter_reference.md#RWTO_PSP)                                                             | Налагодження польоту під час зльоту. Для шасі трициклів, зазвичай близько до нуля. Для літаків з хвостовим краденцем, позитивно.                                                                              |
 | <a id="FW_THR_IDLE"></a>[FW_THR_IDLE](../advanced_config/parameter_reference.md#FW_THR_IDLE)                               | Встановлення планки холостого ходу. Транспортний засіб буде зберігати цей параметр протягом спалаху та розвороту.                                                                                                             |
+
+### Parachute Landing
+
+A mission landing can end in a parachute descent, releasing the parachute such that the vehicle touches down on the land waypoint ([MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND)).
+This allows recovery in areas where a rollout or belly landing is not possible.
+
+The feature is enabled with [FW_LND_PARA_EN](#FW_LND_PARA_EN) and requires a [parachute](../peripherals/parachute.md), either on a flight controller output (_Parachute_ output function) or as an external MAVLink parachute system ([COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE)).
+
+The vehicle follows the normal landing approach down to the release altitude ([FW_LND_PARA_ALT](#FW_LND_PARA_ALT)), then continues level towards the land waypoint.
+The parachute is released by triggering [flight termination](../advanced_config/flight_termination.md) once the predicted touchdown point under canopy lies on the land waypoint.
+The prediction accounts for the forward carry while the parachute deploys, and the drift with the estimated wind while the vehicle sinks at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK).
+Crosswind is compensated by aiming upwind of the land waypoint.
+
+:::warning
+The release triggers flight termination: the landing cannot be aborted after the release, and the vehicle must be rebooted before the next flight.
+[Operator abort](#operator-abort) works normally at any time before the release.
+:::
+
+Notes:
+
+- The touchdown point drifts with the wind, and the horizontal touchdown speed matches the wind speed.
+  Accuracy and touchdown quality degrade as the wind approaches the landing airspeed ([COM_WIND_MAX](../advanced_config/parameter_reference.md#COM_WIND_MAX) can enforce a wind limit).
+- Lowering the release altitude reduces the wind drift.
+  For safety reasons, the release altitude is clamped to a minimum of 3 seconds of descent at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK), so that the canopy has room to open before touchdown.
+- [FW_LND_PARA_ALT](#FW_LND_PARA_ALT) is the altitude the vehicle holds while waiting for the release point.
+  The release prediction always uses the actual altitude:
+  - A vehicle that holds the altitude releases at the configured altitude, or above it if the release point is reached while still on the approach slope.
+  - A vehicle that cannot hold the altitude (for example a motor-less glider) keeps sinking while the prediction adapts, and still releases such that it touches down on the land waypoint.
+    Only if it sinks to the minimum release altitude before reaching the release point does it release there, and touch down short of the waypoint.
+- Not supported on VTOL.
+
+#### Parachute Landing Parameters
+
+| Parameter                                                                                                                                                                  | Опис                                                                                                    |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| <a id="FW_LND_PARA_EN"></a>[FW_LND_PARA_EN](../advanced_config/parameter_reference.md#FW_LND_PARA_EN)       | Enable parachute landing on the mission landing approach.                               |
+| <a id="FW_LND_PARA_ALT"></a>[FW_LND_PARA_ALT](../advanced_config/parameter_reference.md#FW_LND_PARA_ALT)    | Release altitude above the land waypoint.                                               |
+| <a id="FW_LND_PARA_SINK"></a>[FW_LND_PARA_SINK](../advanced_config/parameter_reference.md#FW_LND_PARA_SINK) | Expected sink rate under canopy, used to predict the wind drift of the touchdown point. |
 
 ### Відміна
 
@@ -333,7 +404,7 @@ Landing configuration (e.g. flaps, spoilers, landing airspeed) is disabled durin
 Вимкнення оцінки місцевості за допомогою [FW_LND_USETER](#FW_LND_USETER) та обрані біти [FW_LND_ABORT](#FW_LND_ABORT) призведе до видалення вимоги до датчика відстані за замовчуванням, але внаслідок цього спадає до висоти посадки GNSS для визначення висоти опускання, яка може бути кілька метрів занадто високо або занадто низько, що потенційно може призвести до пошкодження фюзеляжу.
 :::
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                |
+| Parameter                                                                                                                                                                  | Опис                                                                                                |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | <a id="MIS_LND_ABRT_ALT"></a>[MIS_LND_ABRT_ALT](../advanced_config/parameter_reference.md#MIS_LND_ABRT_ALT) | Мінімальна висота над точкою на землі, на яку може бути вказано відмову від орбіти. |
 | <a id="FW_LND_ABORT"></a>[FW_LND_ABORT](../advanced_config/parameter_reference.md#FW_LND_ABORT)                                  | Визначає, які критерії автоматичної відмови увімкнені.                              |
@@ -357,10 +428,10 @@ Landing configuration (e.g. flaps, spoilers, landing airspeed) is disabled durin
 
 :::info
 Відштовхування (Nudging) не повинно використовуватися для доповнення поганого налаштування контролю позиції.
-If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/position.md) for instruction.
+If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/cruise.md) for instruction.
 :::
 
-| Параметр                                                                                                                                                          | Опис                                                                                         |
+| Parameter                                                                                                                                                         | Опис                                                                                         |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | <a id="FW_LND_NUDGE"></a>[FW_LND_NUDGE](../advanced_config/parameter_reference.md#FW_LND_NUDGE)                         | Увімкнути рух управляння для посадки літака з нерухомим крилом.              |
 | <a id="FW_LND_TD_OFF"></a>[FW_LND_TD_OFF](../advanced_config/parameter_reference.md#FW_LND_TD_OFF) | Налаштувати допустиме бічне зміщення посадки від командованої точки посадки. |
@@ -372,7 +443,7 @@ In landing mode, the distance sensor is used to determine proximity to the groun
 
 ![Посадка літака з фіксованим криломТоркання(../../assets/flying/wing_geometry.png)
 
-| Параметр                                                                                                             | Опис                                                                                                    |
+| Parameter                                                                                                            | Опис                                                                                                    |
 | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | [FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)     | Розмах крила каркасу.                                                                   |
 | [FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT) | Висота крила від нижньої частини шасі (або живота, якщо немає шасі). |

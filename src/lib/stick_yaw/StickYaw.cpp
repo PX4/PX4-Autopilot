@@ -64,7 +64,8 @@ void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint
 		yaw_setpoint = NAN;
 	}
 
-	_yawspeed_filter.setParameters(deltatime, _param_mpc_man_y_tau.get());
+	_yawspeed_filter.setParameters(static_cast<uint64_t>(deltatime * 1e6f),
+				       static_cast<uint64_t>(math::max(_param_mpc_man_y_tau.get(), 0.f) * 1e6f));
 	const float yawspeed_scale = math::min(math::radians(_param_mpc_man_y_max.get()), _yawspeed_constraint);
 	yawspeed_setpoint = _yawspeed_filter.update(stick_yaw * yawspeed_scale);
 	yaw_setpoint = updateYawLock(yaw, yawspeed_setpoint, yaw_setpoint, yaw_correction_prev);
@@ -73,6 +74,7 @@ void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint
 bool StickYaw::updateYawCorrection(const float yaw, const float unaided_yaw, const float deltatime)
 {
 	if (!PX4_ISFINITE(unaided_yaw)) {
+		_unaided_yaw_was_invalid = true;
 		// If unaided yaw is not available we leave yaw_correction_ unchanged
 		// Meaning yaw_setpoint - yaw_correction_prev + _yaw_correction = yaw_setpoint
 		return false;
@@ -82,9 +84,18 @@ bool StickYaw::updateYawCorrection(const float yaw, const float unaided_yaw, con
 	// distance from an unaided yaw source.
 	const float yaw_error = wrap_pi(yaw - unaided_yaw);
 
+	if (_unaided_yaw_was_invalid) {
+		_unaided_yaw_was_invalid = false;
+		_yaw_error_lpf.reset(yaw_error);
+		_yaw_error_ref = yaw_error;
+		_yaw_correction = 0.f;
+		_yaw_estimate_converging = false;
+		return true;
+	}
+
 	// Run it through a high-pass filter to detect transients
 	const float yaw_error_hpf = wrap_pi(yaw_error - _yaw_error_lpf.getState());
-	_yaw_error_lpf.update(yaw_error, deltatime);
+	_yaw_error_lpf.update(yaw_error, static_cast<uint64_t>(deltatime * 1e6f));
 
 	const bool was_converging = _yaw_estimate_converging;
 	_yaw_estimate_converging = fabsf(yaw_error_hpf) > _kYawErrorChangeThreshold;

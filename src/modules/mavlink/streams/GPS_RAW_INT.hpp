@@ -34,6 +34,7 @@
 #ifndef GPS_RAW_INT_HPP
 #define GPS_RAW_INT_HPP
 
+#include <lib/gnss/SensorGpsSelector.hpp>
 #include <uORB/topics/sensor_gps.h>
 
 using namespace time_literals;
@@ -58,16 +59,25 @@ private:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
+	SensorGpsSelector _gps_selector{};
 	hrt_abstime _last_send_ts {};
+	bool _yaw_capable{false}; ///< a heading has been reported at least once
 	static constexpr hrt_abstime kNoGpsSendInterval {1_s};
 
 	bool send() override
 	{
+		const uint8_t primary = _gps_selector.primary_instance();
+
+		if (primary != _sensor_gps_sub.get_instance()) {
+			_sensor_gps_sub.ChangeInstance(primary);
+		}
+
 		sensor_gps_s gps;
 		mavlink_gps_raw_int_t msg{};
 		hrt_abstime now{};
 
-		if (_sensor_gps_sub.update(&gps)) {
+		// only report the primary receiver, never another instance's data
+		if ((_sensor_gps_sub.get_instance() == primary) && _sensor_gps_sub.update(&gps)) {
 			if (gps.time_utc_usec <= 0) {
 				msg.time_usec = gps.timestamp;
 
@@ -97,6 +107,8 @@ private:
 			msg.vel_acc = gps.s_variance_m_s * 1e3f; // speed uncertainty in mm
 
 			if (PX4_ISFINITE(gps.heading)) {
+				_yaw_capable = true;
+
 				if (fabsf(gps.heading) < FLT_EPSILON) {
 					msg.yaw = 36000; // Use 36000 for north.
 
@@ -107,6 +119,11 @@ private:
 				if (PX4_ISFINITE(gps.heading_accuracy)) {
 					msg.hdg_acc = math::degrees(gps.heading_accuracy) * 1e5f; // Heading / track uncertainty in degE5
 				}
+
+			} else if (_yaw_capable) {
+				// 0 means the receiver never provides yaw, so a receiver that does has to
+				// report the samples it has no heading for as invalid instead
+				msg.yaw = UINT16_MAX;
 			}
 
 			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
@@ -121,6 +138,11 @@ private:
 			msg.vel = UINT16_MAX;
 			msg.cog = UINT16_MAX;
 			msg.satellites_visible = UINT8_MAX;
+
+			if (_yaw_capable) {
+				msg.yaw = UINT16_MAX;
+			}
+
 			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
 			_last_send_ts = now;
 

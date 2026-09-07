@@ -52,7 +52,7 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 	// Motors
 	_rotors.enablePropellerTorque(false);
 	const bool rotors_added_successfully = _rotors.addActuators(configuration);
-	_forwards_motors_mask = _rotors.getForwardsMotors();
+	_rotors.setMotorDirectionBitmasks(_motor_direction_bitmasks);
 
 	// Control Surfaces
 	_first_control_surface_idx = configuration.num_actuators_matrix[0];
@@ -64,8 +64,6 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 		ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
 {
-	stopMaskedMotorsWithZeroThrust(_forwards_motors_mask, actuator_sp);
-
 	// disable selected control surfaces during launch
 	launch_detection_status_s launch_detection_status;
 

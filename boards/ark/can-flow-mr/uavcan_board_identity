@@ -7,7 +7,7 @@ add_definitions(
 )
 
 set(uavcanblid_hw_version_major 0)
-set(uavcanblid_hw_version_minor 88)
+set(uavcanblid_hw_version_minor 94)
 set(uavcanblid_name "\"org.ark.can-flow-mr\"")
 
 add_definitions(

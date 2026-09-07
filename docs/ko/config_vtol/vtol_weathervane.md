@@ -27,7 +27,7 @@ In [Mission mode](../flight_modes_vtol/mission.md) the weather vane feature will
 
 This functionality is configured using the [WV\_\* parameters](../advanced_config/parameter_reference.md#WV_EN).
 
-| 매개변수                                                                                                             | 설명                                              |
+| Parameter                                                                                                        | 설명                                              |
 | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | [WV_EN](../advanced_config/parameter_reference.md#WV_EN)                                    | 풍향계 활성화                                         |
 | [WV_ROLL_MIN](../advanced_config/parameter_reference.md#WV_ROLL_MIN)   | 요율을 요구하는 풍향계 컨트롤러의 최소 롤 각도 설정점. |

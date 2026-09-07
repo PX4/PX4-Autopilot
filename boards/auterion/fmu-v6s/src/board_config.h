@@ -84,8 +84,6 @@
  * Note that these are unshifted addresses.
  */
 #define BOARD_MTD_NUM_EEPROM 1 /* MTD: imu_eeprom */
-#define PX4_I2C_BUS_MTD      4
-
 
 /* CAN */
 #define UAVCAN_NUM_IFACES_RUNTIME  1
@@ -202,8 +200,14 @@ extern void stm32_spiinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
-/* Initialise the FRAM MTD. */
-extern void board_configure_fram(void);
+/* Sets EEPROM manifest based on chip size. */
+extern void board_set_eeprom_manifest(bool small_eeprom);
+
+/* Initialise the FRAM MTD and update the manifest. Returns OK on success. */
+extern int board_configure_fram(void);
+
+/* Initialise the NOR flash MTD and update the manifest. Returns OK on success. */
+extern int board_configure_nor(void);
 
 #include <px4_platform_common/board_common.h>
 

@@ -183,7 +183,7 @@ make px4_sitl gz_tiltrotor
 
 ![VTOL Tiltrotor in Gazebo](../../assets/simulation/gazebo/vehicles/vtol_tiltrotor.png)
 
-## Ровер
+## Rover
 
 ### Differential Rover
 

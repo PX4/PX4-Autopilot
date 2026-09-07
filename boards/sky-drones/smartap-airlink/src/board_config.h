@@ -257,11 +257,6 @@
 #define RC_SERIAL_PORT                     "/dev/ttyS5"
 #define RC_SERIAL_SINGLEWIRE
 
-/* Input Capture Channels. */
-#define INPUT_CAP1_TIMER                  5
-#define INPUT_CAP1_CHANNEL     /* T5C4 */ 4
-#define GPIO_INPUT_CAP1        /*  PI0 */ GPIO_TIM5_CH4IN
-
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
 #define PWMIN_TIMER_CHANNEL    /* T4C2 */ 2
@@ -355,9 +350,6 @@
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define BOARD_NUM_IO_TIMERS 5
-
-
-#define PX4_I2C_BUS_MTD      4,5
 
 __BEGIN_DECLS
 

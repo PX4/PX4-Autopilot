@@ -21,11 +21,11 @@ param set-default CA_ROTOR0_PX 0.3
 # SIH for now hardcodes this configuration which we need to match in the airframe files.
 param set-default CA_SV_CS_COUNT 3
 param set-default CA_SV_CS0_TRQ_R 1
-param set-default CA_SV_CS0_TYPE 15  # single channel aileron
+param set-default CA_SV_CS0_TYPE 15 # single channel aileron
 param set-default CA_SV_CS1_TRQ_P 1
-param set-default CA_SV_CS1_TYPE 3  # elevator
+param set-default CA_SV_CS1_TYPE 3 # elevator
 param set-default CA_SV_CS2_TRQ_Y 1
-param set-default CA_SV_CS2_TYPE 4  # rudder
+param set-default CA_SV_CS2_TYPE 4 # rudder
 
 param set HIL_ACT_FUNC1 201
 param set HIL_ACT_FUNC2 202
@@ -46,8 +46,8 @@ param set SIH_IZZ 0.0177
 param set SIH_IXZ 0.00046
 param set SIH_KDV 0.2
 
-param set SIH_VEHICLE_TYPE 1 	# sih as fixed wing
-param set RWTO_TKOFF 1  # enable takeoff from runway (as opposed to launched)
+param set SIH_VEHICLE_TYPE 1 # sih as fixed wing
+param set RWTO_TKOFF 1 # enable takeoff from runway (as opposed to launched)
 
 # pusher propeller model with advance ratio, model from UIUC APC 8x6"
 param set SIH_F_T_MAX 6

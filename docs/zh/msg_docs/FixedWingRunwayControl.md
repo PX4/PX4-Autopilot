@@ -10,12 +10,13 @@ Auxiliary control fields for fixed-wing runway takeoff/landing.
 
 ## Fields
 
-| 参数名                                                                                                                                    | 类型        | Unit [Frame] | Range/Enum                                                                   | 描述                                                                                                         |
-| -------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp                                                                                                    | `uint64`  | us                                                               |                                                                              | time since system start                                                                                    |
-| <a id="fld_runway_takeoff_state"></a>runway_takeoff_state                                    | `uint8`   |                                                                  |                                                                              | Current state of runway takeoff state machine                                                              |
-| <a id="fld_wheel_steering_enabled"></a>wheel_steering_enabled                                | `bool`    |                                                                  |                                                                              | Flag that enables the wheel steering.                                                      |
-| <a id="fld_wheel_steering_nudging_rate"></a>wheel_steering_nudging_rate | `float32` | FRD                                                              | [-1 : 1] | Manual wheel nudging, added to controller output. NAN is interpreted as 0. |
+| 参数名                                                                                                                                    | 类型        | Unit [Frame] | Range/Enum                                                                     | 描述                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                                                    | `uint64`  | us                                                               |                                                                                | time since system start                                                                                                       |
+| <a id="fld_runway_takeoff_state"></a>runway_takeoff_state                                    | `uint8`   |                                                                  |                                                                                | Current state of runway takeoff state machine                                                                                 |
+| <a id="fld_wheel_steering_enabled"></a>wheel_steering_enabled                                | `bool`    |                                                                  |                                                                                | Flag that enables the wheel steering.                                                                         |
+| <a id="fld_wheel_steering_yaw_setpoint"></a>wheel_steering_yaw_setpoint | `float32` | rad                                                              | [-pi : pi] | For the wheel controller to track. NAN means hold the heading captured when steering engaged. |
+| <a id="fld_wheel_steering_nudging_rate"></a>wheel_steering_nudging_rate | `float32` | FRD                                                              | [-1 : 1]   | Manual wheel nudging, added to controller output. NAN is interpreted as 0.                    |
 
 ## Constants
 
@@ -48,6 +49,7 @@ uint8 STATE_FLYING = 3			# navigate freely
 uint8 runway_takeoff_state		# Current state of runway takeoff state machine
 
 bool wheel_steering_enabled		# Flag that enables the wheel steering.
+float32 wheel_steering_yaw_setpoint	# [rad] [@range -pi, pi] For the wheel controller to track. NAN means hold the heading captured when steering engaged.
 float32 wheel_steering_nudging_rate	# [norm] [@range -1, 1] [FRD] Manual wheel nudging, added to controller output. NAN is interpreted as 0.
 ```
 

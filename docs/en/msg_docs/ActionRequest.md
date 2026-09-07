@@ -50,6 +50,12 @@ Used in field(s): [source](#fld_source)
 | <a id="#SOURCE_RC_BUTTON"></a> SOURCE_RC_BUTTON         | `uint8` | 2     | Triggered by a momentary button on the RC being pressed or held |
 | <a id="#SOURCE_RC_MODE_SLOT"></a> SOURCE_RC_MODE_SLOT   | `uint8` | 3     | Mode change through the RC mode selection mechanism             |
 
+## Constants
+
+| Name                                            | Type    | Value | Description |
+| ----------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 4     |
+
 ## Source Message
 
 [Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ActionRequest.msg)
@@ -83,6 +89,8 @@ uint8 SOURCE_RC_BUTTON = 2 # Triggered by a momentary button on the RC being pre
 uint8 SOURCE_RC_MODE_SLOT = 3 # Mode change through the RC mode selection mechanism
 
 uint8 mode # Requested mode. Only applies when `action` is `ACTION_SWITCH_MODE`. Values for this field are defined by the `vehicle_status_s::NAVIGATION_STATE_*` enumeration.
+
+uint8 ORB_QUEUE_LENGTH = 4
 ```
 
 :::

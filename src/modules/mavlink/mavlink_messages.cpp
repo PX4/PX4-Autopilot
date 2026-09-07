@@ -85,7 +85,6 @@
 #endif
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
 #include "streams/GPS_RAW_INT.hpp"
-#include "streams/GPS_RTCM_DATA.hpp"
 #include "streams/GPS_STATUS.hpp"
 #include "streams/HEARTBEAT.hpp"
 #include "streams/HIGHRES_IMU.hpp"
@@ -257,7 +256,8 @@ static_assert(41 == ROTATION_MAX, "Keep MAV_SENSOR_ROTATION and PX4 Rotation in 
 static_assert(MAV_SENSOR_ROTATION_CUSTOM == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_CUSTOM), "Custom Rotation");
 
 
-static const StreamListItem streams_list[] = {
+// constexpr so the table is emitted into .rodata instead of being built at runtime by static-init code
+static constexpr StreamListItem streams_list[] = {
 #if defined(HEARTBEAT_HPP)
 	create_stream_list_item<MavlinkStreamHeartbeat>(),
 #endif // HEARTBEAT_HPP
@@ -512,9 +512,6 @@ static const StreamListItem streams_list[] = {
 #if defined(EFI_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamEfiStatus>(),
 #endif // EFI_STATUS_HPP
-#if defined(GPS_RTCM_DATA_HPP)
-	create_stream_list_item<MavlinkStreamGPSRTCMData>(),
-#endif // GPS_RTCM_DATA_HPP
 #if defined(UAVIONIX_ADSB_OUT_CFG_HPP)
 	create_stream_list_item<MavlinkStreamUavionixADSBOutCfg>(),
 #endif // UAVIONIX_ADSB_OUT_CFG_HPP

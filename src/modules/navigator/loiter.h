@@ -65,7 +65,7 @@ private:
 	/**
 	 * Set the position to hold based on the current local position
 	 */
-	void set_loiter_position();
+	void set_loiter_position(const position_setpoint_s &reference_setpoint);
 
 	bool _loiter_at_last_link_position_executed{false};
 

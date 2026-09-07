@@ -33,6 +33,10 @@
 #pragma once
 #include <stdint.h>
 
+#if defined(__PX4_NUTTX)
+#include <nuttx/config.h>
+#endif
+
 typedef enum  {
 	MFT = 0,
 	MTD = 1,
@@ -49,8 +53,15 @@ typedef struct  {
 		I2C = 0,
 		SPI = 1,
 		ONCHIP = 2,
-		FLEXSPI = 3
+		FLEXSPI = 3,
 	} bus_type;
+
+	enum px4_spi_driver {
+		SPI_DRIVER_DEFAULT = 0,  /* Ramtron (FRAM) */
+#if defined(CONFIG_MTD_MX25L)
+		SPI_DRIVER_MX25L   = 1,  /* Macronix MX25L NOR flash */
+#endif
+	} spi_driver;
 
 	uint32_t devid;
 } px4_mft_device_t;

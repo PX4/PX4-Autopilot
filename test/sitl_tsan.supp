@@ -1,0 +1,17 @@
+# ThreadSanitizer suppressions for SITL runs that use the Gazebo bridge.
+#
+# These are races inside the third-party simulation transport (ZeroMQ and
+# gz-transport) and the PX4<->Gazebo bridge glue. None of it is in the flight
+# code path or the SIH-based CI, and we can't fix the prebuilt libraries -
+# suppressing it keeps TSan usable for finding real races in flight code.
+#
+# Do NOT add flight-code symbols here. Use: TSAN_OPTIONS="suppressions=<this file>"
+
+# ZeroMQ internals (background ZMQbg/IO threads)
+called_from_lib:libzmq.so.5
+
+# gz-transport library
+race:gz::transport
+
+# PX4 <-> Gazebo bridge glue (simulation only, not flight, not in SIH CI)
+race:GZBridge

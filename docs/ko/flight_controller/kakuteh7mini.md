@@ -116,7 +116,7 @@ KakuteH7mini is supported with PX4 main and v1.14 or newer.
 
 In addition to the [basic configuration](../config/index.md), the following parameters are important:
 
-| 매개변수                                                                                                           | 설정                                                                                         |
+| Parameter                                                                                                      | 설정                                                                                         |
 | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | 보드에 내부 자력계가 없기 때문에 비활성화하여야 합니다. 외부 자력계를 연결하여 활성화 할 수 있습니다. |
 

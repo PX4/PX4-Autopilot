@@ -275,14 +275,13 @@ constexpr int16_t negate<int16_t>(int16_t value)
 template<typename T>
 int countSetBits(T n)
 {
-	int count = 0;
+	return __builtin_popcount(n);
+}
 
-	while (n) {
-		count += n & 1;
-		n >>= 1;
-	}
-
-	return count;
+template<typename T>
+int countTrailingZeros(T n)
+{
+	return n == 0 ? (int)(sizeof(T) * 8) : __builtin_ctz(n);
 }
 
 inline bool isFinite(const float &value)

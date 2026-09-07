@@ -32,6 +32,7 @@
 ############################################################################
 
 add_subdirectory(accelerometer)
+add_subdirectory(barometer)
 add_subdirectory(device)
 add_subdirectory(gyroscope)
 add_subdirectory(led)

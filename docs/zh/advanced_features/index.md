@@ -3,6 +3,7 @@
 本节包含了部分关于 PX4 自驾仪的高级功能：
 
 - [空中交通防撞: ADS-B/FLARM/UTM](../peripherals/adsb_flarm.md)
+- [Detect And Avoid](../advanced_features/detect_and_avoid.md)
 - [机器视觉](../computer_vision/index.md)
   - [碰撞预防](../computer_vision/collision_prevention.md)
   - [运动捕捉（MoCap）](../computer_vision/motion_capture.md)

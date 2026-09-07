@@ -1,0 +1,149 @@
+module_name: failure_injection_manager
+parameters:
+  - group: Failure Injection
+    definitions:
+      SYS_FAILURE_EN:
+        description:
+          short: Enable failure injection
+          long: |-
+            If enabled allows Injection of Failures.
+
+            WARNING: the failures can easily cause crashes and are to be used with caution!
+        type: boolean
+        default: 0
+        reboot_required: true
+      SYS_FAIL_RC_SRC:
+        description:
+          short: RC aux input that triggers failure injection
+          long: |-
+            Defines the aux switch which injects the failure defined by SYS_FAIL_RC_UNIT,
+            SYS_FAIL_RC_MODE and SYS_FAIL_RC_INST;
+            Mapped via RC_MAP_AUXn and gated by SYS_FAILURE_EN.
+        type: enum
+        min: 0
+        max: 6
+        default: 0
+        reboot_required: true
+        values:
+          0: Disabled
+          1: AUX1
+          2: AUX2
+          3: AUX3
+          4: AUX4
+          5: AUX5
+          6: AUX6
+      SYS_FAIL_RC_UNIT:
+        description:
+          short: Component failed by the RC switch
+          long: |-
+            Which component the SYS_FAIL_RC_SRC trigger fails, with SYS_FAIL_RC_MODE on
+            SYS_FAIL_RC_INST.
+        type: enum
+        default: 101
+        reboot_required: true
+        values:
+          0: Gyro
+          1: Accel
+          2: Mag
+          3: Baro
+          4: GPS
+          7: Distance sensor
+          8: Airspeed
+          100: Battery
+          101: Motor
+          107: Traffic avoidance
+          200: CAN bus
+      SYS_FAIL_RC_MODE:
+        description:
+          short: Failure type applied by the RC switch
+          long: |-
+            How SYS_FAIL_RC_UNIT fails when the SYS_FAIL_RC_SRC trigger fires, on SYS_FAIL_RC_INST.
+            unsupported (unit, type) pairs are ignored.
+        type: enum
+        default: 0
+        reboot_required: true
+        values:
+          0: Ok (no failure)
+          1: "Off"
+          2: Stuck
+          3: Garbage
+          4: Wrong
+          5: Slow
+          6: Delayed
+          7: Intermittent
+      SYS_FAIL_RC_INST:
+        description:
+          short: Instances failed by the RC switch
+          long: |-
+            Bitmask of instances of SYS_FAIL_RC_UNIT that the SYS_FAIL_RC_SRC trigger
+            affects (bit 0 = instance 1, motor number for motors). 0 = all instances.
+        type: bitmask
+        bit:
+          0: Instance 1
+          1: Instance 2
+          2: Instance 3
+          3: Instance 4
+          4: Instance 5
+          5: Instance 6
+          6: Instance 7
+          7: Instance 8
+          8: Instance 9
+          9: Instance 10
+          10: Instance 11
+          11: Instance 12
+          12: Instance 13
+          13: Instance 14
+          14: Instance 15
+          15: Instance 16
+        default: 1
+        min: 0
+        max: 65535
+        reboot_required: true
+      SYS_FAIL_GPS_WRG:
+        description:
+          short: GPS Wrong-failure fix type
+          long: |-
+            GNSS fix type reported by the addressed receiver while a GPS 'wrong'
+            failure injection is active. The reported position is left untouched.
+            The default 2D fix is rejected by the estimator, which requires a 3D
+            fix, and makes the GNSS redundancy check report a lost fix, while the
+            receiver stays eligible for GPS blending. Values above 3D fix report a
+            better solution than the receiver really has.
+        type: enum
+        default: 2
+        values:
+          1: "Fix: None"
+          2: "Fix: 2D"
+          3: "Fix: 3D"
+          5: "Fix: RTK float"
+          6: "Fix: RTK fixed"
+      SYS_FAIL_GPS_JAM:
+        description:
+          short: GPS Wrong-failure jamming state
+          long: |-
+            GNSS jamming state reported by the addressed receiver while a GPS 'wrong'
+            failure injection is active. The reported position is left untouched, so
+            'Detected' simulates a receiver that still delivers a valid fix while
+            reporting interference. Leave at 'Unchanged' to keep the simulated
+            receiver's own jamming state.
+        type: enum
+        default: 0
+        values:
+          0: Unchanged
+          1: OK
+          2: Mitigated
+          3: Detected
+      SYS_FAIL_BAT_LVL:
+        description:
+          short: Battery failure injection severity
+          long: |-
+            Battery warning level reported while a battery 'wrong' failure
+            injection is active. The injected remaining charge is set just below
+            the matching threshold (BAT_LOW_THR, BAT_CRIT_THR or
+            BAT_EMERGEN_THR).
+        type: enum
+        default: 3
+        values:
+          1: Warn
+          2: Critical
+          3: Emergency

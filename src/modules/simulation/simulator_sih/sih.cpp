@@ -149,6 +149,22 @@ void Sih::lockstep_loop()
 
 		} else {
 			px4_lockstep_wait_for_components();
+
+			// Wait for the control pipeline to produce new actuator outputs.
+			// Without this, under CPU load the controllers may not run between
+			// SIH iterations, causing stale actuator data and sluggish response.
+			uint64_t wait_start_us = micros();
+			constexpr uint64_t actuator_wait_timeout_us = 10'000'000; // 10s wall time
+
+			while (!_actuator_out_sub.updated() && !should_exit()) {
+				if (micros() - wait_start_us > actuator_wait_timeout_us) {
+					PX4_WARN("SIH lockstep: timed out waiting for actuator_outputs_sim");
+					break;
+				}
+
+				usleep(100);
+			}
+
 			current_wall_time_us = micros();
 			sleep_time = math::max(0, rt_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
 		}
@@ -191,6 +207,20 @@ void Sih::realtime_loop()
 	px4_sem_destroy(&_data_semaphore);
 }
 
+void Sih::updateFailureConfig()
+{
+	_failure_config.update();
+
+	_airspeed_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED, 1)
+			     == failure_injection::Mode::Off);
+	_distance_sensor_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, 1)
+				    == failure_injection::Mode::Off);
+	_accel_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, 1)
+			  == failure_injection::Mode::Off);
+	_gyro_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, 1)
+			 == failure_injection::Mode::Off);
+}
+
 void Sih::sensor_step()
 {
 	// check for parameter updates
@@ -203,6 +233,8 @@ void Sih::sensor_step()
 		updateParams();
 		parameters_updated();
 	}
+
+	updateFailureConfig();
 
 	perf_begin(_loop_perf);
 
@@ -300,7 +332,7 @@ void Sih::parameters_updated()
 		const Dcmf R_E2N = _lla.computeRotEcefToNed();
 		_R_N2E = R_E2N.transpose();
 		_v_E = _R_N2E * _v_N;
-
+		_q = Quatf(Eulerf(0.f, 0.f, _sih_yaw0.get()));
 		_q_E = Quatf(_R_N2E) * _q;
 		_q_E.normalize();
 	}
@@ -318,6 +350,8 @@ void Sih::parameters_updated()
 	_distance_snsr_min = _sih_distance_snsr_min.get();
 	_distance_snsr_max = _sih_distance_snsr_max.get();
 	_distance_snsr_override = _sih_distance_snsr_override.get();
+	_px4_rangefinder.set_min_distance(_distance_snsr_min);
+	_px4_rangefinder.set_max_distance(_distance_snsr_max);
 
 	_T_TAU = _sih_thrust_tau.get();
 
@@ -340,7 +374,70 @@ void Sih::read_motors(const float dt)
 				_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
 			}
 		}
+
+		publish_esc_status();
 	}
+}
+
+uint8_t Sih::num_motors() const
+{
+	switch (_vehicle) {
+	case VehicleType::Quadcopter:     return 4;
+
+	case VehicleType::Hexacopter:     return 6;
+
+	case VehicleType::TailsitterVTOL: return NUM_DYN_THRUSTER; // motors at index 0..1, surfaces at 4..5
+
+	case VehicleType::StandardVTOL:   return 4;                // hover motors at 0..3; pusher at 7 excluded for simplicity
+
+	case VehicleType::FixedWing:      return 1;                // motor at index 3, surfaces at 0..2 are skipped
+
+	case VehicleType::RoverAckermann: return 1;
+
+	default:                          return 0;
+	}
+}
+
+void Sih::publish_esc_status()
+{
+	_esc_status.timestamp = hrt_absolute_time();
+	_esc_status.esc_online_flags = 0;
+	_esc_status.esc_armed_flags = 0;
+	int motor_idx = 0;
+	bool any_motor_running = false;
+	float max_rpm = 10000.f;
+
+	if (_vehicle == VehicleType::FixedWing || _vehicle == VehicleType::TailsitterVTOL || _vehicle == VehicleType::StandardVTOL) {
+		max_rpm = _sih_forward_rpm_max.get();
+	}
+
+	for (int i = 0; i < NUM_ACTUATORS_MAX && motor_idx < num_motors(); i++) {
+		if ((_vehicle == VehicleType::FixedWing && i < 3)
+		    || (_vehicle == VehicleType::TailsitterVTOL && i > 3)
+		    || (_vehicle == VehicleType::RoverAckermann && i == 0)) {
+			continue; // control surface / steering channel, not a motor
+		}
+
+		_esc_status.esc[motor_idx].timestamp = hrt_absolute_time();
+		_esc_status.esc[motor_idx].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + motor_idx;
+		_esc_status.esc[motor_idx].esc_temperature = 50.f;
+		_esc_status.esc[motor_idx].esc_rpm = (int32_t)roundf(Thruster::throttle_to_rpm(_u[i], max_rpm));
+		_esc_status.esc_online_flags |= 1u << motor_idx;
+
+		if (_u[i] > FLT_EPSILON) {
+			any_motor_running = true;
+		}
+
+		motor_idx++;
+	}
+
+	_esc_status.esc_count = motor_idx;
+
+	if (any_motor_running) {
+		_esc_status.esc_armed_flags = (1u << motor_idx) - 1;
+	}
+
+	_esc_status_pub.publish(failure_injection::process_esc(_failure_config, _esc_status));
 }
 
 void Sih::generate_force_and_torques(const float dt)
@@ -369,7 +466,7 @@ void Sih::generate_force_and_torques(const float dt)
 		float u_sq[6];
 
 		for (int i = 0; i < 6; ++i) {
-			u_sq[i] = _u[i] * _u[i]; // quadratic thrust model, keep _u[i] intact for the filter
+			u_sq[i] = _u[i] * fabsf(_u[i]);
 		}
 
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+u_sq[0] + u_sq[1] + u_sq[2] + u_sq[3] + u_sq[4] + u_sq[5]));
@@ -530,18 +627,9 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 
 }
 
-float Sih::computeGravity(const double lat)
-{
-	// Somigliana formula for gravitational acceleration
-	const double sin_lat = sin(lat);
-	const double g = LatLonAlt::Wgs84::gravity_equator * (1.0 + 0.001931851353 * sin_lat * sin_lat) / sqrt(
-				 1.0 - LatLonAlt::Wgs84::eccentricity2 * sin_lat * sin_lat);
-	return static_cast<float>(g);
-}
-
 void Sih::equations_of_motion(const float dt)
 {
-	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * computeGravity(
+	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * LatLonAlt::Wgs84::gravity(
 			_lla.latitude_rad()); // gravity along the Down axis
 	const Vector3f coriolis_acceleration_E = -2.f * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE).cross(_v_E);
 
@@ -642,7 +730,7 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f accel_noise;
 	Vector3f gyro_noise;
 
-	if (_T_B.longerThan(FLT_EPSILON)) {
+	if (false && _T_B.longerThan(FLT_EPSILON)) { // too much noise at least for the low update rate O.O
 		accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
 		gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
 
@@ -659,18 +747,28 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
 
 	// update IMU every iteration
-	_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
-	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+	if (!_accel_blocked) {
+		_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
+	}
+
+	if (!_gyro_blocked) {
+		_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+	}
 }
 
 void Sih::send_airspeed(const hrt_abstime &time_now_us)
 {
+	if (_airspeed_blocked) {
+		return;
+	}
+
 	// TODO: send differential pressure instead?
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
 
-	// pitot tube measures forward (body-x) airspeed
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
+	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
+	const float v_pitot = (_vehicle == VehicleType::TailsitterVTOL) ? -v_apparent_B(2) : v_apparent_B(0);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
@@ -679,36 +777,25 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 {
-	device::Device::DeviceId device_id;
-	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	device_id.devid_s.bus = 0;
-	device_id.devid_s.address = 0;
-	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+	if (_distance_sensor_blocked) {
+		return;
+	}
 
-	distance_sensor_s distance_sensor{};
-	// distance_sensor.timestamp_sample = time_now_us;
-	distance_sensor.device_id = device_id.devid;
-	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	distance_sensor.min_distance = _distance_snsr_min;
-	distance_sensor.max_distance = _distance_snsr_max;
-	distance_sensor.signal_quality = -1;
+	float current_distance;
 
 	if (_distance_snsr_override >= 0.f) {
-		distance_sensor.current_distance = _distance_snsr_override;
+		current_distance = _distance_snsr_override;
 
 	} else {
-		distance_sensor.current_distance = -_lpos(2) / _q.dcm_z()(2);
+		current_distance = -_lpos(2) / _q.dcm_z()(2);
 
-		if (distance_sensor.current_distance > _distance_snsr_max) {
+		if (current_distance > _distance_snsr_max) {
 			// this is based on lightware lw20 behaviour
-			distance_sensor.current_distance = UINT16_MAX / 100.f;
-
+			current_distance = UINT16_MAX / 100.f;
 		}
 	}
 
-	distance_sensor.timestamp = hrt_absolute_time();
-	_distance_snsr_pub.publish(distance_sensor);
+	_px4_rangefinder.update(hrt_absolute_time(), current_distance);
 }
 
 void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)

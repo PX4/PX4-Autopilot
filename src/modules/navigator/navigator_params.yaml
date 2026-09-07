@@ -66,10 +66,10 @@ parameters:
       increment: 0.5
     NAV_TRAFF_AVOID:
       description:
-        short: Set traffic avoidance mode
+        short: Set traffic avoidance action
         long: |-
-          Enabling this will allow the system to respond
-          to transponder data from e.g. ADSB transponders
+          Action requested for a crosstrack traffic conflict.
+          Runtime changes apply on later conflict level transitions.
       type: enum
       values:
         0: Disabled
@@ -77,18 +77,21 @@ parameters:
         2: Return mode
         3: Land mode
         4: Position Hold mode
+        5: Terminate
       default: 1
+      min: 0
+      max: 5
     NAV_TRAFF_A_HOR:
       description:
-        short: Set NAV TRAFFIC AVOID horizontal distance
-        long: Defines a crosstrack horizontal distance
+        short: Crosstrack conflict distance threshold
+        long: Maximum absolute distance from the projected traffic track.
       type: float
       default: 500
       unit: m
       min: 500
     NAV_TRAFF_A_VER:
       description:
-        short: Set NAV TRAFFIC AVOID vertical distance
+        short: Crosstrack vertical separation threshold
       type: float
       default: 500
       unit: m
@@ -96,10 +99,10 @@ parameters:
       max: 500
     NAV_TRAFF_COLL_T:
       description:
-        short: Estimated time until collision
+        short: Crosstrack collision time threshold
         long: |-
-          Minimum acceptable time until collsion.
-          Assumes constant speed over 3d distance.
+          A conflict is raised when the time estimate is below this threshold.
+          The estimate is the current 3D separation divided by the sum of the ownship and traffic speed magnitudes.
       type: int32
       default: 60
       unit: s

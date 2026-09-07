@@ -41,6 +41,19 @@ root@9373fa1401b8:/usr/local/workspace# exit
 
 For DSP-only rebuilds: `make modalai_voxl2_slpi`
 
+### SLPI dynamic imports
+
+The SLPI build permits undefined dynamic symbols supplied by the target
+runtime. After linking, every strong dynamic import is checked against the
+symbols exported by the ModalAI SSC system image and the C++ runtime shared
+objects linked into `libpx4.so`. The SSC exports are recorded in
+`slpi_system_image_exports.txt` and must be regenerated from the final SSC ELF
+when the supported system image changes.
+
+Imports beginning with `px4_` are always rejected. PX4-owned APIs must be
+resolved within `libpx4.so`; leaving one undefined indicates that the QURT
+platform implementation is missing.
+
 ## Install and run on VOXL 2
 
 Once the DSP and Linux images have been built they can be installed on a VOXL 2

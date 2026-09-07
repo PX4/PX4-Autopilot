@@ -287,7 +287,7 @@ navigator <command> [arguments...]
 
    fencefile     load a geofence file from SD card, stored at etc/geofence.txt
 
-   fake_traffic  publishes 24 fake transponder_report_s uORB messages
+   fake_traffic  run synthetic DAA traffic; use 'navigator fake_traffic help'
 
    stop
 

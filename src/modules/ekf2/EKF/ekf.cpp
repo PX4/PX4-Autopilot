@@ -110,6 +110,7 @@ void Ekf::reset()
 	_time_last_ver_vel_fuse = 0;
 	_time_last_heading_fuse = 0;
 	_time_last_terrain_fuse = 0;
+	_time_heading_fusion_start = 0;
 
 	_last_known_gpos.setZero();
 
@@ -232,6 +233,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	if (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)) {
 		_earth_rate_lat_ref_rad = _gpos.latitude_rad();
 		_earth_rate_NED = calcEarthRateNED((float)_earth_rate_lat_ref_rad);
+		_gravity = LatLonAlt::Wgs84::gravity(_earth_rate_lat_ref_rad);
+		_output_predictor.set_gravity(_gravity);
 	}
 
 	// apply imu bias corrections
@@ -259,7 +262,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.vel += corrected_delta_vel_ef;
 
 	// compensate for acceleration due to gravity, Coriolis and transport rate
-	const Vector3f gravity_acceleration(0.f, 0.f, CONSTANTS_ONE_G); // simplistic model
+	const Vector3f gravity_acceleration(0.f, 0.f, _gravity);
 	const Vector3f coriolis_acceleration = -2.f * _earth_rate_NED.cross(vel_last);
 	const Vector3f transport_rate = -_gpos.computeAngularRateNavFrame(vel_last).cross(vel_last);
 	_state.vel += (gravity_acceleration + coriolis_acceleration + transport_rate) * imu_delayed.delta_vel_dt;
@@ -272,7 +275,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
 
 	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
-	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
+	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt,
+				static_cast<uint64_t>(imu_delayed.delta_vel_dt * 1e6f));
 }
 
 bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const double longitude, const float altitude,
@@ -334,11 +338,11 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 
 		const bool innov_rejected = (test_ratio > 1.f);
 
-		if (!_control_status.flags.in_air || (eph > 0.f && eph < 1.f) || innov_rejected) {
+		if (!_control_status.flags.in_air || (eph > 0.f && eph < 1.f) || innov_rejected
+		    || isHorizontalPositionAidingActive()) {
 			// When on ground or accuracy chosen to be very low, we hard reset position
 			// this allows the user to still send hard resets at any time
-			// Also reset when another position source is active as it it would otherwise have almost no
-			// visible effect to the position estimate.
+			// Also hard reset when a position aiding source is active
 			ECL_INFO("reset position to external observation");
 			_information_events.flags.reset_pos_to_ext_obs = true;
 
@@ -361,30 +365,51 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			// inhibiting the update.
 			_control_status.flags.heading_observable = true;
 
+			const LatLonAlt gpos_before_fusion = _gpos;
+
+			// Artificially setting the observation variance to a small value to
+			// increase the Kalman gain to basically 1 to force a reset of the position
+			// through fusion. This also enforces a strong correction of the correlated states
+			// (e.g.: velocity, heading, wind)
+			const float R_small = 0.1f;
+
+			const VectorState P_north = P.row(State::pos.idx);
+			VectorState P_east = P.row(State::pos.idx + 1);
+
+			{
+				const float innov_var_north = P_north(State::pos.idx) + R_small;
+				VectorState K = P_north / innov_var_north;
+				clearInhibitedStateKalmanGains(K);
+				fuse(K, innov(0));
+
+				P_east -= P_north * (P_north(State::pos.idx + 1) / innov_var_north);
+			}
+
+			// The 2nd axis needs to be fused using the state covariance that would have been
+			// obtained with this artificially low observation variance
+			{
+				// recalculate the innovation using the state updated by the North fusion
+				const float innovation = (_gpos - gpos_corrected)(1);
+				const float innov_var_east = P_east(State::pos.idx + 1) + R_small;
+				VectorState K = P_east / innov_var_east;
+				clearInhibitedStateKalmanGains(K);
+				fuse(K, innovation);
+			}
+
+			// The update of the covariance matrix is performed with the correct observation variance
+			// to not artificially reduce the state uncertainty and cross-correlations.
 			VectorState H;
-			VectorState K;
-			Vector2f innov_var_temp = Vector2f(getStateVariance<State::pos>()) + 0.1f;
 
 			for (unsigned index = 0; index < 2; index++) {
-				// Artificially setting the observation variance to a small value to
-				// increase the Kalman gain to basically 1 to force a reset of the position
-				// through fusion. This also enforces a strong correction of the correlated states
-				// (e.g.: velocity, heading, wind)
-				// The update of the covariance matrix is still performed with the correct observation variance
-				// to not artificially reduce the state uncertainty and cross-correlations.
-				K = VectorState(P.row(State::pos.idx + index)) / innov_var_temp(index);
 				H(State::pos.idx + index) = 1.f;
-
-				clearInhibitedStateKalmanGains(K);
-				fuse(K, innov(index));
-
-				K = VectorState(P.row(State::pos.idx + index)) / innov_var(index);
+				const float state_var = P(State::pos.idx + index, State::pos.idx + index);
+				VectorState K = VectorState(P.row(State::pos.idx + index)) / (state_var + obs_var);
 				measurementUpdate(K, H, obs_var, 0.f);
 				H(State::pos.idx + index) = 0.f; // Reset the whole vector to 0
 			}
 
 			// Use the reset counters to inform the controllers about a position jump
-			updateHorizontalPositionResetStatus(-innov);
+			updateHorizontalPositionResetStatus((_gpos - gpos_before_fusion).xy());
 
 			// Reset the positon of the output predictor to avoid a transient that would disturb the
 			// position controller

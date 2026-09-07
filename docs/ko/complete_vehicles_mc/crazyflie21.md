@@ -122,7 +122,6 @@ After setting up the PX4 development environment, follow these steps to install 
 ## Flashing Original Bitcraze Firmware
 
 1. Download the latest [Crazyflie 2.1 bootloader](https://github.com/bitcraze/crazyflie2-stm-bootloader/releases)
-
 2. Put the Crazyflie 2.1 into DFU mode by following these steps:
    - Ensure it is initially unpowered.
    - Ensure battery is disconnected.
@@ -130,7 +129,6 @@ After setting up the PX4 development environment, follow these steps to install 
    - Plug into computer's USB port.
    - After a second, the blue LED should start blinking and after 5 seconds should start blinking faster.
    - Release button.
-
 3. Flash bootloader using _dfu-util_ and unplug Crazyflie 2.1 when done:
 
    ```sh
@@ -139,7 +137,7 @@ After setting up the PX4 development environment, follow these steps to install 
 
    When powering on the Crazyflie 2.1 the yellow LED should blink.
 
-4. Install the latest Bitcraze Crazyflie 2.1 Firmware using [this](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/#update-fw) tutorial.
+. Install the latest Bitcraze Crazyflie 2.1 Firmware using [this](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/#update-fw) tutorial.
 
 ## Wireless Setup Instructions
 
@@ -151,15 +149,26 @@ The onboard nRF module allows connecting to the board via Bluetooth or through t
 Connecting via **MAVLink**:
 
 - Use a Crazyradio PA alongside a compatible GCS.
-- Download the _crazyflie-lib-python_ source code:
+
+- Download the _crazyflie-lib-python_ source code, and check out the last commit that included `cfbridge.py` (see warning below):
 
   ```sh
   git clone https://github.com/bitcraze/crazyflie-lib-python.git
+  git -C crazyflie-lib-python checkout 829ae10715b5bf2373a7a643434e474ab406fc62
   ```
 
-:::info
-We will use [cfbridge.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/cfbridge.py) to setup a wireless MAVlink communication link between Crazyflie 2.1 (flashed with PX4) and QGroundControl. _Cfbridge_ enables QGroundControl to communicate with the crazyradio PA.
-The [C based cfbridge](https://github.com/dennisss/cfbridge) is currently experiencing data loss issues, which is why we have chosen to use **cfbridge.py**.
+  ::: info
+  We will use [cfbridge.py](https://github.com/bitcraze/crazyflie-lib-python/blob/829ae10715b5bf2373a7a643434e474ab406fc62/examples/cfbridge.py) to setup a wireless MAVlink communication link between Crazyflie 2.1 (flashed with PX4) and QGroundControl.
+  _Cfbridge_ enables QGroundControl to communicate with the crazyradio PA.
+  The [C based cfbridge](https://github.com/dennisss/cfbridge) is currently experiencing data loss issues, which is why we have chosen to use **cfbridge.py**.
+
+:::
+
+  ::: warning
+  `cfbridge.py` was removed from the `crazyflie-lib-python` repository upstream (April 2026) and was not migrated to Bitcraze's `crazyflie-demos` repository.
+  The commands above check out the last commit that included the file.
+  This part of the workflow is no longer maintained by Bitcraze!
+
 :::
 
 - Make sure you have set the udev permissions to use the USB Radio. To do this, follow the steps listed [here](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/installation/usb_permissions/) and **restart** your computer.

@@ -45,8 +45,6 @@
 #include <uORB/Subscription.hpp>
 #include <dds_serializer.h>
 
-#define CDR_SAFETY_MARGIN 24
-
 class uORB_Zenoh_Publisher : public Zenoh_Publisher
 {
 public:
@@ -118,6 +116,6 @@ public:
 
 private:
 	const orb_metadata *_uorb_meta;
-	int _uorb_sub;
+	orb_sub_t _uorb_sub{ORB_SUB_INVALID};
 	const uint32_t *_cdr_ops;
 };

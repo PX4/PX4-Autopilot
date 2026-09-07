@@ -53,17 +53,25 @@ The simulated battery can be completely disabled by setting [SIM_BAT_DRAIN](../a
 [Failure injection](../debug/failure_injection.md) can be used to simulate different types of failures in many sensors and systems.
 GPS가 없거나 간헐적으로 발생하는 경우, 특정 값에서 멈추거나 멈추는 RC 신호, 회피 시스템의 오류 등을 시뮬레이션 할 수 있습니다.
 
-GPS 오류를 시뮬레이션하려면 다음을 수행합니다.
+Failure injection is gated by the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN).
-2. Enter the following commands on the SITL instance _pxh shell_:
+For example, to simulate GPS failure, enter the following commands on the SITL instance _pxh shell_:
 
-   ```sh
-   # Turn (all) GPS off
-   failure gps off
+```sh
+# Turn (all) GPS off (no position reported, as for a dead receiver)
+failure gps off
 
-   # Turn (all) GPS on
-   failure gps ok
-   ```
+# Freeze (all) GPS on the last reported position (a "stuck" fix)
+failure gps stuck
 
-See [System Failure Injection](../debug/failure_injection.md) for a list of supported target sensors and failure modes.
+# Report a diverging position (offset by ~111 km, trips the GNSS redundancy checks)
+failure gps wrong
+
+# Restore normal GPS output
+failure gps ok
+```
+
+:::tip
+To test the [GNSS redundancy failsafe](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) you can simulate a second GPS receiver: set the antenna-offset parameter [SENS_GPS1_OFFX](../advanced_config/parameter_reference.md#SENS_GPS1_OFFX) or [SENS_GPS1_OFFY](../advanced_config/parameter_reference.md#SENS_GPS1_OFFY) to a non-zero value, and the simulator publishes a second `sensor_gps` instance offset by that distance (in metres).
+You can then fail an individual receiver with the `-i` flag (`-i 0` = all instances, `-i 1` = first GPS, `-i 2` = second), for example `failure gps wrong -i 2`.
+:::

@@ -49,36 +49,41 @@ public:
 
 	unsigned get_size() override
 	{
-		return _fuel_tank_status_sub.advertised() ? MAVLINK_MSG_ID_FUEL_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		static constexpr unsigned size_per_tank = MAVLINK_MSG_ID_FUEL_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return size_per_tank * _fuel_tank_status_subs.advertised_count();
 	}
 
 private:
 	explicit MavlinkStreamFuelStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _fuel_tank_status_sub{ORB_ID(fuel_tank_status)};
+	uORB::SubscriptionMultiArray<fuel_tank_status_s, fuel_tank_status_s::MAX_INSTANCES> _fuel_tank_status_subs{ORB_ID::fuel_tank_status};
 
 	bool send() override
 	{
-		fuel_tank_status_s fuel_status;
+		bool updated = false;
 
-		if (_fuel_tank_status_sub.update(&fuel_status)) {
-			mavlink_fuel_status_t msg{};
+		for (auto &fuel_sub : _fuel_tank_status_subs) {
+			fuel_tank_status_s fuel_status;
 
-			msg.id = fuel_status.fuel_tank_id;
-			msg.maximum_fuel = fuel_status.maximum_fuel_capacity;
-			msg.consumed_fuel = fuel_status.consumed_fuel;
-			msg.remaining_fuel = fuel_status.remaining_fuel;
-			msg.percent_remaining = fuel_status.percent_remaining;
-			msg.flow_rate = fuel_status.fuel_consumption_rate;
-			msg.temperature = fuel_status.temperature;
-			msg.fuel_type = fuel_status.fuel_type;
+			if (fuel_sub.update(&fuel_status)) {
+				mavlink_fuel_status_t msg{};
 
-			mavlink_msg_fuel_status_send_struct(_mavlink->get_channel(), &msg);
+				msg.id = fuel_status.fuel_tank_id;
+				msg.maximum_fuel = fuel_status.maximum_fuel_capacity;
+				msg.consumed_fuel = fuel_status.consumed_fuel;
+				msg.remaining_fuel = fuel_status.remaining_fuel;
+				msg.percent_remaining = fuel_status.percent_remaining;
+				msg.flow_rate = fuel_status.fuel_consumption_rate;
+				msg.temperature = fuel_status.temperature;
+				msg.fuel_type = fuel_status.fuel_type;
 
-			return true;
+				mavlink_msg_fuel_status_send_struct(_mavlink->get_channel(), &msg);
+
+				updated = true;
+			}
 		}
 
-		return false;
+		return updated;
 	}
 
 };

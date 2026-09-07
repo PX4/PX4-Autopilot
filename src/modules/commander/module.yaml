@@ -26,7 +26,7 @@ parameters:
                 -1: Unassigned
                 0: Manual
                 1: Altitude
-                2: Position
+                2: Position / Cruise
                 9: Position Slow
                 3: Mission
                 4: Hold

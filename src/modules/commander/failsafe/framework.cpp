@@ -89,11 +89,12 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 	updateStartDelay(time_us - _last_update, action_state.delayed_action != Action::None);
 	updateFailsafeDeferState(time_us, action_state.failsafe_deferred);
 
-	// Notify about escalation, or about any new subsumed condition as an informational warning
+	// Notify about escalation, or about any new subsumed condition as an informational warning.
 	if (action_state.action > _selected_action) {
 		notifyUser(state.user_intended_mode, action_state.action, action_state.delayed_action, action_state.cause);
 
-	} else if (_pending_notification_cause != Cause::Count) {
+	} else if (_pending_notification_cause != Cause::Count && state.armed
+		   && action_state.action != Action::Terminate) {
 		notifyUser(state.user_intended_mode, Action::Warn, Action::None, _pending_notification_cause);
 	}
 
@@ -467,6 +468,10 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		const ActionOptions &cur_action = _actions[action_idx];
 
 		if (cur_action.valid()) {
+			if (cur_action.action == Action::None) {
+				continue;
+			}
+
 			if (cur_action.allow_user_takeover > allow_user_takeover) {
 				// Use the most restrictive setting among all active actions
 				allow_user_takeover = cur_action.allow_user_takeover;
@@ -596,7 +601,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 
 	// fallthrough
 	case Action::Descend:
-		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_DESCEND)) {
+		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_DESCEND)
+		    && _param_com_pos_fs_act.get() != (int32_t)PositionFailsafeAction::Terminate) {
 			selected_action = Action::Descend;
 			break;
 		}

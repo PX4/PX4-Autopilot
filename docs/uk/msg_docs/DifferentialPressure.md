@@ -13,14 +13,15 @@ The information is published in the `SCALED_PRESSURE_n` MAVLink messages (along 
 
 ## Fields
 
-| Назва                                                                                                       | Тип       | Unit [Frame] | Range/Enum | Опис                                                                      |
-| ----------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp                                                                         | `uint64`  | us                                                               |            | Time of publication (since system start)               |
-| <a id="fld_timestamp_sample"></a>timestamp_sample                                      | `uint64`  | us                                                               |            | Time of raw data capture                                                  |
-| <a id="fld_device_id"></a>device_id                                                    | `uint32`  |                                                                  |            | Unique device ID for the sensor that does not change between power cycles |
-| <a id="fld_differential_pressure_pa"></a>differential_pressure_pa | `float32` | Pa                                                               |            | Differential pressure reading (may be negative)        |
-| <a id="fld_temperature"></a>temperature                                                                     | `float32` | degC                                                             |            | Temperature (Invalid: NaN if unknown)  |
-| <a id="fld_error_count"></a>error_count                                                | `uint32`  |                                                                  |            | Number of errors detected by driver                                       |
+| Назва                                                                                                       | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                                             |
+| ----------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                         | `uint64`  | us                                                               |            | Time of publication (since system start)                                                      |
+| <a id="fld_timestamp_sample"></a>timestamp_sample                                      | `uint64`  | us                                                               |            | Time of raw data capture                                                                                         |
+| <a id="fld_device_id"></a>device_id                                                    | `uint32`  |                                                                  |            | Unique device ID for the sensor that does not change between power cycles                                        |
+| <a id="fld_differential_pressure_pa"></a>differential_pressure_pa | `float32` | Pa                                                               |            | Differential pressure reading (may be negative)                                               |
+| <a id="fld_temperature"></a>temperature                                                                     | `float32` | degC                                                             |            | Temperature (Invalid: NaN if unknown)                                         |
+| <a id="fld_pitot_temperature"></a>pitot_temperature                                    | `float32` | degC                                                             |            | Pitot temperature (if available) (Invalid: NaN if unknown) |
+| <a id="fld_error_count"></a>error_count                                                | `uint32`  |                                                                  |            | Number of errors detected by driver                                                                              |
 
 ## Source Message
 
@@ -41,6 +42,7 @@ uint64 timestamp_sample  # [us] Time of raw data capture
 uint32 device_id                  # [-] Unique device ID for the sensor that does not change between power cycles
 float32 differential_pressure_pa  # [Pa] Differential pressure reading (may be negative)
 float32 temperature               # [degC] [@invalid NaN if unknown] Temperature
+float32 pitot_temperature         # [degC] [@invalid NaN if unknown] Pitot temperature (if available)
 uint32 error_count                # [-] Number of errors detected by driver
 ```
 

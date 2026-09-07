@@ -34,8 +34,8 @@ This build follows the original design from [Brescianini, Dario, and Raffaello D
   - Акумулятор: ми використовували LiPo на 6S 3300mAh. Обов'язково перевірте розміри, щоб він підійшов до рами.
   - Ремінь для акумулятора
 - Рама:
-  - Carbon square tube R 8mm X 7mm X 1000mm, e.g. [here on shop.swiss-composite.ch](https://www.shop.swiss-composite.ch/de/produkt/cfk-vierkantrohr-8x8-7x7mm)
-  - Carbon Rods R 3mm X 2mm X 1000mm, e.g. [here on shop.swiss-composite.ch](https://www.shop.swiss-composite.ch/de/produkt/carbon-microtubes-100cm-x-20-3mm)
+  - Carbon square tube R 8mm X 7mm X 1000mm, e.g. [here on shop.swiss-composite.ch](https://shop.swiss-composite.ch/de/produkt/cfk-vierkantrohr-8x8-7x7mm)
+  - Carbon Rods R 3mm X 2mm X 1000mm, e.g. [here on shop.swiss-composite.ch](https://shop.swiss-composite.ch/de/produkt/carbon-microtubes-100cm-x-20-3mm)
   - Необхідні довжини:
     - квадратна трубка: 8 штук довжиною 248 мм
     - стрижні: 12x328мм, 6x465мм

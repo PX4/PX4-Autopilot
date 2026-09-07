@@ -44,7 +44,6 @@
 #include <sys/socket.h>
 
 #include <nuttx/can.h>
-#include <netpacket/can.h>
 
 #include <canard.h>
 
@@ -59,7 +58,7 @@ public:
 	/// Creates a SocketCAN socket for corresponding iface can_iface_name
 	/// Also sets up the message structures required for socketcanTransmit & socketcanReceive
 	/// can_fd determines to use CAN FD frame when is 1, and classical CAN frame when is 0
-	/// The return value is 0 on succes and -1 on error
+	/// The return value is 0 on success and -1 on error
 	int init();
 
 	/// Close socket connection

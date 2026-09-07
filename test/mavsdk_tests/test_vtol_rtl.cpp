@@ -45,7 +45,7 @@ TEST_CASE("RTL direct Home", "[vtol]")
 	tester.set_rtl_appr_force(0);
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
-	tester.wait_until_disarmed(std::chrono::seconds(120));
+	tester.wait_until_disarmed(std::chrono::seconds(150));
 	tester.check_home_within(5.0f);
 }
 
@@ -60,7 +60,25 @@ TEST_CASE("RTL direct Mission Land", "[vtol]")
 	tester.set_rtl_type(1);
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
-	tester.wait_until_disarmed(std::chrono::seconds(120));
+	tester.wait_until_disarmed(std::chrono::seconds(150));
+	tester.check_mission_land_within(5.0f);
+}
+
+TEST_CASE("RTL direct Mission Land preserves multicopter mode", "[vtol]")
+{
+	AutopilotTesterRtl tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+	tester.store_home();
+	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission_with_land_start.plan");
+	tester.set_rtl_type(1);
+	tester.arm();
+	// Start at DO_LAND_START.
+	tester.start_mission_raw_and_wait_for_sequence(6);
+	tester.transition_to_multicopter();
+	tester.wait_until_multicopter(std::chrono::seconds(60));
+	tester.execute_rtl();
+	tester.wait_until_disarmed_while_in_multicopter_mode(std::chrono::seconds(180));
 	tester.check_mission_land_within(5.0f);
 }
 
@@ -75,7 +93,7 @@ TEST_CASE("RTL with Mission Landing", "[vtol]")
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
 	tester.check_tracks_mission_raw(40.0f);
-	tester.wait_until_disarmed(std::chrono::seconds(120));
+	tester.wait_until_disarmed(std::chrono::seconds(150));
 }
 
 TEST_CASE("RTL with Reverse Mission", "[vtol]")
@@ -90,7 +108,45 @@ TEST_CASE("RTL with Reverse Mission", "[vtol]")
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(6);
 	//tester.check_tracks_mission_raw(35.0f);
-	tester.wait_until_disarmed(std::chrono::seconds(120));
+	tester.wait_until_disarmed(std::chrono::seconds(150));
+}
+
+TEST_CASE("RTL with Mission Landing preserves multicopter mode", "[vtol]")
+{
+	AutopilotTesterRtl tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+	tester.store_home();
+	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission.plan");
+	tester.set_rtl_type(2);
+	tester.arm();
+	// In fixed wing by then, half way round the mission
+	tester.start_mission_raw_and_wait_for_sequence(4);
+	tester.transition_to_multicopter();
+	tester.wait_until_multicopter(std::chrono::seconds(60));
+	tester.execute_rtl();
+	// The rest of the mission and its landing are flown as a multicopter
+	tester.wait_until_disarmed_while_in_multicopter_mode(std::chrono::seconds(300));
+	tester.check_mission_land_within(5.0f);
+}
+
+TEST_CASE("RTL with Reverse Mission preserves multicopter mode", "[vtol]")
+{
+	AutopilotTesterRtl tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+	tester.store_home();
+	tester.set_takeoff_land_requirements(0);
+	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission_without_landing.plan");
+	tester.set_rtl_type(2);
+	tester.arm();
+	tester.start_mission_raw_and_wait_for_sequence(4);
+	tester.transition_to_multicopter();
+	tester.wait_until_multicopter(std::chrono::seconds(60));
+	tester.execute_rtl();
+	// The mission is flown back in reverse as a multicopter down to the home position
+	tester.wait_until_disarmed_while_in_multicopter_mode(std::chrono::seconds(300));
+	tester.check_home_within(5.0f);
 }
 
 TEST_CASE("RTL direct home without approaches", "[vtol]")

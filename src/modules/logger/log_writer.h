@@ -97,7 +97,7 @@ public:
 	/**
 	 * Select a backend, so that future calls to write_message() only write to the selected
 	 * sel_backend, until unselect_write_backend() is called.
-	 * @param backend
+	 * @param sel_backend
 	 */
 	void select_write_backend(Backend sel_backend);
 	void unselect_write_backend() { select_write_backend(BackendAll); }

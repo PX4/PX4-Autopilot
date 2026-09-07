@@ -74,6 +74,8 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND: return navigation_mode_t::auto_land;
 
+	case vehicle_status_s::NAVIGATION_STATE_DESCEND: return navigation_mode_t::descend;
+
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET: return navigation_mode_t::auto_follow_target;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND: return navigation_mode_t::auto_precland;

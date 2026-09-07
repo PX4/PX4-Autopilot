@@ -1,16 +1,16 @@
 # Log Analysis using PlotJuggler
 
-[PlotJuggler](https://github.com/facontidavide/PlotJuggler) can be used to analyze ULogs for in-depth, development purposes.
+[PlotJuggler](https://github.com/PlotJuggler/PlotJuggler) can be used to analyze ULogs for in-depth, development purposes.
 It is incredibly useful as every uORB topic is exposed / can be graphed, as well as having custom functions to modify the data (e.g. from Quaternion values to Roll / Pitch / Yaw).
 
 ## Installation
 
-You can find the latest releases of the Plot Juggler [here](https://github.com/facontidavide/PlotJuggler/releases).
+You can find the latest releases of the Plot Juggler [here](https://github.com/PlotJuggler/PlotJuggler/releases).
 
 #### Notes on Windows distribution
 
 The latest version of PlotJuggler for Windows may not work.
-In this case fallback to [v2.8.4 here](https://github.com/facontidavide/PlotJuggler/releases/tag/2.8.4) (this is known to work with Windows).
+In this case fallback to [v2.8.4 here](https://github.com/PlotJuggler/PlotJuggler/releases/tag/2.8.4) (this is known to work with Windows).
 
 #### Notes on AppImage for Linux distributions
 

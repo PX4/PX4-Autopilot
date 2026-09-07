@@ -76,7 +76,7 @@
 #include <uORB/topics/neural_control.h>
 #include <uORB/topics/register_ext_component_request.h>
 #include <uORB/topics/unregister_ext_component.h>
-#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/setpoint_config.h>
 #include <uORB/topics/arming_check_reply.h>
 
 using namespace time_literals; // For the 1_s in the subscription interval
@@ -138,7 +138,7 @@ private:
 	uORB::Publication<neural_control_s> _neural_control_pub{ORB_ID(neural_control)};
 	uORB::Publication<register_ext_component_request_s> _register_ext_component_request_pub{ORB_ID(register_ext_component_request)};
 	uORB::Publication<unregister_ext_component_s> _unregister_ext_component_pub{ORB_ID(unregister_ext_component)};
-	uORB::Publication<vehicle_control_mode_s> _config_control_setpoints_pub{ORB_ID(config_control_setpoints)};
+	uORB::Publication<setpoint_config_s> _setpoint_config_pub{ORB_ID(setpoint_config)};
 	uORB::Publication<arming_check_reply_s> _arming_check_reply_pub{ORB_ID(arming_check_reply)};
 
 	// Variables

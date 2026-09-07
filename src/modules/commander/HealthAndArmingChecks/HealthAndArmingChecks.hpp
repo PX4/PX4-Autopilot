@@ -44,7 +44,11 @@
 #include "checks/airspeedCheck.hpp"
 #include "checks/armPermissionCheck.hpp"
 #include "checks/baroCheck.hpp"
+#include "checks/companionComputerCheck.hpp"
 #include "checks/cpuResourceCheck.hpp"
+#if CONFIG_NAVIGATOR_ADSB
+#include "checks/daaCheck.hpp"
+#endif // CONFIG_NAVIGATOR_ADSB
 #include "checks/distanceSensorChecks.hpp"
 #include "checks/opticalFlowCheck.hpp"
 #include "checks/escCheck.hpp"
@@ -135,7 +139,11 @@ private:
 	AirspeedChecks _airspeed_checks;
 	ArmPermissionChecks _arm_permission_checks;
 	BaroChecks _baro_checks;
+	CompanionComputerChecks _companion_computer_checks;
 	CpuResourceChecks _cpu_resource_checks;
+#if CONFIG_NAVIGATOR_ADSB
+	DaaChecks _daa_checks;
+#endif // CONFIG_NAVIGATOR_ADSB
 	DistanceSensorChecks _distance_sensor_checks;
 	OpticalFlowCheck _optical_flow_check;
 	EscChecks _esc_checks;
@@ -170,7 +178,7 @@ private:
 	ExternalChecks _external_checks;
 #endif
 
-	HealthAndArmingCheckBase *_checks[41] = {
+	HealthAndArmingCheckBase *_checks[42] = {
 #ifndef CONSTRAINED_FLASH
 		&_external_checks,
 #endif
@@ -178,7 +186,11 @@ private:
 		&_airspeed_checks,
 		&_arm_permission_checks,
 		&_baro_checks,
+		&_companion_computer_checks,
 		&_cpu_resource_checks,
+#if CONFIG_NAVIGATOR_ADSB
+		&_daa_checks,
+#endif // CONFIG_NAVIGATOR_ADSB
 		&_distance_sensor_checks,
 		&_optical_flow_check,
 		&_esc_checks,

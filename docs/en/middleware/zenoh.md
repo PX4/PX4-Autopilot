@@ -134,8 +134,8 @@ The PX4 Zenoh-pico node stores its configuration on the **SD card** under the `z
 This folder contains three key files:
 
 - **`net.txt`** – Defines the **Zenoh network configuration**.
-- **`pub.csv`** – Maps **uORB topics to ROS2 topics** (used for publishing).
-- **`sub.csv`** – Maps **ROS2 topics to uORB topics** (used for subscribing).
+- **`pub.csv`** – Maps **uORB topics to ROS 2 topics** (used for publishing).
+- **`sub.csv`** – Maps **ROS 2 topics to uORB topics** (used for subscribing).
 
 #### Publisher Options
 
@@ -150,11 +150,11 @@ These are applied to all Zenoh publishers.
 
 If `CONFIG_ZENOH_PUB_OPTION_OVERRIDE=y`, individual publishers can override one or more global publisher options.
 Default configuration [dds_topics.yaml](../middleware/dds_topics.md) already provides overrides for several publishers.
-Individual publisher options can be overriden through the mapping configuration shown in the next section
+Individual publisher options can be overridden through the mapping configuration shown in the next section
 
 ### 4. Modifying Topic Mappings
 
-Zenoh topic mappings define how data flows between PX4's internal uORB topics and external ROS2 topics via Zenoh.
+Zenoh topic mappings define how data flows between PX4's internal uORB topics and external ROS 2 topics via Zenoh.
 These mappings are stored in `pub.csv` and `sub.csv` on the SD card, and can be modified at runtime using the `zenoh config` CLI tool.
 
 :::warning
@@ -251,3 +251,14 @@ For setup details and supported message types, refer to the [PX4 ROS 2 Interface
 ::: info
 The PX4 ROS 2 Interface Library is not compatible with ROS 2 Humble and earlier, as it requires the message type hash (RIHS01, as defined in REP-2016) to be included in the Zenoh key expression.
 :::
+
+### Troubleshooting
+
+1. When starting the client you might see
+
+   ```
+   ERROR [zenoh] Could not create a subscriber for type ***
+   ```
+
+   This usually means the firmware was built with a different set of uORB topics than the peer expects.
+   The Zenoh topic catalog (`Kconfig.topics`) is generated automatically at configure time into the build directory, so performing a clean build picks up any newly added or changed topics.

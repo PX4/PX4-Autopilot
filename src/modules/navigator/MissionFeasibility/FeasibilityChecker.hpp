@@ -77,7 +77,13 @@ public:
 	*/
 	bool someCheckFailed()
 	{
-		return _checks_failed.value != 0;
+		return _checks_failed.mission_validity_failed
+		       || _checks_failed.takeoff_failed
+		       || _checks_failed.land_pattern_validity_failed
+		       || _checks_failed.distance_between_waypoints_failed
+		       || _checks_failed.fixed_wing_land_approach_failed
+		       || _checks_failed.takeoff_land_available_failed
+		       || _checks_failed.items_fit_to_vehicle_type_failed;
 	}
 
 	/**
@@ -105,17 +111,14 @@ private:
 	matrix::Vector2d _home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 	VehicleType _vehicle_type{VehicleType::RotaryWing};
 
-	union checks_failed_u {
-		struct {
-			bool mission_validity_failed : 1;
-			bool takeoff_failed : 1;
-			bool land_pattern_validity_failed : 1;
-			bool distance_between_waypoints_failed : 1;
-			bool fixed_wing_land_approach_failed : 1;
-			bool takeoff_land_available_failed : 1;
-			bool items_fit_to_vehicle_type_failed : 1;
-		} flags;
-		uint16_t value {0};
+	struct ChecksFailed {
+		bool mission_validity_failed{false};
+		bool takeoff_failed{false};
+		bool land_pattern_validity_failed{false};
+		bool distance_between_waypoints_failed{false};
+		bool fixed_wing_land_approach_failed{false};
+		bool takeoff_land_available_failed{false};
+		bool items_fit_to_vehicle_type_failed{false};
 	} _checks_failed{};
 
 	// internal checkTakeoff related variables

@@ -46,6 +46,8 @@ px4_add_module(
 		mathlib
 		drivers_accelerometer
 		drivers_gyroscope
+		drivers_rangefinder
+		failure_injection
 		geo
 	)
 

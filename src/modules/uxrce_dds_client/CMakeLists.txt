@@ -35,8 +35,12 @@ if(${CMAKE_VERSION} VERSION_LESS_EQUAL "3.15")
 	message(WARNING "skipping uxrce_dds_client, Micro-XRCE-DDS-Client needs to be fixed to work with CMAKE_VERSION ${CMAKE_VERSION}")
 
 else()
-
-	set(microxrceddsclient_src_dir   ${CMAKE_CURRENT_SOURCE_DIR}/Micro-XRCE-DDS-Client)
+	if(CONFIG_UXRCE_DDS_CLIENT_USE_DDS_V3)
+		message(WARNING "Using Micro-XRCE-DDS-Client v3 for uxrce_dds_client module")
+		set(microxrceddsclient_src_dir   ${CMAKE_CURRENT_SOURCE_DIR}/Micro-XRCE-DDS-Client-v3)
+	else()
+		set(microxrceddsclient_src_dir   ${CMAKE_CURRENT_SOURCE_DIR}/Micro-XRCE-DDS-Client)
+	endif()
 	set(microxrceddsclient_build_dir ${CMAKE_CURRENT_BINARY_DIR})
 
 	px4_add_git_submodule(TARGET git_micro_xrce_dds_client PATH "${microxrceddsclient_src_dir}")
@@ -57,9 +61,18 @@ else()
 		set(cxx_flags_with_includes "${cxx_flags_with_includes} -I${dir}")
 	endforeach()
 
+	# GCC 14 promotes implicit function declarations to hard errors; the
+	# client's POSIX UDP transport (compiled but never linked on NuttX)
+	# trips this via getaddrinfo/freeaddrinfo
+	set(c_flags_with_includes "${c_flags_with_includes} -Wno-error=implicit-function-declaration")
+
 	set(lib_dir ${CMAKE_INSTALL_LIBDIR})
 	if("${lib_dir}" STREQUAL "")
 		set(lib_dir "lib")
+	endif()
+
+	if(PX4_PLATFORM STREQUAL "nuttx")
+		set(c_flags_with_includes "${c_flags_with_includes} -Wno-cast-align -D__PX4_NUTTX")
 	endif()
 
 	include(ExternalProject)

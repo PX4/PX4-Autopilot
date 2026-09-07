@@ -37,56 +37,62 @@
 """
 
 import os
-import glob
-import kconfiglib
 import tempfile
 import sys
 from pathlib import Path
 
 import diffconfig
+import loadconfig
 import merge_config
 
-px4_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+px4_dir = loadconfig.PX4_ROOT
 
-for name in glob.glob(px4_dir + '/boards/*/*/default.px4board'):
-    kconf = kconfiglib.Kconfig()
-    kconf.load_config(name)
-    print(kconf.write_min_config(name))
+loadconfig.ensure_env()
+targets = list(loadconfig.enumerate_targets())
 
-    board_path = Path(name)
-    defconfig_path = board_path.parent / "nuttx-config" / "nsh" / "defconfig"
+for target in targets:
+    if target.label != 'default':
+        continue
+    kconf = loadconfig.load_kconfig()
+    kconf.load_config(target.path)
+    print(kconf.write_min_config(target.path))
+
+    defconfig_path = Path(target.path).parent / "nuttx-config" / "nsh" / "defconfig"
 
     if os.path.exists(defconfig_path):
         # Merge NuttX with default config
-        kconf = merge_config.main(px4_dir + "/Kconfig", name, defconfig_path)
-        print(kconf.write_min_config(name))
+        kconf = merge_config.main(px4_dir + "/Kconfig", target.path, defconfig_path)
+        print(kconf.write_min_config(target.path))
 
-for name in glob.glob(px4_dir + '/boards/*/*/bootloader.px4board'):
-    kconf = kconfiglib.Kconfig()
-    kconf.load_config(name)
-    print(kconf.write_min_config(name))
+for target in targets:
+    if target.label != 'bootloader':
+        continue
+    kconf = loadconfig.load_kconfig()
+    kconf.load_config(target.path)
+    print(kconf.write_min_config(target.path))
 
-for name in glob.glob(px4_dir + '/boards/*/*/canbootloader.px4board'):
-    kconf = kconfiglib.Kconfig()
-    kconf.load_config(name)
-    print(kconf.write_min_config(name))
+for target in targets:
+    if target.label != 'canbootloader':
+        continue
+    kconf = loadconfig.load_kconfig()
+    kconf.load_config(target.path)
+    print(kconf.write_min_config(target.path))
 
-for name in glob.glob(px4_dir + '/boards/*/*/*.px4board'):
-    if(os.path.basename(name) != "default.px4board" and
-       os.path.basename(name) != "bootloader.px4board" and
-       os.path.basename(name) != "canbootloader.px4board"):
-        board_default = os.path.dirname(name) + "/default.px4board";
+for target in targets:
+    if target.label in ('default', 'bootloader', 'canbootloader'):
+        continue
+    board_default = os.path.join(os.path.dirname(target.path), 'default.px4board')
 
-        # Merge with default config
-        kconf = merge_config.main(px4_dir + "/Kconfig", board_default, name)
-        tf = tempfile.NamedTemporaryFile()
+    # Merge with default config
+    kconf = merge_config.main(px4_dir + "/Kconfig", board_default, target.path)
+    tf = tempfile.NamedTemporaryFile()
 
-        # Save minconfig
-        kconf.write_min_config(tf.name)
+    # Save minconfig
+    kconf.write_min_config(tf.name)
 
-        # Diff with default config and save to label.px4board
-        stdoutpipe = sys.stdout
-        sys.stdout = open(name, "w")
-        diffconfig.main(1, board_default, tf.name)
-        sys.stdout.close()
-        sys.stdout = stdoutpipe
+    # Diff with default config and save to label.px4board
+    stdoutpipe = sys.stdout
+    sys.stdout = open(target.path, "w")
+    diffconfig.main(1, board_default, tf.name)
+    sys.stdout.close()
+    sys.stdout = stdoutpipe

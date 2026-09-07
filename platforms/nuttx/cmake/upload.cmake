@@ -33,9 +33,26 @@
 
 # Uploader script auto-detects PX4 devices by USB VID/PID
 set(PX4_UPLOADER_SCRIPT "${PX4_SOURCE_DIR}/Tools/px4_uploader.py")
+set(PX4_UPLOADER_PYTHON ${PYTHON_EXECUTABLE})
+
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux" AND EXISTS "/proc/sys/kernel/osrelease")
+	file(READ "/proc/sys/kernel/osrelease" PX4_HOST_OS_RELEASE)
+	string(FIND "${PX4_HOST_OS_RELEASE}" "microsoft-standard-WSL2" PX4_WSL2_INDEX)
+
+	if(NOT PX4_WSL2_INDEX EQUAL -1)
+		find_program(PX4_WINDOWS_PYTHON_EXECUTABLE python.exe)
+
+		if(PX4_WINDOWS_PYTHON_EXECUTABLE)
+			# Windows Python can access COM<N> ports directly,
+			# while WSL2 often cannot expose high-numbered COM
+			# ports as working /dev/ttyS<N> nodes.
+			set(PX4_UPLOADER_PYTHON ${PX4_WINDOWS_PYTHON_EXECUTABLE} -u)
+		endif()
+	endif()
+endif()
 
 add_custom_target(upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} ${fw_package}
+	COMMAND ${PX4_UPLOADER_PYTHON} ${PX4_UPLOADER_SCRIPT} ${fw_package}
 	DEPENDS ${fw_package}
 	COMMENT "uploading px4"
 	VERBATIM
@@ -44,7 +61,7 @@ add_custom_target(upload
 )
 
 add_custom_target(force-upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --force ${fw_package}
+	COMMAND ${PX4_UPLOADER_PYTHON} ${PX4_UPLOADER_SCRIPT} --force ${fw_package}
 	DEPENDS ${fw_package}
 	COMMENT "uploading px4 with --force"
 	VERBATIM
@@ -53,7 +70,7 @@ add_custom_target(force-upload
 )
 
 add_custom_target(upload-verbose
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --verbose ${fw_package}
+	COMMAND ${PX4_UPLOADER_PYTHON} ${PX4_UPLOADER_SCRIPT} --verbose ${fw_package}
 	DEPENDS ${fw_package}
 	COMMENT "uploading px4 with verbose output"
 	VERBATIM

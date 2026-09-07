@@ -37,7 +37,7 @@
 ///     @author px4dev, Don Gagne <don@thegagnes.com>
 
 #include <dirent.h>
-#include <queue.h>
+#include <sys/queue.h>
 
 #include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
@@ -194,6 +194,13 @@ private:
 	// Path traversal via ".." is rejected by _validatePath().
 	static constexpr const char _root_dir[] = PX4_ROOTFSDIR;
 	static constexpr const int _root_dir_len = sizeof(_root_dir) - 1;
+
+	// Virtual directory prefix for log files as defined by the MAVLink FTP spec.
+	// Paths that start with this prefix are mapped to the flight-stack log root.
+	static constexpr const char _mav_log_prefix[] = "@MAV_LOG";
+	static constexpr const int _mav_log_prefix_len = sizeof(_mav_log_prefix) - 1;
+	static constexpr const char _mav_log_dir[] = CONFIG_BOARD_ROOT_PATH "/log";
+	static constexpr const int _mav_log_dir_len = sizeof(_mav_log_dir) - 1;
 
 	bool _last_reply_valid = false;
 	uint8_t _last_reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN

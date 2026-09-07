@@ -49,6 +49,7 @@
 #include <uORB/topics/actuator_motors.h>
 
 #include <lib/slew_rate/SlewRate.hpp>
+#include <lib/pid/PID.hpp>
 
 namespace internal_combustion_engine_control
 {
@@ -98,6 +99,7 @@ private:
 
 	enum class SubState {
 		Run,
+		Idle,
 		Rest
 	};
 
@@ -115,16 +117,25 @@ private:
 
 	hrt_abstime _state_start_time{0};
 	hrt_abstime _last_time_run{0};
+	hrt_abstime _rpm_timestamp{0};
 
 	bool _ignition_on{false};
+	bool _is_engine_running{false};
+	bool _idle_control_active{false};
 	float _choke_control{1.f};
 	float _starter_engine_control{0.f};
 	float _throttle_control{0.f};
+	float _idle_throttle{0.f};
+	float _rpm_estimate{0.f};
+	hrt_abstime _timestamp_last_idle_throttle_update{0};
 
 	SlewRate<float> _throttle_control_slew_rate;
+	SubState _sub_state{SubState::Run};
+	PID _rpm_idle_pid; // Output in [0,1]
 
-	bool isEngineRunning(const hrt_abstime now);
+	void rpmSubUpdate(const hrt_abstime now);
 	void controlEngineRunning(float throttle_in);
+	void controlEngineIdle(const hrt_abstime now);
 	void controlEngineStop();
 	void controlEngineStartup(const hrt_abstime now);
 	void controlEngineFault();
@@ -135,7 +146,6 @@ private:
 	static constexpr float DELAY_BEFORE_RESTARTING{1.f};
 	int _starting_retry_cycle{0};
 	hrt_abstime _starting_rest_time{0};
-	SubState _starting_sub_state{SubState::Run};
 
 	/**
 	 * @brief Currently the ICE starting state is permitted after resting
@@ -155,7 +165,11 @@ private:
 		(ParamFloat<px4::params::ICE_STRT_THR>) _param_ice_strt_thr,
 		(ParamInt<px4::params::ICE_STOP_CHOKE>) _param_ice_stop_choke,
 		(ParamFloat<px4::params::ICE_THR_SLEW>) _param_ice_thr_slew,
-		(ParamFloat<px4::params::ICE_IGN_DELAY>) _param_ice_ign_delay
+		(ParamFloat<px4::params::ICE_IGN_DELAY>) _param_ice_ign_delay,
+		(ParamFloat<px4::params::ICE_IDLE_THR_FF>) _param_ice_idle_thr_ff,
+		(ParamFloat<px4::params::ICE_IDLE_RPM>) _param_ice_idle_rpm,
+		(ParamFloat<px4::params::ICE_IDLE_RPM_P>) _param_ice_idle_rpm_p,
+		(ParamFloat<px4::params::ICE_IDLE_RPM_I>) _param_ice_idle_rpm_i
 	)
 };
 

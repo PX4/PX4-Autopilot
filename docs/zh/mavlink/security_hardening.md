@@ -17,6 +17,7 @@ When MAVLink signing is not enabled, an attacker within communication range can:
 | Capability                                  | MAVLink mechanism                                |
 | ------------------------------------------- | ------------------------------------------------ |
 | Execute shell commands                      | `SERIAL_CONTROL` with `SERIAL_CONTROL_DEV_SHELL` |
+| Read/write arbitrary UART pin               | `SERIAL_CONTROL`                                 |
 | Read, write, or delete files                | MAVLink FTP protocol                             |
 | Change any flight parameter                 | `PARAM_SET` / `PARAM_EXT_SET`                    |
 | Upload or overwrite missions                | Mission protocol                                 |

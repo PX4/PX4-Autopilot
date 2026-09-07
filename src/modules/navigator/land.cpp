@@ -49,6 +49,9 @@ Land::Land(Navigator *navigator) :
 void
 Land::on_activation()
 {
+	// reset triplets, modes should be explicit about which fields they want to set
+	_navigator->reset_triplets();
+
 	/* set current mission item to Land */
 	set_land_item(&_mission_item);
 	_navigator->get_mission_result()->finished = false;
@@ -93,7 +96,6 @@ Land::on_active()
 	if (_navigator->get_land_detected()->landed) {
 		_navigator->get_mission_result()->finished = true;
 		_navigator->set_mission_result_updated();
-		_navigator->mode_completed(getNavigatorStateId());
 		set_idle_item(&_mission_item);
 
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -116,5 +118,9 @@ Land::on_active()
 		vehicle_command.param7 = _navigator->get_global_position()->alt + _navigator->get_landing_abort_min_alt();
 
 		_navigator->publish_vehicle_command(vehicle_command);
+	}
+
+	if (_navigator->get_mission_result()->finished) {
+		_navigator->mode_completed(getNavigatorStateId());
 	}
 }

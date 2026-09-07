@@ -10,6 +10,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/gimbal_controls.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
@@ -41,6 +42,7 @@ private:
 
 	uORB::Subscription _gimbal_device_set_attitude_sub{ORB_ID(gimbal_device_set_attitude)};
 	uORB::Subscription _gimbal_controls_sub{ORB_ID(gimbal_controls)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
 
 	uORB::Publication<gimbal_device_attitude_status_s> _gimbal_device_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
@@ -79,6 +81,11 @@ private:
 
 	matrix::Quatf _q_gimbal = matrix::Quatf(1.0f, 0.0f, 0.0f, 0.0f);
 	float _gimbal_rate[3] = {NAN};
+
+	// Set once we receive gimbal IMU data from Gazebo, i.e. the model actually has a
+	// gimbal. Until then we don't present a MAVLink gimbal device, so that a model
+	// without a gimbal lets PX4 act as a manager for an external MAVLink gimbal instead.
+	bool _gimbal_present = false;
 
 	// Device information attributes
 	const char _vendor_name[32] = "PX4";

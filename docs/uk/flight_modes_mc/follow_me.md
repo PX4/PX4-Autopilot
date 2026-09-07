@@ -10,7 +10,7 @@ _Follow Me_ mode allows a multicopter to autonomously hold position and altitude
 - Режим потребує принаймні дійсної локальної оцінки позиції (не потребує глобальної позиції).
   - Літаючі транспортні засоби не можуть переключатися на цей режим без глобального положення.
   - Літаючі транспортні засоби перейдуть в режим аварійної безпеки, якщо втратять оцінку положення.
-- Режим перешкоджає зброюванню (транспортний засіб повинен бути зброєний при переході на цей режим).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - Режим вимагає, щоб швидкість вітру та час польоту були в межах допустимих значень (вказано через параметри).
 - Цей режим в даний час підтримується лише на багатокоптерних (або VTOL у режимі MC).
 - Також обраний об'єкт повинен мати можливість постачання інформації про позицію.
@@ -19,6 +19,21 @@ _Follow Me_ mode allows a multicopter to autonomously hold position and altitude
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_follow_target -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_follow_target -->
 
 ## Загальний огляд
 
@@ -137,7 +152,7 @@ If the drone's altitude is significantly different than specified, assume that t
 
 The follow-me behavior can be configured using the following parameters:
 
-| Параметр                                                                                                                                                                | Опис                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Parameter                                                                                                                                                               | Опис                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FLW_TGT_HT"></a>[FLW_TGT_HT](../advanced_config/parameter_reference.md#FLW_TGT_HT)                                     | Висота автомобіля, який супроводжує, у метрах. Note that this height is fixed _relative to the home/arming position_ (not the target vehicle). Стандартна та мінімальна висота - 8 метрів (близько 26 футів)                                                                                                                                  |
 | <a id="FLW_TGT_DST"></a>[FLW_TGT_DST](../advanced_config/parameter_reference.md#FLW_TGT_DST)                                  | Vehicle/ground station separation in the _horizontal_ (x,y) plane, in metres. Мінімально допустимий інтервал - 1 метр. Стандартна відстань - 8 метрів (близько 26 футів).                                                                                                                                                     |

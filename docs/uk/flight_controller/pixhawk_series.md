@@ -80,7 +80,7 @@ PX4 _developers_ need to know the FMU version of their board, as this is require
   Більше RAM.
   Більше CAN шин.
   Набагато більш налаштовуваний.
-  ([Pixhawk 4](../flight_controller/pixhawk4.md),[CUAV v5](../flight_controller/cuav_v5.md),[CUAV V5+](../flight_controller/cuav_v5_plus.md),[CUAV V5 nano](../flight_controller/cuav_v5_nano.md))
+  ([Pixhawk 4 (Discontinued)](../flight_controller/pixhawk4.md),[CUAV v5 (Discontinued)](../flight_controller/cuav_v5.md), [CUAV V5+ (Discontinued)](../flight_controller/cuav_v5_plus.md),[CUAV V5 nano (Discontinued)](../flight_controller/cuav_v5_nano.md))
 - **FMUv5X:** New processor (F7).
   Набагато швидший, модульний дизайн.
   Більш надійний.
@@ -146,6 +146,6 @@ _Pixhawk_ is a trademark, and cannot be used in product names without permission
 All _Pixhawk-series_ flight controllers support:
 
 - A user facing RGB _UI LED_ to indicate the current _readiness to fly_ status of the vehicle. Зазвичай це дуже яскравий I2C, який може бути встановлений або не встановлений на платі (наприклад FMUv4 не має такого на борту, і зазвичай використовує світлодіод, встановлений на GPS).
-- Three _Status LED_s that provide lower level power status, bootloader mode and activity, and error information.
+- Three _Status LE&#x44;_&#x73; that provide lower level power status, bootloader mode and activity, and error information.
 
 To interpret the LEDs see: [LED Meanings](../getting_started/led_meanings.md).

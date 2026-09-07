@@ -35,8 +35,8 @@
 
 #include <px4_platform_common/log.h>
 #include <lib/geo/geo.h>
+#include <lib/gnss/SensorGpsSelector.hpp>
 #include <lib/mathlib/mathlib.h>
-#include <lib/drivers/device/Device.hpp>
 
 namespace sensors
 {
@@ -173,14 +173,8 @@ void VehicleGPSPosition::Run()
 			_gps_blending.setAntennaOffset(antenna_offset, i);
 			_gps_blending.setGpsData(gps_data, i);
 
-			if (math::isInRange(static_cast<int>(gps_prime), 2, 127)) {
-				device::Device::DeviceId device_id{};
-				device_id.devid = gps_data.device_id;
-
-				if (device_id.devid_s.bus_type == device::Device::DeviceBusType_UAVCAN
-				    && device_id.devid_s.address == static_cast<uint8_t>(gps_prime)) {
-					_gps_blending.setPrimaryInstance(i);
-				}
+			if (SensorGpsSelector::node_id_matches(gps_prime, gps_data.device_id)) {
+				_gps_blending.setPrimaryInstance(i);
 			}
 
 			if (!_sensor_gps_sub[i].registered()) {

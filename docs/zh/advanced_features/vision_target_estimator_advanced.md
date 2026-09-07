@@ -169,7 +169,7 @@ $$
 R_{\text{eff}} = \max\bigl(R_{\text{reported}},\ \text{VTE\_*\_NOISE}^2\bigr).
 $$
 
-| 参数                                                                                                                                          | 单位 (Units) | 默认值                  | Applies to                                            |
+| Parameter                                                                                                                                   | 单位 (Units) | 默认值                  | Applies to                                            |
 | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | -------------------- | ----------------------------------------------------- |
 | [VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE)                          | 米                             | 0.10 | Vision relative position                              |
 | [VTE_EVA_NOISE](../advanced_config/parameter_reference.md#VTE_EVA_NOISE)                          | rad                           | 0.07 | Vision yaw                                            |
@@ -192,7 +192,7 @@ All process-noise parameters are continuous-time **power spectral densities** (P
 A PSD describes the strength of a continuous white-noise process: it is the variance the noise injects per second into the state it directly drives, with units chosen so that `PSD × time` is the variance of that state.
 See [Spectral density (Wikipedia)](https://en.wikipedia.org/wiki/Spectral_density) for background.
 
-| 参数                                                                                                                                          | Drives directly                        | Unit                                 | What it represents                                                                                            |
+| Parameter                                                                                                                                   | Drives directly                        | Unit                                 | What it represents                                                                                            |
 | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | [VTE_BIAS_UNC](../advanced_config/parameter_reference.md#VTE_BIAS_UNC)                            | `bias` (m)          | m²/s                                 | PSD of the bias random walk                                                                                   |
 | [VTE_ACC_D_UNC](../advanced_config/parameter_reference.md#VTE_ACC_D_UNC)     | `vel_uav` (m/s)     | m²/s³                                | PSD of white acceleration noise on the UAV acceleration input                                                 |

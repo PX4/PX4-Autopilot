@@ -20,9 +20,19 @@ Manual mode where stick input is sent directly to control allocation (for "fully
 
 This is the only mode that overrides the FMU (commands are sent via the safety coprocessor). It provides a safety mechanism that allows full control of throttle, elevator, ailerons and rudder via RC in the event of an FMU firmware malfunction.
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_manual -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_manual -->
+
 ## 매개변수
 
-| 매개변수                                                                                                                                                        | 설명                                                                                                                                                                                                                                                                                         |
+| Parameter                                                                                                                                                   | 설명                                                                                                                                                                                                                                                                                         |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="FW_MAN_P_SC"></a>[FW_MAN_P_SC](../advanced_config/parameter_reference.md#FW_MAN_P_SC) | Manual pitch scale. Scale factor applied to the desired pitch actuator command in full manual mode. This parameter allows to adjust the throws of the control surfaces. Default: 1.0 norm. |
 | <a id="FW_MAN_R_SC"></a>[FW_MAN_R_SC](../advanced_config/parameter_reference.md#FW_MAN_R_SC) | Manual roll scale. Scale factor applied to the desired roll actuator command in full manual mode. This parameter allows to adjust the throws of the control surfaces. Default: 1.0 norm.   |

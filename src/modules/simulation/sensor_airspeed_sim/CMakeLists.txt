@@ -41,5 +41,6 @@ px4_add_module(
 	MODULE_CONFIG
 		parameters.yaml
 	DEPENDS
+		failure_injection
 		px4_work_queue
 	)

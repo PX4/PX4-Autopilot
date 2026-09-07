@@ -53,11 +53,11 @@ InputMavlinkROI::InputMavlinkROI(Parameters &parameters) :
 
 InputMavlinkROI::~InputMavlinkROI()
 {
-	if (_vehicle_roi_sub >= 0) {
+	if (orb_sub_valid(_vehicle_roi_sub)) {
 		orb_unsubscribe(_vehicle_roi_sub);
 	}
 
-	if (_position_setpoint_triplet_sub >= 0) {
+	if (orb_sub_valid(_position_setpoint_triplet_sub)) {
 		orb_unsubscribe(_position_setpoint_triplet_sub);
 	}
 }
@@ -66,13 +66,13 @@ int InputMavlinkROI::initialize()
 {
 	_vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
 
-	if (_vehicle_roi_sub < 0) {
+	if (!orb_sub_valid(_vehicle_roi_sub)) {
 		return -errno;
 	}
 
 	_position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 
-	if (_position_setpoint_triplet_sub < 0) {
+	if (!orb_sub_valid(_position_setpoint_triplet_sub)) {
 		return -errno;
 	}
 
@@ -175,7 +175,7 @@ InputMavlinkCmdMount::InputMavlinkCmdMount(Parameters &parameters) :
 
 InputMavlinkCmdMount::~InputMavlinkCmdMount()
 {
-	if (_vehicle_command_sub >= 0) {
+	if (orb_sub_valid(_vehicle_command_sub)) {
 		orb_unsubscribe(_vehicle_command_sub);
 	}
 }
@@ -184,7 +184,7 @@ int InputMavlinkCmdMount::initialize()
 {
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 
-	if (_vehicle_command_sub < 0) {
+	if (!orb_sub_valid(_vehicle_command_sub)) {
 		return -errno;
 	}
 
@@ -393,23 +393,23 @@ InputMavlinkGimbalV2::InputMavlinkGimbalV2(Parameters &parameters) :
 
 InputMavlinkGimbalV2::~InputMavlinkGimbalV2()
 {
-	if (_vehicle_roi_sub >= 0) {
+	if (orb_sub_valid(_vehicle_roi_sub)) {
 		orb_unsubscribe(_vehicle_roi_sub);
 	}
 
-	if (_position_setpoint_triplet_sub >= 0) {
+	if (orb_sub_valid(_position_setpoint_triplet_sub)) {
 		orb_unsubscribe(_position_setpoint_triplet_sub);
 	}
 
-	if (_gimbal_manager_set_attitude_sub >= 0) {
+	if (orb_sub_valid(_gimbal_manager_set_attitude_sub)) {
 		orb_unsubscribe(_gimbal_manager_set_attitude_sub);
 	}
 
-	if (_vehicle_command_sub >= 0) {
+	if (orb_sub_valid(_vehicle_command_sub)) {
 		orb_unsubscribe(_vehicle_command_sub);
 	}
 
-	if (_gimbal_manager_set_manual_control_sub >= 0) {
+	if (orb_sub_valid(_gimbal_manager_set_manual_control_sub)) {
 		orb_unsubscribe(_gimbal_manager_set_manual_control_sub);
 	}
 }
@@ -424,31 +424,31 @@ int InputMavlinkGimbalV2::initialize()
 {
 	_vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
 
-	if (_vehicle_roi_sub < 0) {
+	if (!orb_sub_valid(_vehicle_roi_sub)) {
 		return -errno;
 	}
 
 	_position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 
-	if (_position_setpoint_triplet_sub < 0) {
+	if (!orb_sub_valid(_position_setpoint_triplet_sub)) {
 		return -errno;
 	}
 
 	_gimbal_manager_set_attitude_sub = orb_subscribe(ORB_ID(gimbal_manager_set_attitude));
 
-	if (_gimbal_manager_set_attitude_sub < 0) {
+	if (!orb_sub_valid(_gimbal_manager_set_attitude_sub)) {
 		return -errno;
 	}
 
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 
-	if (_vehicle_command_sub < 0) {
+	if (!orb_sub_valid(_vehicle_command_sub)) {
 		return -errno;
 	}
 
 	_gimbal_manager_set_manual_control_sub = orb_subscribe(ORB_ID(gimbal_manager_set_manual_control));
 
-	if (_gimbal_manager_set_manual_control_sub < 0) {
+	if (!orb_sub_valid(_gimbal_manager_set_manual_control_sub)) {
 		return -errno;
 	}
 

@@ -50,15 +50,19 @@
 #include <uORB/uORB.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_status.h>
 #include <uORB/topics/gps_dump.h>
-#include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/rtcm_data.h>
+#include <lib/gnss/correction_framer.h>
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
+
+#include <lib/failure_injection/FailureInjection.hpp>
 
 #include "module.h"
 #include "sbf/decoder.h"
@@ -526,6 +530,25 @@ private:
 	void handle_inject_data_topic();
 
 	/**
+	 * @brief Drain the multi-instance rtcm_corrections subscription into its RTCM parser,
+	 * selecting an active instance if the current one goes stale.
+	 */
+	void drain_rtcm_corrections();
+
+	/**
+	 * @brief Drain the single-publisher rtcm_moving_baseline subscription into its RTCM parser.
+	 */
+	void drain_moving_baseline();
+
+	/**
+	 * @brief Write all complete RTCM frames reassembled in a parser to the receiver.
+	 *
+	 * The two inject streams are written frame-atomically so chunks of a fragmented frame on
+	 * one stream can never interleave with the other stream's bytes mid-frame.
+	 */
+	void inject_rtcm_frames(gnss::CorrectionFramer &framer);
+
+	/**
 	 * @brief Send data to the receiver, such as RTCM injections.
 	 *
 	 * @param data The raw data to send to the device
@@ -553,12 +576,12 @@ private:
 	bool first_gps_uorb_message_created() const;
 
 	/**
-	 * @brief Publish RTCM corrections.
+	 * @brief Publish moving-baseline RTCM produced by the Secondary moving base for the rover.
 	 *
 	 * @param data: The raw data to publish
 	 * @param len: The size of `data`
 	 */
-	void publish_rtcm_corrections(uint8_t *data, size_t len);
+	void publish_moving_baseline(uint8_t *data, size_t len);
 
 	/**
 	 * @brief Dump gps communication.
@@ -722,8 +745,12 @@ private:
 	DumpMode                               _dump_communication_mode {DumpMode::Disabled};                ///< GPS communication dump mode
 	device::Serial                         _uart {};                                                     ///< Serial UART port for communication with the receiver
 	char                                   _port[20] {};                                                 ///< The path of the used serial device
-	hrt_abstime                            _last_rtcm_injection_time {0};                                ///< Time of last RTCM injection
+	hrt_abstime                            _last_rtcm_injection_time {0};                                ///< Time of last RTCM corrections injection
 	uint8_t                                _selected_rtcm_instance {0};                                  ///< uORB instance that is being used for RTCM corrections
+	// Separate framer per inject stream: frames are only written to the receiver once complete,
+	// so fixed-base corrections and moving-baseline bytes cannot interleave mid-frame.
+	gnss::CorrectionFramer                 _rtcm_corrections_framer {};                                  ///< Frame reassembly for rtcm_corrections
+	gnss::CorrectionFramer                 _rtcm_moving_baseline_framer {};                              ///< Frame reassembly for rtcm_moving_baseline
 	uint8_t                                _spoofing_state {0};                                          ///< Receiver spoofing state
 	uint8_t                                _jamming_state {0};                                           ///< Receiver jamming state
 	bool                                   _time_synced {false};                                         ///< Receiver time in sync with GPS time
@@ -763,9 +790,13 @@ private:
 	uORB::PublicationMulti<sensor_gps_s>           _sensor_gps_pub {ORB_ID(sensor_gps)};           		///< uORB publication for gps position
 	uORB::PublicationMulti<sensor_gnss_status_s>   _sensor_gnss_status_pub {ORB_ID(sensor_gnss_status)};	///< uORB publication for gnss status
 	uORB::Publication<gps_dump_s>                  _gps_dump_pub {ORB_ID(gps_dump)};              		///< uORB publication for dump GPS data
-	uORB::Publication<gps_inject_data_s>           _gps_inject_data_pub {ORB_ID(gps_inject_data)}; 		///< uORB publication for injected data to the receiver
+	uORB::Publication<rtcm_data_s>      _rtcm_moving_baseline_pub {ORB_ID(rtcm_moving_baseline)}; ///< uORB publication for moving-baseline RTCM output
 	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   		///< uORB publication for satellite info
-	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _gps_inject_data_sub {ORB_ID::gps_inject_data}; ///< uORB subscription about data to inject to the receiver
+	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_corrections_sub {ORB_ID::rtcm_corrections}; ///< uORB subscription for external RTCM corrections
+	uORB::Subscription _rtcm_moving_baseline_sub {ORB_ID(rtcm_moving_baseline)}; ///< uORB subscription for moving-baseline RTCM input (single publisher)
+
+	failure_injection::Config _failure_config;
+	failure_injection::Stuck<sensor_gps_s> _stuck;
 
 	// Data about update frequencies of various bits of information like RTCM message injection frequency, received data rate...
 	hrt_abstime _current_interval_start_time {0};      ///< Start time of the current update measurement interval in us

@@ -4,10 +4,10 @@
 
 The _Return_ flight mode is used to _fly a vehicle to safety_ on an unobstructed path to a safe destination, where it can land.
 
-Fixed-wing vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#mission-landing-rally-point-return-type-rtl-type-1) return type by default, and are expected to always have a mission with a landing pattern.
+Fixed-wing vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#rtl_type_1) return type by default, and are expected to always have a mission with a landing pattern.
 With this configuration, return mode causes the vehicle to ascend to a minimum safe altitude above obstructions (if needed), fly to the start of the landing pattern defined in the mission plan, and then follow it to land.
 
-Fixed-wing supports the [other PX4 return types](../flight_modes/return.md#return-types-rtl-type), including home/rally point return, mission path and closest safe destination.
+Fixed-wing supports the [other PX4 return types](../flight_modes/return.md#return_types), including home/rally point return, mission path and closest safe destination.
 The default type is recommended.
 
 ::: info
@@ -17,7 +17,7 @@ The default type is recommended.
   - Flying vehicles can't switch to this mode without global position.
   - Flying vehicles will failsafe if they lose the position estimate.
 - Mode requires home position is set.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - RC control switches can be used to change flight modes on any vehicle.
 - RC stick movement is ignored.
 
@@ -33,7 +33,8 @@ In this return type the vehicle:
 - Ascends to a safe minimum return altitude defined by [RTL_RETURN_ALT](#RTL_RETURN_ALT) (safely above any expected obstacles).
   The vehicle maintains its initial altitude if that is higher than the minimum return altitude.
   Note that return altitude cannot be configured using the "cone" parameter in fixed-wing vehicles.
-- Flies via direct constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
+- Flies via a constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
+  The path is chosen to be the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness).
 - If the destination is a _mission landing pattern_ it will follow the pattern to land.
 - If the destination is a rally point or home it will descend to the descent altitude, and then loiter or land (depending on landing parameters).
 
@@ -45,6 +46,22 @@ A mission landing pattern consists of a [MAV_CMD_DO_LAND_START](https://mavlink.
 When the destination is a rally point or the home location, on arrival the vehicle will rapidly descend to the altitude defined by [RTL_DESCEND_ALT](#RTL_DESCEND_ALT), and by default circle above the destination indefinitely at radius [RTL_LOITER_RAD](#RTL_LOITER_RAD).
 The vehicle can be forced to land at the destination by changing [RTL_LAND_DELAY](#RTL_LAND_DELAY) so it is not -1.
 In this case the vehicle will land in the same way as [Land mode](../flight_modes_fw/land.md).
+
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_auto_rtl -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_global_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_global_position_relaxed) — Position measurement updates in a global coordinate frame but accepts poor accuracy
+- [`mode_req_home_position`](../flight_modes/mode_requirements.md#mode_req_home_position) — Global home reference must be set
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_auto_rtl -->
 
 ## Parameters
 

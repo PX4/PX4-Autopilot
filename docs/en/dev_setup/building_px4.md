@@ -114,8 +114,8 @@ The following list shows the build commands for the [Pixhawk standard](../flight
 - [Holybro Pixhawk 5X (FMUv5X)](../flight_controller/pixhawk5x.md): `make px4_fmu-v5x_default`
 - [Pixhawk 4 (FMUv5)](../flight_controller/pixhawk4.md): `make px4_fmu-v5_default`
 - [Pixhawk 4 Mini (FMUv5)](../flight_controller/pixhawk4_mini.md): `make px4_fmu-v5_default`
-- [CUAV V5+ (FMUv5)](../flight_controller/cuav_v5_plus.md): `make px4_fmu-v5_default`
-- [CUAV V5 nano (FMUv5)](../flight_controller/cuav_v5_nano.md): `make px4_fmu-v5_default`
+- [CUAV V5+ (FMUv5)](../flight_controller/cuav_v5_plus.md): `make px4_fmu-v5_default` - Discontinued
+- [CUAV V5 nano (FMUv5)](../flight_controller/cuav_v5_nano.md): `make px4_fmu-v5_default` - Discontinued
 - [Pixracer (FMUv4)](../flight_controller/pixracer.md): `make px4_fmu-v4_default`
 - [Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md): `make px4_fmu-v4pro_default`
 - [Pixhawk Mini](../flight_controller/pixhawk_mini.md): `make px4_fmu-v3_default`
@@ -209,15 +209,22 @@ The build toolchain will then report `Too many open files` for many files, as sh
 arm-none-eabi-ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
 ```
 
-The solution is to increase the maximum allowed number of open files (e.g. to 300).
+The solution is to increase the maximum allowed number of open files (to 2048, matching the [macOS setup instructions](../dev_setup/dev_env_mac.md#prerequisites)).
 You can do this in the macOS _Terminal_ for each session:
 
-- Run this script [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh), or
-- Enter this command:
+- Source this script [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh) (it must be sourced, not executed, to affect your current shell):
 
   ```sh
-  ulimit -S -n 300
+  source Tools/mac_set_ulimit.sh
   ```
+
+- Or enter the command directly:
+
+  ```sh
+  ulimit -S -n 2048
+  ```
+
+To apply it to every new terminal, add the `ulimit` line to `~/.zshrc` as described in the macOS setup.
 
 ### macOS Catalina: Problem running cmake
 

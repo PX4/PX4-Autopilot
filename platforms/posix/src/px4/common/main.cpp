@@ -368,17 +368,22 @@ int main(int argc, char **argv)
 		register_sig_handler();
 		set_cpu_scaling();
 
-		px4_daemon::Server server(instance);
-		server.start();
-
 		ret = create_dirs();
 
 		if (ret != PX4_OK) {
 			return ret;
 		}
 
+		// Initialize PX4 (uORB, work queues, logging, ...) before starting the
+		// daemon server. The server's client-handler thread spawns module tasks
+		// (e.g. dataman), so platform init must happen-before that thread is
+		// created. Otherwise those tasks race on globals such as the uORB::Manager
+		// instance pointer and the log message advertisement.
 		px4::init_once();
 		px4::init(argc, argv, "px4");
+
+		px4_daemon::Server server(instance);
+		server.start();
 
 		// Don't set this up until PX4 is up and running
 		ret = set_server_running(instance);

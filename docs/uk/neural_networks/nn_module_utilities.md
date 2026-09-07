@@ -18,7 +18,7 @@ A line to autostart the [mc_nn_control](../modules/modules_controller.md#mc-nn-c
 
 It checks whether the module is included by looking for the parameter [MC_NN_EN](../advanced_config/parameter_reference.md#MC_NN_EN).
 If this is set to `1` (the default value), the module will be started when booting PX4.
-Similarly you could create other parameters in the [`mc_nn_control_params.c`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mc_nn_control/mc_nn_control_params.c) file for other startup script checks.
+Similarly you could create other parameters in the [`mc_nn_control_params.yaml`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mc_nn_control/mc_nn_control_params.yaml) file for other startup script checks.
 
 ## Custom Flight Mode
 

@@ -85,7 +85,7 @@ parameters:
       unit: m
     EKF2_RNG_QLTY_T:
       description:
-        short: Minumum range validity period
+        short: Minimum range validity period
         long: Minimum duration during which the reported range finder signal quality
           needs to be non-zero in order to be declared valid (s)
       type: float

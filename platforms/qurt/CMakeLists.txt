@@ -52,3 +52,56 @@ target_link_libraries(px4
 	modules__muorb__slpi
 	${module_libraries}
 	)
+
+# Boards whose shared objects import target runtime symbols can register system
+# provider symbol files and prefixes that must always be resolved internally.
+get_property(qurt_forbidden_dynamic_import_prefixes GLOBAL
+	PROPERTY PX4_QURT_FORBIDDEN_DYNAMIC_IMPORT_PREFIXES)
+get_property(qurt_dynamic_import_provider_symbol_files GLOBAL
+	PROPERTY PX4_QURT_DYNAMIC_IMPORT_PROVIDER_SYMBOL_FILES)
+
+if(qurt_forbidden_dynamic_import_prefixes
+   OR qurt_dynamic_import_provider_symbol_files)
+	set(qurt_dynamic_import_args)
+	set(qurt_dynamic_import_dependencies
+		${PX4_SOURCE_DIR}/Tools/ci/check_elf_imports.py
+	)
+
+	foreach(prefix ${qurt_forbidden_dynamic_import_prefixes})
+		list(APPEND qurt_dynamic_import_args --forbid-prefix ${prefix})
+	endforeach()
+
+	foreach(symbol_file ${qurt_dynamic_import_provider_symbol_files})
+		list(APPEND qurt_dynamic_import_args --provider-symbol-file ${symbol_file})
+		list(APPEND qurt_dynamic_import_dependencies ${symbol_file})
+	endforeach()
+
+	if(qurt_dynamic_import_provider_symbol_files)
+		# These shared objects are linked into libpx4.so and supply C++ runtime
+		# symbols independently of the target system image.
+		set(qurt_dynamic_import_provider_elfs
+			${TOOLSLIB}/libc++.so.1
+			${TOOLSLIB}/libc++abi.so.1
+			${HEXAGON_SDK_ROOT}/libs/weak_refs/ship/hexagon_toolv84/weak_refs.so
+		)
+
+		foreach(provider_elf ${qurt_dynamic_import_provider_elfs})
+			list(APPEND qurt_dynamic_import_args --provider-elf ${provider_elf})
+			list(APPEND qurt_dynamic_import_dependencies ${provider_elf})
+		endforeach()
+	endif()
+
+	add_custom_target(px4_qurt_check_dynamic_imports ALL
+		COMMAND
+			${PYTHON_EXECUTABLE}
+			${PX4_SOURCE_DIR}/Tools/ci/check_elf_imports.py
+			--nm ${HEXAGON_BIN}/${CROSSDEV}nm
+			--elf $<TARGET_FILE:px4>
+			${qurt_dynamic_import_args}
+		DEPENDS
+			px4
+			${qurt_dynamic_import_dependencies}
+		COMMENT "Checking QURT shared-object dynamic imports"
+		VERBATIM
+	)
+endif()

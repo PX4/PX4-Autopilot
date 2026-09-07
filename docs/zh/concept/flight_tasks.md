@@ -138,34 +138,38 @@ The instructions below might be used to create a task named _MyTask_:
 
    For example, to enable our new `MyTask` in multicopter Position mode:
 
-   - Update `MPC_POS_MODE` ([multicopter_position_mode_params.c](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mc_pos_control/multicopter_position_mode_params.c)) to add an option for selecting "MyTask" if the parameter has a previously unused value like 5:
+   - Update `MPC_POS_MODE` ([multicopter_position_mode_params.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mc_pos_control/multicopter_position_mode_params.yaml)) to add an option for selecting "MyTask" using a previously unused parameter value (in this case 5):
 
-     ```c
-     ...
-      * @value 0 Direct velocity
-      * @value 4 Acceleration based
-      * @value 5 My task
-      * @group Multicopter Position Control
-      */
-     PARAM_DEFINE_INT32(MPC_POS_MODE, 5);
+     ```yaml
+     MPC_POS_MODE:
+       ...
+       type: enum
+       values:
+         0: Direct velocity
+         4: Acceleration based
+         5: My task
+       default: 4
      ```
 
-   - Add a case for your new option in the switch for the parameter [FlightModeManager.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/flight_mode_manager/FlightModeManager.cpp#L266-L285) to enable the task when `_param_mpc_pos_mode` has the right value.
+   - Add a case for your new option in the switch for the parameter [FlightModeManager.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/flight_mode_manager/FlightModeManager.cpp#L214-L229) to enable the task when `_param_mpc_pos_mode` has the right value.
 
      ```cpp
      ...
-     // manual position control
-     ...
      switch (_param_mpc_pos_mode.get()) {
-       ...
-       case 3:
-          error = switchTask(FlightTaskIndex::ManualPositionSmoothVel);
-          break;
-       case 5: // Add case for new task: MyTask
-          error = switchTask(FlightTaskIndex::MyTask);
-          break;
+     case 0:
+        error = switchTask(FlightTaskIndex::ManualPosition);
+        break;
+
+     case 5:
+        error = switchTask(FlightTaskIndex::MyTask);
+        break;
+
      case 4:
-     ....
+     default:
+        ...
+        error = switchTask(FlightTaskIndex::ManualAcceleration);
+        break;
+     }
      ...
      ```
 

@@ -113,7 +113,7 @@ It has the following characteristics/limits:
 - PCB Current: total 120A outputs (MAX)
 - UBEC 5V output current: 3A
 - UBEC input voltage : 7~51v (2~12s LiPo)
-- Dimensions: 68_50_8 mm
+- Dimensions: 6&#x38;_&#x35;&#x30;_&#x38; mm
 - Mounting Holes: 45\*45mm
 - Weight: 36g
 - Package includes:

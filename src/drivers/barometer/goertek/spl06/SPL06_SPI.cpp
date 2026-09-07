@@ -98,7 +98,17 @@ SPL06_SPI::read(uint8_t addr, uint8_t *buf, uint8_t len)
 {
 	uint8_t tx_buf[len + 1] = {(uint8_t)(addr | DIR_READ)}; // GCC support VLA, let's use it
 
-	return transfer(tx_buf, buf, len);
+	int res = transfer(tx_buf, tx_buf, (len + 1));
+
+	if (res < 0) {
+		return res;
+	}
+
+	for (int i = 0; i < len; i++) {
+		buf[i] = tx_buf[1 + i];
+	}
+
+	return res;
 }
 
 #endif // CONFIG_SPI

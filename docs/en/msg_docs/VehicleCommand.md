@@ -884,6 +884,20 @@ Set limits for external control.
 | 6     |       |            | Unused                                                                                                                                                                                                                             |
 | 7     |       |            | Unused                                                                                                                                                                                                                             |
 
+### VEHICLE_CMD_DO_SET_MISSION_CURRENT (224)
+
+Set the mission item with sequence number seq as current item and emit MISSION_CURRENT (whether or not the mission mode is active). ACKs FAILED if seq is out of range or there is no current mission item.
+
+| Param | Units | Range/Enum | Description                                                                                                                   |
+| ----- | ----- | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1     |       |            | Mission sequence value to set, -1 for the current mission item (use to reset jump counters without changing the current item) |
+| 2     |       |            | Reset repeat/jump counters and clear mission complete flag (1=true,0=false; default:0)                                        |
+| 3     |       |            | Unused                                                                                                                        |
+| 4     |       |            | Unused                                                                                                                        |
+| 5     |       |            | Unused                                                                                                                        |
+| 6     |       |            | Unused                                                                                                                        |
+| 7     |       |            | Unused                                                                                                                        |
+
 ### VEHICLE_CMD_DO_LAST (240)
 
 NOP - This command is only used to mark the upper limit of the DO commands in the enumeration.
@@ -1528,6 +1542,20 @@ Change mode by specifying nav_state directly.
 | 6     |       |            | Unused      |
 | 7     |       |            | Unused      |
 
+### VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN (611)
+
+Sets GNSS coordinates of the vehicle local origin (0,0,0) position. Send as COMMAND_INT with MAV_FRAME_GLOBAL_INT.
+
+| Param | Units | Range/Enum | Description        |
+| ----- | ----- | ---------- | ------------------ |
+| 1     |       |            | Unused             |
+| 2     |       |            | Unused             |
+| 3     |       |            | Unused             |
+| 4     |       |            | Unused             |
+| 5     |       |            | Latitude (WGS-84)  |
+| 6     |       |            | Longitude (WGS-84) |
+| 7     | m     |            | Altitude (AMSL)    |
+
 ### VEHICLE_CMD_GUIDED_CHANGE_HEADING (43002)
 
 Change heading/course. param1: heading type (0=course-over-ground, 1=heading). param2: target [deg]. param3: max rate [deg/s].
@@ -1637,6 +1665,13 @@ Change heading/course. param1: heading type (0=course-over-ground, 1=heading). p
 | <a id="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                 | `uint8`  | 103   |
 | <a id="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL                                 | `uint8`  | 104   |
 | <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL                       | `uint8`  | 105   |
+| <a id="#FAILURE_UNIT_SYSTEM_ESC"></a> FAILURE_UNIT_SYSTEM_ESC                                             | `uint8`  | 106   |
+| <a id="#FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE                 | `uint8`  | 107   |
+| <a id="#FAILURE_UNIT_DATALINK_LTE"></a> FAILURE_UNIT_DATALINK_LTE                                         | `uint8`  | 150   |
+| <a id="#FAILURE_UNIT_DATALINK_WIFI"></a> FAILURE_UNIT_DATALINK_WIFI                                       | `uint8`  | 151   |
+| <a id="#FAILURE_UNIT_DATALINK_TELEM_RADIO"></a> FAILURE_UNIT_DATALINK_TELEM_RADIO                         | `uint8`  | 152   |
+| <a id="#FAILURE_UNIT_BUS_CAN"></a> FAILURE_UNIT_BUS_CAN                                                   | `uint8`  | 200   |
+| <a id="#FAILURE_UNIT_BUS_I2C"></a> FAILURE_UNIT_BUS_I2C                                                   | `uint8`  | 201   |
 | <a id="#FAILURE_TYPE_OK"></a> FAILURE_TYPE_OK                                                             | `uint8`  | 0     |
 | <a id="#FAILURE_TYPE_OFF"></a> FAILURE_TYPE_OFF                                                           | `uint8`  | 1     |
 | <a id="#FAILURE_TYPE_STUCK"></a> FAILURE_TYPE_STUCK                                                       | `uint8`  | 2     |
@@ -1645,6 +1680,7 @@ Change heading/course. param1: heading type (0=course-over-ground, 1=heading). p
 | <a id="#FAILURE_TYPE_SLOW"></a> FAILURE_TYPE_SLOW                                                         | `uint8`  | 5     |
 | <a id="#FAILURE_TYPE_DELAYED"></a> FAILURE_TYPE_DELAYED                                                   | `uint8`  | 6     |
 | <a id="#FAILURE_TYPE_INTERMITTENT"></a> FAILURE_TYPE_INTERMITTENT                                         | `uint8`  | 7     |
+| <a id="#FAILURE_TYPE_DRIFT"></a> FAILURE_TYPE_DRIFT                                                       | `uint8`  | 8     |
 | <a id="#RC_TYPE_SPEKTRUM"></a> RC_TYPE_SPEKTRUM                                                           | `uint8`  | 0     |
 | <a id="#RC_TYPE_CRSF"></a> RC_TYPE_CRSF                                                                   | `uint8`  | 1     |
 | <a id="#RC_SUB_TYPE_SPEKTRUM_DSM2"></a> RC_SUB_TYPE_SPEKTRUM_DSM2                                         | `uint8`  | 0     |
@@ -1734,6 +1770,7 @@ uint16 VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL=214 # Mission command to set TRIG_I
 uint16 VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT=220 # Mission command to control a camera or antenna mount, using a quaternion as reference. |q1 - quaternion param #1, w (1 in null-rotation)|q2 - quaternion param #2, x (0 in null-rotation)|q3 - quaternion param #3, y (0 in null-rotation)|q4 - quaternion param #4, z (0 in null-rotation)|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GUIDED_MASTER=221 # Set id of master controller. |System ID|Component ID|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GUIDED_LIMITS=222 # Set limits for external control. |[s] Timeout - maximum time that external controller will be allowed to control vehicle. 0 means no timeout|[m] Absolute altitude min(AMSL) - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit|[m] Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit|[m] Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit|Unused|Unused|Unused|
+uint16 VEHICLE_CMD_DO_SET_MISSION_CURRENT = 224 # Set the mission item with sequence number seq as current item and emit MISSION_CURRENT (whether or not the mission mode is active). ACKs FAILED if seq is out of range or there is no current mission item. |Mission sequence value to set, -1 for the current mission item (use to reset jump counters without changing the current item)|Reset repeat/jump counters and clear mission complete flag (1=true,0=false; default:0)|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_LAST = 240 # NOP - This command is only used to mark the upper limit of the DO commands in the enumeration. |Unused|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_PREFLIGHT_CALIBRATION = 241 # Trigger calibration. This command will be only accepted if in pre-flight mode. See MAVLink spec MAV_CMD_PREFLIGHT_CALIBRATION.
 uint16 PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION = 3# Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration.
@@ -1796,6 +1833,7 @@ uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehic
 uint32 VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN = 100000 # Sets the GPS coordinates of the vehicle local origin (0,0,0) position. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL from GNSS, positive above ground)|
 uint32 VEHICLE_CMD_SET_NAV_STATE = 100001 # Change mode by specifying nav_state directly. |nav_state|Unused|Unused|Unused|Unused|Unused|Unused|
 
+uint16 VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN = 611 # Sets GNSS coordinates of the vehicle local origin (0,0,0) position. Send as COMMAND_INT with MAV_FRAME_GLOBAL_INT. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL)|
 uint16 VEHICLE_CMD_GUIDED_CHANGE_HEADING = 43002 # Change heading/course. param1: heading type (0=course-over-ground, 1=heading). param2: target [deg]. param3: max rate [deg/s]. |Heading type (HEADING_TYPE enum)|[deg] Target bearing [0..360]|[deg/s] Max rate of change|Unused|Unused|Unused|Unused|
 
 uint8 VEHICLE_MOUNT_MODE_RETRACT = 0 # Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.
@@ -1838,6 +1876,13 @@ uint8 FAILURE_UNIT_SYSTEM_SERVO = 102
 uint8 FAILURE_UNIT_SYSTEM_AVOIDANCE = 103
 uint8 FAILURE_UNIT_SYSTEM_RC_SIGNAL = 104
 uint8 FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL = 105
+uint8 FAILURE_UNIT_SYSTEM_ESC = 106
+uint8 FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE = 107
+uint8 FAILURE_UNIT_DATALINK_LTE = 150
+uint8 FAILURE_UNIT_DATALINK_WIFI = 151
+uint8 FAILURE_UNIT_DATALINK_TELEM_RADIO = 152
+uint8 FAILURE_UNIT_BUS_CAN = 200
+uint8 FAILURE_UNIT_BUS_I2C = 201
 
 uint8 FAILURE_TYPE_OK = 0
 uint8 FAILURE_TYPE_OFF = 1
@@ -1847,6 +1892,7 @@ uint8 FAILURE_TYPE_WRONG = 4
 uint8 FAILURE_TYPE_SLOW = 5
 uint8 FAILURE_TYPE_DELAYED = 6
 uint8 FAILURE_TYPE_INTERMITTENT = 7
+uint8 FAILURE_TYPE_DRIFT = 8
 
 # Used as param1 in DO_CHANGE_SPEED command.
 uint8 SPEED_TYPE_AIRSPEED = 0

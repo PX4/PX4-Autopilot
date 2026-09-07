@@ -74,6 +74,7 @@ protected:
 
 		IFileServerBackend::Path &alt_root_path_;
 		IFileServerBackend::Path &root_path_;
+		IFileServerBackend::Path &nfs_root_path_;
 
 		class FDCacheItem : uavcan::Noncopyable
 		{
@@ -238,10 +239,12 @@ protected:
 		}
 
 	public:
-		FDCache(uavcan::INode &node, IFileServerBackend::Path &root_path, IFileServerBackend::Path &alt_root_path) :
+		FDCache(uavcan::INode &node, IFileServerBackend::Path &root_path, IFileServerBackend::Path &alt_root_path,
+			IFileServerBackend::Path &nfs_root_path) :
 			TimerBase(node),
 			alt_root_path_(alt_root_path),
 			root_path_(root_path),
+			nfs_root_path_(nfs_root_path),
 			head_(UAVCAN_NULLPTR)
 		{ }
 
@@ -273,6 +276,12 @@ protected:
 
 				if (fd < 0) {
 					vpath = alt_root_path_.c_str();
+					vpath += path;
+					fd = FDCacheBase::open(vpath.c_str(), oflags);
+				}
+
+				if (fd < 0 && !nfs_root_path_.empty()) {
+					vpath = nfs_root_path_.c_str();
 					vpath += path;
 					fd = FDCacheBase::open(vpath.c_str(), oflags);
 				}
@@ -330,7 +339,7 @@ protected:
 	FDCacheBase &getFDCache()
 	{
 		if (fdcache_ == UAVCAN_NULLPTR) {
-			fdcache_ = new FDCache(node_, getRootPath(), getAltRootPath());
+			fdcache_ = new FDCache(node_, getRootPath(), getAltRootPath(), getNfsRootPath());
 
 			if (fdcache_ == UAVCAN_NULLPTR) {
 				fdcache_ = &fallback_;
@@ -364,6 +373,12 @@ protected:
 
 			if (rv < 0) {
 				vpath = getAltRootPath().c_str();
+				vpath += path;
+				rv = stat(vpath.c_str(), &sb);
+			}
+
+			if (rv < 0 && !getNfsRootPath().empty()) {
+				vpath = getNfsRootPath().c_str();
 				vpath += path;
 				rv = stat(vpath.c_str(), &sb);
 			}

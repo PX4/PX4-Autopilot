@@ -37,36 +37,37 @@ using namespace time_literals;
 
 void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	manual_control_setpoint_s manual_control_setpoint;
+	if (_manual_control_setpoint_sub.advertised()) {
+		manual_control_setpoint_s manual_control_setpoint;
 
-	if (!_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
-		manual_control_setpoint = {};
-		reporter.failsafeFlags().manual_control_signal_lost = true;
-	}
-
-	// Check if manual control is valid
-	if (!manual_control_setpoint.valid
-	    || hrt_elapsed_time(&manual_control_setpoint.timestamp) > _param_com_rc_loss_t.get() * 1_s) {
-
-		if (!reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
-
-			events::send(events::ID("commander_rc_lost"), {events::Log::Info, events::LogInternal::Info},
-				     "Manual control lost");
+		if (!_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
+			manual_control_setpoint = {};
 		}
 
-		reporter.failsafeFlags().manual_control_signal_lost = true;
+		// Check if manual control is valid
+		if (!manual_control_setpoint.valid
+		    || hrt_elapsed_time(&manual_control_setpoint.timestamp) > _param_com_rc_loss_t.get() * 1_s) {
 
-	} else {
-		reporter.setIsPresent(health_component_t::remote_control);
+			if (!reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
 
-		if (reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
-			float elapsed = hrt_elapsed_time(&_last_valid_manual_control_setpoint) * 1e-6f;
-			events::send<float>(events::ID("commander_rc_regained"), events::Log::Info,
-					    "Manual control regained after {1:.1} s", elapsed);
+				events::send(events::ID("commander_rc_lost"), {events::Log::Info, events::LogInternal::Info},
+					     "Manual control lost");
+			}
+
+			reporter.failsafeFlags().manual_control_signal_lost = true;
+
+		} else {
+			reporter.setIsPresent(health_component_t::remote_control);
+
+			if (reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
+				float elapsed = hrt_elapsed_time(&_last_valid_manual_control_setpoint) * 1e-6f;
+				events::send<float>(events::ID("commander_rc_regained"), events::Log::Info,
+						    "Manual control regained after {1:.1} s", elapsed);
+			}
+
+			reporter.failsafeFlags().manual_control_signal_lost = false;
+			_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
 		}
-
-		reporter.failsafeFlags().manual_control_signal_lost = false;
-		_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
 	}
 
 	// Manual control check is in modeCheck as mode requirement

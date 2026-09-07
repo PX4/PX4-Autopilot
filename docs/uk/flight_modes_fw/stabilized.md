@@ -37,11 +37,23 @@ The diagram below shows the mode behaviour visually (for a [mode 2 transmitter](
   Може бути використаний для ручної зміни кута рискання безпілотного засобу.
 - Потрібен ручний ввід управління (наприклад, за допомогою пульта дистанційного керування, джойстика).
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_stab -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_stab -->
+
 ## Параметри
 
 Режим впливає на наступні параметри:
 
-| Параметр                                                                                                                                                          | Опис                                                                                                                                                                        |
+| Parameter                                                                                                                                                         | Опис                                                                                                                                                                        |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FW_MAN_P_MAX"></a>[FW_MAN_P_MAX](../advanced_config/parameter_reference.md#FW_MAN_P_MAX)    | Максимальний крен для керування вручну в режимі стабілізації кута нахилу. За замовчуванням: 45 градусів.                    |
 | <a id="FW_MAN_R_MAX"></a>[FW_MAN_R_MAX](../advanced_config/parameter_reference.md#FW_MAN_R_MAX)    | Максимальне значення крена для керування в ручному режимі в режимі стабілізації кута нахилу. За замовчуванням: 45 градусів. |

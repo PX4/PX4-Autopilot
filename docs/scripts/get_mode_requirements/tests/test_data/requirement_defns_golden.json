@@ -1,0 +1,72 @@
+{
+  "mode_req_angular_velocity": {
+    "text": "Angular velocity",
+    "sensor": "gyroscope",
+    "detail": ""
+  },
+  "mode_req_attitude": {
+    "text": "Attitude/pose",
+    "sensor": "IMU, or theoretically a motion capture system",
+    "detail": ""
+  },
+  "mode_req_local_position": {
+    "text": "Position relative to EKF2 origin ('0') point",
+    "sensor": "GNSS, VIO, mocap",
+    "detail": ""
+  },
+  "mode_req_local_position_relaxed": {
+    "text": "Position relative to EKF2 origin ('0') point but accepts poor accuracy",
+    "sensor": "Optical flow",
+    "detail": "Typically optical flow. You set zero when you take off and just integrate up the flow. So the absolute position can be very inaccurate but better than nothing. Useful to not drift away quickly and roughly know where you are."
+  },
+  "mode_req_global_position": {
+    "text": "Position measurement updates in a global coordinate frame",
+    "sensor": "GNSS, or local position and global reference to EKF 0",
+    "detail": ""
+  },
+  "mode_req_global_position_relaxed": {
+    "text": "Position measurement updates in a global coordinate frame but accepts poor accuracy",
+    "sensor": "",
+    "detail": "Local position and global reference to EKF2 origin"
+  },
+  "mode_req_local_alt": {
+    "text": "Local altitude relative to EKF2 origin ('0') position",
+    "sensor": "Barometer corrected by GNSS altitude over time, distance sensor",
+    "detail": "Usually not the distance sensor because if the ground shifts then the coordinate frame would shift with it (range aid problem)."
+  },
+  "mode_req_mission": {
+    "text": "Valid mission in autopilot's storage",
+    "sensor": "Mission mode only requirement",
+    "detail": "can be from last time no need to upload fresh"
+  },
+  "mode_req_offboard_signal": {
+    "text": "Offboard heartbeat",
+    "sensor": "",
+    "detail": "MAVLink messages SET_ATTITUDE_TARGET or SET_POSITION_TARGET_LOCAL_NED or SET_POSITION_TARGET_GLOBAL_INT not timing out. Offboard mode specific requirement."
+  },
+  "mode_req_home_position": {
+    "text": "Global home reference must be set",
+    "sensor": "",
+    "detail": "Specific requirement for Return mode"
+  },
+  "mode_req_wind_and_flight_time_compliance": {
+    "text": "Safety compliance limits on wind and flight time.",
+    "sensor": "",
+    "detail": "Autonomous flight prevented in high winds (20m/s?) or if exceeds planned flight time, except for failsafe flight. See COM_FLT_TIME_MAX or COM_WIND_MAX for limits (also see COM_WIND_WARN, COM_WIND_MAX_ACT)."
+  },
+  "mode_req_prevent_arming": {
+    "text": "Mode prevents arming (vehicle must be armed to switch to this mode)",
+    "sensor": "",
+    "detail": "Set for modes like Land, Orbit, Return that you can't take off in"
+  },
+  "mode_req_manual_control": {
+    "text": "Requires stick input",
+    "sensor": "",
+    "detail": "This can come from multiple channels: RC driver -> channels -> RC mapping/calibration -> [`manual_control_input` or `manual_control_setpoint` topic](../msg_docs/ManualControlSetpoint.md) -> Selector using [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) -> Joystick (MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) message) -> ..."
+  },
+  "mode_req_other": {
+    "text": "Others requirement.",
+    "sensor": "",
+    "detail": "This is used by external modes. It is intended to specify additional requirements not covered by the existing flags"
+  }
+}

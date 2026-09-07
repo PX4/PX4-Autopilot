@@ -56,6 +56,24 @@ parameters:
         1: Enabled
       default: 1
       reboot_required: true
+    SIM_GZ_EN_IMU:
+      description:
+        short: Enable IMU sensor in Gazebo bridge
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 1
+      reboot_required: true
+    SIM_GZ_EN_MAG:
+      description:
+        short: Enable magnetometer sensor in Gazebo bridge
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 1
+      reboot_required: true
 - group: UAVCAN
   definitions:
     SIM_GZ_EN:

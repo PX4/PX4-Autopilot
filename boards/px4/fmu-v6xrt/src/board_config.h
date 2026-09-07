@@ -609,7 +609,6 @@
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
-#define PX4_I2C_BUS_MTD      1
 
 __BEGIN_DECLS
 

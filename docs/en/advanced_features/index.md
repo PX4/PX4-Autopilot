@@ -3,6 +3,7 @@
 This section contains topics related to some of the more advanced features of the PX4 autopilot:
 
 - [Air Traffic Avoidance: ADS-B/FLARM/UTM](../peripherals/adsb_flarm.md)
+- [Detect And Avoid](../advanced_features/detect_and_avoid.md)
 - [Computer Vision](../computer_vision/index.md)
   - [Collision Prevention](../computer_vision/collision_prevention.md)
   - [Motion Capture (MoCap)](../computer_vision/motion_capture.md)

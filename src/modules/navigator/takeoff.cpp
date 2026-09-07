@@ -50,6 +50,9 @@ Takeoff::Takeoff(Navigator *navigator) :
 void
 Takeoff::on_activation()
 {
+	// reset triplets, modes should be explicit about which fields they want to set
+	_navigator->reset_triplets();
+
 	set_takeoff_position();
 
 	// reset cruising speed to default
@@ -65,7 +68,7 @@ Takeoff::on_active()
 
 		switch (_fw_takeoff_state) {
 		case fw_takeoff_state::CLIMBOUT: {
-				if (_navigator->get_global_position()->alt >= _loiter_altitude_msl) {
+				if (_navigator->fw_climbout_completed(_loiter_altitude_msl)) {
 
 					setLoiterItemCommonFields(&_mission_item);
 
@@ -79,12 +82,20 @@ Takeoff::on_active()
 					_mission_item.time_inside = 1.f;
 					_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 					_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
-					_mission_item.altitude = _loiter_altitude_msl;
+
+					// the climbout does not necessarily end at the loiter altitude, and the vehicle should
+					// not descend back to it if it ended up higher
+					_mission_item.altitude = math::max(_loiter_altitude_msl, _navigator->get_global_position()->alt);
 
 					mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
-					pos_sp_triplet->current.lat = _loiter_position_lat_lon(0) > DBL_EPSILON ?
+					const bool loiter_lat_valid = PX4_ISFINITE(_loiter_position_lat_lon(0))
+								      && fabs(_loiter_position_lat_lon(0)) > DBL_EPSILON;
+					const bool loiter_lon_valid = PX4_ISFINITE(_loiter_position_lat_lon(1))
+								      && fabs(_loiter_position_lat_lon(1)) > DBL_EPSILON;
+
+					pos_sp_triplet->current.lat = loiter_lat_valid ?
 								      _loiter_position_lat_lon(0) : _navigator->get_global_position()->lat;
-					pos_sp_triplet->current.lon = _loiter_position_lat_lon(1) > DBL_EPSILON ?
+					pos_sp_triplet->current.lon = loiter_lon_valid ?
 								      _loiter_position_lat_lon(1) : _navigator->get_global_position()->lon;
 					pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					pos_sp_triplet->current.cruising_speed = -1.f;
@@ -118,7 +129,7 @@ Takeoff::on_active()
 					lateral_acceptance_reached = distance_to_loiter < _navigator->get_acceptance_radius() + mission_item_loiter_radius_abs;
 				}
 
-				const bool vertical_acceptance_reached = _navigator->get_global_position()->alt >= _loiter_altitude_msl -
+				const bool vertical_acceptance_reached = _navigator->get_global_position()->alt >= _mission_item.altitude -
 						_navigator->get_altitude_acceptance_radius();
 
 				if (lateral_acceptance_reached && vertical_acceptance_reached) {
@@ -131,7 +142,6 @@ Takeoff::on_active()
 					// the FW takeoff mode is completed, exit to Hold (handled by Commander)
 					_navigator->get_mission_result()->finished = true;
 					_navigator->set_mission_result_updated();
-					_navigator->mode_completed(getNavigatorStateId());
 
 					_loiter_altitude_msl = NAN; // reset for next takeoff command
 				}
@@ -153,7 +163,6 @@ Takeoff::on_active()
 		} else if (is_mission_item_reached_or_completed() && !_navigator->get_mission_result()->finished) {
 			_navigator->get_mission_result()->finished = true;
 			_navigator->set_mission_result_updated();
-			_navigator->mode_completed(getNavigatorStateId());
 
 			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
@@ -164,13 +173,17 @@ Takeoff::on_active()
 			} else {
 				if (pos_sp_triplet->current.valid
 				    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+					setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current);
 				}
 			}
 
 			mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 			_navigator->set_position_setpoint_triplet_updated();
 		}
+	}
+
+	if (_navigator->get_mission_result()->finished) {
+		_navigator->mode_completed(getNavigatorStateId());
 	}
 }
 

@@ -154,7 +154,7 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 
 ## Parameter Overview
 
-| 参数                                                                                                                                                                         | 描述                                                         | Unit    |
+| Parameter                                                                                                                                                                  | 描述                                                         | Unit    |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------- |
 | <a id="RO_MAX_THR_SPEED"></a>[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED) | Speed the rover drives at maximum throttle                 | $m/s$   |
 | <a id="RO_ACCEL_LIM"></a>[RO_ACCEL_LIM](../advanced_config/parameter_reference.md#RO_ACCEL_LIM)                                  | (Optional) Maximum allowed acceleration | $m/s^2$ |
@@ -164,7 +164,7 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 
 ### Ackermann Specific
 
-| 参数                                                                                                                                                                      | 描述                                                          | Unit  |
+| Parameter                                                                                                                                                               | 描述                                                          | Unit  |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ----- |
 | <a id="RA_WHEEL_BASE"></a>[RA_WHEEL_BASE](../advanced_config/parameter_reference.md#RA_WHEEL_BASE)                            | Wheel base                                                  | $m$   |
 | <a id="RA_MAX_STR_ANG"></a>[RA_MAX_STR_ANG](../advanced_config/parameter_reference.md#RA_MAX_STR_ANG)    | Maximum steering angle                                      | $deg$ |
@@ -172,14 +172,14 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 
 ### Differential Specific
 
-| 参数                                                                                                                                                                      | 描述                                                           | Unit |
+| Parameter                                                                                                                                                               | 描述                                                           | Unit |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---- |
 | <a id="RD_WHEEL_TRACK"></a>[RD_WHEEL_TRACK](../advanced_config/parameter_reference.md#RD_WHEEL_TRACK)                         | Wheel track                                                  | $m$  |
 | <a id="RD_YAW_STK_GAIN"></a>[RD_YAW_STK_GAIN](../advanced_config/parameter_reference.md#RD_YAW_STK_GAIN) | (Optional) Yaw stick gain for Manual mode | $-$  |
 
 ### Mecanum Specific
 
-| 参数                                                                                                                                                                      | 描述                                                           | Unit |
+| Parameter                                                                                                                                                               | 描述                                                           | Unit |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---- |
 | <a id="RM_WHEEL_TRACK"></a>[RM_WHEEL_TRACK](../advanced_config/parameter_reference.md#RM_WHEEL_TRACK)                         | Wheel track                                                  | $m$  |
 | <a id="RM_YAW_STK_GAIN"></a>[RM_YAW_STK_GAIN](../advanced_config/parameter_reference.md#RM_YAW_STK_GAIN) | (Optional) Yaw stick gain for Manual mode | $-$  |

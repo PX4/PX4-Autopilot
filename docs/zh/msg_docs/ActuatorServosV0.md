@@ -1,0 +1,51 @@
+---
+pageClass: is-wide-page
+---
+
+# ActuatorServosV0 (UORB message)
+
+Servo control message.
+
+Normalised output setpoint for up to 8 servos.
+Published by the vehicle's allocation and consumed by the actuator output drivers.
+
+**TOPICS:** actuator_servos_v0
+
+## Fields
+
+| 参数名                                                                    | 类型           | Unit [Frame] | Range/Enum                                                                   | 描述                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                    | `uint64`     | us                                                               |                                                                              | Time since system start                                                                                                                                                                                                                                                |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     | us                                                               |                                                                              | Sampling timestamp of the data this control response is based on                                                                                                                                                                                                       |
+| <a id="fld_control"></a>control                                        | `float32[8]` |                                                                  | [-1 : 1] | Normalized output. 1 means maximum positive position. -1 maximum negative position (if not supported by the output, <0 maps to NaN). NaN maps to disarmed. |
+
+## Constants
+
+| 参数名                                                                | 类型       | 值 | 描述 |
+| ------------------------------------------------------------------ | -------- | - | -- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0 |    |
+| <a id="#NUM_CONTROLS"></a> NUM_CONTROLS       | `uint8`  | 8 |    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/ActuatorServosV0.msg)
+
+:::details
+Click here to see original file
+
+```c
+# Servo control message
+#
+# Normalised output setpoint for up to 8 servos.
+# Published by the vehicle's allocation and consumed by the actuator output drivers.
+
+uint32 MESSAGE_VERSION = 0
+
+uint64 timestamp # [us] Time since system start
+uint64 timestamp_sample # [us] Sampling timestamp of the data this control response is based on
+
+uint8 NUM_CONTROLS = 8
+float32[8] control # [-] [@range -1, 1] Normalized output. 1 means maximum positive position. -1 maximum negative position (if not supported by the output, <0 maps to NaN). NaN maps to disarmed.
+```
+
+:::

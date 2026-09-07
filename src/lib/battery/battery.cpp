@@ -53,10 +53,10 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_index(index < 1 || index > 9 ? 1 : index),
 	_source(source)
 {
-	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1_s;
-	_current_average_filter_a.setParameters(expected_filter_dt, 50.f);
-	_ocv_filter_v.setParameters(expected_filter_dt, 1.f);
-	_cell_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
+	const hrt_abstime expected_filter_dt_us = static_cast<hrt_abstime>(sample_interval_us);
+	_current_average_filter_a.setParameters(expected_filter_dt_us, 50_s);
+	_ocv_filter_v.setParameters(expected_filter_dt_us, 1_s);
+	_cell_voltage_filter_v.setParameters(expected_filter_dt_us, 1_s);
 
 	if (index > 9 || index < 1) {
 		PX4_ERR("Battery index must be between 1 and 9 (inclusive). Received %d. Defaulting to 1.", index);
@@ -208,12 +208,31 @@ void Battery::publishBatteryStatus(const battery_status_s &battery_status)
 void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp)
 {
 	updateBatteryStatus(timestamp);
-	publishBatteryStatus(getBatteryStatus());
+
+	battery_status_s battery_status = getBatteryStatus();
+
+	_failure_config.update();
+
+	if (!failure_injection::process_battery(_failure_config, battery_status.id, battery_status)) {
+		return;
+	}
+
+	publishBatteryStatus(battery_status);
 }
 void Battery::updateDt(const hrt_abstime &timestamp)
 {
 	if (_last_timestamp != 0) {
-		_dt = math::min((timestamp - _last_timestamp) / 1e6f, 2.f); // guard to a maximum 2 seconds dt
+		// _dt_discharge is the true, unclamped time delta: for the coulomb
+		// count in sumDischarged() below, using the real elapsed time is
+		// always more accurate than clamping it, even across an unusually
+		// long gap between updates (e.g. an update source that reports
+		// less often than every 2 seconds).
+		_dt_discharge = (timestamp - _last_timestamp) / 1e6f;
+
+		// _dt is clamped to guard the numerical stability of the current
+		// average filter below, which assumes a roughly steady sample
+		// interval and should not see a single very large dt.
+		_dt = math::min(_dt_discharge, 2.f);
 	}
 
 	_last_timestamp = timestamp;
@@ -221,10 +240,10 @@ void Battery::updateDt(const hrt_abstime &timestamp)
 
 float Battery::sumDischarged(float current_a)
 {
-	if (_dt > FLT_EPSILON && fabsf(current_a + 1.f) > FLT_EPSILON) {
+	if (_dt_discharge > FLT_EPSILON && fabsf(current_a + 1.f) > FLT_EPSILON) {
 		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
 		// current = -1 means invalid current measurement
-		_discharged_mah_loop = (current_a * 1e3f) * (_dt / 3600.f);
+		_discharged_mah_loop = (current_a * 1e3f) * (_dt_discharge / 3600.f);
 		_discharged_mah += _discharged_mah_loop;
 	}
 
@@ -391,7 +410,7 @@ float Battery::computeRemainingTime(float current_a)
 		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
 					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
 			if (_dt > FLT_EPSILON) {
-				_current_average_filter_a.update(fmaxf(current_a, 0.f), _dt);
+				_current_average_filter_a.update(fmaxf(current_a, 0.f), static_cast<uint64_t>(_dt * 1e6f));
 
 			} else {
 				_current_average_filter_a.update(fmaxf(current_a, 0.f));

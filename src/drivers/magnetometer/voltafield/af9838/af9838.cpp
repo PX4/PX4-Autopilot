@@ -37,7 +37,7 @@ using namespace time_literals;
 AF9838_Driver::AF9838_Driver(const I2CSPIDriverConfig &config)
 	: device::I2C(config),
 	  I2CSPIDriver(config),
-	  _px4_mag(get_device_id(), config.rotation)
+	  _px4_mag(get_device_id(), config.rotation, config.external)
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AF9838);
 	_px4_mag.set_device_id(get_device_id());

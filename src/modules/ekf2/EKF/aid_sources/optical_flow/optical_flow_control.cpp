@@ -157,7 +157,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				&& is_magnitude_good
 				&& is_tilt_good
 				&& (_flow_counter > 10)
-				&& (isTerrainEstimateValid() || isHorizontalAidingActive() || (_height_sensor_ref == HeightSensor::RANGE))
+				&& (isHeightAboveGroundEstimateValid() || isHorizontalAidingActive())
 				&& isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
 
 		// If the height is relative to the ground, terrain height cannot be observed.
@@ -205,7 +205,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					}
 
 				} else {
-					if (isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE)) {
+					if (isHeightAboveGroundEstimateValid()) {
 						ECL_INFO("starting optical flow, resetting");
 						resetFlowFusion(flow_sample);
 						_control_status.flags.opt_flow = true;

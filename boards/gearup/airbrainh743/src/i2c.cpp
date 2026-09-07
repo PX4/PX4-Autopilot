@@ -36,12 +36,13 @@
 /*
  * I2C bus configuration for AirBrainH743
  *
- * I2C1: Internal bus - PB6 (SCL), PB7 (SDA)
- *       Devices: DPS310 baro @ 0x76, LIS2MDL compass @ 0x1E
+ * I2C1: PB6 (SCL), PB7 (SDA)
+ *       Devices: DPS310 baro @ 0x76, IIS2MDC compass @ 0x1E
+ *       Shared with a connector; onboard chips are started with -I -b 1.
  * I2C4: External bus - PD12 (SCL), PD13 (SDA)
  */
 
 constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
-	initI2CBusInternal(1),
+	initI2CBusShared(1),
 	initI2CBusExternal(4),
 };

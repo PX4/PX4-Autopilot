@@ -17,11 +17,11 @@
 [submodule "platforms/nuttx/NuttX/nuttx"]
 	path = platforms/nuttx/NuttX/nuttx
 	url = https://github.com/PX4/NuttX.git
-	branch = px4_firmware_nuttx-10.3.0+
+	branch = px4_firmware_nuttx-12.12.0+
 [submodule "platforms/nuttx/NuttX/apps"]
 	path = platforms/nuttx/NuttX/apps
 	url = https://github.com/PX4/NuttX-apps.git
-	branch = px4_firmware_nuttx-10.3.0+
+	branch = px4_firmware_nuttx-12.12.0+
 [submodule "Tools/flightgear_bridge"]
 	path = Tools/simulation/flightgear/flightgear_bridge
 	url = https://github.com/PX4/PX4-FlightGear-Bridge.git
@@ -72,6 +72,10 @@
 	path = src/lib/heatshrink/heatshrink
 	url = https://github.com/PX4/heatshrink.git
 	branch = px4
+[submodule "src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3"]
+	path = src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3
+	url = https://github.com/PX4/Micro-XRCE-DDS-Client.git
+	branch = px4-release/3
 [submodule "Tools/simulation/gz"]
 	path = Tools/simulation/gz
 	url = https://github.com/PX4/PX4-gazebo-models.git

@@ -101,6 +101,10 @@ MulticopterAttitudeControl::parameters_updated()
 	_attitude_control.setRateLimit(Vector3f(radians(_param_mc_rollrate_max.get()), radians(_param_mc_pitchrate_max.get()),
 						radians(_param_mc_yawrate_max.get())));
 
+	_attitude_control.setRefModelFrequency(_param_mc_ref_w_n.get());
+	_attitude_control.setFeedForwardGain(_param_mc_ref_ff.get());
+	_attitude_control.setFeedForwardLimit(math::radians(_param_mc_ref_ff_max.get()));
+
 	// Update from hover thrust parameter if there's no valid estimate in use
 	if (!PX4_ISFINITE(_hover_thrust_estimate)) {
 		_hover_thrust_slew_rate.setForcedValue(_param_mpc_thr_hover.get());
@@ -164,8 +168,10 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 	 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
 	 * points to, and changes of the stick input are linear.
 	 */
-	_man_roll_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
-	_man_pitch_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
+	const hrt_abstime dt_us = static_cast<hrt_abstime>(dt * 1e6f);
+	const hrt_abstime man_tilt_tau_us = static_cast<hrt_abstime>(math::max(_param_mc_man_tilt_tau.get(), 0.f) * 1e6f);
+	_man_roll_input_filter.setParameters(dt_us, man_tilt_tau_us);
+	_man_pitch_input_filter.setParameters(dt_us, man_tilt_tau_us);
 
 	// we want to fly towards the direction of (roll, pitch)
 	Vector2f v = Vector2f(_man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max),
@@ -316,7 +322,11 @@ MulticopterAttitudeControl::Run()
 				if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)
 				    && (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
 
-					_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+					const float setpoint_dt = (_last_attitude_setpoint > 0)
+								  ? (vehicle_attitude_setpoint.timestamp - _last_attitude_setpoint) * 1e-6f
+								  : -1.f;
+					_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d),
+									      vehicle_attitude_setpoint.yaw_sp_move_rate, setpoint_dt);
 					_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
 					_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
 				}

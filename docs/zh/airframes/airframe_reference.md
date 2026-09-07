@@ -57,7 +57,7 @@ div.frame_variant td, div.frame_variant th {
  </thead>
  <tbody>
 <tr>
- <td><ul><li><b>电机1</b>: 右舷推进器</li><li><b>电机2</b>: 左舷推进器</li><li><b>电机3</b>: 尾部推进器</li><li><b>舵机1</b>: 推力倾斜</li></ul></td>
+ <td><ul><li><b>电机1</b>: 右舷推进器</li><li><b>电机2</b>: 左舷推进器</li></ul></td>
 </tr>
 </tbody></table>
 </div>
@@ -68,9 +68,13 @@ div.frame_variant td, div.frame_variant th {
    <tr><th>参数名</th><th></th></tr>
  </thead>
 <tbody>
+<tr id="airship_airship_generic_airship">
+ <td>Generic Airship</td>
+ <td>Maintainer: Hyunduk Shin &lt;hyunduk@icarus-airship.com&gt;<p><code>SYS_AUTOSTART</code> = 2500</p><br><b>Specific Outputs:</b><ul><li><b>Servo1</b>: right elevator</li><li><b>Servo2</b>: left elevator</li><li><b>Servo3</b>: upper rudder</li><li><b>Servo4</b>: lower rudder</li></ul></td>
+</tr>
 <tr id="airship_airship_cloudship">
  <td>Cloudship</td>
- <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 2507</p></td>
+ <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 2507</p><br><b>Specific Outputs:</b><ul><li><b>电机3</b>: 尾部推进器</li><li><b>舵机1</b>: 推力倾斜</li></ul></td>
 </tr>
 </tbody>
 </table>
@@ -585,9 +589,9 @@ div.frame_variant td, div.frame_variant th {
 </table>
 </div>
 
-## 无人车
+## Rover
 
-### 无人车
+### Rover
 
 <div class="frame_common">
 <img src="../../assets/airframes/types/Rover.svg"/>
@@ -620,7 +624,7 @@ div.frame_variant td, div.frame_variant th {
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51000</p></td>
 </tr>
 <tr id="rover_rover_axial_scx10_2_trail_honcho">
- <td><a href="https://www.axialadventure.com/product/1-10-scx10-ii-trail-honcho-4wd-rock-crawler-brushed-rtr/AXID9059.html">Axial SCX10 2 Trail Honcho</a></td>
+ <td><a href="https://www.axialadventure.com/product/axial-1-10-scx10-ii-trail-honcho-4wd-rock-crawler-brushed-rtr/AXID9059.html">Axial SCX10 2 Trail Honcho</a></td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51001</p></td>
 </tr>
 <tr id="rover_rover_nxp_b3rb_rover_ackermann">

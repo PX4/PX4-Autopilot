@@ -111,6 +111,20 @@ commander mode auto:precland
 
 :::
 
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_precland -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_precland -->
+
 ## Налаштування програмного забезпечення
 
 ### Налаштування IR Сенсора/Бікона
@@ -164,7 +178,7 @@ CONFIG_MODULES_LANDING_TARGET_ESTIMATOR=y
 Інші важливі параметри перераховані в посиланнях на параметри в референсі параметрів під [Landing_target estimator](../advanced_config/parameter_reference.md#landing-target-estimator) та [Precision land](../advanced_config/parameter_reference.md#precision-land).
 Деякі з найбільш корисних перераховані нижче.
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                                                                                                                 |
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="SENS_EN_IRLOCK"></a>[SENS_EN_IRLOCK](../advanced_config/parameter_reference.md#SENS_EN_IRLOCK)                            | IR-LOCK Sensor (зовнішній I2C). Disable: `0` (default): Enable: `1`).          |
 | <a id="LTEST_MODE"></a>[LTEST_MODE](../advanced_config/parameter_reference.md#LTEST_MODE)                                                             | Landing target is moving (`0`) or stationary (`1`). За замовчуванням - рухома.                                                 |
