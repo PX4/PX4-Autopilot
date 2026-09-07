@@ -21,27 +21,28 @@ A `—` means the module still accepts the command, but no consumer applies it i
 | `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                                                  | `off`, `stuck`          |
 | `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                                                  | `off`, `stuck`          |
 | `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                                                  | `off`, `stuck`          |
-| `gps`             | —                       | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                                         | `off`, `stuck`, `wrong` |
+| `gps`             | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                                         | `off`, `stuck`, `wrong` |
 | `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                                                  | —                       |
 | `vio`             | —                       | —                       | `off`                                                           | —                       |
 | `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                                                  | `off`, `wrong`          |
 | `traffic`         | `off`                   | `off`                   | `off`                                                           | `off`                   |
 | `motor`           | `off`                   | `off`                   | `off`                                                           | `off`                   |
 | `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                                                  | `off`, `wrong`          |
+| `can`             | —                       | —                       | —                                                               | `off`                   |
 
 [SIH]: ../sim_sih/index.md
 [Gazebo]: ../sim_gazebo_gz/index.md
 
 ::: info
 
-- `gps off | stuck | wrong` on Gazebo (Gz): only available if [SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) is set to `0` to use the injectable simulated-GPS module.
-  By default Gazebo publishes GPS from the simulator's own GNSS sensor (`SIM_GZ_EN_GPS` = 1), which is not injectable.
+- `gps off | stuck | wrong` on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
 - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
 - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
 - `motor off` also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
 - `esc off` reports the addressed ESC as offline and blanks its telemetry; `esc wrong` keeps it online but reports implausible telemetry (voltage and current at 10% of the real value, RPM 10x). ESCs are addressed by motor instance (the ESC's actuator function), so `-i 1` targets the ESC driving motor 1.
 - On hardware, ESC injection is applied only by the UAVCAN (DroneCAN) ESC driver; the other ESC drivers (DShot, Cyphal, VOXL, TAP ESC) publish their telemetry unmodified.
+- `can off` takes the addressed CAN bus offline entirely, so every node on it stops responding; the instance selects the bus. Only applied on fmu-v6x-class hardware.
 
 :::
 
@@ -91,6 +92,7 @@ where:
     - `traffic`: Traffic avoidance (ADS-B/transponder)
     - `rc_signal`: RC Signal
     - `mavlink_signal`: MAVLink data telemetry connection
+    - `can`: CAN bus. The instance selects the bus. Supported on fmu-v6x-class hardware.
 - _failure_type_:
   - `ok`: Publish as normal (Disable failure injection)
   - `off`: Stop publishing

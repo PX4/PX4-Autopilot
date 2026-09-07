@@ -207,7 +207,8 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 #if defined(CONFIG_EKF2_WIND)
 
 	// wind vel: add process noise
-	const float height_rate = _height_rate_lpf.update(_state.vel(2), imu_delayed.delta_vel_dt);
+	const float height_rate = _height_rate_lpf.update(_state.vel(2),
+				  static_cast<uint64_t>(imu_delayed.delta_vel_dt * 1e6f));
 	const float wind_vel_nsd_scaled = _params.ekf2_wind_nsd * (1.f + _params.wind_vel_nsd_scaler * fabsf(height_rate));
 	const float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
 

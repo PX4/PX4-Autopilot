@@ -172,6 +172,22 @@ void AutopilotTesterRtl::check_rally_point_within(float acceptance_radius_m)
 	CHECK(within_rally_point);
 }
 
+void AutopilotTesterRtl::wait_until_disarmed_while_in_multicopter_mode(std::chrono::seconds timeout)
+{
+	const uint64_t start_time_us = getTelemetry()->attitude_quaternion().timestamp_us;
+	const uint64_t timeout_us = std::chrono::duration_cast<std::chrono::microseconds>(timeout).count();
+	bool remained_in_multicopter_mode = true;
+
+	while (getTelemetry()->armed() && remained_in_multicopter_mode
+	       && getTelemetry()->attitude_quaternion().timestamp_us - start_time_us < timeout_us) {
+		remained_in_multicopter_mode &= getTelemetry()->vtol_state() == Telemetry::VtolState::Mc;
+		sleep_for(std::chrono::milliseconds(100));
+	}
+
+	REQUIRE(remained_in_multicopter_mode);
+	REQUIRE_FALSE(getTelemetry()->armed());
+}
+
 void AutopilotTesterRtl::load_qgc_mission_and_geofence_here(const std::string &plan_file)
 {
 	auto import_result = getMissionRaw()->import_qgroundcontrol_mission(plan_file);

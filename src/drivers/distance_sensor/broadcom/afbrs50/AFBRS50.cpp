@@ -156,7 +156,11 @@ int AFBRS50::init()
 	uint8_t a = (value >> 24) & 0xFFU;
 	uint8_t b = (value >> 16) & 0xFFU;
 	uint8_t c = value & 0xFFFFU;
-	PX4_INFO("AFBR-S50 Chip ID: %u, API Version: %u v%d.%d.%d", (uint)id, (uint)value, a, b, c);
+	// Packed Argus_GetAPIVersion() is major.minor.bugfix only; 1.6.6.1 is the vendored release.
+	static constexpr uint8_t api_version_patch{1};
+	const char *build = Argus_GetBuildNumber();
+	PX4_INFO("AFBR-S50 Chip ID: %u, API Version: v%d.%d.%d.%u (%s)",
+		 (uint)id, a, b, c, api_version_patch, build != nullptr ? build : ARGUS_API_VERSION_BUILD);
 
 	char module_string[20] = {};
 	argus_module_version_t mv = Argus_GetModuleVersion(_hnd);

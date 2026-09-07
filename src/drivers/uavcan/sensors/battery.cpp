@@ -158,7 +158,12 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 		_battery_status[instance].cell_count = 1;
 	}
 
-	_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
+	if (msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING) {
+		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
+
+	} else {
+		_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
+	}
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		publishBattery(msg.getSrcNodeID().get(), instance);
@@ -327,6 +332,10 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	_battery_status[instance] = _battery[instance]->getBatteryStatus();
 	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 	_battery_status[instance].id = msg.battery_id;
+
+	if (msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING) {
+		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
+	}
 
 	publishBattery(msg.getSrcNodeID().get(), instance);
 

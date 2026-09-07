@@ -79,7 +79,7 @@ static void usage()
 	PRINT_MODULE_DESCRIPTION("Test the speed of an SD Card");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("sd_bench", "command");
-	PRINT_MODULE_USAGE_PARAM_INT('b', 4096, 1, 1000000, "Block size for each read/write", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 4096, 4, 1000000, "Block size for each read/write", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 5, 1, 1000, "Number of runs", true);
 	PRINT_MODULE_USAGE_PARAM_INT('d', 2000, 1, 100000, "Duration of a run in ms", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('k', "Keep the test file", true);
@@ -146,7 +146,7 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 		}
 	}
 
-	if (block_size <= 0 || cfg.num_runs <= 0) {
+	if (block_size <= 3 || cfg.num_runs <= 0) {
 		PX4_ERR("invalid argument");
 		return -1;
 	}

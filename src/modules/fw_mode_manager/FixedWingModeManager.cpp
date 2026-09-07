@@ -1168,10 +1168,14 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		const float pitch_min = _runway_takeoff.getMinPitch(math::radians(_takeoff_pitch_min.get()),
 					math::radians(_param_fw_p_lim_min.get()));
 
+		// a time based climbout has to keep climbing for the whole window, so command the climb rate
+		// instead of capturing the clearance altitude
+		const bool time_based_climbout = _param_fw_tko_clmb_t.get() > FLT_EPSILON;
+
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = now,
-			.altitude = altitude_setpoint_amsl,
-			.height_rate = NAN,
+			.altitude = time_based_climbout ? NAN : altitude_setpoint_amsl,
+			.height_rate = time_based_climbout ? _param_fw_t_clmb_max.get() : NAN,
 			.equivalent_airspeed = takeoff_airspeed,
 			.pitch_direct = _runway_takeoff.getPitch(),
 			.throttle_direct = _runway_takeoff.getThrottle(_param_fw_thr_idle.get())
@@ -1323,6 +1327,11 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 	_flaps_setpoint = _param_fw_flaps_to_scl.get();
 
+	const bool waiting_for_launch = _runway_takeoff.runwayTakeoffEnabled()
+					? _runway_takeoff.getState() < RunwayTakeoffState::CLIMBOUT
+					: _launchDetector.getLaunchDetected() == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
+	publishTakeoffStatus(waiting_for_launch, clearance_altitude_amsl);
+
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(pos_sp_curr);
 	}
@@ -1454,6 +1463,11 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 	}
 
 	_flaps_setpoint = _param_fw_flaps_to_scl.get();
+
+	const bool waiting_for_launch = _runway_takeoff.runwayTakeoffEnabled()
+					? _runway_takeoff.getState() < RunwayTakeoffState::CLIMBOUT
+					: _launchDetector.getLaunchDetected() == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
+	publishTakeoffStatus(waiting_for_launch, current_setpoint_altitude_amsl);
 }
 
 void
@@ -2450,7 +2464,37 @@ FixedWingModeManager::reset_takeoff_state()
 
 	_time_launch_detected = 0;
 
+	_time_climbout_started = 0;
+
 	_takeoff_ground_alt = _current_altitude;
+}
+
+void
+FixedWingModeManager::publishTakeoffStatus(const bool waiting_for_launch, const float clearance_altitude_amsl)
+{
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (!waiting_for_launch && _time_climbout_started == 0) {
+		// the vehicle just started climbing, either off the launcher or off the runway
+		_time_climbout_started = now;
+	}
+
+	bool climbout_completed = false;
+
+	if (!waiting_for_launch) {
+		if (_param_fw_tko_clmb_t.get() > FLT_EPSILON) {
+			climbout_completed = hrt_elapsed_time(&_time_climbout_started) >= _param_fw_tko_clmb_t.get() * 1_s;
+
+		} else {
+			climbout_completed = _current_altitude >= clearance_altitude_amsl;
+		}
+	}
+
+	fixed_wing_takeoff_status_s fixed_wing_takeoff_status{};
+	fixed_wing_takeoff_status.timestamp = now;
+	fixed_wing_takeoff_status.climbout_completed = climbout_completed;
+
+	_fixed_wing_takeoff_status_pub.publish(fixed_wing_takeoff_status);
 }
 
 void

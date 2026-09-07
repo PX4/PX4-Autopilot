@@ -1667,6 +1667,11 @@ Change heading/course. param1: heading type (0=course-over-ground, 1=heading). p
 | <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL       | `uint8`  | 105      |                                                                                                                                                                    |
 | <a id="#FAILURE_UNIT_SYSTEM_ESC"></a> FAILURE_UNIT_SYSTEM_ESC                                                  | `uint8`  | 106      |                                                                                                                                                                    |
 | <a id="#FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE | `uint8`  | 107      |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_DATALINK_LTE"></a> FAILURE_UNIT_DATALINK_LTE                                              | `uint8`  | 150      |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_DATALINK_WIFI"></a> FAILURE_UNIT_DATALINK_WIFI                                            | `uint8`  | 151      |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_DATALINK_TELEM_RADIO"></a> FAILURE_UNIT_DATALINK_TELEM_RADIO         | `uint8`  | 152      |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_BUS_CAN"></a> FAILURE_UNIT_BUS_CAN                                                        | `uint8`  | 200      |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_BUS_I2C"></a> FAILURE_UNIT_BUS_I2C                                                        | `uint8`  | 201      |                                                                                                                                                                    |
 | <a id="#FAILURE_TYPE_OK"></a> FAILURE_TYPE_OK                                                                                       | `uint8`  | 0        |                                                                                                                                                                    |
 | <a id="#FAILURE_TYPE_OFF"></a> FAILURE_TYPE_OFF                                                                                     | `uint8`  | 1        |                                                                                                                                                                    |
 | <a id="#FAILURE_TYPE_STUCK"></a> FAILURE_TYPE_STUCK                                                                                 | `uint8`  | 2        |                                                                                                                                                                    |
@@ -1873,6 +1878,11 @@ uint8 FAILURE_UNIT_SYSTEM_RC_SIGNAL = 104
 uint8 FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL = 105
 uint8 FAILURE_UNIT_SYSTEM_ESC = 106
 uint8 FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE = 107
+uint8 FAILURE_UNIT_DATALINK_LTE = 150
+uint8 FAILURE_UNIT_DATALINK_WIFI = 151
+uint8 FAILURE_UNIT_DATALINK_TELEM_RADIO = 152
+uint8 FAILURE_UNIT_BUS_CAN = 200
+uint8 FAILURE_UNIT_BUS_I2C = 201
 
 uint8 FAILURE_TYPE_OK = 0
 uint8 FAILURE_TYPE_OFF = 1

@@ -182,6 +182,11 @@ bool FlightTaskAuto::update()
 	_checkEmergencyBraking();
 	Vector3f waypoints[] = {_triplet_previous, _position_setpoint, _triplet_next};
 
+	if (_type == WaypointType::position && _hasPassedCurrentWaypoint()) {
+		// Anchor the leg at the current position to not extrapolate past an unreached waypoint
+		waypoints[0] = _position;
+	}
+
 	if (isTargetModified()) {
 		// In case the target has been modified, we take this as the next waypoints
 		waypoints[2] = _position_setpoint;
@@ -759,6 +764,12 @@ bool FlightTaskAuto::isTargetModified() const
 	const bool z_modified =  z_valid && std::fabs((_triplet_current - _position_setpoint)(2)) > FLT_EPSILON;
 
 	return xy_modified || z_modified;
+}
+
+bool FlightTaskAuto::_hasPassedCurrentWaypoint() const
+{
+	const Vector3f u_previous_to_current = (_triplet_current - _triplet_previous).unit_or_zero();
+	return u_previous_to_current * (_triplet_current - _position) < 0.f;
 }
 
 void FlightTaskAuto::_updateTrajConstraints()

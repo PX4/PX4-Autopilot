@@ -169,7 +169,7 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 			_airspeed_filter_for_torque_scaling.reset(airspeed);
 
 		} else {
-			airspeed = _airspeed_filter_for_torque_scaling.update(airspeed, dt);
+			airspeed = _airspeed_filter_for_torque_scaling.update(airspeed, static_cast<uint64_t>(dt * 1e6f));
 		}
 
 	} else {

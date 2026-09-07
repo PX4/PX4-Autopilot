@@ -315,7 +315,11 @@ void PAA3905::RunImpl()
 				}
 
 				if (buffer.data.Motion & Motion_Bit::ChallengingSurface) {
-					PX4_WARN("challenging surface detected");
+					// Bit stays asserted for the whole time over a bad surface
+					if (hrt_elapsed_time(&_last_challenging_surface_warning) > 1_s) {
+						PX4_WARN("challenging surface detected");
+						_last_challenging_surface_warning = hrt_absolute_time();
+					}
 				}
 
 				// publish sensor_optical_flow

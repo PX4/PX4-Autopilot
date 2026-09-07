@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,17 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_executable(ecl_tests_data_validator test_data_validator.cpp tests_common.cpp)
-target_link_libraries(ecl_tests_data_validator ecl_validation)
-
-add_test(NAME ecl_tests_data_validator
-        COMMAND ecl_tests_data_validator
-        )
-
-add_executable(ecl_tests_data_validator_group  test_data_validator_group.cpp tests_common.cpp)
-target_link_libraries(ecl_tests_data_validator_group ecl_validation)
-
-add_test(NAME ecl_tests_data_validator_group
-        COMMAND ecl_tests_data_validator_group
-        )
+px4_add_module(
+	MODULE drivers__imu__invensense__iim20670
+	MAIN iim20670
+	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
+	SRCS
+		iim20670_main.cpp
+		IIM20670.cpp
+		IIM20670.hpp
+		InvenSense_IIM20670_registers.hpp
+	DEPENDS
+		px4_work_queue
+		drivers_accelerometer
+		drivers_gyroscope
+	)

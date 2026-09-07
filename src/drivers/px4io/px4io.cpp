@@ -45,7 +45,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/sem.hpp>
 
-#include <crc32.h>
+#include <nuttx/crc32.h>
 
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
@@ -1739,7 +1739,15 @@ int PX4IO::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
+
 Output driver communicating with the IO co-processor.
+
+On its RC input, the IO co-processor supports:
+- PPM (CPPM)
+- S.BUS and S.BUS2
+- Spektrum DSM / DSM2 / DSM-X (10-bit and 11-bit)
+- Yuneec ST24
+- Graupner SUMD
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("px4io", "driver");

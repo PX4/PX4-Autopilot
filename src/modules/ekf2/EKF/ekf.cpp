@@ -110,6 +110,7 @@ void Ekf::reset()
 	_time_last_ver_vel_fuse = 0;
 	_time_last_heading_fuse = 0;
 	_time_last_terrain_fuse = 0;
+	_time_heading_fusion_start = 0;
 
 	_last_known_gpos.setZero();
 
@@ -274,7 +275,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
 
 	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
-	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
+	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt,
+				static_cast<uint64_t>(imu_delayed.delta_vel_dt * 1e6f));
 }
 
 bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const double longitude, const float altitude,

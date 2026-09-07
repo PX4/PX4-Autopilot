@@ -70,6 +70,7 @@ Supported hardware includes (this is not an exhaustive list):
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
+  - [Smartmicro Drone Altimeter](smartmicro_t132.md)
 - Grippers
   - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
 - Optical Flow
@@ -161,7 +162,7 @@ The following sections provide additional detail on the PX4 and DroneCAN periphe
 
 #### Sensors
 
-The DroneCAN sensor parameters/subscriptions that you can enable are (in PX4 v1.14):
+The DroneCAN sensor parameters/subscriptions that you can enable are (from PX4 v1.14):
 
 - [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD): Airspeed
 - [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO): Barometer

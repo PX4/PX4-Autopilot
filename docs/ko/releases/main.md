@@ -84,7 +84,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - TBD
 
-### uXRCE-DDS / Zenoh / ROS2
+### uXRCE-DDS / Zenoh / ROS 2
 
 - TBD
 

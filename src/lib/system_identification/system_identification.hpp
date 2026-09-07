@@ -75,7 +75,7 @@ public:
 	void setForgettingFactor(float time_constant, float dt) { _rls.setForgettingFactor(time_constant, dt); }
 	void setFitnessLpfTimeConstant(float time_constant, float dt)
 	{
-		_fitness_lpf.setParameters(dt, time_constant);
+		_fitness_lpf.setParameters(static_cast<uint64_t>(dt * 1e6f), static_cast<uint64_t>(time_constant * 1e6f));
 		_dt = dt;
 	}
 
