@@ -1394,8 +1394,11 @@ bool VoxlEsc::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, 
 
 	uint8_t num_writes = 0;
 
+	// Serial passthrough hands a MAVLink peer raw bytes on the ESC bus, which speaks its
+	// own protocol including a reset that drops the ESC into its bootloader. Restrict it to
+	// the disarmed state so it stays a bench tool.
 	// Don't do these faster than 20Hz
-	if (hrt_elapsed_time(&_last_uart_passthru) > 50_ms) {
+	if (hrt_elapsed_time(&_last_uart_passthru) > 50_ms && !_mixing_output.armed().armed) {
 		_last_uart_passthru = hrt_absolute_time();
 
 		// Don't do more than a few writes each check
