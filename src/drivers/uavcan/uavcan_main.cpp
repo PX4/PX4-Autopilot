@@ -1196,11 +1196,21 @@ bool UavcanMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsig
 			}
 		}
 
-		// Reversible motors: send reverse as a signed RawCommand (negative = reverse). Encoded in
-		// place so actuator_outputs reflects the actual wire value sent to the ESC. Done here rather
-		// than via minValue()/maxValue() (as DShot does for its 3D range) because those are uint16_t
-		// and can't hold the negative bound a signed RawCommand would need.
-		const uint32_t reversible = mixingOutput().reversibleOutputs();
+		// Reversible channels: send reverse as a signed RawCommand (negative = reverse). Sourced
+		// from the mixer's reversible mask (CA_R_REV motors) and UAVCAN_EC_BIDI (peripheral
+		// channels). Encoded in place so actuator_outputs reflects the actual wire value sent to
+		// the ESC. Done here rather than via minValue()/maxValue() (as DShot does for its 3D
+		// range) because those are uint16_t and can't hold the negative bound a signed RawCommand
+		// would need.
+		uint32_t reversible = mixingOutput().reversibleOutputs();
+
+		// BIDI bits on motor channels are ignored: a unidirectional motor arrives remapped to
+		// [-1, 1], so a signed encoding would command full reverse at zero thrust.
+		for (unsigned i = 0; i < output_array_size; i++) {
+			if ((_bidi_mask & (1u << i)) && mixingOutput().isFunctionSet(i) && !mixingOutput().isMotor(i)) {
+				reversible |= (1u << i);
+			}
+		}
 
 		for (unsigned i = 0; i < output_array_size; i++) {
 			// Encode armed outputs only; a stopped channel sits at the disarmed value and must
@@ -1235,6 +1245,10 @@ void UavcanMixingInterfaceESC::mixerChanged()
 
 		if (i < esc_status_s::CONNECTED_ESC_MAX) {
 			_esc_controller.esc_status().esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
+		}
+
+		if ((_bidi_mask & (1u << i)) && _mixing_output.isMotor(i)) {
+			PX4_WARN("UAVCAN_EC_BIDI bit %u ignored: ESC %u is a motor, use CA_R_REV", i, i + 1);
 		}
 	}
 

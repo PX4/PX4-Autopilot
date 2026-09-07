@@ -37,6 +37,33 @@ parameters:
       max: 1000
       unit: Hz
       reboot_required: true
+    UAVCAN_EC_BIDI:
+      description:
+        short: Bidirectional ESC channels
+        long: |
+          Bitmask of ESC channels driven as bidirectional. A selected channel sends a
+          signed RawCommand: 0 is neutral (stopped), +MAX is full forward, -MAX is full
+          reverse. The disarmed value (0) and a failsafe value of 0 both stop the motor.
+          MIN must be greater than 0 (default 1) for full reverse to be reachable.
+          Only applies to channels assigned a Peripheral via Actuator Set function.
+          Motor functions are bidirectional if, and only if, the motor is set in
+          CA_R_REV; bits set here for motor channels are ignored.
+      type: bitmask
+      bit:
+        0: ESC1
+        1: ESC2
+        2: ESC3
+        3: ESC4
+        4: ESC5
+        5: ESC6
+        6: ESC7
+        7: ESC8
+        8: ESC9
+        9: ESC10
+        10: ESC11
+        11: ESC12
+      default: 0
+      reboot_required: true
     UAVCAN_LGT_NUM:
       description:
         short: Number of UAVCAN lights to configure
@@ -107,6 +134,11 @@ actuator_output:
         min: { min: 0, max: 8191, default: 1 }
         max: { min: 0, max: 8191, default: 8191 }
         failsafe: { min: 0, max: 8191 }
+      custom_params:
+        - name: 'BIDI'
+          label: 'Bidirectional'
+          index_offset: -1
+          show_as: bitset
       num_channels: 12
     - param_prefix: UAVCAN_SV
       group_label: 'Servos'
