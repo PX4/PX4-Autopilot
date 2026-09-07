@@ -103,5 +103,16 @@ private:
 	void handleVtolTransition(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
 				  size_t &num_found_items);
 
+	/**
+	 * @brief Check whether the vehicle passes a mission item without stopping at it
+	 *
+	 * Only then may the trajectory planner carry speed through that item, i.e. only then
+	 * is it allowed to use the item after it as a speed planning lookahead.
+	 *
+	 * @param item mission item to check
+	 * @return true if the vehicle continues past the item without braking to a stop
+	 */
+	bool isFlownThroughWithoutStopping(const mission_item_s &item) const;
+
 	bool _need_mission_save{false};
 };
