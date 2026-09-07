@@ -227,7 +227,6 @@ TEST_F(EkfBasicsTest, accelBiasEstimation)
 
 	_sensor_simulator.startGps();
 	_sensor_simulator.setImuBias(accel_bias_sim, Vector3f(0.0f, 0.0f, 0.0f));
-	_ekf->set_min_required_gps_health_time(1e6);
 	_sensor_simulator.runSeconds(60);
 
 	const Vector3f pos = _ekf->getPosition();
@@ -259,7 +258,6 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_initialized)
 	_sensor_simulator.setGpsLatitude(_latitude_new);
 	_sensor_simulator.setGpsLongitude(_longitude_new);
 	_sensor_simulator.setGpsAltitude(_altitude_new);
-	_ekf->set_min_required_gps_health_time(1e6);
 	_sensor_simulator.runSeconds(1);
 	_sensor_simulator.runSeconds(5);
 

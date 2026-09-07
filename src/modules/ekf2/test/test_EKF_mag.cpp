@@ -68,7 +68,6 @@ public:
 
 TEST_F(EkfMagTest, fusionStartWithReset)
 {
-	_ekf->set_min_required_gps_health_time(5e6);
 	// GIVEN: some meaningful mag data
 	const float mag_heading = M_PI_F / 3.f;
 	const float incl = 63.1f;
@@ -313,7 +312,6 @@ TEST_F(EkfMagTest, manualYawSurvivesWithGnssAidingOnly)
 	_sensor_simulator._mag.setData(Vector3f(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading), 0.4f));
 	_sensor_simulator.runSeconds(_init_duration_s);
 
-	_ekf->set_min_required_gps_health_time(1e6);
 	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator.startGps();
 	_sensor_simulator.runSeconds(10.f);
