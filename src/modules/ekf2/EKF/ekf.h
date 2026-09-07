@@ -400,8 +400,10 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// set minimum continuous period without GPS fail required to mark a healthy GPS status
-	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
+	const gps_check_fail_status_u &gps_check_fail_status() const { return _gps_checks_sample_current.check_fail_status; }
+	const decltype(gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gps_checks_sample_current.check_fail_status.flags; }
+
+	bool gps_checks_passed() const { return _gps_checks_sample_current.checks_passed; };
 
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 

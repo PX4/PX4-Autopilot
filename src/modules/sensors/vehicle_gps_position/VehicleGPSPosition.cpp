@@ -82,6 +82,8 @@ inline sensor_gps_checks_s sensorGpsChecksMsgFromGnssChecks(const GnssChecks &ch
 
 	msg.flags = checks.getFailStatus().value;
 
+	msg.time_last_pass = checks.getLastPassUs();
+	msg.time_last_fail = checks.getLastFailUs();
 	msg.checks_passed = checks.passed();
 	msg.initial_checks_passed = checks.initialChecksPassed();
 

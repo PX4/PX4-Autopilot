@@ -105,6 +105,7 @@
 #if defined(CONFIG_EKF2_GNSS)
 # include <uORB/topics/estimator_gps_status.h>
 # include <uORB/topics/sensor_gps.h>
+# include <uORB/topics/sensor_gps_checks.h>
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -222,9 +223,11 @@ private:
 	float altEllipsoidToAmsl(float ellipsoid_alt) const;
 	float altAmslToEllipsoid(float amsl_alt) const;
 
+	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateGpsChecksSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -498,6 +501,7 @@ private:
 	float _last_gnss_hgt_bias_published{};
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gps_position_checks_sub{ORB_ID(vehicle_gps_position_checks)};
 
 	uORB::PublicationMulti<estimator_bias_s> _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
 	uORB::PublicationMulti<estimator_gps_status_s> _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};

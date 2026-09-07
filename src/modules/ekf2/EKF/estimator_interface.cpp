@@ -207,6 +207,19 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 }
 #endif // CONFIG_EKF2_GNSS
 
+#if defined(CONFIG_EKF2_GNSS)
+void EstimatorInterface::setGpsChecksData(const gnssChecksSample &gnss_checks_sample)
+{
+	_gps_checks_sample_current.time_us = gnss_checks_sample.time_us;
+	_gps_checks_sample_current.position_drift_rate_horizontal_m_s = gnss_checks_sample.position_drift_rate_horizontal_m_s;
+	_gps_checks_sample_current.position_drift_rate_vertical_m_s = gnss_checks_sample.position_drift_rate_vertical_m_s;
+	_gps_checks_sample_current.filtered_horizontal_speed_m_s = gnss_checks_sample.filtered_horizontal_speed_m_s;
+	_gps_checks_sample_current.check_fail_status.value = gnss_checks_sample.check_fail_status.value;
+	_gps_checks_sample_current.checks_passed = gnss_checks_sample.checks_passed;
+	_gps_checks_sample_current.initial_checks_passed = gnss_checks_sample.initial_checks_passed;
+}
+#endif // CONFIG_EKF2_GNSS
+
 #if defined(CONFIG_EKF2_BAROMETER)
 void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 {
