@@ -1384,7 +1384,6 @@ void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
 		return;
 	}
 
-	//TODO : change functions to read checks msg
 	estimator_gps_status_s estimator_gps_status{};
 	estimator_gps_status.timestamp_sample = timestamp_sample;
 
