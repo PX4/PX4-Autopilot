@@ -64,8 +64,8 @@ then
 fi
 
 # Load parameters
-set PARAM_FILE parameters.bson
-set PARAM_BACKUP_FILE parameters_backup.bson
+set PARAM_FILE fs/parameters.bson
+set PARAM_BACKUP_FILE fs/parameters_backup.bson
 
 param select $PARAM_FILE
 if [ -f $PARAM_FILE ]; then

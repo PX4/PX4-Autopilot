@@ -199,7 +199,7 @@ private:
 	// Paths that start with this prefix are mapped to the flight-stack log root.
 	static constexpr const char _mav_log_prefix[] = "@MAV_LOG";
 	static constexpr const int _mav_log_prefix_len = sizeof(_mav_log_prefix) - 1;
-	static constexpr const char _mav_log_dir[] = CONFIG_BOARD_ROOT_PATH "/log";
+	static constexpr const char _mav_log_dir[] = PX4_STORAGEDIR "/log";
 	static constexpr const int _mav_log_dir_len = sizeof(_mav_log_dir) - 1;
 
 	bool _last_reply_valid = false;
