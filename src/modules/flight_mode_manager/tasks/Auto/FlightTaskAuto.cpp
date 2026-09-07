@@ -187,10 +187,16 @@ bool FlightTaskAuto::update()
 		waypoints[0] = _position;
 	}
 
+	// Waypoint after next: lets the planner know the speed it may still carry through the next waypoint
+	Vector3f lookahead_waypoint = _triplet_next_next;
+
 	if (isTargetModified()) {
 		// In case the target has been modified, we take this as the next waypoints
 		waypoints[2] = _position_setpoint;
+		lookahead_waypoint.setNaN();
 	}
+
+	_position_smoothing.setLookaheadWaypoint(lookahead_waypoint);
 
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == int32_t(yaw_mode::towards_waypoint_yaw_first)
 					       && !_yaw_sp_aligned;
@@ -453,7 +459,8 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	// TODO This is a hack and it would be much better if the navigator only sends out a waypoints once they have changed.
 
 	const bool prev_next_validity_changed = (_prev_was_valid != position_setpoint_triplet.previous.valid)
-						|| (_next_was_valid != position_setpoint_triplet.next.valid);
+						|| (_next_was_valid != position_setpoint_triplet.next.valid)
+						|| (_next_next_was_valid != position_setpoint_triplet.next_next.valid);
 
 	if (_triplet_current.isAllFinite()
 	    && fabsf(_triplet_current(0) - tmp_target(0)) < 0.001f
@@ -500,6 +507,21 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 		}
 
 		_next_was_valid = position_setpoint_triplet.next.valid;
+
+		// The waypoint after next is only a speed-planning lookahead: it needs a valid next waypoint
+		// to attach to, otherwise it stays NAN and the planner assumes a stop at the next waypoint (previous behavior)
+		if (_type != WaypointType::loiter
+		    && position_setpoint_triplet.next.valid
+		    && _isFinite(position_setpoint_triplet.next_next) && position_setpoint_triplet.next_next.valid) {
+			_reference_position.project(position_setpoint_triplet.next_next.lat,
+						    position_setpoint_triplet.next_next.lon, _triplet_next_next(0), _triplet_next_next(1));
+			_triplet_next_next(2) = -(position_setpoint_triplet.next_next.alt - _reference_altitude);
+
+		} else {
+			_triplet_next_next.setNaN();
+		}
+
+		_next_next_was_valid = position_setpoint_triplet.next_next.valid;
 	}
 
 	// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)

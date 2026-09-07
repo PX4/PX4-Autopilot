@@ -117,6 +117,7 @@ protected:
 
 	bool _prev_was_valid{false};
 	bool _next_was_valid{false};
+	bool _next_next_was_valid{false};
 	float _mc_cruise_speed{NAN}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
@@ -180,6 +181,7 @@ private:
 	matrix::Vector3f _triplet_previous; ///< previous waypoint in triplet from navigator
 	matrix::Vector3f _triplet_current; ///< current waypoint in triplet from navigator
 	matrix::Vector3f _triplet_next; ///< next waypoint in triplet from navigator
+	matrix::Vector3f _triplet_next_next{NAN, NAN, NAN}; ///< waypoint after next from navigator, NAN if unknown (speed lookahead only)
 
 	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overridden using DO_CHANGE_SPEED
 
