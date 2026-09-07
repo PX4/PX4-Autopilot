@@ -375,6 +375,16 @@ public:
 	}
 
 	/**
+	 * @param waypoint Waypoint following the "next" waypoint (waypoints[2]). Only used to compute the speed
+	 * the vehicle may still have when passing the next waypoint. Set to NAN if unknown, in which case
+	 * a full stop at the next waypoint is assumed.
+	 */
+	inline void setLookaheadWaypoint(const Vector3f &waypoint)
+	{
+		_lookahead_waypoint = waypoint;
+	}
+
+	/**
 	 * @brief Set the current position in the trajectory to the given value.
 	 * Any coordinate with NAN will not be set
 	 *
@@ -428,6 +438,7 @@ private:
 	float _cruise_speed{0.f};
 	float _horizontal_trajectory_gain{0.f};
 	float _target_acceptance_radius{0.f};
+	Vector3f _lookahead_waypoint{NAN, NAN, NAN};
 
 
 	/* Internal state */
