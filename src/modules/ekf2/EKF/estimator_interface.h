@@ -90,9 +90,9 @@ public:
 
 	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
-	float gps_horizontal_position_drift_rate_m_s() const { return _gps_checks_sample_current.position_drift_rate_horizontal_m_s; }
-	float gps_vertical_position_drift_rate_m_s() const { return _gps_checks_sample_current.position_drift_rate_vertical_m_s; }
-	float gps_filtered_horizontal_velocity_m_s() const { return _gps_checks_sample_current.filtered_horizontal_speed_m_s; }
+	float gps_horizontal_position_drift_rate_m_s() const { return _gnss_checks.position_drift_rate_horizontal_m_s; }
+	float gps_vertical_position_drift_rate_m_s() const { return _gnss_checks.position_drift_rate_vertical_m_s; }
+	float gps_filtered_horizontal_velocity_m_s() const { return _gnss_checks.filtered_horizontal_speed_m_s; }
 
 #endif // CONFIG_EKF2_GNSS
 
@@ -401,7 +401,7 @@ protected:
 	uint64_t _time_last_gps_buffer_push{0};
 
 	gnssSample _gps_sample_delayed{};
-	gnssChecksSample _gps_checks_sample_current{};
+	gnssChecksSample _gnss_checks{};
 
 	bool _initial_checks_passed_prev{false};
 

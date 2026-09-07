@@ -400,10 +400,10 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	const gps_check_fail_status_u &gps_check_fail_status() const { return _gps_checks_sample_current.check_fail_status; }
-	const decltype(gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gps_checks_sample_current.check_fail_status.flags; }
+	const gps_check_fail_status_u &gps_check_fail_status() const { return _gnss_checks.check_fail_status; }
+	const decltype(gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gnss_checks.check_fail_status.flags; }
 
-	bool gps_checks_passed() const { return _gps_checks_sample_current.checks_passed; };
+	bool gps_checks_passed() const { return _gnss_checks.checks_passed; };
 
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 

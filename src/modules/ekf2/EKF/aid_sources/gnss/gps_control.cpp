@@ -65,8 +65,8 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	if (_gps_data_ready) {
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
-		if (_gps_checks_sample_current.checks_passed) {
-			if (_gps_checks_sample_current.initial_checks_passed && !_initial_checks_passed_prev) {
+		if (_gnss_checks.checks_passed) {
+			if (_gnss_checks.initial_checks_passed && !_initial_checks_passed_prev) {
 				// First time checks are passing, latching.
 				_information_events.flags.gps_checks_passed = true;
 			}
@@ -76,7 +76,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			_gps_data_ready = false;
 
 			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
-			const bool gnss_checks_pass_timeout = isTimedOut(_gps_checks_sample_current.time_last_pass_us, _params.reset_timeout_max);
+			const bool gnss_checks_pass_timeout = isTimedOut(_gnss_checks.time_last_pass_us, _params.reset_timeout_max);
 
 			if (using_gnss && gnss_checks_pass_timeout) {
 				stopGnssFusion();
@@ -84,7 +84,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			}
 		}
 
-		_initial_checks_passed_prev = _gps_checks_sample_current.initial_checks_passed;
+		_initial_checks_passed_prev = _gnss_checks.initial_checks_passed;
 
 		updateGnssPos(gnss_sample, _aid_src_gnss_pos);
 		updateGnssVel(imu_delayed, gnss_sample, _aid_src_gnss_vel);
@@ -133,7 +133,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_fault
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gps_checks_sample_current.checks_passed;
+	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.checks_passed;
 
 	if (_control_status.flags.gnss_vel) {
 		if (continuing_conditions_passing) {
@@ -190,8 +190,8 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gps_checks_sample_current.checks_passed;
-	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gps_checks_sample_current.checks_passed;
+	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.checks_passed;
+	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gnss_checks.checks_passed;
 
 	if (_control_status.flags.gnss_pos) {
 		if (continuing_conditions_passing) {
