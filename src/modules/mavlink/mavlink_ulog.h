@@ -92,8 +92,13 @@ public:
 	 */
 	int handle_update(mavlink_channel_t channel);
 
-	/** ack from mavlink for a data message */
-	void handle_ack(mavlink_logging_ack_t ack);
+	/**
+	 * ack from mavlink for a data message.
+	 * Static and resolving the instance under the lock, so a caller never holds a
+	 * pointer that stop() can free underneath it.
+	 * thread-safe
+	 */
+	static void handle_ack(mavlink_logging_ack_t ack);
 
 	/** this is called when we got an vehicle_command_ack from the logger */
 	void start_ack_received();

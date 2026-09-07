@@ -246,10 +246,12 @@ void MavlinkULog::handle_ack(mavlink_logging_ack_t ack)
 {
 	lock();
 
-	if (_instance) { // make sure stop() was not called right before
-		if (_wait_for_ack_sequence == ack.sequence) {
-			_ack_received = true;
-			publish_ack(ack.sequence);
+	// Resolve the instance here rather than trusting a pointer the caller captured
+	// earlier: stop() may have deleted it, and try_start() may have created a new one.
+	if (_instance) {
+		if (_instance->_wait_for_ack_sequence == ack.sequence) {
+			_instance->_ack_received = true;
+			_instance->publish_ack(ack.sequence);
 		}
 	}
 
