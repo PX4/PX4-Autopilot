@@ -134,8 +134,9 @@ def main():
     report.ok('baseline connect', 'heartbeat from {}'.format(device))
 
     shell = px4bench.MavlinkShell(mav)
-    if not shell.open(timeout=5):
-        report.fail('baseline shell', 'no nsh output on SERIAL_CONTROL within 5s')
+    if not shell.open():
+        report.fail('baseline shell', 'no nsh output on SERIAL_CONTROL within {:.0f}s'.format(
+            px4bench.SHELL_OPEN_TIMEOUT))
         shell.close()
         mav.close()
         sys.exit(report.finish())
@@ -194,9 +195,10 @@ def main():
                   'reconnected on {}'.format(device))
 
         shell = px4bench.MavlinkShell(mav)
-        if not shell.open(timeout=5):
+        if not shell.open():
             report.fail('cycle {} shell'.format(i),
-                        'no nsh output on SERIAL_CONTROL within 5s')
+                        'no nsh output on SERIAL_CONTROL within {:.0f}s'.format(
+                            px4bench.SHELL_OPEN_TIMEOUT))
             shell.close()
             mav.close()
             continue

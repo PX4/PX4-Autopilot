@@ -29,8 +29,9 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from px4bench import (Reporter, MavlinkShell, add_connection_args, connect,
-                      parse_mavlink_status, send_heartbeat)
+from px4bench import (Reporter, MavlinkShell, SHELL_OPEN_TIMEOUT,
+                      add_connection_args, connect, parse_mavlink_status,
+                      send_heartbeat)
 
 
 HEARTBEAT_INTERVAL = 1.0        # GCS -> autopilot heartbeat cadence, seconds
@@ -206,8 +207,10 @@ def phase3_nested_hammer(report, mav1, mav2, global_deadline):
     """
     report.info('Phase 3: nested-send hammer (param download on link2, shell on link1)')
     shell = MavlinkShell(mav1)
-    if not shell.open(timeout=5):
-        report.fail('phase3_shell_open', 'nsh shell over link1 did not respond within 5s')
+    if not shell.open():
+        report.fail('phase3_shell_open',
+                    'nsh shell over link1 did not respond within {:.0f}s'.format(
+                        SHELL_OPEN_TIMEOUT))
         return False
 
     downloader = ParamDownloader(mav2)
@@ -281,7 +284,7 @@ def phase4_post_liveness(report, mav1, mav2, global_deadline):
         report.ok('phase4_heartbeat_{}'.format(label), 'link alive after stress')
 
     shell = MavlinkShell(mav1)
-    if not shell.open(timeout=5):
+    if not shell.open():
         report.fail('phase4_shell_open', 'nsh shell over link1 did not respond after stress')
         return False
     try:
