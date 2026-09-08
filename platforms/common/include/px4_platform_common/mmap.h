@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,43 +30,43 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifndef _uORBUtils_hpp_
-#define _uORBUtils_hpp_
 
-#include "uORBCommon.hpp"
+#pragma once
 
-namespace uORB
-{
-class Utils;
-}
-
-class uORB::Utils
-{
-public:
-	static int node_mkpath(char *buf, const struct orb_metadata *meta, int *instance = nullptr,
-			       const char *namespace_prefix = "");
-
-	/**
-	 * same as above except this generators the path based on the string.
-	 */
-	static int node_mkpath(char *buf, const char *orbMsgName, const char *namespace_prefix = "");
-
-	/**
-	 * Generate manager shared-memory path.
-	 */
-	static int manager_mkpath(char *buf, const char *namespace_prefix = "");
-
-	/**
-	 * Return true if the shared-memory object name corresponds to a uORB node
-	 * in the active namespace.
-	 */
-	static bool is_uorb_node_path(const char *path, const char *namespace_prefix);
-
-#if defined(NAME_MAX)
-	// Do compile-time length check on systems which support NAME_MAX
-	// (NAME_MAX excludes the null terminator)
-	static_assert(NAME_MAX >= (orb_maxpath - 1), "NAME_MAX too small");
+#if defined(__PX4_QURT) && defined(__cplusplus)
+/* The Hexagon SDK's <sys/mman.h> unconditionally redefines __BEGIN_DECLS and
+ * __END_DECLS to empty before using them to wrap its own declarations. This
+ * clobbers the extern "C" linkage PX4's <visibility.h>. Just re-define the
+ * macros for qurt.
+ */
+extern "C" {
+#  include <sys/mman.h>
+} // extern "C"
+#  undef __BEGIN_DECLS
+#  undef __END_DECLS
+#  define __BEGIN_DECLS extern "C" {
+#  define __END_DECLS   }
+#else
+#  include <sys/mman.h>
 #endif
-};
 
-#endif // _uORBUtils_hpp_
+#if defined(__PX4_NUTTX)
+#include <nuttx/config.h>
+#endif
+
+#if defined (__PX4_NUTTX) && defined(CONFIG_BUILD_KERNEL)
+
+/* For size_t */
+#include <sys/types.h>
+
+__BEGIN_DECLS
+
+void *px4_mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset);
+int   px4_munmap(void *start, size_t length);
+
+__END_DECLS
+
+#else
+#define px4_mmap   mmap
+#define px4_munmap munmap
+#endif

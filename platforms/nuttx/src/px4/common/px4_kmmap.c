@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,73 +31,83 @@
  *
  ****************************************************************************/
 
-#include "uORBUtils.hpp"
-#include <stdio.h>
+#include <nuttx/config.h>
+
+#include <sys/types.h>
 #include <errno.h>
-#include <string.h>
 
-namespace
+#include <nuttx/fs/fs.h>
+#include <nuttx/pgalloc.h>
+
+#ifndef CONFIG_ARCH_PGPOOL_MAPPING
+#  error "kmmap needs CONFIG_ARCH_PGPOOL_MAPPING"
+#endif
+
+#if CONFIG_ARCH_PGPOOL_PBASE != CONFIG_ARCH_PGPOOL_VBASE
+#  error "kmmap needs CONFIG_ARCH_PGPOOL_PBASE=CONFIG_ARCH_PGPOOL_VBASE mapping"
+#endif
+
+#define MAP_FAILED	  ((void*)-1)
+
+/* Access NuttX private headers as no public interface is available here */
+
+extern int inode_lock(void);
+extern void inode_unlock(void);
+
+struct shmfs_object_s {
+	size_t length;
+	void *paddr[];
+};
+
+void *px4_mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
-constexpr const char *orb_name_prefix = "_orb_";
-constexpr const char *manager_name_suffix = "_uORB_Manager";
+	struct file *filep;
+	struct shmfs_object_s *object;
+	int ret;
+
+	if (fs_getfilep(fd, &filep) < 0) {
+		ret = -EBADF;
+		goto errout;
+	}
+
+	/* Limitation: only 1 page can be mapped. To map more pages, need more logic
+	 * in place (define shared memory are for kernel, keep mappings in list, etc
+	 */
+
+	if (length > MM_PGSIZE) {
+		ret = -ENOMEM;
+		goto errout;
+	}
+
+	ret = inode_lock();
+
+	if (ret < 0) {
+		goto errout;
+	}
+
+	/* Return the physical address */
+
+	object = (struct shmfs_object_s *)filep->f_inode->i_private;
+
+	if (!object) {
+		ret = -EINVAL;
+		goto errout_with_lock;
+	}
+
+	filep->f_inode->i_crefs++;
+	inode_unlock();
+	return object->paddr[0];
+
+errout_with_lock:
+	inode_unlock();
+errout:
+	set_errno(-ret);
+	return MAP_FAILED;
 }
 
-int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *instance,
-			     const char *namespace_prefix)
+int px4_munmap(void *start, size_t length)
 {
-	unsigned len;
-
-	unsigned index = 0;
-
-	if (instance != nullptr) {
-		index = *instance;
-	}
-
-	len = snprintf(buf, orb_maxpath, "%s%s%s%d", namespace_prefix, orb_name_prefix, meta->o_name, index);
-
-	if (len >= orb_maxpath) {
-		return -ENAMETOOLONG;
-	}
+	/* There is no need for unmap on the kernel side */
 
 	return OK;
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-int uORB::Utils::node_mkpath(char *buf, const char *orbMsgName, const char *namespace_prefix)
-{
-	unsigned len;
-
-	unsigned index = 0;
-
-	len = snprintf(buf, orb_maxpath, "%s%s%s%d", namespace_prefix, orb_name_prefix, orbMsgName, index);
-
-	if (len >= orb_maxpath) {
-		return -ENAMETOOLONG;
-	}
-
-	return OK;
-}
-
-int uORB::Utils::manager_mkpath(char *buf, const char *namespace_prefix)
-{
-	const unsigned len = snprintf(buf, orb_maxpath, "%s%s", namespace_prefix, manager_name_suffix);
-
-	if (len >= orb_maxpath) {
-		return -ENAMETOOLONG;
-	}
-
-	return OK;
-}
-
-bool uORB::Utils::is_uorb_node_path(const char *path, const char *namespace_prefix)
-{
-	if (path == nullptr || namespace_prefix == nullptr) {
-		return false;
-	}
-
-	const size_t namespace_len = strlen(namespace_prefix);
-
-	return strncmp(path, namespace_prefix, namespace_len) == 0
-	       && strncmp(path + namespace_len, orb_name_prefix, strlen(orb_name_prefix)) == 0;
 }
