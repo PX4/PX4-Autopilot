@@ -97,8 +97,8 @@ public:
 		gps_checks.timestamp = hrt_absolute_time();
 		gps_checks.device_id = 1;
 		gps_checks.flags = flags;
-		gps_checks.checks_passed = true;
-		gps_checks.initial_checks_passed = true;
+		gps_checks.checks_passed = (flags == 0);
+		gps_checks.initial_checks_passed = (flags == 0);
 
 		return gps_checks;
 	}
