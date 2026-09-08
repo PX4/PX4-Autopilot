@@ -60,8 +60,8 @@ bool sgDecodeInstall(uint8_t *buffer, sg_install_t *stl)
 	memcpy(&sgStl, buffer, sizeof(stl_t));
 
 	stl->icao           = toIcao(sgStl.icao);
-	strcpy(stl->reg,      sgStl.registration);
-	memset(&stl->reg[SG_REG_LEN], 0, 1);  // Ensure registration is null-terminated
+	memcpy(stl->reg, sgStl.registration, SG_REG_LEN);
+	stl->reg[SG_REG_LEN] = '\0'; // Ensure registration is null-terminated
 	stl->com0           = (sg_baud_t)(sgStl.com0);
 	stl->com1           = (sg_baud_t)(sgStl.com1);
 	stl->eth.ipAddress  = toUint32(sgStl.ipAddress);

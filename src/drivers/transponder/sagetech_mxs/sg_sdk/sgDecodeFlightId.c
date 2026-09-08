@@ -34,8 +34,8 @@ bool sgDecodeFlightId(uint8_t *buffer, sg_flightid_t *id)
 	flightid_t sgId;
 	memcpy(&sgId, buffer, sizeof(flightid_t));
 
-	strcpy(id->flightId, sgId.flightId);
-	memset(&id->flightId[SG_ID_LEN], '\0', 1); // Ensure flight id is null-terminated
+	memcpy(id->flightId, sgId.flightId, SG_ID_LEN);
+	id->flightId[SG_ID_LEN] = '\0'; // Ensure flight id is null-terminated
 
 	return true;
 }
