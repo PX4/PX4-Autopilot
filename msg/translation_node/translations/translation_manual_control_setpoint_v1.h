@@ -36,8 +36,8 @@ public:
 		msg_newer.aux6 = msg_older.aux6;
 		msg_newer.sticks_moving = msg_older.sticks_moving;
 		msg_newer.buttons = msg_older.buttons;
-		msg_newer.sender_system_id = 0; // Default value for v1
-		msg_newer.sender_component_id = 0; // Default value for v1
+		msg_newer.source_system_id = 0; // Default value for v1
+		msg_newer.source_component_id = 0; // Default value for v1
 	}
 
 	static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
@@ -58,7 +58,7 @@ public:
 		msg_older.aux6 = msg_newer.aux6;
 		msg_older.sticks_moving = msg_newer.sticks_moving;
 		msg_older.buttons = msg_newer.buttons;
-		// sender_system_id / sender_component_id dropped (not present in v0)
+		// source_system_id / source_component_id dropped (not present in v0)
 	}
 };
 

@@ -72,8 +72,8 @@ private:
 
 			} else if (manual_control_setpoint.data_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0) {
 				msg.source = MAV_MANUAL_INPUT_SOURCE_MAVLINK;
-				msg.sender_system_id = manual_control_setpoint.sender_system_id;
-				msg.sender_component_id = manual_control_setpoint.sender_component_id;
+				msg.sender_system_id = manual_control_setpoint.source_system_id;
+				msg.sender_component_id = manual_control_setpoint.source_component_id;
 			}
 		}
 

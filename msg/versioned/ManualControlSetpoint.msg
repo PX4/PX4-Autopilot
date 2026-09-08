@@ -27,6 +27,8 @@ uint8 SOURCE_MAVLINK_4 = 6		# mavlink instance 4
 uint8 SOURCE_MAVLINK_5 = 7		# mavlink instance 5
 
 uint8 data_source
+uint8 source_system_id  # [@invalid 0] MAVLink system ID of the manual control source
+uint8 source_component_id # [@invalid 0] MAVLink component ID of the manual control source
 
 # Any of the channels may not be available and be set to NaN
 # to indicate that it does not contain valid data.
@@ -52,9 +54,6 @@ float32 aux6
 bool sticks_moving # manual control override request in an auto or offboard mode, only gets true if feature is enabled
 
 uint16 buttons		# From uint16 buttons field of Mavlink manual_control message
-
-uint8 source_system_id  # [@invalid 0] MAVLink system ID of the manual control source
-uint8 source_component_id # [@invalid 0] MAVLink component ID of the manual control source
 
 # TOPICS manual_control_setpoint manual_control_input
 # DEPRECATED: float32 x
