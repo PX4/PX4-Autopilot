@@ -15,7 +15,7 @@
 # Persist flight logs on the host (ulog files):
 #   mkdir -p ./px4-logs
 #   docker run --rm -it --network host \
-#     -v $(pwd)/px4-logs:/root/.local/share/px4/rootfs/log \
+#     -v $(pwd)/px4-logs:/root/.local/share/px4/rootfs/fs/log \
 #     px4io/px4-sitl:v1.17.0
 
 FROM ubuntu:24.04

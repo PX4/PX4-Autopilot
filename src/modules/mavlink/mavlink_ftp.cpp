@@ -1192,16 +1192,17 @@ bool MavlinkFTP::_validatePath(const char *path)
 
 bool MavlinkFTP::_validatePathIsWritable(const char *path)
 {
-#ifdef __PX4_NUTTX
-
-	// Don't allow writes to system paths as they are in RAM
+	// The root can expose read-only data next to the storage directory, so confine writes
+	// to storage. On NuttX that keeps them off the in-RAM system paths; on POSIX it keeps
+	// them out of the ROMFS.
 	// Ideally we'd canonicalize the path (with 'realpath'), but it might not exist, so realpath() would fail.
 	// The next simpler thing is to check there's no reference to a parent dir.
-	if (strncmp(path, CONFIG_BOARD_ROOT_PATH "/", 12) != 0 || strstr(path, "/../") != nullptr) {
+	static constexpr const char storage_prefix[] = PX4_STORAGEDIR "/";
+
+	if (strncmp(path, storage_prefix, sizeof(storage_prefix) - 1) != 0 || strstr(path, "/../") != nullptr) {
 		PX4_ERR("Disallowing write to %s", path);
 		return false;
 	}
 
-#endif
 	return true;
 }
