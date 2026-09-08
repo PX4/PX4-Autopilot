@@ -219,54 +219,74 @@ TEST_F(TrajectoryConstraintsTest, test10AngleCloseNext)
 	EXPECT_LT(close_speed, normal_speed);
 }
 
-TEST_F(TrajectoryConstraintsTest, testStraightCloseNextWithLookahead)
+TEST_F(TrajectoryConstraintsTest, testStraightNextInsideAcceptanceRadius)
 {
-	// GIVEN: a survey-like pattern: target, a collinear next waypoint 15m behind it and a far waypoint after next
-	config.max_jerk = 4.f;
-	config.max_speed_xy = 15.f;
-	config.xy_accept_rad = 10.f;
-	vehicle_location = Vector3f(70, 0, 5); // 10m before the target, i.e. inside the braking zone
-	target = Vector3f(80, 0, 5);
-	next_target = Vector3f(95, 0, 5);
-	Vector3f next_next_target = Vector3f(180, 0, 5);
+	// GIVEN: 3 waypoints in straight line, the next one closer to the target than the acceptance radius
+	next_target = target + 0.5f * (target - vehicle_location).unit_or_zero();
+	EXPECT_LT((next_target - target).norm(), config.xy_accept_rad);
 
-	// WHEN: we get the speed without knowing the waypoint after next
+	// WHEN: we get the speed for straight line travel
 	Vector3f waypoints[3] = {vehicle_location, target, next_target};
-	float speed_without_lookahead = computeXYSpeedFromWaypoints<3>(waypoints, config);
+	float through_speed = computeXYSpeedFromWaypoints<3>(waypoints, config);
 
-	// THEN: the vehicle has to plan a stop 15m after the target, which caps the speed at the target well below cruise
-	float stop_in_15m_speed = computeMaxSpeedFromDistance(config.max_jerk, config.max_acc_xy, 15.f, 0.f);
-	EXPECT_NEAR(stop_in_15m_speed, 6.f, 0.01f);
-	EXPECT_LT(speed_without_lookahead, config.max_speed_xy);
+	// THEN: the target must not be treated as a stop, only the (short) remaining distance to the next waypoint counts
+	Vector3f stop_points[2] = {vehicle_location, target};
+	float stop_speed = computeXYSpeedFromWaypoints<2>(stop_points, config);
+	Vector3f direct_points[2] = {vehicle_location, next_target};
+	float direct_speed = computeXYSpeedFromWaypoints<2>(direct_points, config);
 
-	// WHEN: we get the speed knowing the waypoint after next
-	Vector3f lookahead_waypoints[4] = {vehicle_location, target, next_target, next_next_target};
-	float speed_with_lookahead = computeXYSpeedFromWaypoints<4>(lookahead_waypoints, config);
-
-	// THEN: the straight line can be flown at cruise speed
-	EXPECT_GT(speed_with_lookahead, speed_without_lookahead);
-	EXPECT_FLOAT_EQ(speed_with_lookahead, config.max_speed_xy);
+	EXPECT_GT(through_speed, stop_speed);
+	EXPECT_LE(through_speed, direct_speed);
 }
 
-TEST_F(TrajectoryConstraintsTest, testCornerAfterNextWithLookahead)
+TEST_F(TrajectoryConstraintsTest, testStraightNextInsideAcceptanceRadiusWithExitSpeed)
 {
-	// GIVEN: target, a close collinear next waypoint and a 90 degree corner right after it
-	config.max_jerk = 4.f;
-	config.max_speed_xy = 15.f;
-	config.xy_accept_rad = 10.f;
-	vehicle_location = Vector3f(70, 0, 5);
-	target = Vector3f(80, 0, 5);
-	next_target = Vector3f(95, 0, 5);
-	Vector3f next_next_target = Vector3f(95, 100, 5);
+	// GIVEN: a straight line where the waypoint after next is far, but next is inside the acceptance radius of the target
+	// (e.g. the entry point of a survey followed by the first survey line)
+	const Vector3f direction = (target - vehicle_location).unit_or_zero();
+	next_target = target + 0.5f * direction;
+	const Vector3f after_next = target + 100.f * direction;
 
-	// WHEN: we get the speed with and without lookahead
+	// WHEN: we get the speed knowing the waypoint after next
+	Vector3f waypoints[4] = {vehicle_location, target, next_target, after_next};
+	float through_speed = computeXYSpeedFromWaypoints<4>(waypoints, config);
+
+	// THEN: the vehicle can fly through both waypoints at cruise speed
+	EXPECT_FLOAT_EQ(through_speed, config.max_speed_xy);
+}
+
+TEST_F(TrajectoryConstraintsTest, test90AngleNextInsideAcceptanceRadius)
+{
+	// GIVEN: a 90 degree corner onto a segment shorter than the acceptance radius
+	next_target = target + 0.5f * (next_target - target).unit_or_zero();
+	EXPECT_FLOAT_EQ(0.f, (vehicle_location - target).dot(target - next_target));
+
+	// WHEN: we get the speed for travel around the corner
 	Vector3f waypoints[3] = {vehicle_location, target, next_target};
-	float speed_without_lookahead = computeXYSpeedFromWaypoints<3>(waypoints, config);
-	Vector3f lookahead_waypoints[4] = {vehicle_location, target, next_target, next_next_target};
-	float speed_with_lookahead = computeXYSpeedFromWaypoints<4>(lookahead_waypoints, config);
+	float through_speed = computeXYSpeedFromWaypoints<3>(waypoints, config);
 
-	// THEN: the corner after next still limits the speed well below cruise, the lookahead only removes the
-	// full-stop assumption at the next waypoint
-	EXPECT_GT(speed_with_lookahead, speed_without_lookahead);
-	EXPECT_LT(speed_with_lookahead, 0.5f * config.max_speed_xy);
+	// THEN: it is at least as fast as stopping at the corner, but slower than the same corner onto a long segment
+	Vector3f stop_points[2] = {vehicle_location, target};
+	float stop_speed = computeXYSpeedFromWaypoints<2>(stop_points, config);
+	Vector3f long_waypoints[3] = {vehicle_location, target, Vector3f(20, 20, 5)};
+	float long_speed = computeXYSpeedFromWaypoints<3>(long_waypoints, config);
+
+	EXPECT_GE(through_speed, stop_speed);
+	EXPECT_LT(through_speed, long_speed);
+}
+
+TEST_F(TrajectoryConstraintsTest, testHairpinNextInsideAcceptanceRadius)
+{
+	// GIVEN: a 180 degree turn onto a segment shorter than the acceptance radius
+	next_target = target - 0.5f * (target - vehicle_location).unit_or_zero();
+
+	// WHEN: we get the speed for travel around the hairpin
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+	float through_speed = computeXYSpeedFromWaypoints<3>(waypoints, config);
+
+	// THEN: the vehicle has to stop at the turn
+	Vector3f stop_points[2] = {vehicle_location, target};
+	float stop_speed = computeXYSpeedFromWaypoints<2>(stop_points, config);
+
+	EXPECT_FLOAT_EQ(through_speed, stop_speed);
 }
