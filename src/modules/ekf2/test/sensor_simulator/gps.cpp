@@ -8,8 +8,6 @@ namespace sensor
 Gps::Gps(std::shared_ptr<Ekf> ekf): Sensor(ekf)
 {
 	_gps_checks_data.check_fail_status.value = 0;
-	_gps_checks_data.checks_passed = true;
-	_gps_checks_data.initial_checks_passed = true;
 }
 
 Gps::~Gps()
@@ -31,8 +29,46 @@ void Gps::send(const uint64_t time)
 		stepHeightByMeters(-_gps_pos_rate(2) * dt);
 	}
 
+
+	// Simulate GPS checks from hub
+	if (_gps_checks_data.time_last_fail_us == 0) {
+		_gps_checks_data.time_last_fail_us = _gps_checks_data.time_us;
+	}
+
+	if (!_in_air) {
+		_gps_checks_data.initial_checks_passed = false;
+	}
+
+	if (_gps_checks_data.initial_checks_passed) {
+		if (_gps_checks_data.check_fail_status.value == 0) {
+			_gps_checks_data.checks_passed = (_gps_checks_data.time_us - _gps_checks_data.time_last_fail_us ) > (_min_gps_health_time_us / 10);
+		} else {
+			_gps_checks_data.time_last_fail_us = _gps_checks_data.time_us;
+		}
+	}
+	else {
+		if (_gps_checks_data.check_fail_status.value == 0) {
+			_gps_checks_data.initial_checks_passed = (_gps_checks_data.time_us - _gps_checks_data.time_last_fail_us ) > _min_gps_health_time_us;
+			_gps_checks_data.checks_passed = _gps_checks_data.initial_checks_passed;
+		} else {
+			_gps_checks_data.time_last_fail_us = _gps_checks_data.time_us;
+		}
+	}
+
+	if (_gps_checks_data.checks_passed) _gps_checks_data.time_last_pass_us = _gps_checks_data.time_us;
 	_ekf->setGpsChecksData(_gps_checks_data);
+
 	_ekf->setGpsData(_gps_data);
+}
+
+void Gps::setMinRequiredGpsHealthTime(const uint64_t time_us)
+{
+	_min_gps_health_time_us = time_us;
+}
+
+void Gps::setInAirStatus(const bool in_air)
+{
+	_in_air = in_air;
 }
 
 void Gps::setData(const gnssSample &gps)
@@ -73,6 +109,12 @@ void Gps::setYawOffset(const float yaw_offset)
 void Gps::setFixType(const int fix_type)
 {
 	_gps_data.fix_type = fix_type;
+}
+
+void Gps::setFixTypeFail(const bool fail)
+{
+	_gps_checks_data.check_fail_status.flags.fix = fail;
+	_gps_checks_data.checks_passed = !fail;
 }
 
 void Gps::setNumberOfSatellites(const int num_satellites)

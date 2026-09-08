@@ -94,6 +94,8 @@ TEST_F(EkfGpsTest, gpsTimeout)
 
 	// WHEN: the fix type drops
 	_sensor_simulator._gps.setFixType(0);
+	_sensor_simulator._gps.setFixTypeFail(true);
+
 
 	// THEN: the GNSS fusion stops after some time
 	_sensor_simulator.runSeconds(8);
@@ -101,6 +103,7 @@ TEST_F(EkfGpsTest, gpsTimeout)
 
 	// BUT WHEN: the fix type is good again
 	_sensor_simulator._gps.setFixType(3);
+	_sensor_simulator._gps.setFixTypeFail(false);
 
 	// THEN: the GNSS fusion restarts
 	_sensor_simulator.runSeconds(6);
@@ -114,6 +117,7 @@ TEST_F(EkfGpsTest, gpsFixLoss)
 
 	// WHEN: the fix is loss
 	_sensor_simulator._gps.setFixType(0);
+	_sensor_simulator._gps.setFixTypeFail(true);
 
 	// THEN: after dead-reconing for a couple of seconds, the local position gets invalidated
 	_sensor_simulator.runSeconds(6);

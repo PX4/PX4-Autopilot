@@ -267,6 +267,7 @@ TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
 	float gps_heading = _ekf_wrapper.getYawAngle();
 	_sensor_simulator._gps.setYaw(gps_heading);
 	_sensor_simulator.runSeconds(1);
+	_sensor_simulator._gps.setInAirStatus(false);
 	_ekf->set_in_air_status(false);
 
 	// WHEN: the measurement suddenly changes
