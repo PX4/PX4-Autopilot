@@ -202,36 +202,23 @@ esc_status_s process_esc(const Config &config, const esc_status_s &status)
 
 MotorFailureMasks process_motor(const Config &config)
 {
-	// SYS_FAIL_MOT_OFF values
-	static constexpr int32_t MOTOR_OFF_DETECTED = 0;
-	static constexpr int32_t MOTOR_OFF_UNDETECTED = 1;
-
-	static int32_t motor_off_behavior = -1;
-
-	if (motor_off_behavior < 0) {
-		motor_off_behavior = MOTOR_OFF_DETECTED;
-		int32_t value{0};
-
-		if (param_get(param_find("SYS_FAIL_MOT_OFF"), &value) == PX4_OK) {
-			motor_off_behavior = value;
-		}
-	}
-
-	uint16_t motors_off = 0;
-
-	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-		if (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1) == Mode::Off) {
-			motors_off |= 1u << i;
-		}
-	}
-
 	MotorFailureMasks masks{};
 
-	if (motor_off_behavior == MOTOR_OFF_UNDETECTED) {
-		masks.stop_mask = motors_off;
+	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+		const uint16_t bit = 1u << i;
 
-	} else {
-		masks.failure_mask = motors_off;
+		switch (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1)) {
+		case Mode::Off:
+			masks.failure_mask |= bit;
+			break;
+
+		case Mode::Wrong:
+			masks.stop_mask |= bit;
+			break;
+
+		default:
+			break;
+		}
 	}
 
 	return masks;

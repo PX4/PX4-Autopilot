@@ -599,10 +599,10 @@ TEST(FailureInjectionConfig, ProcessBatteryLeavesUnselectedInstanceUntouched)
 }
 
 // ===========================================================================
-// process_motor(): motor Off -> detected failure_mask (default) / undetected stop_mask
+// process_motor(): motor off -> detected failure_mask, motor wrong -> undetected stop_mask
 // ===========================================================================
 
-TEST(FailureInjectionConfig, ProcessMotorDefaultsToDetectedFailureMask)
+TEST(FailureInjectionConfig, ProcessMotorOffYieldsDetectedFailureMask)
 {
 	Config config;
 	config.set(make_config(MOTOR, 0x5, OFF)); // motors 1 and 3
@@ -610,6 +610,35 @@ TEST(FailureInjectionConfig, ProcessMotorDefaultsToDetectedFailureMask)
 	const MotorFailureMasks masks = process_motor(config);
 	EXPECT_EQ(masks.failure_mask, 0x5u);
 	EXPECT_EQ(masks.stop_mask, 0u);
+}
+
+TEST(FailureInjectionConfig, ProcessMotorWrongYieldsUndetectedStopMask)
+{
+	Config config;
+	config.set(make_config(MOTOR, 0x5, WRONG)); // motors 1 and 3
+
+	const MotorFailureMasks masks = process_motor(config);
+	EXPECT_EQ(masks.stop_mask, 0x5u);
+	EXPECT_EQ(masks.failure_mask, 0u);
+}
+
+TEST(FailureInjectionConfig, ProcessMotorMixedOffAndWrongSplitsMasks)
+{
+	failure_injection_s cfg{};
+	cfg.count = 2;
+	cfg.unit[0] = MOTOR;
+	cfg.instance_mask[0] = 0x1; // motor 1 detected
+	cfg.failure_type[0] = OFF;
+	cfg.unit[1] = MOTOR;
+	cfg.instance_mask[1] = 0x2; // motor 2 undetected
+	cfg.failure_type[1] = WRONG;
+
+	Config config;
+	config.set(cfg);
+
+	const MotorFailureMasks masks = process_motor(config);
+	EXPECT_EQ(masks.failure_mask, 0x1u);
+	EXPECT_EQ(masks.stop_mask, 0x2u);
 }
 
 TEST(FailureInjectionConfig, ProcessMotorNoFailureYieldsEmptyMasks)
@@ -626,9 +655,11 @@ TEST(FailureInjectionConfig, ProcessMotorIgnoresOtherUnitsAndTypes)
 	Config config;
 	config.set(make_config(ESC, 0x1, OFF)); // ESC unit, not MOTOR
 	EXPECT_EQ(process_motor(config).failure_mask, 0u);
+	EXPECT_EQ(process_motor(config).stop_mask, 0u);
 
-	config.set(make_config(MOTOR, 0x1, WRONG)); // unsupported type for motors
+	config.set(make_config(MOTOR, 0x1, STUCK)); // unsupported type for motors
 	EXPECT_EQ(process_motor(config).failure_mask, 0u);
+	EXPECT_EQ(process_motor(config).stop_mask, 0u);
 
 	config.set(make_config(MOTOR, 0xFFFF, OFF)); // all instances
 	EXPECT_EQ(process_motor(config).failure_mask, 0xFFFu); // clamped to CONNECTED_ESC_MAX (12)

@@ -52,12 +52,12 @@ TEST_CASE("Failure Injection - Reject mid-air when it is disabled", "[multicopte
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-// Detected motor failure (SYS_FAIL_MOT_OFF = 0, default): the injected motor is reported
-// as a failed motor, so the control allocator removes it from the allocation and, with
+// Detected motor failure (`failure motor off`): the injected motor is reported as a
+// failed motor, so the control allocator removes it from the allocation and, with
 // CA_FAILURE_MODE = 1, also stops the geometrically opposite motor. Runs on the SIH
 // hexarotor, where motor i's opposite is motor i+3 (0-based).
 TEST_CASE("Failure Injection - Detected motor failure removes motor and opposite from allocation",
-	  "[motor_failure_injection_detected]")
+	  "[motor_failure_injection]")
 {
 	const float flight_altitude = 10.0f;
 	const float altitude_tolerance = 1.0f;
@@ -103,11 +103,10 @@ TEST_CASE("Failure Injection - Detected motor failure removes motor and opposite
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-// Undetected motor failure (SYS_FAIL_MOT_OFF = 1, set at boot via PX4_PARAM_SYS_FAIL_MOT_OFF):
-// only the injected motor stops, the allocator is not informed and the opposite motor
-// keeps running.
+// Undetected motor failure (`failure motor wrong`): only the injected motor stops, the
+// allocator is not informed and the opposite motor keeps running.
 TEST_CASE("Failure Injection - Undetected motor failure stops only the failed motor",
-	  "[motor_failure_injection_undetected]")
+	  "[motor_failure_injection]")
 {
 	const float flight_altitude = 10.0f;
 	const float altitude_tolerance = 1.0f;
@@ -134,7 +133,7 @@ TEST_CASE("Failure Injection - Undetected motor failure stops only the failed mo
 	// The vehicle must hold altitude through the undetected failure and the recovery
 	tester.start_checking_altitude(altitude_tolerance);
 
-	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off,
+	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Wrong,
 			      motor_instance, mavsdk::Failure::Result::Success);
 	tester.sleep_for(std::chrono::seconds(5));
 	tester.ensure_motors_stopped(1u << (motor_instance - 1), num_motors);

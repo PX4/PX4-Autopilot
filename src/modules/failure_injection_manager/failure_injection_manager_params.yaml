@@ -77,8 +77,6 @@ parameters:
           long: |-
             Bitmask of instances of SYS_FAIL_RC_UNIT that the SYS_FAIL_RC_SRC trigger
             affects (bit 0 = instance 1, motor number for motors). 0 = all instances.
-            For motors, a mask addressing several instances only takes effect with
-            SYS_FAIL_MOT_OFF set to undetected.
         type: bitmask
         bit:
           0: Instance 1
@@ -149,22 +147,3 @@ parameters:
           1: Warn
           2: Critical
           3: Emergency
-      SYS_FAIL_MOT_OFF:
-        description:
-          short: Behavior of injected motor "Off" failures
-          long: |-
-            Selects how an injected motor "Off" failure is applied.
-            Detected: the motor is reported as failed and removed from
-            control allocation; the allocator knows about the failure and
-            compensates. Addresses a single motor, since that is all the
-            allocator recovers from.
-            Undetected: the motor output is stopped without informing the
-            allocator (no-feedback case, e.g. PWM ESCs), and places no limit
-            on the addressed instances.
-            Both require CA_FAILURE_MODE to be enabled.
-        type: enum
-        default: 0
-        reboot_required: true
-        values:
-          0: Detected (removed from control allocation)
-          1: Undetected (output stopped, allocator not informed)
