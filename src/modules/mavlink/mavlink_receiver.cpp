@@ -2228,6 +2228,12 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 	mavlink_tunnel_t mavlink_tunnel;
 	mavlink_msg_tunnel_decode(msg, &mavlink_tunnel);
 
+	// The payload is forwarded to a device, so a message meant for another vehicle on the
+	// same link must not be written to this one's bus.
+	if (!evaluate_target_ok(0, mavlink_tunnel.target_system, mavlink_tunnel.target_component)) {
+		return;
+	}
+
 	if (mavlink_tunnel.payload_length > sizeof(mavlink_tunnel.payload)) {
 		// The payload buffer is a fixed 128 bytes while payload_length is a uint8_t, so a
 		// sender can advertise more data than the message can carry. Drop such a message
