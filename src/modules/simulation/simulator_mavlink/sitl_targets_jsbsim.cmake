@@ -66,6 +66,7 @@ if(JSBSIM_INCLUDE_DIR)
 		USES_TERMINAL
 		DEPENDS px4 jsbsim_bridge
 	)
+	set_property(GLOBAL APPEND PROPERTY PX4_SITL_VMD_TARGETS jsbsim)
 
 	foreach(model ${models})
 
@@ -99,6 +100,7 @@ if(JSBSIM_INCLUDE_DIR)
 					USES_TERMINAL
 					DEPENDS px4 jsbsim_bridge
 				)
+				set_property(GLOBAL APPEND PROPERTY PX4_SITL_VMD_TARGETS jsbsim_${model})
 			else()
 				add_custom_target(jsbsim_${model}__${world}
 					COMMAND ${PX4_SOURCE_DIR}/Tools/simulation/jsbsim/sitl_run.sh $<TARGET_FILE:px4> ${model} ${world} ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
@@ -106,6 +108,7 @@ if(JSBSIM_INCLUDE_DIR)
 					USES_TERMINAL
 					DEPENDS px4 jsbsim_bridge
 				)
+				set_property(GLOBAL APPEND PROPERTY PX4_SITL_VMD_TARGETS jsbsim_${model}__${world})
 			endif()
 		endforeach()
 	endforeach()

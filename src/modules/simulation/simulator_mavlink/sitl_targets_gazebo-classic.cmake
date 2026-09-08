@@ -202,6 +202,7 @@ if(gazebo_FOUND)
 						USES_TERMINAL
 						DEPENDS px4 sitl_gazebo-classic
 					)
+					set_property(GLOBAL APPEND PROPERTY PX4_SITL_VMD_TARGETS ${_targ_name})
 
 					string(REPLACE "gazebo-classic" "gazebo" _targ_name_compat ${_targ_name})
 					add_custom_target(${_targ_name_compat}
@@ -231,6 +232,7 @@ if(gazebo_FOUND)
 						USES_TERMINAL
 						DEPENDS px4 sitl_gazebo-classic
 					)
+					set_property(GLOBAL APPEND PROPERTY PX4_SITL_VMD_TARGETS ${_targ_name})
 
 					string(REPLACE "gazebo-classic" "gazebo" _targ_name_compat ${_targ_name})
 					add_custom_target(${_targ_name_compat}

@@ -49,6 +49,7 @@ if(ENABLE_LOCKSTEP_SCHEDULER STREQUAL "no")
 			USES_TERMINAL
 			DEPENDS px4 flightgear_bridge
 		)
+		set_property(GLOBAL APPEND PROPERTY PX4_SITL_VMD_TARGETS flightgear)
 
 		foreach(model ${models})
 
@@ -79,6 +80,7 @@ if(ENABLE_LOCKSTEP_SCHEDULER STREQUAL "no")
 				USES_TERMINAL
 				DEPENDS px4 flightgear_bridge
 			)
+			set_property(GLOBAL APPEND PROPERTY PX4_SITL_VMD_TARGETS flightgear_${model})
 		endforeach()
 	endif()
 endif()

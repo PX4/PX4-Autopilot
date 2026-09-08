@@ -125,6 +125,7 @@ if (gz-transport_FOUND)
 					USES_TERMINAL
 					DEPENDS px4 px4_gz_plugins
 				)
+				set_property(GLOBAL APPEND PROPERTY PX4_SITL_VMD_TARGETS gz_${model_name})
 			else()
 				add_custom_target(gz_${model_name}_${world_name}
 					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_name} PX4_GZ_WORLD=${world_name} GZ_IP=127.0.0.1 $<TARGET_FILE:px4>
@@ -132,6 +133,7 @@ if (gz-transport_FOUND)
 					USES_TERMINAL
 					DEPENDS px4 px4_gz_plugins
 				)
+				set_property(GLOBAL APPEND PROPERTY PX4_SITL_VMD_TARGETS gz_${model_name}_${world_name})
 			endif()
 		endforeach()
 	endforeach()

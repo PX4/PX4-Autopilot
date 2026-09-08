@@ -38,4 +38,6 @@ if(JAVA_ANT_PATH AND Java_JAVAC_EXECUTABLE AND Java_JAVA_EXECUTABLE)
 	)
 	add_custom_target(jmavsim DEPENDS jmavsim_iris) # alias
 
+	set_property(GLOBAL APPEND PROPERTY PX4_SITL_VMD_TARGETS jmavsim_iris jmavsim)
+
 endif()

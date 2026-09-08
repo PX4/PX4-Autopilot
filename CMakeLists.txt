@@ -524,6 +524,20 @@ add_custom_command(OUTPUT ${uorb_graph_config}
 )
 add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
 
+#=============================================================================
+# list_vmd_make_targets: print all available <viewer_model_debugger> SITL run targets
+#
+get_property(sitl_vmd_targets GLOBAL PROPERTY PX4_SITL_VMD_TARGETS)
+list(REMOVE_DUPLICATES sitl_vmd_targets)
+list(SORT sitl_vmd_targets)
+string(REPLACE ";" "\\n" sitl_vmd_targets_newline_separated "${sitl_vmd_targets}")
+
+add_custom_target(list_vmd_make_targets
+	COMMAND sh -c "printf \"${sitl_vmd_targets_newline_separated}\\n\""
+	COMMENT "List of acceptable '${PX4_BOARD}' <viewer_model_debugger> targets:"
+	VERBATIM
+)
+
 
 include(bloaty)
 
