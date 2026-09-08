@@ -939,6 +939,40 @@ TEST_F(VisionTargetEstTest, PrecisionLandTaskHasPriorityOverPrecisionTakeoff)
 	EXPECT_TRUE(_vte->isCurrentTaskPrecLand());
 }
 
+// WHY: A derived GNSS observation belongs to its task even while its timestamp remains recent.
+// WHAT: Switch to takeoff without usable home and verify the previous landing point cannot seed GNSS bias.
+TEST_F(VisionTargetEstTest, NewTaskClearsPreviousGnssBiasReference)
+{
+	ASSERT_TRUE(_vte->_vte_position.init());
+	_vte->_vte_position_enabled = true;
+	vte::SensorFusionMaskU aid_mask{};
+	aid_mask.flags.use_mission_pos = 1;
+	aid_mask.flags.use_vision_pos = 1;
+	_vte->_vte_position.setVteAidMask(aid_mask.value);
+	_vte->setCachedMissionPosition(47.001, 8.0, 500.f);
+	publishUavGps(matrix::Vector3f{}, vte_test::advanceMicroseconds(kStepUs));
+	_vte->_vte_position.update(matrix::Vector3f{});
+
+	vte_test::advanceMicroseconds(kStepUs);
+	_vte->_vte_task_mask = vte::task_bits::kPrecTakeoff;
+	_vte->setPrecTakeoffActive(true);
+	publishLandDetected(true, 0);
+	ASSERT_TRUE(_vte->setNewTaskIfAvailable());
+	ASSERT_TRUE(_vte->startPosEst());
+	EXPECT_FALSE(_vte->missionPositionValid());
+
+	uORB::Publication<fiducial_marker_pos_report_s> vision_pub{ORB_ID(fiducial_marker_pos_report)};
+	uORB::SubscriptionData<vte_position_s> state_sub{ORB_ID(vte_position)};
+	vte_test::flushSubscription(state_sub);
+	const hrt_abstime timestamp = vte_test::advanceMicroseconds(kStepUs);
+	ASSERT_TRUE(vte_test::publishVisionPos(vision_pub, matrix::Vector3f{}, vte_test::identityQuat(),
+					       matrix::Vector3f{0.01f, 0.01f, 0.01f}, timestamp));
+	_vte->_vte_position.setLocalVelocity(matrix::Vector3f{}, true, timestamp);
+	_vte->_vte_position.update(matrix::Vector3f{});
+	ASSERT_TRUE(state_sub.update());
+	expectVectorArrayNear(state_sub.get().bias, matrix::Vector3f{});
+}
+
 // WHY: Stale position data or a distant home could identify the wrong pad.
 // WHAT: Accept home only while landed and within 5 m of a recent 3D GNSS fix.
 TEST_F(VisionTargetEstTest, PrecisionTakeoffHomeReferenceRequiresLandedAndNearby)

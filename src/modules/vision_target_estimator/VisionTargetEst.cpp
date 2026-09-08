@@ -389,6 +389,7 @@ bool VisionTargetEst::setNewTaskIfAvailable()
 		}
 
 		PX4_INFO("VTE, %s task requested.", task->name());
+		_vte_position.clearMissionPosition();
 		task->onActivate();
 		_current_task_ptr = task;
 		return true;

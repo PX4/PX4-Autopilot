@@ -304,7 +304,7 @@ void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 	}
 
 	if (updateUavGpsData()) {
-		if (_vte_aid_mask.flags.use_mission_pos && _mission_land_position.valid) {
+		if (_vte_aid_mask.flags.use_mission_pos && _mission_land_position.valid && _uav_gps_position.valid) {
 			fusion_mask.flags.fuse_mission_pos = processObsGNSSPosMission(observations[obsIndex(ObsType::kMissionGpsPos)]);
 		}
 

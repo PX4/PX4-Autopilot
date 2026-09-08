@@ -89,8 +89,12 @@ public:
 
 	/** Cache the task-specific absolute reference used to build the mission GNSS observation. */
 	void setMissionPosition(double lat_deg, double lon_deg, float alt_m);
-	/** Clear the task-specific absolute reference without reporting an invalid measurement. */
-	void clearMissionPosition() { _mission_land_position = {}; }
+	/** Clear the task-specific absolute reference and its cached relative GNSS observation. */
+	void clearMissionPosition()
+	{
+		_mission_land_position = {};
+		_pos_rel_gnss = {};
+	}
 
 	/** Feed the latest EKF2 local NED velocity. Used for init and to compensate GNSS latency. */
 	void setLocalVelocity(const matrix::Vector3f &vel_xyz, bool valid, hrt_abstime timestamp);
