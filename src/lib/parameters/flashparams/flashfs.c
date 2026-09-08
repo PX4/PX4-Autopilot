@@ -112,7 +112,7 @@ typedef begin_packed_struct struct flash_entry_header_t {
  * Private Data
  ****************************************************************************/
 static uint8_t *working_buffer;
-static uint16_t working_buffer_size;
+static size_t working_buffer_size;
 static bool working_buffer_static;
 static sector_descriptor_t *sector_map;
 static int last_erased;
