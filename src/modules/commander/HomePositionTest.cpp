@@ -178,6 +178,23 @@ protected:
 		return home;
 	}
 
+	// Set an automatic home, take off and let a GNSS altitude jump correct it once
+	void startAndCorrectAutomaticHome()
+	{
+		publishPosition(0.f, kRefAlt, true, true);
+		ASSERT_TRUE(_home->setHomePosition());
+		_home->setTakeoffTime(hrt_absolute_time());
+		publishGnss(kRefAlt); // initialises the velocity integral and the baro/GNSS reference
+		const home_position_s before = readHome();
+		ASSERT_NEAR(before.alt, kRefAlt, kTolerance);
+
+		publishGnss(kRefAlt + kDrift);
+		const home_position_s corrected = readHome();
+		ASSERT_NEAR(corrected.alt, kRefAlt + kDrift, kTolerance);
+		ASSERT_NEAR(corrected.z, -kDrift, kTolerance);
+		ASSERT_EQ(corrected.update_count, before.update_count + 1U);
+	}
+
 	struct SavedParam {
 		param_t handle{PARAM_INVALID};
 		int32_t value{0};
@@ -237,3 +254,57 @@ TEST_P(HomePositionInAirCompletionTest, DerivesGlobalHomeAltitudeFromLocalHeight
 
 INSTANTIATE_TEST_SUITE_P(FusedAndRawGnss, HomePositionInAirCompletionTest,
 			 ::testing::Combine(::testing::Bool(), ::testing::Values(0.f, 4.f)));
+
+// After a correction was applied, a replaced home and a re-initialised velocity integral must
+// both start from a clean correction reference: neither the previous drift is applied again
+// nor is the correction already stored in the home undone.
+enum class CorrectionTransition {
+	GnssGapThenNewHome,
+	NewHomeWithoutGnssGap,
+	GnssGapWithSameHome
+};
+
+class HomePositionCorrectionReferenceTest : public HomePositionTest,
+	public ::testing::WithParamInterface<CorrectionTransition>
+{
+};
+
+TEST_P(HomePositionCorrectionReferenceTest, StartsCleanCorrectionReference)
+{
+	ASSERT_NO_FATAL_FAILURE(startAndCorrectAutomaticHome());
+
+	const bool gnss_gap = GetParam() != CorrectionTransition::NewHomeWithoutGnssGap;
+	const bool new_home = GetParam() != CorrectionTransition::GnssGapWithSameHome;
+
+	if (gnss_gap) {
+		publishGnss(kRefAlt + kDrift, false); // one invalid sample re-initialises the integral
+	}
+
+	if (new_home) {
+		publishPosition(-kDrift, kRefAlt + kDrift, true, true);
+		ASSERT_TRUE(_home->setHomePosition());
+		_home->setTakeoffTime(hrt_absolute_time());
+	}
+
+	const home_position_s before = readHome();
+	ASSERT_NEAR(before.alt, kRefAlt + kDrift, kTolerance);
+
+	// GNSS altitude is unchanged since the correction: the home must not move
+	publishGnss(kRefAlt + kDrift);
+	const home_position_s after = readHome();
+	EXPECT_FLOAT_EQ(after.alt, before.alt);
+	EXPECT_FLOAT_EQ(after.z, before.z);
+	EXPECT_EQ(after.update_count, before.update_count);
+
+	// A new GNSS altitude jump is still corrected from the new reference
+	publishGnss(kRefAlt + 2.f * kDrift);
+	const home_position_s next = readHome();
+	EXPECT_NEAR(next.alt, before.alt + kDrift, kTolerance);
+	EXPECT_NEAR(next.z, before.z - kDrift, kTolerance);
+	EXPECT_EQ(next.update_count, before.update_count + 1U);
+}
+
+INSTANTIATE_TEST_SUITE_P(Transitions, HomePositionCorrectionReferenceTest,
+			 ::testing::Values(CorrectionTransition::GnssGapThenNewHome,
+					 CorrectionTransition::NewHomeWithoutGnssGap,
+					 CorrectionTransition::GnssGapWithSameHome));
