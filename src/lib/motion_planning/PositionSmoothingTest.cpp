@@ -319,7 +319,7 @@ TEST_F(PositionSmoothingTest, levelCruiseBeforeAltitudeChangeDoesNotOscillate)
 					unsmoothed_vz = out.unsmoothed_velocity(2);
 					max_height_error = math::max(max_height_error, fabsf(position(2) - target(2)));
 					max_cruise_speed_error = math::max(max_cruise_speed_error,
-							       fabsf(Vector2f(out.unsmoothed_velocity).norm() - cruise_speed));
+									   fabsf(Vector2f(out.unsmoothed_velocity).norm() - cruise_speed));
 				}
 
 				EXPECT_LT(max_height_error, 0.05f);
