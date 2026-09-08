@@ -175,6 +175,7 @@ private:
 	hrt_abstime _last_error_time{0};
 
 	float _current_distance{0};
+	float _min_distance{0.f};
 	float _max_distance{30.f};
 
 	hrt_abstime _trigger_time{0};

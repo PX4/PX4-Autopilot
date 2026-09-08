@@ -339,6 +339,7 @@ int AFBRS50::init()
 	}
 
 	PX4_INFO("Module: %s", Argus_GetModuleName(_hnd));
+	_min_distance = min_distance;
 	_max_distance = max_distance;
 	_px4_rangefinder.set_min_distance(min_distance);
 	_px4_rangefinder.set_max_distance(max_distance);
@@ -591,29 +592,33 @@ void AFBRS50::run_state_collect()
 	argus_results_t res{};
 	status_t evaluate_status = Argus_EvaluateData(_hnd, &res);
 
-	// Anything published at or beyond max_distance is free space to every
-	// consumer: collision prevention clamps the reading to max_distance and
-	// ignores signal_quality, and over DroneCAN it becomes READING_TYPE_TOO_FAR.
-	// So only the device's own "nothing in range" verdict goes out that way.
-	// Errors (STALLED, TIMEOUT, integrity faults) and gated frames mean
-	// "unknown", not "clear": they are counted, not published, and consumers
-	// time out on the missing stream instead of seeing a fresh clear reading.
+	// Every frame is published so a receiver can tell "online, invalid
+	// readings" from "dropped off the bus"; signal_quality 0 marks the
+	// invalid ones. The distance carried alongside matters because collision
+	// prevention ignores quality: it enters anything at or beyond
+	// max_distance as free space and discards anything at or below
+	// min_distance. So only the device's own "nothing in range" verdict goes
+	// out beyond max_distance (READING_TYPE_TOO_FAR over DroneCAN); errors
+	// (STALLED, TIMEOUT, integrity faults) carry min_distance, which every
+	// consumer drops and DroneCAN encodes as READING_TYPE_UNDEFINED; a gated
+	// frame keeps its measured distance, since a weak return is still a
+	// return, with the quality floored to invalid.
 	if ((evaluate_status != STATUS_OK) || (res.Status != STATUS_OK)) {
 		perf_count(_process_measurement_error);
 		recordMeasurementError((evaluate_status != STATUS_OK) ? evaluate_status : res.Status);
 
-		if ((evaluate_status == STATUS_OK) && (res.Status == STATUS_ARGUS_NO_OBJECT)) {
-			_px4_rangefinder.update(hrt_absolute_time(), _max_distance + 1.0f, 0);
-		}
-
-	} else if ((_p_sens_afbr_qmin.get() > 0)
-		   && (res.Bin.SignalQuality < _p_sens_afbr_qmin.get())) {
-		perf_count(_quality_gated_perf);
+		const bool no_object = (evaluate_status == STATUS_OK) && (res.Status == STATUS_ARGUS_NO_OBJECT);
+		_px4_rangefinder.update(hrt_absolute_time(), no_object ? (_max_distance + 1.0f) : _min_distance, 0);
 
 	} else {
 		uint32_t result_mm = res.Bin.Range / (Q9_22_ONE / 1000);
 		float distance = static_cast<float>(result_mm) / 1000.f;
 		int8_t quality = res.Bin.SignalQuality;
+
+		if ((_p_sens_afbr_qmin.get() > 0) && (quality < _p_sens_afbr_qmin.get())) {
+			perf_count(_quality_gated_perf);
+			quality = 0;
+		}
 
 		// max_distance is the module's rated reach, which DFM's unambiguous
 		// range can exceed: a return this far out is a real object beyond
