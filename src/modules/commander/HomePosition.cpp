@@ -429,13 +429,13 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 				const float offset_new = baro_alt_corrected - gps_alt - _home_altitude_offset_applied;
 
-				if (fabsf(offset_new) > kAltitudeDifferenceThreshold) {
+				// A manually set home is not derived from the GNSS altitude and is left untouched
+				if (!_home_position_pub.get().manual_home && fabsf(offset_new) > kAltitudeDifferenceThreshold) {
 
 					home_position_s home = _home_position_pub.get();
 					home.alt -= offset_new;
 					home.z += offset_new;
 					home.timestamp = now;
-					home.manual_home = false;
 					home.update_count = _home_position_pub.get().update_count + 1U;
 
 					_home_position_pub.update(home);

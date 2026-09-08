@@ -308,3 +308,29 @@ INSTANTIATE_TEST_SUITE_P(Transitions, HomePositionCorrectionReferenceTest,
 			 ::testing::Values(CorrectionTransition::GnssGapThenNewHome,
 					 CorrectionTransition::NewHomeWithoutGnssGap,
 					 CorrectionTransition::GnssGapWithSameHome));
+
+// A manually set home keeps its altitude and its protection from automatic updates
+// while the GNSS altitude drifts.
+TEST_F(HomePositionTest, KeepsManualHomeDuringGnssAltitudeDrift)
+{
+	ASSERT_NO_FATAL_FAILURE(startAndCorrectAutomaticHome()); // the correction path is active
+
+	static constexpr float kManualAlt = 80.f;
+	ASSERT_TRUE(_home->setManually(kLat, kLon, kManualAlt, 0.f, 0.f, 0.f));
+	publishGnss(kRefAlt + kDrift);
+	const home_position_s before = readHome();
+	ASSERT_TRUE(before.manual_home);
+	ASSERT_FLOAT_EQ(before.alt, kManualAlt);
+
+	publishGnss(kRefAlt + 2.f * kDrift);
+	const home_position_s after = readHome();
+	EXPECT_FLOAT_EQ(after.alt, kManualAlt);
+	EXPECT_FLOAT_EQ(after.z, kRefAlt - kManualAlt);
+	EXPECT_TRUE(after.manual_home);
+	EXPECT_EQ(after.update_count, before.update_count);
+
+	// The manual home is still protected from the automatic paths
+	EXPECT_FALSE(_home->setHomePosition());
+	_home->setInAirHomePosition();
+	EXPECT_FLOAT_EQ(readHome().alt, kManualAlt);
+}
