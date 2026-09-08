@@ -357,5 +357,28 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-09-08: translate EKF2_GPS_CHECK and EKF2_REQ_* to hub-owned names
+        {
+                if (strcmp("EKF2_GPS_CHECK", node->name) == 0) {
+                        strcpy(node->name, "GPS_CHECK");
+                        PX4_INFO("migrating %s -> %s", "EKF2_GPS_CHECK", node->name);
+                        return param_modify_on_import_ret::PARAM_MODIFIED;
+                }
+
+                if (strncmp("EKF2_REQ_", node->name, 9) == 0) {
+                        char new_name[BSON_MAXNAME];
+                        const char *suffix = node->name + 9;
+
+                        snprintf(new_name, sizeof(new_name), "REQ_%s", suffix);
+
+                        char old_name[BSON_MAXNAME];
+                        strncpy(old_name, node->name, sizeof(old_name));
+
+                        strcpy(node->name, new_name);
+                        PX4_INFO("migrating %s -> %s", old_name, node->name);
+                        return param_modify_on_import_ret::PARAM_MODIFIED;
+                }
+        }
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }
