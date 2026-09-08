@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "ICM42688P.hpp"
+#include "../InvenSense_AAF.hpp"
 
 using namespace time_literals;
 
@@ -52,7 +53,7 @@ ICM42688P::ICM42688P(const I2CSPIDriverConfig &config) :
 	_px4_accel(get_device_id(), config.rotation, config.external),
 	_px4_gyro(get_device_id(), config.rotation, config.external)
 {
-	isICM686 = config.custom2 == DRV_IMU_DEVTYPE_ICM42686P;
+	isICM686 = (config.custom2 & 0xFF) == DRV_IMU_DEVTYPE_ICM42686P;
 
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
@@ -68,6 +69,10 @@ ICM42688P::ICM42688P(const I2CSPIDriverConfig &config) :
 	}
 
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
+
+	if ((config.custom2 >> 8) > 0) {
+		ConfigureAntiAliasFilter(config.custom2 >> 8);
+	}
 }
 
 ICM42688P::~ICM42688P()
@@ -315,6 +320,66 @@ void ICM42688P::RunImpl()
 
 		break;
 	}
+}
+
+void ICM42688P::ConfigureAntiAliasFilter(uint32_t bandwidth_hz)
+{
+	// Gyro and accel run at 8 kHz ODR: the chip default (AAF 585 Hz, UI filter 1st
+	// order at ODR/2) suits a flight controller decimating to a 1-2 kHz rate
+	// loop. A board that only needs a few hundred Hz, such as a CAN node
+	// integrating for optical flow, would alias everything between the
+	// decimated Nyquist and the AAF knee into its output; this narrows the AAF
+	// to the nearest table row and puts a 3rd-order UI filter at the nearest
+	// ODR/N. The set/clear tables are rewritten so Configure() and the
+	// periodic RegisterCheck() agree.
+	const InvenSense_AAF::Coefficients &aaf = InvenSense_AAF::lookup(bandwidth_hz);
+	const uint8_t ui_bw = InvenSense_AAF::ui_filter_bw_code((uint32_t)GYRO_RATE, bandwidth_hz);
+
+	auto set = [](auto & entry, uint8_t value, uint8_t mask) {
+		entry.set_bits = value & mask;
+		entry.clear_bits = (~value) & mask;
+	};
+
+	for (auto &r : _register_bank0_cfg) {
+		switch (r.reg) {
+		case Register::BANK_0::GYRO_CONFIG1:  set(r, Bit3, GYRO_CONFIG1_BIT::GYRO_UI_FILT_ORD); break;   // 3rd order
+
+		case Register::BANK_0::ACCEL_CONFIG1: set(r, Bit4, ACCEL_CONFIG1_BIT::ACCEL_UI_FILT_ORD); break; // 3rd order
+
+		case Register::BANK_0::GYRO_ACCEL_CONFIG0:
+			set(r, (ui_bw << 4) | ui_bw, GYRO_ACCEL_CONFIG0_BIT::ACCEL_UI_FILT_BW | GYRO_ACCEL_CONFIG0_BIT::GYRO_UI_FILT_BW);
+			break;
+
+		default: break;
+		}
+	}
+
+	for (auto &r : _register_bank1_cfg) {
+		switch (r.reg) {
+		case Register::BANK_1::GYRO_CONFIG_STATIC3: set(r, aaf.delt, 0x3F); break;
+
+		case Register::BANK_1::GYRO_CONFIG_STATIC4: set(r, aaf.deltsqr & 0xFF, 0xFF); break;
+
+		case Register::BANK_1::GYRO_CONFIG_STATIC5: set(r, (aaf.bitshift << 4) | ((aaf.deltsqr >> 8) & 0x0F), 0xFF); break;
+
+		default: break;
+		}
+	}
+
+	for (auto &r : _register_bank2_cfg) {
+		switch (r.reg) {
+		case Register::BANK_2::ACCEL_CONFIG_STATIC2: set(r, aaf.delt << 1, 0x7F); break; // bit 0 (AAF_DIS) stays cleared
+
+		case Register::BANK_2::ACCEL_CONFIG_STATIC3: set(r, aaf.deltsqr & 0xFF, 0xFF); break;
+
+		case Register::BANK_2::ACCEL_CONFIG_STATIC4: set(r, (aaf.bitshift << 4) | ((aaf.deltsqr >> 8) & 0x0F), 0xFF); break;
+
+		default: break;
+		}
+	}
+
+	PX4_INFO("anti-alias filter %u Hz, UI filter %u Hz 3rd order", aaf.bandwidth_hz,
+		 (unsigned)GYRO_RATE / InvenSense_AAF::kUiDivisors[ui_bw]);
 }
 
 void ICM42688P::ConfigureSampleRate(int sample_rate)
