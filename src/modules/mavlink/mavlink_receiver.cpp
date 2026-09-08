@@ -1095,8 +1095,22 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					(type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE) ? 0.f : target_local_ned.afz
 				};
 
-				const matrix::Vector3f acceleration_setpoint{R * acceleration_body_sp};
-				acceleration_setpoint.copyTo(setpoint.acceleration);
+				//  -----sees.ai----- 12th June 2024
+				// We have changed this section to treat accel and velocity the same way (as if using MAV_FRAME_LOCAL_FRD)
+				// This is inconsistent with the frame used to reach this part of the code - MAV_FRAME_BODY_NED
+				// Longer term we should add handling of MAV_FRAME_LOCAL_FRD as a separate method to MAV_FRAME_BODY_NED
+				// See PX4 bug: https://github.com/PX4/PX4-Autopilot/issues/23255
+
+				// Previous Code (default PX4)
+				// const matrix::Vector3f acceleration_setpoint{R * acceleration_body_sp};
+				// acceleration_setpoint.copyTo(setpoint.acceleration);
+
+				// sees updated code
+				const float yaw = matrix::Eulerf{R}(2);
+				setpoint.acceleration[0] = cosf(yaw) * acceleration_body_sp(0) - sinf(yaw) * acceleration_body_sp(1);
+				setpoint.acceleration[1] = sinf(yaw) * acceleration_body_sp(0) + cosf(yaw) * acceleration_body_sp(1);
+				setpoint.acceleration[2] = acceleration_body_sp(2);
+
 
 			} else {
 				matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.acceleration);
