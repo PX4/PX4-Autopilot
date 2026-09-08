@@ -40,18 +40,34 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/sem.h>
 #include <px4_platform_common/tasks.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 
-class AFBRS50 : public ModuleParams, public px4::ScheduledWorkItem
+// Runs in its own task: the API's configuration calls block on SPI
+// transfers that complete on the bus work queue (s2pi.cpp), and the
+// measurement completion callback wakes the task through a semaphore.
+class AFBRS50 : public ModuleBase, public ModuleParams
 {
 public:
 	AFBRS50();
 	~AFBRS50() override;
+
+	static Descriptor desc;
+
+	static int task_spawn(int argc, char *argv[]);
+	static AFBRS50 *instantiate(int argc, char *argv[]);
+	static int custom_command(int argc, char *argv[]);
+	static int print_usage(const char *reason = nullptr);
+	static int run_trampoline(int argc, char *argv[]);
+
+	void run() override;
+	int print_status() override;
+	void request_stop() override;
 
 	enum class STATE : uint8_t {
 		CONFIGURE,
@@ -60,31 +76,34 @@ public:
 		CALIBRATE,
 	};
 
-	int init();
-	void printInfo();
-
-	// NSH-triggered absolute range offset calibration (AFBRS50_Calibration.cpp).
-	void requestCalibration(float target_range_m);
-	void cancelCalibration();
-	void printCalInfo();
-	bool calibrationInProgress() const { return _cal_state == CalState::RUNNING; }
+	// 'afbrs50 cal ...' (AFBRS50_Calibration.cpp), runs on the caller's thread.
+	int calibrationCommand(int argc, char *argv[]);
 
 private:
-	void Run() override;
+	int init();
 
 	void run_state_configure();
 	void run_state_trigger();
 	void run_state_collect();
 
-	// The CALIBRATE state hands the blocking vendor sequence to a dedicated
-	// low-priority task (AFBRS50_Calibration.cpp).
+	// The CALIBRATE state runs the blocking vendor sequence on this task
+	// (AFBRS50_Calibration.cpp).
 	void run_state_calibrate();
 	void runCalibration();
-	void resumeFromCalibration();
-	static int calibrationTaskTrampoline(int argc, char *argv[]);
+	void requestCalibration(float target_range_m);
+	void cancelCalibration();
+	void printCalInfo();
+	bool calibrationInProgress() const { return _cal_state == CalState::RUNNING; }
 
 	void recordCallbackError();
-	void schedule(STATE state);
+
+	// Called from the completion callback: move to `state` and wake the task.
+	void wake(STATE state);
+
+	// Block until the completion callback or a stop request wakes the task,
+	// or `delay` elapses.
+	void waitForWake(hrt_abstime delay);
+
 	void recoverFromTriggerStall(const char *reason);
 
 	static status_t measurementReadyCallback(status_t status, argus_hnd_t *hnd);
@@ -106,6 +125,12 @@ private:
 
 	STATE _state{STATE::CONFIGURE};
 
+	px4_sem_t _wake_sem;
+
+	// Delay before the next state handler runs, set by the handlers; 0 runs
+	// the next state immediately.
+	hrt_abstime _wake_delay{0};
+
 	argus_module_version_t _module{MODULE_NONE};
 
 	// Absolute range offset calibration state (AFBRS50_Calibration.cpp).
@@ -116,7 +141,6 @@ private:
 	status_t _cal_result_status{STATUS_OK};
 	q0_15_t _cal_offset_low{0};                 // last applied offsets, Q0.15 meter
 	q0_15_t _cal_offset_high{0};
-	px4_task_t _cal_task{-1};
 
 	PX4Rangefinder _px4_rangefinder;
 

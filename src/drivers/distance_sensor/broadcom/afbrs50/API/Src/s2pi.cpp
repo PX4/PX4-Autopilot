@@ -7,6 +7,7 @@
 
 #include <board_config.h>
 
+#include <lib/drivers/device/Device.hpp>
 #include <nuttx/spi/spi.h>
 
 #include <drivers/drv_hrt.h>
@@ -15,6 +16,7 @@
 #include <lib/perf/perf_counter.h>
 
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
 /*! A structure to hold all internal data required by the S2PI module. */
 typedef struct {
@@ -70,7 +72,7 @@ static perf_counter_t irq_perf = NULL;
 class AFBRS50_SPI :  public px4::ScheduledWorkItem
 {
 public:
-	AFBRS50_SPI();
+	explicit AFBRS50_SPI(const px4::wq_config_t &wq_config);
 	void schedule_now();
 	void schedule_clear();
 
@@ -80,15 +82,14 @@ private:
 
 };
 
-AFBRS50_SPI::AFBRS50_SPI():
+AFBRS50_SPI::AFBRS50_SPI(const px4::wq_config_t &wq_config):
 	// Transfers can be requested from interrupt context (the API's periodic
 	// timer runs on an hrt callout), so the blocking exchange is deferred to
-	// a work queue. SPI0 only exists on nxp and raspberry pi targets and is
-	// hijacked here for its priority (2nd highest, behind rate_ctrl): the
-	// library expects the transfer callback to have run before the data-ready
-	// interrupt fires, ~60 us after the last SPI clock.
-	// TODO: use the SPI TX DMA complete callback instead of a high priority thread.
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::SPI0)
+	// the work queue of the bus the sensor sits on. Since API v1.6.6 the
+	// library recovers a data-ready interrupt that fires before the transfer
+	// callback has run, so the callback is no longer deadline-critical and
+	// needs no elevated thread priority.
+	ScheduledWorkItem(MODULE_NAME, wq_config)
 {
 }
 
@@ -168,8 +169,6 @@ static AFBRS50_SPI *_spi_iface = nullptr;
 *****************************************************************************/
 status_t S2PI_Init(s2pi_slave_t defaultSlave, uint32_t baudRate_Bps)
 {
-	(void)defaultSlave;
-
 	px4_arch_configgpio(BROADCOM_AFBR_S50_S2PI_CS);
 
 	s2pi_.spidev = px4_spibus_initialize(BROADCOM_AFBR_S50_S2PI_SPI_BUS);
@@ -195,7 +194,11 @@ status_t S2PI_Init(s2pi_slave_t defaultSlave, uint32_t baudRate_Bps)
 	}
 
 	if (_spi_iface == nullptr) {
-		_spi_iface = new AFBRS50_SPI();
+		device::Device::DeviceId device_id{};
+		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SPI;
+		device_id.devid_s.bus = defaultSlave;
+
+		_spi_iface = new AFBRS50_SPI(px4::device_bus_to_wq(device_id.devid));
 	}
 
 	return S2PI_SetBaudRate(baudRate_Bps);

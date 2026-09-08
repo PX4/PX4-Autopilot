@@ -35,15 +35,15 @@
 #include "s2pi.h"
 
 #include <lib/drivers/device/Device.hpp>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/time.h>
 
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 
 using namespace time_literals;
 
-AFBRS50 *g_dev{nullptr};
+ModuleBase::Descriptor AFBRS50::desc{AFBRS50::task_spawn, AFBRS50::custom_command, AFBRS50::print_usage};
 
 constexpr AFBRS50::RateDfmProfile AFBRS50::kProfilesLv[];
 constexpr AFBRS50::RateDfmProfile AFBRS50::kProfilesLx[];
@@ -69,9 +69,11 @@ q0_15_t metersToQ0_15(float meters)
 
 AFBRS50::AFBRS50():
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_px4_rangefinder(0, distance_sensor_s::ROTATION_DOWNWARD_FACING)
 {
+	px4_sem_init(&_wake_sem, 0, 0);
+	px4_sem_setprotocol(&_wake_sem, SEM_PRIO_NONE);
+
 	int32_t rotation = _p_sens_afbr_rot.get();
 
 	// Valid orientations from distance_sensor_s: ROTATION_YAW_* (0-7), ROTATION_UPWARD_FACING (24), ROTATION_DOWNWARD_FACING (25).
@@ -97,21 +99,23 @@ AFBRS50::AFBRS50():
 
 AFBRS50::~AFBRS50()
 {
-	ScheduleClear();
+	if (_hnd != nullptr) {
+		Argus_StopMeasurementTimer(_hnd);
+		// Argus_Deinit aborts any ongoing transfer and drains it synchronously:
+		// the library polls the S2PI layer until the (possibly deferred, see
+		// s2pi.cpp) abort completion has run.
+		Argus_Deinit(_hnd);
 
-	Argus_StopMeasurementTimer(_hnd);
-	// Argus_Deinit aborts any ongoing transfer and drains it synchronously:
-	// the library polls the S2PI layer until the (possibly deferred, see
-	// s2pi.cpp) abort completion has run.
-	Argus_Deinit(_hnd);
+		// The library binds the DRDY interrupt callback in ADS_Init and never
+		// clears it: detach the EXTI handler and the stored callback so a stray
+		// edge after teardown cannot dispatch into the destroyed handle.
+		px4_arch_gpiosetevent(BROADCOM_AFBR_S50_S2PI_IRQ, false, false, false, nullptr, nullptr);
+		S2PI_SetIrqCallback(BROADCOM_AFBR_S50_S2PI_SPI_BUS, nullptr, nullptr);
 
-	// The library binds the DRDY interrupt callback in ADS_Init and never
-	// clears it: detach the EXTI handler and the stored callback so a stray
-	// edge after teardown cannot dispatch into the destroyed handle.
-	px4_arch_gpiosetevent(BROADCOM_AFBR_S50_S2PI_IRQ, false, false, false, nullptr, nullptr);
-	S2PI_SetIrqCallback(BROADCOM_AFBR_S50_S2PI_SPI_BUS, nullptr, nullptr);
+		Argus_DestroyHandle(_hnd);
+	}
 
-	Argus_DestroyHandle(_hnd);
+	px4_sem_destroy(&_wake_sem);
 
 	perf_free(_sample_perf);
 	perf_free(_callback_error);
@@ -125,10 +129,10 @@ AFBRS50::~AFBRS50()
 
 status_t AFBRS50::measurementReadyCallback(status_t status, argus_hnd_t *hnd)
 {
-	// Called from the SPI comms thread context, or from an hrt callout on
-	// the API's internal timeout paths. May fire late during driver stop,
-	// which detaches the global before deleting: read it once.
-	AFBRS50 *dev = g_dev;
+	// Called from the SPI bus work queue, or from an hrt callout on the
+	// API's internal timeout paths. May fire late during driver stop, which
+	// clears the instance pointer before deleting: read it once.
+	AFBRS50 *dev = get_instance<AFBRS50>(desc);
 
 	if (dev == nullptr) {
 		return ERROR_FAIL;
@@ -142,12 +146,12 @@ status_t AFBRS50::measurementReadyCallback(status_t status, argus_hnd_t *hnd)
 	// API's raw data buffer, and after two unreleased buffers the API refuses
 	// to start measurements and rejects configuration writes. COLLECT reports
 	// the non-OK result and publishes it as out of range.
-	dev->schedule(STATE::COLLECT);
+	dev->wake(STATE::COLLECT);
 
 	return status;
 }
 
-void AFBRS50::schedule(STATE state)
+void AFBRS50::wake(STATE state)
 {
 	// A stale completion (an abort issued by recoverFromTriggerStall, or a
 	// frame that was in flight when the calibration finished) must not pull
@@ -157,7 +161,29 @@ void AFBRS50::schedule(STATE state)
 	}
 
 	_state = state;
-	ScheduleNow();
+	px4_sem_post(&_wake_sem);
+}
+
+void AFBRS50::waitForWake(hrt_abstime delay)
+{
+	if (delay == 0) {
+		return;
+	}
+
+	struct timespec ts;
+
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
+
+	abstime_to_ts(&ts, ts_to_abstime(&ts) + delay);
+
+	// Times out or returns on a post; both are handled the same way.
+	px4_sem_timedwait(&_wake_sem, &ts);
+}
+
+void AFBRS50::request_stop()
+{
+	ModuleBase::request_stop();
+	px4_sem_post(&_wake_sem);
 }
 
 void AFBRS50::recordCallbackError()
@@ -310,49 +336,48 @@ int AFBRS50::init()
 
 	_state = STATE::CONFIGURE;
 	// Initialization Time is 300ms
-	ScheduleDelayed(350_ms);
+	_wake_delay = 350_ms;
 	return PX4_OK;
 }
 
-void AFBRS50::Run()
+void AFBRS50::run()
 {
-	perf_end(_loop_perf);
-	perf_begin(_loop_perf);
+	while (!should_exit()) {
+		waitForWake(_wake_delay);
 
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
-		ModuleParams::updateParams();
-	}
+		if (should_exit()) {
+			break;
+		}
 
-	// While the calibration task owns the device, ignore any stray work item
-	// run (e.g. a late measurement callback from a frame that was in flight
-	// when the calibration was requested): COLLECT/TRIGGER would race the
-	// sequence, and the trigger-stall escalation could even abort it.
-	// resumeFromCalibration() re-arms the state machine.
-	if (_cal_state == CalState::RUNNING) {
-		return;
-	}
+		perf_end(_loop_perf);
+		perf_begin(_loop_perf);
 
-	switch (_state) {
-	case STATE::CONFIGURE:
-		run_state_configure();
-		break;
+		if (_parameter_update_sub.updated()) {
+			parameter_update_s param_update;
+			_parameter_update_sub.copy(&param_update);
+			ModuleParams::updateParams();
+		}
 
-	case STATE::TRIGGER:
-		run_state_trigger();
-		break;
+		switch (_state) {
+		case STATE::CONFIGURE:
+			run_state_configure();
+			break;
 
-	case STATE::COLLECT:
-		run_state_collect();
-		break;
+		case STATE::TRIGGER:
+			run_state_trigger();
+			break;
 
-	case STATE::CALIBRATE:
-		run_state_calibrate();
-		break;
+		case STATE::COLLECT:
+			run_state_collect();
+			break;
 
-	default:
-		break;
+		case STATE::CALIBRATE:
+			run_state_calibrate();
+			break;
+
+		default:
+			break;
+		}
 	}
 }
 
@@ -417,7 +442,7 @@ void AFBRS50::run_state_configure()
 
 	if (status != STATUS_OK) {
 		PX4_ERR("CONFIGURE status not okay: %i", (int)status);
-		ScheduleDelayed(350_ms);
+		_wake_delay = 350_ms;
 		return;
 	}
 
@@ -425,7 +450,7 @@ void AFBRS50::run_state_configure()
 
 	if (status != STATUS_OK) {
 		PX4_ERR("Argus_SetConfigurationSmartPowerSaveEnabled status not okay: %i", (int)status);
-		ScheduleDelayed(350_ms);
+		_wake_delay = 350_ms;
 		return;
 	}
 
@@ -440,7 +465,7 @@ void AFBRS50::run_state_configure()
 
 	if (status != STATUS_OK) {
 		PX4_ERR("Argus_SetConfigurationShotNoiseMonitorMode status not okay: %i", (int)status);
-		ScheduleDelayed(350_ms);
+		_wake_delay = 350_ms;
 		return;
 	}
 
@@ -469,7 +494,7 @@ void AFBRS50::run_state_configure()
 	printConfiguration();
 
 	_state = STATE::TRIGGER;
-	ScheduleDelayed(_measurement_inverval);
+	_wake_delay = _measurement_inverval;
 }
 
 void AFBRS50::run_state_trigger()
@@ -479,7 +504,7 @@ void AFBRS50::run_state_trigger()
 	// in flight when the (blocking) calibration sequence runs.
 	if (_calibration_requested.load()) {
 		_state = STATE::CALIBRATE;
-		ScheduleNow();
+		_wake_delay = 0;
 		return;
 	}
 
@@ -490,7 +515,7 @@ void AFBRS50::run_state_trigger()
 			recoverFromTriggerStall("device not idle");
 
 		} else {
-			ScheduleDelayed(_measurement_inverval / 4);
+			_wake_delay = _measurement_inverval / 4;
 		}
 
 		return;
@@ -508,14 +533,14 @@ void AFBRS50::run_state_trigger()
 		}
 
 		_state = STATE::TRIGGER;
-		ScheduleDelayed(_measurement_inverval / 4);
+		_wake_delay = _measurement_inverval / 4;
 
 	} else {
 		_trigger_retry_count = 0;
-		// The measurement callback normally schedules the collect and
-		// replaces this; if the callback is lost the state machine
-		// re-enters TRIGGER, where the status gate keeps it polling.
-		ScheduleDelayed(4 * _measurement_inverval);
+		// The measurement callback normally wakes the task into COLLECT
+		// well before this expires; if the callback is lost the state
+		// machine re-enters TRIGGER, where the status gate keeps it polling.
+		_wake_delay = 4 * _measurement_inverval;
 	}
 }
 
@@ -561,12 +586,7 @@ void AFBRS50::run_state_collect()
 
 	auto elapsed = hrt_elapsed_time(&_trigger_time);
 
-	if (elapsed > _measurement_inverval) {
-		ScheduleNow();
-
-	} else {
-		ScheduleDelayed(_measurement_inverval - elapsed);
-	}
+	_wake_delay = (elapsed > _measurement_inverval) ? 0 : (_measurement_inverval - elapsed);
 }
 
 void AFBRS50::recoverFromTriggerStall(const char *reason)
@@ -580,7 +600,7 @@ void AFBRS50::recoverFromTriggerStall(const char *reason)
 
 	// Enter CONFIGURE before aborting so the abort completion, whether it
 	// arrives synchronously or once the in-flight SPI exchange drains, is
-	// dropped by schedule() instead of restarting the trigger loop.
+	// dropped by wake() instead of restarting the trigger loop.
 	_trigger_retry_count = 0;
 	_state = STATE::CONFIGURE;
 
@@ -597,7 +617,7 @@ void AFBRS50::recoverFromTriggerStall(const char *reason)
 		PX4_ERR("Argus_Abort failed: %i", (int)status);
 	}
 
-	ScheduleDelayed(350_ms);
+	_wake_delay = 350_ms;
 }
 
 void AFBRS50::recordMeasurementError(status_t status)
@@ -842,7 +862,7 @@ argus_mode_t AFBRS50::argusModeFromParameter()
 	return mode;
 }
 
-void AFBRS50::printInfo()
+int AFBRS50::print_status()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_callback_error);
@@ -874,6 +894,8 @@ void AFBRS50::printInfo()
 		     (long)_p_sens_afbr_prof.get(), (long)_p_sens_afbr_qmin.get());
 	PX4_INFO_RAW("distance: %.3fm\n", (double)_current_distance);
 	PX4_INFO_RAW("rate: %u Hz\n", (uint)(1000000 / _measurement_inverval));
+
+	return 0;
 }
 
 void AFBRS50::printConfiguration()
@@ -952,84 +974,84 @@ void AFBRS50::printConfiguration()
 	PX4_INFO_RAW("==================================\n");
 }
 
-namespace afbrs50
+int AFBRS50::task_spawn(int argc, char *argv[])
 {
+	// Argus_EvaluateData and the calibration sequence run here.
+	static constexpr int kStackSize = PX4_STACK_ADJUSTED(6000);
 
-static int start()
-{
-	if (g_dev != nullptr) {
-		PX4_ERR("already started");
-		return PX4_ERROR;
+	int task_id = px4_task_spawn_cmd("afbrs50", SCHED_DEFAULT, SCHED_PRIORITY_SLOW_DRIVER, kStackSize,
+					 (px4_main_t)&run_trampoline, (char *const *)argv);
+
+	if (task_id < 0) {
+		desc.task_id = -1;
+		return -errno;
 	}
 
-	g_dev = new AFBRS50();
+	desc.task_id = task_id;
 
-	if (g_dev == nullptr) {
-		PX4_ERR("object instantiate failed");
-		return PX4_ERROR;
+	// instantiate() brings the device up, so a missing sensor fails 'start'.
+	if (wait_until_running(desc, 3000) < 0) {
+		return -1;
 	}
 
-	if (g_dev->init() != PX4_OK) {
-		PX4_ERR("driver start failed");
-		delete g_dev;
-		g_dev = nullptr;
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
+	return 0;
 }
 
-static int status()
+int AFBRS50::run_trampoline(int argc, char *argv[])
 {
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return PX4_ERROR;
-	}
-
-	g_dev->printInfo();
-
-	return PX4_OK;
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return AFBRS50::instantiate(ac, av);
+	}, argc, argv);
 }
 
-static int stop()
+AFBRS50 *AFBRS50::instantiate(int argc, char *argv[])
 {
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return PX4_ERROR;
+	AFBRS50 *instance = new AFBRS50();
+
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	if (g_dev->calibrationInProgress()) {
-		PX4_ERR("calibration in progress; wait for it to finish before stopping");
-		return PX4_ERROR;
+	if (instance->init() != PX4_OK) {
+		delete instance;
+		return nullptr;
 	}
 
-	// Detach the global first so a late measurement callback cannot race
-	// into a half-destructed object.
-	AFBRS50 *dev = g_dev;
-	g_dev = nullptr;
-	delete dev;
-
-	PX4_INFO("driver stopped");
-	return PX4_OK;
+	return instance;
 }
 
-// Range offset calibration CLI handler ('afbrs50 cal ...'); defined in
-// AFBRS50_Calibration.cpp.
-int calibrate(int argc, char *argv[]);
-
-static int usage()
+int AFBRS50::custom_command(int argc, char *argv[])
 {
+	if (argc >= 1 && !strcmp(argv[0], "cal")) {
+		AFBRS50 *instance = get_instance<AFBRS50>(desc);
+
+		if (instance == nullptr) {
+			PX4_ERR("driver not running");
+			return PX4_ERROR;
+		}
+
+		return instance->calibrationCommand(argc - 1, argv + 1);
+	}
+
+	return print_usage("unknown command");
+}
+
+int AFBRS50::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
 
-Driver for the Broadcom AFBRS50.
+Driver for the Broadcom AFBR-S50 time-of-flight rangefinder.
 
 ### Examples
 
-Attempt to start driver on a specified serial device.
 $ afbrs50 start
-Stop driver
 $ afbrs50 stop
 
 Run an absolute range offset calibration against a flat target at a known
@@ -1041,47 +1063,13 @@ $ afbrs50 cal status
 
 	PRINT_MODULE_USAGE_NAME("afbrs50", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("cal", "Range offset calibration: cal start <distance_m> | status | stop");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return PX4_OK;
 }
 
-} // namespace
-
 extern "C" __EXPORT int afbrs50_main(int argc, char *argv[])
 {
-	const char *myoptarg = nullptr;
-
-	int ch = 0;
-	int myoptind = 1;
-
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		default:
-			PX4_WARN("Unknown option");
-			return afbrs50::usage();
-		}
-	}
-
-	if (myoptind >= argc) {
-		return afbrs50::usage();
-	}
-
-	if (!strcmp(argv[myoptind], "start")) {
-		return afbrs50::start();
-
-	} else if (!strcmp(argv[myoptind], "status")) {
-		return afbrs50::status();
-
-	} else if (!strcmp(argv[myoptind], "stop")) {
-		return afbrs50::stop();
-
-	} else if (!strcmp(argv[myoptind], "cal")) {
-		return afbrs50::calibrate(argc - myoptind - 1, &argv[myoptind + 1]);
-
-	}
-
-	return afbrs50::usage();
+	return ModuleBase::main(AFBRS50::desc, argc, argv);
 }

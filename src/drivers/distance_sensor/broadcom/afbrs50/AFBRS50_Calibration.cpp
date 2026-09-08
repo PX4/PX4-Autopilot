@@ -52,58 +52,34 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 
+#include <sched.h>
 #include <stdlib.h>
 #include <string.h>
 
 using namespace time_literals;
 
-extern AFBRS50 *g_dev;
-
 void AFBRS50::run_state_calibrate()
 {
-	// Hand the calibration sequence to a dedicated task. It must NOT run on
-	// the driver's work queue: the AFBR calibration busy-waits for several
-	// seconds (ADS_AwaitIdle does not yield), hp_default's priority is above
-	// wq:uavcan, and wq:uavcan pets the IWDG - a busy-wait here starves the
-	// feeder and resets the board. The task runs at SCHED_PRIORITY_DEFAULT
-	// (100 on NuttX), below wq:uavcan, so uavcan preempts it and keeps
-	// petting the dog; the calibration's SPI frames still advance via the
-	// SPI work item and the DRDY IRQ.
-	// The trigger watchdog armed before the request may still be pending;
-	// a run after the task has finished would spawn a second one.
-	ScheduleClear();
-
 	_calibration_requested.store(false);
 	_cal_state = CalState::RUNNING;
 
-	_cal_task = px4_task_spawn_cmd("afbr_cal",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_DEFAULT,
-				       8192,
-				       &AFBRS50::calibrationTaskTrampoline,
-				       nullptr);
+	// The sequence blocks this task for several seconds and its ADS_AwaitIdle
+	// loops do not yield, so drop below wq:uavcan (which feeds the IWDG on
+	// CAN nodes) and the flight-critical tasks for the duration. Nothing is
+	// in flight: TRIGGER intercepts the request before starting a measurement.
+	struct sched_param param {};
+	sched_getparam(0, &param);
+	const int task_priority = param.sched_priority;
+	param.sched_priority = SCHED_PRIORITY_DEFAULT;
+	sched_setparam(0, &param);
 
-	if (_cal_task < 0) {
-		PX4_ERR("failed to spawn calibration task: %d", _cal_task);
-		_cal_result_status = ERROR_FAIL;
-		_cal_state = CalState::FAILED;
-		_state = STATE::TRIGGER;
-		ScheduleDelayed(_measurement_inverval);
-	}
+	runCalibration();
 
-	// On success: do NOT reschedule. The calibration task owns the
-	// device while it runs and re-arms the work queue via
-	// resumeFromCalibration().
-}
+	param.sched_priority = task_priority;
+	sched_setparam(0, &param);
 
-int AFBRS50::calibrationTaskTrampoline(int argc, char *argv[])
-{
-	if (g_dev != nullptr) {
-		g_dev->runCalibration();
-		g_dev->resumeFromCalibration();
-	}
-
-	return 0;
+	_state = STATE::CONFIGURE;
+	_wake_delay = 0;
 }
 
 void AFBRS50::runCalibration()
@@ -150,6 +126,14 @@ void AFBRS50::runCalibration()
 		status = Argus_GetStatus(_hnd);
 		px4_usleep(1_ms);
 
+		if (should_exit()) {
+			Argus_Abort(_hnd);
+			_cal_result_status = ERROR_ABORTED;
+			_cal_state = CalState::FAILED;
+			PX4_WARN("calibration aborted by stop");
+			return;
+		}
+
 		if (hrt_elapsed_time(&cal_start) > 30_s) {
 			_cal_result_status = ERROR_TIMEOUT;
 			_cal_state = CalState::FAILED;
@@ -177,17 +161,6 @@ void AFBRS50::runCalibration()
 	PX4_INFO("calibration done, offsets persisted: low=%.4f m high=%.4f m",
 		 (double)((float)_cal_offset_low / 32768.f),
 		 (double)((float)_cal_offset_high / 32768.f));
-}
-
-void AFBRS50::resumeFromCalibration()
-{
-	// Hand control back to the work-queue measurement loop, just before the
-	// calibration task exits. Resume via CONFIGURE so rate/DFM/shot-noise
-	// settings are re-asserted after the API's internal reconfiguration
-	// during the calibration sequence.
-	_cal_task = -1;
-	_state = STATE::CONFIGURE;
-	ScheduleNow();
 }
 
 void AFBRS50::requestCalibration(float target_range_m)
@@ -234,17 +207,8 @@ void AFBRS50::printCalInfo()
 		     (double)_p_sens_afbr_ofs_lo.get(), (double)_p_sens_afbr_ofs_hi.get());
 }
 
-namespace afbrs50
+int AFBRS50::calibrationCommand(int argc, char *argv[])
 {
-
-// args: [0]=start|status|stop, [1]=distance (m) for start
-int calibrate(int argc, char *argv[])
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return PX4_ERROR;
-	}
-
 	if (argc < 1) {
 		PX4_ERR("usage: afbrs50 cal start <distance_m> | status | stop");
 		return PX4_ERROR;
@@ -256,7 +220,7 @@ int calibrate(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		if (g_dev->calibrationInProgress()) {
+		if (calibrationInProgress()) {
 			PX4_ERR("calibration already in progress");
 			return PX4_ERROR;
 		}
@@ -268,21 +232,21 @@ int calibrate(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		g_dev->requestCalibration(range_m);
+		requestCalibration(range_m);
 		PX4_INFO("calibration requested at %.3f m; poll with 'afbrs50 cal status'", (double)range_m);
 		return PX4_OK;
 
 	} else if (!strcmp(argv[0], "status")) {
-		g_dev->printCalInfo();
+		printCalInfo();
 		return PX4_OK;
 
 	} else if (!strcmp(argv[0], "stop")) {
-		if (g_dev->calibrationInProgress()) {
+		if (calibrationInProgress()) {
 			PX4_ERR("sequence already running; it cannot be interrupted");
 			return PX4_ERROR;
 		}
 
-		g_dev->cancelCalibration();
+		cancelCalibration();
 		PX4_INFO("calibration request cancelled");
 		return PX4_OK;
 	}
@@ -290,5 +254,3 @@ int calibrate(int argc, char *argv[])
 	PX4_ERR("unknown cal subcommand: %s", argv[0]);
 	return PX4_ERROR;
 }
-
-} // namespace afbrs50
