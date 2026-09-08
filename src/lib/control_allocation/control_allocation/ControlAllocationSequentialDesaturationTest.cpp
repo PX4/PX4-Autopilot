@@ -65,6 +65,7 @@ public:
 	{
 		param_control_autosave(false); // Disable autosaving parameters to avoid busy loop in param_set()
 		setAirmode(0); // No airmode by default
+		setReduceThrust(true); // Default: reduce thrust to keep some yaw at high throttle
 
 		// Quadrotor x geometry
 		ActuatorEffectivenessRotors::Geometry quadx_geometry{};
@@ -102,6 +103,14 @@ public:
 	{
 		param_t param = param_find("MC_AIRMODE");
 		param_set(param, &mode);
+		_control_allocation.updateParameters();
+	}
+
+	void setReduceThrust(const bool reduce_thrust)
+	{
+		int32_t value = reduce_thrust ? 1 : 0;
+		param_t param = param_find("MC_REDUCE_THRUST");
+		param_set(param, &value);
 		_control_allocation.updateParameters();
 	}
 
@@ -258,10 +267,72 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledReducedT
 	EXPECT_EQ(allocate(0.f, 0.f, 1.f, -3.2f), Vector4f(1.f, 1.f - (2.f * YAW_MARGIN), 1.f, 1.f - (2.f * YAW_MARGIN)));
 }
 
+// High thrust + saturated yaw with MC_REDUCE_THRUST enabled: drop collective to keep yaw margin.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledReducedThrustAndYawPartial)
+{
+	constexpr float THRUST = 0.9f;
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, -THRUST), Vector4f(1.f, 0.5f, 1.f, 0.5f));
+}
+
+// Unsaturated yaw is unchanged when thrust reduction is disabled.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustReductionDisabledUnsaturatedYaw)
+{
+	setReduceThrust(false);
+	constexpr float THRUST = 0.75f;
+	constexpr float YAW_TORQUE = 0.02f;
+	constexpr float YAW = YAW_TORQUE / NUM_ACTUATORS;
+	EXPECT_EQ(allocate(0.f, 0.f, YAW_TORQUE, -THRUST), Vector4f(THRUST + YAW, THRUST - YAW, THRUST + YAW, THRUST - YAW));
+}
+
+// High thrust + saturated yaw with MC_REDUCE_THRUST disabled: keep collective and clip yaw.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustReductionDisabledSaturatedYaw)
+{
+	setReduceThrust(false);
+	constexpr float THRUST = 0.9f;
+	constexpr float YAW_HEADROOM = 1.f - THRUST;
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, -THRUST),
+		  Vector4f(1.f, THRUST - YAW_HEADROOM, 1.f, THRUST - YAW_HEADROOM));
+}
+
+// At maximum thrust with MC_REDUCE_THRUST disabled, no yaw can be allocated.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustReductionDisabledFullThrustYaw)
+{
+	setReduceThrust(false);
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, -1.f), Vector4f(1.f, 1.f, 1.f, 1.f));
+	EXPECT_EQ(allocate(0.f, 0.f, -1.f, -1.f), Vector4f(1.f, 1.f, 1.f, 1.f));
+}
+
+// Roll/pitch airmode still uses mixYaw(), so MC_REDUCE_THRUST=0 also preserves thrust there.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeRPThrustReductionDisabledSaturatedYaw)
+{
+	setAirmode(1);
+	setReduceThrust(false);
+	constexpr float THRUST = 0.9f;
+	constexpr float YAW_HEADROOM = 1.f - THRUST;
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, -THRUST),
+		  Vector4f(1.f, THRUST - YAW_HEADROOM, 1.f, THRUST - YAW_HEADROOM));
+}
+
+// Full airmode does not use mixYaw(); MC_REDUCE_THRUST must not change allocation.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeRPYThrustReductionDisabledSaturatedYaw)
+{
+	setAirmode(2);
+	const Vector4f with_reduction = allocate(0.f, 0.f, 1.f, -0.9f);
+	setReduceThrust(false);
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, -0.9f), with_reduction);
+}
+
 // This tests that a control setpoint for z-thrust + pitch returns the desired actuator setpoint.
 // This test saturates the pitch response such that thrust is reduced to (partially) compensate.
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledReducedThrustAndPitch)
 {
+	EXPECT_EQ(allocate(0.f, 2.f, 0.f, -3.f), Vector4f(1.f, 0.f, 0.f, 1.f));
+}
+
+// MC_REDUCE_THRUST only affects yaw; saturated pitch still reduces thrust.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustReductionDisabledPitchStillReduced)
+{
+	setReduceThrust(false);
 	EXPECT_EQ(allocate(0.f, 2.f, 0.f, -3.f), Vector4f(1.f, 0.f, 0.f, 1.f));
 }
 

@@ -16,3 +16,20 @@
  * @group Mixer Output
  */
 PARAM_DEFINE_INT32(MC_AIRMODE, 0);
+
+/**
+ * Reduce thrust to preserve yaw when actuators saturate
+ *
+ * When airmode is disabled (MC_AIRMODE=0) or limited to roll/pitch (MC_AIRMODE=1),
+ * sequential desaturation can reduce collective thrust by up to 15% so that some
+ * yaw remains available at high throttle.
+ *
+ * Enable to keep that default trade-off. Disable to keep the commanded thrust and
+ * clip yaw instead; roll and pitch still reduce thrust when they saturate.
+ *
+ * Has no effect with full airmode (MC_AIRMODE=2), which does not use this yaw path.
+ *
+ * @boolean
+ * @group Mixer Output
+ */
+PARAM_DEFINE_INT32(MC_REDUCE_THRUST, 1);
