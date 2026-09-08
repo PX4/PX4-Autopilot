@@ -66,6 +66,12 @@ struct VehicleDynamicLimits {
  * This is not exactly true in reality since Navigator switches the waypoint so we have to take in account that
  * the real acceptance radius is smaller.
  *
+ * If the next waypoint is closer to the target than the acceptance radius, the tangent circle cannot be
+ * anchored at the acceptance radius. Instead of forcing a full stop at the target in that case, the circle is
+ * shrunk to the length of the short segment: the speed limit is then still derived from the turn angle, so
+ * a waypoint that is passed (nearly) in a straight line costs no speed, while a sharp turn onto a short
+ * segment is limited to the (small) speed that turn actually allows.
+ *
  */
 inline float computeStartXYSpeedFromWaypoints(const Vector3f &start_position, const Vector3f &target,
 		const Vector3f &next_target, float exit_speed, const VehicleDynamicLimits &config)
@@ -73,18 +79,17 @@ inline float computeStartXYSpeedFromWaypoints(const Vector3f &start_position, co
 	const float distance_target_next = (target - next_target).xy().norm();
 
 	const bool target_next_different = distance_target_next  > 0.001f;
-	const bool waypoint_overlap = distance_target_next < config.xy_accept_rad;
 
 	float speed_at_target = 0.0f;
 
-	if (target_next_different &&
-	    !waypoint_overlap
-	   ) {
+	if (target_next_different) {
 		const float alpha = acosf(Vector2f((target - start_position).xy()).unit_or_zero().dot(
 						  Vector2f((target - next_target).xy()).unit_or_zero()));
 		const float safe_alpha = constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
-		float accel_tmp = config.max_acc_xy_radius_scale * config.max_acc_xy;
-		float max_speed_in_turn = computeMaxSpeedInWaypoint(safe_alpha, accel_tmp, config.xy_accept_rad);
+		const float accel_tmp = config.max_acc_xy_radius_scale * config.max_acc_xy;
+		// the turn circle can only be as large as the shorter of the acceptance radius and the next segment
+		const float turn_anchor_distance = min(config.xy_accept_rad, distance_target_next);
+		const float max_speed_in_turn = computeMaxSpeedInWaypoint(safe_alpha, accel_tmp, turn_anchor_distance);
 		speed_at_target = min(max_speed_in_turn, exit_speed, config.max_speed_xy);
 	}
 
