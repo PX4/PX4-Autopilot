@@ -144,16 +144,22 @@ MavlinkFTP::_process_request(
 
 	// check the sequence number: if this is a resent request, resend the last response
 	if (_last_reply_valid) {
-		mavlink_file_transfer_protocol_t *last_reply = reinterpret_cast<mavlink_file_transfer_protocol_t *>(_last_reply);
-		PayloadHeader *last_payload = reinterpret_cast<PayloadHeader *>(&last_reply->payload[0]);
+		// _last_reply only caches the leading bytes that differ between replies, but the send
+		// below serialises a whole message. Reinterpreting the cache as one would transmit
+		// whatever follows it in memory, so assemble a zeroed message and copy the cache in.
+		mavlink_file_transfer_protocol_t last_reply{};
+		static_assert(sizeof(_last_reply) <= sizeof(last_reply), "reply cache larger than the message");
+		memcpy(&last_reply, _last_reply, sizeof(_last_reply));
+
+		PayloadHeader *last_payload = reinterpret_cast<PayloadHeader *>(&last_reply.payload[0]);
 
 		if (payload->seq_number + 1 == last_payload->seq_number
-		    && last_reply->target_system == target_system_id
-		    && last_reply->target_component == target_comp_id) {
+		    && last_reply.target_system == target_system_id
+		    && last_reply.target_component == target_comp_id) {
 			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
 			// resent the request
 			_mavlink.lock_send();
-			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), last_reply);
+			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), &last_reply);
 			_mavlink.unlock_send();
 			return;
 		}
