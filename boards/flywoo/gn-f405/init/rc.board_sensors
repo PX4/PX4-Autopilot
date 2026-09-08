@@ -8,4 +8,4 @@ board_adc start
 mpu6000 -R 6 -s start
 
 # Start Baro
-bmp280 -X start
+bmp280 -I -b 1 start

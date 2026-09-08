@@ -48,6 +48,7 @@
 #define MHZ                     1000000
 
 #define BOARD_XOSC_FREQ         (12 * MHZ)
+#define BOARD_XOSC_STARTUPDELAY 64
 #define BOARD_PLL_SYS_FREQ      (125 * MHZ)
 #define BOARD_PLL_USB_FREQ      (48 * MHZ)
 

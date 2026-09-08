@@ -210,6 +210,12 @@ if(NOT "${PX4_BOARD}" MATCHES "px4_io")
 else()
 	add_library(parameters STATIC EXCLUDE_FROM_ALL ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 endif()
+if(NOT CONFIG_BUILD_FLAT)
+target_compile_options(parameters PRIVATE
+-fno-use-cxa-atexit
+-fno-threadsafe-statics
+)
+endif()
 add_dependencies(parameters prebuild_targets)
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")

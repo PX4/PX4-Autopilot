@@ -33,7 +33,7 @@ The following vehicle types are supported:
 | Vehicle                                                                            | Make Target                                | Status |
 | ---------------------------------------------------------------------------------- | ------------------------------------------ | ------ |
 | Quadrotor X <Badge type="tip" text="PX4 v1.9" />                                   | `make px4_sitl_sih sihsim_quadx`           | Stable |
-| Hexarotor X <Badge type="tip" text="PX4 v1.16" />                                  | `make px4_sitl_sih sihsim_hexa`            | 실험     |
+| Hexarotor X <Badge type="tip" text="PX4 v1.16" />                                  | `make px4_sitl_sih sihsim_hex`             | 실험     |
 | Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />     | `make px4_sitl_sih sihsim_airplane`        | 실험     |
 | Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />                              | `make px4_sitl_sih sihsim_xvert`           | 실험     |
 | Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" /> | `make px4_sitl_sih sihsim_standard_vtol`   | 실험     |

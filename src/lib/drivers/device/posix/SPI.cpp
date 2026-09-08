@@ -73,6 +73,7 @@ SPI::SPI(const I2CSPIDriverConfig &config)
 	: SPI(config.devid_driver_index, config.module_name, config.bus, config.spi_devid, config.spi_mode,
 	      config.bus_frequency)
 {
+	set_external(config.external);
 }
 
 SPI::~SPI()

@@ -55,13 +55,15 @@ public:
 
 	Magnetometer();
 	explicit Magnetometer(uint32_t device_id);
+	Magnetometer(uint32_t device_id, bool external);
 
 	~Magnetometer() = default;
 
 	void PrintStatus();
 
 	bool set_calibration_index(int calibration_index);
-	void set_device_id(uint32_t device_id);
+	void set_device_id(uint32_t device_id); ///< classification falls back to the device id's bus
+	void set_device_id(uint32_t device_id, bool external);
 	bool set_offset(const matrix::Vector3f &offset);
 	bool set_scale(const matrix::Vector3f &scale);
 	bool set_offdiagonal(const matrix::Vector3f &offdiagonal);

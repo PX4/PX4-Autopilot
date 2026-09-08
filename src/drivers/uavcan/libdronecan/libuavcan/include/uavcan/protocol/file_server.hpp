@@ -227,7 +227,13 @@ public:
         : get_info_srv_(node)
         , read_srv_(node)
         , backend_(backend)
-    { }
+    {
+        // Dual-CAN boards are usually independent buses, not redundant copies of one.
+        // File.Read is the firmware-update payload; echoing it onto the other iface
+        // fills that iface's TX queue with traffic nobody asked for.
+        get_info_srv_.setRespondOnRequestIface(true);
+        read_srv_.setRespondOnRequestIface(true);
+    }
 
     int start(const char* server_root = UAVCAN_NULLPTR, const char* server_alt_root = UAVCAN_NULLPTR)
     {
@@ -302,7 +308,11 @@ public:
         , write_srv_(node)
         , delete_srv_(node)
         , get_directory_entry_info_srv_(node)
-    { }
+    {
+        write_srv_.setRespondOnRequestIface(true);
+        delete_srv_.setRespondOnRequestIface(true);
+        get_directory_entry_info_srv_.setRespondOnRequestIface(true);
+    }
 
     int start()
     {

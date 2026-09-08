@@ -725,6 +725,15 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		}
 	}
 
+	// Capture a fresh home position on the ground before the motors spin (prop wash perturbs the
+	// baro), but only at a real mission start: skip a mid-mission re-arm (seq_current > 0) and any
+	// in-air re-arm.
+	if (_param_com_home_en.get() && !_config_overrides.disable_auto_set_home
+	    && _vehicle_land_detected.landed
+	    && (!_mission_in_progress || _mission_result_sub.get().seq_current == 0)) {
+		_home_position.setHomePosition();
+	}
+
 	_vehicle_status.armed_time = hrt_absolute_time();
 	_vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
 	_vehicle_status.latest_arming_reason = (uint8_t)calling_reason;
@@ -732,10 +741,6 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	mavlink_log_info(&_mavlink_log_pub, "Armed by %s\t", arm_disarm_reason_str(calling_reason));
 	events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_armed_by"), events::Log::Info,
 			"Armed by {1}", calling_reason);
-
-	if (_param_com_home_en.get() && !_mission_in_progress && !_config_overrides.disable_auto_set_home) {
-		_home_position.setHomePosition();
-	}
 
 	_status_changed = true;
 
@@ -1454,9 +1459,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if ((int)(cmd.param2) == 1) {
 					/* magnetometer calibration */
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::MagCalibration);
+#else
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+#endif
 
 				} else if ((int)(cmd.param3) == 1) {
 					/* baro calibration */
@@ -1559,6 +1568,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					     "Calibration denied: not supported in SIH mode");
 
 			} else {
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				// parameter 1: Heading   (degrees)
 				// parameter 3: Latitude  (degrees)
@@ -1581,6 +1591,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				_vehicle_status.calibration_enabled = true;
 				_worker_thread.setMagQuickData(heading_radians, latitude, longitude);
 				_worker_thread.startTask(WorkerThread::Request::MagCalibrationQuick);
+#else
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+#endif
 			}
 
 			return true;
@@ -2590,8 +2603,8 @@ void Commander::checkAndInformReadyForTakeoff()
 void Commander::modeManagementUpdate()
 {
 	ModeManagement::UpdateRequest mode_management_update{};
-	_mode_management.update(_vehicle_status.vehicle_type, isArmed(), _vehicle_status.nav_state_user_intention,
-				mode_management_update);
+	_mode_management.update(_vehicle_status.vehicle_type, _vehicle_status.is_vtol, isArmed(),
+				_vehicle_status.nav_state_user_intention, mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
 		_user_mode_intention.change(mode_management_update.user_intended_nav_state);

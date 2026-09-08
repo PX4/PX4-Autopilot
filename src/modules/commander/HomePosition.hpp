@@ -56,9 +56,9 @@ static constexpr int32_t kGpsCtrlHorizontalAndAltitude = (1 << 0) | (1 << 1);
 static constexpr int32_t kHeightReferenceGnss = 1;
 static constexpr float kMinHomePositionChangeEPH = 1.f;
 static constexpr float kMinHomePositionChangeEPV = 1.5f;
-static constexpr float kLpfBaroTimeConst = 5.f;
+static constexpr hrt_abstime kLpfBaroTimeConst = 5_s;
 static constexpr float kAltitudeDifferenceThreshold = 1.f; // altitude difference after which home position gets updated
-static constexpr uint64_t kHomePositionCorrectionTimeWindow = 120_s;
+static constexpr hrt_abstime kHomePositionCorrectionTimeWindow = 120_s;
 
 class HomePosition: public ModuleParams
 {

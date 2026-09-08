@@ -256,8 +256,8 @@ else
 	set PARAM_RESET_DONE no
 	if param greater SYS_AUTOCONFIG 0
 	then
-		# Reset parameters except airframe, parameter version, sensor calibration, total flight time, flight UUID
-		param reset_all SYS_AUTOSTART SYS_PARAM_VER SYS_AUTOCFG_CAL CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
+		# Reset parameters except airframe, parameter version, sensor calibration, total flight time, flight UUID, MAVLink sys_id
+		param reset_all SYS_AUTOSTART SYS_PARAM_VER SYS_AUTOCFG_CAL CAL_* LND_FLIGHT* TC_* COM_FLIGHT* MAV_SYS_ID
 		set PARAM_RESET_DONE yes
 	fi
 

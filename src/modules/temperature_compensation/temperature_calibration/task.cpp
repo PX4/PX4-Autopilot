@@ -92,7 +92,6 @@ private:
 	uORB::Publication<led_control_s> _led_control_pub{ORB_ID(led_control)};
 
 	bool	_force_task_exit = false;
-	int	_control_task = -1;		// task handle for task
 
 	const bool _accel; ///< enable accel calibration?
 	const bool _gyro;  ///< enable gyro calibration?
@@ -322,14 +321,14 @@ int TemperatureCalibration::do_temperature_calibration(int argc, char *argv[])
 
 int TemperatureCalibration::start()
 {
-	_control_task = px4_task_spawn_cmd("temperature_calib",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 5,
-					   5800,
-					   (px4_main_t)&TemperatureCalibration::do_temperature_calibration,
-					   nullptr);
+	const px4_task_t control_task = px4_task_spawn_cmd("temperature_calib",
+					SCHED_DEFAULT,
+					SCHED_PRIORITY_MAX - 5,
+					5800,
+					(px4_main_t)&TemperatureCalibration::do_temperature_calibration,
+					nullptr);
 
-	if (_control_task < 0) {
+	if (control_task < 0) {
 		delete temperature_calibration::instance.load();
 		temperature_calibration::instance.store(nullptr);
 		PX4_ERR("start failed");

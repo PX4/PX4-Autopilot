@@ -65,7 +65,7 @@ config NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	int "Maximum number of mission items cached for route planning"
 	default 500 if PLATFORM_POSIX
 	default 0
-	range 0 NUM_MISSION_ITMES_SUPPORTED
+	range 0 NUM_MISSION_ITEMS_SUPPORTED
 	depends on MODULES_NAVIGATOR
 	---help---
 		Maximum number of mission items reserved in RAM for full-route planning helpers:

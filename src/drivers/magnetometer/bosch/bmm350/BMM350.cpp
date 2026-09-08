@@ -40,7 +40,7 @@ BMM350::BMM350(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
 	ModuleParams(nullptr),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_mag(get_device_id(), config.rotation, config.external)
 
 {
 }

@@ -82,7 +82,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("gps_dump");
 	add_optional_topic("gimbal_controls", 200);
 	add_optional_topic("gripper");
-	add_optional_topic_multi("heater_status");
+	add_optional_topic_multi("heater_status", 1000);
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
@@ -163,6 +163,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
 	add_optional_topic("fixed_wing_lateral_status", 100);
 	add_optional_topic("fixed_wing_runway_control", 100);
+	add_optional_topic("fixed_wing_takeoff_status", 100);
 	add_optional_topic("ranging_beacon", 100);
 
 	// multi topics

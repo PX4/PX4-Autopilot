@@ -84,7 +84,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Уточнюється
 
-### uXRCE-DDS / Zenoh / ROS2
+### uXRCE-DDS / Zenoh / ROS 2
 
 - Уточнюється
 

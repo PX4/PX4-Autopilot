@@ -1268,10 +1268,12 @@ UavcanNode::print_info()
 
 	printf("\n");
 
+#if !defined(UAVCAN_SOCKETCAN_NUTTX)
 	// See https://github.com/PX4/PX4-Autopilot/issues/22871
 	printf("WARNING: CAN error counter values below may increase during this function call due to internal counter reading implementation.\n");
 	printf("Do not fully trust these counters until this issue is fixed.\n");
 	printf("\n");
+#endif
 
 	// UAVCAN node perfcounters
 	printf("UAVCAN node status:\n");
@@ -1289,6 +1291,18 @@ UavcanNode::print_info()
 		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
 
 		if (iface) {
+#if defined(UAVCAN_SOCKETCAN_NUTTX)
+			UAVCAN_DRIVER::CanIface::BusErrors bus;
+
+			if (static_cast<UAVCAN_DRIVER::CanIface *>(iface)->lastErrors(bus)) {
+				printf("\tBus state: %s (TEC %u, REC %u)\n", UAVCAN_DRIVER::CanIface::busStateName(bus.state), bus.tec, bus.rec);
+				printf("\tRX overruns: %" PRIu32 "\n", bus.rx_overruns);
+
+			} else {
+				printf("\tBus state: unavailable\n");
+			}
+
+#endif
 			printf("\tHW errors: %" PRIu64 "\n", iface->getErrorCount());
 
 			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);

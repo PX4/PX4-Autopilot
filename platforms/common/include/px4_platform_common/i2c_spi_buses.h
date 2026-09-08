@@ -93,6 +93,8 @@ struct I2CSPIDriverConfig {
 
 	Rotation rotation;
 
+	bool external; ///< sensor classification from -I/-s (false) vs -X/-S (true), independent of bus topology
+
 	bool quiet_start;
 	bool keep_running;
 
@@ -140,20 +142,7 @@ private:
 class BusCLIArguments
 {
 public:
-	BusCLIArguments(bool i2c_support, bool spi_support)
-#if defined(CONFIG_I2C) || defined(CONFIG_SPI)
-		:
-#endif // CONFIG_I2C || CONFIG_SPI
-#if defined(CONFIG_I2C)
-		_i2c_support(i2c_support)
-#endif // CONFIG_I2C
-#if defined(CONFIG_I2C) && defined(CONFIG_SPI)
-		,
-#endif // CONFIG_I2C && CONFIG_SPI
-#if defined(CONFIG_SPI)
-		_spi_support(spi_support)
-#endif // CONFIG_SPI
-	{}
+	BusCLIArguments(bool i2c_support, bool spi_support);
 
 	/**
 	 * Parse CLI arguments (for drivers that don't need any custom arguments, otherwise getopt() should be used)
@@ -234,6 +223,7 @@ public:
 	bool next();
 
 	I2CSPIInstance *instance() const;
+	bool alreadyRunningOnHardware() const;
 	void removeInstance();
 	board_bus_types busType() const;
 	int bus() const;

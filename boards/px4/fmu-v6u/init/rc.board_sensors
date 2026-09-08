@@ -21,5 +21,5 @@ bmm150 -I -R 12 start
 # internal baro
 bmp388 -I start
 
-# Baro on I2C3
-ms5611 -X start
+# Baro on I2C3 (shared with a connector)
+ms5611 -I -b 3 start
