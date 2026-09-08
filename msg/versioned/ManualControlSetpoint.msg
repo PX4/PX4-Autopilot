@@ -53,8 +53,8 @@ bool sticks_moving # manual control override request in an auto or offboard mode
 
 uint16 buttons		# From uint16 buttons field of Mavlink manual_control message
 
-uint8 sender_system_id  # [@invalid 0] System ID of the system sending manual control messages providing this input.
-uint8 sender_component_id # Component ID of the component sending manual control messages providing this input.
+uint8 source_system_id  # [@invalid 0] MAVLink system ID of the manual control source
+uint8 source_component_id # [@invalid 0] MAVLink component ID of the manual control source
 
 # TOPICS manual_control_setpoint manual_control_input
 # DEPRECATED: float32 x
