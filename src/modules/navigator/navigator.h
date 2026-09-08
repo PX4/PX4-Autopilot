@@ -86,6 +86,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
+#include <uORB/topics/position_setpoint_lookahead.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -177,6 +178,7 @@ public:
 	home_position_s             *get_home_position() { return &_home_pos; }
 	mission_result_s            *get_mission_result() { return &_mission_result; }
 	position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
+	position_setpoint_lookahead_s *get_position_setpoint_lookahead() { return &_pos_sp_lookahead; }
 	position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
 	position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
 	vehicle_global_position_s   *get_global_position() { return &_global_pos; }
@@ -289,6 +291,15 @@ public:
 	void reset_position_setpoint(position_setpoint_s &sp);
 
 	/**
+	 *  Invalidate the trajectory speed planning lookahead waypoint.
+	 *
+	 *  Modes have to set it explicitly whenever they know the waypoint after the next one, it is
+	 *  never carried over. Without it the trajectory generator assumes a full stop at the next
+	 *  waypoint, which is always the safe assumption.
+	 */
+	void reset_position_setpoint_lookahead();
+
+	/**
 	 * Get the target throttle
 	 *
 	 * @return the desired throttle for this mission
@@ -381,6 +392,7 @@ private:
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
 	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
 	uORB::Publication<navigator_status_s>		_navigator_status_pub{ORB_ID(navigator_status)};
+	uORB::Publication<position_setpoint_lookahead_s>	_pos_sp_lookahead_pub{ORB_ID(position_setpoint_lookahead)};
 	uORB::Publication<position_setpoint_triplet_s>	_pos_sp_triplet_pub{ORB_ID(position_setpoint_triplet)};
 	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_command_s>		_vehicle_cmd_pub{ORB_ID(vehicle_command)};
@@ -403,6 +415,7 @@ private:
 	geofence_result_s				_geofence_result{};
 	navigator_status_s				_navigator_status{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
+	position_setpoint_lookahead_s			_pos_sp_lookahead{};	/**< waypoint after next, speed planning lookahead only */
 	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
 	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */

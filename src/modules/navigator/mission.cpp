@@ -205,7 +205,7 @@ void Mission::setActiveMissionItems()
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
 	// The lookahead waypoint is only set in the branches below where it is known, never keep a stale one
-	pos_sp_triplet->next_next.valid = false;
+	_navigator->reset_position_setpoint_lookahead();
 
 	/* Skip VTOL/FW Takeoff item if in air, fixed-wing and didn't start the takeoff already*/
 	if ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) &&
@@ -266,7 +266,7 @@ void Mission::setActiveMissionItems()
 				 * have to assume a full stop at the next waypoint. Only do so if the vehicle really
 				 * flies through the next waypoint, otherwise it would enter it too fast to stop there. */
 				if ((num_found_items >= 2u) && isFlownThroughWithoutStopping(next_mission_items[0u])) {
-					mission_item_to_position_setpoint(next_mission_items[1u], &pos_sp_triplet->next_next);
+					setSpeedLookahead(next_mission_items[1u]);
 				}
 
 			} else {
@@ -293,7 +293,7 @@ void Mission::setActiveMissionItems()
 			mission_item_to_position_setpoint(next_mission_items[1u], &pos_sp_triplet->next);
 
 			if ((num_found_items >= 3u) && isFlownThroughWithoutStopping(next_mission_items[1u])) {
-				mission_item_to_position_setpoint(next_mission_items[2u], &pos_sp_triplet->next_next);
+				setSpeedLookahead(next_mission_items[2u]);
 			}
 
 		} else {
@@ -336,6 +336,21 @@ bool Mission::isFlownThroughWithoutStopping(const mission_item_s &item) const
 	return item.nav_cmd == NAV_CMD_WAYPOINT
 	       && item.autocontinue
 	       && get_time_inside(item) < FLT_EPSILON;
+}
+
+void Mission::setSpeedLookahead(const mission_item_s &item)
+{
+	if (!mission_item_contains_position(item)) {
+		return;
+	}
+
+	position_setpoint_lookahead_s *lookahead = _navigator->get_position_setpoint_lookahead();
+
+	lookahead->lat = item.lat;
+	lookahead->lon = item.lon;
+	lookahead->alt = get_absolute_altitude_for_item(item);
+	lookahead->valid = PX4_ISFINITE(lookahead->lat) && PX4_ISFINITE(lookahead->lon)
+			   && PX4_ISFINITE(lookahead->alt);
 }
 
 void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
