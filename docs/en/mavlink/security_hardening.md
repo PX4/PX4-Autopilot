@@ -59,6 +59,13 @@ Signing changes are rejected while the vehicle is armed.
 Signing can also be disabled by physically removing the key file from the SD card.
 :::
 
+::: warning
+Until a key is provisioned there is nothing to authenticate against, so any peer that can reach a link can provision one.
+Only *changing* a key requires a signed message; setting the first one cannot, because no key exists yet.
+A key installed by someone else locks out the legitimate ground station, and the recovery is to remove the key file from the SD card.
+Provision the key before the vehicle is used on an untrusted link, not after.
+:::
+
 ### 2. Secure Physical Access
 
 - **SD card**: The signing key is stored at `/mavlink/mavlink-signing-key.bin`.
