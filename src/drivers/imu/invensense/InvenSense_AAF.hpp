@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 namespace InvenSense_AAF
@@ -99,13 +100,13 @@ inline uint8_t ui_filter_bw_code(uint32_t odr_hz, uint32_t bandwidth_hz)
 	uint8_t best = 0;
 	uint32_t d_best = UINT32_MAX;
 
-	for (uint8_t i = 0; i < sizeof(kUiDivisors); i++) {
+	for (size_t i = 0; i < sizeof(kUiDivisors); i++) {
 		const uint32_t bw = odr_hz / kUiDivisors[i];
 		const uint32_t d = (bw > bandwidth_hz) ? bw - bandwidth_hz : bandwidth_hz - bw;
 
 		if (d < d_best) {
 			d_best = d;
-			best = i;
+			best = static_cast<uint8_t>(i);
 		}
 	}
 
