@@ -151,29 +151,34 @@ bool FlightTaskAuto::update()
 		_velocity_setpoint(2) = NAN;
 		break;
 
-	case WaypointType::takeoff:
-		_position_setpoint = _triplet_current;
-		_velocity_setpoint.setNaN();
+	case WaypointType::takeoff: {
+			_position_setpoint = _triplet_current;
+			_velocity_setpoint.setNaN();
 
-		if (_type_previous != WaypointType::takeoff) {
-			_takeoff_liftoff_position.setNaN();
+			if (_type_previous != WaypointType::takeoff) {
+				_takeoff_liftoff_position.setNaN();
+			}
+
+			const bool airborne = _takeoff_status_sub.get().takeoff_state >= takeoff_status_s::TAKEOFF_STATE_FLIGHT;
+
+			if (!airborne) {
+				_takeoff_liftoff_position = _position;
+				_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+			}
+
+			// Hold the liftoff position until airborne and Navigator has moved the setpoint onto the target.
+			const bool follow_precision_target = airborne && _isPrecisionTakeoffSetpointAdjusted();
+
+			if (Vector2f(_takeoff_liftoff_position).isAllFinite() && !follow_precision_target) {
+				_position_setpoint.xy() = _takeoff_liftoff_position.xy();
+			}
+
+			if (PX4_ISFINITE(_takeoff_liftoff_position(2)) && (_takeoff_liftoff_position(2) - _position(2)) < 1.f) {
+				_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
+			}
+
+			break;
 		}
-
-		if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
-			_takeoff_liftoff_position = _position;
-			_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
-		}
-
-		// Hold the liftoff position until Navigator has acquired the target and adjusted the takeoff setpoint.
-		if (Vector2f(_takeoff_liftoff_position).isAllFinite() && !_isPrecisionTakeoffSetpointAdjusted()) {
-			_position_setpoint.xy() = _takeoff_liftoff_position.xy();
-		}
-
-		if (PX4_ISFINITE(_takeoff_liftoff_position(2)) && (_takeoff_liftoff_position(2) - _position(2)) < 1.f) {
-			_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
-		}
-
-		break;
 
 	case WaypointType::loiter:
 	case WaypointType::position:

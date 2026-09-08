@@ -197,6 +197,28 @@ TEST_F(PrecTakeoffTest, ReachedTakeoffKeepsSetpoint)
 	EXPECT_DOUBLE_EQ(_sp.lon, kRefLon);
 }
 
+TEST_F(PrecTakeoffTest, NewTakeoffUsesChangedMapReference)
+{
+	// GIVEN: The helper cached the map projection during a previous takeoff.
+	publishTarget(3.f, 4.f, true, kNow - 100_ms);
+	ASSERT_TRUE(_prec_takeoff.run(_local_pos, _sp, false, kNow));
+	_prec_takeoff.publish_status();
+	_prec_takeoff.publish_status();
+
+	// WHEN: The estimator establishes a new local origin before the next flight.
+	_local_pos.ref_lat += 0.001;
+	_local_pos.ref_lon += 0.001;
+	_local_pos.ref_timestamp = kNow + 1_s;
+	publishTarget(6.f, 8.f, true, kNow + 1900_ms);
+	ASSERT_TRUE(_prec_takeoff.run(_local_pos, _sp, false, kNow + 2_s));
+
+	// THEN: The target is reprojected using the new origin, not the cached one.
+	MapProjection new_ref{_local_pos.ref_lat, _local_pos.ref_lon};
+	const matrix::Vector2f sp_local = new_ref.project(_sp.lat, _sp.lon);
+	EXPECT_NEAR(sp_local(0), 6.f, 0.01f);
+	EXPECT_NEAR(sp_local(1), 8.f, 0.01f);
+}
+
 TEST_F(PrecTakeoffTest, StatusFollowsTakeoffLifecycle)
 {
 	prec_takeoff_status_s status{};
@@ -249,6 +271,15 @@ TEST_F(PrecTakeoffTest, StatusFollowsTakeoffLifecycle)
 	// THEN: STOPPED is published
 	ASSERT_TRUE(readStatus(status));
 	EXPECT_EQ(status.state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_STOPPED);
+	EXPECT_FALSE(status.setpoint_adjusted);
+
+	// WHEN: The next takeoff starts before a new target sample arrives
+	_prec_takeoff.run(_local_pos, _sp, false, kNow);
+	_prec_takeoff.publish_status();
+
+	// THEN: The previous takeoff's adjustment does not carry over
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_ONGOING);
 	EXPECT_FALSE(status.setpoint_adjusted);
 }
 
