@@ -114,5 +114,16 @@ private:
 	 */
 	bool isFlownThroughWithoutStopping(const mission_item_s &item) const;
 
+	/**
+	 * @brief Publish the given item as the trajectory speed planning lookahead waypoint.
+	 *
+	 * It is not a navigation target, it only tells the trajectory generator which geometry follows
+	 * the next waypoint so that it does not have to assume a full stop there. Only call this for an
+	 * item that follows a waypoint the vehicle really flies through, see isFlownThroughWithoutStopping().
+	 *
+	 * @param item mission item after the next one
+	 */
+	void setSpeedLookahead(const mission_item_s &item);
+
 	bool _need_mission_save{false};
 };

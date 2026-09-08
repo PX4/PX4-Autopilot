@@ -171,6 +171,7 @@ set(msg_files
 	PositionControllerLandingStatus.msg
 	PositionControllerStatus.msg
 	PositionSetpoint.msg
+	PositionSetpointLookahead.msg
 	PositionSetpointTriplet.msg
 	PowerButtonState.msg
 	PowerMonitor.msg
