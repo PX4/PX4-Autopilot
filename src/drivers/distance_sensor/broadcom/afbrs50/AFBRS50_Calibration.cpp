@@ -64,8 +64,9 @@ void AFBRS50::run_state_calibrate()
 	_cal_state = CalState::RUNNING;
 
 	// The sequence blocks this task for several seconds and its ADS_AwaitIdle
-	// loops do not yield, so drop below wq:uavcan (which feeds the IWDG on
-	// CAN nodes) and the flight-critical tasks for the duration. Nothing is
+	// loops do not yield. SCHED_PRIORITY_SLOW_DRIVER already sits below the
+	// work queues, so drop to SCHED_PRIORITY_DEFAULT to get out of the way of
+	// commander, navigator and the other application tasks too. Nothing is
 	// in flight: TRIGGER intercepts the request before starting a measurement.
 	struct sched_param param {};
 	sched_getparam(0, &param);
@@ -84,9 +85,8 @@ void AFBRS50::run_state_calibrate()
 
 void AFBRS50::runCalibration()
 {
-	// Runs on the dedicated low-priority calibration task. The work queue is
-	// idle (CALIBRATE did not reschedule), so this task has exclusive access
-	// to the device for the duration of the sequence.
+	// Runs on the driver task in the CALIBRATE state, so nothing else touches
+	// the device for the duration of the sequence.
 
 	// Make sure the device is idle and no measurement is pending. Bounded so
 	// a wedged device fails the calibration instead of hanging the task
@@ -103,6 +103,23 @@ void AFBRS50::runCalibration()
 
 		px4_usleep(1_ms);
 	}
+
+	// The absolute sequence rewrites the per-pixel relative offset tables as
+	// well as the two global offsets, but only the globals can be persisted:
+	// these boards have no NVM for the API and 64 values do not belong in
+	// params. Restore the factory pixel tables afterwards so the sensor runs
+	// in the same state CONFIGURE re-creates from the params at the next boot.
+	argus_cal_offset_table_t factory_pixel_offsets{};
+	const bool have_pixel_offsets = (Argus_GetCalibrationPixelRangeOffsets(_hnd, &factory_pixel_offsets) == STATUS_OK);
+
+	auto restore_pixel_offsets = [&]() {
+		if (!have_pixel_offsets) {
+			PX4_WARN("factory pixel offsets were not read, the calibrated tables stay until reboot");
+
+		} else if (Argus_SetCalibrationPixelRangeOffsets(_hnd, &factory_pixel_offsets) != STATUS_OK) {
+			PX4_WARN("could not restore the factory pixel offsets, the calibrated tables stay until reboot");
+		}
+	};
 
 	const float target_m = (float)_calibration_target_range / Q9_22_ONE;
 	PX4_INFO("running absolute range offset calibration at %.3f m (takes a few seconds)...", (double)target_m);
@@ -128,6 +145,7 @@ void AFBRS50::runCalibration()
 
 		if (should_exit()) {
 			Argus_Abort(_hnd);
+			restore_pixel_offsets();
 			_cal_result_status = ERROR_ABORTED;
 			_cal_state = CalState::FAILED;
 			PX4_WARN("calibration aborted by stop");
@@ -135,6 +153,7 @@ void AFBRS50::runCalibration()
 		}
 
 		if (hrt_elapsed_time(&cal_start) > 30_s) {
+			restore_pixel_offsets();
 			_cal_result_status = ERROR_TIMEOUT;
 			_cal_state = CalState::FAILED;
 			PX4_ERR("calibration timed out");
@@ -142,6 +161,7 @@ void AFBRS50::runCalibration()
 		}
 	} while (status > STATUS_IDLE);
 
+	restore_pixel_offsets();
 	_cal_result_status = status;
 
 	if (status < STATUS_OK) {

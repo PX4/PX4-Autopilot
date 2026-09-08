@@ -69,6 +69,13 @@ public:
 	int print_status() override;
 	void request_stop() override;
 
+	// 'afbrs50 stop' is refused while the blocking calibration sequence runs.
+	static bool calibrationRunning()
+	{
+		AFBRS50 *instance = get_instance<AFBRS50>(desc);
+		return (instance != nullptr) && instance->calibrationInProgress();
+	}
+
 	enum class STATE : uint8_t {
 		CONFIGURE,
 		TRIGGER,
@@ -105,6 +112,7 @@ private:
 	void waitForWake(hrt_abstime delay);
 
 	void recoverFromTriggerStall(const char *reason);
+	void configureFailed();
 
 	static status_t measurementReadyCallback(status_t status, argus_hnd_t *hnd);
 
@@ -176,6 +184,11 @@ private:
 	// progress before recoverFromTriggerStall() aborts and reconfigures.
 	static constexpr uint32_t kMaxTriggerRetries = 20;
 	uint32_t _trigger_retry_count{0};
+
+	// Consecutive CONFIGURE failures (350 ms apart) before the device is
+	// re-initialized instead of retried.
+	static constexpr uint32_t kMaxConfigureFailures = 10;
+	uint32_t _configure_failures{0};
 
 	// The API rejects frame times above 200 ms (Argus_Dev_CheckCfg) with
 	// ERROR_ARGUS_INVALID_CFG, so 5 Hz is a hard rate floor.

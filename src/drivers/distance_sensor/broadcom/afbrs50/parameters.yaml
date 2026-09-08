@@ -114,10 +114,11 @@ parameters:
       description:
         short: AFBR Rangefinder Minimum Signal Quality
         long: |-
-          Measurements with a signal quality below this value are published as
-          out of range. Raising it rejects unreliable readings but also the
-          weak long-range returns, since those are the low quality ones.
-          0 publishes every valid measurement.
+          Measurements with a signal quality below this value are not
+          published, so consumers time out rather than see a reading. Raising
+          it rejects unreliable readings but also the weak long-range returns,
+          since those are the low quality ones. 0 publishes every valid
+          measurement.
       type: int32
       default: 0
       min: 0

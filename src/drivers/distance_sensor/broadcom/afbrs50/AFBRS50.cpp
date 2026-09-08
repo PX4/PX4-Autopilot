@@ -33,6 +33,7 @@
 
 #include "AFBRS50.hpp"
 #include "s2pi.h"
+#include "timer.h"
 
 #include <lib/drivers/device/Device.hpp>
 #include <px4_platform_common/time.h>
@@ -112,6 +113,10 @@ AFBRS50::~AFBRS50()
 		px4_arch_gpiosetevent(BROADCOM_AFBR_S50_S2PI_IRQ, false, false, false, nullptr, nullptr);
 		S2PI_SetIrqCallback(BROADCOM_AFBR_S50_S2PI_SPI_BUS, nullptr, nullptr);
 
+		// Same for the API's periodic timer: its hrt callout is the last
+		// path that could still reach measurementReadyCallback.
+		Timer_SetInterval(0, nullptr);
+
 		Argus_DestroyHandle(_hnd);
 	}
 
@@ -130,8 +135,10 @@ AFBRS50::~AFBRS50()
 status_t AFBRS50::measurementReadyCallback(status_t status, argus_hnd_t *hnd)
 {
 	// Called from the SPI bus work queue, or from an hrt callout on the
-	// API's internal timeout paths. May fire late during driver stop, which
-	// clears the instance pointer before deleting: read it once.
+	// API's internal timeout paths. ModuleBase deletes the instance before it
+	// clears the pointer, so the destructor's teardown order (drain, detach
+	// EXTI and timer) is what keeps a late completion out of freed memory;
+	// the null check only covers the window before the task has started.
 	AFBRS50 *dev = get_instance<AFBRS50>(desc);
 
 	if (dev == nullptr) {
@@ -182,6 +189,9 @@ void AFBRS50::waitForWake(hrt_abstime delay)
 
 void AFBRS50::request_stop()
 {
+	// A calibration that has not started yet must not start now: the vendor
+	// sequence cannot be interrupted and outlives ModuleBase's stop deadline.
+	_calibration_requested.store(false);
 	ModuleBase::request_stop();
 	px4_sem_post(&_wake_sem);
 }
@@ -392,6 +402,29 @@ void AFBRS50::run()
 // scales inversely with rate, down to the API's 200 ms frame time cap.
 void AFBRS50::run_state_configure()
 {
+	// A raw buffer left behind by an aborted or lost frame blocks every
+	// configuration write until it has been evaluated.
+	for (unsigned i = 0; (i < 2) && Argus_IsDataEvaluationPending(_hnd); i++) {
+		argus_results_t res{};
+		Argus_EvaluateData(_hnd, &res);
+	}
+
+	if (_configure_failures >= kMaxConfigureFailures) {
+		// Argus_GetStatus reports a sticky error (TIMEOUT, NOT_CONNECTED)
+		// as its status, and Argus_Abort is not documented to clear it, so
+		// awaitIdle() alone cannot make progress: re-initialize the device
+		// in its current mode and apply the configuration from scratch.
+		_configure_failures = 0;
+		PX4_ERR("CONFIGURE failed %u times, reinitializing device", (uint)kMaxConfigureFailures);
+		status_t reinit_status = Argus_ReinitMode(_hnd, (argus_mode_t)0);
+
+		if (reinit_status != STATUS_OK) {
+			PX4_ERR("Argus_ReinitMode failed: %i", (int)reinit_status);
+			_wake_delay = 350_ms;
+			return;
+		}
+	}
+
 	status_t status = STATUS_OK;
 	const int32_t dfm_param = _p_sens_afbr_dfm.get();
 
@@ -442,7 +475,7 @@ void AFBRS50::run_state_configure()
 
 	if (status != STATUS_OK) {
 		PX4_ERR("CONFIGURE status not okay: %i", (int)status);
-		_wake_delay = 350_ms;
+		configureFailed();
 		return;
 	}
 
@@ -450,7 +483,7 @@ void AFBRS50::run_state_configure()
 
 	if (status != STATUS_OK) {
 		PX4_ERR("Argus_SetConfigurationSmartPowerSaveEnabled status not okay: %i", (int)status);
-		_wake_delay = 350_ms;
+		configureFailed();
 		return;
 	}
 
@@ -465,7 +498,7 @@ void AFBRS50::run_state_configure()
 
 	if (status != STATUS_OK) {
 		PX4_ERR("Argus_SetConfigurationShotNoiseMonitorMode status not okay: %i", (int)status);
-		_wake_delay = 350_ms;
+		configureFailed();
 		return;
 	}
 
@@ -493,8 +526,15 @@ void AFBRS50::run_state_configure()
 	updateMaxDistanceFromApi();
 	printConfiguration();
 
+	_configure_failures = 0;
 	_state = STATE::TRIGGER;
 	_wake_delay = _measurement_inverval;
+}
+
+void AFBRS50::configureFailed()
+{
+	_configure_failures++;
+	_wake_delay = 350_ms;
 }
 
 void AFBRS50::run_state_trigger()
@@ -551,28 +591,33 @@ void AFBRS50::run_state_collect()
 	argus_results_t res{};
 	status_t evaluate_status = Argus_EvaluateData(_hnd, &res);
 
+	// Anything published at or beyond max_distance is free space to every
+	// consumer: collision prevention clamps the reading to max_distance and
+	// ignores signal_quality, and over DroneCAN it becomes READING_TYPE_TOO_FAR.
+	// So only the device's own "nothing in range" verdict goes out that way.
+	// Errors (STALLED, TIMEOUT, integrity faults) and gated frames mean
+	// "unknown", not "clear": they are counted, not published, and consumers
+	// time out on the missing stream instead of seeing a fresh clear reading.
 	if ((evaluate_status != STATUS_OK) || (res.Status != STATUS_OK)) {
 		perf_count(_process_measurement_error);
 		recordMeasurementError((evaluate_status != STATUS_OK) ? evaluate_status : res.Status);
-		// Publish (max_distance + 1, quality 0) as a proxy for DroneCAN
-		// READING_TYPE_TOO_FAR: the RangeSensorMeasurement publisher maps
-		// any distance > max_distance to TOO_FAR on the wire, so consumers
-		// cannot latch the stale value. Notably covers ERROR_ARGUS_STALLED,
-		// which the API documents as holding the last valid range.
-		_px4_rangefinder.update(hrt_absolute_time(), _max_distance + 1.0f, 0);
+
+		if ((evaluate_status == STATUS_OK) && (res.Status == STATUS_ARGUS_NO_OBJECT)) {
+			_px4_rangefinder.update(hrt_absolute_time(), _max_distance + 1.0f, 0);
+		}
 
 	} else if ((_p_sens_afbr_qmin.get() > 0)
 		   && (res.Bin.SignalQuality < _p_sens_afbr_qmin.get())) {
 		perf_count(_quality_gated_perf);
-		_px4_rangefinder.update(hrt_absolute_time(), _max_distance + 1.0f, 0);
 
 	} else {
 		uint32_t result_mm = res.Bin.Range / (Q9_22_ONE / 1000);
 		float distance = static_cast<float>(result_mm) / 1000.f;
 		int8_t quality = res.Bin.SignalQuality;
 
-		// Beyond any plausible return: report out of range rather than the
-		// bogus value (or 0, which reads as too close).
+		// max_distance is the module's rated reach, which DFM's unambiguous
+		// range can exceed: a return this far out is a real object beyond
+		// the rated range, not an error, so report it as too far.
 		if (distance > _max_distance * 1.5f) {
 			distance = _max_distance + 1.0f;
 			quality = 0;
@@ -603,13 +648,6 @@ void AFBRS50::recoverFromTriggerStall(const char *reason)
 	// dropped by wake() instead of restarting the trigger loop.
 	_trigger_retry_count = 0;
 	_state = STATE::CONFIGURE;
-
-	// A lost completion leaves its raw buffer allocated, and the API rejects
-	// configuration writes while a buffer awaits evaluation.
-	for (unsigned i = 0; (i < 2) && Argus_IsDataEvaluationPending(_hnd); i++) {
-		argus_results_t res{};
-		Argus_EvaluateData(_hnd, &res);
-	}
 
 	status_t status = Argus_Abort(_hnd);
 
@@ -1071,5 +1109,13 @@ $ afbrs50 cal status
 
 extern "C" __EXPORT int afbrs50_main(int argc, char *argv[])
 {
+	// ModuleBase::stop_command deletes the task after 5 s regardless, and the
+	// vendor calibration sequence blocks longer than that while the API holds
+	// pointers into this task's stack. Refuse the stop instead.
+	if ((argc > 1) && !strcmp(argv[1], "stop") && AFBRS50::calibrationRunning()) {
+		PX4_ERR("calibration running, retry once 'afbrs50 cal status' reports it finished");
+		return PX4_ERROR;
+	}
+
 	return ModuleBase::main(AFBRS50::desc, argc, argv);
 }
