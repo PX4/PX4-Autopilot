@@ -3637,9 +3637,10 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	memcpy(gimbal_information.vendor_name, gimbal_device_info_msg.vendor_name, sizeof(gimbal_information.vendor_name));
 	memcpy(gimbal_information.model_name, gimbal_device_info_msg.model_name, sizeof(gimbal_information.model_name));
 	memcpy(gimbal_information.custom_name, gimbal_device_info_msg.custom_name, sizeof(gimbal_information.custom_name));
-	gimbal_device_info_msg.vendor_name[sizeof(gimbal_device_info_msg.vendor_name) - 1] = '\0';
-	gimbal_device_info_msg.model_name[sizeof(gimbal_device_info_msg.model_name) - 1] = '\0';
-	gimbal_device_info_msg.custom_name[sizeof(gimbal_device_info_msg.custom_name) - 1] = '\0';
+	// Terminate the published fields, not the decoded message we are about to discard
+	gimbal_information.vendor_name[sizeof(gimbal_information.vendor_name) - 1] = '\0';
+	gimbal_information.model_name[sizeof(gimbal_information.model_name) - 1] = '\0';
+	gimbal_information.custom_name[sizeof(gimbal_information.custom_name) - 1] = '\0';
 
 	gimbal_information.firmware_version = gimbal_device_info_msg.firmware_version;
 	gimbal_information.hardware_version = gimbal_device_info_msg.hardware_version;
