@@ -299,7 +299,7 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebIn
 message(STATUS "cmake build type: ${CMAKE_BUILD_TYPE}")
 
 # Check if LTO option and check if toolchain supports it
-if(LTO)
+if(TRUE) # test-lto-flash: LTO unconditionally enabled
     include(CheckIPOSupported)
     check_ipo_supported()
     message(AUTHOR_WARNING "LTO enabled: LTO is highly experimental and should not be used in production")
