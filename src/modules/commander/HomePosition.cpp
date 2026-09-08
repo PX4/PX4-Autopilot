@@ -224,7 +224,7 @@ void HomePosition::setInAirHomePosition()
 			double home_lon;
 			ref_pos.reproject(home.x - lpos.x, home.y - lpos.y, home_lat, home_lon);
 
-			const float home_alt = gpos.alt + home.z;
+			const float home_alt = gpos.alt + lpos.z - home.z;
 			fillGlobalHomePos(home, home_lat, home_lon, (double)home_alt);
 
 			setHomePosValid();
@@ -243,7 +243,7 @@ void HomePosition::setInAirHomePosition()
 			double home_lon;
 			ref_pos.reproject(home.x - lpos.x, home.y - lpos.y, home_lat, home_lon);
 
-			const double home_alt = _gps_alt + (double)home.z;
+			const double home_alt = _gps_alt + static_cast<double>(lpos.z - home.z);
 			fillGlobalHomePos(home, home_lat, home_lon, (double)home_alt);
 
 			setHomePosValid();
