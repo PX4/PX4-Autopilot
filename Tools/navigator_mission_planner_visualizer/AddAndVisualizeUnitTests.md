@@ -1,259 +1,93 @@
-# PX4 Mission & Geofence Utility
+# Mission route test helper
 
-This tool visualizes PX4 navigator unit-test data by pasting C++ code directly. It also includes a creator tab for adding new mission, fence, rally, and path-check data on the map and generating C++ snippets for the new items.
+Streamlit tool for the navigator mission route planner tests. Paste a test to see its mission, safe points and vehicle position on a map, click the map to add items, and copy the generated C++ back into the test.
 
-Mission and safe-point snippets use the helpers in `src/modules/navigator/test/support/mission_route_test_helpers.h`.
-The viewer also retains support for older geofence and projection fixture formats; those formats require the matching fixture helpers and are not APIs of the current mission-route library.
+The generated code uses the helpers of `src/modules/navigator/test/support/mission_route_test_helpers.h`. With the optional planner CLI built, the real planner runs on the scenario and its answer is drawn on the map.
 
-## Setup & Running
-
-### Prerequisites
-You need Python installed. Then install the required libraries:
-
-Validated with:
-- Streamlit 1.40.1
-- Python 3.8.10
+## Running
 
 ```bash
 pip install streamlit folium streamlit-folium pydeck
-```
-
-
-### Running the App
-Navigate to `Tools/navigator_mission_planner_visualizer/` and run:
-
-```bash
+cd Tools/navigator_mission_planner_visualizer
 streamlit run mission_planner_tools.py
 ```
 
-This will open the tool in your default web browser (usually at `http://localhost:8501`).
+Checked with Python 3.8, Streamlit 1.40, folium 0.18, streamlit-folium 0.22 and pydeck 0.9.
 
-### Using the current planner tests
+## Workflow
 
-Paste an individual test from `src/modules/navigator/test/test_mission_route_planner.cpp` or `test_mission_route_projection.cpp`, including any mission data it references, and select **Parse & Visualize**.
-For example, `PlansNominalMissionResumeJoinToNextItem` defines its route and vehicle position inline and can be pasted directly.
-The viewer reads `kBaseLat`, `kBaseLon`, and `kAlt` from the shared test helper header automatically; constants declared in the pasted snippet override those defaults.
-Paste one scenario at a time: the parser does not resolve C++ scopes, includes, arbitrary helper functions, or execute loops.
+1. Paste one test, including the mission data it references, into **C++ source** and press **Parse**. The map zooms to the fixtures. Hover an item for its name and altitude, or a mission leg for its length.
+2. Pick an item type in the sidebar and click the map. Clicks snap to a grid around kBaseLat/kBaseLon (10 m by default) so offsets come out as round numbers. Mission items can be waypoints, takeoff, land or loiter to altitude. The vehicle position carries the request velocity.
+3. Click one of the new items to select it. **Edit item** in the sidebar shows its offsets from the base (or its lat/lon), its altitude and, for mission items, its command; changes apply as you type. **Move to next map click** puts it where you click next, **Delete** removes it, **Undo** covers all of this. Parsed items are read-only until they are loaded into the editor.
+4. The **Generated C++** tab below the map follows every edit. Copy it with the button in the corner of the code block.
 
-The map shows fixture geometry, not the planner's computed result.
-To validate the behavior, put the generated mission and safe-point snippets into a C++ test, supply a `mission_route::MissionResumeRequest` or `mission_route::RtlRouteRequest`, and assert the result of `planMissionResumeJoin()` or `planRtlRoute()`.
-The existing planner tests demonstrate both public APIs.
+**Load parsed items into the editor** copies the parsed fixtures into the editor, to extend an existing test. DO_JUMP and VTOL transition items have no position and are dropped; add them back by hand.
 
-Parser and map-generation checks can be run from the repository root:
+## What the parser reads
+
+- Mission containers: `std::vector<mission_item_s> mission{...}` and `= {...}`, `auto m = std::vector<mission_item_s>{...}`, `std::array<mission_item_s, N>`, `push_back(...)`, and functions returning `{...}` such as the ones in `test_mission_route_data.h`. Item helpers outside a container are read in order as one mission.
+- Item helpers: `makePositionItem`, `makeTakeoffItem`, `makeLandItem` and their `FromOffset` variants, with an optional nav command. `makeDoJump` and `makeVtolTransitionItem` are skipped without breaking the route.
+- Safe points: `makeSafePointAbsolute`, `makeSafePointFromOffset`.
+- Positions: `makePositionAbsolute`, `makePositionFromOffset`, `mission_route::Position p{...}` and `x = mission_route::Position{...}`. The variable name is kept, and names containing "vehicle" get the velocity arrow.
+- Velocity: `request.velocity_north_m_s = ...;` and `velocity_east_m_s`.
+- Constants: numeric `const`/`constexpr` definitions and `+ - * /` between them. `kBaseLat`, `kBaseLon` and `kAlt` default to the values of the helper header; a definition in the pasted source overrides them.
+
+The parser does not execute code, follow includes or unroll loops. Paste one scenario at a time.
+
+## Output
+
+With **Offsets from kBaseLat/kBaseLon** (the default) the output matches the style of the planner tests:
+
+```cpp
+std::vector<mission_item_s> mission{
+	makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), // 0
+	makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 20.f), // 1
+	makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt - 10.f), // 2
+};
+
+std::vector<mission_item_s> safe_points{
+	makeSafePointFromOffset(kBaseLat, kBaseLon, 60.f, 5.f, kAlt), // 0
+};
+
+const mission_route::Position vehicle_position = makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
+
+request.velocity_north_m_s = 5.f;
+request.velocity_east_m_s = 0.f;
+```
+
+**Absolute lat/lon** emits `makePositionItem(lat, lon, alt)`, `makeSafePointAbsolute(...)` and `makePositionAbsolute(...)` instead.
+
+Offsets use the same spherical earth model as `add_vector_to_global_position()`, so the generated code reproduces the clicked point.
+
+## Running the planner
+
+The tool can run the real `MissionRoutePlanner` on the scenario shown on the map. The planner is not linked into Python: a small command-line binary, `mission_route_planner_cli`, is built with the normal PX4 toolchain, generated headers and board configuration, and the tool starts it for every run. Nothing under `src/` changes for this; the binary lives in `planner_cli/` and enters the build through PX4's `EXTERNAL_MODULES_LOCATION` hook. Build it once from the repository root:
+
+```bash
+make px4_sitl_test EXTERNAL_MODULES_LOCATION=$PWD/Tools/navigator_mission_planner_visualizer/planner_cli mission_route_planner_cli
+```
+
+Rebuild the same way after changing the planner sources. Each run starts the binary afresh, so a rebuilt binary is picked up on the next click without restarting the tool. The **Planner** panel next to the map compares the binary's timestamp with the planner sources and shows this command when the binary is stale, or when it has not been built yet.
+
+The panel works on the new items when there are any, otherwise on the parsed test, and needs mission items and a vehicle position. Only position items reach the planner: `DO_JUMP` and VTOL transition items are not part of a parsed scene.
+
+Every vehicle position gets its own run, all with the same request. Each path is drawn in its own colour with the vehicle name in its tooltip, a table under the buttons summarises the runs, and the plan fields, the unit test and the trace follow the vehicle picked under that table. A drawn path stops at the first `LAND` item of the route.
+
+- **Plan Return** runs the route-following Return: join point, route direction, branch-off and the selected goal.
+- **Plan Mission rejoin** runs the Mission resume join.
+
+The planned path is drawn as a dashed red line, the join point as a red pin, the branch-off as a dark red pin and the goal as a green flag. The plan fields appear under the buttons.
+
+The vehicle state sits above the buttons: mission index (`current_seq`), land index, the active `DO_JUMP` item and whether the route is currently flown in reverse. **Parameters** holds the rest, labelled with the PX4 parameter it comes from: cross-track margins (`MIS_MC_SEG_DIST`, `MIS_FW_SEG_DIST`, `RTL_RP_SEG_DIST`), acceptance radii, the fixed-wing U-turn penalty (`RTL_FW_UTURN_PEN`), home altitude, vehicle type and VTOL state. Change them freely between runs; nothing is rebuilt.
+
+Under the map, **Planner trace** shows the planner's own debug output, which the CLI compiles in; the text is informal and may change.
+
+**Unit test** turns the scenario and the returned plan into a `TEST_F` for `test_mission_route_planner.cpp`, using the same helpers as the existing tests. It asserts what the planner returned, so review the plan on the map first and describe the intent in the comment at the top; a test that merely records the current output is worth little.
+
+## Tests
 
 ```bash
 python3 -m unittest discover -s Tools/navigator_mission_planner_visualizer -p 'test_*.py'
 ```
 
----
-
-## C++ Syntax Guide
-
-To ensure the parser correctly identifies and plots your data, follow these syntax patterns in your unit tests.
-
-### 1. Mission Items
-
-The parser supports current mission helper patterns and preserves mission order inside `std::vector<mission_item_s>` containers. It plots positional mission items and ignores control items such as `makeVtolTransitionItem(...)` and `makeDoJump(...)` without breaking the route.
-
-```cpp
-std::vector<mission_item_s> mission{
-    makeTakeoffItem(47.0000, 8.0000, 500.f),
-    makePositionItem(47.0005, 8.0000, 520.f),
-    makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-    makePositionItem(47.0010, 8.0010, 540.f),
-    makeDoJump(0, 2, 1),
-    makeLandItem(47.0020, 8.0020, 500.f),
-};
-```
-
-Supported forms:
-
-```cpp
-makePositionItem(lat, lon, alt)
-makePositionItem(lat, lon, alt, NAV_CMD_WAYPOINT)
-makeTakeoffItem(lat, lon, alt)
-makeLandItem(lat, lon, alt)
-makePositionItemFromOffset(base_lat, base_lon, north_m, east_m, alt)
-makeTakeoffItemFromOffset(base_lat, base_lon, north_m, east_m, alt)
-makeLandItemFromOffset(base_lat, base_lon, north_m, east_m, alt)
-```
-
-`makeTakeoffItem` and `makeLandItem` are the canonical generator output for the first and last mission items. Intermediate points use `makePositionItem(...)`.
-
-The parser also resolves simple numeric constants and expressions such as `kBaseLat`, `kBaseLat + 0.001`, `kAlt + 20.f`, and `kAlt - 10.f`.
-
-It also supports appending more mission items after initialization:
-
-```cpp
-auto mission = std::vector<mission_item_s> {
-    makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-};
-mission.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt));
-mission.push_back(makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt - 10.f));
-```
-
-### 2. Polygon Geofences
-
-This is a legacy fixture format. `Mission::LatLonAlt` and `writePolygonFence()` are not supplied by the current mission-route helpers.
-
-The parser identifies polygon fences by finding calls to `writePolygonFence(...)`.
-
-```cpp
-// 1. Define Vertices Array
-const std::array<Mission::LatLonAlt, 4> fence_vertices {{
-    {47.0000, 8.0000, 0.f},
-    {47.0001, 8.0000, 0.f},
-    {47.0001, 8.0001, 0.f},
-    {47.0000, 8.0001, 0.f}
-}};
-
-// 2. Call Write Function
-writePolygonFence(fence_vertices, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-```
-
-* Definition: Vertices in `std::array<Mission::LatLonAlt, N>`.
-* Registration: Call `writePolygonFence(variable_name, type_enum)`.
-* Types:
-  * `NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION` -> Green.
-  * `NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION` -> Red.
-
-### 3. Circle Geofences
-
-This is a legacy fixture format requiring its original `writeCircleFence()` helper.
-
-```cpp
-const Mission::LatLonAlt center {47.0000, 8.0000, 0.f};
-writeCircleFence(center, 500.f, NAV_CMD_FENCE_CIRCLE_INCLUSION);
-```
-
-* The variable name passed to `writeCircleFence` must match a previously defined `Mission::LatLonAlt` variable.
-* Use `NAV_CMD_FENCE_CIRCLE_EXCLUSION` for red plotting.
-
-### 4. Rally Points / Safe Points
-
-The parser supports several rally/safe point formats.
-
-#### 4a. `makeSafePointAbsolute()` calls
-
-```cpp
-makeSafePointAbsolute(47.0000, 7.9990, 500.f)
-```
-
-#### 4b. `makeSafePointFromOffset()` calls
-
-```cpp
-makeSafePointFromOffset(base_lat, base_lon, north_m, east_m, alt)
-```
-
-* Offset values converted to GPS coordinates.
-
-### 5. Vehicle Locations
-
-The parser supports multiple vehicle location formats.
-
-#### 5a. `MakeLocation()` calls (original format)
-
-```cpp
-MakeLocation("Label String", MissionDataset::Default, 46.10, 2.31, 450.3, 30.0f, 0.0f)
-```
-
-* Signature: `MakeLocation("Label", Dataset, lat, lon, alt, vx, vy)`.
-
-#### 5b. `VehicleLocation` struct arrays
-
-```cpp
-struct VehicleLocation {
-    const char *label;
-    double lat, lon;
-    float alt;
-    float vx, vy;
-};
-
-static const VehicleLocation kLocations[] = {
-    {"Label", 46.105, 2.302, 463.0f, 15.f, 15.f},
-    // ...
-};
-```
-
-* The struct definition is optional (the parser only needs the array).
-* Velocity values can reference `constexpr float` variables (e.g., `kVel`).
-
-### 6. Mission-Route Positions
-
-These helpers return `mission_route::Position` values and are visualized as standalone map markers.
-
-#### 6a. `makePositionAbsolute(lat, lon, alt)`
-
-```cpp
-makePositionAbsolute(47.0000, 8.0000, 500.f)
-```
-
-#### 6b. `makePositionFromOffset(base_lat, base_lon, north_m, east_m, alt)`
-
-```cpp
-makePositionFromOffset(base_lat, base_lon, 100.0, 200.0, 500.f)
-```
-
-### 7. Path Checks
-
-This is a legacy fixture format; `Geofence::PathCheck` is not part of the current route planner API.
-
-```cpp
-Geofence::PathCheck path;
-path.lat_from = 47.01;
-path.lon_from = 8.00;
-path.lat_to   = 47.02;
-path.lon_to   = 8.01;
-```
-
-* Must assign `.lat_from`, `.lon_from`, `.lat_to`, and `.lon_to` for the same variable.
-* Supports array indexing (e.g., `paths[0].lat_from = ...`).
-* Supports referencing variables (e.g., `path.lat_to = center.lat`).
-
-### 8. Projections
-
-```cpp
-MakeProjection(Dataset, start_idx, end_idx, lat, lon, alt, xtrack, on_seg)
-```
-
-* Captures the **4th, 5th, and 6th** arguments as Lat, Lon, and Alt.
-
-### 9. Standalone Position Points
-
-The current public position type supports named variables and inline literals:
-
-```cpp
-const mission_route::Position vehicle_pos{47.0000, 8.0000, 500.0f};
-request.vehicle_position = mission_route::Position{47.0005, 8.0005, 500.0f};
-```
-
-Older `Mission::LatLonAlt` and `MissionRoutePlanner::Position` literals remain supported for visualizing historical fixtures:
-
-```cpp
-const Mission::LatLonAlt vehicle_pos{47.0000, 8.0000, 500.0f};
-static constexpr Mission::LatLonAlt proj_pos = {47.0005, 8.0005, 500.0f};
-```
-
----
-
-## Code Generator Output
-
-When using the **Creator** tab to click on the map and generate C++ code, the tool outputs:
-
-- **Mission items**: `makeTakeoffItem(lat, lon, alt)` for the first waypoint, `makeLandItem(lat, lon, alt)` for the last, and `makePositionItem(lat, lon, alt)` for all others, wrapped in a `std::vector<mission_item_s>`.
-- **Rally/Safe points**: `makeSafePointAbsolute(lat, lon, alt)` in a `std::vector<mission_item_s>`.
-- **Vehicle positions and velocity**: `VehicleLocation` arrays using the struct shown above. To populate a current planner request, pass the coordinates to `makePositionAbsolute(lat, lon, alt)` and set the request's velocity fields as shown in the planner tests.
-- **Fences and Paths**: The legacy fixture formats shown above; adapt them to the fixture that will consume the snippet.
-
----
-
-## Offset-to-GPS Conversion
-
-The tool uses a WGS84 spherical approximation to convert local NED offsets to GPS coordinates, matching the C++ `add_vector_to_global_position()` function:
-
-```
-lat = lat_ref + degrees(north_m / 6371000.0)
-lon = lon_ref + degrees(east_m / (6371000.0 * cos(radians(lat_ref))))
-```
-
-This is accurate to within a few meters for typical test distances (< 10 km).
+`test_parser.py`, `test_generator.py`, `test_editor.py`, `test_geometry.py` and `test_planner_cli.py` need only the standard library; the last one uses a fake binary, so it does not need the CLI built. The rendering and app tests need the UI dependencies.
