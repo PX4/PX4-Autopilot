@@ -255,6 +255,9 @@ modalai_voxl2_default: modalai_voxl2_slpi
 modalai_voxl2: modalai_voxl2_slpi
 modalai_voxl2_deb: modalai_voxl2_slpi
 
+agam_fmu-v6xrt_default: agam-robotics_fmu-v6xrt_default
+	@true
+
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
