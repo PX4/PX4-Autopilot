@@ -36,6 +36,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 		bootloader_main.c
 		init.c
 		usb.c
+		usbdev_dma.c
 		imxrt_flexspi_nor_boot.c
 		imxrt_flexspi_nor_flash.c
 		timer_config.cpp
