@@ -86,7 +86,6 @@ public:
 		float req_hdrift{0.1f};
 		float req_vdrift{0.2f};
 		int32_t req_fix{3};
-		float vel_lim{100.f};
 		uint64_t min_health_time_us{10000000};
 	};
 

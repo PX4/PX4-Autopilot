@@ -140,8 +140,7 @@ private:
 		(ParamFloat<px4::params::REQ_HDRIFT>)	_param_req_hdrift,
 		(ParamFloat<px4::params::REQ_VDRIFT>) 	_param_req_vdrift,
 		(ParamInt<px4::params::REQ_FIX>) 	_param_req_fix,
-		(ParamFloat<px4::params::REQ_GPS_H>) 	_param_req_gps_h,
-		(ParamFloat<px4::params::EKF2_VEL_LIM>)	_param_ekf2_vel_lim
+		(ParamFloat<px4::params::REQ_GPS_H>) 	_param_req_gps_h
 	)
 };
 }; // namespace sensors

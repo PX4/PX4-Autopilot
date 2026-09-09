@@ -157,7 +157,6 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		checks_params.req_hdrift = _param_req_hdrift.get();
 		checks_params.req_vdrift = _param_req_vdrift.get();
 		checks_params.req_fix = _param_req_fix.get();
-		checks_params.vel_lim = _param_ekf2_vel_lim.get();
 		checks_params.min_health_time_us = static_cast<uint64_t>(_param_req_gps_h.get() * 1_s);
 
 		for (GnssChecks &checks : _gnss_checks) {
