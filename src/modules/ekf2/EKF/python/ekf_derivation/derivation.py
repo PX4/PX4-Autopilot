@@ -284,10 +284,14 @@ def predict_vel_pos_closed_form(
     ])
 
     def P(omega, A, B) -> sf.M32:
+        # C1, C2 and C3 are the closed forms of the series derived in the proof of Theorem 1:
+        # C1 = sum (-1)^n theta^2n / (2n+2)!, C2 = sum (-1)^n theta^2n / (2n+3)!, C3 = sum (-1)^n theta^2n / (2n+4)!
+        # The C1 and C3 printed in the statement of Theorem 1 each drop the n=0 term of their
+        # own series, so they do not match the proof; the forms below do.
         theta = sf.sqrt(gyro.dot(gyro) * dt**2 + epsilon)
-        C1 = (1 - theta**2 / 2 - sf.cos(theta)) / theta**2
+        C1 = (1 - sf.cos(theta)) / theta**2
         C2 = (theta - sf.sin(theta)) / theta**3
-        C3 = (theta**2 / 2 - theta**4 / 24 + sf.cos(theta) - 1) / theta**4
+        C3 = (theta**2 / 2 + sf.cos(theta) - 1) / theta**4
         P = A + (A * B) / 2
         P += omega * A * (C1 * sf.M22.eye() + C2 * B)
         P += omega * omega * A * (C2 * sf.M22.eye() + C3 * B)
