@@ -115,6 +115,7 @@ private:
 	matrix::Vector2f _flow_integral{};
 	matrix::Vector3f _delta_angle{};
 	uint32_t _integration_timespan_us{};
+	uint32_t _rejected_timespan_us{};
 	float _distance_sum{NAN};
 	uint8_t _distance_sum_count{0};
 	uint16_t _quality_sum{0};

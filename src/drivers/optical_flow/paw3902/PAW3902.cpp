@@ -72,7 +72,8 @@ static uint8_t normalize_squal(uint8_t squal, Mode mode)
 		return 0;
 	}
 
-	return static_cast<uint8_t>(((squal - threshold) * 255u) / (255u - threshold));
+	// 0 is reserved for rejected frames; the threshold itself maps to 1
+	return static_cast<uint8_t>(1u + ((squal - threshold) * 254u) / (255u - threshold));
 }
 
 PAW3902::PAW3902(const I2CSPIDriverConfig &config) :
@@ -525,6 +526,11 @@ void PAW3902::RunImpl()
 					// only publish when there's valid data or on timeout
 					if (publish || (frame_consumed && (hrt_elapsed_time(&_last_publish) >= kBackupScheduleIntervalUs))) {
 
+						if (!publish) {
+							// heartbeat with no new frame: zero flow at the last read's quality
+							sensor_optical_flow.quality = normalize_squal(buffer.data.SQUAL, _mode);
+						}
+
 						sensor_optical_flow.timestamp = hrt_absolute_time();
 						_sensor_optical_flow_pub.publish(sensor_optical_flow);
 
@@ -549,6 +555,17 @@ void PAW3902::RunImpl()
 							break;
 						}
 					}
+
+				} else if (_discard_reading == 0 && !stale_read && frame_consumed && buffer.data.RawData_Sum <= 0x98) {
+					// A rejected frame still consumed its window. Report it blind (quality 0, no flow) so the
+					// stream stays continuous and consumers can tell dark from dead.
+					sensor_optical_flow.pixel_flow[0] = 0;
+					sensor_optical_flow.pixel_flow[1] = 0;
+					sensor_optical_flow.quality = 0;
+					sensor_optical_flow.timestamp = hrt_absolute_time();
+					_sensor_optical_flow_pub.publish(sensor_optical_flow);
+					_last_publish = sensor_optical_flow.timestamp_sample;
+					published = true;
 				}
 
 				// Poor optical quality does not indicate a sensor fault, but an all-zero burst is not a live frame.
