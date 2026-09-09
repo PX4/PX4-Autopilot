@@ -60,6 +60,7 @@
 #include "rtl_direct_mission_land.h"
 #include "rtl_mission_fast.h"
 #include "rtl_mission_fast_reverse.h"
+#include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
@@ -670,7 +671,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 // WHY: Each rally point owns the loiters that follow it.
 // WHAT: Scanning should stop at the next rally point.
-TEST_F(RTLTest, ScanVtolLandApproachBlockStopsAtNextRallyPoint)
+TEST_F(RTLTest, GetVtolLandApproachesAtSafePointStopsAtNextRallyPoint)
 {
 	// GIVEN: One block with two loiters, then a new rally point.
 	const PositionYawSetpoint land_1 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -687,12 +688,12 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockStopsAtNextRallyPoint)
 		makeLandApproachItem(loiter_3.lat, loiter_3.lon, loiter_3.alt, kApproachRadius),
 	});
 
-	// WHEN: The first block is scanned.
-	land_approaches_s scanned_block{};
-	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	// WHEN: The first block is requested.
+	const land_approaches_s scanned_block =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 
 	// THEN: Only the first two loiters are returned.
-	ASSERT_TRUE(found_approach);
+	ASSERT_TRUE(scanned_block.isAnyApproachValid());
 	EXPECT_EQ(countValidApproaches(scanned_block), 2);
 	expectLoiterPointNear(scanned_block.approaches[0], loiter_1);
 	expectLoiterPointNear(scanned_block.approaches[1], loiter_2);
@@ -701,7 +702,7 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockStopsAtNextRallyPoint)
 
 // WHY: The result array has a fixed size.
 // WHAT: Extra loiters should be ignored once it is full.
-TEST_F(RTLTest, ScanVtolLandApproachBlockCapsApproachCount)
+TEST_F(RTLTest, GetVtolLandApproachesAtSafePointCapsApproachCount)
 {
 	// GIVEN: More valid loiters than the block can hold.
 	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -724,12 +725,12 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockCapsApproachCount)
 
 	VectorProvider provider(mission_items);
 
-	// WHEN: The block is scanned.
-	land_approaches_s scanned_block{};
-	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	// WHEN: The block is requested.
+	const land_approaches_s scanned_block =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 
 	// THEN: The result stops at the hard limit.
-	ASSERT_TRUE(found_approach);
+	ASSERT_TRUE(scanned_block.isAnyApproachValid());
 	EXPECT_EQ(countValidApproaches(scanned_block), land_approaches_s::num_approaches_max);
 	expectLoiterPointNear(scanned_block.approaches[0], makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 25.f, 0.f, kAlt + 10.f));
 	expectLoiterPointNear(scanned_block.approaches[land_approaches_s::num_approaches_max - 1], last_included);
@@ -737,7 +738,7 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockCapsApproachCount)
 
 // WHY: A rally point can own an empty block.
 // WHAT: Another rally point right after it should keep the block empty.
-TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockBeforeNextRallyPoint)
+TEST_F(RTLTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockBeforeNextRallyPoint)
 {
 	// GIVEN: A rally point followed immediately by another rally point.
 	const PositionYawSetpoint land_1 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -750,18 +751,18 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockBeforeNextRallyPoint)
 		makeLandApproachItem(loiter.lat, loiter.lon, loiter.alt, kApproachRadius),
 	});
 
-	// WHEN: The first block is scanned.
-	land_approaches_s scanned_block{};
-	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	// WHEN: The first block is requested.
+	const land_approaches_s scanned_block =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 
 	// THEN: It stays empty.
-	EXPECT_FALSE(found_approach);
+	EXPECT_FALSE(scanned_block.isAnyApproachValid());
 	EXPECT_EQ(countValidApproaches(scanned_block), 0);
 }
 
 // WHY: End-of-mission is the other empty-block case.
 // WHAT: A final rally point should also return zero approaches.
-TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockAtMissionEnd)
+TEST_F(RTLTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockAtMissionEnd)
 {
 	// GIVEN: A mission that ends with a rally point.
 	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -770,27 +771,69 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockAtMissionEnd)
 		makeSafePointItem(land.lat, land.lon, land.alt, NAV_FRAME_GLOBAL),
 	});
 
-	// WHEN: Its block is scanned.
-	land_approaches_s scanned_block{};
-	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	// WHEN: Its block is requested.
+	const land_approaches_s scanned_block =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 
 	// THEN: It is empty.
-	EXPECT_FALSE(found_approach);
+	EXPECT_FALSE(scanned_block.isAnyApproachValid());
 	EXPECT_EQ(countValidApproaches(scanned_block), 0);
+}
+
+TEST_F(RTLTest, IndexedLandApproachQueriesRequireValidRallyAnchor)
+{
+	const mission_item_s approach = makeLandApproachItem(kBaseLat, kBaseLon, kAlt + 30.f, kApproachRadius);
+	VectorProvider provider({
+		approach,                                                       // 0: loiter with no rally before it
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL),  // 1: valid rally
+		approach,                                                       // 2: loiter in rally 1's block
+		approach,                                                       // 3: loiter in rally 1's block
+		makeSafePointItem(91.0, kBaseLon, kAlt, NAV_FRAME_GLOBAL),      // 4: rally with an invalid latitude
+		approach,                                                       // 5
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_MISSION), // 6: rally with an unsupported frame
+		approach,                                                       // 7
+	});
+
+	// No block for anything that is not a valid rally point, even when a loiter follows it:
+	// -1 and safePointCount() are out of range, 0 and 2 are loiter items, 4 and 6 are unusable rally points.
+	for (const int index : {-1, 0, 2, 4, 6, provider.safePointCount()}) {
+		SCOPED_TRACE(index);
+		EXPECT_FALSE(mission_route::hasVtolLandApproachesAtSafePointIndex(provider, index, kAlt));
+		const land_approaches_s block = mission_route::getVtolLandApproachesAtSafePointIndex(provider, index, kAlt);
+		EXPECT_FALSE(block.isAnyApproachValid());
+		EXPECT_FALSE(block.land_location_lat_lon.isAllFinite());
+	}
+
+	EXPECT_TRUE(mission_route::hasVtolLandApproachesAtSafePointIndex(provider, 1, kAlt));
+	EXPECT_TRUE(mission_route::getVtolLandApproachesAtSafePointIndex(provider, 1, kAlt).isAnyApproachValid());
+}
+
+TEST_F(RTLTest, IndexedLandApproachQueriesRequireReadableRallyAnchor)
+{
+	VectorProvider provider({
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(kBaseLat, kBaseLon, kAlt + 30.f, kApproachRadius),
+	}, {0});
+
+	// A readable approach cannot be used when the rally point before it failed to load.
+	EXPECT_FALSE(mission_route::hasVtolLandApproachesAtSafePointIndex(provider, 0, kAlt));
+	const land_approaches_s block = mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
+	EXPECT_FALSE(block.isAnyApproachValid());
+	EXPECT_FALSE(block.land_location_lat_lon.isAllFinite());
 }
 
 /**
  * @brief Read-failure cases while scanning a safe-point approach block.
  */
-class ScanVtolLandApproachBlockReadFailureTest :
+class GetVtolLandApproachesAtSafePointReadFailureTest :
 	public RTLTest,
 	public ::testing::WithParamInterface<ReadFailureCase>
 {
 };
 
-// WHY: Read failures should not leave partial results behind.
+// WHY: A read failure ends the current approach block; entries loaded before it remain available.
 // WHAT: Scanning should stop cleanly on a broken item.
-TEST_P(ScanVtolLandApproachBlockReadFailureTest, ScanVtolLandApproachBlockHandlesReadFailures)
+TEST_P(GetVtolLandApproachesAtSafePointReadFailureTest, HandlesReadFailures)
 {
 	const ReadFailureCase &test_case = GetParam();
 
@@ -806,12 +849,12 @@ TEST_P(ScanVtolLandApproachBlockReadFailureTest, ScanVtolLandApproachBlockHandle
 
 	VectorProvider provider(mission_items, {test_case.failure_index});
 
-	// WHEN: The block scan hits a read failure.
-	land_approaches_s scanned_block{};
-	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	// WHEN: Reading the block hits a load failure.
+	const land_approaches_s scanned_block =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 
 	// THEN: The scan stops without inventing extra approaches.
-	EXPECT_EQ(found_approach, test_case.expected_found);
+	EXPECT_EQ(scanned_block.isAnyApproachValid(), test_case.expected_found);
 	EXPECT_EQ(countValidApproaches(scanned_block), test_case.expected_count);
 
 	if (test_case.expected_count > 0) {
@@ -823,11 +866,11 @@ TEST_P(ScanVtolLandApproachBlockReadFailureTest, ScanVtolLandApproachBlockHandle
 
 INSTANTIATE_TEST_SUITE_P(
 	RTL,
-	ScanVtolLandApproachBlockReadFailureTest,
+	GetVtolLandApproachesAtSafePointReadFailureTest,
 	::testing::Values(
 		ReadFailureCase{"FirstLoiter", 1, false, 0},
 		ReadFailureCase{"SecondLoiter", 2, true, 1}),
-	[](const ::testing::TestParamInfo<ScanVtolLandApproachBlockReadFailureTest::ParamType> &param_info)
+	[](const ::testing::TestParamInfo<GetVtolLandApproachesAtSafePointReadFailureTest::ParamType> &param_info)
 {
 	return std::string(param_info.param.test_name);
 });
@@ -849,7 +892,8 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexRejectsFarSafePo
 	});
 
 	// WHEN: The association lookup runs.
-	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
+	const land_approaches_s vtol_land_approaches =
+		mission_route::getVtolLandApproachesNearLocation(provider, rtl_destination, kAlt);
 
 	// THEN: The nearby rally point is selected.
 	ASSERT_TRUE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
@@ -872,7 +916,8 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexReturnsFirstMatc
 	});
 
 	// WHEN: The association lookup runs.
-	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
+	const land_approaches_s vtol_land_approaches =
+		mission_route::getVtolLandApproachesNearLocation(provider, rtl_destination, kAlt);
 
 	// THEN: The first match is returned.
 	ASSERT_TRUE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
@@ -896,7 +941,8 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexHandlesReadFailu
 	VectorProvider provider(safe_points, {0});
 
 	// WHEN: The association lookup hits the failed read.
-	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
+	const land_approaches_s vtol_land_approaches =
+		mission_route::getVtolLandApproachesNearLocation(provider, rtl_destination, kAlt);
 
 	// THEN: The search stops and reports no match.
 	EXPECT_FALSE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
@@ -916,7 +962,8 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexSkipsInvalidRall
 	});
 
 	// WHEN: The association lookup runs.
-	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
+	const land_approaches_s vtol_land_approaches =
+		mission_route::getVtolLandApproachesNearLocation(provider, rtl_destination, kAlt);
 
 	// THEN: The valid rally point is returned.
 	ASSERT_TRUE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
@@ -1086,8 +1133,8 @@ TEST_F(RTLTest, MakeVtolLandApproachPointConvertsRelativeAndAbsoluteAltitude)
 	});
 
 	// WHEN: The mission items are converted while reading the approach block.
-	land_approaches_s vtol_land_approaches{};
-	provider.scanVtolLandApproachBlockForTest(0, kAlt, &vtol_land_approaches);
+	const land_approaches_s vtol_land_approaches =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 	const loiter_point_s absolute_point = vtol_land_approaches.approaches[0];
 	const loiter_point_s absolute_int_point = vtol_land_approaches.approaches[1];
 	const loiter_point_s relative_point = vtol_land_approaches.approaches[2];
