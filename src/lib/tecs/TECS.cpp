@@ -230,6 +230,8 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 
 	control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
 
+	_projectAltitudeRateSetpointToEnvelope(control_setpoint, input, param, flag, NAN);
+
 	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
 
 	_detectUnderspeed(input, param, flag);
@@ -280,6 +282,8 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 		// altitude is locked, go through altitude outer loop
 		control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
 	}
+
+	_projectAltitudeRateSetpointToEnvelope(control_setpoint, input, param, flag, dt);
 
 	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
 
@@ -337,6 +341,51 @@ float TECSControl::_calcAltitudeControlOutput(const Setpoint &setpoint, const In
 	altitude_rate_output = math::constrain(altitude_rate_output, -param.max_sink_rate, param.max_climb_rate);
 
 	return altitude_rate_output;
+}
+
+void TECSControl::_projectAltitudeRateSetpointToEnvelope(AltitudePitchControl &control_setpoint, const Input &input,
+		const Param &param, const Flag &flag, const float dt)
+{
+	float altitude_rate_setpoint = control_setpoint.altitude_rate_setpoint;
+
+	// Throttle envelope: total energy rate within the limits, less the kinetic energy rate demand, less the induced
+	// drag rise in turns the throttle has to fund (see _calcThrottleControlSteRate). During fast descend the
+	// throttle is faded to its minimum, and so is the deliverable energy rate (see _calcThrottleControl).
+	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
+	const float ste_rate_max = math::lerp(limit.STE_rate_max, limit.STE_rate_min, param.fast_descend);
+	const float turn_drag_offset = param.load_factor_correction * (param.load_factor - 1.f);
+	const float ske_rate_setpoint = control_setpoint.tas_setpoint * control_setpoint.tas_rate_setpoint;
+	const float altitude_rate_max_throttle = (ste_rate_max - turn_drag_offset - ske_rate_setpoint) / CONSTANTS_ONE_G;
+	const float altitude_rate_min_throttle = (limit.STE_rate_min - turn_drag_offset - ske_rate_setpoint) /
+			CONSTANTS_ONE_G;
+	// If not even the kinetic energy rate demand fits the envelope, the upper bound wins: sink to fund it.
+	altitude_rate_setpoint = constrain(altitude_rate_setpoint, min(altitude_rate_min_throttle, altitude_rate_max_throttle),
+					   altitude_rate_max_throttle);
+
+	// Pitch envelope: climb angle within the pitch limits, less the pitch integrator state which holds the
+	// pitch-to-flight-path offset. Same linearised mapping as the pitch feedforward (see _calcPitchControlOutput).
+	float airspeed_for_climb_angle = param.equivalent_airspeed_trim;
+
+	if (flag.airspeed_enabled && PX4_ISFINITE(input.tas) && input.tas > FLT_EPSILON) {
+		airspeed_for_climb_angle = input.tas;
+	}
+
+	altitude_rate_setpoint = constrain(altitude_rate_setpoint,
+					   (param.pitch_min - _pitch_integ_state) * airspeed_for_climb_angle,
+					   (param.pitch_max - _pitch_integ_state) * airspeed_for_climb_angle);
+
+	// Rate limit like the pitch setpoint (vertical acceleration limit, see _calcPitchControl).
+	if (PX4_ISFINITE(dt) && PX4_ISFINITE(_altitude_rate_setpoint_projected)) {
+		const float altitude_rate_setpoint_increment = dt * param.vert_accel_limit;
+		altitude_rate_setpoint = constrain(altitude_rate_setpoint,
+						   _altitude_rate_setpoint_projected - altitude_rate_setpoint_increment,
+						   _altitude_rate_setpoint_projected + altitude_rate_setpoint_increment);
+	}
+
+	if (PX4_ISFINITE(altitude_rate_setpoint)) {
+		_altitude_rate_setpoint_projected = altitude_rate_setpoint;
+		control_setpoint.altitude_rate_setpoint = altitude_rate_setpoint;
+	}
 }
 
 TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint,

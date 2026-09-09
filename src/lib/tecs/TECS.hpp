@@ -449,6 +449,27 @@ private:
 	 */
 	SpecificEnergyRates _calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint, const Input &input) const;
 	/**
+	 * @brief Project the controlled altitude rate setpoint onto the envelope the aircraft can fly.
+	 *
+	 * The altitude rate setpoint is backed off such that
+	 *  - the climb angle stays within the pitch limits, less the pitch integrator state which holds the
+	 *    pitch-to-flight-path offset (angle of attack, rigging),
+	 *  - the total energy rate demand stays within what the throttle can deliver (the kinetic energy rate demand
+	 *    has priority: airspeed, i.e. stall margin, outranks climb or sink rate),
+	 *  - the altitude rate setpoint changes no faster than the vertical acceleration limit, like the pitch
+	 *    setpoint is rate limited, so that the throttle does not fund a climb rate change before pitch may fly it.
+	 * Otherwise the pitch loop flies a climb or sink the throttle cannot fund, or the throttle funds a climb
+	 * or sink pitch cannot fly, and the energy surplus or deficit goes into or comes out of the airspeed.
+	 *
+	 * @param control_setpoint is the controlled altitude and airspeed rate setpoints, altitude rate is modified.
+	 * @param input is the current input measurement of the UAS.
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @param dt is the update time interval in [s], NAN to skip the rate limit (initialization).
+	 */
+	void _projectAltitudeRateSetpointToEnvelope(AltitudePitchControl &control_setpoint, const Input &input,
+			const Param &param, const Flag &flag, float dt);
+	/**
 	 * @brief Detect underspeed.
 	 *
 	 * @param input is the current input measurement of the UAS.
@@ -559,6 +580,7 @@ private:
 private:
 	// State
 	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
+	float _altitude_rate_setpoint_projected{0.0f};		///< Altitude rate setpoint projected onto the envelope [m/s].
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
 
