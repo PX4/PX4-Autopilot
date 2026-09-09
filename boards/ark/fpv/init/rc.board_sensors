@@ -7,8 +7,14 @@ board_adc start
 
 if ver hwtypecmp ARKFPV000
 then
-	# Internal SPI bus IIM42653
+	# Internal SPI bus IIM-42653
 	iim42653 -R 14 -s -b 1 start
+fi
+
+if ver hwtypecmp ARKFPV001
+then
+	# Internal SPI bus LSM6DSV32X
+	lsm6dsv -R 14 -s -b 1 start
 fi
 
 # Internal magnetometer on I2C
