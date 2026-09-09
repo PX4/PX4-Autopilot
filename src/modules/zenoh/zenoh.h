@@ -98,7 +98,7 @@ private:
 	int generate_rmw_zenoh_node_liveliness_keyexpr(const z_id_t *id, char *keyexpr);
 	int generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *rihs_hash, char *type, char *keyexpr);
 	int generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const char *topic, const uint8_t *rihs_hash,
-			char *type, char *keyexpr, const char *entity_str);
+			char *type, char *keyexpr, const char *entity_str, const char *qos_str = "");
 	int setupSession();
 	int setupTopics(px4_pollfd_struct_t *pfds);
 	void cleanupSession();
