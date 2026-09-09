@@ -397,6 +397,22 @@ void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
 	dst[dst_len - 1] = '\0';
 }
 
+/// @brief stat()s an entry of the directory in _work_buffer1, leaving size and mtime untouched on failure
+void
+MavlinkFTP::_statDirent(const char *name, uint32_t &size, uint32_t &mtime)
+{
+	int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s/%s", _work_buffer1, name);
+
+	if ((ret > 0) && (ret < _work_buffer2_len)) {
+		struct stat st;
+
+		if (stat(_work_buffer2, &st) == 0) {
+			size = st.st_size;
+			mtime = st.st_mtime;
+		}
+	}
+}
+
 /// @brief Responds to a List command
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
@@ -471,18 +487,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 #endif
 				// For files we get the file size as well
 				direntType = kDirentFile;
-				int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s/%s", _work_buffer1, result->d_name);
-				bool buf_is_ok = ((ret > 0) && (ret < _work_buffer2_len));
-
-				if (buf_is_ok) {
-					struct stat st;
-
-					if (stat(_work_buffer2, &st) == 0) {
-						fileSize = st.st_size;
-						fileTime = st.st_mtime;
-					}
-				}
-
+				_statDirent(result->d_name, fileSize, fileTime);
 				break;
 			}
 
@@ -498,6 +503,12 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 
 			} else {
 				direntType = kDirentDir;
+
+				if (include_time) {
+					// Directories have no meaningful size, but do have a modification time
+					_statDirent(result->d_name, fileSize, fileTime);
+					fileSize = 0;
+				}
 			}
 
 			break;
@@ -511,25 +522,25 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 			// Skip send only dirent identifier
 			_work_buffer2[0] = '\0';
 
-		} else if (direntType == kDirentFile) {
-			// Files send filename and file length, optionally followed by the modification time
-			int ret;
+		} else if (include_time) {
+			// ListDirectoryWithTime: every entry is <name>\t<size>\t<mtime>, directories with size 0
+			int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32 "\t%" PRIu32, result->d_name, fileSize,
+					   fileTime);
 
-			if (include_time) {
-				ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32 "\t%" PRIu32, result->d_name, fileSize, fileTime);
-
-			} else {
-				ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32, result->d_name, fileSize);
+			if (!((ret > 0) && (ret < _work_buffer2_len))) {
+				_work_buffer2[_work_buffer2_len - 1] = '\0';
 			}
 
-			bool buf_is_ok = ((ret > 0) && (ret < _work_buffer2_len));
+		} else if (direntType == kDirentFile) {
+			// ListDirectory: files send <name>\t<size>
+			int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32, result->d_name, fileSize);
 
-			if (!buf_is_ok) {
+			if (!((ret > 0) && (ret < _work_buffer2_len))) {
 				_work_buffer2[_work_buffer2_len - 1] = '\0';
 			}
 
 		} else {
-			// Everything else just sends name
+			// ListDirectory: directories send only the name, existing clients take the whole string as the name
 			strncpy(_work_buffer2, result->d_name, _work_buffer2_len);
 			_work_buffer2[_work_buffer2_len - 1] = '\0';
 		}
