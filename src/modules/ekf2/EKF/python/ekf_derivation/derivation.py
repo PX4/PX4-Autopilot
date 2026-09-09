@@ -251,20 +251,22 @@ def jacobian_chain_rule(expr: sf.Scalar , state: State):
 def predict_vel_pos_closed_form(
     state: VState,
     d_vel: sf.V3,
-    d_vel_dt: sf.Scalar,
     d_ang: sf.V3,
-    d_ang_dt: sf.Scalar,
+    dt: sf.Scalar,
     g: sf.Scalar,
-    epsilon: sf.Scalar
+    c1: sf.Scalar,
+    c2: sf.Scalar,
+    c3: sf.Scalar
 ) -> (sf.V3, sf.V3):
 
     # Closed-form integration of accelerometer and gyro measurements based on
     # Goppert, James, et al. "A Closed-form Solution for the Strapdown Inertial Navigation Initial Value Problem." arXiv preprint arXiv:2310.04886 (2023).
 
+    # d_vel and d_ang are both integrated over dt, so the angle the c1..c3 coefficients are
+    # functions of is simply the norm of d_ang
     state = vstate_to_state(state)
-    gyro = d_ang / d_ang_dt
-    accel = d_vel / d_vel_dt
-    dt = d_vel_dt
+    gyro = d_ang / dt
+    accel = d_vel / dt
     R_0 = state["quat_nominal"].to_rotation_matrix()
 
     # The position column is left at zero so that the second output is a position increment:
@@ -283,18 +285,13 @@ def predict_vel_pos_closed_form(
         [0, 0]
     ])
 
+    # c1, c2 and c3 are functions of the rotation angle only, and cannot be evaluated
+    # symbolically here: their closed forms cancel catastrophically in single precision, so they
+    # are computed by math::trig_series, which switches to a series near zero
     def P(omega, A, B) -> sf.M32:
-        # C1, C2 and C3 are the closed forms of the series derived in the proof of Theorem 1:
-        # C1 = sum (-1)^n theta^2n / (2n+2)!, C2 = sum (-1)^n theta^2n / (2n+3)!, C3 = sum (-1)^n theta^2n / (2n+4)!
-        # The C1 and C3 printed in the statement of Theorem 1 each drop the n=0 term of their
-        # own series, so they do not match the proof; the forms below do.
-        theta = sf.sqrt(gyro.dot(gyro) * dt**2 + epsilon)
-        C1 = (1 - sf.cos(theta)) / theta**2
-        C2 = (theta - sf.sin(theta)) / theta**3
-        C3 = (theta**2 / 2 + sf.cos(theta) - 1) / theta**4
         P = A + (A * B) / 2
-        P += omega * A * (C1 * sf.M22.eye() + C2 * B)
-        P += omega * omega * A * (C2 * sf.M22.eye() + C3 * B)
+        P += omega * A * (c1 * sf.M22.eye() + c2 * B)
+        P += omega * omega * A * (c2 * sf.M22.eye() + c3 * B)
         return P
 
     P_M = P(sf.M33(), A_M * dt, -B * dt)

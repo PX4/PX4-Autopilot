@@ -18,11 +18,12 @@ namespace sym {
  * Args:
  *     state: Matrix25_1
  *     d_vel: Matrix31
- *     d_vel_dt: Scalar
  *     d_ang: Matrix31
- *     d_ang_dt: Scalar
+ *     dt: Scalar
  *     g: Scalar
- *     epsilon: Scalar
+ *     c1: Scalar
+ *     c2: Scalar
+ *     c3: Scalar
  *
  * Outputs:
  *     vel_new: Matrix31
@@ -30,92 +31,78 @@ namespace sym {
  */
 template <typename Scalar>
 void PredictVelPosClosedForm(const matrix::Matrix<Scalar, 25, 1>& state,
-                             const matrix::Matrix<Scalar, 3, 1>& d_vel, const Scalar d_vel_dt,
-                             const matrix::Matrix<Scalar, 3, 1>& d_ang, const Scalar d_ang_dt,
-                             const Scalar g, const Scalar epsilon,
+                             const matrix::Matrix<Scalar, 3, 1>& d_vel,
+                             const matrix::Matrix<Scalar, 3, 1>& d_ang, const Scalar dt,
+                             const Scalar g, const Scalar c1, const Scalar c2, const Scalar c3,
                              matrix::Matrix<Scalar, 3, 1>* const vel_new = nullptr,
                              matrix::Matrix<Scalar, 3, 1>* const delta_pos = nullptr) {
-  // Total ops: 171
+  // Total ops: 136
 
   // Input arrays
 
-  // Intermediate terms (58)
+  // Intermediate terms (45)
   const Scalar _tmp0 = 2 * state(0, 0);
-  const Scalar _tmp1 = _tmp0 * state(3, 0);
-  const Scalar _tmp2 = 2 * state(2, 0);
-  const Scalar _tmp3 = _tmp2 * state(1, 0);
-  const Scalar _tmp4 = -_tmp1 + _tmp3;
-  const Scalar _tmp5 = std::pow(d_ang_dt, Scalar(-2));
-  const Scalar _tmp6 = std::pow(d_vel_dt, Scalar(2));
-  const Scalar _tmp7 = _tmp5 * _tmp6 * d_ang(1, 0);
-  const Scalar _tmp8 = d_ang(2, 0) * d_vel(2, 0);
-  const Scalar _tmp9 = _tmp7 * d_ang(0, 0);
-  const Scalar _tmp10 = _tmp5 * std::pow(d_ang(2, 0), Scalar(2));
-  const Scalar _tmp11 = -_tmp10 * _tmp6;
-  const Scalar _tmp12 = _tmp5 * std::pow(d_ang(0, 0), Scalar(2));
-  const Scalar _tmp13 = -_tmp12 * _tmp6;
-  const Scalar _tmp14 = _tmp7 * _tmp8 + _tmp9 * d_vel(0, 0) + d_vel(1, 0) * (_tmp11 + _tmp13);
-  const Scalar _tmp15 = _tmp5 * std::pow(d_ang(1, 0), Scalar(2));
-  const Scalar _tmp16 = _tmp6 * (_tmp10 + _tmp12 + _tmp15) + epsilon;
-  const Scalar _tmp17 = std::sqrt(_tmp16);
-  const Scalar _tmp18 = (_tmp17 - std::sin(_tmp17)) / (_tmp16 * std::sqrt(_tmp16));
-  const Scalar _tmp19 = d_vel_dt / d_ang_dt;
-  const Scalar _tmp20 = _tmp19 * d_ang(0, 0);
-  const Scalar _tmp21 = d_ang(2, 0) * d_vel(0, 0);
-  const Scalar _tmp22 = _tmp19 * _tmp21 - _tmp20 * d_vel(2, 0);
-  const Scalar _tmp23 = std::cos(_tmp17);
-  const Scalar _tmp24 = (1 - _tmp23) / _tmp16;
-  const Scalar _tmp25 = _tmp14 * _tmp18 + _tmp22 * _tmp24 + d_vel(1, 0);
-  const Scalar _tmp26 = -2 * std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp27 = -2 * std::pow(state(2, 0), Scalar(2));
-  const Scalar _tmp28 = _tmp26 + _tmp27 + 1;
-  const Scalar _tmp29 = -_tmp15 * _tmp6;
-  const Scalar _tmp30 = _tmp5 * _tmp6 * d_ang(0, 0);
-  const Scalar _tmp31 = _tmp30 * _tmp8 + _tmp9 * d_vel(1, 0) + d_vel(0, 0) * (_tmp11 + _tmp29);
-  const Scalar _tmp32 = _tmp19 * d_ang(1, 0);
-  const Scalar _tmp33 = d_ang(2, 0) * d_vel(1, 0);
-  const Scalar _tmp34 = -_tmp19 * _tmp33 + _tmp32 * d_vel(2, 0);
-  const Scalar _tmp35 = _tmp18 * _tmp31 + _tmp24 * _tmp34 + d_vel(0, 0);
-  const Scalar _tmp36 = _tmp2 * state(0, 0);
-  const Scalar _tmp37 = 2 * state(1, 0) * state(3, 0);
-  const Scalar _tmp38 = _tmp36 + _tmp37;
-  const Scalar _tmp39 = _tmp20 * d_vel(1, 0) - _tmp32 * d_vel(0, 0);
-  const Scalar _tmp40 = _tmp21 * _tmp30 + _tmp33 * _tmp7 + d_vel(2, 0) * (_tmp13 + _tmp29);
-  const Scalar _tmp41 = _tmp18 * _tmp40 + _tmp24 * _tmp39 + d_vel(2, 0);
-  const Scalar _tmp42 = 1 - 2 * std::pow(state(1, 0), Scalar(2));
-  const Scalar _tmp43 = _tmp26 + _tmp42;
-  const Scalar _tmp44 = _tmp1 + _tmp3;
-  const Scalar _tmp45 = _tmp2 * state(3, 0);
-  const Scalar _tmp46 = _tmp0 * state(1, 0);
-  const Scalar _tmp47 = _tmp45 - _tmp46;
-  const Scalar _tmp48 = _tmp45 + _tmp46;
-  const Scalar _tmp49 = -_tmp36 + _tmp37;
-  const Scalar _tmp50 = _tmp27 + _tmp42;
-  const Scalar _tmp51 = d_vel_dt * g + state(6, 0);
-  const Scalar _tmp52 = _tmp18 * d_vel_dt;
-  const Scalar _tmp53 = (Scalar(1) / Scalar(2)) * d_vel_dt;
-  const Scalar _tmp54 =
-      d_vel_dt * ((Scalar(1) / Scalar(2)) * _tmp16 + _tmp23 - 1) / std::pow(_tmp16, Scalar(2));
-  const Scalar _tmp55 = _tmp31 * _tmp54 + _tmp34 * _tmp52 + _tmp53 * d_vel(0, 0);
-  const Scalar _tmp56 = _tmp39 * _tmp52 + _tmp40 * _tmp54 + _tmp53 * d_vel(2, 0);
-  const Scalar _tmp57 = _tmp14 * _tmp54 + _tmp22 * _tmp52 + _tmp53 * d_vel(1, 0);
+  const Scalar _tmp1 = _tmp0 * state(2, 0);
+  const Scalar _tmp2 = 2 * state(1, 0);
+  const Scalar _tmp3 = _tmp2 * state(3, 0);
+  const Scalar _tmp4 = _tmp1 + _tmp3;
+  const Scalar _tmp5 = d_ang(0, 0) * d_vel(1, 0);
+  const Scalar _tmp6 = d_ang(1, 0) * d_vel(0, 0);
+  const Scalar _tmp7 = _tmp5 - _tmp6;
+  const Scalar _tmp8 = -std::pow(d_ang(1, 0), Scalar(2));
+  const Scalar _tmp9 = -std::pow(d_ang(0, 0), Scalar(2));
+  const Scalar _tmp10 = d_ang(2, 0) * d_vel(0, 0);
+  const Scalar _tmp11 = d_ang(2, 0) * d_vel(1, 0);
+  const Scalar _tmp12 = _tmp10 * d_ang(0, 0) + _tmp11 * d_ang(1, 0) + d_vel(2, 0) * (_tmp8 + _tmp9);
+  const Scalar _tmp13 = _tmp12 * c2 + _tmp7 * c1 + d_vel(2, 0);
+  const Scalar _tmp14 = _tmp0 * state(3, 0);
+  const Scalar _tmp15 = _tmp2 * state(2, 0);
+  const Scalar _tmp16 = -_tmp14 + _tmp15;
+  const Scalar _tmp17 = d_ang(0, 0) * d_vel(2, 0);
+  const Scalar _tmp18 = _tmp10 - _tmp17;
+  const Scalar _tmp19 = -std::pow(d_ang(2, 0), Scalar(2));
+  const Scalar _tmp20 = d_ang(1, 0) * d_vel(2, 0);
+  const Scalar _tmp21 = _tmp20 * d_ang(2, 0) + _tmp6 * d_ang(0, 0) + d_vel(1, 0) * (_tmp19 + _tmp9);
+  const Scalar _tmp22 = _tmp18 * c1 + _tmp21 * c2 + d_vel(1, 0);
+  const Scalar _tmp23 = -2 * std::pow(state(3, 0), Scalar(2));
+  const Scalar _tmp24 = 1 - 2 * std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp25 = _tmp23 + _tmp24;
+  const Scalar _tmp26 = -_tmp11 + _tmp20;
+  const Scalar _tmp27 = _tmp17 * d_ang(2, 0) + _tmp5 * d_ang(1, 0) + d_vel(0, 0) * (_tmp19 + _tmp8);
+  const Scalar _tmp28 = _tmp26 * c1 + _tmp27 * c2 + d_vel(0, 0);
+  const Scalar _tmp29 = 2 * state(2, 0) * state(3, 0);
+  const Scalar _tmp30 = _tmp2 * state(0, 0);
+  const Scalar _tmp31 = _tmp29 - _tmp30;
+  const Scalar _tmp32 = -2 * std::pow(state(1, 0), Scalar(2));
+  const Scalar _tmp33 = _tmp23 + _tmp32 + 1;
+  const Scalar _tmp34 = _tmp14 + _tmp15;
+  const Scalar _tmp35 = _tmp24 + _tmp32;
+  const Scalar _tmp36 = _tmp29 + _tmp30;
+  const Scalar _tmp37 = -_tmp1 + _tmp3;
+  const Scalar _tmp38 = dt * g + state(6, 0);
+  const Scalar _tmp39 = (Scalar(1) / Scalar(2)) * dt;
+  const Scalar _tmp40 = c2 * dt;
+  const Scalar _tmp41 = c3 * dt;
+  const Scalar _tmp42 = _tmp26 * _tmp40 + _tmp27 * _tmp41 + _tmp39 * d_vel(0, 0);
+  const Scalar _tmp43 = _tmp18 * _tmp40 + _tmp21 * _tmp41 + _tmp39 * d_vel(1, 0);
+  const Scalar _tmp44 = _tmp12 * _tmp41 + _tmp39 * d_vel(2, 0) + _tmp40 * _tmp7;
 
   // Output terms (2)
   if (vel_new != nullptr) {
     matrix::Matrix<Scalar, 3, 1>& _vel_new = (*vel_new);
 
-    _vel_new(0, 0) = _tmp25 * _tmp4 + _tmp28 * _tmp35 + _tmp38 * _tmp41 + state(4, 0);
-    _vel_new(1, 0) = _tmp25 * _tmp43 + _tmp35 * _tmp44 + _tmp41 * _tmp47 + state(5, 0);
-    _vel_new(2, 0) = _tmp25 * _tmp48 + _tmp35 * _tmp49 + _tmp41 * _tmp50 + _tmp51;
+    _vel_new(0, 0) = _tmp13 * _tmp4 + _tmp16 * _tmp22 + _tmp25 * _tmp28 + state(4, 0);
+    _vel_new(1, 0) = _tmp13 * _tmp31 + _tmp22 * _tmp33 + _tmp28 * _tmp34 + state(5, 0);
+    _vel_new(2, 0) = _tmp13 * _tmp35 + _tmp22 * _tmp36 + _tmp28 * _tmp37 + _tmp38;
   }
 
   if (delta_pos != nullptr) {
     matrix::Matrix<Scalar, 3, 1>& _delta_pos = (*delta_pos);
 
-    _delta_pos(0, 0) = _tmp28 * _tmp55 + _tmp38 * _tmp56 + _tmp4 * _tmp57 + d_vel_dt * state(4, 0);
-    _delta_pos(1, 0) = _tmp43 * _tmp57 + _tmp44 * _tmp55 + _tmp47 * _tmp56 + d_vel_dt * state(5, 0);
-    _delta_pos(2, 0) = _tmp48 * _tmp57 + _tmp49 * _tmp55 + _tmp50 * _tmp56 + _tmp51 * d_vel_dt -
-                       Scalar(1) / Scalar(2) * _tmp6 * g;
+    _delta_pos(0, 0) = _tmp16 * _tmp43 + _tmp25 * _tmp42 + _tmp4 * _tmp44 + dt * state(4, 0);
+    _delta_pos(1, 0) = _tmp31 * _tmp44 + _tmp33 * _tmp43 + _tmp34 * _tmp42 + dt * state(5, 0);
+    _delta_pos(2, 0) = _tmp35 * _tmp44 + _tmp36 * _tmp43 + _tmp37 * _tmp42 + _tmp38 * dt -
+                       Scalar(1) / Scalar(2) * std::pow(dt, Scalar(2)) * g;
   }
 }  // NOLINT(readability/fn_size)
 

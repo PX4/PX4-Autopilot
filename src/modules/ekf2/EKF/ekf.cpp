@@ -43,6 +43,7 @@
 
 #include <mathlib/mathlib.h>
 #include <ekf_derivation/generated/predict_vel_pos_closed_form.h>
+#include <ekf_derivation/generated/trig_series.h>
 
 bool Ekf::init(uint64_t timestamp)
 {
@@ -250,11 +251,20 @@ void Ekf::predictState(const imuSample &imu_delayed)
 
 	const Vector3f vel_last = _state.vel;
 
-	// The closed-form propagation uses the attitude at the beginning of the integration interval,
-	// so it must run before the quaternion is updated
+	// The closed form integrates both measurements over a single interval, so rescale the
+	// rotation vector to the velocity integration period
+	const Vector3f delta_ang_scaled = corrected_delta_ang * (imu_delayed.delta_vel_dt / imu_delayed.delta_ang_dt);
+	const float theta_sq = delta_ang_scaled.norm_squared();
+
+	// The closed form uses the attitude at the beginning of the integration interval, so it must
+	// run before the quaternion is updated
 	Vector3f delta_pos;
-	sym::PredictVelPosClosedForm(_state.vector(), corrected_delta_vel, imu_delayed.delta_vel_dt,
-				     corrected_delta_ang, imu_delayed.delta_ang_dt, _gravity, FLT_EPSILON, &_state.vel, &delta_pos);
+	sym::PredictVelPosClosedForm(_state.vector(), corrected_delta_vel, delta_ang_scaled,
+				     imu_delayed.delta_vel_dt, _gravity,
+				     math::trig_series::c1(theta_sq),
+				     math::trig_series::c2(theta_sq),
+				     math::trig_series::c3(theta_sq),
+				     &_state.vel, &delta_pos);
 
 	const Vector3f coriolis_acceleration = -2.f * _earth_rate_NED.cross(vel_last);
 	const Vector3f transport_rate = -_gpos.computeAngularRateNavFrame(vel_last).cross(vel_last);
