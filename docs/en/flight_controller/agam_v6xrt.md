@@ -182,7 +182,7 @@ It will be pre-built and automatically installed by _QGroundControl_ when approp
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
-make agam-robotics_fmu-v6xrt_default
+make agam_fmu-v6xrt_default
 ```
 
 ## Debug Port {#debug_port}
