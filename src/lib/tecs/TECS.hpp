@@ -467,6 +467,14 @@ private:
 	 */
 	SpecificEnergyRates _calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint, const Input &input) const;
 	/**
+	 * @brief Calculate the specific kinetic energy rate setpoint at the current airspeed.
+	 *
+	 * @param control_setpoint is the controlled altitude and airspeed rate setpoints.
+	 * @param input is the current input measurement of the UAS.
+	 * @return specific kinetic energy rate setpoint in [m²/s³].
+	 */
+	static float _calcSkeRateSetpoint(const AltitudePitchControl &control_setpoint, const Input &input);
+	/**
 	 * @brief Project the controlled altitude rate setpoint onto the envelope the aircraft can fly.
 	 *
 	 * The altitude rate setpoint is backed off such that

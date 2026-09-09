@@ -356,7 +356,7 @@ void TECSControl::_projectAltitudeRateSetpointToEnvelope(AltitudePitchControl &c
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
 	const float ste_rate_max = math::lerp(limit.STE_rate_max, limit.STE_rate_min, param.fast_descend);
 	const float turn_drag_offset = param.load_factor_correction * (param.load_factor - 1.f);
-	const float ske_rate_setpoint = control_setpoint.tas_setpoint * control_setpoint.tas_rate_setpoint;
+	const float ske_rate_setpoint = _calcSkeRateSetpoint(control_setpoint, input);
 	const float altitude_rate_max_throttle = (ste_rate_max - turn_drag_offset - ske_rate_setpoint) / CONSTANTS_ONE_G;
 	const float altitude_rate_min_throttle = (limit.STE_rate_min - turn_drag_offset - ske_rate_setpoint) /
 			CONSTANTS_ONE_G;
@@ -394,6 +394,16 @@ void TECSControl::_projectAltitudeRateSetpointToEnvelope(AltitudePitchControl &c
 	}
 }
 
+float TECSControl::_calcSkeRateSetpoint(const AltitudePitchControl &control_setpoint, const Input &input)
+{
+	// Kinetic energy rate of change: d/dt(V^2/2) = V * dV/dt at the current airspeed, not the airspeed setpoint,
+	// otherwise the demand is off by the airspeed error ratio (half the required energy rate when decelerating
+	// from twice the setpoint). Fall back to the setpoint when the airspeed is unavailable, where the rate
+	// setpoint is zero anyway.
+	const float tas = (PX4_ISFINITE(input.tas) && input.tas > FLT_EPSILON) ? input.tas : control_setpoint.tas_setpoint;
+	return tas * control_setpoint.tas_rate_setpoint;
+}
+
 TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint,
 		const Input &input) const
 {
@@ -401,8 +411,7 @@ TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const Alt
 	// Calculate specific energy rate demands in units of (m**2/sec**3)
 	specific_energy_rates.spe_rate.setpoint = control_setpoint.altitude_rate_setpoint *
 			CONSTANTS_ONE_G; // potential energy rate of change
-	specific_energy_rates.ske_rate.setpoint = control_setpoint.tas_setpoint *
-			control_setpoint.tas_rate_setpoint; // kinetic energy rate of change
+	specific_energy_rates.ske_rate.setpoint = _calcSkeRateSetpoint(control_setpoint, input);
 
 	// Calculate specific energy rates in units of (m**2/sec**3)
 	specific_energy_rates.spe_rate.estimate = input.altitude_rate * CONSTANTS_ONE_G; // potential energy rate of change
