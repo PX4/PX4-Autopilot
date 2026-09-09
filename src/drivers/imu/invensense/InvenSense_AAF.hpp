@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,67 +31,48 @@
  *
  ****************************************************************************/
 
-#include "IIM42652.hpp"
+/**
+ * @file InvenSense_AAF.hpp
+ *
+ * Anti-alias filter presets for the ICM-4268x / IIM-4265x family, selected
+ * with the drivers' -B <hz> start option. Coefficients from the datasheet
+ * "anti-alias filter bandwidth" table; the UI filter code is the ODR/N
+ * setting of GYRO_ACCEL_CONFIG0 at the drivers' 8 kHz ODR.
+ */
 
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
+#pragma once
 
-void IIM42652::print_usage()
+#include <stddef.h>
+#include <stdint.h>
+
+namespace InvenSense_AAF
 {
-	PRINT_MODULE_USAGE_NAME("iim42652", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_PARAM_INT('C', 0, 0, 35000, "Input clock frequency (Hz)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('B', 0, 0, 394, "Anti-alias filter bandwidth: 126, 258 or 394 Hz (0: chip default 585 Hz)", true);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
 
-extern "C" int iim42652_main(int argc, char *argv[])
+struct Preset {
+	uint16_t bandwidth_hz;
+	uint8_t delt;        // *_AAF_DELT
+	uint16_t deltsqr;    // *_AAF_DELTSQR
+	uint8_t bitshift;    // *_AAF_BITSHIFT
+	uint8_t ui_filt_bw;  // *_UI_FILT_BW code: 6 = ODR/20 (400 Hz), 7 = ODR/40 (200 Hz)
+};
+
+// The chip default is 585 Hz with a 1st-order UI filter at ODR/2; these are the
+// alternatives for boards that decimate to 1 kHz or below.
+inline constexpr Preset kPresets[] {
+	{126, 3,  9, 12, 7},
+	{258, 6, 36, 10, 7},
+	{394, 9, 81,  9, 6},
+};
+
+inline const Preset *preset(uint32_t bandwidth_hz)
 {
-	int ch;
-	using ThisDriver = IIM42652;
-	BusCLIArguments cli{false, true};
-	cli.default_spi_frequency = SPI_SPEED;
-
-	while ((ch = cli.getOpt(argc, argv, "B:C:R:")) != EOF) {
-		switch (ch) {
-		case 'B':
-			cli.custom2 = atoi(cli.optArg());
-			break;
-
-		case 'C':
-			cli.custom1 = atoi(cli.optArg());
-			break;
-
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+	for (const auto &p : kPresets) {
+		if (p.bandwidth_hz == bandwidth_hz) {
+			return &p;
 		}
 	}
 
-	const char *verb = cli.optArg();
-
-	if (!verb) {
-		ThisDriver::print_usage();
-		return -1;
-	}
-
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_IIM42652);
-
-	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
-	}
-
-	if (!strcmp(verb, "stop")) {
-		return ThisDriver::module_stop(iterator);
-	}
-
-	if (!strcmp(verb, "status")) {
-		return ThisDriver::module_status(iterator);
-	}
-
-	ThisDriver::print_usage();
-	return -1;
+	return nullptr;
 }
+
+} // namespace InvenSense_AAF

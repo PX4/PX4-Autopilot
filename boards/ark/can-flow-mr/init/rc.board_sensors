@@ -10,6 +10,6 @@ param set-default SENS_IMU_CLPNOTI 0
 # Internal SPI
 paa3905 -s start -Y 180
 
-iim42653 -R 0 -s start
+iim42653 -R 0 -B 258 -s start
 
 afbrs50 start
