@@ -92,6 +92,11 @@ void Ekf::reset()
 
 	_fault_status.value = 0;
 
+#if defined(CONFIG_EKF2_GNSS)
+	_gnss_checks = {};
+	_initial_checks_passed_prev = false;
+#endif // CONFIG_EKF2_GNSS
+
 	_local_origin_alt = NAN;
 
 	_output_predictor.reset();

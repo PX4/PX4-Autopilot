@@ -227,7 +227,7 @@ private:
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
-	void UpdateGpsChecksSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateGpsChecksSample();
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);

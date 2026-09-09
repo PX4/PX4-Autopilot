@@ -805,7 +805,7 @@ void EKF2::Run()
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
 		UpdateGpsSample(ekf2_timestamps);
-		UpdateGpsChecksSample(ekf2_timestamps);
+		UpdateGpsChecksSample();
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		UpdateMagSample(ekf2_timestamps);
@@ -1946,7 +1946,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_GNSS)
 	// only report enabled GPS check failures
-	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value; //TODO: change these functions to read checks from msg
+	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value;
 #endif // CONFIG_EKF2_GNSS
 
 	status.control_mode_flags = _ekf.control_status().value;
@@ -2686,26 +2686,27 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 
-void EKF2::UpdateGpsChecksSample(ekf2_timestamps_s &ekf2_timestamps)
+void EKF2::UpdateGpsChecksSample()
 {
-	// EKF GPS checks message
+	// Latest GNSS check status published by the sensors module. It is a status topic (latest-wins):
+	// only forward new publications and otherwise keep the previous one, never an unpublished message.
 	sensor_gps_checks_s vehicle_gps_position_checks;
 
-	_vehicle_gps_position_checks_sub.copy(&vehicle_gps_position_checks);
+	if (_vehicle_gps_position_checks_sub.update(&vehicle_gps_position_checks)) {
+		const gnssChecksSample gnss_checks_sample{
+			.time_us = vehicle_gps_position_checks.timestamp,
+			.position_drift_rate_horizontal_m_s = vehicle_gps_position_checks.position_drift_rate_horizontal_m_s,
+			.position_drift_rate_vertical_m_s = vehicle_gps_position_checks.position_drift_rate_vertical_m_s,
+			.filtered_horizontal_speed_m_s = vehicle_gps_position_checks.filtered_horizontal_speed_m_s,
+			.check_fail_status = {.value = vehicle_gps_position_checks.flags},
+			.time_last_pass_us = vehicle_gps_position_checks.time_last_pass,
+			.time_last_fail_us = vehicle_gps_position_checks.time_last_fail,
+			.checks_passed = vehicle_gps_position_checks.checks_passed,
+			.initial_checks_passed = vehicle_gps_position_checks.initial_checks_passed,
+		};
 
-	gnssChecksSample gnss_checks_sample{
-		.time_us = vehicle_gps_position_checks.timestamp,
-		.position_drift_rate_horizontal_m_s = vehicle_gps_position_checks.position_drift_rate_horizontal_m_s,
-		.position_drift_rate_vertical_m_s = vehicle_gps_position_checks.position_drift_rate_vertical_m_s,
-		.filtered_horizontal_speed_m_s = vehicle_gps_position_checks.filtered_horizontal_speed_m_s,
-		.check_fail_status = { .value = vehicle_gps_position_checks.flags },
-		.time_last_pass_us = vehicle_gps_position_checks.time_last_pass,
-		.time_last_fail_us = vehicle_gps_position_checks.time_last_fail,
-		.checks_passed = vehicle_gps_position_checks.checks_passed,
-		.initial_checks_passed = vehicle_gps_position_checks.initial_checks_passed,
-	};
-
-	_ekf.setGpsChecksData(gnss_checks_sample);
+		_ekf.setGpsChecksData(gnss_checks_sample);
+	}
 }
 
 float EKF2::altEllipsoidToAmsl(float ellipsoid_alt) const

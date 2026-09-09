@@ -316,3 +316,23 @@ TEST_F(EkfGpsTest, gnssIntermittentSaccFailureDisablesFusion)
 	// and reset_timeout_max was exceeded since the last real pass.
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 }
+
+TEST_F(EkfGpsTest, briefCheckFailureDoesNotStopFusionImmediately)
+{
+	// GIVEN: EKF that fuses GPS
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	const uint64_t last_fuse = _ekf->aid_src_gnss_pos().time_last_fuse;
+
+	// WHEN: the checks fail briefly
+	_sensor_simulator._gps.setFixType(0);
+	_sensor_simulator._gps.setFixTypeFail(true);
+	_sensor_simulator.runSeconds(0.4f);
+
+	// THEN: the failing samples are skipped but the fusion is not stopped yet
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_EQ(_ekf->aid_src_gnss_pos().time_last_fuse, last_fuse);
+
+	// AND: it stops once the checks have been failing for reset_timeout_max
+	_sensor_simulator.runSeconds(7.f);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+}
