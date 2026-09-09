@@ -39,6 +39,7 @@
 #define EKF_GPS_H
 
 #include "sensor.h"
+#include <gnss_checks.hpp>
 
 namespace sensor_simulator
 {
@@ -52,7 +53,6 @@ public:
 	~Gps();
 
 	void setMinRequiredGpsHealthTime(const uint64_t time_us);
-	void setInAirStatus(bool in_air);
 	void setData(const gnssSample &gps);
 	void stepHeightByMeters(const float hgt_change);
 	void stepHorizontalPositionByMeters(const Vector2f hpos_change);
@@ -64,7 +64,6 @@ public:
 	void setYaw(const float yaw);
 	void setYawOffset(const float yaw);
 	void setFixType(const int fix_type);
-	void setFixTypeFail(const bool fail);
 	void setNumberOfSatellites(const int num_satellites);
 	void setPdop(const float pdop);
 
@@ -75,13 +74,10 @@ private:
 	void send(uint64_t time) override;
 
 	static constexpr uint64_t kGpsDelayUs{110000};
-	static constexpr uint64_t kGpsChecksDelayUs{100000};
-
-	bool _in_air{false};
-	uint64_t _min_gps_health_time_us{10000000};
 
 	gnssSample _gps_data{};
-	gnssChecksSample _gps_checks_data{};
+	GnssChecks _checks{};
+	GnssChecks::Params _check_params{};
 	Vector3f _gps_pos_rate{};
 };
 

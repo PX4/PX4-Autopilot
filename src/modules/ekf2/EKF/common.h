@@ -226,16 +226,17 @@ union gps_check_fail_status_u {
 	uint16_t value;
 };
 
-struct gnssChecksSample {
-	uint64_t    		   time_us{};    			  ///< timestamp of the measurement (uSec)
-	float 	                   position_drift_rate_horizontal_m_s{};  ///< Horizontal position rate magnitude (m/s)
-	float 	    	           position_drift_rate_vertical_m_s{};    ///< Vertical position rate magnitude (m/s)
-	float 	    		   filtered_horizontal_speed_m_s{};       ///< Filtered horizontal velocity magnitude (m/s)
-	gps_check_fail_status_u    check_fail_status{};        	          ///< Bitmask to indicate status of GPS checks
-	uint64_t    		   time_last_pass_us{};			  ///< timestamp of last passing sample (uSec)
-	uint64_t    		   time_last_fail_us{};			  ///< timestamp of last failing sample (uSec)
-	bool	    		   checks_passed{false};		  ///< true if GNSS checks passed
-	bool	    		   initial_checks_passed{false};	  ///< true if initial GNSS checks passed
+// Latest GNSS qualification published by the sensors module. This is a status (latest-wins): the EKF
+// applies it to whatever GNSS sample it fuses next and never matches it to a sample by timestamp.
+struct gnssCheckStatus {
+	float position_drift_rate_horizontal_m_s{NAN}; ///< Horizontal position drift rate magnitude (m/s)
+	float position_drift_rate_vertical_m_s{NAN};   ///< Vertical position drift rate magnitude (m/s)
+	float filtered_horizontal_speed_m_s{NAN};     ///< Filtered horizontal velocity magnitude (m/s)
+	gps_check_fail_status_u check_fail_status{};  ///< Failed checks among those required by GPS_CHECK
+	uint64_t time_last_pass_us{};                 ///< Timestamp of last qualified measurement (us)
+	uint64_t time_last_fail_us{};                 ///< Timestamp of last failing measurement (us)
+	bool checks_passed{false};
+	bool initial_checks_passed{false};
 };
 
 struct magSample {

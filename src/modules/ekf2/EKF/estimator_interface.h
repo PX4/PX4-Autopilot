@@ -86,7 +86,7 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS)
 	void setGpsData(const gnssSample &gnss_sample);
-	void setGpsChecksData(const gnssChecksSample &gnss_checks_sample);
+	void setGpsChecksData(const gnssCheckStatus &gnss_checks);
 
 	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
@@ -401,7 +401,7 @@ protected:
 	uint64_t _time_last_gps_buffer_push{0};
 
 	gnssSample _gps_sample_delayed{};
-	gnssChecksSample _gnss_checks{};
+	gnssCheckStatus _gnss_checks{};
 
 	bool _initial_checks_passed_prev{false};
 

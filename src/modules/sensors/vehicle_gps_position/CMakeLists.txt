@@ -31,11 +31,16 @@
 #
 ############################################################################
 
+px4_add_library(gnss_checks
+	gnss_checks.cpp
+	gnss_checks.hpp
+)
+target_link_libraries(gnss_checks PRIVATE geo)
+target_include_directories(gnss_checks PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 px4_add_library(vehicle_gps_position
 	VehicleGPSPosition.cpp
 	VehicleGPSPosition.hpp
-	gnss_checks.cpp
-	gnss_checks.hpp
 	gps_blending.cpp
 	gps_blending.hpp
 	PpsTimeSync.cpp
@@ -44,6 +49,7 @@ px4_add_library(vehicle_gps_position
 target_link_libraries(vehicle_gps_position
 	PRIVATE
 		geo
+		gnss_checks
 		px4_work_queue
 )
 

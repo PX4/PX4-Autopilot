@@ -2693,8 +2693,7 @@ void EKF2::UpdateGpsChecksSample()
 	sensor_gps_checks_s vehicle_gps_position_checks;
 
 	if (_vehicle_gps_position_checks_sub.update(&vehicle_gps_position_checks)) {
-		const gnssChecksSample gnss_checks_sample{
-			.time_us = vehicle_gps_position_checks.timestamp,
+		const gnssCheckStatus gnss_checks{
 			.position_drift_rate_horizontal_m_s = vehicle_gps_position_checks.position_drift_rate_horizontal_m_s,
 			.position_drift_rate_vertical_m_s = vehicle_gps_position_checks.position_drift_rate_vertical_m_s,
 			.filtered_horizontal_speed_m_s = vehicle_gps_position_checks.filtered_horizontal_speed_m_s,
@@ -2705,7 +2704,7 @@ void EKF2::UpdateGpsChecksSample()
 			.initial_checks_passed = vehicle_gps_position_checks.initial_checks_passed,
 		};
 
-		_ekf.setGpsChecksData(gnss_checks_sample);
+		_ekf.setGpsChecksData(gnss_checks);
 	}
 }
 

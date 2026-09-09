@@ -7,7 +7,7 @@ namespace sensor
 
 Gps::Gps(std::shared_ptr<Ekf> ekf): Sensor(ekf)
 {
-	_gps_checks_data.check_fail_status.value = 0;
+	_checks.setParams(_check_params);
 }
 
 Gps::~Gps()
@@ -19,7 +19,6 @@ void Gps::send(const uint64_t time)
 	const float dt = static_cast<float>(time - _gps_data.time_us - kGpsDelayUs) * 1e-6f;
 
 	_gps_data.time_us = time - kGpsDelayUs;
-	_gps_checks_data.time_us = time - kGpsChecksDelayUs;
 
 	if (fabsf(_gps_pos_rate(0)) > FLT_EPSILON || fabsf(_gps_pos_rate(1)) > FLT_EPSILON) {
 		stepHorizontalPositionByMeters(Vector2f(_gps_pos_rate) * dt);
@@ -30,48 +29,44 @@ void Gps::send(const uint64_t time)
 	}
 
 
-	// Simulate GPS checks from hub
-	if (_gps_checks_data.time_last_fail_us == 0) {
-		_gps_checks_data.time_last_fail_us = _gps_checks_data.time_us;
-	}
+	gnssChecksSample sample{};
+	sample.time_us = _gps_data.time_us;
+	sample.lat = _gps_data.lat;
+	sample.lon = _gps_data.lon;
+	sample.alt = _gps_data.alt;
+	sample.vel = _gps_data.vel;
+	sample.hacc = _gps_data.hacc;
+	sample.vacc = _gps_data.vacc;
+	sample.sacc = _gps_data.sacc;
+	sample.fix_type = _gps_data.fix_type;
+	sample.nsats = _gps_data.nsats;
+	sample.pdop = _gps_data.pdop;
+	sample.spoofed = _gps_data.spoofed;
+	sample.jammed = _gps_data.jammed;
 
-	if (!_in_air) {
-		_gps_checks_data.initial_checks_passed = false;
-	}
+	// Use the real sensor-layer checks and the same simulated vehicle state as the EKF.
+	const auto &control_status = _ekf->control_status_flags();
+	_checks.run(sample, control_status.in_air, control_status.vehicle_at_rest);
 
-	if (_gps_checks_data.initial_checks_passed) {
-		if (_gps_checks_data.check_fail_status.value == 0) {
-			_gps_checks_data.checks_passed = (_gps_checks_data.time_us - _gps_checks_data.time_last_fail_us) > (_min_gps_health_time_us / 10);
+	gnssCheckStatus checks{};
+	checks.checks_passed = _checks.passed();
+	checks.initial_checks_passed = _checks.initialChecksPassed();
+	checks.time_last_pass_us = _checks.getLastPassUs();
+	checks.time_last_fail_us = _checks.getLastFailUs();
+	checks.check_fail_status.value = _checks.getFailStatus().value & _checks.getEnabledChecksFailStatusMask();
+	checks.position_drift_rate_horizontal_m_s = _checks.horizontal_position_drift_rate_m_s();
+	checks.position_drift_rate_vertical_m_s = _checks.vertical_position_drift_rate_m_s();
+	checks.filtered_horizontal_speed_m_s = _checks.filtered_horizontal_velocity_m_s();
 
-		} else {
-			_gps_checks_data.time_last_fail_us = _gps_checks_data.time_us;
-		}
-
-	} else {
-		if (_gps_checks_data.check_fail_status.value == 0) {
-			_gps_checks_data.initial_checks_passed = (_gps_checks_data.time_us - _gps_checks_data.time_last_fail_us) > _min_gps_health_time_us;
-			_gps_checks_data.checks_passed = _gps_checks_data.initial_checks_passed;
-
-		} else {
-			_gps_checks_data.time_last_fail_us = _gps_checks_data.time_us;
-		}
-	}
-
-	if (_gps_checks_data.checks_passed) { _gps_checks_data.time_last_pass_us = _gps_checks_data.time_us; }
-
-	_ekf->setGpsChecksData(_gps_checks_data);
-
+	// Status topic contract: the EKF applies the latest result to whatever sample it fuses next
+	_ekf->setGpsChecksData(checks);
 	_ekf->setGpsData(_gps_data);
 }
 
 void Gps::setMinRequiredGpsHealthTime(const uint64_t time_us)
 {
-	_min_gps_health_time_us = time_us;
-}
-
-void Gps::setInAirStatus(const bool in_air)
-{
-	_in_air = in_air;
+	_check_params.min_health_time_us = time_us;
+	_checks.setParams(_check_params);
 }
 
 void Gps::setData(const gnssSample &gps)
@@ -112,12 +107,6 @@ void Gps::setYawOffset(const float yaw_offset)
 void Gps::setFixType(const int fix_type)
 {
 	_gps_data.fix_type = fix_type;
-}
-
-void Gps::setFixTypeFail(const bool fail)
-{
-	_gps_checks_data.check_fail_status.flags.fix = fail;
-	_gps_checks_data.checks_passed = !fail;
 }
 
 void Gps::setNumberOfSatellites(const int num_satellites)

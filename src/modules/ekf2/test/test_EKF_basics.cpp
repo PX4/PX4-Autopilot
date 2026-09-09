@@ -259,6 +259,7 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_initialized)
 	_sensor_simulator.setGpsLatitude(_latitude_new);
 	_sensor_simulator.setGpsLongitude(_longitude_new);
 	_sensor_simulator.setGpsAltitude(_altitude_new);
+	_sensor_simulator._gps.setMinRequiredGpsHealthTime(1e6);
 	_sensor_simulator.runSeconds(1);
 	_sensor_simulator.runSeconds(5);
 

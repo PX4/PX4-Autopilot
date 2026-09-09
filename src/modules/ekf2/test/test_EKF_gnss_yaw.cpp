@@ -267,7 +267,6 @@ TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
 	float gps_heading = _ekf_wrapper.getYawAngle();
 	_sensor_simulator._gps.setYaw(gps_heading);
 	_sensor_simulator.runSeconds(1);
-	_sensor_simulator._gps.setInAirStatus(false);
 	_ekf->set_in_air_status(false);
 
 	// WHEN: the measurement suddenly changes
@@ -276,13 +275,15 @@ TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
 	_sensor_simulator._gps.setYaw(gps_heading);
 	_sensor_simulator.runSeconds(8);
 
-	// THEN: the fusion should stop, reset to mag
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
+	// THEN: the fusion should stop and reset to mag (first reset). The receiver status published by the
+	// sensors module is not affected by the EKF stopping a fusion (a heading jump is not a GNSS quality
+	// failure), so GNSS yaw fusion restarts right away by resetting to the new heading (second reset)
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);
+	EXPECT_LT(fabsf(matrix::wrap_pi(_ekf_wrapper.getYawAngle() - gps_heading)), math::radians(1.f));
 
-	// AND THEN: restart GNSS yaw fusion
-	// The strict checks on ground require min_health_time_us (10s) to pass again.
+	// AND THEN: the fusion is stable on the new heading
 	_sensor_simulator.runSeconds(11);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);

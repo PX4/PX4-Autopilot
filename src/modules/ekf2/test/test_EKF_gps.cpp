@@ -94,7 +94,6 @@ TEST_F(EkfGpsTest, gpsTimeout)
 
 	// WHEN: the fix type drops
 	_sensor_simulator._gps.setFixType(0);
-	_sensor_simulator._gps.setFixTypeFail(true);
 
 
 	// THEN: the GNSS fusion stops after some time
@@ -103,7 +102,6 @@ TEST_F(EkfGpsTest, gpsTimeout)
 
 	// BUT WHEN: the fix type is good again
 	_sensor_simulator._gps.setFixType(3);
-	_sensor_simulator._gps.setFixTypeFail(false);
 
 	// THEN: the GNSS fusion restarts
 	_sensor_simulator.runSeconds(6);
@@ -117,7 +115,6 @@ TEST_F(EkfGpsTest, gpsFixLoss)
 
 	// WHEN: the fix is loss
 	_sensor_simulator._gps.setFixType(0);
-	_sensor_simulator._gps.setFixTypeFail(true);
 
 	// THEN: after dead-reconing for a couple of seconds, the local position gets invalidated
 	_sensor_simulator.runSeconds(6);
@@ -151,8 +148,19 @@ TEST_F(EkfGpsTest, resetToGpsVelocity)
 
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
-	_sensor_simulator.runSeconds(1.11); // required to pass the checks
-	_sensor_simulator.runMicroseconds(dt_us);
+
+	// The receiver status published by the sensors module is still healthy (an outage is not a GNSS
+	// quality failure), so the fusion restarts with the first sample after the outage. Run until the
+	// velocity has been reset, before further samples are fused
+	bool velocity_reset = false;
+
+	for (int i = 0; i < 100 && !velocity_reset; i++) {
+		_sensor_simulator.runMicroseconds(10000);
+		reset_logging_checker.capturePostResetState();
+		velocity_reset = reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1);
+	}
+
+	ASSERT_TRUE(velocity_reset);
 
 	// THEN: a reset to GPS velocity should be done
 	const Vector3f estimated_velocity = _ekf->getVelocity();
@@ -161,7 +169,6 @@ TEST_F(EkfGpsTest, resetToGpsVelocity)
 	EXPECT_NEAR(estimated_velocity(2), simulated_velocity(2), 1e-3f);
 
 	// AND: the reset in velocity should be saved correctly
-	reset_logging_checker.capturePostResetState();
 	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-2f));
@@ -182,7 +189,14 @@ TEST_F(EkfGpsTest, resetToGpsPosition)
 	const Vector3f simulated_position_change(20.0f, -1.0f, 0.f);
 	_sensor_simulator._gps.stepHorizontalPositionByMeters(
 		Vector2f(simulated_position_change));
-	_sensor_simulator.runSeconds(11);
+
+	// The real checker must first let the stationary drift filter settle after
+	// this position discontinuity, then observe the continuous health window.
+	for (int i = 0; i < 600 && !_ekf_wrapper.isIntendingGpsFusion(); ++i) {
+		_sensor_simulator.runSeconds(0.1f);
+	}
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 
 	// THEN: a reset to the new GPS position should be done
 	const Vector3f estimated_position = _ekf->getPosition();
@@ -297,8 +311,8 @@ TEST_F(EkfGpsTest, gnssIntermittentSaccFailureDisablesFusion)
 	// Each good sample passes runInitialFixChecks() but run() still returns false because
 	// the last failure is too recent (min_health_time_us = 10s not satisfied).
 	// The fusion must therefore never actually fuse any data.
-	const float bad_sacc = 5.0f;   // fails ekf2_req_sacc (default 1.0 m/s)
-	const float good_sacc = 0.2f;  // passes ekf2_req_sacc
+	const float bad_sacc = 5.0f;   // fails REQ_SACC (default 0.5 m/s)
+	const float good_sacc = 0.2f;  // passes REQ_SACC
 
 	for (int i = 0; i < 4; i++) {
 		gnssSample gps_data = _sensor_simulator._gps.getData();
@@ -325,7 +339,6 @@ TEST_F(EkfGpsTest, briefCheckFailureDoesNotStopFusionImmediately)
 
 	// WHEN: the checks fail briefly
 	_sensor_simulator._gps.setFixType(0);
-	_sensor_simulator._gps.setFixTypeFail(true);
 	_sensor_simulator.runSeconds(0.4f);
 
 	// THEN: the failing samples are skipped but the fusion is not stopped yet

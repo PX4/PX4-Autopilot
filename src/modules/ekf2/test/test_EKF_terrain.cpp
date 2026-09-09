@@ -76,7 +76,6 @@ public:
 		_sensor_simulator.startGps();
 
 		_sensor_simulator._gps.setMinRequiredGpsHealthTime(1e6);
-		_sensor_simulator._gps.setInAirStatus(false);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 
@@ -107,7 +106,6 @@ public:
 		_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
 		_sensor_simulator.startFlow();
 
-		_sensor_simulator._gps.setInAirStatus(true);
 		_ekf->set_in_air_status(true);
 		_ekf->set_vehicle_at_rest(false);
 

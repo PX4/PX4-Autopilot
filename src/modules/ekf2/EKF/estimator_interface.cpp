@@ -215,11 +215,11 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_GNSS)
-void EstimatorInterface::setGpsChecksData(const gnssChecksSample &gnss_checks_sample)
+void EstimatorInterface::setGpsChecksData(const gnssCheckStatus &gnss_checks)
 {
 	// vehicle_gps_position_checks is a status topic (latest-wins): the most recent result published by
 	// the sensors module applies to whatever GNSS sample is fused next
-	_gnss_checks = gnss_checks_sample;
+	_gnss_checks = gnss_checks;
 }
 #endif // CONFIG_EKF2_GNSS
 

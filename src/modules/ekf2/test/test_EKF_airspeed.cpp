@@ -139,6 +139,8 @@ TEST_F(EkfAirspeedTest, testResetWindUsingAirspeed)
 {
 	const Vector3f simulated_velocity_earth(-3.6f, 8.f, 0.0f);
 	const Vector2f airspeed_body(15.f, 0.0f);
+	// The simulated GNSS velocity is nonzero, so the vehicle is moving during qualification.
+	_ekf->set_vehicle_at_rest(false);
 	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator._gps.setVelocity(simulated_velocity_earth);
 	_sensor_simulator.startGps();
