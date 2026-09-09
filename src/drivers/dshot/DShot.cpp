@@ -108,10 +108,11 @@ void DShot::Run()
 		update_params();
 	}
 
-	// Telemetry init hook
+	// Telemetry init hook, keep the request pending until it actually succeeds
 	if (_request_telemetry_init.load()) {
-		init_telemetry(_serial_port_path, _telemetry_swap_rxtx);
-		_request_telemetry_init.store(false);
+		if (init_telemetry(_serial_port_path, _telemetry_swap_rxtx)) {
+			_request_telemetry_init.store(false);
+		}
 	}
 
 	handle_vehicle_commands();
@@ -1131,15 +1132,21 @@ bool DShot::initialize_dshot()
 	return true;
 }
 
-void DShot::init_telemetry(const char *device, bool swap_rxtx)
+bool DShot::init_telemetry(const char *device, bool swap_rxtx)
 {
 	if (!device) {
-		return;
+		return true;
+	}
+
+	// The settings handlers are created per motor, so the mixer has to be configured first
+	if (_motor_mask == 0) {
+		return false;
 	}
 
 	if (_telemetry.init(device, swap_rxtx) != PX4_OK) {
+		// The port itself is bad: retrying won't help.
 		PX4_ERR("telemetry init failed");
-		return;
+		return true;
 	}
 
 	// Enable serial telemetry now that we've successfully initialized
@@ -1148,6 +1155,8 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 	// Initialize ESC settings handlers based on ESC type
 	ESCType esc_type = static_cast<ESCType>(_param_dshot_esc_type.get());
 	_telemetry.initSettingsHandlers(esc_type, _motor_mask);
+
+	return true;
 }
 
 static void print_spacer()

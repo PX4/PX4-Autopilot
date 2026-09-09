@@ -11,6 +11,12 @@ menuconfig USER_LOGGER
 	---help---
 		Put logger in userspace memory
 
+menuconfig LOGGER_ESC_EEPROM
+	bool "log the ESC EEPROM settings"
+	default y
+	depends on MODULES_LOGGER && DRIVERS_DSHOT
+	---help---
+		Write the EEPROM settings reported by the ESCs into the logs
 menuconfig LOGGER_STACK_SIZE
 	int "stack size of logger task"
 	default 3700
