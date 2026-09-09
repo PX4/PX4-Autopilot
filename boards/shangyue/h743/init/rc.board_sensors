@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Primary IMU: ICM-42688-P on SPI1, CS PC15, DRDY PB2.
+# Rotation 6 was verified in the assembled vehicle with SENS_BOARD_ROT=0.
+icm42688p -R 6 -b 1 -s start
+
+# Secondary IMU: LSM6DSV on SPI4, CS PE11, DRDY PE15.
+# Rotation 26 was verified against the primary ICM42688P and the vehicle axes
+# using level, nose-down and right-side-down measurements and six-face calibration.
+lsm6dsv -R 26 -b 4 -s start
+
+# Internal baro
+dps310 -I start -a 118
+
+# This board has no onboard magnetometer. External magnetometers are started
+# by the common sensor startup path when configured by the user.

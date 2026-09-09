@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# board specific extras init
+#------------------------------------------------------------------------------
+
+# if ! param compare OSD_ATXXXX_CFG 0
+# then
+# 	atxxxx start -s
+# fi
+
+atxxxx start -s
+
+# Prepare the official PX4 MAVLink ULog backend at boot. It remains idle until
+# a client sends MAV_CMD_LOGGING_START, then streams a complete ULog to that
+# client. The file backend is deliberately not instantiated, so this never
+# touches the disabled W25N01GV or a nonexistent /fs/microsd mount.
+logger start -m mavlink
+
+
+# DShot telemetry is always on UART7
+# dshot telemetry /dev/ttyS5

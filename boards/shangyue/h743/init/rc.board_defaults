@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# Matek H743 custom flight-controller defaults.
+#
+# The board is a dedicated X-quadrotor with no onboard magnetometer. The
+# W25N01GV is deliberately disabled in the formal stable baseline: real-board
+# large-erase testing repeatedly caused physical USB disconnect/re-enumeration.
+# Parameters remain in the H743 internal-flash backend; dataman uses RAM and
+# file logging is disabled until the external-storage hardware path is fixed.
+# Full ULog is provided through PX4's MAVLink streaming backend instead.
+
+param set-default SYS_AUTOSTART 4001
+param set-default SYS_HAS_MAG 0
+param set-default COM_ARM_SDCARD 0
+param set-default SDLOG_MODE -1
+param set-default SDLOG_PROFILE 17
+param set-default SYS_DM_BACKEND 1
+
+# Enforce the storage-safe invariant after upgrading from an experimental
+# W25N-enabled build. Each
+# block saves only if a stale stored value needs correction.
+if ! param compare SYS_DM_BACKEND 1
+then
+	param set SYS_DM_BACKEND 1
+	param save
+fi
+
+if ! param compare COM_ARM_SDCARD 0
+then
+	param set COM_ARM_SDCARD 0
+	param save
+fi
+
+if ! param compare SDLOG_MODE -1
+then
+	param set SDLOG_MODE -1
+	param save
+fi
