@@ -38,6 +38,8 @@
 
 #include "gnss_checks.hpp"
 
+#include <lib/gnss/GnssCheckLimits.hpp>
+
 
 bool GnssChecks::run(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest)
 {
@@ -85,14 +87,14 @@ bool GnssChecks::run(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_
 
 bool GnssChecks::runSimplifiedChecks(const gnssChecksSample &gnss)
 {
-	_check_fail_status.flags.fix = (gnss.fix_type < 3);
+	_check_fail_status.flags.fix = (gnss.fix_type < gnss::SimplifiedCheckLimits::kMinFixType);
 
 	// Check the reported horizontal and vertical position accuracy
-	_check_fail_status.flags.hacc = (gnss.hacc > 50.f);
-	_check_fail_status.flags.vacc = (gnss.vacc > 50.f);
+	_check_fail_status.flags.hacc = (gnss.hacc > gnss::SimplifiedCheckLimits::kMaxHorizontalAccuracy);
+	_check_fail_status.flags.vacc = (gnss.vacc > gnss::SimplifiedCheckLimits::kMaxVerticalAccuracy);
 
 	// Check the reported speed accuracy
-	_check_fail_status.flags.sacc = (gnss.sacc > 10.f);
+	_check_fail_status.flags.sacc = (gnss.sacc > gnss::SimplifiedCheckLimits::kMaxSpeedAccuracy);
 
 	_check_fail_status.flags.spoofed = gnss.spoofed;
 	_check_fail_status.flags.jammed = gnss.jammed;

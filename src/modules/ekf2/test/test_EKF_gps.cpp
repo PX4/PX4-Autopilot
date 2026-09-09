@@ -349,3 +349,46 @@ TEST_F(EkfGpsTest, briefCheckFailureDoesNotStopFusionImmediately)
 	_sensor_simulator.runSeconds(7.f);
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 }
+
+TEST(EkfGnssQualification, unusableDelayedSampleIsNotFused)
+{
+	// GIVEN: a long fusion delay and a short health window, so that the (latest-wins) check status can
+	// return to passing before a failed sample reaches the fusion horizon
+	auto ekf = std::make_shared<Ekf>();
+	ekf->getParamHandle()->ekf2_delay_max = 400.f;
+	SensorSimulator simulator(ekf);
+	EkfWrapper wrapper(ekf);
+	ekf->init(0);
+	simulator.runSeconds(0.1f);
+	ekf->set_in_air_status(false);
+	ekf->set_vehicle_at_rest(true);
+	wrapper.enableGpsFusion();
+	simulator._gps.setMinRequiredGpsHealthTime(100'000);
+	simulator.startGps();
+	simulator.runSeconds(3.f);
+	ASSERT_TRUE(wrapper.isIntendingGpsFusion());
+
+	// WHEN: a single sample without fix is published
+	simulator._gps.setFixType(0);
+	simulator.runMicroseconds(200'000);
+	simulator._gps.setFixType(3);
+	bool saw_bad_delayed_sample = false;
+	bool status_passed_with_bad_delayed_sample = false;
+
+	// THEN: that sample is never fused once it reaches the fusion horizon, even while the latest
+	// check status is passing again
+	for (int i = 0; i < 400; ++i) {
+		simulator.runMicroseconds(1'000);
+		const auto &delayed = ekf->get_gps_sample_delayed();
+
+		if (delayed.fix_type == 0) {
+			saw_bad_delayed_sample = true;
+			status_passed_with_bad_delayed_sample |= ekf->gps_checks_passed();
+			EXPECT_FALSE(ekf->aid_src_gnss_pos().fused);
+			EXPECT_FALSE(ekf->aid_src_gnss_vel().fused);
+		}
+	}
+
+	EXPECT_TRUE(saw_bad_delayed_sample);
+	EXPECT_TRUE(status_passed_with_bad_delayed_sample);
+}

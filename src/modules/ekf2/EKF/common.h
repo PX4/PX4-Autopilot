@@ -233,6 +233,7 @@ struct gnssCheckStatus {
 	float position_drift_rate_vertical_m_s{NAN};   ///< Vertical position drift rate magnitude (m/s)
 	float filtered_horizontal_speed_m_s{NAN};     ///< Filtered horizontal velocity magnitude (m/s)
 	gps_check_fail_status_u check_fail_status{};  ///< Failed checks among those required by GPS_CHECK
+	gps_check_fail_status_u enabled_checks{};     ///< Checks required by GPS_CHECK, same bit layout
 	uint64_t time_last_pass_us{};                 ///< Timestamp of last qualified measurement (us)
 	uint64_t time_last_fail_us{};                 ///< Timestamp of last failing measurement (us)
 	bool checks_passed{false};

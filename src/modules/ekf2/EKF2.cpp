@@ -2698,6 +2698,7 @@ void EKF2::UpdateGpsChecksSample()
 			.position_drift_rate_vertical_m_s = vehicle_gps_position_checks.position_drift_rate_vertical_m_s,
 			.filtered_horizontal_speed_m_s = vehicle_gps_position_checks.filtered_horizontal_speed_m_s,
 			.check_fail_status = {.value = vehicle_gps_position_checks.flags},
+			.enabled_checks = {.value = vehicle_gps_position_checks.enabled_checks},
 			.time_last_pass_us = vehicle_gps_position_checks.time_last_pass,
 			.time_last_fail_us = vehicle_gps_position_checks.time_last_fail,
 			.checks_passed = vehicle_gps_position_checks.checks_passed,

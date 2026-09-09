@@ -38,6 +38,7 @@
 
 #include "ekf.h"
 #include <mathlib/mathlib.h>
+#include <lib/gnss/GnssCheckLimits.hpp>
 
 void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
@@ -65,7 +66,9 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	if (_gps_data_ready) {
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
-		if (_gnss_checks.checks_passed) {
+		// _gnss_checks is the latest status published by the sensors module (latest-wins, not matched to
+		// this sample). Additionally guard the individual sample with the fields it carries itself.
+		if (_gnss_checks.checks_passed && isGnssSampleUsable(gnss_sample)) {
 			if (_gnss_checks.initial_checks_passed && !_initial_checks_passed_prev) {
 				// First time checks are passing, latching.
 				_information_events.flags.gps_checks_passed = true;
@@ -459,6 +462,21 @@ void Ekf::resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src)
 		      aid_src.observation_variance[1]);
 
 	resetAidSourceStatusZeroInnovation(aid_src);
+}
+
+bool Ekf::isGnssSampleUsable(const gnssSample &gnss_sample) const
+{
+	// Same thresholds as the simplified in-air checks of the sensors module (GnssCheckLimits.hpp),
+	// applied to the sample about to be fused. Only the checks enabled in GPS_CHECK are considered.
+	gps_check_fail_status_u sample_fail_status{};
+	sample_fail_status.flags.fix = (gnss_sample.fix_type < gnss::SimplifiedCheckLimits::kMinFixType);
+	sample_fail_status.flags.hacc = (gnss_sample.hacc > gnss::SimplifiedCheckLimits::kMaxHorizontalAccuracy);
+	sample_fail_status.flags.vacc = (gnss_sample.vacc > gnss::SimplifiedCheckLimits::kMaxVerticalAccuracy);
+	sample_fail_status.flags.sacc = (gnss_sample.sacc > gnss::SimplifiedCheckLimits::kMaxSpeedAccuracy);
+	sample_fail_status.flags.spoofed = gnss_sample.spoofed;
+	sample_fail_status.flags.jammed = gnss_sample.jammed;
+
+	return (sample_fail_status.value & _gnss_checks.enabled_checks.value) == 0;
 }
 
 void Ekf::stopGnssFusion()
