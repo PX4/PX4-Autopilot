@@ -386,6 +386,11 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 		}
 	}
 
+	if (!_pubs->request_data(session, _reliable_out, best_effort_in)) {
+		PX4_ERR("pubs request data failed");
+		return false;
+	}
+
 	_connected = true;
 	return true;
 }
