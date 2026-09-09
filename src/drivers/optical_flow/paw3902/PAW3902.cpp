@@ -264,6 +264,7 @@ void PAW3902::RunImpl()
 
 	case STATE::READ: {
 			hrt_abstime timestamp_sample = now;
+			bool frame_end_known = false;
 
 			if (_motion_interrupt_enabled) {
 				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
@@ -271,6 +272,7 @@ void PAW3902::RunImpl()
 
 				if (now < drdy_timestamp_sample + _scheduled_interval_us) {
 					timestamp_sample = drdy_timestamp_sample;
+					frame_end_known = true;
 
 				} else {
 					perf_count(_no_motion_interrupt_perf);
@@ -444,15 +446,6 @@ void PAW3902::RunImpl()
 					break;
 				}
 
-				// override the per-mode default with the actual interval between burst reads
-				// (the chip accumulates delta_x/delta_y until Motion_Burst is read), so the
-				// gyro integration window downstream lines up with what the chip actually saw.
-				if (_timestamp_sample_last != 0 && timestamp_sample > _timestamp_sample_last) {
-					const hrt_abstime dt = timestamp_sample - _timestamp_sample_last;
-					sensor_optical_flow.integration_timespan_us = math::constrain(static_cast<uint32_t>(dt),
-							static_cast<uint32_t>(1_ms), static_cast<uint32_t>(200_ms));
-				}
-
 				// motion in burst transfer
 				const bool motion_reported = (buffer.data.Motion & Motion_Bit::MOT);
 
@@ -463,6 +456,29 @@ void PAW3902::RunImpl()
 				// read's shutter and quality means the chip has not finished a new frame yet.
 				const bool stale_read = (delta_x_raw == 0) && (delta_y_raw == 0) && (shutter == _shutter_prev)
 							&& (buffer.data.RawData_Sum == _raw_data_sum_prev) && (buffer.data.SQUAL == _quality_prev);
+
+				// A poll cannot tell where the chip's last frame ended, and whatever the chip is
+				// integrating now will be reported by the next read. Without motion a poll therefore
+				// only vouches for the time up to one frame period ago, so that next frame keeps
+				// its full window instead of starting at the poll.
+				hrt_abstime frame_end = timestamp_sample;
+
+				if (!frame_end_known && !motion_reported) {
+					const uint32_t frame_period_us = (_mode == Mode::SuperLowLight) ? SAMPLE_INTERVAL_MODE_2 : SAMPLE_INTERVAL_MODE_1;
+					frame_end = (timestamp_sample > frame_period_us) ? (timestamp_sample - frame_period_us) : 0;
+				}
+
+				const bool frame_consumed = (frame_end > _timestamp_sample_last);
+				sensor_optical_flow.timestamp_sample = frame_end;
+
+				// override the per-mode default with the actual interval between consumed frames
+				// (the chip accumulates delta_x/delta_y until Motion_Burst is read), so the
+				// gyro integration window downstream lines up with what the chip actually saw.
+				if (_timestamp_sample_last != 0 && frame_consumed) {
+					const hrt_abstime dt = frame_end - _timestamp_sample_last;
+					sensor_optical_flow.integration_timespan_us = math::constrain(static_cast<uint32_t>(dt),
+							static_cast<uint32_t>(1_ms), static_cast<uint32_t>(200_ms));
+				}
 
 				bool published = false;
 
@@ -495,7 +511,7 @@ void PAW3902::RunImpl()
 
 					} else if (zero_flow && (timestamp_sample > _last_motion)) {
 						// no motion, but burst read looks valid and we should have seen new data by now if there was any motion
-						if (!stale_read) {
+						if (!stale_read && frame_consumed) {
 
 							sensor_optical_flow.pixel_flow[0] = 0;
 							sensor_optical_flow.pixel_flow[1] = 0;
@@ -507,7 +523,7 @@ void PAW3902::RunImpl()
 					}
 
 					// only publish when there's valid data or on timeout
-					if (publish || (hrt_elapsed_time(&_last_publish) >= kBackupScheduleIntervalUs)) {
+					if (publish || (frame_consumed && (hrt_elapsed_time(&_last_publish) >= kBackupScheduleIntervalUs))) {
 
 						sensor_optical_flow.timestamp = hrt_absolute_time();
 						_sensor_optical_flow_pub.publish(sensor_optical_flow);
@@ -550,8 +566,8 @@ void PAW3902::RunImpl()
 				// chip clears its delta accumulator on every Motion_Burst read, regardless of whether
 				// we publish, so track every read that consumed a frame. A stale read consumed nothing:
 				// its window belongs to the next frame unless a timeout already published it.
-				if (!stale_read || published) {
-					_timestamp_sample_last = timestamp_sample;
+				if (frame_consumed && (!stale_read || published)) {
+					_timestamp_sample_last = frame_end;
 				}
 
 			} else {
