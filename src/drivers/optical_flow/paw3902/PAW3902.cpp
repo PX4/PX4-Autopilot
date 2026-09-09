@@ -517,12 +517,13 @@ void PAW3902::RunImpl()
 							break;
 						}
 					}
+				}
 
-					success = true;
+				// Poor optical quality does not indicate a sensor fault.
+				success = buffer.data.RawData_Sum <= 0x98;
 
-					if (_failure_count > 0) {
-						_failure_count--;
-					}
+				if (success && _failure_count > 0) {
+					_failure_count--;
 				}
 
 				_delta_x_raw_prev = delta_x_raw;
