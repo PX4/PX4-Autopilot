@@ -80,7 +80,7 @@ inline sensor_gps_checks_s sensorGpsChecksMsgFromGnssChecks(const GnssChecks &ch
 	msg.position_drift_rate_vertical_m_s = checks.vertical_position_drift_rate_m_s();
 	msg.filtered_horizontal_speed_m_s = checks.filtered_horizontal_velocity_m_s();
 
-	msg.flags = checks.getFailStatus().value;
+	msg.flags = checks.getFailStatus().value & checks.getEnabledChecksFailStatusMask();
 
 	msg.time_last_pass = checks.getLastPassUs();
 	msg.time_last_fail = checks.getLastFailUs();
