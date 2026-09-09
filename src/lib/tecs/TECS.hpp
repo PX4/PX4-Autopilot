@@ -545,12 +545,11 @@ private:
 	/**
 	 * @brief Calculate throttle control specific total energy
 	 *
-	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
 	 * @param param is the control parameters.
 	 * @return specific total energy rate values in [m²/s³]
 	 */
-	ControlValues _calcThrottleControlSteRate(const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rate,
+	ControlValues _calcThrottleControlSteRate(const SpecificEnergyRates &specific_energy_rate,
 			const Param &param) const;
 
 	/**
@@ -558,7 +557,6 @@ private:
 	 * Update the throttle control states (throttle integrator).
 	 *
 	 * @param dt is the update time intervall in [s].
-	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param ste_rate is the specific total energy rates in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
@@ -569,7 +567,6 @@ private:
 	/**
 	 * @brief Calculate the throttle control output function.
 	 *
-	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param ste_rate is the specific total energy rates in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.

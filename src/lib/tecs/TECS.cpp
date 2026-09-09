@@ -243,7 +243,7 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
 
-	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rate, param)};
+	ControlValues ste_rate{_calcThrottleControlSteRate(specific_energy_rate, param)};
 	_ste_rate_error_filter.reset(_getControlError(ste_rate));
 
 	_throttle_setpoint = _calcThrottleControlOutput(limit, ste_rate, param, flag);
@@ -333,13 +333,9 @@ float TECSControl::_calcAirspeedControlOutput(const Setpoint &setpoint, const In
 
 float TECSControl::_calcAltitudeControlOutput(const Setpoint &setpoint, const Input &input, const Param &param) const
 {
-	float altitude_rate_output;
-	altitude_rate_output = (setpoint.altitude_reference.alt - input.altitude) * param.altitude_error_gain
-			       + param.altitude_setpoint_gain_ff * setpoint.altitude_reference.alt_rate;
-
-	altitude_rate_output = math::constrain(altitude_rate_output, -param.max_sink_rate, param.max_climb_rate);
-
-	return altitude_rate_output;
+	// Limited to the flyable envelope in _projectAltitudeRateSetpointToEnvelope.
+	return (setpoint.altitude_reference.alt - input.altitude) * param.altitude_error_gain
+	       + param.altitude_setpoint_gain_ff * setpoint.altitude_reference.alt_rate;
 }
 
 void TECSControl::_projectAltitudeRateSetpointToEnvelope(AltitudePitchControl &control_setpoint, const Input &input,
@@ -574,7 +570,7 @@ void TECSControl::_calcThrottleControl(float dt, const SpecificEnergyRates &spec
 {
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
 
-	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rates, param)};
+	ControlValues ste_rate{_calcThrottleControlSteRate(specific_energy_rates, param)};
 
 	// Update STE rate error LP filter for the feedback; the feedforward acts on the unfiltered setpoint. Filtering
 	// the error rather than the estimate keeps a setpoint change from appearing as a lagged phantom error.
@@ -608,8 +604,7 @@ void TECSControl::_calcThrottleControl(float dt, const SpecificEnergyRates &spec
 	_debug_output.throttle_integrator = _throttle_integ_state;
 }
 
-TECSControl::ControlValues TECSControl::_calcThrottleControlSteRate(const STERateLimit &limit,
-		const SpecificEnergyRates &specific_energy_rates,
+TECSControl::ControlValues TECSControl::_calcThrottleControlSteRate(const SpecificEnergyRates &specific_energy_rates,
 		const Param &param) const
 {
 	// Output ste rate values
@@ -619,9 +614,9 @@ TECSControl::ControlValues TECSControl::_calcThrottleControlSteRate(const STERat
 	// Adjust the demanded total energy rate to compensate for induced drag rise in turns.
 	// Assume induced drag scales linearly with normal load factor.
 	// The additional normal load factor is given by (1/cos(bank angle) - 1)
+	// The altitude rate setpoint is projected such that this stays within the total energy rate limits (see
+	// _projectAltitudeRateSetpointToEnvelope), unless the kinetic energy rate demand alone exceeds them.
 	ste_rate.setpoint += param.load_factor_correction * (param.load_factor - 1.f);
-
-	ste_rate.setpoint = constrain(ste_rate.setpoint, limit.STE_rate_min, limit.STE_rate_max);
 	ste_rate.estimate = specific_energy_rates.spe_rate.estimate + specific_energy_rates.ske_rate.estimate;
 
 	return ste_rate;
