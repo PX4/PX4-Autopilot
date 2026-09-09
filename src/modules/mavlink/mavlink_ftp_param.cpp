@@ -35,6 +35,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <new>
 
 static constexpr char kPath[] = "@PARAM/param.pck";
 static constexpr size_t kPathLen = sizeof(kPath) - 1;
@@ -52,27 +53,6 @@ bool ParamPckFile::bit(const uint8_t *bits, param_t param) const
 void ParamPckFile::set_bit(uint8_t *bits, param_t param)
 {
 	bits[param / 8] |= (uint8_t)(1u << (param % 8));
-}
-
-bool ParamPckFile::default_differs(param_t param) const
-{
-	union {
-		int32_t i;
-		float f;
-		uint8_t b[4];
-	} value, def {};
-
-	const bool is_int32 = (param_type(param) == PARAM_TYPE_INT32);
-
-	if ((is_int32 ? param_get(param, &value.i) : param_get(param, &value.f)) != 0) {
-		return false;
-	}
-
-	if (param_get_default_value(param, def.b) != 0) {
-		return false;
-	}
-
-	return memcmp(value.b, def.b, sizeof(value.b)) != 0;
 }
 
 bool ParamPckFile::open(const char *path, uint16_t block_size)
@@ -127,10 +107,6 @@ bool ParamPckFile::open(const char *path, uint16_t block_size)
 
 		if ((used_i >= start) && (used_i < end_used)) {
 			set_bit(_included, param);
-
-			if (_with_defaults && default_differs(param)) {
-				set_bit(_has_default, param);
-			}
 		}
 
 		used_i++;
@@ -182,7 +158,13 @@ void ParamPckFile::close()
 	}
 
 	memset(_included, 0, sizeof(_included));
-	memset(_has_default, 0, sizeof(_has_default));
+
+	while (_write_blocks != nullptr) {
+		WriteBlock *block = _write_blocks;
+		_write_blocks = block->next;
+		free(block);
+	}
+
 	_size = 0;
 	_open = false;
 	_write = false;
@@ -271,10 +253,10 @@ size_t ParamPckFile::pack(uint8_t *buf, param_t param, uint32_t ofs) const
 		return 0;
 	}
 
-	const bool add_default = bit(_has_default, param);
+	const bool add_default = _with_defaults;
 
 	if (add_default && (param_get_default_value(param, default_value) != 0)) {
-		memset(default_value, 0, sizeof(default_value));
+		return 0;
 	}
 
 	const uint8_t type = is_int32 ? kTypeInt32 : kTypeFloat;
@@ -424,7 +406,6 @@ bool ParamPckFile::apply_entry(const char *name, uint8_t ptype, const uint8_t *r
 
 	case kTypeFloat:
 		memcpy(&as_float, raw, sizeof(as_float));
-		as_int = static_cast<int32_t>(as_float);
 		break;
 
 	default:
@@ -432,6 +413,15 @@ bool ParamPckFile::apply_entry(const char *name, uint8_t ptype, const uint8_t *r
 	}
 
 	if (dest == PARAM_TYPE_INT32) {
+		if (ptype == kTypeFloat) {
+			// INT32_MAX rounds up to 2^31 as a float; keep that bound exclusive.
+			if (!(as_float >= static_cast<float>(INT32_MIN) && as_float < -static_cast<float>(INT32_MIN))) {
+				return false;
+			}
+
+			as_int = static_cast<int32_t>(as_float);
+		}
+
 		value.i = as_int;
 
 	} else if (dest == PARAM_TYPE_FLOAT) {
@@ -441,10 +431,11 @@ bool ParamPckFile::apply_entry(const char *name, uint8_t ptype, const uint8_t *r
 		return true;
 	}
 
-	if (param_set_no_notification(param, value.b) == 0) {
-		_applied++;
+	if (param_set_no_notification(param, value.b) != 0) {
+		return false;
 	}
 
+	_applied++;
 	return true;
 }
 
@@ -506,7 +497,7 @@ bool ParamPckFile::parse_pending()
 		memcpy(name + common_len, _pending + 2, name_len);
 		name[common_len + name_len] = '\0';
 
-		if (!apply_entry(name, ptype, _pending + 2 + name_len)) {
+		if (_write_seen >= _write_num || !apply_entry(name, ptype, _pending + 2 + name_len)) {
 			return false;
 		}
 
@@ -529,7 +520,13 @@ bool ParamPckFile::ingest(const uint8_t *data, uint16_t count)
 			}
 		}
 
-		const uint16_t room = static_cast<uint16_t>(sizeof(_pending) - _pending_len);
+		if (_header_done && count > _write_file_len - _write_ofs) {
+			return false;
+		}
+
+		// Validate the header before parsing any entries from the same packet.
+		const uint16_t limit = _header_done ? sizeof(_pending) : kHeaderLen;
+		const uint16_t room = limit - _pending_len;
 		const uint16_t n = (count < room) ? count : room;
 		memcpy(_pending + _pending_len, data, n);
 		_pending_len += n;
@@ -549,30 +546,120 @@ bool ParamPckFile::ingest(const uint8_t *data, uint16_t count)
 	return true;
 }
 
+bool ParamPckFile::buffer_write(uint32_t offset, const uint8_t *data, uint16_t count)
+{
+	WriteBlock **link = &_write_blocks;
+
+	while (count > 0) {
+		const uint16_t block_offset = offset - offset % kWriteBlockSize;
+
+		while (*link != nullptr && (*link)->offset < block_offset) {
+			link = &(*link)->next;
+		}
+
+		if (*link == nullptr || (*link)->offset != block_offset) {
+			void *memory = malloc(sizeof(WriteBlock));
+
+			if (memory == nullptr) {
+				return false;
+			}
+
+			WriteBlock *block = new (memory) WriteBlock;
+			block->offset = block_offset;
+			block->next = *link;
+			*link = block;
+		}
+
+		WriteBlock &block = **link;
+		const uint16_t start = offset - block_offset;
+		const uint16_t room = kWriteBlockSize - start;
+		const uint16_t n = count < room ? count : room;
+
+		for (uint16_t i = 0; i < n; i++) {
+			const uint16_t pos = start + i;
+			const uint8_t mask = 1u << (pos % 8);
+
+			if (block.received[pos / 8] & mask) {
+				if (block.data[pos] != data[i]) {
+					return false;
+				}
+
+			} else {
+				block.received[pos / 8] |= mask;
+				block.data[pos] = data[i];
+				block.remaining++;
+			}
+		}
+
+		offset += n;
+		data += n;
+		count -= n;
+	}
+
+	return true;
+}
+
+bool ParamPckFile::flush_writes()
+{
+	while (_write_blocks != nullptr && _write_blocks->offset <= _write_ofs) {
+		WriteBlock *block = _write_blocks;
+		const uint16_t start = _write_ofs - block->offset;
+		uint16_t end = start;
+
+		while (end < kWriteBlockSize && (block->received[end / 8] & (1u << (end % 8)))) {
+			end++;
+		}
+
+		if (end == start) {
+			break;
+		}
+
+		const uint16_t n = end - start;
+
+		if (!ingest(block->data + start, n)) {
+			return false;
+		}
+
+		block->remaining -= n;
+
+		if (block->remaining == 0) {
+			_write_blocks = block->next;
+			free(block);
+		}
+	}
+
+	return true;
+}
+
 int ParamPckFile::write(uint32_t offset, const uint8_t *buf, uint16_t count)
 {
 	if (!_open || !_write || _write_failed) {
 		return -1;
 	}
 
-	if (count == 0) {
-		return 0;
-	}
-
-	const uint32_t end = offset + count;
-
-	if (end <= _write_ofs) {
-		return count;
-	}
-
-	if (offset > _write_ofs) {
+	// The upload header has a 16-bit file length. Check before adding to offset.
+	if (offset > UINT16_MAX || count > UINT16_MAX - offset
+	    || (_header_done && offset + count > _write_file_len)) {
 		_write_failed = true;
 		return -1;
 	}
 
-	const uint16_t skip = static_cast<uint16_t>(_write_ofs - offset);
+	if (count == 0 || offset + count <= _write_ofs) {
+		return count;
+	}
 
-	if (!ingest(buf + skip, count - skip)) {
+	const uint16_t skip = offset < _write_ofs ? _write_ofs - offset : 0;
+	const uint32_t start = offset + skip;
+	bool ok;
+
+	if (start == _write_ofs && _write_blocks == nullptr) {
+		ok = ingest(buf + skip, count - skip);
+
+	} else {
+		ok = buffer_write(start, buf + skip, count - skip) && flush_writes();
+	}
+
+	if (!ok) {
 		_write_failed = true;
 		return -1;
 	}
@@ -596,7 +683,7 @@ bool ParamPckFile::finish_write()
 		_pending_len--;
 	}
 
-	if (!_header_done || (_pending_len != 0) || (_write_ofs != _write_file_len)
+	if (!_header_done || (_write_blocks != nullptr) || (_pending_len != 0) || (_write_ofs != _write_file_len)
 	    || (_write_seen != _write_num)) {
 		_write_failed = true;
 		return false;
