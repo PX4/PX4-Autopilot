@@ -205,6 +205,7 @@ They are not build into the module, and hence are neither published or subscribe
 - [LoggerStatus](../msg_docs/LoggerStatus.md)
 - [MagWorkerData](../msg_docs/MagWorkerData.md)
 - [MagnetometerBiasEstimate](../msg_docs/MagnetometerBiasEstimate.md)
+- [ManualControlSetpointV0](../msg_docs/ManualControlSetpointV0.md)
 - [ManualControlSwitches](../msg_docs/ManualControlSwitches.md)
 - [MavlinkLog](../msg_docs/MavlinkLog.md)
 - [MavlinkTunnel](../msg_docs/MavlinkTunnel.md)

@@ -30,7 +30,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [HomePosition](HomePosition.md) — GPS home position in WGS84 coordinates.
 - [LateralControlConfiguration](LateralControlConfiguration.md) — Fixed Wing Lateral Control Configuration message.
 - [LongitudinalControlConfiguration](LongitudinalControlConfiguration.md) — Fixed Wing Longitudinal Control Configuration message.
-- [ManualControlSetpoint](ManualControlSetpoint.md)
+- [ManualControlSetpoint](ManualControlSetpoint.md) — Manual control input.
 - [ModeCompleted](ModeCompleted.md) — Mode completion result, published by an active mode. The possible values of nav_state are defined in the VehicleStatus msg. Note that this is not always published (e.g. when a user switches modes or on. failsafe activation).
 - [RaptorInput](RaptorInput.md) — Raptor Input.
 - [RaptorStatus](RaptorStatus.md) — Raptor Status.
@@ -65,6 +65,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it. Events interface.
 - [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
 - [HomePositionV1](HomePositionV1.md) — GPS home position in WGS84 coordinates.
+- [ManualControlSetpointV0](ManualControlSetpointV0.md)
 - [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
 - [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
