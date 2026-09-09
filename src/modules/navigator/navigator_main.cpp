@@ -1326,14 +1326,17 @@ void Navigator::publish_position_setpoint_triplet()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
-	// The speed planning lookahead describes the geometry after _pos_sp_triplet.next, so it is only
-	// meaningful together with that triplet: publish both from here to keep them consistent.
-	_pos_sp_lookahead.timestamp = now;
-	_pos_sp_lookahead_pub.publish(_pos_sp_lookahead);
-
 	_pos_sp_triplet.timestamp = now;
 	_pos_sp_triplet_pub.publish(_pos_sp_triplet);
 	_pos_sp_triplet_updated = false;
+
+	// The speed planning lookahead describes the geometry after _pos_sp_triplet.next, so it is only
+	// meaningful together with that triplet: publish both from here to keep them consistent.
+	// Publish it after the triplet: if a consumer sees the new triplet with the previous lookahead,
+	// that lookahead coincides with the new next waypoint and is ignored, which is the safe direction.
+	// The other way around it would combine the new lookahead with the old triplet geometry.
+	_pos_sp_lookahead.timestamp = now;
+	_pos_sp_lookahead_pub.publish(_pos_sp_lookahead);
 }
 
 float Navigator::get_default_acceptance_radius() const
@@ -1387,12 +1390,11 @@ void Navigator::reset_triplets()
 
 void Navigator::reset_position_setpoint_lookahead()
 {
+	// valid = false, timestamp is set when published together with the triplet
 	_pos_sp_lookahead = position_setpoint_lookahead_s{};
-	_pos_sp_lookahead.timestamp = hrt_absolute_time();
 	_pos_sp_lookahead.lat = static_cast<double>(NAN);
 	_pos_sp_lookahead.lon = static_cast<double>(NAN);
 	_pos_sp_lookahead.alt = NAN;
-	_pos_sp_lookahead.valid = false;
 }
 
 void Navigator::reset_position_setpoint(position_setpoint_s &sp)
