@@ -357,28 +357,30 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2026-09-08: translate EKF2_GPS_CHECK and EKF2_REQ_* to hub-owned names
-        {
-                if (strcmp("EKF2_GPS_CHECK", node->name) == 0) {
-                        strcpy(node->name, "GPS_CHECK");
-                        PX4_INFO("migrating %s -> %s", "EKF2_GPS_CHECK", node->name);
-                        return param_modify_on_import_ret::PARAM_MODIFIED;
-                }
+	// 2026-09-08: move GNSS quality parameters to the sensor layer.
+	static constexpr struct {
+		const char *old_name;
+		const char *new_name;
+	} gnss_parameters[] {
+		{"EKF2_GPS_CHECK", "GPS_CHECK"},
+		{"EKF2_REQ_EPH", "REQ_EPH"},
+		{"EKF2_REQ_EPV", "REQ_EPV"},
+		{"EKF2_REQ_SACC", "REQ_SACC"},
+		{"EKF2_REQ_NSATS", "REQ_NSATS"},
+		{"EKF2_REQ_PDOP", "REQ_PDOP"},
+		{"EKF2_REQ_HDRIFT", "REQ_HDRIFT"},
+		{"EKF2_REQ_VDRIFT", "REQ_VDRIFT"},
+		{"EKF2_REQ_FIX", "REQ_FIX"},
+		{"EKF2_REQ_GPS_H", "REQ_GPS_H"},
+	};
 
-                if (strncmp("EKF2_REQ_", node->name, 9) == 0) {
-                        char new_name[BSON_MAXNAME];
-                        const char *suffix = node->name + 9;
-
-                        snprintf(new_name, sizeof(new_name), "REQ_%s", suffix);
-
-                        char old_name[BSON_MAXNAME];
-                        strncpy(old_name, node->name, sizeof(old_name));
-
-                        strcpy(node->name, new_name);
-                        PX4_INFO("migrating %s -> %s", old_name, node->name);
-                        return param_modify_on_import_ret::PARAM_MODIFIED;
-                }
-        }
+	for (const auto &parameter : gnss_parameters) {
+		if (strcmp(parameter.old_name, node->name) == 0) {
+			strcpy(node->name, parameter.new_name);
+			PX4_INFO("migrating %s -> %s", parameter.old_name, node->name);
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
 
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }
