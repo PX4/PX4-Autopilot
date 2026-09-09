@@ -176,6 +176,7 @@ When testing modified PX4 firmware, rebuild the ROS workspace against its messag
 Use `--entrypoint /bin/bash` and source `/opt/ros/jazzy/setup.bash` to start without the bundled workspace.
 For source builds and selecting an interface-library commit, see [Testing A PX4 Checkout With ROS](../dev_setup/sitl_container_builds.md#testing-a-px4-checkout-with-ros).
 The standalone `ghcr.io/px4/px4-dev-ros2:main-jazzy` toolchain provides the build tools and ROS dependencies without bundled source checkouts, firmware or a compiled workspace.
+ROS integration CI uses this toolchain, builds PX4 from the pull request, and regenerates messages from that checkout.
 
 #### Go-To Example
 

@@ -22,11 +22,11 @@ Tools/packaging/
     test_sih_mission.py
 Tools/ros2/
   prepare_workspace.py Checkout-matched ROS source workspace preparation
-  ros2.repos           Shared immutable source pins for ROS development images
+  ros2.repos           Shared immutable source pins for images and integration CI
 ```
 
 The generated `docker-context/` remains a flat staging directory; it is not the source layout.
-ROS workspace preparation is separate from packaging because it is also used for source development.
+ROS workspace preparation is separate from packaging because it is also used for development and integration tests.
 
 ## Build And Publish Flow
 
@@ -67,7 +67,7 @@ Every successful `RUN` creates a cacheable layer.
 A failed step is not committed as an image layer.
 Changing an input invalidates its layer and subsequent layers, not earlier ones.
 
-`Tools/ros2/ros2.repos` pins the ROS repositories to immutable commits for ROS images.
+`Tools/ros2/ros2.repos` pins the ROS repositories to immutable commits for both images and integration tests.
 The interface-library pin includes the manual WaitSet ownership fixes merged in [Auterion/px4-ros2-interface-lib#222](https://github.com/Auterion/px4-ros2-interface-lib/pull/222).
 To test another interface-library commit in an image, pass `--set ros2.args.PX4_ROS2_REF=<40-hex-SHA>` to Bake.
 `PX4_MSGS_REF` can similarly override the message-package metadata; the definitions always come from the PX4 checkout.
@@ -100,11 +100,11 @@ Cached installs do not automatically refresh upstream packages: rebuild without 
 
 Source pins are maintained manually through reviewed pull requests, not advanced automatically when images are built.
 Update the full commit SHA in `Tools/ros2/ros2.repos` when adopting upstream changes.
-Run the container builds before accepting an update.
+The same manifest is consumed by both container builds and ROS integration CI; run both workflows before accepting an update.
 
 The `px4_msgs` pin selects package metadata and build logic, not the message definitions used to build the workspace.
 Definitions always come from the PX4 checkout, so ordinary message changes do not require a pin update.
-Image and workspace-helper SHA overrides are for testing candidates; adopting a candidate requires updating the shared manifest.
+Image and workflow SHA overrides are for testing candidates; adopting a candidate requires updating the shared manifest.
 
 ## Testing A PX4 Checkout With ROS
 
@@ -118,6 +118,8 @@ Pushing a `v*` Git tag publishes `<git-tag>-jazzy`, such as `v1.18.0-jazzy`, wit
 Each publication also provides `sha-<full-PX4-commit>-jazzy`, identifying the repository revision used to build the toolchain.
 Release-line toolchains can use tags such as `v1.18-jazzy` through the manual publisher's `tag` input when that release line is maintained.
 The source revision and intended PX4 release line do not change which firmware a checkout builds.
+ROS integration CI pins the image by digest so publishing a new moving tag cannot silently change the test environment.
+When adopting a rebuilt toolchain, update the digest in `.github/workflows/ros_integration_tests.yml`.
 
 The optional `ros2-dev` Bake target builds this image without `.deb` packages or a published SITL parent:
 
@@ -153,6 +155,9 @@ colcon test --packages-select px4_ros2_cpp --ctest-args -R unit_tests
 colcon test-result --verbose
 source install/setup.bash
 cd "$PX4_DIR"
+python3 test/ros_test_runner.py --config-file test/ros_tests/config-sih.json \
+  --build-dir build/px4_sitl_sih --model quadx \
+  --px4-ros2-interface-lib-build-dir /opt/px4_ros2_ci/build/px4_ros2_cpp
 ```
 
 The workspace helper requires a new or empty directory, imports the standard `ros2.repos` manifest with vcstool, and replaces message/service definitions with those from the current PX4 checkout, including removal of deleted definitions.
@@ -161,6 +166,11 @@ It preserves all library packages, examples and Python tests.
 An optional second argument selects another interface-library commit using its full 40-character SHA.
 The helper prints the resolved source manifest, repository commits and PX4 commit; it does not build the workspace.
 
+ROS integration CI builds PX4 afresh for each pull request and only sources the Jazzy underlay before building this separate workspace.
+Its manual `px4_ros2_ref` input selects a full interface-library commit SHA; leaving it empty uses `ros2.repos`.
+CI prepares and builds the ROS workspace on every run using the current checkout's message/service definitions.
+Only the compiler cache is restored, not an old source, build or install workspace.
+Ccache validates compiler contents and compilation inputs, including changed library sources and generated messages.
 `CACHE_GHA=true` uses an independent `ros2-dev-<architecture>` image cache, without replacing the published SITL image caches.
 The `ros_dev_container.yml` workflow builds the standalone target on every `main` push and on pull requests that change its watched paths, without publishing.
 It publishes to GHCR only on `v*` tag pushes or manual runs with `deploy_to_registry=true`.
@@ -168,7 +178,7 @@ Manual runs use the `tag` input, which defaults to `main-jazzy`; the deployment 
 Architecture tags use `sha-<full-PX4-commit>-jazzy-<architecture>`; the final selected tag and `sha-<full-PX4-commit>-jazzy` indexes preserve both architectures and their SBOMs.
 Use `--set ros2-dev.args.PX4_ROS2_REF=<40-hex-SHA>` to build the development image with another interface-library commit.
 
-Both ROS development images reuse `Tools/setup/ubuntu.sh --no-nuttx --no-sim-tools` and its Python requirements.
+Both ROS development images and the CI toolchain reuse `Tools/setup/ubuntu.sh --no-nuttx --no-sim-tools` and its Python requirements.
 Already installed Ubuntu/Jazzy Python versions are constrained during installation instead of gratuitously upgrading the ROS stack.
 The SIH image does not acquire Gazebo or the NuttX toolchain.
 Installing the complete source-build toolset increases cold image-build time and size; existing native architecture and incremental cache boundaries remain in use.
