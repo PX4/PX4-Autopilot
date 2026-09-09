@@ -106,7 +106,7 @@ private:
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME": false motion report")};
+	perf_counter_t _false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME": frame below tracking floor")};
 	perf_counter_t _mode_change_bright_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change bright (0)")};
 	perf_counter_t _mode_change_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change low light (1)")};
 	perf_counter_t _mode_change_super_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change super low light (2)")};

@@ -38,43 +38,13 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-// SQUAL below which the datasheet treats a motion report as noise, per
-// operating mode (shared with the false-motion discard, which also requires
-// the shutter condition).
+// SQUAL thresholds of the datasheet's false-motion discard, per operating
+// mode. Quality is published as raw SQUAL (feature count / 4) so it means the
+// same thing in every mode; the PAA3905 flights that located the tracking knee
+// have no PAW3902 counterpart yet, so this driver keeps the datasheet rule.
 static constexpr uint8_t SQUAL_THRESHOLD_BRIGHT          = 0x19;
 static constexpr uint8_t SQUAL_THRESHOLD_LOW_LIGHT       = 0x46;
 static constexpr uint8_t SQUAL_THRESHOLD_SUPER_LOW_LIGHT = 0x55;
-
-static constexpr uint8_t squal_threshold(Mode mode)
-{
-	switch (mode) {
-	case Mode::Bright:        return SQUAL_THRESHOLD_BRIGHT;
-
-	case Mode::LowLight:      return SQUAL_THRESHOLD_LOW_LIGHT;
-
-	case Mode::SuperLowLight: return SQUAL_THRESHOLD_SUPER_LOW_LIGHT;
-	}
-
-	return SQUAL_THRESHOLD_SUPER_LOW_LIGHT;
-}
-
-// sensor_optical_flow.quality promises 0 = worst, 255 = best, and EKF2 scales
-// the flow noise linearly with it. Raw SQUAL is mode dependent (the chip's own
-// floor is 25/70/85 across the three modes) and the DroneCAN flow message
-// drops the mode, so the same raw value would mean "solid" in bright light and
-// "one count above noise" in super low light. Map the mode floor to 0 and raw
-// 255 to 255.
-static uint8_t normalize_squal(uint8_t squal, Mode mode)
-{
-	const uint8_t threshold = squal_threshold(mode);
-
-	if (squal <= threshold) {
-		return 0;
-	}
-
-	// 0 is reserved for rejected frames; the threshold itself maps to 1
-	return static_cast<uint8_t>(1u + ((squal - threshold) * 254u) / (255u - threshold));
-}
 
 PAW3902::PAW3902(const I2CSPIDriverConfig &config) :
 	SPI(config),
@@ -504,7 +474,7 @@ void PAW3902::RunImpl()
 						sensor_optical_flow.pixel_flow[0] = pixel_flow_rotated(0) * SCALE;
 						sensor_optical_flow.pixel_flow[1] = pixel_flow_rotated(1) * SCALE;
 
-						sensor_optical_flow.quality = normalize_squal(buffer.data.SQUAL, _mode);
+						sensor_optical_flow.quality = buffer.data.SQUAL;
 
 						publish = true;
 
@@ -517,7 +487,7 @@ void PAW3902::RunImpl()
 							sensor_optical_flow.pixel_flow[0] = 0;
 							sensor_optical_flow.pixel_flow[1] = 0;
 
-							sensor_optical_flow.quality = normalize_squal(buffer.data.SQUAL, _mode);
+							sensor_optical_flow.quality = buffer.data.SQUAL;
 
 							publish = true;
 						}
@@ -528,7 +498,7 @@ void PAW3902::RunImpl()
 
 						if (!publish) {
 							// heartbeat with no new frame: zero flow at the last read's quality
-							sensor_optical_flow.quality = normalize_squal(buffer.data.SQUAL, _mode);
+							sensor_optical_flow.quality = buffer.data.SQUAL;
 						}
 
 						sensor_optical_flow.timestamp = hrt_absolute_time();
