@@ -226,18 +226,16 @@ bool GZBridge::subscribePoseInfo(bool required)
 
 bool GZBridge::subscribeImu(bool required)
 {
-	std::string base_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/";
-
 	uint8_t count = math::min(_MAX_IMU_SENSORS, static_cast<uint8_t>(_sim_gz_en_imu.get()));
 
 	for (uint8_t i = 0; i < _MAX_IMU_SENSORS; i++) {
 		std::string imu_topic;
 
 		if (i == 0) {
-			imu_topic = base_topic + "imu_sensor/imu";
+			imu_topic = buildBaseTopic() + "imu_sensor/imu";
 
 		} else {
-			imu_topic = base_topic + "imu_sensor_" + std::to_string(i) + "/imu";
+			imu_topic = buildBaseTopic() + "imu_sensor_" + std::to_string(i) + "/imu";
 		}
 
 		// Pass IMU index in the callback
@@ -264,18 +262,16 @@ bool GZBridge::subscribeImu(bool required)
 
 bool GZBridge::subscribeMag(bool required)
 {
-	std::string base_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/";
-
 	uint8_t count = math::min(_MAX_MAG_SENSORS, static_cast<uint8_t>(_sim_gz_en_mag.get()));
 
 	for (uint8_t i = 0; i < _MAX_MAG_SENSORS; i++) {
 		std::string mag_topic;
 
 		if (i == 0) {
-			mag_topic = base_topic + "magnetometer_sensor/magnetometer";
+			mag_topic = buildBaseTopic() + "magnetometer_sensor/magnetometer";
 
 		} else {
-			mag_topic = base_topic + "magnetometer_sensor_" + std::to_string(i) + "/magnetometer";
+			mag_topic = buildBaseTopic() + "magnetometer_sensor_" + std::to_string(i) + "/magnetometer";
 		}
 
 		// Pass Magnetometer index in the callback
@@ -315,7 +311,7 @@ bool GZBridge::subscribeOdometry(bool required)
 
 bool GZBridge::subscribeLaserScan(bool required)
 {
-	std::string laser_scan_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/link/sensor/lidar_2d_v2/scan";
+	std::string laser_scan_topic = buildBaseTopic("link") + "lidar_2d_v2/scan";
 
 	if (!_node.Subscribe(laser_scan_topic, &GZBridge::laserScanCallback, this)) {
 		PX4_WARN("failed to subscribe to %s", laser_scan_topic.c_str());
@@ -327,8 +323,7 @@ bool GZBridge::subscribeLaserScan(bool required)
 
 bool GZBridge::subscribeDistanceSensor(bool required)
 {
-	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
-				   "/link/lidar_sensor_link/sensor/lidar/scan";
+	std::string lidar_sensor = buildBaseTopic("lidar_sensor_link") + "lidar/scan";
 
 	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
 		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
@@ -340,8 +335,7 @@ bool GZBridge::subscribeDistanceSensor(bool required)
 
 bool GZBridge::subscribeAirspeed(bool required)
 {
-	std::string airspeed_topic = "/world/" + _world_name + "/model/" + _model_name +
-				     "/link/airspeed_link/sensor/air_speed/air_speed";
+	std::string airspeed_topic = buildBaseTopic("airspeed_link") + "air_speed/air_speed";
 
 	if (!_node.Subscribe(airspeed_topic, &GZBridge::airspeedCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", airspeed_topic.c_str());
@@ -353,8 +347,7 @@ bool GZBridge::subscribeAirspeed(bool required)
 
 bool GZBridge::subscribeAirPressure(bool required)
 {
-	std::string air_pressure_topic = "/world/" + _world_name + "/model/" + _model_name +
-					 "/link/base_link/sensor/air_pressure_sensor/air_pressure";
+	std::string air_pressure_topic = buildBaseTopic() + "air_pressure_sensor/air_pressure";
 
 	if (!_node.Subscribe(air_pressure_topic, &GZBridge::airPressureCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", air_pressure_topic.c_str());
@@ -366,19 +359,16 @@ bool GZBridge::subscribeAirPressure(bool required)
 
 bool GZBridge::subscribeNavsat(bool required)
 {
-
-	std::string base_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/";
-
 	uint8_t count = math::min(_MAX_GPS_SENSORS, static_cast<uint8_t>(_sim_gz_en_gps.get()));
 
 	for (uint8_t i = 0; i < _MAX_GPS_SENSORS; i++) {
 		std::string gps_topic;
 
 		if (i == 0) {
-			gps_topic = base_topic + "navsat_sensor/navsat";
+			gps_topic = buildBaseTopic() + "navsat_sensor/navsat";
 
 		} else {
-			gps_topic = base_topic + "navsat_sensor_" + std::to_string(i) + "/navsat";
+			gps_topic = buildBaseTopic() + "navsat_sensor_" + std::to_string(i) + "/navsat";
 		}
 
 		// Pass GPS index in the callback
@@ -405,8 +395,7 @@ bool GZBridge::subscribeNavsat(bool required)
 
 bool GZBridge::subscribeOpticalFlow(bool required)
 {
-	std::string flow_topic = "/world/" + _world_name + "/model/" + _model_name +
-				 "/link/flow_link/sensor/optical_flow/optical_flow";
+	std::string flow_topic = buildBaseTopic("flow_link") + "optical_flow/optical_flow";
 
 	if (!_node.Subscribe(flow_topic, &GZBridge::opticalFlowCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", flow_topic.c_str());
@@ -523,7 +512,6 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg, uint8_t instance_index)
 		return;
 	}
 
-	const uint64_t timestamp = hrt_absolute_time();
 	const uint64_t timestamp_sample = msg.header().stamp().sec() * 1000000ULL + msg.header().stamp().nsec() / 1000ULL;
 
 	// The simulated clock can be marginally behind the header stamp due to topic delivery ordering
@@ -854,7 +842,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg, uint8_t instance_inde
 	sensor_gps.vel_ned_valid = true;
 	sensor_gps.satellites_used = _sim_gps_used.get();
 
-	if (failure_injection::process_gnss(_failure_config, _sensor_gps_pub.get_instance(), sensor_gps, _gps_stuck)) {
+	if (failure_injection::process_gnss(_failure_config, _sensor_gps_pub[instance_index].get_instance(), sensor_gps, _gps_stuck)) {
 		_sensor_gps_pub[instance_index].publish(sensor_gps);
 	}
 }
@@ -1001,6 +989,11 @@ void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::m
 
 	// final rotation composition
 	q_FRD_to_NED = q_ENU_to_NED * q_FLU_to_ENU * q_FLU_to_FRD.Inverse();
+}
+
+std::string GZBridge::buildBaseTopic(std::string sensor_link)
+{
+	return "/world/" + _world_name + "/model/" + _model_name + "/link/" + sensor_link + "/sensor/";
 }
 
 int GZBridge::task_spawn(int argc, char *argv[])
