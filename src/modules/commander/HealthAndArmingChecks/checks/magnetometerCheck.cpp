@@ -148,12 +148,7 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 			 */
 			reporter.armingCheckFailure<uint8_t, uint8_t>(NavModes::All, health_component_t::magnetometer,
 					events::ID("check_mag_sys_has_mag_missing"),
-					events::Log::Error, "Found {1} compass (required: {2})", num_enabled_and_valid_calibration, _param_sys_has_mag.get());
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Found %i compass (required: %" PRId32 ")",
-						     num_enabled_and_valid_calibration, _param_sys_has_mag.get());
-			}
+					events::Log::Info, "Waiting for compass (found {1}, required: {2})", num_enabled_and_valid_calibration, _param_sys_has_mag.get());
 		}
 	}
 }
