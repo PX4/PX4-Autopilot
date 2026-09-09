@@ -757,6 +757,11 @@ void Logger::run()
 				}
 			}
 
+#if defined(CONFIG_LOGGER_ESC_EEPROM)
+			/* ESCs report their EEPROM contents */
+			write_esc_eeprom();
+#endif
+
 			/* wait for lock on log buffer */
 			_writer.lock();
 
@@ -1763,6 +1768,35 @@ void Logger::write_console_output()
 	}
 
 }
+
+#if defined(CONFIG_LOGGER_ESC_EEPROM)
+void Logger::write_esc_eeprom()
+{
+	bool first = true;
+
+	for (auto &esc_eeprom_sub : _esc_eeprom_read_subs) {
+		esc_eeprom_read_s eeprom;
+
+		if (!esc_eeprom_sub.update(&eeprom)) {
+			continue;
+		}
+
+		// The EEPROM contents are opaque to the autopilot: the layout depends on the ESC firmware
+		// and its EEPROM revision, so the bytes are logged raw and decoded by a log analysis tool
+		// (see Tools/esc_eeprom_decode.py).
+		const unsigned length = math::min<unsigned>(eeprom.length, sizeof(eeprom.data));
+		char line[2 * sizeof(eeprom.data) + 40];
+		int pos = snprintf(line, sizeof(line), "esc=%u firmware=%u data=", eeprom.index + 1, eeprom.firmware);
+
+		for (unsigned i = 0; i < length && pos > 0 && pos < (int)sizeof(line) - 2; i++) {
+			pos += snprintf(line + pos, sizeof(line) - pos, "%02x", eeprom.data[i]);
+		}
+
+		write_info_multiple(LogType::Full, "esc_eeprom_read", line, !first);
+		first = false;
+	}
+}
+#endif // CONFIG_LOGGER_ESC_EEPROM
 
 void Logger::write_formats(LogType type)
 {

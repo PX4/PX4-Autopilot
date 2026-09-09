@@ -37,8 +37,6 @@
 
 static constexpr int RESPONSE_SIZE = EEPROM_SIZE + 1; // 48B data + 1B CRC
 
-uORB::Publication<esc_eeprom_read_s> AM32Settings::_esc_eeprom_read_pub{ORB_ID(esc_eeprom_read)};
-
 AM32Settings::AM32Settings(int index)
 	: _esc_index(index)
 {}
@@ -56,6 +54,7 @@ void AM32Settings::publish_latest()
 	data.index = _esc_index;
 	memcpy(data.data, &_eeprom_data, sizeof(_eeprom_data));
 	data.length = sizeof(_eeprom_data);
+
 	_esc_eeprom_read_pub.publish(data);
 }
 
@@ -77,7 +76,6 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 
 	// Store data for retrieval later if requested
 	memcpy(&_eeprom_data, buf, EEPROM_SIZE);
-
 	// Publish data immediately
 	publish_latest();
 
