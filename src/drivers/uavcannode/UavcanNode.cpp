@@ -748,6 +748,12 @@ void UavcanNode::PrintInfo()
 	printf("\tMonotonic time: %llu\n", _node.getMonotonicTime().toUSec());
 	printf("\tUtc time:       %llu\n", _node.getUtcTime().toUSec());
 
+#if defined(UAVCAN_KINETIS_NUTTX) || defined(UAVCAN_STM32_NUTTX) || defined(UAVCAN_STM32H7_NUTTX)
+	const uavcan_hrt_clock::SyncStatus sync = UAVCAN_DRIVER::clock::getSyncStatus();
+	printf("\tSync:           %lu adjustments, last %ld us, rate %ld ppb\n", (unsigned long)sync.adjustments,
+	       (long)sync.last_adjustment_usec, (long)sync.rate_ppb);
+#endif
+
 	printf("\n");
 
 	// CAN driver status

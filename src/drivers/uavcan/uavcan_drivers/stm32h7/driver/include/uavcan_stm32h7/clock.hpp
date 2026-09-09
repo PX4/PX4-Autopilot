@@ -6,13 +6,14 @@
 
 #include <uavcan_stm32h7/build_config.hpp>
 #include <uavcan/driver/system_clock.hpp>
+#include <drivers/uavcan/uavcan_drivers/hrt_clock.hpp>
 
 namespace uavcan_stm32h7
 {
 
 /*
- * Monotonic time is HRT. UTC is HRT plus an offset that time sync moves, so
- * the bus time base shares HRT's rate and needs no hardware of its own.
+ * Monotonic time is HRT. UTC is HRT plus a synced offset and rate (see
+ * uavcan_hrt_clock::Clock), so the bus clock needs no hardware of its own.
  */
 namespace clock
 {
@@ -33,6 +34,8 @@ void setUtc(uavcan::UtcTime time);
  * UTC reads `adjustment` from now on.
  */
 void adjustUtc(uavcan::UtcDuration adjustment);
+
+uavcan_hrt_clock::SyncStatus getSyncStatus();
 }
 
 /**
