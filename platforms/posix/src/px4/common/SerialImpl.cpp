@@ -170,7 +170,7 @@ bool SerialImpl::configure()
 	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
 	// Control modes
-	uart_config.c_cflag = 0;
+	uart_config.c_cflag = CREAD | CLOCAL;
 
 	switch (_bytesize) {
 	case ByteSize::FiveBits:  uart_config.c_cflag |= CS5; break;

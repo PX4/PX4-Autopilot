@@ -193,18 +193,6 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_CLIMB;
 
-	} else if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
-		   _vehicle_status_sub.get().is_vtol &&
-		   !_land_detected_sub.get().landed && _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
-		// Transition to fixed wing if necessary.
-		set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-		_mission_item.yaw = _navigator->get_local_position()->heading;
-
-		// keep current setpoints (FW position controller generates wp to track during transition)
-		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-
-		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
-
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	} else if (_navigator->get_geofence_avoidance_planner().hasMore()) {

@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "IIM42653.hpp"
+#include "../InvenSense_AAF.hpp"
 
 using namespace time_literals;
 
@@ -49,8 +50,8 @@ IIM42653::IIM42653(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external)
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
@@ -66,6 +67,10 @@ IIM42653::IIM42653(const I2CSPIDriverConfig &config) :
 	}
 
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
+
+	if ((config.custom2) > 0) {
+		ConfigureAntiAliasFilter(config.custom2);
+	}
 }
 
 IIM42653::~IIM42653()
@@ -313,6 +318,68 @@ void IIM42653::RunImpl()
 	}
 }
 
+void IIM42653::ConfigureAntiAliasFilter(uint32_t bandwidth_hz)
+{
+	// The chip default (AAF 585 Hz, 1st-order UI filter at ODR/2) suits a flight
+	// controller decimating 8 kHz to a 1-2 kHz rate loop. A board that only
+	// needs a few hundred Hz, such as a CAN node integrating for optical flow,
+	// aliases everything between its decimated Nyquist and the AAF knee; the
+	// presets narrow the AAF and add a 3rd-order UI filter. The set/clear
+	// tables are rewritten so Configure() and RegisterCheck() agree.
+	const InvenSense_AAF::Preset *p = InvenSense_AAF::preset(bandwidth_hz);
+
+	if (p == nullptr) {
+		PX4_ERR("no %lu Hz anti-alias preset (126, 258, 394), keeping chip default", (unsigned long)bandwidth_hz);
+		return;
+	}
+
+	auto set = [](auto & entry, uint8_t value, uint8_t mask) {
+		entry.set_bits = value & mask;
+		entry.clear_bits = (~value) & mask;
+	};
+
+	for (auto &r : _register_bank0_cfg) {
+		switch (r.reg) {
+		case Register::BANK_0::GYRO_CONFIG1:  set(r, Bit3, GYRO_CONFIG1_BIT::GYRO_UI_FILT_ORD); break;   // 3rd order
+
+		case Register::BANK_0::ACCEL_CONFIG1: set(r, Bit4, ACCEL_CONFIG1_BIT::ACCEL_UI_FILT_ORD); break; // 3rd order
+
+		case Register::BANK_0::GYRO_ACCEL_CONFIG0:
+			set(r, (p->ui_filt_bw << 4) | p->ui_filt_bw,
+			    GYRO_ACCEL_CONFIG0_BIT::ACCEL_UI_FILT_BW | GYRO_ACCEL_CONFIG0_BIT::GYRO_UI_FILT_BW);
+			break;
+
+		default: break;
+		}
+	}
+
+	for (auto &r : _register_bank1_cfg) {
+		switch (r.reg) {
+		case Register::BANK_1::GYRO_CONFIG_STATIC3: set(r, p->delt, 0x3F); break;
+
+		case Register::BANK_1::GYRO_CONFIG_STATIC4: set(r, p->deltsqr & 0xFF, 0xFF); break;
+
+		case Register::BANK_1::GYRO_CONFIG_STATIC5: set(r, (p->bitshift << 4) | ((p->deltsqr >> 8) & 0x0F), 0xFF); break;
+
+		default: break;
+		}
+	}
+
+	for (auto &r : _register_bank2_cfg) {
+		switch (r.reg) {
+		case Register::BANK_2::ACCEL_CONFIG_STATIC2: set(r, p->delt << 1, 0x7F); break; // bit 0 (AAF_DIS) stays cleared
+
+		case Register::BANK_2::ACCEL_CONFIG_STATIC3: set(r, p->deltsqr & 0xFF, 0xFF); break;
+
+		case Register::BANK_2::ACCEL_CONFIG_STATIC4: set(r, (p->bitshift << 4) | ((p->deltsqr >> 8) & 0x0F), 0xFF); break;
+
+		default: break;
+		}
+	}
+
+	PX4_INFO("anti-alias filter %u Hz, 3rd-order UI filter %u Hz", p->bandwidth_hz, (p->ui_filt_bw == 7) ? 200 : 400);
+}
+
 void IIM42653::ConfigureSampleRate(int sample_rate)
 {
 	// round down to nearest FIFO sample dt
@@ -411,9 +478,12 @@ bool IIM42653::Configure()
 	}
 
 	// 20-bits data format used
-	//  the only FSR settings that are operational are ±2000dps for gyroscope and ±16g for accelerometer
-	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-	_px4_gyro.set_range(math::radians(2000.f));
+	//  the only FSR settings that are operational are ±4000dps for gyroscope and ±32g for accelerometer
+	// data is published from the 16 bit FIFO registers (data[19:4]), which always span the full range
+	_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
+	_px4_gyro.set_range(math::radians(4000.f));
+	_px4_accel.set_scale(32.f * CONSTANTS_ONE_G / 32768.f);
+	_px4_gyro.set_scale(math::radians(4000.f / 32768.f));
 
 	return success;
 }
@@ -615,33 +685,12 @@ void IIM42653::FIFOReset()
 	_drdy_timestamp_sample.store(0);
 }
 
-static constexpr int32_t reassemble_20bit(const uint32_t a, const uint32_t b, const uint32_t c)
-{
-	// 0xXXXAABBC
-	uint32_t high   = ((a << 12) & 0x000FF000);
-	uint32_t low    = ((b << 4)  & 0x00000FF0);
-	uint32_t lowest = (c         & 0x0000000F);
-
-	uint32_t x = high | low | lowest;
-
-	if (a & Bit7) {
-		// sign extend
-		x |= 0xFFF00000u;
-	}
-
-	return static_cast<int32_t>(x);
-}
-
 void IIM42653::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
 
-	// 18-bits of accelerometer data
-	bool scale_20bit = false;
-
-	// first pass
 	for (int i = 0; i < samples; i++) {
 
 		uint16_t timestamp_fifo = combine_uint(fifo[i].TimeStamp_h, fifo[i].TimeStamp_l);
@@ -653,62 +702,20 @@ void IIM42653::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 			accel.dt = (float)timestamp_fifo * FIFO_TIMESTAMP_SCALING;
 		}
 
-		// 20 bit hires mode
-		// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
-		// Accel data is 18 bit ()
-		int32_t accel_x = reassemble_20bit(fifo[i].ACCEL_DATA_X1, fifo[i].ACCEL_DATA_X0,
-						   fifo[i].Ext_Accel_X_Gyro_X & 0xF0 >> 4);
-		int32_t accel_y = reassemble_20bit(fifo[i].ACCEL_DATA_Y1, fifo[i].ACCEL_DATA_Y0,
-						   fifo[i].Ext_Accel_Y_Gyro_Y & 0xF0 >> 4);
-		int32_t accel_z = reassemble_20bit(fifo[i].ACCEL_DATA_Z1, fifo[i].ACCEL_DATA_Z0,
-						   fifo[i].Ext_Accel_Z_Gyro_Z & 0xF0 >> 4);
+		// The 16 bit FIFO registers hold data[19:4] of the 20 bit hires sample, which always spans
+		// the full range (scale set in Configure()). The 20 bit extension nibble is unused so the
+		// published scale stays constant instead of toggling with batch content.
+		const int16_t accel_x = combine(fifo[i].ACCEL_DATA_X1, fifo[i].ACCEL_DATA_X0);
+		const int16_t accel_y = combine(fifo[i].ACCEL_DATA_Y1, fifo[i].ACCEL_DATA_Y0);
+		const int16_t accel_z = combine(fifo[i].ACCEL_DATA_Z1, fifo[i].ACCEL_DATA_Z0);
 
-		// sample invalid if -524288
-		if (accel_x != -524288 && accel_y != -524288 && accel_z != -524288) {
-			// check if any values are going to exceed int16 limits
-			static constexpr int16_t max_accel = INT16_MAX;
-			static constexpr int16_t min_accel = INT16_MIN;
-
-			if (accel_x >= max_accel || accel_x <= min_accel) {
-				scale_20bit = true;
-			}
-
-			if (accel_y >= max_accel || accel_y <= min_accel) {
-				scale_20bit = true;
-			}
-
-			if (accel_z >= max_accel || accel_z <= min_accel) {
-				scale_20bit = true;
-			}
-
-			// shift by 2 (2 least significant bits are always 0)
-			accel.x[accel.samples] = accel_x / 4;
-			accel.y[accel.samples] = accel_y / 4;
-			accel.z[accel.samples] = accel_z / 4;
+		// sample invalid if -32768 (16 bit truncation of the hires invalid marker -524288)
+		if (accel_x != INT16_MIN && accel_y != INT16_MIN && accel_z != INT16_MIN) {
+			accel.x[accel.samples] = accel_x;
+			accel.y[accel.samples] = accel_y;
+			accel.z[accel.samples] = accel_z;
 			accel.samples++;
 		}
-	}
-
-	if (!scale_20bit) {
-		// if highres enabled accel data is always 4096 LSB/g
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
-
-	} else {
-		// 20 bit data scaled to 16 bit (2^4)
-		for (int i = 0; i < samples; i++) {
-			// 20 bit hires mode
-			// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
-			// Accel data is 18 bit ()
-			int16_t accel_x = combine(fifo[i].ACCEL_DATA_X1, fifo[i].ACCEL_DATA_X0);
-			int16_t accel_y = combine(fifo[i].ACCEL_DATA_Y1, fifo[i].ACCEL_DATA_Y0);
-			int16_t accel_z = combine(fifo[i].ACCEL_DATA_Z1, fifo[i].ACCEL_DATA_Z0);
-
-			accel.x[i] = accel_x;
-			accel.y[i] = accel_y;
-			accel.z[i] = accel_z;
-		}
-
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 1024.f);
 	}
 
 	// correct frame for publication
@@ -734,10 +741,6 @@ void IIM42653::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = 0;
 
-	// 20-bits of gyroscope data
-	bool scale_20bit = false;
-
-	// first pass
 	for (int i = 0; i < samples; i++) {
 
 		uint16_t timestamp_fifo = combine_uint(fifo[i].TimeStamp_h, fifo[i].TimeStamp_l);
@@ -749,48 +752,20 @@ void IIM42653::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 			gyro.dt = (float)timestamp_fifo * FIFO_TIMESTAMP_SCALING;
 		}
 
-		// 20 bit hires mode
-		// Gyro [19:12] + Gyro [11:4] + Gyro [3:0] (bottom 4 bits of 20 bit extension byte)
-		int32_t gyro_x = reassemble_20bit(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0, fifo[i].Ext_Accel_X_Gyro_X & 0x0F);
-		int32_t gyro_y = reassemble_20bit(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0, fifo[i].Ext_Accel_Y_Gyro_Y & 0x0F);
-		int32_t gyro_z = reassemble_20bit(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0, fifo[i].Ext_Accel_Z_Gyro_Z & 0x0F);
+		// The 16 bit FIFO registers hold data[19:4] of the 20 bit hires sample, which always spans
+		// the full range (scale set in Configure()). The 20 bit extension nibble is unused so the
+		// published scale stays constant instead of toggling with batch content.
+		const int16_t gyro_x = combine(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0);
+		const int16_t gyro_y = combine(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0);
+		const int16_t gyro_z = combine(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0);
 
-		// check if any values are going to exceed int16 limits
-		static constexpr int16_t max_gyro = INT16_MAX;
-		static constexpr int16_t min_gyro = INT16_MIN;
-
-		if (gyro_x >= max_gyro || gyro_x <= min_gyro) {
-			scale_20bit = true;
+		// sample invalid if -32768 (16 bit truncation of the hires invalid marker -524288)
+		if (gyro_x != INT16_MIN && gyro_y != INT16_MIN && gyro_z != INT16_MIN) {
+			gyro.x[gyro.samples] = gyro_x;
+			gyro.y[gyro.samples] = gyro_y;
+			gyro.z[gyro.samples] = gyro_z;
+			gyro.samples++;
 		}
-
-		if (gyro_y >= max_gyro || gyro_y <= min_gyro) {
-			scale_20bit = true;
-		}
-
-		if (gyro_z >= max_gyro || gyro_z <= min_gyro) {
-			scale_20bit = true;
-		}
-
-		gyro.x[gyro.samples] = gyro_x / 2;
-		gyro.y[gyro.samples] = gyro_y / 2;
-		gyro.z[gyro.samples] = gyro_z / 2;
-		gyro.samples++;
-	}
-
-	if (!scale_20bit) {
-		// published data is the 20 bit value shifted right by 1, so it spans the full range in
-		// 2^18 counts: 65.536 LSB/dps
-		_px4_gyro.set_scale(math::radians(4000.f / 262144.f));
-
-	} else {
-		// 20 bit data scaled to 16 bit (2^4)
-		for (int i = 0; i < samples; i++) {
-			gyro.x[i] = combine(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0);
-			gyro.y[i] = combine(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0);
-			gyro.z[i] = combine(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0);
-		}
-
-		_px4_gyro.set_scale(math::radians(4000.f / 32768.f));
 	}
 
 	// correct frame for publication

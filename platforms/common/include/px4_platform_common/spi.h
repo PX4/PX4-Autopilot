@@ -35,6 +35,7 @@
 
 #include <stdint.h>
 #include <board_config.h>
+#include <px4_platform_common/bus_topology.h>
 
 #if defined(CONFIG_SPI)
 
@@ -56,6 +57,7 @@ struct px4_spi_bus_device_t {
 	spi_drdy_gpio_t drdy_gpio; ///< data ready GPIO (0 if not set)
 	uint32_t devid; ///< SPIDEV_ID(type,index). For PX4 devices on NuttX: index is the device type, and for external buses the CS index
 	uint16_t devtype_driver; ///< driver device type, e.g. DRV_IMU_DEVTYPE_ICM20689 (on NuttX: PX4_SPI_DEV_ID(devid) == devtype_driver)
+	bool external; ///< true if this CS is a connector pin, not an onboard chip
 };
 
 struct px4_spi_bus_devices_t {
@@ -66,7 +68,7 @@ struct px4_spi_bus_t {
 	px4_spi_bus_device_t devices[SPI_BUS_MAX_DEVICES];
 	uint32_t power_enable_gpio{0}; ///< GPIO (if non-zero) to control the power of the attached devices on this bus (0 means power is off)
 	int8_t bus{-1}; ///< physical bus number (1, ...) (-1 means this is unused)
-	bool is_external; ///< static external configuration. Use px4_spi_bus_external() to check if a bus is really external
+	BusTopology topology{BusTopology::Internal};
 	bool requires_locking; ///< whether the bus should be locked during transfers (true if NuttX drivers access the bus)
 };
 
@@ -109,36 +111,51 @@ __EXPORT int px4_find_spi_bus(uint32_t devid);
 __EXPORT bool px4_spi_bus_requires_locking(int bus);
 
 /**
- * runtime-check if a board has a specific bus as external.
- * This can be overridden by a board to add run-time checks.
+ * Topology of a configured SPI bus.
  */
-__EXPORT bool px4_spi_bus_external(const px4_spi_bus_t &bus);
+static inline BusTopology px4_spi_bus_topology(const px4_spi_bus_t &bus)
+{
+	return bus.topology;
+}
 
-/**
- * runtime-check if a board has a specific bus as external.
- */
-static inline bool px4_spi_bus_external(int bus)
+static inline BusTopology px4_spi_bus_topology(int bus)
 {
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		if (px4_spi_buses[i].bus == bus) {
-			return px4_spi_bus_external(px4_spi_buses[i]);
+			return px4_spi_buses[i].topology;
 		}
 	}
 
-	return true;
+	return BusTopology::External;
+}
+
+static inline bool px4_spi_bus_has_external(const px4_spi_bus_t &bus)
+{
+	return bus_topology_has_external(bus.topology);
+}
+
+static inline bool px4_spi_bus_has_external(int bus)
+{
+	return bus_topology_has_external(px4_spi_bus_topology(bus));
 }
 
 
 /**
  * @class SPIBusIterator
- * Iterate over configured SPI buses by the board
+ * Iterate over configured SPI buses by the board.
+ *
+ * InternalBus: onboard CS (Internal buses, Shared if -b is given).
+ * ExternalBus: connector CS on External and Shared buses (n-th such bus, CS index from 1).
+ *
+ * external() is the sensor classification implied by the filter (-s vs -S),
+ * not the bus topology.
  */
 class SPIBusIterator
 {
 public:
 	enum class FilterType {
-		InternalBus, ///< specific or all internal buses
-		ExternalBus, ///< specific external bus + CS index
+		InternalBus, ///< onboard sensors: Internal buses, Shared if -b is given
+		ExternalBus, ///< connector sensors: External and Shared buses
 	};
 
 	/**
@@ -148,7 +165,7 @@ public:
 	 * @param devid_driver_index DRV_*
 	 * @param chipselect pin of SPIInternal (-1=all) or chip-select index of SPIExternal starting from 1 (optional)
 	 * @param bus starts with 1 (-1=all, but only for internal). Numbering for internal is arch-specific, for external
-	 *            it is the n-th external bus.
+	 *            it is the n-th external-capable bus (External or Shared).
 	 */
 	SPIBusIterator(FilterType filter, uint16_t devid_driver_index, int16_t chipselect = -1, int bus = -1)
 		: _filter(filter), _devid_driver_index(devid_driver_index),
@@ -164,7 +181,7 @@ public:
 
 	int externalBusIndex() const { return _external_bus_counter; }
 
-	bool external() const { return px4_spi_bus_external(bus()); }
+	bool external() const { return _filter == FilterType::ExternalBus; }
 
 	int busDeviceIndex() const { return _bus_device_index; }
 

@@ -9,5 +9,5 @@ board_adc start
 icm45686 -R 0 -s start
 icm42688p -R 0 -s start
 
-# ICP20100 baro on external I2C1
-icp201xx -X -a 0x64 start
+# ICP20100 baro on I2C1 (shared with the connector)
+icp201xx -I -b 1 -a 0x64 start

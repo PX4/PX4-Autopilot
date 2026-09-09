@@ -14,6 +14,20 @@
 Обмеження, встановлені за допомогою пульту керування RC, перевищують ті, що встановлені за допомогою MAVLink, які, зі свого боку, перевищують ті, що встановлені за допомогою параметрів.
 Ліміти можуть бути зменшені тільки нижче тих, що діють для звичайного режиму _Position_.
 
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_position_slow -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_position_slow -->
+
 ## Встановлення обмежень за допомогою параметрів
 
 Максимальні значення для горизонтальної швидкості у режимі повільного руху, вертикальної швидкості та швидкості кочання можна встановити за допомогою параметрів.

@@ -609,6 +609,10 @@ void UxrceddsClient::syncSystemClock(uxrSession *session)
 		return;
 	}
 
+	if (!(_param_sys_time_src.get() & SYS_TIME_SRC_DDS)) {
+		return;
+	}
+
 	ts.tv_sec = agent_utc / 1_s;
 	ts.tv_nsec = (agent_utc % 1_s) * 1000;
 

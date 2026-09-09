@@ -154,6 +154,30 @@ int UavcanServers::init()
 	return 0;
 }
 
+void UavcanServers::warn_if_node_id_allocation_table_full()
+{
+	/*
+	The table never evicts an entry, so a node ID spent on a board that is no longer present stays spent. Once
+	all of them are, every board the table has not seen before is refused a node ID, and the refusal is silent
+	on the bus and here - the node just never appears, which reads as a dead node rather than a full table.
+	Keep saying so: the table does not empty itself, so this is a fault someone has to clear.
+	*/
+	if (_server_instance.getNumAllocations() < uavcan::NodeID::MaxRecommendedForRegularNodes) {
+		return;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (_node_id_table_full_warned != 0 && now - _node_id_table_full_warned < NODE_ID_TABLE_FULL_WARN_INTERVAL) {
+		return;
+	}
+
+	_node_id_table_full_warned = now;
+	PX4_ERR("dynamic node ID table is full (%u/%u): no new node can join, delete %s and reboot",
+		static_cast<unsigned>(_server_instance.getNumAllocations()),
+		static_cast<unsigned>(uavcan::NodeID::MaxRecommendedForRegularNodes), UAVCAN_NODE_DB_PATH);
+}
+
 #ifdef CONFIG_MODULES_NFS_MOUNT
 void UavcanServers::check_nfs()
 {

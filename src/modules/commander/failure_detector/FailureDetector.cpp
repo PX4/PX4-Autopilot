@@ -250,10 +250,10 @@ void FailureDetector::updateImbalancedPropStatus()
 
 			if ((imu_status.accel_device_id != 0)
 			    && (imu_status.accel_device_id == _selected_accel_device_id)) {
-				const float dt = math::constrain((imu_status.timestamp - _imu_status_timestamp_prev) * 1e-6f, 0.01f, 1.f);
+				const hrt_abstime dt_us = math::constrain(imu_status.timestamp - _imu_status_timestamp_prev, 10_ms, 1_s);
 				_imu_status_timestamp_prev = imu_status.timestamp;
 
-				_imbalanced_prop_lpf.setParameters(dt, _imbalanced_prop_lpf_time_constant);
+				_imbalanced_prop_lpf.setParameters(dt_us, _imbalanced_prop_lpf_time_constant);
 
 				const float std_x = sqrtf(math::max(imu_status.var_accel[0], 0.f));
 				const float std_y = sqrtf(math::max(imu_status.var_accel[1], 0.f));

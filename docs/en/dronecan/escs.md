@@ -27,7 +27,38 @@ DroneCAN ESCs should be on their own dedicated CAN interface(s) because ESC mess
 
 DroneCAN peripherals are configured by following the procedure outlined in [DroneCAN](../dronecan/index.md).
 
-In addition to the general setup, such as setting `UAVCAN_ENABLE` to `3`:
+In addition to the general setup:
 
-- Select the specific CAN interface(s) used for ESC data output using the [UAVCAN_ESC_IFACE](../advanced_config/parameter_reference.md#UAVCAN_ESC_IFACE) parameter (all that all interfaces are selected by default).
+- Set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to `3`.
+
+  ::: tip TIP <Badge type="tip" text="main (PX4 v2.0)" />
+  There is no need to enable [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM).
+
+  In earlier versions you would need to set `UAVCAN_PUB_ARM=1` in order to publish the [ArmingStatus](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus) (this is required by some ESCs in order to respond correctly during both flight and Actuators page tests).
+  The status is now published automatically if `UAVCAN_ENABLE=3`.
+  :::
+
+- Select the specific CAN interface(s) used for ESC data output using the [UAVCAN_ESC_IFACE](../advanced_config/parameter_reference.md#UAVCAN_ESC_IFACE) parameter (all interfaces are selected by default).
 - Configure the [motor order and servo outputs](../config/actuators.md).
+
+## Reversible Motors {#reversible-motors}
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+Motors can be reversible "on the fly" (bidirectional) if the motor hardware supports reversal, the ESC firmware is configured for 3D/bidirectional operation, and the motor is set as [bidirectional](../config/actuators.md#bidirectional-motors) in the actuator configuration.
+
+When configured as bidirectional, PX4 commands the motor with a _signed_ `uavcan.equipment.esc.RawCommand` value, as defined by the DroneCAN ESC message protocol:
+
+- **Zero:** Motor stop / neutral
+- **Positive values:** Forward thrust
+- **Negative values:** Reverse thrust
+
+Motors that are not configured as bidirectional continue to receive positive values only.
+
+::: tip Verifying Operation
+Check the sign of the RPM reported in the ESC telemetry to confirm that the ESC is interpreting negative commands correctly and actively spinning the motor in reverse.
+:::
+
+Reversible motors may also be used in [Motor Failure Recovery](../config/motor_failure_recovery.md) to keep a hexarotor controllable after a single motor failure.
+That case still needs ESCs configured for reversal.
+However it is not necessary to set the motor as bidirectional in the actuator configuration, because PX4 makes the recovery motor reversible as it handles the failure.

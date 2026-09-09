@@ -19,7 +19,8 @@ Connect the SmartAudio or Tramp pin of the VTX to the TX pin of a free serial po
 Then set the following parameters:
 
 - `VTX_SER_CFG`: Select the serial port used for VTX communication.
-- `VTX_DEVICE`: Selects the VTX device (generic SmartAudio/Tramp or a specific device).
+- `VTX_PROTOCOL`: Selects the wire protocol (SmartAudio or Tramp).
+- `VTX_DEVICE`: Selects the specific VTX model.
 
 Note that since the VTX communication is half-duplex, you can, for example, use the single-pin Radio Controller port for the VTX and use a full duplex TELEM port for CRSF communication.
 
@@ -264,25 +265,32 @@ Key configuration options:
     - `2`: MSP controls frequency, AUX controls power
     - `3`: MSP controls power, AUX controls band/channel
     - `4`: Not used with MSP support
+- `VTX_PROTOCOL`: Wire protocol used to talk to the VTX (see below)
 - `VTX_DEVICE`: Device-specific configuration (see below)
 
-## Device-Specific Configuration
+## Protocol and Device Configuration
 
-The `VTX_DEVICE` parameter allows device-specific workarounds.
-It encodes both the protocol type and device variant:
+The wire protocol and the device model are configured independently.
 
-- Low byte (bits 0-7): Protocol selection
-  - `0`: SmartAudio (default)
-  - `1`: Tramp
-- High byte (bits 8-15): Device-specific variant
-  - `0`: Generic device
-  - `20`: Peak THOR T67
-  - `40`: Rush Max Solo
+`VTX_PROTOCOL` selects the wire protocol. Set it to the protocol listed in the manual of your VTX:
+
+| Значення | Протокол                                |
+| -------- | --------------------------------------- |
+| `0`      | SmartAudio v1, v2, v2.1 |
+| `100`    | Tramp                                   |
+
+`VTX_DEVICE` selects the specific VTX model and only enables device-specific workarounds. Leave at Generic unless your VTX is listed
+
+| Значення | Пристрій      |
+| -------- | ------------- |
+| `0`      | Generic       |
+| `5120`   | Peak THOR T67 |
+| `10240`  | Rush MAX SOLO |
+
+Peak THOR devices speak SmartAudio and the Rush MAX SOLO speaks Tramp, so set `VTX_PROTOCOL` to match the model you select.
 
 ### Known Device Workarounds
 
 **Peak THOR T67** (`VTX_DEVICE` = 5120):
 This device incorrectly reports pit mode status but otherwise functions normally.
 The driver applies a workaround to override the reported status with the actual configured state.
-
-For generic devices, use `VTX_DEVICE` = 0 (SmartAudio) or `VTX_DEVICE` = 1 (Tramp).

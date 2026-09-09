@@ -500,6 +500,9 @@ private:
 	 */
 	void report_do_jump_mission_changed(int index, int do_jumps_remaining);
 
+	/** Mirror an in-place mission item write into the route cache. */
+	void syncMissionRouteCacheItem(int32_t index, const mission_item_s &mission_item);
+
 	/**
 	 * @brief Cache the mission items containing gimbal, camera mode and trigger commands
 	 *

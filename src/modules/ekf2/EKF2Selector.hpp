@@ -78,6 +78,10 @@ public:
 
 private:
 	static constexpr uint8_t INVALID_INSTANCE{UINT8_MAX};
+
+	// unhealthy time before a sustained-warned instance becomes an acceptable
+	// fallback; a timed out primary bypasses this delay
+	static constexpr hrt_abstime kWarnedFallbackDelay{5_s};
 	static constexpr uint64_t FILTER_UPDATE_PERIOD{10_ms};
 
 	void Run() override;
@@ -186,6 +190,7 @@ private:
 
 	uint32_t _instance_changed_count{0};
 	hrt_abstime _last_instance_change{0};
+	hrt_abstime _selected_unhealthy_since{0};	///< 0 while the selected instance is healthy
 
 	hrt_abstime _last_status_publish{0};
 	bool _selector_status_publish{false};

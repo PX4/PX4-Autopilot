@@ -14,6 +14,20 @@ The velocity limits can be set using parameters, from an [RC Controller](../gett
 Limits set using an RC controller override those set by MAVLink, which in turn override those set using parameters.
 The limits can only be reduced below those for normal _Position_ mode.
 
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_position_slow -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_position_slow -->
+
 ## Set Limits using Parameters
 
 The maximum values for slow mode horizontal velocity, vertical velocity, and yaw rate can be set using parameters.

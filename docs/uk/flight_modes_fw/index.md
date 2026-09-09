@@ -11,12 +11,12 @@
 
 Manual-Easy:
 
-- [Режим позиції](../flight_modes_fw/position.md) — Найпростіший і найбезпечніший ручний режим для транспортних засобів, які мають фіксацію позиції/GPS.
+- [Cruise mode](../flight_modes_fw/cruise.md) — Easiest and safest manual mode for vehicles that have a position fix/GPS.
   Транспортний засіб виконує [координований поворот](https://en.wikipedia.org/wiki/Coordinated_flight), якщо руль не є нульовим, тоді як pitch-стік контролює швидкість підйому/спуску.
   Якщо стіки відпущені, транспортний засіб вирівнюється і тримає прямий шлях польоту, навіть проти вітру.
   Швидкість активно контролюється, якщо встановлений датчик швидкості.
 - [Режим висоти](../flight_modes_fw/altitude.md) — Найпростіший і найбезпечніший _непідтримуваний GPS_ ручний режим.
-  Єдина відмінність порівняно з _Режимом положення_ полягає в тому, що пілот завжди безпосередньо керує кутом кочення літака і немає автоматичного утримання курсу.
+  The only difference compared to _Cruise mode_ is that the pilot always directly controls the roll angle of the plane and there is no automatic course holding.
 - Altitude Cruise mode — It behaves exactly like _Altitude mode_, with the only difference being that the manual control failsafe can be disabled. This is done by setting the corresponding flag in [COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT). In that case the current altitude, airspeed and heading (by leveling out the roll angle) are kept until the manual control link is regained or the mode is exited.
   It is highly recommended to only disable the manual control loss failsafe for this mode if there is a stable data link connection to the vehicle at all times, or to enable the data link loss failsafe through [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT).
 - [Режим стабілізації](../flight_modes_fw/stabilized.md) — Пілот напряму керує кутом крену та тангажу, і апарат зберігає задану точку до тих пір, поки стіки знову не будуть переміщені.

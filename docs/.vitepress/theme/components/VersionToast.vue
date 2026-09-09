@@ -50,11 +50,11 @@ onMounted(() => {
   width: 90vw;
   max-width: 688px; /* matches VitePress's default doc content column width */
   padding: 24px 32px;
-  /* Opaque page-surface base with the theme's translucent tip tint layered
-     on top, so the tint stays theme-adaptive without looking washed out. */
+  /* Opaque page-surface base with the theme's translucent warning tint
+     layered on top, so the tint stays theme-adaptive without looking washed out. */
   background-color: var(--vp-c-bg);
-  background-image: linear-gradient(var(--vp-c-tip-soft), var(--vp-c-tip-soft));
-  color: var(--vp-c-tip-1);
+  background-image: linear-gradient(var(--vp-c-warning-soft), var(--vp-c-warning-soft));
+  color: var(--vp-c-warning-1);
   border-radius: 8px;
   box-shadow: var(--vp-shadow-3);
   text-align: center;

@@ -8,11 +8,27 @@ _Режим місії_ змушує транспортний засіб вик�
 ::: info
 
 - Цей режим потребує глобальної оцінки 3D-позиції (з GPS або виведеної з [локальної позиції](../ros/external_position_estimation.md#enabling-auto-modes-with-a-local-position)).
-- Транспортний засіб повинен бути озброєний перед тим, як цей режим може бути активований.
+- The mission will start once the vehicle is armed.
 - Цей режим є автоматичним - для керування автомобілем не потрібно втручання користувача.
-- Перемикачі керування RC можуть використовуватися для зміни режимів польоту на будь-якому транспортному засобі.
+- Sticks/switches can be used to switch out of mission mode on any vehicle.
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_auto_mission -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_global_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_global_position_relaxed) — Position measurement updates in a global coordinate frame but accepts poor accuracy
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_mission`](../flight_modes/mode_requirements.md#mode_req_mission) — Valid mission in autopilot's storage
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_auto_mission -->
 
 ## Опис
 
@@ -57,7 +73,7 @@ _Режим місії_ змушує транспортний засіб вик�
 
 :::
 
-Місії можна призупинити, переключившись з режиму місії на будь-який інший режим (наприклад, [режим утримання](../flight_modes_fw/hold.md) або [режим позиціонування](../flight_modes_fw/position.md)), і продовжити, переключившись назад в режим місії.
+Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Cruise mode](../flight_modes_fw/cruise.md)), and resumed by switching back to mission mode.
 Якщо транспортний засіб не захоплював зображення, коли він був призупинений, під час відновлення він рухатиметься зі своєї _поточної позиції_ до тієї ж точки шляху, до якої він спочатку рухався.
 Якщо транспортний засіб захоплював зображення (має елементи спуску камери), він замість цього рухатиметься зі своєї поточної позиції до останньої точки шляху, якою він проїхав (перед зупинкою), а потім пройде свій шлях з тією самою швидкістю та з такою самою поведінкою спуску камери.
 Це забезпечує, що планований шлях зафіксований під час місій з опитування/камери.
@@ -325,6 +341,44 @@ A fixed-wing mission requires a `Takeoff` mission item to takeoff; if however th
 | <a id="RWTO_PSP"></a>[RWTO_PSP](../advanced_config/parameter_reference.md#RWTO_PSP)                                                             | Налагодження польоту під час зльоту. Для шасі трициклів, зазвичай близько до нуля. Для літаків з хвостовим краденцем, позитивно.                                                                              |
 | <a id="FW_THR_IDLE"></a>[FW_THR_IDLE](../advanced_config/parameter_reference.md#FW_THR_IDLE)                               | Встановлення планки холостого ходу. Транспортний засіб буде зберігати цей параметр протягом спалаху та розвороту.                                                                                                             |
 
+### Parachute Landing
+
+A mission landing can end in a parachute descent, releasing the parachute such that the vehicle touches down on the land waypoint ([MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND)).
+This allows recovery in areas where a rollout or belly landing is not possible.
+
+The feature is enabled with [FW_LND_PARA_EN](#FW_LND_PARA_EN) and requires a [parachute](../peripherals/parachute.md), either on a flight controller output (_Parachute_ output function) or as an external MAVLink parachute system ([COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE)).
+
+The vehicle follows the normal landing approach down to the release altitude ([FW_LND_PARA_ALT](#FW_LND_PARA_ALT)), then continues level towards the land waypoint.
+The parachute is released by triggering [flight termination](../advanced_config/flight_termination.md) once the predicted touchdown point under canopy lies on the land waypoint.
+The prediction accounts for the forward carry while the parachute deploys, and the drift with the estimated wind while the vehicle sinks at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK).
+Crosswind is compensated by aiming upwind of the land waypoint.
+
+:::warning
+The release triggers flight termination: the landing cannot be aborted after the release, and the vehicle must be rebooted before the next flight.
+[Operator abort](#operator-abort) works normally at any time before the release.
+:::
+
+Notes:
+
+- The touchdown point drifts with the wind, and the horizontal touchdown speed matches the wind speed.
+  Accuracy and touchdown quality degrade as the wind approaches the landing airspeed ([COM_WIND_MAX](../advanced_config/parameter_reference.md#COM_WIND_MAX) can enforce a wind limit).
+- Lowering the release altitude reduces the wind drift.
+  For safety reasons, the release altitude is clamped to a minimum of 3 seconds of descent at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK), so that the canopy has room to open before touchdown.
+- [FW_LND_PARA_ALT](#FW_LND_PARA_ALT) is the altitude the vehicle holds while waiting for the release point.
+  The release prediction always uses the actual altitude:
+  - A vehicle that holds the altitude releases at the configured altitude, or above it if the release point is reached while still on the approach slope.
+  - A vehicle that cannot hold the altitude (for example a motor-less glider) keeps sinking while the prediction adapts, and still releases such that it touches down on the land waypoint.
+    Only if it sinks to the minimum release altitude before reaching the release point does it release there, and touch down short of the waypoint.
+- Not supported on VTOL.
+
+#### Parachute Landing Parameters
+
+| Parameter                                                                                                                                                                  | Опис                                                                                                    |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| <a id="FW_LND_PARA_EN"></a>[FW_LND_PARA_EN](../advanced_config/parameter_reference.md#FW_LND_PARA_EN)       | Enable parachute landing on the mission landing approach.                               |
+| <a id="FW_LND_PARA_ALT"></a>[FW_LND_PARA_ALT](../advanced_config/parameter_reference.md#FW_LND_PARA_ALT)    | Release altitude above the land waypoint.                                               |
+| <a id="FW_LND_PARA_SINK"></a>[FW_LND_PARA_SINK](../advanced_config/parameter_reference.md#FW_LND_PARA_SINK) | Expected sink rate under canopy, used to predict the wind drift of the touchdown point. |
+
 ### Відміна
 
 #### Оператор відміни Abort
@@ -374,7 +428,7 @@ Landing configuration (e.g. flaps, spoilers, landing airspeed) is disabled durin
 
 :::info
 Відштовхування (Nudging) не повинно використовуватися для доповнення поганого налаштування контролю позиції.
-If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/position.md) for instruction.
+If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/cruise.md) for instruction.
 :::
 
 | Parameter                                                                                                                                                         | Опис                                                                                         |

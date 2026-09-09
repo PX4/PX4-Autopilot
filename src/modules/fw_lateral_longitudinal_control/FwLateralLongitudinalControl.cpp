@@ -58,13 +58,19 @@ static constexpr float COS_HEADING_TRACK_ANGLE_NOT_PUSHED_BACK{0.09f}; ///< Cos 
 static constexpr float COS_HEADING_TRACK_ANGLE_PUSHED_BACK{0.f}; ///< Cos of Heading to track angle above which it is assumed that the vehicle is pushed back by the wind
 
 // [s] Timeout that has to pass in roll-constraining failsafe before warning is triggered
-static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
+static constexpr hrt_abstime ROLL_WARNING_TIMEOUT = 2_s;
 
 // [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
 static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 
 // [m/s/s] slew rate limit for airspeed setpoint changes
 static constexpr float ASPD_SP_SLEW_RATE = 1.f;
+
+// [us] time constant of the fuel fraction filter, needs to be slow enough to reject fuel sloshing
+static constexpr hrt_abstime FUEL_FRACTION_FILTER_TIME_CONST = 30_s;
+
+// [us] maximum time step used to advance the fuel fraction filter on a new sample
+static constexpr hrt_abstime FUEL_FRACTION_FILTER_MAX_DT = 10_s;
 
 FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	ModuleParams(nullptr),
@@ -76,6 +82,9 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	_tecs_status_pub.advertise();
 	_flight_phase_estimation_pub.advertise();
 	_fixed_wing_lateral_status_pub.advertise();
+
+	_fuel_fraction_filter.setParameters(hrt_abstime{0}, FUEL_FRACTION_FILTER_TIME_CONST);
+
 	parameters_update();
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
 
@@ -159,6 +168,8 @@ void FwLateralLongitudinalControl::Run()
 			_tecs.set_max_climb_rate(_performance_model.getMaximumClimbRate(_air_density));
 			_tecs.set_min_sink_rate(_performance_model.getMinimumSinkRate(_air_density));
 		}
+
+		updateFuelState();
 
 		if (_vehicle_landed_sub.updated()) {
 			vehicle_land_detected_s landed{};
@@ -443,6 +454,54 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 	return flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
 }
 
+void FwLateralLongitudinalControl::updateFuelState()
+{
+	fuel_tank_status_s fuel_tank_status;
+
+	for (auto &sub : _fuel_tank_status_subs) {
+		if (!sub.update(&fuel_tank_status)) {
+			continue;
+		}
+
+		// only the tank with id 0 is used for weight compensation, multi-tank systems
+		// are expected to publish an aggregated total as tank 0
+		if (fuel_tank_status.fuel_tank_id != 0) {
+			if (!_ignored_fuel_tank_reported && _performance_model.isFuelCompensationEnabled()) {
+				PX4_WARN("Ignoring fuel tank status with tank id %d, only tank 0 is used for weight compensation",
+					 fuel_tank_status.fuel_tank_id);
+				_ignored_fuel_tank_reported = true;
+			}
+
+			continue;
+		}
+
+		const float fuel_fraction_remaining = PerformanceModel::getFuelFractionRemaining(fuel_tank_status);
+
+		if (!PX4_ISFINITE(fuel_fraction_remaining)) {
+			continue;
+		}
+
+		if (_time_last_fuel_fraction_update == 0) {
+			_fuel_fraction_filter.reset(fuel_fraction_remaining);
+
+		} else if (fuel_tank_status.timestamp > _time_last_fuel_fraction_update) {
+			const hrt_abstime dt_us = math::min(fuel_tank_status.timestamp - _time_last_fuel_fraction_update,
+							    FUEL_FRACTION_FILTER_MAX_DT);
+			_fuel_fraction_filter.update(fuel_fraction_remaining, dt_us);
+
+		} else {
+			// out-dated sample
+			continue;
+		}
+
+		_time_last_fuel_fraction_update = fuel_tank_status.timestamp;
+
+		_performance_model.setFuelFractionRemaining(_fuel_fraction_filter.getState());
+
+		_tecs.set_equivalent_airspeed_trim(_performance_model.getCalibratedTrimAirspeed());
+	}
+}
+
 void
 FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent_airspeed_sp,
 		float true_airspeed_derivative_raw, float throttle_trim, hrt_abstime timestamp)
@@ -478,6 +537,7 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 	tecs_status.throttle_trim = throttle_trim;
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;
+	tecs_status.weight_ratio = _performance_model.getWeightRatio();
 
 	tecs_status.timestamp = timestamp;
 

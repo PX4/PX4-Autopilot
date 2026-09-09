@@ -43,7 +43,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 AK09916::AK09916(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_mag(get_device_id(), config.rotation, config.external)
 {
 }
 
@@ -267,6 +267,7 @@ bool AK09916::Configure()
 
 	// mag resolution is 1.5 milli Gauss per bit (0.15 μT/LSB)
 	_px4_mag.set_scale(1.5e-3f);
+	_px4_mag.set_range(microTesla2Gauss(4912.f));
 
 	return success;
 }

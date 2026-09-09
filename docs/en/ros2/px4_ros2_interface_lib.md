@@ -53,4 +53,4 @@ To get started using the library within an existing ROS 2 workspace:
 When opening a pull request to PX4, CI runs the library integration tests.
 These test that mode registration, failsafes, and mode replacement, work as expected.
 
-For more information see [PX4 ROS2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md).
+For more information see [PX4 ROS 2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md).

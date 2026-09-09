@@ -47,8 +47,9 @@ GPS position in WGS84 coordinates. the field 'timestamp' is for the position & v
 | <a id="fld_heading_accuracy"></a>heading_accuracy                                       | `float32` |                                                                        |            | heading accuracy (rad, [0, 2PI])                                                                                                                                     |
 | <a id="fld_rtcm_injection_rate"></a>rtcm_injection_rate            | `float32` |                                                                        |            | RTCM message injection rate Hz                                                                                                                                                                                                              |
 | <a id="fld_selected_rtcm_instance"></a>selected_rtcm_instance      | `uint8`   |                                                                        |            | uorb instance that is being used for RTCM corrections                                                                                                                                                                                       |
-| <a id="fld_rtcm_crc_failed"></a>rtcm_crc_failed                    | `bool`    |                                                                        |            | RTCM message CRC failure detected                                                                                                                                                                                                           |
-| <a id="fld_rtcm_msg_used"></a>rtcm_msg_used                        | `uint8`   |                                                                        |            | Indicates if the RTCM message was used successfully by the receiver                                                                                                                                                                         |
+| <a id="fld_corrections_protocol"></a>corrections_protocol                               | `uint8`   |                                                                        |            | Protocol of the last correction message the receiver parsed                                                                                                                                                                                 |
+| <a id="fld_corrections_crc_failed"></a>corrections_crc_failed      | `bool`    |                                                                        |            | Last correction message failed its CRC or content check                                                                                                                                                                                     |
+| <a id="fld_corrections_msg_used"></a>corrections_msg_used          | `uint8`   |                                                                        |            | Whether the receiver used the last correction message                                                                                                                                                                                       |
 | <a id="fld_antenna_offset_x"></a>antenna_offset_x                  | `float32` | m [body frame FRD] |            | X Position of GNSS antenna                                                                                                                                                                                                                  |
 | <a id="fld_antenna_offset_y"></a>antenna_offset_y                  | `float32` | m [body frame FRD] |            | Y Position of GNSS antenna                                                                                                                                                                                                                  |
 | <a id="fld_antenna_offset_z"></a>antenna_offset_z                  | `float32` | m [body frame FRD] |            | Z Position of GNSS antenna                                                                                                                                                                                                                  |
@@ -85,9 +86,15 @@ GPS position in WGS84 coordinates. the field 'timestamp' is for the position & v
 | <a id="#SYSTEM_ERROR_EVENT_CONGESTION"></a> SYSTEM_ERROR_EVENT_CONGESTION                          | `uint32` | 16 |                                                            |
 | <a id="#SYSTEM_ERROR_CPU_OVERLOAD"></a> SYSTEM_ERROR_CPU_OVERLOAD                                  | `uint32` | 32 |                                                            |
 | <a id="#SYSTEM_ERROR_OUTPUT_CONGESTION"></a> SYSTEM_ERROR_OUTPUT_CONGESTION                        | `uint32` | 64 |                                                            |
-| <a id="#RTCM_MSG_USED_UNKNOWN"></a> RTCM_MSG_USED_UNKNOWN                                          | `uint8`  | 0  |                                                            |
-| <a id="#RTCM_MSG_USED_NOT_USED"></a> RTCM_MSG_USED_NOT_USED                   | `uint8`  | 1  |                                                            |
-| <a id="#RTCM_MSG_USED_USED"></a> RTCM_MSG_USED_USED                                                | `uint8`  | 2  |                                                            |
+| <a id="#CORRECTIONS_PROTOCOL_UNKNOWN"></a> CORRECTIONS_PROTOCOL_UNKNOWN                                                 | `uint8`  | 0  |                                                            |
+| <a id="#CORRECTIONS_PROTOCOL_RTCM3"></a> CORRECTIONS_PROTOCOL_RTCM3                                                     | `uint8`  | 1  |                                                            |
+| <a id="#CORRECTIONS_PROTOCOL_SPARTN"></a> CORRECTIONS_PROTOCOL_SPARTN                                                   | `uint8`  | 2  |                                                            |
+| <a id="#CORRECTIONS_PROTOCOL_HAS"></a> CORRECTIONS_PROTOCOL_HAS                                                         | `uint8`  | 3  | Galileo High Accuracy Service, received on E6              |
+| <a id="#CORRECTIONS_PROTOCOL_PMP"></a> CORRECTIONS_PROTOCOL_PMP                                                         | `uint8`  | 4  | SPARTN over L-band (u-blox NEO-D9S)     |
+| <a id="#CORRECTIONS_PROTOCOL_QZSS_L6"></a> CORRECTIONS_PROTOCOL_QZSS_L6                            | `uint8`  | 5  | QZSS CLAS                                                  |
+| <a id="#CORRECTIONS_MSG_USED_UNKNOWN"></a> CORRECTIONS_MSG_USED_UNKNOWN                            | `uint8`  | 0  |                                                            |
+| <a id="#CORRECTIONS_MSG_USED_NOT_USED"></a> CORRECTIONS_MSG_USED_NOT_USED     | `uint8`  | 1  |                                                            |
+| <a id="#CORRECTIONS_MSG_USED_USED"></a> CORRECTIONS_MSG_USED_USED                                  | `uint8`  | 2  |                                                            |
 
 ## Source Message
 
@@ -179,12 +186,20 @@ float32 heading_accuracy	# heading accuracy (rad, [0, 2PI])
 float32 rtcm_injection_rate	# RTCM message injection rate Hz
 uint8 selected_rtcm_instance	# uorb instance that is being used for RTCM corrections
 
-bool rtcm_crc_failed		# RTCM message CRC failure detected
+uint8 CORRECTIONS_PROTOCOL_UNKNOWN = 0
+uint8 CORRECTIONS_PROTOCOL_RTCM3 = 1
+uint8 CORRECTIONS_PROTOCOL_SPARTN = 2
+uint8 CORRECTIONS_PROTOCOL_HAS = 3	# Galileo High Accuracy Service, received on E6
+uint8 CORRECTIONS_PROTOCOL_PMP = 4	# SPARTN over L-band (u-blox NEO-D9S)
+uint8 CORRECTIONS_PROTOCOL_QZSS_L6 = 5	# QZSS CLAS
+uint8 corrections_protocol	# Protocol of the last correction message the receiver parsed
 
-uint8 RTCM_MSG_USED_UNKNOWN = 0
-uint8 RTCM_MSG_USED_NOT_USED = 1
-uint8 RTCM_MSG_USED_USED = 2
-uint8 rtcm_msg_used		# Indicates if the RTCM message was used successfully by the receiver
+bool corrections_crc_failed	# Last correction message failed its CRC or content check
+
+uint8 CORRECTIONS_MSG_USED_UNKNOWN = 0
+uint8 CORRECTIONS_MSG_USED_NOT_USED = 1
+uint8 CORRECTIONS_MSG_USED_USED = 2
+uint8 corrections_msg_used	# Whether the receiver used the last correction message
 
 float32 antenna_offset_x	# [m] [@frame body frame FRD] X Position of GNSS antenna
 float32 antenna_offset_y	# [m] [@frame body frame FRD] Y Position of GNSS antenna

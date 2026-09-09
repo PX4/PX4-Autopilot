@@ -52,6 +52,7 @@ endif()
 set(NAVIGATOR_SOURCES
 	navigator_main.cpp
 	navigator_mode.cpp
+	full_mission_cache.cpp
 	mission_route_cache.cpp
 	mission_base.cpp
 	mission_block.cpp

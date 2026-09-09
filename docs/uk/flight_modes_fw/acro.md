@@ -16,6 +16,17 @@ _Acro mode_ is the manual mode for performing acrobatic maneuvers e.g. rolls, fl
 Вхідні сигнали стіків крену-тангажу перетворюються на команди кутової швидкості, які стабілізуються автопілотом.
 Передача дроселя здійснюється безпосередньо для керування розподілом.
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_acro -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_acro -->
+
 ## Параметри
 
 | Parameter                                                                                                                                                            | Опис                                                                                                                                                                                                                                                                                          |

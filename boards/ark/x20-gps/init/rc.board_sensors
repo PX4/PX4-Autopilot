@@ -3,6 +3,7 @@
 # board sensors init
 #------------------------------------------------------------------------------
 gps start -d /dev/ttyS0 -p ubx
+pps_capture start
 
 icm42688p -R 0 -s start
 

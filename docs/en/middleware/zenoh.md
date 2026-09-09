@@ -134,8 +134,8 @@ The PX4 Zenoh-pico node stores its configuration on the **SD card** under the `z
 This folder contains three key files:
 
 - **`net.txt`** – Defines the **Zenoh network configuration**.
-- **`pub.csv`** – Maps **uORB topics to ROS2 topics** (used for publishing).
-- **`sub.csv`** – Maps **ROS2 topics to uORB topics** (used for subscribing).
+- **`pub.csv`** – Maps **uORB topics to ROS 2 topics** (used for publishing).
+- **`sub.csv`** – Maps **ROS 2 topics to uORB topics** (used for subscribing).
 
 #### Publisher Options
 
@@ -154,7 +154,7 @@ Individual publisher options can be overridden through the mapping configuration
 
 ### 4. Modifying Topic Mappings
 
-Zenoh topic mappings define how data flows between PX4's internal uORB topics and external ROS2 topics via Zenoh.
+Zenoh topic mappings define how data flows between PX4's internal uORB topics and external ROS 2 topics via Zenoh.
 These mappings are stored in `pub.csv` and `sub.csv` on the SD card, and can be modified at runtime using the `zenoh config` CLI tool.
 
 :::warning

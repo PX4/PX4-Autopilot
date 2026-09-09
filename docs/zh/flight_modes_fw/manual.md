@@ -20,6 +20,16 @@ RC mode where stick input is sent directly to control allocation (for "fully" ma
 
 这是唯一忽略 FMU（命令通过安全协处理器发送） 的飞行模式。 该模式提供了一个安全机制，允许在 FMU 固件故障时通过遥控器完全控制油门，升降舵，副翼和方向舵。
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_manual -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_manual -->
+
 ## 参数
 
 | Parameter                                                                                                                                                   | 描述                                                                         |
