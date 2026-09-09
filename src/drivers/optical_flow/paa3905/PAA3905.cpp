@@ -38,15 +38,18 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-// SQUAL is the chip's feature count / 4. Flights over grass at night (mode 2)
-// and black pavement by day (mode 0) put the tracking knee at the same raw
-// value: below it the chip reports zero motion on most frames while the
-// vehicle moves, above it counts match GNSS translation plus gyro at the
-// datasheet scale. The datasheet's per-mode discard rule (SQUAL below 25/70/85
-// while the shutter sits at the mode maximum) never fires in bright light, so
-// it cannot serve as the gate. Quality is published as raw SQUAL so one
-// EKF2_OF_QMIN means the same thing in every mode.
-static constexpr uint8_t SQUAL_TRACKING_FLOOR = 0x55;
+// SQUAL is the chip's feature count / 4. Raw-capture flights against GNSS
+// (grass by day and night, black pavement by day) show the chip reporting
+// noise below a raw SQUAL of about 60 in every lighting mode, under-reporting
+// motion by up to half between 60 and 85 depending on the surface, and
+// tracking at the datasheet scale above that. The floor sits at the noise
+// edge: flow is mainly a GNSS-denied position hold aid, and a velocity that
+// reads low still holds position while a blind window aids nothing. The
+// datasheet's per-mode discard rule (SQUAL below 25/70/85 while the shutter
+// sits at the mode maximum) never fires in bright light, so it cannot serve as
+// the gate. Quality is published as raw SQUAL so one EKF2_OF_QMIN means the
+// same thing in every mode.
+static constexpr uint8_t SQUAL_TRACKING_FLOOR = 60;
 
 PAA3905::PAA3905(const I2CSPIDriverConfig &config) :
 	SPI(config),

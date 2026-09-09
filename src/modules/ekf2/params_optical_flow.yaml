@@ -48,7 +48,7 @@ parameters:
         long: Measurement noise for the optical flow sensor when it's reported quality
           metric is at the minimum
       type: float
-      default: 0.5
+      default: 0.7
       min: 0.05
       unit: rad/s
       decimal: 2
@@ -57,10 +57,10 @@ parameters:
         short: In air optical flow minimum quality
         long: Optical Flow data will only be used in air if the sensor reports a
           quality metric >= EKF2_OF_QMIN. The PixArt drivers (PMW3901, PAW3902,
-          PAA3905) report raw SQUAL, whose tracking knee sits at 85 in every
+          PAA3905) report raw SQUAL; below 60 the chip reports noise in every
           lighting mode.
       type: int32
-      default: 85
+      default: 60
       min: 0
       max: 255
     EKF2_OF_QMIN_GND:
