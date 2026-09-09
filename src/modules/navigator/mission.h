@@ -77,6 +77,22 @@ public:
 	bool get_land_start_available() const { return hasMissionLandStart(); }
 
 
+protected:
+
+	/**
+	 * @brief Check whether the vehicle passes a mission item without stopping at it
+	 *
+	 * Only then may the trajectory planner carry speed through that item, i.e. only then
+	 * is it allowed to use the item after it as a speed planning lookahead. Non-position
+	 * items between the two (delay, timeout, transition, jump) also count as a stop.
+	 *
+	 * @param item mission item to check
+	 * @param item_index index of item in the mission
+	 * @param following_index index of the next position item after item
+	 * @return true if the vehicle continues past the item without braking to a stop
+	 */
+	bool isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index, int32_t following_index);
+
 private:
 
 	bool setNextMissionItem() override;
@@ -102,20 +118,6 @@ private:
 
 	void handleVtolTransition(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
 				  size_t &num_found_items);
-
-	/**
-	 * @brief Check whether the vehicle passes a mission item without stopping at it
-	 *
-	 * Only then may the trajectory planner carry speed through that item, i.e. only then
-	 * is it allowed to use the item after it as a speed planning lookahead. Non-position
-	 * items between the two (delay, timeout, transition, jump) also count as a stop.
-	 *
-	 * @param item mission item to check
-	 * @param item_index index of item in the mission
-	 * @param following_index index of the next position item after item
-	 * @return true if the vehicle continues past the item without braking to a stop
-	 */
-	bool isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index, int32_t following_index);
 
 	/**
 	 * @brief Publish the given item as the trajectory speed planning lookahead waypoint.
