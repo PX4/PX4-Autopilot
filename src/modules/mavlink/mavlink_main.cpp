@@ -1655,7 +1655,7 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"GPS_RAW_INT", 5.0f},
 	{"GPS_STATUS", 1.0f},
 #if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
-	{"MANUAL_INPUT_STATUS", 1.0f};
+	{"MANUAL_INPUT_STATUS", 1.0f},
 #endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
 	{"HOME_POSITION", 0.5f},
 	{"HYGROMETER_SENSOR", 0.1f},
@@ -1738,7 +1738,7 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"GPS_RAW_INT", unlimited_rate},
 	{"GPS_STATUS", 1.0f},
 #if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
-	{"MANUAL_INPUT_STATUS", 1.0f};
+	{"MANUAL_INPUT_STATUS", 1.0f},
 #endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
 	{"HOME_POSITION", 0.5f},
 	{"HYGROMETER_SENSOR", 1.0f},
@@ -1910,7 +1910,7 @@ constexpr StreamRateDefault streams_mode_config[] = {
 	{"MAG_CAL_REPORT", 1.0f},
 	{"MANUAL_CONTROL", 5.0f},
 #if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
-	{"MANUAL_INPUT_STATUS", 1.0f};
+	{"MANUAL_INPUT_STATUS", 1.0f},
 #endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
 	{"NAV_CONTROLLER_OUTPUT", 10.0f},
 	{"OPEN_DRONE_ID_LOCATION", 1.f},
@@ -1958,7 +1958,7 @@ constexpr StreamRateDefault streams_mode_minimal[] = {
 	{"GLOBAL_POSITION_INT", 5.0f},
 	{"GPS_RAW_INT", 0.5f},
 #if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
-	{"MANUAL_INPUT_STATUS", 1.0f};
+	{"MANUAL_INPUT_STATUS", 1.0f},
 #endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
 	{"HOME_POSITION", 0.1f},
 	{"NAMED_VALUE_FLOAT", 1.0f},
@@ -2011,7 +2011,7 @@ constexpr StreamRateDefault streams_mode_onboard_low_bandwidth[] = {
 	{"GPS2_RAW", unlimited_rate},
 	{"GPS_RAW_INT", unlimited_rate},
 #if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
-	{"MANUAL_INPUT_STATUS", 1.0f};
+	{"MANUAL_INPUT_STATUS", 1.0f},
 #endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
 	{"HOME_POSITION", 0.5f},
 	{"NAV_CONTROLLER_OUTPUT", 1.5f},
@@ -2081,7 +2081,7 @@ constexpr StreamRateDefault streams_mode_low_bandwidth[] = {
 	{"GPS2_RAW", 1.0f},
 	{"GPS_RAW_INT", 1.0f},
 #if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
-	{"MANUAL_INPUT_STATUS", 1.0f};
+	{"MANUAL_INPUT_STATUS", 1.0f},
 #endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
 	{"HOME_POSITION", 0.5f},
 	{"NAV_CONTROLLER_OUTPUT", 0.1f},
