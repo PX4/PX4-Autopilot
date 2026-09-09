@@ -1518,6 +1518,7 @@ void Logger::start_log_file(LogType type)
 			write_parameter_defaults(type);
 			write_perf_data(PrintLoadReason::Preflight);
 			write_console_output();
+			write_esc_eeprom();
 			write_events_file(LogType::Full);
 			write_excluded_optional_topics(type);
 		}
@@ -1577,6 +1578,7 @@ void Logger::start_log_mavlink()
 	write_parameter_defaults(LogType::Full);
 	write_perf_data(PrintLoadReason::Preflight);
 	write_console_output();
+	write_esc_eeprom();
 	write_events_file(LogType::Full);
 	write_excluded_optional_topics(LogType::Full);
 	write_all_add_logged_msg(LogType::Full);
@@ -1762,6 +1764,57 @@ void Logger::write_console_output()
 		first = false;
 	}
 
+}
+
+void Logger::write_esc_eeprom()
+{
+	bool first = true;
+
+	for (auto &esc_eeprom_sub : _esc_eeprom_read_subs) {
+		esc_eeprom_read_s eeprom;
+
+		if (!esc_eeprom_sub.copy(&eeprom)) {
+			continue;
+		}
+
+		if (eeprom.firmware != 1) {
+			continue;
+		}
+
+		const uint8_t *d = eeprom.data;
+		const uint8_t esc = eeprom.index + 1;
+		// Values are padded to a fixed width so the same field lines up in a column across all ESCs.
+		char line[320];
+
+		snprintf(line, sizeof(line),
+			 "ESC%-2u general   boot=%-3u eeprom_ver=%-3u bl_ver=%-3u fw=%u.%-3u "
+			 "max_ramp=%-3u min_duty=%-3u no_stick_cal=%-3u abs_volt_cutoff=%-3u "
+			 "current_p=%-3u current_i=%-3u current_d=%-3u active_brake_pwr=%-3u "
+			 "brake_on_zero_thr=%u\n",
+			 esc, d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], d[12], d[13]);
+		write_info_multiple(LogType::Full, "esc_eeprom", line, !first);
+		first = false;
+
+		snprintf(line, sizeof(line),
+			 "ESC%-2u motor     dir_rev=%-3u bidir=%-3u sine_start=%-3u comp_pwm=%-3u "
+			 "var_pwm=%-3u stuck_prot=%-3u advance=%-3u pwm_freq=%-3u startup_pwr=%-3u "
+			 "kv=%-3u poles=%-3u brake_stop=%-3u stall_prot=%u\n",
+			 esc, d[17], d[18], d[19], d[20], d[21], d[22], d[23], d[24], d[25], d[26], d[27], d[28], d[29]);
+		write_info_multiple(LogType::Full, "esc_eeprom", line, true);
+
+		// Bytes 30 onwards only exist from EEPROM version 1 and firmware 1.65
+		if (d[1] >= 1 && (d[3] > 1 || (d[3] == 1 && d[4] >= 65))) {
+			snprintf(line, sizeof(line),
+				 "ESC%-2u extended  beep_vol=%-3u telem_30ms=%-3u servo_low=%-3u "
+				 "servo_high=%-3u servo_neutral=%-3u servo_dead=%-3u lvc_en=%-3u "
+				 "lvc_thr=%-3u rc_reverse=%-3u hall=%-3u sine_range=%-3u drag_brake=%-3u "
+				 "driving_brake=%-3u temp_limit=%-3u cur_limit=%-3u sine_pwr=%-3u "
+				 "input_type=%-3u auto_advance=%u\n",
+				 esc, d[30], d[31], d[32], d[33], d[34], d[35], d[36], d[37], d[38], d[39], d[40],
+				 d[41], d[42], d[43], d[44], d[45], d[46], d[47]);
+			write_info_multiple(LogType::Full, "esc_eeprom", line, true);
+		}
+	}
 }
 
 void Logger::write_formats(LogType type)

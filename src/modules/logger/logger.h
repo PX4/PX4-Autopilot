@@ -50,6 +50,8 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/esc_eeprom_read.h>
 #include <uORB/topics/logger_status.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -253,6 +255,9 @@ private:
 	 */
 	void write_console_output();
 
+	/** Write the queued ESC EEPROM dumps as an 'esc_eeprom' INFO_MULTIPLE message. */
+	void write_esc_eeprom();
+
 	/**
 	 * callback to write the performance counters
 	 */
@@ -398,6 +403,8 @@ private:
 	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::SubscriptionInterval			_log_message_sub{ORB_ID(log_message), 20};
 	uORB::SubscriptionInterval			_parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	uORB::SubscriptionMultiArray<esc_eeprom_read_s>	_esc_eeprom_read_subs{ORB_ID::esc_eeprom_read};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,

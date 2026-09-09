@@ -34,7 +34,7 @@
 #pragma once
 
 #include "ESCSettingsInterface.h"
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/esc_eeprom_read.h>
 
 static constexpr int EEPROM_SIZE = 48;
@@ -50,8 +50,14 @@ public:
 	void publish_latest() override;
 
 private:
+	// AM32 EEPROM layout
+	static constexpr int EEPROM_IDX_FW_MAJOR = 3;
+	static constexpr int EEPROM_IDX_FW_MINOR = 4;
+
 	int _esc_index{};
 	uint8_t _eeprom_data[EEPROM_SIZE] {};
+	bool _publish_failed_warned{false};
+	bool _fw_version_printed{false};
 
-	static uORB::Publication<esc_eeprom_read_s> _esc_eeprom_read_pub;
+	uORB::PublicationMulti<esc_eeprom_read_s> _esc_eeprom_read_pub{ORB_ID(esc_eeprom_read)};
 };
