@@ -35,7 +35,6 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <new>
 
 static constexpr char kPath[] = "@PARAM/param.pck";
 static constexpr size_t kPathLen = sizeof(kPath) - 1;
@@ -162,7 +161,7 @@ void ParamPckFile::close()
 	while (_write_blocks != nullptr) {
 		WriteBlock *block = _write_blocks;
 		_write_blocks = block->next;
-		free(block);
+		delete block;
 	}
 
 	_size = 0;
@@ -558,13 +557,12 @@ bool ParamPckFile::buffer_write(uint32_t offset, const uint8_t *data, uint16_t c
 		}
 
 		if (*link == nullptr || (*link)->offset != block_offset) {
-			void *memory = malloc(sizeof(WriteBlock));
+			WriteBlock *block = new WriteBlock;
 
-			if (memory == nullptr) {
+			if (block == nullptr) {
 				return false;
 			}
 
-			WriteBlock *block = new (memory) WriteBlock;
 			block->offset = block_offset;
 			block->next = *link;
 			*link = block;
@@ -624,7 +622,7 @@ bool ParamPckFile::flush_writes()
 
 		if (block->remaining == 0) {
 			_write_blocks = block->next;
-			free(block);
+			delete block;
 		}
 	}
 

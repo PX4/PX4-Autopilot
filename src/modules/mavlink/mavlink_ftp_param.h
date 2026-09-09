@@ -65,8 +65,11 @@
  * and treats total_params as the file length. Entries are applied as they complete;
  * unknown and read-only names are skipped. Packed int8/int16 values are widened to
  * the PX4 INT32/FLOAT type. Out-of-order chunks are buffered until gaps are filled;
- * sequential uploads allocate no transfer buffers. Terminate ACKs only when the file
- * is complete, well-formed, and every writable known parameter was applied.
+ * sequential uploads allocate no transfer buffers. Like ArduPilot's upload buffer,
+ * the heap held by a reordered upload is bounded only by the 16-bit file length,
+ * since mavftp retries a lost chunk after sending every remaining one. Terminate
+ * ACKs only when the file is complete, well-formed, and every writable known
+ * parameter was applied.
  */
 class ParamPckFile
 {
