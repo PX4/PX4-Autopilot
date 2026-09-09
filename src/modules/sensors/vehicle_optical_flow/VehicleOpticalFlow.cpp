@@ -251,10 +251,9 @@ void VehicleOpticalFlow::Run()
 			if (_accumulated_count > 0) {
 				vehicle_optical_flow.integration_timespan_us = _integration_timespan_us;
 
-				// scale quality by the usable share of the window, so a gate on it sees how much was blind
-				const uint64_t total_us = _integration_timespan_us + _rejected_timespan_us;
-				vehicle_optical_flow.quality = static_cast<uint8_t>(
-								       (static_cast<uint64_t>(_quality_sum / _accumulated_count) * _integration_timespan_us) / total_us);
+				// blind frames already left the flow and the timespan; the quality of what
+				// remains is the mean quality of the frames that produced it
+				vehicle_optical_flow.quality = static_cast<uint8_t>(_quality_sum / _accumulated_count);
 
 			} else {
 				// every frame in the window was rejected: report the window blind

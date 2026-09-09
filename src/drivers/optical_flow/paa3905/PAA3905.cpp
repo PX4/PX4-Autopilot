@@ -38,43 +38,15 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-// SQUAL below which the datasheet treats a motion report as noise, per
-// operating mode (shared with the false-motion discard, which also requires
-// the shutter condition).
-static constexpr uint8_t SQUAL_THRESHOLD_BRIGHT          = 0x19;
-static constexpr uint8_t SQUAL_THRESHOLD_LOW_LIGHT       = 0x46;
-static constexpr uint8_t SQUAL_THRESHOLD_SUPER_LOW_LIGHT = 0x55;
-
-static constexpr uint8_t squal_threshold(Mode mode)
-{
-	switch (mode) {
-	case Mode::Bright:        return SQUAL_THRESHOLD_BRIGHT;
-
-	case Mode::LowLight:      return SQUAL_THRESHOLD_LOW_LIGHT;
-
-	case Mode::SuperLowLight: return SQUAL_THRESHOLD_SUPER_LOW_LIGHT;
-	}
-
-	return SQUAL_THRESHOLD_SUPER_LOW_LIGHT;
-}
-
-// sensor_optical_flow.quality promises 0 = worst, 255 = best, and EKF2 scales
-// the flow noise linearly with it. Raw SQUAL is mode dependent (the chip's own
-// floor is 25/70/85 across the three modes) and the DroneCAN flow message
-// drops the mode, so the same raw value would mean "solid" in bright light and
-// "one count above noise" in super low light. Map the mode floor to 0 and raw
-// 255 to 255.
-static uint8_t normalize_squal(uint8_t squal, Mode mode)
-{
-	const uint8_t threshold = squal_threshold(mode);
-
-	if (squal <= threshold) {
-		return 0;
-	}
-
-	// 0 is reserved for rejected frames; the threshold itself maps to 1
-	return static_cast<uint8_t>(1u + ((squal - threshold) * 254u) / (255u - threshold));
-}
+// SQUAL is the chip's feature count / 4. Flights over grass at night (mode 2)
+// and black pavement by day (mode 0) put the tracking knee at the same raw
+// value: below it the chip reports zero motion on most frames while the
+// vehicle moves, above it counts match GNSS translation plus gyro at the
+// datasheet scale. The datasheet's per-mode discard rule (SQUAL below 25/70/85
+// while the shutter sits at the mode maximum) never fires in bright light, so
+// it cannot serve as the gate. Quality is published as raw SQUAL so one
+// EKF2_OF_QMIN means the same thing in every mode.
+static constexpr uint8_t SQUAL_TRACKING_FLOOR = 0x55;
 
 PAA3905::PAA3905(const I2CSPIDriverConfig &config) :
 	SPI(config),
@@ -374,12 +346,6 @@ void PAA3905::RunImpl()
 				sensor_optical_flow.min_ground_distance = 0.08f;    // Datasheet: 80mm
 				sensor_optical_flow.max_ground_distance = INFINITY; // Datasheet: infinity
 
-				// check SQUAL & Shutter values
-				// To suppress false motion reports, discard Delta X and Delta Y values if the SQUAL and Shutter values meet the condition
-				// Bright Mode,          SQUAL < 0x19, Shutter ≥ 0x00FF80
-				// Low Light Mode,       SQUAL < 0x46, Shutter ≥ 0x00FF80
-				// Super Low Light Mode, SQUAL < 0x55, Shutter ≥ 0x025998
-
 				// 23-bit Shutter register
 				const uint8_t shutter_lower = buffer.data.Shutter_Lower;
 				const uint8_t shutter_middle = buffer.data.Shutter_Middle;
@@ -395,17 +361,16 @@ void PAA3905::RunImpl()
 						  && (shutter > 0)
 						  && (_discard_reading == 0);
 
+				if (buffer.data.SQUAL < SQUAL_TRACKING_FLOOR) {
+					// the chip is blind on this surface; the frame is reported without flow below
+					data_valid = false;
+					perf_count(_false_motion_perf);
+				}
+
 				switch (_mode) {
 				case Mode::Bright:
 					sensor_optical_flow.integration_timespan_us = SAMPLE_INTERVAL_MODE_0;
 					sensor_optical_flow.mode = sensor_optical_flow_s::MODE_BRIGHT;
-
-					// quality < 25 (0x19) and shutter >= 0x00FF80
-					if ((buffer.data.SQUAL < SQUAL_THRESHOLD_BRIGHT) && (shutter >= 0x00FF80)) {
-						// false motion report, discarding
-						data_valid = false;
-						perf_count(_false_motion_perf);
-					}
 
 					break;
 
@@ -413,25 +378,11 @@ void PAA3905::RunImpl()
 					sensor_optical_flow.integration_timespan_us = SAMPLE_INTERVAL_MODE_1;
 					sensor_optical_flow.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
 
-					// quality < 70 (0x46) and shutter >= 0x00FF80
-					if ((buffer.data.SQUAL < SQUAL_THRESHOLD_LOW_LIGHT) && (shutter >= 0x00FF80)) {
-						// false motion report, discarding
-						data_valid = false;
-						perf_count(_false_motion_perf);
-					}
-
 					break;
 
 				case Mode::SuperLowLight:
 					sensor_optical_flow.integration_timespan_us = SAMPLE_INTERVAL_MODE_2;
 					sensor_optical_flow.mode = sensor_optical_flow_s::MODE_SUPER_LOWLIGHT;
-
-					// quality < 85 (0x55) and shutter >= 0x025998
-					if ((buffer.data.SQUAL < SQUAL_THRESHOLD_SUPER_LOW_LIGHT) && (shutter >= 0x025998)) {
-						// false motion report, discarding
-						data_valid = false;
-						perf_count(_false_motion_perf);
-					}
 
 					break;
 				}
@@ -493,7 +444,7 @@ void PAA3905::RunImpl()
 						sensor_optical_flow.pixel_flow[0] = pixel_flow_rotated(0) * SCALE;
 						sensor_optical_flow.pixel_flow[1] = pixel_flow_rotated(1) * SCALE;
 
-						sensor_optical_flow.quality = normalize_squal(buffer.data.SQUAL, _mode);
+						sensor_optical_flow.quality = buffer.data.SQUAL;
 
 						publish = true;
 
@@ -506,7 +457,7 @@ void PAA3905::RunImpl()
 							sensor_optical_flow.pixel_flow[0] = 0;
 							sensor_optical_flow.pixel_flow[1] = 0;
 
-							sensor_optical_flow.quality = normalize_squal(buffer.data.SQUAL, _mode);
+							sensor_optical_flow.quality = buffer.data.SQUAL;
 
 							publish = true;
 						}
@@ -517,7 +468,7 @@ void PAA3905::RunImpl()
 
 						if (!publish) {
 							// heartbeat with no new frame: zero flow at the last read's quality
-							sensor_optical_flow.quality = normalize_squal(buffer.data.SQUAL, _mode);
+							sensor_optical_flow.quality = buffer.data.SQUAL;
 						}
 
 						sensor_optical_flow.timestamp = hrt_absolute_time();
