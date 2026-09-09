@@ -37,6 +37,7 @@ px4_add_module(
 	SRCS
 		CrsfRc.cpp
 		CrsfRc.hpp
+		CrsfUartSetup.hpp
 		QueueBuffer.cpp
 		QueueBuffer.hpp
 		CrsfParser.cpp
@@ -62,4 +63,8 @@ px4_add_unit_gtest(
 		CrsfParser.cpp
 		QueueBuffer.cpp
 		Crc8.cpp
+	)
+
+px4_add_unit_gtest(
+	SRC CrsfUartSetupTest.cpp
 	)
