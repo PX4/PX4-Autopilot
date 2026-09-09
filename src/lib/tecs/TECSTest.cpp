@@ -62,7 +62,6 @@ TECSControl::Param makeParam()
 	param.throttle_min = 0.f;
 	param.altitude_error_gain = 0.2f;
 	param.altitude_setpoint_gain_ff = 0.f;
-	param.tas_error_percentage = 0.15f;
 	param.airspeed_error_gain = 0.1f;
 	param.ste_rate_time_const = 0.1f;
 	param.seb_rate_ff = 1.f;
@@ -104,6 +103,20 @@ TECSControl::Setpoint makeSetpoint()
 	setpoint.altitude_rate_setpoint_direct = NAN;
 	setpoint.tas_setpoint = 15.f;
 	return setpoint;
+}
+
+// Run the detector for one cycle and report the resulting underspeed ratio.
+float underspeedRatio(float tas, float tas_rate, TECSControl::Param param, const TECSControl::Flag &flag)
+{
+	TECSControl control;
+	TECSControl::Input input = makeInput();
+	input.tas = tas;
+	input.tas_rate = tas_rate;
+
+	control.initialize(makeSetpoint(), input, param, flag);
+	control.update(0.02f, makeSetpoint(), input, param, flag);
+
+	return control.getUnderspeedRatio();
 }
 
 } // namespace
@@ -755,6 +768,99 @@ TEST(TECSControlTest, NonFiniteDemandFallsBackToLevelFlightPitch)
 	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.level_flight_pitch);
 }
 
+// The underspeed ramp is anchored on tas_min itself: at or above the minimum airspeed
+// there is no mitigation, and it ramps in linearly over a band 10% of tas_min wide.
+TEST(TECSUnderspeedTest, NoMitigationAtOrAboveMinimumAirspeed)
+{
+	TECSControl::Param param = makeParam(); // tas_min = 10, trim = 15
+	const TECSControl::Flag flag = makeFlag();
+
+	EXPECT_FLOAT_EQ(underspeedRatio(20.f, 0.f, param, flag), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(12.f, 0.f, param, flag), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(10.f, 0.f, param, flag), 0.f); // exactly at tas_min
+}
+
+TEST(TECSUnderspeedTest, RampsLinearlyOverBandBelowMinimumAirspeed)
+{
+	TECSControl::Param param = makeParam(); // band is [9, 10] m/s
+	const TECSControl::Flag flag = makeFlag();
+
+	EXPECT_NEAR(underspeedRatio(9.75f, 0.f, param, flag), 0.25f, 1e-5f);
+	EXPECT_NEAR(underspeedRatio(9.5f, 0.f, param, flag), 0.5f, 1e-5f);
+	EXPECT_NEAR(underspeedRatio(9.25f, 0.f, param, flag), 0.75f, 1e-5f);
+}
+
+TEST(TECSUnderspeedTest, SaturatesAtFullMitigationBelowBand)
+{
+	TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+
+	EXPECT_FLOAT_EQ(underspeedRatio(9.f, 0.f, param, flag), 1.f); // bottom of the band
+	EXPECT_FLOAT_EQ(underspeedRatio(5.f, 0.f, param, flag), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(0.f, 0.f, param, flag), 1.f);
+}
+
+// The ramp width scales with tas_min rather than being a fixed airspeed offset.
+TEST(TECSUnderspeedTest, RampWidthScalesWithMinimumAirspeed)
+{
+	TECSControl::Param param = makeParam();
+	param.tas_min = 20.f; // band is [18, 20] m/s
+	const TECSControl::Flag flag = makeFlag();
+
+	EXPECT_FLOAT_EQ(underspeedRatio(20.f, 0.f, param, flag), 0.f);
+	EXPECT_NEAR(underspeedRatio(19.f, 0.f, param, flag), 0.5f, 1e-5f);
+	EXPECT_FLOAT_EQ(underspeedRatio(18.f, 0.f, param, flag), 1.f);
+}
+
+// Deceleration is extrapolated one second ahead, so mitigation starts while the
+// measured airspeed is still above tas_min.
+TEST(TECSUnderspeedTest, LookaheadTriggersOnDeceleration)
+{
+	TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+
+	// Same airspeed, decelerating: 10.5 - 1.0 * 1 s = 9.5 -> halfway into the band.
+	EXPECT_NEAR(underspeedRatio(10.5f, -1.f, param, flag), 0.5f, 1e-5f);
+
+	// A hard deceleration saturates the ratio even well above tas_min.
+	EXPECT_FLOAT_EQ(underspeedRatio(11.f, -2.f, param, flag), 1.f);
+}
+
+// Acceleration must not be credited: an accelerating aircraft that is currently below
+// tas_min still gets the full mitigation its measured airspeed calls for.
+TEST(TECSUnderspeedTest, LookaheadIgnoresAcceleration)
+{
+	TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+
+	EXPECT_NEAR(underspeedRatio(9.5f, 5.f, param, flag), 0.5f, 1e-5f);
+	EXPECT_FLOAT_EQ(underspeedRatio(9.5f, 5.f, param, flag), underspeedRatio(9.5f, 0.f, param, flag));
+}
+
+// The lookahead can only predict down to zero airspeed, never below it.
+TEST(TECSUnderspeedTest, LookaheadClampsPredictedAirspeedAtZero)
+{
+	TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+
+	const float ratio = underspeedRatio(5.f, -50.f, param, flag);
+	EXPECT_TRUE(PX4_ISFINITE(ratio));
+	EXPECT_FLOAT_EQ(ratio, 1.f);
+}
+
+TEST(TECSUnderspeedTest, NoMitigationWhenDetectionDisabled)
+{
+	TECSControl::Param param = makeParam();
+
+	TECSControl::Flag flag = makeFlag();
+	flag.detect_underspeed_enabled = false;
+	EXPECT_FLOAT_EQ(underspeedRatio(5.f, -2.f, param, flag), 0.f);
+
+	flag = makeFlag();
+	flag.airspeed_enabled = false;
+	EXPECT_FLOAT_EQ(underspeedRatio(5.f, -2.f, param, flag), 0.f);
+}
+
 namespace
 {
 
@@ -780,6 +886,47 @@ float pitchSetpointAtSpeed(float tas, float tas_setpoint, float pitch_speed_weig
 	}
 
 	return control.getPitchSetpoint();
+}
+
+// Fixed-wing TECS configured the way the fw controller does, driven at ~50 Hz.
+void configureTECS(TECS &tecs)
+{
+	tecs.enable_airspeed(true);
+	tecs.set_detect_underspeed_enabled(true);
+	tecs.set_equivalent_airspeed_min(10.f);
+	tecs.set_equivalent_airspeed_max(30.f);
+	tecs.set_equivalent_airspeed_trim(15.f);
+	tecs.set_max_climb_rate(5.f);
+	tecs.set_max_sink_rate(5.f);
+	tecs.set_min_sink_rate(2.f);
+	tecs.set_vertical_accel_limit(10.f);
+	tecs.set_altitude_error_time_constant(5.f);
+	tecs.set_airspeed_error_time_constant(2.f);
+	tecs.set_speed_weight(1.f);
+}
+
+void runTECS(TECS &tecs, float altitude, float hgt_setpoint, float equivalent_airspeed, int cycles)
+{
+	for (int i = 0; i < cycles; i++) {
+		tecs.update({
+			.altitude = altitude,
+			.altitude_rate = 0.f,
+			.altitude_setpoint = hgt_setpoint,
+			.altitude_rate_setpoint = NAN,
+			.equivalent_airspeed = equivalent_airspeed,
+			.speed_deriv_forward = 0.f,
+			.equivalent_airspeed_setpoint = 15.f,
+			.eas_to_tas = 1.f,
+			.throttle_min = 0.f,
+			.throttle_max = 1.f,
+			.throttle_trim = 0.5f,
+			.pitch_min = radians(-15.f),
+			.pitch_max = radians(15.f),
+			.target_climbrate = 5.f,
+			.target_sinkrate = 5.f,
+		});
+		usleep(20000); // 20 ms, keeps dt inside [DT_MIN, DT_MAX]
+	}
 }
 
 } // namespace
@@ -873,4 +1020,37 @@ TEST(TECSControlTest, KineticSetpointAndEstimateFadeEquallyAboveTrim)
 
 	const TECSControl::DebugOutput &debug = control.getDebugOutput();
 	EXPECT_NEAR(debug.energy_balance_rate_sp, debug.energy_balance_rate_estimate, 1e-4f);
+}
+
+// While the aircraft is undersped the altitude reference is pinned to the current
+// altitude, so no altitude error accumulates that would command an aggressive pitch-up
+// (and a possible secondary stall) once the speed recovers.
+TEST(TECSUnderspeedTest, AltitudeReferenceIsHeldAtCurrentAltitudeWhileUndersped)
+{
+	TECS tecs;
+	configureTECS(tecs);
+
+	const float altitude = 100.f;
+	const float hgt_setpoint = 200.f; // large standing climb demand
+
+	runTECS(tecs, altitude, hgt_setpoint, 8.f /* well below the 10 m/s minimum */, 25);
+
+	ASSERT_GT(tecs.get_underspeed_ratio(), 0.5f);
+	EXPECT_NEAR(tecs.getStatus().altitude_reference, altitude, 1e-3f);
+	EXPECT_NEAR(tecs.getStatus().height_rate_reference, 0.f, 1e-3f);
+}
+
+// Sanity counterpart: at a healthy airspeed the same climb demand does move the reference.
+TEST(TECSUnderspeedTest, AltitudeReferenceTracksSetpointWhenNotUndersped)
+{
+	TECS tecs;
+	configureTECS(tecs);
+
+	const float altitude = 100.f;
+	const float hgt_setpoint = 200.f;
+
+	runTECS(tecs, altitude, hgt_setpoint, 20.f, 25);
+
+	ASSERT_FLOAT_EQ(tecs.get_underspeed_ratio(), 0.f);
+	EXPECT_GT(tecs.getStatus().altitude_reference, altitude);
 }
