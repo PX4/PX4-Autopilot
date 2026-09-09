@@ -197,8 +197,8 @@
 
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
 //                 Base/FMUM
-#define ARKFPV_0   HW_FMUM_ID(0x0) // ARKFPV,     Sensor Set  Rev 0
-#define ARKFPV_1   HW_FMUM_ID(0x1) // ARKFPV,     Sensor Set  Rev 1
+#define ARKFPV_0   HW_FMUM_ID(0x0) // ARKFPV,     IIM-42653
+#define ARKFPV_1   HW_FMUM_ID(0x1) // ARKFPV,     LSM6DSV32X
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
