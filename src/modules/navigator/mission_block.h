@@ -122,6 +122,11 @@ public:
 	void updateFailsafeChecks() override;
 
 protected:
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	/** Steer the current takeoff setpoint onto the landing target when precision takeoff is enabled */
+	void update_precision_takeoff(const hrt_abstime now);
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	/**
 	 * @brief heading mode for setting navigation items
 	 *

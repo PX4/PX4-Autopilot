@@ -94,17 +94,25 @@ if(CONFIG_NAVIGATOR_ADSB)
 	list(APPEND NAVIGATOR_DEPENDS adsb detect_and_avoid)
 endif()
 
+set(NAVIGATOR_MODULE_CONFIG
+	geofence_params.yaml
+	mission_params.yaml
+	navigator_params.yaml
+	precland_params.yaml
+	rtl_params.yaml
+	vtol_takeoff_params.yaml)
+
+if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
+	list(APPEND NAVIGATOR_SOURCES prec_takeoff.cpp)
+	list(APPEND NAVIGATOR_MODULE_CONFIG prec_takeoff_params.yaml)
+endif()
+
 px4_add_module(
 	MODULE modules__navigator
 	MAIN navigator
 	SRCS ${NAVIGATOR_SOURCES}
 	MODULE_CONFIG
-		geofence_params.yaml
-		mission_params.yaml
-		navigator_params.yaml
-		precland_params.yaml
-		rtl_params.yaml
-		vtol_takeoff_params.yaml
+		${NAVIGATOR_MODULE_CONFIG}
 	DEPENDS
 		${NAVIGATOR_DEPENDS}
 	)
