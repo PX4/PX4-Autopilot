@@ -42,6 +42,10 @@ namespace estimator
 {
 bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 {
+	if (_time_last_pass_us != 0 && isTimedOut(_time_last_pass_us, time_us, (uint64_t)7'000'000)) {
+		this->reset();
+	}
+
 	// assume failed first time through
 	if (_time_last_fail_us == 0) {
 		_time_last_fail_us = time_us;
