@@ -103,7 +103,14 @@ private:
 						if (index >= 0 && index < MAX_ESC_OUTPUTS) {
 							_escs[index].online = online_flags & (1 << j);
 							_escs[index].failure_flags = esc.esc[j].failures;
-							_escs[index].error_count = esc.esc[j].esc_errorcount;
+							uint32_t error_count = esc.esc[j].esc_errorcount;
+
+							if (esc.esc[j].esc_errorcount_type == esc_report_s::ERRORCOUNT_TYPE_CAN_TEC_REC_PACKED) {
+								// MAVLink carries a single count: report the larger of the two CAN error counters
+								error_count = math::max(error_count >> 16, error_count & 0xffff);
+							}
+
+							_escs[index].error_count = error_count;
 							_escs[index].timestamp = esc.esc[j].timestamp;
 							_escs[index].temperature = esc.esc[j].esc_temperature * 100.f;
 							_escs[index].connectiontype = esc.esc_connectiontype;
