@@ -320,16 +320,18 @@ void IIM42652::RunImpl()
 
 void IIM42652::ConfigureAntiAliasFilter(uint32_t bandwidth_hz)
 {
-	// Gyro and accel run at 8 kHz ODR: the chip default (AAF 585 Hz, UI filter 1st
-	// order at ODR/2) suits a flight controller decimating to a 1-2 kHz rate
-	// loop. A board that only needs a few hundred Hz, such as a CAN node
-	// integrating for optical flow, would alias everything between the
-	// decimated Nyquist and the AAF knee into its output; this narrows the AAF
-	// to the nearest table row and puts a 3rd-order UI filter at the nearest
-	// ODR/N. The set/clear tables are rewritten so Configure() and the
-	// periodic RegisterCheck() agree.
-	const InvenSense_AAF::Coefficients &aaf = InvenSense_AAF::lookup(bandwidth_hz);
-	const uint8_t ui_bw = InvenSense_AAF::ui_filter_bw_code((uint32_t)GYRO_RATE, bandwidth_hz);
+	// The chip default (AAF 585 Hz, 1st-order UI filter at ODR/2) suits a flight
+	// controller decimating 8 kHz to a 1-2 kHz rate loop. A board that only
+	// needs a few hundred Hz, such as a CAN node integrating for optical flow,
+	// aliases everything between its decimated Nyquist and the AAF knee; the
+	// presets narrow the AAF and add a 3rd-order UI filter. The set/clear
+	// tables are rewritten so Configure() and RegisterCheck() agree.
+	const InvenSense_AAF::Preset *p = InvenSense_AAF::preset(bandwidth_hz);
+
+	if (p == nullptr) {
+		PX4_ERR("no %lu Hz anti-alias preset (126, 258, 394), keeping chip default", (unsigned long)bandwidth_hz);
+		return;
+	}
 
 	auto set = [](auto & entry, uint8_t value, uint8_t mask) {
 		entry.set_bits = value & mask;
@@ -343,7 +345,8 @@ void IIM42652::ConfigureAntiAliasFilter(uint32_t bandwidth_hz)
 		case Register::BANK_0::ACCEL_CONFIG1: set(r, Bit4, ACCEL_CONFIG1_BIT::ACCEL_UI_FILT_ORD); break; // 3rd order
 
 		case Register::BANK_0::GYRO_ACCEL_CONFIG0:
-			set(r, (ui_bw << 4) | ui_bw, GYRO_ACCEL_CONFIG0_BIT::ACCEL_UI_FILT_BW | GYRO_ACCEL_CONFIG0_BIT::GYRO_UI_FILT_BW);
+			set(r, (p->ui_filt_bw << 4) | p->ui_filt_bw,
+			    GYRO_ACCEL_CONFIG0_BIT::ACCEL_UI_FILT_BW | GYRO_ACCEL_CONFIG0_BIT::GYRO_UI_FILT_BW);
 			break;
 
 		default: break;
@@ -352,11 +355,11 @@ void IIM42652::ConfigureAntiAliasFilter(uint32_t bandwidth_hz)
 
 	for (auto &r : _register_bank1_cfg) {
 		switch (r.reg) {
-		case Register::BANK_1::GYRO_CONFIG_STATIC3: set(r, aaf.delt, 0x3F); break;
+		case Register::BANK_1::GYRO_CONFIG_STATIC3: set(r, p->delt, 0x3F); break;
 
-		case Register::BANK_1::GYRO_CONFIG_STATIC4: set(r, aaf.deltsqr & 0xFF, 0xFF); break;
+		case Register::BANK_1::GYRO_CONFIG_STATIC4: set(r, p->deltsqr & 0xFF, 0xFF); break;
 
-		case Register::BANK_1::GYRO_CONFIG_STATIC5: set(r, (aaf.bitshift << 4) | ((aaf.deltsqr >> 8) & 0x0F), 0xFF); break;
+		case Register::BANK_1::GYRO_CONFIG_STATIC5: set(r, (p->bitshift << 4) | ((p->deltsqr >> 8) & 0x0F), 0xFF); break;
 
 		default: break;
 		}
@@ -364,18 +367,17 @@ void IIM42652::ConfigureAntiAliasFilter(uint32_t bandwidth_hz)
 
 	for (auto &r : _register_bank2_cfg) {
 		switch (r.reg) {
-		case Register::BANK_2::ACCEL_CONFIG_STATIC2: set(r, aaf.delt << 1, 0x7F); break; // bit 0 (AAF_DIS) stays cleared
+		case Register::BANK_2::ACCEL_CONFIG_STATIC2: set(r, p->delt << 1, 0x7F); break; // bit 0 (AAF_DIS) stays cleared
 
-		case Register::BANK_2::ACCEL_CONFIG_STATIC3: set(r, aaf.deltsqr & 0xFF, 0xFF); break;
+		case Register::BANK_2::ACCEL_CONFIG_STATIC3: set(r, p->deltsqr & 0xFF, 0xFF); break;
 
-		case Register::BANK_2::ACCEL_CONFIG_STATIC4: set(r, (aaf.bitshift << 4) | ((aaf.deltsqr >> 8) & 0x0F), 0xFF); break;
+		case Register::BANK_2::ACCEL_CONFIG_STATIC4: set(r, (p->bitshift << 4) | ((p->deltsqr >> 8) & 0x0F), 0xFF); break;
 
 		default: break;
 		}
 	}
 
-	PX4_INFO("anti-alias filter %u Hz, UI filter %u Hz 3rd order", aaf.bandwidth_hz,
-		 (unsigned)GYRO_RATE / InvenSense_AAF::kUiDivisors[ui_bw]);
+	PX4_INFO("anti-alias filter %u Hz, 3rd-order UI filter %u Hz", p->bandwidth_hz, (p->ui_filt_bw == 7) ? 200 : 400);
 }
 
 void IIM42652::ConfigureSampleRate(int sample_rate)
