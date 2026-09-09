@@ -3,23 +3,24 @@
 # Runs PX4 SITL with Gazebo Harmonic. Supports X11 forwarding for GUI.
 #
 # Build:
-#   make px4_sitl_default && cd build/px4_sitl_default && cpack -G DEB && cd ../..
-#   docker build -f Tools/packaging/Dockerfile.gazebo -t px4io/px4-sitl-gazebo:v1.17.0 build/px4_sitl_default/
+#   See docs/en/dev_setup/sitl_container_builds.md for package and context preparation.
 #
 # Run (headless):
-#   docker run --rm -it --network host px4io/px4-sitl-gazebo:v1.17.0
+#   docker run --rm -it --network host -e HEADLESS=1 px4io/px4-sitl-gazebo:v1.17.0
 #
-# Run (X11 GUI):
-#   xhost +local:docker
-#   docker run --rm -it --network host \
-#     -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
-#     --gpus all px4io/px4-sitl-gazebo:v1.17.0
+# X11 GUI (Linux and Windows/WSLg):
+#   See docs/en/simulation/gazebo_container_gui.md for display authorization,
+#   socket mounts and software/hardware rendering options.
 #
 # Persist flight logs on the host (ulog files):
 #   mkdir -p ./px4-logs
-#   docker run --rm -it --network host \
+#   docker run --rm -it --network host -e HEADLESS=1 \
 #     -v $(pwd)/px4-logs:/root/.local/share/px4/rootfs/fs/log \
 #     px4io/px4-sitl-gazebo:v1.17.0
+
+FROM ubuntu:24.04 AS package
+COPY px4-gazebo_*.deb /tmp/
+RUN dpkg-deb -f /tmp/px4-gazebo_*.deb Depends > /tmp/px4-dependencies
 
 FROM ubuntu:24.04
 LABEL maintainer="PX4 Development Team"
@@ -32,12 +33,15 @@ ENV RUNS_IN_DOCKER=true
 # px4-gazebo .deb) resolves from it in the install step below.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
         bc \
         ca-certificates \
         gnupg \
+        libqt5svg5 \
         lsb-release \
+        mesa-utils \
         wget \
     && wget -q https://packages.osrfoundation.org/gazebo.gpg \
         -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg \
@@ -45,16 +49,19 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         > /etc/apt/sources.list.d/gazebo-stable.list \
     && apt-get update
 
-# Install px4-gazebo via apt so its Depends (Gazebo Harmonic, OpenCV, GStreamer
-# core libs, gstreamer plugin packages) are resolved automatically. The binary
-# is stripped after install to trim image size (~a few MB).
-COPY px4-gazebo_*.deb /tmp/
+# Cache Gazebo/OpenCV/GStreamer independently of the firmware binary.
+COPY --from=package /tmp/px4-dependencies /tmp/px4-dependencies
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update \
-    && apt-get install -y --no-install-recommends \
-        /tmp/px4-gazebo_*.deb \
-        binutils \
+    && apt-get install -y --no-install-recommends binutils \
+    && apt-get satisfy -y --no-install-recommends "$(cat /tmp/px4-dependencies)" \
+    && rm /tmp/px4-dependencies
+
+COPY --from=package /tmp/px4-gazebo_*.deb /tmp/
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get install -y --no-install-recommends /tmp/px4-gazebo_*.deb \
     && strip /opt/px4-gazebo/bin/px4 \
     && apt-get purge -y binutils \
     && apt-get autoremove -y \
@@ -78,12 +85,15 @@ ENV PX4_GZ_WORLDS=/opt/px4-gazebo/share/gz/worlds
 
 ENV PX4_SIM_MODEL=gz_x500
 ENV HOME=/root
+# X11 clients cannot use the host X server's shared-memory segment in Docker.
+ENV QT_X11_NO_MITSHM=1
 
 # MAVLink, MAVSDK, DDS
 EXPOSE 14550/udp 14540/udp 8888/udp
 
 # Platform-adaptive entrypoint: detects Docker Desktop (macOS/Windows) via
 # host.docker.internal and configures MAVLink + DDS to target the host.
+COPY px4-network.sh /usr/local/lib/px4/network.sh
 COPY px4-entrypoint.sh /opt/px4-gazebo/bin/px4-entrypoint.sh
 RUN chmod +x /opt/px4-gazebo/bin/px4-entrypoint.sh
 

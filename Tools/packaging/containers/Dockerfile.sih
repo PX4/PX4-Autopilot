@@ -3,14 +3,13 @@
 # Minimal container that runs PX4 with the SIH physics engine (no Gazebo).
 #
 # Build:
-#   make px4_sitl_sih && cd build/px4_sitl_sih && cpack -G DEB && cd ../..
-#   docker build -f Tools/packaging/Dockerfile.sih -t px4io/px4-sitl:v1.17.0 build/px4_sitl_sih/
+#   See docs/en/dev_setup/sitl_container_builds.md for package and context preparation.
 #
 # Run (Linux):
 #   docker run --rm -it --network host px4io/px4-sitl:v1.17.0
 #
 # Run (macOS / Windows):
-#   docker run --rm -it -p 14550:14550/udp -p 14540:14540/udp -p 19410:19410/udp -p 8888:8888/udp px4io/px4-sitl:v1.17.0
+#   docker run --rm -it px4io/px4-sitl:v1.17.0
 #
 # Persist flight logs on the host (ulog files):
 #   mkdir -p ./px4-logs
@@ -18,22 +17,30 @@
 #     -v $(pwd)/px4-logs:/root/.local/share/px4/rootfs/fs/log \
 #     px4io/px4-sitl:v1.17.0
 
+FROM ubuntu:24.04 AS package
+COPY px4_*.deb /tmp/
+RUN dpkg-deb -f /tmp/px4_*.deb Depends > /tmp/px4-dependencies
+
 FROM ubuntu:24.04
 LABEL maintainer="PX4 Development Team"
 LABEL description="PX4 SITL with SIH physics (no simulator dependencies)"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install px4 via apt so Depends: are resolved automatically. The binary is
-# stripped after install to trim image size (~a few MB).
-COPY px4_*.deb /tmp/
+# Cache dependencies independently of the firmware binary.
+COPY --from=package /tmp/px4-dependencies /tmp/px4-dependencies
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update \
-    && apt-get install -y --no-install-recommends \
-        /tmp/px4_*.deb \
-        bc \
-        binutils \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends bc binutils \
+    && apt-get satisfy -y --no-install-recommends "$(cat /tmp/px4-dependencies)" \
+    && rm /tmp/px4-dependencies
+
+COPY --from=package /tmp/px4_*.deb /tmp/
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get install -y --no-install-recommends /tmp/px4_*.deb \
     && strip /opt/px4/bin/px4 \
     && apt-get purge -y binutils \
     && apt-get autoremove -y \
@@ -42,6 +49,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 # Platform-adaptive entrypoint: detects Docker Desktop (macOS/Windows) via
 # host.docker.internal and configures MAVLink + DDS to target the host.
+COPY px4-network.sh /usr/local/lib/px4/network.sh
 COPY px4-entrypoint.sh /opt/px4/bin/px4-entrypoint.sh
 RUN chmod +x /opt/px4/bin/px4-entrypoint.sh
 

@@ -17,6 +17,7 @@ Testing/
 Packages/*
 build/*
 build_*/
+/docker-context/
 cscope.out
 cscope.in.out
 cscope.po.out

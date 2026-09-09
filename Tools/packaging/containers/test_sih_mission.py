@@ -13,8 +13,8 @@ Prerequisites:
       /path/to/mavsim-viewer -n 1
 
 Usage:
-  python3 Tools/packaging/test_sih_mission.py
-  python3 Tools/packaging/test_sih_mission.py --speed 10   # faster-than-realtime
+  python3 Tools/packaging/containers/test_sih_mission.py
+  python3 Tools/packaging/containers/test_sih_mission.py --speed 10   # faster-than-realtime
 """
 
 import asyncio
