@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_SENSOR_ADSB_SIM
+	bool "sensor_adsb_sim"
+	default n
+	---help---
+		Enable support for sensor_adsb_sim
