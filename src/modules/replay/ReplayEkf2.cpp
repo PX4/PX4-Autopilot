@@ -47,6 +47,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gps_checks.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -93,7 +94,8 @@ ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &repl
 		return true;
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)
-		   || sub.orb_meta == ORB_ID(vehicle_gps_position)) {
+		   || sub.orb_meta == ORB_ID(vehicle_gps_position) || sub.orb_meta == ORB_ID(vehicle_gps_position_checks)) {
+		// GNSS sample and its latest-wins qualification status are both published in log order
 		return publishTopic(sub, data);
 	} // else: do not publish
 
@@ -105,6 +107,12 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 {
 	if (sub.orb_meta == ORB_ID(sensor_combined)) {
 		_sensor_combined_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_gps_position)) {
+		_vehicle_gps_position_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_gps_position_checks)) {
+		_vehicle_gps_position_checks_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(airspeed)) {
 		_airspeed_msg_id = msg_id;
@@ -148,10 +156,10 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 
 	// the main loop should only handle publication of the following topics, the sensor topics are
 	// handled separately in publishEkf2Topics()
-	// Note: the GPS is not treated here since not missing data is more important than the accuracy of the timestamp
+	// Note: the GPS topics are not treated here since not missing data is more important than the accuracy of the timestamp
 	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(vehicle_status)
 		      && sub.orb_meta != ORB_ID(vehicle_land_detected) && sub.orb_meta != ORB_ID(vehicle_gps_position)
-		      && sub.orb_meta != ORB_ID(sensor_combined);
+		      && sub.orb_meta != ORB_ID(vehicle_gps_position_checks) && sub.orb_meta != ORB_ID(sensor_combined);
 }
 
 bool
@@ -264,6 +272,11 @@ ReplayEkf2::onEnterMainLoop()
 
 	// disable parameter auto save
 	param_control_autosave(false);
+
+	if (_vehicle_gps_position_msg_id != msg_id_invalid && _vehicle_gps_position_checks_msg_id == msg_id_invalid) {
+		PX4_WARN("vehicle_gps_position_checks not found in log: GNSS will not be fused during replay");
+		PX4_WARN("(log predates the GNSS checks in the sensors module; replay it with the firmware that recorded it)");
+	}
 }
 
 void
@@ -293,6 +306,8 @@ ReplayEkf2::onExitMainLoop()
 	print_sensor_statistics(_distance_sensor_msg_id, "distance_sensor");
 	print_sensor_statistics(_optical_flow_msg_id, "vehicle_optical_flow");
 	print_sensor_statistics(_sensor_combined_msg_id, "sensor_combined");
+	print_sensor_statistics(_vehicle_gps_position_msg_id, "vehicle_gps_position");
+	print_sensor_statistics(_vehicle_gps_position_checks_msg_id, "vehicle_gps_position_checks");
 	print_sensor_statistics(_vehicle_air_data_msg_id, "vehicle_air_data");
 	print_sensor_statistics(_vehicle_magnetometer_msg_id, "vehicle_magnetometer");
 	print_sensor_statistics(_vehicle_visual_odometry_msg_id, "vehicle_visual_odometry");
