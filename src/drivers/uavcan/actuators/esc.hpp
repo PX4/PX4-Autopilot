@@ -49,6 +49,9 @@
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
 #include <uavcan/equipment/esc/StatusExtended.hpp>
+#include <uavcan/protocol/node_info_retriever.hpp>
+#include <uavcan/protocol/param/GetSet.hpp>
+#include <drivers/drv_hrt.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -58,7 +61,7 @@
 #include <lib/failure_injection/FailureInjection.hpp>
 #include "../node_info.hpp"
 
-class UavcanEscController
+class UavcanEscController : public uavcan::INodeInfoListener
 {
 public:
 	static constexpr int MAX_ACTUATORS = esc_status_s::CONNECTED_ESC_MAX;
@@ -88,7 +91,67 @@ public:
 
 	esc_status_s &esc_status() { return _esc_status; }
 
+	/**
+	 * INodeInfoListener: a node coming online (or restarting) triggers the vendor specific
+	 * lookup of what its esc.Status error_count field means.
+	 */
+	void handleNodeInfoRetrieved(uavcan::NodeID node_id,
+				     const uavcan::protocol::GetNodeInfo::Response &node_info) override;
+	void handleNodeInfoUnavailable(uavcan::NodeID node_id) override {}
+
 private:
+	/**
+	 * Interpretation of the esc.Status error_count field of one node.
+	 *
+	 * DroneCAN leaves the meaning to the vendor, most count faults of the ESC itself (stalls,
+	 * commutation failures). Vertiq (iq_motion) modules report CAN bus error counters instead and
+	 * make the exact meaning configurable through their esc_status_error_meaning parameter, which
+	 * is read once per node when it comes online. If the parameter cannot be read the generic
+	 * ESC fault interpretation is used as the fallback.
+	 */
+	struct ErrorCountMeaning {
+		enum class State : uint8_t {
+			Unused = 0,
+			Pending,	///< GetSet request in flight
+			Retry,		///< request failed, retry at next_attempt
+			Resolved,	///< type is valid
+		};
+
+		uint8_t node_id{0};
+		State state{State::Unused};
+		uint8_t attempts{0};
+		hrt_abstime next_attempt{0};
+		uint8_t type{esc_report_s::ERRORCOUNT_TYPE_ESC_FAULTS};
+	};
+
+	/// Values of the Vertiq esc_status_error_meaning parameter (speed firmware >= 0.3.0).
+	/// Zero based: modules at the factory default answer 0 and report the TX error counter
+	enum VertiqErrorMeaning : int64_t {
+		TecErrorCounter = 0,		///< CAN TEC register
+		RecErrorCounter = 1,		///< CAN REC register
+		MaxErrorCounter = 2,		///< max(TEC, REC)
+		PackedErrorCounters = 3,	///< TEC in the upper 16 bit, REC in the lower 16 bit
+		CumulativeErrors = 4,		///< TEC + REC errors accumulated since power on
+	};
+
+	static constexpr uint8_t ERROR_MEANING_MAX_ATTEMPTS = 3;
+	static constexpr hrt_abstime ERROR_MEANING_RETRY_INTERVAL_US = 2000000;
+	static constexpr const char *VERTIQ_NODE_NAME_PREFIX = "iq_motion";
+	static constexpr const char *VERTIQ_ERROR_MEANING_PARAM = "esc_status_error_meaning";
+
+	const ErrorCountMeaning *find_error_count_meaning(uint8_t node_id) const;
+	ErrorCountMeaning *find_error_count_meaning(uint8_t node_id);
+	ErrorCountMeaning *allocate_error_count_meaning(uint8_t node_id);
+	void request_error_count_meaning(ErrorCountMeaning &entry);
+	void fail_error_count_meaning_attempt(ErrorCountMeaning &entry);
+	void process_error_count_meaning_retries();
+	void error_count_meaning_cb(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
+
+	/**
+	 * @return what the esc.Status error_count of this node counts (esc_report_s::ERRORCOUNT_TYPE_*)
+	 */
+	uint8_t error_count_type(uint8_t node_id) const;
+
 	/**
 	 * ESC status message reception will be reported via this callback.
 	 */
@@ -117,6 +180,9 @@ private:
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
+	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCbBinder;
+
 	bool _initialized = false;
 
 	unsigned _max_rate_hz{400};
@@ -140,6 +206,7 @@ private:
 	enum class Quirk : int32_t {
 		HobbywingEscIdx1 = (1 << 0), ///< ESCs reporting a 1-based esc_index instead of 0-based
 	};
+	ErrorCountMeaning _error_count_meanings[MAX_ACTUATORS] {};
 
 	/*
 	 * libuavcan related things
@@ -149,6 +216,7 @@ private:
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
 	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder> _uavcan_sub_status_extended;
+	uavcan::ServiceClient<uavcan::protocol::param::GetSet, GetSetCbBinder>	_uavcan_param_client;
 
 	NodeInfoPublisher *_node_info_publisher{nullptr};
 };
