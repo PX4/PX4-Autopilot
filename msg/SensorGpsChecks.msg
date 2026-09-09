@@ -17,6 +17,7 @@ uint16 GNSS_OK = 0 # No failures
 uint16 GNSS_FIX_FAIL = 1 # (1 << 0)
 uint16 GNSS_NSATS_FAIL = 2 # (1 << 1)
 uint16 GNSS_PDOP_FAIL = 4 # (1 << 2)
+uint16 GNSS_HACC_FAIL = 8 # (1 << 3)
 uint16 GNSS_VACC_FAIL = 16 # (1 << 4)
 uint16 GNSS_SACC_FAIL = 32 # (1 << 5)
 uint16 GNSS_HDRIFT_FAIL = 64 # (1 << 6)
