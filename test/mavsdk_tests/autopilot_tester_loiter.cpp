@@ -329,3 +329,10 @@ float AutopilotTesterLoiter::default_loiter_radius()
 	CHECK(result.first == Param::Result::Success);
 	return result.second;
 }
+
+float AutopilotTesterLoiter::fw_altitude_acceptance_radius()
+{
+	const auto result = getParams()->get_param_float("NAV_FW_ALT_RAD");
+	CHECK(result.first == Param::Result::Success);
+	return result.second;
+}

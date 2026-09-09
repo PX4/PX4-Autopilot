@@ -91,7 +91,7 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 			sensor_baro_s sensor_baro;
 
 			while (sensor_baro_subs[instance].update(&sensor_baro)) {
-				calibration[instance].set_device_id(sensor_baro.device_id);
+				calibration[instance].set_device_id(sensor_baro.device_id, sensor_baro.is_external);
 
 				// pressure corrected with offset (if available)
 				const float pressure_corrected = calibration[instance].Correct(sensor_baro.pressure);

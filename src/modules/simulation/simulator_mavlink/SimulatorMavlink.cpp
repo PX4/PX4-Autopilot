@@ -393,6 +393,13 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 
 	sensor_gps_s gps{};
 
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = hil_gps.id;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	gps.device_id = device_id.devid;
+
 	gps.latitude_deg = hil_gps.lat / 1e7;
 	gps.longitude_deg = hil_gps.lon / 1e7;
 	gps.altitude_msl_m = hil_gps.alt / 1e3;
@@ -450,13 +457,6 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 			}
 
 			_gps_ids[i] = hil_gps.id;
-
-			device::Device::DeviceId device_id;
-			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-			device_id.devid_s.bus = 0;
-			device_id.devid_s.address = i;
-			device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
-			gps.device_id = device_id.devid;
 
 			instance = i;
 			break;

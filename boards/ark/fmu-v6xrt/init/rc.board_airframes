@@ -1,0 +1,29 @@
+# Generic multirotor
+4001_quad_x
+4014_s500
+4050_generic_250
+5001_quad_+
+6001_hexa_x
+7001_hexa_+
+8001_octo_x
+9001_octo_+
+11001_hexa_cox
+12001_octo_cox
+14001_generic_mc_with_tilt
+16001_helicopter
+24001_dodeca_cox
+
+# Generic fixed-wing
+2100_standard_plane
+3000_generic_wing
+
+# Generic VTOL
+13000_generic_vtol_standard
+13030_generic_vtol_quad_tiltrotor
+13100_generic_vtol_tiltrotor
+13200_generic_vtol_tailsitter
+
+# Generic rover
+50000_generic_rover_differential
+51000_generic_rover_ackermann
+52000_generic_rover_mecanum

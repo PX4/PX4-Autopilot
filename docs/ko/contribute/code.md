@@ -11,7 +11,7 @@ PX4 프로젝트는 3가지 Git 분기 모델을 사용합니다.
 We try to retain a [linear history through rebases](https://www.atlassian.com/git/tutorials/rewriting-history) and avoid the [Github flow](https://docs.github.com/en/get-started/using-github/github-flow).
 그러나, 전세계의 역동적인 개발팀과 수시로 병합 작업을 진행합니다.
 
-To contribute new functionality, [sign up for Github](https://docs.github.com/en/get-started/using-github/github-flow), then [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the repository, [create a new branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository), add your [changes as commits](#commits-and-commit-messages), and finally [send a pull request](#pull-requests).
+To contribute new functionality, [sign up for Github](https://docs.github.com/en/get-started/using-github/github-flow), then [fork](https://docs.github.com/en/pull-requests/how-tos/work-with-forks/fork-a-repo) the repository, [create a new branch](https://docs.github.com/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository), add your [changes as commits](#commits-and-commit-messages), and finally [send a pull request](#pull-requests).
 Changes will be merged when they pass our [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration) tests.
 
 All code contributions have to be under the permissive [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause) and all code must not impose any further constraints on the use.
@@ -183,7 +183,7 @@ The body of the message can contain several paragraphs. Describe in detail what 
 
 ## Pull Requests
 
-Github [Pull Requests (PRs)](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) are the primary mechanism used to submit new functionality and bug fixes to PX4.
+Github [Pull Requests (PRs)](https://docs.github.com/en/pull-requests/reference/pull-requests) are the primary mechanism used to submit new functionality and bug fixes to PX4.
 
 They include the new set of [commits](#commits-and-commit-messages) in your branch (relative the main branch), and a description of the changes.
 

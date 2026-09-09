@@ -176,7 +176,8 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		quality = 100;
 	}
 
-	const hrt_abstime timestamp_sample = (msg.timestamp.usec > 0) ? msg.timestamp.usec : hrt_absolute_time();
+	const hrt_abstime timestamp_sample = uavcan_bridge::sample_timestamp(msg.timestamp.usec,
+					     _sub_range_data.getNode().getUtcTime().toUSec(), hrt_absolute_time());
 
 	if (orientation == distance_sensor_s::ROTATION_CUSTOM) {
 		const matrix::Quatf q_sensor{uavcan_orientation_to_euler(msg.beam_orientation_in_body_frame)};

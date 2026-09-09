@@ -286,7 +286,7 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 							// make sure non-FIFO sub is unregistered
 							_sensor_sub.unregisterCallback();
 
-							_calibration.set_device_id(sensor_gyro_fifo_sub.get().device_id);
+							_calibration.set_device_id(sensor_gyro_fifo_sub.get().device_id, sensor_gyro_fifo_sub.get().is_external);
 
 							_selected_sensor_device_id = sensor_gyro_fifo_sub.get().device_id;
 
@@ -331,7 +331,7 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 							// make sure FIFO sub is unregistered
 							_sensor_gyro_fifo_sub.unregisterCallback();
 
-							_calibration.set_device_id(sensor_gyro_sub.get().device_id);
+							_calibration.set_device_id(sensor_gyro_sub.get().device_id, sensor_gyro_sub.get().is_external);
 
 							_selected_sensor_device_id = sensor_gyro_sub.get().device_id;
 

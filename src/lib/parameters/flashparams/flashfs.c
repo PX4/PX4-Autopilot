@@ -44,7 +44,7 @@
 
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
-#include <crc32.h>
+#include <nuttx/crc32.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdbool.h>
@@ -112,7 +112,7 @@ typedef begin_packed_struct struct flash_entry_header_t {
  * Private Data
  ****************************************************************************/
 static uint8_t *working_buffer;
-static uint16_t working_buffer_size;
+static size_t working_buffer_size;
 static bool working_buffer_static;
 static sector_descriptor_t *sector_map;
 static int last_erased;

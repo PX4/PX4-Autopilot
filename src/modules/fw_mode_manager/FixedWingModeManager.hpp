@@ -44,6 +44,7 @@
 #include "runway_takeoff/RunwayTakeoff.h"
 #include "ControllerConfigurationHandler.hpp"
 #include "FirstOrderHoldAltitude.hpp"
+#include "ParachuteRelease.hpp"
 
 #include <float.h>
 #include <drivers/drv_hrt.h>
@@ -71,6 +72,7 @@
 #include <uORB/topics/fixed_wing_lateral_guidance_status.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/fixed_wing_runway_control.h>
+#include <uORB/topics/fixed_wing_takeoff_status.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
@@ -198,10 +200,12 @@ private:
 	uORB::Publication<landing_gear_s> _landing_gear_pub {ORB_ID(landing_gear)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 	uORB::PublicationData<fixed_wing_lateral_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fixed_wing_lateral_setpoint)};
 	uORB::PublicationData<fixed_wing_longitudinal_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 	uORB::Publication<fixed_wing_lateral_guidance_status_s> _fixed_wing_lateral_guidance_status_pub{ORB_ID(fixed_wing_lateral_guidance_status)};
 	uORB::Publication<fixed_wing_runway_control_s> _fixed_wing_runway_control_pub{ORB_ID(fixed_wing_runway_control)};
+	uORB::Publication<fixed_wing_takeoff_status_s> _fixed_wing_takeoff_status_pub{ORB_ID(fixed_wing_takeoff_status)};
 
 	position_setpoint_triplet_s _pos_sp_triplet{};
 	vehicle_control_mode_s _control_mode{};
@@ -267,6 +271,9 @@ private:
 
 	bool _landed{true};
 
+	// [.] true once this module has commanded the parachute release during a parachute landing
+	bool _parachute_release_commanded{false};
+
 	// MANUAL MODES
 
 	// indicates whether we have completed a manual takeoff in a position control mode
@@ -302,6 +309,9 @@ private:
 
 	// [us] time stamp of (runway/catapult) launch detection
 	hrt_abstime _time_launch_detected{0};
+
+	// [us] time stamp of the start of the climbout, 0 while the takeoff has not started climbing yet
+	hrt_abstime _time_climbout_started{0};
 
 	// [deg] global position of the vehicle at the time launch is detected (using launch detector) or takeoff is started (runway)
 	Vector2d _takeoff_init_position{0, 0};
@@ -666,6 +676,15 @@ private:
 	void reset_takeoff_state();
 	void reset_landing_state();
 
+	void publishTakeoffStatus(const bool waiting_for_launch, const float clearance_altitude_amsl);
+
+	/**
+	 * @brief Releases the parachute by triggering flight termination.
+	 *
+	 * @param now Current system time [us]
+	 */
+	void terminateForParachuteLanding(const hrt_abstime &now);
+
 	/**
 	 * @brief Decides which control mode to execute.
 	 *
@@ -859,6 +878,9 @@ private:
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
 		(ParamInt<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
+		(ParamBool<px4::params::FW_LND_PARA_EN>) _param_fw_lnd_para_en,
+		(ParamFloat<px4::params::FW_LND_PARA_ALT>) _param_fw_lnd_para_alt,
+		(ParamFloat<px4::params::FW_LND_PARA_SINK>) _param_fw_lnd_para_sink,
 
 		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
@@ -878,6 +900,7 @@ private:
 		// Launch detection parameters
 		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
 		(ParamFloat<px4::params::FW_LAUN_CS_LK_DY>) _param_fw_laun_cs_lk_dy,
+		(ParamFloat<px4::params::FW_LAUN_CLR_ALT>) _param_fw_laun_clr_alt,
 
 		// external parameters
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
@@ -894,6 +917,7 @@ private:
 		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
 		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
 		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
+		(ParamFloat<px4::params::FW_TKO_CLMB_T>) _param_fw_tko_clmb_t,
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,

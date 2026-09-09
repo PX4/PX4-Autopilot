@@ -12423,6 +12423,186 @@ Note: this is only useful for servos.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 4095     |           | 0       |      | &nbsp;    |
 
+### UAVCAN_SV_CENT1 (`INT32`) {#UAVCAN_SV_CENT1}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 1 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT10 (`INT32`) {#UAVCAN_SV_CENT10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 10 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT11 (`INT32`) {#UAVCAN_SV_CENT11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 11 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT12 (`INT32`) {#UAVCAN_SV_CENT12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 12 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT13 (`INT32`) {#UAVCAN_SV_CENT13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 13 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT14 (`INT32`) {#UAVCAN_SV_CENT14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 14 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT15 (`INT32`) {#UAVCAN_SV_CENT15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 15 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT2 (`INT32`) {#UAVCAN_SV_CENT2}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 2 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT3 (`INT32`) {#UAVCAN_SV_CENT3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 3 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT4 (`INT32`) {#UAVCAN_SV_CENT4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 4 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT5 (`INT32`) {#UAVCAN_SV_CENT5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 5 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT6 (`INT32`) {#UAVCAN_SV_CENT6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 6 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT7 (`INT32`) {#UAVCAN_SV_CENT7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 7 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT8 (`INT32`) {#UAVCAN_SV_CENT8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 8 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_CENT9 (`INT32`) {#UAVCAN_SV_CENT9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 9 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
 ### UAVCAN_SV_DIS1 (`INT32`) {#UAVCAN_SV_DIS1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -24019,11 +24199,13 @@ Enable optical flow fusion.
 
 Optical flow measurement delay relative to IMU measurements.
 
-Assumes measurement is timestamped at trailing edge of integration period
+Assumes measurement is timestamped at trailing edge of integration
+period. The default matches a DroneCAN flow node, whose frame reaches
+the flight controller about 7 ms after its integration window closes.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 300      |           | 20      | ms   | &nbsp;    |
+| &check; | 0        | 300      |           | 7       | ms   | &nbsp;    |
 
 ### EKF2_OF_GATE (`FLOAT`) {#EKF2_OF_GATE}
 
@@ -25007,6 +25189,55 @@ relative to the vehicle heading (stick deflection to the right = land point move
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 2        |           | 2       |      | &nbsp;    |
 
+### FW_LND_PARA_ALT (`FLOAT`) {#FW_LND_PARA_ALT}
+
+Parachute landing release altitude above ground.
+
+Altitude the vehicle descends to and holds for the release. The release happens
+higher if the predicted touchdown point reaches the landing point while still on
+the approach slope, or lower for a vehicle that cannot hold the altitude, but
+never below 3 seconds of descent at FW_LND_PARA_SINK, so that the canopy has
+room to open.
+
+Lower values reduce the wind drift of the touchdown point.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 1.0      |          | 0.5       | 20.0    | m    | &nbsp;    |
+
+### FW_LND_PARA_EN (`INT32`) {#FW_LND_PARA_EN}
+
+Enable parachute landing on mission landing approach.
+
+If enabled, the vehicle follows the mission landing approach down to the release
+altitude (FW_LND_PARA_ALT) and releases the parachute by triggering flight
+termination, such that the predicted touchdown point under canopy lies on the
+landing point, accounting for ground speed, estimated wind drift during the descent
+(FW_LND_PARA_SINK) and the forward carry while the parachute deploys.
+
+The parachute is released through the flight termination failsafe outputs, or an
+external parachute system (COM_PARACHUTE). Not supported on VTOL.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### FW_LND_PARA_SINK (`FLOAT`) {#FW_LND_PARA_SINK}
+
+Sink rate under the deployed parachute.
+
+Expected steady-state sink rate under canopy. Used to predict the descent duration and
+therewith the wind drift of the touchdown point.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      |          | 0.1       | 5.0     | m/s  | &nbsp;    |
+
 ### FW_LND_TD_OFF (`FLOAT`) {#FW_LND_TD_OFF}
 
 Maximum lateral position offset for the touchdown point.
@@ -25103,6 +25334,20 @@ Launch is detected when the norm of body acceleration is above FW_LAUN_AC_THLD f
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
 | &nbsp; | 0        |          | 0.5       | 30.0    | m/s^2 | &nbsp;    |
 
+### FW_LAUN_CLR_ALT (`FLOAT`) {#FW_LAUN_CLR_ALT}
+
+Launch climbout clearance altitude.
+
+Height above the launch point below which the vehicle holds the wind-compensated launch bearing
+instead of the normal line-following guidance, and the roll limit is ramped linearly from 0 at
+the launch point up to FW_R_LIM at this altitude, so that a poor heading estimate or a bad launch
+cannot induce a large bank close to the ground. Only relevant for hand- or catapult-launched
+vehicles (FW_LAUN_DETCN_ON).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 1.0       | 5.0     | m    | &nbsp;    |
+
 ### FW_LAUN_CS_LK_DY (`FLOAT`) {#FW_LAUN_CS_LK_DY}
 
 Control surface launch delay.
@@ -25152,6 +25397,19 @@ If set <= 0, FW_AIRSPD_MIN will be set by default.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1.0     |          | 0.1       | -1.0    | m/s  | &nbsp;    |
+
+### FW_TKO_CLMB_T (`FLOAT`) {#FW_TKO_CLMB_T}
+
+Takeoff climbout duration.
+
+Ends the takeoff climbout this many seconds after the vehicle started climbing, instead of
+when the takeoff altitude is reached.
+
+If set to 0, the climbout ends at the takeoff altitude.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 1.0       | 0.0     | s    | &nbsp;    |
 
 ### FW_TKO_PITCH_MIN (`FLOAT`) {#FW_TKO_PITCH_MIN}
 
@@ -26468,6 +26726,7 @@ SYS_FAIL_RC_INST.
 - `100`: Battery
 - `101`: Motor
 - `107`: Traffic avoidance
+- `200`: CAN bus
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -26853,15 +27112,18 @@ the expected application environment.
 
 **Values:**
 
+- `0`: portable
 - `2`: stationary
+- `3`: pedestrian
 - `4`: automotive
+- `5`: sea
 - `6`: airborne with <1g acceleration
 - `7`: airborne with <2g acceleration
 - `8`: airborne with <4g acceleration
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 9        |           | 7       |      | &nbsp;    |
+| &check; | 0        | 8        |           | 7       |      | &nbsp;    |
 
 ### GPS_UBX_JAM_DET (`INT32`) {#GPS_UBX_JAM_DET}
 
@@ -26922,6 +27184,10 @@ Mode 7 turns UART2 into a diagnostic port: the receiver keeps serving the autopi
 while UART2 outputs UBX at GPS_UBX_BAUD2 for u-center. Keep GPS_UBX_BAUD2 at 115200 or above,
 the diagnostic message set saturates a slower link. UBX input is left enabled on UART2, so
 anything attached there can also reconfigure the receiver.
+Mode 8 uses the free Galileo HAS corrections broadcast on E6 (ZED-X20P with HPG 2.10 or
+later) for a PPP solution of roughly 20 cm after a few minutes of convergence. The
+receiver only processes HAS while host corrections are off, so RTCM and SPARTN from the
+autopilot are ignored in this mode; use mode 0 whenever a correction link is available.
 
 **Values:**
 
@@ -26933,10 +27199,11 @@ anything attached there can also reconfigure the receiver.
 - `5`: Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
 - `6`: Ground Control Station (UART2 outputs NMEA)
 - `7`: u-center on UART2 (UART2 outputs UBX diagnostics)
+- `8`: Galileo HAS (X20P, PPP from E6, RTCM/SPARTN input disabled)
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 7        |           | 0       |      | &nbsp;    |
+| &check; | 0        | 8        |           | 0       |      | &nbsp;    |
 
 ### GPS_UBX_PPK (`INT32`) {#GPS_UBX_PPK}
 
@@ -33120,7 +33387,7 @@ Airmode is used to keep torque authority with zero thrust (see MC_AIRMODE).
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 1        | 0.01      | 0.08    | norm | &nbsp;    |
+| &nbsp; | 0        | 0.5      | 0.01      | 0.08    | norm | &nbsp;    |
 
 ### MPC_MAN_TILT_MAX (`FLOAT`) {#MPC_MAN_TILT_MAX}
 
@@ -33208,7 +33475,7 @@ The hover thrust is important for land detection to work correctly.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0.1      | 0.8      | 0.01      | 0.5     | norm | &nbsp;    |
+| &nbsp; | 0.1      | 0.9      | 0.01      | 0.5     | norm | &nbsp;    |
 
 ### MPC_THR_MAX (`FLOAT`) {#MPC_THR_MAX}
 
@@ -36542,15 +36809,29 @@ Return type.
 
 Return mode destination and flight path (home location, rally point, mission landing pattern, reverse mission)
 
+- 0 (Direct to home or rally point): Return to closest safe point (home or rally point) via direct path.
+
+- 1 (Direct to mission landing or rally point): Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always choose closest safe landing point if vehicle is a VTOL in hover mode.
+
+- 2 (Mission path to landing, else reverse home): Return to a planned mission landing, if available, using the mission path while skipping DO_JUMP and other non-position mission items, else return to home via the reverse mission path with the same traversal rules. Do not consider rally points.
+
+- 3 (Direct to closest safe destination): Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
+
+- 4 (Mission path, closest of landing or home): Return to the planned mission landing, or to home via the reverse mission path, whichever is estimated to be closer using mission item indices. Skip DO_JUMP and other non-position mission items while following either mission path. Do not consider rally points.
+
+- 5 (Direct to rally point only): Return directly to safe landing point (do not consider mission landing and Home).
+
+- 6 (Home if battery allows, else rally point): Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
+
 **Values:**
 
-- `0`: Return to closest safe point (home or rally point) via direct path.
-- `1`: Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always choose closest safe landing point if vehicle is a VTOL in hover mode.
-- `2`: Return to a planned mission landing, if available, using the mission path while skipping DO_JUMP and other non-position mission items, else return to home via the reverse mission path with the same traversal rules. Do not consider rally points.
-- `3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
-- `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is estimated to be closer using mission item indices. Skip DO_JUMP and other non-position mission items while following either mission path. Do not consider rally points.
-- `5`: Return directly to safe landing point (do not consider mission landing and Home).
-- `6`: Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
+- `0`: Direct to home or rally point
+- `1`: Direct to mission landing or rally point
+- `2`: Mission path to landing, else reverse home
+- `3`: Direct to closest safe destination
+- `4`: Mission path, closest of landing or home
+- `5`: Direct to rally point only
+- `6`: Home if battery allows, else rally point
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -37284,6 +37565,78 @@ If set to 1, add an ID to the log, which uniquely identifies the vehicle
 
 ## SITL
 
+### SIM_BAT1_DRAIN (`FLOAT`) {#SIM_BAT1_DRAIN}
+
+Simulated battery 1 full-discharge time.
+
+Time in seconds for simulated battery 1 to drain from 100% to 0% while armed,
+overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
+Only has an effect if battery 1 is enabled through BAT1_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       |          | 1         | -1.0    | s    | &nbsp;    |
+
+### SIM_BAT1_MIN_PCT (`FLOAT`) {#SIM_BAT1_MIN_PCT}
+
+Simulated battery 1 minimal percentage.
+
+Lowest state of charge simulated battery 1 drains down to, overriding
+SIM_BAT_MIN_PCT for this battery only. Set to -1 to use SIM_BAT_MIN_PCT.
+Only has an effect if battery 1 is enabled through BAT1_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 100      | 0.1       | -1.0    | %    | &nbsp;    |
+
+### SIM_BAT2_DRAIN (`FLOAT`) {#SIM_BAT2_DRAIN}
+
+Simulated battery 2 full-discharge time.
+
+Time in seconds for simulated battery 2 to drain from 100% to 0% while armed,
+overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
+Only has an effect if battery 2 is enabled through BAT2_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       |          | 1         | -1.0    | s    | &nbsp;    |
+
+### SIM_BAT2_MIN_PCT (`FLOAT`) {#SIM_BAT2_MIN_PCT}
+
+Simulated battery 2 minimal percentage.
+
+Lowest state of charge simulated battery 2 drains down to, overriding
+SIM_BAT_MIN_PCT for this battery only. Set to -1 to use SIM_BAT_MIN_PCT.
+Only has an effect if battery 2 is enabled through BAT2_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 100      | 0.1       | -1.0    | %    | &nbsp;    |
+
+### SIM_BAT3_DRAIN (`FLOAT`) {#SIM_BAT3_DRAIN}
+
+Simulated battery 3 full-discharge time.
+
+Time in seconds for simulated battery 3 to drain from 100% to 0% while armed,
+overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
+Only has an effect if battery 3 is enabled through BAT3_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       |          | 1         | -1.0    | s    | &nbsp;    |
+
+### SIM_BAT3_MIN_PCT (`FLOAT`) {#SIM_BAT3_MIN_PCT}
+
+Simulated battery 3 minimal percentage.
+
+Lowest state of charge simulated battery 3 drains down to, overriding
+SIM_BAT_MIN_PCT for this battery only. Set to -1 to use SIM_BAT_MIN_PCT.
+Only has an effect if battery 3 is enabled through BAT3_SOURCE.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 100      | 0.1       | -1.0    | %    | &nbsp;    |
+
 ### SIM_BAT_DRAIN (`FLOAT`) {#SIM_BAT_DRAIN}
 
 Simulated battery full-discharge time.
@@ -37320,6 +37673,9 @@ Device ID of the accelerometer this calibration applies to.
 ### CAL_ACC0_PRIO (`INT32`) {#CAL_ACC0_PRIO}
 
 Accelerometer 0 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -37452,6 +37808,9 @@ Device ID of the accelerometer this calibration applies to.
 
 Accelerometer 1 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -37583,6 +37942,9 @@ Device ID of the accelerometer this calibration applies to.
 
 Accelerometer 2 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -37713,6 +38075,9 @@ Device ID of the accelerometer this calibration applies to.
 ### CAL_ACC3_PRIO (`INT32`) {#CAL_ACC3_PRIO}
 
 Accelerometer 3 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -37989,6 +38354,9 @@ Device ID of the gyroscope this calibration applies to.
 
 Gyroscope 0 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -38095,6 +38463,9 @@ Device ID of the gyroscope this calibration applies to.
 ### CAL_GYRO1_PRIO (`INT32`) {#CAL_GYRO1_PRIO}
 
 Gyroscope 1 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -38203,6 +38574,9 @@ Device ID of the gyroscope this calibration applies to.
 
 Gyroscope 2 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -38309,6 +38683,9 @@ Device ID of the gyroscope this calibration applies to.
 ### CAL_GYRO3_PRIO (`INT32`) {#CAL_GYRO3_PRIO}
 
 Gyroscope 3 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -40219,7 +40596,7 @@ INA228 Power Monitor Max Current.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0.1      | 327.68   | 0.1       | 327.68  |      | &nbsp;    |
+| &check; | 0.1      | 1638.4   | 0.1       | 327.68  |      | &nbsp;    |
 
 ### INA228_SHUNT (`FLOAT`) {#INA228_SHUNT}
 
@@ -40235,7 +40612,7 @@ INA238 Power Monitor Max Current.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0.1      | 327.68   | 0.1       | 327.68  |      | &nbsp;    |
+| &check; | 0.1      | 1638.4   | 0.1       | 327.68  |      | &nbsp;    |
 
 ### INA238_SHUNT (`FLOAT`) {#INA238_SHUNT}
 
@@ -40747,42 +41124,121 @@ can lead to an unexpected behavior and vehicle instability.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 2       |      | &nbsp;    |
 
-### SENS_AFBR_HYSTER (`INT32`) {#SENS_AFBR_HYSTER}
+### SENS_AFBR_DFM (`INT32`) {#SENS_AFBR_DFM}
 
-AFBR Rangefinder Short/Long Range Threshold Hysteresis.
+AFBR Rangefinder Dual Frequency Mode.
 
-This parameter defines the hysteresis for switching between short and long range mode.
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 10       |           | 1       | m    | &nbsp;    |
-
-### SENS_AFBR_L_RATE (`INT32`) {#SENS_AFBR_L_RATE}
-
-AFBR Rangefinder Long Range Rate.
-
-This parameter defines measurement rate of the AFBR Rangefinder in long range mode.
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 100      |           | 25      |      | &nbsp;    |
-
-### SENS_AFBR_MODE (`INT32`) {#SENS_AFBR_MODE}
-
-AFBR Rangefinder Mode.
-
-This parameter defines the mode of the AFBR Rangefinder.
+Dual frequency mode multiplies the module's base unambiguous range
+(LV85D 12.5 m, LX85D 25 m) by 4 or 8, at the cost of frame time and,
+at low signal, of wrong-window returns when the subframes disagree.
+Auto selects DFM 4X on the LV85D and LX85D, which measured better
+than the mode-default 8X on validity, spread and wrong-window returns
+at every rate flown, and the measurement mode's default elsewhere.
 
 **Values:**
 
+- `-1`: Auto
+- `0`: DFM Off
+- `1`: DFM 4X
+- `2`: DFM 8X
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | -1       | 2        |           | -1      |      | &nbsp;    |
+
+### SENS_AFBR_MODE (`INT32`) {#SENS_AFBR_MODE}
+
+AFBR Rangefinder Measurement Mode.
+
+Auto selects the module's default measurement mode as defined by the
+AFBR-S50 API (LV85D/LX85D: Long Range). A mode the API rejects for
+the detected module falls back to the module default.
+
+**Values:**
+
+- `-1`: Auto (module default)
 - `0`: Short Range Mode
 - `1`: Long Range Mode
 - `2`: High Speed Short Range Mode
 - `3`: High Speed Long Range Mode
+- `4`: High Precision Short Range Mode
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 3        |           | 0       |      | &nbsp;    |
+| &check; | -1       | 4        |           | -1      |      | &nbsp;    |
+
+### SENS_AFBR_OFS_HI (`FLOAT`) {#SENS_AFBR_OFS_HI}
+
+AFBR Rangefinder Range Offset (high power).
+
+Global range offset for the high laser power stage, applied on top of
+the factory calibration at startup. Written by 'afbrs50 cal'.
+0 leaves the factory offset unchanged.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0.0     | m    | &nbsp;    |
+
+### SENS_AFBR_OFS_LO (`FLOAT`) {#SENS_AFBR_OFS_LO}
+
+AFBR Rangefinder Range Offset (low power).
+
+Global range offset for the low laser power stage, applied on top of
+the factory calibration at startup. Written by 'afbrs50 cal'.
+0 leaves the factory offset unchanged.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0.0     | m    | &nbsp;    |
+
+### SENS_AFBR_PROF (`INT32`) {#SENS_AFBR_PROF}
+
+AFBR Rangefinder Performance Profile.
+
+Trades detection range against update rate on the LV85D and LX85D;
+other modules ignore it. Range: the highest rate that does not cost
+reliable range (LV85D 20 Hz, LX85D 15 Hz). Fast: the module's native
+rate (LV85D 50 Hz, LX85D 25 Hz) for optical flow and terrain
+following near the ground; costs a few metres of reliable range in
+bright light, none in low ambient light. Both profiles use DFM 4X.
+An explicit SENS_AFBR_RATE or SENS_AFBR_DFM overrides the profile.
+
+**Values:**
+
+- `0`: Range
+- `1`: Fast
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 1        |           | 0       |      | &nbsp;    |
+
+### SENS_AFBR_QMIN (`INT32`) {#SENS_AFBR_QMIN}
+
+AFBR Rangefinder Minimum Signal Quality.
+
+Measurements with a signal quality below this value are published
+with signal quality 0 (invalid) so consumers drop them but still see
+the sensor alive. Raising it rejects unreliable readings but also the
+weak long-range returns, since those are the low quality ones.
+0 publishes every measurement with its reported quality.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 100      |           | 0       |      | &nbsp;    |
+
+### SENS_AFBR_RATE (`INT32`) {#SENS_AFBR_RATE}
+
+AFBR Rangefinder Measurement Rate.
+
+0 selects the per-module default: on the LV85D and LX85D the rate of
+the SENS_AFBR_PROF profile, on other modules the measurement mode's
+default frame time. Lower rates increase the exposure budget per
+frame and thus the radiometric range. The API limits the frame time
+to 200 ms, so values below 5 Hz are clamped to 5 Hz.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100      |           | 0       | Hz   | &nbsp;    |
 
 ### SENS_AFBR_ROT (`INT32`) {#SENS_AFBR_ROT}
 
@@ -40807,27 +41263,22 @@ Mounting orientation of the AFBR-S50 relative to the vehicle body frame.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 25       |           | 25      |      | &nbsp;    |
 
-### SENS_AFBR_S_RATE (`INT32`) {#SENS_AFBR_S_RATE}
+### SENS_AFBR_SNM (`INT32`) {#SENS_AFBR_SNM}
 
-AFBR Rangefinder Short Range Rate.
+AFBR Rangefinder Shot Noise Monitor Mode.
 
-This parameter defines measurement rate of the AFBR Rangefinder in short range mode.
+This parameter defines the mode of the AFBR Rangefinder's shot noise monitor.
 
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 100      |           | 50      |      | &nbsp;    |
+**Values:**
 
-### SENS_AFBR_THRESH (`INT32`) {#SENS_AFBR_THRESH}
+- `0`: Static Indoor Mode
+- `1`: Static Outdoor Mode
+- `2`: Dynamic Mode
+- `3`: Dynamic Plus Mode
 
-AFBR Rangefinder Short/Long Range Threshold.
-
-This parameter defines the threshold for switching between short and long range mode.
-The mode will switch from short to long range when the distance is greater than the threshold plus the hysteresis.
-The mode will switch from long to short range when the distance is less than the threshold minus the hysteresis.
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 50       |           | 4       | m    | &nbsp;    |
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 3        |           | 3       |      | &nbsp;    |
 
 ### SENS_ASDT1_CFG (`INT32`) {#SENS_ASDT1_CFG}
 
@@ -42067,21 +42518,6 @@ Sensors hub IMU mode.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 1       |      | &nbsp;    |
-
-### SENS_INT_BARO_EN (`INT32`) {#SENS_INT_BARO_EN}
-
-Enable internal barometers.
-
-For systems with an external barometer, this should be set to false to make sure that the external is used.
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-| Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
-| &check; |          |          |           | Enabled (1) |      | &nbsp;    |
 
 ### SENS_LEDDAR1_CFG (`INT32`) {#SENS_LEDDAR1_CFG}
 

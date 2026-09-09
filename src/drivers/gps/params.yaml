@@ -27,14 +27,17 @@ parameters:
           the expected application environment.
       type: enum
       values:
+        0: portable
         2: stationary
+        3: pedestrian
         4: automotive
+        5: sea
         6: airborne with <1g acceleration
         7: airborne with <2g acceleration
         8: airborne with <4g acceleration
       default: 7
       min: 0
-      max: 9
+      max: 8
       reboot_required: true
     GPS_UBX_DGNSS_TO:
       description:
@@ -116,6 +119,10 @@ parameters:
           while UART2 outputs UBX at GPS_UBX_BAUD2 for u-center. Keep GPS_UBX_BAUD2 at 115200 or above,
           the diagnostic message set saturates a slower link. UBX input is left enabled on UART2, so
           anything attached there can also reconfigure the receiver.
+          Mode 8 uses the free Galileo HAS corrections broadcast on E6 (ZED-X20P with HPG 2.10 or
+          later) for a PPP solution of roughly 20 cm after a few minutes of convergence. The
+          receiver only processes HAS while host corrections are off, so RTCM and SPARTN from the
+          autopilot are ignored in this mode; use mode 0 whenever a correction link is available.
       type: enum
       values:
         0: Default
@@ -128,9 +135,10 @@ parameters:
           UART2)
         6: Ground Control Station (UART2 outputs NMEA)
         7: u-center on UART2 (UART2 outputs UBX diagnostics)
+        8: Galileo HAS (X20P, PPP from E6, RTCM/SPARTN input disabled)
       default: 0
       min: 0
-      max: 7
+      max: 8
       reboot_required: true
     GPS_UBX_BAUD1:
       description:

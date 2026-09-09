@@ -1016,6 +1016,10 @@ GPS::run()
 			ubx_mode = GPSDriverUBX::UBXMode::UCenterUART2;
 			break;
 
+		case 8:
+			ubx_mode = GPSDriverUBX::UBXMode::GalileoHAS;
+			break;
+
 		default:
 			break;
 

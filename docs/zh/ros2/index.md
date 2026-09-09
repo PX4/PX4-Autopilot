@@ -41,7 +41,7 @@ To use the [ROS 2](../ros2/user_guide.md) over XRCE-DDS / Zenoh effectively, you
 - [ROS 2 离板控制实例](../ros2/offboard_control.md)：一个 C++ 教程示例显示如何在 [离板模式] (../flight_modes/offboard.md) 中使用 ROS 2 节点进行位置控制。
 - [ROS 2 Multi Vehicle Simulation](../ros2/multi_vehicle.md): Instructions for connecting to multiple PX4 simulations via single ROS 2 agent.
 - [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md): A C++ library that simplifies interacting with PX4 from ROS 2.
-  Can be used to create and register flight modes written using ROS2 and send position estimates from ROS2 applications such as a VIO system.
+  Can be used to create and register flight modes written using ROS 2 and send position estimates from ROS 2 applications such as a VIO system.
 - [ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md): A ROS 2 message translation node that enables communication between PX4 and ROS 2 applications that were compiled with different sets of messages versions.
 
 ## 更多信息

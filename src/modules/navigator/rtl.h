@@ -54,12 +54,13 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rtl_status.h>
 #include <uORB/topics/rtl_time_estimate.h>
-#include <uORB/topics/battery_status.h>
 
 class Navigator;
 class MissionRouteCache;
@@ -205,7 +206,7 @@ private:
 	uORB::SubscriptionData<mission_s> _mission_sub{ORB_ID(mission)};
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
-	uORB::SubscriptionData<battery_status_s> _battery_status_sub{ORB_ID(battery_status)};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
 	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};

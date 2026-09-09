@@ -89,11 +89,12 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 	updateStartDelay(time_us - _last_update, action_state.delayed_action != Action::None);
 	updateFailsafeDeferState(time_us, action_state.failsafe_deferred);
 
-	// Notify about escalation, or about any new subsumed condition as an informational warning
+	// Notify about escalation, or about any new subsumed condition as an informational warning.
 	if (action_state.action > _selected_action) {
 		notifyUser(state.user_intended_mode, action_state.action, action_state.delayed_action, action_state.cause);
 
-	} else if (_pending_notification_cause != Cause::Count) {
+	} else if (_pending_notification_cause != Cause::Count && state.armed
+		   && action_state.action != Action::Terminate) {
 		notifyUser(state.user_intended_mode, Action::Warn, Action::None, _pending_notification_cause);
 	}
 

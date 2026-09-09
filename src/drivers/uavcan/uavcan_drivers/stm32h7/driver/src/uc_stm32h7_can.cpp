@@ -854,6 +854,23 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	return 0;
 }
 
+void CanIface::setOffline()
+{
+	// Request Init mode: stops TX/RX and, crucially, ACK generation, so this node
+	// electrically leaves the bus (failure injection). Only the INIT bit is touched;
+	// bit timings and message-RAM configuration are left intact for setOnline().
+	CriticalSectionLocker lock;
+	can_->CCCR |= FDCAN_CCCR_INIT;
+}
+
+void CanIface::setOnline()
+{
+	// Clear Init mode; the controller re-synchronises and rejoins the bus using the
+	// timings configured by init().
+	CriticalSectionLocker lock;
+	can_->CCCR &= ~FDCAN_CCCR_INIT;
+}
+
 void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
 {
 	// Update counters for successful transmissions

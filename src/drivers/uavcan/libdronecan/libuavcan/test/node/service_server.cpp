@@ -133,6 +133,84 @@ TEST(ServiceServer, Basic)
 }
 
 
+static void pushStringServiceRequest(CanDriverMock& can_driver, SystemClockDriver& clock_driver,
+                                     uint8_t iface_index, uint8_t src_node_id, uint8_t transfer_id)
+{
+    uavcan::Frame frame(root_ns_a::StringService::DefaultDataTypeID, uavcan::TransferTypeServiceRequest,
+                        uavcan::NodeID(src_node_id), 1, transfer_id);
+
+    const uint8_t req[] = {'r', 'e', 'q', '0'};
+    frame.setPayload(req, sizeof(req));
+    frame.setStartOfTransfer(true);
+    frame.setEndOfTransfer(true);
+    frame.setPriority(0);
+
+    uavcan::RxFrame rx_frame(frame, clock_driver.getMonotonic(), clock_driver.getUtc(), iface_index);
+    can_driver.ifaces.at(iface_index).pushRx(rx_frame);
+}
+
+TEST(ServiceServer, ResponseIfaceFromRequest)
+{
+    uavcan::GlobalDataTypeRegistry::instance().reset();
+    uavcan::DefaultDataTypeRegistrator<root_ns_a::StringService> _registrator;
+
+    SystemClockDriver clock_driver;
+    CanDriverMock can_driver(2, clock_driver);
+    TestNode node(can_driver, clock_driver, 1);
+
+    StringServerImpl impl("456");
+    uavcan::ServiceServer<root_ns_a::StringService, StringServerImpl::Binder> server(node);
+    ASSERT_EQ(0, server.start(impl.bind()));
+
+    // Default: request on iface 1 is answered on both ifaces.
+    pushStringServiceRequest(can_driver, clock_driver, 1, 0x10, 0);
+    node.spin(clock_driver.getMonotonic() + uavcan::MonotonicDuration::fromUSec(10000));
+    ASSERT_EQ(2, can_driver.ifaces[0].tx.size());
+    ASSERT_EQ(2, can_driver.ifaces[1].tx.size());
+
+    while (!can_driver.ifaces[0].tx.empty())
+    {
+        (void)can_driver.ifaces[0].popTxFrame();
+    }
+    while (!can_driver.ifaces[1].tx.empty())
+    {
+        (void)can_driver.ifaces[1].popTxFrame();
+    }
+
+    server.setRespondOnRequestIface(true);
+
+    // Request on iface 1 stays on iface 1.
+    pushStringServiceRequest(can_driver, clock_driver, 1, 0x10, 1);
+    node.spin(clock_driver.getMonotonic() + uavcan::MonotonicDuration::fromUSec(10000));
+    ASSERT_EQ(0, can_driver.ifaces[0].tx.size());
+    ASSERT_EQ(2, can_driver.ifaces[1].tx.size());
+
+    while (!can_driver.ifaces[1].tx.empty())
+    {
+        (void)can_driver.ifaces[1].popTxFrame();
+    }
+
+    // Next request on iface 0 must not stick to the previous mask.
+    pushStringServiceRequest(can_driver, clock_driver, 0, 0x11, 2);
+    node.spin(clock_driver.getMonotonic() + uavcan::MonotonicDuration::fromUSec(10000));
+    ASSERT_EQ(2, can_driver.ifaces[0].tx.size());
+    ASSERT_EQ(0, can_driver.ifaces[1].tx.size());
+
+    while (!can_driver.ifaces[0].tx.empty())
+    {
+        (void)can_driver.ifaces[0].popTxFrame();
+    }
+
+    server.setRespondOnRequestIface(false);
+
+    // Disabling must restore the all-interface mask, not keep the last request iface.
+    pushStringServiceRequest(can_driver, clock_driver, 1, 0x10, 3);
+    node.spin(clock_driver.getMonotonic() + uavcan::MonotonicDuration::fromUSec(10000));
+    ASSERT_EQ(2, can_driver.ifaces[0].tx.size());
+    ASSERT_EQ(2, can_driver.ifaces[1].tx.size());
+}
+
+
 TEST(ServiceServer, Empty)
 {
     // Manual type registration - we can't rely on the GDTR state

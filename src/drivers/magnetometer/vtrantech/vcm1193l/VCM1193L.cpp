@@ -43,7 +43,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 VCM1193L::VCM1193L(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_mag(get_device_id(), config.rotation, config.external)
 {
 }
 
@@ -250,6 +250,7 @@ bool VCM1193L::Configure()
 	}
 
 	_px4_mag.set_scale(1.f / 3000.f); // 3000 LSB/Gauss (Field Range = ±8G)
+	_px4_mag.set_range(8.f);
 
 	return success;
 }

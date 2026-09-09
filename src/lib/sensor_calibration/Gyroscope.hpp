@@ -48,19 +48,25 @@ public:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
-	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 75;
+
+	// Unlike a magnetometer, an external IMU is never a better primary than the
+	// on-board one: it is behind a bus with its own clock and transport latency
+	// and is not thermally managed, so it must not win the vote uncalibrated.
+	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 25;
 
 	static constexpr const char *SensorString() { return "GYRO"; }
 
 	Gyroscope();
 	explicit Gyroscope(uint32_t device_id);
+	Gyroscope(uint32_t device_id, bool external);
 
 	~Gyroscope() = default;
 
 	void PrintStatus();
 
 	bool set_calibration_index(int calibration_index);
-	void set_device_id(uint32_t device_id);
+	void set_device_id(uint32_t device_id); ///< classification falls back to the device id's bus
+	void set_device_id(uint32_t device_id, bool external);
 	bool set_offset(const matrix::Vector3f &offset);
 	void set_rotation(Rotation rotation);
 

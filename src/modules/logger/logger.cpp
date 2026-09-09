@@ -1141,13 +1141,34 @@ bool Logger::start_stop_logging()
 			updated = true;
 		}
 
-	} else if (_log_mode != LogMode::boot_until_shutdown) {
+	} else {
 		// arming-based logging
 		vehicle_status_s vehicle_status;
 
 		if (_vehicle_status_sub.update(&vehicle_status)) {
+			const bool armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+			const bool full_log_continues =
+				_log_mode == LogMode::boot_until_shutdown ||
+				(_log_mode == LogMode::arm_until_shutdown && _prev_file_log_start_state);
 
-			desired_state = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
+			if (full_log_continues) {
+				if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
+					if (armed || _manually_logging_override.load()) {
+						if (_writer.is_started(LogType::Full, LogWriter::BackendFile)) {
+							start_log_file(LogType::Mission);
+						}
+
+					} else {
+						stop_log_file(LogType::Mission);
+					}
+				}
+
+				if (_log_mode == LogMode::boot_until_shutdown) {
+					return false;
+				}
+			}
+
+			desired_state = armed ||
 					(_prev_file_log_start_state && _log_mode == LogMode::arm_until_shutdown);
 			updated = true;
 		}
@@ -1602,14 +1623,10 @@ void Logger::handle_file_write_error()
 	}
 }
 
-void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
+void Logger::perf_iterate_callback(const char *counter_line, void *user)
 {
 	perf_callback_data_t *callback_data = (perf_callback_data_t *)user;
-	const int buffer_length = 220;
-	char buffer[buffer_length];
 	const char *perf_name;
-
-	perf_print_counter_buffer(buffer, buffer_length, handle);
 
 	switch (callback_data->reason) {
 	case PrintLoadReason::Preflight:
@@ -1626,7 +1643,7 @@ void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
 		break;
 	}
 
-	callback_data->logger->write_info_multiple(LogType::Full, perf_name, buffer, callback_data->counter != 0);
+	callback_data->logger->write_info_multiple(LogType::Full, perf_name, counter_line, callback_data->counter != 0);
 	++callback_data->counter;
 }
 
