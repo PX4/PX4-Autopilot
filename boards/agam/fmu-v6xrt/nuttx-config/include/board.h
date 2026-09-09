@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/agam-robotics/fmu-v6xrt/include/board.h
+ * nuttx-configs/agam/fmu-v6xrt/include/board.h
  *
  *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
