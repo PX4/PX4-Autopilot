@@ -246,3 +246,34 @@ TEST_F(PositionSmoothingTest, doesNotDriftPastUnreachedWaypoint)
 	// Without the fix the look-ahead marches down the extended leg and this grows unbounded.
 	EXPECT_LT(max_distance_past_target, 10.f) << "Vehicle drifted too far past the unreached waypoint\n";
 }
+
+TEST_F(PositionSmoothingTest, lookaheadWaypointAllowsCarryingSpeedThroughNext)
+{
+	// GIVEN: a straight line with the next waypoint right behind the target (e.g. survey entry point),
+	// the vehicle close enough to the target that stopping at next requires braking already
+	const Vector3f START{17.f, 0.f, 0.f};
+	const Vector3f TARGET{20.f, 0.f, 0.f};
+	const Vector3f NEXT{21.f, 0.f, 0.f};
+	const Vector3f AFTER_NEXT{120.f, 0.f, 0.f};
+	Vector3f waypoints[3] = {START, TARGET, NEXT};
+	PositionSmoothing::PositionSmoothingSetpoints out;
+
+	// WHEN: the waypoint after next is unknown
+	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	_position_smoothing.setLookaheadWaypoint(Vector3f{NAN, NAN, NAN});
+	_position_smoothing.generateSetpoints(START, waypoints, Vector3f{}, 0.02f, false, out);
+	const float speed_without_lookahead = Vector2f(out.unsmoothed_velocity).norm();
+
+	// THEN: the planner has to assume a stop at next and slows down already for the target
+	EXPECT_LT(speed_without_lookahead, CRUISE_SPEED);
+
+	// WHEN: the waypoint after next is known and the path continues straight
+	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	_position_smoothing.setLookaheadWaypoint(AFTER_NEXT);
+	_position_smoothing.generateSetpoints(START, waypoints, Vector3f{}, 0.02f, false, out);
+	const float speed_with_lookahead = Vector2f(out.unsmoothed_velocity).norm();
+
+	// THEN: the vehicle may pass both waypoints at cruise speed
+	EXPECT_GT(speed_with_lookahead, speed_without_lookahead);
+	EXPECT_FLOAT_EQ(speed_with_lookahead, CRUISE_SPEED);
+}
