@@ -86,15 +86,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gps_p_noise(_params->ekf2_gps_p_noise),
 	_param_ekf2_gps_p_gate(_params->ekf2_gps_p_gate),
 	_param_ekf2_gps_v_gate(_params->ekf2_gps_v_gate),
-	_param_ekf2_gps_check(_params->ekf2_gps_check),
-	_param_ekf2_req_eph(_params->ekf2_req_eph),
-	_param_ekf2_req_epv(_params->ekf2_req_epv),
-	_param_ekf2_req_sacc(_params->ekf2_req_sacc),
-	_param_ekf2_req_nsats(_params->ekf2_req_nsats),
-	_param_ekf2_req_pdop(_params->ekf2_req_pdop),
-	_param_ekf2_req_hdrift(_params->ekf2_req_hdrift),
-	_param_ekf2_req_vdrift(_params->ekf2_req_vdrift),
-	_param_ekf2_req_fix(_params->ekf2_req_fix),
+	_param_gnss_req_sacc(_params->gnss_req_sacc),
 	_param_ekf2_gsf_tas(_params->ekf2_gsf_tas),
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_BAROMETER)

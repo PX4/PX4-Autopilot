@@ -165,7 +165,7 @@ param set-default EKF2_MAG_GATE 5.0       # Increased for FPS tolerance
 param set-default EKF2_ASP_DELAY 0.0
 param set-default EKF2_AVEL_DELAY 0.0
 param set-default EKF2_WIND_NSD 0.01
-param set-default EKF2_REQ_VDRIFT 1.0
+param set-default REQ_VDRIFT 1.0
 
 # IMU configuration
 param set-default IMU_GYRO_RATEMAX 200

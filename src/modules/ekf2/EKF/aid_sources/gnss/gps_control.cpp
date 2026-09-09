@@ -336,7 +336,7 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 				   && (aid_src.test_ratio[0] < 1.f) && (aid_src.test_ratio[1] < 1.f); // vx & vy accepted
 
 	if (bad_acc_vz_rejected
-	    && (gnss_sample.sacc < _params.ekf2_req_sacc)
+	    && (gnss_sample.sacc < _params.gnss_req_sacc)
 	   ) {
 		const float innov_limit = innovation_gate * sqrtf(aid_src.innovation_variance[2]);
 		aid_src.innovation[2] = math::constrain(aid_src.innovation[2], -innov_limit, innov_limit);
@@ -385,7 +385,7 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 	const Vector2f vel_xy(aid_src_vel.observation);
 
 	if ((vel_var > 0.f)
-	    && (vel_accuracy < _params.ekf2_req_sacc)
+	    && (vel_accuracy < _params.gnss_req_sacc)
 	    && vel_xy.isAllFinite()) {
 
 		_yawEstimator.fuseVelocity(vel_xy, vel_accuracy, _control_status.flags.in_air);
