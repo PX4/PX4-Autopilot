@@ -287,6 +287,12 @@ MavlinkFTP::_process_request(
 		break;
 	}
 
+	if (errorCode == kErrFailErrno && (payload->opcode == kCmdOpenFileRO
+					   || payload->opcode == kCmdCreateFile || payload->opcode == kCmdOpenFileWO)) {
+		PX4_ERR("FTP: open '%s' for %s failed: %s", _data_as_cstring(payload),
+			payload->opcode == kCmdOpenFileRO ? "read" : "write", strerror(_our_errno));
+	}
+
 out:
 	payload->seq_number++;
 
@@ -600,7 +606,6 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 
 		} else if (!for_write) {
 			_our_errno = errno;
-			PX4_ERR("stat failed read: %s", strerror(_our_errno));
 			return kErrFailErrno;
 		}
 
@@ -609,7 +614,6 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 
 		if (fd < 0) {
 			_our_errno = errno;
-			PX4_ERR("open failed: %s", strerror(_our_errno));
 			return kErrFailErrno;
 		}
 
