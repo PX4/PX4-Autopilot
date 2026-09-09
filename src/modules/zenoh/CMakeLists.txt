@@ -65,6 +65,7 @@ set(Z_FEATURE_UNSTABLE_API 1 CACHE STRING "Toggle unstable Zenoh-C API")
 px4_add_git_submodule(TARGET git_zenoh-pico PATH "zenoh-pico")
 add_subdirectory(zenoh-pico)
 unset(MESSAGE_QUIET)
+unset(BUILD_TESTING) # only zenoh-pico's own tests are disabled above, the module's tests follow the cache setting
 add_dependencies(zenohpico_static git_zenoh-pico px4_platform)
 target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
 			-Wno-narrowing
@@ -106,6 +107,7 @@ px4_add_module(
 		SRCS
 		zenoh.cpp
 		zenoh_config.cpp
+		zenoh_link_wait.cpp
 		publishers/zenoh_publisher.cpp
 		subscribers/zenoh_subscriber.cpp
 		${CMAKE_CURRENT_BINARY_DIR}/default_topics.c
@@ -134,3 +136,5 @@ px4_add_module(
 			-DZENOH_LINUX
 			-D_Bool=int8_t
 )
+
+px4_add_unit_gtest(SRC test/LinkWaitTest.cpp EXTRA_SRCS zenoh_link_wait.cpp INCLUDES ${CMAKE_CURRENT_SOURCE_DIR})
