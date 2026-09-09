@@ -1,0 +1,118 @@
+# syntax=docker/dockerfile:1
+# Build ROS independently of the changing SIH/Gazebo firmware package.
+FROM ubuntu:24.04 AS ros2-base
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ROS_DISTRO=jazzy
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ARG ROS_APT_SOURCE_VERSION=1.2.0
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=bind,source=setup,target=/px4-setup \
+    --mount=type=bind,source=ros2-install-dependencies.sh,target=/ros2-install-dependencies.sh \
+    bash /ros2-install-dependencies.sh
+
+# Use Jazzy's Fast DDS/CDR and the Agent's pinned, statically linked logger.
+FROM ros2-base AS agent
+ARG XRCE_AGENT_REF=73622810d984349b80bbac0ef55fc0b694d62222
+ARG BUILD_JOBS=8
+RUN source /opt/ros/jazzy/setup.bash \
+    && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git /opt/agent-source \
+    && git -C /opt/agent-source checkout "${XRCE_AGENT_REF}" \
+    && cmake -S /opt/agent-source -B /opt/agent-source/build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DUAGENT_USE_SYSTEM_FASTDDS=ON \
+        -DUAGENT_USE_SYSTEM_FASTCDR=ON \
+        -DUAGENT_P2P_PROFILE=OFF \
+    && cmake --build /opt/agent-source/build --parallel "${BUILD_JOBS}" \
+    && DESTDIR=/opt/agent-install cmake --install /opt/agent-source/build \
+    && rm -rf /opt/agent-source
+
+FROM ros2-base AS ros2-sources
+WORKDIR /opt/px4_ros2
+COPY ros2.repos /opt/px4_ros2/ros2.repos
+ARG PX4_MSGS_REF
+ARG PX4_ROS2_REF
+RUN mkdir src && vcs import src < ros2.repos \
+    && if [[ -n "${PX4_MSGS_REF}" ]]; then \
+        [[ "${PX4_MSGS_REF}" =~ ^[0-9a-fA-F]{40}$ ]] \
+        && git -C src/px4_msgs checkout "${PX4_MSGS_REF}" \
+        && test "$(git -C src/px4_msgs rev-parse HEAD)" = "${PX4_MSGS_REF,,}"; \
+    fi \
+    && if [[ -n "${PX4_ROS2_REF}" ]]; then \
+        [[ "${PX4_ROS2_REF}" =~ ^[0-9a-fA-F]{40}$ ]] \
+        && git -C src/px4-ros2-interface-lib checkout "${PX4_ROS2_REF}" \
+        && test "$(git -C src/px4-ros2-interface-lib rev-parse HEAD)" = "${PX4_ROS2_REF,,}"; \
+    fi \
+    && vcs export --exact src > ros2.repos \
+    && cat ros2.repos \
+    && rm -rf src/px4_msgs/msg src/px4_msgs/srv
+
+# Dependencies use package manifests, not the generated message definitions.
+FROM ros2-base AS ros2-dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=bind,from=ros2-sources,source=/opt/px4_ros2/src,target=/ros_sources \
+    source /opt/ros/jazzy/setup.bash \
+    && apt-get update \
+    && rosdep install --from-paths /ros_sources --ignore-src --rosdistro jazzy -y
+
+# Standalone development toolchain: no source checkouts, firmware or overlay.
+FROM ros2-dependencies AS ros2-dev
+COPY --from=agent /opt/agent-install/usr/local/ /usr/local/
+RUN ldconfig
+COPY --chmod=755 ros2-dev-entrypoint.sh /usr/local/bin/ros2-dev-entrypoint.sh
+WORKDIR /workspace
+ENTRYPOINT ["/usr/local/bin/ros2-dev-entrypoint.sh"]
+CMD ["/bin/bash"]
+
+# Definitions come from the same checkout as the parent image's PX4 package.
+FROM ros2-dependencies AS ros2-builder
+WORKDIR /opt/px4_ros2
+COPY --from=ros2-sources /opt/px4_ros2/ /opt/px4_ros2/
+COPY px4_msgs/ src/px4_msgs/
+ARG BUILD_JOBS=8
+RUN --mount=type=cache,target=/root/.cache/ccache,sharing=locked \
+    source /opt/ros/jazzy/setup.bash \
+    && export CCACHE_DIR=/root/.cache/ccache CCACHE_MAXSIZE=500M CCACHE_COMPILERCHECK=content \
+    && CMAKE_BUILD_PARALLEL_LEVEL="${BUILD_JOBS}" colcon build --symlink-install \
+        --executor sequential --cmake-args -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+    && ccache --show-stats
+
+RUN source /opt/ros/jazzy/setup.bash \
+    && colcon test --packages-select px4_ros2_cpp --ctest-args -R unit_tests \
+    && colcon test-result --verbose
+
+# Bake supplies the connected runtime parent. Install OS packages normally;
+# only source-built artifacts cross over from the independent builders.
+FROM sitl
+ENV ROS_DISTRO=jazzy
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV RUNS_IN_DOCKER=true
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ARG ROS_APT_SOURCE_VERSION=1.2.0
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=bind,source=setup,target=/px4-setup \
+    --mount=type=bind,source=ros2-install-dependencies.sh,target=/ros2-install-dependencies.sh \
+    --mount=type=bind,from=ros2-sources,source=/opt/px4_ros2/src,target=/opt/px4_ros2/src \
+    bash /ros2-install-dependencies.sh /opt/px4_ros2/src
+
+# Copy only the staged Agent/logger install, never the builder's pip packages.
+COPY --from=agent /opt/agent-install/usr/local/ /usr/local/
+RUN ldconfig
+# Preserve source/build/install paths, including colcon's absolute symlinks.
+COPY --from=ros2-builder /opt/px4_ros2/ /opt/px4_ros2/
+COPY --chmod=755 ros2-entrypoint.sh /usr/local/bin/ros2-entrypoint.sh
+# PX4 locates its ROMFS relative to the executable, not the /usr/bin symlink.
+ENV PATH=/opt/px4-gazebo/bin:/opt/px4/bin:${PATH}
+WORKDIR /workspace
+ENTRYPOINT ["/usr/local/bin/ros2-entrypoint.sh"]
+CMD ["/bin/bash"]
