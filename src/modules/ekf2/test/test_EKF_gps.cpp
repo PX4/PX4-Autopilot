@@ -354,7 +354,7 @@ TEST(EkfGnssQualification, unusableDelayedSampleIsNotFused)
 {
 	// GIVEN: a long fusion delay and a short health window, so that the (latest-wins) check status can
 	// return to passing before a failed sample reaches the fusion horizon
-	auto ekf = std::make_shared<Ekf>();
+	std::shared_ptr<Ekf> ekf{new Ekf};
 	ekf->getParamHandle()->ekf2_delay_max = 400.f;
 	SensorSimulator simulator(ekf);
 	EkfWrapper wrapper(ekf);
