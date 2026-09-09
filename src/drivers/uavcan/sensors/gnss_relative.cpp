@@ -63,7 +63,8 @@ void UavcanGnssRelativeBridge::rel_pos_heading_sub_cb(const
 {
 	sensor_gnss_relative_s sensor_gnss_relative{};
 
-	sensor_gnss_relative.timestamp_sample = uavcan::UtcTime(msg.timestamp).toUSec();
+	sensor_gnss_relative.timestamp_sample = uavcan_bridge::sample_timestamp(msg.timestamp.usec,
+						_sub_rel_pos_heading.getNode().getUtcTime().toUSec(), hrt_absolute_time());
 
 	sensor_gnss_relative.heading_valid = msg.reported_heading_acc_available;
 	sensor_gnss_relative.heading = math::radians(msg.reported_heading_deg);
