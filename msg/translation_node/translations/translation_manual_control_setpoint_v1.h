@@ -23,6 +23,8 @@ public:
 		msg_newer.timestamp_sample = msg_older.timestamp_sample;
 		msg_newer.valid = msg_older.valid;
 		msg_newer.data_source = msg_older.data_source;
+		msg_newer.source_system_id = 0; // Default value for v1
+		msg_newer.source_component_id = 0; // Default value for v1
 		msg_newer.roll = msg_older.roll;
 		msg_newer.pitch = msg_older.pitch;
 		msg_newer.yaw = msg_older.yaw;
@@ -36,8 +38,6 @@ public:
 		msg_newer.aux6 = msg_older.aux6;
 		msg_newer.sticks_moving = msg_older.sticks_moving;
 		msg_newer.buttons = msg_older.buttons;
-		msg_newer.source_system_id = 0; // Default value for v1
-		msg_newer.source_component_id = 0; // Default value for v1
 	}
 
 	static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
