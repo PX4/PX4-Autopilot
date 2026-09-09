@@ -122,7 +122,8 @@ void VehicleOpticalFlow::Run()
 
 
 		const hrt_abstime timestamp_oldest = sensor_optical_flow.timestamp_sample - sensor_optical_flow.integration_timespan_us;
-		const hrt_abstime timestamp_newest = sensor_optical_flow.timestamp;
+		// never integrate past the end of the flow window; the rest belongs to the next frame
+		const hrt_abstime timestamp_newest = sensor_optical_flow.timestamp_sample;
 
 		// delta angle
 		//  - from sensor_optical_flow if available, otherwise use synchronized sensor_gyro if available
