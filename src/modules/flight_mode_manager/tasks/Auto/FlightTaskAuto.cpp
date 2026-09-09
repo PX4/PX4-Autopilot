@@ -636,11 +636,13 @@ bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 void FlightTaskAuto::_evaluateSpeedLookahead()
 {
 	const position_setpoint_lookahead_s &lookahead = _position_setpoint_lookahead_sub.get();
+	const position_setpoint_triplet_s &triplet = _position_setpoint_triplet_sub.get();
 
 	// The lookahead is only a speed planning hint: it needs a valid next waypoint to attach to,
 	// otherwise it stays NAN and the planner assumes a stop at the next waypoint (previous behavior).
 	if (_type != WaypointType::loiter
-	    && _position_setpoint_triplet_sub.get().next.valid
+	    && triplet.next.valid
+	    && lookahead.timestamp == triplet.timestamp
 	    && lookahead.valid
 	    && PX4_ISFINITE(lookahead.lat) && PX4_ISFINITE(lookahead.lon) && PX4_ISFINITE(lookahead.alt)) {
 		_reference_position.project(lookahead.lat, lookahead.lon,
