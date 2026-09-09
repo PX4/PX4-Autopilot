@@ -105,9 +105,9 @@ private:
 	// return the square of two floating point numbers
 	static constexpr float sq(float var) { return var * var; }
 
+	uint8_t _init_retries{5};
 	void sensorCallback(VnUartPacket *packet);
 
-private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VN_MODE>) _param_vn_mode,
 		(ParamInt<px4::params::VN_PORT>) _param_vn_port,

@@ -709,9 +709,16 @@ void VectorNav::Run()
 	} else if (!_initialized) {
 
 		if (!_connected) {
-			if (init()) {
-				_connected = true;
-			}
+
+			do {
+				if (init()) {
+					_connected = true;
+
+				} else {
+					_init_retries--;
+				}
+
+			} while (_init_retries > 0);
 		}
 
 		if (_connected) {

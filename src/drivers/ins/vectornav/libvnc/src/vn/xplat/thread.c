@@ -88,7 +88,8 @@ VnError VnThread_startNew(VnThread *thread, VnThread_StartRoutine startRoutine, 
 	// priority
 	struct sched_param param;
 	pthread_attr_getschedparam(&attr, &param);
-	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+	// Hardcode priority so repeated inits on failure don't preempt other px4 tasks
+	param.sched_priority = 220;
 	pthread_attr_setschedparam(&attr, &param);
 
 	errorCode = pthread_create(
