@@ -147,35 +147,24 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			}
 		}
 
-		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-			_gnss_checks[i].setParams(
-				_param_gps_check.get(),
-				_param_req_nsats.get(),
-				_param_req_pdop.get(),
-				_param_req_eph.get(),
-				_param_req_epv.get(),
-				_param_req_sacc.get(),
-				_param_req_hdrift.get(),
-				_param_req_vdrift.get(),
-				_param_req_fix.get(),
-				_param_ekf2_vel_lim.get(),
-				_param_req_gps_h.get()
-			);
+		GnssChecks::Params checks_params{};
+		checks_params.check_mask = _param_gps_check.get();
+		checks_params.req_nsats = _param_req_nsats.get();
+		checks_params.req_pdop = _param_req_pdop.get();
+		checks_params.req_eph = _param_req_eph.get();
+		checks_params.req_epv = _param_req_epv.get();
+		checks_params.req_sacc = _param_req_sacc.get();
+		checks_params.req_hdrift = _param_req_hdrift.get();
+		checks_params.req_vdrift = _param_req_vdrift.get();
+		checks_params.req_fix = _param_req_fix.get();
+		checks_params.vel_lim = _param_ekf2_vel_lim.get();
+		checks_params.min_health_time_us = static_cast<uint64_t>(_param_req_gps_h.get() * 1_s);
+
+		for (GnssChecks &checks : _gnss_checks) {
+			checks.setParams(checks_params);
 		}
 
-		_vehicle_gps_position_checks.setParams(
-			_param_gps_check.get(),
-			_param_req_nsats.get(),
-			_param_req_pdop.get(),
-			_param_req_eph.get(),
-			_param_req_epv.get(),
-			_param_req_sacc.get(),
-			_param_req_hdrift.get(),
-			_param_req_vdrift.get(),
-			_param_req_fix.get(),
-			_param_ekf2_vel_lim.get(),
-			_param_req_gps_h.get()
-		);
+		_vehicle_gps_position_checks.setParams(checks_params);
 
 		_gps_blending.setBlendingUseSpeedAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_SPD_ACC);
 		_gps_blending.setBlendingUseHPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_HPOS_ACC);

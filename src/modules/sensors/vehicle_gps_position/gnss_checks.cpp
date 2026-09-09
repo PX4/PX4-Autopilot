@@ -39,24 +39,6 @@
 #include "gnss_checks.hpp"
 
 
-void GnssChecks::setParams(int32_t check_mask, int32_t req_nsats, float req_pdop, float req_eph, float req_epv,
-			   float req_sacc, float req_hdrift, float req_vdrift, int32_t req_fix, float vel_lim,
-			   uint32_t min_health_time_us)
-{
-	_params.check_mask 		= check_mask;
-	_params.req_nsats 		= req_nsats;
-	_params.req_pdop 		= req_pdop;
-	_params.req_eph 		= req_eph;
-	_params.req_epv 		= req_epv;
-	_params.req_sacc 		= req_sacc;
-	_params.req_hdrift 		= req_hdrift;
-	_params.req_vdrift 		= req_vdrift;
-	_params.req_fix 		= req_fix;
-	_params.vel_lim 		= vel_lim;
-	_params.min_health_time_us	= min_health_time_us;
-
-}
-
 bool GnssChecks::run(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest)
 {
 	// assume failed first time through

@@ -76,9 +76,21 @@ public:
 	GnssChecks() = default;
 	~GnssChecks() = default;
 
-	void setParams(int32_t check_mask, int32_t req_nsats, float req_pdop, float req_eph, float req_epv,
-		       float req_sacc, float req_hdrift, float req_vdrift, int32_t req_fix, float vel_lim,
-		       uint32_t min_health_time_us);
+	struct Params {
+		int32_t check_mask{2047};
+		int32_t req_nsats{6};
+		float req_pdop{2.5f};
+		float req_eph{3.f};
+		float req_epv{5.f};
+		float req_sacc{0.5f};
+		float req_hdrift{0.1f};
+		float req_vdrift{0.2f};
+		int32_t req_fix{3};
+		float vel_lim{100.f};
+		uint64_t min_health_time_us{10000000};
+	};
+
+	void setParams(const Params &params) { _params = params; }
 	/**
 	 * Fail-status flags (gnssChecks layout) of the checks enabled by GPS_CHECK.
 	 * The param bit order (GnssChecksMask) and the status bit order are not parallel, so they are
@@ -179,21 +191,7 @@ private:
 	bool _initial_checks_passed{false};
 	bool _passed{false};
 
-	struct Params {
-		int32_t check_mask;
-		int32_t req_nsats;
-		float req_pdop;
-		float req_eph;
-		float req_epv;
-		float req_sacc;
-		float req_hdrift;
-		float req_vdrift;
-		int32_t req_fix;
-		float vel_lim;
-		uint32_t min_health_time_us;
-	};
-
-	Params _params;
+	Params _params{};
 };
 
 #endif // !GNSS_CHECKS_H
