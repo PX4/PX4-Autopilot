@@ -56,9 +56,11 @@ parameters:
       description:
         short: In air optical flow minimum quality
         long: Optical Flow data will only be used in air if the sensor reports a
-          quality metric >= EKF2_OF_QMIN
+          quality metric >= EKF2_OF_QMIN. The PixArt drivers (PMW3901, PAW3902,
+          PAA3905) report raw SQUAL, whose tracking knee sits at 85 in every
+          lighting mode.
       type: int32
-      default: 1
+      default: 85
       min: 0
       max: 255
     EKF2_OF_QMIN_GND:
