@@ -38,6 +38,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <limits>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -54,6 +56,9 @@ struct FakeParam {
 };
 
 std::vector<FakeParam> g_params;
+param_t g_fail_set_param = PARAM_INVALID;
+unsigned g_notifications = 0;
+unsigned g_set_count = 0;
 
 uint32_t bits(float f)
 {
@@ -190,6 +195,9 @@ class MavlinkFtpParam : public ::testing::Test
 protected:
 	void SetUp() override
 	{
+		g_fail_set_param = PARAM_INVALID;
+		g_notifications = 0;
+		g_set_count = 0;
 		g_params = {
 			f32("MPC_XY_P", true, 0.95f, 0.95f),
 			f32("MPC_XY_VEL_P_ACC", true, 1.8f, 1.8f),
@@ -207,7 +215,7 @@ protected:
 
 		for (int i = 0; i < 300; i++) {
 			char name[17];
-			snprintf(name, sizeof(name), "GEN_%03d_X", i);
+			snprintf(name, sizeof(name), "GEN_%03u_X", static_cast<unsigned>(i));
 			g_params.push_back(i32(name, (i % 5) != 0, i, (i % 3 == 0) ? 0 : i));
 		}
 	}
@@ -240,14 +248,15 @@ param_t param_find_no_notification(const char *name)
 bool param_is_readonly(param_t param) { return (param < g_params.size()) && g_params[param].readonly; }
 int param_set_no_notification(param_t param, const void *val)
 {
-	if ((param >= g_params.size()) || g_params[param].readonly) {
+	if ((param >= g_params.size()) || g_params[param].readonly || (param == g_fail_set_param)) {
 		return -1;
 	}
 
+	g_set_count++;
 	memcpy(&g_params[param].value, val, 4);
 	return 0;
 }
-void param_notify_changes() {}
+void param_notify_changes() { g_notifications++; }
 
 TEST_F(MavlinkFtpParam, Path)
 {
@@ -325,7 +334,7 @@ TEST_F(MavlinkFtpParam, WithDefaults)
 
 	for (size_t i = 0; i < used.size(); i++) {
 		EXPECT_EQ(d.entries[i].value, used[i].value);
-		EXPECT_EQ(d.entries[i].has_default, used[i].value != used[i].default_value) << used[i].name;
+		EXPECT_TRUE(d.entries[i].has_default) << used[i].name;
 
 		if (d.entries[i].has_default) {
 			EXPECT_EQ(d.entries[i].default_value, used[i].default_value);
@@ -440,7 +449,8 @@ TEST_F(MavlinkFtpParam, FrozenMembershipLiveValues)
 	}
 
 	EXPECT_EQ(find(d1, "MPC_XY_P")->value, bits(42.f));
-	EXPECT_FALSE(find(d1, "MPC_XY_P")->has_default);
+	EXPECT_TRUE(find(d1, "MPC_XY_P")->has_default);
+	EXPECT_EQ(find(d1, "MPC_XY_P")->default_value, bits(0.95f));
 	EXPECT_EQ(find(d1, "SYS_AUTOSTART")->value, g_params[4].default_value);
 	EXPECT_TRUE(find(d1, "SYS_AUTOSTART")->has_default);
 	EXPECT_NE(find(d1, "MPC_Z_P"), nullptr);
@@ -597,7 +607,7 @@ TEST_F(MavlinkFtpParam, UploadPrefixAndRetry)
 	EXPECT_EQ(param_bits("ABCDEFGHIJKLMNOQ"), bits(9.f));
 }
 
-TEST_F(MavlinkFtpParam, UploadRejectsDefaultsMagicAndHoles)
+TEST_F(MavlinkFtpParam, UploadRejectsDefaultsMagicAndIncompleteFiles)
 {
 	ParamPckFile file;
 	const std::vector<uint8_t> with_defaults = encode_upload({up_f32("MPC_XY_P", 1.f)}, 0x671C);
@@ -607,7 +617,7 @@ TEST_F(MavlinkFtpParam, UploadRejectsDefaultsMagicAndHoles)
 
 	const std::vector<uint8_t> ok = encode_upload({up_f32("MPC_Z_P", 4.f)});
 	ASSERT_TRUE(file.open_write());
-	EXPECT_EQ(file.write(3, ok.data(), static_cast<uint16_t>(ok.size())), -1);
+	EXPECT_EQ(file.write(3, ok.data() + 3, static_cast<uint16_t>(ok.size() - 3)), static_cast<int>(ok.size() - 3));
 	EXPECT_FALSE(file.finish_write());
 	file.close();
 
@@ -637,4 +647,194 @@ TEST_F(MavlinkFtpParam, UploadRoundtripDownload)
 
 	EXPECT_EQ(param_bits("MPC_XY_P"), bits(0.95f));
 	EXPECT_EQ(param_bits("SYS_AUTOSTART"), static_cast<uint32_t>(4001));
+}
+
+
+TEST_F(MavlinkFtpParam, UploadReportsStoreFailure)
+{
+	ParamPckFile file;
+	g_fail_set_param = param_find_no_notification("MPC_XY_P");
+	const auto f = encode_upload({up_f32("MPC_XY_P", 1.5f)});
+	EXPECT_FALSE(upload_bytes(file, f, 80));
+	EXPECT_FALSE(file.finish_write());
+	file.close();
+	EXPECT_EQ(param_bits("MPC_XY_P"), bits(0.95f));
+	EXPECT_EQ(g_notifications, 0u);
+
+	const auto partial = encode_upload({up_i32("SYS_HITL", 1), up_f32("MPC_XY_P", 1.5f)});
+	EXPECT_FALSE(upload_bytes(file, partial, 80));
+	file.close();
+	EXPECT_EQ(param_bits("SYS_HITL"), 1u);
+	EXPECT_EQ(param_bits("MPC_XY_P"), bits(0.95f));
+	EXPECT_EQ(g_notifications, 1u);
+}
+
+TEST_F(MavlinkFtpParam, UploadPreservesFloatRange)
+{
+	for (const float value : {
+		     1e10f, -1e10f, std::numeric_limits<float>::max(),
+		     std::numeric_limits<float>::infinity(), std::numeric_limits<float>::quiet_NaN()
+	     }) {
+		ParamPckFile file;
+		const auto f = encode_upload({up_f32("MPC_XY_P", value)});
+		ASSERT_TRUE(upload_bytes(file, f, 80));
+		EXPECT_EQ(param_bits("MPC_XY_P"), bits(value));
+	}
+}
+
+TEST_F(MavlinkFtpParam, UploadChecksFloatToIntegerRange)
+{
+	for (const float value : {
+		     2147483648.f, -2147483904.f, std::numeric_limits<float>::infinity(),
+		     -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::quiet_NaN()
+	     }) {
+		ParamPckFile file;
+		const auto f = encode_upload({up_f32("SYS_HITL", value)});
+		EXPECT_FALSE(upload_bytes(file, f, 80));
+		EXPECT_EQ(param_bits("SYS_HITL"), 0u);
+	}
+
+	for (const float value : {-2147483648.f, 2147483520.f, -1.5f, 1.5f}) {
+		ParamPckFile file;
+		const auto f = encode_upload({up_f32("SYS_AUTOSTART", value)});
+		ASSERT_TRUE(upload_bytes(file, f, 80));
+		EXPECT_EQ(param_bits("SYS_AUTOSTART"), static_cast<uint32_t>(static_cast<int32_t>(value)));
+	}
+}
+
+TEST_F(MavlinkFtpParam, UploadRecoversMissingPacket)
+{
+	std::vector<UploadEntry> entries;
+
+	for (int i = 0; i < 300; i++) {
+		char name[17];
+		snprintf(name, sizeof(name), "GEN_%03u_X", static_cast<unsigned>(i));
+		entries.push_back(up_i32(name, i + 1000));
+	}
+
+	const auto f = encode_upload(entries);
+	constexpr uint16_t chunk = 80;
+
+	for (const uint32_t missing : {0u, 80u, 240u}) {
+		ParamPckFile file;
+		ASSERT_TRUE(file.open_write());
+		const unsigned sets_before = g_set_count;
+
+		for (uint32_t offset = 0; offset < f.size(); offset += chunk) {
+			if (offset == missing) {
+				continue;
+			}
+
+			const uint16_t n = std::min<size_t>(chunk, f.size() - offset);
+			ASSERT_EQ(file.write(offset, f.data() + offset, n), n);
+			ASSERT_EQ(file.write(offset, f.data() + offset, n), n);
+		}
+
+		ASSERT_EQ(file.write(missing, f.data() + missing, chunk), chunk);
+		ASSERT_TRUE(file.finish_write());
+		EXPECT_EQ(g_set_count - sets_before, entries.size());
+		file.close();
+
+		for (int i = 0; i < 300; i++) {
+			EXPECT_EQ(param_bits(entries[i].name.c_str()), static_cast<uint32_t>(i + 1000));
+		}
+	}
+}
+
+TEST_F(MavlinkFtpParam, UploadReordersOverlappingChunks)
+{
+	ParamPckFile source;
+	ASSERT_TRUE(source.open("@PARAM/param.pck", 239));
+	auto f = download(source, 239);
+	const uint16_t length = f.size();
+	memcpy(f.data() + 4, &length, 2);
+	source.close();
+
+	std::vector<size_t> offsets;
+
+	for (size_t offset = 0; offset < f.size(); offset += 53) {
+		offsets.push_back(offset);
+	}
+
+	std::mt19937 random(42);
+	std::shuffle(offsets.begin(), offsets.end(), random);
+	ParamPckFile file;
+	ASSERT_TRUE(file.open_write());
+
+	for (const size_t offset : offsets) {
+		const uint16_t n = std::min<size_t>(80, f.size() - offset);
+		ASSERT_EQ(file.write(offset, f.data() + offset, n), n);
+	}
+
+	ASSERT_TRUE(file.finish_write());
+	EXPECT_EQ(g_set_count, used_params().size() - 1);
+}
+
+TEST_F(MavlinkFtpParam, UploadDiscardsBufferedDataOnClose)
+{
+	const auto first = encode_upload({up_f32("MPC_XY_P", 7.f)});
+	const auto second = encode_upload({up_f32("MPC_XY_P", 2.f)});
+	ParamPckFile file;
+	ASSERT_TRUE(file.open_write());
+	ASSERT_EQ(file.write(6, first.data() + 6, first.size() - 6), static_cast<int>(first.size() - 6));
+	EXPECT_FALSE(file.finish_write());
+	file.close();
+	EXPECT_EQ(param_bits("MPC_XY_P"), bits(0.95f));
+	ASSERT_TRUE(upload_bytes(file, second, 80));
+	EXPECT_EQ(param_bits("MPC_XY_P"), bits(2.f));
+}
+
+TEST_F(MavlinkFtpParam, UploadRejectsOffsetsOutsideFile)
+{
+	const auto f = encode_upload({up_f32("MPC_XY_P", 7.f)});
+
+	for (const uint32_t offset : {65535u, UINT32_MAX}) {
+		ParamPckFile file;
+		ASSERT_TRUE(file.open_write());
+		EXPECT_EQ(file.write(offset, f.data(), f.size()), -1);
+		EXPECT_FALSE(file.finish_write());
+	}
+
+	ParamPckFile file;
+	ASSERT_TRUE(file.open_write());
+	ASSERT_EQ(file.write(0, f.data(), 6), 6);
+	EXPECT_EQ(file.write(f.size(), f.data(), 1), -1);
+	EXPECT_FALSE(file.finish_write());
+}
+
+
+TEST_F(MavlinkFtpParam, UploadRejectsConflictingBufferedRetry)
+{
+	const auto f = encode_upload({up_f32("MPC_XY_P", 7.f)});
+	ParamPckFile file;
+	ASSERT_TRUE(file.open_write());
+	ASSERT_EQ(file.write(6, f.data() + 6, f.size() - 6), static_cast<int>(f.size() - 6));
+	auto changed = f;
+	changed.back() ^= 1;
+	EXPECT_EQ(file.write(6, changed.data() + 6, changed.size() - 6), -1);
+	EXPECT_FALSE(file.finish_write());
+	EXPECT_EQ(g_set_count, 0u);
+}
+
+TEST_F(MavlinkFtpParam, UploadRejectsDataBeyondLateHeader)
+{
+	auto f = encode_upload({up_f32("MPC_XY_P", 7.f)});
+	const uint16_t length = 6;
+	memcpy(f.data() + 4, &length, 2);
+	ParamPckFile file;
+	ASSERT_TRUE(file.open_write());
+	ASSERT_EQ(file.write(6, f.data() + 6, f.size() - 6), static_cast<int>(f.size() - 6));
+	EXPECT_EQ(file.write(0, f.data(), 6), -1);
+	EXPECT_FALSE(file.finish_write());
+	EXPECT_EQ(g_set_count, 0u);
+}
+
+TEST_F(MavlinkFtpParam, UploadRejectsExtraEntries)
+{
+	auto f = encode_upload({up_f32("MPC_XY_P", 7.f)});
+	const uint16_t entries = 0;
+	memcpy(f.data() + 2, &entries, 2);
+	ParamPckFile file;
+	EXPECT_FALSE(upload_bytes(file, f, 80));
+	EXPECT_EQ(g_set_count, 0u);
 }
