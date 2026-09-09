@@ -147,12 +147,27 @@ private:
 	uORB::SubscriptionInterval                    _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	// simulated sensors using the general-purpose driver wrappers
-	static constexpr uint8_t _MAX_GPS_SENSORS      = 2;
-	static constexpr uint8_t _MAX_IMU_SENSORS      = 3;
-	static constexpr uint8_t _MAX_MAG_SENSORS      = 2;
-	PX4Accelerometer _px4_accel[_MAX_IMU_SENSORS] {{1310988}, {1310996}, {1311004}}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Gyroscope     _px4_gyro[_MAX_IMU_SENSORS] {{1310988}, {1310996}, {1311004}}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Magnetometer  _px4_mag[_MAX_MAG_SENSORS] {{197388}, {197644}};   // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 3, TYPE: SIMULATION
+	static constexpr uint8_t _MAX_GPS_SENSORS = 2;
+
+	static constexpr uint8_t _MAX_IMU_SENSORS = 3;
+	PX4Accelerometer _px4_accel[_MAX_IMU_SENSORS] {
+		{1310988}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		{1310996}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+		{1311004}  // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	};
+
+	PX4Gyroscope     _px4_gyro[_MAX_IMU_SENSORS] {
+		{1310988}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		{1310996}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+		{1311004}  // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	};
+
+	static constexpr uint8_t _MAX_MAG_SENSORS = 2;
+	PX4Magnetometer  _px4_mag[_MAX_MAG_SENSORS] {
+		{197388},  // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 3, TYPE: SIMULATION
+		{197644}   // 197644: DRV_MAG_DEVTYPE_MAGSIM, BUS: 2, ADDR: 3, TYPE: SIMULATION
+	};
+
 	PX4Rangefinder   _px4_rangefinder{10092812}; // 10092812: DRV_DIST_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Barometer     _px4_baro{6619404};  // 6619404: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 
