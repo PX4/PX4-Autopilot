@@ -78,8 +78,7 @@ public:
 		if (uORB::SubscriptionCallbackWorkItem::update(&sensor_gnss_relative)) {
 			ardupilot::gnss::RelPosHeading rel_pos_heading{};
 
-			// TODO: FIX (timestamp_sample and UAVCAN timestamp)
-			rel_pos_heading.timestamp = uavcan::UtcTime::fromUSec(getNode().getMonotonicTime().toUSec());
+			rel_pos_heading.timestamp.usec = bus_timestamp_usec(getNode(), sensor_gnss_relative.timestamp_sample);
 
 			const bool heading_valid = sensor_gnss_relative.heading_valid && PX4_ISFINITE(sensor_gnss_relative.heading);
 
