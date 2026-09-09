@@ -70,6 +70,7 @@ Without this, `vte_orientation` is never published and [PLD_YAW_EN](#PLD_YAW_EN)
 
 The Vision Target Estimator can also keep the vehicle over the pad during a vertical takeoff.
 Set [MIS_TKO_PREC](../advanced_config/parameter_reference.md#MIS_TKO_PREC)=1 and enable bit 2 of [VTE_TASK_MASK](../advanced_config/parameter_reference.md#VTE_TASK_MASK).
+[MIS_TKO_PREC_DLY](../advanced_config/parameter_reference.md#MIS_TKO_PREC_DLY) sets how long after the takeoff ramp the setpoint may move onto the target, so the vehicle clears the pad first.
 In static-target builds, bit 5 of [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) fuses home as the pad's absolute position during precision takeoff.
 See [Precision Takeoff](../advanced_features/vision_target_estimator.md#precision-takeoff) for details.
 

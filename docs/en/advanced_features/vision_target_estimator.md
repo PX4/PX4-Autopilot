@@ -197,6 +197,7 @@ With precision landing enabled but `PLD_YAW_EN` disabled, only the position esti
 
 With bit 2 set and [MIS_TKO_PREC](../advanced_config/parameter_reference.md#MIS_TKO_PREC) enabled, the estimator runs while a vertical takeoff is active and [Navigator](../modules/modules_controller.md#navigator) keeps the takeoff setpoint over the target until the takeoff altitude is reached.
 This applies to multicopters and to VTOLs in hover.
+The setpoint only moves onto the target once the takeoff ramp is complete and [MIS_TKO_PREC_DLY](../advanced_config/parameter_reference.md#MIS_TKO_PREC_DLY) has elapsed, so the vehicle is clear of the pad before it corrects sideways. Large airframes may need a longer delay.
 Bit 5 of [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) fuses home as the pad's absolute position during precision takeoff.
 PX4 normally records home from the vehicle's position at arming or takeoff; a manually assigned home is also accepted.
 Home is used only while landed, with recent 3D GNSS data placing the vehicle within 5 m of it, and when target GNSS position (bit 0) is disabled.

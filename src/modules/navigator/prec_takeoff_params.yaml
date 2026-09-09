@@ -11,3 +11,16 @@ parameters:
           VTE_TASK_MASK set. Without a valid target estimate the takeoff is unchanged.
       type: boolean
       default: 0
+    MIS_TKO_PREC_DLY:
+      description:
+        short: Precision takeoff correction delay
+        long: |-
+          Time after the takeoff ramp is complete before a vertical takeoff setpoint may move
+          sideways onto the landing target. Gives the vehicle time to clear the pad. Only used with MIS_TKO_PREC.
+      type: float
+      default: 2.0
+      unit: s
+      min: 0
+      max: 10
+      decimal: 1
+      increment: 0.1

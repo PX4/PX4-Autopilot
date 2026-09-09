@@ -157,6 +157,7 @@ bool FlightTaskAuto::update()
 
 			if (_type_previous != WaypointType::takeoff) {
 				_takeoff_liftoff_position.setNaN();
+				_time_stamp_airborne = 0;
 			}
 
 			const bool airborne = _takeoff_status_sub.get().takeoff_state >= takeoff_status_s::TAKEOFF_STATE_FLIGHT;
@@ -164,12 +165,14 @@ bool FlightTaskAuto::update()
 			if (!airborne) {
 				_takeoff_liftoff_position = _position;
 				_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+				_time_stamp_airborne = 0;
+
+			} else if (_time_stamp_airborne == 0) {
+				_time_stamp_airborne = _time_stamp_current;
 			}
 
-			// Hold the liftoff position until airborne and Navigator has moved the setpoint onto the target.
-			const bool follow_precision_target = airborne && _isPrecisionTakeoffSetpointAdjusted();
-
-			if (Vector2f(_takeoff_liftoff_position).isAllFinite() && !follow_precision_target) {
+			// Hold the liftoff position until airborne for MIS_TKO_PREC_DLY and Navigator has moved the setpoint onto the target.
+			if (Vector2f(_takeoff_liftoff_position).isAllFinite() && !_followPrecisionTakeoffTarget()) {
 				_position_setpoint.xy() = _takeoff_liftoff_position.xy();
 			}
 
@@ -849,10 +852,12 @@ void FlightTaskAuto::updateParams()
 	_param_mpc_land_alt1.set(math::max(_param_mpc_land_alt1.get(), _param_mpc_land_alt2.get()));
 }
 
-bool FlightTaskAuto::_isPrecisionTakeoffSetpointAdjusted() const
+bool FlightTaskAuto::_followPrecisionTakeoffTarget() const
 {
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-	return _prec_takeoff_status_sub.get().setpoint_adjusted;
+	const float airborne_time_s = (_time_stamp_current - _time_stamp_airborne) * 1e-6f;
+	const bool airborne_long_enough = (_time_stamp_airborne != 0) && (airborne_time_s >= _param_mis_tko_prec_dly.get());
+	return airborne_long_enough && _prec_takeoff_status_sub.get().setpoint_adjusted;
 #else
 	return false;
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
