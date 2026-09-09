@@ -1,16 +1,4 @@
-# Manual control input
-#
-# This message provides a representation of manual control input sources, 
-# such as RC controllers and MAVLink controller (Joystick).
-#
-# It defines the `manual_control_input` topic to represent each configured input, 
-# and the `manual_control_setpoint` topic to represent the input that is currently 
-# in charge of the vehicle (based on parameter COM_RC_IN_MODE).
-# `manual_control_setpoint` is the topic that is published to the controllers.
-#
-# The message includes fields for the roll, pitch, yaw, throttle and flaps, along with auxiliary channels and button states.
-
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp                        # time since system start (microseconds)
 uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
@@ -27,8 +15,6 @@ uint8 SOURCE_MAVLINK_4 = 6		# mavlink instance 4
 uint8 SOURCE_MAVLINK_5 = 7		# mavlink instance 5
 
 uint8 data_source
-uint8 source_system_id  # [@invalid 0] MAVLink system ID of the manual control source
-uint8 source_component_id # [@invalid 0] MAVLink component ID of the manual control source
 
 # Any of the channels may not be available and be set to NaN
 # to indicate that it does not contain valid data.
