@@ -37,8 +37,12 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/cli.h>
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <ctype.h>
@@ -86,7 +90,7 @@ void toCamelCase(char *input)
 ZENOH::ZENOH():
 	ModuleParams(nullptr)
 {
-
+	z_internal_null(&_s);
 }
 
 ZENOH::~ZENOH()
@@ -213,28 +217,154 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 #endif
 }
 
+bool ZENOH::parseTcpLocator(const char *locator, sockaddr_in &endpoint)
+{
+	static constexpr char kTcpPrefix[] = TCP_SCHEMA "/";
+
+	if (strncmp(locator, kTcpPrefix, sizeof(kTcpPrefix) - 1) != 0) {
+		return false;
+	}
+
+	// "<address>:<port>" ends at the metadata or config section of the locator
+	static constexpr char kSectionSeparators[] = {LOCATOR_METADATA_SEPARATOR, ENDPOINT_CONFIG_SEPARATOR, '\0'};
+	const char *address = locator + sizeof(kTcpPrefix) - 1;
+	const size_t address_len = strcspn(address, kSectionSeparators);
+	char address_str[kIpv4EndpointStringSize];
+
+	if (address_len >= sizeof(address_str)) {
+		return false;
+	}
+
+	memcpy(address_str, address, address_len);
+	address_str[address_len] = '\0';
+	char *port_str = strrchr(address_str, ':');
+
+	if (port_str == nullptr) {
+		return false;
+	}
+
+	*port_str++ = '\0';
+	char *port_end = nullptr;
+	const unsigned long port = strtoul(port_str, &port_end, 10);
+
+	if (!isdigit(static_cast<unsigned char>(*port_str)) || *port_end != '\0' || port == 0 || port > UINT16_MAX) {
+		return false;
+	}
+
+	memset(&endpoint, 0, sizeof(endpoint));
+	endpoint.sin_family = AF_INET;
+	endpoint.sin_port = htons(port);
+
+	return inet_pton(AF_INET, address_str, &endpoint.sin_addr) == 1;
+}
+
+ZENOH::ProbeResult ZENOH::probeEndpoint(const sockaddr_in &endpoint)
+{
+	const int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	if (fd < 0) {
+		PX4_WARN("Endpoint probe socket failed: %d", errno);
+		return ProbeResult::Failed;
+	}
+
+	ProbeResult result = ProbeResult::Failed;
+	const int flags = fcntl(fd, F_GETFL, 0);
+
+	if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
+		PX4_WARN("Endpoint probe socket setup failed: %d", errno);
+
+	} else if (connect(fd, reinterpret_cast<const sockaddr *>(&endpoint), sizeof(endpoint)) != 0 && errno != EINPROGRESS) {
+		// some stacks report a refused connection or a dead link (NuttX with CONFIG_NET_ARP_SEND) right here
+		if (errno == ECONNREFUSED || errno == ENETUNREACH || errno == EHOSTUNREACH || errno == ENETDOWN) {
+			result = ProbeResult::Unreachable;
+
+		} else {
+			PX4_WARN("Endpoint probe connect failed: %d", errno);
+		}
+
+	} else {
+		pollfd pfd {};
+		pfd.fd = fd;
+		pfd.events = POLLOUT;
+		int ready = 0;
+
+		// poll in slices so that a stop request is not delayed by the probe timeout
+		for (hrt_abstime elapsed = 0; elapsed < kEndpointProbeTimeout && ready == 0 && !should_exit();
+		     elapsed += kStopCheckInterval) {
+			ready = poll(&pfd, 1, static_cast<int>(kStopCheckInterval / 1_ms));
+		}
+
+		if (ready < 0) {
+			PX4_WARN("Endpoint probe poll failed: %d", errno);
+
+		} else {
+			int error = 0;
+			socklen_t error_len = sizeof(error);
+			const bool connected_ok = ready > 0 && (pfd.revents & POLLOUT) && !(pfd.revents & (POLLERR | POLLHUP))
+						  && getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &error_len) == 0 && error == 0;
+			result = connected_ok ? ProbeResult::Reachable : ProbeResult::Unreachable;
+		}
+	}
+
+	close(fd);
+
+	return result;
+}
+
+bool ZENOH::sleepInterruptible(hrt_abstime duration)
+{
+	for (hrt_abstime elapsed = 0; elapsed < duration && !should_exit(); elapsed += kStopCheckInterval) {
+		px4_usleep(kStopCheckInterval);
+	}
+
+	return !should_exit();
+}
+
+bool ZENOH::waitForEndpoint(const char *locator)
+{
+	sockaddr_in endpoint;
+
+	if (!parseTcpLocator(locator, endpoint)) {
+		return true;
+	}
+
+	ProbeResult result = probeEndpoint(endpoint);
+
+	while (result == ProbeResult::Unreachable) {
+		if (!_waiting_for_endpoint) {
+			PX4_WARN("%s does not accept connections yet, waiting...", locator);
+			_waiting_for_endpoint = true;
+		}
+
+		if (!sleepInterruptible(kEndpointProbeInterval)) {
+			_waiting_for_endpoint = false;
+			return false;
+		}
+
+		result = probeEndpoint(endpoint);
+	}
+
+	// Reachable, or Failed: in both cases let z_open() go ahead and report
+	_waiting_for_endpoint = false;
+
+	return true;
+}
+
 int ZENOH::setupSession()
 {
-	char mode[NET_MODE_SIZE];
-	char locator[NET_LOCATOR_SIZE];
+	char mode[NET_MODE_SIZE] {};
+	char locator[NET_LOCATOR_SIZE] {};
 	z_owned_config_t config;
 	int ret = 0;
 
 	_config.getNetworkConfig(mode, locator);
+	// getNetworkConfig() fills the buffers with strncpy() and does not guarantee a terminator
+	mode[sizeof(mode) - 1] = '\0';
+	locator[sizeof(locator) - 1] = '\0';
 
 	PX4_INFO("Opening session...");
 
 	do {
-		z_config_default(&config);
-		zp_config_insert(z_loan_mut(config), Z_CONFIG_MODE_KEY, mode);
-
-		if (locator[0] != 0) {
-			zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, locator);
-
-		} else if (strcmp(Z_CONFIG_MODE_PEER, mode) == 0) {
-			zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, Z_CONFIG_MULTICAST_LOCATOR_DEFAULT);
-		}
-
 		if (ret == _Z_ERR_TRANSPORT_OPEN_FAILED) {
 			PX4_WARN("Unable to open session, make sure zenohd is running on %s", locator);
 
@@ -245,8 +375,26 @@ int ZENOH::setupSession()
 			PX4_WARN("Unable to open session, ret: %d", ret);
 		}
 
-		if (ret != 0) {
-			sleep(5); // Wait 5 seconds when doing a retry
+		if (ret != 0 && !sleepInterruptible(kSessionRetryDelay)) {
+			return -EINTR;
+		}
+
+		// z_open() connects with a blocking connect(). On NuttX that call only returns once the
+		// SYN retransmissions are exhausted (tens of seconds) when the link is not up yet, which
+		// is the case right after boot, and it cannot be interrupted by 'zenoh stop'. Probe the
+		// endpoint with a bounded connect first so that z_open() only runs against a live link.
+		if (!waitForEndpoint(locator)) {
+			return -EINTR;
+		}
+
+		z_config_default(&config);
+		zp_config_insert(z_loan_mut(config), Z_CONFIG_MODE_KEY, mode);
+
+		if (locator[0] != 0) {
+			zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, locator);
+
+		} else if (strcmp(Z_CONFIG_MODE_PEER, mode) == 0) {
+			zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, Z_CONFIG_MULTICAST_LOCATOR_DEFAULT);
 		}
 
 	} while ((ret = z_open(&_s, z_move(config), NULL)) < 0);
@@ -481,8 +629,13 @@ void ZENOH::run()
 	_sub_count =  _config.getSubCount();
 	px4_pollfd_struct_t pfds[_pub_count];
 
-	if (setupSession() < 0) {
-		PX4_ERR("Failed to setup Zenoh session");
+	const int setup_ret = setupSession();
+
+	if (setup_ret < 0) {
+		if (setup_ret != -EINTR) {
+			PX4_ERR("Failed to setup Zenoh session");
+		}
+
 		cleanupSession();
 		exit_and_cleanup(desc);
 		return;
@@ -582,6 +735,9 @@ int ZENOH::print_status()
 {
 	if (connected) {
 		PX4_INFO("Connected");
+
+	} else if (_waiting_for_endpoint) {
+		PX4_INFO("Connecting, waiting for the endpoint to accept connections");
 
 	} else {
 		PX4_INFO("Connecting");
