@@ -49,6 +49,7 @@
 #include <uORB/topics/sensor_gps_checks.h>
 #include <uORB/topics/pps_capture.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "gnss_checks.hpp"
 #include "gps_blending.hpp"
@@ -101,8 +102,7 @@ private:
 
 	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
-
-	vehicle_land_detected_s _vehicle_land_detected;
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
