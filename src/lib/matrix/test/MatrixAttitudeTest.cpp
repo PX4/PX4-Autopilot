@@ -494,3 +494,26 @@ TEST(MatrixAttitudeTest, Attitude)
 	R = Dcmf(q);
 	EXPECT_EQ(q, Quatf(R));
 }
+
+TEST(MatrixAttitudeTest, EulerFromDcmAsinDomainNearGimbalLock)
+{
+	// Regression test: in exact arithmetic the asin() argument in
+	// Euler(const Dcm<Type>&) (-dcm(2, 0)) is always within [-1, 1], but
+	// floating point rounding can push it a ULP or two outside that range
+	// for quaternions near the +-90 degree pitch singularity -- which e.g. a
+	// tailsitter VTOL flies through on every transition. Before the fix this
+	// made asin() return NaN and silently corrupted theta(). This mirrors
+	// the equivalent acos() guard already used for the same reason in
+	// MapProjection::project() (src/lib/geo/geo.cpp).
+	Quatf q(0.70719326f, -3.2680862e-05f, 0.7070204f, -8.065616e-05f);
+	q.normalize();
+
+	Dcmf dcm(q);
+	// Confirm this quaternion actually exercises the asin() domain edge;
+	// otherwise the test would pass vacuously.
+	ASSERT_GT(std::fabs((double)(-dcm(2, 0))), 1.0);
+
+	Eulerf euler(dcm);
+	EXPECT_TRUE(std::isfinite(euler.theta()));
+	EXPECT_NEAR((double)euler.theta(), M_PI_2, 1e-3);
+}
