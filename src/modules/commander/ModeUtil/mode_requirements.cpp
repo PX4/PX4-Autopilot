@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "mode_requirements.hpp"
+#include "control_mode.hpp"
 #include <uORB/topics/vehicle_status.h>
 
 namespace mode_util
@@ -62,6 +63,12 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 
 	// NAVIGATION_STATE_MANUAL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_MANUAL, flags.mode_req_manual_control);
+
+	if (stabilizationRequired(vehicle_type)) {
+		// Manual is attitude-stabilized, i.e. equivalent to Stabilized
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_MANUAL, flags.mode_req_angular_velocity);
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_MANUAL, flags.mode_req_attitude);
+	}
 
 	// NAVIGATION_STATE_ALTCTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_angular_velocity);
