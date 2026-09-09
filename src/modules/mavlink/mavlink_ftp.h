@@ -128,6 +128,7 @@ private:
 	int		_copy_file(const char *src_path, const char *dst_path, size_t length);
 
 	ErrorCode	_workList(PayloadHeader *payload, bool include_time = false);
+	void		_statDirent(const char *name, uint32_t &size, uint32_t &mtime);
 	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
 	ErrorCode	_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id);
