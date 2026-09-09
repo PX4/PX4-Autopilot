@@ -118,6 +118,8 @@ enum class Register : uint8_t {
 
 // CTRL1 — Accelerometer control (ODR + operating mode + HAODR flag)
 enum CTRL1_BIT : uint8_t {
+	ODR_XL_MASK = 0x0F,
+	OP_MODE_XL_MASK = 0x70,
 	// ODR_XL [3:0] — set via HAODR mode-1 code 0x0A for 2000 Hz
 	// OP_MODE_XL [2:0] in bits [6:4]: 0b000 = high-performance mode
 	CTRL1_MODE_HAODR = Bit4, // bit 4 must be set for HAODR selection
@@ -125,6 +127,8 @@ enum CTRL1_BIT : uint8_t {
 
 // CTRL2 — Gyroscope control (ODR + operating mode + HAODR flag)
 enum CTRL2_BIT : uint8_t {
+	ODR_G_MASK = 0x0F,
+	OP_MODE_G_MASK = 0x70,
 	CTRL2_MODE_HAODR = Bit4,
 };
 
@@ -155,6 +159,7 @@ enum CTRL4_BIT : uint8_t {
 // CTRL6 — Gyroscope full-scale
 enum CTRL6_BIT : uint8_t {
 	// FS_G [3:0]
+	FS_G_MASK           = 0x0F,
 	FS_G_2000DPS         = 0x04, // ±2000 dps (16X / 32X), FS_G=0100
 	FS_G_4000DPS_DSV32X  = 0x0C, // ±4000 dps (16X / 32X), FS_G=1100; OIS gyro chain must stay off
 	FS_G_2000DPS_DSK320X = 0x0C, // ±2000 dps with bit3=1 for DSK320X (0x04 | Bit3)
@@ -163,6 +168,8 @@ enum CTRL6_BIT : uint8_t {
 
 // CTRL8 — Accelerometer full-scale + LPF2 bandwidth
 enum CTRL8_BIT : uint8_t {
+	FS_XL_MASK        = 0x03,
+	LPF2_BW_MASK      = 0xE0,
 	// LSM6DSV32X CTRL8: bit2 must be 1, bit4 must be 0, XL_DualC_EN (bit3) selects dual-channel.
 	// FS_XL [1:0] in bits [1:0]: 00=±4 g, 01=±8 g, 10=±16 g, 11=±32 g
 	// Other variants: bit2 is 0; FS_XL 11 = ±16 g
@@ -177,6 +184,7 @@ enum CTRL8_BIT : uint8_t {
 
 // CTRL9
 enum CTRL9_BIT : uint8_t {
+	HP_SLOPE_XL_EN = Bit4, // Select high-pass instead of low-pass filtering
 	LPF2_XL_EN = Bit3, // Enable accelerometer LPF2
 };
 
@@ -200,6 +208,9 @@ enum FIFO_CTRL3_BIT : uint8_t {
 
 // FIFO_CTRL4 — FIFO mode
 enum FIFO_CTRL4_BIT : uint8_t {
+	FIFO_MODE_MASK       = 0x07,
+	ODR_T_BATCH_MASK     = 0x30,
+	DEC_TS_BATCH_MASK    = 0xC0,
 	FIFO_MODE_BYPASS     = 0x00,
 	FIFO_MODE_CONTINUOUS = 0x06, // Continuous mode
 };

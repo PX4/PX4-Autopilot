@@ -434,7 +434,6 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 
 			case DeviceVariant::LSM6DSV32X:
 				r.set_bits = CTRL6_BIT::FS_G_4000DPS_DSV32X; // ±4000 dps, FS_G_[3:0]=1100
-				r.clear_bits = 0x03; // FS_G_[1:0]
 				break;
 
 			case DeviceVariant::LSM6DSK320X:
@@ -446,6 +445,7 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 				break;
 			}
 
+			r.clear_bits = CTRL6_BIT::FS_G_MASK & ~r.set_bits;
 			break;
 
 		case Register::CTRL8: // accelerometer full-scale + LPF2 bandwidth
@@ -456,10 +456,15 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 			// LPF2 is fixed by ODR (537 Hz at 7.68 kHz).
 			if (_device_variant == DeviceVariant::LSM6DSV32X) {
 				r.set_bits = static_cast<uint8_t>(CTRL8_BIT::FS_XL_32G_DSV32X | CTRL8_BIT::LPF2_BW_ODR_DIV_10);
-				r.clear_bits = CTRL8_BIT::XL_DualC_EN; // single-channel UI at ±32 g
 
 			} else {
 				r.set_bits = static_cast<uint8_t>(CTRL8_BIT::FS_XL_16G | CTRL8_BIT::LPF2_BW_ODR_DIV_10);
+			}
+
+			r.clear_bits = (CTRL8_BIT::FS_XL_MASK | CTRL8_BIT::LPF2_BW_MASK) & ~r.set_bits;
+
+			if (_device_variant == DeviceVariant::LSM6DSV32X) {
+				r.clear_bits |= CTRL8_BIT::XL_DualC_EN;
 			}
 
 			break;
@@ -467,31 +472,33 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 		case Register::HAODR_CFG: // HAODR ODR set selection
 			if (odr_7680) {
 				r.set_bits = 0;                              // HAODR_SEL=00 (1920/3840/7680 Hz set)
-				r.clear_bits = HAODR_CFG_BIT::HAODR_SEL_MASK;
 
 			} else {
 				r.set_bits = HAODR_CFG_BIT::HAODR_MODE1;     // HAODR_SEL=01 (2000 Hz set)
-				r.clear_bits = 0;
 			}
 
+			r.clear_bits = HAODR_CFG_BIT::HAODR_SEL_MASK & ~r.set_bits;
 			break;
 
 		case Register::CTRL1: // accelerometer ODR + high-accuracy ODR mode
 			r.set_bits = odr_7680
 				     ? static_cast<uint8_t>(HAODR_SEL0_ODR_7680HZ | CTRL1_BIT::CTRL1_MODE_HAODR)
 				     : static_cast<uint8_t>(HAODR_MODE1_ODR_2000HZ | CTRL1_BIT::CTRL1_MODE_HAODR);
+			r.clear_bits = (CTRL1_BIT::ODR_XL_MASK | CTRL1_BIT::OP_MODE_XL_MASK) & ~r.set_bits;
 			break;
 
 		case Register::CTRL2: // gyroscope ODR + high-accuracy ODR mode
 			r.set_bits = odr_7680
 				     ? static_cast<uint8_t>(HAODR_SEL0_ODR_7680HZ | CTRL2_BIT::CTRL2_MODE_HAODR)
 				     : static_cast<uint8_t>(HAODR_MODE1_ODR_2000HZ | CTRL2_BIT::CTRL2_MODE_HAODR);
+			r.clear_bits = (CTRL2_BIT::ODR_G_MASK | CTRL2_BIT::OP_MODE_G_MASK) & ~r.set_bits;
 			break;
 
 		case Register::FIFO_CTRL3: // FIFO batch data rate (gyro + low-g accel)
 			r.set_bits = odr_7680
 				     ? static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_7680 | FIFO_CTRL3_BIT::BDR_XL_7680)
 				     : static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_HAODR | FIFO_CTRL3_BIT::BDR_XL_HAODR);
+			r.clear_bits = static_cast<uint8_t>(~r.set_bits);
 			break;
 
 		default:
@@ -668,7 +675,7 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 		return false;
 	}
 
-	const uint32_t error_count = perf_event_count(_bad_transfer_perf) +
+	const uint32_t error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
 				     perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
 
 	if (gyro.samples > 0) {

@@ -209,7 +209,7 @@ private:
 		{ Register::HAODR_CFG,      HAODR_CFG_BIT::HAODR_MODE1,                             0 },
 		{ Register::CTRL6,          CTRL6_BIT::FS_G_2000DPS,                                 0 },
 		{ Register::CTRL8,          CTRL8_BIT::FS_XL_16G | CTRL8_BIT::LPF2_BW_ODR_DIV_10,   0 },
-		{ Register::CTRL9,          CTRL9_BIT::LPF2_XL_EN,                                   0 },
+		{ Register::CTRL9,          CTRL9_BIT::LPF2_XL_EN,                                   CTRL9_BIT::HP_SLOPE_XL_EN },
 		{ Register::CTRL4,          CTRL4_BIT::DRDY_PULSED,                                  0 },
 		{ Register::INT1_CTRL,      INT1_CTRL_BIT::INT1_FIFO_TH,                             0 },
 		{ Register::FIFO_CTRL1,     0, 0 }, // WTM[7:0] set at runtime by ConfigureFIFOWatermark()
@@ -217,7 +217,11 @@ private:
 			Register::FIFO_CTRL3,     static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_HAODR) |
 			static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_XL_HAODR),      0
 		},
-		{ Register::FIFO_CTRL4,     FIFO_CTRL4_BIT::FIFO_MODE_CONTINUOUS,                    0 },
+		{
+			Register::FIFO_CTRL4, FIFO_CTRL4_BIT::FIFO_MODE_CONTINUOUS,
+			(FIFO_CTRL4_BIT::FIFO_MODE_MASK & ~FIFO_CTRL4_BIT::FIFO_MODE_CONTINUOUS) |
+			FIFO_CTRL4_BIT::ODR_T_BATCH_MASK | FIFO_CTRL4_BIT::DEC_TS_BATCH_MASK
+		},
 		{ Register::CTRL1,          HAODR_MODE1_ODR_2000HZ | CTRL1_BIT::CTRL1_MODE_HAODR,    0 },
 		{ Register::CTRL2,          HAODR_MODE1_ODR_2000HZ | CTRL2_BIT::CTRL2_MODE_HAODR,    0 },
 	};
