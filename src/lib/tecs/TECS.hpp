@@ -528,7 +528,8 @@ private:
 	 * @param flag is the control flags.
 	 * @return pitch setpoint angle above trim [rad].
 	 */
-	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
+	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float spe_rate_setpoint,
+				      const Param &param,
 				      const Flag &flag) const;
 
 	/**
@@ -579,7 +580,7 @@ private:
 
 private:
 	// State
-	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
+	AlphaFilter<float> _ste_rate_error_filter;		///< Low pass filter for the specific total energy rate error (feedback).
 	float _altitude_rate_setpoint_projected{0.0f};		///< Altitude rate setpoint projected onto the envelope [m/s].
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
