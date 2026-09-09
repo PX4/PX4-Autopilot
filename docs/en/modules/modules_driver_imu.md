@@ -739,6 +739,9 @@ icm42688p <command> [arguments...]
                  default: 0
      [-C <val>]  Input clock frequency (Hz)
                  default: 0
+     [-B <val>]  Anti-alias filter bandwidth: 126, 258 or 394 Hz (0: chip
+                 default 585 Hz)
+                 default: 0
      [-6]        Drive ICM-42686
 
    stop
@@ -825,6 +828,9 @@ iim42652 <command> [arguments...]
                  default: 0
      [-C <val>]  Input clock frequency (Hz)
                  default: 0
+     [-B <val>]  Anti-alias filter bandwidth: 126, 258 or 394 Hz (0: chip
+                 default 585 Hz)
+                 default: 0
 
    stop
 
@@ -853,6 +859,9 @@ iim42653 <command> [arguments...]
      [-R <val>]  Rotation
                  default: 0
      [-C <val>]  Input clock frequency (Hz)
+                 default: 0
+     [-B <val>]  Anti-alias filter bandwidth: 126, 258 or 394 Hz (0: chip
+                 default 585 Hz)
                  default: 0
 
    stop

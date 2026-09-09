@@ -182,6 +182,10 @@ For more information see [Rover and Moving Base](../dronecan/index.md#rover-and-
 
 ### Updating Ublox F9P Module
 
+::: warning
+UART2 cannot be used for u-blox firmware update, including with [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) `7`. Use the debug passthrough below.
+:::
+
 ARK RTK GPS comes with the Ublox F9P module up to date with version 1.13 or newer. However, you can check the version and update the firmware if desired.
 
 The steps are:

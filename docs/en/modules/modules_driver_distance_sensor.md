@@ -6,20 +6,22 @@ Source: [drivers/distance_sensor/broadcom/afbrs50](https://github.com/PX4/PX4-Au
 
 ### Description
 
-Driver for the Broadcom AFBRS50.
+Driver for the Broadcom AFBR-S50 time-of-flight rangefinder.
 
 ### Examples
 
-Attempt to start driver on a specified serial device.
-
 ```
 afbrs50 start
-```
-
-Stop driver
-
-```
 afbrs50 stop
+```
+
+Run an absolute range offset calibration against a flat target at a known
+distance (in meters), then check the result. Offsets persist to
+SENS_AFBR_OFS_LO/HI and are re-applied at startup.
+
+```
+afbrs50 cal start 0.3
+afbrs50 cal status
 ```
 
 ### Usage {#afbrs50_usage}
@@ -27,10 +29,14 @@ afbrs50 stop
 ```
 afbrs50 <command> [arguments...]
  Commands:
-   start         Start driver
-     -d <val>    Serial device
+   start
 
-   stop          Stop driver
+   cal           Range offset calibration: cal start <distance_m> | status |
+                 stop
+
+   stop
+
+   status        print status info
 ```
 
 ## gy_us42
