@@ -239,6 +239,10 @@ TEST_F(EkfGpsHeadingTest, fallBackToYawEmergencyEstimator)
 	_ekf->set_in_air_status(false);
 	_ekf->set_in_air_status(true);
 
+	const float reset_gyro_bias_variance = sq(_ekf->getParamHandle()->ekf2_gbias_init);
+	const float initial_gyro_bias_z_variance = _ekf->getGyroBiasVariance()(2);
+	ASSERT_LT(initial_gyro_bias_z_variance, reset_gyro_bias_variance);
+
 	// WHEN: The drone starts to accelerate
 	Vector3f simulated_velocity{};
 
@@ -259,6 +263,11 @@ TEST_F(EkfGpsHeadingTest, fallBackToYawEmergencyEstimator)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 
 	checkConvergence(true_heading, 5.f);
+
+	// AND: the z gyro bias variance is reset by the in-flight yaw emergency recovery
+	const float gyro_bias_z_variance = _ekf->getGyroBiasVariance()(2);
+	EXPECT_GT(gyro_bias_z_variance, initial_gyro_bias_z_variance);
+	EXPECT_GT(gyro_bias_z_variance, 0.5f * reset_gyro_bias_variance);
 }
 
 TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
