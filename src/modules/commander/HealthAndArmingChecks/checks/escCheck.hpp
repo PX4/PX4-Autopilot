@@ -52,12 +52,16 @@ public:
 	uint16_t getMotorFailureMask() const { return _motor_failure_mask; }
 	bool getEscArmStatus() const { return _esc_arm_hysteresis.get_state(); }
 
+	// ESC CAN error counter (TEC/REC) above which arming is blocked or a warning is raised (128 = error passive)
+	static constexpr uint32_t ESC_CAN_ERROR_COUNTER_THRESHOLD = 127;
+
 private:
 	uint16_t checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	uint16_t checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
 	uint16_t checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	void updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	void checkEscTemperature(Report &reporter, const esc_status_s &esc_status);
+	void checkEscErrorCount(const Context &context, Report &reporter, const esc_status_s &esc_status);
 
 
 	static constexpr hrt_abstime ESC_TIMEOUT_US = 400_ms;

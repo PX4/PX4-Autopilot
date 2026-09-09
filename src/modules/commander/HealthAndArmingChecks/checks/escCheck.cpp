@@ -95,6 +95,8 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 			checkEscTemperature(reporter, esc_status);
 		}
 
+		checkEscErrorCount(context, reporter, esc_status);
+
 		_motor_failure_mask = mask;
 		reporter.setIsPresent(health_component_t::motors_escs);
 		reporter.failsafeFlags().fd_motor_failure = (mask != 0);
@@ -269,6 +271,66 @@ void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_st
 
 	} else if (max_temperature < warn_temp - 5.f) {
 		_esc_over_temp_warned = false;
+	}
+}
+
+void EscChecks::checkEscErrorCount(const Context &context, Report &reporter, const esc_status_s &esc_status)
+{
+	// Block arming when disarmed and warn when armed
+	const bool block_arming = !context.isArmed();
+	const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
+	const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
+
+	char esc_fail_msg[esc_status_s::CONNECTED_ESC_MAX * 6 + 1] = "";
+
+	for (uint8_t esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
+		if (!math::isInRange(esc_status.esc[esc_index].actuator_function,
+				     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
+			continue; // Skip unmapped ESC status entries
+		}
+
+		// Only live CAN bus error counters are used to block arming
+		uint32_t error_count = esc_status.esc[esc_index].esc_errorcount;
+
+		switch (esc_status.esc[esc_index].esc_errorcount_type) {
+		case esc_report_s::ERRORCOUNT_TYPE_CAN_TEC:
+		case esc_report_s::ERRORCOUNT_TYPE_CAN_REC:
+		case esc_report_s::ERRORCOUNT_TYPE_CAN_TEC_REC_MAX:
+			break;
+
+		case esc_report_s::ERRORCOUNT_TYPE_CAN_TEC_REC_PACKED:
+			// Either TEC in the upper or REC in the lower 16 bit can exceed passive limit
+			error_count = math::max(error_count >> 16, error_count & 0xffff);
+			break;
+
+		default:
+			continue;
+		}
+
+		if (error_count <= ESC_CAN_ERROR_COUNTER_THRESHOLD) {
+			continue;
+		}
+
+		const uint8_t esc_nr = esc_index + 1;
+		/* EVENT
+		 * @description
+		 * An ESC reports too many CAN bus errors.
+		 * Arming is blocked while disarmed, in flight this is a warning only.
+		 */
+		reporter.healthFailure<uint8_t, uint32_t>(nav_modes, health_component_t::motors_escs,
+				events::ID("check_esc_can_error_count"), log_level,
+				"ESC {1} CAN bus errors: {2}", esc_nr, error_count);
+		snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", esc_nr);
+		esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
+	}
+
+	if (reporter.mavlink_log_pub() && esc_fail_msg[0] != '\0') {
+		if (block_arming) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: %sCAN bus errors\t", esc_fail_msg);
+
+		} else {
+			mavlink_log_warning(reporter.mavlink_log_pub(), "%sCAN bus errors. Land now!\t", esc_fail_msg);
+		}
 	}
 }
 
