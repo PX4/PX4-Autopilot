@@ -128,7 +128,7 @@ TECSAirspeedFilter::AirspeedFilterState TECSAirspeedFilter::getState() const
 }
 
 void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceState &setpoint, float altitude,
-					float height_rate, const Param &param)
+					float height_rate, const Param &param, const RateEnvelope &envelope)
 {
 	// Input checks
 	if (!TIMESTAMP_VALID(dt)) {
@@ -139,16 +139,23 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 
 	const float current_alt = PX4_ISFINITE(altitude) ? altitude : 0.f;
 
+	// Generate a trajectory the controller can fly: limit the rates to the envelope it reports, so that the
+	// reference does not run away from the aircraft when the parameters overstate the performance.
+	const float max_climb_rate = PX4_ISFINITE(envelope.climb_rate_max) ? math::constrain(envelope.climb_rate_max, 0.f,
+				     param.max_climb_rate) : param.max_climb_rate;
+	const float max_sink_rate = PX4_ISFINITE(envelope.sink_rate_max) ? math::constrain(envelope.sink_rate_max, 0.f,
+				    param.max_sink_rate) : param.max_sink_rate;
+
 	_velocity_control_traj_generator.setMaxJerk(param.jerk_max);
 	_velocity_control_traj_generator.setMaxAccelUp(param.vert_accel_limit);
 	_velocity_control_traj_generator.setMaxAccelDown(param.vert_accel_limit);
-	_velocity_control_traj_generator.setMaxVelUp(param.max_sink_rate); // different convention for FW than for MC
-	_velocity_control_traj_generator.setMaxVelDown(param.max_climb_rate); // different convention for FW than for MC
+	_velocity_control_traj_generator.setMaxVelUp(max_sink_rate); // different convention for FW than for MC
+	_velocity_control_traj_generator.setMaxVelDown(max_climb_rate); // different convention for FW than for MC
 
 	// Altitude setpoint reference
 	_alt_control_traj_generator.setMaxJerk(param.jerk_max);
 	_alt_control_traj_generator.setMaxAccel(param.vert_accel_limit);
-	_alt_control_traj_generator.setMaxVel(fmax(param.max_climb_rate, param.max_sink_rate));
+	_alt_control_traj_generator.setMaxVel(fmax(max_climb_rate, max_sink_rate));
 
 	// XXX: this is a bit risky.. .alt_rate here could be NAN (by interface design) - and is only ok to input to the
 	// setVelSpFeedback() method because it calls the reset in the logic below when it is NAN.
@@ -177,8 +184,8 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 	}
 
 	if (control_altitude) {
-		const float target_climbrate_m_s = math::min(param.target_climbrate, param.max_climb_rate);
-		const float target_sinkrate_m_s = math::min(param.target_sinkrate, param.max_sink_rate);
+		const float target_climbrate_m_s = math::min(param.target_climbrate, max_climb_rate);
+		const float target_sinkrate_m_s = math::min(param.target_sinkrate, max_sink_rate);
 
 		const float delta_trajectory_to_target_m = altitude_setpoint - _alt_control_traj_generator.getCurrentPosition();
 
@@ -365,9 +372,13 @@ void TECSControl::_projectAltitudeRateSetpointToEnvelope(AltitudePitchControl &c
 		airspeed_for_climb_angle = input.tas;
 	}
 
-	altitude_rate_setpoint = constrain(altitude_rate_setpoint,
-					   (param.pitch_min - _pitch_integ_state) * airspeed_for_climb_angle,
-					   (param.pitch_max - _pitch_integ_state) * airspeed_for_climb_angle);
+	const float altitude_rate_min_pitch = (param.pitch_min - _pitch_integ_state) * airspeed_for_climb_angle;
+	const float altitude_rate_max_pitch = (param.pitch_max - _pitch_integ_state) * airspeed_for_climb_angle;
+	altitude_rate_setpoint = constrain(altitude_rate_setpoint, altitude_rate_min_pitch, altitude_rate_max_pitch);
+
+	// Report the envelope for the altitude reference model to generate an achievable trajectory.
+	_altitude_rate_envelope_min = max(altitude_rate_min_throttle, altitude_rate_min_pitch);
+	_altitude_rate_envelope_max = min(altitude_rate_max_throttle, altitude_rate_max_pitch);
 
 	// Rate limit like the pitch setpoint (vertical acceleration limit, see _calcPitchControl).
 	if (PX4_ISFINITE(dt) && PX4_ISFINITE(_altitude_rate_setpoint_projected)) {
@@ -807,7 +818,8 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 			const TECSAltitudeReferenceModel::AltitudeReferenceState setpoint{ .alt = hgt_setpoint,
 					.alt_rate = hgt_rate_sp};
 
-			_altitude_reference_model.update(dt, setpoint, altitude, hgt_rate, _reference_param);
+			_altitude_reference_model.update(dt, setpoint, altitude, hgt_rate, _reference_param,
+							 _control.getAltitudeRateEnvelope());
 		}
 
 		TECSControl::Setpoint control_setpoint;

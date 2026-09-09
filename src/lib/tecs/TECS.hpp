@@ -175,6 +175,15 @@ public:
 	void initialize(const AltitudeReferenceState &state);
 
 	/**
+	 * @brief Altitude rate envelope the controller can currently fly, see
+	 * TECSControl::_projectAltitudeRateSetpointToEnvelope. NAN means unknown (fall back to the parameters).
+	 */
+	struct RateEnvelope {
+		float climb_rate_max{NAN};	///< Maximum flyable climb rate [m/s].
+		float sink_rate_max{NAN};	///< Maximum flyable sink rate (positive) [m/s].
+	};
+
+	/**
 	 * @brief Update reference models.
 	 *
 	 * @param[in] dt is the update interval in [s].
@@ -183,7 +192,8 @@ public:
 	 * @param[in] height_rate is the height rate setpoint in [m/s].
 	 * @param[in] param are the reference model parameters.
 	 */
-	void update(float dt, const AltitudeReferenceState &setpoint, float altitude, float height_rate, const Param &param);
+	void update(float dt, const AltitudeReferenceState &setpoint, float altitude, float height_rate, const Param &param,
+		    const RateEnvelope &envelope);
 
 	/**
 	 * @brief Get the current altitude reference of altitude reference model.
@@ -351,6 +361,14 @@ public:
 	 * @return the debug outpus struct.
 	 */
 	const DebugOutput &getDebugOutput() const { return _debug_output; }
+	/**
+	 * @brief Get the altitude rate envelope the aircraft can currently fly (throttle and pitch envelope), as
+	 * determined in the last update, for the altitude reference model to generate an achievable trajectory.
+	 */
+	TECSAltitudeReferenceModel::RateEnvelope getAltitudeRateEnvelope() const
+	{
+		return {.climb_rate_max = _altitude_rate_envelope_max, .sink_rate_max = -_altitude_rate_envelope_min};
+	}
 
 private:
 	// Allows the regression test to pre-corrupt _pitch_integ_state and verify the
@@ -579,6 +597,8 @@ private:
 	// State
 	AlphaFilter<float> _ste_rate_error_filter;		///< Low pass filter for the specific total energy rate error (feedback).
 	float _altitude_rate_setpoint_projected{0.0f};		///< Altitude rate setpoint projected onto the envelope [m/s].
+	float _altitude_rate_envelope_min{NAN};			///< Lower bound of the flyable altitude rate [m/s].
+	float _altitude_rate_envelope_max{NAN};			///< Upper bound of the flyable altitude rate [m/s].
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
 
