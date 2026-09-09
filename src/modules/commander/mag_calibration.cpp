@@ -75,6 +75,9 @@ static constexpr float MAG_SPHERE_RADIUS_DEFAULT = 0.4f;
 static constexpr unsigned int calibration_total_points = 240;	///< The total points per magnetometer
 static constexpr unsigned int calibraton_duration_s = 42; 	///< The total duration the routine is allowed to take
 
+static constexpr float kWorstCaseEarthField = 0.65f;		///< [Gauss] maximum earth field magnitude
+static constexpr float kUnknownRangeFallback = 1.9f;		///< [Gauss] assumed full-scale range when the driver reports none
+
 calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_mask);
 
 /// Data passed to calibration worker routine
@@ -89,6 +92,7 @@ struct mag_worker_data_t {
 	unsigned int	calibration_points_perside;
 	uint64_t	calibration_interval_perside_us;
 	unsigned int	calibration_counter_total[MAX_MAGS];
+	float		sensor_range[MAX_MAGS];					///< [Gauss] full-scale range, 0 if unknown
 
 	float		*x[MAX_MAGS];
 	float		*y[MAX_MAGS];
@@ -308,6 +312,10 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 					sensor_mag_s mag;
 
 					while (mag_sub[cur_mag].update(&mag)) {
+						if (mag.range > 0.f) {
+							worker_data->sensor_range[cur_mag] = mag.range;
+						}
+
 						if (worker_data->append_to_existing_calibration) {
 							// keep and update the existing calibration when we are not doing a full 6-axis calibration
 							const Matrix3f &scale = worker_data->calibration[cur_mag].scale();
@@ -480,6 +488,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		worker_data.y[cur_mag] = nullptr;
 		worker_data.z[cur_mag] = nullptr;
 		worker_data.calibration_counter_total[cur_mag] = 0;
+		worker_data.sensor_range[cur_mag] = 0.f;
 	}
 
 	const unsigned int calibration_points_maxcount = worker_data.calibration_sides * worker_data.calibration_points_perside;
@@ -653,11 +662,14 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					fail_reason = "negative scale";
 					result = calibrate_return_error;
 
-				} else if (sphere[cur_mag].longerThan(1.3f)) {
-					// maximum measurement range is ~1.9 Ga, the earth field is ~0.6 Ga,
-					// so an offset larger than ~1.3 Ga means the mag will saturate in some directions.
-					fail_reason = "large offsets";
-					result = calibrate_return_error;
+				} else {
+					const float range = worker_data.sensor_range[cur_mag];
+					const float offset_limit = ((range > 0.f) ? range : kUnknownRangeFallback) - kWorstCaseEarthField;
+
+					if (sphere[cur_mag].longerThan(offset_limit)) {
+						fail_reason = "large offsets";
+						result = calibrate_return_error;
+					}
 				}
 
 				const bool enabled = worker_data.calibration[cur_mag].enabled();
