@@ -2687,26 +2687,11 @@ void EKF2::UpdateGnssYawSample()
 
 	if (_vehicle_gnss_heading_sub.update(&gnss_heading)) {
 
-		float yaw = gnss_heading.heading;
-		float yaw_offset = gnss_heading.heading_offset;
-
-		// Apply EKF2_GPS_YAW_OFF if the driver didn't set an offset
-		if (fabsf(_param_ekf2_gps_yaw_off.get()) > 0.f) {
-			if (!PX4_ISFINITE(yaw_offset) && PX4_ISFINITE(yaw)) {
-				yaw_offset = matrix::wrap_pi(math::radians(_param_ekf2_gps_yaw_off.get()));
-				yaw = matrix::wrap_pi(yaw - yaw_offset);
-			}
-		}
-
-		if (!PX4_ISFINITE(yaw_offset)) {
-			yaw_offset = 0.f;
-		}
-
 		gnssYawSample gnss_yaw_sample{
 			.time_us = (gnss_heading.timestamp_sample > 0) ? gnss_heading.timestamp_sample : gnss_heading.timestamp,
-			.yaw = yaw,
+			.yaw = gnss_heading.heading,
 			.yaw_acc = gnss_heading.heading_accuracy,
-			.yaw_offset = yaw_offset,
+			.yaw_offset = PX4_ISFINITE(gnss_heading.heading_offset) ? gnss_heading.heading_offset : 0.f,
 		};
 
 		_ekf.setGnssYawData(gnss_yaw_sample);

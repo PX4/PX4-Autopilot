@@ -113,7 +113,7 @@ Then in order to enable the subscription in DroneCAN, enable the following PX4 a
 - [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE): Set to `1` to enable DroneCAN in PX4
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): Set to `15` to enable Dual antenna heading.
 - [UAVCAN_SUB_GPS_R](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS_R): Set to `1` to enable subscription to GNSS relative.
-- [EKF2_GPS_YAW_OFF](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET): Set to the clockwise angle (degrees) corresponding to base and rover orientation (e.g. 90 degrees when moving base to the left and rover to the right)
+- [SENS_GPSn_ROT](../advanced_config/parameter_reference.md#SENS_GPS0_ROT): Rotation of the baseline from moving base to rover, matched to the receiver by [SENS_GPSn_ID](../advanced_config/parameter_reference.md#SENS_GPS0_ID) (e.g. `Yaw 90°` when the moving base is on the left and the rover on the right)
 
 Once these params are enabled and the F9Ps are mounted to the airframe (assuming valid RTK fix) the LED's on both F9Ps should turn green.
 

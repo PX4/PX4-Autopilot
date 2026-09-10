@@ -209,30 +209,6 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
-    GPS_YAW_OFFSET:
-      description:
-        short: Heading/Yaw offset for dual antenna GPS
-        long: |-
-          Heading offset angle for dual antenna GPS setups that support heading estimation.
-
-          Set this to 0 if the antennas are parallel to the forward-facing direction
-          of the vehicle and the rover (or Unicore primary) antenna is in front.
-
-          The offset angle increases clockwise.
-
-          Set this to 90 if the rover (or Unicore primary, or Septentrio Mosaic Aux)
-          antenna is placed on the right side of the vehicle and the moving base
-          antenna is on the left side.
-
-          (Note: the Unicore primary antenna is the one connected on the right as seen
-          from the top).
-      type: float
-      default: 0.0
-      min: 0
-      max: 360
-      unit: deg
-      reboot_required: true
-      decimal: 3
     GPS_1_PROTOCOL:
       description:
         short: Protocol for Main GPS

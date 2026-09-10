@@ -122,7 +122,48 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			{_param_sens_gps1_offx.get(), _param_sens_gps1_offy.get(), _param_sens_gps1_offz.get()},
 			static_cast<hrt_abstime>(_param_sens_gps1_delay.get()) * 1000
 		};
+
+		updateBaselineRotation(_gps_param_slots[0], _param_sens_gps0_rot.get(), _param_sens_gps0_roll.get(),
+				       _param_sens_gps0_pitch.get(), _param_sens_gps0_yaw.get());
+		updateBaselineRotation(_gps_param_slots[1], _param_sens_gps1_rot.get(), _param_sens_gps1_roll.get(),
+				       _param_sens_gps1_pitch.get(), _param_sens_gps1_yaw.get());
 	}
+}
+
+void VehicleGPSPosition::updateBaselineRotation(GpsParamSlot &slot, int32_t rotation, float roll_deg, float pitch_deg,
+		float yaw_deg)
+{
+	matrix::Dcmf R;
+
+	const bool custom_set = (fabsf(roll_deg) > FLT_EPSILON) || (fabsf(pitch_deg) > FLT_EPSILON)
+				|| (fabsf(yaw_deg) > FLT_EPSILON);
+
+	if ((rotation == ROTATION_CUSTOM) || custom_set) {
+		R = matrix::Dcmf(matrix::Eulerf(math::radians(roll_deg), math::radians(pitch_deg), math::radians(yaw_deg)));
+
+	} else if ((rotation >= 0) && (rotation < ROTATION_MAX)) {
+		R = get_rot_matrix(static_cast<Rotation>(rotation));
+	}
+
+	// baseline direction in the body frame; only its yaw enters the heading
+	const matrix::Vector3f baseline = R * matrix::Vector3f(1.f, 0.f, 0.f);
+	slot.heading_available = baseline.xy().norm() > 0.1f;
+	slot.heading_offset = slot.heading_available ? atan2f(baseline(1), baseline(0)) : 0.f;
+}
+
+void VehicleGPSPosition::applyBaselineRotation(const GpsParamSlot *slot, float &heading, float &heading_offset)
+{
+	if (!PX4_ISFINITE(heading) || PX4_ISFINITE(heading_offset)) {
+		return;
+	}
+
+	if (slot && !slot->heading_available) {
+		heading = NAN;
+		return;
+	}
+
+	heading_offset = slot ? slot->heading_offset : 0.f;
+	heading = matrix::wrap_pi(heading - heading_offset);
 }
 
 void VehicleGPSPosition::Run()
@@ -153,6 +194,7 @@ void VehicleGPSPosition::Run()
 			const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
 
 			gps_data[i].timestamp_sample = resolveSampleTimestamp(gps_data[i].timestamp_sample, gps_data[i].timestamp, delay_us);
+			applyBaselineRotation(slot, gps_data[i].heading, gps_data[i].heading_offset);
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
 			_gps_blending.setGpsData(gps_data[i], i);
@@ -208,10 +250,8 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 	// receivers would jump the heading and trip the EKF observation rate limit. The active source is kept until it
 	// goes stale. sensor_gnss_relative is preferred over sensor_gps.heading and preempts it.
 	//
-	// TODO: the baseline rotation belongs in the SENS_GPSn_* slot next to the antenna position and delay, resolved
-	// here by device_id, replacing GPS_YAW_OFFSET / SEP_YAW_OFFS / EKF2_GPS_YAW_OFF. With per-receiver rotation the
-	// source selection can also follow the flight phase, e.g. a tailsitter with one baseline aligned for hover and one
-	// for forward flight.
+	// TODO: with per-receiver rotation the selection can also follow the flight phase, e.g. a tailsitter with one
+	// baseline aligned for hover and one for forward flight.
 	const hrt_abstime now = hrt_absolute_time();
 	const bool source_active = (_heading_source.last_publish != 0)
 				   && (now - _heading_source.last_publish < kHeadingSourceTimeout);
@@ -232,20 +272,32 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 		}
 
 		// sensor_gnss_relative instances are numbered by advertise order, not by receiver, so the receiver's
-		// sensor_gps instance is looked up by device_id for the delay parameters and the driver heading offset.
-		sensor_gps_s receiver_gps;
-		const int gps_instance = findGpsInstance(gnss_rel.device_id, receiver_gps);
-		const GpsParamSlot *slot = findParamSlot(gnss_rel.device_id, gps_instance);
+		// sensor_gps instance is looked up by device_id for the parameter slot.
+		const GpsParamSlot *slot = findParamSlot(gnss_rel.device_id, findGpsInstance(gnss_rel.device_id));
 		const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
 
-		// No PPS correction here: sensor_gnss_relative.time_utc_usec is not reliably UTC (u-blox fills it with iTOW)
-		// and PpsTimeSync only sanity-checks the first correction after each pulse.
+		// the relative position heading is always the raw baseline
+		float heading = gnss_rel.heading;
+		float heading_offset = NAN;
+		applyBaselineRotation(slot, heading, heading_offset);
+
+		if (!PX4_ISFINITE(heading)) {
+			continue;
+		}
+
+		uint64_t timestamp_sample = resolveSampleTimestamp(gnss_rel.timestamp_sample, gnss_rel.timestamp, delay_us);
+		const uint64_t pps_timestamp = _pps_time_sync.correct_gps_timestamp(gnss_rel.timestamp, gnss_rel.time_utc_usec);
+
+		if (pps_timestamp != gnss_rel.timestamp) {
+			timestamp_sample = pps_timestamp;
+		}
+
 		vehicle_gnss_heading_s heading_out{};
-		heading_out.timestamp_sample = resolveSampleTimestamp(gnss_rel.timestamp_sample, gnss_rel.timestamp, delay_us);
+		heading_out.timestamp_sample = timestamp_sample;
 		heading_out.device_id = gnss_rel.device_id;
-		heading_out.heading = gnss_rel.heading;
+		heading_out.heading = heading;
 		heading_out.heading_accuracy = gnss_rel.heading_accuracy;
-		heading_out.heading_offset = (gps_instance >= 0) ? receiver_gps.heading_offset : NAN;
+		heading_out.heading_offset = heading_offset;
 		heading_out.timestamp = hrt_absolute_time();
 		_vehicle_gnss_heading_pub.publish(heading_out);
 
@@ -317,9 +369,11 @@ const VehicleGPSPosition::GpsParamSlot *VehicleGPSPosition::findParamSlot(uint32
 	return nullptr;
 }
 
-int VehicleGPSPosition::findGpsInstance(uint32_t device_id, sensor_gps_s &gps_data)
+int VehicleGPSPosition::findGpsInstance(uint32_t device_id)
 {
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		sensor_gps_s gps_data;
+
 		if (_sensor_gps_sub[i].copy(&gps_data) && (gps_data.device_id == device_id)) {
 			return i;
 		}

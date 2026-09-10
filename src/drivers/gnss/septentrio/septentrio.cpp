@@ -164,9 +164,6 @@ SeptentrioDriver::SeptentrioDriver(const char *device_path, Instance instance, u
 		_message_satellite_info = new satellite_info_s();
 	}
 
-	get_parameter("SEP_YAW_OFFS", &_heading_offset);
-	get_parameter("SEP_PITCH_OFFS", &_pitch_offset);
-
 	int32_t dump_mode {0};
 	get_parameter("SEP_DUMP_COMM", &dump_mode);
 	DumpMode mode = static_cast<DumpMode>(dump_mode);
@@ -956,8 +953,9 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 		return ConfigureResult::FailedCompletely;
 	}
 
-	// Specify the offsets that the receiver applies to the computed attitude angles.
-	snprintf(msg, sizeof(msg), k_command_set_attitude_offset, static_cast<double>(_heading_offset), static_cast<double>(_pitch_offset));
+	// Receiver-side attitude offsets are zeroed so the reported heading is the raw baseline; the mounting rotation is
+	// applied from SENS_GPSn_ROT.
+	snprintf(msg, sizeof(msg), k_command_set_attitude_offset, 0.0, 0.0);
 
 	if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 		return ConfigureResult::FailedCompletely;
@@ -1910,7 +1908,7 @@ void SeptentrioDriver::reset_gps_state_message()
 {
 	memset(&_sensor_gps, 0, sizeof(_sensor_gps));
 	_sensor_gps.heading = NAN;
-	_sensor_gps.heading_offset = matrix::wrap_pi(math::radians(_heading_offset));
+	_sensor_gps.heading_offset = NAN;
 }
 
 uint32_t SeptentrioDriver::get_parameter(const char *name, int32_t *value)
