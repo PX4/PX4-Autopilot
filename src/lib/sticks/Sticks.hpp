@@ -41,7 +41,6 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <px4_platform_common/module_params.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/Subscription.hpp>
