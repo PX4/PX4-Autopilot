@@ -269,6 +269,8 @@ They are not build into the module, and hence are neither published or subscribe
 - [SensorBaro](../msg_docs/SensorBaro.md)
 - [SensorCorrection](../msg_docs/SensorCorrection.md)
 - [SensorGnssRelative](../msg_docs/SensorGnssRelative.md)
+- [SensorGnssRf](../msg_docs/SensorGnssRf.md)
+- [SensorGnssSpectrum](../msg_docs/SensorGnssSpectrum.md)
 - [SensorGnssStatus](../msg_docs/SensorGnssStatus.md)
 - [SensorGyro](../msg_docs/SensorGyro.md)
 - [SensorGyroFft](../msg_docs/SensorGyroFft.md)

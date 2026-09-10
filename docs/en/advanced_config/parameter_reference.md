@@ -27041,9 +27041,6 @@ which is then logged as gps_dump and can be used for PPK.
 
 Enable sat info (if available).
 
-Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
-Not available on MTK.
-
 **Values:**
 
 - `0`: Disabled
@@ -27233,6 +27230,19 @@ High rates at 115200 baud may cause dropouts.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 25       |           | 0       | Hz   | &nbsp;    |
+
+### GPS_UBX_SPECTRUM (`INT32`) {#GPS_UBX_SPECTRUM}
+
+Enable spectrum analyzer (if available).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### GPS_YAW_OFFSET (`FLOAT`) {#GPS_YAW_OFFSET}
 
