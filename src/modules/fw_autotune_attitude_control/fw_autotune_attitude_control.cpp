@@ -272,6 +272,11 @@ bool FwAutotuneAttitudeControl::isAuxEnableSwitchEnabled()
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
+	if (!manual_control_setpoint.valid) {
+		// An invalid setpoint keeps the last received aux values, which must not keep autotune enabled
+		return false;
+	}
+
 	float aux_enable_channel = 0;
 
 	switch (_param_fw_at_man_aux.get()) {

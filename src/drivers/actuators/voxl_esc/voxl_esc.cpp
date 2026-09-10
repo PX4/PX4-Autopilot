@@ -1491,8 +1491,10 @@ void VoxlEsc::Run()
 	if (_manual_control_setpoint_sub.updated()) {
 		_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
 
+		// An invalid setpoint keeps the last received stick/aux values, so neither turtle mode
+		// nor GPIO control may be driven from it.
 		// if turtle mode enabled, we go straight to the sticks, no mix
-		if (_parameters.mode > 0) {
+		if (_parameters.mode > 0 && _manual_control_setpoint.valid) {
 
 			if (!_outputs_on) {
 
@@ -1522,7 +1524,7 @@ void VoxlEsc::Run()
 		}
 
 		// check if gpio control is enabled
-		if (_parameters.gpio_ctl_channel > 0) {
+		if (_parameters.gpio_ctl_channel > 0 && _manual_control_setpoint.valid) {
 
 			_gpio_ctl_en = true;
 			float gpio_setpoint = VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT;
