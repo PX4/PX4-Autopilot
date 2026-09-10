@@ -78,34 +78,39 @@ bool FlightTaskManualAccelerationSlow::update()
 		}
 	}
 
-	// Remote knob commanded limits
-	if (_param_mc_slow_map_hvel.get() != 0) {
+	// Remote knob commanded limits. An unmapped selection or an aux channel that carries no
+	// value reads as NaN and leaves the corresponding *_limited flag false, so the configured
+	// MC_SLOW_DEF_* fallback below applies instead of a neutral mid-range rescaling.
+	const float hvel_aux_input = getAuxInputFromParameterIndex(_param_mc_slow_map_hvel.get());
+
+	if (PX4_ISFINITE(hvel_aux_input)) {
 		const float min_horizontal_velocity_scale = _param_mc_slow_min_hvel.get() / fmaxf(velocity_horizontal, FLT_EPSILON);
-		const float aux_input = getInputFromSanitizedAuxParameterIndex(_param_mc_slow_map_hvel.get());
 		const float aux_based_scale =
-			math::interpolate(aux_input, -1.f, 1.f, min_horizontal_velocity_scale, 1.f);
+			math::interpolate(hvel_aux_input, -1.f, 1.f, min_horizontal_velocity_scale, 1.f);
 		velocity_horizontal *= aux_based_scale;
 		velocity_horizontal_limited = true;
 	}
 
-	if (_param_mc_slow_map_vvel.get() != 0) {
+	const float vvel_aux_input = getAuxInputFromParameterIndex(_param_mc_slow_map_vvel.get());
+
+	if (PX4_ISFINITE(vvel_aux_input)) {
 		const float min_up_speed_scale = _param_mc_slow_min_vvel.get() / fmaxf(velocity_up, FLT_EPSILON);
 		const float min_down_speed_scale = _param_mc_slow_min_vvel.get() / fmaxf(velocity_down, FLT_EPSILON);
-		const float aux_input = getInputFromSanitizedAuxParameterIndex(_param_mc_slow_map_vvel.get());
 		const float up_aux_based_scale =
-			math::interpolate(aux_input, -1.f, 1.f, min_up_speed_scale, 1.f);
+			math::interpolate(vvel_aux_input, -1.f, 1.f, min_up_speed_scale, 1.f);
 		const float down_aux_based_scale =
-			math::interpolate(aux_input, -1.f, 1.f, min_down_speed_scale, 1.f);
+			math::interpolate(vvel_aux_input, -1.f, 1.f, min_down_speed_scale, 1.f);
 		velocity_up *= up_aux_based_scale;
 		velocity_down *= down_aux_based_scale;
 		velocity_vertical_limited = true;
 	}
 
-	if (_param_mc_slow_map_yawr.get() != 0) {
+	const float yawr_aux_input = getAuxInputFromParameterIndex(_param_mc_slow_map_yawr.get());
+
+	if (PX4_ISFINITE(yawr_aux_input)) {
 		const float min_yaw_rate_scale = math::radians(_param_mc_slow_min_yawr.get()) / fmaxf(yaw_rate, FLT_EPSILON);
-		const float aux_input = getInputFromSanitizedAuxParameterIndex(_param_mc_slow_map_yawr.get());
 		const float aux_based_scale =
-			math::interpolate(aux_input, -1.f, 1.f, min_yaw_rate_scale, 1.f);
+			math::interpolate(yawr_aux_input, -1.f, 1.f, min_yaw_rate_scale, 1.f);
 		yaw_rate *= aux_based_scale;
 		yaw_rate_limited = true;
 	}
@@ -136,7 +141,9 @@ bool FlightTaskManualAccelerationSlow::update()
 		_gimbal.acquireGimbalControlIfNeeded();
 
 		// the exact same _yawspeed_setpoint is setpoint for the gimbal and vehicle feed-forward
-		const float pitchrate_setpoint = getInputFromSanitizedAuxParameterIndex(_param_mc_slow_map_pitch.get()) * yaw_rate;
+		// MC_SLOW_MAP_PTCH = 0 means no pitch rate input, as does an aux channel without a value
+		const float pitch_aux_input = getAuxInputFromParameterIndex(_param_mc_slow_map_pitch.get());
+		const float pitchrate_setpoint = PX4_ISFINITE(pitch_aux_input) ? pitch_aux_input * yaw_rate : 0.f;
 		_yawspeed_setpoint = _sticks.getYaw() * yaw_rate;
 
 		_gimbal.publishGimbalManagerSetAttitude(Gimbal::FLAGS_ALL_AXES_LOCKED, Quatf(NAN, NAN, NAN, NAN),
@@ -154,10 +161,16 @@ bool FlightTaskManualAccelerationSlow::update()
 	return ret;
 }
 
-float FlightTaskManualAccelerationSlow::getInputFromSanitizedAuxParameterIndex(int parameter_value)
+float FlightTaskManualAccelerationSlow::getAuxInputFromParameterIndex(int parameter_value)
 {
-	const int sanitized_index = math::constrain(parameter_value - 1, 0, 5);
-	return _sticks.getAux(sanitized_index);
+	// The MC_SLOW_MAP_* parameters use 0 for "not mapped" and 1-6 to select AUX1-AUX6.
+	// Return NaN rather than a neutral 0 for anything that carries no value, so that each
+	// caller applies its own fallback instead of acting on a value the pilot never commanded.
+	if (parameter_value < 1 || parameter_value > 6) {
+		return NAN;
+	}
+
+	return _sticks.getAuxRaw()(parameter_value - 1);
 }
 
 bool FlightTaskManualAccelerationSlow::haveTakenOff()
