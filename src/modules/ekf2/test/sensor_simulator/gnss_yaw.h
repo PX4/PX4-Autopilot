@@ -30,13 +30,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * Feeds Ekf with Gps data
- * @author Kamil Ritz <ka.ritz@hotmail.com>
+ * Feeds Ekf with dual antenna GNSS yaw data, independently of the position/velocity Gps sensor
  */
-#ifndef EKF_GPS_H
-#define EKF_GPS_H
+#ifndef EKF_GNSS_YAW_H
+#define EKF_GNSS_YAW_H
 
 #include "sensor.h"
 
@@ -45,36 +43,27 @@ namespace sensor_simulator
 namespace sensor
 {
 
-class Gps: public Sensor
+class GnssYaw: public Sensor
 {
 public:
-	Gps(std::shared_ptr<Ekf> ekf);
-	~Gps();
+	GnssYaw(std::shared_ptr<Ekf> ekf);
+	~GnssYaw();
 
-	void setData(const gnssSample &gps);
-	void stepHeightByMeters(const float hgt_change);
-	void stepHorizontalPositionByMeters(const Vector2f hpos_change);
-	void setPositionRateNED(const Vector3f &rate);
-	void setAltitude(const float alt);
-	void setLatitude(const double lat);
-	void setLongitude(const double lon);
-	void setVelocity(const Vector3f &vel);
-	void setFixType(const int fix_type);
-	void setNumberOfSatellites(const int num_satellites);
-	void setPdop(const float pdop);
+	// NAN stops the measurements, like a receiver that lost its heading solution
+	void setYaw(const float yaw);
+	void setYawOffset(const float yaw_offset);
+	void setYawAccuracy(const float yaw_acc);
 
-	gnssSample getDefaultGpsData();
-	const gnssSample &getData() const { return _gps_data; }
+	const gnssYawSample &getData() const { return _gnss_yaw_data; }
 
 private:
 	void send(uint64_t time) override;
 
-	static constexpr uint64_t kGpsDelayUs{110000};
+	static constexpr uint64_t kGnssYawDelayUs{110000};
 
-	gnssSample _gps_data{};
-	Vector3f _gps_pos_rate{};
+	gnssYawSample _gnss_yaw_data{.yaw = NAN};
 };
 
 } // namespace sensor
 } // namespace sensor_simulator
-#endif // EKF_GPS_H
+#endif // EKF_GNSS_YAW_H

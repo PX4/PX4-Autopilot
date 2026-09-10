@@ -228,7 +228,7 @@ private:
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	void UpdateGnssYawSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateGnssYawSample();
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
