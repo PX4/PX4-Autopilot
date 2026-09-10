@@ -74,6 +74,7 @@ private:
 	static constexpr uint64_t kGpsDelayUs{110000};
 
 	gnssSample _gps_data{};
+	gnssYawSample _gnss_yaw_data{};
 	Vector3f _gps_pos_rate{};
 };
 

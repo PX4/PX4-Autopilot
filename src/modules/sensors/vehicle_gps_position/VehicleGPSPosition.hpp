@@ -45,6 +45,8 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss_relative.h>
+#include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/pps_capture.h>
 
 #include "gps_blending.hpp"
@@ -71,17 +73,37 @@ private:
 
 	void ParametersUpdate(bool force = false);
 
-	// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
-	static constexpr uint8_t BLEND_MASK_USE_SPD_ACC  = 1;
-	static constexpr uint8_t BLEND_MASK_USE_HPOS_ACC = 2;
-	static constexpr uint8_t BLEND_MASK_USE_VPOS_ACC = 4;
-
 	// define max number of GPS receivers supported
 	static constexpr int GPS_MAX_RECEIVERS = 2;
 	static_assert(GPS_MAX_RECEIVERS == GpsBlending::GPS_MAX_RECEIVERS_BLEND,
 		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
 
+	static constexpr hrt_abstime kDefaultDelay{110_ms}; // matches SENS_GPS*_DELAY default
+	static constexpr hrt_abstime kSampleTimestampTolerance{10_ms};
+	static constexpr hrt_abstime kHeadingSourceTimeout{3_s};
+
+	struct GpsParamSlot {
+		uint32_t device_id{0};
+		matrix::Vector3f offset{};
+		hrt_abstime delay_us{kDefaultDelay};
+	};
+
+	void UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_RECEIVERS], const bool gps_updated[GPS_MAX_RECEIVERS]);
+
+	// SENS_GPSn_* slot for a receiver, by device_id or (when no IDs are configured) by sensor_gps instance
+	const GpsParamSlot *findParamSlot(uint32_t device_id, int instance) const;
+	// sensor_gps instance publishing this device_id, or -1
+	int findGpsInstance(uint32_t device_id, sensor_gps_s &gps_data);
+	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
+					       hrt_abstime delay_us);
+
+	// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
+	static constexpr uint8_t BLEND_MASK_USE_SPD_ACC  = 1;
+	static constexpr uint8_t BLEND_MASK_USE_HPOS_ACC = 2;
+	static constexpr uint8_t BLEND_MASK_USE_VPOS_ACC = 4;
+
 	uORB::Publication<sensor_gps_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
+	uORB::Publication<vehicle_gnss_heading_s> _vehicle_gnss_heading_pub{ORB_ID(vehicle_gnss_heading)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -92,16 +114,23 @@ private:
 
 	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
 
+	uORB::SubscriptionCallbackWorkItem _sensor_gnss_relative_sub[GPS_MAX_RECEIVERS] {
+		{this, ORB_ID(sensor_gnss_relative), 0},
+		{this, ORB_ID(sensor_gnss_relative), 1},
+	};
+
+	struct HeadingSource {
+		uint32_t device_id{0};
+		bool from_relative{false};
+		hrt_abstime last_publish{0};
+	} _heading_source{};
+
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
 
-	struct GpsParamSlot {
-		uint32_t device_id{0};
-		matrix::Vector3f offset{};
-		hrt_abstime delay_us{110_ms};
-	} _gps_param_slots[GPS_MAX_RECEIVERS] {};
+	GpsParamSlot _gps_param_slots[GPS_MAX_RECEIVERS] {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
