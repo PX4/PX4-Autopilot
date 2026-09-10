@@ -91,14 +91,14 @@ The board exposes the following connectors and solder pads:
 
 ### Standard Serial Port Mapping
 
-| Physical UART | PCB Silk Label | PX4 Slot (QGC) | Default Usage           |
-| ------------- | -------------- | -------------- | ----------------------- |
-| USART1        | `GPS1`         | GPS 1          | GPS                     |
-| USART2        | `TELEM1`       | TELEM 1        | MAVLink (Primary)       |
-| USART3        | `USART3`       | TELEM 3        | User Auxiliary          |
-| UART4         | `GPS2`         | GPS 2          | Secondary GPS           |
-| USART6        | `TELEM2`       | TELEM 2        | MAVLink (Companion)     |
-| UART8         | `RCIN`         | RC             | RC Input (SBUS/DSM/SUMD)|
+| Physical UART | PCB Silk Label | PX4 Slot (QGC) | Default Usage            |
+| ------------- | -------------- | -------------- | ------------------------ |
+| USART1        | `GPS1`         | GPS 1          | GPS                      |
+| USART2        | `TELEM1`       | TELEM 1        | MAVLink (Primary)        |
+| USART3        | `USART3`       | TELEM 3        | User Auxiliary           |
+| UART4         | `GPS2`         | GPS 2          | Secondary GPS            |
+| USART6        | `TELEM2`       | TELEM 2        | MAVLink (Companion)      |
+| UART8         | `RCIN`         | RC             | RC Input (SBUS/DSM/SUMD) |
 
 ### Debug Port
 
