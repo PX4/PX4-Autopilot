@@ -119,7 +119,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{ 2500, 0x07, 0x07 }, // VIDEO_START_CAPTURE:         p1:stream_id,p2:status_freq,p3:camera_id
 	{ 2501, 0x03, 0x03 }, // VIDEO_STOP_CAPTURE:          p1:stream_id,p2:camera_id
 	{ 3000, 0x03, 0x03 }, // DO_VTOL_TRANSITION:          p1:state,p2:force_immediate
-	{ 4501, 0x00, 0x00 }, // CONDITION_GATE:              no params used by PX4
+	{ 4501, 0x73, 0x00 }, // CONDITION_GATE:              p1:geometry,p2:use_altitude; p5-7:lat/lon/alt
 	{ 5000, 0x70, 0x00 }, // NAV_FENCE_RETURN_POINT:      mission:p5-7:lat/lon/alt; cmd:none
 	{ 5001, 0x31, 0x01 }, // NAV_FENCE_POLYGON_VERTEX_INCLUSION: p1:vertex_count; mission:p5-6:lat/lon
 	{ 5002, 0x31, 0x01 }, // NAV_FENCE_POLYGON_VERTEX_EXCLUSION: p1:vertex_count; mission:p5-6:lat/lon
