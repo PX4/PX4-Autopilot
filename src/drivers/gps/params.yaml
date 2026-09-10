@@ -103,7 +103,6 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
-
     GPS_UBX_MODE:
       description:
         short: u-blox GPS Mode

@@ -1778,7 +1778,6 @@ GPS::publishRF(sensor_gnss_rf_s &gnss_rf)
 		gnss_rf.timestamp = hrt_absolute_time();
 
 		_sensor_gnss_rf_block_pub[gnss_rf.block_id].publish(gnss_rf);
-		// impose Main instance to publish sat_info first to assign first index
 		_is_rf_block_main_advertised[gnss_rf.block_id].store(true);
 	}
 }
