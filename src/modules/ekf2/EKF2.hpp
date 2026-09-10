@@ -503,6 +503,8 @@ private:
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _vehicle_gps_position_status_sub{ORB_ID(vehicle_gps_position_status)};
 
+	perf_counter_t _gnss_vel_limit_drop_perf{perf_alloc(PC_COUNT, MODULE_NAME": GNSS velocity limit exceeded")};
+
 	uORB::PublicationMulti<estimator_bias_s> _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
 	uORB::PublicationMulti<estimator_gps_status_s> _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_hgt_pub{ORB_ID(estimator_aid_src_gnss_hgt)};

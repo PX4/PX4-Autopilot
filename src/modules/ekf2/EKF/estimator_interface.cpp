@@ -172,6 +172,7 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 	if (!gnss_sample.vel.isAllFinite()
 	    || gnss_sample.vel.xy().longerThan(_params.ekf2_vel_lim)
 	    || fabsf(gnss_sample.vel(2)) > _params.ekf2_vel_lim) {
+		_gnss_vel_limit_drop_count++;
 		return;
 	}
 

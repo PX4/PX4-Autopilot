@@ -220,6 +220,9 @@ EKF2::~EKF2()
 {
 	perf_free(_ekf_update_perf);
 	perf_free(_msg_missed_imu_perf);
+#if defined(CONFIG_EKF2_GNSS)
+	perf_free(_gnss_vel_limit_drop_perf);
+#endif // CONFIG_EKF2_GNSS
 }
 
 void EKF2::AdvertiseTopics()
@@ -427,6 +430,9 @@ int EKF2::print_status(bool verbose)
 
 	perf_print_counter(_ekf_update_perf);
 	perf_print_counter(_msg_missed_imu_perf);
+#if defined(CONFIG_EKF2_GNSS)
+	perf_print_counter(_gnss_vel_limit_drop_perf);
+#endif // CONFIG_EKF2_GNSS
 
 	if (verbose) {
 #if defined(CONFIG_EKF2_VERBOSE_STATUS)
@@ -2663,6 +2669,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		};
 
 		_ekf.setGpsData(gnss_sample);
+		perf_set_count(_gnss_vel_limit_drop_perf, _ekf.gnss_vel_limit_drop_count());
 
 		const float geoid_height = altitude_ellipsoid - altitude_amsl;
 
