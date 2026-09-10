@@ -94,9 +94,12 @@ parameters:
     GPS_SAT_INFO:
       description:
         short: Enable sat info (if available)
-        long: |-
-          Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
-          Not available on MTK.
+      type: boolean
+      default: 0
+      reboot_required: true
+    GPS_UBX_SPECTRUM:
+      description:
+        short: Enable spectrum analyzer (if available)
       type: boolean
       default: 0
       reboot_required: true

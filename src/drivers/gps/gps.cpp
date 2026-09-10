@@ -68,7 +68,10 @@
 #include <uORB/topics/rtcm_data.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
-
+#include <uORB/topics/sensor_gnss_rf.h>
+#if defined(CONFIG_GPS_UBX_SPAN)
+#include <uORB/topics/sensor_gnss_spectrum.h>
+#endif
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/gnss/correction_framer.h>
 #include <systemlib/system_time_source.h>
@@ -149,7 +152,11 @@ struct GPS_Sat_Info {
 	satellite_info_s _data;
 };
 
+#if defined(CONFIG_GPS_UBX_SPAN)
+static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2750);
+#else
 static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2040);
+#endif
 
 
 class GPS : public ModuleBase, public device::Device
@@ -242,8 +249,19 @@ private:
 
 	uORB::PublicationMulti<sensor_gps_s>	_sensor_gps_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
-
-	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
+	uORB::PublicationMulti<sensor_gnss_rf_s> _sensor_gnss_rf_block_pub[kMaxBlocks] {
+		{ORB_ID(sensor_gnss_rf_block0)},
+		{ORB_ID(sensor_gnss_rf_block1)},
+		{ORB_ID(sensor_gnss_rf_block2)},
+	};
+#if defined(CONFIG_GPS_UBX_SPAN)
+	uORB::PublicationMulti<sensor_gnss_spectrum_s> _sensor_gnss_spectrum_block_pub[kMaxBlocks] {
+		{ORB_ID(sensor_gnss_spectrum_block0)},
+		{ORB_ID(sensor_gnss_spectrum_block1)},
+		{ORB_ID(sensor_gnss_spectrum_block2)},
+	};
+#endif
+	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub {ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gps_s> _stuck;
@@ -284,10 +302,13 @@ private:
 	perf_counter_t _rtcm_corrections_injection_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm corrections injected")};
 	perf_counter_t _rtcm_moving_baseline_injection_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm moving baseline injected")};
 
-	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
-	static px4::atomic_bool _is_sat_info_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
-	/// and thus we wait until the first one publishes at least one message.
-
+	// For the second gps we want to make sure that it gets instance 1 and thus we wait until the first one publishes at least one message.
+	static px4::atomic_bool _is_gps_main_advertised;
+	static px4::atomic_bool _is_sat_info_main_advertised;
+	static px4::atomic_bool _is_rf_block_main_advertised[kMaxBlocks];
+#if defined(CONFIG_GPS_UBX_SPAN)
+	static px4::atomic_bool _is_spectrum_block_main_advertised[kMaxBlocks];
+#endif
 	static px4::atomic<GPS *> _secondary_instance;
 
 	px4::atomic<int> _scheduled_reset{(int)GPSRestartType::None};
@@ -309,9 +330,21 @@ private:
 	void 				publishRTCMCorrections(uint8_t *data, size_t len);
 
 	/**
-	 * Publish RTCM corrections
+	 * Publish relative position
 	 */
 	void 				publishRelativePosition(sensor_gnss_relative_s &gnss_relative);
+
+	/**
+	 * Publish RF data
+	 */
+	void 				publishRF(sensor_gnss_rf_s &gnss_rf);
+
+#if defined(CONFIG_GPS_UBX_SPAN)
+	/**
+	 * Publish spectrum
+	 */
+	void 				publishSpectrum(sensor_gnss_spectrum_s &gnss_spectrum);
+#endif
 
 	/**
 	 * This is an abstraction for the poll on serial used.
@@ -386,7 +419,11 @@ private:
 
 px4::atomic_bool GPS::_is_gps_main_advertised{false};
 px4::atomic_bool GPS::_is_sat_info_main_advertised{false};
-px4::atomic<GPS *> GPS::_secondary_instance{nullptr};
+px4::atomic_bool GPS::_is_rf_block_main_advertised[kMaxBlocks] {};
+#if defined(CONFIG_GPS_UBX_SPAN)
+px4::atomic_bool GPS::_is_spectrum_block_main_advertised[kMaxBlocks] {};
+#endif
+px4::atomic<GPS *> GPS::_secondary_instance {nullptr};
 ModuleBase::Descriptor GPS::desc{task_spawn, custom_command, print_usage};
 
 /*
@@ -559,6 +596,23 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 		}
 
 		break;
+
+	case GPSCallbackType::gotRFMessage:
+		if (data1 && data2 == sizeof(sensor_gnss_rf_s)) {
+			gps->publishRF(*static_cast<sensor_gnss_rf_s *>(data1));
+		}
+
+		break;
+
+#if defined(CONFIG_GPS_UBX_SPAN)
+
+	case GPSCallbackType::gotSpectrumMessage:
+		if (data1 && data2 == sizeof(sensor_gnss_spectrum_s)) {
+			gps->publishSpectrum(*static_cast<sensor_gnss_spectrum_s *>(data1));
+		}
+
+		break;
+#endif
 
 	case GPSCallbackType::surveyInStatus:
 		/* not used */
@@ -1054,6 +1108,16 @@ GPS::run()
 		param_get(handle, &jam_det_sensitivity_hi);
 	}
 
+#if defined(CONFIG_GPS_UBX_SPAN)
+	handle = param_find("GPS_UBX_SPECTRUM");
+	int32_t gps_ubx_spectrum = 0;
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_ubx_spectrum);
+	}
+
+#endif // CONFIG_GPS_UBX_SPAN
+
 #endif // CONFIG_GPS_UBX
 
 	int32_t gnssSystemsParam = static_cast<int32_t>(GPSHelper::GNSSSystemsMask::RECEIVER_DEFAULTS);
@@ -1159,6 +1223,9 @@ GPS::run()
 					.uart1_baudrate = ubx_uart1_baudrate,
 					.uart2_baudrate = f9p_uart2_baudrate,
 					.ppk_output = ppk_output > 0,
+#if defined(CONFIG_GPS_UBX_SPAN)
+					.spectrum_analyzer = gps_ubx_spectrum > 0,
+#endif
 					.jam_det_sensitivity_hi = jam_det_sensitivity_hi > 0,
 					.mode = ubx_mode,
 				};
@@ -1697,6 +1764,41 @@ GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative)
 	gnss_relative.timestamp = hrt_absolute_time();
 	_sensor_gnss_relative_pub.publish(gnss_relative);
 }
+
+void
+GPS::publishRF(sensor_gnss_rf_s &gnss_rf)
+{
+	if (gnss_rf.block_id >= kMaxBlocks) {
+		return;
+	}
+
+	// impose Main instance to publish first to assign first index
+	if (_instance == Instance::Main || _is_rf_block_main_advertised[gnss_rf.block_id].load()) {
+		gnss_rf.device_id = get_device_id();
+		gnss_rf.timestamp = hrt_absolute_time();
+
+		_sensor_gnss_rf_block_pub[gnss_rf.block_id].publish(gnss_rf);
+		_is_rf_block_main_advertised[gnss_rf.block_id].store(true);
+	}
+}
+
+#if defined(CONFIG_GPS_UBX_SPAN)
+void
+GPS::publishSpectrum(sensor_gnss_spectrum_s &gnss_spectrum)
+{
+	if (gnss_spectrum.block_id >= kMaxBlocks) {
+		return;
+	}
+
+	// impose Main instance to publish first to assign first index
+	if (_instance == Instance::Main || _is_spectrum_block_main_advertised[gnss_spectrum.block_id].load()) {
+		gnss_spectrum.device_id = get_device_id();
+		gnss_spectrum.timestamp = hrt_absolute_time();
+		_sensor_gnss_spectrum_block_pub[gnss_spectrum.block_id].publish(gnss_spectrum);
+		_is_spectrum_block_main_advertised[gnss_spectrum.block_id].store(true);
+	}
+}
+#endif
 
 int
 GPS::custom_command(int argc, char *argv[])

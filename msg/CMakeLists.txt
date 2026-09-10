@@ -205,6 +205,7 @@ set(msg_files
 	SensorCombined.msg
 	SensorCorrection.msg
 	SensorGnssRelative.msg
+	SensorGnssRf.msg
 	SensorGnssStatus.msg
 	SensorGps.msg
 	SensorGyro.msg
@@ -290,6 +291,9 @@ set(msg_files
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg
 )
+if(CONFIG_GPS_UBX_SPAN)
+	list(APPEND msg_files SensorGnssSpectrum.msg)
+endif()
 list(SORT msg_files)
 
 if(CONFIG_NAVIGATOR_ADSB)
