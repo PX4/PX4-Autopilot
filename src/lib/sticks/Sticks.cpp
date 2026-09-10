@@ -78,6 +78,7 @@ bool Sticks::checkAndUpdateStickInputs()
 	if (!_input_available) {
 		// Timeout: set all sticks to zero
 		_positions.zero();
+		_aux_positions.setNaN();	// invalidate aux positions
 	}
 
 	return _input_available;
