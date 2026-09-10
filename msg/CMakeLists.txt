@@ -309,7 +309,8 @@ if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 		VteBiasInitStatus.msg
 		FiducialMarkerPosReport.msg
 		FiducialMarkerYawReport.msg
-		PrecLandStatus.msg)
+		PrecLandStatus.msg
+		PrecTakeoffStatus.msg)
 endif()
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})

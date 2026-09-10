@@ -239,6 +239,7 @@ They are not build into the module, and hence are neither published or subscribe
 - [PowerMonitor](../msg_docs/PowerMonitor.md)
 - [PpsCapture](../msg_docs/PpsCapture.md)
 - [PrecLandStatus](../msg_docs/PrecLandStatus.md)
+- [PrecTakeoffStatus](../msg_docs/PrecTakeoffStatus.md)
 - [PurePursuitStatus](../msg_docs/PurePursuitStatus.md)
 - [PwmInput](../msg_docs/PwmInput.md)
 - [Px4ioStatus](../msg_docs/Px4ioStatus.md)

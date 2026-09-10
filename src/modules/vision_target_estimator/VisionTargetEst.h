@@ -65,6 +65,7 @@
 #include "Position/VTEPosition.h"
 #include "common.h"
 #include "tasks/PrecLandTask.h"
+#include "tasks/PrecTakeoffTask.h"
 #include "tasks/VteTask.h"
 
 class VisionTargetEstTest;
@@ -186,14 +187,17 @@ protected:
 	// Registry of supported tasks, ordered by priority (highest first). The Run() loop
 	// selects the first entry whose mask bit is set and whose isReady() is true.
 	PrecLandTask _prec_land_task{};
+	PrecTakeoffTask _prec_takeoff_task{};
 	DebugTask _debug_task{};
-	VteTask *_task_registry[2] {&_prec_land_task, &_debug_task};
+	VteTask *_task_registry[3] {&_prec_land_task, &_prec_takeoff_task, &_debug_task};
 	VteTask *_current_task_ptr{nullptr};
 
 	bool _position_estimator_running{false};
 	bool _orientation_estimator_running{false};
 
 	SensorFusionMaskU _vte_aid_mask{};
+	// Recompute the effective aid mask and push it to the estimators. Called on param and task changes.
+	void updateAidMask();
 	uint16_t adjustAidMask(const int input_mask);
 	void printAidMask();
 
