@@ -592,8 +592,7 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 
 		// CreateFile and OpenFileWO create or truncate the file as part of the open, so the
 		// effect lands before any write arrives and has to be authorized here.
-		if ((oflag & (O_WRONLY | O_RDWR | O_CREAT | O_TRUNC)) != 0
-		    && !_validatePathIsWritable(_work_buffer1)) {
+		if ((((oflag & O_ACCMODE) != O_RDONLY) || ((oflag & (O_CREAT | O_TRUNC)) != 0)) && !_validatePathIsWritable(_work_buffer1)) {
 			return kErrFailFileProtected;
 		}
 
