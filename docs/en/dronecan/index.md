@@ -228,7 +228,7 @@ These parameters can be [set on moving base and rover RTK CAN nodes](#qgc-cannod
 - [CANNODE_PUB_MBD](../advanced_config/parameter_reference.md#CANNODE_PUB_MBD) causes a moving base GPS unit to publish [MovingBaselineData](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#movingbaselinedata)RTCM messages onto the bus (for the rover)
 - [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD) tells the rover that it should subscribe to [MovingBaselineData](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#movingbaselinedata) RTCM messages on the bus (from the moving base).
 
-For PX4 you will also need to set [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET) to indicate the relative position of the moving base and rover: 0 if your Rover is in front of your Moving Base, 90 if Rover is right of Moving Base, 180 if Rover is behind Moving Base, or 270 if Rover is left of Moving Base.
+On the autopilot, set [SENS_GPSn_ROT](../advanced_config/parameter_reference.md#SENS_GPS0_ROT) for the rover (matched by [SENS_GPSn_ID](../advanced_config/parameter_reference.md#SENS_GPS0_ID)) to the relative position of the moving base and rover: `No rotation` if your Rover is in front of your Moving Base, `Yaw 90°` if Rover is right of Moving Base, `Yaw 180°` if Rover is behind Moving Base, or `Yaw 270°` if Rover is left of Moving Base. A node running older firmware applies its own `GPS_YAW_OFFSET` on top of this; leave that at 0.
 
 #### Barometer
 
