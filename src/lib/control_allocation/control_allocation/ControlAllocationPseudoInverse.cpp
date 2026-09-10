@@ -192,23 +192,6 @@ ControlAllocationPseudoInverse::allocate()
 	_actuator_sp = _actuator_trim + _mix * (_control_sp - _control_trim);
 }
 
-namespace
-{
-
-float rowDot(const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
-	     int row_a, int row_b)
-{
-	float sum = 0.f;
-
-	for (int j = 0; j < ControlAllocation::NUM_ACTUATORS; j++) {
-		sum += effectiveness(row_a, j) * effectiveness(row_b, j);
-	}
-
-	return sum;
-}
-
-} // namespace
-
 uint8_t
 ControlAllocationPseudoInverse::dropDependentAxes(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness)
 {
@@ -225,7 +208,7 @@ ControlAllocationPseudoInverse::dropDependentAxes(matrix::Matrix<float, NUM_AXES
 	uint8_t dropped = 0;
 
 	for (const ControlAxis axis : kPriority) {
-		const float norm_squared = rowDot(effectiveness, axis, axis);
+		const float norm_squared = effectiveness.row(axis).norm_squared();
 
 		if (norm_squared < FLT_EPSILON) {
 			continue; // unused axis
@@ -238,7 +221,7 @@ ControlAllocationPseudoInverse::dropDependentAxes(matrix::Matrix<float, NUM_AXES
 		float projected_norm_squared = 0.f;
 
 		for (int i = 0; i < num_accepted; i++) {
-			float sum = rowDot(effectiveness, axis, accepted[i]) * inv * inv_norm[i];
+			float sum = effectiveness.row(axis).dot(effectiveness.row(accepted[i])) * inv * inv_norm[i];
 
 			for (int j = 0; j < i; j++) {
 				sum -= chol[i][j] * projection[j];
