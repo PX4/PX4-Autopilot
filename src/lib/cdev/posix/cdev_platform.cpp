@@ -393,11 +393,10 @@ extern "C" {
 				// Get the current time
 				struct timespec ts;
 #if defined(__PX4_DARWIN) && !defined(ENABLE_LOCKSTEP_SCHEDULER)
-				// macOS has no pthread_condattr_setclock(), so the condition variable
-				// behind px4_sem_t waits on CLOCK_REALTIME (see px4_sem_init()). The
-				// deadline has to be taken from that same clock: CLOCK_MONOTONIC counts
-				// from boot, so passing it here puts the deadline decades in the past and
-				// px4_sem_timedwait() returns ETIMEDOUT immediately instead of waiting.
+				// macOS has no pthread_condattr_setclock(), so px4_sem_t's condition
+				// variable waits on CLOCK_REALTIME (px4_sem_init()). Use that clock here
+				// too. CLOCK_MONOTONIC counts from boot, so the deadline would land
+				// decades in the past and px4_sem_timedwait() would return immediately.
 				px4_clock_gettime(CLOCK_REALTIME, &ts);
 #else
 				// Note, we can't actually use CLOCK_MONOTONIC on macOS

@@ -391,11 +391,7 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 	gps_blended_state.vel_e_m_s = 0;
 	gps_blended_state.vel_d_m_s = 0;
 
-	// Accumulate the blended timestamps in double and round once at the end: casting each
-	// weighted term to uint64_t truncates it, which biases the result low by up to one
-	// microsecond per contributing receiver. Dividing by the accumulated weight also removes
-	// the float rounding error in the normalised weights, so receivers reporting an identical
-	// timestamp blend back to exactly that timestamp.
+	// Accumulate in double and round once, truncating each weighted term biases the result low.
 	double blended_timestamp_us = 0.0;
 	double blended_timestamp_sample_us = 0.0;
 	double sum_of_timing_weights = 0.0;

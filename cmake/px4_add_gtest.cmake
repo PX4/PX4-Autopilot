@@ -154,10 +154,8 @@ function(px4_add_functional_gtest)
 		# whole-archive so the daemon app-map stubs link even for small
 		# test libs, where link order would otherwise drop them
 		if(APPLE)
-			# ld64 has no --whole-archive, -force_load takes the archive path instead.
-			# test_stubs is also listed as a link library so the executable relinks
-			# when the archive changes: a $<TARGET_FILE:> inside a link flag is only
-			# an order-only dependency and would leave stale stubs in the binary.
+			# ld64 has no --whole-archive, -force_load takes the archive path. test_stubs stays
+			# in the link libraries so the executable relinks when the archive changes.
 			list(APPEND _FUNCTIONAL_GTEST_LIBS test_stubs "-Wl,-force_load,$<TARGET_FILE:test_stubs>")
 		else()
 			list(APPEND _FUNCTIONAL_GTEST_LIBS -Wl,--whole-archive test_stubs -Wl,--no-whole-archive)
