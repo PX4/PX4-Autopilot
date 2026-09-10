@@ -209,7 +209,7 @@ struct gnssYawSample {
 	uint64_t    time_us{};    ///< timestamp of the measurement (uSec)
 	float       yaw{};        ///< yaw angle from dual antenna GNSS (rad, [-PI, PI])
 	float       yaw_acc{};    ///< 1-std yaw error (rad); NAN if not provided
-	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
+	float       yaw_offset{}; ///< yaw of the antenna baseline in the body frame (rad)
 };
 
 struct magSample {

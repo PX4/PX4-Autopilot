@@ -174,12 +174,13 @@ Generally when using a GNSS as a source of yaw information you will need to conf
 
 | Parameter                        | Setting                                                                                                                                                     |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [GPS_YAW_OFFSET][GPS_YAW_OFFSET] | The angle made by the _baseline_ (the line between the two GPS antennas) relative to the vehicle x-axis (front/back axis, as shown [here][fc_orientation]). |
+| [SENS_GPSn_ROT][SENS_GPSn_ROT]   | Rotation of the _baseline_ (moving base to rover antenna) relative to the vehicle body frame (as shown [here][fc_orientation]), matched to the receiver by [SENS_GPSn_ID][SENS_GPSn_ID]. |
 | [EKF2_GPS_CTRL][EKF2_GPS_CTRL]   | Set bit position 3 "Dual antenna heading" to `1` (i.e. add 8 to the parameter value).                                                                       |
 
 <!-- links used in table above -->
 
-[GPS_YAW_OFFSET]: ../advanced_config/parameter_reference.md#GPS_YAW_OFFSET
+[SENS_GPSn_ROT]: ../advanced_config/parameter_reference.md#SENS_GPS0_ROT
+[SENS_GPSn_ID]: ../advanced_config/parameter_reference.md#SENS_GPS0_ID
 [EKF2_GPS_CTRL]: ../advanced_config/parameter_reference.md#EKF2_GPS_CTRL
 [fc_orientation]: ../config/flight_controller_orientation.md#calculating-orientation
 
