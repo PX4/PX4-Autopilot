@@ -293,7 +293,7 @@ For Gazebo-specific environment variables (such as `PX4_GZ_WORLD`, `PX4_GZ_STAND
 ## HITL 시뮬레이션 환경
 
 HITL(Hardware-in-the-Loop) 시뮬레이션을 사용하여, 일반 PX4 펌웨어가 실제 하드웨어에서 실행됩니다.
-The HITL Simulation Environment in documented in: [HITL Simulation](../simulation/hitl.md).
+The HITL Simulation Environment is documented in: [HITL Simulation](../simulation/hitl.md).
 
 ## 조이스틱/게임패드 통합
 
