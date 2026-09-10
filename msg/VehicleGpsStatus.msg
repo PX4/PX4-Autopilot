@@ -33,4 +33,4 @@ uint16 enabled_checks # [@enum GNSS] Bitmask of the checks required by GPS_CHECK
 bool checks_passed # All checks pass and have done so for the minimum health time
 bool initial_checks_passed # Strict initial checks passed, simplified checks run afterwards
 
-# TOPICS sensor_gps_checks vehicle_gps_position_checks
+# TOPICS sensor_gps_status vehicle_gps_position_status

@@ -46,7 +46,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/sensor_gps_checks.h>
+#include <uORB/topics/vehicle_gps_status.h>
 #include <uORB/topics/pps_capture.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
@@ -87,10 +87,10 @@ private:
 		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
 
 	uORB::Publication<sensor_gps_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
-	uORB::Publication<sensor_gps_checks_s> _vehicle_gps_position_checks_pub{ORB_ID(vehicle_gps_position_checks)};
-	uORB::PublicationMulti<sensor_gps_checks_s> _sensor_gps_checks_pub[GPS_MAX_RECEIVERS] {
-		ORB_ID(sensor_gps_checks),
-		ORB_ID(sensor_gps_checks)
+	uORB::Publication<vehicle_gps_status_s> _vehicle_gps_position_status_pub{ORB_ID(vehicle_gps_position_status)};
+	uORB::PublicationMulti<vehicle_gps_status_s> _sensor_gps_status_pub[GPS_MAX_RECEIVERS] {
+		ORB_ID(sensor_gps_status),
+		ORB_ID(sensor_gps_status)
 	};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

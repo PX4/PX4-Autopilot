@@ -39,7 +39,7 @@
 #include <px4_platform_common/param.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/sensor_gps_checks.h>
+#include <uORB/topics/vehicle_gps_status.h>
 
 // to run: make tests TESTFILTER=gnssRedundancyChecks
 
@@ -77,9 +77,9 @@ public:
 		sensor_gps_s empty{};
 		_gps0_pub.publish(empty);
 		_gps1_pub.publish(empty);
-		sensor_gps_checks_s empty_checks{};
-		_gps0_checks_pub.publish(empty_checks);
-		_gps1_checks_pub.publish(empty_checks);
+		vehicle_gps_status_s empty_status{};
+		_gps0_status_pub.publish(empty_status);
+		_gps1_status_pub.publish(empty_status);
 	}
 
 	sensor_gps_s makeGps(uint32_t device_id, double lat, double lon, float eph = 0.02f, uint8_t fix_type = 6)
@@ -94,15 +94,15 @@ public:
 		return gps;
 	}
 
-	sensor_gps_checks_s makeGpsChecks(const sensor_gps_s &gps)
+	vehicle_gps_status_s makeGpsStatus(const sensor_gps_s &gps)
 	{
-		sensor_gps_checks_s checks{};
-		checks.timestamp = gps.timestamp;
-		checks.device_id = gps.device_id;
-		checks.flags = gps.fix_type >= 3 ? 0 : sensor_gps_checks_s::GNSS_FIX_FAIL;
-		checks.checks_passed = checks.flags == 0;
-		checks.initial_checks_passed = checks.checks_passed;
-		return checks;
+		vehicle_gps_status_s status{};
+		status.timestamp = gps.timestamp;
+		status.device_id = gps.device_id;
+		status.flags = gps.fix_type >= 3 ? 0 : vehicle_gps_status_s::GNSS_FIX_FAIL;
+		status.checks_passed = status.flags == 0;
+		status.initial_checks_passed = status.checks_passed;
+		return status;
 	}
 
 	void publishGps(const sensor_gps_s &gps)
@@ -110,11 +110,11 @@ public:
 		// Test device IDs 1 and 2 map to uORB instances 0 and 1.
 		if (gps.device_id == 1) {
 			_gps0_pub.publish(gps);
-			_gps0_checks_pub.publish(makeGpsChecks(gps));
+			_gps0_status_pub.publish(makeGpsStatus(gps));
 
 		} else {
 			_gps1_pub.publish(gps);
-			_gps1_checks_pub.publish(makeGpsChecks(gps));
+			_gps1_status_pub.publish(makeGpsStatus(gps));
 		}
 	}
 
@@ -135,9 +135,9 @@ public:
 	}
 
 	uORB::PublicationMulti<sensor_gps_s> _gps0_pub{ORB_ID(sensor_gps)};
-	uORB::PublicationMulti<sensor_gps_checks_s> _gps0_checks_pub{ORB_ID(sensor_gps_checks)};
+	uORB::PublicationMulti<vehicle_gps_status_s> _gps0_status_pub{ORB_ID(sensor_gps_status)};
 	uORB::PublicationMulti<sensor_gps_s> _gps1_pub{ORB_ID(sensor_gps)};
-	uORB::PublicationMulti<sensor_gps_checks_s> _gps1_checks_pub{ORB_ID(sensor_gps_checks)};
+	uORB::PublicationMulti<vehicle_gps_status_s> _gps1_status_pub{ORB_ID(sensor_gps_status)};
 
 	failsafe_flags_s  _failsafe_flags{};
 	bool              _health_warning_gps{false};
@@ -251,7 +251,7 @@ TEST_F(GnssRedundancyChecksTest, DroppedBelowPeakSetsHealthWarning)
 
 
 // A receiver is only counted with a status that matches its device_id and reports checks_passed.
-TEST_F(GnssRedundancyChecksTest, MissingOrWrongDeviceChecksDoNotQualifyReceiver)
+TEST_F(GnssRedundancyChecksTest, MissingOrWrongDeviceStatusDoesNotQualifyReceiver)
 {
 	int required = 1;
 	param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
@@ -260,25 +260,25 @@ TEST_F(GnssRedundancyChecksTest, MissingOrWrongDeviceChecksDoNotQualifyReceiver)
 	runCheck();
 	EXPECT_TRUE(_failsafe_flags.gnss_lost); // no status published
 
-	auto checks = makeGpsChecks(gps);
-	checks.device_id = 99; // status of another receiver
-	_gps0_checks_pub.publish(checks);
+	auto status = makeGpsStatus(gps);
+	status.device_id = 99; // status of another receiver
+	_gps0_status_pub.publish(status);
 	runCheck();
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
 
-	checks.device_id = gps.device_id;
-	checks.checks_passed = false; // flags == 0 is not enough, checks_passed decides
-	_gps0_checks_pub.publish(checks);
+	status.device_id = gps.device_id;
+	status.checks_passed = false; // flags == 0 is not enough, checks_passed decides
+	_gps0_status_pub.publish(status);
 	runCheck();
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
-	checks.checks_passed = true;
-	_gps0_checks_pub.publish(checks);
+	status.checks_passed = true;
+	_gps0_status_pub.publish(status);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 }
 
 // The status must be less than 1 s old; a fresh position does not make a stale status count.
-TEST_F(GnssRedundancyChecksTest, StaleChecksDoNotQualifyReceiver)
+TEST_F(GnssRedundancyChecksTest, StaleStatusDoesNotQualifyReceiver)
 {
 	int required = 1;
 	param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
@@ -287,10 +287,10 @@ TEST_F(GnssRedundancyChecksTest, StaleChecksDoNotQualifyReceiver)
 	ASSERT_FALSE(_failsafe_flags.gnss_lost);
 
 	auto gps = makeGps(1, BASE_LAT, BASE_LON);
-	auto checks = makeGpsChecks(gps);
-	checks.timestamp -= 2000000; // older than the freshness window
+	auto status = makeGpsStatus(gps);
+	status.timestamp -= 2000000; // older than the freshness window
 	_gps0_pub.publish(gps);
-	_gps0_checks_pub.publish(checks);
+	_gps0_status_pub.publish(status);
 	runCheck();
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
 }

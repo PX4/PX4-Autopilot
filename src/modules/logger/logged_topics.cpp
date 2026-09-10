@@ -146,7 +146,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_control_mode");
 	add_topic("vehicle_global_position", 200);
 	add_topic("vehicle_gps_position", 100);
-	add_topic("vehicle_gps_position_checks", 100);
+	add_topic("vehicle_gps_position_status", 100);
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
@@ -242,7 +242,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("sensor_accel", 1000, 4);
 	add_topic_multi("sensor_baro", 1000, 4);
 	add_topic_multi("sensor_gps", 1000, 2);
-	add_topic_multi("sensor_gps_checks", 1000, 2);
+	add_topic_multi("sensor_gps_status", 1000, 2);
 	add_topic_multi("sensor_gnss_relative", 1000, 1);
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
@@ -357,7 +357,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
 	add_topic("vehicle_gps_position");
-	add_topic("vehicle_gps_position_checks");
+	add_topic("vehicle_gps_position_status");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");

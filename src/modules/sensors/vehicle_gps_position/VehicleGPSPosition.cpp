@@ -67,9 +67,9 @@ inline gnssChecksSample gnssSampleFromSensorGpsMsg(const sensor_gps_s &gps)
 	return sample;
 }
 
-inline sensor_gps_checks_s sensorGpsChecksMsgFromGnssChecks(const GnssChecks &checks, uint32_t device_id)
+inline vehicle_gps_status_s vehicleGpsStatusFromGnssChecks(const GnssChecks &checks, uint32_t device_id)
 {
-	sensor_gps_checks_s msg{};
+	vehicle_gps_status_s msg{};
 
 	msg.timestamp = hrt_absolute_time();
 
@@ -93,10 +93,10 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vehicle_gps_position_pub.advertise();
-	_vehicle_gps_position_checks_pub.advertise();
+	_vehicle_gps_position_status_pub.advertise();
 
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		_sensor_gps_checks_pub[i].advertise();
+		_sensor_gps_status_pub[i].advertise();
 	}
 }
 
@@ -260,8 +260,7 @@ void VehicleGPSPosition::Run()
 			}
 
 			_gnss_checks[i].run(gnssSampleFromSensorGpsMsg(gps_data), in_air, vehicle_at_rest);
-			sensor_gps_checks_s checks_msg = sensorGpsChecksMsgFromGnssChecks(_gnss_checks[i], gps_data.device_id);
-			_sensor_gps_checks_pub[i].publish(checks_msg);
+			_sensor_gps_status_pub[i].publish(vehicleGpsStatusFromGnssChecks(_gnss_checks[i], gps_data.device_id));
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
 			_gps_blending.setGpsData(gps_data, i);
@@ -300,10 +299,11 @@ void VehicleGPSPosition::Run()
 			}
 
 			_vehicle_gps_position_checks.run(gnssSampleFromSensorGpsMsg(gps_output), in_air, vehicle_at_rest);
-			sensor_gps_checks_s checks_msg = sensorGpsChecksMsgFromGnssChecks(_vehicle_gps_position_checks, gps_output.device_id);
+			const vehicle_gps_status_s status_msg = vehicleGpsStatusFromGnssChecks(_vehicle_gps_position_checks,
+								gps_output.device_id);
 
 			_vehicle_gps_position_pub.publish(gps_output);
-			_vehicle_gps_position_checks_pub.publish(checks_msg);
+			_vehicle_gps_position_status_pub.publish(status_msg);
 		}
 	}
 

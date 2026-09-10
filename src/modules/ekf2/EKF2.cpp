@@ -797,7 +797,7 @@ void EKF2::Run()
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
 		UpdateGpsSample(ekf2_timestamps);
-		UpdateGpsChecksSample();
+		UpdateGpsStatus();
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		UpdateMagSample(ekf2_timestamps);
@@ -2680,21 +2680,21 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 
-void EKF2::UpdateGpsChecksSample()
+void EKF2::UpdateGpsStatus()
 {
 	// Latest GNSS check status published by the sensors module. It is a status topic (latest-wins):
 	// only forward new publications and otherwise keep the previous one, never an unpublished message.
-	sensor_gps_checks_s vehicle_gps_position_checks;
+	vehicle_gps_status_s vehicle_gps_position_status;
 
-	if (_vehicle_gps_position_checks_sub.update(&vehicle_gps_position_checks)) {
+	if (_vehicle_gps_position_status_sub.update(&vehicle_gps_position_status)) {
 		const gnssCheckStatus gnss_checks{
-			.position_drift_rate_horizontal_m_s = vehicle_gps_position_checks.position_drift_rate_horizontal_m_s,
-			.position_drift_rate_vertical_m_s = vehicle_gps_position_checks.position_drift_rate_vertical_m_s,
-			.filtered_horizontal_speed_m_s = vehicle_gps_position_checks.filtered_horizontal_speed_m_s,
-			.check_fail_status = {.value = vehicle_gps_position_checks.flags},
-			.enabled_checks = {.value = vehicle_gps_position_checks.enabled_checks},
-			.checks_passed = vehicle_gps_position_checks.checks_passed,
-			.initial_checks_passed = vehicle_gps_position_checks.initial_checks_passed,
+			.position_drift_rate_horizontal_m_s = vehicle_gps_position_status.position_drift_rate_horizontal_m_s,
+			.position_drift_rate_vertical_m_s = vehicle_gps_position_status.position_drift_rate_vertical_m_s,
+			.filtered_horizontal_speed_m_s = vehicle_gps_position_status.filtered_horizontal_speed_m_s,
+			.check_fail_status = {.value = vehicle_gps_position_status.flags},
+			.enabled_checks = {.value = vehicle_gps_position_status.enabled_checks},
+			.checks_passed = vehicle_gps_position_status.checks_passed,
+			.initial_checks_passed = vehicle_gps_position_status.initial_checks_passed,
 		};
 
 		_ekf.setGpsChecksData(gnss_checks);

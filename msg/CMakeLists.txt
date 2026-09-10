@@ -208,7 +208,6 @@ set(msg_files
 	SensorGnssRf.msg
 	SensorGnssStatus.msg
 	SensorGps.msg
-	SensorGpsChecks.msg
 	SensorGyro.msg
 	SensorGyroFft.msg
 	SensorGyroFifo.msg
@@ -241,6 +240,7 @@ set(msg_files
 	VehicleAirData.msg
 	VehicleConstraints.msg
 	VehicleControlMode.msg
+	VehicleGpsStatus.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLocalPositionSetpoint.msg
