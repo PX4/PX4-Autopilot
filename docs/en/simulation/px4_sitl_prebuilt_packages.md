@@ -110,11 +110,11 @@ docker run --rm -it \
 
 The default destination ports are:
 
-| Port  | Protocol | Used by                     |
-| ----- | -------- | --------------------------- |
-| 14550 | UDP      | QGroundControl              |
-| 14540 | UDP      | MAVSDK / offboard API       |
-| 8888  | UDP      | uXRCE-DDS agent (ROS 2)     |
+| Port  | Protocol | Used by                                              |
+| ----- | -------- | ---------------------------------------------------- |
+| 14550 | UDP      | QGroundControl                                       |
+| 14540 | UDP      | MAVSDK / offboard API                                |
+| 8888  | UDP      | uXRCE-DDS agent (ROS 2)                              |
 | 19410 | UDP      | [Hawkeye](../sim_hawkeye/index.md) SIH visualisation |
 
 On Linux, add `--network host`:
@@ -146,10 +146,10 @@ They also include PX4 source-build dependencies for SITL, without installing the
 They support `amd64` and `arm64`, with the same version tags as the runtime images.
 The ROS message definitions match the packaged PX4 firmware.
 
-| Image | Simulator |
-| ----- | --------- |
-| `px4io/px4-sitl-ros2:<tag>` | SIH, without Gazebo dependencies |
-| `px4io/px4-sitl-gazebo-ros2:<tag>` | Gazebo Harmonic |
+| Image                              | Simulator                        |
+| ---------------------------------- | -------------------------------- |
+| `px4io/px4-sitl-ros2:<tag>`        | SIH, without Gazebo dependencies |
+| `px4io/px4-sitl-gazebo-ros2:<tag>` | Gazebo Harmonic                  |
 
 Unlike the runtime images, these open a shell with ROS and the workspace at `/opt/px4_ros2` already sourced.
 PX4 and the DDS Agent are started explicitly and communicate inside the same container.

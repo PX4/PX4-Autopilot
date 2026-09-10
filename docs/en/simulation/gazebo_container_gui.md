@@ -51,9 +51,9 @@ The example assumes ordinary rootful Docker; rootless or user-namespace-remapped
 
 Once software rendering works, remove `-e LIBGL_ALWAYS_SOFTWARE=1` and add the appropriate options before the image name:
 
-| Linux GPU | Docker Options |
-| --- | --- |
-| Intel/AMD with DRM render devices | `--device=/dev/dri` |
+| Linux GPU                                                | Docker Options                                                              |
+| -------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Intel/AMD with DRM render devices                        | `--device=/dev/dri`                                                         |
 | NVIDIA with the host driver and NVIDIA Container Toolkit | `--gpus all -e NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display` |
 
 NVIDIA's default compute/utility capabilities alone do not provide the graphics/display libraries.
