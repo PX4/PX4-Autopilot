@@ -121,7 +121,7 @@ parameters:
         short: Arming without GNSS configuration
         long: |-
           Configures whether arming is allowed without GNSS, for modes that require a global position
-          (specifically, in those modes when a check defined by GPS_CHECK fails).
+          (specifically, in those modes when a check defined by GNSS_CHECK fails).
           The settings deny arming and warn, allow arming and warn, or silently allow arming.
       type: enum
       values:

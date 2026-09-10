@@ -569,7 +569,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>) _param_ekf2_gps_p_gate,
 		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>) _param_ekf2_gps_v_gate,
 
-		(ParamExtFloat<px4::params::REQ_SACC>) _param_gnss_req_sacc,
+		(ParamExtFloat<px4::params::GNSS_REQ_SACC>) _param_gnss_req_sacc,
 
 		// Used by EKF-GSF experimental yaw estimator
 		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas,

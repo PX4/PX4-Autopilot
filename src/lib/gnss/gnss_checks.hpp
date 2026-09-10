@@ -91,7 +91,7 @@ public:
 
 	void setParams(const Params &params) { _params = params; }
 	/**
-	 * Fail-status flags (gnssChecks layout) of the checks enabled by GPS_CHECK.
+	 * Fail-status flags (gnssChecks layout) of the checks enabled by GNSS_CHECK.
 	 * The param bit order (GnssChecksMask) and the status bit order are not parallel, so they are
 	 * mapped one by one: a positional shift silently misassigns every check that is appended to
 	 * one of the two enums but not the other.

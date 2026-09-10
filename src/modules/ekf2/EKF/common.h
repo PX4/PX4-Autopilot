@@ -232,8 +232,8 @@ struct gnssCheckStatus {
 	float position_drift_rate_horizontal_m_s{NAN}; ///< Horizontal position drift rate magnitude (m/s)
 	float position_drift_rate_vertical_m_s{NAN};   ///< Vertical position drift rate magnitude (m/s)
 	float filtered_horizontal_speed_m_s{NAN};     ///< Filtered horizontal velocity magnitude (m/s)
-	gps_check_fail_status_u check_fail_status{};  ///< Failed checks among those required by GPS_CHECK
-	gps_check_fail_status_u enabled_checks{};     ///< Checks required by GPS_CHECK, same bit layout
+	gps_check_fail_status_u check_fail_status{};  ///< Failed checks among those required by GNSS_CHECK
+	gps_check_fail_status_u enabled_checks{};     ///< Checks required by GNSS_CHECK, same bit layout
 	bool checks_passed{false};
 	bool initial_checks_passed{false};
 };

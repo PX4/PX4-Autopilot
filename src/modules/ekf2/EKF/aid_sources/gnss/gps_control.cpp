@@ -470,7 +470,7 @@ void Ekf::resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src)
 bool Ekf::isGnssSampleUsable(const gnssSample &gnss_sample) const
 {
 	// Same thresholds as the simplified in-air checks of the sensors module (GnssCheckLimits.hpp),
-	// applied to the sample about to be fused. Only the checks enabled in GPS_CHECK are considered.
+	// applied to the sample about to be fused. Only the checks enabled in GNSS_CHECK are considered.
 	gps_check_fail_status_u sample_fail_status{};
 	sample_fail_status.flags.fix = (gnss_sample.fix_type < gnss::SimplifiedCheckLimits::kMinFixType);
 	sample_fail_status.flags.hacc = (gnss_sample.hacc > gnss::SimplifiedCheckLimits::kMaxHorizontalAccuracy);

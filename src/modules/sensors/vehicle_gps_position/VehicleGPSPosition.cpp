@@ -146,16 +146,16 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		}
 
 		GnssChecks::Params checks_params{};
-		checks_params.check_mask = _param_gps_check.get();
-		checks_params.req_nsats = _param_req_nsats.get();
-		checks_params.req_pdop = _param_req_pdop.get();
-		checks_params.req_eph = _param_req_eph.get();
-		checks_params.req_epv = _param_req_epv.get();
-		checks_params.req_sacc = _param_req_sacc.get();
-		checks_params.req_hdrift = _param_req_hdrift.get();
-		checks_params.req_vdrift = _param_req_vdrift.get();
-		checks_params.req_fix = _param_req_fix.get();
-		checks_params.min_health_time_us = static_cast<uint64_t>(_param_req_gps_h.get() * 1_s);
+		checks_params.check_mask = _param_gnss_check.get();
+		checks_params.req_nsats = _param_gnss_req_nsats.get();
+		checks_params.req_pdop = _param_gnss_req_pdop.get();
+		checks_params.req_eph = _param_gnss_req_eph.get();
+		checks_params.req_epv = _param_gnss_req_epv.get();
+		checks_params.req_sacc = _param_gnss_req_sacc.get();
+		checks_params.req_hdrift = _param_gnss_req_hdrift.get();
+		checks_params.req_vdrift = _param_gnss_req_vdrift.get();
+		checks_params.req_fix = _param_gnss_req_fix.get();
+		checks_params.min_health_time_us = static_cast<uint64_t>(_param_gnss_req_gps_h.get() * 1_s);
 
 		for (GnssChecks &checks : _gnss_checks) {
 			checks.setParams(checks_params);

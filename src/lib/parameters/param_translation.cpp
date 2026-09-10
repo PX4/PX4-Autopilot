@@ -362,16 +362,16 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		const char *old_name;
 		const char *new_name;
 	} gnss_parameters[] {
-		{"EKF2_GPS_CHECK", "GPS_CHECK"},
-		{"EKF2_REQ_EPH", "REQ_EPH"},
-		{"EKF2_REQ_EPV", "REQ_EPV"},
-		{"EKF2_REQ_SACC", "REQ_SACC"},
-		{"EKF2_REQ_NSATS", "REQ_NSATS"},
-		{"EKF2_REQ_PDOP", "REQ_PDOP"},
-		{"EKF2_REQ_HDRIFT", "REQ_HDRIFT"},
-		{"EKF2_REQ_VDRIFT", "REQ_VDRIFT"},
-		{"EKF2_REQ_FIX", "REQ_FIX"},
-		{"EKF2_REQ_GPS_H", "REQ_GPS_H"},
+		{"EKF2_GPS_CHECK", "GNSS_CHECK"},
+		{"EKF2_REQ_EPH", "GNSS_REQ_EPH"},
+		{"EKF2_REQ_EPV", "GNSS_REQ_EPV"},
+		{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
+		{"EKF2_REQ_NSATS", "GNSS_REQ_NSATS"},
+		{"EKF2_REQ_PDOP", "GNSS_REQ_PDOP"},
+		{"EKF2_REQ_HDRIFT", "GNSS_REQ_HDRIFT"},
+		{"EKF2_REQ_VDRIFT", "GNSS_REQ_VDRIFT"},
+		{"EKF2_REQ_FIX", "GNSS_REQ_FIX"},
+		{"EKF2_REQ_GPS_H", "GNSS_REQ_GPS_H"},
 	};
 
 	for (const auto &parameter : gnss_parameters) {

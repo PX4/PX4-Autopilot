@@ -111,7 +111,7 @@ param set-default SENS_IMU_MODE 0
 param set-default EKF2_ASP_DELAY 0.0
 param set-default EKF2_AVEL_DELAY 0.0
 param set-default EKF2_WIND_NSD 0.01
-param set-default REQ_VDRIFT 1.0
+param set-default GNSS_REQ_VDRIFT 1.0
 
 param set-default IMU_GYRO_RATEMAX 200
 

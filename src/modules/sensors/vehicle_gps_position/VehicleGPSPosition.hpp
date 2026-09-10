@@ -131,16 +131,16 @@ private:
 		(ParamFloat<px4::params::SENS_GPS1_OFFZ>) _param_sens_gps1_offz,
 		(ParamInt<px4::params::SENS_GPS0_DELAY>) _param_sens_gps0_delay,
 		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay,
-		(ParamInt<px4::params::GPS_CHECK>)	 _param_gps_check,
-		(ParamInt<px4::params::REQ_NSATS>) 	_param_req_nsats,
-		(ParamFloat<px4::params::REQ_PDOP>) 	_param_req_pdop,
-		(ParamFloat<px4::params::REQ_EPH>) 	_param_req_eph,
-		(ParamFloat<px4::params::REQ_EPV>) 	_param_req_epv,
-		(ParamFloat<px4::params::REQ_SACC>) 	_param_req_sacc,
-		(ParamFloat<px4::params::REQ_HDRIFT>)	_param_req_hdrift,
-		(ParamFloat<px4::params::REQ_VDRIFT>) 	_param_req_vdrift,
-		(ParamInt<px4::params::REQ_FIX>) 	_param_req_fix,
-		(ParamFloat<px4::params::REQ_GPS_H>) 	_param_req_gps_h
+		(ParamInt<px4::params::GNSS_CHECK>) _param_gnss_check,
+		(ParamInt<px4::params::GNSS_REQ_NSATS>) _param_gnss_req_nsats,
+		(ParamFloat<px4::params::GNSS_REQ_PDOP>) _param_gnss_req_pdop,
+		(ParamFloat<px4::params::GNSS_REQ_EPH>) _param_gnss_req_eph,
+		(ParamFloat<px4::params::GNSS_REQ_EPV>) _param_gnss_req_epv,
+		(ParamFloat<px4::params::GNSS_REQ_SACC>) _param_gnss_req_sacc,
+		(ParamFloat<px4::params::GNSS_REQ_HDRIFT>) _param_gnss_req_hdrift,
+		(ParamFloat<px4::params::GNSS_REQ_VDRIFT>) _param_gnss_req_vdrift,
+		(ParamInt<px4::params::GNSS_REQ_FIX>) _param_gnss_req_fix,
+		(ParamFloat<px4::params::GNSS_REQ_GPS_H>) _param_gnss_req_gps_h
 	)
 };
 }; // namespace sensors

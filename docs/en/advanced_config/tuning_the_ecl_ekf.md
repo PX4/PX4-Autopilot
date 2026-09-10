@@ -268,7 +268,7 @@ GPS measurements will be used for position and velocity if the following conditi
 
 - GPS use is enabled via setting of the [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter.
 - GPS quality checks have passed.
-  These checks are controlled by the [GPS_CHECK](../advanced_config/parameter_reference.md#GPS_CHECK) and `REQ_*` parameters.
+  These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
 
 For more details about the configuration of height sources, [click here](#height).
 
@@ -323,25 +323,25 @@ The following items should be checked during setup:
 
 #### GNSS Performance Requirements
 
-For the ECL to accept GNSS data for navigation, certain minimum requirements need to be satisfied over a period of time, defined by [REQ_GPS_H](../advanced_config/parameter_reference.md#REQ_GPS_H) (10 seconds by default).
+For the ECL to accept GNSS data for navigation, certain minimum requirements need to be satisfied over a period of time, defined by [GNSS_REQ_GPS_H](../advanced_config/parameter_reference.md#GNSS_REQ_GPS_H) (10 seconds by default).
 
-Minima are defined in the [REQ_\*](../advanced_config/parameter_reference.md#REQ_EPH) parameters and each check can be enabled/disabled using the [GPS_CHECK](../advanced_config/parameter_reference.md#GPS_CHECK) parameter.
+Minima are defined in the [GNSS_REQ_\*](../advanced_config/parameter_reference.md#GNSS_REQ_EPH) parameters and each check can be enabled/disabled using the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) parameter.
 
 The table below shows the different metrics directly reported or calculated from the GNSS data, and the minimum required values for the data to be used by ECL.
 In addition, the _Average Value_ column shows typical values that might reasonably be obtained from a standard GNSS module (e.g. u-blox M8 series) - i.e. values that are considered good/acceptable.
 
 | Metric               | Minimum required                                                                          | Average Value | Units | Notes                                                                                                                                       |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| eph                  | <&nbsp;3 ([REQ_EPH](../advanced_config/parameter_reference.md#REQ_EPH))         | 0.8           | m     | Standard deviation of horizontal position error                                                                                             |
-| epv                  | <&nbsp;5 ([REQ_EPV](../advanced_config/parameter_reference.md#REQ_EPV))         | 1.5           | m     | Standard deviation of vertical position error                                                                                               |
-| Number of satellites | ≥6&nbsp;([REQ_NSATS](../advanced_config/parameter_reference.md#REQ_NSATS))      | 14            | -     |
-| sacc                 | <&nbsp;0.5 ([REQ_SACC](../advanced_config/parameter_reference.md#REQ_SACC))     | 0.2           | m/s   | Standard deviation of horizontal speed error                                                                                                |
+| eph                  | <&nbsp;3 ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH))         | 0.8           | m     | Standard deviation of horizontal position error                                                                                             |
+| epv                  | <&nbsp;5 ([GNSS_REQ_EPV](../advanced_config/parameter_reference.md#GNSS_REQ_EPV))         | 1.5           | m     | Standard deviation of vertical position error                                                                                               |
+| Number of satellites | ≥6&nbsp;([GNSS_REQ_NSATS](../advanced_config/parameter_reference.md#GNSS_REQ_NSATS))      | 14            | -     |
+| sacc                 | <&nbsp;0.5 ([GNSS_REQ_SACC](../advanced_config/parameter_reference.md#GNSS_REQ_SACC))     | 0.2           | m/s   | Standard deviation of horizontal speed error                                                                                                |
 | fix type             | ≥&nbsp;3                                                                                  | 4             | -     | 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time Kinematic, float, 6: Real-Time Kinematic, fixed, 8: Extrapolated |
-| PDOP                 | <&nbsp;2.5 ([REQ_PDOP](../advanced_config/parameter_reference.md#REQ_PDOP))     | 1.0           | -     | Position dilution of precision                                                                                                              |
-| hpos drift rate      | <&nbsp;0.1 ([REQ_HDRIFT](../advanced_config/parameter_reference.md#REQ_HDRIFT)) | 0.01          | m/s   | Drift rate calculated from reported GNSS position (when stationary).                                                                        |
-| vpos drift rate      | <&nbsp;0.2 ([REQ_VDRIFT](../advanced_config/parameter_reference.md#REQ_VDRIFT)) | 0.02          | m/s   | Drift rate calculated from reported GNSS altitude (when stationary).                                                                        |
-| hspd                 | <&nbsp;0.1 ([REQ_HDRIFT](../advanced_config/parameter_reference.md#REQ_HDRIFT)) | 0.01          | m/s   | Filtered magnitude of reported GNSS horizontal velocity.                                                                                    |
-| vspd                 | <&nbsp;0.2 ([REQ_VDRIFT](../advanced_config/parameter_reference.md#REQ_VDRIFT)) | 0.02          | m/s   | Filtered magnitude of reported GNSS vertical velocity.                                                                                      |
+| PDOP                 | <&nbsp;2.5 ([GNSS_REQ_PDOP](../advanced_config/parameter_reference.md#GNSS_REQ_PDOP))     | 1.0           | -     | Position dilution of precision                                                                                                              |
+| hpos drift rate      | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01          | m/s   | Drift rate calculated from reported GNSS position (when stationary).                                                                        |
+| vpos drift rate      | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02          | m/s   | Drift rate calculated from reported GNSS altitude (when stationary).                                                                        |
+| hspd                 | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01          | m/s   | Filtered magnitude of reported GNSS horizontal velocity.                                                                                    |
+| vspd                 | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02          | m/s   | Filtered magnitude of reported GNSS vertical velocity.                                                                                      |
 
 ::: info
 The `hpos_drift_rate`, `vpos_drift_rate` and `hspd` are calculated over a period of 10 seconds and published in the `ekf2_gps_drift` topic.
@@ -738,7 +738,7 @@ For a binary pass/fail summary for each sensor, refer to innovation_check_flags 
 ### GPS Quality Checks
 
 The EKF applies a number of GPS quality checks before commencing GPS aiding.
-These checks are controlled by the [GPS_CHECK](../advanced_config/parameter_reference.md#GPS_CHECK) and `REQ_*` parameters.
+These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
 The pass/fail status for these checks is logged in the [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).gps_check_fail_flags message.
 This integer will be zero when all required GPS checks have passed.
 If the EKF is not commencing GPS alignment, check the value of the integer against the bitmask definition `gps_check_fail_flags` in [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).

@@ -167,7 +167,7 @@ param set-default COM_RAM_MAX -1
 param set-default COM_RC_IN_MODE 1
 
 # Speedup SITL startup
-param set-default REQ_GPS_H 0.5
+param set-default GNSS_REQ_GPS_H 0.5
 
 param set-default IMU_GYRO_FFT_EN 1
 

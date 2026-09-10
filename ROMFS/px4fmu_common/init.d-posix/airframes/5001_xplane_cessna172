@@ -115,7 +115,7 @@ param set-default SENS_GPS1_DELAY 10
 # Runway roll is intentional motion while the fixed-wing land detector can still
 # report landed/at-rest. Keep normal GNSS quality checks, but do not reject a
 # valid simulator GNSS source on stationary-only horizontal drift checks.
-param set-default GPS_CHECK 1887
+param set-default GNSS_CHECK 1887
 param set-default EKF2_GPS_P_NOISE 2.5
 param set-default EKF2_GPS_V_NOISE 0.30
 param set-default EKF2_GPS_P_GATE 8.0

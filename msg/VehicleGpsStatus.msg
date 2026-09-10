@@ -28,7 +28,7 @@ uint16 GNSS_VSPEED_FAIL = 512 # (1 << 9)
 uint16 GNSS_SPOOFED_FAIL = 1024 # (1 << 10)
 uint16 GNSS_JAMMED_FAIL = 2048 # (1 << 11)
 
-uint16 enabled_checks # [@enum GNSS] Bitmask of the checks required by GPS_CHECK; flags is masked with it
+uint16 enabled_checks # [@enum GNSS] Bitmask of the checks required by GNSS_CHECK; flags is masked with it
 
 bool checks_passed # All checks pass and have done so for the minimum health time
 bool initial_checks_passed # Strict initial checks passed, simplified checks run afterwards
