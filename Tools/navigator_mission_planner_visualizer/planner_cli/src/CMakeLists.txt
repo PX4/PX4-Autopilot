@@ -31,19 +31,41 @@
 #
 ############################################################################
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+# Out-of-tree planner CLI for Tools/navigator_mission_planner_visualizer. Build it with:
+#   make px4_sitl_test EXTERNAL_MODULES_LOCATION=$PWD/Tools/navigator_mission_planner_visualizer/planner_cli mission_route_planner_cli
 
-px4_add_functional_gtest(SRC test_mission_base.cpp LINKLIBS modules__navigator modules__dataman)
-px4_add_functional_gtest(SRC test_RTL.cpp LINKLIBS modules__navigator modules__dataman)
-px4_add_functional_gtest(SRC test_mission_route_cache.cpp LINKLIBS modules__navigator navigator_mission_route modules__dataman)
+if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE AND PX4_PLATFORM STREQUAL "posix" AND BUILD_TESTING)
+	set(NAVIGATOR_DIR ${PX4_SOURCE_DIR}/src/modules/navigator)
 
-if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
-	px4_add_functional_gtest(SRC test_prec_takeoff.cpp LINKLIBS modules__navigator modules__dataman)
-	px4_add_functional_gtest(SRC test_prec_takeoff_integration.cpp LINKLIBS modules__navigator modules__dataman)
-endif()
+	# The planner sources are compiled here, not linked, so DEBUG_BUILD turns on their
+	# PX4_DEBUG scoring traces for this binary only.
+	add_executable(mission_route_planner_cli EXCLUDE_FROM_ALL
+		mission_route_planner_cli.cpp
+		${NAVIGATOR_DIR}/mission_route_internal_types.cpp
+		${NAVIGATOR_DIR}/mission_route_projection.cpp
+		${NAVIGATOR_DIR}/mission_route_planner.cpp
+	)
+	target_include_directories(mission_route_planner_cli PRIVATE ${NAVIGATOR_DIR})
+	target_compile_definitions(mission_route_planner_cli PRIVATE MODULE_NAME="mission_route_planner_cli" DEBUG_BUILD)
 
-if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
-	px4_add_functional_gtest(SRC test_RTL_mission_safe_point_follow.cpp LINKLIBS modules__navigator modules__dataman)
-	px4_add_functional_gtest(SRC test_mission_route_projection.cpp LINKLIBS modules__navigator navigator_mission_route_planner)
-	px4_add_functional_gtest(SRC test_mission_route_planner.cpp LINKLIBS modules__navigator navigator_mission_route_planner)
+	# Same platform libraries as px4_add_functional_gtest(), without gtest.
+	target_link_libraries(mission_route_planner_cli PRIVATE
+		navigator_mission_route
+		px4_layer
+		px4_platform
+		uORB
+		systemlib
+		cdev
+		px4_work_queue
+		px4_daemon
+		work_queue
+		parameters
+		events
+		perf
+		tinybson
+		uorb_msgs
+		pthread
+		# Daemon app-map stubs, defined later in the configure run, hence no TARGET check here.
+		-Wl,--whole-archive test_stubs -Wl,--no-whole-archive
+	)
 endif()

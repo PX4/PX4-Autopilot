@@ -73,6 +73,8 @@ parameters:
           - 5 (Direct to rally point only): Return directly to safe landing point (do not consider mission landing and Home).
 
           - 6 (Home if battery allows, else rally point): Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
+
+          - 7 (Mission path, rally point or closest of landing or home): Return to the closest safe point by rejoining and following the uploaded mission route to an optimal branch-off point. If no safe point is usable, use the closer mission takeoff or landing endpoint. If route planning is unavailable fall back to direct RTL destination selection.
       type: enum
       values:
         0: Direct to home or rally point
@@ -82,6 +84,7 @@ parameters:
         4: Mission path, closest of landing or home
         5: Direct to rally point only
         6: Home if battery allows, else rally point
+        7: Mission path, rally point or closest of landing or home
       default: 0
     RTL_CONE_ANG:
       description:
@@ -123,6 +126,30 @@ parameters:
       min: 25
       decimal: 1
       increment: 0.5
+    RTL_RP_SEG_DIST:
+      description:
+        short: Extra cross-track search distance for safe-point route projections
+        long: |-
+          When projecting a safe point onto the uploaded mission route for RTL_TYPE = 7,
+          accept candidates within this distance of the closest route segment.
+      type: float
+      default: 30.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1
+    RTL_FW_UTURN_PEN:
+      description:
+        short: Fixed-wing U-turn distance penalty
+        long: |-
+          Virtual distance added when RTL_TYPE = 7 would require a fixed-wing
+          vehicle to reverse direction on the mission route.
+      type: float
+      default: 4000.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 100
 - group: Return To Land
   definitions:
     RTL_TIME_FACTOR:

@@ -40,6 +40,9 @@
 #pragma once
 
 #include "mission_base.h"
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include "mission_route_types.h"
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 #include <uORB/topics/rtl_time_estimate.h>
 #include <matrix/math.hpp>
 
@@ -52,9 +55,25 @@ public:
 
 	virtual rtl_time_estimate_s calc_rtl_time_estimate() = 0;
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	struct RouteSafePointConfig {
+		mission_route::RtlRoutePlan plan{};
+		loiter_point_s goal_land_approach{};
+		float rtl_alt{NAN};
+		uint8_t vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
+	};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	virtual void setReturnAltMin(bool min) { (void)min;};
 
 	virtual void setRtlAlt(float alt) { (void)alt;};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	virtual void configureRouteSafePoint(const RouteSafePointConfig &config) { (void)config; }
+
+	/** Most recent active DO_JUMP identity, or an empty anchor when none is active. */
+	virtual mission_route::ActiveJumpAnchor activeJumpAnchor() const { return {}; }
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }

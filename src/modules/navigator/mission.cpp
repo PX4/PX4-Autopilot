@@ -49,6 +49,10 @@
 #include "mission_item_utils.h"
 #include "navigator.h"
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include "mission_route_planner.h"
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
@@ -88,8 +92,118 @@ Mission::on_activation()
 
 	check_mission_valid(true);
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	_global_pos_sub.update();
+	_vehicle_status_sub.update();
+	_land_detected_sub.update();
+
+	// The rejoin planning below needs the restarted current_seq immediately. MissionBase::on_activation()
+	// runs the same guard again, but after this reset the second call can no longer change the index.
+	const bool restarting_mission = _system_disarmed_while_inactive && _mission_has_been_activated
+					&& _mission.count > 0
+					&& ((_mission.current_seq + 1 == _mission.count)
+					    || _navigator->get_mission_result()->finished);
+	checkMissionRestart();
+
+	if (restarting_mission) {
+		_active_jump_anchor = {};
+	}
+
+	const bool resume_mission_on_previous = (_inactivation_index > 0) && cameraWasTriggering();
+	trySetRouteJoinOnActivation(resume_mission_on_previous);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	MissionBase::on_activation();
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+void Mission::onMissionUpdate(bool has_mission_items_changed)
+{
+	// A replacement mission or an external sequence change invalidates the flown jump edge.
+	_active_jump_anchor = {};
+	MissionBase::onMissionUpdate(has_mission_items_changed);
+}
+
+bool Mission::trySetRouteJoinOnActivation(const bool resume_mission_on_previous)
+{
+	resetJoinRouteState();
+
+	if (resume_mission_on_previous
+	    || (_param_mis_route_join.get() == 0)
+	    || (_work_item_type != WorkItemType::WORK_ITEM_TYPE_DEFAULT)
+	    || _land_detected_sub.get().landed
+	    || (_mission.count < 2)
+	    || (_mission.current_seq < 0)
+	    || (_mission.current_seq >= _mission.count)) {
+		return false;
+	}
+
+	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
+
+	if (!mission_route_cache.missionItemsReady(_mission)) {
+		return false;
+	}
+
+	const vehicle_global_position_s &global_position = _global_pos_sub.get();
+
+	if (!PX4_ISFINITE(global_position.lat) || !PX4_ISFINITE(global_position.lon)
+	    || !PX4_ISFINITE(global_position.alt)) {
+		return false;
+	}
+
+	const vehicle_status_s &vehicle_status = _vehicle_status_sub.get();
+	const vehicle_local_position_s *local_position = _navigator->get_local_position();
+
+	mission_route::MissionResumeRequest request{};
+	request.vehicle_position = {global_position.lat, global_position.lon, global_position.alt};
+	request.mission_index = _mission.current_seq;
+	request.active_jump_anchor = _active_jump_anchor;
+	request.projection_search_distance_m =
+		(vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+		? _param_mis_mc_seg_dist.get() : _param_mis_fw_seg_dist.get();
+	request.acceptance_radius_m = _navigator->get_acceptance_radius();
+	request.home_altitude_amsl = _navigator->get_home_position()->valid_alt
+				     ? _navigator->get_home_position()->alt : NAN;
+	request.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	request.in_transition_to_fw = vehicle_status.in_transition_to_fw;
+	request.is_vtol = vehicle_status.is_vtol;
+	request.vtol_state_on_mission_upload = missionStartVtolState();
+
+	if (local_position != nullptr && local_position->v_xy_valid) {
+		request.velocity_north_m_s = local_position->vx;
+		request.velocity_east_m_s = local_position->vy;
+	}
+
+	MissionRoutePlanner planner{mission_route_cache};
+	mission_route::MissionResumePlan join_plan{};
+	const mission_route::FailureReason failure_reason = planner.planMissionResumeJoin(request, join_plan);
+
+	if (failure_reason != mission_route::FailureReason::kNone) {
+		PX4_WARN("Mission route rejoin unavailable: %s", mission_route::failureReasonString(failure_reason));
+		return false;
+	}
+
+	if (!join_plan.valid() || join_plan.first_mission_item_index >= _mission.count) {
+		PX4_ERR("Mission route rejoin failed to build a valid join plan");
+		return false;
+	}
+
+	_active_jump_anchor = join_plan.active_jump_anchor;
+	setMissionIndex(join_plan.first_mission_item_index);
+	_is_current_planned_mission_item_valid = isMissionValid();
+	setupJoinRoute(join_plan.join_position, join_plan.use_current_altitude, join_plan.vtol_transition_action);
+
+	PX4_INFO("Mission route join: target=%d rev=%u vtol=%u skip_alt=%u",
+		 static_cast<int>(join_plan.first_mission_item_index),
+		 static_cast<unsigned>(join_plan.direction_reversed),
+		 static_cast<unsigned>(join_plan.vtol_transition_action),
+		 static_cast<unsigned>(join_plan.use_current_altitude));
+
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Rejoining mission route\t");
+	events::send(events::ID("mission_route_rejoin"), events::Log::Info, "Rejoining mission route");
+	return true;
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 
 bool
@@ -106,6 +220,10 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 	if ((index == -1) || (index == _mission.current_seq)) {
 		// Keep the current mission item unchanged.
 		if (reset_jump_counters) {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+			resetJoinRouteState();
+			_active_jump_anchor = {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 			resetMissionJumpCounter();
 
 			// A reset can bring a finished mission back to a resumable state (mirrors
@@ -130,6 +248,12 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 		resetMissionJumpCounter();
 	}
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// The user actively moved the mission index: any armed route join or loop anchor is stale.
+	resetJoinRouteState();
+	_active_jump_anchor = {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	_is_current_planned_mission_item_valid = true;
 
 	// we start from the first item so can reset the cache
@@ -153,6 +277,10 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 
 bool Mission::setNextMissionItem()
 {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	updateActiveJumpAnchorForNominalAdvance(_active_jump_anchor);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	return (goToNextItem() == PX4_OK);
 }
 
@@ -173,6 +301,22 @@ Mission::do_need_move_to_takeoff()
 
 void Mission::setActiveMissionItems()
 {
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// The join-route pipeline flies synthetic virtual waypoints (branch-in projection and
+	// post-join transition) that do not exist in the mission item cache. When it handles
+	// this cycle it has already generated, issued and published the setpoint.
+	if (handleJoinRouteWorkItems(pos_sp_triplet, current_setpoint_copy)) {
+		// The mission index is the target after joining. Loading it here would overwrite
+		// the virtual waypoint or transition that is still being executed.
+		return;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	/* Get mission item that comes after current if available */
 	static constexpr size_t max_num_next_items{2u};
 	int32_t next_mission_items_index[max_num_next_items];
@@ -199,9 +343,6 @@ void Mission::setActiveMissionItems()
 
 	/*********************************** handle mission item *********************************************/
 	WorkItemType new_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
 	/* Skip VTOL/FW Takeoff item if in air, fixed-wing and didn't start the takeoff already*/
 	if ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) &&
