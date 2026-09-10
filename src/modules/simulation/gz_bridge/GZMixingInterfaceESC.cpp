@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "GZMixingInterfaceESC.hpp"
+#include <lib/mathlib/mathlib.h>
 
 bool GZMixingInterfaceESC::init(const std::string &model_name)
 {
@@ -72,6 +73,19 @@ bool GZMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned 
 
 		} else {
 			break;
+		}
+	}
+
+	// Bidirectional peripheral channels (SIM_GZ_EC_BIDI): send reverse as a negative value,
+	// mirroring the UAVCAN ESC driver.
+	for (unsigned i = 0; i < active_output_count; i++) {
+		// Encode armed outputs only; a stopped channel sits at the disarmed value and must
+		// not be inverted to full reverse.
+		if ((_bidi_mask & (1u << i)) && !_mixing_output.isMotor(i)
+		    && outputs[i] > (float)_mixing_output.disarmedValue(i)) {
+			const float min_i = (float)_mixing_output.minValue(i);
+			const float max_i = (float)_mixing_output.maxValue(i);
+			outputs[i] = math::interpolate(outputs[i], min_i, max_i, -max_i, max_i);
 		}
 	}
 
