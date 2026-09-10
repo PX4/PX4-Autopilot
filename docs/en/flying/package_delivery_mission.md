@@ -79,7 +79,7 @@ Note how the altitude graph shows the `Land` item.
 Do not plan a mission with a delivery like this: `LAND` > `GRIPPER` > `RETURN TO LAUNCH`.
 
 For safety reasons "Return To Launch" is disabled when vehicle is landed ([related issue](https://github.com/PX4/PX4-Autopilot/pull/20044)).
-So if you land, release the cargo, then have a Return waypoint, the vehicle will idle at the landing coordinate.
+So if you land, release the cargo, then have a Return (`MAV_CMD_NAV_RETURN_TO_LAUNCH`) waypoint, the vehicle will idle at the landing coordinate.
 
 #### Manual Control of Gripper in Missions
 
