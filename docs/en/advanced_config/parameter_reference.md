@@ -47933,6 +47933,20 @@ uavcan::equipment::gnss::RTCMStream
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### UAVCAN_QUIRKS (`INT32`) {#UAVCAN_QUIRKS}
+
+DroneCAN device quirks bitmask.
+
+Enables workarounds for non-compliant DroneCAN devices. See PX4 docs for details.
+
+**Bitmask:**
+
+- `0`: Hobbywing 1-based esc_index
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 1        |           | 0       |      | &nbsp;    |
+
 ### UAVCAN_RNG_MAX (`FLOAT`) {#UAVCAN_RNG_MAX}
 
 UAVCAN rangefinder maximum range.
