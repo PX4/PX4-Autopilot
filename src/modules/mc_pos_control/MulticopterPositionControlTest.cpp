@@ -51,6 +51,14 @@
 #include <memory>
 
 #include <matrix/math.hpp>
+#include <parameters/param.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 
 using namespace time_literals;
 
@@ -116,6 +124,19 @@ public:
 	{
 		return controller._vel_z_lp_filter.getState();
 	}
+
+	// One control cycle driven from the test thread. Run() re-arms itself on the work
+	// queue, so the schedule is cleared again to keep the cycle in the test's hands.
+	static void runOnce(MulticopterPositionControl &controller)
+	{
+		controller.Run();
+		controller.ScheduleClear();
+	}
+
+	static const trajectory_setpoint_s &lastValidSetpoint(const MulticopterPositionControl &controller)
+	{
+		return controller._last_valid_setpoint;
+	}
 };
 
 class MulticopterPositionControlTest : public ::testing::Test
@@ -160,6 +181,26 @@ protected:
 	{
 		vehicle_local_position_s local_position{};
 		local_position.timestamp = hrt_absolute_time();
+		return local_position;
+	}
+
+	// A valid in-flight estimate for driving Run(). The limits are left unset so the
+	// controller's own parameters apply.
+	vehicle_local_position_s makeFlyingLocalPosition() const
+	{
+		vehicle_local_position_s local_position{};
+		local_position.timestamp = hrt_absolute_time();
+		local_position.timestamp_sample = local_position.timestamp;
+		local_position.xy_valid = true;
+		local_position.z_valid = true;
+		local_position.v_xy_valid = true;
+		local_position.v_z_valid = true;
+		local_position.x = 10.f;
+		local_position.y = 20.f;
+		local_position.z = -30.f;
+		local_position.vxy_max = NAN;
+		local_position.vz_max = NAN;
+		local_position.hagl_min = NAN;
 		return local_position;
 	}
 
@@ -528,4 +569,74 @@ TEST_F(MulticopterPositionControlTest, VelocityFilterMovesOnceWhenBothSetpointsA
 	EXPECT_FLOAT_EQ(filter_xy(0), 4.5f);
 	EXPECT_FLOAT_EQ(filter_xy(1), -3.5f);
 	EXPECT_FLOAT_EQ(MulticopterPositionControlTestPeer::velocityFilterStateZ(*_controller), 1.25f);
+}
+
+// WHY: the cases above hand the helper a fallback of their own. This one drives Run(), so
+// the fallback the controller actually stores has to move with the reset, and the controller
+// has to fly the moved one when the setpoint of the same cycle is unusable.
+TEST_F(MulticopterPositionControlTest, RunMovesTheStoredFallbackWithAResetAndFliesIt)
+{
+	uORB::Publication<vehicle_control_mode_s> control_mode_pub{ORB_ID(vehicle_control_mode)};
+	uORB::Publication<vehicle_land_detected_s> land_detected_pub{ORB_ID(vehicle_land_detected)};
+	uORB::Publication<vehicle_local_position_s> local_position_pub{ORB_ID(vehicle_local_position)};
+	uORB::Publication<trajectory_setpoint_s> setpoint_pub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
+
+	// skip the takeoff ramp, the fallback path only runs once the controller is in flight
+	param_control_autosave(false);
+	const param_t throw_param = param_find("COM_THROW_EN");
+	ASSERT_NE(throw_param, PARAM_INVALID);
+	int32_t throw_enabled = 1;
+	ASSERT_EQ(param_set(throw_param, &throw_enabled), PX4_OK);
+
+	vehicle_control_mode_s control_mode{};
+	control_mode.timestamp = hrt_absolute_time() - 10_ms;
+	control_mode.flag_armed = true;
+	control_mode.flag_multicopter_position_control_enabled = true;
+	control_mode_pub.publish(control_mode);
+
+	vehicle_land_detected_s land_detected{};
+	land_detected.timestamp = control_mode.timestamp;
+	land_detected_pub.publish(land_detected);
+
+	// GIVEN: one cycle with a usable setpoint, which the controller stores as its fallback
+	trajectory_setpoint_s setpoint = makeSetpoint();
+	setpoint.timestamp = hrt_absolute_time() - 1_ms;
+	setpoint_pub.publish(setpoint);
+	local_position_pub.publish(makeFlyingLocalPosition());
+	MulticopterPositionControlTestPeer::runOnce(*_controller);
+
+	const trajectory_setpoint_s &fallback = MulticopterPositionControlTestPeer::lastValidSetpoint(*_controller);
+	ASSERT_FLOAT_EQ(fallback.position[0], 10.f);
+	ASSERT_FLOAT_EQ(fallback.position[1], 20.f);
+	ASSERT_FLOAT_EQ(fallback.position[2], -30.f);
+
+	// WHEN: the estimate resets and the setpoint of the same cycle is unusable
+	trajectory_setpoint_s unusable = PositionControl::empty_trajectory_setpoint;
+	unusable.timestamp = hrt_absolute_time() - 1_ms;
+	setpoint_pub.publish(unusable);
+
+	vehicle_local_position_s local_position = makeFlyingLocalPosition();
+	local_position.xy_reset_counter = 1;
+	local_position.delta_xy[0] = 2.5f;
+	local_position.delta_xy[1] = -3.5f;
+	local_position.z_reset_counter = 1;
+	local_position.delta_z = -1.5f;
+	local_position_pub.publish(local_position);
+	MulticopterPositionControlTestPeer::runOnce(*_controller);
+
+	// THEN: the stored fallback moved by the reset
+	EXPECT_FLOAT_EQ(fallback.position[0], 12.5f);
+	EXPECT_FLOAT_EQ(fallback.position[1], 16.5f);
+	EXPECT_FLOAT_EQ(fallback.position[2], -31.5f);
+
+	// and the controller flew the moved fallback rather than the unusable setpoint
+	vehicle_local_position_setpoint_s flown{};
+	ASSERT_TRUE(local_position_setpoint_sub.update(&flown));
+	EXPECT_FLOAT_EQ(flown.x, 12.5f);
+	EXPECT_FLOAT_EQ(flown.y, 16.5f);
+	EXPECT_FLOAT_EQ(flown.z, -31.5f);
+
+	int32_t throw_disabled = 0;
+	param_set(throw_param, &throw_disabled);
 }
