@@ -202,6 +202,8 @@ public:
 	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 				    ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max) {}
 
+	const ActuatorVector &getActuatorEffectivenessScale() { return _actuator_effectiveness_scale; }
+
 	/**
 	 * Get a bitmask of motors to be stopped
 	 */
@@ -244,7 +246,9 @@ protected:
 
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
 	ActuatorBitmask _stopped_motors_mask_due_to_flight_phase{};
-
+	
+	ActuatorVector _actuator_effectiveness_scale;	
+	
 	bool _longitudinal_motors_stopped_by_thrust{false};
 	bool _vertical_motors_stopped_by_thrust{false};
 	bool _lateral_motors_stopped_by_thrust{false};

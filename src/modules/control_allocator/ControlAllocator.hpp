@@ -53,6 +53,7 @@
 #include <ActuatorEffectivenessHelicopter.hpp>
 #include <ActuatorEffectivenessHelicopterCoaxial.hpp>
 #include <ActuatorEffectivenessSpacecraft.hpp>
+#include <ActuatorEffectivenessThrustVectoring.hpp>
 
 #include "ActuatorGroupPreflightCheck.hpp"
 
@@ -176,6 +177,7 @@ private:
 		HELICOPTER_COAXIAL = 12,
 		ROVER_MECANUM = 13,
 		SPACECRAFT_2D = 14,
+		THRUST_VECTORING = 15,
 	};
 
 	enum class FailureMode {

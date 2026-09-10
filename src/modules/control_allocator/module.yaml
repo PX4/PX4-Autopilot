@@ -33,7 +33,7 @@ parameters:
                 12: Helicopter (Coaxial)
                 13: Rover (Mecanum)
                 14: Spacecraft 2D
-                15: Spacecraft 3D
+                15: Thrust Vectoring
             default: 0
 
         CA_METHOD:

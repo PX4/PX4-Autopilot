@@ -263,7 +263,9 @@ ControlAllocator::update_effectiveness_source()
 		case EffectivenessSource::SPACECRAFT_2D:
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
-
+		case EffectivenessSource::THRUST_VECTORING: //EDF Drone
+			tmp = new ActuatorEffectivenessThrustVectoring(this);
+			break;
 		case EffectivenessSource::ROVER_ACKERMANN: // Unreachable: Rover startup scripts don't load control_allocator. Controllers publish actuator_outputs directly.
 		case EffectivenessSource::ROVER_DIFFERENTIAL:
 		case EffectivenessSource::ROVER_MECANUM:
@@ -436,7 +438,8 @@ ControlAllocator::Run()
 			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
 								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
-
+			_control_allocation[i]->_actuator_effectiveness_scale = _actuator_effectiveness->getActuatorEffectivenessScale();
+			
 			if (i == 0) {
 				// The motors are always in allocation 0
 				handle_stopped_motors(now);
