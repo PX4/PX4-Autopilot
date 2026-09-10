@@ -204,7 +204,7 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 #if defined(CONFIG_EKF2_GNSS_YAW)
 void EstimatorInterface::setGnssYawData(const gnssYawSample &gnss_yaw_sample)
 {
-	if (!_initialised) {
+	if (!_initialised || !PX4_ISFINITE(gnss_yaw_sample.yaw)) {
 		return;
 	}
 

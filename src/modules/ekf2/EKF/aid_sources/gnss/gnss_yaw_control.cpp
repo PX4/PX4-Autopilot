@@ -54,73 +54,69 @@ void Ekf::controlGnssYawFusion(const gnssYawSample &gnss_yaw_sample)
 		return;
 	}
 
-	const bool is_new_data_available = PX4_ISFINITE(gnss_yaw_sample.yaw);
+	updateGnssYaw(gnss_yaw_sample);
 
-	if (is_new_data_available) {
+	const bool continuing_conditions_passing = _control_status.flags.tilt_align;
 
-		updateGnssYaw(gnss_yaw_sample);
+	const bool is_gnss_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push,
+			2 * GNSS_YAW_MAX_INTERVAL);
 
-		const bool continuing_conditions_passing = _control_status.flags.tilt_align;
+	// The position checks are kept as a start gate: they cover receiver-level health (fix, spoofing, jamming) and,
+	// through their reset in stopGnssFusion(), enforce the on-ground hold-off after a yaw fault.
+	const bool starting_conditions_passing = continuing_conditions_passing
+			&& _gnss_checks.passed()
+			&& !is_gnss_yaw_data_intermittent;
 
-		const bool is_gnss_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push,
-				2 * GNSS_YAW_MAX_INTERVAL);
+	if (_control_status.flags.gnss_yaw) {
+		if (continuing_conditions_passing) {
 
-		const bool starting_conditions_passing = continuing_conditions_passing
-				&& _gnss_checks.passed()
-				&& !is_gnss_yaw_data_intermittent;
+			fuseGnssYaw(gnss_yaw_sample.yaw_offset);
 
-		if (_control_status.flags.gnss_yaw) {
-			if (continuing_conditions_passing) {
+			const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_max);
 
-				fuseGnssYaw(gnss_yaw_sample.yaw_offset);
-
-				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_max);
-
-				if (is_fusion_failing) {
-					stopGnssYawFusion();
-
-					// Before takeoff, we do not want to continue to rely on the current heading
-					// if we had to stop the fusion
-					if (!_control_status.flags.in_air) {
-						ECL_INFO("clearing yaw alignment");
-						_control_status.flags.yaw_align = false;
-					}
-				}
-
-			} else {
-				// Stop GNSS yaw fusion but do not declare it faulty
+			if (is_fusion_failing) {
 				stopGnssYawFusion();
+
+				// Before takeoff, we do not want to continue to rely on the current heading
+				// if we had to stop the fusion
+				if (!_control_status.flags.in_air) {
+					ECL_INFO("clearing yaw alignment");
+					_control_status.flags.yaw_align = false;
+				}
 			}
 
 		} else {
-			if (starting_conditions_passing) {
-				// Try to activate GNSS yaw fusion
-
-				if (!_control_status.flags.in_air
-				    || !_control_status.flags.yaw_align
-				    || !isNorthEastAidingActive()) {
-
-					// Reset before starting the fusion
-					if (resetYawToGnss(gnss_yaw_sample.yaw, gnss_yaw_sample.yaw_offset)) {
-
-						resetAidSourceStatusZeroInnovation(_aid_src_gnss_yaw);
-
-						_control_status.flags.gnss_yaw = true;
-						_control_status.flags.yaw_align = true;
-					}
-
-				} else if (!_aid_src_gnss_yaw.innovation_rejected) {
-					// Do not force a reset but wait for the consistency check to pass
-					_control_status.flags.gnss_yaw = true;
-					fuseGnssYaw(gnss_yaw_sample.yaw_offset);
-				}
-
-				if (_control_status.flags.gnss_yaw) {
-					ECL_INFO("starting GNSS yaw fusion");
-				}
-			}
+			// Stop GNSS yaw fusion but do not declare it faulty
+			stopGnssYawFusion();
 		}
 
+	} else {
+		if (starting_conditions_passing) {
+			// Try to activate GNSS yaw fusion
+
+			if (!_control_status.flags.in_air
+			    || !_control_status.flags.yaw_align
+			    || !isNorthEastAidingActive()) {
+
+				// Reset before starting the fusion
+				if (resetYawToGnss(gnss_yaw_sample.yaw, gnss_yaw_sample.yaw_offset)) {
+
+					resetAidSourceStatusZeroInnovation(_aid_src_gnss_yaw);
+
+					_control_status.flags.gnss_yaw = true;
+					_control_status.flags.yaw_align = true;
+				}
+
+			} else if (!_aid_src_gnss_yaw.innovation_rejected) {
+				// Do not force a reset but wait for the consistency check to pass
+				_control_status.flags.gnss_yaw = true;
+				fuseGnssYaw(gnss_yaw_sample.yaw_offset);
+			}
+
+			if (_control_status.flags.gnss_yaw) {
+				ECL_INFO("starting GNSS yaw fusion");
+			}
+		}
 	}
 }
 

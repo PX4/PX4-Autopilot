@@ -28,11 +28,6 @@ void Gps::send(const uint64_t time)
 	}
 
 	_ekf->setGpsData(_gps_data);
-
-	if (PX4_ISFINITE(_gnss_yaw_data.yaw)) {
-		_gnss_yaw_data.time_us = _gps_data.time_us;
-		_ekf->setGnssYawData(_gnss_yaw_data);
-	}
 }
 
 void Gps::setData(const gnssSample &gps)
@@ -58,16 +53,6 @@ void Gps::setLongitude(const double lon)
 void Gps::setVelocity(const Vector3f &vel)
 {
 	_gps_data.vel = vel;
-}
-
-void Gps::setYaw(const float yaw)
-{
-	_gnss_yaw_data.yaw = yaw;
-}
-
-void Gps::setYawOffset(const float yaw_offset)
-{
-	_gnss_yaw_data.yaw_offset = yaw_offset;
 }
 
 void Gps::setFixType(const int fix_type)
