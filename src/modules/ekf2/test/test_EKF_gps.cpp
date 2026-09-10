@@ -312,3 +312,68 @@ TEST_F(EkfGpsTest, gnssIntermittentSaccFailureDisablesFusion)
 	// and reset_timeout_max was exceeded since the last real pass.
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 }
+
+TEST_F(EkfGpsTest, velocityAboveLimitIsNotBuffered)
+{
+	// GIVEN: an airborne EKF that fuses GPS with the optional quality checks disabled
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_EQ(_ekf->gnss_vel_limit_drop_count(), 0u);
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->getParamHandle()->ekf2_gps_check = 0;
+
+	// WHEN: the receiver reports a velocity above EKF2_VEL_LIM (100 m/s by default)
+	_sensor_simulator._gps.setVelocity(Vector3f(150.f, 0.f, 0.f));
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the samples are dropped before they reach the buffer
+	EXPECT_GT(_ekf->gnss_vel_limit_drop_count(), 0u);
+
+	// AND: without buffered data the GNSS fusion stops as on a data loss
+	_sensor_simulator.runSeconds(7);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// AND: valid samples restart fusion without increasing the drop count
+	const uint32_t drop_count = _ekf->gnss_vel_limit_drop_count();
+	_sensor_simulator._gps.setVelocity(Vector3f{});
+	_sensor_simulator.runSeconds(11);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_EQ(_ekf->gnss_vel_limit_drop_count(), drop_count);
+}
+
+TEST_F(EkfGpsTest, invalidVelocityDoesNotUpdateDelayedSample)
+{
+	// GIVEN: an EKF with a processed GNSS sample and no pending GNSS data
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(1);
+	const uint64_t last_sample_time = _ekf->get_gps_sample_delayed().time_us;
+	ASSERT_GT(last_sample_time, 0u);
+
+	// AND: the vehicle is airborne with the optional GNSS quality checks disabled
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->getParamHandle()->ekf2_gps_check = 0;
+	const float velocity_limit = _ekf->getParamHandle()->ekf2_vel_lim;
+	const Vector3f invalid_velocities[] {
+		{velocity_limit, velocity_limit, 0.f},
+		{0.f, 0.f, velocity_limit + 1.f},
+		{0.f, 0.f, -velocity_limit - 1.f},
+		{NAN, 0.f, 0.f},
+		{0.f, INFINITY, 0.f},
+		{0.f, 0.f, -INFINITY},
+	};
+
+	_sensor_simulator.startGps();
+
+	for (const Vector3f &velocity : invalid_velocities) {
+		const uint32_t drop_count = _ekf->gnss_vel_limit_drop_count();
+
+		// WHEN: the receiver reports an over-limit or non-finite velocity
+		_sensor_simulator._gps.setVelocity(velocity);
+		_sensor_simulator.runSeconds(0.4f);
+
+		// THEN: the sample is dropped and the last delayed sample remains unchanged
+		EXPECT_GT(_ekf->gnss_vel_limit_drop_count(), drop_count);
+		EXPECT_EQ(_ekf->get_gps_sample_delayed().time_us, last_sample_time);
+	}
+}

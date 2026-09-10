@@ -89,7 +89,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		updateGnssPos(gnss_sample, _aid_src_gnss_pos);
 		updateGnssVel(imu_delayed, gnss_sample, _aid_src_gnss_vel);
 
-	} else if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) {
+	} else if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos || _control_status.flags.gnss_yaw) {
 		if (!isNewestSampleRecent(_time_last_gps_buffer_push, _params.reset_timeout_max)) {
 			stopGnssFusion();
 			ECL_WARN("GNSS data stopped");
