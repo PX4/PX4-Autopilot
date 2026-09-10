@@ -340,6 +340,7 @@ void LoggedTopics::add_debug_topics()
 	add_topic("sensor_preflight_mag", 500);
 	add_topic("actuator_test", 500);
 	add_topic("neural_control", 50);
+	add_topic("task_stack_info");
 }
 
 void LoggedTopics::add_estimator_replay_topics()
