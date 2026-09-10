@@ -78,9 +78,6 @@ public:
 	// Raw aux channel values, may contain NaN for channels that are not mapped/present
 	const matrix::Vector<float, 6> &getAuxRaw() const { return _aux_positions; }
 
-	// Sanitized aux channel value (0-based index), NaN/non-finite is reported as 0.f
-	float getAux(int idx) const { return PX4_ISFINITE(_aux_positions(idx)) ? _aux_positions(idx) : 0.f; }
-
 	/**
 	 * Pick a single aux channel value directly out of a manual_control_setpoint message
 	 * @param manual_control_setpoint message to read from
