@@ -48,6 +48,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/module_params.h>
 
 using namespace time_literals;
 
@@ -286,10 +287,8 @@ using namespace time_literals;
 #define INA228_SAMPLE_FREQUENCY_HZ           10
 #define INA228_SAMPLE_INTERVAL_US            (1_s / INA228_SAMPLE_FREQUENCY_HZ)
 #define INA228_CONVERSION_INTERVAL           (INA228_SAMPLE_INTERVAL_US - 7)
-#define MAX_CURRENT                          327.68f    /* Amps */
 #define DN_MAX                               524288.0f  /* 2^19 */
 #define INA228_CONST                         13107.2e6f  /* is an internal fixed value used to ensure scaling is maintained properly  */
-#define INA228_SHUNT                         0.0005f   /* Shunt is 500 uOhm */
 #define INA228_VSCALE                        1.95e-04f  /* LSB of voltage is 195.3125 uV/LSB */
 #define INA228_TSCALE                        7.8125e-03f /* LSB of temperature is 7.8125 mDegC/LSB */
 
@@ -348,10 +347,8 @@ private:
 	int16_t           _range{INA228_ADCRANGE_HIGH};
 	bool              _mode_triggered{false};
 
-	float             _max_current{MAX_CURRENT};
-	float             _rshunt{INA228_SHUNT};
 	uint16_t          _config{INA228_ADCCONFIG};
-	float             _current_lsb{_max_current / DN_MAX};
+	float             _current_lsb{0.f};
 	float             _power_lsb{25.0f * _current_lsb};
 
 	Battery 		  _battery;
@@ -382,5 +379,10 @@ private:
 
 	int					     measure();
 	int					     collect();
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::INA228_CURRENT>) _param_ina228_current,
+		(ParamFloat<px4::params::INA228_SHUNT>) _param_ina228_shunt
+	);
 
 };

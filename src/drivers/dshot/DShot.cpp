@@ -137,6 +137,15 @@ bool DShot::updateOutputs(float *outputs, unsigned num_outputs, unsigned num_con
 	_esc_status.esc_armed_flags = esc_armed_mask(hw_outputs, num_outputs);
 	bool armed = _esc_status.esc_armed_flags != 0;
 
+	// Bluejay drops EDT when the motor stops, so it has to be re-enabled after every flight.
+	if (_armed_prev && !armed) {
+		for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {
+			clear_edt_confirmation(i);
+		}
+	}
+
+	_armed_prev = armed;
+
 	if (!armed) {
 		// Select next command to send (if any)
 		if (_telemetry.telemetryResponseFinished() &&
@@ -193,7 +202,7 @@ void DShot::select_next_command()
 	// - Settings Programming
 
 	// EDT Request mask
-	uint16_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
+	uint16_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_confirmed_mask;
 
 	// Settings Request mask
 	uint16_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
@@ -210,20 +219,36 @@ void DShot::select_next_command()
 		hrt_abstime now = hrt_absolute_time();
 
 		for (int motor_index = 0; motor_index < DSHOT_MAX_MOTORS; motor_index++) {
-			if (edt_motors_to_request & (1 << motor_index)) {
-				// Wait 1 second after ESC comes online before sending EDT (ESC init sequence)
-				if (_bdshot_telem_online_timestamps[motor_index] == 0
-				    || (now - _bdshot_telem_online_timestamps[motor_index]) < 1_s) {
-					continue;
+			if (!(edt_motors_to_request & (1 << motor_index))) {
+				continue;
+			}
+
+			// The ESC only takes commands once it has seen zero throttle for a while (AM32: one second plus
+			// its arming tune), so hold off after it comes online and space the retries.
+			if (_bdshot_telem_online_timestamps[motor_index] == 0
+			    || (now - _bdshot_telem_online_timestamps[motor_index]) < 1_s
+			    || (now - _bdshot_edt_last_request[motor_index]) < BDSHOT_EDT_RETRY_INTERVAL) {
+				continue;
+			}
+
+			if (_bdshot_edt_attempts[motor_index] >= BDSHOT_EDT_MAX_ATTEMPTS) {
+				// Warn once, a retry interval after the last attempt went unanswered
+				if (_bdshot_edt_attempts[motor_index] == BDSHOT_EDT_MAX_ATTEMPTS) {
+					PX4_WARN("ESC%d: no EDT frames after %d enable requests", motor_index + 1, BDSHOT_EDT_MAX_ATTEMPTS);
+					_bdshot_edt_attempts[motor_index]++;
 				}
 
-				_current_command.num_repetitions = 10;
-				_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
-				_current_command.motor_mask = (1 << motor_index);
-				_bdshot_edt_requested_mask |= (1 << motor_index);
-				PX4_DEBUG("ESC%d: requesting EDT at time %.2fs", motor_index + 1, (double)now / 1000000.);
-				break;
+				continue;
 			}
+
+			_current_command.num_repetitions = 10;
+			_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
+			_current_command.motor_mask = (1 << motor_index);
+			_bdshot_edt_attempts[motor_index]++;
+			_bdshot_edt_last_request[motor_index] = now;
+			PX4_DEBUG("ESC%d: requesting EDT (attempt %d) at time %.2fs", motor_index + 1,
+				  _bdshot_edt_attempts[motor_index], (double)now / 1000000.);
+			break;
 		}
 
 	} else if (_esc_type != 0 && _serial_telemetry_enabled && serial_telem_delay_elapsed && (_motor_mask & needs_settings_request_mask)) {
@@ -398,7 +423,11 @@ void DShot::update_motor_commands(int num_outputs)
 			command_sent = true;
 		}
 
-		up_dshot_motor_command(i, command, false);
+		// Bluejay/BLHeli_S discard commands unless the tlm bit is set. It stays clear on commands answered
+		// over the telemetry UART: AM32 reads it as a KISS request and starts that frame on the same wire,
+		// then aborts it a few loop iterations later to send the EEPROM dump.
+		const bool request_telemetry = command != DSHOT_CMD_MOTOR_STOP && !_current_command.expect_response;
+		up_dshot_motor_command(i, command, request_telemetry);
 	}
 
 	if (command_sent) {
@@ -411,6 +440,13 @@ void DShot::update_motor_commands(int num_outputs)
 			_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
 		}
 	}
+}
+
+void DShot::clear_edt_confirmation(int motor_index)
+{
+	_bdshot_edt_confirmed_mask &= ~(1 << motor_index);
+	_bdshot_edt_attempts[motor_index] = 0;
+	_bdshot_edt_last_request[motor_index] = hrt_absolute_time();
 }
 
 uint16_t DShot::esc_armed_mask(uint16_t *outputs, uint8_t num_outputs)
@@ -659,8 +695,12 @@ bool DShot::process_bdshot_telemetry()
 
 				uint8_t value = 0;
 
+				// The enable ack is a single state/event frame and can be lost, so any EDT frame counts
+				bool edt_frame = up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_STATE_EVENT, &value) == PX4_OK;
+
 				if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_TEMPERATURE, &value) == PX4_OK) {
 					esc.temperature = value; // BDShot temperature is in C
+					edt_frame = true;
 
 				} else {
 					esc.temperature = _esc_status.esc[motor_index].esc_temperature; // use previous
@@ -668,6 +708,7 @@ bool DShot::process_bdshot_telemetry()
 
 				if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
 					esc.voltage = static_cast<float>(value) / 4.f; // BDShot voltage is in 0.25V
+					edt_frame = true;
 
 				} else {
 					esc.voltage = _esc_status.esc[motor_index].esc_voltage; // use previous
@@ -675,16 +716,23 @@ bool DShot::process_bdshot_telemetry()
 
 				if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
 					esc.current = static_cast<float>(value); // EDT current is in 1A steps
+					edt_frame = true;
 
 				} else {
 					esc.current = _esc_status.esc[motor_index].esc_current; // use previous
+				}
+
+				// Only frames after our own request count, or one still in flight at the disarm edge would
+				// hide Bluejay dropping EDT with the motor stop.
+				if (edt_frame && _bdshot_edt_attempts[motor_index] > 0) {
+					_bdshot_edt_confirmed_mask |= (1 << motor_index);
 				}
 			}
 
 		} else {
 			_bdshot_telem_online_mask &= ~(1 << motor_index);
 			_bdshot_telem_online_timestamps[motor_index] = 0;
-			_bdshot_edt_requested_mask &= ~(1 << motor_index);
+			clear_edt_confirmation(motor_index);
 			perf_count(_bdshot_error_perf);
 		}
 
@@ -1185,7 +1233,7 @@ int DShot::print_status()
 		}
 
 		if (_bdshot_output_mask && _bdshot_edt_enabled) {
-			PX4_INFO("  EDT Requested Mask (motor order): 0x%02x", _bdshot_edt_requested_mask);
+			PX4_INFO("  EDT Confirmed Mask (motor order): 0x%02x", _bdshot_edt_confirmed_mask);
 		}
 
 		if (_serial_telemetry_enabled) {

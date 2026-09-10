@@ -52,13 +52,13 @@ At high level these are:
 - [Mission path return](#rtl_type_2) (`RTL_TYPE=2`): Use mission path and fast-continue to mission landing (if defined).
   If no mission _landing_ defined, fast-reverse mission to home.
   If no _mission_ defined, return direct to home (rally points are ignored).
-- [Closest safe destination return](#closest-safe-destination-return-type-rtl-type-3) (`RTL_TYPE=3`): Ascend to a safe altitude and return via direct path to closest destination: home, start of mission landing pattern, or rally point.
+- [Closest safe destination return](#rtl_type_3) (`RTL_TYPE=3`): Ascend to a safe altitude and return via direct path to closest destination: home, start of mission landing pattern, or rally point.
   목적지가 임무 착륙 패턴인 경우 패턴을 따라 착륙합니다.
-- [Closest mission landing or reverse mission return](#closest-mission-landing-or-reverse-mission-return-type-rtl-type-4) (`RTL_TYPE=4`): Like `RTL_TYPE=2`, but chooses between mission landing and reverse mission path based on which requires fewer waypoints to traverse.
+- [Closest mission landing or reverse mission return](#rtl_type_4) (`RTL_TYPE=4`): Like `RTL_TYPE=2`, but chooses between mission landing and reverse mission path based on which requires fewer waypoints to traverse.
   Rally points are not considered.
-- [Rally point return](#rally-point-return-type-rtl-type-5) (`RTL_TYPE=5`): Return directly to the closest rally point, ignoring home and mission landing.
+- [Rally point return](#rtl_type_5) (`RTL_TYPE=5`): Return directly to the closest rally point, ignoring home and mission landing.
   If no rally point is defined, land at the current position.
-- [Battery-aware home priority return](#battery-aware-home-priority-return-type-rtl-type-6) (`RTL_TYPE=6`): Return to home if the estimated flight time is within the remaining battery time, otherwise return to the closest rally point.
+- [Battery-aware home priority return](#rtl_type_6) (`RTL_TYPE=6`): Return to home if the estimated flight time is within the remaining battery time, otherwise return to the closest rally point.
   Falls back to the closest safe point (home or rally) if the remaining battery time is unknown/unavailable.
 
 각 유형에 대한 자세한 설명은 다음 섹션에서 제공됩니다.
@@ -164,7 +164,7 @@ In this return type, the vehicle:
   By default an MC or VTOL in MC mode will land, and a fixed-wing vehicle circles at the descent altitude.
   A VTOL in FW mode aligns its heading to the destination point, transitions to MC mode, and then lands.
 
-### Closest of Mission Landing or Reverse Mission Return Type (RTL_TYPE=4)
+### Closest of Mission Landing or Reverse Mission Return Type (RTL_TYPE=4) {#rtl_type_4}
 
 This return type is similar to [Mission Path Return (RTL_TYPE=2)](#mission-path-return-type-rtl-type-2), but selects between the forward mission landing and the reverse mission path based on
 which requires fewer waypoints to traverse from the current position (instead of always preferring the forward mission landing).
@@ -178,7 +178,7 @@ In this return type, the vehicle:
 - Rally points are not considered.
 - Landing behaviour at the destination follows the same rules as RTL_TYPE=2.
 
-### Rally Point Return Type (RTL_TYPE=5)
+### Rally Point Return Type (RTL_TYPE=5) {#rtl_type_5}
 
 In this return type, the vehicle ignores home and mission landing patterns entirely and returns only to rally points:
 
@@ -191,7 +191,7 @@ If no rally points are defined the vehicle will land at its current position ins
 This type is intended for use cases where only pre-approved rally points are acceptable landing destinations.
 :::
 
-### Battery-Aware Home Priority Return Type (RTL_TYPE=6)
+### Battery-Aware Home Priority Return Type (RTL_TYPE=6) {#rtl_type_6}
 
 In this return type, the vehicle uses the estimated flight time to home compared against the remaining battery time to decide the return destination.
 
@@ -207,7 +207,7 @@ The vehicle:
 
 ## Geofence Awareness {#geofence_awareness}
 
-<Badge type="tip" text="main (PX4 v1.19)" />
+<Badge type="tip" text="main (PX4 v1.20)" />
 
 For most of the return types (including the default home/rally point return type) the return path is chosen to avoid breaching any geofence.
 Planning is purely horizontal: the altitude profile is unaffected, and only the lateral path is adjusted to avoid the fence.

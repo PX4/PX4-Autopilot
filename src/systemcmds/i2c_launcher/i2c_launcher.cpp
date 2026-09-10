@@ -43,14 +43,9 @@ constexpr I2CLauncher::I2CDevice I2CLauncher::_devices[];
 I2CLauncher::I2CLauncher(int bus, int batt_index) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(bus)),
-	_bus(bus)
+	_bus(bus),
+	_batt_index(batt_index == -1 ? bus : batt_index)
 {
-	if (_batt_index == -1) {
-		_batt_index = bus;
-
-	}  else {
-		_batt_index = batt_index;
-	}
 }
 
 I2CLauncher::~I2CLauncher()
@@ -214,8 +209,8 @@ Daemon that starts drivers based on found I2C devices.
 
 	PRINT_MODULE_USAGE_NAME("i2c_launcher", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 1, 4, "Bus number", false);
-	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 3, "battery index for calibration values (1 or 3)", false);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 1, I2C_BUS_MAX_BUS_ITEMS, "Bus number", false);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 3, "battery index for calibration values (1-3)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -227,7 +222,7 @@ extern "C" __EXPORT int i2c_launcher_main(int argc, char *argv[])
 {
 	using ThisDriver = I2CLauncher;
 
-	static I2CLauncher* instances[I2C_BUS_MAX_BUS_ITEMS];
+	static I2CLauncher *instances[I2C_BUS_MAX_BUS_ITEMS + 1] {};
 	int bus = -1;
 	int batt_index = -1;
 	int myoptind = 1;
@@ -256,7 +251,7 @@ extern "C" __EXPORT int i2c_launcher_main(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	if (bus > I2C_BUS_MAX_BUS_ITEMS) {
+	if (bus < 1 || bus > I2C_BUS_MAX_BUS_ITEMS) {
 		PX4_ERR("bus out of bound");
 		return PX4_ERROR;
 	}

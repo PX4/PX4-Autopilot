@@ -118,15 +118,29 @@ parameters:
           3: MSP for Power, AUX for Band and Channel
           4: AUX for Power, Band and Channel
         default: 0
+      VTX_PROTOCOL:
+        description:
+          short: VTX protocol
+          long: |
+            Wire protocol used to communicate with the VTX. Select the protocol
+            listed in the manual of your VTX.
+        type: enum
+        # Note: keep values in sync with the PROTOCOL_* constants in msg/Vtx.msg
+        values:
+          0: SmartAudio v1, v2, v2.1
+          100: Tramp
+        default: 0
+        reboot_required: true
       VTX_DEVICE:
         description:
           short: VTX device
-          long: Specific VTX device useful for workarounds and optimizations
+          long: |
+            Specific VTX model, only used to enable device-specific workarounds.
+            Leave at Generic unless your VTX is listed.
         type: enum
-        # Note: keep values in sync with msg/Vtx.msg: lower 8-bit is protocol, next 8-bit is device
+        # Note: values are due to legacy compatibility; keep in sync with msg/Vtx.msg
         values:
-          0: SmartAudio v1, v2, v2.1 Protocol
-          100: Tramp Protocol
+          0: Generic
           5120: Peak THOR T67
           10240: Rush MAX SOLO
         default: 0

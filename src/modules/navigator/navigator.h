@@ -51,6 +51,9 @@
 #include "navigator_mode.h"
 #include "rtl.h"
 #include "takeoff.h"
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include "prec_takeoff.h"
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #if CONFIG_NAVIGATOR_ADSB
 #include "DetectAndAvoid/detect_and_avoid.h"
 #endif // CONFIG_NAVIGATOR_ADSB
@@ -76,6 +79,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/distance_sensor_mode_change_request.h>
 #include <uORB/topics/fixed_wing_lateral_guidance_status.h>
+#include <uORB/topics/fixed_wing_takeoff_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/home_position.h>
@@ -187,6 +191,9 @@ public:
 	MissionRouteCache           &get_mission_route_cache() { return _mission_route_cache; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	PrecTakeoff *get_prec_takeoff() { return &_prec_takeoff; } /**< used by MissionBlock during vertical takeoffs */
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	Course *get_course() { return &_course; }
 #if CONFIG_NAVIGATOR_ADSB
 	DetectAndAvoid *get_detect_and_avoid() { return &_detect_and_avoid; }
@@ -201,6 +208,12 @@ public:
 	bool home_alt_valid() { return (_home_pos.valid_alt); }
 
 	bool home_global_position_valid() { return (_home_pos.valid_alt && _home_pos.valid_hpos); }
+
+	/**
+	 * Whether the fixed-wing mode manager has finished the climbout of the current takeoff.
+	 * Falls back to the given altitude when no takeoff is being flown.
+	 */
+	bool fw_climbout_completed(float fallback_altitude_amsl);
 
 	Geofence &get_geofence() { return _geofence; }
 
@@ -368,6 +381,7 @@ private:
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
+	uORB::Subscription _fw_takeoff_status_sub{ORB_ID(fixed_wing_takeoff_status)};	/**< fixed-wing takeoff status subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
 
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
@@ -429,6 +443,9 @@ private:
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	PrecTakeoff	_prec_takeoff;			/**< keeps vertical takeoffs over the landing target */
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	RTL 		_rtl;				/**< class that handles RTL */
 	Course		_course;			/**< class that handles course */
 #if CONFIG_NAVIGATOR_ADSB

@@ -40,15 +40,20 @@
 
 #include <lib/failure_injection/FailureInjection.hpp>
 
+static constexpr float microTesla2Gauss(float micro_tesla) { return micro_tesla * 0.01f; }
+
 class PX4Magnetometer
 {
 public:
 	PX4Magnetometer(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
+	PX4Magnetometer(uint32_t device_id, enum Rotation rotation, bool external);
 	~PX4Magnetometer();
 
-	void set_device_id(uint32_t device_id) { _device_id = device_id; }
+	void set_device_id(uint32_t device_id);
 	void set_device_type(uint8_t devtype);
+	void set_external(bool external);
 	void set_error_count(uint32_t error_count) { _error_count = error_count; }
+	void set_range(float range) { _range = range; }
 	void set_scale(float scale) { _scale = scale; }
 	void set_temperature(float temperature) { _temperature = temperature; }
 
@@ -63,6 +68,10 @@ private:
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
 
+	bool			_is_external{false};
+	bool			_external_forced{false}; // classification set by the driver, do not re-derive from the device id
+
+	float			_range{0.f};
 	float			_scale{1.f};
 	float			_temperature{NAN};
 	uint32_t		_error_count{0};

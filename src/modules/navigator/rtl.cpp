@@ -44,6 +44,7 @@
 #include "navigator.h"
 #include "mission_block.h"
 #include "mission_route_cache.h"
+#include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
 
 #include <drivers/drv_hrt.h>
@@ -82,7 +83,6 @@ void RTL::on_inactive()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
-	_battery_status_sub.update();
 
 	parameters_update();
 
@@ -141,7 +141,6 @@ void RTL::on_activation()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
-	_battery_status_sub.update();
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {
@@ -298,16 +297,33 @@ void RTL::setRtlTypeAndDestination()
 		_rtl_direct.setRtlPosition(destination, landing_loiter);
 
 		const rtl_time_estimate_s time_to_home = _rtl_direct.calc_rtl_time_estimate();
-		const float battery_remaining_s = _battery_status_sub.get().time_remaining_s;
+
+		// Take the worst (smallest) remaining time across all connected batteries, matching the
+		// battery_low_remaining_time failsafe check in BatteryChecks::rtlEstimateCheck()
+		float worst_battery_time_s{NAN};
+
+		for (auto &battery_sub : _battery_status_subs) {
+			battery_status_s battery;
+
+			if (!battery_sub.copy(&battery)) {
+				continue;
+			}
+
+			if (battery.connected
+			    && PX4_ISFINITE(battery.time_remaining_s)
+			    && (!PX4_ISFINITE(worst_battery_time_s) || (battery.time_remaining_s < worst_battery_time_s))) {
+				worst_battery_time_s = battery.time_remaining_s;
+			}
+		}
 
 		const bool home_within_reach = time_to_home.valid
-					       && PX4_ISFINITE(battery_remaining_s)
-					       && (time_to_home.safe_time_estimate < battery_remaining_s);
+					       && PX4_ISFINITE(worst_battery_time_s)
+					       && (time_to_home.safe_time_estimate < worst_battery_time_s);
 
 		if (!home_within_reach) {
 			// If battery data is valid, home is out of range: pick the closest rally point unconditionally
 			// If battery data is unavailable (NaN), we cannot assess reachability: pick the closest home or rally point
-			const float min_dist = PX4_ISFINITE(battery_remaining_s)
+			const float min_dist = PX4_ISFINITE(worst_battery_time_s)
 					       ? FLT_MAX
 					       : get_distance_to_next_waypoint(_global_pos_sub.get().lat,
 							       _global_pos_sub.get().lon,
@@ -458,7 +474,8 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 			const bool current_safe_point_has_approaches {
-				mission_route_cache.hasVtolLandApproachesAtSafePointIndex(current_seq, _home_pos_sub.get().alt)
+				mission_route::hasVtolLandApproachesAtSafePointIndex(mission_route_cache, current_seq,
+						_home_pos_sub.get().alt)
 			};
 
 			_one_rally_point_has_land_approach |= current_safe_point_has_approaches;
@@ -491,7 +508,8 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 		const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 					     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-		_home_has_land_approach = mission_route_cache.hasVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
+		_home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(mission_route_cache, destination,
+					  _home_pos_sub.get().alt);
 #endif
 
 		const bool prioritize_safe_points_over_home = ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode);
@@ -718,7 +736,8 @@ loiter_point_s RTL::selectLandingApproach(const PositionYawSetpoint &destination
 	}
 
 	const land_approaches_s vtol_land_approaches =
-		_navigator->get_mission_route_cache().getVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
+		mission_route::getVtolLandApproachesNearLocation(_navigator->get_mission_route_cache(), destination,
+				_home_pos_sub.get().alt);
 
 	if (vtol_land_approaches.isAnyApproachValid()) {
 		landing_approach = chooseBestLandingApproach(vtol_land_approaches);

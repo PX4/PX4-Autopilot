@@ -301,6 +301,18 @@ typedef uint16_t hw_base_id_t;
 #  define GET_HW_BASE_ID()      (HW_BASE_ID(board_get_hw_version()))
 #endif
 
+/* Boards can define HW_INFO_POP_MASK to mark a sub-field of a numeric HW info
+ * value as a population option (eg. which of several sensor variants is
+ * populated).
+ * HW_INFO_POP_SOURCE selects which value that sub-field is taken
+ * from (for example board_get_hw_revision or board_get_hw_version). */
+#if defined(HW_INFO_POP_MASK)
+#  ifndef HW_INFO_POP_SOURCE
+#    define HW_INFO_POP_SOURCE board_get_hw_revision
+#  endif
+#  define GET_HW_POP_ID()      (((unsigned)HW_INFO_POP_SOURCE() & HW_INFO_POP_MASK) >> __builtin_ctz(HW_INFO_POP_MASK))
+#endif
+
 #define HW_INFO_REV_DIGITS    3
 #define HW_INFO_VER_DIGITS    3
 

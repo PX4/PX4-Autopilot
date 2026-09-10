@@ -6,20 +6,22 @@ Source: [drivers/distance_sensor/broadcom/afbrs50](https://github.com/PX4/PX4-Au
 
 ### Description
 
-Driver for the Broadcom AFBRS50.
+Driver for the Broadcom AFBR-S50 time-of-flight rangefinder.
 
 ### Examples
 
-Attempt to start driver on a specified serial device.
-
 ```
 afbrs50 start
-```
-
-Stop driver
-
-```
 afbrs50 stop
+```
+
+Run an absolute range offset calibration against a flat target at a known
+distance (in meters), then check the result. Offsets persist to
+SENS_AFBR_OFS_LO/HI and are re-applied at startup.
+
+```
+afbrs50 cal start 0.3
+afbrs50 cal status
 ```
 
 ### Usage {#afbrs50_usage}
@@ -27,10 +29,14 @@ afbrs50 stop
 ```
 afbrs50 <command> [arguments...]
  Commands:
-   start         Start driver
-     -d <val>    Serial device
+   start
 
-   stop          Stop driver
+   cal           Range offset calibration: cal start <distance_m> | status |
+                 stop
+
+   stop
+
+   status        print status info
 ```
 
 ## gy_us42
@@ -43,8 +49,10 @@ Source: [drivers/distance_sensor/gy_us42](https://github.com/PX4/PX4-Autopilot/t
 gy_us42 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -155,8 +163,10 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 lightware_laser_i2c <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -259,8 +269,10 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/lidar_lite.html
 ll40ls <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -313,8 +325,10 @@ Source: [drivers/distance_sensor/mappydot](https://github.com/PX4/PX4-Autopilot/
 mappydot <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -335,8 +349,10 @@ Source: [drivers/distance_sensor/mb12xx](https://github.com/PX4/PX4-Autopilot/tr
 mb12xx <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -424,8 +440,10 @@ Source: [drivers/distance_sensor/srf02](https://github.com/PX4/PX4-Autopilot/tre
 srf02 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -486,8 +504,10 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/rangefinders.html#te
 teraranger <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -512,8 +532,10 @@ Source: [drivers/distance_sensor/tf02pro](https://github.com/PX4/PX4-Autopilot/t
 tf02pro <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -619,8 +641,10 @@ Source: [drivers/distance_sensor/vl53l0x](https://github.com/PX4/PX4-Autopilot/t
 vl53l0x <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -645,8 +669,10 @@ Source: [drivers/distance_sensor/vl53l1x](https://github.com/PX4/PX4-Autopilot/t
 vl53l1x <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz

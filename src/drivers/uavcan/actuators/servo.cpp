@@ -38,14 +38,24 @@
 using namespace time_literals;
 
 UavcanServoController::UavcanServoController(uavcan::INode &node) :
+	ModuleParams(nullptr),
 	_node(node),
 	_uavcan_pub_array_cmd(node)
 {
 	_uavcan_pub_array_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
+	_max_rate_hz = (unsigned)_param_sv_rtmax.get();
 }
 
 void UavcanServoController::update_outputs(float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
+	const auto timestamp = _node.getMonotonicTime();
+
+	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / _max_rate_hz)) {
+		return;
+	}
+
+	_prev_cmd_pub = timestamp;
+
 	uavcan::equipment::actuator::ArrayCommand msg;
 
 	for (unsigned i = 0; i < num_outputs; ++i) {

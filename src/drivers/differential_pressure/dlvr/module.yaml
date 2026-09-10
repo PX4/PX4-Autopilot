@@ -1,0 +1,32 @@
+module_name: dlvr_airspeed
+
+parameters:
+  - group: Sensors
+    definitions:
+        SENS_EN_DLVR:
+            description:
+                short: Amphenol DLVR Low Voltage Digital Pressure Sensor Series
+                long: |
+                    Enables the DLVR series. If set to 0, the sensor is disabled.
+                    If the driver is started manually while this parameter is 0,
+                    it will be treated as an L10D model by default.
+            type: enum
+            reboot_required: true
+            values:
+                0: Sensor disabled
+                1: DLVR F50D
+                2: DLVR L01D
+                3: DLVR L02D
+                4: DLVR L05D
+                5: DLVR L10D
+                6: DLVR L20D
+                7: DLVR L30D
+                8: DLVR L60D
+                9: DLVR L01G
+                10: DLVR L02G
+                11: DLVR L05G
+                12: DLVR L10G
+                13: DLVR L20G
+                14: DLVR L30G
+                15: DLVR L60G
+            default: 0

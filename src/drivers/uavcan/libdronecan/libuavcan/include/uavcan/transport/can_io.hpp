@@ -90,14 +90,20 @@ private:
     LimitedPoolAllocator allocator_;
     ISystemClock& sysclock_;
     uint32_t rejected_frames_cnt_;
+    uint32_t rejected_expired_cnt_;
+    uint32_t rejected_oom_cnt_;
 
     void registerRejectedFrame();
+    void registerExpiredFrame();
+    void registerOutOfMemoryFrame();
 
 public:
     CanTxQueue(IPoolAllocator& allocator, ISystemClock& sysclock, std::size_t allocator_quota)
         : allocator_(allocator, allocator_quota)
         , sysclock_(sysclock)
         , rejected_frames_cnt_(0)
+        , rejected_expired_cnt_(0)
+        , rejected_oom_cnt_(0)
     { }
 
     ~CanTxQueue();
@@ -111,7 +117,18 @@ public:
     /// The 'or equal' condition is necessary to avoid frame reordering.
     bool topPriorityHigherOrEqual(const CanFrame& rhs_frame) const;
 
+    /// Total. Every drop is also counted in exactly one of the two below, so a total that exceeds
+    /// their sum means a drop path was added without classifying it.
     uint32_t getRejectedFrameCount() const { return rejected_frames_cnt_; }
+
+    /// Frames dropped because their transmit deadline had already passed. Not a memory shortage.
+    uint32_t getExpiredFrameCount() const { return rejected_expired_cnt_; }
+
+    /// Frames dropped with the queue out of blocks, whether this frame lost QoS arbitration or evicted one.
+    uint32_t getOutOfMemoryFrameCount() const { return rejected_oom_cnt_; }
+
+    uint16_t getPeakNumUsedBlocks() const { return allocator_.getPeakNumUsedBlocks(); }
+    uint16_t getBlockLimit() const { return allocator_.getBlockLimit(); }
 
     bool isEmpty() const { return queue_.isEmpty(); }
 };
@@ -127,6 +144,31 @@ struct UAVCAN_EXPORT CanIfacePerfCounters
         : frames_tx(0)
         , frames_rx(0)
         , errors(0)
+    { }
+};
+
+
+/**
+ * State of one interface's TX queue. A rejected frame is one the queue could not hold: its deadline
+ * had already passed, or the queue was at its block limit and QoS arbitration found nothing to evict.
+ * Dropping a single frame loses the whole multi-frame transfer it belonged to, which the peer sees as
+ * a timeout. peak_used_blocks against block_limit says whether the limit is what is doing the
+ * rejecting - the limit is derived from the pool's soft capacity, so it is raised by raising that.
+ */
+struct UAVCAN_EXPORT CanTxQueuePerfCounters
+{
+    uint32_t rejected_frames;
+    uint32_t expired_frames;
+    uint32_t out_of_memory_frames;
+    uint16_t peak_used_blocks;
+    uint16_t block_limit;
+
+    CanTxQueuePerfCounters()
+        : rejected_frames(0)
+        , expired_frames(0)
+        , out_of_memory_frames(0)
+        , peak_used_blocks(0)
+        , block_limit(0)
     { }
 };
 
@@ -164,6 +206,8 @@ public:
     uint8_t getNumIfaces() const { return num_ifaces_; }
 
     CanIfacePerfCounters getIfacePerfCounters(uint8_t iface_index) const;
+
+    CanTxQueuePerfCounters getTxQueuePerfCounters(uint8_t iface_index) const;
 
     const ICanDriver& getCanDriver() const { return driver_; }
     ICanDriver& getCanDriver()             { return driver_; }

@@ -279,7 +279,8 @@ PX4_SIM_MODEL=sihsim_quadx px4 -d
 ### Runtime directories (created on first run, per user)
 
 ```sh
-$XDG_DATA_HOME/px4/rootfs/<instance>/   # parameters, dataman, eeprom
+$XDG_DATA_HOME/px4/rootfs/<instance>/      # filesystem root
+$XDG_DATA_HOME/px4/rootfs/<instance>/fs/  # storage: parameters, dataman, logs, eeprom
 ```
 
 ## Building .deb Files Locally

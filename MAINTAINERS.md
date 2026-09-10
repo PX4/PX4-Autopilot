@@ -26,6 +26,7 @@ See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/ma
 | Balduin Dettling | VTOL | [@mbjd](https://github.com/mbjd) | m_balduin_jd |
 | Mahima Yoga | Fixed-Wing | [@mahima-yoga](https://github.com/mahima-yoga) | myoga_78681 |
 | Alexander Lerach | RTOS / Drivers | [@alexcekay](https://github.com/alexcekay) | alexcekay | <a-lerach@live.de>
+| Jonas Perolini | Navigator | [@JonasPerolini](https://github.com/JonasPerolini) | jonasperolini | <jonas.perolini@rigi.tech>
 
 
 **Reviewers**
@@ -35,7 +36,6 @@ Reviewers help maintain PX4 across the project without ownership of a specific c
 | Name | GitHub | Chat | email
 |------|--------|------|----------------------
 | Onur Ozkan | [@onur-ozkan](https://github.com/onur-ozkan) | onur_ozkan0126 | <onur@orkavian.com>
-| Jonas Perolini | [@JonasPerolini](https://github.com/JonasPerolini) | jonasperolini | <jonas.perolini@rigi.tech>
 
 
 **Documentation Maintainers**

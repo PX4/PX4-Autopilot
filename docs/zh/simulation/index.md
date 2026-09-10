@@ -293,7 +293,7 @@ For Gazebo-specific environment variables (such as `PX4_GZ_WORLD`, `PX4_GZ_STAND
 ## HITL 仿真环境
 
 硬件在环仿真（HITL）模式下标准的 PX4 固件在真实的硬件上运行。
-The HITL Simulation Environment in documented in: [HITL Simulation](../simulation/hitl.md).
+The HITL Simulation Environment is documented in: [HITL Simulation](../simulation/hitl.md).
 
 ## 操纵杆／手柄集成
 

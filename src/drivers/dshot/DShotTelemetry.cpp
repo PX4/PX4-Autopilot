@@ -278,6 +278,8 @@ TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int len
 
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 {
+	// Earlier commands sent with the tlm bit set leave KISS frames in the RX FIFO.
+	_uart.flush();
 	_command_response_motor_index = motor_index;
 	_command_response_command = command;
 	_command_response_start = hrt_absolute_time();

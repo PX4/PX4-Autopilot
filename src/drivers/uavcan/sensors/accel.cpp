@@ -63,7 +63,8 @@ void UavcanAccelBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 {
 	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get(), msg.getIfaceIndex());
 
-	const hrt_abstime timestamp_sample = (msg.timestamp.usec > 0) ? msg.timestamp.usec : hrt_absolute_time();
+	const hrt_abstime timestamp_sample = uavcan_bridge::sample_timestamp(msg.timestamp.usec,
+					     _sub_imu_data.getNode().getUtcTime().toUSec(), hrt_absolute_time());
 
 	if (channel == nullptr) {
 		// Something went wrong - no channel to publish on; return
@@ -77,8 +78,10 @@ void UavcanAccelBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		return;
 	}
 
+	const uavcan_bridge::ImuRateSample sample = uavcan_bridge::imu_rate_sample(timestamp_sample,
+			msg.integration_interval, msg.accelerometer_latest, msg.accelerometer_integral);
 	accel->set_error_count(0);
-	accel->update(timestamp_sample, msg.accelerometer_latest[0], msg.accelerometer_latest[1], msg.accelerometer_latest[2]);
+	accel->update(sample.timestamp_sample, sample.x, sample.y, sample.z);
 
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {

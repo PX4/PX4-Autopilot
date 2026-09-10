@@ -142,6 +142,9 @@ Navigator::Navigator() :
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_land(this),
 	_precland(this),
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_prec_takeoff(this),
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_rtl(this),
 	_course(this)
 #if CONFIG_NAVIGATOR_ADSB
@@ -1093,6 +1096,11 @@ void Navigator::run()
 			publish_position_setpoint_triplet();
 		}
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+		// Publish the triplet before the status that allows FlightTask to use it.
+		_prec_takeoff.publish_status();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 		if (_mission_result_updated) {
 			publish_mission_result();
 		}
@@ -1474,6 +1482,25 @@ void Navigator::check_traffic()
 	_detect_and_avoid.on_active();
 }
 #endif // CONFIG_NAVIGATOR_ADSB
+
+bool Navigator::fw_climbout_completed(float fallback_altitude_amsl)
+{
+	if (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+		// no takeoff is being flown, for example because the mode was entered while already in air,
+		// so the mode manager does not report anything and the altitude decides as it did before
+		return _global_pos.alt >= fallback_altitude_amsl;
+	}
+
+	fixed_wing_takeoff_status_s fixed_wing_takeoff_status;
+
+	if (_fw_takeoff_status_sub.copy(&fixed_wing_takeoff_status)) {
+		// the report has to be newer than the setpoint, as it could otherwise still refer to a previous takeoff
+		return fixed_wing_takeoff_status.climbout_completed
+		       && fixed_wing_takeoff_status.timestamp > _pos_sp_triplet.timestamp;
+	}
+
+	return false;
+}
 
 bool Navigator::abort_landing()
 {

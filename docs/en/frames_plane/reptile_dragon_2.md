@@ -50,7 +50,7 @@ Key build features
 - Holybro PWM breakout board
 - MS4525DO differential pressure module and pitot tube
 - [Caddx Vista FPV air unit](https://www.caddxfpv.com/collections/vista-kit)
-- [Emax ES08MA ii](https://emaxmodel.com/products/emax-es08ma-ii-12g-mini-metal-gear-analog-servo-for-rc-model-robot-pwm-servo)
+- [Emax ES08MA ii](https://shop.emaxmodel.com/products/emax-es08ma-ii-12g-mini-metal-gear-analog-servo-for-rc-model-robot-pwm-servo)
 - [DJI FPV Goggles](https://www.dji.com/fpv)
 - [ExpressLRS Matek Diversity RX](https://www.mateksys.com/?portfolio=elrs-r24)
 - [5V BEC](https://www.readymaderc.com/products/details/rmrc-3a-power-regulator-5-to-6-volt-ubec)

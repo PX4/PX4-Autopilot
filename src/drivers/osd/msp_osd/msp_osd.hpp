@@ -173,7 +173,8 @@ private:
 	// parameters
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::OSD_SYMBOLS>) _param_osd_symbols,
-		(ParamInt<px4::params::OSD_CH_HEIGHT>) _param_osd_ch_height,
+		(ParamInt<px4::params::OSD_CH_POS_VER>) _param_osd_ch_pos_ver,
+		(ParamInt<px4::params::OSD_CH_POS_HOR>) _param_osd_ch_pos_hor,
 		(ParamInt<px4::params::OSD_SCROLL_RATE>) _param_osd_scroll_rate,
 		(ParamInt<px4::params::OSD_DWELL_TIME>) _param_osd_dwell_time,
 		(ParamInt<px4::params::OSD_LOG_LEVEL>) _param_osd_log_level,

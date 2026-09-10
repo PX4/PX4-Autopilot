@@ -727,4 +727,9 @@ ver <command> [arguments...]
    hwbasecmp     Compare hardware base (returns 0 on match)
      <hwbase> [<hwbase2>] Hardware type to compare against (eg. V2). An OR
                  comparison is used if multiple are specified
+
+   hwpopcmp      Compare HW population option (returns 0 on match)
+     <value> [<value2>] Hex population option value(s) to compare against (eg.
+                 06, cafe, ffff). An OR comparison is used if multiple are
+                 specified
 ```
