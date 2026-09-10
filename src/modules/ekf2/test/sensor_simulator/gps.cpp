@@ -51,8 +51,6 @@ void Gps::send(const uint64_t time)
 	gnssCheckStatus checks{};
 	checks.checks_passed = _checks.passed();
 	checks.initial_checks_passed = _checks.initialChecksPassed();
-	checks.time_last_pass_us = _checks.getLastPassUs();
-	checks.time_last_fail_us = _checks.getLastFailUs();
 	checks.check_fail_status.value = _checks.getFailStatus().value & _checks.getEnabledChecksFailStatusMask();
 	checks.enabled_checks.value = _checks.getEnabledChecksFailStatusMask();
 	checks.position_drift_rate_horizontal_m_s = _checks.horizontal_position_drift_rate_m_s();

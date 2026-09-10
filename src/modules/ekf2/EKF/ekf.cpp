@@ -94,6 +94,7 @@ void Ekf::reset()
 
 #if defined(CONFIG_EKF2_GNSS)
 	_gnss_checks = {};
+	_time_last_gnss_checks_pass_us = 0;
 	_initial_checks_passed_prev = false;
 #endif // CONFIG_EKF2_GNSS
 

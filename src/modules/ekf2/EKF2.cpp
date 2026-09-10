@@ -1376,6 +1376,8 @@ void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
 		return;
 	}
 
+	// timestamp_sample is the GNSS sample at the fusion horizon; the check fields below are the latest
+	// status of the sensors module (latest-wins) and not the result for this particular sample
 	estimator_gps_status_s estimator_gps_status{};
 	estimator_gps_status.timestamp_sample = timestamp_sample;
 
@@ -2691,8 +2693,6 @@ void EKF2::UpdateGpsChecksSample()
 			.filtered_horizontal_speed_m_s = vehicle_gps_position_checks.filtered_horizontal_speed_m_s,
 			.check_fail_status = {.value = vehicle_gps_position_checks.flags},
 			.enabled_checks = {.value = vehicle_gps_position_checks.enabled_checks},
-			.time_last_pass_us = vehicle_gps_position_checks.time_last_pass,
-			.time_last_fail_us = vehicle_gps_position_checks.time_last_fail,
 			.checks_passed = vehicle_gps_position_checks.checks_passed,
 			.initial_checks_passed = vehicle_gps_position_checks.initial_checks_passed,
 		};

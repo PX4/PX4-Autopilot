@@ -402,6 +402,7 @@ protected:
 
 	gnssSample _gps_sample_delayed{};
 	gnssCheckStatus _gnss_checks{};
+	uint64_t _time_last_gnss_checks_pass_us{0}; ///< last delayed-horizon time a fused GNSS sample passed the checks (us)
 
 	bool _initial_checks_passed_prev{false};
 

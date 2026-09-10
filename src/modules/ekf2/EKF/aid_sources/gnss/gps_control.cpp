@@ -69,6 +69,8 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		// _gnss_checks is the latest status published by the sensors module (latest-wins, not matched to
 		// this sample). Additionally guard the individual sample with the fields it carries itself.
 		if (_gnss_checks.checks_passed && isGnssSampleUsable(gnss_sample)) {
+			_time_last_gnss_checks_pass_us = _time_delayed_us;
+
 			if (_gnss_checks.initial_checks_passed && !_initial_checks_passed_prev) {
 				// First time checks are passing, latching.
 				_information_events.flags.gps_checks_passed = true;
@@ -79,7 +81,8 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			_gps_data_ready = false;
 
 			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
-			const bool gnss_checks_pass_timeout = isTimedOut(_gnss_checks.time_last_pass_us, _params.reset_timeout_max);
+			// timed against the EKF horizon: the status topic carries no timestamps
+			const bool gnss_checks_pass_timeout = isTimedOut(_time_last_gnss_checks_pass_us, _params.reset_timeout_max);
 
 			if (using_gnss && gnss_checks_pass_timeout) {
 				stopGnssFusion();
