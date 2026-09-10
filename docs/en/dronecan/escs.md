@@ -41,6 +41,15 @@ In addition to the general setup:
 - Select the specific CAN interface(s) used for ESC data output using the [UAVCAN_ESC_IFACE](../advanced_config/parameter_reference.md#UAVCAN_ESC_IFACE) parameter (all interfaces are selected by default).
 - Configure the [motor order and servo outputs](../config/actuators.md).
 
+## Known Quirks {#known-quirks}
+
+Sadly some DroneCAN devices deviate from the DSDL specification in ways that require a workaround on the PX4 side.
+These workarounds are disabled by default and can be enabled with the [UAVCAN_QUIRKS](../advanced_config/parameter_reference.md#UAVCAN_QUIRKS) bitmask parameter.
+
+- **Hobbywing ESCs:** some Hobbywing DroneCAN ESCs report `uavcan.equipment.esc.Status.esc_index` starting at 1 for the first ESC instead of 0 as required by the specification, while still expecting `RawCommand.cmd[0]` to command the first ESC.
+  This causes ESC status feedback (e.g. RPM, voltage, current) to be matched to the wrong motor.
+  Set bit 0 of `UAVCAN_QUIRKS` to correct for this off-by-one indexing.
+
 ## Reversible Motors {#reversible-motors}
 
 <Badge type="tip" text="main (PX4 v2.0)" />
