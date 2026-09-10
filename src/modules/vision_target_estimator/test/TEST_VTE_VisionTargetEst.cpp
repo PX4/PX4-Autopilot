@@ -345,7 +345,7 @@ protected:
 		msg.timestamp_sample = timestamp;
 		msg.latitude_deg = lat;
 		msg.longitude_deg = lon;
-		msg.altitude_msl_m = alt_amsl;
+		msg.altitude_msl_m = static_cast<double>(alt_amsl);
 		msg.fix_type = fix_type;
 		ASSERT_TRUE(_uav_gps_pub->publish(msg));
 	}
