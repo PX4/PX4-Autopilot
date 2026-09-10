@@ -763,8 +763,6 @@ private:
 	hrt_abstime                            _time_last_resilience_received{0};			     ///< Time of last resilience message reception
 
 	// Module configuration
-	float                                  _heading_offset {0.0f};                                       ///< The heading offset given by the `SEP_YAW_OFFS` parameter
-	float                                  _pitch_offset {0.0f};                                         ///< The pitch offset given by the `SEP_PITCH_OFFS` parameter
 	uint32_t                               _receiver_stream_main {k_default_main_stream};                ///< The main output stream for the receiver given by the `SEP_STREAM_MAIN` parameter
 	uint32_t                               _receiver_stream_log {k_default_log_stream};                  ///< The log output stream for the receiver given by the `SEP_STREAM_LOG` parameter
 	SBFOutputFrequency                     _sbf_output_frequency {SBFOutputFrequency::Hz5_0};            ///< Output frequency of the main SBF blocks given by the `SEP_OUTP_HZ` parameter

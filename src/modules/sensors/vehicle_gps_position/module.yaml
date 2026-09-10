@@ -126,3 +126,100 @@ parameters:
             max: 300
             num_instances: *max_num_gps_instances
             instance_start: 0
+
+        SENS_GPS${i}_ROT:
+            description:
+                short: GPS ${i} antenna baseline rotation relative to airframe
+                long: |
+                    Rotation of the dual antenna baseline, moving base to rover (or antenna 1 to
+                    antenna 2), relative to the vehicle body frame. No rotation: the rover
+                    antenna is in front of the moving base. Yaw 90°: the rover is on the right.
+                    Matched to the physical receiver via SENS_GPS${i}_ID. Not applied when the
+                    receiver already reports a body frame heading.
+                    Set to "Custom Euler Angle" to define the rotation using SENS_GPS${i}_ROLL,
+                    SENS_GPS${i}_PITCH and SENS_GPS${i}_YAW.
+            type: enum
+            values:
+                0: No rotation
+                1: Yaw 45°
+                2: Yaw 90°
+                3: Yaw 135°
+                4: Yaw 180°
+                5: Yaw 225°
+                6: Yaw 270°
+                7: Yaw 315°
+                8: Roll 180°
+                9: Roll 180°, Yaw 45°
+                10: Roll 180°, Yaw 90°
+                11: Roll 180°, Yaw 135°
+                12: Pitch 180°
+                13: Roll 180°, Yaw 225°
+                14: Roll 180°, Yaw 270°
+                15: Roll 180°, Yaw 315°
+                16: Roll 90°
+                17: Roll 90°, Yaw 45°
+                18: Roll 90°, Yaw 90°
+                19: Roll 90°, Yaw 135°
+                20: Roll 270°
+                21: Roll 270°, Yaw 45°
+                22: Roll 270°, Yaw 90°
+                23: Roll 270°, Yaw 135°
+                24: Pitch 90°
+                25: Pitch 270°
+                26: Pitch 180°, Yaw 90°
+                27: Pitch 180°, Yaw 270°
+                28: Roll 90°, Pitch 90°
+                29: Roll 180°, Pitch 90°
+                30: Roll 270°, Pitch 90°
+                31: Roll 90°, Pitch 180°
+                32: Roll 270°, Pitch 180°
+                33: Roll 90°, Pitch 270°
+                34: Roll 180°, Pitch 270°
+                35: Roll 270°, Pitch 270°
+                36: Roll 90°, Pitch 180°, Yaw 90°
+                37: Roll 90°, Yaw 270°
+                38: Roll 90°, Pitch 68°, Yaw 293°
+                39: Pitch 315°
+                40: Roll 90°, Pitch 315°
+                100: Custom Euler Angle
+            min: 0
+            max: 100
+            default: 0
+            num_instances: *max_num_gps_instances
+            instance_start: 0
+
+        SENS_GPS${i}_ROLL:
+            description:
+                short: GPS ${i} baseline custom Euler Roll angle
+                long: Setting this parameter changes SENS_GPS${i}_ROT to "Custom Euler Angle"
+            type: float
+            default: 0.0
+            min: -180
+            max: 180
+            unit: deg
+            num_instances: *max_num_gps_instances
+            instance_start: 0
+
+        SENS_GPS${i}_PITCH:
+            description:
+                short: GPS ${i} baseline custom Euler Pitch angle
+                long: Setting this parameter changes SENS_GPS${i}_ROT to "Custom Euler Angle"
+            type: float
+            default: 0.0
+            min: -180
+            max: 180
+            unit: deg
+            num_instances: *max_num_gps_instances
+            instance_start: 0
+
+        SENS_GPS${i}_YAW:
+            description:
+                short: GPS ${i} baseline custom Euler Yaw angle
+                long: Setting this parameter changes SENS_GPS${i}_ROT to "Custom Euler Angle"
+            type: float
+            default: 0.0
+            min: -180
+            max: 180
+            unit: deg
+            num_instances: *max_num_gps_instances
+            instance_start: 0

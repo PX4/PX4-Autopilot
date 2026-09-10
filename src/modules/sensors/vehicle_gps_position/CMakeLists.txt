@@ -41,6 +41,7 @@ px4_add_library(vehicle_gps_position
 )
 target_link_libraries(vehicle_gps_position
 	PRIVATE
+		conversion
 		geo
 		px4_work_queue
 )

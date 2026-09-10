@@ -119,8 +119,7 @@ To switch rover and base in the moving base setup, switch `SEP_PORT1_CFG` and `S
 
 It is important that the antennas are positioned at least 30 cm apart for a stable heading result.
 In a normal setup, the main antenna is behind the auxiliary one.
-If another setup is used, the [SEP_YAW_OFFS](../advanced_config/parameter_reference.md#SEP_YAW_OFFS) value needs to be changed accordingly.
-If the antennas are not at the same height, the [SEP_PITCH_OFFS](../advanced_config/parameter_reference.md#SEP_PITCH_OFFS) value needs to be changed.
+If another setup is used, set [SENS_GPSn_ROT](../advanced_config/parameter_reference.md#SENS_GPS0_ROT) for the receiver accordingly.
 
 ## Logging
 

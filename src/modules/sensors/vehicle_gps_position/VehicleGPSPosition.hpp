@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/conversion/rotation.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
@@ -86,6 +87,8 @@ private:
 		uint32_t device_id{0};
 		matrix::Vector3f offset{};
 		hrt_abstime delay_us{kDefaultDelay};
+		float heading_offset{0.f};    // yaw of the antenna baseline in the body frame (rad)
+		bool heading_available{true}; // false for a vertical baseline, which has no heading
 	};
 
 	void UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_RECEIVERS], const bool gps_updated[GPS_MAX_RECEIVERS]);
@@ -93,7 +96,11 @@ private:
 	// SENS_GPSn_* slot for a receiver, by device_id or (when no IDs are configured) by sensor_gps instance
 	const GpsParamSlot *findParamSlot(uint32_t device_id, int instance) const;
 	// sensor_gps instance publishing this device_id, or -1
-	int findGpsInstance(uint32_t device_id, sensor_gps_s &gps_data);
+	int findGpsInstance(uint32_t device_id);
+	// Rotate a raw baseline heading into the body frame. A driver that already reports a body frame heading sets a
+	// finite heading_offset and is left alone.
+	static void applyBaselineRotation(const GpsParamSlot *slot, float &heading, float &heading_offset);
+	void updateBaselineRotation(GpsParamSlot &slot, int32_t rotation, float roll_deg, float pitch_deg, float yaw_deg);
 	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
 					       hrt_abstime delay_us);
 
@@ -145,7 +152,15 @@ private:
 		(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy,
 		(ParamFloat<px4::params::SENS_GPS1_OFFZ>) _param_sens_gps1_offz,
 		(ParamInt<px4::params::SENS_GPS0_DELAY>) _param_sens_gps0_delay,
-		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay
+		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay,
+		(ParamInt<px4::params::SENS_GPS0_ROT>) _param_sens_gps0_rot,
+		(ParamFloat<px4::params::SENS_GPS0_ROLL>) _param_sens_gps0_roll,
+		(ParamFloat<px4::params::SENS_GPS0_PITCH>) _param_sens_gps0_pitch,
+		(ParamFloat<px4::params::SENS_GPS0_YAW>) _param_sens_gps0_yaw,
+		(ParamInt<px4::params::SENS_GPS1_ROT>) _param_sens_gps1_rot,
+		(ParamFloat<px4::params::SENS_GPS1_ROLL>) _param_sens_gps1_roll,
+		(ParamFloat<px4::params::SENS_GPS1_PITCH>) _param_sens_gps1_pitch,
+		(ParamFloat<px4::params::SENS_GPS1_YAW>) _param_sens_gps1_yaw
 	)
 };
 }; // namespace sensors
