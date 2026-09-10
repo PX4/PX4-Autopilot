@@ -31,13 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(gnss_checks
-	gnss_checks.cpp
-	gnss_checks.hpp
-)
-target_link_libraries(gnss_checks PRIVATE geo)
-target_include_directories(gnss_checks PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
 px4_add_library(vehicle_gps_position
 	VehicleGPSPosition.cpp
 	VehicleGPSPosition.hpp

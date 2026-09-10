@@ -51,7 +51,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 
-#include "gnss_checks.hpp"
+#include <lib/gnss/gnss_checks.hpp>
 #include "gps_blending.hpp"
 #include "PpsTimeSync.hpp"
 

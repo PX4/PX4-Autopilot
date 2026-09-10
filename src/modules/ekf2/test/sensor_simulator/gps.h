@@ -39,7 +39,7 @@
 #define EKF_GPS_H
 
 #include "sensor.h"
-#include <gnss_checks.hpp>
+#include <lib/gnss/gnss_checks.hpp>
 
 namespace sensor_simulator
 {

@@ -44,6 +44,12 @@ px4_add_library(gnss ${GNSS_SRCS})
 
 target_include_directories(gnss PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+px4_add_library(gnss_checks
+	gnss_checks.cpp
+	gnss_checks.hpp
+)
+target_link_libraries(gnss_checks PUBLIC geo)
+
 if(BUILD_TESTING)
 	add_subdirectory(test)
 endif()

@@ -38,8 +38,7 @@
 
 #include "gnss_checks.hpp"
 
-#include <lib/gnss/GnssCheckLimits.hpp>
-
+#include "GnssCheckLimits.hpp"
 
 bool GnssChecks::run(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest)
 {
