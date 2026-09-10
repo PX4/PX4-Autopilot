@@ -67,12 +67,11 @@ inline gnssChecksSample gnssSampleFromSensorGpsMsg(const sensor_gps_s &gps)
 	return sample;
 }
 
-inline sensor_gps_checks_s sensorGpsChecksMsgFromGnssChecks(const GnssChecks &checks, uint64_t timestamp_sample, uint32_t device_id)
+inline sensor_gps_checks_s sensorGpsChecksMsgFromGnssChecks(const GnssChecks &checks, uint32_t device_id)
 {
 	sensor_gps_checks_s msg{};
 
 	msg.timestamp = hrt_absolute_time();
-	msg.timestamp_sample = timestamp_sample;
 
 	msg.device_id = device_id;
 
@@ -83,8 +82,6 @@ inline sensor_gps_checks_s sensorGpsChecksMsgFromGnssChecks(const GnssChecks &ch
 	msg.flags = checks.getFailStatus().value & checks.getEnabledChecksFailStatusMask();
 	msg.enabled_checks = checks.getEnabledChecksFailStatusMask();
 
-	msg.time_last_pass = checks.getLastPassUs();
-	msg.time_last_fail = checks.getLastFailUs();
 	msg.checks_passed = checks.passed();
 	msg.initial_checks_passed = checks.initialChecksPassed();
 
@@ -263,7 +260,7 @@ void VehicleGPSPosition::Run()
 			}
 
 			_gnss_checks[i].run(gnssSampleFromSensorGpsMsg(gps_data), in_air, vehicle_at_rest);
-			sensor_gps_checks_s checks_msg = sensorGpsChecksMsgFromGnssChecks(_gnss_checks[i], gps_data.timestamp_sample, gps_data.device_id);
+			sensor_gps_checks_s checks_msg = sensorGpsChecksMsgFromGnssChecks(_gnss_checks[i], gps_data.device_id);
 			_sensor_gps_checks_pub[i].publish(checks_msg);
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
@@ -303,8 +300,7 @@ void VehicleGPSPosition::Run()
 			}
 
 			_vehicle_gps_position_checks.run(gnssSampleFromSensorGpsMsg(gps_output), in_air, vehicle_at_rest);
-			sensor_gps_checks_s checks_msg = sensorGpsChecksMsgFromGnssChecks(_vehicle_gps_position_checks, gps_output.timestamp_sample,
-							 gps_output.device_id);
+			sensor_gps_checks_s checks_msg = sensorGpsChecksMsgFromGnssChecks(_vehicle_gps_position_checks, gps_output.device_id);
 
 			_vehicle_gps_position_pub.publish(gps_output);
 			_vehicle_gps_position_checks_pub.publish(checks_msg);

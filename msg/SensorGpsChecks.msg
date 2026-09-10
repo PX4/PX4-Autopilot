@@ -1,10 +1,11 @@
-# GNSS health flag indicators
+# GNSS receiver check status
 #
-# Result of the quality checks run on a GNSS receiver output (fix type, satellite count, DOP,
-# accuracy, drift, speed, spoofing and jamming). The flags bitmask reports which required checks currently fail.
+# Result of the quality checks run by the sensors module on a GNSS receiver output (fix type,
+# satellite count, DOP, accuracy, drift, speed, spoofing and jamming).
+# Status topic with latest-wins semantics, like vehicle_imu_status: consumers copy() the most
+# recent message. It is not synchronized with an individual sensor_gps sample.
 
 uint64 timestamp # [us] Time since system start
-uint64 timestamp_sample # [us] Timestamp of the raw data
 
 uint32 device_id # [-] Unique device ID for the sensor that does not change between power cycles
 
@@ -29,8 +30,6 @@ uint16 GNSS_JAMMED_FAIL = 2048 # (1 << 11)
 
 uint16 enabled_checks # [@enum GNSS] Bitmask of the checks required by GPS_CHECK; flags is masked with it
 
-uint64 time_last_pass # [us] Timestamp of last passing sample
-uint64 time_last_fail # [us] Timestamp of last failing sample
 bool checks_passed # All checks pass and have done so for the minimum health time
 bool initial_checks_passed # Strict initial checks passed, simplified checks run afterwards
 

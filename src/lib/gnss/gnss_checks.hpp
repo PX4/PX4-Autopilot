@@ -134,8 +134,6 @@ public:
 	bool run(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
 	bool passed() const { return _passed; }
 	bool initialChecksPassed() const { return _initial_checks_passed; }
-	uint64_t getLastPassUs() const { return _time_last_pass_us; }
-	uint64_t getLastFailUs() const { return _time_last_fail_us; }
 
 	const gnssChecks &getFailStatus() const { return _check_fail_status; }
 

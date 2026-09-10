@@ -98,7 +98,6 @@ public:
 	{
 		sensor_gps_checks_s checks{};
 		checks.timestamp = gps.timestamp;
-		checks.timestamp_sample = gps.timestamp_sample;
 		checks.device_id = gps.device_id;
 		checks.flags = gps.fix_type >= 3 ? 0 : sensor_gps_checks_s::GNSS_FIX_FAIL;
 		checks.checks_passed = checks.flags == 0;
