@@ -1,6 +1,6 @@
 # Internal Combustion Engines (ICE)
 
-PX4 can operate a spark-ignition internal combustion engine (ICE) — a petrol/nitro two- or four-stroke engine — as the propulsion system of a fixed-wing, VTOL, or helicopter vehicle.
+PX4 can operate a single spark-ignition internal combustion engine (ICE) — a petrol/nitro two- or four-stroke engine — as the propulsion system of a fixed-wing, VTOL, or helicopter vehicle.
 
 Unlike an electric motor, an engine cannot simply be commanded to a thrust value: it has to be _started_ (choke, ignition, electric starter), it can _die_ in flight and need restarting, and it must be kept above a minimum idle speed to keep running at all.
 The [`internal_combustion_engine_control`](../modules/modules_system.md#internal-combustion-engine-control) module implements this logic as a state machine that drives four dedicated actuator outputs and closes the loop on a measured engine speed (RPM).
