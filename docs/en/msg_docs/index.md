@@ -222,6 +222,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [PowerMonitor](PowerMonitor.md) — power monitor message.
 - [PpsCapture](PpsCapture.md)
 - [PrecLandStatus](PrecLandStatus.md) — Precision-landing runtime status: a single state captures both whether precision landing is active and which phase it is in.
+- [PrecTakeoffStatus](PrecTakeoffStatus.md) — Precision takeoff status.
 - [PurePursuitStatus](PurePursuitStatus.md) — Pure pursuit status.
 - [PwmInput](PwmInput.md)
 - [Px4ioStatus](Px4ioStatus.md)
