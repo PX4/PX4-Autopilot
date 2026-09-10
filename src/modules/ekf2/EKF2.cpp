@@ -810,7 +810,7 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_GNSS)
 		UpdateGpsSample(ekf2_timestamps);
 # if defined(CONFIG_EKF2_GNSS_YAW)
-		UpdateGnssYawSample(ekf2_timestamps);
+		UpdateGnssYawSample();
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -2681,7 +2681,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 }
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
-void EKF2::UpdateGnssYawSample(ekf2_timestamps_s &ekf2_timestamps)
+void EKF2::UpdateGnssYawSample()
 {
 	vehicle_gnss_heading_s gnss_heading;
 
