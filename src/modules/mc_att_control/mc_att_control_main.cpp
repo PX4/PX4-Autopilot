@@ -105,6 +105,11 @@ MulticopterAttitudeControl::parameters_updated()
 	_attitude_control.setFeedForwardGain(_param_mc_ref_ff.get());
 	_attitude_control.setFeedForwardLimit(math::radians(_param_mc_ref_ff_max.get()));
 
+	// angular acceleration and jerk limits of the attitude reference model (acceleration 0 = disabled)
+	_attitude_control.setRefModelAccelerationLimit(Vector3f(radians(_param_mc_ref_acc_r_max.get()),
+			radians(_param_mc_ref_acc_p_max.get()), radians(_param_mc_ref_acc_y_max.get())),
+			radians(_param_mc_ref_jerk_max.get()));
+
 	// Update from hover thrust parameter if there's no valid estimate in use
 	if (!PX4_ISFINITE(_hover_thrust_estimate)) {
 		_hover_thrust_slew_rate.setForcedValue(_param_mpc_thr_hover.get());
