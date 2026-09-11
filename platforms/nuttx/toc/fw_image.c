@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,40 +31,22 @@
  *
  ****************************************************************************/
 
-/**
- * @file crypto.h
+/*
+ * Standalone-TOC helper: pulls the unsigned app .bin into toc.elf via
+ * .incbin so the board's toc.ld can compute _app_start / _app_end symbols
+ * against the real payload size.
  *
- * Wrapper for the crypto stuff
- *
+ * The concrete file path is injected by CMake via PX4_UNSIGNED_FIRMWARE.
  */
 
-#pragma once
+#ifndef PX4_UNSIGNED_FIRMWARE
+#  error "The path to the unsigned PX4 image is not set"
+#endif
 
-/* Using security always needs TOC (but TOC could be used without security) */
-#if defined(BOOTLOADER_USE_SECURITY)
-# define BOOTLOADER_USE_TOC
+#define __STR(s)  #s
+#define __XSTR(s) __STR(s)
 
-#include <stdlib.h>
-
-#include "hw_config.h"
-#include "image_toc.h"
-
-bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries, const uint8_t *base_addr);
-
-bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries, const uint8_t *base_addr);
-
-#else
-
-# if defined(BOOTLOADER_USE_TOC)
-
-/* No security, application verification passes always */
-
-static inline bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries, const uint8_t *base_addr) {return true;}
-
-/* No security, decrypting is not possible */
-
-static inline bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries, const uint8_t *base_addr) {return false;}
-
-# endif
-
-#endif // BOOTLOADER_USE_SECURITY
+__asm__(
+	".section .firmware,\"ax\"\n"
+	".incbin \"" __XSTR(PX4_UNSIGNED_FIRMWARE) "\"\n"
+);
