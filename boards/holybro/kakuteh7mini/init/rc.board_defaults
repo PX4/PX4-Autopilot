@@ -29,9 +29,6 @@ param set-default CBRK_BUZZER 782090
 
 param set-default IMU_GYRO_RATEMAX 2000
 
-# Ignore that there is no SD card
-param set-default COM_ARM_SDCARD 0
-
 # Flash logging: same firmware runs on the W25N NAND (v1.3, 128 MB) and
 # the W25Q128 NOR (v1.5, 16 MB). init.c detects the chip at boot and marks
 # /fs/flash/.nand accordingly; size the single-log-file cap to match, so
