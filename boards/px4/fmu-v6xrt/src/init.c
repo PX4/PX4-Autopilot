@@ -174,18 +174,117 @@ __EXPORT void board_on_reset(int status)
  ****************************************************************************/
 struct flexspi_nor_config_s g_bootConfig;
 
+extern const struct flexspi_nor_config_s g_flash_fast_config_is25wx512m;
+
+/* JEDEC ID (RDID 0x9F): manufacturer | type << 8 | density << 16 */
+#define JEDEC_ID_MASK         0xffffffu
+#define JEDEC_ID_ISSI         0x1A5B9Du /* IS25WX512M; anything else is the MX25UM51345G */
+
+#define RDID_LUT_INDEX 4u   /* LUT sequence 1 (4 words per sequence) */
+#define RDID_SPIN      200000u
+
+/* Read the JEDEC ID with an IP command (the ROM only installs the read
+ * sequence) and pick the matching fast config, Macronix by default.
+ */
+locate_code(".ramfunc")
+static const struct flexspi_nor_config_s *imxrt_octl_flash_select(void)
+{
+	struct flexspi_type_s *flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
+
+	flexspi->LUTKEY = 0x5AF05AF0u;
+	flexspi->LUTCR = FLEXSPI_LUTCR_UNLOCK_MASK;
+	flexspi->LUT[RDID_LUT_INDEX] =
+		FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x9F, READ_SDR, FLEXSPI_1PAD, 0x04);
+	flexspi->LUTKEY = 0x5AF05AF0u;
+	flexspi->LUTCR = FLEXSPI_LUTCR_LOCK_MASK;
+
+	flexspi->INTR = FLEXSPI_INTR_IPCMDDONE_MASK | FLEXSPI_INTR_IPCMDERR_MASK |
+			FLEXSPI_INTR_IPCMDGE_MASK | FLEXSPI_INTR_AHBCMDERR_MASK;
+	flexspi->IPRXFCR |= FLEXSPI_IPRXFCR_CLRIPRXF_MASK;
+	flexspi->IPCR0 = 0;   /* RDID has no address phase */
+	flexspi->IPCR1 = FLEXSPI_IPCR1_IDATSZ(4) | FLEXSPI_IPCR1_ISEQID(1) | FLEXSPI_IPCR1_ISEQNUM(0);
+	flexspi->IPCMD |= FLEXSPI_IPCMD_TRG_MASK;
+
+	for (uint32_t spin = RDID_SPIN; spin--;) {
+		uint32_t intr = flexspi->INTR;
+
+		if (intr & FLEXSPI_INTR_IPCMDERR_MASK) {
+			break;
+		}
+
+		if (intr & FLEXSPI_INTR_IPCMDDONE_MASK) {
+			uint32_t jedec = flexspi->RFDR[0] & JEDEC_ID_MASK;
+			flexspi->INTR = FLEXSPI_INTR_IPRXWA_MASK;
+
+			if (jedec == JEDEC_ID_ISSI) {
+				return &g_flash_fast_config_is25wx512m;
+			}
+
+			break;
+		}
+	}
+
+	return &g_flash_fast_config;
+}
 
 locate_code(".ramfunc")
 void imxrt_octl_flash_initialize(void)
 {
 	const uint32_t instance =  1;
-
-
-	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, &g_flash_fast_config,
-	       sizeof(struct flexspi_nor_config_s));
-	g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
+	struct flexspi_type_s *flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
+	const struct flexspi_nor_config_s *fast_config = NULL;
 
 	ROM_API_Init();
+
+	/* Runs in both boot stages. The bootloader finds the flash in 1-pad SPI
+	 * as the ROM left it and switches it to octal DDR; the app then finds the
+	 * octal read sequence in LUT[0] and must keep it, since the part no longer
+	 * accepts 1-pad commands.
+	 */
+	if (flexspi->LUT[0] == g_flash_fast_config_is25wx512m.memConfig.lookupTable[0]) {
+		fast_config = &g_flash_fast_config_is25wx512m;
+
+	} else if (flexspi->LUT[0] == g_flash_fast_config.memConfig.lookupTable[0]) {
+		fast_config = &g_flash_fast_config;
+	}
+
+	if (fast_config != NULL) {
+		/* Keep the bootloader's setup, just record the config for the ROM API. */
+		memcpy((struct flexspi_nor_config_s *)&g_bootConfig, fast_config,
+		       sizeof(struct flexspi_nor_config_s));
+		g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
+
+		/* Only reads from here on: shorten the IS25WX512M chip select gap
+		 * to its read minimum, 12 ns tSHSL1 (hold counts serial clocks,
+		 * setup serial root clocks). The bootloader keeps the erase and
+		 * program value.
+		 */
+		if (fast_config == &g_flash_fast_config_is25wx512m) {
+			const uint32_t idle = FLEXSPI_STS0_ARBIDLE_MASK | FLEXSPI_STS0_SEQIDLE_MASK;
+
+			for (uint32_t spin = 200000u; spin-- && (flexspi->STS0 & idle) != idle;) {
+			}
+
+			flexspi->MCR0 |= FLEXSPI_MCR0_MDIS_MASK;
+			flexspi->FLSHCR1[0] = (flexspi->FLSHCR1[0] & ~(FLEXSPI_FLSHCR1_TCSH_MASK | FLEXSPI_FLSHCR1_TCSS_MASK)) |
+					      FLEXSPI_FLSHCR1_TCSH(2) | FLEXSPI_FLSHCR1_TCSS(1);
+			flexspi->MCR0 &= ~FLEXSPI_MCR0_MDIS_MASK;
+		}
+
+		return;
+	}
+
+	/* 1-pad SPI first so RDID can run, then the part's fast config. */
+	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, &g_flash_config,
+	       sizeof(struct flexspi_nor_config_s));
+	g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
+	ROM_FLEXSPI_NorFlash_Init(instance, (struct flexspi_nor_config_s *)&g_bootConfig);
+
+	fast_config = imxrt_octl_flash_select();
+
+	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, fast_config,
+	       sizeof(struct flexspi_nor_config_s));
+	g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
 
 	ROM_FLEXSPI_NorFlash_Init(instance, (struct flexspi_nor_config_s *)&g_bootConfig);
 	ROM_FLEXSPI_NorFlash_ClearCache(1);
@@ -429,6 +528,12 @@ __EXPORT void imxrt_boardinitialize(void)
 #if defined(CONFIG_BOARD_BOOTLOADER_FIXUP)
 	imxrt_octl_flash_initialize();
 #endif
+
+	/* The ROM flash init leaves a pull-down on the DQS pad; it corrupts octal
+	 * DDR reads on the IS25WX512M, so float it like the data pads.
+	 */
+	const uint32_t dqs_pad = IMXRT_IOMUXC_BASE + IMXRT_PADCTL_GPIO_SD_B2_05_OFFSET;
+	putreg32((getreg32(dqs_pad) & ~PADCTL_SD_B2_PULL_MASK) | PADCTL_SD_B2_PULL_NONE, dqs_pad);
 
 	imxrt_flash_setup_prefetch_partition();
 
