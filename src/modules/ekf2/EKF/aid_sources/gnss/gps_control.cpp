@@ -38,6 +38,7 @@
 
 #include "ekf.h"
 #include <mathlib/mathlib.h>
+#include <lib/gnss/GnssCheckLimits.hpp>
 
 void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
@@ -60,25 +61,29 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 	// check for arrival of new sensor data at the fusion time horizon
-	_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
+	_gps_data_ready_and_valid = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
 
-	if (_gps_data_ready) {
+	if (_gps_data_ready_and_valid) {
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
-		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
+		// _gnss_checks is the latest status published by the sensors module (latest-wins, not matched to
+		// this sample). Additionally guard the individual sample with the fields it carries itself.
+		if (_gnss_checks.checks_passed && isGnssSampleUsable(gnss_sample)) {
+			_time_last_gnss_checks_pass_us = _time_delayed_us;
 
-		if (_gnss_checks.run(gnss_sample, _time_delayed_us)) {
-			if (_gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
+			if (_checks_never_passed) {
 				// First time checks are passing, latching.
 				_information_events.flags.gps_checks_passed = true;
+				_checks_never_passed = false;
 			}
 
 		} else {
 			// Skip this sample
-			_gps_data_ready = false;
+			_gps_data_ready_and_valid = false;
 
 			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
-			const bool gnss_checks_pass_timeout = isTimedOut(_gnss_checks.getLastPassUs(), _params.reset_timeout_max);
+			// timed against the EKF horizon: the status topic carries no timestamps
+			const bool gnss_checks_pass_timeout = isTimedOut(_time_last_gnss_checks_pass_us, _params.reset_timeout_max);
 
 			if (using_gnss && gnss_checks_pass_timeout) {
 				stopGnssFusion();
@@ -96,7 +101,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		}
 	}
 
-	if (_gps_data_ready) {
+	if (_gps_data_ready_and_valid) {
 #if defined(CONFIG_EKF2_GNSS_YAW)
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 		controlGnssYawFusion(gnss_sample);
@@ -133,7 +138,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_fault
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
+	const bool starting_conditions_passing = continuing_conditions_passing;
 
 	if (_control_status.flags.gnss_vel) {
 		if (continuing_conditions_passing) {
@@ -190,8 +195,8 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
-	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gnss_checks.passed();
+	const bool starting_conditions_passing = continuing_conditions_passing;
+	const bool gpos_init_conditions_passing = gnss_pos_enabled;
 
 	if (_control_status.flags.gnss_pos) {
 		if (continuing_conditions_passing) {
@@ -333,7 +338,7 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 				   && (aid_src.test_ratio[0] < 1.f) && (aid_src.test_ratio[1] < 1.f); // vx & vy accepted
 
 	if (bad_acc_vz_rejected
-	    && (gnss_sample.sacc < _params.ekf2_req_sacc)
+	    && (gnss_sample.sacc < _params.gnss_req_sacc)
 	   ) {
 		const float innov_limit = innovation_gate * sqrtf(aid_src.innovation_variance[2]);
 		aid_src.innovation[2] = math::constrain(aid_src.innovation[2], -innov_limit, innov_limit);
@@ -382,7 +387,7 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 	const Vector2f vel_xy(aid_src_vel.observation);
 
 	if ((vel_var > 0.f)
-	    && (vel_accuracy < _params.ekf2_req_sacc)
+	    && (vel_accuracy < _params.gnss_req_sacc)
 	    && vel_xy.isAllFinite()) {
 
 		_yawEstimator.fuseVelocity(vel_xy, vel_accuracy, _control_status.flags.in_air);
@@ -461,12 +466,23 @@ void Ekf::resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src)
 	resetAidSourceStatusZeroInnovation(aid_src);
 }
 
+bool Ekf::isGnssSampleUsable(const gnssSample &gnss_sample) const
+{
+	// Same thresholds as the simplified in-air checks of the sensors module (GnssCheckLimits.hpp),
+	// applied to the sample about to be fused. Only the checks enabled in GNSS_CHECK are considered.
+	gps_check_fail_status_u sample_fail_status{};
+	sample_fail_status.flags.fix = (gnss_sample.fix_type < gnss::SimplifiedCheckLimits::kMinFixType);
+	sample_fail_status.flags.hacc = (gnss_sample.hacc > gnss::SimplifiedCheckLimits::kMaxHorizontalAccuracy);
+	sample_fail_status.flags.vacc = (gnss_sample.vacc > gnss::SimplifiedCheckLimits::kMaxVerticalAccuracy);
+	sample_fail_status.flags.sacc = (gnss_sample.sacc > gnss::SimplifiedCheckLimits::kMaxSpeedAccuracy);
+	sample_fail_status.flags.spoofed = gnss_sample.spoofed;
+	sample_fail_status.flags.jammed = gnss_sample.jammed;
+
+	return (sample_fail_status.value & _gnss_checks.enabled_checks.value) == 0;
+}
+
 void Ekf::stopGnssFusion()
 {
-	if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) {
-		_gnss_checks.reset();
-	}
-
 	stopGnssVelFusion();
 	stopGnssPosFusion();
 	stopGpsHgtFusion();
@@ -482,11 +498,6 @@ void Ekf::stopGnssVelFusion()
 	if (_control_status.flags.gnss_vel) {
 		ECL_INFO("stopping GNSS velocity fusion");
 		_control_status.flags.gnss_vel = false;
-
-		//TODO: what if gnss yaw or height is used?
-		if (!_control_status.flags.gnss_pos) {
-			_gnss_checks.reset();
-		}
 	}
 }
 
@@ -495,11 +506,6 @@ void Ekf::stopGnssPosFusion()
 	if (_control_status.flags.gnss_pos) {
 		ECL_INFO("stopping GNSS position fusion");
 		_control_status.flags.gnss_pos = false;
-
-		//TODO: what if gnss yaw or height is used?
-		if (!_control_status.flags.gnss_vel) {
-			_gnss_checks.reset();
-		}
 	}
 }
 

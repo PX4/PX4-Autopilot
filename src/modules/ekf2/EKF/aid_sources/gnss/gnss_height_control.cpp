@@ -56,7 +56,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		return;
 	}
 
-	if (_gps_data_ready) {
+	if (_gps_data_ready_and_valid) {
 
 		// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
 		float noise = math::max(gps_sample.vacc, 1.5f * _params.ekf2_gps_p_noise); // use 1.5 as a typical ratio of vacc/hacc
@@ -88,7 +88,6 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		// determine if we should use height aiding
 		const bool common_conditions_passing = measurement_valid
 						       && _local_origin_lat_lon.isInitialized()
-						       && _gnss_checks.passed()
 						       && !_control_status.flags.gnss_fault;
 
 		const bool continuing_conditions_passing = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VPOS))

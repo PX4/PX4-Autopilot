@@ -157,7 +157,7 @@ param set-default EKF2_GSF_TAS 0.0
 # Additional Sensors
 param set-default EKF2_AVEL_DELAY 0.0
 param set-default EKF2_WIND_NSD 0.01
-param set-default EKF2_REQ_VDRIFT 1.0
+param set-default GNSS_REQ_VDRIFT 1.0
 param set-default EKF2_SYNT_MAG_Z 1
 
 # IMU Configuration

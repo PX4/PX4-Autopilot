@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,56 +31,21 @@
  *
  ****************************************************************************/
 
-/**
- * Feeds Ekf with Gps data
- * @author Kamil Ritz <ka.ritz@hotmail.com>
- */
-#ifndef EKF_GPS_H
-#define EKF_GPS_H
+#pragma once
 
-#include "sensor.h"
-#include <lib/gnss/gnss_checks.hpp>
+#include <cstdint>
 
-namespace sensor_simulator
-{
-namespace sensor
+namespace gnss
 {
 
-class Gps: public Sensor
-{
-public:
-	Gps(std::shared_ptr<Ekf> ekf);
-	~Gps();
-
-	void setMinRequiredGpsHealthTime(const uint64_t time_us);
-	void setData(const gnssSample &gps);
-	void stepHeightByMeters(const float hgt_change);
-	void stepHorizontalPositionByMeters(const Vector2f hpos_change);
-	void setPositionRateNED(const Vector3f &rate);
-	void setAltitude(const float alt);
-	void setLatitude(const double lat);
-	void setLongitude(const double lon);
-	void setVelocity(const Vector3f &vel);
-	void setYaw(const float yaw);
-	void setYawOffset(const float yaw);
-	void setFixType(const int fix_type);
-	void setNumberOfSatellites(const int num_satellites);
-	void setPdop(const float pdop);
-
-	gnssSample getDefaultGpsData();
-	const gnssSample &getData() const { return _gps_data; }
-
-private:
-	void send(uint64_t time) override;
-
-	static constexpr uint64_t kGpsDelayUs{110000};
-
-	gnssSample _gps_data{};
-	GnssChecks _checks{};
-	GnssChecks::Params _check_params{};
-	Vector3f _gps_pos_rate{};
+// Thresholds of the simplified GNSS checks applied once a receiver has passed the strict,
+// parameterized initial checks. Used by GnssChecks in the sensors module to produce the check
+// status and by the EKF to guard the individual sample it fuses, so both must stay identical.
+struct SimplifiedCheckLimits {
+	static constexpr uint8_t kMinFixType{3};
+	static constexpr float kMaxHorizontalAccuracy{50.f}; // m
+	static constexpr float kMaxVerticalAccuracy{50.f};   // m
+	static constexpr float kMaxSpeedAccuracy{10.f};      // m/s
 };
 
-} // namespace sensor
-} // namespace sensor_simulator
-#endif // EKF_GPS_H
+} // namespace gnss

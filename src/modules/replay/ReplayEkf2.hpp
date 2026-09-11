@@ -91,6 +91,8 @@ private:
 	uint16_t _distance_sensor_msg_id = msg_id_invalid;
 	uint16_t _optical_flow_msg_id = msg_id_invalid;
 	uint16_t _sensor_combined_msg_id = msg_id_invalid;
+	uint16_t _vehicle_gps_position_msg_id = msg_id_invalid;
+	uint16_t _vehicle_gps_position_status_msg_id = msg_id_invalid;
 	uint16_t _vehicle_air_data_msg_id = msg_id_invalid;
 	uint16_t _vehicle_magnetometer_msg_id = msg_id_invalid;
 	uint16_t _vehicle_visual_odometry_msg_id = msg_id_invalid;

@@ -103,8 +103,8 @@
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-# include <uORB/topics/estimator_gps_status.h>
 # include <uORB/topics/sensor_gps.h>
+# include <uORB/topics/vehicle_gps_status.h>
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -222,10 +222,10 @@ private:
 	float altEllipsoidToAmsl(float ellipsoid_alt) const;
 	float altAmslToEllipsoid(float amsl_alt) const;
 
-	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateGpsStatus();
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -490,8 +490,6 @@ private:
 	static constexpr hrt_abstime kGeoidHeightLpfTimeConstant = 10_s;
 	AlphaFilter<float> _geoid_height_lpf;  ///< height offset between AMSL and ellipsoid
 
-	hrt_abstime _last_gps_status_published{0};
-
 	hrt_abstime _status_gnss_hgt_pub_last{0};
 	hrt_abstime _status_gnss_pos_pub_last{0};
 	hrt_abstime _status_gnss_vel_pub_last{0};
@@ -499,9 +497,11 @@ private:
 	float _last_gnss_hgt_bias_published{};
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gps_position_status_sub{ORB_ID(vehicle_gps_position_status)};
+
+	perf_counter_t _gnss_vel_limit_drop_perf{perf_alloc(PC_COUNT, MODULE_NAME": GNSS velocity limit exceeded")};
 
 	uORB::PublicationMulti<estimator_bias_s> _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
-	uORB::PublicationMulti<estimator_gps_status_s> _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_hgt_pub{ORB_ID(estimator_aid_src_gnss_hgt)};
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_gnss_pos_pub{ORB_ID(estimator_aid_src_gnss_pos)};
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gnss_vel_pub{ORB_ID(estimator_aid_src_gnss_vel)};
@@ -566,16 +566,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>) _param_ekf2_gps_p_gate,
 		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>) _param_ekf2_gps_v_gate,
 
-		(ParamExtInt<px4::params::EKF2_GPS_CHECK>) _param_ekf2_gps_check,
-		(ParamExtFloat<px4::params::EKF2_REQ_EPH>)    _param_ekf2_req_eph,
-		(ParamExtFloat<px4::params::EKF2_REQ_EPV>)    _param_ekf2_req_epv,
-		(ParamExtFloat<px4::params::EKF2_REQ_SACC>)   _param_ekf2_req_sacc,
-		(ParamExtInt<px4::params::EKF2_REQ_NSATS>)    _param_ekf2_req_nsats,
-		(ParamExtFloat<px4::params::EKF2_REQ_PDOP>)   _param_ekf2_req_pdop,
-		(ParamExtFloat<px4::params::EKF2_REQ_HDRIFT>) _param_ekf2_req_hdrift,
-		(ParamExtFloat<px4::params::EKF2_REQ_VDRIFT>) _param_ekf2_req_vdrift,
-		(ParamExtInt<px4::params::EKF2_REQ_FIX>)      _param_ekf2_req_fix,
-		(ParamFloat<px4::params::EKF2_REQ_GPS_H>)     _param_ekf2_req_gps_h,
+		(ParamExtFloat<px4::params::GNSS_REQ_SACC>) _param_gnss_req_sacc,
 
 		// Used by EKF-GSF experimental yaw estimator
 		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas,

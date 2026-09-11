@@ -46,7 +46,6 @@
 #include "estimator_interface.h"
 
 #if defined(CONFIG_EKF2_GNSS)
-# include "aid_sources/gnss/gnss_checks.hpp"
 # include "yaw_estimator/EKFGSF_yaw.h"
 #endif // CONFIG_EKF2_GNSS
 
@@ -401,14 +400,10 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// set minimum continuous period without GPS fail required to mark a healthy GPS status
-	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
+	const gps_check_fail_status_u &gps_check_fail_status() const { return _gnss_checks.check_fail_status; }
+	const decltype(gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gnss_checks.check_fail_status.flags; }
 
-	const GnssChecks::gps_check_fail_status_u &gps_check_fail_status() const { return _gnss_checks.getFailStatus(); }
-	const decltype(GnssChecks::gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gnss_checks.getFailStatus().flags; }
-	uint16_t gps_check_fail_status_enabled_mask() const { return _gnss_checks.getEnabledChecksFailStatusMask(); }
-
-	bool gps_checks_passed() const { return _gnss_checks.passed(); };
+	bool gps_checks_passed() const { return _gnss_checks.checks_passed; };
 
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 
@@ -611,7 +606,7 @@ private:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	bool _gps_data_ready {false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
+	bool _gps_data_ready_and_valid {false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 
 	// height sensor status
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
@@ -926,6 +921,7 @@ private:
 #if defined(CONFIG_EKF2_GNSS)
 	// control fusion of GPS observations
 	void controlGpsFusion(const imuSample &imu_delayed);
+	bool isGnssSampleUsable(const gnssSample &gnss_sample) const;
 	void controlGnssVelFusion(estimator_aid_source3d_s &aid_src, bool force_reset);
 	void controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool force_reset);
 	void stopGnssFusion();

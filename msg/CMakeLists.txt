@@ -80,7 +80,6 @@ set(msg_files
 	EstimatorBias3d.msg
 	EstimatorEventFlags.msg
 	EstimatorFusionControl.msg
-	EstimatorGpsStatus.msg
 	EstimatorInnovations.msg
 	EstimatorSelectorStatus.msg
 	EstimatorSensorBias.msg
@@ -240,6 +239,7 @@ set(msg_files
 	VehicleAirData.msg
 	VehicleConstraints.msg
 	VehicleControlMode.msg
+	VehicleGpsStatus.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLocalPositionSetpoint.msg

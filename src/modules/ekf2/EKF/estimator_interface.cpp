@@ -168,6 +168,14 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 		return;
 	}
 
+	// Samples beyond the velocity state limit cannot be fused.
+	if (!gnss_sample.vel.isAllFinite()
+	    || gnss_sample.vel.xy().longerThan(_params.ekf2_vel_lim)
+	    || fabsf(gnss_sample.vel(2)) > _params.ekf2_vel_lim) {
+		_gnss_vel_limit_drop_count++;
+		return;
+	}
+
 	// Allocate the required buffer size if not previously done
 	if (_gps_buffer == nullptr) {
 		_gps_buffer = new TimestampedRingBuffer<gnssSample>(_obs_buffer_length);
@@ -204,6 +212,16 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us,
 			 _min_obs_interval_us);
 	}
+}
+#endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_GNSS)
+void EstimatorInterface::setGpsChecksData(const gnssCheckStatus &gnss_checks)
+{
+	// vehicle_gps_position_status is a status topic (latest-wins): the most recent result published by
+	// the sensors module applies to whatever GNSS sample is fused next. The EKF times the checks itself
+	// (see controlGpsFusion).
+	_gnss_checks = gnss_checks;
 }
 #endif // CONFIG_EKF2_GNSS
 
