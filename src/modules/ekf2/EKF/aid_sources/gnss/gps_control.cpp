@@ -107,16 +107,22 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		bool do_vel_pos_reset = false;
 
 		if (!_control_status.flags.gnss_fault && _control_status.flags.in_air && isYawFailure()) {
-			const bool velocity_fusion_failure =  _aid_src_gnss_vel.innovation_rejected
-							      && isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay)
-							      && (_time_last_hor_vel_fuse > _time_last_on_ground_us);
+			const bool velocity_fusion_failure = _control_status.flags.gnss_vel
+							     && _aid_src_gnss_vel.innovation_rejected
+							     && isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay)
+							     && (_time_last_hor_vel_fuse > _time_last_on_ground_us);
 
-			const bool position_fusion_failure =  _aid_src_gnss_pos.innovation_rejected
-							      && isTimedOut(_time_last_hor_pos_fuse, _params.EKFGSF_reset_delay)
-							      && (_time_last_hor_pos_fuse > _time_last_on_ground_us);
+			// While GNSS velocity aiding is active, require velocity rejection
+			// before using EKF-GSF yaw rescue. Position-only rejection can be
+			// caused by transient position inconsistency while velocity still
+			// provides the yaw-observable measurement used by EKF-GSF.
+			const bool position_fusion_failure = !_control_status.flags.gnss_vel
+							     && _control_status.flags.gnss_pos
+							     && _aid_src_gnss_pos.innovation_rejected
+							     && isTimedOut(_time_last_hor_pos_fuse, _params.EKFGSF_reset_delay)
+							     && (_time_last_hor_pos_fuse > _time_last_on_ground_us);
 
-			if ((_control_status.flags.gnss_vel && velocity_fusion_failure)
-			    || (_control_status.flags.gnss_pos && position_fusion_failure)) {
+			if (velocity_fusion_failure || position_fusion_failure) {
 				do_vel_pos_reset = tryYawEmergencyReset();
 			}
 		}
@@ -408,6 +414,10 @@ bool Ekf::tryYawEmergencyReset()
 	 * This enables recovery from a bad yaw estimate. A reset is not performed if the fault condition was
 	 * present before flight to prevent triggering due to GPS glitches or other sensor errors.
 	 */
+	if (_control_status.flags.in_transition) {
+		return false;
+	}
+
 	if (resetYawToEKFGSF()) {
 		ECL_WARN("GPS emergency yaw reset");
 
