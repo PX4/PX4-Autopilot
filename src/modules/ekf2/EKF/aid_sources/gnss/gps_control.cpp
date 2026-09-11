@@ -463,10 +463,6 @@ void Ekf::resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src)
 
 void Ekf::stopGnssFusion()
 {
-	if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) {
-		_gnss_checks.reset();
-	}
-
 	stopGnssVelFusion();
 	stopGnssPosFusion();
 	stopGpsHgtFusion();
@@ -482,11 +478,6 @@ void Ekf::stopGnssVelFusion()
 	if (_control_status.flags.gnss_vel) {
 		ECL_INFO("stopping GNSS velocity fusion");
 		_control_status.flags.gnss_vel = false;
-
-		//TODO: what if gnss yaw or height is used?
-		if (!_control_status.flags.gnss_pos) {
-			_gnss_checks.reset();
-		}
 	}
 }
 
@@ -495,11 +486,6 @@ void Ekf::stopGnssPosFusion()
 	if (_control_status.flags.gnss_pos) {
 		ECL_INFO("stopping GNSS position fusion");
 		_control_status.flags.gnss_pos = false;
-
-		//TODO: what if gnss yaw or height is used?
-		if (!_control_status.flags.gnss_vel) {
-			_gnss_checks.reset();
-		}
 	}
 }
 
