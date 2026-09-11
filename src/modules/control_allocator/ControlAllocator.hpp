@@ -162,6 +162,7 @@ private:
 	hrt_abstime _last_effectiveness_update{0};
 
 	uint8_t _dropped_axes_reported[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
+	bool _inversion_failure_reported[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
 	enum class EffectivenessSource {
 		NONE = -1,
