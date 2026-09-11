@@ -718,6 +718,8 @@ private:
 		_param_ekf2_of_qmin, ///< minimum acceptable quality integer from  the flow sensor when in air
 		(ParamExtInt<px4::params::EKF2_OF_QMIN_GND>)
 		_param_ekf2_of_qmin_gnd, ///< minimum acceptable quality integer from  the flow sensor when on ground
+		(ParamExtInt<px4::params::EKF2_OF_QMAX>)
+		_param_ekf2_of_qmax, ///< quality at which optical flow observation noise reaches EKF2_OF_N_MIN
 		(ParamExtFloat<px4::params::EKF2_OF_GATE>)
 		_param_ekf2_of_gate, ///< optical flow fusion innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_OF_POS_X>)
