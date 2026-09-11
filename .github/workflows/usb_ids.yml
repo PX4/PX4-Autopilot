@@ -1,0 +1,26 @@
+name: Dronecode USB ID Registry
+
+on:
+  push:
+    branches: [main, 'release/**']
+    paths: ['boards/**']
+  pull_request:
+    paths: ['boards/**']
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check:
+    name: Board USB VID/PID must be registered
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check USB IDs against the Dronecode registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: Tools/ci/usb_ids_runner.sh
