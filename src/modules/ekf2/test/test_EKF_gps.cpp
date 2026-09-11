@@ -107,6 +107,34 @@ TEST_F(EkfGpsTest, gpsTimeout)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 }
 
+TEST_F(EkfGpsTest, gnssStrictChecksWhileParked)
+{
+	// GIVEN: a disarmed vehicle on the ground fusing GNSS
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// WHEN: the number of satellites drops below the minimum
+	_sensor_simulator._gps.setNumberOfSatellites(3);
+
+	// THEN: the strict checks fail and the GNSS fusion stops
+	_sensor_simulator.runSeconds(10);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+}
+
+TEST_F(EkfGpsTest, gnssSimplifiedChecksWhenArmedOnGround)
+{
+	// GIVEN: a vehicle that armed with a healthy GNSS but has not taken off yet
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	_ekf->set_armed_status(true);
+	_sensor_simulator.runSeconds(1);
+
+	// WHEN: the number of satellites drops below the minimum
+	_sensor_simulator._gps.setNumberOfSatellites(3);
+
+	// THEN: the simplified checks are used and the GNSS fusion continues
+	_sensor_simulator.runSeconds(10);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+}
+
 TEST_F(EkfGpsTest, gpsFixLoss)
 {
 	// GIVEN:EKF that fuses GPS

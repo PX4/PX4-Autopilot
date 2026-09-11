@@ -276,6 +276,7 @@ struct rangingBeaconSample {
 
 struct systemFlagUpdate {
 	uint64_t time_us{};
+	bool armed{false};
 	bool at_rest{false};
 	bool in_air{true};
 	bool is_fixed_wing{false};
@@ -635,6 +636,7 @@ uint64_t gnss_hgt_fault              :
 		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
 		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
 		uint64_t rngbcn_fusion           : 1; ///< 50 - true when ranging beacon position fusion is active
+		uint64_t armed                   : 1; ///< 51 - true when the vehicle is armed
 
 	} flags;
 	uint64_t value;
