@@ -251,22 +251,22 @@ void ICM56686::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
-		hrt_abstime timestamp_sample = now;
+			hrt_abstime timestamp_sample = now;
 
-		if (_data_ready_interrupt_enabled) {
-			const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
+			if (_data_ready_interrupt_enabled) {
+				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
 
-			if ((now - drdy_timestamp_sample) < (_fifo_empty_interval_us * 2)) {
-				timestamp_sample = drdy_timestamp_sample;
+				if ((now - drdy_timestamp_sample) < (_fifo_empty_interval_us * 2)) {
+					timestamp_sample = drdy_timestamp_sample;
 
-			} else {
-				perf_count(_drdy_missed_perf);
+				} else {
+					perf_count(_drdy_missed_perf);
+				}
+
+				ScheduleDelayed(_fifo_empty_interval_us * 2);
 			}
 
-			ScheduleDelayed(_fifo_empty_interval_us * 2);
-		}
-
-		if (FIFORead(timestamp_sample)) {
+			if (FIFORead(timestamp_sample)) {
 				if (_failure_count > 0) {
 					_failure_count--;
 				}
