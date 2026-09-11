@@ -95,6 +95,9 @@ private:
 	bool Configure();
 	void ConfigureSampleRate(int sample_rate);
 	void ConfigureFIFOWatermark(uint8_t samples);
+	void ConfigureCLKIN();
+
+	void DisableCLKIN();
 
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
@@ -121,6 +124,9 @@ private:
 	hrt_abstime _reset_timestamp{0};
 	int _failure_count{0};
 
+	bool _enable_clock_input{false};
+	float _input_clock_freq{0.f};
+
 	bool _self_test_passed{false};
 
 	enum class STATE : uint8_t {
@@ -133,9 +139,12 @@ private:
 
 	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
 	int32_t _fifo_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / RATE))};
+	float _sample_dt_us{0.f};
+	float _sample_rate_hz{0.f};
 
-	register_config_t _register_cfg[3] {
+	register_config_t _register_cfg[4] {
 		// Register | Set bits, Clear bits
+		{Register::USER_GPIO_CFG1, 0, 0},
 		{
 			Register::USER_DATA_CFG, 0, USER_DATA_CFG_BIT::Z_DELTANG_EN | USER_DATA_CFG_BIT::Y_DELTANG_EN | USER_DATA_CFG_BIT::X_DELTANG_EN |
 			USER_DATA_CFG_BIT::Z_DELTVEL_EN | USER_DATA_CFG_BIT::Y_DELTVEL_EN | USER_DATA_CFG_BIT::X_DELTVEL_EN
