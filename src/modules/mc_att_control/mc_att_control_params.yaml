@@ -132,6 +132,73 @@ parameters:
       max: 1800.0
       decimal: 0
       increment: 5
+    MC_REF_ACC_R_MAX:
+      description:
+        short: Attitude reference-model roll acceleration limit
+        long: |-
+          Limits the angular acceleration of the attitude reference model on the roll axis.
+          With a limit the reference follows a jerk-limited (MC_REF_JERK_MAX), time-optimal
+          trajectory towards the attitude setpoint, bounded by MC_ROLLRATE_MAX, and the rate
+          feed-forward reflects that trajectory.
+
+          0 disables the limit and the axis uses the linear reference model (MC_REF_W_N).
+      type: float
+      default: 0.0
+      unit: deg/s^2
+      min: 0.0
+      max: 3600.0
+      decimal: 0
+      increment: 10
+    MC_REF_ACC_P_MAX:
+      description:
+        short: Attitude reference-model pitch acceleration limit
+        long: |-
+          Limits the angular acceleration of the attitude reference model on the pitch axis.
+          With a limit the reference follows a jerk-limited (MC_REF_JERK_MAX), time-optimal
+          trajectory towards the attitude setpoint, bounded by MC_PITCHRATE_MAX, and the rate
+          feed-forward reflects that trajectory.
+
+          0 disables the limit and the axis uses the linear reference model (MC_REF_W_N).
+      type: float
+      default: 0.0
+      unit: deg/s^2
+      min: 0.0
+      max: 3600.0
+      decimal: 0
+      increment: 10
+    MC_REF_ACC_Y_MAX:
+      description:
+        short: Attitude reference-model yaw acceleration limit
+        long: |-
+          Limits the angular acceleration of the attitude reference model on the yaw axis.
+          With a limit the reference follows a jerk-limited (MC_REF_JERK_MAX), time-optimal
+          trajectory towards the attitude setpoint, bounded by MC_YAWRATE_MAX, and the rate
+          feed-forward reflects that trajectory.
+
+          0 disables the limit and the axis uses the linear reference model (MC_REF_W_N).
+      type: float
+      default: 0.0
+      unit: deg/s^2
+      min: 0.0
+      max: 3600.0
+      decimal: 0
+      increment: 10
+    MC_REF_JERK_MAX:
+      description:
+        short: Attitude reference-model angular jerk limit
+        long: |-
+          Maximum angular jerk of the acceleration-limited reference model (MC_REF_ACC_*_MAX).
+          It bounds how fast the reference acceleration ramps in and out and thereby also how
+          quickly the reference closes small setpoint changes: close to the setpoint the
+          reference rate is proportional to the remaining angle with the gain
+          MC_REF_JERK_MAX / (2 * MC_REF_ACC_*_MAX). Higher = crisper, lower = smoother response.
+      type: float
+      default: 10000.0
+      unit: deg/s^3
+      min: 100.0
+      max: 100000.0
+      decimal: 0
+      increment: 100
 - group: Multicopter Position Control
   definitions:
     MC_MAN_TILT_TAU:
