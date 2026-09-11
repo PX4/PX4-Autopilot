@@ -38,6 +38,7 @@
 #include <AttitudeControl.hpp>
 
 #include <mathlib/math/Functions.hpp>
+#include <mathlib/math/TrajMath.hpp>
 
 using namespace matrix;
 
@@ -62,6 +63,20 @@ void AttitudeControl::setRefModelFrequency(float omega_n)
 	_kq      = _omega_n * _omega_n;
 }
 
+void AttitudeControl::setRefModelAccelerationLimit(const Vector3f &accel_max, const float jerk_max)
+{
+	for (int i = 0; i < 3; i++) {
+		_ref_accel_max(i) = math::max(accel_max(i), 0.f);
+	}
+
+	_ref_jerk_max = math::max(jerk_max, 0.f);
+}
+
+bool AttitudeControl::isAxisAccelerationLimited(const int axis) const
+{
+	return (_ref_accel_max(axis) > FLT_EPSILON) && (_ref_jerk_max > FLT_EPSILON);
+}
+
 void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
 {
 	Quatf qd_normalized = qd;
@@ -75,8 +90,38 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		_q_ref = qd_normalized;
 		_omega_correction.zero();
 		_omega_command.zero();
+
+		for (auto &trajectory : _rate_trajectory) {
+			trajectory.reset(0.f, 0.f, 0.f);
+		}
+
 		_ref_initialized = true;
 	}
+}
+
+void AttitudeControl::propagateLimitedAxis(const int axis, const float error, const float dt, float &rate,
+		float &delta_angle)
+{
+	VelocitySmoothing &trajectory = _rate_trajectory[axis];
+	trajectory.setMaxJerk(_ref_jerk_max);
+	trajectory.setMaxAccel(_ref_accel_max(axis));
+	trajectory.setMaxVel(_rate_limit(axis));
+
+	// Rate setpoint: the highest rate from which the remaining angle can still be closed within the
+	// acceleration and jerk limits, i.e. the same braking law the position trajectories use. It is
+	// proportional to the error close to the setpoint and grows with its square root further away.
+	const float braking_rate = math::trajectory::computeMaxSpeedFromDistance(_ref_jerk_max, _ref_accel_max(axis),
+				   fabsf(error), 0.f);
+	const float rate_setpoint = (error < 0.f) ? -braking_rate : braking_rate;
+
+	// Track the rate setpoint with a time-optimal, jerk-limited trajectory. The position state is reset
+	// every step so that it directly integrates the angle travelled within this step.
+	trajectory.updateDurations(rate_setpoint);
+	trajectory.setCurrentPosition(0.f);
+	trajectory.updateTraj(dt);
+
+	rate = trajectory.getCurrentVelocity();
+	delta_angle = trajectory.getCurrentPosition();
 }
 
 void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawspeed_setpoint, const float dt)
@@ -118,8 +163,25 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 
 	// Propagate the error-driven correction in tangent space (the 2nd-order state). delta_phi is the integral
 	//    of omega over [0, dt]; the correction part collapses to e(0) - e(dt) since e_dot = -correction.
-	const Vector3f delta_phi = (1.f - a) * e_filtered + b * _omega_correction + e_heading;
-	_omega_correction = gamma * e_filtered + delta * _omega_correction;
+	Vector3f delta_phi = (1.f - a) * e_filtered + b * _omega_correction + e_heading;
+	Vector3f omega_correction = gamma * e_filtered + delta * _omega_correction;
+
+	// Axes with an angular acceleration limit follow a jerk-limited, time-optimal rate trajectory towards
+	// the setpoint instead of the linear model above; the unlocked heading component is applied unfiltered
+	// on them too. The other axes keep their trajectory state in sync with the linear model so that enabling
+	// the limit at runtime continues from the current rate.
+	for (int i = 0; i < 3; i++) {
+		if (isAxisAccelerationLimited(i)) {
+			float delta_angle;
+			propagateLimitedAxis(i, e_filtered(i), dt, omega_correction(i), delta_angle);
+			delta_phi(i) = delta_angle + e_heading(i);
+
+		} else {
+			_rate_trajectory[i].reset(0.f, omega_correction(i), 0.f);
+		}
+	}
+
+	_omega_correction = omega_correction;
 
 	_q_ref     = qmul(_q_ref, Quatf(AxisAnglef(delta_phi)));
 	_q_ref.normalize();
