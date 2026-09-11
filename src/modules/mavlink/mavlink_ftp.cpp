@@ -591,9 +591,10 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 		}
 
 		// CreateFile and OpenFileWO create or truncate the file as part of the open, so the
-		// effect lands before any write arrives and has to be authorized here.
-		if ((oflag & (O_WRONLY | O_RDWR | O_CREAT | O_TRUNC)) != 0
-		    && !_validatePathIsWritable(_work_buffer1)) {
+		// effect lands before any write arrives and has to be authorized here. Test the
+		// access mode rather than the individual flags: on NuttX O_RDONLY is a bit and
+		// O_RDWR is O_RDONLY | O_WRONLY, so a read-only open would match O_RDWR.
+		if (for_write && !_validatePathIsWritable(_work_buffer1)) {
 			return kErrFailFileProtected;
 		}
 
