@@ -80,7 +80,6 @@ set(msg_files
 	EstimatorBias3d.msg
 	EstimatorEventFlags.msg
 	EstimatorFusionControl.msg
-	EstimatorGpsStatus.msg
 	EstimatorInnovations.msg
 	EstimatorSelectorStatus.msg
 	EstimatorSensorBias.msg

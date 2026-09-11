@@ -103,7 +103,6 @@
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-# include <uORB/topics/estimator_gps_status.h>
 # include <uORB/topics/sensor_gps.h>
 # include <uORB/topics/vehicle_gps_status.h>
 #endif // CONFIG_EKF2_GNSS
@@ -223,7 +222,6 @@ private:
 	float altEllipsoidToAmsl(float ellipsoid_alt) const;
 	float altAmslToEllipsoid(float amsl_alt) const;
 
-	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -492,8 +490,6 @@ private:
 	static constexpr hrt_abstime kGeoidHeightLpfTimeConstant = 10_s;
 	AlphaFilter<float> _geoid_height_lpf;  ///< height offset between AMSL and ellipsoid
 
-	hrt_abstime _last_gps_status_published{0};
-
 	hrt_abstime _status_gnss_hgt_pub_last{0};
 	hrt_abstime _status_gnss_pos_pub_last{0};
 	hrt_abstime _status_gnss_vel_pub_last{0};
@@ -506,7 +502,6 @@ private:
 	perf_counter_t _gnss_vel_limit_drop_perf{perf_alloc(PC_COUNT, MODULE_NAME": GNSS velocity limit exceeded")};
 
 	uORB::PublicationMulti<estimator_bias_s> _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
-	uORB::PublicationMulti<estimator_gps_status_s> _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_hgt_pub{ORB_ID(estimator_aid_src_gnss_hgt)};
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_gnss_pos_pub{ORB_ID(estimator_aid_src_gnss_pos)};
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gnss_vel_pub{ORB_ID(estimator_aid_src_gnss_vel)};
