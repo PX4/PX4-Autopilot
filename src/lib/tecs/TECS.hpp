@@ -224,6 +224,7 @@ public:
 		float vert_accel_limit;			///< Magnitude of the maximum vertical acceleration allowed [m/s²].
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
 		float tas_min;				///< True airspeed demand lower limit [m/s].
+		float tas_stall;			///< True stall airspeed [m/s].
 		float tas_max;				///< True airspeed demand upper limit [m/s].
 		float pitch_max;			///< Maximum pitch angle above trim allowed in [rad].
 		float pitch_min;			///< Minimal pitch angle below trim allowed in [rad].
@@ -634,6 +635,7 @@ public:
 	void set_fast_descend_altitude_error(float altitude_error) { _fast_descend_alt_err = altitude_error; };
 
 	void set_equivalent_airspeed_min(float airspeed) { _equivalent_airspeed_min = airspeed; }
+	void set_equivalent_airspeed_stall(float airspeed) { _equivalent_airspeed_stall = airspeed; }
 	void set_equivalent_airspeed_max(float airspeed) { _equivalent_airspeed_max = airspeed; }
 	void set_equivalent_airspeed_trim(float airspeed) { _control_param.equivalent_airspeed_trim = airspeed; _airspeed_filter_param.equivalent_airspeed_trim = airspeed; }
 
@@ -715,6 +717,7 @@ private:
 	hrt_abstime _update_timestamp{0};				///< last timestamp of the update function call.
 
 	float _equivalent_airspeed_min{10.0f};				///< equivalent airspeed demand lower limit (m/sec)
+	float _equivalent_airspeed_stall{7.0f};				///< equivalent stall airspeed (m/sec)
 	float _equivalent_airspeed_max{20.0f};				///< equivalent airspeed demand upper limit (m/sec)
 	float _fast_descend_alt_err{-1.f};	 				///< Altitude difference between current altitude to altitude setpoint needed to descend with higher airspeed [m].
 	float _fast_descend{0.f};					///< Value for fast descend in [0,1]. continuous value used to flatten the high speed value out when close to target altitude.
@@ -748,6 +751,7 @@ private:
 		.vert_accel_limit = 0.0f,
 		.equivalent_airspeed_trim = 15.0f,
 		.tas_min = 10.0f,
+		.tas_stall = 7.0f,
 		.tas_max = 20.0f,
 		.pitch_max = 0.5f,
 		.pitch_min = -0.5f,

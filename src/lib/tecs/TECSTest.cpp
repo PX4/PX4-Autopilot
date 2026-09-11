@@ -52,6 +52,7 @@ TECSControl::Param makeParam()
 	param.vert_accel_limit = 10.f;
 	param.equivalent_airspeed_trim = 15.f;
 	param.tas_min = 10.f;
+	param.tas_stall = 7.f;
 	param.tas_max = 30.f;
 	param.pitch_max = radians(15.f);
 	param.pitch_min = radians(-15.f);
@@ -264,6 +265,37 @@ TEST(TECSUnderspeedTest, RampWidthScalesWithMinimumAirspeed)
 	EXPECT_FLOAT_EQ(underspeedRatio(18.f, 0.f, param, flag), 1.f);
 }
 
+// With the stall airspeed close to tas_min the band ends halfway between the two.
+TEST(TECSUnderspeedTest, RampEndsHalfwayToStallAirspeed)
+{
+	TECSControl::Param param = makeParam();
+	param.tas_stall = 9.f; // band is [9.5, 10] m/s
+	const TECSControl::Flag flag = makeFlag();
+
+	EXPECT_FLOAT_EQ(underspeedRatio(10.f, 0.f, param, flag), 0.f);
+	EXPECT_NEAR(underspeedRatio(9.75f, 0.f, param, flag), 0.5f, 1e-5f);
+	EXPECT_FLOAT_EQ(underspeedRatio(9.5f, 0.f, param, flag), 1.f);
+
+	// The lookahead is limited to the narrower band as well.
+	EXPECT_FLOAT_EQ(underspeedRatio(10.5f, -5.f, param, flag), 0.f);
+	EXPECT_NEAR(underspeedRatio(10.25f, -5.f, param, flag), 0.5f, 1e-5f);
+}
+
+// A stall airspeed at or above tas_min collapses the band to a step at tas_min.
+TEST(TECSUnderspeedTest, StallAirspeedAtOrAboveMinimumAirspeed)
+{
+	TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+
+	for (const float tas_stall : {10.f, 12.f}) {
+		param.tas_stall = tas_stall;
+		EXPECT_FLOAT_EQ(underspeedRatio(10.f, 0.f, param, flag), 0.f);
+		EXPECT_FLOAT_EQ(underspeedRatio(10.5f, -2.f, param, flag), 0.f);
+		EXPECT_FLOAT_EQ(underspeedRatio(10.5f, 2.f, param, flag), 0.f);
+		EXPECT_FLOAT_EQ(underspeedRatio(9.99f, 0.f, param, flag), 1.f);
+	}
+}
+
 // Deceleration is extrapolated one second ahead, so mitigation starts while the
 // measured airspeed is still above tas_min.
 TEST(TECSUnderspeedTest, LookaheadTriggersOnDeceleration)
@@ -274,8 +306,10 @@ TEST(TECSUnderspeedTest, LookaheadTriggersOnDeceleration)
 	// Same airspeed, decelerating: 10.5 - 1.0 * 1 s = 9.5 -> halfway into the band.
 	EXPECT_NEAR(underspeedRatio(10.5f, -1.f, param, flag), 0.5f, 1e-5f);
 
-	// A hard deceleration saturates the ratio even well above tas_min.
-	EXPECT_FLOAT_EQ(underspeedRatio(11.f, -2.f, param, flag), 1.f);
+	// The lookahead is limited to the ramp width, so a hard deceleration only saturates
+	// the ratio at tas_min and cannot trigger mitigation further above it.
+	EXPECT_FLOAT_EQ(underspeedRatio(10.f, -5.f, param, flag), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(11.f, -5.f, param, flag), 0.f);
 }
 
 // Acceleration must not be credited: an accelerating aircraft that is currently below
@@ -295,7 +329,7 @@ TEST(TECSUnderspeedTest, LookaheadClampsPredictedAirspeedAtZero)
 	TECSControl::Param param = makeParam();
 	const TECSControl::Flag flag = makeFlag();
 
-	const float ratio = underspeedRatio(5.f, -50.f, param, flag);
+	const float ratio = underspeedRatio(0.5f, -50.f, param, flag);
 	EXPECT_TRUE(PX4_ISFINITE(ratio));
 	EXPECT_FLOAT_EQ(ratio, 1.f);
 }
@@ -333,11 +367,12 @@ void configureTECS(TECS &tecs)
 	tecs.set_speed_weight(1.f);
 }
 
-void runTECS(TECS &tecs, float altitude, float hgt_setpoint, float equivalent_airspeed, int cycles)
+void runTECS(TECS &tecs, float altitude, float hgt_setpoint, float equivalent_airspeed, int cycles,
+	     float eas_to_tas = 1.f)
 {
 	for (int i = 0; i < cycles; i++) {
 		tecs.update(0.f /* pitch */, altitude, hgt_setpoint, 15.f /* EAS setpoint */, equivalent_airspeed,
-			    1.f /* eas_to_tas */, 0.f /* throttle_min */, 1.f /* throttle_max */, 0.5f /* throttle_trim */,
+			    eas_to_tas, 0.f /* throttle_min */, 1.f /* throttle_max */, 0.5f /* throttle_trim */,
 			    radians(-15.f), radians(15.f), 5.f /* target climbrate */, 5.f /* target sinkrate */,
 			    0.f /* speed_deriv_forward */, 0.f /* hgt_rate */);
 		usleep(20000); // 20 ms, keeps dt inside [DT_MIN, DT_MAX]
@@ -345,6 +380,20 @@ void runTECS(TECS &tecs, float altitude, float hgt_setpoint, float equivalent_ai
 }
 
 } // namespace
+
+// The stall airspeed is converted to TAS the same way as the minimum airspeed.
+TEST(TECSUnderspeedTest, StallAirspeedIsConvertedToTrueAirspeed)
+{
+	for (const float eas_to_tas : {1.f, 1.5f}) {
+		TECS tecs;
+		configureTECS(tecs);
+		tecs.set_equivalent_airspeed_stall(9.f); // band is [9.5, 10] m/s EAS
+
+		runTECS(tecs, 100.f, 100.f, 9.75f, 3, eas_to_tas);
+
+		EXPECT_NEAR(tecs.get_underspeed_ratio(), 0.5f, 1e-5f);
+	}
+}
 
 // While the aircraft is undersped the altitude reference is pinned to the current
 // altitude, so no altitude error accumulates that would command an aggressive pitch-up

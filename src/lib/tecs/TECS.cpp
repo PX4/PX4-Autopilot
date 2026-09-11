@@ -363,18 +363,18 @@ void TECSControl::_detectUnderspeed(const Input &input, const Param &param, cons
 		return;
 	}
 
-	// Ramp underspeed ratio from 0 to 1 over a band of 10% of tas_min below tas_min
-	const float underspeed_ramp_width = 0.1f * param.tas_min;
-	const float tas_starting_to_underspeed = param.tas_min;
-	const float tas_fully_undersped = math::max(param.tas_min - underspeed_ramp_width, 0.0f);
+	// Ramp underspeed ratio from 0 at tas_min to 1 at 90% of tas_min, or halfway to tas_stall if that is higher
+	const float tas_fully_undersped = math::min(param.tas_min,
+					  math::max(0.9f * param.tas_min, 0.5f * (param.tas_min + param.tas_stall)));
+	const float underspeed_ramp_width = param.tas_min - tas_fully_undersped;
 
-	// Predict effective TAS using airspeed rate (only when decelerating)
+	// Predict effective TAS using airspeed rate (only when decelerating), limited to the ramp width
 	constexpr float UNDERSPEED_LOOKAHEAD_TIME = 1.0f; // [s]
-	const float tas_rate_for_lookahead = math::min(input.tas_rate, 0.0f);
-	const float effective_tas = math::max(input.tas + tas_rate_for_lookahead * UNDERSPEED_LOOKAHEAD_TIME, 0.0f);
+	const float lookahead = math::constrain(input.tas_rate * UNDERSPEED_LOOKAHEAD_TIME, -underspeed_ramp_width, 0.0f);
+	const float effective_tas = math::max(input.tas + lookahead, 0.0f);
 
-	_ratio_undersped = 1.0f - math::constrain((effective_tas - tas_fully_undersped) /
-			   math::max(tas_starting_to_underspeed - tas_fully_undersped, FLT_EPSILON), 0.0f, 1.0f);
+	_ratio_undersped = math::constrain((param.tas_min - effective_tas) / math::max(underspeed_ramp_width, FLT_EPSILON),
+					   0.0f, 1.0f);
 }
 
 TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(const Param &param, const Flag &flag)
@@ -674,6 +674,7 @@ void TECS::initControlParams(float target_climbrate, float target_sinkrate, floa
 	_reference_param.target_sinkrate = target_sinkrate;
 	// Control
 	_control_param.tas_min = eas_to_tas * _equivalent_airspeed_min;
+	_control_param.tas_stall = eas_to_tas * _equivalent_airspeed_stall;
 	_control_param.tas_max = eas_to_tas * _equivalent_airspeed_max;
 	_control_param.pitch_max = pitch_limit_max;
 	_control_param.pitch_min = pitch_limit_min;
