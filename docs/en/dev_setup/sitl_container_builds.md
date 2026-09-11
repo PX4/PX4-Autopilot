@@ -19,6 +19,7 @@ Tools/packaging/
     *-entrypoint.sh     Container startup scripts
     px4-network.sh     Shared runtime host routing
     ros2-install-dependencies.sh
+    ros2-agent.repos
     test_sih_mission.py
 Tools/ros2/
   prepare_workspace.py Checkout-matched ROS source workspace preparation
@@ -77,7 +78,7 @@ Repository checkouts live in a separate source stage and are mounted read-only f
 The development toolchain does not inherit those source layers; only the ROS workspace builder copies the checkouts.
 Changing only the ROS entrypoint does not rebuild the workspace, and changing only the test command does not recompile it.
 
-The Agent and ROS workspace build in independent Ubuntu 24.04/Jazzy stages, keyed to source pins and the supplied PX4 message definitions rather than the packaged firmware.
+For the packaged ROS images, the Agent and ROS workspace build in independent Ubuntu 24.04/Jazzy stages, keyed to source pins and the supplied PX4 message definitions rather than the packaged firmware.
 A new PX4 binary with unchanged messages reuses those compilation and test layers.
 Changed messages invalidate workspace compilation and tests; cached artifacts never substitute messages from another checkout.
 The final image still derives from the connected SIH/Gazebo parent and installs its Ubuntu/ROS dependencies using the same helper as the builder.
@@ -108,16 +109,22 @@ Image and workflow SHA overrides are for testing candidates; adopting a candidat
 
 ## Testing A PX4 Checkout With ROS
 
-The standalone `ghcr.io/px4/px4-dev-ros2:main-jazzy` image includes Jazzy, the Agent, PX4's source-build dependencies and the dependencies required by the pinned ROS repositories.
-It is also available on Docker Hub as `px4io/px4-dev-ros2:main-jazzy`, with matching tags in both registries.
-It contains no repository checkouts, packaged PX4 firmware or compiled ROS workspace, and its entrypoint sources only the Jazzy underlay.
-It is published independently of the SITL package workflow, so it does not wait for `.deb` builds.
+The standalone `ghcr.io/px4/px4-dev-ros2` image provides Ubuntu 22.04/ROS Humble (`main-humble`) and Ubuntu 24.04/ROS Jazzy (`main-jazzy`) toolchains for native `amd64` and `arm64`.
+Both include Micro XRCE-DDS Agent v2.4.3, PX4's source-build dependencies and the dependencies required by the pinned ROS repositories.
+They are also available on Docker Hub as `px4io/px4-dev-ros2`, with matching tags in both registries.
+They contain no repository checkouts, packaged PX4 firmware or compiled ROS workspace, and their entrypoint sources only the selected ROS underlay.
+The packaged SIH/Gazebo ROS images remain Ubuntu 24.04/Jazzy only.
+Both Agent builds statically link the same private Fast DDS 2.14.7/Fast CDR 2.2.8 dependencies pinned in `Tools/packaging/containers/ros2-agent.repos`.
+This provides one controlled Agent dependency set across both distros and avoids Humble's Fast CDR 1.x build incompatibility with Agent v2.4.3.
+Their resolved revisions and licences are retained under `/usr/local/share/micro-xrce-dds-agent`; neither distro's ROS libraries are replaced.
+The packaged Jazzy ROS images reuse this Agent build.
+These toolchains are published independently of the SITL package workflow, so they do not wait for `.deb` builds.
 Publishing follows the same release-tag and opt-in manual policy as `px4-dev`.
 
-The `main-jazzy` tag names the manually published toolchain for PX4 `main` development with ROS Jazzy, not bundled firmware.
-Pushing a `v*` Git tag publishes `<git-tag>-jazzy`, such as `v1.18.0-jazzy`, without updating `main-jazzy`.
-Each publication also provides `sha-<full-PX4-commit>-jazzy`, identifying the repository revision used to build the toolchain.
-Release-line toolchains can use tags such as `v1.18-jazzy` through the manual publisher's `tag` input when that release line is maintained.
+The `main-humble` and `main-jazzy` tags name manually published toolchains for PX4 `main` development, not bundled firmware.
+Pushing a `v*` Git tag publishes both `<git-tag>-humble` and `<git-tag>-jazzy`, such as `v1.18.0-humble` and `v1.18.0-jazzy`, retaining the leading `v` without updating either `main-*` tag.
+Each publication also provides `sha-<full-PX4-commit>-<ros-distro>`, identifying the repository revision used to build the toolchain.
+Release-line toolchains can use tags such as `v1.18-humble` and `v1.18-jazzy` through the manual publisher's `tag` prefix input (`v1.18`) when that release line is maintained.
 The source revision and intended PX4 release line do not change which firmware a checkout builds.
 ROS integration CI pins the image by digest so publishing a new moving tag cannot silently change the test environment.
 When adopting a rebuilt toolchain, update the digest in `.github/workflows/ros_integration_tests.yml`.
@@ -126,7 +133,7 @@ The optional `ros2-dev` Bake target builds this image without `.deb` packages or
 
 ```sh
 bash Tools/packaging/containers/prepare_context.sh
-docker buildx bake -f Tools/packaging/containers/docker-bake.hcl ros2-dev \
+ROS_DISTRO=humble docker buildx bake -f Tools/packaging/containers/docker-bake.hcl ros2-dev \
   --set ros2-dev.tags=px4-dev-ros2:local --load
 SOURCE=$(pwd -P)
 GIT_COMMON_DIR=$(git rev-parse --path-format=absolute --git-common-dir)
@@ -137,19 +144,22 @@ docker run --rm -it \
 ```
 
 The same absolute mounts support both ordinary checkouts and git worktrees.
+Set `ROS_DISTRO=jazzy` instead, or omit it, for the default Jazzy developer image.
+Bake selects the matching Ubuntu base; only `humble` and `jazzy` are supported.
+This selection applies only to `ros2-dev`, not the packaged runtime targets.
 The Git ownership exception is scoped to this container and checkout.
 Inside the container, build the current checkout; the build initialises its required submodules:
 
 ```bash
 PX4_DIR=$PWD
 make px4_sitl_sih
-source /opt/ros/jazzy/setup.bash
+source "/opt/ros/$ROS_DISTRO/setup.bash"
 python3 Tools/ros2/prepare_workspace.py /opt/px4_ros2_ci
 cd /opt/px4_ros2_ci
 sudo apt-get update -qq
-rosdep update --rosdistro jazzy
-rosdep install --from-paths src --ignore-src --rosdistro jazzy -y
-colcon build --symlink-install --cmake-args \
+rosdep update --rosdistro "$ROS_DISTRO"
+rosdep install --from-paths src --ignore-src --rosdistro "$ROS_DISTRO" -y
+CMAKE_BUILD_PARALLEL_LEVEL=8 colcon build --symlink-install --executor sequential --cmake-args \
   -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 colcon test --packages-select px4_ros2_cpp --ctest-args -R unit_tests
@@ -172,15 +182,17 @@ Its manual `px4_ros2_ref` input selects a full interface-library commit SHA; lea
 CI prepares and builds the ROS workspace on every run using the current checkout's message/service definitions.
 Only the compiler cache is restored, not an old source, build or install workspace.
 Ccache validates compiler contents and compilation inputs, including changed library sources and generated messages.
-`CACHE_GHA=true` uses an independent `ros2-dev-<architecture>` image cache, without replacing the published SITL image caches.
-The `ros_dev_container.yml` workflow builds the standalone target on every `main` push and on pull requests that change its watched paths, without publishing.
-It publishes to Docker Hub and GHCR only on `v*` tag pushes or manual runs with `deploy_to_registry=true`.
-Manual runs use the `tag` input, which defaults to `main-jazzy`; the deployment toggle also applies when dispatching against a Git tag.
-Architecture tags use `sha-<full-PX4-commit>-jazzy-<architecture>`; the final selected tag and `sha-<full-PX4-commit>-jazzy` indexes preserve both architectures and their SBOMs.
+`CACHE_GHA=true` uses an independent `ros2-dev-<ros-distro>-<architecture>` image cache, without replacing the published SITL image caches.
+The `ros_dev_container.yml` workflow builds both standalone variants on every `main` push and on pull requests that change its watched paths, without publishing.
+In the upstream repository, it publishes to Docker Hub and GHCR only on `v*` tag pushes or authorised manual runs with `deploy_to_registry=true`.
+Manual runs build both distros and now take a distro-independent `tag` prefix, defaulting to `main`, rather than a complete tag such as `main-jazzy`.
+Use `main` to publish `main-humble` and `main-jazzy`, or `v1.18` to publish `v1.18-humble` and `v1.18-jazzy`; ROS-suffixed inputs are rejected to avoid mislabelling images.
+The existing `build_ref` selects the source revision, and the deployment toggle also applies when dispatching against a Git tag.
+Architecture tags use `sha-<full-PX4-commit>-<ros-distro>-<architecture>`; each distro's selected tag and `sha-<full-PX4-commit>-<ros-distro>` indexes preserve its two architectures and their SBOMs.
 Use `--set ros2-dev.args.PX4_ROS2_REF=<40-hex-SHA>` to build the development image with another interface-library commit.
 
 Both ROS development images and the CI toolchain reuse `Tools/setup/ubuntu.sh --no-nuttx --no-sim-tools` and its Python requirements.
-Already installed Ubuntu/Jazzy Python versions are constrained during installation instead of gratuitously upgrading the ROS stack.
+Already installed Ubuntu/ROS Python versions are constrained during installation instead of gratuitously upgrading the ROS stack.
 The SIH image does not acquire Gazebo or the NuttX toolchain.
 Installing the complete source-build toolset increases cold image-build time and size; existing native architecture and incremental cache boundaries remain in use.
 

@@ -15,6 +15,7 @@ else
     mkdir -p "$context_dir/setup"
     cp "$script_dir"/Dockerfile.* "$script_dir"/*entrypoint.sh "$script_dir/px4-network.sh" "$context_dir/"
     cp "$script_dir/ros2-install-dependencies.sh" "$repo_dir/Tools/ros2/ros2.repos" "$context_dir/"
+    cp "$script_dir/ros2-agent.repos" "$context_dir/"
     cp "$repo_dir/Tools/setup/ubuntu.sh" "$repo_dir/Tools/setup/requirements.txt" "$context_dir/setup/"
 fi
 

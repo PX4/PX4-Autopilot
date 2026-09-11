@@ -175,8 +175,10 @@ Host ROS nodes require additional DDS networking configuration; the example keep
 When testing modified PX4 firmware, rebuild the ROS workspace against its message definitions rather than using the bundled library.
 Use `--entrypoint /bin/bash` and source `/opt/ros/jazzy/setup.bash` to start without the bundled workspace.
 For source builds and selecting an interface-library commit, see [Testing A PX4 Checkout With ROS](../dev_setup/sitl_container_builds.md#testing-a-px4-checkout-with-ros).
-The standalone `ghcr.io/px4/px4-dev-ros2:main-jazzy` toolchain provides the build tools and ROS dependencies without bundled source checkouts, firmware or a compiled workspace.
-It is also available on Docker Hub as `px4io/px4-dev-ros2:main-jazzy`, with matching tags in both registries.
+The standalone `ghcr.io/px4/px4-dev-ros2` toolchain provides Ubuntu 22.04/ROS Humble (`main-humble`) and Ubuntu 24.04/ROS Jazzy (`main-jazzy`) variants for `amd64` and `arm64`, without bundled source checkouts, firmware or a compiled workspace.
+It is also available on Docker Hub as `px4io/px4-dev-ros2`, with matching distro-qualified tags in both registries.
+Release tags retain the Git tag and ROS suffix, for example `v1.18.0-humble` and `v1.18.0-jazzy`; release publication does not move the manually published `main-*` tags.
+Humble support is limited to this standalone toolchain; the packaged SIH/Gazebo ROS images above remain Jazzy-only.
 ROS integration CI uses this toolchain, builds PX4 from the pull request, and regenerates messages from that checkout.
 
 #### Go-To Example

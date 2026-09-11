@@ -14,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'PX4/ROS development tag (e.g. main-jazzy or v1.18-jazzy)'
+        description: 'Tag prefix for both distros (e.g. main or v1.18; no ROS suffix)'
         type: string
-        default: main-jazzy
+        default: main
       build_ref:
         description: 'Source ref; empty uses the workflow ref'
         type: string
@@ -27,7 +27,7 @@ on:
         default: false
 
 concurrency:
-  group: ros2-dev-${{ github.ref }}-${{ inputs.tag || 'main-jazzy' }}
+  group: ros2-dev-${{ github.ref }}-${{ inputs.tag || 'main' }}
   cancel-in-progress: true
 
 permissions:
@@ -36,11 +36,13 @@ permissions:
 
 jobs:
   build:
-    name: Build ROS Development Image (${{ matrix.arch }})
+    name: Build ROS Development Image (${{ matrix.ros_distro }}, ${{ matrix.arch }})
     runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
     strategy:
       fail-fast: false
       matrix:
+        ros_distro: [humble, jazzy]
+        arch: [amd64, arm64]
         include:
           - { arch: amd64, runner: x64 }
           - { arch: arm64, runner: arm64 }
@@ -57,20 +59,31 @@ jobs:
 
       - name: Resolve source revision
         id: revision
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        env:
+          TAG_PREFIX: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.tag || 'main' }}
+        run: |
+          # Reserve seven characters of Docker's 128-character limit for -humble.
+          if [[ ! "$TAG_PREFIX" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,120}$ ]] ||
+             [[ "$TAG_PREFIX" == *-humble || "$TAG_PREFIX" == *-jazzy ]]; then
+            echo "Use a tag prefix without a ROS suffix, e.g. main or v1.18" >&2
+            exit 1
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: docker/login-action@v4
         if: >-
-          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
-          (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true)
+          github.repository == 'PX4/PX4-Autopilot' &&
+          ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true))
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: docker/login-action@v4
         if: >-
-          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
-          (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true)
+          github.repository == 'PX4/PX4-Autopilot' &&
+          ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true))
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -84,28 +97,35 @@ jobs:
         uses: docker/bake-action@v7
         env:
           ARCH: ${{ matrix.arch }}
+          ROS_DISTRO: ${{ matrix.ros_distro }}
           CACHE_GHA: "true"
         with:
           source: .
           files: Tools/packaging/containers/docker-bake.hcl
           targets: ros2-dev
           push: >-
-            ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
-                (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true) }}
+            ${{ github.repository == 'PX4/PX4-Autopilot' &&
+                ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+                (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true)) }}
           sbom: true
           provenance: false
           set: |
-            ros2-dev.tags=ghcr.io/px4/px4-dev-ros2:sha-${{ steps.revision.outputs.sha }}-jazzy-${{ matrix.arch }}
-            ros2-dev.tags=px4io/px4-dev-ros2:sha-${{ steps.revision.outputs.sha }}-jazzy-${{ matrix.arch }}
+            ros2-dev.tags=ghcr.io/px4/px4-dev-ros2:sha-${{ steps.revision.outputs.sha }}-${{ matrix.ros_distro }}-${{ matrix.arch }}
+            ros2-dev.tags=px4io/px4-dev-ros2:sha-${{ steps.revision.outputs.sha }}-${{ matrix.ros_distro }}-${{ matrix.arch }}
             ros2-dev.labels.org.opencontainers.image.source=https://github.com/PX4/PX4-Autopilot
             ros2-dev.labels.org.opencontainers.image.revision=${{ steps.revision.outputs.sha }}
 
   deploy:
-    name: Publish Multi-Architecture ROS Development Image
+    name: Publish Multi-Architecture ROS Development Image (${{ matrix.ros_distro }})
     needs: build
     if: >-
-      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
-      (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true)
+      github.repository == 'PX4/PX4-Autopilot' &&
+      ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true))
+    strategy:
+      fail-fast: false
+      matrix:
+        ros_distro: [humble, jazzy]
     runs-on: [runs-on,"runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
     steps:
       - uses: runs-on/action@v2
@@ -121,13 +141,14 @@ jobs:
       - uses: docker/setup-buildx-action@v4
       - name: Assemble image and SBOM indexes
         env:
-          TAG: ${{ github.event_name == 'push' && format('{0}-jazzy', github.ref_name) || inputs.tag || 'main-jazzy' }}
+          TAG_PREFIX: ${{ github.event_name == 'push' && github.ref_name || inputs.tag || 'main' }}
+          ROS_DISTRO: ${{ matrix.ros_distro }}
           REVISION: ${{ needs.build.outputs.revision }}
         run: |
           for REGISTRY in px4io ghcr.io/px4; do
             IMAGE="${REGISTRY}/px4-dev-ros2"
 
             docker buildx imagetools create \
-              --tag "${IMAGE}:${TAG}" --tag "${IMAGE}:sha-${REVISION}-jazzy" \
-              "${IMAGE}:sha-${REVISION}-jazzy-amd64" "${IMAGE}:sha-${REVISION}-jazzy-arm64"
+              --tag "${IMAGE}:${TAG_PREFIX}-${ROS_DISTRO}" --tag "${IMAGE}:sha-${REVISION}-${ROS_DISTRO}" \
+              "${IMAGE}:sha-${REVISION}-${ROS_DISTRO}-amd64" "${IMAGE}:sha-${REVISION}-${ROS_DISTRO}-arm64"
           done
