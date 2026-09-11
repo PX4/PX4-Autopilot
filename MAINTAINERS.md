@@ -51,6 +51,14 @@ Reviewers help maintain PX4 across the project without ownership of a specific c
 | Ramón Roche | [@mrpollo](https://github.com/mrpollo) | rroche | <rroche@linuxfoundation.org>
 | Daniel Agar | [@dagar](https://github.com/dagar) | daniel_agar | <daniel@agar.ca>
 
+**Security**
+
+Triage incoming security reports and coordinate fixes, as described in [SECURITY.md](SECURITY.md).
+
+| Name | GitHub | Chat | email
+|------|--------|------|----------------------
+| Julian Oes | [@julianoes](https://github.com/julianoes) | julianoes | <julian@oes.ch>
+
 **Retired Maintainers**
 
 | Name | GitHub | Chat | email
