@@ -46,6 +46,12 @@ static __attribute__((noinline)) Quatf qmul(const Quatf &a, const Quatf &b) { re
 static __attribute__((noinline)) Quatf qinv(const Quatf &q) { return q.inversed(); }
 static __attribute__((noinline)) Vector3f qzaxis(const Quatf &q) { return q.dcm_z(); }
 
+// The acceleration-limited trajectory is advanced in substeps no longer than this, so that its rate
+// setpoint is refreshed from the remaining error often enough; the substep count is bounded to keep
+// the work per update finite after a long gap between setpoints.
+static constexpr float kMaxShapingStep = 0.01f; // [s]
+static constexpr int kMaxShapingSubsteps = 50;
+
 void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight)
 {
 	_proportional_gain = proportional_gain;
@@ -107,21 +113,31 @@ void AttitudeControl::propagateLimitedAxis(const int axis, const float error, co
 	trajectory.setMaxAccel(_ref_accel_max(axis));
 	trajectory.setMaxVel(_rate_limit(axis));
 
-	// Rate setpoint: the highest rate from which the remaining angle can still be closed within the
-	// acceleration and jerk limits, i.e. the same braking law the position trajectories use. It is
-	// proportional to the error close to the setpoint and grows with its square root further away.
-	const float braking_rate = math::trajectory::computeMaxSpeedFromDistance(_ref_jerk_max, _ref_accel_max(axis),
-				   fabsf(error), 0.f);
-	const float rate_setpoint = (error < 0.f) ? -braking_rate : braking_rate;
+	// The rate setpoint is only valid for the error at the start of a step. Advance in substeps and refresh
+	// it from the remaining error, otherwise a long interval between setpoints (low-rate or paused stream)
+	// would carry the reference past the target at the initial rate setpoint.
+	const int substeps = math::constrain(static_cast<int>(ceilf(dt / kMaxShapingStep)), 1, kMaxShapingSubsteps);
+	const float substep_dt = dt / substeps;
+	delta_angle = 0.f;
 
-	// Track the rate setpoint with a time-optimal, jerk-limited trajectory. The position state is reset
-	// every step so that it directly integrates the angle travelled within this step.
-	trajectory.updateDurations(rate_setpoint);
-	trajectory.setCurrentPosition(0.f);
-	trajectory.updateTraj(dt);
+	for (int i = 0; i < substeps; i++) {
+		// Rate setpoint: the highest rate from which the remaining angle can still be closed within the
+		// acceleration and jerk limits, i.e. the same braking law the position trajectories use. It is
+		// proportional to the error close to the setpoint and grows with its square root further away.
+		const float remaining_error = error - delta_angle;
+		const float braking_rate = math::trajectory::computeMaxSpeedFromDistance(_ref_jerk_max, _ref_accel_max(axis),
+					   fabsf(remaining_error), 0.f);
+		const float rate_setpoint = (remaining_error < 0.f) ? -braking_rate : braking_rate;
+
+		// Track the rate setpoint with a time-optimal, jerk-limited trajectory. The position state is reset
+		// every substep so that it directly integrates the angle travelled within it.
+		trajectory.updateDurations(rate_setpoint);
+		trajectory.setCurrentPosition(0.f);
+		trajectory.updateTraj(substep_dt);
+		delta_angle += trajectory.getCurrentPosition();
+	}
 
 	rate = trajectory.getCurrentVelocity();
-	delta_angle = trajectory.getCurrentPosition();
 }
 
 void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawspeed_setpoint, const float dt)

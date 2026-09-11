@@ -135,6 +135,7 @@ private:
 	 * @param dt [s] time step (> 0)
 	 * @param rate [rad/s] output: reference correction rate at the end of the step
 	 * @param delta_angle [rad] output: angle travelled during the step
+	 * The step is internally split into substeps so that long intervals between setpoints stay well-behaved.
 	 */
 	void propagateLimitedAxis(const int axis, const float error, const float dt, float &rate, float &delta_angle);
 

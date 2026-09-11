@@ -498,6 +498,56 @@ TEST_F(AttitudeControlShapingTest, SmallStepStaysBelowRateLimit)
 	EXPECT_NEAR(error.norm(), 0.f, 1e-3f);
 }
 
+TEST_F(AttitudeControlShapingTest, LongSetpointGapDoesNotOvershoot)
+{
+	// GIVEN: a small pitch step that is closed within a single, very long interval between setpoints
+	// (the rate setpoint at the start of the interval would carry the reference far past the target)
+	const float step = 0.1f;
+	const Quatf q_d(AxisAnglef(Vector3f(0.f, step, 0.f)));
+	_attitude_control.setAttitudeSetpoint(q_d, 0.f, 1.f);
+
+	// THEN: the reference did not overshoot the setpoint
+	float angle = 2.f * _attitude_control.getReferenceAttitude().canonical().imag()(1);
+	EXPECT_LE(angle, step * 1.005f);
+	EXPECT_GT(angle, step * 0.9f);
+
+	// WHEN: the setpoint stream resumes at the nominal rate
+	float max_rate, max_accel, max_jerk, max_angle;
+	stepSetpoint(q_d, 1, 500, max_rate, max_accel, max_jerk, max_angle);
+
+	// THEN: the reference settles on the setpoint without overshoot
+	EXPECT_LE(max_angle, step * 1.005f);
+	const Vector3f error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
+	EXPECT_NEAR(error.norm(), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlShapingTest, CoarseSetpointRateRespectsLimits)
+{
+	// GIVEN: a large roll step with setpoints arriving at only 50Hz
+	const float step = 1.5f;
+	const float dt = 0.02f;
+	const Quatf q_d(AxisAnglef(Vector3f(step, 0.f, 0.f)));
+	float max_rate = 0.f;
+	float max_angle = 0.f;
+	Quatf q_ref_prev = _attitude_control.getReferenceAttitude();
+
+	for (int i = 0; i < 200; i++) {
+		_attitude_control.setAttitudeSetpoint(q_d, 0.f, dt);
+		const Quatf q_ref = _attitude_control.getReferenceAttitude();
+		const Vector3f delta_phi = 2.f * (q_ref_prev.inversed() * q_ref).canonical().imag();
+		max_rate = math::max(max_rate, fabsf(delta_phi(0) / dt));
+		max_angle = math::max(max_angle, fabsf(2.f * q_ref.canonical().imag()(0)));
+		q_ref_prev = q_ref;
+	}
+
+	// THEN: the rate limit holds, the reference reached the setpoint without overshoot
+	EXPECT_LE(max_rate, kRateMax * 1.01f);
+	EXPECT_GT(max_rate, kRateMax * 0.95f);
+	EXPECT_LE(max_angle, step * 1.005f);
+	const Vector3f error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
+	EXPECT_NEAR(error.norm(), 0.f, 1e-3f);
+}
+
 TEST_F(AttitudeControlShapingTest, ShapedReferenceRateIsFedForward)
 {
 	// GIVEN: a large roll step, propagated only until the reference is moving fast
