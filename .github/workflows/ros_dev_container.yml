@@ -64,6 +64,14 @@ jobs:
           (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
           (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true)
         with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/login-action@v4
+        if: >-
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true)
+        with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
@@ -88,6 +96,7 @@ jobs:
           provenance: false
           set: |
             ros2-dev.tags=ghcr.io/px4/px4-dev-ros2:sha-${{ steps.revision.outputs.sha }}-jazzy-${{ matrix.arch }}
+            ros2-dev.tags=px4io/px4-dev-ros2:sha-${{ steps.revision.outputs.sha }}-jazzy-${{ matrix.arch }}
             ros2-dev.labels.org.opencontainers.image.source=https://github.com/PX4/PX4-Autopilot
             ros2-dev.labels.org.opencontainers.image.revision=${{ steps.revision.outputs.sha }}
 
@@ -102,6 +111,10 @@ jobs:
       - uses: runs-on/action@v2
       - uses: docker/login-action@v4
         with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/login-action@v4
+        with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
@@ -111,7 +124,10 @@ jobs:
           TAG: ${{ github.event_name == 'push' && format('{0}-jazzy', github.ref_name) || inputs.tag || 'main-jazzy' }}
           REVISION: ${{ needs.build.outputs.revision }}
         run: |
-          IMAGE=ghcr.io/px4/px4-dev-ros2
-          docker buildx imagetools create \
-            --tag "${IMAGE}:${TAG}" --tag "${IMAGE}:sha-${REVISION}-jazzy" \
-            "${IMAGE}:sha-${REVISION}-jazzy-amd64" "${IMAGE}:sha-${REVISION}-jazzy-arm64"
+          for REGISTRY in px4io ghcr.io/px4; do
+            IMAGE="${REGISTRY}/px4-dev-ros2"
+
+            docker buildx imagetools create \
+              --tag "${IMAGE}:${TAG}" --tag "${IMAGE}:sha-${REVISION}-jazzy" \
+              "${IMAGE}:sha-${REVISION}-jazzy-amd64" "${IMAGE}:sha-${REVISION}-jazzy-arm64"
+          done

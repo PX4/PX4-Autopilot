@@ -61,7 +61,7 @@ target "ros2-dev" {
   platforms  = ["linux/${ARCH}"]
   dockerfile = "Dockerfile.ros2"
   target     = "ros2-dev"
-  tags       = ["ghcr.io/px4/px4-dev-ros2:main-jazzy-${ARCH}"]
+  tags       = ["px4io/px4-dev-ros2:main-jazzy-${ARCH}", "ghcr.io/px4/px4-dev-ros2:main-jazzy-${ARCH}"]
   cache-from = CACHE_GHA ? ["type=gha,scope=ros2-dev-${ARCH}"] : []
   cache-to   = CACHE_GHA ? ["type=gha,mode=max,scope=ros2-dev-${ARCH}"] : []
 }

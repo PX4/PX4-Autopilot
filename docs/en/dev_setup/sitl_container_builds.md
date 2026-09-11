@@ -109,6 +109,7 @@ Image and workflow SHA overrides are for testing candidates; adopting a candidat
 ## Testing A PX4 Checkout With ROS
 
 The standalone `ghcr.io/px4/px4-dev-ros2:main-jazzy` image includes Jazzy, the Agent, PX4's source-build dependencies and the dependencies required by the pinned ROS repositories.
+It is also available on Docker Hub as `px4io/px4-dev-ros2:main-jazzy`, with matching tags in both registries.
 It contains no repository checkouts, packaged PX4 firmware or compiled ROS workspace, and its entrypoint sources only the Jazzy underlay.
 It is published independently of the SITL package workflow, so it does not wait for `.deb` builds.
 Publishing follows the same release-tag and opt-in manual policy as `px4-dev`.
@@ -173,7 +174,7 @@ Only the compiler cache is restored, not an old source, build or install workspa
 Ccache validates compiler contents and compilation inputs, including changed library sources and generated messages.
 `CACHE_GHA=true` uses an independent `ros2-dev-<architecture>` image cache, without replacing the published SITL image caches.
 The `ros_dev_container.yml` workflow builds the standalone target on every `main` push and on pull requests that change its watched paths, without publishing.
-It publishes to GHCR only on `v*` tag pushes or manual runs with `deploy_to_registry=true`.
+It publishes to Docker Hub and GHCR only on `v*` tag pushes or manual runs with `deploy_to_registry=true`.
 Manual runs use the `tag` input, which defaults to `main-jazzy`; the deployment toggle also applies when dispatching against a Git tag.
 Architecture tags use `sha-<full-PX4-commit>-jazzy-<architecture>`; the final selected tag and `sha-<full-PX4-commit>-jazzy` indexes preserve both architectures and their SBOMs.
 Use `--set ros2-dev.args.PX4_ROS2_REF=<40-hex-SHA>` to build the development image with another interface-library commit.
