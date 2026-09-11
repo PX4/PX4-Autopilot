@@ -59,6 +59,15 @@ private:
 	bool checkMissionAgainstGeofence(const mission_s &mission, float home_alt, bool home_valid);
 	void logDatamanReadFailure(const size_t mission_item, const uint8_t dataman_id);
 
+	/**
+	 * Check the perimeter of a loiter pattern against all geofences.
+	 * The centre of a loiter item is already covered by the per-item point check; this
+	 * samples the circle the vehicle actually flies, which the centre point does not
+	 * represent when the radius is large.
+	 * Returns true for items that are not loiter items or that have no usable radius.
+	 */
+	bool checkLoiterPerimeterAgainstGeofence(const mission_item_s &item);
+
 public:
 	MissionFeasibilityChecker(Navigator *navigator, DatamanClient &dataman_client) :
 		ModuleParams(nullptr),
