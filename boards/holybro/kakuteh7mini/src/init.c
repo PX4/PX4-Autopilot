@@ -52,6 +52,8 @@
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <syslog.h>
 
@@ -238,6 +240,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	{
 		struct spi_dev_s *spi1 = stm32_spibus_initialize(1);
 		struct mtd_dev_s *flash_mtd = NULL;
+		bool flash_is_nand = false;
 
 		if (!spi1) {
 			syslog(LOG_ERR, "[boot] FAILED to initialize SPI1 for flash\n");
@@ -248,6 +251,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 			flash_mtd = w25n_initialize(spi1, 0);
 
 			if (flash_mtd) {
+				flash_is_nand = true;
 				syslog(LOG_INFO, "[boot] W25N NAND flash detected on SPI1\n");
 			}
 
@@ -291,6 +295,23 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 					} else {
 						syslog(LOG_INFO, "[boot] LittleFS mounted at /fs/flash\n");
+
+						/*
+						 * Leave a marker file for rc.board_defaults so it can size
+						 * SDLOG_MAX_SIZE/SDLOG_ROTATE to the flash chip actually
+						 * present (same image runs on both the 128 MB W25N NAND
+						 * of v1.3 and the 16 MB W25Q128 NOR of v1.5).
+						 */
+						if (flash_is_nand) {
+							int fd = open("/fs/flash/.nand", O_CREAT | O_WRONLY, 0644);
+
+							if (fd >= 0) {
+								close(fd);
+							}
+
+						} else {
+							unlink("/fs/flash/.nand");
+						}
 					}
 
 #endif

@@ -32,11 +32,18 @@ param set-default IMU_GYRO_RATEMAX 2000
 # Ignore that there is no SD card
 param set-default COM_ARM_SDCARD 0
 
-# Flash logging: constrained by W25Q128 NOR (v1.5, 16 MB). W25N NAND (v1.3)
-# is 128 MB but we use the same firmware image for both, so cap at 12 MB to
-# guarantee the W25Q128 can hold at least one full log with headroom.
-# SDLOG_ROTATE=90 (default) keeps >=10% of disk free during rotation.
-param set-default SDLOG_MAX_SIZE 12
+# Flash logging: same firmware runs on the W25N NAND (v1.3, 128 MB) and
+# the W25Q128 NOR (v1.5, 16 MB). init.c detects the chip at boot and marks
+# /fs/flash/.nand accordingly; size the single-log-file cap to match, so
+# a long flight isn't split into many small files on the bigger chip.
+if [ -f /fs/flash/.nand ]
+then
+	# W25N NAND (v1.3, 128 MB), same as kakuteh7v2/aedroxh7/airbrainh743
+	param set-default SDLOG_MAX_SIZE 40
+else
+	# W25Q128 NOR (v1.5, 16 MB): keep headroom for at least one full log
+	param set-default SDLOG_MAX_SIZE 12
+fi
 
 # Store missions in RAM
 param set-default SYS_DM_BACKEND 1
