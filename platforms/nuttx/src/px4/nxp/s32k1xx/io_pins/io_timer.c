@@ -674,6 +674,11 @@ int io_timer_set_pwm_rate(unsigned timer, unsigned rate)
 			io_timer_set_PWM_mode(timer);
 		}
 
+		// Comments in timer_set_rate says that rate change invokes counter reset so won't work online.
+		if (PWM_RATE_TIMER_MAX == rate) {
+			return -EINVAL;
+		}
+
 		timer_set_rate(timer, rate);
 	}
 
