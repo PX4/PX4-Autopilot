@@ -47,14 +47,16 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 		_time_last_fail_us = time_us;
 	}
 
-	// Run strict checks while not flying yet
-	if (!_control_status.flags.in_air) {
+	// Run strict checks while disarmed on the ground
+	if (!_control_status.flags.armed && !_control_status.flags.in_air) {
 		_initial_checks_passed = false;
 	}
 
 	_passed = false;
 
 	if (_initial_checks_passed) {
+		clearDriftChecks();
+
 		if (runSimplifiedChecks(gnss)) {
 			_passed = isTimedOut(_time_last_fail_us, time_us, math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10));
 
@@ -175,12 +177,7 @@ void GnssChecks::runOnGroundGnssChecks(const gnssSample &gnss)
 	if (_control_status.flags.in_air) {
 		// These checks are always declared as passed when flying
 		// If on ground and moving, the last result before movement commenced is kept
-		_check_fail_status.flags.hdrift = false;
-		_check_fail_status.flags.vdrift = false;
-		_check_fail_status.flags.hspeed = false;
-		_check_fail_status.flags.vspeed = false;
-
-		resetDriftFilters();
+		clearDriftChecks();
 		return;
 	}
 
@@ -243,6 +240,16 @@ void GnssChecks::runOnGroundGnssChecks(const gnssSample &gnss)
 		// This is the case where the vehicle is on ground and IMU movement is blocking the drift calculation
 		resetDriftFilters();
 	}
+}
+
+void GnssChecks::clearDriftChecks()
+{
+	_check_fail_status.flags.hdrift = false;
+	_check_fail_status.flags.vdrift = false;
+	_check_fail_status.flags.hspeed = false;
+	_check_fail_status.flags.vspeed = false;
+
+	resetDriftFilters();
 }
 
 void GnssChecks::resetDriftFilters()
