@@ -133,7 +133,6 @@ public:
 	*/
 	bool run(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
 	bool passed() const { return _passed; }
-	bool initialChecksPassed() const { return _initial_checks_passed; }
 
 	const gnssChecks &getFailStatus() const { return _check_fail_status; }
 

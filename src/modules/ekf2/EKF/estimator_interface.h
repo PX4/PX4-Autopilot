@@ -408,7 +408,7 @@ protected:
 	uint64_t _time_last_gnss_checks_pass_us{0}; ///< last delayed-horizon time a fused GNSS sample passed the checks (us)
 	uint32_t _gnss_vel_limit_drop_count{0};
 
-	bool _initial_checks_passed_prev{false};
+	bool _checks_never_passed{true};
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// innovation consistency check monitoring ratios

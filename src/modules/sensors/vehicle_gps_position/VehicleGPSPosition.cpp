@@ -83,7 +83,6 @@ inline vehicle_gps_status_s vehicleGpsStatusFromGnssChecks(const GnssChecks &che
 	msg.enabled_checks = checks.getEnabledChecksFailStatusMask();
 
 	msg.checks_passed = checks.passed();
-	msg.initial_checks_passed = checks.initialChecksPassed();
 
 	return msg;
 }

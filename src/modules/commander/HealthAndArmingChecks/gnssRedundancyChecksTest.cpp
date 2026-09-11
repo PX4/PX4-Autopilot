@@ -101,7 +101,6 @@ public:
 		status.device_id = gps.device_id;
 		status.flags = gps.fix_type >= 3 ? 0 : vehicle_gps_status_s::GNSS_FIX_FAIL;
 		status.checks_passed = status.flags == 0;
-		status.initial_checks_passed = status.checks_passed;
 		return status;
 	}
 

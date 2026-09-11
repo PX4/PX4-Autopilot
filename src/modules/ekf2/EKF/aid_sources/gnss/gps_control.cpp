@@ -71,9 +71,10 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		if (_gnss_checks.checks_passed && isGnssSampleUsable(gnss_sample)) {
 			_time_last_gnss_checks_pass_us = _time_delayed_us;
 
-			if (_gnss_checks.initial_checks_passed && !_initial_checks_passed_prev) {
+			if (_gnss_checks.checks_passed && _checks_never_passed) {
 				// First time checks are passing, latching.
 				_information_events.flags.gps_checks_passed = true;
+				_checks_never_passed = false;
 			}
 
 		} else {
@@ -89,8 +90,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				ECL_WARN("GNSS quality poor - stopping use");
 			}
 		}
-
-		_initial_checks_passed_prev = _gnss_checks.initial_checks_passed;
 
 		updateGnssPos(gnss_sample, _aid_src_gnss_pos);
 		updateGnssVel(imu_delayed, gnss_sample, _aid_src_gnss_vel);

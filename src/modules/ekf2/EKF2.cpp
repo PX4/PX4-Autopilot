@@ -2659,7 +2659,6 @@ void EKF2::UpdateGpsStatus()
 			.check_fail_status = {.value = vehicle_gps_position_status.flags},
 			.enabled_checks = {.value = vehicle_gps_position_status.enabled_checks},
 			.checks_passed = vehicle_gps_position_status.checks_passed,
-			.initial_checks_passed = vehicle_gps_position_status.initial_checks_passed,
 		};
 
 		_ekf.setGpsChecksData(gnss_checks);

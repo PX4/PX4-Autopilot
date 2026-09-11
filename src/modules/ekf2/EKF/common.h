@@ -235,7 +235,6 @@ struct gnssCheckStatus {
 	gps_check_fail_status_u check_fail_status{};  ///< Failed checks among those required by GNSS_CHECK
 	gps_check_fail_status_u enabled_checks{};     ///< Checks required by GNSS_CHECK, same bit layout
 	bool checks_passed{false};
-	bool initial_checks_passed{false};
 };
 
 struct magSample {
