@@ -166,6 +166,8 @@ jobs:
         id: buildx
         with:
           driver: docker-container
+          # Gazebo/ROS SBOMs exceed the 40 MiB attestation limit in BuildKit 0.32.
+          driver-opts: image=moby/buildkit:v0.33.0
           platforms: linux/${{ matrix.arch }}
 
       - name: Restore ROS compiler cache
