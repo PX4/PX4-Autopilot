@@ -73,6 +73,22 @@ public:
 			_gps_updated[instance] = true;
 		}
 	}
+	void resetGpsData(uint8_t instance)
+	{
+		if (instance < GPS_MAX_RECEIVERS_BLEND) {
+			_gps_state[instance] = {};
+			_gps_updated[instance] = false;
+			_time_prev_us[instance] = 0;
+			_gps_dt[instance] = 0.f;
+			_NE_pos_offset_m[instance].zero();
+			_hgt_offset_m[instance] = 0.;
+			_antenna_offset[instance].zero();
+
+			if (instance == _primary_instance) {
+				_primary_instance_available = false;
+			}
+		}
+	}
 	void setBlendingUseSpeedAccuracy(bool enabled) { _blend_use_spd_acc = enabled; }
 	void setBlendingUseHPosAccuracy(bool enabled) { _blend_use_hpos_acc = enabled; }
 	void setBlendingUseVPosAccuracy(bool enabled) { _blend_use_vpos_acc = enabled; }

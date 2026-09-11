@@ -126,3 +126,27 @@ parameters:
             max: 300
             num_instances: *max_num_gps_instances
             instance_start: 0
+
+    - group: GPS
+      definitions:
+        GPS_INPUT_MODE:
+            description:
+                short: MAVLink GPS_INPUT ingest mode
+                long: |
+                    Controls ingest of an external GNSS source that reports its solution as
+                    MAVLink GPS_INPUT (232). Modes 1 and 2 accept GPS_INPUT on any MAVLink
+                    instance and publish it as a sensor_gps instance.
+                    In shadow mode the solution stays available on the raw sensor_gps topic for
+                    logging and telemetry, but is excluded from vehicle_gps_position.
+                    When enabled it is eligible for GPS selection and estimator fusion;
+                    SENS_GPS_MASK decides whether it is blended into the primary solution or only
+                    used when the primary fails.
+            type: enum
+            values:
+                0: Disabled (GPS_INPUT rejected)
+                1: Shadow mode (logged and streamed, excluded from the GPS solution)
+                2: Enabled (eligible for the GPS solution)
+            default: 0
+            min: 0
+            max: 2
+            reboot_required: true
