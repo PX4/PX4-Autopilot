@@ -186,6 +186,8 @@ Installing the complete source-build toolset increases cold image-build time and
 ## Container SBOMs
 
 The publishing workflow enables BuildKit's standard SBOM attestations for both runtime and ROS images.
+It pins BuildKit v0.33.0, whose 80 MiB attestation limit accommodates the Gazebo/ROS SPDX documents without reducing their package or file coverage.
+Local attested builds using BuildKit v0.32 can fail at export because that version limits each attestation to 40 MiB.
 These SPDX inventories describe discoverable packages in the image filesystem, including Ubuntu and ROS dependencies.
 They complement, rather than replace, PX4's [source and firmware SBOM](../contribute/sbom.md).
 
