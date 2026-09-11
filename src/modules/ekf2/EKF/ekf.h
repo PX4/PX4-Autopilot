@@ -606,7 +606,7 @@ private:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	bool _gps_data_ready {false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
+	bool _gps_data_ready_and_valid {false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 
 	// height sensor status
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent

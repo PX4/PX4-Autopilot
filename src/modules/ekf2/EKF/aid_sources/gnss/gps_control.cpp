@@ -61,9 +61,9 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 	// check for arrival of new sensor data at the fusion time horizon
-	_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
+	_gps_data_ready_and_valid = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
 
-	if (_gps_data_ready) {
+	if (_gps_data_ready_and_valid) {
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
 		// _gnss_checks is the latest status published by the sensors module (latest-wins, not matched to
@@ -71,7 +71,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		if (_gnss_checks.checks_passed && isGnssSampleUsable(gnss_sample)) {
 			_time_last_gnss_checks_pass_us = _time_delayed_us;
 
-			if (_gnss_checks.checks_passed && _checks_never_passed) {
+			if (_checks_never_passed) {
 				// First time checks are passing, latching.
 				_information_events.flags.gps_checks_passed = true;
 				_checks_never_passed = false;
@@ -79,7 +79,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		} else {
 			// Skip this sample
-			_gps_data_ready = false;
+			_gps_data_ready_and_valid = false;
 
 			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
 			// timed against the EKF horizon: the status topic carries no timestamps
@@ -101,7 +101,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		}
 	}
 
-	if (_gps_data_ready) {
+	if (_gps_data_ready_and_valid) {
 #if defined(CONFIG_EKF2_GNSS_YAW)
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 		controlGnssYawFusion(gnss_sample);
@@ -138,7 +138,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_fault
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.checks_passed;
+	const bool starting_conditions_passing = continuing_conditions_passing;
 
 	if (_control_status.flags.gnss_vel) {
 		if (continuing_conditions_passing) {
@@ -195,8 +195,8 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.checks_passed;
-	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gnss_checks.checks_passed;
+	const bool starting_conditions_passing = continuing_conditions_passing;
+	const bool gpos_init_conditions_passing = gnss_pos_enabled;
 
 	if (_control_status.flags.gnss_pos) {
 		if (continuing_conditions_passing) {
