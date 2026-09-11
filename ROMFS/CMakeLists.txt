@@ -226,6 +226,31 @@ foreach(board_rc_file ${OPTIONAL_BOARD_RC})
 
 endforeach()
 
+# External module init scripts
+if(NOT "${EXTERNAL_MODULES_LOCATION}" STREQUAL "")
+	set(_ext_init "${EXTERNAL_MODULES_LOCATION}/init/rc.ext_modules")
+	if(EXISTS "${_ext_init}")
+		file(RELATIVE_PATH _ext_init_relative ${PX4_SOURCE_DIR} ${_ext_init})
+		message(STATUS "ROMFS:  Adding ${_ext_init_relative} -> /etc/init.d/rc.ext_modules")
+
+		add_custom_command(
+			OUTPUT
+				${romfs_gen_root_dir}/init.d/rc.ext_modules
+				rc.ext_modules.stamp
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different
+				${_ext_init} ${romfs_gen_root_dir}/init.d/rc.ext_modules
+			COMMAND ${CMAKE_COMMAND} -E touch rc.ext_modules.stamp
+			DEPENDS
+				${_ext_init}
+				romfs_copy.stamp
+			COMMENT "ROMFS: copying rc.ext_modules"
+		)
+
+		list(APPEND extras_dependencies rc.ext_modules.stamp)
+	endif()
+endif()
+
+
 if(config_additional_init)
 	if(EXISTS "${PX4_BOARD_DIR}/init/${config_additional_init}")
 		file(RELATIVE_PATH rc_file_relative ${PX4_SOURCE_DIR} ${PX4_BOARD_DIR}/init/${config_additional_init})

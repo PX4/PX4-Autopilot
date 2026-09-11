@@ -13,6 +13,11 @@ Custom definitions can be added in a new dialect file in the same directory as [
 For example, create `PX4-Autopilot/src/modules/mavlink/mavlink/message_definitions/v1.0/custom_messages.xml`, and set `CONFIG_MAVLINK_DIALECT` to build the new file for SITL.
 This dialect file should include `development.xml` so that all the standard definitions are also included.
 
+:::tip
+If you are building an [external (out-of-tree) module](../advanced/out_of_tree_modules.md), use `px4_add_external_mavlink_dialect()` in your `CMakeLists.txt` instead of manually placing files in the PX4 source tree.
+See [Out-of-Tree MAVLink Dialect Definitions](../advanced/out_of_tree_modules.md#out-of-tree-mavlink-dialect-definitions).
+:::
+
 For initial prototyping, or if you intend your message to be "standard", you can also add your messages to `common.xml` (or `development.xml`).
 This simplifies building, because you don't need to modify the dialect that is built.
 
