@@ -40,6 +40,7 @@
 #pragma once
 
 #include "FlightTask.hpp"
+#include <uORB/topics/position_setpoint_lookahead.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/home_position.h>
@@ -127,6 +128,7 @@ protected:
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 	uORB::SubscriptionData<position_setpoint_triplet_s> _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::SubscriptionData<position_setpoint_lookahead_s> _position_setpoint_lookahead_sub{ORB_ID(position_setpoint_lookahead)};
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<takeoff_status_s> _takeoff_status_sub{ORB_ID(takeoff_status)};
@@ -193,6 +195,7 @@ private:
 	matrix::Vector3f _triplet_previous; ///< previous waypoint in triplet from navigator
 	matrix::Vector3f _triplet_current; ///< current waypoint in triplet from navigator
 	matrix::Vector3f _triplet_next; ///< next waypoint in triplet from navigator
+	matrix::Vector3f _speed_lookahead_waypoint{NAN, NAN, NAN}; ///< waypoint after next from navigator, NAN if unknown (speed planning only, never a target)
 
 	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overridden using DO_CHANGE_SPEED
 
@@ -206,6 +209,7 @@ private:
 
 	void _smoothYaw(); /**< Smoothen the yaw setpoint. */
 	bool _evaluatePositionSetpointTriplet();
+	void _evaluateSpeedLookahead(); /**< Projects the navigator's speed planning lookahead waypoint into the local frame. */
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
 	bool _hasPassedCurrentWaypoint() const; /**< True if the vehicle is past the current waypoint */

@@ -173,8 +173,9 @@ Mission::do_need_move_to_takeoff()
 
 void Mission::setActiveMissionItems()
 {
-	/* Get mission item that comes after current if available */
-	static constexpr size_t max_num_next_items{2u};
+	/* Get mission items that come after current if available. The last one is only needed as
+	 * speed-planning lookahead (waypoint after next), never as a navigation target. */
+	static constexpr size_t max_num_next_items{3u};
 	int32_t next_mission_items_index[max_num_next_items];
 	size_t num_found_items;
 
@@ -202,6 +203,9 @@ void Mission::setActiveMissionItems()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
+
+	// The lookahead waypoint is only set in the branches below where it is known, never keep a stale one
+	_navigator->reset_position_setpoint_lookahead();
 
 	/* Skip VTOL/FW Takeoff item if in air, fixed-wing and didn't start the takeoff already*/
 	if ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) &&
@@ -258,6 +262,15 @@ void Mission::setActiveMissionItems()
 				/* got next mission item, update setpoint triplet */
 				mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->next);
 
+				/* provide the waypoint after next as lookahead, so the trajectory planner does not
+				 * have to assume a full stop at the next waypoint. Only do so if the vehicle really
+				 * flies through the next waypoint, otherwise it would enter it too fast to stop there. */
+				if ((num_found_items >= 2u)
+				    && isFlownThroughWithoutStopping(next_mission_items[0u], next_mission_items_index[0u],
+								     next_mission_items_index[1u])) {
+					setSpeedLookahead(next_mission_items[1u]);
+				}
+
 			} else {
 				/* next mission item is not available */
 				pos_sp_triplet->next.valid = false;
@@ -280,6 +293,12 @@ void Mission::setActiveMissionItems()
 		if (num_found_items >= 2u) {
 			/* got next mission item, update setpoint triplet */
 			mission_item_to_position_setpoint(next_mission_items[1u], &pos_sp_triplet->next);
+
+			if ((num_found_items >= 3u)
+			    && isFlownThroughWithoutStopping(next_mission_items[1u], next_mission_items_index[1u],
+							     next_mission_items_index[2u])) {
+				setSpeedLookahead(next_mission_items[2u]);
+			}
 
 		} else {
 			pos_sp_triplet->next.valid = false;
@@ -312,6 +331,63 @@ void Mission::setActiveMissionItems()
 
 	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();
+}
+
+bool Mission::isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index,
+		int32_t following_index)
+{
+	// Anything but a plain waypoint (loiter, land, takeoff) is a place the vehicle comes to a stop at.
+	// A plain waypoint is only passed at speed if it holds no time and the mission continues by itself,
+	// same criteria as brake_for_hold in setActiveMissionItems().
+	if (item.nav_cmd != NAV_CMD_WAYPOINT
+	    || !item.autocontinue
+	    || get_time_inside(item) > FLT_EPSILON
+	    || item_has_timeout(item)) {
+		return false;
+	}
+
+	// The following position item was found skipping all non-position items in between. Any of those
+	// that makes the vehicle wait at the waypoint (delay, payload command with timeout, transition) or
+	// that redirects the mission (jump) means the waypoint is not simply flown through.
+	if (following_index <= item_index) {
+		return false;
+	}
+
+	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+
+	// The number of items in between is not bounded, so read them from the cache only: a timeout here
+	// would turn this into one blocking dataman read per item. A miss is treated like an item that
+	// stops the vehicle, which just falls back to not publishing the lookahead.
+	for (int32_t index = item_index + 1; index < following_index; index++) {
+		mission_item_s item_in_between;
+		const bool success = _dataman_cache.loadWait(mission_dataman_id, index,
+				     reinterpret_cast<uint8_t *>(&item_in_between), sizeof(item_in_between));
+
+		if (!success
+		    || item_in_between.nav_cmd == NAV_CMD_DELAY
+		    || item_in_between.nav_cmd == NAV_CMD_DO_JUMP
+		    || item_in_between.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
+		    || item_has_timeout(item_in_between)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void Mission::setSpeedLookahead(const mission_item_s &item)
+{
+	if (!mission_item_contains_position(item)) {
+		return;
+	}
+
+	position_setpoint_lookahead_s *lookahead = _navigator->get_position_setpoint_lookahead();
+
+	lookahead->lat = item.lat;
+	lookahead->lon = item.lon;
+	lookahead->alt = get_absolute_altitude_for_item(item);
+	lookahead->valid = PX4_ISFINITE(lookahead->lat) && PX4_ISFINITE(lookahead->lon)
+			   && PX4_ISFINITE(lookahead->alt);
 }
 
 void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],

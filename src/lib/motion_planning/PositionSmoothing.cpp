@@ -99,6 +99,19 @@ float PositionSmoothing::_getMaxXYSpeed(const Vector3f(&waypoints)[3]) const
 	// constrain velocity to go to the position setpoint first if the position setpoint has been modified by an external source
 	// (eg. Obstacle Avoidance)
 
+	// Without lookahead the planner has to assume a full stop at the next waypoint, which forces
+	// an unnecessary slow down at the current waypoint when the next one is close (e.g. survey
+	// entry points). If the waypoint after next is known, include it so the speed the vehicle
+	// may carry through the next waypoint is derived from the real geometry instead.
+	const bool lookahead_valid = _lookahead_waypoint.isAllFinite()
+				     && (Vector2f(_lookahead_waypoint) - Vector2f(waypoints[2])).longerThan(FLT_EPSILON);
+
+	if (lookahead_valid) {
+		Vector3f pos_to_waypoints[4] = {pos_traj, waypoints[1], waypoints[2], _lookahead_waypoint};
+
+		return math::trajectory::computeXYSpeedFromWaypoints<4>(pos_to_waypoints, config);
+	}
+
 	Vector3f pos_to_waypoints[3] = {pos_traj, waypoints[1], waypoints[2]};
 
 	return math::trajectory::computeXYSpeedFromWaypoints<3>(pos_to_waypoints, config);

@@ -218,3 +218,75 @@ TEST_F(TrajectoryConstraintsTest, test10AngleCloseNext)
 
 	EXPECT_LT(close_speed, normal_speed);
 }
+
+TEST_F(TrajectoryConstraintsTest, testStraightNextInsideAcceptanceRadius)
+{
+	// GIVEN: 3 waypoints in straight line, the next one closer to the target than the acceptance radius
+	next_target = target + 0.5f * (target - vehicle_location).unit_or_zero();
+	EXPECT_LT((next_target - target).norm(), config.xy_accept_rad);
+
+	// WHEN: we get the speed for straight line travel
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+	float through_speed = computeXYSpeedFromWaypoints<3>(waypoints, config);
+
+	// THEN: the target must not be treated as a stop, only the (short) remaining distance to the next waypoint counts
+	Vector3f stop_points[2] = {vehicle_location, target};
+	float stop_speed = computeXYSpeedFromWaypoints<2>(stop_points, config);
+	Vector3f direct_points[2] = {vehicle_location, next_target};
+	float direct_speed = computeXYSpeedFromWaypoints<2>(direct_points, config);
+
+	EXPECT_GT(through_speed, stop_speed);
+	EXPECT_LE(through_speed, direct_speed);
+}
+
+TEST_F(TrajectoryConstraintsTest, testStraightNextInsideAcceptanceRadiusWithExitSpeed)
+{
+	// GIVEN: a straight line where the waypoint after next is far, but next is inside the acceptance radius of the target
+	// (e.g. the entry point of a survey followed by the first survey line)
+	const Vector3f direction = (target - vehicle_location).unit_or_zero();
+	next_target = target + 0.5f * direction;
+	const Vector3f after_next = target + 100.f * direction;
+
+	// WHEN: we get the speed knowing the waypoint after next
+	Vector3f waypoints[4] = {vehicle_location, target, next_target, after_next};
+	float through_speed = computeXYSpeedFromWaypoints<4>(waypoints, config);
+
+	// THEN: the vehicle can fly through both waypoints at cruise speed
+	EXPECT_FLOAT_EQ(through_speed, config.max_speed_xy);
+}
+
+TEST_F(TrajectoryConstraintsTest, test90AngleNextInsideAcceptanceRadius)
+{
+	// GIVEN: a 90 degree corner onto a segment shorter than the acceptance radius
+	next_target = target + 0.5f * (next_target - target).unit_or_zero();
+	EXPECT_FLOAT_EQ(0.f, (vehicle_location - target).dot(target - next_target));
+
+	// WHEN: we get the speed for travel around the corner
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+	float through_speed = computeXYSpeedFromWaypoints<3>(waypoints, config);
+
+	// THEN: it is at least as fast as stopping at the corner, but slower than the same corner onto a long segment
+	Vector3f stop_points[2] = {vehicle_location, target};
+	float stop_speed = computeXYSpeedFromWaypoints<2>(stop_points, config);
+	Vector3f long_waypoints[3] = {vehicle_location, target, Vector3f(20, 20, 5)};
+	float long_speed = computeXYSpeedFromWaypoints<3>(long_waypoints, config);
+
+	EXPECT_GE(through_speed, stop_speed);
+	EXPECT_LT(through_speed, long_speed);
+}
+
+TEST_F(TrajectoryConstraintsTest, testHairpinNextInsideAcceptanceRadius)
+{
+	// GIVEN: a 180 degree turn onto a segment shorter than the acceptance radius
+	next_target = target - 0.5f * (target - vehicle_location).unit_or_zero();
+
+	// WHEN: we get the speed for travel around the hairpin
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+	float through_speed = computeXYSpeedFromWaypoints<3>(waypoints, config);
+
+	// THEN: the vehicle has to stop at the turn
+	Vector3f stop_points[2] = {vehicle_location, target};
+	float stop_speed = computeXYSpeedFromWaypoints<2>(stop_points, config);
+
+	EXPECT_FLOAT_EQ(through_speed, stop_speed);
+}
