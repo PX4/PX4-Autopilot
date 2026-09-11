@@ -53,10 +53,12 @@ public:
 
 	void setData(const Vector3f &mag);
 	void setBias(const Vector3f &bias) { _bias = bias; }
+	void setCalibrationChanged() { _reset = true; }
 
 private:
 	Vector3f _mag_data;
 	Vector3f _bias;
+	bool _reset{false};
 
 	void send(uint64_t time) override;
 
