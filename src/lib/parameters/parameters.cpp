@@ -92,7 +92,6 @@ using namespace time_literals;
 #include "flashparams/flashparams.h"
 #else
 inline static int flash_param_save(param_filter_func filter) { return -1; }
-inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
 #endif
 
@@ -453,7 +452,10 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 	if (user_config.store(param, new_value)) {
-		params_unsaved.set(param, !mark_saved && param_changed);
+		if (param_changed) {
+			params_unsaved.set(param, !mark_saved);
+		}
+
 		result = PX4_OK;
 
 	} else {
@@ -645,6 +647,13 @@ static int param_reset_internal(param_t param, bool notify = true, bool autosave
 		user_config.reset(param);
 	}
 
+	if (param_found) {
+		/* Persist the reset. Flash-param saves append only unsaved params,
+		 * so a reset has to show up as a tombstone or replay keeps the
+		 * previous override. */
+		params_unsaved.set(param, true);
+	}
+
 	if (autosave) {
 		param_autosave();
 	}
@@ -830,6 +839,17 @@ int param_save_default(bool blocking)
 	int res = PX4_ERROR;
 	const char *filename = param_get_default_file();
 
+	/* A param_set that lands while the export runs is not in what gets
+	 * written. Remember what was pending at the start and clear only that,
+	 * so the late change keeps its bit and reaches the next save. */
+	px4::AtomicBitset<param_info_count> pending;
+
+	for (param_t param = 0; handle_in_range(param); param++) {
+		if (params_unsaved[param]) {
+			pending.set(param);
+		}
+	}
+
 	if (filename) {
 		static constexpr int MAX_ATTEMPTS = 3;
 
@@ -870,7 +890,11 @@ int param_save_default(bool blocking)
 		PX4_ERR("param export failed (%d)", res);
 
 	} else {
-		params_unsaved.reset();
+		for (param_t param = 0; handle_in_range(param); param++) {
+			if (pending[param]) {
+				params_unsaved.set(param, false);
+			}
+		}
 
 		// backup file
 		if (param_backup_file) {
@@ -912,7 +936,7 @@ param_load_default()
 	const char *filename = param_get_default_file();
 
 	if (!filename) {
-		return flash_param_load();
+		return param_load(-1);
 	}
 
 	int fd_load = ::open(filename, O_RDONLY);
@@ -1206,6 +1230,11 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 
 	// Handle setting the parameter from the node
 	switch (node->type) {
+	case BSON_nullptr:
+	case BSON_UNDEFINED:
+		user_config.reset(param);
+		return 1;
+
 	case BSON_INT32: {
 			if (param_type(param) == PARAM_TYPE_INT32) {
 				int32_t i = node->i32;
@@ -1323,11 +1352,54 @@ param_import_internal(int fd)
 	return -1;
 }
 
+#if defined(FLASH_BASED_PARAMS)
+static int flash_backend_locked(int (*op)())
+{
+	/* Same order as param_save_default: mutex then shutdown lock. Autosave
+	 * uses a trylock, so a compact holds it off the flash programming. */
+	pthread_mutex_lock(&file_mutex);
+
+	int shutdown_lock_ret = px4_shutdown_lock();
+
+	if (shutdown_lock_ret != 0) {
+		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
+	}
+
+	int result = op();
+
+	pthread_mutex_unlock(&file_mutex);
+
+	if (shutdown_lock_ret == 0) {
+		px4_shutdown_unlock();
+	}
+
+	return result;
+}
+
+static int flash_load_locked()
+{
+	/* Reset under the lock so a pending autosave cannot append tombstones
+	 * of the just-cleared RAM before import/compact run. */
+	param_reset_all_internal(false);
+	int result = flash_param_import();
+
+	if (result == 0 || result == 1) {
+		params_unsaved.reset();
+	}
+
+	return result;
+}
+#endif
+
 int
 param_import(int fd)
 {
 	if (fd < 0) {
+#if defined(FLASH_BASED_PARAMS)
+		return flash_backend_locked(flash_param_import);
+#else
 		return flash_param_import();
+#endif
 	}
 
 	return param_import_internal(fd);
@@ -1337,11 +1409,21 @@ int
 param_load(int fd)
 {
 	if (fd < 0) {
-		return flash_param_load();
+#if defined(FLASH_BASED_PARAMS)
+		return flash_backend_locked(flash_load_locked);
+#else
+		return PX4_ERROR;
+#endif
 	}
 
 	param_reset_all_internal(false);
-	return param_import_internal(fd);
+	int result = param_import_internal(fd);
+
+	if (result >= 0) {
+		params_unsaved.reset();
+	}
+
+	return result;
 }
 
 void
