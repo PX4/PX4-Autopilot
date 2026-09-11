@@ -60,11 +60,11 @@ public:
 private:
 
 	/**
-	 * Get the input from a sanitized parameter aux index
-	 * @param parameter_value value of the parameter that specifies the AUX channel index to use
-	 * @return input from that AUX channel [-1,1]
+	 * Read the aux channel selected by an MC_SLOW_MAP_* parameter
+	 * @param parameter_value 0 for "not mapped", 1-6 to select AUX1-AUX6
+	 * @return the aux value, or NaN if unmapped or the channel carries no value
 	 */
-	float getInputFromSanitizedAuxParameterIndex(int parameter_value);
+	float getAuxInputFromParameterIndex(int parameter_value);
 
 	bool _velocity_limits_received_before{false};
 

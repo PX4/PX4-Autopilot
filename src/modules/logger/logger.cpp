@@ -1135,9 +1135,9 @@ bool Logger::start_stop_logging()
 		// aux1-based logging
 		manual_control_setpoint_s manual_control_setpoint;
 
-		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+		if (_manual_control_setpoint_sub.update(&manual_control_setpoint) && manual_control_setpoint.valid) {
 
-			desired_state = (manual_control_setpoint.aux1 > 0.3f);
+			desired_state = PX4_ISFINITE(manual_control_setpoint.aux1) && (manual_control_setpoint.aux1 > 0.3f);
 			updated = true;
 		}
 

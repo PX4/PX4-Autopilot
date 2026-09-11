@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,7 +74,16 @@ public:
 	const matrix::Vector2f getPitchRoll() { return {getPitch(), getRoll()}; }
 	const matrix::Vector2f getPitchRollExpo() { return {getPitchExpo(), getRollExpo()}; }
 
-	const matrix::Vector<float, 6> &getAux() const { return _aux_positions; }
+	// Raw aux channel values, may contain NaN for channels that are not mapped/present
+	const matrix::Vector<float, 6> &getAuxRaw() const { return _aux_positions; }
+
+	/**
+	 * Pick a single aux channel value directly out of a manual_control_setpoint message
+	 * @param manual_control_setpoint message to read from
+	 * @param channel 1-based aux channel number (1-6), matching RC_MAP_AUXn / .auxN naming
+	 * @return the raw (possibly NaN) field value, or NaN if channel is out of range
+	 */
+	static float getAuxValue(const manual_control_setpoint_s &manual_control_setpoint, int channel);
 
 	/**
 	 * Limit the the horizontal input from a square shaped joystick gimbal to a unit circle

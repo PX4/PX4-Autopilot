@@ -5,6 +5,8 @@
 #pragma once
 
 // Translate ManualControlSetpoint v0 <--> v1
+#include <cmath>
+
 #include <px4_msgs_old/msg/manual_control_setpoint_v0.hpp>
 #include <px4_msgs/msg/manual_control_setpoint.hpp>
 
@@ -50,15 +52,22 @@ public:
 		msg_older.yaw = msg_newer.yaw;
 		msg_older.throttle = msg_newer.throttle;
 		msg_older.flaps = msg_newer.flaps;
-		msg_older.aux1 = msg_newer.aux1;
-		msg_older.aux2 = msg_newer.aux2;
-		msg_older.aux3 = msg_newer.aux3;
-		msg_older.aux4 = msg_newer.aux4;
-		msg_older.aux5 = msg_newer.aux5;
-		msg_older.aux6 = msg_newer.aux6;
+		// v1 marks an unmapped aux channel as NaN, v0 has no invalid value and its
+		// consumers assume 0 for a channel that is not mapped: collapse it back.
+		msg_older.aux1 = auxToOlder(msg_newer.aux1);
+		msg_older.aux2 = auxToOlder(msg_newer.aux2);
+		msg_older.aux3 = auxToOlder(msg_newer.aux3);
+		msg_older.aux4 = auxToOlder(msg_newer.aux4);
+		msg_older.aux5 = auxToOlder(msg_newer.aux5);
+		msg_older.aux6 = auxToOlder(msg_newer.aux6);
 		msg_older.sticks_moving = msg_newer.sticks_moving;
 		msg_older.buttons = msg_newer.buttons;
 		// source_system_id / source_component_id dropped (not present in v0)
+	}
+
+private:
+	static float auxToOlder(float aux) {
+		return std::isfinite(aux) ? aux : 0.f;
 	}
 };
 

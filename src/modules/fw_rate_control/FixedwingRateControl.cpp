@@ -485,10 +485,16 @@ void FixedwingRateControl::Run()
 		// Manual flaps/spoilers control, also active in VTOL Hover. Is handled and published in FW Position controller/VTOL module if Auto.
 		if (_vcontrol_mode.flag_control_manual_enabled) {
 
+			// An invalid setpoint keeps the last received aux/flaps values. Fall through to the
+			// retracted default rather than holding a stale surface command, while still publishing
+			// the setpoints so the downstream stream does not stall.
+			const int32_t flaps_source = _manual_control_setpoint.valid ? _param_fw_flaps_man.get() : 0;
+			const int32_t spoilers_source = _manual_control_setpoint.valid ? _param_fw_spoilers_man.get() : 0;
+
 			// Flaps control
 			float flaps_control = 0.f; // default to no flaps
 
-			switch (_param_fw_flaps_man.get()) { 		// do not consider negative switch settings
+			switch (flaps_source) { 		// do not consider negative switch settings
 			case 0:
 				break;
 
@@ -527,7 +533,7 @@ void FixedwingRateControl::Run()
 			// Spoilers control
 			float spoilers_control = 0.f; // default to no spoilers
 
-			switch (_param_fw_spoilers_man.get()) {		// do not consider negative switch settings
+			switch (spoilers_source) {		// do not consider negative switch settings
 			case 0:
 				break;
 

@@ -115,9 +115,9 @@ protected:
 	void updateParams() override;
 
 	/**
-	 * Get and limit value for specified RC function. Returns NAN if not mapped.
+	 * Get and limit value for specified RC function. Returns default_value if not mapped.
 	 */
-	float		get_rc_value(uint8_t func, float min_value, float max_value) const;
+	float		get_rc_value(uint8_t func, float min_value, float max_value, float default_value = 0.f) const;
 
 	/**
 	 * Get on/off switch position from the RC channel of the specified function
