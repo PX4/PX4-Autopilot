@@ -34,6 +34,7 @@
 #ifndef NAV_CONTROLLER_OUTPUT_HPP
 #define NAV_CONTROLLER_OUTPUT_HPP
 
+#include <uORB/topics/fixed_wing_lateral_guidance_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -51,7 +52,8 @@ public:
 
 	unsigned get_size() override
 	{
-		return _position_controller_status_sub.advertised() ? MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN +
+		return (_position_controller_status_sub.advertised() || _fw_lateral_guidance_status_sub.advertised()) ?
+		       MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN +
 		       MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
@@ -59,6 +61,7 @@ private:
 	explicit MavlinkStreamNavControllerOutput(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
+	uORB::Subscription _fw_lateral_guidance_status_sub{ORB_ID(fixed_wing_lateral_guidance_status)};
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 
@@ -82,6 +85,28 @@ private:
 			msg.target_bearing = roundf(math::degrees(pos_ctrl_status.target_bearing));
 			msg.wp_dist = math::constrain(roundf(pos_ctrl_status.wp_dist), 0.f, (float)UINT16_MAX);
 			msg.xtrack_error = pos_ctrl_status.xtrack_error;
+			msg.alt_error = tecs_status.altitude_sp - vehicle_global_position.alt;
+			msg.aspd_error = tecs_status.true_airspeed_filtered - tecs_status.true_airspeed_sp;
+
+			mavlink_msg_nav_controller_output_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		fixed_wing_lateral_guidance_status_s fw_lateral_guidance_status;
+
+		if (_fw_lateral_guidance_status_sub.update(&fw_lateral_guidance_status)) {
+			tecs_status_s tecs_status{};
+			_tecs_status_sub.copy(&tecs_status);
+
+			vehicle_global_position_s vehicle_global_position{};
+			_vehicle_global_position_sub.copy(&vehicle_global_position);
+
+			mavlink_nav_controller_output_t msg{};
+
+			msg.nav_bearing = roundf(math::degrees(fw_lateral_guidance_status.course_setpoint));
+			msg.wp_dist = math::constrain(roundf(fw_lateral_guidance_status.wp_dist), 0.f, (float)UINT16_MAX);
+			msg.xtrack_error = fw_lateral_guidance_status.signed_track_error;
 			msg.alt_error = tecs_status.altitude_sp - vehicle_global_position.alt;
 			msg.aspd_error = tecs_status.true_airspeed_filtered - tecs_status.true_airspeed_sp;
 
