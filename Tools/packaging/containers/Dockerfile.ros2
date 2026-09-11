@@ -20,54 +20,46 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=bind,source=ros2-install-dependencies.sh,target=/ros2-install-dependencies.sh \
     bash /ros2-install-dependencies.sh
 
-# Humble's Fast CDR 1.x cannot build Agent 2.4.3. Keep its ROS libraries intact
-# and link private, pinned Fast DDS/CDR libraries statically into the Agent.
+# Keep ROS libraries intact and statically link the same pinned, private
+# Fast DDS/CDR dependencies into the Agent on both distributions.
 FROM ros2-base AS agent-dds
 ARG BUILD_JOBS=8
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    if [[ "${ROS_DISTRO}" == humble ]]; then \
-        apt-get update && apt-get install -y --no-install-recommends libasio-dev libtinyxml2-dev; \
-    fi
-RUN --mount=type=bind,source=ros2-agent-humble.repos,target=/agent-dependencies.repos \
+    apt-get update && apt-get install -y --no-install-recommends libasio-dev libtinyxml2-dev
+RUN --mount=type=bind,source=ros2-agent.repos,target=/agent-dependencies.repos \
     source "/opt/ros/${ROS_DISTRO}/setup.bash" \
-    && if [[ "${ROS_DISTRO}" == humble ]]; then \
-        mkdir -p /opt/agent-dds-source /opt/agent-install/usr/local/share/micro-xrce-dds-agent \
-        && vcs import /opt/agent-dds-source < /agent-dependencies.repos \
-        && vcs export --exact /opt/agent-dds-source \
-            > /opt/agent-install/usr/local/share/micro-xrce-dds-agent/dependencies.repos \
-        && for dependency in fastcdr fastdds; do \
-            cmake -S "/opt/agent-dds-source/${dependency}" -B "/opt/agent-dds-source/${dependency}/build" \
-                -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF \
-                -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-                -DCMAKE_INSTALL_PREFIX=/opt/agent-dds -DCMAKE_PREFIX_PATH=/opt/agent-dds \
-                -DCOMPILE_TOOLS=OFF -DSECURITY=OFF -DSHM_TRANSPORT_DEFAULT=OFF \
-            && cmake --build "/opt/agent-dds-source/${dependency}/build" --parallel "${BUILD_JOBS}" \
-            && cmake --install "/opt/agent-dds-source/${dependency}/build" \
-            && cp "/opt/agent-dds-source/${dependency}/LICENSE" \
-                "/opt/agent-install/usr/local/share/micro-xrce-dds-agent/${dependency}-LICENSE" \
-            || exit 1; \
-        done \
-        && rm -rf /opt/agent-dds-source; \
-    fi
+    && mkdir -p /opt/agent-dds-source /opt/agent-install/usr/local/share/micro-xrce-dds-agent \
+    && vcs import /opt/agent-dds-source < /agent-dependencies.repos \
+    && vcs export --exact /opt/agent-dds-source \
+        > /opt/agent-install/usr/local/share/micro-xrce-dds-agent/dependencies.repos \
+    && for dependency in fastcdr fastdds; do \
+        cmake -S "/opt/agent-dds-source/${dependency}" -B "/opt/agent-dds-source/${dependency}/build" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DCMAKE_INSTALL_PREFIX=/opt/agent-dds -DCMAKE_PREFIX_PATH=/opt/agent-dds \
+            -DCOMPILE_TOOLS=OFF -DSECURITY=OFF -DSHM_TRANSPORT_DEFAULT=OFF \
+        && cmake --build "/opt/agent-dds-source/${dependency}/build" --parallel "${BUILD_JOBS}" \
+        && cmake --install "/opt/agent-dds-source/${dependency}/build" \
+        && cp "/opt/agent-dds-source/${dependency}/LICENSE" \
+            "/opt/agent-install/usr/local/share/micro-xrce-dds-agent/${dependency}-LICENSE" \
+        || exit 1; \
+    done \
+    && rm -rf /opt/agent-dds-source
 
-# Jazzy continues using its system Fast DDS/CDR.
 FROM agent-dds AS agent
 ARG XRCE_AGENT_REF=73622810d984349b80bbac0ef55fc0b694d62222
 ARG BUILD_JOBS=8
 RUN source "/opt/ros/${ROS_DISTRO}/setup.bash" \
-    && agent_args=() \
-    && if [[ "${ROS_DISTRO}" == humble ]]; then \
-        agent_args=(-DCMAKE_PREFIX_PATH=/opt/agent-dds -DBUILD_SHARED_LIBS=OFF); \
-    fi \
     && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git /opt/agent-source \
     && git -C /opt/agent-source checkout "${XRCE_AGENT_REF}" \
     && cmake -S /opt/agent-source -B /opt/agent-source/build \
         -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_PREFIX_PATH=/opt/agent-dds \
+        -DBUILD_SHARED_LIBS=OFF \
         -DUAGENT_USE_SYSTEM_FASTDDS=ON \
         -DUAGENT_USE_SYSTEM_FASTCDR=ON \
         -DUAGENT_P2P_PROFILE=OFF \
-        "${agent_args[@]}" \
     && cmake --build /opt/agent-source/build --parallel "${BUILD_JOBS}" \
     && DESTDIR=/opt/agent-install cmake --install /opt/agent-source/build \
     && rm -rf /opt/agent-source

@@ -19,7 +19,7 @@ Tools/packaging/
     *-entrypoint.sh     Container startup scripts
     px4-network.sh     Shared runtime host routing
     ros2-install-dependencies.sh
-    ros2-agent-humble.repos
+    ros2-agent.repos
     test_sih_mission.py
 Tools/ros2/
   prepare_workspace.py Checkout-matched ROS source workspace preparation
@@ -114,9 +114,10 @@ Both include Micro XRCE-DDS Agent v2.4.3, PX4's source-build dependencies and th
 They are also available on Docker Hub as `px4io/px4-dev-ros2`, with matching tags in both registries.
 They contain no repository checkouts, packaged PX4 firmware or compiled ROS workspace, and their entrypoint sources only the selected ROS underlay.
 The packaged SIH/Gazebo ROS images remain Ubuntu 24.04/Jazzy only.
-Humble's Fast CDR 1.x is incompatible with Agent v2.4.3, so the Humble Agent statically links private Fast DDS 2.14.7/Fast CDR 2.2.8 dependencies pinned in `Tools/packaging/containers/ros2-agent-humble.repos`.
-Their resolved revisions and licences are retained under `/usr/local/share/micro-xrce-dds-agent`; Humble's ROS libraries are not replaced.
-Jazzy continues to use its ROS-provided Fast DDS/CDR libraries.
+Both Agent builds statically link the same private Fast DDS 2.14.7/Fast CDR 2.2.8 dependencies pinned in `Tools/packaging/containers/ros2-agent.repos`.
+This provides one controlled Agent dependency set across both distros and avoids Humble's Fast CDR 1.x build incompatibility with Agent v2.4.3.
+Their resolved revisions and licences are retained under `/usr/local/share/micro-xrce-dds-agent`; neither distro's ROS libraries are replaced.
+The packaged Jazzy ROS images reuse this Agent build.
 These toolchains are published independently of the SITL package workflow, so they do not wait for `.deb` builds.
 Publishing follows the same release-tag and opt-in manual policy as `px4-dev`.
 
