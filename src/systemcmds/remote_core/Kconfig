@@ -1,0 +1,7 @@
+menuconfig SYSTEMCMDS_REMOTE_CORE
+	bool "remote_core"
+	default n
+	depends on BOARD_RPMSG
+	---help---
+		Start, stop and exercise the rptun remote core: status from the
+		board, a shell-timed ping and a text hello endpoint, fault injection.
