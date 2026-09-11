@@ -143,3 +143,115 @@ const struct flexspi_nor_config_s g_flash_fast_config = {
 	.serialNorType = 2,
 	.reserve2[0] = 0x7008200,
 };
+
+/* ISSI IS25WX512M, 512 Mb, octal DDR (8D-8D-8D).
+ *
+ * The command extension is the repeated command byte and all array commands
+ * take a 4-byte address. The 0xFD read needs 20 dummy cycles at 200 MHz
+ * (VCR 01h = 0x14; the power-up default of 16 is only good to 162 MHz), which
+ * FlexSPI encodes as 2N = 0x28. While the part is still in 1-pad SPI the ROM
+ * runs the device mode command (dummy cycles, sequence 7) and then the config
+ * commands (drive strength, sequence 10; SPI to octal DDR, sequence 6). Each
+ * writes the volatile configuration register (0x81) at a literal 3-byte
+ * address, since no address is loaded for device-mode commands.
+ */
+
+const struct flexspi_nor_config_s g_flash_fast_config_is25wx512m = {
+	.memConfig =
+	{
+		.tag                 = FLEXSPI_CFG_BLK_TAG,
+		.version             = FLEXSPI_CFG_BLK_VERSION,
+		.readSampleClkSrc    = kFlexSPIReadSampleClk_ExternalInputFromDqsPad,
+		/* About 90 ns of CS high (hold counts serial clocks, setup root clocks), above the
+		 * 50 ns tSHSL2 after write enable, erase and program; the app shortens it for reads.
+		 */
+		.csHoldTime          = 15,
+		.csSetupTime         = 5,
+		.timeoutInMs         = 1000,
+		.deviceModeCfgEnable = 1,
+		.deviceModeType      = kDeviceConfigCmdType_Generic,
+		.waitTimeCfgCommands = 1,
+		.deviceModeSeq =
+		{
+			.seqNum   = 1,
+			.seqId    = 7, /* VCR 01h dummy cycles */
+			.reserved = 0,
+		},
+		.deviceModeArg   = 0x14, /* 20 dummy cycles */
+		.configCmdEnable = 1,
+		.configModeType  = {kDeviceConfigCmdType_Generic, kDeviceConfigCmdType_Spi2Xpi, 0},
+		.configCmdSeqs =
+		{
+			[0] = {.seqNum = 1, .seqId = 10, .reserved = 0}, /* VCR 03h output drive strength */
+			[1] = {.seqNum = 1, .seqId = 6, .reserved = 0},  /* VCR 00h SPI to Octal DDR */
+		},
+		.configCmdArgs = {0xFD, 0xE7}, /* 25 ohm (as the MX25UM default), then octal DDR with DQS */
+		.controllerMiscOption =
+		(1u << kFlexSpiMiscOffset_SafeConfigFreqEnable) | (1u << kFlexSpiMiscOffset_DdrModeEnable),
+		.deviceType    = kFlexSpiDeviceType_SerialNOR,
+		.sflashPadType = kSerialFlash_8Pads,
+		.serialClkFreq = kFlexSpiSerialClk_200MHz,
+		.sflashA1Size  = 64ul * 1024u * 1024u,
+		/* 1.5 ns for the ROM's low-clock IP commands, above the 1.3 ns tDVW */
+		.dataValidTime =
+		{
+			[0] = {.time_100ps = 15},
+		},
+		.busyOffset      = 0u,
+		.busyBitPolarity = 0u,
+		.lookupTable =
+		{
+			/* Read (0xFD), 4-byte address, 20 dummy cycles */
+			[0 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0xFD, CMD_DDR, FLEXSPI_8PAD, 0xFD),
+			[0 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, DUMMY_DDR, FLEXSPI_8PAD, 0x28),
+			[0 + 2] = FLEXSPI_LUT_SEQ(READ_DDR, FLEXSPI_8PAD, 0x04, STOP_EXE, FLEXSPI_1PAD, 0x00),
+
+			/* Read status SPI (0x05), used by the ROM only before the octal switch */
+			[4 * 1 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x05, READ_SDR, FLEXSPI_1PAD, 0x04),
+
+			/* Read status (0x05) octal DDR, 8 dummy cycles */
+			[4 * 2 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0x05, CMD_DDR, FLEXSPI_8PAD, 0x05),
+			[4 * 2 + 1] = FLEXSPI_LUT_SEQ(DUMMY_DDR, FLEXSPI_8PAD, 0x10, READ_DDR, FLEXSPI_8PAD, 0x04),
+
+			/* Write enable SPI (0x06) */
+			[4 * 3 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x06, STOP_EXE, FLEXSPI_1PAD, 0x00),
+
+			/* Write enable OPI (0x06) */
+			[4 * 4 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0x06, CMD_DDR, FLEXSPI_8PAD, 0x06),
+
+			/* Erase 4 KB sector (0x21) */
+			[4 * 5 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0x21, CMD_DDR, FLEXSPI_8PAD, 0x21),
+			[4 * 5 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, STOP_EXE, FLEXSPI_1PAD, 0x00),
+
+			/* Write VCR 00h (0x81, literal address bytes): SPI to octal DDR */
+			[4 * 6 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x81, CMD_SDR, FLEXSPI_1PAD, 0x00),
+			[4 * 6 + 1] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x00, CMD_SDR, FLEXSPI_1PAD, 0x00),
+			[4 * 6 + 2] = FLEXSPI_LUT_SEQ(WRITE_SDR, FLEXSPI_1PAD, 0x01, STOP_EXE, FLEXSPI_1PAD, 0x00),
+
+			/* Write VCR 01h: dummy cycles */
+			[4 * 7 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x81, CMD_SDR, FLEXSPI_1PAD, 0x00),
+			[4 * 7 + 1] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x00, CMD_SDR, FLEXSPI_1PAD, 0x01),
+			[4 * 7 + 2] = FLEXSPI_LUT_SEQ(WRITE_SDR, FLEXSPI_1PAD, 0x01, STOP_EXE, FLEXSPI_1PAD, 0x00),
+
+			/* Write VCR 03h: output drive strength */
+			[4 * 10 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x81, CMD_SDR, FLEXSPI_1PAD, 0x00),
+			[4 * 10 + 1] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x00, CMD_SDR, FLEXSPI_1PAD, 0x03),
+			[4 * 10 + 2] = FLEXSPI_LUT_SEQ(WRITE_SDR, FLEXSPI_1PAD, 0x01, STOP_EXE, FLEXSPI_1PAD, 0x00),
+
+			/* Erase 128 KB block (0xDC) */
+			[4 * 8 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0xDC, CMD_DDR, FLEXSPI_8PAD, 0xDC),
+			[4 * 8 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, STOP_EXE, FLEXSPI_1PAD, 0x00),
+
+			/* Page program (0x84) */
+			[4 * 9 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0x84, CMD_DDR, FLEXSPI_8PAD, 0x84),
+			[4 * 9 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, WRITE_DDR, FLEXSPI_8PAD, 0x04),
+		},
+	},
+	.pageSize           = 256u,
+	.sectorSize         = 4u * 1024u,
+	.blockSize          = 128u * 1024u,
+	.isUniformBlockSize = false,
+	.ipcmdSerialClkFreq = 1,
+	.serialNorType = 2,
+	.reserve2[0] = 0x6008200, /* flash state: POR SPI, now octal DDR, restore with 66h/99h */
+};
