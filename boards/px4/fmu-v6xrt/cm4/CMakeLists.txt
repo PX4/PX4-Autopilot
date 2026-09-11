@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016, 2019, 2023 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,72 +30,34 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
-	add_compile_definitions(BOOTLOADER)
-	add_library(drivers_board
-		bootloader_main.c
-		init.c
-		usb.c
-		imxrt_flexspi_nor_boot.c
-		imxrt_flexspi_nor_flash.c
-		imxrt_clockconfig.c
-		timer_config.cpp
-	)
-	target_link_libraries(drivers_board
-		PRIVATE
-			nuttx_arch # sdio
-			nuttx_drivers # sdio
-			px4_layer #gpio
-			arch_io_pins # iotimer
-			arch_board_romapi
-			bootloader
-	)
-	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
 
-else()
-	if(CONFIG_IMXRT1170_FLEXSPI_FRAM)
-	    list(APPEND SRCS
-			imxrt_flexspi_fram.c
-	    )
-	endif()
+# Build the CM4 rpmsg remote with the firmware toolchain and register it as a
+# ROMFS extra (/etc/extras/cm4_rpmsg.elf), where the rptun loader reads it.
 
-	if(CONFIG_IMXRT_RPTUN)
-		list(APPEND SRCS rpmsg.c)
-		add_subdirectory(../cm4 ${PX4_BINARY_DIR}/cm4)
-	endif()
+set(CM4_ELF ${CMAKE_CURRENT_BINARY_DIR}/cm4_rpmsg.elf)
 
-	px4_add_library(drivers_board
-		autoleds.c
-		automount.c
-		#can.c
-		i2c.cpp
-		init.c
-		led.c
-		mtd.cpp
-		sdhc.c
-		spi.cpp
-		timer_config.cpp
-		usb.c
-		imxrt_flexspi_fram.c
-		imxrt_flexspi_nor_boot.c
-		imxrt_flexspi_nor_flash.c
-		imxrt_clockconfig.c
-		imxrt_ocram_initialize.c
-		${SRCS}
-	)
-
-	# Force compiler not to use builtin functions (like memcpy)
-	# to optimize for loops in init.c (imxrt_ocram_initialize)
-	set_source_files_properties(imxrt_ocram_initialize.c PROPERTIES COMPILE_FLAGS -fno-builtin)
-
-	target_link_libraries(drivers_board
-		PRIVATE
-			arch_board_hw_info
-			arch_board_romapi
-			arch_spi
-			drivers__led # drv_led_start
-			nuttx_arch # sdio
-			nuttx_drivers # sdio
-			px4_layer
-	)
+# CONFIG_BOARD_CM4_APP (root Kconfig, BOARD_RPMSG) picks apps/<name>/
+if(NOT CM4_APP)
+	set(CM4_APP basic)
 endif()
+
+file(GLOB CM4_SOURCES CONFIGURE_DEPENDS
+	${CMAKE_CURRENT_SOURCE_DIR}/*.c ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+	${CMAKE_CURRENT_SOURCE_DIR}/apps/${CM4_APP}/*.c ${CMAKE_CURRENT_SOURCE_DIR}/apps/${CM4_APP}/*.h)
+
+add_custom_command(OUTPUT ${CM4_ELF}
+	COMMAND make --no-print-directory -C ${CMAKE_CURRENT_SOURCE_DIR}
+		CC=${CMAKE_C_COMPILER} STRIP=${CMAKE_STRIP}
+		BUILDDIR=${CMAKE_CURRENT_BINARY_DIR} APP=${CM4_APP}
+		PX4_BUILD=${PX4_BINARY_DIR} PX4_SRC=${PX4_SOURCE_DIR}
+	DEPENDS ${CM4_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/link.ld.in ${CMAKE_CURRENT_SOURCE_DIR}/Makefile
+	COMMENT "Building CM4 rpmsg remote, application ${CM4_APP}"
+)
+
+add_custom_target(cm4_firmware DEPENDS ${CM4_ELF})
+
+# consumed by ROMFS/CMakeLists.txt, which is processed after the board sources
+set(config_romfs_extra_files ${config_romfs_extra_files} ${CM4_ELF}
+	CACHE INTERNAL "extra ROMFS files" FORCE)
+set(config_romfs_extra_dependencies ${config_romfs_extra_dependencies} cm4_firmware
+	CACHE INTERNAL "extra ROMFS deps" FORCE)

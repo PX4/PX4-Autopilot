@@ -1,0 +1,55 @@
+/* Preprocessed by the Makefile; addresses come from memmap.h. */
+#include "memmap.h"
+
+MEMORY
+{
+	tcm_l (rwx) : ORIGIN = CM4_CODE_TCM_DA, LENGTH = CM4_SHM_OFFSET   /* code TCM: code, data */
+	shm   (rw)  : ORIGIN = CM4_SHM_DA,      LENGTH = CM4_SHM_USABLE   /* code TCM: resource table, vrings, buffers */
+	tcm_u (rwx) : ORIGIN = CM4_SYS_TCM_DA,  LENGTH = CM4_TCM_SIZE     /* system TCM: bss, stack (CM4 private) */
+}
+
+ENTRY(reset_handler)
+
+SECTIONS
+{
+	.vectors : {
+		KEEP(*(.vectors))
+	} > tcm_l
+
+	.text : {
+		*(.text*)
+		*(.rodata*)
+		. = ALIGN(4);
+	} > tcm_l
+
+	/* Loaded in place: the loader writes it through the same window as the code. */
+	.data : {
+		. = ALIGN(4);
+		*(.data*)
+		. = ALIGN(4);
+	} > tcm_l
+
+	/* Found by name by the OpenAMP ELF loader; the host writes vring
+	 * addresses and status into it, then places vrings and rpmsg
+	 * buffers directly after it in this region.
+	 */
+	.resource_table : {
+		KEEP(*(.resource_table))
+	} > shm
+
+	.bss (NOLOAD) : {
+		. = ALIGN(4);
+		_sbss = .;
+		*(.bss*)
+		*(COMMON)
+		. = ALIGN(8);
+		_ebss = .;
+	} > tcm_u
+
+	_stack_top = ORIGIN(tcm_u) + LENGTH(tcm_u);
+
+	/DISCARD/ : {
+		*(.ARM.exidx*)
+		*(.comment)
+	}
+}
