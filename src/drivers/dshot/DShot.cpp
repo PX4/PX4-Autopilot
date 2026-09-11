@@ -1044,6 +1044,8 @@ void DShot::mixerChanged()
 		_motor_mask = new_motor_mask;
 		_motor_count = __builtin_popcount(_output_mask);
 
+		_telemetry.initSettingsHandlers(static_cast<ESCType>(_param_dshot_esc_type.get()), _motor_mask);
+
 		uint32_t new_bdshot_output_mask = _bdshot_timer_channels & _output_mask;
 		PX4_DEBUG("BDShot Output mask changed: 0x%" PRIx32 " -> 0x%" PRIx32, _bdshot_output_mask, new_bdshot_output_mask);
 		_bdshot_output_mask = new_bdshot_output_mask;
@@ -1144,10 +1146,6 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 
 	// Enable serial telemetry now that we've successfully initialized
 	_serial_telemetry_enabled = true;
-
-	// Initialize ESC settings handlers based on ESC type
-	ESCType esc_type = static_cast<ESCType>(_param_dshot_esc_type.get());
-	_telemetry.initSettingsHandlers(esc_type, _motor_mask);
 }
 
 static void print_spacer()

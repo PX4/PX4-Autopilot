@@ -34,6 +34,7 @@
 #ifndef ESC_EEPROM_HPP
 #define ESC_EEPROM_HPP
 
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/esc_eeprom_read.h>
 
 class MavlinkStreamEscEeprom : public MavlinkStream
@@ -49,19 +50,26 @@ public:
 
 	unsigned get_size() override
 	{
-		return _esc_eeprom_read_sub.advertised() ? MAVLINK_MSG_ID_ESC_EEPROM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _esc_eeprom_read_subs.advertised_count() * (MAVLINK_MSG_ID_ESC_EEPROM_LEN +
+				MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 
 private:
 	explicit MavlinkStreamEscEeprom(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _esc_eeprom_read_sub{ORB_ID(esc_eeprom_read)};
+	uORB::SubscriptionMultiArray<esc_eeprom_read_s> _esc_eeprom_read_subs{ORB_ID::esc_eeprom_read};
 
 	bool emit_message(bool force)
 	{
-		esc_eeprom_read_s eeprom = {};
+		bool sent = false;
 
-		if (_esc_eeprom_read_sub.update(&eeprom) || force) {
+		for (auto &esc_eeprom_sub : _esc_eeprom_read_subs) {
+			esc_eeprom_read_s eeprom = {};
+
+			if (!esc_eeprom_sub.update(&eeprom) && !(force && esc_eeprom_sub.copy(&eeprom))) {
+				continue;
+			}
+
 			mavlink_esc_eeprom_t msg = {};
 			msg.firmware = eeprom.firmware;
 			msg.esc_index = eeprom.index;
@@ -72,11 +80,10 @@ private:
 			msg.length = copy_len;
 
 			mavlink_msg_esc_eeprom_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
+			sent = true;
 		}
 
-		return false;
+		return sent;
 	}
 
 	bool send() override
