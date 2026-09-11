@@ -458,6 +458,11 @@ void MulticopterPositionControl::Run()
 				_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 			}
 
+			// Never act on a braking flag left behind by a flight task that is no longer running.
+			if (_setpoint.timestamp > _vehicle_constraints.timestamp + 100_ms) {
+				_vehicle_constraints.emergency_braking = false;
+			}
+
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 
 				const bool want_takeoff = _vehicle_control_mode.flag_armed
@@ -540,19 +545,24 @@ void MulticopterPositionControl::Run()
 							 _param_mpc_z_vel_max_up.get()); // takeoff ramp starts with negative velocity limit
 			float limit_speed_down = math::max(speed_down, 0.f);
 
-			if (_vehicle_constraints.emergency_braking) {
-				// Don't clamp the braking setpoint: the acceleration feedforward describes the unclamped
-				// ramp, so clamping the velocity inverts the error once the vehicle overtakes it.
-				// Only the direction of travel is raised.
-				const Vector2f velocity_setpoint_xy(_setpoint.velocity);
+			if (_vehicle_constraints.emergency_braking && flying) {
+				// Raise the limits to the speed the vehicle actually has, so the trajectory velocity
+				// reaches the velocity loop uncut.
+				// Clamping it leaves a large velocity error which the horizontal anti-windup back-calculates
+				// into an integrator opposing the brake.
+				const Vector2f velocity_xy(states.velocity);
 
-				if (velocity_setpoint_xy.isAllFinite()) {
-					max_speed_xy = math::max(max_speed_xy, velocity_setpoint_xy.norm());
+				if (velocity_xy.isAllFinite()) {
+					max_speed_xy = math::max(max_speed_xy, velocity_xy.norm());
 				}
 
-				if (PX4_ISFINITE(_setpoint.velocity[2])) {
-					limit_speed_up = math::max(limit_speed_up, -_setpoint.velocity[2]);
-					limit_speed_down = math::max(limit_speed_down, _setpoint.velocity[2]);
+				if (PX4_ISFINITE(states.velocity(2))) {
+					if (states.velocity(2) < 0.f) {
+						limit_speed_up = math::max(limit_speed_up, -states.velocity(2));
+
+					} else {
+						limit_speed_down = math::max(limit_speed_down, states.velocity(2));
+					}
 				}
 			}
 

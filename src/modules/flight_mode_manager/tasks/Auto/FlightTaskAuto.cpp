@@ -39,6 +39,7 @@
 #include <float.h>
 
 using namespace matrix;
+using namespace time_literals;
 
 bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
@@ -718,24 +719,54 @@ void FlightTaskAuto::_ekfResetHandlerHeading(const float delta_psi)
 void FlightTaskAuto::_checkEmergencyBraking()
 {
 	if (!_is_emergency_braking_active) {
-		// activate emergency braking if significantly outside of velocity bounds
+		// Activate emergency braking if either the vehicle or the trajectory is significantly outside of
+		// velocity bounds. activate() seeds the trajectory from the previous task's setpoint, which
+		// is not bounded by this task's limits.
 		const float factor = 1.3f;
-		const bool is_vertical_speed_exceeded = _position_smoothing.getCurrentVelocityZ() >
-							(factor * _param_mpc_z_vel_max_dn.get())
-							|| _position_smoothing.getCurrentVelocityZ() < -(factor * _param_mpc_z_vel_max_up.get());
-		const bool is_horizontal_speed_exceeded = _position_smoothing.getCurrentVelocityXY().longerThan(
-					factor * _param_mpc_xy_vel_max.get());
+		const float speed_down = math::max(_velocity(2), _position_smoothing.getCurrentVelocityZ());
+		const float speed_up = -math::min(_velocity(2), _position_smoothing.getCurrentVelocityZ());
+		const float speed_horizontal = math::max(Vector2f(_velocity).norm(),
+					       _position_smoothing.getCurrentVelocityXY().norm());
+		// _updateTrajConstraints() lets ordinary descents past MPC_Z_VEL_MAX_DN, so the margin has to be
+		// taken against what guidance can actually reach or a downdraft would trigger braking mid-mission.
+		const float max_speed_down = math::max(_param_mpc_z_vel_max_dn.get(), 1.2f * _param_mpc_z_v_auto_dn.get());
+		const bool is_vertical_speed_exceeded = (speed_down > factor * max_speed_down)
+							|| (speed_up > factor * _param_mpc_z_vel_max_up.get());
+		const bool is_horizontal_speed_exceeded = speed_horizontal > (factor * _param_mpc_xy_vel_max.get());
 
 		if (is_vertical_speed_exceeded || is_horizontal_speed_exceeded) {
 			_is_emergency_braking_active = true;
+			// Start the braking ramp from the vehicle not the reference.
+			_position_smoothing.forceSetVelocity(_velocity);
+
+			_emergency_braking_best_speed = math::max(fabsf(_velocity(2)), Vector2f(_velocity).norm());
+			_emergency_braking_progress_timestamp = _time_stamp_current;
 		}
 
 	} else {
 		// Deactivate emergency braking once slow enough for ordinary guidance to finish the stop.
 		// Check the measured velocity since the trajectory reaches zero well before the vehicle does.
-		if (math::isInRange(_velocity(2), -1.f, 1.f)
-		    && !Vector2f(_velocity).longerThan(1.f)) {
+		const bool is_slow_enough = math::isInRange(_velocity(2), -1.f, 1.f)
+					    && !Vector2f(_velocity).longerThan(1.f);
+
+		// Track the lowest speed reached and deactivate emergency braking if it stops improving.
+		// Avoids getting stuck in emergency braking.
+		const float speed = math::max(fabsf(_velocity(2)), Vector2f(_velocity).norm());
+
+		if (speed < _emergency_braking_best_speed - 0.5f) {
+			_emergency_braking_best_speed = speed;
+			_emergency_braking_progress_timestamp = _time_stamp_current;
+		}
+
+		const bool is_not_slowing_down = _time_stamp_current > _emergency_braking_progress_timestamp + 3_s;
+
+		if (is_slow_enough || is_not_slowing_down) {
 			_is_emergency_braking_active = false;
+
+			// Hand back a trajectory that ordinary guidance can take over. Emergency braking runs the smoother at
+			// 1g right up to the release, so its acceleration state is still around 9.8 m/s^2 while its
+			// velocity state is near zero.
+			_position_smoothing.forceSetAcceleration({0.f, 0.f, 0.f});
 		}
 	}
 }
