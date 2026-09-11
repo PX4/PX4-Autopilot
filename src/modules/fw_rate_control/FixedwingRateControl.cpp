@@ -308,7 +308,6 @@ void FixedwingRateControl::Run()
 			}
 
 			// Update saturation status from control allocation feedback
-			// TODO: send the unallocated value directly for better anti-windup
 			Vector3<bool> diffthr_enabled(
 				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::ROLL_BIT),
 				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::PITCH_BIT),
@@ -326,23 +325,42 @@ void FixedwingRateControl::Run()
 			// Set saturation flags for VTOL differential thrust feature
 			// If differential thrust is enabled in an axis, assume it's the only torque authority and only update saturation using matrix 0 allocating the motors.
 			if (_control_allocator_status_subs[0].update(&control_allocator_status)) {
+				_last_control_allocator_status[0] = control_allocator_status.timestamp;
+
 				for (size_t i = 0; i < 3; i++) {
 					if (diffthr_enabled(i)) {
 						_rate_control.setPositiveSaturationFlag(i, control_allocator_status.unallocated_torque[i] > FLT_EPSILON);
 						_rate_control.setNegativeSaturationFlag(i, control_allocator_status.unallocated_torque[i] < -FLT_EPSILON);
+						_unallocated_torque(i) = control_allocator_status.unallocated_torque[i];
 					}
 				}
 			}
 
 			// Set saturation flags for control surface controlled axes
-			if (_control_allocator_status_subs[_vehicle_status.is_vtol ? 1 : 0].update(&control_allocator_status)) {
+			const int surfaces_sub_idx = _vehicle_status.is_vtol ? 1 : 0;
+
+			if (_control_allocator_status_subs[surfaces_sub_idx].update(&control_allocator_status)) {
+				_last_control_allocator_status[surfaces_sub_idx] = control_allocator_status.timestamp;
+
 				for (size_t i = 0; i < 3; i++) {
 					if (!diffthr_enabled(i)) {
 						_rate_control.setPositiveSaturationFlag(i, control_allocator_status.unallocated_torque[i] > FLT_EPSILON);
 						_rate_control.setNegativeSaturationFlag(i, control_allocator_status.unallocated_torque[i] < -FLT_EPSILON);
+						_unallocated_torque(i) = control_allocator_status.unallocated_torque[i];
 					}
 				}
 			}
+
+			// Set unallocated torque to zero if the control allocator has not updated recently
+			for (size_t i = 0; i < 3; i++) {
+				const int source_idx = diffthr_enabled(i) ? 0 : surfaces_sub_idx;
+
+				if (hrt_elapsed_time(&_last_control_allocator_status[source_idx]) > 50_ms) {
+					_unallocated_torque(i) = 0.f;
+				}
+			}
+
+			_rate_control.setUnallocatedTorque(_unallocated_torque);
 
 			/* bi-linear interpolation over airspeed for actuator trim scheduling */
 			Vector3f trim(_param_trim_roll.get(), _param_trim_pitch.get(), _param_trim_yaw.get());

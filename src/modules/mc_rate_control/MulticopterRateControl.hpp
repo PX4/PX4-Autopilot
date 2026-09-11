@@ -119,12 +119,14 @@ private:
 	bool _maybe_landed{true};
 
 	hrt_abstime _last_run{0};
+	hrt_abstime _last_control_allocator_status{0};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
 	// keep setpoint values between updates
 	matrix::Vector3f _acro_rate_max;		/**< max attitude rates in acro mode */
 	matrix::Vector3f _rates_setpoint{};
+	matrix::Vector3f _unallocated_torque{};
 
 	float _battery_status_scale{0.0f};
 	matrix::Vector3f _thrust_setpoint{};

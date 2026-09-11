@@ -211,9 +211,17 @@ MulticopterRateControl::Run()
 					}
 				}
 
-				// TODO: send the unallocated value directly for better anti-windup
 				_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
+
+				_unallocated_torque = Vector3f(control_allocator_status.unallocated_torque);
+				_last_control_allocator_status = control_allocator_status.timestamp;
 			}
+
+			if (hrt_elapsed_time(&_last_control_allocator_status) > 50_ms) {
+				_unallocated_torque.zero();
+			}
+
+			_rate_control.setUnallocatedTorque(_unallocated_torque);
 
 			// run rate controller
 			Vector3f torque_setpoint =
