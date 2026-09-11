@@ -144,6 +144,7 @@ private:
 	float _airspeed_scaling{1.0f};
 
 	bool _landed{true};
+	bool _landed_prev{true};
 
 	float _battery_scale{1.0f};
 
