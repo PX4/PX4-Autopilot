@@ -200,6 +200,30 @@ esc_status_s process_esc(const Config &config, const esc_status_s &status)
 	return result;
 }
 
+MotorFailureMasks process_motor(const Config &config)
+{
+	MotorFailureMasks masks{};
+
+	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+		const uint16_t bit = 1u << i;
+
+		switch (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1)) {
+		case Mode::Off:
+			masks.failure_mask |= bit;
+			break;
+
+		case Mode::Wrong:
+			masks.stop_mask |= bit;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return masks;
+}
+
 } // namespace failure_injection
 
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER

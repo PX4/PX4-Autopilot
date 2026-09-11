@@ -78,11 +78,11 @@ TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, motor_instance,
 			      mavsdk::Failure::Result::Success);
 	tester.sleep_for(std::chrono::seconds(1));
-	tester.ensure_motor_stopped(motor_instance - 1, num_motors);
+	tester.ensure_motors_stopped(1u << (motor_instance - 1), num_motors);
 
 	tester.execute_mission();
 	tester.stop_checking_altitude();
-	tester.ensure_motor_stopped(motor_instance - 1, num_motors); // just to be sure
+	tester.ensure_motors_stopped(1u << (motor_instance - 1), num_motors); // just to be sure
 
 	// RTL
 	tester.execute_rtl();

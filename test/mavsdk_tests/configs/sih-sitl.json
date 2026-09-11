@@ -28,6 +28,11 @@
             }
         },
         {
+            "model": "hex",
+            "test_filter": "[motor_failure_injection]",
+            "timeout_min": 15
+        },
+        {
             "model": "standard_vtol",
             "test_filter": "[vtol]",
             "timeout_min": 10
