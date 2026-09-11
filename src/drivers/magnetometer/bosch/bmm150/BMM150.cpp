@@ -461,6 +461,7 @@ bool BMM150::Configure()
 
 	// microTesla -> Gauss
 	_px4_mag.set_scale(0.01f);
+	_px4_mag.set_range(microTesla2Gauss(1300.f)); // x/y axis (z: 2500 uT)
 
 	return success;
 }

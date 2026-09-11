@@ -1,0 +1,133 @@
+name: ROS Development Container
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'Tools/packaging/containers/**'
+      - 'Tools/ros2/ros2.repos'
+      - 'Tools/setup/ubuntu.sh'
+      - 'Tools/setup/requirements.txt'
+      - '.github/workflows/ros_dev_container.yml'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'PX4/ROS development tag (e.g. main-jazzy or v1.18-jazzy)'
+        type: string
+        default: main-jazzy
+      build_ref:
+        description: 'Source ref; empty uses the workflow ref'
+        type: string
+        default: ''
+      deploy_to_registry:
+        description: 'Publish the development image'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ros2-dev-${{ github.ref }}-${{ inputs.tag || 'main-jazzy' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build ROS Development Image (${{ matrix.arch }})
+    runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: amd64, runner: x64 }
+          - { arch: arm64, runner: arm64 }
+    outputs:
+      revision: ${{ steps.revision.outputs.sha }}
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.build_ref || github.sha }}
+
+      - name: Prepare development image context
+        run: bash Tools/packaging/containers/prepare_context.sh
+
+      - name: Resolve source revision
+        id: revision
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v4
+        if: >-
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true)
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/login-action@v4
+        if: >-
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true)
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v4
+        with:
+          platforms: linux/${{ matrix.arch }}
+
+      - name: Build development image without firmware
+        uses: docker/bake-action@v7
+        env:
+          ARCH: ${{ matrix.arch }}
+          CACHE_GHA: "true"
+        with:
+          source: .
+          files: Tools/packaging/containers/docker-bake.hcl
+          targets: ros2-dev
+          push: >-
+            ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+                (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true) }}
+          sbom: true
+          provenance: false
+          set: |
+            ros2-dev.tags=ghcr.io/px4/px4-dev-ros2:sha-${{ steps.revision.outputs.sha }}-jazzy-${{ matrix.arch }}
+            ros2-dev.tags=px4io/px4-dev-ros2:sha-${{ steps.revision.outputs.sha }}-jazzy-${{ matrix.arch }}
+            ros2-dev.labels.org.opencontainers.image.source=https://github.com/PX4/PX4-Autopilot
+            ros2-dev.labels.org.opencontainers.image.revision=${{ steps.revision.outputs.sha }}
+
+  deploy:
+    name: Publish Multi-Architecture ROS Development Image
+    needs: build
+    if: >-
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_to_registry == true)
+    runs-on: [runs-on,"runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
+    steps:
+      - uses: runs-on/action@v2
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v4
+      - name: Assemble image and SBOM indexes
+        env:
+          TAG: ${{ github.event_name == 'push' && format('{0}-jazzy', github.ref_name) || inputs.tag || 'main-jazzy' }}
+          REVISION: ${{ needs.build.outputs.revision }}
+        run: |
+          for REGISTRY in px4io ghcr.io/px4; do
+            IMAGE="${REGISTRY}/px4-dev-ros2"
+
+            docker buildx imagetools create \
+              --tag "${IMAGE}:${TAG}" --tag "${IMAGE}:sha-${REVISION}-jazzy" \
+              "${IMAGE}:sha-${REVISION}-jazzy-amd64" "${IMAGE}:sha-${REVISION}-jazzy-arm64"
+          done

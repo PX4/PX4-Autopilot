@@ -45,6 +45,10 @@
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
+#include <uORB/topics/sensor_gnss_rf.h>
+#if defined(CONFIG_GPS_UBX_SPAN)
+#include <uORB/topics/sensor_gnss_spectrum.h>
+#endif
 
 #define GPS_INFO(...) PX4_INFO(__VA_ARGS__)
 #define GPS_WARN(...) PX4_WARN(__VA_ARGS__)

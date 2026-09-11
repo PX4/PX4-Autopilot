@@ -1,0 +1,33 @@
+{
+    "mode": "sitl",
+    "simulator": "sih",
+    "model_prefix": "sihsim_",
+    "tests":
+    [
+        {
+            "model": "quadx",
+            "vehicle": "quadx",
+            "test_filter": "ModesTest.*",
+            "timeout_min": 10
+        },
+        {
+            "model": "quadx",
+            "vehicle": "quadx",
+            "test_filter": "LocalPositionInterfaceTest.*",
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_EKF2_EV_CTRL": 15
+            }
+        },
+        {
+            "model": "quadx",
+            "vehicle": "quadx",
+            "test_filter": "GlobalPositionInterfaceTest.*",
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_EKF2_AGP0_ID": 1,
+                "PX4_PARAM_EKF2_AGP0_CTRL": 1
+            }
+        }
+    ]
+}

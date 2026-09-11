@@ -97,6 +97,10 @@ bool FlightTaskAuto::updateInitialize()
 
 	_sub_home_position.update();
 	_sub_vehicle_status.update();
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	// Read status first so setpoint_adjusted cannot be paired with an older triplet.
+	_prec_takeoff_status_sub.update();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_position_setpoint_triplet_sub.update();
 	_takeoff_status_sub.update();
 
@@ -147,28 +151,37 @@ bool FlightTaskAuto::update()
 		_velocity_setpoint(2) = NAN;
 		break;
 
-	case WaypointType::takeoff:
-		_position_setpoint = _triplet_current;
-		_velocity_setpoint.setNaN();
+	case WaypointType::takeoff: {
+			_position_setpoint = _triplet_current;
+			_velocity_setpoint.setNaN();
 
-		if (_type_previous != WaypointType::takeoff) {
-			_takeoff_liftoff_position.setNaN();
+			if (_type_previous != WaypointType::takeoff) {
+				_takeoff_liftoff_position.setNaN();
+				_time_stamp_airborne = 0;
+			}
+
+			const bool airborne = _takeoff_status_sub.get().takeoff_state >= takeoff_status_s::TAKEOFF_STATE_FLIGHT;
+
+			if (!airborne) {
+				_takeoff_liftoff_position = _position;
+				_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+				_time_stamp_airborne = 0;
+
+			} else if (_time_stamp_airborne == 0) {
+				_time_stamp_airborne = _time_stamp_current;
+			}
+
+			// Hold the liftoff position until airborne for MIS_TKO_PREC_DLY and Navigator has moved the setpoint onto the target.
+			if (Vector2f(_takeoff_liftoff_position).isAllFinite() && !_followPrecisionTakeoffTarget()) {
+				_position_setpoint.xy() = _takeoff_liftoff_position.xy();
+			}
+
+			if (PX4_ISFINITE(_takeoff_liftoff_position(2)) && (_takeoff_liftoff_position(2) - _position(2)) < 1.f) {
+				_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
+			}
+
+			break;
 		}
-
-		if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
-			_takeoff_liftoff_position = _position;
-			_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
-		}
-
-		if (Vector2f(_takeoff_liftoff_position).isAllFinite()) {
-			_position_setpoint.xy() = _takeoff_liftoff_position.xy();
-		}
-
-		if (PX4_ISFINITE(_takeoff_liftoff_position(2)) && (_takeoff_liftoff_position(2) - _position(2)) < 1.f) {
-			_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
-		}
-
-		break;
 
 	case WaypointType::loiter:
 	case WaypointType::position:
@@ -837,4 +850,15 @@ void FlightTaskAuto::updateParams()
 
 	// make sure that alt1 is above alt2
 	_param_mpc_land_alt1.set(math::max(_param_mpc_land_alt1.get(), _param_mpc_land_alt2.get()));
+}
+
+bool FlightTaskAuto::_followPrecisionTakeoffTarget() const
+{
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	const float airborne_time_s = (_time_stamp_current - _time_stamp_airborne) * 1e-6f;
+	const bool airborne_long_enough = (_time_stamp_airborne != 0) && (airborne_time_s >= _param_mis_tko_prec_dly.get());
+	return airborne_long_enough && _prec_takeoff_status_sub.get().setpoint_adjusted;
+#else
+	return false;
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }

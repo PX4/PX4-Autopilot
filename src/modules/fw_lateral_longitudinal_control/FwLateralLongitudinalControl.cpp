@@ -817,7 +817,7 @@ float FwLateralLongitudinalControl::getGuidanceQualityFactor(const vehicle_local
 							    0.f, 1.f));
 
 	// Check that the angle between heading and track is not off too much. if it is greater than 90° we will be pushed back from the wind and the npfg will propably give a roll command in the wrong direction.
-	const Vector2f heading_vector(matrix::Dcm2f(local_pos.heading)*Vector2f({1.f, 0.f}));
+	const Vector2f heading_vector(matrix::Dcm2f(_yaw)*Vector2f({1.f, 0.f}));
 	const Vector2f ground_vel_norm(ground_vel.normalized());
 	const float flying_forward_factor(math::constrain((heading_vector.dot(ground_vel_norm) -
 							   COS_HEADING_TRACK_ANGLE_PUSHED_BACK) / ((COS_HEADING_TRACK_ANGLE_NOT_PUSHED_BACK -

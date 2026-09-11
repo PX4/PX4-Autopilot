@@ -250,7 +250,7 @@ public:
 		_vehicle_local_position_pub.publish(l_pos);
 	}
 
-	void publish_global_pos(const double lat, const double lon, const double alt,
+	void publish_global_pos(const double lat, const double lon, const float alt,
 				const hrt_abstime timestamp = hrt_absolute_time(), const bool lat_lon_valid = true,
 				const bool alt_valid = true)
 	{

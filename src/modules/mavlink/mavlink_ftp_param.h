@@ -49,21 +49,27 @@
  *           uint8  common_len:4 name_len-1:4   name bytes shared with the previous entry, remaining name length
  *           name[name_len]
  *           value[type size]
- *           default[type size]          only when flag bit 0 is set, i.e. value != default
+ *           default[type size]          when flag bit 0 is set
  *
  * Zero bytes before an entry are padding so the trailing value (and default, when
  * present) never straddles a read block of block_size bytes. The path accepts a
  * query `?start=N&count=N&withdefaults=0|1`; count 0 means all parameters from start.
  *
- * open() freezes which used parameters appear and whether each includes a default
- * (~1 KB of bitsets). Values are read live. Padding keeps each value/default inside
+ * open() freezes which used parameters appear (512 B of bits). Values are read live.
+ * withdefaults includes every default explicitly, so a value change cannot make
+ * the receiver infer the wrong default. Padding keeps each value/default inside
  * one FTP block, so a param_set during the download cannot shift later entries or
  * splice two generations of a number across a retried block.
  *
  * Upload (CreateFile/WriteFile/Terminate) accepts magic 0x671B only, no defaults,
  * and treats total_params as the file length. Entries are applied as they complete;
  * unknown and read-only names are skipped. Packed int8/int16 values are widened to
- * the PX4 INT32/FLOAT type. Terminate ACKs only when the file is well-formed.
+ * the PX4 INT32/FLOAT type. Out-of-order chunks are buffered until gaps are filled;
+ * sequential uploads allocate no transfer buffers. Like ArduPilot's upload buffer,
+ * the heap held by a reordered upload is bounded only by the 16-bit file length,
+ * since mavftp retries a lost chunk after sending every remaining one. Terminate
+ * ACKs only when the file is complete, well-formed, and every writable known
+ * parameter was applied.
  */
 class ParamPckFile
 {
@@ -83,7 +89,7 @@ public:
 	/// Parse the query and freeze membership. False on an invalid query or empty range.
 	bool open(const char *path, uint16_t block_size);
 
-	/// Open for sequential WriteFile of a packed upload.
+	/// Open for WriteFile of a packed upload.
 	bool open_write();
 
 	void close();
@@ -99,8 +105,8 @@ public:
 	int read(uint32_t offset, uint8_t *buf, uint16_t count);
 
 	/**
-	 * Accept a WriteFile chunk. Sequential from 0, or a retry of already-consumed bytes.
-	 * @return count on success, -1 on a hole or a malformed stream
+	 * Accept a WriteFile chunk, buffering out-of-order bytes until they can be parsed.
+	 * @return count on success, -1 on invalid data, allocation failure, or a failed parameter write
 	 */
 	int write(uint32_t offset, const uint8_t *buf, uint16_t count);
 
@@ -128,8 +134,9 @@ private:
 	void rewind();
 	bool bit(const uint8_t *bits, param_t param) const;
 	void set_bit(uint8_t *bits, param_t param);
-	bool default_differs(param_t param) const;
 
+	bool buffer_write(uint32_t offset, const uint8_t *data, uint16_t count);
+	bool flush_writes();
 	bool ingest(const uint8_t *data, uint16_t count);
 	bool parse_pending();
 	bool apply_entry(const char *name, uint8_t ptype, const uint8_t *raw);
@@ -143,11 +150,21 @@ private:
 	uint16_t _total{0};
 	uint32_t _size{0};
 	uint8_t _included[kBitBytes] {};
-	uint8_t _has_default[kBitBytes] {};
 
 	uint32_t _cursor_ofs{kHeaderLen};
 	unsigned _cursor_index{0};    ///< param_for_index() index
 	char _prev_name[17] {};
+
+	// One bit per received byte allows retries with different packet boundaries.
+	static constexpr uint16_t kWriteBlockSize = 256;
+	struct WriteBlock {
+		WriteBlock *next{nullptr};
+		uint16_t offset{0};
+		uint16_t remaining{0};
+		uint8_t received[kWriteBlockSize / 8] {};
+		uint8_t data[kWriteBlockSize];
+	};
+	WriteBlock *_write_blocks{nullptr};
 
 	bool _write_failed{false};
 	bool _header_done{false};

@@ -54,6 +54,7 @@ MPU9250_AK8963::MPU9250_AK8963(MPU9250 &mpu9250, enum Rotation rotation) :
 
 	// in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
 	_px4_mag.set_scale(1.5e-3f);
+	_px4_mag.set_range(microTesla2Gauss(4900.f));
 }
 
 MPU9250_AK8963::~MPU9250_AK8963()

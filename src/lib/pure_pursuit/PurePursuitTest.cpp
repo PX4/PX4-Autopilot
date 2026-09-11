@@ -150,7 +150,7 @@ TEST(PurePursuitTest, OutOfLookahead)
 				      Vector2f(0.f, 0.f), Vector2f(10.f, 20.f), lookahead_distance);
 
 	EXPECT_NEAR(target_bearing1, M_PI_2_F + M_PI_4_F, FLT_EPSILON); // Fallback: Bearing to closest point on path
-	EXPECT_NEAR(target_bearing2, -M_PI_F, FLT_EPSILON); 		// Fallback: Bearing to closest point on path
+	EXPECT_NEAR(fabsf(target_bearing2), M_PI_F, 1e-6f); 	// Fallback: Bearing to closest point on path, +-pi is the same bearing
 	EXPECT_NEAR(target_bearing3, M_PI_F - atan2f(10, 10), FLT_EPSILON); // Fallback: Bearing to previous waypoint
 	EXPECT_NEAR(target_bearing4, -M_PI_F + atan2f(10, 10), FLT_EPSILON); // Fallback: Bearing to current waypoint
 }
@@ -202,7 +202,7 @@ TEST(PurePursuitTest, CurrAndPrevSameNorthCoordinate)
 	EXPECT_NEAR(target_bearing1, M_PI_2_F, FLT_EPSILON);
 	EXPECT_NEAR(target_bearing2, M_PI_2_F + M_PI_4_F, FLT_EPSILON);
 	EXPECT_NEAR(target_bearing3, -(M_PI_2_F + M_PI_4_F), FLT_EPSILON);
-	EXPECT_NEAR(target_bearing4, -M_PI_F, FLT_EPSILON); // Fallback: Bearing to closest point on path
+	EXPECT_NEAR(fabsf(target_bearing4), M_PI_F, 1e-6f); // Fallback: Bearing to closest point on path, +-pi is the same bearing
 }
 
 TEST(PurePursuitTest, CrosstrackError)

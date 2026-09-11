@@ -27041,9 +27041,6 @@ which is then logged as gps_dump and can be used for PPK.
 
 Enable sat info (if available).
 
-Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
-Not available on MTK.
-
 **Values:**
 
 - `0`: Disabled
@@ -27233,6 +27230,19 @@ High rates at 115200 baud may cause dropouts.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 25       |           | 0       | Hz   | &nbsp;    |
+
+### GPS_UBX_SPECTRUM (`INT32`) {#GPS_UBX_SPECTRUM}
+
+Enable spectrum analyzer (if available).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### GPS_YAW_OFFSET (`FLOAT`) {#GPS_YAW_OFFSET}
 
@@ -32322,6 +32332,34 @@ Validity of configured takeoffs/landings is checked independently of the setting
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### MIS_TKO_PREC (`INT32`) {#MIS_TKO_PREC}
+
+Precision takeoff.
+
+Keep the vehicle over the landing target during vertical takeoffs (multicopter and VTOL in hover),
+using the landing target estimate. Requires the vision target estimator with bit 2 of
+VTE_TASK_MASK set. Without a valid target estimate the takeoff is unchanged.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### MIS_TKO_PREC_DLY (`FLOAT`) {#MIS_TKO_PREC_DLY}
+
+Precision takeoff correction delay.
+
+Time after the takeoff ramp is complete before a vertical takeoff setpoint may move
+sideways onto the landing target. Gives the vehicle time to clear the pad. Only used with MIS_TKO_PREC.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 2.0     | s    | &nbsp;    |
 
 ### MIS_YAW_ERR (`FLOAT`) {#MIS_YAW_ERR}
 
@@ -47905,6 +47943,20 @@ uavcan::equipment::gnss::RTCMStream
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### UAVCAN_QUIRKS (`INT32`) {#UAVCAN_QUIRKS}
+
+DroneCAN device quirks bitmask.
+
+Enables workarounds for non-compliant DroneCAN devices. See PX4 docs for details.
+
+**Bitmask:**
+
+- `0`: Hobbywing 1-based esc_index
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 1        |           | 0       |      | &nbsp;    |
+
 ### UAVCAN_RNG_MAX (`FLOAT`) {#UAVCAN_RNG_MAX}
 
 UAVCAN rangefinder maximum range.
@@ -50194,24 +50246,22 @@ not influence runtime behaviour.
 
 Integer bitmask controlling data fusion and aiding methods.
 
-Set bits in the following positions to enable:
-0 : Set to true to use the target's GNSS position data if available. (+1)
-1 : Set to true to use the UAV GNSS velocity data if available. (+2)
-2 : Set to true to use the target relative position from vision-based data if available. (+4)
-3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
-4 : Set to true to use the target GNSS velocity if available. (+16)
+Selects which measurements the vision target estimator fuses.
+Bits 0, 3 and 5 give an absolute pad position. It is converted to a relative observation with the vehicle GNSS position, and its offset to the vision-based pad position is estimated as the GNSS bias.
+Only one absolute pad position is fused at a time: bit 0 takes precedence over bits 3 and 5, which are also ignored in moving-target builds.
 
 **Bitmask:**
 
-- `0`: target GNSS position
+- `0`: Target GNSS position (receiver on the target)
 - `1`: UAV GNSS velocity
-- `2`: vision relative position
-- `3`: mission position
-- `4`: target GNSS velocity
+- `2`: Vision relative position
+- `3`: Mission land position (precision landing)
+- `4`: Target GNSS velocity (moving-target builds only)
+- `5`: Home position (precision takeoff)
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 31       |           | 14      |      | &nbsp;    |
+| &nbsp; | 0        | 63       |           | 14      |      | &nbsp;    |
 
 ### VTE_BIAS_UNC (`FLOAT`) {#VTE_BIAS_UNC}
 
@@ -50423,15 +50473,17 @@ Integer bitmask controlling the tasks of the target estimator.
 Set bits in the following positions to enable:
 0 : Set to true to use the vision target estimator for precision landing. (+1)
 1 : DEBUG, always active. (+2)
+2 : Set to true to use the vision target estimator for precision takeoff. (+4)
 
 **Bitmask:**
 
 - `0`: precision landing
 - `1`: DEBUG, always active
+- `2`: precision takeoff
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 3        |           | 1       |      | &nbsp;    |
+| &nbsp; | 0        | 7        |           | 1       |      | &nbsp;    |
 
 ### VTE_TGT_TOUT (`FLOAT`) {#VTE_TGT_TOUT}
 

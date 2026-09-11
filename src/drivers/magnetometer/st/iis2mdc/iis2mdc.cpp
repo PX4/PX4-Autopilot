@@ -67,6 +67,7 @@ int IIS2MDC::init()
 	write_register(IIS2MDC_ADDR_CFG_REG_C, BDU);
 
 	_px4_mag.set_scale(0.0015f); // 1.5 mGauss/LSB (datasheet)
+	_px4_mag.set_range(49.152f);
 
 	// Poll at the 100 Hz ODR on a fixed interval so the rate does not drift with
 	// the time spent reading the sensor.

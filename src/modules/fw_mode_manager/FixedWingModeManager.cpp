@@ -2053,7 +2053,7 @@ float FixedWingModeManager::rollAngleToLateralAccel(float roll_body) const
 void FixedWingModeManager::control_backtransition_heading_hold()
 {
 	if (!PX4_ISFINITE(_backtrans_heading)) {
-		_backtrans_heading = _local_pos.heading;
+		_backtrans_heading = _yaw;
 	}
 
 	fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};

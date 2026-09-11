@@ -1,0 +1,65 @@
+# syntax=docker/dockerfile:1
+# PX4 SITL SIH runtime image
+# Minimal container that runs PX4 with the SIH physics engine (no Gazebo).
+#
+# Build:
+#   See docs/en/dev_setup/sitl_container_builds.md for package and context preparation.
+#
+# Run (Linux):
+#   docker run --rm -it --network host px4io/px4-sitl:v1.17.0
+#
+# Run (macOS / Windows):
+#   docker run --rm -it px4io/px4-sitl:v1.17.0
+#
+# Persist flight logs on the host (ulog files):
+#   mkdir -p ./px4-logs
+#   docker run --rm -it --network host \
+#     -v $(pwd)/px4-logs:/root/.local/share/px4/rootfs/fs/log \
+#     px4io/px4-sitl:v1.17.0
+
+FROM ubuntu:24.04 AS package
+COPY px4_*.deb /tmp/
+RUN dpkg-deb -f /tmp/px4_*.deb Depends > /tmp/px4-dependencies
+
+FROM ubuntu:24.04
+LABEL maintainer="PX4 Development Team"
+LABEL description="PX4 SITL with SIH physics (no simulator dependencies)"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Cache dependencies independently of the firmware binary.
+COPY --from=package /tmp/px4-dependencies /tmp/px4-dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends bc binutils \
+    && apt-get satisfy -y --no-install-recommends "$(cat /tmp/px4-dependencies)" \
+    && rm /tmp/px4-dependencies
+
+COPY --from=package /tmp/px4_*.deb /tmp/
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get install -y --no-install-recommends /tmp/px4_*.deb \
+    && strip /opt/px4/bin/px4 \
+    && apt-get purge -y binutils \
+    && apt-get autoremove -y \
+    && rm -f /tmp/px4_*.deb \
+    && ln -sf /opt/px4/bin/px4 /usr/bin/px4
+
+# Platform-adaptive entrypoint: detects Docker Desktop (macOS/Windows) via
+# host.docker.internal and configures MAVLink + DDS to target the host.
+COPY px4-network.sh /usr/local/lib/px4/network.sh
+COPY px4-entrypoint.sh /opt/px4/bin/px4-entrypoint.sh
+RUN chmod +x /opt/px4/bin/px4-entrypoint.sh
+
+ENV PX4_SIM_MODEL=sihsim_quadx
+ENV HOME=/root
+
+# MAVLink (QGC, MAVSDK), DDS (ROS 2), jMAVSim/viewer display
+EXPOSE 14550/udp 14540/udp 19410/udp 8888/udp
+
+WORKDIR /root
+
+ENTRYPOINT ["/opt/px4/bin/px4-entrypoint.sh"]
+CMD []

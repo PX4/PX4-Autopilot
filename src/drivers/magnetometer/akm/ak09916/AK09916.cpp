@@ -267,6 +267,7 @@ bool AK09916::Configure()
 
 	// mag resolution is 1.5 milli Gauss per bit (0.15 μT/LSB)
 	_px4_mag.set_scale(1.5e-3f);
+	_px4_mag.set_range(microTesla2Gauss(4912.f));
 
 	return success;
 }
