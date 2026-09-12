@@ -66,14 +66,20 @@
 //                                                     V
 
 
-#define DMAMAP_USART3_RX  DMAMAP_DMA12_USART3RX_1   /* 3 DMA2:45 DEBUG */
-#define DMAMAP_USART3_TX  DMAMAP_DMA12_USART3TX_1   /* 4 DMA2:46 DEBUG */
+// USART3(DEBUG) no longer uses DMA: it's a low-baud, human-interactive console with no
+// real-time requirement, so its 2 streams are freed here for TIM1's concurrent BDShot
+// capture (see timer_config.cpp, dma_map_ch via DMA::Index2). Matching change in
+// nuttx-config/nsh/defconfig (CONFIG_USART3_RXDMA/TXDMA removed).
+//#define DMAMAP_USART3_RX  DMAMAP_DMA12_USART3RX_1   /*   DMA2:45 DEBUG - freed for BDShot */
+//#define DMAMAP_USART3_TX  DMAMAP_DMA12_USART3TX_1   /*   DMA2:46 DEBUG - freed for BDShot */
 
-#define DMAMAP_UART5_RX   DMAMAP_DMA12_UART5RX_1    /* 5 DMA2:65 TELEM2 */
-#define DMAMAP_UART5_TX   DMAMAP_DMA12_UART5TX_1    /* 6 DMA2:66  TELEM2 */
+#define DMAMAP_UART5_RX   DMAMAP_DMA12_UART5RX_1    /* 1 DMA2:65 TELEM2 */
+#define DMAMAP_UART5_TX   DMAMAP_DMA12_UART5TX_1    /* 2 DMA2:66  TELEM2 */
 
-#define DMAMAP_UART7_RX   DMAMAP_DMA12_UART7RX_1    /* 7 DMA1:79  TELEM1 */
-#define DMAMAP_UART7_TX   DMAMAP_DMA12_UART7TX_1    /* 8 DMA1:80  TELEM1 */
+#define DMAMAP_UART7_RX   DMAMAP_DMA12_UART7RX_1    /* 3 DMA1:79  TELEM1 */
+#define DMAMAP_UART7_TX   DMAMAP_DMA12_UART7TX_1    /* 4 DMA1:80  TELEM1 */
+
+// TIM1 CH1-4 BDShot capture (concurrent)              5-8 DMA2 - assigned in timer_config.cpp
 
 //#define DMAMAP_UART8_RX   DMAMAP_DMA12_UART8RX_1  /*  DMA1:81  GPS2 */
 //#define DMAMAP_UART8_TX   DMAMAP_DMA12_UART8TX_1  /*  DMA1:82  GPS2 */

@@ -133,7 +133,11 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	return ret;
 }
 
-static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dma = {})
+// capture_dma: optional, defaults to sharing `dma` (today's behavior: bidirectional
+// DShot round-robins a single capture DMA stream borrowed from the burst UP stream).
+// Pass a DMA pool distinct from `dma` only when the board has confirmed it has spare
+// DMA streams in that pool for up to 4 concurrent capture channels - see dshot_conf_t.
+static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dma = {}, DMA capture_dma = {})
 {
 	bool nuttx_config_timer_enabled = false;
 	io_timers_t ret{};
@@ -307,7 +311,11 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dma = {}
 	if (dma.index != DMA::Invalid) {
 		ret.dshot.dma_base = getDMABaseRegister(dma);
 		ret.dshot.dma_map_up = getTimerUpdateDMAMap(timer, dma);
-		getTimerChannelDMAMap(timer, dma, ret.dshot.dma_map_ch);
+
+		const bool has_distinct_capture_pool = capture_dma.index != DMA::Invalid && capture_dma.index != dma.index;
+		const DMA &channel_dma = has_distinct_capture_pool ? capture_dma : dma;
+		getTimerChannelDMAMap(timer, channel_dma, ret.dshot.dma_map_ch);
+		ret.dshot.concurrent_capture = has_distinct_capture_pool;
 	}
 
 	return ret;
