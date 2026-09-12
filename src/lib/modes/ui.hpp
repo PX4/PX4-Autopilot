@@ -103,6 +103,42 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"External 8",
 };
 
+// Abbreviated mode names for OSDs, which draw onto a narrow fixed character grid.
+// Entries match nav_state_names by index and are kept to 9 characters.
+const char *const nav_state_short_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
+	"MANUAL",
+	"ALTITUDE",
+	"POSITION",
+	"MISSION",
+	"HOLD",
+	"RETURN",
+	"POS SLOW",
+	"GUID CRS",
+	"ALT CRUZ",
+	"UNALLOC",
+	"ACRO",
+	"UNUSED",
+	"DESCEND",
+	"TERMINATE",
+	"OFFBOARD",
+	"STABILIZE",
+	"UNUSED2",
+	"TAKEOFF",
+	"LAND",
+	"FOLW TGT",
+	"PREC LAND",
+	"ORBIT",
+	"VTOL TKOF",
+	"EXT 1",
+	"EXT 2",
+	"EXT 3",
+	"EXT 4",
+	"EXT 5",
+	"EXT 6",
+	"EXT 7",
+	"EXT 8",
+};
+
 /**
  * @return Human-readable name for a nav_state, taking the vehicle type into account.
  *
@@ -121,6 +157,25 @@ static inline const char *nav_state_name(uint8_t nav_state, uint8_t vehicle_type
 	}
 
 	return nav_state_names[nav_state];
+}
+
+/**
+ * @return Abbreviated name for a nav_state, taking the vehicle type into account.
+ *
+ * Mirrors nav_state_name() for OSDs, which draw onto a narrow fixed character grid.
+ */
+static inline const char *nav_state_short_name(uint8_t nav_state, uint8_t vehicle_type)
+{
+	if (nav_state >= vehicle_status_s::NAVIGATION_STATE_MAX) {
+		return "UNKNOWN";
+	}
+
+	if (nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL
+	    && vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		return "CRUISE";
+	}
+
+	return nav_state_short_names[nav_state];
 }
 
 /**
