@@ -19,6 +19,10 @@ PX4 currently supports these plugins:
 - [GstCameraSystem](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/gstreamer): Streams camera feeds via UDP (RTP/H.264) or RTMP with optional NVIDIA CUDA hardware acceleration.
 - [MovingPlatformController](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/moving_platform_controller): Controls moving platforms (ships, trucks, etc.) for takeoff and landing scenarios.
   Includes configurable velocity, heading, and random fluctuations.
+- [ParachuteSystem](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/parachute): Simulates a parachute by applying canopy drag and angular damping to the vehicle.
+  The parachute deploys when the servo output that the _Parachute_ function is mapped to crosses its neutral position, for example on [flight termination](../advanced_config/flight_termination.md).
+  The `advanced_plane` model includes the plugin, observing servo channel 7: map the parachute to it with `param set SIM_GZ_SV_FUNC7 401` to use it.
+  For other models, add the plugin to the model SDF (see the [plugin README](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/parachute)).
 
 ## Plugin Registration
 
