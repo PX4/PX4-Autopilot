@@ -1,4 +1,5 @@
 <p align="center">
+  هذه النسخة مخصصة لبناء مرجع هندسي وتقني متكامل باللغة العربية لدعم وتطوير أنظمة الطيران المسير (UAV) للمجتمع التقني العربي.
   <a href="https://px4.io">
     <img src="docs/assets/site/px4_logo.svg" alt="PX4 Autopilot" width="240">
   </a>
