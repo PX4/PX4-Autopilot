@@ -50,6 +50,7 @@
 
 #include <matrix/matrix/math.hpp>
 #include <mathlib/math/Limits.hpp>
+#include <motion_planning/VelocitySmoothing.hpp>
 
 class AttitudeControl
 {
@@ -72,6 +73,15 @@ public:
 
 	/// Set per-axis saturation on the FF angular-velocity contribution [rad/s]; 0 = disabled.
 	void setFeedForwardLimit(float limit) { _ff_max = math::max(limit, 0.f); }
+
+	/**
+	 * Set angular acceleration and jerk limits for the reference model
+	 * On axes with a limit > 0 the reference attitude follows a jerk-limited, time-optimal rate trajectory
+	 * towards the setpoint (bounded by the rate limit) instead of the linear 2nd-order model.
+	 * @param accel_max [rad/s^2] 3D vector containing limits for roll, pitch, yaw; 0 = disabled (linear model)
+	 * @param jerk_max [rad/s^3] angular jerk limit shared by the limited axes; 0 = disabled
+	 */
+	void setRefModelAccelerationLimit(const matrix::Vector3f &accel_max, const float jerk_max);
 
 	/**
 	 * Set hard limit for output rate setpoints
@@ -115,6 +125,20 @@ private:
 	 */
 	void propagateReferenceModel(const matrix::Quatf &qd, const float yawspeed_setpoint, const float dt);
 
+	/// Whether the reference model on an axis follows the acceleration-limited trajectory
+	bool isAxisAccelerationLimited(const int axis) const;
+
+	/**
+	 * Advance the acceleration- and jerk-limited reference rate of one axis by one step
+	 * @param axis 0 = roll, 1 = pitch, 2 = yaw
+	 * @param error [rad] angle error to close (reference -> desired)
+	 * @param dt [s] time step (> 0)
+	 * @param rate [rad/s] output: reference correction rate at the end of the step
+	 * @param delta_angle [rad] output: angle travelled during the step
+	 * The step is internally split into substeps so that long intervals between setpoints stay well-behaved.
+	 */
+	void propagateLimitedAxis(const int axis, const float error, const float dt, float &rate, float &delta_angle);
+
 	matrix::Vector3f _proportional_gain;
 	matrix::Vector3f _rate_limit;
 	float _yaw_w{0.f}; ///< yaw weight [0,1] to deprioritize compared to roll and pitch
@@ -126,6 +150,10 @@ private:
 
 	float _omega_n{50.f};                  ///< ref-model natural frequency [rad/s]
 	float _kq{_omega_n * _omega_n};        ///< stiffness coefficient, kept in sync with _omega_n
+
+	matrix::Vector3f _ref_accel_max;       ///< per-axis angular acceleration limit [rad/s^2]; 0 = linear ref model on that axis
+	float _ref_jerk_max{0.f};              ///< angular jerk limit [rad/s^3] of the acceleration-limited axes
+	VelocitySmoothing _rate_trajectory[3]; ///< jerk-limited reference rate trajectory per axis
 
 	float _ff_gain{1.f};
 	float _ff_max{0.f};
