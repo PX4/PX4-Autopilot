@@ -14,7 +14,8 @@ See [PX4 Simulation QuickStart](../simulation/px4_simulation_quickstart.md) for 
 ## Overview
 
 SIH runs as a PX4 module that replaces real sensor and actuator hardware with a simulated physics model.
-It provides simulated IMU, GPS, barometer, magnetometer, and airspeed sensor data via uORB, and reads actuator outputs to update the vehicle state at each timestep.
+It provides simulated IMU, GPS, barometer, magnetometer, airspeed, distance sensor, and optical flow data via uORB, and reads actuator outputs to update the vehicle state at each timestep.
+The distance sensor and the downward facing [optical flow sensor](#optical-flow) let you exercise flow aided navigation without a rendered camera image.
 
 The simulation runs in lockstep with PX4, ensuring deterministic and reproducible results.
 It also integrates seamlessly with ROS 2 with no additional configuration (see [ROS 2 Integration](#ros-2-integration) below).
@@ -30,14 +31,16 @@ Two modes are supported:
 
 The following vehicle types are supported:
 
-| Vehicle                                                         | Make Target                                | Status       |
-| --------------------------------------------------------------- | ------------------------------------------ | ------------ |
-| Quadrotor X <Badge type="tip" text="PX4 v1.9" />                | `make px4_sitl_sih sihsim_quadx`           | Stable       |
-| Hexarotor X <Badge type="tip" text="PX4 v1.16" />               | `make px4_sitl_sih sihsim_hex`             | Experimental |
-| Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />     | `make px4_sitl_sih sihsim_airplane`        | Experimental |
-| Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />           | `make px4_sitl_sih sihsim_xvert`           | Experimental |
-| Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" /> | `make px4_sitl_sih sihsim_standard_vtol`   | Experimental |
-| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />           | `make px4_sitl_sih sihsim_rover_ackermann` | Experimental |
+| Vehicle                                                               | Make Target                                   | Status       |
+| --------------------------------------------------------------------- | --------------------------------------------- | ------------ |
+| Quadrotor X <Badge type="tip" text="PX4 v1.9" />                      | `make px4_sitl_sih sihsim_quadx`              | Stable       |
+| Hexarotor X <Badge type="tip" text="PX4 v1.16" />                     | `make px4_sitl_sih sihsim_hex`                | Experimental |
+| Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />           | `make px4_sitl_sih sihsim_airplane`           | Experimental |
+| Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />                 | `make px4_sitl_sih sihsim_xvert`              | Experimental |
+| Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" />       | `make px4_sitl_sih sihsim_standard_vtol`      | Experimental |
+| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />                 | `make px4_sitl_sih sihsim_rover_ackermann`    | Experimental |
+| Quadrotor X with optical flow <Badge type="tip" text="PX4 v1.17" />   | `make px4_sitl_sih sihsim_quadx_flow`         | Experimental |
+| Standard VTOL with optical flow <Badge type="tip" text="PX4 v1.17" /> | `make px4_sitl_sih sihsim_standard_vtol_flow` | Experimental |
 
 ::: warning
 Only the quadrotor vehicle type is stable and recommended for development. All other vehicle types (hexarotor, fixed-wing, VTOL, rover) are experimental and may have aerodynamic model or controller interaction issues that produce unrealistic flight behaviour.
@@ -116,6 +119,24 @@ PX4_SIM_SPEED_FACTOR=10 make px4_sitl_sih sihsim_quadx
 #### Wind Simulation
 
 SIH supports setting a wind velocity with the PX4 parameters [`SIH_WIND_N`](../advanced_config/parameter_reference.md#SIH_WIND_E) and [`SIH_WIND_E`](../advanced_config/parameter_reference.md#SIH_WIND_E) [m/s]. The parameters can also be changed during flight to simulate changing wind.
+
+#### Optical Flow
+
+SIH can simulate a downward facing optical flow sensor, so that flow aided navigation can be exercised without a rendered camera image.
+The sensor reports the integrated flow only: the flow module completes the sample with the vehicle gyro and a downward facing distance sensor, which therefore has to be enabled as well ([`SIH_DISTSNSR_EN`](../advanced_config/parameter_reference.md#SIH_DISTSNSR_EN)).
+
+The flow sensor is configured with [`SIH_OF_EN`](../advanced_config/parameter_reference.md#SIH_OF_EN), [`SIH_OF_RATE`](../advanced_config/parameter_reference.md#SIH_OF_RATE), [`SIH_OF_NOISE`](../advanced_config/parameter_reference.md#SIH_OF_NOISE), and [`SIH_OF_H_MAX`](../advanced_config/parameter_reference.md#SIH_OF_H_MAX).
+Quality drops to zero above `SIH_OF_H_MAX` or when the flow rate exceeds what the sensor can correlate.
+
+Two ready-made airframes use it:
+
+```sh
+# Multicopter navigating on optical flow only (GNSS fusion disabled)
+make px4_sitl_sih sihsim_quadx_flow
+
+# Standard VTOL navigating on optical flow only (GNSS fusion disabled)
+make px4_sitl_sih sihsim_standard_vtol_flow
+```
 
 #### Set Custom Takeoff Location
 

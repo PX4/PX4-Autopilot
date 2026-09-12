@@ -108,3 +108,22 @@ If your optical flow sensor is offset from the vehicle centre, you can set this 
 | <a id="EKF2_OF_POS_Z"></a>[EKF2_OF_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF_POS_Z) | Z position of optical flow focal point in body frame (default is 0.0m). |
 
 See [Using PX4's Navigation Filter (EKF2) > Optical flow](../advanced_config/tuning_the_ecl_ekf.md#optical-flow) for more information.
+
+## Simulation
+
+Optical flow can be simulated with [SIH](../sim_sih/index.md), which computes the flow from the simulated vehicle motion (instead of from a rendered camera image).
+As with real hardware, the simulated sensor reports the integrated flow only, so a downward facing [distance sensor](../sensor/rangefinders.md) has to be simulated alongside it — SIH provides one.
+
+Two ready-made airframes have flow enabled and the estimator configured for it:
+
+```sh
+# Multicopter navigating on optical flow only (GNSS fusion disabled)
+make px4_sitl_sih sihsim_quadx_flow
+
+# Standard VTOL navigating on optical flow only (GNSS fusion disabled)
+make px4_sitl_sih sihsim_standard_vtol_flow
+```
+
+The sensor itself is configured with the [`SIH_OF_*` parameters](../sim_sih/index.md#optical-flow) (rate, noise, and maximum ground distance).
+
+Optical flow is also simulated by [Gazebo Classic](../sim_gazebo_classic/index.md), which renders the downward facing camera image and runs flow computation on it.
