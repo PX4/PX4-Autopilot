@@ -168,6 +168,14 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 		return;
 	}
 
+	// Samples beyond the velocity state limit cannot be fused
+	if (!gnss_sample.vel.isAllFinite()
+	    || gnss_sample.vel.xy().longerThan(_params.ekf2_vel_lim)
+	    || fabsf(gnss_sample.vel(2)) > _params.ekf2_vel_lim) {
+		_gnss_vel_limit_drop_count++;
+		return;
+	}
+
 	// Allocate the required buffer size if not previously done
 	if (_gps_buffer == nullptr) {
 		_gps_buffer = new TimestampedRingBuffer<gnssSample>(_obs_buffer_length);

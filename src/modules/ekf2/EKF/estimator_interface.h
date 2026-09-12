@@ -97,6 +97,9 @@ public:
 	float gps_vertical_position_drift_rate_m_s() const { return _gnss_checks.vertical_position_drift_rate_m_s(); }
 	float gps_filtered_horizontal_velocity_m_s() const { return _gnss_checks.filtered_horizontal_velocity_m_s(); }
 
+	// GNSS samples dropped by setGpsData() because their velocity exceeds EKF2_VEL_LIM
+	uint32_t gnss_vel_limit_drop_count() const { return _gnss_vel_limit_drop_count; }
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -404,6 +407,7 @@ protected:
 	uint64_t _time_last_gps_buffer_push{0};
 
 	gnssSample _gps_sample_delayed{};
+	uint32_t _gnss_vel_limit_drop_count{0};
 
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
 	GnssChecks _gnss_checks{_params.ekf2_gps_check,
@@ -415,7 +419,6 @@ protected:
 			   _params.ekf2_req_hdrift,
 			   _params.ekf2_req_vdrift,
 			   _params.ekf2_req_fix,
-			   _params.ekf2_vel_lim,
 			   _min_gps_health_time_us,
 			   _control_status};
 

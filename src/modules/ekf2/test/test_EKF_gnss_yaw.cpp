@@ -218,6 +218,38 @@ TEST_F(EkfGpsHeadingTest, fallBackToMag)
 	//EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 }
 
+TEST_F(EkfGpsHeadingTest, yawOnlyVelocityLimitTimeout)
+{
+	// GIVEN: GNSS yaw fusion is active in flight without GNSS position or velocity fusion
+	_ekf_wrapper.disableGpsFusion();
+	_sensor_simulator._gps.setYaw(_ekf_wrapper.getYawAngle());
+	_sensor_simulator.runSeconds(12);
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator.runSeconds(1);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+
+	// WHEN: GNSS samples are rejected for longer than the fusion timeout
+	const float velocity_limit = _ekf->getParamHandle()->ekf2_vel_lim;
+	_sensor_simulator._gps.setVelocity(Vector3f(velocity_limit + 1.f, 0.f, 0.f));
+	_sensor_simulator.runSeconds(8);
+
+	// THEN: GNSS yaw stops and magnetometer fusion resumes
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion() || _ekf_wrapper.isIntendingMag3DFusion());
+
+	// WHEN: valid GNSS samples return, yaw fusion resumes
+	_sensor_simulator._gps.setVelocity(Vector3f{});
+	_sensor_simulator.runSeconds(2);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+}
+
 TEST_F(EkfGpsHeadingTest, fallBackToYawEmergencyEstimator)
 {
 	// GIVEN: an initial GPS yaw, not aligned with the current one (e.g.: wrong orientation of the antenna array) and no mag.

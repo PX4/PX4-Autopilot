@@ -228,6 +228,9 @@ EKF2::~EKF2()
 {
 	perf_free(_ekf_update_perf);
 	perf_free(_msg_missed_imu_perf);
+#if defined(CONFIG_EKF2_GNSS)
+	perf_free(_gnss_vel_limit_drop_perf);
+#endif // CONFIG_EKF2_GNSS
 }
 
 void EKF2::AdvertiseTopics()
@@ -435,6 +438,9 @@ int EKF2::print_status(bool verbose)
 
 	perf_print_counter(_ekf_update_perf);
 	perf_print_counter(_msg_missed_imu_perf);
+#if defined(CONFIG_EKF2_GNSS)
+	perf_print_counter(_gnss_vel_limit_drop_perf);
+#endif // CONFIG_EKF2_GNSS
 
 	if (verbose) {
 #if defined(CONFIG_EKF2_VERBOSE_STATUS)
@@ -2671,7 +2677,12 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 					     vehicle_gps_position.antenna_offset_z),
 		};
 
+		const uint32_t drop_count_before = _ekf.gnss_vel_limit_drop_count();
 		_ekf.setGpsData(gnss_sample);
+
+		if (_ekf.gnss_vel_limit_drop_count() != drop_count_before) {
+			perf_count(_gnss_vel_limit_drop_perf);
+		}
 
 		const float geoid_height = altitude_ellipsoid - altitude_amsl;
 
