@@ -36,6 +36,26 @@
             "model": "xvert",
             "test_filter": "[sih_xvert_transition]",
             "timeout_min": 5
+        },
+        {
+            "model": "quadx",
+            "test_filter": "[multicopter_ekf_failover]",
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_SIH_IMU_COUNT": 2,
+                "PX4_PARAM_EKF2_MULTI_IMU": 2,
+                "PX4_PARAM_SENS_IMU_MODE": 0
+            }
+        },
+        {
+            "model": "quadx",
+            "test_filter": "[ekf2_selector]",
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_SIH_IMU_COUNT": 2,
+                "PX4_PARAM_EKF2_MULTI_IMU": 2,
+                "PX4_PARAM_SENS_IMU_MODE": 0
+            }
         }
     ]
 }
