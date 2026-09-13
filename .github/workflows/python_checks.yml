@@ -27,10 +27,15 @@ jobs:
         python-version: "3.10"
 
     - name: Install tools
-      run: pip install mypy types-requests flake8
+      run: pip install mypy types-requests flake8 pyyaml
 
     - name: Check MAVSDK test scripts with mypy
       run: mypy --strict test/mavsdk_tests/*.py
 
     - name: Check MAVSDK test scripts with flake8
       run: flake8 test/mavsdk_tests/*.py
+
+    - name: Check ROS workspace tooling
+      run: |
+        flake8 Tools/ros2/*.py
+        python3 -m unittest discover -s Tools/ros2 -p 'test_*.py'

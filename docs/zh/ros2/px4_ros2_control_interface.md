@@ -18,7 +18,7 @@ The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) is a C++ li
 
 开发者可使用该库创建并动态注册以 ROS 2 编写的模式。
 这些模式会动态注册到 PX4 中，并且对于地面站或其他外部系统而言，它们看起来就像是 PX4 的一部分。
-开发者甚至可以用功能增强的 ROS 2 版本模式替换 PX4 中的默认模式，且若 ROS 2 模式失效，系统会回退到原始版本的模式。
+They can even replace the default modes in PX4 with enhanced ROS 2 versions, falling back to the original version if the ROS 2 mode fails.
 
 该库还提供了用于发送不同类型设定点的类，其涵盖范围从高层级的导航任务一直到直接的执行器控制。
 这些类对 PX4 所使用的内部设定点进行了抽象处理，因此可用于为未来的 PX4 和 ROS 版本提供统一的 ROS 2 接口。
@@ -36,7 +36,7 @@ You are welcome to add and contribute missing classes.
 
 该图从概念层面概述了控制接口模式与模式执行器如何与 PX4 进行交互。
 
-![ROS2 模式概览图](../../assets/middleware/ros2/px4_ros2_interface_lib/ros2_modes_overview.svg)
+![ROS 2 modes overview diagram](../../assets/middleware/ros2/px4_ros2_interface_lib/ros2_modes_overview.svg)
 
 <!-- Source: https://docs.google.com/drawings/d/1WByCfgcytnaow7r41VhYJL8OGrw1RjFO51GoPMQBCNA/edit -->
 

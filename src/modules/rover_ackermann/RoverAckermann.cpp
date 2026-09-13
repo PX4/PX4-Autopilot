@@ -46,7 +46,11 @@ RoverAckermann::RoverAckermann() :
 
 bool RoverAckermann::init()
 {
-	ScheduleOnInterval(10_ms); // 100 Hz
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
 	return true;
 }
 
@@ -57,6 +61,16 @@ void RoverAckermann::updateParams()
 
 void RoverAckermann::Run()
 {
+	if (should_exit()) {
+		_vehicle_angular_velocity_sub.unregisterCallback();
+		exit_and_cleanup(desc);
+		return;
+	}
+
+	// Drain the trigger. The gyro paces the loop; its value is not used here.
+	vehicle_angular_velocity_s angular_velocity;
+	_vehicle_angular_velocity_sub.update(&angular_velocity);
+
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s param_update{};
 		_parameter_update_sub.copy(&param_update);
@@ -94,6 +108,8 @@ void RoverAckermann::Run()
 		_was_armed = false;
 	}
 
+	// reschedule backup
+	ScheduleDelayed(100_ms);
 }
 
 void RoverAckermann::generateSetpoints()

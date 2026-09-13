@@ -1,0 +1,50 @@
+name: macOS - Refresh gz tap pin
+
+# Tools/setup/macos.sh pins osrf/simulation to Tools/setup/gz-tap-pin.txt so
+# --sim-tools pours Gazebo bottles instead of compiling them (see that file).
+# OSRF advances the tap several times a week, so once a week this moves the
+# pin to the newest commit whose Gazebo formulae are all bottled and opens a
+# PR for it. Tools/ci/refresh_gz_tap_pin.rb does the work under Homebrew's
+# Ruby and can be run by hand on any Mac.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Mondays at 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    # Oldest macOS in compile_macos.yml's matrix. Homebrew pours a bottle
+    # built on an older macOS onto a newer one, never the reverse, so the
+    # oldest leg is the one a new pin can break.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Find the newest fully bottled osrf/simulation commit
+        id: pin
+        run: brew ruby Tools/ci/refresh_gz_tap_pin.rb
+
+      - name: Open PR with the new pin
+        if: steps.pin.outputs.needs_bump == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          # The PX4BuildBot PAT rather than GITHUB_TOKEN so the PR runs the
+          # MacOS build workflow, which is what verifies the new pin.
+          token: ${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}
+          author: ${{ secrets.PX4BUILDBOT_USER }} <${{ secrets.PX4BUILDBOT_EMAIL }}>
+          committer: ${{ secrets.PX4BUILDBOT_USER }} <${{ secrets.PX4BUILDBOT_EMAIL }}>
+          branch: px4buildbot/gz-tap-pin
+          delete-branch: true
+          add-paths: Tools/setup/gz-tap-pin.txt
+          commit-message: "build(macos): bump gz tap pin to ${{ steps.pin.outputs.new_pin_short }}"
+          title: "build(macos): bump gz tap pin to ${{ steps.pin.outputs.new_pin_short }}"
+          body: |
+            Weekly check found that osrf/simulation commit `${{ steps.pin.outputs.new_pin }}` is the newest one where every osrf/simulation formula `macos.sh --sim-tools` poured at the previous pin still has a bottle Homebrew pours on macos-15, and every bottle tarball is still served. Moves `Tools/setup/gz-tap-pin.txt` from `${{ steps.pin.outputs.old_pin }}` to it.
+
+            Tap changes: https://github.com/osrf/homebrew-simulation/compare/${{ steps.pin.outputs.old_pin }}...${{ steps.pin.outputs.new_pin }}
+
+            The MacOS build legs on this PR are the real test. Merge once both pour the gz bottles without compiling anything from osrf/simulation.

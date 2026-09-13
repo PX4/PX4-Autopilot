@@ -2,15 +2,18 @@
 
 mkdir artifacts
 
-# CAN node flash images: application APDescriptor (.uavcan.bin) and the
-# canbootloader raw .bin (SWD at 0x08000000). The .px4 envelope is not used.
+# Flash images that are not the .px4 envelope:
+# - CAN node application APDescriptor (.uavcan.bin)
+# - Bootloaders (*_bootloader and *_canbootloader): raw .bin for SWD
+#   *_bootloader_* variants (e.g. bootloader_secureboot) are omitted;
+#   those images are baked with in-tree test keys.
 for uavcan_bin in build/*/*.uavcan.bin; do
   [ -f "$uavcan_bin" ] || continue
   build_dir=$(basename "$(dirname "$uavcan_bin")")
   cp "$uavcan_bin" "artifacts/${build_dir}.uavcan.bin"
 done
 
-for bl_dir in build/*_canbootloader; do
+for bl_dir in build/*_bootloader build/*_canbootloader; do
   [ -d "$bl_dir" ] || continue
   build_dir=$(basename "$bl_dir")
   bl_bin="$bl_dir/${build_dir}.bin"
@@ -21,7 +24,13 @@ done
 for px4_file in build/*/*.px4; do
   [ -f "$px4_file" ] || continue
   build_dir=$(basename "$(dirname "$px4_file")")
-  if [ -f "artifacts/${build_dir}.uavcan.bin" ] || [ -f "artifacts/${build_dir}.bin" ]; then
+  # CAN node application: .uavcan.bin is the flashable image
+  if [ -f "artifacts/${build_dir}.uavcan.bin" ]; then
+    continue
+  fi
+  # Bootloader .px4 is unused: SWD uses the raw .bin, and USB flashing would
+  # write it into the application slot.
+  if [[ "$build_dir" == *bootloader* ]]; then
     continue
   fi
   cp "$px4_file" artifacts/
@@ -32,6 +41,11 @@ cp **/**/*.deb artifacts/ 2>/dev/null || true
 for build_dir_path in build/*/ ; do
   build_dir_path=${build_dir_path::${#build_dir_path}-1}
   build_dir=${build_dir_path#*/}
+  # GitHub Releases attach artifacts/**/*.sbom.spdx.json; bootloader SBOMs
+  # are not a recovery artifact.
+  case "$build_dir" in
+    *_bootloader|*_bootloader_*|*_canbootloader) continue ;;
+  esac
   mkdir -p artifacts/$build_dir
   find artifacts/ -maxdepth 1 -type f -name "*$build_dir*"
   # Airframe (NuttX: build root, SITL: docs/ subdirectory)

@@ -49,7 +49,13 @@ jobs:
 
     - name: setup
       run: |
-        ./Tools/setup/macos.sh --sim-tools --ci
+        # Runner images ship Homebrew with auto-update off and a formula
+        # snapshot from image build time, so without this the two legs
+        # install whatever homebrew-core each image was built with. The gz
+        # tap pin is only valid against current homebrew-core, see
+        # Tools/setup/gz-tap-pin.txt.
+        brew update
+        ./Tools/setup/macos.sh --sim-tools
         echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
 
     - uses: ./.github/actions/setup-ccache

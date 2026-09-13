@@ -47,7 +47,11 @@
 #include <parameters/px4_parameters.hpp>
 #include <lib/tinybson/tinybson.h>
 
+#if defined(__PX4_NUTTX)
+#include <nuttx/crc32.h>
+#else
 #include <crc32.h>
+#endif
 #include <float.h>
 #include <math.h>
 #include <sys/stat.h>
@@ -741,7 +745,7 @@ param_reset_specific(const char *resets[], int num_resets)
 int
 param_set_default_file(const char *filename)
 {
-	if ((param_backup_file && strcmp(filename, param_backup_file) == 0)) {
+	if (filename && param_backup_file && strcmp(filename, param_backup_file) == 0) {
 		PX4_ERR("default file can't be the same as the backup file %s", filename);
 		return PX4_ERROR;
 	}
@@ -773,7 +777,7 @@ const char *param_get_default_file()
 
 int param_set_backup_file(const char *filename)
 {
-	if (param_default_file && strcmp(filename, param_default_file) == 0) {
+	if (filename && param_default_file && strcmp(filename, param_default_file) == 0) {
 		PX4_ERR("backup file can't be the same as the default file %s", filename);
 		return PX4_ERROR;
 	}

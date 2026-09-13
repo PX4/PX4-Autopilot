@@ -203,15 +203,17 @@ TEST_F(EkfTerrainTest, testHeightReset)
 	ResetLoggingChecker reset_logging_checker(_ekf);
 	reset_logging_checker.capturePreResetState();
 
-	// WHEN: the baro height is suddenly changed to trigger a height reset
+	// WHEN: the baro height is suddenly changed while the range finder keeps fusing height
 	const float new_baro_height = _sensor_simulator._baro.getData() + 50.f;
 	_sensor_simulator._baro.setData(new_baro_height);
 	_sensor_simulator.stopGps(); // prevent from switching to GNSS height
 	_sensor_simulator.runSeconds(10);
 
-	// THEN: a height reset occurred and the estimated distance to the ground remains constant
+	// THEN: the range finder still fuses height, so the height is not reset to the faulty baro.
+	// The baro is latched faulty instead and the estimated distance to the ground stays constant.
 	reset_logging_checker.capturePostResetState();
-	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(0));
+	EXPECT_TRUE(_ekf->control_status_flags().baro_fault);
 	EXPECT_NEAR(estimated_distance_to_ground, _ekf->getHagl(), 1e-3f);
 }
 

@@ -21,6 +21,9 @@ parameters:
         CAL_ACC${i}_PRIO:
             description:
                 short: Accelerometer ${i} priority
+                long: |
+                    Uninitialized sensors default to Medium when internal and Low when
+                    external, so an on-board IMU is preferred over one behind a bus.
             category: System
             type: enum
             values:
@@ -221,6 +224,9 @@ parameters:
         CAL_GYRO${i}_PRIO:
             description:
                 short: Gyroscope ${i} priority
+                long: |
+                    Uninitialized sensors default to Medium when internal and Low when
+                    external, so an on-board IMU is preferred over one behind a bus.
             category: System
             type: enum
             values:

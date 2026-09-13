@@ -1459,9 +1459,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if ((int)(cmd.param2) == 1) {
 					/* magnetometer calibration */
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::MagCalibration);
+#else
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+#endif
 
 				} else if ((int)(cmd.param3) == 1) {
 					/* baro calibration */
@@ -1564,6 +1568,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					     "Calibration denied: not supported in SIH mode");
 
 			} else {
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				// parameter 1: Heading   (degrees)
 				// parameter 3: Latitude  (degrees)
@@ -1586,6 +1591,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				_vehicle_status.calibration_enabled = true;
 				_worker_thread.setMagQuickData(heading_radians, latitude, longitude);
 				_worker_thread.startTask(WorkerThread::Request::MagCalibrationQuick);
+#else
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+#endif
 			}
 
 			return true;
@@ -2595,8 +2603,8 @@ void Commander::checkAndInformReadyForTakeoff()
 void Commander::modeManagementUpdate()
 {
 	ModeManagement::UpdateRequest mode_management_update{};
-	_mode_management.update(_vehicle_status.vehicle_type, isArmed(), _vehicle_status.nav_state_user_intention,
-				mode_management_update);
+	_mode_management.update(_vehicle_status.vehicle_type, _vehicle_status.is_vtol, isArmed(),
+				_vehicle_status.nav_state_user_intention, mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
 		_user_mode_intention.change(mode_management_update.user_intended_nav_state);

@@ -45,10 +45,17 @@ The default client configuration in simulation is summarized as follows:
 | not provided       | >0             | `px4_instance+1` | `px4_${px4_instance}` |
 | provided           | >0             | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
 
-## Adjusting the `target_system` value
+## Adjusting `VehicleCommand` routing fields
 
 PX4 accepts [VehicleCommand](../msg_docs/VehicleCommand.md) messages only if their `target_system` field is zero (broadcast communication) or coincides with `MAV_SYS_ID`.
 In all other situations, the messages are ignored.
 Therefore, when ROS 2 nodes want to send `VehicleCommand` to PX4, they must ensure that the messages are filled with the appropriate `target_system` value.
 
 For example, if you want to send a command to your third vehicle, which has `px4_instance=2`, you need to set `target_system=3` in all your `VehicleCommand` messages.
+
+PX4 applies the same filtering to `target_component`: a command is handled when the value is `0` (broadcast) or matches the component ID of the autopilot (as set with [MAV_COMP_ID](../advanced_config/parameter_reference.md#MAV_COMP_ID)).
+For a normal PX4 flight controller, `target_component=1` addresses the autopilot component.
+Any other non-zero value is ignored, as it is intended for another component.
+
+Commands published by ROS 2 or another process outside PX4 must set `target_system`, `target_component`, `source_system`, and `source_component` appropriately for routing and acknowledgements.
+The `from_external` flag is not required for routing; it affects how PX4 handles commands originating outside the autopilot, including forced arm commands.

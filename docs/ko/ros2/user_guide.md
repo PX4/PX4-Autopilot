@@ -39,7 +39,7 @@ The generator uses the uORB message definitions in the source tree: [PX4-Autopil
 ROS 2 applications need to be built in a workspace that has the _same_ message definitions that were used to create the uXRCE-DDS client module in the PX4 Firmware.
 You can include these by cloning the interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs) into your ROS 2 workspace (branches in the repo correspond to the messages for different PX4 releases).
 
-Starting from PX4 v1.16, in which [message versioning](../middleware/uorb.md#message-versioning) was introduced, ROS2 applications may use a different version of message definitions than those used to build PX4.
+Starting from PX4 v1.16, in which [message versioning](../middleware/uorb.md#message-versioning) was introduced, ROS 2 applications may use a different version of message definitions than those used to build PX4.
 This requires the [ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md) to be running to ensure that messages can be converted and exchanged correctly.
 
 Note that the micro XRCE-DDS _agent_ itself has no dependency on client-side code.
@@ -76,8 +76,9 @@ To setup ROS 2 for use with PX4:
 
 - [Install PX4](#install-px4) (to use the PX4 simulator)
 - [Install ROS 2](#install-ros-2)
+- [Setup ROS 2 Workspace](#setup-ros-2-workspace)
 - [Setup Middleware](#setup-middleware)
-- [Build & Run ROS 2 Workspace](#build-ros-2-workspace)
+- [Running an example (optional)](#running-an-example-optional)
 
 Other dependencies of the architecture that are installed automatically, such as _Fast DDS_, are not covered.
 
@@ -170,6 +171,71 @@ To install ROS 2 and its dependencies:
    pip install --user -U empy==3.3.4 pyros-genmsg setuptools
    ```
 
+### Setup ROS 2 workspace
+
+A minimal ROS 2 workspace containing the [px4_msgs](https://github.com/PX4/px4_msgs) package is required to interpret the PX4 messages coming from the autopilot.
+
+This section shows how to create a ROS 2 workspace hosted in your home directory (modify the commands as needed to put the source code elsewhere).
+
+You should use a version of the `px4_msgs` package with the _same_ message definitions as the PX4 firmware you have installed in the step above.
+Tags and branches in the `px4_msgs` repo are named to correspond to the message definitions for different PX4 releases and release branches.
+If for any reason you cannot ensure the same message definitions between your PX4 firmware and ROS 2 `px4_msgs` package, you will additionally need to [start the message translation node](#optional-starting-the-translation-node) as part of your setup process.
+
+To create and build the workspace:
+
+1. Open a new terminal.
+
+2. Create and navigate into a new workspace directory using:
+
+   ```sh
+   mkdir -p ~/ros2_px4_ws/src/
+   cd ~/ros2_px4_ws/src/
+   ```
+
+   ::: info
+   A naming convention for workspace folders can make it easier to manage workspaces.
+
+:::
+
+3. Clone [px4_msgs](https://github.com/PX4/px4_msgs) to the `/src` directory (the `main` branch is cloned by default, which corresponds to the version of PX4 we are running):
+
+   ```sh
+   git clone https://github.com/PX4/px4_msgs.git
+
+   ```
+
+4. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
+
+   :::: tabs
+
+   ::: tab jazzy
+
+   ```sh
+   cd ~/ros2_px4_ws
+   source /opt/ros/jazzy/setup.bash
+   colcon build
+   ```
+
+
+:::
+
+   ::: tab humble
+
+   ```sh
+   cd ~/ros2_px4_ws
+   source /opt/ros/humble/setup.bash
+   colcon build
+   ```
+
+
+:::
+
+   ::::
+
+   This builds all the folders under `/src` using the sourced toolchain.
+   You can now source the workspace with `source ~/ros2_px4_ws/install/setup.bash` to access the PX4 message definitions.
+   For example, try `ros2 interface show px4_msgs/msg/SensorCombined`.
+
 ### Setup Middleware
 
 This section explains how to set up either the [DDS](#dds_setup) or [Zenoh](#zenoh_setup) middleware.
@@ -179,6 +245,7 @@ DDS is recommended for most users, as it is more established and has been more t
 :::
 
 Make sure that your firmware has the corresponding module enabled: the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) module is included by default in most builds, while the [zenoh](../middleware/zenoh.md#px4-firmware) module must be explicitly enabled.
+Please refer to the [using flight controller hardware](#using-flight-controller-hardware) setup section for more information about including the modules in you PX4 target.
 
 #### DDS {#dds_setup}
 
@@ -187,28 +254,50 @@ For ROS 2 to communicate with PX4, [uXRCE-DDS client](../modules/modules_system.
 ##### Setup the Agent
 
 The agent can be installed onto the companion computer in a [number of ways](../middleware/uxrce_dds.md#micro-xrce-dds-agent-installation).
-Below we show how to build the agent "standalone" from source and connect to a client running on the PX4 simulator.
+Below we show how to build the agent inside the ROS 2 workspace `~/ros2_px4_ws` created above and connect to a client running on the PX4 simulator.
 
 To setup and start the agent:
 
 1. Open a terminal.
 
-2. Enter the following commands to fetch and build the agent from source:
+2. Enter the following commands to fetch the agent:
+
+   :::: tabs
+
+   ::: tab jazzy
 
    ```sh
+   cd ~/ros2_px4_ws/src/
    git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
-   cd Micro-XRCE-DDS-Agent
-   mkdir build
-   cd build
-   cmake ..
-   make
-   sudo make install
-   sudo ldconfig /usr/local/lib/
    ```
 
-3. Start the agent with settings for connecting to the uXRCE-DDS client running on the simulator:
+
+:::
+
+   ::: tab humble
 
    ```sh
+   cd ~/ros2_px4_ws/src/
+   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+
+:::
+
+   ::::
+
+3. Now re-build the ROS 2 workspace
+
+   ```sh
+   cd ~/ros2_px4_ws
+   source install/setup.bash
+   colcon build
+   ```
+
+4. Start the agent with settings for connecting to the uXRCE-DDS client running on the simulator:
+
+   ```sh
+   source ~/ros2_px4_ws/install/setup.bash
    MicroXRCEAgent udp4 -p 8888
    ```
 
@@ -300,27 +389,17 @@ To start the simulator (and client):
 The default Zenoh daemon address for the `px4_sitl_zenoh` target is `localhost`, so no further network configuration is needed for simulation.
 See [Zenoh > Configure Zenoh Network](../middleware/zenoh.md#configure-zenoh-network) if you need to connect to a router at a different address (such as on real hardware).
 
-Once the client and router are connected, you can inspect the available topics using standard ROS 2 CLI tools, e.g. `ros2 topic list`.
+Once the client and router are connected, you can inspect the available topics using standard ROS 2 CLI tools, e.g. `ros2 topic list`, just make sure you ran `export RMW_IMPLEMENTATION=rmw_zenoh_cpp` in your terminal.
 
-### ROS 2 작업 공간 빌드
+### Running an example (optional)
 
-This section shows how to create a ROS 2 workspace hosted in your home directory (modify the commands as needed to put the source code elsewhere).
+This optional section shows how to create a new ROS 2 workspace that:
 
-The [px4_ros_com](https://github.com/PX4/px4_ros_com) and [px4_msgs](https://github.com/PX4/px4_msgs) packages are cloned to a workspace folder, and then the `colcon` tool is used to build the workspace.
-The example is run using `ros2 launch`.
+- extends the one made in [Setup ROS 2 workspace](#setup-ros-2-workspace),
+- clones the [px4_ros_com](https://github.com/PX4/px4_ros_com) package into it and
+- launch the `sensor_combined_listener.launch.py` roslaunch file.
 
-You should use a version of the px&#x34;_&#x6D;sgs package with the \_same_ message definitions as the PX4 firmware you have installed in the step above.
-Branches in the px4_msgs repo are named to correspond to the message definitions for different PX4 releases.
-If for any reason you cannot ensure the same message definitions between your PX4 firmware and ROS 2 px4_msgs package, you will additionally need to [start the message translation node](#optional-starting-the-translation-node) as part of your setup process.
-
-:::info
-The example builds the [ROS 2 Listener](#ros-2-listener) example application, located in [px4_ros_com](https://github.com/PX4/px4_ros_com).
-[px4_msgs](https://github.com/PX4/px4_msgs) is needed too so that the example can interpret PX4 ROS 2 topics.
-:::
-
-#### Building the Workspace
-
-To create and build the workspace:
+To create and build the new workspace:
 
 1. Open a new terminal.
 
@@ -329,92 +408,40 @@ To create and build the workspace:
    ```sh
    mkdir -p ~/ws_sensor_combined/src/
    cd ~/ws_sensor_combined/src/
+
    ```
 
-   ::: info
-   A naming convention for workspace folders can make it easier to manage workspaces.
-
-:::
-
-3. Clone the example repository and [px4_msgs](https://github.com/PX4/px4_msgs) to the `/src` directory (the `main` branch is cloned by default, which corresponds to the version of PX4 we are running):
+3. Clone the example repository to the `src` directory:
 
    ```sh
-   git clone https://github.com/PX4/px4_msgs.git
    git clone https://github.com/PX4/px4_ros_com.git
    ```
 
-4. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
-
-   :::: tabs
-
-   ::: tab jazzy
+4. Source the previously built ROS 2 PX4 development environment into the current terminal and compile the workspace using `colcon`:
 
    ```sh
    cd ..
-   source /opt/ros/jazzy/setup.bash
+   source ~/ros2_px4_ws/install/setup.bash
    colcon build
    ```
-
-
-:::
-
-   ::: tab humble
-
-   ```sh
-   cd ..
-   source /opt/ros/humble/setup.bash
-   colcon build
-   ```
-
-
-:::
-
-   ::::
-
-   This builds all the folders under `/src` using the sourced toolchain.
-
-#### Running the Example
-
-To run the executables that you just built, you need to source `local_setup.bash`.
-This provides access to the "environment hooks" for the current workspace.
-In other words, it makes the executables that were just built available in the current terminal.
 
 :::info
-The [ROS2 beginner tutorials](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html#source-the-overlay) recommend that you _open a new terminal_ for running your executables.
+The [ROS 2 beginner tutorials](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html#source-the-overlay) recommend that you _open a new terminal_ for running your executables.
 :::
 
 In a new terminal:
 
-1. Navigate into the top level of your workspace directory and source the ROS 2 environment (in this case "Jazzy"):
-
-   :::: tabs
-
-   ::: tab jazzy
+1. Navigate into the top level of your workspace directory and source the ROS 2 environment:
 
    ```sh
    cd ~/ws_sensor_combined/
-   source /opt/ros/jazzy/setup.bash
+   source ~/ws_sensor_combined/install/setup.bash
    ```
 
-
-:::
-
-   ::: tab humble
+2. If using `zenoh` change the ROS 2 middleware to zenoh:
 
    ```sh
-   cd ~/ws_sensor_combined/
-   source /opt/ros/humble/setup.bash
-   ```
-
-
-:::
-
-   ::::
-
-2. Source the `local_setup.bash`.
-
-   ```sh
-   source install/local_setup.bash
+   export RMW_IMPLEMENTATION=rmw_zenoh_cpp
    ```
 
 3. Now launch the example.
@@ -445,7 +472,7 @@ accelerometer_integral_dt: 4739
 
 <Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
-This example is built with PX4 and ROS2 versions that use the same message definitions.
+This example is built with PX4 and ROS 2 versions that use the same message definitions.
 If you were to use incompatible [message versions](../middleware/uorb.md#message-versioning) you would need to install and run the [Message Translation Node](./px4_ros2_msg_translation_node.md) as well, before running the example:
 
 1. Include the [Message Translation Node](../ros2/px4_ros2_msg_translation_node.md) into the example workspace or a separate workspace by running the following script:
@@ -549,22 +576,22 @@ When the uXRCE-DDS client runs on a flight controller and the agent runs on a co
 For Gazebo simulations the GZBridge sets the PX4 time on every sim step (see [Change simulation speed](../sim_gazebo_gz/index.md#change-simulation-speed)).
 Note that this is different from the [simulation lockstep](../sim_gazebo_classic/index.md#lockstep) procedure adopted with Gazebo Classic.
 
-ROS2 users have then two possibilities regarding the [time source](https://design.ros2.org/articles/clock_and_time.html) of their nodes.
+ROS 2 users have then two possibilities regarding the [time source](https://design.ros2.org/articles/clock_and_time.html) of their nodes.
 
-#### ROS2 nodes use the OS clock as time source
+#### ROS 2 nodes use the OS clock as time source
 
-This scenario, which is the one considered in this page and in the [offboard_control](./offboard_control.md) guide, is also the standard behaviour of the ROS2 nodes.
+This scenario, which is the one considered in this page and in the [offboard_control](./offboard_control.md) guide, is also the standard behaviour of the ROS 2 nodes.
 The OS clock acts as time source and therefore it can be used only when the simulation real time factor is very close to one.
-The time synchronizer of the uXRCE-DDS client then bridges the OS clock on the ROS2 side with the Gazebo clock on the PX4 side.
+The time synchronizer of the uXRCE-DDS client then bridges the OS clock on the ROS 2 side with the Gazebo clock on the PX4 side.
 No further action is required by the user.
 
-#### ROS2 nodes use the Gazebo clock as time source
+#### ROS 2 nodes use the Gazebo clock as time source
 
-In this scenario, ROS2 also uses the Gazebo `/clock` topic as time source.
-This approach makes sense if the Gazebo simulation is running with real time factor different from one, or if ROS2 needs to directly interact with Gazebo.
-On the ROS2 side, direct interaction with Gazebo is achieved by the [ros_gz_bridge](https://github.com/gazebosim/ros_gz) package of the [ros_gz](https://github.com/gazebosim/ros_gz) repository.
+In this scenario, ROS 2 also uses the Gazebo `/clock` topic as time source.
+This approach makes sense if the Gazebo simulation is running with real time factor different from one, or if ROS 2 needs to directly interact with Gazebo.
+On the ROS 2 side, direct interaction with Gazebo is achieved by the [ros_gz_bridge](https://github.com/gazebosim/ros_gz) package of the [ros_gz](https://github.com/gazebosim/ros_gz) repository.
 
-Use the following commands to install the correct ROS 2/gz interface packages (not just the bridge) for the ROS2 and Gazebo version(s) supported by PX4.
+Use the following commands to install the correct ROS 2/gz interface packages (not just the bridge) for the ROS 2 and Gazebo version(s) supported by PX4.
 
 :::: tabs
 
@@ -589,7 +616,7 @@ sudo apt install ros-humble-ros-gzharmonic
 ::::
 
 :::info
-The [repo](https://github.com/gazebosim/ros_gz#readme) and [package](https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge#readme) READMEs show the package versions that need to be installed depending on your ROS2 and Gazebo versions.
+The [repo](https://github.com/gazebosim/ros_gz#readme) and [package](https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge#readme) READMEs show the package versions that need to be installed depending on your ROS 2 and Gazebo versions.
 :::
 
 Once the packages are installed and sourced, the node `parameter_bridge` provides the bridging capabilities and can be used to create an unidirectional `/clock` bridge:
@@ -598,10 +625,10 @@ Once the packages are installed and sourced, the node `parameter_bridge` provide
 ros2 run ros_gz_bridge parameter_bridge /clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock
 ```
 
-At this point, every ROS2 node must be instructed to use the newly bridged `/clock` topic as time source instead of the OS one, this is done by setting the parameter `use_sim_time` (of _each_ node) to `true` (see [ROS clock and Time design](https://design.ros2.org/articles/clock_and_time.html)).
+At this point, every ROS 2 node must be instructed to use the newly bridged `/clock` topic as time source instead of the OS one, this is done by setting the parameter `use_sim_time` (of _each_ node) to `true` (see [ROS clock and Time design](https://design.ros2.org/articles/clock_and_time.html)).
 
-This concludes the modifications required on the ROS2 side. On the PX4 side, you are only required to stop the uXRCE-DDS time synchronization, setting the parameter [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT) to `false`.
-By doing so, Gazebo will act as main and only time source for both ROS2 and PX4.
+This concludes the modifications required on the ROS 2 side. On the PX4 side, you are only required to stop the uXRCE-DDS time synchronization, setting the parameter [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT) to `false`.
+By doing so, Gazebo will act as main and only time source for both ROS 2 and PX4.
 
 ## ROS 2 예제 애플리케이션
 
@@ -612,7 +639,7 @@ The ROS 2 [listener examples](https://github.com/PX4/px4_ros_com/tree/main/src/e
 Here we consider the [sensor_combined_listener.cpp](https://github.com/PX4/px4_ros_com/blob/main/src/examples/listeners/sensor_combined_listener.cpp) node under `px4_ros_com/src/examples/listeners`, which subscribes to the [SensorCombined](../msg_docs/SensorCombined.md) message.
 
 :::info
-[Build ROS 2 Workspace](#build-ros-2-workspace) shows how to build and run this example.
+[Running an example (optional)](#running-an-example-optional) shows how to build and run this example.
 :::
 
 The code first imports the C++ libraries needed to interface with the ROS 2 middleware and the header file for the `SensorCombined` message to which the node subscribes:
@@ -759,9 +786,9 @@ int main(int argc, char *argv[])
 
 ### 오프보드 제어
 
-[ROS 2 Offboard control example](../ros2/offboard_control.md) provides a complete C++ reference example of how to use [offboard control](../flight_modes/offboard.md) of PX4 with ROS2.
+[ROS 2 Offboard control example](../ros2/offboard_control.md) provides a complete C++ reference example of how to use [offboard control](../flight_modes/offboard.md) of PX4 with ROS 2.
 
-[Python ROS2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard) provides a similar example for Python, and includes the scripts:
+[Python ROS 2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard) provides a similar example for Python, and includes the scripts:
 
 - `offboard_control.py`: Example of offboard position control using position setpoints
 - `visualizer.py`: Used for visualizing vehicle states in Rviz
@@ -769,9 +796,32 @@ int main(int argc, char *argv[])
 ## Using Flight Controller Hardware
 
 ROS 2 with PX4 running on a flight controller is almost the same as working with PX4 on the simulator.
-The only difference is that you need to start both the agent _and the client_, with settings appropriate for the communication channel.
+The differences are:
 
-For more information see [Starting uXRCE-DDS](../middleware/uxrce_dds.md#starting-agent-and-client).
+- You need to ensure your PX4 firmware contains the client module.
+- You need to start both the agent _and the client_, with settings appropriate for the communication channel.
+
+:::: tabs
+
+:::tab uXRCE-DDS Client
+The key `CONFIG_MODULES_UXRCE_DDS_CLIENT=y` must be in your board's `default.px4board` [KConfig file](../hardware/porting_guide_config.md).
+
+See uXRCE-DDS client [firmware setup](../middleware/uxrce_dds.md#px4-firmware) for complete information.
+
+Client configuration is instead handled through PX4 parameters, see [Starting uXRCE-DDS](../middleware/uxrce_dds.md#starting-agent-and-client).
+:::
+
+:::tab Zenoh Client
+The key `CONFIG_MODULES_ZENOH=y` must be in your board's `default.px4board` [KConfig file](../hardware/porting_guide_config.md).
+
+After that it can be enabled on PX4 startup by setting the [ZENOH_ENABLE](../advanced_config/parameter_reference.md#ZENOH_ENABLE) parameter to `1`.
+
+Node configuration (network, pubishers options, topic mapping) is instead handled by configuration files (`zenoh/net.txt`, `zenoh/pub.csv`, `zenoh/sub.csv`) stored in the flight controller SD card and it can be modified at runtime using the `zenoh config` CLI tool.
+
+See Zenoh client [node setup](../middleware/zenoh.md#px4-zenoh-pico-node-setup) for complete information.
+:::
+
+::::
 
 ## Custom uORB Topics
 
@@ -869,7 +919,7 @@ A complete _offboard control_ example using the VehicleCommand service is provid
 
 The example closely follows the _offboard control_ example described in [ROS 2 Offboard Control Example](../ros2/offboard_control.md) but uses the `VehicleCommand` service to request mode changes, vehicle arming and vehicle disarming.
 
-First the ROS 2 application declares a service client of type `px4_msgs::srv::VehicleCommand` using `rclcpp::Client()` as shown (this is the same approach used for all ROS2 service clients):
+First the ROS 2 application declares a service client of type `px4_msgs::srv::VehicleCommand` using `rclcpp::Client()` as shown (this is the same approach used for all ROS 2 service clients):
 
 ```cpp
 rclcpp::Client<px4_msgs::srv::VehicleCommand>::SharedPtr vehicle_command_client_;
@@ -1069,10 +1119,10 @@ If any are missing, they can be added separately:
 
 ### ros_gz_bridge not publishing on the \clock topic
 
-If your [ROS2 nodes use the Gazebo clock as time source](../ros2/user_guide.md#ros2-nodes-use-the-gazebo-clock-as-time-source) but the `ros_gz_bridge` node doesn't publish anything on the `/clock` topic, you may have the wrong version installed.
+If your [ROS 2 nodes use the Gazebo clock as time source](../ros2/user_guide.md#ros-2-nodes-use-the-gazebo-clock-as-time-source) but the `ros_gz_bridge` node doesn't publish anything on the `/clock` topic, you may have the wrong version installed.
 This might happen if you install ROS 2 Humble with the default "Ignition Fortress" packages, rather than using those for PX4, which uses "Gazebo Harmonic".
 
-The following commands uninstall the default Ignition Fortress topics and install the correct bridge and other interface topics for **Gazebo Harmonic** with ROS2 **Humble**:
+The following commands uninstall the default Ignition Fortress topics and install the correct bridge and other interface topics for **Gazebo Harmonic** with ROS 2 **Humble**:
 
 ```bash
 # Remove the wrong version (for Ignition Fortress)

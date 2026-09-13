@@ -318,7 +318,7 @@ typedef int16_t q11_4_t;
 #define Q11_4_MAX ((q11_4_t)INT16_MAX)
 
 /*! The 1/one/unity in Q11.4 number format. */
-#define UQ11_4_ONE ((q11_4_t)(1 << 4))
+#define Q11_4_ONE ((q11_4_t)(1 << 4))
 
 
 

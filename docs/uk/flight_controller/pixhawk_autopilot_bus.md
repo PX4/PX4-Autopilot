@@ -22,6 +22,7 @@ The "Mechanical Design" section of the standard provides specific recommendation
 ## PAB сумісні політні контролери
 
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md)
+- [ARK Electronics ARKV6X-RT](../flight_controller/ark_v6xrt.md)
 - [ARK Electronics ARKV6S](../flight_controller/ark_v6s.md)
 - [Holybro Pixhawk 5X (FMUv5X)](../flight_controller/pixhawk5x.md)
 - [Holybro Pixhawk 6X (FMUv6X)](../flight_controller/pixhawk6x.md)

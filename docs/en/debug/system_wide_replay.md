@@ -66,7 +66,7 @@ Reasons for this are given below.
 
   This will automatically open the log file, apply the parameters and start the replay.
   Once done, it will report the outcome and exit.
-  The newly generated log file can then be analyzed. It can be found in `rootfs/fs/microsd/log`, in subdirectories organised by date.
+  The newly generated log file can then be analyzed. It can be found in `rootfs/fs/log`, in subdirectories organised by date.
   Replayed log file names will have the `_replayed` suffix.
 
   Note that the above command will show the simulator as well, but - depending on what is being replayed - it will not show what's actually going on.

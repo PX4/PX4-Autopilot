@@ -237,7 +237,7 @@ MAVProxy на RPi тепер повинен підключатися до Pixhaw
 Ви повинні бачити це в терміналі RPi.
 
 Тепер ми підтвердили, що наше підключення пов'язано належним чином.
-У наступному розділі ми налаштуємо як Pixhawk, так і RPi для використання uXRCE-DDS та ROS2 замість MAVLink.
+In the next section we'll set up the both Pixhawk and RPi to use uXRCE-DDS and ROS 2 instead of MAVLink.
 
 ## ROS 2 та uXRCE-DDS
 
@@ -263,7 +263,7 @@ The [ROS 2 Guide](../ros2/user_guide.md) and [uXRCE-DDS](../middleware/uxrce_dds
    ```
 
    [MAV_1_CONFIG=0](../advanced_config/parameter_reference.md#MAV_1_CONFIG) та [UXRCE_DDS_CFG=102](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG) вимикають MAVLink на TELEM2 та увімкнюють клієнт uXRCE-DDS на TELEM2, відповідно.
-   Швидкість `SER_TEL2_BAUD` встановлює швидкість передачі даних зв'язку.  
+   Швидкість `SER_TEL2_BAUD` встановлює швидкість передачі даних зв'язку.
    Ви так само можете налаштувати підключення до `TELEM1`, використовуючи або `MAV_1_CONFIG`, або `MAV_0_CONFIG`.
 
    Вам потрібно перезавантажити керування польотом, щоб застосувати будь-які зміни до цих параметрів.

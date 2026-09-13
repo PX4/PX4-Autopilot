@@ -483,11 +483,13 @@ int create_dirs()
 {
 	std::string current_path = pwd();
 
-	std::vector<std::string> dirs{"log", "eeprom"};
+	// The storage directory holds everything PX4 writes, and is the only part of the
+	// filesystem root that MAVLink FTP is allowed to write to.
+	std::vector<std::string> dirs{PX4_STORAGEDIR, PX4_STORAGEDIR "/log", PX4_STORAGEDIR "/eeprom"};
 
 	for (const auto &dir : dirs) {
 		PX4_DEBUG("mkdir: %s", dir.c_str());;
-		std::string dir_path = current_path + "/" + dir;
+		std::string dir_path = (dir[0] == '/') ? dir : current_path + "/" + dir;
 
 		if (dir_exists(dir_path)) {
 			continue;

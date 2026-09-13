@@ -29,10 +29,12 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {ros_version: "humble", ubuntu: "jammy"}
-          - {ros_version: "jazzy", ubuntu: "noble"}
+          - ros_version: "humble"
+            image: ghcr.io/px4/px4-dev-ros2:main-humble@sha256:22477581e61d0fd3edff894e8a4b9615898f0534273d3745831a819bd1c5b5a4
+          - ros_version: "jazzy"
+            image: ghcr.io/px4/px4-dev-ros2:main-jazzy@sha256:741c007bc5faadf41ef92258b0cdadf7dea5c84447afcb8545ea7c1ef42ffd71
     container:
-      image: ros:${{ matrix.config.ros_version }}-ros-base-${{ matrix.config.ubuntu }}
+      image: ${{ matrix.config.image }}
     steps:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v6
@@ -47,7 +49,6 @@ jobs:
           cache-key-prefix: ccache-ros-translation-${{ matrix.config.ros_version }}
           max-size: 150M
           base-dir: /ros_ws
-          install-ccache: 'true'
 
       - name: Check .msg file versioning
         if: github.event_name == 'pull_request'

@@ -10,6 +10,8 @@ float32 z                 # [Gauss] magnetic field in the FRD board frame Z-axis
 
 float32 temperature       # [°C] Temperature.
 
+float32 range             # [Gauss] full-scale measurement range, 0 if unknown
+
 uint32 error_count
 
 uint8 ORB_QUEUE_LENGTH = 4

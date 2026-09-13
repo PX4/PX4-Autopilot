@@ -11,7 +11,6 @@
 # include <nuttx/arch.h>
 # include "arm_internal.h"
 # include <arch/board/board.h>
-# include <hardware/kinetis_pit.h>
 # include <hardware/kinetis_sim.h>
 # include <syslog.h>
 #else

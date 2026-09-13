@@ -299,6 +299,7 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
      PNG files are preferred over JPG for screenshots.
 
 3. Content:
+   - Follow British English (UK) conventions for spelling and grammar, with the exception of industry-standard software terminology (e.g., dialog, program, disk).
    - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
      - **Bold** for button presses and menu definitions.
      - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
@@ -308,8 +309,8 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
      All other headings should be h2 (`##`) or lower.
    - Don't add any style to headings.
    - Don't translate the text indicating the name of an `info`, `tip` or `warning` declaration (e.g. `::: tip`) as this precise text is required to render the aside properly.
-   - Break lines on sentences by preference.
-     Don't break lines based on some arbitrary line length.
+   - Don't break lines based on some arbitrary line length.
+     Break line breaks on sentences (or paragraphs).
    - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
 
 4. Videos:

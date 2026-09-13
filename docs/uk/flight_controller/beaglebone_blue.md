@@ -120,7 +120,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
          cd /opt/bbblue_toolchain/gcc-arm-linux-gnueabihf
          ```
 
-         The ARM Cross Compiler for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) site (the official successor to the Linaro toolchain releases previously used here).
+         The ARM Cross Compiler for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://gitlab.arm.com/tooling/gnu-toolchains-for-arm) site (the official successor to the Linaro toolchain releases previously used here).
 
          ::: tip
          GCC in the toolchain should be compatible with kernel in _BeagleBone Blue_.
@@ -130,7 +130,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
          Download and unpack [arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz](https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz) to the bbblue_toolchain folder.
 
-         Different ARM Cross Compiler versions for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) site.
+         Different ARM Cross Compiler versions for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://gitlab.arm.com/tooling/gnu-toolchains-for-arm) site.
 
          ```sh
          wget https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz

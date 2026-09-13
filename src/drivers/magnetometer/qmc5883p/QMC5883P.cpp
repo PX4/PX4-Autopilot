@@ -262,6 +262,7 @@ bool QMC5883P::Configure()
 	}
 
 	_px4_mag.set_scale(1.f / 12000.f); // 12000 LSB/Gauss (Field Range = ±2G)
+	_px4_mag.set_range(2.f);
 
 	return success;
 }

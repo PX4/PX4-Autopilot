@@ -87,6 +87,7 @@ static constexpr FailureType failure_types[] = {
 	{ "slow", vehicle_command_s::FAILURE_TYPE_SLOW},
 	{ "delayed", vehicle_command_s::FAILURE_TYPE_DELAYED},
 	{ "intermittent", vehicle_command_s::FAILURE_TYPE_INTERMITTENT},
+	{ "drift", vehicle_command_s::FAILURE_TYPE_DRIFT},
 };
 
 static void print_usage()

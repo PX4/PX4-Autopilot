@@ -77,6 +77,6 @@ enum class SetpointTypeResult : uint8_t {
 /**
  * Check if a setpoint type is valid for a given vehicle type
  */
-SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type);
+SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type, bool is_vtol);
 
 } // namespace mode_util

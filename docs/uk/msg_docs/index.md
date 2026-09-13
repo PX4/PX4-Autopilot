@@ -140,6 +140,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs.
 - [FixedWingLateralStatus](FixedWingLateralStatus.md) — Fixed Wing Lateral Status message. Published by the fw_lateral_longitudinal_control module to report the resultant lateral setpoint.
 - [FixedWingRunwayControl](FixedWingRunwayControl.md) — Auxiliary control fields for fixed-wing runway takeoff/landing.
+- [FixedWingTakeoffStatus](FixedWingTakeoffStatus.md) — Status of a fixed-wing takeoff. Passes information from the FixedWingModeManager to the Navigator.
 - [FlightPhaseEstimation](FlightPhaseEstimation.md)
 - [FollowTarget](FollowTarget.md)
 - [FollowTargetEstimator](FollowTargetEstimator.md)

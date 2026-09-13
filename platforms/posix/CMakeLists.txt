@@ -273,7 +273,7 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	if(CONFIG_MODULES_SIMULATION_GZ_BRIDGE)
 	# Gazebo wrapper script (sets GZ_SIM_* env vars pointing at installed resources)
 	install(
-		PROGRAMS ${PROJECT_SOURCE_DIR}/Tools/packaging/px4-gazebo.sh
+		PROGRAMS ${PROJECT_SOURCE_DIR}/Tools/packaging/deb/gazebo/px4-gazebo.sh
 		DESTINATION bin
 		RENAME px4-gazebo
 		)
