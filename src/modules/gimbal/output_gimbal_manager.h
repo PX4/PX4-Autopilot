@@ -46,9 +46,13 @@ namespace gimbal
 
 // Output that makes PX4 act as a gimbal manager *client*: instead of driving a
 // gimbal device directly, it forwards the setpoints to an external gimbal
-// manager (e.g. a smart camera-gimbal that runs its own manager). It discovers
-// the manager, requests control while there is an active setpoint, and streams
-// GIMBAL_MANAGER_SET_PITCHYAW to it.
+// manager (e.g. a smart camera-gimbal that runs its own manager).
+//
+// The external manager does the deconfliction between its clients, so we don't
+// track or second-guess who is in control. When onboard intent starts we ask
+// for control once, while it lasts we stream GIMBAL_MANAGER_SET_PITCHYAW, and
+// when it ends we release control. If another client has taken control, the
+// manager ignores our setpoints.
 class OutputToGimbalManager : public OutputBase
 {
 public:
@@ -60,15 +64,7 @@ public:
 	void print_status() const override;
 
 private:
-	enum class ControlState {
-		Released,	// we don't hold control of the manager
-		Acquiring,	// we requested control and wait for confirmation
-		InControl	// the manager reports us as primary control
-	};
-
 	void _update_manager_status();
-	bool _have_primary_control() const;
-	bool _someone_else_in_control() const;
 	void _send_configure(bool acquire);
 	void _publish_set_pitchyaw();
 
@@ -81,14 +77,10 @@ private:
 	uint8_t _manager_compid{0};
 	uint8_t _gimbal_device_id{0};
 
+	// Last status from the manager, for print_status only.
 	external_gimbal_manager_status_s _status{};
-	bool _status_valid{false};
 
-	ControlState _control_state{ControlState::Released};
-	bool _prev_want_control{false};
-	hrt_abstime _last_acquire_request{0};
-
-	static constexpr hrt_abstime kAcquireRetryInterval{3000000};	// 3 s
+	bool _onboard_intent{false};
 };
 
 } /* namespace gimbal */
