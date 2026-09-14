@@ -870,14 +870,14 @@ rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 {
 	perf_begin(_calc_rtl_time_estimate_perf);
 
+	// A newly configured executor may be queried before its first inactive cycle.
+	_vehicle_status_sub.update();
 	_rtl_time_estimator.update();
 	_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
 	_rtl_time_estimator.reset();
 
 	const vehicle_global_position_s *global_pos = _navigator->get_global_position();
 	const bool can_estimate = _plan.valid()
-				  && _state.stage != Stage::Idle
-				  && _state.stage != Stage::LandAtGoal
 				  && global_pos != nullptr
 				  && PX4_ISFINITE(global_pos->lat)
 				  && PX4_ISFINITE(global_pos->lon)
@@ -894,6 +894,16 @@ rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 
 void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_global_position_s &global_pos)
 {
+	// RTL refreshes the plan from the current Mission index and vehicle position before
+	// an inactive estimate. Forecast from that plan without changing execution progress.
+	const bool inactive = _state.stage == Stage::Idle;
+	const Stage stage = inactive ? (_plan.fly_direct_to_goal ? finalGoalStage() : Stage::FollowRoute) : _state.stage;
+	const bool join_remaining = inactive ? !_plan.fly_direct_to_goal
+				    : (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
+				       || _work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN
+				       || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN
+				       || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN);
+	const position_setpoint_s &current_setpoint = _navigator->get_position_setpoint_triplet()->current;
 	matrix::Vector2d hor_pos{global_pos.lat, global_pos.lon};
 	float altitude = global_pos.alt;
 
@@ -914,6 +924,27 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 		add_leg(position.lat, position.lon, position.alt);
 	};
 
+	const auto add_mission_item_legs = [&](const mission_item_s & item, bool current_target) {
+		const bool loiter_to_alt = item.nav_cmd == NAV_CMD_LOITER_TO_ALT;
+		const bool mc_landing = isLandingCommand(item)
+					&& _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		if (loiter_to_alt || mc_landing) {
+			// MissionBlock approaches the loiter before changing altitude. MissionBase
+			// likewise moves MC horizontally to LAND before starting the descent.
+			float approach_altitude = altitude;
+
+			if (current_target && current_setpoint.valid
+			    && (loiter_to_alt || _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND)) {
+				approach_altitude = current_setpoint.alt;
+			}
+
+			add_leg(item.lat, item.lon, approach_altitude);
+		}
+
+		add_leg(item.lat, item.lon, get_absolute_altitude_for_item(item));
+	};
+
 	const auto add_goal_legs = [&]() {
 		if (!_plan.goal_position.valid()) {
 			return;
@@ -925,9 +956,11 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 					    || _vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					    || fabsf(_param_rtl_land_delay.get()) > FLT_EPSILON;
 
-		if (_state.stage != Stage::HoldAtGoal) {
+		if (stage != Stage::HoldAtGoal) {
 			// Approach horizontally before descending, as the destination stages do.
-			add_leg(approach.lat, approach.lon, altitude);
+			const float approach_altitude = !inactive && stage == Stage::ApproachAtGoal && current_setpoint.valid
+							? current_setpoint.alt : arrival_altitude;
+			add_leg(approach.lat, approach.lon, approach_altitude);
 
 			if (hold_requested) {
 				add_leg(approach.lat, approach.lon, approach.height_m);
@@ -935,7 +968,13 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 		}
 
 		if (hold_requested) {
-			_rtl_time_estimator.addWait(_param_rtl_land_delay.get());
+			float remaining_wait = _param_rtl_land_delay.get();
+
+			if (!inactive && stage == Stage::HoldAtGoal && remaining_wait > 0.f && _time_wp_reached != 0) {
+				remaining_wait = math::max(0.f, remaining_wait - hrt_elapsed_time(&_time_wp_reached) * 1e-6f);
+			}
+
+			_rtl_time_estimator.addWait(remaining_wait);
 
 			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
 				// Like direct RTL, estimate time to the indefinite hold rather than a landing.
@@ -952,18 +991,17 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 		_rtl_time_estimator.addVertDistance(_plan.goal_position.alt - altitude);
 	};
 
-	if ((_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
-	     || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN)
-	    && _plan.join_position.valid()) {
-		add_position_leg(_plan.join_position);
+	if (join_remaining && _plan.join_position.valid()) {
+		add_leg(_plan.join_position.lat, _plan.join_position.lon,
+			_plan.use_current_altitude ? altitude : _plan.join_position.alt);
 	}
 
-	switch (_state.stage) {
+	switch (stage) {
 	case Stage::FollowRoute:
 	case Stage::TransitionDuringRoute: {
 			// Walk the route from the current target to the branch-off or endpoint.
 			// The step limit guards against corrupted data.
-			int32_t walk_index = _mission.current_seq;
+			int32_t walk_index = inactive ? _plan.first_mission_item_index : _mission.current_seq;
 
 			for (int steps = 0; steps < _mission.count && missionIndexInBounds(walk_index); ++steps) {
 				mission_item_s item{};
@@ -983,7 +1021,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 						break;
 					}
 
-					add_leg(item.lat, item.lon, get_absolute_altitude_for_item(item));
+					add_mission_item_legs(item, !inactive && !join_remaining && walk_index == _mission.current_seq);
 
 					if (missionItemMatchesSelectedEndpoint(item)) {
 						break;
@@ -1016,6 +1054,13 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 	case Stage::HoldAtGoal:
 		add_goal_legs();
 		break;
+
+	case Stage::LandAtGoal: {
+			mission_item_s landing_item{};
+			setLandMissionItem(landing_item);
+			add_mission_item_legs(landing_item, !inactive);
+			break;
+		}
 
 	default:
 		break;
