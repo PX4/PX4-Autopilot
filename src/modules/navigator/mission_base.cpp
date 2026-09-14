@@ -831,9 +831,9 @@ void MissionBase::setNextVelocityConstraint(const position_setpoint_s &current, 
 
 	math::trajectory::VehicleDynamicLimits limits = _navigator->get_multicopter_trajectory_limits();
 
-	// Beyond the distance the vehicle needs to brake from cruise speed nothing can limit the speed at next
-	// any further, so the walk can stop there and assume a stop at the last waypoint it reached.
-	const float horizon = _navigator->get_multicopter_braking_distance(limits.max_speed_xy);
+ 	// Beyond the distance needed by the same braking model used below, a stop cannot limit cruise speed.
+ 	const float horizon = math::trajectory::computeBrakingDistanceFromVelocity(limits.max_speed_xy, limits.max_jerk,
+ 			      limits.max_acc_xy, 2.f * limits.max_acc_xy);
 
 	// Bounded by the dataman cache, only cached items are read, a miss ends the walk like a stop would.
 	static constexpr size_t kMaxWaypoints = 10;
