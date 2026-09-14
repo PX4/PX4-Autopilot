@@ -379,8 +379,22 @@ MissionBase::on_active()
 		}
 	}
 
+	bool waiting_for_back_transition = false;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	waiting_for_back_transition = _work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN;
+
+	if (waiting_for_back_transition) {
+		// Resume from vehicle state, even if back-transition drift put the join waypoint out of reach.
+		if (!_vehicle_status_sub.get().in_transition_mode || _vehicle_status_sub.get().in_transition_to_fw) {
+			set_mission_items();
+		}
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	/* lets check if we reached the current mission item */
-	if (_mission_type != MissionType::MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
+	if (!waiting_for_back_transition && _mission_type != MissionType::MISSION_TYPE_NONE
+	    && is_mission_item_reached_or_completed()) {
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
 		if (shouldReportMissionItemReached()) {
@@ -409,7 +423,11 @@ MissionBase::on_active()
 		 || _mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 		 || _mission_item.nav_cmd == NAV_CMD_LAND
 		 || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-		 || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING)) {
+		 || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		 || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+		)) {
 		// Mount control is disabled If the vehicle is in ROI-mode, the vehicle
 		// needs to rotate such that ROI is in the field of view.
 		// ROI only makes sense for multicopters.
@@ -515,6 +533,8 @@ void MissionBase::update_mission()
 		// Route joining is armed before activation reaches update_mission(). Keep it until
 		// it completes; an actual mission definition change clears it in onMissionUpdate().
 		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
+		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN
+		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN
 		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
 			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 		}
@@ -678,6 +698,8 @@ bool MissionBase::shouldReportMissionItemReached() const
 	switch (_work_item_type) {
 	case WorkItemType::WORK_ITEM_TYPE_CLIMB:
 	case WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE:
+	case WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN:
+	case WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN:
 	case WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN:
 		return false;
 
@@ -848,6 +870,8 @@ void MissionBase::resetJoinRouteState()
 	_route_join_context = {};
 
 	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
+	    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN
+	    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN
 	    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 	}
@@ -856,6 +880,9 @@ void MissionBase::resetJoinRouteState()
 bool MissionBase::handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_triplet,
 		const position_setpoint_s &current_setpoint_copy)
 {
+	const bool in_back_transition = _vehicle_status_sub.get().in_transition_mode
+					&& !_vehicle_status_sub.get().in_transition_to_fw;
+
 	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
 		if (!(_waypoint_position_reached && _waypoint_yaw_reached)) {
 			return handleJoinRouteWaypoint(pos_sp_triplet, current_setpoint_copy);
@@ -868,7 +895,36 @@ bool MissionBase::handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_t
 			return false;
 		}
 
-		PX4_INFO("Route join reached, starting transition");
+		if (_route_join_context.transition_action == VtolTransitionAction::kFrontTransition) {
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN;
+			reset_mission_item_reached();
+
+		} else {
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
+		}
+	}
+
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN
+	    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN) {
+		if (!joinRouteTransitionStillRequired()) {
+			resetJoinRouteState();
+			return false;
+		}
+
+		if (in_back_transition) {
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN;
+			return handleJoinRouteWaypoint(pos_sp_triplet, current_setpoint_copy);
+		}
+
+		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN) {
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN;
+			reset_mission_item_reached();
+		}
+
+		if (!(_waypoint_position_reached && _waypoint_yaw_reached)) {
+			return handleJoinRouteWaypoint(pos_sp_triplet, current_setpoint_copy);
+		}
+
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
 	}
 
@@ -904,7 +960,22 @@ bool MissionBase::handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_tr
 		join_item.altitude = _navigator->get_global_position()->alt;
 	}
 
-	if (_route_join_context.transition_action == VtolTransitionAction::kBackTransition) {
+	const bool aligning_heading = _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN;
+
+	if (aligning_heading) {
+		mission_item_s alignment_target{};
+
+		if (!loadMissionItemFromCache(_mission.current_seq, alignment_target)
+		    || !mission_item_contains_position(alignment_target)) {
+			PX4_ERR("Route join alignment target unavailable");
+			resetJoinRouteState();
+			setEndOfMissionItems();
+			return true;
+		}
+
+		set_align_mission_item(&join_item, &alignment_target);
+
+	} else if (_route_join_context.transition_action == VtolTransitionAction::kBackTransition) {
 		join_item.vtol_back_transition = true;
 
 	} else if (_route_join_context.transition_action == VtolTransitionAction::kNone
@@ -915,7 +986,10 @@ bool MissionBase::handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_tr
 	mission_item_to_position_setpoint(join_item, &pos_sp_triplet->current);
 	_navigator->reset_position_setpoint(pos_sp_triplet->next);
 
-	if (!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
+	if (aligning_heading) {
+		pos_sp_triplet->previous.valid = false;
+
+	} else if (!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
 		pos_sp_triplet->previous = current_setpoint_copy;
 	}
 
@@ -946,10 +1020,6 @@ bool MissionBase::handleTransitionAfterJoin(position_setpoint_triplet_s *pos_sp_
 				     : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 	set_vtol_transition_item(&_mission_item, target_state);
 	_mission_item.yaw = NAN;
-
-	if (_route_join_context.transition_action == VtolTransitionAction::kFrontTransition) {
-		_mission_item.yaw = computeFrontTransitionAlignmentYaw(_mission.current_seq);
-	}
 
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	pos_sp_triplet->previous.valid = false;
