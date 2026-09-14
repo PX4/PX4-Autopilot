@@ -796,6 +796,7 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 			action = Action::FallbackStab;
 			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
 		}
+
 		// If it's a multirotor or plane, drop to Altitude as normal
 		else {
 			action = Action::FallbackAltCtrl;
