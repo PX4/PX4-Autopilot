@@ -59,6 +59,7 @@ constexpr float    kTemperatureScale    { 0.1f };
 constexpr float    kWideWordFactor      { 65536.f };
 constexpr unsigned kSelfTestAttempts    { 3 };
 constexpr unsigned kReadySamples        { 2 }; // Require progress across two validated bursts after configuration.
+constexpr uint16_t kSamplingMask        { 0x003f }; // SYNC mode/polarity, DR polarity and must-zero bit 5.
 constexpr unsigned kIrqRecoverySamples  { 3 }; // Hysteresis before leaving fallback polling.
 constexpr uint32_t kRecoveryDelays[]    { 100_ms, 500_ms, 2_s, 5_s };
 constexpr uint32_t kSelfTestDelays[]    { 1_s, 2_s };
@@ -821,7 +822,6 @@ bool AdiBurst::configure16()
 		// Startup-only host validation bound, not an ADIS16470 worst-case timing specification.
 		constexpr uint32_t kReadbackTimeout  { 1_ms };
 		constexpr uint32_t kReadbackInterval { 50_us };
-		constexpr uint16_t kSamplingMask     { 0x003f }; // SYNC mode/polarity, DR polarity and must-zero bit 5.
 
 		const uint16_t control = readRegister(Register::Control);
 
@@ -975,15 +975,27 @@ bool AdiBurst::configure()
 
 bool AdiBurst::checkConfiguration()
 {
-	// Only ADIS16470 had a periodic register check; only DR polarity belongs to that check.
+	// ADIS16470 uses internal 2 kHz sampling with both filters disabled. Check one
+	// setting per pass without treating unrelated calibration/reserved bits as faults.
+	static constexpr Register registers[] { Register::Control, Register::Decimation, Register::Filter };
+	static constexpr uint16_t masks[] {
+		kSamplingMask,
+		0x07ff, // DEC_RATE[10:0]: output-rate decimation.
+		0x0007, // FILT_CTRL[2:0]: Bartlett filter selection.
+	};
+	static_assert(sizeof(registers) / sizeof(registers[0]) == sizeof(masks) / sizeof(masks[0]), "Configuration masks");
+
 	px4_udelay(_model.stall_us);
 
-	if ((readRegister(Register::Control) & kDataReadyActiveHigh) != 0 || _transfer_failed) {
+	if ((readRegister(registers[_checked_config]) & masks[_checked_config]) != 0 || _transfer_failed) {
 		_bad_register_perf.count();
+
 		return false;
 	}
 
+	_checked_config = (_checked_config + 1) % (sizeof(registers) / sizeof(registers[0]));
 	_last_config_check = hrt_absolute_time();
+
 	return true;
 }
 
@@ -1014,6 +1026,7 @@ void AdiBurst::startReading()
 
 	_progress.reset(hrt_absolute_time());
 	_ready_samples = 0;
+	_checked_config = 0;
 	_irq_streak    = 0;
 	_healthy_since = 0;
 	_drdy_timestamp.store(0);

@@ -36,10 +36,10 @@
 #include "../../common/FifoPerfCounters.hpp"
 
 #include "../TdkFlatRegisters.hpp"
-#include "../TdkFlatModel.hpp"
 #include "../../common/SpiFamily.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_sensor.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/device/spi.h>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -48,12 +48,12 @@
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
-/** @brief TDK flat-register SPI family with fixed-frame acquisition and native FIFO publication. */
-class TdkDirect final : public device::SPI, public I2CSPIDriver<TdkDirect>
+/** @brief MPU6000 SPI endpoint with its native fixed-frame acquisition and recovery sequence. */
+class TdkMpu6000 final : public device::SPI, public I2CSPIDriver<TdkMpu6000>
 {
 public:
-	TdkDirect(const I2CSPIDriverConfig &config);
-	~TdkDirect() override;
+	TdkMpu6000(const I2CSPIDriverConfig &config);
+	~TdkMpu6000() override;
 
 	static void print_usage();
 	static constexpr uint16_t maxTransferSize(uint8_t packet_size, uint8_t prefix = 1)
@@ -68,33 +68,61 @@ public:
 
 	using Register = tdk_direct_registers::Register;
 
-	using Variant = tdk_flat::Variant;
-	using Profile = tdk_flat::Profile;
+	/** Compile-time SPI limits shared with the native single-model command line. */
+	static constexpr imu::SpiModel spiModel()
+	{
+		using namespace frequency_literals;
+
+		imu::SpiModel device {};
+
+		device.name                 = "mpu6000";
+		device.device_type          = DRV_IMU_DEVTYPE_MPU6000;
+		device.frequency            = 1_MHz;
+		device.data_frequency       = 5_MHz;
+		device.mode                 = SPIDEV_MODE3;
+		device.max_transfer_bytes   = maxTransferSize(tdk_direct_registers::FIFO_PACKET_SIZE_CLASSIC);
+		device.data_prefix_bytes    = 1;
+		device.max_clock_hz         = 0;
+		device.register_dummy_bytes = 0;
+		device.continuous_data_cs   = true;
+
+		return device;
+	}
 
 private:
+	// Fixed wire layout, conversion and reset timing for this endpoint.
+	static constexpr uint8_t  kWhoAmI                 { 0x68 };
+	static constexpr uint16_t kFifoSize               { 1024 };
+	static constexpr uint8_t  kFifoPacketSize         { tdk_direct_registers::FIFO_PACKET_SIZE_CLASSIC };
+	static constexpr uint8_t  kGyroOffset             { 6 };
+	static constexpr uint8_t  kSamplesPerTransfer     { 8 };
+	static constexpr float    kTemperatureSensitivity { 340.f };
+	static constexpr float    kTemperatureOffset      { 36.53f };
+	static constexpr uint8_t  kResetPwrValue          { static_cast<uint8_t>(tdk_direct_registers::PWR_MGMT_1_BIT::SLEEP) };
+
 	struct RegisterConfig {
 		Register reg;
 		uint8_t set_bits   { 0 };
 		uint8_t clear_bits { 0 };
 	};
 
-	static constexpr float   kFifoSampleDt       { 1e6f / 8000.f };
-	static constexpr float   kGyroRate           { 1e6f / kFifoSampleDt };
-	static constexpr uint8_t kMaxRegisterConfigs { 32 };
+	static constexpr float kFifoSampleDt { 1e6f / 8000.f };
+	static constexpr float kGyroRate     { 1e6f / kFifoSampleDt };
+	static constexpr uint8_t kMaxRegisterConfigs { 7 }; // Fixed configuration and readback masks.
 
 	struct FifoTransferBuffer {
-		uint8_t cmd { static_cast<uint8_t>(Register::FIFO_R_W) | tdk_direct_registers::DIR_READ };
-		uint8_t data[kFifoMaxSamples * tdk_direct_registers::FIFO_PACKET_SIZE_CLASSIC] {};
+		uint8_t cmd;
+		uint8_t data[kFifoMaxSamples * tdk_direct_registers::FIFO_PACKET_SIZE_CLASSIC];
 	};
-
-	void buildRegisterConfig();
-	void addRegisterConfig(Register reg, uint8_t set_bits, uint8_t clear_bits = 0);
 
 	void exit_and_cleanup() override;
 	int probe() override;
 	void deviceReset();
 	bool reset(uint32_t delay_us = 0);
 	bool resetComplete();
+
+	/** Startup/recovery dispatch using the timestamp captured by RunImpl(); never called for normal sampling. */
+	void runInitialization(hrt_abstime now);
 	[[nodiscard]] bool wakeAndResetSignalPath();
 
 	bool configure();
@@ -108,9 +136,10 @@ private:
 	bool dataReadyInterruptDisable();
 
 	bool registerCheck(const RegisterConfig &reg_cfg);
-	bool storeCheckedRegisterValue(Register reg);
-	uint8_t registerRead(Register reg);
-	void registerWrite(Register reg, uint8_t value);
+	// Share checked register transactions across startup, recovery and low-rate surveillance.
+	// FIFO payload transfers do not use these helpers.
+	__attribute__((noinline)) uint8_t registerRead(Register reg);
+	__attribute__((noinline)) void registerWrite(Register reg, uint8_t value);
 	void registerSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
 	uint16_t fifoReadCount();
@@ -121,12 +150,9 @@ private:
 	void updateTemperature();
 	uint64_t errorCount() const;
 
-	const Profile &_profile;
 	const int     _register_frequency;
 	const int     _data_frequency;
 	bool _transfer_failed     { false };
-	bool _factory_read_failed { false };
-	bool _configuration_valid { true };
 	const spi_drdy_gpio_t _drdy_gpio;
 
 	PX4Accelerometer _px4_accel;
@@ -156,6 +182,8 @@ private:
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample { 0 };
 	px4::atomic<int32_t>     _drdy_count            { 0 };
+	uint8_t _fifo_accel_samples_count     { 0 };
+	uint8_t _last_accel[6]                {};
 	bool    _data_ready_interrupt_enabled { false };
 
 	enum class State : uint8_t {
@@ -168,6 +196,6 @@ private:
 	uint16_t _fifo_empty_interval_us { 1250 };
 	int32_t  _fifo_gyro_samples      { 10 };
 	uint8_t  _checked_register       { 0 };
-	uint8_t  _register_cfg_count     { 0 };
-	RegisterConfig _register_cfg[kMaxRegisterConfigs] {};
+	static constexpr uint8_t _register_cfg_count { kMaxRegisterConfigs };
+	static const RegisterConfig _register_cfg[kMaxRegisterConfigs];
 };

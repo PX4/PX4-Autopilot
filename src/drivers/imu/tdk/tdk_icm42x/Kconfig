@@ -2,7 +2,7 @@ menuconfig DRIVERS_IMU_TDK_TDK_ICM42X
 	bool "TDK ICM4x headered SPI FIFO family"
 	default n
 	help
-	  Shared FIFO implementation. Select an exact model with -T at start.
+	  Shared FIFO implementation. All commands require an exact -T model.
 	  Existing Invensense drivers remain available for comparison.
 
 if DRIVERS_IMU_TDK_TDK_ICM42X
@@ -13,14 +13,6 @@ config TDK_ICM42X_ICM40609D
 
 config TDK_ICM42X_ICM42605
 	bool "ICM42605"
-	default n
-
-config TDK_ICM42X_ICM42670P
-	bool "ICM42670P"
-	default n
-
-config TDK_ICM42X_ICM45686
-	bool "ICM45686"
 	default n
 
 config TDK_ICM42X_ICM42688P

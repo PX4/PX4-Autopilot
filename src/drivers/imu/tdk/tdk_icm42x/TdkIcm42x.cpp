@@ -33,9 +33,7 @@
 
 #include "TdkIcm42x.hpp"
 #include "TdkIcm42xRegisters.hpp"
-#include "TdkHiresFifo.hpp"
-#include "registers/TdkICM42670PRegisters.hpp"
-#include "registers/TdkICM45686Registers.hpp"
+#include "../TdkPacketFifo.hpp"
 
 #include <drivers/drv_sensor.h>
 #include <lib/geo/geo.h>
@@ -56,18 +54,6 @@ namespace
 constexpr uint8_t  kDirRead              { 0x80 };
 constexpr uint8_t  kPwrLowNoise          { 0x0f };
 constexpr uint8_t  kBankSelectRegister   { 0x76 };
-constexpr uint8_t  kMclkReadyRegister    { 0x00 };
-constexpr uint8_t  kMclkReadyBit         { 1u << 3 };
-constexpr uint8_t  kMregWriteBlock       { 0x79 };
-constexpr uint8_t  kMregWriteAddress     { 0x7a };
-constexpr uint8_t  kMregWriteData        { 0x7b };
-constexpr uint8_t  kMregReadBlock        { 0x7c };
-constexpr uint8_t  kMregReadAddress      { 0x7d };
-constexpr uint8_t  kMregReadData         { 0x7e };
-constexpr uint8_t  kIregAddressHigh      { 0x7c };
-constexpr uint8_t  kIregData             { 0x7e };
-constexpr unsigned kMregDelayUs          { 10 };
-constexpr unsigned kIregDelayUs          { 4 };
 constexpr float    kFifoTimestampScaling { 16.f *(32.f / 30.f) };
 
 constexpr int16_t combine(uint8_t msb, uint8_t lsb)
@@ -125,9 +111,7 @@ int TdkIcm42x::probe()
 	for (int attempt = 0; attempt < 3; ++attempt) {
 		_transfer_failed = false;
 
-		if (_profile.protocol == Protocol::kBanked) {
-			selectRegisterBank(0, true);
-		}
+		selectRegisterBank(0, true);
 
 		const uint8_t whoami = registerRead(AddressSpace::kBank0, _profile.whoami_reg);
 
@@ -221,9 +205,7 @@ void TdkIcm42x::configureSampleRate(int sample_rate)
 
 bool TdkIcm42x::resetComplete()
 {
-	if (_profile.protocol == Protocol::kBanked) {
-		selectRegisterBank(0, true);
-	}
+	selectRegisterBank(0, true);
 
 	if (registerRead(AddressSpace::kBank0, _profile.whoami_reg) != _profile.whoami) {
 		return false;
@@ -272,7 +254,7 @@ void TdkIcm42x::RunImpl()
 			ScheduleDelayed(_fifo_empty_interval_us * 2);
 		}
 
-		if (samples == 0 || _profile.protocol == Protocol::kDirect456) {
+		if (samples == 0) {
 			samples = 0;
 
 			const uint16_t fifo_count = count_before_irq ? initial_count : fifoReadCount();
@@ -290,7 +272,7 @@ void TdkIcm42x::RunImpl()
 				uint16_t count = _profile.fifo_count_is_records ? fifo_count : fifo_count / _profile.packet_size;
 
 				// Apply the original one-extra-frame tolerance before the batch-capacity check.
-				if (_profile.protocol != Protocol::kDirect456 && count == _fifo_gyro_samples + 1) {
+				if (count == _fifo_gyro_samples + 1) {
 					timestamp_sample -= static_cast<int>(_sample_dt_us);
 					--count;
 				}
@@ -360,13 +342,6 @@ void TdkIcm42x::RunImpl()
 
 	case State::kWaitForReset: {
 			if (resetComplete()) {
-				// Configure with both measurement channels OFF. ICM42670P needs
-				// IDLE = 1 to keep MCLK running for indirect MREG access.
-				if (_profile.protocol == Protocol::kMreg) {
-					constexpr uint8_t kIdle { 1u << 4 };
-
-					registerWrite(AddressSpace::kBank0, _profile.power_reg, kIdle);
-				}
 
 				if (_transfer_failed) {
 					_state = State::kReset;
@@ -394,10 +369,8 @@ void TdkIcm42x::RunImpl()
 				registerWrite(AddressSpace::kBank0, _profile.power_reg, kPwrLowNoise);
 
 				if (!_transfer_failed) {
-					// No register writes for at least 200 us after OFF -> ON. This
-					// host guard also exceeds the 45 ms minimum gyro ON time and
-					// allows margin over ICM45686's typical 35 ms startup time.
-					// Packet validity checks remain required; this is not a ready bit.
+					// Preserve the conservative measurement startup guard before enabling FIFO.
+					// This is a host timing bound, not a replacement for packet validity checks.
 					_state               = State::kFifoEnable;
 					_fifo_state_ready_at = hrt_absolute_time() + 50_ms;
 					ScheduleDelayed(50_ms);
@@ -434,12 +407,8 @@ void TdkIcm42x::RunImpl()
 				_state = State::kReset;
 				ScheduleDelayed(100_ms);
 
-			} else if ((_profile.protocol == Protocol::kBanked && _profile.packet_format == PacketFormat::kHighRes20)
-				   || _profile.protocol == Protocol::kDirect456
-				   || _profile.protocol == Protocol::kMreg) {
-				// Preserve the original high-resolution banked and ICM45686 startup guard.
-				// ICM42670P uses the same host guard; its original path did not wait here.
-				// Let initial ODR-change records enter the FIFO before the startup flush.
+			} else if (_profile.packet_format == PacketFormat::kHighRes20) {
+				// Let initial ODR-change records enter the FIFO before the guarded startup flush.
 				_state               = State::kFifoReset;
 				_fifo_state_ready_at = hrt_absolute_time() + 1_ms;
 				ScheduleDelayed(1_ms);
@@ -501,8 +470,6 @@ bool TdkIcm42x::checkConfiguration()
 		AddressSpace::kBank0,
 		AddressSpace::kBank1,
 		AddressSpace::kBank2,
-		AddressSpace::kMreg1,
-		AddressSpace::kIreg,
 	};
 
 	static_assert(sizeof(spaces) / sizeof(spaces[0]) == sizeof(_checked_register), "Register check cursor count");
@@ -540,16 +507,7 @@ bool TdkIcm42x::deferredConfiguration(const RegisterConfig &config) const
 		return true;
 	}
 
-	if (_profile.protocol == Protocol::kDirect456) {
-		using namespace tdk_icm45686_registers;
-
-		return config.reg == static_cast<uint16_t>(Register::BANK_0::FIFO_CONFIG0)
-		       || config.reg == static_cast<uint16_t>(Register::BANK_0::FIFO_CONFIG3);
-	}
-
-	const uint16_t mode_register = _profile.protocol == Protocol::kMreg
-				       ? static_cast<uint16_t>(tdk_icm42670p_registers::Register::BANK_0::FIFO_CONFIG1)
-				       : static_cast<uint16_t>(tdk_icm42x_registers::Register::BANK_0::FIFO_CONFIG);
+	const uint16_t mode_register = static_cast<uint16_t>(tdk_icm42x_registers::Register::BANK_0::FIFO_CONFIG);
 
 	return config.reg == mode_register;
 }
@@ -562,17 +520,6 @@ bool TdkIcm42x::configure()
 		return false;
 	}
 
-	if (_profile.protocol == Protocol::kDirect456) {
-		using namespace tdk_icm45686_registers;
-
-		// FIFO_CONFIG2's watermark comparator may only change in bypass mode.
-		const uint8_t mode = registerRead(AddressSpace::kBank0, static_cast<uint16_t>(Register::BANK_0::FIFO_CONFIG0));
-
-		if ((mode & static_cast<uint8_t>(FIFO_CONFIG0_BIT::FIFO_MODE_BYPASS_CLEAR)) != 0 || _transfer_failed) {
-			return false;
-		}
-	}
-
 	for (uint8_t i = 0; i < _register_cfg_count; ++i) {
 		if (!deferredConfiguration(_register_cfg[i])) {
 			registerSetAndClearBits(_register_cfg[i]);
@@ -580,10 +527,6 @@ bool TdkIcm42x::configure()
 	}
 
 	// The high-byte write commits the watermark, including when it is zero.
-	if (_profile.protocol == Protocol::kDirect456) {
-		registerWrite(AddressSpace::kBank0,
-			      static_cast<uint16_t>(tdk_icm45686_registers::Register::BANK_0::FIFO_CONFIG1_1), _fifo_gyro_samples >> 8);
-	}
 
 	bool success = _register_cfg_count > 0;
 
@@ -600,8 +543,7 @@ void TdkIcm42x::selectRegisterBank(uint8_t bank, bool force)
 {
 	set_frequency(_register_frequency);
 
-	if (_profile.protocol == Protocol::kBanked
-	    && (force || !_register_bank_valid || bank != _last_register_bank)) {
+	if ((force) || (!_register_bank_valid) || (bank != _last_register_bank)) {
 		uint8_t cmd[2] { kBankSelectRegister, bank };
 
 		_register_bank_valid = transferChecked(cmd, sizeof(cmd));
@@ -615,40 +557,6 @@ void TdkIcm42x::selectRegisterBank(uint8_t bank, bool force)
 uint8_t TdkIcm42x::registerRead(AddressSpace space, uint16_t reg)
 {
 	set_frequency(_register_frequency);
-
-	if (space == AddressSpace::kIreg) {
-		uint8_t cmd[3] { kIregAddressHigh, static_cast<uint8_t>(reg >> 8), static_cast<uint8_t>(reg) };
-
-		if (!transferChecked(cmd, sizeof(cmd))) {
-			return 0;
-		}
-
-		px4_udelay(kIregDelayUs);
-
-		const uint8_t value = registerRead(AddressSpace::kBank0, kIregData);
-
-		px4_udelay(kIregDelayUs);
-
-		return value;
-	}
-
-	if (space == AddressSpace::kMreg1) {
-		if ((registerRead(AddressSpace::kBank0, kMclkReadyRegister) & kMclkReadyBit) == 0 || _transfer_failed) {
-			_transfer_failed = true;
-
-			return 0;
-		}
-
-		registerWrite(AddressSpace::kBank0, kMregReadBlock, 0);
-		registerWrite(AddressSpace::kBank0, kMregReadAddress, reg);
-		px4_udelay(kMregDelayUs);
-
-		const uint8_t value = registerRead(AddressSpace::kBank0, kMregReadData);
-
-		px4_udelay(kMregDelayUs);
-
-		return value;
-	}
 
 	selectRegisterBank(static_cast<uint8_t>(space));
 
@@ -664,30 +572,6 @@ uint8_t TdkIcm42x::registerRead(AddressSpace space, uint16_t reg)
 void TdkIcm42x::registerWrite(AddressSpace space, uint16_t reg, uint8_t value)
 {
 	set_frequency(_register_frequency);
-
-	if (space == AddressSpace::kIreg) {
-		uint8_t cmd[4] { kIregAddressHigh, static_cast<uint8_t>(reg >> 8), static_cast<uint8_t>(reg), value };
-
-		transferChecked(cmd, sizeof(cmd));
-		px4_udelay(kIregDelayUs);
-
-		return;
-	}
-
-	if (space == AddressSpace::kMreg1) {
-		if ((registerRead(AddressSpace::kBank0, kMclkReadyRegister) & kMclkReadyBit) == 0 || _transfer_failed) {
-			_transfer_failed = true;
-
-			return;
-		}
-
-		registerWrite(AddressSpace::kBank0, kMregWriteBlock, 0);
-		registerWrite(AddressSpace::kBank0, kMregWriteAddress, reg);
-		registerWrite(AddressSpace::kBank0, kMregWriteData, value);
-		px4_udelay(kMregDelayUs);
-
-		return;
-	}
 
 	selectRegisterBank(static_cast<uint8_t>(space));
 
@@ -733,8 +617,7 @@ uint16_t TdkIcm42x::fifoReadCount()
 	set_frequency(_data_frequency);
 
 	uint8_t cmd[3] {};
-	// Retain the existing ICM45686 workaround for a stale first count read.
-	const unsigned reads = _profile.protocol == Protocol::kDirect456 ? 2 : 1;
+	const unsigned reads = 1;
 
 	for (unsigned i = 0; i < reads; ++i) {
 		cmd[0] = _profile.fifo_count_reg | kDirRead;
@@ -751,8 +634,7 @@ bool TdkIcm42x::fifoRead(const hrt_abstime &timestamp_sample, uint8_t requested_
 {
 	selectRegisterBank(0);
 	set_frequency(_data_frequency);
-	_fifo_transfer[0] = static_cast<uint8_t>((_profile.protocol == Protocol::kDirect456
-			    ? _profile.fifo_data_reg : _profile.int_status_reg) | kDirRead);
+	_fifo_transfer[0] = static_cast<uint8_t>((_profile.int_status_reg) | kDirRead);
 	const size_t transfer_size = _profile.fifo_transfer_prefix + requested_samples * _profile.packet_size;
 
 	if (requested_samples == 0
@@ -762,7 +644,7 @@ bool TdkIcm42x::fifoRead(const hrt_abstime &timestamp_sample, uint8_t requested_
 		return false;
 	}
 
-	if (_profile.protocol != Protocol::kDirect456 && (_fifo_transfer[1] & _profile.fifo_full_bit)) {
+	if (_fifo_transfer[1] & _profile.fifo_full_bit) {
 		_fifo_perf.overflow.count();
 		fifoReset();
 
@@ -771,25 +653,23 @@ bool TdkIcm42x::fifoRead(const hrt_abstime &timestamp_sample, uint8_t requested_
 
 	uint8_t available_samples = requested_samples;
 
-	// Banked/MREG transfers include a count snapshot before the payload; ICM45686 reads the payload directly.
+	// This transfer contains a count snapshot before the FIFO payload.
 	// Compare counts and capacity in the model's native units before converting to complete packets.
-	if (_profile.protocol != Protocol::kDirect456) {
-		const uint8_t  count_offset   = _profile.fifo_transfer_prefix - 2;
-		const uint16_t embedded_count = combineUnsigned(_fifo_transfer[count_offset], _fifo_transfer[count_offset + 1]);
-		const uint16_t capacity = _profile.fifo_count_is_records ? _profile.fifo_capacity / _profile.packet_size : _profile.fifo_capacity;
+	const uint8_t  count_offset   = _profile.fifo_transfer_prefix - 2;
+	const uint16_t embedded_count = combineUnsigned(_fifo_transfer[count_offset], _fifo_transfer[count_offset + 1]);
+	const uint16_t capacity = _profile.fifo_count_is_records ? _profile.fifo_capacity / _profile.packet_size : _profile.fifo_capacity;
 
-		if (embedded_count >= capacity) {
-			_fifo_perf.overflow.count();
-			fifoReset();
+	if (embedded_count >= capacity) {
+		_fifo_perf.overflow.count();
+		fifoReset();
 
-			return false;
-		}
-
-		const uint16_t embedded_samples = _profile.fifo_count_is_records ? embedded_count
-						  : embedded_count / _profile.packet_size;
-		available_samples = static_cast<uint8_t>(math::min(static_cast<unsigned>(requested_samples),
-				    static_cast<unsigned>(embedded_samples)));
+		return false;
 	}
+
+	const uint16_t embedded_samples = _profile.fifo_count_is_records ? embedded_count
+					  : embedded_count / _profile.packet_size;
+	available_samples = static_cast<uint8_t>(math::min(static_cast<unsigned>(requested_samples),
+			    static_cast<unsigned>(embedded_samples)));
 
 	if (available_samples == 0) {
 		_fifo_perf.empty.count();
@@ -807,15 +687,15 @@ bool TdkIcm42x::fifoRead(const hrt_abstime &timestamp_sample, uint8_t requested_
 
 	imu::FifoSampleStats temperatures;
 
-	using Sample = tdk_icm42x_fifo::Sample;
+	using Sample = tdk_packet_fifo::Sample;
 	Sample sample;
-	const bool    little           = _profile.packet_format == PacketFormat::kStandard16LittleEndian;
+	const bool    little           = false;
 	const bool    timestamp_header = _profile.packet_format == PacketFormat::kHighRes20 || little;
 	const uint8_t *data            = &_fifo_transfer[_profile.fifo_transfer_prefix];
 	const auto decode = [this, little, timestamp_header, &temperatures](imu::ByteCursor & cursor, Sample & decoded) {
 		const uint8_t *packet = cursor.take(_profile.packet_size);
 
-		if (!tdk_icm42x_fifo::decodePacket(
+		if (!tdk_packet_fifo::decodePacket(
 			    packet,
 			    _profile.packet_size,
 			    little,
@@ -851,8 +731,6 @@ bool TdkIcm42x::fifoRead(const hrt_abstime &timestamp_sample, uint8_t requested_
 
 	// The previous per-axis loops retained only the last packet's interval.
 	// Compute that same value once for both publishers, with no hot-path division.
-	// ICM45686 AN-000478 section 7.1: FIFO TMST uses the internal clock even with CLKIN.
-	// Its sample interval follows the scaled ODR; it is not TMST divided by the external clock.
 	const float dt = _profile.packet_format == PacketFormat::kHighRes20
 			 ? sample.timestamp * _timestamp_scale_us
 			 : _sample_dt_us;
@@ -912,7 +790,7 @@ void TdkIcm42x::updateTemperature()
 		return;
 	}
 
-	const int16_t raw = _profile.packet_format == PacketFormat::kStandard16LittleEndian ? combine(cmd[2], cmd[1]) : combine(cmd[1], cmd[2]);
+	const int16_t raw = combine(cmd[1], cmd[2]);
 	const float temperature = raw / _profile.temperature_sensitivity
 				  + _profile.temperature_offset;
 
@@ -926,55 +804,10 @@ void TdkIcm42x::fifoReset()
 {
 	_fifo_perf.reset.count();
 
-	if (_profile.protocol == Protocol::kDirect456) {
-		using namespace tdk_icm45686_registers;
+	registerSetAndClearBits({AddressSpace::kBank0, _profile.signal_path_reset_reg, _profile.fifo_flush_bit, 0});
 
-		// Disable every FIFO source before entering bypass mode and restoring the configured depth.
-		registerSetAndClearBits({
-			AddressSpace::kBank0, static_cast<uint16_t>(Register::BANK_0::FIFO_CONFIG3), 0,
-			static_cast<uint8_t>(FIFO_CONFIG3_BIT::FIFO_ES1_EN)
-			| static_cast<uint8_t>(FIFO_CONFIG3_BIT::FIFO_ES0_EN)
-			| static_cast<uint8_t>(FIFO_CONFIG3_BIT::FIFO_HIRES_EN)
-			| static_cast<uint8_t>(FIFO_CONFIG3_BIT::FIFO_GYRO_EN)
-			| static_cast<uint8_t>(FIFO_CONFIG3_BIT::FIFO_ACCEL_EN)
-			| static_cast<uint8_t>(FIFO_CONFIG3_BIT::FIFO_IF_EN)
-		});
-		registerSetAndClearBits({
-			AddressSpace::kBank0, static_cast<uint16_t>(Register::BANK_0::FIFO_CONFIG0),
-			static_cast<uint8_t>(FIFO_CONFIG0_BIT::FIFO_MODE_BYPASS_SET),
-			static_cast<uint8_t>(FIFO_CONFIG0_BIT::FIFO_MODE_BYPASS_CLEAR)
-		});
-		registerSetAndClearBits({
-			AddressSpace::kBank0, static_cast<uint16_t>(Register::BANK_0::FIFO_CONFIG0),
-			static_cast<uint8_t>(FIFO_CONFIG0_BIT::FIFO_DEPTH_8K_SET), 0
-		});
-
-		// Restore stop-on-full mode, then enable only the inertial channels and FIFO interface.
-		registerSetAndClearBits({
-			AddressSpace::kBank0, static_cast<uint16_t>(Register::BANK_0::FIFO_CONFIG0),
-			static_cast<uint8_t>(FIFO_CONFIG0_BIT::FIFO_MODE_STOP_ON_FULL_SET),
-			static_cast<uint8_t>(FIFO_CONFIG0_BIT::FIFO_MODE_STOP_ON_FULL_CLEAR)
-		});
-		registerSetAndClearBits({
-			AddressSpace::kBank0, static_cast<uint16_t>(Register::BANK_0::FIFO_CONFIG3),
-			static_cast<uint8_t>(FIFO_CONFIG3_BIT::FIFO_GYRO_EN)
-			| static_cast<uint8_t>(FIFO_CONFIG3_BIT::FIFO_ACCEL_EN)
-			| static_cast<uint8_t>(FIFO_CONFIG3_BIT::FIFO_IF_EN), 0
-		});
-
-	} else {
-		registerSetAndClearBits({AddressSpace::kBank0, _profile.signal_path_reset_reg, _profile.fifo_flush_bit, 0});
-
-		if (_profile.protocol == Protocol::kMreg) {
-			px4_udelay(2); // Datasheet: wait at least 1.5 us before checking FIFO_FLUSH.
-
-			if (registerRead(AddressSpace::kBank0, _profile.signal_path_reset_reg) & _profile.fifo_flush_bit) {
-				_transfer_failed = true;
-			}
-
-		} else if (_profile.variant == Variant::kIcm40609D) {
-			registerRead(AddressSpace::kBank0, _profile.int_status_reg);
-		}
+	if (_profile.variant == Variant::kIcm40609D) {
+		registerRead(AddressSpace::kBank0, _profile.int_status_reg);
 	}
 
 	_drdy_timestamp_sample.store(0);

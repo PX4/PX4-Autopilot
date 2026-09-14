@@ -2,28 +2,13 @@ menuconfig DRIVERS_IMU_TDK_TDK_DIRECT
 	bool "TDK direct-register SPI FIFO family"
 	default n
 	help
-	  Shared SPI six-axis implementation. Start requires an exact -T model.
+	  Shared SPI six-axis implementation. All commands require an exact -T model.
 	  Original drivers remain available for comparison.
 
 if DRIVERS_IMU_TDK_TDK_DIRECT
 
-config TDK_DIRECT_MPU6000
-	bool "MPU6000"
-	default y
-
 config TDK_DIRECT_MPU6500
 	bool "MPU6500"
-	default y
-
-config TDK_DIRECT_MPU9250
-	bool "MPU9250 (SPI six-axis only)"
-	default n
-	help
-	  Accelerometer and gyroscope only. The original MPU9250 driver remains
-	  available for AK8963 magnetometer, auxiliary bus and I2C support.
-
-config TDK_DIRECT_ICM20602
-	bool "ICM20602"
 	default y
 
 config TDK_DIRECT_ICM20608G

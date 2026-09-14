@@ -43,43 +43,6 @@ namespace
 {
 using Variant = TdkDirect::Variant;
 
-#if defined(CONFIG_TDK_DIRECT_MPU6000)
-constexpr TdkDirect::Profile mpu6000Profile()
-{
-	TdkDirect::Profile profile {};
-
-	profile.device.name                 = "mpu6000";
-	profile.device.device_type          = DRV_IMU_DEVTYPE_MPU6000;
-	profile.device.frequency            = 1_MHz;
-	profile.device.data_frequency       = 5_MHz;
-	profile.device.mode                 = SPIDEV_MODE3;
-	profile.device.max_transfer_bytes   = TdkDirect::maxTransferSize(FIFO_PACKET_SIZE_CLASSIC);
-	profile.device.data_prefix_bytes    = 1;
-	profile.device.max_clock_hz         = 0;
-	profile.device.register_dummy_bytes = 0;
-	profile.device.continuous_data_cs   = true;
-
-	profile.variant              = Variant::kMpu6000;
-	profile.whoami               = 0x68;
-	profile.fifo_size            = 1024;
-	profile.fifo_packet_size     = FIFO_PACKET_SIZE_CLASSIC;
-	profile.gyro_offset          = 6;
-	profile.samples_per_transfer = 8;
-
-	profile.temperature_sensitivity = 340.f;
-	profile.temperature_offset      = 36.53f;
-
-	profile.reset_pwr_value           = static_cast<uint8_t>(PWR_MGMT_1_BIT::SLEEP);
-	profile.reset_wait_us             = 100_ms;
-	profile.configure_wait_us         = 100_ms;
-	profile.check_reset_pwr           = true;
-	profile.check_reset_config        = false;
-	profile.has_factory_accel_offsets = false;
-	profile.has_fifo_temperature      = false;
-
-	return profile;
-}
-#endif // CONFIG_TDK_DIRECT_MPU6000
 
 #if defined(CONFIG_TDK_DIRECT_MPU6500)
 constexpr TdkDirect::Profile mpu6500Profile()
@@ -119,81 +82,7 @@ constexpr TdkDirect::Profile mpu6500Profile()
 }
 #endif // CONFIG_TDK_DIRECT_MPU6500
 
-#if defined(CONFIG_TDK_DIRECT_MPU9250)
-constexpr TdkDirect::Profile mpu9250Profile()
-{
-	TdkDirect::Profile profile {};
 
-	profile.device.name                 = "mpu9250";
-	profile.device.device_type          = DRV_IMU_DEVTYPE_MPU9250;
-	profile.device.frequency            = 1_MHz;
-	profile.device.data_frequency       = 10_MHz;
-	profile.device.mode                 = SPIDEV_MODE3;
-	profile.device.max_transfer_bytes   = TdkDirect::maxTransferSize(FIFO_PACKET_SIZE_CLASSIC);
-	profile.device.data_prefix_bytes    = 1;
-	profile.device.max_clock_hz         = 0;
-	profile.device.register_dummy_bytes = 0;
-	profile.device.continuous_data_cs   = true;
-
-	profile.variant              = Variant::kMpu9250;
-	profile.whoami               = 0x71;
-	profile.fifo_size            = 512;
-	profile.fifo_packet_size     = FIFO_PACKET_SIZE_CLASSIC;
-	profile.gyro_offset          = 6;
-	profile.samples_per_transfer = 2;
-
-	profile.temperature_sensitivity = 333.87f;
-	profile.temperature_offset      = 21.f;
-
-	profile.reset_pwr_value           = static_cast<uint8_t>(PWR_MGMT_1_BIT::CLKSEL_0);
-	profile.reset_wait_us             = 100_ms;
-	profile.configure_wait_us         = 100_ms;
-	profile.check_reset_pwr           = true;
-	profile.check_reset_config        = false;
-	profile.has_factory_accel_offsets = true;
-	profile.has_fifo_temperature      = false;
-
-	return profile;
-}
-#endif // CONFIG_TDK_DIRECT_MPU9250
-
-#if defined(CONFIG_TDK_DIRECT_ICM20602)
-constexpr TdkDirect::Profile icm20602Profile()
-{
-	TdkDirect::Profile profile {};
-
-	profile.device.name                 = "icm20602";
-	profile.device.device_type          = DRV_IMU_DEVTYPE_ICM20602;
-	profile.device.frequency            = 10_MHz;
-	profile.device.data_frequency       = 10_MHz;
-	profile.device.mode                 = SPIDEV_MODE3;
-	profile.device.max_transfer_bytes   = TdkDirect::maxTransferSize(FIFO_PACKET_SIZE_ICM20602, 3);
-	profile.device.data_prefix_bytes    = 3; // Command and the latched FIFO count precede the payload.
-	profile.device.max_clock_hz         = 0;
-	profile.device.register_dummy_bytes = 0;
-	profile.device.continuous_data_cs   = true;
-
-	profile.variant              = Variant::kIcm20602;
-	profile.whoami               = 0x12;
-	profile.fifo_size            = 1008;
-	profile.fifo_packet_size     = FIFO_PACKET_SIZE_ICM20602;
-	profile.gyro_offset          = 8;
-	profile.samples_per_transfer = 2;
-
-	profile.temperature_sensitivity = 326.8f;
-	profile.temperature_offset      = 25.f;
-
-	profile.reset_pwr_value           = static_cast<uint8_t>(PWR_MGMT_1_BIT::SLEEP) | static_cast<uint8_t>(PWR_MGMT_1_BIT::CLKSEL_0);
-	profile.reset_wait_us             = 2_ms;
-	profile.configure_wait_us         = 35_ms;
-	profile.check_reset_pwr           = true;
-	profile.check_reset_config        = true;
-	profile.has_factory_accel_offsets = true;
-	profile.has_fifo_temperature      = true;
-
-	return profile;
-}
-#endif // CONFIG_TDK_DIRECT_ICM20602
 
 #if defined(CONFIG_TDK_DIRECT_ICM20608G)
 constexpr TdkDirect::Profile icm20608GProfile()
@@ -310,21 +199,12 @@ constexpr TdkDirect::Profile iam20680HPProfile()
 #endif // CONFIG_TDK_DIRECT_IAM20680HP
 
 constexpr TdkDirect::Profile kModels[] {
-#if defined(CONFIG_TDK_DIRECT_MPU6000)
-	mpu6000Profile(),
-#endif // CONFIG_TDK_DIRECT_MPU6000
 
 #if defined(CONFIG_TDK_DIRECT_MPU6500)
 	mpu6500Profile(),
 #endif // CONFIG_TDK_DIRECT_MPU6500
 
-#if defined(CONFIG_TDK_DIRECT_MPU9250)
-	mpu9250Profile(),
-#endif // CONFIG_TDK_DIRECT_MPU9250
 
-#if defined(CONFIG_TDK_DIRECT_ICM20602)
-	icm20602Profile(),
-#endif // CONFIG_TDK_DIRECT_ICM20602
 
 #if defined(CONFIG_TDK_DIRECT_ICM20608G)
 	icm20608GProfile(),
@@ -348,30 +228,28 @@ void TdkDirect::print_usage()
 SPI driver for TDK flat-register IMUs with fixed-stride FIFOs.
 The family shares acquisition and native accel/gyro FIFO publication, while
 initialization, sample repetition and SPI phase limits remain model-specific.
-MPU9250 support is SPI six-axis only: no AK8963, auxiliary master or I2C transport.
-Its original driver remains available for those features.
 
-Model availability depends on Kconfig. Start requires an exact -T model; stop/status
-may omit -T to visit all compiled family instances matching the native bus selectors.
+Model availability depends on Kconfig. All commands require an exact -T model.
+Native bus selectors restrict operations to matching instances of that model.
 Without a bus selector, start uses board-registered internal SPI devices of the selected type.
 
 ### Examples
 ```
-tdk_direct -T mpu6000 start
-tdk_direct -T mpu6000 status
-tdk_direct stop
+tdk_direct -T mpu6500 start
+tdk_direct -T mpu6500 status
+tdk_direct -T icm20689 stop
 ```
 )DESCR");
 	PRINT_MODULE_USAGE_NAME("tdk_direct", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('T', nullptr,
-		"mpu6000 | mpu6500 | mpu9250 | icm20602 | icm20608g | icm20689 | iam20680hp",
-		"Exact model (required for start; availability depends on Kconfig)", false);
+		"mpu6500 | icm20608g | icm20689 | iam20680hp",
+		"Exact model (required for all commands; availability depends on Kconfig)", false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, ROTATION_MAX - 1, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop instances; omit -T for all compiled family models");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print instances; omit -T for all compiled family models");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop instances of the required -T model");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print instances of the required -T model");
 
 	for (const auto &model : kModels) {
 		PX4_INFO("-T %s", model.device.name);

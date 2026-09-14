@@ -190,15 +190,18 @@ inline SpiCommand parseSpiCommand(const char *verb)
  * and an unspecified bus becomes SPIInternal. Stop/status do not apply these start-only constraints.
  * @param[in] instance_key Stable lifecycle key; models sharing a device ID need distinct keys for exact-model filtering.
  * @param[in] device Immutable endpoint limits and existing board registration ID.
+ * @param[out] stop_failed Optional sticky flag: set when a failed stop leaves matching instances registered.
  * @return Native lifecycle result, or PX4_ERROR for unsupported mode, frequency or clock input.
- * @pre cli.custom_data contains the family constructor arguments; the constructor must copy temporary options.
+ * @pre For a family driver, cli.custom_data contains its constructor arguments; temporary options must be copied.
+ * A single-model driver needs no opaque model pointer.
  */
 template<typename Driver>
 int dispatchSpiCommand(
 	SpiCommand command,
 	BusCLIArguments &cli,
 	const char *instance_key,
-	const SpiModel &device)
+	const SpiModel &device,
+	bool *stop_failed = nullptr)
 {
 	if (command == SpiCommand::kInvalid) {
 		return PX4_ERROR;
@@ -227,44 +230,56 @@ int dispatchSpiCommand(
 		cli.bus_frequency = spiConfigFrequency(device, cli.custom2);
 	}
 
-	BusInstanceIterator iterator(instance_key, cli, device.device_type);
+	int result;
 
-	return command == SpiCommand::kStart ? Driver::module_start(cli, iterator)
-	       : command == SpiCommand::kStop ? Driver::module_stop(iterator)
-	       : Driver::module_status(iterator);
+	{
+		BusInstanceIterator iterator(instance_key, cli, device.device_type);
+
+		result = command == SpiCommand::kStart ? Driver::module_start(cli, iterator)
+			 : command == SpiCommand::kStop ? Driver::module_stop(iterator)
+			 : Driver::module_status(iterator);
+	}
+
+	if (command == SpiCommand::kStop && result != PX4_OK && stop_failed) {
+		// Native stop uses the same error for no instance and a stop timeout. Recheck
+		// exact selectors after releasing its iterator lock; never nest list locks.
+		// A concurrent completed stop is harmless. Any remaining instance makes the
+		// aggregate fail conservatively, including one started concurrently.
+		BusInstanceIterator remaining(instance_key, cli, device.device_type);
+
+		while (remaining.next()) {
+			if (remaining.instance()) {
+				*stop_failed = true;
+				break;
+			}
+		}
+	}
+
+	return result;
 }
 
+/** Parsed SPI selectors, independent of whether the driver supports one or several models. */
+struct SpiOptions {
+	const char *type { nullptr };
+	char component { 0 };
+	SpiCommand command { SpiCommand::kInvalid };
+};
+
 /**
- * @brief Family front end using PX4's existing bus iterator and instance lifecycle.
- * @tparam Driver Native driver with print_usage() and the lifecycle methods required by dispatchSpiCommand().
- * @tparam Model Type containing a SpiModel member named device.
- * @tparam model_count Number of compiled endpoint profiles.
- * @param[in] argc Native command-line argument count.
- * @param[in] argv Native command-line arguments; start requires an exact -T model.
- * @param[in] module_name Stable instance key for this family.
- * @param[in] models Immutable endpoint profiles with static storage duration, passed through cli.custom_data.
- * @return PX4_OK if at least one selected endpoint operation succeeds; PX4_ERROR otherwise.
- * @pre Distinct exact models must not share a device ID within this front end; split endpoints use their
- * existing separate accel/gyro IDs. Families sharing IDs must select unique instance keys themselves.
- * @note No probing occurs without an explicit type. Split start requires exactly one of -A/-G;
- * integrated start accepts neither. Untyped stop/status visit all compiled endpoints, optionally filtered
- * by component and native bus selectors. Success does not imply every matching endpoint started.
+ * @brief Parse native bus options and common model, rotation, clock and component selectors.
+ * @param[in] argc Native argument count.
+ * @param[in] argv Native command-line arguments.
+ * @param[in,out] cli Bus options; the caller sets the default SPI mode before parsing.
+ * @param[out] options Parsed selectors and lifecycle command; discard on failure.
+ * @return True for a valid command and selectors; model-specific validation is deferred to dispatch.
  */
-template<typename Driver, typename Model, size_t model_count>
-int spiFamilyMain(
-	int argc,
-	char *argv[],
-	const char *module_name,
-	const Model(&models)[model_count])
+inline bool parseSpiOptions(int argc, char *argv[], BusCLIArguments &cli, SpiOptions &options)
 {
 	using namespace frequency_literals;
 
-	BusCLIArguments cli { false, true };
 
-	cli.default_spi_frequency = 0; // The selected endpoint supplies the default below.
-
-	const char *type     = nullptr;
-	char       component = 0;
+	const char *&type = options.type;
+	char &component = options.component;
 	int ch;
 
 	while ((ch = cli.getOpt(argc, argv, "T:R:C:AG")) != EOF) {
@@ -278,7 +293,7 @@ int spiFamilyMain(
 				int rotation;
 
 				if (!parseInteger(cli.optArg(), 0, ROTATION_MAX - 1, rotation)) {
-					return PX4_ERROR;
+					return false;
 				}
 
 				cli.rotation = static_cast<Rotation>(rotation);
@@ -287,7 +302,7 @@ int spiFamilyMain(
 
 		case 'C': {
 				if (!parseInteger(cli.optArg(), 1_Hz, 1_MHz, cli.custom1)) {
-					return PX4_ERROR;
+					return false;
 				}
 
 				break;
@@ -298,7 +313,7 @@ int spiFamilyMain(
 				if (component && component != ch) {
 					PX4_ERR("select one endpoint: -A or -G");
 
-					return PX4_ERROR;
+					return false;
 				}
 
 				component = ch;
@@ -306,29 +321,66 @@ int spiFamilyMain(
 			}
 
 		default: {
-				Driver::print_usage();
-
-				return PX4_ERROR;
+				return false;
 			}
 		}
 	}
 
-	const SpiCommand command = parseSpiCommand(cli.optArg());
-	const bool       start   = command == SpiCommand::kStart;
+	options.command = parseSpiCommand(cli.optArg());
 
-	if (command == SpiCommand::kInvalid || (start && !type)) {
+	return options.command != SpiCommand::kInvalid;
+}
+
+/**
+ * @brief Family front end using PX4's existing bus iterator and instance lifecycle.
+ * @tparam Driver Native driver with print_usage() and the lifecycle methods required by dispatchSpiCommand().
+ * @tparam Model Type containing a SpiModel member named device.
+ * @tparam model_count Number of compiled endpoint profiles.
+ * @param[in] argc Native command-line argument count.
+ * @param[in] argv Native command-line arguments; every command requires an exact -T model.
+ * @param[in] module_name Stable instance key for this family.
+ * @param[in] models Immutable endpoint profiles with static storage duration, passed through cli.custom_data.
+ * @return PX4_OK if at least one selected endpoint succeeds and no failed stop leaves a matching instance.
+ * PX4_ERROR otherwise; endpoints that were not running do not mask a successful stop of another endpoint.
+ * @pre Distinct exact models must not share a device ID within this front end; split endpoints use their
+ * existing separate accel/gyro IDs. Families sharing IDs must select unique instance keys themselves.
+ * @note No lifecycle operation occurs without an explicit type. Split start requires exactly one of -A/-G;
+ * integrated start accepts neither. Typed stop/status may select both split endpoints, optionally filtered
+ * by component and native bus selectors. Success does not imply every matching endpoint started.
+ */
+template<typename Driver, typename Model, size_t model_count>
+int spiFamilyMain(
+	int argc,
+	char *argv[],
+	const char *module_name,
+	const Model(&models)[model_count])
+{
+	BusCLIArguments cli { false, true };
+	SpiOptions options {};
+
+	cli.default_spi_frequency = 0; // The selected endpoint supplies the default below.
+
+	if (!parseSpiOptions(argc, argv, cli, options)
+	    || !options.type
+	    || !*options.type) {
 		Driver::print_usage();
 
 		return PX4_ERROR;
 	}
 
-	int  result  = PX4_ERROR;
-	bool matched = false;
+	const SpiCommand command = options.command;
+	const bool start = command == SpiCommand::kStart;
+	const char *type = options.type;
+	const char component = options.component;
+
+	int  result      = PX4_ERROR;
+	bool matched     = false;
+	bool stop_failed = false;
 
 	for (const Model &model : models) {
 		const SpiModel &device = model.device;
 
-		if ((type && strcmp(type, device.name) != 0) || (component && component != device.component)) {
+		if (strcmp(type, device.name) != 0 || (component && component != device.component)) {
 			continue;
 		}
 
@@ -345,7 +397,7 @@ int spiFamilyMain(
 		// Models are immutable; the PX4 opaque argument is not const-qualified.
 		cli.custom_data = const_cast<Model *>(&model);
 
-		const int ret = dispatchSpiCommand<Driver>(command, cli, module_name, device);
+		const int ret = dispatchSpiCommand<Driver>(command, cli, module_name, device, &stop_failed);
 
 		if (ret == PX4_OK) {
 			result = PX4_OK;
@@ -356,7 +408,48 @@ int spiFamilyMain(
 		PX4_ERR("type or endpoint not compiled in this family");
 	}
 
-	return result;
+	return stop_failed ? PX4_ERROR : result;
+}
+
+/**
+ * @brief Front end for one immutable SPI endpoint without a single-element family table.
+ * @tparam Driver Native SPI driver providing constexpr spiModel(), print_usage() and lifecycle methods.
+ * @param[in] argc Native argument count.
+ * @param[in] argv Native arguments; -T is optional and, if supplied, must match the sole model.
+ * @param[in] module_name Stable native lifecycle key.
+ * @return Native lifecycle result, or PX4_ERROR for invalid selectors.
+ * @note Omitted -T selects only this model, never a scan of unrelated device types.
+ * An optional -A/-G must match the sole endpoint; no component selector is required.
+ * The existing multi-model front end keeps its explicit-type and split-selection rules.
+ */
+template<typename Driver>
+int spiSingleMain(
+	int argc,
+	char *argv[],
+	const char *module_name)
+{
+	constexpr SpiModel device { Driver::spiModel() };
+	BusCLIArguments cli { false, true };
+	SpiOptions options {};
+
+	cli.default_spi_frequency = 0;
+	cli.spi_mode = device.mode;
+
+	if (!parseSpiOptions(argc, argv, cli, options)) {
+		Driver::print_usage();
+
+		return PX4_ERROR;
+	}
+
+	if ((options.type && strcmp(options.type, device.name) != 0)
+	    || (options.component && options.component != device.component)) {
+		PX4_ERR("type or endpoint does not match this driver");
+
+		return PX4_ERROR;
+	}
+
+	// An exact endpoint needs no runtime model pointer or family constructor arguments.
+	return dispatchSpiCommand<Driver>(options.command, cli, module_name, device);
 }
 
 } // namespace imu

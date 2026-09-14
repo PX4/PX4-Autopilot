@@ -36,11 +36,12 @@
 #include "../../common/FifoPerfCounters.hpp"
 #include "../../common/FifoSampleStats.hpp"
 
-#include "TdkIcm42xConfigs.hpp"
-#include "../TdkPacketModel.hpp"
+#include "TdkIcm45686Configs.hpp"
+#include "TdkIcm45686Registers.hpp"
 #include "../../common/SpiFamily.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_sensor.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/device/spi.h>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -50,12 +51,12 @@
 #include <uORB/topics/sensor_accel_fifo.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
 
-/** @brief TDK packet-FIFO SPI family retaining per-model register, wire and recovery policies. */
-class TdkIcm42x final : public device::SPI, public I2CSPIDriver<TdkIcm42x>
+/** @brief ICM45686 SPI endpoint with a dedicated register-access and FIFO recovery sequence. */
+class TdkIcm45686 final : public device::SPI, public I2CSPIDriver<TdkIcm45686>
 {
 public:
-	TdkIcm42x(const I2CSPIDriverConfig &config);
-	~TdkIcm42x() override;
+	TdkIcm45686(const I2CSPIDriverConfig &config);
+	~TdkIcm45686() override;
 
 	static void print_usage();
 
@@ -69,25 +70,71 @@ public:
 	int init() override;
 	void print_status() override;
 
-	using Variant = tdk_packet::Variant;
 	using AddressSpace = tdk_packet::AddressSpace;
 	using RegisterConfig = tdk_packet::RegisterConfig;
-	using Protocol = tdk_packet::Protocol;
-	using PacketFormat = tdk_packet::PacketFormat;
-	using Profile = tdk_packet::Profile;
+
+	/** Compile-time SPI limits shared with the native single-model command line. */
+	static constexpr imu::SpiModel spiModel()
+	{
+		using namespace frequency_literals;
+
+		imu::SpiModel device {};
+
+		device.name                 = "icm45686";
+		device.device_type          = DRV_IMU_DEVTYPE_ICM45686;
+		device.frequency            = 24_MHz;
+		device.data_frequency       = 24_MHz;
+		device.mode                 = SPIDEV_MODE3;
+		device.max_transfer_bytes   = maxTransferSize(kPacketSize, kFifoTransferPrefix);
+		device.data_prefix_bytes    = kFifoTransferPrefix;
+		device.min_clock_hz         = 20_kHz;
+		device.max_clock_hz         = 40_kHz;
+		device.register_dummy_bytes = 0;
+		device.continuous_data_cs   = true;
+
+		return device;
+	}
 
 	static constexpr uint8_t kFifoMaxSamples{
 		static_cast<uint8_t>(sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0]))
 	};
 
 private:
-	static constexpr uint8_t kFifoPacketSizeMax     { 20 };
-	static constexpr uint8_t kFifoTransferPrefixMax { 4 };
+	static constexpr uint8_t kPwrLowNoise { 0x0f }; // Accel and gyro low-noise mode fields.
+
+	// Fixed wire layout, conversion and reset timing for this endpoint.
+	static constexpr uint8_t  kWhoAmI                 { 0xe9 };
+	static constexpr uint16_t kFifoCapacity           { tdk_icm45686_registers::FIFO::SIZE };
+	static constexpr uint16_t kOutputDataRateHz       { 6400 };
+	static constexpr uint8_t  kPacketSize             { sizeof(tdk_icm45686_registers::FIFO::DATA) };
+	static constexpr float    kAccelRangeG            { 32.f };
+	static constexpr float    kGyroRangeDps           { 4000.f };
+	static constexpr float    kTemperatureSensitivity { tdk_icm45686_registers::TEMPERATURE_SENSITIVITY };
+	static constexpr float    kTemperatureOffset      { tdk_icm45686_registers::TEMPERATURE_OFFSET };
+	static constexpr uint8_t kWhoAmIRegister {
+		static_cast<uint8_t>(tdk_icm45686_registers::Register::BANK_0::WHO_AM_I)
+	};
+	static constexpr uint8_t kResetReg { static_cast<uint8_t>(tdk_icm45686_registers::Register::BANK_0::REG_MISC2) };
+	static constexpr uint8_t kResetBit { static_cast<uint8_t>(tdk_icm45686_registers::REG_MISC2_BIT::SOFT_RST) };
+	static constexpr uint8_t kPowerReg { static_cast<uint8_t>(tdk_icm45686_registers::Register::BANK_0::PWR_MGMT0) };
+	static constexpr uint8_t kFifoCountReg {
+		static_cast<uint8_t>(tdk_icm45686_registers::Register::BANK_0::FIFO_COUNT_0)
+	};
+	static constexpr uint8_t kFifoDataReg {
+		static_cast<uint8_t>(tdk_icm45686_registers::Register::BANK_0::FIFO_DATA)
+	};
+	static constexpr uint8_t kFifoTransferPrefix { 1 };
+	static constexpr uint8_t kTemperatureReg {
+		static_cast<uint8_t>(tdk_icm45686_registers::Register::BANK_0::TEMP_DATA1_UI)
+	};
 
 	void exit_and_cleanup() override;
 	int probe() override;
 	bool reset();
 	bool resetComplete();
+
+	/** Startup/recovery dispatch using the timestamp captured by RunImpl(); never called for normal sampling. */
+	void runInitialization(hrt_abstime now);
 	bool configure();
 
 	/** Registers enabled only after static configuration and sensor startup have completed. */
@@ -102,9 +149,10 @@ private:
 	bool dataReadyInterruptConfigure();
 	bool dataReadyInterruptDisable();
 
-	void selectRegisterBank(uint8_t bank, bool force = false);
-	uint8_t registerRead(AddressSpace space, uint16_t reg);
-	void registerWrite(AddressSpace space, uint16_t reg, uint8_t value);
+	// Keep IREG addressing and transfer-failure handling out of each register wrapper.
+	// FIFO payload/count reads do not use these low-rate register helpers.
+	__attribute__((noinline)) uint8_t registerRead(AddressSpace space, uint16_t reg);
+	__attribute__((noinline)) void registerWrite(AddressSpace space, uint16_t reg, uint8_t value);
 	void registerSetAndClearBits(const RegisterConfig &reg_cfg);
 	bool registerCheck(const RegisterConfig &reg_cfg);
 
@@ -114,21 +162,17 @@ private:
 	bool fifoRead(const hrt_abstime &timestamp_sample, uint8_t requested_samples);
 
 	void fifoReset();
-	bool processTemperature(const imu::FifoSampleStats &temperatures);
 	void updateTemperature();
 	uint64_t errorCount() const;
 
 	bool transferChecked(uint8_t *data, size_t size);
 
-	const Profile &_profile;
 	const int     _register_frequency;
 	const int     _data_frequency;
 	bool _transfer_failed     { false };
-	bool _register_bank_valid { false };
 	const spi_drdy_gpio_t _drdy_gpio;
 	const bool            _enable_clock_input;
 	const float           _sample_dt_us;
-	const float           _timestamp_scale_us;
 
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope     _px4_gyro;
@@ -145,7 +189,7 @@ private:
 	};
 
 	imu::PerfCounter<PC_COUNT> _drdy_missed_perf {
-		_drdy_gpio != 0 && _profile.data_ready_interrupt
+		_drdy_gpio != 0
 		? MODULE_NAME ": DRDY missed"
 		: nullptr
 	};
@@ -158,7 +202,6 @@ private:
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample { 0 };
 	bool    _data_ready_interrupt_enabled { false };
-	uint8_t _last_register_bank           { 0 };
 
 	enum class State : uint8_t {
 		kReset,
@@ -171,8 +214,8 @@ private:
 
 	uint16_t _fifo_empty_interval_us { 1250 };
 	uint8_t  _fifo_gyro_samples      { 1 };
-	uint8_t  _checked_register[3]    {}; ///< Independent cursors for bank 0, 1 and 2 checks.
+	uint8_t  _checked_register[2]    {}; ///< Independent cursors for direct and indirect register checks.
 	uint8_t  _register_cfg_count     { 0 };
-	RegisterConfig _register_cfg[tdk_icm42x_config::kMaxRegisterConfigs] {};
-	uint8_t _fifo_transfer[kFifoTransferPrefixMax + kFifoMaxSamples * kFifoPacketSizeMax] {};
+	RegisterConfig _register_cfg[tdk_icm45686_config::kRegisterCount] {};
+	uint8_t _fifo_transfer[kFifoTransferPrefix + kFifoMaxSamples * kPacketSize] {};
 };

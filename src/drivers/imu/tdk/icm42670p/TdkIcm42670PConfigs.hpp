@@ -35,25 +35,24 @@
 
 #include "../TdkPacketConfig.hpp"
 
-namespace tdk_icm42x_config
+namespace tdk_icm42670p_config
 {
-using Variant = tdk_packet::Variant;
 using AddressSpace = tdk_packet::AddressSpace;
 using RegisterConfig = tdk_packet::RegisterConfig;
-using Context = tdk_packet::Context;
-using tdk_packet::kMaxRegisterConfigs;
+constexpr uint8_t kRegisterCount { 12 };
+constexpr uint8_t kDirectFirst { 0 };
+constexpr uint8_t kDirectCount { 10 };
+constexpr uint8_t kIndirectFirst { 10 };
+constexpr uint8_t kIndirectCount { 2 };
 
 /**
- * @brief Fill a complete register configuration without losing the destination capacity.
- * @param[in] variant Exact chip/register dialect.
- * @param[in] context Watermark in the variant's register units and reference-clock selection.
- * @param[out] config Fixed-capacity destination; only the returned valid prefix may be used.
- * @return Register count, zero for an unsupported variant, or UINT8_MAX for invalid masks, watermark or overflow.
- * @note On error, discard the partial configuration instead of writing it to the sensor.
+ * @brief Restore the fixed configuration and fill its dynamic fields.
+ * @param[in] fifo_watermark Watermark in bytes; zero or an unrepresentable value is invalid.
+ * @param[out] config Exact-size destination; unchanged when the watermark is invalid.
+ * @return kRegisterCount on success, or UINT8_MAX for an invalid watermark.
  */
 [[nodiscard]] uint8_t load(
-	Variant variant,
-	const Context &context,
-	RegisterConfig(&config)[kMaxRegisterConfigs]);
+	uint16_t fifo_watermark,
+	RegisterConfig(&config)[kRegisterCount]);
 
-} // namespace tdk_icm42x_config
+} // namespace tdk_icm42670p_config

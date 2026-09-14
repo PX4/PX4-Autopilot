@@ -109,15 +109,15 @@ Bank selection, fixed FIFO acquisition and native accel/gyro publication are sha
 This driver does not expose ICM20948's magnetometer or auxiliary-bus bypass;
 retain the original ICM20948 driver when those features are required.
 
-Model availability depends on Kconfig. Start requires an exact -T model; stop/status
-may omit -T to visit all compiled family instances matching the native bus selectors.
+Model availability depends on Kconfig. All commands require an exact -T model.
+Native bus selectors restrict operations to matching instances of that model.
 Without a bus selector, start uses board-registered internal SPI devices of the selected type.
 
 ### Examples
 ```
 tdk_icm20x -T icm20649 start
 tdk_icm20x -T icm20948 status
-tdk_icm20x stop
+tdk_icm20x -T icm20649 stop
 ```
 )DESCR");
 	PRINT_MODULE_USAGE_NAME("tdk_icm20x", "driver");
@@ -125,11 +125,11 @@ tdk_icm20x stop
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('T', nullptr,
 		"icm20649 | icm20948",
-		"Exact model (required for start; availability depends on Kconfig)", false);
+		"Exact model (required for all commands; availability depends on Kconfig)", false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, ROTATION_MAX - 1, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop instances; omit -T for all compiled family models");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print instances; omit -T for all compiled family models");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop instances of the required -T model");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print instances of the required -T model");
 
 	for (const auto &model : kModels) {
 		PX4_INFO("-T %s", model.device.name);

@@ -420,8 +420,8 @@ Each instance uses one existing board SPI registration and the native PX4 publis
 Split sensors require exactly one of -A or -G on start; BMI270 accepts neither.
 Accel and gyro registrations remain independent; no synthetic pairing is required.
 
-Model availability depends on Kconfig. Start requires an exact -T model; stop/status
-may omit -T to visit all compiled family instances matching the native bus selectors.
+Model availability depends on Kconfig. All commands require an exact -T model.
+Native bus selectors restrict operations to matching instances of that model.
 Without a bus selector, start uses board-registered internal SPI devices of the selected type.
 
 ### Examples
@@ -430,7 +430,7 @@ bosch_direct -T bmi088 -A start
 bosch_direct -T bmi088 -G start
 bosch_direct -T bmi270 start
 bosch_direct -T bmi088 status
-bosch_direct stop
+bosch_direct -T bmi088 stop
 ```
 )DESCR");
 	PRINT_MODULE_USAGE_NAME("bosch_direct", "driver");
@@ -438,13 +438,13 @@ bosch_direct stop
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('T', nullptr,
 		"bmi055 | bmi085 | bmi088 | bmi270",
-		"Exact model (required for start; availability depends on Kconfig)", false);
+		"Exact model (required for all commands; availability depends on Kconfig)", false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, ROTATION_MAX - 1, "Rotation", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('A', "Split accel endpoint; start requires -A or -G, neither for BMI270", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('G', "Split gyro endpoint; mutually exclusive with -A", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop instances; omit -T for all compiled family models");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print instances; omit -T for all compiled family models");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop instances of the required -T model");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print instances of the required -T model");
 }
 
 extern "C" __EXPORT int bosch_direct_main(int argc, char *argv[])

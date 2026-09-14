@@ -476,17 +476,17 @@ Burst validation and native single-sample publication are shared.
 ADIS16470/16477 use 16-bit bursts; ADIS16497 uses a paged CRC32 burst.
 ADIS165xx starts in 32-bit mode; ADIS16507 also supports explicit -B 16.
 -r decimation and -F filter options apply only to ADIS165xx 32-bit modes.
-On stop/status, omitting -B selects all compiled burst formats for the selected model(s).
+On stop/status, omitting -B selects all compiled burst formats for the selected model.
 
-Model availability depends on Kconfig. Start requires an exact -T model; stop/status
-may omit -T to visit all compiled family instances matching the native bus selectors.
+Model availability depends on Kconfig. All commands require an exact -T model.
+Native bus selectors restrict operations to matching instances of that model.
 Without a bus selector, start uses board-registered internal SPI devices of the selected type.
 
 ### Examples
 ```
 adi_burst -T adis16507 -B 32 start
 adi_burst -T adis16507 -B 16 status
-adi_burst stop
+adi_burst -T adis16507 stop
 ```
 )DESCR");
 	PRINT_MODULE_USAGE_NAME("adi_burst", "driver");
@@ -494,14 +494,14 @@ adi_burst stop
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('T', nullptr,
 		"adis16470 | adis16477 | adis16497 | adis16500 | adis16501 | adis16505 | adis16507 | adis16575 | adis16576 | adis16577",
-		"Exact model (required for start; availability depends on Kconfig)", false);
+		"Exact model (required for all commands; availability depends on Kconfig)", false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, ROTATION_MAX - 1, "Rotation", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 0, 1999, "ADIS165xx 32-bit only: ODR = 2000/(r+1) Hz", true);
 	PRINT_MODULE_USAGE_PARAM_INT('F', 0, 0, 6, "ADIS165xx 32-bit only: Bartlett filter setting", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('B', nullptr, "16 | 32", "Burst bits (omit for model default)", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop instances; omit -T for all compiled family models");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print instances; omit -T for all compiled family models");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop instances of the required -T model");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print instances of the required -T model");
 
 	for (const auto &model : kModels) {
 		PX4_INFO("-T %s -B %u", model.device.name, model.format == Format::kBurst16 ? 16u : 32u);
@@ -578,16 +578,17 @@ extern "C" int adi_burst_main(int argc, char *argv[])
 	const imu::SpiCommand command = imu::parseSpiCommand(cli.optArg());
 	const bool            start   = command == imu::SpiCommand::kStart;
 
-	if (command == imu::SpiCommand::kInvalid || (start && !type)) {
+	if (command == imu::SpiCommand::kInvalid || !type || !*type) {
 		AdiBurst::print_usage();
 
 		return PX4_ERROR;
 	}
 
-	int result = PX4_ERROR;
+	int  result      = PX4_ERROR;
+	bool stop_failed = false;
 
 	for (const auto &model : kModels) {
-		if ((type && strcmp(type, model.device.name) != 0)
+		if (strcmp(type, model.device.name) != 0
 		    || (bits && bits != (model.format == Format::kBurst16 ? 16 : 32))) {
 			continue;
 		}
@@ -611,12 +612,12 @@ extern "C" int adi_burst_main(int argc, char *argv[])
 		cli.custom_data = &options;
 		// Existing ADIS1650X/1657X board IDs each cover several models. Distinct
 		// instance keys keep typed stop/status from affecting another exact model.
-		const int ret = imu::dispatchSpiCommand<AdiBurst>(command, cli, model.instance_key, model.device);
+		const int ret = imu::dispatchSpiCommand<AdiBurst>(command, cli, model.instance_key, model.device, &stop_failed);
 
 		if (ret == PX4_OK) {
 			result = PX4_OK;
 		}
 	}
 
-	return result;
+	return stop_failed ? PX4_ERROR : result;
 }

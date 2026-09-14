@@ -582,7 +582,25 @@ bool TdkIcm20x::fifoReset()
 {
 	_fifo_perf.reset.count();
 
-	// Pulse the FIFO reset bits without changing the configured channel selection.
+	// Stop sensor writes before resetting the FIFO pointers. USER_CTRL.FIFO_EN only
+	// gates serial access; FIFO_EN_2 gates the sensor DMA writers (DS-000192, bank 0).
+	// Resetting a live writer can leave the next burst starting partway through a frame.
+	const uint8_t fifo_enable = registerRead(Register::BANK_0::FIFO_EN_2);
+
+	registerWrite(Register::BANK_0::FIFO_EN_2, 0);
+
+	const uint8_t disabled = registerRead(Register::BANK_0::FIFO_EN_2);
+
+	if (_transfer_failed) {
+		return false;
+	}
+
+	if (disabled != 0) {
+		_transfer_perf.bad_register.count();
+
+		return false;
+	}
+
 	registerSetBits(Register::BANK_0::FIFO_RST, static_cast<uint8_t>(FIFO_RST_BIT::FIFO_RESET));
 	registerClearBits(Register::BANK_0::FIFO_RST, static_cast<uint8_t>(FIFO_RST_BIT::FIFO_RESET));
 
@@ -595,6 +613,21 @@ bool TdkIcm20x::fifoReset()
 
 	if (value & static_cast<uint8_t>(FIFO_RST_BIT::FIFO_RESET)) {
 		_transfer_perf.bad_register.count();
+
+		return false;
+	}
+
+	registerWrite(Register::BANK_0::FIFO_EN_2, fifo_enable);
+
+	const uint8_t restored = registerRead(Register::BANK_0::FIFO_EN_2);
+
+	if (_transfer_failed) {
+		return false;
+	}
+
+	if (restored != fifo_enable) {
+		_transfer_perf.bad_register.count();
+
 		return false;
 	}
 

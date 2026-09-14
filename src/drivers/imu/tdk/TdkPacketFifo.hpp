@@ -33,9 +33,9 @@
 
 #pragma once
 
-#include "../../common/ByteCursor.hpp"
+#include "../common/ByteCursor.hpp"
 
-namespace tdk_icm42x_fifo
+namespace tdk_packet_fifo
 {
 constexpr size_t  kPacketSize = 20;
 constexpr uint8_t kHeader     = 0x78; // Accel, gyro, high resolution, ODR timestamp.
@@ -111,4 +111,4 @@ inline bool validPacket(const uint8_t *packet, size_t size)
 	return size == kPacketSize && validPacket(packet, size, false, true, false);
 }
 
-} // namespace tdk_icm42x_fifo
+} // namespace tdk_packet_fifo

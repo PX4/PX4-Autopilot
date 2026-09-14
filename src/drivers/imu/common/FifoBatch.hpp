@@ -155,30 +155,22 @@ constexpr size_t fifoBatchCapacity()
 	return capacity;
 }
 
+namespace detail
+{
+
 /**
- * @brief Append one raw sample directly to a native PX4-shaped batch.
- * @tparam mapping Sensor-frame axis conversion, applied once during append.
- * @tparam Batch Fixed signed 16/32-bit axis arrays with a uint8_t sample counter.
- * @param[in,out] batch Destination; existing samples are retained and the count is incremented on success.
- * @param[in] axes Raw X/Y/Z counts of exactly the destination scalar type; no implicit narrowing is allowed.
- * @pre FlipYZValidated requires Y/Z to have been checked against the storage minimum.
- * @return True on append; false if full or wide validated negation would overflow, with batch unchanged.
- * @note Board rotation, scaling and publication remain in the native PX4 publishers.
+ * @brief Store one sample after the caller has established destination capacity.
+ * @pre index is below fifoBatchCapacity<Batch>(); no write occurs if wide negation is invalid.
+ * @note Kept internal: public append validates one slot; fixed non-skipping decode validates the whole batch.
  */
 template<FifoAxisMapping mapping, typename Batch>
-inline bool appendFifoSample(Batch &batch, const BatchRaw<Batch> (&axes)[3])
+inline bool storeFifoSample(Batch &batch, uint8_t index, const BatchRaw<Batch> (&axes)[3])
 {
 	static_assert(
 		mapping == FifoAxisMapping::kIdentity
 		|| mapping == FifoAxisMapping::kFlipYZ
 		|| mapping == FifoAxisMapping::kFlipYZValidated,
 		"Invalid FIFO axis mapping");
-
-	uint8_t &samples = batch.samples;
-
-	if (samples >= fifoBatchCapacity<Batch>()) {
-		return false;
-	}
 
 	if constexpr(mapping == FifoAxisMapping::kFlipYZValidated && sizeof(BatchRaw<Batch>) == sizeof(int32_t)) {
 		// Wide storage must never negate INT32_MIN, even if a future decoder
@@ -187,8 +179,6 @@ inline bool appendFifoSample(Batch &batch, const BatchRaw<Batch> (&axes)[3])
 			return false;
 		}
 	}
-
-	const uint8_t index = samples++;
 
 	batch.x[index] = axes[0];
 
@@ -205,8 +195,109 @@ inline bool appendFifoSample(Batch &batch, const BatchRaw<Batch> (&axes)[3])
 		batch.z[index] = axes[2];
 	}
 
+	batch.samples = index + 1;
+
 	return true;
 }
+
+} // namespace detail
+
+/**
+ * @brief Append one raw sample directly to a native PX4-shaped batch.
+ * @tparam mapping Sensor-frame axis conversion, applied once during append.
+ * @tparam Batch Fixed signed 16/32-bit axis arrays with a uint8_t sample counter.
+ * @param[in,out] batch Destination; existing samples are retained and the count is incremented on success.
+ * @param[in] axes Raw X/Y/Z counts of exactly the destination scalar type; no implicit narrowing is allowed.
+ * @pre FlipYZValidated requires Y/Z to have been checked against the storage minimum.
+ * @return True on append; false if full or wide validated negation would overflow, with batch unchanged.
+ * @note Board rotation, scaling and publication remain in the native PX4 publishers.
+ */
+template<FifoAxisMapping mapping, typename Batch>
+inline bool appendFifoSample(Batch &batch, const BatchRaw<Batch> (&axes)[3])
+{
+	if (batch.samples >= fifoBatchCapacity<Batch>()) {
+		return false;
+	}
+
+	return detail::storeFifoSample<mapping>(batch, batch.samples, axes);
+}
+
+namespace detail
+{
+
+/**
+ * @brief Shared fixed-frame loop after the caller has validated the received wire span.
+ * @pre data covers frames * stride bytes; frames and stride are nonzero.
+ * @note Both byte-count and compile-time-stride front ends retain identical sample validation.
+ */
+template<FifoAxisMapping mapping, bool may_skip, typename Batch, typename Decode>
+inline bool decodeFixedSamples(
+	const uint8_t *data,
+	size_t frames,
+	size_t stride,
+	size_t first,
+	size_t step,
+	Batch &batch,
+	Decode decode)
+{
+	if (!step || first > frames || batch.samples > fifoBatchCapacity<Batch>()) {
+		return false;
+	}
+
+	if constexpr(!may_skip) {
+		// With no skipped frames, reject an oversized batch before invoking the family decoder.
+		const size_t selected = first == frames ? 0 : 1 + (frames - 1 - first) / step;
+
+		if (selected > fifoBatchCapacity<Batch>() - batch.samples) {
+			return false;
+		}
+	}
+
+	// Non-skipping input has an exact prevalidated output count. Keep its write
+	// index local so a callback cannot invalidate the destination bound.
+	uint8_t next_sample = batch.samples;
+
+	for (size_t index = first; index < frames;) {
+		if constexpr(may_skip) {
+			// Skipping decoders have no exact output count until a frame is decoded.
+			if (batch.samples >= fifoBatchCapacity<Batch>()) {
+				return false;
+			}
+		}
+
+		BatchRaw<Batch> axes[3];
+		const FifoSampleResult result = decode(data + index * stride, axes);
+
+		if (result != FifoSampleResult::kAppend && !(may_skip && result == FifoSampleResult::kSkip)) {
+			return false;
+		}
+
+		if (result == FifoSampleResult::kAppend) {
+			if constexpr(may_skip) {
+				if (!appendFifoSample<mapping>(batch, axes)) {
+					return false;
+				}
+
+			} else {
+				if (!detail::storeFifoSample<mapping>(batch, next_sample, axes)) {
+					return false;
+				}
+
+				++next_sample;
+			}
+		}
+
+		if (step >= frames - index) {
+			break;
+		}
+
+		index += step;
+	}
+
+	return true;
+}
+
+} // namespace detail
 
 /**
  * @brief Append selected fixed-stride samples using a family-owned wire decoder.
@@ -224,6 +315,7 @@ inline bool appendFifoSample(Batch &batch, const BatchRaw<Batch> (&axes)[3])
  * @param[in,out] batch Destination; supports appending to an existing batch within its capacity.
  * @param[in] decode Receives a frame pointer and axes in raw counts; must not read beyond one stride.
  * @return True if all selected frames were accepted, even when no new samples were appended.
+ * @pre decode must not modify batch; captured sensor-local decoding state may be updated.
  * @pre With FlipYZValidated, decode must reject the storage minimum on Y/Z before returning Append.
  * @note Check batch.samples before publishing. With may_skip, every frame may be skipped.
  * @note Failure may leave partial output and advanced decoder state. Discard the batch and apply the
@@ -253,52 +345,62 @@ template<FifoAxisMapping mapping,
 	if (!data
 	    || !bytes
 	    || stride < minimum_frame_bytes
-	    || !step
-	    || bytes % stride != 0
-	    || batch.samples > fifoBatchCapacity<Batch>()) {
+	    || bytes % stride != 0) {
 		return false;
 	}
 
 	const size_t frames = bytes / stride;
 
-	if (first > frames) {
+	return detail::decodeFixedSamples<mapping, may_skip>(data, frames, stride, first, step, batch, decode);
+}
+
+/**
+ * @brief Decode complete fixed-size wire frames without converting bytes back into a sample count.
+ * @tparam stride Complete wire frame size, known at compile time.
+ * @tparam mapping Sensor-frame axis conversion.
+ * @tparam may_skip Whether a decoded frame may represent a repeated sample.
+ * @tparam min_frame_bytes Required readable bytes; wide storage requires an explicit wire minimum.
+ * @tparam Batch Fixed signed 16/32-bit axis arrays and a uint8_t sample counter.
+ * @tparam Decode Callable accepting a frame pointer and raw output axes; must not modify batch.
+ * @param[in] data Received wire span; non-null and non-overlapping with batch.
+ * @param[in] bytes Actual received payload length, excluding the SPI prefix.
+ * @param[in] frames Complete received frame count; bytes must equal frames * stride without overflow.
+ * @param[in] first Index of the first selected frame; may equal frames for an empty selection.
+ * @param[in] step Nonzero selection step in frames.
+ * @param[in,out] batch Destination; existing samples are retained.
+ * @param[in] decode Sensor-owned wire parser; reads at most stride bytes per frame.
+ * @return True if all selected frames were accepted; false on invalid span, capacity or sample.
+ * @note This front end shares the runtime-layout decoder's validation and partial-output policy.
+ */
+template<size_t stride,
+	 FifoAxisMapping mapping,
+	 bool may_skip = false,
+	 size_t min_frame_bytes = 0,
+	 typename Batch,
+	 typename Decode>
+[[nodiscard]] bool decodeFixedFifoSamples(
+	const uint8_t *data,
+	size_t bytes,
+	size_t frames,
+	size_t first,
+	size_t step,
+	Batch &batch,
+	Decode decode)
+{
+	static_assert(
+		min_frame_bytes > 0
+		|| sizeof(BatchRaw<Batch>) == sizeof(int16_t),
+		"Wide fixed decoders require an explicit wire minimum");
+	static_assert(stride >= (min_frame_bytes ? min_frame_bytes : 6), "Frame is smaller than its wire decoder");
+
+	if (!data
+	    || !frames
+	    || frames > SIZE_MAX / stride
+	    || bytes != frames * stride) {
 		return false;
 	}
 
-	if constexpr(!may_skip) {
-		// With no skipped frames, reject an oversized batch before invoking the family decoder.
-		const size_t selected = first == frames ? 0 : 1 + (frames - 1 - first) / step;
-
-		if (selected > fifoBatchCapacity<Batch>() - batch.samples) {
-			return false;
-		}
-	}
-
-	for (size_t index = first; index < frames;) {
-		// Stop before invoking a decoder once the output is full.
-		if (batch.samples >= fifoBatchCapacity<Batch>()) {
-			return false;
-		}
-
-		BatchRaw<Batch> axes[3];
-		const FifoSampleResult result = decode(data + index * stride, axes);
-
-		if (result != FifoSampleResult::kAppend && !(may_skip && result == FifoSampleResult::kSkip)) {
-			return false;
-		}
-
-		if (result == FifoSampleResult::kAppend && !appendFifoSample<mapping>(batch, axes)) {
-			return false;
-		}
-
-		if (step >= frames - index) {
-			break;
-		}
-
-		index += step;
-	}
-
-	return true;
+	return detail::decodeFixedSamples<mapping, may_skip>(data, frames, stride, first, step, batch, decode);
 }
 
 } // namespace imu

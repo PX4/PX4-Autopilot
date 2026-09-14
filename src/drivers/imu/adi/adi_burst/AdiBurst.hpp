@@ -272,7 +272,8 @@ private:
 	uint8_t     _flush_remaining        {};
 	uint8_t     _ready_samples          {};
 	uint8_t     _irq_streak             {};
-	hrt_abstime _last_config_check     {};
+	hrt_abstime _last_config_check      {};
+	uint8_t     _checked_config         {};
 	uint8_t _page               { UINT8_MAX };
 	bool    _self_test_passed   {};
 	bool    _transfer_failed    {};

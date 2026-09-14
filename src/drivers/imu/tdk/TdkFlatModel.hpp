@@ -33,27 +33,40 @@
 
 #pragma once
 
-#include "../TdkPacketConfig.hpp"
+#include "../common/SpiFamily.hpp"
 
-namespace tdk_icm42x_config
+/** Wire and conversion descriptions shared by flat-register TDK endpoints. */
+namespace tdk_flat
 {
-using Variant = tdk_packet::Variant;
-using AddressSpace = tdk_packet::AddressSpace;
-using RegisterConfig = tdk_packet::RegisterConfig;
-using Context = tdk_packet::Context;
-using tdk_packet::kMaxRegisterConfigs;
+enum class Variant : uint8_t {
+	kMpu6000,
+	kMpu6500,
+	kMpu9250,
+	kIcm20602,
+	kIcm20608G,
+	kIcm20689,
+	kIam20680HP,
+};
 
-/**
- * @brief Fill a complete register configuration without losing the destination capacity.
- * @param[in] variant Exact chip/register dialect.
- * @param[in] context Watermark in the variant's register units and reference-clock selection.
- * @param[out] config Fixed-capacity destination; only the returned valid prefix may be used.
- * @return Register count, zero for an unsupported variant, or UINT8_MAX for invalid masks, watermark or overflow.
- * @note On error, discard the partial configuration instead of writing it to the sensor.
- */
-[[nodiscard]] uint8_t load(
-	Variant variant,
-	const Context &context,
-	RegisterConfig(&config)[kMaxRegisterConfigs]);
+/** Immutable wire layout, scaling and initialization policy for one exact model. */
+struct Profile {
+	imu::SpiModel device;
+	Variant       variant;
+	uint8_t       whoami;
+	uint16_t      fifo_size; ///< Conservative software FIFO bound in bytes; may be smaller than the hardware capacity.
+	uint8_t       fifo_packet_size; ///< Wire frame size in bytes, excluding the SPI command.
+	uint8_t       gyro_offset; ///< Byte offset of gyro X within a frame.
+	uint8_t       samples_per_transfer; ///< Gyro frames per new accel sample, not the total SPI transfer count.
+	float    temperature_sensitivity; ///< Raw counts per degree Celsius.
+	float    temperature_offset; ///< Degrees Celsius added after dividing raw temperature by sensitivity.
+	uint8_t  reset_pwr_value;
+	uint32_t reset_wait_us;
+	uint32_t configure_wait_us;
+	bool     check_reset_pwr;
+	bool     check_reset_config;
+	bool     has_factory_accel_offsets;
+	bool     has_fifo_temperature;
+};
 
-} // namespace tdk_icm42x_config
+
+} // namespace tdk_flat

@@ -3,7 +3,7 @@ menuconfig DRIVERS_IMU_ADI_ADI_BURST
 	default n
 	help
 	  Shared acquisition for ADIS1647x, ADIS16497, ADIS1650x and ADIS1657x.
-	  Exact -T selection is required for start. Original drivers are retained.
+	  Exact -T selection is required for all commands. Original drivers are retained.
 	  Select at least one model below. ADIS16448 and ADIS16607 are not migrated.
 
 if DRIVERS_IMU_ADI_ADI_BURST

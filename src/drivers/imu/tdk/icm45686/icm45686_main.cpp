@@ -31,29 +31,54 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "TdkIcm45686.hpp"
+#include <drivers/drv_sensor.h>
+#include "TdkIcm45686Registers.hpp"
 
-#include "../TdkPacketConfig.hpp"
+using namespace frequency_literals;
+using namespace time_literals;
 
-namespace tdk_icm42x_config
+void TdkIcm45686::print_status()
 {
-using Variant = tdk_packet::Variant;
-using AddressSpace = tdk_packet::AddressSpace;
-using RegisterConfig = tdk_packet::RegisterConfig;
-using Context = tdk_packet::Context;
-using tdk_packet::kMaxRegisterConfigs;
+	I2CSPIDriverBase::print_status();
 
-/**
- * @brief Fill a complete register configuration without losing the destination capacity.
- * @param[in] variant Exact chip/register dialect.
- * @param[in] context Watermark in the variant's register units and reference-clock selection.
- * @param[out] config Fixed-capacity destination; only the returned valid prefix may be used.
- * @return Register count, zero for an unsupported variant, or UINT8_MAX for invalid masks, watermark or overflow.
- * @note On error, discard the partial configuration instead of writing it to the sensor.
- */
-[[nodiscard]] uint8_t load(
-	Variant variant,
-	const Context &context,
-	RegisterConfig(&config)[kMaxRegisterConfigs]);
+	PX4_INFO("type: %s", spiModel().name);
 
-} // namespace tdk_icm42x_config
+	imu::printSpiStatus(spiModel(),
+			    _register_frequency,
+			    _data_frequency,
+			    get_frequency());
+
+	PX4_INFO("FIFO interval: %u us (%.1f Hz), %u samples",
+		 _fifo_empty_interval_us,
+		 1e6 / _fifo_empty_interval_us,
+		 _fifo_gyro_samples);
+	PX4_INFO("clock input: %s", _enable_clock_input ? "enabled" : "disabled");
+
+	_transfer_perf.print();
+	_fifo_perf.print();
+	_drdy_missed_perf.print();
+}
+
+void TdkIcm45686::print_usage()
+{
+	PRINT_MODULE_DESCRIPTION(R"DESCR(
+SPI-only ICM45686 accelerometer and gyroscope driver.
+Without -T, only this exact model's board-registered SPI endpoints are selected.
+An explicit -T must match icm45686; stop/status use the native bus filters.
+)DESCR");
+	PRINT_MODULE_USAGE_NAME("icm45686", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_STRING('T', nullptr, "icm45686", "Optional exact model", true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, ROTATION_MAX - 1, "Rotation", true);
+	PRINT_MODULE_USAGE_PARAM_INT('C', 0, 1_Hz, 1_MHz, "Reference clock Hz; model limits apply", true);
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
+}
+
+extern "C" int icm45686_main(int argc, char *argv[])
+{
+	return imu::spiSingleMain<TdkIcm45686>(argc, argv, MODULE_NAME);
+}
