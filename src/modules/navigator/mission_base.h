@@ -43,6 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <dataman_client/DatamanClient.hpp>
+#include <lib/motion_planning/TrajectoryConstraints.hpp>
 #include <uORB/topics/geofence_status.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/navigator_mission_item.h>
@@ -411,15 +412,30 @@ protected:
 				       int32_t next_index, position_setpoint_s &next, bool direction_backward = false);
 
 	/**
-	 * @brief Repeat the walk for the velocity constraint of the next setpoint once the dataman cache has loaded
+	 * @brief Dynamic limits the walk in setNextVelocityConstraint() plans with for the given current setpoint
 	 *
-	 * set_mission_items() runs before the cache is filled for the new sequence (on activation, and
-	 * whenever the sequence advances), so the walk in setNextVelocityConstraint() can end on a cache
-	 * miss and record a stop closer than the mission has one. Once the cache finished loading the
-	 * constraint is computed again and the triplet republished. Called from on_active() after
-	 * updateDatamanCache().
+	 * The navigator limits, with the cruise speed taken from the current setpoint when it carries one:
+	 * that is the speed the trajectory planner flies the setpoint with, the navigator's own cruise speed
+	 * may have been reset since the setpoint was made (on activation).
 	 */
-	void updateNextVelocityConstraintAfterCacheLoad();
+	math::trajectory::VehicleDynamicLimits trajectoryLimitsFor(const position_setpoint_s &current) const;
+
+	/**
+	 * @brief Repeat the walk for the velocity constraint of the next setpoint when its inputs changed
+	 *
+	 * Two things can change the outcome of the last walk in setNextVelocityConstraint() without the
+	 * triplet being rebuilt:
+	 * - set_mission_items() runs before the cache is filled for the new sequence (on activation, and
+	 *   whenever the sequence advances), so the walk can end on a cache miss and record a stop closer
+	 *   than the mission has one. The walk is repeated once the cache finished loading.
+	 * - The limits the walk plans with change, by a parameter update (MPC_ACC_HOR, MPC_JERK_AUTO,
+	 *   MPC_XY_CRUISE, MPC_XY_TRAJ_P) or a speed command. The trajectory planner applies its new limits
+	 *   right away, the constraint has to follow or it keeps allowing a speed the tighter limits no
+	 *   longer support.
+	 * In both cases the constraint is computed again and the triplet republished. Called from
+	 * on_active() after updateDatamanCache().
+	 */
+	void updateNextVelocityConstraint();
 
 	/**
 	 * @brief Traversal mode used by this navigation mode when walking position items.
@@ -502,12 +518,14 @@ protected:
 	int _mission_activation_index{-1};					/**< Index of the mission item that will bring the vehicle back to a mission waypoint */
 	bool _speed_replayed_on_activation{false};			/**< Flag indicating if the speed change items have been replayed on activation */
 
-	// State of the last walk in setNextVelocityConstraint(), to repeat it once the dataman cache is loaded
+	// State of the last walk in setNextVelocityConstraint(), to repeat it once the dataman cache is loaded or
+	// the limits changed
 	bool _next_velocity_constraint_hit_cache_miss{false};	/**< the walk ended on a cache miss, not on a stop */
 	bool _dataman_cache_loading_since_constraint{false};	/**< the cache has loaded since the walk, a repeat can get further */
 	mission_item_s _next_velocity_constraint_item{};	/**< mission item the next setpoint was made from */
 	int32_t _next_velocity_constraint_index{-1};		/**< index of that item in the mission */
 	bool _next_velocity_constraint_backward{false};		/**< the walk follows the mission backwards */
+	math::trajectory::VehicleDynamicLimits _next_velocity_constraint_limits{};	/**< limits the walk planned with */
 
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
