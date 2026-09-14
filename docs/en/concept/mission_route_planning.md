@@ -71,7 +71,8 @@ Mission mode runs this entry point on activation when [MIS_ROUTE_JOIN](../advanc
 The vehicle first flies to a temporary branch-in waypoint on the route, then resumes the mission from there.
 The projection search margin is set by [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST) (multicopter) and [MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST) (fixed-wing).
 If planning is not possible (for example the route cache is not ready), Mission mode uses its normal mission activation behavior.
-Existing camera-trigger resume behavior that returns to the previous waypoint takes precedence over route rejoin.
+After pausing a camera-trigger survey, smart route rejoin can select a branch-in point that conflicts with the return to the previous survey waypoint.
+Use `MIS_ROUTE_JOIN=0` for missions that rely on camera-trigger survey resume.
 Selecting a mission item explicitly cancels a pending virtual join.
 
 When a VTOL rejoin requires a front transition, the vehicle follows this sequence:
@@ -97,6 +98,9 @@ The vehicle is projected first; the safe points are then scored in a separate sc
 
 The planner-owned [route-skip shortcuts](#route-skip-shortcuts) are applied to the selected goal so the caller can skip route join/follow when the vehicle is already close to it.
 
+Route-following Return does not yet support `MAV_CMD_DO_RETURN_PATH_START` to designate a return-path segment.
+The planner considers the mission route without restricting its join and return path to the segment between this marker and `MAV_CMD_DO_LAND_START`.
+
 Here an active [`DO_JUMP` loop segment](#vehicle-projection) is used as return geometry only: the loop repeat count is forced to zero (unlike [Smart Mission Rejoin](#smart-mission-rejoin)). The planner then picks whichever loop exit gives the shorter **total** return path to the goal: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the goal lies near the loop start the planner may rewind most of the loop instead of finishing it.
 
 Route following skips waypoint hold times and timed or unlimited loiter holds, but preserves `LOITER_TO_ALT`.
@@ -112,6 +116,10 @@ It then follows the destination arrival policy configured by [RTL_DESCEND_ALT](.
 The descent altitude is relative to the destination and is capped at the arrival altitude, so arrival does not introduce another return-altitude climb.
 Synthetic landings use [RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD) for precision landing.
 An uploaded mission landing command retains its own landing and precision-landing settings; the synthetic destination descent and delay do not override it.
+
+Before Return is activated, its time estimate is refreshed every two seconds using a branch-in recomputed from the current mission index and vehicle position.
+During Return, the estimate follows the remaining route and arrival stages, counting sequential loiter altitude changes and multicopter landing descent separately from horizontal approach.
+With a negative landing delay, it estimates time to the indefinite hold.
 
 ## Point Projection
 
