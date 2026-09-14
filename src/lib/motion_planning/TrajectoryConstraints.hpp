@@ -86,8 +86,9 @@ inline float computeXYSpeedAtWaypoint(const Vector3f &start_position, const Vect
 		return 0.f;
 	}
 
-	const float alpha = acosf(Vector2f((target - start_position).xy()).unit_or_zero().dot(
-					  Vector2f((target - next_target).xy()).unit_or_zero()));
+	const float cos_alpha = constrain(Vector2f((target - start_position).xy()).unit_or_zero().dot(
+					  Vector2f((target - next_target).xy()).unit_or_zero()), -1.f, 1.f);
+	const float alpha = acosf(cos_alpha);
 	const float safe_alpha = constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
 	const float accel_tmp = config.max_acc_xy_radius_scale * config.max_acc_xy;
 	// the turn circle can only be as large as the shorter of the acceptance radius and the next segment
