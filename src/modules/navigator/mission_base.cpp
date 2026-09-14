@@ -75,8 +75,9 @@ MissionBase::updateDatamanCache()
 	if ((_mission.count > 0) && (_mission.current_seq != _load_mission_index)) {
 
 		const int32_t start_index = math::constrain(_mission.current_seq, int32_t{0}, int32_t(_mission.count) - 1);
-		const int32_t end_index = math::constrain(start_index + _dataman_cache_size_signed, int32_t{0},
-					  int32_t(_mission.count) - 1);
+		// exclusive, so that the items at both ends of the mission get cached as well
+		const int32_t end_index = math::constrain(start_index + _dataman_cache_size_signed, int32_t{-1},
+					  int32_t(_mission.count));
 
 		for (int32_t index = start_index; index != end_index; index += math::signNoZero(_dataman_cache_size_signed)) {
 
@@ -99,7 +100,7 @@ void MissionBase::updateMavlinkMission()
 		const bool mission_data_changed = checkMissionDataChanged(new_mission);
 
 		if (new_mission.current_seq < 0) {
-			new_mission.current_seq = math::constrain(_mission.current_seq, int32_t{0},
+			new_mission.current_seq = math::constrain(_mission.current_seq, int32_t{-1},
 						  static_cast<int32_t>(new_mission.count) - 1);
 		}
 
@@ -273,6 +274,7 @@ MissionBase::on_active()
 
 	updateMavlinkMission();
 	updateDatamanCache();
+	updateNextVelocityConstraintAfterCacheLoad();
 	updateMissionAltAfterHomeChanged();
 
 	/* Check the mission */
@@ -516,6 +518,9 @@ MissionBase::set_mission_items()
 {
 	bool set_end_of_mission{false};
 
+	// the triplet is rebuilt, a walk pending for the previous one is obsolete
+	_next_velocity_constraint_hit_cache_miss = false;
+
 	if (_is_current_planned_mission_item_valid && _mission_type == MissionType::MISSION_TYPE_MISSION && isMissionValid()) {
 		/* By default set the mission item to the current planned mission item. Depending on request, it can be altered. */
 		if (loadCurrentMissionItem()) {
@@ -756,8 +761,10 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 }
 
 bool MissionBase::isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index,
-		int32_t following_index)
+		int32_t following_index, bool &cache_miss)
 {
+	cache_miss = false;
+
 	// Anything but a plain waypoint (loiter, land, takeoff) is a place the vehicle comes to a stop at.
 	// A plain waypoint is only passed at speed if it holds no time and the mission continues by itself,
 	// same criteria as brake_for_hold in Mission::setActiveMissionItems().
@@ -786,8 +793,12 @@ bool MissionBase::isFlownThroughWithoutStopping(const mission_item_s &item, int3
 		const bool success = _dataman_cache.loadWait(mission_dataman_id, index,
 				     reinterpret_cast<uint8_t *>(&item_in_between), sizeof(item_in_between));
 
-		if (!success
-		    || item_in_between.nav_cmd == NAV_CMD_DELAY
+		if (!success) {
+			cache_miss = true;
+			return false;
+		}
+
+		if (item_in_between.nav_cmd == NAV_CMD_DELAY
 		    || item_in_between.nav_cmd == NAV_CMD_DO_JUMP
 		    || item_in_between.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 		    || item_has_timeout(item_in_between)) {
@@ -799,14 +810,16 @@ bool MissionBase::isFlownThroughWithoutStopping(const mission_item_s &item, int3
 }
 
 bool MissionBase::findCachedPositionItem(int32_t start_index, bool direction_backward, int32_t &following_index,
-		mission_item_s &following_item)
+		mission_item_s &following_item, bool &cache_miss)
 {
 	const int32_t step = direction_backward ? -1 : 1;
 	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+	cache_miss = false;
 
 	for (int32_t index = start_index + step; (index >= 0) && (index < _mission.count); index += step) {
 		if (!_dataman_cache.loadWait(mission_dataman_id, index, reinterpret_cast<uint8_t *>(&following_item),
 					     sizeof(following_item))) {
+			cache_miss = true;
 			return false;
 		}
 
@@ -822,6 +835,14 @@ bool MissionBase::findCachedPositionItem(int32_t start_index, bool direction_bac
 void MissionBase::setNextVelocityConstraint(const position_setpoint_s &current, const mission_item_s &next_item,
 		int32_t next_index, position_setpoint_s &next, bool direction_backward)
 {
+	// Remember the inputs, the walk is repeated by updateNextVelocityConstraintAfterCacheLoad() if it ends
+	// on a cache miss
+	_next_velocity_constraint_hit_cache_miss = false;
+	_dataman_cache_loading_since_constraint = false;
+	_next_velocity_constraint_item = next_item;
+	_next_velocity_constraint_index = next_index;
+	_next_velocity_constraint_backward = direction_backward;
+
 	// Only the multicopter trajectory planner consumes the constraint, leave it unknown otherwise
 	// (same vehicle type source as get_time_inside(), which the stop criteria depend on)
 	if (_navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
@@ -853,9 +874,14 @@ void MissionBase::setNextVelocityConstraint(const position_setpoint_s &current, 
 	while ((num_waypoints < kMaxWaypoints) && (path_length < horizon)) {
 		int32_t following_index;
 		mission_item_s following_item;
+		bool cache_miss = false;
 
-		if (!findCachedPositionItem(item_index, direction_backward, following_index, following_item)
-		    || !isFlownThroughWithoutStopping(item, item_index, following_index)) {
+		if (!findCachedPositionItem(item_index, direction_backward, following_index, following_item, cache_miss)
+		    || !isFlownThroughWithoutStopping(item, item_index, following_index, cache_miss)) {
+			// A miss stands for "unknown", the vehicle may well fly through: worth another walk once the
+			// items are cached. Only a miss in the mission ahead is a candidate, the mission ending or a
+			// stop are final.
+			_next_velocity_constraint_hit_cache_miss = cache_miss;
 			break;
 		}
 
@@ -890,6 +916,38 @@ void MissionBase::setNextVelocityConstraint(const position_setpoint_s &current, 
 	const matrix::Vector2f direction_after_next = matrix::Vector2f((waypoints[1] - waypoints[0]).xy()).unit_or_zero();
 	matrix::Vector3f(direction_after_next(0) * speed_at_next, direction_after_next(1) * speed_at_next,
 			 0.f).copyTo(next.velocity_constraint);
+}
+
+void MissionBase::updateNextVelocityConstraintAfterCacheLoad()
+{
+	if (!_next_velocity_constraint_hit_cache_miss) {
+		return;
+	}
+
+	if (_dataman_cache.isLoading()) {
+		_dataman_cache_loading_since_constraint = true;
+		return;
+	}
+
+	// Without anything new in the cache the walk would end on the same miss. This also holds for a miss
+	// beyond what the cache covers, so the walk is repeated once per cache load, not every cycle.
+	if (!_dataman_cache_loading_since_constraint) {
+		return;
+	}
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	// Only for the setpoint the walk was made for, another path may have changed the triplet since
+	if (!pos_sp_triplet->next.valid
+	    || (fabs(pos_sp_triplet->next.lat - _next_velocity_constraint_item.lat) > DBL_EPSILON)
+	    || (fabs(pos_sp_triplet->next.lon - _next_velocity_constraint_item.lon) > DBL_EPSILON)) {
+		_next_velocity_constraint_hit_cache_miss = false;
+		return;
+	}
+
+	setNextVelocityConstraint(pos_sp_triplet->current, _next_velocity_constraint_item, _next_velocity_constraint_index,
+				  pos_sp_triplet->next, _next_velocity_constraint_backward);
+	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void

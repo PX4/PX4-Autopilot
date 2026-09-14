@@ -386,9 +386,11 @@ protected:
 	 * @param item mission item to check
 	 * @param item_index index of item in the mission
 	 * @param following_index index of the position item the vehicle flies to after item
+	 * @param[out] cache_miss true if the answer is false only because an item in between is not cached
 	 * @return true if the vehicle continues past the item without braking to a stop
 	 */
-	virtual bool isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index, int32_t following_index);
+	virtual bool isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index, int32_t following_index,
+			bool &cache_miss);
 
 	/**
 	 * @brief Fill the velocity constraint of the next setpoint from the mission after it
@@ -407,6 +409,17 @@ protected:
 	 */
 	void setNextVelocityConstraint(const position_setpoint_s &current, const mission_item_s &next_item,
 				       int32_t next_index, position_setpoint_s &next, bool direction_backward = false);
+
+	/**
+	 * @brief Repeat the walk for the velocity constraint of the next setpoint once the dataman cache has loaded
+	 *
+	 * set_mission_items() runs before the cache is filled for the new sequence (on activation, and
+	 * whenever the sequence advances), so the walk in setNextVelocityConstraint() can end on a cache
+	 * miss and record a stop closer than the mission has one. Once the cache finished loading the
+	 * constraint is computed again and the triplet republished. Called from on_active() after
+	 * updateDatamanCache().
+	 */
+	void updateNextVelocityConstraintAfterCacheLoad();
 
 	/**
 	 * @brief Traversal mode used by this navigation mode when walking position items.
@@ -473,10 +486,11 @@ protected:
 	 * @param[in] direction_backward search towards lower indices
 	 * @param[out] following_index index of the found position item
 	 * @param[out] following_item the found position item
+	 * @param[out] cache_miss true if the search ended on an item that is not cached, false if at the mission end
 	 * @return true if a cached position item was found
 	 */
 	bool findCachedPositionItem(int32_t start_index, bool direction_backward, int32_t &following_index,
-				    mission_item_s &following_item);
+				    mission_item_s &following_item, bool &cache_miss);
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
@@ -487,6 +501,13 @@ protected:
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
 	int _mission_activation_index{-1};					/**< Index of the mission item that will bring the vehicle back to a mission waypoint */
 	bool _speed_replayed_on_activation{false};			/**< Flag indicating if the speed change items have been replayed on activation */
+
+	// State of the last walk in setNextVelocityConstraint(), to repeat it once the dataman cache is loaded
+	bool _next_velocity_constraint_hit_cache_miss{false};	/**< the walk ended on a cache miss, not on a stop */
+	bool _dataman_cache_loading_since_constraint{false};	/**< the cache has loaded since the walk, a repeat can get further */
+	mission_item_s _next_velocity_constraint_item{};	/**< mission item the next setpoint was made from */
+	int32_t _next_velocity_constraint_index{-1};		/**< index of that item in the mission */
+	bool _next_velocity_constraint_backward{false};		/**< the walk follows the mission backwards */
 
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
