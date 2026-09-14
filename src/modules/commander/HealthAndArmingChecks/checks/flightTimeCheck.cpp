@@ -75,7 +75,7 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 				// less than or equal to a minute remaining on first pass
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_warning(reporter.mavlink_log_pub(), "Approaching max flight time (system will Return in %i seconds)\t",
+					mavlink_log_warning(reporter.mavlink_log_pub(), "Approaching max flight time (system will switch to Return in %i seconds)\t",
 							    floored_remaining_flight_time_sec);
 				}
 
