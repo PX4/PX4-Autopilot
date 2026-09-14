@@ -243,6 +243,11 @@ public:
 	math::trajectory::VehicleDynamicLimits get_multicopter_trajectory_limits() const;
 
 	/**
+	 * Read the parameters from storage, including the trajectory limits mirrored from the position controller
+	 */
+	void params_update();
+
+	/**
 	 * Get the acceptance radius
 	 *
 	 * @return the distance at which the next waypoint should be used
@@ -490,9 +495,6 @@ private:
 
 	// timer to trigger a delayed set gimbal neutral command
 	hrt_abstime _gimbal_neutral_activation_time{UINT64_MAX};
-
-	// update subscriptions
-	void params_update();
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers

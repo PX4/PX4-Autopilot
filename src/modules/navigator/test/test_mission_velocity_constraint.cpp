@@ -50,6 +50,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <mathlib/math/TrajMath.hpp>
+#include <parameters/param.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -169,6 +170,23 @@ protected:
 		_navigator.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 	}
 
+	void TearDown() override
+	{
+		for (const param_t handle : _changed_params) {
+			param_reset(handle);
+		}
+	}
+
+	/* Change a parameter in flight, the way a parameter set from the ground station reaches the navigator */
+	void setParam(const char *name, float value)
+	{
+		const param_t handle = param_find(name);
+		ASSERT_NE(handle, PARAM_INVALID) << name;
+		ASSERT_EQ(param_set(handle, &value), 0) << name;
+		_changed_params.push_back(handle);
+		_navigator.params_update();
+	}
+
 	void writeMission(const std::vector<mission_item_s> &items)
 	{
 		for (size_t index = 0; index < items.size(); index++) {
@@ -233,9 +251,19 @@ protected:
 
 	Vector3f nextConstraint() { return Vector3f(_navigator.get_position_setpoint_triplet()->next.velocity_constraint); }
 
+	/* Activate the mission and let the cache fill, so the published constraint is the one for the whole path */
+	void activateAndLoadCache(const std::vector<mission_item_s> &items)
+	{
+		writeRunnableMission(items);
+		_navigator.get_global_position()->alt = items[0].altitude;
+		_mission.activate();
+		runActiveUntilCacheLoaded();
+	}
+
 	DatamanClient _dataman_client{};
 	Navigator _navigator{};
 	MissionVelocityConstraintTestPeer _mission{&_navigator};
+	std::vector<param_t> _changed_params{};
 };
 
 /* ---------------------------------------------------------------------------------------------------------
@@ -446,6 +474,100 @@ TEST_F(MissionVelocityConstraintTest, StopAfterActivationIsNotRevisitedOnceTheCa
 	EXPECT_NEAR(constraint_on_activation.norm(), speedToStopWithin(2.f), 1e-2f);
 	EXPECT_FALSE(_mission.walkWaitsForCache());
 	EXPECT_FLOAT_EQ(nextConstraint().norm(), constraint_on_activation.norm());
+}
+
+/* ---------------------------------------------------------------------------------------------------------
+ * Repeat of the walk when the limits it planned with change
+ * -------------------------------------------------------------------------------------------------------*/
+
+TEST_F(MissionVelocityConstraintTest, LowerCruiseSpeedParameterRecomputesTheConstraint)
+{
+	// GIVEN: a straight mission that lets the vehicle carry cruise speed through next, active with the cache loaded
+	const float spacing = 2.f * _navigator.get_multicopter_braking_distance(cruiseSpeed());
+	const std::vector<mission_item_s> items{
+		makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeWaypointAt(kNorth, 2.f * spacing),
+		makeWaypointAt(kNorth, 3.f * spacing)};
+	activateAndLoadCache(items);
+	const float cruise_speed_before = cruiseSpeed();
+	ASSERT_NEAR(nextConstraint().norm(), cruise_speed_before, 1e-3f);
+
+	// WHEN: the cruise speed parameter is lowered in flight and the mode runs, without the mission advancing
+	setParam("MPC_XY_CRUISE", 0.5f * cruise_speed_before);
+	_mission.on_active();
+
+	// THEN: the constraint follows the new cruise speed instead of allowing the old one
+	ASSERT_NEAR(cruiseSpeed(), 0.5f * cruise_speed_before, 1e-3f) << "the navigator must see the new parameter";
+	const Vector3f constraint = nextConstraint();
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), cruiseSpeed(), 1e-3f);
+	EXPECT_NEAR(constraint(0), cruiseSpeed(), 1e-3f);
+}
+
+TEST_F(MissionVelocityConstraintTest, LowerAccelerationParameterRecomputesTheConstraint)
+{
+	// GIVEN: the path turns by 90 degrees at next, active with the cache loaded
+	std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f)};
+	double lat{0.0};
+	double lon{0.0};
+	waypoint_from_heading_and_distance(items[1].lat, items[1].lon, kEast, 200.f, &lat, &lon);
+	items.push_back(makeWaypoint(lat, lon));
+	activateAndLoadCache(items);
+	const Vector3f constraint_before = nextConstraint();
+	ASSERT_TRUE(constraint_before.isAllFinite());
+	ASSERT_GT(constraint_before.norm(), 0.f);
+
+	// WHEN: the horizontal acceleration limit is reduced in flight and the mode runs
+	const float acceleration_before = _navigator.get_multicopter_trajectory_limits().max_acc_xy;
+	setParam("MPC_ACC_HOR", acceleration_before / 3.f);
+	_mission.on_active();
+
+	// THEN: the turn allows less speed with the new limit, and the constraint matches a walk made with it
+	const Vector3f constraint = nextConstraint();
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_LT(constraint.norm(), constraint_before.norm());
+	EXPECT_NEAR(constraint.norm(), constraintFor(items, 0, 1).norm(), 1e-3f);
+}
+
+TEST_F(MissionVelocityConstraintTest, SpeedCommandRecomputesTheConstraint)
+{
+	// GIVEN: a straight mission at cruise speed, active with the cache loaded and no speed set by the mission
+	const float spacing = 2.f * _navigator.get_multicopter_braking_distance(cruiseSpeed());
+	const std::vector<mission_item_s> items{
+		makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeWaypointAt(kNorth, 2.f * spacing),
+		makeWaypointAt(kNorth, 3.f * spacing)};
+	activateAndLoadCache(items);
+	ASSERT_NEAR(nextConstraint().norm(), cruiseSpeed(), 1e-3f);
+
+	// WHEN: a lower speed is commanded, the way DO_CHANGE_SPEED reaches the navigator, and the mode runs
+	const float commanded_speed = 0.5f * cruiseSpeed();
+	_navigator.set_cruising_speed(commanded_speed);
+	_mission.on_active();
+
+	// THEN: the constraint follows the commanded speed
+	const Vector3f constraint = nextConstraint();
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), commanded_speed, 1e-3f);
+}
+
+TEST_F(MissionVelocityConstraintTest, UnchangedLimitsLeaveTheConstraintAlone)
+{
+	// GIVEN: the next waypoint is followed by a stop, the constraint is below cruise, active with the cache loaded
+	std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 32.f),
+					  makeWaypointAt(kNorth, 200.f)};
+	items[2].time_inside = 5.f;
+	activateAndLoadCache(items);
+	const Vector3f constraint_before = nextConstraint();
+	ASSERT_TRUE(constraint_before.isAllFinite());
+
+	// WHEN: the mode keeps running with the same limits, and the triplet's next setpoint is nudged so a repeated
+	// walk would no longer match it
+	_navigator.get_position_setpoint_triplet()->next.velocity_constraint[0] = 100.f;
+	_mission.on_active();
+	_mission.on_active();
+
+	// THEN: no walk was repeated, the published constraint is left untouched
+	EXPECT_FLOAT_EQ(nextConstraint()(0), 100.f);
+	EXPECT_FLOAT_EQ(nextConstraint()(1), constraint_before(1));
 }
 
 TEST_F(MissionVelocityConstraintTest, ShortLastSegmentLimitsTheSpeedLeavingNext)
