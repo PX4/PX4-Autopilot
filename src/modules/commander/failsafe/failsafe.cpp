@@ -794,7 +794,7 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		// If it's a rover, drop directly to Stabilized
 		if (is_rover) {
 			action = Action::FallbackStab;
-		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
 		}
 		// If it's a multirotor or plane, drop to Altitude as normal
 		else {
