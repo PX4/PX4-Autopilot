@@ -95,6 +95,8 @@ protected:
 		WORK_ITEM_TYPE_CLIMB,		/**< takeoff before moving to waypoint */
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 		WORK_ITEM_TYPE_JOIN_ROUTE,	/**< fly a virtual branch-in waypoint before resuming the route */
+		WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN,	/**< finish an active back transition before aligning */
+		WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN,	/**< align with the route before a front transition */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN,	/**< perform the VTOL transition required after joining */
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
