@@ -1,6 +1,6 @@
 # PX4 Security Scope
 
-This document says where PX4's security boundary sits, so a reporter can tell before filing whether a finding is a vulnerability, and a maintainer can say why it is or isn't.
+This document says where PX4's security boundary sits, so a reporter can tell before filing whether a finding is considered a vulnerability, and a maintainer can say why it is or isn't.
 
 It is not a threat model.
 It does not enumerate threats, rate risks, or prescribe mitigations.
@@ -42,8 +42,9 @@ Two things PX4 cannot promise: that a vehicle will not crash, and that a sensor 
                                           peripherals
 ```
 
-Everything above the dotted line is the integrator's to secure, and PX4 assumes nothing about who is on it.
-Everything below is administrative: a peer with the SD card, the USB port or a bus is trusted as the operator.
+Everything above the "flight controller section" is the integrator's to secure.
+Everything below the flight controller is as trusted as the operator (physical access is a trust boundary).
+This includes access to the SD card, the USB port or a bus.
 
 PX4's job is what happens at the boxes in the middle: whatever arrives on those interfaces must not do more than the interface is documented to do.
 
@@ -55,7 +56,7 @@ PX4's job is what happens at the boxes in the middle: whatever arrives on those 
 - **Peripherals are the ones the operator installed.**
   No bus (UART, I2C, SPI, CAN, SMBus) is authenticated.
   A device on a bus is trusted as whatever driver the operator enabled for it.
-- **Physical access is administrative.**
+- **Physical access is trusted as the operator.**
   The SD card holds logs, the MAVLink signing key, some boards' parameters or parameter backups and staged peripheral firmware, and it can contain boot scripts that are run at startup.
   Debug ports and the bootloader allow a full reflash.
 - **The onboard shell is administrative.**
@@ -65,7 +66,7 @@ PX4's job is what happens at the boxes in the middle: whatever arrives on those 
   uXRCE-DDS and Zenoh publishers reach uORB directly, including `/fmu/in/actuator_motors`, `/fmu/in/actuator_servos` and `/fmu/in/vehicle_command`.
   They carry no external-origin marking, so the command guards that apply to MAVLink do not apply to them.
   A peer that can reach those transports is the operator, which is why keeping that network to trusted parties is the integrator's job and not an optional extra.
-- **Securing the links is the integrator's job.**
+- **Securing MAVLink links is the integrator's job.**
   See [MAVLink Security Hardening](docs/en/mavlink/security_hardening.md).
 
 These assumptions are the boundary.
@@ -84,11 +85,11 @@ In this configuration PX4 guarantees only what the [Always in scope](#always-in-
 
 ### Hardened
 
-An integrator can raise that, and the options are:
+An integrator can harden a deployment with any of:
 
 - **Secure the link below PX4.**
   An encrypted radio, a VPN or IPsec gives confidentiality and authentication using standard, reviewed cryptography.
-  This is the strongest option and PX4 is not involved in it.
+  This is the strongest option (and has no direct PX4 integration).
 - **Isolate the offboard transports.**
   uXRCE-DDS and Zenoh bypass every MAVLink control, so if an adversary can reach them, the rest of this list buys nothing.
 - **Enable [MAVLink message signing](docs/en/mavlink/message_signing.md).**
@@ -101,7 +102,7 @@ An integrator can raise that, and the options are:
   The in-tree secure boot variant ships a publicly committed test key that an integrator must replace.
 
 What each of these buys is described where it is documented.
-PX4 makes no guarantee that they combine into a secure deployment; that assessment belongs to the integrator.
+PX4 is responsible for the mechanisms it ships. If signing fails to authenticate, or secure boot accepts an unsigned image, that is a vulnerability in PX4 and [Always in scope](#always-in-scope) applies. What PX4 does not guarantee is that whether any combination of above is sufficient for a given deployment. That judgement belongs to the integrator, against the threat model for that deployment. 
 
 ## Always in scope
 

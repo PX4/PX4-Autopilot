@@ -55,7 +55,7 @@ Read [Operations](config/operations.md) to understand safety features and failsa
 
 ## Security
 
-PX4 ships with every control interface unauthenticated, unsigned and unencrypted, so securing a deployment is the integrator's responsibility.
+Securing a deployment is the integrator's responsibility — PX4 ships with every control interface unauthenticated, unsigned, and unencrypted!
 The [Security](security/index.md) section collects the hardening documentation, and links to the [security policy](https://github.com/PX4/PX4-Autopilot/blob/main/SECURITY.md) for reporting a vulnerability.
 
 ## Support
