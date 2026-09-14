@@ -105,8 +105,10 @@ bool RtlMissionFast::setNextMissionItem()
 	return (goToNextPositionItem() == PX4_OK);
 }
 
-bool RtlMissionFast::isFlownThroughWithoutStopping(const mission_item_s &item, int32_t, int32_t)
+bool RtlMissionFast::isFlownThroughWithoutStopping(const mission_item_s &item, int32_t, int32_t, bool &cache_miss)
 {
+	cache_miss = false;
+
 	// On the way back every position item is converted to a plain waypoint without hold time and the
 	// non-position items are skipped, only the items that end the flight stop the vehicle.
 	return mission_item_contains_position(item)

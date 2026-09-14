@@ -35,8 +35,9 @@
  * @file test_mission_velocity_constraint.cpp
  *
  * Tests for the velocity constraint the navigator puts on the next setpoint: the gate deciding whether the
- * vehicle really flies through a waypoint instead of stopping at it, and the walk along the mission that
- * derives how fast the vehicle may leave the next waypoint.
+ * vehicle really flies through a waypoint instead of stopping at it, the walk along the mission that
+ * derives how fast the vehicle may leave the next waypoint, and the repeat of that walk once the dataman
+ * cache has been filled after activation.
  */
 
 #include <gtest/gtest.h>
@@ -89,7 +90,35 @@ public:
 		_dataman_cache.invalidate();
 	}
 
-	using Mission::isFlownThroughWithoutStopping;
+	/* Make the mission runnable, the way the mission topic and the feasibility checker would */
+	void setMissionRunnable(dm_item_t dataman_id, int32_t count)
+	{
+		useMissionDataman(dataman_id, count);
+		_mission.current_seq = 0;
+		_mission.timestamp = hrt_absolute_time();
+		_is_current_planned_mission_item_valid = true;
+		_navigator->get_mission_result()->valid = true;
+	}
+
+	/* The base activation: sets the triplet before the cache is filled. Mission::on_activation() would first
+	 * rerun the feasibility checker, which needs a home position and geofence status the test does not have. */
+	void activate()
+	{
+		MissionBase::on_activation();
+	}
+
+	using Mission::on_active;
+
+	bool cacheIsLoading() const { return _dataman_cache.isLoading(); }
+
+	bool walkWaitsForCache() const { return _next_velocity_constraint_hit_cache_miss; }
+
+	bool isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index, int32_t following_index)
+	{
+		bool cache_miss{false};
+		return Mission::isFlownThroughWithoutStopping(item, item_index, following_index, cache_miss);
+	}
+
 	using Mission::setNextVelocityConstraint;
 	using MissionBlock::mission_item_to_position_setpoint;
 };
@@ -168,6 +197,41 @@ protected:
 	}
 
 	float cruiseSpeed() const { return _navigator.get_multicopter_trajectory_limits().max_speed_xy; }
+
+	/* Speed the planner may have at a waypoint from which it has to stop within the given distance */
+	float speedToStopWithin(float distance_m) const
+	{
+		const math::trajectory::VehicleDynamicLimits limits = _navigator.get_multicopter_trajectory_limits();
+		return math::trajectory::computeMaxSpeedFromDistance(limits.max_jerk, limits.max_acc_xy, distance_m, 0.f);
+	}
+
+	/* Write the mission to dataman without caching anything, and make it runnable */
+	void writeRunnableMission(const std::vector<mission_item_s> &items)
+	{
+		for (size_t index = 0; index < items.size(); index++) {
+			mission_item_s item = items[index];
+			ASSERT_TRUE(_dataman_client.writeSync(kMissionDataman, static_cast<uint32_t>(index),
+							      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
+		}
+
+		_mission.setMissionRunnable(kMissionDataman, static_cast<int32_t>(items.size()));
+		_mission.dropCachedItems();
+	}
+
+	/* Run navigator cycles until the dataman cache has been filled for the current sequence */
+	void runActiveUntilCacheLoaded()
+	{
+		const hrt_abstime start = hrt_absolute_time();
+
+		do {
+			_mission.on_active();
+			px4_usleep(1000);
+		} while (_mission.cacheIsLoading() && (hrt_elapsed_time(&start) < 2_s));
+
+		ASSERT_FALSE(_mission.cacheIsLoading()) << "dataman cache did not finish loading";
+	}
+
+	Vector3f nextConstraint() { return Vector3f(_navigator.get_position_setpoint_triplet()->next.velocity_constraint); }
 
 	DatamanClient _dataman_client{};
 	Navigator _navigator{};
@@ -327,23 +391,61 @@ TEST_F(MissionVelocityConstraintTest, StraightMissionAllowsCruiseSpeedThroughNex
 	EXPECT_FLOAT_EQ(constraint(2), 0.f);
 }
 
-TEST_F(MissionVelocityConstraintTest, CloseWaypointsAreNoStopOnAStraightPath)
+TEST_F(MissionVelocityConstraintTest, CloseWaypointsAreNoStopOnAStraightPathOnceTheCacheIsLoaded)
 {
-	// GIVEN: a survey-like entry: the next waypoint only a few metres past the current one on a straight line
-	// that continues far beyond, all of them within the acceptance radius of each other
+	// GIVEN: a survey-like entry: the next waypoint only a few metres past the first one on a straight line
+	// that continues far beyond, all of them within the acceptance radius of each other. The mission is
+	// activated with an empty dataman cache, as on the first activation or after a mission upload.
 	const float spacing = 2.f;
 	const float horizon = _navigator.get_multicopter_braking_distance(cruiseSpeed());
 	const std::vector<mission_item_s> items{
 		makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeWaypointAt(kNorth, 2.f * spacing),
 		makeWaypointAt(kNorth, 2.f * spacing + 2.f * horizon)};
-	writeMission(items);
+	writeRunnableMission(items);
+	// at the mission altitude already, so no climb is inserted before the first waypoint
+	_navigator.get_global_position()->alt = items[0].altitude;
 
-	// WHEN: the vehicle flies from the first to the second waypoint
-	const Vector3f constraint = constraintFor(items, 0, 1);
+	// WHEN: the mission is activated, which sets the triplet before the cache is filled
+	_mission.activate();
 
-	// THEN: the walk goes past the close waypoints and lets the vehicle carry cruise speed through next
+	// THEN: only the items read synchronously for the triplet are cached, the walk ends on the miss at the
+	// fourth item and can only assume a stop at the third, the safe fallback
+	Vector3f constraint = nextConstraint();
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_LT(constraint.norm(), cruiseSpeed());
+	EXPECT_NEAR(constraint.norm(), speedToStopWithin(spacing), 1e-2f);
+	EXPECT_TRUE(_mission.walkWaitsForCache());
+
+	// WHEN: the mode runs and the cache gets filled for the current sequence
+	runActiveUntilCacheLoaded();
+
+	// THEN: the walk was repeated, went past the close waypoints and lets the vehicle carry cruise speed
+	// through next, without the mission having advanced
+	constraint = nextConstraint();
 	ASSERT_TRUE(constraint.isAllFinite());
 	EXPECT_NEAR(constraint.norm(), cruiseSpeed(), 1e-3f);
+	EXPECT_FALSE(_mission.walkWaitsForCache());
+}
+
+TEST_F(MissionVelocityConstraintTest, StopAfterActivationIsNotRevisitedOnceTheCacheIsLoaded)
+{
+	// GIVEN: the next waypoint is followed by one the vehicle holds at, close enough to limit the speed at next
+	std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 32.f),
+					  makeWaypointAt(kNorth, 200.f)};
+	items[2].time_inside = 5.f;
+	writeRunnableMission(items);
+	_navigator.get_global_position()->alt = items[0].altitude;
+
+	// WHEN: the mission is activated and the cache gets filled
+	_mission.activate();
+	const Vector3f constraint_on_activation = nextConstraint();
+	runActiveUntilCacheLoaded();
+
+	// THEN: the walk ended on a real stop, the loaded cache changes nothing
+	ASSERT_TRUE(constraint_on_activation.isAllFinite());
+	EXPECT_NEAR(constraint_on_activation.norm(), speedToStopWithin(2.f), 1e-2f);
+	EXPECT_FALSE(_mission.walkWaitsForCache());
+	EXPECT_FLOAT_EQ(nextConstraint().norm(), constraint_on_activation.norm());
 }
 
 TEST_F(MissionVelocityConstraintTest, ShortLastSegmentLimitsTheSpeedLeavingNext)

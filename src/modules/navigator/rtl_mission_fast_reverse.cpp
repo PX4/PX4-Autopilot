@@ -111,8 +111,11 @@ bool RtlMissionFastReverse::setNextMissionItem()
 	return (goToPreviousPositionItem() == PX4_OK);
 }
 
-bool RtlMissionFastReverse::isFlownThroughWithoutStopping(const mission_item_s &item, int32_t, int32_t)
+bool RtlMissionFastReverse::isFlownThroughWithoutStopping(const mission_item_s &item, int32_t, int32_t,
+		bool &cache_miss)
 {
+	cache_miss = false;
+
 	// Same conversion to plain waypoints as on the way forward, flying backwards the takeoff item is
 	// where the landing starts.
 	return mission_item_contains_position(item)
