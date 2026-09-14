@@ -34,8 +34,6 @@
 #pragma once
 
 #include "framework.h"
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_status.h>
 
 
 class Failsafe : public FailsafeBase
@@ -239,5 +237,4 @@ private:
 					(ParamInt<px4::params::COM_TRAFF_AVOID>) _param_com_traff_avoid,
 					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act
 				       );
-	mutable uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 };
