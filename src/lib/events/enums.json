@@ -73,7 +73,7 @@
                         },
                         "32": {
                             "name": "rtl",
-                            "description": "RTL"
+                            "description": "Return"
                         },
                         "64": {
                             "name": "position_slow",
@@ -434,7 +434,7 @@
                         },
                         "6": {
                             "name": "rtl",
-                            "description": "RTL"
+                            "description": "Return"
                         },
                         "7": {
                             "name": "land",
@@ -526,7 +526,7 @@
                         },
                         "5": {
                             "name": "auto_rtl",
-                            "description": "RTL"
+                            "description": "Return"
                         },
                         "6": {
                             "name": "acro",
