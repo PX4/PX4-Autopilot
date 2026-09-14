@@ -11,7 +11,7 @@ It also includes a planner that projects the vehicle and safe-point positions pe
 
 The planner computes geometry and scoring only.
 Mission and Return execute the public plans returned by the planner.
-The Route Safe Point Return executor joins and follows the route, branches off, and lands.
+The Route Safe Point Return executor joins and follows the route, branches off, and handles arrival at the selected destination.
 
 ::: info
 Smart rejoin has two callers.
@@ -74,6 +74,17 @@ If planning is not possible (for example the route cache is not ready), Mission 
 Existing camera-trigger resume behavior that returns to the previous waypoint takes precedence over route rejoin.
 Selecting a mission item explicitly cancels a pending virtual join.
 
+When a VTOL rejoin requires a front transition, the vehicle follows this sequence:
+
+1. Fly to the branch-in waypoint.
+2. Wait for any active back transition to finish, retaining the branch-in position target.
+3. Hold at the branch-in position and align the heading towards the next mission waypoint.
+4. Start the front transition once position and heading alignment are complete, then resume the mission after reaching fixed-wing mode.
+
+Back-transition completion starts the alignment step even if the vehicle has drifted outside the branch-in acceptance radius.
+The vehicle must still reach the alignment position before starting the front transition.
+These temporary steps do not mark the next uploaded mission waypoint as reached.
+
 ### Route-Following Return {#route-following-return}
 
 The route-to-goal entry point plans a Return that uses the mission route as the return corridor instead of cutting straight across terrain. It works as follows:
@@ -87,6 +98,20 @@ The vehicle is projected first; the safe points are then scored in a separate sc
 The planner-owned [route-skip shortcuts](#route-skip-shortcuts) are applied to the selected goal so the caller can skip route join/follow when the vehicle is already close to it.
 
 Here an active [`DO_JUMP` loop segment](#vehicle-projection) is used as return geometry only: the loop repeat count is forced to zero (unlike [Smart Mission Rejoin](#smart-mission-rejoin)). The planner then picks whichever loop exit gives the shorter **total** return path to the goal: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the goal lies near the loop start the planner may rewind most of the loop instead of finishing it.
+
+Route following skips waypoint hold times and timed or unlimited loiter holds, but preserves `LOITER_TO_ALT`.
+The vehicle approaches these loiters at its current altitude, then changes altitude in the loiter before continuing.
+
+At a rally point or mission takeoff endpoint, the vehicle first approaches at the altitude held when leaving the route.
+It then follows the destination arrival policy configured by [RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT), [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY), and [RTL_LOITER_RAD](../advanced_config/parameter_reference.md#RTL_LOITER_RAD):
+
+- A negative landing delay holds indefinitely above the destination.
+- A positive landing delay waits at the descent altitude for the configured time before landing.
+- With zero landing delay, a multicopter lands after horizontal arrival; a fixed-wing vehicle first descends in the destination loiter.
+
+The descent altitude is relative to the destination and is capped at the arrival altitude, so arrival does not introduce another return-altitude climb.
+Synthetic landings use [RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD) for precision landing.
+An uploaded mission landing command retains its own landing and precision-landing settings; the synthetic destination descent and delay do not override it.
 
 ## Point Projection
 
@@ -317,13 +342,13 @@ CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE=32
 
 ## Parameters and Build Configuration
 
-| Setting | Purpose | Default |
-| --- | --- | --- |
-| `MIS_ROUTE_JOIN` | Enable route rejoin on airborne Mission activation. | `0` |
-| `MIS_MC_SEG_DIST` | Extra cross-track search margin for vehicle projections in multicopter mode. | 30 m |
-| `MIS_FW_SEG_DIST` | Extra cross-track search margin for vehicle projections in fixed-wing mode. | 150 m |
-| `RTL_RP_SEG_DIST` | Extra cross-track search margin for rally-point projections. | 30 m |
-| `RTL_FW_UTURN_PEN` | Additional distance cost for a fixed-wing reversal during route-following Return. | 4000 m |
+| Setting            | Purpose                                                                           | Default |
+| ------------------ | --------------------------------------------------------------------------------- | ------- |
+| `MIS_ROUTE_JOIN`   | Enable route rejoin on airborne Mission activation.                               | `0`     |
+| `MIS_MC_SEG_DIST`  | Extra cross-track search margin for vehicle projections in multicopter mode.      | 30 m    |
+| `MIS_FW_SEG_DIST`  | Extra cross-track search margin for vehicle projections in fixed-wing mode.       | 150 m   |
+| `RTL_RP_SEG_DIST`  | Extra cross-track search margin for rally-point projections.                      | 30 m    |
+| `RTL_FW_UTURN_PEN` | Additional distance cost for a fixed-wing reversal during route-following Return. | 4000 m  |
 
 `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` must be greater than zero and large enough for the entire uploaded mission.
 SITL defaults to 500 mission items.
@@ -367,11 +392,11 @@ The unit tests live in `src/modules/navigator/test/` (`test_mission_route_*.cpp`
 The geometry tests use an in-memory `VectorMissionRouteProvider`; the cache and MissionBase tests exercise the Dataman-backed integration:
 
 - `functional-test_mission_route_cache`: async loading and polling, oversized-mission rejection, retry/identity, synchronization, views, and stale-data protection.
-- `functional-test_mission_base`: mission execution, route joins, VTOL transitions, and coherence of successful `DO_JUMP` increments and resets with the full cache.
+- `functional-test_mission_base`: mission execution, route joins, back-transition waits and heading alignment before a rejoin front transition, VTOL transitions, and coherence of successful `DO_JUMP` increments and resets with the full cache.
 - `functional-test_mission_route_projection`: candidate ordering and pruning, local-minimum corner rules, vehicle branch-in selection, loop anchors, and edge cases.
 - `functional-test_mission_route_planner`: public Mission and Return plans, loop path solving, safe-point scoring, U-turn penalty, VTOL approach eligibility, endpoint fallback, and skip policy.
 - `functional-test_RTL`: safe-point, mission-land, and VTOL-approach behavior through the combined cache facade, plus repeated inactive route estimates and activation without stale route direction.
-- `functional-test_RTL_mission_safe_point_follow`: route joining and following, branch-off and endpoint handling, cache invalidation and fallback, and committed landing stages.
+- `functional-test_RTL_mission_safe_point_follow`: route joining and following, loiter altitude changes, destination descent and landing delay, branch-off and endpoint handling, cache invalidation and fallback, and committed arrival stages.
 
 Because the test geometry is defined directly in C++, it can be hard to picture. To inspect a test case visually, paste its C++ into the Streamlit helper at `Tools/navigator_mission_planner_visualizer/` (`mission_planner_tools.py`), which plots the missions, fences, rally/safe points, vehicle positions, and projections on a map. The same tool can generate C++ snippets for new test data drawn on the map.
 It visualizes fixture geometry; it does not execute the C++ planner or infer which candidate the planner selects. See its [README](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/navigator_mission_planner_visualizer/AddAndVisualizeUnitTests.md) for the supported syntax and setup.
