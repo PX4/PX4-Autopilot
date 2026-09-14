@@ -8,7 +8,7 @@ To test switching between various modes
 
 - Takeoff as first waypoint
 - Changes in Altitude throughout the mission
-- Last waypoint is a NOT Return, but a normal waypoint
+- Last waypoint is a normal waypoint, not a Return item
 - Duration of 5 to 6 minutes
 
 ## Flight Tests

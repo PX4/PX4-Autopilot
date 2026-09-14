@@ -5,7 +5,7 @@ bool is_evaluation_pending 	      # flag if the Return point needs reevaluation 
 
 bool has_vtol_approach 		      # flag if approaches are defined for current RTL_TYPE parameter setting
 
-uint8 rtl_type	      		      # Type of Return chosen
+uint8 rtl_type	      		      # Selected Return type
 uint8 safe_point_index 		      # index of the chosen safe point, UINT8_MAX if no rally point was chosen
 
 uint8 RTL_STATUS_TYPE_NONE=0       		# pending if evaluation can't pe performed currently e.g. when it is still loading the safe points

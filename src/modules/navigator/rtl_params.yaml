@@ -115,7 +115,7 @@ parameters:
       default: 0
     RTL_LOITER_RAD:
       description:
-        short: Loiter radius for Return descend
+        short: Loiter radius for Return descent
         long: Set the radius for loitering to a safe altitude for VTOL transition.
       type: float
       default: 80.0
