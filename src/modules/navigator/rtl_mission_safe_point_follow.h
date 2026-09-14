@@ -175,7 +175,7 @@ private:
 				   const position_setpoint_s &current_setpoint_copy);
 	/** @brief Advance to the next route target, or hand over to the goal stage when the route is exhausted. */
 	void advanceRouteTarget();
-	/** @brief Add the remaining legs of the active stage, from the vehicle to the goal, to the time estimator. */
+	/** @brief Estimate from the latest inactive plan or the active progress, without advancing execution. */
 	void addRemainingLegsToTimeEstimate(const vehicle_global_position_s &global_pos);
 
 	/** @brief Load a mission item through MissionRouteCache instead of MissionBase's local cache. */
