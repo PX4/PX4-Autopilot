@@ -310,9 +310,9 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 
 	// 2026-08-05: the protocol selection moved out of VTX_DEVICE into VTX_PROTOCOL. VTX_DEVICE keeps
 	// the old layout that holds the device in its high byte, so only the protocol has to be derived:
-	// the Peak THOR T67 speaks SmartAudio, the Rush MAX SOLO speaks Tramp. A value that is not listed
-	// stays untouched and acts as a generic device on SmartAudio, which is what both parameters
-	// default to, so the old value 0 needs nothing.
+	// the Peak THOR speaks SmartAudio. A value that is not listed stays untouched and acts as a
+	// generic device on SmartAudio, which is what both parameters default to, so the old value 0
+	// needs nothing.
 	{
 		static constexpr int32_t PROTOCOL_SMART_AUDIO = 0; // VTX_PROTOCOL value, not in msg/Vtx.msg
 
@@ -326,14 +326,9 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				protocol = vtx_s::PROTOCOL_TRAMP;
 				break;
 
-			case 5120: // Peak THOR T67, SmartAudio only
-				device = vtx_s::DEVICE_PEAK_THOR_T67 << 8;
+			case 5120: // Peak THOR (T35, T67, T78, T89), SmartAudio only
+				device = vtx_s::DEVICE_PEAK_THOR << 8;
 				protocol = PROTOCOL_SMART_AUDIO;
-				break;
-
-			case 10240: // Rush MAX SOLO, Tramp only
-				device = vtx_s::DEVICE_RUSH_MAX_SOLO << 8;
-				protocol = vtx_s::PROTOCOL_TRAMP;
 				break;
 			}
 

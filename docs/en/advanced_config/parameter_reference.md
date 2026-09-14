@@ -66155,8 +66155,7 @@ Leave at Generic unless your VTX is listed.
 **Values:**
 
 - `0`: Generic
-- `5120`: Peak THOR T67
-- `10240`: Rush MAX SOLO
+- `5120`: Peak THOR - T35, T67, T78, T89
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
