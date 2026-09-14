@@ -135,6 +135,8 @@ protected:
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
+	matrix::Vector3f _next_velocity_constraint{NAN, NAN, NAN}; ///< velocity the navigator allows when leaving the next waypoint, NAN if unknown
+	float _next_acceptance_radius{0.f}; ///< acceptance radius of the next waypoint
 
 	float _yaw_setpoint_previous{NAN}; /**< Used because _yaw_setpoint is overwritten in multiple places */
 	float _triplet_yaw{NAN}; /**< Last yaw from position_setpoint_triplet, to detect navigator changes */
@@ -193,8 +195,6 @@ private:
 	matrix::Vector3f _triplet_previous; ///< previous waypoint in triplet from navigator
 	matrix::Vector3f _triplet_current; ///< current waypoint in triplet from navigator
 	matrix::Vector3f _triplet_next; ///< next waypoint in triplet from navigator
-	matrix::Vector3f _next_velocity_constraint{NAN, NAN, NAN}; ///< velocity the navigator allows when leaving the next waypoint, NAN if unknown
-	float _next_acceptance_radius{0.f}; ///< acceptance radius of the next waypoint
 
 	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overridden using DO_CHANGE_SPEED
 
