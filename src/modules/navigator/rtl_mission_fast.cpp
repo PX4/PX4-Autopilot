@@ -183,7 +183,7 @@ void RtlMissionFast::setActiveMissionItems()
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
-		if (num_found_items > 0) {
+		if ((num_found_items > 0) && (new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT)) {
 			setNextVelocityConstraint(pos_sp_triplet->current, next_mission_items[0u], next_mission_items_index[0u],
 						  pos_sp_triplet->next);
 		}
