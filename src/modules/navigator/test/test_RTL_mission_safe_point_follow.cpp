@@ -112,9 +112,7 @@ public:
 	void configurePlanForTest(const mission_route::RtlRoutePlan &plan, int32_t land_index = -1)
 	{
 		_mission.land_index = land_index;
-		RouteSafePointConfig config{};
-		config.plan = plan;
-		configureRouteSafePoint(config);
+		configureRoute(plan, {}, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
 	}
 
 	const mission_item_s &currentMissionItemForTest() const { return _mission_item; }
