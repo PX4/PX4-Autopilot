@@ -122,7 +122,7 @@ private:
 
 	bool routePlanMissionMatches(const mission_s &mission) const;
 	bool routePlanSourceStillValid() const;
-	static DestinationType routePlanDestinationType(RtlRouteSafePoint::Goal goal_type);
+	static DestinationType routePlanDestinationType(mission_route::GoalType goal_type);
 	void applyRouteSafePointFallback(RtlType &new_rtl_type, DestinationType &destination_type,
 					 PositionYawSetpoint &destination, uint8_t &safe_point_index);
 
