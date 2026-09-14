@@ -59,10 +59,9 @@ public:
 	void on_inactivation() override;
 	void on_activation() override;
 
-	bool isLanding() override { return _state.stage == Stage::ApproachAtGoal || _state.stage == Stage::LandAtGoal; }
+	bool isLanding() override { return isExecutingGoalStage(); }
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const override { return _active_jump_anchor; }
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
-	void setRtlAlt(float alt) override { _rtl_alt = alt; }
 	void configureRouteSafePoint(const RouteSafePointConfig &config) override;
 
 private:
@@ -73,7 +72,9 @@ private:
 		FollowRoute,             /**< Follow the mission geometry in nominal or reverse direction. */
 		TransitionDuringRoute,   /**< Apply a VTOL transition during route following (prevents re-issuing). */
 		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
-		ApproachAtGoal,          /**< Fly the selected landing approach loiter before handing over to landing. */
+		MoveToGoal,              /**< Approach the destination at the altitude held on leaving the route. */
+		ApproachAtGoal,          /**< Descend in the destination loiter before holding or landing. */
+		HoldAtGoal,              /**< Wait for RTL_LAND_DELAY, or hold indefinitely when landing is disabled. */
 		LandAtGoal               /**< Execute the final landing at the safe point or fallback endpoint. */
 	};
 
@@ -102,12 +103,22 @@ private:
 	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
 	/** @brief Build the landing item: the mission LAND item for that goal, otherwise a synthetic landing at the goal. */
 	void setLandMissionItem(mission_item_s &mission_item) const;
-	/** @brief Build the synthetic goal-approach loiter item for VTOL safe-point landings. */
+	/** @brief Build the horizontal approach to a synthetic destination. */
+	void setGoalMoveMissionItem(mission_item_s &mission_item) const;
+	/** @brief Build the destination descent loiter. */
 	void setGoalApproachMissionItem(mission_item_s &mission_item) const;
-	/** @brief Build the item flown after the branch-off: the approach loiter when available, otherwise the landing. */
+	/** @brief Build the timed or unlimited hold after descending at the destination. */
+	void setGoalHoldMissionItem(mission_item_s &mission_item) const;
+	/** @brief Build the first destination item flown after the branch-off or a route shortcut. */
 	void setGoalMissionItem(mission_item_s &mission_item) const;
+	/** @brief Resolve the destination loiter, capped at the arrival altitude. */
+	loiter_point_s goalLandApproach(float arrival_altitude) const;
+	float goalArrivalAltitude() const;
+	/** @brief Freeze the arrival altitude and enter the destination sequence. */
+	void enterGoalStage();
+	bool isExecutingGoalStage() const;
 
-	/** @brief Flatten waypoint and loiter holds while preserving takeoff and landing commands.
+	/** @brief Clear route holds while preserving loiter-to-alt, takeoff and landing commands.
 	 *
 	 * Route waypoints and loiters use autocontinue with zero hold time. Non-position delays
 	 * are also cleared if encountered, although route traversal normally skips them.
@@ -181,12 +192,15 @@ private:
 	PlanState _state{};
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};
 	loiter_point_s _goal_land_approach{};
-	float _rtl_alt{NAN};
+	float _goal_arrival_alt{NAN};
 	RtlTimeEstimator _rtl_time_estimator; /**< Time estimator consistent with other RTL modes. */
 	perf_counter_t _calc_rtl_time_estimate_perf{perf_alloc(PC_ELAPSED, "rtl_route_calc_time_est")};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		RtlBase,
+		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,
+		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_rtl_land_delay,
+		(ParamFloat<px4::params::RTL_LOITER_RAD>) _param_rtl_loiter_rad,
 		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md
 	)
 };
