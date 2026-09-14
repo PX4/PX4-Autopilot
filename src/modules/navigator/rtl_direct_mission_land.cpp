@@ -182,10 +182,10 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return Mission land: climb to %d m\t",
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return mission landing: climb to %d m\t",
 				 (int)ceilf(_rtl_alt));
 		events::send<int32_t>(events::ID("rtl_mission_land_climb"), events::Log::Info,
-				      "Return Mission Land: climb to {1m_v}",
+				      "Return mission landing: climb to {1m_v}",
 				      (int32_t)ceilf(_rtl_alt));
 
 		_needs_climbing = false;

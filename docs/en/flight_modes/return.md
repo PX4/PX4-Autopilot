@@ -228,7 +228,7 @@ Things like path tracking error, wind and other disturbances may cause temporary
 It is therefore very important to consider this possibility and especially to review the geofence breach action (e.g. [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION)).
 :::
 
-### Return-types with Geofence-Awareness
+### Return Types with Geofence Awareness
 
 The following table shows which return types currently support geofence awareness:
 
