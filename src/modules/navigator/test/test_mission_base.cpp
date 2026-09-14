@@ -202,6 +202,11 @@ public:
 		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
 	}
 
+	bool alignmentAfterJoinActive() const
+	{
+		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN;
+	}
+
 	const RouteJoinContext &joinContext() const
 	{
 		return _route_join_context;
@@ -1122,17 +1127,25 @@ TEST_F(MissionBaseTraversalTest, JoinRouteRunsWaypointTransitionAndResumeFlow)
 
 	mission_base_with_nav.setJoinWaypointReached(true);
 	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	ASSERT_TRUE(mission_base_with_nav.alignmentAfterJoinActive());
+	EXPECT_EQ(mission_base_with_nav.currentMissionItem().nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_TRUE(mission_base_with_nav.currentMissionItem().force_heading);
+	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
+				   items[2].lat, items[2].lon);
+	EXPECT_NEAR(join_setpoint.yaw, expected_yaw, 1e-4f);
+
+	mission_base_with_nav.setJoinWaypointReached(true);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
 	ASSERT_TRUE(mission_base_with_nav.transitionAfterJoinActive());
 	EXPECT_EQ(mission_base_with_nav.currentMissionItem().nav_cmd, NAV_CMD_DO_VTOL_TRANSITION);
 	EXPECT_FLOAT_EQ(mission_base_with_nav.currentMissionItem().params[0],
 			static_cast<float>(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW));
-	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
-				   items[2].lat, items[2].lon);
-	EXPECT_NEAR(mission_base_with_nav.currentMissionItem().yaw, expected_yaw, 1e-4f);
+	EXPECT_NEAR(join_setpoint.yaw, expected_yaw, 1e-4f);
 
 	mission_base_with_nav.setVehicleStatus(true, true);
 	EXPECT_FALSE(mission_base_with_nav.runJoinWorkItem());
 	EXPECT_FALSE(mission_base_with_nav.joinWorkItemActive());
+	EXPECT_FALSE(mission_base_with_nav.alignmentAfterJoinActive());
 	EXPECT_FALSE(mission_base_with_nav.transitionAfterJoinActive());
 	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
 }
@@ -1153,6 +1166,53 @@ TEST_F(MissionBaseTraversalTest, JoinRouteResumesDirectlyWhenNoTransitionIsRequi
 	mission_base_with_nav.setJoinWaypointReached(true);
 	EXPECT_FALSE(mission_base_with_nav.runJoinWorkItem());
 	EXPECT_FALSE(mission_base_with_nav.joinWorkItemActive());
+	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
+}
+
+TEST_F(MissionBaseTraversalTest, JoinRouteBackTransitionDoesNotWaitForHeading)
+{
+	Navigator navigator{};
+	MissionBaseTestPeer mission_base_with_nav{&navigator};
+	mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
+	mission_base_with_nav.setVehicleStatus(true, true);
+
+	mission_route::MissionResumePlan join_plan{};
+	join_plan.join_position = {kBaseLat, kBaseLon, kAlt};
+	join_plan.vtol_transition_action = MissionBaseTestPeer::VtolTransitionAction::kBackTransition;
+	mission_base_with_nav.setupJoinRouteForTest(join_plan);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	EXPECT_TRUE(mission_base_with_nav.currentMissionItem().vtol_back_transition);
+
+	mission_base_with_nav.setJoinWaypointReached(true);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	EXPECT_TRUE(mission_base_with_nav.transitionAfterJoinActive());
+	EXPECT_FALSE(mission_base_with_nav.alignmentAfterJoinActive());
+	EXPECT_EQ(mission_base_with_nav.currentMissionItem().nav_cmd, NAV_CMD_DO_VTOL_TRANSITION);
+	EXPECT_FLOAT_EQ(mission_base_with_nav.currentMissionItem().params[0],
+			static_cast<float>(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC));
+}
+
+TEST_F(MissionBaseTraversalTest, MissionSourceChangeClearsJoinHeadingAlignment)
+{
+	Navigator navigator{};
+	MissionBaseTestPeer mission_base_with_nav{&navigator};
+	mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt)});
+	mission_base_with_nav.setVehicleStatus(true, false);
+	navigator.get_global_position()->lat = kBaseLat;
+	navigator.get_global_position()->lon = kBaseLon;
+	navigator.get_global_position()->alt = kAlt;
+
+	mission_route::MissionResumePlan join_plan{};
+	join_plan.join_position = {kBaseLat, kBaseLon, kAlt};
+	join_plan.vtol_transition_action = MissionBaseTestPeer::VtolTransitionAction::kFrontTransition;
+	mission_base_with_nav.setupJoinRouteForTest(join_plan);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	mission_base_with_nav.setJoinWaypointReached(true);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	ASSERT_TRUE(mission_base_with_nav.alignmentAfterJoinActive());
+
+	mission_base_with_nav.processMissionSourceChange();
+	EXPECT_FALSE(mission_base_with_nav.alignmentAfterJoinActive());
 	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
 }
 
@@ -1361,13 +1421,14 @@ protected:
 		_mission_pub.publish(mission);
 	}
 
-	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type, bool in_transition_to_fw = false)
+	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type, bool in_transition_to_fw = false,
+				  bool in_back_transition = false)
 	{
 		vehicle_status_s status{};
 		status.timestamp = hrt_absolute_time();
 		status.is_vtol = is_vtol;
 		status.vehicle_type = vehicle_type;
-		status.in_transition_mode = in_transition_to_fw;
+		status.in_transition_mode = in_transition_to_fw || in_back_transition;
 		status.in_transition_to_fw = in_transition_to_fw;
 		status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
 		_vehicle_status_pub.publish(status);
@@ -1402,6 +1463,7 @@ protected:
 		local_position.v_xy_valid = true;
 		local_position.z_valid = true;
 		local_position.heading = heading_rad;
+		local_position.heading_good_for_control = true;
 		local_position.vx = vx;
 		local_position.vy = vy;
 		_vehicle_local_position_pub.publish(local_position);
@@ -1567,9 +1629,11 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSkipsAltitudeRequireme
 	EXPECT_NEAR(mission.joinContextForTest().projection.alt, vehicle_position.alt, 0.01f);
 }
 
-// Rejoining into a fixed-wing segment promotes JOIN_ROUTE to TRANSITION_AFTER_JOIN at the branch-in waypoint.
-TEST_F(MissionRouteJoinTest, MissionSmartRejoinUsesTransitionAfterJoinWorkItemForFrontTransition)
+class MissionRouteJoinTransitionTest : public MissionRouteJoinTest, public ::testing::WithParamInterface<bool> {};
+
+TEST_P(MissionRouteJoinTransitionTest, MissionSmartRejoinAlignsHeadingBeforeFrontTransition)
 {
+	const bool initially_back_transitioning = GetParam();
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
 
@@ -1594,7 +1658,7 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinUsesTransitionAfterJoinWorkItemFo
 	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
 	publishMission(mission_state);
 
-	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, false, initially_back_transitioning);
 	publishLandDetected(false);
 	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 60.f, 15.f, kBaseAlt + 5.f));
 	publishLocalPosition(0.f, 5.f, 0.f);
@@ -1609,15 +1673,107 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinUsesTransitionAfterJoinWorkItemFo
 	EXPECT_EQ(mission.joinTransitionActionForTest(), MissionTestPeer::VtolTransitionAction::kFrontTransition);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 
+	uORB::Subscription vehicle_command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	// Discard commands published before reaching the join waypoint.
+	while (vehicle_command_sub.update(&command)) {}
+
+	const int32_t target_index = mission.currentSequenceForTest();
 	const mission_route::Position join_projection = mission.joinContextForTest().projection;
+	float expected_yaw = get_bearing_to_next_waypoint(join_projection.lat, join_projection.lon,
+			     mission_items[target_index].lat, mission_items[target_index].lon);
 	publishGlobalPosition(join_projection);
-	publishLocalPosition(0.f, 0.f, 0.f);
+	publishLocalPosition(matrix::wrap_pi(expected_yaw + M_PI_F / 2.f));
 	primeNavigatorState();
 
 	mission.on_active();
 
+	if (initially_back_transitioning) {
+		// Drift outside the join acceptance radius while the back transition finishes.
+		const mission_route::Position drifted_position =
+			makePositionFromOffset(join_projection.lat, join_projection.lon, 0.f, 50.f, join_projection.alt);
+		publishGlobalPosition(drifted_position);
+		primeNavigatorState();
+
+		for (int i = 0; i < 3; ++i) {
+			ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN);
+			EXPECT_FALSE(PX4_ISFINITE(_navigator.get_position_setpoint_triplet()->current.yaw));
+			EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, join_projection.lat);
+			EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lon, join_projection.lon);
+			EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+			EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
+
+			while (vehicle_command_sub.update(&command)) {
+				EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+			}
+
+			mission.on_active();
+		}
+
+		// Resume from vehicle state even though neither the join nor the mission target is reached.
+		expected_yaw = get_bearing_to_next_waypoint(drifted_position.lat, drifted_position.lon,
+				mission_items[target_index].lat, mission_items[target_index].lon);
+		publishLocalPosition(matrix::wrap_pi(expected_yaw + M_PI_F / 2.f));
+		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+		primeNavigatorState();
+		mission.on_active();
+	}
+
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN);
+	const position_setpoint_triplet_s &triplet = *_navigator.get_position_setpoint_triplet();
+	EXPECT_NEAR(triplet.current.yaw, expected_yaw, 1e-4f);
+	EXPECT_DOUBLE_EQ(triplet.current.lat, join_projection.lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, join_projection.lon);
+	EXPECT_FALSE(triplet.previous.valid);
+	EXPECT_FALSE(triplet.next.valid);
+	EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
+
+	publishGlobalPosition(join_projection);
+	primeNavigatorState();
+
+	// Repeated reach checks must withhold the command while heading is misaligned.
+	for (int i = 0; i < 3; ++i) {
+		mission.on_active();
+		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN);
+		EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+		EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
+
+		while (vehicle_command_sub.update(&command)) {
+			EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+		}
+	}
+
+	publishLocalPosition(expected_yaw);
+	primeNavigatorState();
+	mission.on_active();
+
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN);
+	EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
+	EXPECT_NEAR(triplet.current.yaw, expected_yaw, 1e-4f);
+	bool front_transition_sent = false;
+
+	while (vehicle_command_sub.update(&command)) {
+		if (command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+			EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+			front_transition_sent = true;
+		}
+	}
+
+	EXPECT_TRUE(front_transition_sent);
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	primeNavigatorState();
+	mission.on_active();
+	EXPECT_NE(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN);
+	EXPECT_NE(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN);
+	EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
 }
+
+INSTANTIATE_TEST_SUITE_P(WithAndWithoutBackTransition, MissionRouteJoinTransitionTest, ::testing::Bool());
 
 TEST_F(MissionRouteJoinTest, ExhaustedJumpRejoinResumesNominalExecutionWithoutAnotherRepeat)
 {
