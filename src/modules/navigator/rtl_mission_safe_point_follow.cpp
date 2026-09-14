@@ -111,11 +111,12 @@ bool RtlMissionSafePointFollow::loadMissionItemFromCache(int32_t index, mission_
 	       && mission_route_cache.loadMissionItem(_mission, index, mission_item);
 }
 
-void RtlMissionSafePointFollow::configureRouteSafePoint(const RouteSafePointConfig &config)
+void RtlMissionSafePointFollow::configureRoute(const mission_route::RtlRoutePlan &plan,
+		const loiter_point_s &goal_land_approach, uint8_t vtol_state_on_mission_upload)
 {
-	_plan = config.plan;
-	_goal_land_approach = config.goal_land_approach;
-	_vtol_state_on_mission_upload = config.vtol_state_on_mission_upload;
+	_plan = plan;
+	_goal_land_approach = goal_land_approach;
+	_vtol_state_on_mission_upload = vtol_state_on_mission_upload;
 	// Keep the endpoint command while landing helpers temporarily replace _mission_item,
 	// and after the route source may be replaced during the committed landing stage.
 	_goal_mission_land_item_valid = goalIsMissionLanding()

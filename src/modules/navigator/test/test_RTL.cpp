@@ -60,6 +60,7 @@
 #include "rtl_direct_mission_land.h"
 #include "rtl_mission_fast.h"
 #include "rtl_mission_fast_reverse.h"
+#include "rtl_mission_safe_point_follow.h"
 #include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
 #include "support/mission_route_cache_test_peer.h"
@@ -205,18 +206,6 @@ private:
 	mission_route::ActiveJumpAnchor _loop_segment{};
 	bool _deactivated{false};
 };
-
-class RtlPlanCaptureTestExecutor : public RtlLifecycleTestExecutor
-{
-public:
-	explicit RtlPlanCaptureTestExecutor(Navigator *navigator) : RtlLifecycleTestExecutor(navigator, false) {}
-
-	void configureRouteSafePoint(const RouteSafePointConfig &config) override { _plan = config.plan; }
-	const mission_route::RtlRoutePlan &plan() const { return _plan; }
-
-private:
-	mission_route::RtlRoutePlan _plan{};
-};
 #endif
 
 class NavigatorMissionStateTestPeer
@@ -271,16 +260,14 @@ public:
 		run(false);
 	}
 
-	mission_route::RtlRoutePlan routePlanForTest()
+	mission_route::RtlRoutePlan routePlanForTest() const
 	{
-		RtlPlanCaptureTestExecutor executor{_navigator};
-		return routePlanForTest(executor);
-	}
+		if (_rtl_type != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW || _rtl_mission_type_handle == nullptr) {
+			ADD_FAILURE() << "Route follower is unavailable";
+			return {};
+		}
 
-	mission_route::RtlRoutePlan routePlanForTest(RtlPlanCaptureTestExecutor &executor)
-	{
-		_route_safe_point.configureExecutor(executor, kAlt);
-		return executor.plan();
+		return static_cast<const RtlMissionSafePointFollow *>(_rtl_mission_type_handle)->_plan;
 	}
 
 	void forceRouteRetryForTest() { _destination_check_time = hrt_absolute_time() - 3'000'000; }
@@ -297,10 +284,9 @@ public:
 
 	void setMissionExecutorLoopSegmentForTest(const mission_route::ActiveJumpAnchor &loop_segment)
 	{
+		ASSERT_EQ(_rtl_type, RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 		ASSERT_NE(_rtl_mission_type_handle, nullptr);
-		RtlBase::RouteSafePointConfig config{};
-		config.plan.active_jump_anchor = loop_segment;
-		_rtl_mission_type_handle->configureRouteSafePoint(config);
+		static_cast<RtlMissionSafePointFollow *>(_rtl_mission_type_handle)->_active_jump_anchor = loop_segment;
 	}
 
 	RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
@@ -825,8 +811,6 @@ TEST_F(RTLTest, InactiveRouteEstimatesPreserveNominalMissionSegmentThroughActiva
 TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPosition)
 {
 	mission_s mission = prepareFinalMissionLegScenario();
-	// Keep this alive across updates: destroying a MissionBase unadvertises the shared mission topic.
-	RtlPlanCaptureTestExecutor plan_capture{&_navigator};
 	uORB::SubscriptionData<rtl_time_estimate_s> estimate_sub{ORB_ID(rtl_time_estimate)};
 	uORB::SubscriptionData<vehicle_global_position_s> global_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<home_position_s> home_sub{ORB_ID(home_position)};
@@ -843,7 +827,7 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	RtlBase *executor = _rtl.missionExecutorForTest();
 	const uint32_t generation = _rtl.routePlanMissionGenerationForTest();
 	const auto last_leg_join = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 20.f, kAlt + 50.f);
-	const auto last_leg_plan = _rtl.routePlanForTest(plan_capture);
+	const auto last_leg_plan = _rtl.routePlanForTest();
 	ASSERT_TRUE(last_leg_plan.valid());
 	EXPECT_LT(get_distance_to_next_waypoint(last_leg_plan.join_position.lat, last_leg_plan.join_position.lon,
 						last_leg_join.lat, last_leg_join.lon), 0.1f);
@@ -861,7 +845,7 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
 	EXPECT_EQ(_rtl.routePlanMissionGenerationForTest(), generation);
 	const auto first_leg_join = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 50.f);
-	const auto first_leg_plan = _rtl.routePlanForTest(plan_capture);
+	const auto first_leg_plan = _rtl.routePlanForTest();
 	ASSERT_TRUE(first_leg_plan.valid());
 	EXPECT_LT(get_distance_to_next_waypoint(first_leg_plan.join_position.lat, first_leg_plan.join_position.lon,
 						first_leg_join.lat, first_leg_join.lon), 0.1f);
@@ -875,7 +859,7 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	ASSERT_TRUE(estimate_sub.get().valid);
 	EXPECT_GT(estimate_sub.get().time_estimate, first_leg_time);
 	const auto moved_join = makePositionFromOffset(kBaseLat, kBaseLon, 75.f, 0.f, kAlt + 50.f);
-	const auto moved_plan = _rtl.routePlanForTest(plan_capture);
+	const auto moved_plan = _rtl.routePlanForTest();
 	ASSERT_TRUE(moved_plan.valid());
 	EXPECT_LT(get_distance_to_next_waypoint(moved_plan.join_position.lat, moved_plan.join_position.lon,
 						moved_join.lat, moved_join.lon), 0.1f);

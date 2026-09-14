@@ -46,6 +46,9 @@
 #include "mission_route_cache.h"
 #include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include "rtl_mission_safe_point_follow.h"
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
@@ -114,8 +117,13 @@ void RTL::on_inactivation()
 {
 	if (_rtl_mission_type_handle) {
 		_rtl_mission_type_handle->run(false);
-		_route_safe_point.recordExecutorProgress(*_rtl_mission_type_handle,
-				_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		if (_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+			_route_safe_point.recordExecutorProgress(_rtl_mission_type_handle->activeJumpAnchor());
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	} else {
 		_route_safe_point.clearExecutorProgress();
@@ -370,7 +378,7 @@ void RTL::setRtlTypeAndDestination()
 
 		if (route_evaluation.success) {
 			new_rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
-			destination_type = routePlanDestinationType(route_evaluation.goal);
+			destination_type = routePlanDestinationType(route_evaluation.plan.goal_type);
 			destination = route_evaluation.destination;
 			safe_point_index = route_evaluation.safe_point_index;
 
@@ -513,9 +521,16 @@ void RTL::setRtlTypeAndDestination()
 		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 	}
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
 	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _rtl_mission_type_handle) {
-		_route_safe_point.configureExecutor(*_rtl_mission_type_handle, rtl_alt);
+		auto *follower = static_cast<RtlMissionSafePointFollow *>(_rtl_mission_type_handle);
+		// A refreshed plan must also configure a reused executor before estimating or activating it.
+		follower->configureRoute(route_evaluation.plan, route_evaluation.goal_land_approach,
+					 route_evaluation.vtol_state_on_mission_upload);
 	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	_rtl_type = new_rtl_type;
 
@@ -563,19 +578,19 @@ void RTL::setRtlTypeAndDestination()
 	_rtl_status_pub.publish(rtl_status);
 }
 
-RTL::DestinationType RTL::routePlanDestinationType(RtlRouteSafePoint::Goal goal_type)
+RTL::DestinationType RTL::routePlanDestinationType(mission_route::GoalType goal_type)
 {
 	switch (goal_type) {
-	case RtlRouteSafePoint::Goal::SafePoint:
+	case mission_route::GoalType::kSafePoint:
 		return DestinationType::DESTINATION_TYPE_SAFE_POINT;
 
-	case RtlRouteSafePoint::Goal::MissionLand:
+	case mission_route::GoalType::kMissionLand:
 		return DestinationType::DESTINATION_TYPE_MISSION_LAND;
 
-	case RtlRouteSafePoint::Goal::MissionTakeoff:
+	case mission_route::GoalType::kMissionTakeoff:
 		return DestinationType::DESTINATION_TYPE_MISSION_TAKEOFF;
 
-	case RtlRouteSafePoint::Goal::None:
+	case mission_route::GoalType::kNone:
 	default:
 		return DestinationType::DESTINATION_TYPE_HOME;
 	}
@@ -864,7 +879,14 @@ bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 		break;
 
 	case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
-		_rtl_mission_type_handle = _route_safe_point.createExecutor(new_mission);
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		_rtl_mission_type_handle = new RtlMissionSafePointFollow(_navigator, new_mission);
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->initialize();
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		break;
 
 	default:
@@ -880,8 +902,15 @@ void RTL::stopAndDeleteRtlMissionType(bool preserve_route_loop_segment)
 		return;
 	}
 
-	_route_safe_point.recordExecutorProgress(*_rtl_mission_type_handle,
-			preserve_route_loop_segment && _rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	if (preserve_route_loop_segment && _rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+		_route_safe_point.recordExecutorProgress(_rtl_mission_type_handle->activeJumpAnchor());
+	}
+
+#else
+	(void)preserve_route_loop_segment;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	_rtl_mission_type_handle->run(false);
 	delete _rtl_mission_type_handle;
