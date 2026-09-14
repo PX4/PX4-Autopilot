@@ -62,10 +62,12 @@ public:
 	bool isLanding() override { return isExecutingGoalStage(); }
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const override { return _active_jump_anchor; }
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
-	void configureRouteSafePoint(const RouteSafePointConfig &config) override;
+	void configureRoute(const mission_route::RtlRoutePlan &plan, const loiter_point_s &goal_land_approach,
+			    uint8_t vtol_state_on_mission_upload);
 
 private:
 	friend class RtlMissionSafePointFollowTestPeer;
+	friend class RTLTestPeer;
 
 	enum class Stage {
 		Idle = 0,                /**< No active plan. */
