@@ -105,6 +105,16 @@ bool RtlMissionFast::setNextMissionItem()
 	return (goToNextPositionItem() == PX4_OK);
 }
 
+bool RtlMissionFast::isFlownThroughWithoutStopping(const mission_item_s &item, int32_t, int32_t)
+{
+	// On the way back every position item is converted to a plain waypoint without hold time and the
+	// non-position items are skipped, only the items that end the flight stop the vehicle.
+	return mission_item_contains_position(item)
+	       && item.nav_cmd != NAV_CMD_LAND
+	       && item.nav_cmd != NAV_CMD_VTOL_LAND
+	       && item.nav_cmd != NAV_CMD_LOITER_TO_ALT;
+}
+
 void RtlMissionFast::setActiveMissionItems()
 {
 	WorkItemType new_work_item_type{WorkItemType::WORK_ITEM_TYPE_DEFAULT};
@@ -172,6 +182,11 @@ void RtlMissionFast::setActiveMissionItems()
 		}
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+
+		if (num_found_items > 0) {
+			setNextVelocityConstraint(pos_sp_triplet->current, next_mission_items[0u], next_mission_items_index[0u],
+						  pos_sp_triplet->next);
+		}
 
 		// Only set the previous position item if the current one really changed
 		if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&

@@ -111,6 +111,18 @@ bool RtlMissionFastReverse::setNextMissionItem()
 	return (goToPreviousPositionItem() == PX4_OK);
 }
 
+bool RtlMissionFastReverse::isFlownThroughWithoutStopping(const mission_item_s &item, int32_t, int32_t)
+{
+	// Same conversion to plain waypoints as on the way forward, flying backwards the takeoff item is
+	// where the landing starts.
+	return mission_item_contains_position(item)
+	       && item.nav_cmd != NAV_CMD_LAND
+	       && item.nav_cmd != NAV_CMD_VTOL_LAND
+	       && item.nav_cmd != NAV_CMD_LOITER_TO_ALT
+	       && item.nav_cmd != NAV_CMD_TAKEOFF
+	       && item.nav_cmd != NAV_CMD_VTOL_TAKEOFF;
+}
+
 void RtlMissionFastReverse::setActiveMissionItems()
 {
 	WorkItemType new_work_item_type{WorkItemType::WORK_ITEM_TYPE_DEFAULT};
@@ -142,19 +154,27 @@ void RtlMissionFastReverse::setActiveMissionItems()
 			_in_landing_phase = false;
 		}
 
+		mission_item_s next_mission_item;
+		bool next_item_loaded = false;
+
 		if (num_found_items > 0) {
 
 			const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
-			mission_item_s next_mission_item;
-			bool success = _dataman_cache.loadWait(mission_dataman_id, next_mission_item_index,
-							       reinterpret_cast<uint8_t *>(&next_mission_item), sizeof(mission_item_s), MAX_DATAMAN_LOAD_WAIT);
+			next_item_loaded = _dataman_cache.loadWait(mission_dataman_id, next_mission_item_index,
+					   reinterpret_cast<uint8_t *>(&next_mission_item), sizeof(mission_item_s), MAX_DATAMAN_LOAD_WAIT);
 
-			if (success) {
+			if (next_item_loaded) {
 				mission_item_to_position_setpoint(next_mission_item, &pos_sp_triplet->next);
 			}
 		}
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+
+		if (next_item_loaded) {
+			setNextVelocityConstraint(pos_sp_triplet->current, next_mission_item, next_mission_item_index,
+						  pos_sp_triplet->next, true);
+		}
+
 		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
 				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
 				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;

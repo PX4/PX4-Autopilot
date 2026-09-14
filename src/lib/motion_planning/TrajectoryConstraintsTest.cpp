@@ -290,3 +290,117 @@ TEST_F(TrajectoryConstraintsTest, testHairpinNextInsideAcceptanceRadius)
 
 	EXPECT_FLOAT_EQ(through_speed, stop_speed);
 }
+
+TEST_F(TrajectoryConstraintsTest, testStopAtLastMatchesFixedSizeVersion)
+{
+	// GIVEN: the 90 degree corner of the fixture
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+
+	// WHEN: we get the speed with a zero and with an unknown velocity after the last waypoint
+	float stop_speed = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{}, config);
+	float unknown_speed = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{NAN, NAN, NAN}, config);
+
+	// THEN: both assume a stop at the last waypoint, same as the fixed size version
+	EXPECT_FLOAT_EQ(stop_speed, computeXYSpeedFromWaypoints<3>(waypoints, config));
+	EXPECT_FLOAT_EQ(unknown_speed, stop_speed);
+}
+
+TEST_F(TrajectoryConstraintsTest, testVelocityAfterLastCarriesSpeedThroughLast)
+{
+	// GIVEN: a survey-like pattern: target and a collinear next waypoint 15m behind it, the path continuing straight
+	config.max_jerk = 4.f;
+	config.max_speed_xy = 15.f;
+	config.xy_accept_rad = 10.f;
+	vehicle_location = Vector3f(70, 0, 5); // 10m before the target, i.e. inside the braking zone
+	target = Vector3f(80, 0, 5);
+	next_target = Vector3f(95, 0, 5);
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+
+	// WHEN: we get the speed without knowing what follows the next waypoint
+	float speed_with_stop = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{}, config);
+
+	// THEN: the vehicle has to plan a stop 15m after the target, which caps the speed at the target well below cruise
+	float stop_in_15m_speed = computeMaxSpeedFromDistance(config.max_jerk, config.max_acc_xy, 15.f, 0.f);
+	EXPECT_NEAR(stop_in_15m_speed, 6.f, 0.01f);
+	EXPECT_LT(speed_with_stop, config.max_speed_xy);
+
+	// WHEN: we get the speed knowing the vehicle may leave the next waypoint at cruise speed along the same line
+	float speed_through = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{config.max_speed_xy, 0.f, 0.f}, config);
+
+	// THEN: the straight line can be flown at cruise speed
+	EXPECT_GT(speed_through, speed_with_stop);
+	EXPECT_FLOAT_EQ(speed_through, config.max_speed_xy);
+}
+
+TEST_F(TrajectoryConstraintsTest, testVelocityAfterLastNormIsAnUpperBound)
+{
+	// GIVEN: the same straight pattern, but the mission only allows 2m/s after the next waypoint
+	config.max_jerk = 4.f;
+	config.max_speed_xy = 15.f;
+	config.xy_accept_rad = 10.f;
+	vehicle_location = Vector3f(70, 0, 5);
+	target = Vector3f(80, 0, 5);
+	next_target = Vector3f(95, 0, 5);
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+
+	// WHEN: we get the speed with that constraint
+	const float exit_speed = 2.f;
+	float speed_limited = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{exit_speed, 0.f, 0.f}, config);
+
+	// THEN: it lies between stopping at next and passing next at cruise speed, and it is exactly the speed which
+	// lets the vehicle brake down to the constraint over the remaining distance
+	float speed_with_stop = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{}, config);
+	float speed_through = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{config.max_speed_xy, 0.f, 0.f}, config);
+	EXPECT_GT(speed_limited, speed_with_stop);
+	EXPECT_LT(speed_limited, speed_through);
+
+	float speed_at_target = computeMaxSpeedFromDistance(config.max_jerk, config.max_acc_xy, 15.f, exit_speed);
+	float expected = computeMaxSpeedFromDistance(config.max_jerk, config.max_acc_xy, 10.f, speed_at_target);
+	EXPECT_FLOAT_EQ(speed_limited, expected);
+}
+
+TEST_F(TrajectoryConstraintsTest, testVelocityAfterLastDirectionLimitsTurnAtLast)
+{
+	// GIVEN: target, a close collinear next waypoint and a path turning by 90 degrees right after it
+	config.max_jerk = 4.f;
+	config.max_speed_xy = 15.f;
+	config.xy_accept_rad = 10.f;
+	vehicle_location = Vector3f(70, 0, 5);
+	target = Vector3f(80, 0, 5);
+	next_target = Vector3f(95, 0, 5);
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+
+	// WHEN: we get the speed with the path continuing straight and with it turning
+	float speed_straight = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{config.max_speed_xy, 0.f, 0.f}, config);
+	float speed_turning = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{0.f, config.max_speed_xy, 0.f}, config);
+	float speed_with_stop = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{}, config);
+
+	// THEN: the turn at the next waypoint still limits the speed well below cruise, the constraint only removes the
+	// full-stop assumption there
+	EXPECT_GT(speed_turning, speed_with_stop);
+	EXPECT_LT(speed_turning, speed_straight);
+	EXPECT_LT(speed_turning, 0.5f * config.max_speed_xy);
+
+	// AND: the same as if the corner were given as an explicit waypoint after next far enough to not limit the speed
+	Vector3f corner_waypoints[4] = {vehicle_location, target, next_target, next_target + Vector3f(0, 100, 0)};
+	float speed_corner = computeXYSpeedFromWaypoints(corner_waypoints, 4, Vector3f{}, config);
+	EXPECT_NEAR(speed_turning, speed_corner, 1e-3f);
+}
+
+TEST_F(TrajectoryConstraintsTest, testAcceptanceRadiusPerWaypoint)
+{
+	// GIVEN: the 90 degree corner of the fixture, with a larger acceptance radius at the target than the default
+	Vector3f waypoints[3] = {vehicle_location, target, next_target};
+	const float radii[3] = {config.xy_accept_rad, 3.f * config.xy_accept_rad, config.xy_accept_rad};
+
+	// WHEN: we get the speed with and without the per-waypoint radii
+	float default_speed = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{}, config);
+	float wide_corner_speed = computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{}, config, radii);
+
+	// THEN: the wider turn circle at the target allows more speed
+	EXPECT_GT(wide_corner_speed, default_speed);
+
+	// AND: the radius of the last waypoint does not matter when the vehicle stops there
+	const float last_radii[3] = {config.xy_accept_rad, config.xy_accept_rad, 3.f * config.xy_accept_rad};
+	EXPECT_FLOAT_EQ(computeXYSpeedFromWaypoints(waypoints, 3, Vector3f{}, config, last_radii), default_speed);
+}

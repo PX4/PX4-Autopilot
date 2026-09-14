@@ -590,7 +590,6 @@ void MissionBase::setEndOfMissionItems()
 	pos_sp_triplet->previous.valid = false;
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
-	_navigator->reset_position_setpoint_lookahead();
 
 	// set mission finished
 	_navigator->get_mission_result()->finished = true;
@@ -754,6 +753,143 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 		((fabsf(p1->cruising_throttle - p2->cruising_throttle) < FLT_EPSILON) || (!PX4_ISFINITE(p1->cruising_throttle)
 				&& !PX4_ISFINITE(p2->cruising_throttle))));
 
+}
+
+bool MissionBase::isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index,
+		int32_t following_index)
+{
+	// Anything but a plain waypoint (loiter, land, takeoff) is a place the vehicle comes to a stop at.
+	// A plain waypoint is only passed at speed if it holds no time and the mission continues by itself,
+	// same criteria as brake_for_hold in Mission::setActiveMissionItems().
+	if (item.nav_cmd != NAV_CMD_WAYPOINT
+	    || !item.autocontinue
+	    || get_time_inside(item) > FLT_EPSILON
+	    || item_has_timeout(item)) {
+		return false;
+	}
+
+	if (following_index == item_index) {
+		return false;
+	}
+
+	// The following position item was found skipping all non-position items in between. Any of those
+	// that makes the vehicle wait at the waypoint (delay, payload command with timeout, transition) or
+	// that redirects the mission (jump) means the waypoint is not simply flown through.
+	const int32_t step = (following_index > item_index) ? 1 : -1;
+	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+
+	// The number of items in between is not bounded, so read them from the cache only: a timeout here
+	// would turn this into one blocking dataman read per item. A miss is treated like an item that
+	// stops the vehicle, which just falls back to not carrying speed through the waypoint.
+	for (int32_t index = item_index + step; index != following_index; index += step) {
+		mission_item_s item_in_between;
+		const bool success = _dataman_cache.loadWait(mission_dataman_id, index,
+				     reinterpret_cast<uint8_t *>(&item_in_between), sizeof(item_in_between));
+
+		if (!success
+		    || item_in_between.nav_cmd == NAV_CMD_DELAY
+		    || item_in_between.nav_cmd == NAV_CMD_DO_JUMP
+		    || item_in_between.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
+		    || item_has_timeout(item_in_between)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool MissionBase::findCachedPositionItem(int32_t start_index, bool direction_backward, int32_t &following_index,
+		mission_item_s &following_item)
+{
+	const int32_t step = direction_backward ? -1 : 1;
+	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+
+	for (int32_t index = start_index + step; (index >= 0) && (index < _mission.count); index += step) {
+		if (!_dataman_cache.loadWait(mission_dataman_id, index, reinterpret_cast<uint8_t *>(&following_item),
+					     sizeof(following_item))) {
+			return false;
+		}
+
+		if (mission_item_contains_position(following_item)) {
+			following_index = index;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void MissionBase::setNextVelocityConstraint(const position_setpoint_s &current, const mission_item_s &next_item,
+		int32_t next_index, position_setpoint_s &next, bool direction_backward)
+{
+	// Only the multicopter trajectory planner consumes the constraint, leave it unknown otherwise
+	// (same vehicle type source as get_time_inside(), which the stop criteria depend on)
+	if (_navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    || !next.valid || !current.valid || !PX4_ISFINITE(current.lat) || !PX4_ISFINITE(current.lon)) {
+		return;
+	}
+
+	math::trajectory::VehicleDynamicLimits limits = _navigator->get_multicopter_trajectory_limits();
+
+	// Beyond the distance the vehicle needs to brake from cruise speed nothing can limit the speed at next
+	// any further, so the walk can stop there and assume a stop at the last waypoint it reached.
+	const float horizon = _navigator->get_multicopter_braking_distance(limits.max_speed_xy);
+
+	// Bounded by the dataman cache, only cached items are read, a miss ends the walk like a stop would.
+	static constexpr size_t kMaxWaypoints = 10;
+	matrix::Vector3f waypoints[kMaxWaypoints];
+	float acceptance_radii[kMaxWaypoints];
+
+	// Local frame with next at the origin, altitude is not part of the horizontal speed planning
+	const MapProjection projection(next_item.lat, next_item.lon);
+	waypoints[0].setZero();
+	acceptance_radii[0] = next.acceptance_radius;
+	size_t num_waypoints = 1;
+	float path_length = 0.f;
+
+	int32_t item_index = next_index;
+	mission_item_s item = next_item;
+
+	while ((num_waypoints < kMaxWaypoints) && (path_length < horizon)) {
+		int32_t following_index;
+		mission_item_s following_item;
+
+		if (!findCachedPositionItem(item_index, direction_backward, following_index, following_item)
+		    || !isFlownThroughWithoutStopping(item, item_index, following_index)) {
+			break;
+		}
+
+		const matrix::Vector2f following_xy = projection.project(following_item.lat, following_item.lon);
+		waypoints[num_waypoints] = matrix::Vector3f(following_xy(0), following_xy(1), 0.f);
+		acceptance_radii[num_waypoints] = get_acceptance_radius_for_item(following_item);
+		path_length += (waypoints[num_waypoints] - waypoints[num_waypoints - 1]).norm();
+		num_waypoints++;
+
+		item_index = following_index;
+		item = following_item;
+	}
+
+	if (num_waypoints < 2) {
+		// the vehicle stops at next
+		matrix::Vector3f().copyTo(next.velocity_constraint);
+		return;
+	}
+
+	// Speed the vehicle may have when leaving next along the path, assuming a stop at the last waypoint reached
+	const float speed_leaving_next = math::trajectory::computeXYSpeedFromWaypoints(waypoints, num_waypoints,
+					 matrix::Vector3f{}, limits, acceptance_radii);
+
+	// The turn at next itself, from the current setpoint onto the segment after next. The planner evaluates
+	// this turn again with its own limits, including it here covers a segment after next shorter than the
+	// acceptance radius, whose length the planner does not know.
+	const matrix::Vector2f current_xy = projection.project(current.lat, current.lon);
+	limits.xy_accept_rad = acceptance_radii[0];
+	const float speed_at_next = math::trajectory::computeXYSpeedAtWaypoint(matrix::Vector3f(current_xy(0), current_xy(1),
+				    0.f), waypoints[0], waypoints[1], speed_leaving_next, limits);
+
+	const matrix::Vector2f direction_after_next = matrix::Vector2f((waypoints[1] - waypoints[0]).xy()).unit_or_zero();
+	matrix::Vector3f(direction_after_next(0) * speed_at_next, direction_after_next(1) * speed_at_next,
+			 0.f).copyTo(next.velocity_constraint);
 }
 
 void

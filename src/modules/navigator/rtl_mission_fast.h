@@ -64,6 +64,7 @@ private:
 	bool setNextMissionItem() override;
 	void setActiveMissionItems() override;
 	MissionTraversalType traversalType() const override { return MissionTraversalType::IgnoreDoJump; }
+	bool isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index, int32_t following_index) override;
 
 	int32_t _mission_index_prior_rtl{INT32_C(-1)};
 
