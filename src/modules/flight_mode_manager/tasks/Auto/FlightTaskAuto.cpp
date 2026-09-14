@@ -507,10 +507,6 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 
 		_prev_was_valid = position_setpoint_triplet.previous.valid;
 
-		// Without a usable next waypoint the constraint is meaningless, unknown makes the planner assume a stop
-		_next_velocity_constraint.setNaN();
-		_next_acceptance_radius = _target_acceptance_radius;
-
 		if (_type == WaypointType::loiter) {
 			_triplet_next = _triplet_current;
 
@@ -518,15 +514,24 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 			_reference_position.project(position_setpoint_triplet.next.lat,
 						    position_setpoint_triplet.next.lon, _triplet_next(0), _triplet_next(1));
 			_triplet_next(2) = -(position_setpoint_triplet.next.alt - _reference_altitude);
-			// NED direction, no projection needed
-			_next_velocity_constraint = Vector3f(position_setpoint_triplet.next.velocity_constraint);
-			_next_acceptance_radius = position_setpoint_triplet.next.acceptance_radius;
 
 		} else {
 			_triplet_next = _triplet_current;
 		}
 
 		_next_was_valid = position_setpoint_triplet.next.valid;
+	}
+
+	// The velocity constraint of next is taken over independently of the waypoints: the navigator republishes the
+	// triplet with only the constraint changed once it knows more of the mission after next. Without a usable next
+	// waypoint the constraint is meaningless, unknown makes the planner assume a stop.
+	_next_velocity_constraint.setNaN();
+	_next_acceptance_radius = _target_acceptance_radius;
+
+	if ((_type != WaypointType::loiter) && _isFinite(position_setpoint_triplet.next) && position_setpoint_triplet.next.valid) {
+		// NED direction, no projection needed
+		_next_velocity_constraint = Vector3f(position_setpoint_triplet.next.velocity_constraint);
+		_next_acceptance_radius = position_setpoint_triplet.next.acceptance_radius;
 	}
 
 	// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)
