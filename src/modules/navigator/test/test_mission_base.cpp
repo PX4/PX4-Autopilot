@@ -310,6 +310,7 @@ TEST(MissionBaseMissionSourceTest, NewMissionWithoutCurrentSequenceStartsAtBegin
 
 TEST(MissionBaseMissionSourceTest, SameMissionWithoutCurrentSequenceKeepsProgress)
 {
+	// An index of -1 means this metadata update has no sequence request.
 	mission_s current{};
 	current.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 	current.mission_id = 10;
@@ -324,6 +325,7 @@ TEST(MissionBaseMissionSourceTest, SameMissionWithoutCurrentSequenceKeepsProgres
 
 TEST_F(MissionBaseTraversalTest, FinishedMissionRestartsEvenWhenSequenceIsNotAtEnd)
 {
+	// Landing can finish a mission before its last uploaded item.
 	Navigator navigator{};
 	MissionBaseTestPeer mission_base_with_nav{&navigator};
 	mission_base_with_nav.loadTestMission({
@@ -1215,6 +1217,7 @@ TEST_F(MissionBaseTraversalTest, VtolTakeoffDefinesFollowingSegmentsAsFixedWing)
 
 TEST_F(MissionBaseTraversalTest, VtolStateAndActionsFollowMissionSegments)
 {
+	// Reverse travel uses the mode of the segment being entered.
 	mission_base.loadTestMission({
 		makePositionItem(kBaseLat, kBaseLon, kAlt),
 		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
