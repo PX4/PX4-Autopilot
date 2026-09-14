@@ -629,17 +629,14 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			    _navigator->get_default_loiter_rad();
 	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
-	if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
-		// if the mission item has a specified acceptance radius, overwrite the default one from parameters
-		sp->acceptance_radius = item.acceptance_radius;
-
-	} else {
-		sp->acceptance_radius = _navigator->get_default_acceptance_radius();
-	}
+	sp->acceptance_radius = get_acceptance_radius_for_item(item);
 
 	// by default, FW guidance logic will take alt acceptance from NAV_FW_ALT_RAD, in some special cases
 	// we override it after this
 	sp->alt_acceptance_radius = NAN;
+
+	// unknown until the mode fills it for the next setpoint, a stop at the setpoint is assumed
+	matrix::Vector3f(NAN, NAN, NAN).copyTo(sp->velocity_constraint);
 
 	sp->cruising_speed = _navigator->get_cruising_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
@@ -872,6 +869,17 @@ float
 MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item) const
 {
 	return get_absolute_altitude_for_item(mission_item, _navigator->get_home_position()->alt);
+}
+
+float
+MissionBlock::get_acceptance_radius_for_item(const mission_item_s &item) const
+{
+	if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
+		// if the mission item has a specified acceptance radius, overwrite the default one from parameters
+		return item.acceptance_radius;
+	}
+
+	return _navigator->get_default_acceptance_radius();
 }
 
 float

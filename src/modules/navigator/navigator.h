@@ -70,6 +70,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/telemetry_status.h>
 
+#include <lib/motion_planning/TrajectoryConstraints.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
@@ -89,7 +90,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
-#include <uORB/topics/position_setpoint_lookahead.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -181,7 +181,6 @@ public:
 	home_position_s             *get_home_position() { return &_home_pos; }
 	mission_result_s            *get_mission_result() { return &_mission_result; }
 	position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
-	position_setpoint_lookahead_s *get_position_setpoint_lookahead() { return &_pos_sp_lookahead; }
 	position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
 	position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
 	vehicle_global_position_s   *get_global_position() { return &_global_pos; }
@@ -236,6 +235,12 @@ public:
 	 * Returns the default acceptance radius defined by the parameter
 	 */
 	float get_default_acceptance_radius() const;
+
+	/**
+	 * Dynamic limits the multicopter trajectory generator plans with, for predicting its speed along the mission.
+	 * The acceptance radius is the default one, the speed the cruise speed of the current mode.
+	 */
+	math::trajectory::VehicleDynamicLimits get_multicopter_trajectory_limits() const;
 
 	/**
 	 * Get the acceptance radius
@@ -297,15 +302,6 @@ public:
 	void reset_position_setpoint(position_setpoint_s &sp);
 
 	/**
-	 *  Invalidate the trajectory speed planning lookahead waypoint.
-	 *
-	 *  Modes have to set it explicitly whenever they know the waypoint after the next one, it is
-	 *  never carried over. Without it the trajectory generator assumes a full stop at the next
-	 *  waypoint, which is always the safe assumption.
-	 */
-	void reset_position_setpoint_lookahead();
-
-	/**
 	 * Get the target throttle
 	 *
 	 * @return the desired throttle for this mission
@@ -364,6 +360,11 @@ public:
 
 	void preproject_stop_point(double &lat, double &lon);
 
+	/**
+	 * [m] Distance a multicopter needs to brake to a stop from the given horizontal speed
+	 */
+	float get_multicopter_braking_distance(float speed) const;
+
 	void stop_capturing_images();
 	void disable_camera_trigger();
 
@@ -398,7 +399,6 @@ private:
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
 	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
 	uORB::Publication<navigator_status_s>		_navigator_status_pub{ORB_ID(navigator_status)};
-	uORB::Publication<position_setpoint_lookahead_s>	_pos_sp_lookahead_pub{ORB_ID(position_setpoint_lookahead)};
 	uORB::Publication<position_setpoint_triplet_s>	_pos_sp_triplet_pub{ORB_ID(position_setpoint_triplet)};
 	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_command_s>		_vehicle_cmd_pub{ORB_ID(vehicle_command)};
@@ -421,7 +421,6 @@ private:
 	geofence_result_s				_geofence_result{};
 	navigator_status_s				_navigator_status{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
-	position_setpoint_lookahead_s			_pos_sp_lookahead{};	/**< waypoint after next, speed planning lookahead only */
 	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
 	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
@@ -471,10 +470,14 @@ private:
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
 	param_t _handle_mpc_jerk_auto{PARAM_INVALID};
 	param_t _handle_mpc_acc_hor{PARAM_INVALID};
+	param_t _handle_mpc_xy_cruise{PARAM_INVALID};
+	param_t _handle_mpc_xy_traj_p{PARAM_INVALID};
 
 	float _param_back_trans_dec_mss{0.f};
 	float _param_mpc_jerk_auto{4.f}; 	/**< initialized with the default jerk auto value to prevent division by 0 if the parameter is accidentally set to 0 */
 	float _param_mpc_acc_hor{3.f};		/**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
+	float _param_mpc_xy_cruise{5.f};	/**< initialized with the default cruise speed, used when the mode has no cruise speed */
+	float _param_mpc_xy_traj_p{0.5f};	/**< initialized with the default trajectory gain, scales the acceleration allowed in a turn */
 
 	float _cruising_speed_current_mode{-1.0f};
 	float _mission_throttle{NAN};

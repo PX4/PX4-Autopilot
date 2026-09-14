@@ -375,13 +375,19 @@ public:
 	}
 
 	/**
-	 * @param waypoint Waypoint following the "next" waypoint (waypoints[2]). Only used to compute the speed
-	 * the vehicle may still have when passing the next waypoint. Set to NAN if unknown, in which case
-	 * a full stop at the next waypoint is assumed.
+	 * @brief Set the velocity the vehicle may have when leaving the next waypoint (waypoints[2])
+	 *
+	 * Without it the planner assumes a full stop at the next waypoint, which forces an unnecessary
+	 * slow down at the target when the next waypoint is close but the path continues past it.
+	 *
+	 * @param velocity_constraint norm: speed the vehicle may have leaving the next waypoint, direction: the one of
+	 *        the path after it. Zero vector: the vehicle stops there. NAN: unknown, a stop is assumed.
+	 * @param next_acceptance_radius acceptance radius of the next waypoint, used for the turn at it
 	 */
-	inline void setLookaheadWaypoint(const Vector3f &waypoint)
+	inline void setNextVelocityConstraint(const Vector3f &velocity_constraint, float next_acceptance_radius)
 	{
-		_lookahead_waypoint = waypoint;
+		_next_velocity_constraint = velocity_constraint;
+		_next_acceptance_radius = next_acceptance_radius;
 	}
 
 	/**
@@ -438,8 +444,8 @@ private:
 	float _cruise_speed{0.f};
 	float _horizontal_trajectory_gain{0.f};
 	float _target_acceptance_radius{0.f};
-	Vector3f _lookahead_waypoint{NAN, NAN, NAN};
-
+	Vector3f _next_velocity_constraint{NAN, NAN, NAN};
+	float _next_acceptance_radius{0.f};
 
 	/* Internal state */
 	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions

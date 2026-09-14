@@ -377,6 +377,38 @@ protected:
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
 	/**
+	 * @brief Check whether the vehicle passes a mission item without stopping at it
+	 *
+	 * Only then may the trajectory planner carry speed through that item. Non-position items
+	 * between the item and the following position item (delay, timeout, transition, jump) also
+	 * count as a stop, and so does an item in between that is not in the dataman cache.
+	 *
+	 * @param item mission item to check
+	 * @param item_index index of item in the mission
+	 * @param following_index index of the position item the vehicle flies to after item
+	 * @return true if the vehicle continues past the item without braking to a stop
+	 */
+	virtual bool isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index, int32_t following_index);
+
+	/**
+	 * @brief Fill the velocity constraint of the next setpoint from the mission after it
+	 *
+	 * Walks the position items after next, until one the vehicle stops at, a cache miss (treated
+	 * as a stop) or once the path is long enough to brake from cruise speed, and derives the
+	 * velocity the multicopter trajectory planner may have when leaving next: the speed the path
+	 * after next allows, in the direction of the segment after next. Zero if the vehicle stops at
+	 * next. Left unknown (NaN) for other vehicle types or without a valid current setpoint.
+	 *
+	 * @param current setpoint the vehicle currently flies to, gives the direction into next
+	 * @param next_item mission item next was made from
+	 * @param next_index index of next_item in the mission
+	 * @param next setpoint to fill the velocity constraint of
+	 * @param direction_backward true if the mission is flown backwards (reverse RTL)
+	 */
+	void setNextVelocityConstraint(const position_setpoint_s &current, const mission_item_s &next_item,
+				       int32_t next_index, position_setpoint_s &next, bool direction_backward = false);
+
+	/**
 	 * @brief Traversal mode used by this navigation mode when walking position items.
 	 *
 	 * Mission mode follows active DO_JUMP control flow by default. Derived modes such as
@@ -429,6 +461,22 @@ protected:
 	 */
 	bool findPreviousPositionIndex(int32_t start_index, int32_t &previous_index,
 				       MissionTraversalType traversal_type);
+
+	/**
+	 * @brief Find the position item following the given index without leaving the dataman cache
+	 *
+	 * Unlike findNextPositionIndex() this never blocks on a dataman read and does not follow
+	 * DO_JUMP items, they are skipped like any other non-position item. Meant for looking ahead
+	 * along the mission where a cache miss just means "unknown".
+	 *
+	 * @param[in] start_index index to search from, the item at it is not considered
+	 * @param[in] direction_backward search towards lower indices
+	 * @param[out] following_index index of the found position item
+	 * @param[out] following_item the found position item
+	 * @return true if a cached position item was found
+	 */
+	bool findCachedPositionItem(int32_t start_index, bool direction_backward, int32_t &following_index,
+				    mission_item_s &following_item);
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/

@@ -102,7 +102,6 @@ bool FlightTaskAuto::updateInitialize()
 	_prec_takeoff_status_sub.update();
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_position_setpoint_triplet_sub.update();
-	_position_setpoint_lookahead_sub.update();
 	_takeoff_status_sub.update();
 
 	// require valid reference and valid target
@@ -201,16 +200,16 @@ bool FlightTaskAuto::update()
 		waypoints[0] = _position;
 	}
 
-	// Waypoint after next: lets the planner know the speed it may still carry through the next waypoint
-	Vector3f lookahead_waypoint = _speed_lookahead_waypoint;
+	// Velocity the navigator allows when leaving the next waypoint, so the planner does not have to assume a stop there
+	Vector3f velocity_after_next = _next_velocity_constraint;
 
 	if (isTargetModified()) {
 		// In case the target has been modified, we take this as the next waypoints
 		waypoints[2] = _position_setpoint;
-		lookahead_waypoint.setNaN();
+		velocity_after_next.setNaN();
 	}
 
-	_position_smoothing.setLookaheadWaypoint(lookahead_waypoint);
+	_position_smoothing.setNextVelocityConstraint(velocity_after_next, _next_acceptance_radius);
 
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == int32_t(yaw_mode::towards_waypoint_yaw_first)
 					       && !_yaw_sp_aligned;
@@ -419,7 +418,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	if (!position_setpoint_triplet.current.valid || !PX4_ISFINITE(position_setpoint_triplet.current.alt)) {
 		// Best we can do is to just set all waypoints to current state
 		_triplet_previous = _triplet_current = _triplet_next = _position;
-		_speed_lookahead_waypoint.setNaN();
+		_next_velocity_constraint.setNaN();
 		_type = WaypointType::loiter;
 		_yaw_setpoint = _yaw;
 		_yawspeed_setpoint = NAN;
@@ -508,6 +507,10 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 
 		_prev_was_valid = position_setpoint_triplet.previous.valid;
 
+		// Without a usable next waypoint the constraint is meaningless, unknown makes the planner assume a stop
+		_next_velocity_constraint.setNaN();
+		_next_acceptance_radius = _target_acceptance_radius;
+
 		if (_type == WaypointType::loiter) {
 			_triplet_next = _triplet_current;
 
@@ -515,6 +518,9 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 			_reference_position.project(position_setpoint_triplet.next.lat,
 						    position_setpoint_triplet.next.lon, _triplet_next(0), _triplet_next(1));
 			_triplet_next(2) = -(position_setpoint_triplet.next.alt - _reference_altitude);
+			// NED direction, no projection needed
+			_next_velocity_constraint = Vector3f(position_setpoint_triplet.next.velocity_constraint);
+			_next_acceptance_radius = position_setpoint_triplet.next.acceptance_radius;
 
 		} else {
 			_triplet_next = _triplet_current;
@@ -522,10 +528,6 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 
 		_next_was_valid = position_setpoint_triplet.next.valid;
 	}
-
-	// Not part of the caching above: the lookahead lives on its own topic and is not a waypoint the
-	// vehicle flies to, so it is re-evaluated every cycle instead of only when the target changes.
-	_evaluateSpeedLookahead();
 
 	// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)
 	_weathervane.setNavigatorForceDisabled(PX4_ISFINITE(position_setpoint_triplet.current.yaw));
@@ -644,27 +646,6 @@ void FlightTaskAuto::_set_heading_from_mode()
 bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 {
 	return (PX4_ISFINITE(sp.lat) && PX4_ISFINITE(sp.lon) && PX4_ISFINITE(sp.alt));
-}
-
-void FlightTaskAuto::_evaluateSpeedLookahead()
-{
-	const position_setpoint_lookahead_s &lookahead = _position_setpoint_lookahead_sub.get();
-	const position_setpoint_triplet_s &triplet = _position_setpoint_triplet_sub.get();
-
-	// The lookahead is only a speed planning hint: it needs a valid next waypoint to attach to,
-	// otherwise it stays NAN and the planner assumes a stop at the next waypoint (previous behavior).
-	if (_type != WaypointType::loiter
-	    && triplet.next.valid
-	    && lookahead.timestamp == triplet.timestamp
-	    && lookahead.valid
-	    && PX4_ISFINITE(lookahead.lat) && PX4_ISFINITE(lookahead.lon) && PX4_ISFINITE(lookahead.alt)) {
-		_reference_position.project(lookahead.lat, lookahead.lon,
-					    _speed_lookahead_waypoint(0), _speed_lookahead_waypoint(1));
-		_speed_lookahead_waypoint(2) = -(lookahead.alt - _reference_altitude);
-
-	} else {
-		_speed_lookahead_waypoint.setNaN();
-	}
 }
 
 bool FlightTaskAuto::_evaluateGlobalReference()

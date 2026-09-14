@@ -31,6 +31,13 @@ float32 loiter_orientation 	# [rad] [@range -pi, pi] orientation of the major ax
 uint8 	loiter_pattern		# loitern pattern to follow
 
 float32 acceptance_radius   # horizontal acceptance_radius (meters)
+
+# Velocity the vehicle may have when leaving this setpoint along the path that follows it, as far as the mission
+# after it is concerned. Norm: maximum speed, direction: the one of the path after this setpoint (horizontal only).
+# Zero: the vehicle stops here. NaN: unknown, the vehicle plans a stop. Set by the navigator on `next` so that
+# the trajectory generator does not have to assume a full stop at the next waypoint when the mission continues
+# past it; it is not a setpoint the vehicle flies.
+float32[3] velocity_constraint	# [m/s] NED
 float32 alt_acceptance_radius # vertical acceptance radius, only used for fixed wing guidance, NAN = let guidance choose (meters)
 
 float32 course			# [rad] desired course (bearing) over ground, NaN = unused
