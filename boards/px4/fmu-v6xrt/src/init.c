@@ -254,23 +254,6 @@ void imxrt_octl_flash_initialize(void)
 		       sizeof(struct flexspi_nor_config_s));
 		g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
 
-		/* Only reads from here on: shorten the IS25WX512M chip select gap
-		 * to its read minimum, 12 ns tSHSL1 (hold counts serial clocks,
-		 * setup serial root clocks). The bootloader keeps the erase and
-		 * program value.
-		 */
-		if (fast_config == &g_flash_fast_config_is25wx512m) {
-			const uint32_t idle = FLEXSPI_STS0_ARBIDLE_MASK | FLEXSPI_STS0_SEQIDLE_MASK;
-
-			for (uint32_t spin = 200000u; spin-- && (flexspi->STS0 & idle) != idle;) {
-			}
-
-			flexspi->MCR0 |= FLEXSPI_MCR0_MDIS_MASK;
-			flexspi->FLSHCR1[0] = (flexspi->FLSHCR1[0] & ~(FLEXSPI_FLSHCR1_TCSH_MASK | FLEXSPI_FLSHCR1_TCSS_MASK)) |
-					      FLEXSPI_FLSHCR1_TCSH(2) | FLEXSPI_FLSHCR1_TCSS(1);
-			flexspi->MCR0 &= ~FLEXSPI_MCR0_MDIS_MASK;
-		}
-
 		return;
 	}
 
