@@ -51,7 +51,6 @@
 #include <uORB/topics/wind.h>
 
 class Navigator;
-class RtlBase;
 
 namespace mission_route
 {
@@ -68,19 +67,14 @@ class RtlRouteSafePoint
 #endif
 {
 public:
-	enum class Goal {
-		None,
-		SafePoint,
-		MissionLand,
-		MissionTakeoff,
-	};
-
 	struct Evaluation {
 		bool success{false};
 		bool executor_source_changed{false};
 		bool home_has_land_approach{false};
 		bool any_safe_point_has_land_approach{false};
-		Goal goal{Goal::None};
+		mission_route::RtlRoutePlan plan{};
+		loiter_point_s goal_land_approach{};
+		uint8_t vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
 		PositionYawSetpoint destination{static_cast<double>(NAN), static_cast<double>(NAN), NAN, NAN};
 		uint8_t safe_point_index{UINT8_MAX};
 	};
@@ -107,10 +101,8 @@ public:
 			    bool rtl_active,
 			    bool require_vtol_approach);
 
-	RtlBase *createExecutor(const mission_s &mission) const;
-	void configureExecutor(RtlBase &executor, float rtl_alt) const;
-	/** Capture flown progress when requested; otherwise leave the newly planned anchor intact. */
-	void recordExecutorProgress(const RtlBase &executor, bool preserve);
+	/** Retain the flown jump anchor through a temporary fallback. */
+	void recordExecutorProgress(const mission_route::ActiveJumpAnchor &active_jump_anchor);
 	void clearExecutorProgress();
 
 	uint32_t missionGeneration() const;
@@ -144,18 +136,14 @@ private:
 			const vehicle_status_s &vehicle_status,
 			const home_position_s &home_position,
 			const wind_s &wind);
-	static Goal convertGoal(mission_route::GoalType goal);
 	static loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches,
 			const wind_s &wind);
 	/** Match both uploaded sources without requiring their caches to be ready. */
 	bool sourceMatches(const mission_s &mission) const;
 
 	Navigator *_navigator{nullptr};
-	mission_route::RtlRoutePlan _plan{};
-	loiter_point_s _goal_land_approach{};
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};
 	SourceSnapshot _source{};
-	uint8_t _vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
 	bool _direction_reversed{false};
 	bool _waiting_for_inputs{false};
 

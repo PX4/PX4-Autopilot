@@ -45,8 +45,6 @@
 #include "mission_route_land_approaches.h"
 #include "mission_route_planner.h"
 #include "navigator.h"
-#include "rtl_base.h"
-#include "rtl_mission_safe_point_follow.h"
 
 #include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
@@ -94,11 +92,8 @@ RtlRouteSafePoint::RtlRouteSafePoint(ModuleParams *parent, Navigator *navigator)
 
 void RtlRouteSafePoint::reset()
 {
-	_plan = {};
-	_goal_land_approach = {};
 	_active_jump_anchor = {};
 	_source = {};
-	_vtol_state_on_mission_upload = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
 	_direction_reversed = false;
 	_waiting_for_inputs = false;
 }
@@ -215,7 +210,7 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	const MissionRoutePlanner planner{provider};
 	const mission_route::RtlRouteRequest request = buildPlannerRequest(mission, vehicle_status, global_position,
 			home_position, rtl_active, require_vtol_approach);
-	mission_route::RtlRoutePlan plan{};
+	mission_route::RtlRoutePlan &plan = evaluation.plan;
 	const mission_route::FailureReason failure = planner.planRtlRoute(request, plan);
 
 	if (failure != mission_route::FailureReason::kNone || !plan.valid()) {
@@ -246,13 +241,12 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 		_navigator->publish_vehicle_command(command);
 	}
 
-	_plan = plan;
-	_goal_land_approach = safe_point_goal
-			      ? selectGoalLandApproach(provider, plan, vehicle_status, home_position, wind)
-			      : loiter_point_s{};
+	evaluation.goal_land_approach = safe_point_goal
+					? selectGoalLandApproach(provider, plan, vehicle_status, home_position, wind)
+					: loiter_point_s{};
 	_direction_reversed = plan.direction_reversed;
 	_active_jump_anchor = plan.active_jump_anchor;
-	_vtol_state_on_mission_upload = request.vtol_state_on_mission_upload;
+	evaluation.vtol_state_on_mission_upload = request.vtol_state_on_mission_upload;
 	_source = {
 		.mission_id = mission.mission_id,
 		.mission_generation = mission_view.generation,
@@ -266,39 +260,15 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	};
 
 	evaluation.success = true;
-	evaluation.goal = convertGoal(plan.goal_type);
 	mission_route::copyPositionToYawSetpoint(plan.goal_position, evaluation.destination);
 	evaluation.safe_point_index = safe_point_goal ? static_cast<uint8_t>(plan.safe_point_index) : UINT8_MAX;
 	evaluation.any_safe_point_has_land_approach = mission_route::anySafePointHasVtolLandApproach(provider, home_position.alt);
 	return evaluation;
 }
 
-RtlBase *RtlRouteSafePoint::createExecutor(const mission_s &mission) const
+void RtlRouteSafePoint::recordExecutorProgress(const mission_route::ActiveJumpAnchor &active_jump_anchor)
 {
-	RtlBase *executor = new RtlMissionSafePointFollow(_navigator, mission);
-
-	if (executor != nullptr) {
-		executor->initialize();
-	}
-
-	return executor;
-}
-
-void RtlRouteSafePoint::configureExecutor(RtlBase &executor, float rtl_alt) const
-{
-	RtlBase::RouteSafePointConfig config {};
-	config.plan = _plan;
-	config.goal_land_approach = _goal_land_approach;
-	config.rtl_alt = rtl_alt;
-	config.vtol_state_on_mission_upload = _vtol_state_on_mission_upload;
-	executor.configureRouteSafePoint(config);
-}
-
-void RtlRouteSafePoint::recordExecutorProgress(const RtlBase &executor, bool preserve)
-{
-	if (preserve) {
-		_active_jump_anchor = executor.activeJumpAnchor();
-	}
+	_active_jump_anchor = active_jump_anchor;
 }
 
 void RtlRouteSafePoint::clearExecutorProgress()
@@ -372,24 +342,6 @@ loiter_point_s RtlRouteSafePoint::selectGoalLandApproach(const mission_route::Pr
 	return approaches.isAnyApproachValid() ? chooseBestLandingApproach(approaches, wind) : loiter_point_s{};
 }
 
-RtlRouteSafePoint::Goal RtlRouteSafePoint::convertGoal(mission_route::GoalType goal)
-{
-	switch (goal) {
-	case mission_route::GoalType::kSafePoint:
-		return Goal::SafePoint;
-
-	case mission_route::GoalType::kMissionLand:
-		return Goal::MissionLand;
-
-	case mission_route::GoalType::kMissionTakeoff:
-		return Goal::MissionTakeoff;
-
-	case mission_route::GoalType::kNone:
-	default:
-		return Goal::None;
-	}
-}
-
 loiter_point_s RtlRouteSafePoint::chooseBestLandingApproach(const land_approaches_s &approaches,
 		const wind_s &wind)
 {
@@ -434,9 +386,7 @@ bool RtlRouteSafePoint::evaluationPending(const mission_s &) const { return fals
 bool RtlRouteSafePoint::retryReady(const mission_s &) const { return false; }
 RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &, const vehicle_status_s &,
 		const vehicle_global_position_s &, const home_position_s &, const wind_s &, bool, bool, bool) { return {}; }
-RtlBase *RtlRouteSafePoint::createExecutor(const mission_s &) const { return nullptr; }
-void RtlRouteSafePoint::configureExecutor(RtlBase &, float) const {}
-void RtlRouteSafePoint::recordExecutorProgress(const RtlBase &, bool) {}
+void RtlRouteSafePoint::recordExecutorProgress(const mission_route::ActiveJumpAnchor &) {}
 void RtlRouteSafePoint::clearExecutorProgress() {}
 uint32_t RtlRouteSafePoint::missionGeneration() const { return 0; }
 mission_route::ActiveJumpAnchor RtlRouteSafePoint::activeJumpAnchor() const { return {}; }
