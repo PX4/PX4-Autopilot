@@ -35,8 +35,10 @@
 #include "failsafe_action_modes.h"
 
 #include <px4_platform_common/log.h>
+#ifndef EMSCRIPTEN_BUILD
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_status.h>
+#endif
 #include <uORB/topics/battery_status.h>
 #include <lib/circuit_breaker/circuit_breaker.h>
 
@@ -771,12 +773,15 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 {
 	Action action = Action::None;
 
-	static uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
+	bool is_rover = false;
 
-	// Fetch the latest vehicle status to see if we are driving a rover
+#ifndef EMSCRIPTEN_BUILD
+	// Only run the uORB subscription on actual hardware or SITL simulations
+	static uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
 	vehicle_status_s vehicle_status{};
 	vehicle_status_sub.copy(&vehicle_status);
-	bool is_rover = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER);
+	is_rover = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER);
+#endif
 
 	// offboard signal
 	if (status_flags.offboard_control_signal_lost && (status_flags.mode_req_offboard_signal & (1u << user_intended_mode))) {
