@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 
+#include <cstring>
 #include <tuple>
 #include <vector>
 
@@ -990,8 +991,177 @@ class RtlMissionSafePointFollowArrivalTest : public RtlMissionSafePointFollowSta
 {
 };
 
+class RtlMissionSafePointFollowEstimateTest : public RtlMissionSafePointFollowStageTest
+{
+protected:
+	Navigator navigator{};
+	RtlMissionSafePointFollowTestPeer follower{&navigator};
+
+	float flightTime(float horizontal_m, float descent_m, bool fixed_wing = false)
+	{
+		float cruise_speed = NAN;
+		float descend_speed = NAN;
+		EXPECT_EQ(param_get(param_find(fixed_wing ? "FW_AIRSPD_TRIM" : "MPC_XY_CRUISE"), &cruise_speed), PX4_OK);
+		EXPECT_EQ(param_get(param_find(fixed_wing ? "FW_T_SINK_R_SP" : "MPC_Z_V_AUTO_DN"), &descend_speed), PX4_OK);
+		return horizontal_m / cruise_speed + descent_m / descend_speed;
+	}
+};
+
+TEST_F(RtlMissionSafePointFollowEstimateTest, InactiveForecastUsesPlanStartWithoutChangingExecution)
+{
+	// The planned start differs from the stored cursor; forecasting must use it without activating RTL.
+	follower.loadTestMission({
+		makePositionItemFromOffset(kBaseLat, kBaseLon, -1000.f, 0.f, kAlt + 100.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 100.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt + 100.f),
+	});
+	mission_route::RtlRoutePlan plan{};
+	plan.goal_type = mission_route::GoalType::kSafePoint;
+	plan.safe_point_index = 0;
+	plan.goal_position = makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 100.f, kAlt);
+	plan.join_position = makePositionFromOffset(kBaseLat, kBaseLon, -100.f, 0.f, kAlt + 100.f);
+	plan.first_mission_item_index = 1;
+	plan.branch_off_mission_item_index = 2;
+	plan.branch_off_position = makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 100.f);
+	follower.configurePlanForTest(plan);
+	follower.setVehicleStatusForTest(false, false, false);
+	follower.setGlobalPositionForTest(makePositionFromOffset(kBaseLat, kBaseLon, -100.f, -100.f, kAlt + 100.f));
+	follower.setArrivalParametersForTest(0.f, 30.f, 60.f);
+	// This belongs to the currently active mode, not the hypothetical Return.
+	auto &triplet = *navigator.get_position_setpoint_triplet();
+	triplet.current.valid = true;
+	triplet.current.alt = kAlt + 200.f;
+	const auto triplet_before = triplet;
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
+
+	for (int forecast = 0; forecast < 2; ++forecast) {
+		const auto estimate = follower.calc_rtl_time_estimate();
+		ASSERT_TRUE(estimate.valid);
+		// Vehicle -> join (100), first target (100), branch-off (200), goal (100), descent (100).
+		EXPECT_NEAR(estimate.time_estimate, flightTime(500.f, 100.f), 0.02f);
+		EXPECT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Idle);
+		EXPECT_EQ(follower.currentSequenceForTest(), 0);
+		EXPECT_FALSE(follower.joiningRouteForTest());
+		EXPECT_EQ(memcmp(&triplet, &triplet_before, sizeof(triplet)), 0);
+		EXPECT_FALSE(command_sub.updated());
+	}
+
+	// During RTL, estimate from actual progress instead of replaying the initial join.
+	follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	follower.setCurrentSequenceForTest(2);
+	follower.setGlobalPositionForTest(makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 100.f));
+	const auto active_estimate = follower.calc_rtl_time_estimate();
+	ASSERT_TRUE(active_estimate.valid);
+	EXPECT_NEAR(active_estimate.time_estimate, flightTime(300.f, 100.f), 0.02f);
+}
+
+TEST_F(RtlMissionSafePointFollowEstimateTest, InactiveReverseForecastHonorsCurrentAltitudeJoin)
+{
+	// Neither the projected join altitude nor the uploaded takeoff height should add a climb here.
+	follower.loadTestMission({
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 300.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 100.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 100.f),
+	});
+	mission_route::RtlRoutePlan plan{};
+	plan.goal_type = mission_route::GoalType::kMissionTakeoff;
+	plan.goal_position = {kBaseLat, kBaseLon, kAlt};
+	plan.join_position = makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 300.f);
+	plan.first_mission_item_index = 1;
+	plan.direction_reversed = true;
+	plan.use_current_altitude = true;
+	follower.configurePlanForTest(plan);
+	follower.setVehicleStatusForTest(false, false, false);
+	follower.setGlobalPositionForTest(makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 100.f, kAlt + 100.f));
+	follower.setArrivalParametersForTest(0.f, 30.f, 60.f);
+	const auto estimate = follower.calc_rtl_time_estimate();
+	ASSERT_TRUE(estimate.valid);
+	EXPECT_NEAR(estimate.time_estimate, flightTime(300.f, 100.f), 0.02f);
+}
+
+class RtlMissionSafePointFollowLoiterEstimateTest : public RtlMissionSafePointFollowEstimateTest,
+	public ::testing::WithParamInterface<bool>
+{
+};
+
+TEST_P(RtlMissionSafePointFollowLoiterEstimateTest, LoiterApproachAndAltitudeChangeAreSequential)
+{
+	const bool fixed_wing = GetParam();
+	mission_item_s loiter = makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 30.f);
+	loiter.nav_cmd = NAV_CMD_LOITER_TO_ALT;
+	loiter.loiter_radius = 60.f;
+	follower.loadTestMission({loiter, makeLandItem(loiter.lat, loiter.lon, kAlt)});
+	mission_route::RtlRoutePlan plan{};
+	plan.goal_type = mission_route::GoalType::kMissionLand;
+	plan.goal_position = {loiter.lat, loiter.lon, kAlt};
+	plan.join_position = {kBaseLat, kBaseLon, kAlt + 90.f};
+	plan.first_mission_item_index = 0;
+	follower.configurePlanForTest(plan, 1);
+	follower.prepareActiveMissionForTest(61, 0);
+	follower.setVehicleStatusForTest(false, fixed_wing, false);
+	follower.setGlobalPositionForTest(plan.join_position);
+	const auto inactive_estimate = follower.calc_rtl_time_estimate();
+	ASSERT_TRUE(inactive_estimate.valid);
+	EXPECT_NEAR(inactive_estimate.time_estimate, flightTime(300.f, 90.f, fixed_wing), 0.02f);
+	follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	follower.publishActiveMissionItemsForTest();
+	const auto approach_estimate = follower.calc_rtl_time_estimate();
+	ASSERT_TRUE(approach_estimate.valid);
+	EXPECT_NEAR(approach_estimate.time_estimate, flightTime(300.f, 90.f, fixed_wing), 0.02f);
+
+	// Once inside the loiter, its altitude setpoint changes; estimate only the remaining descent.
+	follower.setGlobalPositionForTest({loiter.lat, loiter.lon, kAlt + 90.f});
+	EXPECT_FALSE(follower.missionItemReachedForTest());
+	follower.setGlobalPositionForTest({loiter.lat, loiter.lon, kAlt + 50.f});
+	const auto descent_estimate = follower.calc_rtl_time_estimate();
+	ASSERT_TRUE(descent_estimate.valid);
+	EXPECT_NEAR(descent_estimate.time_estimate, flightTime(0.f, 50.f, fixed_wing), 0.02f);
+}
+
+INSTANTIATE_TEST_SUITE_P(McAndFw, RtlMissionSafePointFollowLoiterEstimateTest, ::testing::Bool());
+
+TEST_F(RtlMissionSafePointFollowEstimateTest, UploadedMcLandingIncludesApproachAndRemainingFinalDescent)
+{
+	const mission_item_s landing = makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt);
+	follower.loadTestMission({landing});
+	mission_route::RtlRoutePlan plan{};
+	plan.goal_type = mission_route::GoalType::kMissionLand;
+	plan.goal_position = {landing.lat, landing.lon, landing.altitude};
+	plan.join_position = {kBaseLat, kBaseLon, kAlt + 90.f};
+	plan.first_mission_item_index = 0;
+	plan.fly_direct_to_goal = true;
+	follower.configurePlanForTest(plan, 0);
+	follower.prepareActiveMissionForTest(62, 0);
+	follower.setVehicleStatusForTest(false, false, false);
+	follower.setLandedForTest(false);
+	follower.setGlobalPositionForTest(plan.join_position);
+	// Uploaded LAND does not acquire the synthetic goal's indefinite hold.
+	follower.setArrivalParametersForTest(-1.f, 30.f, 60.f);
+	const auto inactive_estimate = follower.calc_rtl_time_estimate();
+	ASSERT_TRUE(inactive_estimate.valid);
+	EXPECT_NEAR(inactive_estimate.time_estimate, flightTime(300.f, 90.f), 0.02f);
+
+	follower.on_activation();
+	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
+	const auto approach_estimate = follower.calc_rtl_time_estimate();
+	ASSERT_TRUE(approach_estimate.valid);
+	EXPECT_NEAR(approach_estimate.time_estimate, inactive_estimate.time_estimate, 0.02f);
+	follower.setGlobalPositionForTest({landing.lat, landing.lon, kAlt + 90.f});
+	ASSERT_TRUE(follower.missionItemReachedForTest());
+	follower.reloadAndPublishMissionItemsForTest();
+	ASSERT_EQ(navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	follower.setGlobalPositionForTest({landing.lat, landing.lon, kAlt + 20.f});
+	const auto landing_estimate = follower.calc_rtl_time_estimate();
+	ASSERT_TRUE(landing_estimate.valid);
+	EXPECT_NEAR(landing_estimate.time_estimate, flightTime(0.f, 20.f), 0.02f);
+}
+
 TEST_P(RtlMissionSafePointFollowArrivalTest, SyntheticGoalHonorsArrivalDescentAndLandingDelay)
 {
+	// Rally and takeoff goals share arrival policy; cover MC/FW with negative, zero and positive delay.
 	const auto goal_type = std::get<0>(GetParam());
 	const bool fixed_wing = std::get<1>(GetParam());
 	const float land_delay = std::get<2>(GetParam());
@@ -1022,6 +1192,8 @@ TEST_P(RtlMissionSafePointFollowArrivalTest, SyntheticGoalHonorsArrivalDescentAn
 	executor_with_nav.setLandedForTest(false);
 	executor_with_nav.setGlobalPositionForTest(vehicle_position);
 	executor_with_nav.setArrivalParametersForTest(land_delay, descend_altitude, loiter_radius);
+	const auto inactive_estimate = executor_with_nav.calc_rtl_time_estimate();
+	ASSERT_TRUE(inactive_estimate.valid);
 	executor_with_nav.on_activation();
 
 	const auto &triplet = *navigator.get_position_setpoint_triplet();
@@ -1035,6 +1207,7 @@ TEST_P(RtlMissionSafePointFollowArrivalTest, SyntheticGoalHonorsArrivalDescentAn
 	EXPECT_FALSE(executor_with_nav.missionItemReachedForTest());
 	const rtl_time_estimate_s arrival_estimate = executor_with_nav.calc_rtl_time_estimate();
 	ASSERT_TRUE(arrival_estimate.valid);
+	EXPECT_NEAR(arrival_estimate.time_estimate, inactive_estimate.time_estimate, 0.01f);
 	EXPECT_GT(arrival_estimate.time_estimate, 0.f);
 	executor_with_nav.setGlobalPositionForTest({vehicle_position.lat, vehicle_position.lon, NAN});
 	EXPECT_FALSE(executor_with_nav.calc_rtl_time_estimate().valid);
@@ -1083,6 +1256,10 @@ TEST_P(RtlMissionSafePointFollowArrivalTest, SyntheticGoalHonorsArrivalDescentAn
 
 		if (land_delay > 0.f) {
 			EXPECT_FALSE(executor_with_nav.missionItemReachedForTest());
+			executor_with_nav.ageWaypointReachedForTest(1.f);
+			const auto elapsed_hold_estimate = executor_with_nav.calc_rtl_time_estimate();
+			ASSERT_TRUE(elapsed_hold_estimate.valid);
+			EXPECT_NEAR(hold_estimate.time_estimate - elapsed_hold_estimate.time_estimate, 1.f, 0.02f);
 			executor_with_nav.ageWaypointReachedForTest(land_delay + 1.f);
 		}
 
@@ -1093,6 +1270,7 @@ TEST_P(RtlMissionSafePointFollowArrivalTest, SyntheticGoalHonorsArrivalDescentAn
 
 	EXPECT_EQ(executor_with_nav.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
 	EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_TRUE(executor_with_nav.calc_rtl_time_estimate().valid);
 	EXPECT_FLOAT_EQ(triplet.current.alt, goal.alt);
 	EXPECT_FALSE(executor_with_nav.missionItemReachedForTest());
 }

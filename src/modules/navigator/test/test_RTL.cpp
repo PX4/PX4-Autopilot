@@ -74,7 +74,6 @@ constexpr double kBaseLon = 8.545594;
 constexpr float kAlt = 500.f;
 constexpr double kNanDouble = static_cast<double>(NAN);
 constexpr float kApproachRadius = 50.f;
-constexpr double kNanDouble = static_cast<double>(NAN);
 
 mission_item_s makeSafePointItem(double lat, double lon, float altitude, NAV_FRAME frame,
 				 NAV_CMD nav_cmd = NAV_CMD_RALLY_POINT)
@@ -275,6 +274,11 @@ public:
 	mission_route::RtlRoutePlan routePlanForTest()
 	{
 		RtlPlanCaptureTestExecutor executor{_navigator};
+		return routePlanForTest(executor);
+	}
+
+	mission_route::RtlRoutePlan routePlanForTest(RtlPlanCaptureTestExecutor &executor)
+	{
 		_route_safe_point.configureExecutor(executor, kAlt);
 		return executor.plan();
 	}
@@ -299,7 +303,8 @@ public:
 		_rtl_mission_type_handle->configureRouteSafePoint(config);
 	}
 
-	const RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
+	RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
+	int32_t missionSequenceForTest() const { return _mission_sub.get().current_seq; }
 	RtlType rtlTypeForTest() const { return _rtl_type; }
 	bool routePlanSourceStillValidForTest() const { return routePlanSourceStillValid(); }
 	uint32_t routePlanMissionGenerationForTest() const { return _route_safe_point.missionGeneration(); }
@@ -768,6 +773,7 @@ TEST_F(RTLTest, MissionUploadWithoutVehicleStatusLeavesVtolStateUnknown)
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 TEST_F(RTLTest, BatteryAwareReturnTypePreservesDirectSelection)
 {
+	// A usable route must not change the existing RTL_TYPE=6 destination policy.
 	const std::vector<mission_item_s> mission_items{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
@@ -814,6 +820,68 @@ TEST_F(RTLTest, InactiveRouteEstimatesPreserveNominalMissionSegmentThroughActiva
 	_rtl.activateRouteSafePointReturnForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 	expect_last_leg_plan();
+}
+
+TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPosition)
+{
+	mission_s mission = prepareFinalMissionLegScenario();
+	// Keep this alive across updates: destroying a MissionBase unadvertises the shared mission topic.
+	RtlPlanCaptureTestExecutor plan_capture{&_navigator};
+	uORB::SubscriptionData<rtl_time_estimate_s> estimate_sub{ORB_ID(rtl_time_estimate)};
+	uORB::SubscriptionData<vehicle_global_position_s> global_sub{ORB_ID(vehicle_global_position)};
+	uORB::SubscriptionData<home_position_s> home_sub{ORB_ID(home_position)};
+	home_sub.update();
+	*_navigator.get_home_position() = home_sub.get();
+	global_sub.update();
+	*_navigator.get_global_position() = global_sub.get();
+
+	_rtl.evaluateInactiveRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	ASSERT_TRUE(estimate_sub.update());
+	ASSERT_TRUE(estimate_sub.get().valid);
+	const float last_leg_time = estimate_sub.get().time_estimate;
+	RtlBase *executor = _rtl.missionExecutorForTest();
+	const uint32_t generation = _rtl.routePlanMissionGenerationForTest();
+	const auto last_leg_join = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 20.f, kAlt + 50.f);
+	const auto last_leg_plan = _rtl.routePlanForTest(plan_capture);
+	ASSERT_TRUE(last_leg_plan.valid());
+	EXPECT_LT(get_distance_to_next_waypoint(last_leg_plan.join_position.lat, last_leg_plan.join_position.lon,
+						last_leg_join.lat, last_leg_join.lon), 0.1f);
+
+	// Same mission/cache and vehicle position, but Mission now targets the parallel first leg.
+	mission.current_seq = 1;
+	mission.timestamp = hrt_absolute_time();
+	publishMission(mission);
+	_rtl.evaluateInactiveRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.missionSequenceForTest(), mission.current_seq);
+	ASSERT_TRUE(estimate_sub.update());
+	ASSERT_TRUE(estimate_sub.get().valid);
+	const float first_leg_time = estimate_sub.get().time_estimate;
+	EXPECT_LT(first_leg_time, last_leg_time);
+	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
+	EXPECT_EQ(_rtl.routePlanMissionGenerationForTest(), generation);
+	const auto first_leg_join = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 50.f);
+	const auto first_leg_plan = _rtl.routePlanForTest(plan_capture);
+	ASSERT_TRUE(first_leg_plan.valid());
+	EXPECT_LT(get_distance_to_next_waypoint(first_leg_plan.join_position.lat, first_leg_plan.join_position.lon,
+						first_leg_join.lat, first_leg_join.lon), 0.1f);
+
+	// The next refresh must also move the branch-in when only the vehicle position changes.
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 75.f, 5.f, kAlt + 50.f));
+	global_sub.update();
+	*_navigator.get_global_position() = global_sub.get();
+	_rtl.evaluateInactiveRouteSafePointReturnForTest();
+	ASSERT_TRUE(estimate_sub.update());
+	ASSERT_TRUE(estimate_sub.get().valid);
+	EXPECT_GT(estimate_sub.get().time_estimate, first_leg_time);
+	const auto moved_join = makePositionFromOffset(kBaseLat, kBaseLon, 75.f, 0.f, kAlt + 50.f);
+	const auto moved_plan = _rtl.routePlanForTest(plan_capture);
+	ASSERT_TRUE(moved_plan.valid());
+	EXPECT_LT(get_distance_to_next_waypoint(moved_plan.join_position.lat, moved_plan.join_position.lon,
+						moved_join.lat, moved_join.lon), 0.1f);
+	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
+	EXPECT_FALSE(_rtl.isActive());
+	EXPECT_FALSE(executor->isActive());
 }
 
 // Pending validation can defer initial RTL planning until RTL is already active.
@@ -1120,6 +1188,7 @@ TEST_F(RTLTest, RouteSafePointReturnKeepsCommittedLandingHandlers)
 
 TEST_F(RTLTest, RouteSafePointExecutorInitFailureUsesDirectFallbackSelection)
 {
+	// Executor creation failure must publish the fallback destination, not the abandoned route selection.
 	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
 	const std::vector<mission_item_s> mission_items{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
