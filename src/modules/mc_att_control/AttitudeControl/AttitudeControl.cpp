@@ -95,6 +95,7 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		// First call (or dt out of range): snap reference to the current setpoint.
 		_q_ref = qd_normalized;
 		_omega_correction.zero();
+		_ref_accel.zero();
 		_omega_command.zero();
 
 		for (auto &trajectory : _rate_trajectory) {
@@ -186,14 +187,21 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	// the setpoint instead of the linear model above; the unlocked heading component is applied unfiltered
 	// on them too. The other axes keep their trajectory state in sync with the linear model so that enabling
 	// the limit at runtime continues from the current rate.
+	// End-of-step error of the linear model (first row of exp(A*dt)), used for its instantaneous acceleration
+	// omega_dot = _kq * e - 2 * _omega_n * omega so that the reference acceleration is also observable on
+	// unconstrained axes.
+	const Vector3f e_end = a * e_filtered - b * _omega_correction;
+
 	for (int i = 0; i < 3; i++) {
 		if (isAxisAccelerationLimited(i)) {
 			float delta_angle;
 			propagateLimitedAxis(i, e_filtered(i), dt, omega_correction(i), delta_angle);
 			delta_phi(i) = delta_angle + e_heading(i);
+			_ref_accel(i) = _rate_trajectory[i].getCurrentAcceleration();
 
 		} else {
 			_rate_trajectory[i].reset(0.f, omega_correction(i), 0.f);
+			_ref_accel(i) = _kq * e_end(i) - 2.f * _omega_n * omega_correction(i);
 		}
 	}
 
