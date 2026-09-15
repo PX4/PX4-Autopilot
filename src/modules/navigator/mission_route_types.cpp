@@ -110,6 +110,31 @@ bool isTakeoffCmd(uint16_t nav_cmd)
 	return nav_cmd == NAV_CMD_TAKEOFF || nav_cmd == NAV_CMD_VTOL_TAKEOFF;
 }
 
+bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t &state)
+{
+	if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+		state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		return true;
+	}
+
+	if (mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+		return false;
+	}
+
+	const float target = roundf(mission_item.params[0]);
+
+	if (target >= 0.f && target <= UINT8_MAX) {
+		const uint8_t target_state = static_cast<uint8_t>(target);
+
+		if (target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
+		    || target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+			state = target_state;
+		}
+	}
+
+	return true;
+}
+
 float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl)
 {
 	if (mission_item.altitude_is_relative) {

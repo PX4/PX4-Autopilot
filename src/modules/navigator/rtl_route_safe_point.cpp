@@ -46,8 +46,7 @@
 #include "mission_route_planner.h"
 #include "navigator.h"
 
-#include <lib/geo/geo.h>
-#include <mathlib/mathlib.h>
+#include <cmath>
 #include <px4_platform_common/log.h>
 
 namespace
@@ -331,38 +330,9 @@ loiter_point_s RtlRouteSafePoint::selectGoalLandApproach(const mission_route::Pr
 	const land_approaches_s approaches = mission_route::getVtolLandApproachesAtSafePointIndex(provider,
 					     plan.safe_point_index, home_position.alt);
 
-	return approaches.isAnyApproachValid() ? chooseBestLandingApproach(approaches, wind) : loiter_point_s{};
-}
-
-loiter_point_s RtlRouteSafePoint::chooseBestLandingApproach(const land_approaches_s &approaches,
-		const wind_s &wind)
-{
-	if (!approaches.land_location_lat_lon.isAllFinite()) {
-		return {};
-	}
-
 	const float wind_direction = atan2f(wind.windspeed_east, wind.windspeed_north);
-	int8_t best_index{-1};
-	float best_angle{INFINITY};
-
-	for (int i = 0; i < approaches.num_approaches_max; ++i) {
-		const loiter_point_s &approach = approaches.approaches[i];
-
-		if (!approach.isValid()) {
-			continue;
-		}
-
-		const float bearing = get_bearing_to_next_waypoint(approaches.land_location_lat_lon(0),
-				      approaches.land_location_lat_lon(1), approach.lat, approach.lon);
-		const float angle = fabsf(matrix::wrap_pi(bearing - wind_direction));
-
-		if (angle < best_angle) {
-			best_index = i;
-			best_angle = angle;
-		}
-	}
-
-	return best_index >= 0 ? approaches.approaches[best_index] : loiter_point_s{};
+	return approaches.isAnyApproachValid()
+	       ? mission_route::chooseBestLandingApproach(approaches, wind_direction) : loiter_point_s{};
 }
 
 #else // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE == 0
