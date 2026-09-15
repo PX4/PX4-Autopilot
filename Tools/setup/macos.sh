@@ -134,6 +134,15 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	# px4-dev precedent.
 	#
 	# osrf/simulation: gz-harmonic (Gazebo Harmonic meta-formula)
+	#
+	# Trust before tapping, same as the toolchain taps above. Tapping an
+	# untrusted tap fails, which leaves no tap clone to pin below; the
+	# later `brew install osrf/simulation/gz-harmonic` then taps it
+	# implicitly at HEAD and the pin is silently skipped.
+	if brew trust --help &> /dev/null; then
+		brew trust osrf/simulation
+	fi
+
 	brew tap osrf/simulation
 
 	# OSRF drops the gz bottle blocks within minutes of a breaking
@@ -157,14 +166,6 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 			echo "[macos.sh] WARNING: could not pin osrf/simulation to ${GZ_TAP_PIN}," \
 				"continuing on tap HEAD (gz may build from source)"
 		fi
-	fi
-
-	# Homebrew 6.0+ refuses to load formulae from untrusted third-party
-	# taps (see the toolchain trust block above). Without this, the
-	# gz-harmonic install aborts and the script still exits successfully,
-	# leaving the simulation stack silently missing.
-	if brew trust --help &> /dev/null; then
-		brew trust osrf/simulation
 	fi
 
 	# opencv@4: the unversioned formula is OpenCV 5, which PX4-OpticalFlow
