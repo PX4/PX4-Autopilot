@@ -304,7 +304,7 @@ TEST_F(EkfAirspeedTest, testExternalWindResetOnGround)
 	const float wind_speed_acc = 2.f;
 	const float wind_direction = math::radians(-90.f);
 	const float wind_direction_acc = math::radians(20.f);
-	_ekf->resetWindToExternalObservation(wind_speed, wind_direction, wind_speed_acc, wind_direction_acc);
+	EXPECT_TRUE(_ekf->resetWindToExternalObservation(wind_speed, wind_direction, wind_speed_acc, wind_direction_acc));
 
 	Vector2f vel_wind_earth = _ekf->getWindVelocity();
 	EXPECT_EQ(wind_speed, vel_wind_earth.norm());
@@ -345,6 +345,32 @@ TEST_F(EkfAirspeedTest, testExternalWindResetOnGround)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBetaFusion());
 	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
+}
+
+TEST_F(EkfAirspeedTest, testExternalWindResetRejectedInAir)
+{
+	// GIVEN: an external wind reset is performed before flight to establish a known wind state
+	const float wind_speed = 4.5f;
+	const float wind_speed_acc = 2.f;
+	const float wind_direction = math::radians(-90.f);
+	const float wind_direction_acc = math::radians(20.f);
+	EXPECT_TRUE(_ekf->resetWindToExternalObservation(wind_speed, wind_direction, wind_speed_acc, wind_direction_acc));
+
+	const Vector2f vel_wind_earth_before = _ekf->getWindVelocity();
+
+	// WHEN: the vehicle is in the air and a new external wind reset is attempted
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+
+	const float wind_speed_new = 10.f;
+	const float wind_direction_new = math::radians(45.f);
+	EXPECT_FALSE(_ekf->resetWindToExternalObservation(wind_speed_new, wind_direction_new, wind_speed_acc,
+			wind_direction_acc));
+
+	// THEN: the wind state is unchanged
+	const Vector2f vel_wind_earth_after = _ekf->getWindVelocity();
+	EXPECT_EQ(vel_wind_earth_before(0), vel_wind_earth_after(0));
+	EXPECT_EQ(vel_wind_earth_before(1), vel_wind_earth_after(1));
 }
 
 TEST_F(EkfAirspeedTest, testExternalPosResetWithCorrelatedPosUncertainty)

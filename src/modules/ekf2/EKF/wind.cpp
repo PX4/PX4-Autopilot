@@ -39,28 +39,30 @@
 #include "ekf.h"
 #include <ekf_derivation/generated/compute_wind_init_and_cov_from_wind_speed_and_direction.h>
 
-void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
+bool Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
 		float wind_direction_accuracy)
 {
-	if (!_control_status.flags.in_air) {
-
-		const float wind_speed_constrained = math::max(wind_speed, 0.0f);
-		const float wind_direction_var = sq(wind_direction_accuracy);
-		const float wind_speed_var = sq(wind_speed_accuracy);
-
-		Vector2f wind;
-		Vector2f wind_var;
-
-		sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction, wind_speed_var,
-				wind_direction_var, &wind, &wind_var);
-
-		ECL_INFO("reset wind states to external observation");
-		_information_events.flags.reset_wind_to_ext_obs = true;
-		_external_wind_init = true;
-
-		resetWindTo(wind, wind_var);
-
+	if (_control_status.flags.in_air) {
+		return false;
 	}
+
+	const float wind_speed_constrained = math::max(wind_speed, 0.0f);
+	const float wind_direction_var = sq(wind_direction_accuracy);
+	const float wind_speed_var = sq(wind_speed_accuracy);
+
+	Vector2f wind;
+	Vector2f wind_var;
+
+	sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction, wind_speed_var,
+			wind_direction_var, &wind, &wind_var);
+
+	ECL_INFO("reset wind states to external observation");
+	_information_events.flags.reset_wind_to_ext_obs = true;
+	_external_wind_init = true;
+
+	resetWindTo(wind, wind_var);
+
+	return true;
 }
 
 void Ekf::resetWindTo(const Vector2f &wind, const Vector2f &wind_var)
