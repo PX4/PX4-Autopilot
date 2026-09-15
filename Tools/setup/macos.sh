@@ -60,19 +60,23 @@ fi
 #
 # - osx-cross/arm: arm-gcc-bin@13 (ARM cross-compiler)
 # - PX4/px4:       fastdds, genromfs, kconfig-frontends (PX4-specific)
-brew tap osx-cross/arm
-brew tap PX4/px4
-
+#
 # Homebrew 6.0+ refuses to load formulae from third-party taps unless they
-# are explicitly trusted ("Refusing to load formula ... from untrusted tap").
-# Trust each tap non-interactively before installing from it. Without this,
-# `brew install` aborts before pouring any package (including ccache).
+# are explicitly trusted ("Refusing to load formula ... from untrusted tap"),
+# and recent versions validate every formula of a tap while tapping it. An
+# untrusted tap therefore fails with "Cannot tap ...: invalid syntax in tap!",
+# so the taps must be trusted *before* they are tapped. `brew trust` works on
+# a tap that is not installed yet. Without the taps, `brew install` aborts
+# on the first PX4/px4 formula before pouring any package (including ccache).
 # `brew trust` only exists on Homebrew 6.0+; guard it so older versions,
 # which don't gate untrusted taps, skip it silently.
 if brew trust --help &> /dev/null; then
 	brew trust osx-cross/arm
 	brew trust PX4/px4
 fi
+
+brew tap osx-cross/arm
+brew tap PX4/px4
 
 # Package list. This replaces the px4-dev meta-formula, which is kept
 # as a deprecated no-op upstream. See PX4/homebrew-px4 for history.
