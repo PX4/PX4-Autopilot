@@ -636,6 +636,13 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_esc_controller.set_node_info_publisher(&_node_info_publisher);
+
+	ret = _node_info_retriever.addListener(&_esc_controller);
+
+	if (ret < 0) {
+		PX4_ERR("ESC NodeInfoRetriever listener: %d", ret);
+	}
+
 #endif
 
 	/* Set up shared service clients */

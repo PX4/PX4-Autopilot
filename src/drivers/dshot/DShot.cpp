@@ -771,8 +771,18 @@ void DShot::consume_esc_data(const EscData &esc)
 	}
 
 	// esc_status is indexed by motor_index (Motor1=0, Motor2=1, ...)
-	_esc_status.esc[motor_index].esc_errorcount = _serial_telem_errors[motor_index] +
-			_bdshot_telem_errors[motor_index];
+	if (is_bdshot && _serial_telemetry_enabled) {
+		_esc_status.esc[motor_index].esc_errorcount = _serial_telem_errors[motor_index] + _bdshot_telem_errors[motor_index];
+		_esc_status.esc[motor_index].esc_errorcount_type = esc_report_s::ERRORCOUNT_TYPE_TELEMETRY_ERRORS;
+
+	} else if (is_bdshot) {
+		_esc_status.esc[motor_index].esc_errorcount = _bdshot_telem_errors[motor_index];
+		_esc_status.esc[motor_index].esc_errorcount_type = esc_report_s::ERRORCOUNT_TYPE_BDSHOT_TELEMETRY_ERRORS;
+
+	} else {
+		_esc_status.esc[motor_index].esc_errorcount = _serial_telem_errors[motor_index];
+		_esc_status.esc[motor_index].esc_errorcount_type = esc_report_s::ERRORCOUNT_TYPE_SERIAL_TELEMETRY_ERRORS;
+	}
 
 	if (esc.source == TelemetrySource::Serial) {
 		// Only use SerialTelemetry eRPM when BDShot is disabled
