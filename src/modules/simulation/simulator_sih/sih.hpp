@@ -202,6 +202,7 @@ private:
 	// reconstruct the noisy sensor signals
 	void reconstruct_sensors_signals(const hrt_abstime &time_now_us);
 	void send_airspeed(const hrt_abstime &time_now_us);
+	float ground_distance() const;
 	void send_dist_snsr(const hrt_abstime &time_now_us);
 	void send_ranging_beacon(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
@@ -338,6 +339,11 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
+		(ParamInt<px4::params::SIH_TERR_EN>) _sih_terr_en,
+		(ParamFloat<px4::params::SIH_TERR_AMP>) _sih_terr_amp,
+		(ParamFloat<px4::params::SIH_TERR_WAVELEN>) _sih_terr_wavelen,
+		(ParamInt<px4::params::SIH_TERR_SEED>) _sih_terr_seed,
+		(ParamInt<px4::params::SIH_TERR_OCT>) _sih_terr_oct,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
 		// forward propeller
 		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,

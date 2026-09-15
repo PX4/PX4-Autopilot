@@ -48,6 +48,7 @@
 
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
 #include <lib/drivers/device/Device.hpp>
+#include <lib/terrain_sim/terrain_sim.h>
 
 using namespace math;
 using namespace matrix;
@@ -353,6 +354,11 @@ void Sih::parameters_updated()
 	_px4_rangefinder.set_min_distance(_distance_snsr_min);
 	_px4_rangefinder.set_max_distance(_distance_snsr_max);
 
+	// hills from a seed, terrain_sim::height() is zero at home so the vehicle still spawns on the ground
+	const float terr_amp = (_sih_terr_en.get() == 1) ? _sih_terr_amp.get() : 0.f;
+	terrain_sim::set_params(terr_amp, _sih_terr_wavelen.get(), _sih_terr_seed.get());
+	terrain_sim::set_octaves(_sih_terr_oct.get());
+
 	_T_TAU = _sih_thrust_tau.get();
 
 	_v_wind_N = Vector3f(_sih_wind_n.get(), _sih_wind_e.get(), 0.f);
@@ -640,7 +646,10 @@ void Sih::equations_of_motion(const float dt)
 	const float force_down = Vector3f(_R_N2E.transpose() * sum_of_forces_E)(2);
 	Vector3f ground_force_E;
 
-	if ((_lla.altitude() - _lpos_ref_alt) < 0.f && force_down > 0.f) {
+	// height of the ground under the vehicle above the reference altitude
+	const float ground_h = terrain_sim::height(_lpos(0), _lpos(1));
+
+	if ((_lla.altitude() - _lpos_ref_alt - ground_h) < 0.f && force_down > 0.f) {
 		if (_vehicle == VehicleType::Quadcopter
 		    || _vehicle == VehicleType::Hexacopter
 		    || _vehicle == VehicleType::TailsitterVTOL
@@ -775,6 +784,14 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	_airspeed_pub.publish(airspeed);
 }
 
+float Sih::ground_distance() const
+{
+	// range to the terrain along the body down axis, one meter past the sensor maximum so a
+	// miss lands in the out of range branch of the caller
+	const Vector3f down_N = _q.dcm_z();
+	return terrain_sim::raycast(_lpos(0), _lpos(1), -_lpos(2), down_N(0), down_N(1), -down_N(2), _distance_snsr_max + 1.f);
+}
+
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 {
 	if (_distance_sensor_blocked) {
@@ -787,7 +804,7 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 		current_distance = _distance_snsr_override;
 
 	} else {
-		current_distance = -_lpos(2) / _q.dcm_z()(2);
+		current_distance = ground_distance();
 
 		if (current_distance > _distance_snsr_max) {
 			// this is based on lightware lw20 behaviour

@@ -28,6 +28,20 @@
             }
         },
         {
+            "model": "quadx",
+            "test_filter": "[terrain]",
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_SIH_TERR_EN": 1,
+                "PX4_PARAM_SIH_TERR_AMP": 5,
+                "PX4_PARAM_SIH_TERR_SEED": 80,
+                "PX4_PARAM_SIH_TERR_WAVELEN": 200,
+                "PX4_PARAM_MPC_ALT_MODE": 0,
+                "PX4_PARAM_MPC_XY_VEL_MAX": 0.6,
+                "PX4_PARAM_MPC_XY_CRUISE": 0.6
+            }
+        },
+        {
             "model": "hex",
             "test_filter": "[motor_failure_injection]",
             "timeout_min": 15

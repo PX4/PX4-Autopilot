@@ -49,6 +49,7 @@ px4_add_module(
 		drivers_rangefinder
 		failure_injection
 		geo
+		terrain_sim
 	)
 
 if(PX4_PLATFORM MATCHES "posix")
