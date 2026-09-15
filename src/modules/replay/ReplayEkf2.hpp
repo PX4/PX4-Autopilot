@@ -84,6 +84,13 @@ private:
 	 */
 	bool findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::ifstream &replay_file);
 
+	/**
+	 * publish the sensor_combined samples preceding @a timestamp, each in its own lockstep cycle
+	 * @param timestamp of the ekf2 update these samples precede, in microseconds
+	 * @param replay_file file currently replayed (file seek position should be considered arbitrary after this call)
+	 */
+	void publishUnmatchedImuSamples(uint64_t timestamp, std::ifstream &replay_file);
+
 	static constexpr uint16_t msg_id_invalid = 0xffff;
 
 	uint16_t _airspeed_msg_id = msg_id_invalid;
@@ -99,6 +106,11 @@ private:
 	uint16_t _vehicle_local_position_groundtruth_msg_id = msg_id_invalid;
 	uint16_t _vehicle_global_position_groundtruth_msg_id = msg_id_invalid;
 	uint16_t _vehicle_attitude_groundtruth_msg_id = msg_id_invalid;
+	uint16_t _vehicle_gps_position_msg_id = msg_id_invalid;
+	uint16_t _vehicle_land_detected_msg_id = msg_id_invalid;
+	uint16_t _vehicle_status_msg_id = msg_id_invalid;
+	uint16_t _sensor_selection_msg_id = msg_id_invalid;
+	uint16_t _launch_detection_status_msg_id = msg_id_invalid;
 
 	bool _ekf2_timestamps_exists{false};
 	uint64_t _last_sensor_combined_timestamp{0};
