@@ -523,11 +523,10 @@ void RTL::setRtlTypeAndDestination()
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
-	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _rtl_mission_type_handle) {
-		auto *follower = static_cast<RtlMissionSafePointFollow *>(_rtl_mission_type_handle);
+	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _route_follower) {
 		// A refreshed plan must also configure a reused executor before estimating or activating it.
-		follower->configureRoute(route_evaluation.plan, route_evaluation.goal_land_approach,
-					 route_evaluation.vtol_state_on_mission_upload);
+		_route_follower->configureRoute(route_evaluation.plan, route_evaluation.goal_land_approach,
+						route_evaluation.vtol_state_on_mission_upload);
 	}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -880,7 +879,8 @@ bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 
 	case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-		_rtl_mission_type_handle = new RtlMissionSafePointFollow(_navigator, new_mission);
+		_route_follower = new RtlMissionSafePointFollow(_navigator, new_mission);
+		_rtl_mission_type_handle = _route_follower;
 
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->initialize();
@@ -915,6 +915,9 @@ void RTL::stopAndDeleteRtlMissionType(bool preserve_route_loop_segment)
 	_rtl_mission_type_handle->run(false);
 	delete _rtl_mission_type_handle;
 	_rtl_mission_type_handle = nullptr;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	_route_follower = nullptr;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
 
 void RTL::parameters_update()

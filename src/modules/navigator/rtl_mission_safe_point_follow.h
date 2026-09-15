@@ -128,6 +128,8 @@ private:
 	void normalizeRouteMissionItem(mission_item_s &mission_item) const;
 	/** @brief Find the next route position index after @p from_index in the planned direction, skipping DO_JUMP. */
 	bool findAdjacentRouteIndex(int32_t from_index, int32_t &adjacent_index);
+	/** @brief Resolve a loaded item to its flown target; return true at the branch-off or selected endpoint. */
+	bool resolveRouteTarget(int32_t index, mission_item_s &mission_item) const;
 	/** @brief Load the next route item, substituting the branch-off or normalizing holds while preserving endpoints. */
 	bool loadNextRouteItem(mission_item_s &next_route_item, int32_t &next_index);
 	/** @brief Arm the synthetic route transition that should be issued on the next publication pass. */
