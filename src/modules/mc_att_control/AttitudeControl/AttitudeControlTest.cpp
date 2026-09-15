@@ -593,6 +593,55 @@ TEST_F(AttitudeControlShapingTest, CommandedYawRateBypassesShaping)
 	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
 }
 
+TEST_F(AttitudeControlShapingTest, TiltedYawRateCommandKeepsAccelerationLimit)
+{
+	// GIVEN: a mission-like sequence: constant yaw-rate command with the heading setpoint following it, pitched
+	// forward and rolling back and forth so that the roll axis runs at its acceleration limit while the
+	// yaw-rate projection is active on a tilted reference
+	const float yaw_rate = 1.f;
+	const float pitch = -0.2f;
+	const float roll_amplitude = 0.4f;
+	const int steps = 3000;
+	Vector3f max_accel{};
+	Vector3f max_error{};
+	const int toggle_steps = static_cast<int>(2.f / kDt); // roll setpoint toggles every 2 seconds
+	const int settle_steps = toggle_steps * 3 / 4;         // the 0.8 rad roll step is closed within ~1.2 s
+
+	for (int i = 1; i <= steps; i++) {
+		const float roll = (((i / toggle_steps) % 2) == 0) ? roll_amplitude : -roll_amplitude;
+		const Quatf q_tilt = Quatf(AxisAnglef(Vector3f(0.f, pitch, 0.f))) * Quatf(AxisAnglef(Vector3f(roll, 0.f, 0.f)));
+		const Quatf q_yaw(AxisAnglef(Vector3f(0.f, 0.f, yaw_rate * kDt * i)));
+		const Quatf q_d = q_yaw * q_tilt;
+		_attitude_control.setAttitudeSetpoint(q_d, yaw_rate, kDt);
+
+		const Vector3f accel = _attitude_control.getReferenceAcceleration();
+		const Vector3f error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
+
+		for (int axis = 0; axis < 3; axis++) {
+			max_accel(axis) = math::max(max_accel(axis), fabsf(accel(axis)));
+
+			// tracking is judged once the initial tilt step and each roll toggle had time to settle
+			if ((i % toggle_steps) > settle_steps) {
+				max_error(axis) = math::max(max_error(axis), fabsf(error(axis)));
+			}
+		}
+	}
+
+	// THEN: the roll axis did saturate its acceleration limit, but no axis ever exceeded it (before the fix the
+	// projected acceleration written back into the trajectories ratcheted roll up to ~1.4x the limit here and
+	// ~2.7x in flight)
+	EXPECT_GT(max_accel(0), kAccelMax * 0.95f);
+
+	for (int axis = 0; axis < 3; axis++) {
+		EXPECT_LE(max_accel(axis), kAccelMax * 1.001f) << "axis " << axis;
+	}
+
+	// THEN: the reference kept following the roll and pitch setpoints between the toggles (the yaw error is
+	// deliberately not closed while a yaw-rate command is active, see CommandedYawRateBypassesShaping)
+	EXPECT_LT(max_error(0), 0.05f);
+	EXPECT_LT(max_error(1), 0.05f);
+}
+
 TEST_F(AttitudeControlShapingTest, DisabledAxisKeepsLinearModel)
 {
 	// GIVEN: two controllers, one with shaping disabled, one with only the roll axis limited

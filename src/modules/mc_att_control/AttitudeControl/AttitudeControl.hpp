@@ -116,6 +116,13 @@ public:
 	 */
 	const matrix::Quatf &getReferenceAttitude() const { return _q_ref; }
 
+	/**
+	 * Angular acceleration of the reference model
+	 * @return [rad/s^2] per-axis reference acceleration at the end of the last step: the trajectory
+	 *         acceleration on acceleration-limited axes, the analytical linear-model acceleration on the others
+	 */
+	const matrix::Vector3f &getReferenceAcceleration() const { return _ref_accel; }
+
 private:
 	/**
 	 * Advance the 2nd-order reference model by one step toward the desired attitude
@@ -146,6 +153,7 @@ private:
 	matrix::Quatf _q_ref;                  ///< reference attitude tracked by the 2nd-order ref model
 	matrix::Vector3f _omega_correction;    ///< error-driven correction (2nd-order state); reference rate = _omega_correction + _omega_command
 	matrix::Vector3f _omega_command;       ///< commanded (analytical) reference rate; exempt from the feedforward limit
+	matrix::Vector3f _ref_accel;           ///< reference angular acceleration [rad/s^2] of the last step, see getReferenceAcceleration()
 	bool _ref_initialized{false};
 
 	float _omega_n{50.f};                  ///< ref-model natural frequency [rad/s]

@@ -95,6 +95,7 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		// First call (or dt out of range): snap reference to the current setpoint.
 		_q_ref = qd_normalized;
 		_omega_correction.zero();
+		_ref_accel.zero();
 		_omega_command.zero();
 
 		for (auto &trajectory : _rate_trajectory) {
@@ -179,14 +180,21 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	// Axes with an angular acceleration limit follow a jerk-limited, time-optimal rate trajectory towards
 	// the setpoint instead of the linear model above. The other axes keep their trajectory state in sync
 	// with the linear model so that enabling the limit at runtime continues from the current rate.
+	// End-of-step error of the linear model (first row of exp(A*dt)), used for its instantaneous acceleration
+	// omega_dot = _kq * e - 2 * _omega_n * omega so that the reference acceleration is also observable on
+	// unconstrained axes.
+	const Vector3f e_end = a * e - b * _omega_correction;
+
 	for (int i = 0; i < 3; i++) {
 		if (isAxisAccelerationLimited(i)) {
 			float delta_angle;
 			propagateLimitedAxis(i, e(i), dt, omega_correction(i), delta_angle);
 			delta_phi(i) = delta_angle + omega_command(i) * dt;
+			_ref_accel(i) = _rate_trajectory[i].getCurrentAcceleration();
 
 		} else {
 			_rate_trajectory[i].reset(0.f, omega_correction(i), 0.f);
+			_ref_accel(i) = _kq * e_end(i) - 2.f * _omega_n * omega_correction(i);
 		}
 	}
 
@@ -197,14 +205,12 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	if (PX4_ISFINITE(yawspeed_setpoint) && (fabsf(yawspeed_setpoint) > FLT_EPSILON)) {
 		_omega_correction -= _omega_correction.dot(yaw_axis_body) * yaw_axis_body;
 
-		Vector3f accel_correction{_rate_trajectory[0].getCurrentAcceleration(),
-					  _rate_trajectory[1].getCurrentAcceleration(),
-					  _rate_trajectory[2].getCurrentAcceleration()};
-		accel_correction -= accel_correction.dot(yaw_axis_body) * yaw_axis_body;
-
+		// Sync only the rate back into the trajectories, which re-plan from any rate. Their acceleration is the
+		// planner's own state and only valid within the axis limit: projecting it as a vector mixes the axes on
+		// a tilted vehicle, and VelocitySmoothing holds an initial acceleration beyond its limit instead of
+		// reducing it, so the excess accumulates step by step.
 		for (int i = 0; i < 3; i++) {
 			_rate_trajectory[i].setCurrentVelocity(_omega_correction(i));
-			_rate_trajectory[i].setCurrentAcceleration(accel_correction(i));
 		}
 	}
 
