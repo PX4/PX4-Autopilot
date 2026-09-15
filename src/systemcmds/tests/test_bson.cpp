@@ -257,6 +257,27 @@ decode(bson_decoder_t decoder)
 	} while (result > 0);
 }
 
+static int
+test_negative_document_size()
+{
+	// The document length is the first four bytes and is signed. A negative value must be
+	// rejected: it would otherwise skip the "larger than buffer" check, which only rejects
+	// lengths above the buffer size.
+	uint8_t buf[16] {};
+	const int32_t negative_size = -2;
+	memcpy(buf, &negative_size, sizeof(negative_size));
+
+	bson_decoder_s decoder{};
+
+	if (bson_decoder_init_buf(&decoder, buf, sizeof(buf), decode_callback) == 0) {
+		PX4_ERR("FAIL: decoder: accepted a negative document length");
+		return 1;
+	}
+
+	PX4_INFO("PASS: decoder: rejected a negative document length");
+	return 0;
+}
+
 int
 test_bson(int argc, char *argv[])
 {
@@ -294,6 +315,10 @@ test_bson(int argc, char *argv[])
 
 	decode(&decoder);
 	free(buf);
+
+	if (test_negative_document_size() != 0) {
+		return 1;
+	}
 
 	return PX4_OK;
 }
