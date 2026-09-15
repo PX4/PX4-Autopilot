@@ -393,3 +393,62 @@ TEST_F(SensorRangeFinderTest, blockedByFog)
 	EXPECT_TRUE(_range_finder.isHealthy());
 
 }
+
+TEST_F(SensorRangeFinderTest, blockedByFogAfterNoReturn)
+{
+	// WHEN: the sensor reports "no return" (negative range, zero quality) for a long time,
+	// e.g. flying far above the ground
+	const uint64_t dt_update_us = 10e3;
+	const uint64_t dt_sensor_us = 3e5;
+	const uint64_t duration_us = 2e6;
+	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
+
+	rangeSample sample{_good_sample.time_us, -1.f, 0};
+	uint64_t t_now_us = sample.time_us;
+
+	for (int i = 0; i < int(duration_us / dt_update_us); i++) {
+		t_now_us += dt_update_us;
+
+		if ((i % int(dt_sensor_us / dt_update_us)) == 0) {
+			sample.time_us = t_now_us;
+			_range_finder.setSample(sample);
+		}
+
+		_range_finder.runChecks(t_now_us, attitude);
+	}
+
+	// THEN: the data is not healthy (out of range)
+	EXPECT_FALSE(_range_finder.isDataHealthy());
+	EXPECT_FALSE(_range_finder.isHealthy());
+
+	// WHEN: the range suddenly jumps to a short distance below the fog distance
+	sample = rangeSample{t_now_us, 1.f, 100};
+	updateSensorAtRate(sample, duration_us, dt_update_us, dt_sensor_us);
+
+	// THEN: the sensor is considered blocked by fog and the data is rejected
+	EXPECT_FALSE(_range_finder.isDataHealthy());
+	EXPECT_FALSE(_range_finder.isHealthy());
+
+	// WHEN: the sensor sees nothing again (fog cleared, still high above ground)
+	// and then reports a plausible distance
+	sample = rangeSample{_range_finder.getSampleAddress()->time_us, -1.f, 0};
+	t_now_us = sample.time_us;
+
+	for (int i = 0; i < int(duration_us / dt_update_us); i++) {
+		t_now_us += dt_update_us;
+
+		if ((i % int(dt_sensor_us / dt_update_us)) == 0) {
+			sample.time_us = t_now_us;
+			_range_finder.setSample(sample);
+		}
+
+		_range_finder.runChecks(t_now_us, attitude);
+	}
+
+	sample = rangeSample{t_now_us, 5.f, 100};
+	updateSensorAtRate(sample, duration_us, dt_update_us, dt_sensor_us);
+
+	// THEN: the sensor is unblocked and the data is healthy again
+	EXPECT_TRUE(_range_finder.isDataHealthy());
+	EXPECT_TRUE(_range_finder.isHealthy());
+}
