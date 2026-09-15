@@ -2340,7 +2340,7 @@ void EKF2::UpdateRangingBeaconSample(ekf2_timestamps_s &ekf2_timestamps)
 					? sq(ranging_beacon.range_accuracy) : sq(_param_ekf2_rngbc_noise.get());
 
 		rangingBeaconSample sample{
-			.time_us = ranging_beacon.timestamp_sample,
+			.time_us = ranging_beacon.timestamp,
 			.beacon_id = ranging_beacon.beacon_id,
 			.range_m = ranging_beacon.range,
 			.range_var = range_var,
