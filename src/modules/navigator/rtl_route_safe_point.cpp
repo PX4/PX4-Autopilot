@@ -100,8 +100,8 @@ void RtlRouteSafePoint::reset()
 
 bool RtlRouteSafePoint::supportsVehicle(const vehicle_status_s &vehicle_status) const
 {
-	// AUTO_RTL front transitions remain disabled in VTOL attitude control.
-	return !vehicle_status.is_vtol;
+	return vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	       || vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 }
 
 bool RtlRouteSafePoint::inputsReady(const mission_s &mission) const
@@ -233,14 +233,6 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 		return evaluation;
 	}
 
-	if (rtl_active && _direction_reversed != plan.direction_reversed && vehicle_status.in_transition_to_fw) {
-		// The route direction flips mid front transition: go back to MC first.
-		vehicle_command_s command{};
-		command.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
-		command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		_navigator->publish_vehicle_command(command);
-	}
-
 	evaluation.goal_land_approach = safe_point_goal
 					? selectGoalLandApproach(provider, plan, vehicle_status, home_position, wind)
 					: loiter_point_s{};
@@ -331,8 +323,8 @@ loiter_point_s RtlRouteSafePoint::selectGoalLandApproach(const mission_route::Pr
 		const home_position_s &home_position,
 		const wind_s &wind)
 {
-	// Only a VTOL in fixed-wing flight lands through an approach loiter.
-	if (!vehicle_status.is_vtol || vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	// Keep the approach even if a later route leg will transition from MC to FW.
+	if (!vehicle_status.is_vtol) {
 		return {};
 	}
 
