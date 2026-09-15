@@ -63,9 +63,12 @@ private:
 	void reposition();
 
 	/**
-	 * Set the position to hold based on the current local position
+	 * Set the Hold position.
+	 *
+	 * @param reference_setpoint previous setpoint used to preserve an established loiter
+	 * @param preserve_reference_altitude preserve altitude from the reference setpoint
 	 */
-	void set_loiter_position(const position_setpoint_s &reference_setpoint);
+	void set_loiter_position(const position_setpoint_s &reference_setpoint, bool preserve_reference_altitude = false);
 
 	bool _loiter_at_last_link_position_executed{false};
 
