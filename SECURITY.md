@@ -15,6 +15,8 @@ We receive security vulnerability reports through GitHub Security Advisories.
 If AI assistance contributed to your finding, do not file a private advisory:
 read [AI-Assisted Discovery](#ai-assisted-discovery) instead.
 
+Before filing, check the finding against [SECURITY_SCOPE.md](SECURITY_SCOPE.md), which describes where PX4's security boundary sits and what is in scope.
+
 To begin a report, go to the [PX4/PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) repository
 and click on the **Security** tab. If you are on mobile, click the **...** dropdown menu, then click **Security**.
 
@@ -26,8 +28,8 @@ At the bottom of the form, click **Submit report**.
 
 ## Response Process
 
-1. **Acknowledgment**: The maintainer team will acknowledge your report within **7 days**.
-2. **Triage**: We will assess severity and impact and communicate next steps.
+1. **Acknowledgment**: The maintainer team will try to acknowledge your report within **7 days**.
+2. **Triage**: We decide scope against [SECURITY_SCOPE.md](SECURITY_SCOPE.md), assess severity and impact, and communicate next steps.
 3. **Fix**: The fix is developed as a normal pull request against `main`, in the open. See [How Fixes Are Developed](#how-fixes-are-developed).
 4. **Release**: The fix is public once the pull request is merged. Where it applies to a supported release branch it is backported, and it appears in the release notes. If a report warrants a published advisory or a CVE, we publish it through GitHub and credit the reporter unless they request anonymity.
 
