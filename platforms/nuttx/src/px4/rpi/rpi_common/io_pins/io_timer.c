@@ -409,12 +409,23 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 	return rv;
 }
 
-static int timer_set_rate(unsigned timer, unsigned rate)
+
+static int timer_set_top(unsigned timer, uint32_t top)
 {
 	// RP2040 has a buffer for rTOP, so there shouldn't be any need to turn the timer off to change rTOP value
-	rTOP(timer) = (BOARD_PWM_FREQ / rate) - 1;
+	rTOP(timer) = top;
 
 	return 0;
+}
+
+static int timer_set_max_timer_rate(unsigned timer)
+{
+	return timer_set_top(timer, UINT32_MAX);
+}
+
+static int timer_set_rate(unsigned timer, unsigned rate)
+{
+	return timer_set_top(timer, (BOARD_PWM_FREQ / rate) - 1);
 }
 
 static inline uint32_t freq2div(uint32_t freq)
@@ -562,7 +573,12 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 				io_timer_set_PWM_mode(timer);
 			}
 
-			timer_set_rate(timer, rate);
+			if (rate == PWM_RATE_TIMER_MAX) {
+				timer_set_max_timer_rate(timer);
+
+			} else {
+				timer_set_rate(timer, rate);
+			}
 		}
 
 		rv = OK;
