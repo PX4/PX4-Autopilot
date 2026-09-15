@@ -108,7 +108,13 @@ void FwAutotuneAttitudeControl::Run()
 
 		if (_vehicle_command_sub.copy(&vehicle_command)) {
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE) {
-				if (fabsf(vehicle_command.param1 - 1.0f) < FLT_EPSILON && fabsf(vehicle_command.param2) < FLT_EPSILON) {
+				vehicle_status_s vehicle_status{};
+				_vehicle_status_sub.copy(&vehicle_status);
+
+				// Both autotune modules run on VTOL; only the active vehicle type owns the command.
+				if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+				    && !vehicle_status.in_transition_mode
+				    && fabsf(vehicle_command.param1 - 1.0f) < FLT_EPSILON && fabsf(vehicle_command.param2) < FLT_EPSILON) {
 					_vehicle_cmd_start_autotune = true;
 				}
 			}

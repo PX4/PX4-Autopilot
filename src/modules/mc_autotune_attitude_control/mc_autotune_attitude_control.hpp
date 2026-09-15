@@ -39,6 +39,11 @@
 
 #pragma once
 
+#include "ControllerValidation.hpp"
+#include <uORB/topics/autotune_excitation.h>
+#include <uORB/topics/autotune_response.h>
+#include <uORB/topics/vehicle_attitude.h>
+
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/pid_design/pid_design.hpp>
@@ -47,11 +52,12 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls_status.h>
+#include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
@@ -64,7 +70,7 @@
 using namespace time_literals;
 
 class McAutotuneAttitudeControl : public ModuleBase, public ModuleParams,
-	public px4::WorkItem
+	public px4::ScheduledWorkItem
 {
 public:
 	static Descriptor desc;
@@ -87,25 +93,28 @@ public:
 	int print_status() override;
 
 private:
+	friend class McAutotuneAttitudeControlTest;
+	friend class AutotuneVtolTest;
+
 	void Run() override;
 
 	void checkFilters();
 
 	void updateStateMachine(hrt_abstime now);
-	bool registerActuatorControlsCallback();
 	void stopAutotune();
-	bool areAllSmallerThan(const matrix::Vector<float, 5> &vect, float threshold) const;
 	void copyGains(int index);
+	bool isAxisConverged() const;
+	void computeGains(const matrix::Vector<float, 5> &coeff);
 	bool areGainsGood() const;
 	void saveGainsToParams();
 	void backupAndSaveGainsToParams();
 	void revertParamGains();
 
-	const matrix::Vector3f getIdentificationSignal();
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub{this, ORB_ID(vehicle_torque_setpoint)};
-	uORB::SubscriptionCallbackWorkItem _parameter_update_sub{this, ORB_ID(parameter_update)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
+	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
 	uORB::Subscription _actuator_controls_status_sub{ORB_ID(actuator_controls_status_0)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
@@ -115,6 +124,25 @@ private:
 	uORB::PublicationData<autotune_attitude_control_status_s> _autotune_attitude_control_status_pub{ORB_ID(autotune_attitude_control_status)};
 
 	SystemIdentification _sys_id;
+	ControllerValidation *_validation{nullptr};
+	ControllerValidation::Gains _baseline{};
+	bool _candidate_ready{false};
+	bool _experiment_active{false};
+	bool _excitation_active{false};
+	hrt_abstime _tune_start{0};
+	hrt_abstime _response_time{0};
+	hrt_abstime _settle_until{0};
+	float _measurement_period{8.f};
+	float _excitation_amplitude{.003f};
+	int _excited_axis{0};
+	uORB::Subscription _autotune_response_sub{ORB_ID(autotune_response)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<autotune_excitation_s> _autotune_excitation_pub{ORB_ID(autotune_excitation)};
+	bool startExperiment(hrt_abstime now);
+	void startAxis(int axis, hrt_abstime now);
+	void publishExcitation(hrt_abstime now);
+	bool validateGains();
+	ControllerValidation::Gains currentGains() const;
 
 	enum class state {
 		idle = autotune_attitude_control_status_s::STATE_IDLE,
@@ -134,9 +162,6 @@ private:
 	} _state{state::idle};
 
 	hrt_abstime _state_start_time{0};
-	uint8_t _steps_counter{0};
-	uint8_t _max_steps{5};
-	int8_t _signal_sign{0};
 
 	bool _armed{false};
 	uint8_t _nav_state{0};
@@ -164,7 +189,6 @@ private:
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _last_publish{0};
-	hrt_abstime _last_model_update{0};
 
 	float _interval_sum{0.f};
 	float _interval_count{0.f};
@@ -172,7 +196,6 @@ private:
 	float _filter_dt{0.01f};
 	bool _are_filters_initialized{false};
 
-	AlphaFilter<float> _signal_filter; ///< used to create a wash-out filter
 
 	static constexpr float _model_dt_min{2e-3f}; // 2ms = 500Hz
 	static constexpr float _model_dt_max{10e-3f}; // 10ms = 100Hz
@@ -185,6 +208,14 @@ private:
 		(ParamFloat<px4::params::MC_AT_SYSID_AMP>) _param_mc_at_sysid_amp,
 		(ParamInt<px4::params::MC_AT_APPLY>) _param_mc_at_apply,
 		(ParamFloat<px4::params::MC_AT_RISE_TIME>) _param_mc_at_rise_time,
+		(ParamFloat<px4::params::MC_AT_PERIOD>) _param_mc_at_period,
+		(ParamFloat<px4::params::MC_AT_TIMEOUT>) _param_mc_at_timeout,
+		(ParamFloat<px4::params::MC_YAW_TQ_CUTOFF>) _param_mc_yaw_tq_cutoff,
+		(ParamInt<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
+		(ParamFloat<px4::params::MC_REF_FF>) _param_mc_ref_ff,
+		(ParamFloat<px4::params::MC_ROLLRATE_FF>) _param_mc_rollrate_ff,
+		(ParamFloat<px4::params::MC_PITCHRATE_FF>) _param_mc_pitchrate_ff,
+		(ParamFloat<px4::params::MC_YAWRATE_FF>) _param_mc_yawrate_ff,
 
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
 
@@ -205,6 +236,5 @@ private:
 		(ParamFloat<px4::params::MC_YAW_P>) _param_mc_yaw_p
 	)
 
-	static constexpr float _publishing_dt_s = 100e-3f;
 	static constexpr hrt_abstime _publishing_dt_hrt = 100_ms;
 };

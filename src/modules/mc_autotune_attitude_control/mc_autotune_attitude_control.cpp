@@ -39,31 +39,33 @@
 
 #include "mc_autotune_attitude_control.hpp"
 
+
 using namespace matrix;
 
 ModuleBase::Descriptor McAutotuneAttitudeControl::desc{task_spawn, custom_command, print_usage};
 
 McAutotuneAttitudeControl::McAutotuneAttitudeControl() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_autotune_attitude_control_status_pub.advertise();
+	_validation = new ControllerValidation;
 }
 
 McAutotuneAttitudeControl::~McAutotuneAttitudeControl()
 {
+	delete _validation;
 	perf_free(_cycle_perf);
 }
 
 bool McAutotuneAttitudeControl::init()
 {
+	if (!_validation) { return false; }
 
 	if (!_vehicle_torque_setpoint_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
-
-	_signal_filter.setParameters(static_cast<uint64_t>(_publishing_dt_s * 1e6f), 200_ms); // runs in the slow publishing loop
 
 	return true;
 }
@@ -71,17 +73,31 @@ bool McAutotuneAttitudeControl::init()
 void McAutotuneAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_parameter_update_sub.unregisterCallback();
+		_experiment_active = false;
+		publishExcitation(hrt_absolute_time());
+		ScheduleClear();
 		_vehicle_torque_setpoint_sub.unregisterCallback();
 		exit_and_cleanup(desc);
 		return;
 	}
+
+	const state previous_state = _state;
+
+	if (_state != state::idle) { ScheduleDelayed(100_ms); }
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
+
+		if (_experiment_active) {
+			PX4_WARN("Autotune aborted: parameters changed during measurement");
+			_experiment_active = false;
+			_state = state::fail;
+			_state_start_time = hrt_absolute_time();
+			publishExcitation(_state_start_time);
+		}
 
 		// update parameters from storage
 		updateParams();
@@ -110,11 +126,38 @@ void McAutotuneAttitudeControl::Run()
 
 		if (_vehicle_command_sub.copy(&vehicle_command)) {
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE) {
-				if (fabsf(vehicle_command.param1 - 1.0f) < FLT_EPSILON && fabsf(vehicle_command.param2) < FLT_EPSILON) {
+				vehicle_status_s vehicle_status{};
+				_vehicle_status_sub.copy(&vehicle_status);
+
+				// Both autotune modules run on VTOL; only the active vehicle type owns the command.
+				if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+				    && !vehicle_status.in_transition_mode
+				    && fabsf(vehicle_command.param1 - 1.0f) < FLT_EPSILON && fabsf(vehicle_command.param2) < FLT_EPSILON) {
 					_vehicle_cmd_start_autotune = true;
 				}
 			}
 		}
+	}
+
+	const hrt_abstime watchdog_now = hrt_absolute_time();
+
+	if (_experiment_active && (!_armed || watchdog_now - _response_time > 500_ms)) {
+		PX4_WARN("Autotune aborted: disarmed or response stream lost");
+		_state = state::fail;
+		_state_start_time = watchdog_now;
+		_experiment_active = false;
+	}
+
+	updateStateMachine(watchdog_now);
+	publishExcitation(watchdog_now);
+
+	// Report terminal/idle transitions even when control samples have stopped.
+	// MAVLink uses IDLE to allow the next autotune command.
+	if (_state != previous_state) {
+		autotune_attitude_control_status_s status{};
+		status.timestamp = watchdog_now;
+		status.state = static_cast<int>(_state);
+		_autotune_attitude_control_status_pub.publish(status);
 	}
 
 	// new control data needed every iteration
@@ -149,32 +192,72 @@ void McAutotuneAttitudeControl::Run()
 
 	_last_run = timestamp_sample;
 
-	checkFilters();
+	if (!_experiment_active) { checkFilters(); }
 
-	// Send data to the filters at maximum frequency
-	if (_state == state::roll) {
-		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[0],
-				      angular_velocity.xyz[0]);
+	const bool identifying = _state == state::roll || _state == state::pitch || _state == state::yaw;
+	autotune_response_s response{};
 
-	} else if (_state == state::pitch) {
-		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[1],
-				      angular_velocity.xyz[1]);
+	if (_experiment_active && _autotune_response_sub.update(&response)) {
+		_response_time = hrt_absolute_time();
 
-	} else if (_state == state::yaw) {
-		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[2],
-				      angular_velocity.xyz[2]);
-	}
+		if (identifying && _response_time >= _settle_until) {
+			control_allocator_status_s allocation{};
+			vehicle_attitude_s attitude{};
+			const bool fresh = _control_allocator_status_sub.copy(&allocation)
+					   && hrt_elapsed_time(&allocation.timestamp) < 250_ms
+					   && _vehicle_attitude_sub.copy(&attitude) && hrt_elapsed_time(&attitude.timestamp) < 100_ms;
+			const Eulerf angles{Quatf{attitude.q}};
 
-	// Update the model at a lower frequency
-	_model_update_counter++;
+			if (!fresh || !PX4_ISFINITE(angles.phi()) || !PX4_ISFINITE(angles.theta())) {
+				PX4_WARN("Autotune failed: stale measurement status");
+				_state = state::fail;
+				_state_start_time = _response_time;
+				_experiment_active = false;
 
-	if (_model_update_counter >= _model_update_scaler) {
-		if ((_state == state::roll) || (_state == state::pitch) || (_state == state::yaw)) {
-			_sys_id.update();
-			_last_model_update = hrt_absolute_time();
+			} else if (fabsf(angles.phi()) > math::radians(5.f) || fabsf(angles.theta()) > math::radians(5.f)
+				   || !allocation.torque_setpoint_achieved || !allocation.thrust_setpoint_achieved) {
+				_excitation_amplitude *= .5f;
+
+				if (_excitation_amplitude < .00005f) {
+					PX4_WARN("Autotune failed: no small-signal operating point");
+					_state = state::fail;
+					_state_start_time = _response_time;
+					_experiment_active = false;
+
+				} else {
+					PX4_INFO("Autotune axis %d: reducing excitation to %.6f", _excited_axis, (double)_excitation_amplitude);
+					startAxis(_excited_axis, _response_time);
+				}
+
+			} else {
+				const bool new_sample = _validation->update(response.timestamp, response.dt, Vector3f(response.torque),
+							Vector3f(response.angular_velocity), Vector3f(response.angular_acceleration),
+							response.excitation[_excited_axis]);
+
+				if (!_validation->validData()) {
+					PX4_WARN("Autotune failed: response data error %d, sample interval %.6f s, controller dt %.6f s",
+						 static_cast<int>(_validation->error()), (double)_validation->sampleInterval(), (double)response.dt);
+					_state = state::fail;
+					_state_start_time = _response_time;
+					_experiment_active = false;
+
+				} else if (new_sample && !_candidate_ready) {
+					if (_validation->trained(response.timestamp)) {
+						// The first verification sample must not train the candidate.
+						copyGains(_excited_axis);
+						_candidate_ready = true;
+
+					} else {
+						_sys_id.updateFilters(_input_scale * response.torque[_excited_axis], response.angular_velocity[_excited_axis]);
+
+						if (++_model_update_counter >= _model_update_scaler) {
+							_sys_id.update();
+							_model_update_counter = 0;
+						}
+					}
+				}
+			}
 		}
-
-		_model_update_counter = 0;
 	}
 
 	if (hrt_elapsed_time(&_last_publish) > _publishing_dt_hrt || _last_publish == 0) {
@@ -186,30 +269,13 @@ void McAutotuneAttitudeControl::Run()
 		coeff(3) *= _input_scale;
 		coeff(4) *= _input_scale;
 
-		const Vector3f num(coeff(2), coeff(3), coeff(4));
-		const Vector3f den(1.f, coeff(0), coeff(1));
-
 		const float model_dt = static_cast<float>(_model_update_scaler) * _filter_dt;
-
-		const float desired_rise_time = ((_state == state::yaw)
-						 || (_state == state::yaw_pause)) ? 0.2f : _param_mc_at_rise_time.get();
-		_kid = pid_design::computePidGmvc(num, den, model_dt, desired_rise_time, 0.f, 0.7f);
-
-		// Prevent the D term from going just negative if it is not needed
-		if ((_kid(2) < 0.f) && (_kid(2) > -0.001f)) {
-			_kid(2) = 0.f;
-		}
-
-		// To compute the attitude gain, use the following empirical rule:
-		// "An error of 60 degrees should produce the maximum control output"
-		// or K_att * K_rate * rad(60) = 1
-		_attitude_p = math::constrain(1.f / (math::radians(60.f) * _kid(0)), 2.f, 6.5f);
+		// Candidate telemetry; application is gated by the independent response check.
+		computeGains(coeff);
 
 		const Vector<float, 5> &coeff_var = _sys_id.getVariances();
 
-		const Vector3f rate_sp = _sys_id.areFiltersInitialized()
-					 ? getIdentificationSignal()
-					 : Vector3f();
+		const Vector3f rate_sp{};
 
 		autotune_attitude_control_status_s status{};
 		status.timestamp = now;
@@ -253,7 +319,7 @@ void McAutotuneAttitudeControl::checkFilters()
 			const float filter_rate_hz = 1.f / _filter_dt;
 
 			_sys_id.setLpfCutoffFrequency(filter_rate_hz, _param_imu_gyro_cutoff.get());
-			_sys_id.setHpfCutoffFrequency(filter_rate_hz, .5f);
+			_sys_id.setHpfCutoffFrequency(filter_rate_hz, 1.f / (5.f * _param_mc_at_period.get()));
 
 			// Set the model sampling time depending on the gyro cutoff frequency
 			// as this is a good indicator of the maximum control loop bandwidth
@@ -276,18 +342,41 @@ void McAutotuneAttitudeControl::checkFilters()
 
 void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 {
-	// when identifying an axis, check if the estimate has converged
-	const float converged_thr = 50.f;
+	// Abort only the active identification/test sequence. Landing and pilot inputs
+	// must not turn a completed tune into a failure while its result is being reported.
+	if (_state != state::idle && _state != state::wait_for_disarm
+	    && _state != state::complete && _state != state::fail) {
+		manual_control_setpoint_s manual_control_setpoint{};
+		_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+
+		const bool timeout = !PX4_ISFINITE(_param_mc_at_timeout.get()) || _param_mc_at_timeout.get() < 20.f
+				     || _param_mc_at_timeout.get() > 14400.f || (now - (_experiment_active ? _tune_start : _state_start_time)) >
+				     static_cast<hrt_abstime>(_param_mc_at_timeout.get() * 1e6f);
+		const bool mode_changed = (_start_flight_mode != _nav_state);
+		const bool pilot_intervention = (fabsf(manual_control_setpoint.roll) > 0.05f)
+						|| (fabsf(manual_control_setpoint.pitch) > 0.05f)
+						|| (fabsf(manual_control_setpoint.yaw) > 0.05f);
+
+		if (timeout || mode_changed || pilot_intervention) {
+			PX4_WARN("Autotune aborted in state %u: %s", static_cast<unsigned>(_state),
+				 timeout ? "timeout" : (mode_changed ? "flight mode changed" : "pilot intervention"));
+
+			if (_state == state::test) {
+				revertParamGains();
+			}
+
+			_state = state::fail;
+			_state_start_time = now;
+			_experiment_active = false;
+			publishExcitation(now);
+			return;
+		}
+	}
 
 	switch (_state) {
 	case state::idle:
 		if (_vehicle_cmd_start_autotune) {
-			if (registerActuatorControlsCallback()) {
-				_state = state::init;
-
-			} else {
-				_state = state::fail;
-			}
+			_state = state::init;
 
 			_state_start_time = now;
 			_start_flight_mode = _nav_state;
@@ -297,101 +386,57 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	case state::init:
 		if (_are_filters_initialized) {
-			_state = state::roll;
-			_state_start_time = now;
-			_sys_id.reset();
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-			_signal_sign = 1;
-			_input_scale = 1.f / (_param_mc_rollrate_p.get() * _param_mc_rollrate_k.get());
-			_signal_filter.reset(0.f);
-			_gains_backup_available = false;
+			if (!startExperiment(now)) {
+				PX4_WARN("Autotune failed: unsupported configuration or unavailable memory");
+				_state = state::fail;
+				_state_start_time = now;
+			}
 		}
 
 		break;
 
 	case state::roll:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
-			copyGains(0);
-
-			// wait for the drone to stabilize
-			_state = state::roll_pause;
+	case state::pitch:
+	case state::yaw:
+		if (isAxisConverged()) {
+			_state = _excited_axis == 0 ? state::roll_pause : (_excited_axis == 1 ? state::pitch_pause : state::yaw_pause);
 			_state_start_time = now;
 		}
 
 		break;
 
 	case state::roll_pause:
-		if ((now - _state_start_time) > 2_s) {
-			_state = state::pitch;
-			_state_start_time = now;
-			_sys_id.reset();
-			_input_scale = 1.f / (_param_mc_pitchrate_p.get() * _param_mc_pitchrate_k.get());
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-		}
-
-		break;
-
-	case state::pitch:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
-			copyGains(1);
-			_state = state::pitch_pause;
-			_state_start_time = now;
-		}
-
-		break;
-
 	case state::pitch_pause:
-		if ((now - _state_start_time) > 2_s) {
-			_state = state::yaw;
-			_state_start_time = now;
-			_sys_id.reset();
-			_input_scale = 1.f / (_param_mc_yawrate_p.get() * _param_mc_yawrate_k.get());
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-		}
-
-		break;
-
-	case state::yaw:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
-			copyGains(2);
-			_state = state::yaw_pause;
-			_state_start_time = now;
-		}
+		if ((now - _state_start_time) > 2_s) { startAxis(_excited_axis + 1, now); }
 
 		break;
 
 	case state::yaw_pause:
-		if ((now - _state_start_time) > 2_s) {
-			_state = state::verification;
-			_state_start_time = now;
-			_sys_id.reset();
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			_steps_counter = 5;
-			_max_steps = 10;
-		}
+		if ((now - _state_start_time) > 2_s) { _state = state::verification; _state_start_time = now; }
 
 		break;
 
 	case state::verification:
-		_state = areGainsGood()
-			 ? state::apply
-			 : state::fail;
+		if (!_experiment_active || !areGainsGood()) {
+			PX4_WARN("Autotune failed: invalid gains or missing measurements");
+			_state = state::fail;
+			_state_start_time = now;
+			_experiment_active = false;
 
-		_state_start_time = now;
+		} else if (validateGains()) {
+			_state = state::apply;
+			_state_start_time = now;
+			_experiment_active = false;
+
+		} else {
+			// validateGains may restart measurement with a longer period.
+			if (_state == state::verification) {
+				_state = state::fail;
+				_state_start_time = now;
+				_experiment_active = false;
+			}
+		}
+
 		break;
 
 	case state::apply:
@@ -448,26 +493,6 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 		break;
 	}
-
-	// In case of convergence timeout, pilot intervention or mode change,
-	// the identification sequence is aborted immediately
-	manual_control_setpoint_s manual_control_setpoint{};
-	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
-
-	const bool timeout = (now - _state_start_time) > 20_s;
-	const bool mode_changed = (_start_flight_mode != _nav_state);
-	const bool pilot_intervention = ((fabsf(manual_control_setpoint.roll) > 0.05f)
-					 || (fabsf(manual_control_setpoint.pitch) > 0.05f));
-
-	const bool should_abort = timeout || mode_changed || pilot_intervention;
-
-	if (_state != state::wait_for_disarm
-	    && _state != state::idle && should_abort) {
-
-		_state = state::fail;
-		_start_flight_mode = _nav_state;
-		_state_start_time = now;
-	}
 }
 
 void McAutotuneAttitudeControl::backupAndSaveGainsToParams()
@@ -514,28 +539,47 @@ void McAutotuneAttitudeControl::revertParamGains()
 	}
 }
 
-bool McAutotuneAttitudeControl::registerActuatorControlsCallback()
+void McAutotuneAttitudeControl::computeGains(const Vector<float, 5> &coeff)
 {
-	if (!_vehicle_torque_setpoint_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
+	const Vector3f num(coeff(2), coeff(3), coeff(4));
+	const Vector3f den(1.f, coeff(0), coeff(1));
+
+	const float model_dt = static_cast<float>(_model_update_scaler) * _filter_dt;
+
+	const float desired_rise_time = ((_state == state::yaw)
+					 || (_state == state::yaw_pause)) ? math::max(.2f, _param_mc_at_rise_time.get()) : _param_mc_at_rise_time.get();
+	_kid = pid_design::computePidGmvc(num, den, model_dt, desired_rise_time, 0.f, 0.7f);
+
+	// Prevent the D term from going just negative if it is not needed
+	if ((_kid(2) < 0.f) && (_kid(2) > -0.001f)) {
+		_kid(2) = 0.f;
 	}
 
-	return true;
+	// To compute the attitude gain, use the following empirical rule:
+	// "An error of 60 degrees should produce the maximum control output"
+	// or K_att * K_rate * rad(60) = 1
+	_attitude_p = math::constrain(1.f / (math::radians(60.f) * _kid(0)), 2.f, 6.5f);
 }
 
-bool McAutotuneAttitudeControl::areAllSmallerThan(const Vector<float, 5> &vect, float threshold) const
+bool McAutotuneAttitudeControl::isAxisConverged() const
 {
-	return (vect(0) < threshold)
-	       && (vect(1) < threshold)
-	       && (vect(2) < threshold)
-	       && (vect(3) < threshold)
-	       && (vect(4) < threshold);
+	return _validation && _candidate_ready && _validation->finished() && _validation->validData();
 }
 
 void McAutotuneAttitudeControl::copyGains(int index)
 {
 	if (index <= 2) {
+		// Freeze a candidate before the independent measurement periods.
+		Vector<float, 5> coeff = _sys_id.getCoefficients();
+		coeff(2) *= _input_scale;
+		coeff(3) *= _input_scale;
+		coeff(4) *= _input_scale;
+		computeGains(coeff);
+#if defined(CONFIG_COMMON_SIMULATION)
+		PX4_INFO("candidate axis %d A %.9g %.9g dt %.9g", index, (double)coeff(0), (double)coeff(1),
+			 (double)(_model_update_scaler * _filter_dt));
+		PX4_INFO("candidate axis %d B %.9g %.9g %.9g", index, (double)coeff(2), (double)coeff(3), (double)coeff(4));
+#endif
 		_rate_k(index) = _kid(0);
 		_rate_i(index) = _kid(1);
 		_rate_d(index) = _kid(2);
@@ -545,6 +589,10 @@ void McAutotuneAttitudeControl::copyGains(int index)
 
 bool McAutotuneAttitudeControl::areGainsGood() const
 {
+	if (!_rate_k.isAllFinite() || !_rate_i.isAllFinite() || !_rate_d.isAllFinite() || !_att_p.isAllFinite()) {
+		return false;
+	}
+
 	const bool are_positive = _rate_k.min() > 0.f
 				  && _rate_i.min() > 0.f
 				  && _rate_d.min() >= 0.f
@@ -597,48 +645,146 @@ void McAutotuneAttitudeControl::saveGainsToParams()
 
 void McAutotuneAttitudeControl::stopAutotune()
 {
+	_experiment_active = false;
+	publishExcitation(hrt_absolute_time());
+	ScheduleClear();
 	_vehicle_cmd_start_autotune = false;
 }
 
-const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()
+ControllerValidation::Gains McAutotuneAttitudeControl::currentGains() const
 {
-	if (_steps_counter > _max_steps) {
-		_signal_sign = (_signal_sign == 1) ? 0 : 1;
-		_steps_counter = 0;
+	ControllerValidation::Gains result;
+	const Vector3f scale(_param_mc_rollrate_k.get(), _param_mc_pitchrate_k.get(), _param_mc_yawrate_k.get());
+	result.p = scale.emult(Vector3f(_param_mc_rollrate_p.get(), _param_mc_pitchrate_p.get(), _param_mc_yawrate_p.get()));
+	result.i = scale.emult(Vector3f(_param_mc_rollrate_i.get(), _param_mc_pitchrate_i.get(), _param_mc_yawrate_i.get()));
+	result.d = scale.emult(Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(), _param_mc_yawrate_d.get()));
+	result.attitude = Vector3f(_param_mc_roll_p.get(), _param_mc_pitch_p.get(), _param_mc_yaw_p.get());
+	return result;
+}
 
-		if (_max_steps > 1) {
-			_max_steps--;
+bool McAutotuneAttitudeControl::startExperiment(hrt_abstime now)
+{
+	if (!_validation || !_armed || _nav_state != vehicle_status_s::NAVIGATION_STATE_POSCTL
+	    || _param_mc_bat_scale_en.get() || fabsf(_param_mc_rollrate_ff.get()) > FLT_EPSILON
+	    || fabsf(_param_mc_pitchrate_ff.get()) > FLT_EPSILON || fabsf(_param_mc_yawrate_ff.get()) > FLT_EPSILON) { return false; }
 
-		} else {
-			_max_steps = 5;
+	if (!PX4_ISFINITE(_param_mc_at_period.get()) || !PX4_ISFINITE(_param_mc_at_timeout.get())
+	    || !PX4_ISFINITE(_param_mc_at_sysid_amp.get()) || _param_mc_at_sysid_amp.get() <= 0.f
+	    || !PX4_ISFINITE(_filter_dt) || _filter_dt <= 0.f) { return false; }
+
+	_baseline = currentGains();
+
+	if (!_baseline.p.isAllFinite() || !_baseline.i.isAllFinite() || !_baseline.d.isAllFinite()
+	    || !_baseline.attitude.isAllFinite() || _baseline.p.min() <= 0.f || _baseline.i.min() <= 0.f
+	    || _baseline.d.min() < 0.f || _baseline.attitude.min() <= 0.f) { return false; }
+
+	_measurement_period = math::constrain(_param_mc_at_period.get(), 4.f, 128.f);
+	const float maximum_frequency = math::min(.2f / _filter_dt, math::max(10.f, 2.f * _param_imu_gyro_cutoff.get()));
+	_validation->configure(_measurement_period, maximum_frequency);
+	_tune_start = now;
+	_response_time = now;
+	_experiment_active = true;
+	_gains_backup_available = false;
+	_rate_k.zero(); _rate_i.zero(); _rate_d.zero(); _att_p.zero();
+	_excitation_amplitude = math::min(.003f * _param_mc_at_sysid_amp.get() / .7f, .08f / _validation->frequencies());
+	PX4_INFO("Autotune response verification: period %.1f s, %d frequencies", (double)_measurement_period, _validation->frequencies());
+	startAxis(0, now);
+	return true;
+}
+
+void McAutotuneAttitudeControl::startAxis(int axis, hrt_abstime now)
+{
+	_excited_axis = axis;
+	_state = axis == 0 ? state::roll : (axis == 1 ? state::pitch : state::yaw);
+	_state_start_time = now;
+	_settle_until = now + 2_s;
+	_validation->beginAxis(axis, _settle_until, _excitation_amplitude);
+	_candidate_ready = false;
+	_rate_k(axis) = _rate_i(axis) = _rate_d(axis) = _att_p(axis) = 0.f;
+	_sys_id.setHpfCutoffFrequency(1.f / _filter_dt, 1.f / (5.f * _measurement_period));
+	_sys_id.setForgettingFactor(math::max(60.f, 4.f * _measurement_period), _model_update_scaler * _filter_dt);
+	_sys_id.reset();
+	_model_update_counter = 0;
+	_input_scale = 1.f / _baseline.p(axis);
+}
+
+void McAutotuneAttitudeControl::publishExcitation(hrt_abstime now)
+{
+	if (!_experiment_active && !_excitation_active) { return; }
+
+	_excitation_active = _experiment_active;
+	autotune_excitation_s excitation{};
+	excitation.timestamp = _experiment_active ? now : 0;
+	excitation.nav_state = _start_flight_mode;
+
+	if (_experiment_active && now >= _settle_until
+	    && (_state == state::roll || _state == state::pitch || _state == state::yaw)) {
+		excitation.torque[_excited_axis] = _validation->excitation(now);
+	}
+
+	_autotune_excitation_pub.publish(excitation);
+}
+
+bool McAutotuneAttitudeControl::validateGains()
+{
+	ControllerValidation::Gains requested;
+	requested.p = _rate_k;
+	requested.i = _rate_k.emult(_rate_i);
+	requested.d = _rate_k.emult(_rate_d);
+	requested.attitude = _att_p;
+
+	for (int option = 0; option < 4; ++option) {
+		if (option == 0 && fabsf(_param_mc_ref_ff.get()) > FLT_EPSILON) { continue; }
+
+		const float fraction = option <= 1 ? 1.f : (option == 2 ? .5f : .25f);
+		ControllerValidation::Gains candidate;
+		candidate.p = _baseline.p + fraction * (requested.p - _baseline.p);
+		candidate.i = _baseline.i + fraction * (requested.i - _baseline.i);
+		candidate.d = _baseline.d + fraction * (requested.d - _baseline.d);
+		candidate.attitude = option == 0 ? requested.attitude : _baseline.attitude;
+		float minimum = 0.f;
+		const auto result = _validation->check(_baseline, candidate, _param_mc_yaw_tq_cutoff.get(), minimum);
+
+		if (result == ControllerValidation::Result::InsufficientBandwidth) {
+			if (_measurement_period < 128.f) {
+				_measurement_period = math::min(2.f * _measurement_period, 128.f);
+				_validation->configure(_measurement_period, math::min(.2f / _filter_dt, math::max(10.f, 2.f * _param_imu_gyro_cutoff.get())));
+				_excitation_amplitude = math::min(_excitation_amplitude, .08f / _validation->frequencies());
+				PX4_INFO("Autotune: extending response period to %.1f s", (double)_measurement_period);
+				_rate_k.zero(); _rate_i.zero(); _rate_d.zero(); _att_p.zero();
+				startAxis(0, hrt_absolute_time());
+
+			} else { PX4_WARN("Autotune failed: insufficient frequency coverage"); }
+
+			return false;
+		}
+
+		if (!PX4_ISFINITE(minimum)) {
+			PX4_WARN("Autotune failed: insufficient measurement coverage or data quality");
+			return false;
+		}
+
+		PX4_INFO("Autotune candidate %d: response bound %.3f", option, (double)minimum);
+
+		if (result == ControllerValidation::Result::Pass) {
+			// A negligible update is not a successful identification.
+			if ((candidate.p - _baseline.p).norm() + (candidate.i - _baseline.i).norm()
+			    + (candidate.d - _baseline.d).norm() < .01f * (_baseline.p.norm() + _baseline.i.norm() + _baseline.d.norm())) {
+				PX4_WARN("Autotune failed: no significant validated gain change");
+				return false;
+			}
+
+			_rate_k = candidate.p;
+			_rate_i = candidate.i.edivide(candidate.p);
+			_rate_d = candidate.d.edivide(candidate.p);
+			_att_p = candidate.attitude;
+			PX4_INFO("Autotune validated: rate fraction %.2f, attitude %s", (double)fraction, option == 0 ? "updated" : "retained");
+			return true;
 		}
 	}
 
-	_steps_counter++;
-
-	const float step = float(_signal_sign) * _param_mc_at_sysid_amp.get();
-
-	Vector3f rate_sp{};
-
-	const float signal = step - _signal_filter.getState();
-
-	if (_state == state::roll) {
-		rate_sp(0) = signal;
-
-	} else if (_state ==  state::pitch) {
-		rate_sp(1) = signal;
-
-	} else if (_state ==  state::yaw) {
-		rate_sp(2) = signal;
-
-	} else if (_state == state::test) {
-		rate_sp(0) = signal;
-		rate_sp(1) = signal;
-	}
-
-	_signal_filter.update(step);
-
-	return rate_sp;
+	PX4_WARN("Autotune failed: candidate response is not sufficiently verified");
+	return false;
 }
 
 int McAutotuneAttitudeControl::task_spawn(int argc, char *argv[])
