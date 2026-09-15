@@ -123,6 +123,10 @@ public:
 	 */
 	const matrix::Vector3f &getReferenceAcceleration() const { return _ref_accel; }
 
+	// TEMPORARY DEBUG accessor for the attitude_reference topic (not meant to be committed)
+	/// Reference angular rate [rad/s] in the reference body frame (correction + commanded)
+	matrix::Vector3f getReferenceRate() const { return _omega_correction + _omega_command; }
+
 private:
 	/**
 	 * Advance the 2nd-order reference model by one step toward the desired attitude

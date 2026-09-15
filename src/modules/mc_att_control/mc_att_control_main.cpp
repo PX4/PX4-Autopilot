@@ -385,6 +385,14 @@ MulticopterAttitudeControl::Run()
 
 			_vehicle_rates_setpoint_pub.publish(rates_setpoint);
 
+			// TEMPORARY DEBUG (not meant to be committed): publish the reference model state for log analysis
+			attitude_reference_s attitude_reference{};
+			_attitude_control.getReferenceAttitude().copyTo(attitude_reference.q);
+			_attitude_control.getReferenceRate().copyTo(attitude_reference.rate);
+			_attitude_control.getReferenceAcceleration().copyTo(attitude_reference.acceleration);
+			attitude_reference.timestamp = hrt_absolute_time();
+			_attitude_reference_pub.publish(attitude_reference);
+
 		} else {
 			_man_roll_input_filter.reset(0.f);
 			_man_pitch_input_filter.reset(0.f);
