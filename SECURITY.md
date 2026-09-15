@@ -6,9 +6,8 @@ The following versions receive security updates:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.17.x  | :white_check_mark: |
-| 1.16.x  | :white_check_mark: |
-| < 1.16  | :x:                |
+| 1.18.x  | :white_check_mark: |
+| < 1.18  | :x:                |
 
 ## Reporting a Vulnerability
 
