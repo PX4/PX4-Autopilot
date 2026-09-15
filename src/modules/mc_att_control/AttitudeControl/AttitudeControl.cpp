@@ -38,12 +38,19 @@
 #include <AttitudeControl.hpp>
 
 #include <mathlib/math/Functions.hpp>
+#include <mathlib/math/TrajMath.hpp>
 
 using namespace matrix;
 
 static __attribute__((noinline)) Quatf qmul(const Quatf &a, const Quatf &b) { return a * b; }
 static __attribute__((noinline)) Quatf qinv(const Quatf &q) { return q.inversed(); }
 static __attribute__((noinline)) Vector3f qzaxis(const Quatf &q) { return q.dcm_z(); }
+
+// The acceleration-limited trajectory is advanced in substeps no longer than this, so that its rate
+// setpoint is refreshed from the remaining error often enough; the substep count is bounded to keep
+// the work per update finite after a long gap between setpoints.
+static constexpr float kMaxShapingStep = 0.01f; // [s]
+static constexpr int kMaxShapingSubsteps = 50;
 
 void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight)
 {
@@ -62,6 +69,20 @@ void AttitudeControl::setRefModelFrequency(float omega_n)
 	_kq      = _omega_n * _omega_n;
 }
 
+void AttitudeControl::setRefModelAccelerationLimit(const Vector3f &accel_max, const float jerk_max)
+{
+	for (int i = 0; i < 3; i++) {
+		_ref_accel_max(i) = math::max(accel_max(i), 0.f);
+	}
+
+	_ref_jerk_max = math::max(jerk_max, 0.f);
+}
+
+bool AttitudeControl::isAxisAccelerationLimited(const int axis) const
+{
+	return (_ref_accel_max(axis) > FLT_EPSILON) && (_ref_jerk_max > FLT_EPSILON);
+}
+
 void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
 {
 	Quatf qd_normalized = qd;
@@ -74,9 +95,50 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		// First call (or dt out of range): snap reference to the current setpoint.
 		_q_ref = qd_normalized;
 		_omega_correction.zero();
+		_ref_accel.zero();
 		_omega_command.zero();
+
+		for (auto &trajectory : _rate_trajectory) {
+			trajectory.reset(0.f, 0.f, 0.f);
+		}
+
 		_ref_initialized = true;
 	}
+}
+
+void AttitudeControl::propagateLimitedAxis(const int axis, const float error, const float dt, float &rate,
+		float &delta_angle)
+{
+	VelocitySmoothing &trajectory = _rate_trajectory[axis];
+	trajectory.setMaxJerk(_ref_jerk_max);
+	trajectory.setMaxAccel(_ref_accel_max(axis));
+	trajectory.setMaxVel(_rate_limit(axis));
+
+	// The rate setpoint is only valid for the error at the start of a step. Advance in substeps and refresh
+	// it from the remaining error, otherwise a long interval between setpoints (low-rate or paused stream)
+	// would carry the reference past the target at the initial rate setpoint.
+	const int substeps = math::constrain(static_cast<int>(ceilf(dt / kMaxShapingStep)), 1, kMaxShapingSubsteps);
+	const float substep_dt = dt / substeps;
+	delta_angle = 0.f;
+
+	for (int i = 0; i < substeps; i++) {
+		// Rate setpoint: the highest rate from which the remaining angle can still be closed within the
+		// acceleration and jerk limits, i.e. the same braking law the position trajectories use. It is
+		// proportional to the error close to the setpoint and grows with its square root further away.
+		const float remaining_error = error - delta_angle;
+		const float braking_rate = math::trajectory::computeMaxSpeedFromDistance(_ref_jerk_max, _ref_accel_max(axis),
+					   fabsf(remaining_error), 0.f);
+		const float rate_setpoint = (remaining_error < 0.f) ? -braking_rate : braking_rate;
+
+		// Track the rate setpoint with a time-optimal, jerk-limited trajectory. The position state is reset
+		// every substep so that it directly integrates the angle travelled within it.
+		trajectory.updateDurations(rate_setpoint);
+		trajectory.setCurrentPosition(0.f);
+		trajectory.updateTraj(substep_dt);
+		delta_angle += trajectory.getCurrentPosition();
+	}
+
+	rate = trajectory.getCurrentVelocity();
 }
 
 void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawspeed_setpoint, const float dt)
@@ -112,13 +174,44 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 
 	// Propagate the error-driven correction in tangent space (the 2nd-order state). delta_phi is the integral
 	//    of omega over [0, dt]; the correction part collapses to e(0) - e(dt) since e_dot = -correction.
-	const Vector3f delta_phi = (1.f - a) * e + b * _omega_correction + omega_command * dt;
-	_omega_correction = gamma * e + delta * _omega_correction;
+	Vector3f delta_phi = (1.f - a) * e + b * _omega_correction + omega_command * dt;
+	Vector3f omega_correction = gamma * e + delta * _omega_correction;
+
+	// Axes with an angular acceleration limit follow a jerk-limited, time-optimal rate trajectory towards
+	// the setpoint instead of the linear model above. The other axes keep their trajectory state in sync
+	// with the linear model so that enabling the limit at runtime continues from the current rate.
+	// End-of-step error of the linear model (first row of exp(A*dt)), used for its instantaneous acceleration
+	// omega_dot = _kq * e - 2 * _omega_n * omega so that the reference acceleration is also observable on
+	// unconstrained axes.
+	const Vector3f e_end = a * e - b * _omega_correction;
+
+	for (int i = 0; i < 3; i++) {
+		if (isAxisAccelerationLimited(i)) {
+			float delta_angle;
+			propagateLimitedAxis(i, e(i), dt, omega_correction(i), delta_angle);
+			delta_phi(i) = delta_angle + omega_command(i) * dt;
+			_ref_accel(i) = _rate_trajectory[i].getCurrentAcceleration();
+
+		} else {
+			_rate_trajectory[i].reset(0.f, omega_correction(i), 0.f);
+			_ref_accel(i) = _kq * e_end(i) - 2.f * _omega_n * omega_correction(i);
+		}
+	}
+
+	_omega_correction = omega_correction;
 
 	// Yaw-rate command: the heading setpoint just follows the measured yaw, so feeding the error-driven
 	// rate forward closes a positive-feedback loop. Keep only the commanded rate (omega_command) on the yaw axis.
 	if (PX4_ISFINITE(yawspeed_setpoint) && (fabsf(yawspeed_setpoint) > FLT_EPSILON)) {
 		_omega_correction -= _omega_correction.dot(yaw_axis_body) * yaw_axis_body;
+
+		// Sync only the rate back into the trajectories, which re-plan from any rate. Their acceleration is the
+		// planner's own state and only valid within the axis limit: projecting it as a vector mixes the axes on
+		// a tilted vehicle, and VelocitySmoothing holds an initial acceleration beyond its limit instead of
+		// reducing it, so the excess accumulates step by step.
+		for (int i = 0; i < 3; i++) {
+			_rate_trajectory[i].setCurrentVelocity(_omega_correction(i));
+		}
 	}
 
 	// Commanded (analytical) reference rate, kept separate so update() can exempt it from the feedforward limit.

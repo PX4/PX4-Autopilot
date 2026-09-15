@@ -165,6 +165,11 @@ private:
 		(ParamFloat<px4::params::MC_REF_FF>)         _param_mc_ref_ff,
 		(ParamFloat<px4::params::MC_REF_FF_MAX>)     _param_mc_ref_ff_max,
 
+		(ParamFloat<px4::params::MC_REF_ACC_R_MAX>)  _param_mc_ref_acc_r_max,
+		(ParamFloat<px4::params::MC_REF_ACC_P_MAX>)  _param_mc_ref_acc_p_max,
+		(ParamFloat<px4::params::MC_REF_ACC_Y_MAX>)  _param_mc_ref_acc_y_max,
+		(ParamFloat<px4::params::MC_REF_JERK_MAX>)   _param_mc_ref_jerk_max,
+
 		/* Stabilized mode params */
 		(ParamFloat<px4::params::MAN_DEADZONE>) _param_man_deadzone,
 		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max,
