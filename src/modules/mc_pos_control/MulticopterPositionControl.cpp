@@ -458,6 +458,11 @@ void MulticopterPositionControl::Run()
 				_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 			}
 
+			// Never act on a braking flag left behind by a flight task that is no longer running.
+			if (_setpoint.timestamp > _vehicle_constraints.timestamp + 100_ms) {
+				_vehicle_constraints.emergency_braking = false;
+			}
+
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 
 				const bool want_takeoff = _vehicle_control_mode.flag_armed
@@ -536,10 +541,32 @@ void MulticopterPositionControl::Run()
 				max_speed_xy = math::min(max_speed_xy, vehicle_local_position.vxy_max);
 			}
 
-			_control.setVelocityLimits(
-				max_speed_xy,
-				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
-				math::max(speed_down, 0.f));
+			float limit_speed_up = math::min(speed_up,
+							 _param_mpc_z_vel_max_up.get()); // takeoff ramp starts with negative velocity limit
+			float limit_speed_down = math::max(speed_down, 0.f);
+
+			if (_vehicle_constraints.emergency_braking && flying) {
+				// Raise the limits to the speed the vehicle actually has, so the trajectory velocity
+				// reaches the velocity loop uncut.
+				// Clamping it leaves a large velocity error which the horizontal anti-windup back-calculates
+				// into an integrator opposing the brake.
+				const Vector2f velocity_xy(states.velocity);
+
+				if (velocity_xy.isAllFinite()) {
+					max_speed_xy = math::max(max_speed_xy, velocity_xy.norm());
+				}
+
+				if (PX4_ISFINITE(states.velocity(2))) {
+					if (states.velocity(2) < 0.f) {
+						limit_speed_up = math::max(limit_speed_up, -states.velocity(2));
+
+					} else {
+						limit_speed_down = math::max(limit_speed_down, states.velocity(2));
+					}
+				}
+			}
+
+			_control.setVelocityLimits(max_speed_xy, limit_speed_up, limit_speed_down);
 
 			_control.setInputSetpoint(_setpoint);
 
@@ -585,7 +612,7 @@ void MulticopterPositionControl::Run()
 				// Still failing / not within timeout - Go to failsafe
 				if (!_control.update(dt)) {
 
-					_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
+					_vehicle_constraints = {0, NAN, NAN, false, false, {}}; // reset constraints
 
 					_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
 					_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
