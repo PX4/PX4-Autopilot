@@ -210,6 +210,23 @@ void Geofence::updateFence()
 	_initiate_fence_updated = true;
 }
 
+void Geofence::_clearFence()
+{
+	if (_polygons) {
+		delete[](_polygons);
+		_polygons = nullptr;
+	}
+
+	_num_polygons = 0;
+}
+
+void Geofence::_reportFenceLoadFailure()
+{
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence load failed, fence is not active\t");
+	events::send(events::ID("navigator_geofence_load_failed"), {events::Log::Critical, events::LogInternal::Warning},
+		     "Geofence load failed, fence is not active");
+}
+
 void Geofence::_updateFence()
 {
 	mission_fence_point_s mission_fence_point;
@@ -227,7 +244,12 @@ void Geofence::_updateFence()
 
 		if (!success) {
 			PX4_ERR("loadWait failed, seq: %i", current_seq);
-			break;
+			// A fragment of a fence is worse than none: missing inclusion polygons permit
+			// positions the fence excluded, missing exclusion polygons open up areas it
+			// protected, and it still looks to the operator like a fence is loaded.
+			_clearFence();
+			_reportFenceLoadFailure();
+			return;
 		}
 
 		switch (mission_fence_point.nav_cmd) {
@@ -264,8 +286,9 @@ void Geofence::_updateFence()
 				}
 
 				if (!_polygons) {
-					_num_polygons = 0;
 					PX4_ERR("alloc failed");
+					_clearFence();
+					_reportFenceLoadFailure();
 					return;
 				}
 
