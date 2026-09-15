@@ -494,6 +494,7 @@ struct parameters {
 	float ekf2_of_n_max{0.5f};              ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
 	int32_t ekf2_of_qmin{1};                ///< minimum acceptable quality integer from  the flow sensor
 	int32_t ekf2_of_qmin_gnd{0};            ///< minimum acceptable quality integer from  the flow sensor when on ground
+	int32_t ekf2_of_qmax{255};              ///< quality at which observation noise reaches ekf2_of_n_min
 	float ekf2_of_gate{3.0f};               ///< optical flow fusion innovation consistency gate size (STD)
 
 	Vector3f flow_pos_body{};               ///< xyz position of range sensor focal point in body frame (m)

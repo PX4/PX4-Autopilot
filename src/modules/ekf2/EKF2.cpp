@@ -193,6 +193,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_of_n_max(_params->ekf2_of_n_max),
 	_param_ekf2_of_qmin(_params->ekf2_of_qmin),
 	_param_ekf2_of_qmin_gnd(_params->ekf2_of_qmin_gnd),
+	_param_ekf2_of_qmax(_params->ekf2_of_qmax),
 	_param_ekf2_of_gate(_params->ekf2_of_gate),
 	_param_ekf2_of_pos_x(_params->flow_pos_body(0)),
 	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
