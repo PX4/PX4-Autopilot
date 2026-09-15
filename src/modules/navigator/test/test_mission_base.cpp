@@ -1091,6 +1091,56 @@ TEST_F(MissionBaseTraversalTest, VtolStateAndActionsFollowMissionSegments)
 		  MissionBaseTestPeer::VtolTransitionAction::kNone);
 }
 
+TEST_F(MissionBaseTraversalTest, ReverseTransitionRestoresNextLegWithoutAnAttachedCommand)
+{
+	// A jump can arrive in a different mode even when this waypoint has no transition attached.
+	for (bool fixed_wing_leg : {false, true}) {
+		mission_base.loadTestMission({
+			makePositionItem(kBaseLat, kBaseLon, kAlt),
+			makeVtolTransitionItem(fixed_wing_leg ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+					       : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
+			makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+			makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+		});
+		mission_base.setVehicleStatus(true, !fixed_wing_leg);
+		EXPECT_EQ(mission_base.transitionAfterReverseTarget(2), fixed_wing_leg
+			  ? MissionBaseTestPeer::VtolTransitionAction::kFrontTransition
+			  : MissionBaseTestPeer::VtolTransitionAction::kBackTransition);
+		EXPECT_EQ(mission_base.transitionAfterReverseTarget(0), MissionBaseTestPeer::VtolTransitionAction::kNone);
+		EXPECT_EQ(mission_base.transitionAfterReverseTarget(4), MissionBaseTestPeer::VtolTransitionAction::kNone);
+	}
+}
+
+TEST_F(MissionBaseTraversalTest, ReverseTransitionUsesLastModeBeforeReachedWaypoint)
+{
+	mission_base.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+	});
+	mission_base.setVehicleStatus(true, false);
+	EXPECT_EQ(mission_base.transitionAfterReverseTarget(4), MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
+	mission_base.setVehicleStatus(true, true);
+	EXPECT_EQ(mission_base.transitionAfterReverseTarget(4), MissionBaseTestPeer::VtolTransitionAction::kNone);
+}
+
+TEST_F(MissionBaseTraversalTest, ReverseFirstPositionHasNoFurtherLegAfterLeadingActions)
+{
+	mission_base.loadTestMission({
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+	});
+	mission_base.setVehicleStatus(true, false);
+	// Index 1 is the first position: arrival owns the next flight-mode decision.
+	EXPECT_EQ(mission_base.transitionAfterReverseTarget(1), MissionBaseTestPeer::VtolTransitionAction::kNone);
+}
+
 TEST_F(MissionBaseTraversalTest, JoinRouteRunsWaypointTransitionAndResumeFlow)
 {
 	Navigator navigator{};

@@ -270,6 +270,11 @@ public:
 		return _route_follower->_plan;
 	}
 
+	bool routeHasLandApproachForTest() const
+	{
+		return _route_follower != nullptr && _route_follower->_goal_land_approach.isValid();
+	}
+
 	void forceRouteRetryForTest() { _destination_check_time = hrt_absolute_time() - 3'000'000; }
 	void failNextRouteExecutorInitForTest() { _fail_next_route_executor_init = true; }
 
@@ -468,12 +473,14 @@ protected:
 		}
 	}
 
-	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type)
+	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type, bool front_transition = false, bool back_transition = false)
 	{
 		vehicle_status_s status{};
 		status.timestamp = hrt_absolute_time();
 		status.is_vtol = is_vtol;
 		status.vehicle_type = vehicle_type;
+		status.in_transition_to_fw = front_transition;
+		status.in_transition_mode = front_transition || back_transition;
 
 		if (_vehicle_status_pub == nullptr) {
 			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -1048,7 +1055,9 @@ TEST_F(RTLTest, RouteSafePointReturnDetectsSafePointCountChangeWithSameId)
 	EXPECT_FALSE(_rtl.routePlanSourceStillValidForTest());
 }
 
-TEST_F(RTLTest, RouteSafePointReturnUsesDirectFallbackForVtol)
+class RtlVtolActivationTest : public RTLTest, public ::testing::WithParamInterface<uint8_t> {};
+
+TEST_P(RtlVtolActivationTest, KeepsRouteAfterVtolFailure)
 {
 	const std::vector<mission_item_s> mission_items{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
@@ -1058,19 +1067,51 @@ TEST_F(RTLTest, RouteSafePointReturnUsesDirectFallbackForVtol)
 	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
 	const std::vector<mission_item_s> safe_points{
 		makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(safe_position.lat + 0.001, safe_position.lon, safe_position.alt + 30.f, kApproachRadius),
 	};
 	const mission_s mission = loadRoutePlanningCache(mission_items, safe_points);
 
 	publishMission(mission);
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishVehicleStatus(true, GetParam() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+			     ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING : vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
+			     GetParam() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW,
+			     GetParam() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC);
+	uORB::Subscription status_sub{ORB_ID(vehicle_status)};
+	ASSERT_TRUE(status_sub.copy(_navigator.get_vstatus()));
+	NavigatorMissionStateTestPeer::observeMission(_navigator, mission);
+	publishLandDetected(false);
 	setMissionResultValid(mission);
 
 	_rtl.activateRouteSafePointReturnForTest();
 
-	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-	EXPECT_FALSE(_rtl.routePlanSourceStillValidForTest());
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
+	EXPECT_TRUE(_rtl.routePlanForTest().valid());
+	EXPECT_TRUE(_rtl.routeHasLandApproachForTest());
+
+	// Quadchute changes the flight mode, not the selected return route.
+	RtlBase *const follower = _rtl.missionExecutorForTest();
+	uORB::Publication<vtol_vehicle_status_s> vtol_pub{ORB_ID(vtol_vehicle_status)};
+	vtol_vehicle_status_s vtol_status{};
+	vtol_status.timestamp = hrt_absolute_time();
+	vtol_status.fixed_wing_system_failure = true;
+	vtol_pub.publish(vtol_status);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	ASSERT_TRUE(status_sub.copy(_navigator.get_vstatus()));
+	_rtl.on_active();
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	EXPECT_EQ(_rtl.missionExecutorForTest(), follower);
+	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
+	vtol_status.fixed_wing_system_failure = false;
+	vtol_pub.publish(vtol_status);
 }
+
+INSTANTIATE_TEST_SUITE_P(VtolModes, RtlVtolActivationTest,
+			 ::testing::Values(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC,
+					 vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW,
+					 vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW,
+					 vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC));
 
 TEST_F(RTLTest, RouteSafePointReturnPreservesLoopAnchorWhenSafePointReloadStarts)
 {
