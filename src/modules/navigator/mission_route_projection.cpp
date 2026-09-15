@@ -675,30 +675,9 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
 				continue;
 			}
 
-			// VTOL_TAKEOFF includes a front transition before continuing to the next mission item.
-			if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
-				state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+			if (updateVtolStateFromMissionItem(mission_item, state)) {
 				return true;
 			}
-
-			if (mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
-				continue;
-			}
-
-			// DO_VTOL_TRANSITION stores the MAV_VTOL_STATE target in params[0] (matches VEHICLE_VTOL_STATE).
-			const float transition_target = roundf(mission_item.params[0]);
-
-			// Check the range before converting, including non-finite or malformed parameters.
-			if (transition_target >= 0.f && transition_target <= UINT8_MAX) {
-				const uint8_t target_state = static_cast<uint8_t>(transition_target);
-
-				if (target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
-				    || target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-					state = target_state;
-				}
-			}
-
-			return true;
 		}
 
 		return false;

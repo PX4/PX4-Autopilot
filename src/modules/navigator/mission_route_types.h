@@ -185,6 +185,9 @@ struct RtlRoutePlan {
 bool isLandingCmd(uint16_t nav_cmd);
 bool isTakeoffCmd(uint16_t nav_cmd);
 
+/** @brief Decode a VTOL mode command. Returns true for a recognised command, retaining state if its target is invalid. */
+bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t &state);
+
 float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl);
 
 /** @brief Extract the attached valid position from a mission item, if it carries one. */

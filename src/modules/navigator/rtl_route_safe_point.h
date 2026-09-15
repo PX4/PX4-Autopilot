@@ -136,8 +136,6 @@ private:
 			const vehicle_status_s &vehicle_status,
 			const home_position_s &home_position,
 			const wind_s &wind);
-	static loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches,
-			const wind_s &wind);
 	/** Match both uploaded sources without requiring their caches to be ready. */
 	bool sourceMatches(const mission_s &mission) const;
 

@@ -109,6 +109,7 @@ public:
 		_state = {};
 		_plan = {};
 		resetJoinRouteState();
+		resetVtolTransition();
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 	}
 
@@ -203,17 +204,9 @@ public:
 		_plan.goal_position = goal_position;
 	}
 
-	void setTransitionTargetIndexForTest(int32_t index)
-	{
-		_state.transition_target_index = index;
-	}
-
-	void setTransitionStateForTest(VtolTransitionAction action, bool command_sent, bool advance_route_after_transition)
-	{
-		_state.transition_action = action;
-		_state.transition_command_sent = command_sent;
-		_state.advance_route_after_transition = advance_route_after_transition;
-	}
+	void setAdvanceAfterTransitionForTest(bool advance) { _state.advance_route_after_transition = advance; }
+	bool transitionActiveForTest() const { return vtolTransitionActive(); }
+	WorkItemType workItemForTest() const { return _work_item_type; }
 
 	void setJoinTransitionForTest(WorkItemType work_item)
 	{
@@ -277,21 +270,6 @@ public:
 	void setGoalLandApproachForTest(const loiter_point_s &land_approach)
 	{
 		_goal_land_approach = land_approach;
-	}
-
-	int32_t transitionTargetIndexForTest() const
-	{
-		return _state.transition_target_index;
-	}
-
-	VtolTransitionAction transitionActionForTest() const
-	{
-		return _state.transition_action;
-	}
-
-	bool transitionCommandSentForTest() const
-	{
-		return _state.transition_command_sent;
 	}
 
 	bool advanceRouteAfterTransitionForTest() const
@@ -376,18 +354,16 @@ protected:
 	}
 };
 
-// TransitionDuringRoute is one-shot: the next advance returns to FollowRoute and clears the target.
+// A completed transition resumes route following without advancing its target.
 TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesFollowRoute)
 {
-	// GIVEN: An executor paused in the transition stage with a remembered target index.
+	// GIVEN: An executor whose shared transition has completed.
 	executor.loadTestMission({
 		makePositionItem(kBaseLat, kBaseLon, kAlt),
 		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
 	});
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
-	executor.setTransitionTargetIndexForTest(1);
-	executor.setTransitionStateForTest(RtlMissionSafePointFollowTestPeer::VtolTransitionAction::kFrontTransition, true,
-					   false);
+	executor.setAdvanceAfterTransitionForTest(false);
 
 	// WHEN: setNextMissionItem advances the stage machine.
 	const bool advanced = executor.advanceStageForTest();
@@ -395,7 +371,6 @@ TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesFollowRou
 	// THEN: The transition stage completes and route following resumes.
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
-	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
 }
 
 // A transition on the final route segment hands over to BranchOff, not back to FollowRoute.
@@ -409,42 +384,12 @@ TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesBranchOff
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
 	executor.setCurrentSequenceForTest(2);
 	executor.setSafePointSelectionForTest(false, 2);
-	executor.setTransitionTargetIndexForTest(2);
-	executor.setTransitionStateForTest(RtlMissionSafePointFollowTestPeer::VtolTransitionAction::kFrontTransition, true,
-					   false);
+	executor.setAdvanceAfterTransitionForTest(false);
 
 	const bool advanced = executor.advanceStageForTest();
 
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::BranchOff);
-	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
-}
-
-// Reverse: reaching a waypoint with an attached transition arms it and holds current_seq.
-TEST_F(RtlMissionSafePointFollowStageTest, ReverseReachedWaypointArmsTransitionBeforeAdvancing)
-{
-	executor.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),                                                   // idx 0: WP1
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),                 // idx 1: attached to WP1
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt + 20.f),                                   // idx 2: WP2
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),                 // idx 3: attached to WP2
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt + 10.f),                                   // idx 4: WP3
-	});
-	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
-	executor.setCurrentSequenceForTest(2);
-	executor.setSafePointSelectionForTest(true, -1);
-	executor.setVehicleStatusForTest(true, false, false);
-	executor.setLandedForTest(false);
-
-	const bool advanced = executor.advanceStageForTest();
-
-	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::AlignForRouteTransition);
-	EXPECT_EQ(executor.currentSequenceForTest(), 2);
-	EXPECT_EQ(executor.transitionTargetIndexForTest(), 2);
-	EXPECT_EQ(executor.transitionActionForTest(), RtlMissionSafePointFollowTestPeer::VtolTransitionAction::kFrontTransition);
-	EXPECT_FALSE(executor.transitionCommandSentForTest());
-	EXPECT_TRUE(executor.advanceRouteAfterTransitionForTest());
 }
 
 // Reverse FT holds at the reached waypoint and points towards the next reverse target.
@@ -464,30 +409,30 @@ TEST_P(RtlReverseFrontTransitionTest, WaitsForBackTransitionAndHeadingBeforeComm
 	};
 	follower.loadTestMission(items);
 	follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
-	follower.setCurrentSequenceForTest(2);
+	follower.prepareActiveMissionForTest(65, 2);
 	follower.setCurrentMissionItemForTest(items[2]);
 	follower.setSafePointSelectionForTest(true, -1);
 	follower.setVehicleStatusForTest(true, false, false, GetParam());
 	follower.setLandedForTest(false);
 	follower.setGlobalPositionForTest({items[2].lat, items[2].lon, items[2].altitude});
+	navigator.get_local_position()->heading_good_for_control = true;
+	navigator.get_local_position()->heading = M_PI_2_F;
 	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
 	vehicle_command_s command{};
 
 	while (command_sub.update(&command)) {}
 
 	ASSERT_TRUE(follower.advanceStageForTest());
-	follower.publishActiveMissionItemsForTest();
+	follower.runActiveCycleForTest();
 
 	if (GetParam()) {
-		EXPECT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::WaitForBackTransition);
+		EXPECT_EQ(follower.workItemForTest(), RtlMissionSafePointFollowTestPeer::WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
 		EXPECT_FALSE(follower.missionItemReachedForTest());
 		EXPECT_FALSE(command_sub.updated());
 		EXPECT_FALSE(follower.reportsReachedItemForTest());
 		follower.setVehicleStatusForTest(true, false, false);
 		ASSERT_TRUE(follower.missionItemReachedForTest());
-		ASSERT_TRUE(follower.advanceStageForTest());
-		follower.setCurrentMissionItemForTest(items[2]);
-		follower.publishActiveMissionItemsForTest();
+		follower.runActiveCycleForTest();
 	}
 
 	const auto &triplet = *navigator.get_position_setpoint_triplet();
@@ -504,8 +449,7 @@ TEST_P(RtlReverseFrontTransitionTest, WaitsForBackTransitionAndHeadingBeforeComm
 
 	navigator.get_local_position()->heading = expected_yaw;
 	ASSERT_TRUE(follower.missionItemReachedForTest());
-	follower.setCurrentMissionItemForTest(items[2]);
-	follower.publishActiveMissionItemsForTest();
+	follower.runActiveCycleForTest();
 	ASSERT_TRUE(command_sub.update(&command));
 	EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
@@ -514,11 +458,11 @@ TEST_P(RtlReverseFrontTransitionTest, WaitsForBackTransitionAndHeadingBeforeComm
 
 	follower.setVehicleStatusForTest(true, false, true);
 	EXPECT_FALSE(follower.missionItemReachedForTest());
-	follower.publishActiveMissionItemsForTest();
+	follower.runActiveCycleForTest();
 	EXPECT_FALSE(command_sub.updated());
 	follower.setVehicleStatusForTest(true, true, false);
 	ASSERT_TRUE(follower.missionItemReachedForTest());
-	ASSERT_TRUE(follower.advanceStageForTest());
+	follower.runActiveCycleForTest();
 	EXPECT_EQ(follower.currentSequenceForTest(), 0);
 }
 
@@ -535,16 +479,13 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteTransitionCompletionAdvan
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
 	executor.setCurrentSequenceForTest(2);
 	executor.setSafePointSelectionForTest(true, -1);
-	executor.setTransitionTargetIndexForTest(2);
-	executor.setTransitionStateForTest(RtlMissionSafePointFollowTestPeer::VtolTransitionAction::kFrontTransition, true,
-					   true);
+	executor.setAdvanceAfterTransitionForTest(true);
 
 	const bool advanced = executor.advanceStageForTest();
 
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
 	EXPECT_EQ(executor.currentSequenceForTest(), 1);
-	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
 }
 
 // Reaching the virtual branch-off waypoint starts the destination arrival sequence.
@@ -940,46 +881,54 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteExhaustionTransitionsToMo
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::MoveToGoal);
 }
 
-// Resetting executor progress clears the stage and the remembered transition target.
-TEST_F(RtlMissionSafePointFollowStageTest, ResetExecutorProgressClearsStageAndTransitionTarget)
+// Resetting progress also clears the reverse-transition handoff.
+TEST_F(RtlMissionSafePointFollowStageTest, ResetExecutorProgressClearsStageAndTransitionHandoff)
 {
 	executor.loadTestMission({
 		makePositionItem(kBaseLat, kBaseLon, kAlt),
 		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
 	});
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
-	executor.setTransitionTargetIndexForTest(1);
 
+	executor.setAdvanceAfterTransitionForTest(true);
 	executor.resetExecutorProgressForTest();
 
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Idle);
-	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
+	EXPECT_FALSE(executor.advanceRouteAfterTransitionForTest());
 }
 
-// Takeoff commands carry their own altitude semantics: normalizeRouteMissionItem keeps them unchanged.
+// Endpoint handlers own takeoff and its transition.
 TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemPreservesTakeoffCommand)
 {
-	mission_item_s takeoff_item = makeTakeoffItem(kBaseLat, kBaseLon, kAlt + 30.f);
-	takeoff_item.time_inside = 12.f;
+	for (const uint16_t command : {NAV_CMD_TAKEOFF, NAV_CMD_VTOL_TAKEOFF}) {
+		SCOPED_TRACE(command);
+		mission_item_s takeoff_item = makeTakeoffItem(kBaseLat, kBaseLon, kAlt + 30.f);
+		takeoff_item.nav_cmd = command;
+		takeoff_item.time_inside = 12.f;
 
-	executor.normalizeRouteMissionItemForTest(takeoff_item);
+		executor.normalizeRouteMissionItemForTest(takeoff_item);
 
-	EXPECT_EQ(takeoff_item.nav_cmd, NAV_CMD_TAKEOFF);
-	EXPECT_FLOAT_EQ(takeoff_item.time_inside, 12.f);
-	EXPECT_FALSE(takeoff_item.autocontinue);
+		EXPECT_EQ(takeoff_item.nav_cmd, command);
+		EXPECT_FLOAT_EQ(takeoff_item.time_inside, 12.f);
+		EXPECT_FALSE(takeoff_item.autocontinue);
+	}
 }
 
-// Endpoint fallback needs the real land command: normalizeRouteMissionItem keeps NAV_CMD_LAND.
+// Landing commands must reach the shared landing handler intact.
 TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemPreservesLandingCommand)
 {
-	mission_item_s landing_item = makeLandItem(kBaseLat, kBaseLon, kAlt - 5.f);
-	landing_item.time_inside = 9.f;
+	for (const uint16_t command : {NAV_CMD_LAND, NAV_CMD_VTOL_LAND}) {
+		SCOPED_TRACE(command);
+		mission_item_s landing_item = makeLandItem(kBaseLat, kBaseLon, kAlt - 5.f);
+		landing_item.nav_cmd = command;
+		landing_item.time_inside = 9.f;
 
-	executor.normalizeRouteMissionItemForTest(landing_item);
+		executor.normalizeRouteMissionItemForTest(landing_item);
 
-	EXPECT_EQ(landing_item.nav_cmd, NAV_CMD_LAND);
-	EXPECT_FLOAT_EQ(landing_item.time_inside, 9.f);
-	EXPECT_FALSE(landing_item.autocontinue);
+		EXPECT_EQ(landing_item.nav_cmd, command);
+		EXPECT_FLOAT_EQ(landing_item.time_inside, 9.f);
+		EXPECT_FALSE(landing_item.autocontinue);
+	}
 }
 
 // Route altitude changes retain loiter geometry while clearing mission holds.
@@ -1246,7 +1195,8 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, FwFailureReleasesPendingTransition
 
 	// Failure may arrive while flying to the join, aligning, or waiting for FW.
 	for (WorkItem work : {
-		     WorkItem::WORK_ITEM_TYPE_JOIN_ROUTE, WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN,
+		     WorkItem::WORK_ITEM_TYPE_JOIN_ROUTE,
+		     WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN,
 		     WorkItem::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN, WorkItem::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN
 	     }) {
 		SCOPED_TRACE(static_cast<int>(work));
@@ -1255,8 +1205,24 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, FwFailureReleasesPendingTransition
 		follower.prepareActiveMissionForTest(71, 2);
 		follower.setStageForTest(Stage::FollowRoute);
 		follower.setVtolFailureForTest(false);
-		follower.setJoinTransitionForTest(work);
+		follower.setVehicleStatusForTest(true, false, false,
+						 work == WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN);
+		follower.setGlobalPositionForTest(work == WorkItem::WORK_ITEM_TYPE_JOIN_ROUTE
+						  ? mission_route::Position{kBaseLat, kBaseLon, kAlt} : plan.join_position);
+		follower.setJoinTransitionForTest(WorkItem::WORK_ITEM_TYPE_JOIN_ROUTE);
 		follower.publishActiveMissionItemsForTest();
+
+		if (work != WorkItem::WORK_ITEM_TYPE_JOIN_ROUTE) {
+			follower.on_active();
+		}
+
+		if (work == WorkItem::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+			navigator.get_local_position()->heading_good_for_control = true;
+			navigator.get_local_position()->heading = navigator.get_position_setpoint_triplet()->current.yaw;
+			follower.on_active();
+		}
+
+		ASSERT_EQ(follower.workItemForTest(), work);
 		follower.setVtolFailureForTest(true);
 
 		while (command_sub.update(&command)) {}
@@ -1271,21 +1237,43 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, FwFailureReleasesPendingTransition
 
 	// Reverse transitions follow a reached waypoint; forward transitions precede their target.
 	for (bool reverse : {false, true}) {
-		for (Stage stage : {Stage::WaitForBackTransition, Stage::AlignForRouteTransition, Stage::TransitionDuringRoute}) {
-			SCOPED_TRACE(::testing::Message() << "reverse=" << reverse << ", stage=" << static_cast<int>(stage));
+		for (WorkItem work : {
+			     WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION,
+			     WorkItem::WORK_ITEM_TYPE_ALIGN_HEADING, WorkItem::WORK_ITEM_TYPE_DEFAULT
+		     }) {
+			SCOPED_TRACE(::testing::Message() << "reverse=" << reverse << ", work=" << static_cast<int>(work));
 			follower.loadTestMission(items);
 			plan.direction_reversed = reverse;
 			plan.branch_off_mission_item_index = reverse ? 0 : 4;
 			follower.configurePlanForTest(plan);
 			follower.prepareActiveMissionForTest(72, 2);
-			follower.setStageForTest(stage);
-			follower.setTransitionTargetIndexForTest(2);
-			follower.setTransitionStateForTest(mission_route::VtolTransitionAction::kFrontTransition,
-							   stage == Stage::TransitionDuringRoute, reverse);
+			follower.setStageForTest(Stage::FollowRoute);
+			follower.setVtolFailureForTest(false);
+			follower.setVehicleStatusForTest(true, false, false, work == WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
+			follower.setGlobalPositionForTest({items[2].lat, items[2].lon, kAlt});
+
+			if (reverse) {
+				ASSERT_TRUE(follower.advanceStageForTest());
+
+			} else {
+				follower.publishActiveMissionItemsForTest();
+			}
+
+			if (work == WorkItem::WORK_ITEM_TYPE_DEFAULT) {
+				navigator.get_local_position()->heading_good_for_control = true;
+				navigator.get_local_position()->heading = navigator.get_position_setpoint_triplet()->current.yaw;
+				follower.on_active();
+			}
+
+			ASSERT_EQ(follower.workItemForTest(), work);
+			follower.setVtolFailureForTest(true);
+
+			while (command_sub.update(&command)) {}
+
 			follower.on_active();
 			EXPECT_EQ(follower.currentSequenceForTest(), reverse ? 0 : 2);
 			EXPECT_EQ(follower.currentMissionItemForTest().nav_cmd, NAV_CMD_WAYPOINT);
-			EXPECT_FALSE(follower.transitionCommandSentForTest());
+			EXPECT_FALSE(follower.transitionActiveForTest());
 			EXPECT_FALSE(command_sub.updated());
 		}
 	}
