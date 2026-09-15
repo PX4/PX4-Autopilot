@@ -110,9 +110,10 @@ void VtolAttitudeControl::vehicle_status_poll()
 {
 	_vehicle_status_sub.copy(&_vehicle_status);
 
-	// abort front transition when RTL is triggered
+	// Route-following RTL can retain an ongoing front transition.
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-	    && _nav_state_prev != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL && _vtol_type->get_mode() == mode::TRANSITION_TO_FW) {
+	    && _nav_state_prev != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL && _vtol_type->get_mode() == mode::TRANSITION_TO_FW
+	    && !routeRtlFrontTransitionAllowed()) {
 		_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 	}
 
@@ -146,6 +147,16 @@ void VtolAttitudeControl::action_request_poll()
 	}
 }
 
+bool VtolAttitudeControl::routeRtlFrontTransitionAllowed() const
+{
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	static constexpr int RTL_TYPE_ROUTE_SAFE_POINT = 7;
+	return _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && !_vtol_vehicle_status.fixed_wing_system_failure;
+#else
+	return false;
+#endif
+}
+
 void VtolAttitudeControl::vehicle_cmd_poll()
 {
 	vehicle_command_s vehicle_command;
@@ -157,11 +168,12 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			const int transition_command_param1 = static_cast<int>(lround(vehicle_command.param1));
 
-			// deny transition from MC to FW in Takeoff, Land, RTL and Orbit
+			// deny transition from MC to FW in Takeoff, Land, RTL (except for Route-following RTL) and Orbit
 			if (transition_command_param1 == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
 			    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
 			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
-			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+			     || (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+				 && (vehicle_command.from_external || !routeRtlFrontTransitionAllowed()))
 			     ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
 
 				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;

@@ -43,6 +43,7 @@ if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 endif()
 
 if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
+	px4_add_functional_gtest(SRC test_RTL_mission_safe_point_follow.cpp LINKLIBS modules__navigator modules__dataman)
 	px4_add_functional_gtest(SRC test_mission_route_projection.cpp LINKLIBS modules__navigator navigator_mission_route_planner)
 	px4_add_functional_gtest(SRC test_mission_route_planner.cpp LINKLIBS modules__navigator navigator_mission_route_planner)
 endif()
