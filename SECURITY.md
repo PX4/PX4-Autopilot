@@ -16,6 +16,7 @@ If AI assistance contributed to your finding, do not file a private advisory:
 read [AI-Assisted Discovery](#ai-assisted-discovery) instead.
 
 Before filing, check the finding against [SECURITY_SCOPE.md](SECURITY_SCOPE.md), which describes where PX4's security boundary sits and what is in scope.
+Most memory-safety bugs, races and hangs are not vulnerabilities, because they are only reachable from a position that already has the operator's access. Fix those with a pull request, or open an issue.
 
 To begin a report, go to the [PX4/PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) repository
 and click on the **Security** tab.
@@ -111,6 +112,7 @@ The PX4 development team applies the following practices to reduce security risk
 
 - **Code review**: All changes require peer review before merging.
 - **Static analysis**: [clang-tidy](https://clang.llvm.org/extra/clang-tidy/) runs on every pull request with warnings treated as errors.
+- **Sanitizers**: SITL can be built with [AddressSanitizer, ThreadSanitizer and UndefinedBehaviorSanitizer](docs/en/test_and_ci/sanitizers.md) to find memory-safety bugs and races.
 - **Fuzzing**: A daily fuzzing pipeline using [Google fuzztest](https://github.com/google/fuzztest) tests MAVLink message handling and GNSS driver protocol parsing.
 - **Input validation**: All external inputs (MAVLink messages, RC signals, sensor data) are validated against expected ranges before use.
 - **Compiler hardening**: Builds use `-Wall -Werror`, stack protectors, and other hardening flags where supported by the target platform.

@@ -6,8 +6,8 @@ It is not a threat model.
 It does not enumerate threats, rate risks, or prescribe mitigations.
 It describes the boundary the code implements today.
 
-To use it: find your deployment under [Configurations](#configurations), then check the finding against [Always in scope](#always-in-scope) and [Out of scope](#out-of-scope).
-Those two lists cover the recurring cases, not every case.
+To use it: find your deployment under [Configurations](#configurations), then apply [What makes a finding a vulnerability](#what-makes-a-finding-a-vulnerability) and check [Out of scope](#out-of-scope).
+The examples there cover the recurring cases, not every case.
 A finding that fits none of them is a judgement call, and maintainers make it on the report.
 
 Report through the GitHub Security tab as described in [SECURITY.md](SECURITY.md), which also lists the supported branches.
@@ -80,7 +80,8 @@ Anyone who can reach a link can do anything the operator can do: arm, disarm, ch
 [MAVLink Security Hardening](docs/en/mavlink/security_hardening.md) lists these capabilities in full.
 
 This is the documented default and it is not a defect.
-In this configuration PX4 guarantees only what the [Always in scope](#always-in-scope) list names.
+In this configuration a peer on any link already has the operator's access, so a finding reachable only from a link adds nothing to what that peer can do.
+See [What makes a finding a vulnerability](#what-makes-a-finding-a-vulnerability).
 
 ### Hardened
 
@@ -101,38 +102,42 @@ An integrator can harden a deployment with any of:
   The in-tree secure boot variant ships a publicly committed test key that an integrator must replace.
 
 What each of these buys is described where it is documented.
-PX4 is responsible for the mechanisms it ships. If signing fails to authenticate, or secure boot accepts an unsigned image, that is a vulnerability in PX4 and [Always in scope](#always-in-scope) applies. What PX4 does not guarantee is that whether any combination of above is sufficient for a given deployment. That judgement belongs to the integrator, against the threat model for that deployment. 
+PX4 is responsible for the mechanisms it ships. If signing fails to authenticate, or secure boot accepts an unsigned image, that is a vulnerability in PX4. What PX4 does not guarantee is whether any combination of above is sufficient for a given deployment. That judgement belongs to the integrator, against the threat model for that deployment. 
 
-## Always in scope
+## What makes a finding a vulnerability
 
-Regardless of configuration, and regardless of how open the link is:
+A finding is a vulnerability when it gives capability to an attacker who has neither the operator's access nor physical access.
 
-- **Memory corruption.**
-  Input on any link or bus that corrupts memory or executes code.
-- **Hangs and races.**
-  Input that stalls a control path, spins a work queue, or corrupts state through timing or ordering rather than through malformed content.
-- **Any effect beyond the documented capability set.**
-  If a link peer can reach an effect that is not documented as reachable, that is a bug until the documentation is corrected.
-  MAVLink FTP escaping the directory it advertises is this class.
-- **Pivoting to a bus that was not otherwise reachable.**
-  Using the flight controller to reach an ESC, GPS or CAN node bootloader behind it, for example through `TUNNEL` or `SERIAL_CONTROL` passthrough.
-  Reaching the link grants the link, not the peripherals behind the controller.
-- **Persistence.**
-  Anything planted over a link that outlives the attacker's access to it: a boot script, flashed peripheral firmware, an overwritten parameter store.
+The positions that already have the operator's access are listed under [What PX4 assumes](#what-px4-assumes): the SD card, USB and the shell, the peripheral buses, the offboard transports, and any MAVLink link that has not been secured.
+A finding that is reachable only from one of those positions describes something that attacker could already do, and it is a bug rather than a vulnerability.
+
+That applies to memory corruption, races and hangs as much as to anything else.
+These are bugs by default, and they are found and fixed routinely, for example by running SITL under [AddressSanitizer or ThreadSanitizer](docs/en/test_and_ci/sanitizers.md).
+Send them as a pull request with a fix, or as an issue.
+What makes one a vulnerability is not the class of bug but who can reach it.
+
+The findings that do qualify cross from outside those positions to inside them, for example:
+
+- **Bypassing a mechanism PX4 ships.**
+  MAVLink signing accepting a message it should reject, including memory corruption in anything parsed before the signature is checked or in a message that is accepted unsigned.
+  Secure boot with a replaced key accepting an unsigned image.
+- **Turning an over-the-air input into more than a false reading.**
+  Someone transmitting a spoofed GNSS signal, ADS-B traffic or an RC signal has neither the operator's access nor physical access.
+  If what the receiver passes on from that signal makes PX4 corrupt memory, that is in scope; the vehicle acting on a false position or a phantom aircraft is not.
+  A receiver that has itself been replaced or tampered with is physical access.
 
 An in-tree board configuration is PX4's responsibility, not the integrator's.
 "The integrator should have changed it" does not apply to a default that PX4 ships.
 
 ## Out of scope
 
-- **Using an unauthenticated link as it is documented to work.**
-  Commanding the vehicle over an unsigned link, when the only precondition is reaching the link.
-  The list above still applies.
+- **Anything reachable only from a position that already has the operator's access.**
+  Commanding the vehicle over an unsecured link, publishing on the offboard transports, and bugs in code that only those positions reach, memory corruption included.
 - **Physical access**, except where a board is configured with a mechanism whose purpose is to resist it.
   On a secure boot board with a replaced key, wired reflash comes back into scope.
 - **Spoofed physical inputs.**
   GPS spoofing, acoustic or EMI injection, magnetic interference.
-  In scope only if PX4 mishandles the resulting bytes.
+  The vehicle acting on a false reading is out of scope; see above for when a spoofed input is not.
 - **Plaintext telemetry.**
   PX4 does not encrypt telemetry, and eavesdropping on a link is not a finding on its own.
 - **Code that only ever runs in simulation.**
@@ -145,7 +150,7 @@ A parameter precondition does not put a finding out of scope if the same link ca
 
 ## Severity
 
-Decide scope first using the two lists above.
+Decide scope first, using [What makes a finding a vulnerability](#what-makes-a-finding-a-vulnerability) and [Out of scope](#out-of-scope).
 A finding that is out of scope is closed, not scored.
 
 What remains is scored with CVSS, because that is what GitHub advisories carry.
@@ -156,5 +161,5 @@ When choosing the impact metrics, rate the effect on the aircraft rather than on
 3. Persistence across reboot.
 4. Loss of control or telemetry links, and disclosure.
 
-A safety feature that happens to limit an attacker, such as a geofence around a hijacked vehicle, is not a security control and does not reduce the severityof a vulnerability.
+A safety feature that happens to limit an attacker, such as a geofence around a hijacked vehicle, is not a security control and does not reduce the severity of a vulnerability.
 Someone who is already flying the vehicle can reconfigure it.
