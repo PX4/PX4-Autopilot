@@ -110,11 +110,23 @@ void RateControl::updateIntegral(Vector3f &rate_error, const float dt)
 		// Perform the integration using a first order method
 		float rate_i = _rate_int(i) + i_factor * _gain_i(i) * rate_error(i) * dt;
 
+		float lim_upper;
+		float lim_lower;
+		getIntegratorLimits(i, lim_upper, lim_lower);
+
 		// do not propagate the result if out of range or invalid
 		if (PX4_ISFINITE(rate_i)) {
-			_rate_int(i) = math::constrain(rate_i, -_lim_int(i), _lim_int(i));
+			_rate_int(i) = math::constrain(rate_i, lim_lower, lim_upper);
 		}
 	}
+}
+
+void RateControl::getIntegratorLimits(int axis, float &upper, float &lower) const
+{
+	// Lower limit based on how much unallocated torque you have
+	const float refused = _unallocated_torque(axis);
+	upper = math::max(_lim_int(axis) - math::max(refused, 0.f), 0.f);
+	lower = -math::max(_lim_int(axis) + math::min(refused, 0.f), 0.f);
 }
 
 void RateControl::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status)
@@ -122,4 +134,8 @@ void RateControl::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status)
 	rate_ctrl_status.rollspeed_integ = _rate_int(0);
 	rate_ctrl_status.pitchspeed_integ = _rate_int(1);
 	rate_ctrl_status.yawspeed_integ = _rate_int(2);
+
+	for (int i = 0; i < 3; i++) {
+		getIntegratorLimits(i, rate_ctrl_status.integrator_limit_upper[i], rate_ctrl_status.integrator_limit_lower[i]);
+	}
 }
