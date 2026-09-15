@@ -65,17 +65,36 @@ then
 	fi
 fi
 
+# Internal SPI IMUs.
+#
+# The internal SPI2 socket is thermally coupled to the IMU heater (PB10), so it
+# is probed first: heater auto-select (HEATER1_SENS_ID=0) binds the first
+# advertised sensor_accel instance. Probing all SPI2 alternates before any SPI1
+# alternate keeps this true even when the two sockets have different parts.
+# This also matches the ArduPilot GA1 hwdef, where the SPI2 IMU is INSTANCE:0.
+#
+# Each socket may be populated with ICM-42688P, ICM-45686, ICM-56686, or
+# LSM6DSV32X. Unpopulated start attempts fail probe and are ignored.
+# LSM6DSV rotations differ from the Invensense parts because ST defines the die
+# axes with Y and Z inverted on the same footprint (same delta as px4_fmu-v6c,
+# where icm42688p -R 6 pairs with lsm6dsv -R 26).
+
+# SPI2 socket (heated position)
+icm42688p -R 6 -s -b 2 start
+icm45686 -R 6 -s -b 2 start
+# This footprint routes the ICM56686 FIFO interrupt through INT2.
+icm56686 -2 -R 6 -s -b 2 start
+lsm6dsv -R 26 -s -b 2 start
+
+# SPI1 socket
+icm42688p -R 14 -s -b 1 start
+icm45686 -R 14 -s -b 1 start
+icm56686 -R 14 -s -b 1 start
+lsm6dsv -R 6 -s -b 1 start
+
 # Internal SPI BMI088
 bmi088 -A -R 4 -s start
 bmi088 -G -R 4 -s start
-
-# Internal SPI bus ICM42688p
-icm42688p -R 6 -s -b 2 start
-icm42688p -R 14 -s -b 1 start
-
-# Internal SPI bus ICM45686
-icm45686 -R 6 -s -b 2 start
-icm45686 -R 14 -s -b 1 start
 
 # Internal magnetometer on I2c
 rm3100 -I -b 4 start
