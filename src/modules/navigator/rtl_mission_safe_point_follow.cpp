@@ -133,14 +133,13 @@ bool RtlMissionSafePointFollow::missionIndexInBounds(int32_t index) const
 bool RtlMissionSafePointFollow::shouldReportMissionItemReached() const
 {
 	// A transition changes flight mode, not the reached route waypoint.
-	return _state.stage != Stage::WaitForBackTransition
-	       && _state.stage != Stage::AlignForRouteTransition
-	       && _state.stage != Stage::TransitionDuringRoute
+	return _state.stage != Stage::TransitionDuringRoute
 	       && MissionBase::shouldReportMissionItemReached();
 }
 
 void RtlMissionSafePointFollow::resetExecutorProgress()
 {
+	resetVtolTransition();
 	_state = {};
 	_goal_arrival_alt = NAN;
 	resetJoinRouteState();
@@ -307,32 +306,6 @@ void RtlMissionSafePointFollow::on_active()
 	_vehicle_status_sub.update();
 	_vtol_status_sub.update();
 
-	if (frontTransitionInhibited()) {
-		bool update_setpoints = false;
-
-		if (_route_join_context.transition_action == mission_route::VtolTransitionAction::kFrontTransition) {
-			_route_join_context.transition_action = mission_route::VtolTransitionAction::kNone;
-
-			if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
-				// The join was reached; skip alignment or a front transition that cannot finish.
-				resetJoinRouteState();
-				update_setpoints = true;
-			}
-		}
-
-		if (_state.transition_action == mission_route::VtolTransitionAction::kFrontTransition) {
-			// Complete only the transition step, retaining the next route waypoint.
-			_state.stage = Stage::TransitionDuringRoute;
-			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-			setNextMissionItem();
-			update_setpoints = true;
-		}
-
-		if (update_setpoints) {
-			set_mission_items();
-		}
-	}
-
 	MissionBase::on_active();
 }
 
@@ -350,7 +323,7 @@ void RtlMissionSafePointFollow::advanceRouteTarget()
 	}
 
 	enterGoalStage();
-	_state.clearRouteTransition();
+	_state.advance_route_after_transition = false;
 	PX4_INFO("RTL %sroute complete, straight to goal", _plan.direction_reversed ? "reverse " : "");
 }
 
@@ -377,7 +350,7 @@ bool RtlMissionSafePointFollow::setNextMissionItem()
 	case Stage::TransitionDuringRoute: {
 			const bool advance_after_transition = _state.advance_route_after_transition;
 			const bool branch_off_after_transition = currentTargetIsBranchOff();
-			_state.clearRouteTransition();
+			_state.advance_route_after_transition = false;
 
 			if (advance_after_transition) {
 				_state.stage = Stage::FollowRoute;
@@ -391,13 +364,6 @@ bool RtlMissionSafePointFollow::setNextMissionItem()
 				 : "RTL route transition complete");
 			return true;
 		}
-
-	case Stage::WaitForBackTransition:
-		_state.stage = Stage::AlignForRouteTransition;
-		return true;
-
-	case Stage::AlignForRouteTransition:
-		return true;
 
 	case Stage::BranchOff:
 		enterGoalStage();
@@ -568,12 +534,8 @@ void RtlMissionSafePointFollow::normalizeRouteMissionItem(mission_item_s &missio
 	case NAV_CMD_WAYPOINT:
 	case NAV_CMD_LOITER_UNLIMITED:
 	case NAV_CMD_LOITER_TIME_LIMIT:
-		mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-
-	// FALLTHROUGH
 	case NAV_CMD_LOITER_TO_ALT:
-		mission_item.autocontinue = true;
-		mission_item.time_inside = 0.f;
+		makeRtlPositionItem(mission_item);
 		break;
 
 	default:
@@ -629,37 +591,9 @@ void RtlMissionSafePointFollow::armRouteTransition(mission_route::VtolTransition
 		bool advance_route_after_transition)
 {
 	_state.stage = Stage::TransitionDuringRoute;
-
-	if (action == mission_route::VtolTransitionAction::kFrontTransition) {
-		_state.stage = _vehicle_status_sub.get().in_transition_mode && !_vehicle_status_sub.get().in_transition_to_fw
-			       ? Stage::WaitForBackTransition : Stage::AlignForRouteTransition;
-	}
-
-	_state.transition_target_index = _mission.current_seq;
-	_state.transition_action = action;
-	_state.transition_command_sent = false;
 	_state.advance_route_after_transition = advance_route_after_transition;
-}
-
-void RtlMissionSafePointFollow::handleRouteTransitionStage(position_setpoint_triplet_s *pos_sp_triplet,
-		const position_setpoint_s &current_setpoint_copy)
-{
-	if (_state.transition_command_sent) {
-		return;
-	}
-
-	if (_state.stage == Stage::AlignForRouteTransition && _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
-		_state.stage = Stage::TransitionDuringRoute;
-		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-	}
-
-	if (_state.transition_action == mission_route::VtolTransitionAction::kNone
-	    || !missionIndexInBounds(_state.transition_target_index)) {
-		PX4_ERR("RTL route transition stage is missing a valid target/action");
-		_state.clearRouteTransition();
-		_state.stage = currentTargetIsBranchOff() ? Stage::BranchOff : Stage::FollowRoute;
-		return;
-	}
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
 	const bool branch_off_target_active = currentTargetIsBranchOff() && !_state.advance_route_after_transition;
 	mission_item_s current_route_item{};
@@ -691,58 +625,12 @@ void RtlMissionSafePointFollow::handleRouteTransitionStage(position_setpoint_tri
 		next_route_item_ptr = nullptr;
 	}
 
-	if (_state.stage == Stage::AlignForRouteTransition) {
-		mission_item_s alignment_item{};
-		set_align_mission_item(&alignment_item, &current_route_item);
-		// Hold where back transition ended, rather than flying back to the reached waypoint.
-		const auto *position = _navigator->get_global_position();
-		alignment_item.lat = position->lat;
-		alignment_item.lon = position->lon;
-		alignment_item.altitude = position->alt;
-		alignment_item.acceptance_radius = _navigator->get_acceptance_radius();
-		publishRouteItems(pos_sp_triplet, current_setpoint_copy, alignment_item, nullptr);
-		pos_sp_triplet->previous.valid = false;
-		_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
-		return;
-	}
-
-	if (_state.stage == Stage::WaitForBackTransition) {
-		publishRouteItems(pos_sp_triplet, current_setpoint_copy, current_route_item, next_route_item_ptr, false);
-		// Wait on the existing transition's completion without sending another command.
-		set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-		publish_navigator_mission_item();
-		return;
-	}
-
-	mission_item_s transition_item{};
-	const bool front_transition = _state.transition_action == mission_route::VtolTransitionAction::kFrontTransition;
-	set_vtol_transition_item(&transition_item,
-				 front_transition ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
-				 : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-
-	transition_item.yaw = NAN;
-
-	if (front_transition) {
-		// Keep the aligned setpoint: FW position control uses its yaw during transition.
-		PX4_INFO("RTL route front transition");
-
-	} else {
-		publishRouteItems(pos_sp_triplet, current_setpoint_copy, current_route_item, next_route_item_ptr, false);
-		PX4_INFO("RTL route back transition");
-	}
-
-	_mission_item = transition_item;
-	issue_command(_mission_item);
-	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-
-	if (_state.transition_action == mission_route::VtolTransitionAction::kBackTransition) {
-		pos_sp_triplet->previous.valid = false;
-	}
-
-	reset_mission_item_reached();
-	publish_navigator_mission_item();
-	_navigator->set_position_setpoint_triplet_updated();
-	_state.transition_command_sent = true;
+	// Track the resolved outgoing leg while an existing back transition finishes.
+	publishRouteItems(pos_sp_triplet, current_setpoint_copy, current_route_item, next_route_item_ptr, false);
+	mission_item_s command{};
+	set_vtol_transition_item(&command, action == mission_route::VtolTransitionAction::kFrontTransition
+				 ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	startVtolTransition(command, &current_route_item, WorkItemType::WORK_ITEM_TYPE_DEFAULT, true);
 }
 
 void RtlMissionSafePointFollow::publishRouteItems(position_setpoint_triplet_s *pos_sp_triplet,
@@ -859,7 +747,6 @@ void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet
 
 	if (wait_for_route_transition) {
 		armRouteTransition(transition_action, false);
-		handleRouteTransitionStage(pos_sp_triplet, current_setpoint_copy);
 		return;
 	}
 
@@ -901,10 +788,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 		handleFollowRouteStage(pos_sp_triplet, current_setpoint_copy);
 		break;
 
-	case Stage::WaitForBackTransition:
-	case Stage::AlignForRouteTransition:
 	case Stage::TransitionDuringRoute:
-		handleRouteTransitionStage(pos_sp_triplet, current_setpoint_copy);
 		break;
 
 	case Stage::BranchOff:
@@ -1130,8 +1014,6 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 
 	switch (stage) {
 	case Stage::FollowRoute:
-	case Stage::WaitForBackTransition:
-	case Stage::AlignForRouteTransition:
 	case Stage::TransitionDuringRoute: {
 			// Walk the route from the current target to the branch-off or endpoint.
 			// The step limit guards against corrupted data.

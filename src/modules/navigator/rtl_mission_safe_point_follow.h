@@ -74,9 +74,7 @@ private:
 	enum class Stage {
 		Idle = 0,                /**< No active plan. */
 		FollowRoute,             /**< Follow the mission geometry in nominal or reverse direction. */
-		WaitForBackTransition,  /**< Finish an ongoing back transition before aligning for a front transition. */
-		AlignForRouteTransition, /**< Hold position and align with the next flown target. */
-		TransitionDuringRoute,   /**< Apply a VTOL transition during route following (prevents re-issuing). */
+		TransitionDuringRoute,   /**< Wait for shared transition execution before resuming the route. */
 		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
 		MoveToGoal,              /**< Approach the destination at the altitude held on leaving the route. */
 		ApproachAtGoal,          /**< Descend in the destination loiter before holding or landing. */
@@ -86,18 +84,8 @@ private:
 
 	struct PlanState {
 		Stage stage{Stage::Idle};
-		int32_t transition_target_index{-1};
-		mission_route::VtolTransitionAction transition_action{mission_route::VtolTransitionAction::kNone};
-		bool transition_command_sent{false};
 		bool advance_route_after_transition{false};
 
-		void clearRouteTransition()
-		{
-			transition_target_index = -1;
-			transition_action = mission_route::VtolTransitionAction::kNone;
-			transition_command_sent = false;
-			advance_route_after_transition = false;
-		}
 	};
 
 	/** @brief Advance the RTL stage machine without replaying the full mission control flow. */
@@ -137,13 +125,10 @@ private:
 	bool resolveRouteTarget(int32_t index, mission_item_s &mission_item) const;
 	/** @brief Load the next route item, substituting the branch-off or normalizing holds while preserving endpoints. */
 	bool loadNextRouteItem(mission_item_s &next_route_item, int32_t &next_index);
-	/** @brief Arm the synthetic route transition that should be issued on the next publication pass. */
+	/** @brief Resolve the flown target and start shared transition execution. */
 	void armRouteTransition(mission_route::VtolTransitionAction action, bool advance_route_after_transition);
-	bool frontTransitionInhibited() const;
+	bool frontTransitionInhibited() const override;
 	mission_route::VtolTransitionAction allowedRouteTransition(mission_route::VtolTransitionAction action) const;
-	/** @brief Publish and issue the staged route transition, then wait for completion. */
-	void handleRouteTransitionStage(position_setpoint_triplet_s *pos_sp_triplet,
-					const position_setpoint_s &current_setpoint_copy);
 	/** @brief Publish the active route-following setpoints, endpoint handoff, and any pending transition. */
 	void handleFollowRouteStage(position_setpoint_triplet_s *pos_sp_triplet,
 				    const position_setpoint_s &current_setpoint_copy);
