@@ -667,6 +667,7 @@ private:
 
 	AlphaFilter<Vector3f> _mag_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered magnetometer measurement for instant reset (Gauss)
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
+	bool _mag_yaw_reset_req{false};	///< true when the heading must be realigned to the mag at the next fusion start (calibration changed on ground)
 
 	// Variables used to control activation of post takeoff functionality
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
