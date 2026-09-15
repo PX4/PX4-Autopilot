@@ -137,6 +137,7 @@ private:
 	void magnetometerCallback(const gz::msgs::Magnetometer &msg, uint8_t instance_index);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
+	std::string buildBaseTopic(std::string sensor_link = "base_link");
 
 	static float generate_wgn();
 
