@@ -37,8 +37,6 @@
 
 static constexpr int RESPONSE_SIZE = EEPROM_SIZE + 1; // 48B data + 1B CRC
 
-uORB::Publication<esc_eeprom_read_s> AM32Settings::_esc_eeprom_read_pub{ORB_ID(esc_eeprom_read)};
-
 AM32Settings::AM32Settings(int index)
 	: _esc_index(index)
 {}
@@ -56,7 +54,17 @@ void AM32Settings::publish_latest()
 	data.index = _esc_index;
 	memcpy(data.data, &_eeprom_data, sizeof(_eeprom_data));
 	data.length = sizeof(_eeprom_data);
-	_esc_eeprom_read_pub.publish(data);
+
+	if (!_esc_eeprom_read_pub.publish(data) && !_publish_failed_warned) {
+		PX4_WARN("ESC%d eeprom publish failed", _esc_index + 1);
+		_publish_failed_warned = true;
+	}
+
+	if (!_fw_version_printed) {
+		PX4_INFO("ESC%d firmware version %u.%u", _esc_index + 1,
+			 _eeprom_data[EEPROM_IDX_FW_MAJOR], _eeprom_data[EEPROM_IDX_FW_MINOR]);
+		_fw_version_printed = true;
+	}
 }
 
 bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
