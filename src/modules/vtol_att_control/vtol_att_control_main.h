@@ -150,6 +150,7 @@ public:
 	float get_calibrated_airspeed() { return _calibrated_airspeed; }
 
 private:
+	friend class VtolAttitudeControlTestPeer;
 	void Run() override;
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_fw_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_mc_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_mc)};
@@ -239,6 +240,7 @@ private:
 	void		action_request_poll();
 
 	void		vehicle_cmd_poll();
+	bool routeRtlFrontTransitionAllowed() const;
 
 	void 		parameters_update();
 
@@ -246,6 +248,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VT_TYPE>) _param_vt_type,
+		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
 		(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld,
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd
 	)
