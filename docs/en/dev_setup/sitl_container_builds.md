@@ -140,7 +140,7 @@ GIT_COMMON_DIR=$(git rev-parse --path-format=absolute --git-common-dir)
 docker run --rm -it \
   -v "$SOURCE:$SOURCE" -v "$GIT_COMMON_DIR:$GIT_COMMON_DIR" -w "$SOURCE" \
   -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory \
-  -e "GIT_CONFIG_VALUE_0=$SOURCE" px4-dev-ros2:local bash
+  -e "GIT_CONFIG_VALUE_0=*" px4-dev-ros2:local bash
 ```
 
 The same absolute mounts support both ordinary checkouts and git worktrees.
