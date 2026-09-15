@@ -43,6 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <dataman_client/DatamanClient.hpp>
+#include <lib/motion_planning/TrajectoryConstraints.hpp>
 #include <uORB/topics/geofence_status.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/navigator_mission_item.h>
@@ -377,6 +378,66 @@ protected:
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
 	/**
+	 * @brief Check whether the vehicle passes a mission item without stopping at it
+	 *
+	 * Only then may the trajectory planner carry speed through that item. Non-position items
+	 * between the item and the following position item (delay, timeout, transition, jump) also
+	 * count as a stop, and so does an item in between that is not in the dataman cache.
+	 *
+	 * @param item mission item to check
+	 * @param item_index index of item in the mission
+	 * @param following_index index of the position item the vehicle flies to after item
+	 * @param[out] cache_miss true if the answer is false only because an item in between is not cached
+	 * @return true if the vehicle continues past the item without braking to a stop
+	 */
+	virtual bool isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index, int32_t following_index,
+			bool &cache_miss);
+
+	/**
+	 * @brief Fill the velocity constraint of the next setpoint from the mission after it
+	 *
+	 * Walks the position items after next, until one the vehicle stops at, a cache miss (treated
+	 * as a stop) or once the path is long enough to brake from cruise speed, and derives the
+	 * velocity the multicopter trajectory planner may have when leaving next: the speed the path
+	 * after next allows, in the direction of the segment after next. Zero if the vehicle stops at
+	 * next. Left unknown (NaN) for other vehicle types or without a valid current setpoint.
+	 *
+	 * @param current setpoint the vehicle currently flies to, gives the direction into next
+	 * @param next_item mission item next was made from
+	 * @param next_index index of next_item in the mission
+	 * @param next setpoint to fill the velocity constraint of
+	 * @param direction_backward true if the mission is flown backwards (reverse RTL)
+	 */
+	void setNextVelocityConstraint(const position_setpoint_s &current, const mission_item_s &next_item,
+				       int32_t next_index, position_setpoint_s &next, bool direction_backward = false);
+
+	/**
+	 * @brief Dynamic limits the walk in setNextVelocityConstraint() plans with for the given current setpoint
+	 *
+	 * The navigator limits, with the cruise speed taken from the current setpoint when it carries one:
+	 * that is the speed the trajectory planner flies the setpoint with, the navigator's own cruise speed
+	 * may have been reset since the setpoint was made (on activation).
+	 */
+	math::trajectory::VehicleDynamicLimits trajectoryLimitsFor(const position_setpoint_s &current) const;
+
+	/**
+	 * @brief Repeat the walk for the velocity constraint of the next setpoint when its inputs changed
+	 *
+	 * Two things can change the outcome of the last walk in setNextVelocityConstraint() without the
+	 * triplet being rebuilt:
+	 * - set_mission_items() runs before the cache is filled for the new sequence (on activation, and
+	 *   whenever the sequence advances), so the walk can end on a cache miss and record a stop closer
+	 *   than the mission has one. The walk is repeated once the cache finished loading.
+	 * - The limits the walk plans with change, by a parameter update (MPC_ACC_HOR, MPC_JERK_AUTO,
+	 *   MPC_XY_CRUISE, MPC_XY_TRAJ_P) or a speed command. The trajectory planner applies its new limits
+	 *   right away, the constraint has to follow or it keeps allowing a speed the tighter limits no
+	 *   longer support.
+	 * In both cases the constraint is computed again and the triplet republished. Called from
+	 * on_active() after updateDatamanCache().
+	 */
+	void updateNextVelocityConstraint();
+
+	/**
 	 * @brief Traversal mode used by this navigation mode when walking position items.
 	 *
 	 * Mission mode follows active DO_JUMP control flow by default. Derived modes such as
@@ -430,6 +491,23 @@ protected:
 	bool findPreviousPositionIndex(int32_t start_index, int32_t &previous_index,
 				       MissionTraversalType traversal_type);
 
+	/**
+	 * @brief Find the position item following the given index without leaving the dataman cache
+	 *
+	 * Unlike findNextPositionIndex() this never blocks on a dataman read and does not follow
+	 * DO_JUMP items, they are skipped like any other non-position item. Meant for looking ahead
+	 * along the mission where a cache miss just means "unknown".
+	 *
+	 * @param[in] start_index index to search from, the item at it is not considered
+	 * @param[in] direction_backward search towards lower indices
+	 * @param[out] following_index index of the found position item
+	 * @param[out] following_item the found position item
+	 * @param[out] cache_miss true if the search ended on an item that is not cached, false if at the mission end
+	 * @return true if a cached position item was found
+	 */
+	bool findCachedPositionItem(int32_t start_index, bool direction_backward, int32_t &following_index,
+				    mission_item_s &following_item, bool &cache_miss);
+
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
 	bool _mission_checked{false};				/**< Flag indicating if the mission has been checked by the mission validator*/
@@ -439,6 +517,15 @@ protected:
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
 	int _mission_activation_index{-1};					/**< Index of the mission item that will bring the vehicle back to a mission waypoint */
 	bool _speed_replayed_on_activation{false};			/**< Flag indicating if the speed change items have been replayed on activation */
+
+	// State of the last walk in setNextVelocityConstraint(), to repeat it once the dataman cache is loaded or
+	// the limits changed
+	bool _next_velocity_constraint_hit_cache_miss{false};	/**< the walk ended on a cache miss, not on a stop */
+	bool _dataman_cache_loading_since_constraint{false};	/**< the cache has loaded since the walk, a repeat can get further */
+	mission_item_s _next_velocity_constraint_item{};	/**< mission item the next setpoint was made from */
+	int32_t _next_velocity_constraint_index{-1};		/**< index of that item in the mission */
+	bool _next_velocity_constraint_backward{false};		/**< the walk follows the mission backwards */
+	math::trajectory::VehicleDynamicLimits _next_velocity_constraint_limits{};	/**< limits the walk planned with */
 
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/

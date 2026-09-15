@@ -258,6 +258,12 @@ void Mission::setActiveMissionItems()
 				/* got next mission item, update setpoint triplet */
 				mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->next);
 
+				/* let the trajectory planner know how fast the mission after next allows passing it */
+				if (new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+					setNextVelocityConstraint(pos_sp_triplet->current, next_mission_items[0u], next_mission_items_index[0u],
+							  pos_sp_triplet->next);
+				}
+
 			} else {
 				/* next mission item is not available */
 				pos_sp_triplet->next.valid = false;
@@ -280,6 +286,8 @@ void Mission::setActiveMissionItems()
 		if (num_found_items >= 2u) {
 			/* got next mission item, update setpoint triplet */
 			mission_item_to_position_setpoint(next_mission_items[1u], &pos_sp_triplet->next);
+			setNextVelocityConstraint(pos_sp_triplet->current, next_mission_items[1u], next_mission_items_index[1u],
+						  pos_sp_triplet->next);
 
 		} else {
 			pos_sp_triplet->next.valid = false;
