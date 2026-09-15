@@ -61,6 +61,8 @@
 #include <lib/failure_injection/FailureInjection.hpp>
 #include "../node_info.hpp"
 
+class UavcanNode;
+
 class UavcanEscController : public uavcan::INodeInfoListener
 {
 public:
@@ -96,6 +98,19 @@ public:
 	 */
 	void handleNodeInfoRetrieved(uavcan::NodeID node_id, const uavcan::protocol::GetNodeInfo::Response &node_info) override;
 	void handleNodeInfoUnavailable(uavcan::NodeID node_id) override {}
+
+	/**
+	 * Wires up the param GetSet client (owned by UavcanNode and shared with its other users) used to
+	 * query the Vertiq error count meaning, avoiding a second uavcan::ServiceClient<GetSet> instantiation.
+	 */
+	void set_param_client(UavcanNode &node) { _param_client_node = &node; }
+
+	/**
+	 * Consumes a GetSet response from the shared param client if it answers this controller's pending
+	 * Vertiq error count meaning query.
+	 * @return true if the response was ours and has been consumed
+	 */
+	bool tryHandleErrorCountMeaningResult(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
 
 private:
 	/**
@@ -143,7 +158,6 @@ private:
 	void request_error_count_meaning(ErrorCountMeaning &entry);
 	void fail_error_count_meaning_attempt(ErrorCountMeaning &entry);
 	void process_error_count_meaning_retries();
-	void error_count_meaning_cb(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
 
 	/**
 	 * @return what the esc.Status error_count of this node counts (esc_report_s::ERRORCOUNT_TYPE_*)
@@ -178,9 +192,6 @@ private:
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
-	typedef uavcan::MethodBinder<UavcanEscController *,
-		void (UavcanEscController::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCbBinder;
-
 	bool _initialized = false;
 
 	unsigned _max_rate_hz{400};
@@ -214,7 +225,7 @@ private:
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
 	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder> _uavcan_sub_status_extended;
-	uavcan::ServiceClient<uavcan::protocol::param::GetSet, GetSetCbBinder>	_uavcan_param_client;
 
 	NodeInfoPublisher *_node_info_publisher{nullptr};
+	UavcanNode *_param_client_node{nullptr}; ///< used to issue GetSet requests through the shared param client
 };

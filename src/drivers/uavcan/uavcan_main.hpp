@@ -232,6 +232,17 @@ public:
 	int			 get_param(int remote_node_id, const char *name);
 	int			 reset_node(int remote_node_id);
 
+	/**
+	 * Issues a one-shot GetSet request through the param client shared with the CLI get/set/list/count
+	 * commands, on behalf of another controller (e.g. UavcanEscController's Vertiq error count meaning
+	 * query). The response is routed back through cb_getset(), which offers it to the originating
+	 * controller before falling back to its own get/set/count handling.
+	 */
+	int request_param_getset(uint8_t node_id, const uavcan::protocol::param::GetSet::Request &req)
+	{
+		return _param_getset_client.call(node_id, req);
+	}
+
 	static void busevent_signal_trampoline();
 
 private:

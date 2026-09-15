@@ -636,6 +636,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_esc_controller.set_node_info_publisher(&_node_info_publisher);
+	_esc_controller.set_param_client(*this);
 
 	ret = _node_info_retriever.addListener(&_esc_controller);
 
@@ -1382,6 +1383,14 @@ UavcanNode::shrink()
 void
 UavcanNode::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result)
 {
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+
+	if (_esc_controller.tryHandleErrorCountMeaningResult(result)) {
+		return;
+	}
+
+#endif
+
 	if (_count_in_progress) {
 		/*
 		 * Currently in parameter count mode:

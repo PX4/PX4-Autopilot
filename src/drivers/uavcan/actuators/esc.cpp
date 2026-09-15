@@ -38,6 +38,7 @@
  */
 
 #include "esc.hpp"
+#include "../uavcan_main.hpp"
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <drivers/drv_hrt.h>
@@ -49,8 +50,7 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
 	_uavcan_sub_status(node),
-	_uavcan_sub_status_extended(node),
-	_uavcan_param_client(node)
+	_uavcan_sub_status_extended(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin); // Highest priority
 }
@@ -72,8 +72,6 @@ int UavcanEscController::init()
 		PX4_ERR("ESC status extended sub failed %i", res);
 		return res;
 	}
-
-	_uavcan_param_client.setCallback(GetSetCbBinder(this, &UavcanEscController::error_count_meaning_cb));
 
 	_esc_status_pub.advertise();
 
@@ -239,7 +237,7 @@ void UavcanEscController::request_error_count_meaning(ErrorCountMeaning &entry)
 
 	entry.attempts++;
 
-	if (_uavcan_param_client.call(entry.node_id, req) < 0) {
+	if (_param_client_node == nullptr || _param_client_node->request_param_getset(entry.node_id, req) < 0) {
 		fail_error_count_meaning_attempt(entry);
 
 	} else {
@@ -273,18 +271,18 @@ void UavcanEscController::process_error_count_meaning_retries()
 	}
 }
 
-void UavcanEscController::error_count_meaning_cb(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet>
+bool UavcanEscController::tryHandleErrorCountMeaningResult(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet>
 		&result)
 {
 	ErrorCountMeaning *entry = find_error_count_meaning(result.getCallID().server_node_id.get());
 
 	if (entry == nullptr || entry->state != ErrorCountMeaning::State::Pending) {
-		return;
+		return false;
 	}
 
 	if (!result.isSuccessful()) {
 		fail_error_count_meaning_attempt(*entry);
-		return;
+		return true;
 	}
 
 	uavcan::protocol::param::GetSet::Response resp = result.getResponse(); // Value::is()/to() are not const
@@ -293,13 +291,13 @@ void UavcanEscController::error_count_meaning_cb(const uavcan::ServiceCallResult
 	if (resp.name.empty()) {
 		// Parameter does not exist: speed firmware before v0.3.0 always reports the live CAN TX error counter
 		entry->type = esc_report_s::ERRORCOUNT_TYPE_CAN_TEC;
-		return;
+		return true;
 	}
 
 	if (!resp.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
 		// The parameter exists but is not what we expect: better not to judge the count at all
 		entry->type = esc_report_s::ERRORCOUNT_TYPE_UNKNOWN;
-		return;
+		return true;
 	}
 
 	switch (resp.value.to<uavcan::protocol::param::Value::Tag::integer_value>()) {
@@ -328,6 +326,8 @@ void UavcanEscController::error_count_meaning_cb(const uavcan::ServiceCallResult
 		entry->type = esc_report_s::ERRORCOUNT_TYPE_UNKNOWN;
 		break;
 	}
+
+	return true;
 }
 
 uint8_t UavcanEscController::error_count_type(uint8_t node_id) const
