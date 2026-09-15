@@ -47,3 +47,8 @@ px4_add_module(
 		px4_work_queue
 		SystemIdentification
 )
+
+px4_add_functional_gtest(
+	SRC McAutotuneAttitudeControlTest.cpp
+	LINKLIBS mc_autotune_attitude_control
+)
