@@ -1,23 +1,14 @@
 # Mission Route Planning
 
-PX4 includes mission-route planning infrastructure in Navigator for intelligently joining, following, and leaving an uploaded mission route.
+Mission route planning helps the vehicle rejoin an uploaded mission or use that route to return to a landing destination.
 It provides:
 
-- **[Smart route join](#smart-mission-rejoin)**: Finding a suitable branch-in point after the vehicle has left the route.
-- **[Route-following Return](#route-following-return)**: Choosing the best [safe point](../flying/plan_safety_points.md) and branch-off point, then using the mission route as a [Return path](../flight_modes/return.md#rtl_type_7).
+- [Smart mission rejoin](#smart-mission-rejoin): Rejoin the route after leaving it, for example after manual repositioning or a GoTo.
+- [Route-following Return](#route-following-return): Follow the mission route towards a [safe point](../flying/plan_safety_points.md) or mission endpoint, then land or hold as configured.
 
-Navigator provides non-blocking access to the complete mission, safe points, and mission-land item through the [mission route cache](../advanced/mission_route_cache.md).
-It also includes a planner that projects the vehicle and safe-point positions perpendicularly onto each mission segment, then selects the best candidate using that projection (along with additional criteria such as the last segment flown).
-
-The planner computes geometry and scoring only.
-Mission and Return execute the public plans returned by the planner.
-The Route Safe Point Return executor joins and follows the route, branches off, and handles arrival at the selected destination.
-
-::: info
-Smart rejoin has two callers.
-Route Safe Point Return (`RTL_TYPE=7`) uses it for its initial route join, and Mission mode uses it on activation while airborne when [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) is enabled (off by default).
-`RTL_TYPE=6` retains its existing battery-aware home/rally return behavior.
-:::
+Enable smart rejoin with [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) (off by default).
+Select route-following Return with [RTL_TYPE=7](../flight_modes/return.md#rtl_type_7).
+`RTL_TYPE=6` provides a separate battery-aware home/rally return mode.
 
 ::: warning
 The planner requires a complete mission from the [mission route cache](../advanced/mission_route_cache.md).
@@ -32,47 +23,36 @@ After a fixed-wing system failure, Route-following Return keeps the selected rou
 :::
 
 ::: warning
-Rally points are scored in fixed-size batches of `CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` (default **1**, **32** on testing builds).
-When more rally points are configured than fit in one batch the planner re-scans the full mission route once per batch, so a mission with many rally points can be walked several times per planning pass. See [Safe-Point Batching](#safe-point-batching).
-:::
-
-::: warning
 No geofence or obstacle check is applied to a planned join, route, or branch-off leg.
 :::
 
-## Planning Entry Points
+## How It Works
 
-The planner exposes two entry points: one plans a Mission resume join, the other plans a route-following Return.
-Both take the current vehicle state and mission index, compose the building blocks documented below, and return a plain plan for the caller to execute: where to join the route, which mission item to fly first, and in which direction.
-The Return plan also carries the selected goal and, for a rally point, the branch-off point.
-Consumers execute these plans without depending on the planner's internal projection or scoring types.
+Both features choose where to join the route using the vehicle's current position and mission progress.
+Mission rejoin continues the mission; route-following Return chooses a destination and may fly the route forwards or backwards to reach it.
 
-::: info
-A consumer must first acquire a complete view of the active mission.
-Route-following Return must also wait until safe-point loading is complete; a zero safe-point count alone can mean either pending or ready and empty.
-See [Mission Route Cache](../advanced/mission_route_cache.md#availability).
-:::
+When the vehicle is already near the selected destination or branch-off leg, [route-skip shortcuts](#route-skip-shortcuts) can avoid an unnecessary trip back to the route.
+If route-following Return cannot use the route, [direct fallback](#route-following-fallback) may change the destination and fly outside the mission corridor.
 
 ### Smart Mission Rejoin {#smart-mission-rejoin}
 
-The mission-resume entry point plans how to resume a mission after the vehicle has left the route (for example after a GoTo or manual reposition). It works as follows:
+When Mission mode is activated in flight with smart rejoin enabled, the vehicle:
 
-1. Runs [Vehicle Projection](#vehicle-projection) to find the branch-in point.
-2. Solves the shortest valid path **in the nominal mission direction** toward the mission end.
-3. Fills the join context (the branch-in waypoint and its altitude).
+1. Selects a branch-in point and altitude on the route using [Vehicle Projection](#vehicle-projection).
+2. Flies to that point.
+3. Continues towards the mission end in the mission direction, accounting for any active loop as described below.
 
 If the branch-in lands on an active [`DO_JUMP` loop segment](#vehicle-projection), the loop's repeat count is preserved:
 
 - while repeats remain the resumed path continues to the jump target so the loop is still flown
 - once repeats are exhausted, the planner picks whichever loop exit gives the shorter **total** path on to the mission end: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the mission end lies near the loop start it may rewind most of the loop rather than finish it.
 
-Mission mode runs this entry point on activation when [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) is enabled.
-The vehicle first flies to a temporary branch-in waypoint on the route, then resumes the mission from there.
 The projection search margin is set by [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST) (multicopter) and [MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST) (fixed-wing).
-If planning is not possible (for example the route cache is not ready), Mission mode uses its normal mission activation behavior.
+If a join cannot be planned, Mission mode resumes without the smart join.
+This can happen while the mission is still loading into the [route cache](../advanced/mission_route_cache.md).
 After pausing a camera-trigger survey, smart route rejoin can select a branch-in point that conflicts with the return to the previous survey waypoint.
 Use `MIS_ROUTE_JOIN=0` for missions that rely on camera-trigger survey resume.
-Selecting a mission item explicitly cancels a pending virtual join.
+Selecting a mission item explicitly cancels a pending smart join.
 
 When a VTOL rejoin requires a front transition, the vehicle follows this sequence:
 
@@ -87,20 +67,18 @@ These temporary steps do not mark the next uploaded mission waypoint as reached.
 
 ### Route-Following Return {#route-following-return}
 
-The route-to-goal entry point plans a Return that uses the mission route as the return corridor instead of cutting straight across terrain. It works as follows:
+With `RTL_TYPE=7`, Return uses the mission route as a return corridor:
 
-1. Runs the [Vehicle Projection](#vehicle-projection) to find the branch-in point.
-2. Runs [Safe-Point Scoring](#safe-point-scoring) against that projection and selects the lowest-cost safe point (or falls back to the closer mission endpoint when none is usable).
-3. Returns the plan: join position, first mission item, route direction, and the selected goal with its branch-off point.
+1. Select a branch-in point using [Vehicle Projection](#vehicle-projection).
+2. Choose a safe point and branch-off point using [Safe-Point Scoring](#safe-point-scoring), or a mission takeoff/landing endpoint if no safe point is usable.
+3. Join and follow the route in the selected direction, then fly to the destination.
 
-The vehicle is projected first; the safe points are then scored in a separate scan (or scans, see [Safe-Point Batching](#safe-point-batching)) that reuses the vehicle projection rather than recomputing it.
-
-The planner-owned [route-skip shortcuts](#route-skip-shortcuts) are applied to the selected goal so the caller can skip route join/follow when the vehicle is already close to it.
+[Route-skip shortcuts](#route-skip-shortcuts) may bypass the join and route when the vehicle is already near the destination or branch-off leg.
 
 Route-following Return does not yet support `MAV_CMD_DO_RETURN_PATH_START` to designate a return-path segment.
 The planner considers the mission route without restricting its join and return path to the segment between this marker and `MAV_CMD_DO_LAND_START`.
 
-Here an active [`DO_JUMP` loop segment](#vehicle-projection) is used as return geometry only: the loop repeat count is forced to zero (unlike [Smart Mission Rejoin](#smart-mission-rejoin)). The planner then picks whichever loop exit gives the shorter **total** return path to the goal: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the goal lies near the loop start the planner may rewind most of the loop instead of finishing it.
+Here an active [`DO_JUMP` loop segment](#vehicle-projection) is used as return geometry only: the vehicle does not repeat the loop (unlike [Smart Mission Rejoin](#smart-mission-rejoin)). The planner then picks whichever loop exit gives the shorter **total** return path to the goal: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the goal lies near the loop start the planner may rewind most of the loop instead of finishing it.
 
 Route following skips waypoint hold times and timed or unlimited loiter holds, but preserves `LOITER_TO_ALT`.
 The vehicle approaches these loiters at its current altitude, then changes altitude in the loiter before continuing.
@@ -109,11 +87,13 @@ The vehicle approaches these loiters at its current altitude, then changes altit
 
 VTOL transition commands belong to the preceding position waypoint in the uploaded mission.
 For example, `A → front transition → B → back transition → C` is flown in reverse as `C → B` in multicopter mode, then a front transition at `B`, followed by `B → A` in fixed-wing mode.
-The executor restores the mode required by each reverse leg rather than replaying the transition commands backwards.
+The vehicle flies each leg in the mode used in the forward mission, even when travelling in reverse.
 Before a front transition, it waits for any back transition to finish, holds its position and aligns towards the next route target.
 It advances the route after the transition completes.
 An ongoing front transition may finish when route-following Return is activated; direct fallback cancels it.
-Only internal front-transition commands for `RTL_TYPE=7` are accepted in Return mode, and they cannot clear a latched fixed-wing system failure.
+
+PX4 determines each leg's mode from the VTOL mode recorded when it first receives the mission and any preceding transition commands.
+This starting mode is not saved across reboots; a transition in progress is recorded as multicopter mode.
 :::
 
 At a rally point or mission takeoff endpoint, the vehicle first approaches at the altitude held when leaving the route.
@@ -124,8 +104,8 @@ It then follows the destination arrival policy configured by [RTL_DESCEND_ALT](.
 - With zero landing delay, a multicopter lands after horizontal arrival; a fixed-wing vehicle first descends in the destination loiter.
 
 The descent altitude is relative to the destination and is capped at the arrival altitude, so arrival does not introduce another return-altitude climb.
-Synthetic landings use [RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD) for precision landing.
-An uploaded mission landing command retains its own landing and precision-landing settings; the synthetic destination descent and delay do not override it.
+Landings at rally points and takeoff endpoints use [RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD) for precision landing.
+An uploaded mission landing command retains its own landing and precision-landing settings; the destination descent and delay described above do not override it.
 A VTOL arriving in fixed-wing mode can use the selected rally point's landing approach, then back-transitions and lands through the existing VTOL landing sequence.
 If arrival starts during a front transition, the vehicle still back-transitions before landing.
 An approach is retained even when Return starts in multicopter mode, but is only flown if the vehicle reaches the destination phase in fixed-wing mode.
@@ -149,18 +129,18 @@ Fallback occurs when:
 - The complete mission or rally-point cache is unavailable, still loading/reloading or does not match the current source. This includes missions exceeding the configured full-cache capacity.
 - The planner cannot produce a valid join and return path: for example, required position/index/parameter inputs are invalid, required mission data cannot be read, or no usable rally point or mission endpoint can be reached through the route.
 - The result cannot be accepted because its source changed during planning, its plan is invalid, or the selected rally-point index exceeds the supported range.
-- The route executor cannot be allocated.
+- There is insufficient memory to start route following.
 - Vehicle status reports a type other than multicopter or fixed-wing. VTOL hover, forward flight and transitions are supported.
 
-During route following, a mission/rally-source change or mission-cache generation change triggers replanning.
+During route following, changes to the mission or rally points trigger replanning.
 If that replan cannot be accepted, the same direct fallback applies.
-Once destination arrival/landing is committed, source changes do not replace that sequence.
+Once the destination arrival or landing sequence has begun, changes to the mission or rally points do not replace it.
 
 Pending cache or mission-validation inputs are retried on the two-second check once they are ready and the mission is valid, provided landing has not started.
 Other planning or allocation failures do not automatically retry on that timer.
 
 If no rally point is usable, the planner first tries mission takeoff/landing endpoints.
-A fixed-wing system failure keeps SRP on the selected route in MC, skipping front transitions.
+A fixed-wing system failure keeps a VTOL on the selected route in multicopter mode, skipping front transitions.
 An incomplete time estimate alone does not trigger fallback.
 
 Even with a valid plan, [route-skip shortcuts](#route-skip-shortcuts) can bypass the join and route when the vehicle is already near the selected goal or branch-off leg.
@@ -173,7 +153,7 @@ The projected point is the vehicle in one case and a safe point (rally point) in
 
 The planner draws a perpendicular projection from the point onto every route segment and keeps up to three candidates per point.
 A projection is a valid candidate only if its crosstrack distance is within a search margin of the closest candidate's crosstrack distance.
-The consuming feature supplies that margin.
+Separate parameters control the search margins for the vehicle and rally points; see [Parameters and Build Configuration](#parameters-and-build-configuration).
 When more than three projections fall within the margin, only the three with the smallest crosstrack distance are kept and the rest are dropped.
 
 The mission route planner supports [`DO_JUMP`](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP) mission loop commands. The active jump segment is the segment running from the waypoint before the jump command to the first position waypoint at the jump target.
@@ -322,7 +302,7 @@ The other candidate, projected onto the south segment, wins because its total di
 **`DO_JUMP` loop segments:** the vehicle can also branch-in on a loop edge.
 A loop edge is projected and scored like any normal segment, vehicle projection does not skip it, so it competes as an ordinary candidate. This is required because the loop edge might be the only valid candidate (e.g. after a GoTo close to the loop edge).
 
-What the path does once it reaches that loop edge is decided later during path solving, separately for each entry point (see [Smart Mission Rejoin](#smart-mission-rejoin) and [Route-Following Return](#route-following-return)).
+What happens after joining a loop depends on the selected flight mode (see [Smart Mission Rejoin](#smart-mission-rejoin) and [Route-Following Return](#route-following-return)).
 
 ## Safe-Point Scoring
 
@@ -336,7 +316,6 @@ This runs in two phases:
 The eligible safe points are projected onto the route using the same [Point Projection](#point-projection) described above.
 Vertical segments at the route ends do not add their own branch-off candidates (see [Stacked Waypoints](#stacked-waypoints)).
 The vehicle was already projected by the [Vehicle Projection](#vehicle-projection) step, so its branch-in point is reused here rather than recomputed.
-Safe points are projected in fixed-size batches (see [Safe-Point Batching](#safe-point-batching)), and the route is scanned once per batch.
 
 **Phase 2: Selecting the best projection point:**
 
@@ -344,11 +323,10 @@ Each candidate branch-off is scored by total path cost, and the lowest wins. The
 
 - Along-route distance: along the route geometry from the vehicle projection to the safe-point projection (branch-off point), using straight lines between waypoints.
 - Branch-off leg: the straight-line distance from the safe-point projection to the safe point (the off-route leg flown after leaving the route).
-- U-turn penalty: for fixed-wing and VTOL-in-FW, an extra distance penalty is added when the path would require an immediate U-turn, so forward-flowing paths are preferred. The U-turn is detected by comparing the vehicle's current velocity with its desired course: toward the branch-in point when far from the route, or along the selected route direction when close to it. If the two are more than 90° apart, the penalty is applied. The caller supplies the penalty value (set it to 0 to disable). Multirotors and hovering VTOL are exempt, because they can turn on the spot.
+- U-turn penalty: for fixed-wing and VTOL-in-FW, an extra distance penalty is added when the path would require an immediate U-turn, so forward-flowing paths are preferred. The U-turn is detected by comparing the vehicle's current velocity with its desired course: toward the branch-in point when far from the route, or along the selected route direction when close to it. If the two are more than 90° apart, the penalty is applied. Set [RTL_FW_UTURN_PEN](../advanced_config/parameter_reference.md#RTL_FW_UTURN_PEN) to 0 to disable this penalty. Multirotors and hovering VTOL are exempt, because they can turn on the spot.
 
 As the planner gathers the safe points to consider, it filters out the ones it cannot use:
 
-- Safe points are read through the provider. `MissionRouteCache` serves only a fully loaded RAM generation, so planning never reads Dataman directly.
 - Invalid coordinates, unsupported frames, or filtered safe points are skipped.
 - Every remaining safe point gets up to three projections.
 
@@ -361,7 +339,7 @@ Safe-point branch-off candidates on loop segments are more restricted:
 
 ### Route-Skip Shortcuts
 
-After the best safe point has been chosen, a route-to-goal caller can skip the route join/follow entirely:
+After a destination has been selected, the vehicle can skip joining and following the route in these cases:
 
 - **Direct-to-safe-point**: if the vehicle is already within the direct acceptance radius of the selected safe point, go straight to it.
 - **Close-to-branch-leg**: if the vehicle is already close to the selected branch-off leg (both horizontally and vertically), continue straight toward the goal.
@@ -369,29 +347,10 @@ After the best safe point has been chosen, a route-to-goal caller can skip the r
 
 These shortcuts are applied only after selection, so they never change which goal wins the cost comparison.
 
-**Example:** In the image below the vehicle is already on the branch-off leg, after a GoTo or a canceled Return.
+**Example:** In the image below the vehicle is already on the branch-off leg, after a GoTo or a cancelled Return.
 If a new Return is requested, the vehicle flies straight to the rally point (`R`) instead of flying back to the branch-in point only to branch off again.
 
 ![Close-to-branch-leg shortcut](../../assets/mission_route_planner/mission_route_planning_close_to_branch_off.png)
-
-### Safe-Point Batching {#safe-point-batching}
-
-The planner scores eligible safe points using a single fixed-size projection batch buffer, sized by `CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE`.
-The batch buffer is reused for every planning pass and is allocated in static RAM, costing roughly `sizeof(ProjectionReference) * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` bytes (about 380 bytes per slot).
-The default is **1** (**32** on `BOARD_TESTING`).
-The planner and this buffer are built only when `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` is greater than zero, so disabled builds reserve no planner batch buffer.
-Boards that enable route planning should choose a batch size that fits their RAM budget.
-
-::: warning
-If the number of eligible rally points exceeds `CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE`, each planning pass loops over the full mission route multiple times (once per batch of rally points).
-To keep every rally point in a single mission scan, raise `CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` on boards that have the RAM budget for it.
-:::
-
-`CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` must stay between `1` and `32`: the upper bound matches `DM_KEY_SAFE_POINTS_MAX`, the maximum number of storable safe points, so larger batches could never be filled.
-
-```ini
-CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE=32
-```
 
 ## Parameters and Build Configuration
 
@@ -405,37 +364,22 @@ CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE=32
 
 `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` must be greater than zero and large enough for the entire uploaded mission.
 SITL defaults to 500 mission items.
-An oversized mission remains usable by the normal Mission implementation but is unavailable to the route planner.
+An oversized mission can still be flown in Mission mode, but smart rejoin and route-following Return cannot use it.
 See [Safe-Point Batching](#safe-point-batching) for the rally-point batch configuration and memory tradeoff.
 
-## Code Architecture
+::: details Firmware Configuration: Safe-Point Batching
 
-::: details Click to See Details on the Code Architecture
+### Safe-Point Batching {#safe-point-batching}
 
-The reusable planner library and its Navigator consumers are in `src/modules/navigator/`.
-The planner entry points orchestrate projection and goal selection; consumers execute only the public plans:
+`CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` controls how many rally points are checked in each scan of the mission route.
+Its default is `1` (`32` on testing builds), with a supported range of `1` to `32`.
+More rally points than fit in one batch require additional scans, increasing planning time.
+Increasing the batch size reduces the number of scans but uses more RAM.
 
-![Mission and Return flow from the shared route cache through planning, execution, estimation and flight controllers](../../assets/mission_route_planner/code_architecture.svg)
+For firmware builds with enough memory, all supported rally points can be checked in one scan:
 
-The planner returns geometry and transition requirements without publishing flight commands.
-`Mission` owns nominal traversal and persistent actions; `RtlRouteSafePoint` supplies RTL planning inputs and tracks source identity and route progress.
-RTL owns executor selection, configuration and lifetime.
-The follower executes geometric route targets and destination stages, using `MissionBase` and `MissionBlock` for shared mission mechanics.
-Its in-route transition sequencing is currently separate from nominal Mission sequencing.
+```ini
+CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE=32
+```
 
-Planning runs synchronously on the Navigator task because the planner shares fixed-memory scratch storage.
-The route cache provides non-blocking mission and rally-point access.
-Return validates the borrowed mission view and rally-point generation before accepting a plan.
-Inactive Return estimates and initial activation use nominal Mission progress; hypothetical return directions and jump anchors are not reused as current flight state.
-Once route-following Return is active, the executor's progress is retained for replanning, including temporary fallback while cache inputs reload.
-
-Navigator records the VTOL state when it first observes a mission source and retains it through mission progress and rally-point updates.
-A source change captures a new state; a transition in progress counts as multicopter mode.
-This observation is not persisted across reboot, and unavailable vehicle status leaves the state unknown.
-
-Tests are alongside Navigator in `src/modules/navigator/test/` and the VTOL controller in `src/modules/vtol_att_control/`.
-They cover geometry, cache integration and execution; consult the test sources for the current cases.
-
-The [mission planner visualiser](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/navigator_mission_planner_visualizer/AddAndVisualizeUnitTests.md) displays test geometry and generates fixture snippets.
-It does not execute the C++ planner; see its README for supported syntax and limitations.
 :::
