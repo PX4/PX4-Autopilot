@@ -67,7 +67,11 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
 
-		if (_gnss_checks.run(gnss_sample, _time_delayed_us)) {
+		const bool vel_within_limit = gnss_sample.vel.isAllFinite()
+					      && !gnss_sample.vel.xy().longerThan(_params.ekf2_vel_lim)
+					      && (fabsf(gnss_sample.vel(2)) <= _params.ekf2_vel_lim);
+
+		if (vel_within_limit && _gnss_checks.run(gnss_sample, _time_delayed_us)) {
 			if (_gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
 				// First time checks are passing, latching.
 				_information_events.flags.gps_checks_passed = true;

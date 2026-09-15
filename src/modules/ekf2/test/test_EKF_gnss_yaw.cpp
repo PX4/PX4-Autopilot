@@ -232,7 +232,7 @@ TEST_F(EkfGpsHeadingTest, yawOnlyVelocityLimitTimeout)
 	ASSERT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	ASSERT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
 
-	// WHEN: GNSS samples are rejected for longer than the fusion timeout
+	// WHEN: GNSS samples are skipped for longer than the fusion timeout
 	const float velocity_limit = _ekf->getParamHandle()->ekf2_vel_lim;
 	_sensor_simulator._gps.setVelocity(Vector3f(velocity_limit + 1.f, 0.f, 0.f));
 	_sensor_simulator.runSeconds(8);

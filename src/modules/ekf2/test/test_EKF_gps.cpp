@@ -313,11 +313,10 @@ TEST_F(EkfGpsTest, gnssIntermittentSaccFailureDisablesFusion)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 }
 
-TEST_F(EkfGpsTest, velocityAboveLimitIsNotBuffered)
+TEST_F(EkfGpsTest, velocityAboveLimitIsNotFused)
 {
 	// GIVEN: an airborne EKF that fuses GPS with the optional quality checks disabled
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
-	EXPECT_EQ(_ekf->gnss_vel_limit_drop_count(), 0u);
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
 	_ekf->getParamHandle()->ekf2_gps_check = 0;
@@ -326,30 +325,28 @@ TEST_F(EkfGpsTest, velocityAboveLimitIsNotBuffered)
 	_sensor_simulator._gps.setVelocity(Vector3f(150.f, 0.f, 0.f));
 	_sensor_simulator.runSeconds(1);
 
-	// THEN: the samples are dropped before they reach the buffer
-	EXPECT_GT(_ekf->gnss_vel_limit_drop_count(), 0u);
+	// THEN: the samples are skipped, nothing is fused while the fusion is still intended
+	const uint64_t time_last_vel_fuse = _ekf->aid_src_gnss_vel().time_last_fuse;
+	const uint64_t time_last_pos_fuse = _ekf->aid_src_gnss_pos().time_last_fuse;
+	_sensor_simulator.runSeconds(1);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_EQ(_ekf->aid_src_gnss_vel().time_last_fuse, time_last_vel_fuse);
+	EXPECT_EQ(_ekf->aid_src_gnss_pos().time_last_fuse, time_last_pos_fuse);
 
-	// AND: without buffered data the GNSS fusion stops as on a data loss
-	_sensor_simulator.runSeconds(7);
+	// AND: the GNSS fusion stops once samples have been skipped for longer than the timeout
+	_sensor_simulator.runSeconds(6);
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 
-	// AND: valid samples restart fusion without increasing the drop count
-	const uint32_t drop_count = _ekf->gnss_vel_limit_drop_count();
+	// AND: valid samples restart the fusion
 	_sensor_simulator._gps.setVelocity(Vector3f{});
-	_sensor_simulator.runSeconds(11);
+	_sensor_simulator.runSeconds(5);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
-	EXPECT_EQ(_ekf->gnss_vel_limit_drop_count(), drop_count);
 }
 
-TEST_F(EkfGpsTest, invalidVelocityDoesNotUpdateDelayedSample)
+TEST_F(EkfGpsTest, invalidVelocityIsSkipped)
 {
-	// GIVEN: an EKF with a processed GNSS sample and no pending GNSS data
-	_sensor_simulator.stopGps();
-	_sensor_simulator.runSeconds(1);
-	const uint64_t last_sample_time = _ekf->get_gps_sample_delayed().time_us;
-	ASSERT_GT(last_sample_time, 0u);
-
-	// AND: the vehicle is airborne with the optional GNSS quality checks disabled
+	// GIVEN: an airborne EKF that fuses GPS with the optional quality checks disabled
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
 	_ekf->getParamHandle()->ekf2_gps_check = 0;
@@ -363,17 +360,21 @@ TEST_F(EkfGpsTest, invalidVelocityDoesNotUpdateDelayedSample)
 		{0.f, 0.f, -INFINITY},
 	};
 
-	_sensor_simulator.startGps();
+	// AND: the valid samples still in the buffer have been fused
+	_sensor_simulator._gps.setVelocity(invalid_velocities[0]);
+	_sensor_simulator.runSeconds(1);
 
 	for (const Vector3f &velocity : invalid_velocities) {
-		const uint32_t drop_count = _ekf->gnss_vel_limit_drop_count();
+		const uint64_t time_last_vel_fuse = _ekf->aid_src_gnss_vel().time_last_fuse;
+		const uint64_t time_last_pos_fuse = _ekf->aid_src_gnss_pos().time_last_fuse;
 
 		// WHEN: the receiver reports an over-limit or non-finite velocity
 		_sensor_simulator._gps.setVelocity(velocity);
-		_sensor_simulator.runSeconds(0.4f);
+		_sensor_simulator.runSeconds(0.5f);
 
-		// THEN: the sample is dropped and the last delayed sample remains unchanged
-		EXPECT_GT(_ekf->gnss_vel_limit_drop_count(), drop_count);
-		EXPECT_EQ(_ekf->get_gps_sample_delayed().time_us, last_sample_time);
+		// THEN: the sample is skipped without stopping the fusion
+		EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+		EXPECT_EQ(_ekf->aid_src_gnss_vel().time_last_fuse, time_last_vel_fuse);
+		EXPECT_EQ(_ekf->aid_src_gnss_pos().time_last_fuse, time_last_pos_fuse);
 	}
 }
