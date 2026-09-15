@@ -101,7 +101,14 @@ static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_str
 	return true;
 }
 
-static bool __attribute__((unused)) create_data_reader(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId input_stream_id,
+// Data reader IDs use the second half of the available ID space.
+// Add 1 so that we get a nice hex starting number: 0x800 instead of 0x7ff.
+static uint16_t data_reader_id(uint16_t index)
+{
+	return index + (65535U / 32U) + 1;
+}
+
+static bool __attribute__((unused)) create_data_reader(uxrSession *session, uxrStreamId reliable_out_stream_id,
 		uxrObjectId participant_id, uint16_t index, const char *client_namespace, const char *topic,
 		uint32_t message_version,
 		const char *type_name, uint16_t queue_depth)
@@ -114,9 +121,7 @@ static bool __attribute__((unused)) create_data_reader(uxrSession *session, uxrS
 		return false;
 	}
 
-	// Use the second half of the available ID space.
-	// Add 1 so that we get a nice hex starting number: 0x800 instead of 0x7ff.
-	uint16_t id = index + (65535U / 32U) + 1;
+	uint16_t id = data_reader_id(index);
 
 	uxrObjectId topic_id = uxr_object_id(id, UXR_TOPIC_ID);
 	uint16_t topic_req = uxr_buffer_create_topic_bin(session, reliable_out_stream_id, topic_id, participant_id, topic_name,
@@ -150,10 +155,6 @@ static bool __attribute__((unused)) create_data_reader(uxrSession *session, uxrS
 			status[0], status[1], status[2]);
 		return false;
 	}
-
-	uxrDeliveryControl delivery_control{};
-	delivery_control.max_samples = UXR_MAX_SAMPLES_UNLIMITED;
-	uxr_buffer_request_data(session, reliable_out_stream_id, datareader_id, input_stream_id, &delivery_control);
 
 	return true;
 }
