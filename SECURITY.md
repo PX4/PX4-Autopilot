@@ -18,7 +18,7 @@ read [AI-Assisted Discovery](#ai-assisted-discovery) instead.
 Before filing, check the finding against [SECURITY_SCOPE.md](SECURITY_SCOPE.md), which describes where PX4's security boundary sits and what is in scope.
 
 To begin a report, go to the [PX4/PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) repository
-and click on the **Security** tab. If you are on mobile, click the **...** dropdown menu, then click **Security**.
+and click on the **Security** tab.
 
 Click **Report a Vulnerability** to open the advisory form. Fill in the advisory details form.
 Make sure your title is descriptive and the description contains all relevant details needed
@@ -44,6 +44,7 @@ This is a deliberate choice because downstream users do not update quickly enoug
 Development in a private fork means fewer reviewers and no CI checks, which can cause issues once merged.
 
 The pull request makes the existence of the bug public, and that is expected.
+
 Keep the reproducer out of it: it works against vehicles in the field until the fix has shipped and been adopted. If you reported through the Security tab, the reproducer is already in the advisory and maintainers have it, so there is nothing further to send.
 Describe the demonstrated impact in the pull request and leave it at that.
 
@@ -71,7 +72,7 @@ apply here too: the pull request is public, the reproducer is not.
 
 A growing share of incoming security reports comes from AI-assisted code review.
 It can surface real bugs in rarely exercised code, but it also floods
-maintainers with low-quality reports. If AI tooling contributed to your finding,
+maintainers with reports. If AI tooling contributed to your finding,
 the guidance above applies, and so do the following points:
 
 - **Length**: Lead with a short summary: the affected module or file, the

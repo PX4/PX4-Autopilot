@@ -14,7 +14,7 @@ Report through the GitHub Security tab as described in [SECURITY.md](SECURITY.md
 
 ## What PX4 protects
 
-PX4 protects one thing: who gets to fly the aircraft, and who gets to make it stop.
+PX4 protects one thing: who gets to fly/control the aircraft, and who gets to make it stop.
 
 Everything else matters because of what it leads to, not in itself.
 Logs, parameters and telemetry are worth protecting because of what someone can do with them next.
@@ -42,11 +42,10 @@ Two things PX4 cannot promise: that a vehicle will not crash, and that a sensor 
                                           peripherals
 ```
 
-Everything above the "flight controller section" is the integrator's to secure.
-Everything below the flight controller is as trusted as the operator (physical access is a trust boundary).
-This includes access to the SD card, the USB port or a bus.
+Everything above the flight controller is the integrator's to secure.
+Everything below it is trusted as the operator: whoever has the SD card, the USB port or a peripheral bus can do anything the operator can.
 
-PX4's job is what happens at the boxes in the middle: whatever arrives on those interfaces must not do more than the interface is documented to do.
+PX4's job is what happens at the flight controller's interfaces: whatever arrives on them must not do more than the interface is documented to do.
 
 ## What PX4 assumes
 
@@ -59,8 +58,8 @@ PX4's job is what happens at the boxes in the middle: whatever arrives on those 
 - **Physical access is trusted as the operator.**
   The SD card holds logs, the MAVLink signing key, some boards' parameters or parameter backups and staged peripheral firmware, and it can contain boot scripts that are run at startup.
   Debug ports and the bootloader allow a full reflash.
-- **The onboard shell is administrative.**
-  A peer that can open the NSH shell is an administrator.
+- **The onboard shell is trusted as the operator.**
+  A peer that can open the NSH shell can do anything the operator can.
   NuttX supports a console password; no PX4 board enables it.
 - **The offboard transports are inside the boundary.**
   uXRCE-DDS and Zenoh publishers reach uORB directly, including `/fmu/in/actuator_motors`, `/fmu/in/actuator_servos` and `/fmu/in/vehicle_command`.
@@ -77,7 +76,7 @@ If a report starts from one of them already being true, that the attacker has th
 ### As shipped
 
 Every control interface is unauthenticated, unsigned and unencrypted.
-Anyone who can reach a link can do anything the operator can do: arm, disarm, change mode, upload missions and geofences, set parameters, open a shell over `SERIAL_CONTROL`, read and write files over MAVLink FTP, terminate flight.
+Anyone who can reach a link can do anything the operator can do: arm, disarm, change mode, upload missions and geofences, set parameters, open a shell over `SERIAL_CONTROL`, read and write files over MAVLink FTP, terminate flight, reboot, etc.
 [MAVLink Security Hardening](docs/en/mavlink/security_hardening.md) lists these capabilities in full.
 
 This is the documented default and it is not a defect.
