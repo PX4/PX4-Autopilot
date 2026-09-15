@@ -64,6 +64,7 @@
 #include <uORB/topics/rtl_time_estimate.h>
 
 class Navigator;
+class RtlMissionSafePointFollow;
 class RTLTestPeer;
 
 class RTL : public NavigatorMode, public ModuleParams
@@ -186,7 +187,10 @@ private:
 	hrt_abstime _destination_check_time{0};
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
-	RtlType _rtl_type{RtlType::RTL_DIRECT};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	RtlMissionSafePointFollow *_route_follower {nullptr}; ///< Same executor; lifetime owned through _rtl_mission_type_handle.
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	RtlType _rtl_type {RtlType::RTL_DIRECT};
 	uint32_t _mission_land_failure_mission_id{0};
 	uint16_t _mission_land_failure_count{0};
 	int32_t _mission_land_failure_index{-1};

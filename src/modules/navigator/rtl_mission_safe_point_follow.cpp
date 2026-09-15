@@ -525,6 +525,25 @@ bool RtlMissionSafePointFollow::findAdjacentRouteIndex(int32_t from_index, int32
 	       : findNextPositionIndex(from_index + 1, adjacent_index, MissionTraversalType::IgnoreDoJump);
 }
 
+bool RtlMissionSafePointFollow::resolveRouteTarget(int32_t index, mission_item_s &mission_item) const
+{
+	if (isBranchOffIndex(index)) {
+		setWaypointMissionItem(mission_item, _plan.branch_off_position);
+		return true;
+	}
+
+	const bool selected_endpoint = missionItemMatchesSelectedEndpoint(mission_item);
+
+	if (selected_endpoint && goalIsMissionTakeoff()) {
+		setGoalMissionItem(mission_item);
+
+	} else {
+		normalizeRouteMissionItem(mission_item);
+	}
+
+	return selected_endpoint;
+}
+
 bool RtlMissionSafePointFollow::loadNextRouteItem(mission_item_s &next_route_item, int32_t &next_index)
 {
 	if (!findAdjacentRouteIndex(_mission.current_seq, next_index)
@@ -532,18 +551,7 @@ bool RtlMissionSafePointFollow::loadNextRouteItem(mission_item_s &next_route_ite
 		return false;
 	}
 
-	if (isBranchOffIndex(next_index)) {
-		// Show the controller the projected branch-off before it becomes the current target.
-		setWaypointMissionItem(next_route_item, _plan.branch_off_position);
-
-	} else if (goalIsMissionTakeoff() && missionItemMatchesSelectedEndpoint(next_route_item)) {
-		// Preview the arrival target rather than the altitude of the uploaded takeoff.
-		setGoalMissionItem(next_route_item);
-
-	} else {
-		normalizeRouteMissionItem(next_route_item);
-	}
-
+	resolveRouteTarget(next_index, next_route_item);
 	return true;
 }
 
@@ -1012,19 +1020,16 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 				}
 
 				if (mission_item_contains_position(item)) {
-					if (goalIsMissionTakeoff() && missionItemMatchesSelectedEndpoint(item)) {
-						// The takeoff altitude is replaced by the synthetic destination approach.
-						break;
-					}
+					const bool last_route_item = resolveRouteTarget(walk_index, item);
 
-					if (isBranchOffIndex(walk_index)) {
-						add_position_leg(_plan.branch_off_position);
+					if (last_route_item && goalIsMissionTakeoff()) {
+						// The takeoff altitude is replaced by the synthetic destination approach.
 						break;
 					}
 
 					add_mission_item_legs(item, !inactive && !join_remaining && walk_index == _mission.current_seq);
 
-					if (missionItemMatchesSelectedEndpoint(item)) {
+					if (last_route_item) {
 						break;
 					}
 				}

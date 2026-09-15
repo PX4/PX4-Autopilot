@@ -262,12 +262,12 @@ public:
 
 	mission_route::RtlRoutePlan routePlanForTest() const
 	{
-		if (_rtl_type != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW || _rtl_mission_type_handle == nullptr) {
+		if (_rtl_type != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW || _route_follower == nullptr) {
 			ADD_FAILURE() << "Route follower is unavailable";
 			return {};
 		}
 
-		return static_cast<const RtlMissionSafePointFollow *>(_rtl_mission_type_handle)->_plan;
+		return _route_follower->_plan;
 	}
 
 	void forceRouteRetryForTest() { _destination_check_time = hrt_absolute_time() - 3'000'000; }
@@ -285,8 +285,8 @@ public:
 	void setMissionExecutorLoopSegmentForTest(const mission_route::ActiveJumpAnchor &loop_segment)
 	{
 		ASSERT_EQ(_rtl_type, RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-		ASSERT_NE(_rtl_mission_type_handle, nullptr);
-		static_cast<RtlMissionSafePointFollow *>(_rtl_mission_type_handle)->_active_jump_anchor = loop_segment;
+		ASSERT_NE(_route_follower, nullptr);
+		_route_follower->_active_jump_anchor = loop_segment;
 	}
 
 	RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
