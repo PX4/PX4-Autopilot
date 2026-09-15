@@ -58,6 +58,7 @@ bool HealthAndArmingChecks::update(bool force_reporting, bool is_arming_request)
 	// treat VTOLs in transition mode as fixed-wing - this is not in line with what's published as vehicle_status_s::vehicle_type
 	const uint8_t vehicle_type = _context.status().in_transition_mode ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING :
 				     _context.status().vehicle_type;
+	_failsafe_flags.is_rover = (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER);
 	_reporter.prepare(vehicle_type);
 
 	_context.setIsArmingRequest(is_arming_request);

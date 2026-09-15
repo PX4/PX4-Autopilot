@@ -770,6 +770,12 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 {
 	Action action = Action::None;
 
+	// If it's a rover, drop to Stabilized so it can navigate without a Z-axis
+	if (status_flags.is_rover) {
+		action = Action::FallbackPosCtrl;
+		// Note: FallbackPosCtrl safely degrades into Stabilized automatically for rovers
+	}
+
 	// offboard signal
 	if (status_flags.offboard_control_signal_lost && (status_flags.mode_req_offboard_signal & (1u << user_intended_mode))) {
 		action = fromOffboardLossActParam(_param_com_obl_rc_act.get(), user_intended_mode);
@@ -781,12 +787,22 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 
 	}
 
-	// PosCtrl/PositionSlow -> AltCtrl
+	// PosCtrl/PositionSlow -> AltCtrl (or Stabilized for Rovers)
 	if ((user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
 	     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
 	    && !modeCanRun(status_flags, user_intended_mode)) {
-		action = Action::FallbackAltCtrl;
-		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+
+		// If it's a rover, drop directly to Stabilized
+		if (status_flags.is_rover) {
+			action = Action::FallbackStab;
+			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+		}
+
+		// If it's a multirotor or plane, drop to Altitude as normal
+		else {
+			action = Action::FallbackAltCtrl;
+			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+		}
 	}
 
 	// AltCtrl -> Stabilized
