@@ -246,7 +246,7 @@ UavcanNode::reset_node(int remote_node_id)
 		}
 	}
 
-	if (!call_res) {
+	if (call_res < 0 || !_callback_success) {
 		std::printf("Failed to reset node: %d\n", remote_node_id);
 		return -1;
 	}
@@ -1497,6 +1497,7 @@ UavcanNode::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::E
 	uavcan::protocol::param::ExecuteOpcode::Response resp = result.getResponse();
 	success &= resp.ok;
 	_cmd_in_progress = false;
+	_callback_success = success;
 
 	if (!result.isSuccessful()) {
 		PX4_ERR("save request for node %hhu timed out.", node_id);
@@ -1543,6 +1544,7 @@ UavcanNode::cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::Restart
 	uavcan::protocol::RestartNode::Response resp = result.getResponse();
 	success &= resp.ok;
 	_cmd_in_progress = false;
+	_callback_success = success;
 
 	if (success) {
 		PX4_DEBUG("restart request for node %hhu completed OK.", node_id);
