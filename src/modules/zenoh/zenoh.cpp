@@ -44,6 +44,14 @@
 #include <ctype.h>
 #include <string.h>
 
+#ifdef __PX4_NUTTX
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include "zenoh_link_wait.hpp"
+#endif
+
 #include <zenoh-pico.h>
 
 // CycloneDDS CDR Deserializer
@@ -86,7 +94,7 @@ void toCamelCase(char *input)
 ZENOH::ZENOH():
 	ModuleParams(nullptr)
 {
-
+	z_internal_null(&_s);
 }
 
 ZENOH::~ZENOH()
@@ -213,28 +221,113 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 #endif
 }
 
+bool ZENOH::sleepInterruptible(hrt_abstime duration)
+{
+	for (hrt_abstime elapsed = 0; elapsed < duration && !should_exit(); elapsed += kStopCheckInterval) {
+		px4_usleep(kStopCheckInterval);
+	}
+
+	return !should_exit();
+}
+
+#ifdef __PX4_NUTTX
+namespace
+{
+/** Interface flags through SIOCGIFFLAGS, as netlib_getifstatus() does, with the module's sleep and stop request. */
+class NuttxLinkIo : public zenoh_link::Io
+{
+public:
+	NuttxLinkIo(int fd, const ModuleBase &module) : _fd(fd), _module(module) {}
+
+	bool readFlags(const char *ifname, unsigned &flags) override
+	{
+		ifreq req {};
+		strncpy(req.ifr_name, ifname, IFNAMSIZ - 1);
+
+		if (ioctl(_fd, SIOCGIFFLAGS, &req) < 0) {
+			return false;
+		}
+
+		flags = req.ifr_flags;
+		return true;
+	}
+
+	void sleep(uint32_t duration_us) override { px4_usleep(duration_us); }
+
+	bool shouldExit() override { return _module.should_exit(); }
+
+private:
+	const int _fd;
+	const ModuleBase &_module;
+};
+} // namespace
+#endif
+
+bool ZENOH::waitForLink(const char *locator)
+{
+#ifdef __PX4_NUTTX
+	char ifname[IFNAMSIZ];
+
+	if (!zenoh_link::interfaceFromLocator(locator, ifname, sizeof(ifname))) {
+		return true;
+	}
+
+	// any socket gives access to the interface ioctls
+	const int fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+	if (fd < 0) {
+		PX4_WARN("%s: cannot check the link (%d), opening the session anyway", ifname, errno);
+		return true;
+	}
+
+	NuttxLinkIo io(fd, *this);
+	_waiting_for_link.store(true);
+	const zenoh_link::WaitOutcome outcome = zenoh_link::waitForLink(ifname, io);
+	_waiting_for_link.store(false);
+	close(fd);
+
+	switch (outcome.result) {
+	case zenoh_link::WaitResult::LinkUp:
+		if (outcome.polls > 1) {
+			PX4_INFO("%s: link up after %u polls (%u ms nominal, flags 0x%x)", ifname, outcome.polls,
+				 (outcome.polls - 1) * zenoh_link::kPollIntervalMs, outcome.flags);
+		}
+
+		return true;
+
+	case zenoh_link::WaitResult::TimedOut:
+		// Fall through to z_open(): the driver may not report carrier at all (IFF_RUNNING stays
+		// clear), and a companion that boots later must still be connected to eventually.
+		PX4_WARN("%s: no link after %u polls (%u ms nominal, flags 0x%x), opening the session anyway", ifname,
+			 outcome.polls, zenoh_link::kMaxPolls * zenoh_link::kPollIntervalMs, outcome.flags);
+		return true;
+
+	case zenoh_link::WaitResult::Stopped:
+		return false;
+	}
+
+#else
+	(void)locator;
+#endif
+
+	return true;
+}
+
 int ZENOH::setupSession()
 {
-	char mode[NET_MODE_SIZE];
-	char locator[NET_LOCATOR_SIZE];
+	char mode[NET_MODE_SIZE] {};
+	char locator[NET_LOCATOR_SIZE] {};
 	z_owned_config_t config;
 	int ret = 0;
 
 	_config.getNetworkConfig(mode, locator);
+	// getNetworkConfig() fills the buffers with strncpy() and does not guarantee a terminator
+	mode[sizeof(mode) - 1] = '\0';
+	locator[sizeof(locator) - 1] = '\0';
 
 	PX4_INFO("Opening session...");
 
 	do {
-		z_config_default(&config);
-		zp_config_insert(z_loan_mut(config), Z_CONFIG_MODE_KEY, mode);
-
-		if (locator[0] != 0) {
-			zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, locator);
-
-		} else if (strcmp(Z_CONFIG_MODE_PEER, mode) == 0) {
-			zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, Z_CONFIG_MULTICAST_LOCATOR_DEFAULT);
-		}
-
 		if (ret == _Z_ERR_TRANSPORT_OPEN_FAILED) {
 			PX4_WARN("Unable to open session, make sure zenohd is running on %s", locator);
 
@@ -245,8 +338,34 @@ int ZENOH::setupSession()
 			PX4_WARN("Unable to open session, ret: %d", ret);
 		}
 
-		if (ret != 0) {
-			sleep(5); // Wait 5 seconds when doing a retry
+		if (ret != 0 && !sleepInterruptible(kSessionRetryDelay)) {
+			return -EINTR;
+		}
+
+		// z_open() connects with a blocking connect() that a stop request cannot interrupt. On NuttX
+		// it returns on SYN-ACK, RST, an ARP failure (CONFIG_NET_ARP_SEND) or once the SYN
+		// retransmissions are exhausted. Hold the attempt until the interface is up and its driver
+		// has reported carrier; this only rules out an interface that is not up yet, it does not
+		// prove a physical link or a reachable router.
+		if (!waitForLink(locator)) {
+			return -EINTR;
+		}
+
+		z_config_default(&config);
+		zp_config_insert(z_loan_mut(config), Z_CONFIG_MODE_KEY, mode);
+
+		if (locator[0] != 0) {
+			zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, locator);
+
+		} else if (strcmp(Z_CONFIG_MODE_PEER, mode) == 0) {
+			zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, Z_CONFIG_MULTICAST_LOCATOR_DEFAULT);
+		}
+
+		// last chance before the blocking open: a stop that arrived while the link check was
+		// skipped or already satisfied must not enter z_open()
+		if (should_exit()) {
+			z_drop(z_move(config));
+			return -EINTR;
 		}
 
 	} while ((ret = z_open(&_s, z_move(config), NULL)) < 0);
@@ -470,7 +589,7 @@ void ZENOH::cleanupSession()
 		z_drop(z_session_move(&_s));
 	}
 
-	connected = false;
+	_connected.store(false);
 }
 
 void ZENOH::run()
@@ -481,14 +600,19 @@ void ZENOH::run()
 	_sub_count =  _config.getSubCount();
 	px4_pollfd_struct_t pfds[_pub_count];
 
-	if (setupSession() < 0) {
-		PX4_ERR("Failed to setup Zenoh session");
+	const int setup_ret = setupSession();
+
+	if (setup_ret < 0) {
+		if (setup_ret != -EINTR) {
+			PX4_ERR("Failed to setup Zenoh session");
+		}
+
 		cleanupSession();
 		exit_and_cleanup(desc);
 		return;
 	}
 
-	connected = true;
+	_connected.store(true);
 
 	PX4_INFO("Starting reading/writing tasks...");
 
@@ -580,8 +704,11 @@ Zenoh demo bridge
 
 int ZENOH::print_status()
 {
-	if (connected) {
+	if (_connected.load()) {
 		PX4_INFO("Connected");
+
+	} else if (_waiting_for_link.load()) {
+		PX4_INFO("Connecting, waiting for the network link");
 
 	} else {
 		PX4_INFO("Connecting");

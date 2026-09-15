@@ -41,6 +41,8 @@
 
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/atomic.h>
+#include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
@@ -49,6 +51,8 @@
 #include "publishers/uorb_publisher.hpp"
 #include "subscribers/uorb_subscriber.hpp"
 
+
+using namespace time_literals;
 
 class ZENOH : public ModuleBase, public ModuleParams
 {
@@ -103,6 +107,34 @@ private:
 	int setupTopics(px4_pollfd_struct_t *pfds);
 	void cleanupSession();
 
+	/**
+	 * @brief Waits until the interface behind the locator reports a link (NuttX only).
+	 *
+	 * Polls IFF_UP | IFF_RUNNING of the interface named by the locator's "iface=" entry
+	 * (default eth0), 50 polls with 100 ms sleeps (5 s nominal), see zenoh_link_wait.hpp.
+	 * IFF_RUNNING is what the driver reports through netdev_carrier_on(). The imxrt driver only
+	 * does so once apache/nuttx a4315fbb is backported to PX4/NuttX, and then at ifup, so even
+	 * with the backport it does not prove a physical link; without it the wait always times out
+	 * on fmu-v6xrt. On timeout the session open goes ahead anyway: a missing carrier report or
+	 * a companion that is still booting must not keep the module from ever trying. On POSIX
+	 * there is no wait.
+	 * @param[in] locator zenoh locator, e.g. "tcp/10.41.10.1:7447#iface=eth0"
+	 * @return false if a stop was requested while waiting
+	 */
+	bool waitForLink(const char *locator);
+
+	/**
+	 * @brief Sleeps in slices of kStopCheckInterval, returning early on a stop request.
+	 * @param[in] duration Time to sleep [us]
+	 * @return false if a stop was requested
+	 */
+	bool sleepInterruptible(hrt_abstime duration);
+
+	// [us] Delay between session open attempts after a failed z_open()
+	static constexpr hrt_abstime kSessionRetryDelay = 5_s;
+	// [us] Granularity at which waits check for a stop request
+	static constexpr hrt_abstime kStopCheckInterval = 100_ms;
+
 	Zenoh_Config _config;
 
 	int _pub_count;
@@ -111,7 +143,9 @@ private:
 	Zenoh_Subscriber **_zenoh_subscribers = nullptr;
 
 	z_owned_session_t _s;
-	bool connected = false;
+	// written by the module task, read by print_status() from the shell task
+	px4::atomic_bool _connected{false};
+	px4::atomic_bool _waiting_for_link{false};
 
 	px4_guid_t _px4_guid{};
 
