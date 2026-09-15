@@ -525,9 +525,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 			worker_data.calibration[cur_mag].set_device_id(mag_data.device_id, mag_data.is_external);
 		}
 
-		// reset calibration index to match uORB numbering
-		worker_data.calibration[cur_mag].set_calibration_index(cur_mag);
-
 		if (worker_data.calibration[cur_mag].device_id() != 0) {
 			worker_data.x[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
 			worker_data.y[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
@@ -995,7 +992,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 				current_cal.PrintStatus();
 
-				if (current_cal.ParametersSave(cur_mag, true)) {
+				// keep the slot the device is registered in, the uORB instance is only a preference for new devices
+				if (current_cal.ParametersSave(cur_mag)) {
 					param_save = true;
 					failed = false;
 
