@@ -28,7 +28,6 @@ uint8 ACTUATOR_FUNCTION_MOTOR1 = 101
 uint8 ACTUATOR_FUNCTION_MOTOR_MAX = 112 # output_functions.yaml Motor.start + Motor.count - 1
 
 uint16 failures # [@enum FAILURE] Bitmask to indicate the internal ESC faults
-
 uint8 FAILURE_OVER_CURRENT = 0 # (1 << 0)
 uint8 FAILURE_OVER_VOLTAGE = 1 # (1 << 1)
 uint8 FAILURE_MOTOR_OVER_TEMPERATURE = 2 # (1 << 2)

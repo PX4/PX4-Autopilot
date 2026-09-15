@@ -289,22 +289,23 @@ void EscChecks::checkEscErrorCount(const Context &context, Report &reporter, con
 			continue; // Skip unmapped ESC status entries
 		}
 
-		// Only live CAN bus error counters are used to block arming
-		uint32_t error_count = esc_status.esc[esc_index].esc_errorcount;
+		uint32_t error_count = 0;
 
 		switch (esc_status.esc[esc_index].esc_errorcount_type) {
 		case esc_report_s::ERRORCOUNT_TYPE_CAN_TEC:
 		case esc_report_s::ERRORCOUNT_TYPE_CAN_REC:
 		case esc_report_s::ERRORCOUNT_TYPE_CAN_TEC_REC_MAX:
+			error_count = esc_status.esc[esc_index].esc_errorcount;
 			break;
 
 		case esc_report_s::ERRORCOUNT_TYPE_CAN_TEC_REC_PACKED:
 			// Either TEC in the upper or REC in the lower 16 bit can exceed passive limit
+			error_count = esc_status.esc[esc_index].esc_errorcount;
 			error_count = math::max(error_count >> 16, error_count & 0xffff);
 			break;
 
 		default:
-			continue;
+			break; // Currently only live CAN bus error counters are considered
 		}
 
 		if (error_count <= ESC_CAN_ERROR_COUNTER_THRESHOLD) {

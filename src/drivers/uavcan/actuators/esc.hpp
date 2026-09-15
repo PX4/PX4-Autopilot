@@ -92,11 +92,9 @@ public:
 	esc_status_s &esc_status() { return _esc_status; }
 
 	/**
-	 * INodeInfoListener: a node coming online (or restarting) triggers the vendor specific
-	 * lookup of what its esc.Status error_count field means.
+	 * INodeInfoListener: a node coming online (or restarting) triggers the vendor specific lookup of what its esc.Status error_count field means.
 	 */
-	void handleNodeInfoRetrieved(uavcan::NodeID node_id,
-				     const uavcan::protocol::GetNodeInfo::Response &node_info) override;
+	void handleNodeInfoRetrieved(uavcan::NodeID node_id, const uavcan::protocol::GetNodeInfo::Response &node_info) override;
 	void handleNodeInfoUnavailable(uavcan::NodeID node_id) override {}
 
 private:

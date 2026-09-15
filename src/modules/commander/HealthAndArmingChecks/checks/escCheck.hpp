@@ -52,7 +52,8 @@ public:
 	uint16_t getMotorFailureMask() const { return _motor_failure_mask; }
 	bool getEscArmStatus() const { return _esc_arm_hysteresis.get_state(); }
 
-	// ESC CAN error counter (TEC/REC) above which arming is blocked or a warning is raised (128 = error passive)
+	// ESC CAN error counter (TEC/REC) above which arming is blocked or a warning is raised
+	// CAN spec: 0-127 active error reporting, 128-255 passive node because too many errors, >255 bus off (node disconnects)
 	static constexpr uint32_t ESC_CAN_ERROR_COUNTER_THRESHOLD = 127;
 
 private:
