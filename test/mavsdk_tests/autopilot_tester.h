@@ -46,6 +46,7 @@
 #include <mavsdk/plugins/telemetry/telemetry.h>
 #include <mavsdk/plugins/param/param.h>
 #include <mavsdk/plugins/events/events.h>
+#include <mavsdk/plugins/shell/shell.h>
 #include "catch2/catch.hpp"
 #include <atomic>
 #include <chrono>
@@ -130,6 +131,8 @@ public:
 	void execute_mission_and_lose_mag();
 	void execute_mission_and_get_mag_stuck();
 	void execute_mission_and_lose_baro();
+	void execute_mission_and_degrade_primary_imu();
+	void execute_alternating_imu_faults();
 	void execute_mission_and_get_baro_stuck();
 	void load_qgc_mission_raw_and_move_here(const std::string &plan_file);
 	void execute_mission_raw();
@@ -159,6 +162,17 @@ public:
 	void check_current_altitude(float target_rel_altitude_m, float max_distance_m = 1.5f);
 	void execute_rtl_when_reaching_mission_sequence(int sequence_number);
 	void send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command);
+	// Measures where the vehicle actually is against the mission leg, using the simulator
+	// rather than the estimate, so an estimator jump cannot move the measurement.
+	void check_tracks_mission_ground_truth(float corridor_radius_m);
+	void stop_tracking_mission_ground_truth();
+	// The instance the estimator selector is flying on, read from estimator_selector_status
+	// through the MAVLink shell because no MAVLink message carries it. Returns -1 if the
+	// shell did not answer.
+	int primary_estimator_instance();
+
+	void request_message_interval(uint16_t message_id, float rate_hz);
+
 	void add_mavlink_message_callback(uint16_t message_id, std::function< void(const mavlink_message_t &)> callback);
 
 	mavlink_home_position_t get_home_position(std::chrono::seconds timeout = std::chrono::seconds(10));
@@ -175,6 +189,12 @@ public:
 	void set_param_int(const std::string &param, int32_t value)
 	{
 		CHECK(_param->set_param_int(param, value) == Param::Result::Success);
+	}
+
+	// Simulated time as the autopilot reports it, the clock sleep_for waits on.
+	double autopilot_time_s()
+	{
+		return _telemetry->attitude_quaternion().timestamp_us * 1e-6;
 	}
 
 	template<typename Rep, typename Period>
@@ -304,6 +324,14 @@ private:
 	std::unique_ptr<mavsdk::Failure> _failure{};
 	std::unique_ptr<mavsdk::Info> _info{};
 	std::unique_ptr<mavsdk::ManualControl> _manual_control{};
+	mavsdk::Telemetry::GroundTruthHandle _truth_corridor_handle{};
+	std::atomic<float> _truth_corridor_worst_m{0.f};
+	float _truth_corridor_radius_m{0.f};
+	// One counter per mission item, indexed by the item being flown to, so the check can
+	// prove every leg was measured rather than only that something was.
+	std::unique_ptr<std::atomic<int>[]> _truth_corridor_leg_samples{};
+	size_t _truth_corridor_leg_count{0};
+
 	std::unique_ptr<MavlinkPassthrough> _mavlink_passthrough;
 	std::unique_ptr<mavsdk::Mission> _mission{};
 	std::unique_ptr<mavsdk::MissionRaw> _mission_raw{};
@@ -311,6 +339,7 @@ private:
 	std::unique_ptr<mavsdk::Param> _param{};
 	std::unique_ptr<mavsdk::Telemetry> _telemetry{};
 	std::unique_ptr<mavsdk::Events> _events{};
+	std::unique_ptr<mavsdk::Shell> _shell{};
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
 
