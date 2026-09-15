@@ -16,6 +16,9 @@
 ## behind meta-formulae. See PX4/homebrew-px4#104 for background.
 ##
 
+# Abort on the first failing command.
+set -e
+
 # script directory
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
@@ -50,7 +53,7 @@ fi
 # "installed from the discoteq/discoteq tap but you are trying to install
 # it from homebrew/core" on machines that still have it tapped.
 if brew tap | grep -q '^discoteq/discoteq$'; then
-	brew uninstall flock 2>/dev/null
+	brew uninstall flock 2>/dev/null || true
 	brew untap discoteq/discoteq
 fi
 
@@ -99,7 +102,7 @@ PX4_BREW_PACKAGES=(
 
 if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
 	echo "[macos.sh] Re-installing PX4 toolchain dependencies"
-	brew doctor
+	brew doctor || true # warnings are informational here
 	brew reinstall "${PX4_BREW_PACKAGES[@]}"
 else
 	echo "[macos.sh] Installing PX4 toolchain dependencies"
@@ -156,7 +159,7 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		echo "[macos.sh] Pinning osrf/simulation to ${GZ_TAP_PIN}"
 		# brew taps are shallow clones, so the pinned commit has to be
 		# fetched by SHA before it can be checked out.
-		git -C "$GZ_TAP_DIR" fetch --quiet origin "$GZ_TAP_PIN" 2>/dev/null
+		git -C "$GZ_TAP_DIR" fetch --quiet origin "$GZ_TAP_PIN" 2>/dev/null || true
 		if git -C "$GZ_TAP_DIR" checkout --quiet "$GZ_TAP_PIN"; then
 			# `brew update` walks local taps and would reset the pin.
 			# homebrew-core resolves through the JSON API, not this
