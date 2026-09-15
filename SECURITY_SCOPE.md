@@ -157,5 +157,5 @@ When choosing the impact metrics, rate the effect on the aircraft rather than on
 3. Persistence across reboot.
 4. Loss of control or telemetry links, and disclosure.
 
-A safety feature that happens to limit an attacker, such as a geofence around a hijacked vehicle, is not a security control and does not reduce severity.
+A safety feature that happens to limit an attacker, such as a geofence around a hijacked vehicle, is not a security control and does not reduce the severityof a vulnerability.
 Someone who is already flying the vehicle can reconfigure it.

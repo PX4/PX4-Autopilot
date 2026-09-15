@@ -8,9 +8,8 @@ This is intentional for development and testing, but **production deployments mu
 
 There are two ways to do that, and they are not exclusive:
 
-- - **Secure the link below MAVLink**, using a radio with link-layer security,
-  a VPN, or IPsec. 
-  This uses standard, reviewed cryptography, gives confidentiality as well as authentication, and protects every interface on the link rather than only MAVLink.
+- - **Secure the link below MAVLink**, using a radio configured with link-layer security, a VPN, etc.
+Configured with authenticated encryption, this uses standard, reviewed cryptography and gives confidentiality and authentication for all traffic on the link, not only MAVLink. It is outside PX4's scope and depends on your radio and network stack.
 - **Enable [MAVLink message signing](message_signing.md)**, which authenticates MAVLink frames without encrypting them.
   This is the mechanism PX4 itself ships, and it is described in this guide.
 
