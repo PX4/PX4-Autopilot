@@ -1252,6 +1252,30 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, MissionLoadFailureIsFatal)
 
 // ---- VTOL segment state ----
 
+TEST_F(MissionRouteProjectionTestBase, InvalidTransitionTargetRetainsUploadState)
+{
+	constexpr uint8_t kMc = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	constexpr uint8_t kFw = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+	for (const float target : {NAN, INFINITY, -INFINITY, -1.f, 0.f, 1.f, 2.f, 5.f, 255.f, 256.f, 1e30f}) {
+		SCOPED_TRACE(target);
+		mission_item_s invalid_transition = makeVtolTransitionItem(kMc);
+		invalid_transition.params[0] = target;
+		const VectorProvider provider = makeRouteProvider({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makeVtolTransitionItem(kFw),
+			invalid_transition,
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		});
+		mission_route::Segment segment{};
+		segment.start = {0, NAV_CMD_WAYPOINT};
+		segment.end = {3, NAV_CMD_WAYPOINT};
+
+		// A malformed last transition still stops the scan; an older mode is not substituted.
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, kMc), kMc);
+	}
+}
+
 // VTOL_TAKEOFF implicitly enters FW; a later explicit transition still takes precedence.
 TEST_F(MissionRouteProjectionTestBase, VtolTakeoffSetsFwUntilNextExplicitTransition)
 {

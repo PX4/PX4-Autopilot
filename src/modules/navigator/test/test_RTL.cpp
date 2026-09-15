@@ -163,6 +163,15 @@ struct ApproachGeometry {
 	PositionYawSetpoint south;
 };
 
+ApproachGeometry makeApproachGeometry()
+{
+	return ApproachGeometry{
+		makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
+		makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 150.f, 100.f, kAlt + 20.f),
+		makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 50.f, 100.f, kAlt + 20.f),
+	};
+}
+
 struct VehicleStateCase {
 	const char *test_name;
 	bool is_vtol;
@@ -221,12 +230,6 @@ class RTLTestPeer : public RTL
 {
 public:
 	explicit RTLTestPeer(Navigator *navigator) : RTL(navigator) {}
-
-	loiter_point_s chooseBestLandingApproachForTest(const land_approaches_s &vtol_land_approaches)
-	{
-		_wind_sub.update();
-		return chooseBestLandingApproach(vtol_land_approaches);
-	}
 
 	loiter_point_s selectLandingApproachForTest(const PositionYawSetpoint &destination)
 	{
@@ -611,15 +614,6 @@ protected:
 		return mission;
 	}
 #endif
-
-	ApproachGeometry makeApproachGeometry() const
-	{
-		return ApproachGeometry{
-			makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
-			makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 150.f, 100.f, kAlt + 20.f),
-			makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 50.f, 100.f, kAlt + 20.f),
-		};
-	}
 
 	orb_advert_t _home_pub{nullptr};
 	orb_advert_t _vehicle_status_pub{nullptr};
@@ -1309,17 +1303,15 @@ TEST_F(RTLTest, MissionFastReverseKeepsVtolInMulticopterMode)
 	EXPECT_EQ(mission_fast_reverse.activeNavCommand(), NAV_CMD_WAYPOINT);
 }
 
-TEST_F(RTLTest, ChooseBestLandingApproachRequiresLandLocation)
+TEST(RtlLandingApproachTest, RequiresLandLocation)
 {
-	// GIVEN: A valid loiter and no land point.
-	publishWind(1.f, 0.f);
-
+	// A valid loiter needs its associated land point.
 	const PositionYawSetpoint north_approach = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 20.f);
 	land_approaches_s vtol_land_approaches{};
 	vtol_land_approaches.approaches[0] = makeLoiterPoint(north_approach);
 
 	// WHEN: The chooser runs.
-	const loiter_point_s selected_approach = _rtl.chooseBestLandingApproachForTest(vtol_land_approaches);
+	const loiter_point_s selected_approach = mission_route::chooseBestLandingApproach(vtol_land_approaches, 0.f);
 
 	// THEN: It returns no approach.
 	EXPECT_FALSE(selected_approach.isValid());
@@ -1327,11 +1319,10 @@ TEST_F(RTLTest, ChooseBestLandingApproachRequiresLandLocation)
 
 // WHY: Approach bearing is measured from the land point.
 // WHAT: Home should not affect the choice.
-TEST_F(RTLTest, ChooseBestLandingApproachUsesLandLocationAsBearingOrigin)
+TEST(RtlLandingApproachTest, UsesLandLocationAsBearingOrigin)
 {
 	// GIVEN: Two approaches on opposite sides of the land point and a 60 degree wind.
-	publishWind(1.f, std::sqrt(3.0f));
-
+	const float wind_direction = atan2f(std::sqrt(3.0f), 1.f);
 	const ApproachGeometry geometry = makeApproachGeometry();
 	land_approaches_s vtol_land_approaches{};
 	vtol_land_approaches.land_location_lat_lon(0) = geometry.land.lat;
@@ -1340,10 +1331,26 @@ TEST_F(RTLTest, ChooseBestLandingApproachUsesLandLocationAsBearingOrigin)
 	vtol_land_approaches.approaches[1] = makeLoiterPoint(geometry.south);
 
 	// WHEN: The chooser evaluates the block.
-	const loiter_point_s selected_approach = _rtl.chooseBestLandingApproachForTest(vtol_land_approaches);
+	const loiter_point_s selected_approach = mission_route::chooseBestLandingApproach(vtol_land_approaches, wind_direction);
 
 	// THEN: The north approach is selected.
 	expectLoiterPointNear(selected_approach, geometry.north);
+}
+
+TEST(RtlLandingApproachTest, KeepsFirstApproachOnEqualBearings)
+{
+	const ApproachGeometry geometry = makeApproachGeometry();
+	land_approaches_s approaches{};
+	approaches.land_location_lat_lon = matrix::Vector2d(geometry.land.lat, geometry.land.lon);
+	approaches.approaches[1] = makeLoiterPoint(geometry.north);
+	approaches.approaches[2] = makeLoiterPoint(geometry.north);
+	approaches.approaches[2].height_m += 10.f;
+
+	// Ignore the empty slot and keep the first approach when bearings tie.
+	expectLoiterPointNear(mission_route::chooseBestLandingApproach(approaches, 0.f), geometry.north);
+	EXPECT_FALSE(mission_route::chooseBestLandingApproach(approaches, NAN).isValid());
+	approaches.resetAllApproaches();
+	EXPECT_FALSE(mission_route::chooseBestLandingApproach(approaches, 0.f).isValid());
 }
 
 class SelectLandingApproachVehicleStateTest :

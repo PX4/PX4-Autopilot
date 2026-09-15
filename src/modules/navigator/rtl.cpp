@@ -55,7 +55,6 @@
 
 using namespace time_literals;
 using namespace math;
-using matrix::wrap_pi;
 
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
 
@@ -982,43 +981,9 @@ loiter_point_s RTL::selectLandingApproach(const PositionYawSetpoint &destination
 				_home_pos_sub.get().alt);
 
 	if (vtol_land_approaches.isAnyApproachValid()) {
-		landing_approach = chooseBestLandingApproach(vtol_land_approaches);
+		const float wind_direction = atan2f(_wind_sub.get().windspeed_east, _wind_sub.get().windspeed_north);
+		landing_approach = mission_route::chooseBestLandingApproach(vtol_land_approaches, wind_direction);
 	}
 
 	return landing_approach;
-}
-
-loiter_point_s RTL::chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches) const
-{
-	if (!vtol_land_approaches.land_location_lat_lon.isAllFinite()) {
-		return loiter_point_s();
-	}
-
-	const float wind_direction = atan2f(_wind_sub.get().windspeed_east, _wind_sub.get().windspeed_north);
-	int8_t min_index = -1;
-	float wind_angle_prev = INFINITY;
-
-	for (int i = 0; i < vtol_land_approaches.num_approaches_max; i++) {
-
-		if (vtol_land_approaches.approaches[i].isValid()) {
-			// The approach circles are defined around the land location.
-			const float wind_angle = wrap_pi(get_bearing_to_next_waypoint(vtol_land_approaches.land_location_lat_lon(0),
-							 vtol_land_approaches.land_location_lat_lon(1), vtol_land_approaches.approaches[i].lat,
-							 vtol_land_approaches.approaches[i].lon) - wind_direction);
-
-			if (fabsf(wind_angle) < wind_angle_prev) {
-				min_index = i;
-				wind_angle_prev = fabsf(wind_angle);
-			}
-
-		}
-	}
-
-	if (min_index >= 0) {
-		return vtol_land_approaches.approaches[min_index];
-
-	} else {
-
-		return loiter_point_s();
-	}
 }

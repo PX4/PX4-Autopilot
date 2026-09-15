@@ -173,13 +173,6 @@ private:
 	void parameters_update();
 
 	/**
-	 * @brief Choose the most wind-aligned approach in a landing-approach block.
-	 *
-	 * Bearings are evaluated from the block's land location.
-	 */
-	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches) const;
-
-	/**
 	 * @brief Return the wind-selected VTOL approach for destination, or an invalid loiter if none exists.
 	 */
 	loiter_point_s selectLandingApproach(const PositionYawSetpoint &destination) const;

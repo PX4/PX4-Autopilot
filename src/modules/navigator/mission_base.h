@@ -51,9 +51,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 #include <uORB/topics/vtol_vehicle_status.h>
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/Publication.hpp>
@@ -100,6 +98,7 @@ protected:
 		WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN,	/**< perform the VTOL transition required after joining */
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
+		WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION, /**< wait before front-transition alignment */
 		WORK_ITEM_TYPE_ALIGN_HEADING,		/**< align for next waypoint */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
@@ -130,6 +129,26 @@ protected:
 	RouteJoinContext _route_join_context{};
 	static constexpr float kJoinRouteFlyByAcceptanceRadiusScale{2.f};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+	struct VtolTransitionContext {
+		mission_item_s command{}; // Retain uploaded parameters while alignment uses _mission_item.
+		mission_item_s target{};
+		WorkItemType completion_work{WorkItemType::WORK_ITEM_TYPE_DEFAULT};
+		bool hold_current_position{false};
+	} _vtol_transition{};
+
+	/** Start shared execution; the caller keeps ownership of its target and cursor. */
+	void startVtolTransition(const mission_item_s &command, const mission_item_s *alignment_target,
+				 WorkItemType completion_work, bool hold_current_position);
+	/** Return true when ready for the normal on_active() completion path. */
+	bool updateVtolTransition();
+	/** Prepare alignment or command setpoints; callers retain their mission-item semantics. */
+	virtual void prepareVtolTransitionItem(bool aligning);
+	bool vtolTransitionActive() const { return _vtol_transition.command.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION; }
+	void resetVtolTransition() { _vtol_transition = {}; }
+	virtual bool frontTransitionInhibited() const { return false; }
+	/** Synthetic helper work items must not report an uploaded item reached. */
+	virtual bool shouldReportMissionItemReached() const;
 
 	/**
 	 * @brief Get the previous mission position items using this mode's traversal policy.
@@ -501,8 +520,6 @@ protected:
 
 	static bool vehicleInFwLikeState(const vehicle_status_s &vehicle_status);
 	virtual uint8_t missionStartVtolState() const;
-	/** Synthetic helper work items must not mark an uploaded mission item reached. */
-	virtual bool shouldReportMissionItemReached() const;
 
 	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed);
 
@@ -535,6 +552,8 @@ protected:
 	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item}; /**< Navigator mission item publication*/
 	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)}; /**< Mission publication*/
 private:
+	void set_mission_item_reached();
+
 	/**
 	 * @brief Maximum number of jump mission items iterations
 	 *
@@ -558,16 +577,9 @@ private:
 			       MissionTraversalType traversal_type, bool direction_backward);
 
 
-	/**
-	 * Set a mission item as reached
-	 */
-	void set_mission_item_reached();
-
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	bool handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_triplet,
 				     const position_setpoint_s &current_setpoint_copy);
-
-	bool handleTransitionAfterJoin(position_setpoint_triplet_s *pos_sp_triplet);
 
 	bool joinRouteTransitionStillRequired() const;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE

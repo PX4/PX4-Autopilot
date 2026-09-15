@@ -154,6 +154,7 @@ int32_t MissionBase::getIncomingMissionCurrentSeq(const mission_s &incoming_miss
 
 void MissionBase::onMissionUpdate(bool has_mission_items_changed)
 {
+	resetVtolTransition();
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	// Both a replacement mission and an external sequence change invalidate the virtual join.
 	resetJoinRouteState();
@@ -228,6 +229,8 @@ MissionBase::on_inactivation()
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
 	}
+
+	resetVtolTransition();
 
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
@@ -332,7 +335,7 @@ MissionBase::on_active()
 	}
 
 	// check if heading alignment is necessary, and add it to the current mission item if necessary
-	if (_align_heading_necessary && is_mission_item_reached_or_completed()) {
+	if (_align_heading_necessary && !vtolTransitionActive() && is_mission_item_reached_or_completed()) {
 
 		// add yaw alignment requirement on the current mission item
 		int32_t next_mission_item_index;
@@ -379,35 +382,15 @@ MissionBase::on_active()
 		}
 	}
 
-	bool waiting_for_back_transition = false;
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	waiting_for_back_transition = _work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN;
-
-	if (waiting_for_back_transition) {
-		// Resume from vehicle state, even if back-transition drift put the join waypoint out of reach.
-		if (!_vehicle_status_sub.get().in_transition_mode || _vehicle_status_sub.get().in_transition_to_fw) {
-			set_mission_items();
-		}
-	}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-
 	/* lets check if we reached the current mission item */
-	if (!waiting_for_back_transition && _mission_type != MissionType::MISSION_TYPE_NONE
-	    && is_mission_item_reached_or_completed()) {
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
+	if (_mission_type != MissionType::MISSION_TYPE_NONE
+	    && (vtolTransitionActive() ? updateVtolTransition() : is_mission_item_reached_or_completed())) {
 		if (shouldReportMissionItemReached()) {
-#else
-
-		/* If we just completed a takeoff which was inserted before the right waypoint,
-		   there is no need to report that we reached it because we didn't. */
-		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 			set_mission_item_reached();
 		}
 
 		if (_mission_item.autocontinue) {
+			resetVtolTransition();
 			/* switch to next waypoint if 'autocontinue' flag set */
 			advance_mission();
 			set_mission_items();
@@ -418,6 +401,7 @@ MissionBase::on_active()
 	if (!_param_mis_mnt_yaw_ctl.get()
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 	    && (_navigator->get_vroi().mode != vehicle_roi_s::ROI_NONE)
+	    && !vtolTransitionActive()
 	    && !(_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 		 || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
 		 || _mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
@@ -532,7 +516,7 @@ void MissionBase::update_mission()
 
 		// Route joining is armed before activation reaches update_mission(). Keep it until
 		// it completes; an actual mission definition change clears it in onMissionUpdate().
-		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
+		if (!vtolTransitionActive() && _work_item_type != WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
 		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN
 		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN
 		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
@@ -540,8 +524,12 @@ void MissionBase::update_mission()
 		}
 
 #else
-		/* reset work item if new mission has been accepted */
-		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+
+		/* Keep a running transition through a feasibility refresh. */
+		if (!vtolTransitionActive()) {
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		}
+
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 		/* reset mission failure if we have an updated valid mission */
@@ -564,7 +552,7 @@ void
 MissionBase::advance_mission()
 {
 	/* do not advance mission item if we're processing sub mission work items */
-	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_DEFAULT || vtolTransitionActive()) {
 		return;
 	}
 
@@ -599,6 +587,10 @@ MissionBase::set_mission_items()
 	bool set_end_of_mission{false};
 
 	if (_is_current_planned_mission_item_valid && _mission_type == MissionType::MISSION_TYPE_MISSION && isMissionValid()) {
+		if (vtolTransitionActive()) {
+			return;
+		}
+
 		/* By default set the mission item to the current planned mission item. Depending on request, it can be altered. */
 		if (loadCurrentMissionItem()) {
 			/* force vtol land */
@@ -652,6 +644,7 @@ bool MissionBase::loadCurrentMissionItem()
 
 void MissionBase::setEndOfMissionItems()
 {
+	resetVtolTransition();
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	if (_land_detected_sub.get().landed) {
@@ -692,23 +685,24 @@ MissionBase::set_mission_item_reached()
 	reset_mission_item_reached();
 }
 
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 bool MissionBase::shouldReportMissionItemReached() const
 {
 	switch (_work_item_type) {
 	case WorkItemType::WORK_ITEM_TYPE_CLIMB:
+	case WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION:
 	case WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING:
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	case WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE:
 	case WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN:
 	case WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN:
 	case WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN:
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		return false;
 
 	default:
 		return true;
 	}
 }
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 void
 MissionBase::set_mission_result()
@@ -856,6 +850,131 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 
 }
 
+void MissionBase::startVtolTransition(const mission_item_s &command, const mission_item_s *alignment_target,
+				      WorkItemType completion_work, bool hold_current_position)
+{
+	_vtol_transition.command = command;
+	_vtol_transition.target = alignment_target ? *alignment_target : mission_item_s{};
+	_vtol_transition.completion_work = completion_work;
+	_vtol_transition.hold_current_position = hold_current_position;
+	_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	if (completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	reset_mission_item_reached();
+	updateVtolTransition();
+}
+
+bool MissionBase::updateVtolTransition()
+{
+	const bool front_transition = int(_vtol_transition.command.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+	const bool in_back_transition = _vehicle_status_sub.get().in_transition_mode
+					&& !_vehicle_status_sub.get().in_transition_to_fw;
+	const bool command_issued = _work_item_type == _vtol_transition.completion_work;
+
+	if (front_transition && frontTransitionInhibited()) {
+		_mission_item = _vtol_transition.command;
+		_work_item_type = _vtol_transition.completion_work;
+		return true;
+	}
+
+	if (command_issued) {
+		return !_vehicle_status_sub.get().in_transition_mode && is_mission_item_reached_or_completed();
+	}
+
+	position_setpoint_triplet_s &triplet = *_navigator->get_position_setpoint_triplet();
+	bool aligning = _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	aligning |= _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+	if (front_transition && in_back_transition) {
+		// A back transition can also start during alignment; align again once it finishes.
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		if (_vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN;
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+		triplet.current.yaw = NAN;
+		_navigator->set_position_setpoint_triplet_updated();
+		set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+		return false;
+	}
+
+	const bool needs_alignment = !_land_detected_sub.get().landed
+				     && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+				     && !_vehicle_status_sub.get().in_transition_to_fw
+				     && mission_item_contains_position(_vtol_transition.target)
+				     && PX4_ISFINITE(_vtol_transition.target.lat) && PX4_ISFINITE(_vtol_transition.target.lon);
+
+	if (needs_alignment && !aligning) {
+		prepareVtolTransitionItem(true);
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		if (_vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN;
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+	} else {
+		if (needs_alignment && (!is_mission_item_reached_or_completed() || !_mission_item.autocontinue)) {
+			return false;
+		}
+
+		prepareVtolTransitionItem(false);
+		issue_command(_mission_item);
+		_work_item_type = _vtol_transition.completion_work;
+	}
+
+	reset_mission_item_reached();
+
+	if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
+		set_mission_result();
+	}
+
+	publish_navigator_mission_item();
+	_navigator->set_position_setpoint_triplet_updated();
+	return false;
+}
+
+void MissionBase::prepareVtolTransitionItem(bool aligning)
+{
+	auto &triplet = *_navigator->get_position_setpoint_triplet();
+
+	if (aligning) {
+		_mission_item = {};
+		set_align_mission_item(&_mission_item, &_vtol_transition.target);
+
+		if (_vtol_transition.hold_current_position) {
+			const auto *position = _navigator->get_global_position();
+			_mission_item.lat = position->lat;
+			_mission_item.lon = position->lon;
+			_mission_item.altitude = position->alt;
+		}
+
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+		_mission_item.origin = ORIGIN_ONBOARD;
+		mission_item_to_position_setpoint(_mission_item, &triplet.current);
+		triplet.next.valid = false;
+
+	} else {
+		_mission_item = _vtol_transition.command;
+		// FW position control uses the aligned triplet yaw during front transition.
+		triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+	}
+
+	triplet.previous.valid = false;
+}
+
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 void MissionBase::setupJoinRoute(const mission_route::Position &join_position, bool use_current_altitude,
 				 VtolTransitionAction transition_action)
@@ -869,6 +988,10 @@ void MissionBase::setupJoinRoute(const mission_route::Position &join_position, b
 
 void MissionBase::resetJoinRouteState()
 {
+	if (_vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+		resetVtolTransition();
+	}
+
 	_route_join_context = {};
 
 	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
@@ -882,59 +1005,40 @@ void MissionBase::resetJoinRouteState()
 bool MissionBase::handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_triplet,
 		const position_setpoint_s &current_setpoint_copy)
 {
-	const bool in_back_transition = _vehicle_status_sub.get().in_transition_mode
-					&& !_vehicle_status_sub.get().in_transition_to_fw;
-
-	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
-		if (!(_waypoint_position_reached && _waypoint_yaw_reached)) {
-			return handleJoinRouteWaypoint(pos_sp_triplet, current_setpoint_copy);
-		}
-
-		if (!joinRouteTransitionStillRequired()) {
-			PX4_INFO("Join route reached, resuming route");
-			resetJoinRouteState();
-			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-			return false;
-		}
-
-		if (_route_join_context.transition_action == VtolTransitionAction::kFrontTransition) {
-			_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN;
-			reset_mission_item_reached();
-
-		} else {
-			_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
-		}
-	}
-
-	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN
-	    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN) {
-		if (!joinRouteTransitionStillRequired()) {
-			resetJoinRouteState();
-			return false;
-		}
-
-		if (in_back_transition) {
-			_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN;
-			return handleJoinRouteWaypoint(pos_sp_triplet, current_setpoint_copy);
-		}
-
-		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN) {
-			_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN;
-			reset_mission_item_reached();
-		}
-
-		if (!(_waypoint_position_reached && _waypoint_yaw_reached)) {
-			return handleJoinRouteWaypoint(pos_sp_triplet, current_setpoint_copy);
-		}
-
-		_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
-	}
-
 	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
-		return handleTransitionAfterJoin(pos_sp_triplet);
+		resetJoinRouteState();
+		return false;
 	}
 
-	return false;
+	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
+		return false;
+	}
+
+	if (!(_waypoint_position_reached && _waypoint_yaw_reached)) {
+		return handleJoinRouteWaypoint(pos_sp_triplet, current_setpoint_copy);
+	}
+
+	if (!joinRouteTransitionStillRequired()) {
+		resetJoinRouteState();
+		return false;
+	}
+
+	const bool front_transition = _route_join_context.transition_action == VtolTransitionAction::kFrontTransition;
+	mission_item_s target{};
+
+	if (front_transition
+	    && (!loadMissionItemFromCache(_mission.current_seq, target) || !mission_item_contains_position(target))) {
+		PX4_ERR("Route join alignment target unavailable");
+		resetJoinRouteState();
+		setEndOfMissionItems();
+		return true;
+	}
+
+	mission_item_s command{};
+	set_vtol_transition_item(&command, front_transition
+				 ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	startVtolTransition(command, front_transition ? &target : nullptr, WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN, false);
+	return true;
 }
 
 bool MissionBase::handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_triplet,
@@ -962,22 +1066,7 @@ bool MissionBase::handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_tr
 		join_item.altitude = _navigator->get_global_position()->alt;
 	}
 
-	const bool aligning_heading = _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN;
-
-	if (aligning_heading) {
-		mission_item_s alignment_target{};
-
-		if (!loadMissionItemFromCache(_mission.current_seq, alignment_target)
-		    || !mission_item_contains_position(alignment_target)) {
-			PX4_ERR("Route join alignment target unavailable");
-			resetJoinRouteState();
-			setEndOfMissionItems();
-			return true;
-		}
-
-		set_align_mission_item(&join_item, &alignment_target);
-
-	} else if (_route_join_context.transition_action == VtolTransitionAction::kBackTransition) {
+	if (_route_join_context.transition_action == VtolTransitionAction::kBackTransition) {
 		join_item.vtol_back_transition = true;
 
 	} else if (_route_join_context.transition_action == VtolTransitionAction::kNone
@@ -988,10 +1077,7 @@ bool MissionBase::handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_tr
 	mission_item_to_position_setpoint(join_item, &pos_sp_triplet->current);
 	_navigator->reset_position_setpoint(pos_sp_triplet->next);
 
-	if (aligning_heading) {
-		pos_sp_triplet->previous.valid = false;
-
-	} else if (!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
+	if (!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
 		pos_sp_triplet->previous = current_setpoint_copy;
 	}
 
@@ -1008,42 +1094,15 @@ bool MissionBase::handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_tr
 	return true;
 }
 
-bool MissionBase::handleTransitionAfterJoin(position_setpoint_triplet_s *pos_sp_triplet)
-{
-	if (!joinRouteTransitionStillRequired()) {
-		PX4_INFO("Route join complete");
-		resetJoinRouteState();
-		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-		return false;
-	}
-
-	const uint8_t target_state = _route_join_context.transition_action == VtolTransitionAction::kFrontTransition
-				     ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
-				     : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-	set_vtol_transition_item(&_mission_item, target_state);
-	_mission_item.yaw = NAN;
-
-	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-	pos_sp_triplet->previous.valid = false;
-	issue_command(_mission_item);
-	reset_mission_item_reached();
-
-	if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
-		set_mission_result();
-	}
-
-	publish_navigator_mission_item();
-	_navigator->set_position_setpoint_triplet_updated();
-	return true;
-}
-
 bool MissionBase::joinRouteTransitionStillRequired() const
 {
-	const bool landed = _land_detected_sub.get().landed;
-	const bool currently_fw = vehicleInFwLikeState(_vehicle_status_sub.get());
-
-	return !landed && ((_route_join_context.transition_action == VtolTransitionAction::kBackTransition && currently_fw)
-			   || (_route_join_context.transition_action == VtolTransitionAction::kFrontTransition && !currently_fw));
+	const auto &status = _vehicle_status_sub.get();
+	const bool mode_complete = !status.in_transition_mode
+				   && status.vehicle_type == (_route_join_context.transition_action == VtolTransitionAction::kFrontTransition
+						   ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING : vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	return !_land_detected_sub.get().landed && !mode_complete
+	       && _route_join_context.transition_action != VtolTransitionAction::kNone
+	       && !(_route_join_context.transition_action == VtolTransitionAction::kFrontTransition && frontTransitionInhibited());
 }
 
 float MissionBase::computeFrontTransitionAlignmentYaw(int32_t current_target_index)
@@ -1500,22 +1559,7 @@ uint8_t MissionBase::getVtolStateAtMissionIndex(int32_t anchor_index)
 			continue;
 		}
 
-		if (mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
-			const float target_state = mission_item.params[0];
-			const int transition_mode = PX4_ISFINITE(target_state) && target_state >= 0.f && target_state <= UINT8_MAX
-						    ? static_cast<int>(roundf(target_state)) : -1;
-
-			if (transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
-				vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-
-			} else if (transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-				vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-			}
-
-			break;
-
-		} else if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
-			vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		if (mission_route::updateVtolStateFromMissionItem(mission_item, vtol_state)) {
 			break;
 		}
 	}
