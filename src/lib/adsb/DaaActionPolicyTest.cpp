@@ -87,6 +87,7 @@ const uint8_t kStatesEnableTermination[] {
 	vehicle_status_s::NAVIGATION_STATE_MANUAL,
 	vehicle_status_s::NAVIGATION_STATE_ALTCTL,
 	vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE,
+	vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING,
 	vehicle_status_s::NAVIGATION_STATE_POSCTL,
 	vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW,
 	vehicle_status_s::NAVIGATION_STATE_ACRO,
