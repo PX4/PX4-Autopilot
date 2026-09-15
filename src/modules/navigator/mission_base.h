@@ -501,6 +501,8 @@ protected:
 
 	static bool vehicleInFwLikeState(const vehicle_status_s &vehicle_status);
 	virtual uint8_t missionStartVtolState() const;
+	/** Synthetic helper work items must not mark an uploaded mission item reached. */
+	virtual bool shouldReportMissionItemReached() const;
 
 	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed);
 
@@ -562,9 +564,6 @@ private:
 	void set_mission_item_reached();
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/** Synthetic helper work items must not mark an uploaded mission item reached. */
-	bool shouldReportMissionItemReached() const;
-
 	bool handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_triplet,
 				     const position_setpoint_s &current_setpoint_copy);
 

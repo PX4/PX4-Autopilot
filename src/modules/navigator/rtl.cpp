@@ -370,9 +370,11 @@ void RTL::setRtlTypeAndDestination()
 
 	} else if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT) {
 		const mission_s &mission = _mission_sub.get();
+
 		route_evaluation = _route_safe_point.evaluate(mission, _vehicle_status_sub.get(),
 				   _global_pos_sub.get(), _home_pos_sub.get(), _wind_sub.get(),
 				   hasValidMission(), isActive(), _param_rtl_appr_force.get() == 1);
+
 		_home_has_land_approach = route_evaluation.home_has_land_approach;
 		_one_rally_point_has_land_approach = route_evaluation.any_safe_point_has_land_approach;
 
@@ -532,6 +534,15 @@ void RTL::setRtlTypeAndDestination()
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	_rtl_type = new_rtl_type;
+
+	if (isActive() && _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT
+	    && new_rtl_type != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _vehicle_status_sub.get().in_transition_to_fw) {
+		// The controller retains front transition for type 7; a direct fallback must cancel it.
+		vehicle_command_s command{};
+		command.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
+		command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		_navigator->publish_vehicle_command(command);
+	}
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 

@@ -130,7 +130,7 @@ private:
 			const home_position_s &home_position,
 			bool rtl_active,
 			bool require_vtol_approach) const;
-	/** Pick the wind-aligned VTOL approach loiter at the selected safe point; empty unless a fixed-wing VTOL. */
+	/** Retain the selected safe point's VTOL approach; the follower uses it if arriving in fixed-wing mode. */
 	static loiter_point_s selectGoalLandApproach(const mission_route::Provider &provider,
 			const mission_route::RtlRoutePlan &plan,
 			const vehicle_status_s &vehicle_status,

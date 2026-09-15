@@ -47,6 +47,7 @@
 #include "rtl_base.h"
 #include <lib/perf/perf_counter.h>
 #include <lib/rtl/rtl_time_estimator.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 class RtlMissionSafePointFollow : public RtlBase
@@ -58,6 +59,7 @@ public:
 
 	void on_inactivation() override;
 	void on_activation() override;
+	void on_active() override;
 
 	bool isLanding() override { return isExecutingGoalStage(); }
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const override { return _active_jump_anchor; }
@@ -72,6 +74,8 @@ private:
 	enum class Stage {
 		Idle = 0,                /**< No active plan. */
 		FollowRoute,             /**< Follow the mission geometry in nominal or reverse direction. */
+		WaitForBackTransition,  /**< Finish an ongoing back transition before aligning for a front transition. */
+		AlignForRouteTransition, /**< Hold position and align with the next flown target. */
 		TransitionDuringRoute,   /**< Apply a VTOL transition during route following (prevents re-issuing). */
 		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
 		MoveToGoal,              /**< Approach the destination at the altitude held on leaving the route. */
@@ -98,6 +102,7 @@ private:
 
 	/** @brief Advance the RTL stage machine without replaying the full mission control flow. */
 	bool setNextMissionItem() override;
+	bool shouldReportMissionItemReached() const override;
 	/** @brief Publish the current join, follow, branch-off, or landing setpoints for the active RTL stage. */
 	void setActiveMissionItems() override;
 
@@ -114,7 +119,7 @@ private:
 	/** @brief Build the first destination item flown after the branch-off or a route shortcut. */
 	void setGoalMissionItem(mission_item_s &mission_item) const;
 	/** @brief Resolve the destination loiter, capped at the arrival altitude. */
-	loiter_point_s goalLandApproach(float arrival_altitude) const;
+	loiter_point_s goalLandApproach(float arrival_altitude, bool use_approach) const;
 	float goalArrivalAltitude() const;
 	/** @brief Freeze the arrival altitude and enter the destination sequence. */
 	void enterGoalStage();
@@ -134,6 +139,8 @@ private:
 	bool loadNextRouteItem(mission_item_s &next_route_item, int32_t &next_index);
 	/** @brief Arm the synthetic route transition that should be issued on the next publication pass. */
 	void armRouteTransition(mission_route::VtolTransitionAction action, bool advance_route_after_transition);
+	bool frontTransitionInhibited() const;
+	mission_route::VtolTransitionAction allowedRouteTransition(mission_route::VtolTransitionAction action) const;
 	/** @brief Publish and issue the staged route transition, then wait for completion. */
 	void handleRouteTransitionStage(position_setpoint_triplet_s *pos_sp_triplet,
 					const position_setpoint_s &current_setpoint_copy);
@@ -190,6 +197,7 @@ private:
 	bool shouldReplayMissionActionItems() const override { return false; }
 
 	mission_route::RtlRoutePlan _plan{};
+	uORB::SubscriptionData<vtol_vehicle_status_s> _vtol_status_sub{ORB_ID(vtol_vehicle_status)};
 	mission_item_s _goal_mission_land_item{};
 	bool _goal_mission_land_item_valid{false};
 	uint8_t _vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};

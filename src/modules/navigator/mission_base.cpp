@@ -697,6 +697,7 @@ bool MissionBase::shouldReportMissionItemReached() const
 {
 	switch (_work_item_type) {
 	case WorkItemType::WORK_ITEM_TYPE_CLIMB:
+	case WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING:
 	case WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE:
 	case WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN:
 	case WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN:
@@ -736,7 +737,8 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			      || (_mission_item.nav_cmd == NAV_CMD_LAND));
 
 	bool needs_vtol_landing = _vehicle_status_sub.get().is_vtol &&
-				  (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
+				  (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+				   || _vehicle_status_sub.get().in_transition_to_fw) &&
 				  (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND) &&
 				  !_land_detected_sub.get().landed;
 
@@ -1561,54 +1563,19 @@ MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionForTarget(int
 MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionAfterReachingReverseTarget(
 	int32_t reached_target_index)
 {
-	const auto &vehicle_status = _vehicle_status_sub.get();
-
-	if (!vehicle_status.is_vtol || reached_target_index < 0 || reached_target_index >= _mission.count) {
+	if (!_vehicle_status_sub.get().is_vtol || reached_target_index <= 0 || reached_target_index >= _mission.count) {
 		return VtolTransitionAction::kNone;
 	}
 
-	bool attached_transition_found = false;
+	int32_t previous_position_index = -1;
 
-	for (int32_t index = reached_target_index + 1; index < _mission.count; ++index) {
-		mission_item_s mission_item{};
-
-		if (!loadMissionItemFromCache(index, mission_item)) {
-			PX4_ERR("Failed to read mission item %d for reverse VTOL state", static_cast<int>(index));
-			break;
-		}
-
-		if (mission_item_contains_position(mission_item)) {
-			break;
-		}
-
-		if (mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
-			const float target_state = mission_item.params[0];
-			const int transition_mode = PX4_ISFINITE(target_state) && target_state >= 0.f && target_state <= UINT8_MAX
-						    ? static_cast<int>(roundf(target_state)) : -1;
-			attached_transition_found = transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
-						    || transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-			break;
-		}
-	}
-
-	if (!attached_transition_found) {
+	// In reverse, restore the mode of the leg leaving the waypoint just reached.
+	// Resolving that leg also handles a join over a DO_JUMP with a different mode.
+	if (!findPreviousPositionIndex(reached_target_index, previous_position_index, MissionTraversalType::IgnoreDoJump)) {
 		return VtolTransitionAction::kNone;
 	}
 
-	const uint8_t next_reverse_segment_state = reached_target_index <= 0
-			? missionStartVtolState()
-			: getVtolStateAtMissionIndex(reached_target_index - 1);
-	const bool currently_fw = vehicleInFwLikeState(vehicle_status);
-
-	if (next_reverse_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && currently_fw) {
-		return VtolTransitionAction::kBackTransition;
-	}
-
-	if (next_reverse_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !currently_fw) {
-		return VtolTransitionAction::kFrontTransition;
-	}
-
-	return VtolTransitionAction::kNone;
+	return vtolTransitionActionForTarget(previous_position_index, true);
 }
 
 void MissionBase::updateActiveJumpAnchorForNominalAdvance(mission_route::ActiveJumpAnchor &active_jump_anchor)
