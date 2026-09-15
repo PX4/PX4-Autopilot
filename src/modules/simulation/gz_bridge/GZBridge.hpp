@@ -126,7 +126,7 @@ private:
 
 	void clockCallback(const gz::msgs::Clock &msg);
 	void airspeedCallback(const gz::msgs::AirSpeed &msg);
-	void airPressureCallback(const gz::msgs::FluidPressure &msg);
+	void airPressureCallback(const gz::msgs::FluidPressure &msg, uint8_t instance_index);
 	void imuCallback(const gz::msgs::IMU &msg, uint8_t instance_index);
 	void poseInfoCallback(const gz::msgs::Pose_V &msg);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &msg);
@@ -169,7 +169,12 @@ private:
 	};
 
 	PX4Rangefinder   _px4_rangefinder{10092812}; // 10092812: DRV_DIST_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Barometer     _px4_baro{6620172};  // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+
+	static constexpr uint8_t _MAX_BARO_SENSORS = 2;
+	PX4Barometer     _px4_baro[_MAX_BARO_SENSORS] {
+		{6620172},  // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+		{6620428}   // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
+	};
 
 	uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<obstacle_distance_s>        _obstacle_distance_pub{ORB_ID(obstacle_distance)};
