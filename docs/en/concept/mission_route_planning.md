@@ -21,15 +21,14 @@ Route Safe Point Return (`RTL_TYPE=7`) uses it for its initial route join, and M
 
 ::: warning
 The planner requires a complete mission from the [mission route cache](../advanced/mission_route_cache.md).
-If the cache or planning result is unavailable, Route Safe Point Return falls back to the direct destination selection used by `RTL_TYPE=3`.
-A fallback caused by pending cache inputs is reconsidered after those inputs become ready.
-Changes to the mission cache generation or rally-point source trigger reevaluation, unless the executor has already committed to landing.
+[Direct fallback](#route-following-fallback) can leave the mission corridor and select a different destination using `RTL_TYPE=3` rules.
+Review the fallback conditions below before relying on the mission route as a return corridor.
 :::
 
 ::: info
-Route-following Return currently supports fixed-wing and multicopter vehicles.
-VTOL vehicles use direct RTL fallback because front transitions are disabled in `AUTO_RTL`.
-Smart Mission rejoin can execute the VTOL transition actions supplied by the planner.
+Route-following Return supports fixed-wing, multicopter and VTOL vehicles.
+VTOL vehicles change flight mode to match the selected route legs, including when following the mission in reverse.
+After a fixed-wing system failure, Route-following Return keeps the selected route and continues in multicopter mode, skipping front transitions while the failure remains active.
 :::
 
 ::: warning
@@ -106,6 +105,17 @@ Here an active [`DO_JUMP` loop segment](#vehicle-projection) is used as return g
 Route following skips waypoint hold times and timed or unlimited loiter holds, but preserves `LOITER_TO_ALT`.
 The vehicle approaches these loiters at its current altitude, then changes altitude in the loiter before continuing.
 
+::: details How VTOL Transitions Work Along the Route
+
+VTOL transition commands belong to the preceding position waypoint in the uploaded mission.
+For example, `A → front transition → B → back transition → C` is flown in reverse as `C → B` in multicopter mode, then a front transition at `B`, followed by `B → A` in fixed-wing mode.
+The executor restores the mode required by each reverse leg rather than replaying the transition commands backwards.
+Before a front transition, it waits for any back transition to finish, holds its position and aligns towards the next route target.
+It advances the route after the transition completes.
+An ongoing front transition may finish when route-following Return is activated; direct fallback cancels it.
+Only internal front-transition commands for `RTL_TYPE=7` are accepted in Return mode, and they cannot clear a latched fixed-wing system failure.
+:::
+
 At a rally point or mission takeoff endpoint, the vehicle first approaches at the altitude held when leaving the route.
 It then follows the destination arrival policy configured by [RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT), [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY), and [RTL_LOITER_RAD](../advanced_config/parameter_reference.md#RTL_LOITER_RAD):
 
@@ -116,10 +126,45 @@ It then follows the destination arrival policy configured by [RTL_DESCEND_ALT](.
 The descent altitude is relative to the destination and is capped at the arrival altitude, so arrival does not introduce another return-altitude climb.
 Synthetic landings use [RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD) for precision landing.
 An uploaded mission landing command retains its own landing and precision-landing settings; the synthetic destination descent and delay do not override it.
+A VTOL arriving in fixed-wing mode can use the selected rally point's landing approach, then back-transitions and lands through the existing VTOL landing sequence.
+If arrival starts during a front transition, the vehicle still back-transitions before landing.
+An approach is retained even when Return starts in multicopter mode, but is only flown if the vehicle reaches the destination phase in fixed-wing mode.
 
 Before Return is activated, its time estimate is refreshed every two seconds using a branch-in recomputed from the current mission index and vehicle position.
 During Return, the estimate follows the remaining route and arrival stages, counting sequential loiter altitude changes and multicopter landing descent separately from horizontal approach.
 With a negative landing delay, it estimates time to the indefinite hold.
+For VTOL, the estimate uses the flight mode of each route leg and multicopter mode for the final vertical descent.
+It does not model transition duration or turning dynamics.
+
+#### Direct Fallback and Route Deviations {#route-following-fallback}
+
+Direct fallback reselects the destination using [RTL_TYPE=3](../flight_modes/return.md#rtl_type_3): home, an eligible rally point or a mission landing pattern.
+The destination can differ from the SRP goal, and the vehicle can fly outside the mission corridor to reach it.
+The direct-RTL climb and landing approach still apply; selecting a mission landing pattern means flying directly to that pattern before following it.
+
+Fallback occurs when:
+
+- Route planning is compiled out (`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0`).
+- The current mission has no valid feasibility result, including while validation is pending or the result belongs to a previous mission, home position or geofence.
+- The complete mission or rally-point cache is unavailable, still loading/reloading or does not match the current source. This includes missions exceeding the configured full-cache capacity.
+- The planner cannot produce a valid join and return path: for example, required position/index/parameter inputs are invalid, required mission data cannot be read, or no usable rally point or mission endpoint can be reached through the route.
+- The result cannot be accepted because its source changed during planning, its plan is invalid, or the selected rally-point index exceeds the supported range.
+- The route executor cannot be allocated.
+- Vehicle status reports a type other than multicopter or fixed-wing. VTOL hover, forward flight and transitions are supported.
+
+During route following, a mission/rally-source change or mission-cache generation change triggers replanning.
+If that replan cannot be accepted, the same direct fallback applies.
+Once destination arrival/landing is committed, source changes do not replace that sequence.
+
+Pending cache or mission-validation inputs are retried on the two-second check once they are ready and the mission is valid, provided landing has not started.
+Other planning or allocation failures do not automatically retry on that timer.
+
+If no rally point is usable, the planner first tries mission takeoff/landing endpoints.
+A fixed-wing system failure keeps SRP on the selected route in MC, skipping front transitions.
+An incomplete time estimate alone does not trigger fallback.
+
+Even with a valid plan, [route-skip shortcuts](#route-skip-shortcuts) can bypass the join and route when the vehicle is already near the selected goal or branch-off leg.
+Those shortcuts retain the planner's selected goal; they are separate from direct fallback.
 
 ## Point Projection
 
@@ -365,26 +410,18 @@ See [Safe-Point Batching](#safe-point-batching) for the rally-point batch config
 
 ## Code Architecture
 
+::: details Click to See Details on the Code Architecture
+
 The reusable planner library and its Navigator consumers are in `src/modules/navigator/`.
 The planner entry points orchestrate projection and goal selection; consumers execute only the public plans:
 
-```text
-mission_route_planner.*           public planning entry points, path solving, and goal scoring
- `-- mission_route_projection.*   projects the vehicle and safe points onto the route
+![Mission and Return flow from the shared route cache through planning, execution, estimation and flight controllers](../../assets/mission_route_planner/code_architecture.svg)
 
-mission_route_types.*             public requests, plans, positions, and parsing helpers
-mission_route_internal_types.*    internal geometry and scoring types
-mission_route_provider.h          interface for reading mission and safe-point data
-mission_route_land_approaches.*   shared VTOL landing-approach lookup
-mission_route_cache.*             composes full-mission, safe-point, and land caches
-full_mission_cache.*              optional complete-mission buffer and async loader
-
-mission.*                        requests and executes Mission rejoin plans
-rtl.*                            requests a Return plan and selects the direct fallback
-rtl_route_safe_point.*           owns optional planning, source identity, and route continuity
-rtl_mission_safe_point_follow.*  executes the join, route, branch-off, and landing stages
-mission_base.*                   provides shared route-join and VTOL-transition handling
-```
+The planner returns geometry and transition requirements without publishing flight commands.
+`Mission` owns nominal traversal and persistent actions; `RtlRouteSafePoint` supplies RTL planning inputs and tracks source identity and route progress.
+RTL owns executor selection, configuration and lifetime.
+The follower executes geometric route targets and destination stages, using `MissionBase` and `MissionBlock` for shared mission mechanics.
+Its in-route transition sequencing is currently separate from nominal Mission sequencing.
 
 Planning runs synchronously on the Navigator task because the planner shares fixed-memory scratch storage.
 The route cache provides non-blocking mission and rally-point access.
@@ -396,20 +433,9 @@ Navigator records the VTOL state when it first observes a mission source and ret
 A source change captures a new state; a transition in progress counts as multicopter mode.
 This observation is not persisted across reboot, and unavailable vehicle status leaves the state unknown.
 
-The unit tests live in `src/modules/navigator/test/` (`test_mission_route_*.cpp`, with shared fixtures under `test/support/`).
-The geometry tests use an in-memory `VectorMissionRouteProvider`; the cache and MissionBase tests exercise the Dataman-backed integration:
+Tests are alongside Navigator in `src/modules/navigator/test/` and the VTOL controller in `src/modules/vtol_att_control/`.
+They cover geometry, cache integration and execution; consult the test sources for the current cases.
 
-- `functional-test_mission_route_cache`: async loading and polling, oversized-mission rejection, retry/identity, synchronization, views, and stale-data protection.
-- `functional-test_mission_base`: mission execution, route joins, back-transition waits and heading alignment before a rejoin front transition, VTOL transitions, and coherence of successful `DO_JUMP` increments and resets with the full cache.
-- `functional-test_mission_route_projection`: candidate ordering and pruning, local-minimum corner rules, vehicle branch-in selection, loop anchors, and edge cases.
-- `functional-test_mission_route_planner`: public Mission and Return plans, loop path solving, safe-point scoring, U-turn penalty, VTOL approach eligibility, endpoint fallback, and skip policy.
-- `functional-test_RTL`: safe-point, mission-land, and VTOL-approach behavior through the combined cache facade, plus repeated inactive route estimates and activation without stale route direction.
-- `functional-test_RTL_mission_safe_point_follow`: route joining and following, loiter altitude changes, destination descent and landing delay, branch-off and endpoint handling, cache invalidation and fallback, and committed arrival stages.
-
-Because the test geometry is defined directly in C++, it can be hard to picture. To inspect a test case visually, paste its C++ into the Streamlit helper at `Tools/navigator_mission_planner_visualizer/` (`mission_planner_tools.py`), which plots the missions, fences, rally/safe points, vehicle positions, and projections on a map. The same tool can generate C++ snippets for new test data drawn on the map.
-It visualizes fixture geometry; it does not execute the C++ planner or infer which candidate the planner selects. See its [README](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/navigator_mission_planner_visualizer/AddAndVisualizeUnitTests.md) for the supported syntax and setup.
-
-![Mission route planner visualization tool](../../assets/mission_route_planner/mission_route_planner_visualization_tool.png)
-
-The screenshot includes the tool's legacy geofence generator.
-Mission and safe-point snippets use the current planner test helpers; legacy geofence and `PathCheck` snippets need adaptation to the receiving fixture, as described in the tool's README.
+The [mission planner visualiser](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/navigator_mission_planner_visualizer/AddAndVisualizeUnitTests.md) displays test geometry and generates fixture snippets.
+It does not execute the C++ planner; see its README for supported syntax and limitations.
+:::
