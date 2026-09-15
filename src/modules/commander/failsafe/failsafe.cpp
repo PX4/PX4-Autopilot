@@ -35,10 +35,7 @@
 #include "failsafe_action_modes.h"
 
 #include <px4_platform_common/log.h>
-#ifndef EMSCRIPTEN_BUILD
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_status.h>
-#endif
 #include <uORB/topics/battery_status.h>
 #include <lib/circuit_breaker/circuit_breaker.h>
 
@@ -773,15 +770,11 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 {
 	Action action = Action::None;
 
-	bool is_rover = false;
-
-#ifndef EMSCRIPTEN_BUILD
-	// Only run the uORB subscription on actual hardware or SITL simulations
-	static uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
-	vehicle_status_s vehicle_status{};
-	vehicle_status_sub.copy(&vehicle_status);
-	is_rover = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER);
-#endif
+	// If it's a rover, drop to Stabilized so it can navigate without a Z-axis
+	if (status_flags.is_rover) {
+		action = Action::FallbackPosCtrl;
+		// Note: FallbackPosCtrl safely degrades into Stabilized automatically for rovers
+	}
 
 	// offboard signal
 	if (status_flags.offboard_control_signal_lost && (status_flags.mode_req_offboard_signal & (1u << user_intended_mode))) {
@@ -800,7 +793,7 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	    && !modeCanRun(status_flags, user_intended_mode)) {
 
 		// If it's a rover, drop directly to Stabilized
-		if (is_rover) {
+		if (status_flags.is_rover) {
 			action = Action::FallbackStab;
 			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
 		}
