@@ -141,7 +141,7 @@ parameters:
         # Note: values are due to legacy compatibility; keep in sync with msg/Vtx.msg
         values:
           0: Generic
-          5120: Peak THOR T67
+          5120: Peak THOR - T35, T67, T78, T89
           10240: Rush MAX SOLO
         default: 0
         reboot_required: true
