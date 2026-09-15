@@ -7,6 +7,7 @@ namespace sensor
 
 Gps::Gps(std::shared_ptr<Ekf> ekf): Sensor(ekf)
 {
+	_checks.setParams(_check_params);
 }
 
 Gps::~Gps()
@@ -27,7 +28,43 @@ void Gps::send(const uint64_t time)
 		stepHeightByMeters(-_gps_pos_rate(2) * dt);
 	}
 
+
+	gnssChecksSample sample{};
+	sample.time_us = _gps_data.time_us;
+	sample.lat = _gps_data.lat;
+	sample.lon = _gps_data.lon;
+	sample.alt = _gps_data.alt;
+	sample.vel = _gps_data.vel;
+	sample.hacc = _gps_data.hacc;
+	sample.vacc = _gps_data.vacc;
+	sample.sacc = _gps_data.sacc;
+	sample.fix_type = _gps_data.fix_type;
+	sample.nsats = _gps_data.nsats;
+	sample.pdop = _gps_data.pdop;
+	sample.spoofed = _gps_data.spoofed;
+	sample.jammed = _gps_data.jammed;
+
+	// Use the real sensor-layer checks and the same simulated vehicle state as the EKF.
+	const auto &control_status = _ekf->control_status_flags();
+	_checks.run(sample, control_status.in_air, control_status.vehicle_at_rest);
+
+	gnssCheckStatus checks{};
+	checks.checks_passed = _checks.passed();
+	checks.check_fail_status.value = _checks.getFailStatus().value & _checks.getEnabledChecksFailStatusMask();
+	checks.enabled_checks.value = _checks.getEnabledChecksFailStatusMask();
+	checks.position_drift_rate_horizontal_m_s = _checks.horizontal_position_drift_rate_m_s();
+	checks.position_drift_rate_vertical_m_s = _checks.vertical_position_drift_rate_m_s();
+	checks.filtered_horizontal_speed_m_s = _checks.filtered_horizontal_velocity_m_s();
+
+	// Status topic contract: the EKF applies the latest result to whatever sample it fuses next
+	_ekf->setGpsChecksData(checks);
 	_ekf->setGpsData(_gps_data);
+}
+
+void Gps::setMinRequiredGpsHealthTime(const uint64_t time_us)
+{
+	_check_params.min_health_time_us = time_us;
+	_checks.setParams(_check_params);
 }
 
 void Gps::setData(const gnssSample &gps)

@@ -71,10 +71,6 @@
 # include "aid_sources/range_finder/sensor_range_finder.hpp"
 #endif // CONFIG_EKF2_RANGE_FINDER
 
-#if defined(CONFIG_EKF2_GNSS)
-# include "aid_sources/gnss/gnss_checks.hpp"
-#endif // CONFIG_EKF2_GNSS
-
 #include <lib/atmosphere/atmosphere.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <matrix/math.hpp>
@@ -90,12 +86,16 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS)
 	void setGpsData(const gnssSample &gnss_sample);
+	void setGpsChecksData(const gnssCheckStatus &gnss_checks);
 
 	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
-	float gps_horizontal_position_drift_rate_m_s() const { return _gnss_checks.horizontal_position_drift_rate_m_s(); }
-	float gps_vertical_position_drift_rate_m_s() const { return _gnss_checks.vertical_position_drift_rate_m_s(); }
-	float gps_filtered_horizontal_velocity_m_s() const { return _gnss_checks.filtered_horizontal_velocity_m_s(); }
+	float gps_horizontal_position_drift_rate_m_s() const { return _gnss_checks.position_drift_rate_horizontal_m_s; }
+	float gps_vertical_position_drift_rate_m_s() const { return _gnss_checks.position_drift_rate_vertical_m_s; }
+	float gps_filtered_horizontal_velocity_m_s() const { return _gnss_checks.filtered_horizontal_speed_m_s; }
+
+	// GNSS samples dropped by setGpsData() because their velocity exceeds EKF2_VEL_LIM
+	uint32_t gnss_vel_limit_drop_count() const { return _gnss_vel_limit_drop_count; }
 
 #endif // CONFIG_EKF2_GNSS
 
@@ -404,20 +404,11 @@ protected:
 	uint64_t _time_last_gps_buffer_push{0};
 
 	gnssSample _gps_sample_delayed{};
+	gnssCheckStatus _gnss_checks{};
+	uint64_t _time_last_gnss_checks_pass_us{0}; ///< last delayed-horizon time a fused GNSS sample passed the checks (us)
+	uint32_t _gnss_vel_limit_drop_count{0};
 
-	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
-	GnssChecks _gnss_checks{_params.ekf2_gps_check,
-			   _params.ekf2_req_nsats,
-			   _params.ekf2_req_pdop,
-			   _params.ekf2_req_eph,
-			   _params.ekf2_req_epv,
-			   _params.ekf2_req_sacc,
-			   _params.ekf2_req_hdrift,
-			   _params.ekf2_req_vdrift,
-			   _params.ekf2_req_fix,
-			   _params.ekf2_vel_lim,
-			   _min_gps_health_time_us,
-			   _control_status};
+	bool _checks_never_passed{true};
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// innovation consistency check monitoring ratios

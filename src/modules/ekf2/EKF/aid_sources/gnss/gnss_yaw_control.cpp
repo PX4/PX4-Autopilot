@@ -66,7 +66,6 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 				2 * GNSS_YAW_MAX_INTERVAL);
 
 		const bool starting_conditions_passing = continuing_conditions_passing
-				&& _gnss_checks.passed()
 				&& !is_gnss_yaw_data_intermittent
 				&& !_gps_intermittent;
 

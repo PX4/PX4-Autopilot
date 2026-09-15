@@ -86,15 +86,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gps_p_noise(_params->ekf2_gps_p_noise),
 	_param_ekf2_gps_p_gate(_params->ekf2_gps_p_gate),
 	_param_ekf2_gps_v_gate(_params->ekf2_gps_v_gate),
-	_param_ekf2_gps_check(_params->ekf2_gps_check),
-	_param_ekf2_req_eph(_params->ekf2_req_eph),
-	_param_ekf2_req_epv(_params->ekf2_req_epv),
-	_param_ekf2_req_sacc(_params->ekf2_req_sacc),
-	_param_ekf2_req_nsats(_params->ekf2_req_nsats),
-	_param_ekf2_req_pdop(_params->ekf2_req_pdop),
-	_param_ekf2_req_hdrift(_params->ekf2_req_hdrift),
-	_param_ekf2_req_vdrift(_params->ekf2_req_vdrift),
-	_param_ekf2_req_fix(_params->ekf2_req_fix),
+	_param_gnss_req_sacc(_params->gnss_req_sacc),
 	_param_ekf2_gsf_tas(_params->ekf2_gsf_tas),
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -228,6 +220,9 @@ EKF2::~EKF2()
 {
 	perf_free(_ekf_update_perf);
 	perf_free(_msg_missed_imu_perf);
+#if defined(CONFIG_EKF2_GNSS)
+	perf_free(_gnss_vel_limit_drop_perf);
+#endif // CONFIG_EKF2_GNSS
 }
 
 void EKF2::AdvertiseTopics()
@@ -254,7 +249,6 @@ void EKF2::AdvertiseTopics()
 #if defined(CONFIG_EKF2_GNSS)
 
 	if (_param_ekf2_gps_ctrl.get()) {
-		_estimator_gps_status_pub.advertise();
 		_yaw_est_pub.advertise();
 	}
 
@@ -435,6 +429,9 @@ int EKF2::print_status(bool verbose)
 
 	perf_print_counter(_ekf_update_perf);
 	perf_print_counter(_msg_missed_imu_perf);
+#if defined(CONFIG_EKF2_GNSS)
+	perf_print_counter(_gnss_vel_limit_drop_perf);
+#endif // CONFIG_EKF2_GNSS
 
 	if (verbose) {
 #if defined(CONFIG_EKF2_VERBOSE_STATUS)
@@ -468,10 +465,6 @@ void EKF2::Run()
 
 		// force advertise topics immediately for logging (EKF2_LOG_VERBOSE, per aid source control)
 		AdvertiseTopics();
-
-#if defined(CONFIG_EKF2_GNSS)
-		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
-#endif // CONFIG_EKF2_GNSS
 
 		const matrix::Vector3f imu_pos_body(_param_ekf2_imu_pos_x.get(),
 						    _param_ekf2_imu_pos_y.get(),
@@ -809,6 +802,7 @@ void EKF2::Run()
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
 		UpdateGpsSample(ekf2_timestamps);
+		UpdateGpsStatus();
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		UpdateMagSample(ekf2_timestamps);
@@ -864,7 +858,6 @@ void EKF2::Run()
 			}
 
 #if defined(CONFIG_EKF2_GNSS)
-			PublishGpsStatus(now);
 			PublishYawEstimatorStatus(now);
 #endif // CONFIG_EKF2_GNSS
 
@@ -1377,44 +1370,6 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 		_global_position_pub.publish(global_pos);
 	}
 }
-
-#if defined(CONFIG_EKF2_GNSS)
-void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
-{
-	const hrt_abstime timestamp_sample = _ekf.get_gps_sample_delayed().time_us;
-
-	if (timestamp_sample == _last_gps_status_published) {
-		return;
-	}
-
-	estimator_gps_status_s estimator_gps_status{};
-	estimator_gps_status.timestamp_sample = timestamp_sample;
-
-	estimator_gps_status.position_drift_rate_horizontal_m_s = _ekf.gps_horizontal_position_drift_rate_m_s();
-	estimator_gps_status.position_drift_rate_vertical_m_s   = _ekf.gps_vertical_position_drift_rate_m_s();
-	estimator_gps_status.filtered_horizontal_speed_m_s      = _ekf.gps_filtered_horizontal_velocity_m_s();
-
-	estimator_gps_status.checks_passed = _ekf.gps_checks_passed();
-
-	estimator_gps_status.check_fail_gps_fix          = _ekf.gps_check_fail_status_flags().fix;
-	estimator_gps_status.check_fail_min_sat_count    = _ekf.gps_check_fail_status_flags().nsats;
-	estimator_gps_status.check_fail_max_pdop         = _ekf.gps_check_fail_status_flags().pdop;
-	estimator_gps_status.check_fail_max_horz_err     = _ekf.gps_check_fail_status_flags().hacc;
-	estimator_gps_status.check_fail_max_vert_err     = _ekf.gps_check_fail_status_flags().vacc;
-	estimator_gps_status.check_fail_max_spd_err      = _ekf.gps_check_fail_status_flags().sacc;
-	estimator_gps_status.check_fail_max_horz_drift   = _ekf.gps_check_fail_status_flags().hdrift;
-	estimator_gps_status.check_fail_max_vert_drift   = _ekf.gps_check_fail_status_flags().vdrift;
-	estimator_gps_status.check_fail_max_horz_spd_err = _ekf.gps_check_fail_status_flags().hspeed;
-	estimator_gps_status.check_fail_max_vert_spd_err = _ekf.gps_check_fail_status_flags().vspeed;
-	estimator_gps_status.check_fail_spoofed_gps      = _ekf.gps_check_fail_status_flags().spoofed;
-
-	estimator_gps_status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-	_estimator_gps_status_pub.publish(estimator_gps_status);
-
-
-	_last_gps_status_published = timestamp_sample;
-}
-#endif // CONFIG_EKF2_GNSS
 
 void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 {
@@ -1949,7 +1904,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_GNSS)
 	// only report enabled GPS check failures
-	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value & _ekf.gps_check_fail_status_enabled_mask();
+	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value;
 #endif // CONFIG_EKF2_GNSS
 
 	status.control_mode_flags = _ekf.control_status().value;
@@ -2672,6 +2627,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		};
 
 		_ekf.setGpsData(gnss_sample);
+		perf_set_count(_gnss_vel_limit_drop_perf, _ekf.gnss_vel_limit_drop_count());
 
 		const float geoid_height = altitude_ellipsoid - altitude_amsl;
 
@@ -2686,6 +2642,26 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			_last_geoid_height_update_us = gnss_sample.time_us;
 		}
 
+	}
+}
+
+void EKF2::UpdateGpsStatus()
+{
+	// Latest GNSS check status published by the sensors module. It is a status topic (latest-wins):
+	// only forward new publications and otherwise keep the previous one, never an unpublished message.
+	vehicle_gps_status_s vehicle_gps_position_status;
+
+	if (_vehicle_gps_position_status_sub.update(&vehicle_gps_position_status)) {
+		const gnssCheckStatus gnss_checks{
+			.position_drift_rate_horizontal_m_s = vehicle_gps_position_status.position_drift_rate_horizontal_m_s,
+			.position_drift_rate_vertical_m_s = vehicle_gps_position_status.position_drift_rate_vertical_m_s,
+			.filtered_horizontal_speed_m_s = vehicle_gps_position_status.filtered_horizontal_speed_m_s,
+			.check_fail_status = {.value = vehicle_gps_position_status.flags},
+			.enabled_checks = {.value = vehicle_gps_position_status.enabled_checks},
+			.checks_passed = vehicle_gps_position_status.checks_passed,
+		};
+
+		_ekf.setGpsChecksData(gnss_checks);
 	}
 }
 

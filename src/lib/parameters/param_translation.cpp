@@ -357,5 +357,30 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-09-08: move GNSS quality parameters to the sensor layer.
+	static constexpr struct {
+		const char *old_name;
+		const char *new_name;
+	} gnss_parameters[] {
+		{"EKF2_GPS_CHECK", "GNSS_CHECK"},
+		{"EKF2_REQ_EPH", "GNSS_REQ_EPH"},
+		{"EKF2_REQ_EPV", "GNSS_REQ_EPV"},
+		{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
+		{"EKF2_REQ_NSATS", "GNSS_REQ_NSATS"},
+		{"EKF2_REQ_PDOP", "GNSS_REQ_PDOP"},
+		{"EKF2_REQ_HDRIFT", "GNSS_REQ_HDRIFT"},
+		{"EKF2_REQ_VDRIFT", "GNSS_REQ_VDRIFT"},
+		{"EKF2_REQ_FIX", "GNSS_REQ_FIX"},
+		{"EKF2_REQ_GPS_H", "GNSS_REQ_GPS_H"},
+	};
+
+	for (const auto &parameter : gnss_parameters) {
+		if (strcmp(parameter.old_name, node->name) == 0) {
+			strcpy(node->name, parameter.new_name);
+			PX4_INFO("migrating %s -> %s", parameter.old_name, node->name);
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

@@ -41,12 +41,17 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gps_status.h>
 #include <uORB/topics/pps_capture.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
 
+#include <lib/gnss/gnss_checks.hpp>
 #include "gps_blending.hpp"
 #include "PpsTimeSync.hpp"
 
@@ -82,6 +87,11 @@ private:
 		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
 
 	uORB::Publication<sensor_gps_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
+	uORB::Publication<vehicle_gps_status_s> _vehicle_gps_position_status_pub{ORB_ID(vehicle_gps_position_status)};
+	uORB::PublicationMulti<vehicle_gps_status_s> _sensor_gps_status_pub[GPS_MAX_RECEIVERS] {
+		ORB_ID(sensor_gps_status),
+		ORB_ID(sensor_gps_status)
+	};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -91,9 +101,13 @@ private:
 	};
 
 	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
+	GnssChecks _gnss_checks[GPS_MAX_RECEIVERS];
+	GnssChecks _vehicle_gps_position_checks;
 	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
 
@@ -116,7 +130,17 @@ private:
 		(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy,
 		(ParamFloat<px4::params::SENS_GPS1_OFFZ>) _param_sens_gps1_offz,
 		(ParamInt<px4::params::SENS_GPS0_DELAY>) _param_sens_gps0_delay,
-		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay
+		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay,
+		(ParamInt<px4::params::GNSS_CHECK>) _param_gnss_check,
+		(ParamInt<px4::params::GNSS_REQ_NSATS>) _param_gnss_req_nsats,
+		(ParamFloat<px4::params::GNSS_REQ_PDOP>) _param_gnss_req_pdop,
+		(ParamFloat<px4::params::GNSS_REQ_EPH>) _param_gnss_req_eph,
+		(ParamFloat<px4::params::GNSS_REQ_EPV>) _param_gnss_req_epv,
+		(ParamFloat<px4::params::GNSS_REQ_SACC>) _param_gnss_req_sacc,
+		(ParamFloat<px4::params::GNSS_REQ_HDRIFT>) _param_gnss_req_hdrift,
+		(ParamFloat<px4::params::GNSS_REQ_VDRIFT>) _param_gnss_req_vdrift,
+		(ParamInt<px4::params::GNSS_REQ_FIX>) _param_gnss_req_fix,
+		(ParamFloat<px4::params::GNSS_REQ_GPS_H>) _param_gnss_req_gps_h
 	)
 };
 }; // namespace sensors

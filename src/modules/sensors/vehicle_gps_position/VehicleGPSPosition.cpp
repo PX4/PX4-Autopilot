@@ -40,11 +40,63 @@
 
 namespace sensors
 {
+
+inline gnssChecksSample gnssSampleFromSensorGpsMsg(const sensor_gps_s &gps)
+{
+	gnssChecksSample sample{};
+
+	sample.time_us = gps.timestamp_sample;
+
+	sample.lat = gps.latitude_deg;
+	sample.lon = gps.longitude_deg;
+	sample.alt = static_cast<float>(gps.altitude_msl_m);
+
+	sample.vel = matrix::Vector3f(gps.vel_n_m_s, gps.vel_e_m_s, gps.vel_d_m_s);
+
+	sample.hacc = gps.eph;
+	sample.vacc = gps.epv;
+	sample.sacc = gps.s_variance_m_s;
+
+	sample.fix_type = gps.fix_type;
+	sample.nsats    = gps.satellites_used;
+	sample.pdop     = sqrtf(gps.hdop * gps.hdop + gps.vdop * gps.vdop);
+
+	sample.spoofed = gps.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED;
+	sample.jammed  = gps.jamming_state  == sensor_gps_s::JAMMING_STATE_DETECTED;
+
+	return sample;
+}
+
+inline vehicle_gps_status_s vehicleGpsStatusFromGnssChecks(const GnssChecks &checks, uint32_t device_id)
+{
+	vehicle_gps_status_s msg{};
+
+	msg.timestamp = hrt_absolute_time();
+
+	msg.device_id = device_id;
+
+	msg.position_drift_rate_horizontal_m_s = checks.horizontal_position_drift_rate_m_s();
+	msg.position_drift_rate_vertical_m_s = checks.vertical_position_drift_rate_m_s();
+	msg.filtered_horizontal_speed_m_s = checks.filtered_horizontal_velocity_m_s();
+
+	msg.flags = checks.getFailStatus().value & checks.getEnabledChecksFailStatusMask();
+	msg.enabled_checks = checks.getEnabledChecksFailStatusMask();
+
+	msg.checks_passed = checks.passed();
+
+	return msg;
+}
+
 VehicleGPSPosition::VehicleGPSPosition() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vehicle_gps_position_pub.advertise();
+	_vehicle_gps_position_status_pub.advertise();
+
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		_sensor_gps_status_pub[i].advertise();
+	}
 }
 
 VehicleGPSPosition::~VehicleGPSPosition()
@@ -92,6 +144,24 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			}
 		}
 
+		GnssChecks::Params checks_params{};
+		checks_params.check_mask = _param_gnss_check.get();
+		checks_params.req_nsats = _param_gnss_req_nsats.get();
+		checks_params.req_pdop = _param_gnss_req_pdop.get();
+		checks_params.req_eph = _param_gnss_req_eph.get();
+		checks_params.req_epv = _param_gnss_req_epv.get();
+		checks_params.req_sacc = _param_gnss_req_sacc.get();
+		checks_params.req_hdrift = _param_gnss_req_hdrift.get();
+		checks_params.req_vdrift = _param_gnss_req_vdrift.get();
+		checks_params.req_fix = _param_gnss_req_fix.get();
+		checks_params.min_health_time_us = static_cast<uint64_t>(_param_gnss_req_gps_h.get() * 1_s);
+
+		for (GnssChecks &checks : _gnss_checks) {
+			checks.setParams(checks_params);
+		}
+
+		_vehicle_gps_position_checks.setParams(checks_params);
+
 		_gps_blending.setBlendingUseSpeedAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_SPD_ACC);
 		_gps_blending.setBlendingUseHPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_HPOS_ACC);
 		_gps_blending.setBlendingUseVPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_VPOS_ACC);
@@ -127,20 +197,36 @@ void VehicleGPSPosition::Run()
 		_pps_time_sync.process_pps(pps_capture);
 	}
 
+	// Match the EKF fallback: require initial checks until armed, and only apply
+	// stationary drift checks when a land detector sample confirms rest.
+	const hrt_abstime now = hrt_absolute_time();
+	bool in_air = false;
+	bool vehicle_at_rest = false;
+	vehicle_status_s vehicle_status{};
+
+	if (_vehicle_status_sub.copy(&vehicle_status) && vehicle_status.timestamp != 0
+	    && now < vehicle_status.timestamp + 3_s) {
+		// initially set in_air from arming_state (will be overridden if land detector is available)
+		in_air = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	}
+
+	vehicle_land_detected_s vehicle_land_detected{};
+
+	if (_vehicle_land_detected_sub.copy(&vehicle_land_detected) && vehicle_land_detected.timestamp != 0
+	    && now < vehicle_land_detected.timestamp + 3_s) {
+		in_air = !vehicle_land_detected.landed;
+		vehicle_at_rest = vehicle_land_detected.at_rest;
+	}
+
 	// Check all GPS instance
 	bool any_gps_updated = false;
-	bool gps_updated = false;
 	const int32_t gps_prime = _param_sens_gps_prime.get();
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		gps_updated = _sensor_gps_sub[i].updated();
+		sensor_gps_s gps_data{};
 
-		sensor_gps_s gps_data;
-
-		if (gps_updated) {
+		if (_sensor_gps_sub[i].update(&gps_data)) {
 			any_gps_updated = true;
-
-			_sensor_gps_sub[i].copy(&gps_data);
 
 			// Match device_id to receiver slot
 			matrix::Vector3f antenna_offset{};
@@ -165,10 +251,15 @@ void VehicleGPSPosition::Run()
 
 			// Apply delay to timestamp_sample if the driver didn't set one
 			if (gps_data.timestamp_sample == 0 || gps_data.timestamp_sample == gps_data.timestamp) {
+				gps_data.timestamp_sample = gps_data.timestamp;
+
 				if (delay_us > 0 && gps_data.timestamp > delay_us) {
 					gps_data.timestamp_sample = gps_data.timestamp - delay_us;
 				}
 			}
+
+			_gnss_checks[i].run(gnssSampleFromSensorGpsMsg(gps_data), in_air, vehicle_at_rest);
+			_sensor_gps_status_pub[i].publish(vehicleGpsStatusFromGnssChecks(_gnss_checks[i], gps_data.device_id));
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
 			_gps_blending.setGpsData(gps_data, i);
@@ -206,7 +297,12 @@ void VehicleGPSPosition::Run()
 				gps_output.timestamp_sample = pps_timestamp;
 			}
 
+			_vehicle_gps_position_checks.run(gnssSampleFromSensorGpsMsg(gps_output), in_air, vehicle_at_rest);
+			const vehicle_gps_status_s status_msg = vehicleGpsStatusFromGnssChecks(_vehicle_gps_position_checks,
+								gps_output.device_id);
+
 			_vehicle_gps_position_pub.publish(gps_output);
+			_vehicle_gps_position_status_pub.publish(status_msg);
 		}
 	}
 
