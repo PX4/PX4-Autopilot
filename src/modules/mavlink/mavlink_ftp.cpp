@@ -139,18 +139,24 @@ MavlinkFTP::burst_overhead() const
 unsigned
 MavlinkFTP::burst_data_length() const
 {
-	// Only shrink behind a radio; a direct link has no such constraint.
-	if (!_mavlink.radio_status_available()) {
-		return kMaxDataLength;
+	// What the client asked for. Zero means as much as fits, which is what
+	// ArduPilot does and what the spec describes.
+	unsigned len = (_session_info.stream_size == 0) ?
+		       (unsigned)kMaxDataLength :
+		       math::min((unsigned)_session_info.stream_size, (unsigned)kMaxDataLength);
+
+	// Never hand a radio more than it carries in one piece, whatever was asked
+	// for: every ground station out there asks for the full payload, so this
+	// clamp has to come last or honouring the request would undo it.
+	if (_mavlink.radio_status_available()) {
+		const unsigned overhead = burst_overhead();
+
+		if (kRadioMaxPacketLength > overhead) {
+			len = math::min(len, kRadioMaxPacketLength - overhead);
+		}
 	}
 
-	const unsigned overhead = burst_overhead();
-
-	if (kRadioMaxPacketLength <= overhead) {
-		return kMaxDataLength;
-	}
-
-	return math::min((unsigned)kMaxDataLength, kRadioMaxPacketLength - overhead);
+	return len;
 }
 
 unsigned
@@ -735,6 +741,7 @@ MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t
 	_session_info.stream_download = true;
 	_session_info.stream_offset = payload->offset;
 	_session_info.stream_chunk_transmitted = 0;
+	_session_info.stream_size = payload->size;
 	_session_info.stream_seq_number = payload->seq_number + 1;
 	_session_info.stream_target_system_id = target_system_id;
 	_session_info.stream_target_component_id = target_component_id;
