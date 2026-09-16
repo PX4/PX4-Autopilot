@@ -33,9 +33,11 @@
 
 # Select one implementation so constrained boards retain standard Autotune.
 set(autotune_path .)
+set(autotune_config mc_autotune_attitude_control_params.yaml)
 set(autotune_compile_flags ${MAX_CUSTOM_OPT_LEVEL})
 if(CONFIG_MC_AUTOTUNE_EXPERIMENTAL)
 	set(autotune_path experimental)
+	list(APPEND autotune_config experimental/mc_autotune_attitude_control_params.yaml)
 	set(autotune_compile_flags)
 endif()
 
@@ -47,7 +49,7 @@ px4_add_module(
 		${autotune_path}/mc_autotune_attitude_control.cpp
 		${autotune_path}/mc_autotune_attitude_control.hpp
 	MODULE_CONFIG
-		${autotune_path}/mc_autotune_attitude_control_params.yaml
+		${autotune_config}
 	DEPENDS
 		hysteresis
 		mathlib
