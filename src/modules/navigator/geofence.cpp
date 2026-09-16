@@ -139,7 +139,7 @@ void Geofence::run()
 				_error_state = DatamanState::ReadWait;
 				_dataman_state = DatamanState::Error;
 
-			} else if (_opaque_id != _stats.opaque_id) {
+			} else if (_opaque_id != _stats.opaque_id || !_fence_updated) {
 
 				_opaque_id = _stats.opaque_id;
 				_fence_updated = false;
@@ -148,6 +148,14 @@ void Geofence::run()
 
 				if (_dataman_cache.size() != _stats.num_items) {
 					_dataman_cache.resize(_stats.num_items);
+
+					// A failed allocation leaves the previous cache size unchanged.
+					if (_dataman_cache.size() != _stats.num_items) {
+						PX4_ERR("cache size %i does not match %i items", _dataman_cache.size(), static_cast<int>(_stats.num_items));
+						_clearFence();
+						_finishFenceUpdate(false);
+						break;
+					}
 				}
 
 				for (int index = 0; index < _dataman_cache.size(); ++index) {
@@ -176,18 +184,7 @@ void Geofence::run()
 		_dataman_cache.update();
 
 		if (!_dataman_cache.isLoading()) {
-			_dataman_state = DatamanState::UpdateRequestWait;
-			_updateFence();
-			_fence_updated = true;
-
-			geofence_status_s status{};
-			status.timestamp = hrt_absolute_time();
-			status.geofence_id = _opaque_id;
-			status.status = geofence_status_s::GF_STATUS_READY;
-
-			_geofence_status_pub.publish(status);
-
-			_geofence_updated = true;
+			_finishFenceUpdate(_updateFence());
 		}
 
 		break;
@@ -208,6 +205,24 @@ void Geofence::updateFence()
 	_initiate_fence_updated = true;
 }
 
+void Geofence::_finishFenceUpdate(bool success)
+{
+	_dataman_state = DatamanState::UpdateRequestWait;
+	_fence_updated = success;
+
+	if (!success) {
+		_reportFenceLoadFailure();
+	}
+
+	geofence_status_s status{};
+	status.timestamp = hrt_absolute_time();
+	status.geofence_id = _opaque_id;
+	status.status = success ? geofence_status_s::GF_STATUS_READY : geofence_status_s::GF_STATUS_FAILED;
+	_geofence_status_pub.publish(status);
+
+	_geofence_updated = true;
+}
+
 void Geofence::_clearFence()
 {
 	if (_polygons) {
@@ -225,7 +240,7 @@ void Geofence::_reportFenceLoadFailure()
 		     "Geofence load failed, fence is not active");
 }
 
-void Geofence::_updateFence()
+bool Geofence::_updateFence()
 {
 	mission_fence_point_s mission_fence_point;
 	bool is_circle_area = false;
@@ -246,8 +261,7 @@ void Geofence::_updateFence()
 			// positions the fence excluded, missing exclusion polygons open up areas it
 			// protected, and it still looks to the operator like a fence is loaded.
 			_clearFence();
-			_reportFenceLoadFailure();
-			return;
+			return false;
 		}
 
 		switch (mission_fence_point.nav_cmd) {
@@ -286,8 +300,7 @@ void Geofence::_updateFence()
 				if (!_polygons) {
 					PX4_ERR("alloc failed");
 					_clearFence();
-					_reportFenceLoadFailure();
-					return;
+					return false;
 				}
 
 				PolygonInfo &polygon = _polygons[_num_polygons];
@@ -324,6 +337,8 @@ void Geofence::_updateFence()
 			break;
 		}
 	}
+
+	return true;
 }
 
 bool Geofence::checkHomeRequirementsForGeofence(const PolygonInfo &polygon)

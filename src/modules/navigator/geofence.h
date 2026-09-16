@@ -191,7 +191,7 @@ private:
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
 	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
-	bool _fence_updated{true};  ///< flag indicating if fence are updated to dataman cache
+	bool _fence_updated{true};  ///< true if the requested fence was successfully loaded
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
 	bool _geofence_updated{false}; ///< set when polygons change, consumed by Navigator to rebuild avoidance graph
 
@@ -199,8 +199,14 @@ private:
 
 	/**
 	 * implementation of updateFence()
+	 * @return false if the fence failed to load and was cleared
 	 */
-	void _updateFence();
+	bool _updateFence();
+
+	/**
+	 * Finish a fence update, report its result, and notify the avoidance planner.
+	 */
+	void _finishFenceUpdate(bool success);
 
 	/**
 	 * Free the loaded polygons and leave the fence empty.
