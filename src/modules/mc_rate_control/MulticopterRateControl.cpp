@@ -222,7 +222,7 @@ MulticopterRateControl::Run()
 			// apply low-pass filtering on yaw axis to reduce high frequency torque caused by rotor acceleration
 			torque_setpoint(2) = _output_lpf_yaw.update(torque_setpoint(2), static_cast<uint64_t>(dt * 1e6f));
 
-#if defined(CONFIG_MODULES_MC_AUTOTUNE_ATTITUDE_CONTROL)
+#if defined(CONFIG_MC_AUTOTUNE_EXPERIMENTAL)
 			// Apply only a fresh autotune command for the current flight mode.
 			autotune_excitation_s excitation{};
 			const bool autotune_active = _autotune_excitation_sub.copy(&excitation)
@@ -279,7 +279,7 @@ MulticopterRateControl::Run()
 			vehicle_torque_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
 			vehicle_torque_setpoint.timestamp = hrt_absolute_time();
 
-#if defined(CONFIG_MODULES_MC_AUTOTUNE_ATTITUDE_CONTROL)
+#if defined(CONFIG_MC_AUTOTUNE_EXPERIMENTAL)
 
 			if (autotune_active) {
 				autotune_response_s response{};

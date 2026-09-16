@@ -31,15 +31,23 @@
 #
 ############################################################################
 
+# Select one implementation so constrained boards retain standard Autotune.
+set(autotune_path .)
+set(autotune_compile_flags ${MAX_CUSTOM_OPT_LEVEL})
+if(CONFIG_MC_AUTOTUNE_EXPERIMENTAL)
+	set(autotune_path experimental)
+	set(autotune_compile_flags)
+endif()
+
 px4_add_module(
 	MODULE mc_autotune_attitude_control
 	MAIN mc_autotune_attitude_control
+	COMPILE_FLAGS ${autotune_compile_flags}
 	SRCS
-		mc_autotune_attitude_control.cpp
-		mc_autotune_attitude_control.hpp
-		ControllerValidation.hpp
+		${autotune_path}/mc_autotune_attitude_control.cpp
+		${autotune_path}/mc_autotune_attitude_control.hpp
 	MODULE_CONFIG
-		mc_autotune_attitude_control_params.yaml
+		${autotune_path}/mc_autotune_attitude_control_params.yaml
 	DEPENDS
 		hysteresis
 		mathlib
@@ -47,13 +55,25 @@ px4_add_module(
 		SystemIdentification
 )
 
+set(standard_test_library mc_autotune_attitude_control)
+if(CONFIG_MC_AUTOTUNE_EXPERIMENTAL)
+	px4_add_functional_gtest(
+		SRC experimental/McAutotuneResponseTest.cpp
+		LINKLIBS mc_autotune_attitude_control
+	)
+	if(BUILD_TESTING)
+		# Exercise the standard lifecycle in a separate executable as well.
+		px4_add_library(mc_autotune_standard_test mc_autotune_attitude_control.cpp)
+		target_link_libraries(mc_autotune_standard_test PRIVATE hysteresis mathlib px4_work_queue SystemIdentification)
+		set(standard_test_library mc_autotune_standard_test)
+	endif()
+endif()
+
 px4_add_functional_gtest(
 	SRC McAutotuneAttitudeControlTest.cpp
-	LINKLIBS mc_autotune_attitude_control
+	LINKLIBS ${standard_test_library}
 )
-
 px4_add_unit_gtest(SRC ControllerValidationTest.cpp LINKLIBS mathlib)
-
 px4_add_functional_gtest(
 	SRC AutotuneVtolTest.cpp
 	LINKLIBS mc_autotune_attitude_control fw_autotune_attitude_control

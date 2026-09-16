@@ -4,6 +4,27 @@ Autotune runs in PX4. QGroundControl starts it and polls the existing MAVLink
 command progress. MC and FW modules accept commands only for the active vehicle
 type, outside a VTOL transition.
 
+## Selecting the experimental method
+
+Standard Autotune remains the default. This build-time option includes one
+implementation, so the experimental observer does not consume FLASH or heap
+on standard builds. QGroundControl uses the same start command for either one.
+
+Build the experimental SITL configuration with:
+
+```sh
+make px4_sitl_autotune-experimental
+```
+
+For a board with `CONFIG_MODULES_MC_AUTOTUNE_ATTITUDE_CONTROL=y`, enable
+`CONFIG_MC_AUTOTUNE_EXPERIMENTAL=y` in its
+`.px4board` configuration. The target must have enough FLASH and heap for the
+additional implementation. There is no runtime method selector.
+
+The SITL test configuration enables the experimental implementation and runs
+both implementations' lifecycle tests in separate executables. The following
+acceptance rule and timing parameters describe the experimental method.
+
 ## Acceptance rule
 
 A small additive torque measures the vehicle with its **existing gains**.

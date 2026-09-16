@@ -38,13 +38,7 @@
 
 #include "mc_autotune_attitude_control.hpp"
 
-#if defined(CONFIG_BOARDCTL_RESET)
-// Functional tests do not link the SITL main that implements process restart.
-int boardctl(unsigned int, uintptr_t)
-{
-	return -ENOSYS;
-}
-#endif
+
 
 class McAutotuneAttitudeControlTest : public ::testing::Test
 {
@@ -55,6 +49,8 @@ protected:
 	void SetUp() override
 	{
 		param_reset_all();
+		const float timeout = 20.f;
+		param_set_no_notification(param_find("MC_AT_TIMEOUT"), &timeout);
 		_autotune.updateParams();
 	}
 
@@ -101,6 +97,24 @@ protected:
 		(*gains[group])(axis) = value;
 	}
 	bool gainsGood() const { return _autotune.areGainsGood(); }
+
+	void finishWithoutSamples()
+	{
+		_autotune._state = State::fail;
+		_autotune._state_start_time = hrt_absolute_time() - 3_s;
+		_autotune.Run();
+	}
+
+	void loseResponseStream()
+	{
+		parameter_update_s update{};
+		_autotune._parameter_update_sub.copy(&update);
+		setState(State::roll);
+		_autotune._experiment_active = true;
+		_autotune._excitation_active = true;
+		_autotune._response_time = hrt_absolute_time() - 1_s;
+		_autotune.Run();
+	}
 
 };
 
@@ -195,4 +209,29 @@ TEST_F(McAutotuneAttitudeControlTest, SuccessfulInAirTestIsNotRevertedByLaterMod
 	update(6_s);
 	EXPECT_EQ(state(), State::complete);
 	EXPECT_FLOAT_EQ(rollP(), .12f);
+}
+
+
+TEST_F(McAutotuneAttitudeControlTest, ReportsIdleWithoutControlSamplesSoAnotherTuneCanStart)
+{
+	uORB::Subscription status_sub{ORB_ID(autotune_attitude_control_status)};
+	finishWithoutSamples();
+	autotune_attitude_control_status_s status{};
+	ASSERT_TRUE(status_sub.copy(&status));
+	EXPECT_EQ(status.state, autotune_attitude_control_status_s::STATE_IDLE);
+	EXPECT_EQ(state(), State::idle);
+}
+
+TEST_F(McAutotuneAttitudeControlTest, MissingResponseStopsExcitationAndPublishesFailure)
+{
+	uORB::Subscription status_sub{ORB_ID(autotune_attitude_control_status)};
+	uORB::Subscription excitation_sub{ORB_ID(autotune_excitation)};
+	loseResponseStream();
+	autotune_attitude_control_status_s status{};
+	ASSERT_TRUE(status_sub.copy(&status));
+	EXPECT_EQ(status.state, autotune_attitude_control_status_s::STATE_FAIL);
+	autotune_excitation_s excitation{};
+	ASSERT_TRUE(excitation_sub.copy(&excitation));
+	EXPECT_EQ(excitation.timestamp, 0u);
+	EXPECT_FLOAT_EQ(matrix::Vector3f(excitation.torque).norm(), 0.f);
 }

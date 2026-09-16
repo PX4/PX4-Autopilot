@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """X500 Autotune regression, including MAVLink progress and persistent PID gains.
 
-Requires a built Gazebo SITL (make px4_sitl_default), Gazebo and pymavlink.
+Requires a built Gazebo SITL (make px4_sitl_autotune-experimental), Gazebo and pymavlink.
 Usage: python3 test/test_sitl_autotune.py --output /tmp/autotune-results
 Runs an isolated PX4 instance, Gazebo partition and MAVLink connection.
 """
@@ -250,7 +250,7 @@ class AutotuneSITL:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--binary', type=Path, default=Path('build/px4_sitl_default/bin/px4'))
+    parser.add_argument('--binary', type=Path, default=Path('build/px4_sitl_autotune-experimental/bin/px4'))
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--model', default='x500')
     parser.add_argument('--autostart', type=int)

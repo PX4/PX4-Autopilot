@@ -33,7 +33,12 @@
 
 #include <gtest/gtest.h>
 #include <hrt_work.h>
+#include <px4_platform_common/px4_config.h>
+#if defined(CONFIG_MC_AUTOTUNE_EXPERIMENTAL)
+#include "experimental/mc_autotune_attitude_control.hpp"
+#else
 #include "mc_autotune_attitude_control.hpp"
+#endif
 #include "../fw_autotune_attitude_control/fw_autotune_attitude_control.hpp"
 
 class AutotuneVtolTest : public ::testing::Test
