@@ -2,14 +2,6 @@ module_name: sensors
 parameters:
 - group: Sensor Calibration
   definitions:
-    SENS_DPRES_OFF:
-      description:
-        short: Differential pressure sensor offset
-        long: The offset (zero-reading) in Pascal
-      category: System
-      type: float
-      default: 0.0
-      volatile: true
     SENS_DPRES_REV:
       description:
         short: Reverse differential pressure sensor readings
