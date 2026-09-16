@@ -178,6 +178,8 @@ public:
 		_control_status.flags.in_air = in_air;
 	}
 
+	void set_armed_status(bool armed) { _control_status.flags.armed = armed; }
+
 	void set_vehicle_at_rest(bool at_rest)
 	{
 		if (!_control_status.flags.vehicle_at_rest && at_rest) {
