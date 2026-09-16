@@ -49,6 +49,7 @@
 #include <fcntl.h>
 #include <math.h>
 #include <drivers/drv_hrt.h>
+#include <lib/sensor_calibration/DifferentialPressure.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/differential_pressure.h>
 #include <systemlib/mavlink_log.h>
@@ -65,25 +66,26 @@ static void feedback_calibration_failed(orb_advert_t *mavlink_log_pub)
 	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
 }
 
-int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
+static constexpr int MAX_SENSORS = calibration::DifferentialPressure::MAX_SENSOR_COUNT;
+
+struct AirspeedSensor {
+	uORB::SubscriptionData<differential_pressure_s> sub{ORB_ID(differential_pressure)};
+	uint32_t device_id{0};
+	float offset{0.f};
+	bool connected{false};
+};
+
+/**
+ * Collect the zero reading of every connected sensor simultaneously.
+ */
+static int collect_zero_offsets(orb_advert_t *mavlink_log_pub, const hrt_abstime &calibration_started,
+				AirspeedSensor sensors[MAX_SENSORS], int num_sensors)
 {
-	const hrt_abstime calibration_started = hrt_absolute_time();
+	static constexpr unsigned calibration_count = (500 * 2) / 3;
 
-	int result = PX4_OK;
 	unsigned calibration_counter = 0;
-	const unsigned maxcount = 500;
-
-	/* give directions */
-	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
-
-	const unsigned calibration_count = (maxcount * 2) / 3;
-
-	float diff_pres_offset = 0.0f;
-
-	calibration_log_critical(mavlink_log_pub, "[cal] Ensure sensor is not measuring wind");
-	px4_usleep(500 * 1000);
-
-	uORB::SubscriptionData<differential_pressure_s> diff_pres_sub{ORB_ID(differential_pressure)};
+	float sums[MAX_SENSORS] {};
+	unsigned counts[MAX_SENSORS] {};
 
 	while (calibration_counter < calibration_count) {
 
@@ -91,11 +93,17 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			return PX4_ERROR;
 		}
 
-		if (diff_pres_sub.update()) {
+		bool any_update = false;
 
-			const differential_pressure_s &diff_pres = diff_pres_sub.get();
+		for (int i = 0; i < num_sensors; i++) {
+			if (sensors[i].sub.update()) {
+				sums[i] += sensors[i].sub.get().differential_pressure_pa;
+				counts[i]++;
+				any_update = true;
+			}
+		}
 
-			diff_pres_offset += diff_pres.differential_pressure_pa;
+		if (any_update) {
 			calibration_counter++;
 
 			if (calibration_counter % (calibration_count / 20) == 0) {
@@ -111,77 +119,95 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		px4_usleep(10000);
 	}
 
-	diff_pres_offset = diff_pres_offset / calibration_count;
-
-	if (PX4_ISFINITE(diff_pres_offset)) {
-		// Prevent a completely zero param
-		// since this is used to detect a missing calibration
-		// This value is numerically down in the noise and has
-		// no effect on the sensor performance.
-		if (fabsf(diff_pres_offset) < 0.00000001f) {
-			diff_pres_offset = 0.00000001f;
-		}
-
-		if (param_set(param_find("SENS_DPRES_OFF"), &diff_pres_offset)) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
+	for (int i = 0; i < num_sensors; i++) {
+		if (counts[i] == 0) {
+			calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor %d stopped reporting", i + 1);
+			feedback_calibration_failed(mavlink_log_pub);
 			return PX4_ERROR;
 		}
 
-	} else {
-		feedback_calibration_failed(mavlink_log_pub);
-		return PX4_ERROR;
+		sensors[i].offset = sums[i] / counts[i];
+
+		if (!PX4_ISFINITE(sensors[i].offset)) {
+			feedback_calibration_failed(mavlink_log_pub);
+			return PX4_ERROR;
+		}
 	}
 
-	calibration_log_info(mavlink_log_pub, "[cal] Offset of %d Pascal", (int)diff_pres_offset);
+	return PX4_OK;
+}
 
-	/* wait 500 ms to ensure parameter propagated through the system */
-	px4_usleep(500 * 1000);
+/** Store (or clear, with an offset of 0) the zero offset of one sensor. */
+static bool save_offset(uint32_t device_id, float offset)
+{
+	calibration::DifferentialPressure calibration{device_id};
+	calibration.set_offset(offset);
 
-	calibration_log_critical(mavlink_log_pub, "[cal] Blow into front of pitot without touching");
+	return calibration.ParametersSave();
+}
+
+/**
+ * Only the sensor that failed is cleared
+ */
+static void clear_offset(const AirspeedSensor &sensor)
+{
+	save_offset(sensor.device_id, 0.f);
+
+	param_notify_changes();
+}
+
+/**
+ * Verify that positive pressure reaches the sensor, which catches swapped static and dynamic
+ * ports. Each sensor has its own pitot, so this has to be repeated for each of them.
+ */
+static int check_pitot_direction(orb_advert_t *mavlink_log_pub, const hrt_abstime &calibration_started,
+				 AirspeedSensor sensors[MAX_SENSORS], int num_sensors, int index)
+{
+	static constexpr unsigned maxcount = 500;
+
+	AirspeedSensor &sensor = sensors[index];
+
+	if (num_sensors > 1) {
+		calibration_log_critical(mavlink_log_pub, "[cal] Blow into front of pitot %d without touching", index + 1);
+
+	} else {
+		calibration_log_critical(mavlink_log_pub, "[cal] Blow into front of pitot without touching");
+	}
+
+	const hrt_abstime sensor_started = hrt_absolute_time();
 
 	float differential_pressure_sum = 0.f;
 	int differential_pressure_sum_count = 0;
+	unsigned calibration_counter = 0;
 
-	calibration_counter = 0;
-
-	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */
 	while (calibration_counter < maxcount) {
 
 		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
 			return PX4_ERROR;
 		}
 
-		if (diff_pres_sub.update()) {
-			const differential_pressure_s &diff_pres = diff_pres_sub.get();
-
-			differential_pressure_sum += diff_pres.differential_pressure_pa;
+		if (sensor.sub.update()) {
+			differential_pressure_sum += sensor.sub.get().differential_pressure_pa;
 			differential_pressure_sum_count++;
 
-			const float differential_pressure_pa = (differential_pressure_sum / differential_pressure_sum_count) - diff_pres_offset;
+			const float differential_pressure_pa = (differential_pressure_sum / differential_pressure_sum_count) -
+							       sensor.offset;
 
 			if ((differential_pressure_sum_count > 10) && (fabsf(differential_pressure_pa) > 50.f)) {
 				if (differential_pressure_pa > 0) {
 					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)", (int)differential_pressure_pa);
-					break;
-
-				} else {
-					/* do not allow negative values */
-					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)",
-								 (int)differential_pressure_pa);
-					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports or set SENS_DPRES_REV");
-
-					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
-					diff_pres_offset = 0.0f;
-
-					if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
-						return PX4_ERROR;
-					}
-
-					calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
-					feedback_calibration_failed(mavlink_log_pub);
-					return PX4_ERROR;
+					return PX4_OK;
 				}
+
+				/* do not allow negative values */
+				calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)",
+							 (int)differential_pressure_pa);
+				calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports or set SENS_DPRES_REV");
+
+				clear_offset(sensor);
+				calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
+				feedback_calibration_failed(mavlink_log_pub);
+				return PX4_ERROR;
 			}
 
 			if (calibration_counter % 300 == 0) {
@@ -197,14 +223,8 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			calibration_counter++;
 		}
 
-		if (hrt_elapsed_time(&calibration_started) > 90_s) {
-			diff_pres_offset = 0.0f;
-
-			if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-				calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
-				return PX4_ERROR;
-			}
-
+		if (hrt_elapsed_time(&sensor_started) > 90_s) {
+			clear_offset(sensor);
 			calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
 			feedback_calibration_failed(mavlink_log_pub);
 			return PX4_ERROR;
@@ -213,17 +233,69 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		px4_usleep(10000);
 	}
 
-	if (calibration_counter == maxcount) {
-		diff_pres_offset = 0.0f;
+	clear_offset(sensor);
+	calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
+	feedback_calibration_failed(mavlink_log_pub);
+	return PX4_ERROR;
+}
 
-		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
+int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
+{
+	const hrt_abstime calibration_started = hrt_absolute_time();
+
+	/* give directions */
+	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
+
+	// find every connected differential pressure sensor.
+	AirspeedSensor sensors[MAX_SENSORS] {};
+	int num_sensors = 0;
+
+	for (int i = 0; i < MAX_SENSORS; i++) {
+		uORB::SubscriptionData<differential_pressure_s> sub{ORB_ID(differential_pressure), (uint8_t)i};
+
+		if (sub.advertised() && sub.get().timestamp != 0) {
+			sensors[num_sensors].sub.ChangeInstance(i);
+			sensors[num_sensors].device_id = sub.get().device_id;
+			sensors[num_sensors].connected = true;
+			num_sensors++;
+		}
+	}
+
+	if (num_sensors == 0) {
+		calibration_log_critical(mavlink_log_pub, "[cal] No airspeed sensor found");
+		feedback_calibration_failed(mavlink_log_pub);
+		return PX4_ERROR;
+	}
+
+	if (num_sensors > 1) {
+		calibration_log_info(mavlink_log_pub, "[cal] Calibrating %d airspeed sensors", num_sensors);
+	}
+
+	calibration_log_critical(mavlink_log_pub, "[cal] Ensure sensor is not measuring wind");
+	px4_usleep(500 * 1000);
+
+	if (collect_zero_offsets(mavlink_log_pub, calibration_started, sensors, num_sensors) != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	for (int i = 0; i < num_sensors; i++) {
+		if (!save_offset(sensors[i].device_id, sensors[i].offset)) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 			return PX4_ERROR;
 		}
 
-		calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
-		feedback_calibration_failed(mavlink_log_pub);
-		return PX4_ERROR;
+		calibration_log_info(mavlink_log_pub, "[cal] Sensor %d offset of %d Pascal", i + 1, (int)sensors[i].offset);
+	}
+
+	param_notify_changes();
+
+	/* wait 500 ms to ensure parameter propagated through the system */
+	px4_usleep(500 * 1000);
+
+	for (int i = 0; i < num_sensors; i++) {
+		if (check_pitot_direction(mavlink_log_pub, calibration_started, sensors, num_sensors, i) != PX4_OK) {
+			return PX4_ERROR;
+		}
 	}
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
@@ -234,5 +306,5 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	// This give a chance for the log messages to go out of the queue before someone else stomps on then
 	px4_usleep(200000);
 
-	return result;
+	return PX4_OK;
 }

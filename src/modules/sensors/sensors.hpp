@@ -59,10 +59,8 @@
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 # include <drivers/drv_sensor.h>
 # include <drivers/drv_adc.h>
-# include <lib/airspeed/airspeed.h>
-# include <uORB/topics/airspeed.h>
 # include <uORB/topics/differential_pressure.h>
-# include <uORB/topics/vehicle_air_data.h>
+# include "vehicle_airspeed/VehicleAirspeed.hpp"
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
@@ -162,14 +160,6 @@ private:
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	/**
-	 * Poll the differential pressure sensor for updated data.
-	 *
-	 * @param raw	Combined sensor data structure into which
-	 *		data should be returned.
-	 */
-	void diff_pres_poll();
-
-	/**
 	 * Poll the ADC and update readings to suit.
 	 *
 	 * @param raw	Combined sensor data structure into which
@@ -177,48 +167,22 @@ private:
 	 */
 	void adc_poll();
 
-	uORB::Subscription _diff_pres_sub {ORB_ID(differential_pressure)};
-	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+	void		InitializeVehicleAirspeed();
 
-	uORB::Publication<airspeed_s>             _airspeed_pub{ORB_ID(airspeed)};
-
-	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
-
-	float _diff_pres_pressure_sum{0.f};
-	float _diff_pres_temperature_sum{0.f};
-	float _baro_pressure_sum{0.f};
-
-	int _diff_pres_count{0};
-
-	uint64_t _airspeed_last_publish{0};
-	uint64_t _diff_pres_timestamp_sum{0};
+	VehicleAirspeed *_vehicle_airspeed_list[calibration::DifferentialPressure::MAX_SENSOR_COUNT] {};
 
 # ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	uORB::Subscription _adc_report_sub {ORB_ID(adc_report)};
 	uORB::PublicationMulti<differential_pressure_s> _diff_pres_pub{ORB_ID(differential_pressure)};
-# endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
 
 	struct Parameters {
-		float diff_pres_offset_pa;
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 		float diff_pres_analog_scale;
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-		int32_t air_cmodel;
-		float air_tube_length;
-		float air_tube_diameter_mm;
-	} _parameters{}; /**< local copies of interesting parameters */
+	} _parameters {}; /**< local copies of interesting parameters */
 
 	struct ParameterHandles {
-		param_t diff_pres_offset_pa;
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 		param_t diff_pres_analog_scale;
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-		param_t air_cmodel;
-		param_t air_tube_length;
-		param_t air_tube_diameter_mm;
-	} _parameter_handles{};		/**< handles for interesting parameters */
+	} _parameter_handles {};		/**< handles for interesting parameters */
+# endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 #if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
