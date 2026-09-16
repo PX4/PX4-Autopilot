@@ -8,6 +8,7 @@
 # @board px4_fmu-v2 exclude
 # @board px4_fmu-v5x exclude
 # @board bitcraze_crazyflie exclude
+# @board allocortech_atlas-v6x exclude
 #
 # @maintainer Iain Galloway <iain.galloway@nxp.com>
 #

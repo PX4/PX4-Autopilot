@@ -1,0 +1,73 @@
+#!/bin/sh
+#
+# Atlas FMUv6X specific board sensors init
+#
+# rotation ref: src\lib\conversion\rotation.h
+#------------------------------------------------------------------------------
+set HAVE_PM2 yes
+set INA_CONFIGURED no
+
+board_adc start -n
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if [ $INA_CONFIGURED = no ]
+then
+	# INA226, INA228, INA238 auto-start
+	i2c_launcher start -b 1
+	if [ $HAVE_PM2 = yes ]
+	then
+		i2c_launcher start -b 2
+	fi
+fi
+
+# Internal SPI BMI088
+bmi088 -A -R 0 -s start
+bmi088 -G -R 0 -s start
+
+# Internal SPI bus ICM42688p
+icm42688p -R 0 -s start
+
+# External IMU on SPI
+iim42652 -R 0 -s -b 4 start
+
+# External magnetometer on I2C (roll 180 = 8)
+bmm350 -R 8 -I -b 4 -a 0x14 start
+
+unset INA_CONFIGURED
+unset HAVE_PM2
