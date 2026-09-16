@@ -64,7 +64,6 @@ param set-default SYS_HITL 2
 # - without real battery
 param set-default CBRK_SUPPLY_CHK 894281
 
-param set-default SENS_DPRES_OFF 0.001
 
 # tailsitter is equipped with two forward propellers
 param set SIH_F_T_MAX 2
