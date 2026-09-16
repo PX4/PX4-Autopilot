@@ -36,31 +36,35 @@
 using matrix::Vector3f;
 using namespace time_literals;
 
-GainCompression3d::GainCompression3d(ModuleParams *parent) : ModuleParams(parent)
+template<px4::params ParamEnable, px4::params ParamGainMin>
+GainCompression3dT<ParamEnable, ParamGainMin>::GainCompression3dT(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
 	_gain_compression_pub.advertise();
 }
 
-void GainCompression3d::reset()
+template<px4::params ParamEnable, px4::params ParamGainMin>
+void GainCompression3dT<ParamEnable, ParamGainMin>::reset()
 {
 	for (unsigned i = 0; i < 3; i++) {
 		_compression_gains[i].reset();
 	}
 }
 
-void GainCompression3d::updateParams()
+template<px4::params ParamEnable, px4::params ParamGainMin>
+void GainCompression3dT<ParamEnable, ParamGainMin>::updateParams()
 {
 	ModuleParams::updateParams();
 
 	for (unsigned i = 0; i < 3; i++) {
-		_compression_gains[i].setCompressionGainMin(_param_fw_gc_gain_min.get());
+		_compression_gains[i].setCompressionGainMin(_param_gc_gain_min.get());
 	}
 }
 
-void GainCompression3d::update(const Vector3f &input, const float dt)
+template<px4::params ParamEnable, px4::params ParamGainMin>
+void GainCompression3dT<ParamEnable, ParamGainMin>::update(const Vector3f &input, const float dt)
 {
-	if (!_param_fw_gc_en.get()) {
+	if (!_param_gc_en.get()) {
 		reset();
 		_gains.setOne();
 		return;
@@ -68,7 +72,7 @@ void GainCompression3d::update(const Vector3f &input, const float dt)
 
 	Vector3f hpf;
 	Vector3f lpf;
-	const float sample_freq = 1.f / math::constrain(dt, 1e-3f, 100e-3f);
+	const float sample_freq = 1.f / math::constrain(dt, 0.125e-3f, 100e-3f); // supports rate loops up to 8kHz
 
 	for (unsigned i = 0; i < 3; i++) {
 		_compression_gains[i].setLpfCutoffFrequency(sample_freq, _kLpfCutoffFrequency);
@@ -93,6 +97,9 @@ void GainCompression3d::update(const Vector3f &input, const float dt)
 		_time_last_publication = now;
 	}
 }
+
+template class GainCompression3dT<px4::params::FW_GC_EN, px4::params::FW_GC_GAIN_MIN>;
+template class GainCompression3dT<px4::params::MC_GC_EN, px4::params::MC_GC_GAIN_MIN>;
 
 float GainCompression::update(const float input, const float dt)
 {
