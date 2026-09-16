@@ -58,6 +58,7 @@ Triage incoming security reports and coordinate fixes, as described in [SECURITY
 | Name | GitHub | Chat | email
 |------|--------|------|----------------------
 | Julian Oes | [@julianoes](https://github.com/julianoes) | julianoes | <julian@oes.ch>
+| Ramón Roche | CI / Testing | [@mrpollo](https://github.com/mrpollo) | rroche | <rroche@linuxfoundation.org>
 
 **Retired Maintainers**
 
