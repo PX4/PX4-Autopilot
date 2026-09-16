@@ -60,6 +60,7 @@
 #include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
+#include "mavlink_parameters.h"
 
 #ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 #include <drivers/serialpassthrough/serialpassthrough.hpp>
@@ -1602,11 +1603,21 @@ Mavlink::update_rate_mult()
 		mavlink_ulog_streaming_rate_inv = 1.0f - _mavlink_ulog->current_data_rate();
 	}
 
+	/* While a full parameter dump is running, reserve its share of the budget
+	 * so that the streams yield instead of the two of them together
+	 * over-subscribing the link. Where there is spare bandwidth this changes
+	 * nothing: bandwidth_mult is capped at 1.0 further down either way. */
+	float param_dump_rate = 0.0f;
+
+	if (sending_all_parameters()) {
+		param_dump_rate = (float)_datarate * MavlinkParametersManager::DUMP_BANDWIDTH_SHARE;
+	}
+
 	/* scale up and down as the link permits, nothing to scale without variable rate streams */
 	float bandwidth_mult = 1.0f;
 
 	if (rate > 0.0f) {
-		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate - param_dump_rate) / rate;
 	}
 
 	/* Reduce rate while sending parameters in low bandwidth mode */

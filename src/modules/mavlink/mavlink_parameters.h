@@ -92,6 +92,14 @@ public:
 	}
 
 	/**
+	 * Check if a full parameter dump (PARAM_REQUEST_LIST) is in progress.
+	 *
+	 * Unlike send_active() this is only true for the bulk transfer, not for
+	 * single parameters going out.
+	 */
+	bool sending_all() const { return _send_all_index >= 0; }
+
+	/**
 	 * Share of the link budget a full parameter dump is allowed to use.
 	 *
 	 * The remainder stays available for the regular streams, which yield via
