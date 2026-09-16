@@ -11,7 +11,7 @@ They completely bypass the existing PX4 mission mode and waypoint logic, and can
 :::
 
 ROS 2 waypoint missions are effectively special PX4 ROS 2 custom modes that are run based on the content of a [JSON mission definition](#mission-definition).
-Mission definitions can contain actions that reference existing PX4 modes, such as Takeoff mode or Return, and can also be extended with arbitrary custom actions written in ROS.
+Mission definitions can contain actions that reference existing PX4 modes, such as Takeoff or Return mode, and can also be extended with arbitrary custom actions written in ROS.
 A [mode executor](px4_ros2_control_interface.md#mode-executor) is used to schedule the modes.
 
 Mission definitions can be hard coded in the custom mission mode (either in code or statically loaded from a JSON string), or directly generated within the application.
