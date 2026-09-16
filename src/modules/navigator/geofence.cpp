@@ -225,11 +225,8 @@ void Geofence::_finishFenceUpdate(bool success)
 
 void Geofence::_clearFence()
 {
-	if (_polygons) {
-		delete[](_polygons);
-		_polygons = nullptr;
-	}
-
+	delete[](_polygons);
+	_polygons = nullptr;
 	_num_polygons = 0;
 }
 
