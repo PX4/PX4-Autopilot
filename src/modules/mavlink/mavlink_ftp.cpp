@@ -120,7 +120,7 @@ MavlinkFTP::_read_session(uint32_t offset, uint8_t *buf, uint16_t count)
 }
 
 unsigned
-MavlinkFTP::burst_overhead() const
+MavlinkFTP::packet_overhead() const
 {
 	// PayloadHeader, the three target fields and the v2 framing, plus the
 	// signature block when signing is active - without accounting for that the
@@ -137,32 +137,41 @@ MavlinkFTP::burst_overhead() const
 }
 
 unsigned
+MavlinkFTP::radio_clamped_length(unsigned requested) const
+{
+	// Only shrink behind a radio; a direct link has no such constraint.
+	if (!_mavlink.radio_status_available()) {
+		return requested;
+	}
+
+	const unsigned overhead = packet_overhead();
+
+	if (kRadioMaxPacketLength <= overhead) {
+		return requested;
+	}
+
+	return math::min(requested, kRadioMaxPacketLength - overhead);
+}
+
+unsigned
 MavlinkFTP::burst_data_length() const
 {
 	// What the client asked for. Zero means as much as fits, which is what
 	// ArduPilot does and what the spec describes.
-	unsigned len = (_session_info.stream_size == 0) ?
-		       (unsigned)kMaxDataLength :
-		       math::min((unsigned)_session_info.stream_size, (unsigned)kMaxDataLength);
+	const unsigned requested = (_session_info.stream_size == 0) ?
+				   (unsigned)kMaxDataLength :
+				   math::min((unsigned)_session_info.stream_size, (unsigned)kMaxDataLength);
 
-	// Never hand a radio more than it carries in one piece, whatever was asked
-	// for: every ground station out there asks for the full payload, so this
-	// clamp has to come last or honouring the request would undo it.
-	if (_mavlink.radio_status_available()) {
-		const unsigned overhead = burst_overhead();
-
-		if (kRadioMaxPacketLength > overhead) {
-			len = math::min(len, kRadioMaxPacketLength - overhead);
-		}
-	}
-
-	return len;
+	// The clamp comes after the request, never instead of it: every ground
+	// station out there asks for a full payload, so honouring the request on
+	// its own would hand a radio packets it has to split.
+	return radio_clamped_length(requested);
 }
 
 unsigned
 MavlinkFTP::burst_wire_size() const
 {
-	return burst_data_length() + burst_overhead();
+	return burst_data_length() + packet_overhead();
 }
 
 unsigned
@@ -709,7 +718,11 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 
 	PX4_DEBUG("FTP: read offset:%" PRIu32, payload->offset);
 
-	const int bytes_read = _read_session(payload->offset, payload->data, payload->size);
+	// Same clamp as a burst: a recovery read that fragments defeats the point
+	// of keeping the burst inside one radio packet. Clients handle a short
+	// read, they track what is still outstanding from the returned size.
+	const int bytes_read = _read_session(payload->offset, payload->data,
+					     radio_clamped_length(payload->size));
 
 	if (bytes_read < 0) {
 		PX4_ERR("read fail: %s", strerror(_our_errno));
