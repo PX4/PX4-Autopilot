@@ -67,9 +67,9 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(GYRO, WRONG));   // no gyro WRONG today
 	EXPECT_TRUE(FailureTable::isSupported(GPS, WRONG));
-	EXPECT_TRUE(FailureTable::isSupported(MOTOR, OFF));
-	EXPECT_FALSE(FailureTable::isSupported(MOTOR, STUCK)); // motor is off-only (actuation)
-	EXPECT_FALSE(FailureTable::isSupported(MOTOR, WRONG));
+	EXPECT_TRUE(FailureTable::isSupported(MOTOR, OFF));   // detected motor failure
+	EXPECT_TRUE(FailureTable::isSupported(MOTOR, WRONG)); // undetected motor failure
+	EXPECT_FALSE(FailureTable::isSupported(MOTOR, STUCK)); // nothing to freeze on an actuator
 	EXPECT_TRUE(FailureTable::isSupported(ESC, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(ESC, WRONG));   // ESC: offline or wrong telemetry
 	EXPECT_FALSE(FailureTable::isSupported(ESC, STUCK));   // no frozen-telemetry (stuck) support
