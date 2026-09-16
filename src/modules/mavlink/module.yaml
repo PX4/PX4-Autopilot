@@ -95,7 +95,7 @@ parameters:
             unit: B/s
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: [1200, 0, 0]
+            default: [0, 0, 0]
 
         MAV_${i}_FORWARD:
             description:
