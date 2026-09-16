@@ -4011,6 +4011,7 @@ MavlinkReceiver::run()
 
 			if (_mavlink.ftp_enabled()) {
 				_mavlink_ftp.send();
+				_mavlink.set_ftp_burst_active(_mavlink_ftp.burst_active());
 			}
 
 			_mavlink_log_handler.send();

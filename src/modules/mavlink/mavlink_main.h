@@ -537,6 +537,21 @@ public:
 
 	bool radio_status_critical() const;
 
+	/// True while a radio is reporting RADIO_STATUS on this link.
+	bool radio_status_available() const;
+
+	/**
+	 * The multiplier derived purely from the radio's reported txbuf.
+	 *
+	 * Unlike get_rate_mult() this does not include the budget split between
+	 * streams, so it can be applied to a bulk transfer that has already been
+	 * given its own share without counting the reduction twice.
+	 */
+	float radio_status_mult() const;
+
+	bool ftp_burst_active() const { return _ftp_burst_active.load(); }
+	void set_ftp_burst_active(bool active) { _ftp_burst_active.store(active); }
+
 	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
 	void check_signing_key_dirty() { if (_signing_key_dirty.load()) { _signing_key_dirty.store(false); _sign_control.reload_key(); } }
@@ -609,6 +624,7 @@ private:
 	int			_baudrate{57600};
 	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
 	float			_rate_mult{1.0f};
+	px4::atomic_bool	_ftp_burst_active{false};       /**< True while an FTP burst is streaming */
 	float			_high_latency_freq{0.015f};	///< frequency of HIGH_LATENCY2 stream
 
 	bool			_radio_status_available{false};

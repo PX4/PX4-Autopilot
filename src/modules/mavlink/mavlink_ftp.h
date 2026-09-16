@@ -64,6 +64,23 @@ public:
 	/// Handle possible FTP message
 	void handle_message(const mavlink_message_t *msg);
 
+	/// Share of the link budget a burst download may use, the rest stays for
+	/// the regular streams.
+	static constexpr float	kBurstBandwidthShare = 0.5f;
+
+	/// True while a burst download is streaming out.
+	bool burst_active() const { return _session_info.stream_download; }
+
+	/// Burst payload to use for this link.
+	/// On-wire size of one burst packet on this link.
+	/// Framing overhead of one burst packet, signature block included.
+	unsigned burst_overhead() const;
+
+	unsigned burst_data_length() const;
+
+	/// On-wire size of one burst packet on this link.
+	unsigned burst_wire_size() const;
+
 	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload.
 	/// This needs to be packed, because it's typecasted from mavlink_file_transfer_protocol_t.payload, which starts
 	/// at a 3 byte offset, causing an unaligned access to seq_number and offset
@@ -170,6 +187,23 @@ private:
 	/// @brief Maximum data size in RequestHeader::data
 	static const uint8_t	kMaxDataLength = MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN - sizeof(PayloadHeader);
 
+	/**
+	 * Largest MAVLink packet we will put on a link behind a telemetry radio.
+	 *
+	 * A SiK radio splits any packet larger than its max_data_packet_length
+	 * across several radio packets. It reassembles them correctly, but the
+	 * split costs air time and lowers the rate the link can carry, which is
+	 * what pushes a burst over the edge. That limit is 250 bytes without error
+	 * correction and 118 with it, and we cannot tell which from here, so take
+	 * the smaller. The payload that fits is derived from this, since the
+	 * framing overhead depends on whether signing is active.
+	 */
+	static const unsigned	kRadioMaxPacketLength = 118;
+
+
+	/// Cap on credit banked while idle, so a pause cannot be spent at once.
+	static const unsigned	kMaxBurstCredit = 512;
+
 	struct SessionInfo {
 		int		fd;
 		uint32_t	file_size;
@@ -194,6 +228,9 @@ private:
 	char _work_buffer1[_work_buffer1_len];
 	char _work_buffer2[_work_buffer2_len];
 	hrt_abstime _last_work_buffer_access{0};
+
+	/// Paces the burst against the link budget.
+	hrt_abstime _last_burst_send{0};
 
 	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
 	// Path traversal via ".." is rejected by _validatePath().

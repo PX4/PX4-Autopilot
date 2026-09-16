@@ -61,6 +61,7 @@
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 #include "mavlink_parameters.h"
+#include "mavlink_ftp.h"
 
 #ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 #include <drivers/serialpassthrough/serialpassthrough.hpp>
@@ -1532,6 +1533,14 @@ Mavlink::update_rate_mult()
 		param_dump_rate = (float)_datarate * MavlinkParametersManager::DUMP_BANDWIDTH_SHARE;
 	}
 
+	/* Only behind a radio: that is the only case where the burst is paced
+	 * against the budget, so it is the only case where reserving its share
+	 * matches what it will actually use. */
+	if (ftp_burst_active() && radio_status_available()) {
+		param_dump_rate = math::max(param_dump_rate,
+					    (float)_datarate * MavlinkFTP::kBurstBandwidthShare);
+	}
+
 	/* scale up and down as the link permits */
 	float bandwidth_mult =
 		(float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate - param_dump_rate) / rate;
@@ -1589,6 +1598,20 @@ Mavlink::radio_status_critical() const
 {
 	LockGuard lg{_radio_status_mutex};
 	return _radio_status_critical;
+}
+
+bool
+Mavlink::radio_status_available() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_available;
+}
+
+float
+Mavlink::radio_status_mult() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_available ? _radio_status_mult : 1.0f;
 }
 
 void
