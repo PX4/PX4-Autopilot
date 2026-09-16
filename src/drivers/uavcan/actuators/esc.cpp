@@ -200,6 +200,11 @@ void UavcanEscController::classify_vertiq_node(uint8_t node_id)
 
 const UavcanEscController::ErrorCountMeaning *UavcanEscController::find_error_count_meaning(uint8_t node_id) const
 {
+	if (node_id == 0) {
+		// 0 marks the unused slots and is never a real node
+		return nullptr;
+	}
+
 	for (const ErrorCountMeaning &entry : _error_count_meanings) {
 		if (entry.node_id == node_id) {
 			return &entry;
@@ -234,17 +239,23 @@ void UavcanEscController::request_error_count_meaning(ErrorCountMeaning &entry, 
 	// Scheduled once, up front, regardless of outcome: a failure or a timeout is simply retried at the
 	// same rate as the periodic re-check, instead of tracking attempts separately.
 	entry.next_query = now + ERROR_MEANING_REQUERY_INTERVAL_US;
-	entry.awaiting_response = true;
 
-	if (_param_client_node == nullptr || _param_client_node->request_param_getset(entry.node_id, req) < 0) {
-		entry.awaiting_response = false; // never actually sent; next_query is already scheduled to retry
+	// The client is shared with the CLI and GCS parameter traffic, which may talk to the same node at the
+	// same time, so the response is matched by the full call ID (node + transfer ID) and not by node alone.
+	uavcan::ServiceCallID call_id;
+
+	if (_param_client_node != nullptr && _param_client_node->request_param_getset(entry.node_id, req, call_id) >= 0) {
+		entry.pending_call = call_id;
+
+	} else {
+		entry.pending_call = uavcan::ServiceCallID{}; // never actually sent; next_query is already scheduled to retry
 	}
 }
 
 void UavcanEscController::process_due_error_count_meaning_queries(hrt_abstime now)
 {
 	for (ErrorCountMeaning &entry : _error_count_meanings) {
-		if (entry.node_id != 0 && !entry.awaiting_response && now >= entry.next_query) {
+		if (entry.node_id != 0 && !entry.pending_call.isValid() && now >= entry.next_query) {
 			request_error_count_meaning(entry, now);
 		}
 	}
@@ -255,11 +266,11 @@ bool UavcanEscController::tryHandleErrorCountMeaningResult(const uavcan::Service
 {
 	ErrorCountMeaning *entry = find_error_count_meaning(result.getCallID().server_node_id.get());
 
-	if (entry == nullptr || !entry->awaiting_response) {
-		return false;
+	if (entry == nullptr || !entry->pending_call.isValid() || !(entry->pending_call == result.getCallID())) {
+		return false; // not ours: the CLI/GCS may be reading parameters from the same ESC
 	}
 
-	entry->awaiting_response = false;
+	entry->pending_call = uavcan::ServiceCallID{};
 
 	if (!result.isSuccessful()) {
 		// next_query is already scheduled; the periodic re-check will simply try again

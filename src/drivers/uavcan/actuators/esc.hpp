@@ -124,7 +124,7 @@ private:
 	struct ErrorCountMeaning {
 		uint8_t node_id{0}; ///< 0 marks the slot unused
 		hrt_abstime next_query{0}; ///< next time to (re-)send the GetSet request; 0 = not queried yet
-		bool awaiting_response{false}; ///< a GetSet request is currently in flight for this node
+		uavcan::ServiceCallID pending_call{}; ///< the GetSet call in flight for this node, invalid if none
 		uint8_t type{esc_report_s::ERRORCOUNT_TYPE_ESC_FAULTS};
 	};
 

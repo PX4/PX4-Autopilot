@@ -238,9 +238,10 @@ public:
 	 * query). The response is routed back through cb_getset(), which offers it to the originating
 	 * controller before falling back to its own get/set/count handling.
 	 */
-	int request_param_getset(uint8_t node_id, const uavcan::protocol::param::GetSet::Request &req)
+	int request_param_getset(uint8_t node_id, const uavcan::protocol::param::GetSet::Request &req,
+				 uavcan::ServiceCallID &out_call_id)
 	{
-		return _param_getset_client.call(node_id, req);
+		return _param_getset_client.call(node_id, req, out_call_id);
 	}
 
 	static void busevent_signal_trampoline();
