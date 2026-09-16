@@ -68,7 +68,7 @@ For an example, see [SensorCombined.msg](https://github.com/PX4/PX4-Autopilot/bl
 
   Це автоматично відкриє файл журналу, застосує параметри та почне відтворення.
   Після завершення буде повідомляти про результат і вихід.
-  Новостворений файл журналу можна потім проаналізувати. It can be found in `rootfs/fs/microsd/log`, in subdirectories organised by date.
+  Новостворений файл журналу можна потім проаналізувати. It can be found in `rootfs/fs/log`, in subdirectories organised by date.
   Replayed log file names will have the `_replayed` suffix.
 
   Зверніть увагу, що вищезазначена команда також покаже симулятор, але - в залежності від того, що відтворюється - вона не покаже, що насправді відбувається.
