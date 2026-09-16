@@ -57,7 +57,13 @@
 class GainCompression
 {
 public:
-	void reset() { _compression_gain = 1.f; }
+	void reset()
+	{
+		_compression_gain = 1.f;
+		_hpf = 0.f;
+		_lpf.reset(0.f);
+		_input_initialized = false;
+	}
 	float update(float input, float dt);
 
 	void setLpfCutoffFrequency(float sample_freq, float cutoff)
@@ -78,6 +84,7 @@ private:
 	float _hpf{0.f};
 
 	float _input_prev{0.f};
+	bool _input_initialized{false};
 
 	AlphaFilter<float> _lpf;
 
