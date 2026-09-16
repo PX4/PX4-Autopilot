@@ -90,12 +90,19 @@ parameters:
                     This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
                     8N1-configured links).
 
+                    Note that for a telemetry radio the serial baudrate says little about what
+                    the link can actually carry over the air. A SiK radio at the common 57600
+                    baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+                    enabled and about twice that without, where baudrate/20 would suggest 2880.
+                    Instance 0 therefore defaults to a fixed value that is safe either way
+                    rather than to 0. Raise it if you know your link is better.
+
             type: int32
             min: 0
             unit: B/s
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: [1200, 0, 0]
+            default: [2000, 0, 0]
 
         MAV_${i}_FORWARD:
             description:
