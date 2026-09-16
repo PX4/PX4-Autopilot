@@ -202,6 +202,15 @@ private:
 	 */
 	void _updateFence();
 
+	/**
+	 * Free the loaded polygons and leave the fence empty.
+	 */
+	void _clearFence();
+
+	/**
+	 * Tell the operator that the fence failed to load and is not active.
+	 */
+	void _reportFenceLoadFailure();
 
 	/**
 	 * Check if a single point is within a polygon
@@ -227,16 +236,6 @@ private:
 	 * Check polygon or circle geofence fullfills the requirements relative to Home.
 	 * @return true if checks pass
 	 */
-	/**
-	 * Free the loaded polygons and leave the fence empty.
-	 */
-	void _clearFence();
-
-	/**
-	 * Tell the operator that the fence failed to load and is not active.
-	 */
-	void _reportFenceLoadFailure();
-
 	bool checkHomeRequirementsForGeofence(const PolygonInfo &polygon);
 
 	/**
