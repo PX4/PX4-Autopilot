@@ -86,11 +86,17 @@ private:
 
 };
 
-class GainCompression3d : public ModuleParams
+/*
+ * Templated on the enable and minimum gain parameter IDs so that the same
+ * implementation can be used by the fixed-wing and multicopter rate controllers
+ * with their own set of parameters.
+ */
+template<px4::params ParamEnable, px4::params ParamGainMin>
+class GainCompression3dT : public ModuleParams
 {
 public:
-	GainCompression3d(ModuleParams *parent);
-	~GainCompression3d() = default;
+	GainCompression3dT(ModuleParams *parent);
+	~GainCompression3dT() = default;
 
 	void reset();
 	void update(const matrix::Vector3f &input, float dt);
@@ -113,7 +119,10 @@ private:
 	static constexpr float _kHpfCutoffFrequency{2.f * _kLpfCutoffFrequency}; // 1 Octave above LPF cutoff, as recommended by the reference paper
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::FW_GC_EN>) _param_fw_gc_en,
-		(ParamFloat<px4::params::FW_GC_GAIN_MIN>) _param_fw_gc_gain_min
+		(ParamBool<ParamEnable>) _param_gc_en,
+		(ParamFloat<ParamGainMin>) _param_gc_gain_min
 	)
 };
+
+using GainCompression3d = GainCompression3dT<px4::params::FW_GC_EN, px4::params::FW_GC_GAIN_MIN>;
+using GainCompression3dMc = GainCompression3dT<px4::params::MC_GC_EN, px4::params::MC_GC_GAIN_MIN>;
