@@ -90,9 +90,7 @@ Geofence::Geofence(Navigator *navigator) :
 
 Geofence::~Geofence()
 {
-	if (_polygons) {
-		delete[](_polygons);
-	}
+	_clearFence();
 }
 
 void Geofence::run()
