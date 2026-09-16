@@ -24199,11 +24199,13 @@ Enable optical flow fusion.
 
 Optical flow measurement delay relative to IMU measurements.
 
-Assumes measurement is timestamped at trailing edge of integration period
+Assumes measurement is timestamped at trailing edge of integration
+period. The default matches a DroneCAN flow node, whose frame reaches
+the flight controller about 7 ms after its integration window closes.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 300      |           | 20      | ms   | &nbsp;    |
+| &check; | 0        | 300      |           | 7       | ms   | &nbsp;    |
 
 ### EKF2_OF_GATE (`FLOAT`) {#EKF2_OF_GATE}
 
@@ -27039,9 +27041,6 @@ which is then logged as gps_dump and can be used for PPK.
 
 Enable sat info (if available).
 
-Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
-Not available on MTK.
-
 **Values:**
 
 - `0`: Disabled
@@ -27231,6 +27230,19 @@ High rates at 115200 baud may cause dropouts.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 25       |           | 0       | Hz   | &nbsp;    |
+
+### GPS_UBX_SPECTRUM (`INT32`) {#GPS_UBX_SPECTRUM}
+
+Enable spectrum analyzer (if available).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### GPS_YAW_OFFSET (`FLOAT`) {#GPS_YAW_OFFSET}
 
@@ -32321,6 +32333,34 @@ Validity of configured takeoffs/landings is checked independently of the setting
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
+### MIS_TKO_PREC (`INT32`) {#MIS_TKO_PREC}
+
+Precision takeoff.
+
+Keep the vehicle over the landing target during vertical takeoffs (multicopter and VTOL in hover),
+using the landing target estimate. Requires the vision target estimator with bit 2 of
+VTE_TASK_MASK set. Without a valid target estimate the takeoff is unchanged.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### MIS_TKO_PREC_DLY (`FLOAT`) {#MIS_TKO_PREC_DLY}
+
+Precision takeoff correction delay.
+
+Time after the takeoff ramp is complete before a vertical takeoff setpoint may move
+sideways onto the landing target. Gives the vehicle time to clear the pad. Only used with MIS_TKO_PREC.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 2.0     | s    | &nbsp;    |
+
 ### MIS_YAW_ERR (`FLOAT`) {#MIS_YAW_ERR}
 
 Max yaw error in degrees needed for waypoint heading acceptance.
@@ -36807,15 +36847,29 @@ Return type.
 
 Return mode destination and flight path (home location, rally point, mission landing pattern, reverse mission)
 
+- 0 (Direct to home or rally point): Return to closest safe point (home or rally point) via direct path.
+
+- 1 (Direct to mission landing or rally point): Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always choose closest safe landing point if vehicle is a VTOL in hover mode.
+
+- 2 (Mission path to landing, else reverse home): Return to a planned mission landing, if available, using the mission path while skipping DO_JUMP and other non-position mission items, else return to home via the reverse mission path with the same traversal rules. Do not consider rally points.
+
+- 3 (Direct to closest safe destination): Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
+
+- 4 (Mission path, closest of landing or home): Return to the planned mission landing, or to home via the reverse mission path, whichever is estimated to be closer using mission item indices. Skip DO_JUMP and other non-position mission items while following either mission path. Do not consider rally points.
+
+- 5 (Direct to rally point only): Return directly to safe landing point (do not consider mission landing and Home).
+
+- 6 (Home if battery allows, else rally point): Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
+
 **Values:**
 
-- `0`: Return to closest safe point (home or rally point) via direct path.
-- `1`: Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always choose closest safe landing point if vehicle is a VTOL in hover mode.
-- `2`: Return to a planned mission landing, if available, using the mission path while skipping DO_JUMP and other non-position mission items, else return to home via the reverse mission path with the same traversal rules. Do not consider rally points.
-- `3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
-- `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is estimated to be closer using mission item indices. Skip DO_JUMP and other non-position mission items while following either mission path. Do not consider rally points.
-- `5`: Return directly to safe landing point (do not consider mission landing and Home).
-- `6`: Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
+- `0`: Direct to home or rally point
+- `1`: Direct to mission landing or rally point
+- `2`: Mission path to landing, else reverse home
+- `3`: Direct to closest safe destination
+- `4`: Mission path, closest of landing or home
+- `5`: Direct to rally point only
+- `6`: Home if battery allows, else rally point
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -37658,6 +37712,9 @@ Device ID of the accelerometer this calibration applies to.
 
 Accelerometer 0 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -37788,6 +37845,9 @@ Device ID of the accelerometer this calibration applies to.
 ### CAL_ACC1_PRIO (`INT32`) {#CAL_ACC1_PRIO}
 
 Accelerometer 1 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -37920,6 +37980,9 @@ Device ID of the accelerometer this calibration applies to.
 
 Accelerometer 2 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -38050,6 +38113,9 @@ Device ID of the accelerometer this calibration applies to.
 ### CAL_ACC3_PRIO (`INT32`) {#CAL_ACC3_PRIO}
 
 Accelerometer 3 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -38326,6 +38392,9 @@ Device ID of the gyroscope this calibration applies to.
 
 Gyroscope 0 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -38432,6 +38501,9 @@ Device ID of the gyroscope this calibration applies to.
 ### CAL_GYRO1_PRIO (`INT32`) {#CAL_GYRO1_PRIO}
 
 Gyroscope 1 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -38540,6 +38612,9 @@ Device ID of the gyroscope this calibration applies to.
 
 Gyroscope 2 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -38646,6 +38721,9 @@ Device ID of the gyroscope this calibration applies to.
 ### CAL_GYRO3_PRIO (`INT32`) {#CAL_GYRO3_PRIO}
 
 Gyroscope 3 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -41084,42 +41162,121 @@ can lead to an unexpected behavior and vehicle instability.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 2       |      | &nbsp;    |
 
-### SENS_AFBR_HYSTER (`INT32`) {#SENS_AFBR_HYSTER}
+### SENS_AFBR_DFM (`INT32`) {#SENS_AFBR_DFM}
 
-AFBR Rangefinder Short/Long Range Threshold Hysteresis.
+AFBR Rangefinder Dual Frequency Mode.
 
-This parameter defines the hysteresis for switching between short and long range mode.
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 10       |           | 1       | m    | &nbsp;    |
-
-### SENS_AFBR_L_RATE (`INT32`) {#SENS_AFBR_L_RATE}
-
-AFBR Rangefinder Long Range Rate.
-
-This parameter defines measurement rate of the AFBR Rangefinder in long range mode.
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 100      |           | 25      |      | &nbsp;    |
-
-### SENS_AFBR_MODE (`INT32`) {#SENS_AFBR_MODE}
-
-AFBR Rangefinder Mode.
-
-This parameter defines the mode of the AFBR Rangefinder.
+Dual frequency mode multiplies the module's base unambiguous range
+(LV85D 12.5 m, LX85D 25 m) by 4 or 8, at the cost of frame time and,
+at low signal, of wrong-window returns when the subframes disagree.
+Auto selects DFM 4X on the LV85D and LX85D, which measured better
+than the mode-default 8X on validity, spread and wrong-window returns
+at every rate flown, and the measurement mode's default elsewhere.
 
 **Values:**
 
+- `-1`: Auto
+- `0`: DFM Off
+- `1`: DFM 4X
+- `2`: DFM 8X
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | -1       | 2        |           | -1      |      | &nbsp;    |
+
+### SENS_AFBR_MODE (`INT32`) {#SENS_AFBR_MODE}
+
+AFBR Rangefinder Measurement Mode.
+
+Auto selects the module's default measurement mode as defined by the
+AFBR-S50 API (LV85D/LX85D: Long Range). A mode the API rejects for
+the detected module falls back to the module default.
+
+**Values:**
+
+- `-1`: Auto (module default)
 - `0`: Short Range Mode
 - `1`: Long Range Mode
 - `2`: High Speed Short Range Mode
 - `3`: High Speed Long Range Mode
+- `4`: High Precision Short Range Mode
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 3        |           | 0       |      | &nbsp;    |
+| &check; | -1       | 4        |           | -1      |      | &nbsp;    |
+
+### SENS_AFBR_OFS_HI (`FLOAT`) {#SENS_AFBR_OFS_HI}
+
+AFBR Rangefinder Range Offset (high power).
+
+Global range offset for the high laser power stage, applied on top of
+the factory calibration at startup. Written by 'afbrs50 cal'.
+0 leaves the factory offset unchanged.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0.0     | m    | &nbsp;    |
+
+### SENS_AFBR_OFS_LO (`FLOAT`) {#SENS_AFBR_OFS_LO}
+
+AFBR Rangefinder Range Offset (low power).
+
+Global range offset for the low laser power stage, applied on top of
+the factory calibration at startup. Written by 'afbrs50 cal'.
+0 leaves the factory offset unchanged.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0.0     | m    | &nbsp;    |
+
+### SENS_AFBR_PROF (`INT32`) {#SENS_AFBR_PROF}
+
+AFBR Rangefinder Performance Profile.
+
+Trades detection range against update rate on the LV85D and LX85D;
+other modules ignore it. Range: the highest rate that does not cost
+reliable range (LV85D 20 Hz, LX85D 15 Hz). Fast: the module's native
+rate (LV85D 50 Hz, LX85D 25 Hz) for optical flow and terrain
+following near the ground; costs a few metres of reliable range in
+bright light, none in low ambient light. Both profiles use DFM 4X.
+An explicit SENS_AFBR_RATE or SENS_AFBR_DFM overrides the profile.
+
+**Values:**
+
+- `0`: Range
+- `1`: Fast
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 1        |           | 0       |      | &nbsp;    |
+
+### SENS_AFBR_QMIN (`INT32`) {#SENS_AFBR_QMIN}
+
+AFBR Rangefinder Minimum Signal Quality.
+
+Measurements with a signal quality below this value are published
+with signal quality 0 (invalid) so consumers drop them but still see
+the sensor alive. Raising it rejects unreliable readings but also the
+weak long-range returns, since those are the low quality ones.
+0 publishes every measurement with its reported quality.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 100      |           | 0       |      | &nbsp;    |
+
+### SENS_AFBR_RATE (`INT32`) {#SENS_AFBR_RATE}
+
+AFBR Rangefinder Measurement Rate.
+
+0 selects the per-module default: on the LV85D and LX85D the rate of
+the SENS_AFBR_PROF profile, on other modules the measurement mode's
+default frame time. Lower rates increase the exposure budget per
+frame and thus the radiometric range. The API limits the frame time
+to 200 ms, so values below 5 Hz are clamped to 5 Hz.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100      |           | 0       | Hz   | &nbsp;    |
 
 ### SENS_AFBR_ROT (`INT32`) {#SENS_AFBR_ROT}
 
@@ -41144,27 +41301,22 @@ Mounting orientation of the AFBR-S50 relative to the vehicle body frame.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 25       |           | 25      |      | &nbsp;    |
 
-### SENS_AFBR_S_RATE (`INT32`) {#SENS_AFBR_S_RATE}
+### SENS_AFBR_SNM (`INT32`) {#SENS_AFBR_SNM}
 
-AFBR Rangefinder Short Range Rate.
+AFBR Rangefinder Shot Noise Monitor Mode.
 
-This parameter defines measurement rate of the AFBR Rangefinder in short range mode.
+This parameter defines the mode of the AFBR Rangefinder's shot noise monitor.
 
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 100      |           | 50      |      | &nbsp;    |
+**Values:**
 
-### SENS_AFBR_THRESH (`INT32`) {#SENS_AFBR_THRESH}
+- `0`: Static Indoor Mode
+- `1`: Static Outdoor Mode
+- `2`: Dynamic Mode
+- `3`: Dynamic Plus Mode
 
-AFBR Rangefinder Short/Long Range Threshold.
-
-This parameter defines the threshold for switching between short and long range mode.
-The mode will switch from short to long range when the distance is greater than the threshold plus the hysteresis.
-The mode will switch from long to short range when the distance is less than the threshold minus the hysteresis.
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 50       |           | 4       | m    | &nbsp;    |
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 3        |           | 3       |      | &nbsp;    |
 
 ### SENS_ASDT1_CFG (`INT32`) {#SENS_ASDT1_CFG}
 
@@ -47791,6 +47943,20 @@ uavcan::equipment::gnss::RTCMStream
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### UAVCAN_QUIRKS (`INT32`) {#UAVCAN_QUIRKS}
+
+DroneCAN device quirks bitmask.
+
+Enables workarounds for non-compliant DroneCAN devices. See PX4 docs for details.
+
+**Bitmask:**
+
+- `0`: Hobbywing 1-based esc_index
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 1        |           | 0       |      | &nbsp;    |
+
 ### UAVCAN_RNG_MAX (`FLOAT`) {#UAVCAN_RNG_MAX}
 
 UAVCAN rangefinder maximum range.
@@ -50080,24 +50246,22 @@ not influence runtime behaviour.
 
 Integer bitmask controlling data fusion and aiding methods.
 
-Set bits in the following positions to enable:
-0 : Set to true to use the target's GNSS position data if available. (+1)
-1 : Set to true to use the UAV GNSS velocity data if available. (+2)
-2 : Set to true to use the target relative position from vision-based data if available. (+4)
-3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
-4 : Set to true to use the target GNSS velocity if available. (+16)
+Selects which measurements the vision target estimator fuses.
+Bits 0, 3 and 5 give an absolute pad position. It is converted to a relative observation with the vehicle GNSS position, and its offset to the vision-based pad position is estimated as the GNSS bias.
+Only one absolute pad position is fused at a time: bit 0 takes precedence over bits 3 and 5, which are also ignored in moving-target builds.
 
 **Bitmask:**
 
-- `0`: target GNSS position
+- `0`: Target GNSS position (receiver on the target)
 - `1`: UAV GNSS velocity
-- `2`: vision relative position
-- `3`: mission position
-- `4`: target GNSS velocity
+- `2`: Vision relative position
+- `3`: Mission land position (precision landing)
+- `4`: Target GNSS velocity (moving-target builds only)
+- `5`: Home position (precision takeoff)
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 31       |           | 14      |      | &nbsp;    |
+| &nbsp; | 0        | 63       |           | 14      |      | &nbsp;    |
 
 ### VTE_BIAS_UNC (`FLOAT`) {#VTE_BIAS_UNC}
 
@@ -50309,15 +50473,17 @@ Integer bitmask controlling the tasks of the target estimator.
 Set bits in the following positions to enable:
 0 : Set to true to use the vision target estimator for precision landing. (+1)
 1 : DEBUG, always active. (+2)
+2 : Set to true to use the vision target estimator for precision takeoff. (+4)
 
 **Bitmask:**
 
 - `0`: precision landing
 - `1`: DEBUG, always active
+- `2`: precision takeoff
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 3        |           | 1       |      | &nbsp;    |
+| &nbsp; | 0        | 7        |           | 1       |      | &nbsp;    |
 
 ### VTE_TGT_TOUT (`FLOAT`) {#VTE_TGT_TOUT}
 

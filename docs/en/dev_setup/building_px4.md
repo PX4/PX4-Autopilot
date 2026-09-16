@@ -300,15 +300,6 @@ make list_config_targets
   Default is [empty.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/empty.world).
   For more information see [Gazebo Classic > Loading a Specific World](../sim_gazebo_classic/index.md#loading-a-specific-world).
 
-:::tip
-You can get a list of _all_ available `VIEWER_MODEL_DEBUGGER_WORLD` options using the command below:
-
-```sh
-make px4_sitl list_vmd_make_targets
-```
-
-:::
-
 ::: info
 
 - Most of the values in the `CONFIGURATION_TARGET` and `VIEWER_MODEL_DEBUGGER` have defaults, and are hence optional.

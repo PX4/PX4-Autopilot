@@ -44,22 +44,12 @@ set(UAVCAN_PLATFORM "generic")
 if(CONFIG_ARCH_CHIP)
 	if(${CONFIG_NET_CAN} MATCHES "y")
 		set(UAVCAN_DRIVER "socketcan")
-		set(UAVCAN_TIMER 1)
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "kinetis")
 		set(UAVCAN_DRIVER "kinetis")
-		set(UAVCAN_TIMER 1)
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32h7")
 		set(UAVCAN_DRIVER "stm32h7")
-		set(UAVCAN_TIMER 5) # The default timer is TIM5
-		if (DEFINED config_uavcan_timer_override)
-			set (UAVCAN_TIMER  ${config_uavcan_timer_override})
-		endif()
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32")
 		set(UAVCAN_DRIVER "stm32")
-		set(UAVCAN_TIMER 6) # The default timer is TIM6
-		if (DEFINED config_uavcan_timer_override)
-			set (UAVCAN_TIMER  ${config_uavcan_timer_override})
-		endif()
 	endif()
 endif()
 
@@ -82,7 +72,6 @@ string(TOUPPER "${UAVCAN_DRIVER}" UAVCAN_DRIVER_UPPER)
 add_definitions(
 	-DUAVCAN_${UAVCAN_DRIVER_UPPER}_${OS_UPPER}=1
 	-DUAVCAN_${UAVCAN_DRIVER_UPPER}_NUM_IFACES=${config_uavcan_num_ifaces}
-	-DUAVCAN_${UAVCAN_DRIVER_UPPER}_TIMER_NUMBER=${UAVCAN_TIMER}
 	-DUAVCAN_NUM_IFACES=${config_uavcan_num_ifaces}
 	-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
 	-DUAVCAN_DRIVER=uavcan_${UAVCAN_DRIVER}

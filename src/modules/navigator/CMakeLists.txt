@@ -40,10 +40,20 @@ endif()
 
 px4_add_library(navigator_mission_route
 	mission_route_types.cpp
-	mission_route_provider.cpp
+	mission_route_land_approaches.cpp
 )
 
 target_link_libraries(navigator_mission_route PUBLIC geo)
+
+if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
+	px4_add_library(navigator_mission_route_planner
+		mission_route_internal_types.cpp
+		mission_route_projection.cpp
+		mission_route_planner.cpp
+	)
+
+	target_link_libraries(navigator_mission_route_planner PUBLIC navigator_mission_route)
+endif()
 
 if(BUILD_TESTING)
 	add_subdirectory(test)
@@ -94,17 +104,25 @@ if(CONFIG_NAVIGATOR_ADSB)
 	list(APPEND NAVIGATOR_DEPENDS adsb detect_and_avoid)
 endif()
 
+set(NAVIGATOR_MODULE_CONFIG
+	geofence_params.yaml
+	mission_params.yaml
+	navigator_params.yaml
+	precland_params.yaml
+	rtl_params.yaml
+	vtol_takeoff_params.yaml)
+
+if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
+	list(APPEND NAVIGATOR_SOURCES prec_takeoff.cpp)
+	list(APPEND NAVIGATOR_MODULE_CONFIG prec_takeoff_params.yaml)
+endif()
+
 px4_add_module(
 	MODULE modules__navigator
 	MAIN navigator
 	SRCS ${NAVIGATOR_SOURCES}
 	MODULE_CONFIG
-		geofence_params.yaml
-		mission_params.yaml
-		navigator_params.yaml
-		precland_params.yaml
-		rtl_params.yaml
-		vtol_takeoff_params.yaml
+		${NAVIGATOR_MODULE_CONFIG}
 	DEPENDS
 		${NAVIGATOR_DEPENDS}
 	)

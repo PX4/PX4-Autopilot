@@ -64,7 +64,7 @@ public:
 
 	enum class SyncResult : uint8_t {
 		kRejected,  ///< Source mismatch, index out of range, or the cache is compiled out.
-		kPatched,   ///< A loaded item was updated in place; a published view becomes stale.
+		kPatched,   ///< A loaded item was updated in place; any borrowed view becomes stale.
 		kDeferred   ///< The item is not loaded yet; the pending load reads it from dataman.
 	};
 

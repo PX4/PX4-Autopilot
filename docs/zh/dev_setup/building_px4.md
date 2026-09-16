@@ -228,15 +228,22 @@ PX4构建系统打开大量文件，因此您可能会超出此数量。
 arm-none-eabi-ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
 ```
 
-解决方案是增加允许打开文件的最大数量（例如增加到300）。
+The solution is to increase the maximum allowed number of open files (to 2048, matching the [macOS setup instructions](../dev_setup/dev_env_mac.md#prerequisites)).
 您可以在每个会话的 macOS _终端_ 中这样做：
 
-- 运行此脚本 [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh)，或
-- 运行这个命令:
+- Source this script [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh) (it must be sourced, not executed, to affect your current shell):
 
   ```sh
-  ulimit -S -n 300
+  source Tools/mac_set_ulimit.sh
   ```
+
+- Or enter the command directly:
+
+  ```sh
+  ulimit -S -n 2048
+  ```
+
+To apply it to every new terminal, add the `ulimit` line to `~/.zshrc` as described in the macOS setup.
 
 ### macOS Catalina：运行cmake时出现问题
 
@@ -314,15 +321,6 @@ make list_config_targets
   设置加载的世界（[PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds](https://github.com/PX4/PX4-SITL_gazebo-classic/tree/main/worlds)）。
   默认为 [empty.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/empty.world)。
   欲了解更多信息，请参阅[Gazebo Classic > 加载特定世界](../sim_gazebo_classic/index.md#loading-a-specific-world)。
-
-:::tip
-您可以使用下面的命令获取_所有_可用的选项： `VIEWER_MODEBUGER_WORLD`
-
-```sh
-make px4_sitl list_vmd_make_targets
-```
-
-:::
 
 ::: info
 

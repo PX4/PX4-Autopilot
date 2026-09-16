@@ -30,7 +30,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [HomePosition](HomePosition.md) — GPS home position in WGS84 coordinates.
 - [LateralControlConfiguration](LateralControlConfiguration.md) — Fixed Wing Lateral Control Configuration message.
 - [LongitudinalControlConfiguration](LongitudinalControlConfiguration.md) — Fixed Wing Longitudinal Control Configuration message.
-- [ManualControlSetpoint](ManualControlSetpoint.md)
+- [ManualControlSetpoint](ManualControlSetpoint.md) — Manual control input.
 - [ModeCompleted](ModeCompleted.md) — Mode completion result, published by an active mode. The possible values of nav_state are defined in the VehicleStatus msg. Note that this is not always published (e.g. when a user switches modes or on. failsafe activation).
 - [RaptorInput](RaptorInput.md) — Raptor Input.
 - [RaptorStatus](RaptorStatus.md) — Raptor Status.
@@ -65,6 +65,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it. Events interface.
 - [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
 - [HomePositionV1](HomePositionV1.md) — GPS home position in WGS84 coordinates.
+- [ManualControlSetpointV0](ManualControlSetpointV0.md)
 - [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
 - [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
@@ -221,6 +222,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [PowerMonitor](PowerMonitor.md) — power monitor message.
 - [PpsCapture](PpsCapture.md)
 - [PrecLandStatus](PrecLandStatus.md) — Precision-landing runtime status: a single state captures both whether precision landing is active and which phase it is in.
+- [PrecTakeoffStatus](PrecTakeoffStatus.md) — Precision takeoff status.
 - [PurePursuitStatus](PurePursuitStatus.md) — Pure pursuit status.
 - [PwmInput](PwmInput.md)
 - [Px4ioStatus](Px4ioStatus.md)
@@ -252,6 +254,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorCombined](SensorCombined.md) — Sensor readings in SI-unit form. These fields are scaled and offset-compensated where possible and do not. change with board revisions and sensor updates.
 - [SensorCorrection](SensorCorrection.md) — Sensor corrections in SI-unit form for the voted sensor.
 - [SensorGnssRelative](SensorGnssRelative.md) — GNSS relative positioning information in NED frame. The NED frame is defined as the local topological system at the reference station.
+- [SensorGnssRf](SensorGnssRf.md) — GNSS RF status.
+- [SensorGnssSpectrum](SensorGnssSpectrum.md) — GNSS spectrum analysis.
 - [SensorGnssStatus](SensorGnssStatus.md) — Gnss quality indicators.
 - [SensorGps](SensorGps.md) — GPS position in WGS84 coordinates. the field 'timestamp' is for the position & velocity (microseconds).
 - [SensorGyro](SensorGyro.md)

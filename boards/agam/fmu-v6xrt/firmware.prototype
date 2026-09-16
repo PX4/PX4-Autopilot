@@ -1,0 +1,13 @@
+{
+    "board_id": 1949,
+    "magic": "AGAMFWv1",
+    "description": "Firmware for the AGAMFMUv6XRT board",
+    "image": "",
+    "build_time": 0,
+    "summary": "AGAMFMUv6XRT",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 4063232,
+    "git_identity": "",
+    "board_revision": 0
+}

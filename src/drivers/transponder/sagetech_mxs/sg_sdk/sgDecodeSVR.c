@@ -60,6 +60,80 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 	svr->addr = toInt32(&buffer[PBASE + 5]) & 0xFFFFFF;
 	svr->addrType = buffer[PBASE + 8] & 0xFF;
 
+	// The optional fields below are only present when their flag is set, and each one
+	// advances the running offset. Nothing checks that the frame actually carried them, so
+	// a short frame decodes whatever the receive buffer still holds from an earlier
+	// message and publishes it as a live target. Work out what the advertised field set
+	// requires and reject the frame if it is shorter.
+	uint16_t needed = 9;
+
+	if (fields[0] & SV_PARAM_TOA_EPOS) {
+		needed += 2;
+	}
+
+	if (fields[0] & SV_PARAM_TOA_POS) {
+		needed += 2;
+	}
+
+	if (fields[0] & SV_PARAM_TOA_VEL) {
+		needed += 2;
+	}
+
+	if (fields[0] & SV_PARAM_LATLON) {
+		needed += 6;
+	}
+
+	if (svr->type == svrAirborne) {
+		if (fields[1] & SV_PARAM_GEOALT) {
+			needed += 3;
+		}
+
+		if (fields[1] & SV_PARAM_VEL) {
+			needed += 4;
+		}
+
+		if (fields[1] & SV_PARAM_BAROALT) {
+			needed += 3;
+		}
+
+		if (fields[1] & SV_PARAM_VRATE) {
+			needed += 2;
+		}
+
+	} else {
+		if (fields[1] & SV_PARAM_SURF_GS) {
+			needed += 1;
+		}
+
+		if (fields[1] & SV_PARAM_SURF_HEAD) {
+			needed += 1;
+		}
+	}
+
+	if (fields[1] & SV_PARAM_NIC) {
+		needed += 1;
+	}
+
+	if (fields[1] & SV_PARAM_ESTLAT) {
+		needed += 3;
+	}
+
+	if (fields[2] & SV_PARAM_ESTLON) {
+		needed += 3;
+	}
+
+	if (fields[2] & SV_PARAM_SURV) {
+		needed += 1;
+	}
+
+	if (fields[2] & SV_PARAM_REPORT) {
+		needed += 1;
+	}
+
+	if (buffer[3] < needed) { // buffer[3] is the advertised payload length
+		return false;
+	}
+
 	uint8_t ofs = 9;
 
 	if (fields[0] & SV_PARAM_TOA_EPOS) {

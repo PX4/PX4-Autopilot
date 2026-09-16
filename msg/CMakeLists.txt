@@ -205,6 +205,7 @@ set(msg_files
 	SensorCombined.msg
 	SensorCorrection.msg
 	SensorGnssRelative.msg
+	SensorGnssRf.msg
 	SensorGnssStatus.msg
 	SensorGps.msg
 	SensorGyro.msg
@@ -290,6 +291,9 @@ set(msg_files
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg
 )
+if(CONFIG_GPS_UBX_SPAN)
+	list(APPEND msg_files SensorGnssSpectrum.msg)
+endif()
 list(SORT msg_files)
 
 if(CONFIG_NAVIGATOR_ADSB)
@@ -309,7 +313,8 @@ if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 		VteBiasInitStatus.msg
 		FiducialMarkerPosReport.msg
 		FiducialMarkerYawReport.msg
-		PrecLandStatus.msg)
+		PrecLandStatus.msg
+		PrecTakeoffStatus.msg)
 endif()
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})

@@ -260,6 +260,15 @@ void ExternalChecks::update()
 			}
 
 			if (_registrations[reply.registration_id].reply) {
+				// num_events is a uint8 arriving on an externally writable topic, while events is
+				// a fixed-size array. Clamp it here, next to the registration_id check, so
+				// checkAndReport() cannot iterate past the end of the array.
+				static constexpr uint8_t max_num_events = sizeof(reply.events) / sizeof(reply.events[0]);
+
+				if (reply.num_events > max_num_events) {
+					reply.num_events = max_num_events;
+				}
+
 				*_registrations[reply.registration_id].reply = reply;
 			}
 

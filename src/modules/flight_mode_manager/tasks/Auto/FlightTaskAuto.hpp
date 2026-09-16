@@ -46,6 +46,9 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/takeoff_status.h>
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include <uORB/topics/prec_takeoff_status.h>
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <lib/geo/geo.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/motion_planning/HeadingSmoothing.hpp>
@@ -110,6 +113,9 @@ protected:
 	/** determines when to trigger a takeoff (ignored in flight) */
 	bool _checkTakeoff() override { return _want_takeoff; };
 
+	/** true once airborne for MIS_TKO_PREC_DLY and navigator has adjusted the takeoff setpoint using a valid target */
+	bool _followPrecisionTakeoffTarget() const;
+
 	void _prepareLandSetpoints();
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 
@@ -124,6 +130,9 @@ protected:
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<takeoff_status_s> _takeoff_status_sub{ORB_ID(takeoff_status)};
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	uORB::SubscriptionData<prec_takeoff_status_s> _prec_takeoff_status_sub {ORB_ID(prec_takeoff_status)};
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
 
@@ -168,6 +177,9 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_ALT3>) _param_mpc_land_alt3,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+					(ParamFloat<px4::params::MIS_TKO_PREC_DLY>) _param_mis_tko_prec_dly,
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
 					(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t
 				       );
@@ -175,6 +187,7 @@ protected:
 private:
 	matrix::Vector2f _lock_position_xy; /**< if no valid triplet is received, lock positition to current position */
 	matrix::Vector3f _takeoff_liftoff_position; /**< tracks the position state during the takeoff ramp and is frozen at FLIGHT */
+	hrt_abstime _time_stamp_airborne{0}; /**< when the takeoff state reached FLIGHT, 0 while on the ground */
 	bool _yaw_lock{false}; /**< if within acceptance radius, lock yaw to current yaw */
 
 	matrix::Vector3f _triplet_previous; ///< previous waypoint in triplet from navigator

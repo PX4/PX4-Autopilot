@@ -302,6 +302,13 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 					reply.success = false;
 
 				} else if (request.enable_replace_internal_mode) {
+					// The mode to replace is used as a shift amount when building the selectable
+					// mode mask, so it has to be a real navigation state
+					if (request.replace_internal_mode >= vehicle_status_s::NAVIGATION_STATE_MAX) {
+						PX4_ERR("Invalid mode to replace (%i)", request.replace_internal_mode);
+						reply.success = false;
+					}
+
 					// Check if another one already replaces the same mode
 					for (int i = Modes::FIRST_EXTERNAL_NAV_STATE; i <= Modes::LAST_EXTERNAL_NAV_STATE; ++i) {
 						if (_modes.valid(i)) {
