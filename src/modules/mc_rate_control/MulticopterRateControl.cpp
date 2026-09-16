@@ -222,6 +222,20 @@ MulticopterRateControl::Run()
 			// apply low-pass filtering on yaw axis to reduce high frequency torque caused by rotor acceleration
 			torque_setpoint(2) = _output_lpf_yaw.update(torque_setpoint(2), static_cast<uint64_t>(dt * 1e6f));
 
+			// Apply only a fresh autotune command for the current flight mode.
+			autotune_excitation_s excitation{};
+			const bool autotune_active = _autotune_excitation_sub.copy(&excitation)
+						     && hrt_elapsed_time(&excitation.timestamp) < 100_ms
+						     && _vehicle_control_mode.flag_armed && !_landed && !_maybe_landed
+						     && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+						     && !_vehicle_status.in_transition_mode
+						     && _vehicle_status.nav_state == excitation.nav_state && !_param_mc_bat_scale_en.get()
+						     && Vector3f(excitation.torque).isAllFinite() && Vector3f(excitation.torque).norm() <= .08f;
+
+			if (autotune_active) {
+				torque_setpoint += Vector3f(excitation.torque);
+			}
+
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
 			_rate_control.getRateControlStatus(rate_ctrl_status);
@@ -261,6 +275,19 @@ MulticopterRateControl::Run()
 
 			vehicle_torque_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
 			vehicle_torque_setpoint.timestamp = hrt_absolute_time();
+
+			if (autotune_active) {
+				autotune_response_s response{};
+				response.timestamp = vehicle_torque_setpoint.timestamp;
+				response.timestamp_sample = angular_velocity.timestamp_sample;
+				response.dt = dt;
+				Vector3f(excitation.torque).copyTo(response.excitation);
+				Vector3f(vehicle_torque_setpoint.xyz).copyTo(response.torque);
+				rates.copyTo(response.angular_velocity);
+				angular_accel.copyTo(response.angular_acceleration);
+				_autotune_response_pub.publish(response);
+			}
+
 			_vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
 
 			updateActuatorControlsStatus(vehicle_torque_setpoint, dt);

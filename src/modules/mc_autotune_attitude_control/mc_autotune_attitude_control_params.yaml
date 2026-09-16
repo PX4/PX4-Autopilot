@@ -9,7 +9,10 @@ parameters:
       default: 0
     MC_AT_SYSID_AMP:
       description:
-        short: Amplitude of the injected signal
+        short: Relative strength of the injected signal
+        long: |-
+          Scales the normalized torque excitation. Autotune reduces the
+          excitation if the vehicle exceeds the small-motion measurement limit.
       type: float
       default: 0.7
       min: 0.1
@@ -38,6 +41,34 @@ parameters:
       type: float
       default: 0.14
       min: 0.01
-      max: 0.5
+      max: 2.0
       decimal: 2
       unit: s
+    MC_AT_PERIOD:
+      description:
+        short: Initial response measurement period
+        long: |-
+          The lowest excitation frequency is the inverse of this period.
+          Each axis uses two settling and four measurement periods at each
+          of two excitation phases. Autotune can increase the period up to
+          128 seconds if low-frequency coverage is insufficient.
+      type: float
+      default: 8.0
+      min: 4.0
+      max: 128.0
+      unit: s
+      decimal: 1
+    MC_AT_TIMEOUT:
+      description:
+        short: Maximum total multicopter autotune duration
+        long: |-
+          Limits identification and independent response verification together.
+          Expiration rejects the candidate and keeps the previous gains.
+          Increase this limit when using long periods on slow vehicles.
+          Pilot cancellation remains immediate.
+      type: float
+      default: 600.0
+      min: 20.0
+      max: 14400.0
+      unit: s
+      decimal: 0
