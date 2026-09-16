@@ -54,6 +54,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 		if (_system_flag_buffer->pop_first_older_than(imu_delayed.time_us, &system_flags_delayed)) {
 
+			set_armed_status(system_flags_delayed.armed);
 			set_vehicle_at_rest(system_flags_delayed.at_rest);
 			set_in_air_status(system_flags_delayed.in_air);
 

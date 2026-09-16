@@ -2821,6 +2821,8 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 			_prev_armed = armed;
 
+			flags.armed = armed;
+
 			// initially set in_air from arming_state (will be overridden if land detector is available)
 			flags.in_air = armed;
 
