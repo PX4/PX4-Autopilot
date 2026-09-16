@@ -213,6 +213,7 @@ private:
 		uint8_t		stream_target_system_id;
 		uint8_t         stream_target_component_id;
 		unsigned	stream_chunk_transmitted;
+		uint8_t		stream_size;            ///< payload size the client asked for, 0 = as much as fits
 		ParamPckFile	param;			///< virtual parameter file, open instead of fd
 	};
 	struct SessionInfo _session_info {};	///< Session info, fd=-1 for no active session
