@@ -1213,6 +1213,11 @@ void MavlinkFTP::send()
 		ftp_msg.target_network = 0;
 		ftp_msg.target_component = _session_info.stream_target_component_id;
 		_reply(&ftp_msg);
+
+		// Streaming a burst is activity: without this the session is torn down
+		// from under a burst that runs longer than the inactivity timeout, which
+		// on a slow link a single chunk easily does.
+		_last_work_buffer_access = hrt_absolute_time();
 	} while (more_data);
 }
 
