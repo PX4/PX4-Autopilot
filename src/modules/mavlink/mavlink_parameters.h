@@ -91,6 +91,22 @@ public:
 		return hrt_absolute_time() < _last_param_sent + 2_s;
 	}
 
+	/**
+	 * Check if a full parameter dump (PARAM_REQUEST_LIST) is in progress.
+	 *
+	 * Unlike send_active() this is only true for the bulk transfer, not for
+	 * single parameters going out.
+	 */
+	bool sending_all() const { return _send_all_index >= 0; }
+
+	/**
+	 * Share of the link budget a full parameter dump is allowed to use.
+	 *
+	 * The remainder stays available for the regular streams, which yield via
+	 * Mavlink::update_rate_mult().
+	 */
+	static constexpr float DUMP_BANDWIDTH_SHARE = 0.5f;
+
 private:
 	int		_send_all_index{-1};
 
@@ -102,6 +118,14 @@ protected:
 	/// send a single param if a PARAM_REQUEST_LIST is in progress
 	/// @return true if a parameter was sent
 	bool send_one();
+
+	/**
+	 * Minimum interval between two PARAM_VALUE messages of a full parameter dump.
+	 *
+	 * Derived from the configured link data rate so that the dump cannot exceed
+	 * its share of the link budget.
+	 */
+	hrt_abstime param_send_interval() const;
 
 	/**
 	 * Handle any open param send transfer
