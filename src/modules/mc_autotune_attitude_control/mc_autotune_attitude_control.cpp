@@ -92,7 +92,7 @@ void McAutotuneAttitudeControl::Run()
 		_parameter_update_sub.copy(&pupdate);
 
 		if (_experiment_active) {
-			PX4_WARN("Autotune aborted: parameters changed during measurement");
+			PX4_WARN("parameters changed during measurement");
 			_experiment_active = false;
 			_state = state::fail;
 			_state_start_time = hrt_absolute_time();
@@ -142,7 +142,7 @@ void McAutotuneAttitudeControl::Run()
 	const hrt_abstime watchdog_now = hrt_absolute_time();
 
 	if (_experiment_active && (!_armed || watchdog_now - _response_time > 500_ms)) {
-		PX4_WARN("Autotune aborted: disarmed or response stream lost");
+		PX4_WARN("disarmed or response stream lost");
 		_state = state::fail;
 		_state_start_time = watchdog_now;
 		_experiment_active = false;
@@ -209,7 +209,7 @@ void McAutotuneAttitudeControl::Run()
 			const Eulerf angles{Quatf{attitude.q}};
 
 			if (!fresh || !PX4_ISFINITE(angles.phi()) || !PX4_ISFINITE(angles.theta())) {
-				PX4_WARN("Autotune failed: stale measurement status");
+				PX4_WARN("stale measurement status");
 				_state = state::fail;
 				_state_start_time = _response_time;
 				_experiment_active = false;
@@ -219,13 +219,13 @@ void McAutotuneAttitudeControl::Run()
 				_excitation_amplitude *= .5f;
 
 				if (_excitation_amplitude < .00005f) {
-					PX4_WARN("Autotune failed: no small-signal operating point");
+					PX4_WARN("no small-signal operating point");
 					_state = state::fail;
 					_state_start_time = _response_time;
 					_experiment_active = false;
 
 				} else {
-					PX4_INFO("Autotune axis %d: reducing excitation to %.6f", _excited_axis, (double)_excitation_amplitude);
+					PX4_DEBUG("Autotune axis %d: reducing excitation to %.6f", _excited_axis, (double)_excitation_amplitude);
 					startAxis(_excited_axis, _response_time);
 				}
 
@@ -235,7 +235,7 @@ void McAutotuneAttitudeControl::Run()
 							response.excitation[_excited_axis]);
 
 				if (!_validation->validData()) {
-					PX4_WARN("Autotune failed: response data error %d, sample interval %.6f s, controller dt %.6f s",
+					PX4_WARN("response error %d: sample %.6f s, controller dt %.6f s",
 						 static_cast<int>(_validation->error()), (double)_validation->sampleInterval(), (double)response.dt);
 					_state = state::fail;
 					_state_start_time = _response_time;
@@ -358,7 +358,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 						|| (fabsf(manual_control_setpoint.yaw) > 0.05f);
 
 		if (timeout || mode_changed || pilot_intervention) {
-			PX4_WARN("Autotune aborted in state %u: %s", static_cast<unsigned>(_state),
+			PX4_WARN("aborted in state %u: %s", static_cast<unsigned>(_state),
 				 timeout ? "timeout" : (mode_changed ? "flight mode changed" : "pilot intervention"));
 
 			if (_state == state::test) {
@@ -387,7 +387,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	case state::init:
 		if (_are_filters_initialized) {
 			if (!startExperiment(now)) {
-				PX4_WARN("Autotune failed: unsupported configuration or unavailable memory");
+				PX4_WARN("unsupported configuration or out of memory");
 				_state = state::fail;
 				_state_start_time = now;
 			}
@@ -418,7 +418,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	case state::verification:
 		if (!_experiment_active || !areGainsGood()) {
-			PX4_WARN("Autotune failed: invalid gains or missing measurements");
+			PX4_WARN("invalid gains or missing measurements");
 			_state = state::fail;
 			_state_start_time = now;
 			_experiment_active = false;
@@ -687,7 +687,7 @@ bool McAutotuneAttitudeControl::startExperiment(hrt_abstime now)
 	_gains_backup_available = false;
 	_rate_k.zero(); _rate_i.zero(); _rate_d.zero(); _att_p.zero();
 	_excitation_amplitude = math::min(.003f * _param_mc_at_sysid_amp.get() / .7f, .08f / _validation->frequencies());
-	PX4_INFO("Autotune response verification: period %.1f s, %d frequencies", (double)_measurement_period, _validation->frequencies());
+	PX4_DEBUG("Autotune response verification: period %.1f s, %d frequencies", (double)_measurement_period, _validation->frequencies());
 	startAxis(0, now);
 	return true;
 }
@@ -750,27 +750,27 @@ bool McAutotuneAttitudeControl::validateGains()
 				_measurement_period = math::min(2.f * _measurement_period, 128.f);
 				_validation->configure(_measurement_period, math::min(.2f / _filter_dt, math::max(10.f, 2.f * _param_imu_gyro_cutoff.get())));
 				_excitation_amplitude = math::min(_excitation_amplitude, .08f / _validation->frequencies());
-				PX4_INFO("Autotune: extending response period to %.1f s", (double)_measurement_period);
+				PX4_DEBUG("Autotune: extending response period to %.1f s", (double)_measurement_period);
 				_rate_k.zero(); _rate_i.zero(); _rate_d.zero(); _att_p.zero();
 				startAxis(0, hrt_absolute_time());
 
-			} else { PX4_WARN("Autotune failed: insufficient frequency coverage"); }
+			} else { PX4_WARN("insufficient frequency coverage"); }
 
 			return false;
 		}
 
 		if (!PX4_ISFINITE(minimum)) {
-			PX4_WARN("Autotune failed: insufficient measurement coverage or data quality");
+			PX4_WARN("insufficient measurement coverage or quality");
 			return false;
 		}
 
-		PX4_INFO("Autotune candidate %d: response bound %.3f", option, (double)minimum);
+		PX4_DEBUG("Autotune candidate %d: response bound %.3f", option, (double)minimum);
 
 		if (result == ControllerValidation::Result::Pass) {
 			// A negligible update is not a successful identification.
 			if ((candidate.p - _baseline.p).norm() + (candidate.i - _baseline.i).norm()
 			    + (candidate.d - _baseline.d).norm() < .01f * (_baseline.p.norm() + _baseline.i.norm() + _baseline.d.norm())) {
-				PX4_WARN("Autotune failed: no significant validated gain change");
+				PX4_WARN("no significant gain change");
 				return false;
 			}
 
@@ -778,12 +778,12 @@ bool McAutotuneAttitudeControl::validateGains()
 			_rate_i = candidate.i.edivide(candidate.p);
 			_rate_d = candidate.d.edivide(candidate.p);
 			_att_p = candidate.attitude;
-			PX4_INFO("Autotune validated: rate fraction %.2f, attitude %s", (double)fraction, option == 0 ? "updated" : "retained");
+			PX4_DEBUG("Autotune validated: rate fraction %.2f, attitude %s", (double)fraction, option == 0 ? "updated" : "retained");
 			return true;
 		}
 	}
 
-	PX4_WARN("Autotune failed: candidate response is not sufficiently verified");
+	PX4_WARN("controller verification failed");
 	return false;
 }
 

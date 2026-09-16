@@ -53,6 +53,8 @@ public:
 		friend Complex operator+(Complex a, Complex b) { return {a.x + b.x, a.y + b.y}; }
 		friend Complex operator-(Complex a, Complex b) { return {a.x - b.x, a.y - b.y}; }
 		friend Complex operator*(Complex a, Complex b) { return {a.x *b.x - a.y * b.y, a.x *b.y + a.y * b.x}; }
+		friend Complex operator*(float a, Complex b) { return {a * b.x, a * b.y}; }
+		friend Complex operator*(Complex a, float b) { return b * a; }
 		friend Complex operator/(Complex a, Complex b)
 		{
 			const float denominator = norm(b);
@@ -89,7 +91,8 @@ public:
 		const int maximum = int(period * maximum_frequency);
 
 		while (_count < MaxFrequencies - 1) {
-			const int next = math::max(int(_harmonic[_count - 1] * 1.25f + .5f), _harmonic[_count - 1] + 1);
+			// Round 5/4 of the previous integer harmonic to the nearest integer.
+			const int next = math::max((5 * _harmonic[_count - 1] + 2) / 4, _harmonic[_count - 1] + 1);
 
 			if (next > maximum) { break; }
 
