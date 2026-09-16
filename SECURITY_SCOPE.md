@@ -24,22 +24,32 @@ Two things PX4 cannot promise: that a vehicle will not crash, and that a sensor 
 
 ## The boundary
 
-```
-                 integrator's responsibility
-        ..............................................
-        :  telemetry radio    RC link    companion   :
-        :        |              |         network    :
-        :        |              |            |       :
-        ''''''''''''''''''''''''''''''''''''''''''''''
-                 |              |            |
-              MAVLink          RC      uXRCE-DDS/Zenoh
-                 |              |            |
-        +--------+--------------+------------+--------+
-        |             flight controller               |
-        +---+---------------+---------------+---------+
-            |               |               |
-        SD card       USB / NSH shell    UART/I2C/SPI/CAN
-                                          peripherals
+```mermaid
+flowchart TB
+    subgraph integrator ["the integrator's to secure"]
+        radio["telemetry radio"]
+        rclink["RC link"]
+        companion["companion network"]
+    end
+
+    fc["flight controller"]
+
+    subgraph operator ["trusted as the operator"]
+        sdcard["SD card"]
+        usb["USB / NSH shell"]
+        buses["UART / I2C / SPI / CAN<br>peripherals"]
+    end
+
+    radio -->|MAVLink| fc
+    rclink -->|RC| fc
+    companion -->|uXRCE-DDS / Zenoh| fc
+
+    fc --- sdcard
+    fc --- usb
+    fc --- buses
+
+    style integrator stroke-dasharray: 5 5
+    style operator stroke-dasharray: 5 5
 ```
 
 Everything above the flight controller is the integrator's to secure.
