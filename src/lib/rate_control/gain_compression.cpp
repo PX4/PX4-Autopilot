@@ -49,6 +49,8 @@ void GainCompression3dT<ParamEnable, ParamGainMin>::reset()
 	for (unsigned i = 0; i < 3; i++) {
 		_compression_gains[i].reset();
 	}
+
+	_gains.setOne();
 }
 
 template<px4::params ParamEnable, px4::params ParamGainMin>
@@ -66,7 +68,6 @@ void GainCompression3dT<ParamEnable, ParamGainMin>::update(const Vector3f &input
 {
 	if (!_param_gc_en.get()) {
 		reset();
-		_gains.setOne();
 		return;
 	}
 
@@ -105,6 +106,12 @@ float GainCompression::update(const float input, const float dt)
 {
 	if (!PX4_ISFINITE(input)) {
 		return _compression_gain;
+	}
+
+	if (!_input_initialized) {
+		// seed the high-pass filter to avoid detecting a step on the first sample after a reset
+		_input_prev = input;
+		_input_initialized = true;
 	}
 
 	_hpf = _alpha_hpf * _hpf + _alpha_hpf * (input - _input_prev);
