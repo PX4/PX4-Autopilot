@@ -139,10 +139,10 @@ void Geofence::run()
 				_error_state = DatamanState::ReadWait;
 				_dataman_state = DatamanState::Error;
 
-			} else if (_opaque_id != _stats.opaque_id || !_fence_updated) {
+			} else if (_opaque_id != _stats.opaque_id || !_fence_loaded) {
 
 				_opaque_id = _stats.opaque_id;
-				_fence_updated = false;
+				_fence_loaded = false;
 
 				_dataman_cache.invalidate();
 
@@ -166,7 +166,7 @@ void Geofence::run()
 
 			} else {
 				_dataman_state = DatamanState::UpdateRequestWait;
-				_fence_updated = true;
+				_fence_loaded = true;
 
 				geofence_status_s status{};
 				status.timestamp = hrt_absolute_time();
@@ -208,7 +208,7 @@ void Geofence::updateFence()
 void Geofence::_finishFenceUpdate(bool success)
 {
 	_dataman_state = DatamanState::UpdateRequestWait;
-	_fence_updated = success;
+	_fence_loaded = success;
 
 	if (!success) {
 		_reportFenceLoadFailure();
