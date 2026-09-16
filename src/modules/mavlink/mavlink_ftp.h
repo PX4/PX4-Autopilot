@@ -73,8 +73,11 @@ public:
 
 	/// Burst payload to use for this link.
 	/// On-wire size of one burst packet on this link.
-	/// Framing overhead of one burst packet, signature block included.
-	unsigned burst_overhead() const;
+	/// Framing overhead of one FTP reply, signature block included.
+	unsigned packet_overhead() const;
+
+	/// Reduce a requested payload to what the link carries in one piece.
+	unsigned radio_clamped_length(unsigned requested) const;
 
 	unsigned burst_data_length() const;
 
