@@ -1,9 +1,13 @@
 # syntax=docker/dockerfile:1
 # Build ROS independently of the changing SIH/Gazebo firmware package.
-FROM ubuntu:24.04 AS ros2-base
+ARG ROS_DISTRO=jazzy
+FROM ubuntu:22.04 AS ros2-base-humble
+FROM ubuntu:24.04 AS ros2-base-jazzy
+FROM ros2-base-${ROS_DISTRO} AS ros2-base
 
+ARG ROS_DISTRO
 ENV DEBIAN_FRONTEND=noninteractive
-ENV ROS_DISTRO=jazzy
+ENV ROS_DISTRO=${ROS_DISTRO}
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
@@ -16,15 +20,43 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=bind,source=ros2-install-dependencies.sh,target=/ros2-install-dependencies.sh \
     bash /ros2-install-dependencies.sh
 
-# Use Jazzy's Fast DDS/CDR and the Agent's pinned, statically linked logger.
-FROM ros2-base AS agent
+# Keep ROS libraries intact and statically link the same pinned, private
+# Fast DDS/CDR dependencies into the Agent on both distributions.
+FROM ros2-base AS agent-dds
+ARG BUILD_JOBS=8
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends libasio-dev libtinyxml2-dev
+RUN --mount=type=bind,source=ros2-agent.repos,target=/agent-dependencies.repos \
+    source "/opt/ros/${ROS_DISTRO}/setup.bash" \
+    && mkdir -p /opt/agent-dds-source /opt/agent-install/usr/local/share/micro-xrce-dds-agent \
+    && vcs import /opt/agent-dds-source < /agent-dependencies.repos \
+    && vcs export --exact /opt/agent-dds-source \
+        > /opt/agent-install/usr/local/share/micro-xrce-dds-agent/dependencies.repos \
+    && for dependency in fastcdr fastdds; do \
+        cmake -S "/opt/agent-dds-source/${dependency}" -B "/opt/agent-dds-source/${dependency}/build" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DCMAKE_INSTALL_PREFIX=/opt/agent-dds -DCMAKE_PREFIX_PATH=/opt/agent-dds \
+            -DCOMPILE_TOOLS=OFF -DSECURITY=OFF -DSHM_TRANSPORT_DEFAULT=OFF \
+        && cmake --build "/opt/agent-dds-source/${dependency}/build" --parallel "${BUILD_JOBS}" \
+        && cmake --install "/opt/agent-dds-source/${dependency}/build" \
+        && cp "/opt/agent-dds-source/${dependency}/LICENSE" \
+            "/opt/agent-install/usr/local/share/micro-xrce-dds-agent/${dependency}-LICENSE" \
+        || exit 1; \
+    done \
+    && rm -rf /opt/agent-dds-source
+
+FROM agent-dds AS agent
 ARG XRCE_AGENT_REF=73622810d984349b80bbac0ef55fc0b694d62222
 ARG BUILD_JOBS=8
-RUN source /opt/ros/jazzy/setup.bash \
+RUN source "/opt/ros/${ROS_DISTRO}/setup.bash" \
     && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git /opt/agent-source \
     && git -C /opt/agent-source checkout "${XRCE_AGENT_REF}" \
     && cmake -S /opt/agent-source -B /opt/agent-source/build \
         -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_PREFIX_PATH=/opt/agent-dds \
+        -DBUILD_SHARED_LIBS=OFF \
         -DUAGENT_USE_SYSTEM_FASTDDS=ON \
         -DUAGENT_USE_SYSTEM_FASTCDR=ON \
         -DUAGENT_P2P_PROFILE=OFF \
@@ -57,9 +89,9 @@ FROM ros2-base AS ros2-dependencies
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     --mount=type=bind,from=ros2-sources,source=/opt/px4_ros2/src,target=/ros_sources \
-    source /opt/ros/jazzy/setup.bash \
+    source "/opt/ros/${ROS_DISTRO}/setup.bash" \
     && apt-get update \
-    && rosdep install --from-paths /ros_sources --ignore-src --rosdistro jazzy -y
+    && rosdep install --from-paths /ros_sources --ignore-src --rosdistro "${ROS_DISTRO}" -y
 
 # Standalone development toolchain: no source checkouts, firmware or overlay.
 FROM ros2-dependencies AS ros2-dev
@@ -72,6 +104,7 @@ CMD ["/bin/bash"]
 
 # Definitions come from the same checkout as the parent image's PX4 package.
 FROM ros2-dependencies AS ros2-builder
+RUN test "${ROS_DISTRO}" = jazzy || { echo "SITL runtime images support only Jazzy" >&2; exit 1; }
 WORKDIR /opt/px4_ros2
 COPY --from=ros2-sources /opt/px4_ros2/ /opt/px4_ros2/
 COPY px4_msgs/ src/px4_msgs/
