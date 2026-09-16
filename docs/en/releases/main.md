@@ -47,7 +47,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Control
 
-- TBD
+- [Gain compression](../features_mc/gain_compression.md) is now available on multicopters ([MC_GC_EN](../advanced_config/parameter_reference.md#MC_GC_EN)). When an oscillation is detected on the torque setpoint the rate loop gain is dynamically reduced instead of requiring a manual retune, and recovers to 1.0 once the oscillation stops. The lower bound is set with [MC_GC_GAIN_MIN](../advanced_config/parameter_reference.md#MC_GC_GAIN_MIN) (default `0.3`). Disabled by default.
 
 ### Safety
 

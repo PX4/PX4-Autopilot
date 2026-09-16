@@ -8,3 +8,4 @@ This section lists features that are specific to (or customised for) multicopter
 - [Terrain Following/Holding](../flying/terrain_following_holding.md)
 - [Throw Launch](../flight_modes_mc/throw_launch.md)
 - [Motor Failure Recovery](../config/motor_failure_recovery.md)
+- [Gain Compression](../features_mc/gain_compression.md)
