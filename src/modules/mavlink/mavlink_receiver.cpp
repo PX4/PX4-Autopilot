@@ -652,8 +652,12 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		vcmd.param5 = (double)NAN;
 		vcmd.param6 = (double)NAN;
 
-	} else if (command_has_location(cmd_mavlink.command)
-		   || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
+	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) {
+		// Actuator values use 1e7 scaling regardless of the coordinate frame.
+		vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
+		vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+
+	} else if (command_has_location(cmd_mavlink.command)) {
 		if (cmd_mavlink.frame == MAV_FRAME_LOCAL_NED
 		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_ENU
 		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_OFFSET_NED
