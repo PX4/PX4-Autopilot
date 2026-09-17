@@ -212,12 +212,6 @@ private:
 	static void onFailsafeNotifyUserTrampoline(void *arg);
 	void onFailsafeNotifyUser();
 
-	enum class PrearmedMode {
-		DISABLED = 0,
-		SAFETY_BUTTON = 1,
-		ALWAYS = 2
-	};
-
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 

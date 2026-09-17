@@ -525,6 +525,7 @@ parameters:
         1: Safety button
         2: Always
       default: 0
+      reboot_required: true
     COM_FORCE_SAFETY:
       description:
         short: Enable force safety

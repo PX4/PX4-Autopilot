@@ -1518,8 +1518,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					if (check_battery_disconnected(&_mavlink_log_pub)) {
 						answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-						if (_safety.isButtonAvailable() && !_safety.isSafetyOff()) {
-							mavlink_log_critical(&_mavlink_log_pub, "ESC calibration denied! Press safety button first\t");
+						if (!_safety.isSafetyOff()) {
+							const char *safety_message = _safety.isButtonAvailable() ? "Press safety button" : "Turn safety off";
+							mavlink_log_critical(&_mavlink_log_pub, "ESC calibration denied! %s first\t", safety_message);
 							events::send(events::ID("commander_esc_calibration_denied"), events::Log::Critical,
 								     "ESCs calibration denied");
 
@@ -1788,7 +1789,7 @@ void Commander::handleCommandsFromModeExecutors()
 
 unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 {
-	if (isArmed() || (_safety.isButtonAvailable() && !_safety.isSafetyOff())) {
+	if (isArmed() || !_safety.isSafetyOff()) {
 		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 	}
 
