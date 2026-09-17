@@ -69,6 +69,9 @@ void RtlMissionFastReverse::on_inactivation()
 
 void RtlMissionFastReverse::on_activation()
 {
+	// Pick up a mission published since the last inactive cycle before reading it.
+	updateMavlinkMission();
+
 	_home_pos_sub.update();
 
 	// set mission item to closest item if not already in mission. If we are in mission, set to the previous item.

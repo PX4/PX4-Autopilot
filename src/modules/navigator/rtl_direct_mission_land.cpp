@@ -94,6 +94,11 @@ void RtlDirectMissionLand::on_inactive()
 
 void RtlDirectMissionLand::on_activation()
 {
+	// The mission subscription is refreshed in on_inactive() and on_active() but not on the cycle
+	// that activates this mode, so a mission published since the last inactive cycle would be read
+	// from a stale copy here.
+	updateMavlinkMission();
+
 	_land_detected_sub.update();
 	_global_pos_sub.update();
 
