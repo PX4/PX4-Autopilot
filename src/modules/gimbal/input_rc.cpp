@@ -101,7 +101,7 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 	orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &manual_control_setpoint);
 
 	if (!manual_control_setpoint.valid) {
-		// no valid date, nothing to update
+		// no valid data, nothing to update
 		return UpdateResult::NoUpdate;
 	}
 
