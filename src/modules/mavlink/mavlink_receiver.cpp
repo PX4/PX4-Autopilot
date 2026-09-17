@@ -674,8 +674,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		}
 
 	} else {
-		vcmd.param5 = mavlink_cmd_params::decode_scaled_int32_field(cmd_mavlink.x, 1.0);
-		vcmd.param6 = mavlink_cmd_params::decode_scaled_int32_field(cmd_mavlink.y, 1.0);
+		vcmd.param5 = (double)cmd_mavlink.x;
+		vcmd.param6 = (double)cmd_mavlink.y;
 	}
 
 	vcmd.param7 = cmd_mavlink.z;

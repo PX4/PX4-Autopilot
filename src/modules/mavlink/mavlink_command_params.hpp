@@ -172,10 +172,34 @@ static inline bool int_param_is_unset(int32_t v)
 // Decodes a single int32 x/y field from COMMAND_INT / MISSION_ITEM_INT, honoring
 // the "not used" sentinel independently per field. `divisor` selects the scale
 // for the field when it *is* used: 1e7 for MAV_CMD_DO_SET_ACTUATOR and global
-// frames, 1e4 for local/body frames, 1.0 for raw integer passthrough.
+// frames, 1e4 for local/body frames.
 static inline double decode_scaled_int32_field(int32_t v, double divisor)
 {
 	return int_param_is_unset(v) ? (double)NAN : ((double)v) / divisor;
+}
+
+// Encodes a float actuator/mission param into the int32 x/y field of
+// COMMAND_INT / MISSION_ITEM_INT, mirroring decode_scaled_int32_field.
+// Non-finite input (NaN/Inf), or a scaled magnitude that would not fit in an
+// int32_t, maps to INT32_MAX -- the same "not used" sentinel understood by
+// decode_scaled_int32_field and by ground stations -- instead of invoking the
+// undefined behavior of lround() on an unrepresentable value, or wrapping
+// silently. There is no separate MAVLink sentinel for "negative overflow", so
+// an out-of-range negative value maps to INT32_MAX too, not INT32_MIN; either
+// sentinel decodes back to the same NaN, so nothing is lost.
+static inline int32_t encode_scaled_int32_field(float value, double scale)
+{
+	if (!std::isfinite(value)) {
+		return INT32_MAX;
+	}
+
+	const double scaled = (double)value * scale;
+
+	if (scaled > (double)INT32_MAX || scaled < (double)INT32_MIN) {
+		return INT32_MAX;
+	}
+
+	return (int32_t)std::lround(scaled);
 }
 
 // Vehicle type bitmask for per-vehicle parameter support.

@@ -1841,12 +1841,11 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 			if (mavlink_mission_item->command == MAV_CMD_DO_SET_ACTUATOR) {
 				// Actuator values are scaled by 1e7 in MISSION_ITEM_INT regardless of
-				// frame. NaN (unused actuator) must map to INT32_MAX, not round(NaN)
-				// (casting NaN to int32_t is undefined behavior).
-				item_int->x = PX4_ISFINITE(mission_item->params[4])
-					      ? (int32_t)lroundf(mission_item->params[4] * 1e7f) : INT32_MAX;
-				item_int->y = PX4_ISFINITE(mission_item->params[5])
-					      ? (int32_t)lroundf(mission_item->params[5] * 1e7f) : INT32_MAX;
+				// frame. NaN, or a value whose 1e7-scaled magnitude overflows int32_t,
+				// maps to INT32_MAX ("not used") instead of invoking undefined behavior
+				// by casting it to int32_t directly.
+				item_int->x = mavlink_cmd_params::encode_scaled_int32_field(mission_item->params[4], 1e7);
+				item_int->y = mavlink_cmd_params::encode_scaled_int32_field(mission_item->params[5], 1e7);
 
 			} else {
 				item_int->x = round(mission_item->params[4]);

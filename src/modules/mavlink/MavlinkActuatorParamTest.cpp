@@ -39,6 +39,7 @@
 #include <cstdint>
 
 using mavlink_cmd_params::decode_scaled_int32_field;
+using mavlink_cmd_params::encode_scaled_int32_field;
 
 TEST(MavlinkActuatorParam, ScalesByDivisor)
 {
@@ -75,4 +76,35 @@ TEST(MavlinkActuatorParam, IgnoreSentinelIsPerFieldIndependent)
 
 	EXPECT_TRUE(std::isnan(param5));
 	EXPECT_FLOAT_EQ(param6, 0.5);
+}
+
+TEST(MavlinkActuatorParam, EncodeRoundTrips)
+{
+	EXPECT_EQ(encode_scaled_int32_field(0.5f, 1e7), 5000000);
+	EXPECT_EQ(encode_scaled_int32_field(-0.5f, 1e7), -5000000);
+	EXPECT_EQ(encode_scaled_int32_field(0.0f, 1e7), 0);
+	EXPECT_EQ(encode_scaled_int32_field(1.0f, 1e7), 10000000);
+	EXPECT_EQ(encode_scaled_int32_field(-1.0f, 1e7), -10000000);
+}
+
+TEST(MavlinkActuatorParam, EncodeNonFiniteMapsToInt32Max)
+{
+	EXPECT_EQ(encode_scaled_int32_field(NAN, 1e7), INT32_MAX);
+	EXPECT_EQ(encode_scaled_int32_field(INFINITY, 1e7), INT32_MAX);
+	EXPECT_EQ(encode_scaled_int32_field(-INFINITY, 1e7), INT32_MAX);
+}
+
+TEST(MavlinkActuatorParam, EncodeOutOfRangeMagnitudeMapsToInt32Max)
+{
+	// Would overflow int32_t / invoke lround() UB if cast without a bounds check.
+	EXPECT_EQ(encode_scaled_int32_field(1e30f, 1e7), INT32_MAX);
+	// No separate "negative overflow" sentinel exists on the wire, so this also
+	// maps to INT32_MAX rather than INT32_MIN -- an explicit design choice.
+	EXPECT_EQ(encode_scaled_int32_field(-1e30f, 1e7), INT32_MAX);
+}
+
+TEST(MavlinkActuatorParam, EncodeDecodeRoundTrip)
+{
+	EXPECT_FLOAT_EQ(decode_scaled_int32_field(encode_scaled_int32_field(0.5f, 1e7), 1e7), 0.5);
+	EXPECT_TRUE(std::isnan(decode_scaled_int32_field(encode_scaled_int32_field(NAN, 1e7), 1e7)));
 }
