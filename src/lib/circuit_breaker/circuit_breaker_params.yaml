@@ -23,6 +23,7 @@ parameters:
       category: Developer
       type: int32
       default: 22027
+      reboot_required: true
       min: 0
       max: 22027
     CBRK_FLIGHTTERM:

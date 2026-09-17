@@ -106,18 +106,34 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	// safety button
-	if (context.status().safety_button_available && !context.status().safety_off && !context.isArmed()) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * This check can be configured via <param>CBRK_IO_SAFETY</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_safety_button"),
-					    events::Log::Info, "Press safety button first");
+	if (!context.status().safety_off && !context.isArmed()) {
+		if (context.status().safety_button_available) {
+			/* EVENT
+			* @description
+			* <profile name="dev">
+			* This check can be configured via <param>CBRK_IO_SAFETY</param> parameter.
+			* </profile>
+			*/
+			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_safety_button"),
+						    events::Log::Info, "Press safety button first");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Press safety button first");
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Press safety button first");
+			}
+
+		} else {
+			/* EVENT
+			* @description
+			* <profile name="dev">
+			* This check can be configured via <param>CBRK_IO_SAFETY</param> parameter.
+			* </profile>
+			*/
+			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_safety"),
+						    events::Log::Info, "Turn safety off first");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Turn safety off first");
+			}
 		}
 	}
 
