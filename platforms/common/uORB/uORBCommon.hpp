@@ -37,12 +37,33 @@
 #include <drivers/drv_orb_dev.h>
 #include <systemlib/err.h>
 #include "uORB.h"
+#include <uORB/topics/uORBTopics.hpp>
 #include <drivers/drv_hrt.h>
 
 
 namespace uORB
 {
-static constexpr unsigned orb_maxpath = 64;
+static constexpr char orb_manager_name[] = "_uORB_Manager";
+static constexpr unsigned orb_manager_name_length = sizeof(orb_manager_name) - 1;
+
+#if defined(__PX4_POSIX) && !defined(POSIX_SHM_DISABLED)
+static constexpr char orb_name_prefix[] = "_orb_";
+static constexpr unsigned orb_max_namespace_prefix_length = 20;
+#else
+static constexpr char orb_name_prefix[] = "";
+static constexpr unsigned orb_max_namespace_prefix_length = 0;
+#endif
+
+static constexpr unsigned orb_name_prefix_length = sizeof(orb_name_prefix) - 1;
+static constexpr unsigned orb_node_name_length = ORB_MAX_TOPIC_NODE_NAME_LENGTH + orb_name_prefix_length;
+static constexpr unsigned orb_maxpath =
+	orb_max_namespace_prefix_length
+	+ (orb_node_name_length > orb_manager_name_length ? orb_node_name_length : orb_manager_name_length)
+	+ 1;
+
+#if defined(CONFIG_NAME_MAX) && defined(CONFIG_FS_SHMFS)
+static_assert(CONFIG_NAME_MAX >= (orb_maxpath - 1), "CONFIG_NAME_MAX too small for uORB node names");
+#endif
 
 struct orb_advertdata {
 	const struct orb_metadata *meta;

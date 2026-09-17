@@ -36,12 +36,6 @@
 #include <errno.h>
 #include <string.h>
 
-namespace
-{
-constexpr const char *orb_name_prefix = "_orb_";
-constexpr const char *manager_name_suffix = "_uORB_Manager";
-}
-
 int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *instance,
 			     const char *namespace_prefix)
 {
@@ -53,7 +47,12 @@ int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *in
 		index = *instance;
 	}
 
+#if defined(__PX4_POSIX) && !defined(POSIX_SHM_DISABLED)
 	len = snprintf(buf, orb_maxpath, "%s%s%s%d", namespace_prefix, orb_name_prefix, meta->o_name, index);
+#else
+	(void)namespace_prefix;
+	len = snprintf(buf, orb_maxpath, "%s%d", meta->o_name, index);
+#endif
 
 	if (len >= orb_maxpath) {
 		return -ENAMETOOLONG;
@@ -70,7 +69,12 @@ int uORB::Utils::node_mkpath(char *buf, const char *orbMsgName, const char *name
 
 	unsigned index = 0;
 
+#if defined(__PX4_POSIX) && !defined(POSIX_SHM_DISABLED)
 	len = snprintf(buf, orb_maxpath, "%s%s%s%d", namespace_prefix, orb_name_prefix, orbMsgName, index);
+#else
+	(void)namespace_prefix;
+	len = snprintf(buf, orb_maxpath, "%s%d", orbMsgName, index);
+#endif
 
 	if (len >= orb_maxpath) {
 		return -ENAMETOOLONG;
@@ -81,7 +85,12 @@ int uORB::Utils::node_mkpath(char *buf, const char *orbMsgName, const char *name
 
 int uORB::Utils::manager_mkpath(char *buf, const char *namespace_prefix)
 {
-	const unsigned len = snprintf(buf, orb_maxpath, "%s%s", namespace_prefix, manager_name_suffix);
+#if defined(__PX4_POSIX) && !defined(POSIX_SHM_DISABLED)
+	const unsigned len = snprintf(buf, orb_maxpath, "%s%s", namespace_prefix, orb_manager_name);
+#else
+	(void)namespace_prefix;
+	const unsigned len = snprintf(buf, orb_maxpath, "%s", orb_manager_name);
+#endif
 
 	if (len >= orb_maxpath) {
 		return -ENAMETOOLONG;
@@ -96,8 +105,18 @@ bool uORB::Utils::is_uorb_node_path(const char *path, const char *namespace_pref
 		return false;
 	}
 
+#if defined(__PX4_POSIX) && !defined(POSIX_SHM_DISABLED)
 	const size_t namespace_len = strlen(namespace_prefix);
 
-	return strncmp(path, namespace_prefix, namespace_len) == 0
-	       && strncmp(path + namespace_len, orb_name_prefix, strlen(orb_name_prefix)) == 0;
+	if (strncmp(path, namespace_prefix, namespace_len) != 0) {
+		return false;
+	}
+
+	const char *name = path + namespace_len;
+
+	return strncmp(name, orb_name_prefix, strlen(orb_name_prefix)) == 0;
+#else
+	(void)namespace_prefix;
+	return path[0] != '\0' && path[0] != '_';
+#endif
 }
