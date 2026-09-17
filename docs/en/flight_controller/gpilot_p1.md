@@ -121,8 +121,8 @@ Configure battery voltage and current monitoring in QGroundControl using the cal
 
 ## RC Input
 
-The dedicated receiver input supports S.Bus and Spektrum/DSM receivers.
-For bidirectional serial receiver protocols such as CRSF or ELRS, connect the receiver to a suitable serial port and configure that port in QGroundControl according to the receiver documentation.
+The dedicated RC input is connected to the STM32F100 I/O co-processor (PX4IO), not directly to the FMU. It supports S.Bus and Spektrum/DSM receivers.
+For bidirectional serial receiver protocols such as CRSF or ELRS, connect the receiver to a suitable FMU serial port and configure that port in QGroundControl according to the receiver documentation.
 
 ## Compass
 
@@ -133,10 +133,11 @@ Use an external compass when the vehicle installation prevents reliable calibrat
 ## PX4 Firmware
 
 PX4 firmware is normally installed and updated with [QGroundControl](../config/firmware.md).
-The G-Pilot P1 firmware target and update procedure must be supplied and maintained by the manufacturer.
+To build PX4 firmware for the G-Pilot P1:
+```sh
+make gokhaniha_gpilot-p1_default
+```
 Do not flash firmware built for another flight controller.
-
-If a G-Pilot P1 target is added to the PX4 source tree, the target name and build command should be documented here together with the corresponding release that first supports it.
 
 ## Package Contents
 
