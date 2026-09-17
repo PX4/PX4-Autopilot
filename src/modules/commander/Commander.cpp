@@ -1665,7 +1665,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE: {
 			// reject if armed, only allow pre or post flight for safety
-			if (isArmed()) {
+			// or if COM_PREARM_MODE is not set to "Mavlink"
+			if (isArmed() || (PrearmedMode)_param_com_prearm_mode.get() != PrearmedMode::MAVLINK) {
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
 			} else {
@@ -2263,6 +2264,10 @@ bool Commander::getPrearmState() const
 
 		/* safety button is not present, do not go into prearmed */
 		return false;
+
+	case PrearmedMode::MAVLINK:
+		/* safety logic is set via VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, go into prearmed if safety is off */
+		return _safety.isSafetyOff();
 	}
 
 	return false;
