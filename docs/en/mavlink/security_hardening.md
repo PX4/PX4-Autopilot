@@ -96,6 +96,8 @@ If your threat model includes physical access, secure the SD card slot and debug
 - **No encryption**:
   Message signing provides authentication and integrity, but messages are sent in plaintext.
   An eavesdropper can read telemetry and commands but cannot forge them.
+- **Unaudited implementation**:
+  The signing protocol was audited when it was drafted, but PX4's implementation of it has not been.
 - **Allowlisted messages**:
   A small set of [safety-critical messages](message_signing.md#unsigned-message-allowlist) (`HEARTBEAT`, `RADIO_STATUS`, `ADSB_VEHICLE`, `COLLISION`) are always accepted unsigned on all links.
   An attacker could spoof these specific messages.

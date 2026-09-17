@@ -98,14 +98,13 @@ See [What makes a finding a vulnerability](#what-makes-a-finding-a-vulnerability
 An integrator can harden a deployment with any of:
 
 - **Secure the link below PX4.**
-  An encrypted radio, a VPN or IPsec gives confidentiality and authentication using standard, reviewed cryptography.
+  A secured radio, e.g. through a VPN or IPsec gives confidentiality and authentication using standard, reviewed cryptography.
   This is the strongest option (and has no direct PX4 integration).
 - **Isolate the offboard transports.**
   uXRCE-DDS and Zenoh bypass every MAVLink control, so if an adversary can reach them, the rest of this list buys nothing.
 - **Enable [MAVLink message signing](docs/en/mavlink/message_signing.md).**
   This authenticates MAVLink frames but does not encrypt them.
-  The protocol was audited when it was drafted; PX4's implementation of it has not been.
-  A small allowlist (`HEARTBEAT`, `RADIO_STATUS`, `ADSB_VEHICLE`, `COLLISION`) is always accepted unsigned.
+  A small allowlist (`HEARTBEAT`, `RADIO_STATUS`, `ADSB_VEHICLE`, `COLLISION`) is currently accepted unsigned.
   Signing is inactive if the key file is absent, which is deliberate: removing the card is the recovery path when a key is lost.
 - **Lock the configuration.**
   Read-only parameters, [secure boot](docs/en/advanced_config/bootloader_secure_boot.md) with a replaced key, and no wired reflash.
