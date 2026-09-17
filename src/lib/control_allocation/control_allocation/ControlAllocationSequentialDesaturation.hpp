@@ -60,6 +60,7 @@ public:
 
 	// This is the minimum actuator yaw granted when the controller is saturated.
 	// In the yaw-only case where outputs are saturated, thrust is reduced by up to this amount.
+	// Ignored when MC_REDUCE_THRUST is disabled.
 	static constexpr float MINIMUM_YAW_MARGIN{0.15f};
 private:
 
@@ -120,13 +121,19 @@ private:
 	/**
 	 * Mix yaw by updating the actuator setpoint (that already contains roll/pitch/thrust).
 	 *
-	 * Desaturation behavior: thrust is allowed to be decreased up to 15% in order to allow
-	 * some yaw control on the upper end. On the lower end thrust will never be increased,
-	 * but yaw is decreased as much as required.
+	 * Desaturation behavior:
+	 *
+	 * If MC_REDUCE_THRUST is enabled, thrust is allowed to be decreased up to MINIMUM_YAW_MARGIN
+	 * in order to allow some yaw control on the upper end. On the lower end thrust will never
+	 * be increased, but yaw is decreased as much as required.
+	 *
+	 * If MC_REDUCE_THRUST is disabled, thrust is not reduced for yaw; yaw is clipped to the
+	 * remaining actuator headroom. Used from mixAirmodeDisabled() and mixAirmodeRP().
 	 */
 	void mixYaw();
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< air-mode
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,  ///< air-mode
+		(ParamBool<px4::params::MC_REDUCE_THRUST>) _param_mc_reduce_thrust ///< reduce thrust for yaw
 	);
 };
