@@ -520,6 +520,7 @@ void EKF2::Run()
 			command_ack.command = vehicle_command.command;
 			command_ack.target_system = vehicle_command.source_system;
 			command_ack.target_component = vehicle_command.source_component;
+			const bool publish_command_ack = !_multi_mode || (_instance == 0);
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN
 			    || vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN) {
@@ -576,8 +577,10 @@ void EKF2::Run()
 					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED; // TODO: expand
 				}
 
-				command_ack.timestamp = hrt_absolute_time();
-				_vehicle_command_ack_pub.publish(command_ack);
+				if (publish_command_ack) {
+					command_ack.timestamp = hrt_absolute_time();
+					_vehicle_command_ack_pub.publish(command_ack);
+				}
 			}
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE) {
@@ -602,8 +605,10 @@ void EKF2::Run()
 #else
 				command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 #endif // CONFIG_EKF2_WIND
-				command_ack.timestamp = hrt_absolute_time();
-				_vehicle_command_ack_pub.publish(command_ack);
+				if (publish_command_ack) {
+					command_ack.timestamp = hrt_absolute_time();
+					_vehicle_command_ack_pub.publish(command_ack);
+				}
 			}
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE) {
