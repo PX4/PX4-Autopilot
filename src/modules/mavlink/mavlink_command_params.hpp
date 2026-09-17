@@ -199,7 +199,7 @@ static inline int32_t encode_scaled_int32_field(float value, double scale)
 		return INT32_MAX;
 	}
 
-	return (int32_t)std::lround(scaled);
+	return (int32_t)lround(scaled);
 }
 
 // Vehicle type bitmask for per-vehicle parameter support.
