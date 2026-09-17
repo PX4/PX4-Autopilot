@@ -169,6 +169,15 @@ static inline bool int_param_is_unset(int32_t v)
 	return v == INT32_MAX || v == INT32_MIN;
 }
 
+// Decodes a single int32 x/y field from COMMAND_INT / MISSION_ITEM_INT, honoring
+// the "not used" sentinel independently per field. `divisor` selects the scale
+// for the field when it *is* used: 1e7 for MAV_CMD_DO_SET_ACTUATOR and global
+// frames, 1e4 for local/body frames, 1.0 for raw integer passthrough.
+static inline double decode_scaled_int32_field(int32_t v, double divisor)
+{
+	return int_param_is_unset(v) ? (double)NAN : ((double)v) / divisor;
+}
+
 // Vehicle type bitmask for per-vehicle parameter support.
 // bit 0 = fixed-wing (FW), bit 1 = multicopter (MC), bit 2 = VTOL, bit 3 = rover.
 enum VehicleType : uint8_t {
