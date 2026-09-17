@@ -64,6 +64,7 @@
 #include <termios.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_status.h>
 #include <math.h>	// NAN
 
 #include "sPort_data.h"
@@ -95,33 +96,31 @@ uint16_t get_telemetry_flight_mode(int px4_flight_mode)
 {
 	// map the flight modes (see https://github.com/ilihack/LuaPilot_Taranis_Telemetry/blob/master/SCRIPTS/TELEMETRY/LuaPil.lua#L790)
 	switch (px4_flight_mode) {
-	case 0: return 18; // manual
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL: return 18;
 
-	case 1: return 23; // alt control
+	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE: return 23;
 
-	case 2: return 22; // pos control
+	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+	case vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW: return 22;
 
-	case 3: return 27; // mission
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION: return 27;
 
-	case 4: return 26; // loiter
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER: return 26;
 
-	case 5:
-	case 6:
-	case 7: return 28; // rtl
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: return 28;
 
-	case 10: return 19; // acro
+	case vehicle_status_s::NAVIGATION_STATE_ACRO: return 19;
 
-	case 14: return 24; // offboard
+	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD: return 24;
 
-	case 15: return 20; // stabilized
+	case vehicle_status_s::NAVIGATION_STATE_STAB: return 20;
 
-	case 17: return 25; // takeoff
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF: return 25;
 
-	case 8:
-	case 9:
-	case 18: return 29; // land
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND: return 29;
 
-	case 19: return 30; // follow target
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET: return 30;
 	}
 
 	return -1;
