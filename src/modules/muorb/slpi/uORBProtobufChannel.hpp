@@ -80,7 +80,7 @@ public:
 	 * @param messageName
 	 * 	This represents the uORB message name; This message name should be
 	 * 	globally unique.
-	 * @param msgRate
+	 * @param msgRateInHz
 	 * 	The max rate at which the subscriber can accept the messages. This parameter is unused.
 	 * @return
 	 * 	0 = success; This means the messages is successfully sent to the receiver

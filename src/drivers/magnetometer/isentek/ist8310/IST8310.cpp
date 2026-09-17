@@ -271,6 +271,7 @@ bool IST8310::Configure()
 	}
 
 	_px4_mag.set_scale(1.f / 1320.f); // 1320 LSB/Gauss
+	_px4_mag.set_range(microTesla2Gauss(1600.f)); // x/y axis (z: 2500 uT)
 
 	return success;
 }

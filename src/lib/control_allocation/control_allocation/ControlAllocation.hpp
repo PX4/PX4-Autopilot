@@ -144,7 +144,13 @@ public:
 	 * @return Control vector
 	 */
 	matrix::Vector<float, NUM_AXES> getAllocatedControl() const
-	{ return (_effectiveness * (_actuator_sp - _actuator_trim)).emult(_control_allocation_scale); }
+	{
+		// _actuator_sp contains NaN to indicate stopped motors.
+		// Covert back to zero to represent physical thrust.
+		ActuatorVector actuator_sp{_actuator_sp};
+		actuator_sp.nanToZero();
+		return (_effectiveness * (actuator_sp - _actuator_trim)).emult(_control_allocation_scale);
+	}
 
 	/**
 	 * Get the control effectiveness matrix
@@ -247,6 +253,10 @@ public:
 
 	void setNormalizeRPY(bool normalize_rpy) { _normalize_rpy = normalize_rpy; }
 
+	/// Axes (bitmask over ControlAxis) dropped from the effectiveness matrix as not independently
+	/// achievable, e.g. yaw when collinear with roll after a motor failure
+	uint8_t getDroppedAxes() const { return _dropped_axes; }
+
 protected:
 	friend class ControlAllocator; // for _actuator_sp
 
@@ -263,4 +273,5 @@ protected:
 	int _num_actuators{0};
 	bool _normalize_rpy{false};				///< if true, normalize roll, pitch and yaw columns
 	bool _had_actuator_failure{false};
+	uint8_t _dropped_axes{0};				///< bitmask over ControlAxis
 };

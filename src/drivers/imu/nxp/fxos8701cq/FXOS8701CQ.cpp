@@ -67,6 +67,7 @@ FXOS8701CQ::FXOS8701CQ(device::Device *interface, const I2CSPIDriverConfig &conf
 {
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	_px4_mag.set_scale(0.001f);
+	_px4_mag.set_range(microTesla2Gauss(1200.f));
 #endif
 }
 

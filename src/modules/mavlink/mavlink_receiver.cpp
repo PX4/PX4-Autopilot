@@ -455,6 +455,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	_mavlink.handle_message(msg);
 }
 
+static bool gimbal_mode_command_allowed(uint16_t command)
+{
+	return command == MAV_CMD_SET_MESSAGE_INTERVAL
+	       || command == MAV_CMD_GET_MESSAGE_INTERVAL
+	       || command == MAV_CMD_REQUEST_MESSAGE;
+}
+
 void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 {
 	switch (msg.msgid) {
@@ -476,6 +483,30 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 
 	case MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS:
 		handle_message_gimbal_device_attitude_status(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_COMMAND_LONG: {
+			mavlink_command_long_t cmd;
+			mavlink_msg_command_long_decode(&msg, &cmd);
+
+			if (gimbal_mode_command_allowed(cmd.command)) {
+				handle_message_command_long(&msg);
+			}
+		}
+		break;
+
+	case MAVLINK_MSG_ID_COMMAND_INT: {
+			mavlink_command_int_t cmd;
+			mavlink_msg_command_int_decode(&msg, &cmd);
+
+			if (gimbal_mode_command_allowed(cmd.command)) {
+				handle_message_command_int(&msg);
+			}
+		}
+		break;
+
+	case MAVLINK_MSG_ID_TIMESYNC:
+		_mavlink_timesync.handle_message(&msg);
 		break;
 	}
 
@@ -2197,6 +2228,20 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 	mavlink_tunnel_t mavlink_tunnel;
 	mavlink_msg_tunnel_decode(msg, &mavlink_tunnel);
 
+	// The payload is forwarded to a device, so a message meant for another vehicle on the
+	// same link must not be written to this one's bus.
+	if (!evaluate_target_ok(0, mavlink_tunnel.target_system, mavlink_tunnel.target_component)) {
+		return;
+	}
+
+	if (mavlink_tunnel.payload_length > sizeof(mavlink_tunnel.payload)) {
+		// The payload buffer is a fixed 128 bytes while payload_length is a uint8_t, so a
+		// sender can advertise more data than the message can carry. Drop such a message
+		// rather than clamping: the consumers below forward the payload verbatim to a
+		// UART, where a truncated frame would corrupt the device protocol.
+		return;
+	}
+
 	mavlink_tunnel_s tunnel{};
 
 	tunnel.timestamp = hrt_absolute_time();
@@ -2357,6 +2402,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	    && math::isInRange((int)mavlink_manual_control.aux6, -1000, 1000)) { manual_control_setpoint.aux6 = mavlink_manual_control.aux6 / 1000.0f; }
 
 	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink.get_instance_id();
+	manual_control_setpoint.source_system_id = msg->sysid;
+	manual_control_setpoint.source_component_id = msg->compid;
 	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
 	manual_control_setpoint.valid = true;
 	_manual_control_input_pub.publish(manual_control_setpoint);
@@ -2752,7 +2799,7 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 
 	ranging_beacon_s ranging_beacon{};
 	ranging_beacon.timestamp = hrt_absolute_time();
-	ranging_beacon.timestamp_sample = beacon_pos.time_usec;
+	ranging_beacon.timestamp_sample = _mavlink_timesync.sync_stamp(beacon_pos.time_usec);
 	ranging_beacon.beacon_id = beacon_pos.beacon_id;
 	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
 	ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
@@ -3807,6 +3854,8 @@ MavlinkReceiver::run()
 #if defined(MAVLINK_UDP)
 
 			else if (_mavlink.get_protocol() == Protocol::UDP) {
+				nread = 0;
+
 				if (fds[0].revents & POLLIN) {
 					nread = recvfrom(_mavlink.get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
 				}
@@ -3831,6 +3880,24 @@ MavlinkReceiver::run()
 						_mavlink.set_client_source_initialized();
 
 						PX4_INFO("partner IP: %s", inet_ntoa(srcaddr.sin_addr));
+					}
+
+				} else if (nread > 0) {
+					if ((srcaddr.sin_addr.s_addr == srcaddr_last.sin_addr.s_addr)
+					    && (srcaddr.sin_port == srcaddr_last.sin_port)) {
+						// Our client is still there, keep the address latched.
+						_mavlink.mark_client_source_seen();
+
+					} else if (_mavlink.client_source_can_be_replaced()) {
+						// Our client stopped talking to us a while ago and someone else is
+						// talking to us now. This is what a client which was restarted looks
+						// like, as it comes back with a new source port, so switch over to it.
+						srcaddr_last.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
+						srcaddr_last.sin_port = srcaddr.sin_port;
+
+						_mavlink.set_client_source_initialized();
+
+						PX4_INFO("new partner IP: %s:%d", inet_ntoa(srcaddr.sin_addr), ntohs(srcaddr.sin_port));
 					}
 				}
 			}

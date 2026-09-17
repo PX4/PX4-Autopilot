@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Internal SPI bus IMU
+icm45686 -s -R 4 start
+
+# Internal SPI bus BMI088 accel/gyro
+bmi088 -s -A -R 10 start
+bmi088 -s -G -R 10 start
+
+# Internal compass
+ist8310 -I -R 6 start
+
+# Internal baro
+icp201xx -I -a 0x63 start
+icp201xx -X -a 0x64 start
+
+#pwm voltage 3.3V/5V switch
+pwm_voltage_apply
+
+netman update

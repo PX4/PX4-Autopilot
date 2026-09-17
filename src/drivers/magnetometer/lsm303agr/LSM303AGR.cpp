@@ -70,6 +70,7 @@ LSM303AGR::LSM303AGR(const I2CSPIDriverConfig &config) :
 	_bad_values(perf_alloc(PC_COUNT, MODULE_NAME": bad_val"))
 {
 	_px4_mag.set_scale(1.5f / 1000.f); // 1.5 milligauss/LSB
+	_px4_mag.set_range(49.152f);
 }
 
 LSM303AGR::~LSM303AGR()

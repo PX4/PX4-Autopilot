@@ -134,7 +134,8 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(uint8_t vehicle_type, bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request);
+	void update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state,
+		    UpdateRequest &update_request);
 	void setFailsafeState(bool failsafe_action_active)
 	{
 		_failsafe_action_active = failsafe_action_active;
@@ -170,12 +171,13 @@ public:
 	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out);
 
 private:
-	bool checkConfigControlSetpointUpdates(uint8_t vehicle_type);
+	bool checkConfigControlSetpointUpdates(uint8_t vehicle_type, bool is_vtol);
 	void checkNewRegistrations(UpdateRequest &update_request);
 	void checkUnregistrations(uint8_t user_intended_nav_state, UpdateRequest &update_request);
 	void checkConfigOverrides();
 
 	void removeModeExecutor(int mode_executor_id);
+	bool resendIfCachedRequest(const register_ext_component_request_s &request);
 
 	uORB::Subscription _setpoint_config_sub{ORB_ID(setpoint_config)};
 	uORB::Publication<setpoint_config_reply_s> _setpoint_config_reply_pub{ORB_ID(setpoint_config_reply)};
@@ -212,7 +214,8 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(uint8_t vehicle_type, bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request) {}
+	void update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state,
+		    UpdateRequest &update_request) {}
 	void setFailsafeState(bool failsafe_action_active) {}
 
 	int modeExecutorInCharge() const { return ModeExecutors::AUTOPILOT_EXECUTOR_ID; }

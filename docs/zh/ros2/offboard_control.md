@@ -24,7 +24,7 @@ ROS 与 PX4 存在若干不同的预设（假设），尤其是在 [frame conven
 
 按照 [ROS 2 用户指南](../ros2/user_guide.md)中的说明来安装PX 并运行多轴模拟器，安装ROS 2, 并启动XRCE-DDS代理。
 
-之后，我们可参照 [ROS 2 用户指南 > 构建 ROS 2 工作空间](../ros2/user_guide.md#build-ros-2-workspace)中的相似的步骤来运行这个例子。
+After that we can follow a similar set of steps to those in [ROS 2 User Guide > Running an example (optional)](../ros2/user_guide.md#running-an-example-optional) to run the example.
 
 :::tip
 运行 ROS 2 节点前，请确保 QGC已连接到 PX4。
@@ -219,4 +219,4 @@ void OffboardControl::publish_vehicle_command(uint16_t command, float param1, fl
 
 ## 另见
 
-- [Python ROS2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard).
+- [Python ROS 2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard).

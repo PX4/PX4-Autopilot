@@ -49,6 +49,17 @@ By changing [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_
 
 The simulated battery can be completely disabled by setting [SIM_BAT_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT_DRAIN) to 0. This is useful, for example, if you provide an external battery simulation via MAVLink.
 
+### Multiple Batteries
+
+By default only one battery is simulated.
+Additional batteries are simulated by enabling them like on a real vehicle: set the source of the battery to `Power Module` and configure it, e.g. [BAT2_SOURCE](../advanced_config/parameter_reference.md#BAT2_SOURCE) and [BAT2_N_CELLS](../advanced_config/parameter_reference.md#BAT2_N_CELLS) for a second battery.
+Each simulated battery is published as its own `battery_status` instance.
+
+All batteries deplete according to [SIM_BAT_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT_DRAIN) and [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) unless overridden for an individual battery with [SIM_BATx_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT1_DRAIN) and [SIM_BATx_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT1_MIN_PCT).
+Setting `SIM_BATx_DRAIN` to a non-positive value uses the shared drain time. Setting `SIM_BATx_MIN_PCT` to a negative value
+uses the shared minimum charge.
+This can be used to test multi-battery behaviour, for example one battery depleting faster than the others.
+
 ## Sensor/System Failure
 
 [Failure injection](../debug/failure_injection.md) can be used to simulate different types of failures in many sensors and systems.

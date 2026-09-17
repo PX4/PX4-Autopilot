@@ -82,7 +82,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("gps_dump");
 	add_optional_topic("gimbal_controls", 200);
 	add_optional_topic("gripper");
-	add_optional_topic_multi("heater_status");
+	add_optional_topic_multi("heater_status", 1000);
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
@@ -175,8 +175,23 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("sensor_hygrometer", 500, 4);
 	add_optional_topic_multi("sensor_temp", 100, 4);
 	add_optional_topic_multi("rpm", 200);
+	add_topic_multi("sensor_gnss_rf_block0", 5000, 2);
+	add_topic_multi("sensor_gnss_rf_block1", 5000, 2);
+	add_topic_multi("sensor_gnss_rf_block2", 5000, 2);
 	add_topic_multi("timesync_status", 1000, 3);
 	add_topic_multi("telemetry_status", 1000, 4);
+
+#if defined(CONFIG_GPS_UBX_SPAN)
+	int32_t gps_ubx_spectrum = 0;
+	param_get(param_find("GPS_UBX_SPECTRUM"), &gps_ubx_spectrum);
+
+	if (gps_ubx_spectrum > 0) {
+		add_topic_multi("sensor_gnss_spectrum_block0", 5000, 2);
+		add_topic_multi("sensor_gnss_spectrum_block1", 5000, 2);
+		add_topic_multi("sensor_gnss_spectrum_block2", 5000, 2);
+	}
+
+#endif
 
 	// EKF multi topics
 	{
@@ -203,6 +218,7 @@ void LoggedTopics::add_default_topics()
 
 	// Vision target estimator topics
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	add_optional_topic("prec_takeoff_status");
 	add_topic("vte_input", 50);
 	add_topic("vte_position", 100);
 	add_topic("vte_orientation", 100);
@@ -324,6 +340,7 @@ void LoggedTopics::add_debug_topics()
 	add_topic("sensor_preflight_mag", 500);
 	add_topic("actuator_test", 500);
 	add_topic("neural_control", 50);
+	add_topic("task_stack_info");
 }
 
 void LoggedTopics::add_estimator_replay_topics()

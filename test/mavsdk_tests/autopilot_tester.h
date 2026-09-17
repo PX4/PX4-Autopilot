@@ -117,6 +117,7 @@ public:
 	void land();
 	void transition_to_fixedwing();
 	void transition_to_multicopter();
+	void wait_until_multicopter(std::chrono::seconds timeout);
 	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(60));
 	void wait_until_hovering(); // TODO: name suggests, that function waits for drone velocity to be zero and not just drone in the air
 	void wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout, float delta = 0.5f);

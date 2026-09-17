@@ -47,7 +47,7 @@
 
 #include "board_config.h"
 
-#include <barriers.h>
+#include <arch/barriers.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -166,9 +166,9 @@ void imxrt_flash_romapi_initialize(void)
 	ROM_FLEXSPI_NorFlash_Init(NOR_INSTANCE, (struct flexspi_nor_config_s *)&g_bootConfig);
 	ROM_FLEXSPI_NorFlash_ClearCache(NOR_INSTANCE);
 
-	ARM_DSB();
-	ARM_ISB();
-	ARM_DMB();
+	arm_dsb();
+	arm_isb();
+	arm_dmb();
 }
 
 locate_code(".ramfunc")
@@ -213,9 +213,9 @@ void imxrt_flash_setup_prefetch_partition(void)
 				    FLEXSPI_AHBRXBUFCR0_REGIONEN(0);
 #endif
 
-	ARM_DSB();
-	ARM_ISB();
-	ARM_DMB();
+	arm_dsb();
+	arm_isb();
+	arm_dmb();
 }
 
 /****************************************************************************

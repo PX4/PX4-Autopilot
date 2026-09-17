@@ -215,7 +215,7 @@ private:
 	/**
 	 * Set the FXOS8701C mag measurement range.
 	 *
-	 * @param max_ga	The measurement range of the mag is in Ga
+	 * @param max_g	The measurement range of the mag is in Ga
 	 *			Zero selects the maximum supported range.
 	 * @return		OK if the value can be supported, -ERANGE otherwise.
 	 */

@@ -143,6 +143,7 @@ private:
 	bool runInitialFixChecks(const gnssSample &gnss);
 	void runOnGroundGnssChecks(const gnssSample &gnss);
 
+	void clearDriftChecks();
 	void resetDriftFilters();
 
 	bool isTimedOut(uint64_t timestamp_to_check_us, uint64_t now_us, uint64_t timeout_period) const

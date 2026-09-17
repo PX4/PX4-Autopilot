@@ -147,7 +147,7 @@ Start with SWDIO->TMS, then SWCLK->CLK, and finally SWO->TDO.
 
 1. Під'єднайте зонд до цілі через роз'єм налагодження Pixhawk.
 2. Перевірте послідовний порт за допомогою програми за вибором.
-3. Test the SWD and RST connection via [OpenOCD][https://openocd.org] or [STLink](https://www.st.com/en/development-tools/stsw-link004.html) software.
+3. Test the SWD and RST connection via [OpenOCD][https://openocd.org] or [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html).
 4. Перевірте підключення SWO за допомогою [Orbuculum][https://github.com/orbcode/orbuculum].
 
 See the [Embedded Debug Tools][emdbg] for more information about software support for the PX4 FMUv5 and FMUv6 flight controllers.

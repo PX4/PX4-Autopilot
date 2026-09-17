@@ -20,7 +20,7 @@ menuconfig DATAMAN_PERSISTENT_STORAGE
 	---help---
 		Dataman supports reading/writing to persistent storage
 
-menuconfig NUM_MISSION_ITMES_SUPPORTED
+menuconfig NUM_MISSION_ITEMS_SUPPORTED
 	int "Maximum number of mission items"
 	default 500
 	---help---

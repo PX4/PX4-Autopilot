@@ -98,4 +98,6 @@ private:
 	hrt_abstime _last_timestamp{0};
 	AlphaFilter<float> _voltage_filter{};
 	AlphaFilter<float> _current_filter{};
+	bool _voltage_filter_seeded{false};
+	bool _current_filter_seeded{false};
 };

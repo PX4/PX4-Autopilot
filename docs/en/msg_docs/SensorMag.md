@@ -18,6 +18,7 @@ pageClass: is-wide-page
 | <a id="fld_y"></a>y                               | `float32` | Gauss        |            | magnetic field in the FRD board frame Y-axis                              |
 | <a id="fld_z"></a>z                               | `float32` | Gauss        |            | magnetic field in the FRD board frame Z-axis                              |
 | <a id="fld_temperature"></a>temperature           | `float32` | °C           |            | Temperature.                                                              |
+| <a id="fld_range"></a>range                       | `float32` | Gauss        |            | full-scale measurement range, 0 if unknown                                |
 | <a id="fld_error_count"></a>error_count           | `uint32`  |              |            |
 
 ## Constants
@@ -44,6 +45,8 @@ float32 y                 # [Gauss] magnetic field in the FRD board frame Y-axis
 float32 z                 # [Gauss] magnetic field in the FRD board frame Z-axis
 
 float32 temperature       # [°C] Temperature.
+
+float32 range             # [Gauss] full-scale measurement range, 0 if unknown
 
 uint32 error_count
 

@@ -84,7 +84,7 @@ public:
 		if (uORB::SubscriptionCallbackWorkItem::update(&battery)) {
 			ardupilot::equipment::power::BatteryInfoAux battery_info_aux{};
 
-			battery_info_aux.timestamp.usec = battery.timestamp;
+			battery_info_aux.timestamp.usec = bus_timestamp_usec(getNode(), battery.timestamp);
 
 			for (uint8_t i = 0; i < battery.cell_count && i < arraySize(battery_status_s::voltage_cell_v); i++) {
 				battery_info_aux.voltage_cell.push_back(battery.voltage_cell_v[i]);
@@ -120,7 +120,7 @@ public:
 				status_flags |= uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
 			}
 
-			if (battery.warning == battery_status_s::STATE_CHARGING) {
+			if (battery.warning == battery_status_s::WARNING_CHARGING) {
 				status_flags |= uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING;
 			}
 

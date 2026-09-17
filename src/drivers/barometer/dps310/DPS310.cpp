@@ -67,8 +67,11 @@ DPS310::~DPS310()
 int
 DPS310::init()
 {
-	if (RegisterRead(Register::ID) != Infineon_DPS310::REV_AND_PROD_ID) {
-		PX4_ERR("Product_ID mismatch");
+	const uint8_t prod_id = RegisterRead(Register::ID);
+
+	if (prod_id != Infineon_DPS310::REV_AND_PROD_ID_DPS310 &&
+	    prod_id != Infineon_DPS310::REV_AND_PROD_ID_DPS368) {
+		PX4_ERR("Product_ID mismatch (got 0x%02x)", prod_id);
 		return PX4_ERROR;
 	}
 

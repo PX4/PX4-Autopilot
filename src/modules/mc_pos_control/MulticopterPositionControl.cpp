@@ -95,24 +95,18 @@ void MulticopterPositionControl::parameters_update(bool force)
 			_vel_z_notch_filter.disable();
 		}
 
-		// velocity xy/z low pass filter
-		if (_param_mpc_vel_lp.get() > 0.f) {
-			_vel_xy_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_vel_lp.get());
-			_vel_z_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_vel_lp.get());
-
-		} else {
-			// disable filtering
+		// velocity xy/z low pass filter, unfiltered when the cutoff is not achievable
+		if (!((_param_mpc_vel_lp.get() > 0.f)
+		      && _vel_xy_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_vel_lp.get())
+		      && _vel_z_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_vel_lp.get()))) {
 			_vel_xy_lp_filter.setAlpha(1.f);
 			_vel_z_lp_filter.setAlpha(1.f);
 		}
 
-		// velocity derivative xy/z low pass filter
-		if (_param_mpc_veld_lp.get() > 0.f) {
-			_vel_deriv_xy_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_veld_lp.get());
-			_vel_deriv_z_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_veld_lp.get());
-
-		} else {
-			// disable filtering
+		// velocity derivative xy/z low pass filter, unfiltered when the cutoff is not achievable
+		if (!((_param_mpc_veld_lp.get() > 0.f)
+		      && _vel_deriv_xy_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_veld_lp.get())
+		      && _vel_deriv_z_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_veld_lp.get()))) {
 			_vel_deriv_xy_lp_filter.setAlpha(1.f);
 			_vel_deriv_z_lp_filter.setAlpha(1.f);
 		}
