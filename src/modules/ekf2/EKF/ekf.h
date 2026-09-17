@@ -969,6 +969,10 @@ private:
 	// yaw estimator instance
 	EKFGSF_yaw _yawEstimator{};
 
+	uint64_t _time_yaw_estimator_activated_us{0};
+	bool _yaw_estimator_was_active_in_air{false};
+	bool _yaw_estimator_restarted_in_air{false};
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_RANGING_BEACON)
