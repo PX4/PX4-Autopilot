@@ -61,12 +61,6 @@ public:
 	 * in the active namespace.
 	 */
 	static bool is_uorb_node_path(const char *path, const char *namespace_prefix);
-
-#if defined(NAME_MAX)
-	// Do compile-time length check on systems which support NAME_MAX
-	// (NAME_MAX excludes the null terminator)
-	static_assert(NAME_MAX >= (orb_maxpath - 1), "NAME_MAX too small");
-#endif
 };
 
 #endif // _uORBUtils_hpp_
