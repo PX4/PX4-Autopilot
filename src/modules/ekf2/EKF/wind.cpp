@@ -40,9 +40,9 @@
 #include <ekf_derivation/generated/compute_wind_init_and_cov_from_wind_speed_and_direction.h>
 
 bool Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
-		float wind_direction_accuracy)
+		float wind_direction_accuracy, bool vehicle_landed)
 {
-	if (_control_status.flags.in_air) {
+	if (!vehicle_landed) {
 		return false;
 	}
 

@@ -304,7 +304,7 @@ TEST_F(EkfAirspeedTest, testExternalWindResetOnGround)
 	const float wind_speed_acc = 2.f;
 	const float wind_direction = math::radians(-90.f);
 	const float wind_direction_acc = math::radians(20.f);
-	EXPECT_TRUE(_ekf->resetWindToExternalObservation(wind_speed, wind_direction, wind_speed_acc, wind_direction_acc));
+	EXPECT_TRUE(_ekf->resetWindToExternalObservation(wind_speed, wind_direction, wind_speed_acc, wind_direction_acc, true));
 
 	Vector2f vel_wind_earth = _ekf->getWindVelocity();
 	EXPECT_EQ(wind_speed, vel_wind_earth.norm());
@@ -354,7 +354,7 @@ TEST_F(EkfAirspeedTest, testExternalWindResetRejectedInAir)
 	const float wind_speed_acc = 2.f;
 	const float wind_direction = math::radians(-90.f);
 	const float wind_direction_acc = math::radians(20.f);
-	EXPECT_TRUE(_ekf->resetWindToExternalObservation(wind_speed, wind_direction, wind_speed_acc, wind_direction_acc));
+	EXPECT_TRUE(_ekf->resetWindToExternalObservation(wind_speed, wind_direction, wind_speed_acc, wind_direction_acc, true));
 
 	const Vector2f vel_wind_earth_before = _ekf->getWindVelocity();
 
@@ -365,7 +365,7 @@ TEST_F(EkfAirspeedTest, testExternalWindResetRejectedInAir)
 	const float wind_speed_new = 10.f;
 	const float wind_direction_new = math::radians(45.f);
 	EXPECT_FALSE(_ekf->resetWindToExternalObservation(wind_speed_new, wind_direction_new, wind_speed_acc,
-			wind_direction_acc));
+			wind_direction_acc, false));
 
 	// THEN: the wind state is unchanged
 	const Vector2f vel_wind_earth_after = _ekf->getWindVelocity();
