@@ -605,6 +605,7 @@ void EKF2::Run()
 #else
 				command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 #endif // CONFIG_EKF2_WIND
+
 				if (publish_command_ack) {
 					command_ack.timestamp = hrt_absolute_time();
 					_vehicle_command_ack_pub.publish(command_ack);
