@@ -168,6 +168,12 @@ px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 px4_add_unit_gtest(SRC MavlinkFtpParamTest.cpp EXTRA_SRCS mavlink_ftp_param.cpp)
 
 px4_add_unit_gtest(SRC MavlinkActuatorParamTest.cpp)
+if(BUILD_TESTING)
+	# mavlink_command_params.hpp includes a generated uORB header; unlike
+	# px4_add_library() targets, px4_add_unit_gtest() doesn't add this
+	# dependency automatically.
+	add_dependencies(unit-MavlinkActuatorParam uorb_headers)
+endif()
 
 if(CONFIG_NET AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	target_link_libraries(modules__mavlink PRIVATE nuttx_apps) # netlib_get_ipv4netmask
