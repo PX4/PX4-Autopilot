@@ -127,6 +127,7 @@ private:
 	bool isDataContinuous() const { return _dt_data_lpf < 2e6f; }
 	bool isTiltOk() const { return _cos_tilt_rng_to_earth > _range_cos_max_tilt; }
 	bool isDataInRange() const;
+	bool isNoReturn() const;
 	bool isQualityOk(uint64_t current_time_us) const;
 	void updateStuckCheck();
 	void updateFogCheck(const float dist_bottom, const uint64_t time_us);
