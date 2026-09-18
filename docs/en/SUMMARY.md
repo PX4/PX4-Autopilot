@@ -207,6 +207,7 @@
       - [ThePeach FCC-R1](flight_controller/thepeach_r1.md)
       - [AP-H743-R1](flight_controller/x-mav_ap-h743r1.md)
       - [VOLOLAND NarinFC-H7](flight_controller/vololand_narinfc_h7.md)
+      - [ZenFC H743](flight_controller/zenfc_h743.md)
       - [SIYI-UniFC-6-PICO](flight_controller/siyi-unifc-6-pico.md)
     - [Experimental Autopilots](flight_controller/autopilot_experimental.md)
       - [BeagleBone Blue](flight_controller/beaglebone_blue.md)
