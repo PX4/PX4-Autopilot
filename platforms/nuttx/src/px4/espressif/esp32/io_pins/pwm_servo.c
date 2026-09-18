@@ -226,6 +226,11 @@ void up_pwm_servo_deinit(uint32_t channel_mask)
 
 int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 {
+	// Oneshot and timer max modes not supported.
+	if (PWM_RATE_ONESHOT == rate || PWM_RATE_TIMER_MAX) {
+		return ERROR;
+	}
+
 	if (group == 0 || group == 1 || group == 2 || group == 3) {
 		irqstate_t flags;
 		shift = 0;
