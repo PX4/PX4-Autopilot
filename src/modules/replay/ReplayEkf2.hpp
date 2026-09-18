@@ -35,6 +35,9 @@
 
 #include "Replay.hpp"
 
+#include <pthread.h>
+
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/sensor_combined.h>
 
@@ -70,6 +73,37 @@ protected:
 		return 0;
 	}
 private:
+
+	/**
+	 * Counts ekf2_timestamps publications (one per IMU sample processed by ekf2)
+	 */
+	class Ekf2UpdateSignal : public uORB::SubscriptionCallback
+	{
+	public:
+		Ekf2UpdateSignal() : SubscriptionCallback(ORB_ID(ekf2_timestamps)) {}
+		~Ekf2UpdateSignal() override;
+
+		void call(unsigned generation) override;
+
+		unsigned updates();
+
+		/**
+		 * block until more than updates_before publications were seen
+		 * @param timeout_ms wall-clock timeout (lockstep time only advances through the replay thread)
+		 * @return false on timeout
+		 */
+		bool waitForUpdateAfter(unsigned updates_before, unsigned timeout_ms);
+
+	private:
+		pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
+		pthread_cond_t _cond = PTHREAD_COND_INITIALIZER;
+		unsigned _updates{0};
+	};
+
+	/**
+	 * publish a sensor_combined sample and block until ekf2 has processed it
+	 */
+	void publishSensorCombined(Subscription &sub, void *data);
 
 	bool publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifstream &replay_file);
 
@@ -114,6 +148,14 @@ private:
 
 	bool _ekf2_timestamps_exists{false};
 	uint64_t _last_sensor_combined_timestamp{0};
+
+	static constexpr unsigned kEkf2UpdateTimeoutMs = 1000;
+	static constexpr unsigned kEkf2MaxConsecutiveTimeouts = 3;
+
+	Ekf2UpdateSignal _ekf2_update_signal;
+	bool _ekf2_sync_enabled{true};
+	unsigned _ekf2_update_timeouts{0};
+	unsigned _ekf2_consecutive_timeouts{0};
 };
 
 } //namespace px4
