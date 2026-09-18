@@ -34,7 +34,7 @@
 #pragma once
 
 #include "ESCSettingsInterface.h"
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/esc_eeprom_read.h>
 
 static constexpr int EEPROM_SIZE = 48;
@@ -53,5 +53,5 @@ private:
 	int _esc_index{};
 	uint8_t _eeprom_data[EEPROM_SIZE] {};
 
-	static uORB::Publication<esc_eeprom_read_s> _esc_eeprom_read_pub;
+	uORB::PublicationMulti<esc_eeprom_read_s> _esc_eeprom_read_pub{ORB_ID(esc_eeprom_read)};
 };
