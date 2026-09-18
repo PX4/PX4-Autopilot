@@ -43,6 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <ctype.h>
 #include <string.h>
+#include <pthread.h>
 
 #include <zenoh-pico.h>
 
@@ -254,10 +255,28 @@ int ZENOH::setupSession()
 	} while ((ret = z_open(&_s, z_move(config), NULL)) < 0);
 
 	// Start read and lease tasks for zenoh-pico
-	if (zp_start_read_task(z_loan_mut(_s), NULL) < 0 || zp_start_lease_task(z_loan_mut(_s), NULL) < 0) {
+	// Large messages (e.g. arming_check_reply) overflow the ~2KB default pthread stack.
+	// Give both tasks a larger stack (CONFIG_ZENOH_TASK_STACK_SIZE) to avoid this.
+
+	pthread_attr_t task_attr;
+	pthread_attr_init(&task_attr);
+	pthread_attr_setstacksize(&task_attr, CONFIG_ZENOH_TASK_STACK_SIZE);
+
+	zp_task_read_options_t read_opts;
+	zp_task_read_options_default(&read_opts);
+	read_opts.task_attributes = &task_attr;
+
+	zp_task_lease_options_t lease_opts;
+	zp_task_lease_options_default(&lease_opts);
+	lease_opts.task_attributes = &task_attr;
+
+	if (zp_start_read_task(z_loan_mut(_s), &read_opts) < 0
+		|| zp_start_lease_task(z_loan_mut(_s), &lease_opts) < 0) {
 		PX4_ERR("Unable to start read and lease tasks");
 		ret = -EINVAL;
 	}
+
+	pthread_attr_destroy(&task_attr);
 
 	return ret;
 }
