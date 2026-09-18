@@ -1644,6 +1644,7 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"EXTENDED_SYS_STATE", 1.0f},
 	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
 	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
 	{"GIMBAL_MANAGER_STATUS", 0.5f},
 	{"GLOBAL_POSITION_SENSOR", 5.0f},
 	{"GLOBAL_POSITION_INT", 5.0f},
@@ -1728,6 +1729,7 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"EXTENDED_SYS_STATE", 5.0f},
 	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
 	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
 	{"GIMBAL_MANAGER_STATUS", 0.5f},
 	{"GLOBAL_POSITION_INT", 50.0f},
 #if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
@@ -1985,6 +1987,7 @@ constexpr StreamRateDefault streams_mode_onboard_low_bandwidth[] = {
 	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
 	{"GIMBAL_MANAGER_STATUS", 0.5f},
 	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
 	{"ESC_INFO", 1.0f},
 	{"ESC_STATUS", 5.0f},
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
@@ -2059,6 +2062,7 @@ constexpr StreamRateDefault streams_mode_low_bandwidth[] = {
 	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
 	{"GIMBAL_MANAGER_STATUS", 0.5f},
 	{"GIMBAL_DEVICE_SET_ATTITUDE", 2.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 2.0f},
 	{"ESC_INFO", 1.0f},
 	{"ESC_STATUS", 1.0f},
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
