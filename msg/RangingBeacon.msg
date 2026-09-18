@@ -2,7 +2,7 @@
 
 uint64 timestamp                # [us] time since system start
 uint64 timestamp_sample         # [us] the timestamp of the raw data
-uint8 beacon_id
+uint16 beacon_id
 float32 range                   # [m] Range measurement
 
 float64 lat                     # [deg] Latitude
