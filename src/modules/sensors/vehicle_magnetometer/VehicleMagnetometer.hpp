@@ -77,9 +77,15 @@ public:
 
 	void PrintStatus();
 
-private:
+protected:
 	void Run() override;
 
+	// read access for the functional test, unused by the module itself
+	int8_t selectedSensorIndex() const { return _selected_sensor_sub_index; }
+	uint8_t sensorPriority(int index) const { return _priority[index]; }
+	unsigned voterFailoverCount() { return _voter.failover_count(); }
+
+private:
 	void CheckFailover(const hrt_abstime &time_now_us);
 	bool ParametersUpdate(bool force = false);
 	void UpdateStatus();
