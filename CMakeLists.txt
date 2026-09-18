@@ -404,6 +404,7 @@ if(BUILD_TESTING)
 		set(FUZZTEST_FUZZING_MODE ON)
 	endif()
 	add_subdirectory(test)
+	add_subdirectory(src/drivers/uavcan/sensors/test EXCLUDE_FROM_ALL)
 	fuzztest_setup_fuzzing_flags()
 endif()
 
