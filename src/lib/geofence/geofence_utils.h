@@ -165,6 +165,21 @@ inline SegSegResult segmentsIntersect(int32_t ax, int32_t ay, int32_t bx, int32_
 }
 
 /**
+ * Return true if segments ab and cd share any point, including endpoints and overlap.
+ * Zero-length segments are treated as points. Coordinates must be finite and in the same plane.
+ * For latitude/longitude coordinates, longitudes must use one continuous interval.
+ */
+bool segmentsIntersectInclusive(const matrix::Vector2d &a, const matrix::Vector2d &b,
+				const matrix::Vector2d &c, const matrix::Vector2d &d);
+
+/**
+ * Squared distance from a point to the closest point on segment ab, including its endpoints.
+ * Use finite Cartesian coordinates in the same units. A zero-length segment is treated as a point.
+ */
+double pointToSegmentDistanceSquared(const matrix::Vector2d &point,
+				     const matrix::Vector2d &a, const matrix::Vector2d &b);
+
+/**
  * Check if a polygon's vertices are ordered counter-clockwise using the shoelace formula.
  * Works in local Cartesian coordinates. Returns false for CW or zero-area polygons.
  *
