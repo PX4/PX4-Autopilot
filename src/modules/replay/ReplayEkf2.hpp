@@ -122,11 +122,12 @@ private:
 	bool findTimestampAndPublish(uint64_t timestamp, const std::vector<uint16_t> &msg_ids, std::ifstream &replay_file);
 
 	/**
-	 * publish the sensor_combined samples preceding @a timestamp, each in its own lockstep cycle
-	 * @param timestamp of the ekf2 update these samples precede, in microseconds
-	 * @param replay_file file currently replayed (file seek position should be considered arbitrary after this call)
+	 * publish the sensor_combined sample of the given ekf2 cycle. Logged samples without an ekf2_timestamps entry are
+	 * published in a cycle of their own (ekf2 processed them in flight, only their ekf2_timestamps message is missing),
+	 * a sample missing from the log is synthesized from the previous one with the integration time covering the gap.
+	 * @return true if a sample was published
 	 */
-	void publishUnmatchedImuSamples(uint64_t timestamp, std::ifstream &replay_file);
+	bool publishMatchingSensorCombined(uint64_t timestamp, std::ifstream &replay_file);
 
 	static constexpr uint16_t msg_id_invalid = 0xffff;
 
@@ -161,6 +162,10 @@ private:
 	bool _ekf2_sync_enabled{true};
 	unsigned _ekf2_update_timeouts{0};
 	unsigned _ekf2_consecutive_timeouts{0};
+
+	unsigned _sensor_combined_unmatched{0};
+	unsigned _sensor_combined_missing{0};
+	sensor_combined_s _last_sensor_combined{};
 };
 
 } //namespace px4
