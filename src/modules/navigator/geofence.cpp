@@ -695,6 +695,15 @@ bool Geofence::isBelowMaxAltitude(float altitude)
 	return inside_fence;
 }
 
+bool Geofence::isWithinAltitudeBand(float altitude)
+{
+	if (!isEmpty() && _altitude_max > _altitude_min) {
+		return !(altitude > _altitude_max || altitude < _altitude_min);
+	}
+
+	return true;
+}
+
 bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 {
 	if (isEmpty()) {
@@ -703,10 +712,8 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	}
 
 	/* Vertical check */
-	if (_altitude_max > _altitude_min) { // only enable vertical check if configured properly
-		if (altitude > _altitude_max || altitude < _altitude_min) {
-			return false;
-		}
+	if (!isWithinAltitudeBand(altitude)) {
+		return false;
 	}
 
 	/* Horizontal check: iterate all polygons & circles */
