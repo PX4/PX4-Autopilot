@@ -98,6 +98,25 @@ public:
 	 */
 	bool checkPointAgainstAllGeofences(double lat, double lon, float altitude);
 
+	static constexpr size_t MAX_PATH_CHECKS = 128;
+
+	struct PathCheck {
+		matrix::Vector2d start; ///< latitude, longitude in degrees
+		matrix::Vector2d end;
+	};
+
+	/**
+	 * Check 1..MAX_PATH_CHECKS paths against horizontal fences. Boundary contact is a breach.
+	 * At least one endpoint of each path must be valid under the existing point check.
+	 * For a connected chain, checking the first point is enough if all preceding paths pass.
+	 * Check anchors and paths against the same loaded fence; check Home and altitude limits separately.
+	 * Uses cached fence data only. Longitude wrapping is not supported.
+	 *
+	 * @return true when results are available (true per clear path); false if unavailable or invalid.
+	 * On failure, results are false when the output buffer and count are valid.
+	 */
+	bool checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results);
+
 	/**
 	 * @brief check if the horizontal distance to Home is greater than the maximum allowed distance
 	 *
@@ -165,6 +184,7 @@ public:
 	void printStatus();
 
 private:
+	friend class GeofenceTestPeer;
 
 	enum class DatamanState {
 		UpdateRequestWait,
@@ -191,7 +211,8 @@ private:
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
 	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
-	bool _fence_loaded{false};  ///< true if the requested fence was successfully loaded
+	bool _fence_loaded{false}; ///< Used by live point checks; may remain true while an update is pending.
+	bool _path_check_ready{false}; ///< Update succeeded with no newer request pending.
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
 	bool _geofence_updated{false}; ///< set when polygons change, consumed by Navigator to rebuild avoidance graph
 
@@ -230,6 +251,11 @@ private:
 	 * @return true if within polygon the circle
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
+
+	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
+	bool readPathFencePoint(unsigned index, mission_fence_point_s &point);
+	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);
+	bool checkCirclePaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);
 
 	/**
 	 * Check if a single point is within a polygon or circle
