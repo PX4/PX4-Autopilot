@@ -64,7 +64,6 @@ __EXPORT void param_get_external(param_t param, void *val);
 
 /* The interface hooks to the Flash based storage. The caller is responsible for locking */
 __EXPORT int flash_param_save(param_filter_func filter);
-__EXPORT int flash_param_load();
 __EXPORT int flash_param_import();
 
 __END_DECLS
