@@ -152,6 +152,14 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 			break;
 		}
 
+		if (missionitem.nav_cmd == NAV_CMD_DO_JUMP) {
+			if (!checkJumpDestinations(mission, missionitem, i, have_previous_position ? &previous_position : nullptr, batch)) {
+				return false;
+			}
+
+			continue;
+		}
+
 		if (!mission_item_contains_position(missionitem)) {
 			continue;
 		}
@@ -258,10 +266,107 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 	return false;
 }
 
+bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, const mission_item_s &jump_item,
+		size_t jump_index, const matrix::Vector2d *previous_position, GeofencePathBatch &batch)
+{
+	const auto in_range = [&mission](int32_t index) {
+		return index >= 0 && index < mission.count;
+	};
+
+	// Execution checks the target even when the jump has no repeats left.
+	if (!in_range(jump_item.do_jump_mission_index)) {
+		return rejectGeofenceJump(batch, jump_index);
+	}
+
+	if (jump_item.do_jump_current_count >= jump_item.do_jump_repeat_count) {
+		return true;
+	}
+
+	// Bound memory and reads so branching jump chains or loops cannot stall validation.
+	static constexpr size_t kMaxJumpBranches = 16;
+	int32_t pending[kMaxJumpBranches] {};
+	size_t pending_count = 1;
+	pending[0] = jump_item.do_jump_mission_index;
+	size_t items_read = 0;
+	const size_t read_limit = static_cast<size_t>(mission.count) * kMaxJumpBranches;
+
+	while (pending_count > 0) {
+		int32_t index = pending[--pending_count];
+
+		while (in_range(index)) {
+			if (items_read++ >= read_limit) {
+				return rejectGeofenceJump(batch, jump_index);
+			}
+
+			mission_item_s candidate{};
+
+			if (!_dataman_client.readSync(static_cast<dm_item_t>(mission.mission_dataman_id), index,
+						      reinterpret_cast<uint8_t *>(&candidate), sizeof(candidate))) {
+				if (checkGeofencePathBatch(batch)) {
+					logDatamanReadFailure(index, mission.mission_dataman_id);
+				}
+
+				return false;
+			}
+
+			if (candidate.nav_cmd == NAV_CMD_DO_JUMP) {
+				if (!in_range(candidate.do_jump_mission_index)) {
+					return rejectGeofenceJump(batch, index);
+				}
+
+				if (candidate.do_jump_current_count < candidate.do_jump_repeat_count) {
+					// On a later visit this jump may be exhausted. Check that leg from the same source too.
+					if (candidate.do_jump_mission_index != index + 1) {
+						if (pending_count >= kMaxJumpBranches) {
+							return rejectGeofenceJump(batch, jump_index);
+						}
+
+						pending[pending_count++] = index + 1;
+					}
+
+					index = candidate.do_jump_mission_index;
+
+				} else {
+					++index;
+				}
+
+				continue;
+			}
+
+			if (mission_item_contains_position(candidate)) {
+				if (previous_position && !addGeofencePath(batch, {*previous_position, {candidate.lat, candidate.lon}}, jump_index, true)) {
+					return false;
+				}
+
+				break;
+			}
+
+			++index;
+		}
+	}
+
+	// Reaching the mission end leaves no further leg to check.
+	return true;
+}
+
+bool MissionFeasibilityChecker::rejectGeofenceJump(GeofencePathBatch &batch, size_t jump_index)
+{
+	if (checkGeofencePathBatch(batch)) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: DO_JUMP %zu path cannot be resolved\t",
+				     jump_index + 1);
+		events::send<uint16_t>(events::ID("navigator_mis_do_jump_invalid"),
+		{events::Log::Error, events::LogInternal::Info},
+		"Mission rejected: DO_JUMP {1} path cannot be resolved", static_cast<uint16_t>(jump_index + 1));
+	}
+
+	return false;
+}
+
 bool MissionFeasibilityChecker::addGeofencePath(GeofencePathBatch &batch, const Geofence::PathCheck &path,
-		size_t mission_index)
+		size_t mission_index, bool is_jump)
 {
 	batch.paths[batch.count] = path;
+	batch.is_jump[batch.count] = is_jump;
 	batch.mission_indices[batch.count++] = static_cast<uint16_t>(mission_index);
 	return batch.count < kGeofencePathBatchSize || checkGeofencePathBatch(batch);
 }
@@ -283,6 +388,13 @@ bool MissionFeasibilityChecker::checkGeofencePathBatch(GeofencePathBatch &batch)
 
 			if (batch.paths[i].end_radius > 0.f) {
 				logGeofenceLoiterBreach(waypoint);
+
+			} else if (batch.is_jump[i]) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence breach on DO_JUMP %u path\t",
+						     static_cast<unsigned>(waypoint));
+				events::send<uint16_t>(events::ID("navigator_mis_geofence_jump_breach"),
+				{events::Log::Error, events::LogInternal::Info},
+				"Geofence breach on DO_JUMP {1} path", waypoint);
 
 			} else {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence breach on path to waypoint %u\t",
