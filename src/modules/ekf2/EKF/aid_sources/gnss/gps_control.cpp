@@ -43,7 +43,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
 	_fc.gps.available = (_params.ekf2_gps_ctrl != 0);
 
-	if (!_gps_buffer || !_fc.gps.intended()) {
+	if (!_gps_buffer) {
 		stopGnssFusion();
 		return;
 	}
@@ -52,10 +52,14 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		_yawEstimator.setGyroBias(getGyroBias(), _control_status.flags.vehicle_at_rest);
 	}
 
-	// run EKF-GSF yaw estimator once per imu_delayed update
 	_yawEstimator.predict(imu_delayed.delta_ang, imu_delayed.delta_ang_dt,
 			      imu_delayed.delta_vel, imu_delayed.delta_vel_dt,
 			      (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest));
+
+	if (!_fc.gps.intended()) {
+		stopGnssFusion();
+		return;
+	}
 
 	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
@@ -387,6 +391,26 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 
 		_yawEstimator.fuseVelocity(vel_xy, vel_accuracy, _control_status.flags.in_air);
 
+		if (_yawEstimator.isActive()) {
+			if (_time_yaw_estimator_activated_us == 0) {
+				_time_yaw_estimator_activated_us = _time_delayed_us;
+				_yaw_estimator_restarted_in_air = _control_status.flags.in_air
+								  && _yaw_estimator_was_active_in_air;
+			}
+
+			if (_control_status.flags.in_air) {
+				_yaw_estimator_was_active_in_air = true;
+			}
+
+		} else {
+			_time_yaw_estimator_activated_us = 0;
+		}
+
+		if (!_control_status.flags.in_air) {
+			_yaw_estimator_was_active_in_air = false;
+			_yaw_estimator_restarted_in_air = false;
+		}
+
 		// Try to align yaw using estimate if available
 		if (((_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
 		     || (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::HPOS)))
@@ -475,6 +499,7 @@ void Ekf::stopGnssFusion()
 #endif // CONFIG_EKF2_GNSS_YAW
 
 	_yawEstimator.reset();
+	_time_yaw_estimator_activated_us = 0;
 }
 
 void Ekf::stopGnssVelFusion()
@@ -521,6 +546,12 @@ bool Ekf::isYawEmergencyEstimateAvailable() const
 bool Ekf::isYawFailure() const
 {
 	if (!isYawEmergencyEstimateAvailable()) {
+		return false;
+	}
+
+	if (_yaw_estimator_restarted_in_air
+	    && ((_time_yaw_estimator_activated_us == 0)
+		|| !isTimedOut(_time_yaw_estimator_activated_us, _params.EKFGSF_min_active_time))) {
 		return false;
 	}
 
