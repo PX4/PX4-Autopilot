@@ -16,6 +16,9 @@
 ## behind meta-formulae. See PX4/homebrew-px4#104 for background.
 ##
 
+# Abort on the first failing command.
+set -e
+
 # script directory
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
@@ -50,7 +53,7 @@ fi
 # "installed from the discoteq/discoteq tap but you are trying to install
 # it from homebrew/core" on machines that still have it tapped.
 if brew tap | grep -q '^discoteq/discoteq$'; then
-	brew uninstall flock 2>/dev/null
+	brew uninstall flock 2>/dev/null || true
 	brew untap discoteq/discoteq
 fi
 
@@ -60,19 +63,23 @@ fi
 #
 # - osx-cross/arm: arm-gcc-bin@13 (ARM cross-compiler)
 # - PX4/px4:       fastdds, genromfs, kconfig-frontends (PX4-specific)
-brew tap osx-cross/arm
-brew tap PX4/px4
-
+#
 # Homebrew 6.0+ refuses to load formulae from third-party taps unless they
-# are explicitly trusted ("Refusing to load formula ... from untrusted tap").
-# Trust each tap non-interactively before installing from it. Without this,
-# `brew install` aborts before pouring any package (including ccache).
+# are explicitly trusted ("Refusing to load formula ... from untrusted tap"),
+# and recent versions validate every formula of a tap while tapping it. An
+# untrusted tap therefore fails with "Cannot tap ...: invalid syntax in tap!",
+# so the taps must be trusted *before* they are tapped. `brew trust` works on
+# a tap that is not installed yet. Without the taps, `brew install` aborts
+# on the first PX4/px4 formula before pouring any package (including ccache).
 # `brew trust` only exists on Homebrew 6.0+; guard it so older versions,
 # which don't gate untrusted taps, skip it silently.
 if brew trust --help &> /dev/null; then
 	brew trust osx-cross/arm
 	brew trust PX4/px4
 fi
+
+brew tap osx-cross/arm
+brew tap PX4/px4
 
 # Package list. This replaces the px4-dev meta-formula, which is kept
 # as a deprecated no-op upstream. See PX4/homebrew-px4 for history.
@@ -95,7 +102,7 @@ PX4_BREW_PACKAGES=(
 
 if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
 	echo "[macos.sh] Re-installing PX4 toolchain dependencies"
-	brew doctor
+	brew doctor || true # warnings are informational here
 	brew reinstall "${PX4_BREW_PACKAGES[@]}"
 else
 	echo "[macos.sh] Installing PX4 toolchain dependencies"
@@ -130,6 +137,15 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	# px4-dev precedent.
 	#
 	# osrf/simulation: gz-harmonic (Gazebo Harmonic meta-formula)
+	#
+	# Trust before tapping, same as the toolchain taps above. Tapping an
+	# untrusted tap fails, which leaves no tap clone to pin below; the
+	# later `brew install osrf/simulation/gz-harmonic` then taps it
+	# implicitly at HEAD and the pin is silently skipped.
+	if brew trust --help &> /dev/null; then
+		brew trust osrf/simulation
+	fi
+
 	brew tap osrf/simulation
 
 	# OSRF drops the gz bottle blocks within minutes of a breaking
@@ -143,7 +159,7 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		echo "[macos.sh] Pinning osrf/simulation to ${GZ_TAP_PIN}"
 		# brew taps are shallow clones, so the pinned commit has to be
 		# fetched by SHA before it can be checked out.
-		git -C "$GZ_TAP_DIR" fetch --quiet origin "$GZ_TAP_PIN" 2>/dev/null
+		git -C "$GZ_TAP_DIR" fetch --quiet origin "$GZ_TAP_PIN" 2>/dev/null || true
 		if git -C "$GZ_TAP_DIR" checkout --quiet "$GZ_TAP_PIN"; then
 			# `brew update` walks local taps and would reset the pin.
 			# homebrew-core resolves through the JSON API, not this
@@ -153,14 +169,6 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 			echo "[macos.sh] WARNING: could not pin osrf/simulation to ${GZ_TAP_PIN}," \
 				"continuing on tap HEAD (gz may build from source)"
 		fi
-	fi
-
-	# Homebrew 6.0+ refuses to load formulae from untrusted third-party
-	# taps (see the toolchain trust block above). Without this, the
-	# gz-harmonic install aborts and the script still exits successfully,
-	# leaving the simulation stack silently missing.
-	if brew trust --help &> /dev/null; then
-		brew trust osrf/simulation
 	fi
 
 	# opencv@4: the unversioned formula is OpenCV 5, which PX4-OpticalFlow

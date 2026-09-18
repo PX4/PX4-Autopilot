@@ -346,6 +346,12 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
 
 	// clear any not used payload data to correctly trim mavlink ftp message reply
+	if (payload->size > kMaxDataLength) {
+		// Should not happen: every producer bounds itself. Clamp rather than let the
+		// subtraction below wrap into a memset of the whole address space.
+		payload->size = kMaxDataLength;
+	}
+
 	memset(&payload->data[payload->size], 0, kMaxDataLength - payload->size);
 
 	// keep a copy of the last sent response ((n)ack), so that if it gets lost and the GCS resends the request,
@@ -457,9 +463,14 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 
 			if (_our_errno) {
 				PX4_WARN("readdir failed: %s", strerror(_our_errno));
-				payload->data[offset++] = kDirentSkip;
-				*((char *)&payload->data[offset]) = '\0';
-				offset++;
+
+				// Room for the identifier and the null terminator, as in the entry loop below
+				if ((offset + 2) <= kMaxDataLength) {
+					payload->data[offset++] = kDirentSkip;
+					*((char *)&payload->data[offset]) = '\0';
+					offset++;
+				}
+
 				errorCode = kErrFailErrno;
 
 			} else if (offset == 0) {
