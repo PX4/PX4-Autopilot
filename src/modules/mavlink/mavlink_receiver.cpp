@@ -4006,10 +4006,12 @@ MavlinkReceiver::run()
 			if (_mavlink.get_mode() != Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM) {
 				_parameters_manager.send();
 				_mavlink.set_sending_parameters(_parameters_manager.send_active());
+				_mavlink.set_sending_all_parameters(_parameters_manager.sending_all());
 			}
 
 			if (_mavlink.ftp_enabled()) {
 				_mavlink_ftp.send();
+				_mavlink.set_ftp_burst_active(_mavlink_ftp.burst_active());
 			}
 
 			_mavlink_log_handler.send();
