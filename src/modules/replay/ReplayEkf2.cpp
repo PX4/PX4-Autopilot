@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <cstring>
+#include <time.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
@@ -199,7 +200,7 @@ ReplayEkf2::publishEkf2Topics(sensor_combined_s &sensor_combined, std::ifstream 
 
 	_last_sensor_combined_timestamp = sensor_combined.timestamp;
 
-	publishTopic(*_subscriptions[_sensor_combined_msg_id], &sensor_combined);
+	publishSensorCombined(*_subscriptions[_sensor_combined_msg_id], &sensor_combined);
 
 	return true;
 }
@@ -240,23 +241,9 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 
 	publishUnmatchedImuSamples(ekf2_timestamps.timestamp, replay_file);
 
-	// sensor_combined: publish last because ekf2 is polling on this
-	if (!findTimestampAndPublish(ekf2_timestamps.timestamp, _sensor_combined_msg_id, replay_file)) {
-		if (_sensor_combined_msg_id == msg_id_invalid) {
-			// subscription not found yet or sensor_combined not contained in log
-			return false;
-
-		} else if (!_subscriptions[_sensor_combined_msg_id]->orb_meta) {
-			return false; // read past end of file
-
-		} else {
-			// we should publish a topic, just publish the same again
-			readTopicDataToBuffer(*_subscriptions[_sensor_combined_msg_id], replay_file);
-			publishTopic(*_subscriptions[_sensor_combined_msg_id], _read_buffer.data());
-		}
-	}
-
-	return true;
+	// sensor_combined: publish last because ekf2 is polling on this. If the sample is missing from the log, ekf2
+	// skips this cycle; publishing a later sample instead would shift the IMU stream against the other sensors.
+	return findTimestampAndPublish(ekf2_timestamps.timestamp, _sensor_combined_msg_id, replay_file);
 }
 
 void
@@ -272,12 +259,8 @@ ReplayEkf2::publishUnmatchedImuSamples(uint64_t timestamp, std::ifstream &replay
 	// logged, or an ekf2_timestamps message was lost) would be overwritten by the one below before
 	// ekf2 gets to run, so give it a lockstep cycle of its own instead of dropping it.
 	while (sub.orb_meta && sub.next_timestamp < timestamp) {
-		if (!sub.published) {
-			readTopicDataToBuffer(sub, replay_file);
-			publishTopic(sub, _read_buffer.data());
-			px4_lockstep_wait_for_components();
-		}
-
+		readTopicDataToBuffer(sub, replay_file);
+		publishSensorCombined(sub, _read_buffer.data());
 		nextDataMessage(replay_file, sub, _sensor_combined_msg_id);
 	}
 }
@@ -295,24 +278,103 @@ ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::if
 	bool topic_published = false;
 
 	while (sub.next_timestamp <= timestamp && sub.orb_meta) {
-		if (!sub.published) {
-			if (sub.next_timestamp != timestamp) {
-				// Not the exact sample, publish but notify error
-				PX4_DEBUG("No timestamp match found for topic %s (%" PRIu64 ", %" PRIu64 ")\n", sub.orb_meta->o_name,
-					  sub.next_timestamp,
-					  timestamp);
-				++sub.approx_timestamp_counter;
-			}
-
-			readTopicDataToBuffer(sub, replay_file);
-			publishTopic(sub, _read_buffer.data());
-			topic_published = true;
+		if (sub.next_timestamp != timestamp) {
+			// Not the exact sample, publish but notify error
+			PX4_DEBUG("No timestamp match found for topic %s (%" PRIu64 ", %" PRIu64 ")\n", sub.orb_meta->o_name,
+				  sub.next_timestamp,
+				  timestamp);
+			++sub.approx_timestamp_counter;
 		}
+
+		readTopicDataToBuffer(sub, replay_file);
+
+		if (msg_id == _sensor_combined_msg_id) {
+			publishSensorCombined(sub, _read_buffer.data());
+
+		} else {
+			publishTopic(sub, _read_buffer.data());
+		}
+
+		topic_published = true;
 
 		nextDataMessage(replay_file, sub, msg_id);
 	}
 
 	return topic_published;
+}
+
+void
+ReplayEkf2::publishSensorCombined(Subscription &sub, void *data)
+{
+	const unsigned updates_before = _ekf2_update_signal.updates();
+
+	if (!publishTopic(sub, data) || !_ekf2_sync_enabled) {
+		return;
+	}
+
+	if (_ekf2_update_signal.waitForUpdateAfter(updates_before, kEkf2UpdateTimeoutMs)) {
+		_ekf2_consecutive_timeouts = 0;
+		return;
+	}
+
+	++_ekf2_update_timeouts;
+
+	if (++_ekf2_consecutive_timeouts >= kEkf2MaxConsecutiveTimeouts) {
+		PX4_ERR("ekf2 does not process sensor_combined, replay continues unsynchronized (results not reproducible)");
+		_ekf2_sync_enabled = false;
+	}
+}
+
+ReplayEkf2::Ekf2UpdateSignal::~Ekf2UpdateSignal()
+{
+	unregisterCallback();
+	pthread_mutex_destroy(&_mutex);
+	pthread_cond_destroy(&_cond);
+}
+
+void
+ReplayEkf2::Ekf2UpdateSignal::call(unsigned generation)
+{
+	// runs on the publishing (ekf2) thread
+	pthread_mutex_lock(&_mutex);
+	++_updates;
+	pthread_cond_signal(&_cond);
+	pthread_mutex_unlock(&_mutex);
+}
+
+unsigned
+ReplayEkf2::Ekf2UpdateSignal::updates()
+{
+	pthread_mutex_lock(&_mutex);
+	const unsigned updates = _updates;
+	pthread_mutex_unlock(&_mutex);
+	return updates;
+}
+
+bool
+ReplayEkf2::Ekf2UpdateSignal::waitForUpdateAfter(unsigned updates_before, unsigned timeout_ms)
+{
+	struct timespec ts;
+	system_clock_gettime(CLOCK_REALTIME, &ts);
+	ts.tv_sec += timeout_ms / 1000;
+	ts.tv_nsec += (timeout_ms % 1000) * 1000000;
+
+	if (ts.tv_nsec >= 1000000000) {
+		ts.tv_sec += 1;
+		ts.tv_nsec -= 1000000000;
+	}
+
+	pthread_mutex_lock(&_mutex);
+	int ret = 0;
+
+	while (_updates == updates_before && ret == 0) {
+		ret = system_pthread_cond_timedwait(&_cond, &_mutex, &ts);
+	}
+
+	const bool updated = _updates != updates_before;
+	pthread_mutex_unlock(&_mutex);
+
+	return updated;
 }
 
 void
@@ -322,11 +384,18 @@ ReplayEkf2::onEnterMainLoop()
 
 	// disable parameter auto save
 	param_control_autosave(false);
+
+	if (!_ekf2_update_signal.registerCallback()) {
+		PX4_ERR("failed to subscribe to ekf2_timestamps, replay runs unsynchronized (results not reproducible)");
+		_ekf2_sync_enabled = false;
+	}
 }
 
 void
 ReplayEkf2::onExitMainLoop()
 {
+	_ekf2_update_signal.unregisterCallback();
+
 	// print statistics
 	auto print_sensor_statistics = [this](uint16_t msg_id, const char *name) {
 		if (msg_id != msg_id_invalid) {
@@ -356,6 +425,11 @@ ReplayEkf2::onExitMainLoop()
 	print_sensor_statistics(_vehicle_visual_odometry_msg_id, "vehicle_visual_odometry");
 	print_sensor_statistics(_aux_global_position_msg_id, "aux_global_position");
 	print_sensor_statistics(_ranging_beacon_msg_id, "ranging_beacon");
+
+	if (_ekf2_update_timeouts > 0) {
+		PX4_WARN("ekf2 did not process %u sensor_combined samples within %u ms", _ekf2_update_timeouts,
+			 kEkf2UpdateTimeoutMs);
+	}
 }
 
 } // namespace px4
