@@ -116,6 +116,7 @@ public:
 	 * On failure, results are false when the output buffer and count are valid.
 	 */
 	bool checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results);
+	bool isReadyForPathChecks() const { return _path_check_ready; }
 
 	/**
 	 * @brief check if the horizontal distance to Home is greater than the maximum allowed distance
@@ -131,6 +132,9 @@ public:
 	 * @return true if the altitude above Home is smaller than the maximum allowed altitude
 	 */
 	bool isBelowMaxAltitude(float altitude);
+
+	/** Check the altitude band from a loaded fence file, if configured. */
+	bool isWithinAltitudeBand(float altitude);
 
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
 
