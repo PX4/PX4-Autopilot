@@ -28,6 +28,14 @@ if MODULES_ZENOH
                 Declares liveliness tokens with key expressions in the way rmw_zenoh expects them
                 Allowing to construct ROS2 graphs
 
+    config ZENOH_TASK_STACK_SIZE
+        int "Stack size of the zenoh-pico read/lease tasks"
+        default 3072
+        ---help---
+                Stack size (bytes) for the zenoh-pico read/lease pthreads. The
+                NuttX default (CONFIG_PTHREAD_STACK_DEFAULT, 2048) is too small
+                for large messages (e.g. arming_check_reply).
+
     config ZENOH_PUB_ON_MATCHING
         bool "[EXPERIMENTAL] Only publish data when having matching subscribers"
         default n
