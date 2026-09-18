@@ -66,7 +66,9 @@ private:
 	FeasibilityChecker _feasibility_checker;
 
 	bool checkMissionAgainstGeofence(const mission_s &mission, float home_alt, bool home_valid);
+	bool addGeofencePath(GeofencePathBatch &batch, const Geofence::PathCheck &path, size_t mission_index);
 	bool checkGeofencePathBatch(GeofencePathBatch &batch);
+	void logGeofenceLoiterBreach(uint16_t waypoint);
 	void logGeofenceUnavailable();
 	void logDatamanReadFailure(const size_t mission_item, const uint8_t dataman_id);
 
