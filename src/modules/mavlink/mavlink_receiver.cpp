@@ -647,13 +647,15 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.param3 = cmd_mavlink.param3;
 	vcmd.param4 = cmd_mavlink.param4;
 
-	if (cmd_mavlink.x == INT32_MAX && cmd_mavlink.y == INT32_MAX) {
-		// INT32_MAX for x and y means to ignore it.
-		vcmd.param5 = (double)NAN;
-		vcmd.param6 = (double)NAN;
+	if (cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) {
+		// Actuator values use 1e7 scaling regardless of the coordinate frame. The
+		// MAVLink "not used" sentinel applies independently per field, so e.g.
+		// x=INT32_MAX, y=5000000 ignores param5/actuator 5 while still setting
+		// param6/actuator 6 = 0.5.
+		vcmd.param5 = mavlink_cmd_params::decode_scaled_int32_field(cmd_mavlink.x, 1e7);
+		vcmd.param6 = mavlink_cmd_params::decode_scaled_int32_field(cmd_mavlink.y, 1e7);
 
-	} else if (command_has_location(cmd_mavlink.command)
-		   || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
+	} else if (command_has_location(cmd_mavlink.command)) {
 		if (cmd_mavlink.frame == MAV_FRAME_LOCAL_NED
 		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_ENU
 		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_OFFSET_NED
@@ -662,13 +664,13 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		    || cmd_mavlink.frame == MAV_FRAME_BODY_FRD
 		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_FRD
 		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_FLU) {
-			vcmd.param5 = ((double)cmd_mavlink.x) / 1e4;
-			vcmd.param6 = ((double)cmd_mavlink.y) / 1e4;
+			vcmd.param5 = mavlink_cmd_params::decode_scaled_int32_field(cmd_mavlink.x, 1e4);
+			vcmd.param6 = mavlink_cmd_params::decode_scaled_int32_field(cmd_mavlink.y, 1e4);
 
 		} else {
 			// Global frames, MAV_FRAME_MISSION, and any unrecognised frames
-			vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
-			vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+			vcmd.param5 = mavlink_cmd_params::decode_scaled_int32_field(cmd_mavlink.x, 1e7);
+			vcmd.param6 = mavlink_cmd_params::decode_scaled_int32_field(cmd_mavlink.y, 1e7);
 		}
 
 	} else {
