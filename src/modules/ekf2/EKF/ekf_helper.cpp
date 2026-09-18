@@ -49,11 +49,13 @@ bool Ekf::isHeightResetRequired() const
 {
 	// check if height is continuously failing because of accel errors
 	const bool continuous_bad_accel_hgt = isTimedOut(_time_good_vert_accel, (uint64_t)_params.bad_acc_reset_delay_us);
+	const bool bad_accel_hgt_reset_recent = _fault_status.flags.bad_acc_vertical
+						&& isRecent(_time_bad_vert_accel_hgt_reset, BADACC_PROBATION);
 
 	// check if height has been inertial deadreckoning for too long
 	const bool hgt_fusion_timeout = isTimedOut(_time_last_hgt_fuse, _params.hgt_fusion_timeout_max);
 
-	return (continuous_bad_accel_hgt || hgt_fusion_timeout);
+	return ((continuous_bad_accel_hgt && !bad_accel_hgt_reset_recent) || hgt_fusion_timeout);
 }
 
 Vector3f Ekf::calcEarthRateNED(float lat_rad) const
