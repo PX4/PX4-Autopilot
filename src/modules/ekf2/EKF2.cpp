@@ -520,6 +520,7 @@ void EKF2::Run()
 			command_ack.command = vehicle_command.command;
 			command_ack.target_system = vehicle_command.source_system;
 			command_ack.target_component = vehicle_command.source_component;
+			const bool publish_command_ack = !_multi_mode || (_instance == 0);
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN
 			    || vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN) {
@@ -576,8 +577,10 @@ void EKF2::Run()
 					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED; // TODO: expand
 				}
 
-				command_ack.timestamp = hrt_absolute_time();
-				_vehicle_command_ack_pub.publish(command_ack);
+				if (publish_command_ack) {
+					command_ack.timestamp = hrt_absolute_time();
+					_vehicle_command_ack_pub.publish(command_ack);
+				}
 			}
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE) {
@@ -586,14 +589,27 @@ void EKF2::Run()
 				// PX4 backend expects direction where wind blows TO
 				const float wind_direction_rad = wrap_pi(math::radians(vehicle_command.param3) + M_PI_F);
 				const float wind_direction_accuracy_rad = math::radians(vehicle_command.param4);
-				_ekf.resetWindToExternalObservation(vehicle_command.param1, wind_direction_rad, vehicle_command.param2,
-								    wind_direction_accuracy_rad);
-				command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+				vehicle_land_detected_s vehicle_land_detected{};
+				const bool vehicle_landed = _vehicle_land_detected_sub.copy(&vehicle_land_detected)
+							    && (hrt_absolute_time() < vehicle_land_detected.timestamp + 3_s)
+							    && vehicle_land_detected.landed;
+
+				if (_ekf.resetWindToExternalObservation(vehicle_command.param1, wind_direction_rad, vehicle_command.param2,
+									wind_direction_accuracy_rad, vehicle_landed)) {
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else {
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				}
+
 #else
 				command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 #endif // CONFIG_EKF2_WIND
-				command_ack.timestamp = hrt_absolute_time();
-				_vehicle_command_ack_pub.publish(command_ack);
+
+				if (publish_command_ack) {
+					command_ack.timestamp = hrt_absolute_time();
+					_vehicle_command_ack_pub.publish(command_ack);
+				}
 			}
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE) {
