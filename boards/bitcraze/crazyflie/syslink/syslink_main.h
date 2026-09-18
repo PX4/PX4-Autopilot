@@ -127,7 +127,7 @@ private:
 	SyslinkBridge *_bridge;
 	SyslinkMemory *_memory;
 
-	int _params_sub;
+	orb_sub_t _params_sub;
 
 	// Current parameter values
 	int32_t _channel, _rate;
@@ -169,9 +169,6 @@ public:
 
 	// Makes the message available for reading to processes reading from the bridge
 	void pipe_message(crtp_message_t *msg);
-
-protected:
-	virtual pollevent_t poll_state(struct file *filp);
 
 private:
 	Syslink *_link;

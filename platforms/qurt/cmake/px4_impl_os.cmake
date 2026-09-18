@@ -123,7 +123,6 @@ endfunction()
 #		px4_os_add_flags()
 #
 function(px4_os_add_flags)
-
 	include_directories(
 		platforms/qurt/include
 	)
@@ -131,6 +130,7 @@ function(px4_os_add_flags)
 	add_definitions(
 		-D__PX4_POSIX
 		-D__PX4_QURT
+		-DPOSIX_SHM_DISABLED
 	)
 
 	add_compile_options(

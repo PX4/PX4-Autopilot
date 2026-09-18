@@ -31,6 +31,9 @@
 #
 ############################################################################
 
+set(PX4_POSIX_SHM_DISABLED ON CACHE BOOL "Disable POSIX shm backing for uORB" FORCE)
+target_compile_definitions(uORB PRIVATE POSIX_SHM_DISABLED)
+
 add_library(drivers_board
 	can.c
 	i2c.cpp

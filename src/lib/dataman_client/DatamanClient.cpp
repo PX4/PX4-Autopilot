@@ -259,7 +259,7 @@ bool DatamanClient::clearSync(dm_item_t item, hrt_abstime timeout)
 
 void DatamanClient::clearPendingResponse()
 {
-	if (_dataman_response_sub < 0) {
+	if (!orb_sub_valid(_dataman_response_sub)) {
 		return;
 	}
 
