@@ -405,6 +405,15 @@ protected:
 	virtual bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item);
 
 	/**
+	 * @brief Write a mission item to the dataman mission storage.
+	 *
+	 * @param[in] index Index of the mission item
+	 * @param[in] mission_item The item to store
+	 * @return true if the item was written successfully
+	 */
+	virtual bool writeMissionItemToCache(int32_t index, mission_item_s &mission_item);
+
+	/**
 	 * @brief Find the next position mission item.
 	 *
 	 * Walks forward through the mission starting at @p start_index.
