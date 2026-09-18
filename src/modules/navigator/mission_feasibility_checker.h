@@ -46,17 +46,28 @@
 #include <uORB/topics/mission.h>
 #include <px4_platform_common/module_params.h>
 #include "MissionFeasibility/FeasibilityChecker.hpp"
+#include "geofence.h"
 
 class Navigator;
 
 class MissionFeasibilityChecker: public ModuleParams
 {
 private:
+	static constexpr size_t kGeofencePathBatchSize = Geofence::MAX_PATH_CHECKS;
+	struct GeofencePathBatch {
+		Geofence::PathCheck paths[kGeofencePathBatchSize];
+		uint16_t mission_indices[kGeofencePathBatchSize];
+		bool results[kGeofencePathBatchSize];
+		size_t count{0};
+	};
+
 	Navigator *_navigator{nullptr};
 	DatamanClient &_dataman_client;
 	FeasibilityChecker _feasibility_checker;
 
 	bool checkMissionAgainstGeofence(const mission_s &mission, float home_alt, bool home_valid);
+	bool checkGeofencePathBatch(GeofencePathBatch &batch);
+	void logGeofenceUnavailable();
 	void logDatamanReadFailure(const size_t mission_item, const uint8_t dataman_id);
 
 public:

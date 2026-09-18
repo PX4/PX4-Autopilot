@@ -784,12 +784,27 @@ MissionBase::checkMissionRestart()
 void
 MissionBase::check_mission_valid(bool forced)
 {
-	// Allow forcing it, since we currently not rechecking if parameters have changed.
-	if (forced ||
-	    (_navigator->get_mission_result()->mission_id != _mission.mission_id) ||
-	    (_navigator->get_mission_result()->geofence_id != _mission.geofence_id) ||
-	    (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count)) {
+	const bool inputs_changed = (_navigator->get_mission_result()->mission_id != _mission.mission_id)
+				    || (_navigator->get_mission_result()->geofence_id != _mission.geofence_id)
+				    || (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count);
 
+	if (!_navigator->get_geofence().isReadyForPathChecks()) {
+		// Keep the verdict for the same mission, fence and Home; retry when ready.
+		_mission_checked = false;
+		_mission_check_pending = true;
+
+		if (inputs_changed) {
+			_navigator->get_mission_result()->valid = false;
+			_navigator->set_mission_result_updated();
+		}
+
+		return;
+	}
+
+	// Allow forcing it, since we currently not rechecking if parameters have changed.
+	if (forced || _mission_check_pending || inputs_changed) {
+
+		_mission_check_pending = false;
 		_navigator->get_mission_result()->mission_id = _mission.mission_id;
 		_navigator->get_mission_result()->geofence_id = _mission.geofence_id;
 		_navigator->get_mission_result()->home_position_counter = _navigator->get_home_position()->update_count;
@@ -1581,6 +1596,7 @@ bool MissionBase::canRunMissionFeasibility()
 {
 	return _navigator->home_global_position_valid() && // Need to have a home position checked
 	       _navigator->get_global_position()->timestamp > 0 && // Need to have a position, for first waypoint check
+	       _navigator->get_geofence().isReadyForPathChecks() &&
 	       (_geofence_status_sub.get().timestamp > 0) && // Geofence data must be loaded
 	       (_geofence_status_sub.get().geofence_id == _mission.geofence_id) &&
 	       (_geofence_status_sub.get().status == geofence_status_s::GF_STATUS_READY);
