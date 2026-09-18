@@ -885,6 +885,21 @@ void I2CSPIDriverBase::print_status()
 #endif // CONFIG_SPI
 }
 
+I2CSPIDriverBase *I2CSPIDriverBase::init_instance(I2CSPIDriverBase *instance, int init_ret)
+{
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return nullptr;
+	}
+
+	if (init_ret != OK) {
+		delete instance;
+		return nullptr;
+	}
+
+	return instance;
+}
+
 bool I2CSPIDriverBase::request_stop_and_wait()
 {
 	_task_should_exit.store(true);

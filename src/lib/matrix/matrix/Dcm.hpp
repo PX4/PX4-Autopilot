@@ -30,6 +30,18 @@ class Euler;
 template<typename Type>
 class Quaternion;
 
+template<typename Type>
+class Dcm;
+
+namespace detail
+{
+// Shared bodies of the Dcm conversion constructors. Kept as free templates so
+// the generic (in-class) constructors and the out-of-line float
+// specializations (RotationConversions.cpp) share a single implementation.
+template<typename Type> void dcm_from_quaternion(Dcm<Type> &dcm, const Quaternion<Type> &q);
+template<typename Type> void dcm_from_euler(Dcm<Type> &dcm, const Euler<Type> &euler);
+} // namespace detail
+
 /**
  * Direction cosine matrix class
  *
@@ -84,29 +96,7 @@ public:
 	 */
 	Dcm(const Quaternion<Type> &q)
 	{
-		Dcm &dcm = *this;
-		const Type a = q(0);
-		const Type b = q(1);
-		const Type c = q(2);
-		const Type d = q(3);
-		const Type ab = a * b;
-		const Type ac = a * c;
-		const Type ad = a * d;
-		const Type bb = b * b;
-		const Type bc = b * c;
-		const Type bd = b * d;
-		const Type cc = c * c;
-		const Type cd = c * d;
-		const Type dd = d * d;
-		dcm(0, 0) = Type(1) - Type(2) * (cc + dd);
-		dcm(0, 1) = Type(2) * (bc - ad);
-		dcm(0, 2) = Type(2) * (ac + bd);
-		dcm(1, 0) = Type(2) * (bc + ad);
-		dcm(1, 1) = Type(1) - Type(2) * (bb + dd);
-		dcm(1, 2) = Type(2) * (cd - ab);
-		dcm(2, 0) = Type(2) * (bd - ac);
-		dcm(2, 1) = Type(2) * (ab + cd);
-		dcm(2, 2) = Type(1) - Type(2) * (bb + cc);
+		detail::dcm_from_quaternion(*this, q);
 	}
 
 	/**
@@ -120,25 +110,7 @@ public:
 	 */
 	Dcm(const Euler<Type> &euler)
 	{
-		Dcm &dcm = *this;
-		Type cosPhi = Type(std::cos(euler.phi()));
-		Type sinPhi = Type(std::sin(euler.phi()));
-		Type cosThe = Type(std::cos(euler.theta()));
-		Type sinThe = Type(std::sin(euler.theta()));
-		Type cosPsi = Type(std::cos(euler.psi()));
-		Type sinPsi = Type(std::sin(euler.psi()));
-
-		dcm(0, 0) = cosThe * cosPsi;
-		dcm(0, 1) = -cosPhi * sinPsi + sinPhi * sinThe * cosPsi;
-		dcm(0, 2) = sinPhi * sinPsi + cosPhi * sinThe * cosPsi;
-
-		dcm(1, 0) = cosThe * sinPsi;
-		dcm(1, 1) = cosPhi * cosPsi + sinPhi * sinThe * sinPsi;
-		dcm(1, 2) = -sinPhi * cosPsi + cosPhi * sinThe * sinPsi;
-
-		dcm(2, 0) = -sinThe;
-		dcm(2, 1) = sinPhi * cosThe;
-		dcm(2, 2) = cosPhi * cosThe;
+		detail::dcm_from_euler(*this, euler);
 	}
 
 
@@ -175,5 +147,60 @@ public:
 
 using Dcmf = Dcm<float>;
 using Dcmd = Dcm<double>;
+
+namespace detail
+{
+
+template<typename Type>
+void dcm_from_quaternion(Dcm<Type> &dcm, const Quaternion<Type> &q)
+{
+	const Type a = q(0);
+	const Type b = q(1);
+	const Type c = q(2);
+	const Type d = q(3);
+	const Type ab = a * b;
+	const Type ac = a * c;
+	const Type ad = a * d;
+	const Type bb = b * b;
+	const Type bc = b * c;
+	const Type bd = b * d;
+	const Type cc = c * c;
+	const Type cd = c * d;
+	const Type dd = d * d;
+	dcm(0, 0) = Type(1) - Type(2) * (cc + dd);
+	dcm(0, 1) = Type(2) * (bc - ad);
+	dcm(0, 2) = Type(2) * (ac + bd);
+	dcm(1, 0) = Type(2) * (bc + ad);
+	dcm(1, 1) = Type(1) - Type(2) * (bb + dd);
+	dcm(1, 2) = Type(2) * (cd - ab);
+	dcm(2, 0) = Type(2) * (bd - ac);
+	dcm(2, 1) = Type(2) * (ab + cd);
+	dcm(2, 2) = Type(1) - Type(2) * (bb + cc);
+}
+
+template<typename Type>
+void dcm_from_euler(Dcm<Type> &dcm, const Euler<Type> &euler)
+{
+	Type cosPhi = Type(std::cos(euler.phi()));
+	Type sinPhi = Type(std::sin(euler.phi()));
+	Type cosThe = Type(std::cos(euler.theta()));
+	Type sinThe = Type(std::sin(euler.theta()));
+	Type cosPsi = Type(std::cos(euler.psi()));
+	Type sinPsi = Type(std::sin(euler.psi()));
+
+	dcm(0, 0) = cosThe * cosPsi;
+	dcm(0, 1) = -cosPhi * sinPsi + sinPhi * sinThe * cosPsi;
+	dcm(0, 2) = sinPhi * sinPsi + cosPhi * sinThe * cosPsi;
+
+	dcm(1, 0) = cosThe * sinPsi;
+	dcm(1, 1) = cosPhi * cosPsi + sinPhi * sinThe * sinPsi;
+	dcm(1, 2) = -sinPhi * cosPsi + cosPhi * sinThe * sinPsi;
+
+	dcm(2, 0) = -sinThe;
+	dcm(2, 1) = sinPhi * cosThe;
+	dcm(2, 2) = cosPhi * cosThe;
+}
+
+} // namespace detail
 
 } // namespace matrix

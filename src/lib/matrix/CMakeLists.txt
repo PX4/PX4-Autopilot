@@ -31,6 +31,11 @@
 #
 ############################################################################
 
+px4_add_library(matrix
+	matrix/helper_functions.cpp
+	matrix/RotationConversions.cpp
+)
+
 if(BUILD_TESTING)
 	add_subdirectory(test)
 endif()
