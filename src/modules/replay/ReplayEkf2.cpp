@@ -113,10 +113,10 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 		_airspeed_validated_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(distance_sensor)) {
-		_distance_sensor_msg_id = msg_id;
+		_distance_sensor_msg_ids.push_back(msg_id);
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_optical_flow)) {
-		_optical_flow_msg_id = msg_id;
+		_optical_flow_msg_ids.push_back(msg_id);
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_air_data)) {
 		_vehicle_air_data_msg_id = msg_id;
@@ -128,7 +128,7 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 		_vehicle_visual_odometry_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(aux_global_position)) {
-		_aux_global_position_msg_id = msg_id;
+		_aux_global_position_msg_ids.push_back(msg_id);
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_local_position_groundtruth)) {
 		_vehicle_local_position_groundtruth_msg_id = msg_id;
@@ -177,12 +177,12 @@ bool
 ReplayEkf2::publishEkf2Topics(sensor_combined_s &sensor_combined, std::ifstream &replay_file)
 {
 	findTimestampAndPublish(sensor_combined.timestamp, _airspeed_msg_id, replay_file);
-	findTimestampAndPublish(sensor_combined.timestamp, _distance_sensor_msg_id, replay_file);
-	findTimestampAndPublish(sensor_combined.timestamp, _optical_flow_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _distance_sensor_msg_ids, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _optical_flow_msg_ids, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_air_data_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_magnetometer_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_visual_odometry_msg_id, replay_file);
-	findTimestampAndPublish(sensor_combined.timestamp, _aux_global_position_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _aux_global_position_msg_ids, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _ranging_beacon_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_gps_position_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_land_detected_msg_id, replay_file);
@@ -216,14 +216,20 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 		}
 	};
 
+	auto handle_multi_sensor_publication = [&](int16_t timestamp_relative, const std::vector<uint16_t> &msg_ids) {
+		for (uint16_t msg_id : msg_ids) {
+			handle_sensor_publication(timestamp_relative, msg_id);
+		}
+	};
+
 	handle_sensor_publication(ekf2_timestamps.airspeed_timestamp_rel, _airspeed_msg_id);
 	handle_sensor_publication(ekf2_timestamps.airspeed_validated_timestamp_rel, _airspeed_validated_msg_id);
-	handle_sensor_publication(ekf2_timestamps.distance_sensor_timestamp_rel, _distance_sensor_msg_id);
-	handle_sensor_publication(ekf2_timestamps.optical_flow_timestamp_rel, _optical_flow_msg_id);
+	handle_multi_sensor_publication(ekf2_timestamps.distance_sensor_timestamp_rel, _distance_sensor_msg_ids);
+	handle_multi_sensor_publication(ekf2_timestamps.optical_flow_timestamp_rel, _optical_flow_msg_ids);
 	handle_sensor_publication(ekf2_timestamps.vehicle_air_data_timestamp_rel, _vehicle_air_data_msg_id);
 	handle_sensor_publication(ekf2_timestamps.vehicle_magnetometer_timestamp_rel, _vehicle_magnetometer_msg_id);
 	handle_sensor_publication(ekf2_timestamps.visual_odometry_timestamp_rel, _vehicle_visual_odometry_msg_id);
-	handle_sensor_publication(0, _aux_global_position_msg_id);
+	handle_multi_sensor_publication(0, _aux_global_position_msg_ids);
 	handle_sensor_publication(0, _ranging_beacon_msg_id);
 	handle_sensor_publication(0, _vehicle_local_position_groundtruth_msg_id);
 	handle_sensor_publication(0, _vehicle_global_position_groundtruth_msg_id);
@@ -298,6 +304,19 @@ ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::if
 		topic_published = true;
 
 		nextDataMessage(replay_file, sub, msg_id);
+	}
+
+	return topic_published;
+}
+
+bool
+ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, const std::vector<uint16_t> &msg_ids,
+				    std::ifstream &replay_file)
+{
+	bool topic_published = false;
+
+	for (uint16_t msg_id : msg_ids) {
+		topic_published |= findTimestampAndPublish(timestamp, msg_id, replay_file);
 	}
 
 	return topic_published;
@@ -407,6 +426,16 @@ ReplayEkf2::onExitMainLoop()
 		}
 	};
 
+	auto print_multi_sensor_statistics = [this](const std::vector<uint16_t> &msg_ids, const char *name) {
+		for (uint16_t msg_id : msg_ids) {
+			Subscription &sub = *_subscriptions[msg_id];
+
+			if (sub.publication_counter > 0 || sub.approx_timestamp_counter > 0) {
+				PX4_INFO("%s[%u]: %i (%i)", name, sub.multi_id, sub.publication_counter, sub.approx_timestamp_counter);
+			}
+		}
+	};
+
 	PX4_INFO("");
 
 	if (!_ekf2_timestamps_exists) {
@@ -417,13 +446,13 @@ ReplayEkf2::onExitMainLoop()
 
 	print_sensor_statistics(_airspeed_msg_id, "airspeed");
 	print_sensor_statistics(_airspeed_validated_msg_id, "airspeed_validated");
-	print_sensor_statistics(_distance_sensor_msg_id, "distance_sensor");
-	print_sensor_statistics(_optical_flow_msg_id, "vehicle_optical_flow");
+	print_multi_sensor_statistics(_distance_sensor_msg_ids, "distance_sensor");
+	print_multi_sensor_statistics(_optical_flow_msg_ids, "vehicle_optical_flow");
 	print_sensor_statistics(_sensor_combined_msg_id, "sensor_combined");
 	print_sensor_statistics(_vehicle_air_data_msg_id, "vehicle_air_data");
 	print_sensor_statistics(_vehicle_magnetometer_msg_id, "vehicle_magnetometer");
 	print_sensor_statistics(_vehicle_visual_odometry_msg_id, "vehicle_visual_odometry");
-	print_sensor_statistics(_aux_global_position_msg_id, "aux_global_position");
+	print_multi_sensor_statistics(_aux_global_position_msg_ids, "aux_global_position");
 	print_sensor_statistics(_ranging_beacon_msg_id, "ranging_beacon");
 
 	if (_ekf2_update_timeouts > 0) {
