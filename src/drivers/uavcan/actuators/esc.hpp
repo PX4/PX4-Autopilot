@@ -49,6 +49,8 @@
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
 #include <uavcan/equipment/esc/StatusExtended.hpp>
+#include <uavcan/protocol/param/GetSet.hpp>
+#include <drivers/drv_hrt.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -57,6 +59,8 @@
 #include <uORB/topics/dronecan_node_status.h>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include "../node_info.hpp"
+
+class UavcanNode;
 
 class UavcanEscController
 {
@@ -88,7 +92,69 @@ public:
 
 	esc_status_s &esc_status() { return _esc_status; }
 
+	/**
+	 * Wires up the param GetSet client (owned by UavcanNode and shared with its other users) used to
+	 * query the Vertiq error count meaning, avoiding a second uavcan::ServiceClient<GetSet> instantiation.
+	 */
+	void set_param_client(UavcanNode &node) { _param_client_node = &node; }
+
+	/**
+	 * Consumes a GetSet response from the shared param client if it answers this controller's pending
+	 * Vertiq error count meaning query.
+	 * @return true if the response was ours and has been consumed
+	 */
+	bool tryHandleErrorCountMeaningResult(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
+
 private:
+	/**
+	 * Interpretation of the esc.Status error_count field of one node.
+	 *
+	 * DroneCAN leaves the meaning to the vendor, most count faults of the ESC itself (stalls,
+	 * commutation failures). Vertiq (iq_motion) modules report CAN bus error counters instead and
+	 * make the exact meaning configurable through their esc_status_error_meaning parameter, which can
+	 * be changed at any time. The node is identified from the shared NodeInfoPublisher's cached name
+	 * the first time its esc::Status is seen (that cache may not be populated yet on the very first
+	 * message; classification is simply retried on the next one). The parameter itself is queried from
+	 * that same first esc::Status and re-queried every ERROR_MEANING_REQUERY_INTERVAL_US after that,
+	 * whether the previous attempt succeeded or not, so a temporary failure or a later change of the
+	 * parameter both recover on their own without needing separate retry bookkeeping. Until first
+	 * resolved, or if it cannot be read at all, the generic ESC fault interpretation is used as the
+	 * fallback.
+	 */
+	struct ErrorCountMeaning {
+		uint8_t node_id{0}; ///< 0 marks the slot unused
+		hrt_abstime next_query{0}; ///< next time to (re-)send the GetSet request; 0 = not queried yet
+		uavcan::ServiceCallID pending_call{}; ///< the GetSet call in flight for this node, invalid if none
+		uint8_t type{esc_report_s::ERRORCOUNT_TYPE_ESC_FAULTS};
+	};
+
+	/// Values of the Vertiq esc_status_error_meaning parameter (speed firmware >= 0.3.0).
+	/// Zero based: modules at the factory default answer 0 and report the TX error counter
+	enum VertiqErrorMeaning : int64_t {
+		TecErrorCounter = 0,		///< CAN TEC register
+		RecErrorCounter = 1,		///< CAN REC register
+		MaxErrorCounter = 2,		///< max(TEC, REC)
+		PackedErrorCounters = 3,	///< TEC in the upper 16 bit, REC in the lower 16 bit
+		CumulativeErrors = 4,		///< TEC + REC errors accumulated since power on
+	};
+
+	static constexpr hrt_abstime ERROR_MEANING_REQUERY_INTERVAL_US = 30000000; ///< 30s
+	static constexpr const char *VERTIQ_NODE_NAME_PREFIX = "iq_motion";
+	static constexpr const char *VERTIQ_ERROR_MEANING_PARAM = "esc_status_error_meaning";
+
+	const ErrorCountMeaning *find_error_count_meaning(uint8_t node_id) const;
+	ErrorCountMeaning *find_error_count_meaning(uint8_t node_id);
+	ErrorCountMeaning *allocate_error_count_meaning(uint8_t node_id);
+	bool is_vertiq_node(uint8_t node_id) const { return find_error_count_meaning(node_id) != nullptr; }
+	void classify_vertiq_node(uint8_t node_id);
+	void request_error_count_meaning(ErrorCountMeaning &entry, hrt_abstime now);
+	void process_due_error_count_meaning_queries(hrt_abstime now);
+
+	/**
+	 * @return what the esc.Status error_count of this node counts (esc_report_s::ERRORCOUNT_TYPE_*)
+	 */
+	uint8_t error_count_type(uint8_t node_id) const;
+
 	/**
 	 * ESC status message reception will be reported via this callback.
 	 */
@@ -101,12 +167,12 @@ private:
 	/**
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
 	 */
-	uint16_t check_escs_status();
+	uint16_t check_escs_status(hrt_abstime now);
 
 	/**
 	 * Gets failure flags for a specific ESC
 	 */
-	uint32_t get_failures(uint8_t esc_index, uint8_t node_id);
+	uint32_t get_failures(uint8_t node_id);
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
@@ -125,7 +191,6 @@ private:
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	uORB::SubscriptionMultiArray<dronecan_node_status_s, ORB_MULTI_MAX_INSTANCES> _dronecan_node_status_subs{ORB_ID::dronecan_node_status};
-	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
 
@@ -140,6 +205,7 @@ private:
 	enum class Quirk : int32_t {
 		HobbywingEscIdx1 = (1 << 0), ///< ESCs reporting a 1-based esc_index instead of 0-based
 	};
+	ErrorCountMeaning _error_count_meanings[MAX_ACTUATORS] {};
 
 	/*
 	 * libuavcan related things
@@ -151,4 +217,5 @@ private:
 	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder> _uavcan_sub_status_extended;
 
 	NodeInfoPublisher *_node_info_publisher{nullptr};
+	UavcanNode *_param_client_node{nullptr}; ///< used to issue GetSet requests through the shared param client
 };

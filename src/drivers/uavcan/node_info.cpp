@@ -162,6 +162,17 @@ void NodeInfoPublisher::registerDeviceCapability(uint8_t node_id, uint32_t devic
 	registerDevice(node_id, nullptr, device_id, capability);
 }
 
+const char *NodeInfoPublisher::getNodeName(uint8_t node_id) const
+{
+	for (size_t i = 0; i < _device_informations_size; ++i) {
+		if (_device_informations[i].node_id == node_id && _device_informations[i].has_node_info) {
+			return _device_informations[i].name;
+		}
+	}
+
+	return nullptr;
+}
+
 void NodeInfoPublisher::publishDeviceInformationPeriodic()
 {
 	// Using round-robin approach to publish one device info per timer event
