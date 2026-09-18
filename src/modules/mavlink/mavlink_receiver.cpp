@@ -624,6 +624,20 @@ MavlinkReceiver::command_has_location(uint16_t command)
 	}
 }
 
+bool
+MavlinkReceiver::command_is_int_only(uint16_t command)
+{
+	switch (command) {
+	// Requires an explicit MAV_FRAME (only available via COMMAND_INT) and
+	// benefits from COMMAND_INT's higher-resolution integer lat/lon.
+	case MAV_CMD_NAV_VTOL_TAKEOFF:                       // 84
+		return true;
+
+	default:
+		return false;
+	}
+}
+
 void
 MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 {
@@ -703,6 +717,12 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 				 vehicle_command.target_component);
 		}
 
+		return;
+	}
+
+	if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG && command_is_int_only(vehicle_command.command)) {
+		acknowledge(msg->sysid, msg->compid, vehicle_command.command,
+			    vehicle_command_ack_s::VEHICLE_CMD_RESULT_COMMAND_INT_ONLY);
 		return;
 	}
 
