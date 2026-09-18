@@ -120,6 +120,7 @@ void Ekf::reset()
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	_mag_counter = 0;
+	_mag_yaw_reset_req = false;
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	_time_bad_vert_accel = 0;
