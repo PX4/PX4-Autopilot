@@ -33,7 +33,7 @@
 /**
  * @file rtl_direct.cpp
  *
- * Helper class to access RTL
+ * Helper class to access Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -86,28 +86,28 @@ void RtlDirect::on_activation()
 	_setpoint_on_activation = _navigator->get_position_setpoint_triplet()->current;
 	_navigator->reset_triplets();
 
-	// reset cruising speed and throttle to default for RTL
+	// reset cruising speed and throttle to default for Return
 	_navigator->reset_cruising_speed();
 	_navigator->set_cruising_throttle();
 
 	set_rtl_item();
 
-	mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: start return at %d m (%d m above destination)\t",
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: start return at %d m (%d m above destination)\t",
 			 (int)ceilf(_rtl_alt), (int)ceilf(_rtl_alt - _destination.alt));
 	events::send<int32_t, int32_t>(events::ID("vrtl_return_at"), events::Log::Info,
-				       "RTL: start return at {1m_v} ({2m_v} above destination)",
+				       "Return: start return at {1m_v} ({2m_v} above destination)",
 				       (int32_t)ceilf(_rtl_alt), (int32_t)ceilf(_rtl_alt - _destination.alt));
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	if (geofenceAvoidanceActive()) {
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: avoiding geofence\t");
-		events::send(events::ID("rtl_avoiding_geofence"), events::Log::Info, "RTL: avoiding geofence");
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: avoiding geofence\t");
+		events::send(events::ID("rtl_avoiding_geofence"), events::Log::Info, "Return: avoiding geofence");
 
 	} else if (_navigator->get_geofence_avoidance_planner().needsStraightLineFallback()) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: no geofence avoidance path; flying directly\t");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: no geofence avoidance path; flying directly\t");
 		events::send(events::ID("rtl_avoidance_runtime_fallback"), {events::Log::Critical, events::LogInternal::Error},
-			     "RTL: no geofence avoidance path; flying directly");
+			     "Return: no geofence avoidance path; flying directly");
 	}
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
@@ -127,7 +127,7 @@ void RtlDirect::on_active()
 
 	if (_rtl_state != RTLState::IDLE && _rtl_state != RTLState::LAND) {
 		//check for terrain collision and update altitude if needed
-		// note: it may trigger multiple times during a RTL, as every time the altitude set is reset
+		// note: it may trigger multiple times during a Return, as every time the altitude set is reset
 		updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
 	}
 
@@ -261,7 +261,7 @@ void RtlDirect::set_rtl_item()
 			double loiter_center_lon = _global_pos_sub.get().lon;
 			float loiter_radius = _navigator->get_default_loiter_rad();
 
-			// If the vehicle was already established on a loiter when RTL was engaged (e.g. from Hold),
+			// If the vehicle was already established on a loiter when Return was engaged (e.g. from Hold),
 			// keep that loiter's center and radius while climbing instead of re-centering the circle on
 			// the current position.
 			if (_navigator->is_established_on_loiter(_setpoint_on_activation)) {
@@ -405,8 +405,8 @@ void RtlDirect::set_rtl_item()
 			setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, _param_rtl_land_delay.get(), _land_approach.loiter_radius_m);
 
 			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering\t");
-				events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "RTL: completed, loitering");
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: completed, loitering\t");
+				events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "Return: completed, loitering");
 
 			} else {
 				/* Set the altitude tracking to best effort but not strictly enforce it */
@@ -471,8 +471,8 @@ void RtlDirect::set_rtl_item()
 				startPrecLand(_mission_item.land_precision);
 			}
 
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination\t");
-			events::send(events::ID("rtl_land_at_destination"), events::Log::Info, "RTL: land at destination");
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: land at destination\t");
+			events::send(events::ID("rtl_land_at_destination"), events::Log::Info, "Return: land at destination");
 			break;
 		}
 
@@ -513,7 +513,7 @@ RtlDirect::RTLState RtlDirect::getActivationState()
 		activation_state = RTLState::LAND;
 
 	} else if (_land_detected_sub.get().landed) {
-		// For safety reasons don't go into RTL if landed.
+		// For safety reasons don't go into Return if landed.
 		activation_state = RTLState::IDLE;
 
 	} else if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
@@ -545,7 +545,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		start_state_for_estimate = getActivationState();
 	}
 
-	// Calculate RTL time estimate only when there is a valid destination
+	// Calculate Return time estimate only when there is a valid destination
 	// TODO: Also check if vehicle position is valid
 	if (PX4_ISFINITE(_destination.lat) && PX4_ISFINITE(_destination.lon) && PX4_ISFINITE(_destination.alt)) {
 

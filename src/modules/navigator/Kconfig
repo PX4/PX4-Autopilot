@@ -39,18 +39,18 @@ menuconfig NAVIGATOR_ADSB_F3442
 		compliance.
 
 menuconfig NAVIGATOR_GEOFENCE_AVOIDANCE
-	bool "Include geofence avoidance path planning for RTL"
+	bool "Include geofence avoidance path planning for Return"
 	default y
 	depends on MODULES_NAVIGATOR
 	---help---
-		Add support for RTL mode to route around geofences.
+		Add support for Return mode to route around geofences.
 
 config NAVIGATOR_GEOFENCE_MAX_NODES
-	int "Max graph nodes for geofence RTL planner"
+	int "Max graph nodes for geofence Return planner"
 	default 100
 	depends on NAVIGATOR_GEOFENCE_AVOIDANCE
 	---help---
-		Max number of geofence vertices which the RTL planner can use.
+		Max number of geofence vertices which the Return planner can use.
 		Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number.
 
 menuconfig NAVIGATOR_ADSB_FAKE_TRAFFIC
