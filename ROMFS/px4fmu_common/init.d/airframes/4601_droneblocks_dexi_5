@@ -18,6 +18,7 @@
 # @board bitcraze_crazyflie exclude
 # @board diatone_mamba-f405-mk2 exclude
 # @board ark_fmu-v6x exclude
+# @board allocortech_atlas-v6x exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults
