@@ -411,6 +411,7 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 		const auto &end = paths[i].end;
 
 		if (!start.isAllFinite() || !end.isAllFinite()
+		    || !PX4_ISFINITE(paths[i].end_radius) || paths[i].end_radius < 0.f
 		    || fabs(start(0)) > 90.0 || fabs(end(0)) > 90.0
 		    || fabs(start(1)) > 180.0 || fabs(end(1)) > 180.0
 		    || fabs(end(1) - start(1)) > 180.0) {
@@ -504,8 +505,35 @@ bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *pa
 		}
 
 		for (size_t i = 0; i < num_paths; ++i) {
-			if (results[i] && geofence_utils::segmentsIntersectInclusive(paths[i].start, paths[i].end, previous, next)) {
+			if (!results[i]) {
+				continue;
+			}
+
+			if (geofence_utils::segmentsIntersectInclusive(paths[i].start, paths[i].end, previous, next)) {
 				results[i] = false;
+
+			} else if (paths[i].end_radius > 0.f) {
+				// Convert degree differences to local metres; longitude distances shrink by cos(latitude).
+				// Fixed scales keep the lat/lon edge straight.
+				// a and b are the scaled offsets (previous - center) and (next - center).
+				// They are the same fence vertices in a local frame with the circle centre at O = (0, 0).
+				//
+				//   a-----------q-----------b   fence edge
+				//               | d
+				//            .--|--.
+				//           /   |   \  circle boundary
+				//               O---* loiter circle
+				//           \       /
+				//            '-----'
+				//
+				// q is the closest point on segment ab (possibly a or b); require d > radius.
+				const matrix::Vector2d &center = paths[i].end;
+				const double north_scale = math::radians(1.0) * CONSTANTS_RADIUS_OF_EARTH;
+				const double east_scale = north_scale * cos(math::radians(center(0)));
+				const matrix::Vector2d a{(previous(0) - center(0)) *north_scale, (previous(1) - center(1)) *east_scale};
+				const matrix::Vector2d b{(next(0) - center(0)) *north_scale, (next(1) - center(1)) *east_scale};
+				const double radius = static_cast<double>(paths[i].end_radius);
+				results[i] = geofence_utils::pointToSegmentDistanceSquared(matrix::Vector2d {}, a, b) > radius *radius;
 			}
 		}
 
@@ -552,10 +580,13 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 		// Match insideCircle() at each endpoint.
 		const bool start_inside = (start - center).norm_squared() < point_radius_squared;
 		const bool end_inside = (end - center).norm_squared() < point_radius_squared;
+		const double end_radius = static_cast<double>(paths[i].end_radius);
 
 		if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
 			// The double checks reject boundary contact rounded inside by the float point check.
-			results[i] = start_inside && end_inside && a.norm_squared() < radius_squared && b.norm_squared() < radius_squared;
+			const double remaining_radius = radius - end_radius;
+			results[i] = start_inside && end_inside && a.norm_squared() < radius_squared
+				     && remaining_radius > 0.0 && b.norm_squared() < remaining_radius * remaining_radius;
 
 		} else if (start_inside || end_inside) {
 			results[i] = false;
@@ -563,14 +594,15 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 		} else {
 			const double distance_squared = geofence_utils::pointToSegmentDistanceSquared(
 								matrix::Vector2d(center), matrix::Vector2d(start), matrix::Vector2d(end));
-			results[i] = distance_squared > radius_squared;
+			const double clearance = radius + end_radius;
+			results[i] = distance_squared > radius_squared && b.norm_squared() > clearance * clearance;
 		}
 	}
 
 	return true;
 }
 
-bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
+bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude, float radius)
 {
 	bool inside_fence = true;
 
@@ -582,7 +614,7 @@ bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 		get_distance_to_point_global_wgs84(lat, lon, altitude, _navigator->get_home_position()->lat,
 						   _navigator->get_home_position()->lon, _navigator->get_home_position()->alt, &dist_xy, &dist_z);
 
-		inside_fence = dist_xy < _param_gf_max_hor_dist.get();
+		inside_fence = dist_xy + radius < _param_gf_max_hor_dist.get();
 	}
 
 	return inside_fence;

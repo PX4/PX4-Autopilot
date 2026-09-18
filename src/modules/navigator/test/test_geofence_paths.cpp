@@ -112,6 +112,99 @@ INSTANTIATE_TEST_SUITE_P(Paths, GeofencePathTest, ::testing::Values(
 	return test_info.param.name;
 });
 
+struct LoiterFenceCase {
+	const char *name;
+	bool circle_fence;
+	bool inclusion;
+};
+
+class GeofenceLoiterTest : public navigator_test::GeofenceTestBase,
+	public ::testing::WithParamInterface<LoiterFenceCase>
+{
+public:
+	GeofenceLoiterTest() : GeofenceTestBase(0.0, 0.0) {}
+
+protected:
+	void SetUp() override { ASSERT_TRUE(resetFence()); }
+};
+
+TEST_P(GeofenceLoiterTest, ChecksCircleClearanceInMixedBatch)
+{
+	const LoiterFenceCase &test = GetParam();
+	FencePoints points;
+
+	// Each fence has its nearest boundary 75 m from the circle centre at Home.
+	if (test.circle_fence) {
+		points = circle(test.inclusion, {0.f, test.inclusion ? -25.f : 100.f}, test.inclusion ? 100.f : 25.f);
+
+	} else if (test.inclusion) {
+		points = polygon(true, {{-75.f, -75.f}, {75.f, -75.f}, {75.f, 75.f}, {-75.f, 75.f}});
+
+	} else {
+		points = polygon(false, {{-25.f, 75.f}, {25.f, 75.f}, {25.f, 125.f}, {-25.f, 125.f}});
+	}
+
+	ASSERT_TRUE(loadFence(points));
+	const auto center = position(0.f, 0.f);
+	// Check a point, a clear circle, boundary contact, and a circle that encloses the entire exclusion.
+	const Geofence::PathCheck paths[] {{center, center}, {center, center, 50.f}, {center, center, 75.f}, {center, center, 150.f}};
+	bool clear[4] {};
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 4, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_TRUE(clear[1]);
+	EXPECT_FALSE(clear[2]);
+	EXPECT_FALSE(clear[3]);
+}
+
+INSTANTIATE_TEST_SUITE_P(LoiterFences, GeofenceLoiterTest, ::testing::Values(
+				 LoiterFenceCase{"InclusionPolygon", false, true},
+				 LoiterFenceCase{"ExclusionPolygon", false, false},
+				 LoiterFenceCase{"InclusionCircle", true, true},
+				 LoiterFenceCase{"ExclusionCircle", true, false}),
+			 [](const ::testing::TestParamInfo<LoiterFenceCase> &test_info)
+{
+	return test_info.param.name;
+});
+
+TEST_F(GeofenceTest, CircleClearanceUsesMetresAtItsLatitude)
+{
+	// At 47 degrees latitude, the short east/west clearance needs longitude scaling.
+	ASSERT_TRUE(loadFence(polygon(true, {{-1000.f, -100.f}, {1000.f, -100.f}, {1000.f, 100.f}, {-1000.f, 100.f}})));
+	const auto center = position(0.f, 0.f);
+	const Geofence::PathCheck paths[] {{center, center, 90.f}, {center, center, 110.f}};
+	bool clear[2] {};
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_FALSE(clear[1]);
+}
+
+struct InvalidRadiusCase {
+	const char *name;
+	float radius;
+};
+
+class InvalidGeofenceRadiusTest : public GeofenceTest, public ::testing::WithParamInterface<InvalidRadiusCase> {};
+
+TEST_P(InvalidGeofenceRadiusTest, RejectsWholeBatch)
+{
+	ASSERT_TRUE(loadFence({}));
+	Geofence::PathCheck paths[] {path({0.f, 0.f}, {100.f, 0.f}), path({100.f, 0.f}, {100.f, 0.f})};
+	paths[1].end_radius = GetParam().radius;
+	bool clear[2] {true, true};
+	EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_FALSE(clear[0]);
+	EXPECT_FALSE(clear[1]);
+}
+
+INSTANTIATE_TEST_SUITE_P(InvalidRadii, InvalidGeofenceRadiusTest, ::testing::Values(
+				 InvalidRadiusCase{"Negative", -1.f},
+				 InvalidRadiusCase{"NaN", NAN},
+				 InvalidRadiusCase{"Infinite", INFINITY}),
+			 [](const ::testing::TestParamInfo<InvalidRadiusCase> &test_info)
+{
+	return test_info.param.name;
+});
+
 TEST_F(GeofenceTest, FullBatchMatchesIndividualChecks)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
