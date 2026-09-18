@@ -517,6 +517,10 @@ TEST_F(RTLTest, DirectMissionLandKeepsVtolInMulticopterMode)
 	direct_mission_land.loadTestMission({land_start, approach, land});
 	direct_mission_land.setRtlAlt(kAlt);
 
+	// the mode refreshes the mission from the topic at activation, so publish the injected one
+	mission.count = 3;
+	publishMission(mission);
+
 	direct_mission_land.activateForTest();
 
 	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_DO_LAND_START);
@@ -551,6 +555,10 @@ TEST_F(RTLTest, MissionFastKeepsVtolInMulticopterMode)
 	RtlMissionFastTestPeer mission_fast{&_navigator, mission};
 	mission_fast.loadTestMission({first, second});
 
+	// the mode refreshes the mission from the topic at activation, so publish the injected one
+	mission.count = 2;
+	publishMission(mission);
+
 	mission_fast.activateForTest();
 
 	EXPECT_EQ(mission_fast.activeNavCommand(), NAV_CMD_WAYPOINT);
@@ -580,6 +588,10 @@ TEST_F(RTLTest, MissionFastReverseKeepsVtolInMulticopterMode)
 
 	RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, mission};
 	mission_fast_reverse.loadTestMission({first, second});
+
+	// the mode refreshes the mission from the topic at activation, so publish the injected one
+	mission.count = 2;
+	publishMission(mission);
 
 	mission_fast_reverse.activateForTest();
 
@@ -1166,4 +1178,96 @@ TEST_F(RTLTest, MakeVtolLandApproachPointRejectsInvalidInput)
 	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_longitude, kAlt).isValid());
 	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_altitude, kAlt).isValid());
 	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_radius, kAlt).isValid());
+}
+
+// WHY: the mission subscription is refreshed on inactive and active cycles but not on the cycle
+// that activates the mode, so a mission published since the last inactive cycle was read from a
+// stale copy. With an outdated copy that has no land start, the direct mission land RTL saw no
+// valid mission at all (#27817).
+// WHAT: a mission with a land start published after the mode's last inactive cycle is used at
+// activation.
+TEST_F(RTLTest, DirectMissionLandUsesMissionPublishedBeforeActivation)
+{
+	mission_s stale{};
+	stale.timestamp = hrt_absolute_time();
+	stale.mission_id = 7;
+	stale.current_seq = 0;
+	stale.land_start_index = -1;
+	stale.land_index = -1;
+	stale.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+
+	mission_item_s approach = makeLandApproachItem(kBaseLat, kBaseLon, kAlt, kApproachRadius);
+	approach.autocontinue = true;
+
+	mission_item_s land = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_VTOL_LAND);
+	land.autocontinue = true;
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlDirectMissionLandTestPeer direct_mission_land{&_navigator, stale};
+	direct_mission_land.loadTestMission({land_start, approach, land});
+	direct_mission_land.setRtlAlt(kAlt);
+
+	// GIVEN: a newer mission with a land start is published after the mode last ran inactive
+	mission_s fresh = stale;
+	fresh.timestamp = hrt_absolute_time();
+	fresh.mission_id = 8;
+	fresh.land_start_index = 0;
+	fresh.land_index = 2;
+	fresh.count = 3;
+	publishMission(fresh);
+
+	// WHEN: the mode is activated on the next cycle
+	direct_mission_land.activateForTest();
+
+	// THEN: it flies the published mission from its land start, not the stale copy
+	EXPECT_EQ(direct_mission_land.mission().mission_id, fresh.mission_id);
+	EXPECT_EQ(direct_mission_land.mission().land_start_index, 0);
+	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_DO_LAND_START);
+}
+
+// WHY: the fast mission RTL modes read the mission at activation the same way.
+// WHAT: a mission published after the last inactive cycle is the one used at activation.
+TEST_F(RTLTest, MissionFastUsesMissionPublishedBeforeActivation)
+{
+	mission_s stale{};
+	stale.timestamp = hrt_absolute_time();
+	stale.mission_id = 7;
+	stale.current_seq = 0;
+	stale.land_start_index = -1;
+	stale.land_index = -1;
+	stale.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	mission_item_s first = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = makeSafePointItem(second_position.lat, second_position.lon, kAlt, NAV_FRAME_GLOBAL,
+				NAV_CMD_WAYPOINT);
+	second.autocontinue = true;
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlMissionFastTestPeer mission_fast{&_navigator, stale};
+	mission_fast.loadTestMission({first, second});
+
+	mission_s fresh = stale;
+	fresh.timestamp = hrt_absolute_time();
+	fresh.mission_id = 8;
+	fresh.count = 2;
+	publishMission(fresh);
+
+	mission_fast.activateForTest();
+
+	EXPECT_EQ(mission_fast.mission().mission_id, fresh.mission_id);
+	EXPECT_EQ(mission_fast.activeNavCommand(), NAV_CMD_WAYPOINT);
 }
