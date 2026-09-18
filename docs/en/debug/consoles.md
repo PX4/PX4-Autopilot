@@ -1,6 +1,6 @@
 # PX4 Consoles/Shells
 
-PX4 enables terminal access to the system through the [MAVLink Shell](../debug/mavlink_shell.md) and the [System Console](../debug/system_console.md).
+PX4 enables terminal access to the system through the [MAVLink Shell](../debug/mavlink_shell.md), the [DroneCAN Shell](../debug/dronecan_shell.md), and the [System Console](../debug/system_console.md).
 
 This page explains the main differences and how the console/shell are used.
 
@@ -27,8 +27,8 @@ The `dmesg` command is now available through the shell on some boards, enabling 
 For example, with `dmesg -f &` you also see the output of background tasks.
 :::
 
-There can be several shells, either running on a dedicated UART, or via MAVLink.
-Since MAVLink provides more flexibility, currently only the [MAVLink Shell](../debug/mavlink_shell.md) is used.
+There can be several shells, either running on a dedicated UART, or tunneled over a link such as MAVLink or DroneCAN.
+Most boards use the [MAVLink Shell](../debug/mavlink_shell.md); peripheral nodes with only a CAN connection instead use the [DroneCAN Shell](../debug/dronecan_shell.md).
 
 The [System Console](../debug/system_console.md) is essential when the system does not boot (it displays the system boot log when power-cycling the board).
 The [MAVLink Shell](../debug/mavlink_shell.md) is much easier to setup, and so is more generally recommended for most debugging.
@@ -37,7 +37,7 @@ The [MAVLink Shell](../debug/mavlink_shell.md) is much easier to setup, and so i
 
 ## Using Consoles/Shells
 
-The MAVLink shell/console and the [System Console](../debug/system_console.md) are used in much the same way.
+The MAVLink shell, [DroneCAN shell](../debug/dronecan_shell.md), and [System Console](../debug/system_console.md) are all used in much the same way.
 
 For example, type `ls` to view the local file system, `free` to see the remaining free RAM, `dmesg` to look at boot output.
 
