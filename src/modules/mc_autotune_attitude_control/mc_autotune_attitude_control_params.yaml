@@ -35,9 +35,12 @@ parameters:
     MC_AT_RISE_TIME:
       description:
         short: Desired angular rate closed-loop rise time
+        long: |-
+          Values above 0.5 seconds are intended for the experimental
+          response-verification implementation on slow vehicles.
       type: float
       default: 0.14
       min: 0.01
-      max: 0.5
+      max: 2.0
       decimal: 2
       unit: s

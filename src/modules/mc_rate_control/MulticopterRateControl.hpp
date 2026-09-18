@@ -60,6 +60,10 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#if defined(CONFIG_MC_AUTOTUNE_EXPERIMENTAL)
+#include <uORB/topics/autotune_excitation.h>
+#include <uORB/topics/autotune_response.h>
+#endif
 
 using namespace time_literals;
 
@@ -101,6 +105,10 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+#if defined(CONFIG_MC_AUTOTUNE_EXPERIMENTAL)
+	uORB::Subscription _autotune_excitation_sub {ORB_ID(autotune_excitation)};
+	uORB::Publication<autotune_response_s> _autotune_response_pub{ORB_ID(autotune_response)};
+#endif
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
