@@ -43,6 +43,7 @@
 #include "navigation.h"
 
 #include <ctype.h>
+#include <string.h>
 #if defined(__PX4_NUTTX)
 #include <nuttx/crc32.h>
 #else
@@ -167,6 +168,7 @@ void Geofence::run()
 			} else {
 				_dataman_state = DatamanState::UpdateRequestWait;
 				_fence_loaded = true;
+				_path_check_ready = !_initiate_fence_updated;
 
 				geofence_status_s status{};
 				status.timestamp = hrt_absolute_time();
@@ -203,12 +205,15 @@ void Geofence::run()
 void Geofence::updateFence()
 {
 	_initiate_fence_updated = true;
+	// Keep the current fence for point checks while update metadata is read; path checks must wait.
+	_path_check_ready = false;
 }
 
 void Geofence::_finishFenceUpdate(bool success)
 {
 	_dataman_state = DatamanState::UpdateRequestWait;
 	_fence_loaded = success;
+	_path_check_ready = success && !_initiate_fence_updated;
 
 	if (!success) {
 		_reportFenceLoadFailure();
@@ -382,6 +387,187 @@ bool Geofence::checkPointAgainstAllGeofences(double lat, double lon, float altit
 	const bool inside_fence = isCloserThanMaxDistToHome(lat, lon, altitude) && isBelowMaxAltitude(altitude)
 				  && isInsidePolygonOrCircle(lat, lon, altitude);
 	return inside_fence;
+}
+
+bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results)
+{
+	if (!results || num_paths == 0 || num_paths > MAX_PATH_CHECKS) {
+		return false;
+	}
+
+	const bool success = paths && _path_check_ready && checkPaths(paths, num_paths, results);
+
+	if (!success) {
+		memset(results, 0, num_paths * sizeof(bool));
+	}
+
+	return success;
+}
+
+bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results)
+{
+	for (size_t i = 0; i < num_paths; ++i) {
+		const auto &start = paths[i].start;
+		const auto &end = paths[i].end;
+
+		if (!start.isAllFinite() || !end.isAllFinite()
+		    || fabs(start(0)) > 90.0 || fabs(end(0)) > 90.0
+		    || fabs(start(1)) > 180.0 || fabs(end(1)) > 180.0
+		    || fabs(end(1) - start(1)) > 180.0) {
+			return false;
+		}
+
+		results[i] = true;
+	}
+
+	for (int p = 0; p < _num_polygons; ++p) {
+		const PolygonInfo &polygon = _polygons[p];
+
+		switch (polygon.fence_type) {
+		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
+		case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
+			if (!checkCirclePaths(polygon, paths, num_paths, results)) {
+				return false;
+			}
+
+			break;
+
+		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
+		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
+			if (!checkPolygonPaths(polygon, paths, num_paths, results)) {
+				return false;
+			}
+
+			break;
+
+		default:
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Geofence::readPathFencePoint(unsigned index, mission_fence_point_s &point)
+{
+	if (index >= static_cast<unsigned>(_dataman_cache.size())
+	    || !_dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), index,
+					reinterpret_cast<uint8_t *>(&point), sizeof(point))
+	    || !PX4_ISFINITE(point.lat) || !PX4_ISFINITE(point.lon)
+	    || fabs(point.lat) > 90.0 || fabs(point.lon) > 180.0) {
+		return false;
+	}
+
+	switch (point.frame) {
+	case NAV_FRAME_GLOBAL:
+	case NAV_FRAME_GLOBAL_INT:
+	case NAV_FRAME_GLOBAL_RELATIVE_ALT:
+	case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results)
+{
+	if (polygon.vertex_count < 3 || polygon.dataman_index + polygon.vertex_count > _dataman_cache.size()) {
+		return false;
+	}
+
+	mission_fence_point_s point{};
+
+	if (!readPathFencePoint(polygon.dataman_index, point)
+	    || point.nav_cmd != polygon.fence_type || point.vertex_count != polygon.vertex_count) {
+		return false;
+	}
+
+	const matrix::Vector2d first{point.lat, point.lon};
+	matrix::Vector2d previous = first;
+
+	// Read each vertex once, then reuse the first vertex to close the polygon.
+	for (unsigned v = 1; v <= polygon.vertex_count; ++v) {
+		matrix::Vector2d next = first;
+
+		if (v < polygon.vertex_count) {
+			if (!readPathFencePoint(polygon.dataman_index + v, point)
+			    || point.nav_cmd != polygon.fence_type || point.vertex_count != polygon.vertex_count) {
+				return false;
+			}
+
+			next = matrix::Vector2d {point.lat, point.lon};
+		}
+
+		if (fabs(next(1) - previous(1)) > 180.0) {
+			return false;
+		}
+
+		for (size_t i = 0; i < num_paths; ++i) {
+			if (results[i] && geofence_utils::segmentsIntersectInclusive(paths[i].start, paths[i].end, previous, next)) {
+				results[i] = false;
+			}
+		}
+
+		previous = next;
+	}
+
+	return true;
+}
+
+bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results)
+{
+	mission_fence_point_s point{};
+
+	if (!readPathFencePoint(polygon.dataman_index, point) || point.nav_cmd != polygon.fence_type
+	    || !PX4_ISFINITE(point.circle_radius) || point.circle_radius <= 0.f) {
+		return false;
+	}
+
+	if (!_projection_reference.isInitialized()) {
+		_projection_reference.initReference(paths[0].start(0), paths[0].start(1), hrt_absolute_time());
+	}
+
+	matrix::Vector2f center;
+	_projection_reference.project(point.lat, point.lon, center(0), center(1));
+	const double radius = static_cast<double>(point.circle_radius);
+	const double radius_squared = radius * radius;
+	const float point_radius_squared = point.circle_radius * point.circle_radius;
+
+	for (size_t i = 0; i < num_paths; ++i) {
+		if (!results[i]) {
+			continue;
+		}
+
+		matrix::Vector2f start, end;
+		_projection_reference.project(paths[i].start(0), paths[i].start(1), start(0), start(1));
+		_projection_reference.project(paths[i].end(0), paths[i].end(1), end(0), end(1));
+
+		if (!center.isAllFinite() || !start.isAllFinite() || !end.isAllFinite()) {
+			return false;
+		}
+
+		const matrix::Vector2d a = matrix::Vector2d(start) - matrix::Vector2d(center);
+		const matrix::Vector2d b = matrix::Vector2d(end) - matrix::Vector2d(center);
+		// Match insideCircle() at each endpoint.
+		const bool start_inside = (start - center).norm_squared() < point_radius_squared;
+		const bool end_inside = (end - center).norm_squared() < point_radius_squared;
+
+		if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
+			// The double checks reject boundary contact rounded inside by the float point check.
+			results[i] = start_inside && end_inside && a.norm_squared() < radius_squared && b.norm_squared() < radius_squared;
+
+		} else if (start_inside || end_inside) {
+			results[i] = false;
+
+		} else {
+			const double distance_squared = geofence_utils::pointToSegmentDistanceSquared(
+								matrix::Vector2d(center), matrix::Vector2d(start), matrix::Vector2d(end));
+			results[i] = distance_squared > radius_squared;
+		}
+	}
+
+	return true;
 }
 
 bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
