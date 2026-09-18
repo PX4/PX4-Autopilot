@@ -19,6 +19,11 @@ actuator_output:
         min: { min: 0, max: 1000, default: 0 }
         max: { min: 0, max: 1000, default: 1000 }
         failsafe: { min: 0, max: 1000 }
+      custom_params:
+        - name: 'BIDI'
+          label: 'Bidirectional'
+          index_offset: -1
+          show_as: bitset
       num_channels: *max_num_motors
     - param_prefix: SIM_GZ_SV
       group_label: 'Servos'
@@ -70,3 +75,36 @@ parameters:
             min: -180.0
             max: 180.0
             default: -45.0
+    - group: Simulation
+      definitions:
+        SIM_GZ_EC_BIDI:
+          description:
+            short: Bidirectional ESC channels
+            long: |
+              Bitmask of simulated ESC channels driven as bidirectional. A selected channel
+              sends a signed value to the Gazebo model: 0 is neutral, +MAX is full forward,
+              -MAX is full reverse. The disarmed value and a failsafe value equal to it stop
+              the motor. MIN must be greater than the disarmed value for full reverse to be
+              reachable. Only applies to channels assigned a Peripheral via Actuator Set
+              function; motor channels keep the existing mapping used by CA_R_REV models.
+              Mirrors UAVCAN_EC_BIDI.
+          type: bitmask
+          bit:
+            0: ESC1
+            1: ESC2
+            2: ESC3
+            3: ESC4
+            4: ESC5
+            5: ESC6
+            6: ESC7
+            7: ESC8
+            8: ESC9
+            9: ESC10
+            10: ESC11
+            11: ESC12
+            12: ESC13
+            13: ESC14
+            14: ESC15
+            15: ESC16
+          default: 0
+          reboot_required: true
