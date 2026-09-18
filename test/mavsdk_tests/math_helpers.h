@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <algorithm>
 #include <array>
 
 template<typename T>
@@ -107,4 +108,20 @@ T point_to_line_distance(const std::array<T, 3> &point, const std::array<T, 3> &
 	std::array<T, 3> closest_on_line { line_start[0] + t *norm_dir[0], line_start[1] + t *norm_dir[1], line_start[2] + t *norm_dir[2]};
 
 	return norm(diff(closest_on_line, point));
+}
+
+template<typename T>
+T point_to_segment_distance(const std::array<T, 3> &point, const std::array<T, 3> &segment_start,
+			    const std::array<T, 3> &segment_end)
+{
+	const std::array<T, 3> segment = diff(segment_end, segment_start);
+	const T length_squared = dot(segment, segment);
+
+	// The closest point on the segment, clamped to its ends. A zero length segment is a point.
+	T t = (length_squared > T(0)) ? dot(diff(point, segment_start), segment) / length_squared : T(0);
+	t = std::max(T(0), std::min(T(1), t));
+
+	const std::array<T, 3> closest_on_segment { segment_start[0] + t *segment[0], segment_start[1] + t *segment[1], segment_start[2] + t *segment[2]};
+
+	return norm(diff(closest_on_segment, point));
 }
