@@ -118,6 +118,9 @@ private:
 	 */
 	bool findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::ifstream &replay_file);
 
+	/** same for a topic with multiple instances */
+	bool findTimestampAndPublish(uint64_t timestamp, const std::vector<uint16_t> &msg_ids, std::ifstream &replay_file);
+
 	/**
 	 * publish the sensor_combined samples preceding @a timestamp, each in its own lockstep cycle
 	 * @param timestamp of the ekf2 update these samples precede, in microseconds
@@ -129,13 +132,10 @@ private:
 
 	uint16_t _airspeed_msg_id = msg_id_invalid;
 	uint16_t _airspeed_validated_msg_id = msg_id_invalid;
-	uint16_t _distance_sensor_msg_id = msg_id_invalid;
-	uint16_t _optical_flow_msg_id = msg_id_invalid;
 	uint16_t _sensor_combined_msg_id = msg_id_invalid;
 	uint16_t _vehicle_air_data_msg_id = msg_id_invalid;
 	uint16_t _vehicle_magnetometer_msg_id = msg_id_invalid;
 	uint16_t _vehicle_visual_odometry_msg_id = msg_id_invalid;
-	uint16_t _aux_global_position_msg_id = msg_id_invalid;
 	uint16_t _ranging_beacon_msg_id = msg_id_invalid;
 	uint16_t _vehicle_local_position_groundtruth_msg_id = msg_id_invalid;
 	uint16_t _vehicle_global_position_groundtruth_msg_id = msg_id_invalid;
@@ -145,6 +145,11 @@ private:
 	uint16_t _vehicle_status_msg_id = msg_id_invalid;
 	uint16_t _sensor_selection_msg_id = msg_id_invalid;
 	uint16_t _launch_detection_status_msg_id = msg_id_invalid;
+
+	// multi-instance topics: one msg_id per instance
+	std::vector<uint16_t> _distance_sensor_msg_ids;
+	std::vector<uint16_t> _optical_flow_msg_ids;
+	std::vector<uint16_t> _aux_global_position_msg_ids;
 
 	bool _ekf2_timestamps_exists{false};
 	uint64_t _last_sensor_combined_timestamp{0};
