@@ -23,7 +23,8 @@
 MEMORY
 {
   flash (rx)  : ORIGIN = 0x70000000, LENGTH = 128K
-  sram  (rwx) : ORIGIN = 0x20200000, LENGTH = 512K
+  /* 0x20200000..0x20207FFF is the boot ROM's RAM, used by its FlexSPI NOR API (RM 9.5.1) */
+  sram  (rwx) : ORIGIN = 0x20208000, LENGTH = 512K-32K
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 384K
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
 }
