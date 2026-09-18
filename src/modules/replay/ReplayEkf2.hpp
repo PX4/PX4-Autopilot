@@ -146,6 +146,7 @@ private:
 	uint16_t _vehicle_status_msg_id = msg_id_invalid;
 	uint16_t _sensor_selection_msg_id = msg_id_invalid;
 	uint16_t _launch_detection_status_msg_id = msg_id_invalid;
+	uint16_t _estimator_fusion_control_msg_id = msg_id_invalid;
 
 	// multi-instance topics: one msg_id per instance
 	std::vector<uint16_t> _distance_sensor_msg_ids;

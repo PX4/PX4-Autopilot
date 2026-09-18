@@ -239,7 +239,10 @@ void EKF2::AdvertiseTopics()
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
-	_estimator_fc_pub.advertise();
+
+	if (!_replay_mode) {
+		_estimator_fc_pub.advertise();
+	}
 
 	if (_multi_mode) {
 		// only force advertise these in multi mode to ensure consistent uORB instance numbering
@@ -820,6 +823,7 @@ void EKF2::Run()
 		UpdateRangingBeaconSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGING_BEACON
 		UpdateSystemFlagsSample(ekf2_timestamps);
+		UpdateFusionControlFromReplay();
 
 		// run the EKF update and output
 		const hrt_abstime ekf_update_start = hrt_absolute_time();
@@ -999,7 +1003,7 @@ void EKF2::VerifyParams()
 
 void EKF2::initFusionControl()
 {
-	if (!_prev_armed) {
+	if (!_prev_armed && !_fusion_control_from_replay) {
 
 		const int32_t sens_en = _param_ekf2_sens_en.get();
 
@@ -2013,6 +2017,10 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 {
+	if (_replay_mode) {
+		return;
+	}
+
 	estimator_fusion_control_s msg{};
 	msg.gps_intended[0] = _fc.gps.intended();
 	msg.of_intended     = _fc.of.intended();
@@ -2858,6 +2866,32 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 		}
 
 		_ekf.setSystemFlagData(flags);
+	}
+}
+
+void EKF2::UpdateFusionControlFromReplay()
+{
+	if (!_replay_mode) {
+		return;
+	}
+
+	estimator_fusion_control_s fc;
+
+	if (_estimator_fusion_control_sub.update(&fc)) {
+		_fc.gps.enabled    = fc.gps_intended[0];
+		_fc.of.enabled     = fc.of_intended;
+		_fc.ev.enabled     = fc.ev_intended;
+
+		for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
+			_fc.agp[i].enabled = fc.agp_intended[i];
+		}
+
+		_fc.baro.enabled   = fc.baro_intended;
+		_fc.rng.enabled    = fc.rng_intended;
+		_fc.mag.enabled    = fc.mag_intended;
+		_fc.aspd.enabled   = fc.aspd_intended;
+		_fc.rngbcn.enabled = fc.rngbcn_intended;
+		_fusion_control_from_replay = true;
 	}
 }
 
