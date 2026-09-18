@@ -75,6 +75,7 @@ PX4's job is what happens at the flight controller's interfaces: whatever arrive
   uXRCE-DDS and Zenoh publishers reach uORB directly, including `/fmu/in/actuator_motors`, `/fmu/in/actuator_servos` and `/fmu/in/vehicle_command`.
   They carry no external-origin marking, so the command guards that apply to MAVLink do not apply to them.
   A peer that can reach those transports is the operator, which is why keeping that network to trusted parties is the integrator's job and not an optional extra.
+  A direct cable between the flight controller and the companion secures only that hop: the agent or router republishes into the DDS or Zenoh network on the companion, and anything that can reach the companion or that network reaches uORB too.
 - **Securing MAVLink links is the integrator's job.**
   See [MAVLink Security Hardening](docs/en/mavlink/security_hardening.md).
 
@@ -102,6 +103,7 @@ An integrator can harden a deployment with any of:
   This is the strongest option (and has no direct PX4 integration).
 - **Isolate the offboard transports.**
   uXRCE-DDS and Zenoh bypass every MAVLink control, so if an adversary can reach them, the rest of this list buys nothing.
+  See [uXRCE-DDS](docs/en/middleware/uxrce_dds.md) and [Zenoh](docs/en/middleware/zenoh.md) for how.
 - **Enable [MAVLink message signing](docs/en/mavlink/message_signing.md).**
   This authenticates MAVLink frames but does not encrypt them.
   A small allowlist (`HEARTBEAT`, `RADIO_STATUS`, `ADSB_VEHICLE`, `COLLISION`) is currently accepted unsigned.

@@ -28,6 +28,9 @@ The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) publis
 
 ::: warning
 The DDS transport is unauthenticated and reaches uORB directly, so the DDS network must be kept isolated.
+Connect the flight controller to the companion over serial or a dedicated Ethernet cable, not over a shared or wireless network.
+A direct cable is not enough on its own: the agent republishes into the DDS network on the companion, so also keep that local, for example with [UXRCE_DDS_PTCFG](../advanced_config/parameter_reference.md#UXRCE_DDS_PTCFG) set to localhost and `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` (`ROS_LOCALHOST_ONLY=1` on Humble).
+If the data has to leave the companion, securing it is up to the integrator.
 See [Security](../security/index.md) for more.
 :::
 
