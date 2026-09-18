@@ -363,6 +363,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("ranging_beacon");
 	add_topic_multi("aux_global_position");
 	add_topic_multi("distance_sensor");
+	add_topic("estimator_fusion_control", 200);
 }
 
 void LoggedTopics::add_thermal_calibration_topics()
