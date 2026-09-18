@@ -63,16 +63,6 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 			const float R_LOS = _aid_src_optical_flow.observation_variance[1];
 			const float epsilon = 1e-3f;
 			sym::ComputeFlowYInnovVarAndH(state_vector, P, R_LOS, epsilon, &_aid_src_optical_flow.innovation_variance[1], &H);
-
-			// recalculate the test ratio as the measurement jacobian is highly non linear
-			// when close to the ground (singularity at 0) and the innovation can suddenly become really
-			// large and destabilize the filter
-			_aid_src_optical_flow.test_ratio[1] = sq(_aid_src_optical_flow.innovation[1]) / (sq(
-					_params.ekf2_of_gate) * _aid_src_optical_flow.innovation_variance[1]);
-
-			if (_aid_src_optical_flow.test_ratio[1] > 1.f) {
-				continue;
-			}
 		}
 
 		if (_aid_src_optical_flow.innovation_variance[index] < _aid_src_optical_flow.observation_variance[index]) {
