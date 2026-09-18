@@ -270,15 +270,17 @@ protected:
 	uORB::Publication<vehicle_status_s> _status_pub{ORB_ID(vehicle_status)};
 };
 
-TEST_F(MissionBaseFeasibilityTest, DeferredCheckRetriesAfterSameIdFenceRefresh)
+TEST_F(MissionBaseFeasibilityTest, DeferredCheckPreservesVerdictUntilRetry)
 {
 	_mission_base.checkMission(true);
 	const mission_result_s checked_result = *_navigator.get_mission_result();
 	ASSERT_TRUE(checked_result.valid);
 
+	// Change storage without changing IDs to verify that the pending check really runs.
+	ASSERT_TRUE(writeWaypoint(200.f));
 	_navigator.get_geofence().updateFence();
 	_mission_base.checkMission(true);
-	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
 	EXPECT_FALSE(_mission_base.missionChecked());
 	EXPECT_EQ(_navigator.get_mission_result()->mission_id, checked_result.mission_id);
 	EXPECT_EQ(_navigator.get_mission_result()->geofence_id, checked_result.geofence_id);
@@ -286,28 +288,79 @@ TEST_F(MissionBaseFeasibilityTest, DeferredCheckRetriesAfterSameIdFenceRefresh)
 
 	ASSERT_TRUE(finishFenceUpdate());
 	_mission_base.checkMission();
-	EXPECT_TRUE(_navigator.get_mission_result()->valid);
-	EXPECT_TRUE(_mission_base.missionChecked());
-}
-
-TEST_F(MissionBaseFeasibilityTest, DeferredCheckCachesActualGeofenceFailure)
-{
-	ASSERT_TRUE(writeWaypoint(200.f));
-	_navigator.get_geofence().updateFence();
-	_mission_base.checkMission(true);
-	ASSERT_FALSE(_mission_base.missionChecked());
-	ASSERT_TRUE(finishFenceUpdate());
-	_mission_base.checkMission();
 	ASSERT_FALSE(_navigator.get_mission_result()->valid);
 	EXPECT_TRUE(_mission_base.missionChecked());
 
-	// Changing storage without a new mission ID must not bypass a completed check's cache.
+	// A completed failure stays cached until another check is requested.
 	ASSERT_TRUE(writeWaypoint(0.f));
 	_mission_base.checkMission();
 	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+
+	_navigator.get_geofence().updateFence();
 	_mission_base.checkMission(true);
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_FALSE(_mission_base.missionChecked());
+	ASSERT_TRUE(finishFenceUpdate());
+	_mission_base.checkMission();
 	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_mission_base.missionChecked());
 }
+
+enum class MissionFeasibilityInput { Mission, Geofence, Home };
+
+struct ChangedMissionInput {
+	const char *name;
+	MissionFeasibilityInput input;
+};
+
+class MissionBaseChangedInputTest : public MissionBaseFeasibilityTest,
+	public ::testing::WithParamInterface<ChangedMissionInput> {};
+
+TEST_P(MissionBaseChangedInputTest, DeferredCheckDoesNotReusePreviousVerdict)
+{
+	_mission_base.checkMission(true);
+	const mission_result_s checked_result = *_navigator.get_mission_result();
+	ASSERT_TRUE(checked_result.valid);
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = checked_result.mission_id;
+	mission.geofence_id = checked_result.geofence_id;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+
+	switch (GetParam().input) {
+	case MissionFeasibilityInput::Mission:
+		++mission.mission_id;
+		break;
+
+	case MissionFeasibilityInput::Geofence:
+		++mission.geofence_id;
+		break;
+
+	case MissionFeasibilityInput::Home:
+		++_navigator.get_home_position()->update_count;
+		break;
+	}
+
+	_mission_base.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)}, mission);
+	_navigator.get_geofence().updateFence();
+	_mission_base.checkMission(true);
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_FALSE(_mission_base.missionChecked());
+	// No result has been computed for the changed inputs yet.
+	EXPECT_EQ(_navigator.get_mission_result()->mission_id, checked_result.mission_id);
+	EXPECT_EQ(_navigator.get_mission_result()->geofence_id, checked_result.geofence_id);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, checked_result.home_position_counter);
+}
+
+INSTANTIATE_TEST_SUITE_P(ChangedInputs, MissionBaseChangedInputTest, ::testing::Values(
+				 ChangedMissionInput{"Mission", MissionFeasibilityInput::Mission},
+				 ChangedMissionInput{"Geofence", MissionFeasibilityInput::Geofence},
+				 ChangedMissionInput{"Home", MissionFeasibilityInput::Home}),
+			 [](const ::testing::TestParamInfo<ChangedMissionInput> &test_info)
+{
+	return test_info.param.name;
+});
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 class MissionBaseRouteCacheSyncTest : public NavigatorDatamanTestBase

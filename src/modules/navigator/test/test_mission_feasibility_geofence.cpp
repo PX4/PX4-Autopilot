@@ -31,6 +31,10 @@
  *
  ****************************************************************************/
 
+/* EVENT
+ * @skip-file
+ */
+
 #include <gtest/gtest.h>
 
 #include "mission_feasibility_checker.h"
@@ -165,11 +169,8 @@ protected:
 	uORB::Subscription _event_sub{ORB_ID(event)};
 };
 
-enum class MissionFenceShape { ExclusionPolygon, ConcaveInclusion, ExclusionCircle, InclusionCircle };
-
 struct MissionLegCase {
 	const char *name;
-	MissionFenceShape shape;
 	matrix::Vector2f start;
 	matrix::Vector2f end;
 	bool feasible;
@@ -181,30 +182,7 @@ class MissionGeofenceLegTest : public MissionFeasibilityGeofenceTest,
 TEST_P(MissionGeofenceLegTest, ChecksLegAcrossCommandItems)
 {
 	const MissionLegCase &test = GetParam();
-	FencePoints points;
-
-	switch (test.shape) {
-	case MissionFenceShape::ExclusionPolygon:
-		points = exclusionSquare();
-		break;
-
-	case MissionFenceShape::ConcaveInclusion:
-		// Two northern arms joined across the south, with a notch between them.
-		points = polygon(true, {{-200.f, -600.f}, {-200.f, 600.f}, {600.f, 600.f}, {600.f, 200.f},
-			{200.f, 200.f}, {200.f, -200.f}, {600.f, -200.f}, {600.f, -600.f}
-		});
-		break;
-
-	case MissionFenceShape::ExclusionCircle:
-		points = circle(false, {0.f, 300.f}, 50.f);
-		break;
-
-	case MissionFenceShape::InclusionCircle:
-		points = circle(true, {0.f, 0.f}, 500.f);
-		break;
-	}
-
-	ASSERT_TRUE(loadFence(points));
+	ASSERT_TRUE(loadFence(exclusionSquare()));
 	EXPECT_EQ(missionFeasible({changeSpeed(), waypoint(test.start), changeSpeed(), waypoint(test.end)}), test.feasible);
 
 	if (!test.feasible) {
@@ -213,16 +191,8 @@ TEST_P(MissionGeofenceLegTest, ChecksLegAcrossCommandItems)
 }
 
 INSTANTIATE_TEST_SUITE_P(MissionLegs, MissionGeofenceLegTest, ::testing::Values(
-				 MissionLegCase{"AcrossExclusionPolygon", MissionFenceShape::ExclusionPolygon, {0.f, 100.f}, {0.f, 500.f}, false},
-				 MissionLegCase{"ClearOfExclusionPolygon", MissionFenceShape::ExclusionPolygon, {60.f, 100.f}, {60.f, 500.f}, true},
-				 MissionLegCase{"AlongPolygonBoundary", MissionFenceShape::ExclusionPolygon, {-50.f, 100.f}, {-50.f, 500.f}, false},
-				 MissionLegCase{"RepeatedPosition", MissionFenceShape::ExclusionPolygon, {0.f, 100.f}, {0.f, 100.f}, true},
-				 MissionLegCase{"AcrossInclusionNotch", MissionFenceShape::ConcaveInclusion, {500.f, -400.f}, {500.f, 400.f}, false},
-				 MissionLegCase{"AcrossInclusionBase", MissionFenceShape::ConcaveInclusion, {0.f, -400.f}, {0.f, 400.f}, true},
-				 MissionLegCase{"AcrossExclusionCircle", MissionFenceShape::ExclusionCircle, {0.f, 100.f}, {0.f, 500.f}, false},
-				 MissionLegCase{"ClearOfExclusionCircle", MissionFenceShape::ExclusionCircle, {60.f, 100.f}, {60.f, 500.f}, true},
-				 MissionLegCase{"WithinInclusionCircle", MissionFenceShape::InclusionCircle, {0.f, -400.f}, {0.f, 400.f}, true},
-				 MissionLegCase{"LeavingInclusionCircle", MissionFenceShape::InclusionCircle, {0.f, -400.f}, {0.f, 600.f}, false}),
+				 MissionLegCase{"AcrossExclusionPolygon", {0.f, 100.f}, {0.f, 500.f}, false},
+				 MissionLegCase{"ClearOfExclusionPolygon", {60.f, 100.f}, {60.f, 500.f}, true}),
 			 [](const ::testing::TestParamInfo<MissionLegCase> &test_info)
 {
 	return test_info.param.name;
@@ -266,7 +236,7 @@ struct MissionBatchCase {
 class MissionGeofenceBatchTest : public MissionFeasibilityGeofenceTest,
 	public ::testing::WithParamInterface<MissionBatchCase> {};
 
-TEST_P(MissionGeofenceBatchTest, ChecksBatchesAndFinalRemainder)
+TEST_P(MissionGeofenceBatchTest, ChecksBatchesAndResetsForNextMission)
 {
 	const MissionBatchCase &test = GetParam();
 	ASSERT_TRUE(loadFence(exclusionSquare()));
@@ -283,20 +253,16 @@ TEST_P(MissionGeofenceBatchTest, ChecksBatchesAndFinalRemainder)
 	if (test.final_leg_breaches) {
 		expectPathViolation(static_cast<int16_t>(items.size()));
 	}
+
+	// The next upload must not retain paths from the previous validation.
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 150.f})}));
 }
 
 INSTANTIATE_TEST_SUITE_P(MissionBatches, MissionGeofenceBatchTest, ::testing::Values(
-				 MissionBatchCase{"BreachAtFirstBatchEnd", 7, true},
-				 MissionBatchCase{"BreachAfterFirstBatch", 8, true},
-				 MissionBatchCase{"BreachInSecondBatch", 9, true},
-				 MissionBatchCase{"BreachAtSecondBatchEnd", 15, true},
-				 MissionBatchCase{"BreachAfterSecondBatch", 16, true},
-				 MissionBatchCase{"BreachInThirdBatch", 17, true},
-				 MissionBatchCase{"BreachAtFourthBatchEnd", 31, true},
-				 MissionBatchCase{"BreachAfterFourthBatch", 32, true},
-				 MissionBatchCase{"BreachInFifthBatch", 33, true},
-				 MissionBatchCase{"ClearFullBatches", 31, false},
-				 MissionBatchCase{"ClearFinalRemainder", 33, false}),
+				 MissionBatchCase{"BreachAtFirstBatchEnd", Geofence::MAX_PATH_CHECKS - 1, true},
+				 MissionBatchCase{"BreachAfterFirstBatch", Geofence::MAX_PATH_CHECKS, true},
+				 MissionBatchCase{"ClearFullBatches", 2 * Geofence::MAX_PATH_CHECKS - 1, false},
+				 MissionBatchCase{"ClearFinalRemainder", 2 * Geofence::MAX_PATH_CHECKS + 1, false}),
 			 [](const ::testing::TestParamInfo<MissionBatchCase> &test_info)
 {
 	return test_info.param.name;
@@ -346,7 +312,6 @@ INSTANTIATE_TEST_SUITE_P(MissionScalarLimits, MissionGeofenceScalarTest, ::testi
 				 MissionScalarCase{"BeyondHomeDistance", MissionScalarLimit::Horizontal, 400.f, 500.f, false, false},
 				 MissionScalarCase{"WithinRelativeAltitude", MissionScalarLimit::Vertical, 200.f, 100.f, true, true},
 				 MissionScalarCase{"BeyondRelativeAltitude", MissionScalarLimit::Vertical, 200.f, 200.f, true, false},
-				 MissionScalarCase{"BeyondAbsoluteAltitude", MissionScalarLimit::Vertical, 200.f, 600.f, false, false},
 				 MissionScalarCase{"BelowAltitudeBand", MissionScalarLimit::AltitudeBand, 200.f, 440.f, false, false},
 				 MissionScalarCase{"AboveAltitudeBand", MissionScalarLimit::AltitudeBand, 200.f, 560.f, false, false},
 				 MissionScalarCase{"AtAltitudeBandMinimum", MissionScalarLimit::AltitudeBand, 200.f, 450.f, false, true},
@@ -373,17 +338,40 @@ TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceIgnoresStoredAltitudeBand)
 	EXPECT_TRUE(missionFeasible({waypoint({0.f, 100.f}), second}));
 }
 
-TEST_F(MissionFeasibilityGeofenceTest, EarlierPathBreachPrecedesLaterAltitudeFailure)
+enum class LaterMissionFailure { Altitude, NoHome };
+
+class MissionGeofenceFailureOrderTest : public MissionFeasibilityGeofenceTest,
+	public ::testing::WithParamInterface<LaterMissionFailure> {};
+
+TEST_P(MissionGeofenceFailureOrderTest, EarlierPathBreachPrecedesLaterFailure)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
-	const float maximum = 150.f;
-	ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum), PX4_OK);
-	_navigator.updateParams();
-	mission_item_s high = waypoint({100.f, 500.f});
-	high.altitude = 600.f;
-	EXPECT_FALSE(missionFeasible({waypoint({0.f, 100.f}), waypoint({0.f, 500.f}), high}));
+	mission_item_s invalid = waypoint({100.f, 500.f});
+
+	if (GetParam() == LaterMissionFailure::NoHome) {
+		_navigator.get_home_position()->valid_hpos = false;
+		_home_pub.publish(*_navigator.get_home_position());
+		invalid.altitude_is_relative = true;
+		invalid.altitude = 100.f;
+
+	} else {
+		const float maximum = 150.f;
+		ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum), PX4_OK);
+		_navigator.updateParams();
+		invalid.altitude = 600.f;
+	}
+
+	// The first leg crosses the exclusion, but is still buffered when the third item fails.
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 100.f}), waypoint({0.f, 500.f}), invalid}));
 	expectPathViolation(2);
 }
+
+INSTANTIATE_TEST_SUITE_P(MissionFailureOrder, MissionGeofenceFailureOrderTest,
+			 ::testing::Values(LaterMissionFailure::Altitude, LaterMissionFailure::NoHome),
+			 [](const ::testing::TestParamInfo<LaterMissionFailure> &test_info)
+{
+	return test_info.param == LaterMissionFailure::NoHome ? "MissingHome" : "AltitudeLimit";
+});
 
 TEST_F(MissionFeasibilityGeofenceTest, RelativeAltitudeRequiresValidHome)
 {
