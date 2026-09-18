@@ -65,6 +65,7 @@ public:
 		Descend,
 		Disarm,
 		Terminate,
+		Parked,
 
 		Count
 	};
@@ -112,6 +113,8 @@ public:
 		case Action::Disarm: return "Disarm";
 
 		case Action::Terminate: return "Terminate";
+
+		case Action::Parked: return "Parked";
 
 		case Action::Count:
 		default: return "(invalid)";

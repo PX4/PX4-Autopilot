@@ -786,10 +786,10 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
 	    && !modeCanRun(status_flags, user_intended_mode)) {
 
-		// If it's a rover, drop directly to Hold (Loiter) to park the vehicle
+		// If it's a rover, drop directly to Parked
 		if (status_flags.is_rover) {
-			action = Action::Hold;
-			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+			action = Action::Parked;
+			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_PARKED;
 		}
 
 		// If it's a multirotor or plane, drop to Altitude as normal

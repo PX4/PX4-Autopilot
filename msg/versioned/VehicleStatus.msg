@@ -60,7 +60,8 @@ uint8 NAVIGATION_STATE_EXTERNAL5 = 27
 uint8 NAVIGATION_STATE_EXTERNAL6 = 28
 uint8 NAVIGATION_STATE_EXTERNAL7 = 29
 uint8 NAVIGATION_STATE_EXTERNAL8 = 30
-uint8 NAVIGATION_STATE_MAX = 31
+uint8 NAVIGATION_STATE_PARKED = 31        # Rover parked mode bypassing navigation checks
+uint8 NAVIGATION_STATE_MAX = 32
 
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
 uint8 nav_state_display                         # User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)

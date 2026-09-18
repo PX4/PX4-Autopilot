@@ -451,6 +451,10 @@
                         "10": {
                             "name": "terminate",
                             "description": "terminate"
+                        },
+                        "11": {
+                            "name": "parked",
+                            "description": "Parked mode"
                         }
                     }
                 },
