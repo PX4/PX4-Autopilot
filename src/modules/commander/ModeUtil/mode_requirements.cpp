@@ -160,7 +160,7 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_TERMINATION, flags.mode_req_prevent_arming);
 
 	// NAVIGATION_STATE_PARKED
-    	// No sensor requirements - guaranteed fallback for rovers during total sensor loss
+	// No sensor requirements - guaranteed fallback for rovers during total sensor loss
 
 	// NAVIGATION_STATE_OFFBOARD
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_OFFBOARD, flags.mode_req_angular_velocity);
