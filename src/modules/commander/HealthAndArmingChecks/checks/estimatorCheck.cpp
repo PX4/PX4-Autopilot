@@ -89,7 +89,9 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 		estimator_status_s estimator_status;
 
 		if (_estimator_status_sub.copy(&estimator_status)) {
-			pre_flt_fail_innov_heading = estimator_status.pre_flt_fail_innov_heading;
+			// Only require a heading reference when a global origin is set (i.e. global ops are intended)
+			pre_flt_fail_innov_heading = estimator_status.pre_flt_fail_innov_heading && lpos.xy_global;
+			estimator_status.pre_flt_fail_innov_heading = pre_flt_fail_innov_heading;
 			pre_flt_fail_innov_vel_horiz = estimator_status.pre_flt_fail_innov_vel_horiz;
 			pre_flt_fail_innov_pos_horiz = estimator_status.pre_flt_fail_innov_pos_horiz;
 
@@ -138,7 +140,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &reporter,
 		const estimator_status_s &estimator_status, NavModes required_groups)
 {
-	// Heading is required to arm for all modes that need any form of local position, plus FW AUTO_TAKEOFF
+	// Heading failures affect all modes that need any form of local position, plus FW AUTO_TAKEOFF
 	const NavModes heading_required_groups = (NavModes)(
 				reporter.failsafeFlags().mode_req_local_position |
 				reporter.failsafeFlags().mode_req_local_position_relaxed |
