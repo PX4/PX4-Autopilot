@@ -245,30 +245,49 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _sensor_selection_msg_id, replay_file);
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _launch_detection_status_msg_id, replay_file);
 
-	publishUnmatchedImuSamples(ekf2_timestamps.timestamp, replay_file);
-
-	// sensor_combined: publish last because ekf2 is polling on this. If the sample is missing from the log, ekf2
-	// skips this cycle; publishing a later sample instead would shift the IMU stream against the other sensors.
-	return findTimestampAndPublish(ekf2_timestamps.timestamp, _sensor_combined_msg_id, replay_file);
+	// sensor_combined: publish last because ekf2 is polling on this
+	return publishMatchingSensorCombined(ekf2_timestamps.timestamp, replay_file);
 }
 
-void
-ReplayEkf2::publishUnmatchedImuSamples(uint64_t timestamp, std::ifstream &replay_file)
+bool
+ReplayEkf2::publishMatchingSensorCombined(uint64_t timestamp, std::ifstream &replay_file)
 {
 	if (_sensor_combined_msg_id == msg_id_invalid) {
-		return;
+		return false;
 	}
 
 	Subscription &sub = *_subscriptions[_sensor_combined_msg_id];
 
-	// A sample without a matching ekf2_timestamps entry (the log started before ekf2 was being
-	// logged, or an ekf2_timestamps message was lost) would be overwritten by the one below before
-	// ekf2 gets to run, so give it a lockstep cycle of its own instead of dropping it.
 	while (sub.orb_meta && sub.next_timestamp < timestamp) {
 		readTopicDataToBuffer(sub, replay_file);
 		publishSensorCombined(sub, _read_buffer.data());
+		memcpy(&_last_sensor_combined, _read_buffer.data(), sizeof(_last_sensor_combined));
+		++_sensor_combined_unmatched;
 		nextDataMessage(replay_file, sub, _sensor_combined_msg_id);
 	}
+
+	if (sub.orb_meta && sub.next_timestamp == timestamp) {
+		readTopicDataToBuffer(sub, replay_file);
+		publishSensorCombined(sub, _read_buffer.data());
+		memcpy(&_last_sensor_combined, _read_buffer.data(), sizeof(_last_sensor_combined));
+		nextDataMessage(replay_file, sub, _sensor_combined_msg_id);
+		return true;
+	}
+
+	++_sensor_combined_missing;
+
+	if (_last_sensor_combined.timestamp == 0 || timestamp <= _last_sensor_combined.timestamp) {
+		return false;
+	}
+
+	sensor_combined_s synthesized = _last_sensor_combined;
+	const uint32_t dt = static_cast<uint32_t>(timestamp - _last_sensor_combined.timestamp);
+	synthesized.timestamp = timestamp;
+	synthesized.gyro_integral_dt = dt;
+	synthesized.accelerometer_integral_dt = dt;
+	_last_sensor_combined = synthesized;
+	publishSensorCombined(sub, &synthesized);
+	return true;
 }
 
 bool
@@ -293,14 +312,7 @@ ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::if
 		}
 
 		readTopicDataToBuffer(sub, replay_file);
-
-		if (msg_id == _sensor_combined_msg_id) {
-			publishSensorCombined(sub, _read_buffer.data());
-
-		} else {
-			publishTopic(sub, _read_buffer.data());
-		}
-
+		publishTopic(sub, _read_buffer.data());
 		topic_published = true;
 
 		nextDataMessage(replay_file, sub, msg_id);
@@ -449,6 +461,12 @@ ReplayEkf2::onExitMainLoop()
 	print_multi_sensor_statistics(_distance_sensor_msg_ids, "distance_sensor");
 	print_multi_sensor_statistics(_optical_flow_msg_ids, "vehicle_optical_flow");
 	print_sensor_statistics(_sensor_combined_msg_id, "sensor_combined");
+
+	if (_sensor_combined_unmatched > 0 || _sensor_combined_missing > 0) {
+		PX4_INFO("sensor_combined: %u samples without ekf2_timestamps entry (published), %u missing in the log (synthesized)",
+			 _sensor_combined_unmatched, _sensor_combined_missing);
+	}
+
 	print_sensor_statistics(_vehicle_air_data_msg_id, "vehicle_air_data");
 	print_sensor_statistics(_vehicle_magnetometer_msg_id, "vehicle_magnetometer");
 	print_sensor_statistics(_vehicle_visual_odometry_msg_id, "vehicle_visual_odometry");
