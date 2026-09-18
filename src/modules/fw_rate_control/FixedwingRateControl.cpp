@@ -303,8 +303,15 @@ void FixedwingRateControl::Run()
 			// Reset integrators if the aircraft is on ground or not in a state where the fw attitude controller is run
 			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition || control_surfaces_locked) {
 
-				_gain_compression.reset();
 				_rate_control.resetIntegral();
+			}
+
+			const bool took_off = _landed_prev && !_landed;
+			_landed_prev = _landed;
+
+			if (took_off || !_in_fw_or_transition_wo_tailsitter_transition || control_surfaces_locked) {
+
+				_gain_compression.reset();
 			}
 
 			// Update saturation status from control allocation feedback
