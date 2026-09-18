@@ -524,7 +524,9 @@ parameters:
         0: Disabled
         1: Safety button
         2: Always
+        3: Mavlink
       default: 0
+      reboot_required: true
     COM_FORCE_SAFETY:
       description:
         short: Enable force safety
