@@ -53,11 +53,11 @@ class Navigator;
 class MissionFeasibilityChecker: public ModuleParams
 {
 private:
-	// Keep the temporary path buffer small on Navigator's task stack.
-	static constexpr size_t kGeofencePathBatchSize = 8;
+	static constexpr size_t kGeofencePathBatchSize = Geofence::MAX_PATH_CHECKS;
 	struct GeofencePathBatch {
 		Geofence::PathCheck paths[kGeofencePathBatchSize];
 		uint16_t mission_indices[kGeofencePathBatchSize];
+		bool results[kGeofencePathBatchSize];
 		size_t count{0};
 	};
 

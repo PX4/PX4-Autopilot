@@ -784,20 +784,25 @@ MissionBase::checkMissionRestart()
 void
 MissionBase::check_mission_valid(bool forced)
 {
+	const bool inputs_changed = (_navigator->get_mission_result()->mission_id != _mission.mission_id)
+				    || (_navigator->get_mission_result()->geofence_id != _mission.geofence_id)
+				    || (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count);
+
 	if (!_navigator->get_geofence().isReadyForPathChecks()) {
-		// Activation can force a check before the normal readiness gate permits it.
+		// Keep the verdict for the same mission, fence and Home; retry when ready.
 		_mission_checked = false;
 		_mission_check_pending = true;
-		_navigator->get_mission_result()->valid = false;
-		_navigator->set_mission_result_updated();
+
+		if (inputs_changed) {
+			_navigator->get_mission_result()->valid = false;
+			_navigator->set_mission_result_updated();
+		}
+
 		return;
 	}
 
 	// Allow forcing it, since we currently not rechecking if parameters have changed.
-	if (forced || _mission_check_pending ||
-	    (_navigator->get_mission_result()->mission_id != _mission.mission_id) ||
-	    (_navigator->get_mission_result()->geofence_id != _mission.geofence_id) ||
-	    (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count)) {
+	if (forced || _mission_check_pending || inputs_changed) {
 
 		_mission_check_pending = false;
 		_navigator->get_mission_result()->mission_id = _mission.mission_id;
