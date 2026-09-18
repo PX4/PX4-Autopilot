@@ -59,11 +59,12 @@ namespace navigator_test
 class VectorMissionItemStore
 {
 public:
-	/** Replace all stored items and clear any configured load failures. */
+	/** Replace all stored items and clear any configured load and write failures. */
 	void setItems(const std::vector<mission_item_s> &items)
 	{
 		_items = items;
 		clearLoadFailures();
+		clearWriteFailures();
 	}
 
 	/** Configure indices whose loadItem() calls should fail. */
@@ -82,6 +83,34 @@ public:
 	void clearLoadFailures()
 	{
 		_load_failure_indices.clear();
+	}
+
+	/** Configure indices whose writeItem() calls should fail. */
+	void setWriteFailureIndices(std::initializer_list<int32_t> indices)
+	{
+		_write_failure_indices.assign(indices.begin(), indices.end());
+	}
+
+	/** Remove all injected write failures. */
+	void clearWriteFailures()
+	{
+		_write_failure_indices.clear();
+	}
+
+	/** Return false for injected failures and out-of-range indices; otherwise store the item. */
+	bool writeItem(int32_t index, const mission_item_s &mission_item)
+	{
+		if (std::find(_write_failure_indices.begin(), _write_failure_indices.end(), index)
+		    != _write_failure_indices.end()) {
+			return false;
+		}
+
+		if (index < 0 || index >= static_cast<int32_t>(_items.size())) {
+			return false;
+		}
+
+		_items[static_cast<std::size_t>(index)] = mission_item;
+		return true;
 	}
 
 	/** Return false for injected failures and out-of-range indices; otherwise copy the item out. */
@@ -109,6 +138,7 @@ public:
 private:
 	std::vector<mission_item_s> _items;
 	std::vector<int32_t> _load_failure_indices;
+	std::vector<int32_t> _write_failure_indices;
 };
 
 } // namespace navigator_test
