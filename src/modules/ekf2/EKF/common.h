@@ -276,6 +276,7 @@ struct rangingBeaconSample {
 
 struct systemFlagUpdate {
 	uint64_t time_us{};
+	bool armed{false};
 	bool at_rest{false};
 	bool in_air{true};
 	bool is_fixed_wing{false};
@@ -393,6 +394,7 @@ struct parameters {
 	float ekf2_gsf_tas{15.0f};              ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	const unsigned EKFGSF_reset_delay{1000000}; ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};     ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
+	const unsigned EKFGSF_min_active_time{10'000'000}; ///< Minimum period of continuous EKF-GSF velocity fusion after an in-flight restart
 
 #endif // CONFIG_EKF2_GNSS
 
@@ -635,6 +637,7 @@ uint64_t gnss_hgt_fault              :
 		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
 		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
 		uint64_t rngbcn_fusion           : 1; ///< 50 - true when ranging beacon position fusion is active
+		uint64_t armed                   : 1; ///< 51 - true when the vehicle is armed
 
 	} flags;
 	uint64_t value;

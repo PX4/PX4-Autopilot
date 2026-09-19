@@ -394,7 +394,6 @@
 *(.text._ZN15PositionControl16setInputSetpointERK21trajectory_setpoint_s)
 *(.text.nxsig_pendingset)
 *(.text.psock_poll)
-*(.text._ZN15FailureInjector6updateEv)
 *(.text.imxrt_writedtd)
 *(.text.cdcacm_wrcomplete)
 *(.text.cdcuart_txint)
