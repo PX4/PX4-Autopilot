@@ -240,7 +240,6 @@ void Geofence::_reportFenceLoadFailure()
 bool Geofence::_updateFence()
 {
 	mission_fence_point_s mission_fence_point;
-	bool is_circle_area = false;
 
 	// iterate over all polygons and store their starting vertices
 	_num_polygons = 0;
@@ -261,6 +260,9 @@ bool Geofence::_updateFence()
 			return false;
 		}
 
+		const bool is_circle_area = mission_fence_point.nav_cmd == NAV_CMD_FENCE_CIRCLE_INCLUSION
+					    || mission_fence_point.nav_cmd == NAV_CMD_FENCE_CIRCLE_EXCLUSION;
+
 		switch (mission_fence_point.nav_cmd) {
 		case NAV_CMD_FENCE_RETURN_POINT:
 			// TODO: do we need to store this?
@@ -269,9 +271,6 @@ bool Geofence::_updateFence()
 
 		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
 		case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
-			is_circle_area = true;
-
-		/* FALLTHROUGH */
 		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
 			if (!is_circle_area && mission_fence_point.vertex_count == 0) {
