@@ -294,10 +294,46 @@ void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
 	// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
 	const Quatf q_error((quat_state.inversed() * output_delayed.quat_nominal).normalized());
 
-	// convert the quaternion delta to a delta angle
-	const float scalar = (q_error(0) >= 0.0f) ? -2.f : 2.f;
+	/*
+	 * Convert the quaternion delta to a delta angle, EXACTLY rather than by the
+	 * small-angle 2*vec. 2*sin(theta/2) is only monotonic up to theta = pi: past that the
+	 * correction SHRINKS as the error grows, so a loop that has once been pushed that far
+	 * cannot pull itself back. Measured on a vehicle spinning at 20 rad/s, the error
+	 * saturated at 1.90 of the 2.0 ceiling and stayed there for the whole flight.
+	 */
+	Quatf q_err_shortest(q_error);
 
-	const Vector3f delta_ang_error{scalar * q_error(1), scalar * q_error(2), scalar * q_error(3)};
+	if (q_err_shortest(0) < 0.f) {
+		q_err_shortest = -q_err_shortest;	// double cover: take the short way round
+	}
+
+	const Vector3f q_err_vec{q_err_shortest(1), q_err_shortest(2), q_err_shortest(3)};
+	const float q_err_vec_norm = q_err_vec.norm();
+
+	Vector3f delta_ang_error{};
+
+	if (q_err_vec_norm > 1e-9f) {
+		const float angle = 2.f * atan2f(q_err_vec_norm, q_err_shortest(0));
+		delta_ang_error = q_err_vec * (-angle / q_err_vec_norm);
+	}
+
+	/*
+	 * The error is measured in the body frame AT THE DELAYED FUSION HORIZON, but
+	 * _delta_angle_corr is added to delta angles sampled at the CURRENT time. Under spin
+	 * the body frame rotates between the two instants - at 20 rad/s over a 100 ms horizon
+	 * that is 2.07 rad - so the correction is applied about an axis that has since turned
+	 * away from the one the error was measured on. Past ~pi/2 of accumulated rotation the
+	 * tracking loop's negative feedback becomes positive and the output attitude diverges
+	 * while the EKF's own solution stays correct.
+	 *
+	 * Rotate the error into the current body frame before applying it. Both quaternions
+	 * are INS attitudes, so their relative rotation is the vehicle's own turn across the
+	 * horizon. This is identity when the vehicle is not rotating, which is why the bug
+	 * never showed on a conventional airframe.
+	 */
+	const Quatf q_delayed_to_now((_output_new.quat_nominal.inversed() *
+				      output_delayed.quat_nominal).normalized());
+	delta_ang_error = Dcmf(q_delayed_to_now) * delta_ang_error;
 
 	// calculate a gain that provides tight tracking of the estimator attitude states and
 	// adjust for changes in time delay to maintain consistent damping ratio of ~0.7
