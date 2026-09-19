@@ -781,12 +781,22 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 
 	}
 
-	// PosCtrl/PositionSlow -> AltCtrl
+	// PosCtrl/PositionSlow -> AltCtrl (or Stabilized for Rovers)
 	if ((user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
 	     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
 	    && !modeCanRun(status_flags, user_intended_mode)) {
-		action = Action::FallbackAltCtrl;
-		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+
+		// If it's a rover, drop directly to Parked
+		if (status_flags.is_rover) {
+			action = Action::Parked;
+			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_PARKED;
+		}
+
+		// If it's a multirotor or plane, drop to Altitude as normal
+		else {
+			action = Action::FallbackAltCtrl;
+			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+		}
 	}
 
 	// AltCtrl -> Stabilized

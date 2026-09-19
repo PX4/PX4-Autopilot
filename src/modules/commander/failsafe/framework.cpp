@@ -618,6 +618,10 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		selected_action = Action::Disarm;
 		break;
 
+	case Action::Parked:
+		selected_action = Action::Parked;
+		break;
+
 	case Action::None:
 	case Action::Warn:
 	case Action::Count:
@@ -694,6 +698,8 @@ uint8_t FailsafeBase::modeFromAction(const Action &action, uint8_t user_intended
 	case Action::Land: return vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 	case Action::Descend: return vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+	case Action::Parked: return vehicle_status_s::NAVIGATION_STATE_PARKED;
 
 	case Action::Terminate:
 	case Action::Disarm:

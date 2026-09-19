@@ -237,5 +237,4 @@ private:
 					(ParamInt<px4::params::COM_TRAFF_AVOID>) _param_com_traff_avoid,
 					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act
 				       );
-
 };
