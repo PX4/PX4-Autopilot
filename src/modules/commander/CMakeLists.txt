@@ -85,7 +85,13 @@ px4_add_module(
         atmosphere
 	)
 
+if(CONFIG_UAVCAN_REMOTEID_CONTROLLER OR BUILD_TESTING)
+	# Keep Commander and consumers of its header (including tests) layout-compatible.
+	target_compile_definitions(modules__commander PUBLIC COMMANDER_HAS_DRONECAN_RID)
+endif()
+
 if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 	px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)
 endif()
 px4_add_functional_gtest(SRC ModeManagementTest.cpp LINKLIBS modules__commander)
+px4_add_functional_gtest(SRC CommanderRemoteIDTest.cpp LINKLIBS modules__commander)

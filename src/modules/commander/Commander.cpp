@@ -714,6 +714,9 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			}
 		}
 
+#if defined(COMMANDER_HAS_DRONECAN_RID)
+		updateOpenDroneIDStatus();
+#endif
 		_health_and_arming_checks.update(false, true);
 
 		if (!_health_and_arming_checks.canArm(_vehicle_status.nav_state)) {
@@ -2997,13 +3000,16 @@ void Commander::dataLinkCheck()
 				_vehicle_status.parachute_system_healthy = healthy;
 			}
 
-			if (telemetry.heartbeat_type_open_drone_id) {
+			if (telemetry.heartbeat_type_open_drone_id
+#if defined(COMMANDER_HAS_DRONECAN_RID)
+			    && !_open_drone_id_can_seen
+#endif
+			   ) {
 				if (_open_drone_id_system_lost) {
 					_open_drone_id_system_lost = false;
 
 					if (_datalink_last_heartbeat_open_drone_id_system != 0) {
-						mavlink_log_info(&_mavlink_log_pub, "Remote ID system regained\t");
-						events::send(events::ID("commander_open_drone_id_regained"), events::Log::Info, "Remote ID system regained");
+						reportOpenDroneIDRegained();
 					}
 				}
 
@@ -3070,16 +3076,7 @@ void Commander::dataLinkCheck()
 		_status_changed = true;
 	}
 
-	// Remote ID system
-	if ((hrt_elapsed_time(&_datalink_last_heartbeat_open_drone_id_system) > 3_s)
-	    && !_open_drone_id_system_lost) {
-		mavlink_log_critical(&_mavlink_log_pub, "Remote ID system lost\t");
-		events::send(events::ID("commander_remote_id_lost"), events::Log::Critical, "Remote ID system lost");
-		_vehicle_status.open_drone_id_system_present = false;
-		_vehicle_status.open_drone_id_system_healthy = false;
-		_open_drone_id_system_lost = true;
-		_status_changed = true;
-	}
+	updateOpenDroneIDStatus();
 
 	// Traffic avoidance system (ADSB/FLARM)
 	if ((hrt_elapsed_time(&_datalink_last_heartbeat_traffic_avoidance_system) > 3_s)
@@ -3088,6 +3085,64 @@ void Commander::dataLinkCheck()
 		events::send(events::ID("commander_traffic_avoidance_lost"), events::Log::Critical, "Traffic avoidance system lost");
 		_vehicle_status.traffic_avoidance_system_present = false;
 		_traffic_avoidance_system_lost = true;
+		_status_changed = true;
+	}
+}
+
+void Commander::reportOpenDroneIDRegained()
+{
+	mavlink_log_info(&_mavlink_log_pub, "Remote ID system regained\t");
+	events::send(events::ID("commander_open_drone_id_regained"), events::Log::Info, "Remote ID system regained");
+}
+
+void Commander::updateOpenDroneIDStatus(hrt_abstime now)
+{
+	static constexpr hrt_abstime timeout = 3_s;
+#if defined(COMMANDER_HAS_DRONECAN_RID)
+	// dronecan.remoteid.ArmStatus uses the Open Drone ID GOOD_TO_ARM value.
+	static constexpr uint8_t good_to_arm = 0;
+	open_drone_id_arm_status_s arm_status{};
+	const bool updated = _open_drone_id_arm_status_sub.update(&arm_status);
+#endif
+
+	if (now == 0) {
+		// Sample after the copy: a CAN callback may publish while we read the topic.
+		now = hrt_absolute_time();
+	}
+
+#if defined(COMMANDER_HAS_DRONECAN_RID)
+
+	if (updated && arm_status.timestamp > 0 && arm_status.timestamp <= now) {
+		// Once detected, keep using CAN until restart, including after a loss.
+		// A MAVLink heartbeat must not mask a CAN RID fault or timeout.
+		_open_drone_id_can_seen = true;
+
+		if (now - arm_status.timestamp <= timeout) {
+			if (_open_drone_id_system_lost && _datalink_last_heartbeat_open_drone_id_system != 0) {
+				reportOpenDroneIDRegained();
+			}
+
+			const bool healthy = arm_status.status == good_to_arm;
+			_status_changed |= !_vehicle_status.open_drone_id_system_present
+					   || _vehicle_status.open_drone_id_system_healthy != healthy;
+			_vehicle_status.open_drone_id_system_present = true;
+			_vehicle_status.open_drone_id_system_healthy = healthy;
+			_open_drone_id_system_lost = false;
+		}
+
+		_datalink_last_heartbeat_open_drone_id_system = arm_status.timestamp;
+	}
+
+#endif
+
+	if (now > _datalink_last_heartbeat_open_drone_id_system
+	    && now - _datalink_last_heartbeat_open_drone_id_system > timeout
+	    && !_open_drone_id_system_lost) {
+		mavlink_log_critical(&_mavlink_log_pub, "Remote ID system lost\t");
+		events::send(events::ID("commander_remote_id_lost"), events::Log::Critical, "Remote ID system lost");
+		_vehicle_status.open_drone_id_system_present = false;
+		_vehicle_status.open_drone_id_system_healthy = false;
+		_open_drone_id_system_lost = true;
 		_status_changed = true;
 	}
 }

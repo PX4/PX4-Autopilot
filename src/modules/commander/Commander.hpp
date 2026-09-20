@@ -71,6 +71,9 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
+#if defined(COMMANDER_HAS_DRONECAN_RID)
+#include <uORB/topics/open_drone_id_arm_status.h>
+#endif
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/power_button_state.h>
 #include <uORB/topics/rtl_time_estimate.h>
@@ -127,6 +130,8 @@ public:
 	void enable_hil();
 
 private:
+	friend class CommanderRemoteIDTest;
+
 	bool isArmed() const { return (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED); }
 	static ModeChangeSource getSourceFromCommand(const vehicle_command_s &cmd);
 
@@ -144,6 +149,8 @@ private:
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
 	 */
 	void dataLinkCheck();
+	void reportOpenDroneIDRegained();
+	void updateOpenDroneIDStatus(hrt_abstime now = 0);
 
 	void manualControlCheck();
 
@@ -275,7 +282,10 @@ private:
 	bool _failsafe_user_override_request{false}; ///< override request due to stick movements
 
 	bool _open_drone_id_system_lost{true};
-	bool _onboard_controller_lost{false};
+#if defined(COMMANDER_HAS_DRONECAN_RID)
+	bool _open_drone_id_can_seen {false};
+#endif
+	bool _onboard_controller_lost {false};
 	bool _parachute_system_lost{true};
 	bool _traffic_avoidance_system_lost{true};
 
@@ -302,7 +312,10 @@ private:
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
+#if defined(COMMANDER_HAS_DRONECAN_RID)
+	uORB::Subscription					_open_drone_id_arm_status_sub {ORB_ID(open_drone_id_arm_status)};
+#endif
+	uORB::Subscription					_system_power_sub {ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription					_vehicle_command_mode_executor_sub{ORB_ID(vehicle_command_mode_executor)};
 	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
