@@ -967,6 +967,7 @@
     - [Gazebo Classic OctoMap Models with ROS 1](sim_gazebo_classic/octomap.md)
     - [ROS/MAVROS Installation on RPi](ros/raspberrypi_installation.md)
     - [External Position Estimation (Vision/Motion based)](ros/external_position_estimation.md)
+- [Security](security/index.md)
 - [Community](contribute/index.md)
   - [Dev Call](contribute/dev_call.md)
   - [Maintainers](contribute/maintainers.md)
