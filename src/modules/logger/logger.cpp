@@ -163,12 +163,12 @@ int Logger::custom_command(int argc, char *argv[])
 #endif
 
 	if (!strcmp(argv[0], "on")) {
-		get_instance<Logger>(desc)->set_arm_override(true);
+		get_instance<Logger>(desc)->set_logging_override(Logger::LogOverride::ForceOn);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "off")) {
-		get_instance<Logger>(desc)->set_arm_override(false);
+		get_instance<Logger>(desc)->set_logging_override(Logger::LogOverride::ForceOff);
 		return 0;
 	}
 
@@ -1130,6 +1130,9 @@ bool Logger::start_stop_logging()
 {
 	bool updated = false;
 	bool desired_state = false;
+	bool trigger_rising_edge = false;
+
+	LogOverride logging_override = _logging_override.load();
 
 	if (_log_mode == LogMode::rc_aux1) {
 		// aux1-based logging
@@ -1138,6 +1141,8 @@ bool Logger::start_stop_logging()
 		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
 
 			desired_state = (manual_control_setpoint.aux1 > 0.3f);
+			trigger_rising_edge = desired_state && !_prev_log_trigger_state;
+			_prev_log_trigger_state = desired_state;
 			updated = true;
 		}
 
@@ -1147,13 +1152,18 @@ bool Logger::start_stop_logging()
 
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 			const bool armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+			trigger_rising_edge = armed && !_prev_log_trigger_state;
+			_prev_log_trigger_state = armed;
+
+			// a forced stop must not be undone by the modes that keep the full log running
 			const bool full_log_continues =
-				_log_mode == LogMode::boot_until_shutdown ||
-				(_log_mode == LogMode::arm_until_shutdown && _prev_file_log_start_state);
+				(_log_mode == LogMode::boot_until_shutdown ||
+				 (_log_mode == LogMode::arm_until_shutdown && _prev_file_log_start_state))
+				&& logging_override != LogOverride::ForceOff;
 
 			if (full_log_continues) {
 				if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
-					if (armed || _manually_logging_override.load()) {
+					if (armed || logging_override == LogOverride::ForceOn) {
 						if (_writer.is_started(LogType::Full, LogWriter::BackendFile)) {
 							start_log_file(LogType::Mission);
 						}
@@ -1174,7 +1184,28 @@ bool Logger::start_stop_logging()
 		}
 	}
 
-	desired_state = desired_state || _manually_logging_override.load();
+	// a forced stop only holds until the configured mode asks for a new log
+	if (trigger_rising_edge && logging_override == LogOverride::ForceOff) {
+		logging_override = LogOverride::None;
+		_logging_override.store(logging_override);
+	}
+
+	if (logging_override == LogOverride::ForceOn) {
+		desired_state = true;
+		updated = true;
+
+	} else if (logging_override == LogOverride::ForceOff) {
+		desired_state = false;
+		updated = true;
+
+		// the log can run without a preceding state transition (it is started directly on boot
+		// for boot_until_disarm/boot_until_shutdown), so use the actual writer state to make sure
+		// a forced stop always stops it. Skip while a stop is already pending, otherwise the
+		// delayed stop below would be re-armed on every iteration and never complete.
+		if (!_should_stop_file_log) {
+			_prev_file_log_start_state = _writer.is_started(LogType::Full, LogWriter::BackendFile);
+		}
+	}
 
 	// only start/stop if this is a state transition
 	if (updated && _prev_file_log_start_state != desired_state) {
@@ -2543,7 +2574,8 @@ $ logger on
 					 "Poll on a topic instead of running with fixed rate (Log rate and topic intervals are ignored if this is set)", true);
 	PRINT_MODULE_USAGE_PARAM_FLOAT('c', 1.0, 0.2, 2.0, "Log rate factor (higher is faster)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "start logging now, override arming (logger must be running)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "stop logging now, override arming (logger must be running)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("off",
+					 "stop logging now, override arming until the next arming (logger must be running)");
 #ifdef __PX4_NUTTX
 	PRINT_MODULE_USAGE_COMMAND_DESCR("trigger_watchdog", "manually trigger the watchdog now");
 #endif

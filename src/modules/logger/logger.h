@@ -94,6 +94,17 @@ public:
 		arm_until_shutdown,
 	};
 
+	/**
+	 * Manual override of the configured logging mode, set via the 'on'/'off' commands.
+	 * It takes precedence over LogMode, a force-off is cleared again as soon as the
+	 * configured mode asks for a new log (arming, or aux1 for LogMode::rc_aux1).
+	 */
+	enum class LogOverride {
+		None = 0,
+		ForceOn,
+		ForceOff,
+	};
+
 	enum class PrintLoadReason {
 		Preflight,
 		Postflight,
@@ -149,7 +160,7 @@ public:
 
 	void print_statistics(LogType type);
 
-	void set_arm_override(bool override) { _manually_logging_override.store(override); }
+	void set_logging_override(LogOverride override) { _logging_override.store(override); }
 
 	void trigger_watchdog_now()
 	{
@@ -350,7 +361,8 @@ private:
 	LogFileName					_file_name[(int)LogType::Count];
 
 	bool						_prev_file_log_start_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
-	px4::atomic_bool				_manually_logging_override{false};
+	bool						_prev_log_trigger_state{false}; ///< previous raw logging trigger (armed, or aux1 for LogMode::rc_aux1)
+	px4::atomic<LogOverride>			_logging_override{LogOverride::None};
 
 	Statistics					_statistics[(int)LogType::Count];
 	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
