@@ -104,6 +104,12 @@ static ParamAutosave *autosave_instance {nullptr};
 static px4::AtomicBitset<param_info_count> params_active;  // params found
 static px4::AtomicBitset<param_info_count> params_unsaved;
 
+// Params the save in progress is writing. They are moved out of params_unsaved
+// before their values are read, so a param_set that lands while the save runs
+// marks its param again and reaches the next save. Flash-param saves write only
+// unsaved params, so nothing else would ever write that change.
+static px4::AtomicBitset<param_info_count> params_saving;
+
 static ConstLayer firmware_defaults;
 static DynamicSparseLayer runtime_defaults{&firmware_defaults};
 DynamicSparseLayer user_config{&runtime_defaults};
@@ -289,7 +295,7 @@ int param_get_used_index(param_t param)
 bool
 param_value_unsaved(param_t param)
 {
-	return handle_in_range(param) ? params_unsaved[param] : false;
+	return handle_in_range(param) ? (params_unsaved[param] || params_saving[param]) : false;
 }
 
 int
@@ -839,14 +845,10 @@ int param_save_default(bool blocking)
 	int res = PX4_ERROR;
 	const char *filename = param_get_default_file();
 
-	/* A param_set that lands while the export runs is not in what gets
-	 * written. Remember what was pending at the start and clear only that,
-	 * so the late change keeps its bit and reaches the next save. */
-	px4::AtomicBitset<param_info_count> pending;
-
 	for (param_t param = 0; handle_in_range(param); param++) {
 		if (params_unsaved[param]) {
-			pending.set(param);
+			params_saving.set(param, true);
+			params_unsaved.set(param, false);
 		}
 	}
 
@@ -889,13 +891,16 @@ int param_save_default(bool blocking)
 	if (res != PX4_OK) {
 		PX4_ERR("param export failed (%d)", res);
 
-	} else {
 		for (param_t param = 0; handle_in_range(param); param++) {
-			if (pending[param]) {
-				params_unsaved.set(param, false);
+			if (params_saving[param]) {
+				params_unsaved.set(param, true);
 			}
 		}
+	}
 
+	params_saving.reset();
+
+	if (res == PX4_OK) {
 		// backup file
 		if (param_backup_file) {
 			int fd_backup_file = ::open(param_backup_file, O_WRONLY | O_CREAT | O_TRUNC, PX4_O_MODE_666);
