@@ -38,6 +38,20 @@ do
 	fi
 done
 
+# Leave a checkout that is already there. `brew tap` on one would try to
+# unshallow it, and CI has already checked these repos out at a commit.
+brew_tap() {
+	local name="$1"
+	local user="${name%%/*}"
+	local repo="${name#*/}"
+	local path
+	path="$(brew --repo)/Library/Taps/${user}/homebrew-${repo}"
+	if [[ -d "${path}/.git" ]]; then
+		return 0
+	fi
+	brew tap "$name"
+}
+
 echo "[macos.sh] Installing the development dependencies for the PX4 Autopilot"
 
 if ! command -v brew &> /dev/null
@@ -79,8 +93,8 @@ if brew trust --help &> /dev/null; then
 	brew trust PX4/px4
 fi
 
-brew tap osx-cross/arm
-brew tap PX4/px4
+brew_tap osx-cross/arm
+brew_tap PX4/px4
 
 # Package list. This replaces the px4-dev meta-formula, which is kept
 # as a deprecated no-op upstream. See PX4/homebrew-px4 for history.
@@ -147,13 +161,13 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		brew trust osrf/simulation
 	fi
 
-	brew tap osrf/simulation
+	brew_tap osrf/simulation
 
 	# OSRF drops the gz bottle blocks within minutes of a breaking
 	# homebrew-core dependency bump and rebuilds them days later, so an
 	# unpinned tap compiles Gazebo from source for a large part of the
-	# year. Pin unconditionally so the install stays on bottles. See
-	# gz-tap-pin.txt.
+	# year. Pin unconditionally so dev machines get the same fast, binary
+	# install as CI. See gz-tap-pin.txt.
 	GZ_TAP_PIN=$(grep -v '^#' "${DIR}/gz-tap-pin.txt" | tr -d '[:space:]')
 	if [[ -n $GZ_TAP_PIN ]]; then
 		GZ_TAP_DIR=$(brew --repo osrf/simulation)
@@ -266,7 +280,8 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	# XQuartz is required for Gazebo GUI display on macOS.
 	if ! brew list --cask xquartz &> /dev/null; then
 		echo "[macos.sh] Installing XQuartz (required for Gazebo display)"
-		brew install --cask xquartz
+		# XQuartz is not in the pinned package repos.
+		env -u HOMEBREW_NO_INSTALL_FROM_API brew install --cask xquartz
 	fi
 
 	# jMAVSim requires a JDK (Java 17 LTS recommended)

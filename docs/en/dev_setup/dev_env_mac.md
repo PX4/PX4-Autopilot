@@ -7,6 +7,7 @@ This environment can be used to build PX4 for:
 - [Gazebo Simulation](../sim_gazebo_gz/index.md) (Gazebo Harmonic)
 
 It works on both Intel and Apple Silicon Macs.
+PX4 CI exercises this setup on Apple Silicon runners only; Intel is not covered by CI.
 
 ::: tip
 This setup is supported by the PX4 dev team.
