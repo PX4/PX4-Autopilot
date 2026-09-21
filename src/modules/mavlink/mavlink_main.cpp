@@ -1783,6 +1783,7 @@ constexpr StreamRateDefault streams_mode_gimbal[] = {
 	// Note: streams requiring low latency come first
 	{"AUTOPILOT_STATE_FOR_GIMBAL_DEVICE", 20.0f},
 	{"GIMBAL_DEVICE_SET_ATTITUDE", 20.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 20.0f},
 };
 
 constexpr StreamRateDefault streams_mode_extvision[] = {
