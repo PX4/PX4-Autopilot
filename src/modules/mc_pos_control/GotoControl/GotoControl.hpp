@@ -92,6 +92,10 @@ public:
 	void update(const float dt, const matrix::Vector3f &position, const matrix::Vector3f &velocity, const matrix::Vector3f &acceleration,
 		    const float heading);
 
+	void ekfResetHandlerPosition(const matrix::Vector3f &position);
+	void ekfResetHandlerVelocity(const matrix::Vector3f &velocity);
+	void ekfResetHandlerHeading(const float delta_heading);
+
 	// Setting all parameters from the outside saves 300bytes flash
 	void setParamMpcAccHor(const float param_mpc_acc_hor) { _param_mpc_acc_hor = param_mpc_acc_hor; }
 	void setParamMpcAccDownMax(const float param_mpc_acc_down_max) { _param_mpc_acc_down_max = param_mpc_acc_down_max; }

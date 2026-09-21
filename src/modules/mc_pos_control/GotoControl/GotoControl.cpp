@@ -140,6 +140,21 @@ void GotoControl::update(const float dt, const Vector3f &position, const Vector3
 	_vehicle_constraints_pub.publish(vehicle_constraints);
 }
 
+void GotoControl::ekfResetHandlerPosition(const Vector3f &position)
+{
+	_position_smoothing.forceSetPosition(position);
+}
+
+void GotoControl::ekfResetHandlerVelocity(const Vector3f &velocity)
+{
+	_position_smoothing.forceSetVelocity(velocity);
+}
+
+void GotoControl::ekfResetHandlerHeading(const float delta_heading)
+{
+	_heading_smoothing.reset(wrap_pi(_heading_smoothing.getSmoothedHeading() + delta_heading));
+}
+
 void GotoControl::resetPositionSmoother(const Vector3f &position, const Vector3f &velocity, const Vector3f &acceleration)
 {
 	if (!position.isAllFinite()) {
