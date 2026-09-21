@@ -9,7 +9,8 @@
 ##	- With --sim-tools: Gazebo Harmonic and jMAVSim simulation stack
 ##
 ## --sim-tools pins the osrf/simulation tap to gz-tap-pin.txt so Gazebo
-## installs from bottles even while OSRF has them pulled.
+## installs from bottles even while OSRF has them pulled, and protobuf to
+## protobuf-pin.txt so those bottles' headers still compile.
 ##
 ## Homebrew 4.5+ no longer auto-resolves cross-tap dependencies, so
 ## every tap and package is listed explicitly here rather than hidden
@@ -189,6 +190,77 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	else
 		echo "[macos.sh] Installing PX4 simulation dependencies"
 		brew install "${PX4_SIM_BREW_PACKAGES[@]}"
+	fi
+
+	# Gazebo's generated headers only compile against the exact protobuf
+	# their gencode came from, so protobuf has to come from the
+	# homebrew-core revision that was current when the pinned gz bottles
+	# were built rather than from whatever homebrew-core ships today. See
+	# protobuf-pin.txt.
+	#
+	# This runs after the installs above rather than before them because
+	# opencv@4 depends on protobuf as well and drags in the current one:
+	# brew resolves a dependency against the versions recorded in the
+	# dependent's bottle, so an opencv bottle rebuilt against a newer
+	# protobuf pulls that protobuf in no matter what is installed.
+	# Pinning the formula instead of reinstalling it here is not an
+	# option either: brew refuses to install anything whose pinned
+	# dependency is not the current one ("You must `brew unpin
+	# protobuf`").
+	PROTOBUF_FORMULA="Formula/p/protobuf.rb"
+	PROTOBUF_PIN_LINE=$(grep -v -e '^#' -e '^[[:space:]]*$' "${DIR}/protobuf-pin.txt" | head -n 1)
+	read -r PROTOBUF_PIN PROTOBUF_PIN_VERSION <<< "$PROTOBUF_PIN_LINE" || true
+	if [[ -n $PROTOBUF_PIN ]]; then
+		CORE_TAP_DIR=$(brew --repo homebrew/core)
+		INSTALLED_PROTOBUF=$(brew list --versions protobuf 2> /dev/null | awk '{print $2}')
+		if [[ $INSTALLED_PROTOBUF == "$PROTOBUF_PIN_VERSION" ]]; then
+			echo "[macos.sh] protobuf ${PROTOBUF_PIN_VERSION} is what the gz bottles need, leaving it"
+		elif ! git -C "$CORE_TAP_DIR" rev-parse --git-dir &> /dev/null; then
+			# homebrew-core resolves through the JSON API by default, and a
+			# formula as it was at some commit can only be read from a clone.
+			echo "[macos.sh] WARNING: homebrew-core is not cloned here, so protobuf cannot be held" \
+				"at ${PROTOBUF_PIN_VERSION} and Gazebo's headers may fail to compile." \
+				"Run 'brew tap homebrew/core' once to enable the pin."
+		else
+			echo "[macos.sh] Installing protobuf ${PROTOBUF_PIN_VERSION} from homebrew-core ${PROTOBUF_PIN}"
+			PROTOBUF_TMP=$(mktemp -d)
+			# A clone that has not been updated since the pin was made does
+			# not have the commit yet.
+			git -C "$CORE_TAP_DIR" fetch --quiet origin "$PROTOBUF_PIN" 2> /dev/null || true
+			if git -C "$CORE_TAP_DIR" show "${PROTOBUF_PIN}:${PROTOBUF_FORMULA}" \
+				> "${PROTOBUF_TMP}/pinned.rb" 2> /dev/null; then
+				# Swap the formula in place rather than checking it out, so
+				# the clone's git state is never touched and the file comes
+				# back byte for byte whether or not the install works.
+				cp "${CORE_TAP_DIR}/${PROTOBUF_FORMULA}" "${PROTOBUF_TMP}/current.rb"
+				cp "${PROTOBUF_TMP}/pinned.rb" "${CORE_TAP_DIR}/${PROTOBUF_FORMULA}"
+				# Whatever is installed is the wrong version, and only
+				# reinstall replaces it; install alone would be a no-op.
+				if [[ -n $INSTALLED_PROTOBUF ]]; then
+					PROTOBUF_INSTALL="reinstall"
+				else
+					PROTOBUF_INSTALL="install"
+				fi
+				# brew reads this clone instead of the JSON API only with
+				# HOMEBREW_NO_INSTALL_FROM_API, and brew update would put
+				# the swapped formula back before the install. Without
+				# HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK brew would then
+				# see everything linked against the protobuf it just
+				# replaced as broken and reinstall it, which pulls the
+				# newer protobuf straight back in through opencv@4.
+				if ! HOMEBREW_NO_INSTALL_FROM_API=1 HOMEBREW_NO_AUTO_UPDATE=1 \
+					HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 \
+					brew "$PROTOBUF_INSTALL" protobuf; then
+					echo "[macos.sh] WARNING: could not install protobuf ${PROTOBUF_PIN_VERSION}," \
+						"continuing on the current one (Gazebo headers may fail to compile)"
+				fi
+				cp "${PROTOBUF_TMP}/current.rb" "${CORE_TAP_DIR}/${PROTOBUF_FORMULA}"
+			else
+				echo "[macos.sh] WARNING: homebrew-core commit ${PROTOBUF_PIN} is not available," \
+					"continuing on the current protobuf (Gazebo headers may fail to compile)"
+			fi
+			rm -rf "$PROTOBUF_TMP"
+		fi
 	fi
 
 	# XQuartz is required for Gazebo GUI display on macOS.
