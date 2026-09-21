@@ -100,8 +100,8 @@ public:
 	void setParamMpcXyCruise(const float param_mpc_xy_cruise) { _param_mpc_xy_cruise = param_mpc_xy_cruise; }
 	void setParamMpcXyErrMax(const float param_mpc_xy_err_max) { _position_smoothing.setMaxAllowedHorizontalError(param_mpc_xy_err_max); }
 	void setParamMpcXyVelMax(const float param_mpc_xy_vel_max) { _position_smoothing.setMaxVelocityXY(param_mpc_xy_vel_max); }
-	void setParamMpcYawrautoMax(const float param_mpc_yawrauto_max) { _param_mpc_yawrauto_max = param_mpc_yawrauto_max; }
-	void setParamMpcYawrautoAcc(const float param_mpc_yawrauto_acc) { _param_mpc_yawrauto_acc = param_mpc_yawrauto_acc; }
+	void setParamMpcYawrautoMax(const float param_mpc_yawrauto_max) { _yaw_rate_max = math::radians(param_mpc_yawrauto_max); }
+	void setParamMpcYawrautoAcc(const float param_mpc_yawrauto_acc) { _yaw_acceleration_max = math::radians(param_mpc_yawrauto_acc); }
 	void setParamMpcZVAutoDn(const float param_mpc_z_v_auto_dn) { _param_mpc_z_v_auto_dn = param_mpc_z_v_auto_dn; }
 	void setParamMpcZVAutoUp(const float param_mpc_z_v_auto_up) { _param_mpc_z_v_auto_up = param_mpc_z_v_auto_up; }
 
@@ -140,8 +140,8 @@ private:
 	float _param_mpc_acc_down_max{0.f};
 	float _param_mpc_acc_up_max{0.f};
 	float _param_mpc_xy_cruise{0.f};
-	float _param_mpc_yawrauto_max{0.f};
-	float _param_mpc_yawrauto_acc{0.f};
+	float _yaw_rate_max{0.f}; ///< [rad/s]
+	float _yaw_acceleration_max{0.f}; ///< [rad/s^2]
 	float _param_mpc_z_v_auto_dn{0.f};
 	float _param_mpc_z_v_auto_up{0.f};
 };
