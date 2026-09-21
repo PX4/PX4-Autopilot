@@ -77,6 +77,14 @@ void OutputToGimbalManager::update(const ControlData &control_data, bool new_set
 	} else if (!onboard_intent && _onboard_intent) {
 		// Intent ended: release so another client can take over.
 		_send_configure(false);
+
+	} else if (onboard_intent && _nobody_in_control()
+		   && hrt_elapsed_time(&_last_configure) > CONFIGURE_RETRY_INTERVAL) {
+		// We want control but the manager reports that nobody has it, e.g.
+		// because our request got lost or the manager restarted. Ask again.
+		// This can't take control away from anyone, so it's still up to the
+		// manager to arbitrate between its clients.
+		_send_configure(true);
 	}
 
 	_onboard_intent = onboard_intent;
@@ -110,8 +118,15 @@ void OutputToGimbalManager::_update_manager_status()
 	}
 }
 
+bool OutputToGimbalManager::_nobody_in_control() const
+{
+	return _status.primary_control_sysid == 0 && _status.primary_control_compid == 0;
+}
+
 void OutputToGimbalManager::_send_configure(bool acquire)
 {
+	_last_configure = hrt_absolute_time();
+
 	// Special values per MAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE: -1 leaves a field
 	// unchanged, -3 removes control if the sender is currently in control.
 	// To acquire, we set ourselves as primary.
