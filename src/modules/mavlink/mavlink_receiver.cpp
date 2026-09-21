@@ -489,6 +489,17 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 		handle_message_gimbal_device_attitude_status(&msg);
 		break;
 
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS:
+		// The component on this link might be an external gimbal manager.
+		handle_message_gimbal_manager_status(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_COMMAND_ACK:
+		// Needed for the commands we send (e.g. DO_GIMBAL_MANAGER_CONFIGURE),
+		// otherwise they are retried until they time out.
+		handle_message_command_ack(&msg);
+		break;
+
 	case MAVLINK_MSG_ID_COMMAND_LONG: {
 			mavlink_command_long_t cmd;
 			mavlink_msg_command_long_decode(&msg, &cmd);
@@ -3711,7 +3722,9 @@ MavlinkReceiver::handle_message_gimbal_manager_status(mavlink_message_t *msg)
 {
 	// Ignore our own gimbal manager: PX4 streams this itself from the autopilot
 	// component, and we only care about external gimbal managers here.
-	if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
+	// Also ignore gimbal managers of other systems (e.g. forwarded from another
+	// vehicle), only a manager on our vehicle is ours to talk to.
+	if (msg->sysid != mavlink_system.sysid || msg->compid == mavlink_system.compid) {
 		return;
 	}
 
