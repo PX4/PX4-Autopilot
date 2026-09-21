@@ -1335,10 +1335,13 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 					_land_start_marker = _transfer_land_start_marker;
 					_land_marker = _transfer_land_marker;
 
-					// Only need to update if the mission actually changed
-					if (_transfer_current_crc32 != _crc32[MAV_MISSION_TYPE_MISSION]) {
-						update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq, _transfer_current_crc32);
-					}
+					// A completed upload replaces the mission, so the current index
+					// has to be updated even when the uploaded mission happens to be
+					// identical to the stored one. Without this, re-uploading the same
+					// mission after a reboot resumes at the index the previous run
+					// ended on, and the mission reports itself finished immediately.
+					update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq,
+							      _transfer_current_crc32);
 
 					break;
 
