@@ -1139,10 +1139,12 @@ bool Logger::start_stop_logging()
 		_manual_stop_active = command == (int)ManualLoggingCommand::Stop
 				      && _writer.is_started(LogType::Full, LogWriter::BackendFile);
 
-		// A manually stopped continuous log falls back to arm/disarm logging until reboot.
-		if (_manual_stop_active
-		    && (_log_mode == LogMode::boot_until_shutdown || _log_mode == LogMode::arm_until_shutdown)) {
-			_log_mode = LogMode::while_armed;
+		// Stopping the boot-to-shutdown log has to disable the mode as well, it would otherwise keep
+		// logging disabled for the rest of the boot. Fall back to arm/disarm logging instead.
+		// arm_until_shutdown needs no fallback: it resumes on its own on the next arming.
+		if (_manual_stop_active && _log_mode == LogMode::boot_until_shutdown && !_continuous_log_stopped) {
+			_continuous_log_stopped = true;
+			PX4_INFO("continuous log stopped, logging from arming to disarming until reboot");
 		}
 	}
 
@@ -1163,7 +1165,7 @@ bool Logger::start_stop_logging()
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 			const bool armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 			const bool full_log_continues =
-				_log_mode == LogMode::boot_until_shutdown ||
+				(_log_mode == LogMode::boot_until_shutdown && !_continuous_log_stopped) ||
 				(_log_mode == LogMode::arm_until_shutdown && _prev_file_log_start_state);
 
 			if (full_log_continues) {

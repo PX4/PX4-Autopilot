@@ -360,12 +360,13 @@ private:
 	bool						_prev_file_log_start_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
 	bool						_manual_start_override{false};
 	bool						_manual_stop_active{false};
+	bool						_continuous_log_stopped{false}; ///< boot_until_shutdown log was stopped manually
 	px4::atomic_int				_manual_logging_command{(int)ManualLoggingCommand::None};
 
 	Statistics					_statistics[(int)LogType::Count];
 	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
 
-	LogMode						_log_mode;
+	const LogMode					_log_mode;
 	const bool					_log_name_timestamp;
 
 	LoggerSubscription	 			*_subscriptions{nullptr}; ///< all subscriptions for full & mission log (in front)
