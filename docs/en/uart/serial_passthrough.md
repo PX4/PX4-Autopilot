@@ -50,11 +50,6 @@ Note that the `PASSTHRU_EN` parameter need not be set.
 
 ## ESC Channel Mode (Bitbang UART) {#bitbang}
 
-::: tip
-This feature is not yet useful because PX4 does not ship a ready-made tool for using serial passthrough with common ESC configuration or firmware flashing tools.
-Information on how such a tool might be developed is given below in [Bridge Application](#bridge-application).
-:::
-
 Device IDs 20–27 route through a software bit-bang UART on the ESC signal pin rather than a hardware UART.
 This is useful for communicating with ESCs that expose a UART telemetry or configuration port on their signal wire (such as BLHeli_32 passthrough, AM32, or ESC configuration tools).
 
@@ -69,8 +64,19 @@ The `PASSTHRU_EN` parameter must be set to `1` and the device rebooted in order 
 
 ### Bridge Application
 
-Developers can create their own bridge application if needed.
-This would connect to the vehicle over MAVLink, expose a virtual serial port (e.g. a Unix PTY) to the tool on the host, and translate traffic bidirectionally.
+[`Tools/mavlink_serial_bridge.py`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mavlink_serial_bridge.py) is a reference bridge application: it connects to the vehicle over MAVLink, exposes a virtual serial port (a Unix PTY) to the tool on the host, and translates traffic bidirectionally.
+
+Install its only dependency and run it, for example to bridge ESC channel 0:
+
+```sh
+pip3 install --user pymavlink
+./Tools/mavlink_serial_bridge.py --connection udp:127.0.0.1:14550 --port esc0 --setup
+```
+
+The script prints the PTY path it created (e.g. `/dev/pts/5`) — point any tool that expects a serial connection (ESC configurator, GPS/RTK utility, and so on) at that path.
+Run it with `-h` for the full list of options.
+
+Developers can create their own bridge application in another language if needed, following the same protocol.
 Data written to the PTY would be sent as `SERIAL_CONTROL` messages with `SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE` set, and incoming `SERIAL_CONTROL` reply messages (with `FLAG_REPLY` set) would be written back to the PTY.
 
 To initialise the passthrough, the bridge should send one `SERIAL_CONTROL` message with the target device ID, the desired UART baud rate in the `baudrate` field, and `count=0` (no payload), then wait approximately 2 seconds for PX4 to spawn the passthrough task before sending real traffic.
