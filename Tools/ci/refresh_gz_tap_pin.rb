@@ -27,8 +27,7 @@
 #
 # The formula names are read from macos.sh so there is no second list to
 # keep in sync. The bottle tag match is Homebrew's own, which on macOS also
-# accepts a bottle built on an older macOS of the same arch, so a commit
-# that passes on the oldest macOS CI runs on passes on the newer ones too.
+# accepts a bottle built on an older macOS of the same arch.
 #
 # Formula#bottle is deliberately not used: `brew ruby` runs in a child of
 # the brew process, which has already consumed the HOMEBREW_*_DEFAULT_PREFIX

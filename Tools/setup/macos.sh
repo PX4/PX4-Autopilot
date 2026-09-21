@@ -152,8 +152,8 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	# OSRF drops the gz bottle blocks within minutes of a breaking
 	# homebrew-core dependency bump and rebuilds them days later, so an
 	# unpinned tap compiles Gazebo from source for a large part of the
-	# year. Pin unconditionally so dev machines get the same fast, binary
-	# install as CI. See gz-tap-pin.txt.
+	# year. Pin unconditionally so the install stays on bottles. See
+	# gz-tap-pin.txt.
 	GZ_TAP_PIN=$(grep -v '^#' "${DIR}/gz-tap-pin.txt" | tr -d '[:space:]')
 	if [[ -n $GZ_TAP_PIN ]]; then
 		GZ_TAP_DIR=$(brew --repo osrf/simulation)
