@@ -1,0 +1,75 @@
+name: MacOS build
+
+on:
+  push:
+    branches:
+    - 'main'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+    - name: install Python 3.10
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.10"
+
+    - uses: actions/checkout@v6
+
+    - name: Cache - Restore Homebrew Packages
+      uses: actions/cache@v5
+      with:
+        path: ~/Library/Caches/Homebrew/downloads
+        key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh', 'Tools/setup/macos_ci_pins.sh', 'Tools/setup/homebrew-pins.txt', 'Tools/setup/protobuf-pin.txt', 'Tools/setup/gz-tap-pin.txt') }}
+        restore-keys: |
+          macos-homebrew-${{ runner.arch }}-
+
+    - name: Cache - Restore pip Packages
+      uses: actions/cache@v5
+      with:
+        path: ~/Library/Caches/pip
+        key: macos-pip-${{ runner.arch }}-${{ hashFiles('Tools/setup/requirements.txt') }}
+        restore-keys: |
+          macos-pip-${{ runner.arch }}-
+
+    - name: setup
+      env:
+        # Read the checked-out package repos. The default is a live index,
+        # which ignores those checkouts.
+        HOMEBREW_NO_AUTO_UPDATE: "1"
+        HOMEBREW_NO_INSTALL_FROM_API: "1"
+      run: |
+        ./Tools/setup/macos_ci_pins.sh
+        ./Tools/setup/macos.sh --sim-tools
+        echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
+
+    - uses: ./.github/actions/setup-ccache
+      id: ccache
+      with:
+        cache-key-prefix: ccache-macos-15
+        max-size: 200M
+
+    - name: Build px4_sitl
+      run: make px4_sitl
+
+    - name: Cache - Stats after px4_sitl
+      run: ccache -s
+
+    - name: Build px4_fmu-v5_default
+      run: make px4_fmu-v5_default
+
+    - uses: ./.github/actions/save-ccache
+      if: always()
+      with:
+        cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
