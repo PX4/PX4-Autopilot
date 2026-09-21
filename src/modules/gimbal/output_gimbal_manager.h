@@ -50,9 +50,10 @@ namespace gimbal
 //
 // The external manager does the deconfliction between its clients, so we don't
 // track or second-guess who is in control. When onboard intent starts we ask
-// for control once, while it lasts we stream GIMBAL_MANAGER_SET_PITCHYAW, and
-// when it ends we release control. If another client has taken control, the
-// manager ignores our setpoints.
+// for control, while it lasts we stream GIMBAL_MANAGER_SET_PITCHYAW, and when
+// it ends we release control. If another client has taken control, the manager
+// ignores our setpoints. We only ask again while the manager reports that nobody
+// is in control (e.g. after it restarted).
 class OutputToGimbalManager : public OutputBase
 {
 public:
@@ -66,6 +67,7 @@ public:
 private:
 	void _update_manager_status();
 	void _send_configure(bool acquire);
+	bool _nobody_in_control() const;
 	void _publish_set_pitchyaw();
 
 	uORB::Subscription _status_sub{ORB_ID(external_gimbal_manager_status)};
@@ -77,10 +79,13 @@ private:
 	uint8_t _manager_compid{0};
 	uint8_t _gimbal_device_id{0};
 
-	// Last status from the manager, for print_status only.
+	// Last status from the manager.
 	external_gimbal_manager_status_s _status{};
 
+	static constexpr hrt_abstime CONFIGURE_RETRY_INTERVAL{2000000}; // [us]
+
 	bool _onboard_intent{false};
+	hrt_abstime _last_configure{0};
 };
 
 } /* namespace gimbal */
