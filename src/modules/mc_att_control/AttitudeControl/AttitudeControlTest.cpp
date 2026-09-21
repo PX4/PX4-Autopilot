@@ -555,6 +555,37 @@ TEST_F(AttitudeControlShapingTest, LongSetpointGapDoesNotOvershoot)
 	EXPECT_NEAR(error.norm(), 0.f, 1e-3f);
 }
 
+TEST_F(AttitudeControlShapingTest, VeryLongSetpointGapSnapsToSetpoint)
+{
+	// GIVEN: a roll step arriving after a gap the substeps cannot cover, e.g. the first attitude setpoint after
+	// flying a mode without attitude setpoints (before the snap the capped substep count made each substep
+	// long enough for the trajectory to coast past the target, the error grew from substep to substep and the
+	// reference ended up to 2 rad from the setpoint, bounded only by the rate limit)
+	const float step = 0.3f;
+	const Quatf q_d(AxisAnglef(Vector3f(step, 0.f, 0.f)));
+
+	for (const float gap : {0.6f, 30.f, 600.f}) {
+		_attitude_control.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
+		_attitude_control.setAttitudeSetpoint(q_d, 0.f, gap);
+
+		// THEN: the reference restarted from the setpoint with zero rate
+		Vector3f error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
+		EXPECT_NEAR(error.norm(), 0.f, 1e-3f) << "gap " << gap;
+		EXPECT_NEAR(_attitude_control.update(_attitude_control.getReferenceAttitude()).norm(), 0.f, 1e-3f) << "gap " << gap;
+		EXPECT_NEAR(_attitude_control.getReferenceAcceleration().norm(), 0.f, 1e-3f) << "gap " << gap;
+
+		// WHEN: the setpoint stream resumes at the nominal rate
+		float max_rate, max_accel, max_jerk, max_angle;
+		stepSetpoint(q_d, 0, 250, max_rate, max_accel, max_jerk, max_angle);
+
+		// THEN: the reference stays on the setpoint
+		EXPECT_LE(max_angle, step * 1.005f) << "gap " << gap;
+		EXPECT_NEAR(max_rate, 0.f, 1e-2f) << "gap " << gap;
+		error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
+		EXPECT_NEAR(error.norm(), 0.f, 1e-3f) << "gap " << gap;
+	}
+}
+
 TEST_F(AttitudeControlShapingTest, CoarseSetpointRateRespectsLimits)
 {
 	// GIVEN: a large roll step with setpoints arriving at only 50Hz

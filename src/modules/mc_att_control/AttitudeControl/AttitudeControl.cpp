@@ -48,9 +48,11 @@ static __attribute__((noinline)) Vector3f qzaxis(const Quatf &q) { return q.dcm_
 
 // The acceleration-limited trajectory is advanced in substeps no longer than this, so that its rate
 // setpoint is refreshed from the remaining error often enough; the substep count is bounded to keep
-// the work per update finite after a long gap between setpoints.
+// the work per update finite. Together they define the longest gap between setpoints that is shaped,
+// beyond it the axis snaps to the setpoint (see propagateLimitedAxis).
 static constexpr float kMaxShapingStep = 0.01f; // [s]
 static constexpr int kMaxShapingSubsteps = 50;
+static constexpr float kMaxShapingGap = kMaxShapingStep * kMaxShapingSubsteps; // [s]
 
 void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight)
 {
@@ -110,6 +112,17 @@ void AttitudeControl::propagateLimitedAxis(const int axis, const float error, co
 		float &delta_angle)
 {
 	VelocitySmoothing &trajectory = _rate_trajectory[axis];
+
+	// A gap longer than the substeps can cover means the setpoint stream was interrupted. Substeps longer than
+	// kMaxShapingStep would let the trajectory coast at a stale rate setpoint past the target and the error
+	// would grow from substep to substep, so restart from the setpoint instead, as on the first setpoint.
+	if (dt > kMaxShapingGap) {
+		trajectory.reset(0.f, 0.f, 0.f);
+		delta_angle = error;
+		rate = 0.f;
+		return;
+	}
+
 	trajectory.setMaxJerk(_ref_jerk_max);
 	trajectory.setMaxAccel(_ref_accel_max(axis));
 	trajectory.setMaxVel(_rate_limit(axis));
@@ -192,11 +205,16 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	// unconstrained axes.
 	const Vector3f e_end = a * e_filtered - b * _omega_correction;
 
+	// After a gap the limited axes snap onto the whole setpoint, which needs the exact rotation vector
+	// (e is 2*sin(angle/2)); otherwise they shape the filtered error and get the heading component unfiltered.
+	const bool snap = dt > kMaxShapingGap;
+	const Vector3f e_limited = snap ? Vector3f(AxisAnglef(q_err)) : e_filtered;
+
 	for (int i = 0; i < 3; i++) {
 		if (isAxisAccelerationLimited(i)) {
 			float delta_angle;
-			propagateLimitedAxis(i, e_filtered(i), dt, omega_correction(i), delta_angle);
-			delta_phi(i) = delta_angle + e_heading(i);
+			propagateLimitedAxis(i, e_limited(i), dt, omega_correction(i), delta_angle);
+			delta_phi(i) = delta_angle + (snap ? 0.f : e_heading(i));
 			_ref_accel(i) = _rate_trajectory[i].getCurrentAcceleration();
 
 		} else {
