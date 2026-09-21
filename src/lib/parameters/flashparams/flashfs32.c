@@ -421,10 +421,17 @@ static bool crc_header_ok(flash_entry_header_t *pf, h_magic_t *pe)
 	return pf->crc == crc32(crc_start, crc_length);
 }
 
+/* The walkers stop at the last word of a sector and reject a record that
+ * ends beyond it, so nothing may be written into that word. */
+static inline size_t sector_usable(int s)
+{
+	return sector_map[s].size - sizeof(h_magic_t);
+}
+
 static bool slot_is_free(flash_entry_header_t *pf, int s, size_t required)
 {
 	uint8_t *begin = (uint8_t *)sector_map[s].address;
-	uint8_t *end = begin + sector_map[s].size;
+	uint8_t *end = begin + sector_usable(s);
 
 	if ((uint8_t *)pf < begin || required == 0 || (uint8_t *)pf + required > end) {
 		return false;
@@ -985,21 +992,26 @@ size_t parameter_flashfs_max_payload(void)
 		return 0;
 	}
 
-	size_t max_sector = 0;
+	size_t max_total = 0;
 
 	for (int s = 0; sector_map[s].address; s++) {
-		if (sector_map[s].size > max_sector) {
-			max_sector = sector_map[s].size;
+		if (sector_usable(s) > max_total) {
+			max_total = sector_usable(s);
 		}
 	}
 
-	const size_t overhead = sizeof(flash_entry_header_t) + SizeMask;
+	/* h_size_t holds the record size */
+	if (max_total > UINT16_MAX) {
+		max_total = UINT16_MAX;
+	}
 
-	if (max_sector <= overhead) {
+	max_total &= ~(size_t)SizeMask;
+
+	if (max_total <= sizeof(flash_entry_header_t)) {
 		return 0;
 	}
 
-	return max_sector - overhead;
+	return max_total - sizeof(flash_entry_header_t);
 }
 
 int parameter_flashfs_needs_compact(flash_file_token_t token, size_t snapshot_size)
@@ -1034,12 +1046,12 @@ int parameter_flashfs_needs_compact(flash_file_token_t token, size_t snapshot_si
 	/* Compaction leaves the snapshot at the start of sector 0 and every
 	 * other sector blank. Erase only if that layout has the room this one
 	 * lacks, or every boot would pay the erase for nothing. */
-	if (sector_map[0].size >= snapshot_total + headroom) {
+	if (sector_usable(0) >= snapshot_total + headroom) {
 		return 1;
 	}
 
 	for (int s = 1; sector_map[s].address; s++) {
-		if (sector_map[s].size >= headroom) {
+		if (sector_usable(s) >= headroom) {
 			return 1;
 		}
 	}
