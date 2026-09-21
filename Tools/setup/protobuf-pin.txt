@@ -12,8 +12,7 @@
 # the rest of the simulation packages are in, so the two pins always agree
 # and a protobuf release is a no-op here. Tools/ci/refresh_gz_tap_pin.rb
 # reads the version out of the pinned gz-msgs10 bottle's install receipt and
-# moves both pins together, weekly from
-# .github/workflows/macos_gz_tap_pin_refresh.yml.
+# moves both pins together.
 #
 # Holding protobuf back holds back its ABI too: homebrew-core bottles that
 # were rebuilt against a newer protobuf (of what macos.sh installs, only
