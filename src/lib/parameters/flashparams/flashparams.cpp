@@ -91,6 +91,17 @@ struct param_wbuf_s {
  * alone and rewrite the store as a log-format snapshot.
  */
 
+/* Replay met a record whose name or type is not in this firmware's parameter
+ * table, so it is usable through a translation at best. The file backend
+ * drops those on its next save; here they stay until a compaction, and a
+ * translation is only kept for a few releases. A snapshot cannot hold such a
+ * record, so compacting for it does not repeat. */
+static bool log_stale;
+
+/* Replay failed inside a CRC-valid record. A delta appended behind it would
+ * never be reached, so the next save rewrites the store. */
+static bool log_unreadable;
+
 static bool
 any_unsaved(param_filter_func filter)
 {
@@ -301,6 +312,10 @@ compact_to_snapshot()
 		}
 	}
 
+	if (result == OK) {
+		log_unreadable = false;
+	}
+
 	free(bson_encoder_buf_data(&encoder));
 	return result;
 }
@@ -316,33 +331,51 @@ has_record(flash_file_token_t token)
 static int
 param_export_internal(param_filter_func filter)
 {
-	/* A legacy record still present means the boot migration did not run;
-	 * replay would take it over any delta appended behind it. */
-	if (parameter_flashfs_blank() == 1 || has_record(parameters_legacy_token)) {
+	/* A delta only means something behind a snapshot that replays. A legacy
+	 * record still present means the boot migration did not run; replay
+	 * would take it over any delta appended behind it. */
+	if (log_unreadable || has_record(parameters_legacy_token) || !has_record(parameters_token)) {
 		return compact_to_snapshot();
 	}
 
-	if (any_unsaved(filter)) {
-		int result = export_delta(filter);
-
-		if (result != -ENOSPC) {
-			return result;
-		}
-
-		/* Same-bank erase stalls the CPU for ~1 s; last resort when a
-		 * single save does not fit the tail. Compact writes the full RAM
-		 * snapshot so a filtered save cannot drop params not in the delta. */
-		PX4_WARN("flashparams: param sector full, compacting");
-		return compact_to_snapshot();
-	}
-
-	if (has_record(parameters_token)) {
+	if (!any_unsaved(filter)) {
 		return 0;
 	}
 
+	int result = export_delta(filter);
+
+	if (result != -ENOSPC) {
+		return result;
+	}
+
+	/* Same-bank erase stalls the CPU for ~1 s; last resort when a single
+	 * save does not fit the tail. Compact writes the full RAM snapshot so a
+	 * filtered save cannot drop params not in the delta. */
+	PX4_WARN("flashparams: param sector full, compacting");
 	return compact_to_snapshot();
 }
 
+
+static bool
+record_is_stale(bson_node_t node)
+{
+	const param_t param = param_find_no_notification(node->name);
+
+	if (param == PARAM_INVALID) {
+		return true;
+	}
+
+	switch (node->type) {
+	case BSON_INT32:
+		return param_type(param) != PARAM_TYPE_INT32;
+
+	case BSON_DOUBLE:
+		return param_type(param) != PARAM_TYPE_FLOAT;
+
+	default:
+		return false;
+	}
+}
 
 static int
 param_import_callback(bson_decoder_t decoder, bson_node_t node)
@@ -361,8 +394,18 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 		return 0;
 	}
 
-	if (param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
-		return 1;
+	/* A tombstone has no value. The decoder leaves the previous node's in
+	 * the union and the translations read it without a type check. */
+	const bool tombstone = node->type == BSON_nullptr || node->type == BSON_UNDEFINED;
+
+	if (!tombstone) {
+		if (record_is_stale(node)) {
+			log_stale = true;
+		}
+
+		if (param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
+			return 1;
+		}
 	}
 
 	/*
@@ -451,6 +494,7 @@ static int
 param_import_internal(bool *legacy)
 {
 	int result = 0;
+	log_stale = false;
 	int n = parameter_flashfs_walk(parameters_legacy_token, import_one_entry, &result);
 	*legacy = n > 0;
 
@@ -460,6 +504,7 @@ param_import_internal(bool *legacy)
 
 	if (n < 0) {
 		debug("flash walk failed (%d)", n);
+		log_unreadable = true;
 		return n;
 	}
 
@@ -488,9 +533,10 @@ param_import_internal(bool *legacy)
 /*
  * Same-bank erase stalls instruction fetch for ~1 s on H7. Do it here at
  * boot, before sensors or DShot start, and only when a burst of deltas would
- * no longer fit or the store is still in the legacy layout. Only a failure
- * after the erase is an error: until then the log is intact and RAM holds
- * what it said, so the boot must not be reported as a corrupt store.
+ * no longer fit, the store is still in the legacy layout, or the log holds
+ * records this firmware translated or could not use. Only a failure after
+ * the erase is an error: until then the log is intact and RAM holds what it
+ * said, so the boot must not be reported as a corrupt store.
  */
 static int
 compact_after_import(bool legacy)
@@ -505,7 +551,7 @@ compact_after_import(bool legacy)
 	}
 
 	const size_t enc_size = bson_encoder_buf_size(&encoder);
-	int need = legacy ? 1 : parameter_flashfs_needs_compact(parameters_token, enc_size);
+	int need = (legacy || log_stale) ? 1 : parameter_flashfs_needs_compact(parameters_token, enc_size);
 	result = 0;
 
 	if (need > 0) {
@@ -541,13 +587,9 @@ int flash_param_import()
 	bool legacy = false;
 	int result = param_import_internal(&legacy);
 
-	if (result == 0) {
-		int cr = compact_after_import(legacy);
-
-		if (cr < 0) {
-			return cr;
-		}
+	if (result != 0) {
+		return result;
 	}
 
-	return result;
+	return compact_after_import(legacy);
 }

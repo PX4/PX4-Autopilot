@@ -416,7 +416,8 @@ param_control_autosave(bool enable)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool update_remote = true)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool update_remote = true,
+		   bool autosave = true)
 {
 	if (!handle_in_range(param)) {
 		PX4_ERR("set invalid param %d", param);
@@ -469,7 +470,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		result = PX4_ERROR;
 	}
 
-	if ((result == PX4_OK) && param_changed && !mark_saved) { // this is false when importing parameters
+	if ((result == PX4_OK) && param_changed && !mark_saved && autosave) { // this is false when importing parameters
 		param_autosave();
 	}
 
@@ -1208,6 +1209,14 @@ out:
 	return result;
 }
 
+#if defined(FLASH_BASED_PARAMS)
+// A file is never the flash backend's store, so what an import changes is unsaved until a delta carries it.
+// As on the file backend, the import itself does not save.
+static constexpr bool file_import_is_saved = false;
+#else
+static constexpr bool file_import_is_saved = true;
+#endif
+
 static int
 param_import_callback(bson_decoder_t decoder, bson_node_t node)
 {
@@ -1220,8 +1229,12 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 		return 0;
 	}
 
+	// A tombstone has no value. The decoder leaves the previous node's in the union and the translations
+	// read it without a type check.
+	const bool tombstone = node->type == BSON_nullptr || node->type == BSON_UNDEFINED;
+
 	// if we do param_set() directly in the translation, set PARAM_SKIP_IMPORT as return value and return here
-	if (param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
+	if (!tombstone && param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
 		return 1;
 	}
 
@@ -1237,13 +1250,13 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	switch (node->type) {
 	case BSON_nullptr:
 	case BSON_UNDEFINED:
-		user_config.reset(param);
+		param_reset_internal(param, true, false);
 		return 1;
 
 	case BSON_INT32: {
 			if (param_type(param) == PARAM_TYPE_INT32) {
 				int32_t i = node->i32;
-				param_set_internal(param, &i, true, true);
+				param_set_internal(param, &i, file_import_is_saved, true, true, false);
 				PX4_DEBUG("Imported %s with value %" PRIi32, param_name(param), i);
 
 			} else {
@@ -1255,7 +1268,7 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	case BSON_DOUBLE: {
 			if (param_type(param) == PARAM_TYPE_FLOAT) {
 				float f = node->d;
-				param_set_internal(param, &f, true, true);
+				param_set_internal(param, &f, file_import_is_saved, true, true, false);
 				PX4_DEBUG("Imported %s with value %f", param_name(param), (double)f);
 
 			} else {
@@ -1424,9 +1437,13 @@ param_load(int fd)
 	param_reset_all_internal(false);
 	int result = param_import_internal(fd);
 
+#if !defined(FLASH_BASED_PARAMS)
+
 	if (result >= 0) {
 		params_unsaved.reset();
 	}
+
+#endif
 
 	return result;
 }

@@ -521,9 +521,9 @@ bson_encoder_fini(bson_encoder_t encoder)
 		}
 	}
 
-	// record document size
-	debug("writing document size %" PRIi32, encoder->total_document_size);
-	const int32_t bson_doc_bytes = encoder->total_document_size;
+	// record document size; total_document_size only counts what went to a file
+	const int32_t bson_doc_bytes = (encoder->fd > -1) ? encoder->total_document_size : (int32_t)encoder->bufpos;
+	debug("writing document size %" PRIi32, bson_doc_bytes);
 
 	if (encoder->fd > -1) {
 		if ((lseek(encoder->fd, 0, SEEK_SET) != 0)
