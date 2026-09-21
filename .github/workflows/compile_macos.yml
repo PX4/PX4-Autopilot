@@ -1,16 +1,12 @@
 name: MacOS build
 
+# Not run on push or pull request. make px4_sitl fails when the protobuf
+# Homebrew installs is not the one the pinned Gazebo bottles were generated
+# against, and that mismatch has been taking these legs down since
+# 2026-09-02. workflow_dispatch still runs it.
+
 on:
-  push:
-    branches:
-    - 'main'
-    paths-ignore:
-      - 'docs/**'
-  pull_request:
-    branches:
-      - '**'
-    paths-ignore:
-      - 'docs/**'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
