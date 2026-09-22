@@ -1,0 +1,4 @@
+#!/bin/sh
+param set-default RO_MAX_THR_SPEED 1.0
+param set-default ROVER_TYPE 1
+param set-default SYS_AUTOSTART 51000
