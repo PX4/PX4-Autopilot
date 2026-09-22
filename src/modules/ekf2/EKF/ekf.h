@@ -488,6 +488,7 @@ public:
 
 	friend class AuxGlobalPosition;
 	friend class AgpSource;
+	friend class EkfFlowFusionOrderTest;
 
 private:
 
