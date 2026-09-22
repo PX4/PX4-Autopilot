@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -18,6 +18,7 @@
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
 # FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
 # COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -31,18 +32,4 @@
 #
 ############################################################################
 
-px4_add_library(vehicle_magnetometer
-	VehicleMagnetometer.cpp
-	VehicleMagnetometer.hpp
-)
-
-target_link_libraries(vehicle_magnetometer
-	PRIVATE
-		data_validator
-		px4_work_queue
-		sensor_calibration
-)
-
-if(BUILD_TESTING)
-	add_subdirectory(test)
-endif()
+px4_add_functional_gtest(SRC VehicleMagnetometerTest.cpp LINKLIBS vehicle_magnetometer uORB sensor_calibration)
