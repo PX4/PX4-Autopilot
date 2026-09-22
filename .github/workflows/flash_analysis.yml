@@ -98,10 +98,10 @@ jobs:
           make submodulesclean
           ccache -C
 
-      - name: If it's a PR checkout the base branch
+      - name: If it's a PR checkout the base of the merge commit
         if: ${{ github.event.pull_request }}
-        # As checkout creates a merge commit (merging the base branch into the PR branch), the base branch is the base for a diff of the PR changes.
-        run: git checkout ${{ github.event.pull_request.base.ref }}
+        # The base branch tip may already contain this PR (merged while the job was queued) or unrelated commits.
+        run: git checkout ${{ github.sha }}^1
 
       - name: If it's a push checkout the previous commit
         if: github.event_name == 'push'
