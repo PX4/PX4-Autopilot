@@ -132,6 +132,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorStates](EstimatorStates.md)
 - [EstimatorStatus](EstimatorStatus.md)
 - [EstimatorStatusFlags](EstimatorStatusFlags.md)
+- [ExternalGimbalManagerStatus](ExternalGimbalManagerStatus.md) — External gimbal manager status.
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
 - [FailureInjection](FailureInjection.md) — Failure injection configuration.
@@ -158,6 +159,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [GimbalManagerInformation](GimbalManagerInformation.md)
 - [GimbalManagerSetAttitude](GimbalManagerSetAttitude.md)
 - [GimbalManagerSetManualControl](GimbalManagerSetManualControl.md)
+- [GimbalManagerSetPitchyaw](GimbalManagerSetPitchyaw.md) — Gimbal manager pitch/yaw setpoint.
 - [GimbalManagerStatus](GimbalManagerStatus.md)
 - [GpioConfig](GpioConfig.md) — GPIO configuration.
 - [GpioIn](GpioIn.md) — GPIO mask and state.

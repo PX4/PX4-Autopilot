@@ -27088,7 +27088,7 @@ u-blox protocol configuration for interfaces.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 32       |           | 0       |      | &nbsp;    |
+| &check; | 0        | 63       |           | 0       |      | &nbsp;    |
 
 ### GPS_UBX_DGNSS_TO (`INT32`) {#GPS_UBX_DGNSS_TO}
 
@@ -32833,10 +32833,33 @@ assigned output functions require a reboot).
 - `0`: AUX
 - `1`: MAVLink gimbal protocol v1
 - `2`: MAVLink gimbal protocol v2
+- `3`: Forward to external gimbal manager
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 2        |           | 0       |      | &nbsp;    |
+| &check; | 0        | 3        |           | 0       |      | &nbsp;    |
+
+### MNT_MODE_OUT2 (`INT32`) {#MNT_MODE_OUT2}
+
+Second mount output mode.
+
+Optional second output, driven in parallel to MNT_MODE_OUT with the
+same setpoints. This allows the gimbal driver to talk to a second
+gimbal in addition to the primary one.
+
+Set to Disabled if not used. The two outputs must use different modes.
+
+**Values:**
+
+- `-1`: Disabled
+- `0`: AUX
+- `1`: MAVLink gimbal protocol v1
+- `2`: MAVLink gimbal protocol v2
+- `3`: Forward to external gimbal manager
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | -1       | 3        |           | -1      |      | &nbsp;    |
 
 ### MNT_RANGE_ROLL (`FLOAT`) {#MNT_RANGE_ROLL}
 

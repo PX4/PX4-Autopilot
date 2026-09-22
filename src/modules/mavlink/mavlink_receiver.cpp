@@ -364,6 +364,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_device_attitude_status(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS:
+		handle_message_gimbal_manager_status(msg);
+		break;
+
 #if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
 
 	case MAVLINK_MSG_ID_SET_VELOCITY_LIMITS:
@@ -483,6 +487,17 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 
 	case MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS:
 		handle_message_gimbal_device_attitude_status(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS:
+		// The component on this link might be an external gimbal manager.
+		handle_message_gimbal_manager_status(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_COMMAND_ACK:
+		// Needed for the commands we send (e.g. DO_GIMBAL_MANAGER_CONFIGURE),
+		// otherwise they are retried until they time out.
+		handle_message_command_ack(&msg);
 		break;
 
 	case MAVLINK_MSG_ID_COMMAND_LONG: {
@@ -3629,6 +3644,14 @@ MavlinkReceiver::handle_message_gimbal_manager_set_attitude(mavlink_message_t *m
 void
 MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg)
 {
+	// Don't ingest device information from a component we know to be an external
+	// gimbal manager: that gimbal is not ours to manage, and treating its device
+	// info as our own would corrupt our own gimbal device discovery (our
+	// OutputMavlinkV2 would latch onto the foreign device id). The message is
+	// still forwarded to the ground station by the mavlink message forwarding.
+	if (_isExternalGimbalManager(msg->compid)) {
+		return;
+	}
 
 	mavlink_gimbal_device_information_t gimbal_device_info_msg;
 	mavlink_msg_gimbal_device_information_decode(msg, &gimbal_device_info_msg);
@@ -3645,9 +3668,10 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	memcpy(gimbal_information.vendor_name, gimbal_device_info_msg.vendor_name, sizeof(gimbal_information.vendor_name));
 	memcpy(gimbal_information.model_name, gimbal_device_info_msg.model_name, sizeof(gimbal_information.model_name));
 	memcpy(gimbal_information.custom_name, gimbal_device_info_msg.custom_name, sizeof(gimbal_information.custom_name));
-	gimbal_device_info_msg.vendor_name[sizeof(gimbal_device_info_msg.vendor_name) - 1] = '\0';
-	gimbal_device_info_msg.model_name[sizeof(gimbal_device_info_msg.model_name) - 1] = '\0';
-	gimbal_device_info_msg.custom_name[sizeof(gimbal_device_info_msg.custom_name) - 1] = '\0';
+	// Terminate the published fields, not the decoded message we are about to discard
+	gimbal_information.vendor_name[sizeof(gimbal_information.vendor_name) - 1] = '\0';
+	gimbal_information.model_name[sizeof(gimbal_information.model_name) - 1] = '\0';
+	gimbal_information.custom_name[sizeof(gimbal_information.custom_name) - 1] = '\0';
 
 	gimbal_information.firmware_version = gimbal_device_info_msg.firmware_version;
 	gimbal_information.hardware_version = gimbal_device_info_msg.hardware_version;
@@ -3691,6 +3715,39 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.gimbal_device_id = gimbal_device_attitude_status_msg.gimbal_device_id;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
+}
+
+void
+MavlinkReceiver::handle_message_gimbal_manager_status(mavlink_message_t *msg)
+{
+	// Ignore our own gimbal manager: PX4 streams this itself from the autopilot
+	// component, and we only care about external gimbal managers here.
+	// Also ignore gimbal managers of other systems (e.g. forwarded from another
+	// vehicle), only a manager on our vehicle is ours to talk to.
+	if (msg->sysid != mavlink_system.sysid || msg->compid == mavlink_system.compid) {
+		return;
+	}
+
+	// Remember that this component is an external gimbal manager, so we don't
+	// mistake its gimbal device information for our own (see
+	// handle_message_gimbal_device_information).
+	_markExternalGimbalManager(msg->compid);
+
+	mavlink_gimbal_manager_status_t status_msg;
+	mavlink_msg_gimbal_manager_status_decode(msg, &status_msg);
+
+	external_gimbal_manager_status_s status{};
+	status.timestamp = hrt_absolute_time();
+	status.manager_sysid = msg->sysid;
+	status.manager_compid = msg->compid;
+	status.flags = status_msg.flags;
+	status.gimbal_device_id = status_msg.gimbal_device_id;
+	status.primary_control_sysid = status_msg.primary_control_sysid;
+	status.primary_control_compid = status_msg.primary_control_compid;
+	status.secondary_control_sysid = status_msg.secondary_control_sysid;
+	status.secondary_control_compid = status_msg.secondary_control_compid;
+
+	_external_gimbal_manager_status_pub.publish(status);
 }
 
 void MavlinkReceiver::handle_message_open_drone_id_basic_id(mavlink_message_t *msg)
