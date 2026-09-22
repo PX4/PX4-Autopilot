@@ -737,3 +737,53 @@ TEST_F(AttitudeControlShapingTest, DisabledAxisKeepsLinearModel)
 		EXPECT_NEAR(diff.norm(), 0.f, 1e-5f);
 	}
 }
+
+TEST_F(AttitudeControlShapingTest, UnlockedHeadingDoesNotWindUpWhenVehicleCannotYaw)
+{
+	// GIVEN: a steady yaw-rate command the vehicle cannot follow (yaw held, e.g. still on the ground), so the
+	// heading setpoint never moves either, with the yaw axis acceleration-limited
+	const float commanded = 0.2f;
+	const Quatf q_stuck;    // vehicle and setpoint both pinned at identity
+
+	for (int i = 0; i < 2000; i++) {    // 8 s
+		_attitude_control.setAttitudeSetpoint(q_stuck, commanded, kDt);
+	}
+
+	// WHEN: evaluated at the actual (stuck) attitude, where a runaway reference shows up as a P term
+	for (const float ff_gain : {0.f, 1.f}) {
+		_attitude_control.setFeedForwardGain(ff_gain);
+		const Vector3f rate_setpoint = _attitude_control.update(q_stuck);
+		// THEN: the output is still just the commanded rate
+		EXPECT_NEAR(rate_setpoint(2), commanded, 1e-3f) << "MC_REF_FF = " << ff_gain;
+		EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f) << "MC_REF_FF = " << ff_gain;
+		EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f) << "MC_REF_FF = " << ff_gain;
+	}
+
+	// AND: the reference heading has not drifted off the setpoint
+	EXPECT_NEAR(Eulerf(_attitude_control.getReferenceAttitude()).psi(), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlShapingTest, TiltedUnlockedHeadingDoesNotWindUpWhenVehicleCannotYaw)
+{
+	// GIVEN: the same stuck vehicle, pitched so that the heading component spreads over all body axes
+	const float commanded = 0.2f;
+	const float tilt = 0.5f;
+	const Quatf q_stuck(AxisAnglef(Vector3f(0.f, tilt, 0.f)));
+
+	for (int i = 0; i < 2000; i++) {
+		_attitude_control.setAttitudeSetpoint(q_stuck, commanded, kDt);
+	}
+
+	// THEN: the output is the commanded world-z rate expressed in the body frame, nothing else
+	for (const float ff_gain : {0.f, 1.f}) {
+		_attitude_control.setFeedForwardGain(ff_gain);
+		const Vector3f rate_setpoint = _attitude_control.update(q_stuck);
+		EXPECT_NEAR(rate_setpoint(0), -sinf(tilt) * commanded, 1e-3f) << "MC_REF_FF = " << ff_gain;
+		EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f) << "MC_REF_FF = " << ff_gain;
+		EXPECT_NEAR(rate_setpoint(2), cosf(tilt) * commanded, 1e-3f) << "MC_REF_FF = " << ff_gain;
+	}
+
+	// AND: the reference has not drifted off the setpoint
+	const Vector3f ref_error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_stuck).canonical().imag();
+	EXPECT_LT(ref_error.norm(), 1e-3f);
+}
