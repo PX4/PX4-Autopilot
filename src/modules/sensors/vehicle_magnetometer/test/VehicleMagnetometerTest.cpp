@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Test for VehicleOpticalFlow
+ * Test for VehicleMagnetometer
  */
 
 #include <gtest/gtest.h>
@@ -70,6 +70,7 @@ public:
 		}
 		int selectedIndex() const { return selectedSensorIndex(); }
 		unsigned failoverCount() { return voterFailoverCount(); }
+		bool callbackRegistered(int index) const { return VehicleMagnetometer::callbackRegistered(index); }
 		uint8_t priority(int index) const { return sensorPriority(index); }
 	};
 
@@ -307,4 +308,25 @@ TEST_F(VehicleMagnetometerTest, OnlyMagnetometerDisabledClearsSelectionAndComesB
 	EXPECT_EQ(module.priority(0), 60);
 	EXPECT_EQ(module.failoverCount(), 0u);
 	EXPECT_TRUE(magnetometerPublished());
+}
+
+TEST_F(VehicleMagnetometerTest, MagnetometerDisabledFromBootDoesNotDriveRun)
+{
+	// the only magnetometer is disabled before the module sees it: nothing ever gets selected, so
+	// nothing ever clears the callbacks, and one registered here would wake Run() at the sample rate
+	VehicleMagnetometerTestable module;
+
+	runFor(module, 500_ms, [&]() { publishSample(0, _field); });
+
+	EXPECT_EQ(module.selectedIndex(), -1);
+	EXPECT_EQ(module.priority(0), 0);
+	EXPECT_FALSE(module.callbackRegistered(0));
+
+	setPriority(0, 75);
+	publishParameterUpdate();
+
+	runFor(module, 1200_ms, [&]() { publishSample(0, _field); });
+
+	EXPECT_EQ(module.selectedIndex(), 0);
+	EXPECT_TRUE(module.callbackRegistered(0));
 }
