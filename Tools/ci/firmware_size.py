@@ -7,6 +7,10 @@ import os
 from pathlib import Path
 import subprocess
 
+# The commit hash compiled into px4_firmware_version_binary() changes its code
+# size, so identical sources on two commits can differ by up to 16 B.
+MIN_REPORTED_DELTA = 30
+
 
 def memory_usage(elf: Path) -> dict[str, int]:
     # Sections rather than program headers: ld may map the ELF header into the
@@ -67,7 +71,8 @@ def summarize(before: dict[str, int], after: dict[str, int]) -> dict:
     return {
         "flash": format_change(before["flash"], after["flash"]),
         "ram": format_change(before["ram"], after["ram"]),
-        "changed": before != after,
+        "changed": any(abs(after[key] - before[key]) >= MIN_REPORTED_DELTA
+                       for key in ("flash", "ram")),
     }
 
 

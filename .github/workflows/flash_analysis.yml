@@ -11,11 +11,19 @@ on:
       - 'main'
     paths-ignore:
       - 'docs/**'
+      - '.agents/**'
+      - '.claude/**'
+      - '**/AGENTS.md'
+      - '**/CLAUDE.md'
   pull_request:
     branches:
       - '**'
     paths-ignore:
       - 'docs/**'
+      - '.agents/**'
+      - '.claude/**'
+      - '**/AGENTS.md'
+      - '**/CLAUDE.md'
 
 jobs:
   analyze_flash:

@@ -110,6 +110,11 @@ SECTIONS
         self.assertFalse(summarize({"flash": 1, "ram": 0}, {"flash": 1, "ram": 0})["changed"])
         self.assertEqual(format_change(0, 4488), "🔴 +4,488 B (n/a)")
 
+    def test_small_deltas_are_not_reported(self):
+        before = {"flash": 1000, "ram": 1000}
+        self.assertFalse(summarize(before, {"flash": 992, "ram": 1029})["changed"])
+        self.assertTrue(summarize(before, {"flash": 970, "ram": 1000})["changed"])
+
     def test_change_indicator(self):
         for delta, expected in ((1001, "🔴 "), (1000, "🟡 "), (101, "🟡 "), (100, ""),
                                 (-100, ""), (-101, "🟢 "), (-5000, "🟢 ")):
