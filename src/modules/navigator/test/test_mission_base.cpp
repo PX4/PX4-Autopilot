@@ -53,7 +53,10 @@
 
 #include <cstring>
 #include <uORB/Subscription.hpp>
+#include <uORB/uORB.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
 
 class MissionBaseTestPeer : public MissionBase
 {
@@ -858,4 +861,132 @@ TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGo
 	// THEN: The DO_JUMP loop is skipped and the geometric previous waypoint is selected.
 	EXPECT_EQ(ret, PX4_OK);
 	EXPECT_EQ(mission_base.currentSequence(), 1);
+}
+
+class MissionBaseHandleLandingTestPeer : public MissionBaseTestPeer
+{
+public:
+	explicit MissionBaseHandleLandingTestPeer(Navigator *navigator) : MissionBaseTestPeer(navigator) {}
+
+	using MissionBase::handleLanding;
+	using MissionBase::WorkItemType;
+	using MissionBase::_mission_item;
+	using MissionBase::_work_item_type;
+
+	void updateVehicleState()
+	{
+		_vehicle_status_sub.update();
+		_land_detected_sub.update();
+	}
+};
+
+class MissionBaseHandleLandingTest : public NavigatorDatamanTestBase
+{
+protected:
+	void SetUp() override
+	{
+		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+		publishLandDetected(false);
+	}
+
+	void TearDown() override
+	{
+		if (_vehicle_status_pub != nullptr) {
+			orb_unadvertise(_vehicle_status_pub);
+			_vehicle_status_pub = nullptr;
+		}
+
+		if (_land_detected_pub != nullptr) {
+			orb_unadvertise(_land_detected_pub);
+			_land_detected_pub = nullptr;
+		}
+	}
+
+	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type)
+	{
+		vehicle_status_s status{};
+		status.timestamp = hrt_absolute_time();
+		status.is_vtol = is_vtol;
+		status.vehicle_type = vehicle_type;
+
+		if (_vehicle_status_pub == nullptr) {
+			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_status), _vehicle_status_pub, &status);
+		}
+	}
+
+	void publishLandDetected(bool landed)
+	{
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = hrt_absolute_time();
+		land_detected.landed = landed;
+
+		if (_land_detected_pub == nullptr) {
+			_land_detected_pub = orb_advertise(ORB_ID(vehicle_land_detected), &land_detected);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_land_detected), _land_detected_pub, &land_detected);
+		}
+	}
+
+	Navigator _navigator{};
+	MissionBaseHandleLandingTestPeer mission_base{&_navigator};
+
+	orb_advert_t _vehicle_status_pub{nullptr};
+	orb_advert_t _land_detected_pub{nullptr};
+};
+
+// WHY: A VTOL RTL mission landing point is not required to use NAV_CMD_VTOL_LAND -- a plain
+// NAV_CMD_LAND is a valid way to mark the mission landing item. Before this fix, a fixed-wing
+// VTOL reaching such a point never transitioned back to MC and instead tried to fly the
+// fixed-wing-incompatible NAV_CMD_LAND descent as a fixed wing.
+// WHAT: handleLanding() on a fixed-wing VTOL with a NAV_CMD_LAND item routes through
+// WORK_ITEM_TYPE_MOVE_TO_LAND, the same as it already does for NAV_CMD_VTOL_LAND.
+TEST_F(MissionBaseHandleLandingTest, NonVtolLandPointTriggersMoveToLand)
+{
+	// GIVEN: a fixed-wing VTOL arriving at a plain NAV_CMD_LAND mission item straight from a
+	// normal mission item (no climb in between).
+	mission_base._mission_item.nav_cmd = NAV_CMD_LAND;
+	mission_base._work_item_type = MissionBaseHandleLandingTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+	mission_base.updateVehicleState();
+
+	auto new_work_item_type = MissionBaseHandleLandingTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+	mission_item_s next_mission_items[1] {};
+	size_t num_found_items = 0;
+
+	// WHEN: handleLanding() processes the item.
+	mission_base.handleLanding(new_work_item_type, next_mission_items, num_found_items);
+
+	// THEN: the vehicle is routed to move to the land point as fixed wing ahead of the back
+	// transition, instead of continuing straight into the mission item as-is.
+	EXPECT_EQ(new_work_item_type, MissionBaseHandleLandingTestPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND);
+}
+
+// WHY: When RTL needs to climb back up to RTL_RETURN_ALT before flying to the landing point,
+// the mission item preceding the land item is a WORK_ITEM_TYPE_CLIMB item rather than the
+// default one. Before this fix, handleLanding() only started the VTOL landing sequence when
+// coming from WORK_ITEM_TYPE_DEFAULT, so a landing reached after that climb never got a back
+// transition and was flown fixed wing.
+// WHAT: handleLanding() also starts the VTOL landing sequence when the previous work item was
+// WORK_ITEM_TYPE_CLIMB.
+TEST_F(MissionBaseHandleLandingTest, LandPointAfterReturnAltitudeClimbTriggersMoveToLand)
+{
+	// GIVEN: a fixed-wing VTOL reaching the VTOL land item right after climbing back to
+	// RTL_RETURN_ALT.
+	mission_base._mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
+	mission_base._work_item_type = MissionBaseHandleLandingTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB;
+	mission_base.updateVehicleState();
+
+	auto new_work_item_type = MissionBaseHandleLandingTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+	mission_item_s next_mission_items[1] {};
+	size_t num_found_items = 0;
+
+	// WHEN: handleLanding() processes the item.
+	mission_base.handleLanding(new_work_item_type, next_mission_items, num_found_items);
+
+	// THEN: the vehicle still starts the move-to-land sequence instead of skipping the back
+	// transition because the previous work item was a climb rather than the default one.
+	EXPECT_EQ(new_work_item_type, MissionBaseHandleLandingTestPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND);
 }
