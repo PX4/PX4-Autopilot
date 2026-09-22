@@ -13,4 +13,4 @@ Claude Code reads neither location directly. Each `CLAUDE.md` is a one-line `@AG
 | `build-px4-linux` | Board or SITL build on a Linux host |
 | `build-px4-macos` | Board build on macOS, in the `px4-dev` container |
 
-Create worktrees outside the repository, e.g. `../PX4-Autopilot-worktrees/`.
+Create worktrees where the user's own agent instructions put them. Without such a rule, put them next to the repository in `../PX4-Autopilot-worktrees/<name>/`, never inside it.
