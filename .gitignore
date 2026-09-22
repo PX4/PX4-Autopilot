@@ -117,6 +117,10 @@ _emscripten_sdk/
 # virtual Python environment
 .venv
 
+# pixi environments and downloaded toolchains
+.pixi
+.toolchains
+
 # Claude Code local settings
 .claude/settings.local.json
 
