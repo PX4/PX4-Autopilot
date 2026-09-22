@@ -187,7 +187,9 @@ void VehicleAirData::Run()
 						}
 					}
 
-					if (_selected_sensor_sub_index < 0) {
+					// callbacks are only cleared on a selection change, which never comes while every
+					// sensor is disabled, so a disabled one must not drive Run() at its sample rate
+					if ((_selected_sensor_sub_index < 0) && (_priority[uorb_index] > 0)) {
 						_sensor_sub[uorb_index].registerCallback();
 					}
 
