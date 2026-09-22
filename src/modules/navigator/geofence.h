@@ -118,6 +118,12 @@ public:
 	bool checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results);
 	bool isReadyForPathChecks() const { return _path_check_ready; }
 
+	/** True while a fence update is loading or a failed load waits for its retry. */
+	bool isFenceUpdatePending() const
+	{
+		return _initiate_fence_updated || _dataman_state != DatamanState::UpdateRequestWait || _fence_retry_time != 0;
+	}
+
 	/**
 	 * @brief check if the horizontal distance to Home is greater than the maximum allowed distance
 	 *

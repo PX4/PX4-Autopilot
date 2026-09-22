@@ -784,16 +784,20 @@ MissionBase::checkMissionRestart()
 void
 MissionBase::check_mission_valid(bool forced)
 {
-	const bool inputs_changed = (_navigator->get_mission_result()->mission_id != _mission.mission_id)
+	const bool mission_changed = _navigator->get_mission_result()->mission_id != _mission.mission_id;
+	const bool inputs_changed = mission_changed
 				    || (_navigator->get_mission_result()->geofence_id != _mission.geofence_id)
 				    || (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count);
 
-	if (!_navigator->get_geofence().isReadyForPathChecks()) {
-		// Keep the verdict for the same mission, fence and Home; retry when ready.
+	if (_navigator->get_geofence().isFenceUpdatePending()) {
+		// A fence upload reloads the fence for about a second. Keep the last verdict until then
+		// and recheck when it is ready: reporting the mission invalid now would make Commander
+		// treat it as missing and fail over out of Mission mode.
 		_mission_checked = false;
 		_mission_check_pending = true;
 
-		if (inputs_changed) {
+		// A mission that was never checked has no verdict to keep.
+		if (mission_changed) {
 			_navigator->get_mission_result()->valid = false;
 			_navigator->set_mission_result_updated();
 		}

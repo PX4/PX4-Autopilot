@@ -44,6 +44,7 @@
 
 #include "mission_base.h"
 #include "navigator.h"
+#include "support/geofence_test_helpers.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/navigator_dataman_test.h"
 #include "support/vector_mission_item_store.h"
@@ -306,17 +307,46 @@ TEST_F(MissionBaseFeasibilityTest, DeferredCheckPreservesVerdictUntilRetry)
 	EXPECT_TRUE(_mission_base.missionChecked());
 }
 
+TEST_F(MissionBaseFeasibilityTest, SpentFenceRetriesLetTheCheckReject)
+{
+	_mission_base.checkMission(true);
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	Geofence &fence = _navigator.get_geofence();
+	fence.updateFence();
+
+	for (unsigned attempt = 0; attempt <= GeofenceTestPeer::maxLoadRetries(); ++attempt) {
+		SCOPED_TRACE(attempt);
+		// The verdict is kept while a retry is still pending.
+		_mission_base.checkMission(true);
+		EXPECT_TRUE(_navigator.get_mission_result()->valid);
+		EXPECT_FALSE(_mission_base.missionChecked());
+		GeofenceTestPeer::expireRetryDelay(fence);
+		fence.run();
+		fence.run();
+		ASSERT_TRUE(GeofenceTestPeer::failPendingRead(fence));
+		fence.run();
+		fence.run();
+	}
+
+	// Once the fence gives up, the deferred check runs and rejects the mission.
+	ASSERT_FALSE(fence.isFenceUpdatePending());
+	_mission_base.checkMission(true);
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_mission_base.missionChecked());
+}
+
 enum class MissionFeasibilityInput { Mission, Geofence, Home };
 
 struct ChangedMissionInput {
 	const char *name;
 	MissionFeasibilityInput input;
+	bool keeps_verdict;
 };
 
 class MissionBaseChangedInputTest : public MissionBaseFeasibilityTest,
 	public ::testing::WithParamInterface<ChangedMissionInput> {};
 
-TEST_P(MissionBaseChangedInputTest, DeferredCheckDoesNotReusePreviousVerdict)
+TEST_P(MissionBaseChangedInputTest, DeferredCheckInvalidatesOnlyAnUncheckedMission)
 {
 	_mission_base.checkMission(true);
 	const mission_result_s checked_result = *_navigator.get_mission_result();
@@ -345,18 +375,27 @@ TEST_P(MissionBaseChangedInputTest, DeferredCheckDoesNotReusePreviousVerdict)
 	_mission_base.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)}, mission);
 	_navigator.get_geofence().updateFence();
 	_mission_base.checkMission(true);
-	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	// A fence or Home change keeps the checked mission flyable until the recheck.
+	EXPECT_EQ(_navigator.get_mission_result()->valid, GetParam().keeps_verdict);
 	EXPECT_FALSE(_mission_base.missionChecked());
 	// No result has been computed for the changed inputs yet.
 	EXPECT_EQ(_navigator.get_mission_result()->mission_id, checked_result.mission_id);
 	EXPECT_EQ(_navigator.get_mission_result()->geofence_id, checked_result.geofence_id);
 	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, checked_result.home_position_counter);
+
+	ASSERT_TRUE(finishFenceUpdate());
+	_mission_base.checkMission();
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_mission_base.missionChecked());
+	EXPECT_EQ(_navigator.get_mission_result()->mission_id, mission.mission_id);
+	EXPECT_EQ(_navigator.get_mission_result()->geofence_id, mission.geofence_id);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, _navigator.get_home_position()->update_count);
 }
 
 INSTANTIATE_TEST_SUITE_P(ChangedInputs, MissionBaseChangedInputTest, ::testing::Values(
-				 ChangedMissionInput{"Mission", MissionFeasibilityInput::Mission},
-				 ChangedMissionInput{"Geofence", MissionFeasibilityInput::Geofence},
-				 ChangedMissionInput{"Home", MissionFeasibilityInput::Home}),
+				 ChangedMissionInput{"Mission", MissionFeasibilityInput::Mission, false},
+				 ChangedMissionInput{"Geofence", MissionFeasibilityInput::Geofence, true},
+				 ChangedMissionInput{"Home", MissionFeasibilityInput::Home, true}),
 			 [](const ::testing::TestParamInfo<ChangedMissionInput> &test_info)
 {
 	return test_info.param.name;
