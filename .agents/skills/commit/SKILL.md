@@ -39,3 +39,8 @@ invent one.**
    unless the user asks or the branch is being rebased. PRs are squash-merged,
    so the branch history costs nothing on `main` and shows reviewers the
    decision chain.
+7. If the branch has an upstream (`git rev-parse --abbrev-ref @{u}`), push.
+8. If the branch has an open PR (`gh pr view --json state,body`), update its
+   description with `gh pr edit --body` when the commit changes what the
+   Summary, Problem, Solution or Testing sections say, following the `pr`
+   skill's format. Leave it alone otherwise.
