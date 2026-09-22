@@ -25,12 +25,19 @@ jobs:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     strategy:
       matrix:
-        target: [px4_fmu-v5x, px4_fmu-v6x]
+        # Match flash-analysis-script.ld, which permits measuring oversized images.
+        include:
+          - target: px4_fmu-v5x
+            flash-origin: '0x08008000'
+            flash-size: '0x9d8000'
+          - target: px4_fmu-v6x
+            flash-origin: '0x08020000'
+            flash-size: '0x9d8000'
     outputs:
       px4_fmu-v5x-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v5x-bloaty-output }}
-      px4_fmu-v5x-bloaty-summary-map: ${{ steps.gen-output.outputs.px4_fmu-v5x-bloaty-summary-map }}
+      px4_fmu-v5x-memory-summary: ${{ steps.gen-output.outputs.px4_fmu-v5x-memory-summary }}
       px4_fmu-v6x-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v6x-bloaty-output }}
-      px4_fmu-v6x-bloaty-summary-map: ${{ steps.gen-output.outputs.px4_fmu-v6x-bloaty-summary-map }}
+      px4_fmu-v6x-memory-summary: ${{ steps.gen-output.outputs.px4_fmu-v6x-memory-summary }}
     steps:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v6
@@ -39,6 +46,12 @@ jobs:
           submodules: recursive
       - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
+
+      - name: Test and preserve memory reporter
+        # The baseline checkout may not contain this version of the reporter.
+        run: |
+          python3 -m unittest discover -s Tools/ci -p test_firmware_size.py
+          cp Tools/ci/firmware_size.py "$RUNNER_TEMP/firmware_size.py"
 
       - name: Cache - Restore ccache (current)
         id: cache_current
@@ -135,24 +148,31 @@ jobs:
 
       - name: Generate output
         id: gen-output
+        env:
+          BLOATY_OUTPUT: ${{ steps.bloaty-step.outputs.bloaty-output }}
         run: |
+          summary=$(python3 "$RUNNER_TEMP/firmware_size.py" \
+            --before before-change.elf --after with-change.elf \
+            --flash-origin '${{ matrix.flash-origin }}' --flash-size '${{ matrix.flash-size }}')
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "${{ matrix.target }}-bloaty-output<<$EOF" >> $GITHUB_OUTPUT
-          echo "${{ steps.bloaty-step.outputs.bloaty-output-encoded }}" >> $GITHUB_OUTPUT
-          echo "$EOF" >> $GITHUB_OUTPUT
-          echo "${{ matrix.target }}-bloaty-summary-map<<$EOF" >> $GITHUB_OUTPUT
-          echo '${{ steps.bloaty-step.outputs.bloaty-summary-map }}' >> $GITHUB_OUTPUT
-          echo "$EOF" >> $GITHUB_OUTPUT
+          {
+            echo "${{ matrix.target }}-memory-summary=$summary"
+            echo "${{ matrix.target }}-bloaty-output<<$EOF"
+            printf '%s\n' "$BLOATY_OUTPUT"
+            echo "$EOF"
+          } >> "$GITHUB_OUTPUT"
 
   post_pr_comment:
     name: Publish Results
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
     needs: [analyze_flash]
     env:
-      V5X-SUMMARY-MAP-ABS: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-summary-map).vm-absolute) }}
-      V5X-SUMMARY-MAP-PERC: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-summary-map).vm-percentage) }}
-      V6X-SUMMARY-MAP-ABS: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-summary-map).vm-absolute) }}
-      V6X-SUMMARY-MAP-PERC: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-summary-map).vm-percentage) }}
+      V5X_FLASH: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-memory-summary).flash }}
+      V5X_RAM: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-memory-summary).ram }}
+      V5X_CHANGED: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-memory-summary).changed }}
+      V6X_FLASH: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-memory-summary).flash }}
+      V6X_RAM: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-memory-summary).ram }}
+      V6X_CHANGED: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-memory-summary).changed }}
     if: github.event.pull_request
     steps:
       - name: Find Comment
@@ -166,15 +186,15 @@ jobs:
       - name: Set Build Time
         id: bt
         run: |
-          echo "timestamp=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date +'%Y-%m-%dT%H:%M:%S')" >> "$GITHUB_OUTPUT"
 
       - name: Write pr-comment artifact
-        # Skip only when the diff is exactly 0 bytes on all targets and no comment exists yet.
+        # Update existing comments even when both deltas return to zero.
         # This can't be moved to the job-level conditions, as GH actions don't allow a job-level if condition to access the env.
         if: |
           steps.fc.outputs.comment-id != '' ||
-          env.V5X-SUMMARY-MAP-ABS != 0 ||
-          env.V6X-SUMMARY-MAP-ABS != 0
+          env.V5X_CHANGED == 'true' ||
+          env.V6X_CHANGED == 'true'
         run: |
           mkdir -p pr-comment
           cat > pr-comment/manifest.json <<EOF
@@ -186,9 +206,19 @@ jobs:
           EOF
           cat > pr-comment/body.md <<'PR_COMMENT_BODY_EOF'
           <!-- pr-comment-poster:flash-analysis -->
-          ## 🔎 FLASH Analysis
+          ## 🔎 Flash and RAM Analysis
+
+          | Target | Flash change | Static RAM change |
+          | --- | ---: | ---: |
+          | px4_fmu-v5x | ${{ env.V5X_FLASH }} | ${{ env.V5X_RAM }} |
+          | px4_fmu-v6x | ${{ env.V6X_FLASH }} | ${{ env.V6X_RAM }} |
+
+          Changes are relative to the base build. Flash includes code, constants, initial values for RAM data/code, and image padding. Static RAM includes initialized data, BSS, RAM code, and reserved buffers; runtime heap and stack use is not measured. Initialized data and RAM code count toward both totals.
+
+          Bloaty's FILE SIZE and VM SIZE columns describe the ELF file and virtual address space; use the table above for flash and RAM impact.
+
           <details>
-          <summary>px4_fmu-v5x [Total VM Diff: ${{ env.V5X-SUMMARY-MAP-ABS }} byte (${{ env.V5X-SUMMARY-MAP-PERC}} %)]</summary>
+          <summary>px4_fmu-v5x — Bloaty section/symbol breakdown</summary>
 
           ```
           ${{ needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-output }}
@@ -196,7 +226,7 @@ jobs:
           </details>
 
           <details>
-          <summary>px4_fmu-v6x [Total VM Diff: ${{ env.V6X-SUMMARY-MAP-ABS }} byte (${{ env.V6X-SUMMARY-MAP-PERC }} %)]</summary>
+          <summary>px4_fmu-v6x — Bloaty section/symbol breakdown</summary>
 
           ```
           ${{ needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-output }}
@@ -209,8 +239,8 @@ jobs:
       - name: Upload pr-comment artifact
         if: |
           steps.fc.outputs.comment-id != '' ||
-          env.V5X-SUMMARY-MAP-ABS != 0 ||
-          env.V6X-SUMMARY-MAP-ABS != 0
+          env.V5X_CHANGED == 'true' ||
+          env.V6X_CHANGED == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: pr-comment
