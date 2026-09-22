@@ -127,13 +127,15 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		return true;
 	}
 
+	enum class Failure { None, DatamanRead, NoHome, Waypoint } failure = Failure::None;
+	size_t failed_item = 0;
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 	/* Check mission positions and the paths between them. */
 	static GeofencePathBatch batch{}; // keep the shared batch off the stack.
 	batch.count = 0;
 	matrix::Vector2d previous_position{};
 	bool have_previous_position = false;
-	enum class Failure { None, DatamanRead, NoHome, Waypoint } failure = Failure::None;
-	size_t failed_item = 0;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
@@ -165,6 +167,8 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 				   && PX4_ISFINITE(missionitem.altitude)
 				   && fabs(missionitem.lat) <= 90.0 && fabs(missionitem.lon) <= 180.0;
 
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+
 		if (point_valid) {
 			if (!have_previous_position) {
 				// Check polygon membership once; the paths check all later positions.
@@ -178,13 +182,20 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 			}
 		}
 
+#else
+		// Without path checks every position is checked against the whole fence.
+		point_valid = point_valid && geofence.checkPointAgainstAllGeofences(missionitem.lat, missionitem.lon,
+				missionitem.altitude);
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
 		if (!point_valid) {
 			failure = Failure::Waypoint;
 			failed_item = i;
 			break;
 		}
 
-		const matrix::Vector2d position{missionitem.lat, missionitem.lon};
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+		const matrix::Vector2d position {missionitem.lat, missionitem.lon};
 
 		if (!have_previous_position) {
 			// A zero-length path also rejects a lone waypoint on a fence boundary.
@@ -199,12 +210,18 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		if (batch.count == kGeofencePathBatchSize && !checkGeofencePathBatch(batch)) {
 			return false;
 		}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 	}
+
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 
 	// Report an earlier buffered path breach before the current item's failure.
 	if (!checkGeofencePathBatch(batch)) {
 		return false;
 	}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	switch (failure) {
 	case Failure::None:
@@ -230,6 +247,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 	return false;
 }
 
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 bool MissionFeasibilityChecker::checkGeofencePathBatch(GeofencePathBatch &batch)
 {
 	if (batch.count == 0) {
@@ -256,6 +274,7 @@ bool MissionFeasibilityChecker::checkGeofencePathBatch(GeofencePathBatch &batch)
 	batch.count = 0;
 	return true;
 }
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 void MissionFeasibilityChecker::logGeofenceUnavailable()
 {
