@@ -37,11 +37,28 @@
 
 #include <array>
 #include <cmath>
+#include <cstring>
+
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/mavlink_log.h>
 
 class GeofenceTest : public navigator_test::GeofenceTestBase
 {
 protected:
 	void SetUp() override { ASSERT_TRUE(resetFence()); }
+
+	static bool logContains(uORB::Subscription &log_sub, const char *text)
+	{
+		mavlink_log_s report{};
+		bool found = false;
+
+		while (log_sub.update(&report)) {
+			found |= strstr(reinterpret_cast<const char *>(report.text), text) != nullptr;
+		}
+
+		return found;
+	}
+
 };
 
 enum class FenceShape { ExclusionPolygon, ConcaveInclusion, ExclusionCircle, InclusionCircle };
@@ -250,6 +267,7 @@ TEST_F(GeofenceTest, ReadFailureKeepsPathChecksUnavailable)
 	bool clear = true;
 	EXPECT_FALSE(_fence.checkPathBatch(&query, 1, &clear));
 	EXPECT_FALSE(clear);
+	// The failed response must not disturb the fence that was loaded before.
 	const auto inside_exclusion = position(0.f, 300.f);
 	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
 }
@@ -460,28 +478,87 @@ TEST_F(GeofenceTest, QueuedRefreshSurvivesUnchangedFenceId)
 	EXPECT_TRUE(clear);
 }
 
-struct InvalidCircleRadiusCase {
-	const char *name;
-	float radius;
+enum class InvalidFenceItem {
+	TwoVertexPolygon, ZeroRadius, NegativeRadius, NonFiniteRadius, NonFiniteVertex, LocalFrame,
+	MixedVertexType, VertexCountMismatch, TruncatedPolygon, AntimeridianEdge
 };
 
-class InvalidCircleRadiusTest : public GeofenceTest,
-	public ::testing::WithParamInterface<InvalidCircleRadiusCase> {};
+struct InvalidFenceLoadCase {
+	const char *name;
+	InvalidFenceItem fault;
+};
 
-TEST_P(InvalidCircleRadiusTest, RejectsBatch)
+class InvalidGeofenceLoadTest : public GeofenceTest, public ::testing::WithParamInterface<InvalidFenceLoadCase> {};
+
+TEST_P(InvalidGeofenceLoadTest, RejectsFenceWhenLoading)
 {
-	ASSERT_TRUE(loadFence(circle(false, {0.f, 300.f}, GetParam().radius)));
-	const Geofence::PathCheck query = path({100.f, 100.f}, {100.f, 500.f});
+	FencePoints points = exclusionSquare();
+
+	switch (GetParam().fault) {
+	case InvalidFenceItem::TwoVertexPolygon:
+		points = polygon(false, {{-50.f, 250.f}, {50.f, 250.f}});
+		break;
+
+	case InvalidFenceItem::ZeroRadius:
+		points = circle(false, {0.f, 300.f}, 0.f);
+		break;
+
+	case InvalidFenceItem::NegativeRadius:
+		points = circle(false, {0.f, 300.f}, -50.f);
+		break;
+
+	case InvalidFenceItem::NonFiniteRadius:
+		points = circle(false, {0.f, 300.f}, NAN);
+		break;
+
+	case InvalidFenceItem::NonFiniteVertex:
+		points[2].lon = NAN;
+		break;
+
+	case InvalidFenceItem::LocalFrame:
+		points[1].frame = NAV_FRAME_LOCAL_NED;
+		break;
+
+	case InvalidFenceItem::MixedVertexType:
+		points[3].nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION;
+		break;
+
+	case InvalidFenceItem::VertexCountMismatch:
+		points[1].vertex_count = 3;
+		break;
+
+	case InvalidFenceItem::TruncatedPolygon:
+		points.pop_back();
+		break;
+
+	case InvalidFenceItem::AntimeridianEdge:
+		points[2].lon = -179.0;
+		break;
+	}
+
+	uORB::Subscription log_sub{ORB_ID(mavlink_log)};
+	ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
+	// Invalid data is reported once and leaves no fence behind.
+	EXPECT_TRUE(_fence.isEmpty());
+	EXPECT_TRUE(logContains(log_sub, "invalid, fence is not active"));
+	const Geofence::PathCheck query = path({0.f, 100.f}, {0.f, 500.f});
 	bool clear = true;
 	EXPECT_FALSE(_fence.checkPathBatch(&query, 1, &clear));
 	EXPECT_FALSE(clear);
 }
 
-INSTANTIATE_TEST_SUITE_P(InvalidCircleRadii, InvalidCircleRadiusTest, ::testing::Values(
-				 InvalidCircleRadiusCase{"Zero", 0.f},
-				 InvalidCircleRadiusCase{"Negative", -50.f},
-				 InvalidCircleRadiusCase{"NonFinite", NAN}),
-			 [](const ::testing::TestParamInfo<InvalidCircleRadiusCase> &test_info)
+INSTANTIATE_TEST_SUITE_P(InvalidFences, InvalidGeofenceLoadTest, ::testing::Values(
+				 InvalidFenceLoadCase{"TwoVertexPolygon", InvalidFenceItem::TwoVertexPolygon},
+				 InvalidFenceLoadCase{"ZeroRadius", InvalidFenceItem::ZeroRadius},
+				 InvalidFenceLoadCase{"NegativeRadius", InvalidFenceItem::NegativeRadius},
+				 InvalidFenceLoadCase{"NonFiniteRadius", InvalidFenceItem::NonFiniteRadius},
+				 InvalidFenceLoadCase{"NonFiniteVertex", InvalidFenceItem::NonFiniteVertex},
+				 InvalidFenceLoadCase{"LocalFrame", InvalidFenceItem::LocalFrame},
+				 InvalidFenceLoadCase{"MixedVertexType", InvalidFenceItem::MixedVertexType},
+				 InvalidFenceLoadCase{"VertexCountMismatch", InvalidFenceItem::VertexCountMismatch},
+				 InvalidFenceLoadCase{"TruncatedPolygon", InvalidFenceItem::TruncatedPolygon},
+				 InvalidFenceLoadCase{"AntimeridianEdge", InvalidFenceItem::AntimeridianEdge}),
+			 [](const ::testing::TestParamInfo<InvalidFenceLoadCase> &test_info)
 {
 	return test_info.param.name;
 });

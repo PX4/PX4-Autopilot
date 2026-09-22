@@ -79,7 +79,7 @@ public:
 
 	static void useEquatorProjection(Geofence &fence) { fence._projection_reference.initReference(0.0, 0.0); }
 
-	static void finishUpdate(Geofence &fence) { fence._finishFenceUpdate(true); }
+	static void finishUpdate(Geofence &fence) { fence._finishFenceUpdate(Geofence::LoadResult::Loaded); }
 
 	static bool waitForPendingRead(Geofence &fence)
 	{
@@ -88,7 +88,7 @@ public:
 
 	static bool failPendingRead(Geofence &fence)
 	{
-		return DatamanClientTestPeer::completeOperationWithFailure(fence._dataman_client);
+		return DatamanClientTestPeer::failPendingReadThroughDataman(fence._dataman_client);
 	}
 };
 
@@ -201,7 +201,8 @@ protected:
 		return ::testing::AssertionFailure() << "fence load timed out";
 	}
 
-	::testing::AssertionResult loadFence(const FencePoints &points)
+	::testing::AssertionResult loadFence(const FencePoints &points,
+					     uint8_t expected_status = geofence_status_s::GF_STATUS_READY)
 	{
 		for (size_t i = 0; i < points.size(); ++i) {
 			mission_fence_point_s point = points[i];
@@ -224,7 +225,7 @@ protected:
 		}
 
 		_fence.updateFence();
-		return waitForFence();
+		return waitForFence(expected_status);
 	}
 
 	struct Runtime {
