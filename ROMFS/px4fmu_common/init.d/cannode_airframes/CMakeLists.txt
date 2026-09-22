@@ -31,6 +31,6 @@
 #
 ############################################################################
 
+# Board-specific default CAN-node profiles go here; the full profile is shipped via microSD instead.
 px4_add_romfs_files(
-	canio_airframe
 )
