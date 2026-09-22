@@ -44,7 +44,6 @@ jobs:
         # The baseline checkout may not contain this version of the reporter.
         run: |
           python3 -m unittest discover -s Tools/ci -p test_firmware_size.py
-          python3 -m unittest discover -s Tools/ci -p test_pr_comment_poster.py
           cp Tools/ci/firmware_size.py "$RUNNER_TEMP/firmware_size.py"
 
       - name: Cache - Restore ccache (current)
@@ -182,8 +181,12 @@ jobs:
           echo "timestamp=$(date +'%Y-%m-%dT%H:%M:%S')" >> "$GITHUB_OUTPUT"
 
       - name: Write pr-comment artifact
-        # Post only when flash or static RAM changed on a target.
-        if: env.V5X_CHANGED == 'true' || env.V6X_CHANGED == 'true'
+        # Update existing comments even when both deltas return to zero.
+        # This can't be moved to the job-level conditions, as GH actions don't allow a job-level if condition to access the env.
+        if: |
+          steps.fc.outputs.comment-id != '' ||
+          env.V5X_CHANGED == 'true' ||
+          env.V6X_CHANGED == 'true'
         run: |
           mkdir -p pr-comment
           cat > pr-comment/manifest.json <<EOF
@@ -222,61 +225,12 @@ jobs:
           PR_COMMENT_BODY_EOF
 
       - name: Upload pr-comment artifact
-        if: env.V5X_CHANGED == 'true' || env.V6X_CHANGED == 'true'
+        if: |
+          steps.fc.outputs.comment-id != '' ||
+          env.V5X_CHANGED == 'true' ||
+          env.V6X_CHANGED == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: pr-comment
-          path: pr-comment/
-          retention-days: 1
-
-      - name: Delete analysis comment when usage is unchanged
-        # Same-repo pull_request tokens can delete the sticky comment. Fork tokens cannot, so those PRs upload a delete artifact for the default-branch poster.
-        if: |
-          steps.fc.outputs.comment-id != '' &&
-          env.V5X_CHANGED != 'true' &&
-          env.V6X_CHANGED != 'true' &&
-          github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMENT_ID: ${{ steps.fc.outputs.comment-id }}
-        run: |
-          api=${GITHUB_API_URL:-https://api.github.com}
-          code=$(curl -sS --max-time 30 -o /tmp/delete-comment.json -w '%{http_code}' -X DELETE \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "${api%/}/repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}")
-          if [ "$code" = "204" ] || [ "$code" = "404" ]; then
-            exit 0
-          fi
-          echo "Deleting comment ${COMMENT_ID} failed with HTTP ${code}"
-          cat /tmp/delete-comment.json
-          exit 1
-
-      - name: Write pr-comment-delete artifact
-        if: |
-          steps.fc.outputs.comment-id != '' &&
-          env.V5X_CHANGED != 'true' &&
-          env.V6X_CHANGED != 'true' &&
-          github.event.pull_request.head.repo.full_name != github.repository
-        run: |
-          mkdir -p pr-comment
-          cat > pr-comment/manifest.json <<EOF
-          {
-            "pr_number": ${{ github.event.pull_request.number }},
-            "marker": "<!-- pr-comment-poster:flash-analysis -->",
-            "mode": "delete"
-          }
-          EOF
-
-      - name: Upload pr-comment-delete artifact
-        if: |
-          steps.fc.outputs.comment-id != '' &&
-          env.V5X_CHANGED != 'true' &&
-          env.V6X_CHANGED != 'true' &&
-          github.event.pull_request.head.repo.full_name != github.repository
-        uses: actions/upload-artifact@v7
-        with:
-          name: pr-comment-delete
           path: pr-comment/
           retention-days: 1

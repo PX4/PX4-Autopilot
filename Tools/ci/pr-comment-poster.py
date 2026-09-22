@@ -13,25 +13,22 @@ Artifact contract (directory passed on the command line):
     {
       "pr_number": 12345,                                     (required, int > 0)
       "marker":    "<!-- pr-comment-poster:flash-analysis -->", (required, printable ASCII)
-      "mode":      "upsert" | "delete"                         (optional, default "upsert")
+      "mode":      "upsert"                                    (optional, default "upsert")
     }
 
   body.md
-    Required for mode "upsert": markdown posted verbatim, non-empty and
+    Markdown comment body, posted verbatim. Must be non-empty and
     <= 60000 bytes (GitHub's hard limit is 65535, we cap under).
-    Omitted for mode "delete".
 
 Security: this script is run in a write-token context from a workflow that
-MUST NOT check out PR code. manifest.json and body.md are treated as opaque
-data. The marker is validated to printable ASCII only before use. A delete
-marker must be exactly one `<!-- pr-comment-poster:<name> -->` tag so a
-short prefix cannot match a different comment.
+MUST NOT check out PR code. Both manifest.json and body.md are treated as
+opaque data. The marker is validated to printable ASCII only before use.
 
 Subcommands:
 
-  validate <dir>   Validate that <dir> contains a conforming manifest.
-  post <dir>       Validate, then upsert or delete the sticky comment on the
-                   target PR. Requires env GITHUB_TOKEN and GITHUB_REPOSITORY.
+  validate <dir>   Validate that <dir> contains a conforming manifest + body.
+  post <dir>       Validate, then upsert a sticky comment on the target PR.
+                   Requires env GITHUB_TOKEN and GITHUB_REPOSITORY.
 
 Python stdlib only. No third-party dependencies.
 """
@@ -39,7 +36,6 @@ Python stdlib only. No third-party dependencies.
 import argparse
 import json
 import os
-import re
 import sys
 
 import _github_helpers
@@ -55,11 +51,7 @@ MAX_BODY_BYTES = 60000
 MARKER_MIN_LEN = 1
 MARKER_MAX_LEN = 200
 
-ACCEPTED_MODES = ('upsert', 'delete')
-
-# Delete is driven by a fork-controlled artifact. Require the whole marker to
-# be one producer tag so a short prefix cannot match a different comment.
-DELETE_MARKER_RE = re.compile(r'^<!-- pr-comment-poster:[A-Za-z0-9-]+ -->$')
+ACCEPTED_MODES = ('upsert',)
 
 USER_AGENT = 'px4-pr-comment-poster'
 
@@ -94,43 +86,19 @@ def validate_marker(marker):
         _fail('marker contains non-printable or non-ASCII character')
 
 
-def _read_body(body_path):
-    if not os.path.isfile(body_path):
-        _fail('body.md missing at {}'.format(body_path))
-
-    # Read as bytes first so the size check is an honest byte count (matching
-    # GitHub's own 65535-byte comment limit) before we pay the cost of decoding.
-    try:
-        with open(body_path, 'rb') as f:
-            body_bytes = f.read()
-    except OSError as e:
-        _fail('could not read body.md: {}'.format(e))
-
-    if len(body_bytes) == 0:
-        _fail('body.md is empty')
-    if len(body_bytes) > MAX_BODY_BYTES:
-        _fail('body.md too large: {} bytes (max {})'.format(
-            len(body_bytes), MAX_BODY_BYTES))
-
-    # Require UTF-8 up front so a producer that wrote a garbage encoding fails
-    # here rather than later inside json.dumps with a less obvious traceback.
-    try:
-        return body_bytes.decode('utf-8')
-    except UnicodeDecodeError as e:
-        _fail('body.md is not valid UTF-8: {}'.format(e))
-
-
 def validate_manifest(directory):
-    """Validate <directory>/manifest.json and, for upsert, body.md.
+    """Validate <directory>/manifest.json and <directory>/body.md.
 
     Returns a dict with keys: pr_number (int), marker (str), mode (str),
-    body (str, verbatim contents of body.md, or '' for delete).
+    body (str, verbatim contents of body.md).
     """
     manifest_path = os.path.join(directory, 'manifest.json')
     body_path = os.path.join(directory, 'body.md')
 
     if not os.path.isfile(manifest_path):
         _fail('manifest.json missing at {}'.format(manifest_path))
+    if not os.path.isfile(body_path):
+        _fail('body.md missing at {}'.format(body_path))
 
     try:
         with open(manifest_path, 'r', encoding='utf-8') as f:
@@ -158,12 +126,26 @@ def validate_manifest(directory):
         _fail('unsupported mode {!r} (accepted: {})'.format(
             mode, ', '.join(ACCEPTED_MODES)))
 
-    if mode == 'delete':
-        if not DELETE_MARKER_RE.match(marker):
-            _fail('delete marker must be a pr-comment-poster tag')
-        body = ''
-    else:
-        body = _read_body(body_path)
+    # Read as bytes first so the size check is an honest byte count (matching
+    # GitHub's own 65535-byte comment limit) before we pay the cost of decoding.
+    try:
+        with open(body_path, 'rb') as f:
+            body_bytes = f.read()
+    except OSError as e:
+        _fail('could not read body.md: {}'.format(e))
+
+    if len(body_bytes) == 0:
+        _fail('body.md is empty')
+    if len(body_bytes) > MAX_BODY_BYTES:
+        _fail('body.md too large: {} bytes (max {})'.format(
+            len(body_bytes), MAX_BODY_BYTES))
+
+    # Require UTF-8 up front so a producer that wrote a garbage encoding fails
+    # here rather than later inside json.dumps with a less obvious traceback.
+    try:
+        body = body_bytes.decode('utf-8')
+    except UnicodeDecodeError as e:
+        _fail('body.md is not valid UTF-8: {}'.format(e))
 
     return {
         'pr_number': pr_number,
@@ -230,19 +212,6 @@ def upsert_comment(client, repo, pr_number, marker, body):
         )
 
 
-def delete_comment(client, repo, pr_number, marker):
-    existing_id = find_existing_comment_id(client, repo, pr_number, marker)
-    if existing_id is None:
-        print('No comment to delete on PR #{}'.format(pr_number))
-        return
-
-    print('Deleting comment {} on PR #{}'.format(existing_id, pr_number))
-    client.request(
-        'DELETE',
-        'repos/{}/issues/comments/{}'.format(repo, existing_id),
-    )
-
-
 # ---------------------------------------------------------------------------
 # Entry points
 # ---------------------------------------------------------------------------
@@ -278,21 +247,13 @@ def cmd_post(args):
 
     try:
         client = _github_helpers.GitHubClient(token, user_agent=USER_AGENT)
-        if result['mode'] == 'delete':
-            delete_comment(
-                client=client,
-                repo=repo,
-                pr_number=result['pr_number'],
-                marker=result['marker'],
-            )
-        else:
-            upsert_comment(
-                client=client,
-                repo=repo,
-                pr_number=result['pr_number'],
-                marker=result['marker'],
-                body=result['body'],
-            )
+        upsert_comment(
+            client=client,
+            repo=repo,
+            pr_number=result['pr_number'],
+            marker=result['marker'],
+            body=result['body'],
+        )
     except RuntimeError as e:
         _fail(str(e))
     return 0
@@ -313,8 +274,8 @@ def main(argv=None):
 
     p_post = sub.add_parser(
         'post',
-        help='Validate, then upsert or delete the sticky PR comment. Requires '
-             'env GITHUB_TOKEN and GITHUB_REPOSITORY.',
+        help='Validate, then upsert a sticky PR comment. Requires env '
+             'GITHUB_TOKEN and GITHUB_REPOSITORY.',
     )
     p_post.add_argument('directory')
     p_post.set_defaults(func=cmd_post)
