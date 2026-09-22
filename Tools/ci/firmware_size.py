@@ -9,8 +9,10 @@ import subprocess
 
 
 def memory_usage(elf: Path, flash_origin: int, flash_size: int) -> dict[str, int]:
+    # Sections rather than program headers: ld may map the ELF header into the
+    # first LOAD segment, below the flash origin, depending on its page size.
     headers = subprocess.check_output(
-        ["arm-none-eabi-readelf", "--program-headers", "--wide", str(elf)],
+        ["arm-none-eabi-objdump", "--section-headers", "--wide", str(elf)],
         text=True,
         env={**os.environ, "LC_ALL": "C"},
     )
@@ -19,21 +21,24 @@ def memory_usage(elf: Path, flash_origin: int, flash_size: int) -> dict[str, int
     ram = 0
 
     for line in headers.splitlines():
-        fields = line.split()
-        if not fields or fields[0] != "LOAD":
+        fields = line.split(maxsplit=7)
+        if len(fields) < 8 or not fields[0].isdigit():
             continue
 
-        vma, lma, file_size, memory_size = (int(value, 16) for value in fields[2:6])
+        size, vma, lma = (int(value, 16) for value in fields[2:5])
+        flags = {flag.strip() for flag in fields[7].split(",")}
+        if "ALLOC" not in flags or not size:
+            continue
 
-        if file_size:
-            if not flash_origin <= lma < lma + file_size <= flash_end:
+        if {"LOAD", "CONTENTS"} <= flags:
+            if not flash_origin <= lma < lma + size <= flash_end:
                 raise ValueError(f"{elf}: load image outside the configured flash region")
-            image_end = max(image_end, lma + file_size)
+            image_end = max(image_end, lma + size)
 
         # Initialized data and RAM functions have a flash LMA and a RAM VMA.
-        # NOLOAD segments (BSS, retained buffers) reserve RAM without file bytes.
+        # NOLOAD sections (BSS, retained buffers) reserve RAM without file bytes.
         if not flash_origin <= vma < flash_end:
-            ram += memory_size
+            ram += size
 
     if image_end == flash_origin:
         raise ValueError(f"{elf}: no flash load image found")

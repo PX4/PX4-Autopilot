@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -39,7 +40,7 @@ SECTIONS
 """)
 
     def build(self, name="firmware", *, text=32, data=16, bss=32,
-              ramfunc=16, reserved=16, debug=16):
+              ramfunc=16, reserved=16, debug=16, linker_flags=()):
         source = self.root / f"{name}.s"
         obj = source.with_suffix(".o")
         elf = source.with_suffix(".elf")
@@ -59,7 +60,7 @@ SECTIONS
 """)
         subprocess.run(["arm-none-eabi-as", str(source), "-o", str(obj)], check=True)
         subprocess.run([
-            "arm-none-eabi-ld", "-T", str(self.linker), str(obj), "-o", str(elf)
+            "arm-none-eabi-ld", *linker_flags, "-T", str(self.linker), str(obj), "-o", str(elf)
         ], check=True)
         return elf
 
@@ -97,6 +98,14 @@ SECTIONS
             self.usage(text=33), {"flash": 96, "ram": 80}
         )
 
+    def test_elf_header_in_first_load_segment(self):
+        # A page size larger than the flash origin's alignment makes ld map the
+        # ELF header into the first LOAD segment, below the flash origin.
+        self.assertEqual(
+            self.usage(linker_flags=("-z", "max-page-size=0x10000")),
+            {"flash": 64, "ram": 80},
+        )
+
     def test_rejects_wrong_flash_region(self):
         elf = self.build()
         with self.assertRaisesRegex(ValueError, "outside the configured flash region"):
@@ -110,11 +119,12 @@ SECTIONS
         self.assertFalse(summarize({"flash": 1, "ram": 0}, {"flash": 1, "ram": 0})["changed"])
         self.assertEqual(format_change(0, 4488), "+4,488 B (n/a)")
 
+
     def test_cli_from_outside_checkout(self):
         before = self.build("before")
         after = self.build("after", bss=96)
         output = subprocess.check_output([
-            "python3", str(Path(__file__).with_name("firmware_size.py").resolve()),
+            sys.executable, str(Path(__file__).with_name("firmware_size.py").resolve()),
             "--before", str(before), "--after", str(after),
             "--flash-origin", hex(FLASH_ORIGIN), "--flash-size", str(FLASH_SIZE),
         ], cwd=self.root, text=True)
