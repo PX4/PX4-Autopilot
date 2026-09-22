@@ -27088,7 +27088,7 @@ u-blox protocol configuration for interfaces.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 32       |           | 0       |      | &nbsp;    |
+| &check; | 0        | 63       |           | 0       |      | &nbsp;    |
 
 ### GPS_UBX_DGNSS_TO (`INT32`) {#GPS_UBX_DGNSS_TO}
 
