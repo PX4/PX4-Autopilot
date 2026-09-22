@@ -169,6 +169,7 @@
       - [Agam Autopilot v6X-RT](/flight_controller/agam_v6xrt.md)
       - [AirMind MindPX](/flight_controller/mindpx.md)
       - [AirMind MindRacer](/flight_controller/mindracer.md)
+      - [Allocor Atlas](/flight_controller/allocor_atlas.md)
       - [Amovlab Flycore](/flight_controller/amovlab_flycore.md)
       - [ARK Electronics ARKV6X](/flight_controller/ark_v6x.md)
       - [ARK Electronics ARKV6X-RT](/flight_controller/ark_v6xrt.md)
