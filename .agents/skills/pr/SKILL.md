@@ -8,8 +8,8 @@ allowed-tools: Bash Read Glob Grep
 # PX4 Pull Request
 
 **The user is the author: no `Co-Authored-By`, no "Generated with <assistant>"
-footers. Disclose AI assistance with `Assisted-by: <tool>:<model-id>` as the
-last line of the PR body, as in the commit trailers.**
+footers. Disclose AI assistance as the last line of the PR body, italicized:
+`*Assisted-by: <tool>:<model-id>*`, matching the commit trailer.**
 
 ## Steps
 
