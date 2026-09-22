@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 
 
-def memory_usage(elf: Path, flash_origin: int, flash_size: int) -> dict[str, int]:
+def memory_usage(elf: Path) -> dict[str, int]:
     # Sections rather than program headers: ld may map the ELF header into the
     # first LOAD segment, below the flash origin, depending on its page size.
     headers = subprocess.check_output(
@@ -16,8 +16,8 @@ def memory_usage(elf: Path, flash_origin: int, flash_size: int) -> dict[str, int
         text=True,
         env={**os.environ, "LC_ALL": "C"},
     )
-    flash_end = flash_origin + flash_size
-    image_end = flash_origin
+    image_start = None
+    image_end = 0
     ram = 0
 
     for line in headers.splitlines():
@@ -30,21 +30,21 @@ def memory_usage(elf: Path, flash_origin: int, flash_size: int) -> dict[str, int
         if "ALLOC" not in flags or not size:
             continue
 
-        if {"LOAD", "CONTENTS"} <= flags:
-            if not flash_origin <= lma < lma + size <= flash_end:
-                raise ValueError(f"{elf}: load image outside the configured flash region")
+        in_image = {"LOAD", "CONTENTS"} <= flags
+        if in_image:
+            image_start = lma if image_start is None else min(image_start, lma)
             image_end = max(image_end, lma + size)
 
-        # Initialized data and RAM functions have a flash LMA and a RAM VMA.
-        # NOLOAD sections (BSS, retained buffers) reserve RAM without file bytes.
-        if not flash_origin <= vma < flash_end:
+        # Only code and constants execute in place. Initialized data and RAM
+        # functions are copied out of the image; NOLOAD sections reserve RAM.
+        if not (in_image and vma == lma):
             ram += size
 
-    if image_end == flash_origin:
+    if image_start is None:
         raise ValueError(f"{elf}: no flash load image found")
 
     # Include alignment gaps in the programmed image, as objcopy -O binary does.
-    return {"flash": image_end - flash_origin, "ram": ram}
+    return {"flash": image_end - image_start, "ram": ram}
 
 
 def indicator(delta: int) -> str:
@@ -75,11 +75,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--before", type=Path, required=True)
     parser.add_argument("--after", type=Path, required=True)
-    parser.add_argument("--flash-origin", type=lambda value: int(value, 0), required=True)
-    parser.add_argument("--flash-size", type=lambda value: int(value, 0), required=True)
     args = parser.parse_args()
-    before = memory_usage(args.before, args.flash_origin, args.flash_size)
-    after = memory_usage(args.after, args.flash_origin, args.flash_size)
+    before = memory_usage(args.before)
+    after = memory_usage(args.after)
     print(json.dumps(summarize(before, after)))
 
 

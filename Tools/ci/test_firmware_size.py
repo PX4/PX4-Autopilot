@@ -10,10 +10,6 @@ import unittest
 from firmware_size import format_change, memory_usage, summarize
 
 
-FLASH_ORIGIN = 0x08008000
-FLASH_SIZE = 2016 * 1024
-
-
 class FirmwareSizeTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -66,7 +62,7 @@ SECTIONS
 
     def usage(self, **kwargs):
         elf = self.build(**kwargs)
-        usage = memory_usage(elf, FLASH_ORIGIN, FLASH_SIZE)
+        usage = memory_usage(elf)
         binary = elf.with_suffix(".bin")
         subprocess.run([
             "arm-none-eabi-objcopy", "-O", "binary", str(elf), str(binary)
@@ -106,11 +102,6 @@ SECTIONS
             {"flash": 64, "ram": 80},
         )
 
-    def test_rejects_wrong_flash_region(self):
-        elf = self.build()
-        with self.assertRaisesRegex(ValueError, "outside the configured flash region"):
-            memory_usage(elf, FLASH_ORIGIN + 1024, FLASH_SIZE)
-
     def test_opposing_changes_do_not_cancel_comment(self):
         result = summarize({"flash": 1024, "ram": 1024}, {"flash": 1088, "ram": 960})
         self.assertTrue(result["changed"])
@@ -132,7 +123,6 @@ SECTIONS
         output = subprocess.check_output([
             sys.executable, str(Path(__file__).with_name("firmware_size.py").resolve()),
             "--before", str(before), "--after", str(after),
-            "--flash-origin", hex(FLASH_ORIGIN), "--flash-size", str(FLASH_SIZE),
         ], cwd=self.root, text=True)
         self.assertEqual(json.loads(output), {
             "flash": "+0 B (+0.00%)", "ram": "+64 B (+80.00%)", "changed": True,
