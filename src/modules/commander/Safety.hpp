@@ -43,9 +43,10 @@
 
 enum class PrearmedMode {
 	DISABLED = 0,
-	SAFETY_BUTTON = 1,
+	SAFETY_BUTTON_OR_MAVLINK = 1,
 	ALWAYS = 2,
-	MAVLINK = 3
+	SAFETY_BUTTON = 3,
+	MAVLINK = 4
 };
 class Safety
 {
