@@ -47,10 +47,20 @@ def memory_usage(elf: Path, flash_origin: int, flash_size: int) -> dict[str, int
     return {"flash": image_end - flash_origin, "ram": ram}
 
 
+def indicator(delta: int) -> str:
+    if delta > 1000:
+        return "🔴 "
+    if delta > 100:
+        return "🟡 "
+    if delta < -100:
+        return "🟢 "
+    return ""
+
+
 def format_change(before: int, after: int) -> str:
     delta = after - before
     percentage = f"{delta / before:+.2%}" if before else "n/a"
-    return f"{delta:+,} B ({percentage})"
+    return f"{indicator(delta)}{delta:+,} B ({percentage})"
 
 
 def summarize(before: dict[str, int], after: dict[str, int]) -> dict:

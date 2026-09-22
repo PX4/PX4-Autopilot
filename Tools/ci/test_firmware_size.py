@@ -117,8 +117,14 @@ SECTIONS
         self.assertEqual(result["flash"], "+64 B (+6.25%)")
         self.assertEqual(result["ram"], "-64 B (-6.25%)")
         self.assertFalse(summarize({"flash": 1, "ram": 0}, {"flash": 1, "ram": 0})["changed"])
-        self.assertEqual(format_change(0, 4488), "+4,488 B (n/a)")
+        self.assertEqual(format_change(0, 4488), "🔴 +4,488 B (n/a)")
 
+    def test_change_indicator(self):
+        for delta, expected in ((1001, "🔴 "), (1000, "🟡 "), (101, "🟡 "), (100, ""),
+                                (-100, ""), (-101, "🟢 "), (-5000, "🟢 ")):
+            with self.subTest(delta=delta):
+                self.assertTrue(format_change(10000, 10000 + delta).startswith(
+                    f"{expected}{delta:+,} B"))
 
     def test_cli_from_outside_checkout(self):
         before = self.build("before")
