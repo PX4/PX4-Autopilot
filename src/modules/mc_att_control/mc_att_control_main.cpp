@@ -272,7 +272,14 @@ MulticopterAttitudeControl::Run()
 				_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
 
 				const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-				_spooled_up = armed && hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s;
+
+				if (!armed) {
+					_spooled_up = false;
+
+				} else if (!_spooled_up) {
+					// Keep the spool-up state latched until disarm.
+					_spooled_up = hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s;
+				}
 			}
 		}
 
