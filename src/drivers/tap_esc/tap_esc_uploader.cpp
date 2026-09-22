@@ -1183,14 +1183,14 @@ int TAP_ESC_UPLOADER::verify_crc(uint8_t esc_id, size_t fw_size_local)
 	/* check flash crc feedback is ok or fail */
 	if (_uploader_packet.msg_id == PROTO_OK) {
 		if (_uploader_packet.d.feedback_crc_packet.myID != esc_id) {
-			PX4_DEBUG("flash crc check id don't match myID: 0x%02x,esc_id: 0x%02x", _uploader_packet.d.feedback_packet.myID,
+			PX4_DEBUG("flash crc check id don't match myID: 0x%02x,esc_id: 0x%02x", _uploader_packet.d.feedback_crc_packet.myID,
 				  esc_id);
 			return -EIO;
 		}
 
 		if (_uploader_packet.d.feedback_crc_packet.command != PROTO_GET_CRC) {
-			PX4_DEBUG("flash crc check bad command, myID: 0x%02x command: 0x%02x", _uploader_packet.d.feedback_packet.myID,
-				  _uploader_packet.d.feedback_packet.command);
+			PX4_DEBUG("flash crc check bad command, myID: 0x%02x command: 0x%02x", _uploader_packet.d.feedback_crc_packet.myID,
+				  _uploader_packet.d.feedback_crc_packet.command);
 			return -EIO;
 		}
 
