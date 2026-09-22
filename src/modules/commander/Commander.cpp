@@ -333,10 +333,10 @@ int Commander::custom_command(int argc, char *argv[])
 		}
 
 		if (!strcmp(argv[1], "on")) {
-			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_ON);
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_SAFE);
 
 		} else if (!strcmp(argv[1], "off")) {
-			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_OFF);
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_DANGEROUS);
 
 		} else {
 			PX4_ERR("invlaid argument, use [on|off]");
@@ -1672,11 +1672,11 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			} else {
 				int commanded_state = (int)cmd.param1;
 
-				if (commanded_state == vehicle_command_s::SAFETY_OFF) {
+				if (commanded_state == vehicle_command_s::SAFETY_DANGEROUS) {
 					_safety.deactivateSafety();
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-				} else if (commanded_state == vehicle_command_s::SAFETY_ON) {
+				} else if (commanded_state == vehicle_command_s::SAFETY_SAFE) {
 					_safety.activateSafety();
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
