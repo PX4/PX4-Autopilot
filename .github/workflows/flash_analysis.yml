@@ -213,10 +213,6 @@ jobs:
           | px4_fmu-v5x | ${{ env.V5X_FLASH }} | ${{ env.V5X_RAM }} |
           | px4_fmu-v6x | ${{ env.V6X_FLASH }} | ${{ env.V6X_RAM }} |
 
-          Changes are relative to the base build. Flash includes code, constants, initial values for RAM data/code, and image padding. Static RAM includes initialized data, BSS, RAM code, and reserved buffers; runtime heap and stack use is not measured. Initialized data and RAM code count toward both totals.
-
-          Bloaty's FILE SIZE and VM SIZE columns describe the ELF file and virtual address space; use the table above for flash and RAM impact.
-
           <details>
           <summary>px4_fmu-v5x — Bloaty section/symbol breakdown</summary>
 
