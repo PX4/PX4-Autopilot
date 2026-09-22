@@ -92,6 +92,7 @@ private:
 
 	void registerNodeInfo(uint8_t node_id, const uavcan::protocol::GetNodeInfo_::Response &node_info);
 	void registerCapability(uint8_t node_id, uint32_t device_id, uint8_t device_type);
+	void populateDeviceInfoFields(DeviceInformation &device_info, const uavcan::protocol::GetNodeInfo_::Response &node_info);
 
 	// Publishing methods
 	void publishDeviceInformationPeriodic();
