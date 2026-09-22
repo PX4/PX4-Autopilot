@@ -23,5 +23,3 @@ param set-default SYS_HAS_MAG 1 	 # magnetometer
 param set-default SENS_EN_SPA06 1 	 # barometer
 param set-default PWM_MAIN_FUNC8 407 # buzzer RC AUX 1
 param set-default PWM_MAIN_TIM0 400  # PWM 400 Hz
-
-param set-default CAL_MAG0_ROT 12
