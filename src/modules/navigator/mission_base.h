@@ -458,7 +458,7 @@ private:
 	 * @brief Maximum number of jump mission items iterations
 	 *
 	 */
-	static constexpr uint16_t MAX_JUMP_ITERATION{10u};
+	static constexpr uint16_t MAX_JUMP_ITERATION{NAV_MAX_JUMP_ITERATION};
 	/**
 	 * @brief Update Dataman cache
 	 *
