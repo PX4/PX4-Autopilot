@@ -2,7 +2,7 @@
 name: commit
 description: Create a conventional commit for PX4 changes
 argument-hint: "[optional: description of changes]"
-allowed-tools: Bash, Read, Glob, Grep
+allowed-tools: Bash Read Glob Grep
 ---
 
 # PX4 Conventional Commit

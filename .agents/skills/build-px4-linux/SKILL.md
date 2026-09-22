@@ -20,7 +20,8 @@ description: Build PX4 firmware or SITL natively on a Linux host, including in g
    `docker run --rm -w "$PWD" --user "$(id -u):$(id -g)" -v "$PWD:$PWD" px4io/px4-dev:v1.17.0 make <target>`.
    `Tools/docker_run.sh` passes `-it` and fails without a TTY.
 2. For a requested ref, prefer an existing worktree for it; otherwise
-   `git worktree add --detach .agents/worktrees/build-<short-sha> <ref>`.
+   `git worktree add --detach ../PX4-Autopilot-worktrees/build-<short-sha> <ref>`,
+   outside the repository.
    Never switch the user's active branch. The build initializes submodules
    itself; do not overwrite locally modified ones.
 

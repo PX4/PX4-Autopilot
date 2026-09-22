@@ -2,7 +2,7 @@
 name: review-pr
 description: Substance-focused review of a PX4 pull request — merit, first-principles correctness, architecture fit. Produces a debrief for the user and a draft review comment.
 argument-hint: "<PR number or URL>"
-allowed-tools: Bash, Read, Glob, Grep, Agent
+allowed-tools: Bash Read Glob Grep Agent
 ---
 
 # PX4 Pull Request Review

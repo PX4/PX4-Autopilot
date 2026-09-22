@@ -117,8 +117,7 @@ _emscripten_sdk/
 # virtual Python environment
 .venv
 
-# Claude Code local settings
+# Claude Code local settings and worktrees
 .claude/settings.local.json
+/.claude/worktrees/
 
-# Agent-created build worktrees
-/.agents/worktrees/

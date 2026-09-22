@@ -29,7 +29,8 @@ a flashable `.px4` artifact.
    `docker image inspect px4io/px4-dev:v1.17.0`; pull it if missing.
 4. Prefer an existing worktree for a requested ref. Otherwise resolve the ref
    (fetch its remote if necessary) and create a new detached worktree under
-   `.agents/worktrees/build-<short-sha>/` using `git worktree add --detach`.
+   `../PX4-Autopilot-worktrees/build-<short-sha>/`, outside the repository,
+   using `git worktree add --detach`.
    Reuse a path only after confirming its HEAD and working-tree state match the
    request. Never switch the user's active branch.
 5. Check submodule status. Initialize required missing submodules, but do not

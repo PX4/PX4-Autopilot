@@ -2,7 +2,7 @@
 name: pr
 description: Create a pull request with conventional commit title and description
 argument-hint: "[optional: target branch or description]"
-allowed-tools: Bash, Read, Glob, Grep
+allowed-tools: Bash Read Glob Grep
 ---
 
 # PX4 Pull Request

@@ -2,7 +2,7 @@
 name: rebase-onto-main
 description: Rebase a branch onto main, handling squash-merged parent branches cleanly
 argument-hint: "[optional: branch name, defaults to current branch]"
-allowed-tools: Bash, Read, Glob, Grep, Agent
+allowed-tools: Bash Read Glob Grep Agent
 ---
 
 # Rebase Branch onto Main
