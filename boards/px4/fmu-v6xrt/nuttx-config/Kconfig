@@ -57,3 +57,23 @@ config BOARD_BOOTLOADER_FIXUP
 
 	---help---
 		Restores OCTAL Flash when FCB is invalid.
+
+config BOARD_FLEXSPI_NOR_L0
+	bool
+	depends on BOARD_BOOTLOADER_FIXUP && ARCH_RAMVECTORS
+
+	---help---
+		Region read, program and erase over the boot NOR. Selected by consumers.
+
+config BOARD_FLEXSPI_FLASH_STORAGE
+	bool "Expose the unused boot NOR as a filesystem"
+	default n
+	depends on BOARD_BOOTLOADER_FIXUP && ARCH_RAMVECTORS
+	select BOARD_FLEXSPI_NOR_L0
+	select FS_LITTLEFS
+	select MTD
+
+	---help---
+		MTD driver over the boot NOR above the firmware image, mounted as
+		littlefs at /fs/flash. Program and erase run from RAM with interrupts
+		disabled: the CPU executes in place from the same device.
