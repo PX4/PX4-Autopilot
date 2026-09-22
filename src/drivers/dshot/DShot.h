@@ -106,7 +106,11 @@ private:
 	DShot operator=(const DShot &) = delete;
 
 	bool initialize_dshot();
-	void init_telemetry(const char *device, bool swap_rxtx);
+	/**
+	 * Initialize serial telemetry and the ESC settings handlers.
+	 * @return false if the request has to be retried later
+	 */
+	bool init_telemetry(const char *device, bool swap_rxtx);
 
 	// Map output channel to motor index [0..DSHOT_MAX_MOTORS-1], or -1 if not a motor
 	int motor_index_from_output(int output_channel) const

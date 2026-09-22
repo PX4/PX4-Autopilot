@@ -108,9 +108,8 @@ void DShot::Run()
 		update_params();
 	}
 
-	// Telemetry init hook
-	if (_request_telemetry_init.load()) {
-		init_telemetry(_serial_port_path, _telemetry_swap_rxtx);
+	// Telemetry init hook, retried until the motor mask is known
+	if (_request_telemetry_init.load() && init_telemetry(_serial_port_path, _telemetry_swap_rxtx)) {
 		_request_telemetry_init.store(false);
 	}
 
@@ -1131,15 +1130,20 @@ bool DShot::initialize_dshot()
 	return true;
 }
 
-void DShot::init_telemetry(const char *device, bool swap_rxtx)
+bool DShot::init_telemetry(const char *device, bool swap_rxtx)
 {
 	if (!device) {
-		return;
+		return true;
+	}
+
+	// The settings handlers are created per motor, and the mask is only known once the mixer has run
+	if (_motor_mask == 0) {
+		return false;
 	}
 
 	if (_telemetry.init(device, swap_rxtx) != PX4_OK) {
 		PX4_ERR("telemetry init failed");
-		return;
+		return true;
 	}
 
 	// Enable serial telemetry now that we've successfully initialized
@@ -1148,6 +1152,8 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 	// Initialize ESC settings handlers based on ESC type
 	ESCType esc_type = static_cast<ESCType>(_param_dshot_esc_type.get());
 	_telemetry.initSettingsHandlers(esc_type, _motor_mask);
+
+	return true;
 }
 
 static void print_spacer()
