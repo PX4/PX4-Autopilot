@@ -53,7 +53,10 @@ Safety::Safety()
 	int32_t com_prearm_mode = 0;
 	param_get(param_find("COM_PREARM_MODE"), &com_prearm_mode);
 
-	if ((PrearmedMode)com_prearm_mode != PrearmedMode::SAFETY_BUTTON) {
+	const bool use_safety_button = (PrearmedMode)com_prearm_mode == PrearmedMode::SAFETY_BUTTON
+				       || (PrearmedMode)com_prearm_mode == PrearmedMode::SAFETY_BUTTON_OR_MAVLINK;
+
+	if (!use_safety_button) {
 		_button_disabled = true;
 	}
 

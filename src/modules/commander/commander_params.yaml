@@ -522,9 +522,10 @@ parameters:
       type: enum
       values:
         0: Disabled
-        1: Safety button
+        1: Safety button or Mavlink
         2: Always
-        3: Mavlink
+        3: Safety button only
+        4: Mavlink only
       default: 0
       reboot_required: true
     COM_FORCE_SAFETY:
