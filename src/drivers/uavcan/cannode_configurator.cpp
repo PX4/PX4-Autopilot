@@ -129,10 +129,10 @@ void CanNodeConfigurator::handleNodeInfoRetrieved(uavcan::NodeID node_id,
 {
 	using NS = uavcan::protocol::NodeStatus;
 
-	PX4_INFO("cannode_cfg: node %u '%s' mode=%u health=%u",
-		 node_id.get(), node_info.name.c_str(),
-		 (unsigned)node_info.status.mode,
-		 (unsigned)node_info.status.health);
+	PX4_DEBUG("cannode_cfg: node %u '%s' mode=%u health=%u",
+		  node_id.get(), node_info.name.c_str(),
+		  (unsigned)node_info.status.mode,
+		  (unsigned)node_info.status.health);
 
 	if (node_info.status.mode != NS::MODE_OPERATIONAL ||
 	    node_info.status.health >= NS::HEALTH_ERROR) {
@@ -200,13 +200,16 @@ void CanNodeConfigurator::threadMain()
 
 		pthread_mutex_lock(&_queue_mutex);
 		QueueEntry *entry = _queue.getHead();
+
 		if (entry != nullptr) {
-			if(hrt_elapsed_time(&entry->queued_at) < 3_s){
+			if (hrt_elapsed_time(&entry->queued_at) < 3_s) {
 				entry = nullptr;
-			}else{
+
+			} else {
 				_queue.remove(entry);
 			}
 		}
+
 		pthread_mutex_unlock(&_queue_mutex);
 
 		if (entry != nullptr) {
@@ -221,6 +224,7 @@ void CanNodeConfigurator::threadMain()
 			}
 
 			delete entry;
+
 		} else {
 			sleep(3);
 		}
