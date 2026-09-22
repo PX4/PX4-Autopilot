@@ -2,22 +2,19 @@
 """
 Decode the ESC EEPROM dumps contained in a PX4 ULog file.
 
-Two ways to get the schema:
-  - no --schema: downloads the current one from https://am32.ca/eeprom
-  - --schema <file>: uses that local JSON file instead
+The schema describes the EEPROM layout for one ESC firmware and EEPROM revision. It is published by
+the ESC firmware or its vendor, not by PX4, so it has to be passed in with --schema.
 
 Install: pip install pyulog
-Run:     ./esc_eeprom_decode.py <log.ulg>
-         ./esc_eeprom_decode.py <log.ulg> --schema my_eeprom.json
+Run:     ./esc_eeprom_decode.py <log.ulg> --schema eeprom.json
+         ./esc_eeprom_decode.py <log.ulg> --schema eeprom.json --esc 1
 """
 
 import argparse
 import json
 import sys
-import urllib.request
 
 INFO_KEY = 'esc_eeprom_read'
-SCHEMA_URL = 'https://am32.ca/eeprom'
 
 # MAVLink ESC_FIRMWARE enum, as logged in the 'firmware' field
 ESC_FIRMWARE = {0: 'UNKNOWN', 1: 'AM32'}
@@ -51,18 +48,9 @@ def load_dumps(log_path):
 
 
 def load_schema(schema_path):
-    """Load the schema from a local file, or download the current one if no file is given."""
-    if schema_path:
-        with open(schema_path, encoding='utf-8') as schema_file:
-            text = schema_file.read()
-
-    else:
-        print(f'no --schema given, downloading the current one from {SCHEMA_URL}', file=sys.stderr)
-
-        with urllib.request.urlopen(SCHEMA_URL, timeout=10) as response:
-            text = response.read().decode('utf-8')
-
-    return json.loads(text)
+    """Load the EEPROM layout schema from a local JSON file."""
+    with open(schema_path, encoding='utf-8') as schema_file:
+        return json.load(schema_file)
 
 
 def firmware_key(text):
@@ -253,7 +241,7 @@ def print_dump(dump, schema, index, total):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('log', help='ULog file (.ulg) containing esc_eeprom_read entries')
-    parser.add_argument('-s', '--schema', help='local schema JSON file (default: download from am32.ca)')
+    parser.add_argument('-s', '--schema', required=True, help='EEPROM layout schema JSON, published by the ESC firmware')
     parser.add_argument('-e', '--esc', type=int, help='only show this ESC (1-based, as printed by PX4)')
     args = parser.parse_args()
 
