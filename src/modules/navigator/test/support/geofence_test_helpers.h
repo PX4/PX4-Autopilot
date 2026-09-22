@@ -81,6 +81,22 @@ public:
 
 	static void finishUpdate(Geofence &fence) { fence._finishFenceUpdate(Geofence::LoadResult::Loaded); }
 
+	static void expireRetryDelay(Geofence &fence)
+	{
+		if (fence._fence_retry_time != 0) {
+			fence._fence_retry_time = 1;
+		}
+	}
+
+	static constexpr unsigned maxLoadRetries() { return Geofence::kMaxFenceLoadRetries; }
+
+	// A load is running or a failed one still waits for its retry.
+	static bool isUpdatePending(const Geofence &fence)
+	{
+		return fence._initiate_fence_updated || fence._dataman_state != Geofence::DatamanState::UpdateRequestWait
+		       || fence._fence_retry_time != 0;
+	}
+
 	static bool waitForPendingRead(Geofence &fence)
 	{
 		return DatamanClientTestPeer::waitForOperation(fence._dataman_client, 1_s);
@@ -201,8 +217,9 @@ protected:
 		return ::testing::AssertionFailure() << "fence load timed out";
 	}
 
+	// extra_items lets the metadata claim vertices that were never stored.
 	::testing::AssertionResult loadFence(const FencePoints &points,
-					     uint8_t expected_status = geofence_status_s::GF_STATUS_READY)
+					     uint8_t expected_status = geofence_status_s::GF_STATUS_READY, size_t extra_items = 0)
 	{
 		for (size_t i = 0; i < points.size(); ++i) {
 			mission_fence_point_s point = points[i];
@@ -214,7 +231,7 @@ protected:
 		}
 
 		mission_stats_entry_s stats{};
-		stats.num_items = static_cast<uint16_t>(points.size());
+		stats.num_items = static_cast<uint16_t>(points.size() + extra_items);
 		_fence_id = ++runtime().next_fence_id;
 		stats.opaque_id = _fence_id;
 		stats.dataman_id = DM_KEY_FENCE_POINTS_0;

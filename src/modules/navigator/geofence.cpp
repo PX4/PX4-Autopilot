@@ -102,8 +102,9 @@ void Geofence::run()
 
 	case DatamanState::UpdateRequestWait:
 
-		if (_initiate_fence_updated) {
+		if (_initiate_fence_updated || (_fence_retry_time != 0 && hrt_absolute_time() >= _fence_retry_time)) {
 			_initiate_fence_updated = false;
+			_fence_retry_time = 0;
 			_dataman_state	= DatamanState::Read;
 			_publishStatus(geofence_status_s::GF_STATUS_LOADING);
 		}
@@ -166,6 +167,7 @@ void Geofence::run()
 			} else {
 				_dataman_state = DatamanState::UpdateRequestWait;
 				_fence_loaded = true;
+				_fence_load_failures = 0;
 				_path_check_ready = !_initiate_fence_updated;
 				_publishStatus(geofence_status_s::GF_STATUS_READY);
 			}
@@ -186,6 +188,8 @@ void Geofence::run()
 	case DatamanState::Error:
 		PX4_ERR("Geofence update failed! state: %" PRIu8, static_cast<uint8_t>(_error_state));
 		_dataman_state = DatamanState::UpdateRequestWait;
+		_scheduleFenceRetry();
+		_publishStatus(geofence_status_s::GF_STATUS_FAILED);
 		break;
 
 	default:
@@ -197,6 +201,9 @@ void Geofence::run()
 void Geofence::updateFence()
 {
 	_initiate_fence_updated = true;
+	// A new request restarts the retry budget of a failed load.
+	_fence_retry_time = 0;
+	_fence_load_failures = 0;
 	// Keep the current fence for point checks while update metadata is read; path checks must wait.
 	_path_check_ready = false;
 }
@@ -208,13 +215,31 @@ void Geofence::_finishFenceUpdate(LoadResult result)
 	_fence_loaded = success;
 	_path_check_ready = success && !_initiate_fence_updated;
 
-	if (result == LoadResult::ReadFailed) {
-		_reportFenceLoadFailure();
+	if (success) {
+		_fence_load_failures = 0;
+
+	} else if (result == LoadResult::ReadFailed) {
+		_scheduleFenceRetry();
 	}
 
-	// Invalid fence data is reported where it is found.
+	// Invalid fence data is reported where it is found and not retried.
 	_publishStatus(success ? geofence_status_s::GF_STATUS_READY : geofence_status_s::GF_STATUS_FAILED);
 	_geofence_updated = true;
+}
+
+void Geofence::_scheduleFenceRetry()
+{
+	if (_fence_load_failures < kMaxFenceLoadRetries) {
+		// Back off 1 s, 2 s, 4 s before giving up.
+		_fence_retry_time = hrt_absolute_time() + (kFenceRetryDelay << _fence_load_failures);
+		++_fence_load_failures;
+		PX4_WARN("Geofence load failed, retry %u of %u", static_cast<unsigned>(_fence_load_failures),
+			 static_cast<unsigned>(kMaxFenceLoadRetries));
+
+	} else {
+		_fence_retry_time = 0;
+		_reportFenceLoadFailure();
+	}
 }
 
 void Geofence::_publishStatus(uint8_t status_value)
@@ -235,6 +260,14 @@ void Geofence::_clearFence()
 
 void Geofence::_reportFenceLoadFailure()
 {
+	if (_fence_loaded) {
+		// The metadata read failed before the old fence was touched, so it keeps protecting.
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence update failed, previous fence still active\t");
+		events::send(events::ID("navigator_geofence_update_failed"), {events::Log::Critical, events::LogInternal::Warning},
+			     "Geofence update failed, previous fence still active");
+		return;
+	}
+
 	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence load failed, fence is not active\t");
 	events::send(events::ID("navigator_geofence_load_failed"), {events::Log::Critical, events::LogInternal::Warning},
 		     "Geofence load failed, fence is not active");

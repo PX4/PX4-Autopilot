@@ -59,6 +59,41 @@ protected:
 		return found;
 	}
 
+	// A polygon that fills the fence storage, centred like exclusionSquare().
+	FencePoints exclusionRing(size_t vertices) const
+	{
+		FencePoints points;
+
+		for (size_t i = 0; i < vertices; ++i) {
+			const double angle = 2.0 * M_PI * static_cast<double>(i) / static_cast<double>(vertices);
+			const auto coordinate = position(static_cast<float>(50.0 * cos(angle)), static_cast<float>(300.0 + 50.0 * sin(angle)));
+			mission_fence_point_s point{};
+			point.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
+			point.frame = NAV_FRAME_GLOBAL;
+			point.lat = coordinate(0);
+			point.lon = coordinate(1);
+			point.vertex_count = static_cast<uint16_t>(vertices);
+			points.push_back(point);
+		}
+
+		return points;
+	}
+
+	// Fail the metadata read of the next load attempt and return once the fence waits again.
+	::testing::AssertionResult failFenceMetadataRead()
+	{
+		GeofenceTestPeer::expireRetryDelay(_fence);
+		_fence.run(); // start the update
+		_fence.run(); // send the metadata read
+
+		if (!GeofenceTestPeer::failPendingRead(_fence)) {
+			return ::testing::AssertionFailure() << "no fence read pending";
+		}
+
+		_fence.run(); // enter the error state
+		_fence.run(); // return to waiting
+		return ::testing::AssertionSuccess();
+	}
 };
 
 enum class FenceShape { ExclusionPolygon, ConcaveInclusion, ExclusionCircle, InclusionCircle };
@@ -254,22 +289,52 @@ TEST_F(GeofenceTest, ReloadTemporarilyDisablesPathChecks)
 	EXPECT_TRUE(clear);
 }
 
-TEST_F(GeofenceTest, ReadFailureKeepsPathChecksUnavailable)
+TEST_F(GeofenceTest, ReadFailureIsRetriedUntilPathChecksRecover)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	_fence.updateFence();
-	_fence.run();
-	_fence.run();
-	ASSERT_TRUE(GeofenceTestPeer::failPendingRead(_fence));
-	_fence.run();
-	_fence.run();
+	ASSERT_TRUE(failFenceMetadataRead());
 	const Geofence::PathCheck query = path({100.f, 100.f}, {100.f, 500.f});
 	bool clear = true;
 	EXPECT_FALSE(_fence.checkPathBatch(&query, 1, &clear));
 	EXPECT_FALSE(clear);
-	// The failed response must not disturb the fence that was loaded before.
+	// The previous fence keeps serving point checks until the retry replaces it.
 	const auto inside_exclusion = position(0.f, 300.f);
 	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
+	EXPECT_TRUE(GeofenceTestPeer::isUpdatePending(_fence));
+	GeofenceTestPeer::expireRetryDelay(_fence);
+	ASSERT_TRUE(waitForFence());
+	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	ASSERT_TRUE(_fence.checkPathBatch(&query, 1, &clear));
+	EXPECT_TRUE(clear);
+}
+
+TEST_F(GeofenceTest, RepeatedReadFailuresStopRetrying)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	uORB::Subscription log_sub{ORB_ID(mavlink_log)};
+	_fence.updateFence();
+
+	for (unsigned attempt = 0; attempt <= GeofenceTestPeer::maxLoadRetries(); ++attempt) {
+		SCOPED_TRACE(attempt);
+		ASSERT_TRUE(failFenceMetadataRead());
+	}
+
+	// The retry budget is spent: nothing is pending, no read is issued, and the operator learns
+	// that the refresh failed while the previous fence still protects.
+	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_TRUE(logContains(log_sub, "Geofence update failed, previous fence still active"));
+	EXPECT_FALSE(failFenceMetadataRead());
+	const auto inside_exclusion = position(0.f, 300.f);
+	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
+	const Geofence::PathCheck query = path({100.f, 100.f}, {100.f, 500.f});
+	bool clear = true;
+	EXPECT_FALSE(_fence.checkPathBatch(&query, 1, &clear));
+	// A new request starts over.
+	_fence.updateFence();
+	ASSERT_TRUE(waitForFence());
+	ASSERT_TRUE(_fence.checkPathBatch(&query, 1, &clear));
+	EXPECT_TRUE(clear);
 }
 
 enum class InvalidFenceData { VertexCount, Longitude, Frame, Command };
@@ -478,6 +543,36 @@ TEST_F(GeofenceTest, QueuedRefreshSurvivesUnchangedFenceId)
 	EXPECT_TRUE(clear);
 }
 
+TEST_F(GeofenceTest, FailedVertexReadClearsTheFenceUntilStorageRecovers)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	uORB::Subscription log_sub{ORB_ID(mavlink_log)};
+	// The metadata claims one vertex more than the storage holds, so the dataman rejects that
+	// cache slot and the load fails after the vertices were requested.
+	ASSERT_TRUE(loadFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX), geofence_status_s::GF_STATUS_FAILED, 1));
+	EXPECT_TRUE(_fence.isEmpty());
+	EXPECT_TRUE(GeofenceTestPeer::isUpdatePending(_fence));
+	// A fragment is never kept, so point checks fail open while the retries run.
+	const auto inside_exclusion = position(0.f, 300.f);
+	EXPECT_TRUE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
+
+	for (unsigned attempt = 0; attempt < GeofenceTestPeer::maxLoadRetries(); ++attempt) {
+		SCOPED_TRACE(attempt);
+		GeofenceTestPeer::expireRetryDelay(_fence);
+		ASSERT_TRUE(waitForFence(geofence_status_s::GF_STATUS_FAILED));
+	}
+
+	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_TRUE(logContains(log_sub, "Geofence load failed, fence is not active"));
+	// Repairing the stored fence and asking again recovers.
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
+	const Geofence::PathCheck query = path({100.f, 100.f}, {100.f, 500.f});
+	bool clear = false;
+	ASSERT_TRUE(_fence.checkPathBatch(&query, 1, &clear));
+	EXPECT_TRUE(clear);
+}
+
 enum class InvalidFenceItem {
 	TwoVertexPolygon, ZeroRadius, NegativeRadius, NonFiniteRadius, NonFiniteVertex, LocalFrame,
 	MixedVertexType, VertexCountMismatch, TruncatedPolygon, AntimeridianEdge
@@ -538,7 +633,8 @@ TEST_P(InvalidGeofenceLoadTest, RejectsFenceWhenLoading)
 
 	uORB::Subscription log_sub{ORB_ID(mavlink_log)};
 	ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
-	// Invalid data is reported once and leaves no fence behind.
+	// Invalid data is reported once, not retried, and leaves no fence behind.
+	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
 	EXPECT_TRUE(_fence.isEmpty());
 	EXPECT_TRUE(logContains(log_sub, "invalid, fence is not active"));
 	const Geofence::PathCheck query = path({0.f, 100.f}, {0.f, 500.f});
