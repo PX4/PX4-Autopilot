@@ -456,6 +456,7 @@ struct MissionLoiterCase {
 	uint8_t vehicle_type{vehicle_status_s::VEHICLE_TYPE_FIXED_WING};
 	bool is_vtol{false};
 	float default_radius{40.f};
+	bool followed_by_waypoint{false};
 };
 
 class MissionGeofenceLoiterRadiusTest : public MissionGeofenceLoiterTest,
@@ -470,8 +471,13 @@ TEST_P(MissionGeofenceLoiterRadiusTest, ChecksRadiusForCirclingVehicles)
 	ASSERT_TRUE(loadFence(inclusionSquare()));
 
 	// The centre is 50 m inside the eastern edge: 40 m fits, 60 m crosses it.
-	EXPECT_EQ(missionFeasible({waypoint({0.f, 800.f}), changeSpeed(), loiter(950.f, test.radius, test.command)}),
-		  test.feasible);
+	std::vector<mission_item_s> items{waypoint({0.f, 800.f}), changeSpeed(), loiter(950.f, test.radius, test.command)};
+
+	if (test.followed_by_waypoint) {
+		items.push_back(waypoint({0.f, 800.f}));
+	}
+
+	EXPECT_EQ(missionFeasible(items), test.feasible);
 
 	if (!test.feasible) {
 		expectLoiterViolation(3);
@@ -493,7 +499,8 @@ INSTANTIATE_TEST_SUITE_P(MissionLoiterRadii, MissionGeofenceLoiterRadiusTest, ::
 						 vehicle_status_s::VEHICLE_TYPE_ROTARY_WING},
 				 MissionLoiterCase{"VtolMayTransition", NAV_CMD_LOITER_UNLIMITED, 60.f, false,
 						 vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true},
-				 MissionLoiterCase{"WaypointIgnoresRadius", NAV_CMD_WAYPOINT, 60.f, true}),
+				 MissionLoiterCase{"WaypointIgnoresRadius", NAV_CMD_WAYPOINT, 60.f, true,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false, 40.f, true}),
 			 [](const ::testing::TestParamInfo<MissionLoiterCase> &test_info)
 {
 	return test_info.param.name;
@@ -557,4 +564,67 @@ INSTANTIATE_TEST_SUITE_P(MissionLoiterOrder, MissionGeofenceLoiterOrderTest, ::t
 			 [](const ::testing::TestParamInfo<bool> &test_info)
 {
 	return test_info.param ? "IncomingPathBeforeCircle" : "CircleBeforeFollowingPath";
+});
+
+enum class MissionEnd { Waypoint, Land, Loiter };
+
+struct MissionEndCase {
+	const char *name;
+	MissionEnd last_item;
+	float default_radius;
+	uint8_t vehicle_type;
+	bool feasible;
+};
+
+class MissionGeofenceEndLoiterTest : public MissionGeofenceLoiterTest,
+	public ::testing::WithParamInterface<MissionEndCase> {};
+
+TEST_P(MissionGeofenceEndLoiterTest, ChecksTheLoiterAfterTheLastPosition)
+{
+	const MissionEndCase &test = GetParam();
+	ASSERT_TRUE(configureVehicle(test.vehicle_type));
+	ASSERT_EQ(param_set(param_find("NAV_LOITER_RAD"), &test.default_radius), PX4_OK);
+	_navigator.updateParams();
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// The mission ends 50 m inside the eastern edge, approached from far enough west for a landing.
+	std::vector<mission_item_s> items{waypoint({0.f, -500.f})};
+	mission_item_s last = waypoint({0.f, 950.f});
+
+	switch (test.last_item) {
+	case MissionEnd::Waypoint:
+		break;
+
+	case MissionEnd::Land:
+		last.nav_cmd = NAV_CMD_LAND;
+		last.altitude = kAltitude - 100.f;
+		break;
+
+	case MissionEnd::Loiter:
+		last = loiter(950.f, 40.f);
+		break;
+	}
+
+	items.push_back(last);
+	EXPECT_EQ(missionFeasible(items), test.feasible);
+
+	if (!test.feasible) {
+		expectLoiterViolation(2);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(MissionEnds, MissionGeofenceEndLoiterTest, ::testing::Values(
+				 MissionEndCase{"WaypointCirclesAtDefaultRadius", MissionEnd::Waypoint, 60.f,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false},
+				 MissionEndCase{"WaypointFitsWithSmallerDefault", MissionEnd::Waypoint, 40.f,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, true},
+				 MissionEndCase{"LandingDoesNotLoiter", MissionEnd::Land, 60.f,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, true},
+				 MissionEndCase{"ExplicitLoiterUsesItsOwnRadius", MissionEnd::Loiter, 60.f,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, true},
+				 MissionEndCase{"MulticopterHoversAtTheEnd", MissionEnd::Waypoint, 60.f,
+						 vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true}),
+			 [](const ::testing::TestParamInfo<MissionEndCase> &test_info)
+{
+	return test_info.param.name;
 });
