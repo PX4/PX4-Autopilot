@@ -629,6 +629,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif
 
+#ifdef CONFIG_BOARD_FLEXSPI_FLASH_STORAGE
+
+	if (fmuv6xrt_flash_storage_initialize() != OK) {
+		led_on(LED_RED);
+	}
+
+#endif
+
 #ifdef CONFIG_IMXRT_ENET
 	imxrt_netinitialize(0);
 #endif

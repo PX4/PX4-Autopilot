@@ -636,6 +636,18 @@ __BEGIN_DECLS
 
 int fmuv6xrt_usdhc_initialize(void);
 
+/****************************************************************************
+ * Name: fmuv6xrt_flash_storage_initialize
+ *
+ * Description:
+ *   Register the boot NOR storage region as MTD and mount littlefs at /fs/flash.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARD_FLEXSPI_FLASH_STORAGE
+int fmuv6xrt_flash_storage_initialize(void);
+#endif
+
 /************************************************************************************
  * Name: imxrt_usb_initialize
  *
