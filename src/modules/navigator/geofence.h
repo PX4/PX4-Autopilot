@@ -215,6 +215,10 @@ private:
 	bool _fence_loaded{false}; ///< Used by live point checks; may remain true while an update is pending.
 	bool _path_check_ready{false}; ///< Update succeeded with no newer request pending.
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
+	hrt_abstime _fence_retry_time{0}; ///< Next retry of a failed load; zero when none is scheduled.
+	uint8_t _fence_load_failures{0}; ///< Consecutive failed load attempts.
+	static constexpr uint8_t kMaxFenceLoadRetries = 3;
+	static constexpr hrt_abstime kFenceRetryDelay = 1_s; ///< Doubles with each failure.
 	bool _geofence_updated{false}; ///< set when polygons change, consumed by Navigator to rebuild avoidance graph
 
 	uORB::Publication<geofence_status_s> _geofence_status_pub{ORB_ID(geofence_status)};
@@ -236,6 +240,11 @@ private:
 	 * Finish a fence update, report its result, and notify the avoidance planner.
 	 */
 	void _finishFenceUpdate(LoadResult result);
+
+	/**
+	 * Schedule a bounded, backed-off retry of a failed load, or report giving up.
+	 */
+	void _scheduleFenceRetry();
 
 	void _publishStatus(uint8_t status);
 
