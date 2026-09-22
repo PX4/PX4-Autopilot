@@ -46,8 +46,10 @@ add_custom_command(OUTPUT ${generated_actuators_metadata_file}
 		--compress
 		--board ${PX4_BOARD}
 		--output-file ${generated_actuators_metadata_file}
+	# Metadata stays at version 1 so QGC will load parameters. Schema floors rose for optional fields.
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
-		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/actuators.schema.json
+		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_metadata/actuators.schema.json
+		--version-minimum 1
 		${generated_actuators_metadata_file}
 		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
 		#--verbose
@@ -55,6 +57,7 @@ add_custom_command(OUTPUT ${generated_actuators_metadata_file}
 		${module_config_files}
 		${PX4_SOURCE_DIR}/Tools/module_config/generate_actuators_metadata.py
 		${PX4_SOURCE_DIR}/src/lib/mixer_module/output_functions.yaml
+		${PX4_SOURCE_DIR}/Tools/validate_json.py
 	COMMENT "Generating actuators.json"
 )
 add_custom_target(actuators_json DEPENDS ${generated_actuators_metadata_file})

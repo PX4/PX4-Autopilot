@@ -18,11 +18,7 @@ concurrency:
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, macos-15]
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-15
     steps:
     - name: install Python 3.10
       uses: actions/setup-python@v6
@@ -35,7 +31,7 @@ jobs:
       uses: actions/cache@v5
       with:
         path: ~/Library/Caches/Homebrew/downloads
-        key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh') }}
+        key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh', 'Tools/setup/macos_ci_pins.sh', 'Tools/setup/homebrew-pins.txt', 'Tools/setup/protobuf-pin.txt', 'Tools/setup/gz-tap-pin.txt') }}
         restore-keys: |
           macos-homebrew-${{ runner.arch }}-
 
@@ -48,24 +44,20 @@ jobs:
           macos-pip-${{ runner.arch }}-
 
     - name: setup
+      env:
+        # Read the checked-out package repos. The default is a live index,
+        # which ignores those checkouts.
+        HOMEBREW_NO_AUTO_UPDATE: "1"
+        HOMEBREW_NO_INSTALL_FROM_API: "1"
       run: |
-        # Runner images ship Homebrew with auto-update off and a formula
-        # snapshot from image build time, so without this the two legs
-        # install whatever homebrew-core each image was built with. The gz
-        # tap pin is only valid against current homebrew-core, see
-        # Tools/setup/gz-tap-pin.txt.
-        brew update
+        ./Tools/setup/macos_ci_pins.sh
         ./Tools/setup/macos.sh --sim-tools
         echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
 
     - uses: ./.github/actions/setup-ccache
       id: ccache
       with:
-        # Keyed per OS: the two legs run different Apple clang builds, and
-        # ccache's compiler_check=content means objects cached by one are
-        # never reusable by the other. Sharing one key also made the legs
-        # race to save it, so one lost its cache every run.
-        cache-key-prefix: ccache-macos-${{ matrix.os }}
+        cache-key-prefix: ccache-macos-15
         max-size: 200M
 
     - name: Build px4_sitl

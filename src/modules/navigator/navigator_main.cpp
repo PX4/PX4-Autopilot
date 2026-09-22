@@ -796,12 +796,13 @@ void Navigator::run()
 				// The yaw setpoint generation is handled by FlightTaskAuto.
 				rep->current.yaw = NAN;
 
-				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
+				    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON)) {
 					rep->current.lat = cmd.param5;
 					rep->current.lon = cmd.param6;
 
 				} else {
-					// If one of them is non-finite set the current global position as target
+					// Use the current position for missing or zero-initialized coordinates
 					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
 

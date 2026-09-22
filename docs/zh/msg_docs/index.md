@@ -138,7 +138,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [FiducialMarkerPosReport](FiducialMarkerPosReport.md) — Relative position of a precision-landing target detected by a vision pipeline (e.g. an ArUco marker).
 - [FiducialMarkerYawReport](FiducialMarkerYawReport.md) — Yaw of a precision-landing target relative to the NED (North, East, Down) frame, reported by a vision pipeline.
 - [FigureEightStatus](FigureEightStatus.md)
-- [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs.
+- [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message. Published by fw_mode_manager module to report the resultant lateral setpoints and NPFG debug outputs.
 - [FixedWingLateralStatus](FixedWingLateralStatus.md) — Fixed Wing Lateral Status message. Published by the fw_lateral_longitudinal_control module to report the resultant lateral setpoint.
 - [FixedWingRunwayControl](FixedWingRunwayControl.md) — Auxiliary control fields for fixed-wing runway takeoff/landing.
 - [FixedWingTakeoffStatus](FixedWingTakeoffStatus.md) — Status of a fixed-wing takeoff. Passes information from the FixedWingModeManager to the Navigator.
