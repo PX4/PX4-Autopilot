@@ -43,6 +43,7 @@
 #include <px4_platform_common/defines.h>
 
 #include "lm_fit.hpp"
+#include "mag_rotation_detection.hpp"
 #include "mag_calibration_test_data.h"
 
 using matrix::Vector3f;
@@ -235,4 +236,131 @@ TEST_F(MagCalTest, replayTestData)
 	EXPECT_NEAR(ellipsoid.diag(0), scale_true(0), 0.01f) << "scale X: " << ellipsoid.diag(0);
 	EXPECT_NEAR(ellipsoid.diag(1), scale_true(1), 0.01f) << "scale Y: " << ellipsoid.diag(1);
 	EXPECT_NEAR(ellipsoid.diag(2), scale_true(2), 0.01f) << "scale Z: " << ellipsoid.diag(2);
+}
+
+/* Simulate a 6 sides calibration: the vehicle rests on each side while rotated a full turn around the vertical axis.
+ * Mag samples are generated in sensor frame for a given mag rotation (sensor to body), accel in body frame.
+ */
+static unsigned generateGravityRotationData(float *x, float *y, float *z, Vector3f *accel, Rotation mag_rotation,
+		bool all_sides, float noise_gauss = 0.005f, float noise_mss = 0.3f)
+{
+	using matrix::Dcmf;
+	using matrix::Eulerf;
+
+	// earth field in NED (inclination ~62 deg)
+	const Vector3f mag_earth{0.24f, 0.02f, 0.45f};
+	const Vector3f gravity_ned{0.f, 0.f, -9.80665f}; // specific force at rest
+
+	const Eulerf sides[6] {
+		{0.f, 0.f, 0.f},               // level
+		{M_PI_F, 0.f, 0.f},            // upside down
+		{M_PI_F / 2.f, 0.f, 0.f},      // left
+		{-M_PI_F / 2.f, 0.f, 0.f},     // right
+		{0.f, M_PI_F / 2.f, 0.f},      // nose up
+		{0.f, -M_PI_F / 2.f, 0.f},     // nose down
+	};
+
+	const Dcmf R_mag = get_rot_matrix(mag_rotation);
+	const unsigned n_sides = all_sides ? 6 : 1;
+	const unsigned n_per_side = 40;
+
+	srand(1234);
+	auto noise = [](float amplitude) { return amplitude * (2.f * (float)rand() / (float)RAND_MAX - 1.f); };
+
+	unsigned n = 0;
+
+	for (unsigned s = 0; s < n_sides; s++) {
+		for (unsigned i = 0; i < n_per_side; i++) {
+			const float yaw = 2.f * M_PI_F * i / n_per_side;
+			const Dcmf C_nb = Dcmf(Eulerf(0.f, 0.f, yaw)) * Dcmf(sides[s]); // body to NED
+
+			const Vector3f mag_body = C_nb.transpose() * mag_earth;
+			const Vector3f mag_sensor = R_mag.transpose() * mag_body;
+
+			x[n] = mag_sensor(0) + noise(noise_gauss);
+			y[n] = mag_sensor(1) + noise(noise_gauss);
+			z[n] = mag_sensor(2) + noise(noise_gauss);
+			accel[n] = C_nb.transpose() * gravity_ned + Vector3f{noise(noise_mss), noise(noise_mss), noise(noise_mss)};
+			n++;
+		}
+	}
+
+	return n;
+}
+
+TEST_F(MagCalTest, rotationFromGravity)
+{
+	static constexpr unsigned N_MAX = 240;
+	float x[N_MAX], y[N_MAX], z[N_MAX];
+	Vector3f accel[N_MAX];
+
+	for (int r = ROTATION_NONE; r < ROTATION_MAX; r++) {
+		if (mag_rotation_detection::rotation_skipped(r)) {
+			continue;
+		}
+
+		// GIVEN: 6 sides of data from a mag mounted with rotation r
+		const unsigned n = generateGravityRotationData(x, y, z, accel, (Rotation)r, true);
+
+		// WHEN: we detect the rotation using gravity
+		const mag_rotation_detection::Result res = mag_rotation_detection::detect(x, y, z, accel, n);
+
+		// THEN: the rotation is found
+		EXPECT_TRUE(res.valid) << "rotation " << r << " confidence " << res.confidence << " std " << res.best_std;
+		EXPECT_EQ((int)res.best_rotation, r) << "confidence " << res.confidence;
+	}
+}
+
+TEST_F(MagCalTest, rotationFromGravityUpsideDown)
+{
+	static constexpr unsigned N_MAX = 240;
+	float x[N_MAX], y[N_MAX], z[N_MAX];
+	Vector3f accel[N_MAX];
+
+	// GIVEN: mag mounted upside down, with larger sensor noise
+	const unsigned n = generateGravityRotationData(x, y, z, accel, ROTATION_PITCH_180, true, 0.02f, 1.f);
+
+	// WHEN: we detect the rotation using gravity
+	const mag_rotation_detection::Result res = mag_rotation_detection::detect(x, y, z, accel, n);
+
+	// THEN: CAL_MAGx_ROT 12 is found
+	EXPECT_TRUE(res.valid);
+	EXPECT_EQ(res.best_rotation, ROTATION_PITCH_180);
+}
+
+TEST_F(MagCalTest, rotationFromGravityAmbiguous)
+{
+	static constexpr unsigned N_MAX = 240;
+	float x[N_MAX], y[N_MAX], z[N_MAX];
+	Vector3f accel[N_MAX];
+
+	// GIVEN: data from a single side only (yaw rotations can not be distinguished)
+	const unsigned n = generateGravityRotationData(x, y, z, accel, ROTATION_YAW_90, false);
+
+	// WHEN: we detect the rotation using gravity
+	const mag_rotation_detection::Result res = mag_rotation_detection::detect(x, y, z, accel, n);
+
+	// THEN: no rotation is reported
+	EXPECT_FALSE(res.valid);
+}
+
+TEST_F(MagCalTest, rotationFromGravityNoAccel)
+{
+	static constexpr unsigned N_MAX = 240;
+	float x[N_MAX], y[N_MAX], z[N_MAX];
+	Vector3f accel[N_MAX];
+
+	// GIVEN: valid mag data but no accel data available
+	const unsigned n = generateGravityRotationData(x, y, z, accel, ROTATION_PITCH_180, true);
+
+	for (unsigned i = 0; i < n; i++) {
+		accel[i] = Vector3f{NAN, NAN, NAN};
+	}
+
+	// WHEN: we detect the rotation using gravity
+	const mag_rotation_detection::Result res = mag_rotation_detection::detect(x, y, z, accel, n);
+
+	// THEN: no rotation is reported
+	EXPECT_FALSE(res.valid);
+	EXPECT_EQ(res.samples_used, 0u);
 }

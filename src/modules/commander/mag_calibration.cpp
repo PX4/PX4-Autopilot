@@ -41,6 +41,7 @@
 #include "commander_helper.h"
 #include "calibration_routines.h"
 #include "lm_fit.hpp"
+#include "mag_rotation_detection.hpp"
 #include "calibration_messages.h"
 #include "factory_calibration_storage.h"
 
@@ -62,6 +63,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/mag_worker_data.h>
@@ -93,6 +95,8 @@ struct mag_worker_data_t {
 	float		*x[MAX_MAGS];
 	float		*y[MAX_MAGS];
 	float		*z[MAX_MAGS];
+
+	Vector3f	*accel;						///< body frame specific force at each sample (shared by all mags, lockstep)
 
 	calibration::Magnetometer calibration[MAX_MAGS] {};
 };
@@ -322,6 +326,8 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		{ORB_ID(sensor_mag), 0, 3},
 	};
 
+	uORB::Subscription vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+
 	uint64_t calibration_deadline = hrt_absolute_time() + worker_data->calibration_interval_perside_us;
 	unsigned poll_errcount = 0;
 	unsigned calibration_counter_side = 0;
@@ -379,6 +385,19 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 			// Keep calibration of all mags in lockstep
 			if (!rejected) {
+				// store gravity reference for rotation detection (all mags are in lockstep, so mag 0 index is shared)
+				if (worker_data->accel != nullptr) {
+					Vector3f accel{NAN, NAN, NAN};
+					vehicle_acceleration_s vehicle_acceleration;
+
+					if (vehicle_acceleration_sub.copy(&vehicle_acceleration)
+					    && (hrt_elapsed_time(&vehicle_acceleration.timestamp) < 50_ms)) {
+						accel = Vector3f{vehicle_acceleration.xyz};
+					}
+
+					worker_data->accel[worker_data->calibration_counter_total[0]] = accel;
+				}
+
 				for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 					if (worker_data->calibration[cur_mag].device_id() != 0) {
 						worker_data->x[cur_mag][worker_data->calibration_counter_total[cur_mag]] = new_samples[cur_mag](0);
@@ -463,6 +482,74 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	return result;
 }
 
+// Determine external mag rotations using gravity as reference, used when there's no internal mag to compare against
+static void mag_rotation_from_gravity(mag_worker_data_t &worker_data, const Vector3f sphere[MAX_MAGS],
+				      const Vector3f diag[MAX_MAGS], const Vector3f offdiag[MAX_MAGS], orb_advert_t *mavlink_log_pub)
+{
+	for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+		calibration::Magnetometer &cal = worker_data.calibration[cur_mag];
+
+		if ((cal.device_id() == 0) || !cal.external()) {
+			continue;
+		}
+
+		const float scale_data[9] {
+			diag[cur_mag](0),    offdiag[cur_mag](0), offdiag[cur_mag](1),
+			offdiag[cur_mag](0),    diag[cur_mag](1), offdiag[cur_mag](2),
+			offdiag[cur_mag](1), offdiag[cur_mag](2),    diag[cur_mag](2)
+		};
+		const Matrix3f scale{scale_data};
+
+		const unsigned n = worker_data.calibration_counter_total[cur_mag];
+
+		// apply new calibration to all raw sensor data before comparison
+		for (unsigned i = 0; i < n; i++) {
+			const Vector3f m{scale *(Vector3f{worker_data.x[cur_mag][i], worker_data.y[cur_mag][i], worker_data.z[cur_mag][i]} - sphere[cur_mag])};
+			worker_data.x[cur_mag][i] = m(0);
+			worker_data.y[cur_mag][i] = m(1);
+			worker_data.z[cur_mag][i] = m(2);
+		}
+
+		const mag_rotation_detection::Result res = mag_rotation_detection::detect(worker_data.x[cur_mag],
+				worker_data.y[cur_mag], worker_data.z[cur_mag], worker_data.accel, n);
+
+		PX4_INFO("[cal] Mag: %u (%" PRIu32 ") gravity rotation check: best %d, second %d, confidence %.1f, std %.3f, samples %u",
+			 cur_mag, cal.device_id(), (int)res.best_rotation, (int)res.second_rotation,
+			 (double)res.confidence, (double)res.best_std, res.samples_used);
+
+		if (!res.valid) {
+			calibration_log_info(mavlink_log_pub, "[cal] Mag: %u (%" PRIu32 ") determining rotation failed (confidence %.1f)",
+					     cur_mag, cal.device_id(), (double)res.confidence);
+			continue;
+		}
+
+		switch (cal.rotation_enum()) {
+		case ROTATION_ROLL_90_PITCH_68_YAW_293:
+			PX4_INFO("[cal] External Mag: %u (%" PRIu32 "), keeping manually configured rotation %d", cur_mag,
+				 cal.device_id(), (int)cal.rotation_enum());
+			continue;
+
+		case ROTATION_CUSTOM:
+			PX4_INFO("[cal] External Mag: %u (%" PRIu32 "), not setting rotation enum since it's specified by Euler Angle",
+				 cur_mag, cal.device_id());
+			continue;
+
+		default:
+			break;
+		}
+
+		if (res.best_rotation != cal.rotation_enum()) {
+			calibration_log_info(mavlink_log_pub, "[cal] External Mag: %u (%" PRIu32 ") determined rotation: %d (was %d)",
+					     cur_mag, cal.device_id(), (int)res.best_rotation, (int)cal.rotation_enum());
+			cal.set_rotation(res.best_rotation);
+
+		} else {
+			PX4_INFO("[cal] External Mag: %u (%" PRIu32 "), no rotation change: %d", cur_mag, cal.device_id(),
+				 (int)res.best_rotation);
+		}
+	}
+}
+
 calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_mask)
 {
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
@@ -519,6 +606,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	}
 
 	const unsigned int calibration_points_maxcount = worker_data.calibration_sides * worker_data.calibration_points_perside;
+
+	// gravity reference for automatic rotation detection (optional, skipped if allocation fails)
+	worker_data.accel = new Vector3f[calibration_points_maxcount];
 
 	for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
@@ -708,6 +798,11 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				}
 			}
 
+			if ((internal_index < 0) && (worker_data.accel != nullptr)) {
+				// no internal mag to compare against, use gravity as reference instead
+				mag_rotation_from_gravity(worker_data, sphere, diag, offdiag, mavlink_log_pub);
+			}
+
 			// only proceed if there's a valid internal
 			if (internal_index >= 0) {
 
@@ -891,6 +986,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		free(worker_data.y[cur_mag]);
 		free(worker_data.z[cur_mag]);
 	}
+
+	delete[] worker_data.accel;
+	worker_data.accel = nullptr;
 
 	FactoryCalibrationStorage factory_storage;
 

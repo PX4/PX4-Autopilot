@@ -82,6 +82,8 @@ PARAM_DEFINE_INT32(CAL_MAG_COMP_TYP, 0);
  * Automatically set external rotations.
  *
  * During calibration attempt to automatically determine the rotation of external magnetometers.
+ * The first internal magnetometer is used as reference if available, otherwise gravity
+ * (accelerometer) is used, which requires calibrating at least 3 sides.
  *
  * @boolean
  * @group Sensors
