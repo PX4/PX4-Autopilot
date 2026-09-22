@@ -108,7 +108,8 @@ public:
 
 	/**
 	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences.
-	 * Boundary contact is a breach, including contact by a circle.
+	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;
+	 * a fixed-wing waypoint turned into a loiter to reach its altitude cannot be predicted here.
 	 * At least one endpoint of each path must be valid under the existing point check.
 	 * For a connected chain, checking the first point is enough if all preceding paths pass.
 	 * Check anchors and paths against the same loaded fence; check Home and altitude limits separately.
