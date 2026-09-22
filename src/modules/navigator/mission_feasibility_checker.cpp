@@ -328,32 +328,40 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 		return index >= 0 && index < mission.count;
 	};
 
-	// Execution checks the target even when the jump has no repeats left.
+	// Execution checks the target even when the jump never repeats.
 	if (!in_range(jump_item.do_jump_mission_index)) {
 		return rejectGeofenceJump(batch, jump_index);
 	}
 
-	if (jump_item.do_jump_current_count >= jump_item.do_jump_repeat_count) {
+	// do_jump_current_count is execution state that activation and index changes reset, so every
+	// jump that can ever be taken is checked as if it will be.
+	if (jump_item.do_jump_repeat_count == 0) {
 		return true;
 	}
 
 	// Bound memory and reads so branching jump chains or loops cannot stall validation.
 	static constexpr size_t kMaxJumpBranches = 16;
-	int32_t pending[kMaxJumpBranches] {};
+	struct Branch {
+		int32_t index;
+		uint16_t jumps_in_a_row;
+	};
+	Branch pending[kMaxJumpBranches]; // every slot is written before it is read
 	size_t pending_count = 1;
-	pending[0] = jump_item.do_jump_mission_index;
+	pending[0] = {jump_item.do_jump_mission_index, 1};
 	size_t items_read = 0;
 	const size_t read_limit = static_cast<size_t>(mission.count) * kMaxJumpBranches;
 
 	while (pending_count > 0) {
-		int32_t index = pending[--pending_count];
+		const Branch branch = pending[--pending_count];
+		int32_t index = branch.index;
+		uint16_t jumps_in_a_row = branch.jumps_in_a_row;
 
 		while (in_range(index)) {
 			if (items_read++ >= read_limit) {
 				return rejectGeofenceJump(batch, jump_index);
 			}
 
-			mission_item_s candidate{};
+			mission_item_s candidate; // fully written by a successful read
 
 			if (!_dataman_client.readSync(static_cast<dm_item_t>(mission.mission_dataman_id), index,
 						      reinterpret_cast<uint8_t *>(&candidate), sizeof(candidate))) {
@@ -365,18 +373,23 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 			}
 
 			if (candidate.nav_cmd == NAV_CMD_DO_JUMP) {
+				// getNonJumpItem() gives up after this many jump reads without a non-jump item.
+				if (++jumps_in_a_row >= NAV_MAX_JUMP_ITERATION) {
+					return rejectGeofenceJump(batch, jump_index);
+				}
+
 				if (!in_range(candidate.do_jump_mission_index)) {
 					return rejectGeofenceJump(batch, index);
 				}
 
-				if (candidate.do_jump_current_count < candidate.do_jump_repeat_count) {
-					// On a later visit this jump may be exhausted. Check that leg from the same source too.
+				if (candidate.do_jump_repeat_count > 0) {
+					// Once its repeats are spent this jump falls through. Check that leg from the same source too.
 					if (candidate.do_jump_mission_index != index + 1) {
 						if (pending_count >= kMaxJumpBranches) {
 							return rejectGeofenceJump(batch, jump_index);
 						}
 
-						pending[pending_count++] = index + 1;
+						pending[pending_count++] = {index + 1, jumps_in_a_row};
 					}
 
 					index = candidate.do_jump_mission_index;
@@ -387,6 +400,9 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 
 				continue;
 			}
+
+			// A non-jump item completes one resolution; the next one starts a new count.
+			jumps_in_a_row = 0;
 
 			if (mission_item_contains_position(candidate)) {
 				if (previous_position && !addGeofencePath(batch, {*previous_position, {candidate.lat, candidate.lon}}, jump_index, true)) {
