@@ -8,8 +8,8 @@ allowed-tools: Bash Read Glob Grep
 # PX4 Pull Request
 
 **The user is the author: no `Co-Authored-By`, no "Generated with <assistant>"
-footers. AI disclosure lives in the commit trailers (`Assisted-by:`), not in
-the PR body.**
+footers. Disclose AI assistance with `Assisted-by: <tool>:<model-id>` as the
+last line of the PR body, as in the commit trailers.**
 
 ## Steps
 
@@ -27,15 +27,18 @@ the PR body.**
    message.
 5. PR **body:** as short as it can be while still landing the point — a
    reviewer should take it in at a glance, and a long description is one
-   nobody reads. Exactly three sections, in order: `## Summary`, `## Problem`,
+   nobody reads. Sections, in order: `## Summary`, `## Problem`,
    `## Solution`, a sentence or two each. Do not restate the diff (no
    file-changed lists, no code snippets), do not mention CI, and do not repeat
    what the title already says. If the PR closes an issue, the first line of
    `## Summary` is `fixes #<N>`, then a blank line, then the summary. No
-   `## Test plan` section, no boilerplate, no AI attribution. Never state
-   testing that did not happen: ask the user what they actually ran, report
-   exactly that, and say plainly when something is untested.
-
-6. Push with `-u` if needed, then `gh pr create`. Default base is `main`
+   boilerplate.
+6. Optional `## Testing` section after `## Solution`, only for substantial
+   testing: SITL scenarios, synthetic or replayed data, hardware-in-the-loop,
+   bench or flight tests. Building and unit tests are not testing; never
+   mention them. State what was run and what it showed, as tersely as the
+   other sections. Never report testing that did not happen: ask the user
+   what they actually ran.
+7. Push with `-u` if needed, then `gh pr create`. Default base is `main`
    unless user says otherwise.
-7. Return the PR URL.
+8. Return the PR URL.

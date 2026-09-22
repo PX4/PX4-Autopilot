@@ -35,3 +35,7 @@ invent one.**
    git config decision (`commit.gpgsign`), not the skill's. The `-s` sign-off
    is the user's DCO certification of changes they have reviewed: never
    commit with `-s` work the user has not seen.
+6. Add new commits rather than amending pushed ones, and never force-push
+   unless the user asks or the branch is being rebased. PRs are squash-merged,
+   so the branch history costs nothing on `main` and shows reviewers the
+   decision chain.

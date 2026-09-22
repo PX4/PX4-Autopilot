@@ -1,6 +1,6 @@
 ---
 name: build-px4-linux
-description: Build PX4 firmware or SITL natively on a Linux host, including in git worktrees, without flashing hardware.
+description: Build PX4 firmware or SITL natively on a Linux host, in the current checkout, without flashing hardware.
 ---
 
 # Build PX4 on Linux
@@ -9,8 +9,9 @@ description: Build PX4 firmware or SITL natively on a Linux host, including in g
 
 - A make target, for example `px4_fmu-v6x_default` or `px4_sitl`. Ask for it
   if missing; validate it against `boards/`.
-- Optional git ref or worktree path. Without one, build the current working
-  tree as-is.
+
+Build the current checkout as-is, worktree or not. Do not create a worktree
+or switch branches to build.
 
 ## Prepare
 
@@ -19,11 +20,8 @@ description: Build PX4 firmware or SITL natively on a Linux host, including in g
    than installing it, or build in the container:
    `docker run --rm -w "$PWD" --user "$(id -u):$(id -g)" -v "$PWD:$PWD" px4io/px4-dev:v1.17.0 make <target>`.
    `Tools/docker_run.sh` passes `-it` and fails without a TTY.
-2. For a requested ref, prefer an existing worktree for it; otherwise
-   `git worktree add --detach ../PX4-Autopilot-worktrees/build-<short-sha> <ref>`,
-   outside the repository.
-   Never switch the user's active branch. The build initializes submodules
-   itself; do not overwrite locally modified ones.
+2. The build initializes submodules itself; do not overwrite locally modified
+   ones.
 
 ## Build
 
@@ -45,4 +43,4 @@ tree.
 The artifact is `build/<target>/<target>.px4` (NuttX) or
 `build/px4_sitl_default/bin/px4` (SITL). Report the ref, commit, dirty state,
 target, and artifact path. Building is not flashing; never upload without a
-separate request. Remove only clean worktrees created for this invocation.
+separate request.
