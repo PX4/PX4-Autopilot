@@ -35,6 +35,7 @@
 
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
+#include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
@@ -96,6 +97,11 @@ private:
 
 	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
+
+	// EKF2 GNSS requirements, used as the minimum receiver quality for the initial GPS selection
+	param_t _param_ekf2_req_fix_handle{PARAM_INVALID};
+	param_t _param_ekf2_req_eph_handle{PARAM_INVALID};
+	param_t _param_ekf2_req_epv_handle{PARAM_INVALID};
 
 	struct GpsParamSlot {
 		uint32_t device_id{0};

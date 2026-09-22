@@ -59,6 +59,8 @@ public:
 	static constexpr hrt_abstime GPS_TIMEOUT_US = 2_s;
 	static constexpr float GPS_TIMEOUT_S = (GPS_TIMEOUT_US / 1e6f);
 
+	// Time another receiver must report a better fix type than the selected one before switching to it
+	static constexpr hrt_abstime GPS_SWITCH_HOLD_US = 2_s;
 
 	GpsBlending() = default;
 	~GpsBlending() = default;
@@ -78,6 +80,13 @@ public:
 	void setBlendingUseVPosAccuracy(bool enabled) { _blend_use_vpos_acc = enabled; }
 	void setBlendingTimeConstant(float tau) { _blending_time_constant = tau; }
 	void setPrimaryInstance(int primary) { _primary_instance = primary; }
+	// Minimum receiver quality required before the initial selection is latched (see selectSingleReceiver())
+	void setMinimumRequirements(uint8_t fix_type, float eph, float epv)
+	{
+		_req_fix_type = fix_type;
+		_req_eph = eph;
+		_req_epv = epv;
+	}
 	void setAntennaOffset(const Vector3f &offset, uint8_t instance)
 	{
 		if (instance < GPS_MAX_RECEIVERS_BLEND) { _antenna_offset[instance] = offset; }
@@ -100,6 +109,27 @@ public:
 	int getSelectedGps() const { return _selected_gps; }
 
 private:
+	/*
+	 * Select a single receiver when blending is not active.
+	 *
+	 * Receivers are ranked by fix type, then by satellite count. Until a receiver meets the minimum
+	 * requirements (fix type, eph, epv) the best ranked one is used and the selection is free to change.
+	 * Once latched, the selected receiver is kept as long as no other receiver has a strictly better
+	 * fix type (satellite count fluctuations are ignored). A receiver with a better fix type takes over
+	 * after GPS_SWITCH_HOLD_US, or immediately if the selected receiver drops below a 3D fix or times out.
+	 */
+	int selectSingleReceiver(uint64_t hrt_now_us);
+
+	// Rank fix types for selection (higher is better); extrapolated (dead reckoning) ranks below a 2D fix
+	static uint8_t fixTypeRank(uint8_t fix_type);
+
+	// true if receiver a ranks better than receiver b (fix type, then satellites, then primary instance)
+	bool isBetterReceiver(int a, int b) const;
+
+	int findBestReceiver() const;
+
+	bool meetsMinimumRequirements(int instance) const;
+
 	/*
 	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical
 	 * receiver solutions. This internal state cannot be used directly by estimators because if physical receivers
@@ -131,8 +161,16 @@ private:
 	bool _gps_updated[GPS_MAX_RECEIVERS_BLEND] {};
 	int _selected_gps{0};
 	int _np_gps_suitable_for_blending{0};
-	int _primary_instance{0}; ///< if -1, there is no primary isntance and the best receiver is used // TODO: use device_id
-	bool _primary_instance_available{false};
+	int _primary_instance{0}; ///< if -1, there is no primary instance; otherwise used as a tie-breaker // TODO: use device_id
+
+	bool _selection_latched{false};      ///< true once a receiver meeting the minimum requirements has been selected
+	int _switch_candidate{-1};           ///< receiver with a better fix type than the selected one, waiting for the hold time
+	uint64_t _switch_candidate_since_us{0};
+
+	uint8_t _req_fix_type{sensor_gps_s::FIX_TYPE_3D};
+	float _req_eph{5.f};
+	float _req_epv{8.f};
+
 
 	bool _is_new_output_data_available{false};
 

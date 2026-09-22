@@ -44,46 +44,18 @@ void GpsBlending::update(uint64_t hrt_now_us)
 
 	// blend multiple receivers if available
 	if (!blend_gps_data(hrt_now_us)) {
-		// Only use selected receiver data if it has been updated
-		uint8_t gps_select_index = 0;
 
-		// Find the single "best" GPS from the data we have
-		// First, find the GPS(s) with the best fix
-		uint8_t best_fix = 0;
-
-		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
-			if (_gps_state[i].fix_type > best_fix) {
-				best_fix = _gps_state[i].fix_type;
-			}
-		}
-
-		// Second, compare GPS's with best fix and take the one with most satellites
-		uint8_t max_sats = 0;
-
-		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
-			if (_gps_state[i].fix_type == best_fix && _gps_state[i].satellites_used > max_sats) {
-				max_sats = _gps_state[i].satellites_used;
-				gps_select_index = i;
-			}
-		}
-
-		// Check for new data on selected GPS, and clear blend offsets
+		// Not blending: clear blend offsets
 		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 			_NE_pos_offset_m[i].zero();
 			_hgt_offset_m[i] = 0.0;
 		}
 
-		// Only use a secondary instance if the fallback is allowed
-		if ((_primary_instance > -1)
-		    && (gps_select_index != _primary_instance)
-		    && _primary_instance_available
-		    && (_gps_state[_primary_instance].fix_type >= 3)) {
-			gps_select_index = _primary_instance;
-		}
+		const int gps_select_index = selectSingleReceiver(hrt_now_us);
 
 		_selected_gps = gps_select_index;
 		_output_antenna_offset = _antenna_offset[gps_select_index];
-		_is_new_output_data_available =  _gps_updated[gps_select_index];
+		_is_new_output_data_available = _gps_updated[gps_select_index];
 
 		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 			// clear updated flags
@@ -94,6 +66,121 @@ void GpsBlending::update(uint64_t hrt_now_us)
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 		_time_prev_us[i] = _gps_state[i].timestamp;
 	}
+}
+
+uint8_t GpsBlending::fixTypeRank(uint8_t fix_type)
+{
+	switch (fix_type) {
+	case sensor_gps_s::FIX_TYPE_RTK_FIXED:              return 6;
+
+	case sensor_gps_s::FIX_TYPE_RTK_FLOAT:              return 5;
+
+	case sensor_gps_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL: return 4;
+
+	case sensor_gps_s::FIX_TYPE_3D:                     return 3;
+
+	case sensor_gps_s::FIX_TYPE_2D:                     return 2;
+
+	case sensor_gps_s::FIX_TYPE_EXTRAPOLATED:           return 1; // dead reckoning, not a real fix
+
+	default:                                            return 0; // no fix
+	}
+}
+
+bool GpsBlending::isBetterReceiver(int a, int b) const
+{
+	const uint8_t rank_a = fixTypeRank(_gps_state[a].fix_type);
+	const uint8_t rank_b = fixTypeRank(_gps_state[b].fix_type);
+
+	if (rank_a != rank_b) {
+		return rank_a > rank_b;
+	}
+
+	if (_gps_state[a].satellites_used != _gps_state[b].satellites_used) {
+		return _gps_state[a].satellites_used > _gps_state[b].satellites_used;
+	}
+
+	return (a == _primary_instance) && (b != _primary_instance);
+}
+
+int GpsBlending::findBestReceiver() const
+{
+	int best = 0;
+
+	for (int i = 1; i < GPS_MAX_RECEIVERS_BLEND; i++) {
+		if (isBetterReceiver(i, best)) {
+			best = i;
+		}
+	}
+
+	return best;
+}
+
+bool GpsBlending::meetsMinimumRequirements(int instance) const
+{
+	const sensor_gps_s &gps = _gps_state[instance];
+
+	return (gps.timestamp != 0)
+	       && (fixTypeRank(gps.fix_type) >= fixTypeRank(_req_fix_type))
+	       && (gps.eph <= _req_eph)
+	       && (gps.epv <= _req_epv);
+}
+
+int GpsBlending::selectSingleReceiver(uint64_t hrt_now_us)
+{
+	const int current = (_selected_gps < GPS_MAX_RECEIVERS_BLEND) ? _selected_gps : -1;
+
+	if (!_selection_latched || (current < 0)) {
+		// Initial selection: latch onto the best receiver that meets the minimum requirements
+		int best_qualified = -1;
+
+		for (int i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
+			if (meetsMinimumRequirements(i) && ((best_qualified < 0) || isBetterReceiver(i, best_qualified))) {
+				best_qualified = i;
+			}
+		}
+
+		_switch_candidate = -1;
+
+		if (best_qualified >= 0) {
+			_selection_latched = true;
+			return best_qualified;
+		}
+
+		// nothing qualifies yet: use the best available receiver without latching
+		return findBestReceiver();
+	}
+
+	const int best = findBestReceiver();
+	const uint8_t current_rank = fixTypeRank(_gps_state[current].fix_type);
+	const uint8_t best_rank = fixTypeRank(_gps_state[best].fix_type);
+
+	if (best_rank <= current_rank) {
+		// No receiver has a better fix type: keep the current one regardless of satellite count
+		_switch_candidate = -1;
+		return current;
+	}
+
+	// Another receiver has a strictly better fix type
+	if (current_rank < fixTypeRank(sensor_gps_s::FIX_TYPE_3D)) {
+		// current receiver lost its 3D fix or timed out (fix type cleared): switch immediately to a receiver with a better fix type
+		_switch_candidate = -1;
+		return best;
+	}
+
+	if (_switch_candidate != best) {
+		// start the hold time for this candidate
+		_switch_candidate = best;
+		_switch_candidate_since_us = hrt_now_us;
+		return current;
+	}
+
+	if ((hrt_now_us - _switch_candidate_since_us) >= GPS_SWITCH_HOLD_US) {
+		_switch_candidate = -1;
+		return best;
+	}
+
+	return current;
 }
 
 bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
@@ -128,9 +215,6 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 		if (raw_dt > 0.0f && raw_dt < GPS_TIMEOUT_S) {
 			_gps_dt[i] = 0.1f * raw_dt + 0.9f * _gps_dt[i];
 
-			if (i == _primary_instance) {
-				_primary_instance_available = true;
-			}
 
 		} else if ((present_dt >= GPS_TIMEOUT_S) && (_gps_state[i].timestamp > 0)) {
 			// Timed out - kill the stored fix for this receiver and don't track its (stale) gps_dt
@@ -138,11 +222,6 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 			_gps_state[i].fix_type = 0;
 			_gps_state[i].satellites_used = 0;
 			_gps_state[i].vel_ned_valid = 0;
-
-			if (i == _primary_instance) {
-				// Allow using a secondary instance when the primary receiver has timed out
-				_primary_instance_available = false;
-			}
 
 			continue;
 		}

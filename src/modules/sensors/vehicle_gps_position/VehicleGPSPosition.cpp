@@ -42,7 +42,10 @@ namespace sensors
 {
 VehicleGPSPosition::VehicleGPSPosition() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	_param_ekf2_req_fix_handle(param_find("EKF2_REQ_FIX")),
+	_param_ekf2_req_eph_handle(param_find("EKF2_REQ_EPH")),
+	_param_ekf2_req_epv_handle(param_find("EKF2_REQ_EPV"))
 {
 	_vehicle_gps_position_pub.advertise();
 }
@@ -102,6 +105,20 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		if (math::isInRange(gps_prime, -1, 1)) {
 			_gps_blending.setPrimaryInstance(gps_prime);
 		}
+
+		// Minimum receiver quality for the initial selection, aligned with the EKF2 GNSS checks
+		int32_t req_fix = sensor_gps_s::FIX_TYPE_3D;
+		float req_eph = 5.f;
+		float req_epv = 8.f;
+
+		if (_param_ekf2_req_fix_handle != PARAM_INVALID) { param_get(_param_ekf2_req_fix_handle, &req_fix); }
+
+		if (_param_ekf2_req_eph_handle != PARAM_INVALID) { param_get(_param_ekf2_req_eph_handle, &req_eph); }
+
+		if (_param_ekf2_req_epv_handle != PARAM_INVALID) { param_get(_param_ekf2_req_epv_handle, &req_epv); }
+
+		req_fix = math::constrain(req_fix, static_cast<int32_t>(0), static_cast<int32_t>(sensor_gps_s::FIX_TYPE_EXTRAPOLATED));
+		_gps_blending.setMinimumRequirements(static_cast<uint8_t>(req_fix), req_eph, req_epv);
 
 		_gps_param_slots[0] = {
 			static_cast<uint32_t>(_param_sens_gps0_id.get()),

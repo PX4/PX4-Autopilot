@@ -39,10 +39,13 @@ parameters:
             description:
                 short: Multi GPS primary instance
                 long: |
-                    When no blending is active, this defines the preferred GPS receiver instance.
-                    The GPS selection logic waits until the primary receiver is available to
-                    send data to the EKF even if a secondary instance is already available.
-                    The secondary instance is then only used if the primary one times out.
+                    When no blending is active, receivers are ranked by fix type and then by
+                    satellite count. The initial selection latches onto the best receiver that
+                    meets the EKF2_REQ_FIX, EKF2_REQ_EPH and EKF2_REQ_EPV requirements. The
+                    selected receiver is kept until another receiver reports a strictly better
+                    fix type for 2 seconds, or immediately if the selected receiver drops below
+                    a 3D fix or times out. This parameter only breaks ties between otherwise
+                    equally ranked receivers.
 
                     To select a DroneCAN GPS, set this to the node ID.
 
