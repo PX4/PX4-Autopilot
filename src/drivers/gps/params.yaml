@@ -180,7 +180,7 @@ parameters:
         5: Enable I2C output protocol RTCM3X
       default: 0
       min: 0
-      max: 32
+      max: 63
       reboot_required: true
     GPS_UBX_PPK:
       description:

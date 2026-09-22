@@ -30,8 +30,10 @@ jobs:
 
       - name: Check PR title
         id: check
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          python3 Tools/ci/check_pr_title.py "${{ github.event.pull_request.title }}" --markdown-file comment.md && rc=0 || rc=$?
+          python3 Tools/ci/check_pr_title.py "$PR_TITLE" --markdown-file comment.md && rc=0 || rc=$?
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
 
       - name: Post or clear comment
@@ -40,6 +42,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ steps.check.outputs.exit_code }}" != "0" ]; then
+            if [ ! -s comment.md ]; then
+              echo "The PR title check failed without producing a report." > comment.md
+            fi
             python3 Tools/ci/pr_comment.py --marker pr-title --pr "$PR_NUMBER" --result fail < comment.md
           else
             python3 Tools/ci/pr_comment.py --marker pr-title --pr "$PR_NUMBER" --result pass
