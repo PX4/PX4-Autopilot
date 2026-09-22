@@ -41,7 +41,11 @@ uORB::Publication<esc_eeprom_read_s> AM32Settings::_esc_eeprom_read_pub{ORB_ID(e
 
 AM32Settings::AM32Settings(int index)
 	: _esc_index(index)
-{}
+{
+	// A subscriber that joins after the first publish only sees the newest queued entry, so the
+	// topic has to exist before the ESCs answer for the logger to capture every ESC
+	_esc_eeprom_read_pub.advertise();
+}
 
 int AM32Settings::getExpectedResponseSize()
 {
