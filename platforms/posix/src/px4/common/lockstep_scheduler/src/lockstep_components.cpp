@@ -91,7 +91,7 @@ void LockstepComponents::unregister_component(int component)
 
 	if (_components_progress_bitset == components_used_bitset) {
 		_components_progress_bitset = 0;
-		px4_sem_post(&_components_sem);
+		release_waiter();
 	}
 }
 
@@ -111,14 +111,19 @@ void LockstepComponents::lockstep_progress(int component)
 		// register_component and is fast enough it can land here as well, thus leading to 2 unlocks in a cycle.
 		// That is acceptable though.
 		_components_progress_bitset = 0;
+		release_waiter();
+	}
+}
 
-		// during startup it can happen that wait_for_components() is not called yet, so avoid increasing the
-		// semaphore counter more than necessary
-		int value;
+void LockstepComponents::release_waiter()
+{
+	// This also runs while nothing is waiting, e.g. before wait_for_components() is first called, or every time
+	// a work queue goes idle while no other component is registered. Each banked post would let the waiter
+	// through one barrier without waiting.
+	int value;
 
-		if (px4_sem_getvalue(&_components_sem, &value) == 0 && value < 1) {
-			px4_sem_post(&_components_sem);
-		}
+	if (px4_sem_getvalue(&_components_sem, &value) == 0 && value < 1) {
+		px4_sem_post(&_components_sem);
 	}
 }
 

@@ -148,6 +148,13 @@ void Sih::lockstep_loop()
 			sleep_time = math::max(0, sim_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
 
 		} else {
+			// Holding a component of our own keeps the barrier closed until this step's data is out, so
+			// work queues going idle for unrelated reasons in between cannot release it.
+			if (_lockstep_component == -1) {
+				_lockstep_component = px4_lockstep_register_component();
+			}
+
+			px4_lockstep_progress(_lockstep_component);
 			px4_lockstep_wait_for_components();
 
 			// Wait for the control pipeline to produce new actuator outputs.
@@ -173,6 +180,8 @@ void Sih::lockstep_loop()
 					    current_wall_time_us - pre_compute_wall_time_us + sleep_time));
 		usleep(sleep_time);
 	}
+
+	px4_lockstep_unregister_component(_lockstep_component);
 }
 #endif
 
