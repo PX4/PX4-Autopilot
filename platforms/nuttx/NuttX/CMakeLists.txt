@@ -55,12 +55,13 @@ endif()
 add_custom_command(
 	OUTPUT ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/nuttx/Make.defs ${NUTTX_DIR}/Make.defs
-	COMMAND cat ${NUTTX_DEFCONFIG} ${EXTRA_NUTTX_CONFIG_FILE} > ${NUTTX_DIR}/.config
+	COMMAND cat ${NUTTX_DEFCONFIG} ${NUTTX_CONFIG_FRAGMENT} ${EXTRA_NUTTX_CONFIG_FILE} > ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/defconfig
 	COMMAND ${NUTTX_SRC_DIR}/tools/px4_nuttx_make_olddefconfig.sh > ${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.log
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/.config ${CMAKE_CURRENT_BINARY_DIR}/nuttx/.config
 	DEPENDS
 		${NUTTX_DEFCONFIG}
+		${NUTTX_CONFIG_FRAGMENT}
 		${NUTTX_DIR}/defconfig
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx/Make.defs
 		${CMAKE_CURRENT_BINARY_DIR}/../defconfig_inflate_stamp
@@ -237,6 +238,22 @@ if(CONFIG_NET)
 endif()
 
 ###############################################################################
+# savedefconfig write-back shared by the *config targets. A fragment label
+# builds on nsh/defconfig, so writing back would leak its options there.
+if(NUTTX_CONFIG_FRAGMENT)
+	set(NUTTX_SAVEDEFCONFIG_COMMANDS
+		COMMAND ${CMAKE_COMMAND} -E echo "${PX4_BOARD_LABEL} is a fragment label: edit ${NUTTX_CONFIG_FRAGMENT}, not ${NUTTX_DEFCONFIG}"
+		COMMAND false
+	)
+else()
+	set(NUTTX_SAVEDEFCONFIG_COMMANDS
+		COMMAND make --no-print-directory --silent savedefconfig
+		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG}
+		COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/.config
+	)
+endif()
+
+###############################################################################
 # NuttX oldconfig: Update a configuration using a provided .config as base
 add_custom_target(oldconfig_nuttx
 	COMMAND make --no-print-directory --silent oldconfig
@@ -248,9 +265,7 @@ add_custom_target(oldconfig_nuttx
 
 # NuttX oldconfig + savedefconfig back to PX4
 add_custom_target(oldconfig
-	COMMAND make --no-print-directory --silent savedefconfig
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG}
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/.config
+	${NUTTX_SAVEDEFCONFIG_COMMANDS}
 	DEPENDS oldconfig_nuttx
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running make oldconfig then savedefconfig for ${NUTTX_CONFIG}"
@@ -269,9 +284,7 @@ add_custom_target(olddefconfig_nuttx
 
 # NuttX olddefconfig + savedefconfig back to PX4
 add_custom_target(olddefconfig
-	COMMAND make --no-print-directory --silent savedefconfig
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG}
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/.config
+	${NUTTX_SAVEDEFCONFIG_COMMANDS}
 	DEPENDS olddefconfig_nuttx
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running make olddefconfig then savedefconfig for ${NUTTX_CONFIG}"
@@ -290,9 +303,7 @@ add_custom_target(menuconfig_nuttx
 
 # NuttX menuconfig + savedefconfig back to PX4
 add_custom_target(menuconfig
-	COMMAND make --no-print-directory --silent savedefconfig
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG}
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/.config
+	${NUTTX_SAVEDEFCONFIG_COMMANDS}
 	DEPENDS menuconfig_nuttx
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running make nuttx_menuconfig then savedefconfig for ${NUTTX_CONFIG}"
@@ -311,9 +322,7 @@ add_custom_target(qconfig_nuttx
 
 # NuttX qconfig + savedefconfig back to PX4
 add_custom_target(qconfig
-	COMMAND make --no-print-directory --silent savedefconfig
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_DIR}/defconfig ${NUTTX_DEFCONFIG}
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/.config
+	${NUTTX_SAVEDEFCONFIG_COMMANDS}
 	DEPENDS qconfig_nuttx
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running make qconfig then savedefconfig for ${NUTTX_CONFIG}"
