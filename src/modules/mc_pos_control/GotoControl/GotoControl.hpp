@@ -92,9 +92,9 @@ public:
 	void update(const float dt, const matrix::Vector3f &position, const matrix::Vector3f &velocity, const matrix::Vector3f &acceleration,
 		    const float heading);
 
-	void ekfResetHandlerPosition(const matrix::Vector3f &position);
-	void ekfResetHandlerVelocity(const matrix::Vector3f &velocity);
-	void ekfResetHandlerHeading(const float delta_heading);
+	void ekfResetHandlerPosition(const matrix::Vector3f &position) { _position_smoothing.forceSetPosition(position); }
+	void ekfResetHandlerVelocity(const matrix::Vector3f &velocity) { _position_smoothing.forceSetVelocity(velocity); }
+	void ekfResetHandlerHeading(const float delta_heading) { _heading_smoothing.reset(_heading_smoothing.getSmoothedHeading() + delta_heading); }
 
 	// Setting all parameters from the outside saves 300bytes flash
 	void setParamMpcAccHor(const float param_mpc_acc_hor) { _param_mpc_acc_hor = param_mpc_acc_hor; }
