@@ -171,14 +171,14 @@ SIH publishes one IMU by default.
 Set [SIH_IMU_COUNT](../advanced_config/parameter_reference.md#SIH_IMU_COUNT) to 2 together with [EKF2_MULTI_IMU](../advanced_config/parameter_reference.md#EKF2_MULTI_IMU) 2 and `SENS_IMU_MODE` 0 to get a second IMU with independent noise and one EKF instance per IMU, which activates the estimator instance selector.
 Leaving `SIH_IMU_COUNT` at 1 keeps the single IMU setup, so a simulation that does not need multi-EKF does not pay for a second estimator.
 
-Two complementary mechanisms inject sensor faults, and they target individual IMUs:
+Sensor faults are injected with [failure injection](../debug/failure_injection.md), which targets individual IMUs:
 
-- [Failure injection](../debug/failure_injection.md) stops a sensor completely.
-  For example `failure accel off -i 2` stops the accelerometer of the second IMU only.
+- `failure accel off -i 2` stops the accelerometer of the second IMU only.
   Use it for hard faults such as a dead sensor.
-- [SIH_FAULT_IMU](../advanced_config/parameter_reference.md#SIH_FAULT_IMU) and [SIH_FAULT_VIBE](../advanced_config/parameter_reference.md#SIH_FAULT_VIBE) add Z axis vibration to one IMU, railed at the measurement range so the driver reports it as clipping.
-  Use them when the sensor has to keep publishing while the data it publishes goes bad, which is what degrades one EKF instance without silencing it.
-  A binary failure cannot produce this state.
+- `failure accel garbage -i 2` keeps that accelerometer publishing but rails its Z axis at the measurement range, so the driver reports the samples as clipping.
+  Use it when the sensor has to keep publishing while the data it publishes goes bad, which is what degrades one EKF instance without silencing it.
+  A sensor that is simply off cannot produce this state.
+  Garbage accelerometer data is produced by SIH, so it does nothing on real hardware.
 
 ### Multi-Vehicle Simulation
 

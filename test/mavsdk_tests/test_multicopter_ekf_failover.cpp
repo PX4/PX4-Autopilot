@@ -45,7 +45,7 @@
 // the mission legs measured against the simulator, and that it held its altitude. The
 // selector's own decision rules are covered in src/modules/ekf2/EKF2SelectorTest.cpp, which
 // needs no simulator.
-// Measured worst deviation through the fault is about 0.7 m, so this bounds the real path with
+// Measured worst deviation through the fault stays under 0.7 m, so this bounds the real path with
 // margin while still catching a vehicle that wanders off the leg.
 static constexpr float kMissionCorridorM = 3.f;
 

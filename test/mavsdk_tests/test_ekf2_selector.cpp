@@ -37,7 +37,7 @@
  * A hovering vehicle with two IMUs and two EKF instances, where accelerometer clipping
  * moves from one IMU to the other and is then cleared.
  *
- * What this asserts: the clipping really lands on the IMU that SIH_FAULT_IMU names and on
+ * What this asserts: the clipping really lands on the IMU the failure names and on
  * no other, read back from SCALED_IMU and SCALED_IMU2, the selector leaves the instance
  * behind the clipped IMU each time, read back from estimator_selector_status through the
  * MAVLink shell, and the vehicle neither drops out of the sky nor stays displaced: it
@@ -50,9 +50,9 @@
  * part that unit test cannot, which is that a real vehicle with a real estimator and a real
  * controller stays in the air while the faults move.
  *
- * Requires SIH_IMU_COUNT 2 for the second IMU, EKF2_MULTI_IMU 2 for the second estimator
- * instance, and per-IMU fault injection through SIH_FAULT_IMU and SIH_FAULT_VIBE. The test
- * config sets all three.
+ * Requires SIH_IMU_COUNT 2 for the second IMU and EKF2_MULTI_IMU 2 for the second estimator
+ * instance, which the test config sets. The clipping itself is injected at runtime as an
+ * accelerometer Garbage failure on the instance under test.
  */
 
 #include "autopilot_tester.h"

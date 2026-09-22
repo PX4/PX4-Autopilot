@@ -252,12 +252,6 @@ void Sih::updateFailureConfig()
 	_distance_sensor_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, 1)
 				    == failure_injection::Mode::Off);
 
-	for (uint8_t i = 0; i < _imu_count; i++) {
-		_accel_blocked[i] = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, i + 1)
-				     == failure_injection::Mode::Off);
-		_gyro_blocked[i] = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, i + 1)
-				    == failure_injection::Mode::Off);
-	}
 }
 
 void Sih::sensor_step()
@@ -769,41 +763,28 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	const Vector3f specific_force_B = R_E2B * _specific_force_E;
 	const Vector3f earth_spin_rate_B = R_E2B * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE);
 
-	// Fault injection: which IMU index (0-based), -1 means none
-	const int fault_imu = _sih_fault_imu.get() - 1; // param is 1-indexed, -1 means off
-
-	if ((fault_imu >= _imu_count) && (fault_imu != _fault_imu_warned)) {
-		// Otherwise the fault silently does nothing and a test looks like it injected one
-		PX4_WARN("SIH_FAULT_IMU %d has no IMU, SIH_IMU_COUNT is %d", fault_imu + 1, _imu_count);
-		_fault_imu_warned = fault_imu;
-	}
-
-	const float fault_vibe = _sih_fault_vibe.get();
-
-	// Publish to all simulated IMUs with independent noise
+	// Publish to all simulated IMUs with independent noise. Off and Stuck are applied by
+	// PX4Accelerometer and PX4Gyroscope per uORB instance, so only Garbage is handled here.
 	for (uint8_t i = 0; i < _imu_count; i++) {
 		Vector3f accel_noise = noiseGauss3f(0.1f, 0.1f, 0.1f);
 		Vector3f gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
 
 		Vector3f accel = specific_force_B + accel_noise;
 
-		// Inject high amplitude Z axis vibration on the selected IMU. The result is railed
-		// at the measurement range, because a real accelerometer cannot report past it and
-		// the driver decides a sample is clipped by comparing against that range.
-		if ((int)i == fault_imu && fault_vibe > FLT_EPSILON) {
-			accel(2) = math::constrain(accel(2) + fault_vibe * generate_wgn(), -ACCEL_RANGE_MS2, ACCEL_RANGE_MS2);
+		if (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL,
+					 i + 1) == failure_injection::Mode::Garbage) {
+			// A garbage accelerometer reports far more than the vehicle is doing. The result is
+			// railed at the measurement range, because a real accelerometer cannot report past it
+			// and the driver decides a sample is clipped by comparing against that range.
+			accel(2) = math::constrain(accel(2) + GARBAGE_ACCEL_NOISE_MS2 * generate_wgn(),
+						   -ACCEL_RANGE_MS2, ACCEL_RANGE_MS2);
 		}
 
 		const Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
 
 		// update IMU every iteration
-		if (!_accel_blocked[i]) {
-			_px4_accel[i]->update(time_now_us, accel(0), accel(1), accel(2));
-		}
-
-		if (!_gyro_blocked[i]) {
-			_px4_gyro[i]->update(time_now_us, gyro(0), gyro(1), gyro(2));
-		}
+		_px4_accel[i]->update(time_now_us, accel(0), accel(1), accel(2));
+		_px4_gyro[i]->update(time_now_us, gyro(0), gyro(1), gyro(2));
 	}
 }
 

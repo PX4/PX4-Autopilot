@@ -358,21 +358,14 @@ static constexpr float kFailoverGroundTruthBandM = 5.f;
 static constexpr float kSelectorAltitudeFloorM = 12.f;
 
 // And how far it may climb. A railed accelerometer reads as falling, so the controller answers
-// with thrust and the vehicle goes up rather than down. That transient reaches 25 m in the
-// worst run measured here, while losing the second estimator instead sends it past 50 m and it
-// never comes back, so this sits between the two.
+// with thrust and the vehicle goes up rather than down. With the selector handing over, the climb
+// reached 10 m above the hover in the worst of our runs. With a single estimator left on the
+// clipped IMU it reached 30 m to 69 m and once did not settle back, so this sits between the two.
 static constexpr float kSelectorAltitudeCeilingM = 40.f;
 
 // How far it may still be from where it started once the faults are cleared and it has
 // settled again.
 static constexpr float kSelectorRecoveryToleranceM = 3.f;
-
-// SIH_FAULT_VIBE amplitude used to clip an accelerometer. It is the standard deviation of the
-// injected noise, and the driver reports a sample as clipped once it reaches the 16 g
-// measurement range, about 157 m/s2. At this amplitude about three quarters of raw samples
-// reach the rail, which keeps EKF2's clipping counter climbing rather than sitting near the
-// break even point where it steps back down.
-static constexpr float kImuClippingFaultAmplitude = 500.f;
 
 // SCALED_IMU reports the integrated vehicle_imu acceleration in milli g, not raw samples, so
 // the railed samples are averaged with the clean ones over each integration window. A hovering
@@ -386,12 +379,12 @@ static constexpr int kCleanImuPeakMg = 3000;
 class ImuFaultGuard
 {
 public:
-	explicit ImuFaultGuard(mavsdk::Param *param) : _param(param) {}
+	explicit ImuFaultGuard(mavsdk::Failure *failure) : _failure(failure) {}
 	~ImuFaultGuard()
 	{
-		if (_param != nullptr) {
-			_param->set_param_int("SIH_FAULT_IMU", 0);
-			_param->set_param_float("SIH_FAULT_VIBE", 0.f);
+		if (_failure != nullptr) {
+			// instance 0 clears every accelerometer
+			_failure->inject(Failure::FailureUnit::SensorAccel, Failure::FailureType::Ok, 0);
 		}
 	}
 
@@ -399,7 +392,7 @@ public:
 	ImuFaultGuard &operator=(const ImuFaultGuard &) = delete;
 
 private:
-	mavsdk::Param *_param;
+	mavsdk::Failure *_failure;
 };
 
 // A parameter write has to reach SIH and the samples already in flight have to drain before
@@ -467,7 +460,7 @@ void AutopilotTester::execute_alternating_imu_faults()
 	// SCALED_IMU and SCALED_IMU2 carry vehicle_imu instance 0 and 1. Clipping one
 	// accelerometer shows up there as a large swing on that stream and on no other, so
 	// watching both is what tells this test the fault landed on the IMU it asked for.
-	// SIH_FAULT_IMU is 1 based, so 1 is the stream behind SCALED_IMU and 2 is SCALED_IMU2.
+	// The failure instance is 1 based, so 1 is the stream behind SCALED_IMU and 2 is SCALED_IMU2.
 	auto peak_imu1_mg = std::make_shared<std::atomic<int>>(0);
 	auto peak_imu2_mg = std::make_shared<std::atomic<int>>(0);
 
@@ -562,14 +555,15 @@ void AutopilotTester::execute_alternating_imu_faults()
 	// ground truth stream leaves the extrema at zero and every altitude check passes.
 	const int min_truth_samples = kFaultMeasureTime.count() * kMinGroundTruthRateHz;
 
-	ImuFaultGuard fault_guard(_param.get());
+	REQUIRE(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
+	ImuFaultGuard fault_guard(_failure.get());
 
-	// Clip the accelerometer behind the first instance. If the parameters are missing there is
+	// Clip the accelerometer behind the first instance. If the injection is refused there is
 	// nothing left to test, so stop rather than fly the rest of the sequence. Each phase gives
-	// the write time to reach SIH and lets the samples already in flight drain, then zeroes
+	// the command time to reach SIH and lets the samples already in flight drain, then zeroes
 	// the peaks and measures, otherwise the previous phase's clipping lands in this one.
-	REQUIRE(_param->set_param_float("SIH_FAULT_VIBE", kImuClippingFaultAmplitude) == Param::Result::Success);
-	REQUIRE(_param->set_param_int("SIH_FAULT_IMU", 1) == Param::Result::Success);
+	REQUIRE(_failure->inject(Failure::FailureUnit::SensorAccel, Failure::FailureType::Garbage,
+				 1) == Failure::Result::Success);
 	sleep_for(kFaultSettleTime);
 	peak_imu1_mg->store(0);
 	peak_imu2_mg->store(0);
@@ -594,9 +588,12 @@ void AutopilotTester::execute_alternating_imu_faults()
 		  << instance_with_first_imu_clipped << ", ground truth samples " << truth_samples->load() << std::endl;
 	CHECK(instance_with_first_imu_clipped == 1);
 
-	// Move the clipping to the other IMU. The fault has to follow the parameter, which is
+	// Move the clipping to the other IMU. The fault has to follow the instance, which is
 	// what says the injection is per instance rather than shared.
-	REQUIRE(_param->set_param_int("SIH_FAULT_IMU", 2) == Param::Result::Success);
+	REQUIRE(_failure->inject(Failure::FailureUnit::SensorAccel, Failure::FailureType::Ok,
+				 1) == Failure::Result::Success);
+	REQUIRE(_failure->inject(Failure::FailureUnit::SensorAccel, Failure::FailureType::Garbage,
+				 2) == Failure::Result::Success);
 	sleep_for(kFaultSettleTime);
 	peak_imu1_mg->store(0);
 	peak_imu2_mg->store(0);
@@ -619,8 +616,8 @@ void AutopilotTester::execute_alternating_imu_faults()
 	CHECK(instance_with_second_imu_clipped == 0);
 
 	// Clear it and both have to settle back down.
-	REQUIRE(_param->set_param_int("SIH_FAULT_IMU", 0) == Param::Result::Success);
-	REQUIRE(_param->set_param_float("SIH_FAULT_VIBE", 0.f) == Param::Result::Success);
+	REQUIRE(_failure->inject(Failure::FailureUnit::SensorAccel, Failure::FailureType::Ok,
+				 0) == Failure::Result::Success);
 	sleep_for(kFaultSettleTime);
 	peak_imu1_mg->store(0);
 	peak_imu2_mg->store(0);
@@ -822,13 +819,14 @@ void AutopilotTester::execute_mission_and_degrade_primary_imu()
 	std::cout << time_str() << "primary estimator instance before the fault " << initial_instance << std::endl;
 	CHECK(initial_instance == 0);
 
-	ImuFaultGuard fault_guard(_param.get());
+	REQUIRE(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
+	ImuFaultGuard fault_guard(_failure.get());
 
 	// Sustained clipping degrades the estimator instance behind this IMU without silencing
-	// the sensor. A silenced sensor is a different failure mode and is already covered by
-	// failure injection.
-	REQUIRE(_param->set_param_float("SIH_FAULT_VIBE", kImuClippingFaultAmplitude) == Param::Result::Success);
-	REQUIRE(_param->set_param_int("SIH_FAULT_IMU", 1) == Param::Result::Success);
+	// the sensor. A silenced sensor is a different failure mode, and Off on the same unit
+	// already covers it.
+	REQUIRE(_failure->inject(Failure::FailureUnit::SensorAccel, Failure::FailureType::Garbage,
+				 1) == Failure::Result::Success);
 
 	// Measure only what arrives after the fault is in.
 	peak_imu1_mg->store(0);
@@ -866,8 +864,8 @@ void AutopilotTester::execute_mission_and_degrade_primary_imu()
 
 	// Clear the fault before the caller flies home. Landing on a clipping accelerometer is a
 	// different test, and leaving it on would quietly make the disarm timeout load bearing.
-	REQUIRE(_param->set_param_int("SIH_FAULT_IMU", 0) == Param::Result::Success);
-	REQUIRE(_param->set_param_float("SIH_FAULT_VIBE", 0.f) == Param::Result::Success);
+	REQUIRE(_failure->inject(Failure::FailureUnit::SensorAccel, Failure::FailureType::Ok,
+				 0) == Failure::Result::Success);
 
 	// The vehicle itself has to hold its altitude through the fault, measured against the
 	// simulator rather than against the estimate. A maximum of zero because the stream
