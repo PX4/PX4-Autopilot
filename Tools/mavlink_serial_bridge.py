@@ -58,6 +58,20 @@ PORT_MAP = {
 }
 
 
+def send_serial_control(mav, device, port_baud, data=None, count=0):
+    """Send a SERIAL_CONTROL message with the RESPOND|EXCLUSIVE flags used throughout the bridge."""
+    if data is None:
+        data = [0] * MAX_PAYLOAD
+    mav.mav.serial_control_send(
+        device=device,
+        flags=SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE,
+        timeout=0,
+        baudrate=port_baud,
+        count=count,
+        data=data,
+    )
+
+
 def setup_passthrough(mav):
     """
     Set PASSTHRU_EN=1 via PARAM_SET and reboot the FMU.
@@ -134,14 +148,7 @@ def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=Fal
     # Send an init message with count=0 to trigger FMU-side startForDevice()
     # before any data arrives. baudrate field carries the target UART baud rate.
     print(f"Initializing FMU passthrough: device={device}, port_baud={port_baud}...")
-    mav.mav.serial_control_send(
-        device=device,
-        flags=SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE,
-        timeout=0,
-        baudrate=port_baud,
-        count=0,
-        data=[0] * MAX_PAYLOAD,
-    )
+    send_serial_control(mav, device, port_baud)
     time.sleep(2)  # Give FMU time to spawn the task
     print("Bridge running. Press Ctrl+C to stop.\n", flush=True)
 
@@ -160,14 +167,7 @@ def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=Fal
                 for i in range(0, len(data), MAX_PAYLOAD):
                     chunk = data[i:i + MAX_PAYLOAD]
                     payload = list(chunk) + [0] * (MAX_PAYLOAD - len(chunk))
-                    mav.mav.serial_control_send(
-                        device=device,
-                        flags=SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE,
-                        timeout=0,
-                        baudrate=port_baud,
-                        count=len(chunk),
-                        data=payload,
-                    )
+                    send_serial_control(mav, device, port_baud, data=payload, count=len(chunk))
                     if verbose:
                         print(f"  PTY -> MAVLink: {len(chunk)} bytes: {chunk.hex(' ')}")
         except Exception as e:
@@ -221,14 +221,7 @@ def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=Fal
                     nonlocal device
                     device = new_device
                     print(f"  Switching to device {device}")
-                    mav.mav.serial_control_send(
-                        device=device,
-                        flags=SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE,
-                        timeout=0,
-                        baudrate=port_baud,
-                        count=0,
-                        data=[0] * MAX_PAYLOAD,
-                    )
+                    send_serial_control(mav, device, port_baud)
         except Exception as e:
             print(f"ERROR: stdin_listener crashed: {e}", file=sys.stderr)
         finally:
