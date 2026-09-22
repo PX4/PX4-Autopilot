@@ -109,6 +109,8 @@ static const SegmentIntersectionCase kSegmentIntersectionCases[] = {
 	{"SlantedGap", {0, 0}, {1, 1}, {2, 2}, {3, 3}, false},
 	{"ParallelWithOverlappingBounds", {0, 0}, {4, 4}, {0, 1}, {3, 4}, false},
 	{"NonparallelWithOverlappingBounds", {0, 0}, {2, 2}, {0, 1}, {1, 3}, false},
+	// c lies on the line through ab but past b, so only the second straddle test rejects it.
+	{"EndpointOnLineBeyondSegment", {0, 0}, {4, 0}, {5, 0}, {3, 2}, false},
 	// Equal endpoints turn a segment into a single point.
 	{"PointOnInterior", {2, 2}, {2, 2}, {0, 0}, {4, 4}, true},
 	{"PointOnEndpoint", {0, 0}, {0, 0}, {0, 0}, {4, 4}, true},
