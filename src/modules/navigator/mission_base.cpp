@@ -875,9 +875,9 @@ void MissionBase::setNextVelocityConstraint(const position_setpoint_s &current, 
 
 	math::trajectory::VehicleDynamicLimits limits = _next_velocity_constraint_limits;
 
- 	// Beyond the distance needed by the same braking model used below, a stop cannot limit cruise speed.
- 	const float horizon = math::trajectory::computeBrakingDistanceFromVelocity(limits.max_speed_xy, limits.max_jerk,
- 			      limits.max_acc_xy, 2.f * limits.max_acc_xy);
+	// Beyond the distance needed by the same braking model used below, a stop cannot limit cruise speed.
+	const float horizon = math::trajectory::computeBrakingDistanceFromVelocity(limits.max_speed_xy, limits.max_jerk,
+			      limits.max_acc_xy, 2.f * limits.max_acc_xy);
 
 	// Bounded by the dataman cache, only cached items are read, a miss ends the walk like a stop would.
 	static constexpr size_t kMaxWaypoints = 10;
