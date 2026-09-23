@@ -1527,18 +1527,15 @@ Mavlink::update_rate_mult()
 	 * so that the streams yield instead of the two of them together
 	 * over-subscribing the link. Where there is spare bandwidth this changes
 	 * nothing: bandwidth_mult is capped at 1.0 further down either way. */
+	/* Reserve the bulk share whenever a parameter dump or a paced FTP burst is
+	 * running. Both of them pace themselves against bulk_bandwidth_share(),
+	 * which splits this between them, so reserving it once is what they will
+	 * actually use together. An FTP burst only counts behind a radio, which is
+	 * the only case where it is paced at all. */
 	float param_dump_rate = 0.0f;
 
-	if (sending_all_parameters()) {
-		param_dump_rate = (float)_datarate * MavlinkParametersManager::DUMP_BANDWIDTH_SHARE;
-	}
-
-	/* Only behind a radio: that is the only case where the burst is paced
-	 * against the budget, so it is the only case where reserving its share
-	 * matches what it will actually use. */
-	if (ftp_burst_active() && radio_status_available()) {
-		param_dump_rate = math::max(param_dump_rate,
-					    (float)_datarate * MavlinkFTP::kBurstBandwidthShare);
+	if (sending_all_parameters() || (ftp_burst_active() && radio_status_available())) {
+		param_dump_rate = (float)_datarate * kBulkBandwidthShare;
 	}
 
 	/* scale up and down as the link permits */

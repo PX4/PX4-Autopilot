@@ -105,7 +105,13 @@ public:
 	 * The remainder stays available for the regular streams, which yield via
 	 * Mavlink::update_rate_mult().
 	 */
-	static constexpr float DUMP_BANDWIDTH_SHARE = 0.5f;
+	// The share of the link budget a dump may use is decided by Mavlink, which
+	// splits it with an FTP burst when both are running.
+
+	// How much budget the dump may hold in hand, in messages. This is what
+	// lets a fast link still send a batch per call, and it is the most an
+	// idle link can save up before spending it in one go.
+	static constexpr float kMaxBudgetMessages = 20.0f;
 
 private:
 	int		_send_all_index{-1};
@@ -125,7 +131,12 @@ protected:
 	 * Derived from the configured link data rate so that the dump cannot exceed
 	 * its share of the link budget.
 	 */
-	hrt_abstime param_send_interval() const;
+	/**
+	 * Take one parameter message worth of budget, if the link has earned it
+	 * since the last one went out. Credit accumulates, so a link with room to
+	 * spare still sends a batch per call, while a slow one is spread out.
+	 */
+	bool take_send_budget();
 
 	/**
 	 * Handle any open param send transfer
@@ -241,4 +252,6 @@ protected:
 
 	bool _first_send{false};
 	hrt_abstime _last_param_sent_timestamp{0}; // time at which the last parameter was sent
+	hrt_abstime _budget_timestamp{0}; // when the dump's budget was last topped up
+	float _budget_bytes{0.0f}; // bytes of budget the dump has in hand
 };

@@ -552,6 +552,32 @@ public:
 	bool ftp_burst_active() const { return _ftp_burst_active.load(); }
 	void set_ftp_burst_active(bool active) { _ftp_burst_active.store(active); }
 
+	/**
+	 * Share of the link budget that bulk transfers may use between them.
+	 * A parameter dump and an FTP burst each get a part of this, never one
+	 * each, or the two of them together leave the streams nothing.
+	 */
+	static constexpr float kBulkBandwidthShare = 0.5f;
+
+	/**
+	 * Share of the link budget for one bulk transfer, which is the whole
+	 * bulk share split between the transfers that are running.
+	 */
+	float bulk_bandwidth_share() const
+	{
+		unsigned active = 0;
+
+		if (sending_all_parameters()) {
+			++active;
+		}
+
+		if (ftp_burst_active() && radio_status_available()) {
+			++active;
+		}
+
+		return (active > 1) ? (kBulkBandwidthShare / (float)active) : kBulkBandwidthShare;
+	}
+
 	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
 	void check_signing_key_dirty() { if (_signing_key_dirty.load()) { _signing_key_dirty.store(false); _sign_control.reload_key(); } }

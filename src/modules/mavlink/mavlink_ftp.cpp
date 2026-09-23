@@ -144,6 +144,13 @@ MavlinkFTP::radio_clamped_length(unsigned requested) const
 		return requested;
 	}
 
+	// Only MAVLink 2 drops the trailing zeros of a payload, so on a MAVLink 1
+	// link a shorter reply still goes out as a full 251 byte payload. Shrinking
+	// it there would cost the client bytes without making the packet smaller.
+	if (_mavlink.getProtocolVersion() == 1) {
+		return requested;
+	}
+
 	const unsigned overhead = packet_overhead();
 
 	if (kRadioMaxPacketLength <= overhead) {
@@ -171,6 +178,12 @@ MavlinkFTP::burst_data_length() const
 unsigned
 MavlinkFTP::burst_wire_size() const
 {
+	// A MAVLink 1 packet carries the whole payload whatever we put in it, so
+	// that is what it costs the link, and pacing has to budget for it.
+	if (_mavlink.getProtocolVersion() == 1) {
+		return kMaxDataLength + packet_overhead();
+	}
+
 	return burst_data_length() + packet_overhead();
 }
 
@@ -719,8 +732,8 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 	PX4_DEBUG("FTP: read offset:%" PRIu32, payload->offset);
 
 	// Same clamp as a burst: a recovery read that fragments defeats the point
-	// of keeping the burst inside one radio packet. Clients handle a short
-	// read, they track what is still outstanding from the returned size.
+	// of keeping the burst inside one radio packet. Only behind a radio, and
+	// the size field says what was actually read.
 	const int bytes_read = _read_session(payload->offset, payload->data,
 					     radio_clamped_length(payload->size));
 
@@ -1229,7 +1242,7 @@ void MavlinkFTP::send()
 			// split this share has already been subtracted from - applying that
 			// would count the reduction twice and starve the burst into the
 			// client's inter-packet timeout.
-			const float rate = (float)datarate * kBurstBandwidthShare * _mavlink.radio_status_mult();
+			const float rate = (float)datarate * _mavlink.bulk_bandwidth_share() * _mavlink.radio_status_mult();
 			uint64_t credit = (uint64_t)(((float)(now - _last_burst_send) * rate) / 1000000.0f);
 
 			if (credit > kMaxBurstCredit) {
@@ -1288,6 +1301,10 @@ void MavlinkFTP::send()
 
 		if (error_code != kErrNone) {
 			payload->opcode = kRspNak;
+			// The burst ends here, whether the file did or something went wrong.
+			// ArduPilot marks this packet the same way, and a client that waits
+			// for the end of the burst would otherwise keep waiting.
+			payload->burst_complete = true;
 			payload->size = 1;
 			uint8_t *pData = &payload->data[0];
 			*pData = error_code; // Straight reference to data[0] is causing bogus gcc array subscript error
