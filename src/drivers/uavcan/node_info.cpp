@@ -68,6 +68,7 @@ void NodeInfoPublisher::handleNodeInfoRetrieved(uavcan::NodeID node_id, const ua
 
 void NodeInfoPublisher::handleNodeInfoUnavailable(uavcan::NodeID node_id)
 {
+	PX4_WARN("GetNodeInfo unavailable for node %d (retries exhausted)", node_id.get());
 }
 
 void NodeInfoPublisher::handleTimerEvent(const uavcan::TimerEvent &event)
