@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# ICM-42688-P on SPI4, 32 kHz external clock on PD14.
+# Rotation 6 = ROTATION_YAW_270.  The chip is placed rotated 90 degrees in yaw
+# relative to the LSM6DSV16X on the PCB.  The PX4 driver already flips y & z
+# internally (see "correct frame for publication" in ICM42688P.cpp), which is
+# equivalent to ROTATION_ROLL_180, so only the yaw correction belongs here.
+icm42688p -R 6 -C 32000 -s -b 4 start
+
+# LSM6DSV16X on SPI2.
+# Rotation 8 = ROTATION_ROLL_180.  This driver publishes the raw FIFO axes with
+# no internal correction, so the full sensor->body rotation is applied here.
+lsm6dsv -R 8 -s -b 2 start
+
+# DPS368 on internal I2C1 at 0x77; the DPS310 driver supports this variant.
+dps310 -I -b 1 -a 119 -8 start
+
+# IST8310 is optional on internal I2C1 at 0x0c.
+if ! ist8310 -I -b 1 -a 12 -R 0 start
+then
+	echo "IST8310 not populated"
+fi
+
+sbus_rc start -d /dev/ttyS4
+
+board_adc start
