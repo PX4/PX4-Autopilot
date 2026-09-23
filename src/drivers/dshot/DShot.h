@@ -186,8 +186,6 @@ private:
 	hrt_abstime _bdshot_edt_last_request[DSHOT_MAX_MOTORS] = {};
 	bool _armed_prev = false;
 
-	uint16_t _settings_requested_mask = 0;
-
 	// Array of timestamps indicating when the telemetry came online
 	hrt_abstime _serial_telem_online_timestamps[DSHOT_MAX_MOTORS] = {};
 	hrt_abstime _bdshot_telem_online_timestamps[DSHOT_MAX_MOTORS] = {};

@@ -48,10 +48,12 @@ public:
 	bool decodeInfoResponse(const uint8_t *buf, int size) override;
 
 	void publish_latest() override;
+	void invalidate() override;
 
 private:
 	int _esc_index{};
 	uint8_t _eeprom_data[EEPROM_SIZE] {};
+	bool _eeprom_valid{false};
 
 	static uORB::Publication<esc_eeprom_read_s> _esc_eeprom_read_pub;
 };

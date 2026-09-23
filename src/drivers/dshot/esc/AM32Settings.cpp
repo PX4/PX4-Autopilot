@@ -37,6 +37,9 @@
 
 static constexpr int RESPONSE_SIZE = EEPROM_SIZE + 1; // 48B data + 1B CRC
 
+// Each periodic publication queues every ESC's dump at once.
+static_assert(DSHOT_MAX_MOTORS <= esc_eeprom_read_s::ORB_QUEUE_LENGTH, "esc_eeprom_read must queue one dump per ESC");
+
 uORB::Publication<esc_eeprom_read_s> AM32Settings::_esc_eeprom_read_pub{ORB_ID(esc_eeprom_read)};
 
 AM32Settings::AM32Settings(int index)
@@ -54,6 +57,10 @@ int AM32Settings::getExpectedResponseSize()
 
 void AM32Settings::publish_latest()
 {
+	if (!_eeprom_valid) {
+		return;
+	}
+
 	esc_eeprom_read_s data = {};
 	data.timestamp = hrt_absolute_time();
 	data.firmware = 1; // ESC_FIRMWARE_AM32
@@ -61,6 +68,11 @@ void AM32Settings::publish_latest()
 	memcpy(data.data, &_eeprom_data, sizeof(_eeprom_data));
 	data.length = sizeof(_eeprom_data);
 	_esc_eeprom_read_pub.publish(data);
+}
+
+void AM32Settings::invalidate()
+{
+	_eeprom_valid = false;
 }
 
 bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
@@ -79,10 +91,9 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 
 	PX4_DEBUG("Successfully received AM32 settings from ESC%d", _esc_index + 1);
 
-	// Store data for retrieval later if requested
 	memcpy(&_eeprom_data, buf, EEPROM_SIZE);
+	_eeprom_valid = true;
 
-	// Publish data immediately
 	publish_latest();
 
 	return true;

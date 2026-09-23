@@ -97,6 +97,8 @@ void DShot::Run()
 	bool serial_updated = process_serial_telemetry();
 	bool bdshot_updated = process_bdshot_telemetry();
 
+	_telemetry.publishSettings();
+
 	if (serial_updated || bdshot_updated) {
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status.esc_count = _motor_count;
@@ -191,6 +193,7 @@ void DShot::select_next_command()
 			} else {
 				PX4_DEBUG("ESC%u: starting programming mode", _esc_eeprom_write.index + 1);
 				_dshot_programming_active = true;
+				_telemetry.invalidateSettings(_esc_eeprom_write.index == 255 ? _motor_mask : (1u << _esc_eeprom_write.index));
 			}
 		}
 	}
@@ -199,12 +202,11 @@ void DShot::select_next_command()
 	// - EDT Request
 	// - Settings Request
 	// - Settings Programming
+	// Programming, once started, runs to the save without the others: an ESC in programming mode takes the
+	// next frames of any command as the address and value, and a read before the save returns old settings.
 
 	// EDT Request mask
 	uint16_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_confirmed_mask;
-
-	// Settings Request mask
-	uint16_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
 
 	bool serial_telem_delay_elapsed = hrt_absolute_time() > _serial_telem_delay_until;
 
@@ -213,7 +215,7 @@ void DShot::select_next_command()
 	// EDT Request: use motor-order masks since needs_edt_request_mask is in motor order
 	uint16_t edt_motors_to_request = _bdshot_motor_mask & needs_edt_request_mask;
 
-	if (_bdshot_edt_enabled && edt_motors_to_request != 0) {
+	if (_bdshot_edt_enabled && !_dshot_programming_active && edt_motors_to_request != 0) {
 		// Find first motor that needs EDT request and has been online long enough
 		hrt_abstime now = hrt_absolute_time();
 
@@ -250,22 +252,16 @@ void DShot::select_next_command()
 			break;
 		}
 
-	} else if (_esc_type != 0 && _serial_telemetry_enabled && serial_telem_delay_elapsed && (_motor_mask & needs_settings_request_mask)) {
-		// Settings Request: use motor-order masks since needs_settings_request_mask is in motor order
-		uint16_t settings_motors_to_request = _motor_mask & needs_settings_request_mask;
+	} else if (_esc_type != 0 && _serial_telemetry_enabled && serial_telem_delay_elapsed && !_dshot_programming_active
+		   && !_mixing_output.armed().armed) {
+		const int motor_index = _telemetry.getSettingsRequest(_motor_mask & _serial_telem_online_mask);
 
-		// Find first motor that needs settings request
-		for (int motor_index = 0; motor_index < DSHOT_MAX_MOTORS; motor_index++) {
-			if (settings_motors_to_request & (1 << motor_index)) {
-				auto now = hrt_absolute_time();
-				_current_command.num_repetitions = 6;
-				_current_command.command = DSHOT_CMD_ESC_INFO;
-				_current_command.motor_mask = (1 << motor_index);
-				_current_command.expect_response = true;
-				_settings_requested_mask |= (1 << motor_index);
-				PX4_DEBUG("ESC%d: requesting Settings at time %.2fs", motor_index + 1, (double)now / 1000000.);
-				break;
-			}
+		if (motor_index >= 0) {
+			_current_command.num_repetitions = 6;
+			_current_command.command = DSHOT_CMD_ESC_INFO;
+			_current_command.motor_mask = (1 << motor_index);
+			_current_command.expect_response = true;
+			PX4_DEBUG("ESC%d: requesting settings", motor_index + 1);
 		}
 
 	} else if (_dshot_programming_active) {
@@ -326,10 +322,6 @@ void DShot::select_next_command()
 				// Clear the written mask for this motor for next time
 				_settings_written_mask[0] = 0;
 				_settings_written_mask[1] = 0;
-
-				// Mark as unread so that we read again
-				_settings_requested_mask &= ~(programming_motor_mask);
-				_serial_telem_delay_until = hrt_absolute_time() + 500_ms;
 			}
 		}
 
@@ -431,6 +423,13 @@ void DShot::update_motor_commands(int num_outputs)
 
 	if (command_sent) {
 		--_current_command.num_repetitions;
+
+		if (!_dshot_programming_active && _current_command.finished()
+		    && _current_command.command == DSHOT_CMD_SAVE_SETTINGS) {
+			_telemetry.invalidateSettings(_current_command.motor_mask);
+
+			_serial_telem_delay_until = hrt_absolute_time() + 500_ms;
+		}
 
 		// Queue a save command if it has been requested
 		if (_current_command.num_repetitions == 0 && _current_command.save) {
@@ -569,6 +568,7 @@ bool DShot::process_serial_telemetry()
 
 				if (_serial_telem_consecutive_timeouts[motor_index] >= SERIAL_TELEM_SKIP_THRESHOLD) {
 					_serial_telem_skip_mask |= (1 << motor_index);
+					_telemetry.invalidateSettings(1u << motor_index);
 					PX4_DEBUG("ESC%d serial telemetry lost, skipping", motor_index + 1);
 				}
 			}
@@ -882,7 +882,11 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	command_ack.target_component = command.source_component;
 	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
-	if ((motor_index >= 0) && (motor_index < DSHOT_MAX_MOTORS)) {
+	if (_dshot_programming_active || !_telemetry.commandResponseFinished()) {
+		// Do not interrupt programming or let an outstanding read restore the cache after a setting changes.
+		command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+
+	} else if ((motor_index >= 0) && (motor_index < DSHOT_MAX_MOTORS)) {
 		int type = lroundf(command.param1);
 		PX4_DEBUG("motor_index: %i type: %i", motor_index, type);
 		_current_command.clear();
@@ -924,6 +928,10 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 		if (_current_command.command != DSHOT_CMD_MOTOR_STOP) {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			_current_command.motor_mask = 1 << motor_index;
+
+			if (_current_command.save) {
+				_telemetry.invalidateSettings(_current_command.motor_mask);
+			}
 		}
 	}
 
@@ -943,14 +951,7 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 		return;
 	}
 
-	if (esc_index == 255) {
-		PX4_DEBUG("mark all unread");
-		_settings_requested_mask = 0;
-
-	} else {
-		PX4_DEBUG("mark one unread");
-		_settings_requested_mask &= ~(1 << esc_index);
-	}
+	_telemetry.requestSettings(esc_index == 255 ? _motor_mask : (1u << esc_index));
 }
 
 int DShot::get_pole_count(int motor_index) const
@@ -1240,10 +1241,6 @@ int DShot::print_status()
 
 		if (_bdshot_output_mask && _bdshot_edt_enabled) {
 			PX4_INFO("  EDT Confirmed Mask (motor order): 0x%02x", _bdshot_edt_confirmed_mask);
-		}
-
-		if (_serial_telemetry_enabled) {
-			PX4_INFO("  Settings Requested Mask (motor order): 0x%02x", _settings_requested_mask);
 		}
 	}
 
