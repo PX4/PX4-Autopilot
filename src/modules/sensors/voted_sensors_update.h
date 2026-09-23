@@ -136,6 +136,10 @@ private:
 	 */
 	bool checkFailover(SensorData &sensor, const char *sensor_name, events::px4::enums::sensor_type_t sensor_type);
 
+	// VehicleIMU publishes an IMU only while both of its sensors are enabled, so disabling
+	// either one takes the whole IMU out of the vote
+	bool imuEnabled(uint8_t index) const { return (_accel.priority[index] > 0) && (_gyro.priority[index] > 0); }
+
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between each accelerometer vector and the mean of all vectors
 	 */
