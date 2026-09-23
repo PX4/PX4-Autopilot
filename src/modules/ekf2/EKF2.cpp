@@ -1947,7 +1947,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_GNSS)
 	// only report enabled GPS check failures
-	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value & _ekf.gps_check_fail_status_enabled_mask();
+	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value & static_cast<uint16_t>(_params->ekf2_gps_check);
 #endif // CONFIG_EKF2_GNSS
 
 	status.control_mode_flags = _ekf.control_status().value;

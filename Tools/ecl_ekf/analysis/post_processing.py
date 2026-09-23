@@ -14,26 +14,27 @@ def get_gps_check_fail_flags(estimator_status: dict) -> dict:
     """
     gps_fail_flags = dict()
 
-    # 0 : insufficient fix type (no 3D solution)
-    # 1 : minimum required sat count fail
-    # 2 : maximum allowed PDOP fail
-    # 3 : maximum allowed horizontal position error fail
-    # 4 : maximum allowed vertical position error fail
-    # 5 : maximum allowed speed error fail
-    # 6 : maximum allowed horizontal position drift fail
-    # 7 : maximum allowed vertical position drift fail
-    # 8 : maximum allowed horizontal speed fail
-    # 9 : maximum allowed vertical velocity discrepancy fail
-    gps_fail_flags['gfix_fail'] = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['nsat_fail'] = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['pdop_fail'] = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['herr_fail'] = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['verr_fail'] = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['serr_fail'] = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['hdrift_fail'] = ((2 ** 6 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['vdrift_fail'] = ((2 ** 7 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['hspd_fail'] = ((2 ** 8 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['veld_diff_fail'] = ((2 ** 9 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    # Same bit positions as EKF2_GPS_CHECK / estimator_status.gps_check_fail_flags.
+    # 0 : minimum required sat count fail
+    # 1 : maximum allowed PDOP fail
+    # 2 : maximum allowed horizontal position error fail
+    # 3 : maximum allowed vertical position error fail
+    # 4 : maximum allowed speed error fail
+    # 5 : maximum allowed horizontal position drift fail
+    # 6 : maximum allowed vertical position drift fail
+    # 7 : maximum allowed horizontal speed fail
+    # 8 : maximum allowed vertical velocity discrepancy fail
+    # 10 : insufficient fix type (no 3D solution)
+    gps_fail_flags['nsat_fail'] = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['pdop_fail'] = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['herr_fail'] = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['verr_fail'] = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['serr_fail'] = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['hdrift_fail'] = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['vdrift_fail'] = ((2 ** 6 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['hspd_fail'] = ((2 ** 7 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['veld_diff_fail'] = ((2 ** 8 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['gfix_fail'] = ((2 ** 10 & estimator_status['gps_check_fail_flags']) > 0) * 1
     return gps_fail_flags
 
 
