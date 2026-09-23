@@ -1139,12 +1139,12 @@ bool Logger::start_stop_logging()
 		_manual_stop_active = command == (int)ManualLoggingCommand::Stop
 				      && _writer.is_started(LogType::Full, LogWriter::BackendFile);
 
-		// Stopping the boot-to-shutdown log has to disable the mode as well, it would otherwise keep
-		// logging disabled for the rest of the boot. Fall back to arm/disarm logging instead.
-		// arm_until_shutdown needs no fallback: it resumes on its own on the next arming.
+		// Suspend boot-to-shutdown logging when its current log is stopped, otherwise it would restart
+		// immediately. Resume continuous logging with the next log.
+		// arm_until_shutdown needs no special handling: it resumes on its own on the next arming.
 		if (_manual_stop_active && _log_mode == LogMode::boot_until_shutdown && !_continuous_log_stopped) {
 			_continuous_log_stopped = true;
-			PX4_INFO("continuous log stopped, logging from arming to disarming until reboot");
+			PX4_INFO("continuous log stopped, logging will resume on the next arming");
 		}
 	}
 
@@ -1214,6 +1214,7 @@ bool Logger::start_stop_logging()
 				stop_log_file(LogType::Full);
 			}
 
+			_continuous_log_stopped = false;
 			start_log_file(LogType::Full);
 
 			if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
