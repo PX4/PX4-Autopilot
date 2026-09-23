@@ -15,4 +15,3 @@ param set-default MAV_2_UDP_PRT 14550
 param set-default USB_MAV_MODE 5
 
 safety_button start
-
