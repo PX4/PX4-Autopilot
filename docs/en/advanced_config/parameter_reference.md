@@ -59417,7 +59417,6 @@ Automatically configure default values.
 
 Set to 1 to reset parameters on next system startup (setting defaults).
 Platform-specific values are used if available.
-RC* parameters are preserved.
 
 
 **Values:**
