@@ -66,6 +66,13 @@ InputTest::UpdateResult InputTest::update(unsigned int timeout_ms, ControlData &
 		matrix::Quatf q(euler);
 		q.copyTo(control_data.type_data.angle.q);
 
+		// Angle command: no rate. Must be set explicitly, otherwise a stale
+		// angular_velocity is forwarded and a downstream that prioritizes rate
+		// (e.g. a device holding position on zero rate) ignores the angle.
+		control_data.type_data.angle.angular_velocity[0] = NAN;
+		control_data.type_data.angle.angular_velocity[1] = NAN;
+		control_data.type_data.angle.angular_velocity[2] = NAN;
+
 	} else {
 		control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
 		control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngularRate;

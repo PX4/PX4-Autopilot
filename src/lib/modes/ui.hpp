@@ -69,7 +69,7 @@ static inline uint32_t getValidNavStates()
 	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "update valid nav states");
 }
 
-const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
+inline const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"Manual",
 	"Altitude",
 	"Position",

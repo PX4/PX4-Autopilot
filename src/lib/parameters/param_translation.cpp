@@ -227,10 +227,9 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	// 2026-03-19: translate EKF2_ENGINE_WRM to EKF2_POS_LOCK
 	{
 		if (strcmp("EKF2_ENGINE_WRM", node->name) == 0) {
-			int32_t delay_ms = static_cast<int32_t>(node->d);
-			param_set(param_find("EKF2_POS_LOCK"), &delay_ms);
+			strcpy(node->name, "EKF2_POS_LOCK");
 			PX4_INFO("migrating %s -> %s", "EKF2_ENGINE_WRM", "EKF2_POS_LOCK");
-			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 

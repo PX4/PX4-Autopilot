@@ -46,6 +46,9 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 	bool had_failure = false;
 	int num_enabled_and_valid_calibration = 0;
 
+	// Skip the calibration-state reports while the mags are being calibrated
+	const bool calibration_in_progress = context.status().calibration_enabled;
+
 	for (int instance = 0; instance < _sensor_mag_sub.size(); instance++) {
 		const bool exists = _sensor_mag_sub[instance].advertised();
 		bool is_valid = false;
@@ -106,7 +109,7 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No valid data from Compass %u", instance);
 				}
 
-			} else if (!is_calibration_valid) {
+			} else if (!is_calibration_valid && !calibration_in_progress) {
 				/* EVENT
 				 */
 				reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::magnetometer,
@@ -117,7 +120,7 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Compass %u uncalibrated", instance);
 				}
 
-			} else if (is_mag_fault) {
+			} else if (is_mag_fault && !calibration_in_progress) {
 				/* EVENT
 				 * @description
 				 * Recalibrate the compass and check the orientation.
@@ -134,7 +137,7 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 		}
 	}
 
-	if (!had_failure && !context.isArmed()) {
+	if (!had_failure && !context.isArmed() && !calibration_in_progress) {
 		consistencyCheck(context, reporter);
 
 		if (num_enabled_and_valid_calibration < _param_sys_has_mag.get()) {
@@ -148,12 +151,7 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 			 */
 			reporter.armingCheckFailure<uint8_t, uint8_t>(NavModes::All, health_component_t::magnetometer,
 					events::ID("check_mag_sys_has_mag_missing"),
-					events::Log::Error, "Found {1} compass (required: {2})", num_enabled_and_valid_calibration, _param_sys_has_mag.get());
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Found %i compass (required: %" PRId32 ")",
-						     num_enabled_and_valid_calibration, _param_sys_has_mag.get());
-			}
+					events::Log::Info, "Waiting for compass (found {1}, required: {2})", num_enabled_and_valid_calibration, _param_sys_has_mag.get());
 		}
 	}
 }

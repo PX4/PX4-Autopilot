@@ -584,7 +584,7 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 			result = _landing_valid;
 
 			if (!result) {
-				mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Landing waypoint/pattern required.");
+				mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Landing waypoint/pattern required.\t");
 				events::send(events::ID("feasibility_mis_in_air_landing_req"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: Landing waypoint/pattern required");
 			}

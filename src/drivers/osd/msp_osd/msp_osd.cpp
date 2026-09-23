@@ -524,7 +524,7 @@ void MspOsd::Receive()
 	uint8_t message_id;
 	int ret;
 
-	while ((ret = _msp.Receive(packet, &message_id)) != -EWOULDBLOCK) {
+	while ((ret = _msp.Receive(packet, &message_id, sizeof(packet))) != -EWOULDBLOCK) {
 		if (ret >= 0) {
 			switch (message_id) {
 
@@ -541,7 +541,11 @@ void MspOsd::Receive()
 					msp_set_vtxtable_band_t *band_info = (msp_set_vtxtable_band_t *)&packet[0];
 
 					// Only supported fixed name lenght and < 8 channels for now
-					if (band_info->band <= BAND_COUNT && band_info->band_name_length == 8 && band_info->channel_count <= 8) {
+					// band is 1-based and uint8_t: without the lower bound, band 0 indexes
+					// vtx_bands[-1]. Also require a frame long enough to hold the struct.
+					if (ret >= (int)sizeof(msp_set_vtxtable_band_t)
+					    && band_info->band >= 1 && band_info->band <= BAND_COUNT
+					    && band_info->band_name_length == 8 && band_info->channel_count <= 8) {
 						memcpy((void *)&vtx_bands[band_info->band - 1], packet, sizeof(msp_set_vtxtable_band_t));
 
 						if (has_vtx_config && band_info->band == vtx_config.band_count) {
@@ -553,7 +557,10 @@ void MspOsd::Receive()
 				}
 
 			case MSP_SET_VTXTABLE_POWERLEVEL: {
-					if ((packet[0] - 1) < POWER_LEVEL_COUNT) {
+					// Same 1-based index: packet[0] of 0 promotes to -1 and passes an
+					// upper-bound-only check, indexing power_levels[-1].
+					if (ret >= (int)sizeof(msp_set_vtxtable_powerlevel_t)
+					    && packet[0] >= 1 && (packet[0] - 1) < POWER_LEVEL_COUNT) {
 						memcpy((void *)&power_levels[packet[0] - 1], packet, sizeof(msp_set_vtxtable_powerlevel_t));
 						has_power_config = true;
 					}
