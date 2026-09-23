@@ -90,6 +90,7 @@ The 8 outputs are in 3 groups:
 - Outputs 7-8 in group3
 
 **Note**:
+
 - All outputs support PWM and [DShot](../peripherals/dshot.md) protocol.
   Outputs 1-6 and 8 support "bidirectional DShot" (or "BDShot") telemetry.
 - Outputs 1-4 default to DShot300 ([PWM_MAIN_TIM0](../advanced_config/parameter_reference.md#PWM_MAIN_TIM0) = `-4`); outputs 5-6 and 7-8 default to PWM at 400 Hz.
@@ -103,7 +104,6 @@ Use the [MAVLink Shell](../debug/mavlink_shell.md) over USB for console/NSH acce
 **SWD**
 
 The board features a [**4-pin SWD Debug**](../debug/swd_debug.md) interface (3V3 / SWCLK / SWDIO / GND) for hardware debugging.
-
 
 ## Radio Control
 
