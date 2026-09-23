@@ -182,7 +182,7 @@
 #define ADC_HW_REV_SENSE_CHANNEL                /* PH4  */  ADC3_CH(15)
 
 #define ADC_CHANNELS \
-	((1 << ADC_BATTERY_VOLTAGE_CHANNEL)         | \
+	(((1 << ADC_BATTERY_VOLTAGE_CHANNEL)         | \
 	 (1 << ADC_BATTERY_CURRENT_CHANNEL)         | \
 	 (1 << ADC_RSSI_IN_CHANNEL)                 | \
 	 (1 << ADC_SCALED_V5_CHANNEL)               | \
