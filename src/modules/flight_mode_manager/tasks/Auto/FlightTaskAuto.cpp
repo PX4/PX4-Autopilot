@@ -194,7 +194,6 @@ bool FlightTaskAuto::update()
 	}
 
 	_checkEmergencyBraking();
-	_constraints.emergency_braking = _is_emergency_braking_active;
 	Vector3f waypoints[] = {_triplet_previous, _position_setpoint, _triplet_next};
 
 	if (_type == WaypointType::position && _hasPassedCurrentWaypoint()) {

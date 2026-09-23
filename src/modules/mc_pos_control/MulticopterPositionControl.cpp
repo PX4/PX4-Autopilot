@@ -401,6 +401,11 @@ void MulticopterPositionControl::Run()
 				if (!previous_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					_time_position_control_enabled = _vehicle_control_mode.timestamp;
 
+					// Let the velocity limits start unconstrained again for this new period of position control.
+					_vel_limit_xy = NAN;
+					_vel_limit_up = NAN;
+					_vel_limit_down = NAN;
+
 				} else if (previous_position_control_enabled && !_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					// clear existing setpoint when controller is no longer active
 					_setpoint = PositionControl::empty_trajectory_setpoint;
@@ -456,11 +461,6 @@ void MulticopterPositionControl::Run()
 			// TODO: this should get obsolete once the takeoff limiting moves into the flight tasks
 			if (!PX4_ISFINITE(_vehicle_constraints.speed_up) || (_vehicle_constraints.speed_up > _param_mpc_z_vel_max_up.get())) {
 				_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
-			}
-
-			// Never act on a braking flag left behind by a flight task that is no longer running.
-			if (_setpoint.timestamp > _vehicle_constraints.timestamp + 100_ms) {
-				_vehicle_constraints.emergency_braking = false;
 			}
 
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
@@ -541,28 +541,27 @@ void MulticopterPositionControl::Run()
 				max_speed_xy = math::min(max_speed_xy, vehicle_local_position.vxy_max);
 			}
 
-			float limit_speed_up = math::min(speed_up,
-							 _param_mpc_z_vel_max_up.get()); // takeoff ramp starts with negative velocity limit
+			float limit_speed_up = math::min(speed_up, _param_mpc_z_vel_max_up.get()); // takeoff ramp starts with negative velocity limit
 			float limit_speed_down = math::max(speed_down, 0.f);
 
-			if (_vehicle_constraints.emergency_braking && flying) {
-				// Raise the limits to the speed the vehicle actually has, so the trajectory velocity
-				// reaches the velocity loop uncut.
-				// Clamping it leaves a large velocity error which the horizontal anti-windup back-calculates
-				// into an integrator opposing the brake.
-				const Vector2f velocity_xy(states.velocity);
+			// When changing mode flying faster than the limit, allow braking with a decaying limit to
+			// avoid a large velocity error from clamping alone driving the integrator against the brake.
+			const Vector2f velocity_xy(states.velocity);
 
-				if (velocity_xy.isAllFinite()) {
-					max_speed_xy = math::max(max_speed_xy, velocity_xy.norm());
-				}
+			if (velocity_xy.isAllFinite()) {
+				// math::min(NAN, x) == x -> will initializae _vel_limit_xy
+				_vel_limit_xy = math::max(max_speed_xy, math::min(_vel_limit_xy, velocity_xy.norm()));
+				max_speed_xy = _vel_limit_xy;
+			}
 
-				if (PX4_ISFINITE(states.velocity(2))) {
-					if (states.velocity(2) < 0.f) {
-						limit_speed_up = math::max(limit_speed_up, -states.velocity(2));
+			if (PX4_ISFINITE(states.velocity(2))) {
+				if (states.velocity(2) < 0.f) {
+					_vel_limit_up = math::max(limit_speed_up, math::min(_vel_limit_up, -states.velocity(2)));
+					limit_speed_up = _vel_limit_up;
 
-					} else {
-						limit_speed_down = math::max(limit_speed_down, states.velocity(2));
-					}
+				} else {
+					_vel_limit_down = math::max(limit_speed_down, math::min(_vel_limit_down, states.velocity(2)));
+					limit_speed_down = _vel_limit_down;
 				}
 			}
 
@@ -612,7 +611,7 @@ void MulticopterPositionControl::Run()
 				// Still failing / not within timeout - Go to failsafe
 				if (!_control.update(dt)) {
 
-					_vehicle_constraints = {0, NAN, NAN, false, false, {}}; // reset constraints
+					_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
 
 					_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
 					_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
