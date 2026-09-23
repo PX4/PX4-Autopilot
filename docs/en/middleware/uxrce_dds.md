@@ -26,6 +26,14 @@ In order for PX4 uORB topics to be shared on the DDS network you will need _uXRC
 
 The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) publishes to/from a defined set of uORB topics to the global DDS data space.
 
+::: warning
+The DDS transport is unauthenticated and reaches uORB directly, so the DDS network must be kept isolated.
+Connect the flight controller to the companion over serial or a dedicated Ethernet cable, not over a shared or wireless network.
+A direct cable is not enough on its own: the agent republishes into the DDS network on the companion, so also keep that local, for example with [UXRCE_DDS_PTCFG](../advanced_config/parameter_reference.md#UXRCE_DDS_PTCFG) set to localhost and `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` (`ROS_LOCALHOST_ONLY=1` on Humble).
+If the data has to leave the companion, securing it is up to the integrator.
+See [Security](../security/index.md) for more.
+:::
+
 The [eProsima Micro XRCE-DDS _Agent_](https://github.com/eProsima/Micro-XRCE-DDS-Agent) runs on the companion computer and acts as a proxy for the client in the DDS/ROS 2 network.
 
 The agent itself has no dependency on client-side code and can be built and/or installed independent of PX4 or ROS, as long as version compatibility is ensured.

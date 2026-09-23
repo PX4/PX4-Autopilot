@@ -109,6 +109,7 @@ void SensorGpsSim::Run()
 	}
 
 	updateFailureConfig();
+	const bool rtk = updateRtcmCorrections();
 
 	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()) {
 
@@ -153,12 +154,12 @@ void SensorGpsSim::Run()
 		sensor_gps_s sensor_gps{};
 
 		if (_sim_gps_used.get() >= 4) {
-			// fix
-			sensor_gps.fix_type = 3; // 3D fix
+			// fix: RTK fixed while corrections are flowing, 3D otherwise
+			sensor_gps.fix_type = rtk ? sensor_gps_s::FIX_TYPE_RTK_FIXED : sensor_gps_s::FIX_TYPE_3D;
 			sensor_gps.s_variance_m_s = 0.4f;
 			sensor_gps.c_variance_rad = 0.1f;
-			sensor_gps.eph = 0.9f;
-			sensor_gps.epv = 1.78f;
+			sensor_gps.eph = rtk ? 0.02f : 0.9f;
+			sensor_gps.epv = rtk ? 0.04f : 1.78f;
 			sensor_gps.hdop = 0.7f;
 			sensor_gps.vdop = 1.1f;
 
@@ -233,6 +234,19 @@ void SensorGpsSim::publishWithFailures(int instance, sensor_gps_s gps, uORB::Pub
 void SensorGpsSim::updateFailureConfig()
 {
 	_failure_config.update();
+}
+
+bool SensorGpsSim::updateRtcmCorrections()
+{
+	rtcm_data_s msg;
+
+	for (int instance = 0; instance < _rtcm_corrections_sub.size(); instance++) {
+		while (_rtcm_corrections_sub[instance].update(&msg)) {
+			_last_rtcm_time = math::max(_last_rtcm_time, msg.timestamp);
+		}
+	}
+
+	return (_last_rtcm_time != 0) && (hrt_elapsed_time(&_last_rtcm_time) < RTCM_TIMEOUT);
 }
 
 int SensorGpsSim::task_spawn(int argc, char *argv[])

@@ -31,12 +31,15 @@
  *
  ****************************************************************************/
 
+#include <lib/tinybson/tinybson.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/uORBManager.hpp>
 
 #include <gtest/gtest.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 class ParameterTest : public ::testing::Test
 {
@@ -105,4 +108,38 @@ TEST_F(ParameterTest, testUorbSendReceive)
 
 	// AND: all the bytes should be equal
 	EXPECT_EQ(0, memcmp(&message, &obstacle_distance, sizeof(message)));
+}
+
+// A BSON null in an import resets the param (a delta tombstone on flash boards).
+TEST_F(ParameterTest, testImportTombstoneResets)
+{
+	const param_t cp_dist = param_handle(px4::params::CP_DIST);
+
+	float cp = 5.f;
+	ASSERT_EQ(0, param_set(cp_dist, &cp));
+	ASSERT_FALSE(param_value_is_default(cp_dist));
+
+	bson_encoder_s encoder{};
+	ASSERT_EQ(0, bson_encoder_init_buf(&encoder, nullptr, 0));
+	ASSERT_EQ(0, bson_encoder_append_int32(&encoder, "RC1_REV", -1));
+	ASSERT_EQ(0, bson_encoder_append_null(&encoder, "CP_DIST"));
+	ASSERT_EQ(0, bson_encoder_fini(&encoder));
+
+	char path[] = "/tmp/param_tombstone_XXXXXX";
+	int fd = mkstemp(path);
+	ASSERT_GE(fd, 0);
+	ASSERT_EQ((ssize_t)bson_encoder_buf_size(&encoder), write(fd, bson_encoder_buf_data(&encoder),
+			bson_encoder_buf_size(&encoder)));
+	free(bson_encoder_buf_data(&encoder));
+	ASSERT_EQ(0, lseek(fd, 0, SEEK_SET));
+
+	EXPECT_EQ(0, param_import(fd));
+	close(fd);
+	unlink(path);
+
+	EXPECT_TRUE(param_value_is_default(cp_dist));
+
+	int32_t rev = 0;
+	ASSERT_EQ(0, param_get(param_handle(px4::params::RC1_REV), &rev));
+	EXPECT_EQ(-1, rev);
 }

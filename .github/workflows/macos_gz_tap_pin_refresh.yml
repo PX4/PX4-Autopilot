@@ -1,11 +1,14 @@
 name: macOS - Refresh gz tap pin
 
 # Tools/setup/macos.sh pins osrf/simulation to Tools/setup/gz-tap-pin.txt so
-# --sim-tools pours Gazebo bottles instead of compiling them (see that file).
-# OSRF advances the tap several times a week, so once a week this moves the
-# pin to the newest commit whose Gazebo formulae are all bottled and opens a
-# PR for it. Tools/ci/refresh_gz_tap_pin.rb does the work under Homebrew's
-# Ruby and can be run by hand on any Mac.
+# --sim-tools pours Gazebo bottles instead of compiling them, and protobuf to
+# Tools/setup/protobuf-pin.txt so those bottles' generated headers still
+# compile (see those files). OSRF advances the tap several times a week and
+# homebrew-core moves protobuf on its own schedule, so once a week this moves
+# the tap pin to the newest commit whose Gazebo formulae are all bottled,
+# repoints the protobuf pin at whatever those bottles were built against, and
+# opens a PR for it. Tools/ci/refresh_gz_tap_pin.rb does the work under
+# Homebrew's Ruby and can be run by hand on any Mac.
 
 on:
   schedule:
@@ -17,18 +20,20 @@ permissions:
 
 jobs:
   refresh:
-    # Oldest macOS in compile_macos.yml's matrix. Homebrew pours a bottle
-    # built on an older macOS onto a newer one, never the reverse, so the
-    # oldest leg is the one a new pin can break.
+    # Same runner as the MacOS build.
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v6
 
       - name: Find the newest fully bottled osrf/simulation commit
         id: pin
+        env:
+          # Walking homebrew-core's protobuf history goes through the GitHub
+          # API, which is rate limited per IP for runners without this.
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: brew ruby Tools/ci/refresh_gz_tap_pin.rb
 
-      - name: Open PR with the new pin
+      - name: Open PR with the new pins
         if: steps.pin.outputs.needs_bump == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
@@ -39,12 +44,21 @@ jobs:
           committer: ${{ secrets.PX4BUILDBOT_USER }} <${{ secrets.PX4BUILDBOT_EMAIL }}>
           branch: px4buildbot/gz-tap-pin
           delete-branch: true
-          add-paths: Tools/setup/gz-tap-pin.txt
-          commit-message: "build(macos): bump gz tap pin to ${{ steps.pin.outputs.new_pin_short }}"
-          title: "build(macos): bump gz tap pin to ${{ steps.pin.outputs.new_pin_short }}"
+          add-paths: |
+            Tools/setup/gz-tap-pin.txt
+            Tools/setup/protobuf-pin.txt
+          commit-message: "build(macos): ${{ steps.pin.outputs.summary }}"
+          title: "build(macos): ${{ steps.pin.outputs.summary }}"
           body: |
-            Weekly check found that osrf/simulation commit `${{ steps.pin.outputs.new_pin }}` is the newest one where every osrf/simulation formula `macos.sh --sim-tools` poured at the previous pin still has a bottle Homebrew pours on macos-15, and every bottle tarball is still served. Moves `Tools/setup/gz-tap-pin.txt` from `${{ steps.pin.outputs.old_pin }}` to it.
+            Weekly check of the two macOS Gazebo pins. `Tools/setup/gz-tap-pin.txt` holds osrf/simulation at the newest commit where every formula `macos.sh --sim-tools` poured at the previous pin still has a bottle Homebrew pours on macos-15 and every bottle tarball is still served. `Tools/setup/protobuf-pin.txt` holds protobuf at the version those bottles were built against, which is the only one their generated headers compile against.
 
-            Tap changes: https://github.com/osrf/homebrew-simulation/compare/${{ steps.pin.outputs.old_pin }}...${{ steps.pin.outputs.new_pin }}
+            | pin | from | to |
+            | --- | --- | --- |
+            | osrf/simulation | `${{ steps.pin.outputs.old_pin }}` | `${{ steps.pin.outputs.new_pin }}` |
+            | protobuf | `${{ steps.pin.outputs.old_protobuf_version }}` (`${{ steps.pin.outputs.old_protobuf_pin }}`) | `${{ steps.pin.outputs.protobuf_version }}` (`${{ steps.pin.outputs.new_protobuf_pin }}`) |
+
+            An empty "to" means that pin did not move.
+
+            Tap changes: https://github.com/osrf/homebrew-simulation/compare/${{ steps.pin.outputs.old_pin }}...${{ steps.pin.outputs.new_pin || steps.pin.outputs.old_pin }}
 
             The MacOS build legs on this PR are the real test. Merge once both pour the gz bottles without compiling anything from osrf/simulation.

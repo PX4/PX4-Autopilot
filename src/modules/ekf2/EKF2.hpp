@@ -242,6 +242,7 @@ private:
 #endif // CONFIG_EKF2_RANGING_BEACON
 
 	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateFusionControlFromReplay();
 
 	// Used to check, save and use learned accel/gyro/mag biases
 	struct InFlightCalibration {
@@ -407,6 +408,8 @@ private:
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _estimator_fusion_control_sub{ORB_ID(estimator_fusion_control)}; ///< replay mode input
+	bool _fusion_control_from_replay{false};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	enum SensEn : uint16_t {

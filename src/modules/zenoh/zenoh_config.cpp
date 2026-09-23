@@ -433,8 +433,11 @@ int Zenoh_Config::parse_csv_line(char *line, const char **fields, int max_fields
 }
 void Zenoh_Config::getNetworkConfig(char *mode, char *locator)
 {
+	mode[0] = '\0';
+	locator[0] = '\0';
+
 	FILE *fp;
-	char buffer[NET_CONFIG_LINE_SIZE];
+	char buffer[NET_CONFIG_LINE_SIZE] {};
 
 	fp = fopen(ZENOH_NET_CONFIG_PATH, "r");
 
@@ -455,6 +458,7 @@ void Zenoh_Config::getNetworkConfig(char *mode, char *locator)
 		if (config_mode) {
 			config_mode[strcspn(config_mode, "\n")] = 0;
 			strncpy(mode, config_mode, NET_MODE_SIZE);
+			mode[NET_MODE_SIZE - 1] = '\0';
 
 		} else {
 			mode[0] = 0;
@@ -463,6 +467,7 @@ void Zenoh_Config::getNetworkConfig(char *mode, char *locator)
 		if (nfields >= 2) {
 			const char *config_locator = fields[1];
 			strncpy(locator, config_locator, NET_LOCATOR_SIZE);
+			locator[NET_LOCATOR_SIZE - 1] = '\0';
 
 		} else {
 			locator[0] = 0;
@@ -470,6 +475,7 @@ void Zenoh_Config::getNetworkConfig(char *mode, char *locator)
 
 	} else {
 		printf("Failed to open the file\n");
+		return;
 	}
 
 	//Close the file
