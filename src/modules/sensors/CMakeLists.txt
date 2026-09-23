@@ -112,3 +112,7 @@ endif()
 if(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 	target_link_libraries(modules__sensors PRIVATE vehicle_optical_flow)
 endif()
+
+if(BUILD_TESTING)
+	add_subdirectory(test)
+endif()
