@@ -48,6 +48,27 @@ def load_dumps(log_path):
     return dumps
 
 
+def collapse_repeats(dumps):
+    """Drop dumps identical to the previous one from the same ESC, counting them on the one kept. The
+    driver republishes every ESC on each arming, so a log spanning several armings repeats them."""
+    kept = []
+    last = {}
+
+    for dump in dumps:
+        previous = last.get(dump['esc'])
+
+        if previous and (previous['firmware'], previous['data']) == (dump['firmware'], dump['data']):
+            previous['repeats'] += 1
+            previous['last_time'] = dump['time']
+            continue
+
+        dump['repeats'] = 0
+        last[dump['esc']] = dump
+        kept.append(dump)
+
+    return kept
+
+
 def load_schema(schema_path):
     """Load the EEPROM layout schema from a local JSON file."""
     with open(schema_path, encoding='utf-8') as schema_file:
@@ -60,12 +81,30 @@ def firmware_key(text):
     return (int(major), int(minor or 0))
 
 
+def applies(item, eeprom_version, firmware_version):
+    """Whether a field or group exists at these EEPROM layout and firmware versions, bounded the same
+    way as in the configurator."""
+    if item.get('minEepromVersion') is not None and eeprom_version < item['minEepromVersion']:
+        return False
+
+    if item.get('maxEepromVersion') is not None and eeprom_version > item['maxEepromVersion']:
+        return False
+
+    if item.get('minFirmwareVersion') and firmware_version < firmware_key(item['minFirmwareVersion']):
+        return False
+
+    if item.get('maxFirmwareVersion') and firmware_version > firmware_key(item['maxFirmwareVersion']):
+        return False
+
+    return True
+
+
 def apply_overlay(resolved, overlay):
     """Apply a version overlay onto a field definition: objects merge one level deep, everything
     else replaces the previous value."""
     for key, value in overlay.items():
         if isinstance(value, dict) and isinstance(resolved.get(key), dict):
-            resolved[key].update(value)
+            resolved[key] = {**resolved[key], **value}
 
         else:
             resolved[key] = value
@@ -118,10 +157,25 @@ def read_raw(data, offset, size):
     return int.from_bytes(data[offset:offset + size], 'little')
 
 
+def is_disabled(field, raw):
+    """Whether the raw value switches the setting off: the field's disabled value, or anything outside
+    its raw range once the field has a disabled value at all."""
+    disabled = field.get('disabledValue')
+
+    if not disabled:
+        return False
+
+    limits = field.get('raw') or {}
+    return raw == disabled.get('raw') or raw < limits.get('min', raw) or raw > limits.get('max', raw)
+
+
 def format_value(field, raw):
     """Render a raw value using the field's enum table or display scaling."""
     field_type = field.get('type')
     unit = field.get('unit', '')
+
+    if is_disabled(field, raw):
+        return f'{field["disabledValue"].get("display", "Disabled")} ({raw})'
 
     if field_type == 'enum':
         for entry in field.get('values', []):
@@ -180,7 +234,7 @@ def decode(dump, schema):
         if field.get('type') == 'reserved':
             continue
 
-        if eeprom_version < field.get('minEepromVersion', 0):
+        if not applies(field, eeprom_version, firmware_version):
             continue
 
         resolved = resolve_field(field, eeprom_version, firmware_version)
@@ -198,6 +252,9 @@ def print_dump(dump, schema, index, total):
 
     title = f' ESC {dump["esc"]} at {dump["time"]:.1f} s '
 
+    if dump.get('repeats'):
+        title += f'(+{dump["repeats"]} unchanged, last {dump["last_time"]:.1f} s) '
+
     if total > 1:
         title += f'({index}/{total}) '
 
@@ -214,22 +271,24 @@ def print_dump(dump, schema, index, total):
         if group_key not in order:
             order.append(group_key)
 
-    shown = set()
+    placed = set()
 
     for group_key in order:
-        names = [name for name in groups.get(group_key, {}).get('fields', []) if name in settings]
+        group = groups.get(group_key, {})
+        names = [name for name in group.get('fields', []) if name in settings]
+        placed.update(names)
 
-        if not names:
+        # A group the ESC's versions rule out hides its fields rather than moving them to 'Other'
+        if not names or not applies(group, eeprom_version, firmware_version):
             continue
 
-        print(f'\n  {groups[group_key].get("name", group_key)}')
+        print(f'\n  {group.get("name", group_key)}')
 
         for name in names:
             label, text = settings[name]
             print(f'    {label:<28} {text}')
-            shown.add(name)
 
-    leftover = [name for name in settings if name not in shown]
+    leftover = [name for name in settings if name not in placed]
 
     if leftover:
         print('\n  Other')
@@ -250,6 +309,8 @@ def main():
 
     if args.esc is not None:
         dumps = [dump for dump in dumps if dump['esc'] == args.esc]
+
+    dumps = collapse_repeats(dumps)
 
     if not dumps:
         sys.exit(f'no {TOPIC} messages in {args.log}')
