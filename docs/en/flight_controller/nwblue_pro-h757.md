@@ -6,7 +6,7 @@
 PX4 does not manufacture this (or any) autopilot. Contact the manufacturer for hardware support or compliance issues.
 :::
 
-The _NWBlue Pro H757_ is a 36 x 36 mm FPV flight controller built around a [CubePilot CubeNode H757](https://docs.cubepilot.org/user-guides/cubenode/pin-descriptions) module carrying an STM32H757 microcontroller.
+The _NWBlue Pro H757_ is a 36 x 36 mm FPV flight controller built around a [CubePilot CubeNode H757](https://docs.cubepilot.org/cubenode/pin-descriptions) module carrying an STM32H757 microcontroller.
 
 ![NWBlue Pro H757](../../assets/flight_controller/nwblue_pro-h757/nwblue_pro-h757.png)
 
