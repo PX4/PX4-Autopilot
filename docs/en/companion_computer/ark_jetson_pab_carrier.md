@@ -7,7 +7,7 @@ The [ARK Jetson Pixhawk Autopilot Bus (PAB) Carrier](https://arkelectron.gitbook
 ## Where to Buy
 
 - [ARK Jetson PAB Carrier](https://arkelectron.com/product/ark-jetson-pab-carrier/)
-- [ARK Jetson Orin NX NDAA Bundle](https://arkelectron.com/product/ark-jetson-orin-nx-ndaa-bundle/)
+- [ARK Jetson Orin NX NDAA Bundle](https://arkelectron.com/product/ark-jetson-pab-ndaa-bundle/?attribute_pa_orin-module=orin-nx-16gb)
 
 ## Specifications
 
@@ -75,7 +75,7 @@ Two helper scripts are available for resetting the flight controller:
 
 ## Flashing Guide
 
-If you've purchased the [ARK Jetson Orin NX NDAA Bundle](https://arkelectron.com/product/ark-jetson-orin-nx-ndaa-bundle/), Jetpack 6 (Ubuntu 22.04) and [ARK-OS](https://github.com/ARK-Electronics/ARK-OS) are pre-installed.
+If you've purchased the [ARK Jetson Orin NX NDAA Bundle](https://arkelectron.com/product/ark-jetson-pab-ndaa-bundle/?attribute_pa_orin-module=orin-nx-16gb), Jetpack 6 (Ubuntu 22.04) and [ARK-OS](https://github.com/ARK-Electronics/ARK-OS) are pre-installed.
 
 ### ARK Jetson Kernel GitHub Repository
 

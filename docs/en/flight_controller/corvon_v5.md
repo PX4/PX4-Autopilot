@@ -4,7 +4,7 @@
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
-Contact the [manufacturer](https://corvon.tech) for hardware support or compliance issues.
+Contact the [manufacturer](https://www.corvon.tech/en) for hardware support or compliance issues.
 :::
 
 The CORVON V5 is based on the Pixhawk FMUv5 design standard and runs PX4 on NuttX.
@@ -54,7 +54,7 @@ This flight controller is [manufacturer supported](autopilot_manufacturer_suppor
 
 ## Where to Buy {#store}
 
-- [CORVON Store](https://corvon.tech)
+- [CORVON Store](https://www.corvon.tech/en)
 
 ## Connectors and Interfaces
 
@@ -190,4 +190,4 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 
 ## Further Information
 
-- [Corvon Tech](https://corvon.tech)
+- [Corvon Tech](https://www.corvon.tech/en)
