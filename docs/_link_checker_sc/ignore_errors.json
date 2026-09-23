@@ -1865,5 +1865,53 @@
     },
     "hideReason": "certificate error - server does not send the full intermediate chain; resolves fine in real browsers via AIA fetching",
     "expiry": "2027-08-27"
+  },
+  {
+    "link": {
+      "url": "https://arkelectron.com/product/arkv6xrt",
+      "text": ""
+    },
+    "hideReason": "404 - no ARKV6X-RT product page found on arkelectron.com; replacement URL requested from ARK in PR #28827",
+    "expiry": "2027-03-23"
+  },
+  {
+    "link": {
+      "url": "https://raccoonlab.co",
+      "text": ""
+    },
+    "hideReason": "402/403 returned to automated requests; site is live and indexed by search engines",
+    "expiry": "2027-03-23"
+  },
+  {
+    "link": {
+      "url": "https://raccoonlab.co/store",
+      "text": ""
+    },
+    "hideReason": "402/403 returned to automated requests; site is live and indexed by search engines",
+    "expiry": "2027-03-23"
+  },
+  {
+    "link": {
+      "url": "https://gitlab.arm.com/tooling/gnu-toolchains-for-arm",
+      "text": ""
+    },
+    "hideReason": "202 with empty body returned to automated requests (bot challenge); link is valid for real browsers",
+    "expiry": "2027-03-23"
+  },
+  {
+    "link": {
+      "url": "https://svehicle.cn/",
+      "text": ""
+    },
+    "hideReason": "certificate expired 2026-09-23 (Let's Encrypt, likely a failed auto-renewal); recheck before expiry",
+    "expiry": "2027-03-23"
+  },
+  {
+    "link": {
+      "url": "https://jmarple.ai/j-fi/",
+      "text": ""
+    },
+    "hideReason": "certificate expired 2026-09-14; recheck before expiry",
+    "expiry": "2027-03-23"
   }
 ]
