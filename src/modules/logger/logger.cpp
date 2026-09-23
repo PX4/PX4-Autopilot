@@ -1137,7 +1137,7 @@ bool Logger::start_stop_logging()
 	if (manual_command_received) {
 		_manual_start_override = command == (int)ManualLoggingCommand::Start;
 		_manual_stop_active = command == (int)ManualLoggingCommand::Stop
-				      && _writer.is_started(LogType::Full, LogWriter::BackendFile);
+				      && (_manual_stop_active || _writer.is_started(LogType::Full, LogWriter::BackendFile));
 
 		// Suspend boot-to-shutdown logging when its current log is stopped, otherwise it would restart
 		// immediately. Resume continuous logging with the next log.
