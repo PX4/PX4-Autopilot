@@ -4,7 +4,7 @@
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
-Contact the [manufacturer](https://corvon.tech) for hardware support or compliance issues.
+Contact the [manufacturer](https://www.corvon.tech/en) for hardware support or compliance issues.
 :::
 
 The _CORVON 743v2_ is a flight controller designed by Feikong Technology Co., Ltd under the CORVON brand.
@@ -40,7 +40,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy
 
-Order from [CORVON](https://corvon.tech).
+Order from [CORVON](https://www.corvon.tech/en).
 
 ## Physical / Mechanical
 
