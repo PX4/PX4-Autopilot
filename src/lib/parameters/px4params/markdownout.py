@@ -27,6 +27,11 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
         for group in groups:
             result += f'## {group.GetName()}\n\n'
 
+            # Wrap each group, and each parameter within it, so the docs theme can skip rendering
+            # off-screen content (see .param-group in docs/.vitepress/theme/style.css).
+            # The group heading stays outside the wrapper so the page outline can track it.
+            result += f'<div class="param-group" style="--param-count: {len(group.GetParams())}">\n\n'
+
             group_is_board_specific = (group.GetName() in BOARD_SPECIFIC_GROUPS)
 
             for param in group.GetParams():
@@ -99,6 +104,7 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
                         boolean_values += f"- `{key}`: {label}\n"
                     boolean_values += '\n'
 
+                result += '<div class="param">\n\n'
                 result += f'### {name} (`{type}`)' + ' {#' + name + '}\n\n'
                 if apply_note_board_specific_group:
                     result += f'<Badge type="warning" text="This parameter is only present on some boards." />\n\n'
@@ -117,6 +123,9 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
                 # Format the ranges as a table.
                 is_readonly = param.GetReadonly()
                 result += f"Reboot | minValue | maxValue | increment | default | unit | Read-Only\n--- | --- | --- | --- | --- | --- | ---\n{'&check;' if reboot_required else '&nbsp;' } | {min_val} | {max_val} | {increment} | {def_val} | {unit} | {'&check;' if is_readonly else '&nbsp;'}\n\n"
+                result += '</div>\n\n'
+
+            result += '</div>\n\n'
 
         self.output = result
 
