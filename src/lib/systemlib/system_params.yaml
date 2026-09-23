@@ -18,7 +18,6 @@ parameters:
         long: |-
           Set to 1 to reset parameters on next system startup (setting defaults).
           Platform-specific values are used if available.
-          RC* parameters are preserved.
       type: enum
       values:
         0: Keep parameters
