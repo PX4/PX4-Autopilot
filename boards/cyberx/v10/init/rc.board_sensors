@@ -33,4 +33,3 @@ ist8310 -I -b 3 -R 26 start
 # External compass on GPS12/I2C12 (the external bus)
 qmc5883l -X -b 1 start
 qmc5883l -X -b 2 start
-
