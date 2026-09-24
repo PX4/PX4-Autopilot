@@ -116,8 +116,9 @@ See [Using PX4's Navigation Filter (EKF2) > Optical flow](../advanced_config/tun
 
 PX4 supports up to two optical flow sensors at the same time.
 A second sensor can add redundancy, or extend the usable envelope by combining sensors with different operating ranges.
-Both sensors are fused, each at its own measurement rate, with EKF2 applying at most one optical flow correction per filter update: when both sensors deliver a measurement for the same update, they are fused alternately.
+Both sensors are fused, each at its own measurement rate.
 A sensor that temporarily cannot be fused (for example when it leaves its operating range) keeps being processed for monitoring, and its data is used again as soon as it recovers.
+A sensor whose measurements are rejected while the other sensor is still fused is considered faulty: it never resets the velocity or height above ground estimate, it is stopped and retried later.
 
 Each sensor is bound to a parameter "slot" `n` (`0` or `1`) using its device ID:
 
@@ -126,6 +127,9 @@ Each sensor is bound to a parameter "slot" `n` (`0` or `1`) using its device ID:
   The EKF uses the same slot numbering: `EKF2_OFn_*` parameters apply to the sensor bound to `SENS_FLOWn_ID`.
 - Fusion is enabled per slot using [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL) and [EKF2_OF1_CTRL](../advanced_config/parameter_reference.md#EKF2_OF1_CTRL).
   Only slot 0 is enabled by default.
+  A slot can be enabled or disabled at runtime.
+- When a sensor is replaced, the new sensor has a different device ID and is bound to the next free slot, which is not fused by default.
+  To bind the new sensor to the old slot, set its `SENS_FLOWn_ID` parameter to `0` and reboot.
 - All other optical flow parameters exist once per sensor: sensor properties such as delay, rotation, and mounting position in `SENS_FLOW0_*`/`SENS_FLOW1_*`, and fusion tuning such as noise and quality thresholds in `EKF2_OF0_*`/`EKF2_OF1_*`, so each sensor can be configured independently.
 
 Note the following requirements and behaviour:
@@ -137,3 +141,4 @@ Note the following requirements and behaviour:
   The minimum and maximum operating distance reported by each sensor is applied individually.
 - A distance measurement provided by a flow sensor itself (as on the [ARK Flow](../dronecan/ark_flow.md)) can substitute for a missing distance sensor.
   Only the measurement from the first sensor that reports a distance is used for this purpose.
+- The preflight check enabled by [SYS_HAS_NUM_OF](../advanced_config/parameter_reference.md#SYS_HAS_NUM_OF) passes when at least one sensor delivers valid data.
