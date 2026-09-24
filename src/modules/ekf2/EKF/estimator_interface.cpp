@@ -327,7 +327,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow, uint8_t inst
 		return;
 	}
 
-	_flow_aiding.setData(flow, instance, _min_obs_interval_us, _dt_ekf_avg);
+	_flow_aiding.setData(flow, instance, _imu_buffer_length, _min_obs_interval_us, _dt_ekf_avg);
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 

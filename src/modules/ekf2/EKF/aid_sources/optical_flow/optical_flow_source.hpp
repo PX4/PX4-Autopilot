@@ -64,9 +64,7 @@ public:
 
 	void setSlot(uint8_t slot) { _slot = slot; }
 
-	bool allocate(uint8_t buffer_length);
-
-	void setData(const estimator::flowSample &sample, uint64_t min_obs_interval_us, float dt_ekf_avg);
+	void setData(const estimator::flowSample &sample, uint8_t buffer_length, uint64_t min_obs_interval_us, float dt_ekf_avg);
 
 	void setLimits(float max_flow_rate, float min_dist, float max_dist)
 	{
@@ -135,10 +133,11 @@ public:
 
 	void update(Ekf &ekf, const estimator::imuSample &imu_delayed);
 
-	void setData(const estimator::flowSample &flow, uint8_t instance, uint64_t min_obs_interval_us, float dt_ekf_avg)
+	void setData(const estimator::flowSample &flow, uint8_t instance, uint8_t buffer_length, uint64_t min_obs_interval_us,
+		     float dt_ekf_avg)
 	{
 		if (instance < estimator::MAX_OF_INSTANCES) {
-			_sources[instance].setData(flow, min_obs_interval_us, dt_ekf_avg);
+			_sources[instance].setData(flow, buffer_length, min_obs_interval_us, dt_ekf_avg);
 		}
 	}
 

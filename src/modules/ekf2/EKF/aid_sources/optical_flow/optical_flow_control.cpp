@@ -172,25 +172,23 @@ void OpticalFlowAiding::getLimits(const Ekf &ekf, float &hagl_min, float &hagl_m
 	}
 }
 
-bool OpticalFlowSource::allocate(const uint8_t buffer_length)
+void OpticalFlowSource::setData(const flowSample &flow, const uint8_t buffer_length, const uint64_t min_obs_interval_us,
+				const float dt_ekf_avg)
 {
+	if (params.ctrl == 0) {
+		return;
+	}
+
+	// allocated on the first sample of an enabled slot, so that a slot can be enabled at runtime
 	if (_buffer == nullptr) {
 		_buffer = new TimestampedRingBuffer<flowSample>(buffer_length);
 
 		if (_buffer == nullptr || !_buffer->valid()) {
 			delete _buffer;
 			_buffer = nullptr;
-			return false;
+			ECL_ERR("optical flow %d buffer allocation failed", _slot);
+			return;
 		}
-	}
-
-	return true;
-}
-
-void OpticalFlowSource::setData(const flowSample &flow, const uint64_t min_obs_interval_us, const float dt_ekf_avg)
-{
-	if (_buffer == nullptr) {
-		return;
 	}
 
 	// the measurement delay is already compensated in the sample timestamp (SENS_FLOW<i>_DELAY)

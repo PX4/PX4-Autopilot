@@ -176,7 +176,6 @@ bool EkfWrapper::isIntendingGpsHeadingFusion() const
 void EkfWrapper::enableFlowFusion(uint8_t slot)
 {
 	_ekf->flowSource(slot).params.ctrl = 1;
-	_ekf->flowSource(slot).allocate(20);
 	_fc->of.enabled = true;
 }
 

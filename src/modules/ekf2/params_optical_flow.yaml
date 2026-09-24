@@ -7,8 +7,7 @@ parameters:
     EKF2_OF${i}_CTRL:
       description:
         short: Optical flow sensor ${i} aiding
-        long: Enable optical flow fusion for sensor slot ${i}. Enabling a slot
-          that was disabled at boot only takes effect after a reboot.
+        long: Enable optical flow fusion for sensor slot ${i}.
       type: boolean
       default: [1, 0]
       num_instances: *max_num_of_instances

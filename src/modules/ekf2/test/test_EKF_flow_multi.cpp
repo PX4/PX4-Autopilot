@@ -176,3 +176,25 @@ TEST_F(EkfFlowMultiTest, sensorStartDoesNotResetTerrain)
 	EXPECT_TRUE(_ekf->aid_src_optical_flow(0).fused);
 	EXPECT_FALSE(_ekf->aid_src_optical_flow(1).fused);
 }
+
+TEST_F(EkfFlowMultiTest, sensorEnabledAtRuntimeIsFused)
+{
+	// GIVEN: two flow sensors publishing data, the second one disabled
+	startHoverWithRangeFinder();
+	startFlow(0);
+	_ekf_wrapper.disableFlowFusion(1);
+	_sensor_simulator._flow1.setData(_sensor_simulator._flow1.dataAtRest());
+	_sensor_simulator.startFlow1();
+	_sensor_simulator.runSeconds(3.f);
+
+	EXPECT_TRUE(_ekf->aid_src_optical_flow(0).fused);
+	EXPECT_EQ(_ekf->aid_src_optical_flow(1).timestamp_sample, 0u);
+
+	// WHEN: the second sensor gets enabled in flight
+	_ekf_wrapper.enableFlowFusion(1);
+	_sensor_simulator.runSeconds(3.f);
+
+	// THEN: it is fused without a reboot
+	EXPECT_TRUE(_ekf->aid_src_optical_flow(1).fused);
+	EXPECT_TRUE(_ekf->aid_src_optical_flow(0).fused);
+}

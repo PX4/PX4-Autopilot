@@ -44,33 +44,10 @@ using matrix::Vector3f;
 
 void OpticalFlow::initParameters(Ekf &ekf)
 {
-	float delay_max_ms = 110.f;
-	int32_t predict_us = 10000;
-	param_get(param_find("EKF2_DELAY_MAX"), &delay_max_ms);
-	param_get(param_find("EKF2_PREDICT_US"), &predict_us);
-	const uint8_t buffer_length = math::constrain((int)ceilf(delay_max_ms / (predict_us * 1e-3f)), 2, UINT8_MAX);
-
 	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
 		char param_name[20] {};
-
 		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_CTRL", i);
 		_slots[i].param_handles.ctrl = param_find(param_name);
-
-		int32_t ctrl = 0;
-
-		if (_slots[i].param_handles.ctrl != PARAM_INVALID) {
-			param_get(_slots[i].param_handles.ctrl, &ctrl);
-		}
-
-		// only resolve the remaining handles of enabled slots so that a disabled slot's
-		// parameters stay hidden from the GCS
-		if (ctrl != 0) {
-			resolveTuningHandles(i);
-
-			if (!ekf.flowSource(i).allocate(buffer_length)) {
-				PX4_ERR("optical flow %d buffer allocation failed", i);
-			}
-		}
 	}
 
 	updateParameters(ekf);
@@ -129,8 +106,13 @@ void OpticalFlow::updateParameters(Ekf &ekf)
 
 		param_get(_slots[i].param_handles.ctrl, &params.ctrl);
 
-		if (_slots[i].param_handles.gyr_src == PARAM_INVALID) {
+		// the tuning of a disabled slot stays hidden from the GCS until the slot is enabled
+		if (params.ctrl == 0) {
 			continue;
+		}
+
+		if (_slots[i].param_handles.gyr_src == PARAM_INVALID) {
+			resolveTuningHandles(i);
 		}
 
 		param_get(_slots[i].param_handles.gyr_src, &params.gyr_src);
