@@ -137,12 +137,16 @@ void OpticalFlow::advertiseEnabledPublications(const Ekf &ekf)
 void OpticalFlow::updateSamples(Ekf &ekf, ekf2_timestamps_s &ekf2_timestamps,
 				const hrt_abstime &last_range_sensor_update)
 {
+	hrt_abstime newest_timestamp = 0;
+
 	for (uint8_t instance = 0; instance < MAX_OF_INSTANCES; instance++) {
 		vehicle_optical_flow_s optical_flow;
 
 		if (!_slots[instance].sub.update(&optical_flow)) {
 			continue;
 		}
+
+		newest_timestamp = math::max(newest_timestamp, optical_flow.timestamp);
 
 		const float dt = 1e-6f * (float)optical_flow.integration_timespan_us;
 		Vector2f flow_rate;
@@ -197,8 +201,12 @@ void OpticalFlow::updateSamples(Ekf &ekf, ekf2_timestamps_s &ekf2_timestamps,
 		}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
+	}
 
-		ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
+	// one relative timestamp for all instances: replay publishes every instance up to it, so it has
+	// to cover the newest message consumed in this update, whichever instance it belongs to
+	if (newest_timestamp != 0) {
+		ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)newest_timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 }
