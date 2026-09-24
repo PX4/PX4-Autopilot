@@ -60,7 +60,10 @@
 #include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
+
+#if defined(MAVLINK_EXTERNAL_MODULES)
 #include "mavlink_ext_stream.h"
+#endif
 
 #ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 #include <drivers/serialpassthrough/serialpassthrough.hpp>
@@ -639,6 +642,33 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		}
 	}
 }
+
+#if defined(MAVLINK_EXTERNAL_MODULES)
+int mavlink_ext_send(mavlink_ext_send_fn fn, void *user_data)
+{
+	if (fn == nullptr) {
+		return -1;
+	}
+
+	int sent = 0;
+	LockGuard lg{mavlink_module_mutex};
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst != nullptr && inst->running()) {
+			// Same lock the instance's own threads hold around their sends (see task_main()).
+			inst->lock_send();
+
+			if (fn(static_cast<uint8_t>(inst->get_channel()), user_data)) {
+				sent++;
+			}
+
+			inst->unlock_send();
+		}
+	}
+
+	return sent;
+}
+#endif // MAVLINK_EXTERNAL_MODULES
 
 int
 Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CONTROL_MODE flow_control)
@@ -2780,8 +2810,9 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
-		/* dispatch registered external outbound streams */
+#if defined(MAVLINK_EXTERNAL_MODULES)
 		mavlink_ext_stream_dispatch(static_cast<uint8_t>(get_channel()));
+#endif
 
 		/* check for ulog streaming messages */
 		if (_mavlink_ulog) {

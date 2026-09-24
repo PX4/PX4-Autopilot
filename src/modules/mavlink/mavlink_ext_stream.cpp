@@ -33,120 +33,137 @@
 
 /**
  * @file mavlink_ext_stream.cpp
+ *
+ * mavlink_ext_send() lives in mavlink_main.cpp next to the instance table.
  */
 
+#include "mavlink_bridge_header.h"	// MAVLINK_COMM_NUM_BUFFERS
 #include "mavlink_ext_stream.h"
 
-#include <px4_platform_common/atomic.h>
+#include <containers/LockGuard.hpp>
 #include <drivers/drv_hrt.h>
-#include <cstring>
+#include <px4_platform_common/atomic.h>
 #include <pthread.h>
 
 struct mavlink_ext_stream_entry_t {
 	uint32_t msg_id;
-	const char *name;
-	mavlink_ext_stream_fn fn;
+	mavlink_ext_send_fn fn;
 	void *user_data;
-	int interval_us;        // -1 = unlimited, 0 = disabled
-	hrt_abstime last_sent;
+	int32_t default_interval_us;
+	// SET_MESSAGE_INTERVAL acts on one link, so rate state is kept per channel.
+	int32_t interval_us[MAVLINK_COMM_NUM_BUFFERS];
+	hrt_abstime last_sent[MAVLINK_COMM_NUM_BUFFERS];
 };
 
-static mavlink_ext_stream_entry_t _streams[MAVLINK_EXT_STREAM_MAX] {};
-static px4::atomic<unsigned> _stream_count {0};
-static pthread_mutex_t _stream_mutex = PTHREAD_MUTEX_INITIALIZER;
+// Locking mirrors mavlink_ext_handler.cpp: one mutex over registration,
+// dispatch and unregistration, held across the callback so unregister()
+// returns only once no callback is running. The count is atomic only so
+// dispatch can skip the lock while nothing is registered.
+static mavlink_ext_stream_entry_t stream_table[MAVLINK_EXT_STREAM_MAX] {};
+static px4::atomic<unsigned> stream_count {0};
+static pthread_mutex_t stream_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-int mavlink_ext_stream_register(uint32_t msg_id, const char *name,
-				mavlink_ext_stream_fn fn, void *user_data,
-				int interval_us)
+static int stream_find(uint32_t msg_id)
 {
-	if (!fn) {
-		return -1;
-	}
-
-	pthread_mutex_lock(&_stream_mutex);
-
-	unsigned count = _stream_count.load();
+	const unsigned count = stream_count.load();
 
 	for (unsigned i = 0; i < count; i++) {
-		if (_streams[i].msg_id == msg_id) {
-			pthread_mutex_unlock(&_stream_mutex);
-			return -1;
+		if (stream_table[i].msg_id == msg_id) {
+			return (int)i;
 		}
 	}
 
-	if (count >= MAVLINK_EXT_STREAM_MAX) {
-		pthread_mutex_unlock(&_stream_mutex);
+	return -1;
+}
+
+int mavlink_ext_stream_register(uint32_t msg_id, mavlink_ext_send_fn fn, void *user_data, int32_t interval_us)
+{
+	if (fn == nullptr || interval_us < MAVLINK_EXT_STREAM_UNLIMITED) {
 		return -1;
 	}
 
-	_streams[count].msg_id = msg_id;
-	_streams[count].name = name;
-	_streams[count].fn = fn;
-	_streams[count].user_data = user_data;
-	_streams[count].interval_us = interval_us;
-	_streams[count].last_sent = 0;
-	_stream_count.store(count + 1);
+	LockGuard lg{stream_mutex};
+	const unsigned count = stream_count.load();
 
-	pthread_mutex_unlock(&_stream_mutex);
+	if (count >= MAVLINK_EXT_STREAM_MAX || stream_find(msg_id) >= 0) {
+		return -1;
+	}
 
+	mavlink_ext_stream_entry_t &entry = stream_table[count];
+	entry = {};
+	entry.msg_id = msg_id;
+	entry.fn = fn;
+	entry.user_data = user_data;
+	entry.default_interval_us = interval_us;
+
+	for (int32_t &channel_interval : entry.interval_us) {
+		channel_interval = interval_us;
+	}
+
+	stream_count.store(count + 1);
 	return 0;
 }
 
 int mavlink_ext_stream_unregister(uint32_t msg_id)
 {
-	pthread_mutex_lock(&_stream_mutex);
+	LockGuard lg{stream_mutex};
+	const int i = stream_find(msg_id);
 
-	unsigned count = _stream_count.load();
-
-	for (unsigned i = 0; i < count; i++) {
-		if (_streams[i].msg_id == msg_id) {
-			if (i < count - 1) {
-				memmove(&_streams[i], &_streams[i + 1],
-					(count - i - 1) * sizeof(mavlink_ext_stream_entry_t));
-			}
-
-			_stream_count.store(count - 1);
-			pthread_mutex_unlock(&_stream_mutex);
-			return 0;
-		}
+	if (i < 0) {
+		return -1;
 	}
 
-	pthread_mutex_unlock(&_stream_mutex);
-	return -1;
+	// Table order is irrelevant to dispatch: fill the hole with the last entry.
+	const unsigned last = stream_count.load() - 1;
+	stream_table[i] = stream_table[last];
+	stream_table[last] = {};
+	stream_count.store(last);
+	return 0;
+}
+
+int mavlink_ext_stream_set_interval(uint8_t channel, uint32_t msg_id, int32_t interval_us)
+{
+	if (channel >= MAVLINK_COMM_NUM_BUFFERS || interval_us < MAVLINK_EXT_STREAM_DEFAULT) {
+		return -1;
+	}
+
+	LockGuard lg{stream_mutex};
+	const int i = stream_find(msg_id);
+
+	if (i < 0) {
+		return -1;
+	}
+
+	mavlink_ext_stream_entry_t &entry = stream_table[i];
+	entry.interval_us[channel] = (interval_us == MAVLINK_EXT_STREAM_DEFAULT) ? entry.default_interval_us : interval_us;
+	entry.last_sent[channel] = 0;
+	return 0;
 }
 
 void mavlink_ext_stream_dispatch(uint8_t channel)
 {
-	unsigned count = _stream_count.load();
-	hrt_abstime now = hrt_absolute_time();
+	if (channel >= MAVLINK_COMM_NUM_BUFFERS || stream_count.load() == 0) {
+		return;
+	}
+
+	LockGuard lg{stream_mutex};
+	const hrt_abstime now = hrt_absolute_time();
+	const unsigned count = stream_count.load();
 
 	for (unsigned i = 0; i < count; i++) {
-		if (_streams[i].interval_us == 0) {
+		mavlink_ext_stream_entry_t &entry = stream_table[i];
+		const int32_t interval_us = entry.interval_us[channel];
+
+		if (interval_us == MAVLINK_EXT_STREAM_DISABLED) {
 			continue;
 		}
 
-		if (_streams[i].interval_us > 0) {
-			if (now - _streams[i].last_sent < (hrt_abstime)_streams[i].interval_us) {
-				continue;
-			}
+		if (interval_us > 0 && (now - entry.last_sent[channel]) < (hrt_abstime)interval_us) {
+			continue;
 		}
 
-		if (_streams[i].fn(channel, _streams[i].user_data)) {
-			_streams[i].last_sent = now;
+		if (entry.fn(channel, entry.user_data)) {
+			entry.last_sent[channel] = now;
 		}
 	}
-}
-
-int mavlink_ext_stream_set_interval(uint32_t msg_id, int interval_us)
-{
-	unsigned count = _stream_count.load();
-
-	for (unsigned i = 0; i < count; i++) {
-		if (_streams[i].msg_id == msg_id) {
-			_streams[i].interval_us = interval_us;
-			return 0;
-		}
-	}
-
-	return -1;
 }

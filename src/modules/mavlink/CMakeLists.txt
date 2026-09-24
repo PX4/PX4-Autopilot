@@ -103,12 +103,22 @@ target_include_directories(mavlink_c
 		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}
 )
 
+# Out-of-tree module extension points, compiled only when external modules are built
+# so firmware without them is byte-identical
+set(MAVLINK_EXT_SRCS)
+set(MAVLINK_EXT_FLAGS)
+if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
+	set(MAVLINK_EXT_SRCS mavlink_ext_handler.cpp mavlink_ext_stream.cpp)
+	set(MAVLINK_EXT_FLAGS -DMAVLINK_EXTERNAL_MODULES)
+endif()
+
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
 	COMPILE_FLAGS
 		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
 		#-DDEBUG_BUILD
+		${MAVLINK_EXT_FLAGS}
 	SRCS
 		mavlink.c
 		mavlink_command_sender.cpp
@@ -131,8 +141,7 @@ px4_add_module(
 		MavlinkStatustextHandler.cpp
 		open_drone_id_translations.cpp
 		tune_publisher.cpp
-		mavlink_ext_handler.cpp
-		mavlink_ext_stream.cpp
+		${MAVLINK_EXT_SRCS}
 	MODULE_CONFIG
 		module.yaml
 		mavlink_params.yaml

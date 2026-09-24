@@ -34,14 +34,11 @@
 /**
  * @file mavlink_ext_stream.h
  *
- * Generic external MAVLink outbound stream registration.
+ * Outbound MAVLink messages for out-of-tree modules: periodic streams driven
+ * from each mavlink instance's main loop, and one-shot sends to every running
+ * instance.
  *
- * Allows out-of-tree / external modules to register callbacks that
- * emit custom MAVLink messages on all active channels. The callbacks
- * are invoked from the mavlink module's stream update loop.
- *
- * The callback receives a mavlink_channel_t and should call the
- * appropriate mavlink_msg_*_send_struct() to emit the message.
+ * Compiled only when EXTERNAL_MODULES_LOCATION is set.
  */
 
 #pragma once
@@ -49,58 +46,51 @@
 #include <cstdint>
 
 /**
- * Callback signature for external outbound streams.
+ * Send callback: emit on `channel` with mavlink_msg_<name>_send_struct() and
+ * return true if a message was sent.
  *
- * Called from the mavlink main loop for each active mavlink instance.
- * The callback should check for new data (e.g. uORB subscription) and
- * send a MAVLink message via mavlink_msg_*_send_struct(channel, &msg).
- *
- * @param channel    MAVLink channel index (cast to mavlink_channel_t in callback)
- * @param user_data  Opaque pointer passed at registration time
- * @return true if a message was sent
+ * As a stream callback it runs on that instance's main thread with the
+ * registry mutex and the channel send lock held: keep it short and never call
+ * mavlink_ext_stream_register()/unregister() or mavlink_ext_send() from it.
  */
-typedef bool (*mavlink_ext_stream_fn)(uint8_t channel, void *user_data);
+typedef bool (*mavlink_ext_send_fn)(uint8_t channel, void *user_data);
 
-/** Maximum number of concurrently registered external streams */
 static constexpr unsigned MAVLINK_EXT_STREAM_MAX = 8;
 
-/**
- * Register an external outbound stream.
- *
- * @param msg_id     MAVLink message ID (for identification/logging)
- * @param name       Human-readable stream name (for `mavlink stream` command)
- * @param fn         Callback function invoked each iteration
- * @param user_data  Opaque context pointer
- * @return 0 on success, -1 if table full or msg_id already registered
- */
-int mavlink_ext_stream_register(uint32_t msg_id, const char *name,
-				mavlink_ext_stream_fn fn, void *user_data,
-				int interval_us = -1);
+/** Interval values; a positive value is the minimum spacing in microseconds. */
+static constexpr int32_t MAVLINK_EXT_STREAM_UNLIMITED = -1;	///< send on every main loop iteration
+static constexpr int32_t MAVLINK_EXT_STREAM_DISABLED = 0;
+static constexpr int32_t MAVLINK_EXT_STREAM_DEFAULT = -2;	///< set_interval only: restore the registered interval
 
 /**
- * Unregister a previously registered external stream.
- *
- * @param msg_id  MAVLink message ID to unregister
- * @return 0 on success, -1 if not found
+ * Register a stream. interval_us applies on every channel until changed per
+ * channel by mavlink_ext_stream_set_interval().
+ * @return 0 on success, -1 if fn is null, interval_us is invalid, the table is full or msg_id is already registered
+ */
+int mavlink_ext_stream_register(uint32_t msg_id, mavlink_ext_send_fn fn, void *user_data,
+				int32_t interval_us = MAVLINK_EXT_STREAM_UNLIMITED);
+
+/**
+ * Returns only after any in-flight invocation of the callback has completed,
+ * so user_data may be freed afterwards.
+ * @return 0 on success, -1 if msg_id is not registered
  */
 int mavlink_ext_stream_unregister(uint32_t msg_id);
 
 /**
- * Dispatch all registered external streams on a given channel.
- * Called from Mavlink::task_main() after the regular stream update loop.
- *
- * @param chan  MAVLink channel to emit on
+ * Per-channel rate control. Backs SET_MESSAGE_INTERVAL for external streams so
+ * a GCS controls them on its own link exactly like built-in streams.
+ * @return 0 on success, -1 if msg_id is not registered or channel/interval_us is invalid
  */
+int mavlink_ext_stream_set_interval(uint8_t channel, uint32_t msg_id, int32_t interval_us);
+
+/** Called by Mavlink::task_main() once per loop iteration, after the built-in streams. */
 void mavlink_ext_stream_dispatch(uint8_t channel);
 
 /**
- * Set the send interval for a registered external stream.
- *
- * Allows integration with SET_MESSAGE_INTERVAL so that QGC/pymavlink
- * can control OOT stream rates the same way as built-in streams.
- *
- * @param msg_id       MAVLink message ID
- * @param interval_us  Interval in microseconds (-1 = unlimited, 0 = disabled)
- * @return 0 on success, -1 if not found
+ * One-shot send: invokes fn once per running mavlink instance on the caller's
+ * thread while holding that instance's send lock. Safe from handler callbacks
+ * and module threads, never from a stream callback (see mavlink_ext_send_fn).
+ * @return number of instances on which fn returned true, -1 if fn is null
  */
-int mavlink_ext_stream_set_interval(uint32_t msg_id, int interval_us);
+int mavlink_ext_send(mavlink_ext_send_fn fn, void *user_data);

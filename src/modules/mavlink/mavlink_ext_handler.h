@@ -34,58 +34,44 @@
 /**
  * @file mavlink_ext_handler.h
  *
- * Generic external MAVLink message handler registration.
+ * Inbound MAVLink message handlers for out-of-tree modules.
  *
- * Allows out-of-tree / external modules to register callbacks for
- * custom MAVLink message IDs without modifying mavlink_receiver.cpp.
- * Callbacks are invoked from the receiver's default switch case.
+ * MavlinkReceiver::handle_message() dispatches every message ID it does not
+ * handle itself to the handler registered for that ID, so out-of-tree modules
+ * consume custom dialect messages without patching the receiver.
+ *
+ * Compiled only when EXTERNAL_MODULES_LOCATION is set.
  */
 
 #pragma once
 
 #include <cstdint>
 
-// Forward declaration — the full definition comes from the dialect headers
 struct __mavlink_message;
 typedef struct __mavlink_message mavlink_message_t;
 
 /**
- * Callback signature for external MAVLink message handlers.
- * Receives the raw mavlink_message_t; the handler is responsible for
- * decoding (e.g. mavlink_msg_*_decode) and publishing to uORB.
+ * Handler callback, invoked on the receiving mavlink instance's receiver thread
+ * with the registry mutex held: keep it short and never call
+ * mavlink_ext_handler_register()/unregister() from inside it.
  *
- * @param msg        Parsed MAVLink message (CRC already validated)
- * @param user_data  Opaque pointer passed at registration time
- * @return true if the message was handled
+ * @param msg        CRC-validated message; decode with mavlink_msg_<name>_decode()
+ * @param user_data  Pointer passed at registration
+ * @return true if the message was consumed
  */
 typedef bool (*mavlink_ext_handler_fn)(const mavlink_message_t *msg, void *user_data);
 
-/** Maximum number of concurrently registered external handlers */
 static constexpr unsigned MAVLINK_EXT_HANDLER_MAX = 8;
 
-/**
- * Register a handler for a custom MAVLink message ID.
- *
- * @param msg_id     MAVLink message ID to handle
- * @param handler    Callback function
- * @param user_data  Opaque context pointer (e.g. module instance)
- * @return 0 on success, -1 if table full or msg_id already registered
- */
+/** @return 0 on success, -1 if handler is null, the table is full or msg_id is already registered */
 int mavlink_ext_handler_register(uint32_t msg_id, mavlink_ext_handler_fn handler, void *user_data);
 
 /**
- * Unregister a previously registered handler.
- *
- * @param msg_id  MAVLink message ID to unregister
- * @return 0 on success, -1 if msg_id not found
+ * Returns only after any in-flight invocation of the handler has completed,
+ * so user_data may be freed afterwards.
+ * @return 0 on success, -1 if msg_id is not registered
  */
 int mavlink_ext_handler_unregister(uint32_t msg_id);
 
-/**
- * Dispatch a message to registered external handlers.
- * Called from MavlinkReceiver::handle_message() default case.
- *
- * @param msg  Parsed MAVLink message
- * @return true if a handler was found and invoked
- */
+/** Called by MavlinkReceiver::handle_message() for message IDs it does not handle. */
 bool mavlink_ext_handler_dispatch(const mavlink_message_t *msg);

@@ -35,12 +35,11 @@
  * @file mavlink_ext_handler.cpp
  */
 
-#include "mavlink_bridge_header.h"  // Full mavlink_message_t definition (for ->msgid)
+#include "mavlink_bridge_header.h"
 #include "mavlink_ext_handler.h"
 
+#include <containers/LockGuard.hpp>
 #include <px4_platform_common/atomic.h>
-#include <px4_platform_common/log.h>
-#include <cstring>
 #include <pthread.h>
 
 struct mavlink_ext_handler_entry_t {
@@ -49,81 +48,69 @@ struct mavlink_ext_handler_entry_t {
 	void *user_data;
 };
 
-static mavlink_ext_handler_entry_t _handlers[MAVLINK_EXT_HANDLER_MAX] {};
-static px4::atomic<unsigned> _handler_count {0};
-static pthread_mutex_t _handler_mutex = PTHREAD_MUTEX_INITIALIZER;
+// One mutex serialises registration, dispatch and unregistration. Holding it
+// across the handler call is what lets unregister() promise that no handler is
+// still running when it returns. The count is atomic only so dispatch can skip
+// the lock while nothing is registered; every table access is under the mutex.
+static mavlink_ext_handler_entry_t handler_table[MAVLINK_EXT_HANDLER_MAX] {};
+static px4::atomic<unsigned> handler_count {0};
+static pthread_mutex_t handler_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-int mavlink_ext_handler_register(uint32_t msg_id, mavlink_ext_handler_fn handler, void *user_data)
+static int handler_find(uint32_t msg_id)
 {
-	if (!handler) {
-		return -1;
-	}
-
-	pthread_mutex_lock(&_handler_mutex);
-
-	unsigned count = _handler_count.load();
+	const unsigned count = handler_count.load();
 
 	for (unsigned i = 0; i < count; i++) {
-		if (_handlers[i].msg_id == msg_id) {
-			pthread_mutex_unlock(&_handler_mutex);
-			return -1;
+		if (handler_table[i].msg_id == msg_id) {
+			return (int)i;
 		}
 	}
 
-	if (count >= MAVLINK_EXT_HANDLER_MAX) {
-		pthread_mutex_unlock(&_handler_mutex);
+	return -1;
+}
+
+int mavlink_ext_handler_register(uint32_t msg_id, mavlink_ext_handler_fn handler, void *user_data)
+{
+	if (handler == nullptr) {
 		return -1;
 	}
 
-	_handlers[count].msg_id = msg_id;
-	_handlers[count].handler = handler;
-	_handlers[count].user_data = user_data;
-	_handler_count.store(count + 1);
+	LockGuard lg{handler_mutex};
+	const unsigned count = handler_count.load();
 
-	pthread_mutex_unlock(&_handler_mutex);
+	if (count >= MAVLINK_EXT_HANDLER_MAX || handler_find(msg_id) >= 0) {
+		return -1;
+	}
 
-	PX4_DEBUG("ext_handler: registered msgid %lu (count=%u)", (unsigned long)msg_id, count + 1);
-
+	handler_table[count] = {msg_id, handler, user_data};
+	handler_count.store(count + 1);
 	return 0;
 }
 
 int mavlink_ext_handler_unregister(uint32_t msg_id)
 {
-	pthread_mutex_lock(&_handler_mutex);
+	LockGuard lg{handler_mutex};
+	const int i = handler_find(msg_id);
 
-	unsigned count = _handler_count.load();
-
-	for (unsigned i = 0; i < count; i++) {
-		if (_handlers[i].msg_id == msg_id) {
-			if (i < count - 1) {
-				memmove(&_handlers[i], &_handlers[i + 1],
-					(count - i - 1) * sizeof(mavlink_ext_handler_entry_t));
-			}
-
-			_handler_count.store(count - 1);
-			pthread_mutex_unlock(&_handler_mutex);
-			return 0;
-		}
+	if (i < 0) {
+		return -1;
 	}
 
-	pthread_mutex_unlock(&_handler_mutex);
-	return -1;
+	// Table order is irrelevant to dispatch: fill the hole with the last entry.
+	const unsigned last = handler_count.load() - 1;
+	handler_table[i] = handler_table[last];
+	handler_table[last] = {};
+	handler_count.store(last);
+	return 0;
 }
 
 bool mavlink_ext_handler_dispatch(const mavlink_message_t *msg)
 {
-	if (!msg) {
+	if (msg == nullptr || handler_count.load() == 0) {
 		return false;
 	}
 
-	unsigned count = _handler_count.load();
-
-	for (unsigned i = 0; i < count; i++) {
-		if (_handlers[i].msg_id == msg->msgid) {
-			PX4_DEBUG("ext_handler: dispatching msgid %lu", (unsigned long)msg->msgid);
-			return _handlers[i].handler(msg, _handlers[i].user_data);
-		}
-	}
-
-	return false;
+	LockGuard lg{handler_mutex};
+	const int i = handler_find(msg->msgid);
+	return (i >= 0) && handler_table[i].handler(msg, handler_table[i].user_data);
 }
