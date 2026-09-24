@@ -38,6 +38,7 @@
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
+#include <ekf_derivation/generated/state.h>
 #include <lib/ringbuffer/TimestampedRingBuffer.hpp>
 #include <mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/topics/estimator_aid_source2d.h>
@@ -76,12 +77,19 @@ public:
 
 	void setPositionBody(const matrix::Vector3f &pos) { _pos_body = pos; }
 
-	void update(Ekf &ekf, const estimator::imuSample &imu_delayed);
+	void update(Ekf &ekf, const estimator::imuSample &imu_delayed, matrix::Vector3f &ref_body_rate);
 
 	void stop();
 
 private:
 	friend class Ekf;
+	friend class OpticalFlowAiding;
+
+	bool fuse(Ekf &ekf, matrix::Vector<float, estimator::State::size> &H, bool update_terrain);
+
+	float predictHagl(const Ekf &ekf) const;
+	float predictRange(const Ekf &ekf) const;
+	matrix::Vector2f predictFlow(const Ekf &ekf, const matrix::Vector3f &flow_gyro) const;
 
 	void reset(Ekf &ekf);
 	void resetTerrain(Ekf &ekf);
@@ -113,6 +121,49 @@ private:
 	bool _terrain{false};
 
 	uint8_t _slot{0};
+};
+
+class OpticalFlowAiding
+{
+public:
+	OpticalFlowAiding()
+	{
+		for (uint8_t i = 0; i < estimator::MAX_OF_INSTANCES; i++) {
+			_sources[i].setSlot(i);
+		}
+	}
+
+	void update(Ekf &ekf, const estimator::imuSample &imu_delayed);
+
+	void setData(const estimator::flowSample &flow, uint8_t instance, uint64_t min_obs_interval_us, float dt_ekf_avg)
+	{
+		if (instance < estimator::MAX_OF_INSTANCES) {
+			_sources[instance].setData(flow, min_obs_interval_us, dt_ekf_avg);
+		}
+	}
+
+	OpticalFlowSource &source(uint8_t instance) { return _sources[instance]; }
+	const OpticalFlowSource &source(uint8_t instance) const { return _sources[instance]; }
+
+	const matrix::Vector3f &refBodyRate() const { return _ref_body_rate; }
+
+	// lowest slot currently fusing, otherwise lowest slot with data (for single-instance legacy consumers)
+	uint8_t primarySlot() const;
+
+	// most recent fusion / sample activity across all slots
+	uint64_t timeLastFuse() const;
+	uint64_t latestSampleTimestamp() const;
+
+	float maxActiveInnovNorm() const;
+	float maxActiveTestRatioFiltered() const;
+
+	// combined limits of the slots currently delivering data, falling back to the primary slot
+	void getLimits(const Ekf &ekf, float &hagl_min, float &hagl_max, float &max_rate) const;
+
+private:
+	OpticalFlowSource _sources[estimator::MAX_OF_INSTANCES] {};
+
+	matrix::Vector3f _ref_body_rate{};	///< body rates from the EKF gyro data, flow sign convention (rad/s)
 };
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW

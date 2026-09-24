@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,11 +42,9 @@
 #include <ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h>
 #include <ekf_derivation/generated/compute_flow_y_innov_var_and_h.h>
 
-bool Ekf::fuseOptFlow(OpticalFlowSource &src, VectorState &H, const bool update_terrain)
+bool OpticalFlowSource::fuse(Ekf &ekf, Ekf::VectorState &H, const bool update_terrain)
 {
-	estimator_aid_source2d_s &_aid_src = src._aid_src;
-
-	const auto state_vector = _state.vector();
+	const auto state_vector = ekf._state.vector();
 
 	// if either axis fails we abort the fusion
 	if (_aid_src.innovation_rejected) {
@@ -62,18 +60,18 @@ bool Ekf::fuseOptFlow(OpticalFlowSource &src, VectorState &H, const bool update_
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			const float R_LOS = _aid_src.observation_variance[1];
 			const float epsilon = 1e-3f;
-			sym::ComputeFlowYInnovVarAndH(state_vector, P, R_LOS, epsilon, &_aid_src.innovation_variance[1], &H);
+			sym::ComputeFlowYInnovVarAndH(state_vector, ekf.P, R_LOS, epsilon, &_aid_src.innovation_variance[1], &H);
 
 			// recalculate the innovation using the updated state
-			const Vector3f flow_gyro_corrected = src._sample_delayed.gyro_rate - src._gyro_bias;
-			_aid_src.innovation[1] = predictFlow(src._pos_body, flow_gyro_corrected)(1) - static_cast<float>
+			const Vector3f flow_gyro_corrected = _sample_delayed.gyro_rate - _gyro_bias;
+			_aid_src.innovation[1] = predictFlow(ekf, flow_gyro_corrected)(1) - static_cast<float>
 						 (_aid_src.observation[1]);
 
 			// recalculate the test ratio as the measurement jacobian is highly non linear
 			// when close to the ground (singularity at 0) and the innovation can suddenly become really
 			// large and destabilize the filter
 			_aid_src.test_ratio[1] = sq(_aid_src.innovation[1]) / (sq(
-							 src.params.gate) * _aid_src.innovation_variance[1]);
+							 params.gate) * _aid_src.innovation_variance[1]);
 
 			if (_aid_src.test_ratio[1] > 1.f) {
 				continue;
@@ -83,46 +81,46 @@ bool Ekf::fuseOptFlow(OpticalFlowSource &src, VectorState &H, const bool update_
 		if (_aid_src.innovation_variance[index] < _aid_src.observation_variance[index]) {
 			// we need to reinitialise the covariance matrix and abort this fusion step
 			ECL_ERR("Opt flow error - covariance reset");
-			initialiseCovariance();
+			ekf.initialiseCovariance();
 			return false;
 		}
 
-		VectorState Kfusion = P * H / _aid_src.innovation_variance[index];
+		Ekf::VectorState Kfusion = ekf.P * H / _aid_src.innovation_variance[index];
 
 		if (!update_terrain) {
 			Kfusion(State::terrain.idx) = 0.f;
 		}
 
-		measurementUpdate(Kfusion, H, _aid_src.observation_variance[index],
-				  _aid_src.innovation[index]);
+		ekf.measurementUpdate(Kfusion, H, _aid_src.observation_variance[index],
+				      _aid_src.innovation[index]);
 	}
 
-	_fault_status.flags.bad_optflow_X = false;
-	_fault_status.flags.bad_optflow_Y = false;
+	ekf._fault_status.flags.bad_optflow_X = false;
+	ekf._fault_status.flags.bad_optflow_Y = false;
 
-	_aid_src.time_last_fuse = _time_delayed_us;
+	_aid_src.time_last_fuse = ekf._time_delayed_us;
 	_aid_src.fused = true;
 
-	_time_last_hor_vel_fuse = _time_delayed_us;
+	ekf._time_last_hor_vel_fuse = ekf._time_delayed_us;
 
 	if (update_terrain) {
-		_time_last_terrain_fuse = _time_delayed_us;
+		ekf._time_last_terrain_fuse = ekf._time_delayed_us;
 	}
 
 	return true;
 }
 
-float Ekf::predictFlowHagl(const Vector3f &sensor_pos_body) const
+float OpticalFlowSource::predictHagl(const Ekf &ekf) const
 {
 	// calculate the sensor position relative to the IMU
-	const Vector3f pos_offset_body = sensor_pos_body - _params.imu_pos_body;
+	const Vector3f pos_offset_body = _pos_body - ekf._params.imu_pos_body;
 
 	// calculate the sensor position relative to the IMU in earth frame
-	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+	const Vector3f pos_offset_earth = ekf._R_to_earth * pos_offset_body;
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
 	// a positive offset in earth frame leads to a smaller height above the ground.
-	const float height_above_gnd_est = fabsf(getHagl() - pos_offset_earth(2));
+	const float height_above_gnd_est = fabsf(ekf.getHagl() - pos_offset_earth(2));
 
 	// Never return a really small value to avoid generating insanely large flow innovations
 	// that could destabilize the filter
@@ -130,30 +128,30 @@ float Ekf::predictFlowHagl(const Vector3f &sensor_pos_body) const
 
 	return fmaxf(height_above_gnd_est, min_hagl);
 }
-float Ekf::predictFlowRange(const Vector3f &sensor_pos_body) const
+float OpticalFlowSource::predictRange(const Ekf &ekf) const
 {
 	// calculate range from focal point to centre of image
 	// absolute distance to the frame region in view
-	return predictFlowHagl(sensor_pos_body) / _R_to_earth(2, 2);
+	return predictHagl(ekf) / ekf._R_to_earth(2, 2);
 }
 
-Vector2f Ekf::predictFlow(const Vector3f &sensor_pos_body, const Vector3f &flow_gyro) const
+Vector2f OpticalFlowSource::predictFlow(const Ekf &ekf, const Vector3f &flow_gyro) const
 {
 	// calculate the sensor position relative to the IMU
-	const Vector3f pos_offset_body = sensor_pos_body - _params.imu_pos_body;
+	const Vector3f pos_offset_body = _pos_body - ekf._params.imu_pos_body;
 
 	// calculate the velocity of the sensor relative to the imu in body frame
 	// Note: flow gyro is the negative of the body angular velocity, thus use minus sign
 	const Vector3f vel_rel_imu_body = -flow_gyro % pos_offset_body;
 
 	// calculate the velocity of the sensor in the earth frame
-	const Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
+	const Vector3f vel_rel_earth = ekf._state.vel + ekf._R_to_earth * vel_rel_imu_body;
 
 	// rotate into body frame
-	const Vector2f vel_body = _state.quat_nominal.rotateVectorInverse(vel_rel_earth).xy();
+	const Vector2f vel_body = ekf._state.quat_nominal.rotateVectorInverse(vel_rel_earth).xy();
 
 	// calculate range from focal point to centre of image
-	const float scale = _R_to_earth(2, 2) / predictFlowHagl(sensor_pos_body);
+	const float scale = ekf._R_to_earth(2, 2) / predictHagl(ekf);
 
 	return Vector2f(vel_body(1) * scale, -vel_body(0) * scale);
 }

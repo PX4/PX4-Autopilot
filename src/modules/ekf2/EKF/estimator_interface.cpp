@@ -323,11 +323,11 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 void EstimatorInterface::setOpticalFlowData(const flowSample &flow, uint8_t instance)
 {
-	if (!_initialised || (instance >= MAX_OF_INSTANCES)) {
+	if (!_initialised) {
 		return;
 	}
 
-	_flow_src[instance].setData(flow, _min_obs_interval_us, _dt_ekf_avg);
+	_optical_flow.setData(flow, instance, _min_obs_interval_us, _dt_ekf_avg);
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 

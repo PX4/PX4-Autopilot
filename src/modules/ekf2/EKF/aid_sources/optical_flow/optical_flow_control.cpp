@@ -40,34 +40,129 @@
 
 #include <ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h>
 
-void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
+void OpticalFlowAiding::update(Ekf &ekf, const imuSample &imu_delayed)
 {
 	bool any_ctrl_enabled = false;
 
 	for (uint8_t slot = 0; slot < MAX_OF_INSTANCES; slot++) {
-		any_ctrl_enabled |= (_flow_src[slot].params.ctrl != 0);
+		any_ctrl_enabled |= (_sources[slot].params.ctrl != 0);
 	}
 
-	_fc.of.available = any_ctrl_enabled;
+	ekf._fc.of.available = any_ctrl_enabled;
 
 	for (uint8_t slot = 0; slot < MAX_OF_INSTANCES; slot++) {
-		_flow_src[slot].update(*this, imu_delayed);
+		_sources[slot].update(ekf, imu_delayed, _ref_body_rate);
 	}
 
 	bool any_active = false;
 	bool any_terrain = false;
 
 	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-		any_active |= _flow_src[i]._active;
-		any_terrain |= _flow_src[i]._terrain;
+		any_active |= _sources[i]._active;
+		any_terrain |= _sources[i]._terrain;
 	}
 
-	_control_status.flags.opt_flow = any_active;
-	_control_status.flags.opt_flow_terrain = any_terrain;
+	ekf._control_status.flags.opt_flow = any_active;
+	ekf._control_status.flags.opt_flow_terrain = any_terrain;
 
-	if (!_control_status.flags.opt_flow) {
-		_fault_status.flags.bad_optflow_X = false;
-		_fault_status.flags.bad_optflow_Y = false;
+	if (!any_active) {
+		ekf._fault_status.flags.bad_optflow_X = false;
+		ekf._fault_status.flags.bad_optflow_Y = false;
+	}
+}
+
+uint8_t OpticalFlowAiding::primarySlot() const
+{
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		if (_sources[i]._active) {
+			return i;
+		}
+	}
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		if (_sources[i]._aid_src.timestamp_sample != 0) {
+			return i;
+		}
+	}
+
+	return 0;
+}
+
+uint64_t OpticalFlowAiding::timeLastFuse() const
+{
+	uint64_t latest = 0;
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		latest = math::max(latest, _sources[i]._aid_src.time_last_fuse);
+	}
+
+	return latest;
+}
+
+uint64_t OpticalFlowAiding::latestSampleTimestamp() const
+{
+	uint64_t latest = 0;
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		latest = math::max(latest, _sources[i]._aid_src.timestamp_sample);
+	}
+
+	return latest;
+}
+
+float OpticalFlowAiding::maxActiveInnovNorm() const
+{
+	float innov_norm = 0.f;
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		if (_sources[i]._active) {
+			innov_norm = math::max(innov_norm, Vector2f(_sources[i]._aid_src.innovation).norm());
+		}
+	}
+
+	return innov_norm;
+}
+
+float OpticalFlowAiding::maxActiveTestRatioFiltered() const
+{
+	float test_ratio = 0.f;
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		if (_sources[i]._active) {
+			for (const auto &test_ratio_filtered : _sources[i]._aid_src.test_ratio_filtered) {
+				test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
+			}
+		}
+	}
+
+	return test_ratio;
+}
+
+void OpticalFlowAiding::getLimits(const Ekf &ekf, float &hagl_min, float &hagl_max, float &max_rate) const
+{
+	// combined envelope of all sensors currently delivering data
+	// (sensors with different ranges hand over as the height changes)
+	hagl_min = INFINITY;
+	hagl_max = 0.f;
+	max_rate = 0.f;
+	bool any_flow_source = false;
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		if (ekf._fc.of.intended() && (_sources[i].params.ctrl != 0) && (_sources[i]._buffer != nullptr)
+		    && ekf.isRecent(_sources[i]._buffer->get_newest().time_us, (uint64_t)1e6)) {
+			hagl_min = math::min(hagl_min, _sources[i]._min_distance);
+			hagl_max = math::max(hagl_max, _sources[i]._max_distance);
+			max_rate = math::max(max_rate, _sources[i]._max_rate);
+			any_flow_source = true;
+		}
+	}
+
+	if (!any_flow_source) {
+		// no flow source delivering data, fall back to the primary slot's limits
+		const uint8_t slot = primarySlot();
+		hagl_min = _sources[slot]._min_distance;
+		hagl_max = _sources[slot]._max_distance;
+		max_rate = _sources[slot]._max_rate;
 	}
 }
 
@@ -110,9 +205,9 @@ void OpticalFlowSource::setData(const flowSample &flow, const uint64_t min_obs_i
 	}
 }
 
-void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed)
+void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f &ref_body_rate)
 {
-	if (!_buffer || !ekf.isFlowSlotIntended(_slot)) {
+	if (!_buffer || !ekf._fc.of.intended() || (params.ctrl == 0)) {
 		stop();
 		return;
 	}
@@ -123,7 +218,7 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed)
 	if (_buffer->pop_first_older_than(imu_delayed.time_us, &_sample_delayed)) {
 
 		// flow gyro has opposite sign convention
-		ekf._ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - ekf.getGyroBias());
+		ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - ekf.getGyroBias());
 
 		// ensure valid flow sample gyro rate before proceeding
 		switch (static_cast<FlowGyroSource>(params.gyr_src)) {
@@ -132,18 +227,18 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed)
 		/* FALLTHROUGH */
 		case FlowGyroSource::Auto:
 			if (!PX4_ISFINITE(_sample_delayed.gyro_rate(0)) || !PX4_ISFINITE(_sample_delayed.gyro_rate(1))) {
-				_sample_delayed.gyro_rate = ekf._ref_body_rate;
+				_sample_delayed.gyro_rate = ref_body_rate;
 			}
 
 			if (!PX4_ISFINITE(_sample_delayed.gyro_rate(2))) {
 				// Some flow modules only provide X ind Y angular rates. If this is the case, complete the vector with our own Z gyro
-				_sample_delayed.gyro_rate(2) = ekf._ref_body_rate(2);
+				_sample_delayed.gyro_rate(2) = ref_body_rate(2);
 			}
 
 			break;
 
 		case FlowGyroSource::Internal:
-			_sample_delayed.gyro_rate = ekf._ref_body_rate;
+			_sample_delayed.gyro_rate = ref_body_rate;
 			break;
 		}
 
@@ -161,7 +256,7 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed)
 		is_tilt_good = (ekf._R_to_earth(2, 2) > ekf._params.range_cos_max_tilt);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
-		calcBodyRateComp(ekf._ref_body_rate);
+		calcBodyRateComp(ref_body_rate);
 
 		// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 		// correct for gyro bias errors in the data used to do the motion compensation
@@ -180,18 +275,18 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed)
 
 		// run the innovation consistency check and record result
 		ekf.updateAidSourceStatus(_aid_src,
-					  flow_sample.time_us,                                               // sample timestamp
-					  flow_compensated,                                                  // observation
-					  Vector2f{R_LOS, R_LOS},                                            // observation variance
-					  ekf.predictFlow(_pos_body, flow_gyro_corrected) - flow_compensated, // innovation
-					  innov_var,                                                         // innovation variance
-					  math::max(params.gate, 1.f));                                      // innovation gate
+					  flow_sample.time_us,                                          // sample timestamp
+					  flow_compensated,                                             // observation
+					  Vector2f{R_LOS, R_LOS},                                       // observation variance
+					  predictFlow(ekf, flow_gyro_corrected) - flow_compensated,    // innovation
+					  innov_var,                                                    // innovation variance
+					  math::max(params.gate, 1.f));                                 // innovation gate
 
 		// logging
 		_rate_compensated = flow_compensated;
 
 		// compute the velocities in body and local frames from corrected optical flow measurement for logging only
-		const float range = ekf.predictFlowRange(_pos_body);
+		const float range = predictRange(ekf);
 		_vel_body(0) = -flow_compensated(1) * range;
 		_vel_body(1) =  flow_compensated(0) * range;
 
@@ -221,7 +316,7 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed)
 					       && !flow_sample.flow_rate.longerThan(_max_rate)
 					       && !flow_compensated.longerThan(_max_rate);
 
-		const bool continuing_conditions_passing = ekf.isFlowSlotIntended(_slot)
+		const bool continuing_conditions_passing = ekf._fc.of.intended() && (params.ctrl != 0)
 				&& ekf._control_status.flags.tilt_align
 				&& is_within_sensor_dist;
 
@@ -240,7 +335,7 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed)
 			if (continuing_conditions_passing) {
 
 				if (is_quality_good && is_magnitude_good && is_tilt_good) {
-					ekf.fuseOptFlow(*this, H, _terrain);
+					fuse(ekf, H, _terrain);
 				}
 
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
@@ -267,7 +362,7 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed)
 				const bool terrain_observable = (ekf._height_sensor_ref != HeightSensor::RANGE);
 
 				if (ekf.isHorizontalAidingActive()) {
-					if (ekf.fuseOptFlow(*this, H, terrain_observable)) {
+					if (fuse(ekf, H, terrain_observable)) {
 						ECL_INFO("starting optical flow %d", _slot);
 						_active = true;
 
@@ -305,8 +400,9 @@ void OpticalFlowSource::reset(Ekf &ekf)
 	ECL_INFO("reset velocity to flow %d", _slot);
 	ekf._information_events.flags.reset_vel_to_flow = true;
 
-	const float flow_vel_var = sq(ekf.predictFlowRange(_pos_body)) * calcOptFlowMeasVar(_sample_delayed);
-	ekf.resetHorizontalVelocityTo(ekf.getFilteredFlowVelNE(_slot), flow_vel_var);
+	const float flow_vel_var = sq(predictRange(ekf)) * calcOptFlowMeasVar(_sample_delayed);
+	const Vector3f vel_ne = ekf._R_to_earth * Vector3f(_vel_body_lpf.getState()(0), _vel_body_lpf.getState()(1), 0.f);
+	ekf.resetHorizontalVelocityTo(vel_ne.xy(), flow_vel_var);
 
 	ekf.resetAidSourceStatusZeroInnovation(_aid_src);
 }
@@ -332,22 +428,8 @@ void OpticalFlowSource::resetTerrain(Ekf &ekf)
 		}
 	}
 
-	const float delta_terrain = new_terrain - ekf._state.terrain;
-	ekf._state.terrain = new_terrain;
-	ekf.P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, 100.f);
-
+	ekf.resetTerrainTo(new_terrain, 100.f);
 	ekf.resetAidSourceStatusZeroInnovation(_aid_src);
-
-	// record the state change
-	if (ekf._state_reset_status.reset_count.hagl == ekf._state_reset_count_prev.hagl) {
-		ekf._state_reset_status.hagl_change = delta_terrain;
-
-	} else {
-		// there's already a reset this update, accumulate total delta
-		ekf._state_reset_status.hagl_change += delta_terrain;
-	}
-
-	ekf._state_reset_status.reset_count.hagl++;
 }
 
 void OpticalFlowSource::stop()

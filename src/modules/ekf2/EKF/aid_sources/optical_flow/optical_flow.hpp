@@ -52,6 +52,13 @@ class Ekf;
 class OpticalFlow
 {
 public:
+	OpticalFlow()
+	{
+		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+			_slots[i].sub = uORB::Subscription(ORB_ID(vehicle_optical_flow), i);
+		}
+	}
+
 	void initParameters(Ekf &ekf);
 	void updateParameters(Ekf &ekf);
 	float maxEnabledDelayMs(Ekf &ekf) const;
@@ -75,23 +82,16 @@ private:
 		param_t qmin_gnd{PARAM_INVALID};
 		param_t gate{PARAM_INVALID};
 	};
-	ParamHandles _param_handles[MAX_OF_INSTANCES] {};
-
-	uORB::Subscription _vehicle_optical_flow_subs[MAX_OF_INSTANCES] {
-		{ORB_ID(vehicle_optical_flow), 0},
-		{ORB_ID(vehicle_optical_flow), 1},
+	struct Slot {
+		uORB::Subscription sub{ORB_ID(vehicle_optical_flow)};
+		uORB::PublicationMulti<vehicle_optical_flow_vel_s> flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
+		uORB::PublicationMulti<estimator_aid_source2d_s> aid_src_pub{ORB_ID(estimator_aid_src_optical_flow)};
+		ParamHandles param_handles{};
+		hrt_abstime status_pub_last{};
+		hrt_abstime flow_vel_pub_last{};
 	};
 
-	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _estimator_optical_flow_vel_pub[MAX_OF_INSTANCES] {
-		{ORB_ID(estimator_optical_flow_vel)},
-		{ORB_ID(estimator_optical_flow_vel)},
-	};
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub[MAX_OF_INSTANCES] {
-		{ORB_ID(estimator_aid_src_optical_flow)},
-		{ORB_ID(estimator_aid_src_optical_flow)},
-	};
-	hrt_abstime _status_pub_last[MAX_OF_INSTANCES] {};
-	hrt_abstime _flow_vel_pub_last[MAX_OF_INSTANCES] {};
+	Slot _slots[MAX_OF_INSTANCES] {};
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	int8_t _range_instance {-1}; ///< first instance providing a distance, used as range finder fallback

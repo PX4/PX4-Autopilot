@@ -110,7 +110,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	controlOpticalFlowFusion(imu_delayed);
+	_optical_flow.update(*this, imu_delayed);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_GNSS)

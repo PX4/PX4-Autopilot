@@ -138,38 +138,22 @@ public:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	const auto &aid_src_optical_flow(uint8_t slot = 0) const { return _flow_src[slot]._aid_src; }
+	const auto &aid_src_optical_flow(uint8_t slot = 0) const { return _optical_flow.source(slot)._aid_src; }
 
-	const Vector2f &getFlowVelBody(uint8_t slot = 0) const { return _flow_src[slot]._vel_body; }
+	const Vector2f &getFlowVelBody(uint8_t slot = 0) const { return _optical_flow.source(slot)._vel_body; }
 	Vector2f getFlowVelNE(uint8_t slot = 0) const { return Vector2f(_R_to_earth * Vector3f(getFlowVelBody(slot)(0), getFlowVelBody(slot)(1), 0.f)); }
 
-	const Vector2f &getFilteredFlowVelBody(uint8_t slot = 0) const { return _flow_src[slot]._vel_body_lpf.getState(); }
+	const Vector2f &getFilteredFlowVelBody(uint8_t slot = 0) const { return _optical_flow.source(slot)._vel_body_lpf.getState(); }
 	Vector2f getFilteredFlowVelNE(uint8_t slot = 0) const { return Vector2f(_R_to_earth * Vector3f(getFilteredFlowVelBody(slot)(0), getFilteredFlowVelBody(slot)(1), 0.f)); }
 
-	const Vector2f &getFlowCompensated(uint8_t slot = 0) const { return _flow_src[slot]._rate_compensated; }
-	const Vector2f &getFlowUncompensated(uint8_t slot = 0) const { return _flow_src[slot]._sample_delayed.flow_rate; }
+	const Vector2f &getFlowCompensated(uint8_t slot = 0) const { return _optical_flow.source(slot)._rate_compensated; }
+	const Vector2f &getFlowUncompensated(uint8_t slot = 0) const { return _optical_flow.source(slot)._sample_delayed.flow_rate; }
 
-	const Vector3f getFlowGyro(uint8_t slot = 0) const { return _flow_src[slot]._sample_delayed.gyro_rate; }
-	const Vector3f &getFlowGyroBias(uint8_t slot = 0) const { return _flow_src[slot]._gyro_bias; }
-	const Vector3f &getFlowRefBodyRate() const { return _ref_body_rate; }
+	const Vector3f getFlowGyro(uint8_t slot = 0) const { return _optical_flow.source(slot)._sample_delayed.gyro_rate; }
+	const Vector3f &getFlowGyroBias(uint8_t slot = 0) const { return _optical_flow.source(slot)._gyro_bias; }
+	const Vector3f &getFlowRefBodyRate() const { return _optical_flow.refBodyRate(); }
 
-	// lowest slot currently fusing, otherwise lowest slot with data (for single-instance legacy consumers)
-	uint8_t getPrimaryFlowSlot() const
-	{
-		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-			if (_flow_src[i]._active) {
-				return i;
-			}
-		}
-
-		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-			if (_flow_src[i]._aid_src.timestamp_sample != 0) {
-				return i;
-			}
-		}
-
-		return 0;
-	}
+	uint8_t getPrimaryFlowSlot() const { return _optical_flow.primarySlot(); }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
@@ -491,6 +475,7 @@ public:
 
 	friend class AuxGlobalPosition;
 	friend class AgpSource;
+	friend class OpticalFlowAiding;
 	friend class OpticalFlowSource;
 
 private:
@@ -592,10 +577,6 @@ private:
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	estimator_aid_source1d_s _aid_src_rng_hgt {};
 #endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	Vector3f _ref_body_rate {};
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	estimator_aid_source1d_s _aid_src_airspeed {};
@@ -816,6 +797,7 @@ private:
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	void initTerrain();
+	void resetTerrainTo(float new_terrain, float var);
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _state.terrain : _last_on_ground_posD; }
 	void controlTerrainFakeFusion();
 
@@ -838,44 +820,6 @@ private:
 	void stopRngHgtFusion();
 	void stopRngTerrFusion();
 #endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// control fusion of optical flow observations (iterates over all sensor slots)
-	void controlOpticalFlowFusion(const imuSample &imu_delayed);
-
-	float predictFlowHagl(const Vector3f &sensor_pos_body) const;
-	float predictFlowRange(const Vector3f &sensor_pos_body) const;
-	Vector2f predictFlow(const Vector3f &sensor_pos_body, const Vector3f &flow_gyro) const;
-
-	// fuse optical flow line of sight rate measurements
-	bool fuseOptFlow(OpticalFlowSource &src, VectorState &H, bool update_terrain);
-
-	// most recent fusion / sample activity across all flow slots
-	uint64_t flowTimeLastFuse() const
-	{
-		uint64_t latest = 0;
-
-		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-			latest = math::max(latest, _flow_src[i]._aid_src.time_last_fuse);
-		}
-
-		return latest;
-	}
-
-	uint64_t flowLatestSampleTimestamp() const
-	{
-		uint64_t latest = 0;
-
-		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-			latest = math::max(latest, _flow_src[i]._aid_src.timestamp_sample);
-		}
-
-		return latest;
-	}
-
-	bool isFlowSlotIntended(uint8_t slot) const { return _fc.of.intended() && (_flow_src[slot].params.ctrl != 0); }
-
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing

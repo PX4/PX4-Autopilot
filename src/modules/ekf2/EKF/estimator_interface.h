@@ -132,16 +132,8 @@ public:
 	// if optical flow sensor gyro delta angles are not available, set gyro_rate vector fields to NaN and the EKF will use its internal gyro data instead
 	void setOpticalFlowData(const flowSample &flow, uint8_t instance = 0);
 
-	// set sensor limitations reported by the optical flow sensor
-	void set_optical_flow_limits(float max_flow_rate, float min_distance, float max_distance, uint8_t instance = 0)
-	{
-		if (instance < MAX_OF_INSTANCES) {
-			_flow_src[instance].setLimits(max_flow_rate, min_distance, max_distance);
-		}
-	}
-
-	OpticalFlowSource &flowSource(uint8_t instance) { return _flow_src[instance]; }
-	const OpticalFlowSource &flowSource(uint8_t instance) const { return _flow_src[instance]; }
+	OpticalFlowSource &flowSource(uint8_t instance) { return _optical_flow.source(instance); }
+	const OpticalFlowSource &flowSource(uint8_t instance) const { return _optical_flow.source(instance); }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -340,16 +332,7 @@ public:
 
 protected:
 
-	EstimatorInterface()
-	{
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-
-		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-			_flow_src[i].setSlot(i);
-		}
-
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-	}
+	EstimatorInterface() = default;
 
 	virtual ~EstimatorInterface();
 
@@ -399,7 +382,7 @@ protected:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	OpticalFlowSource _flow_src[MAX_OF_INSTANCES] {};
+	OpticalFlowAiding _optical_flow {};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};		// air density (kg/m**3)
