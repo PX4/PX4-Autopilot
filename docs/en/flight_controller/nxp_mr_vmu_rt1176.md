@@ -133,6 +133,23 @@ Similar variants will be available from our licensees.
 - Other Characteristics:
   - Operating & storage temperature: -40 ~ 85°c
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 6 FMU PWM outputs (MAIN).
+
+Outputs:
+
+- Outputs 1-3, 5-6 support [DShot](../peripherals/dshot.md).
+- Output 4 does not support DShot.
+- Outputs 1-3, 5-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 6 outputs are in 2 groups:
+
+- Outputs 1-4 in group1 (PWM2)
+- Outputs 5-6 in group2 (PWM4)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where to Buy {#store}
 
 Order from [NXP](https://www.nxp.com).

@@ -70,6 +70,25 @@ Current UART configuration:
 Before PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
 Download the [gearup_airbrainh743_bootloader.bin](https://github.com/PX4/PX4-Autopilot/blob/main/boards/gearup/airbrainh743/extras/gearup_airbrainh743_bootloader.bin) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 9 FMU PWM outputs (MAIN).
+
+Outputs:
+
+- Outputs 1-8 support [DShot](../peripherals/dshot.md).
+- Output 9 does not support DShot.
+- Outputs 1-8 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 9 outputs are in 4 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-6 in group2 (Timer3)
+- Outputs 7-8 in group3 (Timer2)
+- Output 9 in group4 (Timer5)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Building Firmware
 
 To [build PX4](../dev_setup/building_px4.md) for this target:

@@ -13,6 +13,24 @@ The USA-built ARK FPV flight controller is based on the [ARKV6X](https://arkelec
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 9 FMU PWM outputs (MAIN).
+
+Outputs:
+
+- Outputs 1-8 support [DShot](../peripherals/dshot.md).
+- Output 9 does not support DShot.
+- Outputs 1-8 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 9 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer5)
+- Outputs 5-8 in group2 (Timer8)
+- Output 9 in group3 (Timer4)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where To Buy {#store}
 
 Order from [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
