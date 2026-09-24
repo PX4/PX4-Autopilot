@@ -79,6 +79,15 @@ public:
 			{ORB_ID(vehicle_optical_flow_vel)},
 			{ORB_ID(vehicle_optical_flow_vel)},
 		};
+
+		// advertise every slot up to the given one, a lower slot without a sensor stays empty
+		void advertiseUpTo(uint8_t slot)
+		{
+			for (uint8_t i = 0; i <= slot; i++) {
+				flow[i].advertise();
+				flow_vel[i].advertise();
+			}
+		}
 	};
 
 	VehicleOpticalFlow(uint8_t instance, SensorSlotBinder &slot_binder, Publications &pubs);
@@ -158,6 +167,7 @@ private:
 	// uORB instance -> SENS_FLOW<i> parameter slot mapping (by device ID, SENS_FLOW<i>_ID)
 	SensorSlotBinder &_slot_binder;
 	int8_t _param_slot{-1};
+	bool _no_slot_warned{false};
 
 	// per-sensor parameters (SENS_FLOW<i>_*), resolved by name
 	struct ParamHandles {

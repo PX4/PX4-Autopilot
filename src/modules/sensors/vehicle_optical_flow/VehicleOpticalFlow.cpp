@@ -102,6 +102,11 @@ bool VehicleOpticalFlow::UpdateParamSlot(uint32_t device_id)
 
 	if (slot < 0) {
 		if (_slot_binder.isSlotBound(_instance)) {
+			if (!_no_slot_warned) {
+				PX4_WARN("optical flow %" PRIu8 " (device ID %" PRIu32 ") ignored, no free SENS_FLOW slot", _instance, device_id);
+				_no_slot_warned = true;
+			}
+
 			return false;
 		}
 
@@ -113,6 +118,7 @@ bool VehicleOpticalFlow::UpdateParamSlot(uint32_t device_id)
 	}
 
 	_param_slot = slot;
+	_pubs.advertiseUpTo(slot);
 
 	char param_name[20] {};
 
