@@ -63,6 +63,12 @@ VehicleAngularVelocity::~VehicleAngularVelocity()
 	perf_free(_dynamic_notch_filter_esc_rpm_init_perf);
 	perf_free(_dynamic_notch_filter_esc_rpm_update_perf);
 
+	delete[] _dynamic_notch_filter_rotor_rpm;
+	perf_free(_dynamic_notch_filter_rotor_rpm_disable_perf);
+	perf_free(_dynamic_notch_filter_rotor_rpm_init_perf);
+	perf_free(_dynamic_notch_filter_rotor_rpm_update_perf);
+
+
 	perf_free(_dynamic_notch_filter_fft_disable_perf);
 	perf_free(_dynamic_notch_filter_fft_update_perf);
 #endif // CONSTRAINED_FLASH
@@ -195,6 +201,7 @@ void VehicleAngularVelocity::ResetFilters(const hrt_abstime &time_now_us)
 
 		// force reset notch filters on any scale change
 		UpdateDynamicNotchEscRpm(time_now_us, true);
+		UpdateDynamicNotchRotorRpm(time_now_us, true);
 		UpdateDynamicNotchFFT(time_now_us, true);
 
 		_angular_velocity_raw_prev = angular_velocity_uncalibrated;
@@ -502,6 +509,56 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 			DisableDynamicNotchFFT();
 		}
 
+		// Rotor RPM dynamic notches: use same harmonics parameter for now
+		if (_param_imu_gyro_dnf_en.get() & DynamicNotch::RotorRpm) {
+
+			const int32_t rotor_rpm_harmonics = math::constrain(_param_imu_gyro_dnf_hmc.get(), (int32_t)1, (int32_t)10);
+
+			if (_dynamic_notch_filter_rotor_rpm && (rotor_rpm_harmonics != _rotor_rpm_harmonics)) {
+				delete[] _dynamic_notch_filter_rotor_rpm;
+				_dynamic_notch_filter_rotor_rpm = nullptr;
+				_rotor_rpm_harmonics = 0;
+			}
+
+			if (_dynamic_notch_filter_rotor_rpm == nullptr) {
+
+				_dynamic_notch_filter_rotor_rpm = new NotchFilterRotorRpmHarmonic[rotor_rpm_harmonics];
+
+				if (_dynamic_notch_filter_rotor_rpm) {
+					_rotor_rpm_harmonics = rotor_rpm_harmonics;
+
+					if (_dynamic_notch_filter_rotor_rpm_disable_perf == nullptr) {
+						_dynamic_notch_filter_rotor_rpm_disable_perf = perf_alloc(PC_COUNT,
+								MODULE_NAME": gyro dynamic notch filter Rotor RPM disable");
+					}
+
+					if (_dynamic_notch_filter_rotor_rpm_init_perf == nullptr) {
+						_dynamic_notch_filter_rotor_rpm_init_perf = perf_alloc(PC_COUNT,
+								MODULE_NAME": gyro dynamic notch filter Rotor RPM init");
+					}
+
+					if (_dynamic_notch_filter_rotor_rpm_update_perf == nullptr) {
+						_dynamic_notch_filter_rotor_rpm_update_perf = perf_alloc(PC_COUNT,
+								MODULE_NAME": gyro dynamic notch filter Rotor RPM update");
+					}
+
+				} else {
+					_rotor_rpm_harmonics = 0;
+
+					perf_free(_dynamic_notch_filter_rotor_rpm_disable_perf);
+					perf_free(_dynamic_notch_filter_rotor_rpm_init_perf);
+					perf_free(_dynamic_notch_filter_rotor_rpm_update_perf);
+
+					_dynamic_notch_filter_rotor_rpm_disable_perf = nullptr;
+					_dynamic_notch_filter_rotor_rpm_init_perf = nullptr;
+					_dynamic_notch_filter_rotor_rpm_update_perf = nullptr;
+				}
+			}
+
+		} else {
+			DisableDynamicNotchRotorRpm();
+		}
+
 #endif // !CONSTRAINED_FLASH
 	}
 }
@@ -568,6 +625,25 @@ void VehicleAngularVelocity::DisableDynamicNotchFFT()
 		}
 
 		_dynamic_notch_fft_available = false;
+	}
+
+#endif // !CONSTRAINED_FLASH
+}
+
+void VehicleAngularVelocity::DisableDynamicNotchRotorRpm()
+{
+#if !defined(CONSTRAINED_FLASH)
+
+	if (_dynamic_notch_filter_rotor_rpm) {
+		for (int harmonic = 0; harmonic < _rotor_rpm_harmonics; harmonic++) {
+			for (int axis = 0; axis < 3; axis++) {
+				for (int sensor = 0; sensor < MAX_NUM_ROTOR_RPM_SENSORS; sensor++) {
+					_dynamic_notch_filter_rotor_rpm[harmonic][axis][sensor].disable();
+					_rotor_rpm_available.set(sensor, false);
+					perf_count(_dynamic_notch_filter_rotor_rpm_disable_perf);
+				}
+			}
+		}
 	}
 
 #endif // !CONSTRAINED_FLASH
@@ -729,6 +805,91 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(const hrt_abstime &time_now_u
 #endif // !CONSTRAINED_FLASH
 }
 
+void VehicleAngularVelocity::UpdateDynamicNotchRotorRpm(const hrt_abstime &time_now_us, bool force)
+{
+#if !defined(CONSTRAINED_FLASH)
+	const bool enabled = _dynamic_notch_filter_rotor_rpm && (_param_imu_gyro_dnf_en.get() & DynamicNotch::RotorRpm);
+
+	if (enabled) {
+		bool axis_init[3] {false, false, false};
+
+		const float bandwidth_hz = _param_imu_gyro_dnf_bw.get();
+		const float freq_min = math::max(_param_imu_gyro_dnf_min.get(), bandwidth_hz);
+
+		for (unsigned i = 0; i < MAX_NUM_ROTOR_RPM_SENSORS; i++) {
+			rpm_s rpm_status{};
+
+			if (_rpm_sub[i].copy(&rpm_status) &&
+			    (time_now_us < rpm_status.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
+
+				// rpm_estimate of 0 means no movement measured within the driver's own timeout
+				if (rpm_status.rpm_estimate > FLT_EPSILON) {
+					const float rotor_hz = rpm_status.rpm_estimate / 60.f;
+					const bool force_update = force || !_rotor_rpm_available[i];
+
+					for (int harmonic = 0; harmonic < _rotor_rpm_harmonics; harmonic++) {
+						const float frequency_hz = math::max(rotor_hz * (harmonic + 1),
+										     freq_min + (harmonic * 0.5f * bandwidth_hz));
+
+						for (int axis = 0; axis < 3; axis++) {
+							auto &nf = _dynamic_notch_filter_rotor_rpm[harmonic][axis][i];
+
+							const float notch_freq_delta = fabsf(nf.getNotchFreq() - frequency_hz);
+							const bool notch_freq_changed = (notch_freq_delta > 0.1f);
+							const bool allow_update = !axis_init[axis] || (nf.initialized() && notch_freq_delta < nf.getBandwidth());
+
+							if ((force_update || notch_freq_changed) && allow_update) {
+								if (nf.setParameters(_filter_sample_rate_hz, frequency_hz, bandwidth_hz)) {
+									perf_count(_dynamic_notch_filter_rotor_rpm_update_perf);
+
+									if (!nf.initialized()) {
+										perf_count(_dynamic_notch_filter_rotor_rpm_init_perf);
+										axis_init[axis] = true;
+									}
+								}
+							}
+						}
+					}
+
+					_rotor_rpm_available.set(i, true);
+					_last_rotor_rpm_notch_update[i] = rpm_status.timestamp;
+				}
+			}
+		}
+
+		// timeout handling
+		for (unsigned i = 0; i < MAX_NUM_ROTOR_RPM_SENSORS; i++) {
+			if (_rotor_rpm_available[i] && (time_now_us > _last_rotor_rpm_notch_update[i] + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
+				bool all_disabled = true;
+
+				for (int harmonic = _rotor_rpm_harmonics - 1; harmonic >= 0; harmonic--) {
+					for (int axis = 0; axis < 3; axis++) {
+						auto &nf = _dynamic_notch_filter_rotor_rpm[harmonic][axis][i];
+
+						if (nf.getNotchFreq() > 0.f) {
+							if (nf.initialized() && !axis_init[axis]) {
+								nf.disable();
+								perf_count(_dynamic_notch_filter_rotor_rpm_disable_perf);
+								axis_init[axis] = true;
+							}
+						}
+
+						if (nf.getNotchFreq() > 0.f) {
+							all_disabled = false;
+						}
+					}
+				}
+
+				if (all_disabled) {
+					_rotor_rpm_available.set(i, false);
+				}
+			}
+		}
+	}
+
+#endif // !CONSTRAINED_FLASH
+}
+
 float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int N)
 {
 #if !defined(CONSTRAINED_FLASH)
@@ -740,6 +901,19 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 				for (int harmonic = 0; harmonic < _esc_rpm_harmonics; harmonic++) {
 					if (_dynamic_notch_filter_esc_rpm[harmonic][axis][esc].getNotchFreq() > 0.f) {
 						_dynamic_notch_filter_esc_rpm[harmonic][axis][esc].applyArray(data, N);
+					}
+				}
+			}
+		}
+	}
+
+	// Apply dynamic notch filter from Rotor RPM
+	if (_dynamic_notch_filter_rotor_rpm) {
+		for (int inst = 0; inst < MAX_NUM_ROTOR_RPM_SENSORS; inst++) {
+			if (_rotor_rpm_available[inst]) {
+				for (int harmonic = 0; harmonic < _rotor_rpm_harmonics; harmonic++) {
+					if (_dynamic_notch_filter_rotor_rpm[harmonic][axis][inst].getNotchFreq() > 0.f) {
+						_dynamic_notch_filter_rotor_rpm[harmonic][axis][inst].applyArray(data, N);
 					}
 				}
 			}
@@ -826,6 +1000,7 @@ void VehicleAngularVelocity::Run()
 
 	UpdateDynamicNotchEscRpm(time_now_us);
 	UpdateDynamicNotchFFT(time_now_us);
+	UpdateDynamicNotchRotorRpm(time_now_us);
 
 	if (_fifo_available) {
 		// process all outstanding fifo messages
@@ -975,6 +1150,10 @@ void VehicleAngularVelocity::PrintStatus()
 
 	perf_print_counter(_dynamic_notch_filter_fft_disable_perf);
 	perf_print_counter(_dynamic_notch_filter_fft_update_perf);
+
+	perf_print_counter(_dynamic_notch_filter_rotor_rpm_disable_perf);
+	perf_print_counter(_dynamic_notch_filter_rotor_rpm_init_perf);
+	perf_print_counter(_dynamic_notch_filter_rotor_rpm_update_perf);
 #endif // CONSTRAINED_FLASH
 }
 
