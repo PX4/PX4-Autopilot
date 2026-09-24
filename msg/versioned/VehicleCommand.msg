@@ -103,7 +103,7 @@ uint16 VEHICLE_CMD_LOGGING_START = 2510 # Start streaming ULog data.
 uint16 VEHICLE_CMD_LOGGING_STOP = 2511 # Stop streaming ULog data.
 uint16 VEHICLE_CMD_CONTROL_HIGH_LATENCY = 2600 # Control starting/stopping transmitting data over the high latency link.
 uint16 VEHICLE_CMD_DO_VTOL_TRANSITION = 3000 # Command VTOL transition.
-uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300 # Command safety on/off. |0 to activate safety, 1 to deactivate safety and allow control surface movements|Unused|Unused|Unused|Unused|Unused|Unused|
+uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300 # Command safety on/off. |SAFETY_SAFE (0) to activate safety, SAFETY_DANGEROUS (1) to deactivate safety and allow non-throttling actuator movement|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001 # Request arm authorization.
 uint16 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001 # Prepare a payload deployment in the flight plan.
 uint16 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002 # Control a pre-programmed payload deployment.
@@ -219,9 +219,9 @@ int8 ARMING_ACTION_ARM = 1
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
 
-# Used as param1 in DO_SET_SAFETY_SWITCH_STATE command (matches SAFETY_SWITCH_STATE enum)
-uint8 SAFETY_SAFE = 0
-uint8 SAFETY_DANGEROUS = 1
+# Used as param1 in DO_SET_SAFETY_SWITCH_STATE command (matches MAVLink SAFETY_SWITCH_STATE enum)
+uint8 SAFETY_SAFE = 0 # Activate safety (MAVLink SAFETY_SWITCH_STATE_SAFE)
+uint8 SAFETY_DANGEROUS = 1 # Deactivate safety (MAVLink SAFETY_SWITCH_STATE_DANGEROUS)
 
 # param1 in VEHICLE_CMD_ACTUATOR_GROUP_TEST (matches MAVLink ACTUATOR_TEST_GROUP enum)
 uint8 ACTUATOR_TEST_GROUP_ROLL_TORQUE = 0
