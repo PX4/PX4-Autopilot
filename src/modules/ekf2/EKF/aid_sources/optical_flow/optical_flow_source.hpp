@@ -96,6 +96,7 @@ private:
 	float calcOptFlowMeasVar(const estimator::flowSample &flow_sample) const;
 
 	TimestampedRingBuffer<estimator::flowSample> *_buffer{nullptr};
+	uint64_t _time_last_data{0};	///< time of the newest sample pushed to the buffer (us)
 	estimator::flowSample _sample_delayed{};
 
 	estimator_aid_source2d_s _aid_src{};

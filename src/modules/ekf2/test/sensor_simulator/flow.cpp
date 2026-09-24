@@ -15,7 +15,7 @@ Flow::~Flow()
 
 void Flow::send(uint64_t time)
 {
-	_flow_data.time_us = time;
+	_flow_data.time_us = time - _latency_us;
 	_ekf->setOpticalFlowData(_flow_data, _instance);
 }
 

@@ -154,8 +154,8 @@ void OpticalFlowAiding::getLimits(const Ekf &ekf, float &hagl_min, float &hagl_m
 	bool any_flow_source = false;
 
 	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-		if (ekf._fc.of.intended() && (_sources[i].params.ctrl != 0) && (_sources[i]._buffer != nullptr)
-		    && ekf.isRecent(_sources[i]._buffer->get_newest().time_us, (uint64_t)1e6)) {
+		if (ekf._fc.of.intended() && (_sources[i].params.ctrl != 0)
+		    && ekf.isRecent(_sources[i]._time_last_data, (uint64_t)1e6)) {
 			hagl_min = math::min(hagl_min, _sources[i]._min_distance);
 			hagl_max = math::max(hagl_max, _sources[i]._max_distance);
 			max_rate = math::max(max_rate, _sources[i]._max_rate);
@@ -202,6 +202,7 @@ void OpticalFlowSource::setData(const flowSample &flow, const uint8_t buffer_len
 		optflow_sample_new.time_us = time_us;
 
 		_buffer->push(optflow_sample_new);
+		_time_last_data = optflow_sample_new.time_us;
 
 	} else {
 		ECL_WARN("optical flow %d data too fast %" PRIi64 " < %" PRIu64 " + %" PRIu64, _slot, time_us,

@@ -287,3 +287,27 @@ TEST_F(EkfFlowMultiTest, fusionControlStopsAllSensors)
 	// THEN: flow fusion resumes
 	EXPECT_TRUE(_ekf->control_status_flags().opt_flow);
 }
+
+TEST_F(EkfFlowMultiTest, lateSensorExtendsHeightLimit)
+{
+	// GIVEN: a short range sensor (up to 3 m) and a long range sensor whose samples arrive
+	// behind the fusion horizon, so that each sample is consumed at the next update
+	_ekf->flowSource(0).setLimits(5.f, 0.f, 3.f);
+	_sensor_simulator._flow1.setLatencyUs(150'000);
+	_sensor_simulator._flow1.setRateHz(10);
+	startHoverWithRangeFinder();
+	startFlow(0);
+	startFlow(1);
+	_sensor_simulator.runSeconds(3.f);
+
+	ASSERT_TRUE(_ekf->aid_src_optical_flow(1).fused);
+
+	// THEN: the height limit follows the long range sensor at every update
+	for (int i = 0; i < 100; i++) {
+		_sensor_simulator.runMicroseconds(10'000);
+
+		float vxy_max, vz_max, hagl_min, hagl_max_z, hagl_max_xy;
+		_ekf->get_ekf_ctrl_limits(&vxy_max, &vz_max, &hagl_min, &hagl_max_z, &hagl_max_xy);
+		ASSERT_GT(hagl_max_xy, kDistanceToGround) << "update " << i;
+	}
+}
