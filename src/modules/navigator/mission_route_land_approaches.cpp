@@ -134,6 +134,35 @@ bool findAssociatedSafePointIndex(const Provider &provider, const PositionYawSet
 
 } // namespace
 
+loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches, float wind_direction)
+{
+	if (!approaches.land_location_lat_lon.isAllFinite()) {
+		return {};
+	}
+
+	int8_t best_index{-1};
+	float best_angle{INFINITY};
+
+	for (int i = 0; i < approaches.num_approaches_max; ++i) {
+		const loiter_point_s &approach = approaches.approaches[i];
+
+		if (!approach.isValid()) {
+			continue;
+		}
+
+		const float bearing = get_bearing_to_next_waypoint(approaches.land_location_lat_lon(0),
+				      approaches.land_location_lat_lon(1), approach.lat, approach.lon);
+		const float angle = fabsf(matrix::wrap_pi(bearing - wind_direction));
+
+		if (angle < best_angle) {
+			best_index = i;
+			best_angle = angle;
+		}
+	}
+
+	return best_index >= 0 ? approaches.approaches[best_index] : loiter_point_s{};
+}
+
 land_approaches_s getVtolLandApproachesNearLocation(const Provider &provider,
 		const PositionYawSetpoint &rtl_position, float home_altitude_amsl)
 {
