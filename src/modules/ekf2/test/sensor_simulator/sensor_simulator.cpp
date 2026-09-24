@@ -7,6 +7,7 @@ SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
 	_flow(ekf),
 	_flow1(ekf, 1),
 	_gps(ekf),
+	_gps1(ekf, 1),
 	_imu(ekf),
 	_mag(ekf),
 	_rng(ekf),
@@ -128,6 +129,7 @@ void SensorSimulator::setSensorRateToDefault()
 	_mag.setRateHz(80);
 	_baro.setRateHz(80);
 	_gps.setRateHz(5);
+	_gps1.setRateHz(5);
 	_flow.setRateHz(50);
 	_flow1.setRateHz(50);
 	_rng.setRateHz(30);
@@ -142,6 +144,7 @@ void SensorSimulator::setSensorDataToDefault()
 	_flow.setData(_flow.dataAtRest());
 	_flow1.setData(_flow1.dataAtRest());
 	_gps.setData(_gps.getDefaultGpsData());
+	_gps1.setData(_gps1.getDefaultGpsData());
 	_imu.setData(Vector3f{0.0f, 0.0f, -CONSTANTS_ONE_G}, Vector3f{0.0f, 0.0f, 0.0f});
 	_mag.setData(Vector3f{0.218f, 0.f, 0.43f});
 	_rng.setData(0.2f, 100);
@@ -186,6 +189,7 @@ void SensorSimulator::updateSensors()
 	_mag.update(_time);
 	_baro.update(_time);
 	_gps.update(_time);
+	_gps1.update(_time);
 	_flow.update(_time);
 	_flow1.update(_time);
 	_rng.update(_time);
@@ -399,11 +403,10 @@ void SensorSimulator::setSensorDataFromTrajectory()
 		}
 	}
 
-	if (_gps.isRunning()) {
-		/* _gps.setAltitude(); */
-		/* _gps.setLatitude(); */
-		/* _gps.setLongitude(); */
-		_gps.setVelocity(vel_world);
+	for (Gps *gps : {&_gps, &_gps1}) {
+		if (gps->isRunning()) {
+			gps->setVelocity(vel_world);
+		}
 	}
 }
 

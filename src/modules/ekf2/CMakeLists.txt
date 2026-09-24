@@ -175,6 +175,7 @@ endif()
 
 if(CONFIG_EKF2_GNSS)
 	list(APPEND EKF_SRCS
+		EKF/aid_sources/gnss/gnss.cpp
 		EKF/aid_sources/gnss/gnss_checks.cpp
 		EKF/aid_sources/gnss/gnss_height_control.cpp
 		EKF/aid_sources/gnss/gps_control.cpp

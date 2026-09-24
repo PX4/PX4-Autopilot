@@ -47,7 +47,6 @@
 EstimatorInterface::~EstimatorInterface()
 {
 #if defined(CONFIG_EKF2_GNSS)
-	delete _gps_buffer;
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	delete _mag_buffer;
@@ -159,48 +158,13 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
+void EstimatorInterface::setGpsData(const gnssSample &gnss_sample, const uint8_t instance)
 {
 	if (!_initialised) {
 		return;
 	}
 
-	// Allocate the required buffer size if not previously done
-	if (_gps_buffer == nullptr) {
-		_gps_buffer = new TimestampedRingBuffer<gnssSample>(_obs_buffer_length);
-
-		if (_gps_buffer == nullptr || !_gps_buffer->valid()) {
-			delete _gps_buffer;
-			_gps_buffer = nullptr;
-			printBufferAllocationFailed("GPS");
-			return;
-		}
-	}
-
-	const int64_t time_us = gnss_sample.time_us
-				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
-
-	if (time_us >= static_cast<int64_t>(_gps_buffer->get_newest().time_us + _min_obs_interval_us)) {
-
-		gnssSample gnss_sample_new(gnss_sample);
-
-		gnss_sample_new.time_us = time_us;
-
-		_gps_buffer->push(gnss_sample_new);
-		_time_last_gps_buffer_push = _time_latest_us;
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (PX4_ISFINITE(gnss_sample.yaw)) {
-			_time_last_gnss_yaw_buffer_push = _time_latest_us;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
-	} else {
-		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
-	}
+	_gnss_aiding.setData(gnss_sample, instance, _obs_buffer_length, _min_obs_interval_us, _dt_ekf_avg, _time_latest_us);
 }
 #endif // CONFIG_EKF2_GNSS
 

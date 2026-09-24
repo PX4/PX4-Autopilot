@@ -5,7 +5,7 @@ namespace sensor_simulator
 namespace sensor
 {
 
-Gps::Gps(std::shared_ptr<Ekf> ekf): Sensor(ekf)
+Gps::Gps(std::shared_ptr<Ekf> ekf, uint8_t instance): Sensor(ekf), _instance(instance)
 {
 }
 
@@ -27,7 +27,7 @@ void Gps::send(const uint64_t time)
 		stepHeightByMeters(-_gps_pos_rate(2) * dt);
 	}
 
-	_ekf->setGpsData(_gps_data);
+	_ekf->setGpsData(_gps_data, _instance);
 }
 
 void Gps::setData(const gnssSample &gps)

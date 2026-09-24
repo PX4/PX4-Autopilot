@@ -38,7 +38,7 @@
 
 #include "ekf.h"
 
-void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
+void Ekf::controlGnssHeightFusion()
 {
 	static constexpr const char *HGT_SRC_NAME = "GNSS";
 
@@ -47,7 +47,10 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 	bias_est.predict(_dt_ekf_avg);
 
-	if (!_fc.gps.intended()) {
+	// GNSS height is fused from a single receiver
+	const int8_t slot = _gnss_aiding.heightSlot();
+
+	if (slot < 0) {
 		if (_control_status.flags.gps_hgt) {
 			ECL_WARN("stopping %s height fusion, GNSS not intended", HGT_SRC_NAME);
 		}
@@ -56,7 +59,10 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		return;
 	}
 
-	if (_gps_data_ready) {
+	const GnssSource &src = _gnss_aiding.source(slot);
+	const gnssSample &gps_sample = src._sample_delayed;
+
+	if (src._data_ready) {
 
 		// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
 		float noise = math::max(gps_sample.vacc, 1.5f * _params.ekf2_gps_p_noise); // use 1.5 as a typical ratio of vacc/hacc
@@ -88,19 +94,19 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		// determine if we should use height aiding
 		const bool common_conditions_passing = measurement_valid
 						       && _local_origin_lat_lon.isInitialized()
-						       && _gnss_checks.passed()
-						       && !_control_status.flags.gnss_fault;
+						       && src._checks.passed()
+						       && !src._fault;
 
-		const bool continuing_conditions_passing = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VPOS))
+		const bool continuing_conditions_passing = src.ctrl(GnssCtrl::VPOS)
 				&& common_conditions_passing;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
-				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
+				&& isNewestSampleRecent(src._time_last_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 		const bool altitude_initialisation_conditions_passing = common_conditions_passing
 				&& !PX4_ISFINITE(_local_origin_alt)
 				&& _params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS)
-				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
+				&& isNewestSampleRecent(src._time_last_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 		if (_control_status.flags.gps_hgt) {
 			if (continuing_conditions_passing) {
@@ -210,7 +216,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		}
 
 	} else if (_control_status.flags.gps_hgt
-		   && !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL)) {
+		   && !isNewestSampleRecent(src._time_last_buffer_push, 2 * GNSS_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
 		ECL_WARN("stopping %s height fusion, no data", HGT_SRC_NAME);
 		stopGpsHgtFusion();

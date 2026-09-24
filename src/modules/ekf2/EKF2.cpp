@@ -80,7 +80,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #endif // CONFIG_EKF2_WIND
 	_param_ekf2_noaid_noise(_params->ekf2_noaid_noise),
 #if defined(CONFIG_EKF2_GNSS)
-	_param_ekf2_gps_ctrl(_params->ekf2_gps_ctrl),
 	_param_ekf2_gps_mode(_params->ekf2_gps_mode),
 	_param_ekf2_gps_v_noise(_params->ekf2_gps_v_noise),
 	_param_ekf2_gps_p_noise(_params->ekf2_gps_p_noise),
@@ -210,6 +209,9 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	_optical_flow.initParameters(_ekf);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
+#if defined(CONFIG_EKF2_GNSS)
+	_gnss.initParameters(_ekf);
+#endif // CONFIG_EKF2_GNSS
 
 	initFusionControl();
 	AdvertiseTopics();
@@ -247,7 +249,7 @@ void EKF2::AdvertiseTopics()
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	if (_param_ekf2_gps_ctrl.get()) {
+	if (_gnss.anySlotEnabled(_ekf)) {
 		_estimator_gps_status_pub.advertise();
 		_yaw_est_pub.advertise();
 	}
@@ -310,23 +312,17 @@ void EKF2::AdvertiseTopics()
 
 #if defined(CONFIG_EKF2_GNSS)
 
-		if (_param_ekf2_gps_ctrl.get()) {
-			if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VPOS)) {
+		if (_gnss.anySlotEnabled(_ekf)) {
+			if (_gnss.anySlotEnabled(_ekf, static_cast<int32_t>(GnssCtrl::VPOS))) {
 				_estimator_aid_src_gnss_hgt_pub.advertise();
 				_estimator_gnss_hgt_bias_pub.advertise();
 			}
 
-			if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::HPOS)) {
-				_estimator_aid_src_gnss_pos_pub.advertise();
-			}
-
-			if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VEL)) {
-				_estimator_aid_src_gnss_vel_pub.advertise();
-			}
+			_gnss.advertiseEnabledPublications(_ekf);
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 
-			if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::YAW)) {
+			if (_gnss.anySlotEnabled(_ekf, static_cast<int32_t>(GnssCtrl::YAW))) {
 				_estimator_aid_src_gnss_yaw_pub.advertise();
 			}
 
@@ -455,6 +451,9 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		_optical_flow.updateParameters(_ekf);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
+#if defined(CONFIG_EKF2_GNSS)
+		_gnss.updateParameters(_ekf);
+#endif // CONFIG_EKF2_GNSS
 
 		initFusionControl();
 
@@ -802,7 +801,7 @@ void EKF2::Run()
 		_optical_flow.updateSamples(_ekf, ekf2_timestamps, _last_range_sensor_update);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
-		UpdateGpsSample(ekf2_timestamps);
+		_gnss.updateSamples(_ekf, _param_ekf2_gps_yaw_off.get());
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		UpdateMagSample(ekf2_timestamps);
@@ -994,7 +993,8 @@ void EKF2::initFusionControl()
 
 		const int32_t sens_en = _param_ekf2_sens_en.get();
 
-		_fc.gps.enabled    = sens_en & SensEn::GPS0;
+		_fc.gps[0].enabled = sens_en & SensEn::GPS0;
+		_fc.gps[1].enabled = sens_en & SensEn::GPS1;
 		_fc.of.enabled     = sens_en & SensEn::OF;
 		_fc.ev.enabled     = sens_en & SensEn::EV;
 
@@ -1023,7 +1023,10 @@ void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_comma
 	FusionSensor *sensor = nullptr;
 
 	switch (sensor_type) {
-	case vehicle_command_s::FUSION_SOURCE_GPS:    sensor = &_fc.gps;    break;
+	case vehicle_command_s::FUSION_SOURCE_GPS:
+		if (instance < MAX_GNSS_INSTANCES) { sensor = &_fc.gps[instance]; }
+
+		break;
 
 	case vehicle_command_s::FUSION_SOURCE_OF:     sensor = &_fc.of;     break;
 
@@ -1064,7 +1067,9 @@ void EKF2::syncSensEnParam()
 {
 	int32_t sens_en = 0;
 
-	if (_fc.gps.enabled)    { sens_en |= SensEn::GPS0; }
+	if (_fc.gps[0].enabled) { sens_en |= SensEn::GPS0; }
+
+	if (_fc.gps[1].enabled) { sens_en |= SensEn::GPS1; }
 
 	if (_fc.of.enabled)     { sens_en |= SensEn::OF; }
 
@@ -1136,8 +1141,7 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 #if defined(CONFIG_EKF2_GNSS)
 	// GNSS hgt/pos/vel/yaw
 	PublishAidSourceStatus(timestamp, _ekf.aid_src_gnss_hgt(), _status_gnss_hgt_pub_last, _estimator_aid_src_gnss_hgt_pub);
-	PublishAidSourceStatus(timestamp, _ekf.aid_src_gnss_pos(), _status_gnss_pos_pub_last, _estimator_aid_src_gnss_pos_pub);
-	PublishAidSourceStatus(timestamp, _ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
+	_gnss.publishAidSourceStatus(_ekf, timestamp, _instance, _replay_mode);
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	PublishAidSourceStatus(timestamp, _ekf.aid_src_gnss_yaw(), _status_gnss_yaw_pub_last, _estimator_aid_src_gnss_yaw_pub);
 # endif // CONFIG_EKF2_GNSS_YAW
@@ -1408,11 +1412,11 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_GNSS)
 	// GPS
-	innovations.gps_hvel[0] = _ekf.aid_src_gnss_vel().innovation[0];
-	innovations.gps_hvel[1] = _ekf.aid_src_gnss_vel().innovation[1];
-	innovations.gps_vvel    = _ekf.aid_src_gnss_vel().innovation[2];
-	innovations.gps_hpos[0] = _ekf.aid_src_gnss_pos().innovation[0];
-	innovations.gps_hpos[1] = _ekf.aid_src_gnss_pos().innovation[1];
+	innovations.gps_hvel[0] = _ekf.aid_src_gnss_vel(_ekf.getPrimaryGnssSlot()).innovation[0];
+	innovations.gps_hvel[1] = _ekf.aid_src_gnss_vel(_ekf.getPrimaryGnssSlot()).innovation[1];
+	innovations.gps_vvel    = _ekf.aid_src_gnss_vel(_ekf.getPrimaryGnssSlot()).innovation[2];
+	innovations.gps_hpos[0] = _ekf.aid_src_gnss_pos(_ekf.getPrimaryGnssSlot()).innovation[0];
+	innovations.gps_hpos[1] = _ekf.aid_src_gnss_pos(_ekf.getPrimaryGnssSlot()).innovation[1];
 	innovations.gps_vpos    = _ekf.aid_src_gnss_hgt().innovation;
 #endif // CONFIG_EKF2_GNSS
 
@@ -1501,11 +1505,11 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_GNSS)
 	// GPS
-	test_ratios.gps_hvel[0] = _ekf.aid_src_gnss_vel().test_ratio[0];
-	test_ratios.gps_hvel[1] = _ekf.aid_src_gnss_vel().test_ratio[1];
-	test_ratios.gps_vvel    = _ekf.aid_src_gnss_vel().test_ratio[2];
-	test_ratios.gps_hpos[0] = _ekf.aid_src_gnss_pos().test_ratio[0];
-	test_ratios.gps_hpos[1] = _ekf.aid_src_gnss_pos().test_ratio[1];
+	test_ratios.gps_hvel[0] = _ekf.aid_src_gnss_vel(_ekf.getPrimaryGnssSlot()).test_ratio[0];
+	test_ratios.gps_hvel[1] = _ekf.aid_src_gnss_vel(_ekf.getPrimaryGnssSlot()).test_ratio[1];
+	test_ratios.gps_vvel    = _ekf.aid_src_gnss_vel(_ekf.getPrimaryGnssSlot()).test_ratio[2];
+	test_ratios.gps_hpos[0] = _ekf.aid_src_gnss_pos(_ekf.getPrimaryGnssSlot()).test_ratio[0];
+	test_ratios.gps_hpos[1] = _ekf.aid_src_gnss_pos(_ekf.getPrimaryGnssSlot()).test_ratio[1];
 	test_ratios.gps_vpos    = _ekf.aid_src_gnss_hgt().test_ratio;
 #endif // CONFIG_EKF2_GNSS
 
@@ -1594,11 +1598,11 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_GNSS)
 	// GPS
-	variances.gps_hvel[0] = _ekf.aid_src_gnss_vel().innovation_variance[0];
-	variances.gps_hvel[1] = _ekf.aid_src_gnss_vel().innovation_variance[1];
-	variances.gps_vvel    = _ekf.aid_src_gnss_vel().innovation_variance[2];
-	variances.gps_hpos[0] = _ekf.aid_src_gnss_pos().innovation_variance[0];
-	variances.gps_hpos[1] = _ekf.aid_src_gnss_pos().innovation_variance[1];
+	variances.gps_hvel[0] = _ekf.aid_src_gnss_vel(_ekf.getPrimaryGnssSlot()).innovation_variance[0];
+	variances.gps_hvel[1] = _ekf.aid_src_gnss_vel(_ekf.getPrimaryGnssSlot()).innovation_variance[1];
+	variances.gps_vvel    = _ekf.aid_src_gnss_vel(_ekf.getPrimaryGnssSlot()).innovation_variance[2];
+	variances.gps_hpos[0] = _ekf.aid_src_gnss_pos(_ekf.getPrimaryGnssSlot()).innovation_variance[0];
+	variances.gps_hpos[1] = _ekf.aid_src_gnss_pos(_ekf.getPrimaryGnssSlot()).innovation_variance[1];
 	variances.gps_vpos    = _ekf.aid_src_gnss_hgt().innovation_variance;
 #endif // CONFIG_EKF2_GNSS
 
@@ -2008,7 +2012,11 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	}
 
 	estimator_fusion_control_s msg{};
-	msg.gps_intended[0] = _fc.gps.intended();
+
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		msg.gps_intended[i] = _fc.gps[i].intended();
+	}
+
 	msg.of_intended     = _fc.of.intended();
 	msg.ev_intended     = _fc.ev.intended();
 
@@ -2023,7 +2031,14 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.rngbcn_intended = _fc.rngbcn.intended();
 
 	const auto &cs = _ekf.control_status_flags();
-	msg.gps_active[0] = cs.gnss_pos || cs.gps_hgt || cs.gnss_vel || cs.gnss_yaw;
+#if defined(CONFIG_EKF2_GNSS)
+
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		msg.gps_active[i] = _ekf.gnssSource(i).isActive(_ekf.control_status());
+	}
+
+#endif // CONFIG_EKF2_GNSS
+
 	msg.of_active     = cs.opt_flow;
 	msg.ev_active     = cs.ev_pos || cs.ev_hgt || cs.ev_vel || cs.ev_yaw;
 	msg.baro_active   = cs.baro_hgt;
@@ -2498,89 +2513,14 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
-{
-	// EKF GPS message
-	sensor_gps_s vehicle_gps_position;
-
-	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
-
-		Vector3f vel_ned;
-
-		if (vehicle_gps_position.vel_ned_valid) {
-			vel_ned = Vector3f(vehicle_gps_position.vel_n_m_s,
-					   vehicle_gps_position.vel_e_m_s,
-					   vehicle_gps_position.vel_d_m_s);
-
-		} else {
-			return; //TODO: change and set to NAN
-		}
-
-		if (fabsf(_param_ekf2_gps_yaw_off.get()) > 0.f) {
-			if (!PX4_ISFINITE(vehicle_gps_position.heading_offset) && PX4_ISFINITE(vehicle_gps_position.heading)) {
-				// Apply offset
-				float yaw_offset = matrix::wrap_pi(math::radians(_param_ekf2_gps_yaw_off.get()));
-				vehicle_gps_position.heading_offset = yaw_offset;
-				vehicle_gps_position.heading = matrix::wrap_pi(vehicle_gps_position.heading - yaw_offset);
-			}
-		}
-
-		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
-		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
-
-		// timestamp_sample is corrected by the sensors module (per-receiver delay or PPS)
-		const bool timestamp_corrected = vehicle_gps_position.timestamp_sample > 0
-						 && vehicle_gps_position.timestamp_sample != vehicle_gps_position.timestamp;
-
-		gnssSample gnss_sample{
-			.time_us = timestamp_corrected ? vehicle_gps_position.timestamp_sample : vehicle_gps_position.timestamp,
-			.lat = vehicle_gps_position.latitude_deg,
-			.lon = vehicle_gps_position.longitude_deg,
-			.alt = altitude_amsl,
-			.vel = vel_ned,
-			.hacc = vehicle_gps_position.eph,
-			.vacc = vehicle_gps_position.epv,
-			.sacc = vehicle_gps_position.s_variance_m_s,
-			.fix_type = vehicle_gps_position.fix_type,
-			.nsats = vehicle_gps_position.satellites_used,
-			.pdop = sqrtf(vehicle_gps_position.hdop *vehicle_gps_position.hdop
-				      + vehicle_gps_position.vdop * vehicle_gps_position.vdop),
-			.yaw = vehicle_gps_position.heading, //TODO: move to different message
-			.yaw_acc = vehicle_gps_position.heading_accuracy,
-			.yaw_offset = vehicle_gps_position.heading_offset,
-			.spoofed = vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED,
-			.jammed = vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_DETECTED,
-			.pos_body = Vector3f(vehicle_gps_position.antenna_offset_x,
-					     vehicle_gps_position.antenna_offset_y,
-					     vehicle_gps_position.antenna_offset_z),
-		};
-
-		_ekf.setGpsData(gnss_sample);
-
-		const float geoid_height = altitude_ellipsoid - altitude_amsl;
-
-		if (_last_geoid_height_update_us == 0) {
-			_geoid_height_lpf.reset(geoid_height);
-			_last_geoid_height_update_us = gnss_sample.time_us;
-
-		} else if (gnss_sample.time_us > _last_geoid_height_update_us) {
-			_geoid_height_lpf.setParameters(gnss_sample.time_us - _last_geoid_height_update_us,
-							kGeoidHeightLpfTimeConstant);
-			_geoid_height_lpf.update(geoid_height);
-			_last_geoid_height_update_us = gnss_sample.time_us;
-		}
-
-	}
-}
-
 float EKF2::altEllipsoidToAmsl(float ellipsoid_alt) const
 {
-	return ellipsoid_alt - _geoid_height_lpf.getState();
+	return ellipsoid_alt - _gnss.geoidHeight();
 }
 
 float EKF2::altAmslToEllipsoid(float amsl_alt) const
 {
-	return amsl_alt + _geoid_height_lpf.getState();
+	return amsl_alt + _gnss.geoidHeight();
 }
 #endif // CONFIG_EKF2_GNSS
 
@@ -2760,7 +2700,10 @@ void EKF2::UpdateFusionControlFromReplay()
 	estimator_fusion_control_s fc;
 
 	if (_estimator_fusion_control_sub.update(&fc)) {
-		_fc.gps.enabled    = fc.gps_intended[0];
+		for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+			_fc.gps[i].enabled = fc.gps_intended[i];
+		}
+
 		_fc.of.enabled     = fc.of_intended;
 		_fc.ev.enabled     = fc.ev_intended;
 

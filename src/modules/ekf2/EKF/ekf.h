@@ -406,17 +406,20 @@ public:
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
 
-	const GnssChecks::gps_check_fail_status_u &gps_check_fail_status() const { return _gnss_checks.getFailStatus(); }
-	const decltype(GnssChecks::gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gnss_checks.getFailStatus().flags; }
-	uint16_t gps_check_fail_status_enabled_mask() const { return _gnss_checks.getEnabledChecksFailStatusMask(); }
+	// quality checks of the primary receiver
+	const GnssChecks::gps_check_fail_status_u &gps_check_fail_status() const { return gnssPrimaryChecks().getFailStatus(); }
+	const decltype(GnssChecks::gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return gnssPrimaryChecks().getFailStatus().flags; }
+	uint16_t gps_check_fail_status_enabled_mask() const { return gnssPrimaryChecks().getEnabledChecksFailStatusMask(); }
 
-	bool gps_checks_passed() const { return _gnss_checks.passed(); };
+	bool gps_checks_passed() const { return gnssPrimaryChecks().passed(); };
 
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 
 	const auto &aid_src_gnss_hgt() const { return _aid_src_gnss_hgt; }
-	const auto &aid_src_gnss_pos() const { return _aid_src_gnss_pos; }
-	const auto &aid_src_gnss_vel() const { return _aid_src_gnss_vel; }
+	const auto &aid_src_gnss_pos(uint8_t slot = 0) const { return _gnss_aiding.source(slot)._aid_src_pos; }
+	const auto &aid_src_gnss_vel(uint8_t slot = 0) const { return _gnss_aiding.source(slot)._aid_src_vel; }
+
+	uint8_t getPrimaryGnssSlot() const { return _gnss_aiding.primarySlot(); }
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	const auto &aid_src_gnss_yaw() const { return _aid_src_gnss_yaw; }
@@ -477,6 +480,8 @@ public:
 	friend class AgpSource;
 	friend class OpticalFlowAiding;
 	friend class OpticalFlowSource;
+	friend class GnssAiding;
+	friend class GnssSource;
 
 private:
 
@@ -600,16 +605,9 @@ private:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	bool _gps_data_ready {false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
-
-	// height sensor status
-	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
-
-	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
+	HeightBiasEstimator _gps_hgt_b_est {HeightSensor::GNSS, _height_sensor_ref};
 
 	estimator_aid_source1d_s _aid_src_gnss_hgt{};
-	estimator_aid_source2d_s _aid_src_gnss_pos{};
-	estimator_aid_source3d_s _aid_src_gnss_vel{};
 
 	uint64_t _time_last_gnss_hgt_rejected{0};
 
@@ -896,28 +894,22 @@ private:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// control fusion of GPS observations
-	void controlGpsFusion(const imuSample &imu_delayed);
-	void controlGnssVelFusion(estimator_aid_source3d_s &aid_src, bool force_reset);
-	void controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool force_reset);
+	const GnssChecks &gnssPrimaryChecks() const { return _gnss_aiding.source(_gnss_aiding.primarySlot()).checks(); }
+
 	void stopGnssFusion();
-	void stopGnssVelFusion();
-	void stopGnssPosFusion();
 	void updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src);
 	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
-	bool isGnssVelResetAllowed() const;
-	bool isGnssPosResetAllowed() const;
-	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
+	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel, int32_t gnss_ctrl);
 	bool tryYawEmergencyReset();
 	void resetVelocityToGnss(estimator_aid_source3d_s &aid_src);
 	void resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src);
 
-	void controlGnssHeightFusion(const gnssSample &gps_sample);
+	void controlGnssHeightFusion();
 	void stopGpsHgtFusion();
 	bool isGnssHgtResetAllowed();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	void controlGnssYawFusion(const gnssSample &gps_sample);
+	void controlGnssYawFusion(const GnssSource &src);
 	void stopGnssYawFusion();
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit

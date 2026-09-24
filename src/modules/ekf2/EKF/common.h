@@ -206,6 +206,7 @@ struct gnssSample {
 	bool        spoofed{};    ///< true if GNSS data is spoofed
 	bool        jammed{};     ///< true if GNSS data is jammed
 	Vector3f    pos_body{};   ///< position of GPS antenna in body frame (m)
+	uint32_t    device_id{};  ///< unique device ID of the receiver
 };
 
 struct magSample {
@@ -289,6 +290,7 @@ struct systemFlagUpdate {
 // Runtime fusion control. Populated by EKF2 module, read by EKF core.
 static constexpr uint8_t MAX_AGP_INSTANCES = 4;
 static constexpr uint8_t MAX_OF_INSTANCES = 2;
+static constexpr uint8_t MAX_GNSS_INSTANCES = 2;
 
 struct FusionSensor {
 	bool enabled{false};   // runtime toggleable via MAVLink
@@ -297,7 +299,7 @@ struct FusionSensor {
 };
 
 struct FusionControl {
-	FusionSensor gps;
+	FusionSensor gps[MAX_GNSS_INSTANCES];
 	FusionSensor of;
 	FusionSensor ev;
 	FusionSensor agp[MAX_AGP_INSTANCES];
@@ -366,7 +368,6 @@ struct parameters {
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-	int32_t ekf2_gps_ctrl {static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
 	int32_t ekf2_gps_mode {static_cast<int32_t>(GnssMode::kAuto)};
 	// position and velocity fusion
 	float ekf2_gps_v_noise{0.5f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)

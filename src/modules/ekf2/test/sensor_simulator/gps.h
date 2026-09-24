@@ -48,7 +48,7 @@ namespace sensor
 class Gps: public Sensor
 {
 public:
-	Gps(std::shared_ptr<Ekf> ekf);
+	Gps(std::shared_ptr<Ekf> ekf, uint8_t instance = 0);
 	~Gps();
 
 	void setData(const gnssSample &gps);
@@ -75,6 +75,7 @@ private:
 
 	gnssSample _gps_data{};
 	Vector3f _gps_pos_rate{};
+	uint8_t _instance{0};
 };
 
 } // namespace sensor

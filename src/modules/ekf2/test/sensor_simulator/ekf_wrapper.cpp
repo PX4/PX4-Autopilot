@@ -6,7 +6,10 @@ EkfWrapper::EkfWrapper(std::shared_ptr<Ekf> ekf):
 	_ekf_params = _ekf->getParamHandle();
 	_fc = _ekf->getFusionControlHandle();
 
-	_fc->gps.enabled = true;
+	for (auto &gps : _fc->gps) {
+		gps.enabled = true;
+	}
+
 	_fc->of.enabled = true;
 	_fc->ev.enabled = true;
 	_fc->baro.enabled = true;
@@ -53,12 +56,12 @@ void EkfWrapper::setGpsHeightRef()
 
 void EkfWrapper::enableGpsHeightFusion()
 {
-	_ekf_params->ekf2_gps_ctrl |= static_cast<int32_t>(GnssCtrl::VPOS);
+	_ekf->gnssSource(0).params.ctrl |= static_cast<int32_t>(GnssCtrl::VPOS);
 }
 
 void EkfWrapper::disableGpsHeightFusion()
 {
-	_ekf_params->ekf2_gps_ctrl &= ~static_cast<int32_t>(GnssCtrl::VPOS);
+	_ekf->gnssSource(0).params.ctrl &= ~static_cast<int32_t>(GnssCtrl::VPOS);
 }
 
 bool EkfWrapper::isIntendingGpsHeightFusion() const
@@ -128,19 +131,19 @@ bool EkfWrapper::isIntendingAirspeedFusion() const
 	return _ekf->control_status_flags().fuse_aspd;
 }
 
-void EkfWrapper::enableGpsFusion()
+void EkfWrapper::enableGpsFusion(uint8_t slot)
 {
-	_ekf_params->ekf2_gps_ctrl |= static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL);
+	_ekf->gnssSource(slot).params.ctrl |= static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL);
 }
 
-void EkfWrapper::disableGpsFusion()
+void EkfWrapper::disableGpsFusion(uint8_t slot)
 {
-	_ekf_params->ekf2_gps_ctrl &= ~(static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL));
+	_ekf->gnssSource(slot).params.ctrl &= ~(static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL));
 }
 
-void EkfWrapper::setGpsEnabled(bool enabled)
+void EkfWrapper::setGpsEnabled(bool enabled, uint8_t slot)
 {
-	_fc->gps.enabled = enabled;
+	_fc->gps[slot].enabled = enabled;
 }
 
 bool EkfWrapper::isIntendingGpsFusion() const
@@ -160,12 +163,12 @@ void EkfWrapper::setGnssDeadReckonMode()
 
 void EkfWrapper::enableGpsHeadingFusion()
 {
-	_ekf_params->ekf2_gps_ctrl |= static_cast<int32_t>(GnssCtrl::YAW);
+	_ekf->gnssSource(0).params.ctrl |= static_cast<int32_t>(GnssCtrl::YAW);
 }
 
 void EkfWrapper::disableGpsHeadingFusion()
 {
-	_ekf_params->ekf2_gps_ctrl &= ~static_cast<int32_t>(GnssCtrl::YAW);
+	_ekf->gnssSource(0).params.ctrl &= ~static_cast<int32_t>(GnssCtrl::YAW);
 }
 
 bool EkfWrapper::isIntendingGpsHeadingFusion() const

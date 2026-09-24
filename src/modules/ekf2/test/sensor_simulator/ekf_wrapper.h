@@ -76,9 +76,9 @@ public:
 
 	bool isIntendingAirspeedFusion() const;
 
-	void enableGpsFusion();
-	void disableGpsFusion();
-	void setGpsEnabled(bool enabled);
+	void enableGpsFusion(uint8_t slot = 0);
+	void disableGpsFusion(uint8_t slot = 0);
+	void setGpsEnabled(bool enabled, uint8_t slot = 0);
 	bool isIntendingGpsFusion() const;
 	bool isGnssFaultDetected() const;
 	void setGnssDeadReckonMode();

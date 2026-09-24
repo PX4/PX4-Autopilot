@@ -144,7 +144,7 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 		_ranging_beacon_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_gps_position)) {
-		_vehicle_gps_position_msg_id = msg_id;
+		_vehicle_gps_position_msg_ids.push_back(msg_id);
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_land_detected)) {
 		_vehicle_land_detected_msg_id = msg_id;
@@ -188,7 +188,7 @@ ReplayEkf2::publishEkf2Topics(sensor_combined_s &sensor_combined, std::ifstream 
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_visual_odometry_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _aux_global_position_msg_ids, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _ranging_beacon_msg_id, replay_file);
-	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_gps_position_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_gps_position_msg_ids, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_land_detected_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_status_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _sensor_selection_msg_id, replay_file);
@@ -244,7 +244,7 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	// everything published up to the current ekf2 update. Publishing them here rather than from the
 	// main loop keeps them inside the lockstep barrier, which is what makes the cycle they land in
 	// reproducible.
-	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_gps_position_msg_id, replay_file);
+	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_gps_position_msg_ids, replay_file);
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_land_detected_msg_id, replay_file);
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_status_msg_id, replay_file);
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _sensor_selection_msg_id, replay_file);
@@ -478,6 +478,7 @@ ReplayEkf2::onExitMainLoop()
 	print_sensor_statistics(_vehicle_visual_odometry_msg_id, "vehicle_visual_odometry");
 	print_multi_sensor_statistics(_aux_global_position_msg_ids, "aux_global_position");
 	print_sensor_statistics(_ranging_beacon_msg_id, "ranging_beacon");
+	print_multi_sensor_statistics(_vehicle_gps_position_msg_ids, "vehicle_gps_position");
 
 	if (_ekf2_update_timeouts > 0) {
 		PX4_WARN("ekf2 did not process %u sensor_combined samples within %u ms", _ekf2_update_timeouts,

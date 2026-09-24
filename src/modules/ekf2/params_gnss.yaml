@@ -1,22 +1,27 @@
+__max_num_gnss_instances: &max_num_gnss_instances 2
+
 module_name: ekf2
 parameters:
 - group: EKF2
   definitions:
-    EKF2_GPS_CTRL:
+    EKF2_GPS${i}_CTRL:
       description:
-        short: GNSS sensor aiding
-        long: 'Set bits in the following positions to enable: 0 : Longitude and latitude
-          fusion 1 : Altitude fusion 2 : 3D velocity fusion 3 : Dual antenna heading
-          fusion'
+        short: GNSS receiver ${i} aiding
+        long: 'Aiding of the receiver bound to SENS_GPS${i}_ID. Set bits in the following
+          positions to enable: 0 : Longitude and latitude fusion 1 : Altitude fusion
+          2 : 3D velocity fusion 3 : Dual antenna heading fusion. Altitude and heading
+          are fused from the lowest receiver slot that enables them.'
       type: bitmask
       bit:
         0: Lon/lat
         1: Altitude
         2: 3D velocity
         3: Dual antenna heading
-      default: 7
+      default: [7, 0]
       min: 0
       max: 15
+      num_instances: *max_num_gnss_instances
+      instance_start: 0
     EKF2_GPS_MODE:
       description:
         short: Fusion reset mode

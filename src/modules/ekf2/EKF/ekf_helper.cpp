@@ -267,7 +267,7 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) const
 #if defined(CONFIG_EKF2_GNSS)
 
 		if (_control_status.flags.gnss_pos) {
-			hpos_err = math::max(hpos_err, Vector2f(_aid_src_gnss_pos.innovation).norm());
+			hpos_err = math::max(hpos_err, _gnss_aiding.maxActivePosInnovNorm());
 		}
 
 #endif // CONFIG_EKF2_GNSS
@@ -307,11 +307,11 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 #if defined(CONFIG_EKF2_GNSS)
 
 		if (_control_status.flags.gnss_pos) {
-			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_gnss_pos.innovation).norm());
+			vel_err_conservative = math::max(vel_err_conservative, _gnss_aiding.maxActivePosInnovNorm());
 		}
 
 		if (_control_status.flags.gnss_vel) {
-			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_gnss_vel.innovation).norm());
+			vel_err_conservative = math::max(vel_err_conservative, _gnss_aiding.maxActiveVelInnovNormXY());
 		}
 
 #endif // CONFIG_EKF2_GNSS
@@ -456,9 +456,7 @@ float Ekf::getHorizontalVelocityInnovationTestRatio() const
 #if defined(CONFIG_EKF2_GNSS)
 
 	if (_control_status.flags.gnss_vel) {
-		for (int i = 0; i < 2; i++) { // only xy
-			test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_vel.test_ratio_filtered[i]));
-		}
+		test_ratio = math::max(test_ratio, _gnss_aiding.maxActiveVelTestRatioXY());
 	}
 
 #endif // CONFIG_EKF2_GNSS
@@ -496,7 +494,7 @@ float Ekf::getVerticalVelocityInnovationTestRatio() const
 #if defined(CONFIG_EKF2_GNSS)
 
 	if (_control_status.flags.gnss_vel) {
-		test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_vel.test_ratio_filtered[2]));
+		test_ratio = math::max(test_ratio, _gnss_aiding.maxActiveVelTestRatioZ());
 	}
 
 #endif // CONFIG_EKF2_GNSS
@@ -524,9 +522,7 @@ float Ekf::getHorizontalPositionInnovationTestRatio() const
 #if defined(CONFIG_EKF2_GNSS)
 
 	if (_control_status.flags.gnss_pos) {
-		for (auto &test_ratio_filtered : _aid_src_gnss_pos.test_ratio_filtered) {
-			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
-		}
+		test_ratio = math::max(test_ratio, _gnss_aiding.maxActivePosTestRatio());
 	}
 
 #endif // CONFIG_EKF2_GNSS
@@ -729,9 +725,7 @@ uint16_t Ekf::get_ekf_soln_status() const
 
 	// 1024	ESTIMATOR_GPS_GLITCH	True if the EKF has detected a GNSS glitch
 #if defined(CONFIG_EKF2_GNSS)
-	const bool gnss_vel_innov_bad = Vector3f(_aid_src_gnss_vel.test_ratio).max() > 1.f;
-	const bool gnss_pos_innov_bad = Vector2f(_aid_src_gnss_pos.test_ratio).max() > 1.f;
-	soln_status.flags.gps_glitch = (gnss_vel_innov_bad || gnss_pos_innov_bad);
+	soln_status.flags.gps_glitch = _gnss_aiding.anyInnovationBad();
 #endif // CONFIG_EKF2_GNSS
 
 	// 2048	ESTIMATOR_ACCEL_ERROR	True if the EKF has detected bad accelerometer data

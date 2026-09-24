@@ -95,6 +95,9 @@ public:
 	void startGps() { _gps.start(); }
 	void stopGps() { _gps.stop(); }
 
+	void startGps1() { _gps1.start(); }
+	void stopGps1() { _gps1.stop(); }
+
 	void startFlow() { _flow.start(); }
 	void stopFlow() { _flow.stop(); }
 
@@ -127,6 +130,7 @@ public:
 	Flow        _flow;
 	Flow        _flow1; // second optical flow sensor (slot 1)
 	Gps         _gps;
+	Gps         _gps1; // second GNSS receiver (slot 1)
 	Imu         _imu;
 	Mag         _mag;
 	RangeFinder _rng;

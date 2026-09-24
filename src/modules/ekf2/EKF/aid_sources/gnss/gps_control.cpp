@@ -39,238 +39,562 @@
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
-void Ekf::controlGpsFusion(const imuSample &imu_delayed)
+void GnssAiding::update(Ekf &ekf, const imuSample &imu_delayed)
 {
-	_fc.gps.available = (_params.ekf2_gps_ctrl != 0);
+	bool any_buffer = false;
+	bool any_intended = false;
 
-	if (!_gps_buffer) {
-		stopGnssFusion();
+	for (uint8_t slot = 0; slot < MAX_GNSS_INSTANCES; slot++) {
+		ekf._fc.gps[slot].available = (_sources[slot].params.ctrl != 0);
+		any_buffer |= (_sources[slot]._buffer != nullptr);
+		any_intended |= intended(ekf, slot) && (_sources[slot]._buffer != nullptr);
+	}
+
+	if (!any_buffer) {
+		ekf.stopGnssFusion();
 		return;
 	}
 
-	if (!gyro_bias_inhibited()) {
-		_yawEstimator.setGyroBias(getGyroBias(), _control_status.flags.vehicle_at_rest);
+	if (!ekf.gyro_bias_inhibited()) {
+		ekf._yawEstimator.setGyroBias(ekf.getGyroBias(), ekf._control_status.flags.vehicle_at_rest);
 	}
 
-	_yawEstimator.predict(imu_delayed.delta_ang, imu_delayed.delta_ang_dt,
-			      imu_delayed.delta_vel, imu_delayed.delta_vel_dt,
-			      (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest));
+	ekf._yawEstimator.predict(imu_delayed.delta_ang, imu_delayed.delta_ang_dt,
+				  imu_delayed.delta_vel, imu_delayed.delta_vel_dt,
+				  (ekf._control_status.flags.in_air && !ekf._control_status.flags.vehicle_at_rest));
 
-	if (!_fc.gps.intended()) {
-		stopGnssFusion();
+	if (!any_intended) {
+		ekf.stopGnssFusion();
 		return;
 	}
 
-	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
+	// GNSS height, dual antenna yaw and the yaw estimator use a single receiver,
+	// restart their fusion when the receiver changes
+	const int8_t hgt_slot = selectSlot(ekf, GnssCtrl::VPOS, true);
+	const int8_t yaw_slot = selectSlot(ekf, GnssCtrl::YAW, false);
+	const int8_t gsf_slot = selectGsfSlot(ekf);
+
+	if (hgt_slot != _hgt_slot) {
+		ekf.stopGpsHgtFusion();
+		_hgt_slot = hgt_slot;
+	}
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+	if (yaw_slot != _yaw_slot) {
+		ekf.stopGnssYawFusion();
+	}
+
+#endif // CONFIG_EKF2_GNSS_YAW
+
+	_yaw_slot = yaw_slot;
+
+	for (uint8_t slot = 0; slot < MAX_GNSS_INSTANCES; slot++) {
+		GnssSource &src = _sources[slot];
+
+		src._hgt_source = (slot == hgt_slot);
+		src._yaw_source = (slot == yaw_slot);
+		src._gsf_source = (slot == gsf_slot);
+
+		if (!src._buffer || !intended(ekf, slot)) {
+			src.stopVel();
+			src.stopPos();
+			src._data_ready = false;
+			continue;
+		}
+
+		bool other_slot_vel_fusing = false;
+		bool other_slot_pos_fusing = false;
+
+		for (uint8_t other = 0; other < MAX_GNSS_INSTANCES; other++) {
+			if (other != slot) {
+				other_slot_vel_fusing |= _sources[other].isVelFusing(ekf);
+				other_slot_pos_fusing |= _sources[other].isPosFusing(ekf);
+			}
+		}
+
+		src.update(ekf, imu_delayed, other_slot_vel_fusing, other_slot_pos_fusing);
+
+		updateStatusFlags(ekf);
+	}
+
+	updateStatusFlags(ekf);
+}
+
+bool GnssAiding::intended(const Ekf &ekf, const uint8_t slot) const
+{
+	return ekf._fc.gps[slot].intended();
+}
+
+int8_t GnssAiding::selectSlot(const Ekf &ekf, const GnssCtrl bit, const bool fallback_to_any) const
+{
+	for (uint8_t slot = 0; slot < MAX_GNSS_INSTANCES; slot++) {
+		if (_sources[slot]._buffer && intended(ekf, slot) && _sources[slot].ctrl(bit)) {
+			return slot;
+		}
+	}
+
+	if (fallback_to_any) {
+		// e.g. altitude initialisation when GNSS is the height reference but its height is not fused
+		for (uint8_t slot = 0; slot < MAX_GNSS_INSTANCES; slot++) {
+			if (_sources[slot]._buffer && intended(ekf, slot)) {
+				return slot;
+			}
+		}
+	}
+
+	return -1;
+}
+
+int8_t GnssAiding::selectGsfSlot(const Ekf &ekf) const
+{
+	// prefer a receiver passing the quality checks
+	for (uint8_t slot = 0; slot < MAX_GNSS_INSTANCES; slot++) {
+		if (_sources[slot]._buffer && intended(ekf, slot) && _sources[slot]._checks.passed()) {
+			return slot;
+		}
+	}
+
+	return selectSlot(ekf, GnssCtrl::VEL, true);
+}
+
+void GnssAiding::updateStatusFlags(Ekf &ekf) const
+{
+	bool any_vel = false;
+	bool any_pos = false;
+	bool any_intended = false;
+	bool all_faulty = true;
+
+	for (uint8_t slot = 0; slot < MAX_GNSS_INSTANCES; slot++) {
+		any_vel |= _sources[slot]._vel_active;
+		any_pos |= _sources[slot]._pos_active;
+
+		if (intended(ekf, slot)) {
+			any_intended = true;
+			all_faulty &= _sources[slot]._fault;
+		}
+	}
+
+	ekf._control_status.flags.gnss_vel = any_vel;
+	ekf._control_status.flags.gnss_pos = any_pos;
+	ekf._control_status.flags.gnss_fault = any_intended && all_faulty;
+}
+
+uint8_t GnssAiding::primarySlot() const
+{
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		if (_sources[i]._vel_active || _sources[i]._pos_active) {
+			return i;
+		}
+	}
+
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		if (_sources[i]._sample_delayed.time_us != 0) {
+			return i;
+		}
+	}
+
+	return 0;
+}
+
+void GnssAiding::stop(Ekf &ekf)
+{
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		GnssSource &src = _sources[i];
+
+		if (src._vel_active || src._pos_active) {
+			src._checks.reset();
+		}
+
+		src.stopVel();
+		src.stopPos();
+		src._data_ready = false;
+	}
+
+	_hgt_slot = -1;
+	_yaw_slot = -1;
+
+	updateStatusFlags(ekf);
+}
+
+void GnssAiding::reset()
+{
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		GnssSource &src = _sources[i];
+		src._checks.resetHard();
+		src._vel_active = false;
+		src._pos_active = false;
+		src._fault = false;
+		src._data_ready = false;
+	}
+
+	_hgt_slot = -1;
+	_yaw_slot = -1;
+}
+
+float GnssAiding::maxActiveVelTestRatioXY() const
+{
+	float test_ratio = -1.f;
+
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		if (_sources[i]._vel_active) {
+			for (int k = 0; k < 2; k++) {
+				test_ratio = math::max(test_ratio, fabsf(_sources[i]._aid_src_vel.test_ratio_filtered[k]));
+			}
+		}
+	}
+
+	return test_ratio;
+}
+
+float GnssAiding::maxActiveVelTestRatioZ() const
+{
+	float test_ratio = -1.f;
+
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		if (_sources[i]._vel_active) {
+			test_ratio = math::max(test_ratio, fabsf(_sources[i]._aid_src_vel.test_ratio_filtered[2]));
+		}
+	}
+
+	return test_ratio;
+}
+
+float GnssAiding::maxActivePosTestRatio() const
+{
+	float test_ratio = -1.f;
+
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		if (_sources[i]._pos_active) {
+			for (const auto &test_ratio_filtered : _sources[i]._aid_src_pos.test_ratio_filtered) {
+				test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
+			}
+		}
+	}
+
+	return test_ratio;
+}
+
+float GnssAiding::maxActiveVelInnovNormXY() const
+{
+	float innov_norm = 0.f;
+
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		if (_sources[i]._vel_active) {
+			innov_norm = math::max(innov_norm, Vector2f(_sources[i]._aid_src_vel.innovation).norm());
+		}
+	}
+
+	return innov_norm;
+}
+
+float GnssAiding::maxActivePosInnovNorm() const
+{
+	float innov_norm = 0.f;
+
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		if (_sources[i]._pos_active) {
+			innov_norm = math::max(innov_norm, Vector2f(_sources[i]._aid_src_pos.innovation).norm());
+		}
+	}
+
+	return innov_norm;
+}
+
+bool GnssAiding::anyInnovationBad() const
+{
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		const GnssSource &src = _sources[i];
+
+		if ((src._vel_active || src._pos_active)
+		    && ((Vector3f(src._aid_src_vel.test_ratio).max() > 1.f) || (Vector2f(src._aid_src_pos.test_ratio).max() > 1.f))) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void GnssSource::setData(const gnssSample &sample, const uint8_t buffer_length, const uint64_t min_obs_interval_us,
+			 const float dt_ekf_avg, const uint64_t time_latest_us)
+{
+	if (params.ctrl == 0) {
+		return;
+	}
+
+	// allocated on the first sample of an enabled slot, so that a slot can be enabled at runtime
+	if (_buffer == nullptr) {
+		_buffer = new TimestampedRingBuffer<gnssSample>(buffer_length);
+
+		if (_buffer == nullptr || !_buffer->valid()) {
+			delete _buffer;
+			_buffer = nullptr;
+			ECL_ERR("GNSS %d buffer allocation failed", _slot);
+			return;
+		}
+	}
+
+	const int64_t time_us = sample.time_us
+				- static_cast<int64_t>(dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	if (time_us >= static_cast<int64_t>(_buffer->get_newest().time_us + min_obs_interval_us)) {
+
+		gnssSample sample_new(sample);
+		sample_new.time_us = time_us;
+
+		_buffer->push(sample_new);
+		_time_last_buffer_push = time_latest_us;
+
+		if (PX4_ISFINITE(sample.yaw)) {
+			_time_last_yaw_buffer_push = time_latest_us;
+		}
+
+	} else {
+		ECL_WARN("GNSS %d data too fast %" PRIi64 " < %" PRIu64 " + %" PRIu64, _slot, time_us,
+			 _buffer->get_newest().time_us, min_obs_interval_us);
+	}
+}
+
+bool GnssSource::isVelFusing(const Ekf &ekf) const
+{
+	return _vel_active && !ekf.isTimedOut(_aid_src_vel.time_last_fuse, ekf._params.reset_timeout_max);
+}
+
+bool GnssSource::isPosFusing(const Ekf &ekf) const
+{
+	return _pos_active && !ekf.isTimedOut(_aid_src_pos.time_last_fuse, ekf._params.reset_timeout_max);
+}
+
+void GnssSource::update(Ekf &ekf, const imuSample &imu_delayed, const bool other_slot_vel_fusing,
+			const bool other_slot_pos_fusing)
+{
+	_intermittent = !ekf.isNewestSampleRecent(_time_last_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 	// check for arrival of new sensor data at the fusion time horizon
-	_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
+	_data_ready = _buffer->pop_first_older_than(imu_delayed.time_us, &_sample_delayed);
 
-	if (_gps_data_ready) {
-		const gnssSample &gnss_sample = _gps_sample_delayed;
+	if (_data_ready) {
+		const gnssSample &gnss_sample = _sample_delayed;
 
-		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
+		const bool initial_checks_passed_prev = _checks.initialChecksPassed();
 
-		if (_gnss_checks.run(gnss_sample, _time_delayed_us)) {
-			if (_gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
+		if (_checks.run(gnss_sample, ekf._time_delayed_us)) {
+			if (_checks.initialChecksPassed() && !initial_checks_passed_prev) {
 				// First time checks are passing, latching.
-				_information_events.flags.gps_checks_passed = true;
+				ekf._information_events.flags.gps_checks_passed = true;
 			}
 
 		} else {
 			// Skip this sample
-			_gps_data_ready = false;
+			_data_ready = false;
 
-			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
-			const bool gnss_checks_pass_timeout = isTimedOut(_gnss_checks.getLastPassUs(), _params.reset_timeout_max);
+			const bool using_gnss = _vel_active || _pos_active;
+			const bool gnss_checks_pass_timeout = ekf.isTimedOut(_checks.getLastPassUs(), ekf._params.reset_timeout_max);
 
 			if (using_gnss && gnss_checks_pass_timeout) {
-				stopGnssFusion();
-				ECL_WARN("GNSS quality poor - stopping use");
+				stop(ekf);
+				ECL_WARN("GNSS %d quality poor - stopping use", _slot);
 			}
 		}
 
-		updateGnssPos(gnss_sample, _aid_src_gnss_pos);
-		updateGnssVel(imu_delayed, gnss_sample, _aid_src_gnss_vel);
+		ekf.updateGnssPos(gnss_sample, _aid_src_pos);
+		ekf.updateGnssVel(imu_delayed, gnss_sample, _aid_src_vel);
 
-	} else if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) {
-		if (!isNewestSampleRecent(_time_last_gps_buffer_push, _params.reset_timeout_max)) {
-			stopGnssFusion();
-			ECL_WARN("GNSS data stopped");
+	} else if (_vel_active || _pos_active) {
+		if (!ekf.isNewestSampleRecent(_time_last_buffer_push, ekf._params.reset_timeout_max)) {
+			stop(ekf);
+			ECL_WARN("GNSS %d data stopped", _slot);
 		}
 	}
 
-	if (_gps_data_ready) {
+	if (_data_ready) {
 #if defined(CONFIG_EKF2_GNSS_YAW)
-		const gnssSample &gnss_sample = _gps_sample_delayed;
-		controlGnssYawFusion(gnss_sample);
+
+		if (_yaw_source) {
+			ekf.controlGnssYawFusion(*this);
+		}
+
 #endif // CONFIG_EKF2_GNSS_YAW
 
-		controlGnssYawEstimator(_aid_src_gnss_vel);
+		if (_gsf_source) {
+			ekf.controlGnssYawEstimator(_aid_src_vel, params.ctrl);
+		}
 
 		bool do_vel_pos_reset = false;
 
-		if (!_control_status.flags.gnss_fault && _control_status.flags.in_air && isYawFailure()) {
-			const bool velocity_fusion_failure =  _aid_src_gnss_vel.innovation_rejected
-							      && isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay)
-							      && (_time_last_hor_vel_fuse > _time_last_on_ground_us);
+		// while another receiver still constrains the drift, this receiver is the inconsistent one, not the yaw
+		const bool other_slot_fusing = other_slot_vel_fusing || other_slot_pos_fusing;
 
-			const bool position_fusion_failure =  _aid_src_gnss_pos.innovation_rejected
-							      && isTimedOut(_time_last_hor_pos_fuse, _params.EKFGSF_reset_delay)
-							      && (_time_last_hor_pos_fuse > _time_last_on_ground_us);
+		if (!_fault && !other_slot_fusing && ekf._control_status.flags.in_air && ekf.isYawFailure()) {
+			const bool velocity_fusion_failure =  _aid_src_vel.innovation_rejected
+							      && ekf.isTimedOut(ekf._time_last_hor_vel_fuse, ekf._params.EKFGSF_reset_delay)
+							      && (ekf._time_last_hor_vel_fuse > ekf._time_last_on_ground_us);
 
-			if ((_control_status.flags.gnss_vel && velocity_fusion_failure)
-			    || (_control_status.flags.gnss_pos && position_fusion_failure)) {
-				do_vel_pos_reset = tryYawEmergencyReset();
+			const bool position_fusion_failure =  _aid_src_pos.innovation_rejected
+							      && ekf.isTimedOut(ekf._time_last_hor_pos_fuse, ekf._params.EKFGSF_reset_delay)
+							      && (ekf._time_last_hor_pos_fuse > ekf._time_last_on_ground_us);
+
+			if ((_vel_active && velocity_fusion_failure)
+			    || (_pos_active && position_fusion_failure)) {
+				do_vel_pos_reset = ekf.tryYawEmergencyReset();
 			}
 		}
 
-		controlGnssVelFusion(_aid_src_gnss_vel, do_vel_pos_reset);
-		controlGnssPosFusion(_aid_src_gnss_pos, do_vel_pos_reset);
+		controlVelFusion(ekf, do_vel_pos_reset, other_slot_vel_fusing);
+		controlPosFusion(ekf, do_vel_pos_reset, other_slot_pos_fusing);
 	}
 }
 
-void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool force_reset)
+void GnssSource::controlVelFusion(Ekf &ekf, const bool force_reset, const bool other_slot_fusing)
 {
-	const bool continuing_conditions_passing = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
-			&& _control_status.flags.tilt_align
-			&& _control_status.flags.yaw_align
-			&& !_control_status.flags.gnss_fault
-			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
+	const auto &cs = ekf._control_status.flags;
 
-	if (_control_status.flags.gnss_vel) {
+	const bool continuing_conditions_passing = ctrl(GnssCtrl::VEL)
+			&& cs.tilt_align
+			&& cs.yaw_align
+			&& !_fault
+			&& !cs.gnss_hgt_fault;
+	const bool starting_conditions_passing = continuing_conditions_passing && _checks.passed();
+
+	estimator_aid_source3d_s &aid_src = _aid_src_vel;
+
+	if (_vel_active) {
 		if (continuing_conditions_passing) {
-			fuseVelocity(aid_src);
+			ekf.fuseVelocity(aid_src);
 
-			const bool fusion_timeout = isTimedOut(aid_src.time_last_fuse, _params.reset_timeout_max);
+			const bool fusion_timeout = ekf.isTimedOut(aid_src.time_last_fuse, ekf._params.reset_timeout_max);
 
 			if (fusion_timeout || force_reset) {
-				if (isGnssVelResetAllowed() || force_reset) {
-					ECL_WARN("GNSS fusion timeout, resetting");
-					resetVelocityToGnss(aid_src);
+				if (isVelResetAllowed(ekf, other_slot_fusing) || force_reset) {
+					ECL_WARN("GNSS %d fusion timeout, resetting", _slot);
+					ekf.resetVelocityToGnss(aid_src);
 
 				} else {
-					stopGnssVelFusion();
+					stopVel();
 				}
 			}
 
 		} else {
-			stopGnssVelFusion();
+			stopVel();
 		}
 
 	} else {
 		if (starting_conditions_passing) {
 			bool fused = false;
 
-			const bool do_reset = force_reset || !_control_status_prev.flags.yaw_align;
+			const bool do_reset = force_reset || !ekf._control_status_prev.flags.yaw_align;
 
 			// Start fusing the data without reset if possible to avoid disturbing the filter
 			if (!do_reset && aid_src.test_ratio[0] < 1.f && aid_src.test_ratio[1] < 1.f) {
-				fused = fuseVelocity(aid_src);
+				fused = ekf.fuseVelocity(aid_src);
 			}
 
 			bool reset = false;
 
-			if (!fused && (isGnssVelResetAllowed() || force_reset)) {
-				resetVelocityToGnss(aid_src);
+			if (!fused && (isVelResetAllowed(ekf, other_slot_fusing) || force_reset)) {
+				ekf.resetVelocityToGnss(aid_src);
 				reset = true;
 			}
 
 			if (fused || reset) {
-				ECL_INFO("starting GNSS velocity fusion");
-				_information_events.flags.starting_gps_fusion = true;
-				_control_status.flags.gnss_vel = true;
+				ECL_INFO("starting GNSS %d velocity fusion", _slot);
+				ekf._information_events.flags.starting_gps_fusion = true;
+				_vel_active = true;
 			}
 		}
 	}
 }
 
-void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool force_reset)
+void GnssSource::controlPosFusion(Ekf &ekf, const bool force_reset, const bool other_slot_fusing)
 {
-	const bool gnss_pos_enabled = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::HPOS));
+	const auto &cs = ekf._control_status.flags;
+
+	const bool gnss_pos_enabled = ctrl(GnssCtrl::HPOS);
 
 	const bool continuing_conditions_passing = gnss_pos_enabled
-			&& _control_status.flags.tilt_align
-			&& _control_status.flags.yaw_align
-			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
-	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gnss_checks.passed();
+			&& cs.tilt_align
+			&& cs.yaw_align
+			&& !cs.gnss_hgt_fault;
+	const bool starting_conditions_passing = continuing_conditions_passing && _checks.passed();
+	const bool gpos_init_conditions_passing = gnss_pos_enabled && _checks.passed();
 
-	if (_control_status.flags.gnss_pos) {
+	estimator_aid_source2d_s &aid_src = _aid_src_pos;
+
+	if (_pos_active) {
 		if (continuing_conditions_passing) {
-			fuseHorizontalPosition(aid_src);
+			ekf.fuseHorizontalPosition(aid_src);
 
-			const bool fusion_timeout = isTimedOut(aid_src.time_last_fuse, _params.reset_timeout_max);
+			const bool fusion_timeout = ekf.isTimedOut(aid_src.time_last_fuse, ekf._params.reset_timeout_max);
 
 			if (fusion_timeout || force_reset) {
-				if (isGnssPosResetAllowed()) {
-					ECL_WARN("GNSS fusion timeout, resetting");
-					resetHorizontalPositionToGnss(aid_src);
+				if (isPosResetAllowed(ekf, other_slot_fusing)) {
+					ECL_WARN("GNSS %d fusion timeout, resetting", _slot);
+					ekf.resetHorizontalPositionToGnss(aid_src);
 
 				} else {
-					stopGnssPosFusion();
-					_control_status.flags.gnss_fault = true;
+					stopPos();
+					_fault = true;
 				}
 			}
 
 		} else {
-			stopGnssPosFusion();
+			stopPos();
 		}
 
 	} else {
 		if (starting_conditions_passing) {
 			bool fused = false;
 
-			const bool do_reset = force_reset || !_control_status_prev.flags.yaw_align;
+			const bool do_reset = force_reset || !ekf._control_status_prev.flags.yaw_align;
 
 			// Start fusing the data without reset if possible to avoid disturbing the filter
-			if (_local_origin_lat_lon.isInitialized()
+			if (ekf._local_origin_lat_lon.isInitialized()
 			    && !do_reset
 			    && aid_src.test_ratio[0] < 1.f && aid_src.test_ratio[1] < 1.f) {
-				fused = fuseHorizontalPosition(aid_src);
+				fused = ekf.fuseHorizontalPosition(aid_src);
 			}
 
 			bool reset = false;
 
-			if ((!fused && isGnssPosResetAllowed())
-			    || (gpos_init_conditions_passing && !_local_origin_lat_lon.isInitialized())) {
-				resetHorizontalPositionToGnss(aid_src);
+			if ((!fused && isPosResetAllowed(ekf, other_slot_fusing))
+			    || (gpos_init_conditions_passing && !ekf._local_origin_lat_lon.isInitialized())) {
+				ekf.resetHorizontalPositionToGnss(aid_src);
 				reset = true;
 			}
 
 			if (fused || reset) {
-				ECL_INFO("starting GNSS position fusion");
-				_information_events.flags.starting_gps_fusion = true;
-				_control_status.flags.gnss_pos = true;
-				_control_status.flags.gnss_fault = false;
+				ECL_INFO("starting GNSS %d position fusion", _slot);
+				ekf._information_events.flags.starting_gps_fusion = true;
+				_pos_active = true;
+				_fault = false;
 			}
 
-		} else if (gpos_init_conditions_passing && !_local_origin_lat_lon.isInitialized()) {
-			resetHorizontalPositionToGnss(aid_src);
+		} else if (gpos_init_conditions_passing && !ekf._local_origin_lat_lon.isInitialized()) {
+			ekf.resetHorizontalPositionToGnss(aid_src);
 		}
 	}
 }
 
-bool Ekf::isGnssVelResetAllowed() const
+bool GnssSource::isVelResetAllowed(const Ekf &ekf, const bool other_slot_fusing) const
 {
-	if (_control_status.flags.gnss_fault) {
+	// a receiver never resets the state while another one is fused
+	if (_fault || other_slot_fusing) {
 		return false;
 	}
 
 	bool allowed = true;
 
-	switch (static_cast<GnssMode>(_params.ekf2_gps_mode)) {
+	switch (static_cast<GnssMode>(ekf._params.ekf2_gps_mode)) {
 	case GnssMode::kAuto:
-		if (isOtherSourceOfHorizontalVelocityAidingThan(_control_status.flags.gnss_vel)
-		    && !_control_status.flags.wind_dead_reckoning) {
+		if (ekf.isOtherSourceOfHorizontalVelocityAidingThan(ekf._control_status.flags.gnss_vel)
+		    && !ekf._control_status.flags.wind_dead_reckoning) {
 			allowed = false;
 		}
 
 		break;
 
 	case GnssMode::kDeadReckoning:
-		if (isOtherSourceOfHorizontalAidingThan(_control_status.flags.gnss_vel)) {
+		if (ekf.isOtherSourceOfHorizontalAidingThan(ekf._control_status.flags.gnss_vel)) {
 			allowed = false;
 		}
 
@@ -280,24 +604,25 @@ bool Ekf::isGnssVelResetAllowed() const
 	return allowed;
 }
 
-bool Ekf::isGnssPosResetAllowed() const
+bool GnssSource::isPosResetAllowed(const Ekf &ekf, const bool other_slot_fusing) const
 {
-	if (_control_status.flags.gnss_fault) {
+	// a receiver never resets the state while another one is fused
+	if (_fault || other_slot_fusing) {
 		return false;
 	}
 
 	bool allowed = true;
 
-	switch (static_cast<GnssMode>(_params.ekf2_gps_mode)) {
+	switch (static_cast<GnssMode>(ekf._params.ekf2_gps_mode)) {
 	case GnssMode::kAuto:
-		if (isOtherSourceOfHorizontalPositionAidingThan(_control_status.flags.gnss_pos)) {
+		if (ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf._control_status.flags.gnss_pos)) {
 			allowed = false;
 		}
 
 		break;
 
 	case GnssMode::kDeadReckoning:
-		if (isOtherSourceOfHorizontalAidingThan(_control_status.flags.gnss_pos)) {
+		if (ekf.isOtherSourceOfHorizontalAidingThan(ekf._control_status.flags.gnss_pos)) {
 			allowed = false;
 		}
 
@@ -305,6 +630,72 @@ bool Ekf::isGnssPosResetAllowed() const
 	}
 
 	return allowed;
+}
+
+void GnssSource::stop(Ekf &ekf)
+{
+	if (_vel_active || _pos_active) {
+		_checks.reset();
+	}
+
+	stopVel();
+	stopPos();
+
+	if (_hgt_source) {
+		ekf.stopGpsHgtFusion();
+	}
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+	if (_yaw_source) {
+		ekf.stopGnssYawFusion();
+	}
+
+#endif // CONFIG_EKF2_GNSS_YAW
+
+	if (_gsf_source) {
+		ekf._yawEstimator.reset();
+		ekf._time_yaw_estimator_activated_us = 0;
+	}
+}
+
+void GnssSource::stopVel()
+{
+	if (_vel_active) {
+		ECL_INFO("stopping GNSS %d velocity fusion", _slot);
+		_vel_active = false;
+
+		//TODO: what if gnss yaw or height is used?
+		if (!_pos_active) {
+			_checks.reset();
+		}
+	}
+}
+
+void GnssSource::stopPos()
+{
+	if (_pos_active) {
+		ECL_INFO("stopping GNSS %d position fusion", _slot);
+		_pos_active = false;
+
+		//TODO: what if gnss yaw or height is used?
+		if (!_vel_active) {
+			_checks.reset();
+		}
+	}
+}
+
+void Ekf::stopGnssFusion()
+{
+	_gnss_aiding.stop(*this);
+
+	stopGpsHgtFusion();
+#if defined(CONFIG_EKF2_GNSS_YAW)
+	stopGnssYawFusion();
+#endif // CONFIG_EKF2_GNSS_YAW
+
+	_yawEstimator.reset();
+	_time_yaw_estimator_activated_us = 0;
 }
 
 void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src)
@@ -321,6 +712,8 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 	const Vector3f vel_obs_var(vel_var, vel_var, vel_var * sq(1.5f));
 
 	const float innovation_gate = math::max(_params.ekf2_gps_v_gate, 1.f);
+
+	aid_src.device_id = gnss_sample.device_id;
 
 	updateAidSourceStatus(aid_src,
 			      gnss_sample.time_us,                  // sample timestamp
@@ -369,6 +762,8 @@ void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s 
 	const Vector2f pos_obs_var(pos_var, pos_var);
 	const matrix::Vector2d observation(measurement_corrected.latitude_deg(), measurement_corrected.longitude_deg());
 
+	aid_src.device_id = gnss_sample.device_id;
+
 	updateAidSourceStatus(aid_src,
 			      gnss_sample.time_us,                                    // sample timestamp
 			      observation,                                            // observation
@@ -378,7 +773,7 @@ void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s 
 			      math::max(_params.ekf2_gps_p_gate, 1.f));            // innovation gate
 }
 
-void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
+void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel, const int32_t gnss_ctrl)
 {
 	// update yaw estimator velocity (basic sanity check on GNSS velocity data)
 	const float vel_var = aid_src_vel.observation_variance[0];
@@ -412,8 +807,8 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 		}
 
 		// Try to align yaw using estimate if available
-		if (((_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
-		     || (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::HPOS)))
+		if (((gnss_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
+		     || (gnss_ctrl & static_cast<int32_t>(GnssCtrl::HPOS)))
 		    && !_control_status.flags.yaw_align
 		    && _control_status.flags.tilt_align) {
 			if (resetYawToEKFGSF()) {
@@ -483,49 +878,6 @@ void Ekf::resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src)
 		      aid_src.observation_variance[1]);
 
 	resetAidSourceStatusZeroInnovation(aid_src);
-}
-
-void Ekf::stopGnssFusion()
-{
-	if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) {
-		_gnss_checks.reset();
-	}
-
-	stopGnssVelFusion();
-	stopGnssPosFusion();
-	stopGpsHgtFusion();
-#if defined(CONFIG_EKF2_GNSS_YAW)
-	stopGnssYawFusion();
-#endif // CONFIG_EKF2_GNSS_YAW
-
-	_yawEstimator.reset();
-	_time_yaw_estimator_activated_us = 0;
-}
-
-void Ekf::stopGnssVelFusion()
-{
-	if (_control_status.flags.gnss_vel) {
-		ECL_INFO("stopping GNSS velocity fusion");
-		_control_status.flags.gnss_vel = false;
-
-		//TODO: what if gnss yaw or height is used?
-		if (!_control_status.flags.gnss_pos) {
-			_gnss_checks.reset();
-		}
-	}
-}
-
-void Ekf::stopGnssPosFusion()
-{
-	if (_control_status.flags.gnss_pos) {
-		ECL_INFO("stopping GNSS position fusion");
-		_control_status.flags.gnss_pos = false;
-
-		//TODO: what if gnss yaw or height is used?
-		if (!_control_status.flags.gnss_vel) {
-			_gnss_checks.reset();
-		}
-	}
 }
 
 bool Ekf::isYawEmergencyEstimateAvailable() const

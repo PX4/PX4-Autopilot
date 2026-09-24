@@ -93,9 +93,9 @@ parameters:
           when for operation over a flat surface as the local NED origin will move
           up and down with ground level.
 
-          If GPS is set as reference and EKF2_GPS_CTRL is not 0, the GPS altitude is
+          If GPS is set as reference and an EKF2_GPS<i>_CTRL is not 0, the GPS altitude is
           still used to initiaize the bias of the other height sensors, regardless of
-          the altitude fusion bit in EKF2_GPS_CTRL.
+          the altitude fusion bit in EKF2_GPS<i>_CTRL.
       type: enum
       values:
         0: Barometric pressure
@@ -200,7 +200,7 @@ parameters:
           Sources whose bit is cleared will be disabled.
           Only applied while disarmed. For in-flight changes use the
           MAVLink command VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE or the
-          individual CTRL params (e.g. EKF2_GPS_CTRL, EKF2_BARO_CTRL).
+          individual CTRL params (e.g. EKF2_GPS0_CTRL, EKF2_BARO_CTRL).
       type: bitmask
       bit:
         0: GNSS 0

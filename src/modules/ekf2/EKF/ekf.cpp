@@ -93,7 +93,7 @@ void Ekf::reset()
 	_fault_status.value = 0;
 
 #if defined(CONFIG_EKF2_GNSS)
-	_gnss_checks.resetHard();
+	_gnss_aiding.reset();
 #endif // CONFIG_EKF2_GNSS
 	_local_origin_alt = NAN;
 
@@ -570,7 +570,11 @@ void Ekf::print_status()
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	printRingBuffer("gps buffer", _gps_buffer);
+
+	for (uint8_t i = 0; i < MAX_GNSS_INSTANCES; i++) {
+		printRingBuffer("gps buffer", _gnss_aiding.source(i)._buffer);
+	}
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)

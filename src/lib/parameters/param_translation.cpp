@@ -387,5 +387,14 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-09-25: EKF2_GPS_CTRL applies to GNSS receiver slot 0
+	{
+		if (strcmp("EKF2_GPS_CTRL", node->name) == 0) {
+			strcpy(node->name, "EKF2_GPS0_CTRL");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_CTRL", "EKF2_GPS0_CTRL");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

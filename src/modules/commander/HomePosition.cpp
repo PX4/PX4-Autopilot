@@ -41,7 +41,7 @@
 
 HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags): ModuleParams(nullptr),
 	_failsafe_flags(failsafe_flags),
-	_param_ekf2_gps_ctrl_handle(param_find("EKF2_GPS_CTRL"))
+	_param_ekf2_gps_ctrl_handle(param_find("EKF2_GPS0_CTRL")) // receiver slot 0 == vehicle_gps_position instance 0
 {
 	int32_t ekf2_hgt_ref = kHeightReferenceGnss;
 	const param_t param_ekf2_hgt_ref_handle = param_find("EKF2_HGT_REF");

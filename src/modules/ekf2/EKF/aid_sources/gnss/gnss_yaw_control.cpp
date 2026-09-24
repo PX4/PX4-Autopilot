@@ -45,9 +45,11 @@
 
 #include <ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h>
 
-void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
+void Ekf::controlGnssYawFusion(const GnssSource &src)
 {
-	if (!(_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::YAW))
+	const gnssSample &gnss_sample = src._sample_delayed;
+
+	if (!src.ctrl(GnssCtrl::YAW)
 	    || _control_status.flags.gnss_yaw_fault) {
 
 		stopGnssYawFusion();
@@ -62,13 +64,13 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 
 		const bool continuing_conditions_passing = _control_status.flags.tilt_align;
 
-		const bool is_gnss_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push,
+		const bool is_gnss_yaw_data_intermittent = !isNewestSampleRecent(src._time_last_yaw_buffer_push,
 				2 * GNSS_YAW_MAX_INTERVAL);
 
 		const bool starting_conditions_passing = continuing_conditions_passing
-				&& _gnss_checks.passed()
+				&& src._checks.passed()
 				&& !is_gnss_yaw_data_intermittent
-				&& !_gps_intermittent;
+				&& !src._intermittent;
 
 		if (_control_status.flags.gnss_yaw) {
 			if (continuing_conditions_passing) {
@@ -123,7 +125,7 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 		}
 
 	} else if (_control_status.flags.gnss_yaw
-		   && !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push, _params.reset_timeout_max)) {
+		   && !isNewestSampleRecent(src._time_last_yaw_buffer_push, _params.reset_timeout_max)) {
 
 		// No yaw data in the message anymore. Stop until it comes back.
 		stopGnssYawFusion();
