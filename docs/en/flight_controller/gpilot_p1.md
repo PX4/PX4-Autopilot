@@ -16,18 +16,6 @@ It provides redundant inertial sensors, redundant barometers, onboard heating fo
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Key Features {#key_features}
-
-- STM32H753 FMU processor running at 400 MHz.
-- STM32F100 failsafe co-processor.
-- Triple-redundant IMU system with vibration isolation and temperature control.
-- Dual barometers and an onboard RM3100 compass.
-- 14 PWM outputs: 8 from the IO processor and 6 from the FMU.
-- Redundant power inputs with analog voltage and current sensing.
-- Two DroneCAN ports, two I2C ports, and five serial ports.
-- microSD card for flight logs.
-- External safety button, status LED, and high-power buzzer.
-
 ## Specifications {#specifications}
 
 ### Processor {#processor}
@@ -40,18 +28,17 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **IMU:** 2x [InvenSense ICM-20649](https://www.invensense.tdk.com/en-us/products/motion-tracking/6-axis/icm-20649) (SPI1, SPI4), [InvenSense ICM-20602](https://www.invensense.tdk.com/en-us/products/motion-tracking/6-axis/icm-20602) (SPI4)
 - **Barometer:** 2x MS5611 (SPI1, SPI4)
 - **Magnetometer:** [PNI RM3100](https://www.pnicorp.com/rm3100/) (SPI4)
-- **Heater:** IMU heating controlled by the IO processor, with a default operating temperature of 45 °C; the temperature control is configurable in firmware.
+- **Heater:** IMU heating controlled by the IO processor, targeting 55 °C by default (set using [HEATER1_TEMP](../advanced_config/parameter_reference.md#HEATER1_TEMP)).
 
 ### Interfaces {#interfaces}
 
-- **PWM outputs:** 6 FMU outputs (`AUX1`–`AUX6`), plus 8 from the IO processor (`PWM1`–`PWM8`)
+- **PWM outputs:** 8 `MAIN` outputs from the IO processor and 6 `AUX` outputs from the FMU
 - **Serial ports:** 5 (`TELEM1`, `TELEM2`, `GPS1`, `GPS2`, `SERIAL5`), two with hardware flow control
 - **I2C buses:** 2, both external
-- **SPI port:** 1
 - **CAN buses:** 2 (DroneCAN)
 - **Analog input:** 1 (`ADC`)
 - **USB:** Yes (USB-C)
-- **RC input:** Yes: S.Bus and Spektrum/DSM, through the IO processor. S.Bus output is also available.
+- **RC input:** Yes: PPM, S.Bus, Spektrum/DSM, ST24 and SUMD through the IO processor. S.Bus output is also available.
 - **Parameter storage:** FRAM
 - **SD card:** microSD slot
 - **Other:** safety button and LED, buzzer and processor status LED, SWD debug/programming port
@@ -60,7 +47,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - **Input voltage:** 4.7 V to 5.3 V on `POWER1` and `POWER2`
 - **Power monitoring:** 2 analog power inputs, with voltage and current sensing
-- **Servo rail voltage:** 3.3 V or 5 V, selectable for the I/O PWM outputs
+- **PWM output signal level:** 3.3 V or 5 V, selected by `GPIO_PWM_VOLT_SEL` (PB4)
 
 ### Mechanical Data {#mechanical_data}
 
@@ -70,7 +57,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-Contact [GOKHAN IHA](https://gokhaniha.com/) for product availability and reseller information.
+The G-Pilot P1 can be purchased from the [GOKHAN IHA store](https://shop.gokhaniha.com/urun/15/gpilot-p1-otopilot).
 
 ## Pinouts {#pinouts}
 
@@ -86,30 +73,37 @@ Connectors use JST-GH 1.25 mm pitch, except for the Molex Clik-Mate `POWER1` and
 `POWER1` and `POWER2` accept 4.7 V to 5.3 V DC and provide redundant power inputs.
 Each port provides analog voltage and current sensing; the analog sensing inputs must not exceed 3.3 V.
 
+::: warning
+The servo rail is not powered by `POWER1` or `POWER2` and must be supplied externally.
+:::
+
 The included GBRICK LV power module can be connected to either power input, or to both inputs for redundant power.
 PX4 presets the voltage divider ([BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV), [BAT2_V_DIV](../advanced_config/parameter_reference.md#BAT2_V_DIV)) to `12.02` and the amps per volt ([BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V), [BAT2_A_PER_V](../advanced_config/parameter_reference.md#BAT2_A_PER_V)) to `39.877` for both inputs.
 To recalibrate voltage and current monitoring in _QGroundControl_, see [Battery Estimation Tuning](../config/battery.md).
 
 ## PWM Outputs {#pwm_outputs}
 
-The G-Pilot P1 has 14 PWM outputs: 8 `MAIN` outputs from the IO processor (labelled `PWM1`–`PWM8` on the servo rail) and 6 `AUX` outputs from the FMU (labelled `AUX1`–`AUX6`).
+The G-Pilot P1 has 14 PWM outputs: 8 `MAIN` outputs from the IO processor (labelled `MAIN1`–`MAIN8` on the servo rail) and 6 `AUX` outputs from the FMU (labelled `AUX1`–`AUX6`).
 
 The outputs are arranged in five timer groups.
 All outputs within the same group must use the same output protocol and rate.
 
 | Output group | Outputs  | Timer | Supported protocols |
 | ------------ | -------- | ----- | ------------------- |
-| Main 1       | MAIN 1-2 | TIM2  | PWM, DShot          |
-| Main 2       | MAIN 3-4 | TIM4  | PWM, DShot          |
-| Main 3       | MAIN 5-8 | TIM3  | PWM, DShot          |
+| Main 1       | MAIN 1-2 | TIM2  | PWM                 |
+| Main 2       | MAIN 3-4 | TIM4  | PWM                 |
+| Main 3       | MAIN 5-8 | TIM3  | PWM                 |
 | Aux 1        | AUX 1-4  | TIM1  | PWM, DShot          |
 | Aux 2        | AUX 5-6  | TIM4  | PWM, DShot          |
 
+DShot is only supported on the `AUX` outputs: the IO processor can't output DShot.
+
 All six `AUX` outputs also support [bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The I/O PWM output voltage is selectable between 3.3 V and 5 V.
-The FMU auxiliary outputs use the FMU servo supply and are not affected by the I/O output voltage selector.
-Verify the required voltage for the connected ESCs or servos before powering the vehicle.
+`AUX5` can instead be used as a PWM input (for example, for a PWM Lidar-Lite); it is then unavailable as an output.
+
+The I/O PWM output signal level is selectable between 3.3 V and 5 V using `GPIO_PWM_VOLT_SEL` (PB4).
+The servo rail is externally powered; the flight controller only monitors its voltage.
 
 ## Telemetry Radios (Optional) {#telemetry}
 
@@ -126,17 +120,14 @@ For more information see [SD Cards (Removable Memory)](../getting_started/px4_ba
 
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Connector | Typical use     | Hardware flow control |
-| ------ | --------- | --------------- | --------------------- |
-| USB    | USB-C     | USB connection  | No                    |
-| USART2 | TELEM1    | Telemetry       | Yes                   |
-| USART3 | TELEM2    | Telemetry       | Yes                   |
-| UART4  | GPS1      | GPS             | No                    |
-| UART8  | GPS2      | GPS             | No                    |
-| UART7  | USER      | User peripheral | No                    |
-
-The physical port assignment and firmware device names may vary between PX4 board configurations.
-Check the serial device mapping provided with the PX4 firmware for the board before configuring a peripheral.
+| UART   | Device     | Port    | Flow Control |
+| ------ | ---------- | ------- | ------------ |
+| USART2 | /dev/ttyS0 | TELEM1  | Yes          |
+| USART3 | /dev/ttyS1 | TELEM2  | Yes          |
+| UART4  | /dev/ttyS2 | GPS1    | No           |
+| USART6 | /dev/ttyS3 | PX4IO   | No           |
+| UART7  | /dev/ttyS4 | SERIAL5 | No           |
+| UART8  | /dev/ttyS5 | GPS2    | No           |
 
 ## Building Firmware {#building_firmware}
 
@@ -174,7 +165,8 @@ A remote control (RC) radio system is required if you want to manually control y
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
 The `RCIN` input on the servo rail is connected to the STM32F100 IO processor (PX4IO).
-It supports S.Bus and Spektrum/DSM receivers.
+It supports the protocols in the [`px4io` protocol list](../modules/modules_driver.md#px4io) (PPM, S.BUS, DSM, ST24, SUMD), with no configuration required.
+PWM receivers (one wire per channel) must be connected through a [PPM encoder](../getting_started/rc_transmitter_receiver.md#connecting-receivers).
 
 CRSF (including ExpressLRS) receivers must instead be connected to an FMU serial port, such as `TELEM2`.
 Map CRSF to that port by setting [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG).
