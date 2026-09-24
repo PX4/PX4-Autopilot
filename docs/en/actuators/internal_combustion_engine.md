@@ -13,7 +13,7 @@ The engine can be commanded to start automatically (for example on arming, or on
 - For continuous operation without a propeller, a flywheel is recommended.
 - Keep clear of the propeller arc whenever the vehicle is powered.
 - Verify that the engine stop functionality (ignition off, choke closed) reliably stops the engine before you rely on it.
-:::
+  :::
 
 ## Hardware Requirements
 
@@ -264,7 +264,7 @@ The module runs at 50 Hz.
 | `IC Engine Ignition` | `ignition_on`                              | Spark/ignition enable. `false` cuts the spark and stops the engine (optional: many engine spark boxes always run when powered). |
 | `IC Engine Throttle` | `throttle_control`                         | Throttle servo setpoint, `0`…`1`. `NAN` while the engine is commanded off.                                                      |
 | `IC Engine Choke`    | `choke_control`                            | Choke servo setpoint, `0`…`1`, where `1` is fully closed (richest mixture). Optional actuator.                                  |
-| `IC Engine Starter`  | `starter_engine_control`                   | Electric starter motor setpoint, `0`…`1`. Optional actuator: the engine can also be hand-started.                                   |
+| `IC Engine Starter`  | `starter_engine_control`                   | Electric starter motor setpoint, `0`…`1`. Optional actuator: the engine can also be hand-started.                               |
 
 ### State Machine
 

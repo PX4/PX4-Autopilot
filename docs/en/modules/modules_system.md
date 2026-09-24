@@ -411,36 +411,15 @@ Source: [modules/internal_combustion_engine_control](https://github.com/PX4/PX4-
 
 ### Description
 
-Controls a spark-ignition internal combustion engine (ICE): ignition, throttle, choke, and
+Controls a spark-ignition internal combustion engine (ICE): ignition, throttle, choke and
 electric starter motor. A state machine sequences the start attempts, restarts the engine if
-it stops in flight, and runs a closed loop idle RPM governor.
+it stops in flight, and runs a closed-loop idle RPM governor.
 
-The throttle demand is taken from motor 1 of the control allocator. The resulting setpoints are
-published in [InternalCombustionEngineControl.msg](../msg_docs/InternalCombustionEngineControl.md),
-which the mixer maps to the four `IC Engine *` output functions (ignition, throttle, choke, starter).
-In the "Stopped" state the throttle setpoint is NAN, which by definition drives the output to
-the disarmed value configured for that output.
-
-The engine speed is read from [Rpm.msg](../msg_docs/Rpm.md) and is required for operation: the
-state machine only declares the engine running once the measured RPM exceeds ICE_MIN_RUN_RPM.
-The state machine state is reported in
-[InternalCombustionEngineStatus.msg](../msg_docs/InternalCombustionEngineStatus.md).
-
-### Enabling
-
-The module and the RPM capture driver are not in the default builds and have to be added to the
-board configuration:
-
-```
-CONFIG_MODULES_INTERNAL_COMBUSTION_ENGINE_CONTROL=y
-CONFIG_DRIVERS_RPM_CAPTURE=y
-```
-
-The module is then started at boot if
+The module is not in the default builds, and is only started at boot if
 [ICE_EN](../advanced_config/parameter_reference.md#ICE_EN) is set.
 
-See [Internal Combustion Engines](../actuators/internal_combustion_engine.md) for the hardware
-setup, actuator configuration, start sequence timing, and idle governor tuning.
+See [Internal Combustion Engines](../actuators/internal_combustion_engine.md) for the firmware
+and hardware setup, actuator configuration, start sequence timing and idle governor tuning.
 
 ### Usage {#internal_combustion_engine_control_usage}
 
