@@ -25,7 +25,7 @@ Users can control progression though these states using a [safety switch](../get
 
 - An _arming switch_ is a switch or button _on an RC controller_ that can be used to arm the vehicle and start motors (provided arming is not prevented by a safety switch).
 - An _arming gesture_ is a stick movement _on an RC controller_ that can be used as an alternative to an arming switch.
-- MAVLink commands can also be sent by a ground control station to arm/disarm, or pre-arm a vehicle.
+- MAVLink commands can also be sent by a ground control station to pre-arm, arm, or disarm a vehicle.
 
 PX4 will also automatically disarm the vehicle if it does not takeoff within a certain amount of time after arming, and if it is not manually disarmed after landing.
 This reduces the amount of time where an armed (and therefore dangerous) vehicle is on the ground.
@@ -156,26 +156,28 @@ The arming sequence depends on whether or not there is a _safety switch_, and is
 
 The [COM_PREARM_MODE](#COM_PREARM_MODE) parameter defines when/if pre-arm mode is enabled ("safe"/non-throttling actuators are able to move):
 
-- _Disabled_: Pre-arm mode disabled (there is no stage where only "safe"/non-throttling actuators are enabled).
-- _Safety Switch or Mavlink_ (Default): The pre-arm mode is enabled by either the safety switch, or via the mavlink command [MAV_CMD_DO_SET_SAFETY_SWITCH_STATE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SAFETY_SWITCH_STATE).
-- _Always_: Pre-arm mode is enabled from power up.
-- _Safety Switch only_: The pre-arm mode is enabled by the safety switch. If there is no safety switch then pre-arm mode will not be enabled.
-- _Mavlink only_: The pre-arm mode is enabled by [MAV_CMD_DO_SET_SAFETY_SWITCH_STATE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SAFETY_SWITCH_STATE). The safety switch is ignored.
+- `Disabled`: Pre-arm mode disabled (there is no stage where only "safe"/non-throttling actuators are enabled).
+- `Safety Switch or MAVLink` (Default): Pre-arm mode is enabled by either the safety switch or the MAVLink command [MAV_CMD_DO_SET_SAFETY_SWITCH_STATE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SAFETY_SWITCH_STATE).
+- `Always`: Pre-arm mode is enabled from power up.
+- `Safety Switch only`: The pre-arm mode is enabled by the safety switch.
+  If there is no safety switch then pre-arm mode will not be enabled.
+- `MAVLink only`: The pre-arm mode is enabled by [MAV_CMD_DO_SET_SAFETY_SWITCH_STATE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SAFETY_SWITCH_STATE).
+  The safety switch is ignored.
 
 The sections below detail the startup sequences for the different configurations
 
-### Default: COM_PREARM_MODE=Safety Switch or Mavlink
+### Default: COM_PREARM_MODE=Safety Switch or MAVLink
 
-The default configuration allows to use either the safety switch or a mavlink command to pre-arm.
+The default configuration lets you use either the safety switch or a MAVLink command to pre-arm.
 From pre-arm you can then arm to engage all motors/actuators.
-It corresponds to: [COM_PREARM_MODE=1](#COM_PREARM_MODE) (safety switch or mavlink) and [CBRK_IO_SAFETY=0](#CBRK_IO_SAFETY) (I/O safety circuit breaker disabled).
+It corresponds to: [COM_PREARM_MODE=1](#COM_PREARM_MODE) (safety switch or MAVLink) and [CBRK_IO_SAFETY=0](#CBRK_IO_SAFETY) (I/O safety circuit breaker disabled).
 
 The default startup sequence is:
 
 1. Power-up.
    - All actuators locked into disarmed position
    - Not possible to arm.
-1. Safety switch is pressed or mavlink command is received.
+1. Safety switch is pressed or a MAVLink command is received.
    - System now pre-armed: non-throttling actuators can move (e.g. ailerons).
    - System safety is off: Arming possible.
 1. Arm command is issued.
@@ -184,7 +186,7 @@ The default startup sequence is:
 
 ### COM_PREARM_MODE=Disabled
 
-When pre-arm mode is _Disabled_, engaging the safety switch or sending a mavlink command does not unlock the "safe" actuators, though it does allow you to then arm the vehicle.
+When pre-arm mode is `Disabled`, engaging the safety switch or sending a MAVLink command does not unlock the "safe" actuators, though it does allow you to then arm the vehicle.
 This corresponds to [COM_PREARM_MODE=0](#COM_PREARM_MODE) (Disabled) and [CBRK_IO_SAFETY=0](#CBRK_IO_SAFETY) (I/O safety circuit breaker disabled).
 
 The startup sequence is:
@@ -192,7 +194,7 @@ The startup sequence is:
 1. Power-up.
    - All actuators locked into disarmed position
    - Not possible to arm.
-1. Safety switch is pressed or mavlink command is received.
+1. Safety switch is pressed or a MAVLink command is received.
    - _All actuators stay locked into disarmed position (same as disarmed)._
    - System safety is off: Arming possible.
 1. Arm command is issued.
@@ -201,8 +203,8 @@ The startup sequence is:
 
 ### COM_PREARM_MODE=Always
 
-When pre-arm mode is _Always_, pre-arm mode is enabled from power up.
-To arm, you still need the safety switch or mavlink command.
+When pre-arm mode is `Always`, pre-arm mode is enabled from power up.
+To arm, you still need the safety switch or a MAVLink command.
 This corresponds to [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Always) and [CBRK_IO_SAFETY=0](#CBRK_IO_SAFETY) (I/O safety circuit breaker disabled).
 
 The startup sequence is:
@@ -210,7 +212,7 @@ The startup sequence is:
 1. Power-up.
    - System now pre-armed: non-throttling actuators can move (e.g. ailerons).
    - Not possible to arm.
-1. Safety switch is pressed or mavlink command is received.
+1. Safety switch is pressed or a MAVLink command is received.
    - System safety is off: Arming possible.
 1. Arm command is issued.
    - The system is armed.
@@ -218,7 +220,8 @@ The startup sequence is:
 
 ### COM_PREARM_MODE=Safety Switch only
 
-When pre-arm mode is _Safety Switch only_, it strictly requires you to press the safety switch to enter pre-armed state. The mavlink command is ignored.
+When pre-arm mode is `Safety Switch only`, you must press the safety switch to enter the pre-armed state.
+The MAVLink command is ignored.
 This corresponds to [COM_PREARM_MODE=3](#COM_PREARM_MODE) (Safety Switch only) and [CBRK_IO_SAFETY=0](#CBRK_IO_SAFETY) (I/O safety circuit breaker disabled).
 
 The startup sequence is:
@@ -233,17 +236,18 @@ The startup sequence is:
    - The system is armed.
    - All motors and actuators can move.
 
-### COM_PREARM_MODE=Mavlink only
+### COM_PREARM_MODE=MAVLink only
 
-When pre-arm mode is _Mavlink only_, it requires you to a mavlink command to enter pre-armed state. The safety switch is ignored.
-This corresponds to [COM_PREARM_MODE=4](#COM_PREARM_MODE) (Mavlink only) and [CBRK_IO_SAFETY=0](#CBRK_IO_SAFETY) (I/O safety circuit breaker disabled).
+When pre-arm mode is `MAVLink only`, you must send a MAVLink command to enter the pre-armed state.
+The safety switch is ignored.
+This corresponds to [COM_PREARM_MODE=4](#COM_PREARM_MODE) (MAVLink only) and [CBRK_IO_SAFETY=0](#CBRK_IO_SAFETY) (I/O safety circuit breaker disabled).
 
 The startup sequence is:
 
 1. Power-up.
    - All actuators locked into disarmed position
    - Not possible to arm.
-1. Mavlink command is received.
+1. A MAVLink command is received.
    - System now pre-armed: non-throttling actuators can move (e.g. ailerons).
    - System safety is off: Arming possible.
 1. Arm command is issued.
@@ -252,7 +256,8 @@ The startup sequence is:
 
 ### CBRK_IO_SAFETY=22027
 
-Activating this circuitbreaker turns system safety off directly from power-up, meaning that arming is always possible. Use this circuitbreaker with caution.
+Activating this circuit breaker turns system safety off directly from power-up, meaning that arming is always possible.
+Use this circuit breaker with caution.
 The pre-arm logic is unchanged, meaning that non-throttling actuators are still governed by `COM_PREARM_MODE` as outlined above.
 
 The startup sequence is:
@@ -266,10 +271,10 @@ The startup sequence is:
 
 ### Parameters
 
-| Parameter                                                                                                | Description                                                                                                                                                                                                                        |
-| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_PREARM_MODE"></a>[COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) | Condition to enter prearmed mode. `0`: Disabled, `1`: Safety switch (prearm mode enabled by safety switch; if no switch present cannot be enabled), `2`: Always (prearm mode enabled from power up). Default: `1` (safety button). |
-| <a id="CBRK_IO_SAFETY"></a>[CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY)    | Circuit breaker for IO safety.                                                                                                                                                                                                     |
+| Parameter                                                                                                | Description                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="COM_PREARM_MODE"></a>[COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) | Condition to enter pre-armed mode. `0`: Disabled, `1`: Safety button or MAVLink, `2`: Always, `3`: Safety button only, `4`: MAVLink only. Default: `0` (Disabled). |
+| <a id="CBRK_IO_SAFETY"></a>[CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY)    | Circuit breaker for IO safety.                                                                                                                                     |
 
 <!-- Discussion:
 https://github.com/PX4/PX4-Autopilot/pull/12806#discussion_r318337567
