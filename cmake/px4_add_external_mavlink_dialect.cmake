@@ -31,28 +31,22 @@
 #
 ############################################################################
 
+
 #=============================================================================
 #
 #	px4_add_external_mavlink_dialect
 #
-#	Registers an external MAVLink dialect XML for mavgen code generation.
-#	The dialect XML should <include>common.xml</include> (or another base
-#	dialect) so that all standard MAVLink messages remain available.
+#	Makes an out-of-tree dialect XML the MAVLink dialect of this build.
+#	The XML must <include>common.xml</include> (or another upstream dialect).
+#	Only one external dialect can be registered; a second module's messages
+#	belong in an XML that the registered one includes.
 #
-#	Multiple external dialects are supported. The first registered dialect
-#	becomes the primary dialect (overrides CONFIG_MAVLINK_DIALECT from
-#	"common" if applicable).
+#	mavgen resolves <include> relative to the dialect file, so the upstream
+#	definitions are staged next to the copy in the build tree; nothing is
+#	written into the source tree.
 #
 #	Usage:
-#		px4_add_external_mavlink_dialect(
-#			XML ${CMAKE_CURRENT_SOURCE_DIR}/../../mavlink/my_dialect.xml
-#		)
-#
-#	Effects:
-#		1. Copies the XML into mavgen's message_definitions/v1.0/ search path
-#		2. Appends the dialect name to PX4_EXTERNAL_MAVLINK_DIALECTS global property
-#		3. Dialect override happens in root CMakeLists.txt after all add_subdirectory()
-#		   calls have completed
+#		px4_add_external_mavlink_dialect(XML ${CMAKE_CURRENT_SOURCE_DIR}/../../mavlink/my_dialect.xml)
 #
 function(px4_add_external_mavlink_dialect)
 	px4_parse_function_args(
@@ -66,12 +60,52 @@ function(px4_add_external_mavlink_dialect)
 		message(FATAL_ERROR "px4_add_external_mavlink_dialect: XML not found: ${XML}")
 	endif()
 
+	get_property(_registered GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT)
+	if(_registered)
+		message(FATAL_ERROR "px4_add_external_mavlink_dialect: '${_registered}' is already registered; <include> ${XML} from ${_registered}.xml instead")
+	endif()
+
 	get_filename_component(_dialect_name "${XML}" NAME_WE)
-	set(_mavlink_defs "${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/message_definitions/v1.0")
+	set(_upstream_dir "${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/message_definitions/v1.0")
+	set(_staging_dir "${PX4_BINARY_DIR}/mavlink/message_definitions/v1.0")
 
-	configure_file("${XML}" "${_mavlink_defs}/${_dialect_name}.xml" COPYONLY)
+	if(EXISTS "${_upstream_dir}/${_dialect_name}.xml")
+		message(FATAL_ERROR "px4_add_external_mavlink_dialect: '${_dialect_name}' is an upstream dialect name; rename ${XML}")
+	endif()
 
-	set_property(GLOBAL APPEND PROPERTY PX4_EXTERNAL_MAVLINK_DIALECTS "${_dialect_name}")
+	file(GLOB _upstream_xmls "${_upstream_dir}/*.xml")
+	file(COPY ${_upstream_xmls} DESTINATION "${_staging_dir}")
+	configure_file("${XML}" "${_staging_dir}/${_dialect_name}.xml" COPYONLY)
 
-	message(STATUS "External MAVLink dialect registered: ${_dialect_name} (from ${XML})")
+	set_property(GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT "${_dialect_name}")
+	set_property(GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT_DIR "${_staging_dir}")
+
+	message(STATUS "External MAVLink dialect: ${_dialect_name} (${XML})")
+endfunction()
+
+#=============================================================================
+#
+#	px4_target_use_external_mavlink_dialect
+#
+#	Gives an out-of-tree module target the generated headers of the dialect
+#	registered with px4_add_external_mavlink_dialect(). External modules are
+#	configured before src/modules/mavlink, so the generator target is named
+#	rather than linked.
+#
+#	Usage:
+#		px4_target_use_external_mavlink_dialect(modules__my_module)
+#
+function(px4_target_use_external_mavlink_dialect target)
+	get_property(_dialect GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT)
+	if(NOT _dialect)
+		message(FATAL_ERROR "px4_target_use_external_mavlink_dialect: call px4_add_external_mavlink_dialect() first")
+	endif()
+
+	target_include_directories(${target} PRIVATE
+		${PX4_BINARY_DIR}/mavlink
+		${PX4_BINARY_DIR}/mavlink/${_dialect}
+		${PX4_BINARY_DIR}/mavlink/uAvionix
+	)
+	target_compile_options(${target} PRIVATE -Wno-address-of-packed-member -Wno-cast-align)
+	add_dependencies(${target} mavlink_c_generate)
 endfunction()

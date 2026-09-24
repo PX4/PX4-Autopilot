@@ -459,24 +459,13 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 		list(APPEND external_module_paths ${EXTERNAL_MODULES_LOCATION}/src/${external_module})
 	endforeach()
 
-	# External MAVLink dialects (registered via px4_add_external_mavlink_dialect)
-	get_property(_ext_dialects GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECTS)
-	if(_ext_dialects)
-		list(LENGTH _ext_dialects _n_dialects)
-		list(GET _ext_dialects 0 _primary_ext_dialect)
-
-		if(CONFIG_MAVLINK_DIALECT STREQUAL "common")
-			set(CONFIG_MAVLINK_DIALECT "${_primary_ext_dialect}"
-				CACHE STRING "MAVLink dialect (external: ${_primary_ext_dialect})" FORCE)
-			message(STATUS "External MAVLink dialect: ${_primary_ext_dialect} (auto-set from common)")
-		else()
-			message(STATUS "External MAVLink dialect: ${_primary_ext_dialect} "
-				"(CONFIG_MAVLINK_DIALECT=${CONFIG_MAVLINK_DIALECT} kept as-is)")
-		endif()
-
-		if(_n_dialects GREATER 1)
-			message(STATUS "  Additional external dialects: ${_ext_dialects}")
-		endif()
+	# A dialect registered with px4_add_external_mavlink_dialect() replaces the board's dialect.
+	# Set here, before src/modules/mavlink is configured, as a normal variable that shadows the kconfig cache entry.
+	get_property(_ext_dialect GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT)
+	if(_ext_dialect)
+		message(STATUS "MAVLink dialect: ${_ext_dialect} (external, replaces CONFIG_MAVLINK_DIALECT=${CONFIG_MAVLINK_DIALECT}; "
+			"<include>${CONFIG_MAVLINK_DIALECT}.xml</include> from ${_ext_dialect}.xml to keep its messages)")
+		set(CONFIG_MAVLINK_DIALECT "${_ext_dialect}")
 	endif()
 endif()
 
