@@ -1,0 +1,3 @@
+#!/bin/sh
+# Sourced by rcS after the logger starts (see ROMFS/CMakeLists.txt)
+ext_mavlink_example start
