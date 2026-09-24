@@ -163,9 +163,6 @@ void Ekf::checkVerticalAccelerationHealth(const imuSample &imu_delayed)
 
 	if (bad_vert_accel) {
 		_time_bad_vert_accel = imu_delayed.time_us;
-
-	} else {
-		_time_good_vert_accel = imu_delayed.time_us;
 	}
 
 	// declare a bad vertical acceleration measurement and make the declaration persist
@@ -175,6 +172,10 @@ void Ekf::checkVerticalAccelerationHealth(const imuSample &imu_delayed)
 
 	} else {
 		_fault_status.flags.bad_acc_vertical = bad_vert_accel;
+	}
+
+	if (!_fault_status.flags.bad_acc_vertical) {
+		_time_good_vert_accel = imu_delayed.time_us;
 	}
 }
 
