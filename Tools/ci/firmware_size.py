@@ -105,7 +105,7 @@ def format_change(before: int, after: int) -> str:
 
 
 def format_usage(used: int, capacity: int) -> str:
-    return f"{used / capacity:.2%} of {capacity / 1024:,.0f} KiB"
+    return f"{used / capacity:.2%}"
 
 
 def summarize(before: dict[str, int], after: dict[str, int], capacity: dict[str, int]) -> dict:

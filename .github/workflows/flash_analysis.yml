@@ -217,9 +217,9 @@ jobs:
 
           | Target | Flash change | Flash used | Static RAM change | Static RAM used |
           | --- | ---: | ---: | ---: | ---: |
-          | px4_fmu-v2 (STM32F427) | ${{ fromJSON(env.V2).flash }} | ${{ fromJSON(env.V2).flash_used }} | ${{ fromJSON(env.V2).ram }} | ${{ fromJSON(env.V2).ram_used }} |
-          | px4_fmu-v5x (STM32F765) | ${{ fromJSON(env.V5X).flash }} | ${{ fromJSON(env.V5X).flash_used }} | ${{ fromJSON(env.V5X).ram }} | ${{ fromJSON(env.V5X).ram_used }} |
-          | px4_fmu-v6x (STM32H753) | ${{ fromJSON(env.V6X).flash }} | ${{ fromJSON(env.V6X).flash_used }} | ${{ fromJSON(env.V6X).ram }} | ${{ fromJSON(env.V6X).ram_used }} |
+          | px4_fmu-v2 (F4) | ${{ fromJSON(env.V2).flash }} | ${{ fromJSON(env.V2).flash_used }} | ${{ fromJSON(env.V2).ram }} | ${{ fromJSON(env.V2).ram_used }} |
+          | px4_fmu-v5x (F7) | ${{ fromJSON(env.V5X).flash }} | ${{ fromJSON(env.V5X).flash_used }} | ${{ fromJSON(env.V5X).ram }} | ${{ fromJSON(env.V5X).ram_used }} |
+          | px4_fmu-v6x (H7) | ${{ fromJSON(env.V6X).flash }} | ${{ fromJSON(env.V6X).flash_used }} | ${{ fromJSON(env.V6X).ram }} | ${{ fromJSON(env.V6X).ram_used }} |
 
           <details>
           <summary>px4_fmu-v2 — Bloaty section/symbol breakdown</summary>

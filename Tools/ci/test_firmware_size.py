@@ -129,8 +129,8 @@ SECTIONS
 
     def test_usage_is_the_change_against_capacity(self):
         result = summarize({"flash": 1024, "ram": 1024}, {"flash": 1032192, "ram": 3840}, CAPACITY)
-        self.assertEqual(result["flash_used"], "100.00% of 1,008 KiB")
-        self.assertEqual(result["ram_used"], "1.46% of 256 KiB")
+        self.assertEqual(result["flash_used"], "100.00%")
+        self.assertEqual(result["ram_used"], "1.46%")
 
     def test_small_deltas_are_not_reported(self):
         before = {"flash": 1000, "ram": 1000}
@@ -152,8 +152,8 @@ SECTIONS
             "--before", str(before), "--after", str(after), "--linker-script", str(self.linker),
         ], cwd=self.root, text=True)
         self.assertEqual(json.loads(output), {
-            "flash": "+0 B (+0.00%)", "flash_used": "0.00% of 2,016 KiB",
-            "ram": "+64 B (+80.00%)", "ram_used": "0.03% of 448 KiB", "changed": True,
+            "flash": "+0 B (+0.00%)", "flash_used": "0.00%",
+            "ram": "+64 B (+80.00%)", "ram_used": "0.03%", "changed": True,
         })
 
 
