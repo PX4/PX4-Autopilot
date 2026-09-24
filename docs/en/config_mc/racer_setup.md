@@ -146,6 +146,7 @@ Now do a second round of PID tuning, this time as tight as possible, and also tu
 
 :::tip
 You can use the approach described in [Basic MC PID tuning](../config_mc/pid_tuning_guide_multicopter_basic.md) to tune the frame, but you will need to use the [Advanced Multicopter PID Tuning Guide (Advanced/Detailed)](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve) to understand how to tune the thrust curve.
+:::
 
 ### Airmode
 
