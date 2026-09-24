@@ -59,7 +59,7 @@ public:
 	using LocalCoordinate = mavsdk::geometry::CoordinateTransformation::LocalCoordinate;
 
 	AutopilotTesterFlow() = default;
-	~AutopilotTesterFlow() = default;
+	~AutopilotTesterFlow();
 
 	// Set the EKF origin to the stored (ground truth) home position with SET_GPS_GLOBAL_ORIGIN and
 	// wait until the vehicle reports a global position. Requires store_home() to have run.
@@ -88,6 +88,9 @@ public:
 	// tracking how far the (ground truth) heading turns. Both streams are requested at `rate_hz` so
 	// that the two samples being compared are close in time.
 	void start_ground_truth_comparison(double rate_hz = 30.0);
+
+	// Stop the comparison. Safe to call when it is not running; the destructor calls it as well so
+	// that a failed REQUIRE between start and stop cannot leave callbacks capturing a dead `this`.
 	void stop_ground_truth_comparison();
 
 	// Wait until the heading has turned by `min_sweep_deg` in total since the comparison started.
@@ -126,4 +129,5 @@ private:
 
 	Telemetry::PositionVelocityNedHandle _position_velocity_handle{};
 	MavlinkPassthrough::MessageHandle _ground_truth_handle{};
+	bool _comparison_active{false};
 };
