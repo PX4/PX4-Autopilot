@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <px4_arch/io_timer_hw_description.h>
+#include <px4_arch/dma_budget.h>
 
 /* Timer allocation
  *
@@ -73,6 +74,8 @@ constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
 	initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel2}, {GPIO::PortA, GPIO::Pin1}),
 };
+
+PX4_VALIDATE_DMA_BUDGET(io_timers, timer_io_channels);
 
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
 	initIOTimerChannelMapping(io_timers, timer_io_channels);

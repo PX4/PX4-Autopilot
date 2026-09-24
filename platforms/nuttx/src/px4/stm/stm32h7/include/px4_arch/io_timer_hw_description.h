@@ -137,6 +137,8 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 // DShot round-robins a single capture DMA stream borrowed from the burst UP stream).
 // Pass a DMA pool distinct from `dma` only when the board has confirmed it has spare
 // DMA streams in that pool for up to 4 concurrent capture channels - see dshot_conf_t.
+// Boards that do so must also add PX4_VALIDATE_DMA_BUDGET() (px4_arch/dma_budget.h)
+// to their timer_config.cpp, so the stream budget is checked at build time.
 static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dma = {}, DMA capture_dma = {})
 {
 	bool nuttx_config_timer_enabled = false;
