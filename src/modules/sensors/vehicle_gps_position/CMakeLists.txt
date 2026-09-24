@@ -34,8 +34,6 @@
 px4_add_library(vehicle_gps_position
 	VehicleGPSPosition.cpp
 	VehicleGPSPosition.hpp
-	gps_blending.cpp
-	gps_blending.hpp
 	PpsTimeSync.cpp
 	PpsTimeSync.hpp
 )
@@ -45,4 +43,3 @@ target_link_libraries(vehicle_gps_position
 		px4_work_queue
 )
 
-px4_add_unit_gtest(SRC gps_blending_test.cpp LINKLIBS vehicle_gps_position)

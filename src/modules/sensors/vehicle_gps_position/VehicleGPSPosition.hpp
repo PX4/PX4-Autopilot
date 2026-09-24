@@ -33,21 +33,19 @@
 
 #pragma once
 
-#include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
+#include <lib/sensor_slot_binder/SensorSlotBinder.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/pps_capture.h>
 
-#include "gps_blending.hpp"
 #include "PpsTimeSync.hpp"
 
 using namespace time_literals;
@@ -71,17 +69,12 @@ private:
 
 	void ParametersUpdate(bool force = false);
 
-	// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
-	static constexpr uint8_t BLEND_MASK_USE_SPD_ACC  = 1;
-	static constexpr uint8_t BLEND_MASK_USE_HPOS_ACC = 2;
-	static constexpr uint8_t BLEND_MASK_USE_VPOS_ACC = 4;
+	int8_t receiverSlot(uint8_t instance, uint32_t device_id);
 
-	// define max number of GPS receivers supported
-	static constexpr int GPS_MAX_RECEIVERS = 2;
-	static_assert(GPS_MAX_RECEIVERS == GpsBlending::GPS_MAX_RECEIVERS_BLEND,
-		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
+	static constexpr uint8_t GPS_MAX_RECEIVERS = 2;
 
-	uORB::Publication<sensor_gps_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
+	// uORB instance == SENS_GPS<i> slot
+	SlotPublications<sensor_gps_s, GPS_MAX_RECEIVERS, ORB_ID::vehicle_gps_position> _vehicle_gps_position_pubs{};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -94,24 +87,21 @@ private:
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
-	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
 
+	SensorSlotBinder _slot_binder{};
+	int8_t _instance_slot[GPS_MAX_RECEIVERS] {-1, -1};
+	bool _no_slot_warned[GPS_MAX_RECEIVERS] {};
+
 	struct GpsParamSlot {
-		uint32_t device_id{0};
 		matrix::Vector3f offset{};
 		hrt_abstime delay_us{110_ms};
 	} _gps_param_slots[GPS_MAX_RECEIVERS] {};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
-		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau,
-		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime,
-		(ParamInt<px4::params::SENS_GPS0_ID>) _param_sens_gps0_id,
 		(ParamFloat<px4::params::SENS_GPS0_OFFX>) _param_sens_gps0_offx,
 		(ParamFloat<px4::params::SENS_GPS0_OFFY>) _param_sens_gps0_offy,
 		(ParamFloat<px4::params::SENS_GPS0_OFFZ>) _param_sens_gps0_offz,
-		(ParamInt<px4::params::SENS_GPS1_ID>) _param_sens_gps1_id,
 		(ParamFloat<px4::params::SENS_GPS1_OFFX>) _param_sens_gps1_offx,
 		(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy,
 		(ParamFloat<px4::params::SENS_GPS1_OFFZ>) _param_sens_gps1_offz,

@@ -34,9 +34,6 @@
 #include "VehicleGPSPosition.hpp"
 
 #include <px4_platform_common/log.h>
-#include <lib/geo/geo.h>
-#include <lib/gnss/SensorGpsSelector.hpp>
-#include <lib/mathlib/mathlib.h>
 
 namespace sensors
 {
@@ -44,7 +41,7 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
-	_vehicle_gps_position_pub.advertise();
+	_slot_binder.init("SENS_GPS%u_ID", GPS_MAX_RECEIVERS);
 }
 
 VehicleGPSPosition::~VehicleGPSPosition()
@@ -57,6 +54,10 @@ bool VehicleGPSPosition::Start()
 {
 	// force initial updates
 	ParametersUpdate(true);
+
+	for (auto &sub : _sensor_gps_sub) {
+		sub.registerCallback();
+	}
 
 	ScheduleNow();
 
@@ -83,37 +84,28 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 
 		updateParams();
 
-		if (_param_sens_gps_mask.get() == 0) {
-			_sensor_gps_sub[0].registerCallback();
-
-		} else {
-			for (auto &sub : _sensor_gps_sub) {
-				sub.registerCallback();
-			}
-		}
-
-		_gps_blending.setBlendingUseSpeedAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_SPD_ACC);
-		_gps_blending.setBlendingUseHPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_HPOS_ACC);
-		_gps_blending.setBlendingUseVPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_VPOS_ACC);
-		_gps_blending.setBlendingTimeConstant(_param_sens_gps_tau.get());
-
-		const int gps_prime = _param_sens_gps_prime.get();
-
-		if (math::isInRange(gps_prime, -1, 1)) {
-			_gps_blending.setPrimaryInstance(gps_prime);
-		}
-
 		_gps_param_slots[0] = {
-			static_cast<uint32_t>(_param_sens_gps0_id.get()),
 			{_param_sens_gps0_offx.get(), _param_sens_gps0_offy.get(), _param_sens_gps0_offz.get()},
 			static_cast<hrt_abstime>(_param_sens_gps0_delay.get()) * 1000
 		};
 		_gps_param_slots[1] = {
-			static_cast<uint32_t>(_param_sens_gps1_id.get()),
 			{_param_sens_gps1_offx.get(), _param_sens_gps1_offy.get(), _param_sens_gps1_offz.get()},
 			static_cast<hrt_abstime>(_param_sens_gps1_delay.get()) * 1000
 		};
 	}
+}
+
+int8_t VehicleGPSPosition::receiverSlot(uint8_t instance, uint32_t device_id)
+{
+	const int8_t slot = _slot_binder.slotForInstanceWithFallback(instance, device_id);
+
+	if ((slot < 0) && !_no_slot_warned[instance]) {
+		PX4_WARN("GPS %" PRIu8 " (device ID %" PRIu32 ") ignored, no free SENS_GPS slot", instance, device_id);
+		_no_slot_warned[instance] = true;
+	}
+
+	_instance_slot[instance] = slot;
+	return slot;
 }
 
 void VehicleGPSPosition::Run()
@@ -127,87 +119,40 @@ void VehicleGPSPosition::Run()
 		_pps_time_sync.process_pps(pps_capture);
 	}
 
-	// Check all GPS instance
-	bool any_gps_updated = false;
-	bool gps_updated = false;
-	const int32_t gps_prime = _param_sens_gps_prime.get();
-
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		gps_updated = _sensor_gps_sub[i].updated();
-
 		sensor_gps_s gps_data;
 
-		if (gps_updated) {
-			any_gps_updated = true;
+		if (!_sensor_gps_sub[i].update(&gps_data)) {
+			continue;
+		}
 
-			_sensor_gps_sub[i].copy(&gps_data);
+		const int8_t slot = receiverSlot(i, gps_data.device_id);
 
-			// Match device_id to receiver slot
-			matrix::Vector3f antenna_offset{};
-			hrt_abstime delay_us = 110_ms; // matches SENS_GPS*_DELAY default
-			bool matched = false;
+		if (slot < 0) {
+			continue;
+		}
 
-			for (uint8_t slot = 0; slot < GPS_MAX_RECEIVERS; slot++) {
-				if (_gps_param_slots[slot].device_id != 0
-				    && _gps_param_slots[slot].device_id == gps_data.device_id) {
-					antenna_offset = _gps_param_slots[slot].offset;
-					delay_us = _gps_param_slots[slot].delay_us;
-					matched = true;
-					break;
-				}
-			}
+		const GpsParamSlot &param_slot = _gps_param_slots[slot];
 
-			// Fallback: if no device IDs configured, match by instance index
-			if (!matched && _gps_param_slots[0].device_id == 0 && _gps_param_slots[1].device_id == 0) {
-				antenna_offset = _gps_param_slots[i].offset;
-				delay_us = _gps_param_slots[i].delay_us;
-			}
-
-			// Apply delay to timestamp_sample if the driver didn't set one
-			if (gps_data.timestamp_sample == 0 || gps_data.timestamp_sample == gps_data.timestamp) {
-				if (delay_us > 0 && gps_data.timestamp > delay_us) {
-					gps_data.timestamp_sample = gps_data.timestamp - delay_us;
-				}
-			}
-
-			_gps_blending.setAntennaOffset(antenna_offset, i);
-			_gps_blending.setGpsData(gps_data, i);
-
-			if (SensorGpsSelector::node_id_matches(gps_prime, gps_data.device_id)) {
-				_gps_blending.setPrimaryInstance(i);
-			}
-
-			if (!_sensor_gps_sub[i].registered()) {
-				_sensor_gps_sub[i].registerCallback();
+		// Apply delay to timestamp_sample if the driver didn't set one
+		if (gps_data.timestamp_sample == 0 || gps_data.timestamp_sample == gps_data.timestamp) {
+			if (param_slot.delay_us > 0 && gps_data.timestamp > param_slot.delay_us) {
+				gps_data.timestamp_sample = gps_data.timestamp - param_slot.delay_us;
 			}
 		}
-	}
 
-	if (any_gps_updated) {
-		_gps_blending.update(hrt_absolute_time());
+		const uint64_t pps_timestamp = _pps_time_sync.correct_gps_timestamp(gps_data.timestamp, gps_data.time_utc_usec);
 
-		if (_gps_blending.isNewOutputDataAvailable()) {
-			sensor_gps_s gps_output{_gps_blending.getOutputGpsData()};
-
-			// clear device_id if blending
-			if (_gps_blending.getSelectedGps() == GpsBlending::GPS_MAX_RECEIVERS_BLEND) {
-				gps_output.device_id = 0;
-			}
-
-			const matrix::Vector3f &out_offset = _gps_blending.getOutputAntennaOffset();
-			gps_output.antenna_offset_x = out_offset(0);
-			gps_output.antenna_offset_y = out_offset(1);
-			gps_output.antenna_offset_z = out_offset(2);
-
-			const uint64_t pps_timestamp = _pps_time_sync.correct_gps_timestamp(gps_output.timestamp, gps_output.time_utc_usec);
-
-			if (pps_timestamp != gps_output.timestamp) {
-				// PPS provided a correction — use it instead of the per-receiver delay
-				gps_output.timestamp_sample = pps_timestamp;
-			}
-
-			_vehicle_gps_position_pub.publish(gps_output);
+		if (pps_timestamp != gps_data.timestamp) {
+			// PPS provided a correction, use it instead of the per-receiver delay
+			gps_data.timestamp_sample = pps_timestamp;
 		}
+
+		gps_data.antenna_offset_x = param_slot.offset(0);
+		gps_data.antenna_offset_y = param_slot.offset(1);
+		gps_data.antenna_offset_z = param_slot.offset(2);
+
+		_vehicle_gps_position_pubs.publish(slot, gps_data);
 	}
 
 	ScheduleDelayed(300_ms); // backup schedule
@@ -217,7 +162,9 @@ void VehicleGPSPosition::Run()
 
 void VehicleGPSPosition::PrintStatus()
 {
-	PX4_INFO_RAW("[vehicle_gps_position] selected GPS: %d\n", _gps_blending.getSelectedGps());
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		PX4_INFO_RAW("[vehicle_gps_position] sensor_gps %" PRIu8 " -> slot %" PRIi8 "\n", i, _instance_slot[i]);
+	}
 }
 
 }; // namespace sensors

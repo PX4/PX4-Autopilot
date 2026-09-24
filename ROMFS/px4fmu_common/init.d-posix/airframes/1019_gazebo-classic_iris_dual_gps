@@ -29,5 +29,3 @@ param set-default PWM_MAIN_FUNC2 102
 param set-default PWM_MAIN_FUNC3 103
 param set-default PWM_MAIN_FUNC4 104
 
-# EKF2: Multi GPS blending
-param set-default SENS_GPS_MASK 7
