@@ -39,10 +39,10 @@
 
 AuxGlobalPosition::AuxGlobalPosition() : ModuleParams(nullptr)
 {
-	for (int slot = 0; slot < MAX_AGP_IDS; slot++) {
-		_id_param_values[slot] = getAgpParamInt32("ID", slot);
+	_slot_binder.init("EKF2_AGP%u_ID", MAX_AGP_IDS);
 
-		if (_id_param_values[slot] != 0) {
+	for (int slot = 0; slot < MAX_AGP_IDS; slot++) {
+		if (_slot_binder.isSlotBound(slot)) {
 			_sources[slot] = new AgpSource(slot);
 			_n_sources++;
 		}
@@ -76,12 +76,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 			aux_global_position_s msg{};
 			_agp_sub[instance].copy(&msg);
 
-			int slot = _instance_slot_map[instance];
-
-			if (slot < 0) {
-				slot = mapSensorIdToSlot(msg.id);
-				_instance_slot_map[instance] = static_cast<int8_t>(slot);
-			}
+			const int8_t slot = _slot_binder.slotForInstance(instance, msg.id);
 
 			if (slot >= 0 && _sources[slot]) {
 				_sources[slot]->bufferData(msg, imu_delayed);
@@ -91,10 +86,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 	for (int slot = 0; slot < MAX_AGP_IDS; slot++) {
 		if (_sources[slot]) {
-			if (_sources[slot]->update(ekf, imu_delayed)) {
-				// Only update one source per update cycle
-				break;
-			}
+			_sources[slot]->update(ekf, imu_delayed);
 		}
 	}
 }
@@ -143,57 +135,6 @@ uint8_t AuxGlobalPosition::sourceFusingBitmask() const
 	}
 
 	return mask;
-}
-
-int32_t AuxGlobalPosition::getAgpParamInt32(const char *param_suffix, int instance) const
-{
-	char param_name[20] {};
-	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_%s", instance, param_suffix);
-
-	int32_t value = 0;
-
-	if (param_get(param_find(param_name), &value) != 0) {
-		PX4_ERR("failed to get %s", param_name);
-	}
-
-	return value;
-}
-
-bool AuxGlobalPosition::setAgpParamInt32(const char *param_suffix, int instance, int32_t value)
-{
-	char param_name[20] {};
-	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_%s", instance, param_suffix);
-
-	return param_set_no_notification(param_find(param_name), &value) == PX4_OK;
-}
-
-int32_t AuxGlobalPosition::getIdParam(int instance)
-{
-	return _id_param_values[instance];
-}
-
-void AuxGlobalPosition::setIdParam(int instance, int32_t sensor_id)
-{
-	setAgpParamInt32("ID", instance, sensor_id);
-	_id_param_values[instance] = sensor_id;
-}
-
-int AuxGlobalPosition::mapSensorIdToSlot(int32_t sensor_id)
-{
-	for (int slot = 0; slot < MAX_AGP_IDS; slot++) {
-		if (getIdParam(slot) == sensor_id) {
-			return slot;
-		}
-	}
-
-	for (int slot = 0; slot < MAX_AGP_IDS; slot++) {
-		if (getIdParam(slot) == 0) {
-			setIdParam(slot, sensor_id);
-			return slot;
-		}
-	}
-
-	return -1;
 }
 
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION && MODULE_NAME

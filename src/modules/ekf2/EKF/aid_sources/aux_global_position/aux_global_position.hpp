@@ -41,6 +41,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/log.h>
 #include <lib/parameters/param.h>
+#include <lib/sensor_slot_binder/SensorSlotBinder.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/aux_global_position.h>
 #include <aid_sources/aux_global_position/aux_global_position_control.hpp>
@@ -68,22 +69,17 @@ public:
 	float testRatioFiltered() const;
 	bool anySourceFusing() const;
 	uint8_t sourceFusingBitmask() const;
-	int32_t getIdParam(int instance);
-	void setIdParam(int instance, int32_t sensor_id);
-	int mapSensorIdToSlot(int32_t sensor_id);
 	void paramsUpdated();
 
 private:
+	static_assert(MAX_AGP_IDS <= SensorSlotBinder::kMaxSlots, "SensorSlotBinder too small");
+
 	AgpSource *_sources[MAX_AGP_IDS] {};
 	uORB::Subscription _agp_sub[MAX_AGP_IDS];
-	int8_t _instance_slot_map[MAX_AGP_IDS] {-1, -1, -1, -1};
 	uint8_t _n_sources{0};
 
-	int32_t getAgpParamInt32(const char *param_suffix, int instance) const;
-	bool setAgpParamInt32(const char *param_suffix, int instance, int32_t value);
-
-	int32_t _id_param_values[MAX_AGP_IDS] {};
-
+	// EKF2_AGP<i>_ID, a source ID bound at runtime to a slot without ID gets its source after a reboot
+	SensorSlotBinder _slot_binder{};
 };
 
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION && MODULE_NAME
