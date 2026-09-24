@@ -98,6 +98,9 @@ public:
 	void startFlow() { _flow.start(); }
 	void stopFlow() { _flow.stop(); }
 
+	void startFlow1() { _flow1.start(); }
+	void stopFlow1() { _flow1.stop(); }
+
 	void startRangeFinder() { _rng.start(); }
 	void stopRangeFinder() { _rng.stop(); }
 
@@ -122,6 +125,7 @@ public:
 	Airspeed    _airspeed;
 	Baro        _baro;
 	Flow        _flow;
+	Flow        _flow1; // second optical flow sensor (slot 1)
 	Gps         _gps;
 	Imu         _imu;
 	Mag         _mag;

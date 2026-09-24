@@ -5,7 +5,7 @@ namespace sensor_simulator
 namespace sensor
 {
 
-Flow::Flow(std::shared_ptr<Ekf> ekf): Sensor(ekf)
+Flow::Flow(std::shared_ptr<Ekf> ekf, uint8_t instance): Sensor(ekf), _instance(instance)
 {
 }
 
@@ -16,7 +16,7 @@ Flow::~Flow()
 void Flow::send(uint64_t time)
 {
 	_flow_data.time_us = time;
-	_ekf->setOpticalFlowData(_flow_data);
+	_ekf->setOpticalFlowData(_flow_data, _instance);
 }
 
 void Flow::setData(const flowSample &flow)

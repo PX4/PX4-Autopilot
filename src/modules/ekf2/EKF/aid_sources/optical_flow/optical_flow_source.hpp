@@ -77,7 +77,10 @@ public:
 
 	void setPositionBody(const matrix::Vector3f &pos) { _pos_body = pos; }
 
-	void update(Ekf &ekf, const estimator::imuSample &imu_delayed, matrix::Vector3f &ref_body_rate);
+	// other_slot_fusing: another flow sensor currently constrains the velocity drift
+	void update(Ekf &ekf, const estimator::imuSample &imu_delayed, matrix::Vector3f &ref_body_rate, bool other_slot_fusing);
+
+	bool isFusing(const Ekf &ekf) const;
 
 	void stop();
 

@@ -51,7 +51,13 @@ void OpticalFlowAiding::update(Ekf &ekf, const imuSample &imu_delayed)
 	ekf._fc.of.available = any_ctrl_enabled;
 
 	for (uint8_t slot = 0; slot < MAX_OF_INSTANCES; slot++) {
-		_sources[slot].update(ekf, imu_delayed, _ref_body_rate);
+		bool other_slot_fusing = false;
+
+		for (uint8_t other = 0; other < MAX_OF_INSTANCES; other++) {
+			other_slot_fusing |= (other != slot) && _sources[other].isFusing(ekf);
+		}
+
+		_sources[slot].update(ekf, imu_delayed, _ref_body_rate, other_slot_fusing);
 	}
 
 	bool any_active = false;
@@ -205,7 +211,12 @@ void OpticalFlowSource::setData(const flowSample &flow, const uint64_t min_obs_i
 	}
 }
 
-void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f &ref_body_rate)
+bool OpticalFlowSource::isFusing(const Ekf &ekf) const
+{
+	return _active && !ekf.isTimedOut(_aid_src.time_last_fuse, ekf._params.no_aid_timeout_max);
+}
+
+void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f &ref_body_rate, const bool other_slot_fusing)
 {
 	if (!_buffer || !ekf._fc.of.intended() || (params.ctrl == 0)) {
 		stop();
@@ -339,8 +350,9 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f 
 				}
 
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
+				// (if another flow sensor is still being fused, this one is the inconsistent one and must not reset the state)
 				if (ekf.isTimedOut(_aid_src.time_last_fuse, ekf._params.no_aid_timeout_max)) {
-					if (is_flow_required && is_quality_good && is_magnitude_good) {
+					if (is_flow_required && is_quality_good && is_magnitude_good && !other_slot_fusing) {
 						reset(ekf);
 
 						if (_terrain && !ekf.isTerrainEstimateValid()) {
@@ -361,12 +373,14 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f 
 				// If the height is relative to the ground, terrain height cannot be observed.
 				const bool terrain_observable = (ekf._height_sensor_ref != HeightSensor::RANGE);
 
-				if (ekf.isHorizontalAidingActive()) {
+				// another slot may have started during this update, before the aiding flags are updated
+				if (ekf.isHorizontalAidingActive() || other_slot_fusing) {
 					if (fuse(ekf, H, terrain_observable)) {
 						ECL_INFO("starting optical flow %d", _slot);
 						_active = true;
 
-					} else if (terrain_observable && !ekf._control_status.flags.rng_terrain) {
+					} else if (terrain_observable && !ekf._control_status.flags.rng_terrain && !other_slot_fusing) {
+						// only when no other flow sensor observes the terrain, otherwise retry on the next sample
 						ECL_INFO("starting optical flow %d, resetting terrain", _slot);
 						resetTerrain(ekf);
 						_active = true;

@@ -173,16 +173,16 @@ bool EkfWrapper::isIntendingGpsHeadingFusion() const
 	return _ekf->control_status_flags().gnss_yaw;
 }
 
-void EkfWrapper::enableFlowFusion()
+void EkfWrapper::enableFlowFusion(uint8_t slot)
 {
-	_ekf->flowSource(0).params.ctrl = 1;
-	_ekf->flowSource(0).allocate(20);
+	_ekf->flowSource(slot).params.ctrl = 1;
+	_ekf->flowSource(slot).allocate(20);
 	_fc->of.enabled = true;
 }
 
-void EkfWrapper::disableFlowFusion()
+void EkfWrapper::disableFlowFusion(uint8_t slot)
 {
-	_ekf->flowSource(0).params.ctrl = 0;
+	_ekf->flowSource(slot).params.ctrl = 0;
 }
 
 bool EkfWrapper::isIntendingFlowFusion() const
@@ -190,9 +190,9 @@ bool EkfWrapper::isIntendingFlowFusion() const
 	return _ekf->control_status_flags().opt_flow;
 }
 
-void EkfWrapper::setFlowOffset(const Vector3f &offset)
+void EkfWrapper::setFlowOffset(const Vector3f &offset, uint8_t slot)
 {
-	_ekf->flowSource(0).setPositionBody(offset);
+	_ekf->flowSource(slot).setPositionBody(offset);
 }
 
 void EkfWrapper::enableExternalVisionPositionFusion()
