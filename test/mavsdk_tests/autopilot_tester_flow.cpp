@@ -83,6 +83,13 @@ float wrap_pi(float angle_rad)
 
 } // namespace
 
+AutopilotTesterFlow::~AutopilotTesterFlow()
+{
+	// The subscription callbacks capture `this` and touch members of this class, so they have to be
+	// gone before those members are destroyed.
+	stop_ground_truth_comparison();
+}
+
 void AutopilotTesterFlow::set_ekf_origin_to_home(std::chrono::seconds timeout)
 {
 	const Telemetry::GroundTruth &home = getHome();
@@ -165,6 +172,8 @@ void AutopilotTesterFlow::wait_until_on_circle(LocalCoordinate center, float rad
 
 void AutopilotTesterFlow::start_ground_truth_comparison(double rate_hz)
 {
+	stop_ground_truth_comparison();
+
 	CHECK(getTelemetry()->set_rate_position_velocity_ned(rate_hz) == Telemetry::Result::Success);
 	CHECK(getTelemetry()->set_rate_ground_truth(rate_hz) == Telemetry::Result::Success);
 
@@ -232,10 +241,17 @@ void AutopilotTesterFlow::start_ground_truth_comparison(double rate_hz)
 
 		++_error_samples;
 	});
+
+	_comparison_active = true;
 }
 
 void AutopilotTesterFlow::stop_ground_truth_comparison()
 {
+	if (!_comparison_active) {
+		return;
+	}
+
+	_comparison_active = false;
 	getTelemetry()->unsubscribe_position_velocity_ned(_position_velocity_handle);
 	getMavlinkPassthrough()->unsubscribe_message(MAVLINK_MSG_ID_HIL_STATE_QUATERNION, _ground_truth_handle);
 }
