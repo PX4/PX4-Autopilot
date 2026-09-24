@@ -44,6 +44,7 @@ px4_add_unit_gtest(SRC test_EKF_externalVision.cpp LINKLIBS ecl_EKF ecl_sensor_s
 px4_add_unit_gtest(SRC test_EKF_fake_pos.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_flow.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_flow_multi.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_gnss_multi.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
 px4_add_unit_gtest(SRC test_EKF_flow_generated.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_gyroscope.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
 px4_add_unit_gtest(SRC test_EKF_fusionLogic.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
