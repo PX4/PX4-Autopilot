@@ -85,18 +85,32 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | `S9`–`S12`       | Servo outputs (TIM4: PD12–PD15)                        |                |
 | `LED`            | WS2812 LED strip (TIM3_CH3, PB0), not supported by PX4 |                |
 
-## Wiring Diagrams {#wiring_diagram}
+## Power {#power}
 
-![DAKEFPV H743 Slim wiring top](../../assets/flight_controller/dakefpv_h743slim/dakefpv_h743slim_wiring_top.png)
+The board is powered from a 2S–12S LiPo battery (see [Electrical data](#electrical_data) for the BEC outputs).
 
-![DAKEFPV H743 Slim wiring top 2](../../assets/flight_controller/dakefpv_h743slim/dakefpv_h743slim_wiring_top_2.png)
+Battery voltage and current are measured by the board's analog inputs, with the current from the `Cur` pad.
+The default scaling is [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) = `16.0` and [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) = `83.3`; check these against your battery and ESC as described in [Battery Estimation Tuning](../config/battery.md).
 
-![DAKEFPV H743 Slim wiring bottom](../../assets/flight_controller/dakefpv_h743slim/dakefpv_h743slim_wiring_bottom.png)
+## PWM Outputs {#pwm_outputs}
 
-## Telemetry Radios (Optional) {#telemetry}
+All outputs within the same group must use the same output protocol and rate.
 
-[Telemetry radios](../telemetry/index.md) connect to `TELEM1` (`Tx2`/`Rx2` pads), which runs MAVLink by default and needs no further configuration.
-`TELEM2` (`Tx3`/`Rx3`) and `TELEM4` (`Tx6`/`Rx6`) are also free for other serial peripherals; `TELEM3` is used by the digital VTX by default.
+| Group | Outputs    | PX4 outputs | Timer | DShot |
+| ----- | ---------- | ----------- | ----- | ----- |
+| 1     | `S1`–`S4`  | 1–4         | TIM1  | ✓     |
+| 2     | `S5`–`S8`  | 5–8         | TIM2  | ✓     |
+| 3     | `S9`–`S12` | 9–12        | TIM4  | ✓     |
+
+[Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) with eRPM telemetry works on `S1`–`S11`.
+`S12` (TIM4 CH4) can send bidirectional DShot but can't read eRPM telemetry back.
+
+The `LED` pad (for a WS2812 LED strip) is not supported by PX4.
+
+## SD Card (Optional) {#sd_card}
+
+The board has a microSD card slot, used for flight logs and mission storage (see [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory)).
+The card isn't needed to fly, but without one no flight logs are recorded and missions can't be stored.
 
 ## Serial Port Mapping {#serial_port_mapping}
 
@@ -121,34 +135,17 @@ UART4 (`TELEM3`) is on PB8/PB9.
 PD0/PD1 are used by CAN1.
 :::
 
-## Power {#power}
+## Assembly {#assembly}
 
-The board is powered from a 2S–12S LiPo battery (see [Electrical data](#electrical_data) for the BEC outputs).
+### Wiring Diagrams {#wiring_diagram}
 
-Battery voltage and current are measured by the board's analog inputs, with the current from the `Cur` pad.
-The default scaling is [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) = `16.0` and [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) = `83.3`; check these against your battery and ESC as described in [Battery Estimation Tuning](../config/battery.md).
+![DAKEFPV H743 Slim wiring top](../../assets/flight_controller/dakefpv_h743slim/dakefpv_h743slim_wiring_top.png)
 
-## SD Card (Optional) {#sd_card}
+![DAKEFPV H743 Slim wiring top 2](../../assets/flight_controller/dakefpv_h743slim/dakefpv_h743slim_wiring_top_2.png)
 
-The board has a microSD card slot, used for flight logs and mission storage (see [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory)).
-The card isn't needed to fly, but without one no flight logs are recorded and missions can't be stored.
+![DAKEFPV H743 Slim wiring bottom](../../assets/flight_controller/dakefpv_h743slim/dakefpv_h743slim_wiring_bottom.png)
 
-## PWM Outputs {#pwm_outputs}
-
-All outputs within the same group must use the same output protocol and rate.
-
-| Group | Outputs    | PX4 outputs | Timer | DShot |
-| ----- | ---------- | ----------- | ----- | ----- |
-| 1     | `S1`–`S4`  | 1–4         | TIM1  | ✓     |
-| 2     | `S5`–`S8`  | 5–8         | TIM2  | ✓     |
-| 3     | `S9`–`S12` | 9–12        | TIM4  | ✓     |
-
-[Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) with eRPM telemetry works on `S1`–`S11`.
-`S12` (TIM4 CH4) can send bidirectional DShot but can't read eRPM telemetry back.
-
-The `LED` pad (for a WS2812 LED strip) is not supported by PX4.
-
-## Radio Control {#radio_control}
+### Radio Control {#radio_control}
 
 A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
@@ -160,7 +157,25 @@ For CRSF, ELRS and GHST, connect both `Tx5` and `Rx5` so that telemetry can be s
 PPM receivers are not supported, as the board has no PPM input.
 To use a different serial port for RC, set [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG).
 
-## OSD {#osd}
+### GPS & Compass {#gps_compass}
+
+Connect a [GPS/compass module](../gps_compass/index.md) to `GPS1` (`Tx1`/`Rx1` pads), with its compass on the `DA1`/`CL1` pads (I2C2).
+A second GPS can be connected to `GPS2` (`Tx8`/`Rx8`).
+
+The board has no built-in compass, so compass use is disabled by default ([SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) = `0`, [EKF2_MAG_TYPE](../advanced_config/parameter_reference.md#EKF2_MAG_TYPE) = `5` (None)).
+If you connect an external compass, set `SYS_HAS_MAG` to `1` and `EKF2_MAG_TYPE` to `0` (Automatic), then reboot.
+
+### Telemetry Radios (Optional) {#telemetry}
+
+[Telemetry radios](../telemetry/index.md) connect to `TELEM1` (`Tx2`/`Rx2` pads), which runs MAVLink by default and needs no further configuration.
+`TELEM2` (`Tx3`/`Rx3`) and `TELEM4` (`Tx6`/`Rx6`) are also free for other serial peripherals; `TELEM3` is used by the digital VTX by default.
+
+### CAN {#can}
+
+Connect [DroneCAN](../dronecan/index.md) peripherals to the `CH`/`CL` pads (CAN1).
+DroneCAN is disabled by default: set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to enable it.
+
+### OSD {#osd}
 
 The AT7456E analog OSD is on SPI2 and is enabled by default for PAL ([OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) = `2`).
 Set it to `1` for NTSC, or `0` to disable the analog OSD; a reboot is required.
@@ -181,11 +196,6 @@ The STM32H743 offers UART4 TX only on PB9 and RX only on PB8, so PX4 swaps the U
 This is automatic — there is nothing to configure.
 See the [H743 Pro](dakefpv_h743pro.md) page for the full explanation.
 :::
-
-## CAN {#can}
-
-CAN1 is on PD0 (RX) and PD1 (TX) with a silent pin on PD2.
-Enable DroneCAN peripherals via the `UAVCAN_ENABLE` parameter.
 
 ## PX4 Bootloader Update {#bootloader}
 
@@ -215,14 +225,6 @@ make dakefpv_h743slim_default upload
 ```
 
 Alternatively, [load the firmware](../config/firmware.md) using _QGroundControl_, using either pre-built firmware or your own custom build.
-
-## GPS & Compass {#gps_compass}
-
-Connect a [GPS/compass module](../gps_compass/index.md) to `GPS1` (`Tx1`/`Rx1` pads), with its compass on the `DA1`/`CL1` pads (I2C2).
-A second GPS can be connected to `GPS2` (`Tx8`/`Rx8`).
-
-The board has no built-in compass, so compass use is disabled by default ([SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) = `0`, [EKF2_MAG_TYPE](../advanced_config/parameter_reference.md#EKF2_MAG_TYPE) = `5` (None)).
-If you connect an external compass, set `SYS_HAS_MAG` to `1` and `EKF2_MAG_TYPE` to `0` (Automatic), then reboot.
 
 ## Debug Port {#debug_port}
 
