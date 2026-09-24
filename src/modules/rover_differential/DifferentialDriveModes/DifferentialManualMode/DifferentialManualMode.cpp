@@ -73,7 +73,7 @@ void DifferentialManualMode::manualParking()
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
-	const float max_throttle = _param_ro_park_thr_max.get() * 0.01f;
+	const float max_throttle = _param_ro_park_thr_max.get();
 	const float throttle_left = max_throttle * manual_control_setpoint.throttle;
 	const float throttle_right = max_throttle * manual_control_setpoint.pitch;
 

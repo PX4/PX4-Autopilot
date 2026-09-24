@@ -76,7 +76,7 @@ void AckermannManualMode::manualParking()
 	rover_steering_setpoint.normalized_steering_setpoint = manual_control_setpoint.roll;
 	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 
-	const float max_throttle = _param_ro_park_thr_max.get() * 0.01f;
+	const float max_throttle = _param_ro_park_thr_max.get();
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();
 	rover_throttle_setpoint.throttle_body_x = max_throttle * manual_control_setpoint.throttle;

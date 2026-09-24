@@ -103,7 +103,7 @@ For the configuration/tuning of this mode see [Velocity tuning](../config_rover/
 ## Manual Parking Mode
 
 This mode is intended for precisely maneuvering the rover in tight spaces, e.g. when parking it.
-Like [Manual mode](#manual-mode) the stick inputs are directly mapped to motor commands without any autopilot support, but the throttle is scaled down to [RO_PARK_THR_MAX](../advanced_config/parameter_reference.md#RO_PARK_THR_MAX) (in percent of full throttle).
+Like [Manual mode](#manual-mode) the stick inputs are directly mapped to motor commands without any autopilot support, but the throttle is scaled down to [RO_PARK_THR_MAX](../advanced_config/parameter_reference.md#RO_PARK_THR_MAX).
 
 Differential and mecanum rovers are driven tank-style in this mode: the left stick drives the motor(s) on the left side and the right stick drives the motor(s) on the right side of the rover.
 Pushing both sticks in the same direction drives straight, pushing them in opposite directions turns the rover on the spot and holding one stick centered pivots the rover around that side.
