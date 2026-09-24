@@ -396,5 +396,11 @@ else
 fi
 . ${R}etc/init.d/rc.logging
 
+# Optional out-of-tree module auto-start, staged from $EXTERNAL_MODULES_LOCATION/init/rc.ext_modules
+if [ -f ${R}etc/init.d/rc.ext_modules ]
+then
+	. ${R}etc/init.d/rc.ext_modules
+fi
+
 mavlink boot_complete
 replay trystart
