@@ -42,7 +42,8 @@
 #	belong in an XML that the registered one includes.
 #
 #	mavgen resolves <include> relative to the dialect file, so the upstream
-#	definitions are staged next to the copy in the build tree; nothing is
+#	definitions are staged next to the copy in the build tree (by the mavlink
+#	module at build time, once the submodule is checked out); nothing is
 #	written into the source tree.
 #
 #	Usage:
@@ -66,15 +67,8 @@ function(px4_add_external_mavlink_dialect)
 	endif()
 
 	get_filename_component(_dialect_name "${XML}" NAME_WE)
-	set(_upstream_dir "${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/message_definitions/v1.0")
 	set(_staging_dir "${PX4_BINARY_DIR}/mavlink/message_definitions/v1.0")
 
-	if(EXISTS "${_upstream_dir}/${_dialect_name}.xml")
-		message(FATAL_ERROR "px4_add_external_mavlink_dialect: '${_dialect_name}' is an upstream dialect name; rename ${XML}")
-	endif()
-
-	file(GLOB _upstream_xmls "${_upstream_dir}/*.xml")
-	file(COPY ${_upstream_xmls} DESTINATION "${_staging_dir}")
 	configure_file("${XML}" "${_staging_dir}/${_dialect_name}.xml" COPYONLY)
 
 	set_property(GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT "${_dialect_name}")

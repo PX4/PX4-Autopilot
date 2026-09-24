@@ -57,8 +57,22 @@ add_custom_target(mavlink_c_generate_uavionix DEPENDS ${MAVLINK_LIBRARY_DIR}/${M
 set_source_files_properties(${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h PROPERTIES GENERATED true)
 
 # generate the primary dialect; an external dialect is staged into the build tree by px4_add_external_mavlink_dialect()
+# and needs the upstream definitions copied next to it once the submodule is checked out
 get_property(MAVLINK_DIALECT_DIR GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT_DIR)
-if(NOT MAVLINK_DIALECT_DIR)
+set(MAVLINK_DIALECT_STAGE_TARGET)
+if(MAVLINK_DIALECT_DIR)
+	get_property(MAVLINK_EXTERNAL_DIALECT GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT)
+	add_custom_target(mavlink_stage_external_dialect
+		COMMAND ${CMAKE_COMMAND}
+			-DUPSTREAM_DIR=${MAVLINK_GIT_DIR}/message_definitions/v1.0
+			-DSTAGING_DIR=${MAVLINK_DIALECT_DIR}
+			-DDIALECT=${MAVLINK_EXTERNAL_DIALECT}
+			-P ${PX4_SOURCE_DIR}/cmake/px4_stage_external_mavlink_dialect.cmake
+		DEPENDS git_mavlink_v2
+		COMMENT "Staging upstream MAVLink definitions for external dialect ${MAVLINK_EXTERNAL_DIALECT}"
+	)
+	set(MAVLINK_DIALECT_STAGE_TARGET mavlink_stage_external_dialect)
+else()
 	set(MAVLINK_DIALECT_DIR ${MAVLINK_GIT_DIR}/message_definitions/v1.0)
 endif()
 file(RELATIVE_PATH MAVLINK_DIALECT_DIR_RELATIVE ${CMAKE_SOURCE_DIR} ${MAVLINK_DIALECT_DIR})
@@ -72,6 +86,7 @@ add_custom_command(
 			${MAVLINK_DIALECT_DIR}/${CONFIG_MAVLINK_DIALECT}.xml > ${CMAKE_CURRENT_BINARY_DIR}/mavgen_${CONFIG_MAVLINK_DIALECT}.log
 	DEPENDS
 		git_mavlink_v2
+		${MAVLINK_DIALECT_STAGE_TARGET}
 		${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
 		${MAVLINK_DIALECT_DIR}/${CONFIG_MAVLINK_DIALECT}.xml
 		${BOARD_DEFCONFIG}
