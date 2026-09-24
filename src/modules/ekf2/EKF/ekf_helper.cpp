@@ -299,7 +299,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.ekf2_min_rng, 0.1f);
-			vel_err_conservative = math::max(getHagl(), gndclearance) * _optical_flow.maxActiveInnovNorm();
+			vel_err_conservative = math::max(getHagl(), gndclearance) * _flow_aiding.maxActiveInnovNorm();
 		}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -368,7 +368,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		float flow_hagl_min;
 		float flow_hagl_max;
 		float flow_max_rate;
-		_optical_flow.getLimits(*this, flow_hagl_min, flow_hagl_max, flow_max_rate);
+		_flow_aiding.getLimits(*this, flow_hagl_min, flow_hagl_max, flow_max_rate);
 
 		// only limit optical flow height is dependent on range finder or terrain estimate invalid (precaution)
 		if ((!_control_status.flags.opt_flow_terrain && _control_status.flags.rng_terrain)
@@ -476,7 +476,7 @@ float Ekf::getHorizontalVelocityInnovationTestRatio() const
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
-		test_ratio = math::max(test_ratio, _optical_flow.maxActiveTestRatioFiltered());
+		test_ratio = math::max(test_ratio, _flow_aiding.maxActiveTestRatioFiltered());
 	}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -644,7 +644,7 @@ float Ekf::getHeightAboveGroundInnovationTestRatio() const
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-		const OpticalFlowSource &src = _optical_flow.source(i);
+		const OpticalFlowSource &src = _flow_aiding.source(i);
 
 		if (src._terrain) {
 			hagl_sum += sqrtf(math::max(fabsf(src._aid_src.test_ratio_filtered[0]),
@@ -828,13 +828,13 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 	// optical flow active
 	if (_control_status.flags.opt_flow
-	    && isRecent(_optical_flow.timeLastFuse(), _params.no_aid_timeout_max)
+	    && isRecent(_flow_aiding.timeLastFuse(), _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;
 
 	} else {
 		if (!_control_status.flags.in_air && _fc.of.intended()
-		    && isRecent(_optical_flow.latestSampleTimestamp(), _params.no_aid_timeout_max)
+		    && isRecent(_flow_aiding.latestSampleTimestamp(), _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but optical flow aiding should be possible once in air
 			aiding_expected_in_air = true;

@@ -132,8 +132,8 @@ public:
 	// if optical flow sensor gyro delta angles are not available, set gyro_rate vector fields to NaN and the EKF will use its internal gyro data instead
 	void setOpticalFlowData(const flowSample &flow, uint8_t instance = 0);
 
-	OpticalFlowSource &flowSource(uint8_t instance) { return _optical_flow.source(instance); }
-	const OpticalFlowSource &flowSource(uint8_t instance) const { return _optical_flow.source(instance); }
+	OpticalFlowSource &flowSource(uint8_t instance) { return _flow_aiding.source(instance); }
+	const OpticalFlowSource &flowSource(uint8_t instance) const { return _flow_aiding.source(instance); }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -382,7 +382,7 @@ protected:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	OpticalFlowAiding _optical_flow {};
+	OpticalFlowAiding _flow_aiding {};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};		// air density (kg/m**3)

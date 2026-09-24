@@ -103,7 +103,7 @@ void Ekf::updateTerrainValidity()
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	if (_control_status.flags.opt_flow_terrain
-	    && isRecent(_optical_flow.timeLastFuse(), _params.hgt_fusion_timeout_max)
+	    && isRecent(_flow_aiding.timeLastFuse(), _params.hgt_fusion_timeout_max)
 	   ) {
 		valid_opt_flow_terrain = true;
 	}

@@ -78,7 +78,7 @@ public:
 	void setPositionBody(const matrix::Vector3f &pos) { _pos_body = pos; }
 
 	// other_slot_fusing: another flow sensor currently constrains the velocity drift
-	void update(Ekf &ekf, const estimator::imuSample &imu_delayed, matrix::Vector3f &ref_body_rate, bool other_slot_fusing);
+	void update(Ekf &ekf, const estimator::imuSample &imu_delayed, bool other_slot_fusing);
 
 	bool isFusing(const Ekf &ekf) const;
 
@@ -90,14 +90,10 @@ private:
 
 	bool fuse(Ekf &ekf, matrix::Vector<float, estimator::State::size> &H, bool update_terrain);
 
-	float predictHagl(const Ekf &ekf) const;
-	float predictRange(const Ekf &ekf) const;
-	matrix::Vector2f predictFlow(const Ekf &ekf, const matrix::Vector3f &flow_gyro) const;
-
 	void reset(Ekf &ekf);
 	void resetTerrain(Ekf &ekf);
 
-	void calcBodyRateComp(const matrix::Vector3f &ref_body_rate);
+	void calcBodyRateComp();
 
 	float calcOptFlowMeasVar(const estimator::flowSample &flow_sample) const;
 
@@ -109,6 +105,7 @@ private:
 	matrix::Vector3f _pos_body{};	///< xyz position of the sensor focal point in body frame (m)
 
 	matrix::Vector3f _gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
+	matrix::Vector3f _ref_body_rate{};	///< body rates from the EKF gyro data, flow sign convention (rad/s)
 	matrix::Vector2f _vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
 	AlphaFilter<matrix::Vector2f> _vel_body_lpf{};	///< filtered velocity from corrected flow measurement (body frame)(m/s)
 	matrix::Vector2f _rate_compensated{};	///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
@@ -148,8 +145,6 @@ public:
 	OpticalFlowSource &source(uint8_t instance) { return _sources[instance]; }
 	const OpticalFlowSource &source(uint8_t instance) const { return _sources[instance]; }
 
-	const matrix::Vector3f &refBodyRate() const { return _ref_body_rate; }
-
 	// lowest slot currently fusing, otherwise lowest slot with data (for single-instance legacy consumers)
 	uint8_t primarySlot() const;
 
@@ -165,8 +160,6 @@ public:
 
 private:
 	OpticalFlowSource _sources[estimator::MAX_OF_INSTANCES] {};
-
-	matrix::Vector3f _ref_body_rate{};	///< body rates from the EKF gyro data, flow sign convention (rad/s)
 };
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW

@@ -57,7 +57,7 @@ void OpticalFlowAiding::update(Ekf &ekf, const imuSample &imu_delayed)
 			other_slot_fusing |= (other != slot) && _sources[other].isFusing(ekf);
 		}
 
-		_sources[slot].update(ekf, imu_delayed, _ref_body_rate, other_slot_fusing);
+		_sources[slot].update(ekf, imu_delayed, other_slot_fusing);
 	}
 
 	bool any_active = false;
@@ -216,7 +216,7 @@ bool OpticalFlowSource::isFusing(const Ekf &ekf) const
 	return _active && !ekf.isTimedOut(_aid_src.time_last_fuse, ekf._params.no_aid_timeout_max);
 }
 
-void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f &ref_body_rate, const bool other_slot_fusing)
+void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, const bool other_slot_fusing)
 {
 	if (!_buffer || !ekf._fc.of.intended() || (params.ctrl == 0)) {
 		stop();
@@ -229,7 +229,7 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f 
 	if (_buffer->pop_first_older_than(imu_delayed.time_us, &_sample_delayed)) {
 
 		// flow gyro has opposite sign convention
-		ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - ekf.getGyroBias());
+		_ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - ekf.getGyroBias());
 
 		// ensure valid flow sample gyro rate before proceeding
 		switch (static_cast<FlowGyroSource>(params.gyr_src)) {
@@ -238,18 +238,18 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f 
 		/* FALLTHROUGH */
 		case FlowGyroSource::Auto:
 			if (!PX4_ISFINITE(_sample_delayed.gyro_rate(0)) || !PX4_ISFINITE(_sample_delayed.gyro_rate(1))) {
-				_sample_delayed.gyro_rate = ref_body_rate;
+				_sample_delayed.gyro_rate = _ref_body_rate;
 			}
 
 			if (!PX4_ISFINITE(_sample_delayed.gyro_rate(2))) {
 				// Some flow modules only provide X ind Y angular rates. If this is the case, complete the vector with our own Z gyro
-				_sample_delayed.gyro_rate(2) = ref_body_rate(2);
+				_sample_delayed.gyro_rate(2) = _ref_body_rate(2);
 			}
 
 			break;
 
 		case FlowGyroSource::Internal:
-			_sample_delayed.gyro_rate = ref_body_rate;
+			_sample_delayed.gyro_rate = _ref_body_rate;
 			break;
 		}
 
@@ -267,7 +267,7 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f 
 		is_tilt_good = (ekf._R_to_earth(2, 2) > ekf._params.range_cos_max_tilt);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
-		calcBodyRateComp(ref_body_rate);
+		calcBodyRateComp();
 
 		// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 		// correct for gyro bias errors in the data used to do the motion compensation
@@ -289,7 +289,7 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f 
 					  flow_sample.time_us,                                          // sample timestamp
 					  flow_compensated,                                             // observation
 					  Vector2f{R_LOS, R_LOS},                                       // observation variance
-					  predictFlow(ekf, flow_gyro_corrected) - flow_compensated,    // innovation
+					  ekf.predictFlow(_pos_body, flow_gyro_corrected) - flow_compensated, // innovation
 					  innov_var,                                                    // innovation variance
 					  math::max(params.gate, 1.f));                                 // innovation gate
 
@@ -297,7 +297,7 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f 
 		_rate_compensated = flow_compensated;
 
 		// compute the velocities in body and local frames from corrected optical flow measurement for logging only
-		const float range = predictRange(ekf);
+		const float range = ekf.predictFlowRange(_pos_body);
 		_vel_body(0) = -flow_compensated(1) * range;
 		_vel_body(1) =  flow_compensated(0) * range;
 
@@ -409,14 +409,18 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, Vector3f 
 	}
 }
 
+bool OpticalFlowSource::fuse(Ekf &ekf, Ekf::VectorState &H, const bool update_terrain)
+{
+	return ekf.fuseOptFlow(_aid_src, _pos_body, _sample_delayed.gyro_rate - _gyro_bias, params.gate, H, update_terrain);
+}
+
 void OpticalFlowSource::reset(Ekf &ekf)
 {
 	ECL_INFO("reset velocity to flow %d", _slot);
 	ekf._information_events.flags.reset_vel_to_flow = true;
 
-	const float flow_vel_var = sq(predictRange(ekf)) * calcOptFlowMeasVar(_sample_delayed);
-	const Vector3f vel_ne = ekf._R_to_earth * Vector3f(_vel_body_lpf.getState()(0), _vel_body_lpf.getState()(1), 0.f);
-	ekf.resetHorizontalVelocityTo(vel_ne.xy(), flow_vel_var);
+	const float flow_vel_var = sq(ekf.predictFlowRange(_pos_body)) * calcOptFlowMeasVar(_sample_delayed);
+	ekf.resetHorizontalVelocityTo(ekf.getFilteredFlowVelNE(_slot), flow_vel_var);
 
 	ekf.resetAidSourceStatusZeroInnovation(_aid_src);
 }
@@ -457,9 +461,9 @@ void OpticalFlowSource::stop()
 	}
 }
 
-void OpticalFlowSource::calcBodyRateComp(const Vector3f &ref_body_rate)
+void OpticalFlowSource::calcBodyRateComp()
 {
 	// calculate the bias estimate using a combined LPF and spike filter
 	_gyro_bias = 0.99f * _gyro_bias
-		     + 0.01f * matrix::constrain(_sample_delayed.gyro_rate - ref_body_rate, -0.1f, 0.1f);
+		     + 0.01f * matrix::constrain(_sample_delayed.gyro_rate - _ref_body_rate, -0.1f, 0.1f);
 }

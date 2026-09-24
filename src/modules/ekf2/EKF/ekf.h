@@ -138,22 +138,22 @@ public:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	const auto &aid_src_optical_flow(uint8_t slot = 0) const { return _optical_flow.source(slot)._aid_src; }
+	const auto &aid_src_optical_flow(uint8_t slot = 0) const { return _flow_aiding.source(slot)._aid_src; }
 
-	const Vector2f &getFlowVelBody(uint8_t slot = 0) const { return _optical_flow.source(slot)._vel_body; }
+	const Vector2f &getFlowVelBody(uint8_t slot = 0) const { return _flow_aiding.source(slot)._vel_body; }
 	Vector2f getFlowVelNE(uint8_t slot = 0) const { return Vector2f(_R_to_earth * Vector3f(getFlowVelBody(slot)(0), getFlowVelBody(slot)(1), 0.f)); }
 
-	const Vector2f &getFilteredFlowVelBody(uint8_t slot = 0) const { return _optical_flow.source(slot)._vel_body_lpf.getState(); }
+	const Vector2f &getFilteredFlowVelBody(uint8_t slot = 0) const { return _flow_aiding.source(slot)._vel_body_lpf.getState(); }
 	Vector2f getFilteredFlowVelNE(uint8_t slot = 0) const { return Vector2f(_R_to_earth * Vector3f(getFilteredFlowVelBody(slot)(0), getFilteredFlowVelBody(slot)(1), 0.f)); }
 
-	const Vector2f &getFlowCompensated(uint8_t slot = 0) const { return _optical_flow.source(slot)._rate_compensated; }
-	const Vector2f &getFlowUncompensated(uint8_t slot = 0) const { return _optical_flow.source(slot)._sample_delayed.flow_rate; }
+	const Vector2f &getFlowCompensated(uint8_t slot = 0) const { return _flow_aiding.source(slot)._rate_compensated; }
+	const Vector2f &getFlowUncompensated(uint8_t slot = 0) const { return _flow_aiding.source(slot)._sample_delayed.flow_rate; }
 
-	const Vector3f getFlowGyro(uint8_t slot = 0) const { return _optical_flow.source(slot)._sample_delayed.gyro_rate; }
-	const Vector3f &getFlowGyroBias(uint8_t slot = 0) const { return _optical_flow.source(slot)._gyro_bias; }
-	const Vector3f &getFlowRefBodyRate() const { return _optical_flow.refBodyRate(); }
+	const Vector3f getFlowGyro(uint8_t slot = 0) const { return _flow_aiding.source(slot)._sample_delayed.gyro_rate; }
+	const Vector3f &getFlowGyroBias(uint8_t slot = 0) const { return _flow_aiding.source(slot)._gyro_bias; }
+	const Vector3f &getFlowRefBodyRate(uint8_t slot = 0) const { return _flow_aiding.source(slot)._ref_body_rate; }
 
-	uint8_t getPrimaryFlowSlot() const { return _optical_flow.primarySlot(); }
+	uint8_t getPrimaryFlowSlot() const { return _flow_aiding.primarySlot(); }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
@@ -820,6 +820,16 @@ private:
 	void stopRngHgtFusion();
 	void stopRngTerrFusion();
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	float predictFlowHagl(const Vector3f &sensor_pos_body) const;
+	float predictFlowRange(const Vector3f &sensor_pos_body) const;
+	Vector2f predictFlow(const Vector3f &sensor_pos_body, const Vector3f &flow_gyro) const;
+
+	// fuse optical flow line of sight rate measurements
+	bool fuseOptFlow(estimator_aid_source2d_s &aid_src, const Vector3f &sensor_pos_body,
+			 const Vector3f &flow_gyro_corrected, float gate, VectorState &H, bool update_terrain);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing

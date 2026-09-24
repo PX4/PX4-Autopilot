@@ -259,7 +259,7 @@ void OpticalFlow::publishFlowVel(const Ekf &ekf, const hrt_abstime &timestamp, c
 			ekf.getFlowGyro(i).copyTo(flow_vel.gyro_rate);
 
 			ekf.getFlowGyroBias(i).copyTo(flow_vel.gyro_bias);
-			ekf.getFlowRefBodyRate().copyTo(flow_vel.ref_gyro);
+			ekf.getFlowRefBodyRate(i).copyTo(flow_vel.ref_gyro);
 
 			flow_vel.timestamp = replay_mode ? timestamp : hrt_absolute_time();
 

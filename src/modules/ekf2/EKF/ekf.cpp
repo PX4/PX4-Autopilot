@@ -580,7 +580,7 @@ void Ekf::print_status()
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-		printRingBuffer("flow buffer", _optical_flow.source(i)._buffer);
+		printRingBuffer("flow buffer", _flow_aiding.source(i)._buffer);
 	}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
