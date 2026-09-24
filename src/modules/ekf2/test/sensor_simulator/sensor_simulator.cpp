@@ -388,13 +388,15 @@ void SensorSimulator::setSensorDataFromTrajectory()
 	}
 
 	// Optical flow
-	if (_flow.isRunning()) {
-		flowSample flow_sample = _flow.dataAtRest();
-		const Vector3f vel_body = R_world_to_body * vel_world;
-		flow_sample.flow_rate =
-			Vector2f(vel_body(1) / distance_to_ground,
-				 -vel_body(0) / distance_to_ground);
-		_flow.setData(flow_sample);
+	for (Flow *flow : {&_flow, &_flow1}) {
+		if (flow->isRunning()) {
+			flowSample flow_sample = flow->dataAtRest();
+			const Vector3f vel_body = R_world_to_body * vel_world;
+			flow_sample.flow_rate =
+				Vector2f(vel_body(1) / distance_to_ground,
+					 -vel_body(0) / distance_to_ground);
+			flow->setData(flow_sample);
+		}
 	}
 
 	if (_gps.isRunning()) {

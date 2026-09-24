@@ -198,3 +198,92 @@ TEST_F(EkfFlowMultiTest, sensorEnabledAtRuntimeIsFused)
 	EXPECT_TRUE(_ekf->aid_src_optical_flow(1).fused);
 	EXPECT_TRUE(_ekf->aid_src_optical_flow(0).fused);
 }
+
+TEST_F(EkfFlowMultiTest, bothSensorsFusedInMotion)
+{
+	// GIVEN: two flow sensors while hovering
+	startHoverWithRangeFinder();
+	startFlow(0);
+	startFlow(1);
+	_sensor_simulator.runSeconds(3.f);
+
+	// WHEN: the vehicle moves horizontally
+	const Vector3f simulated_velocity(0.8f, -0.5f, 0.f);
+	_sensor_simulator.setTrajectoryTargetVelocity(simulated_velocity);
+	_sensor_simulator.runTrajectorySeconds(_sensor_simulator._trajectory[0].getTotalTime() + 2.f);
+
+	// THEN: both sensors keep being fused and the velocity estimate follows
+	EXPECT_TRUE(_ekf->aid_src_optical_flow(0).fused);
+	EXPECT_TRUE(_ekf->aid_src_optical_flow(1).fused);
+	EXPECT_NEAR(_ekf->getVelocity()(0), simulated_velocity(0), 0.05f);
+	EXPECT_NEAR(_ekf->getVelocity()(1), simulated_velocity(1), 0.05f);
+}
+
+TEST_F(EkfFlowMultiTest, handoverBetweenSensorRanges)
+{
+	// GIVEN: a short range (up to 3 m) and a long range sensor while hovering at 5 m
+	_ekf->flowSource(0).setLimits(5.f, 0.f, 3.f);
+	startHoverWithRangeFinder();
+	startFlow(0);
+	startFlow(1);
+	_sensor_simulator.runSeconds(3.f);
+
+	// THEN: only the long range sensor is fused
+	EXPECT_FALSE(_ekf->aid_src_optical_flow(0).fused);
+	EXPECT_TRUE(_ekf->aid_src_optical_flow(1).fused);
+	EXPECT_TRUE(_ekf->control_status_flags().opt_flow);
+
+	// WHEN: descending into the range of the short range sensor
+	_sensor_simulator.setTrajectoryTargetVelocity(Vector3f(0.f, 0.f, 1.f));
+	_sensor_simulator.runTrajectorySeconds(3.f);
+	_sensor_simulator.setTrajectoryTargetVelocity(Vector3f(0.f, 0.f, 0.f));
+	_sensor_simulator.runTrajectorySeconds(3.f);
+
+	// THEN: it starts being fused as well
+	ASSERT_LT(_ekf->getHagl(), 2.5f);
+	EXPECT_TRUE(_ekf->aid_src_optical_flow(0).fused);
+	EXPECT_TRUE(_ekf->aid_src_optical_flow(1).fused);
+}
+
+TEST_F(EkfFlowMultiTest, disablingOneSensorKeepsTheOther)
+{
+	// GIVEN: two flow sensors fused while hovering
+	startHoverWithRangeFinder();
+	startFlow(0);
+	startFlow(1);
+	_sensor_simulator.runSeconds(3.f);
+
+	// WHEN: the second sensor is disabled
+	_ekf_wrapper.disableFlowFusion(1);
+	_sensor_simulator.runSeconds(3.f);
+
+	// THEN: only the first one is still fused
+	EXPECT_TRUE(_ekf->control_status_flags().opt_flow);
+	EXPECT_TRUE(_ekf->aid_src_optical_flow(0).fused);
+	EXPECT_GT(_ekf->time_delayed_us() - _ekf->aid_src_optical_flow(1).time_last_fuse, 2'000'000u);
+}
+
+TEST_F(EkfFlowMultiTest, fusionControlStopsAllSensors)
+{
+	// GIVEN: two flow sensors fused while hovering
+	startHoverWithRangeFinder();
+	startFlow(0);
+	startFlow(1);
+	_sensor_simulator.runSeconds(3.f);
+	ASSERT_TRUE(_ekf->control_status_flags().opt_flow);
+
+	// WHEN: optical flow fusion is disabled at runtime (EKF2_SENS_EN / FUSION_SOURCE_OF)
+	_ekf->getFusionControlHandle()->of.enabled = false;
+	_sensor_simulator.runSeconds(1.f);
+
+	// THEN: no flow sensor is fused anymore
+	EXPECT_FALSE(_ekf->control_status_flags().opt_flow);
+	EXPECT_FALSE(_ekf->control_status_flags().opt_flow_terrain);
+
+	// AND WHEN: enabled again
+	_ekf->getFusionControlHandle()->of.enabled = true;
+	_sensor_simulator.runSeconds(3.f);
+
+	// THEN: flow fusion resumes
+	EXPECT_TRUE(_ekf->control_status_flags().opt_flow);
+}
