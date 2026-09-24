@@ -85,101 +85,124 @@ For subsequent incremental builds `EXTERNAL_MODULES_LOCATION` does not need to b
 
 ## Out-of-Tree MAVLink Dialect Definitions
 
-External modules can register custom MAVLink dialect XML files for mavgen code generation without modifying PX4 source.
+An external module can make its own MAVLink dialect the dialect of the build, without touching the PX4 source tree.
 
-### Registering a Dialect
-
-Call `px4_add_external_mavlink_dialect()` from your module's `CMakeLists.txt`:
+Call `px4_add_external_mavlink_dialect()` from a `CMakeLists.txt` under `$EXTERNAL_MODULES_LOCATION/src`:
 
 ```cmake
-px4_add_external_mavlink_dialect(
-    XML ${CMAKE_CURRENT_SOURCE_DIR}/../../mavlink/my_dialect.xml
+px4_add_external_mavlink_dialect(XML ${CMAKE_CURRENT_SOURCE_DIR}/../../../mavlink/my_dialect.xml)
+```
+
+- The XML must `<include>common.xml</include>` (or another upstream dialect) so the standard messages stay available.
+- The XML is copied next to a copy of the upstream definitions in `<build_dir>/mavlink/message_definitions/v1.0/`, where mavgen resolves its includes; nothing is written into the source tree.
+- The dialect replaces `CONFIG_MAVLINK_DIALECT`. Include the dialect the target would otherwise build (`common.xml` for flight controllers, `development.xml` for `px4_sitl_default`) to keep its messages.
+- One external dialect per build. Messages from a second module belong in an XML that the registered dialect includes.
+
+Modules that use the generated headers call `px4_target_use_external_mavlink_dialect(<target>)` after `px4_add_module()`.
+It adds the include paths, the mavgen dependency and the warning suppressions the generated code needs.
+
+```cmake
+px4_add_module(
+	MODULE modules__my_module
+	MAIN my_module
+	SRCS my_module.cpp
+	EXTERNAL
 )
+px4_target_use_external_mavlink_dialect(modules__my_module)
 ```
 
-The dialect XML must `<include>common.xml</include>` so that all standard MAVLink messages remain available.
-The function copies the XML into mavgen's search path and, if `CONFIG_MAVLINK_DIALECT` is `common`, automatically overrides it with your dialect name.
-
-Multiple external dialects from different modules are supported.
-
-### Directory Layout
-
-```
-my_external_module/
-├── mavlink/
-│   └── my_dialect.xml      # Custom MAVLink dialect
-├── src/
-│   ├── CMakeLists.txt       # Calls px4_add_external_mavlink_dialect()
-│   └── modules/
-│       └── my_module/
-```
+External modules are configured before the in-tree libraries, so link in-tree libraries with `target_link_libraries()` rather than `DEPENDS`.
 
 ## External MAVLink Message Handlers and Streams
 
-External modules can register callbacks for custom inbound and outbound MAVLink messages at runtime, without patching `mavlink_receiver.cpp` or `mavlink_main.cpp`.
+External modules register callbacks for custom inbound and outbound messages at runtime.
+The registries are compiled into the `mavlink` module only when `EXTERNAL_MODULES_LOCATION` is set, so firmware without external modules is unchanged.
 
 ### Inbound Message Handlers
 
-Register a handler for a custom message ID from your module's `init` or `task_spawn`:
-
 ```cpp
+#include <modules/mavlink/mavlink_bridge_header.h>
 #include <modules/mavlink/mavlink_ext_handler.h>
 
 static bool handle_my_message(const mavlink_message_t *msg, void *user_data)
 {
-    // Decode and process message
+    mavlink_my_message_t decoded;
+    mavlink_msg_my_message_decode(msg, &decoded);
+    // ...
     return true;
 }
 
-// Registration (typically in module init)
+// module init
 mavlink_ext_handler_register(MAVLINK_MSG_ID_MY_MESSAGE, handle_my_message, this);
 
-// Cleanup (module stop)
+// module stop
 mavlink_ext_handler_unregister(MAVLINK_MSG_ID_MY_MESSAGE);
 ```
 
-Registered handlers are invoked from the MAVLink receiver thread's `default` switch case.
-Registration is mutex-protected; dispatch is lock-free.
+The receiver thread of the instance that received the message calls the handler for every message ID that `mavlink_receiver.cpp` does not handle itself.
 
 ### Outbound Streams
-
-Register a stream callback to periodically emit custom messages:
 
 ```cpp
 #include <modules/mavlink/mavlink_ext_stream.h>
 
-static bool emit_my_message(uint8_t channel, void *user_data)
+static bool send_my_message(uint8_t channel, void *user_data)
 {
     mavlink_my_message_t msg{};
-    // Fill message fields...
+    // ...
     mavlink_msg_my_message_send_struct((mavlink_channel_t)channel, &msg);
     return true;
 }
 
-// Register with rate limiting (500000 = 2 Hz)
-mavlink_ext_stream_register(MAVLINK_MSG_ID_MY_MESSAGE, "MY_MESSAGE",
-                            emit_my_message, this, 500000);
+// 2 Hz on every link
+mavlink_ext_stream_register(MAVLINK_MSG_ID_MY_MESSAGE, send_my_message, this, 500000);
 ```
 
-The `interval_us` parameter controls rate limiting:
-- `-1`: unlimited (fire every iteration)
-- `0`: disabled
-- `>0`: minimum microseconds between sends
+Each mavlink instance calls the stream callback from its main loop, after the built-in streams, and rate limits it per link:
 
-External stream rates can also be controlled at runtime via the standard MAVLink `SET_MESSAGE_INTERVAL` command from QGC or pymavlink:
+- `interval_us > 0`: minimum spacing in microseconds
+- `MAVLINK_EXT_STREAM_UNLIMITED`: every loop iteration
+- `MAVLINK_EXT_STREAM_DISABLED`
+
+A GCS changes the rate of an external stream on its own link with `SET_MESSAGE_INTERVAL`, exactly like a built-in stream (`-1` stops it, `0` restores the registered interval).
+The module can do the same with `mavlink_ext_stream_set_interval(channel, msg_id, interval_us)`.
+
+### One-shot Messages
+
+To send a message or command once, on every running link, from any module thread or from inside a handler:
 
 ```cpp
-// Programmatic rate change
-mavlink_ext_stream_set_interval(MAVLINK_MSG_ID_MY_MESSAGE, 1000000); // 1 Hz
+static bool send_reply(uint8_t channel, void *user_data)
+{
+    mavlink_msg_my_reply_send_struct((mavlink_channel_t)channel, static_cast<mavlink_my_reply_t *>(user_data));
+    return true;
+}
+
+mavlink_my_reply_t reply{};
+// ...
+mavlink_ext_send(send_reply, &reply);
+```
+
+### Callback Rules
+
+- Callbacks run with the registry mutex held. `unregister()` therefore returns only after any in-flight callback has completed, which makes it safe to free `user_data` (typically the module) afterwards.
+- Never register or unregister from inside a callback.
+- Never call `mavlink_ext_send()` from a stream callback: it runs under that instance's send lock and would take other instances' send locks in the wrong order. Stream callbacks already receive their channel.
+- Keep callbacks short; they run on the mavlink threads.
+
+### Example
+
+`test/external_module` is a complete external module with a dialect, one handler, one stream, one-shot replies and an init script.
+CI builds SITL with it and drives it with `test/external_module/test_ext_mavlink_example.py`:
+
+```sh
+make px4_sitl_default EXTERNAL_MODULES_LOCATION=$(pwd)/test/external_module
+test/external_module/test_ext_mavlink_example.py --verbose
 ```
 
 ## Boot-Time Auto-Start
 
-External modules can declare startup commands that are baked into the firmware ROMFS image at build time, eliminating the need for manual SD card `extras.txt` files.
-
-### Setup
-
-Create `init/rc.ext_modules` in your external module directory:
+`$EXTERNAL_MODULES_LOCATION/init/rc.ext_modules`, if present, is copied into the ROMFS as `/etc/init.d/rc.ext_modules` and sourced by `rcS` after the logger starts, on NuttX and in SITL:
 
 ```sh
 #!/bin/sh
@@ -187,18 +210,5 @@ my_driver start
 my_mavlink_bridge start
 ```
 
-When building with `EXTERNAL_MODULES_LOCATION`, PX4's build system automatically copies this file into the ROMFS.
-At boot, `rcS` sources it after `rc.board_extras` and before the SD card `extras.txt`.
-
-### Boot Order
-
-```
-rcS boot sequence:
-├── rc.board_extras           # Board-specific init
-├── extras.txt                # SD card overrides (runtime)
-├── rc.logging                # Logger start
-└── rc.ext_modules            # External module auto-start (ROMFS, build-time)
-```
-
-External modules run after the logger, ensuring that any slow hardware initialization (e.g. I2C secure elements) doesn't delay flight logging in a brownout recovery scenario.
-The SD card `extras.txt` remains available as a runtime override for development and testing without reflashing.
+Starting external modules after the logger keeps slow hardware initialization (for example an I2C secure element) from delaying flight logging.
+The SD card `extras.txt` stays available as a runtime override.
