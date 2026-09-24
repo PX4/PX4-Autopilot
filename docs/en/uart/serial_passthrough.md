@@ -23,12 +23,12 @@ The following device IDs are allowed (note that this is a subset of the IDs spec
 
 | Device ID | Target                              |
 | --------- | ----------------------------------- |
-| `0`       | TEL1                                |
-| `1`       | TEL2                                |
-| `2`       | GPS1                                |
-| `3`       | GPS2                                |
-| `4`       | TEL3                                |
-| `5`       | TEL4                                |
+| `0`       | `TELEM1`                            |
+| `1`       | `TELEM2`                            |
+| `2`       | `GPS1`                              |
+| `3`       | `GPS2`                              |
+| `4`       | `TELEM3`                            |
+| `5`       | `TELEM4`                            |
 | `20`      | ESC channel 0 ([bitbang](#bitbang)) |
 | `21`      | ESC channel 1 (bitbang)             |
 | `22`      | ESC channel 2 (bitbang)             |
@@ -62,21 +62,44 @@ When a request arrives for a different ESC channel, the driver stops the current
 Bitbang UART support requires that both `CONFIG_DRIVERS_SERIALPASSTHROUGH=y` and `CONFIG_SERIALPASSTHROUGH_BITBANG=y` are set before building (the timer is selected with `CONFIG_UART_BITBANG_TIMER`, and defaults to `TIM13`).
 The `PASSTHRU_EN` parameter must be set to `1` and the device rebooted in order to enable this mode.
 
-### Bridge Application
+## Bridge Application
 
-[`Tools/mavlink_serial_bridge.py`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mavlink_serial_bridge.py) is a reference bridge application: it connects to the vehicle over MAVLink, exposes a virtual serial port (a Unix PTY) to the tool on the host, and translates traffic bidirectionally.
+[`Tools/mavlink_serial_bridge.py`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mavlink_serial_bridge.py) is a reference bridge application (Linux/macOS only): it connects to the vehicle over MAVLink, exposes a virtual serial port (a Unix PTY) to a serial tool on the host, such as an ESC configurator, and translates traffic bidirectionally.
+
+The script supports a subset of the [device IDs](#device-ids), selected with its `--port` option:
+
+| `--port`      | Device ID | Target           |
+| ------------- | --------- | ---------------- |
+| `telem1`      | `0`       | `TELEM1`         |
+| `telem2`      | `1`       | `TELEM2`         |
+| `gps1`        | `2`       | `GPS1`           |
+| `gps2`        | `3`       | `GPS2`           |
+| `esc0`–`esc3` | `20`–`23` | ESC channels 0–3 |
+
+`TELEM3`, `TELEM4` (device IDs `4`, `5`) and ESC channels 4–7 (device IDs `24`–`27`) are supported by PX4 but not by the script.
 
 Install its only dependency and run it, for example to bridge ESC channel 0:
 
 ```sh
 pip3 install --user pymavlink
-./Tools/mavlink_serial_bridge.py --connection udp:127.0.0.1:14550 --port esc0 --setup
+./Tools/mavlink_serial_bridge.py --connection /dev/ttyUSB0 --port esc0 --setup
 ```
 
-The script prints the PTY path it created (e.g. `/dev/pts/5`) — point any tool that expects a serial connection (ESC configurator, GPS/RTK utility, and so on) at that path.
+`--connection` takes a [pymavlink connection string](https://mavlink.io/en/mavgen_python/#connection_string) for the link to the vehicle, such as a telemetry radio (`/dev/ttyUSB0`, with `--baud` if it isn't 57600) or a network link (`tcp:<ip>:<port>`, or `udpin:0.0.0.0:14550`).
+A `udp:127.0.0.1:<port>` string only receives MAVLink traffic sent to this machine, for example by a local MAVLink router.
+
+`--setup` sets `PASSTHRU_EN=1` and reboots the flight controller, so DShot/PWM outputs are not started until the next reboot (see [PX4 Configuration (ESC targets)](#px4-configuration-esc-targets)).
+Use it only with `esc*` ports, and again after each reboot, since PX4 resets the parameter at boot.
+For `telem*` and `gps*` ports, leave out `--setup`: they don't need `PASSTHRU_EN`.
+
+The script prints the PTY path it created (e.g. `/dev/pts/5`).
+Once it prints `Bridge running`, point any tool that expects a serial connection (ESC configurator, GPS/RTK utility, and so on) at that path.
 Run it with `-h` for the full list of options.
 
-Developers can create their own bridge application in another language if needed, following the same protocol.
+For `esc*` ports the UART baud rate is fixed at 19200 (the bitbang limit) and `--port-baud` is ignored.
+To switch to a different device while the bridge is running, type `SWITCH <device_id>` and press Enter.
+
+Developers can create their own bridge application in another language if needed, following the protocol described below.
 Data written to the PTY would be sent as `SERIAL_CONTROL` messages with `SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE` set, and incoming `SERIAL_CONTROL` reply messages (with `FLAG_REPLY` set) would be written back to the PTY.
 
 To initialise the passthrough, the bridge should send one `SERIAL_CONTROL` message with the target device ID, the desired UART baud rate in the `baudrate` field, and `count=0` (no payload), then wait approximately 2 seconds for PX4 to spawn the passthrough task before sending real traffic.

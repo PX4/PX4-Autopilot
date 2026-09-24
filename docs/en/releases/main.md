@@ -40,6 +40,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Hardware Support
 
 - [DroneCAN ESCs](../dronecan/escs.md) no longer need to set `UAVCAN_PUB_ARM` as `ArmingStatus` is published automatically whenever `UAVCAN_ENABLE` is `3` (ESC output enabled). ([PX4-Autopilot#28364](https://github.com/PX4/PX4-Autopilot/pull/28364))
+- [Serial Passthrough](../uart/serial_passthrough.md): new reference [bridge application](../uart/serial_passthrough.md#bridge-application), `Tools/mavlink_serial_bridge.py`, exposes a flight controller serial port or ESC signal pin as a virtual serial port on a Linux/macOS host, so ESC configuration and GPS tools can connect to it over MAVLink.
+  ([PX4-Autopilot#28782: feat(tools): add mavlink_serial_bridge.py reference bridge application](https://github.com/PX4/PX4-Autopilot/pull/28782))
 
 ### Common
 
