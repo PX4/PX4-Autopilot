@@ -33,8 +33,10 @@ jobs:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     strategy:
       matrix:
-        target: [px4_fmu-v5x, px4_fmu-v6x]
+        target: [px4_fmu-v2, px4_fmu-v5x, px4_fmu-v6x]
     outputs:
+      px4_fmu-v2-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v2-bloaty-output }}
+      px4_fmu-v2-memory-summary: ${{ steps.gen-output.outputs.px4_fmu-v2-memory-summary }}
       px4_fmu-v5x-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v5x-bloaty-output }}
       px4_fmu-v5x-memory-summary: ${{ steps.gen-output.outputs.px4_fmu-v5x-memory-summary }}
       px4_fmu-v6x-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v6x-bloaty-output }}
@@ -79,8 +81,11 @@ jobs:
       - name: Build Target
         run: make ${{ matrix.target }}_flash-analysis
 
-      - name: Store the ELF with the change
-        run: cp ./build/**/*.elf ./with-change.elf
+      - name: Store the ELF and linker script with the change
+        run: |
+          cp ./build/**/*.elf ./with-change.elf
+          board=$(echo "${{ matrix.target }}" | sed 's|_|/|')
+          cp "boards/$board/nuttx-config/scripts/script.ld" ./with-change.ld
 
       - name: Cache - Stats after Current Build
         run: ccache -s
@@ -107,6 +112,10 @@ jobs:
       - name: If it's a push checkout the previous commit
         if: github.event_name == 'push'
         run: git checkout ${{ github.event.before }}
+
+      - name: Keep flash-analysis variants added by the change
+        # A target new to the matrix has no flash-analysis variant on the baseline.
+        run: git diff --name-only --diff-filter=A HEAD ${{ github.sha }} -- 'boards/*flash-analysis*' | xargs -r git checkout ${{ github.sha }} --
 
       - name: Update submodules
         run: make submodulesupdate
@@ -153,7 +162,7 @@ jobs:
           BLOATY_OUTPUT: ${{ steps.bloaty-step.outputs.bloaty-output }}
         run: |
           summary=$(python3 "$RUNNER_TEMP/firmware_size.py" \
-            --before before-change.elf --after with-change.elf)
+            --before before-change.elf --after with-change.elf --linker-script with-change.ld)
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           {
             echo "${{ matrix.target }}-memory-summary=$summary"
@@ -167,12 +176,9 @@ jobs:
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
     needs: [analyze_flash]
     env:
-      V5X_FLASH: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-memory-summary).flash }}
-      V5X_RAM: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-memory-summary).ram }}
-      V5X_CHANGED: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-memory-summary).changed }}
-      V6X_FLASH: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-memory-summary).flash }}
-      V6X_RAM: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-memory-summary).ram }}
-      V6X_CHANGED: ${{ fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-memory-summary).changed }}
+      V2: ${{ needs.analyze_flash.outputs.px4_fmu-v2-memory-summary }}
+      V5X: ${{ needs.analyze_flash.outputs.px4_fmu-v5x-memory-summary }}
+      V6X: ${{ needs.analyze_flash.outputs.px4_fmu-v6x-memory-summary }}
     if: github.event.pull_request
     steps:
       - name: Find Comment
@@ -193,8 +199,9 @@ jobs:
         # This can't be moved to the job-level conditions, as GH actions don't allow a job-level if condition to access the env.
         if: |
           steps.fc.outputs.comment-id != '' ||
-          env.V5X_CHANGED == 'true' ||
-          env.V6X_CHANGED == 'true'
+          fromJSON(env.V2).changed ||
+          fromJSON(env.V5X).changed ||
+          fromJSON(env.V6X).changed
         run: |
           mkdir -p pr-comment
           cat > pr-comment/manifest.json <<EOF
@@ -208,10 +215,19 @@ jobs:
           <!-- pr-comment-poster:flash-analysis -->
           ## 🔎 Flash and RAM Analysis
 
-          | Target | Flash change | Static RAM change |
-          | --- | ---: | ---: |
-          | px4_fmu-v5x | ${{ env.V5X_FLASH }} | ${{ env.V5X_RAM }} |
-          | px4_fmu-v6x | ${{ env.V6X_FLASH }} | ${{ env.V6X_RAM }} |
+          | Target | Flash change | Flash used | Static RAM change | Static RAM used |
+          | --- | ---: | ---: | ---: | ---: |
+          | px4_fmu-v2 (F4) | ${{ fromJSON(env.V2).flash }} | ${{ fromJSON(env.V2).flash_used }} | ${{ fromJSON(env.V2).ram }} | ${{ fromJSON(env.V2).ram_used }} |
+          | px4_fmu-v5x (F7) | ${{ fromJSON(env.V5X).flash }} | ${{ fromJSON(env.V5X).flash_used }} | ${{ fromJSON(env.V5X).ram }} | ${{ fromJSON(env.V5X).ram_used }} |
+          | px4_fmu-v6x (H7) | ${{ fromJSON(env.V6X).flash }} | ${{ fromJSON(env.V6X).flash_used }} | ${{ fromJSON(env.V6X).ram }} | ${{ fromJSON(env.V6X).ram_used }} |
+
+          <details>
+          <summary>px4_fmu-v2 — Bloaty section/symbol breakdown</summary>
+
+          ```
+          ${{ needs.analyze_flash.outputs.px4_fmu-v2-bloaty-output }}
+          ```
+          </details>
 
           <details>
           <summary>px4_fmu-v5x — Bloaty section/symbol breakdown</summary>
@@ -235,8 +251,9 @@ jobs:
       - name: Upload pr-comment artifact
         if: |
           steps.fc.outputs.comment-id != '' ||
-          env.V5X_CHANGED == 'true' ||
-          env.V6X_CHANGED == 'true'
+          fromJSON(env.V2).changed ||
+          fromJSON(env.V5X).changed ||
+          fromJSON(env.V6X).changed
         uses: actions/upload-artifact@v7
         with:
           name: pr-comment
