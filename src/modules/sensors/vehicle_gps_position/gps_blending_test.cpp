@@ -164,27 +164,31 @@ TEST_F(GpsBlendingTest, dualReceiverNoBlending)
 {
 	GpsBlending gps_blending;
 
-	// GIVEN: two receivers with the same prioity
+	// GIVEN: two receivers with the same prioity, gps0 only has a 2D fix
 	gps_blending.setPrimaryInstance(-1);
 	sensor_gps_s gps_data0 = getDefaultGpsData();
 	sensor_gps_s gps_data1 = getDefaultGpsData();
 
-	gps_data1.satellites_used = gps_data0.satellites_used + 2; // gps1 has more satellites than gps0
+	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_2D;
 	gps_blending.setGpsData(gps_data0, 0);
 	gps_blending.setGpsData(gps_data1, 1);
 	gps_blending.update(_time_now_us);
 
-	// THEN: gps1 should be selected because it has more satellites
+	// THEN: gps1 should be selected because it is the only one with a 3D fix
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
 	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 2);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
-	gps_data1.satellites_used = gps_data0.satellites_used - 2; // gps1 has less satellites than gps0
+	_time_now_us += 200e3;
+	gps_data0.timestamp = _time_now_us - 10e3;
+	gps_data1.timestamp = _time_now_us - 10e3;
+	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_3D;
+	gps_data0.satellites_used = gps_data1.satellites_used + 2;
 	gps_blending.setGpsData(gps_data0, 0);
 	gps_blending.setGpsData(gps_data1, 1);
 	gps_blending.update(_time_now_us);
 
-	// THEN: gps1 should still be selected, the satellite count doesn't matter once selected
+	// THEN: gps1 should still be selected, the satellite count isn't used for ranking
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
 	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 2);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
@@ -240,110 +244,177 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 1);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
-	// BUT WHEN: the data of the primary receiver is available with the same fix type
+	// BUT WHEN: the data of the primary receiver is avaialbe
 	sensor_gps_s gps_data0 = getDefaultGpsData();
-	gps_data0.timestamp = gps_data1.timestamp;
-	runSeconds(duration_s, gps_blending, gps_data0, gps_data1);
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: the selection is kept, the primary instance is only a tie-breaker
-	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+	// THEN: the primary instance is selected and the data
+	// is available
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 2);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
-	// BUT WHEN: the selected receiver isn't available anymore
-	runSeconds(duration_s, gps_blending, gps_data0, 0);
-
-	// THEN: the other receiver is used
-	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
-	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
-
-	// AND IF: the secondary receiver is available again with more satellites
-	gps_data1.timestamp = gps_data0.timestamp;
-	gps_data1.satellites_used = gps_data0.satellites_used + 2;
-
 	runSeconds(duration_s, gps_blending, gps_data0, gps_data1);
 
-	// THEN: the selection is kept as the fix type is the same
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
-	// BUT IF: the selected receiver loses its fix
-	gps_data0.fix_type = 1;
+	// BUT WHEN: the primary receiver isn't available anymore
+	runSeconds(duration_s, gps_blending, gps_data1, 1);
 
-	runSeconds(0.1f, gps_blending, gps_data0, gps_data1);
-
-	// THEN: the selector switches immediately
+	// THEN: the data of the secondary receiver can be used
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
-	// AND IF: the receiver recovers its fix
-	gps_data0.fix_type = gps_data1.fix_type;
+	// AND IF: the primary receiver is available again and has
+	// better metrics than the secondary one
+	gps_data0.timestamp = gps_data1.timestamp;
+	gps_data0.satellites_used = gps_data1.satellites_used + 2;
 
-	runSeconds(duration_s, gps_blending, gps_data0, gps_data1);
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: the selection stays on the current receiver
+	// THEN: the primary receiver should be used again
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
+
+	// BUT IF: the secondary receiver has better metrics than the primary one
+	gps_data1.satellites_used = gps_data0.satellites_used + 2;
+
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
+
+	// THEN: the selector shouldn't switch again as the primary one is available
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
+
+	// BUT IF: the primary receiver looses its fix
+	gps_data0.fix_type = 1;
+
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
+
+	// THEN: the selector should switch as the primary one is unable to provide correct data
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 }
 
-TEST_F(GpsBlendingTest, dualReceiverBetterFixTypeHold)
+TEST_F(GpsBlendingTest, rankedAccuracyWithHold)
 {
 	GpsBlending gps_blending;
 
-	// GIVEN: two receivers with an RTK fixed solution, receiver 0 selected
-	gps_blending.setPrimaryInstance(0);
+	// GIVEN: two receivers with the same priority and the same accuracy
+	gps_blending.setPrimaryInstance(-1);
 	gps_blending.setBlendingUseSpeedAccuracy(false);
 	gps_blending.setBlendingUseHPosAccuracy(false);
 	gps_blending.setBlendingUseVPosAccuracy(false);
 
 	sensor_gps_s gps_data0 = getDefaultGpsData();
 	sensor_gps_s gps_data1 = getDefaultGpsData();
-	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
-	gps_data1.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
 
 	runSeconds(2.f, gps_blending, gps_data0, gps_data1);
 
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 
-	// WHEN: receiver 0 degrades to RTK float
-	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_RTK_FLOAT;
+	// WHEN: gps1 reports a slightly better accuracy and a better fix type
+	gps_data1.eph = 0.6f;
+	gps_data1.epv = 1.0f;
+	gps_data1.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
+
+	runSeconds(5.f, gps_blending, gps_data0, gps_data1);
+
+	// THEN: the selection is kept, the difference is within the switching margin
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+
+	// WHEN: gps1 reports a clearly better accuracy
+	gps_data1.eph = 0.3f;
+	gps_data1.epv = 0.5f;
 
 	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
 
 	// THEN: the selection is held for the hold time
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 
-	// AND WHEN: receiver 0 recovers before the hold time elapses
-	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
+	// AND WHEN: gps1 degrades again before the hold time elapses
+	gps_data1.eph = gps_data0.eph;
+	gps_data1.epv = gps_data0.epv;
 
-	runSeconds(2.f, gps_blending, gps_data0, gps_data1);
+	runSeconds(0.5f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: no switch happens
-	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
-
-	// BUT WHEN: receiver 0 degrades to RTK float for longer than the hold time
-	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_RTK_FLOAT;
-
-	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
-
-	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+	// AND: is clearly better again, but not for the full hold time
+	gps_data1.eph = 0.3f;
+	gps_data1.epv = 0.5f;
 
 	runSeconds(1.5f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: the receiver with the better fix type is selected
-	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+	// THEN: no switch happens as the hold time restarted
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 
-	// AND WHEN: receiver 0 recovers to RTK fixed (equal fix type)
-	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
-	gps_data0.satellites_used = gps_data1.satellites_used + 5;
+	// BUT WHEN: gps1 stays clearly better for longer than the hold time
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
+
+	// THEN: the more accurate receiver is selected
+	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
+
+	// AND WHEN: gps0 becomes slightly more accurate than gps1
+	gps_data0.eph = 0.25f;
+	gps_data0.epv = 0.45f;
 
 	runSeconds(5.f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: the selection is kept, the satellite count doesn't matter
+	// THEN: the selection is kept
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
 }
 
-TEST_F(GpsBlendingTest, dualReceiverExtrapolatedFixNotPreferred)
+TEST_F(GpsBlendingTest, rankedUpdateRate)
+{
+	GpsBlending gps_blending;
+
+	// GIVEN: two receivers with the same accuracy, gps0 at 5 Hz and gps1 at 10 Hz
+	gps_blending.setPrimaryInstance(-1);
+	gps_blending.setBlendingUseSpeedAccuracy(false);
+	gps_blending.setBlendingUseHPosAccuracy(false);
+	gps_blending.setBlendingUseVPosAccuracy(false);
+
+	sensor_gps_s gps_data0 = getDefaultGpsData();
+	sensor_gps_s gps_data1 = getDefaultGpsData();
+
+	const uint64_t dt_us = 100_ms;
+
+	auto run = [&](int steps) {
+		for (int k = 0; k < steps; k++) {
+			if ((k % 2) == 0) {
+				gps_blending.setGpsData(gps_data0, 0);
+				gps_data0.timestamp += 2 * dt_us;
+			}
+
+			gps_blending.setGpsData(gps_data1, 1);
+			gps_data1.timestamp += dt_us;
+
+			gps_blending.update(_time_now_us);
+			_time_now_us += dt_us;
+		}
+	};
+
+	run(10);
+
+	// THEN: the selection is held for the hold time
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+
+	run(30);
+
+	// THEN: the receiver with the higher update rate is selected
+	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+
+	// WHEN: the slower receiver is clearly more accurate
+	gps_data0.eph = 0.3f;
+	gps_data0.epv = 0.5f;
+
+	run(30);
+
+	// THEN: the accuracy has precedence over the update rate
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+}
+
+TEST_F(GpsBlendingTest, rankedImmediateSwitchOnFailure)
 {
 	GpsBlending gps_blending;
 
@@ -352,29 +423,47 @@ TEST_F(GpsBlendingTest, dualReceiverExtrapolatedFixNotPreferred)
 	gps_blending.setBlendingUseHPosAccuracy(false);
 	gps_blending.setBlendingUseVPosAccuracy(false);
 
-	// GIVEN: receiver 0 with a 3D fix, receiver 1 extrapolating (dead reckoning)
+	// GIVEN: two equivalent receivers, gps0 selected
 	sensor_gps_s gps_data0 = getDefaultGpsData();
 	sensor_gps_s gps_data1 = getDefaultGpsData();
-	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_3D;
-	gps_data1.fix_type = sensor_gps_s::FIX_TYPE_EXTRAPOLATED;
-	gps_data1.satellites_used = gps_data0.satellites_used + 5;
 
-	runSeconds(3.f, gps_blending, gps_data0, gps_data1);
+	runSeconds(2.f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: the 3D fix is preferred even if the extrapolated fix type value is higher
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 
-	// WHEN: receiver 0 starts extrapolating too and receiver 1 gets a 3D fix
-	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_EXTRAPOLATED;
-	gps_data1.fix_type = sensor_gps_s::FIX_TYPE_3D;
+	// WHEN: gps0 loses its fix
+	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_NONE;
 
 	runSeconds(0.1f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: the switch happens immediately as the selected receiver is below a 3D fix
+	// THEN: the selector switches immediately
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+
+	// WHEN: gps0 recovers and gps1 no longer meets the EKF2 requirements
+	gps_data0.fix_type = gps_data1.fix_type;
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
+
+	gps_data1.eph = 4.f;
+
+	runSeconds(0.1f, gps_blending, gps_data0, gps_data1);
+
+	// THEN: the selector switches immediately
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+
+	// WHEN: gps1 recovers and gps0 stops publishing
+	gps_data1.eph = gps_data0.eph;
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
+
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+
+	runSeconds(3.f, gps_blending, gps_data1, 1);
+
+	// THEN: the selector switches once gps0 timed out
+	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 }
 
-TEST_F(GpsBlendingTest, initialSelectionMinimumRequirements)
+TEST_F(GpsBlendingTest, rankedMinimumRequirements)
 {
 	GpsBlending gps_blending;
 
@@ -384,8 +473,8 @@ TEST_F(GpsBlendingTest, initialSelectionMinimumRequirements)
 	gps_blending.setBlendingUseVPosAccuracy(false);
 	gps_blending.setMinimumRequirements(sensor_gps_s::FIX_TYPE_3D, 1.f, 3.f);
 
-	// GIVEN: receiver 0 has a better fix type but doesn't meet the eph requirement,
-	// receiver 1 meets all requirements
+	// GIVEN: gps0 has a better fix type but doesn't meet the eph requirement,
+	// gps1 meets all requirements
 	sensor_gps_s gps_data0 = getDefaultGpsData();
 	sensor_gps_s gps_data1 = getDefaultGpsData();
 	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_RTK_FLOAT;
@@ -393,13 +482,14 @@ TEST_F(GpsBlendingTest, initialSelectionMinimumRequirements)
 	gps_data1.fix_type = sensor_gps_s::FIX_TYPE_3D;
 	gps_data1.eph = 0.8f;
 
-	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
+	runSeconds(0.1f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: the receiver meeting the requirements is selected
+	// THEN: the receiver meeting the requirements is selected right away
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
 
-	// WHEN: receiver 0 now meets the requirements with a better fix type
-	gps_data0.eph = 0.5f;
+	// WHEN: gps0 meets the requirements and is clearly more accurate
+	gps_data0.eph = 0.3f;
+	gps_data0.epv = 0.5f;
 
 	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
 
@@ -408,11 +498,11 @@ TEST_F(GpsBlendingTest, initialSelectionMinimumRequirements)
 
 	runSeconds(1.5f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: the better fix type wins after the hold time
+	// THEN: the more accurate receiver wins after the hold time
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 }
 
-TEST_F(GpsBlendingTest, initialSelectionNothingQualifiesUsesBest)
+TEST_F(GpsBlendingTest, rankedExtrapolatedFixNotUsable)
 {
 	GpsBlending gps_blending;
 
@@ -420,39 +510,53 @@ TEST_F(GpsBlendingTest, initialSelectionNothingQualifiesUsesBest)
 	gps_blending.setBlendingUseSpeedAccuracy(false);
 	gps_blending.setBlendingUseHPosAccuracy(false);
 	gps_blending.setBlendingUseVPosAccuracy(false);
-	gps_blending.setMinimumRequirements(sensor_gps_s::FIX_TYPE_3D, 1.f, 3.f);
 
-	// GIVEN: no receiver meets the requirements yet
+	// GIVEN: gps0 extrapolating (dead reckoning), gps1 with a 3D fix
 	sensor_gps_s gps_data0 = getDefaultGpsData();
 	sensor_gps_s gps_data1 = getDefaultGpsData();
-	gps_data0.eph = 5.f;
-	gps_data1.eph = 5.f;
-	gps_data1.satellites_used = gps_data0.satellites_used + 2;
+	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_EXTRAPOLATED;
+	gps_data0.eph = 0.1f;
+	gps_data0.epv = 0.1f;
+	gps_data1.fix_type = sensor_gps_s::FIX_TYPE_3D;
+
+	runSeconds(3.f, gps_blending, gps_data0, gps_data1);
+
+	// THEN: the 3D fix is selected even if the extrapolated fix type value and accuracy are better
+	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+
+	// WHEN: gps1 starts extrapolating and gps0 gets a 3D fix
+	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_3D;
+	gps_data1.fix_type = sensor_gps_s::FIX_TYPE_EXTRAPOLATED;
+
+	runSeconds(0.1f, gps_blending, gps_data0, gps_data1);
+
+	// THEN: the switch happens immediately
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+}
+
+TEST_F(GpsBlendingTest, rankedAfterBlending)
+{
+	GpsBlending gps_blending;
+
+	// GIVEN: two receivers being blended
+	gps_blending.setPrimaryInstance(-1);
+	gps_blending.setBlendingUseHPosAccuracy(true);
+
+	sensor_gps_s gps_data0 = getDefaultGpsData();
+	sensor_gps_s gps_data1 = getDefaultGpsData();
 
 	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: the best receiver is used and the selection isn't latched
-	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+	EXPECT_EQ(gps_blending.getSelectedGps(), 2);
 
-	gps_data0.satellites_used = gps_data1.satellites_used + 2;
-
-	runSeconds(0.1f, gps_blending, gps_data0, gps_data1);
-
-	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
-
-	// WHEN: receiver 1 meets the requirements first
-	gps_data1.eph = 0.5f;
+	// WHEN: gps0 loses its fix and blending stops
+	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_NONE;
 
 	runSeconds(0.1f, gps_blending, gps_data0, gps_data1);
 
-	// THEN: it is selected and latched, satellite count no longer matters
+	// THEN: the remaining receiver is selected right away
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
-
-	gps_data0.eph = 0.5f;
-
-	runSeconds(5.f, gps_blending, gps_data0, gps_data1);
-
-	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 }
 
 TEST_F(GpsBlendingTest, singleReceiverAntennaOffset)
@@ -531,17 +635,10 @@ TEST_F(GpsBlendingTest, failoverAntennaOffset)
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
 	EXPECT_FLOAT_EQ(gps_blending.getOutputAntennaOffset()(0), offset1(0));
 
-	// Now primary becomes available with the same fix type: the selection is kept
+	// Now primary becomes available
 	sensor_gps_s gps_data0 = getDefaultGpsData();
 	gps_data0.timestamp = gps_data1.timestamp;
 	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
-
-	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
-	EXPECT_FLOAT_EQ(gps_blending.getOutputAntennaOffset()(0), offset1(0));
-
-	// The selected receiver loses its fix: switch and use the other antenna offset
-	gps_data1.fix_type = 1;
-	runSeconds(0.1f, gps_blending, gps_data0, gps_data1);
 
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 	EXPECT_FLOAT_EQ(gps_blending.getOutputAntennaOffset()(0), offset0(0));
@@ -603,8 +700,8 @@ TEST_F(GpsBlendingTest, blendingFallthroughAntennaOffset)
 	gps_data0.eph = 0.0f;
 	gps_data1.eph = 0.0f;
 
-	// gps1 has more satellites → wins non-blending selection
-	gps_data1.satellites_used = gps_data0.satellites_used + 2;
+	// gps0 only has a 2D fix → gps1 wins non-blending selection
+	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_2D;
 
 	gps_blending.setGpsData(gps_data0, 0);
 	gps_blending.setGpsData(gps_data1, 1);
@@ -617,7 +714,7 @@ TEST_F(GpsBlendingTest, blendingFallthroughAntennaOffset)
 	gps_blending.setGpsData(gps_data1, 1);
 	gps_blending.update(_time_now_us);
 
-	// Falls through to non-blending path, gps1 selected by satellite count
+	// Falls through to non-blending path, gps1 selected by the receiver ranking
 	EXPECT_LT(gps_blending.getSelectedGps(), 2); // not blended
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
 
@@ -640,7 +737,7 @@ TEST_F(GpsBlendingTest, dualReceiverNoBlendingStaleFlag)
 	sensor_gps_s gps_data0 = getDefaultGpsData();
 	sensor_gps_s gps_data1 = getDefaultGpsData();
 
-	gps_data1.satellites_used = gps_data0.satellites_used + 2; // gps1 wins selection
+	gps_data0.fix_type = sensor_gps_s::FIX_TYPE_2D; // gps1 wins selection
 
 	// First update: both receivers provide data, gps1 is selected
 	gps_blending.setGpsData(gps_data0, 0);

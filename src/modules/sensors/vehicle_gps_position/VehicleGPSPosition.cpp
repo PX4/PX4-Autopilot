@@ -106,10 +106,10 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			_gps_blending.setPrimaryInstance(gps_prime);
 		}
 
-		// Minimum receiver quality for the initial selection, aligned with the EKF2 GNSS checks
+		// Minimum receiver quality for the receiver ranking (SENS_GPS_PRIME = -1), aligned with the EKF2 GNSS checks
 		int32_t req_fix = sensor_gps_s::FIX_TYPE_3D;
-		float req_eph = 5.f;
-		float req_epv = 8.f;
+		float req_eph = 3.f;
+		float req_epv = 5.f;
 
 		if (_param_ekf2_req_fix_handle != PARAM_INVALID) { param_get(_param_ekf2_req_fix_handle, &req_fix); }
 
