@@ -35,7 +35,9 @@
 
 #include <lib/parameters/param.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -94,8 +96,13 @@ private:
 			if (_ids[slot] == 0) {
 				const int32_t id = static_cast<int32_t>(device_id);
 
+				_ids[slot] = id;
+
 				if (param_set_no_notification(_id_param_handles[slot], &id) == PX4_OK) {
-					_ids[slot] = id;
+					PX4_INFO("device ID %" PRIu32 " bound to %s", device_id, param_name(_id_param_handles[slot]));
+
+				} else {
+					PX4_WARN("device ID %" PRIu32 " bound to slot %" PRIu8 " (not persisted)", device_id, slot);
 				}
 
 				return slot;
