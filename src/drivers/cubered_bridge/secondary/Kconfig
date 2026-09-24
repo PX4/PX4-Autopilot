@@ -1,0 +1,5 @@
+menuconfig DRIVERS_CUBERED_BRIDGE_SECONDARY
+	bool "cubered_bridge_secondary"
+	default n
+	---help---
+		Enable support for CubeRed IO module - PX4IO simulation for CubeRed Secondary
