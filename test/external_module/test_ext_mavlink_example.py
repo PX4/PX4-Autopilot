@@ -3,10 +3,13 @@
 SITL test for the out-of-tree MAVLink extension points.
 
 Requires a build made with EXTERNAL_MODULES_LOCATION=test/external_module.
-Starts PX4 with the SIH quadcopter, then over the GCS UDP link checks:
+Starts PX4 with the SIH quadcopter and opens the GCS and gimbal UDP links, then checks:
   - EXT_EXAMPLE_STATUS streams at its registered 2 Hz (measured against the 1 Hz HEARTBEAT)
-  - EXT_EXAMPLE_PING is answered by EXT_EXAMPLE_PONG with the same seq/payload
-  - SET_MESSAGE_INTERVAL stops, speeds up and restores the stream
+    and its status_seq is strictly increasing on every link
+  - EXT_EXAMPLE_PING is answered by EXT_EXAMPLE_PONG with the same seq/payload on all links,
+    so pongs_sent is an exact multiple of pings_received
+  - SET_MESSAGE_INTERVAL on the GCS link stops, speeds up and restores the stream there
+    while the gimbal link keeps streaming at the registered rate
 """
 
 import argparse
@@ -19,8 +22,10 @@ import sys
 import time
 
 PX4_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-GCS_LOCAL_PORT = 14550   # PX4 SITL instance 0 sends GCS traffic here
-PX4_GCS_PORT = 18570     # and listens here
+# PX4 SITL instance 0 links (ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink): (our port, PX4's port).
+# The gimbal link carries only a handful of streams, so Python keeps up with it while it is not being read.
+GCS_LINK = (14550, 18570)
+GIMBAL_LINK = (13280, 13030)
 MAV_CMD_SET_MESSAGE_INTERVAL = 511
 MAV_RESULT_ACCEPTED = 0
 
@@ -48,16 +53,19 @@ def load_dialect(build_dir, work_dir):
 
 
 class Link:
-    """One MAVLink UDP link to the SITL GCS port, speaking the generated dialect."""
+    """One MAVLink UDP link to a SITL mavlink instance, speaking the generated dialect."""
 
-    def __init__(self, dialect):
+    def __init__(self, dialect, name, ports, mav_type, src_system):
         self.dialect = dialect
-        self.remote = ('127.0.0.1', PX4_GCS_PORT)
+        self.name = name
+        self.mav_type = mav_type
+        self.remote = ('127.0.0.1', ports[1])
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(('127.0.0.1', GCS_LOCAL_PORT))
+        self.sock.bind(('127.0.0.1', ports[0]))
         self.sock.settimeout(0.1)
-        self.mav = dialect.MAVLink(self, srcSystem=255, srcComponent=190)
+        self.mav = dialect.MAVLink(self, srcSystem=src_system, srcComponent=190)
         self.mav.robust_parsing = True
+        self.last_status_seq = None
 
     def write(self, data):
         self.sock.sendto(data, self.remote)
@@ -66,10 +74,10 @@ class Link:
         self.sock.close()
 
     def heartbeat(self):
-        self.mav.heartbeat_send(self.dialect.MAV_TYPE_GCS, self.dialect.MAV_AUTOPILOT_INVALID, 0, 0, 0)
+        self.mav.heartbeat_send(self.mav_type, self.dialect.MAV_AUTOPILOT_INVALID, 0, 0, 0)
 
     def messages(self, duration):
-        """Yield messages received within `duration` seconds."""
+        """Yield messages received within `duration` seconds, checking status_seq never repeats or goes back."""
         deadline = time.monotonic() + duration
 
         while time.monotonic() < deadline:
@@ -79,7 +87,36 @@ class Link:
                 continue
 
             for msg in self.mav.parse_buffer(data) or []:
+                if msg.get_type() == 'EXT_EXAMPLE_STATUS':
+                    if self.last_status_seq is not None and msg.status_seq <= self.last_status_seq:
+                        raise Failure(f"{self.name}: status_seq {msg.status_seq} after {self.last_status_seq}")
+
+                    self.last_status_seq = msg.status_seq
+
                 yield msg
+
+    def drain(self, duration=1.0):
+        """Discard what was buffered while this link was not being read."""
+        deadline = time.monotonic() + duration
+
+        while time.monotonic() < deadline:
+            try:
+                self.sock.recvfrom(65535)
+            except socket.timeout:
+                return
+
+    def connect(self, timeout):
+        """PX4 replies to whoever it last heard from: announce ourselves until the autopilot HEARTBEAT arrives."""
+        deadline = time.monotonic() + timeout
+
+        while True:
+            self.heartbeat()
+            try:
+                self.wait_for('HEARTBEAT', 1, lambda m: m.get_srcSystem() == 1)
+                return
+            except Failure:
+                if time.monotonic() > deadline:
+                    raise Failure(f"{self.name}: no autopilot HEARTBEAT within {timeout}s")
 
     def wait_for(self, name, timeout, predicate=lambda m: True):
         for msg in self.messages(timeout):
@@ -106,7 +143,7 @@ class Link:
                 heartbeats += 1
 
         if heartbeats == 0:
-            raise Failure(f"no autopilot HEARTBEAT in {duration}s")
+            raise Failure(f"{self.name}: no autopilot HEARTBEAT in {duration}s")
 
         return status, status / heartbeats
 
@@ -134,66 +171,73 @@ def expect_range(what, value, low, high):
         raise Failure(f"{what}: got {value}, expected {low}..{high}")
 
 
-def run(link, dialect, verbose):
+def run(gcs, gimbal, dialect, verbose):
     def log(text):
         if verbose:
             print(text, flush=True)
 
     status_id = dialect.MAVLINK_MSG_ID_EXT_EXAMPLE_STATUS
+    pings = 5
 
-    # PX4 replies to whoever it last heard from; announce ourselves until the autopilot heartbeat arrives.
-    deadline = time.monotonic() + 120
-    while True:
-        link.heartbeat()
-        try:
-            link.wait_for('HEARTBEAT', 1, lambda m: m.get_srcSystem() == 1)
-            break
-        except Failure:
-            if time.monotonic() > deadline:
-                raise Failure("no autopilot HEARTBEAT within 120s")
-    log("autopilot heartbeat received")
+    gcs.connect(120)
+    gimbal.connect(30)
+    log("autopilot heartbeat received on both links")
 
     # Registered interval 500 ms.
-    first = link.wait_for('EXT_EXAMPLE_STATUS', 10)
-    n, rate = link.status_per_heartbeat(4)
-    expect_range("EXT_EXAMPLE_STATUS rate at default (Hz per HEARTBEAT)", rate, 1.2, 3.0)
+    first = gcs.wait_for('EXT_EXAMPLE_STATUS', 10)
+    n, rate = gcs.status_per_heartbeat(4)
+    expect_range("GCS EXT_EXAMPLE_STATUS rate at default (Hz per HEARTBEAT)", rate, 1.2, 3.0)
     log(f"default rate: {n} status messages, {rate:.1f} Hz (status_seq started at {first.status_seq})")
 
-    # Handler + one-shot reply.
-    for seq in range(1, 6):
+    # Handler + one-shot reply: the PONG must reach every link, so both links see each seq.
+    for seq in range(1, pings + 1):
         payload = [(seq * 7 + i) & 0xFF for i in range(16)]
-        link.mav.ext_example_ping_send(1, 1, seq, payload)
-        pong = link.wait_for('EXT_EXAMPLE_PONG', 3, lambda m, seq=seq: m.seq == seq)
+        gcs.mav.ext_example_ping_send(1, 1, seq, payload)
 
-        if list(pong.payload) != payload or pong.payload_sum != sum(payload):
-            raise Failure(f"PONG {seq}: payload {list(pong.payload)} sum {pong.payload_sum}, "
-                          f"expected {payload} sum {sum(payload)}")
-    log("5 pings answered")
+        for link in (gcs, gimbal):
+            pong = link.wait_for('EXT_EXAMPLE_PONG', 3, lambda m, seq=seq: m.seq == seq)
 
-    # Per-link rate control through SET_MESSAGE_INTERVAL.
-    link.set_message_interval(status_id, -1)
-    link.count('EXT_EXAMPLE_STATUS', 0.5)  # drain in-flight
-    n, _ = link.status_per_heartbeat(3)
-    expect_range("EXT_EXAMPLE_STATUS while disabled", n, 0, 0)
-    log("stream disabled")
+            if list(pong.payload) != payload or pong.payload_sum != sum(payload):
+                raise Failure(f"{link.name} PONG {seq}: payload {list(pong.payload)} sum {pong.payload_sum}, "
+                              f"expected {payload} sum {sum(payload)}")
 
-    link.set_message_interval(status_id, 100000)
-    n, rate = link.status_per_heartbeat(4)
-    expect_range("EXT_EXAMPLE_STATUS rate at 100 ms (Hz per HEARTBEAT)", rate, 6.0, 14.0)
+    # One PONG per running mavlink instance, so pongs_sent is an exact multiple of pings_received.
+    status = gcs.wait_for('EXT_EXAMPLE_STATUS', 3, lambda m: m.pings_received == pings)
+
+    if status.pongs_sent % pings != 0 or status.pongs_sent // pings < 2:
+        raise Failure(f"pongs_sent {status.pongs_sent} is not pings_received ({pings}) times the link count")
+
+    links = status.pongs_sent // pings
+    log(f"{pings} pings answered on {links} links (pongs_sent {status.pongs_sent})")
+
+    # Per-link rate control: SET_MESSAGE_INTERVAL on the GCS link must leave the gimbal link alone.
+    gcs.set_message_interval(status_id, -1)
+    gcs.count('EXT_EXAMPLE_STATUS', 0.5)  # drain in-flight
+    n, _ = gcs.status_per_heartbeat(3)
+    expect_range("GCS EXT_EXAMPLE_STATUS while disabled", n, 0, 0)
+    gimbal.drain()
+    n, rate = gimbal.status_per_heartbeat(4)
+    expect_range("gimbal EXT_EXAMPLE_STATUS rate while GCS disabled (Hz per HEARTBEAT)", rate, 1.2, 3.0)
+    log(f"GCS stream disabled; gimbal link still {n} status messages, {rate:.1f} Hz")
+
+    gcs.set_message_interval(status_id, 100000)
+    n, rate = gcs.status_per_heartbeat(4)
+    expect_range("GCS EXT_EXAMPLE_STATUS rate at 100 ms (Hz per HEARTBEAT)", rate, 6.0, 14.0)
     log(f"100 ms interval: {n} status messages, {rate:.1f} Hz")
 
-    link.set_message_interval(status_id, 0)
-    link.count('EXT_EXAMPLE_STATUS', 0.5)
-    n, rate = link.status_per_heartbeat(4)
-    expect_range("EXT_EXAMPLE_STATUS rate after restoring default (Hz per HEARTBEAT)", rate, 1.2, 3.0)
+    gcs.set_message_interval(status_id, 0)
+    gcs.count('EXT_EXAMPLE_STATUS', 0.5)
+    n, rate = gcs.status_per_heartbeat(4)
+    expect_range("GCS EXT_EXAMPLE_STATUS rate after restoring default (Hz per HEARTBEAT)", rate, 1.2, 3.0)
     log(f"default restored: {n} status messages, {rate:.1f} Hz")
 
-    status = link.wait_for('EXT_EXAMPLE_STATUS', 3)
+    status = gcs.wait_for('EXT_EXAMPLE_STATUS', 3)
 
-    if status.pings_received != 5 or status.pongs_sent < 5:
-        raise Failure(f"counters: pings_received {status.pings_received} (expected 5), "
-                      f"pongs_sent {status.pongs_sent} (expected >= 5)")
-    log(f"counters: pings_received {status.pings_received}, pongs_sent {status.pongs_sent}")
+    if status.pings_received != pings or status.pongs_sent != pings * links:
+        raise Failure(f"counters changed: pings_received {status.pings_received}, pongs_sent {status.pongs_sent}")
+
+    log(f"final counters: pings_received {status.pings_received}, pongs_sent {status.pongs_sent}, "
+        f"status_seq {status.status_seq}")
 
 
 def main():
@@ -207,17 +251,19 @@ def main():
     os.makedirs(work_dir, exist_ok=True)
 
     px4 = None
-    link = None
+    links = []
 
     try:
         dialect = load_dialect(build_dir, work_dir)
-        link = Link(dialect)
+        gcs = Link(dialect, 'gcs', GCS_LINK, dialect.MAV_TYPE_GCS, 255)
+        gimbal = Link(dialect, 'gimbal', GIMBAL_LINK, dialect.MAV_TYPE_ONBOARD_CONTROLLER, 1)
+        links = [gcs, gimbal]
 
         with open(os.path.join(work_dir, 'px4.log'), 'w') as log:
             px4 = start_px4(build_dir, work_dir, log)
-            run(link, dialect, args.verbose)
+            run(gcs, gimbal, dialect, args.verbose)
 
-        print("PASS: external module MAVLink handler, one-shot send and stream")
+        print("PASS: external module MAVLink handler, one-shot send and per-link stream")
         return 0
 
     except (Failure, subprocess.CalledProcessError) as e:
@@ -225,7 +271,7 @@ def main():
         return 1
 
     finally:
-        if link:
+        for link in links:
             link.close()
 
         if px4 and px4.poll() is None:
