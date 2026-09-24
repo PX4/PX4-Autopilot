@@ -62,6 +62,11 @@
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
+#if defined(MAVLINK_EXTERNAL_MODULES)
+#include "mavlink_ext_handler.h"
+#include "mavlink_ext_stream.h"
+#endif
+
 #ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 #include <drivers/serialpassthrough/serialpassthrough.hpp>
 #endif
@@ -384,6 +389,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 #endif
 
 	default:
+#if defined(MAVLINK_EXTERNAL_MODULES)
+		mavlink_ext_handler_dispatch(msg);
+#endif
 		break;
 	}
 
@@ -2574,6 +2582,20 @@ MavlinkReceiver::set_message_interval(int msgId, float interval, float param3, f
 		if (stream_name != nullptr) {
 			_mavlink.configure_stream_threadsafe(stream_name, rate);
 			found_id = true;
+
+		} else {
+#if defined(MAVLINK_EXTERNAL_MODULES)
+			int32_t ext_interval_us = MAVLINK_EXT_STREAM_DEFAULT;
+
+			if (interval < -0.00001f) {
+				ext_interval_us = MAVLINK_EXT_STREAM_DISABLED;
+
+			} else if (interval > 0.00001f) {
+				ext_interval_us = (int32_t)interval;
+			}
+
+			found_id = (mavlink_ext_stream_set_interval(_mavlink.get_channel(), (uint32_t)msgId, ext_interval_us) == 0);
+#endif // MAVLINK_EXTERNAL_MODULES
 		}
 	}
 

@@ -169,6 +169,7 @@ define_property(GLOBAL PROPERTY PX4_SRC_FILES
 #
 
 include(px4_add_module)
+include(px4_add_external_mavlink_dialect)
 set(config_module_list)
 set(config_kernel_list)
 
@@ -457,6 +458,15 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 		add_subdirectory(${EXTERNAL_MODULES_LOCATION}/src/${external_module} external_modules/${external_module})
 		list(APPEND external_module_paths ${EXTERNAL_MODULES_LOCATION}/src/${external_module})
 	endforeach()
+
+	# A dialect registered with px4_add_external_mavlink_dialect() replaces the board's dialect.
+	# Set here, before src/modules/mavlink is configured, as a normal variable that shadows the kconfig cache entry.
+	get_property(_ext_dialect GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT)
+	if(_ext_dialect)
+		message(STATUS "MAVLink dialect: ${_ext_dialect} (external, replaces CONFIG_MAVLINK_DIALECT=${CONFIG_MAVLINK_DIALECT}; "
+			"<include>${CONFIG_MAVLINK_DIALECT}.xml</include> from ${_ext_dialect}.xml to keep its messages)")
+		set(CONFIG_MAVLINK_DIALECT "${_ext_dialect}")
+	endif()
 endif()
 
 #=============================================================================
