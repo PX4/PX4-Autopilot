@@ -118,6 +118,14 @@ add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
 )
 add_custom_target(px4_uavcan_dsdlc DEPENDS px4_uavcan_dsdlc_run.stamp)
 
+set(UAVCANNODE_SHELL_SRCS)
+if(CONFIG_UAVCANNODE_COMMAND_SHELL)
+	list(APPEND UAVCANNODE_SHELL_SRCS
+		UavcanNodeShell.hpp
+		UavcanNodeShell.cpp
+	)
+endif()
+
 px4_add_module(
 	MODULE drivers__uavcannode
 	MAIN uavcannode
@@ -137,6 +145,7 @@ px4_add_module(
 		UavcanNode.hpp
 		UavcanNodeParamManager.hpp
 		UavcanNodeParamManager.cpp
+		${UAVCANNODE_SHELL_SRCS}
 	MODULE_CONFIG
 		uavcannode_params.yaml
 	DEPENDS
