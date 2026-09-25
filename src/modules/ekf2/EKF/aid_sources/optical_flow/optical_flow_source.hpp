@@ -43,6 +43,12 @@
 #include <mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/topics/estimator_aid_source2d.h>
 
+#if defined(MODULE_NAME)
+# include <lib/parameters/param.h>
+# include <uORB/Subscription.hpp>
+# include <uORB/topics/vehicle_optical_flow.h>
+#endif // MODULE_NAME
+
 class Ekf;
 
 class OpticalFlowSource
@@ -62,7 +68,14 @@ public:
 
 	~OpticalFlowSource() { delete _buffer; }
 
-	void setSlot(uint8_t slot) { _slot = slot; }
+	void setSlot(uint8_t slot)
+	{
+		_slot = slot;
+#if defined(MODULE_NAME)
+		_sub = uORB::Subscription(ORB_ID(vehicle_optical_flow), slot);
+		initParams();
+#endif // MODULE_NAME
+	}
 
 	void setData(const estimator::flowSample &sample, uint8_t buffer_length, uint64_t min_obs_interval_us, float dt_ekf_avg);
 
@@ -82,9 +95,35 @@ public:
 
 	void stop();
 
+#if defined(MODULE_NAME)
+	// configured SENS_FLOW<slot>_DELAY, 0 while the slot is disabled
+	float delayMs() const;
+#endif // MODULE_NAME
+
 private:
 	friend class Ekf;
 	friend class OpticalFlowAiding;
+
+#if defined(MODULE_NAME)
+	void initParams();
+	void updateParams();
+
+	// buffers a new vehicle_optical_flow sample of this slot
+	bool updateSample(Ekf &ekf, vehicle_optical_flow_s &optical_flow);
+
+	struct ParamHandles {
+		param_t ctrl{PARAM_INVALID};
+		param_t delay{PARAM_INVALID};
+		param_t gyr_src{PARAM_INVALID};
+		param_t n_min{PARAM_INVALID};
+		param_t n_max{PARAM_INVALID};
+		param_t qmin{PARAM_INVALID};
+		param_t qmin_gnd{PARAM_INVALID};
+		param_t gate{PARAM_INVALID};
+	} _param_handles{};
+
+	uORB::Subscription _sub{ORB_ID(vehicle_optical_flow)};
+#endif // MODULE_NAME
 
 	bool fuse(Ekf &ekf, matrix::Vector<float, estimator::State::size> &H, bool update_terrain);
 
@@ -158,8 +197,20 @@ public:
 	// combined limits of the slots currently delivering data, falling back to the primary slot
 	void getLimits(const Ekf &ekf, float &hagl_min, float &hagl_max, float &max_rate) const;
 
+#if defined(MODULE_NAME)
+	void updateParams();
+#endif // MODULE_NAME
+
 private:
+#if defined(MODULE_NAME)
+	void updateSamples(Ekf &ekf);
+#endif // MODULE_NAME
+
 	OpticalFlowSource _sources[estimator::MAX_OF_INSTANCES] {};
+
+#if defined(MODULE_NAME) && defined(CONFIG_EKF2_RANGE_FINDER)
+	int8_t _range_instance {-1}; ///< first instance providing a distance, used as range finder fallback
+#endif // MODULE_NAME && CONFIG_EKF2_RANGE_FINDER
 };
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW

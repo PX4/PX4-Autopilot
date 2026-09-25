@@ -42,6 +42,10 @@
 
 void OpticalFlowAiding::update(Ekf &ekf, const imuSample &imu_delayed)
 {
+#if defined(MODULE_NAME)
+	updateSamples(ekf);
+#endif // MODULE_NAME
+
 	bool any_ctrl_enabled = false;
 
 	for (uint8_t slot = 0; slot < MAX_OF_INSTANCES; slot++) {

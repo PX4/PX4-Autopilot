@@ -288,6 +288,12 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 		return;
 	}
 
+	_time_last_range_sensor_data = _time_latest_us;
+	pushRangeData(range_sample);
+}
+
+void EstimatorInterface::pushRangeData(const sensor::rangeSample &range_sample)
+{
 	// Allocate the required buffer size if not previously done
 	if (_range_buffer == nullptr) {
 		_range_buffer = new TimestampedRingBuffer<sensor::rangeSample>(_obs_buffer_length);

@@ -374,8 +374,11 @@ protected:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
+	void pushRangeData(const sensor::rangeSample &range_sample);
+
 	TimestampedRingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
 	uint64_t _time_last_range_buffer_push{0};
+	uint64_t _time_last_range_sensor_data{0};	///< last sample from a range finder, the optical flow fallback excluded
 
 	sensor::SensorRangeFinder _range_sensor{};
 	RangeFinderConsistencyCheck _rng_consistency_check;

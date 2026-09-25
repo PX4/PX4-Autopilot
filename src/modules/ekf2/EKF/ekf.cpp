@@ -452,6 +452,10 @@ void Ekf::updateParameters()
 
 	_aux_global_position.paramsUpdated();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW) && defined(MODULE_NAME)
+	_flow_aiding.updateParams();
+#endif // CONFIG_EKF2_OPTICAL_FLOW && MODULE_NAME
 }
 
 template<typename T>

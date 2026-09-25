@@ -207,10 +207,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_tau(_params->ekf2_abl_tau),
 	_param_ekf2_gyr_b_lim(_params->ekf2_gyr_b_lim)
 {
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_optical_flow.initParameters(_ekf);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 	initFusionControl();
 	AdvertiseTopics();
 }
@@ -352,7 +348,14 @@ void EKF2::AdvertiseTopics()
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-		_optical_flow.advertiseEnabledPublications(_ekf);
+
+		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+			if (_ekf.flowSource(i).params.ctrl) {
+				_optical_flow_pubs[i].aid_src.advertise();
+				_optical_flow_pubs[i].vel.advertise();
+			}
+		}
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -451,10 +454,6 @@ void EKF2::Run()
 
 		// update parameters from storage
 		updateParams();
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-		_optical_flow.updateParameters(_ekf);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 		initFusionControl();
 
@@ -798,9 +797,6 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		UpdateExtVisionSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-		_optical_flow.updateSamples(_ekf, ekf2_timestamps, _last_range_sensor_update);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
 		UpdateGpsSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_GNSS
@@ -864,7 +860,7 @@ void EKF2::Run()
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-			_optical_flow.publishFlowVel(_ekf, now, _replay_mode);
+			PublishOpticalFlowVel(now);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 			UpdateAccelCalibration(now);
@@ -966,7 +962,11 @@ void EKF2::VerifyParams()
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	delay_max = math::max(delay_max, _optical_flow.maxEnabledDelayMs(_ekf));
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		delay_max = math::max(delay_max, _ekf.flowSource(i).delayMs());
+	}
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -1159,8 +1159,13 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
 	// optical flow
-	_optical_flow.publishAidSourceStatus(_ekf, timestamp, _instance, _replay_mode);
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		PublishAidSourceStatus(timestamp, _ekf.aid_src_optical_flow(i), _optical_flow_pubs[i].aid_src_last,
+				       _optical_flow_pubs[i].aid_src);
+	}
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
@@ -2193,6 +2198,41 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 	}
 }
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
+{
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		const hrt_abstime timestamp_sample = _ekf.aid_src_optical_flow(i).timestamp_sample;
+
+		if ((timestamp_sample != 0) && (timestamp_sample > _optical_flow_pubs[i].vel_last)) {
+
+			vehicle_optical_flow_vel_s flow_vel{};
+			flow_vel.timestamp_sample = timestamp_sample;
+
+			_ekf.getFlowVelBody(i).copyTo(flow_vel.vel_body);
+			_ekf.getFlowVelNE(i).copyTo(flow_vel.vel_ne);
+
+			_ekf.getFilteredFlowVelBody(i).copyTo(flow_vel.vel_body_filtered);
+			_ekf.getFilteredFlowVelNE(i).copyTo(flow_vel.vel_ne_filtered);
+
+			_ekf.getFlowUncompensated(i).copyTo(flow_vel.flow_rate_uncompensated);
+			_ekf.getFlowCompensated(i).copyTo(flow_vel.flow_rate_compensated);
+
+			_ekf.getFlowGyro(i).copyTo(flow_vel.gyro_rate);
+
+			_ekf.getFlowGyroBias(i).copyTo(flow_vel.gyro_bias);
+			_ekf.getFlowRefBodyRate(i).copyTo(flow_vel.ref_gyro);
+
+			flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+
+			_optical_flow_pubs[i].vel.publish(flow_vel);
+
+			_optical_flow_pubs[i].vel_last = timestamp_sample;
+		}
+	}
+}
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
