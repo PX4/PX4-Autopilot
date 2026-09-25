@@ -3976,8 +3976,22 @@ MavlinkReceiver::run()
 					// which busy-waits for the Mavlink main thread — and that thread may be
 					// waiting for lock_send(), producing a circular wait. Individual handlers
 					// that actually send take lock_send() locally.
+					//
+					// With signing active, mavlink_parse_char() also checks signatures against the
+					// replay table shared by all instances, so take its lock inside the send lock.
+					const bool signing_active = _mavlink.is_signing_active();
 					_mavlink.lock_send();
+
+					if (signing_active) {
+						MavlinkSignControl::lock_streams();
+					}
+
 					const uint8_t parsed = mavlink_parse_char(_mavlink.get_channel(), buf[i], &msg, &_status);
+
+					if (signing_active) {
+						MavlinkSignControl::unlock_streams();
+					}
+
 					_mavlink.unlock_send();
 
 					if (parsed) {

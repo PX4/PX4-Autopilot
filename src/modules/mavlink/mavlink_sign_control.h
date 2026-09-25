@@ -48,6 +48,8 @@
 #define MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH 8 ///< size of timestamp in bytes
 #define MAVLINK_SECRET_KEY_LENGTH 32 ///< size of key in bytes
 
+#include <pthread.h>
+
 #include "mavlink_receiver.h"
 
 class Mavlink;
@@ -95,11 +97,25 @@ public:
 	 */
 	bool accept_unsigned(uint32_t message_id);
 
+	/**
+	 * Only call from the instance's receiver thread, which is the only thread that changes it.
+	 */
 	bool is_signing_active() const { return _is_signing_initialized; }
 
 	static bool is_array_all_zeros(uint8_t arr[], size_t size);
 
+	/**
+	 * Lock the signing stream table shared by all instances.
+	 * mavlink_parse_char() reads and updates it when checking a signature,
+	 * so a receiver with signing active must hold this lock while parsing.
+	 * Take it inside lock_send(), never the other way round.
+	 */
+	static void lock_streams() { pthread_mutex_lock(&_streams_mutex); }
+	static void unlock_streams() { pthread_mutex_unlock(&_streams_mutex); }
+
 private:
+	static pthread_mutex_t _streams_mutex;
+
 	mavlink_signing_t _mavlink_signing {};
 	mavlink_status_t *_mavlink_status{nullptr};
 
