@@ -108,6 +108,21 @@ TEST_F(SensorSlotBinderTest, rejectsSensorWithoutDeviceId)
 	EXPECT_EQ(idParam(0), 0);
 }
 
+TEST_F(SensorSlotBinderTest, fallsBackToInstanceWithoutDeviceId)
+{
+	SensorSlotBinder binder;
+	binder.init(kIdParamFormat, 2);
+
+	// a sensor without a device ID keeps its uORB instance as long as that slot is free
+	EXPECT_EQ(binder.slotForInstanceWithFallback(1, 0), 1);
+	EXPECT_FALSE(binder.isSlotBound(1));
+
+	// but never takes a slot bound to another sensor
+	EXPECT_EQ(binder.slotForInstanceWithFallback(0, kDeviceA), 0);
+	EXPECT_EQ(binder.slotForInstanceWithFallback(1, kDeviceB), 1);
+	EXPECT_EQ(binder.slotForInstanceWithFallback(1, 0), -1);
+}
+
 TEST_F(SensorSlotBinderTest, followsDeviceChangeOnInstance)
 {
 	SensorSlotBinder binder;

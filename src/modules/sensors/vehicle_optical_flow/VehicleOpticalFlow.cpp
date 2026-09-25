@@ -96,21 +96,15 @@ void VehicleOpticalFlow::ParametersUpdate()
 
 bool VehicleOpticalFlow::UpdateParamSlot(uint32_t device_id)
 {
-	// map the sensor to its SENS_FLOW<i> parameter slot by device ID; a sensor without a
-	// device ID may only fall back to its uORB instance if that slot is not bound to another sensor
-	int8_t slot = _slot_binder.slotForInstance(_instance, device_id);
+	const int8_t slot = _slot_binder.slotForInstanceWithFallback(_instance, device_id);
 
 	if (slot < 0) {
-		if (_slot_binder.isSlotBound(_instance)) {
-			if (!_no_slot_warned) {
-				PX4_WARN("optical flow %" PRIu8 " (device ID %" PRIu32 ") ignored, no free SENS_FLOW slot", _instance, device_id);
-				_no_slot_warned = true;
-			}
-
-			return false;
+		if (!_no_slot_warned) {
+			PX4_WARN("optical flow %" PRIu8 " (device ID %" PRIu32 ") ignored, no free SENS_FLOW slot", _instance, device_id);
+			_no_slot_warned = true;
 		}
 
-		slot = _instance;
+		return false;
 	}
 
 	if (slot == _param_slot) {
@@ -118,7 +112,6 @@ bool VehicleOpticalFlow::UpdateParamSlot(uint32_t device_id)
 	}
 
 	_param_slot = slot;
-	_pubs.advertiseUpTo(slot);
 
 	char param_name[20] {};
 
@@ -371,7 +364,7 @@ void VehicleOpticalFlow::Run()
 				  vehicle_optical_flow.pixel_flow[1], zeroval);
 
 			vehicle_optical_flow.timestamp = hrt_absolute_time();
-			_pubs.flow[_param_slot].publish(vehicle_optical_flow);
+			_pubs.flow.publish(_param_slot, vehicle_optical_flow);
 
 			// vehicle_optical_flow_vel if distance is available (for logging)
 			if (_distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {
@@ -429,7 +422,7 @@ void VehicleOpticalFlow::Run()
 
 				flow_vel.timestamp = hrt_absolute_time();
 
-				_pubs.flow_vel[_param_slot].publish(flow_vel);
+				_pubs.flow_vel.publish(_param_slot, flow_vel);
 			}
 
 			ClearAccumulatedData();

@@ -69,25 +69,10 @@ class VehicleOpticalFlow : public px4::ScheduledWorkItem
 public:
 	static constexpr uint8_t MAX_FLOW_INSTANCES = 2;
 
-	// indexed by SENS_FLOW<i> slot, advertised in index order so that uORB instance == slot
+	// indexed by SENS_FLOW<i> slot, shared by all instances
 	struct Publications {
-		uORB::PublicationMulti<vehicle_optical_flow_s> flow[MAX_FLOW_INSTANCES] {
-			{ORB_ID(vehicle_optical_flow)},
-			{ORB_ID(vehicle_optical_flow)},
-		};
-		uORB::PublicationMulti<vehicle_optical_flow_vel_s> flow_vel[MAX_FLOW_INSTANCES] {
-			{ORB_ID(vehicle_optical_flow_vel)},
-			{ORB_ID(vehicle_optical_flow_vel)},
-		};
-
-		// advertise every slot up to the given one, a lower slot without a sensor stays empty
-		void advertiseUpTo(uint8_t slot)
-		{
-			for (uint8_t i = 0; i <= slot; i++) {
-				flow[i].advertise();
-				flow_vel[i].advertise();
-			}
-		}
+		SlotPublications<vehicle_optical_flow_s, MAX_FLOW_INSTANCES, ORB_ID::vehicle_optical_flow> flow{};
+		SlotPublications<vehicle_optical_flow_vel_s, MAX_FLOW_INSTANCES, ORB_ID::vehicle_optical_flow_vel> flow_vel{};
 	};
 
 	VehicleOpticalFlow(uint8_t instance, SensorSlotBinder &slot_binder, Publications &pubs);

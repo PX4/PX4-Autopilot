@@ -36,6 +36,7 @@
 #include <lib/parameters/param.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
+#include <uORB/PublicationMulti.hpp>
 
 #include <inttypes.h>
 #include <stdint.h>
@@ -79,6 +80,18 @@ public:
 		return _instance_slot_map[instance];
 	}
 
+	// a sensor without a device ID uses the slot of its uORB instance while no other sensor is bound to it
+	int8_t slotForInstanceWithFallback(uint8_t instance, uint32_t device_id)
+	{
+		const int8_t slot = slotForInstance(instance, device_id);
+
+		if ((slot < 0) && (device_id == 0) && (instance < _num_slots) && !isSlotBound(instance)) {
+			return instance;
+		}
+
+		return slot;
+	}
+
 private:
 	int8_t mapToSlot(uint32_t device_id)
 	{
@@ -117,4 +130,33 @@ private:
 	int8_t _instance_slot_map[kMaxSlots] {-1, -1, -1, -1};
 	uint32_t _instance_device_id[kMaxSlots] {};
 	uint8_t _num_slots{0};
+};
+
+// One publication per slot. uORB numbers instances in advertise order and sensors arrive in any order,
+// so every lower slot is advertised first to keep the uORB instance equal to the slot.
+template<typename T, uint8_t N, ORB_ID Id>
+class SlotPublications
+{
+public:
+	bool publish(uint8_t slot, const T &data)
+	{
+		if (slot >= N) {
+			return false;
+		}
+
+		for (uint8_t i = 0; i <= slot; i++) {
+			if (!_pubs[i].advertised()) {
+				_pubs[i].advertise();
+			}
+		}
+
+		return _pubs[slot].publish(data);
+	}
+
+private:
+	struct Pub : public uORB::PublicationMulti<T> {
+		Pub() : uORB::PublicationMulti<T>(Id) {}
+	};
+
+	Pub _pubs[N] {};
 };
