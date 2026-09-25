@@ -1213,7 +1213,6 @@ GPS::run()
 					.min_cno = (uint8_t)gps_ubx_min_cno,
 					.min_elev = (int8_t)gps_ubx_min_elev,
 					.output_rate = (uint8_t)gps_ubx_rate,
-					.heading_offset = 0.f,
 					.uart1_baudrate = ubx_uart1_baudrate,
 					.uart2_baudrate = f9p_uart2_baudrate,
 					.ppk_output = ppk_output > 0,
