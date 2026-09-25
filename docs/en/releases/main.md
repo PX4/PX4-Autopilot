@@ -35,6 +35,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - **Flight controller firmware no longer embeds CAN node firmware.** The `px4_fmu-v5_uavcanv0periph` build, which carried CUAV CAN GPS v1 firmware in its ROMFS so the flight controller could update the GPS over DroneCAN, and the `CONFIG_BOARD_UAVCAN_PERIPHERALS` board option behind it have been removed. Use the standard `px4_fmu-v5_default` firmware and update the GPS from the SD card with `cuav_can-gps-v1_default.uavcan.bin` from the release instead; see [DroneCAN Firmware Update](../dronecan/index.md#firmware-update). ([PX4-Autopilot#28870](https://github.com/PX4/PX4-Autopilot/pull/28870))
 - **jMAVSim has been removed.** `make px4_sitl jmavsim` and the `10017_jmavsim_iris` airframe (`SYS_AUTOSTART=10017`) no longer exist, and the setup scripts no longer install Java or `ant`. Use [SIH](../sim_sih/index.md) with the [Hawkeye](../sim_hawkeye/index.md) visualizer instead (`make px4_sitl_sih sihsim_quadx`), or [Gazebo](../sim_gazebo_gz/index.md).
 - **Re-check motor failure handling on hexarotors.** [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1` now also stops the motor opposite the failed one on a hexarotor (previously only the failed motor was removed from the allocation). Other airframes are unaffected, and `CA_FAILURE_MODE=0` (the default) is unchanged. See [Motor Failure Recovery](../config/motor_failure_recovery.md). ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
+- The dual-antenna GNSS heading offset is now set per receiver with [SENS_GPSn_ROT](../advanced_config/parameter_reference.md#SENS_GPS0_ROT) (custom angles in `SENS_GPSn_ROLL`, `SENS_GPSn_PITCH`, `SENS_GPSn_YAW`). `GPS_YAW_OFFSET`, `SEP_YAW_OFFS` and `EKF2_GPS_YAW_OFF` are migrated to `SENS_GPS0_YAW` and `SENS_GPS1_YAW`; `SEP_PITCH_OFFS` is removed. A DroneCAN GNSS node running older firmware still subtracts its own `GPS_YAW_OFFSET`, so set the rotation on one side only, preferably `SENS_GPSn_ROT` with the node's `GPS_YAW_OFFSET` at 0. The `heading_offset` field of `sensor_gps` is removed. ([PX4-Autopilot#27102](https://github.com/PX4/PX4-Autopilot/pull/27102))
 
 ## Other changes
 
@@ -70,7 +71,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Estimation
 
-- TBD
+- EKF2 fuses dual-antenna GNSS heading from its own topic, `vehicle_gnss_heading`, at the heading's rate and measurement time instead of with each position sample. `GPS_RAW_INT` and `GPS2_RAW` report the body-frame heading of the receiver that provides it. ([PX4-Autopilot#27102](https://github.com/PX4/PX4-Autopilot/pull/27102))
 
 ### Sensors
 
