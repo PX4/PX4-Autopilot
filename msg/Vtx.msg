@@ -11,8 +11,7 @@ uint8 PROTOCOL_TRAMP = 100
 uint8 protocol
 
 uint8 DEVICE_UNKNOWN = 0
-uint8 DEVICE_PEAK_THOR_T67 = 20
-uint8 DEVICE_RUSH_MAX_SOLO = 40
+uint8 DEVICE_PEAK_THOR = 20
 uint8 device
 
 uint8 MODE_NORMAL = 0
