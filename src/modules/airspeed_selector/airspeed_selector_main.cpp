@@ -323,29 +323,29 @@ AirspeedModule::init()
 	resolve_sensor_indices();
 
 	// Set the default sensor
-	if (_param_airspeed_primary_index.get() > _number_of_airspeed_sensors
-	    && _param_airspeed_primary_index.get() <= MAX_NUM_AIRSPEED_SENSORS) {
-		// constrain the index to the number of sensors connected
-		_valid_airspeed_src = static_cast<AirspeedSource>(math::min(_param_airspeed_primary_index.get(),
-				      _number_of_airspeed_sensors));
+	const int32_t primary_param = _param_airspeed_primary_index.get();
+	const bool sensor_configured = (primary_param >= 1) && (primary_param <= MAX_NUM_AIRSPEED_SENSORS);
+	const int primary = primary_validator_index();
 
-		if (_number_of_airspeed_sensors == 0) {
-			mavlink_log_info(&_mavlink_log_pub, "No airspeed sensor detected. Switch to non-airspeed mode.\t");
-			events::send(events::ID("airspeed_selector_switch"), events::Log::Info,
-				     "No airspeed sensor detected, switching to non-airspeed mode");
+	if (!sensor_configured) {
+		// groundspeed-windspeed, synthetic or disabled
+		_valid_airspeed_src = static_cast<AirspeedSource>(primary_param);
 
-		} else {
-			mavlink_log_info(&_mavlink_log_pub, "Primary airspeed index bigger than number connected sensors. Take last sensor.\t");
-			events::send(events::ID("airspeed_selector_prim_too_high"), events::Log::Info,
-				     "Primary airspeed index bigger than number connected sensors, taking last sensor");
-		}
+	} else if (primary >= 0) {
+		_valid_airspeed_src = static_cast<AirspeedSource>(primary + 1);
+
+	} else if (_number_of_airspeed_sensors == 0) {
+		_valid_airspeed_src = AirspeedSource::GROUND_MINUS_WIND;
+		mavlink_log_info(&_mavlink_log_pub, "No airspeed sensor detected. Switch to non-airspeed mode.\t");
+		events::send(events::ID("airspeed_selector_switch"), events::Log::Info,
+			     "No airspeed sensor detected, switching to non-airspeed mode");
 
 	} else {
-		// set index to the one provided in the parameter ASPD_PRIMARY
-		const int primary = primary_validator_index();
-
-		_valid_airspeed_src = (primary >= 0) ? static_cast<AirspeedSource>(primary + 1)
-				      : static_cast<AirspeedSource>(_param_airspeed_primary_index.get());
+		// the configured primary is not connected, take the last connected sensor
+		_valid_airspeed_src = static_cast<AirspeedSource>(_number_of_airspeed_sensors);
+		mavlink_log_info(&_mavlink_log_pub, "Primary airspeed sensor not connected. Take last sensor.\t");
+		events::send(events::ID("airspeed_selector_prim_too_high"), events::Log::Info,
+			     "Primary airspeed sensor not connected, taking last sensor");
 	}
 
 	_prev_airspeed_src = _valid_airspeed_src;
