@@ -185,7 +185,7 @@ private:
 	void resolve_sensor_indices();
 
 	/**
-	 * Validator for the sensor configured as ASPD_PRIMARY, or -1 if unavailable.
+	 * Validator of the connected sensor configured as ASPD_PRIMARY, or -1 if none is connected.
 	 */
 	int primary_validator_index() const
 	{
@@ -195,7 +195,8 @@ private:
 			return -1;
 		}
 
-		for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
+		// only connected instances
+		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
 			if (_config_index[i] == configured) {
 				return i;
 			}
@@ -780,8 +781,7 @@ void AirspeedModule::select_airspeed_and_publish()
 		// prefer the sensor the user configured as primary.
 		const int primary = primary_validator_index();
 
-		if ((primary >= 0) && (primary < _number_of_airspeed_sensors)
-		    && _airspeed_validator[primary].get_airspeed_valid()) {
+		if ((primary >= 0) && _airspeed_validator[primary].get_airspeed_valid()) {
 			_valid_airspeed_src = static_cast<AirspeedSource>(primary + 1);
 
 		} else {
