@@ -128,6 +128,31 @@ TEST_F(EkfGpsHeadingTest, fusionStartWithReset)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 }
 
+TEST_F(EkfGpsHeadingTest, noResetToInaccurateHeading)
+{
+	// GIVEN: a heading 30 degrees off the estimate, with the accuracy of a receiver still resolving its baseline
+	const float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(30.f));
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps.setYawAccuracy(math::radians(170.f));
+	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: running on it
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: GPS heading fusion does not start and yaw is not reset to it
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
+
+	// WHEN: the accuracy becomes plausible
+	_sensor_simulator._gps.setYawAccuracy(math::radians(2.f));
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the fusion starts with a reset to the heading
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
+	checkConvergence(gps_heading, 0.5f);
+}
+
 TEST_F(EkfGpsHeadingTest, yawConvergence)
 {
 	// GIVEN: an initial GPS yaw, not aligned with the current one
