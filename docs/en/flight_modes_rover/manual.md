@@ -20,7 +20,7 @@ The manual modes provide progressively increasing levels of autopilot support fo
 | [Acro](manual.md#acro-mode)                     | + Maintains the yaw rate (feels more like driving a car than manual mode). <br>+ Allows maximum yaw rate to be limited (protects against roll over).                             |
 | [Stabilized](manual.md#stabilized-mode)         | + Maintains the yaw (significantly better at holding a straight line).                                                                                                           |
 | [Position](manual.md#position-mode)             | + Maintains the course (best mode for driving a straight line).<br>+ Maintains speed against disturbances, e.g. when driving up a hill.<br>+ Allows maximum speed to be limited. |
-| [Manual Parking](manual.md#manual-parking-mode) | No autopilot support. Reduced throttle for precise maneuvering in tight spaces, differential and mecanum rovers are driven tank-style with one stick per side.                   |
+| [Manual Parking](manual.md#manual-parking-mode) | Reduced throttle for precise maneuvering in tight spaces. Differential and mecanum rovers are driven tank-style, using one stick per side. Ackermann vehicles are controlled in the same way as they are in manual mode, but with reduced throttle.|
 
 ::: details Overview mode mapping to control effect
 
@@ -106,7 +106,9 @@ This mode is intended for precisely maneuvering the rover in tight spaces, e.g. 
 Like [Manual mode](#manual-mode) the stick inputs are directly mapped to motor commands without any autopilot support, but the throttle is scaled down to [RO_PARK_THR_MAX](../advanced_config/parameter_reference.md#RO_PARK_THR_MAX).
 
 Differential and mecanum rovers are driven tank-style in this mode: the left stick drives the motor(s) on the left side and the right stick drives the motor(s) on the right side of the rover.
-Pushing both sticks in the same direction drives straight, pushing them in opposite directions turns the rover on the spot and holding one stick centered pivots the rover around that side.
+Pushing both sticks in the same direction drives straight, pushing them in opposite directions turns the rover on the spot, and holding one stick centered pivots the rover around that side.
+
+Ackermann vehicles are controlled in the same way as they are in manual mode, but with reduced throttle.
 
 | Rover Type   | Left stick up/down                          | Right stick up/down                          | Right stick left/right                     |
 | ------------ | ------------------------------------------- | -------------------------------------------- | ------------------------------------------ |
