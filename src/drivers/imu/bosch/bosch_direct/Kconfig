@@ -1,0 +1,60 @@
+menuconfig DRIVERS_IMU_BOSCH_BOSCH_DIRECT
+	bool "Bosch BMI055/BMI085/BMI088/BMI270 SPI family"
+	default n
+	help
+	  Fixed and tagged FIFO acquisition. Split devices retain independent
+	  accel/gyro registrations; BMI270 uses one integrated IMU registration.
+
+if DRIVERS_IMU_BOSCH_BOSCH_DIRECT
+
+config BOSCH_DIRECT_BMI055
+	bool "BMI055"
+	default y
+
+config BOSCH_DIRECT_BMI085
+	bool "BMI085"
+	default y
+
+config BOSCH_DIRECT_BMI088
+	bool "BMI088 (including existing BMI090L identity compatibility)"
+	default y
+
+config BOSCH_DIRECT_BMI270
+	bool "BMI270"
+	default y
+
+if BOSCH_DIRECT_BMI085 || BOSCH_DIRECT_BMI088
+
+choice
+	prompt "BMI085/BMI088 accelerometer interrupt pin"
+	default BOSCH_DIRECT_ACCELEROMETER_INT1
+
+config BOSCH_DIRECT_ACCELEROMETER_INT_NONE
+	bool "No interrupts"
+
+config BOSCH_DIRECT_ACCELEROMETER_INT1
+	bool "INT1"
+
+config BOSCH_DIRECT_ACCELEROMETER_INT2
+	bool "INT2"
+
+endchoice
+
+choice
+	prompt "BMI085/BMI088 gyroscope interrupt pin"
+	default BOSCH_DIRECT_GYROSCOPE_INT3
+
+config BOSCH_DIRECT_GYROSCOPE_INT_NONE
+	bool "No interrupts"
+
+config BOSCH_DIRECT_GYROSCOPE_INT3
+	bool "INT3"
+
+config BOSCH_DIRECT_GYROSCOPE_INT4
+	bool "INT4"
+
+endchoice
+
+endif # BOSCH_DIRECT_BMI085 || BOSCH_DIRECT_BMI088
+
+endif # DRIVERS_IMU_BOSCH_BOSCH_DIRECT
