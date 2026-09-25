@@ -45,7 +45,9 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vehicle_gps_position_pub.advertise();
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 	_vehicle_gnss_heading_pub.advertise();
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 }
 
 VehicleGPSPosition::~VehicleGPSPosition()
@@ -73,9 +75,13 @@ void VehicleGPSPosition::Stop()
 		sub.unregisterCallback();
 	}
 
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+
 	for (auto &sub : _sensor_gnss_relative_sub) {
 		sub.unregisterCallback();
 	}
+
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 }
 
 void VehicleGPSPosition::ParametersUpdate(bool force)
@@ -97,9 +103,13 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			}
 		}
 
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+
 		for (auto &sub : _sensor_gnss_relative_sub) {
 			sub.registerCallback();
 		}
+
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 		_gps_blending.setBlendingUseSpeedAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_SPD_ACC);
 		_gps_blending.setBlendingUseHPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_HPOS_ACC);
@@ -123,13 +133,16 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			static_cast<hrt_abstime>(_param_sens_gps1_delay.get()) * 1000
 		};
 
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 		updateBaselineRotation(_gps_param_slots[0], _param_sens_gps0_rot.get(), _param_sens_gps0_roll.get(),
 				       _param_sens_gps0_pitch.get(), _param_sens_gps0_yaw.get());
 		updateBaselineRotation(_gps_param_slots[1], _param_sens_gps1_rot.get(), _param_sens_gps1_roll.get(),
 				       _param_sens_gps1_pitch.get(), _param_sens_gps1_yaw.get());
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 	}
 }
 
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 void VehicleGPSPosition::updateBaselineRotation(GpsParamSlot &slot, int32_t rotation, float roll_deg, float pitch_deg,
 		float yaw_deg)
 {
@@ -159,6 +172,7 @@ float VehicleGPSPosition::rotateBaselineHeading(const GpsParamSlot *slot, float 
 
 	return matrix::wrap_pi(heading - headingOffset(slot));
 }
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 void VehicleGPSPosition::Run()
 {
@@ -188,7 +202,9 @@ void VehicleGPSPosition::Run()
 			const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
 
 			gps_data[i].timestamp_sample = resolveSampleTimestamp(gps_data[i].timestamp_sample, gps_data[i].timestamp, delay_us);
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 			gps_data[i].heading = rotateBaselineHeading(slot, gps_data[i].heading);
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
 			_gps_blending.setGpsData(gps_data[i], i);
@@ -230,13 +246,16 @@ void VehicleGPSPosition::Run()
 		}
 	}
 
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 	UpdateGnssHeading(gps_data, gps_updated);
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	ScheduleDelayed(300_ms); // backup schedule
 
 	perf_end(_cycle_perf);
 }
 
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_RECEIVERS],
 		const bool gps_updated[GPS_MAX_RECEIVERS])
 {
@@ -343,6 +362,8 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 	}
 }
 
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
+
 const VehicleGPSPosition::GpsParamSlot *VehicleGPSPosition::findParamSlot(uint32_t device_id, int instance) const
 {
 	for (const GpsParamSlot &slot : _gps_param_slots) {
@@ -360,6 +381,7 @@ const VehicleGPSPosition::GpsParamSlot *VehicleGPSPosition::findParamSlot(uint32
 	return nullptr;
 }
 
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 int VehicleGPSPosition::findGpsInstance(uint32_t device_id)
 {
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
@@ -372,6 +394,7 @@ int VehicleGPSPosition::findGpsInstance(uint32_t device_id)
 
 	return -1;
 }
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 uint64_t VehicleGPSPosition::resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
 		hrt_abstime delay_us)
