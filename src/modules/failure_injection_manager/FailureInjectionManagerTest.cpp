@@ -73,7 +73,10 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(ESC, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(ESC, WRONG));   // ESC: offline or wrong telemetry
 	EXPECT_FALSE(FailureTable::isSupported(ESC, STUCK));   // no frozen-telemetry (stuck) support
-	EXPECT_FALSE(FailureTable::isSupported(GYRO, GARBAGE)); // GARBAGE unimplemented
+	EXPECT_FALSE(FailureTable::isSupported(GYRO, GARBAGE)); // GARBAGE unimplemented for the gyro
+	// The accelerometer accepts GARBAGE: SIH rails its samples at the measurement range so a
+	// simulated flight can exercise clipping and estimator failover.
+	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, GARBAGE));
 	// Distance sensor (rangefinder) supports OFF/STUCK on hardware, but not WRONG.
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));

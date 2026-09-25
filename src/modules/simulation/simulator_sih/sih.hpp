@@ -129,9 +129,29 @@ private:
 	void parameters_updated();
 	void updateFailureConfig();
 
-	// simulated sensors
-	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	// simulated sensors. IMU_COUNT is the maximum, SIH_IMU_COUNT selects how many are used.
+	// The sensor drivers advertise on construction, so the second IMU is only built when it
+	// is asked for. A single IMU setup then costs exactly what it did before.
+	static constexpr uint8_t IMU_COUNT = 2;
+	// DRV_IMU_DEVTYPE_SIM, BUS: 1 and 2, ADDR: 1, TYPE: SIMULATION
+	static constexpr uint32_t IMU_DEVICE_ID[IMU_COUNT] {1310988, 1310996};
+	uint8_t _imu_count{1};
+
+	// Measurement range of the simulated accelerometers. This has to match _range in
+	// PX4Accelerometer, which defaults to 16 g, because that is what the driver compares a
+	// sample against when it decides the sample is clipped. A real accelerometer rails here
+	// rather than reporting the true value.
+	static constexpr float ACCEL_RANGE_MS2 = 16.f * CONSTANTS_ONE_G;
+
+	// Standard deviation of the noise a Garbage accelerometer reports on its Z axis. Several
+	// times the measurement range, so most samples rail and the estimator sees a steady stream
+	// of clipped ones rather than the occasional outlier.
+	static constexpr float GARBAGE_ACCEL_NOISE_MS2 = 3.f * ACCEL_RANGE_MS2;
+
+	PX4Accelerometer  _px4_accel_first{IMU_DEVICE_ID[0]};
+	PX4Gyroscope      _px4_gyro_first{IMU_DEVICE_ID[0]};
+	PX4Accelerometer *_px4_accel[IMU_COUNT] {&_px4_accel_first, nullptr};
+	PX4Gyroscope     *_px4_gyro[IMU_COUNT] {&_px4_gyro_first, nullptr};
 	PX4Rangefinder   _px4_rangefinder{10092548}; // 10092548: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0, TYPE: SIMULATION
 	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<ranging_beacon_s>   _ranging_beacon_pub{ORB_ID(ranging_beacon)};
@@ -149,8 +169,6 @@ private:
 
 	bool _airspeed_blocked{false};
 	bool _distance_sensor_blocked{false};
-	bool _accel_blocked{false};
-	bool _gyro_blocked{false};
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
@@ -355,6 +373,7 @@ private:
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
 		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
 		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e,
-		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise
+		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise,
+		(ParamInt<px4::params::SIH_IMU_COUNT>) _sih_imu_count
 	)
 };
