@@ -215,7 +215,7 @@ jobs:
           <!-- pr-comment-poster:flash-analysis -->
           ## 🔎 Flash and RAM Analysis
 
-          | Target | Flash change | Flash used | Static RAM change | Static RAM used |
+          | Target | Flash Δ | Flash Total | Static RAM Δ | Static RAM Total |
           | --- | ---: | ---: | ---: | ---: |
           | px4_fmu-v2 (F4) | ${{ fromJSON(env.V2).flash }} | ${{ fromJSON(env.V2).flash_used }} | ${{ fromJSON(env.V2).ram }} | ${{ fromJSON(env.V2).ram_used }} |
           | px4_fmu-v5x (F7) | ${{ fromJSON(env.V5X).flash }} | ${{ fromJSON(env.V5X).flash_used }} | ${{ fromJSON(env.V5X).ram }} | ${{ fromJSON(env.V5X).ram_used }} |
