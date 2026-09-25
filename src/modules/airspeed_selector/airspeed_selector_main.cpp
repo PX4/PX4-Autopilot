@@ -564,6 +564,8 @@ void AirspeedModule::update_params()
 	_param_airspeed_scale[1] = _param_airspeed_scale_2.get();
 	_param_airspeed_scale[2] = _param_airspeed_scale_3.get();
 
+	resolve_sensor_indices();
+
 	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
 		const int scale_index = _config_index[i];
 
