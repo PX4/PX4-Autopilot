@@ -356,9 +356,8 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 
 	for (unsigned i = 0; i < sensor_count_max; i++) {
 
-		max_sensor_index = i;
-
 		if (!sensor_data.advertised[i] && sensor_data.subscription[i].advertised()) {
+			max_sensor_index = i;
 			sensor_data.advertised[i] = true;
 			sensor_data.priority[i] = DEFAULT_PRIORITY;
 			sensor_data.priority_configured[i] = DEFAULT_PRIORITY;
