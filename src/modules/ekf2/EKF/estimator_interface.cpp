@@ -189,6 +189,15 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 
 		gnss_sample_new.time_us = time_us;
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+		// Without an antenna offset the heading is already that of the body frame
+		if (!PX4_ISFINITE(gnss_sample_new.yaw_offset)) {
+			gnss_sample_new.yaw_offset = 0.f;
+		}
+
+#endif // CONFIG_EKF2_GNSS_YAW
+
 		_gps_buffer->push(gnss_sample_new);
 		_time_last_gps_buffer_push = _time_latest_us;
 

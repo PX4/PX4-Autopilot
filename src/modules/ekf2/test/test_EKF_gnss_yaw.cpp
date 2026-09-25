@@ -186,6 +186,26 @@ TEST_F(EkfGpsHeadingTest, yawMinus30)
 	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
 }
 
+TEST_F(EkfGpsHeadingTest, fuseWithoutAntennaOffset)
+{
+	// GIVEN: a receiver that reports its heading in the body frame, with no antenna offset
+	_sensor_simulator._gps.setYawOffset(NAN);
+	const float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(10.f));
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator.runSeconds(1);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: running for longer than the fusion timeout
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the heading keeps being fused, without being reset to again
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_TRUE(_ekf->aid_src_gnss_yaw().fused);
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
+	checkConvergence(gps_heading, 0.05f);
+}
+
 TEST_F(EkfGpsHeadingTest, fallBackToMag)
 {
 	// GIVEN: an initial GPS yaw, not aligned with the current one

@@ -162,10 +162,6 @@ void Ekf::fuseGnssYaw(float antenna_yaw_offset)
 		return;
 	}
 
-	if (!PX4_ISFINITE(antenna_yaw_offset)) {
-		antenna_yaw_offset = 0.f;
-	}
-
 	float heading_pred;
 	float heading_innov_var;
 	VectorState H;
