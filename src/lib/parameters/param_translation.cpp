@@ -363,7 +363,8 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			|| (strcmp("SEP_YAW_OFFS", node->name) == 0)
 			|| (strcmp("EKF2_GPS_YAW_OFF", node->name) == 0))) {
 
-			float yaw_deg = fmodf(static_cast<float>(node->d), 360.f);
+			// all three ranged within [-360, 360], so one step wraps into SENS_GPSn_YAW's [-180, 180]
+			float yaw_deg = static_cast<float>(node->d);
 
 			if (yaw_deg > 180.f) {
 				yaw_deg -= 360.f;
