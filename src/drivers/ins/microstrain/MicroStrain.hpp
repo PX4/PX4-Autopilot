@@ -58,6 +58,7 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -300,6 +301,7 @@ private:
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
 	uORB::Subscription _vehicle_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _vehicle_optical_flow_vel_sub{ORB_ID(vehicle_optical_flow_vel)};
 };

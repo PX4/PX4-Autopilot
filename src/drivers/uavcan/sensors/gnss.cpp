@@ -179,7 +179,7 @@ UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 	float vel_cov[9];
 	msg.velocity_covariance.unpackSquareMatrix(vel_cov);
 
-	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov, NAN, NAN, NAN, -1, -1, 0, 0);
+	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov, NAN, NAN, -1, -1, 0, 0);
 }
 
 void
@@ -321,7 +321,6 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 
 	// Invalidate the heading fields
 	float heading = NAN;
-	float heading_offset = NAN;
 	float heading_accuracy = NAN;
 
 	int32_t noise_per_ms = -1;
@@ -336,9 +335,8 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 			heading = msg.ecef_position_velocity[0].velocity_xyz[0];
 		}
 
-		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[1])) {
-			heading_offset = msg.ecef_position_velocity[0].velocity_xyz[1];
-		}
+		// velocity_xyz[1] is the heading offset older node firmware subtracted on the node. It is ignored so both heading
+		// paths are rotated by SENS_GPSn_ROT alone, as the RelPosHeading path already was.
 
 		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[2])) {
 			heading_accuracy = msg.ecef_position_velocity[0].velocity_xyz[2];
@@ -351,8 +349,8 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		spoofing_state = msg.ecef_position_velocity[0].position_xyz_mm[2] & 0xFF;
 	}
 
-	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances, heading, heading_offset,
-		     heading_accuracy, noise_per_ms, jamming_indicator, jamming_state, spoofing_state);
+	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances, heading, heading_accuracy, noise_per_ms,
+		     jamming_indicator, jamming_state, spoofing_state);
 }
 
 void UavcanGnssBridge::gnss_relative_sub_cb(const
@@ -403,7 +401,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    uint8_t fix_type,
 				    const float (&pos_cov)[9], const float (&vel_cov)[9],
 				    const bool valid_pos_cov, const bool valid_vel_cov,
-				    const float heading, const float heading_offset,
+				    const float heading,
 				    const float heading_accuracy, const int32_t noise_per_ms,
 				    const int32_t jamming_indicator, const uint8_t jamming_state,
 				    const uint8_t spoofing_state)
@@ -594,7 +592,6 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	if (_rel_heading_valid) {
 		sensor_gps.heading = _rel_heading;
-		sensor_gps.heading_offset = NAN;
 		sensor_gps.heading_accuracy = _rel_heading_accuracy;
 
 		_rel_heading = NAN;
@@ -603,7 +600,6 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	} else {
 		sensor_gps.heading = heading;
-		sensor_gps.heading_offset = heading_offset;
 		sensor_gps.heading_accuracy = heading_accuracy;
 	}
 

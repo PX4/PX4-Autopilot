@@ -97,9 +97,9 @@ private:
 	const GpsParamSlot *findParamSlot(uint32_t device_id, int instance) const;
 	// sensor_gps instance publishing this device_id, or -1
 	int findGpsInstance(uint32_t device_id);
-	// Rotate a raw baseline heading into the body frame. A driver that already reports a body frame heading sets a
-	// finite heading_offset and is left alone.
-	static void applyBaselineRotation(const GpsParamSlot *slot, float &heading, float &heading_offset);
+	// Rotate a measured baseline heading into the body frame; NaN for a vertical baseline
+	static float rotateBaselineHeading(const GpsParamSlot *slot, float heading);
+	static float headingOffset(const GpsParamSlot *slot) { return slot ? slot->heading_offset : 0.f; }
 	void updateBaselineRotation(GpsParamSlot &slot, int32_t rotation, float roll_deg, float pitch_deg, float yaw_deg);
 	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
 					       hrt_abstime delay_us);

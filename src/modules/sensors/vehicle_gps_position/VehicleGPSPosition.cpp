@@ -151,19 +151,13 @@ void VehicleGPSPosition::updateBaselineRotation(GpsParamSlot &slot, int32_t rota
 	slot.heading_offset = slot.heading_available ? atan2f(baseline(1), baseline(0)) : 0.f;
 }
 
-void VehicleGPSPosition::applyBaselineRotation(const GpsParamSlot *slot, float &heading, float &heading_offset)
+float VehicleGPSPosition::rotateBaselineHeading(const GpsParamSlot *slot, float heading)
 {
-	if (!PX4_ISFINITE(heading) || PX4_ISFINITE(heading_offset)) {
-		return;
+	if (!PX4_ISFINITE(heading) || (slot && !slot->heading_available)) {
+		return NAN;
 	}
 
-	if (slot && !slot->heading_available) {
-		heading = NAN;
-		return;
-	}
-
-	heading_offset = slot ? slot->heading_offset : 0.f;
-	heading = matrix::wrap_pi(heading - heading_offset);
+	return matrix::wrap_pi(heading - headingOffset(slot));
 }
 
 void VehicleGPSPosition::Run()
@@ -194,7 +188,7 @@ void VehicleGPSPosition::Run()
 			const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
 
 			gps_data[i].timestamp_sample = resolveSampleTimestamp(gps_data[i].timestamp_sample, gps_data[i].timestamp, delay_us);
-			applyBaselineRotation(slot, gps_data[i].heading, gps_data[i].heading_offset);
+			gps_data[i].heading = rotateBaselineHeading(slot, gps_data[i].heading);
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
 			_gps_blending.setGpsData(gps_data[i], i);
@@ -276,10 +270,7 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 		const GpsParamSlot *slot = findParamSlot(gnss_rel.device_id, findGpsInstance(gnss_rel.device_id));
 		const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
 
-		// the relative position heading is always the raw baseline
-		float heading = gnss_rel.heading;
-		float heading_offset = NAN;
-		applyBaselineRotation(slot, heading, heading_offset);
+		const float heading = rotateBaselineHeading(slot, gnss_rel.heading);
 
 		if (!PX4_ISFINITE(heading)) {
 			continue;
@@ -297,7 +288,7 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 		heading_out.device_id = gnss_rel.device_id;
 		heading_out.heading = heading;
 		heading_out.heading_accuracy = gnss_rel.heading_accuracy;
-		heading_out.heading_offset = heading_offset;
+		heading_out.heading_offset = headingOffset(slot);
 		heading_out.timestamp = hrt_absolute_time();
 		_vehicle_gnss_heading_pub.publish(heading_out);
 
@@ -343,7 +334,7 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 		heading_out.device_id = gps_data[i].device_id;
 		heading_out.heading = gps_data[i].heading;
 		heading_out.heading_accuracy = gps_data[i].heading_accuracy;
-		heading_out.heading_offset = gps_data[i].heading_offset;
+		heading_out.heading_offset = headingOffset(findParamSlot(gps_data[i].device_id, i));
 		heading_out.timestamp = hrt_absolute_time();
 		_vehicle_gnss_heading_pub.publish(heading_out);
 

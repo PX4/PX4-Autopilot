@@ -450,7 +450,6 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	}
 
 	_sensor_gps.heading = NAN;
-	_sensor_gps.heading_offset = NAN;
 
 	int32_t enable_sat_info = 0;
 	param_get(param_find("GPS_SAT_INFO"), &enable_sat_info);
@@ -1308,7 +1307,6 @@ GPS::run()
 			/* reset report */
 			memset(&_sensor_gps, 0, sizeof(_sensor_gps));
 			_sensor_gps.heading = NAN;
-			_sensor_gps.heading_offset = NAN; // raw baseline heading, rotated into the body frame by SENS_GPSn_ROT
 
 #if defined(CONFIG_GPS_UBX)
 
