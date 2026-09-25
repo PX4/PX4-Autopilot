@@ -43,6 +43,8 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/airspeed/airspeed.h>
+#include <lib/sensor_calibration/DifferentialPressure.hpp>
+#include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
@@ -169,6 +171,41 @@ private:
 
 	float _param_airspeed_scale[MAX_NUM_AIRSPEED_SENSORS] {}; /** array to save the airspeed scale params in */
 
+	uint32_t _airspeed_device_id[MAX_NUM_AIRSPEED_SENSORS] {}; /**< device id of the sensor publishing on each instance */
+
+	/**
+	 * ASPD_* configuration index used by validator i.
+	 *
+	 * Sensor instance order can change after a reboot. Use the sensor calibration entry
+	 * (CAL_DPRESn_ID) to find ASPD_SCALE_n and ASPD_PRIMARY.
+	 * If no calibration is available, use the sensor instance index.
+	 */
+	int _config_index[MAX_NUM_AIRSPEED_SENSORS] {0, 1, 2};
+
+	void resolve_sensor_indices();
+
+	/**
+	 * Validator of the connected sensor configured as ASPD_PRIMARY, or -1 if none is connected.
+	 */
+	int primary_validator_index() const
+	{
+		const int configured = _param_airspeed_primary_index.get() - 1;
+
+		if ((configured < 0) || (configured >= MAX_NUM_AIRSPEED_SENSORS)) {
+			return -1;
+		}
+
+		// only connected instances
+		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
+			if (_config_index[i] == configured) {
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+
 	enum CheckTypeBits {
 		CHECK_TYPE_ONLY_DATA_MISSING_BIT = (1 << 0),
 		CHECK_TYPE_DATA_STUCK_BIT = (1 << 1),
@@ -273,27 +310,42 @@ AirspeedModule::init()
 {
 	check_for_connected_airspeed_sensors();
 
-	// Set the default sensor
-	if (_param_airspeed_primary_index.get() > _number_of_airspeed_sensors
-	    && _param_airspeed_primary_index.get() <= MAX_NUM_AIRSPEED_SENSORS) {
-		// constrain the index to the number of sensors connected
-		_valid_airspeed_src = static_cast<AirspeedSource>(math::min(_param_airspeed_primary_index.get(),
-				      _number_of_airspeed_sensors));
+	// Read the device ID of every connected sensor before selecting one.
+	for (int i = 0; i < _number_of_airspeed_sensors; i++) {
+		airspeed_s airspeed;
 
-		if (_number_of_airspeed_sensors == 0) {
-			mavlink_log_info(&_mavlink_log_pub, "No airspeed sensor detected. Switch to non-airspeed mode.\t");
-			events::send(events::ID("airspeed_selector_switch"), events::Log::Info,
-				     "No airspeed sensor detected, switching to non-airspeed mode");
-
-		} else {
-			mavlink_log_info(&_mavlink_log_pub, "Primary airspeed index bigger than number connected sensors. Take last sensor.\t");
-			events::send(events::ID("airspeed_selector_prim_too_high"), events::Log::Info,
-				     "Primary airspeed index bigger than number connected sensors, taking last sensor");
+		if (_airspeed_subs[i].copy(&airspeed)) {
+			_airspeed_device_id[i] = airspeed.device_id;
+			_time_last_airspeed_update[i] = _time_now_usec;
 		}
+	}
+
+	resolve_sensor_indices();
+
+	// Set the default sensor
+	const int32_t primary_param = _param_airspeed_primary_index.get();
+	const bool sensor_configured = (primary_param >= 1) && (primary_param <= MAX_NUM_AIRSPEED_SENSORS);
+	const int primary = primary_validator_index();
+
+	if (!sensor_configured) {
+		// groundspeed-windspeed, synthetic or disabled
+		_valid_airspeed_src = static_cast<AirspeedSource>(primary_param);
+
+	} else if (primary >= 0) {
+		_valid_airspeed_src = static_cast<AirspeedSource>(primary + 1);
+
+	} else if (_number_of_airspeed_sensors == 0) {
+		_valid_airspeed_src = AirspeedSource::GROUND_MINUS_WIND;
+		mavlink_log_info(&_mavlink_log_pub, "No airspeed sensor detected. Switch to non-airspeed mode.\t");
+		events::send(events::ID("airspeed_selector_switch"), events::Log::Info,
+			     "No airspeed sensor detected, switching to non-airspeed mode");
 
 	} else {
-		// set index to the one provided in the parameter ASPD_PRIMARY
-		_valid_airspeed_src = static_cast<AirspeedSource>(_param_airspeed_primary_index.get());
+		// the configured primary is not connected, take the last connected sensor
+		_valid_airspeed_src = static_cast<AirspeedSource>(_number_of_airspeed_sensors);
+		mavlink_log_info(&_mavlink_log_pub, "Primary airspeed sensor not connected. Take last sensor.\t");
+		events::send(events::ID("airspeed_selector_prim_too_high"), events::Log::Info,
+			     "Primary airspeed sensor not connected, taking last sensor");
 	}
 
 	_prev_airspeed_src = _valid_airspeed_src;
@@ -341,8 +393,8 @@ AirspeedModule::Run()
 		init(); // initialize airspeed validator instances
 
 		for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
-			_airspeed_validator[i].set_CAS_scale_validated(_param_airspeed_scale[i]);
-			_airspeed_validator[i].set_scale_init(_param_airspeed_scale[i]);
+			_airspeed_validator[i].set_CAS_scale_validated(_param_airspeed_scale[_config_index[i]]);
+			_airspeed_validator[i].set_scale_init(_param_airspeed_scale[_config_index[i]]);
 		}
 
 		_initialized = true;
@@ -401,6 +453,11 @@ AirspeedModule::Run()
 
 			if (_airspeed_subs[i].update(&airspeed_raw)) {
 
+				if (_airspeed_device_id[i] != airspeed_raw.device_id) {
+					_airspeed_device_id[i] = airspeed_raw.device_id;
+					resolve_sensor_indices();
+				}
+
 				input_data.airspeed_indicated_raw = airspeed_raw.indicated_airspeed_m_s;
 				input_data.airspeed_true_raw = airspeed_raw.true_airspeed_m_s;
 				input_data.airspeed_timestamp = airspeed_raw.timestamp;
@@ -439,16 +496,18 @@ AirspeedModule::Run()
 
 			// save estimated airspeed scale after disarm if airspeed is valid and scale has changed
 			if (!armed && _armed_prev) {
-				const float scale_change_threshold = _param_airspeed_scale[i] * 0.03f; // 3% relative change threshold
+				const int scale_index = _config_index[i];
+				const float scale_change_threshold = _param_airspeed_scale[scale_index] * 0.03f; // 3% relative change threshold
 
 				if (_param_aspd_scale_apply.get() > 0 && _airspeed_validator[i].get_airspeed_valid()
-				    && fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > scale_change_threshold) {
+				    && fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[scale_index]) >
+				    scale_change_threshold) {
 
 					mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor Nr. %d ASPD_SCALE updated: %.4f --> %.4f", i + 1,
-							 (double)_param_airspeed_scale[i],
+							 (double)_param_airspeed_scale[scale_index],
 							 (double)_airspeed_validator[i].get_CAS_scale_validated());
 
-					switch (i) {
+					switch (scale_index) {
 					case 0:
 						_param_airspeed_scale_1.set(_airspeed_validator[i].get_CAS_scale_validated());
 						_param_airspeed_scale_1.commit_no_notification();
@@ -467,7 +526,7 @@ AirspeedModule::Run()
 
 				}
 
-				_airspeed_validator[i].set_scale_init(_param_airspeed_scale[i]);
+				_airspeed_validator[i].set_scale_init(_param_airspeed_scale[_config_index[i]]);
 			}
 		}
 	}
@@ -505,11 +564,15 @@ void AirspeedModule::update_params()
 	_param_airspeed_scale[1] = _param_airspeed_scale_2.get();
 	_param_airspeed_scale[2] = _param_airspeed_scale_3.get();
 
+	resolve_sensor_indices();
+
 	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
-		if (fabsf(_param_airspeed_scale[i] - prev_scale[i]) > FLT_EPSILON) {
-			_airspeed_validator[i].set_scale_init(_param_airspeed_scale[i]);
+		const int scale_index = _config_index[i];
+
+		if (fabsf(_param_airspeed_scale[scale_index] - prev_scale[scale_index]) > FLT_EPSILON) {
+			_airspeed_validator[i].set_scale_init(_param_airspeed_scale[scale_index]);
 			_airspeed_validator[i].reset_scale_estimator();
-			_airspeed_validator[i].set_CAS_scale_validated(_param_airspeed_scale[i]);
+			_airspeed_validator[i].set_CAS_scale_validated(_param_airspeed_scale[scale_index]);
 		}
 	}
 
@@ -520,7 +583,7 @@ void AirspeedModule::update_params()
 		_airspeed_validator[i].set_wind_estimator_tas_noise(_param_west_tas_noise.get());
 
 		_airspeed_validator[i].set_tas_scale_apply(_param_aspd_scale_apply.get());
-		_airspeed_validator[i].set_wind_estimator_tas_scale_init(_param_airspeed_scale[i]);
+		_airspeed_validator[i].set_wind_estimator_tas_scale_init(_param_airspeed_scale[_config_index[i]]);
 
 		_airspeed_validator[i].set_tas_innov_threshold(_tas_innov_threshold.get());
 		_airspeed_validator[i].set_tas_innov_integ_threshold(_tas_innov_integ_threshold.get());
@@ -539,6 +602,67 @@ void AirspeedModule::update_params()
 		_airspeed_validator[i].set_psp_off_param(math::radians(_param_pitch_sp_offset));
 		_airspeed_validator[i].set_throttle_max_param(_param_fw_thr_max);
 		_airspeed_validator[i].set_fp_t_window(_aspd_fp_t_window.get());
+	}
+}
+
+void AirspeedModule::resolve_sensor_indices()
+{
+	// Recomputed from scratch whenever a sensor appears or changes, so the result does not
+	// depend on the order the sensors showed up in.
+	int new_index[MAX_NUM_AIRSPEED_SENSORS];
+	bool taken[MAX_NUM_AIRSPEED_SENSORS] {};
+
+	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
+		new_index[i] = -1;
+	}
+
+	// index is determined by the CAL_DPRESi enumeration
+	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
+		if (_airspeed_device_id[i] == 0) {
+			continue;
+		}
+
+		const int8_t slot = calibration::FindCurrentCalibrationIndex(
+					    calibration::DifferentialPressure::SensorString(), _airspeed_device_id[i]);
+
+		if ((slot >= 0) && (slot < MAX_NUM_AIRSPEED_SENSORS) && !taken[slot]) {
+			new_index[i] = slot;
+			taken[slot] = true;
+		}
+	}
+
+	// uncalibrated sensors fill whatever is left
+	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
+		if (new_index[i] >= 0) {
+			continue;
+		}
+
+		if (!taken[i]) {
+			new_index[i] = i;
+			taken[i] = true;
+			continue;
+		}
+
+		for (int candidate = 0; candidate < MAX_NUM_AIRSPEED_SENSORS; candidate++) {
+			if (!taken[candidate]) {
+				new_index[i] = candidate;
+				taken[candidate] = true;
+				break;
+			}
+		}
+	}
+
+	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
+		if ((new_index[i] < 0) || (new_index[i] == _config_index[i])) {
+			continue;
+		}
+
+		_config_index[i] = new_index[i];
+
+		_airspeed_validator[i].set_scale_init(_param_airspeed_scale[new_index[i]]);
+		_airspeed_validator[i].reset_scale_estimator();
+		_airspeed_validator[i].set_CAS_scale_validated(_param_airspeed_scale[new_index[i]]);
+		_airspeed_validator[i].set_wind_estimator_tas_scale_init(_param_airspeed_scale[new_index[i]]);
 	}
 }
 
@@ -656,11 +780,19 @@ void AirspeedModule::select_airspeed_and_publish()
 
 		_valid_airspeed_src = AirspeedSource::DISABLED;
 
-		// loop through all sensors and take the first valid one
-		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
-			if (_airspeed_validator[i].get_airspeed_valid()) {
-				_valid_airspeed_src = static_cast<AirspeedSource>(i + 1);
-				break;
+		// prefer the sensor the user configured as primary.
+		const int primary = primary_validator_index();
+
+		if ((primary >= 0) && _airspeed_validator[primary].get_airspeed_valid()) {
+			_valid_airspeed_src = static_cast<AirspeedSource>(primary + 1);
+
+		} else {
+			// otherwise take the first valid one
+			for (int i = 0; i < _number_of_airspeed_sensors; i++) {
+				if (_airspeed_validator[i].get_airspeed_valid()) {
+					_valid_airspeed_src = static_cast<AirspeedSource>(i + 1);
+					break;
+				}
 			}
 		}
 	}
