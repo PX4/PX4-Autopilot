@@ -93,9 +93,9 @@ See [MAVLink Peripherals (GCS/OSD/Gimbal/Camera/Companion)](./mavlink_peripheral
 ## ATXXXX Analog OSD
 
 The [`atxxxx`](../modules/modules_driver.md#atxxxx) driver targets boards with an on-board MAX7456 / ATXXXX chip that overlays characters onto an analog video stream (PAL or NTSC).
-This was common on older F4-class FCs such as OmnibusF4SD and is largely superseded by digital systems.
+The chip is wired between the camera input and analog video output by the flight controller hardware, so no external wiring is required on boards that include it.
 
-No external wiring is required on boards that include the chip; to enable it, set [`OSD_ATXXXX_CFG`](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `1` (NTSC) or `2` (PAL) and reboot.
+See [ATXXXX Analog OSD](osd_atxxxx.md) for setup, display elements, and configuration.
 
 ## See also
 
