@@ -132,6 +132,10 @@ void RoverAckermann::generateSetpoints()
 		_manual_mode.manual();
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
+		_manual_mode.manualParking();
+		break;
+
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		_manual_mode.acro();
 		break;

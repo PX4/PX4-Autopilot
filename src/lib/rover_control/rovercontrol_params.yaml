@@ -134,6 +134,20 @@ parameters:
       max: 10000
       increment: 0.01
       decimal: 2
+- group: Rover Manual Control
+  definitions:
+    RO_PARK_THR_MAX:
+      description:
+        short: Maximum throttle in Manual Parking mode
+        long: |
+          Scales the stick inputs that are mapped to motor commands in Manual Parking mode, so that maneuvering in tight spaces stays slow. Applies symmetrically to forward and reverse throttle.
+      type: float
+      unit: norm
+      min: 0
+      max: 1
+      increment: 0.01
+      decimal: 2
+      default: 0.3
 - group: Rover Velocity Control
   definitions:
     RO_MAX_THR_SPEED:
