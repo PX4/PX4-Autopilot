@@ -124,6 +124,7 @@ void Sih::run()
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
 	_optical_flow_time = task_start;
+	_terrain_time = task_start;
 	_ranging_beacon_time = task_start;
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -363,9 +364,33 @@ void Sih::sensor_step()
 		send_ranging_beacon(now);
 	}
 
+	// terrain inputs republished at 1 Hz, since the logger's first burst of samples on fmu-v6c overruns
+	// the file buffer and a topic published once is lost there
+	if (now - _terrain_time >= 1_s) {
+		_terrain_time = now;
+		publish_terrain();
+	}
+
 	publish_ground_truth(now);
 
 	perf_end(_loop_perf);
+}
+
+void Sih::publish_terrain()
+{
+	// the formula names the row of rules in the library header, generator 1 version 1 reports its amplitude,
+	// wavelength and octaves in the first three inputs
+	const terrain_sim::Rules &rules = *terrain_sim::rules_for(terrain_sim::formula());
+	sih_terrain_s terrain{};
+	// the ground in force, as parameters_updated() chose it, so a viewer learns what is under the vehicle
+	terrain.mode = (_ground == &_synthetic) ? TERR_MODE_SYNTHETIC : (_ground == &_terrain) ? TERR_MODE_DEM : TERR_MODE_FLAT;
+	terrain.formula = rules.formula;
+	terrain.seed = _sih_terr_seed.get();
+	terrain.params[0] = (terrain.mode == TERR_MODE_SYNTHETIC) ? rules.amplitude_m : 0.f;
+	terrain.params[1] = rules.wavelength_m;
+	terrain.params[2] = (float)rules.octaves;
+	terrain.timestamp = hrt_absolute_time();
+	_sih_terrain_pub.publish(terrain);
 }
 
 void Sih::parameters_updated()
@@ -486,6 +511,8 @@ void Sih::parameters_updated()
 	_px4_rangefinder.set_max_distance(_distance_snsr_max);
 
 	_optical_flow_interval_us = static_cast<hrt_abstime>(roundf(1e6f / math::max(_sih_optical_flow_rate.get(), 1.f)));
+
+	publish_terrain();
 
 	_T_TAU = _sih_thrust_tau.get();
 

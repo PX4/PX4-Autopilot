@@ -83,6 +83,7 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_optical_flow.h>
+#include <uORB/topics/sih_terrain.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -137,6 +138,7 @@ public:
 
 private:
 	void parameters_updated();
+	void publish_terrain();
 	void updateFailureConfig();
 
 	// simulated sensors
@@ -147,6 +149,7 @@ private:
 	uORB::Publication<ranging_beacon_s>      _ranging_beacon_pub{ORB_ID(ranging_beacon)};
 	uORB::Publication<esc_status_s>          _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
+	uORB::Publication<sih_terrain_s>         _sih_terrain_pub{ORB_ID(sih_terrain)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -293,6 +296,7 @@ private:
 	hrt_abstime _last_actuator_output_time{0};
 	hrt_abstime _airspeed_time{0};
 	hrt_abstime _dist_snsr_time{0};
+	hrt_abstime _terrain_time{0};
 	hrt_abstime _ranging_beacon_time{0};
 	uint8_t _ranging_beacon_idx{0};
 
