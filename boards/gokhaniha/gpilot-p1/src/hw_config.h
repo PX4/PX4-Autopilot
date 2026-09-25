@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,8 +51,8 @@
  * BOARD_FMUV2
  * INTERFACE_USB        1                     - (Optional) Scan and use the USB interface for bootloading
  * INTERFACE_USART      1                     - (Optional) Scan and use the Serial interface for bootloading
- * USBDEVICESTRING      "PX4 BL FMU v2.x"     - USB id string
- * USBPRODUCTID         0x0011                - PID Should match defconfig
+ * USBDEVICESTRING      "PX4 BL GPILOT P1"    - USB id string
+ * USBPRODUCTID         0x0035                - PID Should match defconfig
  * BOARD_TYPE           9                     - Must match .prototype boad_id
  * _FLASH_KBYTES        (*(uint16_t *)0x1fff7a22) - Run time flash size detection
  * BOARD_FLASH_SECTORS  ((_FLASH_KBYTES == 0x400) ? 11 : 23) - Run time determine the physical last sector

@@ -47,7 +47,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - **Input voltage:** 4.7 V to 5.3 V on `POWER1` and `POWER2`
 - **Power monitoring:** 2 analog power inputs, with voltage and current sensing
-- **PWM output signal level:** 3.3 V or 5 V, selected by `GPIO_PWM_VOLT_SEL` (PB4)
+- **MAIN PWM output signal level:** 3.3 V
 
 ### Mechanical Data {#mechanical_data}
 
@@ -102,7 +102,7 @@ All six `AUX` outputs also support [bidirectional DShot](../peripherals/dshot.md
 
 `AUX5` can instead be used as a PWM input (for example, for a PWM Lidar-Lite); it is then unavailable as an output.
 
-The I/O PWM output signal level is selectable between 3.3 V and 5 V using `GPIO_PWM_VOLT_SEL` (PB4).
+The MAIN PWM output signal level is fixed at 3.3 V in the current PX4 configuration.
 The servo rail is externally powered; the flight controller only monitors its voltage.
 
 ## Telemetry Radios (Optional) {#telemetry}
@@ -128,6 +128,12 @@ For more information see [SD Cards (Removable Memory)](../getting_started/px4_ba
 | USART6 | /dev/ttyS3 | PX4IO   | No           |
 | UART7  | /dev/ttyS4 | SERIAL5 | No           |
 | UART8  | /dev/ttyS5 | GPS2    | No           |
+
+`SERIAL5` is selected as `TELEM 3` in PX4 serial port parameters (for example [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)).
+
+::: info
+The `TX_n`/`RX_n` labels in the connector pinout follow the ArduPilot `SERIALn` numbering (`1` = `TELEM1`, `2` = `TELEM2`, `3` = `GPS1`, `4` = `GPS2`, `5` = `SERIAL5`), not the STM32 UART numbers in the table above.
+:::
 
 ## Building Firmware {#building_firmware}
 
