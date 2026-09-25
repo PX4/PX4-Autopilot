@@ -137,6 +137,9 @@ add_custom_command(
 
 
 set(romfs_copy_stamp ${CMAKE_CURRENT_BINARY_DIR}/romfs_copy.stamp)
+if(CONFIG_SYSTEMCMDS_SERIAL_CONFIG)
+	set(serial_config_arg --serial-config)
+endif()
 add_custom_command(
 	OUTPUT
 		${romfs_gen_root_dir}/init.d/rc.serial
@@ -152,7 +155,7 @@ add_custom_command(
 		--board ${PX4_BOARD}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
-		--serial-ports ${board_serial_ports} ${added_arguments}
+		--serial-ports ${board_serial_ports} ${added_arguments} ${serial_config_arg}
 		--config-files ${module_config_files} #--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/filepaths/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d

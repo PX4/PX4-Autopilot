@@ -75,12 +75,15 @@ endif()
 if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
+if(CONFIG_SYSTEMCMDS_SERIAL_CONFIG)
+	set(serial_config_arg --serial-config)
+endif()
 
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--params-file ${generated_serial_params_file}
-		--serial-ports ${board_serial_ports} ${added_arguments} ${constrained_flash_arg}
+		--serial-ports ${board_serial_ports} ${added_arguments} ${constrained_flash_arg} ${serial_config_arg}
 		--config-files ${module_config_files}
 		#--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
