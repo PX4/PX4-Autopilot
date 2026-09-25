@@ -14,13 +14,13 @@ The sticks provide the same "high level" control effects over direction and rate
 
 The manual modes provide progressively increasing levels of autopilot support for maintaining a course, speed, and rate of turn, compensating for external factors such as slopes or uneven terrain.
 
-| Mode                                            | Description                                                                                                                                                                      |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Manual](manual.md#manual-mode)                 | No autopilot support. User is responsible for keeping the rover on the desired course and maintaining speed and rate of turn.                                                    |
-| [Acro](manual.md#acro-mode)                     | + Maintains the yaw rate (feels more like driving a car than manual mode). <br>+ Allows maximum yaw rate to be limited (protects against roll over).                             |
-| [Stabilized](manual.md#stabilized-mode)         | + Maintains the yaw (significantly better at holding a straight line).                                                                                                           |
-| [Position](manual.md#position-mode)             | + Maintains the course (best mode for driving a straight line).<br>+ Maintains speed against disturbances, e.g. when driving up a hill.<br>+ Allows maximum speed to be limited. |
-| [Manual Parking](manual.md#manual-parking-mode) | Reduced throttle for precise maneuvering in tight spaces. Differential and mecanum rovers are driven tank-style, using one stick per side. Ackermann vehicles are controlled in the same way as they are in manual mode, but with reduced throttle.|
+| Mode                                            | Description                                                                                                                                                                                                                                         |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Manual](manual.md#manual-mode)                 | No autopilot support. User is responsible for keeping the rover on the desired course and maintaining speed and rate of turn.                                                                                                                       |
+| [Acro](manual.md#acro-mode)                     | + Maintains the yaw rate (feels more like driving a car than manual mode). <br>+ Allows maximum yaw rate to be limited (protects against roll over).                                                                                                |
+| [Stabilized](manual.md#stabilized-mode)         | + Maintains the yaw (significantly better at holding a straight line).                                                                                                                                                                              |
+| [Position](manual.md#position-mode)             | + Maintains the course (best mode for driving a straight line).<br>+ Maintains speed against disturbances, e.g. when driving up a hill.<br>+ Allows maximum speed to be limited.                                                                    |
+| [Manual Parking](manual.md#manual-parking-mode) | Reduced throttle for precise maneuvering in tight spaces. Differential and mecanum rovers are driven tank-style, using one stick per side. Ackermann vehicles are controlled in the same way as they are in manual mode, but with reduced throttle. |
 
 ::: details Overview mode mapping to control effect
 
@@ -110,11 +110,11 @@ Pushing both sticks in the same direction drives straight, pushing them in oppos
 
 Ackermann vehicles are controlled in the same way as they are in manual mode, but with reduced throttle.
 
-| Rover Type   | Left stick up/down                          | Right stick up/down                          | Right stick left/right                     |
-| ------------ | ------------------------------------------- | -------------------------------------------- | ------------------------------------------ |
-| Ackermann    | Drive the rover forwards/backwards (slowly) | -                                            | Move the steering angle to the left/right. |
-| Differential | Drive the left motor forwards/backwards.    | Drive the right motor forwards/backwards.    | -                                          |
-| Mecanum      | Drive the left motors forwards/backwards.   | Drive the right motors forwards/backwards.   | Drive the rover left/right (slowly).       |
+| Rover Type   | Left stick up/down                          | Right stick up/down                        | Right stick left/right                     |
+| ------------ | ------------------------------------------- | ------------------------------------------ | ------------------------------------------ |
+| Ackermann    | Drive the rover forwards/backwards (slowly) | -                                          | Move the steering angle to the left/right. |
+| Differential | Drive the left motor forwards/backwards.    | Drive the right motor forwards/backwards.  | -                                          |
+| Mecanum      | Drive the left motors forwards/backwards.   | Drive the right motors forwards/backwards. | Drive the rover left/right (slowly).       |
 
 ::: info
 This mode has to be assigned to a flight mode switch (see [Flight Mode Configuration](../config/flight_mode.md)) or selected via the ground station.

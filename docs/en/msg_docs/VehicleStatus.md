@@ -80,7 +80,7 @@ Encodes the system state of the vehicle published by commander.
 | <a id="#NAVIGATION_STATE_POSITION_SLOW"></a> NAVIGATION_STATE_POSITION_SLOW             | `uint8`  | 6     |
 | <a id="#NAVIGATION_STATE_GUIDED_COURSE"></a> NAVIGATION_STATE_GUIDED_COURSE             | `uint8`  | 7     | Guided Course mode (FW: maintain course/alt/speed) |
 | <a id="#NAVIGATION_STATE_ALTITUDE_CRUISE"></a> NAVIGATION_STATE_ALTITUDE_CRUISE         | `uint8`  | 8     | Altitude with Cruise mode                          |
-| <a id="#NAVIGATION_STATE_FREE3"></a> NAVIGATION_STATE_FREE3                             | `uint8`  | 9     |
+| <a id="#NAVIGATION_STATE_MANUAL_PARKING"></a> NAVIGATION_STATE_MANUAL_PARKING           | `uint8`  | 9     | Manual Parking mode                                |
 | <a id="#NAVIGATION_STATE_ACRO"></a> NAVIGATION_STATE_ACRO                               | `uint8`  | 10    | Acro mode                                          |
 | <a id="#NAVIGATION_STATE_FREE2"></a> NAVIGATION_STATE_FREE2                             | `uint8`  | 11    |
 | <a id="#NAVIGATION_STATE_DESCEND"></a> NAVIGATION_STATE_DESCEND                         | `uint8`  | 12    | Descend mode (no position control)                 |
@@ -160,7 +160,7 @@ uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Auto return to launch mode
 uint8 NAVIGATION_STATE_POSITION_SLOW = 6
 uint8 NAVIGATION_STATE_GUIDED_COURSE = 7 		# Guided Course mode (FW: maintain course/alt/speed)
 uint8 NAVIGATION_STATE_ALTITUDE_CRUISE = 8      # Altitude with Cruise mode
-uint8 NAVIGATION_STATE_FREE3 = 9
+uint8 NAVIGATION_STATE_MANUAL_PARKING = 9       # Manual Parking mode
 uint8 NAVIGATION_STATE_ACRO = 10                # Acro mode
 uint8 NAVIGATION_STATE_FREE2 = 11
 uint8 NAVIGATION_STATE_DESCEND = 12             # Descend mode (no position control)

@@ -26465,6 +26465,7 @@ selected flight mode will be applied.
 - `12`: Follow Me
 - `13`: Precision Land
 - `16`: Altitude Cruise
+- `17`: Manual Parking
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -26510,6 +26511,7 @@ selected flight mode will be applied.
 - `12`: Follow Me
 - `13`: Precision Land
 - `16`: Altitude Cruise
+- `17`: Manual Parking
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -26555,6 +26557,7 @@ selected flight mode will be applied.
 - `12`: Follow Me
 - `13`: Precision Land
 - `16`: Altitude Cruise
+- `17`: Manual Parking
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -26600,6 +26603,7 @@ selected flight mode will be applied.
 - `12`: Follow Me
 - `13`: Precision Land
 - `16`: Altitude Cruise
+- `17`: Manual Parking
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -26645,6 +26649,7 @@ selected flight mode will be applied.
 - `12`: Follow Me
 - `13`: Precision Land
 - `16`: Altitude Cruise
+- `17`: Manual Parking
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -26690,6 +26695,7 @@ selected flight mode will be applied.
 - `12`: Follow Me
 - `13`: Precision Land
 - `16`: Altitude Cruise
+- `17`: Manual Parking
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -48563,6 +48569,28 @@ Assign value <1.0 to decrease stick response for yaw control.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.1 | 1 | 0.01 | 1 |  | &nbsp;
+
+</div>
+
+</div>
+
+## Rover Manual Control
+
+<div class="param-group" style="--param-count: 1">
+
+<div class="param">
+
+### RO_PARK_THR_MAX (`FLOAT`) {#RO_PARK_THR_MAX}
+
+Maximum throttle in Manual Parking mode.
+
+Scales the stick inputs that are mapped to motor commands in Manual Parking mode, so that maneuvering in tight spaces stays slow. Applies symmetrically to forward and reverse throttle.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 1 | 0.01 | 0.3 | norm | &nbsp;
 
 </div>
 
