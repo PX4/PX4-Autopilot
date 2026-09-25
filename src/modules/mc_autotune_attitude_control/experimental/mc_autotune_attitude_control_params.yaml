@@ -1,0 +1,32 @@
+module_name: mc_autotune_attitude_control
+parameters:
+- group: Autotune
+  definitions:
+    MC_AT_PERIOD:
+      description:
+        short: Initial response measurement period
+        long: |-
+          The lowest excitation frequency is the inverse of this period.
+          Each axis uses two settling and four measurement periods at each
+          of two excitation phases. Autotune can increase the period up to
+          128 seconds if low-frequency coverage is insufficient.
+      type: float
+      default: 8.0
+      min: 4.0
+      max: 128.0
+      unit: s
+      decimal: 1
+    MC_AT_TIMEOUT:
+      description:
+        short: Maximum total multicopter autotune duration
+        long: |-
+          Limits identification and independent response verification together.
+          Expiration rejects the candidate and keeps the previous gains.
+          Increase this limit when using long periods on slow vehicles.
+          Pilot cancellation remains immediate.
+      type: float
+      default: 600.0
+      min: 20.0
+      max: 14400.0
+      unit: s
+      decimal: 0
