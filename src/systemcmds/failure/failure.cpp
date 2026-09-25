@@ -44,6 +44,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <string.h>
 #include <cmath>
+#include "lab.h"
 
 using namespace time_literals;
 
@@ -180,6 +181,14 @@ extern "C" __EXPORT int failure_main(int argc, char *argv[])
 		PX4_ERR("Could not get param SYS_FAILURE_EN");
 		return 1;
 	}
+
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+
+	if (argc >= 2 && strcmp(argv[1], "lab") == 0) {
+		return sitl_faults::command(argc, argv, param == 1);
+	}
+
+#endif
 
 	if (param != 1) {
 		PX4_ERR("Failure injection disabled by SYS_FAILURE_EN param.");

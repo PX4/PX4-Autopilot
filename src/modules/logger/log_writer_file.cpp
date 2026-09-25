@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <lib/sitl_faults/SitlFaults.hpp>
 #include "log_writer_file.h"
 #include "messages.h"
 
@@ -700,6 +701,12 @@ void LogWriterFile::LogFileBuffer::fsync() const
 ssize_t LogWriterFile::LogFileBuffer::write_to_file(const void *buffer, size_t size, bool call_fsync) const
 {
 	perf_begin(_perf_write);
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+	const unsigned delay_ms = sitl_faults::state().write_delay();
+
+	if (delay_ms > 0) { ::usleep(delay_ms * 1000); }
+
+#endif
 	ssize_t ret = ::write(_fd, buffer, size);
 	perf_end(_perf_write);
 

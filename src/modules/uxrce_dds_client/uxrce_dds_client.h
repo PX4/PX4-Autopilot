@@ -187,7 +187,12 @@ private:
 	uint8_t _num_of_repliers{0};
 
 	uxrCommunication *_comm{nullptr};
-	int _fd{-1};
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+	void *_lab_transport_instance {nullptr};
+	send_msg_func _lab_send{nullptr};
+	recv_msg_func _lab_recv{nullptr};
+#endif
+	int _fd {-1};
 
 	hrt_abstime _last_status_update;
 	hrt_abstime _last_ping;

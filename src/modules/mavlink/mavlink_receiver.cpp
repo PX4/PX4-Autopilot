@@ -40,6 +40,7 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
+#include <lib/sitl_faults/SitlFaults.hpp>
 #include <lib/airspeed/airspeed.h>
 #include <lib/conversion/rotation.h>
 #include <lib/systemlib/px4_macros.h>
@@ -3917,6 +3918,14 @@ MavlinkReceiver::run()
 					nread = recvfrom(_mavlink.get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
 				}
 
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+
+				if (nread > 0 && sitl_faults::state().drop(sitl_faults::Lane::Mavlink, sitl_faults::Rx, _mavlink.get_network_port())) {
+					// Do not learn/refresh a peer or parse an injected-away datagram.
+					continue;
+				}
+
+#endif
 				struct sockaddr_in &srcaddr_last = _mavlink.get_client_source_address();
 
 				int localhost = (127 << 24) + 1;

@@ -40,6 +40,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+#include <lib/sitl_faults/SitlFaults.hpp>
 #include <termios.h>
 
 #ifdef CONFIG_NET
@@ -919,11 +920,25 @@ void Mavlink::send_finish()
 
 	else if (get_protocol() == Protocol::UDP) {
 
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+		const bool lab_drop = sitl_faults::state().drop(sitl_faults::Lane::Mavlink, sitl_faults::Tx, _network_port);
+#endif
 # if defined(CONFIG_NET)
 
 		if (_src_addr_initialized) {
 # endif // CONFIG_NET
-			ret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+
+			if (lab_drop) {
+				// Model loss after a successful local send, not a socket error.
+				ret = _buf_fill;
+
+			} else
+#endif
+			{
+				ret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+			}
+
 # if defined(CONFIG_NET)
 		}
 
@@ -938,7 +953,16 @@ void Mavlink::send_finish()
 
 			if (_broadcast_address_found && _buf_fill > 0) {
 
-				int bret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+				int bret;
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+
+				if (lab_drop) { bret = _buf_fill; }
+
+				else
+#endif
+				{
+					bret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+				}
 
 				if (bret <= 0) {
 					if (!_broadcast_failed_warned) {

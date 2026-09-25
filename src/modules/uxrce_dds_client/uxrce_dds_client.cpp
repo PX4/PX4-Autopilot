@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <lib/sitl_faults/SitlFaults.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/posix.h>
@@ -180,6 +181,34 @@ bool UxrceddsClient::init()
 			_fd = _transport_udp->platform.poll_fd.fd;
 
 			configure_udp_socket_nonblocking(_fd);
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+			// Wrap the communication callbacks without copying its mutex or changing
+			// the library-owned UDP transport. Every re-init installs fresh callbacks.
+			_lab_transport_instance = _comm->instance;
+			_lab_send = _comm->send_msg;
+			_lab_recv = _comm->recv_msg;
+			_comm->instance = this;
+			_comm->send_msg = [](void *instance, const uint8_t *buf, size_t len) {
+				auto *self = static_cast<UxrceddsClient *>(instance);
+
+				if (sitl_faults::state().drop(sitl_faults::Lane::Dds, sitl_faults::Tx)) { return true; }
+
+				return self->_lab_send(self->_lab_transport_instance, buf, len);
+			};
+
+			_comm->recv_msg = [](void *instance, uint8_t **buf, size_t *len, int timeout) {
+				auto *self = static_cast<UxrceddsClient *>(instance);
+				const bool received = self->_lab_recv(self->_lab_transport_instance, buf, len, timeout);
+
+				if (received && sitl_faults::state().drop(sitl_faults::Lane::Dds, sitl_faults::Rx)) {
+					*len = 0;
+					return false;
+				}
+
+				return received;
+			};
+
+#endif
 
 			return true;
 
