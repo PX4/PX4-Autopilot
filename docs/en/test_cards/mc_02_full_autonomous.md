@@ -10,7 +10,7 @@ Plan a mission on the ground. Ensure the mission has
 
 - Takeoff as first waypoint
 - Changes in Altitude throughout the mission
-- Last waypoint is a Return
+- Last waypoint is a Return item
 - Duration of 5 to 6 minutes
 
 ## Flight Tests
@@ -45,7 +45,7 @@ Plan a mission on the ground. Ensure the mission has
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Fly out ~10m from start point
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Engage Return Mode
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Engage Return mode
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Observe tracking, cornering and proper Return performance
 

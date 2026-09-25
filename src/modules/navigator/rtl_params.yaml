@@ -105,7 +105,7 @@ parameters:
       description:
         short: Return precision land mode
         long: |-
-          Use precision landing when doing a Return landing phase.
+          Use precision landing during the landing phase of Return mode.
           This setting does not apply for return destinations planned as part of a mission.
       type: enum
       values:
@@ -123,7 +123,7 @@ parameters:
       min: 25
       decimal: 1
       increment: 0.5
-- group: Return To Land
+- group: Return Mode
   definitions:
     RTL_TIME_FACTOR:
       description:

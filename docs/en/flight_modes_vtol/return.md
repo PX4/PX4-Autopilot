@@ -75,7 +75,7 @@ When uploading VTOL approach loiters through MAVLink, [upload them as rally/safe
 The `MAV_CMD_NAV_RALLY_POINT` item must come first, followed by one or more `MAV_CMD_NAV_LOITER_TO_ALT` items that define the approach loiters for that rally point.
 The next `MAV_CMD_NAV_RALLY_POINT` starts a new landing-location block.
 
-For each `MAV_CMD_NAV_LOITER_TO_ALT` item, `x/y/z` define the loiter center and approach altitude, and `param2` defines the loiter radius used by Return.
+For each `MAV_CMD_NAV_LOITER_TO_ALT` item, `x/y/z` define the loiter center and approach altitude, and `param2` defines the loiter radius used by Return mode.
 If `param2` is unset or zero, PX4 falls back to [RTL_LOITER_RAD](#RTL_LOITER_RAD).
 
 For example, a rally upload with one rally point and two possible approach loiters would use:

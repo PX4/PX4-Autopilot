@@ -39,7 +39,7 @@ menuconfig NAVIGATOR_ADSB_F3442
 		compliance.
 
 menuconfig NAVIGATOR_GEOFENCE_AVOIDANCE
-	bool "Include geofence avoidance path planning for Return"
+	bool "Include geofence avoidance path planning for Return mode"
 	default y
 	depends on MODULES_NAVIGATOR
 	---help---

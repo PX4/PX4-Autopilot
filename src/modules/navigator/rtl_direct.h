@@ -81,14 +81,14 @@ public:
 
 	/**
 	 * @brief on activation.
-	 * Initialize the return to launch calculations.
+	 * Initialize the return calculations.
 	 *
 	 */
 	void on_activation() override;
 
 	/**
 	 * @brief on active
-	 * Update the return to launch calculation and set new setpoints for controller if necessary.
+	 * Update the return calculation and set new setpoints for controller if necessary.
 	 *
 	 */
 	void on_active() override;
@@ -101,9 +101,9 @@ public:
 	void on_inactive() override;
 
 	/**
-	 * @brief Calculate the estimated time needed to return to launch.
+	 * @brief Calculate the estimated time needed to return.
 	 *
-	 * @return estimated time to return to launch.
+	 * @return estimated return time.
 	 */
 	rtl_time_estimate_s calc_rtl_time_estimate();
 
@@ -116,7 +116,7 @@ public:
 
 private:
 	/**
-	 * @brief Return to launch state machine.
+	 * @brief Return state machine.
 	 *
 	 */
 	enum class RTLState {
@@ -140,7 +140,7 @@ private:
 	void _updateRtlState();
 
 	/**
-	 * @brief Set the return to launch control setpoint.
+	 * @brief Set the return control setpoint.
 	 *
 	 */
 	void set_rtl_item();
