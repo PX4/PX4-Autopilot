@@ -356,5 +356,32 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-09-25: GPS_YAW_OFFSET, SEP_YAW_OFFS and EKF2_GPS_YAW_OFF replaced by SENS_GPS0_YAW and SENS_GPS1_YAW
+	{
+		if ((node->type == bson_type_t::BSON_DOUBLE)
+		    && ((strcmp("GPS_YAW_OFFSET", node->name) == 0)
+			|| (strcmp("SEP_YAW_OFFS", node->name) == 0)
+			|| (strcmp("EKF2_GPS_YAW_OFF", node->name) == 0))) {
+
+			float yaw_deg = fmodf(static_cast<float>(node->d), 360.f);
+
+			if (yaw_deg > 180.f) {
+				yaw_deg -= 360.f;
+
+			} else if (yaw_deg < -180.f) {
+				yaw_deg += 360.f;
+			}
+
+			// only one of the three was in effect for a given receiver, so a zero must not clear another's offset
+			if (fabsf(yaw_deg) > FLT_EPSILON) {
+				param_set(param_find("SENS_GPS0_YAW"), &yaw_deg);
+				param_set(param_find("SENS_GPS1_YAW"), &yaw_deg);
+				PX4_INFO("migrating %s -> %s, %s", node->name, "SENS_GPS0_YAW", "SENS_GPS1_YAW");
+			}
+
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }
