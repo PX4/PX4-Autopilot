@@ -1,0 +1,13 @@
+{
+    "board_id": 1275,
+    "magic": "GPILOT-P1",
+    "description": "Firmware for the GOKHANIHA G-PILOT P1 autopilot hardware.",
+    "image": "",
+    "build_time": 0,
+    "summary": "GPILOT P1",
+    "version": "1.0",
+    "image_size": 0,
+    "image_maxsize": 1966080,
+    "git_identity": "",
+    "board_revision": 0
+}
