@@ -98,7 +98,7 @@ private:
 	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
 
-	// EKF2 GNSS requirements, used as the minimum receiver quality for the receiver ranking
+	// EKF2 GNSS requirements, used as the minimum receiver quality for the receiver selection
 	param_t _param_ekf2_req_fix_handle{PARAM_INVALID};
 	param_t _param_ekf2_req_eph_handle{PARAM_INVALID};
 	param_t _param_ekf2_req_epv_handle{PARAM_INVALID};

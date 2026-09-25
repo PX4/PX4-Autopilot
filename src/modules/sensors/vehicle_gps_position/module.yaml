@@ -40,19 +40,27 @@ parameters:
                 short: Multi GPS primary instance
                 long: |
                     When no blending is active, this defines the preferred GPS receiver instance.
-                    The GPS selection logic waits until the primary receiver is available to
-                    send data to the EKF even if a secondary instance is already available.
-                    The secondary instance is then only used if the primary one times out.
+                    The preferred receiver is used while it meets EKF2_REQ_FIX, EKF2_REQ_EPH
+                    and EKF2_REQ_EPV, even if another receiver reports a better fix type or
+                    accuracy. The selection switches to another receiver immediately if the
+                    selected receiver times out or loses its 3D fix, or after the selected
+                    receiver hasn't met the requirements for 2 seconds while the other one meets
+                    them. It returns to the preferred receiver once that one has met the
+                    requirements for 2 seconds.
 
-                    Set to -1 for setups without a natural primary, such as two independent RTK
-                    receivers. The receivers are then ranked: a receiver meeting EKF2_REQ_FIX,
-                    EKF2_REQ_EPH and EKF2_REQ_EPV ranks first, then the one with the better
-                    reported position accuracy (eph, epv), then the one with the higher update
-                    rate. The selection switches to another receiver after it has ranked better
-                    for 2 seconds, with at least 30% better accuracy or, at comparable accuracy,
-                    a higher update rate. It switches immediately if the selected receiver times
-                    out, loses its 3D fix or no longer meets the requirements. For a moving base
-                    and rover setup, set the moving base as primary instead.
+                    For a moving base and rover setup, set the moving base as preferred receiver.
+                    It has a higher update rate and a lower latency than the rover, which often
+                    reports a better fix type but is the worse position source.
+
+                    Set to -1 for setups without a natural preference, such as two independent
+                    RTK receivers. The receivers are then ranked: a receiver meeting
+                    EKF2_REQ_FIX, EKF2_REQ_EPH and EKF2_REQ_EPV ranks first, then the one with
+                    the better reported position accuracy (eph, epv), then the one with the
+                    higher update rate. The selection switches to another receiver after it has
+                    ranked better for 2 seconds: it meets the requirements and the selected
+                    receiver doesn't, it has at least 30% better accuracy or, at comparable
+                    accuracy, a higher update rate. It switches immediately if the selected
+                    receiver times out or loses its 3D fix.
 
                     To select a DroneCAN GPS, set this to the node ID.
 
