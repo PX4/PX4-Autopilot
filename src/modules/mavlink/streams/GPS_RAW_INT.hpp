@@ -36,6 +36,7 @@
 
 #include <lib/gnss/SensorGpsSelector.hpp>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss_heading.h>
 
 using namespace time_literals;
 
@@ -59,10 +60,12 @@ private:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
+	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
 	SensorGpsSelector _gps_selector{};
 	hrt_abstime _last_send_ts {};
 	bool _yaw_capable{false}; ///< a heading has been reported at least once
 	static constexpr hrt_abstime kNoGpsSendInterval {1_s};
+	static constexpr hrt_abstime kHeadingTimeout {1_s};
 
 	bool send() override
 	{
@@ -106,18 +109,30 @@ private:
 			msg.v_acc = gps.epv * 1e3f;              // altitude uncertainty in mm
 			msg.vel_acc = gps.s_variance_m_s * 1e3f; // speed uncertainty in mm
 
-			if (PX4_ISFINITE(gps.heading)) {
+			// sensor_gps carries the measured baseline heading; the body-frame heading is only known for the receiver
+			// that is the active heading source
+			vehicle_gnss_heading_s gnss_heading;
+			float heading = NAN;
+			float heading_accuracy = NAN;
+
+			if (PX4_ISFINITE(gps.heading) && _vehicle_gnss_heading_sub.copy(&gnss_heading)
+			    && (gnss_heading.device_id == gps.device_id) && (hrt_elapsed_time(&gnss_heading.timestamp) < kHeadingTimeout)) {
+				heading = gnss_heading.heading;
+				heading_accuracy = gnss_heading.heading_accuracy;
+			}
+
+			if (PX4_ISFINITE(heading)) {
 				_yaw_capable = true;
 
-				if (fabsf(gps.heading) < FLT_EPSILON) {
+				if (fabsf(heading) < FLT_EPSILON) {
 					msg.yaw = 36000; // Use 36000 for north.
 
 				} else {
-					msg.yaw = math::degrees(matrix::wrap_2pi(gps.heading)) * 100.0f; // centidegrees
+					msg.yaw = math::degrees(matrix::wrap_2pi(heading)) * 100.0f; // centidegrees
 				}
 
-				if (PX4_ISFINITE(gps.heading_accuracy)) {
-					msg.hdg_acc = math::degrees(gps.heading_accuracy) * 1e5f; // Heading / track uncertainty in degE5
+				if (PX4_ISFINITE(heading_accuracy)) {
+					msg.hdg_acc = math::degrees(heading_accuracy) * 1e5f; // Heading / track uncertainty in degE5
 				}
 
 			} else if (_yaw_capable) {
