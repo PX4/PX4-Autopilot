@@ -188,7 +188,6 @@ void RtlDirectMissionLand::setActiveMissionItems()
 				      "RTL Mission Land: climb to {1m_v}",
 				      (int32_t)ceilf(_rtl_alt));
 
-		_needs_climbing = false;
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_CLIMB;
@@ -315,6 +314,9 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 	/* set current work item type */
 	_work_item_type = new_work_item_type;
+
+	// Keep the climb pending across mission updates until it completes.
+	_needs_climbing = _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB;
 
 	reset_mission_item_reached();
 
