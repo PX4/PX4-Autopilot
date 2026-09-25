@@ -1908,7 +1908,6 @@ void SeptentrioDriver::reset_gps_state_message()
 {
 	memset(&_sensor_gps, 0, sizeof(_sensor_gps));
 	_sensor_gps.heading = NAN;
-	_sensor_gps.heading_offset = NAN;
 }
 
 uint32_t SeptentrioDriver::get_parameter(const char *name, int32_t *value)

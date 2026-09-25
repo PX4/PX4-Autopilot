@@ -516,7 +516,6 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 
 	if (gps_best_yaw_index >= 0)  {
 		gps_blended_state.heading = _gps_state[gps_best_yaw_index].heading;
-		gps_blended_state.heading_offset = _gps_state[gps_best_yaw_index].heading_offset;
 		gps_blended_state.heading_accuracy = _gps_state[gps_best_yaw_index].heading_accuracy;
 	}
 

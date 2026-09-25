@@ -1724,7 +1724,6 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 		gps.satellites_used = fix_info.sample.num_sv;
 
 		gps.heading = ref->dual_ant_stat.heading;
-		gps.heading_offset = 0;
 		gps.heading_accuracy = 0;
 
 		gps.rtcm_injection_rate = 0;
@@ -1821,10 +1820,12 @@ void MicroStrain::sendGPSAiding()
 		}
 	}
 
-	// Sends external heading aiding data if they are both supported
-	if (_ext_heading_aiding && PX4_ISFINITE(gps.heading)) {
-		float heading = gps.heading + gps.heading_offset;
-		mip_aiding_true_heading(&_device, &t, 4, heading, gps.heading_accuracy, 0xff);
+	vehicle_gnss_heading_s gnss_heading;
+
+	if (_ext_heading_aiding && _vehicle_gnss_heading_sub.update(&gnss_heading)) {
+		// MS_EHEAD_YAW describes the antenna baseline to the INS, so it takes the measured baseline heading
+		const float heading = matrix::wrap_pi(gnss_heading.heading + gnss_heading.heading_offset);
+		mip_aiding_true_heading(&_device, &t, 4, heading, gnss_heading.heading_accuracy, 0xff);
 	}
 }
 

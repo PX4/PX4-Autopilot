@@ -581,7 +581,6 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 
 		sensor_gps.satellites_used = gnss_data->gps_pos.numSvUsed;
 		sensor_gps.heading = NAN;
-		sensor_gps.heading_offset = NAN;
 		sensor_gps.heading_accuracy = NAN;
 
 		if (gnss_data->hdt_received) {
