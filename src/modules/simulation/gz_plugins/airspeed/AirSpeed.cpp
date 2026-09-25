@@ -146,7 +146,7 @@ void AirSpeed::PreUpdate(const gz::sim::UpdateInfo &_info,
 			       (double)diff_pressure_noise;
 	gz::msgs::AirSpeed airspeed_msg;
 	airspeed_msg.set_diff_pressure(diff_pressure * 100.0);
-	airspeed_msg.set_temperature(temperature_local); // [K]
+	airspeed_msg.set_temperature((double)temperature_local); // [K]
 	_pub.Publish(airspeed_msg);
 }
 
