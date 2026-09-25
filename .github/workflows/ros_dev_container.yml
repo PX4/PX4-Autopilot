@@ -36,13 +36,14 @@ permissions:
 
 jobs:
   build:
-    name: Build ROS Development Image (${{ matrix.ros_distro }}, ${{ matrix.arch }})
+    name: Build ROS Development Image (${{ matrix.ros_distro }}, ${{ matrix.arch }}, ${{ matrix.target }})
     runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
     strategy:
       fail-fast: false
       matrix:
         ros_distro: [humble, jazzy]
         arch: [amd64, arm64]
+        target: [ros2-dev, ros2-gazebo-dev]
         include:
           - { arch: amd64, runner: x64 }
           - { arch: arm64, runner: arm64 }
@@ -69,6 +70,15 @@ jobs:
             exit 1
           fi
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve image name
+        id: image
+        run: |
+          if [[ "${{ matrix.target }}" == "ros2-gazebo-dev" ]]; then
+            echo "name=px4-dev-ros2-gazebo" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=px4-dev-ros2" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: docker/login-action@v4
         if: >-
@@ -102,7 +112,7 @@ jobs:
         with:
           source: .
           files: Tools/packaging/containers/docker-bake.hcl
-          targets: ros2-dev
+          targets: ${{ matrix.target }}
           push: >-
             ${{ github.repository == 'PX4/PX4-Autopilot' &&
                 ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
@@ -110,13 +120,13 @@ jobs:
           sbom: true
           provenance: false
           set: |
-            ros2-dev.tags=ghcr.io/px4/px4-dev-ros2:sha-${{ steps.revision.outputs.sha }}-${{ matrix.ros_distro }}-${{ matrix.arch }}
-            ros2-dev.tags=px4io/px4-dev-ros2:sha-${{ steps.revision.outputs.sha }}-${{ matrix.ros_distro }}-${{ matrix.arch }}
-            ros2-dev.labels.org.opencontainers.image.source=https://github.com/PX4/PX4-Autopilot
-            ros2-dev.labels.org.opencontainers.image.revision=${{ steps.revision.outputs.sha }}
+            ${{ matrix.target }}.tags=ghcr.io/px4/${{ steps.image.outputs.name }}:sha-${{ steps.revision.outputs.sha }}-${{ matrix.ros_distro }}-${{ matrix.arch }}
+            ${{ matrix.target }}.tags=px4io/${{ steps.image.outputs.name }}:sha-${{ steps.revision.outputs.sha }}-${{ matrix.ros_distro }}-${{ matrix.arch }}
+            ${{ matrix.target }}.labels.org.opencontainers.image.source=https://github.com/PX4/PX4-Autopilot
+            ${{ matrix.target }}.labels.org.opencontainers.image.revision=${{ steps.revision.outputs.sha }}
 
   deploy:
-    name: Publish Multi-Architecture ROS Development Image (${{ matrix.ros_distro }})
+    name: Publish Multi-Architecture ROS Development Image (${{ matrix.ros_distro }}, ${{ matrix.target }})
     needs: build
     if: >-
       github.repository == 'PX4/PX4-Autopilot' &&
@@ -126,6 +136,7 @@ jobs:
       fail-fast: false
       matrix:
         ros_distro: [humble, jazzy]
+        target: [ros2-dev, ros2-gazebo-dev]
     runs-on: [runs-on,"runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
     steps:
       - uses: runs-on/action@v2
@@ -144,9 +155,10 @@ jobs:
           TAG_PREFIX: ${{ github.event_name == 'push' && github.ref_name || inputs.tag || 'main' }}
           ROS_DISTRO: ${{ matrix.ros_distro }}
           REVISION: ${{ needs.build.outputs.revision }}
+          IMAGE_NAME: ${{ matrix.target == 'ros2-gazebo-dev' && 'px4-dev-ros2-gazebo' || 'px4-dev-ros2' }}
         run: |
           for REGISTRY in px4io ghcr.io/px4; do
-            IMAGE="${REGISTRY}/px4-dev-ros2"
+            IMAGE="${REGISTRY}/${IMAGE_NAME}"
 
             docker buildx imagetools create \
               --tag "${IMAGE}:${TAG_PREFIX}-${ROS_DISTRO}" --tag "${IMAGE}:sha-${REVISION}-${ROS_DISTRO}" \

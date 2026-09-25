@@ -1,15 +1,14 @@
 ---
-name: build-px4
-description: Build PX4 board firmware in the px4-dev Docker container, including git worktrees, and stage commit-labeled artifacts without flashing hardware.
+name: build-px4-macos
+description: Build PX4 board firmware on macOS in the px4-dev Docker container, including git worktrees, and stage commit-labeled artifacts without flashing hardware.
 ---
 
-# Build PX4 Firmware
+# Build PX4 Firmware on macOS
 
-Use this workflow for flashable board firmware, especially when a macOS host
-lacks the NuttX toolchain. Use `px4io/px4-dev` container with the latest available
-this container is a native cross-arch container.
-It does not supply Gazebo or ROS 2. For Gazebo, use the repository's documented
-host setup or a suitable simulator image instead.
+Builds run in the multi-arch `px4io/px4-dev` container, so the host needs no
+NuttX toolchain. If `Tools/setup/macos.sh` has been run (`arm-none-eabi-gcc`
+on PATH), `make <target>` also works natively. The container has no Gazebo or
+ROS 2; for simulation use the host setup in `docs/en/dev_setup/dev_env_mac.md`.
 
 ## Inputs
 
@@ -29,15 +28,16 @@ a flashable `.px4` artifact.
 3. Confirm Docker is available and running. Inspect the image with
    `docker image inspect px4io/px4-dev:v1.17.0`; pull it if missing.
 4. Prefer an existing worktree for a requested ref. Otherwise resolve the ref
-   (fetch its remote if necessary) and create a new detached worktree under
-   `.agents/worktrees/build-<short-sha>/` using `git worktree add --detach`.
+   (fetch its remote if necessary) and create a new detached worktree named
+   `build-<short-sha>` in the worktree location from `.agents/README.md`,
+   using `git worktree add --detach`.
    Reuse a path only after confirming its HEAD and working-tree state match the
    request. Never switch the user's active branch.
 5. Check submodule status. Initialize required missing submodules, but do not
    overwrite locally modified submodules.
-6. Inspect previous build artifacts if moving between macOS and Linux. Remove
-   only identified generated host binaries with an incompatible format or a
-   confirmed stale `build/<target>/` directory. Do not blindly clean source or
+6. Inspect previous build artifacts if moving between native and container
+   builds. Remove only identified generated host binaries with an incompatible
+   format or a confirmed stale `build/<target>/` directory. Do not blindly clean source or
    user files.
 
 ## Build

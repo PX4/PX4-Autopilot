@@ -76,3 +76,17 @@ target "ros2-dev" {
   cache-from = CACHE_GHA ? ["type=gha,scope=ros2-dev-${ROS_DISTRO}-${ARCH}"] : []
   cache-to   = CACHE_GHA ? ["type=gha,mode=max,scope=ros2-dev-${ROS_DISTRO}-${ARCH}"] : []
 }
+
+target "ros2-gazebo-dev" {
+  context    = "docker-context"
+  platforms  = ["linux/${ARCH}"]
+  dockerfile = "Dockerfile.ros2"
+  target     = "ros2-dev"
+  args = {
+    ROS_DISTRO = ROS_DISTRO
+    INCLUDE_GAZEBO = 1
+  }
+  tags       = ["px4io/px4-dev-ros2-gazebo:main-${ROS_DISTRO}-${ARCH}", "ghcr.io/px4/px4-dev-ros2-gazebo:main-${ROS_DISTRO}-${ARCH}"]
+  cache-from = CACHE_GHA ? ["type=gha,scope=ros2-gazebo-dev-${ROS_DISTRO}-${ARCH}"] : []
+  cache-to   = CACHE_GHA ? ["type=gha,mode=max,scope=ros2-gazebo-dev-${ROS_DISTRO}-${ARCH}"] : []
+}
