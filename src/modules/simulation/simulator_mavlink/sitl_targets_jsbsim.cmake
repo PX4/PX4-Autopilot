@@ -21,10 +21,14 @@ if(JSBSIM_INCLUDE_DIR)
 	include(ExternalProject)
 	ExternalProject_Add(jsbsim_bridge
 		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/jsbsim/jsbsim_bridge
-		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+		CMAKE_ARGS
+			-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+			-D_MAVLINK_INCLUDE_DIR=${PX4_BINARY_DIR}/mavlink
 		BINARY_DIR ${PX4_BINARY_DIR}/build_jsbsim_bridge
 		INSTALL_COMMAND ""
-		DEPENDS git_jsbsim_bridge
+		DEPENDS
+			git_jsbsim_bridge
+			mavlink_c_generate
 		USES_TERMINAL_CONFIGURE true
 		USES_TERMINAL_BUILD true
 		EXCLUDE_FROM_ALL true
