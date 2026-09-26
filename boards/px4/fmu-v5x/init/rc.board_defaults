@@ -27,7 +27,6 @@ then
 else
 	# Mavlink ethernet
 	param set-default MAV_ETH_EN 1
-	param set-default MAV_1_MODE 0
 fi
 
 # IO owns SBUS/PPM/DSM; leave the FMU RC UART free for CRSF/GHST.

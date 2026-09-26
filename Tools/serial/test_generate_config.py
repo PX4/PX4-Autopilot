@@ -265,6 +265,7 @@ parameters:
             self.assertEqual(mavlink['maxPorts'], 3)
             self.assertEqual(mavlink['instanceParams'], ['MAV_${i}_MODE'])
             self.assertEqual(mavlink['ethernetParam'], 'MAV_ETH_EN')
+            self.assertEqual(mavlink['ethernetInstance'], 2)
             self.assertEqual(serial['protocols'][0], {'id': 0, 'name': 'Disabled'})
 
 

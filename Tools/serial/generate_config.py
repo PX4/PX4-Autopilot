@@ -367,8 +367,8 @@ if serial_params_output_file is not None:
 if metadata_output_file is not None:
     # Static COMPONENT_METADATA describing the serial buses, the port-selects-
     # protocol counterpart of actuators.json. Ports are listed in instance
-    # order: the n-th port running an "instance" protocol is instance n, and
-    # ethernet takes the next free instance.
+    # order: the n-th port running an "instance" protocol is instance n.
+    # Ethernet keeps the last instance, leaving one fewer for UARTs.
     ports = []
     for dev in serial_devices:
         ports.append({
@@ -390,6 +390,8 @@ if metadata_output_file is not None:
             entry['instanceParams'] = protocol['instance_params']
         if protocol['ethernet_param']:
             entry['ethernetParam'] = protocol['ethernet_param']
+            if protocol['kind'] == 'instance':
+                entry['ethernetInstance'] = protocol['num_instances'] - 1
         protocol_list.append(entry)
     metadata = {
         'version': 1,

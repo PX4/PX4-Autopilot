@@ -167,9 +167,9 @@ parameters:
             description:
                 short: Enable MAVLink on Ethernet
                 long: |
-                    Starts MAVLink on UDP using the next instance after the UART
-                    MAVLink ports. Configure that instance with MAV_n_MODE,
-                    MAV_n_UDP_PRT, and MAV_n_REMOTE_PRT.
+                    Starts MAVLink on UDP as instance 2, configured with MAV_2_MODE,
+                    MAV_2_UDP_PRT and MAV_2_REMOTE_PRT. UART MAVLink ports then use
+                    instances 0 and 1.
 
             type: boolean
             reboot_required: true

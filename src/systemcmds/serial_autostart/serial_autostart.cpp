@@ -328,24 +328,6 @@ static int32_t param_int(const char *fmt, int instance, int32_t fallback)
 	return value;
 }
 
-// MAV_${i}_* defaults describe the serial link an instance usually runs on;
-// ethernet takes whichever instance is free, so a default only applies there
-// when the user set it.
-static bool param_is_user_set(const char *fmt, int instance)
-{
-	char name[24];
-	snprintf(name, sizeof(name), fmt, instance);
-	const param_t p = param_find(name);
-
-	if (p == PARAM_INVALID) {
-		return false;
-	}
-
-	int32_t value = 0;
-	int32_t def = 0;
-	return param_get(p, &value) == PX4_OK && param_get_default_value(p, &def) == PX4_OK && value != def;
-}
-
 static int start_mavlink(int instance, const char *device, const char *baud_param, bool ethernet)
 {
 	// Instance flags come from MAV_${i}_*.
@@ -390,13 +372,11 @@ static int start_mavlink(int instance, const char *device, const char *baud_para
 	argv[argc++] = (char *)"-m";
 	argv[argc++] = m_buf;
 
-	if (!ethernet || param_is_user_set("MAV_%d_RATE", instance)) {
-		snprintf(r_buf, sizeof(r_buf), "p:MAV_%d_RATE", instance);
-		argv[argc++] = (char *)"-r";
-		argv[argc++] = r_buf;
-	}
+	snprintf(r_buf, sizeof(r_buf), "p:MAV_%d_RATE", instance);
+	argv[argc++] = (char *)"-r";
+	argv[argc++] = r_buf;
 
-	if (param_is_one("MAV_%d_FORWARD", instance) && (!ethernet || param_is_user_set("MAV_%d_FORWARD", instance))) {
+	if (param_is_one("MAV_%d_FORWARD", instance)) {
 		argv[argc++] = (char *)"-f";
 	}
 
@@ -465,6 +445,18 @@ static bool ethernet_on(const SerialProtocolConfig &protocol)
 	return get_int32(protocol.ethernet_param, &value) && value == 1;
 }
 
+// Ethernet MAVLink keeps the last instance, so its MAV_n_* do not move when
+// UART ports are added or removed.
+static int ethernet_instance(const SerialProtocolConfig &protocol)
+{
+	return protocol.num_instances - 1;
+}
+
+static int uart_instances(const SerialProtocolConfig &protocol)
+{
+	return ethernet_on(protocol) ? ethernet_instance(protocol) : protocol.num_instances;
+}
+
 static void start_ports()
 {
 	int mav_next = 0;
@@ -494,7 +486,7 @@ static void start_ports()
 		const unsigned idx = protocol_index(protocol);
 
 		if (protocol->kind == kSerialKindInstance) {
-			if (mav_next >= protocol->num_instances) {
+			if (mav_next >= uart_instances(*protocol)) {
 #if !defined(CONSTRAINED_FLASH)
 				PX4_WARN("%s instance limit", protocol->name);
 #endif
@@ -580,15 +572,7 @@ static void start_ports()
 		}
 
 		if (kSerialProtocols[i].kind == kSerialKindInstance) {
-			if (mav_next >= kSerialProtocols[i].num_instances) {
-#if !defined(CONSTRAINED_FLASH)
-				PX4_WARN("%s instance limit", kSerialProtocols[i].name);
-#endif
-				continue;
-			}
-
-			start_mavlink(mav_next, nullptr, nullptr, true);
-			mav_next++;
+			start_mavlink(ethernet_instance(kSerialProtocols[i]), nullptr, nullptr, true);
 			continue;
 		}
 

@@ -13,7 +13,7 @@ The most relevant parameters are described below (the full set are listed in the
 In order to assign a particular peripheral to a serial port we use the concept of a _MAVLink instance_.
 
 Each MAVLink instance is the configuration for one UART (or Ethernet) MAVLink stream.
-UARTs with `SER_*_PROTO` = MAVLink are numbered 0, 1, 2 in [port order](../peripherals/serial_configuration.md#configuration-parameters). Ethernet uses the next free instance.
+UARTs with `SER_*_PROTO` = MAVLink are numbered 0, 1, 2 in [port order](../peripherals/serial_configuration.md#configuration-parameters). Ethernet is always instance 2, so UARTs use 0 and 1 while it is enabled.
 
 - <a id="MAV_X_MODE"></a>[MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) — [MAVLink profile](../mavlink/mavlink_profiles.md) (Normal, Onboard, OSD, …).
 - <a id="MAV_X_RATE"></a>[MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE) — max data rate (bytes/second). 0 is half the theoretical baud.
@@ -55,7 +55,7 @@ Default mapping of MAVLink instance 0:
 
 Pixhawk 5x devices (and later) that have an Ethernet port, configure it by default to connect to a GCS:
 
-Enable with [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN). With TELEM1 as the only UART MAVLink port, ethernet is instance 1 and the board sets [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = `0` (normal/GCS). Every instance defaults to broadcast on, UDP port `14550` for both [MAV_1_UDP_PRT](../advanced_config/parameter_reference.md#MAV_1_UDP_PRT) and [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT), and `100000` B/s on ethernet.
+Enable with [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN). Ethernet is instance 2: [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) = `Normal`, broadcast on, UDP port `14550` for both [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) and [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT), and `100000` B/s.
 
 For more information see: [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md)
 

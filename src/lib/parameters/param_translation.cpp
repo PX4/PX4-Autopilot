@@ -433,13 +433,16 @@ static void apply_mav_serial_import()
 
 	int new_of_old[kMavInstances] = { -1, -1, -1 };
 	int assigned = 0;
+	// Ethernet keeps the last instance, as MAV_2 did on most boards.
+	const bool ethernet = eth_old >= 0 && eth_p != PARAM_INVALID;
+	const int uart_instances = ethernet ? kMavInstances - 1 : kMavInstances;
 
 	for (int i = 0; i < n_uart; i++) {
 		const char *dest = serial_prot_name(uart_port[i]);
 		const param_t proto_p = param_find(dest);
 		int32_t proto = 1;
 
-		if (proto_p == PARAM_INVALID || !serial_claim(uart_port[i])) {
+		if (assigned >= uart_instances || proto_p == PARAM_INVALID || !serial_claim(uart_port[i])) {
 			PARAM_MIGRATE_WARN("dropping MAV_%d_CONFIG, %s already assigned", uart_old[i], dest);
 			continue;
 		}
@@ -456,7 +459,7 @@ static void apply_mav_serial_import()
 	if (eth_old >= 0) {
 		int32_t one = 1;
 
-		if (eth_p == PARAM_INVALID || assigned >= kMavInstances) {
+		if (!ethernet) {
 			PARAM_MIGRATE_WARN("dropping ethernet MAVLink");
 
 		} else {
@@ -466,8 +469,8 @@ static void apply_mav_serial_import()
 				param_set(eth_p, &one);
 			}
 
-			new_of_old[eth_old] = assigned;
-			PARAM_MIGRATE_INFO("migrating MAV_%d_CONFIG -> MAV_ETH_EN (instance %d)", eth_old, assigned);
+			new_of_old[eth_old] = kMavInstances - 1;
+			PARAM_MIGRATE_INFO("migrating MAV_%d_CONFIG -> MAV_ETH_EN (instance %d)", eth_old, kMavInstances - 1);
 		}
 
 	} else if (eth_p != PARAM_INVALID) {

@@ -26,7 +26,7 @@ Each UART has two parameters, named from the port tag (`TEL1`, `GPS1`, `RC`, …
 - [SER_TEL1_BAUD](../advanced_config/parameter_reference.md#SER_TEL1_BAUD) (and `SER_<tag>_BAUD`) — baud rate.
 
 _QGroundControl_ only lists protocols compiled into the connected firmware.
-A protocol already running on another port cannot be started a second time (except MAVLink, up to three instances including ethernet, and GPS/Septentrio, up to two ports). Dual GPS prefers the `GPS1` / `GPS2` board tags as primary/secondary.
+A protocol already running on another port cannot be started a second time (except MAVLink, up to three instances, one of them ethernet when `MAV_ETH_EN` is set, and GPS/Septentrio, up to two ports). Dual GPS prefers the `GPS1` / `GPS2` board tags as primary/secondary.
 
 MAVLink still has per-instance settings ([MAV_0_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE), [MAV_0_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE), [MAV_0_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD), …).
 Instance 0 is the first UART whose `SER_*_PROTO` is MAVLink in port order (URT6, TELEM1-4, GPS1-3, RC, WIFI, EXT2), instance 1 the next, instance 2 the third.
@@ -121,14 +121,15 @@ Each firmware build embeds `serial.json` and lists it in the component metadata 
       "protocols": [
         { "id": 0, "name": "Disabled" },
         { "id": 1, "name": "MAVLink", "maxPorts": 3,
-          "instanceParams": ["MAV_${i}_MODE", "MAV_${i}_RATE"], "ethernetParam": "MAV_ETH_EN" }
+          "instanceParams": ["MAV_${i}_MODE", "MAV_${i}_RATE"], "ethernetParam": "MAV_ETH_EN",
+          "ethernetInstance": 2 }
       ]
     }
   }
 }
 ```
 
-Ports are listed in instance order: the n-th port whose protocol has `instanceParams` runs instance `n`, and `${i}` in those names is that instance. A protocol with `ethernetParam` also runs over UDP when that parameter is set, taking the next free instance. Protocol names and ids match the `protocolParam` enum, and `maxPorts` is how many ports may select the protocol at once.
+Ports are listed in instance order: the n-th port whose protocol has `instanceParams` runs instance `n`, and `${i}` in those names is that instance. A protocol with `ethernetParam` also runs over UDP when that parameter is set, as instance `ethernetInstance`; UART ports then stop below it. Protocol names and ids match the `protocolParam` enum, and `maxPorts` is how many ports may select the protocol at once.
 
 ## Further Information
 

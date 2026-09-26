@@ -167,12 +167,12 @@ PX4 connects to a GCS via MAVLink on Ethernet using the parameters shown below:
 | Parameter                                                          | Value | Description                                                  |
 | ------------------------------------------------------------------ | ----- | ------------------------------------------------------------ |
 | [MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN) | 1     | Enable MAVLink on Ethernet                                   |
-| [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) | 0     | Send the "normal" set of MAVLink messages (i.e. the GCS set) |
+| [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) | 0     | Send the "normal" set of MAVLink messages (i.e. the GCS set) |
 
-TELEM1 is instance 0, so ethernet is instance 1. If another UART is also MAVLink, ethernet moves to the next instance. Every instance defaults to broadcasting `HEARTBEAT` ([MAV_1_BROADCAST](../advanced_config/parameter_reference.md#MAV_1_BROADCAST) = 1), UDP port 14550 for both [MAV_1_UDP_PRT](../advanced_config/parameter_reference.md#MAV_1_UDP_PRT) and [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT), and 100000 B/s when [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) is 0.
+Ethernet is always MAVLink instance 2; while it is enabled, UART MAVLink ports use instances 0 and 1. Instance 2 defaults to broadcasting `HEARTBEAT` ([MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST) = 1), UDP port 14550 for both [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) and [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT), and 100000 B/s when [MAV_2_RATE](../advanced_config/parameter_reference.md#MAV_2_RATE) is 0.
 
 Normally a companion computer would use port `14540` (rather than `14550`) and stream the set of MAVLink messages specified in the `Onboard` profile.
-You can configure this setup by changing [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT) and [MAV_1_UDP_PRT](../advanced_config/parameter_reference.md#MAV_1_UDP_PRT) to `14540` and [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) to `2` (Onboard).
+You can configure this setup by changing [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT) and [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) to `14540` and [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) to `2` (Onboard).
 Note however that this will still work using the GCS profile.
 
 For more information on MAVLink serial port configuration see [MAVLink Peripherals (GCS/OSD/Companion)](../peripherals/mavlink_peripherals.md)
@@ -203,7 +203,7 @@ To setup MAVSDK-Python running on a companion computer:
 
 1. [Set up the Ethernet Network](#setting-up-the-ethernet-network) so your companion computer and PX4 run on the same network.
 1. Modify the [PX4 Ethernet Port Configuration](#px4-ethernet-network-setup) to connect to a companion computer.
-   You might change the parameters [MAV_1_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_1_REMOTE_PRT) and [MAV_1_UDP_PRT](../advanced_config/parameter_reference.md#MAV_1_UDP_PRT) to `14540`, and [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) to `2` (Onboard).
+   You might change the parameters [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT) and [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) to `14540`, and [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) to `2` (Onboard).
 1. Follow the instructions in [MAVSDK-python](https://github.com/mavlink/MAVSDK-Python) to install and use MAVSDK.
 
    For example, your code will connect to the PX4 using:
