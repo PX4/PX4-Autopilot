@@ -98,6 +98,25 @@ public:
 	 */
 	bool checkPointAgainstAllGeofences(double lat, double lon, float altitude);
 
+	static constexpr size_t MAX_PATH_CHECKS = 32;
+
+	struct PathCheck {
+		matrix::Vector2d start; ///< latitude, longitude in degrees
+		matrix::Vector2d end;
+	};
+
+	/**
+	 * Check 1..MAX_PATH_CHECKS paths against horizontal fences. Boundary contact is a breach.
+	 * At least one endpoint of each path must be valid under the existing point check.
+	 * For a connected chain, checking the first point is enough if all preceding paths pass.
+	 * Check anchors and paths against the same loaded fence; check Home and altitude limits separately.
+	 * Uses cached fence data only. Longitude wrapping is not supported.
+	 *
+	 * @return true when results are available (true per clear path); false if unavailable or invalid.
+	 * On failure, results are false when the output buffer and count are valid.
+	 */
+	bool checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results);
+
 	/**
 	 * @brief check if the horizontal distance to Home is greater than the maximum allowed distance
 	 *
@@ -165,6 +184,7 @@ public:
 	void printStatus();
 
 private:
+	friend class GeofenceTestPeer;
 
 	enum class DatamanState {
 		UpdateRequestWait,
@@ -178,6 +198,7 @@ private:
 	PolygonInfo *_polygons{nullptr};
 
 	mission_stats_entry_s _stats;
+	mission_stats_entry_s _stats_read{}; ///< Read buffer; a failed response overwrites it, so _stats is only set on success.
 	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
 	DatamanState _error_state{DatamanState::UpdateRequestWait};
 	DatamanCache _dataman_cache{"geofence_dm_cache_miss", 0};
@@ -191,22 +212,41 @@ private:
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
 	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
-	bool _fence_loaded{false};  ///< true if the requested fence was successfully loaded
+	bool _fence_loaded{false}; ///< Used by live point checks; may remain true while an update is pending.
+	bool _path_check_ready{false}; ///< Update succeeded with no newer request pending.
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
+	hrt_abstime _fence_retry_time{0}; ///< Next retry of a failed load; zero when none is scheduled.
+	uint8_t _fence_load_failures{0}; ///< Consecutive failed load attempts.
+	static constexpr uint8_t kMaxFenceLoadRetries = 3;
+	static constexpr hrt_abstime kFenceRetryDelay = 1_s; ///< Doubles with each failure.
 	bool _geofence_updated{false}; ///< set when polygons change, consumed by Navigator to rebuild avoidance graph
 
 	uORB::Publication<geofence_status_s> _geofence_status_pub{ORB_ID(geofence_status)};
 
+	enum class LoadResult { Loaded, ReadFailed, Invalid };
+
 	/**
 	 * implementation of updateFence()
-	 * @return false if the fence failed to load and was cleared
+	 * @return Loaded, or why the fence was cleared
 	 */
-	bool _updateFence();
+	LoadResult _updateFence();
+
+	/**
+	 * Validate one circle or polygon before it is added to the fence.
+	 */
+	LoadResult _validateFenceArea(unsigned index, const mission_fence_point_s &first);
 
 	/**
 	 * Finish a fence update, report its result, and notify the avoidance planner.
 	 */
-	void _finishFenceUpdate(bool success);
+	void _finishFenceUpdate(LoadResult result);
+
+	/**
+	 * Schedule a bounded, backed-off retry of a failed load, or report giving up.
+	 */
+	void _scheduleFenceRetry();
+
+	void _publishStatus(uint8_t status);
 
 	/**
 	 * Free the loaded polygons and leave the fence empty.
@@ -217,6 +257,11 @@ private:
 	 * Tell the operator that the fence failed to load and is not active.
 	 */
 	void _reportFenceLoadFailure();
+
+	/**
+	 * Tell the operator which fence item made the fence unusable.
+	 */
+	void _reportInvalidFence(unsigned index);
 
 	/**
 	 * Check if a single point is within a polygon
@@ -230,6 +275,13 @@ private:
 	 * @return true if within polygon the circle
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
+
+	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
+	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
+	bool _fencePointValid(const mission_fence_point_s &point) const;
+	bool readPathFencePoint(unsigned index, mission_fence_point_s &point);
+	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);
+	bool checkCirclePaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);
 
 	/**
 	 * Check if a single point is within a polygon or circle
