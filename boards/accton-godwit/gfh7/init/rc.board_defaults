@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Analog battery voltage input: PC0 / ADC1 channel 10, 160k/10k divider.
+param set-default BAT1_SOURCE    0
+param set-default BAT1_V_CHANNEL 10
+param set-default BAT1_V_DIV    17.0
+
+# Enable the SPI1 MAX7456-compatible OSD in NTSC mode.
+param set-default OSD_ATXXXX_CFG 1
+
+# Start all populated NeoPixels; PB10 is not exposed as a motor output.
+neopixel start
