@@ -227,16 +227,16 @@ void GhstRc::Run()
 				_timestamp_last_signal = cycle_timestamp;
 				rc_updated = true;
 
-				if (valid_chans > 0) {
-					_rc_scan_locked = true;
-				}
-
-				if (!_rc_scan_locked && !_ghst_telemetry && _param_rc_ghst_tel_en.get()) {
+				if (!_ghst_telemetry && _param_rc_ghst_tel_en.get()) {
 					_ghst_telemetry = new GHSTTelemetry(_rcs_fd);
 				}
 
 				if (_ghst_telemetry) {
 					_ghst_telemetry->update(cycle_timestamp);
+				}
+
+				if (valid_chans > 0) {
+					_rc_scan_locked = true;
 				}
 			}
 		}
