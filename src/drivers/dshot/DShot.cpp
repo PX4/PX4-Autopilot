@@ -313,7 +313,6 @@ void DShot::select_next_command()
 				// All settings have been written
 				PX4_DEBUG("All settings written at time %.2fs", (double)hrt_absolute_time() / 1000000.);
 
-				_dshot_programming_active = false;
 				_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
 				_current_command.num_repetitions = 6;
 				_current_command.motor_mask = programming_motor_mask;
@@ -424,8 +423,9 @@ void DShot::update_motor_commands(int num_outputs)
 	if (command_sent) {
 		--_current_command.num_repetitions;
 
-		if (!_dshot_programming_active && _current_command.finished()
-		    && _current_command.command == DSHOT_CMD_SAVE_SETTINGS) {
+		if (_current_command.finished() && _current_command.command == DSHOT_CMD_SAVE_SETTINGS) {
+			// Programming ends with the save: anything sent in its place leaves the ESC on unsaved settings.
+			_dshot_programming_active = false;
 			_telemetry.invalidateSettings(_current_command.motor_mask);
 
 			_serial_telem_delay_until = hrt_absolute_time() + 500_ms;
