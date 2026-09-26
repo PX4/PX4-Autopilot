@@ -194,11 +194,11 @@ Two MCU pins switch the camera input and the 12V VTX supply:
 
 | MCU pin | Function                                    | State at boot |
 | ------- | ------------------------------------------- | ------------- |
-| PE2     | Camera switch (low = `CAM2`, high = `CAM1`) | Low (`CAM2`)  |
-| PE3     | VTX 12V power (low = off, high = on)        | Low (off)     |
+| PE2     | Camera switch (low = `CAM2`, high = `CAM1`) | High (`CAM1`) |
+| PE3     | VTX 12V power (low = off, high = on)        | High (on)     |
 
 PX4 has no parameter for these pins.
-Set them with the `gpio` command in the [MAVLink Shell](../debug/mavlink_shell.md), for example `gpio write E3 1` to turn on the VTX power.
+Set them with the `gpio` command in the [MAVLink Shell](../debug/mavlink_shell.md), for example `gpio write E3 0` to turn off the VTX power.
 To apply a setting at every boot, add the command to `/fs/microsd/etc/extras.txt`.
 
 ## PX4 Bootloader Update {#bootloader}
