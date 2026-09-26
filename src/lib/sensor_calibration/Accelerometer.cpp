@@ -35,6 +35,7 @@
 
 #include "Utilities.hpp"
 
+#include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
 
 using namespace matrix;
@@ -53,10 +54,18 @@ Accelerometer::Accelerometer(uint32_t device_id)
 	set_device_id(device_id);
 }
 
+Accelerometer::Accelerometer(uint32_t device_id, bool external)
+{
+	set_device_id(device_id, external);
+}
+
 void Accelerometer::set_device_id(uint32_t device_id)
 {
-	bool external = DeviceExternal(device_id);
+	set_device_id(device_id, device::device_is_external(device_id));
+}
 
+void Accelerometer::set_device_id(uint32_t device_id, bool external)
+{
 	if (_device_id != device_id || _external != external) {
 
 		_device_id = device_id;

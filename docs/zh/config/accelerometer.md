@@ -1,14 +1,14 @@
 # 加速度计校准
 
-您需要在首次使用时，或者如果飞行控制器方向改变时，校准您的加速计。
-Otherwise it should not need to recalibrated (except perhaps in winter, if the flight controller was not [thermally calibrated](../advanced_config/sensor_thermal_calibration.md) in the factory).
+加速度计必须在首次使用或飞行控制器方向发生改变时进行校准。
+否则通常无需重新校准（除非在冬季使用时， 飞行控制器出厂时未进行温度校准[thermally calibrated](../advanced_config/sensor_thermal_calibration.md)）。
 
 :::info
-Poor accelerometer calibration is generally caught by preflight checks and arming-denied messages (QGC warnings typically refer to "high accelerometer bias" and "consistency check failures").
+加速度计校准不良通常会被飞行前检查和拒绝解锁提示所捕获（GQC 的警告信息通常显示为“加速度计零偏过高” 和 “一致性检查失败”）。
 :::
 
 :::tip
-This is similar to [compass calibration](../config/compass.md) except that you hold the vehicle still (rather than rotate it) in each orientation.
+这与[罗盘校准](../config/compass.md) 类似，区别在于每个姿态下需要将机体保持静止（而非旋转）。
 :::
 
 ## 执行校准

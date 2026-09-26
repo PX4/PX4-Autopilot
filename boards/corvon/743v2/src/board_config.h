@@ -223,7 +223,7 @@
 
 /****************************************************************************************************
  * CAN (FDCAN1) - single interface, statically configured via
- * CONFIG_BOARD_UAVCAN_INTERFACES="1" in default.px4board.  Do NOT define
+ * CONFIG_BOARD_UAVCAN_INTERFACES=1 in default.px4board.  Do NOT define
  * UAVCAN_NUM_IFACES_RUNTIME here (that forces us to implement
  * board_get_can_interfaces() at the board level).
  ****************************************************************************************************/

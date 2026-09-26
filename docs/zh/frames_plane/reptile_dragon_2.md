@@ -58,7 +58,7 @@ Key build features
 
 - [Caddx Vista FPV air unit](https://www.caddxfpv.com/collections/vista-kit)
 
-- [Emax ES08MA ii](https://emaxmodel.com/products/emax-es08ma-ii-12g-mini-metal-gear-analog-servo-for-rc-model-robot-pwm-servo)
+- [Emax ES08MA ii](https://shop.emaxmodel.com/products/emax-es08ma-ii-12g-mini-metal-gear-analog-servo-for-rc-model-robot-pwm-servo)
 
 - [DJI FPV Goggles](https://www.dji.com/fpv)
 

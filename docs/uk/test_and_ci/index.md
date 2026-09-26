@@ -12,6 +12,6 @@ PX4 широко протестовано за допомогою модульн
 - [Continuous Integration (CI)](../test_and_ci/continous_integration.md)
 - [Integration Testing](../test_and_ci/integration_testing.md)
   - [MAVSDK Integration Testing](../test_and_ci/integration_testing_mavsdk.md)
-  - [PX4 ROS2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md)
+  - [PX4 ROS 2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md)
 - [Docker](../test_and_ci/docker.md)
 - [Maintenance](../test_and_ci/maintenance.md)

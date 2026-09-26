@@ -12,7 +12,6 @@ _OFFBOARD_ control is dangerous.
 
 :::tip
 This example uses Python.
-Other examples in Python can be found here: [integrationtests/python_src/px4_it/mavros](https://github.com/PX4/PX4-Autopilot/tree/main/integrationtests/python_src/px4_it/mavros).
 :::
 
 <a id="offb_video"></a>
@@ -306,10 +305,10 @@ For the `start_offb.launch` copy the following code:
 ```
 
 As you can see, the `mavros_posix_sitl.launch` file is included.
-This file is responsible for launching MAVROS, the PX4 SITL, the Gazebo Classic Environment and for spawning a vehicle in a given world (for further information see the file [here](https://github.com/PX4/PX4-Autopilot/blob/main/launch/mavros_posix_sitl.launch)).
+This file is responsible for launching MAVROS, the PX4 SITL, the Gazebo Classic Environment and for spawning a vehicle in a given world (for further information see the file [here](https://github.com/PX4/PX4-Autopilot/blob/daa89a9116ebe3ef1c173c881eb100c4b15f6d60/launch/mavros_posix_sitl.launch)).
 
 :::tip
-The `mavros_posix_sitl.launch` file takes several arguments that can be set according to your preferences such as the vehicle to spawn or the Gazebo Classic world (refer to [here](https://github.com/PX4/PX4-Autopilot/blob/main/launch/mavros_posix_sitl.launch)) for a complete list).
+The `mavros_posix_sitl.launch` file takes several arguments that can be set according to your preferences such as the vehicle to spawn or the Gazebo Classic world (refer to [here](https://github.com/PX4/PX4-Autopilot/blob/daa89a9116ebe3ef1c173c881eb100c4b15f6d60/launch/mavros_posix_sitl.launch)) for a complete list).
 
 You can override the default value of these arguments defined in `mavros_posix_sitl.launch` by declaring them inside the _include_ tags.
 As an example, if you wanted to spawn the vehicle in the `warehouse.world`, you would write the following:

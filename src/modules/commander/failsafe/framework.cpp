@@ -89,11 +89,12 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 	updateStartDelay(time_us - _last_update, action_state.delayed_action != Action::None);
 	updateFailsafeDeferState(time_us, action_state.failsafe_deferred);
 
-	// Notify about escalation, or about any new subsumed condition as an informational warning
+	// Notify about escalation, or about any new subsumed condition as an informational warning.
 	if (action_state.action > _selected_action) {
 		notifyUser(state.user_intended_mode, action_state.action, action_state.delayed_action, action_state.cause);
 
-	} else if (_pending_notification_cause != Cause::Count) {
+	} else if (_pending_notification_cause != Cause::Count && state.armed
+		   && action_state.action != Action::Terminate) {
 		notifyUser(state.user_intended_mode, Action::Warn, Action::None, _pending_notification_cause);
 	}
 
@@ -624,7 +625,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	}
 
 	// UX improvement (this is optional for safety): change failsafe to a warning in certain situations.
-	// If already landing, do not go into RTL
+	// If already landing, do not go into Return
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
 		if ((selected_action == Action::RTL || returned_state.delayed_action == Action::RTL)
 		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)) {
@@ -633,7 +634,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		}
 	}
 
-	// If already in RTL, do not go into RTL again (would cause a Hold delay first, then re-start RTL)
+	// If already in Return, do not go into Return again (would cause a Hold delay first, then re-start Return)
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 		if ((selected_action == Action::RTL || returned_state.delayed_action == Action::RTL)
 		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)) {
@@ -642,7 +643,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		}
 	}
 
-	// If already precision landing, do not go into RTL or Land
+	// If already precision landing, do not go into Return or Land
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) {
 		if ((selected_action == Action::RTL || selected_action == Action::Land ||
 		     returned_state.delayed_action == Action::RTL || returned_state.delayed_action == Action::Land)

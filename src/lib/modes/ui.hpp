@@ -48,6 +48,7 @@ static inline uint32_t getValidNavStates()
 	return (1u << vehicle_status_s::NAVIGATION_STATE_MANUAL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ALTCTL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE) |
+	       (1u << vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_POSCTL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) |
@@ -69,7 +70,7 @@ static inline uint32_t getValidNavStates()
 	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "update valid nav states");
 }
 
-const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
+inline const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"Manual",
 	"Altitude",
 	"Position",
@@ -79,7 +80,7 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"Position Slow",
 	"Guided Course",
 	"Altitude Cruise",
-	"9: unallocated",
+	"Manual Parking",
 	"Acro",
 	"11: UNUSED",
 	"Descend",

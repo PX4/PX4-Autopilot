@@ -45,10 +45,17 @@ uxrce_dds_ns="-n px4_$px4_instance"
 | not provided       | > 0            | `px4_instance+1` | `px4_${px4_instance}` |
 | provided           | > 0            | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
 
-## 调整 `target_system` 值
+## Adjusting `VehicleCommand` routing fields
 
 PX4 只在他们的 `target_system` 字段为 0`(路由通信) 或与`MAV_SYS_ID` 一致时，才接受[VehicleCommand](../msg_docs/VehicleCommand.md)。
 在所有其他情况下，信息都被忽视。
 因此，当 ROS 2 节点需向 PX4 发送`VehicleCommand`消息时，必须确保消息中填写了合适的`target_system\`字段值。
 
 例如，若你想向 `px4_instance=2` 的第三台飞行器发送指令，则需要在所有`VehicleCommand`消息中设置 `target_system=3`。
+
+PX4 applies the same filtering to `target_component`: a command is handled when the value is `0` (broadcast) or matches the component ID of the autopilot (as set with [MAV_COMP_ID](../advanced_config/parameter_reference.md#MAV_COMP_ID)).
+For a normal PX4 flight controller, `target_component=1` addresses the autopilot component.
+Any other non-zero value is ignored, as it is intended for another component.
+
+Commands published by ROS 2 or another process outside PX4 must set `target_system`, `target_component`, `source_system`, and `source_component` appropriately for routing and acknowledgements.
+The `from_external` flag is not required for routing; it affects how PX4 handles commands originating outside the autopilot, including forced arm commands.

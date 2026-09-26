@@ -33,7 +33,10 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+
+using namespace time_literals;
 
 class MovingDiff
 {
@@ -45,7 +48,7 @@ public:
 			return NAN;
 		}
 
-		_difference_filter.setParameters(dt_s, .05f);
+		_difference_filter.setParameters(static_cast<uint64_t>(dt_s * 1e6f), 50_ms);
 
 		// Leave _diff at 0.0f if we don't have a _last_value yet.
 		if (PX4_ISFINITE(_last_value)) {

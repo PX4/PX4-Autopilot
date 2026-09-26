@@ -7,7 +7,7 @@
 
 # Container images
 containers:
-  default: "ghcr.io/px4/px4-dev:v1.17.0-rc2"
+  default: "ghcr.io/px4/px4-dev:v1.18.0-beta2"
   voxl2: "ghcr.io/px4/px4-dev-voxl2:v1.7"
 
 # Runner specs
@@ -24,6 +24,8 @@ cache:
     stm32f4: "800M"
     stm32f7: "800M"
     imxrt: "800M"
+    # voxl2 cache holds objects for two toolchains (aarch64-gnu + hexagon-clang)
+    voxl2: "800M"
 
 # Board grouping limits
 grouping:

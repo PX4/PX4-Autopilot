@@ -182,6 +182,7 @@ DaaAction DaaActionPolicy::nav_state_to_equivalent_daa_action(const uint8_t nav_
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 	case vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW:
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:

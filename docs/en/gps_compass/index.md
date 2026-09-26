@@ -214,5 +214,6 @@ This behavior prevents large position errors that could occur when the yaw refer
   - [GPS driver](../modules/modules_driver.md#gps)
   - [PPS driver](../modules/modules_driver.md#pps-capture)
   - [DroneCAN Example](../dronecan/index.md)
+  - [u-blox Diagnostics with u-center](../gps_compass/u-center.md)
 - Compass
   - [Driver source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer) (Compasses)

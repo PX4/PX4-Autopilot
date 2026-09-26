@@ -11,9 +11,12 @@ parameters:
     EKF2_OF_DELAY:
       description:
         short: Optical flow measurement delay relative to IMU measurements
-        long: Assumes measurement is timestamped at trailing edge of integration period
+        long: |-
+          Assumes measurement is timestamped at trailing edge of integration
+          period. The default matches a DroneCAN flow node, whose frame reaches
+          the flight controller about 7 ms after its integration window closes.
       type: float
-      default: 20
+      default: 7
       min: 0
       max: 300
       unit: ms

@@ -1,0 +1,11 @@
+# Commits macOS CI checks out before installing. A newer package is a change
+# to this file, or to protobuf-pin.txt (homebrew-core) or gz-tap-pin.txt
+# (osrf/simulation).
+#
+# Homebrew 7.0.6. The other two are the tips of those repos on 2026-09-18,
+# the last day this job was green before protobuf moved.
+#
+# <name> <commit>
+brew 570982948a8a194f0f42f43f4a5bce2d1c9f64cb
+osx-cross/arm e3bb686fb159097c2fb3ee6d1acb3f7e4dd8a184
+px4/px4 f78b7a3d5aa98dc23171a63f2c2958ce69f98889

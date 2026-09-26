@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
     - name: install Python 3.10
       uses: actions/setup-python@v6
@@ -31,7 +31,7 @@ jobs:
       uses: actions/cache@v5
       with:
         path: ~/Library/Caches/Homebrew/downloads
-        key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh') }}
+        key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh', 'Tools/setup/macos_ci_pins.sh', 'Tools/setup/homebrew-pins.txt', 'Tools/setup/protobuf-pin.txt', 'Tools/setup/gz-tap-pin.txt') }}
         restore-keys: |
           macos-homebrew-${{ runner.arch }}-
 
@@ -44,14 +44,20 @@ jobs:
           macos-pip-${{ runner.arch }}-
 
     - name: setup
+      env:
+        # Read the checked-out package repos. The default is a live index,
+        # which ignores those checkouts.
+        HOMEBREW_NO_AUTO_UPDATE: "1"
+        HOMEBREW_NO_INSTALL_FROM_API: "1"
       run: |
-        ./Tools/setup/macos.sh
+        ./Tools/setup/macos_ci_pins.sh
+        ./Tools/setup/macos.sh --sim-tools
         echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
 
     - uses: ./.github/actions/setup-ccache
       id: ccache
       with:
-        cache-key-prefix: ccache-macos
+        cache-key-prefix: ccache-macos-15
         max-size: 200M
 
     - name: Build px4_sitl

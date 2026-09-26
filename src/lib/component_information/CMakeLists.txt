@@ -88,12 +88,19 @@ add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
 		--compress
 		${comp_metadata_types}
 		--version-file ${PX4_BINARY_DIR}/src/lib/version/build_git_version.h
+	# Metadata stays at version 1 so QGC will load parameters. Schema floors rose for optional fields.
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
+		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_metadata/general.schema.json
+		--version-minimum 1
+		${component_general_json}
+		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_crc.py
 		${component_general_json}
 		${PX4_BINARY_DIR}/events/all_events.json.xz
 		--output ${component_information_header}
 	DEPENDS
 		generate_component_general.py
+		${PX4_SOURCE_DIR}/Tools/validate_json.py
 		${PX4_BINARY_DIR}/parameters.json.xz
 		parameters_xml
 		${PX4_BINARY_DIR}/events/all_events.json.xz

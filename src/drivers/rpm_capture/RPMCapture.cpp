@@ -138,9 +138,9 @@ void RPMCapture::Run()
 
 	if (rpm_raw < RPM_MAX_VALUE) {
 		// Don't update RPM filter with outliers
-		const float dt = math::min((now - _timestamp_last_update) * 1e-6f, 1.f);
+		const hrt_abstime dt_us = math::min(now - _timestamp_last_update, 1_s);
 		_timestamp_last_update = now;
-		_rpm_filter.setParameters(dt, RPM_FILTER_TIME_CONSTANT);
+		_rpm_filter.setParameters(dt_us, RPM_FILTER_TIME_CONSTANT);
 		_rpm_filter.update(_rpm_median_filter.apply(rpm_raw));
 	}
 

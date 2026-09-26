@@ -85,7 +85,7 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
 
-	int _bus;
-	int _batt_index;
+	int _bus {-1};
+	int _batt_index {-1};
 	bool _armed {false};
 };

@@ -4,7 +4,7 @@
 
 - [执行器生成](../config/actuators.md) — 为特定的功能，电调或舵机配置飞控的输出。
 
-- [Motor Failure Recovery](../config/motor_failure_recovery.md) — How allocation is reconfigured if a motor fails.
+- [电机故障恢复](../config/motor_failure_recovery.md) — 电机失效后的动力重新分配。
 
 - [电机电调](../peripherals/esc_motors.md) — 例如 [DShot 电调](../peripherals/dshot.md) (推荐) 和 DroneCAN 电调。
 

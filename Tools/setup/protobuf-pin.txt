@@ -1,0 +1,24 @@
+# homebrew-core revision protobuf is installed from, and the version that is.
+#
+# Every gz .pb.h refuses to compile against anything but the exact protobuf
+# its gencode came from ("#if PROTOBUF_VERSION != ...", which is a fatal
+# error, not a warning). The gz bottles gz-tap-pin.txt pins were built
+# against whatever protobuf homebrew-core shipped that day, homebrew-core
+# then moves protobuf on its own schedule, and OSRF rebuilds the bottles
+# days later. With protobuf unpinned, every protobuf release therefore
+# breaks `make px4_sitl` on macOS until OSRF catches up.
+#
+# macos.sh --sim-tools puts protobuf back to this homebrew-core commit once
+# the rest of the simulation packages are in, so the two pins always agree
+# and a protobuf release is a no-op here. Tools/ci/refresh_gz_tap_pin.rb
+# reads the version out of the pinned gz-msgs10 bottle's install receipt and
+# moves both pins together, weekly from
+# .github/workflows/macos_gz_tap_pin_refresh.yml.
+#
+# Holding protobuf back holds back its ABI too: homebrew-core bottles that
+# were rebuilt against a newer protobuf (of what macos.sh installs, only
+# opencv@4 links it) will not load until this pin catches up. Nothing
+# `make px4_sitl` builds or runs loads them.
+#
+# <homebrew-core commit> <protobuf version>
+88d598cf1d2dba7063fbc29d441d072963481123 36.1

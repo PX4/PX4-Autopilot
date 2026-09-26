@@ -34,10 +34,34 @@
 
 #include "PX4Barometer.hpp"
 
+#include <lib/drivers/device/Device.hpp>
+
 PX4Barometer::PX4Barometer(uint32_t device_id)
 {
-	_report.device_id = device_id;
+	set_device_id(device_id);
 	_report.temperature = 15; // if no temperature is set, report the sea level standard temperature of 15°C. As used in VehicleAirData
+}
+
+PX4Barometer::PX4Barometer(uint32_t device_id, bool external)
+{
+	set_device_id(device_id);
+	set_external(external);
+	_report.temperature = 15; // if no temperature is set, report the sea level standard temperature of 15°C. As used in VehicleAirData
+}
+
+void PX4Barometer::set_device_id(uint32_t device_id)
+{
+	_report.device_id = device_id;
+
+	if (!_external_forced) {
+		_report.is_external = device::device_is_external(device_id);
+	}
+}
+
+void PX4Barometer::set_external(bool external)
+{
+	_report.is_external = external;
+	_external_forced = true;
 }
 
 void PX4Barometer::update(const hrt_abstime &timestamp_sample, float pressure)

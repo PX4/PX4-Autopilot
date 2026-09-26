@@ -72,9 +72,9 @@ Pixhawk标准兼容的 CAN 设备使用 4 引脚的 JST-GH 连接器为 CAN。
 DroneCAN 和 Cyphal/CAN支持使用第二个(冗余) CAN 接口。
 这是完全可选的，但会增加连接的强度。
 
-Pixhawk flight controllers come with 2 CAN interfaces; if your peripherals support 2 CAN interfaces as well, it is recommended to wire both up for increased safety.
+Pixhawk 飞行控制器配备 2 个 CAN 接口；如果你的外设同样支持 2 个 CAN 接口，建议将两路均进行接线，以提升系统安全性。
 
-### Flight Controllers with Multiple CAN Ports
+### 带有多个 CAN 端口的飞行控制器
 
 [Flight Controllers](../flight_controller/index.md) may have up to three independent CAN ports, such as `CAN1`, `CAN2`, `CAN3` (neither DroneCAN or Cyphal support more than three).
 Note that you can't have both DroneCAN and Cyphal running on PX4 at the same time.

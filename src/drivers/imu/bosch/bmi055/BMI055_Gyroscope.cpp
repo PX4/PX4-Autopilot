@@ -40,7 +40,7 @@ namespace Bosch::BMI055::Gyroscope
 
 BMI055_Gyroscope::BMI055_Gyroscope(const I2CSPIDriverConfig &config) :
 	BMI055(config),
-	_px4_gyro(get_device_id(), config.rotation)
+	_px4_gyro(get_device_id(), config.rotation, config.external)
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_gyro: DRDY missed");

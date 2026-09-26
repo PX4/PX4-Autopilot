@@ -38,6 +38,7 @@ private:
 	bool dsmTest22msDSMX16Ch();
 	bool dsmTestOrangeDsmx();
 	bool sbus2Test();
+	bool st24MalformedLengthTest();
 	bool st24Test();
 	bool sumdTest();
 };
@@ -51,6 +52,7 @@ bool RCTest::run_tests()
 	ut_run_test(dsmTest22msDSMX16Ch);
 	ut_run_test(dsmTestOrangeDsmx);
 	ut_run_test(sbus2Test);
+	ut_run_test(st24MalformedLengthTest);
 	ut_run_test(st24Test);
 	ut_run_test(sumdTest);
 
@@ -393,6 +395,38 @@ bool RCTest::sbus2Test()
 
 	ut_test(ret == EOF);
 
+	return true;
+}
+
+bool RCTest::st24MalformedLengthTest()
+{
+	uint8_t rssi{};
+	uint8_t lost_count{};
+	uint16_t channel_count{};
+	uint16_t channels[24] {};
+	const uint8_t invalid_lengths[] {0, 1};
+
+	for (const uint8_t invalid_length : invalid_lengths) {
+		const uint8_t prefix[] {ST24_STX1, ST24_STX2, invalid_length, 0};
+
+		for (const uint8_t byte : prefix) {
+			(void)st24_decode(byte, &rssi, &lost_count, &channel_count, channels, 24);
+		}
+
+		for (unsigned i = 0; i <= ST24_DATA_LEN_MAX; ++i) {
+			(void)st24_decode(0xaa, &rssi, &lost_count, &channel_count, channels, 24);
+		}
+	}
+
+	uint8_t minimal_packet[] {ST24_STX1, ST24_STX2, 2, 0xff, 0};
+	minimal_packet[4] = st24_common_crc8(&minimal_packet[2], 2);
+	int result = 1;
+
+	for (const uint8_t byte : minimal_packet) {
+		result = st24_decode(byte, &rssi, &lost_count, &channel_count, channels, 24);
+	}
+
+	ut_test(result == 2);
 	return true;
 }
 

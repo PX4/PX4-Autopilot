@@ -72,8 +72,9 @@ VTX::~VTX()
 int VTX::init()
 {
 	_param_vtx_device.update();
+	_param_vtx_protocol.update();
 	_device = (_param_vtx_device.get() >> 8);
-	const uint8_t protocol = (_param_vtx_device.get() & 0xff);
+	const uint8_t protocol = _param_vtx_protocol.get();
 
 	if (_protocol == nullptr) {
 		if (protocol == vtx_s::PROTOCOL_TRAMP) {
@@ -437,7 +438,8 @@ int VTX::print_status()
 	PX4_INFO("  pit mode: %s", _pit_mode ? "on" : "off");
 
 	if (!(_comms_ok && _protocol && _protocol->print_settings())) {
-		PX4_ERR("%s device not found", (_param_vtx_device.get() & 0xff) == vtx_s::PROTOCOL_TRAMP ? "Tramp" : "SmartAudio");
+		PX4_ERR("%s device not found",
+			_param_vtx_protocol.get() == vtx_s::PROTOCOL_TRAMP ? "Tramp" : "SmartAudio");
 	}
 
 	perf_print_counter(_perf_cycle);

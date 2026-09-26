@@ -278,6 +278,7 @@ if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 		SRCS
 			VisionTargetEst.cpp
 			tasks/PrecLandTask.cpp
+			tasks/PrecTakeoffTask.cpp
 			Position/VTEPosition.cpp
 			Position/KF_position.cpp
 			Orientation/VTEOrientation.cpp
