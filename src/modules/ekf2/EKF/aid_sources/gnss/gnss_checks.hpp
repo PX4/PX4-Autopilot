@@ -121,7 +121,6 @@ public:
 	float vertical_position_drift_rate_m_s() const { return _vertical_position_drift_rate_m_s; }
 	float filtered_horizontal_velocity_m_s() const { return _filtered_horizontal_velocity_m_s; }
 
-private:
 	enum class GnssChecksMask : int32_t {
 		kNsats   = (1 << 0),
 		kPdop    = (1 << 1),
@@ -139,6 +138,7 @@ private:
 
 	bool isCheckEnabled(GnssChecksMask check) const { return (_params.check_mask & static_cast<int32_t>(check)); }
 
+private:
 	bool runSimplifiedChecks(const gnssSample &gnss);
 	bool runInitialFixChecks(const gnssSample &gnss);
 	void runOnGroundGnssChecks(const gnssSample &gnss);

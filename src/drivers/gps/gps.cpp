@@ -450,7 +450,6 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	}
 
 	_sensor_gps.heading = NAN;
-	_sensor_gps.heading_offset = NAN;
 
 	int32_t enable_sat_info = 0;
 	param_get(param_find("GPS_SAT_INFO"), &enable_sat_info);
@@ -976,13 +975,7 @@ void GPS::dumpGpsData(const uint8_t *data, size_t len, gps_dump_comm_mode_t mode
 void
 GPS::run()
 {
-	param_t handle = param_find("GPS_YAW_OFFSET");
-	float heading_offset = 0.f;
-
-	if (handle != PARAM_INVALID) {
-		param_get(handle, &heading_offset);
-		heading_offset = matrix::wrap_pi(math::radians(heading_offset));
-	}
+	param_t handle = PARAM_INVALID;
 
 #if defined(CONFIG_GPS_UBX)
 
@@ -1219,7 +1212,6 @@ GPS::run()
 					.min_cno = (uint8_t)gps_ubx_min_cno,
 					.min_elev = (int8_t)gps_ubx_min_elev,
 					.output_rate = (uint8_t)gps_ubx_rate,
-					.heading_offset = heading_offset,
 					.uart1_baudrate = ubx_uart1_baudrate,
 					.uart2_baudrate = f9p_uart2_baudrate,
 					.ppk_output = ppk_output > 0,
@@ -1247,7 +1239,7 @@ GPS::run()
 #if defined(CONFIG_GPS_ASHTECH)
 
 		case gps_driver_mode_t::ASHTECH:
-			_helper = new GPSDriverAshtech(&GPS::callback, this, &_sensor_gps, _p_report_sat_info, heading_offset);
+			_helper = new GPSDriverAshtech(&GPS::callback, this, &_sensor_gps, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_ASHTECH);
 			break;
 #endif // CONFIG_GPS_ASHTECH
@@ -1261,14 +1253,14 @@ GPS::run()
 #if defined(CONFIG_GPS_FEMTOMES)
 
 		case gps_driver_mode_t::FEMTOMES:
-			_helper = new GPSDriverFemto(&GPS::callback, this, &_sensor_gps, _p_report_sat_info, heading_offset);
+			_helper = new GPSDriverFemto(&GPS::callback, this, &_sensor_gps, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
 			break;
 #endif // CONFIG_GPS_FEMTOMES
 #if defined(CONFIG_GPS_NMEA)
 
 		case gps_driver_mode_t::NMEA:
-			_helper = new GPSDriverNMEA(&GPS::callback, this, &_sensor_gps, _p_report_sat_info, heading_offset);
+			_helper = new GPSDriverNMEA(&GPS::callback, this, &_sensor_gps, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_NMEA);
 			break;
 #endif // CONFIG_GPS_NMEA
@@ -1315,7 +1307,6 @@ GPS::run()
 			/* reset report */
 			memset(&_sensor_gps, 0, sizeof(_sensor_gps));
 			_sensor_gps.heading = NAN;
-			_sensor_gps.heading_offset = heading_offset;
 
 #if defined(CONFIG_GPS_UBX)
 
@@ -1762,6 +1753,12 @@ GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative)
 {
 	gnss_relative.device_id = get_device_id();
 	gnss_relative.timestamp = hrt_absolute_time();
+
+	// the receiver latency is applied downstream; a sample time equal to the publish time marks it as unset
+	if (gnss_relative.timestamp_sample == 0) {
+		gnss_relative.timestamp_sample = gnss_relative.timestamp;
+	}
+
 	_sensor_gnss_relative_pub.publish(gnss_relative);
 }
 

@@ -41,6 +41,7 @@ set(SRCS
 	mag.cpp
 	baro.cpp
 	gps.cpp
+	gnss_yaw.cpp
 	flow.cpp
 	range_finder.cpp
 	vio.cpp

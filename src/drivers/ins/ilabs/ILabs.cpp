@@ -539,7 +539,6 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		sensor_gps.satellites_used = data->gps.usedSatCount;
 
 		sensor_gps.heading = NAN;
-		sensor_gps.heading_offset = NAN;
 		sensor_gps.heading_accuracy = NAN;
 
 		_sensor_gps_pub.publish(sensor_gps);

@@ -158,10 +158,6 @@ public:
 			if (!std::isnan(gps.heading)) {
 				ecefpositionvelocity.velocity_xyz[0] = gps.heading;
 
-				if (!std::isnan(gps.heading_offset)) {
-					ecefpositionvelocity.velocity_xyz[1] = gps.heading_offset;
-				}
-
 				if (!std::isnan(gps.heading_accuracy)) {
 					ecefpositionvelocity.velocity_xyz[2] = gps.heading_accuracy;
 				}

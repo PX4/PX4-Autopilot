@@ -79,7 +79,6 @@ sensor_gps_s GpsBlendingTest::getDefaultGpsData()
 	gps_data.cog_rad = 0.f;
 	gps_data.timestamp_time_relative = 0;
 	gps_data.heading = NAN;
-	gps_data.heading_offset = 0.f;
 	gps_data.fix_type = 4;
 	gps_data.vel_ned_valid = true;
 	gps_data.satellites_used = 8;

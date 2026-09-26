@@ -751,7 +751,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	sensor_gps.cog_rad = atan2(vel_east, vel_north);
 	sensor_gps.timestamp_time_relative = 0;
 	sensor_gps.heading = NAN;
-	sensor_gps.heading_offset = NAN;
 	sensor_gps.heading_accuracy = 0;
 	sensor_gps.automatic_gain_control = 0;
 	sensor_gps.jamming_state = 0;

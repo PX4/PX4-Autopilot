@@ -73,8 +73,7 @@ uint32 SYSTEM_ERROR_CPU_OVERLOAD         = 32
 uint32 SYSTEM_ERROR_OUTPUT_CONGESTION    = 64
 uint32 system_error                      # General errors with the connected GPS receiver
 
-float32 heading			# heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])
-float32 heading_offset		# heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])
+float32 heading			# dual antenna baseline heading rel to NED as measured; vehicle_gps_position carries it rotated into the body frame by SENS_GPSn_ROT. NaN if not available (rad, [-PI, PI])
 float32 heading_accuracy	# heading accuracy (rad, [0, 2PI])
 
 float32 rtcm_injection_rate	# RTCM message injection rate Hz
