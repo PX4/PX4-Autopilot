@@ -34,6 +34,7 @@
 #ifndef ESC_EEPROM_HPP
 #define ESC_EEPROM_HPP
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/esc_eeprom_read.h>
 
 class MavlinkStreamEscEeprom : public MavlinkStream
@@ -57,11 +58,12 @@ private:
 
 	uORB::Subscription _esc_eeprom_read_sub{ORB_ID(esc_eeprom_read)};
 
-	bool emit_message(bool force)
+	bool send() override
 	{
-		esc_eeprom_read_s eeprom = {};
+		bool sent = false;
+		esc_eeprom_read_s eeprom;
 
-		if (_esc_eeprom_read_sub.update(&eeprom) || force) {
+		while (_esc_eeprom_read_sub.update(&eeprom)) {
 			mavlink_esc_eeprom_t msg = {};
 			msg.firmware = eeprom.firmware;
 			msg.esc_index = eeprom.index;
@@ -72,18 +74,11 @@ private:
 			msg.length = copy_len;
 
 			mavlink_msg_esc_eeprom_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
+			sent = true;
 		}
 
-		return false;
+		return sent;
 	}
-
-	bool send() override
-	{
-		return emit_message(false);
-	}
-
 };
 
 #endif // ESC_EEPROM_HPP

@@ -50,6 +50,16 @@ using namespace time_literals;
 // still on its way costs a full round-robin pass of telemetry rather than a single frame.
 static constexpr hrt_abstime TELEMETRY_RESPONSE_TIMEOUT = 30_ms;
 
+// Telemetry stops while a command response is pending, and the arming check reports an ESC offline once its
+// telemetry is 400 ms old. AM32 sends the 49-byte dump from its main loop as soon as the sixth frame arrives,
+// so a response that has not started within 100 ms is not coming.
+static constexpr hrt_abstime COMMAND_RESPONSE_TIMEOUT = 100_ms;
+
+// A failed read costs a full COMMAND_RESPONSE_TIMEOUT of telemetry, so retries are spaced for all ESCs
+// together and an ESC that keeps failing is dropped until something re-requests it.
+static constexpr hrt_abstime SETTINGS_RETRY_INTERVAL = 2_s;
+static constexpr int SETTINGS_MAX_ATTEMPTS = 3;
+
 DShotTelemetry::~DShotTelemetry()
 {
 	_uart.close();
@@ -123,10 +133,67 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint16_t output_mask
 
 		if (interface) {
 			_settings_handlers[i] = interface;
+			_settings_request_mask |= 1u << i;
 		}
 	}
 
 	_settings_initialized = true;
+}
+
+void DShotTelemetry::publishSettings()
+{
+	if (hrt_elapsed_time(&_settings_last_publish) < 1_s) {
+		return;
+	}
+
+	_settings_last_publish = hrt_absolute_time();
+
+	for (auto handler : _settings_handlers) {
+		if (handler) {
+			handler->publish_latest();
+		}
+	}
+}
+
+int DShotTelemetry::getSettingsRequest(uint16_t motor_mask)
+{
+	if (hrt_absolute_time() < _settings_retry_after) {
+		return -1;
+	}
+
+	// Rotate through pending reads so an unresponsive ESC cannot starve the others.
+	for (int offset = 0; offset < DSHOT_MAX_MOTORS; ++offset) {
+		const int index = (_next_settings_motor + offset) % DSHOT_MAX_MOTORS;
+
+		if ((motor_mask & _settings_request_mask & (1u << index)) && _settings_handlers[index]) {
+			_next_settings_motor = (index + 1) % DSHOT_MAX_MOTORS;
+			return index;
+		}
+	}
+
+	return -1;
+}
+
+void DShotTelemetry::requestSettings(uint16_t motor_mask)
+{
+	_settings_request_mask |= motor_mask;
+
+	for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {
+		if (motor_mask & (1u << i)) {
+			_settings_attempts[i] = 0;
+		}
+	}
+}
+
+void DShotTelemetry::invalidateSettings(uint16_t motor_mask)
+{
+	requestSettings(motor_mask);
+
+	for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {
+		if ((motor_mask & (1 << i)) && _settings_handlers[i]) {
+			_settings_handlers[i]->invalidate();
+		}
+	}
 }
 
 void DShotTelemetry::resetCommandResponse()
@@ -136,12 +203,27 @@ void DShotTelemetry::resetCommandResponse()
 	_command_response_position = 0;
 }
 
+void DShotTelemetry::settingsReadFailed()
+{
+	const int motor_index = _command_response_motor_index;
+
+	if (_command_response_command == DSHOT_CMD_ESC_INFO && motor_index >= 0 && motor_index < DSHOT_MAX_MOTORS) {
+		_settings_retry_after = hrt_absolute_time() + SETTINGS_RETRY_INTERVAL;
+
+		if (++_settings_attempts[motor_index] >= SETTINGS_MAX_ATTEMPTS) {
+			PX4_WARN("ESC%d: no settings after %d requests", motor_index + 1, SETTINGS_MAX_ATTEMPTS);
+			_settings_request_mask &= ~(1u << motor_index);
+		}
+	}
+
+	resetCommandResponse();
+}
+
 void DShotTelemetry::parseCommandResponse()
 {
-	if (hrt_elapsed_time(&_command_response_start) > 1_s) {
-		PX4_WARN("Command response timed out: %d bytes received", _command_response_position);
-		PX4_WARN("At time %.2fs", (double)hrt_absolute_time() / 1000000.);
-		resetCommandResponse();
+	if (hrt_elapsed_time(&_command_response_start) > COMMAND_RESPONSE_TIMEOUT) {
+		PX4_DEBUG("Command response timed out: %d bytes received", _command_response_position);
+		settingsReadFailed();
 		return;
 	}
 
@@ -155,7 +237,7 @@ void DShotTelemetry::parseCommandResponse()
 	// Handle potential overflow, fail out
 	if (_command_response_position + bytes > COMMAND_RESPONSE_MAX_SIZE) {
 		PX4_ERR("command response overflow");
-		resetCommandResponse();
+		settingsReadFailed();
 		return;
 	}
 
@@ -178,9 +260,14 @@ void DShotTelemetry::parseCommandResponse()
 			}
 
 			if (_command_response_position == handler->getExpectedResponseSize()) {
-				// TODO: handle command failures
-				handler->decodeInfoResponse(_command_response_buffer, _command_response_position);
-				resetCommandResponse();
+				if (handler->decodeInfoResponse(_command_response_buffer, _command_response_position)) {
+					_settings_request_mask &= ~(1u << _command_response_motor_index);
+					_settings_attempts[_command_response_motor_index] = 0;
+					resetCommandResponse();
+
+				} else {
+					settingsReadFailed();
+				}
 			}
 
 			break;
@@ -316,4 +403,5 @@ void DShotTelemetry::printStatus() const
 	PX4_INFO("Successful ESC frames: %i", _num_successful_responses);
 	PX4_INFO("Timeouts: %i", _num_timeouts);
 	PX4_INFO("CRC errors: %i", _num_checksum_errors);
+	PX4_INFO("Pending settings mask (motor order): 0x%02x", _settings_request_mask);
 }
