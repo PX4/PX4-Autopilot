@@ -167,6 +167,8 @@ private:
 
 	unsigned handleCommandActuatorTest(const vehicle_command_s &cmd);
 
+	void nackIfModuleDisabled(const vehicle_command_s &cmd, param_t enabled_param, int32_t disabled_value);
+
 	void executeActionRequest(const action_request_s &action_request);
 
 	void printRejectMode(uint8_t nav_state);
@@ -335,6 +337,8 @@ private:
 	// optional parameters
 	param_t _param_mav_type{PARAM_INVALID};
 	param_t _param_rc_map_fltmode{PARAM_INVALID};
+	param_t _param_trig_mode{PARAM_INVALID};    // camera_trigger module (may not be compiled in)
+	param_t _param_mnt_mode_in{PARAM_INVALID};  // gimbal module (may not be compiled in)
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::COM_DISARM_LAND>)  _param_com_disarm_land,
