@@ -18,8 +18,3 @@ simulation and Python tooling.
 - **Scoped guidance:** before editing or reviewing, read only the
   `.github/instructions/*.instructions.md` files whose `applyTo` patterns
   match the affected paths, plus any nested `AGENTS.md` along those paths.
-
-## Drivers
-
-- Code shared by several drivers of the same type (a protocol decoder, UART setup, a common filter) goes in `src/lib/<topic>/`, e.g. `src/lib/rc/` for the RC drivers.
-- `src/drivers/<type>/` (e.g. `src/drivers/rc/`, `src/drivers/distance_sensor/`) holds one directory per driver; do not put `.cpp`/`.h` files at that level.
