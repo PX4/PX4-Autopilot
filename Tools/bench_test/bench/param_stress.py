@@ -206,7 +206,7 @@ def phase_persistence(report, mav, param, conn_str, baud, original_value):
     #    wrong value means save did not persist the marker; retry once, then
     #    fail without rebooting on an unsaved marker.
     shell = px4bench.MavlinkShell(mav)
-    if not shell.open(timeout=5):
+    if not shell.open():
         report.fail('persistence_shell', 'could not open nsh shell for param save')
         return mav
     try:
@@ -302,8 +302,11 @@ def main():
         # Guard: a typo must not silently thrash the wrong (or no) param.
         if args.param not in by_name:
             report.fail('param_exists',
-                        '{} not found in downloaded set; aborting before any set'.format(
-                            args.param))
+                        '{} not in the {} downloaded params (the autopilot lists '
+                        'used params only; a booted board reports hundreds, so a '
+                        'tiny set means a degraded param session, not a missing '
+                        'param); aborting before any set'.format(
+                            args.param, len(by_name)))
             sys.exit(report.finish())
 
         original_value, _ = read_param(mav, args.param, READ_TIMEOUT_S)

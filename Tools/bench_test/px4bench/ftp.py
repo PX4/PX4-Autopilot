@@ -6,9 +6,23 @@ bounded slices with its own budget and stall detection: a transfer that
 stops mid-file becomes an error naming the byte count, never a hang.
 """
 
+import sys
 import time
 
 from . import send_heartbeat
+
+MAVFTP_INSTALL_HINT = """\
+Failed to import pymavlink.mavftp: {err}
+
+The mavftp module ships with pymavlink >= 2.4.42. Upgrade with:
+    pip3 install --user --upgrade pymavlink
+"""
+
+try:
+    from pymavlink import mavftp
+except ImportError as e:
+    print(MAVFTP_INSTALL_HINT.format(err=e))
+    sys.exit(2)
 
 LOG_ROOT = '/fs/microsd/log'
 # ULog file header magic: 'U' 'L' 'o' 'g' 0x01 0x12 0x35, then a file-version
