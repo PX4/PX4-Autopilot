@@ -12,10 +12,10 @@ param set-default BAT1_V_DIV 21.0
 param set-default BAT1_A_PER_V 24.0
 
 # ESC telemetry arrives on USART1 (ESC connector J10 pin 4), mapped to TEL3.
-param set-default DSHOT_TEL_CFG 103
+param set-default SER_TEL3_PROTO 26
 
 # There is no analog OSD chip on this board. The VTX connector (J9, USART6) is
 # mapped to TEL2 and left unclaimed, so it can be used for MAVLink or anything
-# else; set MSP_OSD_CONFIG to 102 to drive an HD VTX over MSP DisplayPort.
+# else; set SER_TEL2_PROTO to 24 (MSP OSD) to drive an HD VTX over MSP DisplayPort.
 
 # system_power monitoring is provided via ADC dividers in board_config.h
