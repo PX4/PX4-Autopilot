@@ -322,10 +322,10 @@ Now you are ready to build all your work!
    make px4_fmu-v5_default upload
    ```
 
-   - to build for SITL execute the following command in the root of the PX4-Autopilot directory (using jmavsim simulation):
+   - to build for SITL execute the following command in the root of the PX4-Autopilot directory (using SIH simulation):
 
    ```sh
-   make px4_sitl jmavsim
+   make px4_sitl_sih sihsim_quadx
    ```
 
 ## Running the Code

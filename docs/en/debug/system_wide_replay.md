@@ -61,7 +61,7 @@ Reasons for this are given below.
 - Start the replay:
 
   ```sh
-  make px4_sitl_default jmavsim
+  make px4_sitl_default none_iris
   ```
 
   This will automatically open the log file, apply the parameters and start the replay.
