@@ -71,7 +71,11 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
 
-		if (_gnss_checks.run(gnss_sample, _time_delayed_us)) {
+		const bool vel_within_limit = gnss_sample.vel.isAllFinite()
+					      && !gnss_sample.vel.xy().longerThan(_params.ekf2_vel_lim)
+					      && (fabsf(gnss_sample.vel(2)) <= _params.ekf2_vel_lim);
+
+		if (vel_within_limit && _gnss_checks.run(gnss_sample, _time_delayed_us)) {
 			if (_gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
 				// First time checks are passing, latching.
 				_information_events.flags.gps_checks_passed = true;
@@ -81,7 +85,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			// Skip this sample
 			_gps_data_ready = false;
 
-			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
+			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos || _control_status.flags.gnss_yaw;
 			const bool gnss_checks_pass_timeout = isTimedOut(_gnss_checks.getLastPassUs(), _params.reset_timeout_max);
 
 			if (using_gnss && gnss_checks_pass_timeout) {
@@ -93,7 +97,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		updateGnssPos(gnss_sample, _aid_src_gnss_pos);
 		updateGnssVel(imu_delayed, gnss_sample, _aid_src_gnss_vel);
 
-	} else if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) {
+	} else if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos || _control_status.flags.gnss_yaw) {
 		if (!isNewestSampleRecent(_time_last_gps_buffer_push, _params.reset_timeout_max)) {
 			stopGnssFusion();
 			ECL_WARN("GNSS data stopped");
