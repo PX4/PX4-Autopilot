@@ -263,3 +263,19 @@ parameters:
       max: 100
       increment: 0.01
       decimal: 2
+    RO_WHEEL_RAD:
+      description:
+        short: Wheel radius in meters
+        long: |-
+          ```
+          Calculate wheel circumfrence for mavlink wheel distance conversion
+          ```
+          Used to calculate wheel circumfrence which is then passed on to Mavlink wheel distance equation.
+          Wheel dist = 2 * PI * RO_WHEEL_RAD * encoder_position / counts_per_revolution
+      type: float
+      default: 0.05
+      unit: m
+      min: 0
+      max: 10
+      increment: 0.001
+      decimal: 2

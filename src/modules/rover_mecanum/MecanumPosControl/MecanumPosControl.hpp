@@ -136,6 +136,7 @@ private:
 		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::RO_YAW_P>)  	    _param_ro_yaw_p,
-		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad
+		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,
+		(ParamFloat<px4::params::RO_WHEEL_RAD>)      _param_ro_wheel_radius
 	)
 };
