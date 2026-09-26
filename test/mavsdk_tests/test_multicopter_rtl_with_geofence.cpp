@@ -40,19 +40,19 @@
 //
 // Pass: the vehicle returns to home and disarms within the timeout AND its ground-truth position
 // never violates any of the loaded geofences during the entire armed flight.
-TEST_CASE("RTL direct with geofence obstruction", "[multicopter]")
+TEST_CASE("Return direct with geofence obstruction", "[multicopter]")
 {
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
 	tester.store_home();
 
-	// Mission outbound leg ends at a point where straight-line RTL crosses the exclusion polygon
+	// Mission outbound leg ends at a point where straight-line Return crosses the exclusion polygon
 	// in the .plan; the planner must detour around it.
 	tester.load_qgc_mission_and_geofence_here("test/mavsdk_tests/multicopter_mission_geofence_avoid.plan");
 
 	// Warning only: the planner still picks up the fence (it reads polygon geometry independent of
-	// GF_ACTION), but a hypothetical breach won't trigger Hold/RTL failsafe and mask test failure.
+	// GF_ACTION), but a hypothetical breach won't trigger Hold/Return failsafe and mask test failure.
 	tester.set_param_int("GF_ACTION", 1);
 
 	tester.set_rtl_type(0); // RTL_DIRECT

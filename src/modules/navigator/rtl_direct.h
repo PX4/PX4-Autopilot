@@ -33,7 +33,7 @@
 /**
  * @file rtl_direct.h
  *
- * Helper class for RTL
+ * Helper class for Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -81,14 +81,14 @@ public:
 
 	/**
 	 * @brief on activation.
-	 * Initialize the return to launch calculations.
+	 * Initialize the return calculations.
 	 *
 	 */
 	void on_activation() override;
 
 	/**
 	 * @brief on active
-	 * Update the return to launch calculation and set new setpoints for controller if necessary.
+	 * Update the return calculation and set new setpoints for controller if necessary.
 	 *
 	 */
 	void on_active() override;
@@ -101,9 +101,9 @@ public:
 	void on_inactive() override;
 
 	/**
-	 * @brief Calculate the estimated time needed to return to launch.
+	 * @brief Calculate the estimated time needed to return.
 	 *
-	 * @return estimated time to return to launch.
+	 * @return estimated return time.
 	 */
 	rtl_time_estimate_s calc_rtl_time_estimate();
 
@@ -116,7 +116,7 @@ public:
 
 private:
 	/**
-	 * @brief Return to launch state machine.
+	 * @brief Return state machine.
 	 *
 	 */
 	enum class RTLState {
@@ -134,13 +134,13 @@ private:
 
 private:
 	/**
-	 * @brief Update the RTL state machine.
+	 * @brief Update the Return state machine.
 	 *
 	 */
 	void _updateRtlState();
 
 	/**
-	 * @brief Set the return to launch control setpoint.
+	 * @brief Set the return control setpoint.
 	 *
 	 */
 	void set_rtl_item();
@@ -177,7 +177,7 @@ private:
 	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 	RtlTimeEstimator _rtl_time_estimator;
 
-	PositionYawSetpoint _destination{(double)NAN, (double)NAN, NAN, NAN}; ///< the RTL position to fly to
+	PositionYawSetpoint _destination{(double)NAN, (double)NAN, NAN, NAN}; ///< the return position to fly to
 	loiter_point_s _land_approach;
 	float _rtl_alt{0.0f}; ///< AMSL altitude at which the vehicle should transit to the destination
 

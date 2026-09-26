@@ -34,7 +34,7 @@ uint8 NAVIGATION_STATE_ALTCTL = 1               # Altitude control mode
 uint8 NAVIGATION_STATE_POSCTL = 2               # Position control mode
 uint8 NAVIGATION_STATE_AUTO_MISSION = 3         # Auto mission mode
 uint8 NAVIGATION_STATE_AUTO_LOITER = 4          # Auto loiter mode
-uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Auto return to launch mode
+uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Return mode
 uint8 NAVIGATION_STATE_POSITION_SLOW = 6
 uint8 NAVIGATION_STATE_GUIDED_COURSE = 7 		# Guided Course mode (FW: maintain course/alt/speed)
 uint8 NAVIGATION_STATE_ALTITUDE_CRUISE = 8      # Altitude with Cruise mode
@@ -85,7 +85,7 @@ uint8 FAILSAFE_DEFER_STATE_DISABLED = 0
 uint8 FAILSAFE_DEFER_STATE_ENABLED = 1
 uint8 FAILSAFE_DEFER_STATE_WOULD_FAILSAFE = 2 # Failsafes deferred, but would trigger a failsafe
 
-bool failsafe # true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
+bool failsafe # true if system is in failsafe state (e.g. Return, Hover, Terminate, ...)
 bool failsafe_and_user_took_over # true if system is in failsafe state but the user took over control
 uint8 failsafe_defer_state # one of FAILSAFE_DEFER_STATE_*
 
