@@ -86,16 +86,16 @@ private:
 
 	input_rc_s _input_rc{};
 
-	bool SendTelemetryBattery(const uint16_t voltage, const uint16_t current, const int fuel, const uint8_t remaining);
+	bool sendTelemetryBattery(const uint16_t voltage, const uint16_t current, const float fuel, const uint8_t remaining);
 
-	bool SendTelemetryGps(const int32_t latitude, const int32_t longitude, const uint16_t groundspeed,
+	bool sendTelemetryGps(const int32_t latitude, const int32_t longitude, const uint16_t groundspeed,
 			      const uint16_t gps_heading, const uint16_t altitude, const uint8_t num_satellites);
 
-	bool SendTelemetryAttitude(const int16_t pitch, const int16_t roll, const int16_t yaw);
+	bool sendTelemetryAttitude(const int16_t pitch, const int16_t roll, const int16_t yaw);
 
-	bool SendTelemetryBaroAltitude(const uint16_t altitude, const int16_t vertical_speed);
+	bool sendTelemetryBaroAltitude(const uint16_t altitude, const int16_t vertical_speed);
 
-	bool SendTelemetryFlightMode(const char *flight_mode);
+	bool sendTelemetryFlightMode(const char *flight_mode);
 
 	bool BindCRSF();
 
