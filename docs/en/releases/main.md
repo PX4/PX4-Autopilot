@@ -90,7 +90,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### uXRCE-DDS / Zenoh / ROS 2
 
-- TBD
+- (uXRCE-DDS): SITL multi vehicle automatic namespace prefix is now `uav_{px4_instance}` and it is aligned with the behaviour of `UXRCE_DDS_NS_IDX`. ([PX4-Autopilot#28338](https://github.com/PX4/PX4-Autopilot/pull/28338))
 
 ### MAVLink
 

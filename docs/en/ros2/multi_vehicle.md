@@ -23,10 +23,10 @@ param set UXRCE_DDS_KEY $((px4_instance+1))
 By doing so, `UXRCE_DDS_KEY` will always coincide with [MAV_SYS_ID](../advanced_config/parameter_reference.md#MAV_SYS_ID).
 :::
 
-Moreover, when `px4_instance` is greater than zero, a unique ROS 2 [namespace prefix](../middleware/uxrce_dds.md#customizing-the-namespace) in the form `px4_$px4_instance` is added:
+Moreover, when `px4_instance` is greater than zero, a unique ROS 2 [namespace prefix](../middleware/uxrce_dds.md#customizing-the-namespace) in the form `uav_$px4_instance` is added:
 
 ```sh
-uxrce_dds_ns="-n px4_$px4_instance"
+uxrce_dds_ns="-n uav_$px4_instance"
 ```
 
 ::: info
@@ -42,7 +42,7 @@ The default client configuration in simulation is summarized as follows:
 | ------------------ | -------------- | ---------------- | --------------------- |
 | not provided       | 0              | `px4_instance+1` | none                  |
 | provided           | 0              | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
-| not provided       | >0             | `px4_instance+1` | `px4_${px4_instance}` |
+| not provided       | >0             | `px4_instance+1` | `uav_${px4_instance}` |
 | provided           | >0             | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
 
 ## Adjusting `VehicleCommand` routing fields
