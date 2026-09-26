@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# board specific extras init
+#------------------------------------------------------------------------------
+
+if ! param compare OSD_ATXXXX_CFG 0
+then
+	atxxxx -b 3 -s start
+fi
+
+# ESC telemetry is on UART8, the ESC connector's telemetry pin
+dshot telemetry -d /dev/ttyS6
+
+neopixel start
