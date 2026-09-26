@@ -50,23 +50,6 @@
             }
         },
         {
-            "label": "jmavsim kill",
-            "type": "shell",
-            "command": "kill $(ps aux | grep jmavsim | grep -v 'grep' | awk '{print $2}') || true",
-            "presentation": {
-                "echo": true,
-                "reveal": "never",
-                "revealProblems": "onProblem",
-                "focus": false,
-                "panel": "dedicated",
-                "showReuseMessage": false,
-                "clear": false,
-                "close": true
-            },
-            "problemMatcher": [],
-            "dependsOn":["px4_sitl_cleanup"]
-        },
-        {
             "label": "gazebo-classic build",
             "type": "shell",
             "command": "make px4_sitl_default sitl_gazebo-classic",

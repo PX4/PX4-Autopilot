@@ -33,7 +33,7 @@
 
 # mavsdk_tests is a black-box MAVLink integration-test driver that talks to a
 # running PX4 over UDP. It does not depend on any specific simulator backend
-# (sitl_gazebo-classic, gz, sih, jmavsim, ...) — it just needs a PX4 binary
+# (sitl_gazebo-classic, gz, sih, ...): it just needs a PX4 binary
 # to be running. Defined here at the top level rather than under any sitl
 # backend file so the dependency graph is honest.
 include(ExternalProject)

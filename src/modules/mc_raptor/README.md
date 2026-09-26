@@ -67,9 +67,9 @@ param save
 reboot
 ```
 
-New terminal:
+New terminal (visualization, see [Hawkeye](https://docs.px4.io/main/en/sim_hawkeye/)):
 ```bash
-./Tools/simulation/jmavsim/jmavsim_run.sh -u -p 13337 -o
+hawkeye -udp 13337
 ```
 
 
