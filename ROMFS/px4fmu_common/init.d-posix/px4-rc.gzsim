@@ -1,6 +1,15 @@
 #!/bin/sh
 # shellcheck disable=SC2154
 
+# Setup gz environment variables. This comes first because on macOS it
+# also puts the gz from Tools/setup/macos/pixi.toml on PATH.
+if [ -f ./gz_env.sh ]; then
+	. ./gz_env.sh
+
+elif [ -f ../gz_env.sh ]; then
+	. ../gz_env.sh
+fi
+
 # Enforce minimum gz version as Harmonic (gz-sim8)
 MIN_GZ_VERSION="8.0.0"
 GZ_SIM_VERSION=$(gz sim --versions 2>/dev/null | head -n 1 | tr -d ' ')
@@ -36,14 +45,6 @@ if [ -z "${PX4_GZ_STANDALONE}" ]; then
 
 	# shellcheck disable=SC2153
 	if [ -z "${gz_world}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
-
-		# Setup gz environment variables
-		if [ -f ./gz_env.sh ]; then
-			. ./gz_env.sh
-
-		elif [ -f ../gz_env.sh ]; then
-			. ../gz_env.sh
-		fi
 
 		echo "INFO  [init] Starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
 

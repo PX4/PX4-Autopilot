@@ -8,9 +8,8 @@
 ##	- Cross compilers for building hardware targets using NuttX
 ##	- With --sim-tools: Gazebo Harmonic simulation stack
 ##
-## --sim-tools pins the osrf/simulation tap to gz-tap-pin.txt so Gazebo
-## installs from bottles even while OSRF has them pulled, and protobuf to
-## protobuf-pin.txt so those bottles' headers still compile.
+## --sim-tools installs Gazebo from the locked conda-forge environment in
+## macos/pixi.toml, and loads it with the Python venv.
 ##
 ## Homebrew 4.5+ no longer auto-resolves cross-tap dependencies, so
 ## every tap and package is listed explicitly here rather than hidden
@@ -144,57 +143,17 @@ fi
 
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then
-	# Simulation packages. This replaces the px4-sim / px4-sim-gazebo
-	# meta-formulae, which declared cross-tap dependencies that
-	# Homebrew 4.5+ no longer auto-resolves. Same migration pattern as
-	# the toolchain block above. See PX4/homebrew-px4#104 for the
-	# px4-dev precedent.
-	#
-	# osrf/simulation: gz-harmonic (Gazebo Harmonic meta-formula)
-	#
-	# Trust before tapping, same as the toolchain taps above. Tapping an
-	# untrusted tap fails, which leaves no tap clone to pin below; the
-	# later `brew install osrf/simulation/gz-harmonic` then taps it
-	# implicitly at HEAD and the pin is silently skipped.
-	if brew trust --help &> /dev/null; then
-		brew trust osrf/simulation
-	fi
-
-	brew_tap osrf/simulation
-
-	# OSRF drops the gz bottle blocks within minutes of a breaking
-	# homebrew-core dependency bump and rebuilds them days later, so an
-	# unpinned tap compiles Gazebo from source for a large part of the
-	# year. Pin unconditionally so dev machines get the same fast, binary
-	# install as CI. See gz-tap-pin.txt.
-	GZ_TAP_PIN=$(grep -v '^#' "${DIR}/gz-tap-pin.txt" | tr -d '[:space:]')
-	if [[ -n $GZ_TAP_PIN ]]; then
-		GZ_TAP_DIR=$(brew --repo osrf/simulation)
-		echo "[macos.sh] Pinning osrf/simulation to ${GZ_TAP_PIN}"
-		# brew taps are shallow clones, so the pinned commit has to be
-		# fetched by SHA before it can be checked out.
-		git -C "$GZ_TAP_DIR" fetch --quiet origin "$GZ_TAP_PIN" 2>/dev/null || true
-		if git -C "$GZ_TAP_DIR" checkout --quiet "$GZ_TAP_PIN"; then
-			# `brew update` walks local taps and would reset the pin.
-			# homebrew-core resolves through the JSON API, not this
-			# clone, so nothing else goes stale.
-			export HOMEBREW_NO_AUTO_UPDATE=1
-		else
-			echo "[macos.sh] WARNING: could not pin osrf/simulation to ${GZ_TAP_PIN}," \
-				"continuing on tap HEAD (gz may build from source)"
-		fi
-	fi
-
-	# opencv@4: the unversioned formula is OpenCV 5, which PX4-OpticalFlow
-	# does not build against.
+	# Gazebo and everything the gz modules link against (OpenCV for
+	# PX4-OpticalFlow, GStreamer for the camera plugin) come from the
+	# locked conda-forge environment in macos/pixi.toml instead of
+	# Homebrew. conda-forge never removes or rebuilds a published
+	# package, so the lock keeps installing the same gz, protobuf and
+	# abseil binaries. See macos/pixi.toml.
 	PX4_SIM_BREW_PACKAGES=(
 		exiftool
 		glog
 		graphviz
-		gstreamer
-		opencv@4
-		osrf/simulation/gz-harmonic
-		protobuf
+		pixi
 	)
 
 	if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
@@ -205,75 +164,39 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		brew install "${PX4_SIM_BREW_PACKAGES[@]}"
 	fi
 
-	# Gazebo's generated headers only compile against the exact protobuf
-	# their gencode came from, so protobuf has to come from the
-	# homebrew-core revision that was current when the pinned gz bottles
-	# were built rather than from whatever homebrew-core ships today. See
-	# protobuf-pin.txt.
-	#
-	# This runs after the installs above rather than before them because
-	# opencv@4 depends on protobuf as well and drags in the current one:
-	# brew resolves a dependency against the versions recorded in the
-	# dependent's bottle, so an opencv bottle rebuilt against a newer
-	# protobuf pulls that protobuf in no matter what is installed.
-	# Pinning the formula instead of reinstalling it here is not an
-	# option either: brew refuses to install anything whose pinned
-	# dependency is not the current one ("You must `brew unpin
-	# protobuf`").
-	PROTOBUF_FORMULA="Formula/p/protobuf.rb"
-	PROTOBUF_PIN_LINE=$(grep -v -e '^#' -e '^[[:space:]]*$' "${DIR}/protobuf-pin.txt" | head -n 1)
-	read -r PROTOBUF_PIN PROTOBUF_PIN_VERSION <<< "$PROTOBUF_PIN_LINE" || true
-	if [[ -n $PROTOBUF_PIN ]]; then
-		CORE_TAP_DIR=$(brew --repo homebrew/core)
-		INSTALLED_PROTOBUF=$(brew list --versions protobuf 2> /dev/null | awk '{print $2}')
-		if [[ $INSTALLED_PROTOBUF == "$PROTOBUF_PIN_VERSION" ]]; then
-			echo "[macos.sh] protobuf ${PROTOBUF_PIN_VERSION} is what the gz bottles need, leaving it"
-		elif ! git -C "$CORE_TAP_DIR" rev-parse --git-dir &> /dev/null; then
-			# homebrew-core resolves through the JSON API by default, and a
-			# formula as it was at some commit can only be read from a clone.
-			echo "[macos.sh] WARNING: homebrew-core is not cloned here, so protobuf cannot be held" \
-				"at ${PROTOBUF_PIN_VERSION} and Gazebo's headers may fail to compile." \
-				"Run 'brew tap homebrew/core' once to enable the pin."
-		else
-			echo "[macos.sh] Installing protobuf ${PROTOBUF_PIN_VERSION} from homebrew-core ${PROTOBUF_PIN}"
-			PROTOBUF_TMP=$(mktemp -d)
-			# A clone that has not been updated since the pin was made does
-			# not have the commit yet.
-			git -C "$CORE_TAP_DIR" fetch --quiet origin "$PROTOBUF_PIN" 2> /dev/null || true
-			if git -C "$CORE_TAP_DIR" show "${PROTOBUF_PIN}:${PROTOBUF_FORMULA}" \
-				> "${PROTOBUF_TMP}/pinned.rb" 2> /dev/null; then
-				# Swap the formula in place rather than checking it out, so
-				# the clone's git state is never touched and the file comes
-				# back byte for byte whether or not the install works.
-				cp "${CORE_TAP_DIR}/${PROTOBUF_FORMULA}" "${PROTOBUF_TMP}/current.rb"
-				cp "${PROTOBUF_TMP}/pinned.rb" "${CORE_TAP_DIR}/${PROTOBUF_FORMULA}"
-				# Whatever is installed is the wrong version, and only
-				# reinstall replaces it; install alone would be a no-op.
-				if [[ -n $INSTALLED_PROTOBUF ]]; then
-					PROTOBUF_INSTALL="reinstall"
-				else
-					PROTOBUF_INSTALL="install"
-				fi
-				# brew reads this clone instead of the JSON API only with
-				# HOMEBREW_NO_INSTALL_FROM_API, and brew update would put
-				# the swapped formula back before the install. Without
-				# HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK brew would then
-				# see everything linked against the protobuf it just
-				# replaced as broken and reinstall it, which pulls the
-				# newer protobuf straight back in through opencv@4.
-				if ! HOMEBREW_NO_INSTALL_FROM_API=1 HOMEBREW_NO_AUTO_UPDATE=1 \
-					HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 \
-					brew "$PROTOBUF_INSTALL" protobuf; then
-					echo "[macos.sh] WARNING: could not install protobuf ${PROTOBUF_PIN_VERSION}," \
-						"continuing on the current one (Gazebo headers may fail to compile)"
-				fi
-				cp "${PROTOBUF_TMP}/current.rb" "${CORE_TAP_DIR}/${PROTOBUF_FORMULA}"
-			else
-				echo "[macos.sh] WARNING: homebrew-core commit ${PROTOBUF_PIN} is not available," \
-					"continuing on the current protobuf (Gazebo headers may fail to compile)"
-			fi
-			rm -rf "$PROTOBUF_TMP"
-		fi
+	PIXI_MANIFEST="${DIR}/macos/pixi.toml"
+	echo "[macos.sh] Installing Gazebo from ${PIXI_MANIFEST}"
+	pixi install --locked --manifest-path "$PIXI_MANIFEST"
+
+	# Load the Gazebo environment with the venv, so developers keep a
+	# single activation step. This is written by hand rather than taken
+	# from `pixi shell-hook`, which exports the PATH of the shell running
+	# this script instead of prepending to the user's, and sources every
+	# package's bash completions. The activate.d scripts set the paths
+	# the gz CLI (ruby gems) and renderer (OGRE) need. CMake needs the
+	# prefix spelled out: the gz config files are found through PATH, but
+	# the find_path(zmq.hpp) in gz-cmake's FindCPPZMQ is not. The env
+	# ships its own python, so the venv's bin goes back in front of it
+	# afterwards.
+	GZ_ENV_SCRIPT="$VENV_DIR/bin/px4-gz-env.sh"
+	cat > "$GZ_ENV_SCRIPT" <<-EOF
+		export CONDA_PREFIX="${DIR}/macos/.pixi/envs/default"
+		export PATH="\$CONDA_PREFIX/bin:\$PATH"
+		export CMAKE_PREFIX_PATH="\$CONDA_PREFIX\${CMAKE_PREFIX_PATH:+:\$CMAKE_PREFIX_PATH}"
+		for f in "\$CONDA_PREFIX"/etc/conda/activate.d/*.sh; do
+			. "\$f"
+		done
+		unset f
+	EOF
+	GZ_ENV_MARKER="# px4: load the Gazebo environment"
+	if ! grep -qF "$GZ_ENV_MARKER" "$VENV_DIR/bin/activate"; then
+		cat >> "$VENV_DIR/bin/activate" <<-EOF
+
+		$GZ_ENV_MARKER
+		. "\$VIRTUAL_ENV/bin/px4-gz-env.sh"
+		PATH="\$VIRTUAL_ENV/bin:\$PATH"
+		export PATH
+		EOF
 	fi
 
 	# XQuartz is required for Gazebo GUI display on macOS.

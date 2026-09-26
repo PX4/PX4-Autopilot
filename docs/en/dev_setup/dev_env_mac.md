@@ -85,6 +85,12 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
 
 The `--sim-tools` flag installs Gazebo and the libraries PX4's simulation modules build against.
 
+Gazebo does not come from Homebrew.
+The script installs it from a locked [conda-forge](https://conda-forge.org/) environment, using [pixi](https://pixi.sh), into `Tools/setup/macos/.pixi`.
+The lock file pins every package, so the install does not change when Homebrew updates its own Gazebo dependencies.
+The build and the `make px4_sitl gz_*` targets find it on their own, like the `.venv`.
+Activating `.venv` also puts it on your `PATH`, which you only need to run `gz` commands directly.
+
 If you skipped `--sim-tools` during initial setup and want to add simulation later, re-run the setup script with the flag (it is safe to run repeatedly):
 
 ```sh
@@ -108,7 +114,7 @@ arm-none-eabi-gcc --version
 cmake --version
 ninja --version
 
-# Gazebo (if --sim-tools was used)
+# Gazebo (if --sim-tools was used, with .venv activated)
 gz sim --versions
 ```
 
