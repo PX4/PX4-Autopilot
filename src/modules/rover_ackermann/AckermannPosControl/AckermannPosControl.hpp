@@ -135,6 +135,7 @@ private:
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
-		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
+		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
+		(ParamFloat<px4::params::RO_WHEEL_RAD>)      _param_ro_wheel_radius
 	)
 };
