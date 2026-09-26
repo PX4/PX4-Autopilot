@@ -43,6 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <ctype.h>
 #include <string.h>
+#include <pthread.h>
 
 #ifdef __PX4_NUTTX
 #include <net/if.h>
@@ -151,7 +152,7 @@ int ZENOH::generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *ri
 }
 
 int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const char *topic, const uint8_t *rihs_hash,
-		char *type_camel_case, char *keyexpr, const char *entity_str)
+		char *type_camel_case, char *keyexpr, const char *entity_str, const char *qos_str)
 {
 	// NOT REALLY COMPLIANT WITH RMW_ZENOH_CPP but get's the job done
 	// TODO build a correct keyexpr
@@ -179,7 +180,7 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 			"%02x%02x%02x%02x%02x%02x%02x%02x"
 			"%02x%02x%02x%02x%02x%02x%02x%02x"
 			"%02x%02x%02x%02x%02x%02x%02x%02x"
-			"/::,7:,:,:,,",
+			"/%s::,7:,:,:,,",
 			_zenoh_domain_id.get(),
 			id->id[0], id->id[1],  id->id[2], id->id[3], id->id[4], id->id[5], id->id[6],
 			id->id[7], id->id[8],  id->id[9], id->id[10], id->id[11], id->id[12], id->id[13],
@@ -197,7 +198,8 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 			rihs_hash[16], rihs_hash[17], rihs_hash[18], rihs_hash[19],
 			rihs_hash[20], rihs_hash[21], rihs_hash[22], rihs_hash[23],
 			rihs_hash[24], rihs_hash[25], rihs_hash[26], rihs_hash[27],
-			rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
+			rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31],
+			qos_str
 		       );
 #else
 	return snprintf(keyexpr, KEYEXPR_SIZE,
@@ -205,7 +207,7 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 			"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/"
 			"0/11/%s/%%/%%/px4_%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/%s/"
 			KEYEXPR_MSG_NAME "%s_/TypeHashNotSupported"
-			"/::,7:,:,:,,",
+			"/%s::,7:,:,:,,",
 			_zenoh_domain_id.get(),
 			id->id[0], id->id[1],  id->id[2], id->id[3], id->id[4], id->id[5], id->id[6],
 			id->id[7], id->id[8],  id->id[9], id->id[10], id->id[11], id->id[12], id->id[13],
@@ -215,7 +217,8 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 			_px4_guid[4], _px4_guid[5], _px4_guid[6], _px4_guid[7],
 			_px4_guid[8], _px4_guid[9], _px4_guid[10], _px4_guid[11],
 			_px4_guid[12], _px4_guid[13], _px4_guid[14], _px4_guid[15],
-			topic_lv, type_camel_case
+			topic_lv, type_camel_case,
+			qos_str
 		       );
 #endif
 }
@@ -328,10 +331,28 @@ int ZENOH::setupSession()
 	} while ((ret = z_open(&_s, z_move(config), NULL)) < 0);
 
 	// Start read and lease tasks for zenoh-pico
-	if (zp_start_read_task(z_loan_mut(_s), NULL) < 0 || zp_start_lease_task(z_loan_mut(_s), NULL) < 0) {
+	// Large messages (e.g. arming_check_reply) overflow the ~2KB default pthread stack.
+	// Give both tasks a larger stack (CONFIG_ZENOH_TASK_STACK_SIZE) to avoid this.
+
+	pthread_attr_t task_attr;
+	pthread_attr_init(&task_attr);
+	pthread_attr_setstacksize(&task_attr, CONFIG_ZENOH_TASK_STACK_SIZE);
+
+	zp_task_read_options_t read_opts;
+	zp_task_read_options_default(&read_opts);
+	read_opts.task_attributes = &task_attr;
+
+	zp_task_lease_options_t lease_opts;
+	zp_task_lease_options_default(&lease_opts);
+	lease_opts.task_attributes = &task_attr;
+
+	if (zp_start_read_task(z_loan_mut(_s), &read_opts) < 0
+		|| zp_start_lease_task(z_loan_mut(_s), &lease_opts) < 0) {
 		PX4_ERR("Unable to start read and lease tasks");
 		ret = -EINVAL;
 	}
+
+	pthread_attr_destroy(&task_attr);
 
 	return ret;
 }
@@ -472,7 +493,20 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 					_zenoh_publishers[i]->setPollFD(&pfds[i]);
 #ifdef CONFIG_ZENOH_RMW_LIVELINESS
 
-					if (generate_rmw_zenoh_topic_liveliness_keyexpr(&self_id, topic, rihs_hash, type, keyexpr, "MP") > 0) {
+					// rmw_zenoh matches publisher/subscriber QoS via the profile
+					// encoded in the liveliness token keyexpr (not via the zenoh-pico
+					// transport reliability).
+					const char *pub_qos_str = "";
+#if defined(CONFIG_ZENOH_PUB_OPTION_OVERRIDE) && defined(Z_FEATURE_UNSTABLE_API)
+
+					if (pub_opts.reliability == Z_RELIABILITY_BEST_EFFORT) {
+						pub_qos_str = "2";
+					}
+
+#endif
+
+					if (generate_rmw_zenoh_topic_liveliness_keyexpr(&self_id, topic, rihs_hash, type, keyexpr, "MP",
+							pub_qos_str) > 0) {
 						z_view_keyexpr_t ke;
 
 						if (z_view_keyexpr_from_str(&ke, keyexpr) < 0) {
