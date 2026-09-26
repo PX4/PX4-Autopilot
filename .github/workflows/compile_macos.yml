@@ -31,7 +31,7 @@ jobs:
       uses: actions/cache@v5
       with:
         path: ~/Library/Caches/Homebrew/downloads
-        key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh', 'Tools/setup/macos_ci_pins.sh', 'Tools/setup/homebrew-pins.txt', 'Tools/setup/protobuf-pin.txt', 'Tools/setup/gz-tap-pin.txt') }}
+        key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh', 'Tools/setup/macos_ci_pins.sh', 'Tools/setup/homebrew-pins.txt') }}
         restore-keys: |
           macos-homebrew-${{ runner.arch }}-
 
@@ -61,7 +61,9 @@ jobs:
         max-size: 200M
 
     - name: Build px4_sitl
-      run: make px4_sitl
+      run: |
+        source .venv/bin/activate
+        make px4_sitl
 
     - name: Cache - Stats after px4_sitl
       run: ccache -s

@@ -184,6 +184,14 @@ set(Python3_FIND_STRATEGY LOCATION)
 set(Python3_FIND_FRAMEWORK LAST)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+# macOS installs Gazebo into a project-local pixi environment
+# (Tools/setup/macos/pixi.toml). Search it like the .venv above, so the
+# gz modules still build when the venv is not activated.
+set(PX4_MACOS_GZ_PREFIX "${CMAKE_CURRENT_LIST_DIR}/Tools/setup/macos/.pixi/envs/default")
+if(APPLE AND EXISTS "${PX4_MACOS_GZ_PREFIX}")
+	list(APPEND CMAKE_PREFIX_PATH "${PX4_MACOS_GZ_PREFIX}")
+endif()
+
 # Preserve PYTHON_EXECUTABLE as passed if any (e.g. via -D on command
 # line, or from the top Makefile); or else default to what
 # find_package(Python3) resolved. Promote to a CACHE FILEPATH entry so
