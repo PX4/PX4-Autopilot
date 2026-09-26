@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,19 +31,14 @@
 #
 ############################################################################
 
-px4_add_library(sensor_calibration
-	Accelerometer.cpp
-	Accelerometer.hpp
-	Barometer.cpp
-	Barometer.hpp
-	DifferentialPressure.cpp
-	DifferentialPressure.hpp
-	Gyroscope.cpp
-	Gyroscope.hpp
-	Magnetometer.cpp
-	Magnetometer.hpp
-	Utilities.cpp
-	Utilities.hpp
+px4_add_library(vehicle_airspeed
+	VehicleAirspeed.cpp
+	VehicleAirspeed.hpp
 )
-
-target_link_libraries(sensor_calibration PRIVATE conversion)
+target_link_libraries(vehicle_airspeed
+	PRIVATE
+		airspeed
+		data_validator
+		px4_work_queue
+		sensor_calibration
+)

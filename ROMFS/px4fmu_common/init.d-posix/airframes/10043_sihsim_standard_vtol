@@ -80,7 +80,6 @@ param set-default MAV_TYPE 22
 # set SYS_HITL to 2 to start the SIH and avoid sensors startup
 # param set-default SYS_HITL 2
 
-param set-default SENS_DPRES_OFF 0.001
 
 param set SIH_T_MAX 2
 param set SIH_Q_MAX 0.0165

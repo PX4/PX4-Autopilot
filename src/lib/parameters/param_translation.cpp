@@ -75,6 +75,18 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-09-16: SENS_DPRES_OFF (single global zero offset) replaced by the per-sensor
+	// CAL_DPRESx_OFF calibration. The value is carried into slot 0; the matching
+	// CAL_DPRES0_ID is claimed at runtime by the first airspeed sensor, because the device
+	// ID is not known at import time.
+	{
+		if (strcmp("SENS_DPRES_OFF", node->name) == 0) {
+			strcpy(node->name, "CAL_DPRES0_OFF");
+			PX4_INFO("copying %s -> %s", "SENS_DPRES_OFF", "CAL_DPRES0_OFF");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	// 2024-04-15 SYS_MC_EST_GROUP removed
 	if ((node->type == bson_type_t::BSON_INT32) && (strcmp("SYS_MC_EST_GROUP", node->name) == 0)) {
 

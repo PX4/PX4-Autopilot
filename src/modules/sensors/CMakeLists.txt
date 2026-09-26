@@ -45,6 +45,10 @@ if(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 	add_subdirectory(vehicle_air_data)
 endif()
 
+if(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+	add_subdirectory(vehicle_airspeed)
+endif()
+
 if(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 	add_subdirectory(vehicle_angular_velocity)
 endif()
@@ -94,7 +98,7 @@ if(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_AIRSPEED)
-	target_link_libraries(modules__sensors PRIVATE airspeed)
+	target_link_libraries(modules__sensors PRIVATE vehicle_airspeed)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)

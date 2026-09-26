@@ -59,18 +59,9 @@ Sensors::Sensors(bool hil_enabled) :
 #endif // CONFIG_SENSORS_VEHICLE_ACCELERATION
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
-	/* Differential pressure offset */
-	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	_parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-	_parameter_handles.air_cmodel = param_find("CAL_AIR_CMODEL");
-	_parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
-	_parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
-
-	_airspeed_validator.set_timeout(300000);
-	_airspeed_validator.set_equal_value_threshold(100);
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 #if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
@@ -114,6 +105,17 @@ Sensors::~Sensors()
 	}
 
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
+
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+
+	for (auto &airspeed : _vehicle_airspeed_list) {
+		if (airspeed) {
+			airspeed->Stop();
+			delete airspeed;
+		}
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 
@@ -166,15 +168,9 @@ int Sensors::parameters_update()
 	}
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
-	/* Airspeed offset */
-	param_get(_parameter_handles.diff_pres_offset_pa, &(_parameters.diff_pres_offset_pa));
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	param_get(_parameter_handles.diff_pres_analog_scale, &(_parameters.diff_pres_analog_scale));
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-	param_get(_parameter_handles.air_cmodel, &_parameters.air_cmodel);
-	param_get(_parameter_handles.air_tube_length, &_parameters.air_tube_length);
-	param_get(_parameter_handles.air_tube_diameter_mm, &_parameters.air_tube_diameter_mm);
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 	_voted_sensors_update.parametersUpdate();
@@ -263,93 +259,6 @@ int Sensors::parameters_update()
 }
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
-void Sensors::diff_pres_poll()
-{
-	differential_pressure_s diff_pres{};
-
-	if (_diff_pres_sub.update(&diff_pres)) {
-
-		if (!PX4_ISFINITE(diff_pres.differential_pressure_pa)) {
-			// ignore invalid data and reset accumulated
-
-			// reset
-			_diff_pres_timestamp_sum = 0;
-			_diff_pres_pressure_sum = 0;
-			_diff_pres_temperature_sum = 0;
-			_baro_pressure_sum = 0;
-			_diff_pres_count = 0;
-			return;
-		}
-
-		vehicle_air_data_s air_data{};
-		_vehicle_air_data_sub.copy(&air_data);
-		const float temperature = air_data.ambient_temperature;
-
-		// push raw data into validator
-		float airspeed_input[3] { diff_pres.differential_pressure_pa, 0.0f, 0.0f };
-		_airspeed_validator.put(diff_pres.timestamp_sample, airspeed_input, diff_pres.error_count, 100); // TODO: real priority?
-
-		// accumulate average for publication
-		_diff_pres_timestamp_sum += diff_pres.timestamp_sample;
-		_diff_pres_pressure_sum += diff_pres.differential_pressure_pa;
-		_baro_pressure_sum += air_data.baro_pressure_pa;
-		_diff_pres_count++;
-
-		if ((_diff_pres_count > 0) && hrt_elapsed_time(&_airspeed_last_publish) >= 50_ms) {
-
-			// average data and apply calibration offset (SENS_DPRES_OFF)
-			const uint64_t timestamp_sample = _diff_pres_timestamp_sum / _diff_pres_count;
-			const float differential_pressure_pa = _diff_pres_pressure_sum / _diff_pres_count - _parameters.diff_pres_offset_pa;
-			const float baro_pressure_pa = _baro_pressure_sum / _diff_pres_count;
-
-			// reset
-			_diff_pres_timestamp_sum = 0;
-			_diff_pres_pressure_sum = 0;
-			_baro_pressure_sum = 0;
-			_diff_pres_count = 0;
-
-
-			enum AIRSPEED_SENSOR_MODEL smodel;
-
-			switch ((diff_pres.device_id >> 16) & 0xFF) {
-			case DRV_DIFF_PRESS_DEVTYPE_SDP31:
-
-			// fallthrough
-			case DRV_DIFF_PRESS_DEVTYPE_SDP32:
-
-			// fallthrough
-			case DRV_DIFF_PRESS_DEVTYPE_SDP33:
-				smodel = AIRSPEED_SENSOR_MODEL_SDP3X;
-				break;
-
-			default:
-				smodel = AIRSPEED_SENSOR_MODEL_MEMBRANE;
-				break;
-			}
-
-			float indicated_airspeed_m_s = calc_IAS_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
-						       smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-						       differential_pressure_pa, baro_pressure_pa, temperature);
-
-			// assume that CAS = IAS as we don't have an CAS-scale here
-			float true_airspeed_m_s = calc_TAS_from_CAS(indicated_airspeed_m_s, baro_pressure_pa, temperature);
-
-			if (PX4_ISFINITE(indicated_airspeed_m_s) && PX4_ISFINITE(true_airspeed_m_s)) {
-
-				airspeed_s airspeed;
-				airspeed.timestamp_sample = timestamp_sample;
-				airspeed.indicated_airspeed_m_s = indicated_airspeed_m_s;
-				airspeed.true_airspeed_m_s = true_airspeed_m_s;
-				airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
-				airspeed.timestamp = hrt_absolute_time();
-				_airspeed_pub.publish(airspeed);
-
-				_airspeed_last_publish = airspeed.timestamp;
-			}
-		}
-	}
-}
-
 void Sensors::adc_poll()
 {
 	/* only read if not in HIL mode */
@@ -416,6 +325,32 @@ void Sensors::InitializeVehicleAirData()
 	}
 }
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
+
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+void Sensors::InitializeVehicleAirspeed()
+{
+	// create a VehicleAirspeed instance for each advertised differential pressure sensor.
+	for (uint8_t i = 0; i < calibration::DifferentialPressure::MAX_SENSOR_COUNT; i++) {
+		if (_vehicle_airspeed_list[i] == nullptr) {
+
+			uORB::Subscription differential_pressure_sub{ORB_ID(differential_pressure), i};
+
+			if (differential_pressure_sub.advertised()) {
+				VehicleAirspeed *airspeed = new VehicleAirspeed(i);
+
+				if (airspeed != nullptr) {
+					if (airspeed->Start()) {
+						_vehicle_airspeed_list[i] = airspeed;
+
+					} else {
+						delete airspeed;
+					}
+				}
+			}
+		}
+	}
+}
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 void Sensors::InitializeVehicleGPSPosition()
@@ -610,7 +545,7 @@ void Sensors::Run()
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	// check analog airspeed
 	adc_poll();
-	diff_pres_poll();
+	InitializeVehicleAirspeed();
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 	// backup schedule as a watchdog timeout
@@ -695,7 +630,13 @@ int Sensors::print_status()
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	PX4_INFO_RAW("\n");
 	PX4_INFO_RAW("Airspeed status:\n");
-	_airspeed_validator.print();
+
+	for (auto &airspeed : _vehicle_airspeed_list) {
+		if (airspeed) {
+			airspeed->PrintStatus();
+		}
+	}
+
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
