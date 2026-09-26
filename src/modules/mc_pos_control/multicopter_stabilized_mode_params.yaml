@@ -41,18 +41,9 @@ parameters:
       description:
         short: Thrust curve mapping in Stabilized Mode
         long: |-
-          Defines how the throttle stick is mapped to collective thrust in Stabilized mode.
-
-          Rescale to hover thrust estimate:
-          Stick input is linearly rescaled, such that a centered throttle stick corresponds to the hover thrust estimator's output.
-
-          No rescale:
-          Directly map the stick 1:1 to the output.
-          Can be useful with very low hover thrust which leads to much distortion and the upper half getting sensitive.
-
-          Rescale to hover thrust parameter:
-          Similar to rescaling to the hover thrust estimate, but it uses the hover thrust parameter value (see MPC_THR_HOVER) instead of estimated value.
-          With MPC_THR_HOVER 0.5 it's equivalent to No rescale.
+          Rescale to estimate: stick is rescaled linearly so center stick gives the hover thrust estimate.
+          No rescale: stick maps 1:1 to thrust; useful with very low hover thrust, where rescaling distorts the curve and makes the upper half sensitive.
+          Rescale to parameter: as Rescale to estimate, but uses MPC_THR_HOVER; with MPC_THR_HOVER 0.5 same as No rescale.
       type: enum
       values:
         0: Rescale to estimate

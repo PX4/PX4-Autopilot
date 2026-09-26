@@ -5,19 +5,12 @@ parameters:
     EKF2_RNG_CTRL:
       description:
         short: Range sensor height aiding
-        long: 'WARNING: Range finder measurements are less reliable and can experience
-          unexpected errors. For these reasons, if accurate control of height relative
-          to ground is required, it is recommended to use the MPC_ALT_MODE parameter
-          instead, unless baro errors are severe enough to cause problems with landing
-          and takeoff. If this parameter is enabled then the estimator
-          will make use of the range finder measurements to estimate its height in
-          addition to other height sources (if activated). Range sensor aiding can
-          be enabled (i.e.: always use) or set in "conditional" mode. Conditional
-          mode: This enables the range finder to be used during low speed (< EKF2_RNG_A_VMAX)
-          and low altitude (< EKF2_RNG_A_HMAX) operation, eg takeoff and landing,
-          where baro interference from rotor wash is excessive and can corrupt EKF
-          state estimates. It is intended to be used where a vertical takeoff and
-          landing is performed, and horizontal flight does not occur until above EKF2_RNG_A_HMAX.'
+        long: 'WARNING: range finders are less reliable and can have unexpected errors.
+          For accurate height above ground, use MPC_ALT_MODE instead, unless baro errors
+          cause problems at takeoff and landing. Fuses range as an additional height
+          source. Conditional mode only fuses it below EKF2_RNG_A_VMAX speed and
+          EKF2_RNG_A_HMAX height, where rotor wash corrupts the baro; for vertical
+          takeoff and landing with no horizontal flight below EKF2_RNG_A_HMAX.'
       type: enum
       values:
         0: Disable range fusion
