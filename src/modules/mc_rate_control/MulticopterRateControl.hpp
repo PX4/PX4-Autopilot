@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/rate_control/gain_compression.hpp>
 #include <lib/rate_control/rate_control.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/matrix/matrix/math.hpp>
@@ -93,6 +94,7 @@ private:
 	void updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint, float dt);
 
 	RateControl _rate_control; ///< class for rate control calculations
+	GainCompression3dMc _gain_compression{this}; ///< reduces the loop gain when an oscillation is detected
 
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};

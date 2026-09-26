@@ -29,6 +29,7 @@
       - [Vision Target Estimator Deep Dive](advanced_features/vision_target_estimator_advanced.md)
     - [Terrain Following/Holding](flying/terrain_following_holding.md)
     - [Throw Launch](flight_modes_mc/throw_launch.md)
+    - [Gain compression](features_mc/gain_compression.md)
   - [Assembly](assembly/assembly_mc.md)
   - [Configuration/Tuning](config_mc/index.md)
     - [Auto-tune](config/autotune_mc.md)
