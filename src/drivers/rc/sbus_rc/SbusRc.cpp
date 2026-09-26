@@ -35,6 +35,8 @@
 
 #include <termios.h>
 
+#include <lib/rc/rc_uart.hpp>
+
 ModuleBase::Descriptor SbusRc::desc{task_spawn, custom_command, print_usage};
 
 SbusRc::SbusRc(const char *device) :
@@ -130,6 +132,11 @@ int SbusRc::task_spawn(int argc, char *argv[])
 void SbusRc::Run()
 {
 	if (should_exit()) {
+		if (_rcs_fd >= 0 && !board_rc_invert_input(_device, false)) {
+#if defined(TIOCSINVERT)
+			ioctl(_rcs_fd, TIOCSINVERT, 0);
+#endif
+		}
 
 		close(_rcs_fd);
 
@@ -148,11 +155,11 @@ void SbusRc::Run()
 		updateParams();
 	}
 
+	_analog_rssi.update();
+
 	const hrt_abstime cycle_timestamp = hrt_absolute_time();
 
 	bool rc_updated = false;
-
-	constexpr hrt_abstime rc_scan_max = 3_s;
 
 	// read all available data from the serial RC input UART
 	uint8_t rcs_buf[SBUS_BUFFER_SIZE] {};
@@ -173,6 +180,7 @@ void SbusRc::Run()
 		}
 
 		sbus_config(_rcs_fd, board_rc_singlewire(_device));
+		rc_uart_configure(_rcs_fd, _device);
 
 		// First check if the board provides a board-specific inversion method (e.g. via GPIO),
 		// and if not use an IOCTL
@@ -185,8 +193,7 @@ void SbusRc::Run()
 		// flush serial buffer and any existing buffered data
 		tcflush(_rcs_fd, TCIOFLUSH);
 
-	} else if (_rc_scan_locked
-		   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+	} else {
 
 		if (newBytes > 0) {
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
@@ -227,6 +234,8 @@ void SbusRc::Run()
 					input_rc.rssi = math::constrain(rc_rssi, 0, 100);
 				}
 
+				_analog_rssi.fill_missing(input_rc.rssi);
+
 				if (valid_chans == 0) {
 					input_rc.rssi = 0;
 				}
@@ -251,12 +260,6 @@ void SbusRc::Run()
 			}
 		}
 
-	} else {
-		_rc_scan_begin = 0;
-		_rc_scan_locked = false;
-
-		close(_rcs_fd);
-		_rcs_fd = -1;
 	}
 
 	if (!rc_updated && (hrt_elapsed_time(&_timestamp_last_signal) > 1_s)) {
@@ -293,6 +296,8 @@ int SbusRc::print_status()
 	}
 
 	PX4_INFO("RC state: %s", _rc_scan_locked ? "found" : "searching for signal");
+
+	_analog_rssi.print_status();
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_publish_interval_perf);
