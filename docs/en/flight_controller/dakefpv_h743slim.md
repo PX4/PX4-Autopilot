@@ -190,11 +190,9 @@ The three-pad solder jumper silkscreened `Dji` and `VTX` selects what the HD VTX
 It is not in the OSD's transmit path, so it does not affect MSP DisplayPort output.
 :::
 
-::: info UART4 is swapped in firmware to match the connector
-This variant shares the H743 Pro's UART4 pin mapping (PB8/PB9) and its HD VTX connector, on which pin 3 — the pin a standard DJI/OpenIPC harness expects to carry the flight controller's TX — is routed to PB8.
-The STM32H743 offers UART4 TX only on PB9 and RX only on PB8, so PX4 swaps the UART4 peripheral itself (`USART_CR2_SWAP`, applied once during board start-up) and a stock harness works as labelled.
-This is automatic — there is nothing to configure.
-See the [H743 Pro](dakefpv_h743pro.md) page for the full explanation.
+::: info
+UART4 is on PB8/PB9, the same as on the H743 Pro, but this variant has no HD VTX connector.
+The `Tx4`/`Rx4` pads are wired straight through (`Tx4` is TX), so PX4 does not swap UART4 here, unlike on the [H743 Pro](dakefpv_h743pro.md).
 :::
 
 ## PX4 Bootloader Update {#bootloader}
