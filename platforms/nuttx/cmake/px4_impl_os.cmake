@@ -214,8 +214,16 @@ function(px4_os_prebuild_targets)
 			REQUIRED OUT
 			ARGN ${ARGN})
 
+	set(NUTTX_CONFIG_FRAGMENT "" CACHE INTERNAL "NuttX config fragment" FORCE)
+
 	if(EXISTS ${PX4_BOARD_DIR}/nuttx-config/${PX4_BOARD_LABEL})
 		set(NUTTX_CONFIG "${PX4_BOARD_LABEL}" CACHE INTERNAL "NuttX config" FORCE)
+	elseif(EXISTS ${PX4_BOARD_DIR}/nuttx-config/${PX4_BOARD_LABEL}.config)
+		# Fragment label: nsh/defconfig plus the options in <label>.config,
+		# appended before olddefconfig. Avoids a full defconfig copy for a
+		# few lines; the savedefconfig write-back targets are disabled for it.
+		set(NUTTX_CONFIG "nsh" CACHE INTERNAL "NuttX config" FORCE)
+		set(NUTTX_CONFIG_FRAGMENT "${PX4_BOARD_DIR}/nuttx-config/${PX4_BOARD_LABEL}.config" CACHE INTERNAL "NuttX config fragment" FORCE)
 	elseif("${PX4_BOARD_LABEL}" MATCHES "^bootloader" AND EXISTS ${PX4_BOARD_DIR}/nuttx-config/bootloader)
 		# Bootloader variants (e.g. bootloader_secureboot) share the
 		# minimal "bootloader" NuttX config; falling back to "nsh"
