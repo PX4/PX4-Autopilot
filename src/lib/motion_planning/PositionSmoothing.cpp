@@ -222,12 +222,18 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 		// Z clamping from reducing XY speed (and vice versa)
 		const Vector3f pos_to_dest = crossing_point - pos_traj;
 		const Vector2f u_pos_to_dest_xy = Vector2f(pos_to_dest).unit_or_zero();
-		const float z_sign = matrix::sign(pos_to_dest(2));
+
+		// Project the 3D approach velocity onto Z before applying its speed limit. The
+		// limit can remain nonzero at the target altitude when the next waypoint changes
+		// altitude. Using only the sign of the height error would then command full-speed
+		// reversals and cause an altitude limit cycle during otherwise level flight.
+		const float approach_speed = sqrtf(xy_speed * xy_speed + z_speed * z_speed);
+		const float vel_sp_z = math::constrain(u_pos_traj_to_dest(2) * approach_speed, -z_speed, z_speed);
 
 		Vector3f vel_sp_constrained{
 			u_pos_to_dest_xy(0) *xy_speed,
 			u_pos_to_dest_xy(1) *xy_speed,
-			z_sign *z_speed
+			vel_sp_z
 		};
 
 		for (int i = 0; i < 3; i++) {
