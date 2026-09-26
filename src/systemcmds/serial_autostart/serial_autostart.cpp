@@ -84,7 +84,7 @@ static int run_argv(char *argv[], int argc)
 	// Same sequence as nsh_builtin: the lock keeps the child from running to
 	// completion before waitpid registers, which would report ECHILD.
 	sched_lock();
-	const int pid = exec_builtin(argv[0], argv, nullptr, 0);
+	const int pid = exec_builtin(argv[0], argv, nullptr);
 
 	if (pid < 0) {
 		sched_unlock();
