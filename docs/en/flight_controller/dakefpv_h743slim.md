@@ -41,7 +41,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical data {#electrical_data}
 
-- **Battery input:** 2S–12S LiPo
+- **Battery input:** 3S–12S LiPo
 - **BEC 5V:** 2A
 - **Power monitoring:** analog battery voltage and current
 
@@ -60,7 +60,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 | Pin              | Function                                               | PX4 Default    |
 | ---------------- | ------------------------------------------------------ | -------------- |
-| `Vbat`           | Battery positive voltage (2S–12S)                      |                |
+| `Vbat`           | Battery positive voltage (3S–12S)                      |                |
 | `DA1`, `CL1`     | I2C peripheral interface (SDA/SCL)                     |                |
 | `5V`             | 5V output (2A max) BEC power supply                    |                |
 | `4V5`            | 4.5V output or USB power supply                        |                |
@@ -84,10 +84,16 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | `S5`–`S8`        | Motor outputs (TIM2: PA0–PA3)                          |                |
 | `S9`–`S12`       | Servo outputs (TIM4: PD12–PD15)                        |                |
 | `LED`            | WS2812 LED strip (TIM3_CH3, PB0), not supported by PX4 |                |
+| `C1`, `C2`       | Analog camera inputs, selected by `PIO1`               |                |
+| `VTX`            | Analog video output to the VTX (with OSD overlay)      |                |
+| `PIO1`           | Camera switch (PE2): high selects `C1`, low `C2`       |                |
+| `PIO2`           | User-defined output (PE3)                              |                |
+| `PIO3`           | Bluetooth module enable (PE4)                          |                |
+| `PIO4`           | CAN1 transceiver silent control (PD2)                  |                |
 
 ## Power {#power}
 
-The board is powered from a 2S–12S LiPo battery (see [Electrical data](#electrical_data) for the BEC outputs).
+The board is powered from a 3S–12S LiPo battery (see [Electrical data](#electrical_data) for the BEC outputs).
 
 Battery voltage and current are measured by the board's analog inputs, with the current from the `Cur` pad.
 The default scaling is [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) = `16.0` and [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) = `83.3`; check these against your battery and ESC as described in [Battery Estimation Tuning](../config/battery.md).
