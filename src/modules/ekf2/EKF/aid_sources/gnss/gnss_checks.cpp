@@ -40,6 +40,21 @@
 
 namespace estimator
 {
+namespace
+{
+constexpr uint16_t bit(uint8_t check) { return 1u << check; }
+
+constexpr uint16_t kDriftChecks =
+	bit(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT) | bit(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT) |
+	bit(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR) | bit(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR);
+
+// nsats and PDOP keep their last pre-flight result, so a check enabled in flight must not fail on it.
+constexpr uint16_t kSimplifiedChecks =
+	bit(estimator_status_s::GPS_CHECK_FAIL_GPS_FIX) | bit(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR) |
+	bit(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR) | bit(estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR) |
+	bit(estimator_status_s::GPS_CHECK_FAIL_SPOOFED) | bit(estimator_status_s::GPS_CHECK_FAIL_JAMMED);
+}
+
 bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 {
 	// assume failed first time through
@@ -86,90 +101,67 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 	return _passed;
 }
 
+void GnssChecks::setFail(uint8_t check, bool failed)
+{
+	if (failed) {
+		_fail_flags |= bit(check);
+
+	} else {
+		_fail_flags &= ~bit(check);
+	}
+}
+
 bool GnssChecks::runSimplifiedChecks(const gnssSample &gnss)
 {
-	_check_fail_status.flags.fix = (gnss.fix_type < 3);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_GPS_FIX, gnss.fix_type < 3);
 
 	// Check the reported horizontal and vertical position accuracy
-	_check_fail_status.flags.hacc = (gnss.hacc > 50.f);
-	_check_fail_status.flags.vacc = (gnss.vacc > 50.f);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR, gnss.hacc > 50.f);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR, gnss.vacc > 50.f);
 
 	// Check the reported speed accuracy
-	_check_fail_status.flags.sacc = (gnss.sacc > 10.f);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR, gnss.sacc > 10.f);
 
-	_check_fail_status.flags.spoofed = gnss.spoofed;
-	_check_fail_status.flags.jammed = gnss.jammed;
+	setFail(estimator_status_s::GPS_CHECK_FAIL_SPOOFED, gnss.spoofed);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_JAMMED, gnss.jammed);
 
-	bool passed = true;
-
-	if (
-		(_check_fail_status.flags.fix     && isCheckEnabled(GnssChecksMask::kFix)) ||
-		(_check_fail_status.flags.hacc    && isCheckEnabled(GnssChecksMask::kHacc)) ||
-		(_check_fail_status.flags.vacc    && isCheckEnabled(GnssChecksMask::kVacc)) ||
-		(_check_fail_status.flags.sacc    && isCheckEnabled(GnssChecksMask::kSacc)) ||
-		(_check_fail_status.flags.spoofed && isCheckEnabled(GnssChecksMask::kSpoofed)) ||
-		(_check_fail_status.flags.jammed  && isCheckEnabled(GnssChecksMask::kJammed))
-	) {
-		passed = false;
-	}
-
-	return passed;
+	return enabledChecksPass(kSimplifiedChecks);
 }
 
 bool GnssChecks::runInitialFixChecks(const gnssSample &gnss)
 {
 	// Check the fix type
-	_check_fail_status.flags.fix = (gnss.fix_type < _params.ekf2_req_fix);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_GPS_FIX, gnss.fix_type < _params.ekf2_req_fix);
 
 	// Check the number of satellites
-	_check_fail_status.flags.nsats = (gnss.nsats < _params.ekf2_req_nsats);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT, gnss.nsats < _params.ekf2_req_nsats);
 
 	// Check the position dilution of precision
-	_check_fail_status.flags.pdop = (gnss.pdop > _params.ekf2_req_pdop);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP, gnss.pdop > _params.ekf2_req_pdop);
 
 	// Check the reported horizontal and vertical position accuracy
-	_check_fail_status.flags.hacc = (gnss.hacc > _params.ekf2_req_eph);
-	_check_fail_status.flags.vacc = (gnss.vacc > _params.ekf2_req_epv);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR, gnss.hacc > _params.ekf2_req_eph);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR, gnss.vacc > _params.ekf2_req_epv);
 
 	// Check the reported speed accuracy
-	_check_fail_status.flags.sacc = (gnss.sacc > _params.ekf2_req_sacc);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR, gnss.sacc > _params.ekf2_req_sacc);
 
-	_check_fail_status.flags.spoofed = gnss.spoofed;
-	_check_fail_status.flags.jammed = gnss.jammed;
+	setFail(estimator_status_s::GPS_CHECK_FAIL_SPOOFED, gnss.spoofed);
+	setFail(estimator_status_s::GPS_CHECK_FAIL_JAMMED, gnss.jammed);
 
 	runOnGroundGnssChecks(gnss);
 
 	// force horizontal speed failure if above the limit
 	if (gnss.vel.xy().longerThan(_params.ekf2_vel_lim)) {
-		_check_fail_status.flags.hspeed = true;
+		setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR, true);
 	}
 
 	// force vertical speed failure if above the limit
 	if (fabsf(gnss.vel(2)) > _params.ekf2_vel_lim) {
-		_check_fail_status.flags.vspeed = true;
+		setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR, true);
 	}
 
-	bool passed = true;
-
-	// if any user selected checks have failed, record the fail time
-	if (
-		(_check_fail_status.flags.fix     && isCheckEnabled(GnssChecksMask::kFix)) ||
-		(_check_fail_status.flags.nsats   && isCheckEnabled(GnssChecksMask::kNsats)) ||
-		(_check_fail_status.flags.pdop    && isCheckEnabled(GnssChecksMask::kPdop)) ||
-		(_check_fail_status.flags.hacc    && isCheckEnabled(GnssChecksMask::kHacc)) ||
-		(_check_fail_status.flags.vacc    && isCheckEnabled(GnssChecksMask::kVacc)) ||
-		(_check_fail_status.flags.sacc    && isCheckEnabled(GnssChecksMask::kSacc)) ||
-		(_check_fail_status.flags.hdrift  && isCheckEnabled(GnssChecksMask::kHdrift)) ||
-		(_check_fail_status.flags.vdrift  && isCheckEnabled(GnssChecksMask::kVdrift)) ||
-		(_check_fail_status.flags.hspeed  && isCheckEnabled(GnssChecksMask::kHspd)) ||
-		(_check_fail_status.flags.vspeed  && isCheckEnabled(GnssChecksMask::kVspd)) ||
-		(_check_fail_status.flags.spoofed && isCheckEnabled(GnssChecksMask::kSpoofed)) ||
-		(_check_fail_status.flags.jammed  && isCheckEnabled(GnssChecksMask::kJammed))
-	) {
-		passed = false;
-	}
-
-	return passed;
+	return enabledChecksPass(UINT16_MAX);
 }
 
 void GnssChecks::runOnGroundGnssChecks(const gnssSample &gnss)
@@ -215,11 +207,11 @@ void GnssChecks::runOnGroundGnssChecks(const gnssSample &gnss)
 
 		// hdrift: calculate the horizontal drift speed and fail if too high
 		_horizontal_position_drift_rate_m_s = Vector2f(_lat_lon_alt_deriv_filt.xy()).norm();
-		_check_fail_status.flags.hdrift = (_horizontal_position_drift_rate_m_s > _params.ekf2_req_hdrift);
+		setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT, _horizontal_position_drift_rate_m_s > _params.ekf2_req_hdrift);
 
 		// vdrift: fail if the vertical drift speed is too high
 		_vertical_position_drift_rate_m_s = fabsf(_lat_lon_alt_deriv_filt(2));
-		_check_fail_status.flags.vdrift = (_vertical_position_drift_rate_m_s > _params.ekf2_req_vdrift);
+		setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT, _vertical_position_drift_rate_m_s > _params.ekf2_req_vdrift);
 
 		// hspeed: check the magnitude of the filtered horizontal GNSS velocity
 		const Vector2f vel_ne = matrix::constrain(Vector2f(gnss.vel.xy()),
@@ -227,14 +219,14 @@ void GnssChecks::runOnGroundGnssChecks(const gnssSample &gnss)
 					10.0f * _params.ekf2_req_hdrift);
 		_vel_ne_filt = vel_ne * filter_coef + _vel_ne_filt * (1.0f - filter_coef);
 		_filtered_horizontal_velocity_m_s = _vel_ne_filt.norm();
-		_check_fail_status.flags.hspeed = (_filtered_horizontal_velocity_m_s > _params.ekf2_req_hdrift);
+		setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR, _filtered_horizontal_velocity_m_s > _params.ekf2_req_hdrift);
 
 		// vspeed: check the magnitude of the filtered vertical GNSS velocity
 		const float gnss_vz_limit = 10.f * _params.ekf2_req_vdrift;
 		const float gnss_vz = math::constrain(gnss.vel(2), -gnss_vz_limit, gnss_vz_limit);
 		_vel_d_filt = gnss_vz * filter_coef + _vel_d_filt * (1.f - filter_coef);
 
-		_check_fail_status.flags.vspeed = (fabsf(_vel_d_filt) > _params.ekf2_req_vdrift);
+		setFail(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR, fabsf(_vel_d_filt) > _params.ekf2_req_vdrift);
 
 	} else {
 		// This is the case where the vehicle is on ground and IMU movement is blocking the drift calculation
@@ -244,10 +236,7 @@ void GnssChecks::runOnGroundGnssChecks(const gnssSample &gnss)
 
 void GnssChecks::clearDriftChecks()
 {
-	_check_fail_status.flags.hdrift = false;
-	_check_fail_status.flags.vdrift = false;
-	_check_fail_status.flags.hspeed = false;
-	_check_fail_status.flags.vspeed = false;
+	_fail_flags &= ~kDriftChecks;
 
 	resetDriftFilters();
 }
