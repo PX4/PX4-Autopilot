@@ -231,9 +231,7 @@ TEST_F(AttitudeControlFeedforwardTest, HighRateRampStillExact)
 
 TEST_F(AttitudeControlFeedforwardTest, YawRampOnlyAnalyticalFeedforwardContributes)
 {
-	// GIVEN: a yaw ramp with the analytical yawspeed setpoint matching. The reference
-	// model's damping is biased toward this known rate, so omega_ref settles to
-	// (0,0,omega) in q_ref's body frame and the FF reads out the body-z component.
+	// GIVEN: a yaw ramp with the analytical yawspeed setpoint matching
 	const float omega = 0.5f;
 	rampSetpoint(Vector3f(0.f, 0.f, omega), omega, kSettleSteps);
 
@@ -249,9 +247,6 @@ TEST_F(AttitudeControlFeedforwardTest, TiltedYawDoesNotDoubleCount)
 	// GIVEN: body locked at constant tilt, yawing around world-z at constant rate.
 	// Truth body angular velocity: ω_body = R_BW · (0, 0, yaw_rate)
 	//                                     = (-sin(tilt)·yaw_rate, 0, cos(tilt)·yaw_rate)
-	// The reference model bakes yaw_sp_move_rate into omega_ref via its damping bias,
-	// so the FF reproduces the body-frame projection of the world-z rotation —
-	// no separate analytical path, no double-count possible.
 	const float tilt = 0.5f;        // ~28.6° pitch
 	const float yaw_rate = 0.5f;    // ~28.6 dps
 	const Quatf q_pitch(AxisAnglef(Vector3f(0.f, tilt, 0.f)));
@@ -311,6 +306,45 @@ TEST_F(AttitudeControlFeedforwardTest, UnlockedYawDoesNotFeedBackSlavedHeading)
 	EXPECT_LT(fabsf(rate_setpoint(2)), 0.2f);
 	EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, UnlockedHeadingDoesNotWindUpWhenVehicleCannotYaw)
+{
+	// GIVEN: a steady yaw-rate command the vehicle cannot follow (yaw held, e.g. still on the ground),
+	// so the heading setpoint never moves either
+	const float commanded = 0.2f;
+	const Quatf q_stuck;    // vehicle and setpoint both pinned at identity
+
+	for (int i = 0; i < 4 * kSettleSteps; i++) {    // 8 s at the test's setpoint rate
+		_attitude_control.setAttitudeSetpoint(q_stuck, commanded, (i == 0) ? -1.f : kDt);
+	}
+
+	// WHEN: evaluated at the actual (stuck) attitude, where a runaway reference shows up as a P term.
+	// MC_REF_FF does not scale the P law, so both ends of its range need checking.
+	for (const float ff_gain : {0.f, 1.f}) {
+		_attitude_control.setFeedForwardGain(ff_gain);
+		const Vector3f rate_setpoint = _attitude_control.update(q_stuck);
+
+		// THEN: the output is still just the commanded rate
+		EXPECT_NEAR(rate_setpoint(2), commanded, 1e-3f) << "MC_REF_FF = " << ff_gain;
+		EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f) << "MC_REF_FF = " << ff_gain;
+		EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f) << "MC_REF_FF = " << ff_gain;
+	}
+
+	// AND: the reference heading has not drifted off the setpoint
+	EXPECT_NEAR(Eulerf(_attitude_control.getReferenceAttitude()).psi(), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, UnlockedHeadingReferenceTracksSetpoint)
+{
+	// GIVEN: the unlocked-heading regime, setpoint heading ramping at the vehicle's yaw rate
+	const float heading_ramp_rate = 0.8f;
+	const float commanded   = 0.05f;
+	const Quatf q_d = rampSetpoint(Vector3f(0.f, 0.f, heading_ramp_rate), commanded, kSettleSteps);
+
+	// THEN: the reference heading tracks the setpoint heading, so the yaw P term contributes nothing
+	EXPECT_NEAR(Eulerf(_attitude_control.getReferenceAttitude()).psi(), Eulerf(q_d).psi(),
+		    2.f * heading_ramp_rate * kDt);    // one setpoint sample of catch-up lag
 }
 
 TEST_F(AttitudeControlFeedforwardTest, LockedYawRampStillFeedsForward)

@@ -151,10 +151,13 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 
 	if (arming_gesture) {
 		_yaw_setpoint_stabilized = NAN;
+		_stick_yaw.resetYawspeed();
 	}
 
 	const float yaw = Eulerf(q).psi();
-	const float yaw_stick_input = Sticks::expoDeadzone(_manual_control_setpoint.yaw, .6f, _param_man_deadzone.get());
+	const float yaw_stick_input = arming_gesture
+				      ? 0.f
+				      : Sticks::expoDeadzone(_manual_control_setpoint.yaw, .6f, _param_man_deadzone.get());
 	_stick_yaw.generateYawSetpoint(attitude_setpoint.yaw_sp_move_rate, _yaw_setpoint_stabilized, yaw_stick_input, yaw, dt,
 				       _unaided_heading);
 

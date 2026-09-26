@@ -36,6 +36,65 @@
 
 #include <px4_platform_common/defines.h>
 
+TEST(StickYawTest, ResetClearsYawspeedFilter)
+{
+	param_control_autosave(false);
+
+	StickYaw stick_yaw{nullptr};
+	float yawspeed_sp = 0.f;
+	float yaw_sp = NAN;
+	const float dt = 0.01f;
+
+	// GIVEN: the filter charged up by a sustained full-deflection yaw stick
+	for (int i = 0; i < 500; i++) {
+		stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 1.f, 0.f, dt);
+	}
+
+	EXPECT_GT(yawspeed_sp, 0.1f);
+
+	// WHEN: reset with no unaided yaw available, then the centred stick is sampled
+	stick_yaw.reset(0.f);
+	stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.f, dt);
+
+	// THEN: no yawspeed is commanded
+	EXPECT_EQ(yawspeed_sp, 0.f);
+}
+
+TEST(StickYawTest, ResetYawspeedClearsChargeButKeepsHeadingLock)
+{
+	// Gating the yaw rate during the arming gesture needs the command at zero immediately and the
+	// heading lock intact.
+	param_control_autosave(false);
+
+	StickYaw stick_yaw{nullptr};
+	float yawspeed_sp = 0.f;
+	float yaw_sp = NAN;
+	const float dt = 0.01f;
+
+	// GIVEN: a heading locked at 0 and the yawspeed filter charged by a full-deflection stick
+	stick_yaw.reset(0.f, 0.f);
+
+	for (int i = 0; i < 500; i++) {
+		stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 1.f, 0.f, dt, 0.f);
+	}
+
+	EXPECT_GT(yawspeed_sp, 0.1f);
+
+	// WHEN: the gesture gate clears the charge and holds the stick input at zero
+	for (int i = 0; i < 5; i++) {
+		stick_yaw.resetYawspeed();
+		stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.f, dt, 0.f);
+		EXPECT_EQ(yawspeed_sp, 0.f);
+	}
+
+	// THEN: releasing the gate with the stick centred does not release a charge either
+	stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.f, dt, 0.f);
+	EXPECT_EQ(yawspeed_sp, 0.f);
+
+	// AND: the heading re-locks at the current yaw
+	EXPECT_TRUE(PX4_ISFINITE(yaw_sp));
+}
+
 TEST(StickYawTest, UnaidedYawNanTransitionNoYawJump)
 {
 	// When unaided_yaw transitions from finite to NAN mid-flight,

@@ -43,6 +43,9 @@ StickYaw::StickYaw(ModuleParams *parent) :
 
 void StickYaw::reset(const float yaw, const float unaided_yaw)
 {
+	// The filter state outlives deactivation; a reset means there is no stick history to carry over.
+	resetYawspeed();
+
 	if (PX4_ISFINITE(unaided_yaw)) {
 		_yaw_error_lpf.reset(wrap_pi(yaw - unaided_yaw));
 	}
