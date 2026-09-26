@@ -27,14 +27,6 @@ jobs:
 
     - uses: actions/checkout@v6
 
-    - name: Cache - Restore Homebrew Packages
-      uses: actions/cache@v5
-      with:
-        path: ~/Library/Caches/Homebrew/downloads
-        key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh', 'Tools/setup/macos_ci_pins.sh', 'Tools/setup/homebrew-pins.txt') }}
-        restore-keys: |
-          macos-homebrew-${{ runner.arch }}-
-
     - name: Cache - Restore pip Packages
       uses: actions/cache@v5
       with:
@@ -58,7 +50,7 @@ jobs:
       id: ccache
       with:
         cache-key-prefix: ccache-macos-15
-        max-size: 200M
+        max-size: 400M
 
     - name: Build px4_sitl
       run: |
