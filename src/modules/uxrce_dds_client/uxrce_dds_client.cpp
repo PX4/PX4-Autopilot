@@ -1212,4 +1212,3 @@ extern "C" __EXPORT int uxrce_dds_client_main(int argc, char *argv[])
 {
 	return ModuleBase::main(UxrceddsClient::desc, argc, argv);
 }
-
