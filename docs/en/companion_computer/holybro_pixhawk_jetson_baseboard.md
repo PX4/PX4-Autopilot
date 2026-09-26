@@ -1123,13 +1123,12 @@ Then reboot the Pixhawk.
 
 As covered in the MAVLink section, there is an internal Ethernet switch linking the Jetson and Pixhawk.
 We configured both boards to use the same subnet above.
-However we need to disable MAVLink on the PX4 `Ethernet` port and enable `XRCE-DDS`.
+Enable `XRCE-DDS` on the PX4 `Ethernet` port; it runs alongside Ethernet MAVLink.
 
 You can [modify the parameters](../advanced_config/parameters.md) in QGroundControl parameter editor, or using `param set` in the [MAVLink shell](../debug/mavlink_shell.md).
 Enter the following commands to change the values in the MAVLink shell:
 
 ```sh
-param set MAV_ETH_EN 0  # Disable MAVLink on Ethernet (so Ethernet can be used for XRCE-DDS)
 param set UXRCE_DDS_ETH 1 # Ethernet uXRCE-DDS
 param set UXRCE_DDS_PRT 8888  # Set port to 8888 (default)
 param set UXRCE_DDS_AG_IP 170461697 # The int32 version of 10.41.10.1

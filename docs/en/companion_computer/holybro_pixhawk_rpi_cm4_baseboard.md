@@ -356,14 +356,7 @@ Next we enable `XRCE-DDS` on the new Ethernet Link.
 You can [modify the required parameters](../advanced_config/parameters.md) in QGroundControl parameter editor, or using `param set` in the [MAVLINK shell](../debug/mavlink_shell.md).
 Below we show the settings assuming you're setting the parameters using the shell.
 
-First ensure Ethernet MAVLink is off so it does not clash with XRCE-DDS (see [enable MAVLINK on Ethernet](../advanced_config/ethernet_setup.md#px4-mavlink-serial-port-configuration)):
-
-```sh
-nsh>
-param set MAV_ETH_EN 0
-```
-
-Then enable uXRCE-DDS on the Ethernet port (see [starting uXRCE-DDS client](../middleware/uxrce_dds.md#starting-the-client)):
+Enable uXRCE-DDS on the Ethernet port (see [starting uXRCE-DDS client](../middleware/uxrce_dds.md#starting-the-client)):
 
 ```sh
 param set UXRCE_DDS_AG_IP  170461697   # The int32 version of 10.41.10.1
