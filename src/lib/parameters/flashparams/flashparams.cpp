@@ -398,7 +398,10 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	 * the union and the translations read it without a type check. */
 	const bool tombstone = node->type == BSON_nullptr || node->type == BSON_UNDEFINED;
 
-	if (!tombstone) {
+	if (tombstone) {
+		param_modify_on_import_reset(node->name);
+
+	} else {
 		if (record_is_stale(node)) {
 			log_stale = true;
 		}

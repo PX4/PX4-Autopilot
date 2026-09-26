@@ -37,6 +37,8 @@ void param_modify_on_import_begin() {}
 
 void param_modify_on_import_end() {}
 
+void param_modify_on_import_reset(const char *name) {}
+
 param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 {
 	// don't modify params for unit tests

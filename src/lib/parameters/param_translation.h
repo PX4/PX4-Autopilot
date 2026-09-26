@@ -43,4 +43,6 @@ enum class param_modify_on_import_ret {
 
 __EXPORT void param_modify_on_import_begin();
 __EXPORT void param_modify_on_import_end();
+// A tombstone (reset to default) for name in a flash log delta.
+__EXPORT void param_modify_on_import_reset(const char *name);
 __EXPORT param_modify_on_import_ret param_modify_on_import(bson_node_t node);

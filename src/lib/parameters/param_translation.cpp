@@ -54,23 +54,181 @@
 #define PARAM_MIGRATE_WARN(...) PX4_WARN(__VA_ARGS__)
 #endif
 
-static uint32_t serial_claimed_ports;
-static int32_t serial_rc_input_proto = INT32_MIN;
-static int32_t serial_rc_port = INT32_MIN;
-static int32_t mav_config[3] = {INT32_MIN, INT32_MIN, INT32_MIN};
-
 static constexpr int kMavInstances = 3;
 static constexpr int32_t kMavEthernet = 1000;
 static constexpr int32_t kMavTel1 = 101;
+
+// Stand-ins in kOldPortParams for the two old configs that are migrated as a
+// whole rather than per parameter.
+static constexpr int32_t kOldRcInput = -1;
+static constexpr int32_t kOldMavlink = -2;
+
+struct OldPortParam {
+	const char *name;
+	int32_t protocol_id;
+	int32_t default_port;
+	const char *ethernet_param;
+};
+
+// Old rc.serial start order (module path). The first driver to start on a
+// port kept it and later ones reported a conflict, so the migration claims
+// ports in the same order.
+static constexpr OldPortParam kOldPortParams[] = {
+	{"VERTIQ_IO_CFG", 53, 0, nullptr},
+	{"SENS_CM8JL65_CFG", 34, 0, nullptr},
+	{"SENS_LEDDAR1_CFG", 33, 0, nullptr},
+	{"SENS_EN_GRF_CFG", 36, 0, nullptr},
+	{"SENS_SF0X_CFG", 31, 0, nullptr},
+	{"SENS_EN_SF45_CFG", 32, 0, nullptr},
+	{"SENS_ASDT1_CFG", 37, 0, nullptr},
+	{"SENS_TFMINI_CFG", 30, 0, nullptr},
+	{"SENS_ULAND_CFG", 35, 0, nullptr},
+	{"DSHOT_TEL_CFG", 26, 0, nullptr},
+	{"SEP_PORT2_CFG", 6, 0, nullptr},
+	{"SEP_PORT1_CFG", 6, 0, nullptr},
+	{"GPS_2_CONFIG", 5, 0, nullptr},
+	{"GPS_1_CONFIG", 5, 201, nullptr},
+	{"SENS_BAHRS_CFG", 44, 0, nullptr},
+	{"SENS_ILABS_CFG", 42, 0, nullptr},
+	{"SENS_MS_CFG", 41, 0, nullptr},
+	{"SENS_SBG_CFG", 43, 0, nullptr},
+	{"SENS_VN_CFG", 40, 0, nullptr},
+	{"SENS_TFLOW_CFG", 54, 0, nullptr},
+	{"MSP_OSD_CONFIG", 24, 0, nullptr},
+	{"RC_CRSF_PRT_CFG", 12, 0, nullptr},
+	{"RC_DSM_PRT_CFG", 11, 0, nullptr},
+	{"RC_GHST_PRT_CFG", 13, 0, nullptr},
+	{"RC_SBUS_PRT_CFG", 10, 0, nullptr},
+	{nullptr, kOldRcInput, 0, nullptr},
+	{"RBCLW_SER_CFG", 52, 0, nullptr},
+	{"TEL_FRSKY_CONFIG", 21, 0, nullptr},
+	{"TEL_HOTT_CONFIG", 22, 0, nullptr},
+	{"ISBD_CONFIG", 23, 0, nullptr},
+	{"MXS_SER_CFG", 55, 0, nullptr},
+	{"UWB_PORT_CFG", 50, 0, nullptr},
+	{"VTX_SER_CFG", 25, 0, nullptr},
+	{"SENS_FTX_CFG", 51, 0, nullptr},
+	{nullptr, kOldMavlink, 0, nullptr},
+	{"UXRCE_DDS_CFG", 20, 0, "UXRCE_DDS_ETH"},
+};
+static constexpr unsigned kNumOldPortParams = sizeof(kOldPortParams) / sizeof(kOldPortParams[0]);
+
+static const char *const kMavIntFmt[] = {
+	"MAV_%d_MODE", "MAV_%d_RATE", "MAV_%d_FORWARD", "MAV_%d_RADIO_CTL",
+	"MAV_%d_FLOW_CTRL", "MAV_%d_UDP_PRT", "MAV_%d_REMOTE_PRT", "MAV_%d_BROADCAST"
+};
+static constexpr unsigned kNumMavInt = sizeof(kMavIntFmt) / sizeof(kMavIntFmt[0]);
+static constexpr unsigned kMavHlFreq = kNumMavInt;
+static constexpr unsigned kNumMavParams = kNumMavInt + 1;
+
+// Old values seen in the imported document, INT32_MIN when absent. A flash
+// log is walked entry by entry, so the last value (or tombstone) wins.
+static int32_t old_port_value[kNumOldPortParams];
+static int32_t serial_rc_input_proto = INT32_MIN;
+static int32_t serial_rc_port = INT32_MIN;
+static int32_t mav_config[kMavInstances] = {INT32_MIN, INT32_MIN, INT32_MIN};
+static uint32_t mav_present;
+static uint32_t serial_claimed_ports;
+static int32_t gps_port[2];
 
 void param_modify_on_import_begin()
 {
 	serial_claimed_ports = 0;
 	serial_rc_input_proto = INT32_MIN;
 	serial_rc_port = INT32_MIN;
-	mav_config[0] = INT32_MIN;
-	mav_config[1] = INT32_MIN;
-	mav_config[2] = INT32_MIN;
+
+	for (int i = 0; i < kMavInstances; i++) {
+		mav_config[i] = INT32_MIN;
+	}
+
+	for (unsigned i = 0; i < kNumOldPortParams; i++) {
+		old_port_value[i] = INT32_MIN;
+	}
+
+	mav_present = 0;
+	gps_port[0] = 0;
+	gps_port[1] = 0;
+}
+
+static uint32_t mav_param_bit(int instance, unsigned p)
+{
+	return 1u << (instance * kNumMavParams + p);
+}
+
+// MAV_<n>_<p> per-instance parameter, or false.
+static bool mav_param_index(const char *name, int *instance, unsigned *p)
+{
+	if (strncmp(name, "MAV_", 4) != 0 || name[4] < '0' || name[4] >= '0' + kMavInstances || name[5] != '_') {
+		return false;
+	}
+
+	*instance = name[4] - '0';
+
+	for (unsigned k = 0; k < kNumMavParams; k++) {
+		char candidate[20];
+		snprintf(candidate, sizeof(candidate), k == kMavHlFreq ? "MAV_%d_HL_FREQ" : kMavIntFmt[k], *instance);
+
+		if (strcmp(candidate, name) == 0) {
+			*p = k;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static int32_t *old_value_slot(const char *name)
+{
+	for (unsigned i = 0; i < kNumOldPortParams; i++) {
+		if (kOldPortParams[i].name != nullptr && strcmp(kOldPortParams[i].name, name) == 0) {
+			return &old_port_value[i];
+		}
+	}
+
+	for (int i = 0; i < kMavInstances; i++) {
+		char candidate[16];
+		snprintf(candidate, sizeof(candidate), "MAV_%d_CONFIG", i);
+
+		if (strcmp(candidate, name) == 0) {
+			return &mav_config[i];
+		}
+	}
+
+	if (strcmp(name, "RC_INPUT_PROTO") == 0) {
+		return &serial_rc_input_proto;
+	}
+
+	if (strcmp(name, "RC_PORT_CONFIG") == 0) {
+		return &serial_rc_port;
+	}
+
+	return nullptr;
+}
+
+void param_modify_on_import_reset(const char *name)
+{
+	int32_t *slot = old_value_slot(name);
+
+	if (slot != nullptr) {
+		*slot = INT32_MIN;
+		return;
+	}
+
+	int instance;
+	unsigned p;
+
+	if (mav_param_index(name, &instance, &p)) {
+		mav_present &= ~mav_param_bit(instance, p);
+		return;
+	}
+
+	if (strcmp(name, "USB_MAV_MODE") == 0) {
+		const param_t ph = param_find("MAV_USB_MODE");
+
+		if (ph != PARAM_INVALID) {
+			param_reset(ph);
+		}
+	}
 }
 
 struct SerialPortTag {
@@ -262,17 +420,16 @@ static void permute_mav_params(const int new_of_old[kMavInstances])
 		return;
 	}
 
-	static const char *const kIntFmt[] = {
-		"MAV_%d_MODE", "MAV_%d_RATE", "MAV_%d_FORWARD", "MAV_%d_RADIO_CTL",
-		"MAV_%d_FLOW_CTRL", "MAV_%d_UDP_PRT", "MAV_%d_REMOTE_PRT", "MAV_%d_BROADCAST"
-	};
-	static constexpr unsigned kNumInt = sizeof(kIntFmt) / sizeof(kIntFmt[0]);
+	static const char *const *kIntFmt = kMavIntFmt;
+	static constexpr unsigned kNumInt = kNumMavInt;
 
 	// Snapshot before any write: a slot can be both source and destination.
-	// Board defaults (rc.board_defaults) are not applied yet at import time, so
-	// a value that only reflects the compiled default is reset in the
-	// destination rather than copied, unless the two instances compile to
-	// different defaults (MAV_1_MODE is Onboard, MAV_0_MODE is Normal).
+	// A value the document did not carry is the old default, whatever RAM
+	// holds from an earlier import, so importing an old file twice permutes
+	// once. Board defaults (rc.board_defaults) are not applied yet at import
+	// time, so a default is reset in the destination rather than copied,
+	// unless the two instances compile to different defaults (MAV_1_MODE is
+	// Onboard, MAV_0_MODE is Normal).
 	int32_t ints[kMavInstances][kNumInt] {};
 	int32_t defs[kMavInstances][kNumInt] {};
 	bool custom_int[kMavInstances][kNumInt] {};
@@ -287,10 +444,13 @@ static void permute_mav_params(const int new_of_old[kMavInstances])
 			snprintf(name, sizeof(name), kIntFmt[p], i);
 			const param_t ph = param_find(name);
 
-			if (ph != PARAM_INVALID && param_get(ph, &ints[i][p]) == PX4_OK
-			    && param_get_system_default_value(ph, &defs[i][p]) == PX4_OK) {
+			if (ph != PARAM_INVALID && param_get_system_default_value(ph, &defs[i][p]) == PX4_OK) {
 				have_int[i][p] = true;
-				custom_int[i][p] = !param_value_is_default(ph);
+				ints[i][p] = defs[i][p];
+
+				if ((mav_present & mav_param_bit(i, p)) && param_get(ph, &ints[i][p]) == PX4_OK) {
+					custom_int[i][p] = ints[i][p] != defs[i][p];
+				}
 			}
 		}
 
@@ -298,9 +458,10 @@ static void permute_mav_params(const int new_of_old[kMavInstances])
 		snprintf(name, sizeof(name), "MAV_%d_HL_FREQ", i);
 		const param_t ph = param_find(name);
 
-		if (ph != PARAM_INVALID && param_get(ph, &hl[i]) == PX4_OK) {
+		if (ph != PARAM_INVALID) {
 			have_hl[i] = true;
-			custom_hl[i] = !param_value_is_default(ph);
+			custom_hl[i] = (mav_present & mav_param_bit(i, kMavHlFreq)) && param_get(ph, &hl[i]) == PX4_OK
+				       && !param_value_is_default(ph);
 		}
 	}
 
@@ -483,13 +644,123 @@ static void apply_mav_serial_import()
 	permute_mav_params(new_of_old);
 }
 
+static void apply_old_port_param(unsigned i, int32_t value)
+{
+	const OldPortParam &old = kOldPortParams[i];
+
+	// The old parameter picked ethernet or a UART; the new ones are separate.
+	if (old.ethernet_param != nullptr) {
+		set_if_present(old.ethernet_param, value == kMavEthernet ? 1 : 0);
+
+		if (value == kMavEthernet) {
+			PARAM_MIGRATE_INFO("migrating %s -> %s", old.name, old.ethernet_param);
+			return;
+		}
+	}
+
+	if (value == 0) {
+		if (old.default_port != 0) {
+			serial_clear_default(old.default_port);
+			PARAM_MIGRATE_INFO("migrating %s -> %s (disabled)", old.name, serial_prot_name(old.default_port));
+		}
+
+		return;
+	}
+
+	const char *dest = serial_prot_name(value);
+
+	if (dest == nullptr) {
+		return;
+	}
+
+	if (old.default_port != 0 && value != old.default_port) {
+		serial_clear_default(old.default_port);
+	}
+
+	if (!serial_claim(value)) {
+		PARAM_MIGRATE_WARN("dropping %s, %s already assigned", old.name, dest);
+		return;
+	}
+
+	set_if_present(dest, old.protocol_id);
+	PARAM_MIGRATE_INFO("migrating %s -> %s=%" PRId32, old.name, dest, old.protocol_id);
+
+	if (strcmp(old.name, "GPS_1_CONFIG") == 0) {
+		gps_port[0] = value;
+
+	} else if (strcmp(old.name, "GPS_2_CONFIG") == 0) {
+		gps_port[1] = value;
+	}
+}
+
+// serial_autostart makes the lowest-ranked GPS port the main receiver
+// (GPS1 < GPS2 < GPS3 < other UARTs, then port order).
+static int32_t gps_rank(int32_t port)
+{
+	const int32_t rank = (port >= 201 && port <= 203) ? port - 201 : 255;
+	return rank * 1000 + port;
+}
+
+static void swap_params(const char *a, const char *b)
+{
+	const param_t pa = param_find(a);
+	const param_t pb = param_find(b);
+
+	if (pa == PARAM_INVALID || pb == PARAM_INVALID || param_type(pa) != param_type(pb)) {
+		return;
+	}
+
+	int32_t va = 0;
+	int32_t vb = 0;
+
+	if (param_get(pa, &va) == PX4_OK && param_get(pb, &vb) == PX4_OK) {
+		param_set(pa, &vb);
+		param_set(pb, &va);
+	}
+}
+
+// Old dual GPS ran GPS_1_CONFIG's port as the main receiver. When the new
+// ranking picks the other port, move the per-receiver settings with it.
+static void swap_dual_gps_settings()
+{
+	if (gps_port[0] == 0 || gps_port[1] == 0 || gps_rank(gps_port[0]) < gps_rank(gps_port[1])) {
+		return;
+	}
+
+	static const char *const kPairs[][2] = {
+		{"GPS_1_PROTOCOL", "GPS_2_PROTOCOL"},
+		{"GPS_1_GNSS", "GPS_2_GNSS"},
+		{"SENS_GPS0_ID", "SENS_GPS1_ID"},
+		{"SENS_GPS0_OFFX", "SENS_GPS1_OFFX"},
+		{"SENS_GPS0_OFFY", "SENS_GPS1_OFFY"},
+		{"SENS_GPS0_OFFZ", "SENS_GPS1_OFFZ"},
+		{"SENS_GPS0_DELAY", "SENS_GPS1_DELAY"},
+	};
+
+	for (const auto &pair : kPairs) {
+		swap_params(pair[0], pair[1]);
+	}
+
+	PARAM_MIGRATE_INFO("dual GPS main moved to %s, swapping GPS_1_*/GPS_2_*", serial_prot_name(gps_port[1]));
+}
+
 void param_modify_on_import_end()
 {
-	apply_mav_serial_import();
+	for (unsigned i = 0; i < kNumOldPortParams; i++) {
+		if (kOldPortParams[i].protocol_id == kOldRcInput) {
+			if (serial_rc_input_proto != INT32_MIN || serial_rc_port != INT32_MIN) {
+				apply_rc_serial_import();
+			}
 
-	if (serial_rc_input_proto != INT32_MIN || serial_rc_port != INT32_MIN) {
-		apply_rc_serial_import();
+		} else if (kOldPortParams[i].protocol_id == kOldMavlink) {
+			apply_mav_serial_import();
+
+		} else if (old_port_value[i] != INT32_MIN) {
+			apply_old_port_param(i, old_port_value[i]);
+		}
 	}
+
+	swap_dual_gps_settings();
 
 	param_modify_on_import_begin();
 }
@@ -823,124 +1094,26 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2026-08-31: invert serial mapping (*_CONFIG port index) to SER_<tag>_PROTO
-	if (node->type == bson_type_t::BSON_INT32) {
-		if (strcmp("MAV_0_CONFIG", node->name) == 0) {
-			mav_config[0] = node->i32;
-			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+	// 2026-08-31: invert serial mapping (*_CONFIG port index) to SER_<tag>_PROTO.
+	// Old port parameters are collected here and applied together in
+	// param_modify_on_import_end().
+	{
+		int instance;
+		unsigned p;
+
+		if (mav_param_index(node->name, &instance, &p)) {
+			mav_present |= mav_param_bit(instance, p);
+			return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 		}
 
-		if (strcmp("MAV_1_CONFIG", node->name) == 0) {
-			mav_config[1] = node->i32;
+		int32_t *slot = old_value_slot(node->name);
+
+		if (slot != nullptr) {
+			if (node->type == bson_type_t::BSON_INT32) {
+				*slot = node->i32;
+			}
+
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
-		}
-
-		if (strcmp("MAV_2_CONFIG", node->name) == 0) {
-			mav_config[2] = node->i32;
-			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
-		}
-
-		if (strcmp("RC_INPUT_PROTO", node->name) == 0) {
-			serial_rc_input_proto = node->i32;
-			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
-		}
-
-		if (strcmp("RC_PORT_CONFIG", node->name) == 0) {
-			serial_rc_port = node->i32;
-			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
-		}
-
-		struct OldConfig {
-			const char *name;
-			int32_t protocol_id;
-			int32_t default_port;
-			const char *ethernet_param;
-		};
-
-		static constexpr OldConfig kOld[] = {
-			{"GPS_1_CONFIG", 5, 201, nullptr},
-			{"GPS_2_CONFIG", 5, 0, nullptr},
-			{"SEP_PORT1_CFG", 6, 0, nullptr},
-			{"SEP_PORT2_CFG", 6, 0, nullptr},
-			{"RC_SBUS_PRT_CFG", 10, 0, nullptr},
-			{"RC_DSM_PRT_CFG", 11, 0, nullptr},
-			{"RC_CRSF_PRT_CFG", 12, 0, nullptr},
-			{"RC_GHST_PRT_CFG", 13, 0, nullptr},
-			{"UXRCE_DDS_CFG", 20, 0, "UXRCE_DDS_ETH"},
-			{"TEL_FRSKY_CONFIG", 21, 0, nullptr},
-			{"TEL_HOTT_CONFIG", 22, 0, nullptr},
-			{"ISBD_CONFIG", 23, 0, nullptr},
-			{"MSP_OSD_CONFIG", 24, 0, nullptr},
-			{"VTX_SER_CFG", 25, 0, nullptr},
-			{"DSHOT_TEL_CFG", 26, 0, nullptr},
-			{"SENS_TFMINI_CFG", 30, 0, nullptr},
-			{"SENS_SF0X_CFG", 31, 0, nullptr},
-			{"SENS_EN_SF45_CFG", 32, 0, nullptr},
-			{"SENS_LEDDAR1_CFG", 33, 0, nullptr},
-			{"SENS_CM8JL65_CFG", 34, 0, nullptr},
-			{"SENS_ULAND_CFG", 35, 0, nullptr},
-			{"SENS_EN_GRF_CFG", 36, 0, nullptr},
-			{"SENS_ASDT1_CFG", 37, 0, nullptr},
-			{"SENS_VN_CFG", 40, 0, nullptr},
-			{"SENS_MS_CFG", 41, 0, nullptr},
-			{"SENS_ILABS_CFG", 42, 0, nullptr},
-			{"SENS_SBG_CFG", 43, 0, nullptr},
-			{"SENS_BAHRS_CFG", 44, 0, nullptr},
-			{"UWB_PORT_CFG", 50, 0, nullptr},
-			{"SENS_FTX_CFG", 51, 0, nullptr},
-			{"RBCLW_SER_CFG", 52, 0, nullptr},
-			{"VERTIQ_IO_CFG", 53, 0, nullptr},
-			{"SENS_TFLOW_CFG", 54, 0, nullptr},
-			{"MXS_SER_CFG", 55, 0, nullptr},
-		};
-
-		for (const auto &old : kOld) {
-			if (strcmp(old.name, node->name) != 0) {
-				continue;
-			}
-
-			const int32_t value = node->i32;
-
-			if (value == 1000 && old.ethernet_param) {
-				if (old.default_port != 0) {
-					serial_clear_default(old.default_port);
-				}
-
-				strcpy(node->name, old.ethernet_param);
-				node->i32 = 1;
-				PARAM_MIGRATE_INFO("migrating %s -> %s", old.name, old.ethernet_param);
-				return param_modify_on_import_ret::PARAM_MODIFIED;
-			}
-
-			if (value == 0) {
-				if (old.default_port != 0 && !serial_port_claimed(old.default_port)) {
-					strcpy(node->name, serial_prot_name(old.default_port));
-					PARAM_MIGRATE_INFO("migrating %s -> %s (disabled)", old.name, node->name);
-					return param_modify_on_import_ret::PARAM_MODIFIED;
-				}
-
-				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
-			}
-
-			const char *dest = serial_prot_name(value);
-
-			if (dest == nullptr) {
-				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
-			}
-
-			if (old.default_port != 0 && value != old.default_port) {
-				serial_clear_default(old.default_port);
-			}
-
-			if (!serial_claim(value)) {
-				PARAM_MIGRATE_WARN("dropping %s, %s already assigned", old.name, dest);
-				return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
-			}
-
-			strcpy(node->name, dest);
-			node->i32 = old.protocol_id;
-			PARAM_MIGRATE_INFO("migrating %s -> %s=%" PRId32, old.name, dest, old.protocol_id);
-			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
