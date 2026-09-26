@@ -53,6 +53,8 @@ public:
 	void setYaw(const float yaw);
 	void setYawOffset(const float yaw_offset);
 	void setYawAccuracy(const float yaw_acc);
+	void setSpoofed(const bool spoofed);
+	void setJammed(const bool jammed);
 
 	const gnssYawSample &getData() const { return _gnss_yaw_data; }
 

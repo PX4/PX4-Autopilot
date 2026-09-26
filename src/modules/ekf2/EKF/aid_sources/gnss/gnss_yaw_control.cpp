@@ -45,12 +45,29 @@
 
 #include <ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h>
 
-void Ekf::controlGnssYawFusion(const gnssYawSample &gnss_yaw_sample)
+void Ekf::controlGnssYawFusion(const imuSample &imu_delayed)
 {
-	if (!(_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::YAW))
+	if (!_gnss_yaw_buffer) {
+		return;
+	}
+
+	if (!_fc.gps.intended()
+	    || !(_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::YAW))
 	    || _control_status.flags.gnss_yaw_fault) {
 
 		stopGnssYawFusion();
+		return;
+	}
+
+	gnssYawSample gnss_yaw_sample;
+
+	if (!_gnss_yaw_buffer->pop_first_older_than(imu_delayed.time_us, &gnss_yaw_sample)) {
+		if (_control_status.flags.gnss_yaw
+		    && !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push, _params.reset_timeout_max)) {
+			stopGnssYawFusion();
+			ECL_WARN("GNSS yaw data stopped");
+		}
+
 		return;
 	}
 
@@ -61,11 +78,15 @@ void Ekf::controlGnssYawFusion(const gnssYawSample &gnss_yaw_sample)
 	const bool is_gnss_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push,
 			2 * GNSS_YAW_MAX_INTERVAL);
 
-	// The position checks are kept as a start gate: they cover receiver-level health (fix, spoofing, jamming) and,
-	// through their reset in stopGnssFusion(), enforce the on-ground hold-off after a yaw fault.
+	// The heading receiver's own state, under the same EKF2_GPS_CHECK bits as the position checks. The position
+	// checks themselves don't gate the heading: it is a separate observation, often from a separate receiver.
+	const bool is_heading_receiver_healthy =
+		!(gnss_yaw_sample.spoofed && _gnss_checks.isCheckEnabled(GnssChecks::GnssChecksMask::kSpoofed))
+		&& !(gnss_yaw_sample.jammed && _gnss_checks.isCheckEnabled(GnssChecks::GnssChecksMask::kJammed));
+
 	const bool starting_conditions_passing = continuing_conditions_passing
-			&& _gnss_checks.passed()
-			&& !is_gnss_yaw_data_intermittent;
+			&& !is_gnss_yaw_data_intermittent
+			&& is_heading_receiver_healthy;
 
 	if (_control_status.flags.gnss_yaw) {
 		if (continuing_conditions_passing) {
@@ -76,6 +97,7 @@ void Ekf::controlGnssYawFusion(const gnssYawSample &gnss_yaw_sample)
 
 			if (is_fusion_failing) {
 				stopGnssYawFusion();
+				_time_last_gnss_yaw_fusion_failure_us = _time_delayed_us;
 
 				// Before takeoff, we do not want to continue to rely on the current heading
 				// if we had to stop the fusion
@@ -98,8 +120,12 @@ void Ekf::controlGnssYawFusion(const gnssYawSample &gnss_yaw_sample)
 			    || !_control_status.flags.yaw_align
 			    || !isNorthEastAidingActive()) {
 
+				// A reset takes the heading as is, so after a fusion failure the receiver gets the GNSS health time
+				// to recover before it is trusted again
+				const bool reset_allowed = isTimedOut(_time_last_gnss_yaw_fusion_failure_us, _min_gps_health_time_us);
+
 				// Reset before starting the fusion
-				if (resetYawToGnss(gnss_yaw_sample.yaw, gnss_yaw_sample.yaw_offset)) {
+				if (reset_allowed && resetYawToGnss(gnss_yaw_sample.yaw, gnss_yaw_sample.yaw_offset)) {
 
 					resetAidSourceStatusZeroInnovation(_aid_src_gnss_yaw);
 

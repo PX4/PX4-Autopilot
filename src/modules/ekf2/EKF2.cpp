@@ -2694,6 +2694,8 @@ void EKF2::UpdateGnssYawSample()
 			.yaw = gnss_heading.heading,
 			.yaw_acc = gnss_heading.heading_accuracy,
 			.yaw_offset = PX4_ISFINITE(gnss_heading.heading_offset) ? gnss_heading.heading_offset : 0.f,
+			.spoofed = gnss_heading.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED,
+			.jammed = gnss_heading.jamming_state == sensor_gps_s::JAMMING_STATE_DETECTED,
 		};
 
 		_ekf.setGnssYawData(gnss_yaw_sample);

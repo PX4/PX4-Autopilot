@@ -69,7 +69,8 @@ parameters:
       description:
         short: Integer bitmask controlling GPS checks
         long: 'Each threshold value is defined by the parameter indicated next to the check.
-          Drift and offset checks only run when the vehicle is on ground and stationary.'
+          Drift and offset checks only run when the vehicle is on ground and stationary.
+          The spoofing and jamming checks also apply to the receiver providing the GNSS heading.'
       type: bitmask
       bit:
         0: Sat count (EKF2_REQ_NSATS)
