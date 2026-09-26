@@ -133,7 +133,7 @@ param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0      # Better accelerometer trust
 param set-default EKF2_ACC_B_NOISE 0.001  # Accel bias damping for frame-paced SITL updates
 
-# X-PLANE SITL NOTE: EKF2_ABL_LIM = 2.5 (vs Gazebo/jMAVSim default 0.4)
+# X-PLANE SITL NOTE: EKF2_ABL_LIM = 2.5 (vs Gazebo default 0.4)
 # Required because X-Plane sensor updates are frame-paced and can vary with
 # rendering load, which can make EKF2 estimate higher acceleration bias.
 # This does NOT affect flight performance - only the preflight arming check.

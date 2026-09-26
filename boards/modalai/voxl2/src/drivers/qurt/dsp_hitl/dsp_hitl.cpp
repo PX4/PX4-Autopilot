@@ -312,7 +312,7 @@ void send_actuator_data()
 
 				actuator_sent_counter++;
 
-				if (_debug) { PX4_INFO("Successful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time()); }
+				if (_debug) { PX4_INFO("Successful write of actuator back to the simulator: %d at %llu", writeRetval, hrt_absolute_time()); }
 
 				first_sent = true;
 
@@ -327,7 +327,7 @@ void send_actuator_data()
 
 			actuator_sent_counter++;
 
-			if (_debug) { PX4_INFO("Successful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time()); }
+			if (_debug) { PX4_INFO("Successful write of actuator back to the simulator: %d at %llu", writeRetval, hrt_absolute_time()); }
 
 			send_esc_status(hil_act_control);
 		}

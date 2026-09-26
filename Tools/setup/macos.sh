@@ -6,7 +6,7 @@
 ## Installs:
 ##	- Common dependencies and tools for building PX4
 ##	- Cross compilers for building hardware targets using NuttX
-##	- With --sim-tools: Gazebo Harmonic and jMAVSim simulation stack
+##	- With --sim-tools: Gazebo Harmonic simulation stack
 ##
 ## --sim-tools pins the osrf/simulation tap to gz-tap-pin.txt so Gazebo
 ## installs from bottles even while OSRF has them pulled, and protobuf to
@@ -99,7 +99,6 @@ brew_tap PX4/px4
 # Package list. This replaces the px4-dev meta-formula, which is kept
 # as a deprecated no-op upstream. See PX4/homebrew-px4 for history.
 PX4_BREW_PACKAGES=(
-	ant
 	astyle
 	bash-completion
 	ccache
@@ -282,13 +281,6 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		echo "[macos.sh] Installing XQuartz (required for Gazebo display)"
 		# XQuartz is not in the pinned package repos.
 		env -u HOMEBREW_NO_INSTALL_FROM_API brew install --cask xquartz
-	fi
-
-	# jMAVSim requires a JDK (Java 17 LTS recommended)
-	if ! brew ls --versions openjdk@17 > /dev/null; then
-		echo "[macos.sh] Installing OpenJDK 17 (required for jMAVSim)"
-		brew install openjdk@17
-		sudo ln -sfn $(brew --prefix openjdk@17)/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
 	fi
 fi
 

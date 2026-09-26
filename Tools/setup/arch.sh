@@ -4,9 +4,9 @@
 ## Tested on Arch 2023-03-01
 ##
 ## Installs:
-## - Common dependencies and tools for nuttx, jMAVSim
+## - Common dependencies and tools for nuttx
 ## - NuttX toolchain (omit with arg: --no-nuttx)
-## - jMAVSim simulator (omit with arg: --no-sim-tools)
+## - Simulation dependencies (omit with arg: --no-sim-tools)
 ## - Gazebo simulator (not by default, use --gazebo)
 ##
 
@@ -92,11 +92,6 @@ fi
 if [[ $INSTALL_SIM == "true" ]]; then
 	echo
 	echo "Installing PX4 simulation dependencies"
-
-	# java (jmavsim)
-	sudo pacman -S --noconfirm --needed \
-		ant \
-		;
 
 	# Gazebo setup
 	if [[ $INSTALL_GAZEBO == "true" ]]; then
