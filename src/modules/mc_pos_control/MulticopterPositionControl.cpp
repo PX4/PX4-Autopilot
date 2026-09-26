@@ -434,7 +434,7 @@ void MulticopterPositionControl::Run()
 
 		_trajectory_setpoint_sub.update(&_setpoint);
 
-		adjustSetpointForEKFResets(vehicle_local_position, _setpoint);
+		adjustSetpointForEKFResets(vehicle_local_position, _setpoint, _last_valid_setpoint);
 
 		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 			// set failsafe setpoint if there hasn't been a new
@@ -577,8 +577,8 @@ void MulticopterPositionControl::Run()
 
 				// Initial update failed - Try fallback if within timeout
 				if (now < _last_valid_setpoint.timestamp + 200_ms) {
-					// Use last valid setpoint
-					adjustSetpointForEKFResets(vehicle_local_position, _last_valid_setpoint);
+					// Use last valid setpoint. It was already moved into the current estimate
+					// frame above, at the same time as _setpoint.
 					_control.setInputSetpoint(_last_valid_setpoint);
 				}
 
@@ -682,31 +682,39 @@ trajectory_setpoint_s MulticopterPositionControl::generateFailsafeSetpoint(const
 }
 
 void MulticopterPositionControl::adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position,
-		trajectory_setpoint_s &setpoint)
+		trajectory_setpoint_s &setpoint, trajectory_setpoint_s &fallback_setpoint)
 {
-	if ((setpoint.timestamp != 0) && (setpoint.timestamp < vehicle_local_position.timestamp)) {
-		if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
-			setpoint.velocity[0] += vehicle_local_position.delta_vxy[0];
-			setpoint.velocity[1] += vehicle_local_position.delta_vxy[1];
-		}
+	auto apply_reset_deltas = [&](trajectory_setpoint_s & setpoint_to_adjust) {
+		if ((setpoint_to_adjust.timestamp != 0) && (setpoint_to_adjust.timestamp < vehicle_local_position.timestamp)) {
+			if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
+				setpoint_to_adjust.velocity[0] += vehicle_local_position.delta_vxy[0];
+				setpoint_to_adjust.velocity[1] += vehicle_local_position.delta_vxy[1];
+			}
 
-		if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
-			setpoint.velocity[2] += vehicle_local_position.delta_vz;
-		}
+			if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
+				setpoint_to_adjust.velocity[2] += vehicle_local_position.delta_vz;
+			}
 
-		if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
-			setpoint.position[0] += vehicle_local_position.delta_xy[0];
-			setpoint.position[1] += vehicle_local_position.delta_xy[1];
-		}
+			if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
+				setpoint_to_adjust.position[0] += vehicle_local_position.delta_xy[0];
+				setpoint_to_adjust.position[1] += vehicle_local_position.delta_xy[1];
+			}
 
-		if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
-			setpoint.position[2] += vehicle_local_position.delta_z;
-		}
+			if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
+				setpoint_to_adjust.position[2] += vehicle_local_position.delta_z;
+			}
 
-		if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
-			setpoint.yaw = wrap_pi(setpoint.yaw + vehicle_local_position.delta_heading);
+			if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
+				setpoint_to_adjust.yaw = wrap_pi(setpoint_to_adjust.yaw + vehicle_local_position.delta_heading);
+			}
 		}
-	}
+	};
+
+	apply_reset_deltas(setpoint);
+
+	// The stored fallback has to move in the same cycle. The counters are latched below, so a
+	// later call would find nothing changed and would leave it in the pre reset frame.
+	apply_reset_deltas(fallback_setpoint);
 
 	if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
 		_vel_xy_lp_filter.reset(_vel_xy_lp_filter.getState() + Vector2f(vehicle_local_position.delta_vxy));
