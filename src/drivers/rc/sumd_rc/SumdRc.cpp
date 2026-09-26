@@ -39,7 +39,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "../rc_uart.hpp"
+#include <lib/rc/rc_uart.hpp>
 
 ModuleBase::Descriptor SumdRc::desc{task_spawn, custom_command, print_usage};
 

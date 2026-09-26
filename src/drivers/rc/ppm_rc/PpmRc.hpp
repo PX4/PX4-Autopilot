@@ -44,7 +44,7 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/parameter_update.h>
 
-#include "../AnalogRcRssi.hpp"
+#include <lib/rc/analog_rssi.hpp>
 
 #if defined(HRT_PPM_CHANNEL)
 # include <systemlib/ppm_decode.h>
