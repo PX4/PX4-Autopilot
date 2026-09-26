@@ -34,6 +34,7 @@
 #include "param_translation.h"
 
 
+#include <board_config.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <px4_platform_common/log.h>
@@ -126,16 +127,23 @@ static bool serial_claim(int32_t index)
 	return true;
 }
 
+// Old configs name ports and params the board may not have.
+static void set_if_present(const char *name, int32_t value)
+{
+	const param_t p = (name == nullptr) ? PARAM_INVALID : param_find(name);
+
+	if (p != PARAM_INVALID) {
+		param_set(p, &value);
+	}
+}
+
 // The new param defaults to a protocol on this port. Clear it unless another
 // old param already took the port, and leave the port unclaimed so a later
 // node or the deferred MAVLink/RC pass can still take it.
 static void serial_clear_default(int32_t index)
 {
-	const char *name = serial_prot_name(index);
-
-	if (name != nullptr && !serial_port_claimed(index)) {
-		int32_t z = 0;
-		param_set(param_find(name), &z);
+	if (!serial_port_claimed(index)) {
+		set_if_present(serial_prot_name(index), 0);
 	}
 }
 
@@ -169,44 +177,36 @@ static int32_t map_rc_input_proto(int32_t value)
 static void apply_rc_serial_import()
 {
 	const int32_t proto = (serial_rc_input_proto == INT32_MIN) ? 10 : map_rc_input_proto(serial_rc_input_proto);
-	const int32_t port = (serial_rc_port == INT32_MIN) ? 300 : serial_rc_port;
+	// RC_PORT_CONFIG 0 made rc_input fall back to the board's RC port.
+	const int32_t port = (serial_rc_port == INT32_MIN || serial_rc_port == 0) ? 300 : serial_rc_port;
 
 	// RC_PORT_CONFIG was a board default on boards without an RC slot; the
 	// board default for that port already carries the receiver protocol.
-	if (serial_rc_port == INT32_MIN && serial_prot_name(300) == nullptr) {
+	if (serial_rc_port == INT32_MIN && param_find(serial_prot_name(300)) == PARAM_INVALID) {
 		return;
 	}
 
 	if (proto == -2) {
-		int32_t one = 1;
-		param_set(param_find("RC_PPM_EN"), &one);
+		set_if_present("RC_PPM_EN", 1);
 
 		// PPM is not a UART protocol. The old scanner did not open the RC
 		// serial port; leaving SER_RC_PROTO at the SBUS default makes
 		// shared-pin boards refuse ppm_rc start.
-		int32_t z = 0;
-		const char *rc = serial_prot_name(300);
-
-		if (rc != nullptr && serial_claim(300)) {
-			param_set(param_find(rc), &z);
+		if (serial_claim(300)) {
+			set_if_present(serial_prot_name(300), 0);
 		}
 
-		if (port != 0 && port != 300) {
-			const char *dest = serial_prot_name(port);
-
-			if (dest != nullptr && serial_claim(port)) {
-				param_set(param_find(dest), &z);
-			}
+		if (port != 300 && serial_claim(port)) {
+			set_if_present(serial_prot_name(port), 0);
 		}
 
 		PARAM_MIGRATE_INFO("migrating RC_INPUT_PROTO PPM -> RC_PPM_EN");
 		return;
 	}
 
-	if (proto == 0 || port == 0) {
-		if (port != 0 && serial_prot_name(port) != nullptr && serial_claim(port)) {
-			int32_t z = 0;
-			param_set(param_find(serial_prot_name(port)), &z);
+	if (proto == 0) {
+		if (serial_claim(port)) {
+			set_if_present(serial_prot_name(port), 0);
 			PARAM_MIGRATE_INFO("migrating RC_INPUT_PROTO None -> %s=0", serial_prot_name(port));
 		}
 
@@ -224,9 +224,22 @@ static void apply_rc_serial_import()
 		return;
 	}
 
-	int32_t id = proto;
-	param_set(param_find(dest), &id);
-	PARAM_MIGRATE_INFO("migrating RC -> %s=%" PRId32, dest, id);
+	set_if_present(dest, proto);
+	PARAM_MIGRATE_INFO("migrating RC -> %s=%" PRId32, dest, proto);
+
+#if defined(BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT)
+
+	// rc_input sent CRSF/GHST telemetry on this port without a parameter.
+	if (port == 300) {
+		if (proto == 12) {
+			set_if_present("RC_CRSF_TEL_EN", 1);
+
+		} else if (proto == 13) {
+			set_if_present("RC_GHST_TEL_EN", 1);
+		}
+	}
+
+#endif
 
 	// The receiver moved off the RC port, which still defaults to SBUS.
 	if (port != 300) {
