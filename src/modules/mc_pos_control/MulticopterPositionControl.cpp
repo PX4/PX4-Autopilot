@@ -401,6 +401,11 @@ void MulticopterPositionControl::Run()
 				if (!previous_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					_time_position_control_enabled = _vehicle_control_mode.timestamp;
 
+					// Let the velocity limits start unconstrained again for this new period of position control.
+					_vel_limit_xy = NAN;
+					_vel_limit_up = NAN;
+					_vel_limit_down = NAN;
+
 				} else if (previous_position_control_enabled && !_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					// clear existing setpoint when controller is no longer active
 					_setpoint = PositionControl::empty_trajectory_setpoint;
@@ -536,10 +541,31 @@ void MulticopterPositionControl::Run()
 				max_speed_xy = math::min(max_speed_xy, vehicle_local_position.vxy_max);
 			}
 
-			_control.setVelocityLimits(
-				max_speed_xy,
-				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
-				math::max(speed_down, 0.f));
+			float limit_speed_up = math::min(speed_up, _param_mpc_z_vel_max_up.get()); // takeoff ramp starts with negative velocity limit
+			float limit_speed_down = math::max(speed_down, 0.f);
+
+			// When changing mode flying faster than the limit, allow braking with a decaying limit to
+			// avoid a large velocity error from clamping alone driving the integrator against the brake.
+			const Vector2f velocity_xy(states.velocity);
+
+			if (velocity_xy.isAllFinite()) {
+				// math::min(NAN, x) == x -> will initializae _vel_limit_xy
+				_vel_limit_xy = math::max(max_speed_xy, math::min(_vel_limit_xy, velocity_xy.norm()));
+				max_speed_xy = _vel_limit_xy;
+			}
+
+			if (PX4_ISFINITE(states.velocity(2))) {
+				if (states.velocity(2) < 0.f) {
+					_vel_limit_up = math::max(limit_speed_up, math::min(_vel_limit_up, -states.velocity(2)));
+					limit_speed_up = _vel_limit_up;
+
+				} else {
+					_vel_limit_down = math::max(limit_speed_down, math::min(_vel_limit_down, states.velocity(2)));
+					limit_speed_down = _vel_limit_down;
+				}
+			}
+
+			_control.setVelocityLimits(max_speed_xy, limit_speed_up, limit_speed_down);
 
 			_control.setInputSetpoint(_setpoint);
 
