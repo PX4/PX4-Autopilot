@@ -72,6 +72,9 @@ public:
 	// Called by sensor bridges to register device capabilities
 	void registerDeviceCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability);
 
+	// Returns the cached DroneCAN node name, or nullptr if this node's info hasn't been retrieved yet
+	const char *getNodeName(uint8_t node_id) const;
+
 private:
 	struct NodeInfo {
 		NodeInfo(uavcan::NodeID id, const uavcan::protocol::GetNodeInfo_::Response &node_info)
