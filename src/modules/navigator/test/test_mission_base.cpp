@@ -68,6 +68,13 @@ public:
 		return _mission_store.loadItem(index, mission_item);
 	}
 
+	// the store mirrors every write so a later load sees it, and an injected failure stops the
+	// write before it reaches dataman
+	bool writeMissionItemToCache(int32_t index, mission_item_s &mission_item) override
+	{
+		return _mission_store.writeItem(index, mission_item) && MissionBase::writeMissionItemToCache(index, mission_item);
+	}
+
 	void loadTestMission(const std::vector<mission_item_s> &items)
 	{
 		_mission_store.setItems(items);
@@ -91,6 +98,11 @@ public:
 	void clearLoadFailures()
 	{
 		_mission_store.clearLoadFailures();
+	}
+
+	void setWriteFailureIndices(std::initializer_list<int32_t> indices)
+	{
+		_mission_store.setWriteFailureIndices(indices);
 	}
 
 	void setCurrentSequence(int32_t current_seq)
@@ -393,6 +405,151 @@ protected:
 	MissionBaseTestPeer mission_base{&_navigator};
 	uORB::Subscription _mavlink_log_sub{ORB_ID(mavlink_log)};
 };
+
+// Fixture with a real Navigator and a mission bound to a dataman area, so DO_JUMP counters are
+// written for real and a failure injected in the store is the only thing that stops them.
+class MissionBaseJumpCounterWriteTest : public NavigatorDatamanTestBase
+{
+protected:
+	void SetUp() override
+	{
+		ASSERT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+		_navigator.get_mission_result()->item_do_jump_changed = false;
+
+		// only messages published by this test count
+		mavlink_log_s report;
+
+		while (_mavlink_log_sub.update(&report)) {}
+	}
+
+	// [WP0, WP1, DO_JUMP->0 with two repeats left, WP3]
+	void loadJumpMission()
+	{
+		mission_s mission{};
+		mission.timestamp = hrt_absolute_time();
+		mission.mission_id = 1;
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		mission.land_start_index = -1;
+		mission.land_index = -1;
+		mission_base.loadTestMission({
+			makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
+			makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 1
+			makeDoJump(0, 2, 0), // idx 2
+			makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt), // idx 3
+		}, mission);
+	}
+
+	uint16_t storedJumpCount()
+	{
+		mission_item_s item{};
+		EXPECT_TRUE(mission_base.loadMissionItemFromCache(2, item));
+		return item.do_jump_current_count;
+	}
+
+	bool jumpMessagePublished()
+	{
+		mavlink_log_s report;
+
+		while (_mavlink_log_sub.update(&report)) {
+			if (strstr(reinterpret_cast<const char *>(report.text), "DO JUMP could not be saved") != nullptr) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	DatamanClient _dataman_client{};
+	Navigator _navigator{};
+	MissionBaseTestPeer mission_base{&_navigator};
+	uORB::Subscription _mavlink_log_sub{ORB_ID(mavlink_log)};
+};
+
+// WHY: A jump that is counted is the normal case and must keep working as before.
+// WHAT: [WP0, WP1, DO_JUMP->0 (2 left), WP3] entered at the DO_JUMP returns idx 0 and stores count 1.
+TEST_F(MissionBaseJumpCounterWriteTest, GetNonJumpItemFollowsDoJumpWhenCounterIsStored)
+{
+	loadJumpMission();
+
+	int32_t mission_index = 2;
+	mission_item_s mission_item{};
+
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow,
+			true, false);
+
+	ASSERT_EQ(ret, PX4_OK);
+	EXPECT_EQ(mission_index, 0);
+	EXPECT_EQ(storedJumpCount(), 1);
+	EXPECT_TRUE(_navigator.get_mission_result()->item_do_jump_changed);
+	EXPECT_EQ(_navigator.get_mission_result()->item_do_jump_remaining, 1);
+	EXPECT_FALSE(jumpMessagePublished());
+}
+
+// WHY: If the counter cannot be stored, following the jump would repeat it on every pass,
+// since the stored count never advances. The mission has to continue past the jump.
+// WHAT: With the write of idx 2 failing, entering at the DO_JUMP returns idx 3, the stored
+// count stays 0, nothing is reported as a jump, and the operator gets the message.
+TEST_F(MissionBaseJumpCounterWriteTest, GetNonJumpItemSkipsDoJumpWhenCounterCannotBeStored)
+{
+	loadJumpMission();
+	mission_base.setWriteFailureIndices({2});
+
+	int32_t mission_index = 2;
+	mission_item_s mission_item{};
+
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow,
+			true, false);
+
+	ASSERT_EQ(ret, PX4_OK);
+	EXPECT_EQ(mission_index, 3);
+	EXPECT_EQ(mission_item.nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_DOUBLE_EQ(mission_item.lat, kBaseLat + 0.002);
+	EXPECT_EQ(storedJumpCount(), 0);
+	EXPECT_FALSE(_navigator.get_mission_result()->item_do_jump_changed);
+	EXPECT_TRUE(jumpMessagePublished());
+}
+
+// WHY: Backward traversal has to step the same way past a jump it cannot count.
+// WHAT: With the write of idx 2 failing, entering at the DO_JUMP backward returns idx 1.
+TEST_F(MissionBaseJumpCounterWriteTest, GetNonJumpItemStepsBackPastDoJumpWhenCounterCannotBeStored)
+{
+	loadJumpMission();
+	mission_base.setWriteFailureIndices({2});
+
+	int32_t mission_index = 2;
+	mission_item_s mission_item{};
+
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow,
+			true, true);
+
+	ASSERT_EQ(ret, PX4_OK);
+	EXPECT_EQ(mission_index, 1);
+	EXPECT_EQ(storedJumpCount(), 0);
+}
+
+// WHY: Resolving a set-current index follows a jump without consuming a repetition, so a
+// storage failure does not apply to it and it keeps following the jump.
+// WHAT: With the write of idx 2 failing and write_jumps false, entering at the DO_JUMP returns idx 0.
+TEST_F(MissionBaseJumpCounterWriteTest, GetNonJumpItemStillFollowsDoJumpWithoutWritingCounters)
+{
+	loadJumpMission();
+	mission_base.setWriteFailureIndices({2});
+
+	int32_t mission_index = 2;
+	mission_item_s mission_item{};
+
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow,
+			false, false);
+
+	ASSERT_EQ(ret, PX4_OK);
+	EXPECT_EQ(mission_index, 0);
+	EXPECT_EQ(storedJumpCount(), 0);
+	EXPECT_FALSE(jumpMessagePublished());
+}
 
 // WHY: Walking off the end of the mission while skipping an exhausted DO_JUMP is the
 // normal end of a mission, not a storage failure.
