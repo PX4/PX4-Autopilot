@@ -36,6 +36,8 @@
 #include <termios.h>
 #include <math.h>
 
+#include "../rc_uart.hpp"
+
 ModuleBase::Descriptor GhstRc::desc{task_spawn, custom_command, print_usage};
 
 GhstRc::GhstRc(const char *device) :
@@ -175,6 +177,7 @@ void GhstRc::Run()
 		}
 
 		ghst_config(_rcs_fd);
+		rc_uart_configure(_rcs_fd, _device);
 
 		// flush serial buffer and any existing buffered data
 		tcflush(_rcs_fd, TCIOFLUSH);
