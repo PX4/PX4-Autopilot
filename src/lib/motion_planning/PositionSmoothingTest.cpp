@@ -246,3 +246,42 @@ TEST_F(PositionSmoothingTest, doesNotDriftPastUnreachedWaypoint)
 	// Without the fix the look-ahead marches down the extended leg and this grows unbounded.
 	EXPECT_LT(max_distance_past_target, 10.f) << "Vehicle drifted too far past the unreached waypoint\n";
 }
+
+TEST_F(PositionSmoothingTest, nextVelocityConstraintAllowsCarryingSpeedThroughNext)
+{
+	// GIVEN: a straight line with the next waypoint right behind the target (e.g. survey entry point),
+	// the vehicle close enough to the target that stopping at next requires braking already
+	const Vector3f START{17.f, 0.f, 0.f};
+	const Vector3f TARGET{20.f, 0.f, 0.f};
+	const Vector3f NEXT{21.f, 0.f, 0.f};
+	Vector3f waypoints[3] = {START, TARGET, NEXT};
+	PositionSmoothing::PositionSmoothingSetpoints out;
+
+	// WHEN: the velocity after the next waypoint is unknown
+	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	_position_smoothing.setNextVelocityConstraint(Vector3f{NAN, NAN, NAN}, TARGET_ACCEPTANCE_RADIUS);
+	_position_smoothing.generateSetpoints(START, waypoints, Vector3f{}, 0.02f, false, out);
+	const float speed_unknown = Vector2f(out.unsmoothed_velocity).norm();
+
+	// THEN: the planner has to assume a stop at next and slows down already for the target
+	EXPECT_LT(speed_unknown, CRUISE_SPEED);
+
+	// WHEN: the vehicle is known to stop at the next waypoint
+	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	_position_smoothing.setNextVelocityConstraint(Vector3f{}, TARGET_ACCEPTANCE_RADIUS);
+	_position_smoothing.generateSetpoints(START, waypoints, Vector3f{}, 0.02f, false, out);
+	const float speed_stop = Vector2f(out.unsmoothed_velocity).norm();
+
+	// THEN: same result
+	EXPECT_FLOAT_EQ(speed_stop, speed_unknown);
+
+	// WHEN: the vehicle may leave the next waypoint at cruise speed along the same line
+	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	_position_smoothing.setNextVelocityConstraint(Vector3f{CRUISE_SPEED, 0.f, 0.f}, TARGET_ACCEPTANCE_RADIUS);
+	_position_smoothing.generateSetpoints(START, waypoints, Vector3f{}, 0.02f, false, out);
+	const float speed_through = Vector2f(out.unsmoothed_velocity).norm();
+
+	// THEN: the vehicle may pass both waypoints at cruise speed
+	EXPECT_GT(speed_through, speed_unknown);
+	EXPECT_FLOAT_EQ(speed_through, CRUISE_SPEED);
+}

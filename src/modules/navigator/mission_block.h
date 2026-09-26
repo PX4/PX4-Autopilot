@@ -220,6 +220,11 @@ protected:
 
 	float get_absolute_altitude_for_item(const mission_item_s &mission_item) const;
 
+	/**
+	 * [m] Get the horizontal acceptance radius of the mission item, the default one if the item has none
+	 */
+	float get_acceptance_radius_for_item(const mission_item_s &item) const;
+
 	mission_item_s _mission_item{}; // Current mission item that is being executed
 
 	bool _waypoint_position_reached{false};
