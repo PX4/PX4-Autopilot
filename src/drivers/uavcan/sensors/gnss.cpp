@@ -417,7 +417,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
 				sensor_gps.device_id,
-				NodeInfoPublisher::DeviceCapability::GPS);
+				device_information_s::DEVICE_TYPE_GPS);
 	}
 
 	/*

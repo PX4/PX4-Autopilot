@@ -78,7 +78,7 @@ void UavcanGnssRelativeBridge::rel_pos_heading_sub_cb(const
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
 				sensor_gnss_relative.device_id,
-				NodeInfoPublisher::DeviceCapability::GPS);
+				device_information_s::DEVICE_TYPE_GPS);
 	}
 
 	sensor_gnss_relative.timestamp = hrt_absolute_time();

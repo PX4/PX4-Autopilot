@@ -1,6 +1,6 @@
 /****************************************************************************
 *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,72 +40,46 @@
 
 using namespace time_literals;
 
-constexpr int 		DEVICE_INFO_PUBLISH_INTERVAL_MS 	= 1000;
-constexpr hrt_abstime 	DEVICE_INFO_PUBLISH_RATE_LIMIT_US 	= 100_ms;
+constexpr int DEVICE_INFO_PUBLISH_INTERVAL_MS = 1000;
+constexpr hrt_abstime DEVICE_INFO_PUBLISH_RATE_LIMIT_US = 100_ms;
 
 class NodeInfoPublisher : private uavcan::INodeInfoListener, private uavcan::TimerBase
 {
 public:
-	enum class DeviceCapability : uint8_t {
-		NONE = UINT8_MAX,  // Invalid/unset capability value (255)
-		GENERIC = device_information_s::DEVICE_TYPE_GENERIC,
-		AIRSPEED = device_information_s::DEVICE_TYPE_AIRSPEED,
-		ESC = device_information_s::DEVICE_TYPE_ESC,
-		SERVO = device_information_s::DEVICE_TYPE_SERVO,
-		GPS = device_information_s::DEVICE_TYPE_GPS,
-		MAGNETOMETER = device_information_s::DEVICE_TYPE_MAGNETOMETER,
-		PARACHUTE = device_information_s::DEVICE_TYPE_PARACHUTE,
-		RANGEFINDER = device_information_s::DEVICE_TYPE_RANGEFINDER,
-		WINCH = device_information_s::DEVICE_TYPE_WINCH,
-		BAROMETER = device_information_s::DEVICE_TYPE_BAROMETER,
-		OPTICAL_FLOW = device_information_s::DEVICE_TYPE_OPTICAL_FLOW,
-		ACCELEROMETER = device_information_s::DEVICE_TYPE_ACCELEROMETER,
-		GYROSCOPE = device_information_s::DEVICE_TYPE_GYROSCOPE,
-		DIFFERENTIAL_PRESSURE = device_information_s::DEVICE_TYPE_DIFFERENTIAL_PRESSURE,
-		BATTERY = device_information_s::DEVICE_TYPE_BATTERY,
-		HYGROMETER = device_information_s::DEVICE_TYPE_HYGROMETER,
+	enum class NodeVendor : uint8_t {
+		UNKNOWN = 0,
+		VERTIQ, // formerly IQ Motion Control hence "iq_motion" vendor name
 	};
 
 	NodeInfoPublisher(uavcan::INode &node, uavcan::NodeInfoRetriever &node_info_retriever);
 	~NodeInfoPublisher();
 
 	// Called by sensor bridges to register device capabilities
-	void registerDeviceCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability);
+	void registerDeviceCapability(uint8_t node_id, uint32_t device_id, uint8_t device_type);
+
+	NodeVendor getNodeVendor(uint8_t node_id) const
+	{
+		if (node_id < 1 || node_id > uavcan::NodeID::Max) { return NodeVendor::UNKNOWN; }
+
+		return static_cast<NodeVendor>(_node_vendors[node_id]);
+	}
 
 private:
-	struct NodeInfo {
-		NodeInfo(uavcan::NodeID id, const uavcan::protocol::GetNodeInfo_::Response &node_info)
-			: node_id(id), sw_major(node_info.software_version.major), sw_minor(node_info.software_version.minor),
-			  vcs_commit(node_info.software_version.vcs_commit), hw_major(node_info.hardware_version.major),
-			  hw_minor(node_info.hardware_version.minor)
-		{
-			memcpy(name, node_info.name.c_str(), node_info.name.capacity());
-			name[node_info.name.capacity() - 1] = '\0';
-			memcpy(unique_id, &node_info.hardware_version.unique_id.front(), node_info.hardware_version.unique_id.size());
-		}
-		NodeInfo() = default;
-
-		uavcan::NodeID node_id{};
-
-		char name[uavcan::protocol::GetNodeInfo_::Response::FieldTypes::name::MaxSize];
-		uint8_t unique_id[uavcan::protocol::GetNodeInfo_::Response::FieldTypes::hardware_version::FieldTypes::unique_id::MaxSize];
-		uint8_t sw_major;
-		uint8_t sw_minor;
-		uint32_t vcs_commit;
-		uint8_t hw_major;
-		uint8_t hw_minor;
-	};
+	static constexpr uint8_t DEVICE_TYPE_NONE = UINT8_MAX;
 
 	struct DeviceInformation {
-		uint8_t node_id{UINT8_MAX};
-		uint32_t device_id{UINT32_MAX};
-		DeviceCapability capability{DeviceCapability::NONE};
-		bool has_node_info{false};
+		uint8_t node_id = UINT8_MAX;
+		uint32_t device_id = UINT32_MAX;
+		uint8_t device_type = DEVICE_TYPE_NONE;
+		bool has_node_info = false;
 
 		char name[80] = "";
-		char firmware_version[24] = "";
-		char hardware_version[24] = "";
-		char serial_number[33] = "";
+		uint8_t sw_major = 0;
+		uint8_t sw_minor = 0;
+		uint32_t sw_vcs_commit = 0;
+		uint8_t hw_major = 0;
+		uint8_t hw_minor = 0;
+		uint8_t unique_id[16] {};
 	};
 
 	void handleNodeInfoRetrieved(uavcan::NodeID node_id,
@@ -116,23 +90,24 @@ private:
 
 	void startTimerIfNotRunning();
 
-	// Register device info or capability, set nodeinfo to nullptr if only registering capability
-	void registerDevice(uint8_t node_id, const NodeInfo *info, uint32_t device_id, DeviceCapability capability);
+	void registerNodeInfo(uint8_t node_id, const uavcan::protocol::GetNodeInfo_::Response &node_info);
+	void registerCapability(uint8_t node_id, uint32_t device_id, uint8_t device_type);
+	void populateDeviceInfoFields(DeviceInformation &device_info, const uavcan::protocol::GetNodeInfo_::Response &node_info);
 
 	// Publishing methods
 	void publishDeviceInformationPeriodic();
 	void publishSingleDeviceInformation(const DeviceInformation &device_info);
 
-	// Helper functions
-	void populateDeviceInfoFields(DeviceInformation &device_info, const NodeInfo &info);
-	void parseNodeName(const char *name, DeviceInformation &device_info);
 	bool extendDeviceInformationsArray();
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
 
+	NodeVendor _node_vendors[uavcan::NodeID::Max + 1] {}; // indexed by node_id
+
 	// Device capability tracking
 	DeviceInformation *_device_informations{nullptr};
 	size_t _device_informations_size{0};
+	size_t _device_informations_capacity{0};
 	uORB::Publication<device_information_s> _device_info_pub{ORB_ID(device_information)};
 	hrt_abstime _last_device_info_publish{0};
 
