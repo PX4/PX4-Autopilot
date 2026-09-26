@@ -25384,7 +25384,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Expected battery current in flight.
 
 This value is used to initialize the in-flight average current estimation,
-which in turn is used for estimating remaining flight time and RTL triggering.
+which in turn is used for estimating remaining flight time and Return triggering.
 
 
 
@@ -25402,7 +25402,7 @@ Critical threshold.
 
 Sets the threshold when the battery will be reported as critically low.
 This has to be lower than the low threshold. This threshold commonly
-will trigger RTL.
+will trigger Return.
 
 
 
@@ -26405,7 +26405,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Delay between failsafe condition triggered and failsafe reaction.
 
-Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
+Before entering failsafe (Return, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
 for the user to realize.
 During that time the user can switch modes, but cannot take over control via the manual control override feature (see MAN_OVERRIDE_SPD).
 Afterwards the configured failsafe action is triggered and the user may use manual control override.
@@ -26758,7 +26758,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Remaining flight time low failsafe.
 
 Action the system takes when the remaining flight time is below
-the estimated time it takes to reach the RTL destination.
+the estimated time it takes to reach the return destination.
 
 
 **Values:**
@@ -26780,13 +26780,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Maximum allowed flight time.
 
-The vehicle aborts the current operation and returns to launch when
+The vehicle aborts the current operation and switches to Return mode when
 the time since takeoff is above this value. It is not possible to resume the
-mission or switch to any auto mode other than RTL or Land. Taking over in any manual
+mission or switch to any auto mode other than Return or Land. Taking over in any manual
 mode is still possible.
 
 Starting from 90% of the maximum flight time, a warning message will be sent
-every 1 minute with the remaining time until automatic RTL.
+every 1 minute with the remaining time until automatic Return.
 
 Set to -1 to disable.
 
@@ -27339,7 +27339,7 @@ Manual control loss exceptions.
 
 Specify modes in which stick input is ignored and no failsafe action is triggered.
 External modes requiring stick input will still failsafe.
-Auto modes are: Hold, Takeoff, Land, RTL, Descend, Follow Target, Precland, Orbit.
+Auto modes are: Hold, Takeoff, Land, Return, Descend, Follow Target, Precland, Orbit.
 
 
 **Bitmask:**
@@ -27542,7 +27542,7 @@ High wind failsafe mode.
 Action the system takes when a wind speed above the specified threshold is detected.
 See COM_WIND_MAX to set the failsafe threshold.
 If enabled, it is not possible to resume the mission or switch to any auto mode other than
-RTL or Land if this threshold is exceeded. Taking over in any manual
+Return or Land if this threshold is exceeded. Taking over in any manual
 mode is still possible.
 
 
@@ -42166,9 +42166,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_MIN_GND_DIST (`FLOAT`) {#NAV_MIN_GND_DIST}
 
-Minimum height above ground during Mission and RTL.
+Minimum height above ground during Mission and Return.
 
-Minimum height above ground the vehicle is allowed to descend to during Mission and RTL,
+Minimum height above ground the vehicle is allowed to descend to during Mission and Return,
 excluding landing commands.
 Requires a distance sensor to be set up.
 Note: only prevents the vehicle from descending further, but does not force it to climb.
@@ -43315,7 +43315,7 @@ Enable stick nudging in autonomous modes.
 Bitmask to enable pilot override of heading and position during auto modes.
 
 Bit 0 - Yaw nudging: yaw stick rotates the heading in all auto types
-(takeoff, mission, RTL, hold, landing). The new heading is held until a
+(takeoff, mission, Return, hold, landing). The new heading is held until a
 mode switch resets it.
 
 Bit 1 - Land nudging: during autonomous landing the pitch/roll sticks move
@@ -43866,7 +43866,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Default horizontal velocity in autonomous modes.
 
-e.g. in Missions, RTL, Goto if the waypoint does not specify differently
+e.g. in Missions, Return, Goto if the waypoint does not specify differently
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48037,7 +48037,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### RC_RETURN_TH (`FLOAT`) {#RC_RETURN_TH}
 
-Threshold for selecting return to launch mode.
+Threshold for selecting Return mode.
 
 0-1 indicate where in the full channel range the threshold sits
 0 : min
@@ -48077,7 +48077,28 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Return Mode
 
-<div class="param-group" style="--param-count: 8">
+<div class="param-group" style="--param-count: 11">
+
+<div class="param">
+
+### RTL_APPR_FORCE (`INT32`) {#RTL_APPR_FORCE}
+
+Force VTOL approach landing on Return.
+
+Only consider home/rally points as return destinations if they have a VTOL approach loiter.
+A VTOL approach loiter is a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude.
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
 
 <div class="param">
 
@@ -48142,7 +48163,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### RTL_LOITER_RAD (`FLOAT`) {#RTL_LOITER_RAD}
 
-Loiter radius for rtl descend.
+Loiter radius for return descent.
 
 Set the radius for loitering to a safe altitude for VTOL transition.
 
@@ -48157,7 +48178,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### RTL_MIN_DIST (`FLOAT`) {#RTL_MIN_DIST}
 
-Min distance for RTL cone altitude calculation.
+Min distance for return cone altitude calculation.
 
 Horizontal radius from return point within which special rules for return mode apply
 
@@ -48175,10 +48196,10 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### RTL_PLD_MD (`INT32`) {#RTL_PLD_MD}
 
-RTL precision land mode.
+Return precision land mode.
 
-Use precision landing when doing an RTL landing phase.
-This setting does not apply for RTL destinations planned as part of a mission.
+Use precision landing during the landing phase of Return mode.
+This setting does not apply for return destinations planned as part of a mission.
 
 
 **Values:**
@@ -48208,6 +48229,38 @@ This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 |  | 0.5 | 60.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RTL_TIME_FACTOR (`FLOAT`) {#RTL_TIME_FACTOR}
+
+Return time estimate safety margin factor.
+
+Safety factor that is used to scale the actual return time estimate.
+Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 | 2.0 | 0.1 | 1.1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RTL_TIME_MARGIN (`INT32`) {#RTL_TIME_MARGIN}
+
+Return time estimate safety margin offset.
+
+Margin that is added to the time estimate, after it has already been scaled
+Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 3600 | 1 | 100 | s | &nbsp;
 
 </div>
 
@@ -48248,65 +48301,6 @@ Return mode destination and flight path (home location, rally point, mission lan
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | 0 |  | &nbsp;
-
-</div>
-
-</div>
-
-## Return To Land
-
-<div class="param-group" style="--param-count: 3">
-
-<div class="param">
-
-### RTL_APPR_FORCE (`INT32`) {#RTL_APPR_FORCE}
-
-RTL force approach landing.
-
-Only consider home/rally RTL points that have a VTOL approach loiter.
-A VTOL approach loiter is a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude.
-
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | Disabled (0) |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### RTL_TIME_FACTOR (`FLOAT`) {#RTL_TIME_FACTOR}
-
-RTL time estimate safety margin factor.
-
-Safety factor that is used to scale the actual RTL time estimate.
-Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 1.0 | 2.0 | 0.1 | 1.1 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### RTL_TIME_MARGIN (`INT32`) {#RTL_TIME_MARGIN}
-
-RTL time estimate safety margin offset.
-
-Margin that is added to the time estimate, after it has already been scaled
-Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 3600 | 1 | 100 | s | &nbsp;
 
 </div>
 

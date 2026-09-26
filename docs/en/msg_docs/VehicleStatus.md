@@ -28,7 +28,7 @@ Encodes the system state of the vehicle published by commander.
 | <a id="fld_can_set_nav_states_mask"></a>can_set_nav_states_mask                   | `uint32` |              |            | Bitmask for all modes that a user can select                                                    |
 | <a id="fld_hil_state"></a>hil_state                                               | `uint8`  |              |            |
 | <a id="fld_vehicle_type"></a>vehicle_type                                         | `uint8`  |              |            |
-| <a id="fld_failsafe"></a>failsafe                                                 | `bool`   |              |            | true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)                           |
+| <a id="fld_failsafe"></a>failsafe                                                 | `bool`   |              |            | true if system is in failsafe state (e.g. Return, Hover, Terminate, ...)                        |
 | <a id="fld_failsafe_and_user_took_over"></a>failsafe_and_user_took_over           | `bool`   |              |            | true if system is in failsafe state but the user took over control                              |
 | <a id="fld_failsafe_defer_state"></a>failsafe_defer_state                         | `uint8`  |              |            | one of FAILSAFE*DEFER_STATE*\*                                                                  |
 | <a id="fld_gcs_connection_lost"></a>gcs_connection_lost                           | `bool`   |              |            | datalink to GCS lost                                                                            |
@@ -76,7 +76,7 @@ Encodes the system state of the vehicle published by commander.
 | <a id="#NAVIGATION_STATE_POSCTL"></a> NAVIGATION_STATE_POSCTL                           | `uint8`  | 2     | Position control mode                              |
 | <a id="#NAVIGATION_STATE_AUTO_MISSION"></a> NAVIGATION_STATE_AUTO_MISSION               | `uint8`  | 3     | Auto mission mode                                  |
 | <a id="#NAVIGATION_STATE_AUTO_LOITER"></a> NAVIGATION_STATE_AUTO_LOITER                 | `uint8`  | 4     | Auto loiter mode                                   |
-| <a id="#NAVIGATION_STATE_AUTO_RTL"></a> NAVIGATION_STATE_AUTO_RTL                       | `uint8`  | 5     | Auto return to launch mode                         |
+| <a id="#NAVIGATION_STATE_AUTO_RTL"></a> NAVIGATION_STATE_AUTO_RTL                       | `uint8`  | 5     | Return mode                                        |
 | <a id="#NAVIGATION_STATE_POSITION_SLOW"></a> NAVIGATION_STATE_POSITION_SLOW             | `uint8`  | 6     |
 | <a id="#NAVIGATION_STATE_GUIDED_COURSE"></a> NAVIGATION_STATE_GUIDED_COURSE             | `uint8`  | 7     | Guided Course mode (FW: maintain course/alt/speed) |
 | <a id="#NAVIGATION_STATE_ALTITUDE_CRUISE"></a> NAVIGATION_STATE_ALTITUDE_CRUISE         | `uint8`  | 8     | Altitude with Cruise mode                          |
@@ -156,7 +156,7 @@ uint8 NAVIGATION_STATE_ALTCTL = 1               # Altitude control mode
 uint8 NAVIGATION_STATE_POSCTL = 2               # Position control mode
 uint8 NAVIGATION_STATE_AUTO_MISSION = 3         # Auto mission mode
 uint8 NAVIGATION_STATE_AUTO_LOITER = 4          # Auto loiter mode
-uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Auto return to launch mode
+uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Return mode
 uint8 NAVIGATION_STATE_POSITION_SLOW = 6
 uint8 NAVIGATION_STATE_GUIDED_COURSE = 7 		# Guided Course mode (FW: maintain course/alt/speed)
 uint8 NAVIGATION_STATE_ALTITUDE_CRUISE = 8      # Altitude with Cruise mode
@@ -207,7 +207,7 @@ uint8 FAILSAFE_DEFER_STATE_DISABLED = 0
 uint8 FAILSAFE_DEFER_STATE_ENABLED = 1
 uint8 FAILSAFE_DEFER_STATE_WOULD_FAILSAFE = 2 # Failsafes deferred, but would trigger a failsafe
 
-bool failsafe # true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
+bool failsafe # true if system is in failsafe state (e.g. Return, Hover, Terminate, ...)
 bool failsafe_and_user_took_over # true if system is in failsafe state but the user took over control
 uint8 failsafe_defer_state # one of FAILSAFE_DEFER_STATE_*
 

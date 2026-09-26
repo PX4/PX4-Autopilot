@@ -267,7 +267,7 @@ Source: [modules/navigator](https://github.com/PX4/PX4-Autopilot/tree/main/src/m
 ### Description
 
 Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
-takeoff and RTL.
+takeoff and Return.
 It is also responsible for geofence violation checking.
 
 ### Implementation
