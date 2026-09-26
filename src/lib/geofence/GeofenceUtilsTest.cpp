@@ -87,6 +87,113 @@ TEST(GeofenceUtilsTest, SegmentsDisjoint)
 	EXPECT_EQ(SS::Disjoint, geofence_utils::segmentsIntersect(0, 0, 300, 0, 1000, 1000, 4000, 2000));
 }
 
+struct SegmentIntersectionCase {
+	const char *name;
+	Vector2d a, b, c, d;
+	bool intersects;
+};
+
+static const SegmentIntersectionCase kSegmentIntersectionCases[] = {
+	// Contact counts, even when the segments only share an endpoint or overlap along a line.
+	{"Crossing", {0, 0}, {4, 4}, {0, 4}, {4, 0}, true},
+	{"NegativeCoordinates", {-4, -4}, {0, 0}, {-4, 0}, {0, -4}, true},
+	{"SharedEndpoint", {0, 0}, {4, 0}, {4, 0}, {4, 4}, true},
+	{"EndpointOnInterior", {0, 0}, {4, 0}, {2, 0}, {2, 4}, true},
+	{"CollinearOverlap", {0, 0}, {4, 0}, {2, 0}, {6, 0}, true},
+	{"ContainedSegment", {0, 0}, {4, 4}, {1, 1}, {3, 3}, true},
+	{"IdenticalSegments", {0, 0}, {4, 4}, {0, 0}, {4, 4}, true},
+	{"CollinearEndpointContact", {0, 0}, {2, 2}, {2, 2}, {4, 4}, true},
+	// A shared line or overlapping bounding boxes alone do not imply an intersection.
+	{"HorizontalGap", {0, 0}, {1, 0}, {2, 0}, {3, 0}, false},
+	{"VerticalGap", {0, 0}, {0, 1}, {0, 2}, {0, 3}, false},
+	{"SlantedGap", {0, 0}, {1, 1}, {2, 2}, {3, 3}, false},
+	{"ParallelWithOverlappingBounds", {0, 0}, {4, 4}, {0, 1}, {3, 4}, false},
+	{"NonparallelWithOverlappingBounds", {0, 0}, {2, 2}, {0, 1}, {1, 3}, false},
+	// c lies on the line through ab but past b, so only the second straddle test rejects it.
+	{"EndpointOnLineBeyondSegment", {0, 0}, {4, 0}, {5, 0}, {3, 2}, false},
+	// Equal endpoints turn a segment into a single point.
+	{"PointOnInterior", {2, 2}, {2, 2}, {0, 0}, {4, 4}, true},
+	{"PointOnEndpoint", {0, 0}, {0, 0}, {0, 0}, {4, 4}, true},
+	{"PointBeyondEndpoint", {5, 5}, {5, 5}, {0, 0}, {4, 4}, false},
+	{"PointOffLineWithinBounds", {1, 2}, {1, 2}, {0, 0}, {4, 4}, false},
+	{"CoincidentPoints", {1, 2}, {1, 2}, {1, 2}, {1, 2}, true},
+	{"DistinctPoints", {1, 2}, {1, 2}, {2, 1}, {2, 1}, false},
+	// At this latitude, 0.0000001 degrees is about 1 cm and is lost with float coordinates.
+	{"LatLonCentimetreCrossing", {47.0, 8.0}, {47.0000002, 8.0}, {47.0000001, 7.9999999}, {47.0000001, 8.0000001}, true},
+	{"LatLonCentimetreGap", {47.0, 8.0}, {47.0000001, 8.0}, {47.0000002, 8.0}, {47.0000003, 8.0}, false},
+	// A shallow crossing over about 76 km, with roughly 1 cm offsets at either end.
+	{"LatLonShallowCrossing", {47.0, 8.0}, {47.0, 9.0}, {46.9999999, 8.0}, {47.0000001, 9.0}, true},
+};
+
+class GeofenceSegmentIntersectionTest : public ::testing::TestWithParam<SegmentIntersectionCase>
+{
+};
+
+TEST_P(GeofenceSegmentIntersectionTest, SegmentsIntersectInclusive)
+{
+	const auto &test = GetParam();
+
+	// Reversing endpoints or swapping the segments must not change the answer.
+	for (bool reverse_ab : {false, true}) {
+		for (bool reverse_cd : {false, true}) {
+			const auto &a = reverse_ab ? test.b : test.a;
+			const auto &b = reverse_ab ? test.a : test.b;
+			const auto &c = reverse_cd ? test.d : test.c;
+			const auto &d = reverse_cd ? test.c : test.d;
+
+			EXPECT_EQ(test.intersects, geofence_utils::segmentsIntersectInclusive(a, b, c, d));
+			EXPECT_EQ(test.intersects, geofence_utils::segmentsIntersectInclusive(c, d, a, b));
+		}
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(GeofenceUtils, GeofenceSegmentIntersectionTest,
+			 ::testing::ValuesIn(kSegmentIntersectionCases),
+			 [](const ::testing::TestParamInfo<SegmentIntersectionCase> &test_info)
+{
+	return test_info.param.name;
+});
+
+struct PointSegmentDistanceCase {
+	const char *name;
+	Vector2d point, a, b;
+	double distance_squared;
+};
+
+static const PointSegmentDistanceCase kPointSegmentDistanceCases[] = {
+	// A horizontal segment makes the nearest endpoint and perpendicular distances easy to check.
+	{"BeforeStart", {-2, 3}, {0, 0}, {4, 0}, 13},
+	{"AfterEnd", {6, 3}, {0, 0}, {4, 0}, 13},
+	{"AboveStart", {0, 3}, {0, 0}, {4, 0}, 9},
+	{"AboveInterior", {2, 3}, {0, 0}, {4, 0}, 9},
+	{"OnSegment", {2, 0}, {0, 0}, {4, 0}, 0},
+	{"TranslatedSegment", {12, 13}, {10, 10}, {14, 10}, 9},
+	{"VerticalSegment", {-1, -2}, {-4, -4}, {-4, 0}, 9},
+	{"DiagonalSegment", {2, 0}, {0, 0}, {2, 2}, 2},
+	{"ZeroLength", {3, 4}, {1, 1}, {1, 1}, 13},
+	{"CoincidentPoint", {1, 1}, {1, 1}, {1, 1}, 0},
+	// Both segments lie on 3x + 4y = 250, exactly 50 m from the origin.
+	{"CircleTangent", {0, 0}, {-30, 85}, {86, -2}, 2500},
+	// Over 10 km, subtracting projected squared distances can round this tangent outside the circle.
+	{"LongCircleTangent", {0, 0}, {-8030, 6085}, {318, -176}, 2500},
+};
+
+class GeofencePointSegmentDistanceTest : public ::testing::TestWithParam<PointSegmentDistanceCase> {};
+
+TEST_P(GeofencePointSegmentDistanceTest, SquaredDistance)
+{
+	const auto &test = GetParam();
+	EXPECT_DOUBLE_EQ(test.distance_squared, geofence_utils::pointToSegmentDistanceSquared(test.point, test.a, test.b));
+	EXPECT_DOUBLE_EQ(test.distance_squared, geofence_utils::pointToSegmentDistanceSquared(test.point, test.b, test.a));
+}
+
+INSTANTIATE_TEST_SUITE_P(GeofenceUtils, GeofencePointSegmentDistanceTest,
+			 ::testing::ValuesIn(kPointSegmentDistanceCases),
+			 [](const ::testing::TestParamInfo<PointSegmentDistanceCase> &test_info)
+{
+	return test_info.param.name;
+});
+
 TEST(GeofenceUtilsTest, PolygonIsCCW)
 {
 	const Vector2f square[4] = {{0.f, 0.f}, {1.f, 0.f}, {1.f, 1.f}, {0.f, 1.f}};
