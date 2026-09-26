@@ -36,7 +36,7 @@
 #include <termios.h>
 #include <math.h>
 
-#include "../rc_uart.hpp"
+#include <lib/rc/rc_uart.hpp>
 
 ModuleBase::Descriptor GhstRc::desc{task_spawn, custom_command, print_usage};
 

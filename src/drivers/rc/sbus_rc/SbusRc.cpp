@@ -35,7 +35,7 @@
 
 #include <termios.h>
 
-#include "../rc_uart.hpp"
+#include <lib/rc/rc_uart.hpp>
 
 ModuleBase::Descriptor SbusRc::desc{task_spawn, custom_command, print_usage};
 

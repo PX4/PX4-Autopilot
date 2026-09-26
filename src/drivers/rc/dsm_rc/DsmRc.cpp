@@ -37,7 +37,7 @@
 
 #include <termios.h>
 
-#include "../rc_uart.hpp"
+#include <lib/rc/rc_uart.hpp>
 
 using namespace time_literals;
 

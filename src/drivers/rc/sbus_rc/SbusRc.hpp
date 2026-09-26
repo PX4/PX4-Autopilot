@@ -51,7 +51,7 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/parameter_update.h>
 
-#include "../AnalogRcRssi.hpp"
+#include <lib/rc/analog_rssi.hpp>
 
 using namespace time_literals;
 
