@@ -78,7 +78,7 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
 
    ::: info
    The script installs from third-party Homebrew taps and marks them as trusted (`brew trust`) on Homebrew 6.0 and later, which refuses to load formulae from untrusted taps.
-   With `--sim-tools` it will prompt for your password, since the XQuartz installer and the JDK link into `/Library/Java/JavaVirtualMachines` need `sudo`.
+   With `--sim-tools` it will prompt for your password.
    :::
 
 ### Gazebo Simulation
