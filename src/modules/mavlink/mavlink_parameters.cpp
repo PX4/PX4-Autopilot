@@ -58,6 +58,49 @@ MavlinkParametersManager::get_size()
 	return MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 }
 
+bool
+MavlinkParametersManager::take_send_budget()
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float message_bytes = MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+	// Historic behaviour: low bandwidth mode caps the dump at 8 Hz, so keep
+	// that as a hard spacing on those links.
+	if ((_mavlink.get_mode() == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH) &&
+	    (now < _last_param_sent_timestamp + 125_ms)) {
+		return false;
+	}
+
+	const int datarate = _mavlink.get_data_rate();
+
+	if (datarate <= 0) {
+		// Nothing to spread the dump over, so don't hold it back.
+		_last_param_sent_timestamp = now;
+		return true;
+	}
+
+	const float rate = (float)datarate * _mavlink.bulk_bandwidth_share();
+
+	if (_budget_timestamp != 0) {
+		_budget_bytes += rate * (float)(now - _budget_timestamp) / 1e6f;
+	}
+
+	_budget_timestamp = now;
+
+	// Let a batch build up, but no more: a link that has been idle must not be
+	// able to spend minutes of credit at once and swamp the radio, which is
+	// what the pacing is here to prevent in the first place.
+	_budget_bytes = math::min(_budget_bytes, message_bytes * kMaxBudgetMessages);
+
+	if (_budget_bytes < message_bytes) {
+		return false;
+	}
+
+	_budget_bytes -= message_bytes;
+	_last_param_sent_timestamp = now;
+	return true;
+}
+
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
 void
@@ -527,11 +570,11 @@ MavlinkParametersManager::send_untransmitted()
 bool
 MavlinkParametersManager::send_one()
 {
-	const hrt_abstime now = hrt_absolute_time();
-
-	// If in low-bandwidth mode, throttle parameter transmission to 8 Hz
-	if (_mavlink.get_mode() == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH
-	    && now < _last_param_sent_timestamp + 125_ms) {
+	// Throttle the parameter dump to its share of the configured link budget.
+	// Otherwise the only limit is the local UART buffer, which on a slow radio
+	// link means we hand the radio far more than it can carry over the air and
+	// it silently drops packets - including the telemetry sharing the link.
+	if (!take_send_budget()) {
 		return false;
 	}
 
@@ -571,8 +614,12 @@ MavlinkParametersManager::send_one()
 		} while (p != PARAM_INVALID && !param_used(p));
 
 		if (p != PARAM_INVALID) {
-			send_param(p);
-			_last_param_sent_timestamp = now;
+			if (send_param(p) != 0) {
+				// No room in the TX buffer: retry this one next time rather
+				// than dropping it silently, the index was already advanced.
+				_send_all_index--;
+				return false;
+			}
 		}
 
 		if ((p == PARAM_INVALID) || (_send_all_index >= (int) param_count())) {
