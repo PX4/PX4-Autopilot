@@ -56,7 +56,11 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Pinouts {#pinouts}
 
-![DAKEFPV H743 Slim top](../../assets/flight_controller/dakefpv_h743slim/dakefpv_h743slim_top.png)
+![DAKEFPV H743 Slim pads](../../assets/flight_controller/dakefpv_h743slim/dakefpv_h743slim_top.jpg)
+
+![DAKEFPV H743 Slim components](../../assets/flight_controller/dakefpv_h743slim/dakefpv_h743slim_bottom.jpg)
+
+The component side has the USB-C port, the microSD slot and two JST connectors: the 8-pin 4-in-1 ESC connector and a 4-pin CAN connector (`5V`, `CH`, `CL`, `GND`).
 
 | Pin              | Function                                               | PX4 Default    |
 | ---------------- | ------------------------------------------------------ | -------------- |
@@ -178,7 +182,7 @@ If you connect an external compass, set `SYS_HAS_MAG` to `1` and `EKF2_MAG_TYPE`
 
 ### CAN {#can}
 
-Connect [DroneCAN](../dronecan/index.md) peripherals to the `CH`/`CL` pads (CAN1).
+Connect [DroneCAN](../dronecan/index.md) peripherals to the 4-pin CAN connector or the `CH`/`CL` pads (CAN1).
 DroneCAN is disabled by default: set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to enable it.
 
 ### OSD {#osd}
