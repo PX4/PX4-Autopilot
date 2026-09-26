@@ -294,12 +294,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 				boot_log(LOG_INFO, "[boot] flash: MTD register failed %d\n", ret);
 
 			} else {
-				ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, NULL);
-
-				if (ret < 0) {
-					boot_log(LOG_INFO, "[boot] flash: first mount failed %d, formatting...\n", ret);
-					ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, "forceformat");
-				}
+				/* As on the Holybro Kakute H7 boards: "autoformat" only formats
+				 * when littlefs finds no valid filesystem (blank or corrupt).
+				 * Any other error, e.g. an SPI read failure, leaves the flash
+				 * and its logs untouched rather than wiping them.
+				 */
+				ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, "autoformat");
 
 				if (ret == 0) {
 					boot_log(LOG_INFO, "[boot] flash: mounted at /fs/microsd\n");
@@ -323,7 +323,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 					}
 
 				} else {
-					boot_log(LOG_INFO, "[boot] flash: mount failed %d\n", ret);
+					boot_log(LOG_ERR, "[boot] flash: mount failed %d\n", ret);
 				}
 			}
 		}
