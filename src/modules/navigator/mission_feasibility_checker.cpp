@@ -127,14 +127,27 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		return true;
 	}
 
-	enum class Failure { None, DatamanRead, NoHome, Waypoint } failure = Failure::None;
+	enum class Failure { None, DatamanRead, NoHome, Waypoint, Loiter } failure = Failure::None;
 	size_t failed_item = 0;
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	const vehicle_status_s &status = *_navigator->get_vstatus();
+	// A VTOL may transition to fixed-wing after upload.
+	const bool circling_vehicle = status.is_vtol || status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
 	/* Check mission positions and the paths between them. */
 	static GeofencePathBatch batch{}; // keep the shared batch off the stack.
 	batch.count = 0;
 	matrix::Vector2d previous_position{};
 	bool have_previous_position = false;
+
+	// The loiter flown after the last position if the mission ends there.
+	struct {
+		bool pending{false};
+		uint16_t index{0};
+		float radius{0.f};
+		float altitude{0.f};
+	} end_loiter;
+
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	for (size_t i = 0; i < mission.count; i++) {
@@ -203,18 +216,62 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 			have_previous_position = true;
 		}
 
-		batch.paths[batch.count] = {previous_position, position};
-		batch.mission_indices[batch.count++] = static_cast<uint16_t>(i);
-		previous_position = position;
-
-		if (batch.count == kGeofencePathBatchSize && !checkGeofencePathBatch(batch)) {
+		if (!addGeofencePath(batch, {previous_position, position}, i)) {
 			return false;
+		}
+
+		previous_position = position;
+		end_loiter.pending = false;
+
+		if (!circling_vehicle) {
+			continue;
+		}
+
+		// Same radius as mission_item_to_position_setpoint().
+		const float radius = fabsf(missionitem.loiter_radius) > FLT_EPSILON ? fabsf(missionitem.loiter_radius) :
+				     _navigator->get_default_loiter_rad();
+		const bool loiter_item = missionitem.nav_cmd == NAV_CMD_LOITER_UNLIMITED
+					 || missionitem.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT
+					 || missionitem.nav_cmd == NAV_CMD_LOITER_TO_ALT;
+		const bool landing_item = missionitem.nav_cmd == NAV_CMD_LAND || missionitem.nav_cmd == NAV_CMD_VTOL_LAND;
+
+		if (loiter_item) {
+			if (!PX4_ISFINITE(radius) || radius <= 0.f
+			    || !geofence.isCloserThanMaxDistToHome(missionitem.lat, missionitem.lon, missionitem.altitude, radius)) {
+				failure = Failure::Loiter;
+				failed_item = i;
+				break;
+			}
+
+			// Keep the circle after its incoming leg so the first breach is reported in mission order.
+			if (!addGeofencePath(batch, {position, position, radius}, i)) {
+				return false;
+			}
+
+		} else if (!landing_item) {
+			// If the mission ends here the vehicle loiters at this position, see setEndOfMissionItems().
+			end_loiter.pending = true;
+			end_loiter.index = static_cast<uint16_t>(i);
+			end_loiter.radius = radius;
+			end_loiter.altitude = missionitem.altitude;
 		}
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 	}
 
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+
+	if (failure == Failure::None && end_loiter.pending) {
+		if (!PX4_ISFINITE(end_loiter.radius) || end_loiter.radius <= 0.f
+		    || !geofence.isCloserThanMaxDistToHome(previous_position(0), previous_position(1), end_loiter.altitude,
+				    end_loiter.radius)) {
+			failure = Failure::Loiter;
+			failed_item = end_loiter.index;
+
+		} else if (!addGeofencePath(batch, {previous_position, previous_position, end_loiter.radius}, end_loiter.index)) {
+			return false;
+		}
+	}
 
 	// Report an earlier buffered path breach before the current item's failure.
 	if (!checkGeofencePathBatch(batch)) {
@@ -242,12 +299,24 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		events::send<int16_t>(events::ID("navigator_mis_geofence_violation"), {events::Log::Error, events::LogInternal::Info},
 				      "Geofence violation for waypoint {1}", failed_item + 1);
 		break;
+
+	case Failure::Loiter:
+		logGeofenceLoiterBreach(static_cast<uint16_t>(failed_item + 1));
+		break;
 	}
 
 	return false;
 }
 
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+bool MissionFeasibilityChecker::addGeofencePath(GeofencePathBatch &batch, const Geofence::PathCheck &path,
+		size_t mission_index)
+{
+	batch.paths[batch.count] = path;
+	batch.mission_indices[batch.count++] = static_cast<uint16_t>(mission_index);
+	return batch.count < kGeofencePathBatchSize || checkGeofencePathBatch(batch);
+}
+
 bool MissionFeasibilityChecker::checkGeofencePathBatch(GeofencePathBatch &batch)
 {
 	if (batch.count == 0) {
@@ -262,11 +331,18 @@ bool MissionFeasibilityChecker::checkGeofencePathBatch(GeofencePathBatch &batch)
 	for (size_t i = 0; i < batch.count; ++i) {
 		if (!batch.results[i]) {
 			const uint16_t waypoint = batch.mission_indices[i] + 1;
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence breach on path to waypoint %u\t",
-					     static_cast<unsigned>(waypoint));
-			events::send<uint16_t>(events::ID("navigator_mis_geofence_path_violation"),
-			{events::Log::Error, events::LogInternal::Info},
-			"Geofence breach on path to waypoint {1}", waypoint);
+
+			if (batch.paths[i].end_radius > 0.f) {
+				logGeofenceLoiterBreach(waypoint);
+
+			} else {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence breach on path to waypoint %u\t",
+						     static_cast<unsigned>(waypoint));
+				events::send<uint16_t>(events::ID("navigator_mis_geofence_path_violation"),
+				{events::Log::Error, events::LogInternal::Info},
+				"Geofence breach on path to waypoint {1}", waypoint);
+			}
+
 			return false;
 		}
 	}
@@ -275,6 +351,15 @@ bool MissionFeasibilityChecker::checkGeofencePathBatch(GeofencePathBatch &batch)
 	return true;
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
+void MissionFeasibilityChecker::logGeofenceLoiterBreach(uint16_t waypoint)
+{
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence breach by loiter circle of waypoint %u\t",
+			     static_cast<unsigned>(waypoint));
+	events::send<uint16_t>(events::ID("navigator_mis_geofence_loiter_breach"),
+	{events::Log::Error, events::LogInternal::Info},
+	"Geofence breach by loiter circle of waypoint {1}", waypoint);
+}
 
 void MissionFeasibilityChecker::logGeofenceUnavailable()
 {
