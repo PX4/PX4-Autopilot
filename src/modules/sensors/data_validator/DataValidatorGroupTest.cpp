@@ -338,3 +338,45 @@ TEST_F(DataValidatorGroupTest, disablingTheSelectedSensorIsNotAFailover)
 	EXPECT_EQ(-1, best_index);
 	EXPECT_EQ(0u, _group->failover_count());
 }
+
+TEST_F(DataValidatorGroupTest, settingPriorityToZeroWithoutDataIsNotAFailover)
+{
+	const int idx0 = add_validator();
+	const int idx1 = add_validator();
+
+	uint64_t timestamp = kBaseTimestamp;
+	int best_index = -1;
+
+	for (int i = 0; i < 50; i++) {
+		timestamp += 5;
+		put(idx0, timestamp, 1.f + i * 1e-3f, 75);
+		put(idx1, timestamp, 2.f + i * 1e-3f, 50);
+		_group->get_best(timestamp, &best_index);
+	}
+
+	ASSERT_EQ(idx0, best_index);
+	ASSERT_EQ(0u, _group->failover_count());
+
+	// the selected sensor is disabled and stops publishing in the same moment, so the new
+	// priority cannot arrive with a sample
+	_group->set_priority(idx0, 0);
+	EXPECT_EQ(0, _group->get_sensor_priority(idx0));
+
+	for (int i = 0; i < 5; i++) {
+		timestamp += 5;
+		put(idx1, timestamp, 2.1f + i * 1e-3f, 50);
+		_group->get_best(timestamp, &best_index);
+	}
+
+	EXPECT_EQ(idx1, best_index);
+	EXPECT_EQ(0u, _group->failover_count());
+
+	// well past the timeout of the silent sensor it is still not a failover, and it is still tracked
+	timestamp += 10 * kTimeoutUsec;
+	put(idx1, timestamp, 2.2f, 50);
+	_group->get_best(timestamp, &best_index);
+
+	EXPECT_EQ(idx1, best_index);
+	EXPECT_EQ(0u, _group->failover_count());
+	EXPECT_TRUE(_group->get_sensor_state(idx0) & DataValidator::ERROR_FLAG_TIMEOUT);
+}
