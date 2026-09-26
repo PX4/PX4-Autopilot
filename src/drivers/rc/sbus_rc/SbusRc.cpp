@@ -155,6 +155,8 @@ void SbusRc::Run()
 		updateParams();
 	}
 
+	_analog_rssi.update();
+
 	const hrt_abstime cycle_timestamp = hrt_absolute_time();
 
 	bool rc_updated = false;
@@ -232,6 +234,8 @@ void SbusRc::Run()
 					input_rc.rssi = math::constrain(rc_rssi, 0, 100);
 				}
 
+				_analog_rssi.fill_missing(input_rc.rssi);
+
 				if (valid_chans == 0) {
 					input_rc.rssi = 0;
 				}
@@ -292,6 +296,8 @@ int SbusRc::print_status()
 	}
 
 	PX4_INFO("RC state: %s", _rc_scan_locked ? "found" : "searching for signal");
+
+	_analog_rssi.print_status();
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_publish_interval_perf);
