@@ -68,6 +68,7 @@ private:
 	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 49;
 	static constexpr int TELEMETRY_FRAME_SIZE = 10;
 	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
+	void settingsReadFailed();
 
 	device::Serial _uart{};
 
@@ -94,6 +95,7 @@ private:
 	bool _settings_initialized{false};
 	uint16_t _settings_request_mask{0};
 	int _next_settings_motor{0};
-	hrt_abstime _settings_retry_after[DSHOT_MAX_MOTORS] {};
+	uint8_t _settings_attempts[DSHOT_MAX_MOTORS] {};
+	hrt_abstime _settings_retry_after{0};
 	hrt_abstime _settings_last_publish{0};
 };
