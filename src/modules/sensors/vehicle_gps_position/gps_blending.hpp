@@ -59,6 +59,13 @@ public:
 	static constexpr hrt_abstime GPS_TIMEOUT_US = 2_s;
 	static constexpr float GPS_TIMEOUT_S = (GPS_TIMEOUT_US / 1e6f);
 
+	// Time a switch condition must hold before switching receivers: another receiver ranking better (SENS_GPS_PRIME = -1),
+	// the selected receiver not meeting the minimum requirements or the preferred receiver meeting them (SENS_GPS_PRIME >= 0)
+	static constexpr hrt_abstime GPS_SWITCH_HOLD_US = 2_s;
+	// Receiver ranking: a receiver is more accurate if its reported position accuracy is below this fraction of the other one
+	static constexpr float GPS_SWITCH_ACCURACY_RATIO = 0.7f;
+	// Receiver ranking: a receiver has a higher update rate if its update interval is below this fraction of the other one
+	static constexpr float GPS_SWITCH_INTERVAL_RATIO = 0.7f;
 
 	GpsBlending() = default;
 	~GpsBlending() = default;
@@ -78,6 +85,13 @@ public:
 	void setBlendingUseVPosAccuracy(bool enabled) { _blend_use_vpos_acc = enabled; }
 	void setBlendingTimeConstant(float tau) { _blending_time_constant = tau; }
 	void setPrimaryInstance(int primary) { _primary_instance = primary; }
+	// Receiver quality required by the receiver selection (see ReceiverQuality)
+	void setMinimumRequirements(uint8_t fix_type, float eph, float epv)
+	{
+		_req_fix_type = fix_type;
+		_req_eph = eph;
+		_req_epv = epv;
+	}
 	void setAntennaOffset(const Vector3f &offset, uint8_t instance)
 	{
 		if (instance < GPS_MAX_RECEIVERS_BLEND) { _antenna_offset[instance] = offset; }
@@ -100,6 +114,49 @@ public:
 	int getSelectedGps() const { return _selected_gps; }
 
 private:
+	enum class ReceiverQuality : uint8_t {
+		Unusable = 0,  ///< no data, timed out or less than a 3D fix
+		NotQualified,  ///< 3D fix, but doesn't meet the minimum requirements (fix type, eph, epv)
+		Qualified,     ///< meets the minimum requirements
+	};
+
+	/*
+	 * Select a single receiver when blending is not active and a preferred receiver is set (SENS_GPS_PRIME >= 0).
+	 *
+	 * The preferred receiver is kept while it meets the minimum requirements (see ReceiverQuality), whatever the
+	 * other receivers report. If it doesn't, the selection fails over to the best receiver with a better quality than
+	 * the selected one. The selection returns to the preferred receiver once that one meets the requirements.
+	 * Switches happen after GPS_SWITCH_HOLD_US, see switchAfterHold().
+	 */
+	int selectPreferredReceiver(uint64_t hrt_now_us);
+
+	/*
+	 * Select a single receiver when blending is not active and no primary receiver is set (SENS_GPS_PRIME = -1).
+	 *
+	 * Receivers are ranked by quality (see ReceiverQuality), then by position accuracy (eph, epv), then by
+	 * update rate. Accuracy and update rate only count if the difference exceeds GPS_SWITCH_ACCURACY_RATIO
+	 * and GPS_SWITCH_INTERVAL_RATIO. The selection switches to a receiver ranking better than the selected one
+	 * after GPS_SWITCH_HOLD_US, see switchAfterHold().
+	 */
+	int selectRankedReceiver(uint64_t hrt_now_us);
+
+	/*
+	 * Switch from the selected receiver to the candidate receiver (-1 if there is none): immediately if the selected
+	 * receiver is unusable (timed out or no 3D fix), otherwise once the same candidate was proposed for GPS_SWITCH_HOLD_US.
+	 */
+	int switchAfterHold(int current, int candidate, uint64_t hrt_now_us);
+
+	// Fix types are ordered by quality, except extrapolated (dead reckoning), which isn't a real fix and maps to no fix
+	static uint8_t effectiveFixType(uint8_t fix_type);
+
+	ReceiverQuality receiverQuality(int instance) const;
+
+	// Sum of the reported horizontal and vertical position variances, FLT_MAX if the accuracy isn't reported
+	float positionVariance(int instance) const;
+
+	// true if receiver a ranks better than receiver b (quality, then accuracy, then update rate)
+	bool isBetterReceiver(int a, int b) const;
+
 	/*
 	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical
 	 * receiver solutions. This internal state cannot be used directly by estimators because if physical receivers
@@ -131,8 +188,14 @@ private:
 	bool _gps_updated[GPS_MAX_RECEIVERS_BLEND] {};
 	int _selected_gps{0};
 	int _np_gps_suitable_for_blending{0};
-	int _primary_instance{0}; ///< if -1, there is no primary isntance and the best receiver is used // TODO: use device_id
-	bool _primary_instance_available{false};
+	int _primary_instance{0}; ///< preferred receiver, if -1 there is no preferred receiver and the receivers are ranked // TODO: use device_id
+
+	int _switch_candidate{-1};           ///< receiver to switch to, waiting for the hold time
+	uint64_t _switch_candidate_since_us{0};
+
+	uint8_t _req_fix_type{sensor_gps_s::FIX_TYPE_3D};
+	float _req_eph{3.f};
+	float _req_epv{5.f};
 
 	bool _is_new_output_data_available{false};
 
