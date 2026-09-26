@@ -839,6 +839,79 @@ INSTANTIATE_TEST_SUITE_P(MissionLoiterOrder, MissionGeofenceLoiterOrderTest, ::t
 	return test_info.param ? "IncomingPathBeforeCircle" : "CircleBeforeFollowingPath";
 });
 
+enum class LoiterObstacle { ExitTangent, CentreLine };
+
+struct MissionLoiterExitCase {
+	const char *name;
+	uint16_t command;
+	float radius;
+	bool force_heading;
+	bool exit_xtrack;
+	LoiterObstacle obstacle;
+	bool feasible;
+	uint8_t vehicle_type{vehicle_status_s::VEHICLE_TYPE_FIXED_WING};
+};
+
+class MissionGeofenceLoiterExitTest : public MissionGeofenceLoiterTest,
+	public ::testing::WithParamInterface<MissionLoiterExitCase> {};
+
+TEST_P(MissionGeofenceLoiterExitTest, ChecksTheLegFromTheTangentExit)
+{
+	const MissionLoiterExitCase &test = GetParam();
+	ASSERT_TRUE(configureVehicle(test.vehicle_type));
+	// Fence: the 2 km inclusion square around Home plus one 20 m exclusion square 500 m east of Home,
+	// either on the clockwise exit tangent (35..55 m north, the tangent passes 45 m north there) or on
+	// the centre line (-10..10 m north). Mission: a 100 m loiter at Home, then a waypoint 900 m east.
+	// A case is infeasible when a checked leg crosses the exclusion. Checked legs: the exit tangent of
+	// the turn direction always, the other tangent unless force_heading, the centre line unless
+	// exit_xtrack. North up, east right, not to scale:
+	//
+	//       T ________ clockwise exit tangent ____[X]___
+	//     .'  `.                                         `.
+	//    |  C   |------- centre line -------------[X]-----> N (900 m east)
+	//     `.__.'                                         .'
+	//         `________ counter-clockwise exit tangent ___'
+	//
+	// [X] the exclusion square of the ExitTangent and CentreLine cases
+	FencePoints points = inclusionSquare();
+	const FencePoints obstacle = test.obstacle == LoiterObstacle::ExitTangent
+	? polygon(false, {{35.f, 490.f}, {55.f, 490.f}, {55.f, 510.f}, {35.f, 510.f}})
+		: polygon(false, {{-10.f, 490.f}, {10.f, 490.f}, {10.f, 510.f}, {-10.f, 510.f}});
+	points.insert(points.end(), obstacle.begin(), obstacle.end());
+	ASSERT_TRUE(loadFence(points));
+
+	mission_item_s item = loiter(0.f, test.radius, test.command);
+	item.force_heading = test.force_heading;
+	item.loiter_exit_xtrack = test.exit_xtrack;
+	EXPECT_EQ(missionFeasible({item, waypoint({0.f, 900.f})}), test.feasible);
+
+	if (!test.feasible) {
+		expectPathViolation(2);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(MissionLoiterExits, MissionGeofenceLoiterExitTest, ::testing::Values(
+				 MissionLoiterExitCase{"ClockwiseExitCrossesTangentObstacle", NAV_CMD_LOITER_TIME_LIMIT, 100.f, false, false,
+						 LoiterObstacle::ExitTangent, false},
+				 MissionLoiterExitCase{"LoiterToAltitudeExitsOnTangent", NAV_CMD_LOITER_TO_ALT, 100.f, true, true,
+						 LoiterObstacle::ExitTangent, false},
+				 MissionLoiterExitCase{"FreeExitChecksBothTangents", NAV_CMD_LOITER_TIME_LIMIT, -100.f, false, false,
+						 LoiterObstacle::ExitTangent, false},
+				 MissionLoiterExitCase{"ForcedHeadingSkipsTheOtherTangent", NAV_CMD_LOITER_TIME_LIMIT, -100.f, true, false,
+						 LoiterObstacle::ExitTangent, true},
+				 MissionLoiterExitCase{"ExitXtrackSkipsTheCentreLine", NAV_CMD_LOITER_TIME_LIMIT, 100.f, true, true,
+						 LoiterObstacle::CentreLine, true},
+				 MissionLoiterExitCase{"CentreLineTrackedWithoutExitXtrack", NAV_CMD_LOITER_TIME_LIMIT, 100.f, true, false,
+						 LoiterObstacle::CentreLine, false},
+				 MissionLoiterExitCase{"UnlimitedLoiterHasNoExit", NAV_CMD_LOITER_UNLIMITED, 100.f, false, false,
+						 LoiterObstacle::ExitTangent, true},
+				 MissionLoiterExitCase{"MulticopterLeavesFromTheCentre", NAV_CMD_LOITER_TIME_LIMIT, 100.f, false, false,
+						 LoiterObstacle::ExitTangent, true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING}),
+			 [](const ::testing::TestParamInfo<MissionLoiterExitCase> &test_info)
+{
+	return test_info.param.name;
+});
+
 enum class MissionEnd { Waypoint, Land, Loiter };
 
 struct MissionEndCase {
