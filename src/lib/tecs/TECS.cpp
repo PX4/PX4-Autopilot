@@ -346,7 +346,7 @@ TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const Alt
 	// Calculate specific energy rate demands in units of (m**2/sec**3)
 	specific_energy_rates.spe_rate.setpoint = control_setpoint.altitude_rate_setpoint *
 			CONSTANTS_ONE_G; // potential energy rate of change
-	specific_energy_rates.ske_rate.setpoint = control_setpoint.tas_setpoint *
+	specific_energy_rates.ske_rate.setpoint = input.tas *
 			control_setpoint.tas_rate_setpoint; // kinetic energy rate of change
 
 	// Calculate specific energy rates in units of (m**2/sec**3)
@@ -451,6 +451,16 @@ TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificE
 void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate,
 		const Param &param)
 {
+
+	// In fast descend, the pitch integrator converges to the (substantially
+	// negative) pitch. Ramp it down with decreasing fast descend ratio,
+	// such that it is zero when the ratio becomes 0 again.
+	if (param.fast_descend < _fast_descend_prev && _fast_descend_prev > FLT_EPSILON) {
+		_pitch_integ_state *= param.fast_descend / _fast_descend_prev;
+	}
+
+	_fast_descend_prev = param.fast_descend;
+
 	if (param.integrator_gain_pitch > FLT_EPSILON) {
 
 		// Calculate derivative from change in climb angle to rate of change of specific energy balance
