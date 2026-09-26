@@ -254,6 +254,5 @@ private:
 	 * @param[in] vehicle_local_position struct containing EKF reset deltas and counters
 	 * @param[out] setpoint trajectory setpoint struct to be adjusted
 	 */
-	void adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position,
-					trajectory_setpoint_s &setpoint);
+	void adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position, trajectory_setpoint_s &setpoint);
 };
