@@ -17,7 +17,8 @@ on:
   pull_request:
     paths: *container_paths
   schedule:
-    # The runner cache expires 10 days after each write; keep main's warm.
+    # RunsOn deletes cache files 10 days after they are saved, even if still
+    # in use. Rebuild main weekly so pull requests always have a cache to reuse.
     - cron: '0 6 * * 1'
   workflow_dispatch:
     inputs:
