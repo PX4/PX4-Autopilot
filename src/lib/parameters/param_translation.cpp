@@ -210,6 +210,37 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-08-19: translate the single-sensor optical flow params to sensor slot 0
+	{
+		static constexpr const char *renames[][2] = {
+			{"EKF2_OF_CTRL", "EKF2_OF0_CTRL"},
+			{"EKF2_OF_GYR_SRC", "EKF2_OF0_GYR_SRC"},
+			{"EKF2_OF_N_MIN", "EKF2_OF0_N_MIN"},
+			{"EKF2_OF_N_MAX", "EKF2_OF0_N_MAX"},
+			{"EKF2_OF_QMIN", "EKF2_OF0_QMIN"},
+			{"EKF2_OF_QMIN_GND", "EKF2_OF0_QMINGND"},
+			{"EKF2_OF_GATE", "EKF2_OF0_GATE"},
+			{"EKF2_OF_DELAY", "SENS_FLOW0_DELAY"},
+			{"EKF2_OF_POS_X", "SENS_FLOW0_POS_X"},
+			{"EKF2_OF_POS_Y", "SENS_FLOW0_POS_Y"},
+			{"EKF2_OF_POS_Z", "SENS_FLOW0_POS_Z"},
+			{"SENS_FLOW_MINHGT", "SENS_FLOW0_HMIN"},
+			{"SENS_FLOW_MAXHGT", "SENS_FLOW0_HMAX"},
+			{"SENS_FLOW_MAXR", "SENS_FLOW0_MAXR"},
+			{"SENS_FLOW_ROT", "SENS_FLOW0_ROT"},
+			{"SENS_FLOW_RATE", "SENS_FLOW0_RATE"},
+			{"SENS_FLOW_SCALE", "SENS_FLOW0_SCALE"},
+		};
+
+		for (const auto &rename : renames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
 	// 2026-03-11: translate MOT_POLE_COUNT to per-motor DSHOT_MOT_POL1-12
 	{
 		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("MOT_POLE_COUNT", node->name) == 0)) {

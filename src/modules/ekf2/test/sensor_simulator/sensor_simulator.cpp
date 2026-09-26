@@ -5,6 +5,7 @@ SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
 	_airspeed(ekf),
 	_baro(ekf),
 	_flow(ekf),
+	_flow1(ekf, 1),
 	_gps(ekf),
 	_imu(ekf),
 	_mag(ekf),
@@ -128,6 +129,7 @@ void SensorSimulator::setSensorRateToDefault()
 	_baro.setRateHz(80);
 	_gps.setRateHz(5);
 	_flow.setRateHz(50);
+	_flow1.setRateHz(50);
 	_rng.setRateHz(30);
 	_vio.setRateHz(30);
 	_airspeed.setRateHz(100);
@@ -138,6 +140,7 @@ void SensorSimulator::setSensorDataToDefault()
 	_airspeed.setData(0.0f, 0.0f);
 	_baro.setData(122.2f);
 	_flow.setData(_flow.dataAtRest());
+	_flow1.setData(_flow1.dataAtRest());
 	_gps.setData(_gps.getDefaultGpsData());
 	_imu.setData(Vector3f{0.0f, 0.0f, -CONSTANTS_ONE_G}, Vector3f{0.0f, 0.0f, 0.0f});
 	_mag.setData(Vector3f{0.218f, 0.f, 0.43f});
@@ -184,6 +187,7 @@ void SensorSimulator::updateSensors()
 	_baro.update(_time);
 	_gps.update(_time);
 	_flow.update(_time);
+	_flow1.update(_time);
 	_rng.update(_time);
 	_vio.update(_time);
 	_airspeed.update(_time);
@@ -384,13 +388,15 @@ void SensorSimulator::setSensorDataFromTrajectory()
 	}
 
 	// Optical flow
-	if (_flow.isRunning()) {
-		flowSample flow_sample = _flow.dataAtRest();
-		const Vector3f vel_body = R_world_to_body * vel_world;
-		flow_sample.flow_rate =
-			Vector2f(vel_body(1) / distance_to_ground,
-				 -vel_body(0) / distance_to_ground);
-		_flow.setData(flow_sample);
+	for (Flow *flow : {&_flow, &_flow1}) {
+		if (flow->isRunning()) {
+			flowSample flow_sample = flow->dataAtRest();
+			const Vector3f vel_body = R_world_to_body * vel_world;
+			flow_sample.flow_rate =
+				Vector2f(vel_body(1) / distance_to_ground,
+					 -vel_body(0) / distance_to_ground);
+			flow->setData(flow_sample);
+		}
 	}
 
 	if (_gps.isRunning()) {

@@ -67,13 +67,13 @@ param set-default MIS_TAKEOFF_ALT 1.1
 #####################################
 # Enable optical flow and GPS
 param set-default EKF2_MAG_TYPE 1
-param set-default EKF2_OF_QMIN 80
+param set-default EKF2_OF0_QMIN 80
 
 # default horizontal stablization sensors
 param set-default SENS_EN_PMW3901 1
 param set-default SENS_EN_PX4FLOW 1
 param set-default SENS_EN_LL40LS 2
-param set-default SENS_FLOW_ROT 2
+param set-default SENS_FLOW0_ROT 2
 
 param set-default COM_DISARM_LAND 3
 

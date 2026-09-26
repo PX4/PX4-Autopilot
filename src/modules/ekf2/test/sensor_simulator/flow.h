@@ -48,14 +48,17 @@ namespace sensor
 class Flow: public Sensor
 {
 public:
-	Flow(std::shared_ptr<Ekf> ekf);
+	Flow(std::shared_ptr<Ekf> ekf, uint8_t instance = 0);
 	~Flow();
 
 	void setData(const flowSample &flow);
+	void setLatencyUs(uint64_t latency_us) { _latency_us = latency_us; }
 	flowSample dataAtRest();
 
 private:
 	flowSample _flow_data;
+	uint8_t _instance;
+	uint64_t _latency_us{0};
 
 	void send(uint64_t time) override;
 
