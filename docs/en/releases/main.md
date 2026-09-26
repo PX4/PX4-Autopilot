@@ -69,7 +69,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Estimation
 
-- EKF2 fuses dual-antenna GNSS heading from its own topic, `vehicle_gnss_heading`, at the heading's rate and measurement time instead of with each position sample. `GPS_RAW_INT` and `GPS2_RAW` report the body-frame heading of the receiver that provides it. ([PX4-Autopilot#27102](https://github.com/PX4/PX4-Autopilot/pull/27102))
+- EKF2 fuses dual-antenna GNSS heading from its own topic, `vehicle_gnss_heading`, at the heading's rate and measurement time instead of with each position sample. GNSS yaw fusion starts on the heading itself and on the spoofing and jamming state of the receiver providing it, not on the position checks ([EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK)), and it keeps running when position and velocity fusion stop. `GPS_RAW_INT` and `GPS2_RAW` report the body-frame heading of the receiver that provides it. ([PX4-Autopilot#27102](https://github.com/PX4/PX4-Autopilot/pull/27102))
 
 ### Sensors
 
