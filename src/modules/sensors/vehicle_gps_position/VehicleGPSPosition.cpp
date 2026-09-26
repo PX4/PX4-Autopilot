@@ -285,8 +285,9 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 		}
 
 		// sensor_gnss_relative instances are numbered by advertise order, not by receiver, so the receiver's
-		// sensor_gps instance is looked up by device_id for the parameter slot.
-		const GpsParamSlot *slot = findParamSlot(gnss_rel.device_id, findGpsInstance(gnss_rel.device_id));
+		// sensor_gps instance is looked up by device_id for the parameter slot and the receiver state.
+		sensor_gps_s receiver{};
+		const GpsParamSlot *slot = findParamSlot(gnss_rel.device_id, findGpsInstance(gnss_rel.device_id, receiver));
 		const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
 
 		const float heading = rotateBaselineHeading(slot, gnss_rel.heading);
@@ -308,6 +309,8 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 		heading_out.heading = heading;
 		heading_out.heading_accuracy = gnss_rel.heading_accuracy;
 		heading_out.heading_offset = headingOffset(slot);
+		heading_out.jamming_state = receiver.jamming_state;
+		heading_out.spoofing_state = receiver.spoofing_state;
 		heading_out.timestamp = hrt_absolute_time();
 		_vehicle_gnss_heading_pub.publish(heading_out);
 
@@ -354,6 +357,8 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 		heading_out.heading = gps_data[i].heading;
 		heading_out.heading_accuracy = gps_data[i].heading_accuracy;
 		heading_out.heading_offset = headingOffset(findParamSlot(gps_data[i].device_id, i));
+		heading_out.jamming_state = gps_data[i].jamming_state;
+		heading_out.spoofing_state = gps_data[i].spoofing_state;
 		heading_out.timestamp = hrt_absolute_time();
 		_vehicle_gnss_heading_pub.publish(heading_out);
 
@@ -382,16 +387,15 @@ const VehicleGPSPosition::GpsParamSlot *VehicleGPSPosition::findParamSlot(uint32
 }
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-int VehicleGPSPosition::findGpsInstance(uint32_t device_id)
+int VehicleGPSPosition::findGpsInstance(uint32_t device_id, sensor_gps_s &gps_data)
 {
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		sensor_gps_s gps_data;
-
 		if (_sensor_gps_sub[i].copy(&gps_data) && (gps_data.device_id == device_id)) {
 			return i;
 		}
 	}
 
+	gps_data = {};
 	return -1;
 }
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING

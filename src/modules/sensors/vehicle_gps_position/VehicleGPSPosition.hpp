@@ -97,8 +97,8 @@ private:
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 	void UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_RECEIVERS], const bool gps_updated[GPS_MAX_RECEIVERS]);
 
-	// sensor_gps instance publishing this device_id, or -1
-	int findGpsInstance(uint32_t device_id);
+	// sensor_gps instance publishing this device_id, or -1, with its latest sample in gps_data (zeroed when not found)
+	int findGpsInstance(uint32_t device_id, sensor_gps_s &gps_data);
 	// Rotate a measured baseline heading into the body frame; NaN for a vertical baseline
 	static float rotateBaselineHeading(const GpsParamSlot *slot, float heading);
 	static float headingOffset(const GpsParamSlot *slot) { return slot ? slot->heading_offset : 0.f; }
