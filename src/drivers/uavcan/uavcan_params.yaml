@@ -5,6 +5,7 @@ parameters:
     UAVCAN_ENABLE:
       description:
         short: UAVCAN mode
+        long: Automatic Config adds dynamic node ID allocation and firmware update.
       type: enum
       values:
         0: Disabled

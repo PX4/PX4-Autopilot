@@ -23,8 +23,9 @@ parameters:
     EKF2_BCOEF_X:
       description:
         short: X-axis ballistic coefficient used for multi-rotor wind estimation
-        long: Bluff-body drag along forward/reverse axis (scales with v²). Rotor drag
-          is separate (EKF2_MCOEF). 0 disables for this axis. Requires EKF2_DRAG_CTRL.
+        long: Bluff body drag along the forward/reverse axis, which scales with speed squared.
+          Rotor drag is set by EKF2_MCOEF. Only used when EKF2_DRAG_CTRL is enabled.
+          Set to 0 to disable for this axis.
       type: float
       default: 100.0
       min: 0.0
@@ -34,8 +35,9 @@ parameters:
     EKF2_BCOEF_Y:
       description:
         short: Y-axis ballistic coefficient used for multi-rotor wind estimation
-        long: Bluff-body drag along right/left axis (scales with v²). Rotor drag is
-          separate (EKF2_MCOEF). 0 disables for this axis. Requires EKF2_DRAG_CTRL.
+        long: Bluff body drag along the right/left axis, which scales with speed squared.
+          Rotor drag is set by EKF2_MCOEF. Only used when EKF2_DRAG_CTRL is enabled.
+          Set to 0 to disable for this axis.
       type: float
       default: 100.0
       min: 0.0
@@ -45,11 +47,11 @@ parameters:
     EKF2_MCOEF:
       description:
         short: Propeller momentum drag coefficient for multi-rotor wind estimation
-        long: |-
-          Propeller momentum drag (scales with v, not v²): air normal to the rotor disc loses
-          velocity, changing momentum and creating drag. Roughly proportional to blade side-on
-          area; significantly higher for ducted rotors.
-          For bluff-body drag (v²) see EKF2_BCOEF_X/Y. 0 disables for both axes.
+        long: Propeller momentum drag, which scales with speed, not speed squared. For
+          unducted propellers of equal diameter, roughly proportional to blade area seen
+          side-on; much higher for ducted rotors. Body drag is set by EKF2_BCOEF_X and
+          EKF2_BCOEF_Y. Only used when EKF2_DRAG_CTRL is enabled. Set to 0 to disable
+          for both axes.
       type: float
       default: 0.15
       min: 0

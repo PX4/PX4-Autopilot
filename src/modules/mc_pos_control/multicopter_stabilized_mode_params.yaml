@@ -38,9 +38,13 @@ parameters:
     MPC_THR_CURVE:
       description:
         short: Thrust curve mapping in Stabilized Mode
+        long: |-
+          Rescale to estimate: stick is rescaled linearly so center stick gives the hover thrust estimate.
+          No rescale: stick maps 1:1 to thrust; useful with very low hover thrust, where rescaling distorts the curve and makes the upper half sensitive.
+          Rescale to parameter: as Rescale to estimate, but uses MPC_THR_HOVER; with MPC_THR_HOVER 0.5 same as No rescale.
       type: enum
       values:
-        0: Rescale to estimate (center stick = hover thrust estimate output)
-        1: No rescale (direct 1:1; useful at very low hover thrust)
-        2: Rescale to MPC_THR_HOVER (equivalent to No rescale when MPC_THR_HOVER=0.5)
+        0: Rescale to estimate
+        1: No rescale
+        2: Rescale to parameter
       default: 0
