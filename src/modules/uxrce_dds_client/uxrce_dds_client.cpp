@@ -238,7 +238,8 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 		// Sending ping without initing a XRCE session
 		got_response = uxr_ping_agent_attempts(_comm, 1000, 1);
 
-		if (!got_response && hrt_elapsed_time(&ping_start) > PING_AGENT_TIMEOUT) {
+		if (!got_response && _transport == Transport::Serial && hrt_elapsed_time(&ping_start) > PING_AGENT_TIMEOUT) {
+
 			// Don't get stuck retrying forever on a transport instance that may have gotten into
 			// a bad state (e.g. framing out of sync from noise received before the agent came up).
 			// Returning false makes the caller tear down and re-init the transport (closing and
