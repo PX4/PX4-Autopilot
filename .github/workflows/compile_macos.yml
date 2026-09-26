@@ -63,7 +63,13 @@ jobs:
     - name: Build px4_fmu-v5_default
       run: make px4_fmu-v5_default
 
+    # Only main saves: the 10 GB Actions cache cannot hold an entry for every
+    # PR run, and PRs restore from main's newest entry anyway.
+    - name: Cache - Stats
+      if: always() && github.event_name != 'push'
+      run: ccache -s
+
     - uses: ./.github/actions/save-ccache
-      if: always()
+      if: always() && github.event_name == 'push'
       with:
         cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
