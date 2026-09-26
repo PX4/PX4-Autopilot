@@ -182,9 +182,11 @@ public:
 	* @param wind_direction The azimuth (from true north) to where the wind is heading in radians
 	* @param wind_speed_accuracy The 1 sigma accuracy of the wind speed estimate in m/s
 	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in radians
+	* @param vehicle_landed true if the vehicle is currently landed
+	* @return true if the reset was performed, false if rejected (e.g. vehicle not landed)
 	*/
-	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
-					    float wind_direction_accuracy);
+	bool resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
+					    float wind_direction_accuracy, bool vehicle_landed);
 #endif // CONFIG_EKF2_WIND
 
 	template <const IdxDof &S>
