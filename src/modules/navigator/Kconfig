@@ -53,6 +53,15 @@ config NAVIGATOR_GEOFENCE_MAX_NODES
 		Max number of geofence vertices which the Return planner can use.
 		Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number.
 
+menuconfig NAVIGATOR_GEOFENCE_PATH_CHECKS
+	bool "Check the mission flight path against the geofence at upload"
+	default y
+	depends on MODULES_NAVIGATOR
+	---help---
+		Reject an uploaded mission whose flight path crosses a geofence, not only a
+		mission with a waypoint outside it. Boards without the flash for it keep the
+		waypoint-only check.
+
 menuconfig NAVIGATOR_ADSB_FAKE_TRAFFIC
 	bool "Include fake-traffic injection for DAA testing"
 	default n
