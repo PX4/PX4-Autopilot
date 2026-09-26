@@ -41,6 +41,13 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/button_event.h>
 
+enum class PrearmedMode {
+	DISABLED = 0,
+	SAFETY_BUTTON_OR_MAVLINK = 1,
+	ALWAYS = 2,
+	SAFETY_BUTTON = 3,
+	MAVLINK = 4
+};
 class Safety
 {
 public:
@@ -58,6 +65,7 @@ private:
 	uORB::Subscription _safety_button_sub{ORB_ID::safety_button};
 
 	bool _button_available{false};///< Set to true if a safety button is connected
+	bool _button_disabled{false};///< Set to true if the safety button should be ignored
 	bool _safety_off{false}; ///< Set to true if safety is off
 	bool _previous_safety_off{false}; ///< Previous safety value
 	bool _safety_disabled{false}; ///< Set to true if safety is disabled

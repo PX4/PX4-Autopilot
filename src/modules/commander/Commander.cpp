@@ -333,10 +333,10 @@ int Commander::custom_command(int argc, char *argv[])
 		}
 
 		if (!strcmp(argv[1], "on")) {
-			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_ON);
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_SAFE);
 
 		} else if (!strcmp(argv[1], "off")) {
-			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_OFF);
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_DANGEROUS);
 
 		} else {
 			PX4_ERR("invlaid argument, use [on|off]");
@@ -1527,8 +1527,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					if (check_battery_disconnected(&_mavlink_log_pub)) {
 						answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-						if (_safety.isButtonAvailable() && !_safety.isSafetyOff()) {
-							mavlink_log_critical(&_mavlink_log_pub, "ESC calibration denied! Press safety button first\t");
+						if (!_safety.isSafetyOff()) {
+							const char *safety_message = _safety.isButtonAvailable() ? "Press safety button" : "Turn safety off";
+							mavlink_log_critical(&_mavlink_log_pub, "ESC calibration denied! %s first\t", safety_message);
 							events::send(events::ID("commander_esc_calibration_denied"), events::Log::Critical,
 								     "ESCs calibration denied");
 
@@ -1673,17 +1674,20 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE: {
 			// reject if armed, only allow pre or post flight for safety
-			if (isArmed()) {
+			// or if COM_PREARM_MODE is not set to accept mavlink commands
+			const bool accept_mavlink_prearm = ((PrearmedMode)_param_com_prearm_mode.get() != PrearmedMode::SAFETY_BUTTON);
+
+			if (isArmed() || !accept_mavlink_prearm) {
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
 			} else {
 				int commanded_state = (int)cmd.param1;
 
-				if (commanded_state == vehicle_command_s::SAFETY_OFF) {
+				if (commanded_state == vehicle_command_s::SAFETY_DANGEROUS) {
 					_safety.deactivateSafety();
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-				} else if (commanded_state == vehicle_command_s::SAFETY_ON) {
+				} else if (commanded_state == vehicle_command_s::SAFETY_SAFE) {
 					_safety.activateSafety();
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -1797,7 +1801,7 @@ void Commander::handleCommandsFromModeExecutors()
 
 unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 {
-	if (isArmed() || (_safety.isButtonAvailable() && !_safety.isSafetyOff())) {
+	if (isArmed() || !_safety.isSafetyOff()) {
 		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 	}
 
@@ -2263,14 +2267,24 @@ bool Commander::getPrearmState() const
 		*/
 		return hrt_elapsed_time(&_boot_timestamp) > 5_s;
 
+	case PrearmedMode::SAFETY_BUTTON_OR_MAVLINK:
+		/* safety logic is set either via VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE,
+		* or via the safety button, go into prearmed when safety is off
+		*/
+		return _safety.isSafetyOff();
+
 	case PrearmedMode::SAFETY_BUTTON:
 		if (_safety.isButtonAvailable()) {
-			/* safety button is present, go into prearmed if safety is off */
+			/* safety button is present, go into prearmed when safety is off */
 			return _safety.isSafetyOff();
 		}
 
 		/* safety button is not present, do not go into prearmed */
 		return false;
+
+	case PrearmedMode::MAVLINK:
+		/* safety logic is set only via VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, go into prearmed when safety is off */
+		return _safety.isSafetyOff();
 	}
 
 	return false;

@@ -36,6 +36,7 @@
  */
 
 #include "Safety.hpp"
+#include <lib/parameters/param.h>
 #include <circuit_breaker/circuit_breaker.h>
 
 using namespace time_literals;
@@ -46,18 +47,23 @@ Safety::Safety()
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 
 	if (_safety_disabled) {
-		_button_available = true;
 		_safety_off = true;
 	}
+
+	int32_t com_prearm_mode = 0;
+	param_get(param_find("COM_PREARM_MODE"), &com_prearm_mode);
+
+	// the button has no effect in PrearmedMode::MAVLINK, so don't announce it as available.
+	_button_disabled = (PrearmedMode)com_prearm_mode == PrearmedMode::MAVLINK;
 }
 
 bool Safety::safetyButtonHandler()
 {
-	if (!_safety_disabled) {
-		if (!_button_available && _safety_button_sub.advertised()) {
-			_button_available = true;
-		}
+	if (!_button_disabled && !_button_available && _safety_button_sub.advertised()) {
+		_button_available = true;
+	}
 
+	if (!_safety_disabled && !_button_disabled) {
 		button_event_s button_event;
 
 		while (_safety_button_sub.update(&button_event)) {

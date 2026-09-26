@@ -519,12 +519,21 @@ parameters:
         long: |-
           Condition to enter the prearmed state, an intermediate state between disarmed and armed
           in which non-throttling actuators are active.
+
+          0: Never prearmed.
+          1: Prearming state can be entered either by pressing a physical safety switch, or by sending a MAV_CMD_DO_SET_SAFETY_SWITCH_STATE command.
+          2: Always prearmed.
+          3: Prearming state can only be entered by pressing a physical safety switch. MAV_CMD_DO_SET_SAFETY_SWITCH_STATE commands are rejected.
+          4: Prearming state can only be entered by sending a MAV_CMD_DO_SET_SAFETY_SWITCH_STATE command. Any physical switch is ignored.
       type: enum
       values:
         0: Disabled
-        1: Safety button
+        1: Safety switch (physical or virtual via MAVLink)
         2: Always
+        3: Physical safety switch only
+        4: MAVLink only
       default: 0
+      reboot_required: true
     COM_FORCE_SAFETY:
       description:
         short: Enable force safety
