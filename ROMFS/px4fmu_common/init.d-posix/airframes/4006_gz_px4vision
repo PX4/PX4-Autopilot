@@ -40,8 +40,8 @@ param set-default EKF2_PCOEF_YN -0.55
 param set-default EKF2_PCOEF_YP -0.55
 
 # MAVLink parameters
-# param set-default MAV_0_CONFIG 101		Not found
-# param set-default MAV_1_CONFIG 102		Not found
+# param set-default SER_TEL1_PROTO 1		Not found
+# param set-default SER_TEL2_PROTO 1		Not found
 param set-default MAV_1_RATE 80000
 param set-default MAV_1_MODE 9
 # param set-default SER_TEL1_BAUD 921600	Not found
@@ -83,11 +83,11 @@ param set-default RTL_RETURN_ALT 5
 param set-default SDLOG_PROFILE 131
 
 # Sensors Parameters
-# param set-default SENS_CM8JL65_CFG 202 	Not found
+# param set-default SER_GPS2_PROTO 34 	Not found
 param set-default SENS_FLOW_MAXHGT 25
 param set-default SENS_FLOW_MINHGT 0.5
 param set-default IMU_GYRO_CUTOFF 100
-# param set-default SENS_TFLOW_CFG 103		Not found
+# param set-default SER_TEL3_PROTO 54		Not found
 
 # Power Parameters
 param set-default BAT1_N_CELLS 4

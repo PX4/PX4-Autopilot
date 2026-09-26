@@ -118,12 +118,11 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 The `RC` port on your carrier board will behave differently depending on whether or not it includes an IO board:
 
 - **Carrier without PX4IO** (`RC` wired to FMU):
-  - CRSF receivers are enabled by default.
-  - You can enable other protocols by mapping them to the port using their associated parameters, such as [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG), [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG).
-    Note that only one protocol can be active on a port, so you will have to first disable `RC_CRSF_PRT_CFG`.
+  - CRSF receivers are enabled by default ([SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO) = CRSF).
+  - Select another receiver protocol with `SER_RC_PROTO`.
 - **Carrier with PX4IO** (`RC` wired to PX4IO):
   - The IO board autodetects and connects to receivers that use [protocols supported by the IO driver](../modules/modules_driver.md#px4io): PPM (CPPM), S.BUS, S.BUS2, Spektrum DSM / DSM2 / DSM-X, Yuneec ST24, Graupner SUMD.
-  - For other protocols, connect your receiver to any unused FMU serial port and enable the corresponding parameter as shown above (you will need to do this for GHST and CRSF receivers).
+  - For other protocols (such as GHST and CRSF), connect your receiver to any unused FMU serial port and set that port's `SER_<port>_PROTO` parameter to the protocol.
 
 ## GPS & Compass {#gps_compass}
 

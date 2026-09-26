@@ -111,7 +111,7 @@ A [Radio Control (RC) system](../getting_started/rc_transmitter_receiver.md) is 
 See [Radio Control modules](../modules/modules_driver_radio_control.md) for the list of supported protocols.
 
 RC input is mapped to **USART6** (`/dev/ttyS4`, `RC` port).
-The port supports both single-wire inverted SBUS and full-duplex protocols with telemetry return (such as CRSF), and the receiver protocol is auto-detected by default ([RC_INPUT_PROTO](../advanced_config/parameter_reference.md#RC_INPUT_PROTO) = `-1`).
+The port supports both single-wire inverted SBUS and full-duplex protocols with telemetry return (such as CRSF), and is set to SBUS by default. Select another receiver protocol with [SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO).
 
 ## PX4 Configuration
 

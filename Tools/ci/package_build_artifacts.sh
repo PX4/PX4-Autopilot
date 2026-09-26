@@ -65,6 +65,9 @@ for build_dir_path in build/*/ ; do
   # Actuators
   cp $build_dir_path/actuators.json artifacts/$build_dir/ 2>/dev/null || true
   cp $build_dir_path/actuators.json.xz artifacts/$build_dir/ 2>/dev/null || true
+  # Serial ports
+  cp $build_dir_path/serial.json artifacts/$build_dir/ 2>/dev/null || true
+  cp $build_dir_path/serial.json.xz artifacts/$build_dir/ 2>/dev/null || true
   # Events
   mkdir -p artifacts/$build_dir/events/
   cp $build_dir_path/events/all_events.json.xz artifacts/$build_dir/events/ 2>/dev/null || true

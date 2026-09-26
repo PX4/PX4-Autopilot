@@ -21,5 +21,12 @@ else
 	param set-default SENS_IMU_MODE 0
 fi
 
+# Pixhawk 4 Mini (V540) and V5nano (V560/V562) have no PX4IO; RC IN is the
+# FMU RC UART.
+if ver hwtypecmp V5004000 V5006000 V5006002
+then
+	param set-default SER_RC_PROTO 10
+fi
+
 rgbled_pwm start
 safety_button start

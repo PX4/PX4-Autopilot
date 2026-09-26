@@ -33,7 +33,7 @@ param set-default SENS_BOARD_ROT 10
 # Yaw 180
 param set-default SENS_FLOW_ROT 4
 # TFMini on TELEM3
-param set-default SENS_TFMINI_CFG 103
+param set-default -s SER_TEL3_PROTO 30
 
 # Smart Battery
 param set-default SENS_EN_BATT 1
@@ -73,14 +73,14 @@ param set-default IMU_GYRO_CUTOFF 90
 param set-default NAV_RCL_ACT 6
 
 # TELEM1 ttyS1 - Wifi module
-param set-default MAV_0_CONFIG 101
+param set-default SER_TEL1_PROTO 1
 param set-default MAV_0_RATE 0
 # onboard
 param set-default MAV_0_MODE 2
 param set-default SER_TEL1_BAUD 921600
 
 # TELEM2 ttyS2 - Sub 1-Ghz
-param set-default MAV_1_CONFIG 102
+param set-default SER_TEL2_PROTO 1
 # normal
 param set-default MAV_1_MODE 0
 param set-default SER_TEL2_BAUD 57600

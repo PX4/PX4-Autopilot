@@ -309,11 +309,13 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			${PX4_BINARY_DIR}/parameters.json.xz
 			${PX4_BINARY_DIR}/events/all_events.json.xz
 			${PX4_BINARY_DIR}/actuators.json.xz
+			${PX4_BINARY_DIR}/serial.json.xz
 			)
 		list(APPEND romfs_extra_dependencies
 			parameters_xml
 			events_json
 			actuators_json
+			serial_json
 			)
 	endif()
 	list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/component_general.json.xz)

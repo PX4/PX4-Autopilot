@@ -2,6 +2,5 @@ module_name: EULER-NAV BAHRS
 
 serial_config:
     - command: eulernav_bahrs start -d ${SERIAL_DEV}
-      port_config_param:
-        name: SENS_BAHRS_CFG
-        group: Sensors
+      protocol_id: 44
+      protocol_name: EulerNav BAHRS

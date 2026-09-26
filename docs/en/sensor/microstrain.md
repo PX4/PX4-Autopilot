@@ -67,7 +67,7 @@ To use the MicroStrain driver:
 
 3. Reboot and start the driver
    - `microstrain start -d <port>`
-   - To start the driver automatically when the flight controller powers on, set [SENS_MS_CFG](../advanced_config/parameter_reference.md#SENS_MS_CFG) to the sensor’s connected port.
+   - To start the driver automatically when the flight controller powers on, set the connected port's `SER_<tag>_PROTO` to MicroStrain.
 
 ## MicroStrain Configuration
 

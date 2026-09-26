@@ -54,7 +54,7 @@ Use _QGroundControl_ for rover configuration:
 First configure the serial connection:
 
 1. Navigate to the [Parameters](../advanced_config/parameters.md) section in QGroundControl.
-   - Set the [RBCLW_SER_CFG](../advanced_config/parameter_reference.md#RBCLW_SER_CFG) parameter to the serial port to which the RoboClaw is connected (such as `GPS2`).
+   - Set `SER_<tag>_PROTO` to Roboclaw on the serial port to which the RoboClaw is connected (such as [SER_GPS2_PROTO](../advanced_config/parameter_reference.md#SER_GPS2_PROTO)).
    - [RBCLW_COUNTS_REV](../advanced_config/parameter_reference.md#RBCLW_COUNTS_REV) specifies the number of encoder counts required for one wheel revolution.
      This value should be left at `1200` for the tested `RoboClaw 2x15A Motor Controller`.
      Adjust the value based on your specific encoder and wheel setup.

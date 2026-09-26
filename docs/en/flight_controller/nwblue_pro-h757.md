@@ -192,7 +192,7 @@ The full pinout with connector locations is on the [manufacturer's pinout page](
 No port has flow control.
 USART1 and USART2 are receive-only: only the RX pin is broken out.
 
-TEL3 is the ESC telemetry input and is configured for it by default ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) = `103`).
+TEL3 is the ESC telemetry input and is configured for it by default ([SER_TEL3_PROTO](../advanced_config/parameter_reference.md#SER_TEL3_PROTO) = DShot Telemetry).
 
 ## PWM Outputs
 
@@ -217,7 +217,7 @@ Use output 6 for plain DShot or PWM.
 ## OSD
 
 There is no analog OSD chip on this board, so analog video cannot be overlaid.
-An HD VTX can render the OSD itself over MSP DisplayPort: connect it to the VTX connector (USART6, TEL2) and set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to `102`.
+An HD VTX can render the OSD itself over MSP DisplayPort: connect it to the VTX connector (USART6, TEL2) and set [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) to MSP OSD.
 See [OSD](../peripherals/osd.md) for details.
 
 The port is not claimed by default, so it can be used for MAVLink or any other protocol instead.

@@ -71,7 +71,7 @@ The module is now ready to be used with PX4.
 
 ### Software
 
-[Configure the serial port](../peripherals/serial_configuration.md) on which the RockBlock module will run using [ISBD_CONFIG](../advanced_config/parameter_reference.md#ISBD_CONFIG).
+[Configure the serial port](../peripherals/serial_configuration.md) on which the RockBlock module will run by setting the port's `SER_<tag>_PROTO` to Iridium.
 There is no need to set the baud rate for the port, as this is configured by the driver.
 
 ::: info

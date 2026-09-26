@@ -1234,7 +1234,10 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	const bool tombstone = node->type == BSON_nullptr || node->type == BSON_UNDEFINED;
 
 	// if we do param_set() directly in the translation, set PARAM_SKIP_IMPORT as return value and return here
-	if (!tombstone && param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
+	if (tombstone) {
+		param_modify_on_import_reset(node->name);
+
+	} else if (param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
 		return 1;
 	}
 
@@ -1321,6 +1324,7 @@ param_import_internal(int fd)
 
 	for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 		bson_decoder_s decoder{};
+		param_modify_on_import_begin();
 
 		if (bson_decoder_init_file(&decoder, fd, param_import_callback) == 0) {
 			int result = -1;
@@ -1336,6 +1340,8 @@ param_import_internal(int fd)
 						 decoder.total_document_size, decoder.total_decoded_size,
 						 decoder.count_node_int32, decoder.count_node_double);
 
+					// Cross-parameter translations run once, on a complete document.
+					param_modify_on_import_end();
 					return 0;
 
 				} else {

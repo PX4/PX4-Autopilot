@@ -251,7 +251,7 @@ You may also need to configure the radio itself, and for IP radios you may need 
 - Low power radios such as most [SIK Radios](../telemetry/sik_radio.md) and [Wifi telemetry radios](../telemetry/telemetry_wifi.md) with around 300m range are powered from the flight controller.
 - High powered radios like the [Microhard Serial radio](../telemetry/microhard_serial.md) will need to be separately powered and may need to be configured (see the PX4 and manufacturer documentation).
 - You can also attach telemetry radios to the `TELEM2` and `TELEM3` telemetry ports (if present).
-  Note however that `TELEM2` is configured by default for connecting to a companion computer, and might need to be [reconfigured](../peripherals/mavlink_peripherals.md) to connect to a ground station.
+  Note however that `TELEM2` must be enabled with [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) = MAVLink, and its instance defaults to the companion (Onboard) profile, so it might need to be [reconfigured](../peripherals/mavlink_peripherals.md) to connect to a ground station.
 
 :::
 

@@ -55,6 +55,6 @@ This is shown in the wiring diagram below.
 ![Pixracer external telemetry options](../../assets/flight_controller/pixracer/pixracer_top_telemetry.jpg)
 
 ::: info
-The `TELEM2` port must be configured as a second MAVLink instance using the [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG) parameter.
+The `TELEM2` port must be configured as MAVLink using [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO).
 For more information see [MAVLink Peripherals > MAVLink Instances](../peripherals/mavlink_peripherals.md#mavlink-instances) (and [Serial Port Configuration](../peripherals/serial_configuration.md)).
 :::

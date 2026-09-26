@@ -31,7 +31,8 @@ To use the Hawk A1 your main GPS device:
 
 | Parameter                                                                  | Value                                          | Description                                                                             |
 | -------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------- |
-| [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG)     | 102 (Telem 2 or another available serial port) | Configure main GPS port                                                                 |
+| [SER_GPS1_PROTO](../advanced_config/parameter_reference.md#SER_GPS1_PROTO) | Disabled                                       | Free the default `GPS1` slot so the TELEM2 receiver is the primary                      |
+| [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) | GPS                                           | GPS on TELEM2 (or set `SER_<tag>_PROTO` on another UART)                                |
 | [GPS_1_PROTOCOL](../advanced_config/parameter_reference.md#GPS_1_PROTOCOL) | 1 (u-blox)                                     | Configure GPS protocol                                                                  |
 | [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD)   | 230400                                         | Configure the serial port baudrate (here the GPS is connected to `TELEM2` for instance) |
 
@@ -41,7 +42,7 @@ To use the Hawk A1 as an auxiliary GPS device (in addition to the main GPS):
 
 | Parameter                                                                  | Value                                          | Description                                                                           |
 | -------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG)     | 102 (Telem 2 or another available serial port) | Configure main GPS port                                                               |
+| [SER_TEL2_PROTO](../advanced_config/parameter_reference.md#SER_TEL2_PROTO) | GPS                                           | Secondary GPS on TELEM2 (or set `SER_<tag>_PROTO` on another UART)                    |
 | [GPS_2_PROTOCOL](../advanced_config/parameter_reference.md#GPS_2_PROTOCOL) | 1 (u-blox)                                     | Configure GPS protocol                                                                |
 | [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD)   | 230400                                         | Configure the serial port baudrate (here the GPS is connected to TELEM2 for instance) |
 

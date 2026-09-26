@@ -52,7 +52,7 @@ For more mounting requirements and recommendations, see the relevant [Quick Star
 To use the VectorNav driver:
 
 1. Include the module in firmware in the [kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) by setting the kconfig variables: `CONFIG_DRIVERS_INS_VECTORNAV` or `CONFIG_COMMON_INS`.
-1. [Set the parameter](../advanced_config/parameters.md) [SENS_VN_CFG](../advanced_config/parameter_reference.md#SENS_VN_CFG) to the hardware port connected to the VectorNav (for more information see [Serial Port Configuration](../peripherals/serial_configuration.md)).
+1. [Set the parameter](../advanced_config/parameters.md) `SER_<tag>_PROTO` to VectorNav on the hardware port connected to the sensor (for more information see [Serial Port Configuration](../peripherals/serial_configuration.md)).
 1. Disable magnetometer preflight checks by setting [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) to `0`.
 1. Allow the VectorNav driver to initialize by restarting PX4.
 1. Configure driver as either an external INS or to provide raw data:

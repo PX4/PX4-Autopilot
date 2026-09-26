@@ -38,7 +38,7 @@ The image below shows how to connect the most important sensors and peripherals.
 6. [Power System](#power) — Powers Cube and the motor ESCs. Consists of LiPo battery, power module, and optional battery warning system (audio warning if battery power goes below a predefined level).
 
 ::: info
-The port labeled `GPS2` maps to `TEL4` in PX4 (i.e. if connecting to the port labeled `GPS2`, assign the [serial port configuration parameter](../peripherals/serial_configuration.md) for the connected hardware to `TEL4`).
+The port labeled `GPS2` maps to `TEL4` in PX4 (i.e. if connecting to the port labeled `GPS2`, set [SER_TEL4_PROTO](../advanced_config/parameter_reference.md#SER_TEL4_PROTO) for the connected hardware, see [Serial Port Configuration](../peripherals/serial_configuration.md)).
 :::
 
 :::tip
@@ -188,7 +188,7 @@ The mapping is not consistent across frames (e.g. you can't rely on the throttle
 The wiring and configuration of optional/less common components is covered within the topics for individual [peripherals](../peripherals/index.md).
 
 ::: info
-If connecting peripherals to the port labeled `GPS2`, assign the PX4 [serial port configuration parameter](../peripherals/serial_configuration.md) for the hardware to `TEL4` (not GPS2).
+If connecting peripherals to the port labeled `GPS2`, set [SER_TEL4_PROTO](../advanced_config/parameter_reference.md#SER_TEL4_PROTO) (not `SER_GPS2_PROTO`) for the hardware, see [Serial Port Configuration](../peripherals/serial_configuration.md).
 :::
 
 ## Configuration

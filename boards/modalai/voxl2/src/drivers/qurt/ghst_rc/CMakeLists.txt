@@ -35,11 +35,12 @@ px4_add_module(
 	MAIN ghst_rc
 	COMPILE_FLAGS
 	INCLUDES
-	${PX4_SOURCE_DIR}/src/drivers/rc_input
+	${PX4_SOURCE_DIR}/src/drivers/rc/ghst_rc
 	${PX4_SOURCE_DIR}/src/lib/rc/spektrum_rssi.h
 	SRCS
 		ghst_rc.cpp
 		ghst_rc.hpp
+		${PX4_SOURCE_DIR}/src/drivers/rc/ghst_rc/ghst_telemetry.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

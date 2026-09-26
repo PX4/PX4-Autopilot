@@ -12,7 +12,7 @@ In addition to the core code review guidelines, when reviewing new board additio
 - **Board naming**: directory is `boards/{manufacturer}/{board}/`, both lowercase, hyphens for board name
 - **Unique board_id**: registered in `boards/boards.json`, no collisions
 - **Copied code cleanup**: check for leftover files, configs, or comments from the template board. Ask "Is this real or leftover?"
-- **RC configuration**: prefer `CONFIG_DRIVERS_COMMON_RC` over legacy `CONFIG_DRIVERS_RC_INPUT`
+- **RC configuration**: `CONFIG_COMMON_RC`, with the RC UART tagged `CONFIG_BOARD_SERIAL_RC`
 - **No board-specific custom modules**: reject copy-pasted drivers (e.g., custom heater) when existing infrastructure works
 - **Bootloader**: expect a bootloader defconfig (`nuttx-config/bootloader/defconfig`) or explanation of shared bootloader
 - **CI integration**: board must be added to CI compile workflows so it builds on every PR

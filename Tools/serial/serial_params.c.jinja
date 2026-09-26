@@ -41,32 +41,18 @@
  */
 PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_BAUD, {{ serial_device.default_baudrate }});
 
-{% endfor %}
-
-
-{%- if serial_devices|length > 0 %}
-{% for command in commands -%}
 /**
- * Serial Configuration for {{ command.label }}
-{%- if command.multi_instance %} (instance {{ command.instance }}){% endif %}
+ * Protocol for the {{ serial_device.label }} Serial Port
  *
- * Configure on which serial port to run {{ command.label }}.
- *
- * {{ command.description_extended | replace("\n", " ") }}
+ * Select which driver to start on {{ serial_device.label }}.
  *
  * @value 0 Disabled
-{%- for serial_device in serial_devices %}
- * @value {{ serial_device.index }} {{ serial_device.label }}
+{%- for protocol in protocols %}
+ * @value {{ protocol.id }} {{ protocol.name }}
 {%- endfor %}
-{%- if command.supports_networking %}
-{%- for config in ethernet_configuration %}
- * @value {{ config.index }} {{ config.label }}
-{%- endfor %}
-{%- endif %}
- * @group {{ command.param_group }}
+ * @group Serial
  * @reboot_required true
  */
-PARAM_DEFINE_INT32({{ command.port_param_name }}, {{ command.default_port }});
+PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_PROTO, {{ serial_device.default_protocol }});
 
-{% endfor -%}
-{% endif %}
+{% endfor %}

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,61 +31,59 @@
  *
  ****************************************************************************/
 
-/**
- * @file ghst_telemetry.hpp
- *
- * IRC Ghost (Immersion RC Ghost) telemetry.
- *
- * @author Igor Misic <igy1000mb@gmail.com>
- * @author Juraj Ciberlin <jciberlin1@gmail.com>
- */
-
 #pragma once
 
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/sensor_gps.h>
+#include <board_config.h>
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/input_rc.h>
+#include <uORB/topics/parameter_update.h>
 
-/**
- * High-level class that handles sending of GHST telemetry data
- */
-class GHSTTelemetry
+#include <lib/rc/analog_rssi.hpp>
+
+#if defined(HRT_PPM_CHANNEL)
+# include <systemlib/ppm_decode.h>
+#endif
+
+using namespace time_literals;
+
+class PpmRc : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	/**
-	 * @param uart_fd file descriptor for the UART to use. It is expected to be configured
-	 * already.
-	 */
-	explicit GHSTTelemetry(int uart_fd);
+	static Descriptor desc;
 
-	~GHSTTelemetry() = default;
+	PpmRc();
+	virtual ~PpmRc();
 
-	/**
-	 * Send telemetry data. Call this regularly (i.e. at 100Hz), it will automatically
-	 * limit the sending rate.
-	 * @return true if new data sent
-	 */
-	bool update(const hrt_abstime &now);
+	static int task_spawn(int argc, char *argv[]);
+	static int custom_command(int argc, char *argv[]);
+	static int print_usage(const char *reason = nullptr);
+	int print_status() override;
 
 private:
-	bool send_battery_status();
-	bool send_gps1_status();
-	bool send_gps2_status();
+	void Run() override;
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
-	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::PublicationMulti<input_rc_s> _input_rc_pub{ORB_ID(input_rc)};
+	perf_counter_t _cycle_perf;
+	perf_counter_t _publish_interval_perf;
+#if defined(HRT_PPM_CHANNEL)
+	hrt_abstime _timestamp_last_signal {0};
+	bool _locked{false};
+#endif
 
-	int _uart_fd;
-	hrt_abstime _last_update {0U};
-	uint32_t _next_type {0U};
+	AnalogRcRssi _analog_rssi;
 
-	static constexpr uint32_t NUM_DATA_TYPES {3U};	// number of different telemetry data types
-	static constexpr uint32_t UPDATE_RATE_HZ {10U};	// update rate [Hz]
+	static constexpr unsigned _current_update_interval{4000};
 
-	// Factors that should be applied to get correct values
-	static constexpr float FACTOR_VOLTS_TO_10MV {100.0F};
-	static constexpr float FACTOR_AMPS_TO_10MA {100.0F};
-	static constexpr float FACTOR_MAH_TO_10MAH {0.1F};
-
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
+		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
+		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max
+	)
 };

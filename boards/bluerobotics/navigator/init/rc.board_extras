@@ -3,5 +3,5 @@
 # board specific extras init
 #------------------------------------------------------------------------------
 
-rc_input start -d /dev/ttyAMA1
+sbus_rc start -d /dev/ttyAMA1
 rc_update start

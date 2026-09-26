@@ -70,8 +70,8 @@ For ExpressLRS receivers wire to the flight controller UART as shown below (wiri
 
 ### Firmware Configuration/Build
 
-CRSF telemetry support is not included in any PX4 firmware by default.
-To use this feature you must build and upload custom firmware that includes [crsf-rc](../modules/modules_driver_radio_control.md#crsf-rc) and removes [rc_input](../modules/modules_driver_radio_control.md#rc-input).
+[crsf_rc](../modules/modules_driver_radio_control.md#crsf-rc) is part of Common RC and in most default PX4 firmware.
+Build and upload custom firmware only if `boardconfig` shows it missing for your board.
 
 The steps are:
 
@@ -91,13 +91,7 @@ The steps are:
    make ark_fmu-v6x_default boardconfig
    ```
 
-1. In the PX4 board config tool:
-   - Disable the default `rc_input` module
-     1. Navigate to the `drivers` submenu, then scroll down to highlight `rc_input`.
-     1. Use the enter key to remove the `*` from `rc_input` checkbox.
-   - Enable the `crsf_rc` module
-     1. Scroll to highlight the `RC` submenu, then press enter to open it.
-     1. Scroll to highlight `crsf_rc` and press enter to enable it.
+1. In the PX4 board config tool, enable `crsf_rc` under `drivers` → `RC` if it is not already selected (Common RC includes it).
 
    Save and exit the PX4 board config tool.
 
@@ -125,11 +119,10 @@ Alternatively you can use QGroundControl to install the firmware, as described i
 
 [Find and set](../advanced_config/parameters.md) the following parameters:
 
-1. [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) — Set to the port that is connected to the CRSF receiver (such as `TELEM1`).
+1. Set `SER_<tag>_PROTO` to CRSF on the UART connected to the receiver (for example [SER_TEL1_PROTO](../advanced_config/parameter_reference.md#SER_TEL1_PROTO) or [SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO)).
 
    This [configures the serial port](../peripherals/serial_configuration.md) to use the CRSF protocol.
-   Note that some serial ports may already have a [default serial port mapping](../peripherals/serial_configuration.md#default-serial-port-configuration) or [default MAVLink serial port mapping](../peripherals/mavlink_peripherals.md#default-mavlink-ports) that you will have to un-map before you can assign the port to CRSF.
-   For example, if you want to use `TELEM1` or `TELEM2` you first need to modify [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) or [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) to stop setting those ports.
+   Setting `SER_<tag>_PROTO` replaces whatever the port ran before, including a [default mapping](../peripherals/serial_configuration.md#default_port_mapping) such as MAVLink on TELEM1.
 
    There is no need to set the baud rate for the port, as this is configured by the driver.
 

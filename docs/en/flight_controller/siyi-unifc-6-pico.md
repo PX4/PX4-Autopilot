@@ -114,7 +114,7 @@ Only the receive line (`RX8`) is broken out, so the port supports:
 - Spektrum DSM
 - Graupner SUMD
 
-Configure the receiver protocol with the relevant `RC_*_PRT_CFG` parameter from QGroundControl, pointing it at the `RC` slot.
+The port is set to SBUS by default. Select another receiver protocol with [SER_RC_PROTO](../advanced_config/parameter_reference.md#SER_RC_PROTO).
 
 ### PWM Output Groups
 
@@ -135,7 +135,7 @@ If any channel in a group uses DShot then all channels in the group need to use 
 The board features an Ethernet port with RMII interface (LAN8742A PHY).
 Only the four RMII data channels are broken out to external pins: RMII_RXD0, RMII_RXD1, RMII_TXD0, RMII_TXD1.
 Other RMII signals (REF_CLK, CRS_DV, MDC, MDIO) are connected internally to the onboard PHY chip.
-MAVLink is pre-configured on Ethernet interface (MAV_2_CONFIG set to 1000).
+MAVLink is pre-configured on the Ethernet interface ([MAV_ETH_EN](../advanced_config/parameter_reference.md#MAV_ETH_EN) = 1).
 
 ## Building / Loading Firmware
 

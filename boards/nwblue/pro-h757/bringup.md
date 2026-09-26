@@ -62,7 +62,7 @@ production hardware:
       backend, which is the more capable of the two.
 - [ ] **MSP DisplayPort OSD** — untested; needs an HD VTX on J9. There is no
       OSD chip on the board, so analog video cannot be overlaid: the VTX has to
-      render it. Not enabled by default - set `MSP_OSD_CONFIG` to 102 (TEL2).
+      render it. Not enabled by default - set `SER_TEL2_PROTO` to 24 (MSP OSD).
 - [x] **RGB LEDs** — blue blinks the arming state, green solid when armed, red
       on overload, via `BOARD_ARMED_LED`/`BOARD_ARMED_STATE_LED` in commander.
       There is no colour status indication (no amber on low battery and so on):

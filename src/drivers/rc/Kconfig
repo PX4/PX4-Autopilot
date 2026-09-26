@@ -6,6 +6,9 @@ menu "RC"
         select DRIVERS_RC_DSM_RC
         select DRIVERS_RC_GHST_RC
         select DRIVERS_RC_SBUS_RC
+        select DRIVERS_RC_SUMD_RC
+        select DRIVERS_RC_ST24_RC
+        select DRIVERS_RC_PPM_RC
         ---help---
             Enable default set of radio control drivers
     rsource "*/Kconfig"

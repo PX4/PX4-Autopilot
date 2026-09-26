@@ -57,7 +57,7 @@ Then [configure PX4](#configure).
 
 ## PX4 Configuration
 
-[Configure the serial port](../peripherals/serial_configuration.md) on which FrSky will run using [TEL_FRSKY_CONFIG](../advanced_config/parameter_reference.md#TEL_FRSKY_CONFIG).
+[Configure the serial port](../peripherals/serial_configuration.md) on which FrSky will run by setting the port's `SER_<tag>_PROTO` to FrSky Telemetry.
 There is no need to set the baud rate for the port, as this is configured by the driver.
 
 ::: info

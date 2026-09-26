@@ -1,10 +1,8 @@
 module_name: VTX SmartAudio
 serial_config:
   - command: vtx start -d ${SERIAL_DEV}
-    port_config_param:
-      name: VTX_SER_CFG
-      group: VTX
-    label: VTX Serial Port
+    protocol_id: 25
+    protocol_name: VTX SmartAudio
 
 parameters:
   - group: VTX
