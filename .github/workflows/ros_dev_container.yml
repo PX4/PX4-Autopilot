@@ -101,6 +101,8 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4
         with:
+          # Gazebo/ROS SBOMs exceed the 40 MiB attestation limit in BuildKit 0.32.
+          driver-opts: image=moby/buildkit:v0.33.0
           platforms: linux/${{ matrix.arch }}
 
       - name: Build development image without firmware
