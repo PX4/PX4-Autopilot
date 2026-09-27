@@ -170,16 +170,25 @@ The minimum distance between antenna depends on the device but is of the order o
 The devices that can be used are listed in this way are listed in the **GPS Yaw** column of the table above, such as [Septentrio AsteRx-m3 Pro](../gps_compass/septentrio_asterx-rib.md), [Holybro H-RTK Unicore UM982 GPS](../gps_compass/rtk_gps_holybro_unicore_um982.md), and [Trimble MB-Two](../gps_compass/rtk_gps_trimble_mb_two.md).
 The links in the table take you to the device-specific PX4 configuration.
 
-Generally when using a GNSS as a source of yaw information you will need to configure the following parameters:
+The heading is the bearing of the _baseline_, the vector from one antenna to the other.
+PX4 derives the baseline in the body frame (as shown [here][fc_orientation]) from the antenna positions, and uses a heading only when the baseline the receiver reports is within 20% of it in length and vertical component.
+Configure the slot of the receiver that reports the heading, matched by [SENS_GPSn_ID][SENS_GPSn_ID]:
 
-| Parameter                        | Setting                                                                                                                                                     |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [SENS_GPSn_ROT][SENS_GPSn_ROT]   | Rotation of the _baseline_ (moving base to rover antenna) relative to the vehicle body frame (as shown [here][fc_orientation]), matched to the receiver by [SENS_GPSn_ID][SENS_GPSn_ID]. |
-| [EKF2_GPS_CTRL][EKF2_GPS_CTRL]   | Set bit position 3 "Dual antenna heading" to `1` (i.e. add 8 to the parameter value).                                                                       |
+| Parameter                            | Setting                                                                                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [SENS_GPSn_HDG][SENS_GPSn_HDG]       | `Moving base` for two receivers (the rover reports the heading, from the moving base's antenna to its own), `Custom` for a single receiver with two antennas. |
+| [SENS_GPSn_OFFX/Y/Z][SENS_GPSn_OFFX] | Antenna position of each receiver. With `Moving base`, both receivers' slots must be set.                                                                     |
+| [SENS_GPSn_BLX/Y/Z][SENS_GPSn_BLX]   | With `Custom`: the vector from the antenna the heading is measured from to the antenna it points to (see the device page for which is which).                 |
+| [EKF2_GPS_CTRL][EKF2_GPS_CTRL]       | Set bit position 3 "Dual antenna heading" to `1` (i.e. add 8 to the parameter value).                                                                         |
+
+Antennas must be at least 5 cm apart.
+A source is used once its baseline has matched for 1 s.
 
 <!-- links used in table above -->
 
-[SENS_GPSn_ROT]: ../advanced_config/parameter_reference.md#SENS_GPS0_ROT
+[SENS_GPSn_HDG]: ../advanced_config/parameter_reference.md#SENS_GPS0_HDG
+[SENS_GPSn_OFFX]: ../advanced_config/parameter_reference.md#SENS_GPS0_OFFX
+[SENS_GPSn_BLX]: ../advanced_config/parameter_reference.md#SENS_GPS0_BLX
 [SENS_GPSn_ID]: ../advanced_config/parameter_reference.md#SENS_GPS0_ID
 [EKF2_GPS_CTRL]: ../advanced_config/parameter_reference.md#EKF2_GPS_CTRL
 [fc_orientation]: ../config/flight_controller_orientation.md#calculating-orientation

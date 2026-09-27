@@ -53,10 +53,10 @@ The pins on the 28-pin connector are numbered as shown below:
 First set the GPS protocol to Trimble ([GPS_x_PROTOCOL=3](../advanced_config/parameter_reference.md#GPS_1_PROTOCOL)).
 
 For heading estimation the two antennas need to be on the same level and at least 30 cm apart from each other.
-The direction that they are facing does not matter as it can be configured with the [SENS_GPSn_ROT](../advanced_config/parameter_reference.md#SENS_GPS0_ROT) parameter.
+The direction that they are facing does not matter as it is configured with the [heading baseline](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source).
 
 ::: info
-`SENS_GPSn_ROT` is the rotation of the _baseline_ (the line between the two GPS antennas) relative to the vehicle x-axis (front/back axis, as shown [here](../config/flight_controller_orientation.md#calculating-orientation)), matched to the receiver by `SENS_GPSn_ID`.
+Set `SENS_GPSn_HDG` to `Custom` and `SENS_GPSn_BLX/Y/Z` to the _baseline_ (the vector between the two GPS antennas) in the body frame (as shown [here](../config/flight_controller_orientation.md#calculating-orientation)).
 :::
 
 [Configure the serial port](../peripherals/serial_configuration.md) on which the Trimple will run using [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG), and set the baud rate to 115200 using [SER_GPS1_BAUD](../advanced_config/parameter_reference.md#SER_GPS1_BAUD).

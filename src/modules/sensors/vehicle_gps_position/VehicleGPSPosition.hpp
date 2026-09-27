@@ -33,7 +33,6 @@
 
 #pragma once
 
-#include <lib/conversion/rotation.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
@@ -47,9 +46,12 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/pps_capture.h>
 
+#include "GnssHeadingBaseline.hpp"
 #include "gps_blending.hpp"
 #include "PpsTimeSync.hpp"
 
@@ -81,27 +83,42 @@ private:
 
 	static constexpr hrt_abstime kDefaultDelay{110_ms}; // matches SENS_GPS*_DELAY default
 	static constexpr hrt_abstime kHeadingSourceTimeout{3_s};
+	static constexpr hrt_abstime kHeadingSettleTime{1_s};
 
 	struct GpsParamSlot {
 		uint32_t device_id{0};
 		matrix::Vector3f offset{};
 		hrt_abstime delay_us{kDefaultDelay};
-		float heading_offset{0.f};    // yaw of the antenna baseline in the body frame (rad)
-		bool heading_available{true}; // false for a vertical baseline, which has no heading
+		matrix::Vector3f baseline{}; // antenna baseline the heading is measured along, body frame (m)
+		float baseline_length{0.f};
+		float heading_offset{0.f};   // yaw of the baseline in the body frame (rad)
 	};
 
 	// SENS_GPSn_* slot for a receiver, by device_id or (when no IDs are configured) by sensor_gps instance
 	const GpsParamSlot *findParamSlot(uint32_t device_id, int instance) const;
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-	void UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_RECEIVERS], const bool gps_updated[GPS_MAX_RECEIVERS]);
+	struct HeadingSample {
+		uint64_t timestamp_sample;
+		uint32_t device_id;
+		float heading;          // measured baseline heading (rad), NAN when not valid
+		float heading_accuracy;
+		float baseline_length;  // reported baseline (m), NAN when not reported
+		float baseline_down;
+		uint8_t jamming_state;
+		uint8_t spoofing_state;
+		bool from_relative;     // sensor_gnss_relative, else sensor_gps
+	};
+
+	void UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_RECEIVERS], const bool gps_updated[GPS_MAX_RECEIVERS],
+			       const float measured_heading[GPS_MAX_RECEIVERS]);
+	// Returns true if the sample passed the checks and is from the source in use (published once settled)
+	bool handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot);
 
 	// sensor_gps instance publishing this device_id, or -1, with its latest sample in gps_data (zeroed when not found)
 	int findGpsInstance(uint32_t device_id, sensor_gps_s &gps_data);
-	// Rotate a measured baseline heading into the body frame; NaN for a vertical baseline
-	static float rotateBaselineHeading(const GpsParamSlot *slot, float heading);
-	static float headingOffset(const GpsParamSlot *slot) { return slot ? slot->heading_offset : 0.f; }
-	void updateBaselineRotation(GpsParamSlot &slot, int32_t rotation, float roll_deg, float pitch_deg, float yaw_deg);
+	// Measured baseline heading rotated into the body frame; NAN without a configured baseline
+	static float bodyHeading(const GpsParamSlot *slot, float heading);
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
@@ -131,11 +148,17 @@ private:
 		{this, ORB_ID(sensor_gnss_relative), 1},
 	};
 
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+
 	struct HeadingSource {
 		uint32_t device_id{0};
 		bool from_relative{false};
-		hrt_abstime last_publish{0};
+		hrt_abstime last_pass{0};     // last sample that passed the checks
+		hrt_abstime settled_since{0}; // start of the current run of samples passing the checks
 	} _heading_source{};
+
+	bool _heading_unconfigured_reported{false};
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -158,14 +181,14 @@ private:
 		(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy,
 		(ParamFloat<px4::params::SENS_GPS1_OFFZ>) _param_sens_gps1_offz,
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-		(ParamInt<px4::params::SENS_GPS0_ROT>) _param_sens_gps0_rot,
-		(ParamFloat<px4::params::SENS_GPS0_ROLL>) _param_sens_gps0_roll,
-		(ParamFloat<px4::params::SENS_GPS0_PITCH>) _param_sens_gps0_pitch,
-		(ParamFloat<px4::params::SENS_GPS0_YAW>) _param_sens_gps0_yaw,
-		(ParamInt<px4::params::SENS_GPS1_ROT>) _param_sens_gps1_rot,
-		(ParamFloat<px4::params::SENS_GPS1_ROLL>) _param_sens_gps1_roll,
-		(ParamFloat<px4::params::SENS_GPS1_PITCH>) _param_sens_gps1_pitch,
-		(ParamFloat<px4::params::SENS_GPS1_YAW>) _param_sens_gps1_yaw,
+		(ParamInt<px4::params::SENS_GPS0_HDG>) _param_sens_gps0_hdg,
+		(ParamFloat<px4::params::SENS_GPS0_BLX>) _param_sens_gps0_blx,
+		(ParamFloat<px4::params::SENS_GPS0_BLY>) _param_sens_gps0_bly,
+		(ParamFloat<px4::params::SENS_GPS0_BLZ>) _param_sens_gps0_blz,
+		(ParamInt<px4::params::SENS_GPS1_HDG>) _param_sens_gps1_hdg,
+		(ParamFloat<px4::params::SENS_GPS1_BLX>) _param_sens_gps1_blx,
+		(ParamFloat<px4::params::SENS_GPS1_BLY>) _param_sens_gps1_bly,
+		(ParamFloat<px4::params::SENS_GPS1_BLZ>) _param_sens_gps1_blz,
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 		(ParamInt<px4::params::SENS_GPS0_DELAY>) _param_sens_gps0_delay,
 		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay

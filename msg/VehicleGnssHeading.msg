@@ -1,6 +1,6 @@
-# Validated GNSS heading from dual-antenna / moving baseline receiver pair.
-# Published by the sensors module after selecting and validating heading from sensor_gnss_relative
-# or falling back to sensor_gps heading fields. Consumed by EKF2 independently from position/velocity.
+# GNSS heading from a dual-antenna or moving-baseline receiver, published by the sensors module from sensor_gnss_relative
+# or, for receivers that don't publish it, from sensor_gps. Only headings whose reported baseline matches the configured
+# SENS_GPSn_HDG baseline are published. Consumed by EKF2 independently from position/velocity.
 
 uint64 timestamp              # time since system start (microseconds)
 uint64 timestamp_sample       # time since system start (microseconds) - actual measurement time
@@ -9,7 +9,8 @@ uint32 device_id              # unique device ID for the sensor that does not ch
 
 float32 heading               # body-frame heading rel to NED from dual antenna array (rad, [-PI, PI])
 float32 heading_accuracy      # 1-sigma heading accuracy (rad)
-float32 heading_offset        # yaw of the antenna baseline in the body frame, from SENS_GPSn_ROT; heading + heading_offset is the measured baseline heading (rad, [-PI, PI])
+float32 heading_offset        # yaw of the configured antenna baseline in the body frame; heading + heading_offset is the measured baseline heading (rad, [-PI, PI])
+float32 baseline_length       # antenna baseline length reported by the receiver, NaN if it doesn't report one (m)
 
 uint8 jamming_state           # jamming_state of the receiver providing the heading, values as in SensorGps (0: Unknown, 1: OK, 2: Mitigated, 3: Detected)
 uint8 spoofing_state          # spoofing_state of the receiver providing the heading, values as in SensorGps (0: Unknown, 1: OK, 2: Mitigated, 3: Detected)

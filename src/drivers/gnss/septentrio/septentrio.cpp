@@ -953,8 +953,8 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 		return ConfigureResult::FailedCompletely;
 	}
 
-	// Receiver-side attitude offsets are zeroed so the reported heading is the raw baseline; the mounting rotation is
-	// applied from SENS_GPSn_ROT.
+	// Receiver-side attitude offsets are zeroed so the reported heading is the raw baseline; the mounting is applied
+	// from the SENS_GPSn_HDG baseline.
 	snprintf(msg, sizeof(msg), k_command_set_attitude_offset, 0.0, 0.0);
 
 	if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {

@@ -337,7 +337,7 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		}
 
 		// velocity_xyz[1] is the heading offset older node firmware subtracted on the node. It is ignored so both heading
-		// paths are rotated by SENS_GPSn_ROT alone, as the RelPosHeading path already was.
+		// paths are rotated by the SENS_GPSn_HDG baseline alone, as the RelPosHeading path already was.
 
 		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[2])) {
 			heading_accuracy = msg.ecef_position_velocity[0].velocity_xyz[2];

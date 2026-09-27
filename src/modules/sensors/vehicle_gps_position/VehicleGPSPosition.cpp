@@ -134,43 +134,31 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		};
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-		updateBaselineRotation(_gps_param_slots[0], _param_sens_gps0_rot.get(), _param_sens_gps0_roll.get(),
-				       _param_sens_gps0_pitch.get(), _param_sens_gps0_yaw.get());
-		updateBaselineRotation(_gps_param_slots[1], _param_sens_gps1_rot.get(), _param_sens_gps1_roll.get(),
-				       _param_sens_gps1_pitch.get(), _param_sens_gps1_yaw.get());
+		const matrix::Vector3f baselines[GPS_MAX_RECEIVERS] {
+			gnss_heading::configuredBaseline(_param_sens_gps0_hdg.get(), _gps_param_slots[0].offset, _gps_param_slots[1].offset,
+			{_param_sens_gps0_blx.get(), _param_sens_gps0_bly.get(), _param_sens_gps0_blz.get()}),
+			gnss_heading::configuredBaseline(_param_sens_gps1_hdg.get(), _gps_param_slots[1].offset, _gps_param_slots[0].offset,
+			{_param_sens_gps1_blx.get(), _param_sens_gps1_bly.get(), _param_sens_gps1_blz.get()}),
+		};
+
+		for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+			_gps_param_slots[i].baseline = baselines[i];
+			_gps_param_slots[i].baseline_length = baselines[i].norm();
+			_gps_param_slots[i].heading_offset = atan2f(baselines[i](1), baselines[i](0));
+		}
+
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 	}
 }
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-void VehicleGPSPosition::updateBaselineRotation(GpsParamSlot &slot, int32_t rotation, float roll_deg, float pitch_deg,
-		float yaw_deg)
+float VehicleGPSPosition::bodyHeading(const GpsParamSlot *slot, float heading)
 {
-	matrix::Dcmf R;
-
-	const bool custom_set = (fabsf(roll_deg) > FLT_EPSILON) || (fabsf(pitch_deg) > FLT_EPSILON)
-				|| (fabsf(yaw_deg) > FLT_EPSILON);
-
-	if ((rotation == ROTATION_CUSTOM) || custom_set) {
-		R = matrix::Dcmf(matrix::Eulerf(math::radians(roll_deg), math::radians(pitch_deg), math::radians(yaw_deg)));
-
-	} else if ((rotation >= 0) && (rotation < ROTATION_MAX)) {
-		R = get_rot_matrix(static_cast<Rotation>(rotation));
-	}
-
-	// baseline direction in the body frame; only its yaw enters the heading
-	const matrix::Vector3f baseline = R * matrix::Vector3f(1.f, 0.f, 0.f);
-	slot.heading_available = baseline.xy().norm() > 0.1f;
-	slot.heading_offset = slot.heading_available ? atan2f(baseline(1), baseline(0)) : 0.f;
-}
-
-float VehicleGPSPosition::rotateBaselineHeading(const GpsParamSlot *slot, float heading)
-{
-	if (!PX4_ISFINITE(heading) || (slot && !slot->heading_available)) {
+	if (!PX4_ISFINITE(heading) || !slot || !(slot->baseline_length >= gnss_heading::kMinAntennaSeparation)) {
 		return NAN;
 	}
 
-	return matrix::wrap_pi(heading - headingOffset(slot));
+	return matrix::wrap_pi(heading - slot->heading_offset);
 }
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
@@ -190,6 +178,9 @@ void VehicleGPSPosition::Run()
 	sensor_gps_s gps_data[GPS_MAX_RECEIVERS] {};
 	bool gps_updated[GPS_MAX_RECEIVERS] {};
 	const int32_t gps_prime = _param_sens_gps_prime.get();
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+	float measured_heading[GPS_MAX_RECEIVERS] {NAN, NAN};
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		gps_updated[i] = _sensor_gps_sub[i].update(&gps_data[i]);
@@ -203,7 +194,8 @@ void VehicleGPSPosition::Run()
 
 			gps_data[i].timestamp_sample = resolveSampleTimestamp(gps_data[i].timestamp_sample, gps_data[i].timestamp, delay_us);
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-			gps_data[i].heading = rotateBaselineHeading(slot, gps_data[i].heading);
+			measured_heading[i] = gps_data[i].heading;
+			gps_data[i].heading = bodyHeading(slot, gps_data[i].heading);
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
@@ -247,7 +239,7 @@ void VehicleGPSPosition::Run()
 	}
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-	UpdateGnssHeading(gps_data, gps_updated);
+	UpdateGnssHeading(gps_data, gps_updated, measured_heading);
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	ScheduleDelayed(300_ms); // backup schedule
@@ -257,18 +249,8 @@ void VehicleGPSPosition::Run()
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_RECEIVERS],
-		const bool gps_updated[GPS_MAX_RECEIVERS])
+		const bool gps_updated[GPS_MAX_RECEIVERS], const float measured_heading[GPS_MAX_RECEIVERS])
 {
-	// A single source is published at a time: every source carries its own antenna offset, so alternating between
-	// receivers would jump the heading and trip the EKF observation rate limit. The active source is kept until it
-	// goes stale. sensor_gnss_relative is preferred over sensor_gps.heading and preempts it.
-	//
-	// TODO: with per-receiver rotation the selection can also follow the flight phase, e.g. a tailsitter with one
-	// baseline aligned for hover and one for forward flight.
-	const hrt_abstime now = hrt_absolute_time();
-	const bool source_active = (_heading_source.last_publish != 0)
-				   && (now - _heading_source.last_publish < kHeadingSourceTimeout);
-
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		sensor_gnss_relative_s gnss_rel;
 
@@ -276,49 +258,34 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 			continue;
 		}
 
-		if (!gnss_rel.heading_valid || !PX4_ISFINITE(gnss_rel.heading)) {
-			continue;
-		}
-
-		if (source_active && _heading_source.from_relative && (_heading_source.device_id != gnss_rel.device_id)) {
-			continue;
-		}
-
 		// sensor_gnss_relative instances are numbered by advertise order, not by receiver, so the receiver's
 		// sensor_gps instance is looked up by device_id for the parameter slot and the receiver state.
 		sensor_gps_s receiver{};
 		const GpsParamSlot *slot = findParamSlot(gnss_rel.device_id, findGpsInstance(gnss_rel.device_id, receiver));
-		const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
 
-		const float heading = rotateBaselineHeading(slot, gnss_rel.heading);
-
-		if (!PX4_ISFINITE(heading)) {
-			continue;
-		}
-
-		uint64_t timestamp_sample = resolveSampleTimestamp(gnss_rel.timestamp_sample, gnss_rel.timestamp, delay_us);
+		HeadingSample sample{};
+		sample.timestamp_sample = resolveSampleTimestamp(gnss_rel.timestamp_sample, gnss_rel.timestamp,
+					  slot ? slot->delay_us : kDefaultDelay);
 		const uint64_t pps_timestamp = _pps_time_sync.correct_gps_timestamp(gnss_rel.timestamp, gnss_rel.time_utc_usec);
 
 		if (pps_timestamp != gnss_rel.timestamp) {
-			timestamp_sample = pps_timestamp;
+			sample.timestamp_sample = pps_timestamp;
 		}
 
-		vehicle_gnss_heading_s heading_out{};
-		heading_out.timestamp_sample = timestamp_sample;
-		heading_out.device_id = gnss_rel.device_id;
-		heading_out.heading = heading;
-		heading_out.heading_accuracy = gnss_rel.heading_accuracy;
-		heading_out.heading_offset = headingOffset(slot);
-		heading_out.jamming_state = receiver.jamming_state;
-		heading_out.spoofing_state = receiver.spoofing_state;
-		heading_out.timestamp = hrt_absolute_time();
-		_vehicle_gnss_heading_pub.publish(heading_out);
-
-		_heading_source = {gnss_rel.device_id, true, now};
-		return;
+		sample.device_id = gnss_rel.device_id;
+		sample.heading = gnss_rel.heading_valid ? gnss_rel.heading : NAN;
+		sample.heading_accuracy = gnss_rel.heading_accuracy;
+		sample.baseline_length = gnss_rel.position_length;
+		sample.baseline_down = gnss_rel.position[2];
+		sample.jamming_state = receiver.jamming_state;
+		sample.spoofing_state = receiver.spoofing_state;
+		sample.from_relative = true;
+		handleHeadingSample(sample, slot);
 	}
 
-	if (source_active && _heading_source.from_relative) {
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (_heading_source.from_relative && (now < _heading_source.last_pass + kHeadingSourceTimeout)) {
 		return;
 	}
 
@@ -336,35 +303,116 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 	for (uint8_t n = 0; n < GPS_MAX_RECEIVERS; n++) {
 		const uint8_t i = (primary + n) % GPS_MAX_RECEIVERS;
 
-		if (!gps_updated[i] || !PX4_ISFINITE(gps_data[i].heading)) {
+		if (!gps_updated[i]) {
 			continue;
 		}
 
-		if (source_active && (_heading_source.device_id != gps_data[i].device_id)) {
-			continue;
-		}
-
-		uint64_t timestamp_sample = gps_data[i].timestamp_sample;
+		HeadingSample sample{};
+		sample.timestamp_sample = gps_data[i].timestamp_sample;
 		const uint64_t pps_timestamp = _pps_time_sync.correct_gps_timestamp(gps_data[i].timestamp, gps_data[i].time_utc_usec);
 
 		if (pps_timestamp != gps_data[i].timestamp) {
-			timestamp_sample = pps_timestamp;
+			sample.timestamp_sample = pps_timestamp;
 		}
 
-		vehicle_gnss_heading_s heading_out{};
-		heading_out.timestamp_sample = timestamp_sample;
-		heading_out.device_id = gps_data[i].device_id;
-		heading_out.heading = gps_data[i].heading;
-		heading_out.heading_accuracy = gps_data[i].heading_accuracy;
-		heading_out.heading_offset = headingOffset(findParamSlot(gps_data[i].device_id, i));
-		heading_out.jamming_state = gps_data[i].jamming_state;
-		heading_out.spoofing_state = gps_data[i].spoofing_state;
-		heading_out.timestamp = hrt_absolute_time();
-		_vehicle_gnss_heading_pub.publish(heading_out);
+		sample.device_id = gps_data[i].device_id;
+		sample.heading = measured_heading[i];
+		sample.heading_accuracy = gps_data[i].heading_accuracy;
+		sample.baseline_length = NAN;
+		sample.baseline_down = NAN;
+		sample.jamming_state = gps_data[i].jamming_state;
+		sample.spoofing_state = gps_data[i].spoofing_state;
 
-		_heading_source = {gps_data[i].device_id, false, now};
-		return;
+		if (handleHeadingSample(sample, findParamSlot(gps_data[i].device_id, i))) {
+			return;
+		}
 	}
+}
+
+bool VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot)
+{
+	// A single source is published at a time: every source has its own baseline, so alternating between receivers
+	// would jump the heading and trip the EKF observation rate limit. A source is kept until none of its samples has
+	// passed the checks for kHeadingSourceTimeout. A sensor_gnss_relative sample preempts a sensor_gps source.
+	//
+	// TODO: with per-receiver baselines the selection can also follow the flight phase, e.g. a tailsitter with one
+	// baseline aligned for hover and one for forward flight.
+	const hrt_abstime now = hrt_absolute_time();
+	HeadingSource &source = _heading_source;
+	const bool held = (source.last_pass != 0) && (now < source.last_pass + kHeadingSourceTimeout);
+	const bool same_source = (sample.device_id == source.device_id) && (sample.from_relative == source.from_relative);
+
+	if (held && !same_source && !(sample.from_relative && !source.from_relative)) {
+		return false;
+	}
+
+	const bool configured = slot && (slot->baseline_length >= gnss_heading::kMinAntennaSeparation);
+
+	if (PX4_ISFINITE(sample.heading) && !configured && !_heading_unconfigured_reported) {
+		PX4_WARN("GNSS heading from %" PRIu32 " not used: set SENS_GPSn_HDG", sample.device_id);
+		_heading_unconfigured_reported = true;
+	}
+
+	float expected_down_min = NAN;
+	float expected_down_max = NAN;
+	vehicle_attitude_s attitude;
+
+	if (configured && PX4_ISFINITE(sample.baseline_down) && _vehicle_attitude_sub.copy(&attitude)
+	    && (now < attitude.timestamp + 1_s)) {
+		// the attitude at the sample time is projected back with the gyro, as the down component is checked over the
+		// whole interval
+		vehicle_angular_velocity_s angular_velocity{};
+		_vehicle_angular_velocity_sub.copy(&angular_velocity);
+		const float lag = (now > sample.timestamp_sample) ? 1e-6f * (now - sample.timestamp_sample) : 0.f;
+
+		const matrix::Dcmf R{matrix::Quatf(attitude.q)};
+		const matrix::Dcmf R_sample = R * matrix::Dcmf(matrix::AxisAnglef(matrix::Vector3f(angular_velocity.xyz) * -lag));
+		const float down_now = (R * slot->baseline)(2, 0);
+		const float down_sample = (R_sample * slot->baseline)(2, 0);
+		expected_down_min = fminf(down_now, down_sample);
+		expected_down_max = fmaxf(down_now, down_sample);
+	}
+
+	if (!PX4_ISFINITE(sample.heading) || !configured
+	    || !gnss_heading::baselineConsistent(slot->baseline_length, sample.baseline_length, sample.baseline_down,
+			    expected_down_min, expected_down_max)) {
+		if (same_source) {
+			source.settled_since = 0;
+		}
+
+		return false;
+	}
+
+	if (!held || !same_source) {
+		source = {sample.device_id, sample.from_relative, 0, 0};
+	}
+
+	if (source.settled_since == 0) {
+		source.settled_since = now;
+	}
+
+	source.last_pass = now;
+
+	// Headings are published once the source has passed the checks for kHeadingSettleTime. Outdoors on an ARK G5
+	// moving-base pair, the headings right after the base antenna was re-plugged passed the baseline checks for 0.9 s
+	// and were up to 25 deg wrong.
+	if (now < source.settled_since + kHeadingSettleTime) {
+		return true;
+	}
+
+	vehicle_gnss_heading_s heading_out{};
+	heading_out.timestamp_sample = sample.timestamp_sample;
+	heading_out.device_id = sample.device_id;
+	heading_out.heading = matrix::wrap_pi(sample.heading - slot->heading_offset);
+	heading_out.heading_accuracy = sample.heading_accuracy;
+	heading_out.heading_offset = slot->heading_offset;
+	heading_out.baseline_length = sample.baseline_length;
+	heading_out.jamming_state = sample.jamming_state;
+	heading_out.spoofing_state = sample.spoofing_state;
+	heading_out.timestamp = hrt_absolute_time();
+	_vehicle_gnss_heading_pub.publish(heading_out);
+
+	return true;
 }
 
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
