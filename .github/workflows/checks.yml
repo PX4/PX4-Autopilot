@@ -69,16 +69,23 @@ jobs:
       - uses: ./.github/actions/setup-ccache
         id: ccache
         with:
-          cache-key-prefix: ccache-sitl
+          cache-key-prefix: ccache-unittests-coverage
           max-size: 300M
 
       - name: Build and run unit tests
         env:
           PX4_SBOM_DISABLE: 1
         run: |
-          make tests
+          make tests_coverage
           make tests_daa_crosstrack
           make tests_vtest_moving
+
+      - name: Upload Coverage Information to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          files: coverage/lcov.info
 
       - uses: ./.github/actions/save-ccache
         if: always()
