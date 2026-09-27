@@ -119,11 +119,15 @@ static void value_noise_d(float x, float y, int32_t seed,
 	*out_dy = (k2 + k3 * u) * dv;
 }
 
-/* fBm over s_params.oct octaves, the erosion divisor is treated as a constant when
- * differentiating, as in the reference above */
-static float raw_eval(float n, float e)
+/* fBm over the first `octaves` octaves, surface_band() stops early for the slope
+ * the erosion divisor is treated as a constant when differentiating, as in the reference above */
+static float field_eval(float n, float e, int octaves, float *grad_n, float *grad_e)
 {
 	if (fabsf(s_params.amp) < 1e-6f) {
+		if (grad_n) { *grad_n = 0.f; }
+
+		if (grad_e) { *grad_e = 0.f; }
+
 		return 0.f;
 	}
 
@@ -142,7 +146,7 @@ static float raw_eval(float n, float e)
 	float de = 0.f;
 	float amp = s_params.amp;
 
-	for (int i = 0; i < s_params.oct; ++i) {
+	for (int i = 0; i < octaves; ++i) {
 		float nv, ndx, ndy;
 		value_noise_d(x, y, s_params.seed + i, &nv, &ndx, &ndy);
 
@@ -175,7 +179,16 @@ static float raw_eval(float n, float e)
 		amp *= s_params.amp_decay;
 	}
 
+	if (grad_n) { *grad_n = dn; }
+
+	if (grad_e) { *grad_e = de; }
+
 	return h;
+}
+
+static float raw_eval(float n, float e)
+{
+	return field_eval(n, e, s_params.oct, nullptr, nullptr);
 }
 
 /* zero inside the flat pad, the home offset subtracted outside it */
@@ -264,6 +277,71 @@ float raycast(float origin_n, float origin_e, float origin_alt,
 	return 0.5f * (lo + hi);
 }
 
+static float smoothstep_band(float lo, float hi, float x)
+{
+	const float t = fminf(fmaxf((x - lo) / (hi - lo), 0.f), 1.f);
+	return t * t * (3.f - 2.f * t);
+}
+
+/* the band rule of generator 1, every number from the row in use */
+int surface_band(float north_m, float east_m)
+{
+	if (fabsf(s_params.amp) < 1e-6f) {
+		return 0;
+	}
+
+	const Rules &r = *s_params.rules;
+
+	float gn, ge;
+	const int octaves = s_params.oct < r.band_octaves ? s_params.oct : r.band_octaves;
+	const float h = field_eval(north_m, east_m, octaves, &gn, &ge);
+	const float slope = sqrtf(gn * gn + ge * ge);
+
+	/* a road follows the zero crossing of a two octave noise layer of its own, the terrain's own octave turn,
+	 * 36.87 deg, and a second octave at twice the frequency turned again, divided by the layer's slope so the
+	 * width stays constant */
+	const float kr = 1.f / s_params.wavelength;
+	const float x1 = (0.8f * north_m + 0.6f * east_m) * kr;
+	const float y1 = (-0.6f * north_m + 0.8f * east_m) * kr;
+	float v1, d1x, d1y, v2, d2x, d2y;
+	value_noise_d(x1, y1, s_params.seed ^ r.road_salt, &v1, &d1x, &d1y);
+	value_noise_d(2.f * (0.8f * x1 + 0.6f * y1), 2.f * (-0.6f * x1 + 0.8f * y1), (s_params.seed ^ r.road_salt) + 1,
+		      &v2, &d2x, &d2y);
+	const float rv = v1 + r.road_bend_amp * v2;
+	const float gx = d1x + 2.f * r.road_bend_amp * (0.8f * d2x - 0.6f * d2y);
+	const float gy = d1y + 2.f * r.road_bend_amp * (0.6f * d2x + 0.8f * d2y);
+	const float rgrad = sqrtf(gx * gx + gy * gy) * kr;
+
+	/* distance to the zero line in meters is the noise value over its slope per meter */
+	if (rgrad > 1e-6f && fabsf(rv) < r.road_half_width_m * rgrad) {
+		return 4;
+	}
+
+	/* outcrops where the road layer peaks */
+	if (rv > r.outcrop_level) {
+		return 2;
+	}
+
+	const float from_height = smoothstep_band(r.band_height_low, r.band_height_high, h / s_params.amp);
+	const float from_slope = smoothstep_band(r.band_slope_low, r.band_slope_high, slope);
+
+	/* breakup noise keeps band edges off the contours */
+	const float k = 1.f / (r.breakup_wavelength_share * s_params.wavelength);
+	float nv, ndx, ndy;
+	value_noise_d(north_m * k, east_m * k, s_params.seed ^ r.breakup_salt, &nv, &ndx, &ndy);
+
+	const float breakup = r.breakup_amp * nv;
+
+	/* high ground that is not steep, then steep or high ground by how strongly, as in a slope and height material rule */
+	if (from_height * (1.f - from_slope) + breakup >= r.snow_level) {
+		return 3;
+	}
+
+	const float rockiness = fmaxf(from_height, from_slope) + breakup;
+
+	return (rockiness < r.sand_level) ? 0 : (rockiness < r.rock_level) ? 1 : 2;
+}
+
 const Rules *rules_for(uint16_t formula)
 {
 	for (const Rules &r : kRules) {
@@ -297,7 +375,7 @@ bool set_formula(uint16_t formula, int seed, bool enabled)
 	return true;
 }
 
-/* a test's own world on top of the row in use, the decay and erosion stay the row's */
+/* a test's own world on top of the row in use, the decay, erosion and bands stay the row's */
 void set_params(float amp, float wavelength, int seed)
 {
 	s_params.amp        = amp;
@@ -318,13 +396,25 @@ void set_octaves(int octaves)
 	s_params.home_offset = raw_eval(0.f, 0.f);
 }
 
-float rangefinder_reading(float true_range_m, float gauss, float noise_floor_m, float noise_at_25m)
+float rangefinder_reading(float true_range_m, int band, float gauss, float noise_floor_m, float noise_at_25m,
+			  float max_range_m)
 {
-	/* the floor is the spread at zero range, the square law adds the rest */
+	/* sqrt of grass reflectance over the surface's at 850 nm, USGS Spectral Library version 7, by band */
+	static constexpr float kSurfaceRangeScale[5] = {1.f, 1.37f, 1.82f, 0.95f, 2.12f};
+	const float stretched = true_range_m * kSurfaceRangeScale[band];
+
+	/* the floor is the spread at zero range, the square law in the stretched range adds the rest */
 	static constexpr float kNoiseRefRangeM = 25.f;
-	const float ratio = true_range_m / kNoiseRefRangeM;
+	const float ratio = stretched / kNoiseRefRangeM;
 	const float sigma = noise_floor_m + noise_at_25m * ratio * ratio;
-	return fmaxf(true_range_m + gauss * sigma, 0.f);
+	float reading = fmaxf(true_range_m + gauss * sigma, 0.f);
+
+	/* a darker surface stops returning sooner, where the stretched range passes the limit */
+	if (stretched > max_range_m) {
+		reading = max_range_m + 1.f;
+	}
+
+	return reading;
 }
 
 } // namespace terrain_sim

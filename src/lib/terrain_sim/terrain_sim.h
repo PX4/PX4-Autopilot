@@ -71,11 +71,28 @@ struct Rules {
 	float amp_decay;               /**< amplitude factor per octave */
 	float erosion;                 /**< divisor on each octave by the slope so far, smooths the steep faces */
 	float flat_radius_m;           /**< radius of the flat pad around home [m], the field is exactly 0 inside it */
+
+	int   band_octaves;            /**< the bands read the landform of this many coarse octaves */
+	float band_height_low;         /**< rock from height, none below this share of the amplitude */
+	float band_height_high;        /**< rock from height, all above this share */
+	float band_slope_low;          /**< rock from slope, none below this tangent */
+	float band_slope_high;         /**< rock from slope, all above this tangent */
+	float snow_level;              /**< high ground that is not steep becomes snow above this */
+	float sand_level;              /**< rockiness below this is grass, above it sand */
+	float rock_level;              /**< rockiness above this is rock */
+	int32_t breakup_salt;          /**< seeds the breakup noise apart from the terrain */
+	float breakup_amp;             /**< breakup added to the rockiness */
+	float breakup_wavelength_share;/**< breakup wavelength as a share of the terrain's */
+
+	int32_t road_salt;             /**< seeds the road layer apart from the terrain */
+	float road_bend_amp;           /**< the road layer's second octave as a share of the first */
+	float road_half_width_m;       /**< half the road's width [m] */
+	float outcrop_level;           /**< rock where the road layer rises above this */
 };
 
 /** the rows, generator 1 is the fBm terrain, version 1 is the rules as first shipped */
 static constexpr Rules kRules[] = {
-	{0x0101, 5.f, 200.f, 6, 0.6155722f, 1.f, 1.5f},
+	{0x0101, 5.f, 200.f, 6, 0.6155722f, 1.f, 1.5f, 3, 0.30f, 0.70f, 0.268f, 0.532f, 0.5f, 0.35f, 0.65f, 0x5ca7, 0.12f, 0.125f, 0x70ad, 0.5f, 3.f, 0.8f},
 };
 
 /** the formula SIH runs, the newest row */
@@ -123,6 +140,22 @@ float raycast(float origin_n, float origin_e, float origin_alt,
 	      float dir_n, float dir_e, float dir_alt, float max_t);
 
 /**
+ * Surface band at (north, east), read from the landform of the first three
+ * octaves. Rockiness rises with the landform's height, as a share of the
+ * amplitude, and with its slope, and a little breakup noise keeps band edges
+ * off the contours.
+ *
+ * Roads run where two turned octaves of a noise layer of their own cross
+ * zero, a constant 6 m wide, over any ground. Rock outcrops sit where the
+ * same layer peaks, about 5 % of the map on any ground.
+ *
+ * @return 0 low and gentle ground, 1 the transition, 2 steep ground,
+ *         3 high ground that is not steep, 4 road, 0 everywhere when the
+ *         amplitude is 0
+ */
+int surface_band(float north_m, float east_m);
+
+/**
  * Configure the field. SIH passes the constants above and its seed
  * parameter, or amplitude 0 with the terrain off, and the tests pass worlds
  * of their own.
@@ -146,15 +179,22 @@ inline float rand_uniform(uint32_t &state)
 /**
  * Turns the true range along the beam into the simulated rangefinder's reading.
  *
- * The return off a diffuse surface weakens with the square of range, and
- * the weaker the return the less precisely the sensor can time it, so the
- * spread grows with the square of range. noise_floor_m is the standard
- * deviation at zero range. noise_at_25m is what the square law adds at
- * 25 m. gauss is one standard normal draw the caller makes, so a test can
- * hand in any value.
+ * The surface under the beam's hit point stretches the range the law is
+ * read at, the square root of grass reflectance over the surface's at
+ * 850 nm from the USGS Spectral Library version 7, by band grass, dry sand,
+ * rock, melting snow and old asphalt. The return off a diffuse surface
+ * weakens with the square of range, and the weaker the return the less
+ * precisely the sensor can time it, so the spread grows with the square of
+ * the stretched range. noise_floor_m is the standard deviation at zero
+ * range. noise_at_25m is what the square law adds at 25 m over grass.
+ * gauss is one standard normal draw the caller makes, so a test can hand
+ * in any value.
+ * A darker surface stops returning sooner, where the stretched range passes
+ * the limit.
  *
- * @return the reading [m], never negative
+ * @return the reading [m], never negative, max_range_m + 1 past the limit
  */
-float rangefinder_reading(float true_range_m, float gauss, float noise_floor_m, float noise_at_25m);
+float rangefinder_reading(float true_range_m, int band, float gauss, float noise_floor_m, float noise_at_25m,
+			  float max_range_m);
 
 } // namespace terrain_sim

@@ -43,6 +43,7 @@
 
 using terrain_sim::height;
 using terrain_sim::raycast;
+using terrain_sim::surface_band;
 using terrain_sim::set_params;
 using terrain_sim::set_octaves;
 
@@ -192,6 +193,52 @@ TEST(TestTerrain, RaycastSteepTiltFindsFirstCrossing)
 	}
 }
 
+TEST(TestTerrain, SurfaceBandsCoverAndRepeat)
+{
+	/* the shipped world, every band appears, low ground is the majority, and a point always gives the same band.
+	 * The counts are over a 200 by 200 grid at 4 m, 800 m across, in seed 3 */
+	set_params(terrain_sim::kAmplitudeM, 200.f, 3);
+	set_octaves(6);
+	int count[5] = {0, 0, 0, 0, 0};
+
+	for (int i = 0; i < 200; ++i) {
+		for (int j = 0; j < 200; ++j) {
+			const int band = surface_band(-400.f + 4.f * i, -400.f + 4.f * j);
+			ASSERT_GE(band, 0);
+			ASSERT_LE(band, 4);
+			count[band]++;
+		}
+	}
+
+	EXPECT_GT(count[0], 28000);   /* grass */
+	EXPECT_GT(count[1], 300);     /* dry sand, the scarce one at 5 m */
+	EXPECT_GT(count[2], 2000);    /* rock, the outcrops, gentle terrain has no slope rock */
+	EXPECT_GT(count[3], 1500);    /* melting snow */
+	EXPECT_GT(count[4], 1000);    /* road */
+	EXPECT_EQ(surface_band(123.f, -45.f), surface_band(123.f, -45.f));
+
+	/* all five surfaces lie within 300 m of home in the seeds the tests and the CI fly, on a 5 m grid */
+	for (int seed : {3, 80, 206}) {
+		set_params(terrain_sim::kAmplitudeM, 200.f, seed);
+		int near[5] = {0, 0, 0, 0, 0};
+
+		for (int n = -300; n <= 300; n += 5) {
+			for (int e = -300; e <= 300; e += 5) {
+				if (n * n + e * e <= 300 * 300) {
+					near[surface_band((float)n, (float)e)]++;
+				}
+			}
+		}
+
+		for (int b = 0; b < 5; ++b) {
+			EXPECT_GT(near[b], 100) << "seed " << seed << " band " << b;
+		}
+	}
+
+	set_params(0.f, 200.f, 3);
+	EXPECT_EQ(surface_band(123.f, -45.f), 0);
+}
+
 TEST(TestTerrain, RaycastBelowSurfaceReturnsZero)
 {
 	configure_flat();
@@ -291,34 +338,34 @@ TEST(TestTerrain, FormulaLooksUpOneRow)
 	set_octaves(6);
 }
 
-/* formula 0x0101 is frozen. These heights were recorded from this code. A change to any value in that
- * row, or to the rule behind it, fails here, and the fix is the next row under the next formula, never an
- * edit to this one. */
+/* formula 0x0101 is frozen. These heights and bands were recorded from this code at points that between
+ * them touch every band. A change to any value in that row, or to the rule behind it, fails here, and the
+ * fix is the next row under the next formula, never an edit to this one. */
 TEST(TestTerrain, Formula0101IsFrozen)
 {
-	struct Point { int seed; float n, e, height; };
+	struct Point { int seed; float n, e, height; int band; };
 	static const Point kRecorded[] = {
-		{206, 0.0f, 2.0f, 0.074707f},
-		{206, 10.0f, -5.0f, 0.679417f},
-		{206, -37.5f, 61.0f, -2.338217f},
-		{206, 120.0f, 120.0f, -8.254951f},
-		{206, -250.0f, 40.0f, -4.688935f},
-		{206, 300.0f, -300.0f, -1.814588f},
-		{206, 55.0f, 410.0f, -2.744693f},
-		{206, -500.0f, -500.0f, 1.255113f},
-		{206, -600.0f, -495.0f, -1.222327f},
-		{206, -600.0f, -480.0f, -2.111593f},
-		{206, -600.0f, -127.5f, 0.122935f},
-		{3, 0.0f, 2.0f, -0.057977f},
-		{3, 10.0f, -5.0f, -0.075489f},
-		{3, -37.5f, 61.0f, 1.712295f},
-		{3, 120.0f, 120.0f, 2.599012f},
-		{3, -250.0f, 40.0f, 5.594074f},
-		{3, 300.0f, -300.0f, 4.370723f},
-		{3, -600.0f, -540.0f, 3.368534f},
-		{3, -600.0f, -285.0f, 6.785832f},
-		{3, -600.0f, -157.5f, 6.326584f},
-		{3, -600.0f, 22.5f, -1.899146f},
+		{206, 0.0f, 2.0f, 0.074707f, 2},
+		{206, 10.0f, -5.0f, 0.679417f, 2},
+		{206, -37.5f, 61.0f, -2.338217f, 0},
+		{206, 120.0f, 120.0f, -8.254951f, 0},
+		{206, -250.0f, 40.0f, -4.688935f, 0},
+		{206, 300.0f, -300.0f, -1.814588f, 3},
+		{206, 55.0f, 410.0f, -2.744693f, 0},
+		{206, -500.0f, -500.0f, 1.255113f, 3},
+		{206, -600.0f, -495.0f, -1.222327f, 1},
+		{206, -600.0f, -480.0f, -2.111593f, 2},
+		{206, -600.0f, -127.5f, 0.122935f, 4},
+		{3, 0.0f, 2.0f, -0.057977f, 0},
+		{3, 10.0f, -5.0f, -0.075489f, 0},
+		{3, -37.5f, 61.0f, 1.712295f, 0},
+		{3, 120.0f, 120.0f, 2.599012f, 0},
+		{3, -250.0f, 40.0f, 5.594074f, 0},
+		{3, 300.0f, -300.0f, 4.370723f, 0},
+		{3, -600.0f, -540.0f, 3.368534f, 4},
+		{3, -600.0f, -285.0f, 6.785832f, 3},
+		{3, -600.0f, -157.5f, 6.326584f, 1},
+		{3, -600.0f, 22.5f, -1.899146f, 2},
 	};
 
 	int seed = -1;
@@ -330,6 +377,7 @@ TEST(TestTerrain, Formula0101IsFrozen)
 		}
 
 		EXPECT_NEAR(height(p.n, p.e), p.height, 1e-4f) << "seed " << p.seed << " at " << p.n << ", " << p.e;
+		EXPECT_EQ(surface_band(p.n, p.e), p.band) << "seed " << p.seed << " at " << p.n << ", " << p.e;
 	}
 
 	set_params(0.f, 200.f, 0);
@@ -340,20 +388,20 @@ TEST(TestRangefinder, NoiseIsSquareInRange)
 {
 	using terrain_sim::rangefinder_reading;
 	/* one standard deviation at 25 m is the constant, a quarter of it at 12.5 m and four times at 50 m */
-	EXPECT_NEAR(rangefinder_reading(25.f, 1.f, 0.f, 0.10f) - 25.f, 0.10f, 1e-5f);
-	EXPECT_NEAR(rangefinder_reading(12.5f, 1.f, 0.f, 0.10f) - 12.5f, 0.025f, 1e-5f);
-	EXPECT_NEAR(rangefinder_reading(50.f, 1.f, 0.f, 0.10f) - 50.f, 0.40f, 1e-5f);
-	EXPECT_NEAR(rangefinder_reading(2.f, 1.f, 0.f, 0.10f) - 2.f, 0.00064f, 1e-6f);
+	EXPECT_NEAR(rangefinder_reading(25.f, 0, 1.f, 0.f, 0.10f, 100.f) - 25.f, 0.10f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(12.5f, 0, 1.f, 0.f, 0.10f, 100.f) - 12.5f, 0.025f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(50.f, 0, 1.f, 0.f, 0.10f, 100.f) - 50.f, 0.40f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(2.f, 0, 1.f, 0.f, 0.10f, 100.f) - 2.f, 0.00064f, 1e-6f);
 	/* no draw, no noise, and the constant at zero is the exact reading */
-	EXPECT_FLOAT_EQ(rangefinder_reading(37.25f, 0.f, 0.f, 0.10f), 37.25f);
-	EXPECT_FLOAT_EQ(rangefinder_reading(37.25f, 3.f, 0.f, 0.f), 37.25f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(37.25f, 0, 0.f, 0.f, 0.10f, 100.f), 37.25f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(37.25f, 0, 3.f, 0.f, 0.f, 100.f), 37.25f);
 	/* the floor adds to the law, 1 cm at 2 m is the floor plus 0.64 mm, at 25 m it is 11 cm */
-	EXPECT_NEAR(rangefinder_reading(2.f, 1.f, 0.01f, 0.10f) - 2.f, 0.01064f, 1e-6f);
-	EXPECT_NEAR(rangefinder_reading(25.f, 1.f, 0.01f, 0.10f) - 25.f, 0.11f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(2.f, 0, 1.f, 0.01f, 0.10f, 100.f) - 2.f, 0.01064f, 1e-6f);
+	EXPECT_NEAR(rangefinder_reading(25.f, 0, 1.f, 0.01f, 0.10f, 100.f) - 25.f, 0.11f, 1e-5f);
 	/* the floor alone when the 25 m constant is zero */
-	EXPECT_NEAR(rangefinder_reading(40.f, 1.f, 0.01f, 0.f) - 40.f, 0.01f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(40.f, 0, 1.f, 0.01f, 0.f, 100.f) - 40.f, 0.01f, 1e-5f);
 	/* a draw that would take the reading below zero is clamped */
-	EXPECT_FLOAT_EQ(rangefinder_reading(1.f, -1e6f, 0.f, 0.10f), 0.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(1.f, 0, -1e6f, 0.f, 0.10f, 100.f), 0.f);
 }
 
 TEST(TestRangefinder, UniformDrawIsInRangeAndRepeatable)
@@ -366,4 +414,31 @@ TEST(TestRangefinder, UniformDrawIsInRangeAndRepeatable)
 		EXPECT_LT(u, 1.f);
 		EXPECT_EQ(u, terrain_sim::rand_uniform(b));
 	}
+}
+
+TEST(TestRangefinder, SurfaceStretchesTheRange)
+{
+	using terrain_sim::rangefinder_reading;
+	/* the five factors, read as the spread at a true 25 m with one standard deviation drawn */
+	const float factor[5] = {1.f, 1.37f, 1.82f, 0.95f, 2.12f};
+
+	for (int band = 0; band < 5; ++band) {
+		const float expected = 0.10f * factor[band] * factor[band];
+		EXPECT_NEAR(rangefinder_reading(25.f, band, 1.f, 0.f, 0.10f, 100.f) - 25.f, expected, 1e-5f) << "band " << band;
+	}
+
+	/* the reading is centered on the true range whatever the surface */
+	EXPECT_FLOAT_EQ(rangefinder_reading(40.f, 2, 0.f, 0.f, 0.10f, 100.f), 40.f);
+}
+
+TEST(TestRangefinder, DarkSurfaceDropsOutSooner)
+{
+	using terrain_sim::rangefinder_reading;
+	/* asphalt at 2.12 passes the 100 m limit at a true 47.2 m, rock at 55 m, grass at 100 m, snow at 105 m */
+	EXPECT_FLOAT_EQ(rangefinder_reading(48.f, 4, 0.f, 0.f, 0.10f, 100.f), 101.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(47.f, 4, 0.f, 0.f, 0.10f, 100.f), 47.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(56.f, 2, 0.f, 0.f, 0.10f, 100.f), 101.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(99.f, 0, 0.f, 0.f, 0.10f, 100.f), 99.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(104.f, 3, 0.f, 0.f, 0.10f, 100.f), 104.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(106.f, 3, 0.f, 0.f, 0.10f, 100.f), 101.f);
 }

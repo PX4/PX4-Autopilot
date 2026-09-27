@@ -1104,9 +1104,13 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 			signal_quality = 0;
 
 		} else {
-			// the noise law lives in the library with the terrain, the module makes the one Gaussian draw per reading
-			current_distance = terrain_sim::rangefinder_reading(true_distance, generate_wgn(), _distance_snsr_noise,
-					   kDistSnsrNoiseAt25M);
+			// the surface under the beam's hit point stretches the range the noise law is read at, the module
+			// makes the one Gaussian draw per reading
+			const Vector3f down_N = _q.dcm_z();
+			const int band = terrain_sim::surface_band(_lpos(0) + true_distance * down_N(0),
+					 _lpos(1) + true_distance * down_N(1));
+			current_distance = terrain_sim::rangefinder_reading(true_distance, band, generate_wgn(),
+					   _distance_snsr_noise, kDistSnsrNoiseAt25M, _distance_snsr_max);
 
 			// the returned signal gets weaker as the target moves away
 			const float derate_start = DISTSNSR_QUALITY_DERATE * _distance_snsr_max;
