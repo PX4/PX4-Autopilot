@@ -50,7 +50,7 @@
 
 #define FLASH_STORAGE_DEV      "/dev/nor"
 #define FLASH_STORAGE_MOUNT    "/fs/flash"
-#define FLASH_STORAGE_PAGES    (FLASH_STORAGE_SIZE / FLEXSPI_NOR_PAGE_SIZE)
+#define FLASH_STORAGE_PAGES    (FLASH_STORAGE_PARTITION_SIZE / FLEXSPI_NOR_PAGE_SIZE)
 
 struct flash_storage_dev_s {
 	struct mtd_dev_s mtd;
@@ -66,7 +66,7 @@ static ssize_t flash_storage_read(struct mtd_dev_s *dev, off_t offset, size_t nb
 {
 	struct flash_storage_dev_s *priv = (struct flash_storage_dev_s *)dev;
 
-	if (!in_range(offset, nbytes, FLASH_STORAGE_SIZE)) {
+	if (!in_range(offset, nbytes, FLASH_STORAGE_PARTITION_SIZE)) {
 		return -EIO;
 	}
 
@@ -105,7 +105,7 @@ static int flash_storage_erase(struct mtd_dev_s *dev, off_t startblock, size_t n
 {
 	struct flash_storage_dev_s *priv = (struct flash_storage_dev_s *)dev;
 
-	if (!in_range(startblock, nblocks, FLASH_STORAGE_SECTORS)) {
+	if (!in_range(startblock, nblocks, FLASH_STORAGE_PARTITION_SECTORS)) {
 		return -EIO;
 	}
 
@@ -127,7 +127,7 @@ static int flash_storage_ioctl(struct mtd_dev_s *dev, int cmd, unsigned long arg
 
 	geo->blocksize = FLEXSPI_NOR_PAGE_SIZE;
 	geo->erasesize = FLEXSPI_NOR_SECTOR_SIZE;
-	geo->neraseblocks = FLASH_STORAGE_SECTORS;
+	geo->neraseblocks = FLASH_STORAGE_PARTITION_SECTORS;
 	return OK;
 }
 
@@ -141,8 +141,8 @@ static struct flash_storage_dev_s g_flash_storage_dev = {
 		.name   = "flash_storage"
 	},
 	.region = {
-		.offset = FLASH_STORAGE_OFFSET,
-		.size   = FLASH_STORAGE_SIZE,
+		.offset = FLASH_STORAGE_PARTITION_OFFSET,
+		.size   = FLASH_STORAGE_PARTITION_SIZE,
 	},
 };
 

@@ -32,53 +32,60 @@
  ****************************************************************************/
 
 /*
- * FlexSPI1 boot NOR partitioning (64 MiB octal NOR, XIP at 0x30000000):
+ * FlexSPI1 boot NOR partitioning (64 MiB octal NOR, XIP at 0x30000000),
+ * named after the MCUboot/Zephyr layout so slot1 can serve as an A/B target:
  *
- *   0x30000000  bootloader                          128 KiB
- *   0x30020000  app slot A                    8 MiB - 128 KiB
- *   0x30800000  reserved: A/B slot B / app growth      8 MiB
- *   0x31000000  littlefs                              46 MiB
- *   0x33E00000  reserved tail                          2 MiB
+ *   0x30000000  boot_partition       128 KiB
+ *   0x30020000  slot0_partition      8 MiB - 128 KiB   running image
+ *   0x30800000  slot1_partition      8 MiB - 128 KiB   equal to slot0, as MCUboot swap requires
+ *   0x30FE0000  scratch_partition    128 KiB
+ *   0x31000000  storage_partition    46 MiB            littlefs
+ *   0x33E00000  reserved             2 MiB
  *   0x34000000  end of device
  *
- * The littlefs edges are fixed once formatted (block_count lives in the
+ * The storage edges are fixed once formatted (block_count lives in the
  * superblock and NuttX never grows it): moving either wipes deployed volumes.
  */
 
 #pragma once
 
-#define FLEXSPI_NOR_PAGE_SIZE       256u
-#define FLEXSPI_NOR_SECTOR_SIZE     4096u
-#define FLEXSPI_NOR_BLOCK_SIZE      (64u * 1024u)
-#define FLEXSPI_NOR_TOTAL_SIZE      (64u * 1024u * 1024u)
+#define FLEXSPI_NOR_PAGE_SIZE               256u
+#define FLEXSPI_NOR_SECTOR_SIZE             4096u
+#define FLEXSPI_NOR_BLOCK_SIZE              (64u * 1024u)
+#define FLEXSPI_NOR_TOTAL_SIZE              (64u * 1024u * 1024u)
 
-#define FLASH_BOOTLOADER_OFFSET     0u
-#define FLASH_BOOTLOADER_SIZE       (128u * 1024u)
+#define FLASH_BOOT_PARTITION_OFFSET         0u
+#define FLASH_BOOT_PARTITION_SIZE           (128u * 1024u)
 
-#define FLASH_APP_SLOT_A_OFFSET     (FLASH_BOOTLOADER_OFFSET + FLASH_BOOTLOADER_SIZE)
-#define FLASH_APP_SLOT_A_SIZE       (8u * 1024u * 1024u - FLASH_BOOTLOADER_SIZE)
+#define FLASH_SLOT0_PARTITION_OFFSET        (FLASH_BOOT_PARTITION_OFFSET + FLASH_BOOT_PARTITION_SIZE)
+#define FLASH_SLOT0_PARTITION_SIZE          (8u * 1024u * 1024u - FLASH_BOOT_PARTITION_SIZE)
 
-#define FLASH_APP_SLOT_B_OFFSET     (FLASH_APP_SLOT_A_OFFSET + FLASH_APP_SLOT_A_SIZE)
-#define FLASH_APP_SLOT_B_SIZE       (8u * 1024u * 1024u)
+#define FLASH_SLOT1_PARTITION_OFFSET        (FLASH_SLOT0_PARTITION_OFFSET + FLASH_SLOT0_PARTITION_SIZE)
+#define FLASH_SLOT1_PARTITION_SIZE          FLASH_SLOT0_PARTITION_SIZE
 
-#define FLASH_STORAGE_OFFSET        (FLASH_APP_SLOT_B_OFFSET + FLASH_APP_SLOT_B_SIZE)
-#define FLASH_STORAGE_SIZE          (46u * 1024u * 1024u)
-#define FLASH_STORAGE_SECTORS       (FLASH_STORAGE_SIZE / FLEXSPI_NOR_SECTOR_SIZE)
+#define FLASH_SCRATCH_PARTITION_OFFSET      (FLASH_SLOT1_PARTITION_OFFSET + FLASH_SLOT1_PARTITION_SIZE)
+#define FLASH_SCRATCH_PARTITION_SIZE        (128u * 1024u)
 
-#define FLASH_RESERVED_TAIL_OFFSET  (FLASH_STORAGE_OFFSET + FLASH_STORAGE_SIZE)
-#define FLASH_RESERVED_TAIL_SIZE    (2u * 1024u * 1024u)
+#define FLASH_STORAGE_PARTITION_OFFSET      (FLASH_SCRATCH_PARTITION_OFFSET + FLASH_SCRATCH_PARTITION_SIZE)
+#define FLASH_STORAGE_PARTITION_SIZE        (46u * 1024u * 1024u)
+#define FLASH_STORAGE_PARTITION_SECTORS     (FLASH_STORAGE_PARTITION_SIZE / FLEXSPI_NOR_SECTOR_SIZE)
 
-_Static_assert(FLASH_RESERVED_TAIL_OFFSET + FLASH_RESERVED_TAIL_SIZE == FLEXSPI_NOR_TOTAL_SIZE,
-	       "flash regions must tile the device");
-_Static_assert(FLASH_STORAGE_OFFSET % FLEXSPI_NOR_BLOCK_SIZE == 0, "storage must be block aligned");
-_Static_assert(FLASH_STORAGE_SIZE % FLEXSPI_NOR_SECTOR_SIZE == 0, "storage must be a sector multiple");
+#define FLASH_RESERVED_OFFSET               (FLASH_STORAGE_PARTITION_OFFSET + FLASH_STORAGE_PARTITION_SIZE)
+#define FLASH_RESERVED_SIZE                 (2u * 1024u * 1024u)
+
+_Static_assert(FLASH_RESERVED_OFFSET + FLASH_RESERVED_SIZE == FLEXSPI_NOR_TOTAL_SIZE,
+	       "flash partitions must tile the device");
+_Static_assert(FLASH_SLOT0_PARTITION_SIZE == FLASH_SLOT1_PARTITION_SIZE, "slot0 and slot1 must be equal");
+_Static_assert(FLASH_STORAGE_PARTITION_OFFSET == 0x01000000u, "storage_partition must stay at 0x31000000");
+_Static_assert(FLASH_STORAGE_PARTITION_OFFSET % FLEXSPI_NOR_BLOCK_SIZE == 0, "storage must be block aligned");
+_Static_assert(FLASH_STORAGE_PARTITION_SIZE % FLEXSPI_NOR_SECTOR_SIZE == 0, "storage must be a sector multiple");
 
 #ifdef BOARD_FLASH_SECTORS
-_Static_assert((unsigned)BOARD_FLASH_SECTORS * FLEXSPI_NOR_SECTOR_SIZE <= FLASH_STORAGE_OFFSET,
-	       "bootloader erase window overlaps the filesystem");
+_Static_assert((unsigned)BOARD_FLASH_SECTORS * FLEXSPI_NOR_SECTOR_SIZE <= FLASH_SLOT1_PARTITION_OFFSET,
+	       "bootloader erase window overlaps slot1");
 #endif
 
 #ifdef BOARD_FLASH_SIZE
-_Static_assert((unsigned)BOARD_FLASH_SIZE <= FLASH_APP_SLOT_A_OFFSET + FLASH_APP_SLOT_A_SIZE,
-	       "app image does not fit in slot A");
+_Static_assert((unsigned)BOARD_FLASH_SIZE <= FLASH_SLOT0_PARTITION_OFFSET + FLASH_SLOT0_PARTITION_SIZE,
+	       "app image does not fit in slot0");
 #endif
