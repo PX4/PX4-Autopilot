@@ -326,10 +326,10 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
    make px4_fmu-v5_default upload
    ```
 
-   - для SITL потрібно виконати наступну команду в кореневому каталозі PX4-Autopilot (використовуючи jmavsim simulation):
+   - to build for SITL execute the following command in the root of the PX4-Autopilot directory (using SIH simulation):
 
    ```sh
-   make px4_sitl jmavsim
+   make px4_sitl_sih sihsim_quadx
    ```
 
 ## Запуск коду
