@@ -57,6 +57,24 @@ struct flash_storage_dev_s {
 	struct flexspi_nor_region_s region;
 };
 
+#ifdef CONFIG_BOARD_FLEXSPI_FLASH_STORAGE_ARMED_READONLY
+bool flash_storage_armed(void);
+static perf_counter_t g_refused;
+
+/* Program and erase mask interrupts for the whole operation; while armed they are refused */
+static bool refused(void)
+{
+	if (flash_storage_armed()) {
+		perf_count(g_refused);
+		return true;
+	}
+
+	return false;
+}
+#else
+static inline bool refused(void) { return false; }
+#endif
+
 static bool in_range(off_t start, size_t count, off_t total)
 {
 	return start >= 0 && (off_t)count <= total && start <= total - (off_t)count;
@@ -91,6 +109,10 @@ static ssize_t flash_storage_bwrite(struct mtd_dev_s *dev, off_t startblock, siz
 		return -EIO;
 	}
 
+	if (refused()) {
+		return -EBUSY;
+	}
+
 	const size_t len = nblocks * FLEXSPI_NOR_PAGE_SIZE;
 	ssize_t written = flexspi_nor_l0_program(&priv->region, (uint32_t)startblock * FLEXSPI_NOR_PAGE_SIZE, buffer, len);
 
@@ -107,6 +129,10 @@ static int flash_storage_erase(struct mtd_dev_s *dev, off_t startblock, size_t n
 
 	if (!in_range(startblock, nblocks, FLASH_STORAGE_PARTITION_SECTORS)) {
 		return -EIO;
+	}
+
+	if (refused()) {
+		return -EBUSY;
 	}
 
 	int ret = flexspi_nor_l0_erase(&priv->region, (uint32_t)startblock, (uint32_t)nblocks);
@@ -155,6 +181,10 @@ int fmuv6xrt_flash_storage_initialize(void)
 		syslog(LOG_ERR, "[boot] Bad " FLASH_STORAGE_DEV " geometry: %d\n", ret);
 		return ret;
 	}
+
+#ifdef CONFIG_BOARD_FLEXSPI_FLASH_STORAGE_ARMED_READONLY
+	g_refused = perf_alloc(PC_COUNT, "flash_storage: refused while armed");
+#endif
 
 	ret = register_mtddriver(FLASH_STORAGE_DEV, &g_flash_storage_dev.mtd, 0755, NULL);
 

@@ -77,3 +77,13 @@ config BOARD_FLEXSPI_FLASH_STORAGE
 		MTD driver over the boot NOR above the firmware image, mounted as
 		littlefs at /fs/flash. Program and erase run from RAM with interrupts
 		disabled: the CPU executes in place from the same device.
+
+config BOARD_FLEXSPI_FLASH_STORAGE_ARMED_READONLY
+	bool "Refuse flash storage writes while armed"
+	default y
+	depends on BOARD_FLEXSPI_FLASH_STORAGE
+
+	---help---
+		Program and erase on the flash storage device return EBUSY while the
+		vehicle is armed, so no interrupt-masked NOR window can open in flight.
+		Reads are unaffected.

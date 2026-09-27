@@ -73,6 +73,7 @@ else()
 		usb.c
 		imxrt_flexspi_fram.c
 		imxrt_flexspi_storage.c
+		flash_storage_armed.cpp
 		imxrt_flexspi_nor_l0.c
 		imxrt_flexspi_nor_boot.c
 		imxrt_flexspi_nor_flash.c
