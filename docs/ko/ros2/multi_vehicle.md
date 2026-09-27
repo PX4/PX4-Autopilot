@@ -7,7 +7,7 @@ This is particular useful in simulation as only one agent needs to be started.
 
 The only requirements are
 
-- To be able to run [multi-vehicle simulation](../simulation/multi-vehicle-simulation.md) without ROS 2 with the desired simulator ([Gazebo](../sim_gazebo_gz/multi_vehicle_simulation.md), [Gazebo Classic](../sim_gazebo_classic/multi_vehicle_simulation.md#multiple-vehicle-with-gazebo-classic), [FlightGear](../sim_flightgear/multi_vehicle.md) and [JMAVSim](../sim_jmavsim/multi_vehicle.md)).
+- To be able to run [multi-vehicle simulation](../simulation/multi-vehicle-simulation.md) without ROS 2 with the desired simulator ([Gazebo](../sim_gazebo_gz/multi_vehicle_simulation.md), [Gazebo Classic](../sim_gazebo_classic/multi_vehicle_simulation.md#multiple-vehicle-with-gazebo-classic), [FlightGear](../sim_flightgear/multi_vehicle.md) and [SIH](../sim_sih/index.md#multi-vehicle-simulation)).
 - To be able to use [ROS 2](../ros2/user_guide.md) in a single vehicle simulation.
 
 ## Principle of Operation
@@ -23,10 +23,10 @@ param set UXRCE_DDS_KEY $((px4_instance+1))
 By doing so, `UXRCE_DDS_KEY` will always coincide with [MAV_SYS_ID](../advanced_config/parameter_reference.md#MAV_SYS_ID).
 :::
 
-Moreover, when `px4_instance` is greater than zero, a unique ROS 2 [namespace prefix](../middleware/uxrce_dds.md#customizing-the-namespace) in the form `px4_$px4_instance` is added:
+Moreover, when `px4_instance` is greater than zero, a unique ROS 2 [namespace prefix](../middleware/uxrce_dds.md#customizing-the-namespace) in the form `uav_$px4_instance` is added:
 
 ```sh
-uxrce_dds_ns="-n px4_$px4_instance"
+uxrce_dds_ns="-n uav_$px4_instance"
 ```
 
 :::info
@@ -42,7 +42,7 @@ The default client configuration in simulation is summarized as follows:
 | ------------------ | -------------- | ---------------- | --------------------- |
 | not provided       | 0              | `px4_instance+1` | none                  |
 | provided           | 0              | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
-| not provided       | > 0            | `px4_instance+1` | `px4_${px4_instance}` |
+| not provided       | > 0            | `px4_instance+1` | `uav_${px4_instance}` |
 | provided           | > 0            | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
 
 ## Adjusting `VehicleCommand` routing fields

@@ -10,6 +10,8 @@ This section contains topics about the core actuators used for flight control (E
 
 - [ESC Calibration](../advanced_config/esc_calibration.md) — Calibration for PWM ESC (not required for DShot/CAN ESC/servos).
 
+- [Internal Combustion Engines](../actuators/internal_combustion_engine.md) — Petrol/nitro engines, including start/stop sequencing and idle RPM control.
+
 ## See Also
 
 - [Peripherals](../peripherals/index.md) - includes non-core actuators such as grippers, parachutes, etc.
