@@ -245,8 +245,11 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GNSS_POS);
 		const bool ekf_gps_check_fail = estimator_status.gps_check_fail_flags > 0;
 
+		_gps_check_fail_flags = estimator_status.gps_check_fail_flags;
+
 		if (ekf_gps_fusion) {
 			reporter.setIsPresent(health_component_t::gps); // should be based on the sensor data directly
+			_last_gnss_fusion_time_us = hrt_absolute_time();
 		}
 
 		if (context.isArmed()) {
@@ -520,8 +523,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				}
 			}
 		}
-	}
 
+	} else {
+		_gps_check_fail_flags = 0;
+	}
 }
 
 void EstimatorChecks::checkSensorBias(const Context &context, Report &reporter, NavModes required_groups)
@@ -682,6 +687,73 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 	}
 }
 
+#ifndef CONSTRAINED_FLASH
+const char *EstimatorChecks::gnssCheckFailText(uint16_t flags)
+{
+	// the checks EKF2 runs in flight, most telling first. The event carries every bit.
+	if (flags & (1 << estimator_status_s::GPS_CHECK_FAIL_SPOOFED)) { return "signal spoofed"; }
+
+	if (flags & (1 << estimator_status_s::GPS_CHECK_FAIL_JAMMED)) { return "signal jammed"; }
+
+	if (flags & (1 << estimator_status_s::GPS_CHECK_FAIL_GPS_FIX)) { return "fix lost"; }
+
+	if (flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR)) { return "speed accuracy too low"; }
+
+	if (flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) { return "horizontal error too high"; }
+
+	if (flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR)) { return "vertical error too high"; }
+
+	return "quality check failed";
+}
+#endif // CONSTRAINED_FLASH
+
+void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Report &reporter,
+		const hrt_abstime &now, const sensor_gps_s &vehicle_gps_position) const
+{
+	// In flight only, and only when GNSS was in use. Without GNSS in the loop neither a failing
+	// receiver check nor a silent receiver says anything about why the estimate went.
+	if (!context.isArmed() || (now > _last_gnss_fusion_time_us + kGnssRecentlyFusedTimeout)) {
+		return;
+	}
+
+	if (_gps_check_fail_flags != 0) {
+#ifndef CONSTRAINED_FLASH
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Position lost: GNSS %s\t",
+					     gnssCheckFailText(_gps_check_fail_flags));
+		}
+
+#endif // CONSTRAINED_FLASH
+
+		/* EVENT
+		 * @description
+		 * The GNSS quality checks that were failing when the local position estimate became invalid.
+		 * In flight EKF2 checks the fix type, the horizontal, vertical and speed accuracy, spoofing and jamming.
+		 */
+		events::send<events::px4::enums::gnss_check_fail_t>(events::ID("check_estimator_position_lost_gnss_reason"),
+				events::Log::Error, "Local position lost, GNSS check failed: {1}",
+				static_cast<events::px4::enums::gnss_check_fail_t>(_gps_check_fail_flags));
+
+	} else if ((vehicle_gps_position.timestamp == 0) || (now > vehicle_gps_position.timestamp + kGnssDataTimeout)) {
+		// no sample means no check ran, so the receiver going silent has to be named separately
+#ifndef CONSTRAINED_FLASH
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Position lost: no GNSS data\t");
+		}
+
+#endif // CONSTRAINED_FLASH
+
+		/* EVENT
+		 * @description
+		 * The receiver had stopped delivering samples when the local position estimate became invalid.
+		 */
+		events::send(events::ID("check_estimator_position_lost_gnss_no_data"), events::Log::Error,
+			     "Local position lost, no GNSS data");
+	}
+}
+
 void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &reporter,
 		const vehicle_local_position_s &lpos) const
 {
@@ -805,9 +877,15 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		}
 	}
 
+	const bool local_position_was_valid = !failsafe_flags.local_position_invalid;
+
 	failsafe_flags.local_position_invalid =
 		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold, lpos.timestamp,
 				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
+
+	if (local_position_was_valid && failsafe_flags.local_position_invalid) {
+		reportGnssReasonForPositionLoss(context, reporter, now, vehicle_gps_position);
+	}
 
 
 	// In some modes we assume that the operator will compensate for the drift so we do not need to check the position error

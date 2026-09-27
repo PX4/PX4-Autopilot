@@ -79,6 +79,19 @@ private:
 	void checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const;
 	void lowPositionAccuracy(const Context &context, Report &reporter, const vehicle_local_position_s &lpos) const;
 
+	// Names the GNSS quality check that was failing, or the receiver that had stopped, when the local
+	// position estimate became invalid
+	void reportGnssReasonForPositionLoss(const Context &context, Report &reporter, const hrt_abstime &now,
+					     const sensor_gps_s &vehicle_gps_position) const;
+
+#ifndef CONSTRAINED_FLASH
+public:
+	// The most telling of the failing checks in estimator_status.gps_check_fail_flags, for the statustext
+	static const char *gnssCheckFailText(uint16_t flags);
+
+private:
+#endif
+
 	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
 				     bool pre_flt_fail_innov_vel_horiz, bool pre_flt_fail_innov_pos_horiz,
 				     const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position,
@@ -108,6 +121,14 @@ private:
 	hrt_abstime	_last_lvel_fail_time_us{0};	///< Last time that the local velocity validity recovery check failed (usec)
 
 	bool _gps_was_fused{false};
+	hrt_abstime _last_gnss_fusion_time_us{0};
+	uint16_t _gps_check_fail_flags{0}; ///< latest estimator_status.gps_check_fail_flags, 0 without SYS_HAS_GPS
+
+	// how long after GNSS fusion stops a failing receiver check is still taken as the reason for losing position
+	static constexpr hrt_abstime kGnssRecentlyFusedTimeout = 10_s;
+
+	// a receiver whose last sample is older than this had stopped
+	static constexpr hrt_abstime kGnssDataTimeout = 1_s;
 	bool _gnss_spoofed{false};
 	bool _gnss_jammed{false};
 
