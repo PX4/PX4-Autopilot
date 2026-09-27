@@ -418,10 +418,19 @@ if("${CONFIG_FS_CROMFS}" STREQUAL "y")
 		WORKING_DIRECTORY ${NUTTX_DIR}/tools
 	)
 
+	# gencromfs writes its intermediate data to fixed names in /tmp
+	# (/tmp/gencromfs-000000, ...), so two builds generating a ROMFS at the
+	# same time corrupt each other's nsh_romfsimg.c. Serialize it where flock
+	# exists (Linux), which covers concurrent CI builds on one runner.
+	find_program(FLOCK_PROGRAM flock)
+	if(FLOCK_PROGRAM)
+		set(gencromfs_lock ${FLOCK_PROGRAM} /tmp/gencromfs.lock)
+	endif()
+
 	# create nsh_romfsimg.c
 	add_custom_command(OUTPUT nsh_romfsimg.c
 		COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
-		COMMAND ${CMAKE_BINARY_DIR}/gencromfs ${romfs_gen_root_dir} nsh_romfsimg.c
+		COMMAND ${gencromfs_lock} ${CMAKE_BINARY_DIR}/gencromfs ${romfs_gen_root_dir} nsh_romfsimg.c
 		DEPENDS
 			${CMAKE_BINARY_DIR}/gencromfs
 			romfs_pruned.stamp
