@@ -397,7 +397,7 @@ void set_octaves(int octaves)
 }
 
 float rangefinder_reading(float true_range_m, int band, float gauss, float noise_floor_m, float noise_at_25m,
-			  float max_range_m)
+			  float max_range_m, RangefinderFaults &faults)
 {
 	/* sqrt of grass reflectance over the surface's at 850 nm, USGS Spectral Library version 7, by band */
 	static constexpr float kSurfaceRangeScale[5] = {1.f, 1.37f, 1.82f, 0.95f, 2.12f};
@@ -411,6 +411,44 @@ float rangefinder_reading(float true_range_m, int band, float gauss, float noise
 
 	/* a darker surface stops returning sooner, where the stretched range passes the limit */
 	if (stretched > max_range_m) {
+		reading = max_range_m + 1.f;
+	}
+
+	/* rare faults at the share of readings measured over 500 Flight Review flights, by stretched range band,
+	 * a short return at 40 % of the range or no return, single or a burst that continues with a fixed chance */
+	static constexpr float kFaultBand[5] = {2.f, 5.f, 10.f, 20.f, 40.f};
+	static constexpr float kShortRate[6] = {0.f, 6.4e-5f, 6.0e-5f, 1.69e-4f, 1.2e-4f, 1.261e-3f};
+	static constexpr float kInvalidRate[6] = {1.103e-3f, 7.92e-4f, 9.35e-4f, 3.45e-3f, 8.2e-5f, 2.337e-3f};
+	static constexpr float kSingleShare[2] = {0.63f, 0.41f};
+	static constexpr float kBurstStay[2] = {0.796f, 0.837f};
+	/* the measured shares count every reading of a burst, so a fault starts at the share over the mean
+	 * readings per fault, which the single share and the burst chance above give as 2.81 and 4.62 */
+	static constexpr float kReadingsPerFault[2] = {2.81f, 4.62f};
+	const float fault_u = rand_uniform(faults.rng);
+
+	/* a burst always takes its second reading, then continues with the burst chance */
+	if (faults.kind != 0 && !faults.second && !(faults.burst && fault_u < kBurstStay[faults.kind - 1])) {
+		faults.kind = 0;
+	}
+
+	faults.second = false;
+
+	if (faults.kind == 0) {
+		int band_i = 0;
+
+		while (band_i < 5 && stretched > kFaultBand[band_i]) { band_i++; }
+
+		const float p_short = kShortRate[band_i] / kReadingsPerFault[0];
+		const float p_invalid = kInvalidRate[band_i] / kReadingsPerFault[1];
+		faults.kind = (fault_u < p_short) ? 1 : (fault_u < p_short + p_invalid) ? 2 : 0;
+		faults.burst = faults.kind != 0 && rand_uniform(faults.rng) >= kSingleShare[faults.kind - 1];
+		faults.second = faults.burst;
+	}
+
+	if (faults.kind == 1) {
+		reading *= 0.4f;
+
+	} else if (faults.kind == 2) {
 		reading = max_range_m + 1.f;
 	}
 

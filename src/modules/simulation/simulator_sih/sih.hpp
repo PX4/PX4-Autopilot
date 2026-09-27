@@ -55,6 +55,7 @@
  */
 #pragma once
 
+#include <lib/terrain_sim/terrain_sim.h>
 #include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module.h>
@@ -382,6 +383,7 @@ private:
 
 	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override, _distance_snsr_noise;
 	hrt_abstime _optical_flow_interval_us{20_ms};
+	terrain_sim::RangefinderFaults _faults{};
 
 	esc_status_s _esc_status{};
 

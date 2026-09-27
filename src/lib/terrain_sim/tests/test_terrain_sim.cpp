@@ -384,24 +384,33 @@ TEST(TestTerrain, Formula0101IsFrozen)
 	set_octaves(6);
 }
 
+/* a fault state reset before every reading to a seed whose first draw is 0.78, above every fault threshold,
+ * so the noise and surface tests read clean */
+terrain_sim::RangefinderFaults &quiet()
+{
+	static terrain_sim::RangefinderFaults f;
+	f.kind = 0; f.burst = false; f.second = false; f.rng = 12345u;
+	return f;
+}
+
 TEST(TestRangefinder, NoiseIsSquareInRange)
 {
 	using terrain_sim::rangefinder_reading;
 	/* one standard deviation at 25 m is the constant, a quarter of it at 12.5 m and four times at 50 m */
-	EXPECT_NEAR(rangefinder_reading(25.f, 0, 1.f, 0.f, 0.10f, 100.f) - 25.f, 0.10f, 1e-5f);
-	EXPECT_NEAR(rangefinder_reading(12.5f, 0, 1.f, 0.f, 0.10f, 100.f) - 12.5f, 0.025f, 1e-5f);
-	EXPECT_NEAR(rangefinder_reading(50.f, 0, 1.f, 0.f, 0.10f, 100.f) - 50.f, 0.40f, 1e-5f);
-	EXPECT_NEAR(rangefinder_reading(2.f, 0, 1.f, 0.f, 0.10f, 100.f) - 2.f, 0.00064f, 1e-6f);
+	EXPECT_NEAR(rangefinder_reading(25.f, 0, 1.f, 0.f, 0.10f, 100.f, quiet()) - 25.f, 0.10f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(12.5f, 0, 1.f, 0.f, 0.10f, 100.f, quiet()) - 12.5f, 0.025f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(50.f, 0, 1.f, 0.f, 0.10f, 100.f, quiet()) - 50.f, 0.40f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(2.f, 0, 1.f, 0.f, 0.10f, 100.f, quiet()) - 2.f, 0.00064f, 1e-6f);
 	/* no draw, no noise, and the constant at zero is the exact reading */
-	EXPECT_FLOAT_EQ(rangefinder_reading(37.25f, 0, 0.f, 0.f, 0.10f, 100.f), 37.25f);
-	EXPECT_FLOAT_EQ(rangefinder_reading(37.25f, 0, 3.f, 0.f, 0.f, 100.f), 37.25f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(37.25f, 0, 0.f, 0.f, 0.10f, 100.f, quiet()), 37.25f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(37.25f, 0, 3.f, 0.f, 0.f, 100.f, quiet()), 37.25f);
 	/* the floor adds to the law, 1 cm at 2 m is the floor plus 0.64 mm, at 25 m it is 11 cm */
-	EXPECT_NEAR(rangefinder_reading(2.f, 0, 1.f, 0.01f, 0.10f, 100.f) - 2.f, 0.01064f, 1e-6f);
-	EXPECT_NEAR(rangefinder_reading(25.f, 0, 1.f, 0.01f, 0.10f, 100.f) - 25.f, 0.11f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(2.f, 0, 1.f, 0.01f, 0.10f, 100.f, quiet()) - 2.f, 0.01064f, 1e-6f);
+	EXPECT_NEAR(rangefinder_reading(25.f, 0, 1.f, 0.01f, 0.10f, 100.f, quiet()) - 25.f, 0.11f, 1e-5f);
 	/* the floor alone when the 25 m constant is zero */
-	EXPECT_NEAR(rangefinder_reading(40.f, 0, 1.f, 0.01f, 0.f, 100.f) - 40.f, 0.01f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(40.f, 0, 1.f, 0.01f, 0.f, 100.f, quiet()) - 40.f, 0.01f, 1e-5f);
 	/* a draw that would take the reading below zero is clamped */
-	EXPECT_FLOAT_EQ(rangefinder_reading(1.f, 0, -1e6f, 0.f, 0.10f, 100.f), 0.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(1.f, 0, -1e6f, 0.f, 0.10f, 100.f, quiet()), 0.f);
 }
 
 TEST(TestRangefinder, UniformDrawIsInRangeAndRepeatable)
@@ -424,21 +433,87 @@ TEST(TestRangefinder, SurfaceStretchesTheRange)
 
 	for (int band = 0; band < 5; ++band) {
 		const float expected = 0.10f * factor[band] * factor[band];
-		EXPECT_NEAR(rangefinder_reading(25.f, band, 1.f, 0.f, 0.10f, 100.f) - 25.f, expected, 1e-5f) << "band " << band;
+		EXPECT_NEAR(rangefinder_reading(25.f, band, 1.f, 0.f, 0.10f, 100.f, quiet()) - 25.f, expected, 1e-5f) << "band " << band;
 	}
 
 	/* the reading is centered on the true range whatever the surface */
-	EXPECT_FLOAT_EQ(rangefinder_reading(40.f, 2, 0.f, 0.f, 0.10f, 100.f), 40.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(40.f, 2, 0.f, 0.f, 0.10f, 100.f, quiet()), 40.f);
 }
 
 TEST(TestRangefinder, DarkSurfaceDropsOutSooner)
 {
 	using terrain_sim::rangefinder_reading;
 	/* asphalt at 2.12 passes the 100 m limit at a true 47.2 m, rock at 55 m, grass at 100 m, snow at 105 m */
-	EXPECT_FLOAT_EQ(rangefinder_reading(48.f, 4, 0.f, 0.f, 0.10f, 100.f), 101.f);
-	EXPECT_FLOAT_EQ(rangefinder_reading(47.f, 4, 0.f, 0.f, 0.10f, 100.f), 47.f);
-	EXPECT_FLOAT_EQ(rangefinder_reading(56.f, 2, 0.f, 0.f, 0.10f, 100.f), 101.f);
-	EXPECT_FLOAT_EQ(rangefinder_reading(99.f, 0, 0.f, 0.f, 0.10f, 100.f), 99.f);
-	EXPECT_FLOAT_EQ(rangefinder_reading(104.f, 3, 0.f, 0.f, 0.10f, 100.f), 104.f);
-	EXPECT_FLOAT_EQ(rangefinder_reading(106.f, 3, 0.f, 0.f, 0.10f, 100.f), 101.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(48.f, 4, 0.f, 0.f, 0.10f, 100.f, quiet()), 101.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(47.f, 4, 0.f, 0.f, 0.10f, 100.f, quiet()), 47.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(56.f, 2, 0.f, 0.f, 0.10f, 100.f, quiet()), 101.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(99.f, 0, 0.f, 0.f, 0.10f, 100.f, quiet()), 99.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(104.f, 3, 0.f, 0.f, 0.10f, 100.f, quiet()), 104.f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(106.f, 3, 0.f, 0.f, 0.10f, 100.f, quiet()), 101.f);
+}
+
+TEST(TestRangefinder, FaultRatesMatchTheConstants)
+{
+	using terrain_sim::rangefinder_reading;
+	/* one true range inside each stretched range band over grass, the share of faulty readings against the
+	 * constants, two million readings a band, within a fifth, bursts clump the counts */
+	const float range[6] = {1.f, 3.f, 7.f, 15.f, 30.f, 60.f};
+	const float short_rate[6] = {0.f, 6.4e-5f, 6.0e-5f, 1.69e-4f, 1.2e-4f, 1.261e-3f};
+	const float invalid_rate[6] = {1.103e-3f, 7.92e-4f, 9.35e-4f, 3.45e-3f, 8.2e-5f, 2.337e-3f};
+	const int n = 2000000;
+
+	for (int b = 0; b < 6; ++b) {
+		terrain_sim::RangefinderFaults faults;
+		int shorts = 0, invalids = 0;
+
+		for (int i = 0; i < n; ++i) {
+			const float r = rangefinder_reading(range[b], 0, 0.f, 0.f, 0.10f, 100.f, faults);
+
+			if (r > 100.f) { invalids++; } else if (r < 0.5f * range[b]) { shorts++; }
+		}
+
+		const float short_share = (float)shorts / (float)n, invalid_share = (float)invalids / (float)n;
+
+		if (short_rate[b] > 0.f) {
+			EXPECT_NEAR(short_share, short_rate[b], 0.2f * short_rate[b]) << "band " << b;
+
+		} else {
+			EXPECT_EQ(shorts, 0) << "band " << b;
+		}
+
+		EXPECT_NEAR(invalid_share, invalid_rate[b], 0.2f * invalid_rate[b]) << "band " << b;
+	}
+}
+
+TEST(TestRangefinder, ABurstTakesItsSecondReading)
+{
+	using terrain_sim::rangefinder_reading;
+	terrain_sim::RangefinderFaults faults;
+	int bursts = 0, kept = 0;
+
+	for (int i = 0; i < 2000000; ++i) {
+		rangefinder_reading(60.f, 0, 0.f, 0.f, 0.10f, 100.f, faults);
+
+		if (faults.kind != 0 && faults.second) {
+			const uint8_t kind = faults.kind;
+			rangefinder_reading(60.f, 0, 0.f, 0.f, 0.10f, 100.f, faults);
+			bursts++;
+			kept += (faults.kind == kind);
+		}
+	}
+
+	EXPECT_GT(bursts, 500);
+	EXPECT_EQ(kept, bursts);
+}
+
+TEST(TestRangefinder, FaultsDoNotDependOnTheNoiseDraw)
+{
+	using terrain_sim::rangefinder_reading;
+	terrain_sim::RangefinderFaults a, b;
+
+	for (int i = 0; i < 200000; ++i) {
+		rangefinder_reading(30.f, 2, 0.f, 0.f, 0.10f, 100.f, a);
+		rangefinder_reading(30.f, 2, 1.7f, 0.f, 0.10f, 100.f, b);
+		ASSERT_EQ(a.kind, b.kind) << "reading " << i;
+	}
 }

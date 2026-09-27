@@ -49,7 +49,6 @@
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
 #include <drivers/drv_sensor.h>             // to get the simulated sensor device types
 #include <lib/drivers/device/Device.hpp>
-#include <lib/terrain_sim/terrain_sim.h>
 
 using namespace math;
 using namespace matrix;
@@ -1110,7 +1109,7 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 			const int band = terrain_sim::surface_band(_lpos(0) + true_distance * down_N(0),
 					 _lpos(1) + true_distance * down_N(1));
 			current_distance = terrain_sim::rangefinder_reading(true_distance, band, generate_wgn(),
-					   _distance_snsr_noise, kDistSnsrNoiseAt25M, _distance_snsr_max);
+					   _distance_snsr_noise, kDistSnsrNoiseAt25M, _distance_snsr_max, _faults);
 
 			// the returned signal gets weaker as the target moves away
 			const float derate_start = DISTSNSR_QUALITY_DERATE * _distance_snsr_max;

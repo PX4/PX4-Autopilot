@@ -176,6 +176,14 @@ inline float rand_uniform(uint32_t &state)
 	return (float)(state >> 8) * (1.f / 16777216.f);
 }
 
+/** the state of the rare fault model, one per sensor, the generator seeded nonzero */
+struct RangefinderFaults {
+	uint8_t kind{0};             /**< 0 none, 1 a short return, 2 no return */
+	bool burst{false};           /**< the fault continues with the burst chance */
+	bool second{false};          /**< a burst always takes its second reading */
+	uint32_t rng{0x9e3779b9u};   /**< xorshift32 state of the fault draws */
+};
+
 /**
  * Turns the true range along the beam into the simulated rangefinder's reading.
  *
@@ -192,9 +200,16 @@ inline float rand_uniform(uint32_t &state)
  * A darker surface stops returning sooner, where the stretched range passes
  * the limit.
  *
+ * Rare faults come on top, at the share of readings measured over 500
+ * Flight Review flights by stretched range band, a short return at 40 % of
+ * the range or no return, single or a burst that continues with a fixed
+ * chance. They draw from the generator in the fault state, so the fault
+ * sequence does not depend on the noise draws.
+ *
  * @return the reading [m], never negative, max_range_m + 1 past the limit
+ *         or on a no return fault
  */
 float rangefinder_reading(float true_range_m, int band, float gauss, float noise_floor_m, float noise_at_25m,
-			  float max_range_m);
+			  float max_range_m, RangefinderFaults &faults);
 
 } // namespace terrain_sim
