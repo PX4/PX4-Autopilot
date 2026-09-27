@@ -56,8 +56,10 @@ if(PX4_PLATFORM MATCHES "posix")
 	set(models
 		airplane
 		quadx
+		quadx_flow
 		xvert
 		standard_vtol
+		standard_vtol_flow
 		hex
 		rover_ackermann
 	)
