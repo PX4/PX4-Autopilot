@@ -63,8 +63,12 @@ void UavcanGnssRelativeBridge::rel_pos_heading_sub_cb(const
 {
 	sensor_gnss_relative_s sensor_gnss_relative{};
 
-	sensor_gnss_relative.timestamp_sample = uavcan_bridge::sample_timestamp(msg.timestamp.usec,
-						_sub_rel_pos_heading.getNode().getUtcTime().toUSec(), hrt_absolute_time());
+	// A node timestamp that can't be used falls back to the receive time, which carries none of the receiver latency:
+	// timestamp_sample is left at 0 so that SENS_GPSn_DELAY applies.
+	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime timestamp_sample = uavcan_bridge::sample_timestamp(msg.timestamp.usec,
+					     _sub_rel_pos_heading.getNode().getUtcTime().toUSec(), now);
+	sensor_gnss_relative.timestamp_sample = (timestamp_sample != now) ? timestamp_sample : 0;
 
 	sensor_gnss_relative.heading_valid = msg.reported_heading_acc_available;
 	sensor_gnss_relative.heading = math::radians(msg.reported_heading_deg);

@@ -80,7 +80,6 @@ private:
 		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
 
 	static constexpr hrt_abstime kDefaultDelay{110_ms}; // matches SENS_GPS*_DELAY default
-	static constexpr hrt_abstime kSampleTimestampTolerance{10_ms};
 	static constexpr hrt_abstime kHeadingSourceTimeout{3_s};
 
 	struct GpsParamSlot {

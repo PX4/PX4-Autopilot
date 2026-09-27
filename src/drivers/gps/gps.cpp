@@ -1753,12 +1753,6 @@ GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative)
 {
 	gnss_relative.device_id = get_device_id();
 	gnss_relative.timestamp = hrt_absolute_time();
-
-	// the receiver latency is applied downstream; a sample time equal to the publish time marks it as unset
-	if (gnss_relative.timestamp_sample == 0) {
-		gnss_relative.timestamp_sample = gnss_relative.timestamp;
-	}
-
 	_sensor_gnss_relative_pub.publish(gnss_relative);
 }
 

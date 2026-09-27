@@ -403,10 +403,9 @@ int VehicleGPSPosition::findGpsInstance(uint32_t device_id, sensor_gps_s &gps_da
 uint64_t VehicleGPSPosition::resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
 		hrt_abstime delay_us)
 {
-	// A sample timestamp within a few ms of the publish timestamp carries no latency information (u-blox stamps
-	// sensor_gnss_relative with the parse time), so only a sample time meaningfully earlier than the publish time is
-	// trusted. Otherwise the configured receiver delay is applied.
-	if ((driver_timestamp_sample != 0) && (driver_timestamp_sample + kSampleTimestampTolerance < driver_timestamp)) {
+	// A driver that doesn't know the receiver latency leaves timestamp_sample at 0 (or at the publish time); the
+	// configured receiver delay applies then.
+	if ((driver_timestamp_sample != 0) && (driver_timestamp_sample < driver_timestamp)) {
 		return driver_timestamp_sample;
 	}
 
