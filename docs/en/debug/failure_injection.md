@@ -14,21 +14,21 @@ What differs is whether a _consumer_ applies the failure, and that depends on th
 The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong` (`ok` is not listed, but clears an active injection on all environments).
 A `—` means the module still accepts the command, but no consumer applies it in that environment.
 
-| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic/JMAVSim) | Hardware                |
-| ----------------- | ----------------------- | ----------------------- | -------------------------------------------- | ----------------------- |
-| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `gps`             | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                      | `off`, `stuck`, `wrong` |
-| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                               | —                       |
-| `vio`             | —                       | —                       | `off`                                        | —                       |
-| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong`          |
-| `traffic`         | `off`                   | `off`                   | `off`                                        | `off`                   |
-| `motor`           | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong`          |
-| `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong`          |
-| `can`             | —                       | —                       | —                                            | `off`                   |
+| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic) | Hardware                |
+| ----------------- | ----------------------- | ----------------------- | ------------------------------------ | ----------------------- |
+| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `gps`             | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`              | `off`, `stuck`, `wrong` |
+| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                       | —                       |
+| `vio`             | —                       | —                       | `off`                                | —                       |
+| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
+| `traffic`         | `off`                   | `off`                   | `off`                                | `off`                   |
+| `motor`           | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
+| `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
+| `can`             | —                       | —                       | —                                    | `off`                   |
 
 [SIH]: ../sim_sih/index.md
 [Gazebo]: ../sim_gazebo_gz/index.md

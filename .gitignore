@@ -117,6 +117,9 @@ _emscripten_sdk/
 # virtual Python environment
 .venv
 
+# macOS Gazebo environment (Tools/setup/macos/pixi.toml)
+.pixi
+
 # Claude Code local settings and worktrees
 .claude/settings.local.json
 /.claude/worktrees/
