@@ -2,8 +2,7 @@
 
 PX4 can be tested end to end to using integration tests based on [MAVSDK](https://mavsdk.mavlink.io).
 
-目前主要针对 SITL 开发测试，并在持续集成（CI）中运行。
-但是，它们最终旨在推广到实际测试。
+目前主要针对 SITL 开发测试，并在持续集成（CI）中运行。但是，它们最终旨在推广到实际测试。
 
 测试需要将MAVSAK C++库安装到系统目录（如： <code>/usr/lib</code> or <code>/usr/local/lib</code>）
 
@@ -90,7 +89,7 @@ Run a single test by specifying the `model` and test `case` as command line opti
 For example, to test a multicopter mission using the SIH simulator:
 
 ```sh
-test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sih-sitl.json --speed-factor 10 --model quadx --case 'Fly square Multicopter Missions including RTL'
+test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sih-sitl.json --speed-factor 10 --model quadx --case 'Fly square Multicopter Missions including Return'
 ```
 
 The easiest way to find out the current set of models and their associated test cases is to run all PX4 tests [as shown above](#run-all-px4-tests) (note, you can then cancel the build if you wish to test just one).
@@ -108,8 +107,8 @@ About to run 39 test cases for 3 selected models (1 iteration):
     - 'Continue on baro stuck during mission (baro height mode)'
     - 'Continue on baro stuck during mission (GPS height mode)'
     - 'Takeoff and Land'
-    - 'Fly square Multicopter Missions including RTL'
-    - 'Fly square Multicopter Missions with manual RTL'
+    - 'Fly square Multicopter Missions including Return'
+    - 'Fly square Multicopter Missions with manual Return'
     - 'Fly straight Multicopter Mission'
     - 'Offboard takeoff and land'
     - 'Offboard position control'
@@ -124,8 +123,8 @@ About to run 39 test cases for 3 selected models (1 iteration):
     - 'Continue on baro stuck during mission (baro height mode)'
     - 'Continue on baro stuck during mission (GPS height mode)'
     - 'Takeoff and Land'
-    - 'Fly square Multicopter Missions including RTL'
-    - 'Fly square Multicopter Missions with manual RTL'
+    - 'Fly square Multicopter Missions including Return'
+    - 'Fly square Multicopter Missions with manual Return'
     - 'Fly forward in position control'
     - 'Fly forward in altitude control'
   - tailsitter:
@@ -137,8 +136,8 @@ About to run 39 test cases for 3 selected models (1 iteration):
     - 'Continue on baro stuck during mission (baro height mode)'
     - 'Continue on baro stuck during mission (GPS height mode)'
     - 'Takeoff and Land'
-    - 'Fly square Multicopter Missions including RTL'
-    - 'Fly square Multicopter Missions with manual RTL'
+    - 'Fly square Multicopter Missions including Return'
+    - 'Fly square Multicopter Missions with manual Return'
     - 'Fly forward in position control'
     - 'Fly forward in altitude control'
 ```

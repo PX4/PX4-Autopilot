@@ -10,8 +10,7 @@ Familiarise yourself with the flight regulations in your area.
 
 ## 选择合适的地点
 
-为您的第一次飞行选择正确的位置至关重要。
-要注意的主要事项是:
+为您的第一次飞行选择正确的位置至关重要。要注意的主要事项是:
 
 - 确保空间是开放的。
   There should be no high trees, hills or buildings nearby, because those will impair the GNSS reception.
@@ -24,13 +23,11 @@ Familiarise yourself with the flight regulations in your area.
 
 ## 带上专业人士
 
-带上有经验的人进行第一次飞行。
-让他们帮助您完成飞行前检查，并让他们在出现问题时进行干预！
+带上有经验的人进行第一次飞行。让他们帮助您完成飞行前检查，并让他们在出现问题时进行干预！
 
 ## 计划飞行
 
-起飞前规划好航线。
-确保您知道整条路线以及机体将在何处/如何降落。
+起飞前规划好航线。确保您知道整条路线以及机体将在何处/如何降落。
 
 ## 减少损失
 

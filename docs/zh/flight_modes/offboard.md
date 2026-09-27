@@ -209,8 +209,7 @@ The "highest" setpoint that is provided will be used within the PX4 rover module
 这个层次结构有提供有效控制输入的明确规则：
 
 - Provide a position setpoint **or**
-- “左”上的设置点之一(速度 **或** 节点) **和** “右”上的设置点之一(态度、速率 **或** 节点)。
-  所有“左”和“右”设置点的组合都是有效的。
+- “左”上的设置点之一(速度 **或** 节点) **和** “右”上的设置点之一(态度、速率 **或** 节点)。所有“左”和“右”设置点的组合都是有效的。
 
 The following are all valid setpoint combinations and their respective control flags that must be set through [OffboardControlMode](../msg_docs/OffboardControlMode.md) (set all others to _false_).
 Additionally, for some combinations we require certain setpoints to be published with `NAN` values so that the setpoints of interest are not overridden by the rover module (due to the hierarchy above).
