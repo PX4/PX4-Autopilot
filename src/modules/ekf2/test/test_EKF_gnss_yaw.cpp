@@ -416,7 +416,7 @@ TEST_F(EkfGpsHeadingTest, continuesWhenPositionQualityPoor)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 }
 
-TEST_F(EkfGpsHeadingTest, noStartFromFlaggedReceiver)
+TEST_F(EkfGpsHeadingTest, flaggedReceiver)
 {
 	// GIVEN: the spoofing and jamming checks enabled and a good heading from a receiver reporting spoofing
 	_ekf->getParamHandle()->ekf2_gps_check |= static_cast<int32_t>(GnssChecks::GnssChecksMask::kSpoofed)
@@ -425,31 +425,32 @@ TEST_F(EkfGpsHeadingTest, noStartFromFlaggedReceiver)
 	_sensor_simulator._gnss_yaw.setYaw(gps_heading);
 	_sensor_simulator._gnss_yaw.setSpoofed(true);
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
-
-	// WHEN: running on it
 	_sensor_simulator.runSeconds(2);
 
 	// THEN: the heading is not used
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
 
-	// WHEN: the receiver reports jamming instead
+	// WHEN: the receiver reports jamming instead, then clears the flag
 	_sensor_simulator._gnss_yaw.setSpoofed(false);
 	_sensor_simulator._gnss_yaw.setJammed(true);
 	_sensor_simulator.runSeconds(2);
-
-	// THEN: the heading is still not used
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
-
-	// WHEN: the receiver clears the flag
 	_sensor_simulator._gnss_yaw.setJammed(false);
-	_sensor_simulator.runSeconds(1);
+	_sensor_simulator.runSeconds(5);
 
-	// THEN: the fusion starts with a reset to the heading
+	// THEN: like the position checks, the heading is trusted for a reset only after the GNSS health time (10s)
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	_sensor_simulator.runSeconds(6);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 	checkConvergence(gps_heading, 0.5f);
+
+	// WHEN: the receiver reports spoofing while its heading is fused
+	_sensor_simulator._gnss_yaw.setSpoofed(true);
+	_sensor_simulator.runSeconds(8);
+
+	// THEN: like position fusion, the fusion stops after the reset timeout
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 }
 
 TEST_F(EkfGpsHeadingTest, fusesAtOwnRate)
