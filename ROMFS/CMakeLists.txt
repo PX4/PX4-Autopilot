@@ -321,53 +321,6 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 
 endforeach()
 
-
-
-if(config_uavcan_peripheral_firmware)
-
-	include(ExternalProject)
-
-	foreach(uavcan_peripheral_config ${config_uavcan_peripheral_firmware})
-		# include the UAVCAN peripheral binaries in ROMFS
-		message(STATUS "ROMFS:  Adding UAVCAN peripheral ${uavcan_peripheral_config} -> /etc/uavcan/fw/")
-
-		# ExternalProject_Add() with GIT_SUBMODULES "" initializes no submodules.
-		cmake_policy(SET CMP0097 NEW)
-
-		include(ExternalProject)
-
-		ExternalProject_Add(build_${uavcan_peripheral_config}
-			GIT_REPOSITORY ${CMAKE_SOURCE_DIR}
-			GIT_TAG ${PX4_GIT_TAG}
-			GIT_SUBMODULES ""
-			DOWNLOAD_NO_PROGRESS true
-			CMAKE_ARGS -DCONFIG=${uavcan_peripheral_config}
-			INSTALL_COMMAND ""
-			USES_TERMINAL_BUILD true
-			BUILD_ALWAYS 1
-		)
-
-		ExternalProject_Get_Property(build_${uavcan_peripheral_config} BINARY_DIR)
-
-		add_custom_command(
-			OUTPUT
-				${romfs_gen_root_dir}/uavcan/fw/_${uavcan_board_id}.bin
-				${uavcan_peripheral_config}.stamp
-			COMMAND ${CMAKE_COMMAND} -E make_directory ${romfs_gen_root_dir}/uavcan/fw/
-			COMMAND ${CMAKE_COMMAND} -E copy ${BINARY_DIR}/deploy/*.bin ${romfs_gen_root_dir}/uavcan/fw/
-			COMMAND ls -lsa ${romfs_gen_root_dir}/uavcan/fw/
-			COMMAND ${CMAKE_COMMAND} -E touch ${uavcan_peripheral_config}.stamp
-			DEPENDS
-				build_${uavcan_peripheral_config}
-			COMMENT "ROMFS: copying ${uavcan_peripheral_config}"
-		)
-
-		list(APPEND extras_dependencies
-			${uavcan_peripheral_config}.stamp
-		)
-	endforeach()
-endif()
-
 list(APPEND extras_dependencies
 	${config_romfs_extra_dependencies}
 	)

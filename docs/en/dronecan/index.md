@@ -328,6 +328,17 @@ PX4 identifies valid firmware binaries (`.bin`) based on the presence of an **AP
 PX4 uses this descriptor to match each binary to the correct node and to determine whether an update is needed.
 :::
 
+### Getting Firmware
+
+Every PX4 release publishes the firmware for CAN nodes built by PX4 as `<target>.uavcan.bin` (for example `cuav_can-gps-v1_default.uavcan.bin`), attached to the [GitHub release](https://github.com/PX4/PX4-Autopilot/releases).
+When you build a CAN node target yourself with `make <target>`, the `.uavcan.bin` file is written to `build/<target>/`.
+
+::: info
+Flight controller builds can no longer embed CAN node firmware in their ROMFS.
+The `CONFIG_BOARD_UAVCAN_PERIPHERALS` board option and the `px4_fmu-v5_uavcanv0periph` build that used it (embedding CUAV CAN GPS v1 firmware) were removed after PX4 v1.18.
+Copy the node's `.uavcan.bin` to the SD card as described below instead.
+:::
+
 ### Firmware Directories
 
 Place firmware binaries in one of these locations on the SD card before rebooting:
