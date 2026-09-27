@@ -14,6 +14,11 @@ containers:
 runners:
   seeder_cpu: 8
   matrix_cpu: 4
+  # Targets each build job compiles concurrently, each in its own git
+  # worktree (NuttX builds inside its source tree, so one per checkout).
+  # 2 keeps a 4-vCPU runner ~80% busy; more slots or larger runners cost more
+  # than they save (PR #28870). 1 = sequential.
+  build_slots: 2
 
 # Default ccache max-size for build groups
 cache:
