@@ -45,7 +45,10 @@
  * - The D-cache is write-through over the AHB window: invalidate-only suffices.
  * - Reads use the AHB mapping, program and erase physical offsets: invalid for
  *   a slot under FlexSPI address remap.
- * - The system tick stops per window (~25 ms per sector erase); hrt does not.
+ * - The system tick stops per window; hrt does not. Budget windows from the
+ *   datasheet maximum, not the bench: sector erase is 25 ms typical and
+ *   400 ms maximum, page program 0.15 ms typical and 0.75 ms maximum, and
+ *   both grow with program/erase cycles.
  */
 
 #pragma once
