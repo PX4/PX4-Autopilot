@@ -97,35 +97,14 @@ There is also CAN built-in bus termination via [CANNODE_TERM](../advanced_config
 You need to set necessary [DroneCAN](index.md) parameters and define offsets if the sensor is not centred within the vehicle:
 
 - Enable GPS yaw fusion by setting bit 3 of [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to true.
-- Enable GPS blending to ensure the heading is always published by setting [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) to 7 (all three bits checked).
 - Enable [UAVCAN_SUB_GPS](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS), [UAVCAN_SUB_MAG](../advanced_config/parameter_reference.md#UAVCAN_SUB_MAG), and [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO).
 - The parameters [SENS_GPS0_OFFX](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS0_OFFY](../advanced_config/parameter_reference.md#SENS_GPS0_OFFY) and [SENS_GPS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GPS0_OFFZ) can be set to account for the offset of the ARK G5 RTK HEADING GPS from the vehicle's centre of gravity.
+- Set [SENS_GPS0_HDG](../advanced_config/parameter_reference.md#SENS_GPS0_HDG) to `Custom` and [SENS_GPS0_BLX/Y/Z](../advanced_config/parameter_reference.md#SENS_GPS0_BLX) to the vector from the MAIN to the ANT2 antenna (e.g. `SENS_GPS0_BLX` = 0.5 with ANT2 0.5 m in front of MAIN), in the slot matched by [SENS_GPS0_ID](../advanced_config/parameter_reference.md#SENS_GPS0_ID).
+  Module firmware that still has `SEP_OFFS_YAW` applies it on top: set it to 0.
 
 ### Parameter references
 
 This GPS is using ARK's private driver, the parameters below only exist on the firmware we ship the GPS with. You can set these params either in QGC or using the DroneCAN GUI Tool.
-
-#### SEP_OFFS_YAW (float)
-
-Heading offset angle for dual antenna GPS setups that support heading estimation.
-Set this to 0 if the antennas are parallel to the forward-facing direction of the vehicle and the Rover/ANT2 antenna is in front.
-The offset angle increases clockwise.
-Set this to 90 if the ANT2 antenna is placed on the right side of the vehicle and the Moving Base/MAIN antenna is on the left side.
-
-- Default: 0
-- Min: -360
-- Max: 360
-- Unit: degree
-
-#### SEP_OFFS_PITCH (float)
-
-Vertical offsets can be compensated for by adjusting the Pitch offset.
-Note that this can be interpreted as the "roll" angle in case the antennas are aligned along the perpendicular axis. This occurs in situations where the two antenna ARPs may not be exactly at the same height in the vehicle reference frame. Since pitch is defined as the right-handed rotation about the vehicle Y axis, a situation where the main antenna is mounted lower than the aux antenna (assuming the default antenna setup) will result in a positive pitch.
-
-- Default: 0
-- Min: -90
-- Max: 90
-- Unit: degree
 
 #### SEP_OUT_RATE (enum)
 
