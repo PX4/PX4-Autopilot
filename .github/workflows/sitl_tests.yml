@@ -135,3 +135,4 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: sitl-vtol
           files: coverage/lcov.info
+          disable_search: true
