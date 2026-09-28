@@ -57,30 +57,27 @@ TEST(GnssHeadingBaseline, MovingBaseRunsFromTheOtherReceiver)
 TEST(GnssHeadingBaseline, RejectsFloatSolutions)
 {
 	// ARK G5 moving-base pair, 0.347 m apart: the rover's float solutions reported 10.9 m and 1.04 m
-	EXPECT_FALSE(baselineConsistent(0.347f, 10.9f, 7.52f, NAN, NAN));
-	EXPECT_FALSE(baselineConsistent(0.347f, 1.04f, -0.71f, NAN, NAN));
-	EXPECT_TRUE(baselineConsistent(0.347f, 0.345f, -0.02f, NAN, NAN));
+	EXPECT_FALSE(baselineConsistent(0.347f, 10.9f, 7.52f));
+	EXPECT_FALSE(baselineConsistent(0.347f, 1.04f, -0.71f));
+	EXPECT_TRUE(baselineConsistent(0.347f, 0.345f, -0.02f));
 
 	// 20% of the shorter baseline
-	EXPECT_TRUE(baselineConsistent(0.4f, 0.47f, NAN, NAN, NAN));
-	EXPECT_FALSE(baselineConsistent(0.4f, 0.49f, NAN, NAN, NAN));
-	EXPECT_FALSE(baselineConsistent(0.4f, 0.32f, NAN, NAN, NAN));
+	EXPECT_TRUE(baselineConsistent(0.4f, 0.47f, NAN));
+	EXPECT_FALSE(baselineConsistent(0.4f, 0.49f, NAN));
+	EXPECT_FALSE(baselineConsistent(0.4f, 0.32f, NAN));
 }
 
-TEST(GnssHeadingBaseline, ChecksTheVerticalComponent)
+TEST(GnssHeadingBaseline, RejectsAVerticalBaseline)
 {
-	// a baseline that is level over the sample's attitude
-	EXPECT_TRUE(baselineConsistent(0.35f, 0.35f, 0.06f, 0.f, 0.f));
-	EXPECT_FALSE(baselineConsistent(0.35f, 0.35f, 0.08f, 0.f, 0.f));
-
 	// the reported baseline is close to vertical, so it has no heading
-	EXPECT_FALSE(baselineConsistent(0.35f, 0.35f, 0.348f, NAN, NAN));
+	EXPECT_FALSE(baselineConsistent(0.35f, 0.35f, 0.348f));
+	EXPECT_TRUE(baselineConsistent(0.35f, 0.35f, 0.16f));
 }
 
 TEST(GnssHeadingBaseline, NeedsAConfiguredBaseline)
 {
 	// a receiver that doesn't report its baseline is not checked against it, but still needs one to rotate its heading
-	EXPECT_TRUE(baselineConsistent(0.35f, NAN, NAN, NAN, NAN));
-	EXPECT_FALSE(baselineConsistent(0.f, NAN, NAN, NAN, NAN));
-	EXPECT_FALSE(baselineConsistent(0.04f, 0.04f, 0.f, NAN, NAN));
+	EXPECT_TRUE(baselineConsistent(0.35f, NAN, NAN));
+	EXPECT_FALSE(baselineConsistent(0.f, NAN, NAN));
+	EXPECT_FALSE(baselineConsistent(0.04f, 0.04f, 0.f));
 }

@@ -48,7 +48,7 @@ enum class BaselineType : int32_t {
 	Custom = 2,        // SENS_GPSn_BLX/Y/Z
 };
 
-// ArduPilot's moving baseline checks (AP_GPS_Backend::calculate_moving_base_yaw)
+// ArduPilot's moving baseline length checks (AP_GPS_Backend::calculate_moving_base_yaw)
 static constexpr float kMinAntennaSeparation = 0.05f; // m
 static constexpr float kPermittedLengthError = 0.2f;  // fraction of the shorter of the configured and reported baselines
 
@@ -70,14 +70,13 @@ inline matrix::Vector3f configuredBaseline(int32_t type, const matrix::Vector3f 
 
 /**
  * Whether a reported baseline matches the configured one. A baseline the receiver doesn't report (NAN) is not checked.
+ * ArduPilot also checks the down component against the attitude; that is left out, since on a 0.35 m moving baseline
+ * it scattered by up to 0.16 m while turning and rejected good headings, and caught nothing the length check missed.
  * @param configured_length length of the configured baseline (m)
  * @param reported_length reported baseline length (m)
  * @param reported_down reported down component of the baseline (m)
- * @param expected_down_min, expected_down_max range of the configured baseline's down component over the attitude
- *        uncertainty of the sample (m), NAN without an attitude
  */
-inline bool baselineConsistent(float configured_length, float reported_length, float reported_down,
-			       float expected_down_min, float expected_down_max)
+inline bool baselineConsistent(float configured_length, float reported_length, float reported_down)
 {
 	if (!(configured_length >= kMinAntennaSeparation)) {
 		return false;
@@ -93,16 +92,9 @@ inline bool baselineConsistent(float configured_length, float reported_length, f
 		return false;
 	}
 
-	if (!PX4_ISFINITE(reported_down)) {
-		return true;
-	}
-
 	// the heading is the bearing of the horizontal projection, which a near vertical baseline doesn't have
-	if (reported_length * reported_length - reported_down * reported_down < kMinAntennaSeparation * kMinAntennaSeparation) {
-		return false;
-	}
-
-	return !(reported_down < expected_down_min - tolerance) && !(reported_down > expected_down_max + tolerance);
+	return !(reported_length * reported_length - reported_down * reported_down
+		 < kMinAntennaSeparation * kMinAntennaSeparation);
 }
 
 } // namespace gnss_heading

@@ -353,26 +353,6 @@ bool VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 		_heading_unconfigured_reported = true;
 	}
 
-	float expected_down_min = NAN;
-	float expected_down_max = NAN;
-	vehicle_attitude_s attitude;
-
-	if (configured && PX4_ISFINITE(sample.baseline_down) && _vehicle_attitude_sub.copy(&attitude)
-	    && (now < attitude.timestamp + 1_s)) {
-		// the attitude at the sample time is projected back with the gyro, as the down component is checked over the
-		// whole interval
-		vehicle_angular_velocity_s angular_velocity{};
-		_vehicle_angular_velocity_sub.copy(&angular_velocity);
-		const float lag = (now > sample.timestamp_sample) ? 1e-6f * (now - sample.timestamp_sample) : 0.f;
-
-		const matrix::Dcmf R{matrix::Quatf(attitude.q)};
-		const matrix::Dcmf R_sample = R * matrix::Dcmf(matrix::AxisAnglef(matrix::Vector3f(angular_velocity.xyz) * -lag));
-		const float down_now = (R * slot->baseline)(2, 0);
-		const float down_sample = (R_sample * slot->baseline)(2, 0);
-		expected_down_min = fminf(down_now, down_sample);
-		expected_down_max = fmaxf(down_now, down_sample);
-	}
-
 	if (!PX4_ISFINITE(sample.heading) || !configured) {
 		if (same_source) {
 			source.settled_since = 0;
@@ -381,11 +361,9 @@ bool VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 		return false;
 	}
 
-	// A sample whose baseline doesn't match is dropped without restarting the settle: the down component of a short
-	// moving baseline scatters by more than 20% of its length (up to 0.16 m on 0.35 m while turning on an ARK G5 pair),
-	// so good headings fail the vertical check now and then.
-	if (!gnss_heading::baselineConsistent(slot->baseline_length, sample.baseline_length, sample.baseline_down,
-					      expected_down_min, expected_down_max)) {
+	// A sample whose baseline doesn't match is dropped; the settle restarts only when the receiver itself reports no
+	// heading
+	if (!gnss_heading::baselineConsistent(slot->baseline_length, sample.baseline_length, sample.baseline_down)) {
 		return false;
 	}
 

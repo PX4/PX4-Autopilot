@@ -46,8 +46,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/pps_capture.h>
 
@@ -147,9 +145,6 @@ private:
 		{this, ORB_ID(sensor_gnss_relative), 0},
 		{this, ORB_ID(sensor_gnss_relative), 1},
 	};
-
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 	struct HeadingSource {
 		uint32_t device_id{0};

@@ -171,7 +171,7 @@ The devices that can be used are listed in this way are listed in the **GPS Yaw*
 The links in the table take you to the device-specific PX4 configuration.
 
 The heading is the bearing of the _baseline_, the vector from one antenna to the other.
-PX4 derives the baseline in the body frame (as shown [here][fc_orientation]) from the antenna positions, and uses a heading only when the baseline the receiver reports is within 20% of it in length and vertical component.
+PX4 derives the baseline in the body frame (as shown [here][fc_orientation]) from the antenna positions, and uses a heading only when the length of the baseline the receiver reports is within 20% of it.
 Configure the slot of the receiver that reports the heading, matched by [SENS_GPSn_ID][SENS_GPSn_ID]:
 
 | Parameter                            | Setting                                                                                                                                                       |

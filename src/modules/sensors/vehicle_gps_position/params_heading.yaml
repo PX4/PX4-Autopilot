@@ -11,7 +11,7 @@ parameters:
                 long: |
                     Antenna baseline of the dual antenna heading reported by the receiver in slot ${i}
                     (matched via SENS_GPS${i}_ID). The heading is only used when the reported baseline
-                    length, and its vertical component, are within 20% of the configured baseline.
+                    length is within 20% of the configured baseline.
                     Moving base: the baseline runs from the moving base receiver's antenna, in the other
                     slot, to this receiver's antenna (SENS_GPSn_OFFX/Y/Z of both slots).
                     Custom: the baseline is SENS_GPS${i}_BLX/Y/Z, for a single receiver with two antennas.
