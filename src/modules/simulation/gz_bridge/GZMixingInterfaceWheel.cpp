@@ -54,6 +54,7 @@ bool GZMixingInterfaceWheel::init(const std::string &model_name)
 	pthread_mutex_init(&_node_mutex, nullptr);
 
 	_wheel_encoders_pub.advertise();
+	param_get(param_find("RO_WHEEL_RAD"), &_wheel_radius);
 
 	ScheduleNow();
 
@@ -112,13 +113,32 @@ void GZMixingInterfaceWheel::wheelSpeedCallback(const gz::msgs::Actuators &actua
 		return;
 	}
 
+	hrt_abstime current_t = hrt_absolute_time();
+
 	pthread_mutex_lock(&_node_mutex);
 
 	wheel_encoders_s wheel_encoders{};
 
 	for (int i = 0; i < actuators.velocity_size(); i++) {
 		wheel_encoders.wheel_speed[i] = (float)actuators.velocity(i);
+		_curr_wheel_speed = _wheel_radius * (float)actuators.velocity(i);
+		wheel_encoders.counts_per_rev[i] = 1;
+
+		if (_prev_wheel_speed < 0 && _prev_t == 0) {
+			_prev_wheel_speed = _curr_wheel_speed;
+			_prev_t = current_t;
+		}
+
+		float dt = (current_t - _prev_t) / 1e6;
+		float wheel_position = (_curr_wheel_speed + _prev_wheel_speed) * dt;
+		_wheel_pos_m[i] += wheel_position;
+		int64_t encoder_ticks = _wheel_pos_m[i] / (2.f * static_cast<float>(M_PI) * _wheel_radius); // 0.1 wheel radius
+		wheel_encoders.encoder_position[i] = encoder_ticks;
+		// Wheel dist = 2 * PI * RO_WHEEL_RAD * encoder_position / counts_per_revolution
 	}
+
+	_prev_wheel_speed = _curr_wheel_speed;
+	_prev_t = current_t;
 
 	if (actuators.velocity_size() > 0) {
 		wheel_encoders.timestamp = hrt_absolute_time();
