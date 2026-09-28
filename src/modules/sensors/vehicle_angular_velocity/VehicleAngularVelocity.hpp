@@ -130,8 +130,13 @@ private:
 
 	// angular velocity filters
 	math::LowPassFilter2p<float> _lp_filter_velocity[3] {};
-	math::NotchFilter<float> _notch_filter0_velocity[3] {};
-	math::NotchFilter<float> _notch_filter1_velocity[3] {};
+
+	// static notch filters (IMU_GYRO_NF0_* .. IMU_GYRO_NF1_*)
+	static constexpr int NUM_NOTCH_FILTERS = 2;
+
+	math::NotchFilter<float> _notch_filter_velocity[NUM_NOTCH_FILTERS][3] {};
+	float _notch_filter_freq_param[NUM_NOTCH_FILTERS] {};
+	float _notch_filter_bw_param[NUM_NOTCH_FILTERS] {};
 
 #if !defined(CONSTRAINED_FLASH)
 

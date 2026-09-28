@@ -172,15 +172,12 @@ void VehicleAngularVelocity::ResetFilters(const hrt_abstime &time_now_us)
 			_lp_filter_velocity[axis].set_cutoff_frequency(_filter_sample_rate_hz, _param_imu_gyro_cutoff.get());
 			_lp_filter_velocity[axis].reset(angular_velocity_uncalibrated(axis));
 
-			// angular velocity notch 0
-			_notch_filter0_velocity[axis].setParameters(_filter_sample_rate_hz, _param_imu_gyro_nf0_frq.get(),
-					_param_imu_gyro_nf0_bw.get());
-			_notch_filter0_velocity[axis].reset();
-
-			// angular velocity notch 1
-			_notch_filter1_velocity[axis].setParameters(_filter_sample_rate_hz, _param_imu_gyro_nf1_frq.get(),
-					_param_imu_gyro_nf1_bw.get());
-			_notch_filter1_velocity[axis].reset();
+			// angular velocity notches
+			for (int i = 0; i < NUM_NOTCH_FILTERS; i++) {
+				_notch_filter_velocity[i][axis].setParameters(_filter_sample_rate_hz, _notch_filter_freq_param[i],
+						_notch_filter_bw_param[i]);
+				_notch_filter_velocity[i][axis].reset();
+			}
 
 			// angular acceleration low pass
 			if ((_param_imu_dgyro_cutoff.get() > 0.f)
@@ -376,13 +373,7 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 
-		const bool nf0_enabled_prev = (_param_imu_gyro_nf0_frq.get() > 0.f) && (_param_imu_gyro_nf0_bw.get() > 0.f);
-		const bool nf1_enabled_prev = (_param_imu_gyro_nf1_frq.get() > 0.f) && (_param_imu_gyro_nf1_bw.get() > 0.f);
-
 		updateParams();
-
-		const bool nf0_enabled = (_param_imu_gyro_nf0_frq.get() > 0.f) && (_param_imu_gyro_nf0_bw.get() > 0.f);
-		const bool nf1_enabled = (_param_imu_gyro_nf1_frq.get() > 0.f) && (_param_imu_gyro_nf1_bw.get() > 0.f);
 
 		_calibration.ParametersUpdate();
 
@@ -411,25 +402,35 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 			}
 		}
 
-		// gyro notch filter 0 frequency or bandwidth changed
-		for (auto &nf : _notch_filter0_velocity) {
-			const bool nf_freq_changed = (fabsf(nf.getNotchFreq() - _param_imu_gyro_nf0_frq.get()) > 0.01f);
-			const bool nf_bw_changed   = (fabsf(nf.getBandwidth() - _param_imu_gyro_nf0_bw.get()) > 0.01f);
+		// gyro notch filter frequency or bandwidth changed
+		const float nf_freq[] {
+			_param_imu_gyro_nf0_frq.get(),
+			_param_imu_gyro_nf1_frq.get(),
+		};
 
-			if ((nf0_enabled_prev != nf0_enabled) || (nf0_enabled && (nf_freq_changed || nf_bw_changed))) {
-				_reset_filters = true;
-				break;
-			}
-		}
+		const float nf_bw[] {
+			_param_imu_gyro_nf0_bw.get(),
+			_param_imu_gyro_nf1_bw.get(),
+		};
 
-		// gyro notch filter 1 frequency or bandwidth changed
-		for (auto &nf : _notch_filter1_velocity) {
-			const bool nf_freq_changed = (fabsf(nf.getNotchFreq() - _param_imu_gyro_nf1_frq.get()) > 0.01f);
-			const bool nf_bw_changed   = (fabsf(nf.getBandwidth() - _param_imu_gyro_nf1_bw.get()) > 0.01f);
+		static_assert(sizeof(nf_freq) / sizeof(nf_freq[0]) == NUM_NOTCH_FILTERS, "one IMU_GYRO_NFx_FRQ per notch filter");
+		static_assert(sizeof(nf_bw) / sizeof(nf_bw[0]) == NUM_NOTCH_FILTERS, "one IMU_GYRO_NFx_BW per notch filter");
 
-			if ((nf1_enabled_prev != nf1_enabled) || (nf1_enabled && (nf_freq_changed || nf_bw_changed))) {
-				_reset_filters = true;
-				break;
+		for (int i = 0; i < NUM_NOTCH_FILTERS; i++) {
+			const bool nf_enabled_prev = (_notch_filter_freq_param[i] > 0.f) && (_notch_filter_bw_param[i] > 0.f);
+			const bool nf_enabled = (nf_freq[i] > 0.f) && (nf_bw[i] > 0.f);
+
+			_notch_filter_freq_param[i] = nf_freq[i];
+			_notch_filter_bw_param[i] = nf_bw[i];
+
+			for (auto &nf : _notch_filter_velocity[i]) {
+				const bool nf_freq_changed = (fabsf(nf.getNotchFreq() - nf_freq[i]) > 0.01f);
+				const bool nf_bw_changed   = (fabsf(nf.getBandwidth() - nf_bw[i]) > 0.01f);
+
+				if ((nf_enabled_prev != nf_enabled) || (nf_enabled && (nf_freq_changed || nf_bw_changed))) {
+					_reset_filters = true;
+					break;
+				}
 			}
 		}
 
@@ -757,14 +758,11 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 
 #endif // !CONSTRAINED_FLASH
 
-	// Apply general notch filter 0 (IMU_GYRO_NF0_FRQ)
-	if (_notch_filter0_velocity[axis].getNotchFreq() > 0.f) {
-		_notch_filter0_velocity[axis].applyArray(data, N);
-	}
-
-	// Apply general notch filter 1 (IMU_GYRO_NF1_FRQ)
-	if (_notch_filter1_velocity[axis].getNotchFreq() > 0.f) {
-		_notch_filter1_velocity[axis].applyArray(data, N);
+	// Apply general notch filters (IMU_GYRO_NF0_FRQ .. IMU_GYRO_NF1_FRQ)
+	for (auto &nf : _notch_filter_velocity) {
+		if (nf[axis].getNotchFreq() > 0.f) {
+			nf[axis].applyArray(data, N);
+		}
 	}
 
 	// Apply general low-pass filter (IMU_GYRO_CUTOFF)
