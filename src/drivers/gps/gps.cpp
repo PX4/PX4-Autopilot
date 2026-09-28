@@ -277,6 +277,7 @@ private:
 	unsigned			_rate_reading{0}; 				///< reading rate in B/s
 	hrt_abstime			_last_rtcm_injection_time{0};			///< time of last corrections injection
 	uint8_t				_selected_rtcm_instance{0};			///< uorb instance that is being used for corrections
+	bool				_inject_corrections{true};			///< false for a moving-base rover, which computes against the moving base alone
 
 	const Instance 			_instance;
 
@@ -290,8 +291,7 @@ private:
 	gps_dump_comm_mode_t                 _dump_communication_mode{gps_dump_comm_mode_t::Disabled};
 
 	// Each stream reassembles in its own framer: a fragmented fixed-base frame must not be
-	// corrupted by moving-baseline bytes appended mid-frame (e.g. fixed-base + moving-base +
-	// rover setups, where the rover injects both streams). Within a framer, RTCM3 and SPARTN
+	// corrupted by moving-baseline bytes appended mid-frame. Within a framer, RTCM3 and SPARTN
 	// share one buffer so neither protocol can resync inside the other's payloads (see
 	// correction_framer.h); SPARTN only ever arrives on the corrections stream.
 	gnss::CorrectionFramer		     _rtcm_corrections_framer{};
@@ -800,19 +800,24 @@ void GPS::handleInjectDataTopic()
 	// but keep draining: a burst piling past the uORB queue depth silently
 	// drops the oldest messages.
 	const bool receiver_ready = _helper->receiverReady();
+	const bool inject_corrections = receiver_ready && _inject_corrections;
 
-	drainRtcmCorrections(receiver_ready);
+	drainRtcmCorrections(inject_corrections);
 
 	if (!receiver_ready) {
 		return;
 	}
 
 	// Fixed-base corrections (MAVLink GPS_RTCM_DATA, UAVCAN RTCMStream): RTCM3 and, when enabled,
-	// SPARTN framed from one buffer in arrival order. Every configured receiver can use these -
-	// including a UART2 moving-base rover, whose baseline arrives in hardware but which still wants
-	// fixed-base corrections over its main link.
-	injectRtcmFrames(_rtcm_corrections_framer, _rtcm_corrections_injection_perf,
-			 &_rtcm_frames_in_rate_window, &_spartn_frames_in_rate_window);
+	// SPARTN framed from one buffer in arrival order. Every receiver takes them but a moving-base
+	// rover: an RTK engine works against one reference station, and a rover offered a fixed base
+	// beside its moving base can settle on the fixed base and lose the heading. The fixed-base
+	// corrections go to the moving base, whose absolute fix the rover inherits (u-blox UBX-19009093,
+	// figure 2).
+	if (inject_corrections) {
+		injectRtcmFrames(_rtcm_corrections_framer, _rtcm_corrections_injection_perf,
+				 &_rtcm_frames_in_rate_window, &_spartn_frames_in_rate_window);
+	}
 
 	// Moving-baseline RTCM (RTCM 4072 etc.) from a peer moving-base GPS. Only a heading rover that
 	// receives the baseline through the flight controller (UART1 / CAN) injects it here; a UART2
@@ -1200,10 +1205,15 @@ GPS::run()
 			_mode = kAutoDetectModes[0];
 		}
 
+		_inject_corrections = true;
+
 		switch (_mode) {
 #if defined(CONFIG_GPS_UBX)
 
 		case gps_driver_mode_t::UBX: {
+				_inject_corrections = ubx_mode != GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1
+						      && ubx_mode != GPSDriverUBX::UBXMode::RoverWithMovingBaseUART2;
+
 				GPSDriverUBX::Settings settings = {
 					.dynamic_model = (uint8_t)gps_ubx_dynmodel,
 					.dgnss_timeout = (uint8_t)gps_ubx_dgnss_to,
