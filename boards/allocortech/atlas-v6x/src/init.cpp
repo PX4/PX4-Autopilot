@@ -175,6 +175,15 @@ stm32_boardinitialize(void)
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 
+#if defined(BOOTLOADER)
+	/* The SPI framework that configures chip selects (spi.cpp) is app-only,
+	 * so the CS lines would otherwise float for the whole bootloader run;
+	 * a weak pull-up parks every peripheral deselected.
+	 */
+	const uint32_t bootloader_spi_cs_gpio[] = BOOTLOADER_SPI_CS_GPIO_INIT_LIST;
+	px4_gpio_init(bootloader_spi_cs_gpio, arraySize(bootloader_spi_cs_gpio));
+#endif /* defined(BOOTLOADER) */
+
 	/* configure USB interfaces */
 
 	stm32_usbinitialize();
