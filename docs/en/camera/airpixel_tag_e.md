@@ -16,10 +16,6 @@ TAG-E writes position, altitude and camera attitude into the EXIF and XMP of eve
 - Lever-arm correction from antenna-to-camera offsets, optional rangefinder, GPS/IMU accuracy and custom label tags, PPK output, and video geotagging via subtitles.
 - Camera clock set automatically from GPS time.
 
-## Where to Buy
-
-- [AirPixel shop](https://shop.airpixel.cz/product/tag-e/)
-
 ## Wiring
 
 Connect TAG-E's IO-B connector to a TELEM port on the flight controller (e.g. `TELEM1` or `TELEM2`), and TAG-E's USB-C port to the camera.
