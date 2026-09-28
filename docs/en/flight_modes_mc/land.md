@@ -27,6 +27,20 @@ The vehicle descends at the rate specified in [MPC_LAND_SPEED](#MPC_LAND_SPEED) 
 
 Stick movement will change the vehicle to [Position mode](../flight_modes_mc/position.md) (by [default](#MAN_OVERRIDE_SPD)).
 
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_land -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_land -->
+
 ### Parameters
 
 Land mode behaviour can be configured using the parameters below.
@@ -36,7 +50,7 @@ Land mode behaviour can be configured using the parameters below.
 | <a id="MPC_LAND_SPEED"></a>[MPC_LAND_SPEED](../advanced_config/parameter_reference.md#MPC_LAND_SPEED)       | The rate of descent during landing. This should be kept fairly low as the ground conditions are not known.                                                                                                                                                                                                                                                                                                                                                                                    |
 | <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | Time-out for auto disarm after landing, in seconds. If set to -1 the vehicle will not disarm on landing.                                                                                                                                                                                                                                                                                                                                                                                      |
 | <a id="MAN_OVERRIDE_SPD"></a>[MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD) | Speed (normalized stick travel per second) above which moving the sticks controlling a multicopter (or VTOL in hover) gives control back to the pilot by switching to [Position mode](../flight_modes_mc/position.md) (or Altitude mode if position is unavailable). At the default value of 1 a half-stick movement in ~0.5 s triggers it; lower is more sensitive. A stick held statically has zero speed and will not trigger. Set to -1 to disable. <Badge type="tip" text="PX4 v1.18" /> |
-| <a id="MPC_AUTO_NUDGING"></a>[MPC_AUTO_NUDGING](../advanced_config/parameter_reference.md#MPC_AUTO_NUDGING) | Bitmask enabling stick nudging in Auto modes (multicopter). Bit 0 (yaw nudging) lets the yaw stick nudge heading during landing. Bit 1 (land nudging) additionally lets the pitch/roll sticks move the vehicle horizontally (within [MPC_LAND_RADIUS](#MPC_LAND_RADIUS)), the throttle stick amend the descent speed, and the yaw stick rotate the heading. Requires stick override to be disabled ([MAN_OVERRIDE_SPD](#MAN_OVERRIDE_SPD) = -1).                                              |
+| <a id="MPC_AUTO_NUDGING"></a>[MPC_AUTO_NUDGING](../advanced_config/parameter_reference.md#MPC_AUTO_NUDGING) | Bitmask enabling stick nudging in Auto modes (multicopter). Bit 0 (yaw nudging) lets the yaw stick nudge heading during landing. Bit 1 (land nudging) additionally lets the pitch/roll sticks move the vehicle horizontally (within [MPC_LAND_RADIUS](../advanced_config/parameter_reference.md#MPC_LAND_RADIUS)), the throttle stick amend the descent speed, and the yaw stick rotate the heading. Requires stick override to be disabled ([MAN_OVERRIDE_SPD](#MAN_OVERRIDE_SPD) = -1).     |
 
 ## See Also
 

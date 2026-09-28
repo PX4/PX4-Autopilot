@@ -75,6 +75,10 @@ Supported hardware includes (this is not an exhaustive list):
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
+  - [Smartmicro Drone Altimeter](smartmicro_t132.md)
+
+- Grippers
+  - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
 
 - 광류 센서
   - [Ark Flow](ark_flow.md)
@@ -109,7 +113,7 @@ The parameter is set to 1 by default.
 
 Devices running the [PX4 DroneCAN firmware](px4_cannode_fw.md) (such as [ARK CANnode](ark_cannode.md)) can use the
 [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) parameter to set a static node ID.
-Set it to 0 (default) for dynamic allocation, or to a value between 1-127 to use a specific static node ID.
+Set it to 0 (default) for dynamic allocation, or to a value between 1-125 to use a specific static node ID.
 :::
 
 :::warning
@@ -150,6 +154,7 @@ For example, [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_F
 
 For example, to use a connected DroneCAN smart battery you would enable the [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) parameter, which would subscribe PX4 to receive [BatteryInfo](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#batteryinfo) DroneCAN messages.
 If using a peripheral that needs to know if PX4 is armed, you would need to set the [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) parameter so that PX4 starts publishing [ArmingStatus](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus) messages.
+ArmingStatus is published automatically when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is `3` (ESC output).
 
 The parameter names are prefixed with `UAVCAN_SUB_` and `UAVCAN_PUB_` to indicate whether they enable PX4 subscribing or publishing.
 The remainder of the name indicates the specific message/feature being set.
@@ -164,7 +169,7 @@ The following sections provide additional detail on the PX4 and DroneCAN periphe
 
 #### 센서
 
-The DroneCAN sensor parameters/subscriptions that you can enable are (in PX4 v1.14):
+The DroneCAN sensor parameters/subscriptions that you can enable are (from PX4 v1.14):
 
 - [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD): Airspeed
 - [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO): Barometer
@@ -279,6 +284,14 @@ If the rangefinder is connected via DroneCAN (whether inbuilt or separate), you 
 PX4 DroneCAN parameters:
 
 - [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) ([Arming Status](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus)): Publish when using DroneCAN components that require the PX4 arming status as a precondition for use.
+  Not required for DroneCAN ESCs: ArmingStatus is published automatically when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is `3`.
+
+#### Grippers
+
+DroneCAN grippers do not require any `UAVCAN_SUB_*`, `UAVCAN_PUB_*`, `CANNODE_SUB_*`, or `CANNODE_PUB_*` parameters.
+When DroneCAN is enabled, PX4 automatically publishes [`uavcan.equipment.hardpoint.Command`](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#uavcanequipmenthardpoint) messages to forward `MAV_CMD_DO_GRIPPER` commands.
+
+See [Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md) for an example setup.
 
 ### ESC & Servos
 
@@ -306,7 +319,7 @@ For example, the screenshot below shows the parameters for a CAN GPS with node i
 
 Common CANNODE parameters that you can configure include:
 
-- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-127) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
+- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-125) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
 - [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM): Enable CAN bus termination on the last node in the bus.
 
 ## Device Specific Setup
@@ -334,31 +347,12 @@ On boot, PX4 scans both locations, reads the board ID from the _APDescriptor_ of
 The source file is then deleted.
 Any connected node whose running version does not match is then flashed over the CAN bus.
 
-### Firmware Database
-
-A flat-file database at `/fs/microsd/ufw/FW.db` maps each board ID to the original firmware filename that was installed.
-This may be queried by external tools to determine current firmware versions.
-
-Example entry:
-
-```txt
-122.bin=122-1.17.63eeff1a.uavcan.bin
-```
-
-Entries are removed on boot if their corresponding firmware is not present.
-
 ### Remote Update
 
 Remote updates can be made by uploading the corresponding bin files to `/fs/microsd/ufw_staging/`.
 PX4 will then update firmware on next boot.
 
 This approach enables efficient mass-update of binaries from archives (`.zip` or `.tar` that contains `.bin` files for the target CAN nodes).
-Tools can:
-
-1. Read the PX4 firmware database to determine what firmware is present
-2. Extract the more-recent versions of matching firmware to the staging directory
-
-PX4 does not provide such tools.
 
 :::info
 Auterion uses a form of this workflow to update CAN firmware to SkyNode based devices.
@@ -372,7 +366,7 @@ The `upload_skynode.sh` script with multiple `--ext-fw` flags is used to bundle 
   --ext-fw=build/auterion_canio_default/some_other_default.uavcan.bin
 ```
 
-Another tool then checks the firmware database and extracts just the relevant files to the PX4 firmware staging area.
+Another tool then checks which files were already uploaded using a local database and extracts just the relevant files to the PX4 firmware staging area.
 :::
 
 ## 문제 해결

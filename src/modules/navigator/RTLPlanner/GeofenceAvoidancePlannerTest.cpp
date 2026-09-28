@@ -95,6 +95,7 @@ TEST_F(GeofenceAvoidancePlannerTest, DirectPathNoFence)
 	const int num_waypoints = _planner.updateStartAndFillPath(start);
 
 	ASSERT_EQ(num_waypoints, 0);
+	EXPECT_FALSE(_planner.needsStraightLineFallback());
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
@@ -280,8 +281,8 @@ TEST_F(GeofenceAvoidancePlannerTest, NanStartOrDestination)
 {
 	using namespace matrix;
 	Vector2<double> valid(47.3977, 8.5456);
-	Vector2<double> nan_lat(NAN, 8.5456);
-	Vector2<double> nan_lon(47.3977, NAN);
+	Vector2<double> nan_lat(static_cast<double>(NAN), 8.5456);
+	Vector2<double> nan_lon(47.3977, static_cast<double>(NAN));
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.updateGraphFromGeofence(fake, 0.f);

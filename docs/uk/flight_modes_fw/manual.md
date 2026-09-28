@@ -20,6 +20,16 @@ Unlike [Acro Mode](../flight_modes_fw/acro.md), if the roll-pitch stick is cente
 
 Це єдиний режим, що перевизначає FMU (команди відправляються через копроцесор безпеки). Він забезпечує механізм безпечності, який дозволяє повний контроль газового засуву, елеватора, елеронів та руля через RC в разі виникнення несправності програмного забезпечення FMU.
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_manual -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_manual -->
+
 ## Параметри
 
 | Parameter                                                                                                                                                   | Опис                                                                                                                                                                                                                                                                                                                                |

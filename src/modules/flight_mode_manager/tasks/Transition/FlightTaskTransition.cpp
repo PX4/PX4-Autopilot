@@ -85,7 +85,7 @@ bool FlightTaskTransition::update()
 	bool ret = FlightTask::update();
 
 	// slowly move vertical velocity setpoint to zero
-	_velocity_setpoint(2) = _vel_z_filter.update(0.0f, _deltatime);
+	_velocity_setpoint(2) = _vel_z_filter.update(0.0f, static_cast<uint64_t>(_deltatime * 1e6f));
 
 	// calculate a horizontal acceleration vector which corresponds to an attitude composed of pitch up by _param_fw_psp_off
 	// and zero roll angle
@@ -142,7 +142,7 @@ float FlightTaskTransition::computeBackTransitionTiltSetpoint()
 	}
 
 	const Vector2f acceleration_xy_raw{_sub_vehicle_local_position.get().ax, _sub_vehicle_local_position.get().ay};
-	const Vector2f acceleration_xy = _accel_filter.update(acceleration_xy_raw, _deltatime);
+	const Vector2f acceleration_xy = _accel_filter.update(acceleration_xy_raw, static_cast<uint64_t>(_deltatime * 1e6f));
 	const float deceleration = -acceleration_xy.dot(velocity_xy_direction); // Zero when velocity invalid
 	const float deceleration_error = deceleration_setpoint - deceleration;
 

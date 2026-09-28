@@ -33,6 +33,7 @@ public:
 
     IFileServerBackend::Path root_path_;
     IFileServerBackend::Path alt_root_path_;
+    IFileServerBackend::Path nfs_root_path_;
 
     /**
      * All read operations must return this number of bytes, unless end of file is reached.
@@ -73,6 +74,19 @@ public:
       }
     }
 
+    void setNfsRootPath(const char * path)
+    {
+      if (path)
+      {
+          nfs_root_path_.clear();
+          nfs_root_path_ = path;
+          if (nfs_root_path_.back() != getPathSeparator())
+          {
+              nfs_root_path_.push_back(getPathSeparator());
+          }
+      }
+    }
+
     /**
      * Get a base path to the files.
      */
@@ -87,6 +101,11 @@ public:
     Path&  getAltRootPath()
     {
       return alt_root_path_;
+    }
+
+    Path&  getNfsRootPath()
+    {
+      return nfs_root_path_;
     }
 
     /**
@@ -208,7 +227,13 @@ public:
         : get_info_srv_(node)
         , read_srv_(node)
         , backend_(backend)
-    { }
+    {
+        // Dual-CAN boards are usually independent buses, not redundant copies of one.
+        // File.Read is the firmware-update payload; echoing it onto the other iface
+        // fills that iface's TX queue with traffic nobody asked for.
+        get_info_srv_.setRespondOnRequestIface(true);
+        read_srv_.setRespondOnRequestIface(true);
+    }
 
     int start(const char* server_root = UAVCAN_NULLPTR, const char* server_alt_root = UAVCAN_NULLPTR)
     {
@@ -283,7 +308,11 @@ public:
         , write_srv_(node)
         , delete_srv_(node)
         , get_directory_entry_info_srv_(node)
-    { }
+    {
+        write_srv_.setRespondOnRequestIface(true);
+        delete_srv_.setRespondOnRequestIface(true);
+        get_directory_entry_info_srv_.setRespondOnRequestIface(true);
+    }
 
     int start()
     {

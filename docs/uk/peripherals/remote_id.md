@@ -22,12 +22,12 @@ Remote ID hardware can only be connected via DroneCAN on `main` branch builds (b
 
 PX4 integrates with Remote ID hardware that supports:
 
-- [Open Drone ID](https://mavlink.io/en/services/opendroneid.html) MAVLink protocol<Badge type="tip" text="PX4 v1.14" />
-- Remote ID over CAN<Badge type="tip" text="PX4 main (v1.16)" />
+- [Open Drone ID](https://mavlink.io/en/services/opendroneid.html) MAVLink protocol <Badge type="tip" text="PX4 v1.14" />
+- Remote ID over CAN <Badge type="tip" text="PX4 main (v1.16)" />
 
 Було протестовано з наступними пристроями:
 
-- [Cube ID](https://docs.cubepilot.org/user-guides/cube-id/cube-id) (CubePilot)
+- [Cube ID](https://docs.cubepilot.org/cube-id/cube-id) (CubePilot)
 - [Db201](https://dronescout.co/dronebeacon-mavlink-remote-id-transponder/) (BlueMark) - Tested via serial port. Not tested via CAN port.
 - [Db202mav](https://dronescout.co/dronebeacon-mavlink-remote-id-transponder/) (BlueMark) - Less expensive variant without CAN port.
 - [Holybro RemoteID Module](https://holybro.com/products/remote-id) (Holybro)
@@ -41,7 +41,7 @@ Most commonly they are connected directly to the `TELEM2` port (if it is not bei
 
 ### Cube ID
 
-[Cube ID](https://docs.cubepilot.org/user-guides/cube-id/cube-id) can be connected using a serial or CAN port.
+[Cube ID](https://docs.cubepilot.org/cube-id/cube-id) can be connected using a serial or CAN port.
 
 It comes with 6-pin and 4-pin JST-GH 1.25mm cables that can be connected directly to the `TELEM` serial port and `CAN` ports, respectively, on most recent Pixhawk flight controllers.
 
@@ -75,7 +75,7 @@ TX та RX на контролері польоту повинні бути пі
 
 The Cube ID uses proprietary firmware (not [ArduRemoteID](https://github.com/ArduPilot/ArduRemoteID) like some other remote id beacons).
 
-For firmware update instructions see [Cube ID > Updating](https://docs.cubepilot.org/user-guides/cube-id/cube-id#updating).
+For firmware update instructions see [Cube ID > Updating](https://docs.cubepilot.org/cube-id/cube-id#updating).
 
 ### BlueMark Db201/Db202mav
 

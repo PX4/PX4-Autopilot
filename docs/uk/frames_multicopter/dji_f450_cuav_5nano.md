@@ -14,7 +14,7 @@ This topic provides full instructions for building the kit and configuring PX4 u
 
 Компоненти, необхідні для цієї збірки, є:
 
-- Flight controller: [CUAV V5 nano](https://store.cuav.net/shop/v5-nano/):
+- Flight controller: [CUAV V5 nano](../flight_controller/cuav_v5_nano.md) (Discontinued):
   - GPS: [CUAV NEO V2 GPS](https://store.cuav.net/?id_product=97&id_product_attribute=0&rewrite=cuav-new-ublox-neo-m8n-gps-module-with-shell-stand-holder-for-flight-controller-gps-compass-for-pixhack-v5-plus-rc-parts-px4&controller=product&id_lang=1)
   - Модуль живлення
 - Frame: [DJI F450](https://www.amazon.com/Flame-Wheel-Basic-Quadcopter-Drone/dp/B00HNMVQHY)

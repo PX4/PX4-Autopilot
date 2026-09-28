@@ -12,3 +12,4 @@ target_include_directories(lockstep_scheduler
 )
 
 px4_add_functional_gtest(SRC test/src/lockstep_scheduler_test.cpp LINKLIBS lockstep_scheduler)
+px4_add_functional_gtest(SRC test/src/lockstep_components_test.cpp LINKLIBS lockstep_scheduler)

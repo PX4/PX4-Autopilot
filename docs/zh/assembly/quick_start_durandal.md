@@ -21,8 +21,7 @@ The content of the box with the _PM02 V3_ power module is shown below (the box a
 
 ## 接线图概述
 
-下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。
-我们将在下面各节中介绍它们的细节。
+下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。我们将在下面各节中介绍它们的细节。
 
 ![Durandal Wiring Overview](../../assets/flight_controller/durandal/durandal_wiring_overview.jpg)
 

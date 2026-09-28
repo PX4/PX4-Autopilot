@@ -14,7 +14,7 @@ parameters:
           If set to 'None' the magnetometer will not be used under any circumstance.
           If no external source of yaw is available, it is possible to use post-takeoff
           horizontal movement combined with GNSS velocity measurements to align the yaw angle.
-          If set to 'Init' the magnetometer is only used to initalize the heading.
+          If set to 'Init' the magnetometer is only used to initialize the heading.
       type: enum
       values:
         0: Automatic

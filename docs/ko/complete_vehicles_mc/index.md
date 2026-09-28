@@ -12,8 +12,13 @@ You can find others on [px4.io](https://px4.io/ecosystem/commercial-systems/) an
 This section lists drone kits that are intended as platforms for further development.
 They may come either fully assembled or in parts.
 
+:::tip
+Kits certified by the PX4 team are listed in [PX4 Developer Kits](../dev_kits/index.md).
+:::
+
+- [ModalAI VOXL 2 Starling PX4 Development Drone](../complete_vehicles_mc/modalai_starling.md) - SLAM development drone supercharged by VOXL 2 and PX4 ([Official PX4 Developer Kit](../dev_kits/index.md))
+- [DroneBlocks DEXI 5](../complete_vehicles_mc/droneblocks_dexi.md) - STEM/development kit with optical flow and Raspberry Pi companion computer ([Official PX4 Developer Kit](../dev_kits/index.md))
 - [PX4 Vision DevKit](../complete_vehicles_mc/px4_vision_kit.md) - Multicopter used for PX4 computer vision development
-- [ModalAI VOXL 2 Starling PX4 Development Drone](../complete_vehicles_mc/modalai_starling.md) - SLAM development drone supercharged by VOXL 2 and PX4.
 
 ## PX4 Preinstalled
 

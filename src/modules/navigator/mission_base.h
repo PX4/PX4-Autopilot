@@ -380,7 +380,7 @@ protected:
 	 * @brief Traversal mode used by this navigation mode when walking position items.
 	 *
 	 * Mission mode follows active DO_JUMP control flow by default. Derived modes such as
-	 * mission-based RTL can override this to walk the geometric mission path instead.
+	 * mission-based Return can override this to walk the geometric mission path instead.
 	 * Traversal helpers use this policy unless the caller explicitly overrides it.
 	 */
 	virtual MissionTraversalType traversalType() const
@@ -499,6 +499,9 @@ private:
 	 * Inform about a changed mission item after a DO_JUMP
 	 */
 	void report_do_jump_mission_changed(int index, int do_jumps_remaining);
+
+	/** Mirror an in-place mission item write into the route cache. */
+	void syncMissionRouteCacheItem(int32_t index, const mission_item_s &mission_item);
 
 	/**
 	 * @brief Cache the mission items containing gimbal, camera mode and trigger commands

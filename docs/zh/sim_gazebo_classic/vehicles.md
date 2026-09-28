@@ -76,7 +76,7 @@ make px4_sitl gazebo-classic_plane
 make px4_sitl gazebo-classic_plane_catapult
 ```
 
-This model simulates hand/catapult launch, which can be used for [fixed-wing takeoff](../flight_modes_fw/takeoff.md) in position mode, takeoff mode, or missions.
+This model simulates hand/catapult launch, which can be used for [fixed-wing takeoff](../flight_modes_fw/takeoff.md) in cruise mode, takeoff mode, or missions.
 
 The plane will automatically be launched as soon as the vehicle is armed.
 

@@ -132,7 +132,8 @@ void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuato
 
 	if (esc_status.esc_count > 0) {
 		esc_status.timestamp = hrt_absolute_time();
-		_esc_status_pub.publish(esc_status);
+		_failure_config.update();
+		_esc_status_pub.publish(failure_injection::process_esc(_failure_config, esc_status));
 	}
 
 	pthread_mutex_unlock(&_node_mutex);

@@ -85,7 +85,6 @@
 #endif
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
 #include "streams/GPS_RAW_INT.hpp"
-#include "streams/GPS_RTCM_DATA.hpp"
 #include "streams/GPS_STATUS.hpp"
 #include "streams/HEARTBEAT.hpp"
 #include "streams/HIGHRES_IMU.hpp"
@@ -97,6 +96,9 @@
 #include "streams/LOCAL_POSITION_NED.hpp"
 #include "streams/MAG_CAL_REPORT.hpp"
 #include "streams/MANUAL_CONTROL.hpp"
+#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+#include "streams/MANUAL_INPUT_STATUS.hpp"
+#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
 #include "streams/MOUNT_ORIENTATION.hpp"
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
@@ -152,6 +154,7 @@
 # include "streams/GIMBAL_DEVICE_ATTITUDE_STATUS.hpp"
 # include "streams/GIMBAL_DEVICE_SET_ATTITUDE.hpp"
 # include "streams/GIMBAL_MANAGER_INFORMATION.hpp"
+# include "streams/GIMBAL_MANAGER_SET_PITCHYAW.hpp"
 # include "streams/GIMBAL_MANAGER_STATUS.hpp"
 # include "streams/GIMBAL_DEVICE_INFORMATION.hpp"
 # include "streams/GPS2_RAW.hpp"
@@ -257,7 +260,8 @@ static_assert(41 == ROTATION_MAX, "Keep MAV_SENSOR_ROTATION and PX4 Rotation in 
 static_assert(MAV_SENSOR_ROTATION_CUSTOM == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_CUSTOM), "Custom Rotation");
 
 
-static const StreamListItem streams_list[] = {
+// constexpr so the table is emitted into .rodata instead of being built at runtime by static-init code
+static constexpr StreamListItem streams_list[] = {
 #if defined(HEARTBEAT_HPP)
 	create_stream_list_item<MavlinkStreamHeartbeat>(),
 #endif // HEARTBEAT_HPP
@@ -361,6 +365,9 @@ static const StreamListItem streams_list[] = {
 #if defined(GIMBAL_DEVICE_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamGimbalDeviceInformation>(),
 #endif // GIMBAL_DEVICE_INFORMATION_HPP
+#if defined(GIMBAL_MANAGER_SET_PITCHYAW_HPP)
+	create_stream_list_item<MavlinkStreamGimbalManagerSetPitchyaw>(),
+#endif // GIMBAL_MANAGER_SET_PITCHYAW_HPP
 #if defined(GIMBAL_MANAGER_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamGimbalManagerStatus>(),
 #endif // GIMBAL_MANAGER_STATUS_HPP
@@ -395,6 +402,9 @@ static const StreamListItem streams_list[] = {
 #if defined(MANUAL_CONTROL_HPP)
 	create_stream_list_item<MavlinkStreamManualControl>(),
 #endif // MANUAL_CONTROL_HPP
+#if defined(MANUAL_INPUT_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamManualInputStatus>(),
+#endif // MANUAL_INPUT_STATUS_HPP
 #if defined(OPTICAL_FLOW_RAD_HPP)
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
 #endif // OPTICAL_FLOW_RAD_HPP
@@ -512,9 +522,6 @@ static const StreamListItem streams_list[] = {
 #if defined(EFI_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamEfiStatus>(),
 #endif // EFI_STATUS_HPP
-#if defined(GPS_RTCM_DATA_HPP)
-	create_stream_list_item<MavlinkStreamGPSRTCMData>(),
-#endif // GPS_RTCM_DATA_HPP
 #if defined(UAVIONIX_ADSB_OUT_CFG_HPP)
 	create_stream_list_item<MavlinkStreamUavionixADSBOutCfg>(),
 #endif // UAVIONIX_ADSB_OUT_CFG_HPP

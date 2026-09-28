@@ -25,20 +25,78 @@ menuconfig NAVIGATOR_ADSB
 	default y
 	depends on MODULES_NAVIGATOR
 	---help---
-		Add support for acting on ADSB transponder_report or ADSB_VEHICLE MAVLink messages.
-		Actions are warnings, Loiter, Land and RTL without climb.
+		Evaluate cooperative traffic reports and request configured warnings or
+		navigation actions. The crosstrack conflict model is built by default;
+		enabling NAVIGATOR_ADSB_F3442 selects the F3442-derived model instead.
+
+menuconfig NAVIGATOR_ADSB_F3442
+	bool "Use F3442-derived traffic conflict evaluation"
+	default n
+	depends on NAVIGATOR_ADSB
+	---help---
+		Build the conflict model based on selected ASTM F3442 alert concepts
+		instead of the crosstrack model. This option alone does not establish
+		compliance.
 
 menuconfig NAVIGATOR_GEOFENCE_AVOIDANCE
-	bool "Include geofence avoidance path planning for RTL"
+	bool "Include geofence avoidance path planning for Return mode"
 	default y
 	depends on MODULES_NAVIGATOR
 	---help---
-		Add support for RTL mode to route around geofences.
+		Add support for Return mode to route around geofences.
 
 config NAVIGATOR_GEOFENCE_MAX_NODES
-	int "Max graph nodes for geofence RTL planner"
+	int "Max graph nodes for geofence Return planner"
 	default 100
 	depends on NAVIGATOR_GEOFENCE_AVOIDANCE
 	---help---
-		Max number of geofence vertices which the RTL planner can use.
+		Max number of geofence vertices which the Return planner can use.
 		Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number.
+
+menuconfig NAVIGATOR_ADSB_FAKE_TRAFFIC
+	bool "Include fake-traffic injection for DAA testing"
+	default n
+	depends on NAVIGATOR_ADSB
+	---help---
+		Adds the `navigator fake_traffic` shell command and the scripted scenarios
+		used to validate the Detect and Avoid pipeline without a real transponder.
+
+config NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	int "Maximum number of mission items cached for route planning"
+	default 500 if PLATFORM_POSIX
+	default 0
+	range 0 NUM_MISSION_ITEMS_SUPPORTED
+	depends on MODULES_NAVIGATOR
+	---help---
+		Maximum number of mission items reserved in RAM for full-route planning helpers:
+		56 bytes per item, allocated once at Navigator start. Set to 0 to disable the
+		cache on boards without the extra RAM. Longer missions are not cached at all.
+		After upload or reboot the cache refills asynchronously. Navigator polls the
+		Dataman response subscription while each read is pending, then immediately
+		queues the next item without blocking its main loop.
+
+config NAVIGATOR_SAFE_POINT_BATCH_SIZE
+	int "Maximum rally points scored per mission-route planning batch"
+	default 32 if BOARD_TESTING
+	default 1
+	range 1 32
+	depends on MODULES_NAVIGATOR
+	---help---
+		Number of rally (safe) points held in the fixed-size projection batch buffer that the
+		route planner scores in a single scan of the mission route.
+
+		When more eligible rally points are configured than fit in one batch, the planner
+		evaluates them in successive batches, re-scanning the full mission route once per batch,
+		and keeps the lowest-cost valid safe point found. Unreadable or invalid rally points and
+		failed batch scans are skipped so a result from another batch remains usable.
+		A larger value trades RAM for fewer mission passes when many rally points are configured;
+		boards with spare RAM can raise it so all rally points fit in a single pass.
+
+		The projection batch is allocated in static RAM: it reserves roughly
+		sizeof(ProjectionReference) * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE bytes
+		(about 380 bytes per slot, i.e. ~12 KB at the maximum batch size of 32).
+
+		The default of 1 keeps RAM use low on boards that enable route planning.
+
+		The upper bound of 32 comes from DM_KEY_SAFE_POINTS_MAX, the maximum number of storable
+		safe points: batch slots beyond that count can never be filled.

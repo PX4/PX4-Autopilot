@@ -8,7 +8,7 @@ Adding a feature to PX4 follows a defined workflow. In order to share your contr
 
 - [Sign up](https://github.com/signup) for github if you haven't already
 
-- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo))
+- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/pull-requests/how-tos/work-with-forks/fork-a-repo))
 
 - 将分支克隆到本地计算机
 
@@ -49,7 +49,7 @@ Adding a feature to PX4 follows a defined workflow. In order to share your contr
   git add <file name>
   ```
 
-  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](https://nuclearsquid.com/writings/git-add/).
+  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Appendix-A:-Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](https://nuclearsquid.com/writings/git-add/).
 
 - 提交添加的文件, 并顺便记录一条有意义的消息, 解释您的更改
 
@@ -280,7 +280,7 @@ git checkout <branch name>
 
 ### 强制推送到分叉存储库
 
-做完第一个 PR 后, 来自 PX4 社区的人将回顾你的更改。 在大多数情况下, 这意味着您必须根据评审来修复本地分支。 After changing the files locally, the feature branch needs to be rebased again with the most recent upstream/main. 但是, 在重新建立基础后, 不再可能将特征分支直接推送到分叉存储库, 而是需要使用强制推送:
+做完第一个 PR 后, 来自 PX4 社区的人将回顾你的更改。在大多数情况下, 这意味着您必须根据评审来修复本地分支。 After changing the files locally, the feature branch needs to be rebased again with the most recent upstream/main. 但是, 在重新建立基础后, 不再可能将特征分支直接推送到分叉存储库, 而是需要使用强制推送:
 
 ```sh
 git push --force-with-lease origin <your feature branch name>
@@ -292,7 +292,7 @@ If a conflict occurs during a `git rebase`, please refer to [this guide](https:/
 
 ### 拉取合并冲突
 
-If a conflict occurs during a `git pull`, please refer to [this guide](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line#competing-line-change-merge-conflicts).
+If a conflict occurs during a `git pull`, please refer to [this guide](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/resolving-a-merge-conflict-using-the-command-line#competing-line-change-merge-conflicts).
 
 ### Build error due to git tags out of date
 

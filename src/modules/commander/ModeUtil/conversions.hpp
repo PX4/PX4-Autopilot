@@ -52,6 +52,8 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE: return navigation_mode_t::altitude_cruise;
 
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING: return navigation_mode_t::manual_parking;
+
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL: return navigation_mode_t::posctl;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION: return navigation_mode_t::auto_mission;
@@ -73,6 +75,8 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF: return navigation_mode_t::auto_takeoff;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND: return navigation_mode_t::auto_land;
+
+	case vehicle_status_s::NAVIGATION_STATE_DESCEND: return navigation_mode_t::descend;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET: return navigation_mode_t::auto_follow_target;
 

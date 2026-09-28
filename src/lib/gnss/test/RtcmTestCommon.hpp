@@ -34,7 +34,7 @@
 #pragma once
 
 #include <gtest/gtest.h>
-#include "rtcm.h"
+#include "correction_framer.h"
 #include <vector>
 #include <cstring>
 #include <numeric>
@@ -45,7 +45,7 @@ using namespace gnss;
 class RtcmTest : public ::testing::Test
 {
 protected:
-	Rtcm3Parser parser;
+	CorrectionFramer parser;
 	GpsRtcmMessageAssembler gps_rtcm_assembler;
 
 	uint8_t buildGpsRtcmFlags(bool fragmented, uint8_t fragment_id = 0, uint8_t sequence_id = 0)

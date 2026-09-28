@@ -55,8 +55,9 @@ class VTEPosition;
 // Single source of truth for VTE_TASK_MASK bit values.
 namespace task_bits
 {
-static constexpr uint8_t kPrecLand = 1u << 0;
-static constexpr uint8_t kDebug    = 1u << 1;
+static constexpr uint8_t kPrecLand    = 1u << 0;
+static constexpr uint8_t kDebug       = 1u << 1;
+static constexpr uint8_t kPrecTakeoff = 1u << 2;
 } // namespace task_bits
 
 class VteTask

@@ -98,11 +98,15 @@ PrecLand::on_activation()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	pos_sp_triplet->next.valid = false;
-	pos_sp_triplet->previous.valid = false;
+	// Snapshot the setpoint the previous mode left, then reset the triplet. If it was a valid landing
+	// target we continue to it, otherwise we land at the current position.
+	const position_setpoint_s previous_setpoint = pos_sp_triplet->current;
+	_navigator->reset_triplets();
 
-	// Check that the current position setpoint is valid, otherwise land at current position
-	if (!pos_sp_triplet->current.valid) {
+	if (previous_setpoint.valid) {
+		pos_sp_triplet->current = previous_setpoint;
+
+	} else {
 		PX4_WARN("Reset");
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;

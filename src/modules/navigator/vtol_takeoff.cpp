@@ -51,6 +51,9 @@ VtolTakeoff::VtolTakeoff(Navigator *navigator) :
 void
 VtolTakeoff::on_activation()
 {
+	// reset triplets, modes should be explicit about which fields they want to set
+	_navigator->reset_triplets();
+
 	if (hrt_elapsed_time(&_navigator->get_global_position()->timestamp) < 1_s) {
 		set_takeoff_position();
 		_takeoff_state = vtol_takeoff_state::TAKEOFF_HOVER;
@@ -111,10 +114,10 @@ VtolTakeoff::on_active()
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 				if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-					setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+					setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current);
 
 				} else {
-					setLoiterItemFromCurrentPosition(&_mission_item);
+					setLoiterItemFromCurrentPosition(_mission_item);
 				}
 
 				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;

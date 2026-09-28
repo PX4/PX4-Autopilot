@@ -69,12 +69,21 @@ public:
 	};
 
 	/**
-	 * Apply a MAV_CMD_INJECT_FAILURE request.
+	 * Apply a MAV_CMD_INJECT_FAILURE request addressed by a single instance.
 	 * @param unit     failure_injection_s::FAILURE_UNIT_*
 	 * @param type     failure_injection_s::FAILURE_TYPE_*
 	 * @param instance 1-based component/sensor instance, or 0 for all instances
 	 */
 	AckResult inject(uint8_t unit, uint8_t type, uint8_t instance);
+
+	/**
+	 * Apply a MAV_CMD_INJECT_FAILURE request addressed by an instance bitmask (bit i = instance i+1),
+	 * matching MAV_CMD_INJECT_FAILURE param4. A mask of 0 addresses nothing (accepted no-op).
+	 * @param unit failure_injection_s::FAILURE_UNIT_*
+	 * @param type failure_injection_s::FAILURE_TYPE_*
+	 * @param mask 16-bit instance bitmask
+	 */
+	AckResult injectMask(uint8_t unit, uint8_t type, uint16_t mask);
 
 	/** True if the table changed since the last clearChanged(). */
 	bool changed() const { return _changed; }
@@ -88,14 +97,15 @@ public:
 	/** Capability catalogue: which (unit, type) combinations the system supports. */
 	static bool isSupported(uint8_t unit, uint8_t type);
 
+	/** Instance addressing to mask: 0 -> all (0xFFFF), 1..16 -> its bit, >16 -> 0. */
+	static uint16_t instanceToMask(uint8_t instance);
+
 private:
 	struct Entry {
 		uint8_t  unit;
 		uint16_t instance_mask;
 		uint8_t  type;
 	};
-
-	static uint16_t instanceToMask(uint8_t instance);
 	int findEntry(uint8_t unit, uint8_t type) const;
 	void clearInstances(uint8_t unit, uint16_t mask, uint8_t keep_type);
 	void compact();

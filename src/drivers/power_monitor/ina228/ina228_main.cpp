@@ -82,7 +82,7 @@ this flag set, the battery must be plugged in before starting the driver.
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x45);
 	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
-	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 3, "battery index for calibration values (1 or 3)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 3, "battery index for calibration values (1-3)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -101,6 +101,12 @@ ina228_main(int argc, char *argv[])
 		switch (ch) {
 		case 't': // battery index
 			cli.custom1 = (int)strtol(cli.optArg(), NULL, 0);
+
+			if (cli.custom1 < 1 || cli.custom1 > 3) {
+				PX4_ERR("index must be 1-3");
+				return -1;
+			}
+
 			break;
 		}
 	}

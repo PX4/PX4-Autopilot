@@ -37,6 +37,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 | [LightWare SF10/B] _(disc.)_                                              | ToF (IR laser)  | ~50 m                                                                       | UART, I2C                                 | ~ | Discontinued                                           |
 | [LightWare SF10/C] _(disc.)_                                              | ToF (IR laser)  | ~100 m                                                                      | UART, I2C                                 | ~ | Discontinued                                           |
 | [Lanbao PSK-CM8JL65-CC5] _(disc.)_                                        | ToF (IR)        | 0.17 m – 8 m                                                                | UART                                      | ✖️                | Discontinued                                           |
+| [Smartmicro Drone Altimeter]                                              | Microwave radar                    | 1 m to 175 m                                                                                | DroneCAN                                  | ~ |                                                        |
 | [TeraRanger One] _(disc.)_                                                | ToF (IR)        | ~0.2 m – ~14 m (typical) | I2C (adapter required) | ~ | Discontinued                                           |
 
 [Ainstein US-D1 Standard Radar Altimeter]: ../sensor/ulanding_radar.md
@@ -56,6 +57,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 [LightWare SF10/B]: ../sensor/sfxx_lidar.md
 [LightWare SF10/C]: ../sensor/sfxx_lidar.md
 [MaxBotix I2CXL-MaxSonar-EZ]: #maxbotix-i2cxl-maxsonar-ez
+[Smartmicro Drone Altimeter]: ../dronecan/smartmicro_t132.md
 [Sony AS-DT1]: ../sensor/sony_asdt1.md
 [TeraRanger Evo 60 m]: ../sensor/teraranger.md
 [TeraRanger Evo 600Hz]: ../sensor/teraranger.md
@@ -145,13 +147,18 @@ The [Benewake TFmini Lidar](../sensor/tfmini.md) is a tiny, low cost, and low po
 The [Lanbao PSK-CM8JL65-CC5 ToF Infrared Distance Measuring Sensor](../sensor/cm8jl65_ir_distance_sensor.md) is a very small (38 mm x 18mm x 7mm, <10g) IR distance sensor with a 0.17m-8m range and millimeter resolution.
 Це повинно бути підключено до шини UART/серійного порту.
 
+### Smartmicro Drone Altimeter
+
+The [Smartmicro Drone Altimeter](../dronecan/smartmicro_t132.md) is a [DroneCAN](../dronecan/index.md) radar-based altimeter with a sensing range of 1m to 175m.
+It is designed for use in GNSS-denied environments.
+
 ### Avionics Anonymous UAVCAN Laser Altimeter Interface
 
 The [Avionics Anonymous UAVCAN Laser Altimeter Interface](../dronecan/avanon_laser_interface.md) allows several common rangefinders (e.g. [Lightware SF11/c, SF30/D](../sensor/sfxx_lidar.md), etc) to be connected to the [CAN](../can/index.md) bus via [DroneCAN](../dronecan/index.md), a more robust interface than I2C.
 
 ### RaccoonLab Cyphal and DroneCAN Rangefinder Adapter
 
-The [RaccoonLab Cyphal and DroneCAN Rangefinder Adapter](https://raccoonlab.co/tproduct/360882105-910084093051-cyphal-and-dronecan-rangefinder-adapter) allows several common rangefinders to be connected to the CAN bus via Cyphal or DroneCAN, providing a more robust interface than I2C or UART.
+The [RaccoonLab Cyphal and DroneCAN Rangefinder Adapter](https://docs.raccoonlab.co/guide/rangefinder/) allows several common rangefinders to be connected to the CAN bus via Cyphal or DroneCAN, providing a more robust interface than I2C or UART.
 This adapter efficiently reads measurements via I2C or UART and publishes range data in meters, making it a versatile solution for UAVs, robotics, and technical documentation applications.
 
 Supported rangefinders include:

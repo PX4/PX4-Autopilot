@@ -33,7 +33,7 @@
 /**
  * @file rtl_base.h
  *
- * Helper class for RTL modes using the mission
+ * Helper class for Return modes using the mission
  *
  */
 

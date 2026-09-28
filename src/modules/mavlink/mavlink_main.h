@@ -442,9 +442,35 @@ public:
 
 	struct sockaddr_in 	&get_client_source_address() { return _src_addr; }
 
-	void			set_client_source_initialized() { _src_addr_initialized = true; }
+	/**
+	 * Latch onto a client address that we discovered from an incoming packet.
+	 * Also counts as having just heard from it, see client_source_can_be_replaced().
+	 */
+	void			set_client_source_initialized()
+	{
+		_src_addr_initialized = true;
+		_src_addr_discovered = true;
+		mark_client_source_seen();
+	}
 
 	bool			get_client_source_initialized() { return _src_addr_initialized; }
+
+	void			mark_client_source_seen() { _time_last_client_source_packet = hrt_absolute_time(); }
+
+	/**
+	 * Whether another source is allowed to take over as our client.
+	 *
+	 * This is the case if we discovered the current client ourselves (rather than
+	 * having it configured using -t or -c), and it has stopped talking to us. That
+	 * way a client which reconnects from a different source port - which happens
+	 * whenever it is restarted - can take over, instead of us sending into the void
+	 * until the next reboot.
+	 */
+	bool			client_source_can_be_replaced() const
+	{
+		return _src_addr_discovered
+		       && hrt_elapsed_time(&_time_last_client_source_packet) > CLIENT_SOURCE_TIMEOUT;
+	}
 #endif
 
 	uint64_t		get_start_time() { return _mavlink_start_time; }
@@ -506,7 +532,7 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
-	bool radio_status_critical() const { return _radio_status_critical; }
+	bool radio_status_critical() const;
 
 	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
@@ -627,7 +653,11 @@ private:
 	sockaddr_in		_src_addr {};
 	sockaddr_in		_bcast_addr {};
 
+	static constexpr hrt_abstime CLIENT_SOURCE_TIMEOUT{3_s};
+	hrt_abstime		_time_last_client_source_packet{0};
+
 	bool			_src_addr_initialized{false};
+	bool			_src_addr_discovered{false};
 	bool			_broadcast_address_found{false};
 	bool			_broadcast_address_not_found_warned{false};
 	bool			_broadcast_failed_warned{false};
@@ -656,7 +686,7 @@ private:
 	pthread_mutex_t		_message_buffer_mutex{};
 	VariableLengthRingbuffer _message_buffer{};
 
-	pthread_mutex_t         _radio_status_mutex {};
+	mutable pthread_mutex_t _radio_status_mutex {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,

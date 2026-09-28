@@ -37,7 +37,7 @@
  * @file SimulatorMavlink.hpp
  *
  * This module interfaces via MAVLink to a software in the loop simulator (SITL)
- * such as jMAVSim or Gazebo.
+ * such as Gazebo Classic or X-Plane.
  */
 
 #pragma once
@@ -47,6 +47,7 @@
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
@@ -156,10 +157,6 @@ public:
 		perf_free(_perf_sim_delay);
 		perf_free(_perf_sim_interval);
 
-		for (size_t i = 0; i < sizeof(_dist_pubs) / sizeof(_dist_pubs[0]); i++) {
-			delete _dist_pubs[i];
-		}
-
 		px4_lockstep_unregister_component(_lockstep_component);
 
 		for (size_t i = 0; i < sizeof(_sensor_gps_pubs) / sizeof(_sensor_gps_pubs[0]); i++) {
@@ -205,6 +202,12 @@ private:
 		{6620428}, // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
 	};
 
+	static constexpr uint8_t DIST_SENSOR_COUNT_MAX = 10;
+	PX4Rangefinder _px4_rangefinder[DIST_SENSOR_COUNT_MAX] {
+		{0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}
+	};
+	uint32_t _dist_sensor_ids[DIST_SENSOR_COUNT_MAX] {};
+
 	float _sensors_temperature{0};
 
 	perf_counter_t _perf_sim_delay{perf_alloc(PC_ELAPSED, MODULE_NAME": network delay")};
@@ -217,9 +220,6 @@ private:
 	uORB::Publication<esc_status_s>			_esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_odometry_s>		_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
-
-	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[ORB_MULTI_MAX_INSTANCES] {};
-	uint32_t _dist_sensor_ids[ORB_MULTI_MAX_INSTANCES] {};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -307,36 +307,17 @@ private:
 
 	failure_injection::Config _failure_config;
 
-	bool _accel_blocked[ACCEL_COUNT_MAX] {};
-	bool _accel_stuck[ACCEL_COUNT_MAX] {};
-	sensor_accel_fifo_s _last_accel_fifo{};
-	matrix::Vector3f _last_accel[GYRO_COUNT_MAX] {};
+	// Previous accel/gyro 0 FIFO sample timestamp, kept so the per-sample dt can be computed.
+	hrt_abstime _last_accel_fifo_timestamp{0};
+	hrt_abstime _last_gyro_fifo_timestamp{0};
 
-	bool _gyro_blocked[GYRO_COUNT_MAX] {};
-	bool _gyro_stuck[GYRO_COUNT_MAX] {};
-	sensor_gyro_fifo_s _last_gyro_fifo{};
-	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
+	// Per-HIL_GPS-instance last-good sample, for the Stuck failure.
+	failure_injection::Stuck<sensor_gps_s> _gps_stuck[MAX_GPS];
 
-	bool _baro_blocked[BARO_COUNT_MAX] {};
-	bool _baro_stuck[BARO_COUNT_MAX] {};
-
-	bool _mag_blocked[MAG_COUNT_MAX] {};
-	bool _mag_stuck[MAG_COUNT_MAX] {};
-
-	bool _gps_blocked{false};
-	bool _gps_stuck{false};
-	bool _gps_wrong{false};
-	sensor_gps_s _gps_prev{};
+	// airspeed and VIO failure injection (no PX4* helper class applies these).
 	bool _airspeed_disconnected{false};
 	hrt_abstime _airspeed_blocked_timestamp{0};
 	bool _vio_blocked{false};
-
-	float _last_magx[MAG_COUNT_MAX] {};
-	float _last_magy[MAG_COUNT_MAX] {};
-	float _last_magz[MAG_COUNT_MAX] {};
-
-	float _last_baro_pressure[BARO_COUNT_MAX] {};
-	float _last_baro_temperature[BARO_COUNT_MAX] {};
 
 	int32_t _output_functions[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
 

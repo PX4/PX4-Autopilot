@@ -88,6 +88,7 @@ set(msg_files
 	EstimatorStatus.msg
 	EstimatorStatusFlags.msg
 	versioned/Event.msg
+	ExternalGimbalManagerStatus.msg
 	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
@@ -100,6 +101,7 @@ set(msg_files
 	FixedWingLateralGuidanceStatus.msg
 	FixedWingLateralStatus.msg
 	FixedWingRunwayControl.msg
+	FixedWingTakeoffStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
@@ -111,13 +113,13 @@ set(msg_files
 	GimbalManagerInformation.msg
 	GimbalManagerSetAttitude.msg
 	GimbalManagerSetManualControl.msg
+	GimbalManagerSetPitchyaw.msg
 	GimbalManagerStatus.msg
 	GpioConfig.msg
 	GpioIn.msg
 	GpioOut.msg
 	GpioRequest.msg
 	GpsDump.msg
-	GpsInjectData.msg
 	Gripper.msg
 	HealthReport.msg
 	HeaterStatus.msg
@@ -148,6 +150,7 @@ set(msg_files
 	NavigatorMissionItem.msg
 	NavigatorStatus.msg
 	NeuralControl.msg
+	NfsUp.msg
 	NormalizedUnsignedSetpoint.msg
 	ObstacleDistance.msg
 	OffboardControlMode.msg
@@ -194,6 +197,7 @@ set(msg_files
 	RoverSteeringSetpoint.msg
 	RoverThrottleSetpoint.msg
 	Rpm.msg
+	RtcmData.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg
@@ -203,6 +207,7 @@ set(msg_files
 	SensorCombined.msg
 	SensorCorrection.msg
 	SensorGnssRelative.msg
+	SensorGnssRf.msg
 	SensorGnssStatus.msg
 	SensorGps.msg
 	SensorGyro.msg
@@ -228,6 +233,7 @@ set(msg_files
 	TrajectorySetpoint6dof.msg
 	TransponderReport.msg
 	TuneControl.msg
+	UavcanFirmwareUpdate.msg
 	UavcanParameterRequest.msg
 	UavcanParameterValue.msg
 	UlogStream.msg
@@ -287,7 +293,16 @@ set(msg_files
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg
 )
+if(CONFIG_GPS_UBX_SPAN)
+	list(APPEND msg_files SensorGnssSpectrum.msg)
+endif()
 list(SORT msg_files)
+
+if(CONFIG_NAVIGATOR_ADSB)
+	list(APPEND msg_files
+		DetectAndAvoid.msg
+		DetectAndAvoidMostUrgent.msg)
+endif()
 
 if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 	list(APPEND msg_files
@@ -300,7 +315,8 @@ if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 		VteBiasInitStatus.msg
 		FiducialMarkerPosReport.msg
 		FiducialMarkerYawReport.msg
-		PrecLandStatus.msg)
+		PrecLandStatus.msg
+		PrecTakeoffStatus.msg)
 endif()
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
@@ -549,7 +565,7 @@ if(CONFIG_LIB_CDRSTREAM)
                   FILES ${uorb_cdr_idl}
                   INCLUDES ${idl_include_path}
                   BASE_DIR ${idl_include_path}
-                  WARNINGS no-implicit-extensibility)
+                  WARNINGS no-implicit-extensibility no-unsupported-annotations)
 	target_link_libraries(uorb_cdrstream INTERFACE cdr)
 
 	# Generate and overwrite IDL header with custom headers for uORB operatability
@@ -585,13 +601,9 @@ if(CONFIG_LIB_CDRSTREAM)
 endif()
 
 if(CONFIG_MODULES_ZENOH)
-	# Update kconfig file for topics
-	execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
-			--zenoh-config
-			-f ${msg_files}
-			-o ${PX4_SOURCE_DIR}/src/modules/zenoh/
-			-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
-		)
+	# The Zenoh Kconfig.topics catalog is generated into the build tree in
+	# cmake/kconfig.cmake (it must exist before Kconfig is parsed). Here we only
+	# generate the per-board publisher/subscriber factory.
 	add_custom_command(
 		OUTPUT
 			${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp

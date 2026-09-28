@@ -29,8 +29,8 @@ Order this module from:
     - Advanced GNSS+ algorithms
     - 20Hz update rate
   - [ST IIS2MDC Magnetometer](https://www.st.com/en/mems-and-sensors/iis2mdc.html)
-  - [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp390/)
-  - [Invensense ICM-42688-P 6-Axis IMU](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/)
+  - [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
+  - [Invensense ICM-42688-P 6-Axis IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p)
 - STM32F412VGH6 MCU
 - Safety Button
 - 부저

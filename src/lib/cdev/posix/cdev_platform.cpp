@@ -392,9 +392,17 @@ extern "C" {
 			if (timeout > 0) {
 				// Get the current time
 				struct timespec ts;
+#if defined(__PX4_DARWIN) && !defined(ENABLE_LOCKSTEP_SCHEDULER)
+				// macOS has no pthread_condattr_setclock(), so px4_sem_t's condition
+				// variable waits on CLOCK_REALTIME (px4_sem_init()). Use that clock here
+				// too. CLOCK_MONOTONIC counts from boot, so the deadline would land
+				// decades in the past and px4_sem_timedwait() would return immediately.
+				px4_clock_gettime(CLOCK_REALTIME, &ts);
+#else
 				// Note, we can't actually use CLOCK_MONOTONIC on macOS
 				// but that's hidden and implemented in px4_clock_gettime.
 				px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+#endif
 
 				// Calculate an absolute time in the future
 				const unsigned billion = (1000 * 1000 * 1000);

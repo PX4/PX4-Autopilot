@@ -149,7 +149,7 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 		if (item->command.command == ack.command &&
 		    (item->command.target_system == 0 || from_sysid == item->command.target_system) &&
 		    (item->command.target_component == 0 || from_compid == item->command.target_component) &&
-		    item->num_sent_per_channel[channel] != -1) {
+		    item->num_sent_per_channel[channel] >= 0) {
 			item->num_sent_per_channel[channel] = -2;	// mark this as acknowledged
 			break;
 		}

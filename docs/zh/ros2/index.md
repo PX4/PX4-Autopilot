@@ -6,15 +6,12 @@
 小提示
 PX4 开发团队强烈建议您使用此 ROS 版本，或将现有系统迁移至此 ROS 版本！
 
-这是最新版本的 [ROS](https://www.ros.org/)(机器人操作系统)。
-它在 ROS “1” 的基础上进行了显著改进，尤其能够实现与 PX4 更深度、更低延迟的集成。
+这是最新版本的 [ROS](https://www.ros.org/)(机器人操作系统)。它在 ROS “1” 的基础上进行了显著改进，尤其能够实现与 PX4 更深度、更低延迟的集成。
 :::
 
-ROS的优势在于拥有活跃的开发者生态系统 —— 该生态系统致力于解决各类常见的机器人技术问题，同时还能调用其他为 Linux 系统编写的软件库。
-例如，它可以用于 [计算机试图](../computer_vision/index.md) 解决问题。
+ROS的优势在于拥有活跃的开发者生态系统 —— 该生态系统致力于解决各类常见的机器人技术问题，同时还能调用其他为 Linux 系统编写的软件库。例如，它可以用于 [计算机试图](../computer_vision/index.md) 解决问题。
 
-ROS 2 能够实现与 PX4 极深度的集成，你可以在 ROS 2 中创建飞行模式，这些模式与 PX4 内部原生飞行模式毫无区别；同时还能以高速率直接读取和写入 PX4 内部的 uORB 主题。
-（尤其）建议在以下场景中使用：从伴飞计算机进行控制与通信（且低延迟至关重要时）、需借助 Linux 系统的现有库时，或编写新的高级飞行模式时。
+ROS 2 能够实现与 PX4 极深度的集成，你可以在 ROS 2 中创建飞行模式，这些模式与 PX4 内部原生飞行模式毫无区别；同时还能以高速率直接读取和写入 PX4 内部的 uORB 主题。（尤其）建议在以下场景中使用：从伴飞计算机进行控制与通信（且低延迟至关重要时）、需借助 Linux 系统的现有库时，或编写新的高级飞行模式时。
 
 Communication between ROS 2 and PX4 can leverage two independent middlewares:
 
@@ -41,7 +38,7 @@ To use the [ROS 2](../ros2/user_guide.md) over XRCE-DDS / Zenoh effectively, you
 - [ROS 2 离板控制实例](../ros2/offboard_control.md)：一个 C++ 教程示例显示如何在 [离板模式] (../flight_modes/offboard.md) 中使用 ROS 2 节点进行位置控制。
 - [ROS 2 Multi Vehicle Simulation](../ros2/multi_vehicle.md): Instructions for connecting to multiple PX4 simulations via single ROS 2 agent.
 - [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md): A C++ library that simplifies interacting with PX4 from ROS 2.
-  Can be used to create and register flight modes written using ROS2 and send position estimates from ROS2 applications such as a VIO system.
+  Can be used to create and register flight modes written using ROS 2 and send position estimates from ROS 2 applications such as a VIO system.
 - [ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md): A ROS 2 message translation node that enables communication between PX4 and ROS 2 applications that were compiled with different sets of messages versions.
 
 ## 更多信息

@@ -35,7 +35,7 @@
 
 /**
  * @file geofence_avoidance_planner.h
- * Ensures vehicle waypoints during RTL and autonomous modes remain
+ * Ensures vehicle waypoints during Return and autonomous modes remain
  * inside inclusion fences and outside exclusion fences.
  */
 
@@ -73,6 +73,7 @@ public:
 	/**
 	 * True if the latest updateStartAndFillPath() found neither a routed path nor a direct
 	 * line to the destination -- the caller will fly directly and ignore geofences.
+	 * Stays false when no fence is loaded (Status::NoFence), as there is nothing to avoid.
 	 */
 	bool needsStraightLineFallback() const { return _straight_line_fallback; }
 
