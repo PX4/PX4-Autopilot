@@ -389,8 +389,7 @@ VtolAttitudeControl::Run()
 
 				_calibrated_airspeed = use_airspeed ? airspeed_validated.calibrated_airspeed_m_s : NAN;
 				_time_last_airspeed_update = airspeed_validated.timestamp;
-
-			} 
+			}
 		}
 		
 		if (hrt_elapsed_time(&_time_last_airspeed_update) > 1_s) {		
