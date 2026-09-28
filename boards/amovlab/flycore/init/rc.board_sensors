@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# AMOVLAB FLYCORE specific board sensors init
+#
+# Onboard: BMI088 + ICM42688P + MS5611 (no magnetometer).
+# External I2C1 / I2C4 can host an optional GPS/compass module if the user
+# installs one; default firmware does not start magnetometer drivers here.
+# COMMON_MAGNETOMETER is enabled in the build so optional modules can be
+# started manually from NSH if needed.
+#------------------------------------------------------------------------------
+board_adc start
+
+# Internal SPI1 bus BMI088 accel/gyro
+bmi088 -A -R 2 -s start
+bmi088 -G -R 2 -s start
+
+# Internal SPI2 bus ICM42688p
+icm42688p -R 4 -s start
+
+# Internal barometer on SPI1
+ms5611 -s start

@@ -43,6 +43,5 @@ If more than one is enabled, the first to publish the UOrb topics [vehicle_attit
 
 :::info
 For FMU-v2 (only) you will also need to build PX4 to specifically include required estimator (e.g. EKF2: `make px4_fmu-v2`, LPE: `make px4_fmu-v2_lpe`).
-这是因为 FMU-v2 不具有足够的资源同时包含这两个估计器。
-其他的 Pixhawk FMU 版本同时拥有两个估计器。
+这是因为 FMU-v2 不具有足够的资源同时包含这两个估计器。其他的 Pixhawk FMU 版本同时拥有两个估计器。
 :::

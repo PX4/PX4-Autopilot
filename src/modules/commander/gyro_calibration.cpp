@@ -204,7 +204,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		uORB::SubscriptionData<sensor_gyro_s> gyro_sub{ORB_ID(sensor_gyro), cur_gyro};
 
 		if (gyro_sub.advertised() && (gyro_sub.get().device_id != 0) && (gyro_sub.get().timestamp > 0)) {
-			worker_data.calibrations[cur_gyro].set_device_id(gyro_sub.get().device_id);
+			worker_data.calibrations[cur_gyro].set_device_id(gyro_sub.get().device_id, gyro_sub.get().is_external);
 		}
 	}
 

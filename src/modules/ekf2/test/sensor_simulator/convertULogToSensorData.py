@@ -6,16 +6,16 @@ def getVioData(ulog: ULog) -> pd.DataFrame:
 	vehicle_visual_odometry = ulog.get_dataset("vehicle_visual_odometry").data
 	vio = pd.DataFrame({'timestamp': vehicle_visual_odometry['timestamp'],
 		'sensor' : 'vio',
-		'x': vehicle_visual_odometry["x"],
-		'y': vehicle_visual_odometry["y"],
-		'z': vehicle_visual_odometry["z"],
+		'x': vehicle_visual_odometry["position[0]"],
+		'y': vehicle_visual_odometry["position[1]"],
+		'z': vehicle_visual_odometry["position[2]"],
 		'qw': vehicle_visual_odometry["q[0]"],
 		'qx': vehicle_visual_odometry["q[1]"],
 		'qy': vehicle_visual_odometry["q[2]"],
 		'qz': vehicle_visual_odometry["q[3]"],
-		'vx': vehicle_visual_odometry["vx"],
-		'vy': vehicle_visual_odometry["vy"],
-		'vz': vehicle_visual_odometry["vz"]
+		'vx': vehicle_visual_odometry["velocity[0]"],
+		'vy': vehicle_visual_odometry["velocity[1]"],
+		'vz': vehicle_visual_odometry["velocity[2]"]
 		})
 	return vio
 
@@ -48,51 +48,42 @@ def getAirspeedData(ulog: ULog) -> pd.DataFrame:
 
 def getRangeFinderData(ulog: ULog) -> pd.DataFrame:
 
-	range = pd.DataFrame()
-	try:
-		range_0 = ulog.get_dataset("distance_sensor", 0).data
-		rng_0 = pd.DataFrame({'timestamp': range_0['timestamp'],
-			'sensor' : 'range',
-			'data': range_0["current_distance"],
-			'quality': range_0["signal_quality"]
-			})
-		range = pd.concat([range, rng_0], ignore_index=True, sort=False)
-	except:
-		pass
+	# The column names have to be unique across all sensors: the tables are merged by
+	# column name and the resulting column order defines the order of the values in the
+	# csv. 'quality' is already used by the optical flow, reusing it here would append
+	# the distance behind the quality and swap the two arguments of
+	# _rng.setData(distance, quality) in SensorSimulator::setSingleReplaySample().
+	rng = pd.DataFrame()
 
-	try:
-		range_1 = ulog.get_dataset("distance_sensor", 1).data
-		rng_1 = pd.DataFrame({'timestamp': range_1['timestamp'],
-			'sensor' : 'range',
-			'data': range_1["current_distance"],
-			'quality': range_1["signal_quality"]
-			})
-		range = pd.concat([range, rng_1], ignore_index=True, sort=False)
-	except:
-		pass
+	for instance in range(3):
+		try:
+			distance_sensor = ulog.get_dataset("distance_sensor", instance).data
+		except (KeyError, IndexError, ValueError):
+			# instance not logged
+			continue
 
-	try:
-		range_2 = ulog.get_dataset("distance_sensor", 2).data
-		rng_2 = pd.DataFrame({'timestamp': range_2['timestamp'],
+		rng_instance = pd.DataFrame({'timestamp': distance_sensor['timestamp'],
 			'sensor' : 'range',
-			'data': range_2["current_distance"],
-			'quality': range_2["signal_quality"]
+			'range_distance': distance_sensor["current_distance"],
+			'range_quality': distance_sensor["signal_quality"]
 			})
-		range = pd.concat([range, rng_2], ignore_index=True, sort=False)
-	except:
-		pass
+		rng = pd.concat([rng, rng_instance], ignore_index=True, sort=False)
 
-	return range
+	return rng
 
 
 def getGpsData(ulog: ULog) -> pd.DataFrame:
 
 	vehicle_gps_position = ulog.get_dataset("vehicle_gps_position").data
+	# The column order has to match SensorSimulator::setSingleReplaySample(), which reads
+	# altitude, latitude, longitude. The loader also rescales the latitude and the
+	# longitude by 1e-7 because they used to be logged as scaled integers, so the degrees
+	# have to be scaled up by 1e7 here.
 	gps = pd.DataFrame({'timestamp': vehicle_gps_position['timestamp'],
 		'sensor' : 'gps',
-		'alt': vehicle_gps_position["alt"],
-		'lon': vehicle_gps_position["lon"],
-		'lat': vehicle_gps_position["lat"],
+		'alt': vehicle_gps_position["altitude_msl_m"],
+		'lat': vehicle_gps_position["latitude_deg"] * 1e7,
+		'lon': vehicle_gps_position["longitude_deg"] * 1e7,
 		'vel_N': vehicle_gps_position["vel_n_m_s"],
 		'vel_E': vehicle_gps_position["vel_e_m_s"],
 		'vel_D': vehicle_gps_position["vel_d_m_s"],

@@ -88,10 +88,6 @@ def chunks_merged(arr, size):
         result.pop()
     return result
 
-def comma_targets(targets):
-    # turns array of targets into a comma split string
-    return ",".join(targets)
-
 def process_target(px4board_file, target_name, manufacturer_name=None, board_dir_name=None, label=None):
     # reads through the board file and grabs
     # useful information for building
@@ -299,6 +295,8 @@ if (args.group):
     DEFAULT_CACHE_SIZE = cache_config.get('default_size', '400M')
     CHIP_CACHE_SIZES = cache_config.get('chip_sizes', {})
 
+    BUILD_SLOTS = ci_config.get('runners', {}).get('build_slots', 1)
+
     if(verbose):
         print(f'=:Architectures: [{grouped_targets.keys()}]')
 
@@ -376,7 +374,7 @@ if (args.group):
                             print(f'=:  [{man}][{man_len}] -> {group_name}')
                         final_groups.append({
                             "container": grouped_targets[arch]['container'],
-                            "targets": comma_targets(man_targets[man]),
+                            "targets": man_targets[man],
                             "arch": arch,
                             "chip_family": chip,
                             "runner": runner,
@@ -391,7 +389,7 @@ if (args.group):
                                 print(f'=:  [{man}][{man_len}] -> {group_name} ({len(chunk)})')
                             final_groups.append({
                                 "container": grouped_targets[arch]['container'],
-                                "targets": comma_targets(chunk),
+                                "targets": chunk,
                                 "arch": arch,
                                 "chip_family": chip,
                                 "runner": runner,
@@ -418,7 +416,7 @@ if (args.group):
                             print(f'=:  [misc][{len(chunk)}] -> {group_name}')
                         final_groups.append({
                             "container": grouped_targets[arch]['container'],
-                            "targets": comma_targets(chunk),
+                            "targets": chunk,
                             "arch": arch,
                             "chip_family": chip,
                             "runner": runner,
@@ -444,7 +442,7 @@ if (args.group):
                         print(f'=:  [special][{len(chunk)}] -> {group_name}')
                     final_groups.append({
                         "container": grouped_targets[arch]['container'],
-                        "targets": comma_targets(chunk),
+                        "targets": chunk,
                         "arch": arch,
                         "chip_family": "special",
                         "runner": runner,
@@ -461,9 +459,9 @@ if (args.group):
             if all_targets:
                 final_groups.append({
                     "container": grouped_targets[arch]['container'],
-                    "targets": comma_targets(all_targets),
+                    "targets": all_targets,
                     "arch": arch,
-                    "chip_family": "native",
+                    "chip_family": "voxl2",
                     "runner": runner,
                     "group": "voxl2-0",
                     "len": len(all_targets),
@@ -484,7 +482,7 @@ if (args.group):
                         group_name = f"{arch}-{chunk_counter}"
                     final_groups.append({
                         "container": grouped_targets[arch]['container'],
-                        "targets": comma_targets(chunk),
+                        "targets": chunk,
                         "arch": arch,
                         "chip_family": "native",
                         "runner": runner,
@@ -493,9 +491,15 @@ if (args.group):
                     })
                     chunk_counter += 1
 
-    # Add cache_size to each group based on chip family
+    # Add cache_size and the shared ccache namespace root to each group.
+    # cache_prefix is the single source of the cache key convention: the
+    # workflow composes keys as {cache_prefix}-{group}-{ref}-{sha} with a
+    # final restore fallback of {cache_prefix}-, and the seeder probe
+    # (Tools/ci/filter_cold_seeders.py) greps the bucket for the same root.
     for g in final_groups:
         g['cache_size'] = CHIP_CACHE_SIZES.get(g['chip_family'], DEFAULT_CACHE_SIZE)
+        g['cache_prefix'] = f"ccache-{g['chip_family']}-{g['runner']}"
+        g['slots'] = BUILD_SLOTS
 
     if(verbose):
         import pprint
@@ -519,11 +523,7 @@ if (args.group):
         # Determine which chip families actually have groups
         active_families = set()
         for g in final_groups:
-            cf = g['chip_family']
-            active_families.add(cf)
-            # voxl2 gets its own seeder with a different container
-            if g['group'].startswith('voxl2'):
-                active_families.add('voxl2')
+            active_families.add(g['chip_family'])
 
         seeders = []
         for cf in sorted(active_families):
@@ -537,11 +537,10 @@ if (args.group):
                     'runner': 'x64',
                 })
             elif cf == 'native':
-                # One seeder per runner arch that has native groups (exclude voxl2
-                # which has its own seeder with a different container)
+                # One seeder per runner arch that has native groups
                 native_runners = set()
                 for g in final_groups:
-                    if g['chip_family'] == 'native' and not g['group'].startswith('voxl2'):
+                    if g['chip_family'] == 'native':
                         native_runners.add(g['runner'])
                 for r in sorted(native_runners):
                     seeders.append({
@@ -557,6 +556,13 @@ if (args.group):
                     'container': seeder_containers.get(cf, default_container),
                     'runner': 'x64',
                 })
+
+        # Seeders share the family namespace root with the build groups and
+        # occupy the reserved "seeder" group inside it, so seeder caches are
+        # always reachable from the build jobs' {cache_prefix}- fallback.
+        for s in seeders:
+            s['group'] = 'seeder'
+            s['cache_prefix'] = f"ccache-{s['chip_family']}-{s['runner']}"
 
         print(json.dumps({ "include": seeders }, **extra_args))
     else:

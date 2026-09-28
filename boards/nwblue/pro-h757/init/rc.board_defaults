@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# NWBlue Pro H757 specific board defaults
+#------------------------------------------------------------------------------
+
+param set-default SYS_DM_BACKEND 1
+
+# VSYS divider on PF3 (ADC3_INP5): 200k high-side, 10k low-side = 21x.
+param set-default BAT1_V_DIV 21.0
+# Current sense (PC2 / ADC3_INP0) comes from the ESC connector, so this has to
+# be calibrated against whatever sensor is wired up.
+param set-default BAT1_A_PER_V 24.0
+
+# ESC telemetry arrives on USART1 (ESC connector J10 pin 4), mapped to TEL3.
+param set-default DSHOT_TEL_CFG 103
+
+# There is no analog OSD chip on this board. The VTX connector (J9, USART6) is
+# mapped to TEL2 and left unclaimed, so it can be used for MAVLink or anything
+# else; set MSP_OSD_CONFIG to 102 to drive an HD VTX over MSP DisplayPort.
+
+# system_power monitoring is provided via ADC dividers in board_config.h

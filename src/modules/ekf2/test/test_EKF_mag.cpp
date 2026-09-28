@@ -272,6 +272,148 @@ TEST_F(EkfMagTest, velocityRotationOnYawReset)
 	EXPECT_GT(yaw_change, 0.3f) << "Yaw change: " << degrees(yaw_change) << " deg";
 }
 
+TEST_F(EkfMagTest, manualYawExpiresWhenHeadingIsFused)
+{
+	// GIVEN: mag fusion is aligned in flight, so the mag remains the heading source
+	// even after a manual heading reset
+	const float mag_heading = M_PI_F / 4.f;
+	_sensor_simulator._mag.setData(Vector3f(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading), 0.4f));
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator._rng.setData(5.f, 100);
+	_sensor_simulator.startRangeFinder();
+	_sensor_simulator.runSeconds(5.f);
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion() || _ekf_wrapper.isIntendingMag3DFusion());
+	ASSERT_FALSE(_ekf->control_status_flags().yaw_manual);
+
+	// WHEN: the heading is set manually
+	_ekf->resetHeadingToExternalObservation(mag_heading + radians(30.f), radians(2.f));
+	_sensor_simulator.runSeconds(1.f);
+
+	// THEN: the manual heading is protected from being overridden by the mag
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
+
+	// AND WHEN: the mag keeps being fused as heading source for a long time
+	_sensor_simulator.runSeconds(20.f);
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
+
+	_sensor_simulator.runSeconds(15.f);
+
+	// THEN: the heading is mag derived again and the manual reset no longer protected
+	EXPECT_FALSE(_ekf->control_status_flags().yaw_manual);
+}
+
+TEST_F(EkfMagTest, manualYawSurvivesWithGnssAidingOnly)
+{
+	// GIVEN: the vehicle sits on the ground with GNSS velocity and position fused
+	const float mag_heading = M_PI_F / 4.f;
+	_sensor_simulator._mag.setData(Vector3f(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading), 0.4f));
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	_ekf->set_min_required_gps_health_time(1e6);
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(10.f);
+
+	ASSERT_TRUE(_ekf->control_status_flags().gnss_vel);
+	ASSERT_TRUE(_ekf->control_status_flags().gnss_pos);
+
+	// WHEN: the heading is set manually, which stops the mag from being used as heading source
+	_ekf->resetHeadingToExternalObservation(mag_heading + radians(30.f), radians(2.f));
+	_sensor_simulator.runSeconds(2.f);
+
+	ASSERT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+
+	// THEN: GNSS aiding alone does not observe the heading of a vehicle that is not
+	// accelerating laterally, so the manual heading is kept indefinitely
+	_sensor_simulator.runSeconds(60.f);
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), mag_heading + radians(30.f), radians(2.f));
+}
+
+TEST_F(EkfMagTest, manualYawOnGroundBlocksMagHeadingFusionIndefinitely)
+{
+	// GIVEN: the mag is the heading source of a vehicle that has not taken off yet
+	const float mag_heading = M_PI_F / 4.f;
+	_sensor_simulator._mag.setData(Vector3f(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading), 0.4f));
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+
+	// WHEN: the heading is set manually while still on the ground
+	const float manual_heading = mag_heading + radians(30.f);
+	_ekf->resetHeadingToExternalObservation(manual_heading, radians(2.f));
+	_sensor_simulator.runSeconds(2.f);
+
+	// THEN: the mag is no longer used as heading source, because in-flight mag alignment is the
+	// only condition that lets mag heading fusion resume after a manual heading reset
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+
+	// AND: this does not resolve itself while the vehicle stays on the ground. No heading
+	// observation is fused, so the manual heading never expires, which in turn keeps mag
+	// heading fusion disabled.
+	_sensor_simulator.runSeconds(120.f);
+
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+
+	// AND: the manual heading is never overridden by the mag
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(3.f));
+	// AND: the missing in-flight alignment is the only thing holding heading fusion off; the mag
+	// itself is still healthy and being fused into the field states
+	EXPECT_FALSE(_ekf->control_status_flags().mag_aligned_in_flight);
+	EXPECT_TRUE(_ekf->control_status_flags().mag);
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
+	EXPECT_FALSE(_ekf->control_status_flags().mag_fault);
+	EXPECT_FALSE(_ekf->control_status_flags().mag_field_disturbed);
+}
+
+TEST_F(EkfMagTest, manualYawSurvivesTakeoffUntilHeadingFused)
+{
+	// GIVEN: the heading was set manually on the ground, before any in-flight mag alignment
+	const float mag_heading = M_PI_F / 4.f;
+	_sensor_simulator._mag.setData(Vector3f(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading), 0.4f));
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	const float manual_heading = mag_heading + radians(30.f);
+	_ekf->resetHeadingToExternalObservation(manual_heading, radians(2.f));
+	_sensor_simulator.runSeconds(2.f);
+
+	ASSERT_TRUE(_ekf->control_status_flags().yaw_manual);
+	ASSERT_FALSE(_ekf->control_status_flags().mag_aligned_in_flight);
+
+	// WHEN: the vehicle takes off and climbs above the height of the ground mag anomalies,
+	// which triggers the in-flight mag alignment
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator._rng.setData(5.f, 100);
+	_sensor_simulator.startRangeFinder();
+	_sensor_simulator.runSeconds(5.f);
+
+	// THEN: the mag becomes the heading source again, but the manual heading is neither
+	// overridden by the alignment nor immediately declared stale by it
+	EXPECT_TRUE(_ekf->control_status_flags().mag_aligned_in_flight);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(1.f));
+
+	// AND WHEN: the mag has been driving the heading for long enough
+	_sensor_simulator.runSeconds(20.f);
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
+
+	_sensor_simulator.runSeconds(15.f);
+
+	// THEN: the manual heading expires
+	EXPECT_FALSE(_ekf->control_status_flags().yaw_manual);
+}
+
 TEST_F(EkfMagTest, magHeadingChangeRateLimited)
 {
 	// GIVEN: EKF just had its initial yaw alignment from mag, setting heading variance to

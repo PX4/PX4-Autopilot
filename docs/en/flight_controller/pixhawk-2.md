@@ -11,7 +11,7 @@ We recommend however to consider products built on industry standards, such as t
 This flight controller is not following the standard and uses a patented connector.
 :::
 
-The [Hex Cube Black](https://docs.cubepilot.org/user-guides/autopilot/the-cube) flight controller (previously known as Pixhawk 2.1) is a flexible autopilot intended primarily for manufacturers of commercial systems.
+The [Hex Cube Black](https://docs.cubepilot.org/autopilot/the-cube) flight controller (previously known as Pixhawk 2.1) is a flexible autopilot intended primarily for manufacturers of commercial systems.
 It is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv3** open hardware design and runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
 
 ![Cube Black](../../assets/flight_controller/cube/cube_black_hero.png)
@@ -23,7 +23,7 @@ while a carrier board for a racer could includes ESCs form the frame of the vehi
 Cube includes vibration isolation on two of the IMU's, with a third fixed IMU as a reference / Backup.
 
 ::: info
-The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube/introduction/specifications).
+The manufacturer [Cube User Guide](https://docs.cubepilot.org/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/autopilot/the-cube/introduction/specifications).
 :::
 
 ::: tip
@@ -49,7 +49,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Where to Buy {#store}
 
-[Cube Black](https://www.cubepilot.com/#/reseller/list) (Reseller list)
+[Cube Black](https://cubepilot.org/#/reseller/list) (Reseller list)
 
 ## Assembly
 
@@ -164,5 +164,5 @@ CAN1 and CAN2 silk screen on the Cube Black are flipped (CAN1 is CAN2 and vice v
 
 - [Cube Wiring Quickstart](../assembly/quick_start_cube.md)
 - Cube Docs (Manufacturer):
-  - [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube)
-  - [Mini Carrier Board](https://docs.cubepilot.org/user-guides/carrier-boards/mini-carrier-board)
+  - [Cube User Guide](https://docs.cubepilot.org/autopilot/the-cube)
+  - [Mini Carrier Board](https://docs.cubepilot.org/carrier-boards/mini-carrier-board)

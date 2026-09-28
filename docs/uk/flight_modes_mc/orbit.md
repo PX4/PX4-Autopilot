@@ -8,17 +8,29 @@ The _Orbit_ guided flight mode allows you to command a multicopter (or VTOL in m
 
 - Режим автоматичний - для керування апаратом не потрібно втручання користувача.
 - Режим потребує принаймні дійсної локальної оцінки позиції (не потребує глобальної позиції).
-  - Літаючі транспортні засоби не можуть переключатися на цей режим без глобального положення.
   - Літаючі транспортні засоби перейдуть в режим аварійної безпеки, якщо втратять оцінку положення.
 - Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - Режим вимагає, щоб швидкість вітру та час польоту були в межах допустимих значень (вказано через параметри).
-- Цей режим в даний час підтримується лише на багатокоптерних (або VTOL у режимі MC).
+- Mode is currently only supported on multicopter (or VTOL in MC mode).
 - Рух палиці RC може контролювати підйом/спуск та швидкість та напрямок оберту.
-- The mode can be triggered using the [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MMAV_CMD_DO_ORBIT) MAVLink command.
-
-<!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
+- Mode can be triggered using the [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MMAV_CMD_DO_ORBIT) MAVLink command.
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_orbit -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_orbit -->
 
 ## Загальний огляд
 

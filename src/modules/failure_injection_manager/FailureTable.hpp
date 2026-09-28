@@ -97,14 +97,15 @@ public:
 	/** Capability catalogue: which (unit, type) combinations the system supports. */
 	static bool isSupported(uint8_t unit, uint8_t type);
 
+	/** Instance addressing to mask: 0 -> all (0xFFFF), 1..16 -> its bit, >16 -> 0. */
+	static uint16_t instanceToMask(uint8_t instance);
+
 private:
 	struct Entry {
 		uint8_t  unit;
 		uint16_t instance_mask;
 		uint8_t  type;
 	};
-
-	static uint16_t instanceToMask(uint8_t instance);
 	int findEntry(uint8_t unit, uint8_t type) const;
 	void clearInstances(uint8_t unit, uint16_t mask, uint8_t keep_type);
 	void compact();

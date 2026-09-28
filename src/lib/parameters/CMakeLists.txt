@@ -120,8 +120,10 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--board ${PX4_BOARD}
 		${READONLY_PARAMS_ARG}
 		#--verbose
+	# Metadata stays at version 1 so QGC will load parameters. Schema floors rose for optional fields.
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
-		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/parameter.schema.json
+		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_metadata/parameter.schema.json
+		--version-minimum 1
 		${parameters_json}
 		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
 		#--verbose
@@ -135,6 +137,7 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		px4params/xmlout.py
 		px4params/readonly_config.py
 		px_process_params.py
+		${PX4_SOURCE_DIR}/Tools/validate_json.py
 	COMMENT "Generating parameters.xml"
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
@@ -209,6 +212,12 @@ if(NOT "${PX4_BOARD}" MATCHES "px4_io")
 	)
 else()
 	add_library(parameters STATIC EXCLUDE_FROM_ALL ${PX4_SOURCE_DIR}/platforms/common/empty.c)
+endif()
+if(NOT CONFIG_BUILD_FLAT)
+target_compile_options(parameters PRIVATE
+-fno-use-cxa-atexit
+-fno-threadsafe-statics
+)
 endif()
 add_dependencies(parameters prebuild_targets)
 

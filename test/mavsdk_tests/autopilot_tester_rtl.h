@@ -61,6 +61,7 @@ public:
 	void connect(const std::string uri);
 	void check_rally_point_within(float acceptance_radius_m);
 	void check_rtl_approaches(float acceptance_radius_m, std::chrono::seconds timeout);
+	void wait_until_disarmed_while_in_multicopter_mode(std::chrono::seconds timeout);
 	void upload_rally_points();
 
 	// Import a QGC .plan and upload both the mission and any geofence polygons/circles it

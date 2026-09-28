@@ -128,6 +128,8 @@
 # include <uORB/topics/ranging_beacon.h>
 #endif // CONFIG_EKF2_RANGING_BEACON
 
+using namespace time_literals;
+
 extern pthread_mutex_t ekf2_module_mutex;
 
 class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
@@ -240,6 +242,7 @@ private:
 #endif // CONFIG_EKF2_RANGING_BEACON
 
 	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateFusionControlFromReplay();
 
 	// Used to check, save and use learned accel/gyro/mag biases
 	struct InFlightCalibration {
@@ -405,6 +408,8 @@ private:
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _estimator_fusion_control_sub{ORB_ID(estimator_fusion_control)}; ///< replay mode input
+	bool _fusion_control_from_replay{false};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	enum SensEn : uint16_t {
@@ -484,8 +489,8 @@ private:
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	uint64_t _last_geoid_height_update_us{0};
-	static constexpr float kGeoidHeightLpfTimeConstant = 10.f;
+	hrt_abstime _last_geoid_height_update_us{0};
+	static constexpr hrt_abstime kGeoidHeightLpfTimeConstant = 10_s;
 	AlphaFilter<float> _geoid_height_lpf;  ///< height offset between AMSL and ellipsoid
 
 	hrt_abstime _last_gps_status_published{0};

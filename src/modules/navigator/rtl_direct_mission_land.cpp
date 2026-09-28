@@ -33,7 +33,7 @@
 /**
  * @file rtl_direct_mission_land.cpp
  *
- * Helper class for RTL
+ * Helper class for Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -155,7 +155,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		_mission_item.lon = _global_pos_sub.get().lon;
 		_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 
-		// If the vehicle was already established on a loiter when RTL was engaged (e.g. from Hold),
+		// If the vehicle was already established on a loiter when Return was engaged (e.g. from Hold),
 		// keep that loiter's center and radius while climbing instead of re-centering the circle on
 		// the current position. The setpoint was snapshotted on activation before the triplet reset.
 		if (_setpoint_on_activation.valid
@@ -182,28 +182,16 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL Mission land: climb to %d m\t",
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return mission landing: climb to %d m\t",
 				 (int)ceilf(_rtl_alt));
 		events::send<int32_t>(events::ID("rtl_mission_land_climb"), events::Log::Info,
-				      "RTL Mission Land: climb to {1m_v}",
+				      "Return mission landing: climb to {1m_v}",
 				      (int32_t)ceilf(_rtl_alt));
 
 		_needs_climbing = false;
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_CLIMB;
-
-	} else if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
-		   _vehicle_status_sub.get().is_vtol &&
-		   !_land_detected_sub.get().landed && _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
-		// Transition to fixed wing if necessary.
-		set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-		_mission_item.yaw = _navigator->get_local_position()->heading;
-
-		// keep current setpoints (FW position controller generates wp to track during transition)
-		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-
-		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 

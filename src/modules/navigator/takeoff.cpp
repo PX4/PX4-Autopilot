@@ -68,7 +68,7 @@ Takeoff::on_active()
 
 		switch (_fw_takeoff_state) {
 		case fw_takeoff_state::CLIMBOUT: {
-				if (_navigator->get_global_position()->alt >= _loiter_altitude_msl) {
+				if (_navigator->fw_climbout_completed(_loiter_altitude_msl)) {
 
 					setLoiterItemCommonFields(&_mission_item);
 
@@ -82,7 +82,10 @@ Takeoff::on_active()
 					_mission_item.time_inside = 1.f;
 					_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 					_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
-					_mission_item.altitude = _loiter_altitude_msl;
+
+					// the climbout does not necessarily end at the loiter altitude, and the vehicle should
+					// not descend back to it if it ended up higher
+					_mission_item.altitude = math::max(_loiter_altitude_msl, _navigator->get_global_position()->alt);
 
 					mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 					const bool loiter_lat_valid = PX4_ISFINITE(_loiter_position_lat_lon(0))
@@ -126,7 +129,7 @@ Takeoff::on_active()
 					lateral_acceptance_reached = distance_to_loiter < _navigator->get_acceptance_radius() + mission_item_loiter_radius_abs;
 				}
 
-				const bool vertical_acceptance_reached = _navigator->get_global_position()->alt >= _loiter_altitude_msl -
+				const bool vertical_acceptance_reached = _navigator->get_global_position()->alt >= _mission_item.altitude -
 						_navigator->get_altitude_acceptance_radius();
 
 				if (lateral_acceptance_reached && vertical_acceptance_reached) {
