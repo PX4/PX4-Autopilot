@@ -4094,10 +4094,6 @@ bool MavlinkReceiver::forward_only_frame(uint8_t framing, const mavlink_message_
 {
 	// Frames we can't verify are still forwarded unchanged, it's up to the
 	// receiver to check them, see https://mavlink.io/en/guide/routing.html
-	if (!_mavlink.get_forwarding_on()) {
-		return false;
-	}
-
 	if (framing == MAVLINK_FRAMING_BAD_SIGNATURE) {
 		return true;
 	}

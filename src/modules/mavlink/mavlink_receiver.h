@@ -285,8 +285,9 @@ private:
 	void update_rx_stats(const mavlink_message_t &message);
 
 	/**
-	 * Whether a frame which can't be processed locally, because it's unknown or
-	 * its signature can't be verified, should still be forwarded as is.
+	 * Whether a frame can't be processed locally, because it's unknown or its
+	 * signature can't be verified, but is otherwise valid and can be forwarded
+	 * as is, if forwarding is enabled.
 	 */
 	bool forward_only_frame(uint8_t framing, const mavlink_message_t &message);
 
