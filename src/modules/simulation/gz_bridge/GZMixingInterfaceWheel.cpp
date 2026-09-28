@@ -120,24 +120,24 @@ void GZMixingInterfaceWheel::wheelSpeedCallback(const gz::msgs::Actuators &actua
 	wheel_encoders_s wheel_encoders{};
 
 	for (int i = 0; i < actuators.velocity_size(); i++) {
-		wheel_encoders.wheel_speed[i] = (float)actuators.velocity(i);
-		_curr_wheel_speed = _wheel_radius * (float)actuators.velocity(i);
+		float curr_speed = (float)actuators.velocity(i);
+		wheel_encoders.wheel_speed[i] = curr_speed;
+		float curr_wheel_speed_m = _wheel_radius * curr_speed;
 		wheel_encoders.counts_per_rev[i] = 1;
 
-		if (_prev_wheel_speed < 0 && _prev_t == 0) {
-			_prev_wheel_speed = _curr_wheel_speed;
+		if (_prev_wheel_speed[i] < 0 && _prev_t == 0) {
+			_prev_wheel_speed[i] = curr_wheel_speed_m;
 			_prev_t = current_t;
 		}
 
-		float dt = (current_t - _prev_t) / 1e6;
-		float wheel_position = (_curr_wheel_speed + _prev_wheel_speed) * dt;
+		float dt = (current_t - _prev_t) / 1e6f;
+		float wheel_position = (curr_wheel_speed_m + _prev_wheel_speed[i]) * 0.5f * dt;
 		_wheel_pos_m[i] += wheel_position;
-		int64_t encoder_ticks = _wheel_pos_m[i] / (2.f * static_cast<float>(M_PI) * _wheel_radius); // 0.1 wheel radius
+		int64_t encoder_ticks = _wheel_pos_m[i] / (2.f * static_cast<float>(M_PI) * _wheel_radius);
 		wheel_encoders.encoder_position[i] = encoder_ticks;
-		// Wheel dist = 2 * PI * RO_WHEEL_RAD * encoder_position / counts_per_revolution
+		_prev_wheel_speed[i] = curr_wheel_speed_m;
 	}
 
-	_prev_wheel_speed = _curr_wheel_speed;
 	_prev_t = current_t;
 
 	if (actuators.velocity_size() > 0) {

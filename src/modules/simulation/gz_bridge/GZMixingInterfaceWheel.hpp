@@ -82,8 +82,8 @@ private:
 
 	gz::transport::Node::Publisher _actuators_pub;
 	hrt_abstime _prev_t{0};
-	float  _prev_wheel_speed{-1.f};
-	float  _curr_wheel_speed{-1.f};
+	float  _prev_wheel_speed[2] {-1.f, -1.f};
+	float  _curr_wheel_speed[2] {-1.f, -1.f};
 	float  _wheel_pos_m[2];
 	float  _wheel_radius{0.1};
 	uORB::Publication<wheel_encoders_s> _wheel_encoders_pub{ORB_ID(wheel_encoders)};

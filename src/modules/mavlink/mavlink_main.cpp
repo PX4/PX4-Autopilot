@@ -1680,7 +1680,9 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"VFR_HUD", 4.0f},
 	{"VIBRATION", 0.1f},
 	{"WIND_COV", 0.5f},
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
 	{"WHEEL_ENCODER", 1.0f},
+#endif
 
 #if !defined(CONSTRAINED_FLASH)
 	{"DEBUG", 1.0f},
@@ -1764,7 +1766,9 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"VFR_HUD", 10.0f},
 	{"VIBRATION", 0.5f},
 	{"WIND_COV", 10.0f},
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
 	{"WHEEL_ENCODER", 1.0f},
+#endif
 
 #if !defined(CONSTRAINED_FLASH)
 	{"DEBUG", 10.0f},
@@ -1940,7 +1944,9 @@ constexpr StreamRateDefault streams_mode_config[] = {
 	{"VFR_HUD", 20.0f},
 	{"VIBRATION", 2.5f},
 	{"WIND_COV", 10.0f},
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
 	{"WHEEL_ENCODER", 1.0f},
+#endif
 
 #if !defined(CONSTRAINED_FLASH)
 	{"DEBUG", 50.0f},
