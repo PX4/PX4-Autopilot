@@ -320,6 +320,11 @@ public:
 
 	void			handle_message(const mavlink_message_t *msg);
 
+	/**
+	 * Forward a received message to the other instances if forwarding is enabled.
+	 */
+	void			forward_if_enabled(const mavlink_message_t *msg);
+
 	int			get_instance_id() const { return _instance_id; }
 
 	/**

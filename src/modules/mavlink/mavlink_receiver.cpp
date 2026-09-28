@@ -525,7 +525,7 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 		break;
 	}
 
-	// Message forwarding
+	/* handle packet with parent object */
 	_mavlink.handle_message(&msg);
 }
 
@@ -3986,10 +3986,7 @@ MavlinkReceiver::run()
 
 					_mavlink.unlock_send();
 
-					if (forward_only) {
-						Mavlink::forward_message(&msg, &_mavlink);
-
-					} else if (framing == MAVLINK_FRAMING_OK) {
+					if (framing == MAVLINK_FRAMING_OK) {
 
 						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version.
 						// Read flags from the receiver-local _status (mavlink_parse_char copies flags from the
@@ -4018,6 +4015,10 @@ MavlinkReceiver::run()
 						if (_message_statistics_enabled) {
 							update_message_statistics(msg);
 						}
+					}
+
+					if (framing == MAVLINK_FRAMING_OK || forward_only) {
+						_mavlink.forward_if_enabled(&msg);
 					}
 				}
 
