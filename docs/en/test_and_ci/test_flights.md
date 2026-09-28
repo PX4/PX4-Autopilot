@@ -34,6 +34,7 @@ These are run by the test team as part of release testing, and for more signific
 - [MC_08 - DSHOT ESC](../test_cards/mc_08_dshot.md)
 - [MC_09 - VIO (Visual-Inertial Odometry)](../test_cards/mc_09_vio.md)
 - [MC_10 - Optical Flow / GPS Mixed](../test_cards/mc_10_optical_flow_gps_mixed.md)
+- [MC_11 - Companion Computer (ROS 2 External Mode)](../test_cards/mc_11_companion_ros2_external_mode.md)
 
 ### Fixed Wing
 

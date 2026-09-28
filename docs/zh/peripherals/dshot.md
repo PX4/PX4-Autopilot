@@ -43,8 +43,7 @@ Enable DShot for your required outputs in the [Actuator Configuration](../config
 DShot comes with different speed options: _DShot150_, _DShot300_, and _DShot600_ where the number indicates the speed in kilo-bits/second.
 您应该将参数设置为您的电调支持的最高速度（根据其说明书）。
 
-然后连接电池并解锁无人机。
-电调应该初始化，电机应该按照正确的方向转动。
+然后连接电池并解锁无人机。电调应该初始化，电机应该按照正确的方向转动。
 
 - If the motors do not spin in the correct direction (for the [selected airframe](../airframes/airframe_reference.md)) you can reverse them in the UI using the **Set Spin Direction** option (this option appears after you select DShot and assign motors).
 

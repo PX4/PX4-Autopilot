@@ -341,7 +341,7 @@ void TaskWatchdog::capture_and_write_dump()
 				d.regs[REG_R10], d.regs[REG_R11],
 				d.regs[REG_R12], d.regs[REG_R13],
 				d.regs[REG_R14], d.regs[REG_R15]);
-#ifdef CONFIG_ARMV7M_USEBASEPRI
+#if defined(CONFIG_ARMV7M_USEBASEPRI) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
 			dprintf(fd, " xpsr:%08" PRIx32 " basepri:%08" PRIx32 "\n",
 				d.regs[REG_XPSR], d.regs[REG_BASEPRI]);
 #else

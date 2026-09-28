@@ -711,7 +711,7 @@ uint16_t Ekf::get_ekf_soln_status() const
 
 	// 64	ESTIMATOR_POS_VERT_AGL	True if the vertical position (above ground) estimate is good
 #if defined(CONFIG_EKF2_TERRAIN)
-	soln_status.flags.pos_vert_agl = isTerrainEstimateValid();
+	soln_status.flags.pos_vert_agl = isHeightAboveGroundEstimateValid();
 #endif // CONFIG_EKF2_TERRAIN
 
 	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GNSS or optical flow)
@@ -952,8 +952,8 @@ void Ekf::updateGroundEffect()
 	if (_control_status.flags.in_air && !_control_status.flags.fixed_wing) {
 #if defined(CONFIG_EKF2_TERRAIN)
 
-		if (isTerrainEstimateValid()) {
-			// automatically set ground effect if terrain is valid
+		if (isHeightAboveGroundEstimateValid()) {
+			// automatically set ground effect if HAGL is valid
 			float height = getHagl();
 			_control_status.flags.gnd_effect = (height < _params.ekf2_gnd_max_hgt);
 

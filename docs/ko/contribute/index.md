@@ -23,6 +23,7 @@ This section contains information about how you can meet with the community and 
 - [Maintainers](./maintainers.md) - Maintainer roles, types, and how to become one
 - [Support](../contribute/support.md) - Get help and raise issues
 - [Source Code Management](../contribute/code.md) - Work with PX4 code
+- [AI Coding Assistants](../contribute/ai_assistants.md) - Rules for contributing with AI coding tools
 - [Documentation](../contribute/docs.md) - Improve the docs
 - [Translation](../contribute/translation.md) - Translate using Crowdin
 - [Terminology/Notation](../contribute/notation.md) - Terms and symbols used in the docs

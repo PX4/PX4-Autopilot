@@ -40,6 +40,7 @@
 #include <drivers/drv_sensor.h>
 #include <lib/parameters/param.h>
 #include <lib/mathlib/mathlib.h>
+#include <uORB/topics/vtx.h>
 
 param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 {
@@ -226,10 +227,9 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	// 2026-03-19: translate EKF2_ENGINE_WRM to EKF2_POS_LOCK
 	{
 		if (strcmp("EKF2_ENGINE_WRM", node->name) == 0) {
-			int32_t delay_ms = static_cast<int32_t>(node->d);
-			param_set(param_find("EKF2_POS_LOCK"), &delay_ms);
+			strcpy(node->name, "EKF2_POS_LOCK");
 			PX4_INFO("migrating %s -> %s", "EKF2_ENGINE_WRM", "EKF2_POS_LOCK");
-			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
@@ -266,6 +266,92 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			snprintf(new_name, sizeof(new_name), "HEATER%c_SENS_ID", node->name[6]);
 			strcpy(node->name, new_name);
 			PX4_INFO("migrating %s -> %s", old_name, new_name);
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-06-29: MPC_LAND_RC_HELP replaced by the MPC_AUTO_NUDGING bitmask (landing nudging = bit 1).
+	// The old in-Hold yaw nudge is not migrated; it now lives in bit 0 (yaw nudging in all auto modes).
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("MPC_LAND_RC_HELP", node->name) == 0)) {
+			if (node->i32 != 0) {
+				int32_t nudging = 0;
+				param_get(param_find("MPC_AUTO_NUDGING"), &nudging);
+				nudging |= (1 << 1);
+				param_set(param_find("MPC_AUTO_NUDGING"), &nudging);
+			}
+
+			PX4_INFO("migrating MPC_LAND_RC_HELP -> MPC_AUTO_NUDGING bit 1 (value=%" PRId32 ")", node->i32);
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
+	// 2026-07-13: translate COM_ARM_TRAFF (arming check only) to COM_TRAFF_AVOID (arming check + failsafe action)
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("COM_ARM_TRAFF", node->name) == 0)) {
+			// old: 0 Disabled, 1 Warning only (arming allowed), 2 Enforce all modes, 3 Enforce mission only
+			// new: 0 Disabled, 1 Warning (arming allowed), 2 Error (arming blocked)
+			// Old value 3 (mission-only enforcement) is intentionally mapped to 2 (all modes): mode-scoped
+			// arming enforcement is no longer supported, so we err on the restrictive side.
+			// COM_ARM_TRAFF never triggered an in-flight failsafe action, so the new failsafe
+			// action defaults to Warning either way; only the arming behavior is preserved.
+			if (node->i32 == 1) {
+				node->i32 = 1;
+
+			} else if (node->i32 >= 2) {
+				node->i32 = 2;
+			}
+
+			strcpy(node->name, "COM_TRAFF_AVOID");
+			PX4_INFO("migrating %s -> %s", "COM_ARM_TRAFF", "COM_TRAFF_AVOID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-08-05: the protocol selection moved out of VTX_DEVICE into VTX_PROTOCOL. VTX_DEVICE keeps
+	// the old layout that holds the device in its high byte, so only the protocol has to be derived:
+	// the Peak THOR T67 speaks SmartAudio, the Rush MAX SOLO speaks Tramp. A value that is not listed
+	// stays untouched and acts as a generic device on SmartAudio, which is what both parameters
+	// default to, so the old value 0 needs nothing.
+	{
+		static constexpr int32_t PROTOCOL_SMART_AUDIO = 0; // VTX_PROTOCOL value, not in msg/Vtx.msg
+
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("VTX_DEVICE", node->name) == 0)) {
+			int32_t device = -1;
+			int32_t protocol = PROTOCOL_SMART_AUDIO;
+
+			switch (node->i32) {
+			case 100: // generic device, Tramp
+				device = vtx_s::DEVICE_UNKNOWN << 8;
+				protocol = vtx_s::PROTOCOL_TRAMP;
+				break;
+
+			case 5120: // Peak THOR T67, SmartAudio only
+				device = vtx_s::DEVICE_PEAK_THOR_T67 << 8;
+				protocol = PROTOCOL_SMART_AUDIO;
+				break;
+
+			case 10240: // Rush MAX SOLO, Tramp only
+				device = vtx_s::DEVICE_RUSH_MAX_SOLO << 8;
+				protocol = vtx_s::PROTOCOL_TRAMP;
+				break;
+			}
+
+			if (device >= 0) {
+				node->i32 = device;
+				param_set(param_find("VTX_PROTOCOL"), &protocol);
+				PX4_INFO("migrating VTX_DEVICE -> VTX_DEVICE %" PRId32 " + VTX_PROTOCOL %" PRId32,
+					 device, protocol);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-08-18: UAVCAN_ECU_MAXF replaced by per-tank (idx 1 based)
+	{
+		if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp("UAVCAN_ECU_MAXF", node->name) == 0)) {
+			strcpy(node->name, "UAVCAN_ECU_MAXF1");
+			PX4_INFO("copying %s -> %s", "UAVCAN_ECU_MAXF", "UAVCAN_ECU_MAXF1");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}

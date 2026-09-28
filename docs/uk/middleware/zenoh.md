@@ -20,6 +20,14 @@ The Zenoh-based middleware consists of a client running on PX4 and a Zenoh route
 The router acts as a broker and discovery service, enabling PX4 to publish and subscribe to topics in the global Zenoh data space.
 This allows seamless integration with ROS 2 nodes using [`rmw_zenoh`](https://github.com/ros2/rmw_zenoh), and supports flexible deployment across distributed systems.
 
+:::warning
+The Zenoh transport is unauthenticated and reaches uORB directly, so the Zenoh network must be kept isolated.
+Connect the flight controller to the companion over a dedicated Ethernet cable, not over a shared or wireless network.
+A direct cable is not enough on its own: the router republishes into the Zenoh network, so the router must also not be reachable from other networks.
+If the data has to leave the companion, securing it is up to the integrator.
+See [Security](../security/index.md) for more.
+:::
+
 ![Architecture PX4 Zenoh-Pico with ROS 2](../../assets/middleware/zenoh/architecture-px4-zenoh.svg)
 
 The client is the _PX4 Zenoh-Pico Node_ referred to above, which is implemented in the [PX4 `zenoh` module](../modules/modules_driver.md#zenoh).
@@ -135,8 +143,8 @@ The PX4 Zenoh-pico node stores its configuration on the **SD card** under the `z
 This folder contains three key files:
 
 - **`net.txt`** – Defines the **Zenoh network configuration**.
-- **`pub.csv`** – Maps **uORB topics to ROS2 topics** (used for publishing).
-- **`sub.csv`** – Maps **ROS2 topics to uORB topics** (used for subscribing).
+- **`pub.csv`** – Maps **uORB topics to ROS 2 topics** (used for publishing).
+- **`sub.csv`** – Maps **ROS 2 topics to uORB topics** (used for subscribing).
 
 #### Publisher Options
 
@@ -151,11 +159,11 @@ These are applied to all Zenoh publishers.
 
 If `CONFIG_ZENOH_PUB_OPTION_OVERRIDE=y`, individual publishers can override one or more global publisher options.
 Default configuration [dds_topics.yaml](../middleware/dds_topics.md) already provides overrides for several publishers.
-Individual publisher options can be overriden through the mapping configuration shown in the next section
+Individual publisher options can be overridden through the mapping configuration shown in the next section
 
 ### 4. Modifying Topic Mappings
 
-Zenoh topic mappings define how data flows between PX4's internal uORB topics and external ROS2 topics via Zenoh.
+Zenoh topic mappings define how data flows between PX4's internal uORB topics and external ROS 2 topics via Zenoh.
 These mappings are stored in `pub.csv` and `sub.csv` on the SD card, and can be modified at runtime using the `zenoh config` CLI tool.
 
 :::warning
@@ -262,6 +270,5 @@ The PX4 ROS 2 Interface Library is not compatible with ROS 2 Humble and earlier,
    ERROR [zenoh] Could not create a subscriber for type ***
    ```
 
-   When it happens, check if `src/modules/zenoh/Kconfig.topics` has unstaged changes.
-   If there are any it means that new uorb topics have been added and the previous build updated the `Kconfig.topics` file accordingly.
-   Please perform a clean build so that the new `Kconfig.topics` can be used.
+   This usually means the firmware was built with a different set of uORB topics than the peer expects.
+   The Zenoh topic catalog (`Kconfig.topics`) is generated automatically at configure time into the build directory, so performing a clean build picks up any newly added or changed topics.

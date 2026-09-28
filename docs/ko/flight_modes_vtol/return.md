@@ -4,7 +4,7 @@
 
 The _Return_ flight mode is used to _fly a vehicle to safety_ on an unobstructed path to a safe destination, where it may either wait (hover or circle) or land.
 
-VTOL vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#mission-landing-rally-point-return-type-rtl-type-1) return type by default.
+VTOL vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#rtl_type_1) return type by default.
 In this return type a vehicle ascends to a minimum safe altitude above obstructions (if needed), and then flies directly to a rally point or the start of a mission landing point (whichever is nearest), or the home position if neither rally points or mission landing pattern is defined.
 If the destination is a mission landing pattern, the vehicle will then follow the pattern to land.
 If the destination is a rally point or the home location, the vehicle will fly to that destination and land.
@@ -12,7 +12,7 @@ If the destination is a rally point or the home location, the vehicle will fly t
 The vehicle will return using the flying mode (MC or FW) it was using at the point when return mode was triggered.
 Generally it will follow the same return mode behaviour of the corresponding vehicle type, but will always transition to MC mode (if needed) before landing.
 
-VTOL supports the [other PX4 return types](../flight_modes/return.md#return-types-rtl-type), including home/rally point return, mission path and closest safe destination.
+VTOL supports the [other PX4 return types](../flight_modes/return.md#return_types), including home/rally point return, mission path and closest safe destination.
 The default type is recommended.
 
 ::: info
@@ -32,7 +32,7 @@ The default type is recommended.
 
 ## Technical Summary
 
-VTOL vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#mission-landing-rally-point-return-type-rtl-type-1) return type by default, and return using the flying mode (MC or FW) it was using at the point when return mode was triggered.
+VTOL vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#rtl_type_1) return type by default, and return using the flying mode (MC or FW) it was using at the point when return mode was triggered.
 
 ### Fixed-wing Mode (FW) Return
 
@@ -42,7 +42,8 @@ If returning as a fixed-wing, the vehicle:
   The vehicle maintains its initial altitude if that is higher than the minimum return altitude.
   <!-- Note that return altitude cannot be configured using the "cone" parameter in fixed-wing vehicles. -->
 
-- Flies via direct constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
+- Flies via a constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
+  The path is chosen to be the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness).
 
 - 목적지가 임무 착륙 패턴인 경우 패턴을 따라 착륙합니다.
 

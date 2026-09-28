@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+set LOGGER_BUF 128
+
+param set-default EKF2_MULTI_IMU 0
+
+# Mavlink ethernet (CFG 1000)
+param set-default MAV_2_CONFIG 1000
+param set-default MAV_2_BROADCAST 1
+param set-default MAV_2_MODE 0
+param set-default MAV_2_RADIO_CTL 0
+param set-default MAV_2_RATE 100000
+param set-default MAV_2_REMOTE_PRT 14550
+param set-default MAV_2_UDP_PRT 14550
+
+param set-default SENS_EN_INA226 1
+param set-default SENS_EN_THERMAL 1
+param set-default SENS_IMU_MODE 1
+
+if ver hwtypecmp ARKV6XRT000
+then
+	# ICM-45686 on SPI1 is the primary IMU: seed its calibration slot with a
+	# higher voter priority so selection is deterministic rather than a boot
+	# race between the three equal-priority IMUs, falling back to the
+	# LSM6DSV80X / IIM-20670 only if it degrades. The heater regulates on it too.
+	param set-default CAL_ACC0_ID 3407882
+	param set-default CAL_GYRO0_ID 3407882
+	param set-default CAL_ACC0_PRIO 100
+	param set-default CAL_GYRO0_PRIO 100
+	param set-default HEATER1_SENS_ID 3407882
+fi
+
+param set-default RC_CRSF_PRT_CFG 300
+param set-default RC_SBUS_PRT_CFG 0
+
+param set-default UAVCAN_ESC_IFACE 2
+
+safety_button start
+
+if param greater -s UAVCAN_ENABLE 0
+then
+	ifup can0
+	ifup can1
+	# PAB pinouts CAN3 (FlexCAN3/can2) but no ARK carrier breaks it out.
+	# A carrier that does: CONFIG_BOARD_UAVCAN_INTERFACES=3 and ifup can2.
+fi

@@ -26,7 +26,7 @@ parameters:
                 -1: Unassigned
                 0: Manual
                 1: Altitude
-                2: Position
+                2: Position / Cruise
                 9: Position Slow
                 3: Mission
                 4: Hold
@@ -39,6 +39,7 @@ parameters:
                 12: Follow Me
                 13: Precision Land
                 16: Altitude Cruise
+                17: Manual Parking
                 100: External Mode 1
                 101: External Mode 2
                 102: External Mode 3

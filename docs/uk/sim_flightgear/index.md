@@ -93,12 +93,6 @@ The supported vehicles and `make` commands are listed below (click on the links 
 _QGroundControl_ should be able to automatically connect to the simulated vehicle.
 
 :::info
-For the full list of FlightGear build targets (highlighted) run:
-
-```sh
-make px4_sitl_nolockstep list_vmd_make_targets | grep flightgear_
-```
-
 For additional information see: [FlightGear Vehicles](../sim_flightgear/vehicles.md) (this includes information about "unsupported" vehicles, and adding new vehicles).
 :::
 

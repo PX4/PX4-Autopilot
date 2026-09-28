@@ -112,6 +112,15 @@ __EXPORT bool crsf_send_telemetry_battery(int uart_fd, uint16_t voltage, uint16_
 __EXPORT bool crsf_send_telemetry_gps(int uart_fd, int32_t latitude, int32_t longitude, uint16_t groundspeed,
 				      uint16_t gps_heading, uint16_t altitude, uint8_t num_satellites);
 
+/**
+ * Send telemetry barometric altitude information
+ * @param uart_fd UART file descriptor
+ * @param altitude Altitude [decimeters + 10000 offset], or [meters] with the MSB set
+ * @param vertical_speed Vertical speed [cm/s]
+ * @return true on success
+ */
+__EXPORT bool crsf_send_telemetry_baro_altitude(int uart_fd, uint16_t altitude, int16_t vertical_speed);
+
 
 /**
  * Send telemetry Attitude information

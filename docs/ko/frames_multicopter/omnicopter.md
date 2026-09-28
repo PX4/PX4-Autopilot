@@ -34,8 +34,8 @@ This build follows the original design from [Brescianini, Dario, and Raffaello D
   - Battery: we used a 6S 3300mAh LiPo. Make sure to check the dimensions so it fits the frame.
   - Battery strap
 - Frame:
-  - Carbon square tube R 8mm X 7mm X 1000mm, e.g. [here on shop.swiss-composite.ch](https://www.shop.swiss-composite.ch/de/produkt/cfk-vierkantrohr-8x8-7x7mm)
-  - Carbon Rods R 3mm X 2mm X 1000mm, e.g. [here on shop.swiss-composite.ch](https://www.shop.swiss-composite.ch/de/produkt/carbon-microtubes-100cm-x-20-3mm)
+  - Carbon square tube R 8mm X 7mm X 1000mm, e.g. [here on shop.swiss-composite.ch](https://shop.swiss-composite.ch/de/produkt/cfk-vierkantrohr-8x8-7x7mm)
+  - Carbon Rods R 3mm X 2mm X 1000mm, e.g. [here on shop.swiss-composite.ch](https://shop.swiss-composite.ch/de/produkt/carbon-microtubes-100cm-x-20-3mm)
   - Required lengths:
     - square tube: 8 pieces with length of 248mm
     - rods: 12x328mm, 6x465mm

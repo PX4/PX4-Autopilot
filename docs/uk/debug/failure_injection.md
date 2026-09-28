@@ -1,11 +1,54 @@
 # Інжекція помилки системи
 
-System failure injection allows you to induce different types of sensor and system failures, either programmatically using the [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html), or "manually" via a PX4 console like the [MAVLink shell](../debug/mavlink_shell.md#mavlink-shell).
+System failure injection allows you to induce different types of sensor and system failures, either via MAVLink (using [MAV_CMD_INJECT_FAILURE](https://mavlink.io/en/messages/common.html#MAV_CMD_INJECT_FAILURE) or via the [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html)), or "manually" via a PX4 console like the [MAVLink shell](../debug/mavlink_shell.md#mavlink-shell).
 This enables easier testing of [safety failsafe](../config/safety.md) behaviour, and more generally, of how PX4 behaves when systems and sensors stop working correctly.
 
 Failure injection is disabled by default, and can be enabled using the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-Failure injection must also be be supported by the current simulator, and the set of supported failures is simulator-dependent.
+Failures can be injected both in simulation and on real hardware; this requires firmware built with the failure-injection module.
+The command always goes through the same firmware failure-injection module — whether it arrives over MAVLink or from the console, the accepted combinations are identical.
+What differs is whether a _consumer_ applies the failure, and that depends on the environment.
+
+## Supported Failure Types
+
+The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong` (`ok` is not listed, but clears an active injection on all environments).
+A `—` means the module still accepts the command, but no consumer applies it in that environment.
+
+| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic) | Апаратне забезпечення(Hardware) |
+| ----------------- | ----------------------- | ----------------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                                          | `off`, `stuck`                                     |
+| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                                          | `off`, `stuck`                                     |
+| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                                          | `off`, `stuck`                                     |
+| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                                          | `off`, `stuck`                                     |
+| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                                          | `off`, `stuck`                                     |
+| `gps`             | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                                 | `off`, `stuck`, `wrong`                            |
+| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                                          | —                                                  |
+| `vio`             | —                       | —                       | `off`                                                   | —                                                  |
+| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                                          | `off`, `wrong`                                     |
+| `traffic`         | `off`                   | `off`                   | `off`                                                   | `off`                                              |
+| `motor`           | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                                          | `off`, `wrong`                                     |
+| `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                                          | `off`, `wrong`                                     |
+| `can`             | —                       | —                       | —                                                       | `off`                                              |
+
+[SIH]: ../sim_sih/index.md
+[Gazebo]: ../sim_gazebo_gz/index.md
+
+::: info
+
+- `gps off | stuck | wrong` on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
+- `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
+- `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
+- `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
+- `motor off` and `motor wrong` are the two motor failures, and both require [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE). `motor off` is the _detected_ failure: the motor is reported as failed, so the control allocator removes it from the allocation and handles the opposite motor per `CA_FAILURE_MODE`. Only a single failed motor can be recovered from, so an instance mask naming several motors has no effect. `motor wrong` is the _undetected_ failure: the output is stopped without informing the allocator, which models a failure with no feedback path (such as PWM ESCs), and any number of motors can be addressed.
+- `esc off` reports the addressed ESC as offline and blanks its telemetry; `esc wrong` keeps it online but reports implausible telemetry (voltage and current at 10% of the real value, RPM 10x). ESCs are addressed by motor instance (the ESC's actuator function), so `-i 1` targets the ESC driving motor 1.
+- On hardware, ESC injection is applied only by the UAVCAN (DroneCAN) ESC driver; the other ESC drivers (DShot, Cyphal, VOXL, TAP ESC) publish their telemetry unmodified.
+- `can off` takes the addressed CAN bus offline entirely, so every node on it stops responding; the instance selects the bus. Only applied on fmu-v6x-class hardware.
+
+:::
+
+Sensors delivered through the shared driver layer (IMU, magnetometer, barometer, rangefinder via the `PX4*` sensor wrappers) support `off`/`stuck` in every environment that uses that layer — including the Gazebo and SIH sensor simulators, which feed synthesized measurements through the same wrappers.
+The remaining gaps are backend-specific: GPS and airspeed are handled by dedicated simulator code (see the GPS and airspeed notes in the info box above), SIH does not simulate an injectable airspeed.
+Components not listed (`optical_flow`, `servo`, `avoidance`, `rc_signal`, `mavlink_signal`) are rejected everywhere (`MAV_RESULT_UNSUPPORTED`); see the note below on NACK behaviour.
 
 :::info
 PX4 may accept a command to set a particular failure mode even it that mode is not supported by your simulator.
@@ -24,7 +67,7 @@ Failures can be injected using the [failure system command](../modules/modules_c
 The full syntax of the [failure](../modules/modules_command.md#failure) command is:
 
 ```sh
-failure <component> <failure_type> [-i <instance_number>]
+failure <component> <failure_type> [-i <instance_number>] [-m <instance_bitmask>]
 ```
 
 де:
@@ -43,25 +86,42 @@ failure <component> <failure_type> [-i <instance_number>]
   - Системи:
     - `battery`: Battery
     - `motor`: Motor
+    - `esc`: ESC telemetry
     - `servo`: Servo
-    - `avoidance`: Avoidance
+    - `avoidance`: Obstacle/collision avoidance system
+    - `traffic`: Traffic avoidance (ADS-B/transponder)
     - `rc_signal`: RC Signal
     - `mavlink_signal`: MAVLink data telemetry connection
+    - `can`: CAN bus. The instance selects the bus. Supported on fmu-v6x-class hardware.
 - _failure_type_:
   - `ok`: Publish as normal (Disable failure injection)
   - `off`: Stop publishing
   - `stuck`: Constantly report the same value which _can_ happen on a malfunctioning sensor
   - `garbage`: Publish random noise. This looks like reading uninitialized memory
-  - `wrong`: Publish invalid values that still look reasonable/aren't "garbage"
+  - `wrong`: Publish invalid values that still look reasonable/aren't "garbage". For an actuator such as `motor` there is nothing to publish, so `wrong` means the motor stops without anything reporting it
   - `slow`: Publish at a reduced rate
   - `delayed`: Publish valid data with a significant delay
   - `intermittent`: Publish intermittently
 - _instance number_ (optional): Instance number of affected sensor.
   0 (за замовчуванням) вказує на всі сенсори вказаного типу.
+- _instance bitmask_ (optional): address several instances at once (bit 0 = first instance, bit 1 = second, …; decimal or `0x` hex). Used only when `-i` is omitted.
+  Example: `-m 0x5` targets instances 1 and 3.
 
 :::info
-The simulated GPS (SITL) implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
+GPS implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
+`gps wrong` makes the addressed receiver report the fix type selected by [SYS_FAIL_GPS_WRG](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_WRG) and the jamming state selected by [SYS_FAIL_GPS_JAM](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_JAM) (`Unchanged` keeps the receiver's own state), and leaves the reported position untouched.
 :::
+
+## RC Switch Trigger
+
+A failure can also be injected from an RC switch, without a console or telemetry link. This is useful for in-flight hardware testing. It is configured with the following parameters:
+
+- [SYS_FAIL_RC_SRC](../advanced_config/parameter_reference.md#SYS_FAIL_RC_SRC): the auxiliary RC input that triggers the failure — `0` disables it, `1`–`6` select AUX1–AUX6 (mapped via `RC_MAP_AUXn`).
+- [SYS_FAIL_RC_UNIT](../advanced_config/parameter_reference.md#SYS_FAIL_RC_UNIT): the affected component (the `FAILURE_UNIT` value; e.g. `101` = motor).
+- [SYS_FAIL_RC_MODE](../advanced_config/parameter_reference.md#SYS_FAIL_RC_MODE): the failure type (the `FAILURE_TYPE` value; e.g. `1` = off).
+- [SYS_FAIL_RC_INST](../advanced_config/parameter_reference.md#SYS_FAIL_RC_INST): the affected instances, as a bitmask (bit 0 = instance 1, e.g. `5` = instances 1 and 3; `0` = all instances).
+
+While the selected aux switch is on the configured failure is injected; switching it back off clears the failure. The injection goes through the same path as the console/MAVLink commands, so for a motor it fails the motor exactly as `failure motor off` (`SYS_FAIL_RC_MODE` = `1`) or `failure motor wrong` (`SYS_FAIL_RC_MODE` = `4`) does, with the same [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) requirement. A `SYS_FAIL_RC_INST` mask addressing several motors only takes effect for `wrong`, the undetected failure.
 
 ## MAVSDK відлагоджувальний плагін
 
@@ -87,16 +147,44 @@ To test the GPS failsafe by stopping GPS:
 
 ## Example: Motor
 
-To stop a motor mid-flight without the system anticipating it or excluding it from allocation effectiveness:
+To fail a motor mid-flight:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 2. Enable [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) parameter to allow turning off motors.
-3. Enter the following commands on the MAVLink console or SITL _pxh shell_:
+3. Pick the failure type for the behavior you want to test:
+   - `off` — detected: the motor is flagged as failed and removed from control allocation, so the allocator compensates using the remaining motors (per `CA_FAILURE_MODE`).
+     Only one failed motor can be recovered from, so an instance mask naming several motors has no effect.
+   - `wrong` — undetected: the motor output is stopped without notifying the allocator, so its effectiveness is not excluded.
+     This models a failure with no feedback path, such as PWM ESCs.
+     Any number of motors can be addressed.
+4. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
-   # Turn off first motor
+   # Detected failure: motor 1 is reported as failed and removed from the allocation
    failure motor off -i 1
+
+   # Undetected failure: motor 1 stops, the allocator is not informed
+   failure motor wrong -i 1
 
    # Turn it back on
    failure motor ok -i 1
+   ```
+
+## Example: Battery
+
+To trigger the battery failsafe by reporting a depleted pack:
+
+1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
+2. Optionally select the injected warning level with [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL): Warn, Critical or Emergency. The reported remaining charge is set just below the matching threshold ([BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR), [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR) or [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR)).
+3. Enter the following commands on the MAVLink console or SITL _pxh shell_:
+
+   ```sh
+   # Report the battery as depleted at the SYS_FAIL_BAT_LVL warning level -> battery failsafe
+   failure battery wrong
+
+   # Stop publishing the battery status entirely
+   failure battery off
+
+   # Stop injecting the failure
+   failure battery ok
    ```

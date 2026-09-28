@@ -12,6 +12,13 @@ fi
 if [ -n "${PX4_HOME_ALT}" ]; then
 	param set SIH_LOC_H0 ${PX4_HOME_ALT}
 fi
+if [ -n "${PX4_HOME_YAW}" ]; then
+	param set SIH_LOC_YAW0 ${PX4_HOME_YAW}
+fi
+if [ -n "${PX4_SIM_GPS_USED}" ]; then
+	# Override the simulated GPS satellite count (sensor_gps_sim). Used by tests to start with no fix
+	param set SIM_GPS_USED ${PX4_SIM_GPS_USED}
+fi
 
 if simulator_sih start; then
 

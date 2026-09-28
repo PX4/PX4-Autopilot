@@ -131,13 +131,11 @@ private:
 	static uint32_t		_crc32[3];				///< Checksum of items in (active) mission for each MAV_MISSION_TYPE
 	static int32_t		_current_seq;				///< Current item sequence in active mission
 
-public:
 	// Serializes access to the shared static state above. Multiple Mavlink
 	// instances' receiver threads concurrently detect mission changes and
 	// write these statics; without this lock they race on writes.
-	// Public so that the pthread_once initializer can reach it.
+	// Non-recursive: callers that already hold it use the _locked() helpers.
 	static pthread_mutex_t	_shared_state_mutex;
-private:
 
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
 	bool			_last_finished{false};			///< Last mission finished state
@@ -197,6 +195,10 @@ private:
 
 	void update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
 				   bool write_to_dataman = true);
+
+	// Updates the shared active-mission statics and returns the mission_s to publish.
+	// The caller must hold _shared_state_mutex; does not lock, write to dataman, or publish.
+	mission_s update_active_mission_locked(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32);
 
 	/** store the geofence count to dataman */
 	int update_geofence_count(dm_item_t fence_dataman_id, unsigned count, uint32_t crc32);

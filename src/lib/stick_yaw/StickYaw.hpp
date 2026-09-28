@@ -39,8 +39,11 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <px4_platform_common/module_params.h>
+
+using namespace time_literals;
 
 class StickYaw : public ModuleParams
 {
@@ -62,7 +65,7 @@ private:
 	bool _yaw_estimate_converging{false};
 	bool _unaided_yaw_was_invalid{false};
 	AlphaFilter<float> _yaw_error_lpf{_kYawErrorTimeConstant}; ///< used to create a high-pass filter
-	static constexpr float _kYawErrorTimeConstant{1.f}; ///< time constant of the high-pass filter used to detect yaw convergence
+	static constexpr hrt_abstime _kYawErrorTimeConstant{1_s}; ///< time constant of the high-pass filter used to detect yaw convergence
 	static constexpr float _kYawErrorChangeThreshold{radians(1.f)}; ///< we consider the yaw estimate as "converging" when above this threshold
 
 	bool updateYawCorrection(float yaw, float unaided_yaw, float deltatime);

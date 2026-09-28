@@ -51,7 +51,7 @@ The following flight controller models are applicable to this quick start guide.
 
 We recommend using a CAN GPS/RTK (such as [Neo 4SE](https://store.cuav.net/shop/cuav-neo-4-se-gps-module/)); simply connect it to the **CAN 1** or **CAN 2** port.
 
-You can also use a standard GPS/RTK module(such as [NEO3 GPS](https://store.cuav.net/shop/neo-3/) (10-pin connector)) by connecting it to the **GPS&SAFETY** port.
+You can also use a standard GPS/RTK module(such as [NEO3 GPS](https://store.cuav.net/shop/neo-3-pro/) (10-pin connector)) by connecting it to the **GPS&SAFETY** port.
 Most commonly used GPS modules today integrate GPS, compass, safety switch, buzzer, and LED status light.
 
 Якщо вам потрібно використовувати допоміжний GPS, підключіться до порту **GPS2**.
@@ -105,7 +105,7 @@ It can be directly connected to the **Power C1/C2** port of the X25 EVO and is p
 
 [Telemetry system](../telemetry/index.md) allows you to communicate with the unmanned system via ground station software, enabling you to monitor and control the UAV’s status during flight. Connect the on-board unit of the telemetry system to the **TELEM1** or **TELEM2** port.
 
-Ви також можете придбати телеметричні радіо з [магазину CUAV](https://store.cuav.net/uav-telemetry-module/).
+You can also purchase telemetry radios from the [CUAV store](https://store.cuav.net/category/telemetry/).
 
 ![Telemetry system](../../assets/flight_controller/cuav_x25-evo/x25_evo_quickstart_04.jpg)
 

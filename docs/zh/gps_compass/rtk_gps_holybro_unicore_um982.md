@@ -4,7 +4,7 @@ The [Holybro H-RTK Unicore UM982 GPS](https://holybro.com/products/h-rtk-unicore
 
 ![HB-pmw3901-1](../../assets/hardware/gps/holybro-unicore-um982/holybro-unicore-um982-1.jpg)
 
-This module is based on the [Unicore UM982 Chip](https://en.unicore.com/products/dual-antenna-gnss-um982/), which supports RTK positioning and dual-antenna heading calculation.
+This module is based on the [Unicore UM982 Chip](https://en.unicore.com/products/um982/), which supports RTK positioning and dual-antenna heading calculation.
 
 This means that it can generate a moving baseline headline/yaw determinations for autopilots with just one GPS module and dual antennas - a magnetometer is not needed.
 Unlike when using a module such as the U-blox F9P, where you would need [two U-blox F9P modules to compute a heading angle](../gps_compass/u-blox_f9p_heading.md), with the Unicore UM982 GPS, you only need one GPS module!

@@ -51,10 +51,10 @@ void ManualControlChecks::checkAndReport(const Context &context, Report &reporte
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
 						    events::ID("check_man_control_rtl_engaged"),
-						    events::Log::Error, "RTL switch engaged");
+						    events::Log::Error, "Return switch engaged");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: RTL switch engaged");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Return switch engaged");
 			}
 		}
 

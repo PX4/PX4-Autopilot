@@ -91,6 +91,7 @@ private:
 
 	//Cache
 	bool testCache();
+	bool testCacheUpdateCachedItem();
 	bool testCacheZeroSize();
 	bool testCacheResizeToZero();
 	bool testCacheResizeShrink();
@@ -1054,6 +1055,66 @@ DatamanTest::testCache()
 }
 
 bool
+DatamanTest::testCacheUpdateCachedItem()
+{
+	DatamanCache &cache = _dataman_cache;
+	const dm_item_t item = DM_KEY_SAFE_POINTS_0;
+	const uint32_t length = g_per_item_size[item];
+	cache.invalidate();
+	cache.resize(2);
+
+	if (cache.size() != 2) {
+		return false;
+	}
+
+	memset(_buffer_write, 0x11, sizeof(_buffer_write));
+
+	if (!cache.client().writeSync(item, 0, _buffer_write, length)) {
+		return false;
+	}
+
+	// No slot for the item yet: nothing to patch.
+	memset(_buffer_write, 0x22, sizeof(_buffer_write));
+
+	if (cache.updateCachedItem(item, 0, _buffer_write, length)) {
+		return false;
+	}
+
+	// A queued-but-unread slot is skipped: the in-flight read fetches the authoritative data.
+	if (!cache.load(item, 0) || cache.updateCachedItem(item, 0, _buffer_write, length)) {
+		return false;
+	}
+
+	if (!processCacheUntilLoaded(cache, 2_s)) {
+		return false;
+	}
+
+	// Oversized lengths and null buffers are rejected.
+	if (cache.updateCachedItem(item, 0, _buffer_write, length + 1)
+	    || cache.updateCachedItem(item, 0, nullptr, length)) {
+		return false;
+	}
+
+	// A received slot is patched in place and served on the next cache-only lookup.
+	memset(_buffer_write, 0x33, sizeof(_buffer_write));
+
+	if (!cache.updateCachedItem(item, 0, _buffer_write, length)
+	    || !cache.loadWait(item, 0, _buffer_read, length, 0)
+	    || memcmp(_buffer_read, _buffer_write, length) != 0) {
+		return false;
+	}
+
+	// Unknown index: no slot matches.
+	if (cache.updateCachedItem(item, 1, _buffer_write, length)) {
+		return false;
+	}
+
+	// Invalidated slots are skipped even though the stale key still matches.
+	cache.invalidate();
+	return !cache.updateCachedItem(item, 0, _buffer_write, length);
+}
+
+bool
 DatamanTest::testCacheZeroSize()
 {
 	// A cache created with zero items must not allocate storage and must remain
@@ -1077,6 +1138,11 @@ DatamanTest::testCacheZeroSize()
 
 	if (zero_cache.isLoading()) {
 		PX4_ERR("zero-size cache reports loading");
+		return false;
+	}
+
+	if (zero_cache.updateCachedItem(item, 0, _buffer_write, length)) {
+		PX4_ERR("updateCachedItem unexpectedly succeeded on zero-size cache");
 		return false;
 	}
 
@@ -1378,6 +1444,7 @@ bool DatamanTest::run_tests()
 	ut_run_test(testAsyncAbortAndReissue);
 
 	ut_run_test(testCache);
+	ut_run_test(testCacheUpdateCachedItem);
 	ut_run_test(testCacheZeroSize);
 	ut_run_test(testCacheResizeToZero);
 	ut_run_test(testCacheResizeShrink);

@@ -91,4 +91,6 @@ if MODULES_ZENOH
 
 endif
 
-rsource "Kconfig.topics"
+# Kconfig.topics is generated into the build tree (see cmake/kconfig.cmake), not
+# committed to source. It is sourced here by absolute path via an env variable.
+source "$(ZENOH_KCONFIG_TOPICS)"

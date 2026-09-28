@@ -76,8 +76,7 @@ This is a problem (in particular) for _FMUv2 firmware_, which omits many modules
 
 ## 更改参数
 
-要更改参数的值，请单击组或搜索列表中的参数行。
-单击后屏幕侧边会显示一个对话框，您在其中更改参数的值（这个对话框还提供了该参数的额外细节信息——包括是否需要重启才能使参数生效）。
+要更改参数的值，请单击组或搜索列表中的参数行。单击后屏幕侧边会显示一个对话框，您在其中更改参数的值（这个对话框还提供了该参数的额外细节信息——包括是否需要重启才能使参数生效）。
 
 ![Changing a parameter value](../../assets/qgc/setup/parameters/parameters_changing.png)
 

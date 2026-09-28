@@ -54,7 +54,11 @@
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#if defined(__PX4_NUTTX)
+#include <nuttx/crc32.h>
+#else
 #include <crc32.h>
+#endif
 
 using matrix::wrap_2pi;
 
@@ -67,7 +71,9 @@ uint32_t MavlinkMissionManager::_crc32[3] = { 0, 0, 0 };
 int32_t MavlinkMissionManager::_current_seq = 0;
 bool MavlinkMissionManager::_transfer_in_progress = false;
 
-pthread_mutex_t MavlinkMissionManager::_shared_state_mutex;
+// Non-recursive: the count updaters that already hold it use update_active_mission_locked().
+// Statically initialized so no runtime init (and no non-portable recursive initializer) is needed.
+pthread_mutex_t MavlinkMissionManager::_shared_state_mutex = PTHREAD_MUTEX_INITIALIZER;
 constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
 
 #define CHECK_SYSID_COMPID_MISSION(_msg)		(_msg.target_system == mavlink_system.sysid && \
@@ -75,22 +81,9 @@ constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
 		 (_msg.target_component == MAV_COMP_ID_MISSIONPLANNER) || \
 		 (_msg.target_component == MAV_COMP_ID_ALL)))
 
-static pthread_once_t s_mission_mutex_once = PTHREAD_ONCE_INIT;
-
-static void init_mission_shared_mutex()
-{
-	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr);
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-	pthread_mutex_init(&MavlinkMissionManager::_shared_state_mutex, &attr);
-	pthread_mutexattr_destroy(&attr);
-}
-
 MavlinkMissionManager::MavlinkMissionManager(Mavlink &mavlink) :
 	_mavlink(mavlink)
 {
-	pthread_once(&s_mission_mutex_once, init_mission_shared_mutex);
-
 	if (!_dataman_init) {
 		_dataman_init = true;
 
@@ -167,12 +160,11 @@ MavlinkMissionManager::load_safepoint_stats()
 /**
  * Publish mission topic to notify navigator about changes.
  */
-void
-MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
-		bool write_to_dataman)
+mission_s
+MavlinkMissionManager::update_active_mission_locked(dm_item_t mission_dataman_id, uint16_t count, int32_t seq,
+		uint32_t crc32)
 {
-	/* update active mission state */
-	pthread_mutex_lock(&_shared_state_mutex);
+	/* update active mission state (caller holds _shared_state_mutex) */
 	_mission_dataman_id = mission_dataman_id;
 	_my_mission_dataman_id = _mission_dataman_id;
 	_count[MAV_MISSION_TYPE_MISSION] = count;
@@ -191,6 +183,15 @@ MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint1
 	mission.safe_points_id = _crc32[MAV_MISSION_TYPE_RALLY];
 	mission.land_start_index = _land_start_marker;
 	mission.land_index = _land_marker;
+	return mission;
+}
+
+void
+MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
+		bool write_to_dataman)
+{
+	pthread_mutex_lock(&_shared_state_mutex);
+	mission_s mission = update_active_mission_locked(mission_dataman_id, count, seq, crc32);
 	pthread_mutex_unlock(&_shared_state_mutex);
 
 	if (write_to_dataman) {
@@ -237,11 +238,11 @@ MavlinkMissionManager::update_geofence_count(dm_item_t fence_dataman_id, unsigne
 		return PX4_ERROR;
 	}
 
-	// update_active_mission takes the same (recursive) mutex
-	update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
-			      _crc32[MAV_MISSION_TYPE_MISSION],
-			      false);
+	mission_s mission = update_active_mission_locked(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
+			    _crc32[MAV_MISSION_TYPE_MISSION]);
 	pthread_mutex_unlock(&_shared_state_mutex);
+
+	_offboard_mission_pub.publish(mission);
 	return PX4_OK;
 }
 
@@ -277,10 +278,11 @@ MavlinkMissionManager::update_safepoint_count(dm_item_t safepoint_dataman_id, un
 		return PX4_ERROR;
 	}
 
-	update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
-			      _crc32[MAV_MISSION_TYPE_MISSION],
-			      false);
+	mission_s mission = update_active_mission_locked(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
+			    _crc32[MAV_MISSION_TYPE_MISSION]);
 	pthread_mutex_unlock(&_shared_state_mutex);
+
+	_offboard_mission_pub.publish(mission);
 	return PX4_OK;
 }
 
@@ -1162,7 +1164,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				}
 
 			} else if (_state == MAVLINK_WPM_STATE_IDLE) {
-				if (_transfer_seq == wp.seq + 1) {
+				if (_transfer_seq == _transfer_count && _transfer_seq == wp.seq + 1) {
 					// Assume this is a duplicate, where we already successfully got all mission items,
 					// but the GCS did not receive the last ack and sent the same item again
 					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED, _transfer_current_crc32);
@@ -1333,10 +1335,13 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 					_land_start_marker = _transfer_land_start_marker;
 					_land_marker = _transfer_land_marker;
 
-					// Only need to update if the mission actually changed
-					if (_transfer_current_crc32 != _crc32[MAV_MISSION_TYPE_MISSION]) {
-						update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq, _transfer_current_crc32);
-					}
+					// A completed upload replaces the mission, so the current index
+					// has to be updated even when the uploaded mission happens to be
+					// identical to the stored one. Without this, re-uploading the same
+					// mission after a reboot resumes at the index the previous run
+					// ended on, and the mission reports itself finished immediately.
+					update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq,
+							      _transfer_current_crc32);
 
 					break;
 
@@ -1666,8 +1671,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 				const mavlink_mission_item_int_t *item_int =
 					reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
 				// x/y are p5/p6 generic params (not lat/lon) for non-position frames.
-				// Normalize INT32_MAX (MISSION_ITEM_INT "unused" sentinel) to NaN so
-				// both the int sentinel and the NaN are treated as unset.
+				// Turn both int values that mean "param not used" (INT32_MAX per the
+				// spec, INT32_MIN from ground stations converting NaN to int32) into
+				// NaN so the validation treats them as not used.
 				const float p5 = mavlink_cmd_params::int_param_is_unset(item_int->x) ? NAN : (float)item_int->x;
 				const float p6 = mavlink_cmd_params::int_param_is_unset(item_int->y) ? NAN : (float)item_int->y;
 				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,

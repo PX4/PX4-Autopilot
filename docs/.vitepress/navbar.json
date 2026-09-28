@@ -14,6 +14,7 @@
     { "text": "Support", "link": "https://docs.px4.io/main/en/contribute/support.html" },
     {
       "text": "Version",
+      "preservePath": true,
       "items": [
         { "text": "main", "link": "https://docs.px4.io/main/en/" },
         { "text": "v1.17 (stable)", "link": "https://docs.px4.io/v1.17/en/" },
