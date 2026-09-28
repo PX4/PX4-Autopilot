@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,6 +57,16 @@ public:
 	/**
 	 * Set filter parameters for time abstraction
 	 *
+	 * @param sample_interval_s interval between two samples in seconds
+	 * @param time_constant_s filter time constant determining convergence in seconds
+	 */
+	void setParameters(float sample_interval_s, float time_constant_s)
+	{
+		_alpha_filter.setParameters(sample_interval_s, time_constant_s);
+		_sample_interval = sample_interval_s;
+	}
+
+	/**
 	 * @param sample_interval_us interval between two samples in microseconds
 	 * @param time_constant_us filter time constant determining convergence in microseconds
 	 */
@@ -65,10 +75,6 @@ public:
 		_alpha_filter.setParameters(sample_interval_us, time_constant_us);
 		_sample_interval = static_cast<float>(sample_interval_us) * 1e-6f;
 	}
-
-	void setParameters(float sample_interval, float time_constant) = delete;
-	void setParameters(uint64_t sample_interval_us, float time_constant) = delete;
-	void setParameters(float sample_interval, uint64_t time_constant_us) = delete;
 
 	/**
 	 * Set filter state to an initial value

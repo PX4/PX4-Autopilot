@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,33 +53,39 @@ class AlphaFilter
 {
 public:
 	AlphaFilter() = default;
+	explicit AlphaFilter(float sample_interval_s, float time_constant_s) { setParameters(sample_interval_s, time_constant_s); }
 	explicit AlphaFilter(uint64_t sample_interval_us, uint64_t time_constant_us) { setParameters(sample_interval_us, time_constant_us); }
+	explicit AlphaFilter(float time_constant_s) : _time_constant(time_constant_s) {};
 	explicit AlphaFilter(uint64_t time_constant_us) : _time_constant(static_cast<float>(time_constant_us) * 1e-6f) {};
-
-	// time arguments are microseconds, the float seconds interface and the
-	// mixed combinations are removed to prevent unit mistakes
-	AlphaFilter(float sample_interval, float time_constant) = delete;
-	AlphaFilter(uint64_t sample_interval_us, float time_constant) = delete;
-	AlphaFilter(float sample_interval, uint64_t time_constant_us) = delete;
-	explicit AlphaFilter(float time_constant) = delete;
 
 	~AlphaFilter() = default;
 
 	/**
 	 * Set filter parameters for time abstraction
 	 *
+	 * @param sample_interval_s interval between two samples in seconds
+	 * @param time_constant_s filter time constant determining convergence in seconds
+	 */
+	void setParameters(float sample_interval_s, float time_constant_s)
+	{
+		const float denominator = time_constant_s + sample_interval_s;
+
+		if (denominator > FLT_EPSILON) {
+			setAlpha(sample_interval_s / denominator);
+		}
+
+		_time_constant = time_constant_s;
+	}
+
+	/**
 	 * @param sample_interval_us interval between two samples in microseconds
 	 * @param time_constant_us filter time constant determining convergence in microseconds
 	 */
 	void setParameters(uint64_t sample_interval_us, uint64_t time_constant_us)
 	{
-		setParametersSeconds(static_cast<float>(sample_interval_us) * 1e-6f,
-				     static_cast<float>(time_constant_us) * 1e-6f);
+		setParameters(static_cast<float>(sample_interval_us) * 1e-6f,
+			      static_cast<float>(time_constant_us) * 1e-6f);
 	}
-
-	void setParameters(float sample_interval, float time_constant) = delete;
-	void setParameters(uint64_t sample_interval_us, float time_constant) = delete;
-	void setParameters(float sample_interval, uint64_t time_constant_us) = delete;
 
 	bool setCutoffFreq(float sample_freq, float cutoff_freq)
 	{
@@ -90,7 +96,7 @@ public:
 			return false;
 		}
 
-		setParametersSeconds(1.f / sample_freq, 1.f / (M_TWOPI_F * cutoff_freq));
+		setParameters(1.f / sample_freq, 1.f / (M_TWOPI_F * cutoff_freq));
 		return true;
 	}
 
@@ -129,29 +135,22 @@ public:
 		return _filter_state;
 	}
 
-	const T update(const T &sample, uint64_t dt_us)
+	const T update(const T &sample, float dt_s)
 	{
-		setParametersSeconds(static_cast<float>(dt_us) * 1e-6f, _time_constant);
+		setParameters(dt_s, _time_constant);
 		return update(sample);
 	}
 
-	const T update(const T &sample, float dt) = delete;
+	const T update(const T &sample, uint64_t dt_us)
+	{
+		setParameters(static_cast<float>(dt_us) * 1e-6f, _time_constant);
+		return update(sample);
+	}
 
 	const T &getState() const { return _filter_state; }
 	float getCutoffFreq() const { return 1.f / (M_TWOPI_F * _time_constant); }
 
 protected:
-	void setParametersSeconds(float sample_interval, float time_constant)
-	{
-		const float denominator = time_constant + sample_interval;
-
-		if (denominator > FLT_EPSILON) {
-			setAlpha(sample_interval / denominator);
-		}
-
-		_time_constant = time_constant;
-	}
-
 	T updateCalculation(const T &sample);
 
 	float _time_constant{0.f};
