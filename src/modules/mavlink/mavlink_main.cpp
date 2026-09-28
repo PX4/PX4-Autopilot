@@ -600,6 +600,12 @@ Mavlink::component_was_seen(int system_id, int component_id, Mavlink &self)
 	return false;
 }
 
+static bool target_is_us_or_broadcast(int target_system_id, int target_component_id)
+{
+	return (target_system_id == 0 || target_system_id == mavlink_system.sysid)
+	       && (target_component_id == 0 || target_component_id == mavlink_system.compid);
+}
+
 void
 Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 {
@@ -618,6 +624,16 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
 			target_component_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_component_ofs]);
 		}
+	}
+
+	// SETUP_SIGNING must never be forwarded (MAVLink spec requirement).
+	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		if (!target_is_us_or_broadcast(target_system_id, target_component_id)) {
+			mavlink_log_warning(&self->_mavlink_log_pub, "MAVLink signing: SETUP_SIGNING for %d/%d not forwarded",
+					    target_system_id, target_component_id);
+		}
+
+		return;
 	}
 
 	// Avoid locking/iteration when there is no instance to forward to.
@@ -1193,8 +1209,17 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	 *  NOTE: this is called from the receiver thread
 	 */
 
-	// SETUP_SIGNING must never be forwarded to other links (MAVLink spec requirement).
+	// Only apply SETUP_SIGNING if it is meant for us. Otherwise it goes on to
+	// forward_message() which drops it, it must never be forwarded.
+	bool setup_signing_for_us = false;
+
 	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		mavlink_setup_signing_t setup_signing;
+		mavlink_msg_setup_signing_decode(msg, &setup_signing);
+		setup_signing_for_us = target_is_us_or_broadcast(setup_signing.target_system, setup_signing.target_component);
+	}
+
+	if (setup_signing_for_us) {
 		// Reject signing changes while armed
 		vehicle_status_s vehicle_status{};
 
