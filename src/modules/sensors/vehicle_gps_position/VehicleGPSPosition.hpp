@@ -104,6 +104,7 @@ private:
 	} _gps_param_slots[GPS_MAX_RECEIVERS] {};
 
 	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::GPS_INPUT_MODE>) _param_gps_input_mode,
 		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
 		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau,
 		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime,
