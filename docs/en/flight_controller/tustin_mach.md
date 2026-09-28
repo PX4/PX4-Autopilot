@@ -47,7 +47,7 @@ The order below describes the board connectors, not the view into a mating cable
 
 ### Connector Side
 
-![Tustin MACH connector side showing the two ESC headers and peripheral connector locations](../../assets/flight_controller/tustin_mach/connector_side.png)
+![Photograph of the Tustin MACH connector side showing the two ESC headers and peripheral connector locations](../../assets/flight_controller/tustin_mach/connector_side.webp)
 
 | Connector           | Signal Order                                        |
 | ------------------- | --------------------------------------------------- |
@@ -64,7 +64,7 @@ The order below describes the board connectors, not the view into a mating cable
 
 ### Controller Side
 
-![Tustin MACH controller side showing CAM, DJI, USB Type-C, and I2C connector locations](../../assets/flight_controller/tustin_mach/controller_side.png)
+![Photograph of the Tustin MACH controller side showing CAM, DJI, USB Type-C, and I2C connector locations](../../assets/flight_controller/tustin_mach/controller_side.webp)
 
 | Connector        | Signal Order                             |
 | ---------------- | ---------------------------------------- |
