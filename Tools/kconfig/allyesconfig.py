@@ -28,6 +28,7 @@ exception_list = [
     'BOARD_EXTERNAL_METADATA', # only used to reduce flash size
     'BOARD_CRYPTO', # Specialized use
     'BOARD_PROTECTED', # Experimental for MPU use
+    'BOARD_RPMSG', # Needs rptun in the board's NuttX config and a remote core image
     'DRIVERS_LIGHTS_RGBLED_PWM', # Only on specific boards, needs dependency fixing
     'DRIVERS_LIGHTS_NEOPIXEL', # Only on specific boards, needs dependency fixing
     'DRIVERS_DISTANCE_SENSOR_LIGHTWARE_SF45_SERIAL', # Only on specific boards, needs dependency fixing
