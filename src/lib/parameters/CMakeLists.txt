@@ -31,7 +31,6 @@
 #
 ############################################################################
 
-add_compile_options(${MAX_CUSTOM_OPT_LEVEL})
 
 if (NOT PARAM_DEFAULT_OVERRIDES)
 	set(PARAM_DEFAULT_OVERRIDES "{}")

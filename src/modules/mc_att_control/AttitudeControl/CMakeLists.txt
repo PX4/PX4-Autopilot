@@ -38,6 +38,7 @@ px4_add_library(AttitudeControl
 )
 target_compile_options(AttitudeControl PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 target_include_directories(AttitudeControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(AttitudeControl PUBLIC matrix)
 
 px4_add_unit_gtest(SRC AttitudeControlTest.cpp LINKLIBS AttitudeControl)
 px4_add_unit_gtest(SRC AttitudeControlMathTest.cpp LINKLIBS AttitudeControl)

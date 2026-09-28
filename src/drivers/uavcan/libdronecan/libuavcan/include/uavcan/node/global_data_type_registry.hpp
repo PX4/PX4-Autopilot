@@ -85,6 +85,14 @@ private:
     RegistrationResult remove(Entry* dtd);
     RegistrationResult registImpl(Entry* dtd);
 
+    /**
+     * Type-independent body of registerDataType<>(). Keeping it out of line means the
+     * template only has to construct the descriptor arguments, instead of expanding the
+     * whole registration logic once per data type.
+     */
+    RegistrationResult registerDataTypeImpl(Entry& entry, DataTypeKind kind, DataTypeID id,
+                                            const DataTypeSignature& signature, const char* name);
+
 public:
     /**
      * Returns the reference to the singleton.
@@ -100,8 +108,13 @@ public:
      *                  libuavcan DSDL compiler from DSDL definitions.
      *
      * @param id        Data Type ID for this data type.
+     *
+     * noinline: the same type is typically registered from several translation units. Keeping
+     * the thin per-type body a single weak symbol lets the linker deduplicate it, instead of
+     * having it inlined into every translation unit's static initializer.
      */
     template <typename Type>
+    __attribute__((noinline))
     RegistrationResult registerDataType(DataTypeID id);
 
     /**
@@ -207,33 +220,9 @@ struct UAVCAN_EXPORT DefaultDataTypeRegistrator
 template <typename Type>
 GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::registerDataType(DataTypeID id)
 {
-    if (isFrozen())
-    {
-        return RegistrationResultFrozen;
-    }
-
     static Entry entry;
-
-    {
-        const RegistrationResult remove_res = remove(&entry);
-        if (remove_res != RegistrationResultOk)
-        {
-            return remove_res;
-        }
-    }
-
-    // We can't just overwrite the entry itself because it's noncopyable
-    entry.descriptor = DataTypeDescriptor(DataTypeKind(Type::DataTypeKind), id,
-                                          Type::getDataTypeSignature(), Type::getDataTypeFullName());
-
-    {
-        const RegistrationResult remove_res = remove(&entry);
-        if (remove_res != RegistrationResultOk)
-        {
-            return remove_res;
-        }
-    }
-    return registImpl(&entry);
+    return registerDataTypeImpl(entry, DataTypeKind(Type::DataTypeKind), id,
+                                Type::getDataTypeSignature(), Type::getDataTypeFullName());
 }
 
 }

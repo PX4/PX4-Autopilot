@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file InvenSense_IIM42653_registers.hpp
+ * @file InvenSense_IIM4265X_registers.hpp
  *
- * Invensense IIM-42653 registers.
+ * Invensense IIM-42652/IIM-42653 registers.
  *
  */
 
@@ -43,7 +43,7 @@
 #include <cstdint>
 #include <cstddef>
 
-namespace InvenSense_IIM42653
+namespace InvenSense_IIM4265X
 {
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
@@ -58,7 +58,8 @@ static constexpr uint8_t Bit7 = (1 << 7);
 static constexpr uint32_t SPI_SPEED = 24 * 1000 * 1000; // 24 MHz SPI
 static constexpr uint8_t DIR_READ = 0x80;
 
-static constexpr uint8_t WHOAMI = 0x56;
+static constexpr uint8_t WHOAMI_IIM42652 = 0x6F;
+static constexpr uint8_t WHOAMI_IIM42653 = 0x56;
 
 static constexpr float TEMPERATURE_SENSITIVITY = 132.48f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 25.f; // C
@@ -120,6 +121,8 @@ enum class BANK_2 : uint8_t {
 	ACCEL_CONFIG_STATIC2 = 0x03,
 	ACCEL_CONFIG_STATIC3 = 0x04,
 	ACCEL_CONFIG_STATIC4 = 0x05,
+
+	// IIM-42653 only
 	AUX1_CONFIG1         = 0x44,
 	AUX1_CONFIG2         = 0x45,
 	AUX1_CONFIG3         = 0x46,
@@ -181,11 +184,9 @@ enum PWR_MGMT0_BIT : uint8_t {
 // GYRO_CONFIG0
 enum GYRO_CONFIG0_BIT : uint8_t {
 	// 7:5 GYRO_FS_SEL
-	GYRO_FS_SEL_4000_DPS = 0, // 0b000 = ±4000dps (default)
-	GYRO_FS_SEL_2000_DPS = Bit5,
-	GYRO_FS_SEL_1000_DPS = Bit6,
-	GYRO_FS_SEL_500_DPS  = Bit6 | Bit5,
-	GYRO_FS_SEL_250_DPS  = Bit7,
+	// the same register value selects the chip's maximum range:
+	// IIM-42652: 0b000 = ±2000 dps, IIM-42653: 0b000 = ±4000 dps
+	GYRO_FS_SEL_MAX_RANGE = 0, // (default)
 
 
 	// 3:0 GYRO_ODR
@@ -206,10 +207,9 @@ enum GYRO_CONFIG0_BIT : uint8_t {
 // ACCEL_CONFIG0
 enum ACCEL_CONFIG0_BIT : uint8_t {
 	// 7:5 ACCEL_FS_SEL
-	ACCEL_FS_SEL_32G = 0, // 000: ±32g (default)
-	ACCEL_FS_SEL_16G = Bit5,
-	ACCEL_FS_SEL_8G  = Bit6,
-	ACCEL_FS_SEL_4G  = Bit6 | Bit5,
+	// the same register value selects the chip's maximum range:
+	// IIM-42652: 0b000 = ±16 g, IIM-42653: 0b000 = ±32 g
+	ACCEL_FS_SEL_MAX_RANGE = 0, // (default)
 
 
 	// 3:0 ACCEL_ODR
@@ -380,36 +380,6 @@ enum ACCEL_CONFIG_STATIC4_BIT : uint8_t {
 	ACCEL_AAF_DELTSQR_MSB_CLEAR    = Bit3 | Bit2 | Bit1 | Bit0,
 };
 
-// AUX1_CONFIG1
-enum AUX1_CONFIG1_BIT : uint8_t {
-	AUX1_ACCEL_LP_CLK_SEL = Bit5,
-	GYRO_AUX1_EN = Bit1,
-	ACCEL_AUX1_EN = Bit0,
-};
-
-// AUX1_CONFIG2
-enum AUX1_CONFIG2_BIT : uint8_t {
-	GYRO_AUX1_HPF_DIS = Bit6,
-};
-
-// AUX1_SPI_REG1
-enum AUX1_SPI_REG1_BIT : uint8_t {
-	AUX1_SPI_REG1_CLEAR = Bit1,
-	AUX1_SPI_REG1_SET = Bit0,
-};
-
-// AUX1_SPI_REG2
-enum AUX1_SPI_REG2_BIT : uint8_t {
-	AUX1_SPI_REG2_CLEAR = Bit1,
-	AUX1_SPI_REG2_SET = Bit0,
-};
-
-// AUX1_SPI_REG3
-enum AUX1_SPI_REG3_BIT : uint8_t {
-	AUX1_SPI_REG3_CLEAR = Bit1,
-	AUX1_SPI_REG3_SET = Bit0,
-};
-
 namespace FIFO
 {
 static constexpr size_t SIZE = 2048;
@@ -452,4 +422,34 @@ enum FIFO_HEADER_BIT : uint8_t {
 };
 
 }
-} // namespace InvenSense_IIM42653
+// AUX1_CONFIG1 (IIM-42653 only)
+enum AUX1_CONFIG1_BIT : uint8_t {
+	AUX1_ACCEL_LP_CLK_SEL = Bit5,
+	GYRO_AUX1_EN = Bit1,
+	ACCEL_AUX1_EN = Bit0,
+};
+
+// AUX1_CONFIG2 (IIM-42653 only)
+enum AUX1_CONFIG2_BIT : uint8_t {
+	GYRO_AUX1_HPF_DIS = Bit6,
+};
+
+// AUX1_SPI_REG1 (IIM-42653 only)
+enum AUX1_SPI_REG1_BIT : uint8_t {
+	AUX1_SPI_REG1_CLEAR = Bit1,
+	AUX1_SPI_REG1_SET = Bit0,
+};
+
+// AUX1_SPI_REG2 (IIM-42653 only)
+enum AUX1_SPI_REG2_BIT : uint8_t {
+	AUX1_SPI_REG2_CLEAR = Bit1,
+	AUX1_SPI_REG2_SET = Bit0,
+};
+
+// AUX1_SPI_REG3 (IIM-42653 only)
+enum AUX1_SPI_REG3_BIT : uint8_t {
+	AUX1_SPI_REG3_CLEAR = Bit1,
+	AUX1_SPI_REG3_SET = Bit0,
+};
+
+} // namespace InvenSense_IIM4265X
