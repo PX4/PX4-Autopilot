@@ -373,13 +373,19 @@ bool VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 		expected_down_max = fmaxf(down_now, down_sample);
 	}
 
-	if (!PX4_ISFINITE(sample.heading) || !configured
-	    || !gnss_heading::baselineConsistent(slot->baseline_length, sample.baseline_length, sample.baseline_down,
-			    expected_down_min, expected_down_max)) {
+	if (!PX4_ISFINITE(sample.heading) || !configured) {
 		if (same_source) {
 			source.settled_since = 0;
 		}
 
+		return false;
+	}
+
+	// A sample whose baseline doesn't match is dropped without restarting the settle: the down component of a short
+	// moving baseline scatters by more than 20% of its length (up to 0.16 m on 0.35 m while turning on an ARK G5 pair),
+	// so good headings fail the vertical check now and then.
+	if (!gnss_heading::baselineConsistent(slot->baseline_length, sample.baseline_length, sample.baseline_down,
+					      expected_down_min, expected_down_max)) {
 		return false;
 	}
 
@@ -393,9 +399,8 @@ bool VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 
 	source.last_pass = now;
 
-	// Headings are published once the source has passed the checks for kHeadingSettleTime. Outdoors on an ARK G5
-	// moving-base pair, the headings right after the base antenna was re-plugged passed the baseline checks for 0.9 s
-	// and were up to 25 deg wrong.
+	// Headings are published once the receiver has reported a matching one for kHeadingSettleTime, since the first
+	// fixes after it (re)gains its heading are the likeliest to be wrong.
 	if (now < source.settled_since + kHeadingSettleTime) {
 		return true;
 	}

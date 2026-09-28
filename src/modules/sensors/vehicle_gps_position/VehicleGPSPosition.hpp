@@ -155,7 +155,7 @@ private:
 		uint32_t device_id{0};
 		bool from_relative{false};
 		hrt_abstime last_pass{0};     // last sample that passed the checks
-		hrt_abstime settled_since{0}; // start of the current run of samples passing the checks
+		hrt_abstime settled_since{0}; // first passing sample since the receiver last had no heading
 	} _heading_source{};
 
 	bool _heading_unconfigured_reported{false};

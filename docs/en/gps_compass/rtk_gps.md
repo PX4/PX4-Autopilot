@@ -182,7 +182,7 @@ Configure the slot of the receiver that reports the heading, matched by [SENS_GP
 | [EKF2_GPS_CTRL][EKF2_GPS_CTRL]       | Set bit position 3 "Dual antenna heading" to `1` (i.e. add 8 to the parameter value).                                                                         |
 
 Antennas must be at least 5 cm apart.
-A source is used once its baseline has matched for 1 s.
+A heading source is used 1 s after the receiver starts reporting a matching heading; a sample that doesn't match is dropped.
 
 <!-- links used in table above -->
 
