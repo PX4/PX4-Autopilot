@@ -42,7 +42,7 @@ Ideally the two antennas should be identical, on the same level/horizontal plane
 - Set [GPS_UBX_BAUD1](../advanced_config/parameter_reference.md#GPS_UBX_BAUD1) if a UART1 rate other than the default is required (0 keeps 115200). Use a higher rate for high update rates or when RTCM is sent on UART1 ([GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) 3/4), and a lower rate on long serial cables.
 - Set [GPS_UBX_BAUD2](../advanced_config/parameter_reference.md#GPS_UBX_BAUD2) if a UART2 rate other than the default (230400) is required. UART2 carries RTCM between the modules in this setup.
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter bit 3 must be set (see [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
-- Set [SENS_GPSn_HDG](../advanced_config/parameter_reference.md#SENS_GPS0_HDG) to `Moving base` for the rover's slot, and the antenna offsets of both receivers (see [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
+- Set [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) to `Moving base rover` for the rover's slot, and the antenna offsets of both receivers (see [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
 - Reboot and wait until both devices have GPS reception.
   `gps status` should then show the Main GPS going into RTK mode, which means the heading angle is available.
 

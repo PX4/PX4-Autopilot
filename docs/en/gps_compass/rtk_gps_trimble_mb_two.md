@@ -2,8 +2,6 @@
 
 The [Trimble MB-Two RTK GPS receiver](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) is a high-end, dual-frequency [RTK GPS module](../gps_compass/rtk_gps.md) that can be configured as either base or rover.
 
-In addition to providing precise position information, the MB-Two can estimate heading angle (it has dual-antenna support). This is useful for situations where a compass cannot provide reliable heading information, for example when flying close to metal constructs.
-
 ![MB-Two Hero image](../../assets/hardware/gps/rtk_trimble_two_gnss_hero.jpg)
 
 ## Required Firmware Options
@@ -52,17 +50,8 @@ The pins on the 28-pin connector are numbered as shown below:
 
 First set the GPS protocol to Trimble ([GPS_x_PROTOCOL=3](../advanced_config/parameter_reference.md#GPS_1_PROTOCOL)).
 
-For heading estimation the two antennas need to be on the same level and at least 30 cm apart from each other.
-The direction that they are facing does not matter as it is configured with the [heading baseline](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source).
-
-::: info
-Set `SENS_GPSn_HDG` to `Custom` and `SENS_GPSn_BLX/Y/Z` to the _baseline_ (the vector between the two GPS antennas) in the body frame (as shown [here](../config/flight_controller_orientation.md#calculating-orientation)).
-:::
-
 [Configure the serial port](../peripherals/serial_configuration.md) on which the Trimple will run using [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG), and set the baud rate to 115200 using [SER_GPS1_BAUD](../advanced_config/parameter_reference.md#SER_GPS1_BAUD).
 
-To activate heading fusion for the attitude estimation, set the [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter to enable _Dual antenna heading_.
-
 ::: info
-See also: [GPS > Configuration > GPS as Yaw/Heading Source](../gps_compass/index.md#configuring-gps-as-yaw-heading-source)
+PX4 doesn't use the MB-Two's dual-antenna heading.
 :::

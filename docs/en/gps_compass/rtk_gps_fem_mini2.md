@@ -43,9 +43,6 @@ The pins on the 12-pin connector are numbered as shown below.
 
 ## Configuration
 
-For heading estimation the two antennas need to be on the same level and at least 30 cm apart from each other.
-The direction that they are facing does not matter as it is configured with the [heading baseline](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source).
-
 Configure the serial port on which the [MINI2 Receiver](http://www.femtomes.com/#/MiniII?type=0) will run using [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG), and set the baud rate to 115200 using [SER_GPS1_BAUD](../advanced_config/parameter_reference.md#SER_GPS1_BAUD).
 
 Once configured the receiver is used in the same way as any other [RTK GPS](../gps_compass/rtk_gps.md) (i.e. with respect to the Survey-in process).
