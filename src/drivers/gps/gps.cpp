@@ -277,7 +277,7 @@ private:
 	unsigned			_rate_reading{0}; 				///< reading rate in B/s
 	hrt_abstime			_last_rtcm_injection_time{0};			///< time of last corrections injection
 	uint8_t				_selected_rtcm_instance{0};			///< uorb instance that is being used for corrections
-	bool				_inject_corrections{true};			///< false for a moving-base rover, which computes against the moving base alone
+	bool				_inject_corrections{true};			///< false for a rover whose reference station is a moving base or on UART2
 
 	const Instance 			_instance;
 
@@ -809,11 +809,11 @@ void GPS::handleInjectDataTopic()
 	}
 
 	// Fixed-base corrections (MAVLink GPS_RTCM_DATA, UAVCAN RTCMStream): RTCM3 and, when enabled,
-	// SPARTN framed from one buffer in arrival order. Every receiver takes them but a moving-base
-	// rover: an RTK engine works against one reference station, and a rover offered a fixed base
-	// beside its moving base can settle on the fixed base and lose the heading. The fixed-base
-	// corrections go to the moving base, whose absolute fix the rover inherits (u-blox UBX-19009093,
-	// figure 2).
+	// SPARTN framed from one buffer in arrival order. Every receiver takes them but a rover that
+	// already has a reference station: an RTK engine works against one, and a rover offered a
+	// second can settle on the wrong one. A moving-base rover would lose the heading; the fixed-base
+	// corrections go to the moving base instead, whose absolute fix the rover inherits (u-blox
+	// UBX-19009093, figure 2). A rover given a static base on UART2 already has its corrections.
 	if (inject_corrections) {
 		injectRtcmFrames(_rtcm_corrections_framer, _rtcm_corrections_injection_perf,
 				 &_rtcm_frames_in_rate_window, &_spartn_frames_in_rate_window);
@@ -1212,7 +1212,8 @@ GPS::run()
 
 		case gps_driver_mode_t::UBX: {
 				_inject_corrections = ubx_mode != GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1
-						      && ubx_mode != GPSDriverUBX::UBXMode::RoverWithMovingBaseUART2;
+						      && ubx_mode != GPSDriverUBX::UBXMode::RoverWithMovingBaseUART2
+						      && ubx_mode != GPSDriverUBX::UBXMode::RoverWithStaticBaseUART2;
 
 				GPSDriverUBX::Settings settings = {
 					.dynamic_model = (uint8_t)gps_ubx_dynmodel,
