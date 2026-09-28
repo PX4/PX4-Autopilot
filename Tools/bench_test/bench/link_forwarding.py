@@ -31,7 +31,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from px4bench import (Reporter, MavlinkShell, SHELL_OPEN_TIMEOUT,
                       add_connection_args, connect, parse_mavlink_status,
-                      send_heartbeat)
+                      send_heartbeat, wait_heartbeat)
+from px4bench.params import recv_param_value
 
 
 HEARTBEAT_INTERVAL = 1.0        # GCS -> autopilot heartbeat cadence, seconds
@@ -84,7 +85,7 @@ class ParamDownloader(threading.Thread):
             if now - self._last_progress > PARAM_STALL_TIMEOUT:
                 self.error = 'no new param for {:.0f}s'.format(PARAM_STALL_TIMEOUT)
                 return
-            m = self.mav.recv_match(type='PARAM_VALUE', blocking=True, timeout=0.2)
+            m = recv_param_value(self.mav, 0.2)
             if m is None:
                 continue
             if self.expected == 0 and m.param_count > 0:
@@ -151,7 +152,7 @@ def phase1_liveness(report, mav1, mav2, global_deadline):
             report.fail('phase1_budget', 'global deadline hit before checking {}'.format(label))
             return False
         send_heartbeat(mav)
-        hb = mav.wait_heartbeat(timeout=5)
+        hb = wait_heartbeat(mav, timeout=5)
         if hb is None:
             report.fail('phase1_heartbeat_{}'.format(label),
                         'no heartbeat on {} within 5s (link dead)'.format(label))
@@ -276,7 +277,7 @@ def phase4_post_liveness(report, mav1, mav2, global_deadline):
             report.fail('phase4_budget', 'global deadline hit before checking {}'.format(label))
             return False
         send_heartbeat(mav)
-        hb = mav.wait_heartbeat(timeout=5)
+        hb = wait_heartbeat(mav, timeout=5)
         if hb is None:
             report.fail('phase4_heartbeat_{}'.format(label),
                         'no fresh heartbeat on {} within 5s after stress'.format(label))

@@ -161,16 +161,49 @@ def connect(conn_str, baud=DEFAULT_BAUD, timeout: float = 20, source_system=254)
     assert isinstance(mav, mavutil.mavfile), 'unexpected connection type for {}'.format(conn_str)
     # announce ourselves so the autopilot streams to us
     send_heartbeat(mav)
-    hb = mav.wait_heartbeat(timeout=int(timeout))
+    hb = wait_heartbeat(mav, timeout=timeout)
     if hb is None:
         mav.close()
-        raise TimeoutError('no HEARTBEAT on {} within {}s'.format(conn_str, timeout))
+        raise TimeoutError('no autopilot HEARTBEAT on {} within {}s'.format(conn_str, timeout))
+    # Pin the target to the autopilot that sent this heartbeat. pymavlink
+    # (checked 2.4.42 through 2.4.49) only latches target_system once, from
+    # the first vehicle-looking heartbeat, and never sets target_component,
+    # which stays 0 (broadcast): param/mission requests then reach every
+    # component on the sysid and any of them may answer. Neither value is
+    # touched again by incoming traffic once set here.
+    mav.target_system = hb.get_srcSystem()
+    mav.target_component = hb.get_srcComponent()
     return mav
 
 
+def is_from_target(mav, msg):
+    """True if msg was sent by the pinned autopilot (system and component)."""
+    return (msg.get_srcSystem() == mav.target_system and
+            msg.get_srcComponent() == mav.target_component)
+
+
 def wait_heartbeat(mav, timeout: float = 10):
-    """Wait for the next autopilot heartbeat. Returns the message or None."""
-    return mav.wait_heartbeat(timeout=int(timeout))
+    """Wait for the next autopilot heartbeat. Returns the message or None.
+
+    A board can heartbeat from more than one component on the same sysid
+    (FMUv6X-RT on v1.17: compid 1 is PX4, compid 236 reports
+    MAV_AUTOPILOT_INVALID, #27852). Heartbeats with MAV_AUTOPILOT_INVALID
+    (GCS, companion, gimbal, other onboard components) are skipped, and once
+    connect() has pinned the target only that component's heartbeat counts.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        m = mav.recv_match(type='HEARTBEAT', blocking=True, timeout=remaining)
+        if m is None:
+            return None
+        if m.autopilot == mavutil.mavlink.MAV_AUTOPILOT_INVALID:
+            continue
+        if mav.target_component != 0 and not is_from_target(mav, m):
+            continue
+        return m
 
 
 def send_heartbeat(mav):
