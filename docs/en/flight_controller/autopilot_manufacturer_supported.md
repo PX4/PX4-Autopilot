@@ -55,6 +55,7 @@ The boards in this category are:
 - [Svehicle E2](../flight_controller/svehicle_e2.md)
 - [ThePeach FCC-K1](../flight_controller/thepeach_k1.md)
 - [ThePeach FCC-R1](../flight_controller/thepeach_r1.md)
+- [Tustin MACH](../flight_controller/tustin_mach.md)
 - [X-MAV AP-H743-R1](../flight_controller/x-mav_ap-h743r1.md)
 - [ZenFC H743](../flight_controller/zenfc_h743.md)
 - [SIYI-UniFC-6-PICO](../flight_controller/siyi-unifc-6-pico.md)
