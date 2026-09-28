@@ -34,7 +34,7 @@ uint32 rx_parse_errors                  # number of parse errors
 uint32 rx_packet_drop_count             # number of packet drops
 uint32 rx_unknown_message_count         # number of messages not in the dialect, not processed
 uint32 rx_bad_signature_count           # number of messages with missing or invalid signature, not processed
-float32 rx_message_lost_rate
+float32 rx_message_lost_rate            # fraction of messages lost (0 to 1)
 
 
 uint64 HEARTBEAT_TIMEOUT_US = 2500000       # Heartbeat timeout (tolerate missing 1 + jitter)

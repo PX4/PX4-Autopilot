@@ -4043,7 +4043,9 @@ MavlinkReceiver::run()
 					tstatus.rx_message_lost_count = _total_lost_counter;
 					tstatus.rx_unknown_message_count = _unknown_message_counter;
 					tstatus.rx_bad_signature_count = _bad_signature_counter;
-					tstatus.rx_message_lost_rate = static_cast<float>(_total_lost_counter) / static_cast<float>(_total_received_counter);
+					const uint64_t total_messages = _total_received_counter + _total_lost_counter;
+					tstatus.rx_message_lost_rate = (total_messages > 0)
+								       ? static_cast<float>(_total_lost_counter) / static_cast<float>(total_messages) : 0.f;
 
 					if (_mavlink_status_last_buffer_overrun != _status.buffer_overrun) {
 						tstatus.rx_buffer_overruns++;
