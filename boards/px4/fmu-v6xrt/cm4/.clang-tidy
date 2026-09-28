@@ -1,0 +1,6 @@
+---
+# Bare-metal C, analysed without a compile command and therefore as C++ by
+# clang-tidy-diff: an explicit void argument list is the correct C prototype.
+Checks: '-modernize-redundant-void-arg'
+WarningsAsErrors: ''
+...
