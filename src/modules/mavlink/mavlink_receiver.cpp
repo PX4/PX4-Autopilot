@@ -3977,10 +3977,19 @@ MavlinkReceiver::run()
 					// waiting for lock_send(), producing a circular wait. Individual handlers
 					// that actually send take lock_send() locally.
 					_mavlink.lock_send();
-					const uint8_t parsed = mavlink_parse_char(_mavlink.get_channel(), buf[i], &msg, &_status);
+					const uint8_t framing = mavlink_frame_char(_mavlink.get_channel(), buf[i], &msg, &_status);
+					const bool forward_only = forward_only_frame(framing, msg);
+
+					if (!forward_only && (framing == MAVLINK_FRAMING_BAD_CRC || framing == MAVLINK_FRAMING_BAD_SIGNATURE)) {
+						reset_parser_after_rejected_frame(buf[i]);
+					}
+
 					_mavlink.unlock_send();
 
-					if (parsed) {
+					if (forward_only) {
+						Mavlink::forward_message(&msg, &_mavlink);
+
+					} else if (framing == MAVLINK_FRAMING_OK) {
 
 						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version.
 						// Read flags from the receiver-local _status (mavlink_parse_char copies flags from the
@@ -4077,6 +4086,40 @@ MavlinkReceiver::run()
 		if (_tune_publisher != nullptr) {
 			_tune_publisher->publish_next_tune(t);
 		}
+	}
+}
+
+bool MavlinkReceiver::forward_only_frame(uint8_t framing, const mavlink_message_t &message)
+{
+	// Frames we can't verify are still forwarded unchanged, it's up to the
+	// receiver to check them, see https://mavlink.io/en/guide/routing.html
+	if (!_mavlink.get_forwarding_on()) {
+		return false;
+	}
+
+	if (framing == MAVLINK_FRAMING_BAD_SIGNATURE) {
+		return true;
+	}
+
+	// Messages which are not in our dialect can't have their CRC checked and
+	// are reported as bad CRC by the parser.
+	return (framing == MAVLINK_FRAMING_BAD_CRC)
+	       && (mavlink_get_msg_entry(message.msgid) == nullptr)
+	       && !(_status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1);
+}
+
+void MavlinkReceiver::reset_parser_after_rejected_frame(uint8_t c)
+{
+	mavlink_status_t *status = _mavlink.get_status();
+	_mav_parse_error(status);
+	status->msg_received = MAVLINK_FRAMING_INCOMPLETE;
+	status->parse_state = MAVLINK_PARSE_STATE_IDLE;
+
+	if (c == MAVLINK_STX) {
+		mavlink_message_t *rxmsg = _mavlink.get_buffer();
+		status->parse_state = MAVLINK_PARSE_STATE_GOT_STX;
+		rxmsg->len = 0;
+		mavlink_start_checksum(rxmsg);
 	}
 }
 

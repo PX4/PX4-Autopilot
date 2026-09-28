@@ -608,6 +608,11 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		}
 	}
 
+	// SETUP_SIGNING must never be forwarded (MAVLink spec requirement).
+	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		return;
+	}
+
 	// Avoid locking/iteration when there is no instance to forward to.
 	if (mavlink_instance_count.load() <= 1) {
 		return;
@@ -1456,11 +1461,46 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 void
 Mavlink::pass_message(const mavlink_message_t *msg)
 {
-	/* size is 12 bytes plus variable payload */
-	int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
+	// Queue the frame as it came in, so checksum and signature stay valid.
+	// mavlink_msg_to_send_buffer() can't be used because it trims the payload
+	// again, which would break the checksum of an untrimmed frame.
+	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+	size_t size = 0;
+
+	buf[size++] = msg->magic;
+	buf[size++] = msg->len;
+
+	if (msg->magic == MAVLINK_STX_MAVLINK1) {
+		buf[size++] = msg->seq;
+		buf[size++] = msg->sysid;
+		buf[size++] = msg->compid;
+		buf[size++] = msg->msgid & 0xFF;
+
+	} else {
+		buf[size++] = msg->incompat_flags;
+		buf[size++] = msg->compat_flags;
+		buf[size++] = msg->seq;
+		buf[size++] = msg->sysid;
+		buf[size++] = msg->compid;
+		buf[size++] = msg->msgid & 0xFF;
+		buf[size++] = (msg->msgid >> 8) & 0xFF;
+		buf[size++] = (msg->msgid >> 16) & 0xFF;
+	}
+
+	memcpy(&buf[size], _MAV_PAYLOAD(msg), msg->len);
+	size += msg->len;
+
+	buf[size++] = msg->ck[0];
+	buf[size++] = msg->ck[1];
+
+	if (msg->magic != MAVLINK_STX_MAVLINK1 && (msg->incompat_flags & MAVLINK_IFLAG_SIGNED)) {
+		memcpy(&buf[size], msg->signature, MAVLINK_SIGNATURE_BLOCK_LEN);
+		size += MAVLINK_SIGNATURE_BLOCK_LEN;
+	}
+
 	LockGuard lg{_message_buffer_mutex};
 
-	if (!_message_buffer.push_back(reinterpret_cast<const uint8_t *>(msg), size)) {
+	if (!_message_buffer.push_back(buf, size)) {
 		perf_count(_forwarding_error_perf);
 	}
 }
@@ -2824,19 +2864,22 @@ Mavlink::task_main(int argc, char *argv[])
 		/* pass messages from other instances */
 		if (get_forwarding_on()) {
 
-			mavlink_message_t msg;
+			uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 			size_t available_bytes;
 			{
 				// We only send one message at a time, not to put too much strain on a
 				// link from forwarded messages.
 				LockGuard lg{_message_buffer_mutex};
-				available_bytes = _message_buffer.pop_front(reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+				available_bytes = _message_buffer.pop_front(buf, sizeof(buf));
 				// We need to make sure to release the lock here before sending the
 				// bytes out via IP or UART which could potentially take longer.
 			}
 
 			if (available_bytes > 0) {
-				resend_message(&msg);
+				// Send the frame unchanged, sequence number, checksum and signature included.
+				send_start(available_bytes);
+				send_bytes(buf, available_bytes);
+				send_finish();
 			}
 		}
 

@@ -284,6 +284,17 @@ private:
 	void update_message_statistics(const mavlink_message_t &message);
 	void update_rx_stats(const mavlink_message_t &message);
 
+	/**
+	 * Whether a frame which can't be processed locally, because it's unknown or
+	 * its signature can't be verified, should still be forwarded as is.
+	 */
+	bool forward_only_frame(uint8_t framing, const mavlink_message_t &message);
+
+	/**
+	 * Reset the parser after a rejected frame, same as mavlink_parse_char() does.
+	 */
+	void reset_parser_after_rejected_frame(uint8_t c);
+
 	void publish_hil_battery();
 	void publish_rtcm_corrections(const uint8_t *data, size_t len);
 
