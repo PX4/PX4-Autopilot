@@ -167,7 +167,7 @@ private:
 
 	void initializeRefPos();
 
-	void updateGeoidHeight(float geoid_height, float t);
+	void updateGeoidHeight(float geoid_height, hrt_abstime t);
 
 	void sendGPSAiding();
 
@@ -211,8 +211,8 @@ private:
 	float opt_flow_uncert = 0.0;
 
 	AlphaFilter<float> _geoid_height_lpf;
-	uint64_t _last_geoid_height_update_us{0};
-	static constexpr float kGeoidHeightLpfTimeConstant = 10.f;
+	hrt_abstime _last_geoid_height_update_us{0};
+	static constexpr hrt_abstime kGeoidHeightLpfTimeConstant = 10_s;
 
 	MapProjection _pos_ref{};
 	double _ref_alt = 0;

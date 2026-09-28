@@ -131,7 +131,7 @@ private:
 	/**
 	 * @brief Send DO_GRIPPER vehicle command with specified gripper action
 	 *
-	 * @param gripper_command GRIPPER_ACTION_GRAB or GRIPPER_ACTION_RELEASE
+	 * @param gripper_action GRIPPER_ACTION_GRAB or GRIPPER_ACTION_RELEASE
 	 */
 	bool send_gripper_vehicle_command(const int32_t gripper_action);
 

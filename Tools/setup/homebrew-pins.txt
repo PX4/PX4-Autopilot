@@ -1,0 +1,10 @@
+# Commits macOS CI checks out before installing. A newer package is a change
+# to this file. Gazebo does not come from Homebrew; see macos/pixi.toml.
+#
+# Homebrew 7.0.6. The others are the tips of those repos on 2026-09-18.
+#
+# <name> <commit>
+brew 570982948a8a194f0f42f43f4a5bce2d1c9f64cb
+homebrew/core 88d598cf1d2dba7063fbc29d441d072963481123
+osx-cross/arm e3bb686fb159097c2fb3ee6d1acb3f7e4dd8a184
+px4/px4 f78b7a3d5aa98dc23171a63f2c2958ce69f98889

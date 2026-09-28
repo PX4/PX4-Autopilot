@@ -128,21 +128,22 @@ void FailureInjectionManager::evaluateRcInjection()
 		const bool triggered = value > 0.5f;
 
 		if (triggered && !_rc_active) {
+			const int32_t raw = _param_sys_fail_rc_inst.get();
 			_rc_active_unit = static_cast<uint8_t>(_param_sys_fail_rc_unit.get());
-			_rc_active_instance = static_cast<uint8_t>(_param_sys_fail_rc_inst.get());
+			// SYS_FAIL_RC_INST is an instance bitmask (bit 0 = instance 1); 0 = all instances.
+			_rc_active_mask = (raw == 0) ? 0xFFFF : static_cast<uint16_t>(raw);
 			_rc_active = true;
 
 			const uint8_t type = static_cast<uint8_t>(_param_sys_fail_rc_mode.get());
 
-			if (_table.inject(_rc_active_unit, type, _rc_active_instance) == failure_injection::FailureTable::AckResult::Accepted) {
-				announceFailure(_rc_active_unit, type, failure_injection::FailureTable::instanceToMask(_rc_active_instance));
+			if (_table.injectMask(_rc_active_unit, type, _rc_active_mask) == failure_injection::FailureTable::AckResult::Accepted) {
+				announceFailure(_rc_active_unit, type, _rc_active_mask);
 			}
 
 		} else if (!triggered && _rc_active) {
-			if (_table.inject(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK,
-					  _rc_active_instance) == failure_injection::FailureTable::AckResult::Accepted) {
-				announceFailure(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK,
-						failure_injection::FailureTable::instanceToMask(_rc_active_instance));
+			if (_table.injectMask(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK,
+					      _rc_active_mask) == failure_injection::FailureTable::AckResult::Accepted) {
+				announceFailure(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK, _rc_active_mask);
 			}
 
 			_rc_active = false;

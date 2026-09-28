@@ -555,8 +555,8 @@ float MixingOutput::output_limit_calc_single(int i, float value) const
 	     || (_function_assignment[i] >= OutputFunction::Gimbal_Roll
 		 && _function_assignment[i] <= OutputFunction::Gimbal_Yaw))
 	    && _param_handles[i].center != PARAM_INVALID
-	    && _center_value[i] >= 800
-	    && _center_value[i] <= 2200) {
+	    && _center_value[i] >= _min_value[i]
+	    && _center_value[i] <= _max_value[i]) {
 		output = math::interpolateNXY(value, {-1.f, 0.f, 1.f}, {(float)_min_value[i], (float)_center_value[i], (float)_max_value[i]});
 	}
 

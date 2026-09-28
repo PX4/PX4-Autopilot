@@ -46,10 +46,18 @@ def ensure_env():
     atexit.register(shutil.rmtree, out_dir, ignore_errors=True)
     msg_files = sorted(glob.glob(os.path.join(PX4_ROOT, 'msg', '*.msg')) +
                        glob.glob(os.path.join(PX4_ROOT, 'msg', 'versioned', '*.msg')))
-    # stdout must stay clean: several callers print machine-parsed output
-    subprocess.run([sys.executable, _ZENOH_GENERATOR, '--zenoh-config',
-                    '-f'] + msg_files + ['-o', out_dir, '-e', _ZENOH_TEMPLATES],
-                   check=True, stdout=subprocess.DEVNULL)
+    # stdout must stay clean: several callers print machine-parsed output.
+    # Capture rather than discard it, because the generator reports missing
+    # imports on stdout; discarding left a CalledProcessError whose argv dump
+    # (every .msg path, ~9kB on one line) buried the actual cause.
+    result = subprocess.run([sys.executable, _ZENOH_GENERATOR, '--zenoh-config',
+                             '-f'] + msg_files + ['-o', out_dir, '-e', _ZENOH_TEMPLATES],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        detail = ((result.stdout or '') + (result.stderr or '')).strip()
+        sys.exit('loadconfig: {} failed (exit {})\n{}'.format(
+            os.path.basename(_ZENOH_GENERATOR), result.returncode,
+            detail or '(no output)'))
     os.environ['ZENOH_KCONFIG_TOPICS'] = os.path.join(out_dir, 'Kconfig.topics')
 
 
@@ -91,14 +99,27 @@ def enumerate_targets():
 
 
 def load_target_config(kconf, px4board_path):
-    """Load a target's config into kconf, replacing any previous state."""
+    """Load a target's config into kconf, replacing any previous state.
+
+    Exits if the file assigns a value Kconfig cannot use. kconfiglib
+    downgrades that to a warning and keeps the symbol's default, so the
+    resulting config silently differs from what the file asks for and
+    nothing downstream can tell.
+    """
     label = os.path.basename(px4board_path)[:-len('.px4board')]
+    first_warning = len(kconf.warnings)
     if label in STANDALONE_LABELS:
         kconf.load_config(px4board_path, replace=True)
     else:
         default_config = os.path.join(os.path.dirname(px4board_path), 'default.px4board')
         kconf.load_config(default_config, replace=True)
         kconf.load_config(px4board_path, replace=False)
+
+    ignored = [w for w in kconf.warnings[first_warning:] if 'assignment ignored' in w]
+    if ignored:
+        sys.exit('loadconfig: {}: kconfig discarded an assignment, so the config would '
+                 'not match the file\n{}'.format(
+                     px4board_path, '\n'.join(w.strip() for w in ignored)))
 
 
 def chip_family(board_path):

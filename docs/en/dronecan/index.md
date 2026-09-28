@@ -70,6 +70,7 @@ Supported hardware includes (this is not an exhaustive list):
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
+  - [Smartmicro Drone Altimeter](smartmicro_t132.md)
 - Grippers
   - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
 - Optical Flow
@@ -146,6 +147,7 @@ For example, [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_F
 
 For example, to use a connected DroneCAN smart battery you would enable the [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) parameter, which would subscribe PX4 to receive [BatteryInfo](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#batteryinfo) DroneCAN messages.
 If using a peripheral that needs to know if PX4 is armed, you would need to set the [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) parameter so that PX4 starts publishing [ArmingStatus](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus) messages.
+ArmingStatus is published automatically when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is `3` (ESC output).
 
 The parameter names are prefixed with `UAVCAN_SUB_` and `UAVCAN_PUB_` to indicate whether they enable PX4 subscribing or publishing.
 The remainder of the name indicates the specific message/feature being set.
@@ -160,7 +162,7 @@ The following sections provide additional detail on the PX4 and DroneCAN periphe
 
 #### Sensors
 
-The DroneCAN sensor parameters/subscriptions that you can enable are (in PX4 v1.14):
+The DroneCAN sensor parameters/subscriptions that you can enable are (from PX4 v1.14):
 
 - [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD): Airspeed
 - [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO): Barometer
@@ -275,6 +277,7 @@ If the rangefinder is connected via DroneCAN (whether inbuilt or separate), you 
 PX4 DroneCAN parameters:
 
 - [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) ([Arming Status](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus)): Publish when using DroneCAN components that require the PX4 arming status as a precondition for use.
+  Not required for DroneCAN ESCs: ArmingStatus is published automatically when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is `3`.
 
 #### Grippers
 
@@ -323,6 +326,17 @@ PX4 can upgrade device firmware over DroneCAN.
 ::: info
 PX4 identifies valid firmware binaries (`.bin`) based on the presence of an **APDescriptor** — a metadata block embedded in the `.bin` file that contains the target board ID, firmware version, and a checksum.
 PX4 uses this descriptor to match each binary to the correct node and to determine whether an update is needed.
+:::
+
+### Getting Firmware
+
+Every PX4 release publishes the firmware for CAN nodes built by PX4 as `<target>.uavcan.bin` (for example `cuav_can-gps-v1_default.uavcan.bin`), attached to the [GitHub release](https://github.com/PX4/PX4-Autopilot/releases).
+When you build a CAN node target yourself with `make <target>`, the `.uavcan.bin` file is written to `build/<target>/`.
+
+::: info
+Flight controller builds can no longer embed CAN node firmware in their ROMFS.
+The `CONFIG_BOARD_UAVCAN_PERIPHERALS` board option and the `px4_fmu-v5_uavcanv0periph` build that used it (embedding CUAV CAN GPS v1 firmware) were removed after PX4 v1.18.
+Copy the node's `.uavcan.bin` to the SD card as described below instead.
 :::
 
 ### Firmware Directories

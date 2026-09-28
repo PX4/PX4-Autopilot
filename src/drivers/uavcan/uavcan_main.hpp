@@ -86,6 +86,7 @@
 #include "uavcan_servers.hpp"
 
 #include <lib/drivers/device/Device.hpp>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/perf/perf_counter.h>
 
@@ -242,6 +243,8 @@ private:
 	void publish_can_interface_statuses();
 	void publish_node_statuses();
 
+	void apply_can_failure_injection();
+
 	int		print_params(uavcan::protocol::param::GetSet::Response &resp);
 	int		get_set_param(int nodeid, const char *name, uavcan::protocol::param::GetSet::Request &req);
 	void 		update_params();
@@ -300,6 +303,8 @@ private:
 
 	perf_counter_t			_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t			_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
+
+	failure_injection::Config	_failure_config;			///< active failure-injection config
 
 	void handle_time_sync(const uavcan::TimerEvent &);
 

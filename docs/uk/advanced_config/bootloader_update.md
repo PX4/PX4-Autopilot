@@ -82,11 +82,15 @@ PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://githu
 
 Інструкції в README репозиторію пояснюють, як його використовувати.
 
+## Pre-built Bootloader
+
+PX4 GitHub releases attach `<target>_bootloader.bin` for in-tree bootloader targets (FMUv6X and later). Flash that raw image over SWD (STM32: `0x08000000`) with ST-Link, CubeProgrammer, or OpenOCD. The `.px4` envelope is not used.
+
 ## Оновлення завантажувача Debug Probe
 
 Наступні кроки пояснюють, як ви можете "вручну" оновити завантажувач за допомогою сумісного [Відладного пристрою](../debug/swd_debug.md#debug-probes-for-px4-hardware):
 
-1. Отримайте бінарний файл, який містить завантажувальник (або від команди розробників, або [зіберіть його самостійно](#building-the-px4-bootloader)).
+1. Get a bootloader `.elf` by [building it](#building-the-px4-bootloader).
 
 2. Get a [Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware).
    Connect the probe to your PC via USB and setup the `gdbserver`.

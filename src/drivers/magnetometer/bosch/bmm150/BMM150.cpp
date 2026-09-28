@@ -38,7 +38,7 @@ using namespace time_literals;
 BMM150::BMM150(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_mag(get_device_id(), config.rotation, config.external)
 {
 }
 
@@ -461,6 +461,7 @@ bool BMM150::Configure()
 
 	// microTesla -> Gauss
 	_px4_mag.set_scale(0.01f);
+	_px4_mag.set_range(microTesla2Gauss(1300.f)); // x/y axis (z: 2500 uT)
 
 	return success;
 }

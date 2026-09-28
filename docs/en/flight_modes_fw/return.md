@@ -65,7 +65,7 @@ The following requirements must be met to arm in this mode, or to switch to this
 
 ## Parameters
 
-The RTL parameters are listed in [Parameter Reference > Return Mode](../advanced_config/parameter_reference.md#return-mode).
+The Return parameters are listed in [Parameter Reference > Return Mode](../advanced_config/parameter_reference.md#return-mode).
 If using a mission landing, only the [RTL_RETURN_ALT](#RTL_RETURN_ALT) and [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) are relevant.
 The others are relevant if the destination is a rally point or the home location.
 

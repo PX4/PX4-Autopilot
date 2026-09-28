@@ -223,6 +223,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		// publish sensor_baro
 		sensor_baro_s sensor_baro{};
 		sensor_baro.device_id = 0; // TODO: DRV_INS_DEVTYPE_VN300;
+		sensor_baro.is_external = true;
 		sensor_baro.pressure = pressure;
 		sensor_baro.temperature = temperature;
 		sensor_baro.timestamp = hrt_absolute_time();

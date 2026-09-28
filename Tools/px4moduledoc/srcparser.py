@@ -127,11 +127,11 @@ class ModuleDocumentation(object):
         assert(len(args) == 2) # i2c_support, spi_support
         self._paring_implicit_options = True
         if self._is_bool_true(args[0]):
-            self._handle_usage_param_flag(['\'I\'', "\"Internal I2C bus(es)\"", 'true'])
-            self._handle_usage_param_flag(['\'X\'', "\"External I2C bus(es)\"", 'true'])
+            self._handle_usage_param_flag(['\'I\'', "\"Internal I2C bus(es) (onboard sensors; shared bus only if -b is given)\"", 'true'])
+            self._handle_usage_param_flag(['\'X\'', "\"External I2C bus(es) (connector sensors, including shared buses)\"", 'true'])
         if self._is_bool_true(args[1]):
-            self._handle_usage_param_flag(['\'s\'', "\"Internal SPI bus(es)\"", 'true'])
-            self._handle_usage_param_flag(['\'S\'', "\"External SPI bus(es)\"", 'true'])
+            self._handle_usage_param_flag(['\'s\'', "\"Internal SPI bus(es) (onboard sensors; shared bus only if -b is given)\"", 'true'])
+            self._handle_usage_param_flag(['\'S\'', "\"External SPI bus (connector sensors, including shared buses)\"", 'true'])
 
         self._handle_usage_param_int(['\'b\'', '-1', '0', '16',
             "\"board-specific bus (default=all) (external SPI: n-th bus (default=1))\"", 'true'])

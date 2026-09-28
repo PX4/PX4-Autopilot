@@ -12,7 +12,7 @@ then
   fi
 fi
 
-if ! bmp280 -X start
+if ! bmp280 -I -b 1 start
 then
-	spa06 -X start
+	spa06 -I -b 1 start
 fi

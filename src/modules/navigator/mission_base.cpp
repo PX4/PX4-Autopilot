@@ -949,6 +949,7 @@ MissionBase::do_abort_landing()
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
 	vehicle_command.param1 = -1.f; // Default speed
 	vehicle_command.param2 = 1.f; // Modes should switch, not setting this is unsupported
+	vehicle_command.param4 = NAN;
 	vehicle_command.param5 = _mission_item.lat;
 	vehicle_command.param6 = _mission_item.lon;
 	vehicle_command.param7 = alt_sp;
@@ -1010,6 +1011,14 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 	mission_item_s new_mission;
 
 	for (uint16_t jump_count = 0u; jump_count < MAX_JUMP_ITERATION; jump_count++) {
+		if (new_mission_index >= _mission.count || new_mission_index < 0) {
+			// Running off either end of the mission while skipping over jumps is a normal
+			// outcome, for example when the last item is a DO_JUMP that has used up its
+			// repeats. Report it the same way an out of range index is reported on entry
+			// rather than as a storage failure.
+			return PX4_ERROR;
+		}
+
 		/* read mission item from datamanager */
 		bool success = loadMissionItemFromCache(new_mission_index, new_mission);
 

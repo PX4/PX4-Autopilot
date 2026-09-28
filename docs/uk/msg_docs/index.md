@@ -30,7 +30,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [HomePosition](HomePosition.md) — GPS home position in WGS84 coordinates.
 - [LateralControlConfiguration](LateralControlConfiguration.md) — Fixed Wing Lateral Control Configuration message.
 - [LongitudinalControlConfiguration](LongitudinalControlConfiguration.md) — Fixed Wing Longitudinal Control Configuration message.
-- [ManualControlSetpoint](ManualControlSetpoint.md)
+- [ManualControlSetpoint](ManualControlSetpoint.md) — Manual control input.
 - [ModeCompleted](ModeCompleted.md) — Mode completion result, published by an active mode. Можливі значення nav_state визначені в повідомленні VehicleStatus. Note that this is not always published (e.g. when a user switches modes or on. failsafe activation).
 - [RaptorInput](RaptorInput.md) — Raptor Input.
 - [RaptorStatus](RaptorStatus.md) — Raptor Status.
@@ -65,6 +65,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it. Events interface.
 - [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
 - [HomePositionV1](HomePositionV1.md) — GPS home position in WGS84 coordinates.
+- [ManualControlSetpointV0](ManualControlSetpointV0.md)
 - [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
 - [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
@@ -131,15 +132,17 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorStates](EstimatorStates.md)
 - [EstimatorStatus](EstimatorStatus.md)
 - [EstimatorStatusFlags](EstimatorStatusFlags.md)
+- [ExternalGimbalManagerStatus](ExternalGimbalManagerStatus.md) — External gimbal manager status.
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
 - [FailureInjection](FailureInjection.md) — Failure injection configuration.
 - [FiducialMarkerPosReport](FiducialMarkerPosReport.md) — Relative position of a precision-landing target detected by a vision pipeline (e.g. an ArUco marker).
 - [FiducialMarkerYawReport](FiducialMarkerYawReport.md) — Yaw of a precision-landing target relative to the NED (North, East, Down) frame, reported by a vision pipeline.
 - [FigureEightStatus](FigureEightStatus.md)
-- [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs.
+- [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message. Published by fw_mode_manager module to report the resultant lateral setpoints and NPFG debug outputs.
 - [FixedWingLateralStatus](FixedWingLateralStatus.md) — Fixed Wing Lateral Status message. Published by the fw_lateral_longitudinal_control module to report the resultant lateral setpoint.
 - [FixedWingRunwayControl](FixedWingRunwayControl.md) — Auxiliary control fields for fixed-wing runway takeoff/landing.
+- [FixedWingTakeoffStatus](FixedWingTakeoffStatus.md) — Status of a fixed-wing takeoff. Passes information from the FixedWingModeManager to the Navigator.
 - [FlightPhaseEstimation](FlightPhaseEstimation.md)
 - [FollowTarget](FollowTarget.md)
 - [FollowTargetEstimator](FollowTargetEstimator.md)
@@ -156,6 +159,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [GimbalManagerInformation](GimbalManagerInformation.md)
 - [GimbalManagerSetAttitude](GimbalManagerSetAttitude.md)
 - [GimbalManagerSetManualControl](GimbalManagerSetManualControl.md)
+- [GimbalManagerSetPitchyaw](GimbalManagerSetPitchyaw.md) — Gimbal manager pitch/yaw setpoint.
 - [GimbalManagerStatus](GimbalManagerStatus.md)
 - [GpioConfig](GpioConfig.md) — GPIO configuration.
 - [GpioIn](GpioIn.md) — GPIO mask and state.
@@ -167,7 +171,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [HeaterStatus](HeaterStatus.md)
 - [HoverThrustEstimate](HoverThrustEstimate.md)
 - [InputRc](InputRc.md)
-- [InternalCombustionEngineControl](InternalCombustionEngineControl.md)
+- [InternalCombustionEngineControl](InternalCombustionEngineControl.md) — Internal combustion engine (ICE) actuator setpoints.
 - [InternalCombustionEngineStatus](InternalCombustionEngineStatus.md)
 - [IridiumsbdStatus](IridiumsbdStatus.md)
 - [IrlockReport](IrlockReport.md) — IRLOCK_REPORT message data.
@@ -220,6 +224,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [PowerMonitor](PowerMonitor.md) — power monitor message.
 - [PpsCapture](PpsCapture.md)
 - [PrecLandStatus](PrecLandStatus.md) — Precision-landing runtime status: a single state captures both whether precision landing is active and which phase it is in.
+- [PrecTakeoffStatus](PrecTakeoffStatus.md) — Precision takeoff status.
 - [PurePursuitStatus](PurePursuitStatus.md) — Pure pursuit status.
 - [PwmInput](PwmInput.md)
 - [Px4ioStatus](Px4ioStatus.md)
@@ -251,6 +256,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorCombined](SensorCombined.md) — Sensor readings in SI-unit form. These fields are scaled and offset-compensated where possible and do not. change with board revisions and sensor updates.
 - [SensorCorrection](SensorCorrection.md) — Sensor corrections in SI-unit form for the voted sensor.
 - [SensorGnssRelative](SensorGnssRelative.md) — GNSS relative positioning information in NED frame. NED кадр визначається як локальна топологічна система на задній станції.
+- [SensorGnssRf](SensorGnssRf.md) — GNSS RF status.
+- [SensorGnssSpectrum](SensorGnssSpectrum.md) — GNSS spectrum analysis.
 - [SensorGnssStatus](SensorGnssStatus.md) — Gnss quality indicators.
 - [SensorGps](SensorGps.md) — GPS position in WGS84 coordinates. the field 'timestamp' is for the position & velocity (microseconds).
 - [SensorGyro](SensorGyro.md)
@@ -262,7 +269,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorPreflightMag](SensorPreflightMag.md) — Pre-flight sensor check metrics. The topic will not be updated when the vehicle is armed.
 - [SensorSelection](SensorSelection.md) — Sensor ID's for the voted sensors output on the sensor_combined topic. Will be updated on startup of the sensor module and when sensor selection changes.
 - [SensorTemp](SensorTemp.md)
-- [SensorUwb](SensorUwb.md) — UWB distance contains the distance information measured by an ultra-wideband positioning system,. such as Pozyx or NXP Rddrone.
+- [SensorUwb](SensorUwb.md) — Ultra-wideband (UWB) distance sensor.
 - [SensorsStatus](SensorsStatus.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SystemPower](SystemPower.md)
@@ -276,6 +283,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [TrajectorySetpoint6dof](TrajectorySetpoint6dof.md) — Trajectory setpoint in NED frame. Input to position controller.
 - [TransponderReport](TransponderReport.md) — Transponder report.
 - [TuneControl](TuneControl.md) — This message is used to control the tunes, when the tune_id is set to CUSTOM. then the frequency, duration are used otherwise those values are ignored.
+- [UavcanFirmwareUpdate](UavcanFirmwareUpdate.md)
 - [UavcanParameterRequest](UavcanParameterRequest.md) — UAVCAN-MAVLink parameter bridge request type.
 - [UavcanParameterValue](UavcanParameterValue.md) — UAVCAN-MAVLink parameter bridge response type.
 - [UlogStream](UlogStream.md) — Message to stream ULog data from the logger. Corresponds to the LOGGING_DATA. mavlink message.

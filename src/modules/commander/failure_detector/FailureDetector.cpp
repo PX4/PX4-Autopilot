@@ -50,7 +50,9 @@ FailureDetector::FailureDetector(ModuleParams *parent) :
 
 bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode)
 {
-	_failure_injector.update();
+	if (_failure_injection_config.update()) {
+		_injected_motor_masks = failure_injection::process_motor(_failure_injection_config);
+	}
 
 	failure_detector_status_u status_prev = _failure_detector_status;
 
@@ -81,6 +83,8 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 
 void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_mask)
 {
+	const uint16_t injected_motor_failure_mask = _injected_motor_masks.failure_mask;
+
 	failure_detector_status_s failure_detector_status{};
 	failure_detector_status.fd_roll = _failure_detector_status.flags.roll;
 	failure_detector_status.fd_pitch = _failure_detector_status.flags.pitch;
@@ -89,10 +93,10 @@ void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_
 	failure_detector_status.fd_arm_escs = esc_arm_status || (motor_failure_mask != 0);
 	failure_detector_status.fd_battery = _failure_detector_status.flags.battery;
 	failure_detector_status.fd_imbalanced_prop = _failure_detector_status.flags.imbalanced_prop;
-	failure_detector_status.fd_motor = (motor_failure_mask != 0);
+	failure_detector_status.fd_motor = (motor_failure_mask != 0) || (injected_motor_failure_mask != 0);
 	failure_detector_status.imbalanced_prop_metric = _imbalanced_prop_lpf.getState();
-	failure_detector_status.motor_failure_mask = motor_failure_mask;
-	failure_detector_status.motor_stop_mask = _failure_injector.getMotorStopMask();
+	failure_detector_status.motor_failure_mask = motor_failure_mask | injected_motor_failure_mask;
+	failure_detector_status.motor_stop_mask = _injected_motor_masks.stop_mask;
 	failure_detector_status.timestamp = hrt_absolute_time();
 	_failure_detector_status_pub.publish(failure_detector_status);
 }
@@ -250,10 +254,10 @@ void FailureDetector::updateImbalancedPropStatus()
 
 			if ((imu_status.accel_device_id != 0)
 			    && (imu_status.accel_device_id == _selected_accel_device_id)) {
-				const float dt = math::constrain((imu_status.timestamp - _imu_status_timestamp_prev) * 1e-6f, 0.01f, 1.f);
+				const hrt_abstime dt_us = math::constrain(imu_status.timestamp - _imu_status_timestamp_prev, 10_ms, 1_s);
 				_imu_status_timestamp_prev = imu_status.timestamp;
 
-				_imbalanced_prop_lpf.setParameters(dt, _imbalanced_prop_lpf_time_constant);
+				_imbalanced_prop_lpf.setParameters(dt_us, _imbalanced_prop_lpf_time_constant);
 
 				const float std_x = sqrtf(math::max(imu_status.var_accel[0], 0.f));
 				const float std_y = sqrtf(math::max(imu_status.var_accel[1], 0.f));

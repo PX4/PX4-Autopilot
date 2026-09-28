@@ -1207,7 +1207,7 @@ int SeptentrioDriver::process_message()
 			ReceiverStatus receiver_status;
 
 			if (_sbf_decoder.parse(&receiver_status) == PX4_OK) {
-				_sensor_gps.rtcm_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::RTCM_MSG_USED_USED : sensor_gps_s::RTCM_MSG_USED_NOT_USED;
+				_sensor_gps.corrections_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::CORRECTIONS_MSG_USED_USED : sensor_gps_s::CORRECTIONS_MSG_USED_NOT_USED;
 				_time_synced = receiver_status.rx_state_wn_set && receiver_status.rx_state_tow_set;
 
 				_sensor_gps.system_error = sensor_gps_s::SYSTEM_ERROR_OK;

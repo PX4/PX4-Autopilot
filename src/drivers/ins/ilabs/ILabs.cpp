@@ -378,6 +378,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 			sensor_baro.timestamp_sample = time_now_us;
 
 			sensor_baro.device_id   = _device_id.devid;
+			sensor_baro.is_external = true;
 			sensor_baro.pressure    = _average_sensors_data.pressure / static_cast<float>(_average_sensors_data.count);    // Pa
 			sensor_baro.temperature = _average_sensors_data.temperature / static_cast<float>(_average_sensors_data.count);  // degC
 

@@ -80,12 +80,20 @@ float32 heading_accuracy	# heading accuracy (rad, [0, 2PI])
 float32 rtcm_injection_rate	# RTCM message injection rate Hz
 uint8 selected_rtcm_instance	# uorb instance that is being used for RTCM corrections
 
-bool rtcm_crc_failed		# RTCM message CRC failure detected
+uint8 CORRECTIONS_PROTOCOL_UNKNOWN = 0
+uint8 CORRECTIONS_PROTOCOL_RTCM3 = 1
+uint8 CORRECTIONS_PROTOCOL_SPARTN = 2
+uint8 CORRECTIONS_PROTOCOL_HAS = 3	# Galileo High Accuracy Service, received on E6
+uint8 CORRECTIONS_PROTOCOL_PMP = 4	# SPARTN over L-band (u-blox NEO-D9S)
+uint8 CORRECTIONS_PROTOCOL_QZSS_L6 = 5	# QZSS CLAS
+uint8 corrections_protocol	# Protocol of the last correction message the receiver parsed
 
-uint8 RTCM_MSG_USED_UNKNOWN = 0
-uint8 RTCM_MSG_USED_NOT_USED = 1
-uint8 RTCM_MSG_USED_USED = 2
-uint8 rtcm_msg_used		# Indicates if the RTCM message was used successfully by the receiver
+bool corrections_crc_failed	# Last correction message failed its CRC or content check
+
+uint8 CORRECTIONS_MSG_USED_UNKNOWN = 0
+uint8 CORRECTIONS_MSG_USED_NOT_USED = 1
+uint8 CORRECTIONS_MSG_USED_USED = 2
+uint8 corrections_msg_used	# Whether the receiver used the last correction message
 
 float32 antenna_offset_x	# [m] [@frame body frame FRD] X Position of GNSS antenna
 float32 antenna_offset_y	# [m] [@frame body frame FRD] Y Position of GNSS antenna

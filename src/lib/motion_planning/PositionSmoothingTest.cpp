@@ -193,3 +193,56 @@ TEST_F(PositionSmoothingTest, reachesTargetInitialVelocity)
 	EXPECT_LT(fabsf(position(2) - TARGET(2)), Z_ACC_RAD);
 	EXPECT_LT(iteration, N_ITER) << "Took too long to converge\n";
 }
+
+
+// Fly through a waypoint whose triplet never advances (e.g. an overshoot the navigator
+// can't accept). The look-ahead point must not keep marching down the extended leg: the
+// vehicle has to brake and come back to the target instead of drifting away forever.
+TEST_F(PositionSmoothingTest, doesNotDriftPastUnreachedWaypoint)
+{
+	const int N_ITER = 3000; // 60 s at 50 Hz
+	const float DELTA_T = 0.02f;
+
+	const Vector3f PREV{0.f, 0.f, 0.f};
+	const Vector3f TARGET{20.f, 0.f, 0.f};
+	const Vector3f NEXT{40.f, 2.f, 0.f}; // near-collinear next leg -> high corner speed -> clear fly-through
+
+	// Triplet stays fixed for the whole run: the navigator never advances past TARGET.
+	Vector3f waypoints[3] = {PREV, TARGET, NEXT};
+
+	const Vector3f u_leg = (TARGET - PREV).unit_or_zero();
+	const float leg_length = (TARGET - PREV).length();
+
+	Vector3f position{0.f, 0.f, 0.f};
+	PositionSmoothing::PositionSmoothingSetpoints out;
+
+	bool reached_target = false;
+	bool came_back = false;
+	float max_distance_past_target = 0.f;
+
+	for (int i = 0; i < N_ITER; i++) {
+		_position_smoothing.generateSetpoints(position, waypoints, Vector3f{}, DELTA_T, false, out);
+		position = out.position;
+		expectDynamicsLimitsRespected(out);
+
+		const float along_track = Vector3f(position - PREV) * u_leg;
+
+		if (Vector3f(position - TARGET).length() < 1.f) {
+			reached_target = true;
+		}
+
+		if (reached_target) {
+			max_distance_past_target = fmaxf(max_distance_past_target, along_track - leg_length);
+
+			// Once the vehicle has gone past the target, the fix must turn it around.
+			if (along_track > leg_length + 1.f && out.velocity * u_leg < -0.1f) {
+				came_back = true;
+			}
+		}
+	}
+
+	EXPECT_TRUE(reached_target) << "Vehicle never reached the target waypoint\n";
+	EXPECT_TRUE(came_back) << "Vehicle never turned back toward the unreached waypoint (it drifted away)\n";
+	// Without the fix the look-ahead marches down the extended leg and this grows unbounded.
+	EXPECT_LT(max_distance_past_target, 10.f) << "Vehicle drifted too far past the unreached waypoint\n";
+}

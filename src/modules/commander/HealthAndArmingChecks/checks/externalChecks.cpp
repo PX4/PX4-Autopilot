@@ -53,7 +53,7 @@ static void setOrClearRequirementBits(bool requirement_set, int8_t nav_state, in
 	}
 }
 
-int ExternalChecks::addRegistration(int8_t nav_mode_id, int8_t replaces_nav_state)
+int ExternalChecks::addRegistration(int8_t nav_mode_id, int8_t replaces_nav_state, uint64_t request_id)
 {
 	int free_registration_index = -1;
 
@@ -68,6 +68,7 @@ int ExternalChecks::addRegistration(int8_t nav_mode_id, int8_t replaces_nav_stat
 		_active_registrations_mask |= 1 << free_registration_index;
 		_registrations[free_registration_index].nav_mode_id = nav_mode_id;
 		_registrations[free_registration_index].replaces_nav_state = replaces_nav_state;
+		_registrations[free_registration_index].request_id = request_id;
 		_registrations[free_registration_index].waiting_for_first_response = true;
 		_registrations[free_registration_index].num_no_response = 0;
 		_registrations[free_registration_index].unresponsive = false;
@@ -79,6 +80,18 @@ int ExternalChecks::addRegistration(int8_t nav_mode_id, int8_t replaces_nav_stat
 	}
 
 	return free_registration_index;
+}
+
+int ExternalChecks::findByRequestId(uint64_t request_id, int8_t &out_nav_mode_id) const
+{
+	for (int i = 0; i < MAX_NUM_REGISTRATIONS; ++i) {
+		if (registrationValid(i) && _registrations[i].request_id == request_id) {
+			out_nav_mode_id = _registrations[i].nav_mode_id;
+			return i;
+		}
+	}
+
+	return -1;
 }
 
 bool ExternalChecks::removeRegistration(int registration_id, int8_t nav_mode_id)
@@ -247,6 +260,15 @@ void ExternalChecks::update()
 			}
 
 			if (_registrations[reply.registration_id].reply) {
+				// num_events is a uint8 arriving on an externally writable topic, while events is
+				// a fixed-size array. Clamp it here, next to the registration_id check, so
+				// checkAndReport() cannot iterate past the end of the array.
+				static constexpr uint8_t max_num_events = sizeof(reply.events) / sizeof(reply.events[0]);
+
+				if (reply.num_events > max_num_events) {
+					reply.num_events = max_num_events;
+				}
+
 				*_registrations[reply.registration_id].reply = reply;
 			}
 

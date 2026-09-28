@@ -24,19 +24,17 @@ parameters:
       description:
         short: Integer bitmask controlling data fusion and aiding methods
         long: |-
-          Set bits in the following positions to enable:
-          0 : Set to true to use the target's GNSS position data if available. (+1)
-          1 : Set to true to use the UAV GNSS velocity data if available. (+2)
-          2 : Set to true to use the target relative position from vision-based data if available. (+4)
-          3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
-          4 : Set to true to use the target GNSS velocity if available. (+16)
+          Selects which measurements the vision target estimator fuses.
+          Bits 0, 3 and 5 give an absolute pad position. It is converted to a relative observation with the vehicle GNSS position, and its offset to the vision-based pad position is estimated as the GNSS bias.
+          Only one absolute pad position is fused at a time: bit 0 takes precedence over bits 3 and 5, which are also ignored in moving-target builds.
       type: bitmask
       bit:
-        0: target GNSS position
+        0: Target GNSS position (receiver on the target)
         1: UAV GNSS velocity
-        2: vision relative position
-        3: mission position
-        4: target GNSS velocity
+        2: Vision relative position
+        3: Mission land position (precision landing)
+        4: Target GNSS velocity (moving-target builds only)
+        5: Home position (precision takeoff)
       default: 14
     VTE_TASK_MASK:
       description:
@@ -45,10 +43,12 @@ parameters:
           Set bits in the following positions to enable:
           0 : Set to true to use the vision target estimator for precision landing. (+1)
           1 : DEBUG, always active. (+2)
+          2 : Set to true to use the vision target estimator for precision takeoff. (+4)
       type: bitmask
       bit:
         0: precision landing
         1: DEBUG, always active
+        2: precision takeoff
       default: 1
     VTE_BTOUT:
       description:

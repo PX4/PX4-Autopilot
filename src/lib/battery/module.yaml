@@ -163,7 +163,7 @@ parameters:
                 long: |
                     Sets the threshold when the battery will be reported as critically low.
                     This has to be lower than the low threshold. This threshold commonly
-                    will trigger RTL.
+                    will trigger Return.
             type: float
             unit: norm
             min: 0.05
@@ -192,7 +192,7 @@ parameters:
                 short: Expected battery current in flight.
                 long: |
                     This value is used to initialize the in-flight average current estimation,
-                    which in turn is used for estimating remaining flight time and RTL triggering.
+                    which in turn is used for estimating remaining flight time and Return triggering.
             type: float
             unit: A
             min: 0

@@ -1,6 +1,6 @@
 # Ubuntu Development Environment
 
-The following instructions use a bash script to set up the PX4 development environment on the [Ubuntu Linux LTS](https://wiki.ubuntu.com/LTS) versions supported by PX4: Ubuntu 24.04 (Nimble Numbat) and Ubuntu 22.04 (Jammy Jellyfish).
+The following instructions use a bash script to set up the PX4 development environment on the [Ubuntu Linux LTS](https://ubuntu.com/about/release-cycle) versions supported by PX4: Ubuntu 24.04 (Nimble Numbat) and Ubuntu 22.04 (Jammy Jellyfish).
 
 The environment includes:
 

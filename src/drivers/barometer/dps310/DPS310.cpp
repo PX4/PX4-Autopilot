@@ -48,11 +48,12 @@ static void getTwosComplement(T &raw, uint8_t length)
 
 DPS310::DPS310(const I2CSPIDriverConfig &config, device::Device *interface) :
 	I2CSPIDriver(config),
-	_px4_baro{interface->get_device_id()},
+	_px4_baro{interface->get_device_id(), config.external},
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors"))
 {
+	_interface->set_external(config.external);
 }
 
 DPS310::~DPS310()
@@ -66,8 +67,11 @@ DPS310::~DPS310()
 int
 DPS310::init()
 {
-	if (RegisterRead(Register::ID) != Infineon_DPS310::REV_AND_PROD_ID) {
-		PX4_ERR("Product_ID mismatch");
+	const uint8_t prod_id = RegisterRead(Register::ID);
+
+	if (prod_id != Infineon_DPS310::REV_AND_PROD_ID_DPS310 &&
+	    prod_id != Infineon_DPS310::REV_AND_PROD_ID_DPS368) {
+		PX4_ERR("Product_ID mismatch (got 0x%02x)", prod_id);
 		return PX4_ERROR;
 	}
 
