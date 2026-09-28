@@ -3525,6 +3525,8 @@ Mavlink::display_status()
 	printf("\t  tx rate max: %i B/s\n", _datarate);
 	printf("\t  rx: %.1f B/s\n", (double)_tstatus.rx_rate_avg);
 	printf("\t  rx loss: %.1f%%\n", (double)_tstatus.rx_message_lost_rate);
+	printf("\t  rx unknown messages: %" PRIu32 "\n", _tstatus.rx_unknown_message_count);
+	printf("\t  rx bad signatures: %" PRIu32 "\n", _tstatus.rx_bad_signature_count);
 
 #if !defined(CONSTRAINED_FLASH)
 	_receiver.print_detailed_rx_stats();

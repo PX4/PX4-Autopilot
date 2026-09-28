@@ -4017,6 +4017,15 @@ MavlinkReceiver::run()
 						}
 					}
 
+					if (forward_only) {
+						if (framing == MAVLINK_FRAMING_BAD_SIGNATURE) {
+							_bad_signature_counter++;
+
+						} else {
+							_unknown_message_counter++;
+						}
+					}
+
 					if (framing == MAVLINK_FRAMING_OK || forward_only) {
 						_mavlink.forward_if_enabled(&msg);
 					}
@@ -4032,6 +4041,8 @@ MavlinkReceiver::run()
 					telemetry_status_s &tstatus = _mavlink.telemetry_status();
 					tstatus.rx_message_count = _total_received_counter;
 					tstatus.rx_message_lost_count = _total_lost_counter;
+					tstatus.rx_unknown_message_count = _unknown_message_counter;
+					tstatus.rx_bad_signature_count = _bad_signature_counter;
 					tstatus.rx_message_lost_rate = static_cast<float>(_total_lost_counter) / static_cast<float>(_total_received_counter);
 
 					if (_mavlink_status_last_buffer_overrun != _status.buffer_overrun) {
