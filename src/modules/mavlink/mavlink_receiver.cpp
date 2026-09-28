@@ -4154,16 +4154,11 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
 		for (unsigned i = 0; i < MAX_REMOTE_COMPONENTS; ++i) {
 			if (_component_states[i].system_id == message.sysid && _component_states[i].component_id == message.compid) {
 
-				int lost_messages = 0;
 				const uint8_t expected_seq = _component_states[i].last_sequence + 1;
 
-				// Account for overflow during packet loss
-				if (message.seq < expected_seq) {
-					lost_messages = (message.seq + 255) - expected_seq;
-
-				} else {
-					lost_messages = message.seq - expected_seq;
-				}
+				// The sequence number is 8 bit, so the difference modulo 256 is the
+				// number of lost messages, also across the wrap-around.
+				const int lost_messages = static_cast<uint8_t>(message.seq - expected_seq);
 
 				_component_states[i].missed_messages += lost_messages;
 
