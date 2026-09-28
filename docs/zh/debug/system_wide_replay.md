@@ -63,7 +63,7 @@ For an example, see [SensorCombined.msg](https://github.com/PX4/PX4-Autopilot/bl
 - Start the replay:
 
   ```sh
-  make px4_sitl_default jmavsim
+  make px4_sitl_default none_iris
   ```
 
   This will automatically open the log file, apply the parameters and start the replay.

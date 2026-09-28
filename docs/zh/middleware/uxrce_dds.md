@@ -26,6 +26,14 @@ In order for PX4 uORB topics to be shared on the DDS network you will need _uXRC
 
 The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) publishes to/from a defined set of uORB topics to the global DDS data space.
 
+:::warning
+The DDS transport is unauthenticated and reaches uORB directly, so the DDS network must be kept isolated.
+Connect the flight controller to the companion over serial or a dedicated Ethernet cable, not over a shared or wireless network.
+A direct cable is not enough on its own: the agent republishes into the DDS network on the companion, so also keep that local, for example with [UXRCE_DDS_PTCFG](../advanced_config/parameter_reference.md#UXRCE_DDS_PTCFG) set to localhost and `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` (`ROS_LOCALHOST_ONLY=1` on Humble).
+If the data has to leave the companion, securing it is up to the integrator.
+See [Security](../security/index.md) for more.
+:::
+
 The [eProsima Micro XRCE-DDS _Agent_](https://github.com/eProsima/Micro-XRCE-DDS-Agent) runs on the companion computer and acts as a proxy for the client in the DDS/ROS 2 network.
 
 The agent itself has no dependency on client-side code and can be built and/or installed independent of PX4 or ROS, as long as version compatibility is ensured.
@@ -465,12 +473,10 @@ While most releases should support a very similar set of messages, to be certain
 
 Note that ROS 2/DDS needs to have the _same_ message definitions that were used to create the uXRCE-DDS client module in the PX4 Firmware in order to interpret the messages.
 The message definitions are stored in the ROS 2 interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs), and they are automatically synchronized by CI on the `main` and release branches.
-需要注意的是，PX4 源代码中的所有消息均存在于该代码仓库中，但只有在dds_topics.yaml文件中列出的消息，才会作为 ROS 2 话题可用。
-因此
+需要注意的是，PX4 源代码中的所有消息均存在于该代码仓库中，但只有在dds_topics.yaml文件中列出的消息，才会作为 ROS 2 话题可用。因此
 
 - 如果您正在使用 PX4 的主要版本或发布版本，您可以通过克隆接口包[PX4/px4_msgs](https://github.com/PX4/px4_msgs)获得消息定义。
-- 如果您要创建或修改 uORB 消息，必须从 PX4 源代码树中手动更新工作空间中的消息。
-  一般来说，这意味着您将更新 [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml)，克隆接口包。 然后手动同步，将新的/修改的消息定义从 [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg)复制到它的 `msg` 文件夹。
+- 如果您要创建或修改 uORB 消息，必须从 PX4 源代码树中手动更新工作空间中的消息。一般来说，这意味着您将更新 [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml)，克隆接口包。 然后手动同步，将新的/修改的消息定义从 [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg)复制到它的 `msg` 文件夹。
   Assuming that PX4-Autopilot is in your home directory `~`, while `px4_msgs` is in `~/ros2_px4_ws/src/`, then the command might be:
 
   ```sh
@@ -491,8 +497,7 @@ The message definitions are stored in the ROS 2 interface package [PX4/px4_msgs]
 
 Custom topic and service namespaces can be applied at build time (changing [dds_topics.yaml](../middleware/dds_topics.md)), at runtime, or through a parameter (which is useful for multi vehicle operations):
 
-- 一种可能性是在从命令行启动[uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client)时使用 "-n" 选项。
-  这种技术既可用于模拟，也可用于实际机体。
+- 一种可能性是在从命令行启动[uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client)时使用 "-n" 选项。这种技术既可用于模拟，也可用于实际机体。
 - 在开始模拟前，可以通过设置环境变量 `PX4_UXRCE_DDS_NS`来提供自定义命名空间 (仅限)
 
 :::info

@@ -67,6 +67,23 @@ void AckermannManualMode::manual()
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 }
 
+void AckermannManualMode::manualParking()
+{
+	manual_control_setpoint_s manual_control_setpoint{};
+	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	rover_steering_setpoint_s rover_steering_setpoint{};
+	rover_steering_setpoint.timestamp = hrt_absolute_time();
+	rover_steering_setpoint.normalized_steering_setpoint = manual_control_setpoint.roll;
+	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+
+	const float max_throttle = _param_ro_park_thr_max.get();
+	rover_throttle_setpoint_s rover_throttle_setpoint{};
+	rover_throttle_setpoint.timestamp = hrt_absolute_time();
+	rover_throttle_setpoint.throttle_body_x = max_throttle * manual_control_setpoint.throttle;
+	rover_throttle_setpoint.throttle_body_y = 0.f;
+	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+}
+
 void AckermannManualMode::acro()
 {
 	manual_control_setpoint_s manual_control_setpoint{};

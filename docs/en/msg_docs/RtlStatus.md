@@ -8,14 +8,14 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                                                        | Type     | Unit [Frame] | Range/Enum | Description                                                                                  |
-| ----------------------------------------------------------- | -------- | ------------ | ---------- | -------------------------------------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp                         | `uint64` |              |            | time since system start (microseconds)                                                       |
-| <a id="fld_safe_points_id"></a>safe_points_id               | `uint32` |              |            | unique ID of active set of safe_point_items                                                  |
-| <a id="fld_is_evaluation_pending"></a>is_evaluation_pending | `bool`   |              |            | flag if the RTL point needs reevaluation (e.g. new safe points available, but need loading). |
-| <a id="fld_has_vtol_approach"></a>has_vtol_approach         | `bool`   |              |            | flag if approaches are defined for current RTL_TYPE parameter setting                        |
-| <a id="fld_rtl_type"></a>rtl_type                           | `uint8`  |              |            | Type of RTL chosen                                                                           |
-| <a id="fld_safe_point_index"></a>safe_point_index           | `uint8`  |              |            | index of the chosen safe point, UINT8_MAX if no rally point was chosen                       |
+| Name                                                        | Type     | Unit [Frame] | Range/Enum | Description                                                                                     |
+| ----------------------------------------------------------- | -------- | ------------ | ---------- | ----------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                         | `uint64` |              |            | time since system start (microseconds)                                                          |
+| <a id="fld_safe_points_id"></a>safe_points_id               | `uint32` |              |            | unique ID of active set of safe_point_items                                                     |
+| <a id="fld_is_evaluation_pending"></a>is_evaluation_pending | `bool`   |              |            | flag if the return point needs reevaluation (e.g. new safe points available, but need loading). |
+| <a id="fld_has_vtol_approach"></a>has_vtol_approach         | `bool`   |              |            | flag if approaches are defined for current RTL_TYPE parameter setting                           |
+| <a id="fld_rtl_type"></a>rtl_type                           | `uint8`  |              |            | Selected Return type                                                                            |
+| <a id="fld_safe_point_index"></a>safe_point_index           | `uint8`  |              |            | index of the chosen safe point, UINT8_MAX if no rally point was chosen                          |
 
 ## Constants
 
@@ -37,11 +37,11 @@ pageClass: is-wide-page
 uint64 timestamp                      # time since system start (microseconds)
 
 uint32 safe_points_id 		      # unique ID of active set of safe_point_items
-bool is_evaluation_pending 	      # flag if the RTL point needs reevaluation (e.g. new safe points available, but need loading).
+bool is_evaluation_pending 	      # flag if the return point needs reevaluation (e.g. new safe points available, but need loading).
 
 bool has_vtol_approach 		      # flag if approaches are defined for current RTL_TYPE parameter setting
 
-uint8 rtl_type	      		      # Type of RTL chosen
+uint8 rtl_type	      		      # Selected Return type
 uint8 safe_point_index 		      # index of the chosen safe point, UINT8_MAX if no rally point was chosen
 
 uint8 RTL_STATUS_TYPE_NONE=0       		# pending if evaluation can't pe performed currently e.g. when it is still loading the safe points

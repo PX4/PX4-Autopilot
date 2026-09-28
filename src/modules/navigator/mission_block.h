@@ -34,7 +34,7 @@
  * @file mission_block.h
  *
  * Base class for Mission class and special flight modes like
- * RTL, Land, Loiter, Takeoff, Geofence, etc.
+ * Return, Land, Loiter, Takeoff, Geofence, etc.
  *
  * @author Julian Oes <julian@oes.ch>
  */

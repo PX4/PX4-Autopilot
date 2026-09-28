@@ -330,8 +330,9 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	uint8_t spoofing_state = 0;
 
 	// TODO: this hack should eventually be removed now that we have the RelPosHeading message
-	// HACK: Use ecef_position_velocity for heading
-	if (!msg.ecef_position_velocity.empty() && !_rel_heading_valid) {
+	// HACK: Use ecef_position_velocity for heading, noise, jamming and spoofing.
+	// A valid RelPosHeading overrides the heading in process_fixx(), but nothing else carries the rest.
+	if (!msg.ecef_position_velocity.empty()) {
 		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[0])) {
 			heading = msg.ecef_position_velocity[0].velocity_xyz[0];
 		}

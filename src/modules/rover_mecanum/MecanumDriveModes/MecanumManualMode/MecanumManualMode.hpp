@@ -74,6 +74,13 @@ public:
 	void manual();
 
 	/**
+	 * @brief Publish roverThrottleSetpoint and roverSteeringSetpoint from manualControlSetpoint for
+	 * tank-style control with reduced throttle: the left stick drives the left motors, the right stick the right motors
+	 * and the right stick left/right drives the rover sideways.
+	 */
+	void manualParking();
+
+	/**
 	 * @brief Generate and publish roverThrottleSetpoint/RoverRateSetpoint from manualControlSetpoint.
 	 */
 	void acro();
@@ -129,6 +136,7 @@ private:
 		(ParamFloat<px4::params::RO_YAW_EXPO>)      _param_ro_yaw_expo,
 		(ParamFloat<px4::params::RO_YAW_SUPEXPO>)   _param_ro_yaw_supexpo,
 		(ParamFloat<px4::params::RM_YAW_STK_GAIN>)  _param_rm_yaw_stk_gain,
+		(ParamFloat<px4::params::RO_PARK_THR_MAX>)  _param_ro_park_thr_max,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
 		(ParamFloat<px4::params::RM_COURSE_CTL_TH>) _param_rm_course_ctl_th
