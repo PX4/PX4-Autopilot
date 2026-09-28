@@ -73,9 +73,6 @@ uint32 SYSTEM_ERROR_CPU_OVERLOAD         = 32
 uint32 SYSTEM_ERROR_OUTPUT_CONGESTION    = 64
 uint32 system_error                      # General errors with the connected GPS receiver
 
-float32 heading			# dual antenna baseline heading rel to NED as measured; vehicle_gps_position carries it rotated into the body frame by the SENS_GPSn_HDG baseline. NaN if not available (rad, [-PI, PI])
-float32 heading_accuracy	# heading accuracy (rad, [0, 2PI])
-
 float32 rtcm_injection_rate	# RTCM message injection rate Hz
 uint8 selected_rtcm_instance	# uorb instance that is being used for RTCM corrections
 

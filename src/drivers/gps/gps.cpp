@@ -449,8 +449,6 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		_port[0] = '\0';
 	}
 
-	_sensor_gps.heading = NAN;
-
 	int32_t enable_sat_info = 0;
 	param_get(param_find("GPS_SAT_INFO"), &enable_sat_info);
 
@@ -1306,7 +1304,6 @@ GPS::run()
 
 			/* reset report */
 			memset(&_sensor_gps, 0, sizeof(_sensor_gps));
-			_sensor_gps.heading = NAN;
 
 #if defined(CONFIG_GPS_UBX)
 
@@ -1694,9 +1691,6 @@ GPS::publish()
 		}
 
 		_sensor_gps_pub.publish(_sensor_gps);
-		// Heading/yaw data can be updated at a lower rate than the other navigation data.
-		// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
-		_sensor_gps.heading = NAN;
 		_is_gps_main_advertised.store(true);
 	}
 }

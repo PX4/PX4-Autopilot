@@ -154,15 +154,6 @@ public:
 			ecefpositionvelocity.position_xyz_mm[1] = gps.jamming_indicator;
 			ecefpositionvelocity.position_xyz_mm[2] = (gps.jamming_state << 8) | gps.spoofing_state;
 
-			// Use ecef_position_velocity for now... There is no heading field
-			if (!std::isnan(gps.heading)) {
-				ecefpositionvelocity.velocity_xyz[0] = gps.heading;
-
-				if (!std::isnan(gps.heading_accuracy)) {
-					ecefpositionvelocity.velocity_xyz[2] = gps.heading_accuracy;
-				}
-			}
-
 			fix2.ecef_position_velocity.push_back(ecefpositionvelocity);
 
 			uavcan::Publisher<uavcan::equipment::gnss::Fix2>::broadcast(fix2);

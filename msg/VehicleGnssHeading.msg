@@ -1,6 +1,6 @@
-# GNSS heading from a dual-antenna or moving-baseline receiver, published by the sensors module from sensor_gnss_relative
-# or, for receivers that don't publish it, from sensor_gps. Only headings whose reported baseline matches the configured
-# SENS_GPSn_HDG baseline are published. Consumed by EKF2 independently from position/velocity.
+# GNSS heading from a dual-antenna or moving-baseline receiver, published by the sensors module from sensor_gnss_relative.
+# Only headings whose reported baseline matches the configured SENS_GNSSn_HDG baseline are published. Consumed by EKF2
+# independently from position/velocity.
 
 uint64 timestamp              # time since system start (microseconds)
 uint64 timestamp_sample       # time since system start (microseconds) - actual measurement time

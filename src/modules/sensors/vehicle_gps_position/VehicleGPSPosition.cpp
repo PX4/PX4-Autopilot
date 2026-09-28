@@ -142,7 +142,6 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		};
 
 		for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
-			_gps_param_slots[i].baseline = baselines[i];
 			_gps_param_slots[i].baseline_length = baselines[i].norm();
 			_gps_param_slots[i].heading_offset = atan2f(baselines[i](1), baselines[i](0));
 		}
@@ -150,17 +149,6 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 	}
 }
-
-#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-float VehicleGPSPosition::bodyHeading(const GpsParamSlot *slot, float heading)
-{
-	if (!PX4_ISFINITE(heading) || !slot || !(slot->baseline_length >= gnss_heading::kMinAntennaSeparation)) {
-		return NAN;
-	}
-
-	return matrix::wrap_pi(heading - slot->heading_offset);
-}
-#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 void VehicleGPSPosition::Run()
 {
@@ -175,33 +163,24 @@ void VehicleGPSPosition::Run()
 
 	// Check all GPS instance
 	bool any_gps_updated = false;
-	sensor_gps_s gps_data[GPS_MAX_RECEIVERS] {};
-	bool gps_updated[GPS_MAX_RECEIVERS] {};
 	const int32_t gps_prime = _param_sens_gps_prime.get();
-#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-	float measured_heading[GPS_MAX_RECEIVERS] {NAN, NAN};
-#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		gps_updated[i] = _sensor_gps_sub[i].update(&gps_data[i]);
+		sensor_gps_s gps_data;
 
-		if (gps_updated[i]) {
+		if (_sensor_gps_sub[i].update(&gps_data)) {
 			any_gps_updated = true;
 
-			const GpsParamSlot *slot = findParamSlot(gps_data[i].device_id, i);
+			const GpsParamSlot *slot = findParamSlot(gps_data.device_id, i);
 			const matrix::Vector3f antenna_offset = slot ? slot->offset : matrix::Vector3f{};
 			const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
 
-			gps_data[i].timestamp_sample = resolveSampleTimestamp(gps_data[i].timestamp_sample, gps_data[i].timestamp, delay_us);
-#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-			measured_heading[i] = gps_data[i].heading;
-			gps_data[i].heading = bodyHeading(slot, gps_data[i].heading);
-#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
+			gps_data.timestamp_sample = resolveSampleTimestamp(gps_data.timestamp_sample, gps_data.timestamp, delay_us);
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
-			_gps_blending.setGpsData(gps_data[i], i);
+			_gps_blending.setGpsData(gps_data, i);
 
-			if (SensorGpsSelector::node_id_matches(gps_prime, gps_data[i].device_id)) {
+			if (SensorGpsSelector::node_id_matches(gps_prime, gps_data.device_id)) {
 				_gps_blending.setPrimaryInstance(i);
 			}
 
@@ -239,7 +218,7 @@ void VehicleGPSPosition::Run()
 	}
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-	UpdateGnssHeading(gps_data, gps_updated, measured_heading);
+	UpdateGnssHeading();
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	ScheduleDelayed(300_ms); // backup schedule
@@ -248,8 +227,7 @@ void VehicleGPSPosition::Run()
 }
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_RECEIVERS],
-		const bool gps_updated[GPS_MAX_RECEIVERS], const float measured_heading[GPS_MAX_RECEIVERS])
+void VehicleGPSPosition::UpdateGnssHeading()
 {
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		sensor_gnss_relative_s gnss_rel;
@@ -279,71 +257,25 @@ void VehicleGPSPosition::UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_R
 		sample.baseline_down = gnss_rel.position[2];
 		sample.jamming_state = receiver.jamming_state;
 		sample.spoofing_state = receiver.spoofing_state;
-		sample.from_relative = true;
 		handleHeadingSample(sample, slot);
-	}
-
-	const hrt_abstime now = hrt_absolute_time();
-
-	if (_heading_source.from_relative && (now < _heading_source.last_pass + kHeadingSourceTimeout)) {
-		return;
-	}
-
-	// Fallback for receivers that only report heading in sensor_gps (e.g. Septentrio). Uses the raw per-instance
-	// data rather than the blended output so heading does not follow the position blending weights.
-	const int32_t gps_prime = _param_sens_gps_prime.get();
-	uint8_t primary = 0;
-
-	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		if ((gps_prime == i) || SensorGpsSelector::node_id_matches(gps_prime, gps_data[i].device_id)) {
-			primary = i;
-		}
-	}
-
-	for (uint8_t n = 0; n < GPS_MAX_RECEIVERS; n++) {
-		const uint8_t i = (primary + n) % GPS_MAX_RECEIVERS;
-
-		if (!gps_updated[i]) {
-			continue;
-		}
-
-		HeadingSample sample{};
-		sample.timestamp_sample = gps_data[i].timestamp_sample;
-		const uint64_t pps_timestamp = _pps_time_sync.correct_gps_timestamp(gps_data[i].timestamp, gps_data[i].time_utc_usec);
-
-		if (pps_timestamp != gps_data[i].timestamp) {
-			sample.timestamp_sample = pps_timestamp;
-		}
-
-		sample.device_id = gps_data[i].device_id;
-		sample.heading = measured_heading[i];
-		sample.heading_accuracy = gps_data[i].heading_accuracy;
-		sample.baseline_length = NAN;
-		sample.baseline_down = NAN;
-		sample.jamming_state = gps_data[i].jamming_state;
-		sample.spoofing_state = gps_data[i].spoofing_state;
-
-		if (handleHeadingSample(sample, findParamSlot(gps_data[i].device_id, i))) {
-			return;
-		}
 	}
 }
 
-bool VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot)
+void VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot)
 {
 	// A single source is published at a time: every source has its own baseline, so alternating between receivers
 	// would jump the heading and trip the EKF observation rate limit. A source is kept until none of its samples has
-	// passed the checks for kHeadingSourceTimeout. A sensor_gnss_relative sample preempts a sensor_gps source.
+	// passed the checks for kHeadingSourceTimeout.
 	//
 	// TODO: with per-receiver baselines the selection can also follow the flight phase, e.g. a tailsitter with one
 	// baseline aligned for hover and one for forward flight.
 	const hrt_abstime now = hrt_absolute_time();
 	HeadingSource &source = _heading_source;
 	const bool held = (source.last_pass != 0) && (now < source.last_pass + kHeadingSourceTimeout);
-	const bool same_source = (sample.device_id == source.device_id) && (sample.from_relative == source.from_relative);
+	const bool same_source = (sample.device_id == source.device_id);
 
-	if (held && !same_source && !(sample.from_relative && !source.from_relative)) {
-		return false;
+	if (held && !same_source) {
+		return;
 	}
 
 	const bool configured = slot && (slot->baseline_length >= gnss_heading::kMinAntennaSeparation);
@@ -358,17 +290,17 @@ bool VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 			source.settled_since = 0;
 		}
 
-		return false;
+		return;
 	}
 
 	// A sample whose baseline doesn't match is dropped; the settle restarts only when the receiver itself reports no
 	// heading
 	if (!gnss_heading::baselineConsistent(slot->baseline_length, sample.baseline_length, sample.baseline_down)) {
-		return false;
+		return;
 	}
 
 	if (!held || !same_source) {
-		source = {sample.device_id, sample.from_relative, 0, 0};
+		source = {sample.device_id, 0, 0};
 	}
 
 	if (source.settled_since == 0) {
@@ -380,7 +312,7 @@ bool VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 	// Headings are published once the receiver has reported a matching one for kHeadingSettleTime, since the first
 	// fixes after it (re)gains its heading are the likeliest to be wrong.
 	if (now < source.settled_since + kHeadingSettleTime) {
-		return true;
+		return;
 	}
 
 	vehicle_gnss_heading_s heading_out{};
@@ -394,8 +326,6 @@ bool VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 	heading_out.spoofing_state = sample.spoofing_state;
 	heading_out.timestamp = hrt_absolute_time();
 	_vehicle_gnss_heading_pub.publish(heading_out);
-
-	return true;
 }
 
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING

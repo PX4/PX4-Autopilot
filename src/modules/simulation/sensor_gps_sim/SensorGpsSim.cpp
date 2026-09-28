@@ -190,8 +190,6 @@ void SensorGpsSim::Run()
 		sensor_gps.cog_rad = atan2(gps_vel(1),
 					   gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
 		sensor_gps.timestamp_time_relative = 0;
-		sensor_gps.heading = NAN;
-		sensor_gps.heading_accuracy = 0;
 		sensor_gps.automatic_gain_control = 0;
 		sensor_gps.jamming_state = 0;
 		sensor_gps.spoofing_state = 0;

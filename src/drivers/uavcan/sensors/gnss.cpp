@@ -60,7 +60,6 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node, NodeInfoPublisher *node_
 	_sub_auxiliary(node),
 	_sub_fix(node),
 	_sub_fix2(node),
-	_sub_gnss_heading(node),
 	_sub_moving_baseline_data(node),
 	_pub_moving_baseline_data(node),
 	_pub_rtcm_stream(node),
@@ -104,13 +103,6 @@ UavcanGnssBridge::init()
 
 	if (res < 0) {
 		PX4_WARN("GNSS fix2 sub failed %i", res);
-		return res;
-	}
-
-	res = _sub_gnss_heading.start(RelPosHeadingCbBinder(this, &UavcanGnssBridge::gnss_relative_sub_cb));
-
-	if (res < 0) {
-		PX4_WARN("GNSS relative sub failed %i", res);
 		return res;
 	}
 
@@ -179,7 +171,7 @@ UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 	float vel_cov[9];
 	msg.velocity_covariance.unpackSquareMatrix(vel_cov);
 
-	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov, NAN, NAN, -1, -1, 0, 0);
+	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov, -1, -1, 0, 0);
 }
 
 void
@@ -319,30 +311,14 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		}
 	}
 
-	// Invalidate the heading fields
-	float heading = NAN;
-	float heading_accuracy = NAN;
-
 	int32_t noise_per_ms = -1;
 	int32_t jamming_indicator = -1;
 	uint8_t jamming_state = 0;
 	uint8_t spoofing_state = 0;
 
-	// TODO: this hack should eventually be removed now that we have the RelPosHeading message
-	// HACK: Use ecef_position_velocity for heading, noise, jamming and spoofing.
-	// A valid RelPosHeading overrides the heading in process_fixx(), but nothing else carries the rest.
+	// HACK: Use ecef_position_velocity for noise, jamming and spoofing, which Fix2 has no fields for. Its velocity_xyz
+	// carried the heading from older node firmware, which is ignored: heading only comes from RelPosHeading.
 	if (!msg.ecef_position_velocity.empty()) {
-		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[0])) {
-			heading = msg.ecef_position_velocity[0].velocity_xyz[0];
-		}
-
-		// velocity_xyz[1] is the heading offset older node firmware subtracted on the node. It is ignored so both heading
-		// paths are rotated by the SENS_GPSn_HDG baseline alone, as the RelPosHeading path already was.
-
-		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[2])) {
-			heading_accuracy = msg.ecef_position_velocity[0].velocity_xyz[2];
-		}
-
 		noise_per_ms = msg.ecef_position_velocity[0].position_xyz_mm[0];
 		jamming_indicator = msg.ecef_position_velocity[0].position_xyz_mm[1];
 
@@ -350,17 +326,8 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		spoofing_state = msg.ecef_position_velocity[0].position_xyz_mm[2] & 0xFF;
 	}
 
-	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances, heading, heading_accuracy, noise_per_ms,
+	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances, noise_per_ms,
 		     jamming_indicator, jamming_state, spoofing_state);
-}
-
-void UavcanGnssBridge::gnss_relative_sub_cb(const
-		uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg)
-{
-	_rel_heading_valid = msg.reported_heading_acc_available;
-	_rel_heading = math::radians(msg.reported_heading_deg);
-	_rel_heading_accuracy = math::radians(msg.reported_heading_acc_deg);
-
 }
 
 void UavcanGnssBridge::moving_baseline_data_sub_cb(const
@@ -402,8 +369,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    uint8_t fix_type,
 				    const float (&pos_cov)[9], const float (&vel_cov)[9],
 				    const bool valid_pos_cov, const bool valid_vel_cov,
-				    const float heading,
-				    const float heading_accuracy, const int32_t noise_per_ms,
+				    const int32_t noise_per_ms,
 				    const int32_t jamming_indicator, const uint8_t jamming_state,
 				    const uint8_t spoofing_state)
 {
@@ -589,19 +555,6 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		// Relevant discussion: https://github.com/PX4/Firmware/issues/5153
 		sensor_gps.hdop = msg.pdop;
 		sensor_gps.vdop = msg.pdop;
-	}
-
-	if (_rel_heading_valid) {
-		sensor_gps.heading = _rel_heading;
-		sensor_gps.heading_accuracy = _rel_heading_accuracy;
-
-		_rel_heading = NAN;
-		_rel_heading_accuracy = NAN;
-		_rel_heading_valid = false;
-
-	} else {
-		sensor_gps.heading = heading;
-		sensor_gps.heading_accuracy = heading_accuracy;
 	}
 
 	sensor_gps.noise_per_ms = noise_per_ms;

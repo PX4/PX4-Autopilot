@@ -418,7 +418,7 @@ hrt_abstime SbgEcom::time_diff(hrt_abstime first_timestamp, hrt_abstime second_t
 	       (second_timestamp - first_timestamp);
 }
 
-void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *ref_sbg_data, void *user_arg)
+void SbgEcom::handleLogGnssPosVel(SbgEComMsgId msg, const SbgEComLogUnion *ref_sbg_data, void *user_arg)
 {
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	uint8_t type;
@@ -446,11 +446,6 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		gnss_data->vel_timestamp = time_now_us;
 		break;
 
-	case SBG_ECOM_LOG_GPS1_HDT:
-		gnss_data->gps_hdt = ref_sbg_data->gpsHdtData;
-		gnss_data->hdt_received = true;
-		gnss_data->hdt_timestamp = time_now_us;
-		break;
 	}
 
 	if (gnss_data->pos_received && gnss_data->vel_received) {
@@ -580,21 +575,6 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		sensor_gps.time_utc_usec = 0;
 
 		sensor_gps.satellites_used = gnss_data->gps_pos.numSvUsed;
-		sensor_gps.heading = NAN;
-		sensor_gps.heading_accuracy = NAN;
-
-		if (gnss_data->hdt_received) {
-			const hrt_abstime hdt_time = gnss_data->hdt_timestamp;
-
-			if ((time_diff(time_now_us, hdt_time) < max_time_diff) &&
-			    (time_diff(pos_time, hdt_time) < max_time_diff) &&
-			    (time_diff(vel_time, hdt_time) < max_time_diff) &&
-			    sbgEComLogGnssHdtHeadingIsValid(&gnss_data->gps_hdt)) {
-				sensor_gps.heading = math::radians(gnss_data->gps_hdt.heading);
-				sensor_gps.heading_accuracy = math::radians(gnss_data->gps_hdt.headingAccuracy);
-			}
-		}
-
 		instance->_sensor_gps_pub.publish(sensor_gps);
 		perf_count(instance->_gnss_pub_interval_perf);
 
@@ -646,9 +626,8 @@ SbgErrorCode SbgEcom::onLogReceived(SbgEComHandle *handle, SbgEComClass msg_clas
 
 		case SBG_ECOM_LOG_GPS1_POS:
 		case SBG_ECOM_LOG_GPS1_VEL:
-		case SBG_ECOM_LOG_GPS1_HDT:
 			if (mode == SBG_MODE_GNSS || mode == SBG_MODE_INS) {
-				instance->handleLogGnssPosVelHdt(msg, ref_sbg_data, user_arg);
+				instance->handleLogGnssPosVel(msg, ref_sbg_data, user_arg);
 			}
 
 			break;

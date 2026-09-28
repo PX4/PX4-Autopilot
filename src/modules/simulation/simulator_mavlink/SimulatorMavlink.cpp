@@ -434,8 +434,6 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 
 	gps.satellites_used = hil_gps.satellites_visible;
 
-	gps.heading = NAN;
-
 	gps.timestamp = hrt_absolute_time();
 
 	// Resolve the uORB instance for this HIL_GPS id first, so the failure injection state can be

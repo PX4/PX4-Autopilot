@@ -1723,9 +1723,6 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 
 		gps.satellites_used = fix_info.sample.num_sv;
 
-		gps.heading = ref->dual_ant_stat.heading;
-		gps.heading_accuracy = 0;
-
 		gps.rtcm_injection_rate = 0;
 		gps.selected_rtcm_instance = 0;
 		gps.corrections_crc_failed = 0;

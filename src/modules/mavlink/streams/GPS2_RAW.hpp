@@ -108,13 +108,12 @@ private:
 			msg.v_acc = gps.epv * 1e3f;              // altitude uncertainty in mm
 			msg.vel_acc = gps.s_variance_m_s * 1e3f; // speed uncertainty in mm
 
-			// sensor_gps carries the measured baseline heading; the body-frame heading is only known for the receiver
-			// that is the active heading source
+			// the body-frame heading is only known for the receiver that is the active heading source
 			vehicle_gnss_heading_s gnss_heading;
 			float heading = NAN;
 			float heading_accuracy = NAN;
 
-			if (PX4_ISFINITE(gps.heading) && _vehicle_gnss_heading_sub.copy(&gnss_heading)
+			if (_vehicle_gnss_heading_sub.copy(&gnss_heading)
 			    && (gnss_heading.device_id == gps.device_id) && (hrt_elapsed_time(&gnss_heading.timestamp) < kHeadingTimeout)) {
 				heading = gnss_heading.heading;
 				heading_accuracy = gnss_heading.heading_accuracy;

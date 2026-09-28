@@ -87,8 +87,7 @@ private:
 		uint32_t device_id{0};
 		matrix::Vector3f offset{};
 		hrt_abstime delay_us{kDefaultDelay};
-		matrix::Vector3f baseline{}; // antenna baseline the heading is measured along, body frame (m)
-		float baseline_length{0.f};
+		float baseline_length{0.f};  // of the antenna baseline the heading is measured along (m)
 		float heading_offset{0.f};   // yaw of the baseline in the body frame (rad)
 	};
 
@@ -105,18 +104,13 @@ private:
 		float baseline_down;
 		uint8_t jamming_state;
 		uint8_t spoofing_state;
-		bool from_relative;     // sensor_gnss_relative, else sensor_gps
 	};
 
-	void UpdateGnssHeading(const sensor_gps_s gps_data[GPS_MAX_RECEIVERS], const bool gps_updated[GPS_MAX_RECEIVERS],
-			       const float measured_heading[GPS_MAX_RECEIVERS]);
-	// Returns true if the sample passed the checks and is from the source in use (published once settled)
-	bool handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot);
+	void UpdateGnssHeading();
+	void handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot);
 
 	// sensor_gps instance publishing this device_id, or -1, with its latest sample in gps_data (zeroed when not found)
 	int findGpsInstance(uint32_t device_id, sensor_gps_s &gps_data);
-	// Measured baseline heading rotated into the body frame; NAN without a configured baseline
-	static float bodyHeading(const GpsParamSlot *slot, float heading);
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
@@ -148,7 +142,6 @@ private:
 
 	struct HeadingSource {
 		uint32_t device_id{0};
-		bool from_relative{false};
 		hrt_abstime last_pass{0};     // last sample that passed the checks
 		hrt_abstime settled_since{0}; // first passing sample since the receiver last had no heading
 	} _heading_source{};

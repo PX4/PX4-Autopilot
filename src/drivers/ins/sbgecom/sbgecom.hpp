@@ -144,7 +144,7 @@ private:
 	* @param ref_sbg_data Contains the received log data as an union.
 	* @param user_arg Optional user supplied argument.
 	*/
-	static void handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *ref_sbg_data, void *user_arg);
+	static void handleLogGnssPosVel(SbgEComMsgId msg, const SbgEComLogUnion *ref_sbg_data, void *user_arg);
 
 	/**
 	* @brief Update estimator status message from EKF status flags.
@@ -255,15 +255,12 @@ private:
 	struct GnssData {
 		bool pos_received = false;
 		bool vel_received = false;
-		bool hdt_received = false;
 
 		SbgEComLogGnssPos gps_pos;
 		SbgEComLogGnssVel gps_vel;
-		SbgEComLogGnssHdt gps_hdt;
 
 		hrt_abstime pos_timestamp = 0;
 		hrt_abstime vel_timestamp = 0;
-		hrt_abstime hdt_timestamp = 0;
 	};
 
 	GnssData gnss_data;

@@ -80,7 +80,6 @@ void FakeGps::Run()
 	sensor_gps.vel_d_m_s = -0.0570f;
 	sensor_gps.cog_rad = 0.3988f;
 	sensor_gps.timestamp_time_relative = 0;
-	sensor_gps.heading = NAN;
 	sensor_gps.fix_type = 4;
 	sensor_gps.jamming_state = 0;
 	sensor_gps.spoofing_state = 0;
