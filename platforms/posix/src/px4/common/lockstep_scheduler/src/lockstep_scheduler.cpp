@@ -107,8 +107,8 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 	}
 
 	// Phase 2: signal each waiter outside _timed_waits_mutex. _signaling_mutex
-	// is still held, so any waiter that sees timeout via the wall-clock
-	// fallback will block in the dance until we are done, preventing
+	// is still held, so any waiter woken while we are still signaling will
+	// block in the dance until we are done, preventing
 	// use-after-free of their stack-local passed_lock/passed_cond.
 	for (TimedWait *tw = to_signal_head; tw != nullptr;) {
 		TimedWait *next = tw->signal_next;
@@ -154,32 +154,13 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 		}
 	}
 
-	// Use a short wall-clock timeout instead of waiting indefinitely.
-	// There is a race window between releasing _timed_waits_mutex (above)
-	// and entering pthread_cond_wait: if set_absolute_time() broadcasts
-	// during that window, the signal is lost and we'd block forever.
-	// A periodic wake-up lets us re-check the timeout flag.
-	int result;
-
-	while (true) {
-		struct timespec ts;
-		clock_gettime(CLOCK_REALTIME, &ts);
-		// Wake up every 10ms wall-clock to re-check
-		ts.tv_nsec += 10000000; // 10ms
-
-		if (ts.tv_nsec >= 1000000000) {
-			ts.tv_sec += 1;
-			ts.tv_nsec -= 1000000000;
-		}
-
-		result = pthread_cond_timedwait(cond, lock, &ts);
-
-		if (timed_wait.timeout || result == 0) {
-			break;
-		}
-
-		// ETIMEDOUT from the wall-clock timeout — just re-check
-	}
+	// A single wait, returned on any wakeup. The caller holds 'lock' from
+	// before registering until pthread_cond_wait releases it, and
+	// set_absolute_time() takes 'lock' before broadcasting, so a timeout
+	// broadcast cannot be missed. Re-waiting here would instead swallow a
+	// signal from the caller's own signaler (e.g. px4_sem_post) that lands
+	// while this thread is re-acquiring 'lock'.
+	int result = pthread_cond_wait(cond, lock);
 
 	const bool timeout = timed_wait.timeout;
 
