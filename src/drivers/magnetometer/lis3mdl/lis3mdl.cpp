@@ -44,7 +44,7 @@
 
 LIS3MDL::LIS3MDL(device::Device *interface, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
-	_px4_mag(interface->get_device_id(), config.rotation),
+	_px4_mag(interface->get_device_id(), config.rotation, config.external),
 	_interface(interface),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
 	_conf_errors(perf_alloc(PC_COUNT, MODULE_NAME": conf_errors")),
@@ -247,6 +247,8 @@ int LIS3MDL::set_range(unsigned range)
 		_px4_mag.set_scale(1.0f / 1711.0f);
 		_range_ga = 16.0f;
 	}
+
+	_px4_mag.set_range(_range_ga);
 
 	/*
 	 * Send the command to set the range

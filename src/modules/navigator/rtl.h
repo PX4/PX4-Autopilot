@@ -33,7 +33,7 @@
 /**
  * @file rtl.h
  *
- * Helper class for RTL
+ * Helper class for Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -54,6 +54,8 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/parameter_update.h>
@@ -115,19 +117,19 @@ private:
 	void setRtlTypeAndDestination();
 
 	/**
-	 * @brief Publish the remaining time estimate to go to the RTL landing point.
+	 * @brief Publish the remaining time estimate to go to the Return landing point.
 	 *
 	 */
 	void publishRemainingTimeEstimate();
 
 	/**
-	 * @brief Find RTL destination.
+	 * @brief Find return destination.
 	 *
 	 */
 	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
 
 	/**
-	 * @brief Find RTL destination if only safe points are considered
+	 * @brief Find return destination if only safe points are considered
 	 *
 	 */
 	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
@@ -148,7 +150,7 @@ private:
 	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
 
 	/**
-	 * @brief initialize RTL mission type
+	 * @brief initialize Return mission type
 	 *
 	 */
 	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
@@ -204,6 +206,7 @@ private:
 	uORB::SubscriptionData<mission_s> _mission_sub{ORB_ID(mission)};
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
 	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};

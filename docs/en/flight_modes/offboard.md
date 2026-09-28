@@ -17,7 +17,9 @@ A good understanding of [PX4 controller diagrams](../flight_stack/controller_dia
 The vehicle obeys position, velocity, acceleration, attitude, attitude rates or thrust/torque setpoints provided by some source that is external to the flight stack, such as a companion computer.
 The setpoints may be provided using MAVLink (or a MAVLink API such as [MAVSDK](https://mavsdk.mavlink.io/)) or by [ROS 2](../ros2/index.md).
 
-PX4 requires that the external controller provides a continuous "proof of life" signal by streaming any of the supported MAVLink setpoint messages or the ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) message.
+## Technical Summary
+
+PX4 requires that the external controller provides a continuous 2Hz "proof of life" signal, by streaming any of the supported MAVLink setpoint messages or the ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) message.
 The stream should be active before switching to Offboard mode, and PX4 will trigger the configured Offboard-loss failsafe action ([COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT)) if proof-of-life messages are not received within the timeout configured by [COM_OF_LOSS_T](#COM_OF_LOSS_T).
 
 ::: info
@@ -30,6 +32,29 @@ The stream should be active before switching to Offboard mode, and PX4 will trig
   Read the sections below _carefully_ to ensure only supported values are used.
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_offboard -->
+
+### Mode Requirements — Fixed-Wing
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_offboard_signal`](../flight_modes/mode_requirements.md#mode_req_offboard_signal) — Offboard heartbeat
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_offboard -->
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_offboard -->
+
+### Mode Requirements — Multicopter
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_offboard_signal`](../flight_modes/mode_requirements.md#mode_req_offboard_signal) — Offboard heartbeat
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_offboard -->
 
 ## Description
 
@@ -253,7 +278,7 @@ The following MAVLink messages and their particular fields and field values are 
 ### Copter/VTOL
 
 - [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
-  - The following input combinations are supported: <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
+  - The following input combinations are supported: <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_receiver.cpp (handle_message_set_position_target_local_ned) -->
     - Position setpoint (only `x`, `y`, `z`)
     - Velocity setpoint (only `vx`, `vy`, `vz`)
     - Acceleration setpoint (only `afx`, `afy`, `afz`)
@@ -262,8 +287,13 @@ The following MAVLink messages and their particular fields and field values are 
 
   - PX4 supports the following `coordinate_frame` values (only): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) and [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED).
 
+    ::: info
+    `MAV_FRAME_BODY_NED` can only be used with velocity and acceleration setpoints, which are rotated from body to local frame using the vehicle heading.
+    Position setpoints are ignored (set to `NAN`) in this frame, because a position in a body-fixed frame is ambiguous; position setpoints must use `MAV_FRAME_LOCAL_NED`.
+    :::
+
 - [SET_POSITION_TARGET_GLOBAL_INT](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT)
-  - The following input combinations are supported: <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
+  - The following input combinations are supported: <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_receiver.cpp (handle_message_set_position_target_global_int) -->
     - Position setpoint (only `lat_int`, `lon_int`, `alt`)
     - Velocity setpoint (only `vx`, `vy`, `vz`)
     - _Thrust_ setpoint (only `afx`, `afy`, `afz`)
@@ -284,8 +314,8 @@ The following MAVLink messages and their particular fields and field values are 
 ### Fixed-wing
 
 - [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
-  - The following input combinations are supported (via `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
-    - Position setpoint (`x`, `y`, `z` only; velocity and acceleration setpoints are ignored).
+  - The following input combinations are supported (via `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_receiver.cpp (handle_message_set_position_target_local_ned) -->
+    - Position setpoint (`x`, `y`, `z`).
       - Specify the _type_ of the setpoint in `type_mask` (if these bits are not set the vehicle will fly in a flower-like pattern):
         ::: info
         Some of the _setpoint type_ values below are not part of the MAVLink standard for the `type_mask` field.
@@ -300,10 +330,16 @@ The following MAVLink messages and their particular fields and field values are 
         - 12288: Loiter setpoint (fly a circle centred on setpoint).
         - 16384: Idle setpoint (zero throttle, zero roll / pitch).
 
-  - PX4 supports the coordinate frames (`coordinate_frame` field): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) and [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED).
+    - Position setpoint with velocity setpoint (`x`, `y`, `z` with `vx`, `vy`).
+      The vehicle follows a path through the position, tangent to the direction of the horizontal velocity (the velocity magnitude and `vz` are not used).
+      If the acceleration setpoint (`afx`, `afy`, `afz`) is also set, its component normal to the velocity is used as the path curvature.
+    - Velocity-only and acceleration-only setpoints are not supported: without a position setpoint the fixed-wing position controller does not generate new setpoints.
+
+  - PX4 supports the coordinate frame (`coordinate_frame` field): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED).
+    [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED) is accepted, but position setpoints are ignored in this frame, and fixed-wing requires a position setpoint, so it cannot be used.
 
 - [SET_POSITION_TARGET_GLOBAL_INT](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT)
-  - The following input combinations are supported (via `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
+  - The following input combinations are supported (via `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_receiver.cpp (handle_message_set_position_target_global_int) -->
     - Position setpoint (only `lat_int`, `lon_int`, `alt`)
       - Specify the _type_ of the setpoint in `type_mask` (if these bits are not set the vehicle will fly in a flower-like pattern):
 
@@ -316,6 +352,9 @@ The following MAVLink messages and their particular fields and field values are 
         - 8192: Land setpoint.
         - 12288: Loiter setpoint (fly a circle centred on setpoint).
         - 16384: Idle setpoint (zero throttle, zero roll / pitch).
+
+    - Position setpoint with velocity setpoint (`lat_int`, `lon_int`, `alt` with `vx`, `vy`), handled as for `SET_POSITION_TARGET_LOCAL_NED` above.
+    - Velocity-only and acceleration-only setpoints are not supported.
 
   - PX4 supports the following `coordinate_frame` values (only): [MAV_FRAME_GLOBAL_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_INT), [MAV_FRAME_GLOBAL_RELATIVE_ALT_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_RELATIVE_ALT_INT), [MAV_FRAME_GLOBAL_TERRAIN_ALT_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_TERRAIN_ALT_INT).
 

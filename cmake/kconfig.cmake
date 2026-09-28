@@ -373,10 +373,6 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	# ROMFS
 	if(ROMFSROOT)
 		set(config_romfs_root ${ROMFSROOT} CACHE INTERNAL "ROMFS root" FORCE)
-
-		if(UAVCAN_PERIPHERALS)
-			set(config_uavcan_peripheral_firmware ${UAVCAN_PERIPHERALS} CACHE INTERNAL "UAVCAN peripheral firmware" FORCE)
-		endif()
 	endif()
 
 	# ADDITIONAL INIT
@@ -386,10 +382,6 @@ if(EXISTS ${BOARD_DEFCONFIG})
 
 	if(UAVCAN_INTERFACES)
 		set(config_uavcan_num_ifaces ${UAVCAN_INTERFACES} CACHE INTERNAL "UAVCAN interfaces" FORCE)
-	endif()
-
-	if(UAVCAN_TIMER_OVERRIDE)
-		set(config_uavcan_timer_override ${UAVCAN_TIMER_OVERRIDE} CACHE INTERNAL "UAVCAN TIMER OVERRIDE" FORCE)
 	endif()
 
 	# OPTIONS

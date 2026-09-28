@@ -20,6 +20,14 @@ The Zenoh-based middleware consists of a client running on PX4 and a Zenoh route
 The router acts as a broker and discovery service, enabling PX4 to publish and subscribe to topics in the global Zenoh data space.
 This allows seamless integration with ROS 2 nodes using [`rmw_zenoh`](https://github.com/ros2/rmw_zenoh), and supports flexible deployment across distributed systems.
 
+:::warning
+The Zenoh transport is unauthenticated and reaches uORB directly, so the Zenoh network must be kept isolated.
+Connect the flight controller to the companion over a dedicated Ethernet cable, not over a shared or wireless network.
+A direct cable is not enough on its own: the router republishes into the Zenoh network, so the router must also not be reachable from other networks.
+If the data has to leave the companion, securing it is up to the integrator.
+See [Security](../security/index.md) for more.
+:::
+
 ![Architecture PX4 Zenoh-Pico with ROS 2](../../assets/middleware/zenoh/architecture-px4-zenoh.svg)
 
 The client is the _PX4 Zenoh-Pico Node_ referred to above, which is implemented in the [PX4 `zenoh` module](../modules/modules_driver.md#zenoh).
@@ -135,8 +143,8 @@ The PX4 Zenoh-pico node stores its configuration on the **SD card** under the `z
 This folder contains three key files:
 
 - **`net.txt`** – Defines the **Zenoh network configuration**.
-- **`pub.csv`** – Maps **uORB topics to ROS2 topics** (used for publishing).
-- **`sub.csv`** – Maps **ROS2 topics to uORB topics** (used for subscribing).
+- **`pub.csv`** – Maps **uORB topics to ROS 2 topics** (used for publishing).
+- **`sub.csv`** – Maps **ROS 2 topics to uORB topics** (used for subscribing).
 
 #### Publisher Options
 
@@ -155,7 +163,7 @@ Individual publisher options can be overridden through the mapping configuration
 
 ### 4. Modifying Topic Mappings
 
-Zenoh topic mappings define how data flows between PX4's internal uORB topics and external ROS2 topics via Zenoh.
+Zenoh topic mappings define how data flows between PX4's internal uORB topics and external ROS 2 topics via Zenoh.
 These mappings are stored in `pub.csv` and `sub.csv` on the SD card, and can be modified at runtime using the `zenoh config` CLI tool.
 
 :::warning
@@ -215,7 +223,7 @@ The updated configuration will be loaded from the SD card during startup.
 Once your PX4 FMU is publishing data into ROS 2, you can inspect the available topics and their contents using standard ROS 2 CLI tools:
 
 ```sh
-ros2 topic list（ROS 2 话题列表命令）
+ros2 topic list
 ```
 
 Check topic type and publishers/subscribers:

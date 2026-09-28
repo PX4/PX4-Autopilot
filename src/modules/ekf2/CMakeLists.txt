@@ -295,4 +295,6 @@ px4_add_module(
 
 if(BUILD_TESTING)
 	add_subdirectory(test)
+
+	px4_add_functional_gtest(SRC EKF2SelectorTest.cpp LINKLIBS modules__ekf2)
 endif()

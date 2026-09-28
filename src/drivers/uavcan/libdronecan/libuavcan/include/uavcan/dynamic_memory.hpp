@@ -114,12 +114,14 @@ class LimitedPoolAllocator : public IPoolAllocator
     IPoolAllocator& allocator_;
     const uint16_t max_blocks_;
     uint16_t used_blocks_;
+    uint16_t peak_used_blocks_;
 
 public:
     LimitedPoolAllocator(IPoolAllocator& allocator, std::size_t max_blocks)
         : allocator_(allocator)
         , max_blocks_(static_cast<uint16_t>(min<std::size_t>(max_blocks, 0xFFFFU)))
         , used_blocks_(0)
+        , peak_used_blocks_(0)
     {
         UAVCAN_ASSERT(max_blocks_ > 0);
     }
@@ -128,6 +130,13 @@ public:
     virtual void deallocate(const void* ptr) override;
 
     virtual uint16_t getBlockCapacity() const override;
+
+    uint16_t getNumUsedBlocks() const { return used_blocks_; }
+
+    /// High water mark. Reaching getBlockLimit() is what turns into a rejected frame.
+    uint16_t getPeakNumUsedBlocks() const { return peak_used_blocks_; }
+
+    uint16_t getBlockLimit() const { return max_blocks_; }
 };
 
 // ----------------------------------------------------------------------------

@@ -86,6 +86,7 @@ private:
 struct perf_ctr_header {
 	sq_entry_t		link;	/**< list linkage */
 	enum perf_counter_type	type;	/**< counter type */
+	bool			pending_free;	/**< freed during iteration, deleted after the last iteration ends */
 	const char		*name;	/**< counter name */
 };
 
@@ -135,6 +136,54 @@ pthread_mutex_t perf_counters_mutex = PTHREAD_MUTEX_INITIALIZER;
 // Note: the mutex only protects the linked list, not individual counter data.
 // Counter fields go through PerfVar (atomic on POSIX/TSan, plain on embedded).
 
+/**
+ * Number of perf_iterate_all() calls currently in progress (guarded by perf_counters_mutex).
+ * While non-zero, perf_free() only marks entries as pending_free; the last
+ * iteration to finish deletes them.
+ */
+static int perf_iterate_active = 0;
+
+static void
+perf_delete(perf_counter_t handle)
+{
+	switch (handle->type) {
+	case PC_COUNT:
+		delete (struct perf_ctr_count *)handle;
+		break;
+
+	case PC_ELAPSED:
+		delete (struct perf_ctr_elapsed *)handle;
+		break;
+
+	case PC_INTERVAL:
+		delete (struct perf_ctr_interval *)handle;
+		break;
+
+	default:
+		break;
+	}
+}
+
+/**
+ * Delete all entries marked pending_free. Call with perf_counters_mutex held
+ * and no iteration active.
+ */
+static void
+perf_free_pending_locked()
+{
+	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
+
+	while (handle != nullptr) {
+		perf_counter_t next = (perf_counter_t)sq_next(&handle->link);
+
+		if (handle->pending_free) {
+			sq_rem(&handle->link, &perf_counters);
+			perf_delete(handle);
+		}
+
+		handle = next;
+	}
+}
 
 perf_counter_t
 perf_alloc(enum perf_counter_type type, const char *name)
@@ -161,6 +210,7 @@ perf_alloc(enum perf_counter_type type, const char *name)
 	if (ctr != nullptr) {
 		ctr->type = type;
 		ctr->name = name;
+		ctr->pending_free = false;
 		pthread_mutex_lock(&perf_counters_mutex);
 		sq_addfirst(&ctr->link, &perf_counters);
 		pthread_mutex_unlock(&perf_counters_mutex);
@@ -176,7 +226,7 @@ perf_alloc_once(enum perf_counter_type type, const char *name)
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != nullptr) {
-		if (!strcmp(handle->name, name)) {
+		if (!handle->pending_free && !strcmp(handle->name, name)) {
 			if (type == handle->type) {
 				/* they are the same counter */
 				pthread_mutex_unlock(&perf_counters_mutex);
@@ -206,25 +256,19 @@ perf_free(perf_counter_t handle)
 	}
 
 	pthread_mutex_lock(&perf_counters_mutex);
+
+	if (perf_iterate_active > 0) {
+		// an iteration may be positioned on this entry: keep it linked
+		// and let the last active iteration delete it
+		handle->pending_free = true;
+		pthread_mutex_unlock(&perf_counters_mutex);
+		return;
+	}
+
 	sq_rem(&handle->link, &perf_counters);
 	pthread_mutex_unlock(&perf_counters_mutex);
 
-	switch (handle->type) {
-	case PC_COUNT:
-		delete (struct perf_ctr_count *)handle;
-		break;
-
-	case PC_ELAPSED:
-		delete (struct perf_ctr_elapsed *)handle;
-		break;
-
-	case PC_INTERVAL:
-		delete (struct perf_ctr_interval *)handle;
-		break;
-
-	default:
-		break;
-	}
+	perf_delete(handle);
 }
 
 void
@@ -653,12 +697,35 @@ perf_mean(perf_counter_t handle)
 void
 perf_iterate_all(perf_callback cb, void *user)
 {
+	static constexpr size_t PERF_COUNTER_LINE_BUFFER_SIZE = 220;
+	char buffer[PERF_COUNTER_LINE_BUFFER_SIZE];
+
 	pthread_mutex_lock(&perf_counters_mutex);
+	++perf_iterate_active;
+
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != nullptr) {
-		cb(handle, user);
-		handle = (perf_counter_t)sq_next(&handle->link);
+		// advance while locked; entries stay linked until all active iterations end
+		perf_counter_t next = (perf_counter_t)sq_next(&handle->link);
+
+		if (!handle->pending_free) {
+			perf_print_counter_buffer(buffer, sizeof(buffer), handle);
+
+			// the callback may block (the logger waits for MAVLink acks here), so run
+			// it without the global mutex: perf_alloc()/perf_free() on other threads
+			// keep working, and 'next' stays valid because perf_free() defers deletion
+			// while perf_iterate_active > 0
+			pthread_mutex_unlock(&perf_counters_mutex);
+			cb(buffer, user);
+			pthread_mutex_lock(&perf_counters_mutex);
+		}
+
+		handle = next;
+	}
+
+	if (--perf_iterate_active == 0) {
+		perf_free_pending_locked();
 	}
 
 	pthread_mutex_unlock(&perf_counters_mutex);
@@ -671,7 +738,10 @@ perf_print_all(void)
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != nullptr) {
-		perf_print_counter(handle);
+		if (!handle->pending_free) {
+			perf_print_counter(handle);
+		}
+
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
 
@@ -701,7 +771,10 @@ perf_reset_all(void)
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != nullptr) {
-		perf_reset(handle);
+		if (!handle->pending_free) {
+			perf_reset(handle);
+		}
+
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
 

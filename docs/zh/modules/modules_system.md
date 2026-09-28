@@ -90,10 +90,13 @@ Source: [drivers/cdcacm_autostart](https://github.com/PX4/PX4-Autopilot/tree/mai
 
 ### 描述
 
-This module listens on USB and auto-configures the protocol depending on the bytes received.
-The supported protocols are: MAVLink, nsh, and ublox serial passthrough. If the parameter SYS_USB_AUTO=2
-the module will only try to start mavlink as long as the USB VBUS is detected. Otherwise it will spin
-and continue to check for VBUS and start mavlink once it is detected.
+Manages the USB CDC/ACM serial device (`/dev/ttyACM0`).
+
+`SYS_USB_AUTO` selects the protocol policy once USB VBUS is detected:
+
+- `0` Disabled: bring up the USB serial device only.
+- `1` Auto-detect: wait for host bytes and start MAVLink, nsh, or u-blox passthrough.
+- `2` MAVLink (default): start MAVLink immediately so the autopilot transmits first
 
 ### Usage {#cdcacm_autostart_usage}
 
@@ -152,9 +155,9 @@ commander <command> [arguments...]
    transition    VTOL transition
 
    mode          Change flight mode
-     manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow
-                 |auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|aut
-                 o:land|auto:precland|ext1 Flight mode
+     manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|manual_parkin
+                 g|position:slow|auto:mission|auto:loiter|auto:course|auto:rtl|a
+                 uto:takeoff|auto:land|auto:precland|ext1 Flight mode
 
    pair
 
@@ -394,7 +397,8 @@ i2c_launcher <command> [arguments...]
  Commands:
    start
      -b <val>    Bus number
-     -t <val>    battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
+                 default: 1
 
    stop
 
@@ -407,54 +411,15 @@ Source: [modules/internal_combustion_engine_control](https://github.com/PX4/PX4-
 
 ### 描述
 
-The module controls internal combustion engine (ICE) features including:
-ignition (on/off), throttle and choke level, starter engine delay, and user request.
+Controls a spark-ignition internal combustion engine (ICE): ignition, throttle, choke and
+electric starter motor. A state machine sequences the start attempts, restarts the engine if
+it stops in flight, and runs a closed-loop idle RPM governor.
 
-### Enabling
+The module is not in the default builds, and is only started at boot if
+[ICE_EN](../advanced_config/parameter_reference.md#ICE_EN) is set.
 
-This feature is not enabled by default needs to be configured in the
-build target for your board together with the rpm capture driver:
-
-```
-CONFIG_MODULES_INTERNAL_COMBUSTION_ENGINE_CONTROL=y
-CONFIG_DRIVERS_RPM_CAPTURE=y
-```
-
-Additionally, to enable the module:
-
-- Set [ICE_EN](../advanced_config/parameter_reference.md#ICE_EN)
-  to true and adjust the other `ICE_` module parameters according to your needs.
-- Set [RPM_CAP_ENABLE](../advanced_config/parameter_reference.md#RPM_CAP_ENABLE) to true.
-
-The module outputs control signals for ignition, throttle, and choke,
-and takes inputs from an RPM sensor.
-These must be mapped to AUX outputs/inputs in the [Actuator configuration](../config/actuators.md),
-similar to the setup shown below.
-
-![Actuator setup for ICE](../../assets/hardware/ice/ice_actuator_setup.png)
-
-### 实现
-
-The ICE is implemented with a (4) state machine:
-
-![Architecture](../../assets/hardware/ice/ice_control_state_machine.png)
-
-The state machine:
-
-- Checks if [Rpm.msg](../msg_docs/Rpm.md) is updated to know if the engine is running
-- Allows for user inputs from:
-  - Manual control AUX
-  - Arming state in [VehicleStatus.msg](../msg_docs/VehicleStatus.md)
-- In the state "Stopped" the throttle is set to NAN, which by definition will set the
-  throttle output to the disarmed value configured for the specific output.
-
-The module publishes [InternalCombustionEngineControl.msg](../msg_docs/InternalCombustionEngineControl.md).
-
-The architecture is as shown below:
-
-![Architecture](../../assets/hardware/ice/ice_control_diagram.png)
-
-<a id="internal_combustion_engine_control_usage"></a>
+See [Internal Combustion Engines](../actuators/internal_combustion_engine.md) for the firmware
+and hardware setup, actuator configuration, start sequence timing and idle governor tuning.
 
 ### Usage {#internal_combustion_engine_control_usage}
 
@@ -706,6 +671,27 @@ netman <command> [arguments...]
    save          Save the current network parameters to the SD card.
      [-i <val>]  Set the interface name
                  default: eth0
+```
+
+## nfs_mount
+
+Source: [modules/nfs_mount](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/nfs_mount)
+
+### 描述
+
+Mounts an NFS filesystem from NFS_IP on NFS_MOUNT_MOUNT_POINT.
+Started automatically by rcS when NFS_EN is set.
+
+### Usage {#nfs_mount_usage}
+
+```
+nfs_mount <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
 ```
 
 ## pwm_input

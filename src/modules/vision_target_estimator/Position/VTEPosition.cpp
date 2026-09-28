@@ -304,7 +304,7 @@ void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 	}
 
 	if (updateUavGpsData()) {
-		if (_vte_aid_mask.flags.use_mission_pos && _mission_land_position.valid) {
+		if (_vte_aid_mask.flags.use_mission_pos && _mission_land_position.valid && _uav_gps_position.valid) {
 			fusion_mask.flags.fuse_mission_pos = processObsGNSSPosMission(observations[obsIndex(ObsType::kMissionGpsPos)]);
 		}
 
@@ -779,7 +779,7 @@ void VTEPosition::startBiasAveraging(const Vector3f &bias_sample, const hrt_abst
 
 bool VTEPosition::updateBiasAveraging(const Vector3f &bias_sample, const hrt_abstime sample_time)
 {
-	static constexpr float kInitialBiasLpfMinTimeFactor{2.f};
+	static constexpr unsigned kInitialBiasLpfMinTimeFactor{2};
 	static constexpr uint8_t kRequiredStableBiasDeltas{5};
 
 	if (!_bias.averaging_active) {
@@ -796,8 +796,7 @@ bool VTEPosition::updateBiasAveraging(const Vector3f &bias_sample, const hrt_abs
 	const Vector3f filtered_bias_before_update = _bias.initial_lpf.getState();
 	const float bias_delta = (bias_sample - filtered_bias_before_update).norm();
 
-	const float dt = static_cast<float>(sample_time - _bias.last_sample_time) * kMicrosecondsToSeconds;
-	_bias.initial_lpf.update(bias_sample, dt);
+	_bias.initial_lpf.update(bias_sample, sample_time - _bias.last_sample_time);
 	_bias.last_sample_time = sample_time;
 
 	const Vector3f filtered_bias_logged = _bias.initial_lpf.getState();
@@ -812,8 +811,7 @@ bool VTEPosition::updateBiasAveraging(const Vector3f &bias_sample, const hrt_abs
 		_bias.stable_delta_count = 0;
 	}
 
-	const hrt_abstime min_averaging_time_us = static_cast<hrt_abstime>(
-				kInitialBiasLpfMinTimeFactor * kInitialBiasLpfTimeConstantS * 1e6f);
+	const hrt_abstime min_averaging_time_us = kInitialBiasLpfMinTimeFactor * kInitialBiasLpfTimeConstant;
 	const bool min_time_elapsed = (sample_time >= _bias.averaging_start_time)
 				      && ((sample_time - _bias.averaging_start_time) >= min_averaging_time_us);
 	const bool stable = (_bias.stable_delta_count >= kRequiredStableBiasDeltas) && min_time_elapsed;
@@ -1534,7 +1532,7 @@ void VTEPosition::print_status() const
 	PX4_INFO("  position inputs: local pos: %s age %.3f s, local vel: %s age %.3f s",
 		 yes_no(_local_position.valid), age_s(_local_position.timestamp),
 		 yes_no(_local_velocity.valid), age_s(_local_velocity.timestamp));
-	PX4_INFO("    uav gps pos: %s age %.3f s, uav gps vel: %s age %.3f s, mission pos: %s",
+	PX4_INFO("    uav gps pos: %s age %.3f s, uav gps vel: %s age %.3f s, pad reference pos: %s",
 		 yes_no(_uav_gps_position.valid), age_s(_uav_gps_position.timestamp),
 		 yes_no(_uav_gps_vel.valid), age_s(_uav_gps_vel.timestamp),
 		 yes_no(_mission_land_position.valid));

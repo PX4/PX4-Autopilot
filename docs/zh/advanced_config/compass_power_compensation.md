@@ -34,8 +34,7 @@ The process is demonstrated for a multicopter, but is equally valid for other ve
 
 4. Set the parameter [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) checkbox for _Sensor comparison_ (bit 6) to get more data points.
 
-5. 固定好无人机使其无法移动，然后装好螺旋桨（这样电机可以获得与实际飞行中同样大的电流）。
-   本例中用带子固定了无人机。
+5. 固定好无人机使其无法移动，然后装好螺旋桨（这样电机可以获得与实际飞行中同样大的电流）。本例中用带子固定了无人机。
 
    ![strap](../../assets/advanced_config/strap.png)
 
@@ -67,9 +66,7 @@ The process is demonstrated for a multicopter, but is equally valid for other ve
 
 :::
 
-8. 这个脚本将返回基于推力和基于电流的补偿参数，并打印输出到控制台。
-   脚本弹出的数值显示了每个罗盘匹配的程度，以及使用了建议的补偿值后数据将是什么样的。
-   如果有电流测数，那么依据电流补偿通常可以获得更好的结果。这里是一个日志的例子，电流匹配得很好，然而因为不是线性关系推力参数则完全不可用。
+8. 这个脚本将返回基于推力和基于电流的补偿参数，并打印输出到控制台。脚本弹出的数值显示了每个罗盘匹配的程度，以及使用了建议的补偿值后数据将是什么样的。如果有电流测数，那么依据电流补偿通常可以获得更好的结果。这里是一个日志的例子，电流匹配得很好，然而因为不是线性关系推力参数则完全不可用。
 
    ![line fit](../../assets/advanced_config/line_fit.png)
 

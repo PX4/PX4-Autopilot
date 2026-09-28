@@ -142,6 +142,9 @@ Navigator::Navigator() :
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_land(this),
 	_precland(this),
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_prec_takeoff(this),
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_rtl(this),
 	_course(this)
 #if CONFIG_NAVIGATOR_ADSB
@@ -238,7 +241,7 @@ void Navigator::run()
 	reset_position_setpoint(_reposition_triplet.next);
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[3] {};
+	px4_pollfd_struct_t fds[4] {};
 
 	/* Setup of loop */
 	fds[0].fd = _local_pos_sub;
@@ -247,15 +250,22 @@ void Navigator::run()
 	fds[1].events = POLLIN;
 	fds[2].fd = _mission_sub;
 	fds[2].events = POLLIN;
+	fds[3].fd = ORB_SUB_INVALID;
+	fds[3].events = POLLIN;
 
 	uint32_t geofence_id{0};
 	mission_s mission{};
 	bool mission_received{false};
+	hrt_abstime last_navigator_update{0};
 
-	/* rate-limit position subscription to 20 Hz / 50 ms */
-	orb_set_interval(_local_pos_sub, 50);
+	// Keep normal Navigator work at the existing 20 Hz local-position cadence.
+	static constexpr hrt_abstime kNavigatorUpdatePeriod{50_ms};
+	orb_set_interval(_local_pos_sub, static_cast<unsigned>(kNavigatorUpdatePeriod / 1_ms));
 
 	while (!should_exit()) {
+
+		// Poll Dataman only while the full-mission cache has a pending read.
+		fds[3].fd = _mission_route_cache.fullMissionResponseSubscription();
 
 		/* wait for up to 1000ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
@@ -272,8 +282,17 @@ void Navigator::run()
 
 		perf_begin(_loop_perf);
 
-		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
+		const bool navigator_input_updated = (fds[0].revents & POLLIN)
+						     || (fds[1].revents & POLLIN)
+						     || (fds[2].revents & POLLIN);
+		const bool minimum_update_due = hrt_elapsed_time(&last_navigator_update) >= kNavigatorUpdatePeriod;
+		const bool run_navigator_update = navigator_input_updated || minimum_update_due;
+
+		if (run_navigator_update) {
+			last_navigator_update = hrt_absolute_time();
+			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
+		}
 
 		if (fds[2].revents & POLLIN) {
 			if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == PX4_OK) {
@@ -289,6 +308,12 @@ void Navigator::run()
 
 		if (mission_received) {
 			_mission_route_cache.update(mission);
+		}
+
+		// Cache-only wakeups advance the load without running Navigator at Dataman rate.
+		if (!run_navigator_update) {
+			perf_end(_loop_perf);
+			continue;
 		}
 
 		/* gps updated */
@@ -771,12 +796,13 @@ void Navigator::run()
 				// The yaw setpoint generation is handled by FlightTaskAuto.
 				rep->current.yaw = NAN;
 
-				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
+				    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON)) {
 					rep->current.lat = cmd.param5;
 					rep->current.lon = cmd.param6;
 
 				} else {
-					// If one of them is non-finite set the current global position as target
+					// Use the current position for missing or zero-initialized coordinates
 					rep->current.lat = get_global_position()->lat;
 					rep->current.lon = get_global_position()->lon;
 
@@ -827,6 +853,28 @@ void Navigator::run()
 				} else {
 					PX4_WARN("planned mission landing not available");
 					result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_CANCELLED;
+				}
+
+				publish_vehicle_command_ack(cmd, result);
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_MISSION_CURRENT) {
+				uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+
+				// param2 is a MAV_BOOL: only 0 or 1 are valid values.
+				const bool param2_valid = PX4_ISFINITE(cmd.param2)
+							  && ((fabsf(cmd.param2) < FLT_EPSILON) || (fabsf(cmd.param2 - 1.f) < FLT_EPSILON));
+
+				// -1 is a valid param1: keep the current mission item unchanged (e.g. to only reset jump counters).
+				if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && param2_valid) {
+					const bool reset_jump_counters = cmd.param2 > 0.5f;
+
+					if (_mission.set_current_mission_index(static_cast<int32_t>(cmd.param1), reset_jump_counters)) {
+						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+					} else {
+						// Sequence number out of range, or no mission / no current mission item.
+						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+					}
 				}
 
 				publish_vehicle_command_ack(cmd, result);
@@ -997,6 +1045,7 @@ void Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
+		case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
 		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
@@ -1049,6 +1098,11 @@ void Navigator::run()
 			publish_position_setpoint_triplet();
 		}
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+		// Publish the triplet before the status that allows FlightTask to use it.
+		_prec_takeoff.publish_status();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 		if (_mission_result_updated) {
 			publish_mission_result();
 		}
@@ -1085,10 +1139,11 @@ void Navigator::run()
 			case PlannerStatus::OutOfRange:
 			case PlannerStatus::Degenerate:
 			case PlannerStatus::DijkstraFailed:
-				mavlink_log_warning(&_mavlink_log_pub, "Geofence data invalid (code %d), RTL will fly directly\t",
+				mavlink_log_warning(&_mavlink_log_pub, "Geofence data invalid (code %d), Return will fly directly\t",
 						    (int) planner_status);
 				events::send<uint8_t>(events::ID("rtl_avoidance_build_failed"), {events::Log::Warning, events::LogInternal::Info},
-						      "Geofence data invalid (code {1}), RTL will fly directly", (uint8_t)planner_status);
+						      "Geofence data invalid (code {1}), Return will fly directly",
+						      (uint8_t)planner_status);
 				break;
 
 			default:
@@ -1102,21 +1157,21 @@ void Navigator::run()
 			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
 
 			if (planner_status == PlannerStatus::DestinationInvalid) {
-				mavlink_log_warning(&_mavlink_log_pub, "RTL destination invalid, not updating\t");
+				mavlink_log_warning(&_mavlink_log_pub, "Return destination invalid, not updating\t");
 				events::send(
 					events::ID("rtl_destination_invalid"),
 					events::LogLevels(events::Log::Warning, events::LogInternal::Info),
-					"RTL destination invalid, not updating"
+					"Return destination invalid, not updating"
 				);
 				_geofence_avoidance_planner.resetStatus();
 			}
 
 			if (planner_status == PlannerStatus::DestinationBreachesGeofence) {
-				mavlink_log_warning(&_mavlink_log_pub, "RTL destination breaches geofence, will fly directly\t");
+				mavlink_log_warning(&_mavlink_log_pub, "Return destination breaches geofence, will fly directly\t");
 				events::send(
 					events::ID("rtl_destination_breaches"),
 					events::LogLevels(events::Log::Warning, events::LogInternal::Info),
-					"RTL destination breaches geofence, will fly directly"
+					"Return destination breaches geofence, will fly directly"
 				);
 				_geofence_avoidance_planner.resetStatus();
 			}
@@ -1431,6 +1486,25 @@ void Navigator::check_traffic()
 }
 #endif // CONFIG_NAVIGATOR_ADSB
 
+bool Navigator::fw_climbout_completed(float fallback_altitude_amsl)
+{
+	if (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+		// no takeoff is being flown, for example because the mode was entered while already in air,
+		// so the mode manager does not report anything and the altitude decides as it did before
+		return _global_pos.alt >= fallback_altitude_amsl;
+	}
+
+	fixed_wing_takeoff_status_s fixed_wing_takeoff_status;
+
+	if (_fw_takeoff_status_sub.copy(&fixed_wing_takeoff_status)) {
+		// the report has to be newer than the setpoint, as it could otherwise still refer to a previous takeoff
+		return fixed_wing_takeoff_status.climbout_completed
+		       && fixed_wing_takeoff_status.timestamp > _pos_sp_triplet.timestamp;
+	}
+
+	return false;
+}
+
 bool Navigator::abort_landing()
 {
 	// only abort if currently landing and position controller status updated
@@ -1666,7 +1740,7 @@ void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)
 
 void Navigator::publish_distance_sensor_mode_request()
 {
-	// Send request to enable distance sensor when in the landing phase of a mission or RTL
+	// Send request to enable distance sensor when in the landing phase of a mission or Return
 	if (((_navigation_mode == &_rtl) && _rtl.isLanding()) || ((_navigation_mode == &_mission) && _mission.isLanding())) {
 
 		if (_distance_sensor_mode_change_request_pub.get().request_on_off !=
@@ -1861,7 +1935,7 @@ int Navigator::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
-takeoff and RTL.
+takeoff and Return.
 It is also responsible for geofence violation checking.
 
 ### Implementation

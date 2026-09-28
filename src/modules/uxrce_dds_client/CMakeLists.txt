@@ -61,9 +61,18 @@ else()
 		set(cxx_flags_with_includes "${cxx_flags_with_includes} -I${dir}")
 	endforeach()
 
+	# GCC 14 promotes implicit function declarations to hard errors; the
+	# client's POSIX UDP transport (compiled but never linked on NuttX)
+	# trips this via getaddrinfo/freeaddrinfo
+	set(c_flags_with_includes "${c_flags_with_includes} -Wno-error=implicit-function-declaration")
+
 	set(lib_dir ${CMAKE_INSTALL_LIBDIR})
 	if("${lib_dir}" STREQUAL "")
 		set(lib_dir "lib")
+	endif()
+
+	if(PX4_PLATFORM STREQUAL "nuttx")
+		set(c_flags_with_includes "${c_flags_with_includes} -Wno-cast-align -D__PX4_NUTTX")
 	endif()
 
 	include(ExternalProject)
@@ -137,10 +146,6 @@ else()
 		STACK_MAIN 9000
 		INCLUDES
 			${CMAKE_CURRENT_SOURCE_DIR}
-		COMPILE_FLAGS
-			#-O0
-			# -DDEBUG_BUILD
-			${MAX_CUSTOM_OPT_LEVEL}
 		SRCS
 			uxrce_dds_client.cpp
 			uxrce_dds_client.h

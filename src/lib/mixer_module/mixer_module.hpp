@@ -88,6 +88,12 @@ public:
 
 	/** called whenever the mixer gets updated/reset */
 	virtual void mixerChanged() {}
+
+	/**
+	 * Called when the reversible output mask changes, before the new mask is used to compute outputs.
+	 * Drivers whose output range depends on reversibility must update it here, not from their Run().
+	 */
+	virtual void reversibleMaskChanged(uint32_t reversible_mask) {}
 };
 
 /**
@@ -202,7 +208,8 @@ public:
 
 	/**
 	 * Get the bitmask of reversible outputs (motors only).
-	 * This might change at any time (while disarmed), so output drivers requiring this should query this regularly.
+	 * This might change at any time, including while armed (motor failure recovery reverses a motor in
+	 * flight). Drivers that must react to a change should override reversibleMaskChanged().
 	 */
 	uint32_t reversibleOutputs() const { return _reversible_mask; }
 

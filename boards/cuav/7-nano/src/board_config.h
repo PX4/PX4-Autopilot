@@ -231,31 +231,6 @@
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
 #define RC_SERIAL_SINGLEWIRE
 
-/* Input Capture Channels. */
-#define INPUT_CAP1_TIMER	8
-#define INPUT_CAP1_CHANNEL	2 /* T8C2 */
-#define GPIO_INPUT_CAP1		GPIO_TIM8_CH2IN_2 /* PI6 */
-
-#define INPUT_CAP2_TIMER	8
-#define INPUT_CAP2_CHANNEL	3 /* T8C3 */
-#define GPIO_INPUT_CAP2		GPIO_TIM8_CH3IN_2 /* PI7 */
-
-#define INPUT_CAP3_TIMER	8
-#define INPUT_CAP3_CHANNEL	1 /* T8C1 */
-#define GPIO_INPUT_CAP3		GPIO_TIM8_CH1IN_2 /* PI5 */
-
-#define INPUT_CAP4_TIMER	15
-#define INPUT_CAP4_CHANNEL	2 /* T4C1 */
-#define GPIO_INPUT_CAP4		GPIO_TIM4_CH1IN_2 /* PD12 */
-
-#define INPUT_CAP5_TIMER	12
-#define INPUT_CAP5_CHANNEL	1 /* T12C1 */
-#define GPIO_INPUT_CAP5		GPIO_TIM12_CH1IN_2 /* PH6 */
-
-#define INPUT_CAP6_TIMER	12
-#define INPUT_CAP6_CHANNEL	2 /* T12C2 */
-#define GPIO_INPUT_CAP6		GPIO_TIM12_CH2IN_2 /* PH9 */
-
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
 #define PWMIN_TIMER_CHANNEL    /* T4C2 */ 2
@@ -356,9 +331,6 @@
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
-
-#define PX4_I2C_BUS_MTD     1
-
 
 #define BOARD_NUM_IO_TIMERS 6
 

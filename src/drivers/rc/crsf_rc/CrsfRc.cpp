@@ -369,8 +369,12 @@ void CrsfRc::Run()
 						flight_mode = "Altitude Cruise";
 						break;
 
+					case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
+						flight_mode = "Manual Parking";
+						break;
+
 					case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-						flight_mode = "Position";
+						flight_mode = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) ? "Cruise" : "Position";
 						break;
 
 					case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:

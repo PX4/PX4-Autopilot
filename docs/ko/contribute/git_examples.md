@@ -8,7 +8,7 @@ PX4 기능 추가 절차는 다음과 같습니다. 다음 예제를 따라 PX4�
 
 - [Sign up](https://github.com/signup) for github if you haven't already
 
-- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo))
+- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/pull-requests/how-tos/work-with-forks/fork-a-repo))
 
 - 포크된 저장소를 로컬 컴퓨터에 복제합니다.
 
@@ -292,7 +292,7 @@ If a conflict occurs during a `git rebase`, please refer to [this guide](https:/
 
 ### 풀 병합 충돌
 
-If a conflict occurs during a `git pull`, please refer to [this guide](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line#competing-line-change-merge-conflicts).
+If a conflict occurs during a `git pull`, please refer to [this guide](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/resolving-a-merge-conflict-using-the-command-line#competing-line-change-merge-conflicts).
 
 ### 오래된 git 태그로 인한 빌드 오류
 

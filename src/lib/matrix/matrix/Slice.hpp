@@ -321,18 +321,24 @@ public:
 		return res;
 	}
 
-	Type norm_squared() const
+	template<size_t MM, size_t NN>
+	Type dot(const SliceT<MatrixT, Type, P, Q, MM, NN> &other) const
 	{
 		const SliceT<MatrixT, Type, P, Q, M, N> &self = *this;
 		Type accum(0);
 
 		for (size_t i = 0; i < P; i++) {
 			for (size_t j = 0; j < Q; j++) {
-				accum += self(i, j) * self(i, j);
+				accum += self(i, j) * other(i, j);
 			}
 		}
 
 		return accum;
+	}
+
+	Type norm_squared() const
+	{
+		return dot(*this);
 	}
 
 	Type norm() const

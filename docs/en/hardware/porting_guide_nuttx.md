@@ -18,14 +18,19 @@ The following example uses FMUv5 as it is a recent [reference configuration](../
 
 ## NuttX Menuconfig Setup
 
-To modify the NuttX OS configuration, you can use [menuconfig](https://bitbucket.org/patacongo/nuttx/src/master/) using the PX4 shortcuts:
+To modify the NuttX OS configuration, you can use [menuconfig](https://nuttx.apache.org/docs/latest/quickstart/configuring.html) using the PX4 shortcuts:
 
 ```sh
 make px4_fmu-v5_default menuconfig
 make px4_fmu-v5_default qconfig
 ```
 
-For fresh installs of PX4 onto Ubuntu using [ubuntu.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ubuntu.sh) <!-- NEED px4_version --> you will also need to install _kconfig_ tools from [NuttX tools](https://bitbucket.org/nuttx/tools/src/master/).
+The _kconfig_ tools used by these targets (`kconfig-mconf` and `kconfig-qconf`) are installed by the standard [Ubuntu](../dev_setup/dev_env_linux_ubuntu.md) and [macOS](../dev_setup/dev_env_mac.md) development environment setup, and are included in the [px4-dev-nuttx](https://hub.docker.com/r/px4io/px4-dev-nuttx/) docker container.
+
+<!-- Removed as bitbucket source of tools removed. Have replaced with https://github.com/patacongo/tools.git below but probably not needed. -->
+
+<!--
+For fresh installs of PX4 onto Ubuntu using [ubuntu.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ubuntu.sh) you will also need to install _kconfig_ tools from [NuttX tools](https://github.com/patacongo/tools).
 
 ::: info
 The following steps are not required if using the [px4-dev-nuttx](https://hub.docker.com/r/px4io/px4-dev-nuttx/) docker container or have installed to macOS using our normal instructions (as these include`kconfig-mconf`).
@@ -34,7 +39,7 @@ The following steps are not required if using the [px4-dev-nuttx](https://hub.do
 Run the following commands from any directory:
 
 ```sh
-git clone https://bitbucket.org/nuttx/tools.git
+git clone https://github.com/patacongo/tools.git
 cd tools/kconfig-frontends
 sudo apt install gperf
 ./configure --enable-mconf --disable-nconf --disable-gconf --enable-qconf --prefix=/usr
@@ -44,6 +49,7 @@ sudo make install
 
 The `--prefix=/usr` determines the specific installation location (which must be in the `PATH` environment variable).
 The `--enable-mconf` and `--enable-qconf` options will enable the `menuconfig` and `qconfig` options respectively.
+-->
 
 To run `qconfig` you may need to install additional Qt dependencies.
 

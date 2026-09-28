@@ -109,6 +109,7 @@ void SensorGpsSim::Run()
 	}
 
 	updateFailureConfig();
+	const bool rtk = updateRtcmCorrections();
 
 	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()) {
 
@@ -153,12 +154,12 @@ void SensorGpsSim::Run()
 		sensor_gps_s sensor_gps{};
 
 		if (_sim_gps_used.get() >= 4) {
-			// fix
-			sensor_gps.fix_type = 3; // 3D fix
+			// fix: RTK fixed while corrections are flowing, 3D otherwise
+			sensor_gps.fix_type = rtk ? sensor_gps_s::FIX_TYPE_RTK_FIXED : sensor_gps_s::FIX_TYPE_3D;
 			sensor_gps.s_variance_m_s = 0.4f;
 			sensor_gps.c_variance_rad = 0.1f;
-			sensor_gps.eph = 0.9f;
-			sensor_gps.epv = 1.78f;
+			sensor_gps.eph = rtk ? 0.02f : 0.9f;
+			sensor_gps.epv = rtk ? 0.04f : 1.78f;
 			sensor_gps.hdop = 0.7f;
 			sensor_gps.vdop = 1.1f;
 
@@ -198,7 +199,7 @@ void SensorGpsSim::Run()
 		sensor_gps.vel_ned_valid = true;
 		sensor_gps.satellites_used = _sim_gps_used.get();
 
-		publishWithFailures(0, sensor_gps, _last_gps0, _sensor_gps_pub);
+		publishWithFailures(0, sensor_gps, _sensor_gps_pub);
 
 		const float gps1_offx = _param_gps1_offx.get();
 		const float gps1_offy = _param_gps1_offy.get();
@@ -212,38 +213,40 @@ void SensorGpsSim::Run()
 			gps1.latitude_deg  = latitude  + (double)gps1_offx / CONSTANTS_RADIUS_OF_EARTH * (180.0 / M_PI);
 			gps1.longitude_deg = longitude + (double)gps1_offy / CONSTANTS_RADIUS_OF_EARTH * (180.0 / M_PI) / cos(latitude * M_PI / 180.0);
 
-			publishWithFailures(1, gps1, _last_gps1, _sensor_gps_pub2);
+			publishWithFailures(1, gps1, _sensor_gps_pub2);
 		}
 	}
 
 	perf_end(_loop_perf);
 }
 
-void SensorGpsSim::publishWithFailures(int instance, sensor_gps_s gps, sensor_gps_s &snapshot,
-				       uORB::PublicationMulti<sensor_gps_s> &pub)
+void SensorGpsSim::publishWithFailures(int instance, sensor_gps_s gps, uORB::PublicationMulti<sensor_gps_s> &pub)
 {
-	// Precedence when multiple failure masks are set: BLOCKED > STUCK > WRONG.
-	if (!isBlocked(instance)) {
-		if (isStuck(instance)) {
-			snapshot.timestamp = hrt_absolute_time();
-			pub.publish(snapshot);
+	gps.timestamp = hrt_absolute_time();
 
-		} else {
-			if (isWrong(instance)) {
-				gps.latitude_deg  += 1.0;
-				gps.longitude_deg += 1.0;
-			}
-
-			gps.timestamp = hrt_absolute_time();
-			snapshot = gps;
-			pub.publish(gps);
-		}
+	if (!failure_injection::process_gnss(_failure_config, instance, gps, _stuck[instance])) {
+		return;
 	}
+
+	pub.publish(gps);
 }
 
 void SensorGpsSim::updateFailureConfig()
 {
 	_failure_config.update();
+}
+
+bool SensorGpsSim::updateRtcmCorrections()
+{
+	rtcm_data_s msg;
+
+	for (int instance = 0; instance < _rtcm_corrections_sub.size(); instance++) {
+		while (_rtcm_corrections_sub[instance].update(&msg)) {
+			_last_rtcm_time = math::max(_last_rtcm_time, msg.timestamp);
+		}
+	}
+
+	return (_last_rtcm_time != 0) && (hrt_elapsed_time(&_last_rtcm_time) < RTCM_TIMEOUT);
 }
 
 int SensorGpsSim::task_spawn(int argc, char *argv[])

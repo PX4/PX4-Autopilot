@@ -40,7 +40,7 @@ BMM350::BMM350(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
 	ModuleParams(nullptr),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_mag(get_device_id(), config.rotation, config.external)
 
 {
 }
@@ -568,6 +568,7 @@ int BMM350::Configure()
 
 	// microTesla -> Gauss
 	_px4_mag.set_scale(0.01f);
+	_px4_mag.set_range(microTesla2Gauss(2000.f));
 
 	return ret;
 }

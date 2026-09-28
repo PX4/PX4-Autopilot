@@ -170,6 +170,27 @@ You can also list all configuration targets using the command:
 make list_config_targets
 ```
 
+## Submodules
+
+PX4 pulls a number of libraries (NuttX, MAVLink, and others) in as git submodules.
+Each build checks them once when it configures:
+
+| Submodule state                         | Local build               | CI (`CI=true`)       |
+| --------------------------------------- | ------------------------- | -------------------- |
+| At the commit PX4 records               | Builds                    | Builds               |
+| Missing                                 | Fetched, then builds      | Fetched, then builds |
+| At another commit (e.g. you changed it) | Warns, builds it as it is | Fails                |
+
+A submodule at another commit is never reset, so you can develop and test changes to a submodule (for example a NuttX upgrade) in place.
+The build warns about it every time, and you are responsible for keeping it in the state you want.
+To check out the commits PX4 records (for example after switching branches), run:
+
+```sh
+git submodule sync --recursive && git submodule update --init --recursive
+```
+
+Set `GIT_SUBMODULES_ARE_EVIL=1` to skip the check entirely and manage submodules yourself.
+
 ## Compiling in a Graphical IDE
 
 [VSCode](../dev_setup/vscode.md) is the officially supported (and recommended) IDE for PX4 development.
@@ -209,15 +230,22 @@ The build toolchain will then report `Too many open files` for many files, as sh
 arm-none-eabi-ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
 ```
 
-The solution is to increase the maximum allowed number of open files (e.g. to 300).
+The solution is to increase the maximum allowed number of open files (to 2048, matching the [macOS setup instructions](../dev_setup/dev_env_mac.md#prerequisites)).
 You can do this in the macOS _Terminal_ for each session:
 
-- Run this script [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh), or
-- Enter this command:
+- Source this script [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh) (it must be sourced, not executed, to affect your current shell):
 
   ```sh
-  ulimit -S -n 300
+  source Tools/mac_set_ulimit.sh
   ```
+
+- Or enter the command directly:
+
+  ```sh
+  ulimit -S -n 2048
+  ```
+
+To apply it to every new terminal, add the `ulimit` line to `~/.zshrc` as described in the macOS setup.
 
 ### macOS Catalina: Problem running cmake
 
@@ -277,10 +305,10 @@ make list_config_targets
 
 **VIEWER_MODEL_DEBUGGER_WORLD:**
 
-- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `jmavsim`, `none` <!-- , ?airsim -->
+- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `none` <!-- , ?airsim -->
 
   :::tip
-  `none` can be used if you want to launch PX4 and wait for a simulator (jmavsim, Gazebo, Gazebo Classic, or some other simulator).
+  `none` can be used if you want to launch PX4 and wait for a simulator (Gazebo, Gazebo Classic, or some other simulator).
   For example, `make px4_sitl none_iris` launches PX4 without a simulator (but with the iris airframe).
   :::
 
@@ -293,15 +321,6 @@ make list_config_targets
   Default is [empty.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/empty.world).
   For more information see [Gazebo Classic > Loading a Specific World](../sim_gazebo_classic/index.md#loading-a-specific-world).
 
-:::tip
-You can get a list of _all_ available `VIEWER_MODEL_DEBUGGER_WORLD` options using the command below:
-
-```sh
-make px4_sitl list_vmd_make_targets
-```
-
-:::
-
 ::: info
 
 - Most of the values in the `CONFIGURATION_TARGET` and `VIEWER_MODEL_DEBUGGER` have defaults, and are hence optional.
@@ -309,7 +328,7 @@ make px4_sitl list_vmd_make_targets
 - You can use three underscores if you want to specify a default value between two other settings.
   For example, `gazebo-classic___gdb` is equivalent to `gazebo-classic_iris_gdb`.
 - You can use a `none` value for `VIEWER_MODEL_DEBUGGER` to start PX4 and wait for a simulator.
-  For example start PX4 using `make px4_sitl_default none` and jMAVSim using `./Tools/simulation/jmavsim/jmavsim_run.sh -l`.
+  For example start PX4 using `make px4_sitl_default none` and then start your simulator.
 
 :::
 

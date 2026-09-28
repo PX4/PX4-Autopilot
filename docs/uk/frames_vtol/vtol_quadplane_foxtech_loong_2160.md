@@ -324,7 +324,7 @@ Next we load a [parameter file](https://github.com/PX4/PX4-Autopilot/raw/main/do
 [Відкалібруйте ваш RC Controller](../config/radio.md) та налаштуйте [перемикач режиму польоту](../config/flight_mode.md).
 
 Ми рекомендуємо вам призначити RC перемикачі для набору режимів, визначених у [Flight Mode Configuration > What Flight Modes and Switches Should I Set?](../config/flight_mode.md#what-flight-modes-and-switches-should-i-set).
-Зокрема, ви повинні призначити _VTOL Transition Switch_, _Kill Switch_ та перемикач для вибору [Режиму стабілізації](../flight_modes_fw/stabilized.md) та [Режиму позиціювання](../flight_modes_fw/position.md).
+In particular you should assign a _VTOL Transition Switch_, _Kill Switch_, and a switch to select [Stabilized mode](../flight_modes_fw/stabilized.md) and [Cruise mode](../flight_modes_fw/cruise.md).
 
 ### Налаштування приводу та калібрування ESC
 
@@ -397,5 +397,5 @@ Next we load a [parameter file](https://github.com/PX4/PX4-Autopilot/raw/main/do
 - Якщо використовується [kill-switch](../config/safety.md#kill-switch), переконайтеся, що він працює належним чином і не буде активований випадково в повітрі!
 - Включіть [режим стабілізації](../flight_modes_fw/stabilized.md) та перевірте, чи відповідають двигуни на команди, наприклад, перевалюємося вліво, збільшувати оберти на правому двигуні
 - Злетайте у режимі [стабілізованого положення](../flight_modes_fw/stabilized.md) і виконайте деякі базові маневри
-- Якщо все пройшло без проблем, злітайте у [Position mode](../flight_modes_fw/position.md) та зробіть перехід приблизно на висоті 50м.
+- If everything went without any issue, takeoff in [Cruise mode](../flight_modes_fw/cruise.md) and do a transition at around 50m.
   Якщо щось пішло не так, якнайшвидше перейдіть в режим мультикоптера (використовуючи перемикач переходу).

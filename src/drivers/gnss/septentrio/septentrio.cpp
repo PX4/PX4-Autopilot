@@ -56,6 +56,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <lib/systemlib/mavlink_log.h>
+#include <lib/systemlib/system_time_source.h>
 #include <uORB/topics/rtcm_data.h>
 #include <uORB/topics/sensor_gps.h>
 
@@ -328,7 +329,10 @@ void SeptentrioDriver::run()
 				receive_result = receive(k_timeout_5hz);
 
 				if (receive_result == -1 || receiver_configuration_healthy() == false) {
-					SEP_WARN("Receiver unhealthy, reconfiguring the receiver.");
+					if (first_gps_uorb_message_created()) {
+						SEP_WARN("Receiver unhealthy, reconfiguring the receiver.");
+					}
+
 					_state = State::DetectingBaudRate;
 				}
 
@@ -1203,7 +1207,7 @@ int SeptentrioDriver::process_message()
 			ReceiverStatus receiver_status;
 
 			if (_sbf_decoder.parse(&receiver_status) == PX4_OK) {
-				_sensor_gps.rtcm_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::RTCM_MSG_USED_USED : sensor_gps_s::RTCM_MSG_USED_NOT_USED;
+				_sensor_gps.corrections_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::CORRECTIONS_MSG_USED_USED : sensor_gps_s::CORRECTIONS_MSG_USED_NOT_USED;
 				_time_synced = receiver_status.rx_state_wn_set && receiver_status.rx_state_tow_set;
 
 				_sensor_gps.system_error = sensor_gps_s::SYSTEM_ERROR_OK;
@@ -1494,7 +1498,6 @@ bool SeptentrioDriver::send_message_and_wait_for_ack(const char *msg, const int 
 		}
 	} while (timeout_time > hrt_absolute_time());
 
-	SEP_WARN("Response: timeout");
 	return false;
 }
 
@@ -1736,8 +1739,7 @@ void SeptentrioDriver::publish()
 
 	_failure_config.update();
 
-	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
-					_sensor_gps_pub.get_instance(), _sensor_gps, _stuck)) {
+	if (!failure_injection::process_gnss(_failure_config, _sensor_gps_pub.get_instance(), _sensor_gps, _stuck)) {
 		return;
 	}
 
@@ -1891,7 +1893,10 @@ bool SeptentrioDriver::clock_needs_update(timespec real_time)
 
 void SeptentrioDriver::set_clock(timespec rtc_gps_time)
 {
-	if (clock_needs_update(rtc_gps_time)) {
+	int32_t sys_time_src = 0;
+	get_parameter("SYS_TIME_SRC", &sys_time_src);
+
+	if (clock_needs_update(rtc_gps_time) && (sys_time_src & SYS_TIME_SRC_GPS)) {
 		px4_clock_settime(CLOCK_REALTIME, &rtc_gps_time);
 	}
 }

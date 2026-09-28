@@ -62,7 +62,8 @@ void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_va
 
 	const float normalized_innov_sq = (_innov * _innov) / _innov_var;
 	_test_ratio = normalized_innov_sq / (_gate * _gate);
-	_signed_test_ratio_lpf.setParameters(dt, _signed_test_ratio_tau);
+	_signed_test_ratio_lpf.setParameters(static_cast<uint64_t>(dt * 1e6f),
+					     static_cast<uint64_t>(_signed_test_ratio_tau * 1e6f));
 	const float signed_test_ratio = matrix::sign(_innov) * _test_ratio;
 	_signed_test_ratio_lpf.update(signed_test_ratio);
 

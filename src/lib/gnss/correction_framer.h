@@ -34,13 +34,15 @@
 /**
  * @file correction_framer.h
  *
- * Frame parser for GNSS correction streams: RTCM3, plus SPARTN when
- * CONFIG_GPS_SPARTN is enabled.
+ * Frame parser for GNSS correction streams: RTCM3, UBX (AssistNow MGA),
+ * plus SPARTN when CONFIG_GPS_SPARTN is enabled.
  *
- * Corrections arrive as arbitrary byte chunks (uORB gps_inject_data, serial),
- * so frame boundaries have to be recovered from the byte stream. Both protocols
+ * Corrections arrive as arbitrary byte chunks (uORB rtcm_corrections, serial),
+ * so frame boundaries have to be recovered from the byte stream. All protocols
  * share one buffer: whichever preamble appears first is framed, and a valid
- * frame consumes its own payload.
+ * frame consumes its own payload. There is no sticky protocol selection — an
+ * MGA (UBX) burst followed by SPARTN or RTCM3 is framed frame-by-frame in
+ * arrival order.
  *
  * That sharing is what makes the framing safe. A separate framer per protocol
  * fed the same bytes would each scan inside the other's payloads, and SPARTN's
@@ -70,6 +72,7 @@
 #include <cstddef>
 
 #include "rtcm.h"
+#include "ubx.h"
 
 #if defined(CONFIG_GPS_SPARTN)
 # include "spartn.h"
@@ -81,25 +84,29 @@ namespace gnss
 enum class CorrectionProtocol : uint8_t {
 	Rtcm3,
 	Spartn,
+	Ubx,
 };
 
 struct CorrectionFramerStats {
 	uint32_t messages_parsed;   ///< Frames successfully parsed and consumed
-	uint32_t crc_errors;        ///< Frames rejected by their CRC
+	uint32_t crc_errors;        ///< Frames rejected by their CRC / checksum
 	uint32_t bytes_discarded;   ///< Bytes discarded while searching for a frame
 	uint32_t total_frame_bytes; ///< Total bytes in successfully parsed frames
 	uint32_t rtcm3_messages;    ///< Subset of messages_parsed that were RTCM3
 	uint32_t spartn_messages;   ///< Subset of messages_parsed that were SPARTN
+	uint32_t ubx_messages;      ///< Subset of messages_parsed that were UBX
 };
 
 class CorrectionFramer
 {
 public:
-#if defined(CONFIG_GPS_SPARTN)
 	static constexpr size_t MAX_FRAME_LEN =
-		(SPARTN_MAX_FRAME_LEN > RTCM3_MAX_FRAME_LEN) ? SPARTN_MAX_FRAME_LEN : RTCM3_MAX_FRAME_LEN;
+#if defined(CONFIG_GPS_SPARTN)
+		(SPARTN_MAX_FRAME_LEN > RTCM3_MAX_FRAME_LEN)
+		? ((SPARTN_MAX_FRAME_LEN > UBX_MAX_FRAME_LEN) ? SPARTN_MAX_FRAME_LEN : UBX_MAX_FRAME_LEN)
+		: ((RTCM3_MAX_FRAME_LEN > UBX_MAX_FRAME_LEN) ? RTCM3_MAX_FRAME_LEN : UBX_MAX_FRAME_LEN);
 #else
-	static constexpr size_t MAX_FRAME_LEN = RTCM3_MAX_FRAME_LEN;
+		(RTCM3_MAX_FRAME_LEN > UBX_MAX_FRAME_LEN) ? RTCM3_MAX_FRAME_LEN : UBX_MAX_FRAME_LEN;
 #endif
 
 	// Enough for 2 max-size frames to handle overlap
@@ -142,20 +149,21 @@ public:
 	CorrectionFramerStats getStats() const
 	{
 		return {_messages_parsed, _crc_errors, _bytes_discarded, _total_frame_bytes,
-			_rtcm3_messages, _spartn_messages};
+			_rtcm3_messages, _spartn_messages, _ubx_messages};
 	}
 
 private:
 	enum class Probe {
 		NeedMoreData,  ///< Could still become a valid frame, wait for more bytes
 		InvalidHeader, ///< Cannot be a frame start
-		CrcError,      ///< Frame is complete but failed its CRC
+		CrcError,      ///< Frame is complete but failed its CRC / checksum
 		Complete,
 	};
 
 	static bool isPreamble(uint8_t byte);
 
 	Probe probeRtcm3(size_t *frame_len) const;
+	Probe probeUbx(size_t *frame_len) const;
 #if defined(CONFIG_GPS_SPARTN)
 	Probe probeSpartn(size_t *frame_len) const;
 #endif
@@ -176,6 +184,7 @@ private:
 	uint32_t _total_frame_bytes {0};
 	uint32_t _rtcm3_messages {0};
 	uint32_t _spartn_messages {0};
+	uint32_t _ubx_messages {0};
 };
 
 } // namespace gnss

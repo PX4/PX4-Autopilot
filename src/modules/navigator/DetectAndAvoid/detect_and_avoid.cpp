@@ -268,10 +268,18 @@ bool DetectAndAvoid::process_transponder_queue(daa_input_s &daa_input)
 
 	const hrt_abstime traffic_timeout_us = static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s;
 
+	_failure_config.update();
+	const bool traffic_blocked = !failure_injection::process(_failure_config,
+				     failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0);
+
 	for (uint8_t processed_reports = 0; processed_reports < transponder_report_s::ORB_QUEUE_LENGTH; ++processed_reports) {
 
 		if (!_traffic_sub.update(&transponder_report)) {
 			break;
+		}
+
+		if (traffic_blocked) {
+			continue;
 		}
 
 #if defined(DEBUG_BUILD)

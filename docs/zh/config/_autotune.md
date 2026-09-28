@@ -5,12 +5,12 @@ VTOL has its own doc that references the other two
 
 <div v-if="$frontmatter.frame === 'Multicopter'">
 
-# Auto-tuning (Multicopter)
+# 自动调参（多轴）
 
 </div>
 <div v-else-if="$frontmatter.frame === 'Plane'">
 
-# Auto-tuning (Fixed-Wing)
+# 自动调参（固定翼）
 
 </div>
 
@@ -31,7 +31,7 @@ The airframe must fly well enough to handle moderate disturbances, and should be
 
 <lite-youtube videoid="5xswOhhqrIQ" title="QGroundControl Autotune Feature Breakdown for PX4 Autopilot"/>
 
-## Pre-tuning Test
+## 预调参测试
 
 The vehicle must be able to fly and adequately stabilize itself before running auto-tune.
 This test ensures that the vehicle can fly safely in position controlled modes.
@@ -40,7 +40,7 @@ To make sure the vehicle is stable enough for auto-tuning:
 
 1. Perform a normal preflight safety checklist to ensure the flight zone is clear and has enough space.
 
-2. Take off and <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">hover at 1m above ground in [Altitude mode](../flight_modes_mc/altitude.md) or [Stabilized mode](../flight_modes_mc/manual_stabilized.md)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">fly at cruise speed in [Position mode](../flight_modes_fw/position.md) or [Altitude mode](../flight_modes_fw/altitude.md)</div>.
+2. Take off and <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">hover at 1m above ground in [Altitude mode](../flight_modes_mc/altitude.md) or [Stabilized mode](../flight_modes_mc/manual_stabilized.md)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">fly at cruise speed in [Cruise mode](../flight_modes_fw/cruise.md) or [Altitude mode](../flight_modes_fw/altitude.md)</div>.
 
 3. Use the RC transmitter roll stick to perform the following maneuver, tilting the vehicle just a few degrees: _roll left > roll right > center_ (The whole maneuver should take about 3 seconds).
    The vehicle should stabilise itself within 2 oscillations.
@@ -58,7 +58,7 @@ If the drone cannot stabilize itself sufficiently, follow the instructions in th
 These explain the minimal manual tuning to prepare the vehicle for auto-tuning.
 :::
 
-## Auto-tuning Procedure
+## 自动调参流程
 
 The auto-tuning sequence must be performed in a **safe flight zone, with enough space**.
 It takes about 40 seconds ([between 19 and 68 seconds](#how-long-does-autotuning-take)).
@@ -131,7 +131,7 @@ Additional notes:
 </div>
 <div v-else-if="$frontmatter.frame === 'Plane'">
 
-- Autotuning can also be run in [Altitude mode](../flight_modes_fw/altitude.md) or [Position mode](../flight_modes_fw/position.md).
+- Autotuning can also be run in [Altitude mode](../flight_modes_fw/altitude.md) or [Cruise mode](../flight_modes_fw/cruise.md).
   However running the test while flying straight requires a larger safe area for tuning, and does not give a significantly better tuning result.
 
 </div>
@@ -140,7 +140,7 @@ Additional notes:
 
 <div v-if="$frontmatter.frame === 'Multicopter'">
 
-## Autotuning Large Vehicles
+## 大型机体自动调参
 
 For big multicopter vehicles you may need to increase the desired raise time of the step response [MC_AT_RISE_TIME](../advanced_config/parameter_reference.md#MC_AT_RISE_TIME).
 This requires some trial and error as an appropriate rise time depends on both vehicle size and the rotor response.
@@ -179,7 +179,7 @@ Fast oscillations (more than 1 oscillation per second): this is because the gain
 
 </div>
 
-### The auto-tuning sequence fails
+### 自动调参流程执行失败
 
 <div v-if="$frontmatter.frame === 'Multicopter'">
 
@@ -196,7 +196,7 @@ If the signal-to-noise ratio of the vehicle is low, the system identification al
 
 </div>
 
-### The drone oscillates after auto-tuning
+### 无人机在自动调参后出现振荡
 
 Due to effects not included in the mathematical model such as delays, saturation, slew-rate, airframe flexibility, the loop gain can be too high.
 To fix this, follow the same steps described [when the drone oscillates in the pre-tuning test](#drone-oscillates-when-performing-the-pre-tuning-test).
@@ -205,9 +205,9 @@ To fix this, follow the same steps described [when the drone oscillates in the p
 
 Attempt manual tuning using the guides listed in [See also](#see-also) below.
 
-## Optional Configuration
+## 可选配置
 
-### Apply Tuning when In-Air/Landed
+### 在飞行中/着陆后应用调参参数
 
 <div v-if="$frontmatter.frame === 'Multicopter'">
 
@@ -233,7 +233,7 @@ This behaviour can be configured using the [FW_AT_APPLY](../advanced_config/para
 
 <div v-if="$frontmatter.frame === 'Plane'">
 
-### Enable/Disable Autotune Switch
+### 启用/禁用自动调参开关
 
 A remote control switch can be configured to enable/disable autotune (in any mode) using an RC AUX channel (note, this is only supported on fixed-wing vehicles).
 
@@ -247,7 +247,7 @@ The auto tuner will be disabled when the switch is below `0.5` (on the manual co
 
 If using an RC AUX switch to enable autotuning, make sure to [select the tuning axes](#select-tuning-axis) before flight.
 
-### Select Tuning Axis
+### 选择调参轴
 
 Fixed-wing vehicles (only) can select which axes are tuned using the [FW_AT_AXES](../advanced_config/parameter_reference.md#FW_AT_AXES) bitmask parameter:
 
