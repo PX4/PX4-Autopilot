@@ -28597,7 +28597,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## EKF2
 
-<div class="param-group" style="--param-count: 164">
+<div class="param-group" style="--param-count: 163">
 
 <div class="param">
 
@@ -29651,7 +29651,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Integer bitmask controlling GPS checks.
 
-Each threshold value is defined by the parameter indicated next to the check. Drift and offset checks only run when the vehicle is on ground and stationary.
+Each threshold value is defined by the parameter indicated next to the check. Drift and offset checks only run when the vehicle is on ground and stationary. The spoofing and jamming checks also apply to the receiver providing the GNSS heading.
 
 
 **Bitmask:**
@@ -29771,18 +29771,6 @@ Measurement noise for GNSS velocity.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.01 | 5.0 |  | 0.3 | m/s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_GPS_YAW_OFF (`FLOAT`) {#EKF2_GPS_YAW_OFF}
-
-Heading/Yaw offset for dual antenna GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 360.0 |  | 0.0 | deg | &nbsp;
 
 </div>
 
@@ -34054,7 +34042,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## GPS
 
-<div class="param-group" style="--param-count: 24">
+<div class="param-group" style="--param-count: 23">
 
 <div class="param">
 
@@ -34573,33 +34561,6 @@ Enable spectrum analyzer (if available).
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; |  |  |  | Disabled (0) |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### GPS_YAW_OFFSET (`FLOAT`) {#GPS_YAW_OFFSET}
-
-Heading/Yaw offset for dual antenna GPS.
-
-Heading offset angle for dual antenna GPS setups that support heading estimation.
-
-Set this to 0 if the antennas are parallel to the forward-facing direction
-of the vehicle and the rover (or Unicore primary) antenna is in front.
-
-The offset angle increases clockwise.
-
-Set this to 90 if the rover (or Unicore primary, or Septentrio Mosaic Aux)
-antenna is placed on the right side of the vehicle and the moving base
-antenna is on the left side.
-
-(Note: the Unicore primary antenna is the one connected on the right as seen
-from the top).
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 360 |  | 0.0 | deg | &nbsp;
 
 </div>
 
@@ -52274,7 +52235,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 248">
+<div class="param-group" style="--param-count: 256">
 
 <div class="param">
 
@@ -55759,6 +55720,168 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### SENS_GNSS0_AUXX (`FLOAT`) {#SENS_GNSS0_AUXX}
+
+GNSS 0 auxiliary antenna X position.
+
+Forward axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS0_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_AUXY (`FLOAT`) {#SENS_GNSS0_AUXY}
+
+GNSS 0 auxiliary antenna Y position.
+
+Right axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS0_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_AUXZ (`FLOAT`) {#SENS_GNSS0_AUXZ}
+
+GNSS 0 auxiliary antenna Z position.
+
+Down axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS0_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_HDG (`INT32`) {#SENS_GNSS0_HDG}
+
+GNSS 0 heading setup.
+
+How the receiver in slot 0 (matched via SENS_GPS0_ID) measures its dual antenna heading.
+The heading is the bearing of the baseline between two antennas, and is only used when the
+baseline length the receiver reports is within 20% of the configured one.
+Moving base rover: this receiver is the rover of a moving base pair, the moving base is the
+receiver in the other slot. The baseline runs from the moving base's antenna to this
+receiver's antenna (SENS_GPSn_OFFX/Y/Z of both slots).
+Dual antenna: this receiver has two antennas. The baseline runs from its main antenna
+(SENS_GPS0_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS0_AUXX/Y/Z).
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Moving base rover
+- `2`: Dual antenna
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS1_AUXX (`FLOAT`) {#SENS_GNSS1_AUXX}
+
+GNSS 1 auxiliary antenna X position.
+
+Forward axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS1_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS1_AUXY (`FLOAT`) {#SENS_GNSS1_AUXY}
+
+GNSS 1 auxiliary antenna Y position.
+
+Right axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS1_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS1_AUXZ (`FLOAT`) {#SENS_GNSS1_AUXZ}
+
+GNSS 1 auxiliary antenna Z position.
+
+Down axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS1_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS1_HDG (`INT32`) {#SENS_GNSS1_HDG}
+
+GNSS 1 heading setup.
+
+How the receiver in slot 1 (matched via SENS_GPS1_ID) measures its dual antenna heading.
+The heading is the bearing of the baseline between two antennas, and is only used when the
+baseline length the receiver reports is within 20% of the configured one.
+Moving base rover: this receiver is the rover of a moving base pair, the moving base is the
+receiver in the other slot. The baseline runs from the moving base's antenna to this
+receiver's antenna (SENS_GPSn_OFFX/Y/Z of both slots).
+Dual antenna: this receiver has two antennas. The baseline runs from its main antenna
+(SENS_GPS1_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS1_AUXX/Y/Z).
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Moving base rover
+- `2`: Dual antenna
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### SENS_GPS0_DELAY (`INT32`) {#SENS_GPS0_DELAY}
 
 GPS 0 measurement delay.
@@ -57353,7 +57476,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Septentrio
 
-<div class="param-group" style="--param-count: 15">
+<div class="param-group" style="--param-count: 13">
 
 <div class="param">
 
@@ -57555,27 +57678,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SEP_PITCH_OFFS (`FLOAT`) {#SEP_PITCH_OFFS}
-
-Pitch offset for dual antenna GPS.
-
-Vertical offsets can be compensated for by adjusting the Pitch offset.
-
-Note that this can be interpreted as the "roll" angle in case the antennas are aligned along the perpendicular axis.
-This occurs in situations where the two antenna ARPs may not be exactly at the same height in the vehicle reference frame.
-Since pitch is defined as the right-handed rotation about the vehicle Y axis,
-a situation where the main antenna is mounted lower than the aux antenna (assuming the default antenna setup) will result in a positive pitch.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | -90 | 90 |  | 0 | deg | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### SEP_PORT1_CFG (`INT32`) {#SEP_PORT1_CFG}
 
 Serial Configuration for GPS Port.
@@ -57694,30 +57796,6 @@ Set this to another value if the default stream is already used for another purp
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 1 | 10 |  | 1 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SEP_YAW_OFFS (`FLOAT`) {#SEP_YAW_OFFS}
-
-Heading/Yaw offset for dual antenna GPS.
-
-Heading offset angle for dual antenna GPS setups that support heading estimation.
-
-Set this to 0 if the antennas are parallel to the forward-facing direction
-of the vehicle and the rover antenna is in front.
-
-The offset angle increases clockwise.
-
-Set this to 90 if the rover antenna is placed on the
-right side of the vehicle and the moving base antenna is on the left side.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | -360 | 360 |  | 0 | deg | &nbsp;
 
 </div>
 
