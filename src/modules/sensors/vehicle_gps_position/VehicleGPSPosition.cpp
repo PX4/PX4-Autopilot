@@ -135,10 +135,10 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 		const matrix::Vector3f baselines[GPS_MAX_RECEIVERS] {
-			gnss_heading::configuredBaseline(_param_sens_gps0_hdg.get(), _gps_param_slots[0].offset, _gps_param_slots[1].offset,
-			{_param_sens_gps0_blx.get(), _param_sens_gps0_bly.get(), _param_sens_gps0_blz.get()}),
-			gnss_heading::configuredBaseline(_param_sens_gps1_hdg.get(), _gps_param_slots[1].offset, _gps_param_slots[0].offset,
-			{_param_sens_gps1_blx.get(), _param_sens_gps1_bly.get(), _param_sens_gps1_blz.get()}),
+			gnss_heading::configuredBaseline(_param_sens_gnss0_hdg.get(), _gps_param_slots[0].offset, _gps_param_slots[1].offset,
+			{_param_sens_gnss0_auxx.get(), _param_sens_gnss0_auxy.get(), _param_sens_gnss0_auxz.get()}),
+			gnss_heading::configuredBaseline(_param_sens_gnss1_hdg.get(), _gps_param_slots[1].offset, _gps_param_slots[0].offset,
+			{_param_sens_gnss1_auxx.get(), _param_sens_gnss1_auxy.get(), _param_sens_gnss1_auxz.get()}),
 		};
 
 		for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
@@ -349,7 +349,7 @@ bool VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 	const bool configured = slot && (slot->baseline_length >= gnss_heading::kMinAntennaSeparation);
 
 	if (PX4_ISFINITE(sample.heading) && !configured && !_heading_unconfigured_reported) {
-		PX4_WARN("GNSS heading from %" PRIu32 " not used: set SENS_GPSn_HDG", sample.device_id);
+		PX4_WARN("GNSS heading from %" PRIu32 " not used: set SENS_GNSSn_HDG", sample.device_id);
 		_heading_unconfigured_reported = true;
 	}
 

@@ -176,14 +176,14 @@ private:
 		(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy,
 		(ParamFloat<px4::params::SENS_GPS1_OFFZ>) _param_sens_gps1_offz,
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-		(ParamInt<px4::params::SENS_GPS0_HDG>) _param_sens_gps0_hdg,
-		(ParamFloat<px4::params::SENS_GPS0_BLX>) _param_sens_gps0_blx,
-		(ParamFloat<px4::params::SENS_GPS0_BLY>) _param_sens_gps0_bly,
-		(ParamFloat<px4::params::SENS_GPS0_BLZ>) _param_sens_gps0_blz,
-		(ParamInt<px4::params::SENS_GPS1_HDG>) _param_sens_gps1_hdg,
-		(ParamFloat<px4::params::SENS_GPS1_BLX>) _param_sens_gps1_blx,
-		(ParamFloat<px4::params::SENS_GPS1_BLY>) _param_sens_gps1_bly,
-		(ParamFloat<px4::params::SENS_GPS1_BLZ>) _param_sens_gps1_blz,
+		(ParamInt<px4::params::SENS_GNSS0_HDG>) _param_sens_gnss0_hdg,
+		(ParamFloat<px4::params::SENS_GNSS0_AUXX>) _param_sens_gnss0_auxx,
+		(ParamFloat<px4::params::SENS_GNSS0_AUXY>) _param_sens_gnss0_auxy,
+		(ParamFloat<px4::params::SENS_GNSS0_AUXZ>) _param_sens_gnss0_auxz,
+		(ParamInt<px4::params::SENS_GNSS1_HDG>) _param_sens_gnss1_hdg,
+		(ParamFloat<px4::params::SENS_GNSS1_AUXX>) _param_sens_gnss1_auxx,
+		(ParamFloat<px4::params::SENS_GNSS1_AUXY>) _param_sens_gnss1_auxy,
+		(ParamFloat<px4::params::SENS_GNSS1_AUXZ>) _param_sens_gnss1_auxz,
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 		(ParamInt<px4::params::SENS_GPS0_DELAY>) _param_sens_gps0_delay,
 		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay

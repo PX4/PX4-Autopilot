@@ -41,11 +41,11 @@ namespace sensors
 namespace gnss_heading
 {
 
-// SENS_GPSn_HDG
+// SENS_GNSSn_HDG
 enum class BaselineType : int32_t {
 	Disabled = 0,
-	OtherReceiver = 1, // moving base: from the other slot's antenna to this slot's antenna
-	Custom = 2,        // SENS_GPSn_BLX/Y/Z
+	MovingBase = 1,  // moving base rover: from the other slot's antenna to this slot's antenna
+	DualAntenna = 2, // from this slot's antenna to its auxiliary antenna, SENS_GNSSn_AUXX/Y/Z
 };
 
 // ArduPilot's moving baseline length checks (AP_GPS_Backend::calculate_moving_base_yaw)
@@ -57,12 +57,12 @@ static constexpr float kPermittedLengthError = 0.2f;  // fraction of the shorter
  * Zero when the slot has no heading baseline.
  */
 inline matrix::Vector3f configuredBaseline(int32_t type, const matrix::Vector3f &antenna,
-		const matrix::Vector3f &other_antenna, const matrix::Vector3f &custom)
+		const matrix::Vector3f &other_antenna, const matrix::Vector3f &aux_antenna)
 {
 	switch (static_cast<BaselineType>(type)) {
-	case BaselineType::OtherReceiver: return antenna - other_antenna;
+	case BaselineType::MovingBase: return antenna - other_antenna;
 
-	case BaselineType::Custom: return custom;
+	case BaselineType::DualAntenna: return aux_antenna - antenna;
 
 	default: return {};
 	}

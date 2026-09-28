@@ -41,17 +41,25 @@ using matrix::Vector3f;
 TEST(GnssHeadingBaseline, MovingBaseRunsFromTheOtherReceiver)
 {
 	// rover (this slot) 0.17 m right of the centre line, moving base (other slot) 0.17 m left
-	const Vector3f baseline = configuredBaseline(static_cast<int32_t>(BaselineType::OtherReceiver),
+	const Vector3f baseline = configuredBaseline(static_cast<int32_t>(BaselineType::MovingBase),
 				  Vector3f(0.f, 0.17f, 0.f), Vector3f(0.f, -0.17f, 0.f), Vector3f(1.f, 0.f, 0.f));
 
 	// the rover is on the right: a measured heading of 90 deg means the vehicle faces north
 	EXPECT_FLOAT_EQ(atan2f(baseline(1), baseline(0)), M_PI_F / 2.f);
 	EXPECT_FLOAT_EQ(baseline.norm(), 0.34f);
 
-	EXPECT_EQ(configuredBaseline(static_cast<int32_t>(BaselineType::Custom), Vector3f(), Vector3f(),
-				     Vector3f(0.3f, 0.f, 0.f)), Vector3f(0.3f, 0.f, 0.f));
 	EXPECT_EQ(configuredBaseline(static_cast<int32_t>(BaselineType::Disabled), Vector3f(0.f, 0.17f, 0.f),
 				     Vector3f(0.f, -0.17f, 0.f), Vector3f(0.3f, 0.f, 0.f)), Vector3f());
+}
+
+TEST(GnssHeadingBaseline, DualAntennaRunsFromTheMainToTheAuxAntenna)
+{
+	// main antenna 0.1 m behind the centre of gravity, auxiliary antenna 0.2 m in front; the other slot is ignored
+	const Vector3f baseline = configuredBaseline(static_cast<int32_t>(BaselineType::DualAntenna),
+				  Vector3f(-0.1f, 0.f, 0.f), Vector3f(0.f, -0.17f, 0.f), Vector3f(0.2f, 0.f, 0.f));
+
+	EXPECT_FLOAT_EQ(atan2f(baseline(1), baseline(0)), 0.f);
+	EXPECT_FLOAT_EQ(baseline.norm(), 0.3f);
 }
 
 TEST(GnssHeadingBaseline, RejectsFloatSolutions)
