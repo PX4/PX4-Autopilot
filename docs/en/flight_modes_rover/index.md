@@ -12,12 +12,13 @@ Selecting any other mode than those listed below will either stop the rover or c
 
 ## Manual Modes
 
-| Mode                                    | Description                                                                                                                                                                      |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Manual](manual.md#manual-mode)         | No autopilot support. User is responsible for keeping the rover on the desired course and maintaining speed and rate of turn.                                                    |
-| [Acro](manual.md#acro-mode)             | + Maintains the yaw rate (feels more like driving a car than manual mode). <br>+ Allows maximum yaw rate to be limited (protects against roll over).                             |
-| [Stabilized](manual.md#stabilized-mode) | + Maintains the yaw (significantly better at holding a straight line).                                                                                                           |
-| [Position](manual.md#position-mode)     | + Maintains the course (best mode for driving a straight line).<br>+ Maintains speed against disturbances, e.g. when driving up a hill.<br>+ Allows maximum speed to be limited. |
+| Mode                                            | Description                                                                                                                                                                                                                                         |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Manual](manual.md#manual-mode)                 | No autopilot support. User is responsible for keeping the rover on the desired course and maintaining speed and rate of turn.                                                                                                                       |
+| [Acro](manual.md#acro-mode)                     | + Maintains the yaw rate (feels more like driving a car than manual mode). <br>+ Allows maximum yaw rate to be limited (protects against roll over).                                                                                                |
+| [Stabilized](manual.md#stabilized-mode)         | + Maintains the yaw (significantly better at holding a straight line).                                                                                                                                                                              |
+| [Position](manual.md#position-mode)             | + Maintains the course (best mode for driving a straight line).<br>+ Maintains speed against disturbances, e.g. when driving up a hill.<br>+ Allows maximum speed to be limited.                                                                    |
+| [Manual Parking](manual.md#manual-parking-mode) | Reduced throttle for precise maneuvering in tight spaces. Differential and mecanum rovers are driven tank-style, using one stick per side. Ackermann vehicles are controlled in the same way as they are in manual mode, but with reduced throttle. |
 
 ## Auto Modes
 

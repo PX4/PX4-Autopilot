@@ -14,7 +14,7 @@ pageClass: is-wide-page
 | <a id="fld_timestamp_sample"></a>timestamp_sample                                                           | `uint64` |                                                                  |            | the timestamp of the raw data (microseconds)                                            |
 | <a id="fld_mode_slot"></a>mode_slot                                                                         | `uint8`  |                                                                  |            | the slot a specific model selector is in                                                                   |
 | <a id="fld_arm_switch"></a>arm_switch                                                                       | `uint8`  |                                                                  |            | arm/disarm switch: _DISARMED_, ARMED                                                       |
-| <a id="fld_return_switch"></a>return_switch                                                                 | `uint8`  |                                                                  |            | return to launch 2 position switch (mandatory): _NORMAL_, RTL           |
+| <a id="fld_return_switch"></a>return_switch                                                                 | `uint8`  |                                                                  |            | Return mode 2 position switch (mandatory): _NORMAL_, RETURN             |
 | <a id="fld_loiter_switch"></a>loiter_switch                                                                 | `uint8`  |                                                                  |            | loiter 2 position switch (optional): _MISSION_, LOITER                  |
 | <a id="fld_offboard_switch"></a>offboard_switch                                                             | `uint8`  |                                                                  |            | offboard 2 position switch (optional): _NORMAL_, OFFBOARD               |
 | <a id="fld_kill_switch"></a>kill_switch                                                                     | `uint8`  |                                                                  |            | throttle kill: _NORMAL_, KILL                                                              |
@@ -73,7 +73,7 @@ uint8 MODE_SLOT_NUM     = 6      # number of slots
 uint8 mode_slot                  # the slot a specific model selector is in
 
 uint8 arm_switch                 # arm/disarm switch: _DISARMED_, ARMED
-uint8 return_switch              # return to launch 2 position switch (mandatory): _NORMAL_, RTL
+uint8 return_switch              # Return mode 2 position switch (mandatory): _NORMAL_, RETURN
 uint8 loiter_switch              # loiter 2 position switch (optional): _MISSION_, LOITER
 uint8 offboard_switch            # offboard 2 position switch (optional): _NORMAL_, OFFBOARD
 uint8 kill_switch                # throttle kill: _NORMAL_, KILL

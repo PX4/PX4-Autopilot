@@ -171,7 +171,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [HeaterStatus](HeaterStatus.md)
 - [HoverThrustEstimate](HoverThrustEstimate.md)
 - [InputRc](InputRc.md)
-- [InternalCombustionEngineControl](InternalCombustionEngineControl.md)
+- [InternalCombustionEngineControl](InternalCombustionEngineControl.md) — Internal combustion engine (ICE) actuator setpoints.
 - [InternalCombustionEngineStatus](InternalCombustionEngineStatus.md)
 - [IridiumsbdStatus](IridiumsbdStatus.md)
 - [IrlockReport](IrlockReport.md) — IRLOCK_REPORT message data.

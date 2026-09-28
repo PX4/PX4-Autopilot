@@ -23,8 +23,7 @@ On _telemetry-enabled_ RC systems, the remote control unit can also receive and 
 ![Taranis X9D Transmitter](../../assets/hardware/transmitters/frsky_taranis_x9d_transmitter.jpg)
 
 The ground based RC controller contains a radio module that is bound to, and communicates with, a (compatible) radio module on the vehicle.
-飞机上的单元连接到飞控上。
-自驾仪根据当前飞机的飞行模式和飞机状态来发送命令，正确驱动电机和伺服器。
+飞机上的单元连接到飞控上。自驾仪根据当前飞机的飞行模式和飞机状态来发送命令，正确驱动电机和伺服器。
 
 <!-- image showing the different parts here would be nice -->
 
@@ -33,11 +32,9 @@ The ground- and vehicle- based radio modules are referred to as the transmitter 
 The RC controller and it's included radio module are commonly referred to as a "transmitter".
 :::
 
-遥控系统的一个重要质量指标是它支持多少个通道。
-通道的数量决定了远程控制单元上多少个物理控制器可以用来发送命令来控制无人机（比如多少开关、转盘、控制摇杆可以用）。
+遥控系统的一个重要质量指标是它支持多少个通道。通道的数量决定了远程控制单元上多少个物理控制器可以用来发送命令来控制无人机（比如多少开关、转盘、控制摇杆可以用）。
 
-一个飞行器最少支持4个通道（横滚、俯仰、偏航、油门）。
-地面车辆最少需要两个通道（转向和油门）。 An 8 or 16 channel transmitter provides additional channels that can be used to control other mechanisms or activate different [flight modes](../flight_modes/index.md) provided by the autopilot.
+一个飞行器最少支持4个通道（横滚、俯仰、偏航、油门）。地面车辆最少需要两个通道（转向和油门）。 An 8 or 16 channel transmitter provides additional channels that can be used to control other mechanisms or activate different [flight modes](../flight_modes/index.md) provided by the autopilot.
 
 ## Types of Remote Controllers
 
@@ -50,8 +47,7 @@ The most popular _form_ of remote control unit for UAVs is shown below.
 
 ![RC Basic Commands](../../assets/flying/rc_basic_commands.png)
 
-摇杆、开关等有许多可能的布局。
-最常用的布局被给予了特定的“模式”号。 _Mode 1_ and _Mode 2_ (shown below) differ only in the placement of the throttle.
+摇杆、开关等有许多可能的布局。最常用的布局被给予了特定的“模式”号。 _Mode 1_ and _Mode 2_ (shown below) differ only in the placement of the throttle.
 
 ![Mode1-Mode2](../../assets/concepts/mode1_mode2.png)
 
@@ -61,8 +57,7 @@ The choice of mode is largely one of taste (_Mode 2_ is more popular).
 
 ## 地面设备的远程控制单元
 
-一个 UGV/车辆最少需要两个发射机通道来发送转向和速度指令。
-常见的发射机使用一个滚轮和扳机、两个单自由度的摇杆、或一个双自由度的摇杆来发射这些指令。
+一个 UGV/车辆最少需要两个发射机通道来发送转向和速度指令。常见的发射机使用一个滚轮和扳机、两个单自由度的摇杆、或一个双自由度的摇杆来发射这些指令。
 
 当然你也可以使用更多的通道/控制机构，其他有趣的激励器和飞行模式也非常有用。
 
@@ -159,8 +154,7 @@ If you are using a _Spektrum_ receiver, you can put it into bind mode using _QGr
 - Output a low throttle value (you can [configure PX4 to detect this](../config/radio.md#rc-loss-detection)).
 - 输出最后收到的信号 (PX4 无法处理此情况!)
 
-首选一个当RC断开时无输出的接收机，然后才是低油门的接收机。
-可能需要配置接收器(请参阅手册)。
+首选一个当RC断开时无输出的接收机，然后才是低油门的接收机。可能需要配置接收器(请参阅手册)。
 
 For more information see [Radio Control Setup > RC Loss Detection](../config/radio.md#rc-loss-detection).
 

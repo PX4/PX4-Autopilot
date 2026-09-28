@@ -24,7 +24,7 @@ See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/ma
 | Mahima Yoga | Fixed-Wing | [@mahima-yoga](https://github.com/mahima-yoga) | myoga_78681 |
 | Alexander Lerach | RTOS / Drivers | [@alexcekay](https://github.com/alexcekay) | alexcekay | <a-lerach@live.de>
 | Jonas Perolini | Navigator | [@JonasPerolini](https://github.com/JonasPerolini) | jonasperolini | <jonas.perolini@rigi.tech>
-
+| Marco Hauswirth | State Estimation / Sensors | [@haumarco](https://github.com/haumarco) | _marco_h |
 
 **Reviewers**
 

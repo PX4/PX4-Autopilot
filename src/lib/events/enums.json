@@ -73,7 +73,7 @@
                         },
                         "32": {
                             "name": "rtl",
-                            "description": "RTL"
+                            "description": "Return"
                         },
                         "64": {
                             "name": "position_slow",
@@ -86,6 +86,10 @@
                         "256": {
                             "name": "altitude_cruise",
                             "description": "Altitude Cruise"
+                        },
+                        "512": {
+                            "name": "manual_parking",
+                            "description": "Manual Parking"
                         },
                         "1024": {
                             "name": "acro",
@@ -434,7 +438,7 @@
                         },
                         "6": {
                             "name": "rtl",
-                            "description": "RTL"
+                            "description": "Return"
                         },
                         "7": {
                             "name": "land",
@@ -526,7 +530,7 @@
                         },
                         "5": {
                             "name": "auto_rtl",
-                            "description": "RTL"
+                            "description": "Return"
                         },
                         "6": {
                             "name": "acro",
@@ -611,6 +615,10 @@
                         "26": {
                             "name": "descend",
                             "description": "Descend"
+                        },
+                        "27": {
+                            "name": "manual_parking",
+                            "description": "Manual Parking"
                         },
                         "255": {
                             "name": "unknown",
@@ -744,6 +752,7 @@
                     "6": [33751040],
                     "7": [319029248],
                     "8": [720896],
+                    "9": [786432],
                     "10": [327680],
                     "12": [335806464],
                     "14": [393216],

@@ -104,7 +104,7 @@ If any of the checks fail, the user is notified and it is not possible to start 
 - Будь-який елемент місії конфліктує з планом або безпечним геозахистом
 - Визначено більше одного елемента місії початку посадки ([MAV_CMD_DO_LAND_START](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_LAND_START))
 - Посадка на фіксованих крилах має неможливий кут нахилу схилу ([FW_LND_ANG](#FW_LND_ANG))
-- Пункт початку посадки на землю (`MAV_CMD_DO_LAND_START`) з'являється в місії перед пунктом RTL ([MAV_CMD_NAV_RETURN_TO_LAUNCH](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_RETURN_TO_LAUNCH))
+- Land start item (`MAV_CMD_DO_LAND_START`) appears in mission before an RTL ("Return") item ([MAV_CMD_NAV_RETURN_TO_LAUNCH](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_RETURN_TO_LAUNCH))
 - Відсутній пункт зльоту та/або посадки, коли вони налаштовані як вимога ([MIS_TKO_LAND_REQ](#MIS_TKO_LAND_REQ))
 
 Additionally there is a check if the first waypoint is too far from the Home position ([MIS_DIST_1WP](#MIS_DIST_1WP)).

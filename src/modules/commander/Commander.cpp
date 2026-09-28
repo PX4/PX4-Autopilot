@@ -481,6 +481,9 @@ int Commander::custom_command(int argc, char *argv[])
 			} else if (!strcmp(argv[1], "altitude_cruise")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_ALTITUDE_CRUISE);
 
+			} else if (!strcmp(argv[1], "manual_parking")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_MANUAL_PARKING);
+
 			} else if (!strcmp(argv[1], "auto:mission")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_MISSION);
@@ -943,6 +946,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ALTITUDE_CRUISE) {
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE;
 
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL_PARKING) {
+					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING;
+
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_POSCTL) {
 					switch (custom_sub_mode) {
 					default:
@@ -1191,10 +1197,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH: {
-			/* switch to RTL which ends the mission */
+			/* switch to Return which ends the mission */
 			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, getSourceFromCommand(cmd))) {
-				mavlink_log_info(&_mavlink_log_pub, "Returning to launch\t");
-				events::send(events::ID("commander_rtl"), events::Log::Info, "Returning to launch");
+				mavlink_log_info(&_mavlink_log_pub, "Switching to Return\t");
+				events::send(events::ID("commander_rtl"), events::Log::Info, "Switching to Return");
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -1436,12 +1442,15 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				// reject if armed or shutting down
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
-			} else if (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON) {
-				// reject calibration in SIH mode — simulated sensors cannot be calibrated
+			} else if (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON
+				   && ((int)(cmd.param1) != 0 || (int)(cmd.param2) != 0 || (int)(cmd.param3) != 0
+				       || (int)(cmd.param5) != 0 || (int)(cmd.param6) != 0 || (int)(cmd.param7) != 0)) {
+				// reject sensor calibration in SIH mode — simulated sensors cannot be calibrated,
+				// RC (param4) is a real receiver and stays allowed
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
-				mavlink_log_critical(&_mavlink_log_pub, "Calibration denied: not supported in SIH mode\t");
+				mavlink_log_critical(&_mavlink_log_pub, "Sensor calibration denied: not supported in SIH mode\t");
 				events::send(events::ID("commander_calib_denied_sih"), events::Log::Critical,
-					     "Calibration denied: not supported in SIH mode");
+					     "Sensor calibration denied: not supported in SIH mode");
 
 			} else {
 
@@ -2227,7 +2236,7 @@ void Commander::checkForMissionUpdate()
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 				// Transition to loiter when the mission is cleared and/or finished, and we are still in mission mode.
 
-				// However, only do so if there's no pending mode change, so there isn't already a pending change (like RTL).
+				// However, only do so if there's no pending mode change, so there isn't already a pending change (like Return).
 				if (_user_mode_intention.get() == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 				}
@@ -3173,7 +3182,7 @@ void Commander::manualControlLossModeSwitch()
 
 		// Force the switch to Hold as a regular mode change (no failsafe, no alarming notification).
 		// force=true skips the mode availability check on purpose: if Hold cannot actually run (e.g. without a
-		// valid position estimate), the failsafe mode-fallback escalates from there (Hold -> RTL -> Land/Descend/Terminate).
+		// valid position estimate), the failsafe mode-fallback escalates from there (Hold -> Return -> Land/Descend/Terminate).
 		_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::User, false, true);
 
 		mavlink_log_info(&_mavlink_log_pub, "Manual control lost: switching to Hold\t");
@@ -3259,7 +3268,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("land");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode", "Change flight mode");
-	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow|auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1",
+	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|manual_parking|position:slow|auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1",
 			"Flight mode", false);
 	PRINT_MODULE_USAGE_COMMAND("pair");
 	PRINT_MODULE_USAGE_COMMAND("termination");
