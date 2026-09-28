@@ -54,6 +54,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss_relative.h>
 #include <uORB/topics/sensor_gnss_status.h>
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/rtcm_data.h>
@@ -564,6 +565,11 @@ private:
 	void publish();
 
 	/**
+	 * @brief Publish the relative position and heading of the attitude epoch that ends at `tow`.
+	 */
+	void publish_relative_position(uint32_t tow);
+
+	/**
 	 * @brief Publish new GPS satellite data with uORB.
 	 */
 	void publish_satellite_info();
@@ -781,12 +787,19 @@ private:
 
 	// uORB topics and subscriptions
 	sensor_gps_s                                   _sensor_gps {};                          		///< uORB topic for position
+	sensor_gnss_relative_s                         _sensor_gnss_relative {};                                ///< uORB topic for the auxiliary antenna or moving base relative position and heading
+	uint32_t                                       _pvt_tow {0};                                            ///< TOW of the last PVTGeodetic
+	uint32_t                                       _heading_tow {0};                                        ///< TOW of the last valid AttEuler heading
+	uint32_t                                       _heading_accuracy_tow {0};                               ///< TOW of the last valid AttCovEuler heading variance
+	uint32_t                                       _relative_position_tow {0};                              ///< TOW of the last AuxAntPositions or BaseVectorGeod
+	bool                                           _attitude_fixed {false};                                 ///< The last AttEuler used fixed ambiguities
 	sensor_gnss_status_s                           _message_sensor_gnss_status {};                          ///< uORB topic for gps status
 	gps_dump_s                                     *_message_data_to_receiver {nullptr};           		///< uORB topic for dumping data to the receiver
 	gps_dump_s                                     *_message_data_from_receiver {nullptr};         		///< uORB topic for dumping data from the receiver
 	satellite_info_s                               *_message_satellite_info {nullptr};             		///< uORB topic for satellite info
 	uORB::PublicationMulti<sensor_gps_s>           _sensor_gps_pub {ORB_ID(sensor_gps)};           		///< uORB publication for gps position
 	uORB::PublicationMulti<sensor_gnss_status_s>   _sensor_gnss_status_pub {ORB_ID(sensor_gnss_status)};	///< uORB publication for gnss status
+	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub {ORB_ID(sensor_gnss_relative)};	///< uORB publication for relative position and heading
 	uORB::Publication<gps_dump_s>                  _gps_dump_pub {ORB_ID(gps_dump)};              		///< uORB publication for dump GPS data
 	uORB::Publication<rtcm_data_s>      _rtcm_moving_baseline_pub {ORB_ID(rtcm_moving_baseline)}; ///< uORB publication for moving-baseline RTCM output
 	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   		///< uORB publication for satellite info
