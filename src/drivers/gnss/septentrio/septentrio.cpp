@@ -152,6 +152,7 @@ orb_advert_t SeptentrioDriver::k_mavlink_log_pub {nullptr};
 
 SeptentrioDriver::SeptentrioDriver(const char *device_path, Instance instance, uint32_t baud_rate) :
 	Device(MODULE_NAME),
+	_injector(MODULE_NAME, _uart, device_path),
 	_instance(instance),
 	_chosen_baud_rate(baud_rate)
 {
@@ -251,7 +252,7 @@ int SeptentrioDriver::print_status()
 	PX4_INFO("sat info: %s", (_message_satellite_info != nullptr) ? "enabled" : "disabled");
 
 	if (first_gps_uorb_message_created() && _state == State::ReceivingData) {
-		PX4_INFO("rate RTCM injection: %6.2f Hz", static_cast<double>(rtcm_injection_frequency()));
+		_injector.print_status();
 		print_message(ORB_ID(sensor_gps), _sensor_gps);
 	}
 
@@ -314,6 +315,7 @@ void SeptentrioDriver::run()
 					SEP_INFO("Automatic configuration finished");
 					_state = State::ReceivingData;
 					initialize_message_tracker();
+					start_injection();
 
 				} else {
 					_state = State::DetectingBaudRate;
@@ -333,6 +335,7 @@ void SeptentrioDriver::run()
 					}
 
 					_state = State::DetectingBaudRate;
+					_injector.stop();
 				}
 
 				if (_message_satellite_info && (receive_result & 2)) {
@@ -346,13 +349,12 @@ void SeptentrioDriver::run()
 
 		reset_if_scheduled();
 
-		handle_inject_data_topic();
-
 		if (update_monitoring_interval_ended()) {
 			start_update_monitoring_interval();
 		}
 	}
 
+	_injector.stop();
 }
 
 int SeptentrioDriver::run_trampoline(int argc, char *argv[])
@@ -1695,7 +1697,19 @@ void SeptentrioDriver::reset_if_scheduled()
 
 	if (reset_type != ReceiverResetType::None) {
 		_scheduled_reset.store((int)ReceiverResetType::None);
+
+		// No correction may land between forcing command input and the reset command
+		const bool injecting = _state == State::ReceivingData;
+
+		if (injecting) {
+			_injector.stop();
+		}
+
 		int res = reset(reset_type);
+
+		if (injecting) {
+			start_injection();
+		}
 
 		if (res == PX4_OK) {
 			SEP_INFO("Reset succeeded.");
@@ -1715,112 +1729,25 @@ int SeptentrioDriver::set_baudrate(uint32_t baud)
 	}
 }
 
-void SeptentrioDriver::drain_rtcm_corrections()
+void SeptentrioDriver::start_injection()
 {
-	// rtcm_corrections may have several sources (MAVLink plus CAN nodes), one uORB instance each.
-	rtcm_data_s msg;
-	bool already_copied = false;
+	// A moving-base rover takes only its moving base's stream: see gnss::CorrectionInjector::Stream
+	gnss::CorrectionInjector::Config config{};
+	config.own_device_id = get_device_id();
 
-	const hrt_abstime now = hrt_absolute_time();
-
-	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if (now > _last_rtcm_injection_time + 5_s) {
-		for (int instance = 0; instance < _rtcm_corrections_sub.size(); instance++) {
-			if (_rtcm_corrections_sub[instance].advertised() && _rtcm_corrections_sub[instance].copy(&msg)) {
-				if (msg.device_id != get_device_id() && now < msg.timestamp + 5_s) {
-					already_copied = true;
-					_selected_rtcm_instance = instance;
-					break;
-				}
-			}
-		}
-	}
-
-	bool updated = already_copied;
-	size_t num_injections = 0;
-
-	do {
-		if (updated) {
-			num_injections++;
-
-			// Prevent injection of data from self
-			if (msg.device_id != get_device_id()) {
-				_rtcm_corrections_framer.addData(msg.data, msg.len);
-				_last_rtcm_injection_time = hrt_absolute_time();
-			}
-		}
-
-		auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
-		const unsigned last_generation = sub.get_last_generation();
-
-		updated = sub.update(&msg);
-
-		if (updated && sub.get_last_generation() != last_generation + 1) {
-			PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
-				 last_generation, sub.get_last_generation());
-		}
-	} while (updated && num_injections < rtcm_data_s::ORB_QUEUE_LENGTH);
-}
-
-void SeptentrioDriver::drain_moving_baseline()
-{
-	// rtcm_moving_baseline has a single publisher (instance 0); no stale-link selection needed.
-	rtcm_data_s msg;
-	size_t num_injections = 0;
-
-	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH) {
-		const unsigned last_generation = _rtcm_moving_baseline_sub.get_last_generation();
-
-		if (!_rtcm_moving_baseline_sub.update(&msg)) {
-			break;
-		}
-
-		num_injections++;
-
-		if (_rtcm_moving_baseline_sub.get_last_generation() != last_generation + 1) {
-			PX4_WARN("%s lost, generation %u -> %u", _rtcm_moving_baseline_sub.get_topic()->o_name,
-				 last_generation, _rtcm_moving_baseline_sub.get_last_generation());
-		}
-
-		// Prevent injection of data from self
-		if (msg.device_id != get_device_id()) {
-			_rtcm_moving_baseline_framer.addData(msg.data, msg.len);
-		}
-	}
-}
-
-void SeptentrioDriver::inject_rtcm_frames(gnss::CorrectionFramer &framer)
-{
-	size_t frame_len = {};
-	const uint8_t *frame_ptr = {};
-
-	while ((frame_ptr = framer.getNextMessage(&frame_len)) != nullptr) {
-		write(frame_ptr, frame_len);
-		framer.consumeMessage(frame_len);
-		++_current_interval_rtcm_injections;
-	}
-}
-
-void SeptentrioDriver::handle_inject_data_topic()
-{
-	// Fixed-base RTCM corrections (from MAVLink GPS_RTCM_DATA, UAVCAN RTCMStream).
-	// Both the moving-base (Secondary) and the rover (Main) can benefit from external RTCM.
-	drain_rtcm_corrections();
-	inject_rtcm_frames(_rtcm_corrections_framer);
-
-	// Moving-baseline RTCM is only consumed by the rover (Main instance) in a moving-base setup.
-	// Single publisher, so no instance selection - just drain it into the receiver.
 	if (_receiver_setup == ReceiverSetup::MovingBase && _instance == Instance::Main) {
-		drain_moving_baseline();
-		inject_rtcm_frames(_rtcm_moving_baseline_framer);
+		config.stream = gnss::CorrectionInjector::Stream::MovingBaseline;
 	}
+
+	_injector.start(config);
 }
 
 void SeptentrioDriver::publish()
 {
 	_sensor_gps.device_id = get_device_id();
-	_sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
-	_sensor_gps.rtcm_injection_rate = rtcm_injection_frequency();
+	const int8_t rtcm_instance = _injector.selected_instance();
+	_sensor_gps.selected_rtcm_instance = rtcm_instance > 0 ? rtcm_instance : 0;
+	_sensor_gps.rtcm_injection_rate = _injector.injection_rate_hz();
 	_sensor_gps.timestamp = hrt_absolute_time();
 
 	_failure_config.update();
@@ -1943,10 +1870,8 @@ bool SeptentrioDriver::should_dump_outgoing() const
 void SeptentrioDriver::start_update_monitoring_interval()
 {
 	PX4_DEBUG("Update monitoring interval started");
-	_last_interval_rtcm_injections = _current_interval_rtcm_injections;
 	_last_interval_bytes_written = _current_interval_bytes_written;
 	_last_interval_bytes_read = _current_interval_bytes_read;
-	_current_interval_rtcm_injections = 0;
 	_current_interval_bytes_written = 0;
 	_current_interval_bytes_read = 0;
 	_current_interval_start_time = hrt_absolute_time();
@@ -1960,11 +1885,6 @@ bool SeptentrioDriver::update_monitoring_interval_ended() const
 hrt_abstime SeptentrioDriver::current_monitoring_interval_duration() const
 {
 	return hrt_absolute_time() - _current_interval_start_time;
-}
-
-float SeptentrioDriver::rtcm_injection_frequency() const
-{
-	return _last_interval_rtcm_injections / us_to_s(static_cast<uint64_t>(k_update_monitoring_interval_duration));
 }
 
 uint32_t SeptentrioDriver::output_data_rate() const
