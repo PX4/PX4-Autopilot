@@ -95,7 +95,7 @@ constexpr size_t k_min_receiver_read_bytes = 32;
 */
 constexpr uint32_t k_septentrio_receiver_default_baud_rate = 115200;
 
-constexpr uint8_t k_max_command_size            = 140;
+constexpr uint8_t k_max_command_size            = 180;
 constexpr uint16_t k_timeout_5hz                = 500;
 constexpr uint32_t k_read_buffer_size           = 150;
 constexpr time_t k_gps_epoch_secs               = 1234567890ULL; // TODO: This seems wrong
@@ -116,7 +116,9 @@ constexpr const char *k_command_reset_hot = "erst,soft,none\n";
 constexpr const char *k_command_reset_warm = "erst,soft,PVTData\n";
 constexpr const char *k_command_reset_cold = "erst,hard,SatData\n";
 constexpr const char *k_command_sbf_output_pvt =
-	"sso,Stream%lu,%s,PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler+EndOfPVT+ReceiverStatus+GALAuthStatus+RFStatus+QualityInd,%s\n";
+	"sso,Stream%lu,%s,PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler+EndOfPVT+ReceiverStatus+GALAuthStatus+RFStatus+QualityInd%s,%s\n";
+constexpr const char *k_sbf_blocks_aux_antenna = "+AuxAntPositions+EndOfAtt";
+constexpr const char *k_sbf_blocks_moving_base_rover = "+BaseVectorGeod+EndOfAtt";
 constexpr const char *k_command_set_sbf_output =
 	"sso,Stream%" PRIu32 ",%s,%s%s,%s\n";
 constexpr const char *k_command_clear_sbf = "sso,Stream%" PRIu32 ",%s,none,off\n";
@@ -163,9 +165,6 @@ SeptentrioDriver::SeptentrioDriver(const char *device_path, Instance instance, u
 	if (enable_sat_info) {
 		_message_satellite_info = new satellite_info_s();
 	}
-
-	get_parameter("SEP_YAW_OFFS", &_heading_offset);
-	get_parameter("SEP_PITCH_OFFS", &_pitch_offset);
 
 	int32_t dump_mode {0};
 	get_parameter("SEP_DUMP_COMM", &dump_mode);
@@ -956,8 +955,9 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 		return ConfigureResult::FailedCompletely;
 	}
 
-	// Specify the offsets that the receiver applies to the computed attitude angles.
-	snprintf(msg, sizeof(msg), k_command_set_attitude_offset, static_cast<double>(_heading_offset), static_cast<double>(_pitch_offset));
+	// Receiver-side attitude offsets are zeroed so the reported heading is the raw baseline; the mounting is applied
+	// from the SENS_GNSSn_HDG baseline.
+	snprintf(msg, sizeof(msg), k_command_set_attitude_offset, 0.0, 0.0);
 
 	if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 		return ConfigureResult::FailedCompletely;
@@ -984,11 +984,28 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 		break;
 	}
 
+	// The relative position is the heading's baseline: from the main to the auxiliary antenna, or from the moving base
+	// to the rover.
+	const char *relative_position_blocks = k_sbf_blocks_aux_antenna;
+
+	if (_receiver_setup == ReceiverSetup::MovingBase) {
+		relative_position_blocks = (_instance == Instance::Main) ? k_sbf_blocks_moving_base_rover : "";
+	}
+
 	// Output a set of SBF blocks on a given connection at a regular interval.
-	snprintf(msg, sizeof(msg), k_command_sbf_output_pvt, (long unsigned int) _receiver_stream_main, com_port, sbf_frequency);
+	snprintf(msg, sizeof(msg), k_command_sbf_output_pvt, (long unsigned int) _receiver_stream_main, com_port,
+		 relative_position_blocks, sbf_frequency);
 	if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
-		SEP_WARN("CONFIG: Failed to configure SBF");
-		return ConfigureResult::FailedCompletely;
+		// A receiver rejects the whole list if it doesn't know one of the blocks
+		snprintf(msg, sizeof(msg), k_command_sbf_output_pvt, (long unsigned int) _receiver_stream_main, com_port, "",
+			 sbf_frequency);
+
+		if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
+			SEP_WARN("CONFIG: Failed to configure SBF");
+			return ConfigureResult::FailedCompletely;
+		}
+
+		SEP_WARN("CONFIG: No relative position output, heading unavailable");
 	}
 
 	if (_receiver_setup == ReceiverSetup::MovingBase) {
@@ -1093,6 +1110,8 @@ int SeptentrioDriver::process_message()
 			PVTGeodetic pvt_geodetic;
 
 			if (_sbf_decoder.parse(&header) == PX4_OK && _sbf_decoder.parse(&pvt_geodetic) == PX4_OK) {
+				_pvt_tow = header.tow;
+
 				switch (static_cast<sbf::PVTGeodetic::ModeType>(pvt_geodetic.mode_type)) {
 				case ModeType::NoPVT:
 					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_NONE;
@@ -1374,21 +1393,20 @@ int SeptentrioDriver::process_message()
 			SEP_TRACE_PARSING("Processing AttEuler SBF message");
 			_message_tracker.att_euler = hrt_absolute_time();
 
+			Header header;
 			AttEuler att_euler;
 
-			if (_sbf_decoder.parse(&att_euler) == PX4_OK &&
-			    !att_euler.error_not_requested &&
-			    static_cast<AttEuler::Error>(att_euler.error_aux1) == Error::None &&
-			    static_cast<AttEuler::Error>(att_euler.error_aux2) == Error::None &&
-			    att_euler.heading > k_dnu_f4_value) {
-				float heading = att_euler.heading * M_PI_F / 180.0f; // Range of degrees to range of radians in [0, 2PI].
+			if (_sbf_decoder.parse(&header) == PX4_OK && _sbf_decoder.parse(&att_euler) == PX4_OK) {
+				// Mode 1 and 3 use float ambiguities, whose heading is confident on a baseline that can be metres off
+				_attitude_fixed = (att_euler.mode == 2) || (att_euler.mode == 4);
 
-				// Ensure range is in [-PI, PI].
-				if (heading > M_PI_F) {
-					heading -= 2.f * M_PI_F;
+				// Only the main to first auxiliary antenna baseline is used
+				if (!att_euler.error_not_requested &&
+				    static_cast<AttEuler::Error>(att_euler.error_aux1) == Error::None &&
+				    att_euler.heading > k_dnu_f4_value) {
+					_sensor_gnss_relative.heading = matrix::wrap_pi(math::radians(att_euler.heading));
+					_heading_tow = header.tow;
 				}
-
-				_sensor_gps.heading = heading;
 			}
 
 			break;
@@ -1399,14 +1417,82 @@ int SeptentrioDriver::process_message()
 			SEP_TRACE_PARSING("Processing AttCovEuler SBF message");
 			_message_tracker.att_cov_euler = hrt_absolute_time();
 
+			Header header;
 			AttCovEuler att_cov_euler;
 
-			if (_sbf_decoder.parse(&att_cov_euler) == PX4_OK &&
+			if (_sbf_decoder.parse(&header) == PX4_OK && _sbf_decoder.parse(&att_cov_euler) == PX4_OK &&
 			    !att_cov_euler.error_not_requested &&
 			    static_cast<AttCovEuler::Error>(att_cov_euler.error_aux1) == Error::None &&
-			    static_cast<AttCovEuler::Error>(att_cov_euler.error_aux2) == Error::None &&
-			    att_cov_euler.cov_headhead > k_dnu_f4_value) {
-				_sensor_gps.heading_accuracy = att_cov_euler.cov_headhead * M_PI_F / 180.0f; // Convert range of degrees to range of radians in [0, 2PI]
+			    att_cov_euler.cov_headhead >= 0.f) {
+				// Cov_HeadHead is a variance in deg^2
+				_sensor_gnss_relative.heading_accuracy = math::radians(sqrtf(att_cov_euler.cov_headhead));
+				_heading_accuracy_tow = header.tow;
+			}
+
+			break;
+		}
+		case BlockID::AuxAntPositions: {
+			SEP_TRACE_PARSING("Processing AuxAntPositions SBF message");
+
+			Header header;
+			AuxAntPositions aux_ant_positions;
+
+			if (_sbf_decoder.parse(&header) == PX4_OK && _sbf_decoder.parse(&aux_ant_positions) == PX4_OK) {
+				const AuxAntPosSub &aux = aux_ant_positions.aux_ant_pos_sub;
+				const bool valid = (aux.error == 0) && (aux.delta_east > k_dnu_f8_value) && (aux.delta_north > k_dnu_f8_value)
+						   && (aux.delta_up > k_dnu_f8_value);
+
+				// From the main to the auxiliary antenna, ENU to NED
+				_sensor_gnss_relative.relative_position_valid = valid;
+				_sensor_gnss_relative.position[0] = valid ? static_cast<float>(aux.delta_north) : 0.f;
+				_sensor_gnss_relative.position[1] = valid ? static_cast<float>(aux.delta_east) : 0.f;
+				_sensor_gnss_relative.position[2] = valid ? -static_cast<float>(aux.delta_up) : 0.f;
+				_sensor_gnss_relative.carrier_solution_fixed = valid && (aux.ambiguity_type == AuxAntPosSub::k_ambiguity_fixed);
+				_sensor_gnss_relative.carrier_solution_floating = valid && (aux.ambiguity_type == AuxAntPosSub::k_ambiguity_float);
+				_sensor_gnss_relative.moving_base_mode = false;
+				_relative_position_tow = header.tow;
+			}
+
+			break;
+		}
+		case BlockID::BaseVectorGeod: {
+			using ModeType = PVTGeodetic::ModeType;
+
+			SEP_TRACE_PARSING("Processing BaseVectorGeod SBF message");
+
+			Header header;
+			BaseVectorGeod base_vector_geod;
+
+			if (_sbf_decoder.parse(&header) == PX4_OK && _sbf_decoder.parse(&base_vector_geod) == PX4_OK) {
+				const VectorInfoGeod &vector = base_vector_geod.vector_info_geod;
+				const ModeType mode_type = static_cast<ModeType>(vector.mode_type);
+				const bool valid = (vector.error == 0) && (vector.delta_east > k_dnu_f8_value)
+						   && (vector.delta_north > k_dnu_f8_value) && (vector.delta_up > k_dnu_f8_value);
+
+				// SBF gives the rover to base vector in ENU, sensor_gnss_relative is base to rover in NED
+				_sensor_gnss_relative.relative_position_valid = valid;
+				_sensor_gnss_relative.position[0] = valid ? -static_cast<float>(vector.delta_north) : 0.f;
+				_sensor_gnss_relative.position[1] = valid ? -static_cast<float>(vector.delta_east) : 0.f;
+				_sensor_gnss_relative.position[2] = valid ? static_cast<float>(vector.delta_up) : 0.f;
+				_sensor_gnss_relative.carrier_solution_fixed = valid && ((mode_type == ModeType::MovingBaseRTKFixed)
+						|| (mode_type == ModeType::RTKFixed));
+				_sensor_gnss_relative.carrier_solution_floating = valid && ((mode_type == ModeType::MovingBaseRTKFloat)
+						|| (mode_type == ModeType::RTKFloat));
+				_sensor_gnss_relative.moving_base_mode = true;
+				_sensor_gnss_relative.reference_station_id = vector.reference_id;
+				_relative_position_tow = header.tow;
+			}
+
+			break;
+		}
+		case BlockID::EndOfAtt: {
+			SEP_TRACE_PARSING("Processing EndOfAtt SBF message");
+
+			Header header;
+
+			// EndOfAtt follows all attitude blocks of an epoch, which can come after EndOfPVT
+			if (_sbf_decoder.parse(&header) == PX4_OK) {
+				publish_relative_position(header.tow);
 			}
 
 			break;
@@ -1746,6 +1832,38 @@ void SeptentrioDriver::publish()
 	_sensor_gps_pub.publish(_sensor_gps);
 }
 
+void SeptentrioDriver::publish_relative_position(uint32_t tow)
+{
+	sensor_gnss_relative_s &relative = _sensor_gnss_relative;
+
+	if (_relative_position_tow != tow) {
+		relative.relative_position_valid = false;
+		relative.carrier_solution_fixed = false;
+		relative.carrier_solution_floating = false;
+		relative.position[0] = 0.f;
+		relative.position[1] = 0.f;
+		relative.position[2] = 0.f;
+	}
+
+	relative.position_length = matrix::Vector3f(relative.position).norm();
+
+	// A float solution reports a confident heading on a baseline that can be metres off, so the heading of this epoch
+	// is valid only with fixed ambiguities on both the attitude and the baseline.
+	relative.heading_valid = (_heading_tow == tow) && (_heading_accuracy_tow == tow) && _attitude_fixed
+				 && relative.relative_position_valid && relative.carrier_solution_fixed;
+
+	if (!relative.heading_valid) {
+		relative.heading = NAN;
+		relative.heading_accuracy = NAN;
+	}
+
+	relative.gnss_fix_ok = _sensor_gps.fix_type >= sensor_gps_s::FIX_TYPE_3D;
+	relative.time_utc_usec = (_pvt_tow == tow) ? _sensor_gps.time_utc_usec : 0;
+	relative.device_id = get_device_id();
+	relative.timestamp = hrt_absolute_time();
+	_sensor_gnss_relative_pub.publish(relative);
+}
+
 void SeptentrioDriver::publish_satellite_info()
 {
 	if (_message_satellite_info) {
@@ -1909,8 +2027,6 @@ bool SeptentrioDriver::is_healthy() const
 void SeptentrioDriver::reset_gps_state_message()
 {
 	memset(&_sensor_gps, 0, sizeof(_sensor_gps));
-	_sensor_gps.heading = NAN;
-	_sensor_gps.heading_offset = matrix::wrap_pi(math::radians(_heading_offset));
 }
 
 uint32_t SeptentrioDriver::get_parameter(const char *name, int32_t *value)

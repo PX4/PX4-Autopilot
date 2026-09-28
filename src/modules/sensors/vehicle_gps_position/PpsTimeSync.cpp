@@ -56,7 +56,8 @@ void PpsTimeSync::process_pps(const pps_capture_s &pps)
 
 uint64_t PpsTimeSync::correct_gps_timestamp(uint64_t gps_fc_timestamp, uint64_t gps_utc_timestamp)
 {
-	if (!is_valid()) {
+	// 0 is the receiver's "time not valid" value
+	if (!is_valid() || (gps_utc_timestamp == 0)) {
 		return gps_fc_timestamp;
 	}
 

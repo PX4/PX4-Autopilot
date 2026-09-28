@@ -1249,10 +1249,6 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 	gps.timestamp_time_relative = 0;
 	gps.time_utc_usec = hil_gps.time_usec;
 
-
-	gps.heading = NAN;
-	gps.heading_offset = NAN;
-
 	gps.timestamp = hrt_absolute_time();
 
 	_sensor_gps_pub.publish(gps);

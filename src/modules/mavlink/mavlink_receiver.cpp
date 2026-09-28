@@ -2772,9 +2772,6 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	gps.satellites_used = hil_gps.satellites_visible;
 
-	gps.heading = NAN;
-	gps.heading_offset = NAN;
-
 	gps.timestamp = hrt_absolute_time();
 
 	_sensor_gps_pub.publish(gps);

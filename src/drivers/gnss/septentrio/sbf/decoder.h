@@ -200,6 +200,24 @@ public:
 	int parse(AttCovEuler *message) const;
 
 	/**
+	 * @brief Parse the first sub-block of a BaseVectorGeod SBF message.
+	 *
+	 * @param message The BaseVectorGeod data structure to parse into.
+	 *
+	 * @return `PX4_OK` if success, or `PX4_ERROR` when an error occurs.
+	 */
+	int parse(BaseVectorGeod *message) const;
+
+	/**
+	 * @brief Parse the first sub-block of an AuxAntPositions SBF message.
+	 *
+	 * @param message The AuxAntPositions data structure to parse into.
+	 *
+	 * @return `PX4_OK` if success, or `PX4_ERROR` when an error occurs.
+	 */
+	int parse(AuxAntPositions *message) const;
+
+	/**
 	 * @brief Reset the decoder to a clean state.
 	 *
 	 * If the decoder is in the process of decoding a message or contains a complete message, it will discard it and
