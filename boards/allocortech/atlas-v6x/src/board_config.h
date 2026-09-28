@@ -458,6 +458,25 @@
 		GPIO_nARMED_INIT                  \
 	}
 
+/* Bootloader SPI chip-select parking; applied only in the bootloader image,
+ * see stm32_boardinitialize() in init.cpp. Pin numbers deliberately
+ * duplicate the SPI::CS constants in spi.cpp; keep the two in sync.
+ */
+
+#define GPIO_BL_SPI2_CS_ICM42688P    /* PH5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTH|GPIO_PIN5)
+#define GPIO_BL_SPI3_CS_BMI088_GYRO  /* PI8  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTI|GPIO_PIN8)
+#define GPIO_BL_SPI3_CS_BMI088_ACCEL /* PI4  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTI|GPIO_PIN4)
+#define GPIO_BL_SPI4_CS_IIM42652     /* PH15 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTH|GPIO_PIN15)
+#define GPIO_BL_SPI5_CS_FRAM         /* PG7  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN7)
+
+#define BOOTLOADER_SPI_CS_GPIO_INIT_LIST { \
+		GPIO_BL_SPI2_CS_ICM42688P,    \
+		GPIO_BL_SPI3_CS_BMI088_GYRO,  \
+		GPIO_BL_SPI3_CS_BMI088_ACCEL, \
+		GPIO_BL_SPI4_CS_IIM42652,     \
+		GPIO_BL_SPI5_CS_FRAM          \
+	}
+
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define BOARD_NUM_IO_TIMERS 5
