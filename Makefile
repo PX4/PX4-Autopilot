@@ -374,6 +374,7 @@ bootloaders_update: \
 	ark_pi6x_bootloader \
 	ark_septentrio-gps_canbootloader \
 	ark_x20-gps_canbootloader \
+	allocortech_atlas-v6x_bootloader \
 	auterion_fmu-v6s_bootloader \
 	auterion_fmu-v6x_bootloader \
 	cuav_nora_bootloader \
