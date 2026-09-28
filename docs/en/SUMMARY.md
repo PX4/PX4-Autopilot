@@ -386,6 +386,7 @@
       - [MAVLink Camera (v2 protocol)](camera/mavlink_v2_camera.md)
       - [MAVLink Camera (v1 protocol)](camera/mavlink_v1_camera.md)
       - [Camera Connected to FC Outputs](camera/fc_connected_camera.md)
+      - [AirPixel TAG-E (Sony ILX-LR1)](camera/airpixel_tag_e.md)
     - [Gimbal \(Mount\) Configuration](advanced/gimbal_control.md)
     - [Grippers](peripherals/gripper.md)
       - [Servo Gripper](peripherals/gripper_servo.md)
