@@ -24771,14 +24771,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 1 idle current overwrite.
 
-This parameter allows to overwrite the current measured during
-idle (unarmed) state with a user-defined constant value (expressed in amperes).
-When the system is armed, the measured current is used. This is useful
-because on certain ESCs current measurements are inaccurate in case of no load.
-Negative values are ignored and will cause the measured current to be used.
-The default value of 0 disables the overwrite, in which case the measured value
-is always used.
-
+While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -24846,17 +24839,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 1 monitoring source.
 
-This parameter controls the source of battery data. The value 'Power Module / Analog'
-means that measurements are expected to come from either analog (ADC) inputs
-or an I2C power monitor (e.g. INA226). Analog inputs are voltage and current
-measurements read from the board's ADC channels, typically from an onboard
-voltage divider and current shunt, or an external analog power module.
-I2C power monitors are digital sensors on the I2C bus.
-If the value is set to 'External' then the system expects to receive MAVLink
-or CAN battery status messages, or the battery data is published by an external driver.
-If the value is set to 'ESCs', the battery information are taken from the esc_status message.
-This requires the ESC to provide both voltage as well as current (via ESC telemetry).
-
+Power Module / Analog: board ADC inputs (onboard or external analog power module) or an I2C power monitor (e.g. INA226).
+External: MAVLink or CAN battery status messages, or an external driver.
+ESCs: esc_status from ESC telemetry; requires voltage and current.
 
 
 **Values:**
@@ -25023,14 +25008,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 2 idle current overwrite.
 
-This parameter allows to overwrite the current measured during
-idle (unarmed) state with a user-defined constant value (expressed in amperes).
-When the system is armed, the measured current is used. This is useful
-because on certain ESCs current measurements are inaccurate in case of no load.
-Negative values are ignored and will cause the measured current to be used.
-The default value of 0 disables the overwrite, in which case the measured value
-is always used.
-
+While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -25098,17 +25076,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 2 monitoring source.
 
-This parameter controls the source of battery data. The value 'Power Module / Analog'
-means that measurements are expected to come from either analog (ADC) inputs
-or an I2C power monitor (e.g. INA226). Analog inputs are voltage and current
-measurements read from the board's ADC channels, typically from an onboard
-voltage divider and current shunt, or an external analog power module.
-I2C power monitors are digital sensors on the I2C bus.
-If the value is set to 'External' then the system expects to receive MAVLink
-or CAN battery status messages, or the battery data is published by an external driver.
-If the value is set to 'ESCs', the battery information are taken from the esc_status message.
-This requires the ESC to provide both voltage as well as current (via ESC telemetry).
-
+Power Module / Analog: board ADC inputs (onboard or external analog power module) or an I2C power monitor (e.g. INA226).
+External: MAVLink or CAN battery status messages, or an external driver.
+ESCs: esc_status from ESC telemetry; requires voltage and current.
 
 
 **Values:**
@@ -25239,14 +25209,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 3 idle current overwrite.
 
-This parameter allows to overwrite the current measured during
-idle (unarmed) state with a user-defined constant value (expressed in amperes).
-When the system is armed, the measured current is used. This is useful
-because on certain ESCs current measurements are inaccurate in case of no load.
-Negative values are ignored and will cause the measured current to be used.
-The default value of 0 disables the overwrite, in which case the measured value
-is always used.
-
+While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -25314,17 +25277,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 3 monitoring source.
 
-This parameter controls the source of battery data. The value 'Power Module / Analog'
-means that measurements are expected to come from either analog (ADC) inputs
-or an I2C power monitor (e.g. INA226). Analog inputs are voltage and current
-measurements read from the board's ADC channels, typically from an onboard
-voltage divider and current shunt, or an external analog power module.
-I2C power monitors are digital sensors on the I2C bus.
-If the value is set to 'External' then the system expects to receive MAVLink
-or CAN battery status messages, or the battery data is published by an external driver.
-If the value is set to 'ESCs', the battery information are taken from the esc_status message.
-This requires the ESC to provide both voltage as well as current (via ESC telemetry).
-
+Power Module / Analog: board ADC inputs (onboard or external analog power module) or an I2C power monitor (e.g. INA226).
+External: MAVLink or CAN battery status messages, or an external driver.
+ESCs: esc_status from ESC telemetry; requires voltage and current.
 
 
 **Values:**
@@ -27363,28 +27318,15 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Manual control input source configuration.
 
-Selects stick input selection behavior:
-either a traditional remote control receiver (RC) or a MAVLink joystick (MANUAL_CONTROL message)
-
-Priority sources are immediately switched to whenever they get valid.
-
-0 RC only. Requires valid RC calibration.
-1 MAVLink only. RC and related checks are disabled.
-2 Switches only if current source becomes invalid.
-3 Locks to the first valid source until reboot.
-4 Ignores all sources.
-5 RC priority, then MAVLink (lower instance before higher)
-6 MAVLink priority (lower instance before higher), then RC
-7 RC priority, then MAVLink (higher instance before lower)
-8 MAVLink priority (higher instance before lower), then RC
+RC receiver or MAVLink joystick (MANUAL_CONTROL). Priority modes switch to a higher-priority source as soon as it becomes valid. MAVL 1 is the lower MAVLink instance.
 
 
 **Values:**
 
-- `0`: RC only
-- `1`: MAVLink only
+- `0`: RC only (requires RC calibration)
+- `1`: MAVLink only (disables RC checks)
 - `2`: RC or MAVLink with fallback
-- `3`: RC or MAVLink keep first
+- `3`: RC or MAVLink keep first until reboot
 - `4`: Disable manual control
 - `5`: Prio: RC > MAVL 1 > MAVL 2
 - `6`: Prio: MAVL 1 > MAVL 2 > RC
@@ -29299,7 +29241,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 X-axis ballistic coefficient used for multi-rotor wind estimation.
 
-This parameter controls the prediction of drag produced by bluff body drag along the forward/reverse axis when flying a multi-copter which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter. Set this parameter to zero to turn off the bluff body drag model for this axis.
+Bluff body drag along the forward/reverse axis, which scales with speed squared. Rotor drag is set by EKF2_MCOEF. Only used when EKF2_DRAG_CTRL is enabled. Set to 0 to disable for this axis.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -29314,7 +29256,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Y-axis ballistic coefficient used for multi-rotor wind estimation.
 
-This parameter controls the prediction of drag produced by bluff body drag along the right/left axis when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter. Set this parameter to zero to turn off the bluff body drag model for this axis.
+Bluff body drag along the right/left axis, which scales with speed squared. Rotor drag is set by EKF2_MCOEF. Only used when EKF2_DRAG_CTRL is enabled. Set to 0 to disable for this axis.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -30213,7 +30155,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Propeller momentum drag coefficient for multi-rotor wind estimation.
 
-This parameter controls the prediction of drag produced by the propellers when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed not speed squared and is produced because some of the air velocity normal to the propeller axis of rotation is lost when passing through the rotor disc. This  changes the momentum of the flow which creates a drag reaction force. When comparing un-ducted propellers of the same diameter, the effect is roughly proportional to the area of the propeller blades when viewed side on and changes with propeller selection. Momentum drag is significantly higher for ducted rotors. To account for the drag produced by the body which scales with speed squared, see documentation for the EKF2_BCOEF_X and EKF2_BCOEF_Y parameters. Set this parameter to zero to turn off the momentum drag model for both axis.
+Propeller momentum drag, which scales with speed, not speed squared. For unducted propellers of equal diameter, roughly proportional to blade area seen side-on; much higher for ducted rotors. Body drag is set by EKF2_BCOEF_X and EKF2_BCOEF_Y. Only used when EKF2_DRAG_CTRL is enabled. Set to 0 to disable for both axes.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -30806,7 +30748,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Range sensor height aiding.
 
-WARNING: Range finder measurements are less reliable and can experience unexpected errors. For these reasons, if accurate control of height relative to ground is required, it is recommended to use the MPC_ALT_MODE parameter instead, unless baro errors are severe enough to cause problems with landing and takeoff. If this parameter is enabled then the estimator will make use of the range finder measurements to estimate its height in addition to other height sources (if activated). Range sensor aiding can be enabled (i.e.: always use) or set in "conditional" mode. Conditional mode: This enables the range finder to be used during low speed (< EKF2_RNG_A_VMAX) and low altitude (< EKF2_RNG_A_HMAX) operation, eg takeoff and landing, where baro interference from rotor wash is excessive and can corrupt EKF state estimates. It is intended to be used where a vertical takeoff and landing is performed, and horizontal flight does not occur until above EKF2_RNG_A_HMAX.
+WARNING: range finders are less reliable and can have unexpected errors. For accurate height above ground, use MPC_ALT_MODE instead, unless baro errors cause problems at takeoff and landing. Fuses range as an additional height source. Conditional mode only fuses it below EKF2_RNG_A_VMAX speed and EKF2_RNG_A_HMAX height, where rotor wash corrupts the baro; for vertical takeoff and landing with no horizontal flight below EKF2_RNG_A_HMAX.
 
 
 **Values:**
@@ -43596,18 +43538,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Thrust curve mapping in Stabilized Mode.
 
-Defines how the throttle stick is mapped to collective thrust in Stabilized mode.
-
-Rescale to hover thrust estimate:
-Stick input is linearly rescaled, such that a centered throttle stick corresponds to the hover thrust estimator's output.
-
-No rescale:
-Directly map the stick 1:1 to the output.
-Can be useful with very low hover thrust which leads to much distortion and the upper half getting sensitive.
-
-Rescale to hover thrust parameter:
-Similar to rescaling to the hover thrust estimate, but it uses the hover thrust parameter value (see MPC_THR_HOVER) instead of estimated value.
-With MPC_THR_HOVER 0.5 it's equivalent to No rescale.
+Rescale to estimate: stick is rescaled linearly so center stick gives the hover thrust estimate.
+No rescale: stick maps 1:1 to thrust; useful with very low hover thrust, where rescaling distorts the curve and makes the upper half sensitive.
+Rescale to parameter: as Rescale to estimate, but uses MPC_THR_HOVER; with MPC_THR_HOVER 0.5 same as No rescale.
 
 
 **Values:**
@@ -49150,7 +49083,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Maximum number of log directories to keep.
 
-If greater than 0, the oldest log directories are deleted at log start to keep the total directory count at or below this value. This cleanup is orthogonal to the free-space cleanup driven by SDLOG_ROTATE and SDLOG_MAX_SIZE, and is useful for capping log usage by count independent of available disk size (e.g. in SITL). A value of 0 disables this count-based cleanup.
+At log start, oldest log directories are deleted to stay within this count. Independent of SDLOG_ROTATE and SDLOG_MAX_SIZE, e.g. to cap logs by count in SITL. Set to 0 to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -49210,7 +49143,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Mission Log.
 
-If enabled, a small additional "mission" log file will be written to the SD card. The log contains just those messages that are useful for tasks like generating flight statistics and geotagging. The different modes can be used to further reduce the logged data (and thus the log file size). For example, choose geotagging mode to only log data required for geotagging. Note that the normal/full log is still created, and contains all the data in the mission log (and more).
+Writes a small extra log with only the messages needed for flight statistics and geotagging. The full log is still written and contains all of this data.
 
 
 **Values:**
@@ -49232,7 +49165,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Logging Mode.
 
-Determines when to start and stop logging. By default, logging is started when arming the system, and stopped when disarming. Note: The logging start/end points that can be configured here only apply to SD logging. The mavlink backend is started/stopped independently of these points.
+Only applies to SD card logging; MAVLink logging starts and stops independently.
 
 
 **Values:**
@@ -49254,24 +49187,24 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SDLOG_PROFILE (`INT32`) {#SDLOG_PROFILE}
 
-Logging topic profile (integer bitmask).
+Logging topic profile.
 
-This integer bitmask controls the set and rates of logged topics. The default allows for general log analysis while keeping the log file size reasonably small. Enabling multiple sets leads to higher bandwidth requirements and larger log files. Set bits true to enable: 0 : Default set (used for general log analysis) 1 : Full rate estimator (EKF2) replay topics 2 : Topics for thermal calibration (high rate raw IMU and Baro sensor data) 3 : Topics for system identification (high rate actuator control and IMU data) 4 : Full rates for analysis of fast maneuvers (RC, attitude, rates and actuators) 5 : Debugging topics (debug_*.msg topics, for custom code) 6 : Topics for sensor comparison (low rate raw IMU, Baro and magnetometer data) 7 : Topics for computer vision and collision prevention 8 : Raw FIFO high-rate IMU (Gyro) 9 : Raw FIFO high-rate IMU (Accel) 10: Logging of mavlink tunnel message (useful for payload communication debugging)
+Each additional set increases bandwidth and log size.
 
 
 **Bitmask:**
 
 - `0`: Default set (general log analysis)
-- `1`: Estimator replay (EKF2)
-- `2`: Thermal calibration
-- `3`: System identification
-- `4`: High rate
-- `5`: Debug
-- `6`: Sensor comparison
+- `1`: Estimator replay (EKF2, full rate)
+- `2`: Thermal calibration (high-rate raw IMU and baro)
+- `3`: System identification (high-rate actuator and IMU)
+- `4`: High rate (RC, attitude, rates and actuators)
+- `5`: Debug (debug_*.msg topics)
+- `6`: Sensor comparison (low-rate raw IMU, baro and mag)
 - `7`: Computer Vision and Avoidance
 - `8`: Raw FIFO high-rate IMU (Gyro)
 - `9`: Raw FIFO high-rate IMU (Accel)
-- `10`: Mavlink tunnel message logging
+- `10`: Mavlink tunnel message logging (payload debugging)
 - `11`: High rate sensors
 
 
@@ -49287,7 +49220,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Maximum disk usage percentage.
 
-Maximum percentage of disk space that logs may occupy during operation, including while writing a new log file. For example, a value of 90 means at least 10% of disk is always kept free, even while writing. A value of 100 lets logs fill the disk completely. A value of 0 disables space-based cleanup entirely. At log start, oldest logs are deleted as needed to maintain this guarantee, accounting for the next file write of up to SDLOG_MAX_SIZE. Cleanup always happens at log start (not boot) so logs can be downloaded via FTP before deletion.
+The limit includes the log being written. Oldest logs are deleted at log start (not boot), leaving room for a file of up to SDLOG_MAX_SIZE, so logs can be downloaded before deletion. 100 lets logs fill the disk. Set to 0 to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -63379,10 +63312,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 UAVCAN mode.
 
-0 - UAVCAN disabled.
-1 - Enables support for UAVCAN sensors without dynamic node ID allocation and firmware update.
-2 - Enables support for UAVCAN sensors with dynamic node ID allocation and firmware update.
-3 - Enables support for UAVCAN sensors and actuators with dynamic node ID allocation and firmware update. Also sets the motor control outputs to UAVCAN.
+Automatic Config adds dynamic node ID allocation and firmware update.
 
 
 **Values:**
