@@ -297,14 +297,16 @@ VtolAttitudeControl::Run()
 		return;
 	}
 
-#if !defined(ENABLE_LOCKSTEP_SCHEDULER)
-
 	const hrt_abstime now = hrt_absolute_time();
 
+#if !defined(ENABLE_LOCKSTEP_SCHEDULER)
+
 	// prevent excessive scheduling (> 500 Hz)
-	if (now - _last_run_timestamp < 2_ms) {
+	if (now < _last_run_timestamp + 2_ms) {
 		return;
 	}
+
+	_last_run_timestamp = now;
 
 #endif // !ENABLE_LOCKSTEP_SCHEDULER
 
@@ -391,8 +393,8 @@ VtolAttitudeControl::Run()
 				_time_last_airspeed_update = airspeed_validated.timestamp;
 			}
 		}
-		
-		if (hrt_elapsed_time(&_time_last_airspeed_update) > 1_s) {		
+
+		if (now > _time_last_airspeed_update + 1_s) {
 			_calibrated_airspeed = NAN;
 		}
 
