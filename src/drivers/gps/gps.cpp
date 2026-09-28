@@ -388,7 +388,7 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	_mode(mode),
 	_interface(interface),
 	_instance(instance),
-	_injector(MODULE_NAME, _uart, path)
+	_injector(MODULE_NAME, path)
 {
 	/* store port name */
 	if (path != nullptr) {
@@ -657,6 +657,7 @@ void GPS::updateInjection()
 	if (inject && !_injecting) {
 		// The device type, part of the ID, is only final once the receiver is configured
 		_injector_config.own_device_id = get_device_id();
+		_injector_config.baudrate = _uart.getBaudrate();
 		_injector.start(_injector_config);
 		_injecting = true;
 

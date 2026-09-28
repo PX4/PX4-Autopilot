@@ -152,7 +152,7 @@ orb_advert_t SeptentrioDriver::k_mavlink_log_pub {nullptr};
 
 SeptentrioDriver::SeptentrioDriver(const char *device_path, Instance instance, uint32_t baud_rate) :
 	Device(MODULE_NAME),
-	_injector(MODULE_NAME, _uart, device_path),
+	_injector(MODULE_NAME, device_path),
 	_instance(instance),
 	_chosen_baud_rate(baud_rate)
 {
@@ -1734,6 +1734,7 @@ void SeptentrioDriver::start_injection()
 	// A moving-base rover takes only its moving base's stream: see gnss::CorrectionInjector::Stream
 	gnss::CorrectionInjector::Config config{};
 	config.own_device_id = get_device_id();
+	config.baudrate = _uart.getBaudrate();
 
 	if (_receiver_setup == ReceiverSetup::MovingBase && _instance == Instance::Main) {
 		config.stream = gnss::CorrectionInjector::Stream::MovingBaseline;

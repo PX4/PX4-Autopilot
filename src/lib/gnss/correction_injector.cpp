@@ -60,9 +60,8 @@ static constexpr uint32_t kBitsPerByteOnTheWire = 10;
 static constexpr uint32_t kMinRetryDelayUs = 1_ms;
 static constexpr uint32_t kFallbackRetryDelayUs = 10_ms;
 
-CorrectionInjector::CorrectionInjector(const char *name, device::Serial &uart, const char *port) :
-	ScheduledWorkItem(name, px4::serial_port_to_wq(port)),
-	_uart(uart)
+CorrectionInjector::CorrectionInjector(const char *name, const char *port) :
+	ScheduledWorkItem(name, px4::serial_port_to_wq(port))
 {
 	strncpy(_port, port, sizeof(_port) - 1);
 }
@@ -317,7 +316,7 @@ ssize_t CorrectionInjector::tx_space_available() const
 
 uint32_t CorrectionInjector::drain_time_us(size_t bytes) const
 {
-	const uint32_t baudrate = _uart.getBaudrate();
+	const uint32_t baudrate = _config.baudrate;
 
 	if (baudrate == 0) {
 		return kFallbackRetryDelayUs;

@@ -39,7 +39,6 @@
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
-#include <px4_platform_common/Serial.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/rtcm_data.h>
@@ -56,8 +55,7 @@ constexpr uint8_t protocol_bit(CorrectionProtocol protocol) { return 1u << stati
 // blocks on the UART between epochs, so injecting from it would hold corrections back by up to one output interval.
 //
 // The injector opens its own descriptor on that work queue. On NuttX the work queues are threads of the wq:manager
-// task and a descriptor belongs to the task that opened it, so the driver's is not valid there. The driver's port
-// object only supplies the baudrate.
+// task and a descriptor belongs to the task that opened it, so the driver's is not valid there.
 //
 // Chunks are reassembled into frames, and a frame is written only once the TX buffer has room for all of it: a frame
 // cut short would fail its CRC at the receiver. Until then it waits in the framer, and the injector comes back once
@@ -79,10 +77,12 @@ public:
 		Stream stream{Stream::Corrections};
 		// protocol_bit()s the receiver accepts; frames of any other protocol are dropped
 		uint8_t protocols{protocol_bit(CorrectionProtocol::Rtcm3)};
+		// The port's baudrate, fixed while injecting; paces retries while the TX buffer is full. 0 if unknown.
+		uint32_t baudrate{0};
 	};
 
 	// name labels the work item; port selects its work queue and is what the injector opens
-	CorrectionInjector(const char *name, device::Serial &uart, const char *port);
+	CorrectionInjector(const char *name, const char *port);
 	~CorrectionInjector() override;
 
 	// Injects only between start() and stop(): outside them the owner configures the receiver on the same port.
@@ -106,7 +106,6 @@ private:
 	ssize_t tx_space_available() const;
 	uint32_t drain_time_us(size_t bytes) const;
 
-	device::Serial &_uart;
 	char _port[32] {};
 
 	pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
