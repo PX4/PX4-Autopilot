@@ -39,3 +39,6 @@ jobs:
       run: |
         flake8 Tools/ros2/*.py
         python3 -m unittest discover -s Tools/ros2 -p 'test_*.py'
+
+    - name: Test submodule check
+      run: python3 -m unittest discover -s Tools -p 'test_check_submodules.py' -v
