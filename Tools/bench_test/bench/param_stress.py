@@ -35,7 +35,8 @@ import px4bench
 from px4bench.params import (READ_TIMEOUT_S, SET_ECHO_TIMEOUT_S,
                              drain_param_values, param_float_to_int32,
                              param_id_str, param_is_saved, read_param,
-                             read_until, set_param_int32, wait_param_echo)
+                             read_until, recv_param_value, set_param_int32,
+                             wait_param_echo)
 
 COMMIT_TIMEOUT_S = 8.0
 
@@ -80,7 +81,7 @@ def phase_full_download(report, mav):
                             advertised if advertised is not None else '?'))
             break
 
-        m = mav.recv_match(type='PARAM_VALUE', blocking=True, timeout=1.0)
+        m = recv_param_value(mav, 1.0)
         if m is None:
             continue
 
@@ -111,7 +112,7 @@ def phase_full_download(report, mav):
                 mav.target_system, mav.target_component, b'', idx)
             deadline = time.monotonic() + 2.0
             while time.monotonic() < deadline:
-                m = mav.recv_match(type='PARAM_VALUE', blocking=True, timeout=0.5)
+                m = recv_param_value(mav, 0.5)
                 if m is None:
                     continue
                 r_idx = m.param_index

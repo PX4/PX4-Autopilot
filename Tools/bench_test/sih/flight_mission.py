@@ -101,7 +101,7 @@ def wait_disarmed(mav, timeout):
                            timeout=max(0.1, deadline - time.monotonic()))
         if m is None:
             continue
-        if m.get_srcSystem() != mav.target_system or m.get_srcComponent() != 1:
+        if not px4bench.is_from_target(mav, m):
             continue
         if not (m.base_mode & MAV_MODE_FLAG_SAFETY_ARMED):
             return time.monotonic() - start
@@ -241,7 +241,7 @@ def fly(report, mav, shell, alt, report_dir):
         out = shell_cmd(report, shell, 'commander arm', 'arm_cmd')
         if out is None:
             return False
-        hb = mav.recv_match(type='HEARTBEAT', blocking=True, timeout=3)
+        hb = px4bench.wait_heartbeat(mav, timeout=3)
         if hb is not None and (hb.base_mode & MAV_MODE_FLAG_SAFETY_ARMED):
             armed = True
         else:
@@ -312,7 +312,7 @@ def download_flight_log(report, mav, report_dir):
     from px4bench.ftp import mavftp
     try:
         ftp = mavftp.MAVFTP(mav, target_system=mav.target_system,
-                            target_component=1)
+                            target_component=mav.target_component)
         dirs = [e.name for e in bench_ftp.ftp_list(ftp, LOG_ROOT)
                 if e.is_dir and not e.name.startswith('.')]
         if not dirs:
