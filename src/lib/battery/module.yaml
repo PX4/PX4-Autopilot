@@ -122,7 +122,7 @@ parameters:
         BAT${i}_I_OVERWRITE:
             description:
                 short: Battery ${i} idle current overwrite
-                long: While disarmed, replaces the measured current with this value in amperes, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
+                long: While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
             type: float
             decimal: 2
             num_instances: *max_num_config_instances
