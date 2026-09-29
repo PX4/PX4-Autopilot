@@ -110,7 +110,7 @@ public:
 	 * At least one endpoint of each path must be valid under the existing point check.
 	 * For a connected chain, checking the first point is enough if all preceding paths pass.
 	 * Check anchors and paths against the same loaded fence; check Home and altitude limits separately.
-	 * Uses cached fence data only. Longitude wrapping is not supported.
+	 * Uses cached fence data only. Paths may cross the antimeridian.
 	 *
 	 * @return true when results are available (true per clear path); false if unavailable or invalid.
 	 * On failure, results are false when the output buffer and count are valid.
