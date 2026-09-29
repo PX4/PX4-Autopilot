@@ -107,7 +107,7 @@ parameters:
                 long: |-
                     Power Module / Analog: board ADC inputs (onboard or external analog power module) or an I2C power monitor (e.g. INA226).
                     External: MAVLink or CAN battery status messages, or an external driver.
-                    ESCs: esc_status from ESC telemetry; requires voltage and current.
+                    ESCs: esc_status from ESC telemetry, which must report voltage and current.
             type: enum
             values:
                 -1: Disabled
@@ -122,8 +122,9 @@ parameters:
         BAT${i}_I_OVERWRITE:
             description:
                 short: Battery ${i} idle current overwrite
-                long: While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
+                long: While disarmed, replaces the measured current with this value, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
             type: float
+            unit: A
             decimal: 2
             num_instances: *max_num_config_instances
             instance_start: 1
