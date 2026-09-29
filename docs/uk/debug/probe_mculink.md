@@ -19,9 +19,9 @@ The [MCU-Link Debug Probe](https://www.nxp.com/design/design-center/software/dev
 
 ## Налагодження конфігурації за допомогою NXP LinkServer
 
-MCU-Link забезпечує для чіпів NXP (FMUv6X-RT) сервер GDB [LinkServer](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/linkserver-for-microcontrollers:LINKERSERVER):
+The MCU-Link provides for NXP (FMUv6X-RT) chips the [LinkServer](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/linkserver-for-microcontrollers:LINKSERVER) GDB server:
 
-[Завантажте](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/linkserver-for-microcontrollers:LINKERSERVER#downloads) Linkserver для вашої операційної системи та дотримуйтесь інструкцій з установки.
+[Download](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/linkserver-for-microcontrollers:LINKSERVER#downloads) the Linkserver for your operating system and follow the installation instructions.
 
 На Windows LinkServer встановлюється в `C:\NXP\LinkServer_x.x.x`
 На Linux LinkServer встановлюється `/usr/local/LinkServer/LinkServer`

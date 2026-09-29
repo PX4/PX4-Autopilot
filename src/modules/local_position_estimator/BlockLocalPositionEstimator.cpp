@@ -175,7 +175,8 @@ void BlockLocalPositionEstimator::Run()
 		vehicle_command_s vehicle_command;
 
 		if (_vehicle_command_sub.update(&vehicle_command)) {
-			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN
+			    || vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN) {
 				const double latitude = vehicle_command.param5;
 				const double longitude = vehicle_command.param6;
 				const float altitude = vehicle_command.param7;

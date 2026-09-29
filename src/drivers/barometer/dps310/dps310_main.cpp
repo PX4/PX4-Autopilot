@@ -58,6 +58,7 @@ DPS310::print_usage()
 #else
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 #endif
+	PRINT_MODULE_USAGE_PARAM_FLAG('8', "Drive DPS368", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -86,6 +87,9 @@ I2CSPIDriverBase *DPS310::instantiate(const I2CSPIDriverConfig &config, int runt
 		PX4_DEBUG("no device on bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
 		return nullptr;
 	}
+
+	// device_id must reflect the requested variant, since DPS310_I2C/SPI hardcode DPS310
+	interface->set_device_type(config.devid_driver_index);
 
 	DPS310 *dev = new DPS310(config, interface);
 
@@ -116,14 +120,25 @@ extern "C" int dps310_main(int argc, char *argv[])
 
 	cli.default_spi_frequency = 10 * 1000 * 1000;
 
-	const char *verb = cli.parseDefaultArguments(argc, argv);
+	int ch;
+
+	while ((ch = cli.getOpt(argc, argv, "8")) != EOF) {
+		switch (ch) {
+		case '8':
+			cli.custom1 = DRV_BARO_DEVTYPE_DPS368;
+			break;
+		}
+	}
+
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_BARO_DEVTYPE_DPS310);
+	BusInstanceIterator iterator(MODULE_NAME, cli,
+				     cli.custom1 ? DRV_BARO_DEVTYPE_DPS368 : DRV_BARO_DEVTYPE_DPS310);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

@@ -31,7 +31,7 @@ add_executable(px4
 	apps.cpp
 	)
 
-if (BUILD_TESTING)
+if (BUILD_TESTING AND TARGET fuzztest::fuzztest)
 	# Build mavlink fuzz tests. These run other modules and thus cannot be a functional/unit test
 	add_executable(mavlink_fuzz_tests EXCLUDE_FROM_ALL
 		src/px4/common/mavlink_fuzz_tests.cpp
@@ -273,7 +273,7 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	if(CONFIG_MODULES_SIMULATION_GZ_BRIDGE)
 	# Gazebo wrapper script (sets GZ_SIM_* env vars pointing at installed resources)
 	install(
-		PROGRAMS ${PROJECT_SOURCE_DIR}/Tools/packaging/px4-gazebo.sh
+		PROGRAMS ${PROJECT_SOURCE_DIR}/Tools/packaging/deb/gazebo/px4-gazebo.sh
 		DESTINATION bin
 		RENAME px4-gazebo
 		)

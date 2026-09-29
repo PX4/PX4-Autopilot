@@ -31,8 +31,9 @@ parameters:
       description:
         short: 1-sigma initial hover thrust uncertainty
         long: |-
-          Sets the number of standard deviations used
-          by the innovation consistency test.
+          Initial standard deviation of the hover thrust state estimate.
+          Larger values allow the estimate to move farther from the initial
+          hover thrust before process noise takes over.
       type: float
       default: 0.1
       decimal: 3

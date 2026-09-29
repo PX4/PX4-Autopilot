@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,71 +31,28 @@
  *
  ****************************************************************************/
 
-
-
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
+// Provides CONFIG_NAVIGATOR_ADSB_F3442 for the standard selection.
+#include <px4_boardconfig.h>
 
-#include <lib/geo/geo.h>
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+#include "f3442_standard/DaaF3442.h"
+#else
+#include "crosstrack_standard/DaaCrosstrack.h"
+#endif
 
-#include <drivers/drv_hrt.h>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
+#include <matrix/math.hpp>
+
+#include <uORB/topics/detect_and_avoid.h>
 #include <uORB/topics/transponder_report.h>
-#include <uORB/topics/vehicle_command.h>
 
-#include <px4_platform_common/events.h>
-
-#include <px4_platform_common/board_common.h>
-
-#include <containers/Array.hpp>
-
-using namespace time_literals;
-
-static constexpr uint8_t NAVIGATOR_MAX_TRAFFIC{10};
-
-static constexpr uint8_t UTM_CALLSIGN_LENGTH{9};
-
-static constexpr uint64_t CONFLICT_WARNING_TIMEOUT{60_s};
-
-static constexpr float TRAFFIC_TO_UAV_DISTANCE_EXTENSION{1000.0f};
-
-static constexpr uint64_t TRAFFIC_WARNING_TIMESTEP{60_s}; //limits the max warning rate when traffic conflict buffer is full
-
-static constexpr uint64_t TRAFFIC_CONFLICT_LIFETIME{120_s}; //limits the time a conflict can be in the buffer without being seen (as a conflict)
-
-struct traffic_data_s {
-	double lat_traffic;
-	double lon_traffic;
-	float alt_traffic;
-	float heading_traffic;
-	float vxy_traffic;
-	float vz_traffic;
-	bool in_conflict;
+struct daa_input_s {
+	matrix::Vector2d uav_lat_lon{};
+	float uav_alt{0.f};
+	matrix::Vector3f uav_vel_ned{};
+	transponder_report_s transponder_report{};
 };
-
-struct traffic_buffer_s {
-	px4::Array<uint32_t, NAVIGATOR_MAX_TRAFFIC> icao_address {};
-	px4::Array<hrt_abstime, NAVIGATOR_MAX_TRAFFIC> timestamp {};
-};
-
-struct conflict_detection_params_s {
-	float crosstrack_separation;
-	float vertical_separation;
-	int collision_time_threshold;
-	uint8_t traffic_avoidance_mode;
-};
-
-enum class TRAFFIC_STATE {
-	NO_CONFLICT = 0,
-	ADD_CONFLICT = 1,
-	REMIND_CONFLICT = 2,
-	REMOVE_OLD_CONFLICT = 3,
-	BUFFER_FULL = 4
-};
-
 
 class AdsbConflict
 {
@@ -103,57 +60,20 @@ public:
 	AdsbConflict() = default;
 	~AdsbConflict() = default;
 
-	void detect_traffic_conflict(double lat_now, double lon_now, float alt_now, float vx_now, float vy_now, float vz_now);
+	/**
+	 * @brief Validate ownship + transponder inputs and compute the DAA output.
+	 * Returns false on non-finite inputs or when the built standard needs a heading the report does not provide.
+	*/
+	bool calculate_daa_output(const daa_input_s &daa_input, detect_and_avoid_s &daa_output);
 
-	int find_icao_address_in_conflict_list(uint32_t icao_address);
+	bool try_updating_params();
 
-	void remove_icao_address_from_conflict_list(int traffic_index);
-
-	void add_icao_address_from_conflict_list(uint32_t icao_address, hrt_abstime now);
-
-	void get_traffic_state(hrt_abstime now);
-
-	void set_conflict_detection_params(float crosstrack_separation, float vertical_separation,
-					   int collision_time_threshold, uint8_t traffic_avoidance_mode);
-
-
-	bool send_traffic_warning(int traffic_direction, int traffic_seperation, uint16_t tr_flags,
-				  char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address, hrt_abstime now);
-
-	transponder_report_s _transponder_report{};
-
-	bool handle_traffic_conflict();
-
-	void fake_traffic(const char *const callsign, float distance, float direction, float traffic_heading,
-			  float altitude_diff,
-			  float hor_velocity, float ver_velocity, int emitter_type, uint32_t icao_address, double lat_uav, double lon_uav,
-			  float &alt_uav);
-
-	void run_fake_traffic(double &lat_uav, double &lon_uav, float &alt_uav);
-
-	void remove_expired_conflicts();
-
-	bool _conflict_detected{false};
-
-	TRAFFIC_STATE _traffic_state{TRAFFIC_STATE::NO_CONFLICT};
-
-	conflict_detection_params_s _conflict_detection_params{};
-
-
-protected:
-	traffic_buffer_s _traffic_buffer;
+	static bool valid_wgs84_coordinates(const double latitude, const double longitude);
 
 private:
-
-	crosstrack_error_s _crosstrack_error{};
-
-	transponder_report_s tr{};
-
-	orb_advert_t fake_traffic_report_publisher = orb_advertise(ORB_ID(transponder_report), &tr);
-
-	TRAFFIC_STATE _traffic_state_previous{TRAFFIC_STATE::NO_CONFLICT};
-
-	hrt_abstime _last_traffic_warning_time{0};
-
-	hrt_abstime _last_buffer_full_warning_time{0};
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+	DaaF3442 _daa;
+#else
+	DaaCrosstrack _daa;
+#endif
 };

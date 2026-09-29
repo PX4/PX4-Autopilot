@@ -1,0 +1,7 @@
+menuconfig MODULES_FAILURE_INJECTION_MANAGER
+	bool "failure_injection_manager"
+	default n
+	---help---
+		Enable support for the failure injection manager. The manager is the sole
+		subscriber to vehicle_command for MAV_CMD_INJECT_FAILURE and publishes the
+		deduplicated failure_injection topic consumed by the failure apply-sites.

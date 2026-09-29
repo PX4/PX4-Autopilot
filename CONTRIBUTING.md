@@ -66,7 +66,7 @@ The scope identifies which part of PX4 is affected. Common scopes:
 | `ekf2` | Extended Kalman Filter (state estimation) |
 | `mavlink` | MAVLink messaging protocol |
 | `commander` | Commander and mode management |
-| `navigator` | Mission, RTL, Land, and other navigation modes |
+| `navigator` | Mission, Return, Land, and other navigation modes |
 | `sensors` | Sensor drivers and processing |
 | `drivers` | Hardware drivers |
 | `boards/px4_fmu-v6x` | Board-specific changes (use the board name) |
@@ -99,7 +99,7 @@ feat(ekf2)!: remove deprecated height fusion API
 ```
 feat(ekf2): add height fusion timeout
 fix(mavlink): correct BATTERY_STATUS_V2 parsing
-refactor(navigator): simplify RTL altitude logic
+refactor(navigator): simplify return altitude logic
 ci(workflows): migrate to reusable workflows
 docs(ekf2): update tuning guide
 feat(boards/px4_fmu-v6x)!: remove deprecated driver API
@@ -144,6 +144,14 @@ git rebase -i HEAD~N
 # mark the bad commits as 'reword'
 git push --force-with-lease
 ```
+
+## AI-assisted contributions
+
+AI coding assistants are welcome, under the [AI coding assistants policy](docs/en/contribute/ai_assistants.md):
+
+- You are the author. You must understand, and be able to defend, every line you submit. An AI tool is never an author or co-author, and never appears in a `Signed-off-by` tag.
+- Disclosure is required. Every commit with AI-generated or AI-assisted content must carry an `Assisted-by: NAME:MODEL` trailer in the commit body (for example `Assisted-by: Claude:claude-fable-5`).
+- All licensing, testing, and review requirements apply unchanged. Never claim testing that did not happen.
 
 ## Test your changes
 

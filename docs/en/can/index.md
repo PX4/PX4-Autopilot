@@ -84,7 +84,7 @@ Don't connect each CAN peripheral to a separate CAN port!
 :::
 
 Generally you'll daisy all CAN peripherals off a single port, and if there is more than one CAN port, use the second one for [redundancy](#redundancy).
-If three are three ports, you might use the remaining network for devices that support another CAN protocol.
+If there are three ports, you might use the remaining network for devices that support another CAN protocol.
 
 The documentation for your flight controller should indicate which ports are supported/enabled.
 At runtime you can check what DroneCAN ports are enabled and their status using the following command on the [MAVLink Shell](../debug/mavlink_shell.md) (or some other console):

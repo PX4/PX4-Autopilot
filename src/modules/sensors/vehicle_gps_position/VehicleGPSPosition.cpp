@@ -35,8 +35,8 @@
 
 #include <px4_platform_common/log.h>
 #include <lib/geo/geo.h>
+#include <lib/gnss/SensorGpsSelector.hpp>
 #include <lib/mathlib/mathlib.h>
-#include <lib/drivers/device/Device.hpp>
 
 namespace sensors
 {
@@ -45,6 +45,9 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vehicle_gps_position_pub.advertise();
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+	_vehicle_gnss_heading_pub.advertise();
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 }
 
 VehicleGPSPosition::~VehicleGPSPosition()
@@ -71,6 +74,14 @@ void VehicleGPSPosition::Stop()
 	for (auto &sub : _sensor_gps_sub) {
 		sub.unregisterCallback();
 	}
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+
+	for (auto &sub : _sensor_gnss_relative_sub) {
+		sub.unregisterCallback();
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 }
 
 void VehicleGPSPosition::ParametersUpdate(bool force)
@@ -91,6 +102,14 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 				sub.registerCallback();
 			}
 		}
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+
+		for (auto &sub : _sensor_gnss_relative_sub) {
+			sub.registerCallback();
+		}
+
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 		_gps_blending.setBlendingUseSpeedAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_SPD_ACC);
 		_gps_blending.setBlendingUseHPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_HPOS_ACC);
@@ -113,6 +132,21 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			{_param_sens_gps1_offx.get(), _param_sens_gps1_offy.get(), _param_sens_gps1_offz.get()},
 			static_cast<hrt_abstime>(_param_sens_gps1_delay.get()) * 1000
 		};
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+		const matrix::Vector3f baselines[GPS_MAX_RECEIVERS] {
+			gnss_heading::configuredBaseline(_param_sens_gnss0_hdg.get(), _gps_param_slots[0].offset, _gps_param_slots[1].offset,
+			{_param_sens_gnss0_auxx.get(), _param_sens_gnss0_auxy.get(), _param_sens_gnss0_auxz.get()}),
+			gnss_heading::configuredBaseline(_param_sens_gnss1_hdg.get(), _gps_param_slots[1].offset, _gps_param_slots[0].offset,
+			{_param_sens_gnss1_auxx.get(), _param_sens_gnss1_auxy.get(), _param_sens_gnss1_auxz.get()}),
+		};
+
+		for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+			_gps_param_slots[i].baseline_length = baselines[i].norm();
+			_gps_param_slots[i].heading_offset = atan2f(baselines[i](1), baselines[i](0));
+		}
+
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 	}
 }
 
@@ -129,58 +163,25 @@ void VehicleGPSPosition::Run()
 
 	// Check all GPS instance
 	bool any_gps_updated = false;
-	bool gps_updated = false;
 	const int32_t gps_prime = _param_sens_gps_prime.get();
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		gps_updated = _sensor_gps_sub[i].updated();
-
 		sensor_gps_s gps_data;
 
-		if (gps_updated) {
+		if (_sensor_gps_sub[i].update(&gps_data)) {
 			any_gps_updated = true;
 
-			_sensor_gps_sub[i].copy(&gps_data);
+			const GpsParamSlot *slot = findParamSlot(gps_data.device_id, i);
+			const matrix::Vector3f antenna_offset = slot ? slot->offset : matrix::Vector3f{};
+			const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
 
-			// Match device_id to receiver slot
-			matrix::Vector3f antenna_offset{};
-			hrt_abstime delay_us = 110_ms; // matches SENS_GPS*_DELAY default
-			bool matched = false;
-
-			for (uint8_t slot = 0; slot < GPS_MAX_RECEIVERS; slot++) {
-				if (_gps_param_slots[slot].device_id != 0
-				    && _gps_param_slots[slot].device_id == gps_data.device_id) {
-					antenna_offset = _gps_param_slots[slot].offset;
-					delay_us = _gps_param_slots[slot].delay_us;
-					matched = true;
-					break;
-				}
-			}
-
-			// Fallback: if no device IDs configured, match by instance index
-			if (!matched && _gps_param_slots[0].device_id == 0 && _gps_param_slots[1].device_id == 0) {
-				antenna_offset = _gps_param_slots[i].offset;
-				delay_us = _gps_param_slots[i].delay_us;
-			}
-
-			// Apply delay to timestamp_sample if the driver didn't set one
-			if (gps_data.timestamp_sample == 0 || gps_data.timestamp_sample == gps_data.timestamp) {
-				if (delay_us > 0 && gps_data.timestamp > delay_us) {
-					gps_data.timestamp_sample = gps_data.timestamp - delay_us;
-				}
-			}
+			gps_data.timestamp_sample = resolveSampleTimestamp(gps_data.timestamp_sample, gps_data.timestamp, delay_us);
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
 			_gps_blending.setGpsData(gps_data, i);
 
-			if (math::isInRange(static_cast<int>(gps_prime), 2, 127)) {
-				device::Device::DeviceId device_id{};
-				device_id.devid = gps_data.device_id;
-
-				if (device_id.devid_s.bus_type == device::Device::DeviceBusType_UAVCAN
-				    && device_id.devid_s.address == static_cast<uint8_t>(gps_prime)) {
-					_gps_blending.setPrimaryInstance(i);
-				}
+			if (SensorGpsSelector::node_id_matches(gps_prime, gps_data.device_id)) {
+				_gps_blending.setPrimaryInstance(i);
 			}
 
 			if (!_sensor_gps_sub[i].registered()) {
@@ -216,9 +217,160 @@ void VehicleGPSPosition::Run()
 		}
 	}
 
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+	UpdateGnssHeading();
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
+
 	ScheduleDelayed(300_ms); // backup schedule
 
 	perf_end(_cycle_perf);
+}
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+void VehicleGPSPosition::UpdateGnssHeading()
+{
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		sensor_gnss_relative_s gnss_rel;
+
+		if (!_sensor_gnss_relative_sub[i].update(&gnss_rel)) {
+			continue;
+		}
+
+		// sensor_gnss_relative instances are numbered by advertise order, not by receiver, so the receiver's
+		// sensor_gps instance is looked up by device_id for the parameter slot and the receiver state.
+		sensor_gps_s receiver{};
+		const GpsParamSlot *slot = findParamSlot(gnss_rel.device_id, findGpsInstance(gnss_rel.device_id, receiver));
+
+		HeadingSample sample{};
+		sample.timestamp_sample = resolveSampleTimestamp(gnss_rel.timestamp_sample, gnss_rel.timestamp,
+					  slot ? slot->delay_us : kDefaultDelay);
+		const uint64_t pps_timestamp = _pps_time_sync.correct_gps_timestamp(gnss_rel.timestamp, gnss_rel.time_utc_usec);
+
+		if (pps_timestamp != gnss_rel.timestamp) {
+			sample.timestamp_sample = pps_timestamp;
+		}
+
+		sample.device_id = gnss_rel.device_id;
+		sample.heading = gnss_rel.heading_valid ? gnss_rel.heading : NAN;
+		sample.heading_accuracy = gnss_rel.heading_accuracy;
+		sample.baseline_length = gnss_rel.position_length;
+		sample.baseline_down = gnss_rel.position[2];
+		sample.jamming_state = receiver.jamming_state;
+		sample.spoofing_state = receiver.spoofing_state;
+		handleHeadingSample(sample, slot);
+	}
+}
+
+void VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot)
+{
+	// A single source is published at a time: every source has its own baseline, so alternating between receivers
+	// would jump the heading and trip the EKF observation rate limit. A source is kept until none of its samples has
+	// passed the checks for kHeadingSourceTimeout.
+	//
+	// TODO: with per-receiver baselines the selection can also follow the flight phase, e.g. a tailsitter with one
+	// baseline aligned for hover and one for forward flight.
+	const hrt_abstime now = hrt_absolute_time();
+	HeadingSource &source = _heading_source;
+	const bool held = (source.last_pass != 0) && (now < source.last_pass + kHeadingSourceTimeout);
+	const bool same_source = (sample.device_id == source.device_id);
+
+	if (held && !same_source) {
+		return;
+	}
+
+	const bool configured = slot && (slot->baseline_length >= gnss_heading::kMinAntennaSeparation);
+
+	if (PX4_ISFINITE(sample.heading) && !configured && !_heading_unconfigured_reported) {
+		PX4_WARN("GNSS heading from %" PRIu32 " not used: set SENS_GNSSn_HDG", sample.device_id);
+		_heading_unconfigured_reported = true;
+	}
+
+	if (!PX4_ISFINITE(sample.heading) || !configured) {
+		if (same_source) {
+			source.settled_since = 0;
+		}
+
+		return;
+	}
+
+	// A sample whose baseline doesn't match is dropped; the settle restarts only when the receiver itself reports no
+	// heading
+	if (!gnss_heading::baselineConsistent(slot->baseline_length, sample.baseline_length, sample.baseline_down)) {
+		return;
+	}
+
+	if (!held || !same_source) {
+		source = {sample.device_id, 0, 0};
+	}
+
+	if (source.settled_since == 0) {
+		source.settled_since = now;
+	}
+
+	source.last_pass = now;
+
+	// Headings are published once the receiver has reported a matching one for kHeadingSettleTime, since the first
+	// fixes after it (re)gains its heading are the likeliest to be wrong.
+	if (now < source.settled_since + kHeadingSettleTime) {
+		return;
+	}
+
+	vehicle_gnss_heading_s heading_out{};
+	heading_out.timestamp_sample = sample.timestamp_sample;
+	heading_out.device_id = sample.device_id;
+	heading_out.heading = matrix::wrap_pi(sample.heading - slot->heading_offset);
+	heading_out.heading_accuracy = sample.heading_accuracy;
+	heading_out.heading_offset = slot->heading_offset;
+	heading_out.baseline_length = sample.baseline_length;
+	heading_out.jamming_state = sample.jamming_state;
+	heading_out.spoofing_state = sample.spoofing_state;
+	heading_out.timestamp = hrt_absolute_time();
+	_vehicle_gnss_heading_pub.publish(heading_out);
+}
+
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
+
+const VehicleGPSPosition::GpsParamSlot *VehicleGPSPosition::findParamSlot(uint32_t device_id, int instance) const
+{
+	for (const GpsParamSlot &slot : _gps_param_slots) {
+		if ((slot.device_id != 0) && (slot.device_id == device_id)) {
+			return &slot;
+		}
+	}
+
+	// No device IDs configured: match by sensor_gps instance
+	if ((_gps_param_slots[0].device_id == 0) && (_gps_param_slots[1].device_id == 0)
+	    && (instance >= 0) && (instance < GPS_MAX_RECEIVERS)) {
+		return &_gps_param_slots[instance];
+	}
+
+	return nullptr;
+}
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+int VehicleGPSPosition::findGpsInstance(uint32_t device_id, sensor_gps_s &gps_data)
+{
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if (_sensor_gps_sub[i].copy(&gps_data) && (gps_data.device_id == device_id)) {
+			return i;
+		}
+	}
+
+	gps_data = {};
+	return -1;
+}
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
+
+uint64_t VehicleGPSPosition::resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
+		hrt_abstime delay_us)
+{
+	// A driver that doesn't know the receiver latency leaves timestamp_sample at 0 (or at the publish time); the
+	// configured receiver delay applies then.
+	if ((driver_timestamp_sample != 0) && (driver_timestamp_sample < driver_timestamp)) {
+		return driver_timestamp_sample;
+	}
+
+	return (delay_us > 0 && driver_timestamp > delay_us) ? driver_timestamp - delay_us : driver_timestamp;
 }
 
 void VehicleGPSPosition::PrintStatus()

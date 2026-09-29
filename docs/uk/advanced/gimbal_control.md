@@ -29,9 +29,16 @@ See [Fixed Attitude Gimbal](#fixed-attitude-gimbal) below.
 Вихід налаштовується за допомогою параметра [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT).
 Усталеним налаштування виходу PXM є (`AUX (0)`).
 Якщо ваш гімбал підтримує [Протокол гімбала MAVLink v2](https://mavlink.io/en/services/gimbal_v2.html), ви повинні замість цього вибрати `Протокол гімбала MAVLink v2 (2)`.
+If the gimbal has its own gimbal manager, select `Forward to external gimbal manager (3)` instead (see [External Gimbal Manager](#external-gimbal-manager)).
+A second gimbal can be driven in parallel using [MNT_MODE_OUT2](../advanced_config/parameter_reference.md#MNT_MODE_OUT2) (see [Multiple Gimbal Support](#multiple-gimbal-support)).
 
 Повний список параметрів для налаштування драйвера кріплення можна знайти в [Довідці параметрів > Кріплення](../advanced_config/parameter_reference.md#mount).
 Нижче наведено відповідні налаштування для декількох поширених конфігурацій гімбалів.
+
+:::tip
+To debug a gimbal setup, use `gimbal status` in the MAVLink console to see the active inputs and outputs, and `gimbal test` to move the gimbal without any input.
+See [Driver Testing](#driver-testing).
+:::
 
 ## MAVLink Gimbal (MNT_MODE_OUT=MAVLINK)
 
@@ -51,12 +58,24 @@ PX4 може бути налаштований як менеджер гімба�
 - [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) to **Enabled** (Note strictly necessary as forwarding is enabled when `MAV_1_MODE` is set to Gimbal).
 - [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD) на рекомендовану виробником швидкість передачі даних.
 
+### External Gimbal Manager
+
+Some gimbals implement the gimbal _manager_ protocol themselves, rather than only the gimbal device protocol.
+A ground station controls such a gimbal directly, PX4 does not need to manage it.
+
+Set [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) to `Forward to external gimbal manager (3)` so that PX4 forwards onboard inputs (RC, ROI) to it as well.
+PX4 then acts as a client of that manager: it acquires control while there is onboard input and releases it afterwards, and the manager arbitrates between PX4 and the ground station.
+
+Connect the gimbal to a MAVLink instance in `Gimbal` (or `Onboard`) mode with forwarding enabled, as described [above](#mavlink-gimbal-mnt-mode-out-mavlink).
+Forwarding is required so that the ground station and the gimbal manager can see each other, and PX4 discovers the manager from the `GIMBAL_MANAGER_STATUS` it streams.
+
 ### Підтримка декількох Gimbal
 
-PX4 може автоматично створити менеджер гімбала для підключеного гімбала з PWM або першого пристрою гімбала MAVLink з тим самим ідентифікатором системи, який виявляється на будь-якому інтерфейсі.
-Він не автоматично створює менеджер гімбала для будь-яких інших пристроїв гімбала MAVLink, які виявляються.
+PX4 creates one gimbal manager, for the gimbal driven by `MNT_MODE_OUT`.
 
-You can support additional MAVLink gimbals provided that they:
+A second gimbal can be driven in parallel with the same inputs by setting [MNT_MODE_OUT2](../advanced_config/parameter_reference.md#MNT_MODE_OUT2) to a different output mode than `MNT_MODE_OUT`, e.g. a MAVLink gimbal (`2`) and a gimbal with an [external gimbal manager](#external-gimbal-manager) (`3`).
+
+Additional MAVLink gimbals that are not driven by PX4 are supported provided that they:
 
 - Implement the gimbal _manager_ protocol.
 - Становлять видимими для наземної станції та PX4 у мережі MAVLink.

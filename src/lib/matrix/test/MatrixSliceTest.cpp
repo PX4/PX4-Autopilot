@@ -344,3 +344,21 @@ TEST(MatrixSliceTest, XYAssignmentTest)
 	a.xy() = b.xy();
 	EXPECT_EQ(a, Vector3f(4, 5, 3));
 }
+
+TEST(MatrixSliceTest, Dot)
+{
+	float data[9] = {0, 2, 3,
+			 4, 5, 6,
+			 7, 8, 10
+			};
+	SquareMatrix3f A(data);
+
+	// row . row, within the same matrix
+	EXPECT_FLOAT_EQ(A.row(1).dot(A.row(2)), 4.f * 7.f + 5.f * 8.f + 6.f * 10.f);
+
+	// col . col, within the same matrix
+	EXPECT_FLOAT_EQ(A.col(0).dot(A.col(1)), 0.f * 2.f + 4.f * 5.f + 7.f * 8.f);
+
+	// self dot matches norm_squared()
+	EXPECT_FLOAT_EQ(A.row(1).dot(A.row(1)), A.row(1).norm_squared());
+}

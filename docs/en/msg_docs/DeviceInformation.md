@@ -29,24 +29,28 @@ as well as tracking of the used firmware versions on the devices.
 
 Used in field(s): [device_type](#fld_device_type)
 
-| Name                                                                              | Type    | Value | Description            |
-| --------------------------------------------------------------------------------- | ------- | ----- | ---------------------- |
-| <a id="#DEVICE_TYPE_GENERIC"></a> DEVICE_TYPE_GENERIC                             | `uint8` | 0     | Generic/unknown sensor |
-| <a id="#DEVICE_TYPE_AIRSPEED"></a> DEVICE_TYPE_AIRSPEED                           | `uint8` | 1     | Airspeed sensor        |
-| <a id="#DEVICE_TYPE_ESC"></a> DEVICE_TYPE_ESC                                     | `uint8` | 2     | ESC                    |
-| <a id="#DEVICE_TYPE_SERVO"></a> DEVICE_TYPE_SERVO                                 | `uint8` | 3     | Servo                  |
-| <a id="#DEVICE_TYPE_GPS"></a> DEVICE_TYPE_GPS                                     | `uint8` | 4     | GPS                    |
-| <a id="#DEVICE_TYPE_MAGNETOMETER"></a> DEVICE_TYPE_MAGNETOMETER                   | `uint8` | 5     | Magnetometer           |
-| <a id="#DEVICE_TYPE_PARACHUTE"></a> DEVICE_TYPE_PARACHUTE                         | `uint8` | 6     | Parachute              |
-| <a id="#DEVICE_TYPE_RANGEFINDER"></a> DEVICE_TYPE_RANGEFINDER                     | `uint8` | 7     | Rangefinder            |
-| <a id="#DEVICE_TYPE_WINCH"></a> DEVICE_TYPE_WINCH                                 | `uint8` | 8     | Winch                  |
-| <a id="#DEVICE_TYPE_BAROMETER"></a> DEVICE_TYPE_BAROMETER                         | `uint8` | 9     | Barometer              |
-| <a id="#DEVICE_TYPE_OPTICAL_FLOW"></a> DEVICE_TYPE_OPTICAL_FLOW                   | `uint8` | 10    | Optical flow           |
-| <a id="#DEVICE_TYPE_ACCELEROMETER"></a> DEVICE_TYPE_ACCELEROMETER                 | `uint8` | 11    | Accelerometer          |
-| <a id="#DEVICE_TYPE_GYROSCOPE"></a> DEVICE_TYPE_GYROSCOPE                         | `uint8` | 12    | Gyroscope              |
-| <a id="#DEVICE_TYPE_DIFFERENTIAL_PRESSURE"></a> DEVICE_TYPE_DIFFERENTIAL_PRESSURE | `uint8` | 13    | Differential pressure  |
-| <a id="#DEVICE_TYPE_BATTERY"></a> DEVICE_TYPE_BATTERY                             | `uint8` | 14    | Battery                |
-| <a id="#DEVICE_TYPE_HYGROMETER"></a> DEVICE_TYPE_HYGROMETER                       | `uint8` | 15    | Hygrometer             |
+| Name                                                                              | Type    | Value | Description                     |
+| --------------------------------------------------------------------------------- | ------- | ----- | ------------------------------- |
+| <a id="#DEVICE_TYPE_GENERIC"></a> DEVICE_TYPE_GENERIC                             | `uint8` | 0     | Generic/unknown sensor          |
+| <a id="#DEVICE_TYPE_AIRSPEED"></a> DEVICE_TYPE_AIRSPEED                           | `uint8` | 1     | Airspeed sensor                 |
+| <a id="#DEVICE_TYPE_ESC"></a> DEVICE_TYPE_ESC                                     | `uint8` | 2     | ESC                             |
+| <a id="#DEVICE_TYPE_SERVO"></a> DEVICE_TYPE_SERVO                                 | `uint8` | 3     | Servo                           |
+| <a id="#DEVICE_TYPE_GPS"></a> DEVICE_TYPE_GPS                                     | `uint8` | 4     | GPS                             |
+| <a id="#DEVICE_TYPE_MAGNETOMETER"></a> DEVICE_TYPE_MAGNETOMETER                   | `uint8` | 5     | Magnetometer                    |
+| <a id="#DEVICE_TYPE_PARACHUTE"></a> DEVICE_TYPE_PARACHUTE                         | `uint8` | 6     | Parachute                       |
+| <a id="#DEVICE_TYPE_RANGEFINDER"></a> DEVICE_TYPE_RANGEFINDER                     | `uint8` | 7     | 1D Rangefinder                  |
+| <a id="#DEVICE_TYPE_WINCH"></a> DEVICE_TYPE_WINCH                                 | `uint8` | 8     | Winch                           |
+| <a id="#DEVICE_TYPE_BAROMETER"></a> DEVICE_TYPE_BAROMETER                         | `uint8` | 9     | Barometer                       |
+| <a id="#DEVICE_TYPE_OPTICAL_FLOW"></a> DEVICE_TYPE_OPTICAL_FLOW                   | `uint8` | 10    | Optical flow                    |
+| <a id="#DEVICE_TYPE_ACCELEROMETER"></a> DEVICE_TYPE_ACCELEROMETER                 | `uint8` | 11    | Accelerometer                   |
+| <a id="#DEVICE_TYPE_GYROSCOPE"></a> DEVICE_TYPE_GYROSCOPE                         | `uint8` | 12    | Gyroscope                       |
+| <a id="#DEVICE_TYPE_DIFFERENTIAL_PRESSURE"></a> DEVICE_TYPE_DIFFERENTIAL_PRESSURE | `uint8` | 13    | Differential pressure           |
+| <a id="#DEVICE_TYPE_BATTERY"></a> DEVICE_TYPE_BATTERY                             | `uint8` | 14    | Battery                         |
+| <a id="#DEVICE_TYPE_HYGROMETER"></a> DEVICE_TYPE_HYGROMETER                       | `uint8` | 15    | Hygrometer                      |
+| <a id="#DEVICE_TYPE_TRAFFIC_AVOIDANCE"></a> DEVICE_TYPE_TRAFFIC_AVOIDANCE         | `uint8` | 16    | Traffic Avoidance system (ADSB) |
+| <a id="#DEVICE_TYPE_COMPUTE"></a> DEVICE_TYPE_COMPUTE                             | `uint8` | 17    | Compute boards                  |
+| <a id="#DEVICE_TYPE_LIDAR"></a> DEVICE_TYPE_LIDAR                                 | `uint8` | 18    | 3D scanning / multi-beam Lidar  |
+| <a id="#DEVICE_TYPE_STEREO_CAMERA"></a> DEVICE_TYPE_STEREO_CAMERA                 | `uint8` | 19    | stereo/depth camera             |
 
 ## Source Message
 
@@ -70,7 +74,7 @@ uint8 DEVICE_TYPE_SERVO = 3                   # Servo
 uint8 DEVICE_TYPE_GPS = 4                     # GPS
 uint8 DEVICE_TYPE_MAGNETOMETER = 5            # Magnetometer
 uint8 DEVICE_TYPE_PARACHUTE = 6               # Parachute
-uint8 DEVICE_TYPE_RANGEFINDER = 7             # Rangefinder
+uint8 DEVICE_TYPE_RANGEFINDER = 7             # 1D Rangefinder
 uint8 DEVICE_TYPE_WINCH = 8                   # Winch
 uint8 DEVICE_TYPE_BAROMETER = 9               # Barometer
 uint8 DEVICE_TYPE_OPTICAL_FLOW = 10           # Optical flow
@@ -79,6 +83,11 @@ uint8 DEVICE_TYPE_GYROSCOPE = 12              # Gyroscope
 uint8 DEVICE_TYPE_DIFFERENTIAL_PRESSURE = 13  # Differential pressure
 uint8 DEVICE_TYPE_BATTERY = 14                # Battery
 uint8 DEVICE_TYPE_HYGROMETER = 15             # Hygrometer
+uint8 DEVICE_TYPE_TRAFFIC_AVOIDANCE = 16      # Traffic Avoidance system (ADSB)
+uint8 DEVICE_TYPE_COMPUTE = 17                # Compute boards
+uint8 DEVICE_TYPE_LIDAR = 18                  # 3D scanning / multi-beam Lidar
+uint8 DEVICE_TYPE_STEREO_CAMERA = 19          # stereo/depth camera
+
 
 char[80] name # Name of device e.g. DroneCAN node name
 

@@ -38,8 +38,8 @@
 #include <uavcan/equipment/gnss/RTCMStream.hpp>
 
 #include <lib/drivers/device/Device.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/gps_inject_data.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/rtcm_data.h>
 
 namespace uavcannode
 {
@@ -75,34 +75,77 @@ public:
 		printf("\t%s:%d -> %s\n",
 		       uavcan::equipment::gnss::RTCMStream::getDataTypeFullName(),
 		       uavcan::equipment::gnss::RTCMStream::DefaultDataTypeID,
-		       _gps_inject_data_pub.get_topic()->o_name);
+		       _sources[0].pub.get_topic()->o_name);
 	}
 
 private:
 	void callback(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::RTCMStream> &msg)
 	{
+		const uint8_t source_node_id = msg.getSrcNodeID().get();
+
 		// Don't republish a message from ourselves
-		if (msg.getSrcNodeID().get() != getNode().getNodeID().get()) {
-			gps_inject_data_s gps_inject_data{};
-
-			gps_inject_data.len = msg.data.size();
-
-			memcpy(gps_inject_data.data, &msg.data[0], gps_inject_data.len);
-
-			gps_inject_data.timestamp = hrt_absolute_time();
-
-			union device::Device::DeviceId device_id;
-
-			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_UAVCAN;
-			device_id.devid_s.address = msg.getSrcNodeID().get();
-			device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
-
-			gps_inject_data.device_id = device_id.devid;
-
-			_gps_inject_data_pub.publish(gps_inject_data);
+		if (source_node_id == getNode().getNodeID().get()) {
+			return;
 		}
+
+		// Route each source node to its own rtcm_corrections instance. Independent CAN
+		// sources (e.g. a fixed base plus another rover's MSM output) must not interleave
+		// on a single instance, or the consumer's per-instance stale-link selection breaks.
+		uORB::PublicationMulti<rtcm_data_s> *pub = publicationForNode(source_node_id);
+
+		if (pub == nullptr) {
+			// More distinct sources than rtcm_corrections instances: drop.
+			return;
+		}
+
+		rtcm_data_s corrections{};
+
+		corrections.len = msg.data.size();
+
+		memcpy(corrections.data, &msg.data[0], corrections.len);
+
+		corrections.timestamp = hrt_absolute_time();
+
+		union device::Device::DeviceId device_id {};
+
+		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_UAVCAN;
+		device_id.devid_s.address = source_node_id;
+		device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
+
+		corrections.device_id = device_id.devid;
+
+		pub->publish(corrections);
 	}
 
-	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
+	// Map a CAN source node ID to a stable rtcm_corrections publication, one uORB
+	// instance per source node. Returns nullptr once every instance is claimed.
+	uORB::PublicationMulti<rtcm_data_s> *publicationForNode(uint8_t node_id)
+	{
+		for (auto &source : _sources) {
+			if (source.assigned && source.node_id == node_id) {
+				return &source.pub;
+			}
+		}
+
+		for (auto &source : _sources) {
+			if (!source.assigned) {
+				source.assigned = true;
+				source.node_id = node_id;
+				return &source.pub;
+			}
+		}
+
+		return nullptr;
+	}
+
+	struct SourcePublication {
+		uORB::PublicationMulti<rtcm_data_s> pub{ORB_ID(rtcm_corrections)};
+		uint8_t node_id{0};
+		bool assigned{false};
+	};
+
+	// One publication per source node, capped at the topic's instance count so we never
+	// advertise an instance the consumer's SubscriptionMultiArray cannot read.
+	SourcePublication _sources[rtcm_data_s::MAX_INSTANCES] {};
 };
 } // namespace uavcannode

@@ -87,6 +87,7 @@ You need to set necessary [DroneCAN](index.md) parameters and define offsets if 
 - If using [Moving Baseline & GPS Heading](#setting-up-moving-baseline-gps-heading), set [SENS_GPS_PRIME](../advanced_config/parameter_reference.md#SENS_GPS_PRIME) to the CAN node ID of the _Moving Base_ module. The moving base is preferred because the rover receiver in a moving baseline configuration can experience degraded navigation rate and increased data latency when corrections are intermittent.
 - Enable [UAVCAN_SUB_GPS](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS), [UAVCAN_SUB_MAG](../advanced_config/parameter_reference.md#UAVCAN_SUB_MAG), and [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO).
 - The parameters [SENS_GPS0_OFFX](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS0_OFFY](../advanced_config/parameter_reference.md#SENS_GPS0_OFFY) and [SENS_GPS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GPS0_OFFZ) can be set to account for the offset of the ARK RTK GPS from the vehicles centre of gravity.
+- If using [Moving Baseline & GPS Heading](#setting-up-moving-baseline-gps-heading), set [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) to `Moving base rover` for the _Rover_'s slot (matched by [SENS_GPSn_ID](../advanced_config/parameter_reference.md#SENS_GPS0_ID)) and the antenna offsets of both modules (see [heading baseline](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
 
 ### ARK RTK GPS Configuration
 
@@ -94,8 +95,10 @@ You may need to [configure the following parameters](../dronecan/index.md#qgc-ca
 
 | Parameter                                                                                                | Description                                                                                                                           |
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID. |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-125 to use a static node ID. |
 | <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)          | CAN built-in bus termination. Set to `1` if this is the last node on the CAN bus.                                                     |
+| <a id="GPS_UBX_BAUD1"></a>[GPS_UBX_BAUD1](../advanced_config/parameter_reference.md#GPS_UBX_BAUD1)       | UART1 baudrate after the link is auto-detected. Board default is `921600`.                                                            |
+| <a id="GPS_UBX_BAUD2"></a>[GPS_UBX_BAUD2](../advanced_config/parameter_reference.md#GPS_UBX_BAUD2)       | UART2 baudrate (default `230400`).                                                                                                    |
 
 ### Setting Up Rover and Fixed Base
 
@@ -132,7 +135,6 @@ Setup via CAN:
   :::
 - On the _Rover_, set the following:
   - [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `3`
-  - [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET) to `0` if your _Rover_ is in front of your _Moving Base_, `90` if _Rover_ is right of _Moving Base_, `180` if _Rover_ is behind _Moving Base_, or `270` if _Rover_ is left of _Moving Base_.
   - [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD) to `1`.
 - On the _Moving Base_, set the following:
   - [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `4`.
@@ -153,7 +155,6 @@ Setup via UART:
 
 - On the _Rover_, set the following:
   - [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `1`
-  - [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET) to `0` if your _Rover_ is in front of your _Moving Base_, `90` if _Rover_ is right of _Moving Base_, `180` if _Rover_ is behind _Moving Base_, or `270` if _Rover_ is left of _Moving Base_.
 - On the _Moving Base_, set the following:
   - [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `2`.
 - On the _Flight Controller_, set [SENS_GPS_PRIME](../advanced_config/parameter_reference.md#SENS_GPS_PRIME) to the CAN node ID of the _Moving Base_ (see [PX4 Configuration](#px4-configuration)).
@@ -179,6 +180,10 @@ For more information see [Rover and Moving Base](../dronecan/index.md#rover-and-
       - Remove binaries from the root and ufw directories of the SD card and try to build and flash again
 
 ### Updating Ublox F9P Module
+
+::: warning
+UART2 cannot be used for u-blox firmware update, including with [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) `7`. Use the debug passthrough below.
+:::
 
 ARK RTK GPS comes with the Ublox F9P module up to date with version 1.13 or newer. However, you can check the version and update the firmware if desired.
 

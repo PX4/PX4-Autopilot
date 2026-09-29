@@ -43,8 +43,8 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 LSM9DS1::LSM9DS1(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external)
 {
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }

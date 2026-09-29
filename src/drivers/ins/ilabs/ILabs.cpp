@@ -223,7 +223,6 @@ $ ilabs stop
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Driver status");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
 
 	return PX4_OK;
 }
@@ -379,6 +378,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 			sensor_baro.timestamp_sample = time_now_us;
 
 			sensor_baro.device_id   = _device_id.devid;
+			sensor_baro.is_external = true;
 			sensor_baro.pressure    = _average_sensors_data.pressure / static_cast<float>(_average_sensors_data.count);    // Pa
 			sensor_baro.temperature = _average_sensors_data.temperature / static_cast<float>(_average_sensors_data.count);  // degC
 
@@ -537,10 +537,6 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		sensor_gps.timestamp_time_relative = 0;
 
 		sensor_gps.satellites_used = data->gps.usedSatCount;
-
-		sensor_gps.heading = NAN;
-		sensor_gps.heading_offset = NAN;
-		sensor_gps.heading_accuracy = NAN;
 
 		_sensor_gps_pub.publish(sensor_gps);
 		perf_count(_gnss_pub_interval_perf);

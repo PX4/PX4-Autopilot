@@ -52,7 +52,8 @@ enum PX4_CUSTOM_MAIN_MODE {
 	PX4_CUSTOM_MAIN_MODE_RATTITUDE_LEGACY,
 	PX4_CUSTOM_MAIN_MODE_SIMPLE, /* unused, but reserved for future use */
 	PX4_CUSTOM_MAIN_MODE_TERMINATION,
-	PX4_CUSTOM_MAIN_MODE_ALTITUDE_CRUISE
+	PX4_CUSTOM_MAIN_MODE_ALTITUDE_CRUISE,
+	PX4_CUSTOM_MAIN_MODE_MANUAL_PARKING
 };
 
 // These values are transmitted over MAVLink (custom_mode sub_mode): never reorder or
@@ -77,6 +78,7 @@ enum PX4_CUSTOM_SUB_MODE_AUTO {
 	PX4_CUSTOM_SUB_MODE_EXTERNAL7,
 	PX4_CUSTOM_SUB_MODE_EXTERNAL8,
 	PX4_CUSTOM_SUB_MODE_GUIDED_COURSE,
+	PX4_CUSTOM_SUB_MODE_AUTO_DESCEND,
 };
 
 enum PX4_CUSTOM_SUB_MODE_POSCTL {
@@ -120,6 +122,10 @@ static inline union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTITUDE_CRUISE;
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL_PARKING;
+		break;
+
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
 		break;
@@ -150,7 +156,7 @@ static inline union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_DESCEND;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:

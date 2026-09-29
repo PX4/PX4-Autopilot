@@ -132,8 +132,7 @@ struct ulog_message_flag_bits_s {
   If a parser finds any of these bits set that isn't specified, it must refuse to parse the log.
 
 - `appended_offsets`: File offset (0-based) for appended data.
-  如果没有附加数据，则所有偏移量必须为零。
-  这可以用于消息中途暂停的情况下可靠的添加数据。
+  如果没有附加数据，则所有偏移量必须为零。这可以用于消息中途暂停的情况下可靠的添加数据。
   For example, crash dumps.
 
   附加数据的过程应该做到：
@@ -498,7 +497,7 @@ Since the Definitions and Data Sections use the same message header format, they
 - [QGroundControl](https://github.com/mavlink/qgroundcontrol): C++, ULog streaming via MAVLink and minimal parsing for GeoTagging.
 - [mavlink-router](https://github.com/mavlink-router/mavlink-router): C++, ULog streaming via MAVLink.
 - [MAVGAnalysis](https://github.com/ecmnet/MAVGCL): Java, ULog streaming via MAVLink and parser for plotting and analysis.
-- [PlotJuggler](https://github.com/facontidavide/PlotJuggler): C++/Qt application to plot logs and time series. 自版本2.1.3支持 ULog。
+- [PlotJuggler](https://github.com/PlotJuggler/PlotJuggler): C++/Qt application to plot logs and time series. 自版本2.1.3支持 ULog。
 - [ulogreader](https://github.com/maxsun/ulogreader): Javascript, ULog reader and parser outputs log in JSON object format.
 - [Foxglove](https://foxglove.dev): an integrated visualization and diagnosis tool for robotics data that supports ULog files.
 - [TypeScript ULog parser](https://github.com/foxglove/ulog): TypeScript, ULog reader that outputs JS objects.

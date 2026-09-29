@@ -66,6 +66,14 @@ To use this feature you must [build a firmware that includes the module](../adva
 Without this, `vte_orientation` is never published and [PLD_YAW_EN](#PLD_YAW_EN) has no effect.
 :::
 
+### Precision Takeoff
+
+The Vision Target Estimator can also keep the vehicle over the pad during a vertical takeoff.
+Set [MIS_TKO_PREC](../advanced_config/parameter_reference.md#MIS_TKO_PREC)=1 and enable bit 2 of [VTE_TASK_MASK](../advanced_config/parameter_reference.md#VTE_TASK_MASK).
+[MIS_TKO_PREC_DLY](../advanced_config/parameter_reference.md#MIS_TKO_PREC_DLY) sets how long after the takeoff ramp the setpoint may move onto the target, so the vehicle clears the pad first.
+In static-target builds, bit 5 of [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) fuses home as the pad's absolute position during precision takeoff.
+See [Precision Takeoff](../advanced_features/vision_target_estimator.md#precision-takeoff) for details.
+
 ## 정밀 착륙 수행
 
 Precision landing can be used in missions, during the landing phase in _Return mode_, or by entering the _Precision Land_ mode.
@@ -110,6 +118,20 @@ At time of writing is no _convenient_ way to directly invoke precision landing (
 - [MAV_CMD_DO_SET_MODE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE) should work, but you will need to determine the appropriate base and custom modes used by PX4 to represent the precision landing mode.
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_precland -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_precland -->
 
 ## 하드웨어 설정
 

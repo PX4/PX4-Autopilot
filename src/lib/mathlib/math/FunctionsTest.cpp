@@ -225,6 +225,18 @@ TEST(FunctionsTest, countSetBits)
 	EXPECT_EQ(countSetBits(754323), 9);
 }
 
+TEST(FunctionsTest, countTrailingZeros)
+{
+	EXPECT_EQ(countTrailingZeros(1u), 0);
+	EXPECT_EQ(countTrailingZeros(2u), 1);
+	EXPECT_EQ(countTrailingZeros(8u), 3);
+	EXPECT_EQ(countTrailingZeros(256u), 8);
+	EXPECT_EQ(countTrailingZeros(0xffffffffu), 0);
+	EXPECT_EQ(countTrailingZeros(0x80000000u), 31);
+	EXPECT_EQ(countTrailingZeros(0u), 32);
+	EXPECT_EQ(countTrailingZeros((uint8_t)0u), 8);
+}
+
 TEST(FunctionsTest, isFiniteVector3f)
 {
 	EXPECT_TRUE(isFinite(matrix::Vector3f()));

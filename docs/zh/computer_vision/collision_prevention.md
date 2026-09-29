@@ -41,6 +41,15 @@ At time of writing PX4 allows you to use the [Lanbao PSK-CM8JL65-CC5](../sensor/
 
 PX4 v1.14 (and later) supports the [LightWare LiDAR SF45](../sensor/sf45_rotating_lidar.md) rotating lidar which provides 320 degree sensing.
 
+### Sony AS-DT1 LiDAR
+
+PX4 supports the [Sony AS-DT1](../sensor/sony_asdt1.md) multipoint LiDAR as a directly connected UART sensor for collision prevention.
+The driver publishes measurements to `obstacle_distance` with 5 degree bins, using the configured sensor yaw offset.
+
+The AS-DT1 covers a forward horizontal field of view of about 35 degrees.
+Only the covered sectors are populated; other directions remain no-data unless covered by another sensor.
+Configure the sensor as described in the [Sony AS-DT1](../sensor/sony_asdt1.md) guide, then enable collision prevention with [CP_DIST](#CP_DIST).
+
 ### Other Rangefinders
 
 其他传感器的使能需要修改驱动代码来设置传感器方向和视觉范围。
@@ -107,8 +116,7 @@ The _sensor delay_ for distance sensors connected directly to the flight control
 对于外部视觉系统，传感器延迟可能高达 0.2秒。
 
 Vehicle _velocity setpoint tracking delay_ can be measured by flying at full speed in [Position mode](../flight_modes_mc/position.md), then commanding a stop.
-然后可以从日志中测量实际速度和速度设置值之间的延迟。
-跟踪延迟通常在 0.1 至 0.5秒之间，取决于机身尺寸和调试情况。
+然后可以从日志中测量实际速度和速度设置值之间的延迟。跟踪延迟通常在 0.1 至 0.5秒之间，取决于机身尺寸和调试情况。
 
 :::tip
 If vehicle speed oscillates as it approaches the obstacle (i.e. it slows down, speeds up, slows down) the delay is set too high.
@@ -314,7 +322,7 @@ the quaternion `q` is only used if the `orientation` is set to `ROTATION_CUSTOM`
 
 #### 机载电脑
 
-Companion computers update the `obstacle_distance` topic using ROS2 or the [OBSTACLE_DISTANCE](https://mavlink.io/en/messages/common.html#OBSTACLE_DISTANCE) MAVLink message.
+Companion computers update the `obstacle_distance` topic using ROS 2 or the [OBSTACLE_DISTANCE](https://mavlink.io/en/messages/common.html#OBSTACLE_DISTANCE) MAVLink message.
 
 <!-- to edit the image, open it in inkscape -->
 

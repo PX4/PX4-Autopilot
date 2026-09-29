@@ -115,10 +115,6 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
 						    events::ID("check_estimator_missing_data"),
 						    events::Log::Info, "Waiting for estimator to initialize");
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: ekf2 missing data");
-			}
 		}
 
 	} else {
@@ -144,7 +140,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				reporter.failsafeFlags().mode_req_local_position_relaxed |
 				(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
 
-	if (!context.isArmed() && estimator_status.pre_flt_fail_innov_heading) {
+	// Skip the checks to avoid warnings during calibration (they recover once the vehicle is still again)
+	const bool report_innovation_failures = !context.isArmed() && !context.status().calibration_enabled;
+
+	if (report_innovation_failures && estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
 		 * @description
 		 * Recalibrate compass or perform manual heading reset.
@@ -157,7 +156,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate invalid");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_horiz) {
+	} else if (report_innovation_failures && estimator_status.pre_flt_fail_innov_vel_horiz) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -168,7 +167,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal velocity unstable");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_vert) {
+	} else if (report_innovation_failures && estimator_status.pre_flt_fail_innov_vel_vert) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -179,7 +178,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity unstable");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_pos_horiz) {
+	} else if (report_innovation_failures && estimator_status.pre_flt_fail_innov_pos_horiz) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -190,7 +189,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal position unstable");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_height) {
+	} else if (report_innovation_failures && estimator_status.pre_flt_fail_innov_height) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -203,12 +202,14 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 
-	if ((_param_com_arm_mag_str.get() >= 1)
+	if (_param_com_arm_mag_str.get()
 	    && (!context.isArmed() && estimator_status.pre_flt_fail_mag_field_disturbed)) {
+
+		const MagArmingCheck mag_arming_check = static_cast<MagArmingCheck>(_param_com_arm_mag_str.get());
 
 		NavModes required_groups_mag = required_groups;
 
-		if (_param_com_arm_mag_str.get() != 1) {
+		if (mag_arming_check != MagArmingCheck::DenyArming) {
 			required_groups_mag = NavModes::None; // optional
 		}
 
@@ -228,7 +229,14 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				estimator_status.mag_inclination_deg, estimator_status.mag_inclination_ref_deg);
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Strong magnetic interference");
+			const char *message = "Preflight%s: Strong magnetic interference";
+
+			if (mag_arming_check == MagArmingCheck::DenyArming) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), message, " Fail");
+
+			} else {
+				mavlink_log_warning(reporter.mavlink_log_pub(), message, "");
+			}
 		}
 	}
 
@@ -237,8 +245,21 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GNSS_POS);
 		const bool ekf_gps_check_fail = estimator_status.gps_check_fail_flags > 0;
 
+		const hrt_abstime now = hrt_absolute_time();
+
+		// The flags describe only the newest sample, while EKF2 keeps rejecting samples for a while
+		// after one failed and keeps fusing for longer still, so the check that kept GNSS out may
+		// have passed again by the time the position goes. Each check is remembered for a while after
+		// it last failed, on its own, so one that keeps failing doesn't keep the others alive.
+		for (int i = 0; i < kNumGnssChecks; i++) {
+			if (estimator_status.gps_check_fail_flags & (1 << i)) {
+				_last_gnss_check_fail_time_us[i] = estimator_status.timestamp;
+			}
+		}
+
 		if (ekf_gps_fusion) {
 			reporter.setIsPresent(health_component_t::gps); // should be based on the sensor data directly
+			_last_gnss_fusion_time_us = now;
 		}
 
 		if (context.isArmed()) {
@@ -518,6 +539,11 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 void EstimatorChecks::checkSensorBias(const Context &context, Report &reporter, NavModes required_groups)
 {
+	// Skip the check to avoid warnings during calibration
+	if (context.status().calibration_enabled) {
+		return;
+	}
+
 	// _estimator_sensor_bias_sub instance got changed above already
 	estimator_sensor_bias_s bias;
 
@@ -661,11 +687,50 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_jamming_critical"),
-					    events::Log::Warning, "GPS jamming detected");
+					    events::Log::Notice, "GPS jamming detected");
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_warning(reporter.mavlink_log_pub(), "GPS jamming detected\t");
 		}
+	}
+}
+
+void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Report &reporter,
+		const hrt_abstime &now, const sensor_gps_s &vehicle_gps_position) const
+{
+	// In flight only, and only when GNSS was in use. Without GNSS in the loop neither a failing
+	// receiver check nor a silent receiver says anything about why the estimate went.
+	if (!context.isArmed() || (now > _last_gnss_fusion_time_us + kGnssRecentlyFusedTimeout)) {
+		return;
+	}
+
+	uint16_t failed_checks = 0;
+
+	for (int i = 0; i < kNumGnssChecks; i++) {
+		if ((_last_gnss_check_fail_time_us[i] != 0) && (now <= _last_gnss_check_fail_time_us[i] + kGnssRecentlyFusedTimeout)) {
+			failed_checks |= 1 << i;
+		}
+	}
+
+	// EKF2 runs the checks only on new samples, so a receiver that stopped keeps the flags of
+	// its last sample. The silence is the reason then, and it is tested first.
+	if ((vehicle_gps_position.timestamp == 0) || (now > vehicle_gps_position.timestamp + kGnssDataTimeout)) {
+		/* EVENT
+		 * @description
+		 * The receiver had stopped delivering samples when the local position estimate became invalid.
+		 */
+		events::send(events::ID("check_estimator_position_lost_gnss_no_data"), events::Log::Error,
+			     "Local position lost, no GNSS data");
+
+	} else if (failed_checks != 0) {
+		/* EVENT
+		 * @description
+		 * The GNSS quality checks that failed in the run up to the local position estimate becoming invalid.
+		 * In flight EKF2 checks the fix type, the horizontal, vertical and speed accuracy, spoofing and jamming.
+		 */
+		events::send<events::px4::enums::gnss_check_fail_t>(events::ID("check_estimator_position_lost_gnss_reason"),
+				events::Log::Error, "Local position lost, GNSS check failed: {1}",
+				static_cast<events::px4::enums::gnss_check_fail_t>(failed_checks));
 	}
 }
 
@@ -792,9 +857,15 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		}
 	}
 
+	const bool local_position_was_valid = !failsafe_flags.local_position_invalid;
+
 	failsafe_flags.local_position_invalid =
 		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold, lpos.timestamp,
 				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
+
+	if (local_position_was_valid && failsafe_flags.local_position_invalid) {
+		reportGnssReasonForPositionLoss(context, reporter, now, vehicle_gps_position);
+	}
 
 
 	// In some modes we assume that the operator will compensate for the drift so we do not need to check the position error

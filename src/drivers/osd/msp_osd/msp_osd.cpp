@@ -193,7 +193,7 @@ void MspOsd::SendConfig()
 	msp_osd_config.osd_crosshairs_pos = LOCATION_HIDDEN;
 
 	if (enabled(SymbolIndex::CROSSHAIRS)) {
-		msp_osd_config.osd_crosshairs_pos = osd_crosshairs_pos - 32 * _param_osd_ch_height.get();
+		msp_osd_config.osd_crosshairs_pos = osd_crosshairs_pos - 32 * _param_osd_ch_pos_ver.get();
 	}
 
 	// possibly available, but not currently used
@@ -365,9 +365,20 @@ void MspOsd::Run()
 		const auto msg_original = msp_osd::construct_BATTERY_STATE(battery_status);
 		this->Send(MSP_BATTERY_STATE, &msg_original);
 
-		const auto msg = msp_osd::construct_rendor_BATTERY_STATE(battery_status);
-		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_battery_state_t));
+		if (enabled(SymbolIndex::AVG_CELL_VOLTAGE)) {
+			const auto msg = msp_osd::construct_rendor_BATTERY_STATE(battery_status);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_battery_state_t));
+		}
 
+		if (enabled(SymbolIndex::CURRENT_DRAW)) {
+			const auto msg = msp_osd::construct_rendor_CURRENT_DRAW(battery_status);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_current_draw_t));
+		}
+
+		if (enabled(SymbolIndex::MAH_DRAWN)) {
+			const auto msg = msp_osd::construct_rendor_MAH_DRAWN(battery_status);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_mah_drawn_t));
+		}
 	}
 
 	// MSP_RAW_GPS
@@ -389,6 +400,11 @@ void MspOsd::Run()
 			const auto msg = msp_osd::construct_rendor_GPS_NUM(vehicle_gps_position);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_satellites_used_t));
 		}
+
+		if (enabled(SymbolIndex::GPS_SPEED)) {
+			const auto msg = msp_osd::construct_rendor_GPS_SPEED(vehicle_gps_position);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_gps_speed_t));
+		}
 	}
 
 	// MSP_COMP_GPS
@@ -401,7 +417,6 @@ void MspOsd::Run()
 
 		if (enabled(SymbolIndex::HOME_DIST)) {
 			const auto msg =  msp_osd::construct_rendor_distanceToHome(home_position, vehicle_global_position);
-
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_distanceToHome_t));
 		}
 	}
@@ -412,12 +427,16 @@ void MspOsd::Run()
 		_vehicle_attitude_sub.copy(&vehicle_attitude);
 
 		{
-			const auto msg = msp_osd::construct_rendor_PITCH(vehicle_attitude);
-			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_pitch_t));
+			if (enabled(SymbolIndex::PITCH_ANGLE)) {
+				const auto msg = msp_osd::construct_rendor_PITCH(vehicle_attitude);
+				this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_pitch_t));
+			}
 		}
 		{
-			const auto msg = msp_osd::construct_rendor_ROLL(vehicle_attitude);
-			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_roll_t));
+			if (enabled(SymbolIndex::ROLL_ANGLE)) {
+				const auto msg = msp_osd::construct_rendor_ROLL(vehicle_attitude);
+				this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_roll_t));
+			}
 		}
 	}
 
@@ -467,6 +486,15 @@ void MspOsd::Run()
 		this->Send(MSP_STATUS, &msg, sizeof(msp_status_t));
 	}
 
+	// MSP_CROSSHAIRS
+	{
+		if (enabled(SymbolIndex::CROSSHAIRS)) {
+			const auto msg = msp_osd::construct_rendor_CROSSHAIRS(_param_osd_ch_pos_ver.get(), _param_osd_ch_pos_hor.get());
+
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_crosshairs_t));
+		}
+	}
+
 	subcmd = MSP_DP_DRAW_SCREEN;
 	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1);
 }
@@ -496,7 +524,7 @@ void MspOsd::Receive()
 	uint8_t message_id;
 	int ret;
 
-	while ((ret = _msp.Receive(packet, &message_id)) != -EWOULDBLOCK) {
+	while ((ret = _msp.Receive(packet, &message_id, sizeof(packet))) != -EWOULDBLOCK) {
 		if (ret >= 0) {
 			switch (message_id) {
 
@@ -513,7 +541,11 @@ void MspOsd::Receive()
 					msp_set_vtxtable_band_t *band_info = (msp_set_vtxtable_band_t *)&packet[0];
 
 					// Only supported fixed name lenght and < 8 channels for now
-					if (band_info->band <= BAND_COUNT && band_info->band_name_length == 8 && band_info->channel_count <= 8) {
+					// band is 1-based and uint8_t: without the lower bound, band 0 indexes
+					// vtx_bands[-1]. Also require a frame long enough to hold the struct.
+					if (ret >= (int)sizeof(msp_set_vtxtable_band_t)
+					    && band_info->band >= 1 && band_info->band <= BAND_COUNT
+					    && band_info->band_name_length == 8 && band_info->channel_count <= 8) {
 						memcpy((void *)&vtx_bands[band_info->band - 1], packet, sizeof(msp_set_vtxtable_band_t));
 
 						if (has_vtx_config && band_info->band == vtx_config.band_count) {
@@ -525,7 +557,10 @@ void MspOsd::Receive()
 				}
 
 			case MSP_SET_VTXTABLE_POWERLEVEL: {
-					if ((packet[0] - 1) < POWER_LEVEL_COUNT) {
+					// Same 1-based index: packet[0] of 0 promotes to -1 and passes an
+					// upper-bound-only check, indexing power_levels[-1].
+					if (ret >= (int)sizeof(msp_set_vtxtable_powerlevel_t)
+					    && packet[0] >= 1 && (packet[0] - 1) < POWER_LEVEL_COUNT) {
 						memcpy((void *)&power_levels[packet[0] - 1], packet, sizeof(msp_set_vtxtable_powerlevel_t));
 						has_power_config = true;
 					}

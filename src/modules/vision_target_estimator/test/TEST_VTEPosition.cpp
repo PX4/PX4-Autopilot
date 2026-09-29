@@ -1515,6 +1515,29 @@ TEST_F(VTEPositionTest, MissionPositionSurvivesStaleGapReset)
 	EXPECT_TRUE(_vte_state_sub->get().rel_pos_valid);
 }
 
+// WHY: A cached pad reference must not make expired or future vehicle GNSS observations usable.
+// WHAT: Keep local velocity fresh and verify mission aiding cannot initialize from invalid GNSS timestamps.
+TEST_F(VTEPositionTest, MissionPositionRejectsInvalidGpsTimestamps)
+{
+	enableMask({FusionMaskOption::kMissionPos});
+	_vte->setMissionPosition(kUavLat, kUavLon, kTargetAltM);
+	const hrt_abstime now = vte_test::advanceMicroseconds(2_s);
+
+	for (const hrt_abstime sample_time : {hrt_abstime{0}, now - 1_s, now + 1_ms}) {
+		_vte->resetFilter();
+		setLocalVelocity(matrix::Vector3f{}, now);
+		publishNominalUavGps(matrix::Vector3f{}, sample_time);
+		_vte->update(matrix::Vector3f{});
+		EXPECT_FALSE(_vte_state_sub->update()) << "sample time: " << sample_time;
+		EXPECT_FALSE(_aid_gps_mission_sub->update()) << "sample time: " << sample_time;
+	}
+
+	publishNominalUavGps(matrix::Vector3f{}, now);
+	_vte->update(matrix::Vector3f{});
+	ASSERT_TRUE(_vte_state_sub->update());
+	EXPECT_TRUE(_vte_state_sub->get().rel_pos_valid);
+}
+
 // WHY: GPS offset should expire if it becomes stale.
 // WHAT: Force an offset timeout and ensure the mission GPS measurement is
 // rejected.

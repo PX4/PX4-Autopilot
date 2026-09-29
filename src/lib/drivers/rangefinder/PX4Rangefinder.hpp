@@ -38,6 +38,8 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/distance_sensor.h>
 
+#include <lib/failure_injection/FailureInjection.hpp>
+
 class PX4Rangefinder
 {
 public:
@@ -58,6 +60,8 @@ public:
 	void set_max_distance(const float distance) { _distance_sensor_pub.get().max_distance = distance; }
 	void set_min_distance(const float distance) { _distance_sensor_pub.get().min_distance = distance; }
 
+	void set_variance(const float variance) { _distance_sensor_pub.get().variance = variance; }
+
 	void set_orientation(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
 	void set_mode(const uint8_t mode) { _distance_sensor_pub.get().mode = mode; }
@@ -71,4 +75,7 @@ public:
 
 private:
 	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
+
+	failure_injection::Config _failure_config;
+	failure_injection::Stuck<distance_sensor_s> _stuck;
 };

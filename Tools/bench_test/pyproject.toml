@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "px4bench"
+version = "0.1.0"
+description = "PX4 bench-test suite: hang-visible release qualification on real NuttX hardware"
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
+requires-python = ">=3.8"
+dependencies = [
+    # 2.4.42 is the first release that ships pymavlink.mavftp (log_transfer,
+    # flight_mission log download)
+    "pymavlink>=2.4.42",
+    "pyserial",
+]
+
+[project.optional-dependencies]
+ulog = ["pyulog"]
+
+[project.urls]
+Homepage = "https://github.com/PX4/PX4-Autopilot"
+
+[tool.setuptools]
+packages = ["px4bench"]

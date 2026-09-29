@@ -89,6 +89,12 @@ px4_add_romfs_files(
 	4020_gz_tiltrotor
 	4021_gz_x500_flow
 
+	5001_xplane_cessna172
+	5002_xplane_tb2
+	5010_xplane_ehang184
+	5020_xplane_alia250
+	5021_xplane_qtailsitter
+
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
 
@@ -96,7 +102,6 @@ px4_add_romfs_files(
 
 	10015_gazebo-classic_iris
 	10016_none_iris
-	10017_jmavsim_iris
 	10018_gazebo-classic_iris_foggy_lidar
 	10019_gazebo-classic_omnicopter
 	10030_gazebo-classic_px4vision

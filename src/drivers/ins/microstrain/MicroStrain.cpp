@@ -75,6 +75,7 @@ MicroStrain::MicroStrain(const char *uart_port) :
 	_px4_mag.set_device_id(_dev_id);
 
 	_sensor_baro.device_id = _dev_id;
+	_sensor_baro.is_external = true;
 	_sensor_baro.pressure = 0;
 	_sensor_baro.temperature = 0;
 	_sensor_baro.error_count = 0;
@@ -1722,15 +1723,11 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 
 		gps.satellites_used = fix_info.sample.num_sv;
 
-		gps.heading = ref->dual_ant_stat.heading;
-		gps.heading_offset = 0;
-		gps.heading_accuracy = 0;
-
 		gps.rtcm_injection_rate = 0;
 		gps.selected_rtcm_instance = 0;
-		gps.rtcm_crc_failed = 0;
+		gps.corrections_crc_failed = 0;
 
-		gps.rtcm_msg_used = 0;
+		gps.corrections_msg_used = 0;
 
 		gps.timestamp = hrt_absolute_time();
 
@@ -1763,7 +1760,7 @@ void MicroStrain::initializeRefPos()
 	PX4_DEBUG("Reference position initialized");
 }
 
-void MicroStrain::updateGeoidHeight(float geoid_height, float t)
+void MicroStrain::updateGeoidHeight(float geoid_height, hrt_abstime t)
 {
 	// Updates the low pass filter for geoid height
 	if (_last_geoid_height_update_us == 0) {
@@ -1771,8 +1768,7 @@ void MicroStrain::updateGeoidHeight(float geoid_height, float t)
 		_last_geoid_height_update_us = t;
 
 	} else if (t > _last_geoid_height_update_us) {
-		const float dt = 1e-6f * (t - _last_geoid_height_update_us);
-		_geoid_height_lpf.setParameters(dt, kGeoidHeightLpfTimeConstant);
+		_geoid_height_lpf.setParameters(t - _last_geoid_height_update_us, kGeoidHeightLpfTimeConstant);
 		_geoid_height_lpf.update(geoid_height);
 		_last_geoid_height_update_us = t;
 	}
@@ -1821,10 +1817,12 @@ void MicroStrain::sendGPSAiding()
 		}
 	}
 
-	// Sends external heading aiding data if they are both supported
-	if (_ext_heading_aiding && PX4_ISFINITE(gps.heading)) {
-		float heading = gps.heading + gps.heading_offset;
-		mip_aiding_true_heading(&_device, &t, 4, heading, gps.heading_accuracy, 0xff);
+	vehicle_gnss_heading_s gnss_heading;
+
+	if (_ext_heading_aiding && _vehicle_gnss_heading_sub.update(&gnss_heading)) {
+		// MS_EHEAD_YAW describes the antenna baseline to the INS, so it takes the measured baseline heading
+		const float heading = matrix::wrap_pi(gnss_heading.heading + gnss_heading.heading_offset);
+		mip_aiding_true_heading(&_device, &t, 4, heading, gnss_heading.heading_accuracy, 0xff);
 	}
 }
 
@@ -2006,8 +2004,8 @@ int MicroStrain::print_usage(const char *reason)
 MicroStrain by HBK Inertial Sensor Driver.
 Currently supports the following sensors:
 
--[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference-units--vru-/3dm-cv7-ar)
--[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading-reference-systems--ahrs-/3dm-cv7-ahrs)
+-[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference/3dm-cv7-ar)
+-[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading/3dm-cv7-ahrs)
 -[CV7-INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-ins)
 -[CV7-GNSS/INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-gnss-ins)
 

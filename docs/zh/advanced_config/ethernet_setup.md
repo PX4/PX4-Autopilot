@@ -2,8 +2,7 @@
 
 以太网连接提供了一种快速、可靠和灵活的通信选择，可替代使用USB或其他串行连接。
 
-它可以用于连接地面站、机载计算机和其他MAVLink系统。
-特别建议使用它连接到"原生"使用以太网的系统——例如IP数传。
+它可以用于连接地面站、机载计算机和其他MAVLink系统。特别建议使用它连接到"原生"使用以太网的系统——例如IP数传。
 
 本主题涵盖:
 
@@ -26,18 +25,19 @@ PX4 supports Ethernet connectivity on [Pixhawk 5X-standard](https://github.com/p
 支持的飞行控制器包括:
 
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md)
+- [ARK Electronics ARKV6X-RT](../flight_controller/ark_v6xrt.md)
 - [ARK Electronics ARKV6S](../flight_controller/ark_v6s.md)
 - [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md)
 - [CUAV X25 EVO](../flight_controller/cuav_x25-evo.md)
 - [CUAV X25 SUPER](../flight_controller/cuav_x25-super.md)
+- [CUAV X25-MEGA](../flight_controller/cuav_x25-mega.md)
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md)
 - [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md)
 - [RaccoonLab FMUv6X Autopilot](../flight_controller/raccoonlab_fmu6x.md)
 
 ## 设置以太网网络
 
-要通过以太网连接系统，您需要将它们连接到同一个网络，以便每个系统有一个唯一的IP地址并且可以找到其他系统。
-可以使用DHCP服务器来分配地址，或者通过手动配置网络上每个系统的地址来完成。
+要通过以太网连接系统，您需要将它们连接到同一个网络，以便每个系统有一个唯一的IP地址并且可以找到其他系统。可以使用DHCP服务器来分配地址，或者通过手动配置网络上每个系统的地址来完成。
 
 我们不能提供一个确保可以在您的本地网络中工作的“开箱即用配置”。
 Therefore as an example of the kind of configuration you might do, below we show how to set up the systems on an IP network with static addresses in the range `10.41.10.Xxx`, where PX4 has a statically allocated address `10.41.10.2` (PX4-default) and the computer has address `10.41.10.1`.
@@ -248,7 +248,7 @@ MAVSDK can connect to the PX4 on port `14550` if you don't modify the PX4 Ethern
    MicroXRCEAgent udp4 -p 8888
    ```
 
-4. Run a [listener node](../ros2/user_guide.md#running-the-example) in a new terminal to confirm the connection is established:
+4. Run a [listener node](../ros2/user_guide.md#running-an-example-optional) in a new terminal to confirm the connection is established:
 
    ```sh
    source ~/ws_sensor_combined/install/setup.bash

@@ -37,7 +37,7 @@ CAN transceivers require a 5 V supply. USB-only power (≈4.5 V after the input 
 
 ## 购买渠道
 
-Check [CBUnmanned](https://cbunmanned.com) for availability.
+Check [CBUnmanned](https://www.cbunmanned.com/) for availability.
 
 ## 编译固件
 

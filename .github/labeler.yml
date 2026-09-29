@@ -123,6 +123,7 @@
     - src/drivers/uavcan/**
     - src/drivers/uavcannode/**
     - platforms/ros2/**
+    - Tools/ros2/**
     - msg/translation_node/**
 
 "scope:navigation":

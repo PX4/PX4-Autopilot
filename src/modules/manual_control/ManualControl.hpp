@@ -135,6 +135,8 @@ private:
 	MovingDiff _yaw_diff{};
 	MovingDiff _throttle_diff{};
 
+	static constexpr uint8_t MIN_SIGN_CONSECUTIVE = 3;
+
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 
@@ -150,7 +152,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
-		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
+		(ParamFloat<px4::params::MAN_OVERRIDE_SPD>) _param_man_override_spd,
 		(ParamBool<px4::params::MAN_ARM_GESTURE>) _param_man_arm_gesture,
 		(ParamFloat<px4::params::MAN_KILL_GEST_T>) _param_man_kill_gest_t,
 		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,

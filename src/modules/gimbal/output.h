@@ -61,6 +61,13 @@ public:
 
 	virtual void print_status() const = 0;
 
+	/**
+	 * Whether this output publishes the estimated mount orientation itself.
+	 * MAVLink gimbals report their own orientation, so only non-MAVLink
+	 * outputs (e.g. AUX) need the driver to publish it.
+	 */
+	virtual bool publishes_mount_orientation() const { return false; }
+
 	void publish();
 
 	void set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool yaw_stabilize);

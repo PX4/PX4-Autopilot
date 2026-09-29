@@ -60,7 +60,7 @@ parameters:
       increment: 1
     MPC_TILTMAX_LND:
       description:
-        short: Maximum tilt during inital takeoff ramp
+        short: Maximum tilt during initial takeoff ramp
         long: Tighter tilt limit during takeoff to avoid tip over.
       type: float
       default: 12.0
