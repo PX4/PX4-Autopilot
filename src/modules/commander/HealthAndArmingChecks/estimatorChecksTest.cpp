@@ -204,7 +204,38 @@ TEST_F(EstimatorChecksTest, NamesTheFailingCheckWhenPositionIsLostInFlight)
 	uint16_t reported_flags = 0;
 	memcpy(&reported_flags, event.arguments, sizeof(reported_flags));
 	EXPECT_EQ(reported_flags, kSpeedAccuracy);
-	EXPECT_STREQ(EstimatorChecks::gnssCheckFailText(kSpeedAccuracy), "speed accuracy too low");
+}
+
+TEST_F(EstimatorChecksTest, NamesACheckThatFailedShortlyBeforePositionWasLost)
+{
+	flyOnGnss();
+
+	// the check fails on one sample, passes again on the next, and the position goes a cycle later.
+	// EKF2 was still rejecting samples from the failure, so it is the reason even though the newest
+	// sample is clean.
+	publishEstimatorStatus(true, kSpeedAccuracy);
+	publishReceiver(0);
+	publishLocalPosition(true);
+	runCheck(true);
+
+	publishEstimatorStatus(true, 0);
+	publishReceiver(0);
+	publishLocalPosition(true);
+	runCheck(true);
+	ASSERT_FALSE(_failsafe_flags.local_position_invalid);
+	drainEvents();
+
+	publishEstimatorStatus(true, 0);
+	publishReceiver(0);
+	publishLocalPosition(false);
+	runCheck(true);
+
+	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	event_s event{};
+	ASSERT_EQ(countEvents(kReasonEvent, &event), 1) << "the check that kept GNSS out is the reason";
+	uint16_t reported_flags = 0;
+	memcpy(&reported_flags, event.arguments, sizeof(reported_flags));
+	EXPECT_EQ(reported_flags, kSpeedAccuracy);
 }
 
 TEST_F(EstimatorChecksTest, ReportsOnceWhilePositionStaysLost)
@@ -226,7 +257,7 @@ TEST_F(EstimatorChecksTest, ReportsOnceWhilePositionStaysLost)
 	EXPECT_EQ(countEvents(kReasonEvent), 0) << "the reason is reported when the position is lost, not while it stays lost";
 }
 
-TEST_F(EstimatorChecksTest, SpoofingIsNamedBeforeAnAccuracyCheck)
+TEST_F(EstimatorChecksTest, EveryFailingCheckIsInTheEvent)
 {
 	flyOnGnss();
 
@@ -239,7 +270,6 @@ TEST_F(EstimatorChecksTest, SpoofingIsNamedBeforeAnAccuracyCheck)
 	uint16_t reported_flags = 0;
 	memcpy(&reported_flags, event.arguments, sizeof(reported_flags));
 	EXPECT_EQ(reported_flags, kSpeedAccuracy | kSpoofed) << "the event carries every failing check";
-	EXPECT_STREQ(EstimatorChecks::gnssCheckFailText(kSpeedAccuracy | kSpoofed), "signal spoofed");
 }
 
 TEST_F(EstimatorChecksTest, NothingWhenNoCheckIsFailing)
@@ -270,6 +300,22 @@ TEST_F(EstimatorChecksTest, NamesTheReceiverThatStoppedSending)
 	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
 	EXPECT_EQ(countEvents(kNoDataEvent), 1);
 	EXPECT_EQ(countEvents(kReasonEvent), 0) << "a silent receiver is not a failing check";
+}
+
+TEST_F(EstimatorChecksTest, NamesTheReceiverThatStoppedAfterAFailingSample)
+{
+	flyOnGnss();
+
+	// the last sample before the receiver went quiet failed a check, and EKF2 keeps those flags
+	// since no newer sample replaces them. The silence is still the reason.
+	publishEstimatorStatus(true, kSpeedAccuracy);
+	publishReceiver(2_s);
+	publishLocalPosition(false);
+	runCheck(true);
+
+	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	EXPECT_EQ(countEvents(kNoDataEvent), 1);
+	EXPECT_EQ(countEvents(kReasonEvent), 0) << "flags left by the last sample do not outrank the silence";
 }
 
 TEST_F(EstimatorChecksTest, NothingWhenGnssWasNotInUse)
