@@ -53,7 +53,7 @@
 #include <uORB/topics/failure_injection.h>
 
 struct battery_status_s;
-struct sensor_gps_s;
+struct sensor_gnss_s;
 
 namespace failure_injection
 {
@@ -213,10 +213,10 @@ bool process_battery(const Config &config, uint8_t instance, battery_status_s &b
  * while leaving the position untouched.
  *
  * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
- * @return false if the sensor_gps publication must be suppressed (Off), true otherwise.
+ * @return false if the sensor_gnss publication must be suppressed (Off), true otherwise.
  */
-bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sensor_gps,
-		  Stuck<sensor_gps_s> &stuck);
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &sensor_gps,
+		  Stuck<sensor_gnss_s> &stuck);
 
 /**
  * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to a copy of
@@ -264,7 +264,7 @@ inline bool process(const Config &, uint8_t, uint8_t) { return true; }
 
 inline bool process_battery(const Config &, uint8_t, battery_status_s &) { return true; }
 
-inline bool process_gnss(const Config &, uint8_t, sensor_gps_s &, Stuck<sensor_gps_s> &) { return true; }
+inline bool process_gnss(const Config &, uint8_t, sensor_gnss_s &, Stuck<sensor_gnss_s> &) { return true; }
 
 inline esc_status_s process_esc(const Config &, const esc_status_s &status) { return status; }
 
