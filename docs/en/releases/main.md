@@ -72,10 +72,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Estimation
 
 - EKF2 fuses dual-antenna GNSS heading from its own topic, `vehicle_gnss_heading`, at the heading's rate and measurement time instead of with each position sample. GNSS yaw fusion is gated on the heading itself (its baseline checks, and the spoofing and jamming state of the receiver providing it under [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK), which stop it like position fusion), not on the position checks, and it keeps running when position and velocity fusion stop. `GPS_RAW_INT` and `GPS2_RAW` report the body-frame heading of the receiver that provides it. ([PX4-Autopilot#27102](https://github.com/PX4/PX4-Autopilot/pull/27102))
+- When the local position estimate is lost in flight because of GNSS, commander reports the reason as an event at that moment, the receiver checks that failed or that the receiver stopped sending, so the ground station and the log show the cause ahead of the fusion stopped message. ([PX4-Autopilot#28873](https://github.com/PX4/PX4-Autopilot/pull/28873))
 
 ### Sensors
 
 - Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
+- A magnetometer disabled by setting its [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO) to `0` stays in the voter at priority 0, so disabling the selected one at runtime hands over to the next magnetometer without a sensor failure report, and one disabled at boot no longer keeps the magnetometers after it from being selected. ([PX4-Autopilot#28750](https://github.com/PX4/PX4-Autopilot/pull/28750))
 
 ### Simulation
 
