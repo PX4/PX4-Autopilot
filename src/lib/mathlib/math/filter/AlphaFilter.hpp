@@ -150,6 +150,12 @@ public:
 	const T &getState() const { return _filter_state; }
 	float getCutoffFreq() const { return 1.f / (M_TWOPI_F * _time_constant); }
 
+	// delete mixing seconds with microseconds explicitly -> better compiler error
+	AlphaFilter(uint64_t sample_interval_us, float time_constant_s) = delete;
+	AlphaFilter(float sample_interval_s, uint64_t time_constant_us) = delete;
+	void setParameters(uint64_t sample_interval_us, float time_constant_s) = delete;
+	void setParameters(float sample_interval_s, uint64_t time_constant_us) = delete;
+
 protected:
 	T updateCalculation(const T &sample);
 

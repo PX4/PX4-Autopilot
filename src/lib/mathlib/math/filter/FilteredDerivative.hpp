@@ -113,6 +113,9 @@ public:
 
 	const T &getState() const { return _alpha_filter.getState(); }
 
+	// delete mixing seconds with microseconds explicitly -> better compiler error
+	void setParameters(uint64_t sample_interval_us, float time_constant_s) = delete;
+	void setParameters(float sample_interval_s, uint64_t time_constant_us) = delete;
 
 private:
 	AlphaFilter<T> _alpha_filter;
