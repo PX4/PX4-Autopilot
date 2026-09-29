@@ -107,6 +107,27 @@ TEST_F(EkfGpsTest, gpsTimeout)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 }
 
+TEST_F(EkfGpsTest, gnssRestartHeldOffAfterFusionStop)
+{
+	// GIVEN: an EKF fusing GNSS in flight
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator.runSeconds(1);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// WHEN: fusion stops while the GNSS checks keep passing, and is allowed again right away
+	_ekf_wrapper.disableGpsFusion();
+	_sensor_simulator.runSeconds(0.2);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	_ekf_wrapper.enableGpsFusion();
+
+	// THEN: fusion restarts only once the in-flight restart hold-off (1 s) has passed since the stop
+	_sensor_simulator.runSeconds(0.3);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	_sensor_simulator.runSeconds(1.5);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+}
+
 TEST_F(EkfGpsTest, gnssStrictChecksWhileParked)
 {
 	// GIVEN: a disarmed vehicle on the ground fusing GNSS
