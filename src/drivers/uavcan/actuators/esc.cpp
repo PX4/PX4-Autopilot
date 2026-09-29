@@ -38,6 +38,7 @@
  */
 
 #include "esc.hpp"
+#include "../uavcan_main.hpp"
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <drivers/drv_hrt.h>
@@ -131,16 +132,22 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		esc_index -= 1;
 	}
 
+	const hrt_abstime now = hrt_absolute_time();
+	const uint8_t node_id = msg.getSrcNodeID().get();
+
+	classify_vertiq_node(node_id);
+
 	if (esc_index < esc_status_s::CONNECTED_ESC_MAX) {
 		esc_report_s &esc_report = _esc_status.esc[esc_index];
-		esc_report.timestamp = hrt_absolute_time();
+		esc_report.timestamp = now;
 		esc_report.esc_voltage = msg.voltage;
 		esc_report.esc_current = msg.current;
 		esc_report.esc_temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 		// esc_report.motor_temperature is filled in the extended status callback
 		esc_report.esc_rpm = msg.rpm;
-		esc_report.esc_errorcount = msg.error_count;
-		esc_report.failures = get_failures(esc_index, msg.getSrcNodeID().get());
+		esc_report.esc_errorcount = msg.error_count; // raw, packed formats are described by the type
+		esc_report.esc_errorcount_type = error_count_type(node_id);
+		esc_report.failures = get_failures(node_id);
 
 		// A repeated ESC index marks the start of a new round; publish once per round.
 		const uint16_t index_bit = 1u << msg.esc_index;
@@ -150,7 +157,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 			_esc_status.esc_count = _rotor_count;
 			_esc_status.counter += 1;
 			_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
-			_esc_status.esc_online_flags = check_escs_status();
+			_esc_status.esc_online_flags = check_escs_status(now);
 			_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
 			_esc_status.timestamp = esc_report.timestamp;
 
@@ -163,10 +170,162 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 
 	// Register device capability for each ESC channel
 	if (_node_info_publisher != nullptr) {
-		uint8_t node_id = msg.getSrcNodeID().get();
 		uint32_t device_id = esc_index;
 		_node_info_publisher->registerDeviceCapability(node_id, device_id, NodeInfoPublisher::DeviceCapability::ESC);
 	}
+
+	// Issues any due Vertiq error count meaning query: classify_vertiq_node() above may have just made
+	// this node's own entry due for the first time, and this also covers every other node's periodic re-check.
+	process_due_error_count_meaning_queries(now);
+}
+
+void UavcanEscController::classify_vertiq_node(uint8_t node_id)
+{
+	if (_node_info_publisher == nullptr || find_error_count_meaning(node_id) != nullptr) {
+		return;
+	}
+
+	const char *name = _node_info_publisher->getNodeName(node_id);
+
+	// Only Vertiq modules make the error_count meaning configurable, everything else follows the DroneCAN
+	// definition; if the node's name isn't known yet, this is simply retried on the next esc::Status.
+	if (name == nullptr || strncmp(name, VERTIQ_NODE_NAME_PREFIX, strlen(VERTIQ_NODE_NAME_PREFIX)) != 0) {
+		return;
+	}
+
+	if (allocate_error_count_meaning(node_id) == nullptr) {
+		PX4_WARN("ESC node %d: no slot to track error count meaning, assuming ESC faults", node_id);
+	}
+}
+
+const UavcanEscController::ErrorCountMeaning *UavcanEscController::find_error_count_meaning(uint8_t node_id) const
+{
+	if (node_id == 0) {
+		// 0 marks the unused slots and is never a real node
+		return nullptr;
+	}
+
+	for (const ErrorCountMeaning &entry : _error_count_meanings) {
+		if (entry.node_id == node_id) {
+			return &entry;
+		}
+	}
+
+	return nullptr;
+}
+
+UavcanEscController::ErrorCountMeaning *UavcanEscController::find_error_count_meaning(uint8_t node_id)
+{
+	return const_cast<ErrorCountMeaning *>(static_cast<const UavcanEscController *>(this)->find_error_count_meaning(node_id));
+}
+
+UavcanEscController::ErrorCountMeaning *UavcanEscController::allocate_error_count_meaning(uint8_t node_id)
+{
+	for (ErrorCountMeaning &entry : _error_count_meanings) {
+		if (entry.node_id == 0) {
+			entry.node_id = node_id;
+			return &entry;
+		}
+	}
+
+	return nullptr;
+}
+
+void UavcanEscController::request_error_count_meaning(ErrorCountMeaning &entry, hrt_abstime now)
+{
+	uavcan::protocol::param::GetSet::Request req;
+	req.name = VERTIQ_ERROR_MEANING_PARAM;
+
+	// Scheduled once, up front, regardless of outcome: a failure or a timeout is simply retried at the
+	// same rate as the periodic re-check, instead of tracking attempts separately.
+	entry.next_query = now + ERROR_MEANING_REQUERY_INTERVAL_US;
+
+	// The client is shared with the CLI and GCS parameter traffic, which may talk to the same node at the
+	// same time, so the response is matched by the full call ID (node + transfer ID) and not by node alone.
+	uavcan::ServiceCallID call_id;
+
+	if (_param_client_node != nullptr && _param_client_node->request_param_getset(entry.node_id, req, call_id) >= 0) {
+		entry.pending_call = call_id;
+
+	} else {
+		entry.pending_call = uavcan::ServiceCallID{}; // never actually sent; next_query is already scheduled to retry
+	}
+}
+
+void UavcanEscController::process_due_error_count_meaning_queries(hrt_abstime now)
+{
+	for (ErrorCountMeaning &entry : _error_count_meanings) {
+		if (entry.node_id != 0 && !entry.pending_call.isValid() && now >= entry.next_query) {
+			request_error_count_meaning(entry, now);
+		}
+	}
+}
+
+bool UavcanEscController::tryHandleErrorCountMeaningResult(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet>
+		&result)
+{
+	ErrorCountMeaning *entry = find_error_count_meaning(result.getCallID().server_node_id.get());
+
+	if (entry == nullptr || !entry->pending_call.isValid() || !(entry->pending_call == result.getCallID())) {
+		return false; // not ours: the CLI/GCS may be reading parameters from the same ESC
+	}
+
+	entry->pending_call = uavcan::ServiceCallID{};
+
+	if (!result.isSuccessful()) {
+		// next_query is already scheduled; the periodic re-check will simply try again
+		return true;
+	}
+
+	uavcan::protocol::param::GetSet::Response resp = result.getResponse(); // Value::is()/to() are not const
+
+	if (resp.name.empty()) {
+		// Parameter does not exist: speed firmware before v0.3.0 always reports the live CAN TX error counter
+		entry->type = esc_report_s::ERRORCOUNT_TYPE_CAN_TEC;
+		return true;
+	}
+
+	if (!resp.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
+		// The parameter exists but is not what we expect: better not to judge the count at all
+		entry->type = esc_report_s::ERRORCOUNT_TYPE_UNKNOWN;
+		return true;
+	}
+
+	switch (resp.value.to<uavcan::protocol::param::Value::Tag::integer_value>()) {
+	case TecErrorCounter:
+		entry->type = esc_report_s::ERRORCOUNT_TYPE_CAN_TEC;
+		break;
+
+	case RecErrorCounter:
+		entry->type = esc_report_s::ERRORCOUNT_TYPE_CAN_REC;
+		break;
+
+	case MaxErrorCounter:
+		entry->type = esc_report_s::ERRORCOUNT_TYPE_CAN_TEC_REC_MAX;
+		break;
+
+	case PackedErrorCounters:
+		entry->type = esc_report_s::ERRORCOUNT_TYPE_CAN_TEC_REC_PACKED;
+		break;
+
+	case CumulativeErrors:
+		entry->type = esc_report_s::ERRORCOUNT_TYPE_CAN_ERRORS;
+		break;
+
+	default:
+		// A mode added by a newer firmware: its meaning is not known, so the count is not evaluated
+		entry->type = esc_report_s::ERRORCOUNT_TYPE_UNKNOWN;
+		break;
+	}
+
+	return true;
+}
+
+uint8_t UavcanEscController::error_count_type(uint8_t node_id) const
+{
+	const ErrorCountMeaning *entry = find_error_count_meaning(node_id);
+	// type defaults to, and falls back to, the generic interpretation while unresolved or undiscovered
+	return entry != nullptr ? entry->type : esc_report_s::ERRORCOUNT_TYPE_ESC_FAULTS;
 }
 
 void UavcanEscController::esc_status_extended_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg)
@@ -190,10 +349,9 @@ void UavcanEscController::esc_status_extended_sub_cb(const uavcan::ReceivedDataS
 	}
 }
 
-uint16_t UavcanEscController::check_escs_status()
+uint16_t UavcanEscController::check_escs_status(hrt_abstime now)
 {
 	uint16_t esc_status_flags = 0;
-	const hrt_abstime now = hrt_absolute_time();
 
 	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
 
@@ -206,7 +364,7 @@ uint16_t UavcanEscController::check_escs_status()
 	return esc_status_flags;
 }
 
-uint32_t UavcanEscController::get_failures(uint8_t esc_index, uint8_t node_id)
+uint32_t UavcanEscController::get_failures(uint8_t node_id)
 {
 	// Check DroneCAN node health of the ESC
 	dronecan_node_status_s node_status{};
@@ -229,12 +387,7 @@ uint32_t UavcanEscController::get_failures(uint8_t esc_index, uint8_t node_id)
 	if ((node_health == dronecan_node_status_s::HEALTH_ERROR)
 	    || (node_health == dronecan_node_status_s::HEALTH_CRITICAL)) {
 		// Parse VertiQ = iq_motion ESC error flags
-		device_information_s device_information{};
-
-		if (_device_information_sub.copy(&device_information)
-		    && device_information.device_type == device_information_s::DEVICE_TYPE_ESC
-		    && device_information.device_id == esc_index
-		    && strstr(device_information.name, "iq_motion") != nullptr) {
+		if (is_vertiq_node(node_id)) {
 			static const struct {
 				uint8_t bit;
 				uint8_t failure_type;
