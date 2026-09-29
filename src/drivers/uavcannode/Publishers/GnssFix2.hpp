@@ -43,7 +43,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/pps_capture.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 namespace uavcannode
 {
@@ -56,7 +56,7 @@ class GnssFix2 :
 public:
 	GnssFix2(px4::WorkItem *work_item, uavcan::INode &node) :
 		UavcanPublisherBase(uavcan::equipment::gnss::Fix2::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gps)),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gnss)),
 		uavcan::Publisher<uavcan::equipment::gnss::Fix2>(node)
 	{
 		this->setPriority(uavcan::TransferPriority::OneLowerThanHighest);
@@ -88,8 +88,8 @@ public:
 			_pps_last_update = pps.timestamp;
 		}
 
-		// sensor_gps -> uavcan::equipment::gnss::Fix2
-		sensor_gps_s gps;
+		// sensor_gnss -> uavcan::equipment::gnss::Fix2
+		sensor_gnss_s gps;
 
 		if (uORB::SubscriptionCallbackWorkItem::update(&gps)) {
 			uavcan::equipment::gnss::Fix2 fix2{};
@@ -103,14 +103,14 @@ public:
 				fix2.timestamp.usec = static_cast<uint64_t>(static_cast<int64_t>(now) + _pps_offset_us);
 			}
 
-			fix2.latitude_deg_1e8 = (int64_t)(gps.latitude_deg * 1e8);
-			fix2.longitude_deg_1e8 = (int64_t)(gps.longitude_deg * 1e8);
-			fix2.height_msl_mm = (int32_t)(gps.altitude_msl_m * 1e3);
-			fix2.height_ellipsoid_mm = (int32_t)(gps.altitude_ellipsoid_m * 1e3);
+			fix2.latitude_deg_1e8 = (int64_t)(gps.latitude * 1e8);
+			fix2.longitude_deg_1e8 = (int64_t)(gps.longitude * 1e8);
+			fix2.height_msl_mm = (int32_t)(gps.altitude_msl * 1e3);
+			fix2.height_ellipsoid_mm = (int32_t)(gps.altitude_ellipsoid * 1e3);
 			fix2.status = gps.fix_type;
-			fix2.ned_velocity[0] = gps.vel_n_m_s;
-			fix2.ned_velocity[1] = gps.vel_e_m_s;
-			fix2.ned_velocity[2] = gps.vel_d_m_s;
+			fix2.ned_velocity[0] = gps.vel_north;
+			fix2.ned_velocity[1] = gps.vel_east;
+			fix2.ned_velocity[2] = gps.vel_down;
 			fix2.pdop = gps.hdop > gps.vdop ? gps.hdop :
 				    gps.vdop; // Use pdop for both hdop and vdop since uavcan v0 spec does not support them
 			fix2.sats_used = gps.satellites_used;
@@ -140,9 +140,9 @@ public:
 			fix2.covariance.push_back(gps.eph * gps.eph);
 			fix2.covariance.push_back(gps.epv * gps.epv);
 			// velocity variance -- Vxx, Vyy, Vzz
-			fix2.covariance.push_back(gps.s_variance_m_s);
-			fix2.covariance.push_back(gps.s_variance_m_s);
-			fix2.covariance.push_back(gps.s_variance_m_s);
+			fix2.covariance.push_back(gps.speed_accuracy);
+			fix2.covariance.push_back(gps.speed_accuracy);
+			fix2.covariance.push_back(gps.speed_accuracy);
 
 			uavcan::equipment::gnss::ECEFPositionVelocity ecefpositionvelocity{};
 			ecefpositionvelocity.velocity_xyz[0] = NAN;
@@ -150,7 +150,7 @@ public:
 			ecefpositionvelocity.velocity_xyz[2] = NAN;
 
 			// Use ecef_position_velocity for now... There are no fields for these
-			ecefpositionvelocity.position_xyz_mm[0] = gps.noise_per_ms;
+			ecefpositionvelocity.position_xyz_mm[0] = gps.noise;
 			ecefpositionvelocity.position_xyz_mm[1] = gps.jamming_indicator;
 			ecefpositionvelocity.position_xyz_mm[2] = (gps.jamming_state << 8) | gps.spoofing_state;
 

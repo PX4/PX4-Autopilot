@@ -40,7 +40,7 @@
 #include <uavcan/equipment/gnss/Auxiliary.hpp>
 
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 namespace uavcannode
 {
@@ -53,7 +53,7 @@ class GnssAuxiliary :
 public:
 	GnssAuxiliary(px4::WorkItem *work_item, uavcan::INode &node) :
 		UavcanPublisherBase(uavcan::equipment::gnss::Auxiliary::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gps)),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gnss)),
 		uavcan::Publisher<uavcan::equipment::gnss::Auxiliary>(node)
 	{
 		this->setPriority(uavcan::TransferPriority::Default);
@@ -73,8 +73,8 @@ public:
 	{
 		using uavcan::equipment::gnss::Auxiliary;
 
-		// sensor_gps -> uavcan::equipment::gnss::Auxiliary
-		sensor_gps_s gps;
+		// sensor_gnss -> uavcan::equipment::gnss::Auxiliary
+		sensor_gnss_s gps;
 
 		if (uORB::SubscriptionCallbackWorkItem::update(&gps)) {
 			uavcan::equipment::gnss::Auxiliary auxiliary{};
