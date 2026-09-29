@@ -85,7 +85,6 @@ endif()
 
 if(CONFIG_EKF2_GNSS)
 	list(APPEND EKF_SRCS
-		aid_sources/gnss/gnss_checks.cpp
 		aid_sources/gnss/gnss_height_control.cpp
 		aid_sources/gnss/gps_control.cpp
 	)
@@ -95,7 +94,7 @@ if(CONFIG_EKF2_GNSS)
 	endif()
 
 	add_subdirectory(yaw_estimator)
-	list(APPEND EKF_LIBS yaw_estimator)
+	list(APPEND EKF_LIBS yaw_estimator gnss_checks)
 endif()
 
 if(CONFIG_EKF2_GRAVITY_FUSION)

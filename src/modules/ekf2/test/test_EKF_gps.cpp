@@ -364,8 +364,8 @@ TEST_F(EkfGpsTest, gnssIntermittentSaccFailureDisablesFusion)
 	// Each good sample passes runInitialFixChecks() but run() still returns false because
 	// the last failure is too recent (min_health_time_us = 10s not satisfied).
 	// The fusion must therefore never actually fuse any data.
-	const float bad_sacc = 5.0f;   // fails ekf2_req_sacc (default 1.0 m/s)
-	const float good_sacc = 0.2f;  // passes ekf2_req_sacc
+	const float bad_sacc = 5.0f;   // fails gnss_req_sacc (default 1.0 m/s)
+	const float good_sacc = 0.2f;  // passes gnss_req_sacc
 
 	for (int i = 0; i < 4; i++) {
 		gnssSample gps_data = _sensor_simulator._gps.getData();
@@ -390,7 +390,7 @@ TEST_F(EkfGpsTest, velocityAboveLimitIsNotFused)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
-	_ekf->getParamHandle()->ekf2_gps_check = 0;
+	_ekf->getParamHandle()->gnss_check = 0;
 
 	// WHEN: the receiver reports a velocity above EKF2_VEL_LIM (100 m/s by default)
 	_sensor_simulator._gps.setVelocity(Vector3f(150.f, 0.f, 0.f));
@@ -420,7 +420,7 @@ TEST_F(EkfGpsTest, invalidVelocityIsSkipped)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
-	_ekf->getParamHandle()->ekf2_gps_check = 0;
+	_ekf->getParamHandle()->gnss_check = 0;
 	const float velocity_limit = _ekf->getParamHandle()->ekf2_vel_lim;
 	const Vector3f invalid_velocities[] {
 		{velocity_limit + 1.f, 0.f, 0.f},

@@ -175,7 +175,6 @@ endif()
 
 if(CONFIG_EKF2_GNSS)
 	list(APPEND EKF_SRCS
-		EKF/aid_sources/gnss/gnss_checks.cpp
 		EKF/aid_sources/gnss/gnss_height_control.cpp
 		EKF/aid_sources/gnss/gps_control.cpp
 	)
@@ -184,7 +183,7 @@ if(CONFIG_EKF2_GNSS)
 		list(APPEND EKF_SRCS EKF/aid_sources/gnss/gnss_yaw_control.cpp)
 	endif()
 
-	list(APPEND EKF_LIBS yaw_estimator)
+	list(APPEND EKF_LIBS yaw_estimator gnss_checks)
 
 	list(APPEND EKF_MODULE_PARAMS params_gnss.yaml)
 endif()

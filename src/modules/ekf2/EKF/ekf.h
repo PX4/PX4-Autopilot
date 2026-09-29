@@ -46,7 +46,7 @@
 #include "estimator_interface.h"
 
 #if defined(CONFIG_EKF2_GNSS)
-# include "aid_sources/gnss/gnss_checks.hpp"
+# include <lib/gnss/gnss_checks.hpp>
 # include "yaw_estimator/EKFGSF_yaw.h"
 #endif // CONFIG_EKF2_GNSS
 
@@ -929,6 +929,8 @@ private:
 #if defined(CONFIG_EKF2_GNSS)
 	// control fusion of GPS observations
 	void controlGpsFusion(const imuSample &imu_delayed);
+	void updateGnssChecksParams();
+	bool runGnssChecks(const gnssSample &gnss_sample);
 	void controlGnssVelFusion(estimator_aid_source3d_s &aid_src, bool force_reset);
 	void controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool force_reset);
 	void stopGnssFusion();

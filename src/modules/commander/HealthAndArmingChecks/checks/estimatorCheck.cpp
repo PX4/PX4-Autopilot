@@ -376,7 +376,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -388,7 +388,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -400,7 +400,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -412,7 +412,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -424,7 +424,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -436,7 +436,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -448,7 +448,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -460,7 +460,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -472,7 +472,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -484,7 +484,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -496,7 +496,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -508,7 +508,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * Can be configured with <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,

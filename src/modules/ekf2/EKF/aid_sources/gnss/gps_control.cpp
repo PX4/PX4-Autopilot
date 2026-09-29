@@ -43,6 +43,8 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
 	_fc.gps.available = (_params.ekf2_gps_ctrl != 0);
 
+	updateGnssChecksParams();
+
 #if defined(CONFIG_EKF2_GNSS_YAW)
 	controlGnssYawFusion(imu_delayed);
 #endif // CONFIG_EKF2_GNSS_YAW
@@ -74,7 +76,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
 		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
-		const bool checks_passed = _gnss_checks.run(gnss_sample, _time_delayed_us);
+		const bool checks_passed = runGnssChecks(gnss_sample);
 
 		if (checks_passed && _gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
 			// First time checks are passing, latching.
@@ -141,6 +143,43 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		controlGnssVelFusion(_aid_src_gnss_vel, do_vel_pos_reset);
 		controlGnssPosFusion(_aid_src_gnss_pos, do_vel_pos_reset);
 	}
+}
+
+void Ekf::updateGnssChecksParams()
+{
+	GnssChecks::Params params{};
+	params.check_mask = _params.gnss_check;
+	params.req_nsats = _params.gnss_req_nsats;
+	params.req_pdop = _params.gnss_req_pdop;
+	params.req_eph = _params.gnss_req_eph;
+	params.req_epv = _params.gnss_req_epv;
+	params.req_sacc = _params.gnss_req_sacc;
+	params.req_hdrift = _params.gnss_req_hdrift;
+	params.req_vdrift = _params.gnss_req_vdrift;
+	params.req_fix = _params.gnss_req_fix;
+	params.min_health_time_us = _min_gps_health_time_us;
+	_gnss_checks.setParams(params);
+}
+
+bool Ekf::runGnssChecks(const gnssSample &gnss_sample)
+{
+	gnssChecksSample sample{};
+	sample.time_us = gnss_sample.time_us;
+	sample.lat = gnss_sample.lat;
+	sample.lon = gnss_sample.lon;
+	sample.alt = gnss_sample.alt;
+	sample.vel = gnss_sample.vel;
+	sample.hacc = gnss_sample.hacc;
+	sample.vacc = gnss_sample.vacc;
+	sample.sacc = gnss_sample.sacc;
+	sample.fix_type = gnss_sample.fix_type;
+	sample.nsats = gnss_sample.nsats;
+	sample.pdop = gnss_sample.pdop;
+	sample.spoofed = gnss_sample.spoofed;
+	sample.jammed = gnss_sample.jammed;
+
+	return _gnss_checks.run(sample, _control_status.flags.armed, _control_status.flags.in_air,
+				_control_status.flags.vehicle_at_rest);
 }
 
 void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool force_reset)
@@ -352,7 +391,7 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 				   && (aid_src.test_ratio[0] < 1.f) && (aid_src.test_ratio[1] < 1.f); // vx & vy accepted
 
 	if (bad_acc_vz_rejected
-	    && (gnss_sample.sacc < _params.ekf2_req_sacc)
+	    && (gnss_sample.sacc < _params.gnss_req_sacc)
 	   ) {
 		const float innov_limit = innovation_gate * sqrtf(aid_src.innovation_variance[2]);
 		aid_src.innovation[2] = math::constrain(aid_src.innovation[2], -innov_limit, innov_limit);
@@ -401,7 +440,7 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 	const Vector2f vel_xy(aid_src_vel.observation);
 
 	if ((vel_var > 0.f)
-	    && (vel_accuracy < _params.ekf2_req_sacc)
+	    && (vel_accuracy < _params.gnss_req_sacc)
 	    && vel_xy.isAllFinite()) {
 
 		_yawEstimator.fuseVelocity(vel_xy, vel_accuracy, _control_status.flags.in_air);
