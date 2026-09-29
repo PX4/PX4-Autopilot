@@ -36,7 +36,9 @@
 #include "../Common.hpp"
 #include <lib/hysteresis/hysteresis.h>
 #include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_gnss.h>
+#include <uORB/topics/sensors_status_gnss.h>
 
 class GnssRedundancyChecks : public HealthAndArmingCheckBase
 {
@@ -49,8 +51,9 @@ public:
 private:
 	static constexpr int GPS_MAX_INSTANCES = 2;
 	uORB::SubscriptionMultiArray<sensor_gnss_s, GPS_MAX_INSTANCES> _sensor_gnss_sub{ORB_ID::sensor_gnss};
+	uORB::Subscription _sensors_status_gnss_sub{ORB_ID(sensors_status_gnss)};
 
-	uint8_t _peak_fixed_count{0};
+	uint8_t _peak_healthy_count{0};
 	systemlib::Hysteresis _divergence_hysteresis;
 
 
