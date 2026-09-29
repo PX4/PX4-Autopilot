@@ -50,8 +50,8 @@
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -144,7 +144,7 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(ranging_beacon)) {
 		_ranging_beacon_msg_id = msg_id;
 
-	} else if (sub.orb_meta == ORB_ID(vehicle_gps_position)) {
+	} else if (sub.orb_meta == ORB_ID(vehicle_gnss)) {
 		_vehicle_gps_position_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_gnss_heading)) {
