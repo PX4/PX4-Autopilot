@@ -52,15 +52,18 @@ public:
 	uint16_t getMotorFailureMask() const { return _motor_failure_mask; }
 	bool getEscArmStatus() const { return _esc_arm_hysteresis.get_state(); }
 
+	// An ESC whose last telemetry report is older than this is reported offline
+	static constexpr hrt_abstime ESC_OFFLINE_TIMEOUT_US = 400_ms;
+
+	// Time all ESCs get to report armed after PX4 arms before "Not all ESCs are armed" fires.
+	static constexpr hrt_abstime ESC_ARMING_TIMEOUT_US = 400_ms;
+
 private:
 	uint16_t checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	uint16_t checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
 	uint16_t checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	void updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	void checkEscTemperature(Report &reporter, const esc_status_s &esc_status);
-
-
-	static constexpr hrt_abstime ESC_TIMEOUT_US = 400_ms;
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
