@@ -94,7 +94,7 @@ if(CONFIG_EKF2_GNSS)
 	endif()
 
 	add_subdirectory(yaw_estimator)
-	list(APPEND EKF_LIBS yaw_estimator gnss_checks)
+	list(APPEND EKF_LIBS yaw_estimator)
 endif()
 
 if(CONFIG_EKF2_GRAVITY_FUSION)

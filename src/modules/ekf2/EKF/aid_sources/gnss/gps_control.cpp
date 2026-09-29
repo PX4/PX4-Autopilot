@@ -43,8 +43,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
 	_fc.gps.available = (_params.ekf2_gps_ctrl != 0);
 
-	updateGnssChecksParams();
-
 #if defined(CONFIG_EKF2_GNSS_YAW)
 	controlGnssYawFusion(imu_delayed);
 #endif // CONFIG_EKF2_GNSS_YAW
@@ -75,19 +73,20 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	if (_gps_data_ready) {
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
-		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
-		const bool checks_passed = runGnssChecks(gnss_sample);
+		// The sensors module stamps each sample with its check result
+		_gnss_usable = gnss_sample.usable;
 
-		if (checks_passed && _gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
+		if (gnss_sample.usable && !_gnss_checks_passed_reported) {
 			// First time checks are passing, latching.
 			_information_events.flags.gps_checks_passed = true;
+			_gnss_checks_passed_reported = true;
 		}
 
 		// Each axis of the velocity state is constrained to EKF2_VEL_LIM, so a sample beyond it cannot be fused
 		const bool vel_within_limit = gnss_sample.vel.isAllFinite()
 					      && (gnss_sample.vel.abs().max() <= _params.ekf2_vel_lim);
 
-		if (checks_passed && vel_within_limit) {
+		if (gnss_sample.usable && vel_within_limit) {
 			_time_last_gnss_checks_pass_us = _time_delayed_us;
 
 		} else {
@@ -101,7 +100,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			if (using_gnss && gnss_checks_pass_timeout) {
 				stopGnssFusion();
 
-				if (checks_passed) {
+				if (gnss_sample.usable) {
 					ECL_WARN("GNSS velocity above limit - stopping use");
 
 				} else {
@@ -145,43 +144,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::updateGnssChecksParams()
-{
-	GnssChecks::Params params{};
-	params.check_mask = _params.gnss_check;
-	params.req_nsats = _params.gnss_req_nsats;
-	params.req_pdop = _params.gnss_req_pdop;
-	params.req_eph = _params.gnss_req_eph;
-	params.req_epv = _params.gnss_req_epv;
-	params.req_sacc = _params.gnss_req_sacc;
-	params.req_hdrift = _params.gnss_req_hdrift;
-	params.req_vdrift = _params.gnss_req_vdrift;
-	params.req_fix = _params.gnss_req_fix;
-	params.min_health_time_us = _min_gps_health_time_us;
-	_gnss_checks.setParams(params);
-}
-
-bool Ekf::runGnssChecks(const gnssSample &gnss_sample)
-{
-	gnssChecksSample sample{};
-	sample.time_us = gnss_sample.time_us;
-	sample.lat = gnss_sample.lat;
-	sample.lon = gnss_sample.lon;
-	sample.alt = gnss_sample.alt;
-	sample.vel = gnss_sample.vel;
-	sample.hacc = gnss_sample.hacc;
-	sample.vacc = gnss_sample.vacc;
-	sample.sacc = gnss_sample.sacc;
-	sample.fix_type = gnss_sample.fix_type;
-	sample.nsats = gnss_sample.nsats;
-	sample.pdop = gnss_sample.pdop;
-	sample.spoofed = gnss_sample.spoofed;
-	sample.jammed = gnss_sample.jammed;
-
-	return _gnss_checks.run(sample, _control_status.flags.armed, _control_status.flags.in_air,
-				_control_status.flags.vehicle_at_rest);
-}
-
 void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool force_reset)
 {
 	const bool continuing_conditions_passing = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
@@ -189,8 +151,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_fault
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed()
-			&& isGnssRestartHoldOffElapsed();
+	const bool starting_conditions_passing = continuing_conditions_passing && isGnssRestartHoldOffElapsed();
 
 	if (_control_status.flags.gnss_vel) {
 		if (continuing_conditions_passing) {
@@ -247,9 +208,8 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed()
-			&& isGnssRestartHoldOffElapsed();
-	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gnss_checks.passed() && isGnssRestartHoldOffElapsed();
+	const bool starting_conditions_passing = continuing_conditions_passing && isGnssRestartHoldOffElapsed();
+	const bool gpos_init_conditions_passing = gnss_pos_enabled && isGnssRestartHoldOffElapsed();
 
 	if (_control_status.flags.gnss_pos) {
 		if (continuing_conditions_passing) {

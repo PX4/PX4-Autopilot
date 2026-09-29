@@ -48,6 +48,40 @@ static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
 static px4::atomic<EKF2Selector *> _ekf2_selector {nullptr};
 #endif // CONFIG_EKF2_MULTI_INSTANCE
 
+#if defined(CONFIG_EKF2_GNSS)
+// estimator_status reports the failed GNSS checks in its own bit order, which commander and the logs read
+static uint16_t toEstimatorStatusCheckFlags(uint16_t failed_checks)
+{
+	static constexpr struct {
+		uint16_t check;
+		uint8_t bit;
+	} kCheckBits[] {
+		{vehicle_gnss_s::CHECK_FIX,     estimator_status_s::GPS_CHECK_FAIL_GPS_FIX},
+		{vehicle_gnss_s::CHECK_NSATS,   estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT},
+		{vehicle_gnss_s::CHECK_PDOP,    estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP},
+		{vehicle_gnss_s::CHECK_EPH,     estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR},
+		{vehicle_gnss_s::CHECK_EPV,     estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR},
+		{vehicle_gnss_s::CHECK_SACC,    estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR},
+		{vehicle_gnss_s::CHECK_HDRIFT,  estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT},
+		{vehicle_gnss_s::CHECK_VDRIFT,  estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT},
+		{vehicle_gnss_s::CHECK_HSPEED,  estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR},
+		{vehicle_gnss_s::CHECK_VSPEED,  estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR},
+		{vehicle_gnss_s::CHECK_SPOOFED, estimator_status_s::GPS_CHECK_FAIL_SPOOFED},
+		{vehicle_gnss_s::CHECK_JAMMED,  estimator_status_s::GPS_CHECK_FAIL_JAMMED},
+	};
+
+	uint16_t flags = 0;
+
+	for (const auto &check_bit : kCheckBits) {
+		if (failed_checks & check_bit.check) {
+			flags |= 1u << check_bit.bit;
+		}
+	}
+
+	return flags;
+}
+#endif // CONFIG_EKF2_GNSS
+
 EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, config),
@@ -87,14 +121,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gps_p_gate(_params->ekf2_gps_p_gate),
 	_param_ekf2_gps_v_gate(_params->ekf2_gps_v_gate),
 	_param_gnss_check(_params->gnss_check),
-	_param_gnss_req_eph(_params->gnss_req_eph),
-	_param_gnss_req_epv(_params->gnss_req_epv),
 	_param_gnss_req_sacc(_params->gnss_req_sacc),
-	_param_gnss_req_nsats(_params->gnss_req_nsats),
-	_param_gnss_req_pdop(_params->gnss_req_pdop),
-	_param_gnss_req_hdrift(_params->gnss_req_hdrift),
-	_param_gnss_req_vdrift(_params->gnss_req_vdrift),
-	_param_gnss_req_fix(_params->gnss_req_fix),
 	_param_ekf2_gsf_tas(_params->ekf2_gsf_tas),
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -257,7 +284,6 @@ void EKF2::AdvertiseTopics()
 #if defined(CONFIG_EKF2_GNSS)
 
 	if (_param_ekf2_gps_ctrl.get()) {
-		_estimator_gps_status_pub.advertise();
 		_yaw_est_pub.advertise();
 	}
 
@@ -871,7 +897,6 @@ void EKF2::Run()
 			}
 
 #if defined(CONFIG_EKF2_GNSS)
-			PublishGpsStatus(now);
 			PublishYawEstimatorStatus(now);
 #endif // CONFIG_EKF2_GNSS
 
@@ -1378,47 +1403,6 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 		_global_position_pub.publish(global_pos);
 	}
 }
-
-#if defined(CONFIG_EKF2_GNSS)
-void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
-{
-	const hrt_abstime timestamp_sample = _ekf.get_gps_sample_delayed().time_us;
-
-	if (timestamp_sample == _last_gps_status_published) {
-		return;
-	}
-
-	estimator_gps_status_s estimator_gps_status{};
-	estimator_gps_status.timestamp_sample = timestamp_sample;
-
-	estimator_gps_status.position_drift_rate_horizontal_m_s = _ekf.gps_horizontal_position_drift_rate_m_s();
-	estimator_gps_status.position_drift_rate_vertical_m_s   = _ekf.gps_vertical_position_drift_rate_m_s();
-	estimator_gps_status.filtered_horizontal_speed_m_s      = _ekf.gps_filtered_horizontal_velocity_m_s();
-
-	estimator_gps_status.checks_passed = _ekf.gps_checks_passed();
-
-	const uint16_t fail_flags = _ekf.gps_check_fail_flags();
-	auto failed = [fail_flags](uint8_t check) { return (fail_flags & (1u << check)) != 0; };
-
-	estimator_gps_status.check_fail_gps_fix          = failed(estimator_status_s::GPS_CHECK_FAIL_GPS_FIX);
-	estimator_gps_status.check_fail_min_sat_count    = failed(estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT);
-	estimator_gps_status.check_fail_max_pdop         = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP);
-	estimator_gps_status.check_fail_max_horz_err     = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR);
-	estimator_gps_status.check_fail_max_vert_err     = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR);
-	estimator_gps_status.check_fail_max_spd_err      = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR);
-	estimator_gps_status.check_fail_max_horz_drift   = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT);
-	estimator_gps_status.check_fail_max_vert_drift   = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT);
-	estimator_gps_status.check_fail_max_horz_spd_err = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR);
-	estimator_gps_status.check_fail_max_vert_spd_err = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR);
-	estimator_gps_status.check_fail_spoofed_gps      = failed(estimator_status_s::GPS_CHECK_FAIL_SPOOFED);
-
-	estimator_gps_status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-	_estimator_gps_status_pub.publish(estimator_gps_status);
-
-
-	_last_gps_status_published = timestamp_sample;
-}
-#endif // CONFIG_EKF2_GNSS
 
 void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 {
@@ -1953,7 +1937,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_GNSS)
 	// only report enabled GPS check failures
-	status.gps_check_fail_flags = _ekf.gps_check_fail_flags() & _ekf.gps_checks_enabled();
+	status.gps_check_fail_flags = toEstimatorStatusCheckFlags(_gnss_failed_checks);
 #endif // CONFIG_EKF2_GNSS
 
 	status.control_mode_flags = _ekf.control_status().value;
@@ -2629,6 +2613,8 @@ void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 
 	if (_vehicle_gnss_sub.update(&vehicle_gnss)) {
 
+		_gnss_failed_checks = vehicle_gnss.failed_checks;
+
 		Vector3f vel_ned;
 
 		if (vehicle_gnss.receiver.vel_ned_valid) {
@@ -2662,6 +2648,7 @@ void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 			.pos_body = Vector3f(vehicle_gnss.antenna_offset[0],
 					     vehicle_gnss.antenna_offset[1],
 					     vehicle_gnss.antenna_offset[2]),
+			.usable = vehicle_gnss.usable,
 		};
 
 		_ekf.setGpsData(gnss_sample);

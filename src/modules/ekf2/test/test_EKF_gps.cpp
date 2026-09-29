@@ -390,7 +390,7 @@ TEST_F(EkfGpsTest, velocityAboveLimitIsNotFused)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
-	_ekf->getParamHandle()->gnss_check = 0;
+	_sensor_simulator._gps.setCheckMask(0);
 
 	// WHEN: the receiver reports a velocity above EKF2_VEL_LIM (100 m/s by default)
 	_sensor_simulator._gps.setVelocity(Vector3f(150.f, 0.f, 0.f));
@@ -420,7 +420,7 @@ TEST_F(EkfGpsTest, invalidVelocityIsSkipped)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
-	_ekf->getParamHandle()->gnss_check = 0;
+	_sensor_simulator._gps.setCheckMask(0);
 	const float velocity_limit = _ekf->getParamHandle()->ekf2_vel_lim;
 	const Vector3f invalid_velocities[] {
 		{velocity_limit + 1.f, 0.f, 0.f},

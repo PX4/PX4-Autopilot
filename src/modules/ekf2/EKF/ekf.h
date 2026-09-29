@@ -46,7 +46,7 @@
 #include "estimator_interface.h"
 
 #if defined(CONFIG_EKF2_GNSS)
-# include <lib/gnss/gnss_checks.hpp>
+# include <uORB/topics/vehicle_gnss.h>
 # include "yaw_estimator/EKFGSF_yaw.h"
 #endif // CONFIG_EKF2_GNSS
 
@@ -404,10 +404,7 @@ public:
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
 
-	uint16_t gps_check_fail_flags() const { return _gnss_checks.getFailFlags(); }
-	uint16_t gps_checks_enabled() const { return _gnss_checks.getEnabledChecks(); }
-
-	bool gps_checks_passed() const { return _gnss_checks.passed(); };
+	bool gps_checks_passed() const { return _gnss_usable; };
 
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 
@@ -616,6 +613,8 @@ private:
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	uint64_t _time_last_gnss_checks_pass_us{0}; ///< last delayed-horizon time a GNSS sample passed the checks and the velocity limit (us)
+	bool _gnss_usable{false};                   ///< the latest GNSS sample at the fusion time horizon was usable
+	bool _gnss_checks_passed_reported{false};   ///< gps_checks_passed was reported since the last reset
 	uint64_t _time_last_gnss_fusion_stop_us{0}; ///< when GNSS velocity and position fusion were last both stopped
 
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
@@ -929,8 +928,6 @@ private:
 #if defined(CONFIG_EKF2_GNSS)
 	// control fusion of GPS observations
 	void controlGpsFusion(const imuSample &imu_delayed);
-	void updateGnssChecksParams();
-	bool runGnssChecks(const gnssSample &gnss_sample);
 	void controlGnssVelFusion(estimator_aid_source3d_s &aid_src, bool force_reset);
 	void controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool force_reset);
 	void stopGnssFusion();

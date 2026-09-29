@@ -37,7 +37,7 @@
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
-#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/vehicle_gnss.h>
 
 struct gnssChecksSample {
 	uint64_t time_us{};     ///< measurement time (us)
@@ -73,73 +73,32 @@ public:
 
 	void setParams(const Params &params) { _params = params; }
 
-	void resetHard()
-	{
-		_initial_checks_passed = false;
-		reset();
-	}
-
 	/*
 	 * Return true if the GNSS solution quality is adequate. The strict checks apply until the first pass and again
 	 * whenever the vehicle is disarmed on the ground; the drift checks run only at rest on the ground.
 	*/
 	bool run(const gnssChecksSample &gnss, bool armed, bool in_air, bool vehicle_at_rest);
 	bool passed() const { return _passed; }
-	bool initialChecksPassed() const { return _initial_checks_passed; }
 
-	static constexpr uint8_t kNumChecks = estimator_status_s::GPS_CHECK_FAIL_JAMMED + 1;
+	// The last run applied the strict thresholds: never passed yet, or disarmed on the ground
+	bool strict() const { return _strict; }
 
-	// Indexed by estimator_status_s::GPS_CHECK_FAIL_*
+	// Failed checks, as vehicle_gnss_s::CHECK_* bits
 	uint16_t getFailFlags() const { return _fail_flags; }
 
-	// The checks enabled in GNSS_CHECK, indexed by estimator_status_s::GPS_CHECK_FAIL_*
-	uint16_t getEnabledChecks() const;
+	// The checks enabled in GNSS_CHECK, as vehicle_gnss_s::CHECK_* bits
+	uint16_t getEnabledChecks() const { return static_cast<uint16_t>(_params.check_mask) & kAllChecks; }
 
 	float horizontal_position_drift_rate_m_s() const { return _horizontal_position_drift_rate_m_s; }
 	float vertical_position_drift_rate_m_s() const { return _vertical_position_drift_rate_m_s; }
 	float filtered_horizontal_velocity_m_s() const { return _filtered_horizontal_velocity_m_s; }
 
-	static constexpr uint8_t kNoParamBit = 31;
-
-	// GNSS_CHECK bit of an estimator_status_s::GPS_CHECK_FAIL_* check. The two orders differ, and saved parameters,
-	// logs and events each depend on one of them, so neither can be reordered.
-	static constexpr uint8_t paramBit(uint8_t check)
-	{
-		switch (check) {
-		case estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT:    return 0;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP:         return 1;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR:     return 2;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR:     return 3;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR:      return 4;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT:   return 5;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT:   return 6;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR: return 7;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR: return 8;
-
-		case estimator_status_s::GPS_CHECK_FAIL_SPOOFED:          return 9;
-
-		case estimator_status_s::GPS_CHECK_FAIL_GPS_FIX:          return 10;
-
-		case estimator_status_s::GPS_CHECK_FAIL_JAMMED:           return 11;
-
-		default:                                                  return kNoParamBit;
-		}
-	}
-
-	bool isCheckEnabled(uint8_t check) const
-	{
-		return (static_cast<uint32_t>(_params.check_mask) & (1u << paramBit(check))) != 0;
-	}
-
 private:
+	static constexpr uint16_t kAllChecks = vehicle_gnss_s::CHECK_NSATS | vehicle_gnss_s::CHECK_PDOP | vehicle_gnss_s::CHECK_EPH
+					       | vehicle_gnss_s::CHECK_EPV | vehicle_gnss_s::CHECK_SACC | vehicle_gnss_s::CHECK_HDRIFT
+					       | vehicle_gnss_s::CHECK_VDRIFT | vehicle_gnss_s::CHECK_HSPEED | vehicle_gnss_s::CHECK_VSPEED
+					       | vehicle_gnss_s::CHECK_SPOOFED | vehicle_gnss_s::CHECK_FIX | vehicle_gnss_s::CHECK_JAMMED;
+
 	// A receiver that has not passed for this long qualifies from scratch again, as after a failure. 7 s is the
 	// outage after which the EKF stops using GNSS, and after which it used to reset these checks.
 	static constexpr uint64_t kPassTimeoutUs = 7'000'000;
@@ -159,7 +118,7 @@ private:
 		       : (uint64_t)_params.min_health_time_us;
 	}
 
-	void setFail(uint8_t check, bool failed);
+	void setFail(uint16_t check, bool failed);
 	bool enabledChecksPass(uint16_t checks) const { return (_fail_flags & checks & getEnabledChecks()) == 0; }
 
 	bool runSimplifiedChecks(const gnssChecksSample &gnss);
@@ -190,6 +149,7 @@ private:
 	uint64_t _time_last_fail_us{0};
 	uint64_t _time_last_pass_us{0};
 	bool _initial_checks_passed{false};
+	bool _strict{true};
 	bool _passed{false};
 
 	Params _params{};
