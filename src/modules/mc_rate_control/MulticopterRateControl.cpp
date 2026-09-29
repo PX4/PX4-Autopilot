@@ -93,6 +93,9 @@ MulticopterRateControl::parameters_updated()
 	_rate_control.setFeedForwardGain(
 		Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get()));
 
+	_gain_compression.setEnabled(_param_mc_gc_en.get());
+	_gain_compression.setCompressionGainMin(_param_mc_gc_gain_min.get());
+
 
 	// manual rate control acro mode rate limits
 	_acro_rate_max = Vector3f(radians(_param_mc_acro_r_max.get()), radians(_param_mc_acro_p_max.get()),
