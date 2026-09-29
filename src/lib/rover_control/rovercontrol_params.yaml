@@ -273,7 +273,7 @@ parameters:
           Used to calculate wheel circumfrence which is then passed on to Mavlink wheel distance equation.
           Wheel dist = 2 * PI * RO_WHEEL_RAD * encoder_position / counts_per_revolution
       type: float
-      default: 0.05
+      default: 0.1
       unit: m
       min: 0
       max: 10
