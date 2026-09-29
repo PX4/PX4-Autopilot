@@ -615,6 +615,8 @@ private:
 	// height sensor status
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
+	uint64_t _time_last_gnss_fusion_stop_us{0}; ///< when GNSS velocity and position fusion were last both stopped
+
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 
 	estimator_aid_source1d_s _aid_src_gnss_hgt{};
@@ -935,6 +937,14 @@ private:
 	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
 	bool isGnssVelResetAllowed() const;
 	bool isGnssPosResetAllowed() const;
+
+	// The checks keep reporting on the samples while fusion is stopped, so after a stop the EKF waits as long as the
+	// checks do after a failure before it uses GNSS again.
+	bool gnssChecksPassedSinceFusionStop() const
+	{
+		return _gnss_checks.passed()
+		       && isTimedOut(_time_last_gnss_fusion_stop_us, _gnss_checks.getRequiredPassDurationUs());
+	}
 	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
 	bool tryYawEmergencyReset();
 	void resetVelocityToGnss(estimator_aid_source3d_s &aid_src);

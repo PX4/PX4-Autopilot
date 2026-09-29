@@ -109,7 +109,7 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 		clearDriftChecks();
 
 		if (runSimplifiedChecks(gnss)) {
-			_passed = isTimedOut(_time_last_fail_us, time_us, math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10));
+			_passed = isTimedOut(_time_last_fail_us, time_us, getRequiredPassDurationUs());
 
 		} else {
 			_time_last_fail_us = time_us;
@@ -117,7 +117,7 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 
 	} else {
 		if (runInitialFixChecks(gnss)) {
-			if (isTimedOut(_time_last_fail_us, time_us, (uint64_t)_params.min_health_time_us)) {
+			if (isTimedOut(_time_last_fail_us, time_us, getRequiredPassDurationUs())) {
 				_initial_checks_passed = true;
 				_passed = true;
 			}
