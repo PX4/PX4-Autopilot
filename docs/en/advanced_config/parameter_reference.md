@@ -27876,7 +27876,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### UCAN1_UORB_GPS (`INT32`) {#UCAN1_UORB_GPS}
 
-sensor_gps uORB over Cyphal subscription port ID.
+sensor_gnss uORB over Cyphal subscription port ID.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -27888,7 +27888,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### UCAN1_UORB_GPS_P (`INT32`) {#UCAN1_UORB_GPS_P}
 
-sensor_gps uORB over Cyphal publication port ID.
+sensor_gnss uORB over Cyphal publication port ID.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -34591,8 +34591,8 @@ Device ID of the GPS receiver that emits the PPS signal captured on the
 configured PWM input pin. When set to 0 (default), the first available
 GPS instance is used.
 
-The device ID can be obtained from the sensor_gps publication
-(e.g. via listener sensor_gps).
+The device ID can be obtained from the sensor_gnss publication
+(e.g. via listener sensor_gnss).
 
 
 
@@ -55806,18 +55806,37 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### SENS_GNSS0_DELAY (`INT32`) {#SENS_GNSS0_DELAY}
+
+GPS 0 measurement delay.
+
+GPS measurement delay relative to IMU measurements.
+Matched to physical GPS receiver via SENS_GNSS0_ID.
+Only applied when the GPS driver does not provide its own
+timestamp_sample correction.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 300 |  | 110 | ms | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### SENS_GNSS0_HDG (`INT32`) {#SENS_GNSS0_HDG}
 
 GNSS 0 heading setup.
 
-How the receiver in slot 0 (matched via SENS_GPS0_ID) measures its dual antenna heading.
+How the receiver in slot 0 (matched via SENS_GNSS0_ID) measures its dual antenna heading.
 The heading is the bearing of the baseline between two antennas, and is only used when the
 baseline length the receiver reports is within 20% of the configured one.
 Moving base rover: this receiver is the rover of a moving base pair, the moving base is the
 receiver in the other slot. The baseline runs from the moving base's antenna to this
-receiver's antenna (SENS_GPSn_OFFX/Y/Z of both slots).
+receiver's antenna (SENS_GNSSn_OFFX/Y/Z of both slots).
 Dual antenna: this receiver has two antennas. The baseline runs from its main antenna
-(SENS_GPS0_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS0_AUXX/Y/Z).
+(SENS_GNSS0_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS0_AUXX/Y/Z).
 
 
 
@@ -55831,6 +55850,75 @@ Dual antenna: this receiver has two antennas. The baseline runs from its main an
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_ID (`INT32`) {#SENS_GNSS0_ID}
+
+GPS 0 device ID.
+
+Device ID of the GPS receiver for antenna offset slot 0.
+Set to 0 to disable this slot. When all slots are 0, offsets are
+matched by uORB instance index (only reliable for serial GPS).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_OFFX (`FLOAT`) {#SENS_GNSS0_OFFX}
+
+GPS 0 antenna X position.
+
+Forward axis relative to vehicle centre of gravity.
+Matched to physical GPS receiver via SENS_GNSS0_ID.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_OFFY (`FLOAT`) {#SENS_GNSS0_OFFY}
+
+GPS 0 antenna Y position.
+
+Right axis relative to vehicle centre of gravity.
+Matched to physical GPS receiver via SENS_GNSS0_ID.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_OFFZ (`FLOAT`) {#SENS_GNSS0_OFFZ}
+
+GPS 0 antenna Z position.
+
+Down axis relative to vehicle centre of gravity.
+Matched to physical GPS receiver via SENS_GNSS0_ID.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
 
 </div>
 
@@ -55887,18 +55975,37 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### SENS_GNSS1_DELAY (`INT32`) {#SENS_GNSS1_DELAY}
+
+GPS 1 measurement delay.
+
+GPS measurement delay relative to IMU measurements.
+Matched to physical GPS receiver via SENS_GNSS1_ID.
+Only applied when the GPS driver does not provide its own
+timestamp_sample correction.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 300 |  | 110 | ms | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### SENS_GNSS1_HDG (`INT32`) {#SENS_GNSS1_HDG}
 
 GNSS 1 heading setup.
 
-How the receiver in slot 1 (matched via SENS_GPS1_ID) measures its dual antenna heading.
+How the receiver in slot 1 (matched via SENS_GNSS1_ID) measures its dual antenna heading.
 The heading is the bearing of the baseline between two antennas, and is only used when the
 baseline length the receiver reports is within 20% of the configured one.
 Moving base rover: this receiver is the rover of a moving base pair, the moving base is the
 receiver in the other slot. The baseline runs from the moving base's antenna to this
-receiver's antenna (SENS_GPSn_OFFX/Y/Z of both slots).
+receiver's antenna (SENS_GNSSn_OFFX/Y/Z of both slots).
 Dual antenna: this receiver has two antennas. The baseline runs from its main antenna
-(SENS_GPS1_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS1_AUXX/Y/Z).
+(SENS_GNSS1_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS1_AUXX/Y/Z).
 
 
 
@@ -55917,114 +56024,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS0_DELAY (`INT32`) {#SENS_GPS0_DELAY}
-
-GPS 0 measurement delay.
-
-GPS measurement delay relative to IMU measurements.
-Matched to physical GPS receiver via SENS_GPS0_ID.
-Only applied when the GPS driver does not provide its own
-timestamp_sample correction.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 300 |  | 110 | ms | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SENS_GPS0_ID (`INT32`) {#SENS_GPS0_ID}
-
-GPS 0 device ID.
-
-Device ID of the GPS receiver for antenna offset slot 0.
-Set to 0 to disable this slot. When all slots are 0, offsets are
-matched by uORB instance index (only reliable for serial GPS).
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SENS_GPS0_OFFX (`FLOAT`) {#SENS_GPS0_OFFX}
-
-GPS 0 antenna X position.
-
-Forward axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS0_ID.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SENS_GPS0_OFFY (`FLOAT`) {#SENS_GPS0_OFFY}
-
-GPS 0 antenna Y position.
-
-Right axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS0_ID.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SENS_GPS0_OFFZ (`FLOAT`) {#SENS_GPS0_OFFZ}
-
-GPS 0 antenna Z position.
-
-Down axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS0_ID.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SENS_GPS1_DELAY (`INT32`) {#SENS_GPS1_DELAY}
-
-GPS 1 measurement delay.
-
-GPS measurement delay relative to IMU measurements.
-Matched to physical GPS receiver via SENS_GPS1_ID.
-Only applied when the GPS driver does not provide its own
-timestamp_sample correction.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 300 |  | 110 | ms | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SENS_GPS1_ID (`INT32`) {#SENS_GPS1_ID}
+### SENS_GNSS1_ID (`INT32`) {#SENS_GNSS1_ID}
 
 GPS 1 device ID.
 
@@ -56042,12 +56042,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS1_OFFX (`FLOAT`) {#SENS_GPS1_OFFX}
+### SENS_GNSS1_OFFX (`FLOAT`) {#SENS_GNSS1_OFFX}
 
 GPS 1 antenna X position.
 
 Forward axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS1_ID.
+Matched to physical GPS receiver via SENS_GNSS1_ID.
 
 
 
@@ -56059,12 +56059,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS1_OFFY (`FLOAT`) {#SENS_GPS1_OFFY}
+### SENS_GNSS1_OFFY (`FLOAT`) {#SENS_GNSS1_OFFY}
 
 GPS 1 antenna Y position.
 
 Right axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS1_ID.
+Matched to physical GPS receiver via SENS_GNSS1_ID.
 
 
 
@@ -56076,12 +56076,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS1_OFFZ (`FLOAT`) {#SENS_GPS1_OFFZ}
+### SENS_GNSS1_OFFZ (`FLOAT`) {#SENS_GNSS1_OFFZ}
 
 GPS 1 antenna Z position.
 
 Down axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS1_ID.
+Matched to physical GPS receiver via SENS_GNSS1_ID.
 
 
 
@@ -56093,7 +56093,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS_MASK (`INT32`) {#SENS_GPS_MASK}
+### SENS_GNSS_MASK (`INT32`) {#SENS_GNSS_MASK}
 
 Multi GPS Blending Control Mask.
 
@@ -56118,7 +56118,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS_PRIME (`INT32`) {#SENS_GPS_PRIME}
+### SENS_GNSS_PRIME (`INT32`) {#SENS_GNSS_PRIME}
 
 Multi GPS primary instance.
 
@@ -56145,7 +56145,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS_TAU (`FLOAT`) {#SENS_GPS_TAU}
+### SENS_GNSS_TAU (`FLOAT`) {#SENS_GNSS_TAU}
 
 Multi GPS Blending Time Constant.
 
@@ -59711,7 +59711,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Control if the vehicle has a GPS.
 
 Disable this if the system has no GPS.
-If disabled, the sensors hub will not process sensor_gps,
+If disabled, the sensors hub will not process sensor_gnss,
 and GPS will not be available for the rest of the system.
 
 

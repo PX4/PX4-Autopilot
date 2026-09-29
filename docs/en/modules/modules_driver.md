@@ -266,7 +266,7 @@ Source: [examples/fake_magnetometer](https://github.com/PX4/PX4-Autopilot/tree/m
 ### Description
 
 Publish the earth magnetic field as a fake magnetometer (sensor_mag).
-Requires vehicle_attitude and vehicle_gps_position.
+Requires vehicle_attitude and vehicle_gnss.
 
 ### Usage {#fake_magnetometer_usage}
 
