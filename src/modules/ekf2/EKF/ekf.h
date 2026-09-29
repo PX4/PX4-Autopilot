@@ -409,6 +409,9 @@ public:
 
 	bool gps_checks_passed() const { return _gnss_checks.passed(); };
 
+	// GNSS samples skipped because their velocity is not finite or exceeds EKF2_VEL_LIM
+	uint32_t gnss_vel_limit_skip_count() const { return _gnss_vel_limit_skip_count; }
+
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 
 	const auto &aid_src_gnss_hgt() const { return _aid_src_gnss_hgt; }
@@ -615,8 +618,9 @@ private:
 	// height sensor status
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
-	uint64_t _time_last_gnss_checks_pass_us{0}; ///< last delayed-horizon time a GNSS sample passed the checks (us)
+	uint64_t _time_last_gnss_checks_pass_us{0}; ///< last delayed-horizon time a GNSS sample passed the checks and the velocity limit (us)
 	uint64_t _time_last_gnss_fusion_stop_us{0}; ///< when GNSS velocity and position fusion were last both stopped
+	uint32_t _gnss_vel_limit_skip_count{0};
 
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 

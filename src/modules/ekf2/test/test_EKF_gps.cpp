@@ -371,14 +371,16 @@ TEST_F(EkfGpsTest, velocityAboveLimitIsNotFused)
 	_ekf->getParamHandle()->ekf2_gps_check = 0;
 
 	// WHEN: the receiver reports a velocity above EKF2_VEL_LIM (100 m/s by default)
+	const uint32_t skips_before = _ekf->gnss_vel_limit_skip_count();
 	_sensor_simulator._gps.setVelocity(Vector3f(150.f, 0.f, 0.f));
 	_sensor_simulator.runSeconds(1);
 
-	// THEN: the samples are skipped, nothing is fused while the fusion is still intended
+	// THEN: the samples are skipped and counted, nothing is fused while the fusion is still intended
 	const uint64_t time_last_vel_fuse = _ekf->aid_src_gnss_vel().time_last_fuse;
 	const uint64_t time_last_pos_fuse = _ekf->aid_src_gnss_pos().time_last_fuse;
 	_sensor_simulator.runSeconds(1);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_GT(_ekf->gnss_vel_limit_skip_count(), skips_before);
 	EXPECT_EQ(_ekf->aid_src_gnss_vel().time_last_fuse, time_last_vel_fuse);
 	EXPECT_EQ(_ekf->aid_src_gnss_pos().time_last_fuse, time_last_pos_fuse);
 
@@ -416,13 +418,15 @@ TEST_F(EkfGpsTest, invalidVelocityIsSkipped)
 	for (const Vector3f &velocity : invalid_velocities) {
 		const uint64_t time_last_vel_fuse = _ekf->aid_src_gnss_vel().time_last_fuse;
 		const uint64_t time_last_pos_fuse = _ekf->aid_src_gnss_pos().time_last_fuse;
+		const uint32_t skips_before = _ekf->gnss_vel_limit_skip_count();
 
 		// WHEN: the receiver reports an over-limit or non-finite velocity
 		_sensor_simulator._gps.setVelocity(velocity);
 		_sensor_simulator.runSeconds(0.5f);
 
-		// THEN: the sample is skipped without stopping the fusion
+		// THEN: the sample is skipped and counted without stopping the fusion
 		EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+		EXPECT_GT(_ekf->gnss_vel_limit_skip_count(), skips_before);
 		EXPECT_EQ(_ekf->aid_src_gnss_vel().time_last_fuse, time_last_vel_fuse);
 		EXPECT_EQ(_ekf->aid_src_gnss_pos().time_last_fuse, time_last_pos_fuse);
 	}

@@ -228,6 +228,9 @@ EKF2::~EKF2()
 {
 	perf_free(_ekf_update_perf);
 	perf_free(_msg_missed_imu_perf);
+#if defined(CONFIG_EKF2_GNSS)
+	perf_free(_gnss_vel_limit_skip_perf);
+#endif // CONFIG_EKF2_GNSS
 }
 
 void EKF2::AdvertiseTopics()
@@ -438,6 +441,9 @@ int EKF2::print_status(bool verbose)
 
 	perf_print_counter(_ekf_update_perf);
 	perf_print_counter(_msg_missed_imu_perf);
+#if defined(CONFIG_EKF2_GNSS)
+	perf_print_counter(_gnss_vel_limit_skip_perf);
+#endif // CONFIG_EKF2_GNSS
 
 	if (verbose) {
 #if defined(CONFIG_EKF2_VERBOSE_STATUS)
@@ -830,9 +836,20 @@ void EKF2::Run()
 
 		// run the EKF update and output
 		const hrt_abstime ekf_update_start = hrt_absolute_time();
+#if defined(CONFIG_EKF2_GNSS)
+		const uint32_t gnss_vel_limit_skips_before = _ekf.gnss_vel_limit_skip_count();
+#endif // CONFIG_EKF2_GNSS
 
 		if (_ekf.update()) {
 			perf_set_elapsed(_ekf_update_perf, hrt_elapsed_time(&ekf_update_start));
+
+#if defined(CONFIG_EKF2_GNSS)
+
+			if (_ekf.gnss_vel_limit_skip_count() != gnss_vel_limit_skips_before) {
+				perf_count(_gnss_vel_limit_skip_perf);
+			}
+
+#endif // CONFIG_EKF2_GNSS
 
 			PublishLocalPosition(now);
 			PublishOdometry(now, imu_sample_new);

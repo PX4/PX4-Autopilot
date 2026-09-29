@@ -297,6 +297,9 @@ private:
 
 	perf_counter_t _ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": EKF update")};
 	perf_counter_t _msg_missed_imu_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
+#if defined(CONFIG_EKF2_GNSS)
+	perf_counter_t _gnss_vel_limit_skip_perf {perf_alloc(PC_COUNT, MODULE_NAME": GNSS velocity limit exceeded")};
+#endif // CONFIG_EKF2_GNSS
 
 	InFlightCalibration _accel_cal{};
 	InFlightCalibration _gyro_cal{};
