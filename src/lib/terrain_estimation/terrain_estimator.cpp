@@ -97,7 +97,7 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 	       B * R * B.transpose() + Q) * dt;
 }
 
-void TerrainEstimator::measurement_update(uint64_t time_ref, const struct sensor_gps_s *gps,
+void TerrainEstimator::measurement_update(uint64_t time_ref, const struct sensor_gnss_s *gps,
 		const struct distance_sensor_s *distance,
 		const struct vehicle_attitude_s *attitude)
 {
@@ -153,7 +153,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct sensor
 		float R = 0.056f;
 
 		matrix::Vector<float, 1> y;
-		y(0) = gps->vel_d_m_s;
+		y(0) = gps->vel_down;
 
 		// residual
 		matrix::Matrix<float, 1, 1> S_I = (C * _P * C.transpose());
