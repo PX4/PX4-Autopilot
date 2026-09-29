@@ -1656,44 +1656,44 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 	// Publish only if the corresponding data was extracted from the packet
 	if (gnss_valid) {
 
-		sensor_gps_s gps{0};
+		sensor_gnss_s gps{0};
 		gps.timestamp_sample = t;
 
 		gps.device_id = ref->_dev_id;
 
-		gps.latitude_deg = pos_llh.sample.latitude;
-		gps.longitude_deg = pos_llh.sample.longitude;
-		gps.altitude_msl_m = pos_llh.sample.msl_height;
-		gps.altitude_ellipsoid_m = pos_llh.sample.ellipsoid_height;
+		gps.latitude = pos_llh.sample.latitude;
+		gps.longitude = pos_llh.sample.longitude;
+		gps.altitude_msl = pos_llh.sample.msl_height;
+		gps.altitude_ellipsoid = pos_llh.sample.ellipsoid_height;
 
 		const float _geoid_height = pos_llh.sample.ellipsoid_height - pos_llh.sample.msl_height;
 
-		gps.s_variance_m_s = vel_ned.sample.speed_accuracy;
-		gps.c_variance_rad = 0;
+		gps.speed_accuracy = vel_ned.sample.speed_accuracy;
+		gps.course_accuracy = 0;
 
 		switch (fix_info.sample.fix_type) {
 		case 0:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_3D;
+			gps.fix_type = sensor_gnss_s::FIX_TYPE_3D;
 			break;
 
 		case 1:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_2D;
+			gps.fix_type = sensor_gnss_s::FIX_TYPE_2D;
 			break;
 
 		case 5:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_RTK_FLOAT;
+			gps.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FLOAT;
 			break;
 
 		case 6:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
+			gps.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
 			break;
 
 		case 7:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
+			gps.fix_type = sensor_gnss_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
 			break;
 
 		default:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_NONE;
+			gps.fix_type = sensor_gnss_s::FIX_TYPE_NONE;
 		}
 
 		gps.eph = pos_llh.sample.horizontal_accuracy;
@@ -1702,7 +1702,7 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 		gps.hdop = dop.sample.hdop;
 		gps.vdop = dop.sample.vdop;
 
-		gps.noise_per_ms = 0;
+		gps.noise = 0;
 		gps.automatic_gain_control = 0;
 
 		gps.jamming_state = 0;
@@ -1710,11 +1710,11 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 
 		gps.spoofing_state = 0;
 
-		gps.vel_m_s = vel_ned.sample.speed;
-		gps.vel_n_m_s = vel_ned.sample.v[0];
-		gps.vel_e_m_s = vel_ned.sample.v[1];
-		gps.vel_d_m_s = vel_ned.sample.v[2];
-		gps.cog_rad = 0;
+		gps.ground_speed = vel_ned.sample.speed;
+		gps.vel_north = vel_ned.sample.v[0];
+		gps.vel_east = vel_ned.sample.v[1];
+		gps.vel_down = vel_ned.sample.v[2];
+		gps.course = 0;
 		gps.vel_ned_valid = (vel_ned.sample.valid_flags >> 1) & 1;
 
 		gps.timestamp_time_relative = 0; //
@@ -1739,23 +1739,23 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 
 void MicroStrain::initializeRefPos()
 {
-	sensor_gps_s gps{0};
+	vehicle_gnss_s gps{0};
 
 	_vehicle_gps_position_sub.update(&gps);
 
 	// Fix isn't 3D or RTK or RTCM
-	if ((gps.fix_type < 3) || (gps.fix_type > 6)) {
+	if ((gps.receiver.fix_type < 3) || (gps.receiver.fix_type > 6)) {
 		return;
 	}
 
 	// If the timestamp has not been set, then don't send any data into the filter
-	if (gps.time_utc_usec == 0) {
+	if (gps.receiver.time_utc_usec == 0) {
 		return;
 	}
 
 	const hrt_abstime t = hrt_absolute_time();
-	_pos_ref.initReference(gps.latitude_deg, gps.longitude_deg, t);
-	_ref_alt = gps.altitude_msl_m;
+	_pos_ref.initReference(gps.receiver.latitude, gps.receiver.longitude, t);
+	_ref_alt = gps.receiver.altitude_msl;
 
 	PX4_DEBUG("Reference position initialized");
 }
@@ -1776,7 +1776,7 @@ void MicroStrain::updateGeoidHeight(float geoid_height, hrt_abstime t)
 
 void MicroStrain::sendGPSAiding()
 {
-	sensor_gps_s gps{0};
+	vehicle_gnss_s gps{0};
 
 	// No new data
 	if (!_vehicle_gps_position_sub.update(&gps)) {
@@ -1784,12 +1784,12 @@ void MicroStrain::sendGPSAiding()
 	}
 
 	// Fix isn't 3D or RTK or RTCM
-	if ((gps.fix_type < 3) || (gps.fix_type > 6)) {
+	if ((gps.receiver.fix_type < 3) || (gps.receiver.fix_type > 6)) {
 		return;
 	}
 
 	// If the timestamp has not been set, then don't send any data into the filter
-	if (gps.time_utc_usec == 0) {
+	if (gps.receiver.time_utc_usec == 0) {
 		return;
 	}
 
@@ -1800,18 +1800,18 @@ void MicroStrain::sendGPSAiding()
 
 	// Sends GNSS position and velocity aiding data if they are both supported
 	if (_ext_pos_vel_aiding) {
-		float llh_uncertainty[3] = {gps.eph, gps.eph, gps.epv};
-		mip_aiding_llh_pos(&_device, &t, 1, gps.latitude_deg,
-				   gps.longitude_deg,
-				   gps.altitude_ellipsoid_m, llh_uncertainty, MIP_AIDING_LLH_POS_COMMAND_VALID_FLAGS_ALL);
+		float llh_uncertainty[3] = {gps.receiver.eph, gps.receiver.eph, gps.receiver.epv};
+		mip_aiding_llh_pos(&_device, &t, 1, gps.receiver.latitude,
+				   gps.receiver.longitude,
+				   gps.receiver.altitude_ellipsoid, llh_uncertainty, MIP_AIDING_LLH_POS_COMMAND_VALID_FLAGS_ALL);
 
 		// Calculate the geoid height and update the low pass filter
-		const float _geoid_height = gps.altitude_ellipsoid_m - gps.altitude_msl_m;
+		const float _geoid_height = gps.receiver.altitude_ellipsoid - gps.receiver.altitude_msl;
 		updateGeoidHeight(_geoid_height, gps.timestamp);
 
-		if (gps.vel_ned_valid) {
-			float ned_v[3] = {gps.vel_n_m_s, gps.vel_e_m_s, gps.vel_d_m_s};
-			float ned_velocity_uncertainty[3] = {sqrtf(gps.s_variance_m_s), sqrtf(gps.s_variance_m_s), sqrtf(gps.s_variance_m_s)};
+		if (gps.receiver.vel_ned_valid) {
+			float ned_v[3] = {gps.receiver.vel_north, gps.receiver.vel_east, gps.receiver.vel_down};
+			float ned_velocity_uncertainty[3] = {sqrtf(gps.receiver.speed_accuracy), sqrtf(gps.receiver.speed_accuracy), sqrtf(gps.receiver.speed_accuracy)};
 			mip_aiding_ned_vel(&_device, &t, 1, ned_v, ned_velocity_uncertainty,
 					   MIP_AIDING_NED_VEL_COMMAND_VALID_FLAGS_ALL);
 		}

@@ -503,16 +503,16 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 	// publish GPS data
 	if (isFilterOk && hasNewGpsData && isGnssValid) {
-		sensor_gps_s sensor_gps{};
+		sensor_gnss_s sensor_gps{};
 		sensor_gps.timestamp        = time_now_us;
 		sensor_gps.timestamp_sample = time_now_us;
 
 		sensor_gps.device_id = _device_id.devid;
 
-		sensor_gps.latitude_deg   = data->gps.latitude;
-		sensor_gps.longitude_deg  = data->gps.longitude;
-		sensor_gps.altitude_ellipsoid_m = static_cast<double>(data->gps.altitude);
-		sensor_gps.altitude_msl_m = static_cast<double>(data->gps.altitude);
+		sensor_gps.latitude  = data->gps.latitude;
+		sensor_gps.longitude = data->gps.longitude;
+		sensor_gps.altitude_ellipsoid = static_cast<double>(data->gps.altitude);
+		sensor_gps.altitude_msl = static_cast<double>(data->gps.altitude);
 
 		sensor_gps.fix_type = data->gps.fixType + 1;
 
@@ -526,11 +526,11 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		sensor_gps.jamming_indicator = isJammed ? 1 : 0;
 		sensor_gps.spoofing_state = data->gps.spoofingStatus;
 
-		sensor_gps.vel_m_s =
+		sensor_gps.ground_speed =
 			matrix::Vector3f(data->ins.velocity(0), data->ins.velocity(1), data->ins.velocity(2)).length();
-		sensor_gps.vel_n_m_s     = data->ins.velocity(0);
-		sensor_gps.vel_e_m_s     = data->ins.velocity(1);
-		sensor_gps.vel_d_m_s     = data->ins.velocity(2);
+		sensor_gps.vel_north     = data->ins.velocity(0);
+		sensor_gps.vel_east      = data->ins.velocity(1);
+		sensor_gps.vel_down      = data->ins.velocity(2);
 		sensor_gps.vel_ned_valid = true;
 
 		sensor_gps.time_utc_usec = ToUtcMicroseconds(data->gps.gpsWeek, data->gps.msTow);

@@ -55,9 +55,10 @@
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_baro.h>
 
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -286,7 +287,7 @@ private:
 
 	// Must publish to prevent sensor stale failure (sensors module)
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
-	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub[2] {ORB_ID(sensor_gps), ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_s> _sensor_gps_pub[2] {ORB_ID(sensor_gnss), ORB_ID(sensor_gnss)};
 	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};
 
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
@@ -300,7 +301,7 @@ private:
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
 	uORB::Subscription _vehicle_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _vehicle_optical_flow_vel_sub{ORB_ID(vehicle_optical_flow_vel)};

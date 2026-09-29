@@ -470,24 +470,24 @@ void SbgEcom::handleLogGnssPosVel(SbgEComMsgId msg, const SbgEComLogUnion *ref_s
 			return;
 		}
 
-		// publish sensor_gps
-		sensor_gps_s sensor_gps{};
+		// publish sensor_gnss
+		sensor_gnss_s sensor_gps{};
 
 		sensor_gps.timestamp = time_now_us;
 		sensor_gps.timestamp_sample = gnss_data->gps_pos.timeStamp;
 
 		sensor_gps.device_id = instance->get_device_id();
 
-		sensor_gps.latitude_deg = gnss_data->gps_pos.latitude;
-		sensor_gps.longitude_deg = gnss_data->gps_pos.longitude;
-		sensor_gps.altitude_msl_m = gnss_data->gps_pos.altitude;
-		sensor_gps.altitude_ellipsoid_m = gnss_data->gps_pos.altitude +
-						  static_cast<double>(gnss_data->gps_pos.undulation);
+		sensor_gps.latitude = gnss_data->gps_pos.latitude;
+		sensor_gps.longitude = gnss_data->gps_pos.longitude;
+		sensor_gps.altitude_msl = gnss_data->gps_pos.altitude;
+		sensor_gps.altitude_ellipsoid = gnss_data->gps_pos.altitude +
+						static_cast<double>(gnss_data->gps_pos.undulation);
 
-		sensor_gps.s_variance_m_s = sqrt(pow(gnss_data->gps_vel.velocityAcc[0], 2) +
+		sensor_gps.speed_accuracy = sqrt(pow(gnss_data->gps_vel.velocityAcc[0], 2) +
 						 pow(gnss_data->gps_vel.velocityAcc[1], 2) +
 						 pow(gnss_data->gps_vel.velocityAcc[2], 2));
-		sensor_gps.c_variance_rad = math::radians(gnss_data->gps_vel.courseAcc);
+		sensor_gps.course_accuracy = math::radians(gnss_data->gps_vel.courseAcc);
 
 		type = sbgEComLogGnssPosGetType(&gnss_data->gps_pos);
 
@@ -561,15 +561,15 @@ void SbgEcom::handleLogGnssPosVel(SbgEComMsgId msg, const SbgEComLogUnion *ref_s
 			break;
 		}
 
-		sensor_gps.vel_m_s = sqrt(pow(gnss_data->gps_vel.velocity[0], 2) +
-					  pow(gnss_data->gps_vel.velocity[1], 2) +
-					  pow(gnss_data->gps_vel.velocity[2], 2));
-		sensor_gps.vel_n_m_s = gnss_data->gps_vel.velocity[0];
-		sensor_gps.vel_e_m_s = gnss_data->gps_vel.velocity[1];
-		sensor_gps.vel_d_m_s = gnss_data->gps_vel.velocity[2];
+		sensor_gps.ground_speed = sqrt(pow(gnss_data->gps_vel.velocity[0], 2) +
+					       pow(gnss_data->gps_vel.velocity[1], 2) +
+					       pow(gnss_data->gps_vel.velocity[2], 2));
+		sensor_gps.vel_north = gnss_data->gps_vel.velocity[0];
+		sensor_gps.vel_east = gnss_data->gps_vel.velocity[1];
+		sensor_gps.vel_down = gnss_data->gps_vel.velocity[2];
 		sensor_gps.vel_ned_valid = true;
 
-		sensor_gps.cog_rad = math::radians(gnss_data->gps_vel.course);
+		sensor_gps.course = math::radians(gnss_data->gps_vel.course);
 
 		sensor_gps.timestamp_time_relative = sensor_gps.timestamp_sample - time_now_us;
 		sensor_gps.time_utc_usec = 0;
