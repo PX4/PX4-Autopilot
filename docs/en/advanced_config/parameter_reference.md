@@ -24884,13 +24884,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Full cell voltage.
 
 Defines the voltage where a single cell of the battery is considered full.
-For a more accurate estimate set this below the nominal voltage of e.g. 4.2V
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  | 0.01 | 4.05 | V | &nbsp;
+&check; |  |  | 0.01 | 4.2 | V | &nbsp;
 
 </div>
 
@@ -25121,13 +25120,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Full cell voltage.
 
 Defines the voltage where a single cell of the battery is considered full.
-For a more accurate estimate set this below the nominal voltage of e.g. 4.2V
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  | 0.01 | 4.05 | V | &nbsp;
+&check; |  |  | 0.01 | 4.2 | V | &nbsp;
 
 </div>
 
@@ -25303,13 +25301,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Full cell voltage.
 
 Defines the voltage where a single cell of the battery is considered full.
-For a more accurate estimate set this below the nominal voltage of e.g. 4.2V
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  | 0.01 | 4.05 | V | &nbsp;
+&check; |  |  | 0.01 | 4.2 | V | &nbsp;
 
 </div>
 
