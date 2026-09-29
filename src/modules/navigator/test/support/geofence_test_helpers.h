@@ -55,6 +55,7 @@ public:
 		fence._dataman_cache.invalidate();
 		fence._dataman_state = Geofence::DatamanState::UpdateRequestWait;
 		fence._fence_loaded = false;
+		fence._failure_report = Geofence::FailureReport::None;
 		fence._projection_reference = MapProjection{};
 		fence._altitude_min = 0.f;
 		fence._altitude_max = 0.f;
@@ -217,9 +218,9 @@ protected:
 		return ::testing::AssertionFailure() << "fence load timed out";
 	}
 
+	// Write the fence under a new ID without asking the Geofence to load it.
 	// extra_items lets the metadata claim vertices that were never stored.
-	::testing::AssertionResult loadFence(const FencePoints &points,
-					     uint8_t expected_status = geofence_status_s::GF_STATUS_READY, size_t extra_items = 0)
+	::testing::AssertionResult storeFence(const FencePoints &points, size_t extra_items = 0)
 	{
 		for (size_t i = 0; i < points.size(); ++i) {
 			mission_fence_point_s point = points[i];
@@ -239,6 +240,18 @@ protected:
 		if (!_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
 					       reinterpret_cast<uint8_t *>(&stats), sizeof(stats))) {
 			return ::testing::AssertionFailure() << "failed to write fence metadata";
+		}
+
+		return ::testing::AssertionSuccess();
+	}
+
+	::testing::AssertionResult loadFence(const FencePoints &points,
+					     uint8_t expected_status = geofence_status_s::GF_STATUS_READY, size_t extra_items = 0)
+	{
+		const ::testing::AssertionResult stored = storeFence(points, extra_items);
+
+		if (!stored) {
+			return stored;
 		}
 
 		_fence.updateFence();
