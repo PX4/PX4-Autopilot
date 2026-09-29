@@ -35,7 +35,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -84,7 +84,7 @@ private:
 
 	uavcan::INode &_node;
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};

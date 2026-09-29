@@ -55,7 +55,7 @@ using namespace time_literals;
 const char *const UavcanGnssBridge::NAME = "gnss";
 
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
-	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gps), node_info_publisher),
+	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gnss), node_info_publisher),
 	_node(node),
 	_sub_auxiliary(node),
 	_sub_fix(node),
@@ -373,7 +373,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    const int32_t jamming_indicator, const uint8_t jamming_state,
 				    const uint8_t spoofing_state)
 {
-	sensor_gps_s sensor_gps{};
+	sensor_gnss_s sensor_gps{};
 
 	sensor_gps.device_id = make_uavcan_device_id(msg);
 
@@ -394,10 +394,10 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	 */
 	sensor_gps.timestamp = hrt_absolute_time();
 
-	sensor_gps.latitude_deg         = msg.latitude_deg_1e8 / 1e8;
-	sensor_gps.longitude_deg        = msg.longitude_deg_1e8 / 1e8;
-	sensor_gps.altitude_msl_m       = msg.height_msl_mm / 1e3;
-	sensor_gps.altitude_ellipsoid_m = msg.height_ellipsoid_mm / 1e3;
+	sensor_gps.latitude           = msg.latitude_deg_1e8 / 1e8;
+	sensor_gps.longitude          = msg.longitude_deg_1e8 / 1e8;
+	sensor_gps.altitude_msl       = msg.height_msl_mm / 1e3;
+	sensor_gps.altitude_ellipsoid = msg.height_ellipsoid_mm / 1e3;
 
 	if (valid_pos_cov) {
 		// Horizontal position uncertainty
@@ -413,13 +413,13 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	}
 
 	if (valid_vel_cov) {
-		sensor_gps.s_variance_m_s = math::max(vel_cov[0], vel_cov[4], vel_cov[8]);
+		sensor_gps.speed_accuracy = math::max(vel_cov[0], vel_cov[4], vel_cov[8]);
 
 		/* There is a nonlinear relationship between the velocity vector and the heading.
 		 * Use Jacobian to transform velocity covariance to heading covariance
 		 *
 		 * Nonlinear equation:
-		 * heading = atan2(vel_e_m_s, vel_n_m_s)
+		 * heading = atan2(vel_east, vel_north)
 		 * For math, see http://en.wikipedia.org/wiki/Atan2#Derivative
 		 *
 		 * To calculate the variance of heading from the variance of velocity,
@@ -429,23 +429,23 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		float vel_e = msg.ned_velocity[1];
 		float vel_n_sq = vel_n * vel_n;
 		float vel_e_sq = vel_e * vel_e;
-		sensor_gps.c_variance_rad =
+		sensor_gps.course_accuracy =
 			(vel_e_sq * vel_cov[0] +
 			 -2 * vel_n * vel_e * vel_cov[1] +	// Covariance matrix is symmetric
 			 vel_n_sq * vel_cov[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
 
 	} else {
-		sensor_gps.s_variance_m_s = -1.0F;
-		sensor_gps.c_variance_rad = -1.0F;
+		sensor_gps.speed_accuracy = -1.0F;
+		sensor_gps.course_accuracy = -1.0F;
 	}
 
 	sensor_gps.fix_type = fix_type;
 
-	sensor_gps.vel_n_m_s = msg.ned_velocity[0];
-	sensor_gps.vel_e_m_s = msg.ned_velocity[1];
-	sensor_gps.vel_d_m_s = msg.ned_velocity[2];
-	sensor_gps.vel_m_s = matrix::Vector3f(msg.ned_velocity[0], msg.ned_velocity[1], msg.ned_velocity[2]).norm();
-	sensor_gps.cog_rad = atan2f(sensor_gps.vel_e_m_s, sensor_gps.vel_n_m_s);
+	sensor_gps.vel_north = msg.ned_velocity[0];
+	sensor_gps.vel_east = msg.ned_velocity[1];
+	sensor_gps.vel_down = msg.ned_velocity[2];
+	sensor_gps.ground_speed = matrix::Vector3f(msg.ned_velocity[0], msg.ned_velocity[1], msg.ned_velocity[2]).norm();
+	sensor_gps.course = atan2f(sensor_gps.vel_east, sensor_gps.vel_north);
 	sensor_gps.vel_ned_valid = true;
 
 	sensor_gps.timestamp_time_relative = 0;
@@ -479,13 +479,13 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	// into HRT, then subtract (msg.timestamp - msg.gnss_timestamp), which is
 	// the node-measured receiver processing delay. Nodes that leave
 	// msg.timestamp unset or on a non-UTC timebase fail the guard and fall
-	// through to the SENS_GPS*_DELAY path in VehicleGPSPosition.
+	// through to the SENS_GNSS*_DELAY path in VehicleGPSPosition.
 	const uint64_t msg_ts_usec = uavcan::UtcTime(msg.timestamp).toUSec();
 
 	// Sanity-bound the node-measured processing delay before it drives the clock
 	// estimator: a remote UTC discontinuity (leap second, receiver glitch) must
 	// not pin the offset low for the rest of the flight. Implausible values fall
-	// through to the SENS_GPS*_DELAY path.
+	// through to the SENS_GNSS*_DELAY path.
 	static constexpr uint64_t kMaxProcessingDelayUs = 500'000;
 
 	if (msg_ts_usec > gnss_ts_usec && gnss_ts_usec > 0
@@ -525,7 +525,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	}
 
 	// If we haven't already done so, set the system clock using GPS data
-	if (sensor_gps.time_utc_usec != 0 && (fix_type >= sensor_gps_s::FIX_TYPE_2D) && !_system_clock_set) {
+	if (sensor_gps.time_utc_usec != 0 && (fix_type >= sensor_gnss_s::FIX_TYPE_2D) && !_system_clock_set) {
 		int32_t sys_time_src = 0;
 		param_get(param_find("SYS_TIME_SRC"), &sys_time_src);
 
@@ -557,7 +557,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		sensor_gps.vdop = msg.pdop;
 	}
 
-	sensor_gps.noise_per_ms = noise_per_ms;
+	sensor_gps.noise = noise_per_ms;
 	sensor_gps.jamming_indicator = jamming_indicator;
 	sensor_gps.jamming_state = jamming_state;
 	sensor_gps.spoofing_state = spoofing_state;
