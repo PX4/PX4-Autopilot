@@ -1,6 +1,7 @@
 menuconfig SYSTEMCMDS_FAILURE
 	bool "failure"
 	default n
+	depends on MODULES_FAILURE_INJECTION_MANAGER
 	---help---
 		Enable support for failure
 

@@ -39,6 +39,7 @@
 #pragma once
 
 #include <uORB/uORB.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 
 #include "uORBDeviceNode.hpp"
@@ -52,8 +53,44 @@
 namespace uORB
 {
 
+namespace subscription_interval_detail
+{
+
+// Drop-in, non-atomic stand-in for px4::atomic. It mirrors the load()/store()
+// interface so the shared SubscriptionIntervalBase body works unchanged, but
+// compiles down to plain member access with no synchronization overhead.
+template <typename T>
+class NonAtomic
+{
+public:
+	NonAtomic() = default;
+	explicit NonAtomic(T value) : _value(value) {}
+	T load() const { return _value; }
+	void store(T value) { _value = value; }
+private:
+	T _value{};
+};
+
+// Minimal compile-time type selector (std::conditional is unavailable: the STL is
+// not used in firmware headers that also build for NuttX).
+template <bool ATOMIC, typename T> struct storage { using type = px4::atomic<T>; };
+template <typename T> struct storage<false, T> { using type = NonAtomic<T>; };
+
+template <bool ATOMIC, typename T>
+using storage_t = typename storage<ATOMIC, T>::type;
+
+} // namespace subscription_interval_detail
+
 // Base subscription wrapper class
-class SubscriptionInterval
+//
+// ATOMIC selects whether the interval and last-update fields use atomic storage.
+// They only need to be atomic for callback subscriptions (SubscriptionCallback and
+// derived), where call() runs on the publishing thread while the subscriber thread
+// updates them. Plain subscriptions are single-threaded, so the default keeps the
+// fields as plain members. Use the SubscriptionInterval / SubscriptionIntervalAtomic
+// aliases below rather than this template directly.
+template <bool ATOMIC = false>
+class SubscriptionIntervalBase
 {
 public:
 
@@ -64,7 +101,7 @@ public:
 	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionInterval(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0) :
+	SubscriptionIntervalBase(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0) :
 		_subscription{id, instance},
 		_interval_us(interval_us)
 	{}
@@ -76,14 +113,14 @@ public:
 	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionInterval(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
+	SubscriptionIntervalBase(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
 		_subscription{meta, instance},
 		_interval_us(interval_us)
 	{}
 
-	SubscriptionInterval() : _subscription{nullptr} {}
+	SubscriptionIntervalBase() : _subscription{nullptr} {}
 
-	~SubscriptionInterval() = default;
+	~SubscriptionIntervalBase() = default;
 
 	bool subscribe() { return _subscription.subscribe(); }
 	void unsubscribe() { _subscription.unsubscribe(); }
@@ -112,7 +149,7 @@ public:
 	bool		valid() const { return _subscription.valid(); }
 
 	uint8_t		get_instance() const { return _subscription.get_instance(); }
-	uint32_t        get_interval_us() const { return _interval_us; }
+	uint32_t        get_interval_us() const { return _interval_us.load(); }
 	unsigned	get_last_generation() const { return _subscription.get_last_generation(); }
 	orb_id_t	get_topic() const { return _subscription.get_topic(); }
 
@@ -120,25 +157,43 @@ public:
 	 * Set the interval in microseconds
 	 * @param interval The interval in microseconds.
 	 */
-	void		set_interval_us(uint32_t interval) { _interval_us = interval; }
+	void		set_interval_us(uint32_t interval) { _interval_us.store(interval); }
 
 	/**
 	 * Set the interval in milliseconds
 	 * @param interval The interval in milliseconds.
 	 */
-	void		set_interval_ms(uint32_t interval) { _interval_us = interval * 1000; }
+	void		set_interval_ms(uint32_t interval) { _interval_us.store(interval * 1000); }
 
 	/**
 	 * Set the last data update
 	 * @param t should be in range [now, now - _interval_us]
 	 */
-	void		set_last_update(hrt_abstime t) { _last_update = t; }
+	void		set_last_update(hrt_abstime t) { _last_update.store(t); }
 protected:
 
 	Subscription	_subscription;
-	uint64_t	_last_update{0};	// last subscription update in microseconds
-	uint32_t	_interval_us{0};	// maximum update interval in microseconds
+	subscription_interval_detail::storage_t<ATOMIC, uint64_t>	_last_update{0};	// last subscription update in microseconds
+	subscription_interval_detail::storage_t<ATOMIC, uint32_t>	_interval_us{0};	// maximum update interval in us
 
 };
+
+// Single-threaded subscription with a minimum update interval (the common case).
+using SubscriptionInterval = SubscriptionIntervalBase<false>;
+
+// Same, but with atomic interval / last-update fields for the callback subscriptions,
+// where call() runs on the publishing thread concurrently with the subscriber.
+using SubscriptionIntervalAtomic = SubscriptionIntervalBase<true>;
+
+// The out-of-line methods are explicitly instantiated in SubscriptionInterval.cpp.
+// Declaring them extern here keeps other translation units from emitting their own
+// weak copies, so the single strong definition can be pinned into ITCM by name on
+// the boards that do so (see boards/*/nuttx-config/scripts/itcm_*.ld).
+extern template bool SubscriptionIntervalBase<false>::updated();
+extern template bool SubscriptionIntervalBase<false>::update(void *dst);
+extern template bool SubscriptionIntervalBase<false>::copy(void *dst);
+extern template bool SubscriptionIntervalBase<true>::updated();
+extern template bool SubscriptionIntervalBase<true>::update(void *dst);
+extern template bool SubscriptionIntervalBase<true>::copy(void *dst);
 
 } // namespace uORB

@@ -4,7 +4,7 @@ The [Holybro H-RTK Unicore UM982 GPS](https://holybro.com/products/h-rtk-unicore
 
 ![HB-pmw3901-1](../../assets/hardware/gps/holybro-unicore-um982/holybro-unicore-um982-1.jpg)
 
-This module is based on the [Unicore UM982 Chip](https://en.unicore.com/products/dual-antenna-gnss-um982/), which supports RTK positioning and dual-antenna heading calculation.
+This module is based on the [Unicore UM982 Chip](https://en.unicore.com/products/um982/), which supports RTK positioning and dual-antenna heading calculation.
 
 This means that it can generate a moving baseline headline/yaw determinations for autopilots with just one GPS module and dual antennas - a magnetometer is not needed.
 Unlike when using a module such as the U-blox F9P, where you would need [two U-blox F9P modules to compute a heading angle](../gps_compass/u-blox_f9p_heading.md), with the Unicore UM982 GPS, you only need one GPS module!
@@ -53,8 +53,7 @@ The Unicore module comes with two antennas, a primary (right connector) and a se
 You will need to set the following parameters:
 
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): Set bit 3 (8) to enable dual antenna heading into the yaw estimation.
-- [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET): Set heading offset to 0 if the primary antenna is in the front.
-  The angle increases clock-wise, so set the offset to 90 degrees if the primary antenna is on the right side of the vehicle (and the secondary on the left side).
+- [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG): `Dual antenna`, with [SENS_GPSn_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX) the position of the primary antenna and [SENS_GNSSn_AUXX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_AUXX) that of the secondary antenna.
 
 ### RTK Corrections
 

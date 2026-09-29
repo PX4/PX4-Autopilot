@@ -49,6 +49,10 @@ ControlAllocationPseudoInverse::setEffectivenessMatrix(
 {
 	ControlAllocation::setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, num_actuators,
 			update_normalization_scale);
+
+	// in place on the stored copy: no second matrix on the (small work queue) stack
+	_dropped_axes = dropDependentAxes(_effectiveness);
+
 	_mix_update_needed = true;
 	_normalization_needs_update = update_normalization_scale;
 
@@ -186,4 +190,64 @@ ControlAllocationPseudoInverse::allocate()
 
 	// Allocate
 	_actuator_sp = _actuator_trim + _mix * (_control_sp - _control_trim);
+}
+
+uint8_t
+ControlAllocationPseudoInverse::dropDependentAxes(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness)
+{
+	// highest priority first
+	static constexpr ControlAxis kPriority[NUM_AXES] = {THRUST_Z, ROLL, PITCH, THRUST_X, THRUST_Y, YAW};
+
+	// Gram-Schmidt through the Cholesky factor of the Gram matrix of the accepted unit rows:
+	// equivalent to orthogonalizing the rows, without keeping NUM_ACTUATORS-long vectors on the
+	// (small work queue) stack
+	float chol[NUM_AXES][NUM_AXES] {};
+	float inv_norm[NUM_AXES];
+	ControlAxis accepted[NUM_AXES];
+	int num_accepted = 0;
+	uint8_t dropped = 0;
+
+	for (const ControlAxis axis : kPriority) {
+		const float norm_squared = effectiveness.row(axis).norm_squared();
+
+		if (norm_squared < FLT_EPSILON) {
+			continue; // unused axis
+		}
+
+		const float inv = 1.f / sqrtf(norm_squared);
+
+		// projection of the unit row onto the orthonormal basis of the accepted rows
+		float projection[NUM_AXES];
+		float projected_norm_squared = 0.f;
+
+		for (int i = 0; i < num_accepted; i++) {
+			float sum = effectiveness.row(axis).dot(effectiveness.row(accepted[i])) * inv * inv_norm[i];
+
+			for (int j = 0; j < i; j++) {
+				sum -= chol[i][j] * projection[j];
+			}
+
+			projection[i] = sum / chol[i][i];
+			projected_norm_squared += projection[i] * projection[i];
+		}
+
+		const float independence = 1.f - projected_norm_squared;
+
+		if (independence < kMinAxisIndependence) {
+			effectiveness.row(axis) = 0.f;
+			dropped |= static_cast<uint8_t>(1u << axis);
+
+		} else {
+			for (int j = 0; j < num_accepted; j++) {
+				chol[num_accepted][j] = projection[j];
+			}
+
+			chol[num_accepted][num_accepted] = sqrtf(independence);
+			inv_norm[num_accepted] = inv;
+			accepted[num_accepted] = axis;
+			num_accepted++;
+		}
+	}
+
+	return dropped;
 }

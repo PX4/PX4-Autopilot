@@ -114,3 +114,33 @@ TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_BankedTurn
 
 	EXPECT_NEAR(yaw_rate, 0.f, 1e-4f);
 }
+
+TEST(FixedwingAttitudeControlTest, TailsitterFrameRotation)
+{
+	// NOTE: this test cannot guard against breaking the conversion in Run()
+	// (while keeping the quaternion the same). This only sanity checks the
+	// underlying math. We rely on integration tests to test the actual
+	// implementation in Run().
+
+	const Quatf &q_mc_to_fw = FixedwingAttitudeControl::_q_mc_to_fw;
+
+	// The rotation maps the MC body axes onto the FW body axes: MC x -> FW z, MC z -> FW -x.
+	const Vector3f x_fw = q_mc_to_fw.rotateVector(Vector3f(1.f, 0.f, 0.f));
+	const Vector3f z_fw = q_mc_to_fw.rotateVector(Vector3f(0.f, 0.f, 1.f));
+	EXPECT_NEAR(x_fw(0), 0.f, 1e-6f);
+	EXPECT_NEAR(x_fw(2), 1.f, 1e-6f);
+	EXPECT_NEAR(z_fw(0), -1.f, 1e-6f);
+	EXPECT_NEAR(z_fw(2), 0.f, 1e-6f);
+
+	// Attitude of level FW flight in MC frame
+	const Quatf q_ned_mc(Eulerf(0.f, -M_PI_2_F, 0.f));
+	// level fixed-wing setpoint = unit quaternion
+	const Quatf q_sp;
+
+	// The raw hover-frame attitude appears as a large error against the level FW setpoint.
+	EXPECT_GT(computeAttitudeError(q_ned_mc, q_sp).norm(), 1.f);
+
+	// Adapting it exactly as Run() does (att.q * _q_mc_to_fw.inversed()) removes the error.
+	const Quatf q_adapted = q_ned_mc * q_mc_to_fw.inversed();
+	EXPECT_NEAR(computeAttitudeError(q_adapted, q_sp).norm(), 0.f, 1e-5f);
+}

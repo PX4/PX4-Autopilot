@@ -14,7 +14,7 @@ The table below provides more detail on the differences.
 | ---------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------ |
 | Pre-trained policy that adapts to any quadrotor without training | ✓ RAPTOR                                    | ✘                                                                  |
 | Train policy in PyTorch/TF                                       | ✘                                           | ✓ TF Lite                                                          |
-| Train policy in RLtools                                          | &check;                 | ✘                                                                  |
+| Train policy in RLtools                                          | ✓                                           | ✘                                                                  |
 | Use manual control (remote) with NN policy    | ✘ GPS/MoCap                                 | ✓ Manual attitude commands                                         |
 | Load policy checkpoints from SD card                             | ✓ Upload via MAVLink FTP                    | ✘ Compiled into firmware                                           |
 | Offboard setpoints                                               | ✓ MAVLink                                   | ✘                                                                  |

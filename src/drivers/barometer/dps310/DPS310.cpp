@@ -48,10 +48,12 @@ static void getTwosComplement(T &raw, uint8_t length)
 
 DPS310::DPS310(const I2CSPIDriverConfig &config, device::Device *interface) :
 	I2CSPIDriver(config),
+	_px4_baro{interface->get_device_id(), config.external},
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors"))
 {
+	_interface->set_external(config.external);
 }
 
 DPS310::~DPS310()
@@ -65,8 +67,11 @@ DPS310::~DPS310()
 int
 DPS310::init()
 {
-	if (RegisterRead(Register::ID) != Infineon_DPS310::REV_AND_PROD_ID) {
-		PX4_ERR("Product_ID mismatch");
+	const uint8_t prod_id = RegisterRead(Register::ID);
+
+	if (prod_id != Infineon_DPS310::REV_AND_PROD_ID_DPS310 &&
+	    prod_id != Infineon_DPS310::REV_AND_PROD_ID_DPS368) {
+		PX4_ERR("Product_ID mismatch (got 0x%02x)", prod_id);
 		return PX4_ERROR;
 	}
 
@@ -233,14 +238,9 @@ DPS310::RunImpl()
 	const float Tcomp = c0 * 0.5f + c1 * Traw_sc;
 
 	// publish
-	sensor_baro_s sensor_baro{};
-	sensor_baro.timestamp_sample = timestamp_sample;
-	sensor_baro.device_id = _interface->get_device_id();
-	sensor_baro.pressure = Pcomp;
-	sensor_baro.temperature = Tcomp;
-	sensor_baro.error_count = perf_event_count(_comms_errors);
-	sensor_baro.timestamp = hrt_absolute_time();
-	_sensor_baro_pub.publish(sensor_baro);
+	_px4_baro.set_error_count(perf_event_count(_comms_errors));
+	_px4_baro.set_temperature(Tcomp);
+	_px4_baro.update(timestamp_sample, Pcomp);
 
 	perf_end(_sample_perf);
 }

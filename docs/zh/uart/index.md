@@ -3,3 +3,4 @@
 本节包含关于串行总线和串行驱动程序的主题:
 
 - [串行端口驱动程序可由用户配置](../uart/user_configurable_serial_driver.md)
+- [Serial Passthrough (MAVLink SERIAL_CONTROL)](../uart/serial_passthrough.md)

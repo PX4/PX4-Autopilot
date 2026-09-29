@@ -59,9 +59,11 @@ qshell commander start
 # This is needed for altitude and position hold modes
 qshell flight_mode_manager start
 
-# Start all of the processing modules on the applications processor
+# Start the dataman service on the applications processor before navigator on DSP
 dataman start
-navigator start
+qshell navigator start
+
+# Start the applications processor bridges and services
 vehicle_air_data_bridge start
 sensor_baro_bridge start
 vehicle_local_position_bridge start
@@ -86,7 +88,7 @@ mavlink stream -u 14556 -s HEARTBEAT -r 10
 # start the slow normal mode for voxl-mavlink-server to forward to GCS
 mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
 
-# Start the jmavsim visualization stream. Change -t ip address to your desired endpoint
+# Start the SIH visualization stream for Hawkeye (run `hawkeye -udp 14560` on the endpoint). Change -t ip address to your desired endpoint
 # TODO: Should go through voxl-mavlink-server, not just direct like this
 # mavlink start -x -u 14560 -o 14560 -r 4000000 -t 192.168.101.1 -m minimal
 # mavlink stream -u 14560 -s HIL_STATE_QUATERNION -r 200

@@ -22,18 +22,21 @@ The [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/
 
 - Build any simulator or hardware target supported by [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) in the WSL Shell.
   (Ubuntu є платформою розробки PX4, яка підтримується та протестована найкраще).
+- [Update firmware](#flash-a-flight-control-board) on a real vehicle _using the command line_.
 - Debug code in [Visual Studio Code](dev_env_windows_wsl.md#visual-studio-code-integration) running on Windows.
 - Monitor a _simulation_ using _QGroundControl for Linux_ running in WSL.
   QGC для Linux автоматично під'єднується до симуляції.
 
 _QGroundControl for Windows_ is additionally required if you need to:
 
-- [Update firmware](#flash-a-flight-control-board) on a real vehicle.
+- [Update firmware](#flash-a-flight-control-board) using the QGC UI.
 - Спостерігати за справжнім засобом.
   Note that you can also use it to monitor a simulation, but you must manually [connect to the simulation running in WSL](#qgroundcontrol-on-windows).
 
-:::info
-Connecting to an USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
+:::tip
+Connecting to an USB device from within WSL is not natively supported, but can be enabled via [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb).
+
+From PX4 v1.18, you can upload PX4 firmware over USB from the WSL command line using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) target (this uses the Windows Python interpreter on WSL to access the flight controller through the Windows COM port).
 :::
 
 :::info
@@ -229,7 +232,7 @@ VS Code на Windows добре інтегрований з WSL.
 ## QGroundControl
 
 Для підключення до запущеної симуляції, ви можете запустити QGroundControl або в WSL або у Windows.
-If you need to [flash a flight control board](#flash-a-flight-control-board) with new firmware you can only do this from the QGroundControl for Windows.
+If you want to flash a flight control board using the QGroundControl GUI, you _must_ use QGroundControl for Windows.
 
 ### QGroundControl у WSL
 
@@ -292,38 +295,40 @@ You will have to update the WSL comm link in QGC every time WSL restarts (becaus
 
 ## Прошивка плати керування польотом
 
-Flashing a custom built PX4 binary has to be done using [QGroundControl for Windows](#qgroundcontrol-on-windows).
+Custom PX4 firmware built in WSL can be uploaded directly from the WSL command line using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) target.
 
 :::info
 WSL2 does not natively offer direct access to serial/USB devices like Pixhawk flight controllers connected to your computer.
-That means you can't connect QGC running inside WSL2 to a flight controller to install firmware, or use the `upload` command to [upload firmware as it is built](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board).
-Instead you connect [QGroundControl for Windows](#qgroundcontrol-on-windows) to PX4 running in WSL2 and to the Flight controller in order to upload the firmware.
+The PX4 `upload` target works around this by using the Windows Python interpreter from WSL to access the flight controller through the Windows COM port.
 :::
 
-Зробіть наступні кроки для прошивки вашого бінарного файлу, зібраного у WSL:
+To flash your custom binary from WSL:
 
-1. If you haven't already built the binary in WSL e.g. with a [WSL shell](dev_env_windows_wsl.md#opening-a-wsl-shell) and by running:
+1. Connect the flight controller to your computer with a USB cable.
+2. Open a [WSL shell](dev_env_windows_wsl.md#opening-a-wsl-shell), switch to the PX4 repository, and specify `upload` after your make target:
 
    ```sh
    cd ~/PX4-Autopilot
-   make px4_fmu-v5
+   make px4_fmu-v5 upload
    ```
 
    ::: tip
+   This builds `px4_fmu-v5`.
    Use the correct `make` target for your board.
-   `px4_fmu-v5` can be used for a Pixhawk 4 board.
 
 :::
 
-2. Detach the USB cable of your Pixhawk board from the computer if it was connected.
+You can also flash a custom binary built in WSL using [QGroundControl for Windows](#qgroundcontrol-on-windows):
 
-3. Open QGC and navigate to **Q > Vehicle Setup > Firmware**.
+1. Detach the USB cable of your Pixhawk board from the computer if it was connected.
 
-4. Plug your Pixhawk board via USB
+2. Open QGC and navigate to **Q > Vehicle Setup > Firmware**.
 
-5. Once connected select "PX4 Flight Stack", check **Advanced settings** and choose _Custom firmware file ..._ from the drop down below.
+3. Plug your Pixhawk board via USB
 
-6. Continue and select the firmware binary you just built in WSL.
+4. Once connected select "PX4 Flight Stack", check **Advanced settings** and choose _Custom firmware file ..._ from the drop down below.
+
+5. Continue and select the firmware binary you just built in WSL.
 
    У відкритому діалозі знайдіть розташування "Linux" з іконкою пінгвіна на лівій панелі.
    Зазвичай, вона в самому низу.
@@ -334,7 +339,7 @@ Instead you connect [QGroundControl for Windows](#qgroundcontrol-on-windows) to 
 
 :::
 
-7. Почніть прошивку.
+6. Почніть прошивку.
 
 For more information see [Installing PX4 Main, Beta or Custom Firmware (Loading Firmware)](../config/firmware.md#installing-px4-main-beta-or-custom-firmware).
 

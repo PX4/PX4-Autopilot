@@ -181,6 +181,7 @@ enum ACC_PWR_CTRL_BIT : uint8_t {
 namespace FIFO
 {
 static constexpr size_t SIZE = 1024;
+static constexpr size_t HEADER_SIZE = 1; // one header byte precedes each accel+gyro frame
 
 struct Data {
 	uint8_t x_lsb;

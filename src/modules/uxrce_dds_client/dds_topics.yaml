@@ -10,7 +10,9 @@ publications:
 
   - topic: /fmu/out/arming_check_request
     type: px4_msgs::msg::ArmingCheckRequest
-    rate_limit: 5.
+
+  - topic: /fmu/out/setpoint_config_reply
+    type: px4_msgs::msg::SetpointConfigReply
 
   - topic: /fmu/out/mode_completed
     type: px4_msgs::msg::ModeCompleted
@@ -110,6 +112,17 @@ publications:
     type: px4_msgs::msg::GimbalDeviceAttitudeStatus
     rate_limit: 20.
 
+  - topic: /fmu/out/config_overrides_confirm
+    type: px4_msgs::msg::ConfigOverrides
+
+  - topic: /fmu/out/vtx
+    type: px4_msgs::msg::Vtx
+    rate_limit: 1.
+
+  - topic: /fmu/out/input_rc
+    type: px4_msgs::msg::InputRc
+    rate_limit: 10.
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -117,6 +130,9 @@ subscriptions:
 
   - topic: /fmu/in/unregister_ext_component
     type: px4_msgs::msg::UnregisterExtComponent
+
+  - topic: /fmu/in/setpoint_config
+    type: px4_msgs::msg::SetpointConfig
 
   - topic: /fmu/in/config_overrides_request
     type: px4_msgs::msg::ConfigOverrides
@@ -129,9 +145,6 @@ subscriptions:
 
   - topic: /fmu/in/mode_completed
     type: px4_msgs::msg::ModeCompleted
-
-  - topic: /fmu/in/config_control_setpoints
-    type: px4_msgs::msg::VehicleControlMode
 
   - topic: /fmu/in/distance_sensor
     type: px4_msgs::msg::DistanceSensor

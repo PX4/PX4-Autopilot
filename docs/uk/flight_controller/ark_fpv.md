@@ -23,8 +23,8 @@ See the documentation [Ark Electronics GitBook](https://arkelectron.gitbook.io/a
 
 ## Датчики
 
-- [Invensense IIM-42653 Industrial IMU](https://invensense.tdk.com/products/smartindustrial/iim-42653/)
-- [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp390/)
+- [Invensense IIM-42653 Industrial IMU](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42653)
+- [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
 - [ST IIS2MDC Magnetometer](https://www.st.com/en/mems-and-sensors/iis2mdc.html)
 
 ## Мікропроцесор

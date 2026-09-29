@@ -27,7 +27,7 @@ Any yaw angle commanded in a mission will be ignored.
 
 This functionality is configured using the [WV\_\* parameters](../advanced_config/parameter_reference.md#WV_EN).
 
-| 参数                                                                                                               | 描述                                                                                           |
+| Parameter                                                                                                        | 描述                                                                                           |
 | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | [WV_EN](../advanced_config/parameter_reference.md#WV_EN)                                    | Enable weather vane.                                                         |
 | [WV_ROLL_MIN](../advanced_config/parameter_reference.md#WV_ROLL_MIN)   | Minimum roll angle setpoint for weathervane controller to demand a yaw-rate. |

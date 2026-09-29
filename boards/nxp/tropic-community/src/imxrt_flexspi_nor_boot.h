@@ -150,6 +150,6 @@ struct boot_data_s {
 
 extern const struct boot_data_s g_boot_data;
 extern const uint8_t g_dcd_data[];
-extern const uint32_t _vectors[];
+extern const void *const _vectors[];
 
 #endif /* __BOARDS_ARM_IMXRT_TEENSY_4_SRC_IMXRT_FLEXSPI_NOR_BOOT_H */

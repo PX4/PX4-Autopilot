@@ -1,7 +1,6 @@
 # 搭建你的第一个应用（Hello Shy）
 
-本文主要说明如何创建并运行你的第一个板载应用程序。
-它涵盖了 PX4 应用程序开发所需的所有基本概念和 API。
+本文主要说明如何创建并运行你的第一个板载应用程序。它涵盖了 PX4 应用程序开发所需的所有基本概念和 API。
 
 :::info
 For simplicity, more advanced features like start/stop functionality and command-line arguments are omitted.
@@ -185,8 +184,7 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 
 ## 编译应用程序/固件
 
-应用程序的编写至此完成。
-为了运行它，您首先需要确保它是作为 PX4 的一部分构建的。
+应用程序的编写至此完成。为了运行它，您首先需要确保它是作为 PX4 的一部分构建的。
 Applications are added to the build/firmware in the appropriate board-level _px4board_ file for your target:
 
 - PX4 SITL (Simulator): [PX4-Autopilot/boards/px4/sitl/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/sitl/default.px4board)
@@ -310,14 +308,14 @@ The benefits of the PX4 hardware abstraction comes into play here!
 无需以任何方式与传感器驱动程序交互，如果板或传感器更新，也无需更新您的应用程序。
 :::
 
-Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [VehicleAcceleration](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAcceleration.msg) topic, which holds the filtered vehicle acceleration data.
+Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [VehicleAcceleration](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAcceleration.msg) topic, which holds the filtered vehicle acceleration data.
 
 订阅主题很简单：
 
 ```cpp
 #include <uORB/topics/vehicle_acceleration.h>
 ..
-int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
+orb_sub_t sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 ```
 
 The `sensor_sub_fd` is a topic handle and can be used to very efficiently perform a blocking wait for new data.
@@ -330,7 +328,7 @@ Adding `poll()` to the subscription looks like (_pseudocode, look for the full i
 #include <poll.h>
 #include <uORB/topics/vehicle_acceleration.h>
 ..
-int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
+orb_sub_t sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 
 /* one could wait for multiple topics with this technique, just using one here */
 px4_pollfd_struct_t fds[] = {
@@ -475,7 +473,7 @@ int px4_simple_app_main(int argc, char *argv[])
 	PX4_INFO("Hello Sky!");
 
 	/* subscribe to vehicle_acceleration topic */
-	int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
+	orb_sub_t sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 	/* limit the update rate to 5 Hz */
 	orb_set_interval(sensor_sub_fd, 200);
 

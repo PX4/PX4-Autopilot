@@ -19,6 +19,10 @@
 #include "bl.h"
 #include "uart.h"
 
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+#include "ecc_scrub.h"
+#endif
+
 
 #define MK_GPIO_INPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT))
 
@@ -455,11 +459,16 @@ inline void arch_setvtor(const uint32_t *address)
 	putreg32((uint32_t)address, NVIC_VECTAB);
 }
 
+/* the chip code may provide its own sector size (see stm32h7/ecc_scrub.h) */
+#if !defined(FLASH_SECTOR_SIZE)
+#define FLASH_SECTOR_SIZE   (128u * 1024u)
+#endif
+
 uint32_t
 flash_func_sector_size(unsigned sector)
 {
 	if (sector <= BOARD_FLASH_SECTORS) {
-		return 128 * 1024;
+		return FLASH_SECTOR_SIZE;
 	}
 
 	return 0;
@@ -627,17 +636,28 @@ arch_do_jump(const uint32_t *app_base)
 	uint32_t stacktop = app_base[0];
 	uint32_t entrypoint = app_base[1];
 
+	uint32_t scratch;
+
+	/* NuttX 12.12 runs thread mode on the PSP (arm_initialize_stack(), enabled
+	 * whenever CONFIG_ARCH_INTERRUPTSTACK > 7). The application expects to start
+	 * on the MSP, so select it again before handing over -- otherwise the app
+	 * keeps running on the bootloader's stack and faults once it is clobbered.
+	 */
 	asm volatile(
-		"msr msp, %0  \n"
-		"bx %1  \n"
-		: : "r"(stacktop), "r"(entrypoint) :);
+		"mrs %0, control  \n"
+		"bic %0, %0, #2   \n"
+		"msr control, %0  \n"
+		"isb sy           \n"
+		"msr msp, %1      \n"
+		"bx %2  \n"
+		: "=&r"(scratch) : "r"(stacktop), "r"(entrypoint) :);
 
 	// just to keep noreturn happy
 	for (;;) ;
 }
 
 int
-bootloader_main(void)
+bootloader_main(int argc, char *argv[])
 {
 	bool try_boot = true;			/* try booting before we drop to the bootloader */
 	unsigned timeout = BOOTLOADER_DELAY;	/* if nonzero, drop out of the bootloader after this time */
@@ -663,6 +683,11 @@ bootloader_main(void)
 
 	/* configure the clock for bootloader activity */
 	clock_init();
+
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+	/* scrub any uncorrectable flash ECC errors before we try to run the app */
+	check_ecc_errors();
+#endif
 
 	/*
 	 * Check the force-bootloader register; if we find the signature there, don't

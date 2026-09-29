@@ -36,15 +36,18 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		input.cpp
+		input_fixed.cpp
 		input_mavlink.cpp
 		input_rc.cpp
 		input_test.cpp
 		output.cpp
 		output_mavlink.cpp
 		output_rc.cpp
+		output_gimbal_manager.cpp
 		gimbal.cpp
 	MODULE_CONFIG
 		gimbal_params.yaml
 	DEPENDS
 		geo
+		output_functions_header
 	)

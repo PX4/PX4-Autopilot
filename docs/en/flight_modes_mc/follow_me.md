@@ -10,7 +10,7 @@ _Follow Me_ mode allows a multicopter to autonomously hold position and altitude
 - Mode requires at least a valid local position estimate (does not require a global position).
   - Flying vehicles can't switch to this mode without valid local position.
   - Flying vehicles will failsafe if they lose the position estimate.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - Mode requires wind and flight time are within allowed limits (specified via parameters).
 - This mode is currently only supported on multicopter (or VTOL in MC mode).
 - The follow target must also be able to supply position information.
@@ -19,6 +19,21 @@ _Follow Me_ mode allows a multicopter to autonomously hold position and altitude
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_follow_target -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_follow_target -->
 
 ## Overview
 

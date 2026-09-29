@@ -4,12 +4,11 @@ Companion computers ("mission computers"), are separate on-vehicle computers tha
 
 下图显示了一个可能的无人驾驶架构，其中包括飞控和机载计算机。
 
-![PX4 architecture - FC + Companion Computer](../../assets/diagrams/px4_companion_computer_simple.svg)
+<img src="../../assets/diagrams/px4_companion_computer_simple.svg" alt="PX4 architecture - FC + Companion Computer" class="diagram-invert">
 
 <!-- source for drawing: https://docs.google.com/drawings/d/1ZDSyj5djKCEbabgx8K4ESdTeEUizgEt8spUWrMGbHUE/edit?usp=sharing -->
 
-飞控在 NuttX 上运行 PX4, 提供核心飞控和安全代码。
-机载计算机通常运行 Linux, 因为这是一个“通用”软件开发的更好平台。
+飞控在 NuttX 上运行 PX4, 提供核心飞控和安全代码。机载计算机通常运行 Linux, 因为这是一个“通用”软件开发的更好平台。
 They are connected using a fast serial or Ethernet link, and typically communicate using the [MAVLink protocol](https://mavlink.io/en/) or uXRCE-DDS.
 
 Communications with the ground stations and the cloud are usually routed via the companion computer (e.g. using the [MAVLink Router](https://github.com/mavlink-router/mavlink-router)).
@@ -25,8 +24,7 @@ The boards support the [Pixhawk Autopilot Bus (PAB)](../flight_controller/pixhaw
 
 ## 管理集成系统
 
-以下集成的机载计算机/飞控系统默认使用受控/自定义版本的飞控和机载计算机软件。
-它们在这里列出，因为它们可以使用 "vanilla" PX4 固件进行更新，以进行测试/快速开发。
+以下集成的机载计算机/飞控系统默认使用受控/自定义版本的飞控和机载计算机软件。它们在这里列出，因为它们可以使用 "vanilla" PX4 固件进行更新，以进行测试/快速开发。
 
 - [Auterion Skynode](../companion_computer/auterion_skynode.md)
 - [ModalAI VOXL 2](https://docs.modalai.com/voxl-2/)

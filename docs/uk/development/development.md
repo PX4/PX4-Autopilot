@@ -16,7 +16,8 @@ This section is for software developers and (new) hardware integrators.
   - Support new [airframes](../dev_airframes/index.md).
 - Дізнатися, як інтегрувати PX4 з новим обладнанням:
   - Підтримувати нові сенсори, актуатори, включаючи камері, далекоміри, тощо.
-  - Модифікувати PX4 для роботи на новому залізі для автопілотів.
+  - Modify PX4 to run on [new autopilot hardware](../hardware/porting_guide.md).
+  - As a manufacturer, [get your board officially supported by PX4](../hardware/board_support_guide.md).
 - [Simulate](../simulation/index.md), [test](../test_and_ci/index.md) and [debug/log](../debug/index.md) PX4.
 - Комунікувати/інтегрувати з зовнішніми робототехнічними API.
 

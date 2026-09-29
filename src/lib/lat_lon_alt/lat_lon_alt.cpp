@@ -41,7 +41,7 @@ LatLonAlt LatLonAlt::fromEcef(const Vector3d &p_ecef)
 {
 	// Convert position using Borkowski closed-form exact solution
 	// P. D. Groves, "Principles of GNSS, inertial, and multisensor integrated navigation systems, 2nd edition (appendix C)
-	const double k1 = sqrt(1 - Wgs84::eccentricity2) * std::abs(p_ecef(2));
+	const double k1 = sqrt(1 - Wgs84::eccentricity2) * fabs(p_ecef(2));
 	const double k2 = Wgs84::eccentricity2 * Wgs84::equatorial_radius;
 	const double beta = sqrt(p_ecef(0) * p_ecef(0) + p_ecef(1) * p_ecef(1));
 	const double E = (k1 - k2) / beta;
@@ -50,7 +50,7 @@ LatLonAlt LatLonAlt::fromEcef(const Vector3d &p_ecef)
 	const double P = 4.0 / 3.0 * (E * F + 1);
 	const double Q = 2 * (E * E - F * F);
 	const double D = P * P * P + Q * Q;
-	const double V = pow(sqrt(D) - Q, 1.0 / 3.0) - pow(sqrt(D) + Q, 1.0 / 3.0);
+	const double V = cbrt(sqrt(D) - Q) - cbrt(sqrt(D) + Q);
 	const double G = 0.5 * (sqrt(E * E + V) + E);
 	const double T = sqrt(G * G + (F - V * G) / (2 * G - E)) - G;
 

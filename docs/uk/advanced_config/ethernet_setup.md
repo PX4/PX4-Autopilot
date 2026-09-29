@@ -26,10 +26,12 @@ PX4 supports Ethernet connectivity on [Pixhawk 5X-standard](https://github.com/p
 Підтримувані автопілоти включають:
 
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md)
+- [ARK Electronics ARKV6X-RT](../flight_controller/ark_v6xrt.md)
 - [ARK Electronics ARKV6S](../flight_controller/ark_v6s.md)
 - [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md)
 - [CUAV X25 EVO](../flight_controller/cuav_x25-evo.md)
 - [CUAV X25 SUPER](../flight_controller/cuav_x25-super.md)
+- [CUAV X25-MEGA](../flight_controller/cuav_x25-mega.md)
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md)
 - [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md)
 - [RaccoonLab FMUv6X Autopilot](../flight_controller/raccoonlab_fmu6x.md)
@@ -165,7 +167,7 @@ The Ethernet port configuration sets the properties of the _serial link_ (which 
 
 PX4 налаштовує серійний порт для підключення до GCS через MAVLink, використовуючи параметри, показані нижче:
 
-| Параметр                                                                                                                                      | Значення | Опис                                                                                 |
+| Parameter                                                                                                                                     | Значення | Опис                                                                                 |
 | --------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------ |
 | [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG)                              | 1000     | Налаштування Ethernet порту                                                          |
 | [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST)                        | 1        | Broadcast `HEARTBEAT` messages                                                       |
@@ -248,7 +250,7 @@ MAVSDK can connect to the PX4 on port `14550` if you don't modify the PX4 Ethern
    MicroXRCEAgent udp4 -p 8888
    ```
 
-4. Run a [listener node](../ros2/user_guide.md#running-the-example) in a new terminal to confirm the connection is established:
+4. Run a [listener node](../ros2/user_guide.md#running-an-example-optional) in a new terminal to confirm the connection is established:
 
    ```sh
    source ~/ws_sensor_combined/install/setup.bash

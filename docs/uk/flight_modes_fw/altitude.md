@@ -8,8 +8,8 @@ The _Altitude_ flight mode is the safest and easiest non-GPS manual mode.
 Швидкість активно контролюється, якщо встановлений датчик швидкості.
 
 :::tip
-_Altitude mode_ is similar to [Position mode](../flight_modes_fw/position.md) in that both modes level the vehicle and maintain altitude when sticks are released.
-Різниця полягає в тому, що режим позиції утримує фактичний шлях польоту (курс) стабільним проти вітру, тоді як висота лише утримує напрямок.
+_Altitude mode_ is similar to [Cruise mode](../flight_modes_fw/cruise.md) in that both modes level the vehicle and maintain altitude when sticks are released.
+The difference is that Cruise mode holds the actual flight path (course) steady against wind, while altitude just holds the heading.
 :::
 
 The vehicle performs a [coordinated turn](https://en.wikipedia.org/wiki/Coordinated_flight) if the roll sticks are non-zero, while the pitch stick controls the rate of ascent/descent.
@@ -43,11 +43,24 @@ Altitude mode like [Stabilized mode](../flight_modes_fw/stabilized.md) but with 
 - Потрібен ручний ввід управління (наприклад, за допомогою пульта дистанційного керування, джойстика).
 - Необхідне джерело вимірювання висоти (зазвичай барометр або GPS)
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_altctl -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_altctl -->
+
 ## Параметри
 
 Режим впливає на наступні параметри:
 
-| Параметр                                                                                                                                                                                  | Опис                                                                                                                                               |
+| Parameter                                                                                                                                                                                 | Опис                                                                                                                                               |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FW_AIRSPD_MIN"></a>[FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN)                                              | Мінімальна швидкість. За замовчуванням: 10 м/с.                                                    |
 | <a id="FW_AIRSPD_MAX"></a>[FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX)                                              | Максимальна швидкість. За замовчуванням: 20 м/с.                                                   |
@@ -56,6 +69,21 @@ Altitude mode like [Stabilized mode](../flight_modes_fw/stabilized.md) but with 
 | <a id="FW_MAN_R_MAX"></a>[FW_MAN_R_MAX](../advanced_config/parameter_reference.md#FW_MAN_R_MAX)                            | Максимальне значення крена в режимі стабілізації кута нахилу. За замовчуванням: 45 градусів.       |
 | <a id="FW_T_CLMB_R_SP"></a>[FW_T_CLMB_R_SP](../advanced_config/parameter_reference.md#FW_T_CLMB_R_SP) | Максимальна задана швидкість підйому. За замовчуванням: 3 м/с.                                     |
 | <a id="FW_T_SINK_R_SP"></a>[FW_T_SINK_R_SP](../advanced_config/parameter_reference.md#FW_T_SINK_R_SP) | Максимальне значення зниження швидкості. За замовчуванням: 2 м/с.                                  |
+
+## MAVLink Commands
+
+The following commands are relevant to this mode:
+
+- [MAV_CMD_DO_CHANGE_SPEED](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED) — Sets the cruise airspeed for centred throttle stick.
+
+  This requires an airspeed sensor.
+  Only the airspeed speed type is handled (`param1` must be `0`); other speed types are ignored.
+  At centered throttle the vehicle holds the commanded airspeed (`param2`) if a positive value is set (non-positive values are ignored).
+  The value is constrained between [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) and [FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX), and defaults to [FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM) if no airspeed has been commanded.
+  Deflecting the throttle stick scales the airspeed toward `FW_AIRSPD_MIN` (back) or `FW_AIRSPD_MAX` (forward) around this value.
+  The commanded airspeed resets to `FW_AIRSPD_TRIM` on every flight mode change.
+
+Note, other commands may be supported.
 
 <!--
 FW notes:

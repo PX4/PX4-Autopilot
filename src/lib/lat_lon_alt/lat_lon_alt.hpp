@@ -112,6 +112,18 @@ public:
 		static constexpr double eccentricity2 = eccentricity * eccentricity;
 		static constexpr double meridian_radius_of_curvature_numerator = equatorial_radius * (1.0 - eccentricity2);
 		static constexpr double gravity_equator = 9.7803253359;
+		static constexpr double somigliana_coefficient = 0.001931851353;
+
+		// Normal gravity at the ellipsoid surface as a function of latitude (Somigliana formula).
+		// Captures the ~9.780 (equator) to ~9.832 m/s^2 (pole) variation. Input in radians.
+		static float gravity(const double latitude_rad)
+		{
+			const double sin_lat = sin(latitude_rad);
+			const double sin_lat2 = sin_lat * sin_lat;
+			const double g = gravity_equator * (1.0 + somigliana_coefficient * sin_lat2)
+					 / std::sqrt(1.0 - eccentricity2 * sin_lat2);
+			return static_cast<float>(g);
+		}
 	};
 
 private:

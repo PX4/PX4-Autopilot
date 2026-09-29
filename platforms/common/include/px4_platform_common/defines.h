@@ -97,11 +97,13 @@ __BEGIN_DECLS
 extern long PX4_TICKS_PER_SEC;
 __END_DECLS
 
-#define PX4_ROOTFSDIR CONFIG_BOARD_ROOT_PATH
+// Kept separate as on NuttX: the root is what MAVLink FTP serves, the storage directory
+// is the writable part of it (the SD card equivalent).
+#define PX4_ROOTFSDIR CONFIG_BOARD_FS_ROOT_PATH
 
 // Qurt doesn't have an SD card for storage
 #ifndef __PX4_QURT
-#define PX4_STORAGEDIR PX4_ROOTFSDIR
+#define PX4_STORAGEDIR CONFIG_BOARD_ROOT_PATH
 #endif
 
 /****************************************************************************
@@ -149,3 +151,4 @@ __END_DECLS
 
 #define M_DEG_TO_RAD 		0.017453292519943295
 #define M_RAD_TO_DEG 		57.295779513082323
+#define M_INH_TO_PA  		249.089f

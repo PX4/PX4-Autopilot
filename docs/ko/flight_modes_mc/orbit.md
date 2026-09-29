@@ -8,17 +8,29 @@ The _Orbit_ guided flight mode allows you to command a multicopter (or VTOL in m
 
 - Mode is automatic - no user intervention is _required_ to control the vehicle.
 - Mode requires at least a valid local position estimate (does not require a global position).
-  - Flying vehicles can't switch to this mode without valid local position.
   - Flying vehicles will failsafe if they lose the position estimate.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - Mode requires wind and flight time are within allowed limits (specified via parameters).
-- This mode is currently only supported on multicopter (or VTOL in MC mode).
+- Mode is currently only supported on multicopter (or VTOL in MC mode).
 - RC stick movement can control ascent/descent and orbit speed and direction.
-- The mode can be triggered using the [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MMAV_CMD_DO_ORBIT) MAVLink command.
-
-<!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
+- Mode can be triggered using the [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MMAV_CMD_DO_ORBIT) MAVLink command.
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_orbit -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_orbit -->
 
 ## 개요
 
@@ -59,7 +71,7 @@ The mode can be stopped by switching to any other flight mode (using RC or QGC).
 
 The mode is affected by the following parameters:
 
-| 매개변수                                                                                                                                                                       | 설명                                                                                                                                                               |
+| Parameter                                                                                                                                                                  | 설명                                                                                                                                                               |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MC_ORBIT_RAD_MAX"></a>[MC_ORBIT_RAD_MAX](../advanced_config/parameter_reference.md#MC_ORBIT_RAD_MAX) | Maximum radius of orbit. Default: 1000m.                                                                         |
 | <a id="MC_ORBIT_YAW_MOD"></a>[MC_ORBIT_YAW_MOD](../advanced_config/parameter_reference.md#MC_ORBIT_YAW_MOD) | Yaw behaviour during orbit flight. Default: Front to Circle Center.                                              |

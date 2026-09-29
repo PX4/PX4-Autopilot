@@ -80,20 +80,41 @@ void UavcanRemoteIDController::periodic_update(const uavcan::TimerEvent &)
 
 void UavcanRemoteIDController::send_basic_id()
 {
-	dronecan::remoteid::BasicID basic_id {};
-	// basic_id.id_or_mac // supposedly only used for drone ID data from other UAs
-	basic_id.id_type = dronecan::remoteid::BasicID::ODID_ID_TYPE_SERIAL_NUMBER;
-	basic_id.ua_type = static_cast<uint8_t>(open_drone_id_translations::odidTypeForMavType(
-			_vehicle_status.get().system_type));
+	dronecan::remoteid::BasicID msg {};
 
-	// uas_id: UAS (Unmanned Aircraft System) ID following the format specified by id_type
-	// TODO: MAV_ODID_ID_TYPE_SERIAL_NUMBER needs to be ANSI/CTA-2063 format
+	// msg.id_or_mac // supposedly only used for drone ID data from other UAs
+	if (_open_drone_id_basic_id.advertised()) {
+		open_drone_id_basic_id_s basic_id {};
 
-	char uas_id[20] = {};
-	board_get_px4_guid_formated((char *)(uas_id), sizeof(uas_id));
-	basic_id.uas_id = uas_id;
+		if (_open_drone_id_basic_id.copy(&basic_id)) {
+			msg.id_type = basic_id.id_type;
+			msg.ua_type = basic_id.ua_type;
 
-	_uavcan_pub_remoteid_basicid.broadcast(basic_id);
+			using UasIdField = decltype(msg.uas_id);
+			static_assert(sizeof(basic_id.uas_id) == UasIdField::MaxSize, "OpenDroneID Basic ID uas_id size mismatch");
+
+			// uas_id: UAS (Unmanned Aircraft System) ID following the format specified by id_type
+			for (unsigned i = 0; i < UasIdField::MaxSize; ++i) {
+				msg.uas_id.push_back(basic_id.uas_id[i]);
+			}
+
+		}
+
+	} else {
+		msg.id_type = dronecan::remoteid::BasicID::ODID_ID_TYPE_SERIAL_NUMBER;
+		msg.ua_type = static_cast<uint8_t>(open_drone_id_translations::odidTypeForMavType(_vehicle_status.get().system_type));
+
+		// uas_id: UAS (Unmanned Aircraft System) ID following the format specified by id_type
+		// TODO: MAV_ODID_ID_TYPE_SERIAL_NUMBER needs to be ANSI/CTA-2063 format
+		char uas_id[20] {};
+		board_get_px4_guid_formated(uas_id, sizeof(uas_id));
+
+		for (unsigned i = 0; i < sizeof(uas_id); ++i) {
+			msg.uas_id.push_back(uas_id[i]);
+		}
+	}
+
+	_uavcan_pub_remoteid_basicid.broadcast(msg);
 }
 
 void UavcanRemoteIDController::send_location()

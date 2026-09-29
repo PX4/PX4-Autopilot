@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -93,31 +93,34 @@ private:
 	void state_connected();
 	void state_disconnecting();
 
+	void close_ttyacm();
+
 	bool scan_buffer_for_mavlink_reboot();
 	bool scan_buffer_for_mavlink_heartbeat();
 	bool scan_buffer_for_carriage_returns();
 	bool scan_buffer_for_ublox_bytes();
 
 	bool start_mavlink();
+	void stop_mavlink();
 	bool start_nsh();
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 	bool start_ublox_serial_passthru(speed_t baudrate);
 #endif
-	int execute_process(char **argv);
+	int execute_process(char *const *argv);
 
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 500_ms};
 
 	UsbAutoStartState _state{UsbAutoStartState::disconnected};
 	UsbProtocol _active_protocol{UsbProtocol::none};
-	bool _vbus_present = false;
-	bool _vbus_present_prev = false;
-	int _ttyacm_fd = -1;
+	bool _vbus_present{false};
+	bool _vbus_present_prev{false};
+	int _ttyacm_fd{-1};
 
-	char _buffer[80] = {};
-	int _bytes_read = 0;
+	char _buffer[80] {};
+	int _bytes_read{0};
 
-	uint32_t _reschedule_time = 0;
+	uint32_t _reschedule_time{0};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SYS_USB_AUTO>) _sys_usb_auto,

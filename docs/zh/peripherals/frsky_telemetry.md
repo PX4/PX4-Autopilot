@@ -128,7 +128,7 @@ S-Port receivers transmit the following messages from PX4 (from [here](https://g
 - **VFAS:** Actual battery voltage value (Voltage FrSky Ampere Sensor).
 - **VSpd:** Vertical speed (cm/s).
 - **Tmp1:** [Flight mode](../flight_modes/index.md#flight-modes), sent as an integer: 18 - Manual, 23 - Altitude, 22 - Position, 27 - Mission, 26 - Hold, 28 - Return, 19 - Acro, 24 0 Offboard, 20 - Stabilized, 25 - Takeoff, 29 - Land, 30 - Follow Me.
-- **Tmp2:** GPS information. 最右边的数字是 gps 定位类型 (0 = 无, 2 = 2d, 3 = 3d)。 其他数字是卫星的数量。
+- **Tmp2:** GPS information. 最右边的数字是 gps 定位类型 (0 = 无, 2 = 2d, 3 = 3d)。其他数字是卫星的数量。
 
 :::info
 The following "standard" S-Port messages are not supported by PX4: **ASpd**, **A4**.
@@ -185,7 +185,7 @@ Note that the X series receivers listed below are recommended (e.g. XSR, X8R). T
 | RX8R        | 1.5km | S.Bus (16)                               | Smart Port                    | 46.25x26.6x14.2mm     | 12.1g |
 | RX8R PRO    | 1.5km | S.Bus (16)                               | Smart Port                    | 46.25x26.6x14.2mm     | 12.1g |
 | R-XSR       | 1.5km | S.Bus (16) / CPPM (8) | Smart Port                    | 16x11x5.4mm                                           | 1.5g  |
-| G-RX8       | 1.5km | S.Bus (16)                               | Smart Port + integrated vario | 55.26_17_8mm                                          | 5.8g  |
+| G-RX8       | 1.5km | S.Bus (16)                               | Smart Port + integrated vario | 55.2&#x36;_&#x31;&#x37;_&#x38;mm                      | 5.8g  |
 | R9          | 10km                  | S.Bus (16)                               | Smart Port                    | 43.3x26.8x13.9mm      | 15.8g |
 | R9 slim     | 10km                  | S.Bus (16)                               | Smart Port                    | 43.3x26.8x13.9mm      | 15.8g |
 

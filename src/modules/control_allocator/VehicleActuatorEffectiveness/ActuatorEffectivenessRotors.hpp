@@ -50,6 +50,7 @@
 class ActuatorEffectivenessTilts;
 
 using namespace time_literals;
+using namespace matrix;
 
 using ActuatorBitmask = ActuatorEffectiveness::ActuatorBitmask;
 
@@ -120,6 +121,12 @@ public:
 	 */
 	static matrix::Vector3f tiltedAxis(float tilt_angle, float tilt_direction);
 
+	/**
+	 * Helper to check if a vector is aligned with a specific axis
+	 * index (with error at most 10 deg)
+	 */
+	static bool isAlignedWithCoordinateAxis(const Vector3f &vec, int axis_idx);
+
 	void enablePropellerTorque(bool enable) { _geometry.propeller_torque_disabled = !enable; }
 
 	void enableYawByDifferentialThrust(bool enable) { _geometry.yaw_by_differential_thrust_disabled = !enable; }
@@ -129,13 +136,14 @@ public:
 	void enableThreeDimensionalThrust(bool enable) { _geometry.three_dimensional_thrust_disabled = !enable; }
 
 	ActuatorBitmask getMotors() const;
-	ActuatorBitmask getUpwardsMotors() const;
-	ActuatorBitmask getForwardsMotors() const;
+
+	void setMotorDirectionBitmasks(ActuatorEffectiveness::MotorDirectionBitmasks &masks);
 
 private:
 	void updateParams() override;
 	const AxisConfiguration _axis_config;
 	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
+
 
 	struct ParamHandles {
 		param_t position_x;

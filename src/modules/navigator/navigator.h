@@ -46,24 +46,30 @@
 #include "land.h"
 #include "precland.h"
 #include "loiter.h"
+#include "mission_route_cache.h"
 #include "mission.h"
 #include "navigator_mode.h"
 #include "rtl.h"
 #include "takeoff.h"
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include "prec_takeoff.h"
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#if CONFIG_NAVIGATOR_ADSB
+#include "DetectAndAvoid/detect_and_avoid.h"
+#endif // CONFIG_NAVIGATOR_ADSB
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 #include "vtol_takeoff.h"
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 #include "navigation.h"
 
-#include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+#include "RTLPlanner/geofence_avoidance_planner.h"
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/telemetry_status.h>
 
-#if CONFIG_NAVIGATOR_ADSB
-#include <lib/adsb/AdsbConflict.h>
-#endif // CONFIG_NAVIGATOR_ADSB
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
@@ -73,6 +79,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/distance_sensor_mode_change_request.h>
 #include <uORB/topics/fixed_wing_lateral_guidance_status.h>
+#include <uORB/topics/fixed_wing_takeoff_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/home_position.h>
@@ -83,6 +90,7 @@
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -154,9 +162,11 @@ public:
 	 * Check nearby traffic for potential collisions
 	 */
 	void check_traffic();
-	void take_traffic_conflict_action();
-	void run_fake_traffic();
 #endif // CONFIG_NAVIGATOR_ADSB
+#if CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
+	void run_fake_traffic(DetectAndAvoid::FakeTraffMode mode = DetectAndAvoid::FakeTraffMode::kUniqueIds);
+	void stop_fake_traffic();
+#endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
 	/**
 	 * Setters
@@ -174,11 +184,20 @@ public:
 	position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
 	vehicle_global_position_s   *get_global_position() { return &_global_pos; }
 	vehicle_land_detected_s     *get_land_detected() { return &_land_detected; }
+	uint8_t                      get_takeoff_state() { return _takeoff_status_sub.get().takeoff_state; }
 	vehicle_local_position_s    *get_local_position() { return &_local_pos; }
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
+	void set_rtl_return_alt_min(bool enable) { _rtl.set_return_alt_min(enable); }
+	MissionRouteCache           &get_mission_route_cache() { return _mission_route_cache; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	PrecTakeoff *get_prec_takeoff() { return &_prec_takeoff; } /**< used by MissionBlock during vertical takeoffs */
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	Course *get_course() { return &_course; }
+#if CONFIG_NAVIGATOR_ADSB
+	DetectAndAvoid *get_detect_and_avoid() { return &_detect_and_avoid; }
+#endif // CONFIG_NAVIGATOR_ADSB
 
 	const PositionYawSetpoint &get_last_pos_with_gcs_heartbeat() const { return _last_pos_with_gcs_heartbeat; }
 
@@ -190,22 +209,52 @@ public:
 
 	bool home_global_position_valid() { return (_home_pos.valid_alt && _home_pos.valid_hpos); }
 
+	/**
+	 * Whether the fixed-wing mode manager has finished the climbout of the current takeoff.
+	 * Falls back to the given altitude when no takeoff is being flown.
+	 */
+	bool fw_climbout_completed(float fallback_altitude_amsl);
+
 	Geofence &get_geofence() { return _geofence; }
 
-	float get_default_loiter_rad() { return fabsf(_param_nav_loiter_rad.get()); }
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	GeofenceAvoidancePlanner &get_geofence_avoidance_planner() { return _geofence_avoidance_planner; }
+
+	/**
+	 * Margin (m) by which the geofence avoidance planner shrinks inclusion
+	 * polygons and expands exclusion polygons.
+	 */
+	float geofence_avoidance_margin() const;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
+	float get_default_loiter_rad() const { return fabsf(_param_nav_loiter_rad.get()); }
 	bool get_default_loiter_CCW() { return _param_nav_loiter_rad.get() < -FLT_EPSILON; }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
 	 */
-	float get_default_acceptance_radius();
+	float get_default_acceptance_radius() const;
 
 	/**
 	 * Get the acceptance radius
 	 *
 	 * @return the distance at which the next waypoint should be used
 	 */
-	float get_acceptance_radius();
+	float get_acceptance_radius() const;
+
+	/**
+	 * Check whether the vehicle is currently established on a circular loiter (orbit)
+	 * defined by the given setpoint.
+	 *
+	 * True only if the setpoint is a valid ORBIT-pattern loiter and the vehicle is within
+	 * one acceptance radius of the loiter circle. Used to decide whether a Hold/pause,
+	 * geofence loiter or return climb should continue the existing orbit instead of
+	 * re-centering it on the current position.
+	 *
+	 * @param sp the loiter setpoint to test against
+	 * @return true if the vehicle is established on the orbit described by sp
+	 */
+	bool is_established_on_loiter(const position_setpoint_s &sp) const;
 
 	/**
 	 * Get the altitude acceptance radius
@@ -272,7 +321,7 @@ public:
 
 	bool get_mission_start_land_available() { return _mission.get_land_start_available(); }
 
-	// RTL
+	// Return
 	bool in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
 	bool abort_landing();
@@ -317,12 +366,13 @@ public:
 
 private:
 
-	int _local_pos_sub{-1};
-	int _mission_sub{-1};
-	int _vehicle_status_sub{-1};
+	orb_sub_t _local_pos_sub{ORB_SUB_INVALID};
+	orb_sub_t _mission_sub{ORB_SUB_INVALID};
+	orb_sub_t _vehicle_status_sub{ORB_SUB_INVALID};
 
-	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
+	uORB::SubscriptionData<position_controller_status_s> _position_controller_status_sub{ORB_ID(position_controller_status)};
 	uORB::SubscriptionData<fixed_wing_lateral_guidance_status_s> _fw_lateral_guidance_status_sub{ORB_ID(fixed_wing_lateral_guidance_status)};
+	uORB::SubscriptionData<takeoff_status_s> _takeoff_status_sub{ORB_ID(takeoff_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -331,7 +381,7 @@ private:
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
-	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
+	uORB::Subscription _fw_takeoff_status_sub{ORB_ID(fixed_wing_takeoff_status)};	/**< fixed-wing takeoff status subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
 
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
@@ -347,7 +397,7 @@ private:
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
 
 	// Subscriptions
-	home_position_s					_home_pos{};		/**< home position for RTL */
+	home_position_s					_home_pos{};		/**< home position for Return */
 	mission_result_s				_mission_result{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
 	sensor_gps_s				_gps_pos{};		/**< gps position */
@@ -367,20 +417,24 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Geofence	_geofence;			/**< class that handles the geofence */
-	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check{0};
+	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
+	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< Return path planner that routes around fences (visibility graph + Dijkstra) */
+	float _last_geofence_avoidance_margin{NAN}; /**< margin used for the last polygon rebuild; rebuild when it changes */
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	bool _navigator_status_updated{false};
 	hrt_abstime _last_navigator_status_publication{0};
 
 	hrt_abstime _wait_for_vehicle_status_timestamp{0}; /**< If non-zero, wait for vehicle_status update before processing next cmd */
 
-	bool		_geofence_reposition_sent{false};		/**< flag if reposition command has been sent for current geofence breach*/
-	hrt_abstime	_time_loitering_after_gf_breach{0};		/**< timestamp of when loitering after a geofence breach was started */
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
 
+	MissionRouteCache _mission_route_cache{&_mavlink_log_pub};
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
@@ -389,11 +443,13 @@ private:
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
-	RTL 		_rtl;				/**< class that handles RTL */
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	PrecTakeoff	_prec_takeoff;			/**< keeps vertical takeoffs over the landing target */
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	RTL 		_rtl;				/**< class that handles Return */
 	Course		_course;			/**< class that handles course */
 #if CONFIG_NAVIGATOR_ADSB
-	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
-	traffic_buffer_s _traffic_buffer{};
+	DetectAndAvoid _detect_and_avoid;
 #endif // CONFIG_NAVIGATOR_ADSB
 
 	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
@@ -448,13 +504,9 @@ private:
 		_param_nav_fw_altl_rad,	/**< acceptance rad for fixedwing alt before landing*/
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)   _param_nav_mc_alt_rad,	/**< acceptance rad for multicopter alt */
 		(ParamInt<px4::params::NAV_FORCE_VT>)       _param_nav_force_vt,	/**< acceptance radius for multicopter alt */
-		(ParamInt<px4::params::NAV_TRAFF_AVOID>)    _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
-		(ParamFloat<px4::params::NAV_TRAFF_A_HOR>)  _param_nav_traff_a_hor_ct,	/**< avoidance Distance Crosstrack*/
-		(ParamFloat<px4::params::NAV_TRAFF_A_VER>)  _param_nav_traff_a_ver,	/**< avoidance Distance Vertical*/
-		(ParamInt<px4::params::NAV_TRAFF_COLL_T>)   _param_nav_traff_collision_time,
 		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
 		(ParamFloat<px4::params::NAV_MIN_GND_DIST>)
-		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and RTL)*/
+		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and Return)*/
 
 		// non-navigator parameters: Mission (MIS_*)
 		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>)    _param_mis_takeoff_alt,

@@ -269,9 +269,7 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 
 	// Determine if the current position is inside or outside the sector between the line from the center
 	// to the arc start and the line from the center to the arc end
-	float bearing_sector_start = 0.0f;
-	float bearing_sector_end = 0.0f;
-	float bearing_now = get_bearing_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
+	const float bearing_now = get_bearing_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
 
 	int return_value = -1;		// Set error flag, cleared when valid result calculated.
 	crosstrack_error->past_end = false;
@@ -283,34 +281,14 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 		return return_value;
 	}
 
-	if (arc_sweep >= 0.0f) {
-		bearing_sector_start = arc_start_bearing;
-		bearing_sector_end = arc_start_bearing + arc_sweep;
-
-		if (bearing_sector_end > 2.0f * M_PI_F) { bearing_sector_end -= (2 * M_PI_F); }
-
-	} else {
-		bearing_sector_end = arc_start_bearing;
-		bearing_sector_start = arc_start_bearing - arc_sweep;
-
-		if (bearing_sector_start < 0.0f) { bearing_sector_start += (2 * M_PI_F); }
-	}
-
-	bool in_sector = false;
-
-	// Case where sector does not span zero
-	if (bearing_sector_end >= bearing_sector_start && bearing_now >= bearing_sector_start
-	    && bearing_now <= bearing_sector_end) {
-
-		in_sector = true;
-	}
-
-	// Case where sector does span zero
-	if (bearing_sector_end < bearing_sector_start && (bearing_now > bearing_sector_start
-			|| bearing_now < bearing_sector_end)) {
-
-		in_sector = true;
-	}
+	// arc_start_bearing and arc_sweep are referenced to the center, so test membership with the
+	// center->vehicle bearing. Measuring it in the direction of the sweep handles either sign and
+	// any zero crossing without special cases.
+	// NOLINTNEXTLINE(readability-suspicious-call-argument) intentional reverse bearing: center -> vehicle
+	const float bearing_center_to_now = get_bearing_to_next_waypoint(lat_center, lon_center, lat_now, lon_now);
+	const float bearing_from_start = wrap_2pi((bearing_center_to_now - arc_start_bearing) * (arc_sweep < 0.0f ? -1.0f :
+					 1.0f));
+	const bool in_sector = bearing_from_start <= fabsf(arc_sweep);
 
 	// If in the sector then calculate distance and bearing to closest point
 	if (in_sector) {
@@ -339,10 +317,11 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 		double start_disp_y = (double)radius * cos((double)arc_start_bearing);
 		double end_disp_x = (double)radius * sin((double)wrap_pi(arc_start_bearing + arc_sweep));
 		double end_disp_y = (double)radius * cos((double)wrap_pi(arc_start_bearing + arc_sweep));
-		double lon_start = lon_now + start_disp_x / 111111.0;
-		double lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0;
-		double lon_end = lon_now + end_disp_x / 111111.0;
-		double lat_end = lat_now + end_disp_y * cos(lat_now) / 111111.0;
+		const double cos_lat_center = cos(math::radians(lat_center));
+		double lon_start = lon_center + start_disp_x / (111111.0 * cos_lat_center);
+		double lat_start = lat_center + start_disp_y / 111111.0;
+		double lon_end = lon_center + end_disp_x / (111111.0 * cos_lat_center);
+		double lat_end = lat_center + end_disp_y / 111111.0;
 		float dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
 		float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 

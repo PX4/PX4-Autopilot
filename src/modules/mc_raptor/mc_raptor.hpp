@@ -27,7 +27,7 @@
 #include <uORB/topics/raptor_status.h>
 #include <uORB/topics/raptor_input.h>
 #include <uORB/topics/tune_control.h>
-#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/setpoint_config.h>
 #include <uORB/topics/arming_check_request.h>
 #include <uORB/topics/arming_check_reply.h>
 #undef OK
@@ -122,8 +122,7 @@ private:
 
 	enum class FlightModeState : TI {
 		UNREGISTERED = 0,
-		REGISTERED = 1,
-		CONFIGURED = 2
+		CONFIGURED = 1
 	};
 	FlightModeState flightmode_state = FlightModeState::UNREGISTERED;
 	bool can_arm = false;
@@ -159,7 +158,7 @@ private:
 	uORB::Publication<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
 	uORB::Publication<register_ext_component_request_s> _register_ext_component_request_pub{ORB_ID(register_ext_component_request)};
 	uORB::Publication<unregister_ext_component_s> _unregister_ext_component_pub{ORB_ID(unregister_ext_component)};
-	uORB::Publication<vehicle_control_mode_s> _config_control_setpoints_pub{ORB_ID(config_control_setpoints)};
+	uORB::Publication<setpoint_config_s> _setpoint_config_pub{ORB_ID(setpoint_config)};
 	uORB::Publication<arming_check_reply_s> _arming_check_reply_pub{ORB_ID(arming_check_reply)};
 	// Performance (perf) counters
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};

@@ -69,6 +69,19 @@ public:
 private:
 	void exit_and_cleanup() override;
 
+	// Sensor Configuration
+	static constexpr float FIFO_SAMPLE_DT{1e6f / 9560.f};
+	static constexpr float RATE{9560.f};
+
+	// maximum FIFO samples per transfer is limited to the size of sensor_accel_fifo/sensor_gyro_fifo
+	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0]))};
+
+	// Transfer data
+	struct FIFOTransferBuffer {
+		uint16_t cmd{static_cast<uint16_t>(Register::FIFO_DATA) | DIR_READ};
+		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
+	};
+
 	struct register_config_t {
 		Register reg;
 		uint16_t set_bits{0};
@@ -80,11 +93,8 @@ private:
 	bool Reset();
 
 	bool Configure();
-
-	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
-	void DataReady();
-	bool DataReadyInterruptConfigure();
-	bool DataReadyInterruptDisable();
+	void ConfigureSampleRate(int sample_rate);
+	void ConfigureFIFOWatermark(uint8_t samples);
 
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
@@ -92,21 +102,24 @@ private:
 	void RegisterWrite(Register reg, uint16_t value);
 	void RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits);
 
-	const spi_drdy_gpio_t _drdy_gpio;
+	void FIFOReset();
+	bool FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples);
+
+	void ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
+	void ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
+	bool ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples);
 
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
-	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC16 bad"))};
-	perf_counter_t _drdy_missed_perf{nullptr};
+	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO empty")};
+	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO overflow")};
+	perf_counter_t _fifo_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO reset")};
 
 	hrt_abstime _reset_timestamp{0};
 	int _failure_count{0};
-
-	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
-	bool _data_ready_interrupt_enabled{false};
 
 	bool _self_test_passed{false};
 
@@ -115,20 +128,19 @@ private:
 		WAIT_FOR_RESET,
 		SELF_TEST_CHECK,
 		CONFIGURE,
-		READ,
+		FIFO_READ,
 	} _state{STATE::RESET};
+
+	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
+	int32_t _fifo_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / RATE))};
 
 	register_config_t _register_cfg[3] {
 		// Register | Set bits, Clear bits
-		{Register::USER_GPIO_CFG1, USER_GPIO_CFG1_BIT::GPIO3_DR, 0},
 		{
-			Register::USER_DATA_CFG,
-			USER_DATA_CFG_BIT::WORD_SIZE_32 | USER_DATA_CFG_BIT::TEMPERATURE_EN | USER_DATA_CFG_BIT::DATA_CNTR_EN |
-			USER_DATA_CFG_BIT::Z_GYRO_EN | USER_DATA_CFG_BIT::Y_GYRO_EN | USER_DATA_CFG_BIT::X_GYRO_EN |
-			USER_DATA_CFG_BIT::Z_ACCEL_EN | USER_DATA_CFG_BIT::Y_ACCEL_EN | USER_DATA_CFG_BIT::X_ACCEL_EN,
-			USER_DATA_CFG_BIT::Z_DELTANG_EN | USER_DATA_CFG_BIT::Y_DELTANG_EN | USER_DATA_CFG_BIT::X_DELTANG_EN |
+			Register::USER_DATA_CFG, 0, USER_DATA_CFG_BIT::Z_DELTANG_EN | USER_DATA_CFG_BIT::Y_DELTANG_EN | USER_DATA_CFG_BIT::X_DELTANG_EN |
 			USER_DATA_CFG_BIT::Z_DELTVEL_EN | USER_DATA_CFG_BIT::Y_DELTVEL_EN | USER_DATA_CFG_BIT::X_DELTVEL_EN
 		},
 		{Register::MSC_CTRL, MSC_CTRL_BIT::FILT_BW_500Hz, 0},
+		{Register::USER_FIFO_CFG, 0, 0},
 	};
 };

@@ -48,22 +48,41 @@ By changing [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_
 
 The simulated battery can be completely disabled by setting [SIM_BAT_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT_DRAIN) to 0. This is useful, for example, if you provide an external battery simulation via MAVLink.
 
+### Multiple Batteries
+
+By default only one battery is simulated.
+Additional batteries are simulated by enabling them like on a real vehicle: set the source of the battery to `Power Module` and configure it, e.g. [BAT2_SOURCE](../advanced_config/parameter_reference.md#BAT2_SOURCE) and [BAT2_N_CELLS](../advanced_config/parameter_reference.md#BAT2_N_CELLS) for a second battery.
+Each simulated battery is published as its own `battery_status` instance.
+
+All batteries deplete according to [SIM_BAT_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT_DRAIN) and [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) unless overridden for an individual battery with [SIM_BATx_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT1_DRAIN) and [SIM_BATx_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT1_MIN_PCT).
+Setting `SIM_BATx_DRAIN` to a non-positive value uses the shared drain time. Setting `SIM_BATx_MIN_PCT` to a negative value
+uses the shared minimum charge.
+This can be used to test multi-battery behaviour, for example one battery depleting faster than the others.
+
 ## 센서/시스템 장애
 
 [Failure injection](../debug/failure_injection.md) can be used to simulate different types of failures in many sensors and systems.
 GPS가 없거나 간헐적으로 발생하는 경우, 특정 값에서 멈추거나 멈추는 RC 신호, 회피 시스템의 오류 등을 시뮬레이션 할 수 있습니다.
 
-GPS 오류를 시뮬레이션하려면 다음을 수행합니다.
+Failure injection is gated by the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN).
-2. Enter the following commands on the SITL instance _pxh shell_:
+For example, to simulate GPS failure, enter the following commands on the SITL instance _pxh shell_:
 
-   ```sh
-   # Turn (all) GPS off
-   failure gps off
+```sh
+# Turn (all) GPS off (no position reported, as for a dead receiver)
+failure gps off
 
-   # Turn (all) GPS on
-   failure gps ok
-   ```
+# Freeze (all) GPS on the last reported position (a "stuck" fix)
+failure gps stuck
 
-See [System Failure Injection](../debug/failure_injection.md) for a list of supported target sensors and failure modes.
+# Report a diverging position (offset by ~111 km, trips the GNSS redundancy checks)
+failure gps wrong
+
+# Restore normal GPS output
+failure gps ok
+```
+
+:::tip
+To test the [GNSS redundancy failsafe](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) you can simulate a second GPS receiver: set the antenna-offset parameter [SENS_GPS1_OFFX](../advanced_config/parameter_reference.md#SENS_GPS1_OFFX) or [SENS_GPS1_OFFY](../advanced_config/parameter_reference.md#SENS_GPS1_OFFY) to a non-zero value, and the simulator publishes a second `sensor_gps` instance offset by that distance (in metres).
+You can then fail an individual receiver with the `-i` flag (`-i 0` = all instances, `-i 1` = first GPS, `-i 2` = second), for example `failure gps wrong -i 2`.
+:::

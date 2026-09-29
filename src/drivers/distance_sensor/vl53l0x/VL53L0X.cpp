@@ -59,6 +59,12 @@
 
 #define VL53L0X_BUS_CLOCK                               400000 // 400kHz bus clock speed
 
+/* VL53L0X Range Status */
+#define VL53L0X_RANGE_STATUS_MASK               0x78
+#define VL53L0X_RANGE_STATUS_SHIFT              3
+#define VL53L0X_RANGE_STATUS_VALID              0
+#define VL53L0X_RANGE_STATUS_RANGECOMPLETE      11
+
 VL53L0X::VL53L0X(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
@@ -97,29 +103,30 @@ int VL53L0X::init()
 int VL53L0X::collect()
 {
 	// Read from the sensor.
-	uint8_t val[2] {};
+	uint8_t val[12] {};
 	perf_begin(_sample_perf);
 
 	_collect_phase = false;
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	if (transfer(nullptr, 0, &val[0], 2) != PX4_OK) {
+	if (transfer(nullptr, 0, &val[0], 12) != PX4_OK) {
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return PX4_ERROR;
 	}
 
+	uint8_t range_status = (val[0] & VL53L0X_RANGE_STATUS_MASK) >> VL53L0X_RANGE_STATUS_SHIFT;
+
 	perf_end(_sample_perf);
 
-	uint16_t distance_mm = (val[0] << 8) | val[1];
+	uint16_t distance_mm = (val[10] << 8) | val[11];
 	float distance_m = distance_mm / 1000.f;
 
-	if (distance_m > 2.0f) {
-		return PX4_OK;
-	}
+	uint8_t quality = (range_status == VL53L0X_RANGE_STATUS_VALID ||
+			   range_status == VL53L0X_RANGE_STATUS_RANGECOMPLETE) ? 100 : 0;
 
-	_px4_rangefinder.update(timestamp_sample, distance_m);
+	_px4_rangefinder.update(timestamp_sample, distance_m, quality);
 
 	return PX4_OK;
 }
@@ -130,7 +137,7 @@ int VL53L0X::measure()
 	uint8_t system_start = 0;
 
 	// Send the command to begin a measurement.
-	const uint8_t cmd = RESULT_RANGE_STATUS_REG + 10;
+	const uint8_t cmd = RESULT_RANGE_STATUS_REG ;
 
 	if (_new_measurement) {
 

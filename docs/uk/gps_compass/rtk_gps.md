@@ -174,7 +174,7 @@ The links in the table take you to the device-specific PX4 configuration.
 
 Generally when using a GNSS as a source of yaw information you will need to configure the following parameters:
 
-| Параметр                           | Налаштування                                                                                                                                                |
+| Parameter                          | Налаштування                                                                                                                                                |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [GPS\_YAW\_OFFSET][GPS_YAW_OFFSET] | The angle made by the _baseline_ (the line between the two GPS antennas) relative to the vehicle x-axis (front/back axis, as shown [here][fc_orientation]). |
 | [EKF2\_GPS\_CTRL][EKF2_GPS_CTRL]   | Set bit position 3 "Dual antenna heading" to `1` (i.e. add 8 to the parameter value).    |
@@ -234,4 +234,5 @@ See the [Using PX4's Navigation Filter (EKF2) > GPS](../advanced_config/tuning_t
 ## Подальша інформація
 
 - [RTK-GPS (PX4-Integration)](../advanced/rtk_gps.md): Developer information about integrating RTK-GPS support into PX4.
+- [u-blox Diagnostics with u-center](../gps_compass/u-center.md): bench-check RTCM reception and fix status on a u-blox rover/base.
 - [Real Time Kinematic](https://en.wikipedia.org/wiki/Real_Time_Kinematic) (Wikipedia)

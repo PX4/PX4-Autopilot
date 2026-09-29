@@ -132,6 +132,7 @@ bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 		_instance_changed_count++;
 		_last_instance_change = sensor_selection.timestamp;
 		_instance[ekf_instance].time_last_selected = _last_instance_change;
+		_selected_unhealthy_since = 0;
 
 		// reset all relative test ratios
 		for (uint8_t i = 0; i < _available_instances; i++) {
@@ -731,7 +732,9 @@ void EKF2Selector::Run()
 		}
 	}
 
-	if (updated) {
+	// keep re-evaluating while the primary is unhealthy: a silent primary
+	// produces no further updates and the fallback below is time based
+	if (updated || !_instance[_selected_instance].healthy.get_state()) {
 		const uint8_t available_instances_prev = _available_instances;
 		const uint8_t selected_instance_prev = _selected_instance;
 		const uint32_t instance_changed_count_prev = _instance_changed_count;
@@ -740,10 +743,19 @@ void EKF2Selector::Run()
 		bool lower_error_available = false;
 		float alternative_error = 0.f; // looking for instances that have error lower than the current primary
 		float best_test_ratio = FLT_MAX;
+		float best_test_ratio_no_sustained_warning = FLT_MAX;
 
 		uint8_t best_ekf = _selected_instance;
 		uint8_t best_ekf_alternate = INVALID_INSTANCE;
 		uint8_t best_ekf_different_imu = INVALID_INSTANCE;
+		uint8_t best_ekf_no_sustained_warning = INVALID_INSTANCE;
+		uint8_t best_ekf_different_imu_no_sustained_warning = INVALID_INSTANCE;
+
+		// nominally healthy, but the test ratio has been failing for a while
+		const auto sustained_warning = [this](uint8_t i) {
+			return _instance[i].warning
+			       && (hrt_elapsed_time(&_instance[i].time_last_no_warning) > 1_s);
+		};
 
 		// loop through all available instances to find if an alternative is available
 		for (int i = 0; i < _available_instances; i++) {
@@ -756,6 +768,7 @@ void EKF2Selector::Run()
 			if (_instance[i].healthy.get_state() && (i != _selected_instance)) {
 				const float test_ratio = _instance[i].combined_test_ratio;
 				const float relative_error = _instance[i].relative_test_ratio;
+
 
 				if (relative_error < alternative_error) {
 					best_ekf_alternate = i;
@@ -776,14 +789,41 @@ void EKF2Selector::Run()
 						best_ekf_different_imu = i;
 					}
 				}
+
+				if (!sustained_warning(i) && (test_ratio > 0) && (test_ratio < best_test_ratio_no_sustained_warning)) {
+					best_ekf_no_sustained_warning = i;
+					best_test_ratio_no_sustained_warning = test_ratio;
+
+					if (_instance[i].accel_device_id != _instance[_selected_instance].accel_device_id) {
+						best_ekf_different_imu_no_sustained_warning = i;
+					}
+				}
 			}
 		}
 
+		if (_instance[_selected_instance].healthy.get_state()) {
+			_selected_unhealthy_since = 0;
+		}
+
 		if (!_instance[_selected_instance].healthy.get_state()) {
-			// prefer the best healthy instance using a different IMU
-			if (!SelectInstance(best_ekf_different_imu)) {
-				// otherwise switch to the healthy instance with best overall test ratio
-				SelectInstance(best_ekf);
+			if (_selected_unhealthy_since == 0) {
+				_selected_unhealthy_since = hrt_absolute_time();
+			}
+
+			// ride out brief primary faults instead of switching to a diverged instance,
+			// but a timed out primary (frozen outputs) falls back without delay
+			const bool allow_sustained_warning_fallback = _instance[_selected_instance].timeout
+					|| (hrt_elapsed_time(&_selected_unhealthy_since) > kWarnedFallbackDelay);
+
+			// prefer candidates without a sustained warning, different IMU first
+			if (!SelectInstance(best_ekf_different_imu_no_sustained_warning)) {
+				if (!SelectInstance(best_ekf_no_sustained_warning)) {
+					if (allow_sustained_warning_fallback) {
+						if (!SelectInstance(best_ekf_different_imu)) {
+							SelectInstance(best_ekf);
+						}
+					}
+				}
 			}
 
 		} else if (lower_error_available

@@ -35,6 +35,7 @@
 
 #include <drivers/device/device.h>
 #include <drivers/device/i2c.h>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
@@ -80,7 +81,7 @@ public:
 private:
 	int			probe() override;
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	PX4Barometer _px4_baro;
 
 	ms5837::prom_u	   	_prom{};
 

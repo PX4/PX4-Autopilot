@@ -41,5 +41,6 @@ px4_add_module(
 		ICP101XX.hpp
 		icp101xx_main.cpp
 	DEPENDS
+		drivers_barometer
 		px4_work_queue
 	)

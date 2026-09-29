@@ -30,8 +30,7 @@ Users can control progression though these states using a [safety switch](../get
 
 - 也可以通过地面站发送 MAVLink 命令来解锁/锁定载具。
 
-如果在解锁后的一段时间内没有起飞，和如果着陆后没有手动锁定， PX4 会自动锁定载具。
-这减少了解锁的载具在地面上的时间。
+如果在解锁后的一段时间内没有起飞，和如果着陆后没有手动锁定， PX4 会自动锁定载具。这减少了解锁的载具在地面上的时间。
 
 PX4 allows you to configure how pre-arming, arming and disarming work using parameters (which can be edited in _QGroundControl_ via the [parameter editor](../advanced_config/parameters.md)), as described in the following sections.
 
@@ -58,7 +57,7 @@ RC controllers will use different sticks for throttle and yaw [based on their mo
 Note that disarming in any altitude controlled mode is only possible after landing was detected.
 In manually piloted modes without altitude control, such as Stabilized, Acro, and Manual, it's always possible to disarm using gestures or buttons — even in flight.
 
-| 参数                                                                                                                                                 | 描述                                                                                                                                                          |
+| Parameter                                                                                                                                          | 描述                                                                                                                                                          |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE) | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default). |
 
@@ -75,7 +74,7 @@ Two-position arming switches are primarily used in/recommended for racing drones
 
 The switch or button is assigned (and enabled) using [RC_MAP_ARM_SW](#RC_MAP_ARM_SW), and the switch "type" is configured using [COM_ARM_SWISBTN](#COM_ARM_SWISBTN).
 
-| 参数                                                                                                                                                                | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Parameter                                                                                                                                                         | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="RC_MAP_ARM_SW"></a>[RC_MAP_ARM_SW](../advanced_config/parameter_reference.md#RC_MAP_ARM_SW) | RC arm switch channel (default: 0 - unassigned). If defined, the specified RC channel (button/switch) is used for arming instead of a stick gesture. <br>**Note:**<br>- This setting _disables the stick gesture_!<br>- This setting applies to RC controllers. It does not apply to Joystick controllers that are connected via _QGroundControl_. |
 | <a id="COM_ARM_SWISBTN"></a>[COM_ARM_SWISBTN](../advanced_config/parameter_reference.md#COM_ARM_SWISBTN)                | Arm switch is a momentary button. <br>- `0`: Arm switch is a 2-position switch where arm/disarm commands are sent on switch transitions.<br>-`1`: Arm switch is a momentary button where the arm/disarm command is sent after holding down the button for one second.                                                                                                                                    |
@@ -89,7 +88,7 @@ The switch can also be set as part of _QGroundControl_ [Flight Mode](../config/f
 By default vehicles will automatically disarm on landing, or if you take too long to take off after arming.
 The feature is configured using the following timeouts.
 
-| 参数                                                                                                                                                    | 描述                                                                                                                                                |
+| Parameter                                                                                                                                             | 描述                                                                                                                                                |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | 降落后自动锁定超时时间. Default: 2s (-1 to disable).                                      |
 | <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Time-out for auto disarm if too slow to takeoff. Default: 10s (-1 to disable). |
@@ -112,7 +111,7 @@ A vehicle that arms automatically can spin up motors and actuators without any o
 Ensure the vehicle is in a safe state before powering on.
 :::
 
-| 参数                                                                                                                                                                      | 描述                                                                                                                                                   |
+| Parameter                                                                                                                                                               | 描述                                                                                                                                                   |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_ARM_ON_BOOT"></a>[COM_ARM_ON_BOOT](../advanced_config/parameter_reference.md#COM_ARM_ON_BOOT) | Arm automatically once preflight checks pass after boot. Default: `0` (Disabled). |
 
@@ -246,7 +245,7 @@ The startup sequence is:
 
 ### 参数
 
-| 参数                                                                                                                                                 | 描述                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Parameter                                                                                                                                          | 描述                                                                                                                                                                                                                                                                                                                                                                                                          |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_PREARM_MODE"></a>[COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) | Condition to enter prearmed mode. `0`: Disabled, `1`: Safety switch (prearm mode enabled by safety switch; if no switch present cannot be enabled), `2`: Always (prearm mode enabled from power up). Default: `1` (safety button). |
 | <a id="CBRK_IO_SAFETY"></a>[CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY)    | Circuit breaker for IO safety.                                                                                                                                                                                                                                                                                                                                                              |

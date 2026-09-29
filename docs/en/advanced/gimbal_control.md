@@ -23,12 +23,22 @@ You should set `MNT_MODE_IN` to one of: `RC (1)`, `MAVlink gimbal protocol v2 (4
 If you select `Auto (0)`, the gimbal will automatically select either RC or MAVLink input based on the latest input.
 Note that the auto-switch from MAVLink to RC requires a large stick motion!
 
+To hold a fixed attitude that the pilot cannot control (e.g. for RF/Satellite receiver stabilization), set `MNT_MODE_IN` to `Fixed attitude (5)`.
+See [Fixed Attitude Gimbal](#fixed-attitude-gimbal) below.
+
 The output is set using the [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) parameter.
 By default the output is set to a PXM port (`AUX (0)`).
 If the [MAVLink Gimbal Protocol v2](https://mavlink.io/en/services/gimbal_v2.html) is supported by your gimbal, you should instead select `MAVLink gimbal protocol v2 (2)`.
+If the gimbal has its own gimbal manager, select `Forward to external gimbal manager (3)` instead (see [External Gimbal Manager](#external-gimbal-manager)).
+A second gimbal can be driven in parallel using [MNT_MODE_OUT2](../advanced_config/parameter_reference.md#MNT_MODE_OUT2) (see [Multiple Gimbal Support](#multiple-gimbal-support)).
 
 The full list of parameters for setting up the mount driver can be found in [Parameter Reference > Mount](../advanced_config/parameter_reference.md#mount).
 The relevant settings for a number of common gimbal configurations are described below.
+
+::: tip
+To debug a gimbal setup, use `gimbal status` in the MAVLink console to see the active inputs and outputs, and `gimbal test` to move the gimbal without any input.
+See [Driver Testing](#driver-testing).
+:::
 
 ## MAVLink Gimbal (MNT_MODE_OUT=MAVLINK)
 
@@ -48,12 +58,24 @@ For example, if the `TELEM2` port on the flight controller is unused you can con
 - [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) to **Enabled** (Note strictly necessary as forwarding is enabled when `MAV_1_MODE` is set to Gimbal).
 - [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD) to manufacturer recommended baud rate.
 
+### External Gimbal Manager
+
+Some gimbals implement the gimbal _manager_ protocol themselves, rather than only the gimbal device protocol.
+A ground station controls such a gimbal directly, PX4 does not need to manage it.
+
+Set [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) to `Forward to external gimbal manager (3)` so that PX4 forwards onboard inputs (RC, ROI) to it as well.
+PX4 then acts as a client of that manager: it acquires control while there is onboard input and releases it afterwards, and the manager arbitrates between PX4 and the ground station.
+
+Connect the gimbal to a MAVLink instance in `Gimbal` (or `Onboard`) mode with forwarding enabled, as described [above](#mavlink-gimbal-mnt-mode-out-mavlink).
+Forwarding is required so that the ground station and the gimbal manager can see each other, and PX4 discovers the manager from the `GIMBAL_MANAGER_STATUS` it streams.
+
 ### Multiple Gimbal Support
 
-PX4 can automatically create a gimbal manager for a connected PWM gimbal or the first MAVLink gimbal device with the same system id it detects on any interface.
-It does not automatically create gimbal manager for any other MAVLink gimbal devices that it detects.
+PX4 creates one gimbal manager, for the gimbal driven by `MNT_MODE_OUT`.
 
-You can support additional MAVLink gimbals provided that they:
+A second gimbal can be driven in parallel with the same inputs by setting [MNT_MODE_OUT2](../advanced_config/parameter_reference.md#MNT_MODE_OUT2) to a different output mode than `MNT_MODE_OUT`, e.g. a MAVLink gimbal (`2`) and a gimbal with an [external gimbal manager](#external-gimbal-manager) (`3`).
+
+Additional MAVLink gimbals that are not driven by PX4 are supported provided that they:
 
 - Implement the gimbal _manager_ protocol.
 - Are visible to the ground station and PX4 on the MAVLink network.
@@ -76,6 +98,20 @@ For example, you might have the following settings to assign the gimbal roll, pi
 
 The PWM values to use for the disarmed, maximum, center and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low, center and high position in the slider.
 The values may also be provided in gimbal documentation.
+
+## Fixed Attitude Gimbal
+
+A fixed-attitude gimbal holds a constant world-frame attitude and cannot be controlled by the pilot.
+This is useful for stabilizing a payload that must keep pointing in a fixed direction regardless of vehicle motion, such as an RF or satellite receiver antenna.
+
+To enable it, set [MNT_MODE_IN](../advanced_config/parameter_reference.md#MNT_MODE_IN) to `Fixed attitude (5)` and reboot.
+In this mode no RC or MAVLink input is created, so the attitude cannot be commanded from a transmitter or ground station.
+
+The gimbal holds roll and yaw level (roll at 0, yaw at north), and pitch at the angle set in [MNT_FIXED_PITCH](../advanced_config/parameter_reference.md#MNT_FIXED_PITCH) (in degrees, world frame).
+
+Because the setpoint is in the world frame, stabilization against vehicle motion must be enabled with [MNT_DO_STAB](../advanced_config/parameter_reference.md#MNT_DO_STAB):
+
+- Set `MNT_DO_STAB` to `Stabilize all axis (1)` for the typical servo (AUX) gimbal.
 
 ## Gimbal Control in Missions
 

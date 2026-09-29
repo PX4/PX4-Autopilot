@@ -13,34 +13,40 @@ const { site } = useData();
   </div>
 </div>
 
-This contains changes to PX4 `main` branch after the next major release ([PX v1.18](../releases/1.16.md)).
+This contains changes to the PX4 `main` branch that are not included in the next release ([PX4 v1.18](../releases/1.18.md)).
 
 :::warning
-PX4 v1.18 is in alpha/beta testing.
-Update these notes with features that are going to be in `main` (PX4 v1.18 or later) but not the PX4 v1.18 release.
+PX4 v1.18 is in beta testing.
+Update these notes with features that are going to be in `main` (PX4 v2.0 or later) but not the PX4 v1.18 release.
 :::
 
 ## Прочитайте перед оновленням
-
-- Уточнюється
 
 Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ## Основні зміни
 
-- Уточнюється
+- **[Motor failure recovery for hexarotors](../config/motor_failure_recovery.md).** On a detected single motor failure the control allocator removes the failed motor and, on a hexarotor, additionally stops ([CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1`) or reverses (`2`) the motor opposite it, recovering the yaw authority that is otherwise lost. Reversing keeps the opposite motor in the allocation and needs a reverse-capable ESC; the reverse thrust the allocator expects from a forward propeller is set with [CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) (default `0.4`). Disabled by default. ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
 
 ## Інструкції для оновлення
 
+- `COM_ARM_TRAFF` has been replaced by `COM_TRAFF_AVOID`. The old value 3 ("enforce for mission modes only") is migrated to `COM_TRAFF_AVOID=2`, which blocks arming in all modes, not just mission modes. If you relied on being able to arm manually with traffic detected, set `COM_TRAFF_AVOID=1` (warning only) instead.
+- `PCA9685_SCHD_HZ` has been removed. `PCA9685_PWM_FREQ` now sets both the PWM frequency of the PCA9685 and the rate at which values are pushed to it; if you had `PCA9685_SCHD_HZ` set to a non-default value, set `PCA9685_PWM_FREQ` to it after upgrading. Frequencies above 400 Hz (previously only usable in duty-cycle mode) are no longer supported.
+- **jMAVSim has been removed.** `make px4_sitl jmavsim` and the `10017_jmavsim_iris` airframe (`SYS_AUTOSTART=10017`) no longer exist, and the setup scripts no longer install Java or `ant`. Use [SIH](../sim_sih/index.md) with the [Hawkeye](../sim_hawkeye/index.md) visualizer instead (`make px4_sitl_sih sihsim_quadx`), or [Gazebo](../sim_gazebo_gz/index.md).
+- **Re-check motor failure handling on hexarotors.** [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1` now also stops the motor opposite the failed one on a hexarotor (previously only the failed motor was removed from the allocation). Other airframes are unaffected, and `CA_FAILURE_MODE=0` (the default) is unchanged. See [Motor Failure Recovery](../config/motor_failure_recovery.md). ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
+
 ## Інші зміни
+
+- Fast mission Return modes ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 and 4) now skip `DO_JUMP` commands (loops) while following the mission path. ([PX4-Autopilot#26993: fix(navigator): goToNextPositionItem skip loops when required](https://github.com/PX4/PX4-Autopilot/pull/26993))
 
 ### Підтримка обладнання
 
-- Уточнюється
+- [DroneCAN ESCs](../dronecan/escs.md) no longer need to set `UAVCAN_PUB_ARM` as `ArmingStatus` is published automatically whenever `UAVCAN_ENABLE` is `3` (ESC output enabled). ([PX4-Autopilot#28364](https://github.com/PX4/PX4-Autopilot/pull/28364))
 
 ### Загальні
 
-- Уточнюється
+- The unit and functional test suite builds, links and runs on macOS (`make tests`), and `px4_poll()` timeouts on macOS wait for their full duration instead of returning at once. The blended GPS timestamp is accumulated in double and rounded once instead of truncating each weighted term. ([PX4-Autopilot#28516](https://github.com/PX4/PX4-Autopilot/pull/28516))
+- The AlphaFilter library takes its sample interval and time constant in microseconds, and the float seconds overloads are removed, so a value in the wrong unit no longer compiles. Out-of-tree code that constructs the filter with seconds needs updating. ([PX4-Autopilot#28421](https://github.com/PX4/PX4-Autopilot/pull/28421))
 
 ### Управління
 
@@ -48,7 +54,18 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Безпека
 
-- Уточнюється
+- [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
+- [Flight termination](../advanced_config/flight_termination.md) can now be used instead of a Descent mode as a fallback failsafe mode, allowing safer landing for unpiloted vehicles that carry a parachute.
+  See [Battery level failsafe](../config/safety.md#battery-level-failsafe) ([COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT)) and [Position Loss Failsafe Action](../config/safety.md#position-loss-failsafe-action) (new [COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT)). ([PX4-Autopilot#28064: feat(commander): add terminate options for critical battery and lost position failsafes](https://github.com/PX4/PX4-Autopilot/pull/28064)).
+- [Failure injection](../debug/failure_injection.md) ( [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN)) has been significantly extended. (PX4-Autopilot#27572, PX4-Autopilot#27832, PX4-Autopilot#27950)
+  - Now applied on real hardware, not just simulators (injection hooks live in the shared sensor drivers).
+  - Command handling is centralized behind a dedicated failure-injection manager module.
+  - Multiple sensor instances can be failed simultaneously via a bitmask, and failures can be triggered from an RC switch.
+  - Changed default behaviour of injected WRONG failure for Batteries, to publish a wrong level, and not stop publishing
+- [Motor failure recovery](../config/motor_failure_recovery.md) for hexarotors: on a single motor failure the control allocator removes the failed motor and additionally stops ([CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1`) or reverses (`2`) the motor opposite it to recover the lost yaw authority. Mode `2` requires a reverse-capable ESC and models the reverse thrust of a forward propeller with the new [CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) (default `0.4`). Reversible motor outputs on DroneCAN are now sent as signed `RawCommand` values (negative is reverse). ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
+- Added `RTL_TYPE=6` for battery-aware home priority return ([PX4-Autopilot#26968](https://github.com/PX4/PX4-Autopilot/pull/26968)).
+  Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point.
+  Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
 
 ### Оцінки
 
@@ -56,11 +73,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Датчики
 
-- Уточнюється
+- Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
 
 ### Симуляція
 
-- Уточнюється
+- jMAVSim has been removed in favour of [SIH](../sim_sih/index.md) with the [Hawkeye](../sim_hawkeye/index.md) visualizer. See the [Upgrade Guide](#upgrade-guide).
+- Gazebo: the GNSS failure injection commands (`failure gps off`, `stuck` and `wrong`) now apply to the NavSat data published by the gz bridge, consistent with the other simulator paths. ([PX4-Autopilot#28398](https://github.com/PX4/PX4-Autopilot/pull/28398))
 
 ### Debug & Logging
 
@@ -70,9 +88,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Уточнюється
 
-### uXRCE-DDS / Zenoh / ROS2
+### uXRCE-DDS / Zenoh / ROS 2
 
-- Уточнюється
+- (uXRCE-DDS): SITL multi vehicle automatic namespace prefix is now `uav_{px4_instance}` and it is aligned with the behaviour of `UXRCE_DDS_NS_IDX`. ([PX4-Autopilot#28338](https://github.com/PX4/PX4-Autopilot/pull/28338))
 
 ### MAVLink
 
@@ -90,11 +108,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Уточнюється
 
-### Літак з фіксованим крилом
+### Fixed-wing
 
 - Уточнюється
 
-### Ровер
+### Rover
 
 - Уточнюється
 

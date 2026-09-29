@@ -57,6 +57,8 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/systemlib/mavlink_log.h>
+
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -80,7 +82,8 @@
 #include <uORB/topics/gimbal_manager_set_manual_control.h>
 #include <uORB/topics/gimbal_device_information.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
-#include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/rtcm_data.h>
+#include <uORB/topics/external_gimbal_manager_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/irlock_report.h>
@@ -91,6 +94,7 @@
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/onboard_computer_status.h>
+#include <uORB/topics/open_drone_id_basic_id.h>
 #include <uORB/topics/open_drone_id_operator_id.h>
 #include <uORB/topics/open_drone_id_self_id.h>
 #include <uORB/topics/open_drone_id_system.h>
@@ -168,11 +172,10 @@ private:
 	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
 
 	/**
-	 * Common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t.
+	 * Common method to handle both mavlink command types, operating on the
+	 * already-normalized vehicle command.
 	 */
-	template<class T>
-	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
-					 const vehicle_command_s &vehicle_command);
+	void handle_message_command_both(mavlink_message_t *msg, const vehicle_command_s &vehicle_command);
 
 	uint8_t handle_request_message_command(uint16_t message_id, float param2 = 0.0f, float param3 = 0.0f,
 					       float param4 = 0.0f, float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
@@ -206,6 +209,7 @@ private:
 	void handle_message_obstacle_distance(mavlink_message_t *msg);
 	void handle_message_odometry(mavlink_message_t *msg);
 	void handle_message_onboard_computer_status(mavlink_message_t *msg);
+	void handle_message_open_drone_id_basic_id(mavlink_message_t *msg);
 	void handle_message_open_drone_id_operator_id(mavlink_message_t *msg);
 	void handle_message_open_drone_id_self_id(mavlink_message_t *msg);
 	void handle_message_open_drone_id_system(mavlink_message_t *msg);
@@ -235,6 +239,7 @@ private:
 	void handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg);
 	void handle_message_gimbal_device_information(mavlink_message_t *msg);
 	void handle_message_gimbal_device_attitude_status(mavlink_message_t *msg);
+	void handle_message_gimbal_manager_status(mavlink_message_t *msg);
 	void handle_message_global_position_sensor(mavlink_message_t *msg);
 #if defined(MAVLINK_MSG_ID_RANGING_BEACON)
 	void handle_message_ranging_beacon(mavlink_message_t *msg);
@@ -280,7 +285,7 @@ private:
 	void update_rx_stats(const mavlink_message_t &message);
 
 	void publish_hil_battery();
-	void publish_gps_inject_data(const uint8_t *data, size_t len);
+	void publish_rtcm_corrections(const uint8_t *data, size_t len);
 
 	px4::atomic_bool 	_should_exit{false};
 	pthread_t		_thread {};
@@ -345,6 +350,13 @@ private:
 	uORB::Publication<gimbal_manager_set_manual_control_s>	_gimbal_manager_set_manual_control_pub{ORB_ID(gimbal_manager_set_manual_control)};
 	uORB::Publication<gimbal_device_information_s>		_gimbal_device_information_pub{ORB_ID(gimbal_device_information)};
 	uORB::Publication<gimbal_device_attitude_status_s>	_gimbal_device_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
+	uORB::Publication<external_gimbal_manager_status_s>	_external_gimbal_manager_status_pub{ORB_ID(external_gimbal_manager_status)};
+
+	// Component ids known to be external gimbal managers, so we don't treat their
+	// gimbal device information as our own. One bit per component id (0-255).
+	uint32_t _external_gimbal_manager_compid_bits[8] {};
+	void _markExternalGimbalManager(uint8_t compid) { _external_gimbal_manager_compid_bits[compid >> 5] |= (1u << (compid & 31)); }
+	bool _isExternalGimbalManager(uint8_t compid) const { return (_external_gimbal_manager_compid_bits[compid >> 5] & (1u << (compid & 31))) != 0; }
 	uORB::Publication<irlock_report_s>			_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
 	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};
@@ -355,6 +367,7 @@ private:
 	uORB::Publication<offboard_control_mode_s>		_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
 	uORB::Publication<velocity_limits_s>			_velocity_limits_pub{ORB_ID(velocity_limits)};
+	uORB::Publication<open_drone_id_basic_id_s>		_open_drone_id_basic_id_pub{ORB_ID(open_drone_id_basic_id)};
 	uORB::Publication<open_drone_id_operator_id_s>		_open_drone_id_operator_id_pub{ORB_ID(open_drone_id_operator_id)};
 	uORB::Publication<open_drone_id_self_id_s>		_open_drone_id_self_id_pub{ORB_ID(open_drone_id_self_id)};
 	uORB::Publication<open_drone_id_system_s>		_open_drone_id_system_pub{ORB_ID(open_drone_id_system)};
@@ -393,7 +406,7 @@ private:
 	// ORB publications (multi)
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<aux_global_position_s>		_aux_global_position_pub{ORB_ID(aux_global_position)};
-	uORB::PublicationMulti<gps_inject_data_s>		_gps_inject_data_pub{ORB_ID(gps_inject_data)};
+	uORB::PublicationMulti<rtcm_data_s>		_rtcm_corrections_pub{ORB_ID(rtcm_corrections)};
 	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc)};
 	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
@@ -408,6 +421,8 @@ private:
 	uORB::Publication<vehicle_command_s>     _cmd_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 
+	failure_injection::Config _failure_config;
+
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription	_home_position_sub{ORB_ID(home_position)};
@@ -415,6 +430,7 @@ private:
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription	_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
+	uint8_t			_vehicle_type_bitmask{0}; ///< cached from vehicle_status; vehicle type requires reboot to change
 	uORB::Subscription	_autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

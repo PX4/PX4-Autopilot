@@ -13,7 +13,7 @@ power button state notification message.
 | Назва                               | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
 | ----------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
 | <a id="fld_timestamp"></a>timestamp | `uint64` |                                                                  |            | time since system start (microseconds) |
-| <a id="fld_event"></a>event         | `uint8`  |                                                                  |            | one of PWR_BUTTON_STATE_\*           |
+| <a id="fld_event"></a>event         | `uint8`  |                                                                  |            | one of PW&#x52;_&#x42;UTTON_STATE_\* |
 
 ## Constants
 

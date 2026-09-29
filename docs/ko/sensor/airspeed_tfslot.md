@@ -5,7 +5,7 @@
 ![TFSLOT and TFSLOT WITH TFASPDIMU02 board](../../assets/hardware/sensors/airspeed/tsflot_compose.jpg)
 
 [TFSLOT](https://github.com/ThunderFly-aerospace/TFSLOT01) is an airspeed sensor based on venturi effects.
-In the basic configuration, the TFSLOT is equipped with the [TFASPDIMU02](https://github.com/ThunderFly-aerospace/TFASPDIMU02) sensor board, which contains a differential pressure sensor ([Sensirion SDP3x series](https://sensirion.com/products/catalog?filter_series=d1816d53-f5c8-47e3-ab47-818c3fd54259)) and a 9-axis motion tracking sensor ([ICM-20948](https://invensense.tdk.com/products/motion-tracking/9-axis/icm-20948/)).
+In the basic configuration, the TFSLOT is equipped with the [TFASPDIMU02](https://github.com/ThunderFly-aerospace/TFASPDIMU02) sensor board, which contains a differential pressure sensor ([Sensirion SDP3x series](https://sensirion.com/products/catalog?filter_series=d1816d53-f5c8-47e3-ab47-818c3fd54259)) and a 9-axis motion tracking sensor ([ICM-20948](https://www.invensense.tdk.com/en-us/products/9-axis/icm-20948)).
 The IMU unit can be used as an external compass.
 
 - This design brings several advantages when used on small-scale and slow-flying UAVs.
@@ -42,7 +42,7 @@ Therefore the sensor can be connected directly to an I2C port of autopilot using
 
 ## 설정
 
-Because there is an [IMU IC](https://invensense.tdk.com/products/motion-tracking/9-axis/icm-20948/) connected in front of the sensor, the IMU IC needs to be set into a bridge mode.
+Because there is an [IMU IC](https://www.invensense.tdk.com/en-us/products/9-axis/icm-20948) connected in front of the sensor, the IMU IC needs to be set into a bridge mode.
 Following this the airspeed sensor driver can be run. This can be done using the following command sequences. The commands assume a connection to I2C2 port.
 
 ```sh

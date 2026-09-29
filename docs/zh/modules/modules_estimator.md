@@ -52,7 +52,7 @@ Source: [modules/ekf2](https://github.com/PX4/PX4-Autopilot/tree/main/src/module
 
 ### 描述
 
-基于扩展卡尔曼滤波器的姿态和位置估计器。 该模块同时应用于多旋翼和固定翼飞机。
+基于扩展卡尔曼滤波器的姿态和位置估计器。该模块同时应用于多旋翼和固定翼飞机。
 
 The documentation can be found on the [ECL/EKF Overview & Tuning](../advanced_config/tuning_the_ecl_ekf.md) page.
 

@@ -67,9 +67,7 @@ The calibration steps are:
 
 4. Click **OK** to start the calibration.
 
-5. 把你的飞机放置在下面显示的某一个方向，并保持静止。
-   随后提示（方向图像变为黄色）在指定方向旋转飞行器。
-   该位置标定完成后，屏幕上的相应图示将变成绿色。
+5. 把你的飞机放置在下面显示的某一个方向，并保持静止。随后提示（方向图像变为黄色）在指定方向旋转飞行器。该位置标定完成后，屏幕上的相应图示将变成绿色。
 
    ![Compass calibration steps on PX4](../../assets/qgc/setup/sensor/sensor_compass_calibrate_px4.png)
 
@@ -141,7 +139,7 @@ The calibration process:
    commander calibrate mag quick [heading]
    ```
 
-   | 参数                                      | 描述                                                                                                                                                       |
+   | Parameter                               | 描述                                                                                                                                                       |
    | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
    | `heading` (optional) | True heading of the vehicle in degrees (0–359). Defaults to 0° (North) if omitted. |
 
@@ -204,7 +202,7 @@ Further compass configuration should generally not be required.
 ### Enable/Disable a Compass
 
 While no further configuration should be _required_, developers who wish to disable/enable compasses for any reason, such as testing, can do so using the compass parameters.
-These are prefixed with [CAL_MAGx_](../advanced_config/parameter_reference.md#CAL_MAG0_ID) (where `x=0-3`):
+These are prefixed with [CA&#x4C;_&#x4D;AGx_](../advanced_config/parameter_reference.md#CAL_MAG0_ID) (where `x=0-3`):
 
 - [CAL_MAGn_ROT](../advanced_config/parameter_reference.md#CAL_MAG0_ROT) can be used to determine which compasses are internal.
   A compass is internal if `CAL_MAGn_ROT==1`.

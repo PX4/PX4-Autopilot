@@ -89,6 +89,16 @@ float SensorMagSim::generate_wgn()
 	return X;
 }
 
+void SensorMagSim::updateFailureConfig()
+{
+	_failure_config.update();
+
+	const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_MAG, 1);
+
+	_mag_blocked = (mode == failure_injection::Mode::Off);
+	_mag_stuck = (mode == failure_injection::Mode::Stuck);
+}
+
 void SensorMagSim::Run()
 {
 	if (should_exit()) {
@@ -106,6 +116,13 @@ void SensorMagSim::Run()
 		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
+	}
+
+	updateFailureConfig();
+
+	if (_mag_blocked) {
+		perf_end(_loop_perf);
+		return;
 	}
 
 	if (_vehicle_global_position_sub.updated()) {
@@ -133,11 +150,23 @@ void SensorMagSim::Run()
 			Vector3f expected_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
 
 			expected_field += noiseGauss3f(0.02f, 0.02f, 0.03f);
+			expected_field += Vector3f(_sim_mag_offset_x.get(),
+						   _sim_mag_offset_y.get(),
+						   _sim_mag_offset_z.get());
+
+			if (_mag_stuck && _last_field_valid) {
+				// Replay the last field seen before the failure was injected
+				expected_field = _last_field;
+
+			} else {
+				_last_field = expected_field;
+				_last_field_valid = true;
+			}
 
 			_px4_mag.update(attitude.timestamp,
-					expected_field(0) + _sim_mag_offset_x.get(),
-					expected_field(1) + _sim_mag_offset_y.get(),
-					expected_field(2) + _sim_mag_offset_z.get());
+					expected_field(0),
+					expected_field(1),
+					expected_field(2));
 		}
 	}
 

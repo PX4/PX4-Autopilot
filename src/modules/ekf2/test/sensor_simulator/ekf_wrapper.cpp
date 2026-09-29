@@ -77,6 +77,12 @@ void EkfWrapper::enableRangeHeightFusion()
 	_fc->rng.enabled = true;
 }
 
+void EkfWrapper::enableConditionalRangeHeightFusion()
+{
+	_ekf_params->ekf2_rng_ctrl = static_cast<int32_t>(RngCtrl::CONDITIONAL);
+	_fc->rng.enabled = true;
+}
+
 void EkfWrapper::disableRangeHeightFusion()
 {
 	_ekf_params->ekf2_rng_ctrl = static_cast<int32_t>(RngCtrl::DISABLED);
@@ -130,6 +136,11 @@ void EkfWrapper::enableGpsFusion()
 void EkfWrapper::disableGpsFusion()
 {
 	_ekf_params->ekf2_gps_ctrl &= ~(static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL));
+}
+
+void EkfWrapper::setGpsEnabled(bool enabled)
+{
+	_fc->gps.enabled = enabled;
 }
 
 bool EkfWrapper::isIntendingGpsFusion() const

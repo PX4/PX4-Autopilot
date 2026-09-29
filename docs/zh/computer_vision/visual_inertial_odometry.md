@@ -69,7 +69,7 @@ These should identify the component as `MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY` (1
 
 将相机连接到机载计算机并将其安装到框架：
 
-| 参数                                                                                                                                                                                                                                                                                                                                                                                                                        | 外部位置估计的设置                                                                                                                                               |
+| Parameter                                                                                                                                                                                                                                                                                                                                                                                                                 | 外部位置估计的设置                                                                                                                                               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL)                                                                                                                                                                                                                                                                                                          | Set _horizontal position fusion_, _vertical vision fusion_, _velocity fusion_, and _yaw fusion_ according to your desired fusion model. |
 | [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF)                                                                                                                                                                                                                                                                                                          | Set to _Vision_ to use the vision as the reference sensor for altitude estimation.                                                      |
@@ -113,8 +113,7 @@ Perform the following checks to verify that VIO is working properly _before_ you
   You can check these MAVLink messages with the _QGroundControl_ [MAVLink Inspector](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_inspector.html)
 - Yaw the vehicle until the quaternion of the `ODOMETRY` message is very close to a unit quaternion (w=1, x=y=z=0).
   - At this point, the body frame is aligned with the reference frame of the external pose system.
-  - 如果在不使横滚或俯仰的情况下无法使四元数接近单位四元数，则机架可能仍存在俯仰或滚动偏移。
-    这种情况下不要再检查机架坐标系。
+  - 如果在不使横滚或俯仰的情况下无法使四元数接近单位四元数，则机架可能仍存在俯仰或滚动偏移。这种情况下不要再检查机架坐标系。
 - Once aligned, you can pick the vehicle up from the ground and you should see the position's z coordinate decrease.
   Moving the vehicle in the forward direction should increase the position's x coordinate.
   Moving the vehicle to the right should increase the y coordinate.
@@ -127,12 +126,9 @@ Perform the following checks to verify that VIO is working properly _before_ you
 1. Put the vehicle on the ground and start streaming `ODOMETRY` feedback (as above).
    油门杆推到最低并解锁。
 
-   此时，设置为位置控制模式。
-   如果切换成功，飞控会闪绿灯。
-   绿灯代表：你的外部位置信息已经注入到飞控中，并且位置控制模式已经切换成功。
+   此时，设置为位置控制模式。如果切换成功，飞控会闪绿灯。绿灯代表：你的外部位置信息已经注入到飞控中，并且位置控制模式已经切换成功。
 
-2. 油门杆放到中间位置（死区），以便无人机保持飞行高度。
-   提高操控杆会增加参考高度，降低操控杆会降低参考高度。
+2. 油门杆放到中间位置（死区），以便无人机保持飞行高度。提高操控杆会增加参考高度，降低操控杆会降低参考高度。
    Similarly, the other stick will change the position over the ground.
 
 3. Increase the value of the throttle stick and the vehicle will take off. Move it back to the middle immediately afterwards.
@@ -153,8 +149,7 @@ First, make sure MAVROS is able to connect successfully to the flight controller
     Use the _QGroundControl_ [MAVLink Inspector](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_inspector.html) to verify that the velocities in the `ODOMETRY` message coming from MAVROS are aligned to the FRD coordinate system.
 
 - **Problem:** I want to use vision position to do loop closing, and also want to run GPS.
-  - 这确实很困难，因为当他们不同意时，就会混淆 EKF。
-    通过测试，仅使用视觉速度更为可靠（如果您想出一种使该配置可靠的方法，请告诉我们）。
+  - 这确实很困难，因为当他们不同意时，就会混淆 EKF。通过测试，仅使用视觉速度更为可靠（如果您想出一种使该配置可靠的方法，请告诉我们）。
 
 ## 开发人员信息
 

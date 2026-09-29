@@ -135,7 +135,7 @@ These mappings based on the idealized kinematic models can be adjusted with the 
 
 ## Parameter Overview
 
-| 매개변수                                                                                                                                                                       | 설명                                                           | Unit      |
+| Parameter                                                                                                                                                                  | 설명                                                           | Unit      |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | --------- |
 | <a id="RO_YAW_RATE_LIM"></a>[RO_YAW_RATE_LIM](../advanced_config/parameter_reference.md#RO_YAW_RATE_LIM)    | Maximum allowed yaw rate                                     | $m/s^2$   |
 | <a id="RO_YAW_RATE_P"></a>[RO_YAW_RATE_P](../advanced_config/parameter_reference.md#RO_YAW_RATE_P)          | Proportional gain for yaw rate controller                    | -         |

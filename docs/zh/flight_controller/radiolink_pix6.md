@@ -271,7 +271,7 @@ The firmware can be installed in any of the normal ways:
 
 In addition to the [basic configuration](../config/index.md), the following parameters are important:
 
-| 参数                                                                                                             | 设置                                                                                                                                                      |
+| Parameter                                                                                                      | 设置                                                                                                                                                      |
 | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | This should be disabled since the board does not have an internal mag. You can enable it if you attach an external mag. |
 

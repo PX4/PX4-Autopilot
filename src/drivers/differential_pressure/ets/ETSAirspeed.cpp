@@ -123,6 +123,7 @@ int ETSAirspeed::collect()
 	}
 
 	differential_pressure.temperature = NAN;
+	differential_pressure.pitot_temperature = NAN;
 	differential_pressure.error_count = perf_event_count(_comms_errors);
 	differential_pressure.timestamp = hrt_absolute_time();
 	_differential_pressure_pub.publish(differential_pressure);

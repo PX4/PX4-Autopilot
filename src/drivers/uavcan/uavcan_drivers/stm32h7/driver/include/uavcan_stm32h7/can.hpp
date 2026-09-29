@@ -174,6 +174,21 @@ public:
 	 */
 	int init(const uavcan::uint32_t bitrate, const OperatingMode mode);
 
+	/**
+	 * Failure injection: take this interface off the CAN bus / bring it back.
+	 * setOffline() requests FDCAN Init mode (CCCR.INIT): the controller stops
+	 * transmitting, receiving and acknowledging, i.e. it electrically disappears
+	 * from the bus. setOnline() clears Init mode; the bit timings configured by
+	 * init() are preserved, so no reconfiguration is needed to rejoin.
+	 * Do not cache the requested state, re-check isInInitMode(): handleBusOff()
+	 * clears INIT from ISR context.
+	 */
+	void setOffline();
+	void setOnline();
+
+	/** True while held in FDCAN Init mode (CCCR.INIT), i.e. off the bus. */
+	bool isInInitMode() const { return (can_->CCCR & FDCAN_CCCR_INIT) != 0; }
+
 	void handleTxInterrupt(uavcan::uint64_t utc_usec);
 	void handleRxInterrupt(uavcan::uint8_t fifo_index);
 

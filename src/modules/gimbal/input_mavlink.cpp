@@ -53,11 +53,11 @@ InputMavlinkROI::InputMavlinkROI(Parameters &parameters) :
 
 InputMavlinkROI::~InputMavlinkROI()
 {
-	if (_vehicle_roi_sub >= 0) {
+	if (orb_sub_valid(_vehicle_roi_sub)) {
 		orb_unsubscribe(_vehicle_roi_sub);
 	}
 
-	if (_position_setpoint_triplet_sub >= 0) {
+	if (orb_sub_valid(_position_setpoint_triplet_sub)) {
 		orb_unsubscribe(_position_setpoint_triplet_sub);
 	}
 }
@@ -66,13 +66,13 @@ int InputMavlinkROI::initialize()
 {
 	_vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
 
-	if (_vehicle_roi_sub < 0) {
+	if (!orb_sub_valid(_vehicle_roi_sub)) {
 		return -errno;
 	}
 
 	_position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 
-	if (_position_setpoint_triplet_sub < 0) {
+	if (!orb_sub_valid(_position_setpoint_triplet_sub)) {
 		return -errno;
 	}
 
@@ -175,7 +175,7 @@ InputMavlinkCmdMount::InputMavlinkCmdMount(Parameters &parameters) :
 
 InputMavlinkCmdMount::~InputMavlinkCmdMount()
 {
-	if (_vehicle_command_sub >= 0) {
+	if (orb_sub_valid(_vehicle_command_sub)) {
 		orb_unsubscribe(_vehicle_command_sub);
 	}
 }
@@ -184,7 +184,7 @@ int InputMavlinkCmdMount::initialize()
 {
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 
-	if (_vehicle_command_sub < 0) {
+	if (!orb_sub_valid(_vehicle_command_sub)) {
 		return -errno;
 	}
 
@@ -393,23 +393,23 @@ InputMavlinkGimbalV2::InputMavlinkGimbalV2(Parameters &parameters) :
 
 InputMavlinkGimbalV2::~InputMavlinkGimbalV2()
 {
-	if (_vehicle_roi_sub >= 0) {
+	if (orb_sub_valid(_vehicle_roi_sub)) {
 		orb_unsubscribe(_vehicle_roi_sub);
 	}
 
-	if (_position_setpoint_triplet_sub >= 0) {
+	if (orb_sub_valid(_position_setpoint_triplet_sub)) {
 		orb_unsubscribe(_position_setpoint_triplet_sub);
 	}
 
-	if (_gimbal_manager_set_attitude_sub >= 0) {
+	if (orb_sub_valid(_gimbal_manager_set_attitude_sub)) {
 		orb_unsubscribe(_gimbal_manager_set_attitude_sub);
 	}
 
-	if (_vehicle_command_sub >= 0) {
+	if (orb_sub_valid(_vehicle_command_sub)) {
 		orb_unsubscribe(_vehicle_command_sub);
 	}
 
-	if (_gimbal_manager_set_manual_control_sub >= 0) {
+	if (orb_sub_valid(_gimbal_manager_set_manual_control_sub)) {
 		orb_unsubscribe(_gimbal_manager_set_manual_control_sub);
 	}
 }
@@ -424,31 +424,31 @@ int InputMavlinkGimbalV2::initialize()
 {
 	_vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
 
-	if (_vehicle_roi_sub < 0) {
+	if (!orb_sub_valid(_vehicle_roi_sub)) {
 		return -errno;
 	}
 
 	_position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 
-	if (_position_setpoint_triplet_sub < 0) {
+	if (!orb_sub_valid(_position_setpoint_triplet_sub)) {
 		return -errno;
 	}
 
 	_gimbal_manager_set_attitude_sub = orb_subscribe(ORB_ID(gimbal_manager_set_attitude));
 
-	if (_gimbal_manager_set_attitude_sub < 0) {
+	if (!orb_sub_valid(_gimbal_manager_set_attitude_sub)) {
 		return -errno;
 	}
 
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 
-	if (_vehicle_command_sub < 0) {
+	if (!orb_sub_valid(_vehicle_command_sub)) {
 		return -errno;
 	}
 
 	_gimbal_manager_set_manual_control_sub = orb_subscribe(ORB_ID(gimbal_manager_set_manual_control));
 
-	if (_gimbal_manager_set_manual_control_sub < 0) {
+	if (!orb_sub_valid(_gimbal_manager_set_manual_control_sub)) {
 		return -errno;
 	}
 
@@ -618,11 +618,15 @@ InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data,
 		poll_timeout = timeout_ms - (hrt_absolute_time() - poll_start) / 1000;
 	}
 
-	_stream_gimbal_manager_status(control_data);
+	// When forwarding to an external gimbal manager, PX4 is a client of that
+	// manager, not the manager itself, so it must not advertise as one.
+	if (_parameters.mnt_mode_out != MNT_MODE_OUT_TO_GIMBAL_MANAGER) {
+		_stream_gimbal_manager_status(control_data);
 
-	if (_last_device_compid != control_data.device_compid) {
-		_last_device_compid = control_data.device_compid;
-		_stream_gimbal_manager_information(control_data);
+		if (_last_device_compid != control_data.device_compid) {
+			_last_device_compid = control_data.device_compid;
+			_stream_gimbal_manager_information(control_data);
+		}
 	}
 
 	return update_result;
@@ -669,12 +673,20 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_vehicle_roi(Co
 		control_data.type_data.lonlat.pitch_offset = vehicle_roi.pitch_offset;
 		control_data.type_data.lonlat.yaw_offset = vehicle_roi.yaw_offset;
 
+		// ROI is autopilot-driven, so the autopilot is the one in control.
+		control_data.sysid_primary_control = _parameters.mav_sysid;
+		control_data.compid_primary_control = _parameters.mav_compid;
+
 		_cur_roi_mode = vehicle_roi.mode;
 
 		return UpdateResult::UpdatedActive;
 
 	} else if (vehicle_roi.mode == vehicle_roi_s::ROI_LOCATION) {
 		control_data_set_lon_lat(control_data, vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt, vehicle_roi.timestamp);
+
+		// ROI is autopilot-driven, so the autopilot is the one in control.
+		control_data.sysid_primary_control = _parameters.mav_sysid;
+		control_data.compid_primary_control = _parameters.mav_compid;
 
 		_cur_roi_mode = vehicle_roi.mode;
 

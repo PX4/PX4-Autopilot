@@ -77,7 +77,7 @@ For more detailed information, check the [Using PX4's Navigation Filter (EKF2)](
 
 The following parameters must be set to use external position information with EKF2 (these can be set in _QGroundControl_ > **Vehicle Setup > Parameters > EKF2**).
 
-| 매개변수                                                                                                                                                                                                                                                                                                                                                                                                                      | 외부 위치 추정 설정                                                                                                                                              |
+| Parameter                                                                                                                                                                                                                                                                                                                                                                                                                 | 외부 위치 추정 설정                                                                                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL)                                                                                                                                                                                                                                                                                                          | Set _horizontal position fusion_, _vertical vision fusion_, _velocity fusion_, and _yaw fusion_, according to your desired fusion model. |
 | [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF)                                                                                                                                                                                                                                                                                                          | Set to _Vision_ to use the vision as the reference source for altitude estimation.                                                       |
@@ -126,7 +126,7 @@ See [Building the Code](../dev_setup/building_px4.md) for more details.
 
 The following parameters must be set to use external position information with LPE (these can be set in _QGroundControl_ > **Vehicle Setup > Parameters > Local Position Estimator**).
 
-| 매개변수                                                                                                                                    | 외부 위치 추정 설정                                                                                                                       |
+| Parameter                                                                                                                               | 외부 위치 추정 설정                                                                                                                       |
 | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | [LPE_FUSION](../advanced_config/parameter_reference.md#LPE_FUSION)                                                 | Vision integration is enabled if _fuse vision position_ is checked (it is enabled by default). |
 | [ATT_EXT_HDG_M](../advanced_config/parameter_reference.md#ATT_EXT_HDG_M) | 외부 제목 통합을 활성화하려면 1 또는 2로 설정합니다. 1로 설정하면 비전이 사용되는 반면, 2로 설정하면 MoCap 제목 사용이 활성화됩니다.                 |
@@ -259,7 +259,7 @@ See [this video](https://www.youtube.com/watch?v=cNZaFEghTBU) for a tutorial on 
 
 #### Steps on the _Motive_ MoCap software
 
-- Align your robot's forward direction with the [system +x-axis](https://v20.wiki.optitrack.com/index.php?title=Template:Coordinate_System)
+- Align your robot's forward direction with the [system +x-axis](https://docs.optitrack.com/motive/calibration)
 - [Define a rigid body in the Motive software](https://www.youtube.com/watch?v=1e6Qqxqe-k0). Give the robot a name that does not contain spaces, e.g. `robot1` instead of `Rigidbody 1`
 - [Enable Frame Broadacst and VRPN streaming](https://www.youtube.com/watch?v=yYRNG58zPFo)
 - 위쪽 축을 Z축으로 설정합니다(기본값은 Y).

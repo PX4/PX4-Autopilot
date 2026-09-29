@@ -66,9 +66,9 @@ int QShell::main()
 
 	usleep(2000);
 
-	int sub_qshell_req = orb_subscribe(ORB_ID(qshell_req));
+	orb_sub_t sub_qshell_req = orb_subscribe(ORB_ID(qshell_req));
 
-	if (sub_qshell_req == PX4_ERROR) {
+	if (!orb_sub_valid(sub_qshell_req)) {
 		PX4_ERR("Error subscribing to qshell_req topic");
 		return -1;
 	}

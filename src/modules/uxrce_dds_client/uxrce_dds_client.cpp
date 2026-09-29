@@ -367,12 +367,12 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 		px4_usleep(10'000);
 	}
 
-	if (!_pubs->init(session, _reliable_out, reliable_in, best_effort_in, _participant_id, _client_namespace)) {
+	if (!_pubs->init(session, _reliable_out, reliable_in, _participant_id, _client_namespace)) {
 		PX4_ERR("pubs init failed");
 		return false;
 	}
 
-	if (!_subs->init(session, _reliable_out, reliable_in, best_effort_in, _participant_id, _client_namespace)) {
+	if (!_subs->init(session, _reliable_out, reliable_in, _participant_id, _client_namespace)) {
 		PX4_ERR("subs init failed");
 		return false;
 	}
@@ -384,6 +384,11 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 			PX4_ERR("replier init failed");
 			return false;
 		}
+	}
+
+	if (!_pubs->request_data(session, _reliable_out, best_effort_in)) {
+		PX4_ERR("pubs request data failed");
+		return false;
 	}
 
 	_connected = true;
@@ -609,6 +614,10 @@ void UxrceddsClient::syncSystemClock(uxrSession *session)
 		return;
 	}
 
+	if (!(_param_sys_time_src.get() & SYS_TIME_SRC_DDS)) {
+		return;
+	}
+
 	ts.tv_sec = agent_utc / 1_s;
 	ts.tv_nsec = (agent_utc % 1_s) * 1000;
 
@@ -673,10 +682,10 @@ void UxrceddsClient::run()
 			int orb_poll_timeout_ms = 1;
 
 			if (_fd >= 0) {
-				px4_pollfd_struct_t transport_pollfd {};
+				struct pollfd transport_pollfd {};
 				transport_pollfd.fd = _fd;
 				transport_pollfd.events = POLLIN;
-				const int transport_poll = px4_poll(&transport_pollfd, 1, 0);
+				const int transport_poll = poll(&transport_pollfd, 1, 0);
 
 				if (transport_poll > 0) {
 					orb_poll_timeout_ms = 0;

@@ -77,6 +77,7 @@ jobs:
           PX4_SBOM_DISABLE: 1
         run: |
           make tests
+          make tests_daa_crosstrack
           make tests_vtest_moving
 
       - uses: ./.github/actions/save-ccache
@@ -85,7 +86,6 @@ jobs:
           cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       - name: Auto-update EKF change indication baselines
-        if: github.event_name == 'push'
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           file_pattern: 'src/modules/ekf2/test/change_indication/*.csv'
@@ -99,3 +99,42 @@ jobs:
       - name: Check for EKF functional changes
         run: git diff --exit-code
         working-directory: src/modules/ekf2/test/change_indication
+
+  # Separate from Unit Tests: the instrumented build shifts EKF float output, which
+  # would trip the change indication auto-commit above.
+  coverage:
+    name: Unit Test Coverage
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - name: Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-unittests-coverage
+          max-size: 300M
+
+      - name: Build and run unit tests with coverage
+        env:
+          PX4_SBOM_DISABLE: 1
+        run: make tests_coverage
+
+      - name: Upload Coverage Information to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          files: coverage/lcov.info
+          disable_search: true
+
+      - uses: ./.github/actions/save-ccache
+        if: always()
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}

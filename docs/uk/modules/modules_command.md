@@ -121,6 +121,7 @@ failure [arguments...]
    ok|off|...    Specify failure type
      [-i <val>]  sensor instance (0=all)
                  default: 0
+     [-m <val>]  instance bitmask (bit i = instance i+1); overridden by -i
 ```
 
 ## gpio
@@ -441,6 +442,10 @@ param <command> [arguments...]
    import        Import params from a file
      [<file>]    File name (use default if not given)
 
+   load-or-init  Load params from storage; if blank, seed from a backup file or
+                 defaults and persist
+     [<backup_file>] Backup file to seed from when storage is blank
+
    save          Save params to a file
      [<file>]    File name (use default if not given)
 
@@ -463,6 +468,14 @@ param <command> [arguments...]
 
    set           Set parameter to a value
      <param_name> <value> Parameter name and value to set
+     [fail]      If provided, let the command fail if param is not found
+
+   bitset        Set bits of an int32 parameter (param |= mask)
+     <param_name> <mask> Parameter name and bitmask (decimal or 0x hex)
+     [fail]      If provided, let the command fail if param is not found
+
+   bitclear      Clear bits of an int32 parameter (param &= ~mask)
+     <param_name> <mask> Parameter name and bitmask (decimal or 0x hex)
      [fail]      If provided, let the command fail if param is not found
 
    set-default   Set parameter default to a value
@@ -714,4 +727,9 @@ ver <command> [arguments...]
    hwbasecmp     Compare hardware base (returns 0 on match)
      <hwbase> [<hwbase2>] Hardware type to compare against (eg. V2). An OR
                  comparison is used if multiple are specified
+
+   hwpopcmp      Compare HW population option (returns 0 on match)
+     <value> [<value2>] Hex population option value(s) to compare against (eg.
+                 06, cafe, ffff). An OR comparison is used if multiple are
+                 specified
 ```

@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-PX4 generates a [Software Bill of Materials](https://ntia.gov/SBOM) for every firmware build in [SPDX 2.3](https://spdx.github.io/spdx-spec/v2.3/) JSON format.
+PX4 generates a [Software Bill of Materials](https://www.ntia.gov/SBOM) for every firmware build in [SPDX 2.3](https://spdx.github.io/spdx-spec/v2.3/) JSON format.
 
 ## Why SBOM?
 

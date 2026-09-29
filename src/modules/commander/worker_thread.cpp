@@ -39,7 +39,9 @@
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "level_calibration.h"
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 #include "mag_calibration.h"
+#endif
 #include "rc_calibration.h"
 
 #include <px4_platform_common/events.h>
@@ -111,9 +113,22 @@ void WorkerThread::threadEntry()
 		_ret_value = do_gyro_calibration(&_mavlink_log_pub);
 		break;
 
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
+
 	case Request::MagCalibration:
 		_ret_value = do_mag_calibration(&_mavlink_log_pub);
 		break;
+
+	case Request::MagCalibrationQuick:
+		_ret_value = do_mag_calibration_quick(&_mavlink_log_pub, _heading_radians, _latitude, _longitude);
+		break;
+#else
+
+	case Request::MagCalibration:
+	case Request::MagCalibrationQuick:
+		_ret_value = -1;
+		break;
+#endif
 
 	case Request::RCTrimCalibration:
 		_ret_value = do_trim_calibration(&_mavlink_log_pub);
@@ -139,16 +154,19 @@ void WorkerThread::threadEntry()
 		_ret_value = do_esc_calibration(&_mavlink_log_pub);
 		break;
 
-	case Request::MagCalibrationQuick:
-		_ret_value = do_mag_calibration_quick(&_mavlink_log_pub, _heading_radians, _latitude, _longitude);
-		break;
-
 	case Request::BaroCalibration:
 		_ret_value = do_baro_calibration(&_mavlink_log_pub);
 		break;
 
 	case Request::ParamLoadDefault:
 		_ret_value = param_load_default();
+
+		// blank storage (1) is not an error: all parameters were reset to defaults
+		if (_ret_value == 1) {
+			mavlink_log_warning(&_mavlink_log_pub, "Blank storage, parameters reset to default\t");
+			events::send(events::ID("commander_load_param_blank"), events::Log::Warning, "Blank storage, parameters reset to default");
+			_ret_value = 0;
+		}
 
 		if (_ret_value != 0) {
 			mavlink_log_critical(&_mavlink_log_pub, "Error loading settings\t");
@@ -169,7 +187,7 @@ void WorkerThread::threadEntry()
 
 	case Request::ParamResetAll:
 		param_reset_all();
-		_ret_value = 0;
+		_ret_value = param_save_default(true);
 		break;
 
 	case Request::ParamResetSensorFactory: {
@@ -189,7 +207,7 @@ void WorkerThread::threadEntry()
 				"COM_FLIGHT_UUID"
 			};
 			param_reset_excludes(exclude_list, sizeof(exclude_list) / sizeof(exclude_list[0]));
-			_ret_value = 0;
+			_ret_value = param_save_default(true);
 			break;
 		}
 	}

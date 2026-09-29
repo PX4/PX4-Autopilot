@@ -1,0 +1,62 @@
+#!/bin/sh
+#
+# CORVON 743V2 board-specific default parameters.
+# Sourced by rcS during boot; values become defaults the user can override.
+#
+
+# ----------------------------------------------------------------------------
+# Safety / arming
+# ----------------------------------------------------------------------------
+# Disable the 5V supply check (board is powered via PM, no separate rail sense)
+param set-default CBRK_SUPPLY_CHK 894281
+
+# ----------------------------------------------------------------------------
+# Battery monitors - dual analog
+#   BAT1 = PM connector + B+ pad   (V: PC0 / I: PC1)
+#   BAT2 = B2V / B2I pads           (V: PC4 / I: PC5)
+# Current channels are fixed in board_config.h (ADC_BATTERYx_CURRENT_CHANNEL);
+# PX4 exposes only the voltage channel as a runtime param.
+# ----------------------------------------------------------------------------
+param set-default BAT1_SOURCE     0
+param set-default BAT1_V_CHANNEL  10
+param set-default BAT1_V_DIV      21.2
+param set-default BAT1_A_PER_V    40.0
+
+param set-default BAT2_SOURCE     0
+param set-default BAT2_V_CHANNEL  4
+param set-default BAT2_V_DIV      21.2
+param set-default BAT2_A_PER_V    40.0
+
+# ----------------------------------------------------------------------------
+# PWM / DShot defaults
+#   io_timers[] order in timer_config.cpp: TIM1, TIM3, TIM4, TIM12
+#   -3 = DShot600 (M1-M10). TIM12 (M11/M12) left as normal PWM for servos.
+# ----------------------------------------------------------------------------
+param set-default PWM_MAIN_TIM0   -3
+param set-default PWM_MAIN_TIM1   -3
+param set-default PWM_MAIN_TIM2   -3
+
+# ----------------------------------------------------------------------------
+# Sensors
+# ----------------------------------------------------------------------------
+param set-default SYS_HAS_MAG     1
+
+# ----------------------------------------------------------------------------
+# RC input - COMMON_RC enables crsf_rc / dsm_rc / ghst_rc / sbus_rc as
+# independent UART drivers.  Bind a protocol to USART6 (/dev/ttyS5) from QGC
+# by setting RC_CRSF_PRT_CFG / RC_SBUS_PRT_CFG / RC_DSM_PRT_CFG /
+# RC_GHST_PRT_CFG to the "RC" port - there is no single auto-detect param
+# like the legacy rc_input driver had.
+
+# ----------------------------------------------------------------------------
+# Bluetooth telemetry (UART8 = /dev/ttyS7 = TEL4 slot)
+#
+# The board has an onboard Bluetooth module with a ceramic antenna wired to
+# UART8. MAVLink instance 2 is pre-bound to this port at 115200 baud with no
+# flow control so the link works out of the box without further QGC config.
+# ----------------------------------------------------------------------------
+param set-default SER_TEL4_BAUD   115200
+param set-default MAV_2_CONFIG    104
+param set-default MAV_2_MODE      0
+param set-default MAV_2_RATE      1200
+param set-default MAV_2_FLOW_CTRL 0

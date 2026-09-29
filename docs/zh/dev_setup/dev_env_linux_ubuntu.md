@@ -1,6 +1,6 @@
 # Ubuntu LTS/Debian Linux 的开发环境
 
-The following instructions use a bash script to set up the PX4 development environment on the [Ubuntu Linux LTS](https://wiki.ubuntu.com/LTS) versions supported by PX4: Ubuntu 24.04 (Nimble Numbat) and Ubuntu 22.04 (Jammy Jellyfish).
+The following instructions use a bash script to set up the PX4 development environment on the [Ubuntu Linux LTS](https://ubuntu.com/about/release-cycle) versions supported by PX4: Ubuntu 24.04 (Nimble Numbat) and Ubuntu 22.04 (Jammy Jellyfish).
 
 The environment includes:
 
@@ -10,8 +10,11 @@ The environment includes:
 The build toolchain for other flight controllers, simulators, and working with ROS are discussed in the [Other Targets](#other-targets) section below.
 
 :::info
-PX4 targets the **current Ubuntu LTS** (24.04) for CI and release builds, with the **previous LTS** (22.04) also supported.
-Older Ubuntu versions are not supported and may not work.
+The current CI and release target is **Ubuntu 24.04**, with build tests also run on **Ubuntu 22.04**.
+Ubuntu 26.04 is not yet supported.
+
+More generally, PX4 supports all currently active Ubuntu LTS releases, dropping versions when they reach end-of-life.
+Support for a new LTS release is added once it provides the toolchain packages required by CI — including the ability to build for hardware targets and run SIH-based integration tests.
 :::
 
 ## Simulation and NuttX (Pixhawk) Targets

@@ -68,7 +68,7 @@ TemperatureCalibrationAccel::~TemperatureCalibrationAccel()
 	}
 }
 
-int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int sensor_sub)
+int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, orb_sub_t sensor_sub)
 {
 	bool finished = data.hot_soaked;
 

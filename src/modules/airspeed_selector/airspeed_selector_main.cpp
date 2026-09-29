@@ -73,7 +73,7 @@
 using namespace time_literals;
 
 static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};	/**< The schedule interval in usec (10 Hz) */
-static constexpr float _kThrottleFilterTimeConstant{0.5f};
+static constexpr hrt_abstime _kThrottleFilterTimeConstant{500_ms};
 
 using matrix::Dcmf;
 using matrix::Quatf;
@@ -700,9 +700,9 @@ void AirspeedModule::select_airspeed_and_publish()
 		} else if (_prev_airspeed_src > AirspeedSource::GROUND_MINUS_WIND
 			   && prev_airspeed_index <= MAX_NUM_AIRSPEED_SENSORS) {
 			mavlink_log_critical(&_mavlink_log_pub,
-					     "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
+					     "Airspeed sensor failure detected. Return mode is advised.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure"), events::Log::Critical,
-				     "Airspeed sensor failure detected. Return to launch (RTL) is advised");
+				     "Airspeed sensor failure detected. Return mode is advised");
 
 		} else if (_prev_airspeed_src == AirspeedSource::GROUND_MINUS_WIND
 			   && _valid_airspeed_src == AirspeedSource::DISABLED) {
@@ -846,14 +846,14 @@ void AirspeedModule::update_throttle_filter(hrt_abstime now)
 					       vehicle_rates_setpoint.thrust_body[2] * vehicle_rates_setpoint.thrust_body[2]);
 		}
 
-		const float dt = static_cast<float>(now - _t_last_throttle_fw) * 1e-6f;
+		const hrt_abstime dt_us = now - _t_last_throttle_fw;
 		_t_last_throttle_fw = now;
 
-		if (dt < FLT_EPSILON || dt > 1.f) {
+		if (dt_us == 0 || dt_us > 1_s) {
 			_throttle_filtered.reset(forward_thrust);
 
 		} else {
-			_throttle_filtered.update(forward_thrust, dt);
+			_throttle_filtered.update(forward_thrust, dt_us);
 		}
 	}
 }

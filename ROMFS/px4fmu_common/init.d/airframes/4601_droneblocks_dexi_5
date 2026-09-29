@@ -51,8 +51,8 @@ param set-default EKF2_OF_POS_X 0.043
 param set-default EKF2_OF_POS_Y 0.011
 param set-default EKF2_OF_QMIN_GND 1
 param set-default EKF2_RNG_POS_X 0.043
-param set-default EKF2_RNG_POS_Y 0.0
-param set-default EKF2_RNG_A_HMAX 25.0
+param set-default EKF2_RNG_POS_Y 0
+param set-default EKF2_RNG_A_HMAX 25
 
 param set-default IMU_GYRO_DNF_EN 2
 
@@ -60,7 +60,7 @@ param set-default MC_PITCHRATE_D 0.0013
 param set-default MC_PITCHRATE_I 0.185
 param set-default MC_PITCHRATE_P 0.105
 param set-default MC_PITCH_P 7.5
-param set-default MC_ROLLRATE_D 0.0010
+param set-default MC_ROLLRATE_D 0.001
 param set-default MC_ROLLRATE_I 0.165
 param set-default MC_ROLLRATE_P 0.095
 param set-default MC_ROLL_P 7.5
@@ -70,15 +70,15 @@ param set-default MC_YAWRATE_P 0.13
 param set-default MPC_THR_HOVER 0.22
 param set-default MPC_THR_MAX 0.5
 param set-default MPC_THR_MIN 0.025
-param set-default MPC_VEL_MANUAL 5.0
-param set-default MPC_XY_VEL_MAX 8.0
+param set-default MPC_VEL_MANUAL 5
+param set-default MPC_XY_VEL_MAX 8
 
 param set-default RC_CRSF_PRT_CFG 300
 param set-default RC_CRSF_TEL_EN 1
 
 param set-default RTL_RETURN_ALT 15
 
-param set-default SENS_FLOW_MINHGT 0.0
+param set-default SENS_FLOW_MINHGT 0
 
 param set-default SER_TEL2_BAUD 3000000
 

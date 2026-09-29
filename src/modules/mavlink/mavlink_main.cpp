@@ -61,6 +61,10 @@
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
+#include <drivers/serialpassthrough/serialpassthrough.hpp>
+#endif
+
 #ifdef MAVLINK_UDP
 #include <sys/time.h>
 #endif
@@ -93,11 +97,78 @@ events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
 
-void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length) { mavlink_module_instances[chan]->send_bytes(ch, length); }
-void mavlink_start_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_start(length); }
-void mavlink_end_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_finish(); }
-mavlink_status_t *mavlink_get_channel_status(uint8_t channel) { return mavlink_module_instances[channel]->get_status(); }
-mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel) { return mavlink_module_instances[channel]->get_buffer(); }
+// Per-channel status, buffer, and send mutex live in static arrays so they survive instance teardown.
+// This prevents use-after-free when the MAVLink C library accesses channel status/buffer during a send
+// that races with instance destruction.
+static mavlink_status_t mavlink_channel_statuses[MAVLINK_COMM_NUM_BUFFERS] {};
+static mavlink_message_t mavlink_channel_buffers[MAVLINK_COMM_NUM_BUFFERS] {};
+// Recursive mutex: allows callers to hold lock_send() while send_start()/send_finish()
+// re-lock internally (called from _mav_finalize_message_chan_send via MAVLINK_START_UART_SEND).
+// On NuttX a recursive mutex requires CONFIG_PTHREAD_MUTEX_TYPES; without it
+// pthread_mutexattr_settype() has no effect and the nested lock deadlocks. Fail the
+// build loudly rather than deadlock silently at runtime.
+#if defined(__PX4_NUTTX) && !defined(CONFIG_PTHREAD_MUTEX_TYPES)
+# error "mavlink's recursive per-channel send mutex requires CONFIG_PTHREAD_MUTEX_TYPES=y in the board's nuttx-config"
+#endif
+static pthread_mutex_t mavlink_channel_send_mutexes[MAVLINK_COMM_NUM_BUFFERS];
+static pthread_once_t mavlink_channel_mutexes_once = PTHREAD_ONCE_INIT;
+
+static void init_channel_send_mutexes()
+{
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+
+	if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) != 0) {
+		// Should be unreachable given the compile-time guard above, but don't fail silently.
+		PX4_ERR("failed to set recursive mutex type; mavlink sends may deadlock");
+	}
+
+	for (int i = 0; i < MAVLINK_COMM_NUM_BUFFERS; i++) {
+		pthread_mutex_init(&mavlink_channel_send_mutexes[i], &attr);
+	}
+
+	pthread_mutexattr_destroy(&attr);
+}
+
+void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length)
+{
+	Mavlink *inst = mavlink_module_instances[chan];
+
+	if (inst) { inst->send_bytes(ch, length); }
+}
+
+void mavlink_start_uart_send(mavlink_channel_t chan, int length)
+{
+	Mavlink *inst = mavlink_module_instances[chan];
+
+	if (inst) { inst->send_start(length); }
+}
+
+void mavlink_end_uart_send(mavlink_channel_t chan, int length)
+{
+	Mavlink *inst = mavlink_module_instances[chan];
+
+	if (inst) { inst->send_finish(); }
+}
+
+mavlink_status_t *mavlink_get_channel_status(uint8_t channel) { return &mavlink_channel_statuses[channel]; }
+mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel) { return &mavlink_channel_buffers[channel]; }
+
+// Both must only be called once set_instance_id() has assigned a channel; the
+// MAVLink C library only ever reaches the per-channel status/buffer via the
+// mavlink_get_channel_*() bindings above, which index the arrays by channel.
+mavlink_status_t *Mavlink::get_status()
+{
+	return &mavlink_channel_statuses[_instance_id];
+}
+
+mavlink_message_t *Mavlink::get_buffer()
+{
+	return &mavlink_channel_buffers[_instance_id];
+}
+
+void Mavlink::lock_send() { if (_instance_id >= 0) { pthread_mutex_lock(&mavlink_channel_send_mutexes[_instance_id]); } }
+void Mavlink::unlock_send() { if (_instance_id >= 0) { pthread_mutex_unlock(&mavlink_channel_send_mutexes[_instance_id]); } }
 
 static bool accept_unsigned_callback(const mavlink_status_t *status, uint32_t message_id)
 {
@@ -118,7 +189,7 @@ static void usage();
 
 hrt_abstime Mavlink::_first_start_time = {0};
 
-bool Mavlink::_boot_complete = false;
+px4::atomic_bool Mavlink::_boot_complete{false};
 
 Mavlink::Mavlink() :
 	ModuleParams(nullptr),
@@ -129,15 +200,32 @@ Mavlink::Mavlink() :
 
 	// save the current system- and component ID because we don't allow them to change during operation
 	int sys_id = _param_mav_sys_id.get();
-
-	if (sys_id > 0 && sys_id < 255) {
-		mavlink_system.sysid = sys_id;
-	}
-
 	int comp_id = _param_mav_comp_id.get();
 
+	// `mavlink_system` is a global shared by all Mavlink instances and also
+	// read by the sender helpers (_mav_finalize_message_chan_send). MAV_SYS_ID
+	// and MAV_COMP_ID are singletons, so all instances would write the same
+	// values. Latch each field once we've written a valid value — after that,
+	// subsequent instances skip the write to avoid racing with another
+	// instance's ongoing sends. The latch only flips on a VALID write so an
+	// early constructor with params not yet loaded doesn't lock us out.
+	static px4::atomic_bool s_sysid_written{false};
+	static px4::atomic_bool s_compid_written{false};
+
+	if (sys_id > 0 && sys_id < 255) {
+		bool expected = false;
+
+		if (s_sysid_written.compare_exchange(&expected, true)) {
+			mavlink_system.sysid = sys_id;
+		}
+	}
+
 	if (comp_id > 0 && comp_id < 255) {
-		mavlink_system.compid = comp_id;
+		bool expected = false;
+
+		if (s_compid_written.compare_exchange(&expected, true)) {
+			mavlink_system.compid = comp_id;
+		}
 	}
 
 	if (_first_start_time == 0) {
@@ -206,6 +294,10 @@ Mavlink::mavlink_update_parameters()
 {
 	updateParams();
 
+	// Refresh atomic snapshots of params read by the receiver thread, so the
+	// receiver doesn't read the (non-atomic) ModuleParams members directly.
+	_use_hil_gps_atomic.store(_param_mav_usehilgps.get());
+
 	setProtocolVersion(_param_mav_proto_ver.get());
 
 	if (_param_mav_type.get() < 0 || _param_mav_type.get() >= MAV_TYPE_ENUM_END) {
@@ -264,6 +356,8 @@ bool Mavlink::set_channel()
 bool
 Mavlink::set_instance_id()
 {
+	pthread_once(&mavlink_channel_mutexes_once, init_channel_send_mutexes);
+
 	LockGuard lg{mavlink_module_mutex};
 
 	// instance count
@@ -285,6 +379,10 @@ Mavlink::set_instance_id()
 			mavlink_module_instances[instance_id] = this;
 			_instance_id = instance_id;
 			mavlink_instance_count.fetch_add(1);
+
+			// Now that we own a channel, apply the protocol version cached during
+			// construction to this channel's (zero-initialized) status flags.
+			setProtocolVersion(_protocol_version.load());
 			return true;
 		}
 	}
@@ -294,14 +392,31 @@ Mavlink::set_instance_id()
 
 void Mavlink::setProtocolVersion(uint8_t version)
 {
+	_protocol_version.store((version == 1) ? 1 : 2);
+
+	// The version flag lives in the per-channel status, which only exists once we
+	// own a channel. During construction (before set_instance_id()) there is no
+	// channel; set_instance_id() applies the cached version to the channel then.
+	if (_instance_id < 0) {
+		return;
+	}
+
+	// Take the channel send lock for the get_status()->flags update — it
+	// touches the per-channel mavlink_channel_statuses[] global which the
+	// receiver thread also reads/writes from mavlink_frame_char_buffer.
+	// _protocol_version is atomic so its store doesn't need the lock, but
+	// keeping the flag update inside the lock makes the flag/version pair
+	// consistent with respect to any caller that holds lock_send().
+	lock_send();
+
 	if (version == 1) {
 		get_status()->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
-		_protocol_version = 1;
 
 	} else {
 		get_status()->flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1);
-		_protocol_version = 2;
 	}
+
+	unlock_send();
 }
 
 int
@@ -396,7 +511,12 @@ Mavlink::destroy_all_instances()
 		for (int i = 0; i < MAVLINK_COMM_NUM_BUFFERS; i++) {
 			if (mavlink_module_instances[i] != nullptr) {
 				Mavlink *inst = mavlink_module_instances[i];
+
+				// Lock the channel send mutex to ensure no in-flight sends
+				pthread_mutex_lock(&mavlink_channel_send_mutexes[i]);
 				mavlink_module_instances[i] = nullptr;
+				pthread_mutex_unlock(&mavlink_channel_send_mutexes[i]);
+
 				mavlink_instance_count.fetch_sub(1);
 				delete inst;
 			}
@@ -763,7 +883,7 @@ Mavlink::get_free_tx_buf()
 
 void Mavlink::send_start(int length)
 {
-	pthread_mutex_lock(&_send_mutex);
+	pthread_mutex_lock(&mavlink_channel_send_mutexes[_instance_id]);
 	_last_write_try_time = hrt_absolute_time();
 
 	// check if there is space in the buffer
@@ -771,7 +891,7 @@ void Mavlink::send_start(int length)
 		// not enough space in buffer to send
 		count_txerrbytes(length);
 
-		_tstatus.tx_buffer_overruns++;
+		_tx_buffer_overruns.fetch_add(1);
 
 		// prevent writes
 		_tx_buffer_low = true;
@@ -784,7 +904,7 @@ void Mavlink::send_start(int length)
 void Mavlink::send_finish()
 {
 	if (_tx_buffer_low || (_buf_fill == 0)) {
-		pthread_mutex_unlock(&_send_mutex);
+		pthread_mutex_unlock(&mavlink_channel_send_mutexes[_instance_id]);
 		return;
 	}
 
@@ -836,7 +956,7 @@ void Mavlink::send_finish()
 #endif // MAVLINK_UDP
 
 	if (ret == (int)_buf_fill) {
-		_tstatus.tx_message_count++;
+		_tx_message_count.fetch_add(1);
 		count_txbytes(_buf_fill);
 		_last_write_success_time = _last_write_try_time;
 
@@ -846,7 +966,7 @@ void Mavlink::send_finish()
 
 	_buf_fill = 0;
 
-	pthread_mutex_unlock(&_send_mutex);
+	pthread_mutex_unlock(&mavlink_channel_send_mutexes[_instance_id]);
 }
 
 void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
@@ -1229,7 +1349,7 @@ Mavlink::send_protocol_version()
 {
 	mavlink_protocol_version_t msg = {};
 
-	msg.version = _protocol_version * 100;
+	msg.version = _protocol_version.load() * 100;
 	msg.min_version = 100;
 	msg.max_version = 203;
 	uint64_t mavlink_lib_git_version_binary = px4_mavlink_lib_version_binary();
@@ -1300,8 +1420,11 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 	 * which polled in mavlink main loop */
 	if (!should_exit()) {
 		/* wait for previous subscription completion */
-		while (_subscribe_to_stream != nullptr) {
-			px4_usleep(MAIN_LOOP_DELAY / 2);
+		while (_subscribe_to_stream.load() != nullptr) {
+			// Wall-clock sleep: this is thread synchronization, not
+			// simulation timing. px4_usleep in lockstep mode sleeps in
+			// sim time which can stall startup.
+			usleep(MAIN_LOOP_DELAY / 2);
 		}
 
 		/* copy stream name */
@@ -1315,14 +1438,16 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 
 		strcpy(s, stream_name);
 
-		/* set subscription task */
+		/* publish the subscription task: rate must be visible to the consumer
+		 * before the non-null pointer. The atomic store below provides the
+		 * SEQ_CST barrier that orders the rate write with the pointer write. */
 		_subscribe_to_stream_rate = rate;
-		_subscribe_to_stream = s;
+		_subscribe_to_stream.store(s);
 
 		/* wait for subscription */
 		do {
-			px4_usleep(MAIN_LOOP_DELAY / 2);
-		} while (_subscribe_to_stream != nullptr);
+			usleep(MAIN_LOOP_DELAY / 2);
+		} while (_subscribe_to_stream.load() != nullptr);
 
 		delete[] s;
 	}
@@ -1447,6 +1572,13 @@ Mavlink::update_rate_mult()
 	_rate_mult = math::constrain(_rate_mult, 0.05f, 1.0f);
 }
 
+bool
+Mavlink::radio_status_critical() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_critical;
+}
+
 void
 Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
@@ -1479,6 +1611,521 @@ Mavlink::update_radio_status(const radio_status_s &radio_status)
 	pthread_mutex_unlock(&_radio_status_mutex);
 }
 
+namespace
+{
+struct StreamRateDefault {
+	const char *name;
+	float rate;	///< streaming rate in Hz, or unlimited_rate
+};
+
+constexpr float unlimited_rate = -1.0f;
+
+constexpr StreamRateDefault streams_mode_normal[] = {
+	{"ADSB_VEHICLE", 5.f},
+	{"ALTITUDE", 1.0f},
+	{"ATTITUDE", 15.0f},
+	{"ATTITUDE_QUATERNION", 10.0f},
+	{"ATTITUDE_TARGET", 2.0f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 0.5f},
+	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
+	{"CURRENT_MODE", 0.5f},
+	{"DISTANCE_SENSOR", 0.5f},
+	{"EFI_STATUS", 2.0f},
+	{"ESC_INFO", 1.0f},
+	{"ESC_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+	{"ESC_EEPROM", unlimited_rate},
+#endif
+	{"ESTIMATOR_STATUS", 0.5f},
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+	{"ESTIMATOR_SENSOR_FUSION_STATUS", 0.5f},
+#endif
+	{"EXTENDED_SYS_STATE", 1.0f},
+	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
+	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
+	{"GIMBAL_MANAGER_STATUS", 0.5f},
+	{"GLOBAL_POSITION_SENSOR", 5.0f},
+	{"GLOBAL_POSITION_INT", 5.0f},
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+	{"GNSS_INTEGRITY", 1.0f},
+#endif
+	{"GPS2_RAW", 1.0f},
+	{"GPS_GLOBAL_ORIGIN", 1.0f},
+	{"GPS_RAW_INT", 5.0f},
+	{"GPS_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+	{"MANUAL_INPUT_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+	{"HOME_POSITION", 0.5f},
+	{"HYGROMETER_SENSOR", 0.1f},
+	{"LOCAL_POSITION_NED", 1.0f},
+	{"MOUNT_ORIENTATION", 10.0f},
+	{"NAV_CONTROLLER_OUTPUT", 1.0f},
+	{"OBSTACLE_DISTANCE", 1.0f},
+	{"OPEN_DRONE_ID_LOCATION", 1.f},
+	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
+	{"ORBIT_EXECUTION_STATUS", 2.0f},
+	{"PING", 0.1f},
+	{"POSITION_TARGET_GLOBAL_INT", 1.0f},
+	{"POSITION_TARGET_LOCAL_NED", 1.5f},
+	{"RAW_RPM", 2.0f},
+	{"RC_CHANNELS", 5.0f},
+	{"SCALED_PRESSURE", 1.0f},
+	{"SERVO_OUTPUT_RAW_0", 1.0f},
+	{"SYS_STATUS", 1.0f},
+	{"TIME_ESTIMATE_TO_TARGET", 1.0f},
+	{"VFR_HUD", 4.0f},
+	{"VIBRATION", 0.1f},
+	{"WIND_COV", 0.5f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 1.0f},
+	{"DEBUG_FLOAT_ARRAY", 1.0f},
+	{"DEBUG_VECT", 1.0f},
+	{"NAMED_VALUE_FLOAT", 1.0f},
+	{"LINK_NODE_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+	{"FUEL_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_onboard[] = {
+	// Note: streams requiring low latency come first
+	{"TIMESYNC", 10.0f},
+	{"CAMERA_TRIGGER", unlimited_rate},
+	{"HIGHRES_IMU", 50.0f},
+	{"LOCAL_POSITION_NED", 30.0f},
+	{"ATTITUDE", 100.0f},
+	{"ALTITUDE", 10.0f},
+	{"DISTANCE_SENSOR", 10.0f},
+	{"ESC_INFO", 10.0f},
+	{"ESC_STATUS", 10.0f},
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+	{"ESC_EEPROM", unlimited_rate},
+#endif
+	{"MOUNT_ORIENTATION", 10.0f},
+	{"OBSTACLE_DISTANCE", 10.0f},
+	{"ODOMETRY", 30.0f},
+
+	{"ADSB_VEHICLE", 5.f},
+	{"ATTITUDE_QUATERNION", 50.0f},
+	{"ATTITUDE_TARGET", 10.0f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 0.5f},
+	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
+	{"CURRENT_MODE", 0.5f},
+	{"EFI_STATUS", 2.0f},
+	{"ESTIMATOR_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+	{"ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f},
+#endif
+	{"EXTENDED_SYS_STATE", 5.0f},
+	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
+	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
+	{"GIMBAL_MANAGER_STATUS", 0.5f},
+	{"GLOBAL_POSITION_INT", 50.0f},
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+	{"GNSS_INTEGRITY", 1.0f},
+#endif
+	{"GPS2_RAW", unlimited_rate},
+	{"GPS_GLOBAL_ORIGIN", 1.0f},
+	{"GPS_RAW_INT", unlimited_rate},
+	{"GPS_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+	{"MANUAL_INPUT_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+	{"HOME_POSITION", 0.5f},
+	{"HYGROMETER_SENSOR", 1.0f},
+	{"NAV_CONTROLLER_OUTPUT", 10.0f},
+	{"OPEN_DRONE_ID_LOCATION", 1.f},
+	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
+	{"OPTICAL_FLOW_RAD", 10.0f},
+	{"ORBIT_EXECUTION_STATUS", 5.0f},
+	{"PING", 1.0f},
+	{"POSITION_TARGET_GLOBAL_INT", 10.0f},
+	{"POSITION_TARGET_LOCAL_NED", 10.0f},
+	{"RAW_RPM", 5.0f},
+	{"RC_CHANNELS", 20.0f},
+	{"SCALED_PRESSURE", 1.0f},
+	{"SERVO_OUTPUT_RAW_0", 10.0f},
+	{"SYS_STATUS", 5.0f},
+	{"SYSTEM_TIME", 1.0f},
+	{"TIME_ESTIMATE_TO_TARGET", 1.0f},
+	{"VFR_HUD", 10.0f},
+	{"VIBRATION", 0.5f},
+	{"WIND_COV", 10.0f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 10.0f},
+	{"DEBUG_FLOAT_ARRAY", 10.0f},
+	{"DEBUG_VECT", 10.0f},
+	{"NAMED_VALUE_FLOAT", 10.0f},
+	{"LINK_NODE_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+	{"FUEL_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_gimbal[] = {
+	// Note: streams requiring low latency come first
+	{"AUTOPILOT_STATE_FOR_GIMBAL_DEVICE", 20.0f},
+	{"GIMBAL_DEVICE_SET_ATTITUDE", 20.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 20.0f},
+};
+
+constexpr StreamRateDefault streams_mode_extvision[] = {
+	{"HIGHRES_IMU", unlimited_rate},	// for VIO
+
+	// FALLTHROUGH
+};
+
+constexpr StreamRateDefault streams_mode_extvision_min[] = {
+	// Note: streams requiring low latency come first
+	{"TIMESYNC", 10.0f},
+	{"CAMERA_TRIGGER", unlimited_rate},
+	{"LOCAL_POSITION_NED", 30.0f},
+	{"ATTITUDE", 20.0f},
+	{"ALTITUDE", 10.0f},
+	{"DISTANCE_SENSOR", 10.0f},
+	{"MOUNT_ORIENTATION", 10.0f},
+	{"OBSTACLE_DISTANCE", 10.0f},
+	{"ODOMETRY", 30.0f},
+
+	{"ADSB_VEHICLE", 5.f},
+	{"ATTITUDE_TARGET", 2.0f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 0.5f},
+	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
+	{"CURRENT_MODE", 0.5f},
+	{"ESTIMATOR_STATUS", 1.0f},
+	{"EXTENDED_SYS_STATE", 1.0f},
+	{"GLOBAL_POSITION_INT", 5.0f},
+	{"GPS2_RAW", 1.0f},
+	{"GPS_GLOBAL_ORIGIN", 1.0f},
+	{"GPS_RAW_INT", 1.0f},
+	{"HOME_POSITION", 0.5f},
+	{"HYGROMETER_SENSOR", 1.0f},
+	{"SCALED_PRESSURE", 1.0f},
+	{"NAV_CONTROLLER_OUTPUT", 1.5f},
+	{"OPTICAL_FLOW_RAD", 1.0f},
+	{"ORBIT_EXECUTION_STATUS", 5.0f},
+	{"PING", 0.1f},
+	{"POSITION_TARGET_GLOBAL_INT", 1.5f},
+	{"POSITION_TARGET_LOCAL_NED", 1.5f},
+	{"RC_CHANNELS", 5.0f},
+	{"SERVO_OUTPUT_RAW_0", 1.0f},
+	{"SYS_STATUS", 5.0f},
+	{"VFR_HUD", 4.0f},
+	{"VIBRATION", 0.5f},
+	{"WIND_COV", 1.0f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 1.0f},
+	{"DEBUG_FLOAT_ARRAY", 1.0f},
+	{"DEBUG_VECT", 1.0f},
+	{"NAMED_VALUE_FLOAT", 1.0f},
+	{"LINK_NODE_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 2.0f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+	{"FUEL_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_osd[] = {
+	{"ALTITUDE", 10.0f},
+	{"ATTITUDE", 25.0f},
+	{"ATTITUDE_TARGET", 10.0f},
+	{"BATTERY_STATUS", 0.5f},
+	{"ESTIMATOR_STATUS", 1.0f},
+	{"EXTENDED_SYS_STATE", 1.0f},
+	{"GLOBAL_POSITION_INT", 10.0f},
+	{"GPS_RAW_INT", 1.0f},
+	{"HOME_POSITION", 0.5f},
+	{"HYGROMETER_SENSOR", 0.1f},
+	{"SCALED_PRESSURE", 1.0f},
+	{"RC_CHANNELS", 5.0f},
+	{"SERVO_OUTPUT_RAW_0", 1.0f},
+	{"SYS_STATUS", 5.0f},
+	{"SYSTEM_TIME", 1.0f},
+	{"VFR_HUD", 25.0f},
+	{"VIBRATION", 0.5f},
+	{"WIND_COV", 2.0f},
+};
+
+constexpr StreamRateDefault streams_mode_config[] = {
+	// Note: streams requiring low latency come first
+	{"TIMESYNC", 10.0f},
+	{"CAMERA_TRIGGER", unlimited_rate},
+	{"LOCAL_POSITION_NED", 30.0f},
+	{"DISTANCE_SENSOR", 10.0f},
+	{"MOUNT_ORIENTATION", 10.0f},
+	{"ODOMETRY", 30.0f},
+
+	{"ADSB_VEHICLE", 5.f},
+	{"ALTITUDE", 10.0f},
+	{"ATTITUDE", 50.0f},
+	{"ATTITUDE_QUATERNION", 50.0f},
+	{"ATTITUDE_TARGET", 8.0f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 0.5f},
+	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
+	{"CURRENT_MODE", 0.5f},
+	{"EFI_STATUS", 10.0f},
+	{"ESC_INFO", 10.0f},
+	{"ESC_STATUS", 10.0f},
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+	{"ESC_EEPROM", unlimited_rate},
+#endif
+	{"ESTIMATOR_STATUS", 5.0f},
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+	{"ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f},
+#endif
+	{"EXTENDED_SYS_STATE", 2.0f},
+	{"GLOBAL_POSITION_INT", 10.0f},
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+	{"GNSS_INTEGRITY", 1.0f},
+#endif
+	{"GPS2_RAW", unlimited_rate},
+	{"GPS_GLOBAL_ORIGIN", 1.0f},
+	{"GPS_RAW_INT", unlimited_rate},
+	{"GPS_STATUS", 1.0f},
+	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
+	{"GIMBAL_MANAGER_STATUS", 0.5f},
+	{"HIGHRES_IMU", 50.0f},
+	{"HOME_POSITION", 0.5f},
+	{"HYGROMETER_SENSOR", 1.0f},
+	{"MAG_CAL_REPORT", 1.0f},
+	{"MANUAL_CONTROL", 5.0f},
+#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+	{"MANUAL_INPUT_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+	{"NAV_CONTROLLER_OUTPUT", 10.0f},
+	{"OPEN_DRONE_ID_LOCATION", 1.f},
+	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
+	{"OPTICAL_FLOW_RAD", 10.0f},
+	{"ORBIT_EXECUTION_STATUS", 5.0f},
+	{"PING", 1.0f},
+	{"POSITION_TARGET_GLOBAL_INT", 10.0f},
+	{"RAW_RPM", 5.0f},
+	{"RC_CHANNELS", 10.0f},
+	{"SCALED_IMU", 25.0f},
+	{"SCALED_IMU2", 25.0f},
+	{"SCALED_IMU3", 25.0f},
+	{"SCALED_PRESSURE", 1.0f},
+	{"SCALED_PRESSURE2", 1.0f},
+	{"SERVO_OUTPUT_RAW_0", 20.0f},
+	{"SERVO_OUTPUT_RAW_1", 20.0f},
+	{"SYS_STATUS", 1.0f},
+	{"SYSTEM_TIME", 1.0f},
+	{"TIME_ESTIMATE_TO_TARGET", 1.0f},
+	{"VFR_HUD", 20.0f},
+	{"VIBRATION", 2.5f},
+	{"WIND_COV", 10.0f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 50.0f},
+	{"DEBUG_FLOAT_ARRAY", 50.0f},
+	{"DEBUG_VECT", 50.0f},
+	{"NAMED_VALUE_FLOAT", 50.0f},
+	{"LINK_NODE_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+	{"FUEL_STATUS", 2.0f},
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_minimal[] = {
+	{"ALTITUDE", 0.5f},
+	{"ATTITUDE", 10.0f},
+	{"EXTENDED_SYS_STATE", 0.1f},
+	{"GLOBAL_POSITION_INT", 5.0f},
+	{"GPS_RAW_INT", 0.5f},
+#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+	{"MANUAL_INPUT_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+	{"HOME_POSITION", 0.1f},
+	{"NAMED_VALUE_FLOAT", 1.0f},
+	{"RC_CHANNELS", 0.5f},
+	{"SYS_STATUS", 0.1f},
+	{"VFR_HUD", 1.0f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"LINK_NODE_STATUS", 1.0f},
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_onboard_low_bandwidth[] = {
+	// Note: streams requiring low latency come first
+	{"TIMESYNC", 10.0f},
+	{"CAMERA_TRIGGER", unlimited_rate},
+	{"LOCAL_POSITION_NED", 30.0f},
+	{"ATTITUDE", 20.0f},
+	{"ATTITUDE_QUATERNION", 20.0f},
+	{"ALTITUDE", 10.0f},
+	{"DISTANCE_SENSOR", 10.0f},
+	{"MOUNT_ORIENTATION", 10.0f},
+	{"OBSTACLE_DISTANCE", 10.0f},
+	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
+	{"GIMBAL_MANAGER_STATUS", 0.5f},
+	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
+	{"ESC_INFO", 1.0f},
+	{"ESC_STATUS", 5.0f},
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+	{"ESC_EEPROM", unlimited_rate},
+#endif
+
+	{"ADSB_VEHICLE", 5.f},
+	{"ATTITUDE_TARGET", 2.0f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 0.5f},
+	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
+	{"CURRENT_MODE", 0.5f},
+	{"ESTIMATOR_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+	{"ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f},
+#endif
+	{"EXTENDED_SYS_STATE", 1.0f},
+	{"GLOBAL_POSITION_SENSOR", 10.0f},
+	{"GLOBAL_POSITION_INT", 10.0f},
+	{"GPS_GLOBAL_ORIGIN", 1.0f},
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+	{"GNSS_INTEGRITY", 1.0f},
+#endif
+	{"GPS2_RAW", unlimited_rate},
+	{"GPS_RAW_INT", unlimited_rate},
+#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+	{"MANUAL_INPUT_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+	{"HOME_POSITION", 0.5f},
+	{"NAV_CONTROLLER_OUTPUT", 1.5f},
+	{"OPEN_DRONE_ID_LOCATION", 1.f},
+	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
+	{"OPTICAL_FLOW_RAD", 1.0f},
+	{"ORBIT_EXECUTION_STATUS", 5.0f},
+	{"PING", 0.1f},
+	{"POSITION_TARGET_GLOBAL_INT", 1.5f},
+	{"POSITION_TARGET_LOCAL_NED", 1.5f},
+	{"RAW_RPM", 5.0f},
+	{"RC_CHANNELS", 20.0f},
+	{"SERVO_OUTPUT_RAW_0", 1.0f},
+	{"SYS_STATUS", 5.0f},
+	{"SYSTEM_TIME", 2.0f},
+	{"TIME_ESTIMATE_TO_TARGET", 1.0f},
+	{"VFR_HUD", 4.0f},
+	{"VIBRATION", 0.5f},
+	{"WIND_COV", 1.0f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 1.0f},
+	{"DEBUG_FLOAT_ARRAY", 1.0f},
+	{"DEBUG_VECT", 1.0f},
+	{"NAMED_VALUE_FLOAT", 1.0f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+	{"FUEL_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_low_bandwidth[] = {
+	// Note: streams requiring low latency come first
+	{"CAMERA_TRIGGER", 2.0f},
+	{"LOCAL_POSITION_NED", 1.0f},
+	{"ATTITUDE_QUATERNION", 4.0f},
+	{"ALTITUDE", 1.0f},
+	{"DISTANCE_SENSOR", 1.0f},
+	{"MOUNT_ORIENTATION", 2.0f},
+	{"OBSTACLE_DISTANCE", 2.0f},
+	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
+	{"GIMBAL_MANAGER_STATUS", 0.5f},
+	{"GIMBAL_DEVICE_SET_ATTITUDE", 2.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 2.0f},
+	{"ESC_INFO", 1.0f},
+	{"ESC_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+	{"ESC_EEPROM", unlimited_rate},
+#endif
+	{"ADSB_VEHICLE", 1.0f},
+	{"ATTITUDE_TARGET", 0.5f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 1.0f},
+	{"CAMERA_IMAGE_CAPTURED", 2.0f},
+	{"CURRENT_MODE", 0.5f},
+	{"ESTIMATOR_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+	{"ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f},
+#endif
+	{"EXTENDED_SYS_STATE", 0.5f},
+	{"GLOBAL_POSITION_INT", 2.0f},
+	{"GLOBAL_POSITION_SENSOR", 2.0f},
+	{"GPS_GLOBAL_ORIGIN", 0.1f},
+	{"GPS2_RAW", 1.0f},
+	{"GPS_RAW_INT", 1.0f},
+#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+	{"MANUAL_INPUT_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+	{"HOME_POSITION", 0.5f},
+	{"NAV_CONTROLLER_OUTPUT", 0.1f},
+	{"OPTICAL_FLOW_RAD", 0.1f},
+	{"ORBIT_EXECUTION_STATUS", 1.0f},
+	{"PING", 0.1f},
+	{"POSITION_TARGET_GLOBAL_INT", 0.5f},
+	{"POSITION_TARGET_LOCAL_NED", 0.5f},
+	{"RAW_RPM", 2.0f},
+	{"RC_CHANNELS", 1.0f},
+	{"SERVO_OUTPUT_RAW_0", 0.1f},
+	{"SYS_STATUS", 0.5f},
+	{"SYSTEM_TIME", 0.5f},
+	{"TIME_ESTIMATE_TO_TARGET", 0.5f},
+	{"VFR_HUD", 4.0f},
+	{"VIBRATION", 0.1f},
+	{"WIND_COV", 0.1f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 0.5f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+};
+
+constexpr StreamRateDefault streams_mode_uavionix[] = {
+	{"UAVIONIX_ADSB_OUT_CFG", 0.1f},
+	{"UAVIONIX_ADSB_OUT_DYNAMIC", 5.0f},
+};
+
+constexpr StreamRateDefault streams_mode_distance_sensor[] = {
+	{"DISTANCE_SENSOR", unlimited_rate},
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 1.0f},
+	{"DEBUG_FLOAT_ARRAY", 1.0f},
+	{"DEBUG_VECT", 1.0f},
+	{"NAMED_VALUE_FLOAT", 1.0f},
+#endif // !CONSTRAINED_FLASH
+};
+
+} // namespace
+
 int
 Mavlink::configure_streams_to_default(const char *configure_single_stream)
 {
@@ -1498,247 +2145,35 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		}
 	};
 
-	const float unlimited_rate = -1.0f;
+	auto configure_streams_local = [&configure_stream_local](const auto & streams) {
+		for (const auto &stream : streams) {
+			configure_stream_local(stream.name, stream.rate);
+		}
+	};
 
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
-		configure_stream_local("ADSB_VEHICLE", 5.f);
-		configure_stream_local("ALTITUDE", 1.0f);
-		configure_stream_local("ATTITUDE", 15.0f);
-		configure_stream_local("ATTITUDE_QUATERNION", 10.0f);
-		configure_stream_local("ATTITUDE_TARGET", 2.0f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("DISTANCE_SENSOR", 0.5f);
-		configure_stream_local("EFI_STATUS", 2.0f);
-		configure_stream_local("ESC_INFO", 1.0f);
-		configure_stream_local("ESC_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-		configure_stream_local("ESC_EEPROM", unlimited_rate);
-#endif
-		configure_stream_local("ESTIMATOR_STATUS", 0.5f);
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
-		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 0.5f);
-#endif
-		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GLOBAL_POSITION_SENSOR", 5.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
-		configure_stream_local("GNSS_INTEGRITY", 1.0f);
-#endif
-		configure_stream_local("GPS2_RAW", 1.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS_RAW_INT", 5.0f);
-		configure_stream_local("GPS_STATUS", 1.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 0.1f);
-		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
-		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 1.0f);
-		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 2.0f);
-		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.0f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
-		configure_stream_local("RAW_RPM", 2.0f);
-		configure_stream_local("RC_CHANNELS", 5.0f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream_local("SYS_STATUS", 1.0f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
-		configure_stream_local("VFR_HUD", 4.0f);
-		configure_stream_local("VIBRATION", 0.1f);
-		configure_stream_local("WIND_COV", 0.5f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
-#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
-		configure_stream_local("FUEL_STATUS", 1.0f);
-#endif // MAVLINK_MSG_ID_FUEL_STATUS
-#endif // !CONSTRAINED_FLASH
-
+		configure_streams_local(streams_mode_normal);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
-		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
-		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
-		configure_stream_local("HIGHRES_IMU", 50.0f);
-		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
-		configure_stream_local("ATTITUDE", 100.0f);
-		configure_stream_local("ALTITUDE", 10.0f);
-		configure_stream_local("DISTANCE_SENSOR", 10.0f);
-		configure_stream_local("ESC_INFO", 10.0f);
-		configure_stream_local("ESC_STATUS", 10.0f);
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-		configure_stream_local("ESC_EEPROM", unlimited_rate);
-#endif
-		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
-		configure_stream_local("ODOMETRY", 30.0f);
-
-		configure_stream_local("ADSB_VEHICLE", 5.f);
-		configure_stream_local("ATTITUDE_QUATERNION", 50.0f);
-		configure_stream_local("ATTITUDE_TARGET", 10.0f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("EFI_STATUS", 2.0f);
-		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
-		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
-#endif
-		configure_stream_local("EXTENDED_SYS_STATE", 5.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GLOBAL_POSITION_INT", 50.0f);
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
-		configure_stream_local("GNSS_INTEGRITY", 1.0f);
-#endif
-		configure_stream_local("GPS2_RAW", unlimited_rate);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS_RAW_INT", unlimited_rate);
-		configure_stream_local("GPS_STATUS", 1.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
-		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
-		configure_stream_local("PING", 1.0f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 10.0f);
-		configure_stream_local("RAW_RPM", 5.0f);
-		configure_stream_local("RC_CHANNELS", 20.0f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 10.0f);
-		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("SYSTEM_TIME", 1.0f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
-		configure_stream_local("VFR_HUD", 10.0f);
-		configure_stream_local("VIBRATION", 0.5f);
-		configure_stream_local("WIND_COV", 10.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 10.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 10.0f);
-		configure_stream_local("DEBUG_VECT", 10.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
-#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
-		configure_stream_local("FUEL_STATUS", 1.0f);
-#endif // MAVLINK_MSG_ID_FUEL_STATUS
-#endif // !CONSTRAINED_FLASH
-
+		configure_streams_local(streams_mode_onboard);
 		break;
 
 	case MAVLINK_MODE_GIMBAL:
-		// Note: streams requiring low latency come first
-		configure_stream_local("AUTOPILOT_STATE_FOR_GIMBAL_DEVICE", 20.0f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 20.0f);
+		configure_streams_local(streams_mode_gimbal);
 		break;
 
 	case MAVLINK_MODE_EXTVISION:
-		configure_stream_local("HIGHRES_IMU", unlimited_rate);		// for VIO
+		configure_streams_local(streams_mode_extvision);
 
 	// FALLTHROUGH
 	case MAVLINK_MODE_EXTVISIONMIN:
-		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
-		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
-		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
-		configure_stream_local("ATTITUDE", 20.0f);
-		configure_stream_local("ALTITUDE", 10.0f);
-		configure_stream_local("DISTANCE_SENSOR", 10.0f);
-		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
-		configure_stream_local("ODOMETRY", 30.0f);
-
-		configure_stream_local("ADSB_VEHICLE", 5.f);
-		configure_stream_local("ATTITUDE_TARGET", 2.0f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
-		configure_stream_local("GPS2_RAW", 1.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS_RAW_INT", 1.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
-		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.5f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
-		configure_stream_local("RC_CHANNELS", 5.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("VFR_HUD", 4.0f);
-		configure_stream_local("VIBRATION", 0.5f);
-		configure_stream_local("WIND_COV", 1.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 2.0f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
-#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
-		configure_stream_local("FUEL_STATUS", 1.0f);
-#endif // MAVLINK_MSG_ID_FUEL_STATUS
-#endif // !CONSTRAINED_FLASH
-
+		configure_streams_local(streams_mode_extvision_min);
 		break;
 
 	case MAVLINK_MODE_OSD:
-		configure_stream_local("ALTITUDE", 10.0f);
-		configure_stream_local("ATTITUDE", 25.0f);
-		configure_stream_local("ATTITUDE_TARGET", 10.0f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
-		configure_stream_local("GPS_RAW_INT", 1.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 0.1f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("RC_CHANNELS", 5.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("SYSTEM_TIME", 1.0f);
-		configure_stream_local("VFR_HUD", 25.0f);
-		configure_stream_local("VIBRATION", 0.5f);
-		configure_stream_local("WIND_COV", 2.0f);
+		configure_streams_local(streams_mode_osd);
 		break;
 
 	case MAVLINK_MODE_MAGIC:
@@ -1749,87 +2184,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB
-		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
-		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
-		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
-		configure_stream_local("DISTANCE_SENSOR", 10.0f);
-		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("ODOMETRY", 30.0f);
-
-		configure_stream_local("ADSB_VEHICLE", 5.f);
-		configure_stream_local("ALTITUDE", 10.0f);
-		configure_stream_local("ATTITUDE", 50.0f);
-		configure_stream_local("ATTITUDE_QUATERNION", 50.0f);
-		configure_stream_local("ATTITUDE_TARGET", 8.0f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("EFI_STATUS", 10.0f);
-		configure_stream_local("ESC_INFO", 10.0f);
-		configure_stream_local("ESC_STATUS", 10.0f);
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-		configure_stream_local("ESC_EEPROM", unlimited_rate);
-#endif
-		configure_stream_local("ESTIMATOR_STATUS", 5.0f);
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
-		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
-#endif
-		configure_stream_local("EXTENDED_SYS_STATE", 2.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
-		configure_stream_local("GNSS_INTEGRITY", 1.0f);
-#endif
-		configure_stream_local("GPS2_RAW", unlimited_rate);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS_RAW_INT", unlimited_rate);
-		configure_stream_local("GPS_STATUS", 1.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("HIGHRES_IMU", 50.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
-		configure_stream_local("MAG_CAL_REPORT", 1.0f);
-		configure_stream_local("MANUAL_CONTROL", 5.0f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
-		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
-		configure_stream_local("PING", 1.0f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
-		configure_stream_local("RAW_RPM", 5.0f);
-		configure_stream_local("RC_CHANNELS", 10.0f);
-		configure_stream_local("SCALED_IMU", 25.0f);
-		configure_stream_local("SCALED_IMU2", 25.0f);
-		configure_stream_local("SCALED_IMU3", 25.0f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("SCALED_PRESSURE2", 1.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 20.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_1", 20.0f);
-		configure_stream_local("SYS_STATUS", 1.0f);
-		configure_stream_local("SYSTEM_TIME", 1.0f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
-		configure_stream_local("VFR_HUD", 20.0f);
-		configure_stream_local("VIBRATION", 2.5f);
-		configure_stream_local("WIND_COV", 10.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 50.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 50.0f);
-		configure_stream_local("DEBUG_VECT", 50.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 50.0f);
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
-#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
-		configure_stream_local("FUEL_STATUS", 2.0f);
-#endif // MAVLINK_MSG_ID_FUEL_STATUS
-#endif // !CONSTRAINED_FLASH
-
+		configure_streams_local(streams_mode_config);
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
@@ -1837,158 +2192,23 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_MINIMAL:
-		configure_stream_local("ALTITUDE", 0.5f);
-		configure_stream_local("ATTITUDE", 10.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 0.1f);
-		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
-		configure_stream_local("GPS_RAW_INT", 0.5f);
-		configure_stream_local("HOME_POSITION", 0.1f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream_local("RC_CHANNELS", 0.5f);
-		configure_stream_local("SYS_STATUS", 0.1f);
-		configure_stream_local("VFR_HUD", 1.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#endif // !CONSTRAINED_FLASH
-
+		configure_streams_local(streams_mode_minimal);
 		break;
 
 	case MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH:
-		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
-		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
-		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
-		configure_stream_local("ATTITUDE", 20.0f);
-		configure_stream_local("ATTITUDE_QUATERNION", 20.0f);
-		configure_stream_local("ALTITUDE", 10.0f);
-		configure_stream_local("DISTANCE_SENSOR", 10.0f);
-		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
-		configure_stream_local("ESC_INFO", 1.0f);
-		configure_stream_local("ESC_STATUS", 5.0f);
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-		configure_stream_local("ESC_EEPROM", unlimited_rate);
-#endif
-
-		configure_stream_local("ADSB_VEHICLE", 5.f);
-		configure_stream_local("ATTITUDE_TARGET", 2.0f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream_local("GLOBAL_POSITION_SENSOR", 10.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
-		configure_stream_local("GNSS_INTEGRITY", 1.0f);
-#endif
-		configure_stream_local("GPS2_RAW", unlimited_rate);
-		configure_stream_local("GPS_RAW_INT", unlimited_rate);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
-		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
-		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.5f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
-		configure_stream_local("RAW_RPM", 5.0f);
-		configure_stream_local("RC_CHANNELS", 20.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("SYSTEM_TIME", 2.0f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
-		configure_stream_local("VFR_HUD", 4.0f);
-		configure_stream_local("VIBRATION", 0.5f);
-		configure_stream_local("WIND_COV", 1.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
-#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
-		configure_stream_local("FUEL_STATUS", 1.0f);
-#endif // MAVLINK_MSG_ID_FUEL_STATUS
-#endif // !CONSTRAINED_FLASH
+		configure_streams_local(streams_mode_onboard_low_bandwidth);
 		break;
 
 	case MAVLINK_MODE_LOW_BANDWIDTH:
-		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
-		configure_stream_local("CAMERA_TRIGGER", 2.0f);
-		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
-		configure_stream_local("ATTITUDE_QUATERNION", 2.0f);
-		configure_stream_local("ALTITUDE", 1.0f);
-		configure_stream_local("DISTANCE_SENSOR", 1.0f);
-		configure_stream_local("MOUNT_ORIENTATION", 2.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 2.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 2.0f);
-		configure_stream_local("ESC_INFO", 1.0f);
-		configure_stream_local("ESC_STATUS", 2.0f);
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-		configure_stream_local("ESC_EEPROM", unlimited_rate);
-#endif
-		configure_stream_local("ADSB_VEHICLE", 1.0f);
-		configure_stream_local("ATTITUDE_TARGET", 0.5f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", 2.0f);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 0.5f);
-		configure_stream_local("GLOBAL_POSITION_INT", 2.0f);
-		configure_stream_local("GLOBAL_POSITION_SENSOR", 2.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS2_RAW", 2.0f);
-		configure_stream_local("GPS_RAW_INT", 2.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 0.1f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 0.1f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 1.0f);
-		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 0.5f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 0.5f);
-		configure_stream_local("RAW_RPM", 1.0f);
-		configure_stream_local("RC_CHANNELS", 5.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 0.1f);
-		configure_stream_local("SYS_STATUS", 0.5f);
-		configure_stream_local("SYSTEM_TIME", 2.0f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 0.5f);
-		configure_stream_local("VFR_HUD", 1.5f);
-		configure_stream_local("VIBRATION", 0.1f);
-		configure_stream_local("WIND_COV", 0.1f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 0.5f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+		configure_streams_local(streams_mode_low_bandwidth);
 		break;
 
 	case MAVLINK_MODE_UAVIONIX:
-		configure_stream_local("UAVIONIX_ADSB_OUT_CFG", 0.1f);
-		configure_stream_local("UAVIONIX_ADSB_OUT_DYNAMIC", 5.0f);
+		configure_streams_local(streams_mode_uavionix);
 		break;
 
 	case MAVLINK_MODE_DISTANCE_SENSOR:
-		configure_stream_local("DISTANCE_SENSOR", unlimited_rate);
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-#endif // !CONSTRAINED_FLASH
+		configure_streams_local(streams_mode_distance_sensor);
 		break;
 
 	default:
@@ -2037,6 +2257,11 @@ Mavlink::task_main(int argc, char *argv[])
 			close(tmp);
 		}
 	}
+
+	pthread_mutex_init(&_tstatus_mutex, nullptr);
+	pthread_mutex_init(&_radio_status_mutex, nullptr);
+	pthread_mutex_init(&_message_buffer_mutex, nullptr);
+	pthread_mutex_init(&_mavlink_shell_mutex, nullptr);
 
 	int ch;
 	_baudrate = 57600;
@@ -2379,11 +2604,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_sign_control.start(get_instance_id(), get_status(), &accept_unsigned_callback);
 
-	pthread_mutex_init(&_mavlink_shell_mutex, nullptr);
-	pthread_mutex_init(&_message_buffer_mutex, nullptr);
-	pthread_mutex_init(&_send_mutex, nullptr);
-	pthread_mutex_init(&_radio_status_mutex, nullptr);
-
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (get_forwarding_on()) {
 		/* initialize message buffer if multiplexing is on.
@@ -2476,11 +2696,14 @@ Mavlink::task_main(int argc, char *argv[])
 		send_autopilot_capabilities();
 	}
 
+	// Initialize _mavlink_start_time before starting the receiver thread —
+	// the receiver reads it via get_start_time(), so writing it afterwards
+	// would race with the receiver's first iterations.
+	_mavlink_start_time = hrt_absolute_time();
+
 	_receiver.start();
 
 	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
-
-	_mavlink_start_time = hrt_absolute_time();
 
 	_task_running.store(true);
 
@@ -2515,14 +2738,30 @@ Mavlink::task_main(int argc, char *argv[])
 
 		configure_sik_radio();
 
+		// FIXME: proper fix is to refactor the MAVLink library so per-channel
+		// status is owned by its Mavlink instance (not a shared global), and
+		// TX seq becomes atomic so no lock is needed in the common path.
+		// Until then: lock_send() guards access to the shared per-channel
+		// mavlink_status_t (current_tx_seq etc.) which
+		// _mav_finalize_message_chan_send() reads and writes. The receiver
+		// thread already takes this lock around its own sends; taking it here
+		// prevents a race with those. Each helper below takes it internally
+		// around the actual mavlink send call.
 		handleStatus();
 		handleCommands();
 		handleAndGetCurrentCommandAck();
 		handleMavlinkShellOutput();
+		handleSerialPassthroughOutput();
 
 		check_requested_subscriptions();
 
 		/* update streams */
+		// Lock held across streams, ulog, events, and forwarding — everything
+		// that calls into the MAVLink send helpers in this iteration. The
+		// mutex is recursive, so nested locking via send_start/send_finish or
+		// other lock_send() callers inside the send path is safe.
+		lock_send();
+
 		for (const auto &stream : _streams) {
 			stream->update(t);
 
@@ -2601,25 +2840,23 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
+		unlock_send();
+
 		/* update TX/RX rates*/
 		if (t > _bytes_timestamp + 1_s) {
 			if (_bytes_timestamp != 0) {
 				const float dt = (t - _bytes_timestamp) * 1e-6f;
 
-				_tstatus.tx_rate_avg = _bytes_tx / dt;
-				_tstatus.tx_error_rate_avg = _bytes_txerr / dt;
-				_tstatus.rx_rate_avg = _bytes_rx / dt;
-
-				_bytes_tx = 0;
-				_bytes_txerr = 0;
-				_bytes_rx = 0;
+				_tstatus.tx_rate_avg = _bytes_tx.fetch_and(0) / dt;
+				_tstatus.tx_error_rate_avg = _bytes_txerr.fetch_and(0) / dt;
+				_tstatus.rx_rate_avg = _bytes_rx.fetch_and(0) / dt;
 			}
 
 			_bytes_timestamp = t;
 		}
 
 		// publish status at 1 Hz, or sooner if HEARTBEAT has updated
-		if ((hrt_elapsed_time(&_tstatus.timestamp) >= 1_s) || _tstatus_updated) {
+		if ((hrt_elapsed_time(&_tstatus.timestamp) >= 1_s) || _tstatus_updated.load()) {
 			publish_telemetry_status();
 		}
 
@@ -2628,8 +2865,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_receiver.stop();
 
-	delete[] _subscribe_to_stream;
-	_subscribe_to_stream = nullptr;
+	delete[] _subscribe_to_stream.load();
+	_subscribe_to_stream.store(nullptr);
 
 	/* delete streams */
 	_streams.clear();
@@ -2652,9 +2889,9 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	pthread_mutex_destroy(&_mavlink_shell_mutex);
-	pthread_mutex_destroy(&_send_mutex);
 	pthread_mutex_destroy(&_radio_status_mutex);
 	pthread_mutex_destroy(&_message_buffer_mutex);
+	pthread_mutex_destroy(&_tstatus_mutex);
 
 	PX4_INFO("exiting channel %i", (int)_channel);
 
@@ -2694,6 +2931,39 @@ void Mavlink::handleStatus()
 	}
 }
 
+void Mavlink::handleSerialPassthroughOutput()
+{
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
+	// Drain all pending UART->MAVLink data from every active instance,
+	// one SERIAL_CONTROL message at a time.
+	mavlink_serial_control_t msg{};
+	msg.baudrate = 0;
+	msg.timeout  = 0;
+	msg.flags    = SERIAL_CONTROL_FLAG_REPLY;
+
+	uint8_t sysid, compid, device;
+
+	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
+		SerialPassthrough *sp = SerialPassthrough::get_instance_by_index(i);
+
+		if (!sp) { continue; }
+
+		while (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
+			size_t n = sp->popToMavlink(msg.data, sizeof(msg.data), &sysid, &compid, &device,
+						    (uint8_t)get_channel());
+
+			if (n == 0) { break; }
+
+			PX4_DEBUG("handleSerialPassthroughOutput: sending %zu bytes", n);
+			msg.count  = n;
+			msg.device = device;
+			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+		}
+	}
+
+#endif
+}
+
 void Mavlink::handleMavlinkShellOutput()
 {
 	if (_mavlink_shell) { // First do a fast check before taking the lock
@@ -2715,9 +2985,11 @@ void Mavlink::handleMavlinkShellOutput()
 			}
 		}
 
-		// Send message without lock
+		// Send message without the shell lock (but under the channel send lock).
 		if (msg.count > 0) {
+			lock_send();
 			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+			unlock_send();
 		}
 	}
 }
@@ -2798,7 +3070,9 @@ void Mavlink::handleCommands()
 		msg.target_component = cmd.target_component;
 		msg.confirmation = 0;
 
+		lock_send();
 		mavlink_msg_command_long_send_struct(get_channel(), &msg);
+		unlock_send();
 	}
 }
 
@@ -2849,11 +3123,15 @@ void Mavlink::handleAndGetCurrentCommandAck()
 					if (_mode == MAVLINK_MODE_IRIDIUM) {
 						if (command_ack.from_external) {
 							// for MAVLINK_MODE_IRIDIUM send only if external
+							lock_send();
 							mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+							unlock_send();
 						}
 
 					} else {
+						lock_send();
 						mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+						unlock_send();
 					}
 
 				}
@@ -2864,52 +3142,59 @@ void Mavlink::handleAndGetCurrentCommandAck()
 
 void Mavlink::check_requested_subscriptions()
 {
-	if (_subscribe_to_stream != nullptr) {
-		if (_subscribe_to_stream_rate < -1.5f) {
-			if (configure_streams_to_default(_subscribe_to_stream) == 0) {
+	// Acquire the producer's handoff. The rate field is valid once we've
+	// observed a non-null pointer (the producer wrote rate before the atomic
+	// store on _subscribe_to_stream).
+	char *stream_name = _subscribe_to_stream.load();
+
+	if (stream_name != nullptr) {
+		const float rate = _subscribe_to_stream_rate;
+
+		if (rate < -1.5f) {
+			if (configure_streams_to_default(stream_name) == 0) {
 				if (get_protocol() == Protocol::SERIAL) {
-					PX4_DEBUG("stream %s on device %s set to default rate", _subscribe_to_stream, _device_name);
+					PX4_DEBUG("stream %s on device %s set to default rate", stream_name, _device_name);
 				}
 
 #if defined(MAVLINK_UDP)
 
 				else if (get_protocol() == Protocol::UDP) {
-					PX4_DEBUG("stream %s on UDP port %hu set to default rate", _subscribe_to_stream, _network_port);
+					PX4_DEBUG("stream %s on UDP port %hu set to default rate", stream_name, _network_port);
 				}
 
 #endif // MAVLINK_UDP
 
 			} else {
-				PX4_ERR("setting stream %s to default failed", _subscribe_to_stream);
+				PX4_ERR("setting stream %s to default failed", stream_name);
 			}
 
-		} else if (configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate) == 0) {
-			if (fabsf(_subscribe_to_stream_rate) > 0.00001f) {
+		} else if (configure_stream(stream_name, rate) == 0) {
+			if (fabsf(rate) > 0.00001f) {
 				if (get_protocol() == Protocol::SERIAL) {
-					PX4_DEBUG("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
-						  (double)_subscribe_to_stream_rate);
+					PX4_DEBUG("stream %s on device %s enabled with rate %.1f Hz", stream_name, _device_name,
+						  (double)rate);
 
 				}
 
 #if defined(MAVLINK_UDP)
 
 				else if (get_protocol() == Protocol::UDP) {
-					PX4_DEBUG("stream %s on UDP port %hu enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
-						  (double)_subscribe_to_stream_rate);
+					PX4_DEBUG("stream %s on UDP port %hu enabled with rate %.1f Hz", stream_name, _network_port,
+						  (double)rate);
 				}
 
 #endif // MAVLINK_UDP
 
 			} else {
 				if (get_protocol() == Protocol::SERIAL) {
-					PX4_DEBUG("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
+					PX4_DEBUG("stream %s on device %s disabled", stream_name, _device_name);
 
 				}
 
 #if defined(MAVLINK_UDP)
 
 				else if (get_protocol() == Protocol::UDP) {
-					PX4_DEBUG("stream %s on UDP port %hu disabled", _subscribe_to_stream, _network_port);
+					PX4_DEBUG("stream %s on UDP port %hu disabled", stream_name, _network_port);
 				}
 
 #endif // MAVLINK_UDP
@@ -2917,26 +3202,31 @@ void Mavlink::check_requested_subscriptions()
 
 		} else {
 			if (get_protocol() == Protocol::SERIAL) {
-				PX4_ERR("stream %s on device %s not found", _subscribe_to_stream, _device_name);
+				PX4_ERR("stream %s on device %s not found", stream_name, _device_name);
 
 			}
 
 #if defined(MAVLINK_UDP)
 
 			else if (get_protocol() == Protocol::UDP) {
-				PX4_ERR("stream %s on UDP port %hu not found", _subscribe_to_stream, _network_port);
+				PX4_ERR("stream %s on UDP port %hu not found", stream_name, _network_port);
 			}
 
 #endif // MAVLINK_UDP
 		}
 
-		_subscribe_to_stream = nullptr;
+		_subscribe_to_stream.store(nullptr);
 	}
 }
 
 void Mavlink::publish_telemetry_status()
 {
 	// many fields are populated in place
+	pthread_mutex_lock(&_tstatus_mutex);
+
+	// fold in the lock-free per-message counters (cumulative totals)
+	_tstatus.tx_message_count += _tx_message_count.fetch_and(0);
+	_tstatus.tx_buffer_overruns += _tx_buffer_overruns.fetch_and(0);
 
 	_tstatus.mode = _mode;
 	_tstatus.data_rate = _datarate;
@@ -2944,14 +3234,15 @@ void Mavlink::publish_telemetry_status()
 	_tstatus.flow_control = get_flow_control_enabled();
 	_tstatus.ftp = ftp_enabled();
 	_tstatus.forwarding = get_forwarding_on();
-	_tstatus.mavlink_v2 = (_protocol_version == 2);
+	_tstatus.mavlink_v2 = (_protocol_version.load() == 2);
 
 	_tstatus.streams = _streams.size();
 
-	// telemetry_status is also updated from the receiver thread, but never the same fields
 	_tstatus.timestamp = hrt_absolute_time();
 	_telemetry_status_pub.publish(_tstatus);
-	_tstatus_updated = false;
+
+	pthread_mutex_unlock(&_tstatus_mutex);
+	_tstatus_updated.store(false);
 }
 
 void Mavlink::configure_sik_radio()
@@ -3027,7 +3318,9 @@ int Mavlink::start_helper(int argc, char *argv[])
 			int instance_id = instance->get_instance_id();
 
 			if (instance_id >= 0) {
+				pthread_mutex_lock(&mavlink_channel_send_mutexes[instance_id]);
 				mavlink_module_instances[instance_id] = nullptr;
+				pthread_mutex_unlock(&mavlink_channel_send_mutexes[instance_id]);
 				mavlink_instance_count.fetch_sub(1);
 			}
 
@@ -3124,18 +3417,26 @@ Mavlink::display_status()
 	printf("\tmavlink chan: #%u\n", static_cast<unsigned>(_channel));
 
 	if (_tstatus.timestamp > 0) {
+		radio_status_s radio_status{};
+		bool radio_status_available = false;
+
+		{
+			LockGuard lg{_radio_status_mutex};
+			radio_status_available = _radio_status_available;
+			radio_status = _rstatus;
+		}
 
 		printf("\ttype:\t\t");
 
-		if (_radio_status_available) {
+		if (radio_status_available) {
 			printf("RADIO Link\n");
-			printf("\t  rssi:\t\t%" PRIu8 "\n", _rstatus.rssi);
-			printf("\t  remote rssi:\t%" PRIu8 "\n", _rstatus.remote_rssi);
-			printf("\t  txbuf:\t%" PRIu8 "\n", _rstatus.txbuf);
-			printf("\t  noise:\t%" PRIu8 "\n", _rstatus.noise);
-			printf("\t  remote noise:\t%" PRIu8 "\n", _rstatus.remote_noise);
-			printf("\t  rx errors:\t%" PRIu16 "\n", _rstatus.rxerrors);
-			printf("\t  fixed:\t%" PRIu16 "\n", _rstatus.fix);
+			printf("\t  rssi:\t\t%" PRIu8 "\n", radio_status.rssi);
+			printf("\t  remote rssi:\t%" PRIu8 "\n", radio_status.remote_rssi);
+			printf("\t  txbuf:\t%" PRIu8 "\n", radio_status.txbuf);
+			printf("\t  noise:\t%" PRIu8 "\n", radio_status.noise);
+			printf("\t  remote noise:\t%" PRIu8 "\n", radio_status.remote_noise);
+			printf("\t  rx errors:\t%" PRIu16 "\n", radio_status.rxerrors);
+			printf("\t  fixed:\t%" PRIu16 "\n", radio_status.fix);
 
 		} else if (_tstatus.type == telemetry_status_s::LINK_TYPE_USB) {
 			printf("USB CDC\n");
@@ -3176,7 +3477,7 @@ Mavlink::display_status()
 	}
 
 	printf("\tForwarding: %s\n", get_forwarding_on() ? "On" : "Off");
-	printf("\tMAVLink version: %" PRId8 "\n", _protocol_version);
+	printf("\tMAVLink version: %" PRId8 "\n", _protocol_version.load());
 
 	printf("\ttransport protocol: ");
 
@@ -3345,7 +3646,9 @@ Mavlink::stop_command(int argc, char *argv[])
 
 				for (int mavlink_instance = 0; mavlink_instance < MAVLINK_COMM_NUM_BUFFERS; mavlink_instance++) {
 					if (mavlink_module_instances[mavlink_instance] == inst) {
+						pthread_mutex_lock(&mavlink_channel_send_mutexes[mavlink_instance]);
 						mavlink_module_instances[mavlink_instance] = nullptr;
+						pthread_mutex_unlock(&mavlink_channel_send_mutexes[mavlink_instance]);
 						mavlink_instance_count.fetch_sub(1);
 						delete inst;
 						return PX4_OK;
@@ -3489,7 +3792,7 @@ Mavlink::stream_command(int argc, char *argv[])
 void
 Mavlink::set_boot_complete()
 {
-	_boot_complete = true;
+	_boot_complete.store(true);
 
 #if defined(MAVLINK_UDP)
 	LockGuard lg {mavlink_module_mutex};

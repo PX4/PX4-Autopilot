@@ -30,5 +30,5 @@ rm3100 -I -R 12 start
 
 bmm150 -I -R 4 start
 
-icp201xx -X start
+icp201xx -I -b 2 start
 icp201xx -I -a 0x64 start

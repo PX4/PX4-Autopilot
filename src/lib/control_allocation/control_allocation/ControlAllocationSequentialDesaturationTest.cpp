@@ -474,3 +474,69 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsAirm
 	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.900f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 64
 	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -1.000f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 65
 }
+
+// Hexarotor with a motor and its opposite stopped: roll and yaw collinear. The float pseudo-inverse
+// of that matrix used to be garbage and drove the remaining motors to full at zero thrust demand.
+TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledNeverAddsThrustAfterMotorFailure)
+{
+	// rows roll/pitch/yaw/thrust xyz, one column per rotor
+	const float intact[6][6] = {
+		{-5.947500f,  5.934500f,  2.964000f, -2.853500f, -2.990000f,  2.840500f},
+		{ 0.071500f,  0.071500f,  5.063500f, -4.972500f,  5.063500f, -4.972500f},
+		{-0.325000f,  0.325000f, -0.325000f,  0.325000f,  0.325000f, -0.325000f},
+		{ 0.f,        0.f,        0.f,        0.f,        0.f,        0.f},
+		{ 0.f,        0.f,        0.f,        0.f,        0.f,        0.f},
+		{-6.500000f, -6.500000f, -6.500000f, -6.500000f, -6.500000f, -6.500000f}
+	};
+
+	auto make_effectiveness = [&intact](uint16_t stopped_mask) {
+		ActuatorEffectiveness::EffectivenessMatrix effectiveness;
+		effectiveness.setZero();
+
+		for (int i = 0; i < 6; i++) {
+			if (stopped_mask & (1u << i)) {
+				continue;
+			}
+
+			for (int axis = 0; axis < 6; axis++) {
+				effectiveness(axis, i) = intact[axis][i];
+			}
+		}
+
+		return effectiveness;
+	};
+
+	ControlAllocationSequentialDesaturation allocator;
+	allocator.setNormalizeRPY(true);
+	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> actuator_trim;
+	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> linearization_point;
+
+	// intact geometry first to capture the normalization scale, as ControlAllocator does
+	allocator.setEffectivenessMatrix(make_effectiveness(0), actuator_trim, linearization_point,
+					 ActuatorEffectiveness::NUM_ACTUATORS, true);
+	allocator.allocate();
+
+	// rotors 0 and 1 stop, scale not recomputed
+	allocator.setHadActuatorFailure(true);
+	allocator.setEffectivenessMatrix(make_effectiveness((1u << 0) | (1u << 1)), actuator_trim,
+					 linearization_point, ActuatorEffectiveness::NUM_ACTUATORS, false);
+
+	// attitude hold at zero thrust demand
+	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.010f;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.024f;
+	control_sp(ControlAllocation::ControlAxis::YAW) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = -0.001f;
+	allocator.setControlSetpoint(control_sp);
+
+	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
+	allocator.allocate();
+
+	const auto &actuator_sp = allocator.getActuatorSetpoint();
+
+	for (int i = 0; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_LT(actuator_sp(i), 0.1f) << "motor " << i;
+	}
+}

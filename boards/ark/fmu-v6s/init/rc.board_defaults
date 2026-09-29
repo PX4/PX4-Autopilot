@@ -25,6 +25,6 @@ param set-default HEATER1_TEMP 10.0
 param set-default UAVCAN_ESC_IFACE 2
 
 # IIM42653 on SPI1
-param set-default HEATER1_IMU_ID 3014666
+param set-default HEATER1_SENS_ID 3014666
 
 safety_button start

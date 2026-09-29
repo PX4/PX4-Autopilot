@@ -19,7 +19,7 @@ The preferred tool for motor enumeration is the [VESC tool](https://vesc-project
 In addition to the normal motor configuration that you will have to setup in the VESC tool, you will also need to properly setup the app configuration.
 The recommended app setup is as follows:
 
-| 参数                      | Option                 |
+| Parameter               | Option                 |
 | ----------------------- | ---------------------- |
 | App to use              | `No App`               |
 | VESC ID                 | `1,2,...`              |

@@ -88,6 +88,7 @@ void AUAV_Differential::publish_pressure(const float pressure_p, const float tem
 	}
 
 	differential_pressure.temperature = temperature_c;
+	differential_pressure.pitot_temperature = NAN;
 	differential_pressure.error_count = perf_event_count(_comms_errors);
 	_differential_pressure_pub.publish(differential_pressure);
 }
@@ -116,7 +117,7 @@ AUAV::calib_eeprom_addr_t AUAV_Differential::get_calib_eeprom_addr() const
 float AUAV_Differential::process_pressure_dig(const float pressure_dig) const
 {
 	const float pressure_in_h = 1.25f * ((pressure_dig - (1 << 23)) / (1 << 24)) * static_cast<float>(_cal_range);
-	return pressure_in_h * INH_TO_PA;
+	return pressure_in_h * M_INH_TO_PA;
 }
 
 int AUAV_Differential::read_factory_data()

@@ -39,6 +39,7 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 
 #include <poll.h>
 
@@ -68,7 +69,7 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 
 		if (instances == 1) {
 			PX4_INFO_RAW("\nTOPIC: %s\n", id->o_name);
-			int sub = orb_subscribe(id);
+			orb_sub_t sub = orb_subscribe(id);
 			listener_print_topic(id, sub);
 			orb_unsubscribe(sub);
 
@@ -78,7 +79,7 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 				if (orb_exists(id, i) == PX4_OK) {
 					PX4_INFO_RAW("\nInstance %d:\n", i);
-					int sub = orb_subscribe_multi(id, i);
+					orb_sub_t sub = orb_subscribe_multi(id, i);
 					listener_print_topic(id, sub);
 					orb_unsubscribe(sub);
 				}
@@ -100,12 +101,12 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 			return;
 		}
 
-		int sub = orb_subscribe_multi(id, topic_instance);
+		orb_sub_t sub = orb_subscribe_multi(id, topic_instance);
 		orb_set_interval(sub, topic_interval);
 
 		unsigned msgs_received = 0;
 
-		struct pollfd fds[2] {};
+		px4_pollfd_struct_t fds[2] {};
 		// Poll for user input (for q or escape)
 		fds[0].fd = 0; /* stdin */
 		fds[0].events = POLLIN;
@@ -115,7 +116,7 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 
 		while (msgs_received < num_msgs) {
 
-			if (poll(&fds[0], 2, int(MESSAGE_TIMEOUT_S * 1000)) > 0) {
+			if (px4_poll(&fds[0], 2, int(MESSAGE_TIMEOUT_S * 1000)) > 0) {
 
 				// Received character from stdin
 				if (fds[0].revents & POLLIN) {

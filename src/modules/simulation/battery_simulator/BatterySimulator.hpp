@@ -34,6 +34,7 @@
 #pragma once
 
 #include <lib/battery/battery.h>
+#include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -45,8 +46,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
 
 using namespace time_literals;
 
@@ -71,7 +70,13 @@ public:
 
 private:
 	void Run() override;
-	void updateCommands();
+	void updateParams() override;
+
+	// Time in seconds for the given battery to drain from 100% to 0% while armed
+	float fullDischargeTime(int battery_index) const;
+
+	// Lowest state of charge in percent the given battery drains down to
+	float minimumPercentage(int battery_index) const;
 
 	static constexpr uint32_t BATTERY_SIMLATOR_SAMPLE_FREQUENCY_HZ = 100; // Hz
 	static constexpr uint32_t BATTERY_SIMLATOR_SAMPLE_INTERVAL_US = 1_s / BATTERY_SIMLATOR_SAMPLE_FREQUENCY_HZ;
@@ -79,16 +84,20 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+	// A battery only publishes if its BAT<N>_SOURCE is set to "Power Module / Analog".
+	// Allocated once in the constructor: Battery is not copyable and older compilers (GCC < 9) do not elide the copy
+	// when constructing an array of them in place.
+	Battery *_batteries[battery_status_s::MAX_INSTANCES] {};
 
-	Battery _battery;
+	// Per-battery overrides of SIM_BAT_DRAIN and SIM_BAT_MIN_PCT, negative when unset
+	param_t _drain_handles[battery_status_s::MAX_INSTANCES] {};
+	param_t _min_pct_handles[battery_status_s::MAX_INSTANCES] {};
+	float _drain_override_s[battery_status_s::MAX_INSTANCES] {};
+	float _min_pct_override[battery_status_s::MAX_INSTANCES] {};
 
 	uint64_t _last_integration_us{0};
-	float _battery_percentage{1.f};
+	float _battery_percentage[battery_status_s::MAX_INSTANCES] {};
 	bool _armed{false};
-
-	bool _force_empty_battery{false};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

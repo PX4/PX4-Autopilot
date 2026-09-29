@@ -146,10 +146,10 @@ ut_declare_test_c(test_microbench_uorb, MicroBenchORB)
 
 bool MicroBenchORB::time_px4_uorb()
 {
-	int fd_status = orb_subscribe(ORB_ID(failsafe_flags));
-	int fd_lpos = orb_subscribe(ORB_ID(vehicle_local_position));
-	int fd_gyro = orb_subscribe(ORB_ID(sensor_gyro));
-	int fd_gyro_fifo = orb_subscribe(ORB_ID(sensor_gyro_fifo));
+	orb_sub_t fd_status = orb_subscribe(ORB_ID(failsafe_flags));
+	orb_sub_t fd_lpos = orb_subscribe(ORB_ID(vehicle_local_position));
+	orb_sub_t fd_gyro = orb_subscribe(ORB_ID(sensor_gyro));
+	orb_sub_t fd_gyro_fifo = orb_subscribe(ORB_ID(sensor_gyro_fifo));
 
 	int ret = 0;
 	bool updated = false;

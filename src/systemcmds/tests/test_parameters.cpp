@@ -82,6 +82,8 @@ private:
 	bool ResetAllExcludesWildcard();
 	bool CustomDefaults();
 	bool exportImport();
+	bool blankImport();
+	bool corruptImport();
 
 	// tests on system parameters
 	// WARNING, can potentially trash your system
@@ -237,6 +239,10 @@ bool ParameterTest::CustomDefaults()
 	param_get_default_value(param_test_1, &default_value);
 	ut_compare("value for param default doesn't match default value", default_value, 2);
 
+	// custom defaults persist in RAM until reboot; remember the firmware
+	// default so it can be restored and the test stays repeatable in one boot
+	const int32_t original_default_value = default_value;
+
 	// change default value
 	int32_t new_default_value = 123456789;
 	param_set_default_value(param_test_1, &new_default_value);
@@ -264,6 +270,11 @@ bool ParameterTest::CustomDefaults()
 	value = 0;
 	param_get(param_test_1, &value);
 	ut_compare("param value not reset to custom default", value, 123456789);
+
+	// restore the firmware default and value so a second run in the same boot
+	// starts from the same state
+	param_set_default_value(param_test_1, &original_default_value);
+	param_reset(param_test_1);
 
 	return true;
 }
@@ -393,6 +404,102 @@ bool ParameterTest::exportImport()
 	}
 
 	return ret;
+}
+
+bool ParameterTest::blankImport()
+{
+	// a blank source (empty file, zeroed or erased storage) imports as "not yet stored" (1)
+	const char *blank_file_name = PX4_STORAGEDIR "/param_blank";
+
+	const struct {
+		const char *label;
+		uint8_t fill;
+		size_t size;
+	} blank_cases[] = {
+		{"empty file", 0x00, 0},
+		{"zeroed storage", 0x00, 64},
+		{"erased storage", 0xff, 64},
+	};
+
+	for (const auto &c : blank_cases) {
+		int fd = open(blank_file_name, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+
+		if (fd < 0) {
+			PX4_ERR("creating '%s' failed (%i)", blank_file_name, errno);
+			return false;
+		}
+
+		for (size_t i = 0; i < c.size; i++) {
+			if (write(fd, &c.fill, 1) != 1) {
+				PX4_ERR("writing '%s' failed (%i)", blank_file_name, errno);
+				close(fd);
+				return false;
+			}
+		}
+
+		close(fd);
+
+		fd = open(blank_file_name, O_RDONLY);
+
+		if (fd < 0) {
+			PX4_ERR("open '%s' failed (%i)", blank_file_name, errno);
+			return false;
+		}
+
+		int result = param_import(fd);
+		close(fd);
+
+		if (result != 1) {
+			PX4_ERR("import of %s returned %d, expected 1", c.label, result);
+			unlink(blank_file_name);
+			return false;
+		}
+	}
+
+	unlink(blank_file_name);
+	return true;
+}
+
+bool ParameterTest::corruptImport()
+{
+	// a source that holds data but no valid BSON document fails to import
+	const char *corrupt_file_name = PX4_STORAGEDIR "/param_corrupt";
+
+	// garbage document length followed by an unsupported node type
+	const uint8_t garbage[] = {0xde, 0xad, 0xbe, 0x6f, 0x42, 0x13, 0x37, 0x00};
+
+	int fd = open(corrupt_file_name, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+
+	if (fd < 0) {
+		PX4_ERR("creating '%s' failed (%i)", corrupt_file_name, errno);
+		return false;
+	}
+
+	if (write(fd, garbage, sizeof(garbage)) != (ssize_t)sizeof(garbage)) {
+		PX4_ERR("writing '%s' failed (%i)", corrupt_file_name, errno);
+		close(fd);
+		return false;
+	}
+
+	close(fd);
+
+	fd = open(corrupt_file_name, O_RDONLY);
+
+	if (fd < 0) {
+		PX4_ERR("open '%s' failed (%i)", corrupt_file_name, errno);
+		return false;
+	}
+
+	int result = param_import(fd);
+	close(fd);
+	unlink(corrupt_file_name);
+
+	if (result >= 0) {
+		PX4_ERR("import of corrupt file returned %d, expected failure", result);
+		return false;
+	}
+
+	return true;
 }
 
 bool ParameterTest::exportImportAll()
@@ -582,6 +689,8 @@ bool ParameterTest::run_tests()
 	ut_run_test(ResetAllExcludesWildcard);
 	ut_run_test(CustomDefaults);
 	ut_run_test(exportImport);
+	ut_run_test(blankImport);
+	ut_run_test(corruptImport);
 
 	// WARNING, can potentially trash your system
 #ifdef __PX4_POSIX

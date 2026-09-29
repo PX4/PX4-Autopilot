@@ -55,7 +55,8 @@ void BiasEstimator::predict(const float dt)
 	constrainStateVar();
 
 	if (dt > FLT_EPSILON && fabsf(_dt - dt) > 0.001f) {
-		_signed_innov_test_ratio_lpf.setParameters(dt, _innov_sequence_monitnoring_time_constant);
+		_signed_innov_test_ratio_lpf.setParameters(static_cast<uint64_t>(dt * 1e6f),
+				static_cast<uint64_t>(_innov_sequence_monitnoring_time_constant * 1e6f));
 		_dt = dt;
 	}
 

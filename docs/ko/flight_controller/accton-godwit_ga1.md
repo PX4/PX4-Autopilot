@@ -2,7 +2,7 @@
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
-Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or compliance issues.
+Contact the [manufacturer](https://www.accton-iot.com/godwit/) for hardware support or compliance issues.
 :::
 
 The G-A1 is a state-of-the-art flight controller derived from the [Pixhawk Autopilot v6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf).

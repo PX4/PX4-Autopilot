@@ -604,6 +604,20 @@ public:
 		}
 	}
 
+	inline void nanToZero()
+	{
+
+		Matrix<Type, M, N> &self = *this;
+
+		for (size_t i = 0; i < M; i++) {
+			for (size_t j = 0; j < N; j++) {
+				if (std::isnan(self(i, j))) {
+					self(i, j) = static_cast<Type>(0.0f);
+				}
+			}
+		}
+	}
+
 	Matrix<Type, M, N> abs() const
 	{
 		Matrix<Type, M, N> r;

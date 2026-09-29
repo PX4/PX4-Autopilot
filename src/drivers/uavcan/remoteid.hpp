@@ -41,6 +41,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/open_drone_id_basic_id.h>
 #include <uORB/topics/open_drone_id_operator_id.h>
 #include <uORB/topics/open_drone_id_arm_status.h>
 #include <uORB/topics/open_drone_id_self_id.h>
@@ -89,6 +90,7 @@ private:
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
+	uORB::Subscription _open_drone_id_basic_id{ORB_ID(open_drone_id_basic_id)};
 	uORB::Subscription _open_drone_id_operator_id{ORB_ID(open_drone_id_operator_id)};
 	uORB::Subscription _open_drone_id_self_id{ORB_ID(open_drone_id_self_id)};
 	uORB::Subscription _open_drone_id_system{ORB_ID(open_drone_id_system)};

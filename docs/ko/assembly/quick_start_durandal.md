@@ -114,7 +114,7 @@ It has the following characteristics/limits:
 - PCB 전류 : 총 120A 출력 (최대)
 - UBEC 5V 출력 전류 : 3A
 - UBEC 입력 전압 : 7 ~ 51v (2 ~ 12s LiPo)
-- Dimensions: 68_50_8 mm
+- Dimensions: 6&#x38;_&#x35;&#x30;_&#x38; mm
 - Mounting Holes: 45\*45mm
 - 중량: 36g
 - 패키지 내용물 :

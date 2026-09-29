@@ -21,8 +21,7 @@ The content of the box with the _PM02 V3_ power module is shown below (the box a
 
 ## 接线图概述
 
-下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。
-我们将在下面各节中介绍它们的细节。
+下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。我们将在下面各节中介绍它们的细节。
 
 ![Durandal Wiring Overview](../../assets/flight_controller/durandal/durandal_wiring_overview.jpg)
 
@@ -113,7 +112,7 @@ It has the following characteristics/limits:
 - PCB Current: total 120A outputs (MAX)
 - UBEC 5V output current: 3A
 - UBEC input voltage : 7~51v (2~12s LiPo)
-- Dimensions: 68_50_8 mm
+- Dimensions: 6&#x38;_&#x35;&#x30;_&#x38; mm
 - Mounting Holes: 45\*45mm
 - Weight: 36g
 - Package includes:

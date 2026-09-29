@@ -48,6 +48,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 
 
@@ -80,12 +81,14 @@ typedef struct flash_file_token_t {
 } flash_file_token_t;
 
 /*
- * Define the parameter "file name" Currently there is only
- * and it is hard coded. If more are added the
- * parameter_flashfs_write would need to support a backing buffer
- * for when a sector is erased.
+ * Parameter "file names". parameters_token marks records of the append log
+ * (a snapshot followed by deltas, replayed in order). parameters_legacy_token
+ * is the single-snapshot record written by firmware before the log format;
+ * that firmware ignores parameters_token records, so it boots on defaults
+ * from a log-format store rather than a partial set.
  */
 __EXPORT extern const flash_file_token_t parameters_token;
+__EXPORT extern const flash_file_token_t parameters_legacy_token;
 
 /* Define the elements of the array passed to the
  * parameter_flashfs_init function
@@ -157,11 +160,47 @@ __EXPORT int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffe
 __EXPORT int parameter_flashfs_read(flash_file_token_t ft, uint8_t **buffer, size_t *buf_size);
 
 /****************************************************************************
+ * Name: parameter_flashfs_walk
+ *
+ * Description:
+ *   Call cb for every valid entry matching token, in the order they were
+ *   written. cb returns 0 to continue, or a negative errno to abort.
+ *
+ * Returned value:
+ *   Number of entries visited, or a negative errno (including from cb).
+ *
+ ****************************************************************************/
+
+typedef int (*parameter_flashfs_walk_cb)(uint8_t *buffer, size_t buf_size, void *arg);
+
+__EXPORT int parameter_flashfs_walk(flash_file_token_t token, parameter_flashfs_walk_cb cb, void *arg);
+
+/****************************************************************************
+ * Name: parameter_flashfs_blank
+ *
+ * Description:
+ *   Reports whether the parameter storage is fully erased. This lets callers
+ *   tell a never-written store (first boot, or after switching firmware) from
+ *   one that holds data but no valid entry (torn write, bit-rot, or foreign
+ *   data) - both of which surface as -ENOENT from parameter_flashfs_read.
+ *
+ * Returned value:
+ *   1 if every configured sector is fully erased
+ *   0 if any byte is programmed
+ *   A negative errno if the flashfs has not been initialized
+ *
+ ****************************************************************************/
+
+__EXPORT int parameter_flashfs_blank(void);
+
+/****************************************************************************
  * Name: parameter_flashfs_write
  *
  * Description:
- *   This function writes user data from the buffer allocated with a previous call
- *   to parameter_flashfs_alloc. flash starting at the given address
+ *   Append a new entry after the last CRC-valid record. Previous valid
+ *   entries are left intact so a boot replay can apply the whole log; the
+ *   caller erases and rewrites a snapshot when a burst of deltas would no
+ *   longer fit. Returns -ENOSPC if the new entry does not fit after the log.
  *
  * Input Parameters:
  *   token      - File Token File to read
@@ -192,6 +231,35 @@ __EXPORT int parameter_flashfs_write(flash_file_token_t ft, uint8_t *buffer, siz
  ****************************************************************************/
 
 __EXPORT int parameter_flashfs_erase(void);
+
+/****************************************************************************
+ * Name: parameter_flashfs_needs_compact
+ *
+ * Description:
+ *   True when the log for token should be rewritten as one snapshot of
+ *   snapshot_size payload bytes: the live records are not a packed prefix
+ *   of sector 0, or the tail after the last CRC-valid record cannot hold a
+ *   burst the size of that snapshot (floored at 8 KB so a UUID append does
+ *   not force a boot erase) and a compacted layout would. The erase stalls
+ *   every read of that flash bank, so callers run it at boot before sensors
+ *   and DShot start.
+ *
+ * Returned value:
+ *   1 if compact is needed, 0 if not, or a negative errno.
+ *
+ ****************************************************************************/
+
+__EXPORT int parameter_flashfs_needs_compact(flash_file_token_t token, size_t snapshot_size);
+
+/****************************************************************************
+ * Name: parameter_flashfs_max_payload
+ *
+ * Description:
+ *   Largest user payload that fits in one mapped sector, or 0.
+ *
+ ****************************************************************************/
+
+__EXPORT size_t parameter_flashfs_max_payload(void);
 
 /****************************************************************************
  * Name: parameter_flashfs_alloc

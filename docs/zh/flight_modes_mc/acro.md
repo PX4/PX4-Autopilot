@@ -25,6 +25,17 @@ Manual control input is required (such as RC control, joystick):
 - Throttle: Manual control via RC sticks.
   RC input is sent directly to control allocation.
 
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_acro -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_acro -->
+
 ## 杆输入映射
 
 The default values for expo and rate [parameters](#parameters) are _beginner friendly_, reducing the chance that users will flip the vehicle when first trying this mode, or when using Acro mode for manual rate tuning.
@@ -63,7 +74,7 @@ You can experiment with the relationships graphically using the [PX4 SuperExpo c
 
 ## 参数
 
-| 参数                                                                                                                                                                   | 描述                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Parameter                                                                                                                                                            | 描述                                                                                                                                                                                                                                                                                                                                                                                                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MC_ACRO_EXPO"></a>[MC_ACRO_EXPO](../advanced_config/parameter_reference.md#MC_ACRO_EXPO)                            | 特技模式“指数”因子，用于调整滚转和俯仰轴的杆输入曲线形状。 Values: `0` Purely linear input curve, `1` Purely cubic input curve. Default: `0`.                                                                                                                                                                                                                  |
 | <a id="MC_ACRO_EXPO_Y"></a>[MC_ACRO_EXPO_Y](../advanced_config/parameter_reference.md#MC_ACRO_EXPO_Y) | 特技模式“指数”因子，用于调整偏航轴的杆输入曲线形状。 Values: `0` Purely linear input curve, `1` Purely cubic input curve. Default: `0`.69.                                                                                                                                                                                                  |

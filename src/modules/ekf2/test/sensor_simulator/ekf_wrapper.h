@@ -61,6 +61,7 @@ public:
 
 	void setRangeHeightRef();
 	void enableRangeHeightFusion();
+	void enableConditionalRangeHeightFusion();
 	void disableRangeHeightFusion();
 	bool isIntendingRangeHeightFusion() const;
 
@@ -77,6 +78,7 @@ public:
 
 	void enableGpsFusion();
 	void disableGpsFusion();
+	void setGpsEnabled(bool enabled);
 	bool isIntendingGpsFusion() const;
 	bool isGnssFaultDetected() const;
 	void setGnssDeadReckonMode();

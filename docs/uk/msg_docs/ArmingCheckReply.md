@@ -37,7 +37,7 @@ The message is not used by internal/FMU components, as their mode requirements a
 | <a id="fld_mode_req_global_position"></a>mode_req_global_position                                      | `bool`     |                                                                  |                                                                                             | Requires a global position estimate                                                                                                                                                    |
 | <a id="fld_mode_req_global_position_relaxed"></a>mode_req_global_position_relaxed | `bool`     |                                                                  |                                                                                             | Requires a relaxed global position estimate                                                                                                                                            |
 | <a id="fld_mode_req_mission"></a>mode_req_mission                                                                           | `bool`     |                                                                  |                                                                                             | Requires an uploaded mission                                                                                                                                                           |
-| <a id="fld_mode_req_home_position"></a>mode_req_home_position                                          | `bool`     |                                                                  |                                                                                             | Requires a home position (such as RTL/Return mode)                                                                                                                  |
+| <a id="fld_mode_req_home_position"></a>mode_req_home_position                                          | `bool`     |                                                                  |                                                                                             | Requires a home position (such as Return mode)                                                                                                                      |
 | <a id="fld_mode_req_prevent_arming"></a>mode_req_prevent_arming                                        | `bool`     |                                                                  |                                                                                             | Prevent arming (such as in Land mode)                                                                                                                               |
 | <a id="fld_mode_req_manual_control"></a>mode_req_manual_control                                        | `bool`     |                                                                  |                                                                                             | Requires a manual controller                                                                                                                                                           |
 
@@ -56,7 +56,7 @@ Used in field(s): [health_component_index](#fld_health_component_index)
 | Назва                                                                                     | Тип      | Значення | Опис |
 | ----------------------------------------------------------------------------------------- | -------- | -------- | ---- |
 | <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                        | `uint32` | 1        |      |
-| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 4        |      |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 8        |      |
 
 ## Source Message
 
@@ -104,11 +104,14 @@ bool mode_req_local_position_relaxed # Requires a more relaxed global position e
 bool mode_req_global_position # Requires a global position estimate
 bool mode_req_global_position_relaxed # Requires a relaxed global position estimate
 bool mode_req_mission # Requires an uploaded mission
-bool mode_req_home_position # Requires a home position (such as RTL/Return mode)
+bool mode_req_home_position # Requires a home position (such as Return mode)
 bool mode_req_prevent_arming # Prevent arming (such as in Land mode)
 bool mode_req_manual_control # Requires a manual controller
 
-uint8 ORB_QUEUE_LENGTH = 4
+# Must be >= ExternalChecks::MAX_NUM_REGISTRATIONS so replies from all registered
+# modes fit in the queue within a single request cycle (otherwise replies from the
+# 5th+ mode overwrite earlier ones, causing spurious "unresponsive mode" failures).
+uint8 ORB_QUEUE_LENGTH = 8
 ```
 
 :::

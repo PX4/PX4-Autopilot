@@ -62,27 +62,15 @@ parameters:
     COM_RC_IN_MODE:
       description:
         short: Manual control input source configuration
-        long: |-
-          Selects stick input selection behavior:
-          either a traditional remote control receiver (RC) or a MAVLink joystick (MANUAL_CONTROL message)
-
-          Priority sources are immediately switched to whenever they get valid.
-
-          0 RC only. Requires valid RC calibration.
-          1 MAVLink only. RC and related checks are disabled.
-          2 Switches only if current source becomes invalid.
-          3 Locks to the first valid source until reboot.
-          4 Ignores all sources.
-          5 RC priority, then MAVLink (lower instance before higher)
-          6 MAVLink priority (lower instance before higher), then RC
-          7 RC priority, then MAVLink (higher instance before lower)
-          8 MAVLink priority (higher instance before lower), then RC
+        long: RC receiver or MAVLink joystick (MANUAL_CONTROL). Priority modes switch
+          to a higher-priority source as soon as it becomes valid. MAVL 1 is the lower
+          MAVLink instance.
       type: enum
       values:
-        0: RC only
-        1: MAVLink only
+        0: RC only (requires RC calibration)
+        1: MAVLink only (disables RC checks)
         2: RC or MAVLink with fallback
-        3: RC or MAVLink keep first
+        3: RC or MAVLink keep first until reboot
         4: Disable manual control
         5: 'Prio: RC > MAVL 1 > MAVL 2'
         6: 'Prio: MAVL 1 > MAVL 2 > RC'
@@ -164,15 +152,16 @@ parameters:
         0: Warning
         2: Land mode
         3: Return at critical level, land at emergency level
+        4: Return at critical level, terminate at emergency level
       default: 0
     COM_FAIL_ACT_T:
       description:
         short: Delay between failsafe condition triggered and failsafe reaction
         long: |-
-          Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
+          Before entering failsafe (Return, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
           for the user to realize.
-          During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
-          Afterwards the configured failsafe action is triggered and the user may use stick override.
+          During that time the user can switch modes, but cannot take over control via the manual control override feature (see MAN_OVERRIDE_SPD).
+          Afterwards the configured failsafe action is triggered and the user may use manual control override.
 
           A zero value disables the delay.
       type: float
@@ -268,34 +257,6 @@ parameters:
         1: Deny arming
         2: Warning only
       default: 2
-    COM_RC_OVERRIDE:
-      description:
-        short: Enable manual control stick override
-        long: |-
-          When enabled, moving the sticks more than COM_RC_STICK_OV
-          immediately gives control back to the pilot by switching to Position mode and
-          if position is unavailable Altitude mode.
-          Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
-      type: bitmask
-      bit:
-        0: Enable override during auto modes (except for in critical battery reaction)
-        1: Enable override during offboard mode
-      default: 1
-      min: 0
-      max: 3
-    COM_RC_STICK_OV:
-      description:
-        short: Stick override threshold
-        long: |-
-          If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
-          the pilot takes over control.
-      type: float
-      default: 30.0
-      unit: '%'
-      min: 5
-      max: 80
-      decimal: 0
-      increment: 0.05
     COM_ARM_MIS_REQ:
       description:
         short: Require valid mission to arm
@@ -330,6 +291,34 @@ parameters:
         0: one arm
         1: two step arm
       default: 0
+    COM_FLTMODE_BOOT:
+      description:
+        short: Flight mode on boot
+        long: |-
+          Flight mode set on boot and after a power cycle, before any RC input or
+          mode command is received.
+      type: enum
+      values:
+        0: Manual
+        1: Altitude
+        2: Position / Cruise
+        3: Mission
+        4: Hold
+        6: Position Slow
+        8: Altitude Cruise
+        10: Acro
+        14: Offboard
+        15: Stabilized
+        17: Takeoff
+        23: External 1
+        24: External 2
+        25: External 3
+        26: External 4
+        27: External 5
+        28: External 6
+        29: External 7
+        30: External 8
+      default: 4
     COM_ARM_ON_BOOT:
       description:
         short: Arm automatically on boot
@@ -368,6 +357,18 @@ parameters:
       min: -1
       max: 400
       decimal: 1
+    COM_POS_FS_ACT:
+      description:
+        short: Loss of position failsafe action
+        long: |-
+          Final fallback failsafe action for loss of horizontal position in autonomous modes:
+          - Descend (potential for horizontal drift on landing)
+          - Flight termination (allows parachute landing)
+      type: enum
+      values:
+        0: Descend mode
+        1: Terminate
+      default: 0
     COM_VEL_FS_EVH:
       description:
         short: Horizontal velocity error threshold
@@ -415,6 +416,12 @@ parameters:
         long: |-
           The manual control loss failsafe will only be entered after a timeout,
           set by COM_RC_LOSS_T in seconds.
+
+          "Hold mode (no failsafe)" does not trigger the failsafe: instead, if manual control
+          is lost while actively flying a manual mode, the vehicle switches to Hold as a regular
+          mode change (no failsafe state, no alarming notification). If Hold cannot be entered
+          (e.g. without a valid position estimate), the normal failsafe takes over and escalates
+          from there (Return/Land/Descend/Terminate as applicable).
       type: enum
       values:
         1: Hold mode
@@ -422,6 +429,7 @@ parameters:
         3: Land mode
         5: Terminate
         6: Disarm
+        7: Hold mode (no failsafe)
       default: 2
     COM_RCL_EXCEPT:
       description:
@@ -429,7 +437,7 @@ parameters:
         long: |-
           Specify modes in which stick input is ignored and no failsafe action is triggered.
           External modes requiring stick input will still failsafe.
-          Auto modes are: Hold, Takeoff, Land, RTL, Descend, Follow Target, Precland, Orbit.
+          Auto modes are: Hold, Takeoff, Land, Return, Descend, Follow Target, Precland, Orbit.
       type: bitmask
       bit:
         0: Mission
@@ -475,12 +483,15 @@ parameters:
         short: Parachute requirement and failsafe
         long: |-
           Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
+
+          Warning only warns without preventing arming. Actions other than Warning also prevent arming.
       type: enum
       values:
         0: Disabled
         1: Warning
-        2: Return
-        3: Land
+        2: Error
+        3: Return
+        4: Land
       default: 0
     COM_ARM_CHK_ESCS:
       description:
@@ -565,19 +576,20 @@ parameters:
         4: Land
         5: Terminate
       default: 0
-    COM_ARM_TRAFF:
+    COM_TRAFF_AVOID:
       description:
-        short: Enable Traffic Avoidance system detection check
+        short: Traffic avoidance system requirement and failsafe
         long: |-
-          This check detects if a traffic avoidance system (ADSB/FLARM transponder)
-          is missing. Depending on the value of the parameter, the check can be
-          disabled, warn only, or deny arming.
+          Warn about, and optionally require, a traffic avoidance system (ADS-B/FLARM
+          transponder, detected via MAVLink heartbeats with a 3 second timeout), and
+          trigger a failsafe action when it is missing or lost in flight.
       type: enum
       values:
         0: Disabled
-        1: Warning only
-        2: Enforce for all modes
-        3: Enforce for mission modes only
+        1: Warning
+        2: Error
+        3: Return
+        4: Land
       default: 0
     COM_SPOOLUP_TIME:
       description:
@@ -595,6 +607,22 @@ parameters:
       decimal: 1
       increment: 0.1
       unit: s
+    COM_CC_TEMP_WARN:
+      description:
+        short: Companion computer high-temperature warning threshold
+        long: |-
+
+
+          Arming is not prevented as the temperature typically drops in flight.
+
+          Set to -1 to disable.
+      type: float
+      default: 80.0
+      min: -1
+      max: 127
+      decimal: 0
+      increment: 1
+      unit: celcius
     COM_WIND_WARN:
       description:
         short: Wind speed warning threshold
@@ -613,13 +641,13 @@ parameters:
       description:
         short: Maximum allowed flight time
         long: |-
-          The vehicle aborts the current operation and returns to launch when
+          The vehicle aborts the current operation and switches to Return mode when
           the time since takeoff is above this value. It is not possible to resume the
-          mission or switch to any auto mode other than RTL or Land. Taking over in any manual
+          mission or switch to any auto mode other than Return or Land. Taking over in any manual
           mode is still possible.
 
           Starting from 90% of the maximum flight time, a warning message will be sent
-          every 1 minute with the remaining time until automatic RTL.
+          every 1 minute with the remaining time until automatic Return.
 
           Set to -1 to disable.
       type: int32
@@ -645,7 +673,7 @@ parameters:
           Action the system takes when a wind speed above the specified threshold is detected.
           See COM_WIND_MAX to set the failsafe threshold.
           If enabled, it is not possible to resume the mission or switch to any auto mode other than
-          RTL or Land if this threshold is exceeded. Taking over in any manual
+          Return or Land if this threshold is exceeded. Taking over in any manual
           mode is still possible.
       type: enum
       values:
@@ -739,7 +767,7 @@ parameters:
         short: Remaining flight time low failsafe
         long: |-
           Action the system takes when the remaining flight time is below
-          the estimated time it takes to reach the RTL destination.
+          the estimated time it takes to reach the return destination.
       type: enum
       values:
         0: None
