@@ -71,8 +71,19 @@ private:
 		WarningOnly = 2
 	};
 
+	// The checks on the estimator status: the preflight innovation and magnetic interference checks, and
+	// what the estimator makes of GNSS
 	void checkEstimatorStatus(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
 				  NavModes required_groups);
+	void checkInnovationsPreflight(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
+				       NavModes required_groups);
+	void checkMagneticInterferencePreflight(const Context &context, Report &reporter,
+						const estimator_status_s &estimator_status, NavModes required_groups);
+	void checkGnssFusion(const Context &context, Report &reporter, const estimator_status_s &estimator_status);
+	void reportGnssFusionChange(const Context &context, Report &reporter, bool gnss_fused);
+	void reportGnssInterference(Report &reporter, uint16_t gps_check_fail_flags);
+	void reportFailedGnssCheckPreflight(Report &reporter, const estimator_status_s &estimator_status, bool gnss_fused);
+
 	void checkSensorBias(const Context &context, Report &reporter, NavModes required_groups);
 	void checkEstimatorStatusFlags(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
 				       const vehicle_local_position_s &lpos);
@@ -84,10 +95,12 @@ private:
 	void reportGnssReasonForPositionLoss(const Context &context, Report &reporter, const hrt_abstime &now,
 					     const vehicle_gnss_s &vehicle_gnss) const;
 
-	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
-				     bool pre_flt_fail_innov_vel_horiz, bool pre_flt_fail_innov_pos_horiz,
-				     const vehicle_local_position_s &lpos, const vehicle_gnss_s &vehicle_gnss,
-				     failsafe_flags_s &failsafe_flags, Report &reporter);
+	// The mode requirement flags, with the warning of an imminent position failure on its own
+	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_vel_horiz,
+				     bool pre_flt_fail_innov_pos_horiz, const vehicle_local_position_s &lpos,
+				     const vehicle_gnss_s &vehicle_gnss, failsafe_flags_s &failsafe_flags, Report &reporter);
+	void warnOfImminentPositionFailure(Report &reporter, const hrt_abstime &now, const vehicle_global_position_s &gpos,
+					   float lpos_eph_threshold, const failsafe_flags_s &failsafe_flags);
 
 	bool checkPosVelValidity(const hrt_abstime &now, const bool data_valid, const float data_accuracy,
 				 const float required_accuracy,
