@@ -37,18 +37,6 @@
 using namespace matrix;
 using namespace time_literals;
 
-// Whether the sensors module's checks pass for this receiver
-static bool receiverHealthy(const sensors_status_gnss_s &status, uint32_t device_id)
-{
-	for (size_t i = 0; i < sizeof(status.device_ids) / sizeof(status.device_ids[0]); i++) {
-		if (status.device_ids[i] == device_id) {
-			return status.healthy[i];
-		}
-	}
-
-	return false;
-}
-
 GnssRedundancyChecks::GnssRedundancyChecks()
 {
 	_divergence_hysteresis.set_hysteresis_time_from(false, 2_s);
@@ -73,7 +61,8 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		    && (hrt_elapsed_time(&gnss.timestamp) < 1_s)) {
 			gps_online[i] = true;
 
-			if (status_valid && receiverHealthy(status, gnss.device_id)) {
+			// The sensors module indexes its status by the same sensor_gnss instance
+			if (status_valid && (status.device_ids[i] == gnss.device_id) && status.healthy[i]) {
 				gnss_healthy[i] = true;
 				healthy_gnss[healthy_count++] = gnss;
 			}
