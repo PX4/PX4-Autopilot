@@ -885,12 +885,20 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			const bool change_mode_requested = (uint32_t(cmd.param2) & 1) != 0;
 
 			if (change_mode_requested) {
-				// If already in course mode, stay in course mode (navigator handles any altitude update)
-				// Only switch to loiter if a specific lat/lon target is given, or we are not in course mode.
+				// Course mode: stay in course. A real target on a multicopter: Goto. In Goto, an altitude or
+				// heading only update stays in Goto (keeps the target), all NaN is a pause. Otherwise: Hold.
+				// Keep the Goto condition in sync with the reposition handling in navigator_main.cpp.
 				const bool has_position_target = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6);
+				const bool has_alt_or_heading = PX4_ISFINITE(cmd.param7) || PX4_ISFINITE(cmd.param4);
 				const bool in_course_mode = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE;
+				const bool in_goto_mode = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GOTO;
+				const bool goto_supported = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+							    && !_vehicle_status.in_transition_mode;
+				const bool targets_goto = goto_supported && (has_position_target || (in_goto_mode && has_alt_or_heading));
 				const uint8_t target_state = (in_course_mode && !has_position_target)
 							     ? vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE
+							     : targets_goto
+							     ? vehicle_status_s::NAVIGATION_STATE_GOTO
 							     : vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 				if (_user_mode_intention.change(target_state, getSourceFromCommand(cmd))) {
@@ -901,12 +909,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 
-			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
-				// No mode switch requested: reposition the current hold setpoint in place.
+			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
+				   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GOTO) {
+				// No mode switch requested: reposition the current hold/goto setpoint in place.
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				// Supported, but no mode switch requested and not in hold: nothing to act on.
+				// Supported, but no mode switch requested and not in hold/goto: nothing to act on.
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 			}
 		}
@@ -918,7 +927,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			const uint8_t nav_state = _vehicle_status.nav_state;
 
 			if (nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE
-			    || nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+			    || nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
+			    || nav_state == vehicle_status_s::NAVIGATION_STATE_GOTO) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -2405,6 +2415,12 @@ void Commander::vtolStatusUpdate()
 			_status_changed = true;
 		}
 
+		// Goto is multicopter-only: nothing flies it in fixed-wing. Fall back to Hold if the vehicle
+		// leaves multicopter mode while in it (e.g. a transition requested from the RC switch).
+		if ((_vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode)
+		    && _user_mode_intention.get() == vehicle_status_s::NAVIGATION_STATE_GOTO) {
+			_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::User, false, true);
+		}
 	}
 }
 

@@ -106,7 +106,8 @@ uint16_t get_telemetry_flight_mode(int px4_flight_mode)
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION: return 27;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER: return 26;
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+	case vehicle_status_s::NAVIGATION_STATE_GOTO: return 26;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: return 28;
 

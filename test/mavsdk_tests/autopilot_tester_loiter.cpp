@@ -120,7 +120,7 @@ void AutopilotTesterLoiter::command_figure_eight(LocalCoordinate center, float m
 	send_custom_mavlink_command(cmd);
 }
 
-void AutopilotTesterLoiter::command_reposition(LocalCoordinate target, float rel_alt_m)
+void AutopilotTesterLoiter::command_reposition(LocalCoordinate target, float rel_alt_m, bool change_mode)
 {
 	const auto global = get_coordinate_transformation().global_from_local(target);
 
@@ -130,7 +130,7 @@ void AutopilotTesterLoiter::command_reposition(LocalCoordinate target, float rel
 	cmd.command = CMD_DO_REPOSITION;
 	cmd.frame = MAV_FRAME_GLOBAL_INT;
 	cmd.param1 = -1.f; // ground speed: use default
-	cmd.param2 = REPOSITION_FLAG_CHANGE_MODE;
+	cmd.param2 = change_mode ? REPOSITION_FLAG_CHANGE_MODE : 0.f;
 	cmd.param3 = 0.f;
 	cmd.param4 = NAN; // yaw: unchanged
 	cmd.x = static_cast<int32_t>(global.latitude_deg * 1e7);

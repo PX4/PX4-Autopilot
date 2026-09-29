@@ -174,7 +174,7 @@ void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint
 	if (goto_setpoint.flag_set_max_horizontal_speed
 	    && PX4_ISFINITE(goto_setpoint.max_horizontal_speed)) {
 		max_horizontal_speed = math::constrain(goto_setpoint.max_horizontal_speed, 0.f,
-						       _param_mpc_xy_cruise);
+						       _param_mpc_xy_vel_max);
 
 		// linearly scale horizontal acceleration limit with horizontal speed limit to maintain smoothing dynamic
 		// only limit acceleration once within velocity constraints

@@ -78,7 +78,9 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 		if ((!_health_and_arming_checks.modePreventsArming(user_intended_nav_state)
 		     && !isTakeOffIntended(user_intended_nav_state))
 		    || user_intended_nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
-			_nav_state_after_disarming = user_intended_nav_state;
+			// Goto drops its target when it is left, so come back in Hold instead of a target-less Goto
+			_nav_state_after_disarming = (user_intended_nav_state == vehicle_status_s::NAVIGATION_STATE_GOTO)
+						     ? vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER : user_intended_nav_state;
 		}
 
 		if (_handler) {

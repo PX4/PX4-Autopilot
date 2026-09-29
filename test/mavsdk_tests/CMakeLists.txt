@@ -20,6 +20,7 @@ if(MAVSDK_FOUND)
         autopilot_tester_rtl.cpp
         autopilot_tester_figure_eight.cpp
         autopilot_tester_loiter.cpp
+        autopilot_tester_goto.cpp
         # follow-me needs a MAVSDK update:
         # https://github.com/mavlink/MAVSDK/pull/1770
         # autopilot_tester_follow_me.cpp
@@ -27,6 +28,7 @@ if(MAVSDK_FOUND)
         test_multicopter_control_allocation.cpp
         test_multicopter_failure_injection.cpp
         test_multicopter_failsafe.cpp
+        test_multicopter_goto.cpp
         test_multicopter_mission.cpp
         test_multicopter_mission_do_jump.cpp
         test_multicopter_rtl.cpp

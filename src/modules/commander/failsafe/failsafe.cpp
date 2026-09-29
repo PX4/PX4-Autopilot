@@ -549,6 +549,7 @@ bool Failsafe::isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_m
 		return exception_mask_parameter & (int)LinkLossExceptionBits::Mission;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+	case vehicle_status_s::NAVIGATION_STATE_GOTO:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
@@ -619,6 +620,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	// VTOL transition failure (quadchute)
 	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
 	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER ||
+	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_GOTO ||
 	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {
 		CHECK_FAILSAFE(status_flags, vtol_fixed_wing_system_failure, fromQuadchuteActParam(_param_com_qc_act.get()));
@@ -643,9 +645,10 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		       ActionOptions(fromHighWindLimitActParam(_param_com_wind_max_act.get()).cannotBeDeferred()));
 	CHECK_FAILSAFE(status_flags, flight_time_limit_exceeded, ActionOptions(Action::RTL).cannotBeDeferred());
 
-	// trigger Low Position Accuracy Failsafe (only in auto mission and auto loiter)
+	// trigger Low Position Accuracy Failsafe (only in auto mission, auto loiter and goto)
 	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
-	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER ||
+	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_GOTO) {
 		CHECK_FAILSAFE(status_flags, position_accuracy_low, fromPosLowActParam(_param_com_pos_low_act.get()));
 	}
 
@@ -811,12 +814,14 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 
 uint8_t Failsafe::modifyUserIntendedMode(Action previous_action, Action current_action, uint8_t user_intended_mode) const
 {
-	// When a failsafe engages, immediately downgrade Orbit to Loiter so that
+	// When a failsafe engages, immediately downgrade Orbit and Goto to Loiter so that
 	// if the failsafe later clears without a new explicit mode command the vehicle holds position.
+	// Goto drops its target when it is left, so resuming it would not continue to the target anyway.
 	if ((int)previous_action <= (int)Action::Warn
 	    && (int)current_action > (int)Action::Warn
-	    && user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
-		PX4_DEBUG("Failsafe engaged, downgrading ORBIT to LOITER");
+	    && (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ORBIT
+		|| user_intended_mode == vehicle_status_s::NAVIGATION_STATE_GOTO)) {
+		PX4_DEBUG("Failsafe engaged, downgrading ORBIT/GOTO to LOITER");
 		return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 	}
 

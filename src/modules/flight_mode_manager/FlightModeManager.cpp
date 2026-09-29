@@ -156,6 +156,7 @@ void FlightModeManager::start_flight_task()
 	bool matching_task_running = true;
 	bool task_failure = false;
 	const bool nav_state_descend = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
+	const bool nav_state_goto = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_GOTO);
 
 	// Follow me
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
@@ -190,7 +191,7 @@ void FlightModeManager::start_flight_task()
 
 	// Navigator interface for autonomous modes
 	if (_vehicle_control_mode_sub.get().flag_control_auto_enabled
-	    && !nav_state_descend) {
+	    && !nav_state_descend && !nav_state_goto) {
 		found_some_task = true;
 
 		if (switchTask(FlightTaskIndex::Auto) != FlightTaskError::NoError) {

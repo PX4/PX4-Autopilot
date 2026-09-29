@@ -92,6 +92,11 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		getControlMode(SetpointType::PositionTriplet, vehicle_control_mode);
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_GOTO:
+		vehicle_control_mode.flag_control_auto_enabled = true;
+		getControlMode(SetpointType::Goto, vehicle_control_mode);
+		break;
+
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		vehicle_control_mode.flag_control_manual_enabled = true;
 		getControlMode(SetpointType::Rates, vehicle_control_mode);

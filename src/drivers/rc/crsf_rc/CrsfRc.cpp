@@ -386,6 +386,7 @@ void CrsfRc::Run()
 						break;
 
 					case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+					case vehicle_status_s::NAVIGATION_STATE_GOTO:
 					case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 					case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 					case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:

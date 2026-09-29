@@ -70,6 +70,10 @@ publications:
     type: px4_msgs::msg::VehicleControlMode
     rate_limit: 50.
 
+  - topic: /fmu/out/vehicle_command
+    type: px4_msgs::msg::VehicleCommand
+    rate_limit: 0
+
   - topic: /fmu/out/vehicle_command_ack
     type: px4_msgs::msg::VehicleCommandAck
 

@@ -163,7 +163,8 @@ DaaAction DaaActionPolicy::nav_state_to_equivalent_daa_action(const uint8_t nav_
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
-	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE: {
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:
+	case vehicle_status_s::NAVIGATION_STATE_GOTO: {
 			return DaaAction::kDisabled;
 		}
 

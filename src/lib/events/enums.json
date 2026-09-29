@@ -103,6 +103,10 @@
                             "name": "stab",
                             "description": "Stabilized"
                         },
+                        "65536": {
+                            "name": "go_to",
+                            "description": "Goto"
+                        },
                         "131072": {
                             "name": "takeoff",
                             "description": "Takeoff"
@@ -675,6 +679,10 @@
                             "name": "manual_parking",
                             "description": "Manual Parking"
                         },
+                        "28": {
+                            "name": "go_to",
+                            "description": "Goto"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
@@ -812,6 +820,7 @@
                     "12": [335806464],
                     "14": [393216],
                     "15": [458752],
+                    "16": [352583680],
                     "17": [33816576],
                     "18": [100925440],
                     "19": [134479872],
