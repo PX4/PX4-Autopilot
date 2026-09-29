@@ -435,7 +435,7 @@
 *(.text._ZN19MavlinkStreamVFRHUD4sendEv)
 *(.text.hrt_call_reschedule)
 *(.text.nxsem_boost_priority)
-*(.text._ZN4EKF215UpdateGpsSampleER17ekf2_timestamps_s)
+*(.text._ZN4EKF216UpdateGnssSampleER17ekf2_timestamps_s)
 *(.text._ZN8StickYawC1EP12ModuleParams)
 *(.text._ZN7control12BlockLowPass6updateEf)
 *(.text._ZN15FailureDetector26updateImbalancedPropStatusEv)
@@ -457,7 +457,7 @@
 *(.text._ZN24ManualVelocitySmoothingZC1Ev) /* itcm-check-ignore */
 *(.text._ZN3ADC6sampleEj)
 *(.text._ZNK3Ekf22isTerrainEstimateValidEv)
-*(.text._ZN15EstimatorChecks23setModeRequirementFlagsERK7ContextbbbRK24vehicle_local_position_sRK12sensor_gps_sR16failsafe_flags_sR6Report)
+*(.text._ZN15EstimatorChecks23setModeRequirementFlagsERK7ContextbbbRK24vehicle_local_position_sRK14vehicle_gnss_sR16failsafe_flags_sR6Report)
 *(.text._ZN11ControlMath11addIfNotNanERff)
 *(.text._ZN9Commander21checkForMissionUpdateEv)
 *(.text._Z8set_tunei)

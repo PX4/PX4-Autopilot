@@ -52,7 +52,7 @@
 #include <uORB/topics/geofence_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include "./RTLPlanner/geofence_interface.h"
 
 #if defined(PX4_STORAGEDIR)

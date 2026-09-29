@@ -179,34 +179,34 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2026-03-11: translate EKF2_GPS_POS_X/Y/Z -> SENS_GPS0_OFFX/OFFY/OFFZ
+	// 2026-03-11: translate EKF2_GPS_POS_X/Y/Z -> SENS_GNSS0_OFFX/OFFY/OFFZ
 	{
 		if (strcmp("EKF2_GPS_POS_X", node->name) == 0) {
-			strcpy(node->name, "SENS_GPS0_OFFX");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GPS0_OFFX");
+			strcpy(node->name, "SENS_GNSS0_OFFX");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GNSS0_OFFX");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
 		if (strcmp("EKF2_GPS_POS_Y", node->name) == 0) {
-			strcpy(node->name, "SENS_GPS0_OFFY");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GPS0_OFFY");
+			strcpy(node->name, "SENS_GNSS0_OFFY");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GNSS0_OFFY");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
 		if (strcmp("EKF2_GPS_POS_Z", node->name) == 0) {
-			strcpy(node->name, "SENS_GPS0_OFFZ");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GPS0_OFFZ");
+			strcpy(node->name, "SENS_GNSS0_OFFZ");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GNSS0_OFFZ");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
-	// 2026-03-11: translate EKF2_GPS_DELAY to SENS_GPS0_DELAY and SENS_GPS1_DELAY
+	// 2026-03-11: translate EKF2_GPS_DELAY to SENS_GNSS0_DELAY and SENS_GNSS1_DELAY
 	{
 		if (strcmp("EKF2_GPS_DELAY", node->name) == 0) {
 			int32_t delay_ms = static_cast<int32_t>(node->d);
-			param_set(param_find("SENS_GPS0_DELAY"), &delay_ms);
-			param_set(param_find("SENS_GPS1_DELAY"), &delay_ms);
-			PX4_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GPS0_DELAY", "SENS_GPS1_DELAY");
+			param_set(param_find("SENS_GNSS0_DELAY"), &delay_ms);
+			param_set(param_find("SENS_GNSS1_DELAY"), &delay_ms);
+			PX4_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GNSS0_DELAY", "SENS_GNSS1_DELAY");
 		}
 	}
 
@@ -353,6 +353,33 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			strcpy(node->name, "UAVCAN_ECU_MAXF1");
 			PX4_INFO("copying %s -> %s", "UAVCAN_ECU_MAXF", "UAVCAN_ECU_MAXF1");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-09-28: translate SENS_GPS* to SENS_GNSS*
+	{
+		static constexpr const char *kRenames[][2] {
+			{"SENS_GPS_MASK", "SENS_GNSS_MASK"},
+			{"SENS_GPS_TAU", "SENS_GNSS_TAU"},
+			{"SENS_GPS_PRIME", "SENS_GNSS_PRIME"},
+			{"SENS_GPS0_ID", "SENS_GNSS0_ID"},
+			{"SENS_GPS0_OFFX", "SENS_GNSS0_OFFX"},
+			{"SENS_GPS0_OFFY", "SENS_GNSS0_OFFY"},
+			{"SENS_GPS0_OFFZ", "SENS_GNSS0_OFFZ"},
+			{"SENS_GPS0_DELAY", "SENS_GNSS0_DELAY"},
+			{"SENS_GPS1_ID", "SENS_GNSS1_ID"},
+			{"SENS_GPS1_OFFX", "SENS_GNSS1_OFFX"},
+			{"SENS_GPS1_OFFY", "SENS_GNSS1_OFFY"},
+			{"SENS_GPS1_OFFZ", "SENS_GNSS1_OFFZ"},
+			{"SENS_GPS1_DELAY", "SENS_GNSS1_DELAY"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
 		}
 	}
 

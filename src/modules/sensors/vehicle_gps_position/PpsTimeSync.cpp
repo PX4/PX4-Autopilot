@@ -54,29 +54,29 @@ void PpsTimeSync::process_pps(const pps_capture_s &pps)
 	_updated = true;
 }
 
-uint64_t PpsTimeSync::correct_gps_timestamp(uint64_t gps_fc_timestamp, uint64_t gps_utc_timestamp)
+uint64_t PpsTimeSync::correct_gnss_timestamp(uint64_t gnss_fc_timestamp, uint64_t gnss_utc_timestamp)
 {
 	// 0 is the receiver's "time not valid" value
-	if (!is_valid() || (gps_utc_timestamp == 0)) {
-		return gps_fc_timestamp;
+	if (!is_valid() || (gnss_utc_timestamp == 0)) {
+		return gnss_fc_timestamp;
 	}
 
-	const int64_t corrected_fc_timestamp = (int64_t)gps_utc_timestamp - _time_offset;
+	const int64_t corrected_fc_timestamp = (int64_t)gnss_utc_timestamp - _time_offset;
 
 	if (_updated) {
-		const int64_t correction_amount = corrected_fc_timestamp - (int64_t)gps_fc_timestamp;
+		const int64_t correction_amount = corrected_fc_timestamp - (int64_t)gnss_fc_timestamp;
 
 		if (math::abs_t(correction_amount) > kPpsMaxCorrectionUs) {
 			PX4_DEBUG("PPS: Correction too large: %" PRId64 " us (%.1f ms), rejecting",
 				  correction_amount, (double)correction_amount / 1000.0);
-			return gps_fc_timestamp;
+			return gnss_fc_timestamp;
 		}
 
 		// Additional sanity check: corrected timestamp should not be too far in the future (0.1s)
 		const uint64_t now = hrt_absolute_time();
 
 		if ((uint64_t)corrected_fc_timestamp > now + 100000) {
-			return gps_fc_timestamp;
+			return gnss_fc_timestamp;
 		}
 
 		_updated = false;

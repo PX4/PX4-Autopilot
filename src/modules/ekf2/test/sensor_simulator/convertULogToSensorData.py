@@ -72,23 +72,33 @@ def getRangeFinderData(ulog: ULog) -> pd.DataFrame:
 	return rng
 
 
-def getGpsData(ulog: ULog) -> pd.DataFrame:
+def getGnssData(ulog: ULog) -> pd.DataFrame:
 
-	vehicle_gps_position = ulog.get_dataset("vehicle_gps_position").data
+	try:
+		vehicle_gnss = ulog.get_dataset("vehicle_gnss").data
+		alt, lat, lon, vel_n, vel_e, vel_d = ('receiver.altitude_msl', 'receiver.latitude', 'receiver.longitude',
+			'receiver.vel_north', 'receiver.vel_east', 'receiver.vel_down')
+
+	except (KeyError, IndexError, ValueError):
+		# logs recorded before the rename to vehicle_gnss
+		vehicle_gnss = ulog.get_dataset("vehicle_gps_position").data
+		alt, lat, lon, vel_n, vel_e, vel_d = ('altitude_msl_m', 'latitude_deg', 'longitude_deg',
+			'vel_n_m_s', 'vel_e_m_s', 'vel_d_m_s')
+
 	# The column order has to match SensorSimulator::setSingleReplaySample(), which reads
 	# altitude, latitude, longitude. The loader also rescales the latitude and the
 	# longitude by 1e-7 because they used to be logged as scaled integers, so the degrees
 	# have to be scaled up by 1e7 here.
-	gps = pd.DataFrame({'timestamp': vehicle_gps_position['timestamp'],
+	gnss = pd.DataFrame({'timestamp': vehicle_gnss['timestamp'],
 		'sensor' : 'gps',
-		'alt': vehicle_gps_position["altitude_msl_m"],
-		'lat': vehicle_gps_position["latitude_deg"] * 1e7,
-		'lon': vehicle_gps_position["longitude_deg"] * 1e7,
-		'vel_N': vehicle_gps_position["vel_n_m_s"],
-		'vel_E': vehicle_gps_position["vel_e_m_s"],
-		'vel_D': vehicle_gps_position["vel_d_m_s"],
+		'alt': vehicle_gnss[alt],
+		'lat': vehicle_gnss[lat] * 1e7,
+		'lon': vehicle_gnss[lon] * 1e7,
+		'vel_N': vehicle_gnss[vel_n],
+		'vel_E': vehicle_gnss[vel_e],
+		'vel_D': vehicle_gnss[vel_d],
 		})
-	return gps
+	return gnss
 
 
 def getBarometerData(ulog: ULog) -> pd.DataFrame:

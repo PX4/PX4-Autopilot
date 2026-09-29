@@ -138,7 +138,7 @@ parameters:
         short: Control if the vehicle has a GPS
         long: |-
           Disable this if the system has no GPS.
-          If disabled, the sensors hub will not process sensor_gps,
+          If disabled, the sensors hub will not process sensor_gnss,
           and GPS will not be available for the rest of the system.
       type: boolean
       default: 1
