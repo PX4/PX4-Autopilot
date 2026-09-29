@@ -428,7 +428,7 @@
 *(.text._ZN19MavlinkStreamVFRHUD4sendEv)
 *(.text.hrt_call_reschedule)
 *(.text.nxsem_boost_priority)
-*(.text._ZN4EKF215UpdateGpsSampleER17ekf2_timestamps_s)
+*(.text._ZN4EKF216UpdateGnssSampleER17ekf2_timestamps_s)
 *(.text._ZN8StickYawC1EP12ModuleParams)
 *(.text._ZN7control12BlockLowPass6updateEf)
 *(.text._ZN15FailureDetector26updateImbalancedPropStatusEv)
