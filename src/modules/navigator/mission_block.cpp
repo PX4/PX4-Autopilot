@@ -491,26 +491,13 @@ MissionBlock::is_mission_item_reached_or_completed()
 			    (_mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 			     _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
 
-				float bearing = get_bearing_to_next_waypoint(curr_sp.lat, curr_sp.lon, next_sp.lat, next_sp.lon);
-
-				// calculate (positive) angle between current bearing vector (orbit center to next waypoint) and vector pointing to tangent exit location
-				const float ratio = math::min(fabsf(curr_sp.loiter_radius / range), 1.0f);
-				float inner_angle = acosf(ratio);
-
-				// Compute "ideal" tangent origin
-				if (curr_sp.loiter_direction_counter_clockwise) {
-					bearing += inner_angle;
-
-				} else {
-					bearing -= inner_angle;
-				}
-
-				// set typ to position, will get set to loiter in the fw position controller once close
-				// and replace current setpoint lat/lon with tangent coordinate
+				// set type to position, will get set to loiter in the fw position controller once close
+				// and replace current setpoint lat/lon with the tangent coordinate
+				const matrix::Vector2d exit_point = loiterExitPoint({curr_sp.lat, curr_sp.lon}, {next_sp.lat, next_sp.lon},
+								    curr_sp.loiter_radius, curr_sp.loiter_direction_counter_clockwise);
 				curr_sp.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-				waypoint_from_heading_and_distance(curr_sp.lat, curr_sp.lon,
-								   bearing, fabsf(curr_sp.loiter_radius),
-								   &curr_sp.lat, &curr_sp.lon);
+				curr_sp.lat = exit_point(0);
+				curr_sp.lon = exit_point(1);
 			}
 
 			return true; // mission item is reached
@@ -610,6 +597,20 @@ bool
 MissionBlock::item_contains_marker(const mission_item_s &item)
 {
 	return item.nav_cmd == NAV_CMD_DO_LAND_START;
+}
+
+matrix::Vector2d
+MissionBlock::loiterExitPoint(const matrix::Vector2d &center, const matrix::Vector2d &next, float radius,
+			      bool counter_clockwise)
+{
+	// Angle at the centre between the next position and the tangent point, zero once next is inside the circle.
+	const float range = get_distance_to_next_waypoint(center(0), center(1), next(0), next(1));
+	const float inner_angle = acosf(math::min(fabsf(radius / range), 1.f));
+	const float bearing = get_bearing_to_next_waypoint(center(0), center(1), next(0), next(1))
+			      + (counter_clockwise ? inner_angle : -inner_angle);
+	matrix::Vector2d exit_point;
+	waypoint_from_heading_and_distance(center(0), center(1), bearing, fabsf(radius), &exit_point(0), &exit_point(1));
+	return exit_point;
 }
 
 bool
