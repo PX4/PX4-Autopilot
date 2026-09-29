@@ -5,4 +5,4 @@ uint8 index # [-] Index of the ESC (0 = ESC1, 1 = ESC2, etc.)
 uint16 length # [-] Length of valid data
 uint8[48] data # [-] Raw ESC EEPROM data
 
-uint8 ORB_QUEUE_LENGTH = 16 # Every cached dump is republished at once: esc_status CONNECTED_ESC_MAX (12) rounded up to a power of two
+uint8 ORB_QUEUE_LENGTH = 12 # One dump per ESC, up to esc_status CONNECTED_ESC_MAX
