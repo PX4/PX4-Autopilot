@@ -110,8 +110,8 @@ private:
 	void UpdateGnssHeading();
 	void handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot);
 
-	// sensor_gnss instance publishing this device_id, or -1, with its latest sample in gps_data (zeroed when not found)
-	int findGpsInstance(uint32_t device_id, sensor_gnss_s &gps_data);
+	// sensor_gnss instance publishing this device_id, or -1, with its latest sample in gnss_data (zeroed when not found)
+	int findGnssInstance(uint32_t device_id, sensor_gnss_s &gnss_data);
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
@@ -122,11 +122,11 @@ private:
 	static constexpr uint8_t BLEND_MASK_USE_HPOS_ACC = 2;
 	static constexpr uint8_t BLEND_MASK_USE_VPOS_ACC = 4;
 
-	uORB::Publication<vehicle_gnss_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gnss)};
+	uORB::Publication<vehicle_gnss_s> _vehicle_gnss_pub{ORB_ID(vehicle_gnss)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::SubscriptionCallbackWorkItem _sensor_gps_sub[GPS_MAX_RECEIVERS] {	/**< sensor data subscription */
+	uORB::SubscriptionCallbackWorkItem _sensor_gnss_sub[GPS_MAX_RECEIVERS] {	/**< sensor data subscription */
 		{this, ORB_ID(sensor_gnss), 0},
 		{this, ORB_ID(sensor_gnss), 1},
 	};
@@ -155,20 +155,20 @@ private:
 	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
 
-	GpsParamSlot _gps_param_slots[GPS_MAX_RECEIVERS] {};
+	GpsParamSlot _gnss_param_slots[GPS_MAX_RECEIVERS] {};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_GNSS_MASK>) _param_sens_gps_mask,
-		(ParamFloat<px4::params::SENS_GNSS_TAU>) _param_sens_gps_tau,
-		(ParamInt<px4::params::SENS_GNSS_PRIME>) _param_sens_gps_prime,
-		(ParamInt<px4::params::SENS_GNSS0_ID>) _param_sens_gps0_id,
-		(ParamFloat<px4::params::SENS_GNSS0_OFFX>) _param_sens_gps0_offx,
-		(ParamFloat<px4::params::SENS_GNSS0_OFFY>) _param_sens_gps0_offy,
-		(ParamFloat<px4::params::SENS_GNSS0_OFFZ>) _param_sens_gps0_offz,
-		(ParamInt<px4::params::SENS_GNSS1_ID>) _param_sens_gps1_id,
-		(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_sens_gps1_offx,
-		(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_sens_gps1_offy,
-		(ParamFloat<px4::params::SENS_GNSS1_OFFZ>) _param_sens_gps1_offz,
+		(ParamInt<px4::params::SENS_GNSS_MASK>) _param_sens_gnss_mask,
+		(ParamFloat<px4::params::SENS_GNSS_TAU>) _param_sens_gnss_tau,
+		(ParamInt<px4::params::SENS_GNSS_PRIME>) _param_sens_gnss_prime,
+		(ParamInt<px4::params::SENS_GNSS0_ID>) _param_sens_gnss0_id,
+		(ParamFloat<px4::params::SENS_GNSS0_OFFX>) _param_sens_gnss0_offx,
+		(ParamFloat<px4::params::SENS_GNSS0_OFFY>) _param_sens_gnss0_offy,
+		(ParamFloat<px4::params::SENS_GNSS0_OFFZ>) _param_sens_gnss0_offz,
+		(ParamInt<px4::params::SENS_GNSS1_ID>) _param_sens_gnss1_id,
+		(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_sens_gnss1_offx,
+		(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_sens_gnss1_offy,
+		(ParamFloat<px4::params::SENS_GNSS1_OFFZ>) _param_sens_gnss1_offz,
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 		(ParamInt<px4::params::SENS_GNSS0_HDG>) _param_sens_gnss0_hdg,
 		(ParamFloat<px4::params::SENS_GNSS0_AUXX>) _param_sens_gnss0_auxx,
@@ -179,8 +179,8 @@ private:
 		(ParamFloat<px4::params::SENS_GNSS1_AUXY>) _param_sens_gnss1_auxy,
 		(ParamFloat<px4::params::SENS_GNSS1_AUXZ>) _param_sens_gnss1_auxz,
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
-		(ParamInt<px4::params::SENS_GNSS0_DELAY>) _param_sens_gps0_delay,
-		(ParamInt<px4::params::SENS_GNSS1_DELAY>) _param_sens_gps1_delay
+		(ParamInt<px4::params::SENS_GNSS0_DELAY>) _param_sens_gnss0_delay,
+		(ParamInt<px4::params::SENS_GNSS1_DELAY>) _param_sens_gnss1_delay
 	)
 };
 }; // namespace sensors

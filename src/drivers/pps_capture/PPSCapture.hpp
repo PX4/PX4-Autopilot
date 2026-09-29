@@ -79,7 +79,7 @@ private:
 	uint32_t _pps_capture_gpio{0};
 
 	uORB::Publication<pps_capture_s> _pps_capture_pub{ORB_ID(pps_capture)};
-	uORB::SubscriptionMultiArray<sensor_gnss_s, GPS_MAX_RECEIVERS> _sensor_gps_subs{ORB_ID::sensor_gnss};
+	uORB::SubscriptionMultiArray<sensor_gnss_s, GPS_MAX_RECEIVERS> _sensor_gnss_subs{ORB_ID::sensor_gnss};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	hrt_abstime	_hrt_timestamp{0};

@@ -115,7 +115,7 @@ private:
 		{this, ORB_ID(sensor_baro), 3},
 	};
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
 	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 

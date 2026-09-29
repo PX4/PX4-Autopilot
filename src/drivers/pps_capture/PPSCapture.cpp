@@ -130,15 +130,15 @@ void PPSCapture::Run()
 		return;
 	}
 
-	sensor_gnss_s sensor_gps;
+	sensor_gnss_s sensor_gnss;
 
 	const uint32_t gps_device_id = static_cast<uint32_t>(_param_pps_cap_gps_id.get());
 
-	for (auto &sub : _sensor_gps_subs) {
-		if (sub.update(&sensor_gps)) {
-			if (gps_device_id == 0 || sensor_gps.device_id == gps_device_id) {
-				_last_gps_utc_timestamp = sensor_gps.time_utc_usec;
-				_last_gps_timestamp = sensor_gps.timestamp;
+	for (auto &sub : _sensor_gnss_subs) {
+		if (sub.update(&sensor_gnss)) {
+			if (gps_device_id == 0 || sensor_gnss.device_id == gps_device_id) {
+				_last_gps_utc_timestamp = sensor_gnss.time_utc_usec;
+				_last_gps_timestamp = sensor_gnss.timestamp;
 				break;
 			}
 		}

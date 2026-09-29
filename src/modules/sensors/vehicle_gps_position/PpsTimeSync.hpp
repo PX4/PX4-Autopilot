@@ -50,7 +50,7 @@ public:
 	~PpsTimeSync() = default;
 
 	void process_pps(const pps_capture_s &pps);
-	uint64_t correct_gps_timestamp(uint64_t gps_fc_timestamp, uint64_t gps_utc_timestamp);
+	uint64_t correct_gnss_timestamp(uint64_t gnss_fc_timestamp, uint64_t gnss_utc_timestamp);
 
 private:
 	bool is_valid() const;
