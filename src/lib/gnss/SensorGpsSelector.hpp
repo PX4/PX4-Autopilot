@@ -37,21 +37,21 @@
 #include <lib/parameters/param.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
-// Resolves SENS_GPS_PRIME to the sensor_gps uORB instance of the primary receiver:
+// Resolves SENS_GNSS_PRIME to the sensor_gnss uORB instance of the primary receiver:
 // 0 and 1 select the uORB instance directly, 2-127 select a DroneCAN receiver by
 // node ID (matched via device_id). Used by the GPS_RAW_INT/GPS2_RAW MAVLink streams
 // so the reported receiver does not depend on uORB instance ordering, which is a
-// boot-order race for CAN receivers, and shared with the vehicle_gps_position
+// boot-order race for CAN receivers, and shared with the vehicle_gnss
 // selection.
 class SensorGpsSelector
 {
 public:
-	// SENS_GPS_PRIME values 2-127 designate a DroneCAN receiver by node ID
+	// SENS_GNSS_PRIME values 2-127 designate a DroneCAN receiver by node ID
 	static bool is_node_id(int32_t gps_prime) { return (gps_prime >= 2) && (gps_prime <= 127); }
 
-	// true if the SENS_GPS_PRIME node ID designates the receiver with this device_id
+	// true if the SENS_GNSS_PRIME node ID designates the receiver with this device_id
 	static bool node_id_matches(int32_t gps_prime, uint32_t device_id)
 	{
 		if (is_node_id(gps_prime)) {
@@ -112,8 +112,8 @@ private:
 	static int8_t find_instance_by_node_id(int32_t node_id)
 	{
 		for (uint8_t i = 0; i < 2; i++) {
-			uORB::Subscription sensor_gps_sub{ORB_ID(sensor_gps), i};
-			sensor_gps_s gps;
+			uORB::Subscription sensor_gps_sub{ORB_ID(sensor_gnss), i};
+			sensor_gnss_s gps;
 
 			if (sensor_gps_sub.copy(&gps) && node_id_matches(node_id, gps.device_id)) {
 				return i;
@@ -124,7 +124,7 @@ private:
 	}
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	const param_t _param_sens_gps_prime{param_find("SENS_GPS_PRIME")};
+	const param_t _param_sens_gps_prime{param_find("SENS_GNSS_PRIME")};
 	int32_t _gps_prime{0};
 	int8_t _node_id_instance{-1};
 };
