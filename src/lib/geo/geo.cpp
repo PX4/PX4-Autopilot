@@ -362,21 +362,11 @@ float get_distance_to_point_global_spherical(double lat_now, double lon_now, flo
 		double lat_next, double lon_next, float alt_next,
 		float *dist_xy, float *dist_z)
 {
-	double current_x_rad = math::radians(lat_next);
-	double current_y_rad = math::radians(lon_next);
-	double x_rad = math::radians(lat_now);
-	double y_rad = math::radians(lon_now);
-
-	double d_lat = x_rad - current_x_rad;
-	double d_lon = y_rad - current_y_rad;
-
-	double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(current_x_rad) * cos(x_rad);
-	double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-	const float dxy = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * c);
+	// Replace all the manual math by calling the existing function
+	const float dxy = get_distance_to_next_waypoint(lat_now, lon_now, lat_next, lon_next);
 	const float dz = static_cast<float>(alt_now - alt_next);
 
-	*dist_xy = fabsf(dxy);
+	*dist_xy = dxy;
 	*dist_z = fabsf(dz);
 
 	return sqrtf(dxy * dxy + dz * dz);

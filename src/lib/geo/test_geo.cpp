@@ -94,17 +94,18 @@ TEST_F(GeoTest, projectReproject)
 
 TEST_F(GeoTest, ReprojectDefensiveConstraints)
 {
-	// GIVEN: A reference point very close to the North Pole using the fixture's 'proj' object
-	proj.initReference(89.9999, 0.0, 0ULL);
+	// GIVEN: A standard reference point at 10.56 latitude, as requested for the regression test
+	proj.initReference(10.56, 0.0, 0ULL);
 
-	// WHEN: We reproject a tiny offset that pushes the math right against the mathematical boundary
+	// WHEN: We reproject a north offset that projects exactly onto the North Pole
 	double lat;
 	double lon;
-	proj.reproject(10.0f, 10.0f, lat, lon);
+	proj.reproject(8833325.f, 0.f, lat, lon);
 
-	// THEN: It should return a valid constrained number, not a NaN
+	// THEN: It should return a valid constrained number (90 degrees latitude), not a NaN
 	EXPECT_FALSE(std::isnan(lat));
 	EXPECT_FALSE(std::isnan(lon));
+	EXPECT_NEAR(lat, 90.0, 0.0001);
 }
 
 TEST_F(GeoTest, VectorToNextWaypointFastAntimeridian)
@@ -121,10 +122,11 @@ TEST_F(GeoTest, VectorToNextWaypointFastAntimeridian)
 	// WHEN: We calculate the vector
 	get_vector_to_next_waypoint_fast(lat_now, lon_now, lat_next, lon_next, &v_n, &v_e);
 
-	// THEN: Because the shortest path is 2 degrees East, the East velocity (v_e)
-	// MUST be a positive number. Without wrapping, this would be highly negative.
+	// THEN: The shortest path is exactly 2 degrees East.
 	EXPECT_FLOAT_EQ(v_n, 0.0f); // Latitude didn't change
-	EXPECT_GT(v_e, 0.0f);       // Eastward velocity should be Greater Than (GT) zero
+
+	float expected_v_e = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * math::radians(2.0));
+	EXPECT_NEAR(v_e, expected_v_e, 0.1f);
 }
 
 TEST_F(GeoTest, DistanceToLineBeforeStart)
@@ -149,6 +151,20 @@ TEST_F(GeoTest, DistanceToLinePastEnd)
 	// THEN: It should flag past_end as true, and before_start as false.
 	EXPECT_TRUE(ct_error.past_end);
 	EXPECT_FALSE(ct_error.before_start);
+}
+
+TEST_F(GeoTest, DistanceToLineBetweenWaypoints)
+{
+	// GIVEN: A standard crosstrack error struct to hold the output
+	crosstrack_error_s ct{};
+
+	// WHEN: The vehicle is at (0.001, 5.0), which is squarely between
+	// the Start waypoint (0.0, 0.0) and End waypoint (0.0, 10.0)
+	get_distance_to_line(ct, 0.001, 5.0, 0.0, 0.0, 0.0, 10.0);
+
+	// THEN: The vehicle is mid-route, so both positional flags must be false
+	EXPECT_FALSE(ct.before_start);
+	EXPECT_FALSE(ct.past_end);
 }
 
 TEST_F(GeoTest, WaypointDistanceAndBearing)
@@ -189,6 +205,18 @@ TEST_F(GeoTest, AddVectorToGlobal)
 	EXPECT_DOUBLE_EQ(lon_res, 0.0);
 }
 
+TEST_F(GeoTest, AddVectorToGlobalAntimeridianWrap)
+{
+	double lat_res;
+	double lon_res;
+
+	// Move 100m East from 179.9999 degrees longitude at the equator
+	add_vector_to_global_position(0.0, 179.9999, 0.0f, 100.0f, &lat_res, &lon_res);
+
+	// Prove it wraps around the Earth to the negative side
+	EXPECT_NEAR(lon_res, -179.9992007, 0.0000001);
+}
+
 TEST_F(GeoTest, VectorToNextWaypointStandard)
 {
 	// 1. STANDARD VECTOR: Moving 1 degree North from the equator
@@ -196,24 +224,26 @@ TEST_F(GeoTest, VectorToNextWaypointStandard)
 	float v_e = 0.0f;
 	get_vector_to_next_waypoint(0.0, 0.0, 1.0, 0.0, &v_n, &v_e);
 
-	float expected_dist = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * (M_PI / 180.0));
-	EXPECT_NEAR(v_n, expected_dist, 10.0f); // North velocity should match Earth's arc
+	float expected_dist = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * sin(math::radians(1.0)));
+	EXPECT_NEAR(v_n, expected_dist, 0.1f); // North velocity should match Earth's sine arc
 	EXPECT_FLOAT_EQ(v_e, 0.0f);            // East velocity should be perfectly zero
 }
 
 TEST_F(GeoTest, DistanceToPointGlobalSphericalAbsolute)
 {
-	// 2. SPHERICAL DISTANCE: The WGS84 haversine rename
+	// 2. SPHERICAL DISTANCE
 	float dist_xy = 0.0f;
 	float dist_z = 0.0f;
 
 	// Moving 1 degree North, maintaining 100m altitude
 	float total_dist = get_distance_to_point_global_spherical(0.0, 0.0, 100.0f, 1.0, 0.0, 100.0f, &dist_xy, &dist_z);
 
+	// Calculate expected distance using true arc length (pi / 180)
 	float expected_xy = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * (M_PI / 180.0));
-	EXPECT_NEAR(dist_xy, expected_xy, 1.0f);
-	EXPECT_FLOAT_EQ(dist_z, 0.0f);           // Altitude didn't change
-	EXPECT_NEAR(total_dist, expected_xy, 1.0f);
+
+	EXPECT_NEAR(dist_xy, expected_xy, 0.1f);
+	EXPECT_FLOAT_EQ(dist_z, 0.0f);		 // Altitude didn't change
+	EXPECT_NEAR(total_dist, expected_xy, 0.1f);
 }
 
 TEST_F(GeoTest, MavlinkLocalDistance)
