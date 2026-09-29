@@ -383,26 +383,26 @@ void MspOsd::Run()
 
 	// MSP_RAW_GPS
 	{
-		vehicle_gnss_s vehicle_gps_position{};
-		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
+		vehicle_gnss_s vehicle_gnss{};
+		_vehicle_gnss_sub.copy(&vehicle_gnss);
 
 		if (enabled(SymbolIndex::GPS_LAT)) {
-			const auto msg = msp_osd::construct_rendor_GPS_LAT(vehicle_gps_position);
+			const auto msg = msp_osd::construct_rendor_GPS_LAT(vehicle_gnss);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_latitude_t));
 		}
 
 		if (enabled(SymbolIndex::GPS_LON)) {
-			const auto msg = msp_osd::construct_rendor_GPS_LON(vehicle_gps_position);
+			const auto msg = msp_osd::construct_rendor_GPS_LON(vehicle_gnss);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_longitude_t));
 		}
 
 		if (enabled(SymbolIndex::GPS_SATS)) {
-			const auto msg = msp_osd::construct_rendor_GPS_NUM(vehicle_gps_position);
+			const auto msg = msp_osd::construct_rendor_GPS_NUM(vehicle_gnss);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_satellites_used_t));
 		}
 
 		if (enabled(SymbolIndex::GPS_SPEED)) {
-			const auto msg = msp_osd::construct_rendor_GPS_SPEED(vehicle_gps_position);
+			const auto msg = msp_osd::construct_rendor_GPS_SPEED(vehicle_gnss);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_gps_speed_t));
 		}
 	}
@@ -443,14 +443,14 @@ void MspOsd::Run()
 
 	// MSP_ALTITUDE
 	{
-		vehicle_gnss_s vehicle_gps_position{};
-		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
+		vehicle_gnss_s vehicle_gnss{};
+		_vehicle_gnss_sub.copy(&vehicle_gnss);
 
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
 
 		if (enabled(SymbolIndex::ALTITUDE)) {
-			const auto msg = msp_osd::construct_Rendor_ALTITUDE(vehicle_gps_position, vehicle_local_position);
+			const auto msg = msp_osd::construct_Rendor_ALTITUDE(vehicle_gnss, vehicle_local_position);
 
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_altitude_t));
 		}

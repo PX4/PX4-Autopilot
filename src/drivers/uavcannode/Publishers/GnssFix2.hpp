@@ -89,13 +89,13 @@ public:
 		}
 
 		// sensor_gnss -> uavcan::equipment::gnss::Fix2
-		sensor_gnss_s gps;
+		sensor_gnss_s sensor_gnss;
 
-		if (uORB::SubscriptionCallbackWorkItem::update(&gps)) {
+		if (uORB::SubscriptionCallbackWorkItem::update(&sensor_gnss)) {
 			uavcan::equipment::gnss::Fix2 fix2{};
 
 			fix2.gnss_time_standard = fix2.GNSS_TIME_STANDARD_UTC;
-			fix2.gnss_timestamp.usec = gps.time_utc_usec;
+			fix2.gnss_timestamp.usec = sensor_gnss.time_utc_usec;
 
 			const hrt_abstime now = hrt_absolute_time();
 
@@ -103,17 +103,17 @@ public:
 				fix2.timestamp.usec = static_cast<uint64_t>(static_cast<int64_t>(now) + _pps_offset_us);
 			}
 
-			fix2.latitude_deg_1e8 = (int64_t)(gps.latitude * 1e8);
-			fix2.longitude_deg_1e8 = (int64_t)(gps.longitude * 1e8);
-			fix2.height_msl_mm = (int32_t)(gps.altitude_msl * 1e3);
-			fix2.height_ellipsoid_mm = (int32_t)(gps.altitude_ellipsoid * 1e3);
-			fix2.status = gps.fix_type;
-			fix2.ned_velocity[0] = gps.vel_north;
-			fix2.ned_velocity[1] = gps.vel_east;
-			fix2.ned_velocity[2] = gps.vel_down;
-			fix2.pdop = gps.hdop > gps.vdop ? gps.hdop :
-				    gps.vdop; // Use pdop for both hdop and vdop since uavcan v0 spec does not support them
-			fix2.sats_used = gps.satellites_used;
+			fix2.latitude_deg_1e8 = (int64_t)(sensor_gnss.latitude * 1e8);
+			fix2.longitude_deg_1e8 = (int64_t)(sensor_gnss.longitude * 1e8);
+			fix2.height_msl_mm = (int32_t)(sensor_gnss.altitude_msl * 1e3);
+			fix2.height_ellipsoid_mm = (int32_t)(sensor_gnss.altitude_ellipsoid * 1e3);
+			fix2.status = sensor_gnss.fix_type;
+			fix2.ned_velocity[0] = sensor_gnss.vel_north;
+			fix2.ned_velocity[1] = sensor_gnss.vel_east;
+			fix2.ned_velocity[2] = sensor_gnss.vel_down;
+			fix2.pdop = sensor_gnss.hdop > sensor_gnss.vdop ? sensor_gnss.hdop :
+				    sensor_gnss.vdop; // Use pdop for both hdop and vdop since uavcan v0 spec does not support them
+			fix2.sats_used = sensor_gnss.satellites_used;
 
 			fix2.mode = Fix2::MODE_SINGLE;
 			fix2.sub_mode = 0;
@@ -136,13 +136,13 @@ public:
 
 			// Diagonal matrix
 			// position variances -- Xx, Yy, Zz (eph/epv are std dev in meters, must square for variance)
-			fix2.covariance.push_back(gps.eph * gps.eph);
-			fix2.covariance.push_back(gps.eph * gps.eph);
-			fix2.covariance.push_back(gps.epv * gps.epv);
+			fix2.covariance.push_back(sensor_gnss.eph * sensor_gnss.eph);
+			fix2.covariance.push_back(sensor_gnss.eph * sensor_gnss.eph);
+			fix2.covariance.push_back(sensor_gnss.epv * sensor_gnss.epv);
 			// velocity variance -- Vxx, Vyy, Vzz
-			fix2.covariance.push_back(gps.speed_accuracy);
-			fix2.covariance.push_back(gps.speed_accuracy);
-			fix2.covariance.push_back(gps.speed_accuracy);
+			fix2.covariance.push_back(sensor_gnss.speed_accuracy);
+			fix2.covariance.push_back(sensor_gnss.speed_accuracy);
+			fix2.covariance.push_back(sensor_gnss.speed_accuracy);
 
 			uavcan::equipment::gnss::ECEFPositionVelocity ecefpositionvelocity{};
 			ecefpositionvelocity.velocity_xyz[0] = NAN;
@@ -150,9 +150,9 @@ public:
 			ecefpositionvelocity.velocity_xyz[2] = NAN;
 
 			// Use ecef_position_velocity for now... There are no fields for these
-			ecefpositionvelocity.position_xyz_mm[0] = gps.noise;
-			ecefpositionvelocity.position_xyz_mm[1] = gps.jamming_indicator;
-			ecefpositionvelocity.position_xyz_mm[2] = (gps.jamming_state << 8) | gps.spoofing_state;
+			ecefpositionvelocity.position_xyz_mm[0] = sensor_gnss.noise;
+			ecefpositionvelocity.position_xyz_mm[1] = sensor_gnss.jamming_indicator;
+			ecefpositionvelocity.position_xyz_mm[2] = (sensor_gnss.jamming_state << 8) | sensor_gnss.spoofing_state;
 
 			fix2.ecef_position_velocity.push_back(ecefpositionvelocity);
 

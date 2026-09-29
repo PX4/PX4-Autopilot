@@ -274,7 +274,7 @@ private:
 	PX4Magnetometer  _px4_mag{0};
 
 	// Publications with topic dependent on multi-mode
-	uORB::PublicationMulti<sensor_gnss_s> _sensor_gps_pub{ORB_ID(sensor_gnss)};
+	uORB::PublicationMulti<sensor_gnss_s> _sensor_gnss_pub{ORB_ID(sensor_gnss)};
 	uORB::PublicationMulti<vehicle_attitude_s> _attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::PublicationMulti<vehicle_local_position_s> _local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::PublicationMulti<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};

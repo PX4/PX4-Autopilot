@@ -68,7 +68,7 @@ private:
 
 	void Run() override;
 
-	uORB::PublicationMulti<sensor_gnss_s> _sensor_gps_pub{ORB_ID(sensor_gnss)};
+	uORB::PublicationMulti<sensor_gnss_s> _sensor_gnss_pub{ORB_ID(sensor_gnss)};
 	uORB::PublicationMulti<sensor_gnss_status_s> _sensor_gnss_status_pub{ORB_ID(sensor_gnss_status)};
 
 	double _latitude{29.6603018};   // Latitude in degrees

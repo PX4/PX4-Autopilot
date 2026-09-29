@@ -1656,106 +1656,106 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 	// Publish only if the corresponding data was extracted from the packet
 	if (gnss_valid) {
 
-		sensor_gnss_s gps{0};
-		gps.timestamp_sample = t;
+		sensor_gnss_s gnss{0};
+		gnss.timestamp_sample = t;
 
-		gps.device_id = ref->_dev_id;
+		gnss.device_id = ref->_dev_id;
 
-		gps.latitude = pos_llh.sample.latitude;
-		gps.longitude = pos_llh.sample.longitude;
-		gps.altitude_msl = pos_llh.sample.msl_height;
-		gps.altitude_ellipsoid = pos_llh.sample.ellipsoid_height;
+		gnss.latitude = pos_llh.sample.latitude;
+		gnss.longitude = pos_llh.sample.longitude;
+		gnss.altitude_msl = pos_llh.sample.msl_height;
+		gnss.altitude_ellipsoid = pos_llh.sample.ellipsoid_height;
 
 		const float _geoid_height = pos_llh.sample.ellipsoid_height - pos_llh.sample.msl_height;
 
-		gps.speed_accuracy = vel_ned.sample.speed_accuracy;
-		gps.course_accuracy = 0;
+		gnss.speed_accuracy = vel_ned.sample.speed_accuracy;
+		gnss.course_accuracy = 0;
 
 		switch (fix_info.sample.fix_type) {
 		case 0:
-			gps.fix_type = sensor_gnss_s::FIX_TYPE_3D;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_3D;
 			break;
 
 		case 1:
-			gps.fix_type = sensor_gnss_s::FIX_TYPE_2D;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_2D;
 			break;
 
 		case 5:
-			gps.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FLOAT;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FLOAT;
 			break;
 
 		case 6:
-			gps.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
 			break;
 
 		case 7:
-			gps.fix_type = sensor_gnss_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
 			break;
 
 		default:
-			gps.fix_type = sensor_gnss_s::FIX_TYPE_NONE;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_NONE;
 		}
 
-		gps.eph = pos_llh.sample.horizontal_accuracy;
-		gps.epv = pos_llh.sample.vertical_accuracy;
+		gnss.eph = pos_llh.sample.horizontal_accuracy;
+		gnss.epv = pos_llh.sample.vertical_accuracy;
 
-		gps.hdop = dop.sample.hdop;
-		gps.vdop = dop.sample.vdop;
+		gnss.hdop = dop.sample.hdop;
+		gnss.vdop = dop.sample.vdop;
 
-		gps.noise = 0;
-		gps.automatic_gain_control = 0;
+		gnss.noise = 0;
+		gnss.automatic_gain_control = 0;
 
-		gps.jamming_state = 0;
-		gps.jamming_indicator = 0;
+		gnss.jamming_state = 0;
+		gnss.jamming_indicator = 0;
 
-		gps.spoofing_state = 0;
+		gnss.spoofing_state = 0;
 
-		gps.ground_speed = vel_ned.sample.speed;
-		gps.vel_north = vel_ned.sample.v[0];
-		gps.vel_east = vel_ned.sample.v[1];
-		gps.vel_down = vel_ned.sample.v[2];
-		gps.course = 0;
-		gps.vel_ned_valid = (vel_ned.sample.valid_flags >> 1) & 1;
+		gnss.ground_speed = vel_ned.sample.speed;
+		gnss.vel_north = vel_ned.sample.v[0];
+		gnss.vel_east = vel_ned.sample.v[1];
+		gnss.vel_down = vel_ned.sample.v[2];
+		gnss.course = 0;
+		gnss.vel_ned_valid = (vel_ned.sample.valid_flags >> 1) & 1;
 
-		gps.timestamp_time_relative = 0; //
-		gps.time_utc_usec = ((gps_time.sample.week_number * 604800) + gps_time.sample.tow + 315964800 -
-				     gps_leap_sec.sample.leap_seconds) * 1000000;
+		gnss.timestamp_time_relative = 0; //
+		gnss.time_utc_usec = ((gps_time.sample.week_number * 604800) + gps_time.sample.tow + 315964800 -
+				      gps_leap_sec.sample.leap_seconds) * 1000000;
 
-		gps.satellites_used = fix_info.sample.num_sv;
+		gnss.satellites_used = fix_info.sample.num_sv;
 
-		gps.rtcm_injection_rate = 0;
-		gps.selected_rtcm_instance = 0;
-		gps.corrections_crc_failed = 0;
+		gnss.rtcm_injection_rate = 0;
+		gnss.selected_rtcm_instance = 0;
+		gnss.corrections_crc_failed = 0;
 
-		gps.corrections_msg_used = 0;
+		gnss.corrections_msg_used = 0;
 
-		gps.timestamp = hrt_absolute_time();
+		gnss.timestamp = hrt_absolute_time();
 
-		if (instance == 0) {ref->updateGeoidHeight(_geoid_height, gps.timestamp);}
+		if (instance == 0) {ref->updateGeoidHeight(_geoid_height, gnss.timestamp);}
 
-		ref->_sensor_gps_pub[instance].publish(gps);
+		ref->_sensor_gnss_pub[instance].publish(gnss);
 	}
 }
 
 void MicroStrain::initializeRefPos()
 {
-	vehicle_gnss_s gps{0};
+	vehicle_gnss_s gnss{0};
 
-	_vehicle_gps_position_sub.update(&gps);
+	_vehicle_gnss_sub.update(&gnss);
 
 	// Fix isn't 3D or RTK or RTCM
-	if ((gps.receiver.fix_type < 3) || (gps.receiver.fix_type > 6)) {
+	if ((gnss.receiver.fix_type < 3) || (gnss.receiver.fix_type > 6)) {
 		return;
 	}
 
 	// If the timestamp has not been set, then don't send any data into the filter
-	if (gps.receiver.time_utc_usec == 0) {
+	if (gnss.receiver.time_utc_usec == 0) {
 		return;
 	}
 
 	const hrt_abstime t = hrt_absolute_time();
-	_pos_ref.initReference(gps.receiver.latitude, gps.receiver.longitude, t);
-	_ref_alt = gps.receiver.altitude_msl;
+	_pos_ref.initReference(gnss.receiver.latitude, gnss.receiver.longitude, t);
+	_ref_alt = gnss.receiver.altitude_msl;
 
 	PX4_DEBUG("Reference position initialized");
 }
@@ -1774,22 +1774,22 @@ void MicroStrain::updateGeoidHeight(float geoid_height, hrt_abstime t)
 	}
 }
 
-void MicroStrain::sendGPSAiding()
+void MicroStrain::sendGnssAiding()
 {
-	vehicle_gnss_s gps{0};
+	vehicle_gnss_s gnss{0};
 
 	// No new data
-	if (!_vehicle_gps_position_sub.update(&gps)) {
+	if (!_vehicle_gnss_sub.update(&gnss)) {
 		return;
 	}
 
 	// Fix isn't 3D or RTK or RTCM
-	if ((gps.receiver.fix_type < 3) || (gps.receiver.fix_type > 6)) {
+	if ((gnss.receiver.fix_type < 3) || (gnss.receiver.fix_type > 6)) {
 		return;
 	}
 
 	// If the timestamp has not been set, then don't send any data into the filter
-	if (gps.receiver.time_utc_usec == 0) {
+	if (gnss.receiver.time_utc_usec == 0) {
 		return;
 	}
 
@@ -1800,18 +1800,18 @@ void MicroStrain::sendGPSAiding()
 
 	// Sends GNSS position and velocity aiding data if they are both supported
 	if (_ext_pos_vel_aiding) {
-		float llh_uncertainty[3] = {gps.receiver.eph, gps.receiver.eph, gps.receiver.epv};
-		mip_aiding_llh_pos(&_device, &t, 1, gps.receiver.latitude,
-				   gps.receiver.longitude,
-				   gps.receiver.altitude_ellipsoid, llh_uncertainty, MIP_AIDING_LLH_POS_COMMAND_VALID_FLAGS_ALL);
+		float llh_uncertainty[3] = {gnss.receiver.eph, gnss.receiver.eph, gnss.receiver.epv};
+		mip_aiding_llh_pos(&_device, &t, 1, gnss.receiver.latitude,
+				   gnss.receiver.longitude,
+				   gnss.receiver.altitude_ellipsoid, llh_uncertainty, MIP_AIDING_LLH_POS_COMMAND_VALID_FLAGS_ALL);
 
 		// Calculate the geoid height and update the low pass filter
-		const float _geoid_height = gps.receiver.altitude_ellipsoid - gps.receiver.altitude_msl;
-		updateGeoidHeight(_geoid_height, gps.timestamp);
+		const float _geoid_height = gnss.receiver.altitude_ellipsoid - gnss.receiver.altitude_msl;
+		updateGeoidHeight(_geoid_height, gnss.timestamp);
 
-		if (gps.receiver.vel_ned_valid) {
-			float ned_v[3] = {gps.receiver.vel_north, gps.receiver.vel_east, gps.receiver.vel_down};
-			float ned_velocity_uncertainty[3] = {sqrtf(gps.receiver.speed_accuracy), sqrtf(gps.receiver.speed_accuracy), sqrtf(gps.receiver.speed_accuracy)};
+		if (gnss.receiver.vel_ned_valid) {
+			float ned_v[3] = {gnss.receiver.vel_north, gnss.receiver.vel_east, gnss.receiver.vel_down};
+			float ned_velocity_uncertainty[3] = {sqrtf(gnss.receiver.speed_accuracy), sqrtf(gnss.receiver.speed_accuracy), sqrtf(gnss.receiver.speed_accuracy)};
 			mip_aiding_ned_vel(&_device, &t, 1, ned_v, ned_velocity_uncertainty,
 					   MIP_AIDING_NED_VEL_COMMAND_VALID_FLAGS_ALL);
 		}
@@ -1867,7 +1867,7 @@ void MicroStrain::sendOpticalFlowAiding()
 void MicroStrain::sendAidingMeasurements()
 {
 	if (_ext_pos_vel_aiding || _ext_heading_aiding) {
-		sendGPSAiding();
+		sendGnssAiding();
 	}
 
 	if (_ext_mag_aiding) {
@@ -1922,7 +1922,7 @@ void MicroStrain::Run()
 	mip_interface_update(&_device, false);
 
 	//Initializes reference position if there is gps data
-	if (_vehicle_gps_position_sub.updated() && !_pos_ref.isInitialized()) {initializeRefPos();}
+	if (_vehicle_gnss_sub.updated() && !_pos_ref.isInitialized()) {initializeRefPos();}
 
 	sendAidingMeasurements();
 

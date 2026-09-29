@@ -81,5 +81,5 @@ private:
 	matrix::Vector3f _mag_earth_pred{};
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 };

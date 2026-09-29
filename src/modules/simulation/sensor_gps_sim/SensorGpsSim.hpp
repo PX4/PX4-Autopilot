@@ -82,7 +82,7 @@ private:
 	// True while rtcm_corrections messages keep arriving (stale after RTCM_TIMEOUT, like the gps driver).
 	bool updateRtcmCorrections();
 
-	void publishWithFailures(int instance, sensor_gnss_s gps, uORB::PublicationMulti<sensor_gnss_s> &pub);
+	void publishWithFailures(int instance, sensor_gnss_s gnss, uORB::PublicationMulti<sensor_gnss_s> &pub);
 
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
@@ -95,8 +95,8 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_corrections_sub{ORB_ID::rtcm_corrections};
 
-	uORB::PublicationMulti<sensor_gnss_s> _sensor_gps_pub{ORB_ID(sensor_gnss)};
-	uORB::PublicationMulti<sensor_gnss_s> _sensor_gps_pub2{ORB_ID(sensor_gnss)};
+	uORB::PublicationMulti<sensor_gnss_s> _sensor_gnss_pub{ORB_ID(sensor_gnss)};
+	uORB::PublicationMulti<sensor_gnss_s> _sensor_gnss_pub2{ORB_ID(sensor_gnss)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
@@ -125,7 +125,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SIM_GPS_USED>)      _sim_gps_used,
-		(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_gps1_offx,
-		(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_gps1_offy
+		(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_gnss1_offx,
+		(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_gnss1_offy
 	)
 };

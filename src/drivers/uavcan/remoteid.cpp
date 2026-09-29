@@ -163,14 +163,14 @@ void UavcanRemoteIDController::send_location()
 		}
 	}
 
-	if (_vehicle_gps_position_sub.advertised()) {
-		vehicle_gnss_s vehicle_gps_position{};
+	if (_vehicle_gnss_sub.advertised()) {
+		vehicle_gnss_s vehicle_gnss{};
 
-		if (_vehicle_gps_position_sub.copy(&vehicle_gps_position)
-		    && (hrt_elapsed_time(&vehicle_gps_position.timestamp) < 10_s)) {
+		if (_vehicle_gnss_sub.copy(&vehicle_gnss)
+		    && (hrt_elapsed_time(&vehicle_gnss.timestamp) < 10_s)) {
 
-			if (vehicle_gps_position.receiver.vel_ned_valid) {
-				const matrix::Vector3f vel_ned{vehicle_gps_position.receiver.vel_north, vehicle_gps_position.receiver.vel_east, vehicle_gps_position.receiver.vel_down};
+			if (vehicle_gnss.receiver.vel_ned_valid) {
+				const matrix::Vector3f vel_ned{vehicle_gnss.receiver.vel_north, vehicle_gnss.receiver.vel_east, vehicle_gnss.receiver.vel_down};
 
 				// direction: calculate GPS course over ground angle
 				const float course = atan2f(vel_ned(1), vel_ned(0));
@@ -185,34 +185,34 @@ void UavcanRemoteIDController::send_location()
 				const int speed_vertical_cm_s = roundf(-vel_ned(2) * 100.f);
 				msg.speed_vertical = math::constrain(speed_vertical_cm_s, -6200, 6200);
 
-				msg.speed_accuracy = open_drone_id_translations::odidSpeedAccForVariance(vehicle_gps_position.receiver.speed_accuracy);
+				msg.speed_accuracy = open_drone_id_translations::odidSpeedAccForVariance(vehicle_gnss.receiver.speed_accuracy);
 
 				updated = true;
 			}
 
-			if (vehicle_gps_position.receiver.fix_type >= 2) {
-				msg.latitude = static_cast<int32_t>(round(vehicle_gps_position.receiver.latitude * 1e7));
-				msg.longitude = static_cast<int32_t>(round(vehicle_gps_position.receiver.longitude * 1e7));
+			if (vehicle_gnss.receiver.fix_type >= 2) {
+				msg.latitude = static_cast<int32_t>(round(vehicle_gnss.receiver.latitude * 1e7));
+				msg.longitude = static_cast<int32_t>(round(vehicle_gnss.receiver.longitude * 1e7));
 
 				// altitude_geodetic
-				if (vehicle_gps_position.receiver.fix_type >= 3) {
-					msg.altitude_geodetic = static_cast<float>(round(vehicle_gps_position.receiver.altitude_msl)); // [m]
+				if (vehicle_gnss.receiver.fix_type >= 3) {
+					msg.altitude_geodetic = static_cast<float>(round(vehicle_gnss.receiver.altitude_msl)); // [m]
 				}
 
-				msg.horizontal_accuracy = open_drone_id_translations::odidHorAccForEph(vehicle_gps_position.receiver.eph);
+				msg.horizontal_accuracy = open_drone_id_translations::odidHorAccForEph(vehicle_gnss.receiver.eph);
 
-				msg.vertical_accuracy = open_drone_id_translations::odidVerAccForEpv(vehicle_gps_position.receiver.epv);
+				msg.vertical_accuracy = open_drone_id_translations::odidVerAccForEpv(vehicle_gnss.receiver.epv);
 
 				updated = true;
 			}
 
-			if (vehicle_gps_position.receiver.time_utc_usec != 0) {
+			if (vehicle_gnss.receiver.time_utc_usec != 0) {
 				// timestamp: UTC then convert for this field using ((float) (time_week_ms % (60*60*1000))) / 1000
-				uint64_t utc_time_msec = vehicle_gps_position.receiver.time_utc_usec / 1000;
+				uint64_t utc_time_msec = vehicle_gnss.receiver.time_utc_usec / 1000;
 				msg.timestamp = ((float)(utc_time_msec % (60 * 60 * 1000))) / 1000;
 
 				msg.timestamp_accuracy = open_drone_id_translations::odidTimeForElapsed(hrt_elapsed_time(
-								 &vehicle_gps_position.timestamp));
+								 &vehicle_gnss.timestamp));
 
 				updated = true;
 			}
@@ -287,11 +287,11 @@ void UavcanRemoteIDController::send_system()
 	} else {
 		// And otherwise, send our home/takeoff location.
 
-		vehicle_gnss_s vehicle_gps_position;
+		vehicle_gnss_s vehicle_gnss;
 		home_position_s home_position;
 
-		if (_vehicle_gps_position_sub.copy(&vehicle_gps_position) && _home_position_sub.copy(&home_position)) {
-			if (vehicle_gps_position.receiver.fix_type >= 3
+		if (_vehicle_gnss_sub.copy(&vehicle_gnss) && _home_position_sub.copy(&home_position)) {
+			if (vehicle_gnss.receiver.fix_type >= 3
 			    && home_position.valid_alt && home_position.valid_hpos) {
 
 				dronecan::remoteid::System msg {};
@@ -307,12 +307,12 @@ void UavcanRemoteIDController::send_system()
 				msg.area_floor = -1000;
 				msg.category_eu = MAV_ODID_CATEGORY_EU_UNDECLARED;
 				msg.class_eu = MAV_ODID_CLASS_EU_UNDECLARED;
-				float wgs84_amsl_offset = vehicle_gps_position.receiver.altitude_ellipsoid - vehicle_gps_position.receiver.altitude_msl;
+				float wgs84_amsl_offset = vehicle_gnss.receiver.altitude_ellipsoid - vehicle_gnss.receiver.altitude_msl;
 				msg.operator_altitude_geo = home_position.alt + wgs84_amsl_offset;
 
 				// timestamp: 32 bit Unix Timestamp in seconds since 00:00:00 01/01/2019.
 				static uint64_t utc_offset_s = 1'546'300'800; // UTC seconds since 00:00:00 01/01/2019
-				msg.timestamp = vehicle_gps_position.receiver.time_utc_usec / 1e6 - utc_offset_s;
+				msg.timestamp = vehicle_gnss.receiver.time_utc_usec / 1e6 - utc_offset_s;
 
 				_uavcan_pub_remoteid_system.broadcast(msg);
 			}

@@ -96,7 +96,7 @@ msp_rendor_current_draw_t construct_rendor_CURRENT_DRAW(const battery_status_s &
 msp_rendor_mah_drawn_t construct_rendor_MAH_DRAWN(const battery_status_s &battery_status);
 
 // construct an MSP_RAW_GPS struct
-msp_raw_gps_t construct_RAW_GPS(const vehicle_gnss_s &vehicle_gps_position,
+msp_raw_gps_t construct_RAW_GPS(const vehicle_gnss_s &vehicle_gnss,
 				const airspeed_validated_s &airspeed_validated);
 
 // construct an MSP_COMP_GPS struct
@@ -104,13 +104,13 @@ msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 				  const vehicle_global_position_s &vehicle_global_position,
 				  const bool heartbeat);
 
-msp_rendor_latitude_t construct_rendor_GPS_LAT(const vehicle_gnss_s &vehicle_gps_position);
+msp_rendor_latitude_t construct_rendor_GPS_LAT(const vehicle_gnss_s &vehicle_gnss);
 
-msp_rendor_longitude_t construct_rendor_GPS_LON(const vehicle_gnss_s &vehicle_gps_position);
+msp_rendor_longitude_t construct_rendor_GPS_LON(const vehicle_gnss_s &vehicle_gnss);
 
-msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const vehicle_gnss_s &vehicle_gps_position);
+msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const vehicle_gnss_s &vehicle_gnss);
 
-msp_rendor_gps_speed_t construct_rendor_GPS_SPEED(const vehicle_gnss_s &vehicle_gps_position);
+msp_rendor_gps_speed_t construct_rendor_GPS_SPEED(const vehicle_gnss_s &vehicle_gnss);
 
 // construct an MSP_ATTITUDE struct
 msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude);
@@ -120,10 +120,10 @@ msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_att
 msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attitude);
 
 // construct an MSP_ALTITUDE struct
-msp_altitude_t construct_ALTITUDE(const vehicle_gnss_s &vehicle_gps_position,
+msp_altitude_t construct_ALTITUDE(const vehicle_gnss_s &vehicle_gnss,
 				  const vehicle_local_position_s &vehicle_local_position);
 
-msp_rendor_altitude_t construct_Rendor_ALTITUDE(const vehicle_gnss_s &vehicle_gps_position,
+msp_rendor_altitude_t construct_Rendor_ALTITUDE(const vehicle_gnss_s &vehicle_gnss,
 		const vehicle_local_position_s &vehicle_local_position);
 
 msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_s &home_position,

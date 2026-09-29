@@ -94,18 +94,18 @@ bool CRSFTelemetry::send_battery()
 
 bool CRSFTelemetry::send_gps()
 {
-	vehicle_gnss_s vehicle_gps_position;
+	vehicle_gnss_s vehicle_gnss;
 
-	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+	if (!_vehicle_gnss_sub.update(&vehicle_gnss)) {
 		return false;
 	}
 
-	int32_t latitude = static_cast<int32_t>(round(vehicle_gps_position.receiver.latitude * 1e7));
-	int32_t longitude = static_cast<int32_t>(round(vehicle_gps_position.receiver.longitude * 1e7));
-	uint16_t groundspeed = vehicle_gps_position.receiver.ground_speed * 3.6f * 10.f;   // 0.1 km/h
-	uint16_t gps_heading = math::degrees(matrix::wrap_2pi(vehicle_gps_position.receiver.course)) * 100.f;
-	uint16_t altitude = static_cast<uint16_t>(round(vehicle_gps_position.receiver.altitude_msl) + 1000);   // meters + 1000 offset
-	uint8_t num_satellites = vehicle_gps_position.receiver.satellites_used;
+	int32_t latitude = static_cast<int32_t>(round(vehicle_gnss.receiver.latitude * 1e7));
+	int32_t longitude = static_cast<int32_t>(round(vehicle_gnss.receiver.longitude * 1e7));
+	uint16_t groundspeed = vehicle_gnss.receiver.ground_speed * 3.6f * 10.f;   // 0.1 km/h
+	uint16_t gps_heading = math::degrees(matrix::wrap_2pi(vehicle_gnss.receiver.course)) * 100.f;
+	uint16_t altitude = static_cast<uint16_t>(round(vehicle_gnss.receiver.altitude_msl) + 1000);   // meters + 1000 offset
+	uint8_t num_satellites = vehicle_gnss.receiver.satellites_used;
 
 	return crsf_send_telemetry_gps(_uart_fd, latitude, longitude, groundspeed,
 				       gps_heading, altitude, num_satellites);

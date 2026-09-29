@@ -116,7 +116,7 @@ private:
 	uORB::PublicationMulti<vehicle_local_position_s>  _local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::PublicationMulti<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::PublicationMulti<sensor_baro_s>             _sensor_baro_pub{ORB_ID(sensor_baro)};
-	uORB::PublicationMulti<sensor_gnss_s>              _sensor_gps_pub{ORB_ID(sensor_gnss)};
+	uORB::PublicationMulti<sensor_gnss_s>              _sensor_gnss_pub{ORB_ID(sensor_gnss)};
 	uORB::Publication<sensor_selection_s>             _sensor_selection_pub{ORB_ID(sensor_selection)};
 	uORB::Publication<estimator_status_s>             _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::Publication<estimator_status_flags_s>       _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};

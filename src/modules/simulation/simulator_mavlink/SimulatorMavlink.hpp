@@ -159,8 +159,8 @@ public:
 
 		px4_lockstep_unregister_component(_lockstep_component);
 
-		for (size_t i = 0; i < sizeof(_sensor_gps_pubs) / sizeof(_sensor_gps_pubs[0]); i++) {
-			delete _sensor_gps_pubs[i];
+		for (size_t i = 0; i < sizeof(_sensor_gnss_pubs) / sizeof(_sensor_gnss_pubs[0]); i++) {
+			delete _sensor_gnss_pubs[i];
 		}
 
 		_instance = nullptr;
@@ -285,7 +285,7 @@ private:
 
 	// HIL GPS
 	static constexpr int MAX_GPS = 3;
-	uORB::PublicationMulti<sensor_gnss_s>	*_sensor_gps_pubs[MAX_GPS] {};
+	uORB::PublicationMulti<sensor_gnss_s>	*_sensor_gnss_pubs[MAX_GPS] {};
 	uint8_t _gps_ids[MAX_GPS] {};
 	std::default_random_engine _gen{};
 
@@ -312,7 +312,7 @@ private:
 	hrt_abstime _last_gyro_fifo_timestamp{0};
 
 	// Per-HIL_GPS-instance last-good sample, for the Stuck failure.
-	failure_injection::Stuck<sensor_gnss_s> _gps_stuck[MAX_GPS];
+	failure_injection::Stuck<sensor_gnss_s> _gnss_stuck[MAX_GPS];
 
 	// airspeed and VIO failure injection (no PX4* helper class applies these).
 	bool _airspeed_disconnected{false};

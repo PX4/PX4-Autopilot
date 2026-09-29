@@ -84,7 +84,7 @@ private:
 
 	uavcan::INode &_node;
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};

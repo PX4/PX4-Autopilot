@@ -80,7 +80,7 @@ private:
 	bool send_flight_mode();
 	bool send_baro_altitude();
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};

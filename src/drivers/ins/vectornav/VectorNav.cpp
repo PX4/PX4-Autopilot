@@ -431,38 +431,38 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 		// publish sensor_gnss
 		if (gpsFix > 0) {
-			sensor_gnss_s sensor_gps{};
-			sensor_gps.timestamp_sample = time_now_us;
+			sensor_gnss_s sensor_gnss{};
+			sensor_gnss.timestamp_sample = time_now_us;
 
-			sensor_gps.device_id = 0; // TODO
+			sensor_gnss.device_id = 0; // TODO
 
-			sensor_gps.time_utc_usec = 0;
+			sensor_gnss.time_utc_usec = 0;
 
-			sensor_gps.satellites_used = numSats;
+			sensor_gnss.satellites_used = numSats;
 
-			sensor_gps.fix_type = gpsFix;
+			sensor_gnss.fix_type = gpsFix;
 
-			sensor_gps.latitude = positionGpsLla.c[0];
-			sensor_gps.longitude = positionGpsLla.c[1];
-			sensor_gps.altitude_msl = positionGpsLla.c[2];
-			sensor_gps.altitude_ellipsoid = sensor_gps.altitude_msl;
+			sensor_gnss.latitude = positionGpsLla.c[0];
+			sensor_gnss.longitude = positionGpsLla.c[1];
+			sensor_gnss.altitude_msl = positionGpsLla.c[2];
+			sensor_gnss.altitude_ellipsoid = sensor_gnss.altitude_msl;
 
-			sensor_gps.ground_speed = matrix::Vector3f(velocityGpsNed.c).length();
-			sensor_gps.vel_north = velocityGpsNed.c[0];
-			sensor_gps.vel_east = velocityGpsNed.c[1];
-			sensor_gps.vel_down = velocityGpsNed.c[2];
-			sensor_gps.vel_ned_valid = true;
+			sensor_gnss.ground_speed = matrix::Vector3f(velocityGpsNed.c).length();
+			sensor_gnss.vel_north = velocityGpsNed.c[0];
+			sensor_gnss.vel_east = velocityGpsNed.c[1];
+			sensor_gnss.vel_down = velocityGpsNed.c[2];
+			sensor_gnss.vel_ned_valid = true;
 
-			sensor_gps.hdop = dop.hDOP;
-			sensor_gps.vdop = dop.vDOP;
+			sensor_gnss.hdop = dop.hDOP;
+			sensor_gnss.vdop = dop.vDOP;
 
-			sensor_gps.eph = sqrtf(sq(positionUncertaintyGpsNed.c[0]) + sq(positionUncertaintyGpsNed.c[1]));
-			sensor_gps.epv = positionUncertaintyGpsNed.c[2];
+			sensor_gnss.eph = sqrtf(sq(positionUncertaintyGpsNed.c[0]) + sq(positionUncertaintyGpsNed.c[1]));
+			sensor_gnss.epv = positionUncertaintyGpsNed.c[2];
 
-			sensor_gps.speed_accuracy = velocityUncertaintyGps;
+			sensor_gnss.speed_accuracy = velocityUncertaintyGps;
 
-			sensor_gps.timestamp = hrt_absolute_time();
-			_sensor_gps_pub.publish(sensor_gps);
+			sensor_gnss.timestamp = hrt_absolute_time();
+			_sensor_gnss_pub.publish(sensor_gnss);
 			perf_count(_gnss_pub_interval_perf);
 		}
 	}

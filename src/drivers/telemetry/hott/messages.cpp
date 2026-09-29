@@ -59,7 +59,7 @@
 #define BOARD_TEMP_OFFSET_DEG 5
 
 static orb_sub_t _battery_sub = ORB_SUB_INVALID;
-static orb_sub_t _gps_sub = ORB_SUB_INVALID;
+static orb_sub_t _vehicle_gnss_sub = ORB_SUB_INVALID;
 static orb_sub_t _home_sub = ORB_SUB_INVALID;
 static orb_sub_t _airdata_sub = ORB_SUB_INVALID;
 static orb_sub_t _airspeed_sub = ORB_SUB_INVALID;
@@ -75,7 +75,7 @@ void
 init_sub_messages(void)
 {
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
-	_gps_sub = orb_subscribe(ORB_ID(vehicle_gnss));
+	_vehicle_gnss_sub = orb_subscribe(ORB_ID(vehicle_gnss));
 	_home_sub = orb_subscribe(ORB_ID(home_position));
 	_airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
@@ -213,9 +213,9 @@ void
 build_gps_response(uint8_t *buffer, size_t *size)
 {
 	/* get a local copy of the battery data */
-	struct vehicle_gnss_s gps;
-	memset(&gps, 0, sizeof(gps));
-	orb_copy(ORB_ID(vehicle_gnss), _gps_sub, &gps);
+	struct vehicle_gnss_s gnss;
+	memset(&gnss, 0, sizeof(gnss));
+	orb_copy(ORB_ID(vehicle_gnss), _vehicle_gnss_sub, &gnss);
 
 	struct gps_module_msg msg;
 	*size = sizeof(msg);
@@ -225,24 +225,24 @@ build_gps_response(uint8_t *buffer, size_t *size)
 	msg.sensor_id = GPS_SENSOR_ID;
 	msg.sensor_text_id = GPS_SENSOR_TEXT_ID;
 
-	msg.gps_num_sat = gps.receiver.satellites_used;
+	msg.gps_num_sat = gnss.receiver.satellites_used;
 
 	/* The GPS fix type: 0 = none, 2 = 2D, 3 = 3D */
-	msg.gps_fix_char = (uint8_t)(gps.receiver.fix_type + 48);
-	msg.gps_fix = (uint8_t)(gps.receiver.fix_type + 48);
+	msg.gps_fix_char = (uint8_t)(gnss.receiver.fix_type + 48);
+	msg.gps_fix = (uint8_t)(gnss.receiver.fix_type + 48);
 
 	/* No point collecting more data if we don't have a 3D fix yet */
-	if (gps.receiver.fix_type > 2) {
+	if (gnss.receiver.fix_type > 2) {
 		/* Current flight direction */
-		msg.flight_direction = (uint8_t)(gps.receiver.course * M_RAD_TO_DEG_F);
+		msg.flight_direction = (uint8_t)(gnss.receiver.course * M_RAD_TO_DEG_F);
 
 		/* GPS speed */
-		uint16_t speed = (uint16_t)(gps.receiver.ground_speed * 3.6f);
+		uint16_t speed = (uint16_t)(gnss.receiver.ground_speed * 3.6f);
 		msg.gps_speed_L = (uint8_t)speed & 0xff;
 		msg.gps_speed_H = (uint8_t)(speed >> 8) & 0xff;
 
 		/* Get latitude in degrees, minutes and seconds */
-		double lat = gps.receiver.latitude;
+		double lat = gnss.receiver.latitude;
 
 		/* Set the N or S specifier */
 		msg.latitude_ns = 0;
@@ -265,7 +265,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		msg.latitude_sec_H = (uint8_t)(lat_sec >> 8) & 0xff;
 
 		/* Get longitude in degrees, minutes and seconds */
-		double lon = gps.receiver.longitude;
+		double lon = gnss.receiver.longitude;
 
 		/* Set the E or W specifier */
 		msg.longitude_ew = 0;
@@ -285,7 +285,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		msg.longitude_sec_H = (uint8_t)(lon_sec >> 8) & 0xff;
 
 		/* Altitude */
-		uint16_t alt = (uint16_t)(round(gps.receiver.altitude_msl) + 500.0);
+		uint16_t alt = (uint16_t)(round(gnss.receiver.altitude_msl) + 500.0);
 		msg.altitude_L = (uint8_t)alt & 0xff;
 		msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
 
