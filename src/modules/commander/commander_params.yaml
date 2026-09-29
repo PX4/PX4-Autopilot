@@ -437,7 +437,7 @@ parameters:
         long: |-
           Specify modes in which stick input is ignored and no failsafe action is triggered.
           External modes requiring stick input will still failsafe.
-          Auto modes are: Hold, Takeoff, Land, Return, Descend, Follow Target, Precland, Orbit.
+          Auto modes are: Hold, Goto, Takeoff, Land, Return, Descend, Follow Target, Precland, Orbit.
       type: bitmask
       bit:
         0: Mission
@@ -705,7 +705,7 @@ parameters:
         long: |-
           Action the system takes when the estimated position has an accuracy below the specified threshold.
           See COM_POS_LOW_EPH to set the failsafe threshold.
-          The failsafe action is only executed if the vehicle is in auto mission or auto loiter mode,
+          The failsafe action is only executed if the vehicle is in auto mission, auto loiter or goto mode,
           otherwise it is only a warning.
       type: enum
       values:

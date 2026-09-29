@@ -69,6 +69,7 @@ set(NAVIGATOR_SOURCES
 	mission.cpp
 	course.cpp
 	loiter.cpp
+	goto_mode.cpp
 	rtl.cpp
 	rtl_direct.cpp
 	rtl_direct_mission_land.cpp

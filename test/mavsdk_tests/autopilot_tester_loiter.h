@@ -65,7 +65,8 @@ public:
 	void command_figure_eight(LocalCoordinate center, float major_axis_m, float minor_axis_m, float rel_alt_m);
 
 	// Command a plain reposition to a home-relative target (fly straight toward it).
-	void command_reposition(LocalCoordinate target, float rel_alt_m);
+	// Without change_mode, the CHANGE_MODE flag is not set: the target is updated in place.
+	void command_reposition(LocalCoordinate target, float rel_alt_m, bool change_mode = true);
 
 	// Send a pause/Hold reposition: lat/lon/alt all NaN, CHANGE_MODE flag set.
 	void command_hold_here();
@@ -115,7 +116,7 @@ public:
 	// NAV_FW_ALT_RAD fixed-wing altitude acceptance radius in meters.
 	float fw_altitude_acceptance_radius();
 
-private:
+protected:
 	// Horizontal distance in meters between a NED sample and a local coordinate.
 	static double horizontal_distance(const mavsdk::Telemetry::PositionVelocityNed &sample, const LocalCoordinate &c);
 };

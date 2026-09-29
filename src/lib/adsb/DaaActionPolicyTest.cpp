@@ -69,6 +69,7 @@ const uint8_t kStatesEnableHold[] {
 	vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET,
 	vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF,
 	vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE,
+	vehicle_status_s::NAVIGATION_STATE_GOTO,
 };
 
 const uint8_t kStatesEnableRtl[] {

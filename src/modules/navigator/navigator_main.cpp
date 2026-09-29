@@ -136,6 +136,7 @@ Navigator::Navigator() :
 	_geofence(this),
 	_mission(this),
 	_loiter(this),
+	_goto(this),
 	_takeoff(this),
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_vtol_takeoff(this),
@@ -162,6 +163,7 @@ Navigator::Navigator() :
 	_navigation_mode_array[6] = &_vtol_takeoff;
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_navigation_mode_array[7] = &_course;
+	_navigation_mode_array[8] = &_goto;
 
 	/* iterate through navigation modes and initialize _mission_item for each */
 	for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
@@ -379,28 +381,66 @@ void Navigator::run()
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION
 				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
 				   && (((uint32_t)cmd.param2 & 1) != 0
-				       || _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
-				// Only apply the reposition setpoint when armed and either a mode switch into Hold was requested
-				// (CHANGE_MODE flag) or we're already in Hold. Otherwise a later switch into Hold could execute a
-				// stale setpoint (loiter.cpp applies it within a 500ms window).
+				       || _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
+				       || _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_GOTO)) {
+				// Only apply the reposition setpoint when armed and either a mode switch into Hold/Goto was
+				// requested (CHANGE_MODE flag) or we're already in Hold/Goto. Otherwise a later switch into
+				// Hold/Goto could execute a stale setpoint (loiter.cpp/goto_mode.cpp apply it within a 500ms window).
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
 				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
-				vehicle_global_position_s position_setpoint{};
+				const bool has_position_target = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6);
+				const bool has_alt_or_heading = PX4_ISFINITE(cmd.param7) || PX4_ISFINITE(cmd.param4);
+				const bool change_mode_requested = ((uint32_t)cmd.param2 & 1) != 0;
+				const bool in_goto_mode = _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_GOTO;
+				const bool targets_goto = change_mode_requested
+							  ? ((has_position_target || (in_goto_mode && has_alt_or_heading))
+							     && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+							     && !_vstatus.in_transition_mode)
+							  : in_goto_mode;
 
-				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+				vehicle_global_position_s position_setpoint{};
+				float goto_target_alt = NAN;
+				float goto_target_heading = NAN;
+
+				if (has_position_target) {
 					position_setpoint.lat = cmd.param5;
 					position_setpoint.lon = cmd.param6;
 
-				} else {
+				} else if (!(targets_goto && _goto.getTarget(position_setpoint.lat, position_setpoint.lon, goto_target_alt,
+						goto_target_heading))) {
 					position_setpoint.lat = get_global_position()->lat;
 					position_setpoint.lon = get_global_position()->lon;
 				}
 
-				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
+				if (PX4_ISFINITE(cmd.param7)) {
+					position_setpoint.alt = cmd.param7;
 
-				if (geofence_allows_position(position_setpoint)) {
+				} else {
+					// In-place Goto update without altitude: keep the target altitude
+					position_setpoint.alt = PX4_ISFINITE(goto_target_alt) ? goto_target_alt : get_global_position()->alt;
+				}
+
+				const bool geofence_allows = geofence_allows_position(position_setpoint);
+
+				if (geofence_allows && targets_goto) {
+					float cruising_speed = -1.f;
+
+					if (PX4_ISFINITE(cmd.param1) && cmd.param1 > 0.f) {
+						cruising_speed = cmd.param1;
+
+					} else if (_navigation_mode == &_goto) {
+						cruising_speed = get_cruising_speed();
+					}
+
+					// In-place Goto update without heading: keep the target heading
+					const float heading = PX4_ISFINITE(cmd.param4) ? cmd.param4 : goto_target_heading;
+					_goto.setTarget(position_setpoint.lat, position_setpoint.lon, position_setpoint.alt, heading, cruising_speed);
+
+					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
+
+				} else if (geofence_allows) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
@@ -548,9 +588,10 @@ void Navigator::run()
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_ALTITUDE
 				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
 				   && (_navigation_mode == &_course
+				       || _navigation_mode == &_goto
 				       || _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
 				// Only update the setpoint if armed and already in a mode that consumes it. Otherwise a later
-				// switch into Hold could execute a stale setpoint (loiter.cpp applies it within a 500ms window).
+				// switch into Hold/Goto could execute a stale setpoint (loiter.cpp/goto_mode.cpp apply it within a 500ms window).
 
 				if (_navigation_mode == &_course) {
 					// In course mode, update altitude directly (after geofence check)
@@ -568,6 +609,26 @@ void Navigator::run()
 						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
 						events::send(events::ID("navigator_course_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
 							     "Altitude change is outside geofence");
+					}
+
+					// DO_CHANGE_ALTITUDE is acknowledged by commander
+
+				} else if (_navigation_mode == &_goto) {
+					vehicle_global_position_s position_setpoint{};
+					float target_alt{NAN};
+					float target_heading{NAN};
+
+					if (_goto.getTarget(position_setpoint.lat, position_setpoint.lon, target_alt, target_heading)) {
+						position_setpoint.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : target_alt;
+
+						if (geofence_allows_position(position_setpoint)) {
+							_goto.setAltitude(position_setpoint.alt);
+
+						} else {
+							mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
+							events::send(events::ID("navigator_goto_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
+								     "Altitude change is outside geofence");
+						}
 					}
 
 					// DO_CHANGE_ALTITUDE is acknowledged by commander
@@ -995,6 +1056,11 @@ void Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_loiter;
+			break;
+
+		case vehicle_status_s::NAVIGATION_STATE_GOTO:
+			_pos_sp_triplet_published_invalid_once = false;
+			navigation_mode_new = &_goto;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:

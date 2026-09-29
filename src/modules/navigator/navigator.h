@@ -43,6 +43,7 @@
 
 #include "course.h"
 #include "geofence.h"
+#include "goto_mode.h"
 #include "land.h"
 #include "precland.h"
 #include "loiter.h"
@@ -437,6 +438,7 @@ private:
 	MissionRouteCache _mission_route_cache{&_mavlink_log_pub};
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
+	Goto		_goto;				/**< class that handles flying to a repositioned target, then holding */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	VtolTakeoff	_vtol_takeoff;			/**< class for handling VEHICLE_CMD_NAV_VTOL_TAKEOFF command */

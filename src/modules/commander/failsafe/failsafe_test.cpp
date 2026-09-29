@@ -473,6 +473,120 @@ TEST_F(FailsafeTest, OrbitAutoresumeAfterFailsafeDowngradedToLoiter)
 	ASSERT_EQ(updated_user_intended_mode, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 }
 
+TEST_F(FailsafeTest, GotoAutoresumeAfterFailsafeDowngradedToLoiter)
+{
+	FailsafeTester failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_GOTO;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	// Wind limit exceeded -> eventually RTL; Goto is downgraded to Loiter at failsafe entry,
+	// as it drops its target when left.
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = true;
+	state.user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	time += 5_s;
+	state.user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+	ASSERT_EQ(state.user_intended_mode, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+
+	// Failsafe resolved, no new mode commanded -> stays Loiter
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = false;
+	uint8_t updated_user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_EQ(updated_user_intended_mode, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+}
+
+// NAVIGATION_STATE_GOTO shares AUTO_LOITER's failsafe treatment: the AutoModes RC/GCS-loss
+// exception bit, the quadchute check, and the low-position-accuracy check must all still apply to
+// it after the GoTo/Hold split, exactly as they did when GoTo was just a sub-case of Hold.
+TEST_F(FailsafeTest, GotoRcLossIgnoredWithAutoModesException)
+{
+	int32_t rcl_except = (int32_t)1 << 1; // AutoModes bit
+	param_set(param_handle(px4::params::COM_RCL_EXCEPT), &rcl_except);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_GOTO;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	// RC loss would normally trigger a failsafe action, but the AutoModes exception bit covers
+	// Goto the same way it already covers Loiter (COM_RCL_EXCEPT bit 1).
+	time += 10_ms;
+	failsafe_flags.manual_control_signal_lost = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	time += 5_s;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+}
+
+TEST_F(FailsafeTest, GotoQuadchuteMatchesLoiter)
+{
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_GOTO;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	// VTOL transition failure while in Goto triggers the quadchute action, same as in Loiter
+	// (default COM_QC_ACT = Return mode).
+	// Feed the returned mode back as Commander does: Goto is downgraded to Loiter at failsafe entry.
+	time += 10_ms;
+	failsafe_flags.vtol_fixed_wing_system_failure = true;
+	state.user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	time += 5_s;
+	state.user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
+
+TEST_F(FailsafeTest, GotoPositionAccuracyLowMatchesLoiter)
+{
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_GOTO;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	// Low position accuracy while in Goto triggers COM_POS_LOW_ACT, same as in Loiter/Mission
+	// (default = Return mode).
+	// Feed the returned mode back as Commander does: Goto is downgraded to Loiter at failsafe entry.
+	time += 10_ms;
+	failsafe_flags.position_accuracy_low = true;
+	state.user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	time += 5_s;
+	state.user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
+
 TEST_F(FailsafeTest, Defer)
 {
 	FailsafeTester failsafe(nullptr);
