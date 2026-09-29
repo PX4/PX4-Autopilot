@@ -45,6 +45,8 @@
 class GeofenceTest : public navigator_test::GeofenceTestBase
 {
 protected:
+	using navigator_test::GeofenceTestBase::GeofenceTestBase;
+
 	void SetUp() override
 	{
 		ASSERT_TRUE(resetFence());
@@ -750,4 +752,65 @@ TEST_F(GeofenceTest, RepeatedVerticesDoNotChangeResults)
 	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
 	EXPECT_TRUE(clear[0]);
 	EXPECT_FALSE(clear[1]);
+}
+
+// Home sits next to the antimeridian.
+class AntimeridianGeofenceTest : public GeofenceTest
+{
+protected:
+	AntimeridianGeofenceTest() : GeofenceTest(47.0, 179.999) {}
+
+	static mission_fence_point_s fencePoint(uint16_t nav_cmd, double lat, double lon)
+	{
+		mission_fence_point_s point{};
+		point.nav_cmd = nav_cmd;
+		point.frame = NAV_FRAME_GLOBAL;
+		point.lat = lat;
+		point.lon = lon;
+		return point;
+	}
+
+	// A 0.0004 deg exclusion square, about 30 m by 44 m here.
+	static FencePoints exclusionAt(double lat, double lon)
+	{
+		const double corners[4][2] {{-1.0, -1.0}, {1.0, -1.0}, {1.0, 1.0}, {-1.0, 1.0}};
+		FencePoints points;
+
+		for (const auto &corner : corners) {
+			points.push_back(fencePoint(NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION, lat + 0.0002 * corner[0], lon + 0.0002 * corner[1]));
+			points.back().vertex_count = 4;
+		}
+
+		return points;
+	}
+};
+
+TEST_F(AntimeridianGeofenceTest, ShortPathsMayCrossTheAntimeridian)
+{
+	// About 150 m across the antimeridian, in both directions.
+	const Geofence::PathCheck paths[] {{{47.0, 179.999}, {47.0, -179.999}}, {{47.0, -179.999}, {47.0, 179.999}}};
+	mission_fence_point_s circle = fencePoint(NAV_CMD_FENCE_CIRCLE_EXCLUSION, 47.0, 180.0);
+	circle.circle_radius = 20.f;
+
+	const struct {
+		const char *name;
+		FencePoints fence;
+		bool clear;
+	} cases[] {
+		{"NoFence", {}, true},
+		{"ExclusionEastOfAntimeridian", exclusionAt(47.0, -179.9995), false},
+		{"ExclusionWestOfAntimeridian", exclusionAt(47.0, 179.9995), false},
+		{"ExclusionNorthOfPath", exclusionAt(47.001, -179.9995), true},
+		{"ExclusionAcrossTheGlobe", exclusionAt(47.0, 0.0), true},
+		{"ExclusionCircleOnAntimeridian", {circle}, false},
+	};
+
+	for (const auto &test : cases) {
+		SCOPED_TRACE(test.name);
+		ASSERT_TRUE(loadFence(test.fence));
+		bool clear[2] {};
+		ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_EQ(clear[0], test.clear);
+		EXPECT_EQ(clear[1], test.clear);
+	}
 }

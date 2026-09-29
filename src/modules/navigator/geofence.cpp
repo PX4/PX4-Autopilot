@@ -57,6 +57,28 @@
 #include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
 
+// Compare a path and a fence edge in one continuous longitude range, so paths may cross the antimeridian.
+// Fence edges never cross it: the loader rejects them, since the point check could not handle them either.
+static bool pathTouchesEdge(const Geofence::PathCheck &path, const matrix::Vector2d &edge_start,
+			    const matrix::Vector2d &edge_end)
+{
+	// Take the short way around, e.g. a path from 179 to -179 deg runs from 179 to 181 deg.
+	matrix::Vector2d path_end = path.end;
+
+	if (fabs(path_end(1) - path.start(1)) > 180.0) {
+		path_end(1) += path_end(1) < path.start(1) ? 360.0 : -360.0;
+	}
+
+	// Move the edge by whole turns to the copy nearest the path, e.g. an edge at -179.5 deg moves to 180.5 deg.
+	// Away from the antimeridian the shift is zero.
+	const double path_middle = 0.5 * (path.start(1) + path_end(1));
+	const double edge_middle = 0.5 * (edge_start(1) + edge_end(1));
+	const double shift = 360.0 * round((edge_middle - path_middle) / 360.0);
+	const matrix::Vector2d shifted_start{edge_start(0), edge_start(1) - shift};
+	const matrix::Vector2d shifted_end{edge_end(0), edge_end(1) - shift};
+	return geofence_utils::segmentsIntersectInclusive(path.start, path_end, shifted_start, shifted_end);
+}
+
 static uint32_t crc32_for_fence_point(const mission_fence_point_s &fence_point, uint32_t prev_crc32)
 {
 	union {
@@ -552,8 +574,7 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 
 		if (!start.isAllFinite() || !end.isAllFinite()
 		    || fabs(start(0)) > 90.0 || fabs(end(0)) > 90.0
-		    || fabs(start(1)) > 180.0 || fabs(end(1)) > 180.0
-		    || fabs(end(1) - start(1)) > 180.0) {
+		    || fabs(start(1)) > 180.0 || fabs(end(1)) > 180.0) {
 			return false;
 		}
 
@@ -627,7 +648,7 @@ bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *pa
 		}
 
 		for (size_t i = 0; i < num_paths; ++i) {
-			if (results[i] && geofence_utils::segmentsIntersectInclusive(paths[i].start, paths[i].end, previous, next)) {
+			if (results[i] && pathTouchesEdge(paths[i], previous, next)) {
 				results[i] = false;
 			}
 		}
