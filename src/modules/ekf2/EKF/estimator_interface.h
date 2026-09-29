@@ -147,6 +147,10 @@ public:
 	void setRangingBeaconData(const rangingBeaconSample &ranging_beacon_sample);
 #endif // CONFIG_EKF2_RANGING_BEACON
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	void setWheelEncoderData(const wheelEncoderSample &sample);
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 	void setSystemFlagData(const systemFlagUpdate &system_flags);
 
 	// return a address to the parameters struct
@@ -452,6 +456,11 @@ protected:
 	TimestampedRingBuffer<rangingBeaconSample> *_ranging_beacon_buffer {nullptr};
 	uint64_t _time_last_ranging_beacon_buffer_push{0};
 #endif // CONFIG_EKF2_RANGING_BEACON
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	TimestampedRingBuffer<wheelEncoderSample> *_wheel_encoder_buffer {nullptr};
+	uint64_t _time_last_wheel_encoder_buffer_push{0};
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	TimestampedRingBuffer<baroSample> *_baro_buffer {nullptr};

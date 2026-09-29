@@ -282,6 +282,15 @@ struct rangingBeaconSample {
 	float       beacon_alt{};  ///< beacon altitude AMSL (m)
 };
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+struct wheelEncoderSample {
+	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
+	float       delta_sr{};    ///< distance traveled by right wheel (m)
+	float       delta_sl{};    ///< distance traveled by left wheel (m)
+	float       dt{};          ///< integration period (sec)
+};
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 struct systemFlagUpdate {
 	uint64_t time_us{};
 	bool armed{false};

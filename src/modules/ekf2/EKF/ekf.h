@@ -446,6 +446,10 @@ public:
 	const auto &aid_src_ranging_beacon() const { return _aid_src_ranging_beacon; }
 #endif // CONFIG_EKF2_RANGING_BEACON
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	const auto &aid_src_wheel_encoders() const { return _aid_src_wheel_encoders; }
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
 
@@ -643,6 +647,10 @@ private:
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 	estimator_aid_source1d_s _aid_src_ranging_beacon {};
 #endif // CONFIG_EKF2_RANGING_BEACON
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	estimator_aid_source2d_s _aid_src_wheel_encoders {};
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	estimator_aid_source3d_s _aid_src_gravity {};

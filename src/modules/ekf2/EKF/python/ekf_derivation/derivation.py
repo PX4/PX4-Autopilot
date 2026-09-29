@@ -396,6 +396,32 @@ def compute_body_vel_innov_var_h(
 
     return (innov_var, Hx.T, Hy.T, Hz.T)
 
+def predict_wheel_vel(
+        state: VState
+) -> (sf.V2):
+    # Wheel encoders on a differential drive typically measure longitudinal velocity (Vx)
+    # and implicitly assume lateral velocity (Vy) is zero.
+    vel = state["vel"]
+    R_to_body = state["quat_nominal"].inverse()
+    vel_body = R_to_body * vel
+    return sf.V2(vel_body[0], vel_body[1])
+
+def compute_wheel_vel_innov_var_and_h(
+        state: VState,
+        P: MTangent,
+        R: sf.V2,
+) -> (sf.V2, VTangent, VTangent):
+    state = vstate_to_state(state)
+    meas_pred = predict_wheel_vel(state)
+
+    # Jacobian for Vx and Vy
+    Hx = jacobian_chain_rule(meas_pred[0], state)
+    Hy = jacobian_chain_rule(meas_pred[1], state)
+
+    innov_var = sf.V2((Hx * P * Hx.T + R[0])[0,0],
+                      (Hy * P * Hy.T + R[1])[0,0])
+
+    return (innov_var, Hx.T, Hy.T)
 def compute_body_vel_y_innov_var(
         state: VState,
         P: MTangent,
@@ -777,5 +803,7 @@ generate_px4_function(compute_body_vel_innov_var_h, output_names=["innov_var", "
 generate_px4_function(compute_body_vel_y_innov_var, output_names=["innov_var"])
 generate_px4_function(compute_body_vel_z_innov_var, output_names=["innov_var"])
 generate_px4_function(compute_range_beacon_innov_var_and_h, output_names=["innov_var", "H"])
+
+generate_px4_function(compute_wheel_vel_innov_var_and_h, output_names=["innov_var", "Hx", "Hy"])
 
 generate_px4_state(State, tangent_idx)

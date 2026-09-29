@@ -236,6 +236,14 @@ if(CONFIG_EKF2_TERRAIN)
 	list(APPEND EKF_MODULE_PARAMS params_terrain.yaml)
 endif()
 
+if(CONFIG_EKF2_WHEEL_ENCODERS)
+	list(APPEND EKF_SRCS
+		EKF/aid_sources/wheel_encoders/wheel_encoders_control.cpp
+		EKF/aid_sources/wheel_encoders/wheel_encoders_fusion.cpp
+	)
+	list(APPEND EKF_MODULE_PARAMS params_wheel_encoders.yaml)
+endif()
+
 if(CONFIG_EKF2_WIND)
 	list(APPEND EKF_SRCS EKF/wind.cpp)
 	list(APPEND EKF_MODULE_PARAMS params_wind.yaml)
