@@ -28,7 +28,6 @@ parameters:
                 short: Full cell voltage
                 long: |
                     Defines the voltage where a single cell of the battery is considered full.
-                    For a more accurate estimate set this below the nominal voltage of e.g. 4.2V
 
             type: float
             unit: V
@@ -37,7 +36,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [4.05, 4.05, 4.05]
+            default: [4.2, 4.2, 4.2]
 
         BAT${i}_R_INTERNAL:
             description:
