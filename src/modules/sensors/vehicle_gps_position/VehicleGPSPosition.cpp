@@ -94,13 +94,8 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 
 		updateParams();
 
-		if (_param_sens_gnss_mask.get() == 0) {
-			_sensor_gnss_sub[0].registerCallback();
-
-		} else {
-			for (auto &sub : _sensor_gnss_sub) {
-				sub.registerCallback();
-			}
+		for (auto &sub : _sensor_gnss_sub) {
+			sub.registerCallback();
 		}
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
@@ -110,11 +105,6 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		}
 
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
-
-		_gps_blending.setBlendingUseSpeedAccuracy(_param_sens_gnss_mask.get() & BLEND_MASK_USE_SPD_ACC);
-		_gps_blending.setBlendingUseHPosAccuracy(_param_sens_gnss_mask.get() & BLEND_MASK_USE_HPOS_ACC);
-		_gps_blending.setBlendingUseVPosAccuracy(_param_sens_gnss_mask.get() & BLEND_MASK_USE_VPOS_ACC);
-		_gps_blending.setBlendingTimeConstant(_param_sens_gnss_tau.get());
 
 		const int gnss_prime = _param_sens_gnss_prime.get();
 
@@ -196,11 +186,6 @@ void VehicleGPSPosition::Run()
 		if (_gps_blending.isNewOutputDataAvailable()) {
 			vehicle_gnss_s gnss_output{};
 			gnss_output.receiver = _gps_blending.getOutputGnssData();
-
-			// clear device_id if blending
-			if (_gps_blending.getSelectedGps() == GpsBlending::GPS_MAX_RECEIVERS_BLEND) {
-				gnss_output.receiver.device_id = 0;
-			}
 
 			const matrix::Vector3f &out_offset = _gps_blending.getOutputAntennaOffset();
 			out_offset.copyTo(gnss_output.antenna_offset);

@@ -117,11 +117,6 @@ private:
 	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
 					       hrt_abstime delay_us);
 
-	// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
-	static constexpr uint8_t BLEND_MASK_USE_SPD_ACC  = 1;
-	static constexpr uint8_t BLEND_MASK_USE_HPOS_ACC = 2;
-	static constexpr uint8_t BLEND_MASK_USE_VPOS_ACC = 4;
-
 	uORB::Publication<vehicle_gnss_s> _vehicle_gnss_pub{ORB_ID(vehicle_gnss)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -158,8 +153,6 @@ private:
 	GpsParamSlot _gnss_param_slots[GPS_MAX_RECEIVERS] {};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_GNSS_MASK>) _param_sens_gnss_mask,
-		(ParamFloat<px4::params::SENS_GNSS_TAU>) _param_sens_gnss_tau,
 		(ParamInt<px4::params::SENS_GNSS_PRIME>) _param_sens_gnss_prime,
 		(ParamInt<px4::params::SENS_GNSS0_ID>) _param_sens_gnss0_id,
 		(ParamFloat<px4::params::SENS_GNSS0_OFFX>) _param_sens_gnss0_offx,

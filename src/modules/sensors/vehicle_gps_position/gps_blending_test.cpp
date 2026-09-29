@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Test code for the GPS blending logic
+ * Test code for the GPS receiver selection logic
  * Run this test only using make tests TESTFILTER=GpsBlending
  *
  * @author Mathieu Bresciani <mathieu@auterion.com>
@@ -146,7 +146,6 @@ TEST_F(GpsBlendingTest, singleReceiver)
 	gps_blending.update(_time_now_us);
 
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
-	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 1);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
 	// BUT IF: a second update is called without data
@@ -154,7 +153,6 @@ TEST_F(GpsBlendingTest, singleReceiver)
 
 	// THEN: no new data should be available
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
-	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 1);
 	EXPECT_FALSE(gps_blending.isNewOutputDataAvailable());
 }
 
@@ -174,7 +172,6 @@ TEST_F(GpsBlendingTest, dualReceiverNoBlending)
 
 	// THEN: gps1 should be selected because it has more satellites
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
-	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 2);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
 	gnss_data1.satellites_used = gnss_data0.satellites_used - 2; // gps1 has less satellites than gps0
@@ -184,36 +181,7 @@ TEST_F(GpsBlendingTest, dualReceiverNoBlending)
 
 	// THEN: gps0 should be selected because it has more satellites
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
-	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 2);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
-}
-
-TEST_F(GpsBlendingTest, dualReceiverBlendingHPos)
-{
-	GpsBlending gps_blending;
-
-	sensor_gnss_s gnss_data0 = getDefaultGnssData();
-	sensor_gnss_s gnss_data1 = getDefaultGnssData();
-
-	gps_blending.setBlendingUseHPosAccuracy(true);
-
-	gnss_data1.eph = gnss_data0.eph / 2.f;
-	gps_blending.setGnssData(gnss_data0, 0);
-	gps_blending.setGnssData(gnss_data1, 1);
-	gps_blending.update(_time_now_us);
-
-	// THEN: the blended instance should be selected (2)
-	// and the eph should be adjusted
-	EXPECT_EQ(gps_blending.getSelectedGps(), 2);
-	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 2);
-	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
-	EXPECT_LT(gps_blending.getOutputGnssData().eph, gnss_data0.eph);
-	EXPECT_FLOAT_EQ(gps_blending.getOutputGnssData().eph, gnss_data1.eph); // TODO: should be greater than
-	EXPECT_EQ(gps_blending.getOutputGnssData().timestamp, gnss_data0.timestamp);
-	EXPECT_EQ(gps_blending.getOutputGnssData().timestamp_sample, gnss_data0.timestamp_sample);
-	EXPECT_EQ(gps_blending.getOutputGnssData().latitude, gnss_data0.latitude);
-	EXPECT_EQ(gps_blending.getOutputGnssData().latitude, gnss_data0.latitude);
-	EXPECT_EQ(gps_blending.getOutputGnssData().altitude_msl, gnss_data0.altitude_msl);
 }
 
 TEST_F(GpsBlendingTest, dualReceiverFailover)
@@ -223,9 +191,6 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 	// GIVEN: a dual GPS setup with the first instance (0)
 	// set as primary
 	gps_blending.setPrimaryInstance(0);
-	gps_blending.setBlendingUseSpeedAccuracy(false);
-	gps_blending.setBlendingUseHPosAccuracy(false);
-	gps_blending.setBlendingUseVPosAccuracy(false);
 
 	// WHEN: only the secondary receiver is available
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
@@ -235,7 +200,6 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 
 	// THEN: the secondary instance as the primary one is not available
 	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
-	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 1);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
 	// BUT WHEN: the data of the primary receiver is avaialbe
@@ -245,7 +209,6 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 	// THEN: the primary instance is selected and the data
 	// is available
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
-	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 2);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
 	runSeconds(duration_s, gps_blending, gnss_data0, gnss_data1);
@@ -317,42 +280,11 @@ TEST_F(GpsBlendingTest, singleReceiverAntennaOffset)
 	EXPECT_FLOAT_EQ(out(2), offset0(2));
 }
 
-TEST_F(GpsBlendingTest, dualReceiverBlendedAntennaOffset)
-{
-	GpsBlending gps_blending;
-
-	sensor_gnss_s gnss_data0 = getDefaultGnssData();
-	sensor_gnss_s gnss_data1 = getDefaultGnssData();
-
-	gps_blending.setBlendingUseHPosAccuracy(true);
-
-	// Equal accuracy → equal weights (0.5 each)
-	const Vector3f offset0(0.1f, 0.0f, -0.05f);
-	const Vector3f offset1(-0.1f, 0.0f, -0.05f);
-	gps_blending.setAntennaOffset(offset0, 0);
-	gps_blending.setAntennaOffset(offset1, 1);
-
-	gps_blending.setGnssData(gnss_data0, 0);
-	gps_blending.setGnssData(gnss_data1, 1);
-	gps_blending.update(_time_now_us);
-
-	EXPECT_EQ(gps_blending.getSelectedGps(), 2); // blended
-
-	const Vector3f &out = gps_blending.getOutputAntennaOffset();
-	// Equal weights → average of offsets
-	EXPECT_NEAR(out(0), 0.0f, 1e-5f);
-	EXPECT_NEAR(out(1), 0.0f, 1e-5f);
-	EXPECT_NEAR(out(2), -0.05f, 1e-5f);
-}
-
 TEST_F(GpsBlendingTest, failoverAntennaOffset)
 {
 	GpsBlending gps_blending;
 
 	gps_blending.setPrimaryInstance(0);
-	gps_blending.setBlendingUseSpeedAccuracy(false);
-	gps_blending.setBlendingUseHPosAccuracy(false);
-	gps_blending.setBlendingUseVPosAccuracy(false);
 
 	const Vector3f offset0(0.1f, 0.0f, 0.0f);
 	const Vector3f offset1(-0.1f, 0.0f, 0.0f);
@@ -375,95 +307,12 @@ TEST_F(GpsBlendingTest, failoverAntennaOffset)
 	EXPECT_FLOAT_EQ(gps_blending.getOutputAntennaOffset()(0), offset0(0));
 }
 
-TEST_F(GpsBlendingTest, dualReceiverAsymmetricWeightAntennaOffset)
-{
-	GpsBlending gps_blending;
-
-	sensor_gnss_s gnss_data0 = getDefaultGnssData();
-	sensor_gnss_s gnss_data1 = getDefaultGnssData();
-
-	gps_blending.setBlendingUseHPosAccuracy(true);
-
-	// gps0 has twice the accuracy of gps1 → higher weight
-	gnss_data0.eph = 0.5f;
-	gnss_data1.eph = 1.0f;
-
-	const Vector3f offset0(0.2f, 0.0f, -0.1f);
-	const Vector3f offset1(-0.2f, 0.0f, 0.1f);
-	gps_blending.setAntennaOffset(offset0, 0);
-	gps_blending.setAntennaOffset(offset1, 1);
-
-	gps_blending.setGnssData(gnss_data0, 0);
-	gps_blending.setGnssData(gnss_data1, 1);
-	gps_blending.update(_time_now_us);
-
-	EXPECT_EQ(gps_blending.getSelectedGps(), 2); // blended
-
-	// hpos weights: inverse variance → w0 = 1/(0.5^2) = 4, w1 = 1/(1.0^2) = 1
-	// normalized: w0 = 0.8, w1 = 0.2
-	// blended offset = 0.8 * (0.2, 0, -0.1) + 0.2 * (-0.2, 0, 0.1)
-	//                = (0.16, 0, -0.08) + (-0.04, 0, 0.02) = (0.12, 0, -0.06)
-	const Vector3f &out = gps_blending.getOutputAntennaOffset();
-	EXPECT_NEAR(out(0), 0.12f, 1e-5f);
-	EXPECT_NEAR(out(1), 0.0f, 1e-5f);
-	EXPECT_NEAR(out(2), -0.06f, 1e-5f);
-}
-
-TEST_F(GpsBlendingTest, blendingFallthroughAntennaOffset)
-{
-	GpsBlending gps_blending;
-
-	// Enable blending, but give one receiver eph=0 so can_do_blending is false
-	gps_blending.setPrimaryInstance(-1);
-	gps_blending.setBlendingUseHPosAccuracy(true);
-	gps_blending.setBlendingUseSpeedAccuracy(false);
-	gps_blending.setBlendingUseVPosAccuracy(false);
-
-	const Vector3f offset0(0.15f, -0.05f, 0.0f);
-	const Vector3f offset1(-0.15f, 0.05f, 0.0f);
-	gps_blending.setAntennaOffset(offset0, 0);
-	gps_blending.setAntennaOffset(offset1, 1);
-
-	sensor_gnss_s gnss_data0 = getDefaultGnssData();
-	sensor_gnss_s gnss_data1 = getDefaultGnssData();
-
-	// eph=0 on both → horizontal_accuracy_sum_sq=0 → can_do_blending=false → fallthrough
-	gnss_data0.eph = 0.0f;
-	gnss_data1.eph = 0.0f;
-
-	// gps1 has more satellites → wins non-blending selection
-	gnss_data1.satellites_used = gnss_data0.satellites_used + 2;
-
-	gps_blending.setGnssData(gnss_data0, 0);
-	gps_blending.setGnssData(gnss_data1, 1);
-	gps_blending.update(_time_now_us);
-
-	_time_now_us += 200e3;
-	gnss_data0.timestamp = _time_now_us - 10e3;
-	gnss_data1.timestamp = _time_now_us - 10e3;
-	gps_blending.setGnssData(gnss_data0, 0);
-	gps_blending.setGnssData(gnss_data1, 1);
-	gps_blending.update(_time_now_us);
-
-	// Falls through to non-blending path, gps1 selected by satellite count
-	EXPECT_LT(gps_blending.getSelectedGps(), 2); // not blended
-	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
-
-	const Vector3f &out = gps_blending.getOutputAntennaOffset();
-	EXPECT_FLOAT_EQ(out(0), offset1(0));
-	EXPECT_FLOAT_EQ(out(1), offset1(1));
-	EXPECT_FLOAT_EQ(out(2), offset1(2));
-}
-
 TEST_F(GpsBlendingTest, dualReceiverNoBlendingStaleFlag)
 {
 	GpsBlending gps_blending;
 
-	// GIVEN: two receivers, no blending (no accuracy metrics enabled)
+	// GIVEN: two receivers
 	gps_blending.setPrimaryInstance(-1);
-	gps_blending.setBlendingUseSpeedAccuracy(false);
-	gps_blending.setBlendingUseHPosAccuracy(false);
-	gps_blending.setBlendingUseVPosAccuracy(false);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
@@ -485,32 +334,4 @@ TEST_F(GpsBlendingTest, dualReceiverNoBlendingStaleFlag)
 	gps_blending.update(_time_now_us);
 
 	EXPECT_FALSE(gps_blending.isNewOutputDataAvailable());
-}
-
-TEST_F(GpsBlendingTest, dualReceiverUTCTime)
-{
-	GpsBlending gps_blending;
-	sensor_gnss_s gnss_data0 = getDefaultGnssData();
-	sensor_gnss_s gnss_data1 = getDefaultGnssData();
-
-	// WHEN: Only GPS1 has a nonzero UTC time
-	gps_blending = GpsBlending();
-	gnss_data1.time_utc_usec = 1700000000000000ULL;
-	gps_blending.setGnssData(gnss_data0, 0);
-	gps_blending.setGnssData(gnss_data1, 1);
-	gps_blending.setBlendingUseHPosAccuracy(true);
-	gps_blending.update(_time_now_us);
-	// THEN: GPS 1 time should be used
-	EXPECT_EQ(gps_blending.getOutputGnssData().time_utc_usec, gnss_data1.time_utc_usec);
-
-	// WHEN: Both GPSes have a nonzero UTC time
-	gps_blending = GpsBlending();
-	gnss_data0.time_utc_usec = 1700000000001000ULL;
-	gnss_data1.time_utc_usec = 1700000000000000ULL;
-	gps_blending.setGnssData(gnss_data0, 0);
-	gps_blending.setGnssData(gnss_data1, 1);
-	gps_blending.setBlendingUseHPosAccuracy(true);
-	gps_blending.update(_time_now_us);
-	// THEN: The average of the two timestamps should be used
-	EXPECT_EQ(gps_blending.getOutputGnssData().time_utc_usec, 1700000000000500ULL);
 }
