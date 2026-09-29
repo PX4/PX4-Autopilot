@@ -3978,8 +3978,7 @@ MavlinkReceiver::run()
 					// that actually send take lock_send() locally.
 					_mavlink.lock_send();
 					const uint8_t framing = mavlink_frame_char(_mavlink.get_channel(), buf[i], &msg, &_status);
-					bool bad_signature = false;
-					const FrameCheck frame_check = check_frame(framing, msg, bad_signature);
+					const FrameCheck frame_check = check_frame(framing, msg);
 
 					if (frame_check == FrameCheck::Invalid) {
 						reset_parser_after_rejected_frame(buf[i]);
@@ -4018,17 +4017,13 @@ MavlinkReceiver::run()
 						}
 
 					} else if (frame_check == FrameCheck::ForwardOnly) {
-						if (mavlink_get_msg_entry(msg.msgid) == nullptr) {
-							_unknown_message_counter++;
-						}
+						_unknown_message_counter++;
 
-						// These frames are not verified, the header of an unknown message
-						// isn't even CRC checked, so only track the sequence of components
-						// we have already seen.
+						// The header of an unknown message isn't CRC checked, so only
+						// track the sequence of components we have already seen.
 						update_rx_stats(msg, false);
-					}
 
-					if (bad_signature) {
+					} else if (frame_check == FrameCheck::BadSignature) {
 						_bad_signature_counter++;
 					}
 
@@ -4109,24 +4104,16 @@ MavlinkReceiver::run()
 	}
 }
 
-MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const mavlink_message_t &message,
-		bool &bad_signature)
+MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const mavlink_message_t &message)
 {
-	bad_signature = false;
-	const bool is_signed = message.incompat_flags & MAVLINK_IFLAG_SIGNED;
-
 	switch (framing) {
 	case MAVLINK_FRAMING_OK:
 		return FrameCheck::Ok;
 
 	case MAVLINK_FRAMING_BAD_SIGNATURE:
-		bad_signature = true;
-
-		// A signed frame we can't verify might be signed with the receiver's key,
-		// so it's forwarded for the receiver to check, see
-		// https://mavlink.io/en/guide/routing.html
-		// Unsigned frames are not forwarded while signing is active.
-		return is_signed ? FrameCheck::ForwardOnly : FrameCheck::Unsigned;
+		// With signing enabled, PX4 keeps unauthenticated traffic away from the
+		// other links, so we don't forward it either.
+		return FrameCheck::BadSignature;
 
 	case MAVLINK_FRAMING_BAD_CRC:
 		break;
@@ -4149,18 +4136,12 @@ MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const 
 		return FrameCheck::ForwardOnly;
 	}
 
-	if (is_signed) {
+	if (message.incompat_flags & MAVLINK_IFLAG_SIGNED) {
 		// The parser has checked the signature of this frame already.
-		bad_signature = (signing->last_status != MAVLINK_SIGNING_STATUS_OK);
-		return FrameCheck::ForwardOnly;
+		return (signing->last_status == MAVLINK_SIGNING_STATUS_OK) ? FrameCheck::ForwardOnly : FrameCheck::BadSignature;
 	}
 
-	if (_mavlink.accept_unsigned(message.msgid)) {
-		return FrameCheck::ForwardOnly;
-	}
-
-	bad_signature = true;
-	return FrameCheck::Unsigned;
+	return _mavlink.accept_unsigned(message.msgid) ? FrameCheck::ForwardOnly : FrameCheck::BadSignature;
 }
 
 void MavlinkReceiver::reset_parser_after_rejected_frame(uint8_t c)
