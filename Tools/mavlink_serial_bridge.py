@@ -111,11 +111,9 @@ def setup_passthrough(mav):
         hb = mav.recv_match(type='HEARTBEAT', blocking=True, timeout=30)
         if hb is None:
             raise TimeoutError("FMU did not come back online within 30 seconds")
-        if hb.get_srcSystem() != 0 and hb.get_srcComponent() == 1:
-            mav.target_system = hb.get_srcSystem()
-            mav.target_component = hb.get_srcComponent()
+        if hb.get_srcSystem() == mav.target_system and hb.get_srcComponent() == mav.target_component:
             break
-    print(f"FMU back online (sysid={mav.target_system}, compid={mav.target_component})")
+    print("FMU back online")
 
 
 def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=False):
