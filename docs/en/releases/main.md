@@ -41,6 +41,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   `vehicle_gps_position` is now `vehicle_gnss` ([VehicleGnss](../msg_docs/VehicleGnss.md)), which nests the selected receiver's sample as `receiver` (for example `vehicle_gnss.receiver.latitude`) and adds the corrected `timestamp_sample` and `antenna_offset`.
   Renamed fields: `latitude_deg` → `latitude`, `longitude_deg` → `longitude`, `altitude_msl_m` → `altitude_msl`, `altitude_ellipsoid_m` → `altitude_ellipsoid`, `s_variance_m_s` → `speed_accuracy`, `c_variance_rad` → `course_accuracy`, `noise_per_ms` → `noise`, `vel_m_s` → `ground_speed`, `vel_n_m_s`/`vel_e_m_s`/`vel_d_m_s` → `vel_north`/`vel_east`/`vel_down` and `cog_rad` → `course`; `antenna_offset_x/y/z` moved to `vehicle_gnss.antenna_offset`.
   ROS 2 applications must subscribe to `/fmu/out/vehicle_gnss` (`px4_msgs/msg/VehicleGnss`) instead of `/fmu/out/vehicle_gps_position` (`px4_msgs/msg/SensorGps`).
+  Read the timestamps from the top level of `VehicleGnss`: only `timestamp` and `timestamp_sample` are converted to ROS time, while `receiver.timestamp` and `receiver.timestamp_sample` stay on the PX4 boot clock.
+  `timestamp` is now when the sensors module published the sample; use `timestamp_sample` for the measurement time.
   `SENS_GPS_MASK`, `SENS_GPS_TAU`, `SENS_GPS_PRIME` and `SENS_GPSn_ID/OFFX/OFFY/OFFZ/DELAY` are now `SENS_GNSS_*` and `SENS_GNSSn_*` (the driver `GPS_*` and `EKF2_*` parameters are unchanged).
   Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them.
   The log analysis scripts in the tree read both the old and the new names.
