@@ -401,7 +401,7 @@ void MulticopterPositionControl::Run()
 				if (!previous_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					_time_position_control_enabled = _vehicle_control_mode.timestamp;
 
-					// Let the velocity limits start unconstrained again for this new period of position control.
+					// Restart the decaying velocity limits from the measured velocity for this new period of position control.
 					_vel_limit_xy = NAN;
 					_vel_limit_up = NAN;
 					_vel_limit_down = NAN;
@@ -546,24 +546,27 @@ void MulticopterPositionControl::Run()
 
 			// When changing mode flying faster than the limit, allow braking with a decaying limit to
 			// avoid a large velocity error from clamping alone driving the integrator against the brake.
-			const Vector2f velocity_xy(states.velocity);
+			// The limit starts at the measured speed, holds while the jerk limited braking builds up and then
+			// ramps down open loop, so it doesn't interfere with the brake but is guaranteed to reach the configured limit.
+			const bool hold_limit = vehicle_local_position.timestamp_sample < _time_position_control_enabled + 1_s;
 
-			if (velocity_xy.isAllFinite()) {
-				// math::min(NAN, x) == x -> will initializae _vel_limit_xy
-				_vel_limit_xy = math::max(max_speed_xy, math::min(_vel_limit_xy, velocity_xy.norm()));
-				max_speed_xy = _vel_limit_xy;
-			}
-
-			if (PX4_ISFINITE(states.velocity(2))) {
-				if (states.velocity(2) < 0.f) {
-					_vel_limit_up = math::max(limit_speed_up, math::min(_vel_limit_up, -states.velocity(2)));
-					limit_speed_up = _vel_limit_up;
+			const auto decayingLimit = [dt, hold_limit](float & ramp, float measured_speed, float limit) {
+				if (PX4_ISFINITE(ramp)) {
+					if (!hold_limit) {
+						ramp = math::max(ramp - 5.f * dt, 0.f);
+					}
 
 				} else {
-					_vel_limit_down = math::max(limit_speed_down, math::min(_vel_limit_down, states.velocity(2)));
-					limit_speed_down = _vel_limit_down;
+					ramp = PX4_ISFINITE(measured_speed) ? math::max(measured_speed, 0.f) : 0.f;
 				}
-			}
+
+				return math::max(limit, ramp);
+			};
+
+			const Vector2f velocity_xy(states.velocity);
+			max_speed_xy = decayingLimit(_vel_limit_xy, velocity_xy.norm(), max_speed_xy);
+			limit_speed_up = decayingLimit(_vel_limit_up, -states.velocity(2), limit_speed_up);
+			limit_speed_down = decayingLimit(_vel_limit_down, states.velocity(2), limit_speed_down);
 
 			_control.setVelocityLimits(max_speed_xy, limit_speed_up, limit_speed_down);
 
