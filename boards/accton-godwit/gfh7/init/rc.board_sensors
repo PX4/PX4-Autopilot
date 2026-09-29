@@ -15,11 +15,8 @@ lsm6dsv -R 8 -s -b 2 start
 # DPS368 on internal I2C1 at 0x77; the DPS310 driver supports this variant.
 dps310 -I -b 1 -a 119 -8 start
 
-# IST8310 is optional on internal I2C1 at 0x0c.
-if ! ist8310 -I -b 1 -a 12 -R 0 start
-then
-	echo "IST8310 not populated"
-fi
+# IST8310 on internal I2C1 at 0x0c.
+ist8310 -I -b 1 -a 12 -R 0 start
 
 sbus_rc start -d /dev/ttyS4
 
