@@ -8,9 +8,9 @@ See docs/en/uart/serial_passthrough.md for the protocol this implements.
 
 Usage:
     Tools/mavlink_serial_bridge.py --connection tcp:10.41.1.1:5790 --port esc0 --setup
-    Tools/mavlink_serial_bridge.py --connection udp:127.0.0.1:14550 --port telem2 --port-baud 115200
-    Tools/mavlink_serial_bridge.py --connection udp:127.0.0.1:14550 --port gps1 --port-baud 9600
-    Tools/mavlink_serial_bridge.py --connection udp:127.0.0.1:14550 --port gps2 --port-baud 57600
+    Tools/mavlink_serial_bridge.py --connection udpin:0.0.0.0:14550 --port telem2 --port-baud 115200
+    Tools/mavlink_serial_bridge.py --connection udpin:0.0.0.0:14550 --port gps1 --port-baud 9600
+    Tools/mavlink_serial_bridge.py --connection udpin:0.0.0.0:14550 --port gps2 --port-baud 57600
 
 Add --verbose/-v to print a hex dump of every forwarded packet.
 """
@@ -47,10 +47,16 @@ PORT_MAP = {
     'telem2': 1,
     'gps1': 2,
     'gps2': 3,
+    'telem3': 4,
+    'telem4': 5,
     'esc0': 20,
     'esc1': 21,
     'esc2': 22,
     'esc3': 23,
+    'esc4': 24,
+    'esc5': 25,
+    'esc6': 26,
+    'esc7': 27,
 }
 
 
@@ -255,8 +261,8 @@ def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=Fal
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Virtual COM port bridge via MAVLink SERIAL_CONTROL')
-    parser.add_argument('--connection', default='udp:127.0.0.1:14550',
-                        help='MAVLink connection string (default: udp:127.0.0.1:14550)')
+    parser.add_argument('--connection', default='udpin:0.0.0.0:14550',
+                        help='MAVLink connection string (default: udpin:0.0.0.0:14550)')
     parser.add_argument('--baud', type=int, default=57600,
                         help='Serial baud rate if using serial connection (default: 57600)')
     parser.add_argument('--port', default='esc0',
@@ -264,7 +270,7 @@ if __name__ == '__main__':
                         help='Target port on the FMU (default: esc0). SERIAL_CONTROL device IDs: '
                              + ', '.join(f'{name}={dev}' for name, dev in PORT_MAP.items()))
     parser.add_argument('--port-baud', type=int, default=115200,
-                        help='Baudrate to set on the target UART (default: 115200)')
+                        help='Baudrate to set on the target UART (default: 115200; ignored for esc ports, which use 19200)')
     parser.add_argument('--setup', action='store_true', default=False,
                         help='Set PASSTHRU_EN=1 and reboot FMU before starting bridge')
     parser.add_argument('--verbose', '-v', action='store_true', default=False,

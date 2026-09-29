@@ -66,7 +66,7 @@ The `PASSTHRU_EN` parameter must be set to `1` and the device rebooted in order 
 
 [`Tools/mavlink_serial_bridge.py`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mavlink_serial_bridge.py) is a reference bridge application (Linux/macOS only): it connects to the vehicle over MAVLink, exposes a virtual serial port (a Unix PTY) to a serial tool on the host, such as an ESC configurator, and translates traffic bidirectionally.
 
-The script supports a subset of the [device IDs](#device-ids), selected with its `--port` option:
+The script supports all [device IDs](#device-ids), selected with its `--port` option:
 
 | `--port`      | Device ID | Target           |
 | ------------- | --------- | ---------------- |
@@ -74,9 +74,9 @@ The script supports a subset of the [device IDs](#device-ids), selected with its
 | `telem2`      | `1`       | `TELEM2`         |
 | `gps1`        | `2`       | `GPS1`           |
 | `gps2`        | `3`       | `GPS2`           |
-| `esc0`–`esc3` | `20`–`23` | ESC channels 0–3 |
-
-`TELEM3`, `TELEM4` (device IDs `4`, `5`) and ESC channels 4–7 (device IDs `24`–`27`) are supported by PX4 but not by the script.
+| `telem3`      | `4`       | `TELEM3`         |
+| `telem4`      | `5`       | `TELEM4`         |
+| `esc0`–`esc7` | `20`–`27` | ESC channels 0–7 |
 
 Install its only dependency and run it, for example to bridge ESC channel 0:
 
