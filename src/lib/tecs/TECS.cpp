@@ -721,8 +721,8 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		  float target_sinkrate, const float speed_deriv_forward, float hgt_rate, float hgt_rate_sp)
 {
 	// Calculate the time since last update (seconds)
-	const hrt_abstime now(hrt_absolute_time());
-	const float dt = static_cast<float>((now - _update_timestamp)) / 1_s;
+	const hrt_abstime now = hrt_absolute_time();
+	const float dt = static_cast<float>(now - _update_timestamp) * 1e-6f;
 
 	initControlParams(target_climbrate, target_sinkrate, eas_to_tas, pitch_limit_max, pitch_limit_min, throttle_min,
 			  throttle_setpoint_max, throttle_trim);
