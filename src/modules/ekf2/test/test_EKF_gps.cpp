@@ -403,7 +403,8 @@ TEST_F(EkfGpsTest, invalidVelocityIsSkipped)
 	_ekf->getParamHandle()->ekf2_gps_check = 0;
 	const float velocity_limit = _ekf->getParamHandle()->ekf2_vel_lim;
 	const Vector3f invalid_velocities[] {
-		{velocity_limit, velocity_limit, 0.f},
+		{velocity_limit + 1.f, 0.f, 0.f},
+		{0.f, -velocity_limit - 1.f, 0.f},
 		{0.f, 0.f, velocity_limit + 1.f},
 		{0.f, 0.f, -velocity_limit - 1.f},
 		{NAN, 0.f, 0.f},
@@ -430,4 +431,21 @@ TEST_F(EkfGpsTest, invalidVelocityIsSkipped)
 		EXPECT_EQ(_ekf->aid_src_gnss_vel().time_last_fuse, time_last_vel_fuse);
 		EXPECT_EQ(_ekf->aid_src_gnss_pos().time_last_fuse, time_last_pos_fuse);
 	}
+}
+
+TEST_F(EkfGpsTest, velocityAtLimitIsNotSkipped)
+{
+	// GIVEN: an airborne EKF that fuses GPS
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	const float velocity_limit = _ekf->getParamHandle()->ekf2_vel_lim;
+
+	// WHEN: every component of the reported velocity sits exactly at EKF2_VEL_LIM
+	const uint32_t skips_before = _ekf->gnss_vel_limit_skip_count();
+	_sensor_simulator._gps.setVelocity(Vector3f(velocity_limit, -velocity_limit, velocity_limit));
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the velocity state can hold it, so the samples are not skipped
+	EXPECT_EQ(_ekf->gnss_vel_limit_skip_count(), skips_before);
 }

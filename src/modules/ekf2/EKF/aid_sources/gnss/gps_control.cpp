@@ -81,10 +81,9 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			_information_events.flags.gps_checks_passed = true;
 		}
 
-		// The velocity state is constrained to EKF2_VEL_LIM, so a sample beyond it cannot be fused
+		// Each axis of the velocity state is constrained to EKF2_VEL_LIM, so a sample beyond it cannot be fused
 		const bool vel_within_limit = gnss_sample.vel.isAllFinite()
-					      && !gnss_sample.vel.xy().longerThan(_params.ekf2_vel_lim)
-					      && (fabsf(gnss_sample.vel(2)) <= _params.ekf2_vel_lim);
+					      && (gnss_sample.vel.abs().max() <= _params.ekf2_vel_lim);
 
 		if (checks_passed && vel_within_limit) {
 			_time_last_gnss_checks_pass_us = _time_delayed_us;
