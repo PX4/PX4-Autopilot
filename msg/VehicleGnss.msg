@@ -9,5 +9,3 @@ uint64 timestamp_sample # [us] Measurement time, corrected by SENS_GNSSn_DELAY o
 SensorGnss receiver # The selected receiver's sensor_gnss sample, or the blended solution with device_id 0
 
 float32[3] antenna_offset # [m] [@frame FRD] Antenna position of the selected receiver, or the blended antenna position (SENS_GNSSn_OFFX/Y/Z)
-
-uint8 selected_instance # [-] [@invalid UINT8_MAX] sensor_gnss instance of the selected receiver, invalid while blended

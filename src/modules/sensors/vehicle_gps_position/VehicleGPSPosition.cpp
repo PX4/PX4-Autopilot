@@ -197,15 +197,9 @@ void VehicleGPSPosition::Run()
 			vehicle_gnss_s gnss_output{};
 			gnss_output.receiver = _gps_blending.getOutputGnssData();
 
-			const int selected_gps = _gps_blending.getSelectedGps();
-
 			// clear device_id if blending
-			if (selected_gps == GpsBlending::GPS_MAX_RECEIVERS_BLEND) {
+			if (_gps_blending.getSelectedGps() == GpsBlending::GPS_MAX_RECEIVERS_BLEND) {
 				gnss_output.receiver.device_id = 0;
-				gnss_output.selected_instance = UINT8_MAX;
-
-			} else {
-				gnss_output.selected_instance = static_cast<uint8_t>(selected_gps);
 			}
 
 			const matrix::Vector3f &out_offset = _gps_blending.getOutputAntennaOffset();
