@@ -116,6 +116,84 @@ def setup_passthrough(mav):
     print("FMU back online")
 
 
+class SerialBridge:
+    """Forwards bytes between a PTY and SERIAL_CONTROL messages for one FMU device."""
+
+    def __init__(self, mav, master_fd, device, port_baud, verbose=False):
+        self.mav = mav
+        self.master_fd = master_fd
+        self.device = device
+        self.port_baud = port_baud
+        self.verbose = verbose
+        self.stop = threading.Event()
+
+    def pty_to_mavlink(self):
+        """Read from PTY master, forward as SERIAL_CONTROL messages."""
+        try:
+            while not self.stop.is_set():
+                try:
+                    data = os.read(self.master_fd, MAX_PAYLOAD)
+                except OSError:
+                    break
+                if not data:
+                    continue
+                for i in range(0, len(data), MAX_PAYLOAD):
+                    chunk = data[i:i + MAX_PAYLOAD]
+                    send_serial_control(self.mav, self.device, self.port_baud, chunk)
+                    if self.verbose:
+                        print(f"  PTY -> MAVLink: {len(chunk)} bytes: {chunk.hex(' ')}")
+        except Exception as e:
+            print(f"ERROR: pty_to_mavlink crashed: {e}", file=sys.stderr)
+        finally:
+            self.stop.set()
+
+    def mavlink_to_pty(self):
+        """Receive SERIAL_CONTROL FLAG_REPLY messages, write immediately to PTY."""
+        try:
+            while not self.stop.is_set():
+                msg = self.mav.recv_match(type='SERIAL_CONTROL', blocking=False)
+                if msg is None:
+                    # Nothing buffered (locally or at the OS level) right now —
+                    # block until the connection's fd has more data.
+                    select.select([self.mav.fd], [], [], 0.2)
+                    continue
+                if not (msg.flags & SERIAL_CONTROL_FLAG_REPLY):
+                    continue
+
+                if msg.device != self.device:
+                    if self.verbose:
+                        print(f"  Ignoring message for device {msg.device} (current device: {self.device})")
+                    # Stale reply for the previous ESC channel — discard.
+                    continue
+                reply = bytes(msg.data[:msg.count])
+                if reply:
+                    os.write(self.master_fd, reply)
+                    if self.verbose:
+                        print(f"  MAVLink -> PTY: {msg.count} bytes: {reply.hex(' ')}")
+        except Exception as e:
+            print(f"ERROR: mavlink_to_pty crashed: {e}", file=sys.stderr)
+        finally:
+            self.stop.set()
+
+    def stdin_listener(self):
+        """Read SWITCH <device_id> commands from stdin to hot-swap ESC channel."""
+        try:
+            for line in sys.stdin:
+                line = line.strip()
+                if line.startswith('SWITCH '):
+                    try:
+                        new_device = int(line.split()[1])
+                    except (IndexError, ValueError):
+                        continue
+                    self.device = new_device
+                    print(f"  Switching to device {self.device}")
+                    send_serial_control(self.mav, self.device, self.port_baud)
+        except Exception as e:
+            print(f"ERROR: stdin_listener crashed: {e}", file=sys.stderr)
+        finally:
+            self.stop.set()
+
+
 def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=False):
     master_fd, slave_fd = pty.openpty()
     slave_path = os.ttyname(slave_fd)
@@ -146,101 +224,29 @@ def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=Fal
     time.sleep(2)  # Give FMU time to spawn the task
     print("Bridge running. Press Ctrl+C to stop.\n", flush=True)
 
-    stop = threading.Event()
-
-    def pty_to_mavlink():
-        """Read from PTY master, forward as SERIAL_CONTROL messages."""
-        try:
-            while not stop.is_set():
-                try:
-                    data = os.read(master_fd, MAX_PAYLOAD)
-                except OSError:
-                    break
-                if not data:
-                    continue
-                for i in range(0, len(data), MAX_PAYLOAD):
-                    chunk = data[i:i + MAX_PAYLOAD]
-                    send_serial_control(mav, device, port_baud, chunk)
-                    if verbose:
-                        print(f"  PTY -> MAVLink: {len(chunk)} bytes: {chunk.hex(' ')}")
-        except Exception as e:
-            print(f"ERROR: pty_to_mavlink crashed: {e}", file=sys.stderr)
-        finally:
-            stop.set()
-
-    def mavlink_to_pty():
-        """Receive SERIAL_CONTROL FLAG_REPLY messages, write immediately to PTY."""
-        try:
-            while not stop.is_set():
-                msg = mav.recv_match(type='SERIAL_CONTROL', blocking=False)
-                if msg is None:
-                    # Nothing buffered (locally or at the OS level) right now —
-                    # block until the connection's fd has more data.
-                    select.select([mav.fd], [], [], 0.2)
-                    continue
-                if not (msg.flags & SERIAL_CONTROL_FLAG_REPLY):
-                    continue
-
-                if msg.device != device:
-                    if verbose:
-                        print(f"  Ignoring message for device {msg.device} (current device: {device})")
-                    # Stale reply for the previous ESC channel — discard.
-                    continue
-                reply = bytes(msg.data[:msg.count])
-                if reply:
-                    os.write(master_fd, reply)
-                    if verbose:
-                        print(f"  MAVLink -> PTY: {msg.count} bytes: {reply.hex(' ')}")
-        except Exception as e:
-            print(f"ERROR: mavlink_to_pty crashed: {e}", file=sys.stderr)
-        finally:
-            stop.set()
-
-    t1 = threading.Thread(target=pty_to_mavlink, daemon=True)
-    t2 = threading.Thread(target=mavlink_to_pty, daemon=True)
-    t1.start()
-    t2.start()
-
-    def stdin_listener():
-        """Read SWITCH <device_id> commands from stdin to hot-swap ESC channel."""
-        try:
-            for line in sys.stdin:
-                line = line.strip()
-                if line.startswith('SWITCH '):
-                    try:
-                        new_device = int(line.split()[1])
-                    except (IndexError, ValueError):
-                        continue
-                    nonlocal device
-                    device = new_device
-                    print(f"  Switching to device {device}")
-                    send_serial_control(mav, device, port_baud)
-        except Exception as e:
-            print(f"ERROR: stdin_listener crashed: {e}", file=sys.stderr)
-        finally:
-            stop.set()
-
-    t3 = threading.Thread(target=stdin_listener, daemon=True)
-    t3.start()
+    bridge = SerialBridge(mav, master_fd, device, port_baud, verbose)
+    threads = [threading.Thread(target=fn, daemon=True)
+               for fn in (bridge.pty_to_mavlink, bridge.mavlink_to_pty, bridge.stdin_listener)]
+    for t in threads:
+        t.start()
 
     # stop.wait() only returns without a KeyboardInterrupt if a thread crashed.
     crashed = True
     try:
-        stop.wait()  # blocks until Ctrl+C (KeyboardInterrupt) or a thread crash
+        bridge.stop.wait()  # blocks until Ctrl+C (KeyboardInterrupt) or a thread crash
     except KeyboardInterrupt:
         print("\nShutting down.")
         crashed = False
     finally:
-        stop.set()
+        bridge.stop.set()
         try: os.write(slave_fd, b'\x00')
         except OSError: pass
         try: os.close(slave_fd)
         except OSError: pass
         try: os.close(master_fd)
         except OSError: pass
-        t1.join(timeout=0.5)
-        t2.join(timeout=0.5)
-        t3.join(timeout=0.5)
+        for t in threads:
+            t.join(timeout=0.5)
         mav.close()
 
     if crashed:
