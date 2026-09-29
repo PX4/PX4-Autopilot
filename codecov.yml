@@ -17,9 +17,7 @@ coverage:
       default:
         informational: true
 
-comment:
-  layout: "condensed_header, condensed_files, condensed_footer"
-  require_changes: true
+comment: false
 
 flag_management:
   default_rules:

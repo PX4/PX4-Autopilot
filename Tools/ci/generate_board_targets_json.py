@@ -88,10 +88,6 @@ def chunks_merged(arr, size):
         result.pop()
     return result
 
-def comma_targets(targets):
-    # turns array of targets into a comma split string
-    return ",".join(targets)
-
 def process_target(px4board_file, target_name, manufacturer_name=None, board_dir_name=None, label=None):
     # reads through the board file and grabs
     # useful information for building
@@ -299,6 +295,8 @@ if (args.group):
     DEFAULT_CACHE_SIZE = cache_config.get('default_size', '400M')
     CHIP_CACHE_SIZES = cache_config.get('chip_sizes', {})
 
+    BUILD_SLOTS = ci_config.get('runners', {}).get('build_slots', 1)
+
     if(verbose):
         print(f'=:Architectures: [{grouped_targets.keys()}]')
 
@@ -376,7 +374,7 @@ if (args.group):
                             print(f'=:  [{man}][{man_len}] -> {group_name}')
                         final_groups.append({
                             "container": grouped_targets[arch]['container'],
-                            "targets": comma_targets(man_targets[man]),
+                            "targets": man_targets[man],
                             "arch": arch,
                             "chip_family": chip,
                             "runner": runner,
@@ -391,7 +389,7 @@ if (args.group):
                                 print(f'=:  [{man}][{man_len}] -> {group_name} ({len(chunk)})')
                             final_groups.append({
                                 "container": grouped_targets[arch]['container'],
-                                "targets": comma_targets(chunk),
+                                "targets": chunk,
                                 "arch": arch,
                                 "chip_family": chip,
                                 "runner": runner,
@@ -418,7 +416,7 @@ if (args.group):
                             print(f'=:  [misc][{len(chunk)}] -> {group_name}')
                         final_groups.append({
                             "container": grouped_targets[arch]['container'],
-                            "targets": comma_targets(chunk),
+                            "targets": chunk,
                             "arch": arch,
                             "chip_family": chip,
                             "runner": runner,
@@ -444,7 +442,7 @@ if (args.group):
                         print(f'=:  [special][{len(chunk)}] -> {group_name}')
                     final_groups.append({
                         "container": grouped_targets[arch]['container'],
-                        "targets": comma_targets(chunk),
+                        "targets": chunk,
                         "arch": arch,
                         "chip_family": "special",
                         "runner": runner,
@@ -461,7 +459,7 @@ if (args.group):
             if all_targets:
                 final_groups.append({
                     "container": grouped_targets[arch]['container'],
-                    "targets": comma_targets(all_targets),
+                    "targets": all_targets,
                     "arch": arch,
                     "chip_family": "voxl2",
                     "runner": runner,
@@ -484,7 +482,7 @@ if (args.group):
                         group_name = f"{arch}-{chunk_counter}"
                     final_groups.append({
                         "container": grouped_targets[arch]['container'],
-                        "targets": comma_targets(chunk),
+                        "targets": chunk,
                         "arch": arch,
                         "chip_family": "native",
                         "runner": runner,
@@ -501,6 +499,7 @@ if (args.group):
     for g in final_groups:
         g['cache_size'] = CHIP_CACHE_SIZES.get(g['chip_family'], DEFAULT_CACHE_SIZE)
         g['cache_prefix'] = f"ccache-{g['chip_family']}-{g['runner']}"
+        g['slots'] = BUILD_SLOTS
 
     if(verbose):
         import pprint

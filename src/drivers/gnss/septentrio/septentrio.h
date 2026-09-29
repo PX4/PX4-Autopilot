@@ -50,14 +50,13 @@
 #include <uORB/uORB.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss_relative.h>
 #include <uORB/topics/sensor_gnss_status.h>
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/rtcm_data.h>
-#include <lib/gnss/correction_framer.h>
+#include <lib/gnss/correction_injector.h>
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
@@ -524,44 +523,17 @@ private:
 	 */
 	int set_baudrate(uint32_t baud);
 
-	/**
-	 * @brief Handle incoming messages on the "inject data" uORB topic and send them to the receiver.
-	 */
-	void handle_inject_data_topic();
-
-	/**
-	 * @brief Drain the multi-instance rtcm_corrections subscription into its RTCM parser,
-	 * selecting an active instance if the current one goes stale.
-	 */
-	void drain_rtcm_corrections();
-
-	/**
-	 * @brief Drain the single-publisher rtcm_moving_baseline subscription into its RTCM parser.
-	 */
-	void drain_moving_baseline();
-
-	/**
-	 * @brief Write all complete RTCM frames reassembled in a parser to the receiver.
-	 *
-	 * The two inject streams are written frame-atomically so chunks of a fragmented frame on
-	 * one stream can never interleave with the other stream's bytes mid-frame.
-	 */
-	void inject_rtcm_frames(gnss::CorrectionFramer &framer);
-
-	/**
-	 * @brief Send data to the receiver, such as RTCM injections.
-	 *
-	 * @param data The raw data to send to the device
-	 * @param len The size of `data`
-	 *
-	 * @return `true` if all the data was written correctly, `false` otherwise
-	 */
-	inline bool inject_data(uint8_t *data, size_t len);
+	void start_injection();
 
 	/**
 	 * @brief Publish new GPS data with uORB.
 	 */
 	void publish();
+
+	/**
+	 * @brief Publish the relative position and heading of the attitude epoch that ends at `tow`.
+	 */
+	void publish_relative_position(uint32_t tow);
 
 	/**
 	 * @brief Publish new GPS satellite data with uORB.
@@ -624,13 +596,6 @@ private:
 	 * @return The duration of the current interval in us.
 	*/
 	hrt_abstime current_monitoring_interval_duration() const;
-
-	/**
-	 * @brief Calculate RTCM message injection frequency for the current measurement interval.
-	 *
-	 * @return The RTCM message injection frequency for the current measurement interval in Hz.
-	*/
-	float rtcm_injection_frequency() const;
 
 	/**
 	 * @brief Calculate output data rate to the receiver for the current measurement interval.
@@ -745,12 +710,7 @@ private:
 	DumpMode                               _dump_communication_mode {DumpMode::Disabled};                ///< GPS communication dump mode
 	device::Serial                         _uart {};                                                     ///< Serial UART port for communication with the receiver
 	char                                   _port[20] {};                                                 ///< The path of the used serial device
-	hrt_abstime                            _last_rtcm_injection_time {0};                                ///< Time of last RTCM corrections injection
-	uint8_t                                _selected_rtcm_instance {0};                                  ///< uORB instance that is being used for RTCM corrections
-	// Separate framer per inject stream: frames are only written to the receiver once complete,
-	// so fixed-base corrections and moving-baseline bytes cannot interleave mid-frame.
-	gnss::CorrectionFramer                 _rtcm_corrections_framer {};                                  ///< Frame reassembly for rtcm_corrections
-	gnss::CorrectionFramer                 _rtcm_moving_baseline_framer {};                              ///< Frame reassembly for rtcm_moving_baseline
+	gnss::CorrectionInjector               _injector;
 	uint8_t                                _spoofing_state {0};                                          ///< Receiver spoofing state
 	uint8_t                                _jamming_state {0};                                           ///< Receiver jamming state
 	bool                                   _time_synced {false};                                         ///< Receiver time in sync with GPS time
@@ -763,8 +723,6 @@ private:
 	hrt_abstime                            _time_last_resilience_received{0};			     ///< Time of last resilience message reception
 
 	// Module configuration
-	float                                  _heading_offset {0.0f};                                       ///< The heading offset given by the `SEP_YAW_OFFS` parameter
-	float                                  _pitch_offset {0.0f};                                         ///< The pitch offset given by the `SEP_PITCH_OFFS` parameter
 	uint32_t                               _receiver_stream_main {k_default_main_stream};                ///< The main output stream for the receiver given by the `SEP_STREAM_MAIN` parameter
 	uint32_t                               _receiver_stream_log {k_default_log_stream};                  ///< The log output stream for the receiver given by the `SEP_STREAM_LOG` parameter
 	SBFOutputFrequency                     _sbf_output_frequency {SBFOutputFrequency::Hz5_0};            ///< Output frequency of the main SBF blocks given by the `SEP_OUTP_HZ` parameter
@@ -783,25 +741,28 @@ private:
 
 	// uORB topics and subscriptions
 	sensor_gps_s                                   _sensor_gps {};                          		///< uORB topic for position
+	sensor_gnss_relative_s                         _sensor_gnss_relative {};                                ///< uORB topic for the auxiliary antenna or moving base relative position and heading
+	uint32_t                                       _pvt_tow {0};                                            ///< TOW of the last PVTGeodetic
+	uint32_t                                       _heading_tow {0};                                        ///< TOW of the last valid AttEuler heading
+	uint32_t                                       _heading_accuracy_tow {0};                               ///< TOW of the last valid AttCovEuler heading variance
+	uint32_t                                       _relative_position_tow {0};                              ///< TOW of the last AuxAntPositions or BaseVectorGeod
+	bool                                           _attitude_fixed {false};                                 ///< The last AttEuler used fixed ambiguities
 	sensor_gnss_status_s                           _message_sensor_gnss_status {};                          ///< uORB topic for gps status
 	gps_dump_s                                     *_message_data_to_receiver {nullptr};           		///< uORB topic for dumping data to the receiver
 	gps_dump_s                                     *_message_data_from_receiver {nullptr};         		///< uORB topic for dumping data from the receiver
 	satellite_info_s                               *_message_satellite_info {nullptr};             		///< uORB topic for satellite info
 	uORB::PublicationMulti<sensor_gps_s>           _sensor_gps_pub {ORB_ID(sensor_gps)};           		///< uORB publication for gps position
 	uORB::PublicationMulti<sensor_gnss_status_s>   _sensor_gnss_status_pub {ORB_ID(sensor_gnss_status)};	///< uORB publication for gnss status
+	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub {ORB_ID(sensor_gnss_relative)};	///< uORB publication for relative position and heading
 	uORB::Publication<gps_dump_s>                  _gps_dump_pub {ORB_ID(gps_dump)};              		///< uORB publication for dump GPS data
 	uORB::Publication<rtcm_data_s>      _rtcm_moving_baseline_pub {ORB_ID(rtcm_moving_baseline)}; ///< uORB publication for moving-baseline RTCM output
 	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   		///< uORB publication for satellite info
-	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_corrections_sub {ORB_ID::rtcm_corrections}; ///< uORB subscription for external RTCM corrections
-	uORB::Subscription _rtcm_moving_baseline_sub {ORB_ID(rtcm_moving_baseline)}; ///< uORB subscription for moving-baseline RTCM input (single publisher)
 
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gps_s> _stuck;
 
-	// Data about update frequencies of various bits of information like RTCM message injection frequency, received data rate...
+	// Data about update frequencies of various bits of information like received data rate...
 	hrt_abstime _current_interval_start_time {0};      ///< Start time of the current update measurement interval in us
-	uint16_t    _last_interval_rtcm_injections {0};    ///< Nr of RTCM message injections in the last measurement interval
-	uint16_t    _current_interval_rtcm_injections {0}; ///< Nr of RTCM message injections in the current measurement interval
 	uint32_t    _last_interval_bytes_written {0};      ///< Nr of bytes written to the receiver in the last measurement interval
 	uint32_t    _current_interval_bytes_written {0};   ///< Nr of bytes written to the receiver in the current measurement interval
 	uint32_t    _last_interval_bytes_read {0};         ///< Nr of bytes read from the receiver in the last measurement interval

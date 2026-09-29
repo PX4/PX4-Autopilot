@@ -78,7 +78,10 @@ public:
 		if (uORB::SubscriptionCallbackWorkItem::update(&sensor_gnss_relative)) {
 			ardupilot::gnss::RelPosHeading rel_pos_heading{};
 
-			rel_pos_heading.timestamp.usec = bus_timestamp_usec(getNode(), sensor_gnss_relative.timestamp_sample);
+			// 0 is UNKNOWN: the receiver latency is then applied by the autopilot
+			if (sensor_gnss_relative.timestamp_sample != 0) {
+				rel_pos_heading.timestamp.usec = bus_timestamp_usec(getNode(), sensor_gnss_relative.timestamp_sample);
+			}
 
 			rel_pos_heading.reported_heading_acc_available = sensor_gnss_relative.heading_valid; // bool
 			rel_pos_heading.reported_heading_deg = math::degrees(sensor_gnss_relative.heading); // float32

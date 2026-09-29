@@ -58,7 +58,6 @@
 #include <uavcan/equipment/gnss/Fix.hpp>
 #include <uavcan/equipment/gnss/Fix2.hpp>
 #include <ardupilot/gnss/MovingBaselineData.hpp>
-#include <ardupilot/gnss/RelPosHeading.hpp>
 #include <uavcan/equipment/gnss/RTCMStream.hpp>
 
 #include <lib/perf/perf_counter.h>
@@ -88,7 +87,6 @@ private:
 	void gnss_auxiliary_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg);
 	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
 	void gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg);
-	void gnss_relative_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg);
 	void moving_baseline_data_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &msg);
 
 
@@ -97,8 +95,7 @@ private:
 			  uint8_t fix_type,
 			  const float (&pos_cov)[9], const float (&vel_cov)[9],
 			  const bool valid_pos_cov, const bool valid_vel_cov,
-			  const float heading, const float heading_offset,
-			  const float heading_accuracy, const int32_t noise_per_ms,
+			  const int32_t noise_per_ms,
 			  const int32_t jamming_indicator, const uint8_t jamming_state,
 			  const uint8_t spoofing_state);
 
@@ -125,10 +122,6 @@ private:
 		TimerCbBinder;
 
 	typedef uavcan::MethodBinder < UavcanGnssBridge *,
-		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &) >
-		RelPosHeadingCbBinder;
-
-	typedef uavcan::MethodBinder < UavcanGnssBridge *,
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &) >
 		MovingBaselineDataCbBinder;
 
@@ -137,7 +130,6 @@ private:
 	uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary, AuxiliaryCbBinder> _sub_auxiliary;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix2, Fix2CbBinder> _sub_fix2;
-	uavcan::Subscriber<ardupilot::gnss::RelPosHeading, RelPosHeadingCbBinder> _sub_gnss_heading;
 
 	// Used for MSM7 logging for PPK workflows
 	uavcan::Subscriber<ardupilot::gnss::MovingBaselineData, MovingBaselineDataCbBinder> _sub_moving_baseline_data;
@@ -173,10 +165,6 @@ private:
 
 	bool _publish_rtcm_stream{false};
 	bool _publish_moving_baseline_data{false};
-
-	float _rel_heading_accuracy{NAN};
-	float _rel_heading{NAN};
-	bool _rel_heading_valid{false};
 
 	perf_counter_t _rtcm_stream_pub_perf{nullptr};
 	perf_counter_t _rtcm_stream_pub_failed_perf{nullptr};

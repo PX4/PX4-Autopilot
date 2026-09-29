@@ -11,6 +11,10 @@ per set (handler reply plus the changed-param announcement, times the number
 of mavlink instances), so callers must drain stale PARAM_VALUE messages
 before a set and then match the echo by expected value, never consume it
 positionally.
+
+Replies are matched on the pinned autopilot component (px4bench.connect):
+another component on the same sysid can emit PARAM_VALUE too, and its
+param_index/param_count must not be mixed into the autopilot's.
 """
 
 import re
@@ -18,6 +22,8 @@ import struct
 import time
 
 from pymavlink import mavutil
+
+from px4bench import is_from_target
 
 MAV_PARAM_TYPE_INT32 = mavutil.mavlink.MAV_PARAM_TYPE_INT32
 
@@ -43,6 +49,23 @@ def param_id_str(raw):
     return raw.rstrip('\x00')
 
 
+def recv_param_value(mav, timeout):
+    """Return the next PARAM_VALUE from the pinned autopilot, or None.
+
+    PARAM_VALUE from any other component is discarded.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        m = mav.recv_match(type='PARAM_VALUE', blocking=True, timeout=remaining)
+        if m is None:
+            return None
+        if is_from_target(mav, m):
+            return m
+
+
 def request_param_read(mav, name):
     """Send PARAM_REQUEST_READ by name (param_index = -1)."""
     mav.mav.param_request_read_send(
@@ -58,8 +81,7 @@ def read_param(mav, name, timeout=READ_TIMEOUT_S):
     request_param_read(mav, name)
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        m = mav.recv_match(type='PARAM_VALUE', blocking=True,
-                           timeout=max(0.1, deadline - time.monotonic()))
+        m = recv_param_value(mav, max(0.1, deadline - time.monotonic()))
         if m is None:
             continue
         if param_id_str(m.param_id) == name:
@@ -95,8 +117,7 @@ def wait_param_echo(mav, name, expected, timeout=SET_ECHO_TIMEOUT_S):
     seen = []
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        m = mav.recv_match(type='PARAM_VALUE', blocking=True,
-                           timeout=max(0.1, deadline - time.monotonic()))
+        m = recv_param_value(mav, max(0.1, deadline - time.monotonic()))
         if m is None:
             continue
         if param_id_str(m.param_id) != name:

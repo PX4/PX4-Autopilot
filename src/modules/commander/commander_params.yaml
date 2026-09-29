@@ -62,27 +62,15 @@ parameters:
     COM_RC_IN_MODE:
       description:
         short: Manual control input source configuration
-        long: |-
-          Selects stick input selection behavior:
-          either a traditional remote control receiver (RC) or a MAVLink joystick (MANUAL_CONTROL message)
-
-          Priority sources are immediately switched to whenever they get valid.
-
-          0 RC only. Requires valid RC calibration.
-          1 MAVLink only. RC and related checks are disabled.
-          2 Switches only if current source becomes invalid.
-          3 Locks to the first valid source until reboot.
-          4 Ignores all sources.
-          5 RC priority, then MAVLink (lower instance before higher)
-          6 MAVLink priority (lower instance before higher), then RC
-          7 RC priority, then MAVLink (higher instance before lower)
-          8 MAVLink priority (higher instance before lower), then RC
+        long: RC receiver or MAVLink joystick (MANUAL_CONTROL). Priority modes switch
+          to a higher-priority source as soon as it becomes valid. MAVL 1 is the lower
+          MAVLink instance.
       type: enum
       values:
-        0: RC only
-        1: MAVLink only
+        0: RC only (requires RC calibration)
+        1: MAVLink only (disables RC checks)
         2: RC or MAVLink with fallback
-        3: RC or MAVLink keep first
+        3: RC or MAVLink keep first until reboot
         4: Disable manual control
         5: 'Prio: RC > MAVL 1 > MAVL 2'
         6: 'Prio: MAVL 1 > MAVL 2 > RC'

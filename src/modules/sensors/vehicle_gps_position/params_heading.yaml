@@ -1,0 +1,66 @@
+__max_num_gps_instances: &max_num_gps_instances 2
+
+module_name: vehicle_gps_position
+
+parameters:
+    - group: Sensors
+      definitions:
+        SENS_GNSS${i}_HDG:
+            description:
+                short: GNSS ${i} heading setup
+                long: |
+                    How the receiver in slot ${i} (matched via SENS_GPS${i}_ID) measures its dual antenna heading.
+                    The heading is the bearing of the baseline between two antennas, and is only used when the
+                    baseline length the receiver reports is within 20% of the configured one.
+                    Moving base rover: this receiver is the rover of a moving base pair, the moving base is the
+                    receiver in the other slot. The baseline runs from the moving base's antenna to this
+                    receiver's antenna (SENS_GPSn_OFFX/Y/Z of both slots).
+                    Dual antenna: this receiver has two antennas. The baseline runs from its main antenna
+                    (SENS_GPS${i}_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS${i}_AUXX/Y/Z).
+            type: enum
+            values:
+                0: Disabled
+                1: Moving base rover
+                2: Dual antenna
+            default: 0
+            num_instances: *max_num_gps_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_AUXX:
+            description:
+                short: GNSS ${i} auxiliary antenna X position
+                long: |
+                    Forward axis relative to vehicle centre of gravity, of the receiver's second antenna.
+                    Used when SENS_GNSS${i}_HDG is Dual antenna.
+            type: float
+            default: 0.0
+            unit: m
+            decimal: 3
+            num_instances: *max_num_gps_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_AUXY:
+            description:
+                short: GNSS ${i} auxiliary antenna Y position
+                long: |
+                    Right axis relative to vehicle centre of gravity, of the receiver's second antenna.
+                    Used when SENS_GNSS${i}_HDG is Dual antenna.
+            type: float
+            default: 0.0
+            unit: m
+            decimal: 3
+            num_instances: *max_num_gps_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_AUXZ:
+            description:
+                short: GNSS ${i} auxiliary antenna Z position
+                long: |
+                    Down axis relative to vehicle centre of gravity, of the receiver's second antenna.
+                    Used when SENS_GNSS${i}_HDG is Dual antenna.
+            type: float
+            default: 0.0
+            unit: m
+            decimal: 3
+            num_instances: *max_num_gps_instances
+            instance_start: 0
