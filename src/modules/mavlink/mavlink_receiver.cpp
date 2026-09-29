@@ -525,7 +525,7 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 		break;
 	}
 
-	// Message forwarding
+	/* handle packet with parent object */
 	_mavlink.handle_message(&msg);
 }
 
@@ -3974,10 +3974,16 @@ MavlinkReceiver::run()
 					// waiting for lock_send(), producing a circular wait. Individual handlers
 					// that actually send take lock_send() locally.
 					_mavlink.lock_send();
-					const uint8_t parsed = mavlink_parse_char(_mavlink.get_channel(), buf[i], &msg, &_status);
+					const uint8_t framing = mavlink_frame_char(_mavlink.get_channel(), buf[i], &msg, &_status);
+					const FrameCheck frame_check = check_frame(framing, msg);
+
+					if (frame_check == FrameCheck::Invalid) {
+						reset_parser_after_rejected_frame(buf[i]);
+					}
+
 					_mavlink.unlock_send();
 
-					if (parsed) {
+					if (frame_check == FrameCheck::Ok) {
 
 						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version.
 						// Read flags from the receiver-local _status (mavlink_parse_char copies flags from the
@@ -4001,11 +4007,25 @@ MavlinkReceiver::run()
 						}
 
 						_mavlink.set_has_received_messages(true); // Received first message, unlock wait to transmit '-w' command-line flag
-						update_rx_stats(msg);
+						update_rx_stats(msg, true);
 
 						if (_message_statistics_enabled) {
 							update_message_statistics(msg);
 						}
+
+					} else if (frame_check == FrameCheck::ForwardOnly) {
+						_unknown_message_counter++;
+
+						// The header of an unknown message isn't CRC checked, so only
+						// track the sequence of components we have already seen.
+						update_rx_stats(msg, false);
+
+					} else if (frame_check == FrameCheck::BadSignature) {
+						_bad_signature_counter++;
+					}
+
+					if (frame_check == FrameCheck::Ok || frame_check == FrameCheck::ForwardOnly) {
+						_mavlink.forward_if_enabled(&msg);
 					}
 				}
 
@@ -4019,7 +4039,11 @@ MavlinkReceiver::run()
 					telemetry_status_s &tstatus = _mavlink.telemetry_status();
 					tstatus.rx_message_count = _total_received_counter;
 					tstatus.rx_message_lost_count = _total_lost_counter;
-					tstatus.rx_message_lost_rate = static_cast<float>(_total_lost_counter) / static_cast<float>(_total_received_counter);
+					tstatus.rx_unknown_message_count = _unknown_message_counter;
+					tstatus.rx_bad_signature_count = _bad_signature_counter;
+					const uint64_t total_messages = _total_received_counter + _total_lost_counter;
+					tstatus.rx_message_lost_rate = (total_messages > 0)
+								       ? static_cast<float>(_total_lost_counter) / static_cast<float>(total_messages) : 0.f;
 
 					if (_mavlink_status_last_buffer_overrun != _status.buffer_overrun) {
 						tstatus.rx_buffer_overruns++;
@@ -4077,6 +4101,61 @@ MavlinkReceiver::run()
 	}
 }
 
+MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const mavlink_message_t &message)
+{
+	switch (framing) {
+	case MAVLINK_FRAMING_OK:
+		return FrameCheck::Ok;
+
+	case MAVLINK_FRAMING_BAD_SIGNATURE:
+		// With signing enabled, PX4 keeps unauthenticated traffic away from the
+		// other links, so we don't forward it either.
+		return FrameCheck::BadSignature;
+
+	case MAVLINK_FRAMING_BAD_CRC:
+		break;
+
+	default:
+		return FrameCheck::Incomplete;
+	}
+
+	// Messages which are not in our dialect can't have their CRC checked and
+	// are reported as bad CRC by the parser. They can still be forwarded.
+	if ((mavlink_get_msg_entry(message.msgid) != nullptr) || (_status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
+		return FrameCheck::Invalid;
+	}
+
+	// The parser doesn't report the signature result of a bad CRC frame, so
+	// apply the same rules as for known messages ourselves.
+	const mavlink_signing_t *signing = _mavlink.get_status()->signing;
+
+	if (signing == nullptr) {
+		return FrameCheck::ForwardOnly;
+	}
+
+	if (message.incompat_flags & MAVLINK_IFLAG_SIGNED) {
+		// The parser has checked the signature of this frame already.
+		return (signing->last_status == MAVLINK_SIGNING_STATUS_OK) ? FrameCheck::ForwardOnly : FrameCheck::BadSignature;
+	}
+
+	return _mavlink.accept_unsigned(message.msgid) ? FrameCheck::ForwardOnly : FrameCheck::BadSignature;
+}
+
+void MavlinkReceiver::reset_parser_after_rejected_frame(uint8_t c)
+{
+	mavlink_status_t *status = _mavlink.get_status();
+	_mav_parse_error(status);
+	status->msg_received = MAVLINK_FRAMING_INCOMPLETE;
+	status->parse_state = MAVLINK_PARSE_STATE_IDLE;
+
+	if (c == MAVLINK_STX) {
+		mavlink_message_t *rxmsg = _mavlink.get_buffer();
+		status->parse_state = MAVLINK_PARSE_STATE_GOT_STX;
+		rxmsg->len = 0;
+		mavlink_start_checksum(rxmsg);
+	}
+}
+
 bool MavlinkReceiver::component_was_seen(int system_id, int component_id)
 {
 	// For system broadcast messages return true if at least one component was seen before
@@ -4094,22 +4173,17 @@ bool MavlinkReceiver::component_was_seen(int system_id, int component_id)
 	return false;
 }
 
-void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
+void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message, bool add_component)
 {
-	const bool component_states_has_still_space = [this, &message]() {
+	const bool component_states_has_still_space = [this, &message, add_component]() {
 		for (unsigned i = 0; i < MAX_REMOTE_COMPONENTS; ++i) {
 			if (_component_states[i].system_id == message.sysid && _component_states[i].component_id == message.compid) {
 
-				int lost_messages = 0;
 				const uint8_t expected_seq = _component_states[i].last_sequence + 1;
 
-				// Account for overflow during packet loss
-				if (message.seq < expected_seq) {
-					lost_messages = (message.seq + 255) - expected_seq;
-
-				} else {
-					lost_messages = message.seq - expected_seq;
-				}
+				// The sequence number is 8 bit, so the difference modulo 256 is the
+				// number of lost messages, also across the wrap-around.
+				const int lost_messages = static_cast<uint8_t>(message.seq - expected_seq);
 
 				_component_states[i].missed_messages += lost_messages;
 
@@ -4123,6 +4197,10 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
 				return true;
 
 			} else if (_component_states[i].system_id == 0 && _component_states[i].component_id == 0) {
+				if (!add_component) {
+					return true;
+				}
+
 				_component_states[i].system_id = message.sysid;
 				_component_states[i].component_id = message.compid;
 
@@ -4141,7 +4219,7 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
 		return false;
 	}();
 
-	if (!component_states_has_still_space && !_warned_component_states_full_once) {
+	if (add_component && !component_states_has_still_space && !_warned_component_states_full_once) {
 		PX4_WARN("Max remote components of %u used up", MAX_REMOTE_COMPONENTS);
 		_warned_component_states_full_once = true;
 	}
