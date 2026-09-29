@@ -56,7 +56,7 @@
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/estimator_status_flags.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 
 using namespace time_literals;
 
@@ -115,7 +115,7 @@ private:
 		{this, ORB_ID(sensor_baro), 3},
 	};
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
 
 	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 

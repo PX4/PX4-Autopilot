@@ -40,7 +40,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/defines.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 #include <float.h>
 #include <lib/geo/geo.h>
@@ -66,7 +66,7 @@ public:
 	// define max number of GPS receivers supported for blending
 	static constexpr int GPS_MAX_RECEIVERS_BLEND = 2;
 
-	void setGpsData(const sensor_gps_s &gps_data, uint8_t instance)
+	void setGpsData(const sensor_gnss_s &gps_data, uint8_t instance)
 	{
 		if (instance < GPS_MAX_RECEIVERS_BLEND) {
 			_gps_state[instance] = gps_data;
@@ -88,7 +88,7 @@ public:
 
 	bool isNewOutputDataAvailable() const { return _is_new_output_data_available; }
 	int getNumberOfGpsSuitableForBlending() const { return _np_gps_suitable_for_blending; }
-	const sensor_gps_s &getOutputGpsData() const
+	const sensor_gnss_s &getOutputGpsData() const
 	{
 		if (_selected_gps < GPS_MAX_RECEIVERS_BLEND) {
 			return _gps_state[_selected_gps];
@@ -112,22 +112,22 @@ private:
 	 * Calculate internal states used to blend GPS data from multiple receivers using weightings calculated
 	 * by calc_blend_weights()
 	 */
-	sensor_gps_s gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS_BLEND]) const;
+	sensor_gnss_s gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS_BLEND]) const;
 
 	/*
 	 * The location in gps_blended_state will move around as the relative accuracy changes.
 	 * To mitigate this effect a low-pass filtered offset from each GPS location to the blended location is
 	 * calculated.
 	*/
-	void update_gps_offsets(const sensor_gps_s &gps_blended_state);
+	void update_gps_offsets(const sensor_gnss_s &gps_blended_state);
 
 	/*
 	 Calculate GPS output that is a blend of the offset corrected physical receiver data
 	*/
-	void calc_gps_blend_output(sensor_gps_s &gps_blended_state, float blend_weights[GPS_MAX_RECEIVERS_BLEND]) const;
+	void calc_gps_blend_output(sensor_gnss_s &gps_blended_state, float blend_weights[GPS_MAX_RECEIVERS_BLEND]) const;
 
-	sensor_gps_s _gps_state[GPS_MAX_RECEIVERS_BLEND] {}; ///< internal state data for the physical GPS
-	sensor_gps_s _gps_blended_state {};
+	sensor_gnss_s _gps_state[GPS_MAX_RECEIVERS_BLEND] {}; ///< internal state data for the physical GPS
+	sensor_gnss_s _gps_blended_state {};
 	bool _gps_updated[GPS_MAX_RECEIVERS_BLEND] {};
 	int _selected_gps{0};
 	int _np_gps_suitable_for_blending{0};

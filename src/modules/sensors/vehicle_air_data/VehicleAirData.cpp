@@ -517,7 +517,7 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 	static constexpr float kDeltaOffsetTolerance = 4.f;
 	static constexpr uint64_t kLpfWindow = 2_s;
 
-	sensor_gps_s gps_pos;
+	vehicle_gnss_s gps_pos;
 
 	if (!_vehicle_gps_position_sub.update(&gps_pos)) {
 		return false;
@@ -525,12 +525,12 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 
 	const float pressure_sealevel = _param_sens_baro_qnh.get() * 100.0f;
 	const float baro_pressure = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
-	const float target_altitude = static_cast<float>(gps_pos.altitude_msl_m);
+	const float target_altitude = static_cast<float>(gps_pos.receiver.altitude_msl);
 
 	const float delta_alt =  getAltitudeFromPressure(baro_pressure, pressure_sealevel) - target_altitude;
 	bool gnss_baro_offset_stable = false;
 
-	if (gps_pos.epv > kEpvReq || _t_first_gnss_sample == 0) {
+	if (gps_pos.receiver.epv > kEpvReq || _t_first_gnss_sample == 0) {
 		_calibration_t_first = 0;
 		_t_first_gnss_sample = gps_pos.timestamp;
 		return false;

@@ -5,7 +5,7 @@ module_name: vehicle_gps_position
 parameters:
     - group: Sensors
       definitions:
-        SENS_GPS_MASK:
+        SENS_GNSS_MASK:
             description:
                 short: Multi GPS Blending Control Mask
                 long: |
@@ -21,7 +21,7 @@ parameters:
             min: 0
             max: 7
 
-        SENS_GPS_TAU:
+        SENS_GNSS_TAU:
             description:
                 short: Multi GPS Blending Time Constant
                 long: |
@@ -35,7 +35,7 @@ parameters:
             min: 1.0
             max: 100.0
 
-        SENS_GPS_PRIME:
+        SENS_GNSS_PRIME:
             description:
                 short: Multi GPS primary instance
                 long: |
@@ -59,7 +59,7 @@ parameters:
                 -1: Auto (equal priority)
                 0: Main serial GPS
                 1: Secondary serial GPS
-        SENS_GPS${i}_ID:
+        SENS_GNSS${i}_ID:
             description:
                 short: GPS ${i} device ID
                 long: |
@@ -72,12 +72,12 @@ parameters:
             num_instances: *max_num_gps_instances
             instance_start: 0
 
-        SENS_GPS${i}_OFFX:
+        SENS_GNSS${i}_OFFX:
             description:
                 short: GPS ${i} antenna X position
                 long: |
                     Forward axis relative to vehicle centre of gravity.
-                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+                    Matched to physical GPS receiver via SENS_GNSS${i}_ID.
             type: float
             default: 0.0
             unit: m
@@ -85,12 +85,12 @@ parameters:
             num_instances: *max_num_gps_instances
             instance_start: 0
 
-        SENS_GPS${i}_OFFY:
+        SENS_GNSS${i}_OFFY:
             description:
                 short: GPS ${i} antenna Y position
                 long: |
                     Right axis relative to vehicle centre of gravity.
-                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+                    Matched to physical GPS receiver via SENS_GNSS${i}_ID.
             type: float
             default: 0.0
             unit: m
@@ -98,12 +98,12 @@ parameters:
             num_instances: *max_num_gps_instances
             instance_start: 0
 
-        SENS_GPS${i}_OFFZ:
+        SENS_GNSS${i}_OFFZ:
             description:
                 short: GPS ${i} antenna Z position
                 long: |
                     Down axis relative to vehicle centre of gravity.
-                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+                    Matched to physical GPS receiver via SENS_GNSS${i}_ID.
             type: float
             default: 0.0
             unit: m
@@ -111,12 +111,12 @@ parameters:
             num_instances: *max_num_gps_instances
             instance_start: 0
 
-        SENS_GPS${i}_DELAY:
+        SENS_GNSS${i}_DELAY:
             description:
                 short: GPS ${i} measurement delay
                 long: |
                     GPS measurement delay relative to IMU measurements.
-                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+                    Matched to physical GPS receiver via SENS_GNSS${i}_ID.
                     Only applied when the GPS driver does not provide its own
                     timestamp_sample correction.
             type: int32

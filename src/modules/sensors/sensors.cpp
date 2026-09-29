@@ -539,7 +539,7 @@ void Sensors::Run()
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-		const int n_gps = orb_group_count(ORB_ID(sensor_gps));
+		const int n_gps = orb_group_count(ORB_ID(sensor_gnss));
 
 		if (n_gps != _n_gps) {
 			_n_gps = n_gps;

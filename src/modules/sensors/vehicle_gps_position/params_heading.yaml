@@ -9,14 +9,14 @@ parameters:
             description:
                 short: GNSS ${i} heading setup
                 long: |
-                    How the receiver in slot ${i} (matched via SENS_GPS${i}_ID) measures its dual antenna heading.
+                    How the receiver in slot ${i} (matched via SENS_GNSS${i}_ID) measures its dual antenna heading.
                     The heading is the bearing of the baseline between two antennas, and is only used when the
                     baseline length the receiver reports is within 20% of the configured one.
                     Moving base rover: this receiver is the rover of a moving base pair, the moving base is the
                     receiver in the other slot. The baseline runs from the moving base's antenna to this
-                    receiver's antenna (SENS_GPSn_OFFX/Y/Z of both slots).
+                    receiver's antenna (SENS_GNSSn_OFFX/Y/Z of both slots).
                     Dual antenna: this receiver has two antennas. The baseline runs from its main antenna
-                    (SENS_GPS${i}_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS${i}_AUXX/Y/Z).
+                    (SENS_GNSS${i}_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS${i}_AUXX/Y/Z).
             type: enum
             values:
                 0: Disabled
