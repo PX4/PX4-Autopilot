@@ -5,41 +5,11 @@ module_name: vehicle_gps_position
 parameters:
     - group: Sensors
       definitions:
-        SENS_GNSS_MASK:
-            description:
-                short: Multi GPS Blending Control Mask
-                long: |
-                    Set bits in the following positions to set which GPS accuracy metrics will
-                    be used to calculate the blending weight. Set to zero to disable and always
-                    used first GPS instance.
-            type: bitmask
-            bit:
-                0: use speed accuracy
-                1: use hpos accuracy
-                2: use vpos accuracy
-            default: 7
-            min: 0
-            max: 7
-
-        SENS_GNSS_TAU:
-            description:
-                short: Multi GPS Blending Time Constant
-                long: |
-                    Sets the longest time constant that will be applied to the calculation of GPS
-                    position and height offsets used to correct data from multiple GPS data for
-                    steady state position differences.
-            type: float
-            default: 10.0
-            unit: s
-            decimal: 1
-            min: 1.0
-            max: 100.0
-
         SENS_GNSS_PRIME:
             description:
                 short: Multi GPS primary instance
                 long: |
-                    When no blending is active, this defines the preferred GPS receiver instance.
+                    Preferred GPS receiver instance.
                     The GPS selection logic waits until the primary receiver is available to
                     send data to the EKF even if a secondary instance is already available.
                     The secondary instance is then only used if the primary one times out.
@@ -48,9 +18,6 @@ parameters:
 
                     The primary receiver is reported in the GPS_RAW_INT MAVLink
                     message and the secondary in GPS2_RAW.
-
-                    This parameter has no effect on the EKF GPS selection if
-                    blending is active.
             type: int32
             default: 0
             min: -1

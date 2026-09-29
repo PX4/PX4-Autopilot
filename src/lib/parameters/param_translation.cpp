@@ -359,8 +359,6 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	// 2026-09-28: translate SENS_GPS* to SENS_GNSS*
 	{
 		static constexpr const char *kRenames[][2] {
-			{"SENS_GPS_MASK", "SENS_GNSS_MASK"},
-			{"SENS_GPS_TAU", "SENS_GNSS_TAU"},
 			{"SENS_GPS_PRIME", "SENS_GNSS_PRIME"},
 			{"SENS_GPS0_ID", "SENS_GNSS0_ID"},
 			{"SENS_GPS0_OFFX", "SENS_GNSS0_OFFX"},
