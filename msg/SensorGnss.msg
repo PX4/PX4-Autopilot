@@ -4,7 +4,7 @@
 # The sensors module publishes the selected receiver on vehicle_gnss.
 
 uint64 timestamp        # [us] Time since system start
-uint64 timestamp_sample # [us] Measurement time if the driver knows it, else 0. vehicle_gnss carries the corrected value
+uint64 timestamp_sample # [us] Measurement time if the driver knows it, else 0 or equal to timestamp. vehicle_gnss carries the corrected value
 
 uint32 device_id # [-] Unique device ID for the sensor that does not change between power cycles
 

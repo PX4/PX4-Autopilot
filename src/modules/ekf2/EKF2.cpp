@@ -2641,11 +2641,8 @@ void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gnss.receiver.altitude_ellipsoid);
 
 		// timestamp_sample is corrected by the sensors module (per-receiver delay or PPS)
-		const bool timestamp_corrected = vehicle_gnss.timestamp_sample > 0
-						 && vehicle_gnss.timestamp_sample != vehicle_gnss.timestamp;
-
 		gnssSample gnss_sample{
-			.time_us = timestamp_corrected ? vehicle_gnss.timestamp_sample : vehicle_gnss.timestamp,
+			.time_us = vehicle_gnss.timestamp_sample,
 			.lat = vehicle_gnss.receiver.latitude,
 			.lon = vehicle_gnss.receiver.longitude,
 			.alt = altitude_amsl,
