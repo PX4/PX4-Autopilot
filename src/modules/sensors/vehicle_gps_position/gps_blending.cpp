@@ -503,23 +503,6 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 	gps_blended_state.longitude_deg = lon_deg_res;
 	gps_blended_state.altitude_msl_m += blended_alt_offset_m;
 
-	// Take GPS heading from the highest weighted receiver that is publishing a valid .heading value
-	int8_t gps_best_yaw_index = -1;
-	float best_yaw_weight = 0.0f;
-
-	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
-		if (PX4_ISFINITE(_gps_state[i].heading) && (blend_weights[i] > best_yaw_weight)) {
-			best_yaw_weight = blend_weights[i];
-			gps_best_yaw_index = i;
-		}
-	}
-
-	if (gps_best_yaw_index >= 0)  {
-		gps_blended_state.heading = _gps_state[gps_best_yaw_index].heading;
-		gps_blended_state.heading_offset = _gps_state[gps_best_yaw_index].heading_offset;
-		gps_blended_state.heading_accuracy = _gps_state[gps_best_yaw_index].heading_accuracy;
-	}
-
 	// Blend UTC timestamp from all receivers that are publishing a valid time_utc_usec value
 	double utc_weight_sum = 0.0;
 	double utc_time_sum = 0.0;

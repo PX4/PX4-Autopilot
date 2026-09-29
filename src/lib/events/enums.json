@@ -73,7 +73,7 @@
                         },
                         "32": {
                             "name": "rtl",
-                            "description": "RTL"
+                            "description": "Return"
                         },
                         "64": {
                             "name": "position_slow",
@@ -344,6 +344,61 @@
                         }
                     }
                 },
+                "gnss_check_fail_t": {
+                    "type": "uint16_t",
+                    "description": "Bitfield of failing GNSS quality checks, the bit numbers of estimator_status.gps_check_fail_flags",
+                    "is_bitfield": true,
+                    "entries": {
+                        "1": {
+                            "name": "fix",
+                            "description": "Fix too low"
+                        },
+                        "2": {
+                            "name": "nsats",
+                            "description": "Not enough satellites"
+                        },
+                        "4": {
+                            "name": "pdop",
+                            "description": "PDOP too high"
+                        },
+                        "8": {
+                            "name": "hacc",
+                            "description": "Horizontal position error too high"
+                        },
+                        "16": {
+                            "name": "vacc",
+                            "description": "Vertical position error too high"
+                        },
+                        "32": {
+                            "name": "sacc",
+                            "description": "Speed accuracy too low"
+                        },
+                        "64": {
+                            "name": "hdrift",
+                            "description": "Horizontal position drift too high"
+                        },
+                        "128": {
+                            "name": "vdrift",
+                            "description": "Vertical position drift too high"
+                        },
+                        "256": {
+                            "name": "hspeed",
+                            "description": "Horizontal speed drift too high"
+                        },
+                        "512": {
+                            "name": "vspeed",
+                            "description": "Vertical speed drift too high"
+                        },
+                        "1024": {
+                            "name": "spoofed",
+                            "description": "Signal spoofed"
+                        },
+                        "2048": {
+                            "name": "jammed",
+                            "description": "Signal jammed"
+                        }
+                    }
+                },
                 "arming_state_t": {
                     "type": "uint8_t",
                     "description": "State of the main arming state machine",
@@ -438,7 +493,7 @@
                         },
                         "6": {
                             "name": "rtl",
-                            "description": "RTL"
+                            "description": "Return"
                         },
                         "7": {
                             "name": "land",
@@ -530,7 +585,7 @@
                         },
                         "5": {
                             "name": "auto_rtl",
-                            "description": "RTL"
+                            "description": "Return"
                         },
                         "6": {
                             "name": "acro",

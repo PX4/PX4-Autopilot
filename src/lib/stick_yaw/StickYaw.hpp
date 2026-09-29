@@ -52,6 +52,8 @@ public:
 	~StickYaw() = default;
 
 	void reset(float yaw, float unaided_yaw = NAN);
+
+	void resetYawspeed() { _yawspeed_filter.reset(0.f); }
 	void ekfResetHandler(float delta_yaw);
 	void generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, float stick_yaw, float yaw, float deltatime,
 				 float unaided_yaw = NAN);

@@ -43,6 +43,10 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
 	_fc.gps.available = (_params.ekf2_gps_ctrl != 0);
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
+	controlGnssYawFusion(imu_delayed);
+#endif // CONFIG_EKF2_GNSS_YAW
+
 	if (!_gps_buffer) {
 		stopGnssFusion();
 		return;
@@ -101,11 +105,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	}
 
 	if (_gps_data_ready) {
-#if defined(CONFIG_EKF2_GNSS_YAW)
-		const gnssSample &gnss_sample = _gps_sample_delayed;
-		controlGnssYawFusion(gnss_sample);
-#endif // CONFIG_EKF2_GNSS_YAW
-
 		controlGnssYawEstimator(_aid_src_gnss_vel);
 
 		bool do_vel_pos_reset = false;
@@ -494,9 +493,6 @@ void Ekf::stopGnssFusion()
 	stopGnssVelFusion();
 	stopGnssPosFusion();
 	stopGpsHgtFusion();
-#if defined(CONFIG_EKF2_GNSS_YAW)
-	stopGnssYawFusion();
-#endif // CONFIG_EKF2_GNSS_YAW
 
 	_yawEstimator.reset();
 	_time_yaw_estimator_activated_us = 0;

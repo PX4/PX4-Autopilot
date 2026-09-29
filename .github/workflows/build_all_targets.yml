@@ -90,6 +90,10 @@ jobs:
       - name: Install Python Dependencies
         run: pip3 install pyyaml kconfiglib 'empy>=3.3,<4' pyros-genmsg
 
+      - name: Test Build Matrix and Slot Assignment
+        working-directory: Tools/ci
+        run: python3 -m unittest -v test_generate_board_targets_json test_build_all_runner
+
       # The generator runs as a standalone assignment so a non-zero exit
       # fails the step; embedded in `echo "x=$(...)"` it would be masked
       # and the empty output silently skips the whole build matrix.
@@ -236,9 +240,14 @@ jobs:
           ccache -s
           ccache -z
 
-      - name: Building Artifacts for [${{ matrix.targets }}]
-        run: |
-            ./Tools/ci/build_all_runner.sh ${{matrix.targets}} ${{matrix.arch}}
+      - name: Building Artifacts
+        run: ./Tools/ci/build_all_runner.py --slots ${{ matrix.slots }} ${{ join(matrix.targets, ' ') }}
+
+      # Full per-target compiler output, one collapsed group per target, kept
+      # out of the build step so a running job shows progress, not logs.
+      - name: Build Logs
+        if: ${{ !cancelled() }}
+        run: ./Tools/ci/build_all_runner.py --print-logs
 
       - name: Arrange Build Artifacts
         run: |

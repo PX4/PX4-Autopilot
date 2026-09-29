@@ -305,6 +305,7 @@ They are not build into the module, and hence are neither published or subscribe
 - [VehicleCommandAckV0](../msg_docs/VehicleCommandAckV0.md)
 - [VehicleConstraints](../msg_docs/VehicleConstraints.md)
 - [VehicleGlobalPositionV0](../msg_docs/VehicleGlobalPositionV0.md)
+- [VehicleGnssHeading](../msg_docs/VehicleGnssHeading.md)
 - [VehicleImu](../msg_docs/VehicleImu.md)
 - [VehicleImuStatus](../msg_docs/VehicleImuStatus.md)
 - [VehicleLocalPositionSetpoint](../msg_docs/VehicleLocalPositionSetpoint.md)

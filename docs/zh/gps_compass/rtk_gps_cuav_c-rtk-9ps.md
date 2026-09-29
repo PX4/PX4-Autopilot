@@ -64,4 +64,4 @@ RTK setup and use on PX4 via _QGroundControl_ is largely plug and play (see [RTK
 
 ## More information
 
-[CUAV docs](https://doc.cuav.net/gps/c-rtk-series/en/c-rtk-9ps/)
+[CUAV docs](https://doc.cuav.net/en/gnss/c-rtk-series/c-rtk-9ps/)

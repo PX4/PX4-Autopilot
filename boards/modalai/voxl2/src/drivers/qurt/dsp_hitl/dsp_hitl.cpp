@@ -312,7 +312,7 @@ void send_actuator_data()
 
 				actuator_sent_counter++;
 
-				if (_debug) { PX4_INFO("Successful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time()); }
+				if (_debug) { PX4_INFO("Successful write of actuator back to the simulator: %d at %llu", writeRetval, hrt_absolute_time()); }
 
 				first_sent = true;
 
@@ -327,7 +327,7 @@ void send_actuator_data()
 
 			actuator_sent_counter++;
 
-			if (_debug) { PX4_INFO("Successful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time()); }
+			if (_debug) { PX4_INFO("Successful write of actuator back to the simulator: %d at %llu", writeRetval, hrt_absolute_time()); }
 
 			send_esc_status(hil_act_control);
 		}
@@ -1248,10 +1248,6 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 
 	gps.timestamp_time_relative = 0;
 	gps.time_utc_usec = hil_gps.time_usec;
-
-
-	gps.heading = NAN;
-	gps.heading_offset = NAN;
 
 	gps.timestamp = hrt_absolute_time();
 

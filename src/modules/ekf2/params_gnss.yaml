@@ -46,15 +46,6 @@ parameters:
       min: 1.0
       unit: SD
       decimal: 1
-    EKF2_GPS_YAW_OFF:
-      description:
-        short: Heading/Yaw offset for dual antenna GPS
-      type: float
-      default: 0.0
-      min: 0.0
-      max: 360.0
-      unit: deg
-      decimal: 1
     EKF2_GPS_V_GATE:
       description:
         short: Gate size for GNSS velocity fusion
@@ -78,7 +69,8 @@ parameters:
       description:
         short: Integer bitmask controlling GPS checks
         long: 'Each threshold value is defined by the parameter indicated next to the check.
-          Drift and offset checks only run when the vehicle is on ground and stationary.'
+          Drift and offset checks only run when the vehicle is on ground and stationary.
+          The spoofing and jamming checks also apply to the receiver providing the GNSS heading.'
       type: bitmask
       bit:
         0: Sat count (EKF2_REQ_NSATS)
