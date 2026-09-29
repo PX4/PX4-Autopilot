@@ -168,6 +168,7 @@ void Geofence::run()
 				_dataman_state = DatamanState::UpdateRequestWait;
 				_fence_loaded = true;
 				_fence_load_failures = 0;
+				_reportFenceRecovered();
 				_path_check_ready = !_initiate_fence_updated;
 				_publishStatus(geofence_status_s::GF_STATUS_READY);
 			}
@@ -217,18 +218,30 @@ void Geofence::_finishFenceUpdate(LoadResult result)
 
 	if (success) {
 		_fence_load_failures = 0;
+		_reportFenceRecovered();
 
 	} else if (result == LoadResult::ReadFailed) {
 		_scheduleFenceRetry();
+
+	} else {
+		// Invalid fence data is reported where it is found and not retried.
+		_failure_report = FailureReport::NoFence;
 	}
 
-	// Invalid fence data is reported where it is found and not retried.
 	_publishStatus(success ? geofence_status_s::GF_STATUS_READY : geofence_status_s::GF_STATUS_FAILED);
 	_geofence_updated = true;
 }
 
 void Geofence::_scheduleFenceRetry()
 {
+	// Report the first failure, and a later one that also drops the previous fence.
+	const FailureReport report = isEmpty() ? FailureReport::NoFence : FailureReport::PreviousFenceActive;
+
+	if (_fence_load_failures == 0 || report > _failure_report) {
+		_failure_report = report;
+		_reportFenceLoadFailure();
+	}
+
 	if (_fence_load_failures < kMaxFenceLoadRetries) {
 		// Back off 1 s, 2 s, 4 s before giving up.
 		_fence_retry_time = hrt_absolute_time() + (kFenceRetryDelay << _fence_load_failures);
@@ -238,7 +251,23 @@ void Geofence::_scheduleFenceRetry()
 
 	} else {
 		_fence_retry_time = 0;
-		_reportFenceLoadFailure();
+	}
+}
+
+void Geofence::_reportFenceRecovered()
+{
+	if (_failure_report != FailureReport::None) {
+		_failure_report = FailureReport::None;
+
+		if (isEmpty()) {
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence loaded, no fence configured\t");
+			events::send(events::ID("navigator_geofence_empty_load_recovered"), events::Log::Info,
+				     "Geofence loaded, no fence configured");
+
+		} else {
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence loaded, fence is active\t");
+			events::send(events::ID("navigator_geofence_load_recovered"), events::Log::Info, "Geofence loaded, fence is active");
+		}
 	}
 }
 
@@ -260,7 +289,7 @@ void Geofence::_clearFence()
 
 void Geofence::_reportFenceLoadFailure()
 {
-	if (_fence_loaded) {
+	if (!isEmpty()) {
 		// The metadata read failed before the old fence was touched, so it keeps protecting.
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence update failed, previous fence still active\t");
 		events::send(events::ID("navigator_geofence_update_failed"), {events::Log::Critical, events::LogInternal::Warning},

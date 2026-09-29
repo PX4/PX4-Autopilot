@@ -217,6 +217,8 @@ private:
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
 	hrt_abstime _fence_retry_time{0}; ///< Next retry of a failed load; zero when none is scheduled.
 	uint8_t _fence_load_failures{0}; ///< Consecutive failed load attempts.
+	enum class FailureReport : uint8_t { None, PreviousFenceActive, NoFence }; ///< Ordered by severity.
+	FailureReport _failure_report{FailureReport::None}; ///< What the operator was last told about a failed load.
 	static constexpr uint8_t kMaxFenceLoadRetries = 3;
 	static constexpr hrt_abstime kFenceRetryDelay = 1_s; ///< Doubles with each failure.
 	bool _geofence_updated{false}; ///< set when polygons change, consumed by Navigator to rebuild avoidance graph
@@ -242,9 +244,14 @@ private:
 	void _finishFenceUpdate(LoadResult result);
 
 	/**
-	 * Schedule a bounded, backed-off retry of a failed load, or report giving up.
+	 * Report the first failed load (or the loss of the previous fence), then schedule a bounded, backed-off retry.
 	 */
 	void _scheduleFenceRetry();
+
+	/**
+	 * Tell the operator a fence load succeeded after a reported failure.
+	 */
+	void _reportFenceRecovered();
 
 	void _publishStatus(uint8_t status);
 
@@ -254,7 +261,7 @@ private:
 	void _clearFence();
 
 	/**
-	 * Tell the operator that the fence failed to load and is not active.
+	 * Tell the operator that a fence load failed and whether the previous fence still protects.
 	 */
 	void _reportFenceLoadFailure();
 
