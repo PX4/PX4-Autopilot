@@ -104,7 +104,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				stopGnssFusion();
 
 				if (checks_passed) {
-					ECL_WARN("GNSS velocity above EKF2_VEL_LIM - stopping use");
+					ECL_WARN("GNSS velocity above limit - stopping use");
 
 				} else {
 					ECL_WARN("GNSS quality poor - stopping use");
