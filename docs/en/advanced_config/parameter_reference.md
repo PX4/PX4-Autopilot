@@ -44416,7 +44416,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Multicopter Rate Control
 
-<div class="param-group" style="--param-count: 20">
+<div class="param-group" style="--param-count: 22">
 
 <div class="param">
 
@@ -44439,6 +44439,44 @@ it will still be 0.5 at 60% battery.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MC_GC_EN (`INT32`) {#MC_GC_EN}
+
+Enable rate gain compression.
+
+Dynamically reduces the rate controller output gain when an oscillation
+(limit cycle) is detected on the torque setpoint, e.g. caused by too high gains.
+The gain recovers to 1.0 once the oscillation stops.
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MC_GC_GAIN_MIN (`FLOAT`) {#MC_GC_GAIN_MIN}
+
+Compression gain lower limit.
+
+The range of the compression gain is between this parameter and 1.0
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.01 | 0.3 |  | &nbsp;
 
 </div>
 
