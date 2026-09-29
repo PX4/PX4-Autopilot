@@ -259,10 +259,10 @@ inline bool publishVisionPos(uORB::Publication<fiducial_marker_pos_report_s> &pu
 	return pub.publish(msg);
 }
 
-inline bool publishUavGps(uORB::Publication<vehicle_gnss_s> &pub, double lat, double lon, float alt,
-			  float eph, float epv, const matrix::Vector3f &vel_ned, float vel_var,
-			  bool vel_valid, hrt_abstime timestamp,
-			  const matrix::Vector3f &antenna_offset = matrix::Vector3f{})
+inline bool publishUavGnss(uORB::Publication<vehicle_gnss_s> &pub, double lat, double lon, float alt,
+			   float eph, float epv, const matrix::Vector3f &vel_ned, float vel_var,
+			   bool vel_valid, hrt_abstime timestamp,
+			   const matrix::Vector3f &antenna_offset = matrix::Vector3f{})
 {
 	vehicle_gnss_s msg{};
 	msg.timestamp = timestamp;

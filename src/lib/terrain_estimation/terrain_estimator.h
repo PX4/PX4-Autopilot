@@ -68,7 +68,7 @@ public:
 
 	void predict(float dt, const struct vehicle_attitude_s *attitude, const struct sensor_combined_s *sensor,
 		     const struct distance_sensor_s *distance);
-	void measurement_update(uint64_t time_ref, const struct sensor_gnss_s *gps,
+	void measurement_update(uint64_t time_ref, const struct sensor_gnss_s *gnss,
 				const struct distance_sensor_s *distance,
 				const struct vehicle_attitude_s *attitude);
 
@@ -85,7 +85,7 @@ private:
 
 	// timestamps
 	uint64_t _time_last_distance;
-	uint64_t _time_last_gps;
+	uint64_t _time_last_gnss;
 
 	/*
 	struct {

@@ -377,7 +377,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
-	uORB::Subscription _gps_pos_sub{ORB_ID(vehicle_gnss)};		/**< gps position subscription */
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};		/**< gps position subscription */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
@@ -400,7 +400,7 @@ private:
 	home_position_s					_home_pos{};		/**< home position for Return */
 	mission_result_s				_mission_result{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
-	vehicle_gnss_s				_gps_pos{};		/**< gps position */
+	vehicle_gnss_s				_vehicle_gnss{};	/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */

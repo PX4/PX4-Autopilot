@@ -303,7 +303,7 @@ void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 		fusion_mask.flags.fuse_vision = processObsVision(observations[obsIndex(ObsType::kFiducialMarker)]);
 	}
 
-	if (updateUavGpsData()) {
+	if (updateUavGnssData()) {
 		if (_vte_aid_mask.flags.use_mission_pos && _mission_land_position.valid && _uav_gps_position.valid) {
 			fusion_mask.flags.fuse_mission_pos = processObsGNSSPosMission(observations[obsIndex(ObsType::kMissionGpsPos)]);
 		}
@@ -432,28 +432,28 @@ bool VTEPosition::isUavGpsVelocityValid()
 	return true;
 }
 
-bool VTEPosition::updateUavGpsData()
+bool VTEPosition::updateUavGnssData()
 {
-	vehicle_gnss_s vehicle_gps_position;
-	const bool vehicle_gps_position_updated = _vehicle_gps_position_sub.update(&vehicle_gps_position);
+	vehicle_gnss_s vehicle_gnss;
+	const bool vehicle_gnss_updated = _vehicle_gnss_sub.update(&vehicle_gnss);
 
-	if (vehicle_gps_position_updated) {
+	if (vehicle_gnss_updated) {
 		// Position
-		_uav_gps_position.lat_deg = vehicle_gps_position.receiver.latitude;
-		_uav_gps_position.lon_deg = vehicle_gps_position.receiver.longitude;
-		_uav_gps_position.alt_m = (float)vehicle_gps_position.receiver.altitude_msl;
-		_uav_gps_position.timestamp = vehicle_gps_position.timestamp_sample;
-		_uav_gps_position.eph = vehicle_gps_position.receiver.eph;
-		_uav_gps_position.epv = vehicle_gps_position.receiver.epv;
+		_uav_gps_position.lat_deg = vehicle_gnss.receiver.latitude;
+		_uav_gps_position.lon_deg = vehicle_gnss.receiver.longitude;
+		_uav_gps_position.alt_m = (float)vehicle_gnss.receiver.altitude_msl;
+		_uav_gps_position.timestamp = vehicle_gnss.timestamp_sample;
+		_uav_gps_position.eph = vehicle_gnss.receiver.eph;
+		_uav_gps_position.epv = vehicle_gnss.receiver.epv;
 		_uav_gps_position.valid = isUavGpsPositionValid();
 
 		// Velocity
-		_uav_gps_vel.timestamp = vehicle_gps_position.timestamp_sample;
-		_uav_gps_vel.xyz(vtest::Axis::x) = vehicle_gps_position.receiver.vel_north;
-		_uav_gps_vel.xyz(vtest::Axis::y) = vehicle_gps_position.receiver.vel_east;
-		_uav_gps_vel.xyz(vtest::Axis::z) = vehicle_gps_position.receiver.vel_down;
-		_uav_gps_vel.uncertainty = vehicle_gps_position.receiver.speed_accuracy;
-		_uav_gps_vel.valid = vehicle_gps_position.receiver.vel_ned_valid && isUavGpsVelocityValid();
+		_uav_gps_vel.timestamp = vehicle_gnss.timestamp_sample;
+		_uav_gps_vel.xyz(vtest::Axis::x) = vehicle_gnss.receiver.vel_north;
+		_uav_gps_vel.xyz(vtest::Axis::y) = vehicle_gnss.receiver.vel_east;
+		_uav_gps_vel.xyz(vtest::Axis::z) = vehicle_gnss.receiver.vel_down;
+		_uav_gps_vel.uncertainty = vehicle_gnss.receiver.speed_accuracy;
+		_uav_gps_vel.valid = vehicle_gnss.receiver.vel_ned_valid && isUavGpsVelocityValid();
 
 	} else {
 		// Check if stored data is still valid
@@ -461,7 +461,7 @@ bool VTEPosition::updateUavGpsData()
 		_uav_gps_vel.valid = _uav_gps_vel.valid && isMeasRecent(_uav_gps_vel.timestamp);
 	}
 
-	return vehicle_gps_position_updated;
+	return vehicle_gnss_updated;
 }
 
 #if defined(CONFIG_VTEST_MOVING)

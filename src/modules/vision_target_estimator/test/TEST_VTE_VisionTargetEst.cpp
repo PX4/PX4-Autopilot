@@ -148,7 +148,7 @@ public:
 	using vte::VisionTargetEst::_vehicle_acceleration_sub;
 	using vte::VisionTargetEst::_vehicle_angular_velocity_sub;
 	using vte::VisionTargetEst::_vehicle_attitude_sub;
-	using vte::VisionTargetEst::_vehicle_gps_position_sub;
+	using vte::VisionTargetEst::_vehicle_gnss_sub;
 	using vte::VisionTargetEst::_vehicle_local_position_sub;
 	using vte::VisionTargetEst::_vte_orientation_enabled;
 	using vte::VisionTargetEst::_vte_position;
@@ -169,7 +169,7 @@ public:
 	using vte::VisionTargetEst::startYawEst;
 	using vte::VisionTargetEst::stopPosEst;
 	using vte::VisionTargetEst::stopYawEst;
-	using vte::VisionTargetEst::updateGpsAntennaOffset;
+	using vte::VisionTargetEst::updateGnssAntennaOffset;
 	using vte::VisionTargetEst::updateEstimators;
 	using vte::VisionTargetEst::updateParams;
 	using vte::VisionTargetEst::updateTaskTopics;
@@ -233,7 +233,7 @@ protected:
 		_attitude_pub = std::make_unique<uORB::Publication<vehicle_attitude_s>>(ORB_ID(vehicle_attitude));
 		_accel_pub = std::make_unique<uORB::Publication<vehicle_acceleration_s>>(ORB_ID(vehicle_acceleration));
 		_ang_vel_pub = std::make_unique<uORB::Publication<vehicle_angular_velocity_s>>(ORB_ID(vehicle_angular_velocity));
-		_uav_gps_pub = std::make_unique<uORB::Publication<vehicle_gnss_s>>(ORB_ID(vehicle_gnss));
+		_uav_gnss_pub = std::make_unique<uORB::Publication<vehicle_gnss_s>>(ORB_ID(vehicle_gnss));
 		_home_position_pub = std::make_unique<uORB::Publication<home_position_s>>(ORB_ID(home_position));
 		_navigator_mission_item_pub = std::make_unique<uORB::Publication<navigator_mission_item_s>>(ORB_ID(navigator_mission_item));
 		_pos_sp_triplet_pub = std::make_unique<uORB::Publication<position_setpoint_triplet_s>>(ORB_ID(position_setpoint_triplet));
@@ -263,7 +263,7 @@ protected:
 		_pos_sp_triplet_pub.reset();
 		_navigator_mission_item_pub.reset();
 		_home_position_pub.reset();
-		_uav_gps_pub.reset();
+		_uav_gnss_pub.reset();
 		_ang_vel_pub.reset();
 		_accel_pub.reset();
 		_attitude_pub.reset();
@@ -310,10 +310,10 @@ protected:
 		ASSERT_TRUE(_ang_vel_pub->publish(msg));
 	}
 
-	void publishUavGps(const matrix::Vector3f &antenna_offset, hrt_abstime timestamp)
+	void publishUavGnss(const matrix::Vector3f &antenna_offset, hrt_abstime timestamp)
 	{
-		ASSERT_TRUE(vte_test::publishUavGps(*_uav_gps_pub, 47.0, 8.0, 500.f, 0.5f, 0.5f,
-						    matrix::Vector3f{}, 0.1f, true, timestamp, antenna_offset));
+		ASSERT_TRUE(vte_test::publishUavGnss(*_uav_gnss_pub, 47.0, 8.0, 500.f, 0.5f, 0.5f,
+						     matrix::Vector3f{}, 0.1f, true, timestamp, antenna_offset));
 	}
 
 	void publishHomePosition(float alt_amsl, hrt_abstime timestamp)
@@ -337,8 +337,8 @@ protected:
 		ASSERT_TRUE(_home_position_pub->publish(msg));
 	}
 
-	void publishUavGpsAt(double lat, double lon, float alt_amsl, hrt_abstime timestamp,
-			     uint8_t fix_type = sensor_gnss_s::FIX_TYPE_3D)
+	void publishUavGnssAt(double lat, double lon, float alt_amsl, hrt_abstime timestamp,
+			      uint8_t fix_type = sensor_gnss_s::FIX_TYPE_3D)
 	{
 		vehicle_gnss_s msg{};
 		msg.timestamp = timestamp;
@@ -347,7 +347,7 @@ protected:
 		msg.receiver.longitude = lon;
 		msg.receiver.altitude_msl = static_cast<double>(alt_amsl);
 		msg.receiver.fix_type = fix_type;
-		ASSERT_TRUE(_uav_gps_pub->publish(msg));
+		ASSERT_TRUE(_uav_gnss_pub->publish(msg));
 	}
 
 	void publishNavigatorMissionItem(const navigator_mission_item_s &mission_item)
@@ -391,7 +391,7 @@ protected:
 		vte_test::flushSubscription<vehicle_attitude_s>(_vte->_vehicle_attitude_sub);
 		vte_test::flushSubscription<vehicle_acceleration_s>(_vte->_vehicle_acceleration_sub);
 		vte_test::flushSubscription<vehicle_angular_velocity_s>(_vte->_vehicle_angular_velocity_sub);
-		vte_test::flushSubscription<vehicle_gnss_s>(_vte->_vehicle_gps_position_sub);
+		vte_test::flushSubscription<vehicle_gnss_s>(_vte->_vehicle_gnss_sub);
 		vte_test::flushSubscription<vehicle_local_position_s>(_vte->_vehicle_local_position_sub);
 		vte_test::flushSubscription<home_position_s>(_vte->_prec_land_task._home_position_sub);
 		vte_test::flushSubscription<navigator_mission_item_s>(_vte->_prec_land_task._navigator_mission_item_sub);
@@ -402,7 +402,7 @@ protected:
 		vte_test::flushSubscription<prec_takeoff_status_s>(_vte->_prec_takeoff_task._prec_takeoff_status_sub);
 #endif
 		vte_test::flushSubscription<home_position_s>(_vte->_prec_takeoff_task._home_position_sub);
-		vte_test::flushSubscription<vehicle_gnss_s>(_vte->_prec_takeoff_task._vehicle_gps_position_sub);
+		vte_test::flushSubscription<vehicle_gnss_s>(_vte->_prec_takeoff_task._vehicle_gnss_sub);
 		vte_test::flushSubscription<vehicle_land_detected_s>(_vte->_prec_takeoff_task._vehicle_land_detected_sub);
 	}
 
@@ -410,7 +410,7 @@ protected:
 	std::unique_ptr<uORB::Publication<vehicle_attitude_s>> _attitude_pub;
 	std::unique_ptr<uORB::Publication<vehicle_acceleration_s>> _accel_pub;
 	std::unique_ptr<uORB::Publication<vehicle_angular_velocity_s>> _ang_vel_pub;
-	std::unique_ptr<uORB::Publication<vehicle_gnss_s>> _uav_gps_pub;
+	std::unique_ptr<uORB::Publication<vehicle_gnss_s>> _uav_gnss_pub;
 	std::unique_ptr<uORB::Publication<home_position_s>> _home_position_pub;
 	std::unique_ptr<uORB::Publication<navigator_mission_item_s>> _navigator_mission_item_pub;
 	std::unique_ptr<uORB::Publication<position_setpoint_triplet_s>> _pos_sp_triplet_pub;
@@ -509,24 +509,24 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskDisablesMissionPositionForMovingTarget)
 
 // WHY: The active GPS antenna offset comes from vehicle_gnss
 // WHAT: Publish non-zero then zero antenna offsets and verify the cached lever arm tracks the topic output.
-TEST_F(VisionTargetEstTest, UpdateGpsAntennaOffsetTracksVehicleGpsPosition)
+TEST_F(VisionTargetEstTest, UpdateGnssAntennaOffsetTracksVehicleGnss)
 {
 	// GIVEN: The vehicle GPS topic reports a non-zero antenna lever arm.
 	const matrix::Vector3f gps_offset_gt{0.2, -0.015, 3.1};
-	publishUavGps(gps_offset_gt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnss(gps_offset_gt, vte_test::advanceMicroseconds(kStepUs));
 
 	// WHEN: The module refreshes the cached GPS antenna offset.
-	ASSERT_TRUE(_vte->updateGpsAntennaOffset());
+	ASSERT_TRUE(_vte->updateGnssAntennaOffset());
 
 	// THEN: The cached lever arm matches the published GPS offset.
 	EXPECT_TRUE(_vte->_gps_pos_is_offset);
 	expectVectorNear(_vte->_gps_pos_offset_xyz, gps_offset_gt);
 
 	// GIVEN: The next GPS sample reports no antenna offset.
-	publishUavGps(matrix::Vector3f{}, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnss(matrix::Vector3f{}, vte_test::advanceMicroseconds(kStepUs));
 
 	// WHEN: The offset cache is refreshed again.
-	ASSERT_TRUE(_vte->updateGpsAntennaOffset());
+	ASSERT_TRUE(_vte->updateGnssAntennaOffset());
 
 	// THEN: The cached lever arm is cleared.
 	EXPECT_FALSE(_vte->_gps_pos_is_offset);
@@ -950,7 +950,7 @@ TEST_F(VisionTargetEstTest, NewTaskClearsPreviousGnssBiasReference)
 	aid_mask.flags.use_vision_pos = 1;
 	_vte->_vte_position.setVteAidMask(aid_mask.value);
 	_vte->setCachedMissionPosition(47.001, 8.0, 500.f);
-	publishUavGps(matrix::Vector3f{}, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnss(matrix::Vector3f{}, vte_test::advanceMicroseconds(kStepUs));
 	_vte->_vte_position.update(matrix::Vector3f{});
 
 	vte_test::advanceMicroseconds(kStepUs);
@@ -980,7 +980,7 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffHomeReferenceRequiresLandedAndNearby
 	const double lat = 47.0;
 	const double lon = 8.0;
 	const float alt = 500.f;
-	publishUavGpsAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
 
 	// GIVEN: Home matches the vehicle but the vehicle is airborne.
 	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
@@ -993,21 +993,21 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffHomeReferenceRequiresLandedAndNearby
 	// GIVEN: Landed with a nearby home, but an invalid GNSS fix.
 	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
 	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
-	publishUavGpsAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs), sensor_gnss_s::FIX_TYPE_NONE);
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs), sensor_gnss_s::FIX_TYPE_NONE);
 
 	// THEN: The invalid fix cannot validate the home-to-vehicle distance.
 	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
 	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
 
 	// GIVEN: The latest GNSS sample is valid but stale.
-	publishUavGpsAt(lat, lon, alt, vte_test::nowUs() - 2_s);
+	publishUavGnssAt(lat, lon, alt, vte_test::nowUs() - 2_s);
 
 	// THEN: The stale position cannot validate home either.
 	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
 	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
 
 	// GIVEN: Home is just outside the 5 m limit.
-	publishUavGpsAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
 	double home_lat;
 	double home_lon;
 	waypoint_from_heading_and_distance(lat, lon, 0.f, vte::PrecTakeoffTask::kMaxHomeDistM + 1.f,
@@ -1060,7 +1060,7 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffReplacesInactiveHomeAidReference)
 	// No usable home must invalidate, rather than retain, the previous task's reference.
 	EXPECT_FALSE(_vte->missionPositionValid());
 
-	publishUavGpsAt(home_lat, home_lon, home_alt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(home_lat, home_lon, home_alt, vte_test::advanceMicroseconds(kStepUs));
 	publishHomePosition(home_lat, home_lon, home_alt, vte_test::advanceMicroseconds(kStepUs));
 	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
 
@@ -1077,7 +1077,7 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffActivationCachesHomeReference)
 	const double lat = 47.0;
 	const double lon = 8.0;
 	const float alt = 500.f;
-	publishUavGpsAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
 	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
 	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
 

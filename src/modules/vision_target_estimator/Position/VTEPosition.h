@@ -354,7 +354,7 @@ private:
 	bool processObsVision(TargetObs &obs);
 
 	/* UAV GPS data */
-	bool updateUavGpsData();
+	bool updateUavGnssData();
 	bool isUavGpsPositionValid();
 	bool isUavGpsVelocityValid();
 	bool processObsGNSSPosMission(TargetObs &obs);
@@ -375,7 +375,7 @@ private:
 	void resetObservations();
 	bool shouldEmitWarning(hrt_abstime &last_warn);
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _fiducial_marker_pos_report_sub{ORB_ID(fiducial_marker_pos_report)};
 	uORB::Subscription _target_gnss_sub{ORB_ID(target_gnss)};
 

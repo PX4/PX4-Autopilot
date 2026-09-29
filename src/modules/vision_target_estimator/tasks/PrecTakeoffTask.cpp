@@ -54,7 +54,7 @@
 namespace vision_target_estimator
 {
 
-static constexpr hrt_abstime kGpsDataTimeoutUs = 1_s;
+static constexpr hrt_abstime kGnssDataTimeoutUs = 1_s;
 // vehicle_land_detected has a 1 Hz heartbeat, so allow one full period plus scheduling jitter.
 static constexpr hrt_abstime kLandDetectedTimeoutUs = 2_s;
 
@@ -110,16 +110,16 @@ bool PrecTakeoffTask::updateHomeReference(const bool report_distance_warning)
 		return false;
 	}
 
-	vehicle_gnss_s gps;
+	vehicle_gnss_s gnss;
 
-	if (!_vehicle_gps_position_sub.copy(&gps) || gps.receiver.fix_type < sensor_gnss_s::FIX_TYPE_3D
-	    || gps.timestamp_sample == 0 || gps.timestamp_sample > now
-	    || now - gps.timestamp_sample >= kGpsDataTimeoutUs
-	    || !PX4_ISFINITE(gps.receiver.latitude) || !PX4_ISFINITE(gps.receiver.longitude)) {
+	if (!_vehicle_gnss_sub.copy(&gnss) || gnss.receiver.fix_type < sensor_gnss_s::FIX_TYPE_3D
+	    || gnss.timestamp_sample == 0 || gnss.timestamp_sample > now
+	    || now - gnss.timestamp_sample >= kGnssDataTimeoutUs
+	    || !PX4_ISFINITE(gnss.receiver.latitude) || !PX4_ISFINITE(gnss.receiver.longitude)) {
 		return false;
 	}
 
-	const float dist_m = get_distance_to_next_waypoint(home.lat, home.lon, gps.receiver.latitude, gps.receiver.longitude);
+	const float dist_m = get_distance_to_next_waypoint(home.lat, home.lon, gnss.receiver.latitude, gnss.receiver.longitude);
 
 	if (!PX4_ISFINITE(dist_m) || dist_m > kMaxHomeDistM) {
 		if (report_distance_warning && !_home_dist_warned) {

@@ -811,7 +811,7 @@ void EKF2::Run()
 		UpdateFlowSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
-		UpdateGpsSample(ekf2_timestamps);
+		UpdateGnssSample(ekf2_timestamps);
 # if defined(CONFIG_EKF2_GNSS_YAW)
 		UpdateGnssYawSample();
 # endif // CONFIG_EKF2_GNSS_YAW
@@ -965,14 +965,14 @@ void EKF2::VerifyParams()
 
 #if defined(CONFIG_EKF2_GNSS)
 	{
-		int32_t gps_delay_ms = 0;
+		int32_t gnss_delay_ms = 0;
 
-		if (param_get(param_find("SENS_GNSS0_DELAY"), &gps_delay_ms) == PX4_OK) {
-			delay_max = math::max(delay_max, static_cast<float>(gps_delay_ms));
+		if (param_get(param_find("SENS_GNSS0_DELAY"), &gnss_delay_ms) == PX4_OK) {
+			delay_max = math::max(delay_max, static_cast<float>(gnss_delay_ms));
 		}
 
-		if (param_get(param_find("SENS_GNSS1_DELAY"), &gps_delay_ms) == PX4_OK) {
-			delay_max = math::max(delay_max, static_cast<float>(gps_delay_ms));
+		if (param_get(param_find("SENS_GNSS1_DELAY"), &gnss_delay_ms) == PX4_OK) {
+			delay_max = math::max(delay_max, static_cast<float>(gnss_delay_ms));
 		}
 	}
 #endif // CONFIG_EKF2_GNSS
@@ -2619,49 +2619,49 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_GNSS)
-void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
+void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF GPS message
-	vehicle_gnss_s vehicle_gps_position;
+	vehicle_gnss_s vehicle_gnss;
 
-	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+	if (_vehicle_gnss_sub.update(&vehicle_gnss)) {
 
 		Vector3f vel_ned;
 
-		if (vehicle_gps_position.receiver.vel_ned_valid) {
-			vel_ned = Vector3f(vehicle_gps_position.receiver.vel_north,
-					   vehicle_gps_position.receiver.vel_east,
-					   vehicle_gps_position.receiver.vel_down);
+		if (vehicle_gnss.receiver.vel_ned_valid) {
+			vel_ned = Vector3f(vehicle_gnss.receiver.vel_north,
+					   vehicle_gnss.receiver.vel_east,
+					   vehicle_gnss.receiver.vel_down);
 
 		} else {
 			return; //TODO: change and set to NAN
 		}
 
-		const float altitude_amsl = static_cast<float>(vehicle_gps_position.receiver.altitude_msl);
-		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.receiver.altitude_ellipsoid);
+		const float altitude_amsl = static_cast<float>(vehicle_gnss.receiver.altitude_msl);
+		const float altitude_ellipsoid = static_cast<float>(vehicle_gnss.receiver.altitude_ellipsoid);
 
 		// timestamp_sample is corrected by the sensors module (per-receiver delay or PPS)
-		const bool timestamp_corrected = vehicle_gps_position.timestamp_sample > 0
-						 && vehicle_gps_position.timestamp_sample != vehicle_gps_position.timestamp;
+		const bool timestamp_corrected = vehicle_gnss.timestamp_sample > 0
+						 && vehicle_gnss.timestamp_sample != vehicle_gnss.timestamp;
 
 		gnssSample gnss_sample{
-			.time_us = timestamp_corrected ? vehicle_gps_position.timestamp_sample : vehicle_gps_position.timestamp,
-			.lat = vehicle_gps_position.receiver.latitude,
-			.lon = vehicle_gps_position.receiver.longitude,
+			.time_us = timestamp_corrected ? vehicle_gnss.timestamp_sample : vehicle_gnss.timestamp,
+			.lat = vehicle_gnss.receiver.latitude,
+			.lon = vehicle_gnss.receiver.longitude,
 			.alt = altitude_amsl,
 			.vel = vel_ned,
-			.hacc = vehicle_gps_position.receiver.eph,
-			.vacc = vehicle_gps_position.receiver.epv,
-			.sacc = vehicle_gps_position.receiver.speed_accuracy,
-			.fix_type = vehicle_gps_position.receiver.fix_type,
-			.nsats = vehicle_gps_position.receiver.satellites_used,
-			.pdop = sqrtf(vehicle_gps_position.receiver.hdop *vehicle_gps_position.receiver.hdop
-				      + vehicle_gps_position.receiver.vdop * vehicle_gps_position.receiver.vdop),
-			.spoofed = vehicle_gps_position.receiver.spoofing_state == sensor_gnss_s::SPOOFING_STATE_DETECTED,
-			.jammed = vehicle_gps_position.receiver.jamming_state == sensor_gnss_s::JAMMING_STATE_DETECTED,
-			.pos_body = Vector3f(vehicle_gps_position.antenna_offset[0],
-					     vehicle_gps_position.antenna_offset[1],
-					     vehicle_gps_position.antenna_offset[2]),
+			.hacc = vehicle_gnss.receiver.eph,
+			.vacc = vehicle_gnss.receiver.epv,
+			.sacc = vehicle_gnss.receiver.speed_accuracy,
+			.fix_type = vehicle_gnss.receiver.fix_type,
+			.nsats = vehicle_gnss.receiver.satellites_used,
+			.pdop = sqrtf(vehicle_gnss.receiver.hdop *vehicle_gnss.receiver.hdop
+				      + vehicle_gnss.receiver.vdop * vehicle_gnss.receiver.vdop),
+			.spoofed = vehicle_gnss.receiver.spoofing_state == sensor_gnss_s::SPOOFING_STATE_DETECTED,
+			.jammed = vehicle_gnss.receiver.jamming_state == sensor_gnss_s::JAMMING_STATE_DETECTED,
+			.pos_body = Vector3f(vehicle_gnss.antenna_offset[0],
+					     vehicle_gnss.antenna_offset[1],
+					     vehicle_gnss.antenna_offset[2]),
 		};
 
 		_ekf.setGpsData(gnss_sample);

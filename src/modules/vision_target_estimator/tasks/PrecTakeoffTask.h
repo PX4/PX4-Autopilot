@@ -88,7 +88,7 @@ private:
 
 	uORB::Subscription _prec_takeoff_status_sub{ORB_ID(prec_takeoff_status)};
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	HomeReference _home_ref{};

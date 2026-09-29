@@ -227,7 +227,7 @@ private:
 	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
-	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps);
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	void UpdateGnssYawSample();
 # endif // CONFIG_EKF2_GNSS_YAW
@@ -506,7 +506,7 @@ private:
 
 	float _last_gnss_hgt_bias_published{};
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
 	uORB::PublicationMulti<estimator_bias_s> _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
 	uORB::PublicationMulti<estimator_gps_status_s> _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};

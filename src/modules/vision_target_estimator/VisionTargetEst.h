@@ -175,7 +175,7 @@ protected:
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
@@ -212,7 +212,7 @@ protected:
 	matrix::Vector3f _gps_pos_offset_xyz{};
 	bool _gps_pos_is_offset{false};
 
-	bool updateGpsAntennaOffset();
+	bool updateGnssAntennaOffset();
 	// Compute the body-frame velocity bias caused by the GNSS antenna lever arm during rotation.
 	bool computeGpsVelocityOffset(matrix::Vector3f &vel_offset_body);
 	bool pollLocalPose(LocalPose &local_pose);

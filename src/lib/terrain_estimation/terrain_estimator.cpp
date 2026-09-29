@@ -46,7 +46,7 @@ TerrainEstimator::TerrainEstimator() :
 	_distance_last(0.0f),
 	_terrain_valid(false),
 	_time_last_distance(0),
-	_time_last_gps(0)
+	_time_last_gnss(0)
 {
 	_x.zero();
 	_u_z = 0.0f;
@@ -97,7 +97,7 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 	       B * R * B.transpose() + Q) * dt;
 }
 
-void TerrainEstimator::measurement_update(uint64_t time_ref, const struct sensor_gnss_s *gps,
+void TerrainEstimator::measurement_update(uint64_t time_ref, const struct sensor_gnss_s *gnss,
 		const struct distance_sensor_s *distance,
 		const struct vehicle_attitude_s *attitude)
 {
@@ -146,14 +146,14 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct sensor
 		_distance_last = distance->current_distance;
 	}
 
-	if (gps->timestamp > _time_last_gps && gps->fix_type >= 3) {
+	if (gnss->timestamp > _time_last_gnss && gnss->fix_type >= 3) {
 		matrix::Matrix<float, 1, n_x> C;
 		C(0, 1) = 1;
 
 		float R = 0.056f;
 
 		matrix::Vector<float, 1> y;
-		y(0) = gps->vel_down;
+		y(0) = gnss->vel_down;
 
 		// residual
 		matrix::Matrix<float, 1, 1> S_I = (C * _P * C.transpose());
@@ -165,7 +165,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct sensor
 		_x += K * r;
 		_P -= K * C * _P;
 
-		_time_last_gps = gps->timestamp;
+		_time_last_gnss = gnss->timestamp;
 	}
 
 	// reinitialise filter if we find bad data
