@@ -459,7 +459,7 @@ void SagetechMXS::determine_furthest_aircraft()
 			continue;
 		}
 
-		const float distance = get_distance_to_next_waypoint(_gps.latitude_deg, _gps.longitude_deg,
+		const float distance = get_distance_to_next_waypoint(_gps.latitude, _gps.longitude,
 				       vehicle_list[index].lat,
 				       vehicle_list[index].lon);
 
@@ -496,8 +496,8 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 	// needs to handle updating the vehicle list, keeping track of which vehicles to drop
 	// and which to keep, allocating new vehicles, and publishing to the transponder_report topic
 	uint16_t index = list_size_allocated + 1; // Make invalid to start with.
-	const bool my_loc_is_zero = (fabs(_gps.latitude_deg) < DBL_EPSILON) && (fabs(_gps.longitude_deg) < DBL_EPSILON);
-	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.latitude_deg, _gps.longitude_deg,
+	const bool my_loc_is_zero = (fabs(_gps.latitude) < DBL_EPSILON) && (fabs(_gps.longitude) < DBL_EPSILON);
+	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.latitude, _gps.longitude,
 			vehicle.lat, vehicle.lon);
 	const bool is_tracked_in_list = find_index(vehicle, &index);
 	// const bool is_special = is_special_vehicle(vehicle.icao_address);
@@ -755,7 +755,7 @@ void SagetechMXS::send_operating_msg()
 	mxs_state.op.altRes25 =
 		!mxs_state.inst.altRes100;                                // Host Altitude Resolution from install
 
-	mxs_state.op.altitude = static_cast<int32_t>(_gps.altitude_msl_m *
+	mxs_state.op.altitude = static_cast<int32_t>(_gps.altitude_msl *
 				SAGETECH_SCALE_M_TO_FT);   // Height above sealevel in feet
 
 	mxs_state.op.identOn = _adsb_ident.get();
@@ -767,7 +767,7 @@ void SagetechMXS::send_operating_msg()
 
 	if (_gps.vel_ned_valid) {
 		mxs_state.op.climbValid = true;
-		mxs_state.op.climbRate = _gps.vel_d_m_s * SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN;
+		mxs_state.op.climbRate = _gps.vel_down * SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN;
 		mxs_state.op.airspdValid = true;
 		mxs_state.op.headingValid = true;
 
@@ -779,8 +779,8 @@ void SagetechMXS::send_operating_msg()
 		mxs_state.op.headingValid = false;
 	}
 
-	const uint16_t speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
-	double heading = (double) math::degrees(matrix::wrap_2pi(_gps.cog_rad));
+	const uint16_t speed_knots = _gps.ground_speed * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
+	double heading = (double) math::degrees(matrix::wrap_2pi(_gps.course));
 	mxs_state.op.airspd = speed_knots;
 	mxs_state.op.heading = heading;
 
@@ -800,25 +800,25 @@ void SagetechMXS::send_gps_msg()
 	gps.vfom = _gps.epv >= 0 ? _gps.epv : 0;
 	gps.nacv = sg_nacv_t::nacvUnknown;
 
-	if (_gps.s_variance_m_s >= (float)10.0 || _gps.s_variance_m_s < 0) {
+	if (_gps.speed_accuracy >= (float)10.0 || _gps.speed_accuracy < 0) {
 		gps.nacv = sg_nacv_t::nacvUnknown;
 
-	} else if (_gps.s_variance_m_s >= (float)3.0) {
+	} else if (_gps.speed_accuracy >= (float)3.0) {
 		gps.nacv = sg_nacv_t::nacv10dot0;
 
-	} else if (_gps.s_variance_m_s >= (float)1.0) {
+	} else if (_gps.speed_accuracy >= (float)1.0) {
 		gps.nacv = sg_nacv_t::nacv3dot0;
 
-	} else if (_gps.s_variance_m_s >= (float)0.3) {
+	} else if (_gps.speed_accuracy >= (float)0.3) {
 		gps.nacv = sg_nacv_t::nacv1dot0;
 
-	} else { //if (_gps.s_variance_m_s >= 0.0)
+	} else { //if (_gps.speed_accuracy >= 0.0)
 		gps.nacv = sg_nacv_t::nacv0dot3;
 	}
 
 	// Get Vehicle Longitude and Latitude and Convert to string
-	const int32_t longitude = static_cast<int32_t>(_gps.longitude_deg * 1e7);
-	const int32_t latitude =  static_cast<int32_t>(_gps.latitude_deg * 1e7);
+	const int32_t longitude = static_cast<int32_t>(_gps.longitude * 1e7);
+	const int32_t latitude =  static_cast<int32_t>(_gps.latitude * 1e7);
 	const double lon_deg = longitude * 1.0E-7 * (longitude < 0 ? -1 : 1);
 	const double lon_minutes = (lon_deg - int(lon_deg)) * 60;
 	snprintf((char *)&gps.longitude, 12, "%03u%02u.%05u", (unsigned)lon_deg, (unsigned)lon_minutes,
@@ -829,11 +829,11 @@ void SagetechMXS::send_gps_msg()
 	snprintf((char *)&gps.latitude, 11, "%02u%02u.%05u", (unsigned)lat_deg, (unsigned)lat_minutes,
 		 unsigned((lat_minutes - (int)lat_minutes) * 1.0E5));
 
-	const float speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
+	const float speed_knots = _gps.ground_speed * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
 	snprintf((char *)&gps.grdSpeed, 7, "%03u.%02u", (unsigned)speed_knots,
 		 unsigned((speed_knots - (int)speed_knots) * (float)1.0E2));
 
-	const float heading = matrix::wrap_2pi(_gps.cog_rad) * (180.0f / M_PI_F);
+	const float heading = matrix::wrap_2pi(_gps.course) * (180.0f / M_PI_F);
 
 	snprintf((char *)&gps.grdTrack, 9, "%03u.%04u", unsigned(heading), unsigned((heading - (int)heading) * (float)1.0E4));
 
@@ -847,7 +847,7 @@ void SagetechMXS::send_gps_msg()
 	snprintf((char *)&gps.timeOfFix, 11, "%02u%02u%06.3f", tm->tm_hour, tm->tm_min,
 		 tm->tm_sec + (_gps.time_utc_usec % 1000000) * 1.0e-6);
 
-	gps.height = (float)_gps.altitude_ellipsoid_m;
+	gps.height = (float)_gps.altitude_ellipsoid;
 
 	// checkGPSInputs(&gps);
 	last.msg.type = SG_MSG_TYPE_HOST_GPS;
@@ -1295,14 +1295,14 @@ void SagetechMXS::auto_config_operating()
 	mxs_state.op.altHostAvlbl = false;
 	mxs_state.op.altRes25 = true;                                // Host Altitude Resolution from install
 
-	mxs_state.op.altitude = static_cast<int32_t>(_gps.altitude_msl_m *
+	mxs_state.op.altitude = static_cast<int32_t>(_gps.altitude_msl *
 				SAGETECH_SCALE_M_TO_FT);     // Height above sealevel in feet
 
 	mxs_state.op.identOn = false;
 
 	if (_gps.vel_ned_valid) {
 		mxs_state.op.climbValid = true;
-		mxs_state.op.climbRate = _gps.vel_d_m_s * SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN;
+		mxs_state.op.climbRate = _gps.vel_down * SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN;
 		mxs_state.op.airspdValid = true;
 		mxs_state.op.headingValid = true;
 
@@ -1314,8 +1314,8 @@ void SagetechMXS::auto_config_operating()
 		mxs_state.op.headingValid = false;
 	}
 
-	const uint16_t speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
-	double heading = (double) math::degrees(matrix::wrap_2pi(_gps.cog_rad));
+	const uint16_t speed_knots = _gps.ground_speed * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
+	double heading = (double) math::degrees(matrix::wrap_2pi(_gps.course));
 	mxs_state.op.airspd = speed_knots;
 	mxs_state.op.heading = heading;
 
