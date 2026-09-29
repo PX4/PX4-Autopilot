@@ -110,6 +110,6 @@ UavcanAirspeedBridge::ias_sub_cb(const
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				0, NodeInfoPublisher::DeviceCapability::AIRSPEED); // Device ID not defined for airspeed message
+				0, device_information_s::DEVICE_TYPE_AIRSPEED); // Device ID not defined for airspeed message
 	}
 }

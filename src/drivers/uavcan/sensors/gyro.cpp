@@ -84,7 +84,7 @@ void UavcanGyroBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				gyro->get_device_id(), NodeInfoPublisher::DeviceCapability::GYROSCOPE);
+				gyro->get_device_id(), device_information_s::DEVICE_TYPE_GYROSCOPE);
 	}
 }
 

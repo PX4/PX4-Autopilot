@@ -49,12 +49,10 @@
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
 #include <uavcan/equipment/esc/StatusExtended.hpp>
+#include <uavcan/protocol/node_status_monitor.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
-#include <uORB/topics/dronecan_node_status.h>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include "../node_info.hpp"
 
@@ -81,6 +79,7 @@ public:
 	void set_rotor_count(uint8_t count);
 
 	void set_node_info_publisher(NodeInfoPublisher *publisher) { _node_info_publisher = publisher; }
+	void set_node_status_monitor(const uavcan::NodeStatusMonitor *monitor) { _node_status_monitor = monitor; }
 
 	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
 
@@ -106,16 +105,13 @@ private:
 	/**
 	 * Gets failure flags for a specific ESC
 	 */
-	uint32_t get_failures(uint8_t esc_index, uint8_t node_id);
+	uint32_t get_failures(const uint8_t node_id);
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended>&)> StatusExtendedCbBinder;
-
-	typedef uavcan::MethodBinder<UavcanEscController *,
-		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
 	bool _initialized = false;
 
@@ -124,8 +120,6 @@ private:
 	esc_status_s	_esc_status{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
-	uORB::SubscriptionMultiArray<dronecan_node_status_s, ORB_MULTI_MAX_INSTANCES> _dronecan_node_status_subs{ORB_ID::dronecan_node_status};
-	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
 
@@ -151,4 +145,5 @@ private:
 	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder> _uavcan_sub_status_extended;
 
 	NodeInfoPublisher *_node_info_publisher{nullptr};
+	const uavcan::NodeStatusMonitor *_node_status_monitor{nullptr};
 };

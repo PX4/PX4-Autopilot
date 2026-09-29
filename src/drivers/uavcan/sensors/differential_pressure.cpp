@@ -91,6 +91,6 @@ void UavcanDifferentialPressureBridge::air_sub_cb(const
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				report.device_id, NodeInfoPublisher::DeviceCapability::DIFFERENTIAL_PRESSURE);
+				report.device_id, device_information_s::DEVICE_TYPE_DIFFERENTIAL_PRESSURE);
 	}
 }

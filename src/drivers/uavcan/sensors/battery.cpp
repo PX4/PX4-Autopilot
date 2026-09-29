@@ -119,7 +119,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				msg.battery_id, NodeInfoPublisher::DeviceCapability::BATTERY);
+				msg.battery_id, device_information_s::DEVICE_TYPE_BATTERY);
 	}
 
 	if (instance >= battery_status_s::MAX_INSTANCES
@@ -321,7 +321,7 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				_node_ids[instance], NodeInfoPublisher::DeviceCapability::BATTERY);
+				_node_ids[instance], device_information_s::DEVICE_TYPE_BATTERY);
 	}
 }
 
