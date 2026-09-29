@@ -54,17 +54,17 @@ PORT_MAP = {
 }
 
 
-def send_serial_control(mav, device, port_baud, data=None, count=0):
+def send_serial_control(mav, device, port_baud, data=b''):
     """Send a SERIAL_CONTROL message with the RESPOND|EXCLUSIVE flags used throughout the bridge."""
-    if data is None:
-        data = [0] * MAX_PAYLOAD
+    # pymavlink needs all 70 entries; MAVLink 2 trims trailing zeros on the wire
+    payload = list(data) + [0] * (MAX_PAYLOAD - len(data))
     mav.mav.serial_control_send(
         device=device,
         flags=SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE,
         timeout=0,
         baudrate=port_baud,
-        count=count,
-        data=data,
+        count=len(data),
+        data=payload,
     )
 
 
@@ -162,8 +162,7 @@ def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=Fal
                     continue
                 for i in range(0, len(data), MAX_PAYLOAD):
                     chunk = data[i:i + MAX_PAYLOAD]
-                    payload = list(chunk) + [0] * (MAX_PAYLOAD - len(chunk))
-                    send_serial_control(mav, device, port_baud, data=payload, count=len(chunk))
+                    send_serial_control(mav, device, port_baud, chunk)
                     if verbose:
                         print(f"  PTY -> MAVLink: {len(chunk)} bytes: {chunk.hex(' ')}")
         except Exception as e:
