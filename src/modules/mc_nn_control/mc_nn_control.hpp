@@ -87,6 +87,8 @@ class MulticopterNeuralNetworkControl : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	friend class NnControlStartupTestPeer;
+
 
 	static Descriptor desc;
 
@@ -189,9 +191,9 @@ private:
 	TfLiteTensor *_output_tensor{nullptr};
 	float _input_data[15];
 	trajectory_setpoint_s _trajectory_setpoint{};
-	vehicle_angular_velocity_s _angular_velocity;
-	vehicle_local_position_s _position;
-	vehicle_attitude_s _attitude;
+	vehicle_angular_velocity_s _angular_velocity{};
+	vehicle_local_position_s _position{};
+	vehicle_attitude_s _attitude{};
 	manual_control_setpoint_s _manual_control_setpoint{};
 
 	DEFINE_PARAMETERS(
