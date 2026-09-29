@@ -63,7 +63,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/rtcm_data.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_gnss_relative.h>
 #include <uORB/topics/sensor_gnss_rf.h>
 #if defined(CONFIG_GPS_UBX_SPAN)
@@ -241,10 +241,10 @@ private:
 
 	GPS_Sat_Info			*_sat_info{nullptr};				///< instance of GPS sat info data object
 
-	sensor_gps_s			_sensor_gps{};				///< uORB topic for gps position
+	sensor_gnss_s			_sensor_gps{};				///< uORB topic for gps position
 	satellite_info_s		*_p_report_sat_info{nullptr};			///< pointer to uORB topic for satellite info
 
-	uORB::PublicationMulti<sensor_gps_s>	_sensor_gps_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
+	uORB::PublicationMulti<sensor_gnss_s>	_sensor_gps_pub{ORB_ID(sensor_gnss)};	///< uORB pub for gps position
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
 	uORB::PublicationMulti<sensor_gnss_rf_s> _sensor_gnss_rf_block_pub[kMaxBlocks] {
 		{ORB_ID(sensor_gnss_rf_block0)},
@@ -261,7 +261,7 @@ private:
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub {ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
 	failure_injection::Config _failure_config;
-	failure_injection::Stuck<sensor_gps_s> _stuck;
+	failure_injection::Stuck<sensor_gnss_s> _stuck;
 
 	float				_rate{0.0f};					///< position update rate
 	unsigned			_num_bytes_read{0}; 				///< counter for number of read bytes from the UART (within update interval)
@@ -1391,7 +1391,7 @@ GPS::print_status()
 
 		PX4_INFO("rate publication:    %6.2f Hz", (double)_rate);
 
-		print_message(ORB_ID(sensor_gps), _sensor_gps);
+		print_message(ORB_ID(sensor_gnss), _sensor_gps);
 	}
 
 	if (_inject) {
