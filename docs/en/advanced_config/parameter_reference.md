@@ -33739,9 +33739,8 @@ GPS Wrong-failure fix type.
 GNSS fix type reported by the addressed receiver while a GPS 'wrong'
 failure injection is active. The reported position is left untouched.
 The default 2D fix is rejected by the estimator, which requires a 3D
-fix, and makes the GNSS redundancy check report a lost fix, while the
-receiver stays eligible for GPS blending. Values above 3D fix report a
-better solution than the receiver really has.
+fix, and makes the GNSS redundancy check report a lost fix. Values above
+3D fix report a better solution than the receiver really has.
 
 
 **Values:**
@@ -52270,7 +52269,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 256">
+<div class="param-group" style="--param-count: 254">
 
 <div class="param">
 
@@ -56093,36 +56092,11 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GNSS_MASK (`INT32`) {#SENS_GNSS_MASK}
-
-Multi GPS Blending Control Mask.
-
-Set bits in the following positions to set which GPS accuracy metrics will
-be used to calculate the blending weight. Set to zero to disable and always
-used first GPS instance.
-
-
-
-**Bitmask:**
-
-- `0`: use speed accuracy
-- `1`: use hpos accuracy
-- `2`: use vpos accuracy
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 7 |  | 7 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### SENS_GNSS_PRIME (`INT32`) {#SENS_GNSS_PRIME}
 
 Multi GPS primary instance.
 
-When no blending is active, this defines the preferred GPS receiver instance.
+Preferred GPS receiver instance.
 The GPS selection logic waits until the primary receiver is available to
 send data to the EKF even if a secondary instance is already available.
 The secondary instance is then only used if the primary one times out.
@@ -56132,32 +56106,11 @@ To select a DroneCAN GPS, set this to the node ID.
 The primary receiver is reported in the GPS_RAW_INT MAVLink
 message and the secondary in GPS2_RAW.
 
-This parameter has no effect on the EKF GPS selection if
-blending is active.
-
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | -1 | 127 |  | 0 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SENS_GNSS_TAU (`FLOAT`) {#SENS_GNSS_TAU}
-
-Multi GPS Blending Time Constant.
-
-Sets the longest time constant that will be applied to the calculation of GPS
-position and height offsets used to correct data from multiple GPS data for
-steady state position differences.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 1.0 | 100.0 |  | 10.0 | s | &nbsp;
 
 </div>
 
