@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# Mavlink ethernet (CFG 1000)
+param set-default MAV_2_CONFIG 1000
+param set-default MAV_2_BROADCAST 1
+param set-default MAV_2_MODE 0
+param set-default MAV_2_RADIO_CTL 0
+param set-default MAV_2_RATE 100000
+param set-default MAV_2_REMOTE_PRT 14550
+param set-default MAV_2_UDP_PRT 14550
+
+# Power Monitor: INA238 enabled
+param set-default SENS_EN_INA238 1
+
+# Enable UAVCAN on CAN1 and CAN2
+param set-default UAVCAN_ENABLE 3
+
+# Battery Configuration - Analog ADC
+# PC3_C (ADC1_CH13): Voltage divider 28V -> 3V (ratio: 9.333)
+param set-default BAT1_SOURCE 0
+param set-default BAT1_V_DIV 9.333
+param set-default BAT1_V_CHANNEL 13
+param set-default BAT1_A_PER_V 0.0
+
+# IMU Heater - ICM-42670P target temperature 50°C
+param set-default SENS_EN_THERMAL 1
+
+safety_button start
