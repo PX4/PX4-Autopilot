@@ -64,13 +64,6 @@ public:
 	bool passed() const { return _passed; }
 	bool initialChecksPassed() const { return _initial_checks_passed; }
 
-	// How long the checks must pass after a failure before passed() is true
-	uint64_t getRequiredPassDurationUs() const
-	{
-		return _initial_checks_passed ? math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10)
-		       : (uint64_t)_params.min_health_time_us;
-	}
-
 	static constexpr uint8_t kNumChecks = estimator_status_s::GPS_CHECK_FAIL_JAMMED + 1;
 
 	// Indexed by estimator_status_s::GPS_CHECK_FAIL_*
@@ -134,6 +127,13 @@ private:
 		_time_last_pass_us = 0;
 		_time_last_fail_us = 0;
 		resetDriftFilters();
+	}
+
+	// How long the checks must pass after a failure before passed() is true
+	uint64_t getRequiredPassDurationUs() const
+	{
+		return _initial_checks_passed ? math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10)
+		       : (uint64_t)_params.min_health_time_us;
 	}
 
 	void setFail(uint8_t check, bool failed);

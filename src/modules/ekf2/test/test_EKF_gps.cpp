@@ -121,7 +121,7 @@ TEST_F(EkfGpsTest, gnssRestartHeldOffAfterFusionStop)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 	_ekf_wrapper.enableGpsFusion();
 
-	// THEN: fusion restarts only once the checks' in-flight hold-off (1 s) has passed since the stop
+	// THEN: fusion restarts only once the in-flight restart hold-off (1 s) has passed since the stop
 	_sensor_simulator.runSeconds(0.3);
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 	_sensor_simulator.runSeconds(1.5);

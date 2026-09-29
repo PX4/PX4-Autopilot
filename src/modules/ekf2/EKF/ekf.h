@@ -939,12 +939,19 @@ private:
 	bool isGnssVelResetAllowed() const;
 	bool isGnssPosResetAllowed() const;
 
-	// The checks keep reporting on the samples while fusion is stopped, so after a stop the EKF waits as long as the
-	// checks do after a failure before it uses GNSS again.
-	bool gnssChecksPassedSinceFusionStop() const
+	// After velocity and position fusion both stop, a restart waits for the GNSS health time while disarmed on the
+	// ground, where the checks are strict, otherwise for a tenth of it and at least a second. Same timing as when the
+	// stop reset the checks, computed here so the EKF does not depend on the checker's state.
+	uint64_t gnssRestartHoldOffUs() const
 	{
-		return _gnss_checks.passed()
-		       && isTimedOut(_time_last_gnss_fusion_stop_us, _gnss_checks.getRequiredPassDurationUs());
+		const bool disarmed_on_ground = !_control_status.flags.armed && !_control_status.flags.in_air;
+		return disarmed_on_ground ? (uint64_t)_min_gps_health_time_us
+		       : math::max((uint64_t)1e6, (uint64_t)(_min_gps_health_time_us / 10));
+	}
+
+	bool isGnssRestartHoldOffElapsed() const
+	{
+		return isTimedOut(_time_last_gnss_fusion_stop_us, gnssRestartHoldOffUs());
 	}
 	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
 	bool tryYawEmergencyReset();
