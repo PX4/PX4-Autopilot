@@ -61,14 +61,14 @@ public:
 	virtual void update() override
 	{
 		if (_gps_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
-			sensor_gps_s gps {};
+			sensor_gnss_s gps {};
 			_gps_sub.update(&gps);
 			size_t payload_size = reg_udral_physics_kinematics_geodetic_Point_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
 
 			reg_udral_physics_kinematics_geodetic_Point_0_1 geo {};
-			geo.latitude = (int64_t)(gps.latitude_deg / 1e7);
-			geo.longitude = (int64_t)(gps.longitude_deg / 1e7);
-			geo.altitude = uavcan_si_unit_length_WideScalar_1_0 { .meter = gps.altitude_msl_m };
+			geo.latitude = (int64_t)(gps.latitude / 1e7);
+			geo.longitude = (int64_t)(gps.longitude / 1e7);
+			geo.altitude = uavcan_si_unit_length_WideScalar_1_0 { .meter = gps.altitude_msl };
 
 			uint8_t geo_payload_buffer[reg_udral_physics_kinematics_geodetic_Point_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
@@ -97,6 +97,6 @@ public:
 private:
 
 	/// TODO: Allow >1 instance
-	uORB::Subscription _gps_sub{ORB_ID(sensor_gps)};
+	uORB::Subscription _gps_sub{ORB_ID(sensor_gnss)};
 	CanardTransferID _transfer_id_2 {0};
 };
