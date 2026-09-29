@@ -44,11 +44,12 @@
 #pragma once
 
 // PX4 includes
-#include <px4_platform_common/module_params.h>
+#include <drivers/drv_hrt.h>
 
 // Libraries
 #include <math.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <matrix/matrix/math.hpp>
 
 // uORB includes
 #include <uORB/Publication.hpp>
@@ -93,25 +94,18 @@ private:
 
 };
 
-/*
- * Templated on the enable and minimum gain parameter IDs so that the same
- * implementation can be used by the fixed-wing and multicopter rate controllers
- * with their own set of parameters.
- */
-template<px4::params ParamEnable, px4::params ParamGainMin>
-class GainCompression3dT : public ModuleParams
+class GainCompression3d
 {
 public:
-	GainCompression3dT(ModuleParams *parent);
-	~GainCompression3dT() = default;
+	GainCompression3d();
+	~GainCompression3d() = default;
 
 	void reset();
 	void update(const matrix::Vector3f &input, float dt);
 	const matrix::Vector3f &getGains() const { return _gains; };
 
-
-protected:
-	void updateParams() override;
+	void setEnabled(bool enabled) { _enabled = enabled; }
+	void setCompressionGainMin(float gain_min);
 
 private:
 	// uORB publications
@@ -120,16 +114,10 @@ private:
 	GainCompression _compression_gains[3];
 	matrix::Vector3f _gains{1.f, 1.f, 1.f};
 
+	bool _enabled{false};
+
 	hrt_abstime _time_last_publication{0};
 
 	static constexpr float _kLpfCutoffFrequency{5.f}; // Just above the control bandwidth of most UAVs
 	static constexpr float _kHpfCutoffFrequency{2.f * _kLpfCutoffFrequency}; // 1 Octave above LPF cutoff, as recommended by the reference paper
-
-	DEFINE_PARAMETERS(
-		(ParamBool<ParamEnable>) _param_gc_en,
-		(ParamFloat<ParamGainMin>) _param_gc_gain_min
-	)
 };
-
-using GainCompression3d = GainCompression3dT<px4::params::FW_GC_EN, px4::params::FW_GC_GAIN_MIN>;
-using GainCompression3dMc = GainCompression3dT<px4::params::MC_GC_EN, px4::params::MC_GC_GAIN_MIN>;

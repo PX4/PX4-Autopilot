@@ -94,7 +94,7 @@ private:
 	void updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint, float dt);
 
 	RateControl _rate_control; ///< class for rate control calculations
-	GainCompression3dMc _gain_compression{this}; ///< reduces the loop gain when an oscillation is detected
+	GainCompression3d _gain_compression; ///< reduces the loop gain when an oscillation is detected
 
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
@@ -167,6 +167,9 @@ private:
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
 
-		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en
+		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
+
+		(ParamBool<px4::params::MC_GC_EN>) _param_mc_gc_en,
+		(ParamFloat<px4::params::MC_GC_GAIN_MIN>) _param_mc_gc_gain_min
 	)
 };
