@@ -110,16 +110,16 @@ bool PrecTakeoffTask::updateHomeReference(const bool report_distance_warning)
 		return false;
 	}
 
-	sensor_gps_s gps;
+	vehicle_gnss_s gps;
 
-	if (!_vehicle_gps_position_sub.copy(&gps) || gps.fix_type < sensor_gps_s::FIX_TYPE_3D
+	if (!_vehicle_gps_position_sub.copy(&gps) || gps.receiver.fix_type < sensor_gnss_s::FIX_TYPE_3D
 	    || gps.timestamp_sample == 0 || gps.timestamp_sample > now
 	    || now - gps.timestamp_sample >= kGpsDataTimeoutUs
-	    || !PX4_ISFINITE(gps.latitude_deg) || !PX4_ISFINITE(gps.longitude_deg)) {
+	    || !PX4_ISFINITE(gps.receiver.latitude) || !PX4_ISFINITE(gps.receiver.longitude)) {
 		return false;
 	}
 
-	const float dist_m = get_distance_to_next_waypoint(home.lat, home.lon, gps.latitude_deg, gps.longitude_deg);
+	const float dist_m = get_distance_to_next_waypoint(home.lat, home.lon, gps.receiver.latitude, gps.receiver.longitude);
 
 	if (!PX4_ISFINITE(dist_m) || dist_m > kMaxHomeDistM) {
 		if (report_distance_warning && !_home_dist_warned) {

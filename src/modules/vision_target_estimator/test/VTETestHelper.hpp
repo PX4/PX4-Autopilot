@@ -47,8 +47,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/fiducial_marker_pos_report.h>
 #include <uORB/topics/fiducial_marker_yaw_report.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/target_gnss.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <matrix/Quaternion.hpp>
 #include <matrix/Vector.hpp>
 #include <drivers/drv_hrt.h>
@@ -259,27 +259,27 @@ inline bool publishVisionPos(uORB::Publication<fiducial_marker_pos_report_s> &pu
 	return pub.publish(msg);
 }
 
-inline bool publishUavGps(uORB::Publication<sensor_gps_s> &pub, double lat, double lon, float alt,
+inline bool publishUavGps(uORB::Publication<vehicle_gnss_s> &pub, double lat, double lon, float alt,
 			  float eph, float epv, const matrix::Vector3f &vel_ned, float vel_var,
 			  bool vel_valid, hrt_abstime timestamp,
 			  const matrix::Vector3f &antenna_offset = matrix::Vector3f{})
 {
-	sensor_gps_s msg{};
+	vehicle_gnss_s msg{};
 	msg.timestamp = timestamp;
 	msg.timestamp_sample = timestamp;
-	msg.latitude_deg = static_cast<decltype(msg.latitude_deg)>(lat);
-	msg.longitude_deg = static_cast<decltype(msg.longitude_deg)>(lon);
-	msg.altitude_msl_m = static_cast<decltype(msg.altitude_msl_m)>(alt);
-	msg.eph = eph;
-	msg.epv = epv;
-	msg.vel_n_m_s = vel_ned(0);
-	msg.vel_e_m_s = vel_ned(1);
-	msg.vel_d_m_s = vel_ned(2);
-	msg.s_variance_m_s = vel_var;
-	msg.vel_ned_valid = vel_valid;
-	msg.antenna_offset_x = antenna_offset(0);
-	msg.antenna_offset_y = antenna_offset(1);
-	msg.antenna_offset_z = antenna_offset(2);
+	msg.receiver.latitude = static_cast<decltype(msg.receiver.latitude)>(lat);
+	msg.receiver.longitude = static_cast<decltype(msg.receiver.longitude)>(lon);
+	msg.receiver.altitude_msl = static_cast<decltype(msg.receiver.altitude_msl)>(alt);
+	msg.receiver.eph = eph;
+	msg.receiver.epv = epv;
+	msg.receiver.vel_north = vel_ned(0);
+	msg.receiver.vel_east = vel_ned(1);
+	msg.receiver.vel_down = vel_ned(2);
+	msg.receiver.speed_accuracy = vel_var;
+	msg.receiver.vel_ned_valid = vel_valid;
+	msg.antenna_offset[0] = antenna_offset(0);
+	msg.antenna_offset[1] = antenna_offset(1);
+	msg.antenna_offset[2] = antenna_offset(2);
 	return pub.publish(msg);
 }
 

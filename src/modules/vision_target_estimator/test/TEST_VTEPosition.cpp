@@ -53,8 +53,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/fiducial_marker_pos_report.h>
 #include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/target_gnss.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vte_position.h>
 #include <uORB/topics/vte_aid_source3d.h>
 #include <uORB/topics/vte_bias_init_status.h>
@@ -140,7 +140,7 @@ protected:
 		_vte->updateParamsPublic();
 
 		_vision_pub = std::make_unique<uORB::Publication<fiducial_marker_pos_report_s>>(ORB_ID(fiducial_marker_pos_report));
-		_uav_gps_pub = std::make_unique<uORB::Publication<sensor_gps_s>>(ORB_ID(vehicle_gps_position));
+		_uav_gps_pub = std::make_unique<uORB::Publication<vehicle_gnss_s>>(ORB_ID(vehicle_gnss));
 		_target_gps_pub = std::make_unique<uORB::Publication<target_gnss_s>>(ORB_ID(target_gnss));
 
 		_aid_fiducial_sub = std::make_unique<uORB::SubscriptionData<vte_aid_source3d_s>>(ORB_ID(vte_aid_fiducial_marker));
@@ -314,7 +314,7 @@ protected:
 
 	std::unique_ptr<VTEPositionTestable> _vte;
 	std::unique_ptr<uORB::Publication<fiducial_marker_pos_report_s>> _vision_pub;
-	std::unique_ptr<uORB::Publication<sensor_gps_s>> _uav_gps_pub;
+	std::unique_ptr<uORB::Publication<vehicle_gnss_s>> _uav_gps_pub;
 	std::unique_ptr<uORB::Publication<target_gnss_s>> _target_gps_pub;
 
 	std::unique_ptr<uORB::SubscriptionData<vte_aid_source3d_s>> _aid_fiducial_sub;

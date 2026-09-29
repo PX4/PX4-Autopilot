@@ -613,15 +613,15 @@ bool VisionTargetEst::computeGpsVelocityOffset(matrix::Vector3f &vel_offset_body
 
 bool VisionTargetEst::updateGpsAntennaOffset()
 {
-	sensor_gps_s vehicle_gps_position{};
+	vehicle_gnss_s vehicle_gps_position{};
 
 	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 		return false;
 	}
 
-	_gps_pos_offset_xyz = matrix::Vector3f(vehicle_gps_position.antenna_offset_x,
-					       vehicle_gps_position.antenna_offset_y,
-					       vehicle_gps_position.antenna_offset_z);
+	_gps_pos_offset_xyz = matrix::Vector3f(vehicle_gps_position.antenna_offset[0],
+					       vehicle_gps_position.antenna_offset[1],
+					       vehicle_gps_position.antenna_offset[2]);
 
 	static constexpr float kMinGpsOffsetM = 0.01f; // Consider GNSS not offset below 1cm
 	_gps_pos_is_offset = (fabsf(_gps_pos_offset_xyz(0)) > kMinGpsOffsetM)
