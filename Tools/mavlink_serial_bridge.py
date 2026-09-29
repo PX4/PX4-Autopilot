@@ -13,10 +13,6 @@ Usage:
     Tools/mavlink_serial_bridge.py --connection udp:127.0.0.1:14550 --port gps2 --port-baud 57600
 
 Add --verbose/-v to print a hex dump of every forwarded packet.
-
-Port names map to SERIAL_CONTROL device IDs:
-    telem1 -> 0, telem2 -> 1, gps1 -> 2, gps2 -> 3
-    esc0 -> 20, esc1 -> 21, esc2 -> 22, esc3 -> 23
 """
 
 import argparse
@@ -262,8 +258,8 @@ if __name__ == '__main__':
                         help='Serial baud rate if using serial connection (default: 57600)')
     parser.add_argument('--port', default='esc0',
                         choices=list(PORT_MAP.keys()),
-                        help='Target port on the FMU (default: esc0). '
-                             'Maps to SERIAL_CONTROL device IDs: telem1=0, telem2=1, gps1=2, gps2=3, esc0-3=20-23')
+                        help='Target port on the FMU (default: esc0). SERIAL_CONTROL device IDs: '
+                             + ', '.join(f'{name}={dev}' for name, dev in PORT_MAP.items()))
     parser.add_argument('--port-baud', type=int, default=115200,
                         help='Baudrate to set on the target UART (default: 115200)')
     parser.add_argument('--setup', action='store_true', default=False,
