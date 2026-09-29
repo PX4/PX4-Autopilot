@@ -57,7 +57,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/power_monitor.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -383,7 +383,7 @@ void MspOsd::Run()
 
 	// MSP_RAW_GPS
 	{
-		sensor_gps_s vehicle_gps_position{};
+		vehicle_gnss_s vehicle_gps_position{};
 		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
 
 		if (enabled(SymbolIndex::GPS_LAT)) {
@@ -443,7 +443,7 @@ void MspOsd::Run()
 
 	// MSP_ALTITUDE
 	{
-		sensor_gps_s vehicle_gps_position{};
+		vehicle_gnss_s vehicle_gps_position{};
 		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
 
 		vehicle_local_position_s vehicle_local_position{};
