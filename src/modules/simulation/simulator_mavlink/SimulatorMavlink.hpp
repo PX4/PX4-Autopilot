@@ -75,7 +75,7 @@
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -285,7 +285,7 @@ private:
 
 	// HIL GPS
 	static constexpr int MAX_GPS = 3;
-	uORB::PublicationMulti<sensor_gps_s>	*_sensor_gps_pubs[MAX_GPS] {};
+	uORB::PublicationMulti<sensor_gnss_s>	*_sensor_gps_pubs[MAX_GPS] {};
 	uint8_t _gps_ids[MAX_GPS] {};
 	std::default_random_engine _gen{};
 
@@ -312,7 +312,7 @@ private:
 	hrt_abstime _last_gyro_fifo_timestamp{0};
 
 	// Per-HIL_GPS-instance last-good sample, for the Stuck failure.
-	failure_injection::Stuck<sensor_gps_s> _gps_stuck[MAX_GPS];
+	failure_injection::Stuck<sensor_gnss_s> _gps_stuck[MAX_GPS];
 
 	// airspeed and VIO failure injection (no PX4* helper class applies these).
 	bool _airspeed_disconnected{false};

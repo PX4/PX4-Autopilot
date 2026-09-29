@@ -711,13 +711,13 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	id.devid_s.bus = 1;
 	id.devid_s.address = 1;
 
-	sensor_gps_s sensor_gps{};
+	sensor_gnss_s sensor_gps{};
 
 	if (_sim_gps_used.get() >= 4) {
 		// fix
 		sensor_gps.fix_type = 3; // 3D fix
-		sensor_gps.s_variance_m_s = 0.4f;
-		sensor_gps.c_variance_rad = 0.1f;
+		sensor_gps.speed_accuracy = 0.4f;
+		sensor_gps.course_accuracy = 0.1f;
 		sensor_gps.eph = 0.9f;
 		sensor_gps.epv = 1.78f;
 		sensor_gps.hdop = 0.7f;
@@ -726,8 +726,8 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	} else {
 		// no fix
 		sensor_gps.fix_type = 0; // No fix
-		sensor_gps.s_variance_m_s = 100.f;
-		sensor_gps.c_variance_rad = 100.f;
+		sensor_gps.speed_accuracy = 100.f;
+		sensor_gps.course_accuracy = 100.f;
 		sensor_gps.eph = 100.f;
 		sensor_gps.epv = 100.f;
 		sensor_gps.hdop = 100.f;
@@ -738,17 +738,17 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	sensor_gps.timestamp_sample = timestamp;
 	sensor_gps.time_utc_usec = 0;
 	sensor_gps.device_id = id.devid;
-	sensor_gps.latitude_deg = latitude;
-	sensor_gps.longitude_deg = longitude;
-	sensor_gps.altitude_msl_m = altitude;
-	sensor_gps.altitude_ellipsoid_m = altitude;
-	sensor_gps.noise_per_ms = 0;
+	sensor_gps.latitude = latitude;
+	sensor_gps.longitude = longitude;
+	sensor_gps.altitude_msl = altitude;
+	sensor_gps.altitude_ellipsoid = altitude;
+	sensor_gps.noise = 0;
 	sensor_gps.jamming_indicator = 0;
-	sensor_gps.vel_m_s = sqrtf(vel_north * vel_north + vel_east * vel_east);
-	sensor_gps.vel_n_m_s = vel_north;
-	sensor_gps.vel_e_m_s = vel_east;
-	sensor_gps.vel_d_m_s = vel_down;
-	sensor_gps.cog_rad = atan2(vel_east, vel_north);
+	sensor_gps.ground_speed = sqrtf(vel_north * vel_north + vel_east * vel_east);
+	sensor_gps.vel_north = vel_north;
+	sensor_gps.vel_east = vel_east;
+	sensor_gps.vel_down = vel_down;
+	sensor_gps.course = atan2(vel_east, vel_north);
 	sensor_gps.timestamp_time_relative = 0;
 	sensor_gps.automatic_gain_control = 0;
 	sensor_gps.jamming_state = 0;

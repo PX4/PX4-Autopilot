@@ -59,7 +59,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/wheel_encoders.h>
@@ -159,12 +159,12 @@ private:
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>   _lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
-	uORB::PublicationMulti<sensor_gps_s>          _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_s>         _sensor_gps_pub{ORB_ID(sensor_gnss)};
 	uORB::PublicationMulti<vehicle_odometry_s>    _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::PublicationMulti<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	failure_injection::Config _failure_config;
-	failure_injection::Stuck<sensor_gps_s> _gps_stuck;
+	failure_injection::Stuck<sensor_gnss_s> _gps_stuck;
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node};
 	GZMixingInterfaceServo _mixing_interface_servo{_node};

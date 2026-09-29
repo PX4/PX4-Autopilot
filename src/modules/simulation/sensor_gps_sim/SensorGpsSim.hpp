@@ -47,7 +47,7 @@
 #include <uORB/topics/failure_injection.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rtcm_data.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -82,7 +82,7 @@ private:
 	// True while rtcm_corrections messages keep arriving (stale after RTCM_TIMEOUT, like the gps driver).
 	bool updateRtcmCorrections();
 
-	void publishWithFailures(int instance, sensor_gps_s gps, uORB::PublicationMulti<sensor_gps_s> &pub);
+	void publishWithFailures(int instance, sensor_gnss_s gps, uORB::PublicationMulti<sensor_gnss_s> &pub);
 
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
@@ -95,14 +95,14 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_corrections_sub{ORB_ID::rtcm_corrections};
 
-	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
-	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub2{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_s> _sensor_gps_pub{ORB_ID(sensor_gnss)};
+	uORB::PublicationMulti<sensor_gnss_s> _sensor_gps_pub2{ORB_ID(sensor_gnss)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	// Failure injection (FAILURE_UNIT_SENSOR_GPS): active config + per-instance last-good sample.
 	failure_injection::Config _failure_config;
-	failure_injection::Stuck<sensor_gps_s> _stuck[GPS_MAX_INSTANCES];
+	failure_injection::Stuck<sensor_gnss_s> _stuck[GPS_MAX_INSTANCES];
 
 	static constexpr hrt_abstime RTCM_TIMEOUT{5_s};
 	hrt_abstime _last_rtcm_time{0};
@@ -125,7 +125,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SIM_GPS_USED>)      _sim_gps_used,
-		(ParamFloat<px4::params::SENS_GPS1_OFFX>)  _param_gps1_offx,
-		(ParamFloat<px4::params::SENS_GPS1_OFFY>)  _param_gps1_offy
+		(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_gps1_offx,
+		(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_gps1_offy
 	)
 };
