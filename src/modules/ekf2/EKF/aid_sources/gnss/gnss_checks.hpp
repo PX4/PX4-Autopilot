@@ -35,6 +35,7 @@
 #define EKF_GNSS_CHECKS_H
 
 #include <lib/geo/geo.h>
+#include <uORB/topics/estimator_status.h>
 
 #include "../../common.h"
 
@@ -49,48 +50,6 @@ public:
 		_params{check_mask, ekf2_req_nsats, ekf2_req_pdop, ekf2_req_eph, ekf2_req_epv, ekf2_req_sacc, ekf2_req_hdrift, ekf2_req_vdrift, ekf2_req_fix, ekf2_vel_lim, min_health_time_us},
 		_control_status(control_status)
 	{};
-
-	union gps_check_fail_status_u {
-		struct {
-			uint16_t fix    : 1; ///< 0 - true if the fix type is insufficient (no 3D solution)
-			uint16_t nsats  : 1; ///< 1 - true if number of satellites used is insufficient
-			uint16_t pdop   : 1; ///< 2 - true if position dilution of precision is insufficient
-			uint16_t hacc   : 1; ///< 3 - true if reported horizontal accuracy is insufficient
-			uint16_t vacc   : 1; ///< 4 - true if reported vertical accuracy is insufficient
-			uint16_t sacc   : 1; ///< 5 - true if reported speed accuracy is insufficient
-			uint16_t hdrift : 1; ///< 6 - true if horizontal drift is excessive (can only be used when stationary on ground)
-			uint16_t vdrift : 1; ///< 7 - true if vertical drift is excessive (can only be used when stationary on ground)
-			uint16_t hspeed : 1; ///< 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
-			uint16_t vspeed : 1; ///< 9 - true if vertical speed error is excessive
-			uint16_t spoofed: 1; ///< 10 - true if the GNSS data is spoofed
-			uint16_t jammed : 1; ///< 11 - true if the GNSS data is jammed
-		} flags;
-		uint16_t value;
-	};
-
-	/**
-	 * Fail-status flags (gps_check_fail_status_u layout) of the checks enabled by EKF2_GPS_CHECK.
-	 * The param bit order (GnssChecksMask) and the status bit order are not parallel, so they are
-	 * mapped one by one: a positional shift silently misassigns every check that is appended to
-	 * one of the two enums but not the other.
-	 */
-	uint16_t getEnabledChecksFailStatusMask() const
-	{
-		gps_check_fail_status_u mask{};
-		mask.flags.fix     = isCheckEnabled(GnssChecksMask::kFix);
-		mask.flags.nsats   = isCheckEnabled(GnssChecksMask::kNsats);
-		mask.flags.pdop    = isCheckEnabled(GnssChecksMask::kPdop);
-		mask.flags.hacc    = isCheckEnabled(GnssChecksMask::kHacc);
-		mask.flags.vacc    = isCheckEnabled(GnssChecksMask::kVacc);
-		mask.flags.sacc    = isCheckEnabled(GnssChecksMask::kSacc);
-		mask.flags.hdrift  = isCheckEnabled(GnssChecksMask::kHdrift);
-		mask.flags.vdrift  = isCheckEnabled(GnssChecksMask::kVdrift);
-		mask.flags.hspeed  = isCheckEnabled(GnssChecksMask::kHspd);
-		mask.flags.vspeed  = isCheckEnabled(GnssChecksMask::kVspd);
-		mask.flags.spoofed = isCheckEnabled(GnssChecksMask::kSpoofed);
-		mask.flags.jammed  = isCheckEnabled(GnssChecksMask::kJammed);
-		return mask.value;
-	}
 
 	void resetHard()
 	{
@@ -115,30 +74,62 @@ public:
 	uint64_t getLastPassUs() const { return _time_last_pass_us; }
 	uint64_t getLastFailUs() const { return _time_last_fail_us; }
 
-	const gps_check_fail_status_u &getFailStatus() const { return _check_fail_status; }
+	static constexpr uint8_t kNumChecks = estimator_status_s::GPS_CHECK_FAIL_JAMMED + 1;
+
+	// Indexed by estimator_status_s::GPS_CHECK_FAIL_*
+	uint16_t getFailFlags() const { return _fail_flags; }
+
+	// The checks enabled in EKF2_GPS_CHECK, indexed by estimator_status_s::GPS_CHECK_FAIL_*
+	uint16_t getEnabledChecks() const;
 
 	float horizontal_position_drift_rate_m_s() const { return _horizontal_position_drift_rate_m_s; }
 	float vertical_position_drift_rate_m_s() const { return _vertical_position_drift_rate_m_s; }
 	float filtered_horizontal_velocity_m_s() const { return _filtered_horizontal_velocity_m_s; }
 
-	enum class GnssChecksMask : int32_t {
-		kNsats   = (1 << 0),
-		kPdop    = (1 << 1),
-		kHacc    = (1 << 2),
-		kVacc    = (1 << 3),
-		kSacc    = (1 << 4),
-		kHdrift  = (1 << 5),
-		kVdrift  = (1 << 6),
-		kHspd    = (1 << 7),
-		kVspd    = (1 << 8),
-		kSpoofed = (1 << 9),
-		kFix     = (1 << 10),
-		kJammed  = (1 << 11)
-	};
+	static constexpr uint8_t kNoParamBit = 31;
 
-	bool isCheckEnabled(GnssChecksMask check) const { return (_params.check_mask & static_cast<int32_t>(check)); }
+	// EKF2_GPS_CHECK bit of an estimator_status_s::GPS_CHECK_FAIL_* check. The two orders differ, and saved parameters,
+	// logs and events each depend on one of them, so neither can be reordered.
+	static constexpr uint8_t paramBit(uint8_t check)
+	{
+		switch (check) {
+		case estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT:    return 0;
+
+		case estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP:         return 1;
+
+		case estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR:     return 2;
+
+		case estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR:     return 3;
+
+		case estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR:      return 4;
+
+		case estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT:   return 5;
+
+		case estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT:   return 6;
+
+		case estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR: return 7;
+
+		case estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR: return 8;
+
+		case estimator_status_s::GPS_CHECK_FAIL_SPOOFED:          return 9;
+
+		case estimator_status_s::GPS_CHECK_FAIL_GPS_FIX:          return 10;
+
+		case estimator_status_s::GPS_CHECK_FAIL_JAMMED:           return 11;
+
+		default:                                                  return kNoParamBit;
+		}
+	}
+
+	bool isCheckEnabled(uint8_t check) const
+	{
+		return (static_cast<uint32_t>(_params.check_mask) & (1u << paramBit(check))) != 0;
+	}
 
 private:
+	void setFail(uint8_t check, bool failed);
+	bool enabledChecksPass(uint16_t checks) const { return (_fail_flags & checks & getEnabledChecks()) == 0; }
+
 	bool runSimplifiedChecks(const gnssSample &gnss);
 	bool runInitialFixChecks(const gnssSample &gnss);
 	void runOnGroundGnssChecks(const gnssSample &gnss);
@@ -151,7 +142,7 @@ private:
 		return (timestamp_to_check_us == 0) || (timestamp_to_check_us + timeout_period < now_us);
 	}
 
-	gps_check_fail_status_u _check_fail_status{};
+	uint16_t _fail_flags{0};
 
 	float _horizontal_position_drift_rate_m_s{NAN};
 	float _vertical_position_drift_rate_m_s{NAN};
