@@ -111,6 +111,9 @@ public:
 	 * For a connected chain, checking the first point is enough if all preceding paths pass.
 	 * Check anchors and paths against the same loaded fence; check Home and altitude limits separately.
 	 * Uses cached fence data only. Paths may cross the antimeridian.
+	 * Polygon checks approximate great-circle paths with a 2 m subdivision target; this is not a clearance margin.
+	 * Great circles approximate local guidance near the EKF origin. Paths that could reach a pole or exceed
+	 * the subdivision budget are unavailable when polygon fences are loaded.
 	 *
 	 * @return true when results are available (true per clear path); false if unavailable or invalid.
 	 * On failure, results are false when the output buffer and count are valid.
@@ -287,7 +290,8 @@ private:
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;
 	bool readPathFencePoint(unsigned index, mission_fence_point_s &point);
-	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);
+	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces, size_t num_paths,
+			       bool *results);
 	bool checkCirclePaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);
 
 	/**

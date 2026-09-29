@@ -57,9 +57,52 @@
 #include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
 
+// Great circles approximate the straight local lines used by guidance; fence edges are straight in lat/lon.
+// A straight lat/lon line at heading h has geodesic curvature tan(lat) * sin(h) * (1 + cos(h)^2) / R, tan(lat) / R
+// along a parallel (https://en.wikipedia.org/wiki/Geodesic_curvature), so over a length L it strays at most
+// curvature * L^2 / 8 from the great circle (https://en.wikipedia.org/wiki/Sagitta_(geometry)). Long paths are
+// therefore checked in pieces.
+static constexpr double kMaxHeadingFactor = 1.09; // max of sin(h) * (1 + cos(h)^2) = 4 * sqrt(6) / 9
+static constexpr double kMaxPieceBow = 2.0; // [m] within GNSS and tracking errors, which missions must clear anyway
+static constexpr unsigned kMaxPathPieces = 255;
+static constexpr double kHalfPi = M_PI / 2.0; // M_PI_2 is not available on every platform
+
+// Zero means the path cannot be approximated within the subdivision budget.
+static uint8_t pathPieces(const Geofence::PathCheck &path)
+{
+	const float distance = get_distance_to_next_waypoint(path.start(0), path.start(1), path.end(0), path.end(1));
+	const double half_angle = static_cast<double>(distance) / (2.0 * CONSTANTS_RADIUS_OF_EARTH);
+	// Every point of the arc lies within half its length of an endpoint. Endpoint latitudes alone
+	// underestimate curvature when the path bows towards a pole.
+	const double max_lat = math::radians(math::max(fabs(path.start(0)), fabs(path.end(0)))) + half_angle;
+
+	if (!PX4_ISFINITE(max_lat) || max_lat >= kHalfPi) {
+		return 0;
+	}
+
+	// Normalized linear interpolation is not equally spaced along the arc. Its longest piece is
+	// at most 2 * R * tan(half_angle) / pieces, so use that length when choosing the piece count.
+	const double length_bound = 2.0 * CONSTANTS_RADIUS_OF_EARTH * tan(half_angle);
+	const double bow = kMaxHeadingFactor * length_bound * length_bound * tan(max_lat) / (8.0 * CONSTANTS_RADIUS_OF_EARTH);
+	const double pieces = ceil(sqrt(bow / kMaxPieceBow));
+
+	if (!PX4_ISFINITE(pieces) || pieces > kMaxPathPieces) {
+		return 0;
+	}
+
+	return static_cast<uint8_t>(math::max(pieces, 1.0));
+}
+
+static matrix::Vector3d unitVector(const matrix::Vector2d &lat_lon)
+{
+	const double lat = math::radians(lat_lon(0));
+	const double lon = math::radians(lat_lon(1));
+	return matrix::Vector3d(cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat));
+}
+
 // Compare a path and a fence edge in one continuous longitude range, so paths may cross the antimeridian.
 // Fence edges never cross it: the loader rejects them, since the point check could not handle them either.
-static bool pathTouchesEdge(const Geofence::PathCheck &path, const matrix::Vector2d &edge_start,
+static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, const matrix::Vector2d &edge_start,
 			    const matrix::Vector2d &edge_end)
 {
 	// Take the short way around, e.g. a path from 179 to -179 deg runs from 179 to 181 deg.
@@ -76,7 +119,48 @@ static bool pathTouchesEdge(const Geofence::PathCheck &path, const matrix::Vecto
 	const double shift = 360.0 * round((edge_middle - path_middle) / 360.0);
 	const matrix::Vector2d shifted_start{edge_start(0), edge_start(1) - shift};
 	const matrix::Vector2d shifted_end{edge_end(0), edge_end(1) - shift};
-	return geofence_utils::segmentsIntersectInclusive(path.start, path_end, shifted_start, shifted_end);
+
+	if (pieces == 1) {
+		return geofence_utils::segmentsIntersectInclusive(path.start, path_end, shifted_start, shifted_end);
+	}
+
+	// The whole arc's bow is at most pieces^2 * kMaxPieceBow. Expand the latitude bounds by that
+	// distance to skip distant edges cheaply. Longitude stays between the unwrapped endpoints
+	// because pathPieces() excludes arcs that could reach a pole.
+	const double margin_lat = math::degrees(pieces * pieces * kMaxPieceBow / CONSTANTS_RADIUS_OF_EARTH);
+
+	if (math::max(path.start(0), path_end(0)) + margin_lat < math::min(shifted_start(0), shifted_end(0))
+	    || math::min(path.start(0), path_end(0)) - margin_lat > math::max(shifted_start(0), shifted_end(0))
+	    || math::max(path.start(1), path_end(1)) < math::min(shifted_start(1), shifted_end(1))
+	    || math::min(path.start(1), path_end(1)) > math::max(shifted_start(1), shifted_end(1))) {
+		return false;
+	}
+
+	// Split along the great circle, approximating the local straight line near the EKF origin.
+	const matrix::Vector3d start_unit = unitVector(path.start);
+	const matrix::Vector3d end_unit = unitVector(path_end);
+	matrix::Vector2d piece_start = path.start;
+
+	for (unsigned k = 1; k <= pieces; ++k) {
+		matrix::Vector2d piece_end = path_end;
+
+		if (k < pieces) {
+			const double t = static_cast<double>(k) / pieces;
+			const matrix::Vector3d interpolated = start_unit * (1.0 - t) + end_unit * t;
+			const double lon = math::degrees(atan2(interpolated(1), interpolated(0)));
+			const double lat = math::degrees(atan2(interpolated(2),
+							       sqrt(interpolated(0) * interpolated(0) + interpolated(1) * interpolated(1))));
+			piece_end = {lat, path.start(1) + matrix::wrap(lon - path.start(1), -180.0, 180.0)};
+		}
+
+		if (geofence_utils::segmentsIntersectInclusive(piece_start, piece_end, shifted_start, shifted_end)) {
+			return true;
+		}
+
+		piece_start = piece_end;
+	}
+
+	return false;
 }
 
 static uint32_t crc32_for_fence_point(const mission_fence_point_s &fence_point, uint32_t prev_crc32)
@@ -568,6 +652,9 @@ bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *re
 
 bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results)
 {
+	uint8_t pieces[MAX_PATH_CHECKS];
+	bool pieces_calculated = false;
+
 	for (size_t i = 0; i < num_paths; ++i) {
 		const auto &start = paths[i].start;
 		const auto &end = paths[i].end;
@@ -595,7 +682,19 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 
 		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
 		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
-			if (!checkPolygonPaths(polygon, paths, num_paths, results)) {
+			if (!pieces_calculated) {
+				for (size_t i = 0; i < num_paths; ++i) {
+					pieces[i] = pathPieces(paths[i]);
+
+					if (pieces[i] == 0) {
+						return false;
+					}
+				}
+
+				pieces_calculated = true;
+			}
+
+			if (!checkPolygonPaths(polygon, paths, pieces, num_paths, results)) {
 				return false;
 			}
 
@@ -614,7 +713,8 @@ bool Geofence::readPathFencePoint(unsigned index, mission_fence_point_s &point)
 	return _readFencePoint(index, point) && _fencePointValid(point);
 }
 
-bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results)
+bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces,
+				 size_t num_paths, bool *results)
 {
 	if (polygon.vertex_count < 3 || polygon.dataman_index + polygon.vertex_count > _dataman_cache.size()) {
 		return false;
@@ -648,7 +748,7 @@ bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *pa
 		}
 
 		for (size_t i = 0; i < num_paths; ++i) {
-			if (results[i] && pathTouchesEdge(paths[i], previous, next)) {
+			if (results[i] && pathTouchesEdge(paths[i], pieces[i], previous, next)) {
 				results[i] = false;
 			}
 		}
