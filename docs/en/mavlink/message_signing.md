@@ -10,10 +10,12 @@ This mechanism does not _encrypt_ the message payload.
 
 When signing is enabled, PX4 appends a 13-byte [signature](https://mavlink.io/en/guide/message_signing.html#signature) to every outgoing MAVLink 2 message.
 
-Incoming messages are checked against the shared secret key, and unsigned or incorrectly signed messages are rejected (with [exceptions for safety-critical messages](#unsigned-message-allowlist)).
-Rejected messages are also not forwarded to other links.
-This includes messages that PX4 does not know (for example custom messages), which are only forwarded if they are signed with PX4's key.
-Components connected through PX4 therefore need to use the same key.
+Signing uses a single secret key, shared by all MAVLink systems and components that communicate with each other: the ground station, PX4, and any companion computer, camera, or gimbal connected to it.
+
+Incoming messages are checked against this key, and unsigned or incorrectly signed messages are rejected (with [exceptions for safety-critical messages](#unsigned-message-allowlist)).
+Rejected messages are not forwarded to other links either.
+This includes messages that PX4 does not know (for example custom messages), which are only forwarded if they are signed with the shared key.
+Components that communicate through PX4 therefore need to use the same key as PX4.
 
 The signing implementation is built into the MAVLink module and is always available, with no special build flags required.
 The key is stored in an SD card:
@@ -138,8 +140,15 @@ When signing is active, **all links require signed messages**.
 This means:
 
 - An attacker cannot send unsigned commands on any link.
+- Unsigned or incorrectly signed messages are not forwarded, so they don't reach components connected through PX4 (for example a companion computer), even if those don't check signatures themselves.
 - Changing or disabling the key requires sending a `SETUP_SIGNING` message **signed with the current key**.
 - Signing can be disabled via MAVLink by sending a signed `SETUP_SIGNING` with an all-zero key.
+
+### One shared key
+
+The key is symmetric: every device that holds it can both verify and sign messages, as any system and component ID.
+Signing therefore authenticates that a message comes from a device holding the key, not which device sent it.
+Only provision the key on devices you trust.
 
 ### Armed guard
 
