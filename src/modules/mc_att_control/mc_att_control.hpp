@@ -46,6 +46,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/attitude_reference.h> // TEMPORARY DEBUG
 #include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -116,6 +117,7 @@ private:
 
 	uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
 	uORB::Publication<vehicle_attitude_setpoint_s>  _vehicle_attitude_setpoint_pub;
+	uORB::Publication<attitude_reference_s>         _attitude_reference_pub{ORB_ID(attitude_reference)}; // TEMPORARY DEBUG
 
 	manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
 	vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */
@@ -164,6 +166,11 @@ private:
 		(ParamFloat<px4::params::MC_REF_W_N>)        _param_mc_ref_w_n,
 		(ParamFloat<px4::params::MC_REF_FF>)         _param_mc_ref_ff,
 		(ParamFloat<px4::params::MC_REF_FF_MAX>)     _param_mc_ref_ff_max,
+
+		(ParamFloat<px4::params::MC_REF_ACC_R_MAX>)  _param_mc_ref_acc_r_max,
+		(ParamFloat<px4::params::MC_REF_ACC_P_MAX>)  _param_mc_ref_acc_p_max,
+		(ParamFloat<px4::params::MC_REF_ACC_Y_MAX>)  _param_mc_ref_acc_y_max,
+		(ParamFloat<px4::params::MC_REF_JERK_MAX>)   _param_mc_ref_jerk_max,
 
 		/* Stabilized mode params */
 		(ParamFloat<px4::params::MAN_DEADZONE>) _param_man_deadzone,
