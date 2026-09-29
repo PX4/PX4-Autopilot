@@ -288,14 +288,17 @@ private:
 	void update_rx_stats(const mavlink_message_t &message, bool add_component);
 
 	enum class FrameCheck {
-		Incomplete,   ///< no complete frame yet
-		Ok,           ///< valid, handle and forward
-		ForwardOnly,  ///< not in our dialect, can't be handled but can be forwarded
-		BadSignature, ///< signature missing or not valid with our key, drop
-		Invalid,      ///< bad CRC, drop
+		Incomplete,  ///< no complete frame yet
+		Ok,          ///< valid, handle and forward
+		ForwardOnly, ///< unknown or signed with another key, can't be handled but can be forwarded
+		Unsigned,    ///< unsigned while signing is active, drop
+		Invalid,     ///< bad CRC, drop
 	};
 
-	FrameCheck check_frame(uint8_t framing, const mavlink_message_t &message);
+	/**
+	 * @param bad_signature set if the signature is missing or not valid with our key
+	 */
+	FrameCheck check_frame(uint8_t framing, const mavlink_message_t &message, bool &bad_signature);
 
 	/**
 	 * Reset the parser after a rejected frame, same as mavlink_parse_char() does.
