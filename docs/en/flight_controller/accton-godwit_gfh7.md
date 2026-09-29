@@ -67,6 +67,11 @@ Product information and availability are provided on the [Accton-IoT Godwit GFH7
 
 ## Pinouts {#pinouts}
 
+The top face has two unpopulated five-pad test/debug groups for manufacturing, debugging, or hardware verification:
+R V G C D: STM32H753 (H7) test/debug pads.
+R C D G V: OSD co-processor test/debug pads.
+They are not general user interfaces. Do not connect wiring or apply power, and do not use them as GPIO, UART, or I2C interfaces. Individual pad nets and functions are not publicly defined.
+
 Refer to the [Godwit GFH7 product page](https://www.accton-iot.com/godwit/g-fh7.html) and the [Godwit GFH7 datasheet](https://www.accton-iot.com/godwit/assets/doc/DS-Godwit%20FPV%20G-FH7.pdf) for the latest board information and interface definition.
 
 ![GFH7 Pin Definition](../../assets/flight_controller/accton-godwit/gfh7/pin_definition.png "Accton Godwit GFH7 Pin Definition")
@@ -151,6 +156,11 @@ An external compass (usually built into the GPS module) is recommended over the 
 
 ![GFH7 GPS](../../assets/flight_controller/accton-godwit/gfh7/gps.png "Accton Godwit GFH7 GPS")
 
+### Telemetry Radios (Optional) {#telemetry}
+
+Telemetry radios are used to provide a wireless data link between the vehicle and a ground control station (GCS) like QGroundControl. This allows you to monitor flight data, change missions in real-time, and receive inflying status updates.
+See [Telemetry Radios](../telemetry/index.md)
+
 ### CAN {#can}
 
 The `CAN` connector (JST-SH 4P) is used for [DroneCAN](../dronecan/index.md) peripherals such as GPS modules, ESCs and sensors.
@@ -189,13 +199,13 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 
 | UART   | Device     | Port   | Connector                                   |
 | ------ | ---------- | ------ | ------------------------------------------- |
-| USART1 | /dev/ttyS0 | EXT2   | `ESC` (ESC telemetry, RX only)              |
-| USART2 | /dev/ttyS1 | TELEM2 | `T2`/`R2` solder pads                       |
+| USART1 | /dev/ttyS0 | TEL2   | `ESC` (ESC telemetry, RX only)              |
+| USART2 | /dev/ttyS1 | EXT2   | `T2`/`R2` solder pads                       |
 | USART3 | /dev/ttyS2 | GPS1   | `GPS`                                       |
 | UART4  | /dev/ttyS3 | RC     | `ELRS`                                      |
-| UART5  | /dev/ttyS4 | TELEM4 | `SBUS` (RX, S.BUS by default), `A-VTX` (TX) |
-| UART7  | /dev/ttyS5 | —      | `TELEM`                                     |
-| UART8  | /dev/ttyS6 | TELEM3 | `D-VTX`                                     |
+| UART5  | /dev/ttyS4 | TEL1   | `SBUS` (RX, S.BUS by default), `A-VTX` (TX) |
+| UART7  | /dev/ttyS5 | TEL4   | `TELEM`                                     |
+| UART8  | /dev/ttyS6 | TEL3   | `D-VTX`                                     |
 
 No ports have flow control.
 
