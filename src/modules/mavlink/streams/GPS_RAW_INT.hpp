@@ -35,7 +35,7 @@
 #define GPS_RAW_INT_HPP
 
 #include <lib/gnss/SensorGpsSelector.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/vehicle_gnss_heading.h>
 
 using namespace time_literals;
@@ -59,7 +59,7 @@ public:
 private:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
+	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gnss), 0};
 	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
 	SensorGpsSelector _gps_selector{};
 	hrt_abstime _last_send_ts {};
@@ -75,7 +75,7 @@ private:
 			_sensor_gps_sub.ChangeInstance(primary);
 		}
 
-		sensor_gps_s gps;
+		sensor_gnss_s gps;
 		mavlink_gps_raw_int_t msg{};
 		hrt_abstime now{};
 
@@ -89,25 +89,25 @@ private:
 			}
 
 			msg.fix_type = gps.fix_type;
-			msg.lat = static_cast<int32_t>(round(gps.latitude_deg * 1e7));
-			msg.lon = static_cast<int32_t>(round(gps.longitude_deg * 1e7));
-			msg.alt = static_cast<int32_t>(round(gps.altitude_msl_m * 1e3)); // convert [m] to [mm]
+			msg.lat = static_cast<int32_t>(round(gps.latitude * 1e7));
+			msg.lon = static_cast<int32_t>(round(gps.longitude * 1e7));
+			msg.alt = static_cast<int32_t>(round(gps.altitude_msl * 1e3)); // convert [m] to [mm]
 			msg.eph = gps.hdop * 100; // GPS HDOP horizontal dilution of position (unitless)
 			msg.epv = gps.vdop * 100; // GPS VDOP vertical dilution of position (unitless)
 
-			if (PX4_ISFINITE(gps.vel_m_s) && (fabsf(gps.vel_m_s) >= 0.f)) {
-				msg.vel = gps.vel_m_s * 100.f; // cm/s
+			if (PX4_ISFINITE(gps.ground_speed) && (fabsf(gps.ground_speed) >= 0.f)) {
+				msg.vel = gps.ground_speed * 100.f; // cm/s
 
 			} else {
 				msg.vel = UINT16_MAX; // If unknown, set to: UINT16_MAX
 			}
 
-			msg.cog = math::degrees(matrix::wrap_2pi(gps.cog_rad)) * 1e2f;
+			msg.cog = math::degrees(matrix::wrap_2pi(gps.course)) * 1e2f;
 			msg.satellites_visible = gps.satellites_used;
-			msg.alt_ellipsoid = static_cast<int32_t>(round(gps.altitude_ellipsoid_m * 1e3)); // convert [m] to [mm]
+			msg.alt_ellipsoid = static_cast<int32_t>(round(gps.altitude_ellipsoid * 1e3)); // convert [m] to [mm]
 			msg.h_acc = gps.eph * 1e3f;              // position uncertainty in mm
 			msg.v_acc = gps.epv * 1e3f;              // altitude uncertainty in mm
-			msg.vel_acc = gps.s_variance_m_s * 1e3f; // speed uncertainty in mm
+			msg.vel_acc = gps.speed_accuracy * 1e3f; // speed uncertainty in mm
 
 			// the body-frame heading is only known for the receiver that is the active heading source
 			vehicle_gnss_heading_s gnss_heading;

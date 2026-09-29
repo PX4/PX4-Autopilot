@@ -35,7 +35,7 @@
 #define OPEN_DRONE_ID_SYSTEM_HPP
 
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 
 class MavlinkStreamOpenDroneIdSystem : public MavlinkStream
 {
@@ -61,15 +61,15 @@ private:
 	explicit MavlinkStreamOpenDroneIdSystem(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
 
 	bool send() override
 	{
-		sensor_gps_s vehicle_gps_position;
+		vehicle_gnss_s vehicle_gps_position;
 		home_position_s home_position;
 
 		if (_vehicle_gps_position_sub.update(&vehicle_gps_position) && _home_position_sub.copy(&home_position)) {
-			if (vehicle_gps_position.fix_type >= 3
+			if (vehicle_gps_position.receiver.fix_type >= 3
 			    && home_position.valid_alt && home_position.valid_hpos) {
 
 				mavlink_open_drone_id_system_t msg{};
@@ -86,15 +86,15 @@ private:
 				msg.area_floor = -1000;
 				msg.category_eu = MAV_ODID_CATEGORY_EU_UNDECLARED;
 				msg.class_eu = MAV_ODID_CLASS_EU_UNDECLARED;
-				float wgs84_amsl_offset = vehicle_gps_position.altitude_ellipsoid_m - vehicle_gps_position.altitude_msl_m;
+				float wgs84_amsl_offset = vehicle_gps_position.receiver.altitude_ellipsoid - vehicle_gps_position.receiver.altitude_msl;
 				msg.operator_altitude_geo = home_position.alt + wgs84_amsl_offset;
 
 				// timestamp: 32 bit Unix Timestamp in seconds since 00:00:00 01/01/2019.
 				// Timestamp not available is indicated by 0.
 				static constexpr uint64_t utc_offset_us = 1'546'300'800ULL * 1'000'000ULL;
 
-				if (vehicle_gps_position.time_utc_usec >= utc_offset_us) {
-					const uint64_t timestamp_s = (vehicle_gps_position.time_utc_usec - utc_offset_us) / 1'000'000ULL;
+				if (vehicle_gps_position.receiver.time_utc_usec >= utc_offset_us) {
+					const uint64_t timestamp_s = (vehicle_gps_position.receiver.time_utc_usec - utc_offset_us) / 1'000'000ULL;
 					msg.timestamp = static_cast<uint32_t>(timestamp_s);
 				}
 
