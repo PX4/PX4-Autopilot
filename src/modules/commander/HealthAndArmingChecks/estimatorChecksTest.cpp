@@ -42,7 +42,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/event.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -88,12 +88,14 @@ public:
 	// the receiver's last sample, fresh or from before it went silent
 	void publishReceiver(hrt_abstime age)
 	{
-		sensor_gps_s gps{};
-		gps.timestamp = hrt_absolute_time() - age;
-		gps.timestamp_sample = gps.timestamp;
-		gps.device_id = 1;
-		gps.fix_type = 3;
-		_receiver_pub.publish(gps);
+		vehicle_gnss_s gnss{};
+		gnss.timestamp = hrt_absolute_time() - age;
+		gnss.timestamp_sample = gnss.timestamp;
+		gnss.receiver.timestamp = gnss.timestamp;
+		gnss.receiver.timestamp_sample = gnss.timestamp;
+		gnss.receiver.device_id = 1;
+		gnss.receiver.fix_type = 3;
+		_receiver_pub.publish(gnss);
 	}
 
 	void publishLocalPosition(bool valid)
@@ -181,7 +183,7 @@ public:
 
 	uORB::PublicationMulti<estimator_status_s> _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::Publication<vehicle_local_position_s> _local_position_pub{ORB_ID(vehicle_local_position)};
-	uORB::Publication<sensor_gps_s> _receiver_pub{ORB_ID(vehicle_gps_position)};
+	uORB::Publication<vehicle_gnss_s> _receiver_pub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _event_sub{ORB_ID(event)};
 
 	failsafe_flags_s _failsafe_flags{};

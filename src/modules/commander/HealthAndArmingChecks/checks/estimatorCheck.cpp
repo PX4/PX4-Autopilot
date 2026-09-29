@@ -696,7 +696,7 @@ void EstimatorChecks::checkGnss(const Context &context, Report &reporter, const 
 }
 
 void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Report &reporter,
-		const hrt_abstime &now, const sensor_gps_s &vehicle_gps_position) const
+		const hrt_abstime &now, const vehicle_gnss_s &vehicle_gnss) const
 {
 	// In flight only, and only when GNSS was in use. Without GNSS in the loop neither a failing
 	// receiver check nor a silent receiver says anything about why the estimate went.
@@ -714,7 +714,7 @@ void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Re
 
 	// EKF2 runs the checks only on new samples, so a receiver that stopped keeps the flags of
 	// its last sample. The silence is the reason then, and it is tested first.
-	if ((vehicle_gps_position.timestamp == 0) || (now > vehicle_gps_position.timestamp + kGnssDataTimeout)) {
+	if ((vehicle_gnss.timestamp == 0) || (now > vehicle_gnss.timestamp + kGnssDataTimeout)) {
 		/* EVENT
 		 * @description
 		 * The receiver had stopped delivering samples when the local position estimate became invalid.
@@ -864,7 +864,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
 
 	if (local_position_was_valid && failsafe_flags.local_position_invalid) {
-		reportGnssReasonForPositionLoss(context, reporter, now, vehicle_gps_position);
+		reportGnssReasonForPositionLoss(context, reporter, now, vehicle_gnss);
 	}
 
 

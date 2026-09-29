@@ -82,7 +82,7 @@ private:
 	// Names the receiver that had stopped, or the GNSS quality checks that kept GNSS out, when the
 	// local position estimate became invalid
 	void reportGnssReasonForPositionLoss(const Context &context, Report &reporter, const hrt_abstime &now,
-					     const sensor_gps_s &vehicle_gps_position) const;
+					     const vehicle_gnss_s &vehicle_gnss) const;
 
 	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
 				     bool pre_flt_fail_innov_vel_horiz, bool pre_flt_fail_innov_pos_horiz,
