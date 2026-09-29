@@ -3978,15 +3978,15 @@ MavlinkReceiver::run()
 					// that actually send take lock_send() locally.
 					_mavlink.lock_send();
 					const uint8_t framing = mavlink_frame_char(_mavlink.get_channel(), buf[i], &msg, &_status);
-					const bool forward_only = forward_only_frame(framing, msg);
+					const FrameCheck frame_check = check_frame(framing, msg);
 
-					if (!forward_only && (framing == MAVLINK_FRAMING_BAD_CRC || framing == MAVLINK_FRAMING_BAD_SIGNATURE)) {
+					if (frame_check == FrameCheck::Invalid) {
 						reset_parser_after_rejected_frame(buf[i]);
 					}
 
 					_mavlink.unlock_send();
 
-					if (framing == MAVLINK_FRAMING_OK) {
+					if (frame_check == FrameCheck::Ok) {
 
 						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version.
 						// Read flags from the receiver-local _status (mavlink_parse_char copies flags from the
@@ -4015,18 +4015,15 @@ MavlinkReceiver::run()
 						if (_message_statistics_enabled) {
 							update_message_statistics(msg);
 						}
+
+					} else if (frame_check == FrameCheck::ForwardOnly) {
+						_unknown_message_counter++;
+
+					} else if (frame_check == FrameCheck::BadSignature) {
+						_bad_signature_counter++;
 					}
 
-					if (forward_only) {
-						if (framing == MAVLINK_FRAMING_BAD_SIGNATURE) {
-							_bad_signature_counter++;
-
-						} else {
-							_unknown_message_counter++;
-						}
-					}
-
-					if (framing == MAVLINK_FRAMING_OK || forward_only) {
+					if (frame_check == FrameCheck::Ok || frame_check == FrameCheck::ForwardOnly) {
 						_mavlink.forward_if_enabled(&msg);
 					}
 				}
@@ -4103,19 +4100,44 @@ MavlinkReceiver::run()
 	}
 }
 
-bool MavlinkReceiver::forward_only_frame(uint8_t framing, const mavlink_message_t &message)
+MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const mavlink_message_t &message)
 {
-	// Frames we can't verify are still forwarded unchanged, it's up to the
-	// receiver to check them, see https://mavlink.io/en/guide/routing.html
-	if (framing == MAVLINK_FRAMING_BAD_SIGNATURE) {
-		return true;
+	switch (framing) {
+	case MAVLINK_FRAMING_OK:
+		return FrameCheck::Ok;
+
+	case MAVLINK_FRAMING_BAD_SIGNATURE:
+		// With signing enabled, PX4 keeps unauthenticated traffic away from the
+		// other links, so we don't forward it either.
+		return FrameCheck::BadSignature;
+
+	case MAVLINK_FRAMING_BAD_CRC:
+		break;
+
+	default:
+		return FrameCheck::Incomplete;
 	}
 
 	// Messages which are not in our dialect can't have their CRC checked and
-	// are reported as bad CRC by the parser.
-	return (framing == MAVLINK_FRAMING_BAD_CRC)
-	       && (mavlink_get_msg_entry(message.msgid) == nullptr)
-	       && !(_status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1);
+	// are reported as bad CRC by the parser. They can still be forwarded.
+	if ((mavlink_get_msg_entry(message.msgid) != nullptr) || (_status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
+		return FrameCheck::Invalid;
+	}
+
+	// The parser doesn't report the signature result of a bad CRC frame, so
+	// apply the same rules as for known messages ourselves.
+	const mavlink_signing_t *signing = _mavlink.get_status()->signing;
+
+	if (signing == nullptr) {
+		return FrameCheck::ForwardOnly;
+	}
+
+	if (message.incompat_flags & MAVLINK_IFLAG_SIGNED) {
+		// The parser has checked the signature of this frame already.
+		return (signing->last_status == MAVLINK_SIGNING_STATUS_OK) ? FrameCheck::ForwardOnly : FrameCheck::BadSignature;
+	}
+
+	return _mavlink.accept_unsigned(message.msgid) ? FrameCheck::ForwardOnly : FrameCheck::BadSignature;
 }
 
 void MavlinkReceiver::reset_parser_after_rejected_frame(uint8_t c)

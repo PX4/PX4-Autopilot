@@ -11,6 +11,9 @@ This mechanism does not _encrypt_ the message payload.
 When signing is enabled, PX4 appends a 13-byte [signature](https://mavlink.io/en/guide/message_signing.html#signature) to every outgoing MAVLink 2 message.
 
 Incoming messages are checked against the shared secret key, and unsigned or incorrectly signed messages are rejected (with [exceptions for safety-critical messages](#unsigned-message-allowlist)).
+Rejected messages are also not forwarded to other links.
+This includes messages that PX4 does not know (for example custom messages), which are only forwarded if they are signed with PX4's key.
+Components connected through PX4 therefore need to use the same key.
 
 The signing implementation is built into the MAVLink module and is always available, with no special build flags required.
 The key is stored in an SD card:
@@ -58,6 +61,7 @@ When signing is **not active** (no key provisioned), the first `SETUP_SIGNING` w
 When signing is **already active**, key changes (including disabling) require that the `SETUP_SIGNING` message is signed with the current key.
 
 Note that `SETUP_SIGNING` is rejected while the vehicle is armed (disarm before provisioning or changing keys).
+`SETUP_SIGNING` is only applied if it is broadcast or addressed to PX4 (its target system and component).
 As per the MAVLink specification, `SETUP_SIGNING` is never forwarded to other links.
 
 ## Key Storage

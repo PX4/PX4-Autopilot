@@ -284,12 +284,15 @@ private:
 	void update_message_statistics(const mavlink_message_t &message);
 	void update_rx_stats(const mavlink_message_t &message);
 
-	/**
-	 * Whether a frame can't be processed locally, because it's unknown or its
-	 * signature can't be verified, but is otherwise valid and can be forwarded
-	 * as is, if forwarding is enabled.
-	 */
-	bool forward_only_frame(uint8_t framing, const mavlink_message_t &message);
+	enum class FrameCheck {
+		Incomplete,   ///< no complete frame yet
+		Ok,           ///< valid, handle and forward
+		ForwardOnly,  ///< not in our dialect, can't be handled but can be forwarded
+		BadSignature, ///< signature missing or not valid with our key, drop
+		Invalid,      ///< bad CRC, drop
+	};
+
+	FrameCheck check_frame(uint8_t framing, const mavlink_message_t &message);
 
 	/**
 	 * Reset the parser after a rejected frame, same as mavlink_parse_char() does.
