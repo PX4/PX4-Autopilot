@@ -89,8 +89,8 @@ uint16_t GnssChecks::getEnabledChecks() const
 
 bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 {
-	if (_time_last_pass_us != 0 && isTimedOut(_time_last_pass_us, time_us, (uint64_t)7'000'000)) {
-		this->reset();
+	if (_time_last_pass_us != 0 && isTimedOut(_time_last_pass_us, time_us, kPassTimeoutUs)) {
+		reset();
 	}
 
 	// assume failed first time through

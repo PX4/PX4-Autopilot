@@ -615,6 +615,7 @@ private:
 	// height sensor status
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
+	uint64_t _time_last_gnss_checks_pass_us{0}; ///< last delayed-horizon time a GNSS sample passed the checks (us)
 	uint64_t _time_last_gnss_fusion_stop_us{0}; ///< when GNSS velocity and position fusion were last both stopped
 
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};

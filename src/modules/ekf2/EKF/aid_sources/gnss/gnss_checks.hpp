@@ -57,22 +57,12 @@ public:
 		reset();
 	}
 
-	void reset()
-	{
-		_passed = false;
-		_time_last_pass_us = 0;
-		_time_last_fail_us = 0;
-		resetDriftFilters();
-	}
-
 	/*
 	 * Return true if the GNSS solution quality is adequate.
 	*/
 	bool run(const gnssSample &gnss, uint64_t time_us);
 	bool passed() const { return _passed; }
 	bool initialChecksPassed() const { return _initial_checks_passed; }
-	uint64_t getLastPassUs() const { return _time_last_pass_us; }
-	uint64_t getLastFailUs() const { return _time_last_fail_us; }
 
 	// How long the checks must pass after a failure before passed() is true
 	uint64_t getRequiredPassDurationUs() const
@@ -134,6 +124,18 @@ public:
 	}
 
 private:
+	// A receiver that has not passed for this long qualifies from scratch again, as after a failure. 7 s is the
+	// outage after which the EKF stops using GNSS, and after which it used to reset these checks.
+	static constexpr uint64_t kPassTimeoutUs = 7'000'000;
+
+	void reset()
+	{
+		_passed = false;
+		_time_last_pass_us = 0;
+		_time_last_fail_us = 0;
+		resetDriftFilters();
+	}
+
 	void setFail(uint8_t check, bool failed);
 	bool enabledChecksPass(uint16_t checks) const { return (_fail_flags & checks & getEnabledChecks()) == 0; }
 
