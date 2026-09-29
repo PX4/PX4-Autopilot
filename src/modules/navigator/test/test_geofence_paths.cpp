@@ -814,3 +814,97 @@ TEST_F(AntimeridianGeofenceTest, ShortPathsMayCrossTheAntimeridian)
 		EXPECT_EQ(clear[1], test.clear);
 	}
 }
+
+TEST_F(GeofenceTest, LongPathsFollowTheFlownLine)
+{
+	const MapProjection projection(_reference(0), _reference(1));
+
+	for (float length : {20000.f, 50000.f, 100000.f}) {
+		SCOPED_TRACE(length);
+		// East-west legs 1 km north of Home. The 20 km leg flies about 8.4 m north of
+		// the straight lat/lon line at its middle; derive the midpoint from the guidance projection.
+		const Geofence::PathCheck leg = path({1000.f, -length / 2.f}, {1000.f, length / 2.f});
+		const Geofence::PathCheck paths[] {leg, {leg.end, leg.start}};
+		const matrix::Vector2f middle = (projection.project(leg.start(0), leg.start(1))
+						 + projection.project(leg.end(0), leg.end(1))) * 0.5f;
+		double middle_lat, middle_lon;
+		projection.reproject(middle(0), middle(1), middle_lat, middle_lon);
+		FencePoints points = exclusionSquare();
+		const matrix::Vector2f corners[] {{-5.f, -5.f}, {5.f, -5.f}, {5.f, 5.f}, {-5.f, 5.f}};
+
+		for (size_t i = 0; i < points.size(); ++i) {
+			projection.reproject(middle(0) + corners[i](0), middle(1) + corners[i](1), points[i].lat, points[i].lon);
+		}
+
+		// A 10 m square on the flown line but clear of the straight lat/lon line.
+		ASSERT_TRUE(loadFence(points));
+		EXPECT_TRUE(_fence.checkPointAgainstAllGeofences(leg.start(0), leg.start(1), 500.f));
+		EXPECT_TRUE(_fence.checkPointAgainstAllGeofences(leg.end(0), leg.end(1), 500.f));
+		EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(middle_lat, middle_lon, 500.f));
+		bool clear[2] {true, true};
+		ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_FALSE(clear[0]);
+		EXPECT_FALSE(clear[1]);
+
+		// A 4 m square on the straight lat/lon line but clear of the flown line.
+		ASSERT_TRUE(loadFence(polygon(false, {{998.f, -2.f}, {1002.f, -2.f}, {1002.f, 2.f}, {998.f, 2.f}})));
+		EXPECT_TRUE(_fence.checkPointAgainstAllGeofences(middle_lat, middle_lon, 500.f));
+		ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_TRUE(clear[0]);
+		EXPECT_TRUE(clear[1]);
+	}
+}
+
+TEST_F(GeofenceTest, NearPolarPathsAccountForLatitudeAlongTheLeg)
+{
+	for (double latitude : {89.9, -89.9}) {
+		SCOPED_TRACE(latitude);
+		const Geofence::PathCheck paths[] {{{latitude, -60.0}, {latitude, 60.0}}, {{latitude, 60.0}, {latitude, -60.0}}};
+		// This 19 km leg reaches almost twice as close to the pole as its endpoints.
+		// Place a 6 m square just before its midpoint, on the straight projected route.
+		const MapProjection projection(latitude, -60.0);
+		float north, east;
+		projection.project(latitude, 60.0, north, east);
+		double center_lat, center_lon;
+		projection.reproject(0.49f * north, 0.49f * east, center_lat, center_lon);
+		const MapProjection fence_projection(center_lat, center_lon);
+		FencePoints points = exclusionSquare();
+		const matrix::Vector2f corners[] {{-3.f, -3.f}, {3.f, -3.f}, {3.f, 3.f}, {-3.f, 3.f}};
+
+		for (size_t i = 0; i < points.size(); ++i) {
+			fence_projection.reproject(corners[i](0), corners[i](1), points[i].lat, points[i].lon);
+		}
+
+		ASSERT_TRUE(loadFence(points));
+		EXPECT_TRUE(_fence.checkPointAgainstAllGeofences(paths[0].start(0), paths[0].start(1), 500.f));
+		EXPECT_TRUE(_fence.checkPointAgainstAllGeofences(paths[0].end(0), paths[0].end(1), 500.f));
+		EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(center_lat, center_lon, 500.f));
+		bool clear[2] {true, true};
+		ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_FALSE(clear[0]);
+		EXPECT_FALSE(clear[1]);
+	}
+}
+
+TEST_F(GeofenceTest, UnresolvedPolygonPathsRejectTheWholeBatch)
+{
+	const Geofence::PathCheck unsupported[] {
+		{{89.99, -90.0}, {89.99, 90.0}}, // crosses a pole, where longitude is undefined
+		{{47.0, -80.0}, {47.0, 80.0}}, // exceeds the bounded subdivision budget
+		{{12.0, 0.0}, {-12.0, 180.0}}, // antipodal endpoints do not define a unique great circle
+	};
+
+	for (const auto &query : unsupported) {
+		ASSERT_TRUE(loadFence(exclusionSquare()));
+		const Geofence::PathCheck paths[] {path({100.f, 100.f}, {100.f, 500.f}), query};
+		bool clear[2] {true, true};
+		EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_FALSE(clear[0]);
+		EXPECT_FALSE(clear[1]);
+		// No polygon approximation is needed when there is no fence to check.
+		ASSERT_TRUE(loadFence({}));
+		ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_TRUE(clear[0]);
+		EXPECT_TRUE(clear[1]);
+	}
+}
