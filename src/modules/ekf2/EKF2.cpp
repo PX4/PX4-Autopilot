@@ -1936,8 +1936,13 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
 
 #if defined(CONFIG_EKF2_GNSS)
-	// only report enabled GPS check failures
-	status.gps_check_fail_flags = toEstimatorStatusCheckFlags(_gnss_failed_checks);
+
+	// Only while GNSS fusion is enabled, as when EKF2 ran the checks itself: commander turns a failure into a pre-arm
+	// failure, and a receiver EKF2 ignores must not cause one
+	if (_param_ekf2_gps_ctrl.get() != 0) {
+		status.gps_check_fail_flags = toEstimatorStatusCheckFlags(_gnss_failed_checks);
+	}
+
 #endif // CONFIG_EKF2_GNSS
 
 	status.control_mode_flags = _ekf.control_status().value;
