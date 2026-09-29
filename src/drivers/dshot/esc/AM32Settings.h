@@ -34,6 +34,7 @@
 #pragma once
 
 #include "ESCSettingsInterface.h"
+#include <drivers/drv_hrt.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/esc_eeprom_read.h>
 
@@ -53,7 +54,7 @@ public:
 private:
 	int _esc_index{};
 	uint8_t _eeprom_data[EEPROM_SIZE] {};
-	bool _eeprom_valid{false};
+	hrt_abstime _timestamp_sample{0}; // 0 while nothing valid is cached
 
 	static uORB::Publication<esc_eeprom_read_s> _esc_eeprom_read_pub;
 };

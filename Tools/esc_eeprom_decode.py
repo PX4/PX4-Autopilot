@@ -50,7 +50,7 @@ def load_dumps(log_path):
 
 def collapse_repeats(dumps):
     """Drop dumps identical to the previous one from the same ESC, counting them on the one kept. The
-    driver republishes every ESC on each arming, so a log spanning several armings repeats them."""
+    driver republishes every cached dump once a second so that logs started later still carry them."""
     kept = []
     last = {}
 

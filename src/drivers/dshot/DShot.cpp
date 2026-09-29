@@ -251,9 +251,11 @@ void DShot::select_next_command()
 				  _bdshot_edt_attempts[motor_index], (double)now / 1000000.);
 			break;
 		}
+	}
 
-	} else if (_esc_type != 0 && _serial_telemetry_enabled && serial_telem_delay_elapsed && !_dshot_programming_active
-		   && !_mixing_output.armed().armed) {
+	// A motor held off or out of EDT attempts leaves no EDT command, and must not keep the settings reads waiting.
+	if (_current_command.finished() && _esc_type != 0 && _serial_telemetry_enabled && serial_telem_delay_elapsed
+	    && !_dshot_programming_active && !_mixing_output.armed().armed) {
 		const int motor_index = _telemetry.getSettingsRequest(_motor_mask & _serial_telem_online_mask);
 
 		if (motor_index >= 0) {
@@ -835,7 +837,9 @@ void DShot::handle_vehicle_commands()
 {
 	vehicle_command_s command = {};
 
-	while (_current_command.finished() && _vehicle_command_sub.update(&command)) {
+	// Wait for an outstanding settings read, which completes within COMMAND_RESPONSE_TIMEOUT: a setting changed
+	// before it lands would have the read restore the old cache.
+	while (_current_command.finished() && _telemetry.commandResponseFinished() && _vehicle_command_sub.update(&command)) {
 
 		switch (command.command) {
 		case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
@@ -882,8 +886,8 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	command_ack.target_component = command.source_component;
 	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
-	if (_dshot_programming_active || !_telemetry.commandResponseFinished()) {
-		// Do not interrupt programming or let an outstanding read restore the cache after a setting changes.
+	if (_dshot_programming_active) {
+		// Programming spans many commands and would take the next frames as an address and value.
 		command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 	} else if ((motor_index >= 0) && (motor_index < DSHOT_MAX_MOTORS)) {

@@ -57,12 +57,13 @@ int AM32Settings::getExpectedResponseSize()
 
 void AM32Settings::publish_latest()
 {
-	if (!_eeprom_valid) {
+	if (_timestamp_sample == 0) {
 		return;
 	}
 
 	esc_eeprom_read_s data = {};
 	data.timestamp = hrt_absolute_time();
+	data.timestamp_sample = _timestamp_sample;
 	data.firmware = 1; // ESC_FIRMWARE_AM32
 	data.index = _esc_index;
 	memcpy(data.data, &_eeprom_data, sizeof(_eeprom_data));
@@ -72,7 +73,7 @@ void AM32Settings::publish_latest()
 
 void AM32Settings::invalidate()
 {
-	_eeprom_valid = false;
+	_timestamp_sample = 0;
 }
 
 bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
@@ -92,7 +93,7 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 	PX4_DEBUG("Successfully received AM32 settings from ESC%d", _esc_index + 1);
 
 	memcpy(&_eeprom_data, buf, EEPROM_SIZE);
-	_eeprom_valid = true;
+	_timestamp_sample = hrt_absolute_time();
 
 	publish_latest();
 
