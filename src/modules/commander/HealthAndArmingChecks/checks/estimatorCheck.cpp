@@ -249,14 +249,12 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 		// The flags describe only the newest sample, while EKF2 keeps rejecting samples for a while
 		// after one failed and keeps fusing for longer still, so the check that kept GNSS out may
-		// have passed again by the time the position goes. Every check that failed is remembered
-		// until none has for a while.
-		if (estimator_status.gps_check_fail_flags != 0) {
-			_gps_check_fail_flags |= estimator_status.gps_check_fail_flags;
-			_last_gnss_check_fail_time_us = now;
-
-		} else if (now > _last_gnss_check_fail_time_us + kGnssRecentlyFusedTimeout) {
-			_gps_check_fail_flags = 0;
+		// have passed again by the time the position goes. Each check is remembered for a while after
+		// it last failed, on its own, so one that keeps failing doesn't keep the others alive.
+		for (int i = 0; i < kNumGnssChecks; i++) {
+			if (estimator_status.gps_check_fail_flags & (1 << i)) {
+				_last_gnss_check_fail_time_us[i] = estimator_status.timestamp;
+			}
 		}
 
 		if (ekf_gps_fusion) {
@@ -535,10 +533,8 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				}
 			}
 		}
-
-	} else {
-		_gps_check_fail_flags = 0;
 	}
+
 }
 
 void EstimatorChecks::checkSensorBias(const Context &context, Report &reporter, NavModes required_groups)
@@ -708,6 +704,14 @@ void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Re
 		return;
 	}
 
+	uint16_t failed_checks = 0;
+
+	for (int i = 0; i < kNumGnssChecks; i++) {
+		if ((_last_gnss_check_fail_time_us[i] != 0) && (now <= _last_gnss_check_fail_time_us[i] + kGnssRecentlyFusedTimeout)) {
+			failed_checks |= 1 << i;
+		}
+	}
+
 	// EKF2 runs the checks only on new samples, so a receiver that stopped keeps the flags of
 	// its last sample. The silence is the reason then, and it is tested first.
 	if ((vehicle_gps_position.timestamp == 0) || (now > vehicle_gps_position.timestamp + kGnssDataTimeout)) {
@@ -718,7 +722,7 @@ void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Re
 		events::send(events::ID("check_estimator_position_lost_gnss_no_data"), events::Log::Error,
 			     "Local position lost, no GNSS data");
 
-	} else if (_gps_check_fail_flags != 0) {
+	} else if (failed_checks != 0) {
 		/* EVENT
 		 * @description
 		 * The GNSS quality checks that failed in the run up to the local position estimate becoming invalid.
@@ -726,7 +730,7 @@ void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Re
 		 */
 		events::send<events::px4::enums::gnss_check_fail_t>(events::ID("check_estimator_position_lost_gnss_reason"),
 				events::Log::Error, "Local position lost, GNSS check failed: {1}",
-				static_cast<events::px4::enums::gnss_check_fail_t>(_gps_check_fail_flags));
+				static_cast<events::px4::enums::gnss_check_fail_t>(failed_checks));
 	}
 }
 

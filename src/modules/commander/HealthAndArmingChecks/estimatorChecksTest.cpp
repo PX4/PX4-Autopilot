@@ -74,11 +74,12 @@ public:
 		drainEvents();
 	}
 
-	// what the estimator reports: whether it fuses GNSS position, and which receiver checks fail
-	void publishEstimatorStatus(bool gnss_fused, uint16_t gps_check_fail_flags)
+	// what the estimator reports: whether it fuses GNSS position, and which receiver checks fail.
+	// An age stands in for a report seen that long ago.
+	void publishEstimatorStatus(bool gnss_fused, uint16_t gps_check_fail_flags, hrt_abstime age = 0)
 	{
 		estimator_status_s status{};
-		status.timestamp = hrt_absolute_time();
+		status.timestamp = hrt_absolute_time() - age;
 		status.control_mode_flags = gnss_fused ? (1ULL << estimator_status_s::CS_GNSS_POS) : 0;
 		status.gps_check_fail_flags = gps_check_fail_flags;
 		_estimator_status_pub.publish(status);
@@ -233,6 +234,30 @@ TEST_F(EstimatorChecksTest, NamesACheckThatFailedShortlyBeforePositionWasLost)
 	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
 	event_s event{};
 	ASSERT_EQ(countEvents(kReasonEvent, &event), 1) << "the check that kept GNSS out is the reason";
+	uint16_t reported_flags = 0;
+	memcpy(&reported_flags, event.arguments, sizeof(reported_flags));
+	EXPECT_EQ(reported_flags, kSpeedAccuracy);
+}
+
+TEST_F(EstimatorChecksTest, ForgetsACheckThatStoppedFailingLongBefore)
+{
+	flyOnGnss();
+
+	// spoofing was flagged once, well before the speed accuracy failed and the position went. Each
+	// check expires on its own, so the speed accuracy failing doesn't keep the spoofing in the reason.
+	publishEstimatorStatus(true, kSpoofed, 15_s);
+	runCheck(true);
+	ASSERT_FALSE(_failsafe_flags.local_position_invalid);
+	drainEvents();
+
+	publishEstimatorStatus(true, kSpeedAccuracy);
+	publishReceiver(0);
+	publishLocalPosition(false);
+	runCheck(true);
+
+	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	event_s event{};
+	ASSERT_EQ(countEvents(kReasonEvent, &event), 1);
 	uint16_t reported_flags = 0;
 	memcpy(&reported_flags, event.arguments, sizeof(reported_flags));
 	EXPECT_EQ(reported_flags, kSpeedAccuracy);

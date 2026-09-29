@@ -114,8 +114,10 @@ private:
 
 	bool _gps_was_fused{false};
 	hrt_abstime _last_gnss_fusion_time_us{0};
-	hrt_abstime _last_gnss_check_fail_time_us{0};
-	uint16_t _gps_check_fail_flags{0}; ///< every check that failed recently, 0 without SYS_HAS_GPS
+
+	// when each GNSS quality check last failed, indexed by its bit in estimator_status.gps_check_fail_flags
+	static constexpr int kNumGnssChecks = estimator_status_s::GPS_CHECK_FAIL_JAMMED + 1;
+	hrt_abstime _last_gnss_check_fail_time_us[kNumGnssChecks] {};
 
 	// how long after GNSS fusion stops, or after a receiver check last failed, that check is still taken as
 	// the reason for losing position
