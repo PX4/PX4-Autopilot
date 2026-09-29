@@ -282,7 +282,10 @@ private:
 	void schedule_tune(const char *tune);
 
 	void update_message_statistics(const mavlink_message_t &message);
-	void update_rx_stats(const mavlink_message_t &message);
+	/**
+	 * @param add_component false to only update components which were already seen
+	 */
+	void update_rx_stats(const mavlink_message_t &message, bool add_component);
 
 	enum class FrameCheck {
 		Incomplete,   ///< no complete frame yet

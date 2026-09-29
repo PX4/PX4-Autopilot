@@ -4010,7 +4010,7 @@ MavlinkReceiver::run()
 						}
 
 						_mavlink.set_has_received_messages(true); // Received first message, unlock wait to transmit '-w' command-line flag
-						update_rx_stats(msg);
+						update_rx_stats(msg, true);
 
 						if (_message_statistics_enabled) {
 							update_message_statistics(msg);
@@ -4018,6 +4018,10 @@ MavlinkReceiver::run()
 
 					} else if (frame_check == FrameCheck::ForwardOnly) {
 						_unknown_message_counter++;
+
+						// The header of an unknown message isn't CRC checked, so only
+						// track the sequence of components we have already seen.
+						update_rx_stats(msg, false);
 
 					} else if (frame_check == FrameCheck::BadSignature) {
 						_bad_signature_counter++;
@@ -4172,9 +4176,9 @@ bool MavlinkReceiver::component_was_seen(int system_id, int component_id)
 	return false;
 }
 
-void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
+void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message, bool add_component)
 {
-	const bool component_states_has_still_space = [this, &message]() {
+	const bool component_states_has_still_space = [this, &message, add_component]() {
 		for (unsigned i = 0; i < MAX_REMOTE_COMPONENTS; ++i) {
 			if (_component_states[i].system_id == message.sysid && _component_states[i].component_id == message.compid) {
 
@@ -4196,6 +4200,10 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
 				return true;
 
 			} else if (_component_states[i].system_id == 0 && _component_states[i].component_id == 0) {
+				if (!add_component) {
+					return true;
+				}
+
 				_component_states[i].system_id = message.sysid;
 				_component_states[i].component_id = message.compid;
 
@@ -4214,7 +4222,7 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message)
 		return false;
 	}();
 
-	if (!component_states_has_still_space && !_warned_component_states_full_once) {
+	if (add_component && !component_states_has_still_space && !_warned_component_states_full_once) {
 		PX4_WARN("Max remote components of %u used up", MAX_REMOTE_COMPONENTS);
 		_warned_component_states_full_once = true;
 	}
