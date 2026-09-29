@@ -130,7 +130,7 @@ void PPSCapture::Run()
 		return;
 	}
 
-	sensor_gps_s sensor_gps;
+	sensor_gnss_s sensor_gps;
 
 	const uint32_t gps_device_id = static_cast<uint32_t>(_param_pps_cap_gps_id.get());
 

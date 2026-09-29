@@ -42,7 +42,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/pps_capture.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 using namespace time_literals;
 
@@ -79,7 +79,7 @@ private:
 	uint32_t _pps_capture_gpio{0};
 
 	uORB::Publication<pps_capture_s> _pps_capture_pub{ORB_ID(pps_capture)};
-	uORB::SubscriptionMultiArray<sensor_gps_s, GPS_MAX_RECEIVERS> _sensor_gps_subs{ORB_ID::sensor_gps};
+	uORB::SubscriptionMultiArray<sensor_gnss_s, GPS_MAX_RECEIVERS> _sensor_gps_subs{ORB_ID::sensor_gnss};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	hrt_abstime	_hrt_timestamp{0};
