@@ -175,6 +175,15 @@ public:
 	void initialize(const AltitudeReferenceState &state);
 
 	/**
+	 * @brief Altitude rate envelope the controller can currently fly, see
+	 * TECSControl::_projectAltitudeRateSetpointToEnvelope. NAN means unknown (fall back to the parameters).
+	 */
+	struct RateEnvelope {
+		float climb_rate_max{NAN};	///< Maximum flyable climb rate [m/s].
+		float sink_rate_max{NAN};	///< Maximum flyable sink rate (positive) [m/s].
+	};
+
+	/**
 	 * @brief Update reference models.
 	 *
 	 * @param[in] dt is the update interval in [s].
@@ -183,7 +192,8 @@ public:
 	 * @param[in] height_rate is the height rate setpoint in [m/s].
 	 * @param[in] param are the reference model parameters.
 	 */
-	void update(float dt, const AltitudeReferenceState &setpoint, float altitude, float height_rate, const Param &param);
+	void update(float dt, const AltitudeReferenceState &setpoint, float altitude, float height_rate, const Param &param,
+		    const RateEnvelope &envelope);
 
 	/**
 	 * @brief Get the current altitude reference of altitude reference model.
@@ -351,6 +361,14 @@ public:
 	 * @return the debug outpus struct.
 	 */
 	const DebugOutput &getDebugOutput() const { return _debug_output; }
+	/**
+	 * @brief Get the altitude rate envelope the aircraft can currently fly (throttle and pitch envelope), as
+	 * determined in the last update, for the altitude reference model to generate an achievable trajectory.
+	 */
+	TECSAltitudeReferenceModel::RateEnvelope getAltitudeRateEnvelope() const
+	{
+		return {.climb_rate_max = _altitude_rate_envelope_max, .sink_rate_max = -_altitude_rate_envelope_min};
+	}
 
 private:
 	// Allows the regression test to pre-corrupt _pitch_integ_state and verify the
@@ -449,6 +467,35 @@ private:
 	 */
 	SpecificEnergyRates _calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint, const Input &input) const;
 	/**
+	 * @brief Calculate the specific kinetic energy rate setpoint at the current airspeed.
+	 *
+	 * @param control_setpoint is the controlled altitude and airspeed rate setpoints.
+	 * @param input is the current input measurement of the UAS.
+	 * @return specific kinetic energy rate setpoint in [m²/s³].
+	 */
+	static float _calcSkeRateSetpoint(const AltitudePitchControl &control_setpoint, const Input &input);
+	/**
+	 * @brief Project the controlled altitude rate setpoint onto the envelope the aircraft can fly.
+	 *
+	 * The altitude rate setpoint is backed off such that
+	 *  - the climb angle stays within the pitch limits, less the pitch integrator state which holds the
+	 *    pitch-to-flight-path offset (angle of attack, rigging),
+	 *  - the total energy rate demand stays within what the throttle can deliver (the kinetic energy rate demand
+	 *    has priority: airspeed, i.e. stall margin, outranks climb or sink rate),
+	 *  - the altitude rate setpoint changes no faster than the vertical acceleration limit, like the pitch
+	 *    setpoint is rate limited, so that the throttle does not fund a climb rate change before pitch may fly it.
+	 * Otherwise the pitch loop flies a climb or sink the throttle cannot fund, or the throttle funds a climb
+	 * or sink pitch cannot fly, and the energy surplus or deficit goes into or comes out of the airspeed.
+	 *
+	 * @param control_setpoint is the controlled altitude and airspeed rate setpoints, altitude rate is modified.
+	 * @param input is the current input measurement of the UAS.
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @param dt is the update time interval in [s], NAN to skip the rate limit (initialization).
+	 */
+	void _projectAltitudeRateSetpointToEnvelope(AltitudePitchControl &control_setpoint, const Input &input,
+			const Param &param, const Flag &flag, float dt);
+	/**
 	 * @brief Detect underspeed.
 	 *
 	 * @param input is the current input measurement of the UAS.
@@ -507,7 +554,8 @@ private:
 	 * @param flag is the control flags.
 	 * @return pitch setpoint angle above trim [rad].
 	 */
-	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
+	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float spe_rate_setpoint,
+				      const Param &param,
 				      const Flag &flag) const;
 
 	/**
@@ -523,12 +571,11 @@ private:
 	/**
 	 * @brief Calculate throttle control specific total energy
 	 *
-	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
 	 * @param param is the control parameters.
 	 * @return specific total energy rate values in [m²/s³]
 	 */
-	ControlValues _calcThrottleControlSteRate(const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rate,
+	ControlValues _calcThrottleControlSteRate(const SpecificEnergyRates &specific_energy_rate,
 			const Param &param) const;
 
 	/**
@@ -536,7 +583,6 @@ private:
 	 * Update the throttle control states (throttle integrator).
 	 *
 	 * @param dt is the update time intervall in [s].
-	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param ste_rate is the specific total energy rates in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
@@ -547,7 +593,6 @@ private:
 	/**
 	 * @brief Calculate the throttle control output function.
 	 *
-	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param ste_rate is the specific total energy rates in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
@@ -558,7 +603,10 @@ private:
 
 private:
 	// State
-	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
+	AlphaFilter<float> _ste_rate_error_filter;		///< Low pass filter for the specific total energy rate error (feedback).
+	float _altitude_rate_setpoint_projected{0.0f};		///< Altitude rate setpoint projected onto the envelope [m/s].
+	float _altitude_rate_envelope_min{NAN};			///< Lower bound of the flyable altitude rate [m/s].
+	float _altitude_rate_envelope_max{NAN};			///< Upper bound of the flyable altitude rate [m/s].
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
 
