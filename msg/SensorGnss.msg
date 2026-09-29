@@ -1,4 +1,4 @@
-# GNSS receiver report
+# GNSS receiver report, position in WGS84
 #
 # One instance per receiver, published by its driver: the receiver's own solution, unmodified.
 # The sensors module publishes the selected receiver on vehicle_gnss.
@@ -11,7 +11,7 @@ uint32 device_id # [-] Unique device ID for the sensor that does not change betw
 float64 latitude           # [deg] Latitude, allows centimeter level RTK precision
 float64 longitude          # [deg] Longitude, allows centimeter level RTK precision
 float64 altitude_msl       # [m] Altitude above MSL, from the receiver's own geoid model
-float64 altitude_ellipsoid # [m] Altitude above the ellipsoid
+float64 altitude_ellipsoid # [m] Altitude above the WGS84 ellipsoid
 
 float32 speed_accuracy  # [m/s] Speed accuracy estimate
 float32 course_accuracy # [rad] Course accuracy estimate
