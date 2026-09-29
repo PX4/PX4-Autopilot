@@ -58,7 +58,7 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/systemlib/system_time_source.h>
 #include <uORB/topics/rtcm_data.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 #include "util.h"
 #include "sbf/messages.h"
@@ -253,7 +253,7 @@ int SeptentrioDriver::print_status()
 
 	if (first_gps_uorb_message_created() && _state == State::ReceivingData) {
 		_injector.print_status();
-		print_message(ORB_ID(sensor_gps), _sensor_gps);
+		print_message(ORB_ID(sensor_gnss), _sensor_gps);
 	}
 
 	if (_instance == Instance::Main && secondary_instance) {
@@ -1116,21 +1116,21 @@ int SeptentrioDriver::process_message()
 
 				switch (static_cast<sbf::PVTGeodetic::ModeType>(pvt_geodetic.mode_type)) {
 				case ModeType::NoPVT:
-					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_NONE;
+					_sensor_gps.fix_type = sensor_gnss_s::FIX_TYPE_NONE;
 					break;
 				case ModeType::PVTWithSBAS:
-					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
+					_sensor_gps.fix_type = sensor_gnss_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
 					break;
 				case ModeType::RTKFloat:
 				case ModeType::MovingBaseRTKFloat:
-					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_RTK_FLOAT;
+					_sensor_gps.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FLOAT;
 					break;
 				case ModeType::RTKFixed:
 				case ModeType::MovingBaseRTKFixed:
-					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
+					_sensor_gps.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
 					break;
 				default:
-					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_3D;
+					_sensor_gps.fix_type = sensor_gnss_s::FIX_TYPE_3D;
 					break;
 				}
 
@@ -1140,12 +1140,12 @@ int SeptentrioDriver::process_message()
 				}
 
 				if (pvt_geodetic.latitude > k_dnu_f8_value && pvt_geodetic.longitude > k_dnu_f8_value && pvt_geodetic.height > k_dnu_f8_value && pvt_geodetic.undulation > k_dnu_f4_value) {
-					_sensor_gps.latitude_deg = pvt_geodetic.latitude * M_RAD_TO_DEG;
-					_sensor_gps.longitude_deg = pvt_geodetic.longitude * M_RAD_TO_DEG;
-					_sensor_gps.altitude_msl_m = pvt_geodetic.height - static_cast<double>(pvt_geodetic.undulation);
-					_sensor_gps.altitude_ellipsoid_m = pvt_geodetic.height;
+					_sensor_gps.latitude = pvt_geodetic.latitude * M_RAD_TO_DEG;
+					_sensor_gps.longitude = pvt_geodetic.longitude * M_RAD_TO_DEG;
+					_sensor_gps.altitude_msl = pvt_geodetic.height - static_cast<double>(pvt_geodetic.undulation);
+					_sensor_gps.altitude_ellipsoid = pvt_geodetic.height;
 				} else {
-					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_NONE;
+					_sensor_gps.fix_type = sensor_gnss_s::FIX_TYPE_NONE;
 				}
 
 				if (pvt_geodetic.nr_sv != PVTGeodetic::k_dnu_nr_sv) {
@@ -1168,17 +1168,17 @@ int SeptentrioDriver::process_message()
 				_sensor_gps.epv = static_cast<float>(pvt_geodetic.v_accuracy) / 200.0f;
 
 				// Check fix and error code
-				_sensor_gps.vel_ned_valid = _sensor_gps.fix_type > sensor_gps_s::FIX_TYPE_NONE && pvt_geodetic.error == Error::None;
-				_sensor_gps.vel_n_m_s = pvt_geodetic.vn;
-				_sensor_gps.vel_e_m_s = pvt_geodetic.ve;
-				_sensor_gps.vel_d_m_s = -1.0f * pvt_geodetic.vu;
-				_sensor_gps.vel_m_s = sqrtf(_sensor_gps.vel_n_m_s * _sensor_gps.vel_n_m_s +
-							_sensor_gps.vel_e_m_s * _sensor_gps.vel_e_m_s);
+				_sensor_gps.vel_ned_valid = _sensor_gps.fix_type > sensor_gnss_s::FIX_TYPE_NONE && pvt_geodetic.error == Error::None;
+				_sensor_gps.vel_north = pvt_geodetic.vn;
+				_sensor_gps.vel_east = pvt_geodetic.ve;
+				_sensor_gps.vel_down = -1.0f * pvt_geodetic.vu;
+				_sensor_gps.ground_speed = sqrtf(_sensor_gps.vel_north * _sensor_gps.vel_north +
+							_sensor_gps.vel_east * _sensor_gps.vel_east);
 
 				if (pvt_geodetic.cog > k_dnu_f4_value) {
-					_sensor_gps.cog_rad = pvt_geodetic.cog * M_DEG_TO_RAD_F;
+					_sensor_gps.course = pvt_geodetic.cog * M_DEG_TO_RAD_F;
 				}
-				_sensor_gps.c_variance_rad = M_DEG_TO_RAD_F;
+				_sensor_gps.course_accuracy = M_DEG_TO_RAD_F;
 
 				_sensor_gps.time_utc_usec = 0;
 #ifndef __PX4_QURT // NOTE: Functionality isn't available on Snapdragon yet.
@@ -1228,31 +1228,31 @@ int SeptentrioDriver::process_message()
 			ReceiverStatus receiver_status;
 
 			if (_sbf_decoder.parse(&receiver_status) == PX4_OK) {
-				_sensor_gps.corrections_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::CORRECTIONS_MSG_USED_USED : sensor_gps_s::CORRECTIONS_MSG_USED_NOT_USED;
+				_sensor_gps.corrections_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gnss_s::CORRECTIONS_MSG_USED_USED : sensor_gnss_s::CORRECTIONS_MSG_USED_NOT_USED;
 				_time_synced = receiver_status.rx_state_wn_set && receiver_status.rx_state_tow_set;
 
-				_sensor_gps.system_error = sensor_gps_s::SYSTEM_ERROR_OK;
+				_sensor_gps.system_error = sensor_gnss_s::SYSTEM_ERROR_OK;
 
 				if (receiver_status.rx_error_cpu_overload) {
-					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_CPU_OVERLOAD;
+					_sensor_gps.system_error |= sensor_gnss_s::SYSTEM_ERROR_CPU_OVERLOAD;
 				}
 				if (receiver_status.rx_error_antenna) {
-					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_ANTENNA;
+					_sensor_gps.system_error |= sensor_gnss_s::SYSTEM_ERROR_ANTENNA;
 				}
 				if (receiver_status.ext_error_diff_corr_error) {
-					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_INCOMING_CORRECTIONS;
+					_sensor_gps.system_error |= sensor_gnss_s::SYSTEM_ERROR_INCOMING_CORRECTIONS;
 				}
 				if (receiver_status.ext_error_setup_error) {
-					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_CONFIGURATION;
+					_sensor_gps.system_error |= sensor_gnss_s::SYSTEM_ERROR_CONFIGURATION;
 				}
 				if (receiver_status.rx_error_software) {
-					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_SOFTWARE;
+					_sensor_gps.system_error |= sensor_gnss_s::SYSTEM_ERROR_SOFTWARE;
 				}
 				if (receiver_status.rx_error_congestion) {
-					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_OUTPUT_CONGESTION;
+					_sensor_gps.system_error |= sensor_gnss_s::SYSTEM_ERROR_OUTPUT_CONGESTION;
 				}
 				if (receiver_status.rx_error_missed_event) {
-					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_EVENT_CONGESTION;
+					_sensor_gps.system_error |= sensor_gnss_s::SYSTEM_ERROR_EVENT_CONGESTION;
 				}
 			}
 
@@ -1311,24 +1311,24 @@ int SeptentrioDriver::process_message()
 			RFStatus rf_status;
 
 			if (_sbf_decoder.parse(&rf_status) == PX4_OK) {
-				_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_OK;
-				_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_OK;
+				_sensor_gps.jamming_state = sensor_gnss_s::JAMMING_STATE_OK;
+				_sensor_gps.spoofing_state = sensor_gnss_s::SPOOFING_STATE_OK;
 
 				for (int i = 0; i < math::min(rf_status.n, static_cast<uint8_t>(sizeof(rf_status.rf_band) / sizeof(rf_status.rf_band[0]))); i++) {
 					InfoMode status = static_cast<InfoMode>(rf_status.rf_band[i].info_mode);
 
 					if(status == InfoMode::Interference){
-						_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_DETECTED;
+						_sensor_gps.jamming_state = sensor_gnss_s::JAMMING_STATE_DETECTED;
 						break; // Worst case, we don't need to check the other bands
 					}
 
 					if(status == InfoMode::Suppressed || status == InfoMode::Mitigated){
-						_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_MITIGATED;
+						_sensor_gps.jamming_state = sensor_gnss_s::JAMMING_STATE_MITIGATED;
 					}
 				}
 
 				if (rf_status.flags_inauthentic_gnss_signals || rf_status.flags_inauthentic_navigation_message) {
-					_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_DETECTED;
+					_sensor_gps.spoofing_state = sensor_gnss_s::SPOOFING_STATE_DETECTED;
 				}
 				_time_last_resilience_received = hrt_absolute_time();
 			}
@@ -1345,19 +1345,19 @@ int SeptentrioDriver::process_message()
 			if (_sbf_decoder.parse(&gal_auth_status) == PX4_OK) {
 				switch (gal_auth_status.osnmaStatus()) {
 				case OSNMAStatus::Disabled:
-					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_DISABLED;
+					_sensor_gps.authentication_state = sensor_gnss_s::AUTHENTICATION_STATE_DISABLED;
 					break;
 				case OSNMAStatus::AwaitingTrustedTimeInfo:
 				case OSNMAStatus::Initializing:
-					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_INITIALIZING;
+					_sensor_gps.authentication_state = sensor_gnss_s::AUTHENTICATION_STATE_INITIALIZING;
 					break;
 				case OSNMAStatus::InitFailedInconsistentTime:
 				case OSNMAStatus::InitFailedKROOTInvalid:
 				case OSNMAStatus::InitFailedInvalidParam:
-					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_ERROR;
+					_sensor_gps.authentication_state = sensor_gnss_s::AUTHENTICATION_STATE_ERROR;
 					break;
 				case OSNMAStatus::Authenticating:
-					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_OK;
+					_sensor_gps.authentication_state = sensor_gnss_s::AUTHENTICATION_STATE_OK;
 					break;
 				}
 			}
@@ -1379,7 +1379,7 @@ int SeptentrioDriver::process_message()
 
 			if (_sbf_decoder.parse(&vel_cov_geodetic) == PX4_OK) {
 				if (vel_cov_geodetic.cov_ve_ve > k_dnu_f4_value && vel_cov_geodetic.cov_vn_vn > k_dnu_f4_value && vel_cov_geodetic.cov_vu_vu > k_dnu_f4_value) {
-					_sensor_gps.s_variance_m_s = math::max(math::max(vel_cov_geodetic.cov_ve_ve, vel_cov_geodetic.cov_vn_vn), vel_cov_geodetic.cov_vu_vu);
+					_sensor_gps.speed_accuracy = math::max(math::max(vel_cov_geodetic.cov_ve_ve, vel_cov_geodetic.cov_vn_vn), vel_cov_geodetic.cov_vu_vu);
 				}
 			}
 
@@ -1503,8 +1503,8 @@ int SeptentrioDriver::process_message()
 
 		//Check for how recent the resilience data for reciever is, if outdated set to unknown
 		if ((_time_last_resilience_received != 0) && (hrt_elapsed_time(&_time_last_resilience_received) > 5_s)) {
-				_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_UNKNOWN;
-				_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_UNKNOWN;
+				_sensor_gps.jamming_state = sensor_gnss_s::JAMMING_STATE_UNKNOWN;
+				_sensor_gps.spoofing_state = sensor_gnss_s::SPOOFING_STATE_UNKNOWN;
 
 				_time_last_resilience_received = 0; // Reset
 		}
@@ -1785,7 +1785,7 @@ void SeptentrioDriver::publish_relative_position(uint32_t tow)
 		relative.heading_accuracy = NAN;
 	}
 
-	relative.gnss_fix_ok = _sensor_gps.fix_type >= sensor_gps_s::FIX_TYPE_3D;
+	relative.gnss_fix_ok = _sensor_gps.fix_type >= sensor_gnss_s::FIX_TYPE_3D;
 	relative.time_utc_usec = (_pvt_tow == tow) ? _sensor_gps.time_utc_usec : 0;
 	relative.device_id = get_device_id();
 	relative.timestamp = hrt_absolute_time();

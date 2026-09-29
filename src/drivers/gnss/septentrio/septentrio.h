@@ -51,7 +51,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/satellite_info.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_gnss_relative.h>
 #include <uORB/topics/sensor_gnss_status.h>
 #include <uORB/topics/gps_dump.h>
@@ -740,7 +740,7 @@ private:
 	rtcm::Decoder                                  *_rtcm_decoder {nullptr};                    ///< RTCM message decoder
 
 	// uORB topics and subscriptions
-	sensor_gps_s                                   _sensor_gps {};                          		///< uORB topic for position
+	sensor_gnss_s                                  _sensor_gps {};                          		///< uORB topic for position
 	sensor_gnss_relative_s                         _sensor_gnss_relative {};                                ///< uORB topic for the auxiliary antenna or moving base relative position and heading
 	uint32_t                                       _pvt_tow {0};                                            ///< TOW of the last PVTGeodetic
 	uint32_t                                       _heading_tow {0};                                        ///< TOW of the last valid AttEuler heading
@@ -751,7 +751,7 @@ private:
 	gps_dump_s                                     *_message_data_to_receiver {nullptr};           		///< uORB topic for dumping data to the receiver
 	gps_dump_s                                     *_message_data_from_receiver {nullptr};         		///< uORB topic for dumping data from the receiver
 	satellite_info_s                               *_message_satellite_info {nullptr};             		///< uORB topic for satellite info
-	uORB::PublicationMulti<sensor_gps_s>           _sensor_gps_pub {ORB_ID(sensor_gps)};           		///< uORB publication for gps position
+	uORB::PublicationMulti<sensor_gnss_s>          _sensor_gps_pub {ORB_ID(sensor_gnss)};           		///< uORB publication for gps position
 	uORB::PublicationMulti<sensor_gnss_status_s>   _sensor_gnss_status_pub {ORB_ID(sensor_gnss_status)};	///< uORB publication for gnss status
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub {ORB_ID(sensor_gnss_relative)};	///< uORB publication for relative position and heading
 	uORB::Publication<gps_dump_s>                  _gps_dump_pub {ORB_ID(gps_dump)};              		///< uORB publication for dump GPS data
@@ -759,7 +759,7 @@ private:
 	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   		///< uORB publication for satellite info
 
 	failure_injection::Config _failure_config;
-	failure_injection::Stuck<sensor_gps_s> _stuck;
+	failure_injection::Stuck<sensor_gnss_s> _stuck;
 
 	// Data about update frequencies of various bits of information like received data rate...
 	hrt_abstime _current_interval_start_time {0};      ///< Start time of the current update measurement interval in us
