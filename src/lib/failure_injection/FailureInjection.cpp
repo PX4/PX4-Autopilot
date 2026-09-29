@@ -134,14 +134,14 @@ bool process_battery(const Config &config, uint8_t instance, battery_status_s &b
 	return true;
 }
 
-bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &sensor_gps,
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &sensor_gnss,
 		  Stuck<sensor_gnss_s> &stuck)
 {
 	const Mode mode = config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, uorb_instance + 1);
 
 	// Off and Stuck are message-agnostic; run them first so the Stuck cache keeps the
 	// uncorrupted sample and a later Stuck replays a healthy fix.
-	if (!process(mode, sensor_gps, stuck)) {
+	if (!process(mode, sensor_gnss, stuck)) {
 		return false;
 	}
 
@@ -150,7 +150,7 @@ bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &se
 
 		int32_t fix_type = sensor_gnss_s::FIX_TYPE_2D;
 		param_get(fix_type_handle, &fix_type);
-		sensor_gps.fix_type = (uint8_t)fix_type;
+		sensor_gnss.fix_type = (uint8_t)fix_type;
 
 		static const param_t jamming_state_handle = param_find("SYS_FAIL_GPS_JAM");
 
@@ -158,7 +158,7 @@ bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &se
 		param_get(jamming_state_handle, &jamming_state);
 
 		if (jamming_state != sensor_gnss_s::JAMMING_STATE_UNKNOWN) {
-			sensor_gps.jamming_state = (uint8_t)jamming_state;
+			sensor_gnss.jamming_state = (uint8_t)jamming_state;
 		}
 	}
 

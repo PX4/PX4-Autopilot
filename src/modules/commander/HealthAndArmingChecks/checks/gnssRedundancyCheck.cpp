@@ -48,19 +48,19 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	bool gps_online[GPS_MAX_INSTANCES] {};
 	bool gps_has_fix[GPS_MAX_INSTANCES] {};
 	uint8_t fixed_count = 0;
-	sensor_gnss_s fixed_gps[GPS_MAX_INSTANCES] {};
+	sensor_gnss_s fixed_gnss[GPS_MAX_INSTANCES] {};
 
 	for (int i = 0; i < GPS_MAX_INSTANCES; i++) {
-		sensor_gnss_s gps{};
+		sensor_gnss_s gnss{};
 
-		if (_sensor_gps_sub[i].copy(&gps)
-		    && (gps.device_id != 0)
-		    && (hrt_elapsed_time(&gps.timestamp) < 1_s)) {
+		if (_sensor_gnss_sub[i].copy(&gnss)
+		    && (gnss.device_id != 0)
+		    && (hrt_elapsed_time(&gnss.timestamp) < 1_s)) {
 			gps_online[i] = true;
 
-			if (gps.fix_type >= 3) {
+			if (gnss.fix_type >= 3) {
 				gps_has_fix[i] = true;
-				fixed_gps[fixed_count++] = gps;
+				fixed_gnss[fixed_count++] = gnss;
 			}
 		}
 	}
@@ -76,18 +76,18 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 
 	if (fixed_count >= 2) {
 		float north, east;
-		get_vector_to_next_waypoint(fixed_gps[0].latitude, fixed_gps[0].longitude,
-					    fixed_gps[1].latitude, fixed_gps[1].longitude,
+		get_vector_to_next_waypoint(fixed_gnss[0].latitude, fixed_gnss[0].longitude,
+					    fixed_gnss[1].latitude, fixed_gnss[1].longitude,
 					    &north, &east);
 		const float separation_m = Vector2f(north, east).length();
 
-		const Vector2f offset0(_param_sens_gps0_offx.get(), _param_sens_gps0_offy.get());
-		const Vector2f offset1(_param_sens_gps1_offx.get(), _param_sens_gps1_offy.get());
+		const Vector2f offset0(_param_sens_gnss0_offx.get(), _param_sens_gnss0_offy.get());
+		const Vector2f offset1(_param_sens_gnss1_offx.get(), _param_sens_gnss1_offy.get());
 		const float expected_d = (offset0 - offset1).length();
 		divergence_m = fabsf(separation_m - expected_d);
 		// Use quadrature sum for standard deviation of the difference taking the firmware dependent eph as standard deviation
 		// and a heuristic factor of 3 because then it's unlikely just noise.
-		const float divergence_gate_m = 3.f * Vector2f(fixed_gps[0].eph, fixed_gps[1].eph).length();
+		const float divergence_gate_m = 3.f * Vector2f(fixed_gnss[0].eph, fixed_gnss[1].eph).length();
 		_divergence_hysteresis.set_state_and_update(divergence_m > divergence_gate_m, hrt_absolute_time());
 
 	} else {

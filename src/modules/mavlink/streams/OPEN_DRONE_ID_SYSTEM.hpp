@@ -50,7 +50,7 @@ public:
 
 	unsigned get_size() override
 	{
-		if (_vehicle_gps_position_sub.advertised() && _home_position_sub.advertised()) {
+		if (_vehicle_gnss_sub.advertised() && _home_position_sub.advertised()) {
 			return MAVLINK_MSG_ID_OPEN_DRONE_ID_SYSTEM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
 
@@ -61,15 +61,15 @@ private:
 	explicit MavlinkStreamOpenDroneIdSystem(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
 	bool send() override
 	{
-		vehicle_gnss_s vehicle_gps_position;
+		vehicle_gnss_s vehicle_gnss;
 		home_position_s home_position;
 
-		if (_vehicle_gps_position_sub.update(&vehicle_gps_position) && _home_position_sub.copy(&home_position)) {
-			if (vehicle_gps_position.receiver.fix_type >= 3
+		if (_vehicle_gnss_sub.update(&vehicle_gnss) && _home_position_sub.copy(&home_position)) {
+			if (vehicle_gnss.receiver.fix_type >= 3
 			    && home_position.valid_alt && home_position.valid_hpos) {
 
 				mavlink_open_drone_id_system_t msg{};
@@ -86,15 +86,15 @@ private:
 				msg.area_floor = -1000;
 				msg.category_eu = MAV_ODID_CATEGORY_EU_UNDECLARED;
 				msg.class_eu = MAV_ODID_CLASS_EU_UNDECLARED;
-				float wgs84_amsl_offset = vehicle_gps_position.receiver.altitude_ellipsoid - vehicle_gps_position.receiver.altitude_msl;
+				float wgs84_amsl_offset = vehicle_gnss.receiver.altitude_ellipsoid - vehicle_gnss.receiver.altitude_msl;
 				msg.operator_altitude_geo = home_position.alt + wgs84_amsl_offset;
 
 				// timestamp: 32 bit Unix Timestamp in seconds since 00:00:00 01/01/2019.
 				// Timestamp not available is indicated by 0.
 				static constexpr uint64_t utc_offset_us = 1'546'300'800ULL * 1'000'000ULL;
 
-				if (vehicle_gps_position.receiver.time_utc_usec >= utc_offset_us) {
-					const uint64_t timestamp_s = (vehicle_gps_position.receiver.time_utc_usec - utc_offset_us) / 1'000'000ULL;
+				if (vehicle_gnss.receiver.time_utc_usec >= utc_offset_us) {
+					const uint64_t timestamp_s = (vehicle_gnss.receiver.time_utc_usec - utc_offset_us) / 1'000'000ULL;
 					msg.timestamp = static_cast<uint32_t>(timestamp_s);
 				}
 

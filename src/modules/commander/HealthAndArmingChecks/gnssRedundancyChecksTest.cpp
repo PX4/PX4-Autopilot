@@ -74,20 +74,20 @@ public:
 
 		// Claim uORB instances 0 and 1 before the check subscribes on first copy().
 		sensor_gnss_s empty{};
-		_gps0_pub.publish(empty);
-		_gps1_pub.publish(empty);
+		_gnss0_pub.publish(empty);
+		_gnss1_pub.publish(empty);
 	}
 
-	sensor_gnss_s makeGps(double lat, double lon, float eph = 0.02f, uint8_t fix_type = 6)
+	sensor_gnss_s makeGnss(double lat, double lon, float eph = 0.02f, uint8_t fix_type = 6)
 	{
-		sensor_gnss_s gps{};
-		gps.timestamp     = hrt_absolute_time();
-		gps.device_id     = 1;
-		gps.latitude      = lat;
-		gps.longitude     = lon;
-		gps.eph           = eph;
-		gps.fix_type      = fix_type;
-		return gps;
+		sensor_gnss_s gnss{};
+		gnss.timestamp     = hrt_absolute_time();
+		gnss.device_id     = 1;
+		gnss.latitude      = lat;
+		gnss.longitude     = lon;
+		gnss.eph           = eph;
+		gnss.fix_type      = fix_type;
+		return gnss;
 	}
 
 	// Run the check and store results in _failsafe_flags and _health_warning_gps.
@@ -106,8 +106,8 @@ public:
 		_health_warning_gps = (reporter.healthResults().warning | reporter.healthResults().error) & health_component_t::gps;
 	}
 
-	uORB::PublicationMulti<sensor_gnss_s> _gps0_pub{ORB_ID(sensor_gnss)};
-	uORB::PublicationMulti<sensor_gnss_s> _gps1_pub{ORB_ID(sensor_gnss)};
+	uORB::PublicationMulti<sensor_gnss_s> _gnss0_pub{ORB_ID(sensor_gnss)};
+	uORB::PublicationMulti<sensor_gnss_s> _gnss1_pub{ORB_ID(sensor_gnss)};
 	failsafe_flags_s  _failsafe_flags{};
 	bool              _health_warning_gps{false};
 	GnssRedundancyChecks _check;
@@ -124,7 +124,7 @@ TEST_F(GnssRedundancyChecksTest, NoGpsNoFlags)
 // One receiver fixed, SYS_HAS_NUM_GNSS not configured → no failsafe.
 TEST_F(GnssRedundancyChecksTest, SingleGpsNoFailsafe)
 {
-	_gps0_pub.publish(makeGps(BASE_LAT, BASE_LON));
+	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON));
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 }
@@ -132,8 +132,8 @@ TEST_F(GnssRedundancyChecksTest, SingleGpsNoFailsafe)
 // Two receivers at expected lever-arm separation → no divergence.
 TEST_F(GnssRedundancyChecksTest, TwoGpsAgreeingNoFlags)
 {
-	_gps0_pub.publish(makeGps(BASE_LAT, BASE_LON));
-	_gps1_pub.publish(makeGps(AGREEING_LAT, BASE_LON));
+	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON));
+	_gnss1_pub.publish(makeGnss(AGREEING_LAT, BASE_LON));
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 	EXPECT_FALSE(_health_warning_gps);
@@ -144,8 +144,8 @@ TEST_F(GnssRedundancyChecksTest, TwoGpsAgreeingNoFlags)
 // This exercises the "too close" direction of the improved check.
 TEST_F(GnssRedundancyChecksTest, TwoGpsTooCloseDivergenceDetected)
 {
-	_gps0_pub.publish(makeGps(BASE_LAT, BASE_LON));
-	_gps1_pub.publish(makeGps(BASE_LAT, BASE_LON));
+	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON));
+	_gnss1_pub.publish(makeGnss(BASE_LAT, BASE_LON));
 
 	// First call starts the hysteresis timer, no flag yet.
 	runCheck();
@@ -159,8 +159,8 @@ TEST_F(GnssRedundancyChecksTest, TwoGpsTooCloseDivergenceDetected)
 // Two receivers too far apart → hysteresis timer starts but has not elapsed on first call.
 TEST_F(GnssRedundancyChecksTest, TwoGpsDivergingFarNotYetSustained)
 {
-	_gps0_pub.publish(makeGps(BASE_LAT, BASE_LON));
-	_gps1_pub.publish(makeGps(DIVERGING_FAR_LAT, BASE_LON));
+	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON));
+	_gnss1_pub.publish(makeGnss(DIVERGING_FAR_LAT, BASE_LON));
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 }
@@ -168,12 +168,12 @@ TEST_F(GnssRedundancyChecksTest, TwoGpsDivergingFarNotYetSustained)
 // After divergence the receivers recover → hysteresis resets, no flag.
 TEST_F(GnssRedundancyChecksTest, TwoGpsDivergingClearsOnRecovery)
 {
-	_gps0_pub.publish(makeGps(BASE_LAT, BASE_LON));
-	_gps1_pub.publish(makeGps(DIVERGING_FAR_LAT, BASE_LON));
+	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON));
+	_gnss1_pub.publish(makeGnss(DIVERGING_FAR_LAT, BASE_LON));
 	runCheck();
 
-	_gps0_pub.publish(makeGps(BASE_LAT, BASE_LON));
-	_gps1_pub.publish(makeGps(AGREEING_LAT, BASE_LON));
+	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON));
+	_gnss1_pub.publish(makeGnss(AGREEING_LAT, BASE_LON));
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 	EXPECT_FALSE(_health_warning_gps);
@@ -182,8 +182,8 @@ TEST_F(GnssRedundancyChecksTest, TwoGpsDivergingClearsOnRecovery)
 // fix_type < 3 is not counted as a fixed receiver → no divergence check triggered.
 TEST_F(GnssRedundancyChecksTest, FixTypeBelow3NotCounted)
 {
-	_gps0_pub.publish(makeGps(BASE_LAT, BASE_LON, 0.02f, 6));
-	_gps1_pub.publish(makeGps(DIVERGING_FAR_LAT, BASE_LON, 0.02f, 2));
+	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON, 0.02f, 6));
+	_gnss1_pub.publish(makeGnss(DIVERGING_FAR_LAT, BASE_LON, 0.02f, 2));
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 	EXPECT_FALSE(_health_warning_gps);
@@ -195,7 +195,7 @@ TEST_F(GnssRedundancyChecksTest, BelowRequiredSetsGnssLost)
 	int required = 2;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
 	int act = 1;        param_set(param_find("COM_GNSSLOSS_ACT"), &act);
 
-	_gps0_pub.publish(makeGps(BASE_LAT, BASE_LON));
+	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON));
 	runCheck();
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
 	EXPECT_TRUE(_health_warning_gps);
@@ -205,14 +205,14 @@ TEST_F(GnssRedundancyChecksTest, BelowRequiredSetsGnssLost)
 // even when SYS_HAS_NUM_GNSS is not set (dropped_below_peak path).
 TEST_F(GnssRedundancyChecksTest, DroppedBelowPeakSetsHealthWarning)
 {
-	_gps0_pub.publish(makeGps(BASE_LAT, BASE_LON));
-	_gps1_pub.publish(makeGps(AGREEING_LAT, BASE_LON));
+	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON));
+	_gnss1_pub.publish(makeGnss(AGREEING_LAT, BASE_LON));
 	runCheck();
 	EXPECT_FALSE(_health_warning_gps); // both present, no warning
 
 	// GPS1 disappears.
 	sensor_gnss_s gone{};
-	_gps1_pub.publish(gone); // device_id = 0 → treated as absent
+	_gnss1_pub.publish(gone); // device_id = 0 → treated as absent
 	runCheck();
 	EXPECT_TRUE(_health_warning_gps);
 	EXPECT_FALSE(_failsafe_flags.gnss_lost); // no failsafe without COM_GNSSLOSS_ACT + below_required

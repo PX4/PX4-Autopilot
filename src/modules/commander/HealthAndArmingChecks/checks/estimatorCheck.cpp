@@ -46,13 +46,13 @@ EstimatorChecks::EstimatorChecks()
 
 void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	vehicle_gnss_s vehicle_gps_position;
+	vehicle_gnss_s vehicle_gnss;
 
-	if (_vehicle_gps_position_sub.copy(&vehicle_gps_position)) {
-		checkGps(context, reporter, vehicle_gps_position);
+	if (_vehicle_gnss_sub.copy(&vehicle_gnss)) {
+		checkGnss(context, reporter, vehicle_gnss);
 
 	} else {
-		vehicle_gps_position = {};
+		vehicle_gnss = {};
 	}
 
 	vehicle_local_position_s lpos;
@@ -124,7 +124,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 
 	// set mode requirements
 	setModeRequirementFlags(context, pre_flt_fail_innov_heading, pre_flt_fail_innov_vel_horiz, pre_flt_fail_innov_pos_horiz,
-				lpos, vehicle_gps_position,
+				lpos, vehicle_gnss,
 				reporter.failsafeFlags(), reporter);
 
 
@@ -667,9 +667,9 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 	}
 }
 
-void EstimatorChecks::checkGps(const Context &context, Report &reporter, const vehicle_gnss_s &vehicle_gps_position) const
+void EstimatorChecks::checkGnss(const Context &context, Report &reporter, const vehicle_gnss_s &vehicle_gnss) const
 {
-	if (vehicle_gps_position.receiver.jamming_state == sensor_gnss_s::JAMMING_STATE_DETECTED) {
+	if (vehicle_gnss.receiver.jamming_state == sensor_gnss_s::JAMMING_STATE_DETECTED) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
@@ -722,7 +722,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
 		bool pre_flt_fail_innov_vel_horiz, bool pre_flt_fail_innov_pos_horiz,
-		const vehicle_local_position_s &lpos, const vehicle_gnss_s &vehicle_gps_position, failsafe_flags_s &failsafe_flags,
+		const vehicle_local_position_s &lpos, const vehicle_gnss_s &vehicle_gnss, failsafe_flags_s &failsafe_flags,
 		Report &reporter)
 {
 	// The following flags correspond to mode requirements, and are reported in the corresponding mode checks

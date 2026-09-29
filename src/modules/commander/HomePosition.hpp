@@ -87,7 +87,7 @@ private:
 	static void fillGlobalHomePos(home_position_s &home, double lat, double lon, double alt);
 	static void fillAttitude(home_position_s &home, const vehicle_attitude_s &attitude);
 
-	uORB::Subscription					_vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription					_vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};

@@ -80,25 +80,25 @@ failure_injection_s make_config(uint8_t unit, uint16_t instance_mask, uint8_t fa
 }
 
 // Healthy 3D-fix sample, as a GNSS driver would publish it.
-sensor_gnss_s clean_gps()
+sensor_gnss_s clean_gnss()
 {
-	sensor_gnss_s gps{};
-	gps.timestamp = 1000;
-	gps.timestamp_sample = 900;
-	gps.fix_type = sensor_gnss_s::FIX_TYPE_3D;
-	gps.latitude = 47.0;
-	gps.longitude = 8.0;
-	gps.altitude_msl = 500.0;
-	gps.altitude_ellipsoid = 500.0;
-	gps.eph = 0.9f;
-	gps.epv = 1.78f;
-	gps.satellites_used = 25;
-	gps.vel_north = 1.f;
-	gps.vel_east = 2.f;
-	gps.vel_down = 0.5f;
-	gps.ground_speed = 2.236f;
-	gps.vel_ned_valid = true;
-	return gps;
+	sensor_gnss_s gnss{};
+	gnss.timestamp = 1000;
+	gnss.timestamp_sample = 900;
+	gnss.fix_type = sensor_gnss_s::FIX_TYPE_3D;
+	gnss.latitude = 47.0;
+	gnss.longitude = 8.0;
+	gnss.altitude_msl = 500.0;
+	gnss.altitude_ellipsoid = 500.0;
+	gnss.eph = 0.9f;
+	gnss.epv = 1.78f;
+	gnss.satellites_used = 25;
+	gnss.vel_north = 1.f;
+	gnss.vel_east = 2.f;
+	gnss.vel_down = 0.5f;
+	gnss.ground_speed = 2.236f;
+	gnss.vel_ned_valid = true;
+	return gnss;
 }
 
 constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
@@ -319,10 +319,10 @@ TEST(FailureInjectionConfig, ProcessGnssWrongSetsConfiguredFixType)
 		ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &expected), 0);
 
 		Stuck<sensor_gnss_s> stuck;
-		sensor_gnss_s gps = clean_gps();
+		sensor_gnss_s gnss = clean_gnss();
 
-		EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
-		EXPECT_EQ(gps.fix_type, (uint8_t)expected);
+		EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
+		EXPECT_EQ(gnss.fix_type, (uint8_t)expected);
 	}
 
 	const int32_t default_fix_type = sensor_gnss_s::FIX_TYPE_2D;
@@ -340,23 +340,23 @@ TEST(FailureInjectionConfig, ProcessGnssWrongLeavesPositionUntouched)
 	config.set(make_config(GPS, 0x1, WRONG));
 
 	Stuck<sensor_gnss_s> stuck;
-	const sensor_gnss_s truth = clean_gps();
-	sensor_gnss_s gps = truth;
+	const sensor_gnss_s truth = clean_gnss();
+	sensor_gnss_s gnss = truth;
 
-	EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
+	EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
 
 	// Only the fix type changes: the reported solution stays coherent with the truth.
-	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_2D);
-	EXPECT_DOUBLE_EQ(gps.latitude, truth.latitude);
-	EXPECT_DOUBLE_EQ(gps.longitude, truth.longitude);
-	EXPECT_DOUBLE_EQ(gps.altitude_msl, truth.altitude_msl);
-	EXPECT_DOUBLE_EQ(gps.altitude_ellipsoid, truth.altitude_ellipsoid);
-	EXPECT_FLOAT_EQ(gps.vel_north, truth.vel_north);
-	EXPECT_FLOAT_EQ(gps.vel_east, truth.vel_east);
-	EXPECT_FLOAT_EQ(gps.vel_down, truth.vel_down);
-	EXPECT_FLOAT_EQ(gps.ground_speed, truth.ground_speed);
-	EXPECT_FLOAT_EQ(gps.eph, truth.eph);
-	EXPECT_EQ(gps.satellites_used, truth.satellites_used);
+	EXPECT_EQ(gnss.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_2D);
+	EXPECT_DOUBLE_EQ(gnss.latitude, truth.latitude);
+	EXPECT_DOUBLE_EQ(gnss.longitude, truth.longitude);
+	EXPECT_DOUBLE_EQ(gnss.altitude_msl, truth.altitude_msl);
+	EXPECT_DOUBLE_EQ(gnss.altitude_ellipsoid, truth.altitude_ellipsoid);
+	EXPECT_FLOAT_EQ(gnss.vel_north, truth.vel_north);
+	EXPECT_FLOAT_EQ(gnss.vel_east, truth.vel_east);
+	EXPECT_FLOAT_EQ(gnss.vel_down, truth.vel_down);
+	EXPECT_FLOAT_EQ(gnss.ground_speed, truth.ground_speed);
+	EXPECT_FLOAT_EQ(gnss.eph, truth.eph);
+	EXPECT_EQ(gnss.satellites_used, truth.satellites_used);
 }
 
 TEST(FailureInjectionConfig, ProcessGnssWrongLeavesUnselectedInstanceUntouched)
@@ -370,17 +370,17 @@ TEST(FailureInjectionConfig, ProcessGnssWrongLeavesUnselectedInstanceUntouched)
 	config.set(make_config(GPS, 0x2, WRONG)); // failure instance 2 -> uORB instance 1
 
 	Stuck<sensor_gnss_s> stuck;
-	sensor_gnss_s gps = clean_gps();
+	sensor_gnss_s gnss = clean_gnss();
 
-	EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
-	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_3D);
+	EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
+	EXPECT_EQ(gnss.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_3D);
 
 	// The addressed instance is degraded.
 	Stuck<sensor_gnss_s> stuck_1;
-	sensor_gnss_s gps_1 = clean_gps();
+	sensor_gnss_s gnss_1 = clean_gnss();
 
-	EXPECT_TRUE(process_gnss(config, 1, gps_1, stuck_1));
-	EXPECT_EQ(gps_1.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_2D);
+	EXPECT_TRUE(process_gnss(config, 1, gnss_1, stuck_1));
+	EXPECT_EQ(gnss_1.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_2D);
 }
 
 TEST(FailureInjectionConfig, ProcessGnssOffSuppressesPublication)
@@ -389,11 +389,11 @@ TEST(FailureInjectionConfig, ProcessGnssOffSuppressesPublication)
 	config.set(make_config(GPS, 0x1, OFF));
 
 	Stuck<sensor_gnss_s> stuck;
-	sensor_gnss_s gps = clean_gps();
+	sensor_gnss_s gnss = clean_gnss();
 
-	EXPECT_FALSE(process_gnss(config, 0, gps, stuck));
+	EXPECT_FALSE(process_gnss(config, 0, gnss, stuck));
 	// Off suppresses instead of mutating.
-	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_3D);
+	EXPECT_EQ(gnss.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_3D);
 }
 
 TEST(FailureInjectionConfig, ProcessGnssStuckReplaysLastGoodSample)
@@ -402,12 +402,12 @@ TEST(FailureInjectionConfig, ProcessGnssStuckReplaysLastGoodSample)
 	Stuck<sensor_gnss_s> stuck;
 
 	// A healthy cycle records the last good sample.
-	sensor_gnss_s good = clean_gps();
+	sensor_gnss_s good = clean_gnss();
 	EXPECT_TRUE(process_gnss(config, 0, good, stuck));
 
 	config.set(make_config(GPS, 0x1, STUCK));
 
-	sensor_gnss_s moved = clean_gps();
+	sensor_gnss_s moved = clean_gnss();
 	moved.timestamp = 2000;
 	moved.timestamp_sample = 1900;
 	moved.latitude = 48.0;
@@ -427,21 +427,21 @@ TEST(FailureInjectionConfig, ProcessGnssRecoveryUsesLiveSample)
 	Config config;
 	Stuck<sensor_gnss_s> stuck;
 
-	sensor_gnss_s initial = clean_gps();
+	sensor_gnss_s initial = clean_gnss();
 	EXPECT_TRUE(process_gnss(config, 0, initial, stuck));
 
 	config.set(make_config(GPS, 0x1, STUCK));
-	sensor_gnss_s frozen = clean_gps();
+	sensor_gnss_s frozen = clean_gnss();
 	frozen.latitude = 48.0;
 	EXPECT_TRUE(process_gnss(config, 0, frozen, stuck));
 	EXPECT_DOUBLE_EQ(frozen.latitude, initial.latitude);
 
 	config.set(make_config(GPS, 0x1, OFF));
-	sensor_gnss_s suppressed = clean_gps();
+	sensor_gnss_s suppressed = clean_gnss();
 	EXPECT_FALSE(process_gnss(config, 0, suppressed, stuck));
 
 	config.set(failure_injection_s{});
-	sensor_gnss_s recovered = clean_gps();
+	sensor_gnss_s recovered = clean_gnss();
 	recovered.latitude = 48.0;
 	EXPECT_TRUE(process_gnss(config, 0, recovered, stuck));
 	EXPECT_DOUBLE_EQ(recovered.latitude, 48.0);

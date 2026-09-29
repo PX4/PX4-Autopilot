@@ -173,15 +173,15 @@ static unsigned progress_percentage(mag_worker_data_t *worker_data)
 static float get_sphere_radius()
 {
 	// if GPS is available use real field intensity from world magnetic model
-	uORB::SubscriptionMultiArray<vehicle_gnss_s, 3> gps_subs{ORB_ID::vehicle_gnss};
+	uORB::SubscriptionMultiArray<vehicle_gnss_s, 3> gnss_subs{ORB_ID::vehicle_gnss};
 
-	for (auto &gps_sub : gps_subs) {
-		vehicle_gnss_s gps;
+	for (auto &gnss_sub : gnss_subs) {
+		vehicle_gnss_s gnss;
 
-		if (gps_sub.copy(&gps)) {
-			if (hrt_elapsed_time(&gps.timestamp) < 100_s && (gps.receiver.fix_type >= 2) && (gps.receiver.eph < 1000)) {
+		if (gnss_sub.copy(&gnss)) {
+			if (hrt_elapsed_time(&gnss.timestamp) < 100_s && (gnss.receiver.fix_type >= 2) && (gnss.receiver.eph < 1000)) {
 				// magnetic field data returned by the geo library using the current GPS position
-				return get_mag_strength_gauss(gps.receiver.latitude, gps.receiver.longitude);
+				return get_mag_strength_gauss(gnss.receiver.latitude, gnss.receiver.longitude);
 			}
 		}
 	}
@@ -1034,13 +1034,13 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 		mag_earth_available = true;
 
 	} else {
-		uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
-		vehicle_gnss_s gps;
+		uORB::Subscription vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
+		vehicle_gnss_s gnss;
 
-		if (vehicle_gps_position_sub.copy(&gps)) {
-			if ((gps.timestamp != 0) && (gps.receiver.eph < 1000)) {
-				latitude_deg = (float)gps.receiver.latitude;
-				longitude_deg = (float)gps.receiver.longitude;
+		if (vehicle_gnss_sub.copy(&gnss)) {
+			if ((gnss.timestamp != 0) && (gnss.receiver.eph < 1000)) {
+				latitude_deg = (float)gnss.receiver.latitude;
+				longitude_deg = (float)gnss.receiver.longitude;
 				mag_earth_available = true;
 			}
 		}

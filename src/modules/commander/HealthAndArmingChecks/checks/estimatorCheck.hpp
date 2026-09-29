@@ -76,12 +76,12 @@ private:
 	void checkSensorBias(const Context &context, Report &reporter, NavModes required_groups);
 	void checkEstimatorStatusFlags(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
 				       const vehicle_local_position_s &lpos);
-	void checkGps(const Context &context, Report &reporter, const vehicle_gnss_s &vehicle_gps_position) const;
+	void checkGnss(const Context &context, Report &reporter, const vehicle_gnss_s &vehicle_gnss) const;
 	void lowPositionAccuracy(const Context &context, Report &reporter, const vehicle_local_position_s &lpos) const;
 
 	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
 				     bool pre_flt_fail_innov_vel_horiz, bool pre_flt_fail_innov_pos_horiz,
-				     const vehicle_local_position_s &lpos, const vehicle_gnss_s &vehicle_gps_position,
+				     const vehicle_local_position_s &lpos, const vehicle_gnss_s &vehicle_gnss,
 				     failsafe_flags_s &failsafe_flags, Report &reporter);
 
 	bool checkPosVelValidity(const hrt_abstime &now, const bool data_valid, const float data_accuracy,
@@ -99,7 +99,7 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
 	hrt_abstime	_last_gpos_fail_time_us{0};	///< Last time that the global position validity recovery check failed (usec)
 	hrt_abstime	_last_gpos_relaxed_fail_time_us{0};	///< Last time that the global position relaxed validity recovery check failed (usec)
