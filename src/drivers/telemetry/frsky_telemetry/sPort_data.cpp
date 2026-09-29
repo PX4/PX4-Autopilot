@@ -58,7 +58,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -69,7 +69,7 @@ struct s_port_subscription_data_s {
 	uORB::SubscriptionData<vehicle_acceleration_s> vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::SubscriptionData<vehicle_air_data_s> vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::SubscriptionData<vehicle_global_position_s> vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
-	uORB::SubscriptionData<sensor_gps_s> vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::SubscriptionData<vehicle_gnss_s> vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
 	uORB::SubscriptionData<vehicle_local_position_s> vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 };
@@ -233,11 +233,11 @@ void sPort_send_GPS_LON(int uart)
 	/* send longitude */
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
 	/* precision is approximately 0.1m */
-	uint32_t iLon =  6E-2 * fabs(s_port_subscription_data->vehicle_gps_position_sub.get().longitude_deg * 1e7);
+	uint32_t iLon =  6E-2 * fabs(s_port_subscription_data->vehicle_gps_position_sub.get().receiver.longitude * 1e7);
 
 	iLon |= (1 << 31);
 
-	if (s_port_subscription_data->vehicle_gps_position_sub.get().longitude_deg < 0) { iLon |= (1 << 30); }
+	if (s_port_subscription_data->vehicle_gps_position_sub.get().receiver.longitude < 0) { iLon |= (1 << 30); }
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLon);
 }
@@ -246,9 +246,9 @@ void sPort_send_GPS_LAT(int uart)
 {
 	/* send latitude */
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 0 and bit 30=sign */
-	uint32_t iLat = 6E-2 * fabs(s_port_subscription_data->vehicle_gps_position_sub.get().latitude_deg * 1e7);
+	uint32_t iLat = 6E-2 * fabs(s_port_subscription_data->vehicle_gps_position_sub.get().receiver.latitude * 1e7);
 
-	if (s_port_subscription_data->vehicle_gps_position_sub.get().latitude_deg < 0) { iLat |= (1 << 30); }
+	if (s_port_subscription_data->vehicle_gps_position_sub.get().receiver.latitude < 0) { iLat |= (1 << 30); }
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLat);
 }
@@ -256,7 +256,7 @@ void sPort_send_GPS_LAT(int uart)
 void sPort_send_GPS_ALT(int uart)
 {
 	/* send altitude */
-	uint32_t iAlt = static_cast<uint32_t>(s_port_subscription_data->vehicle_gps_position_sub.get().altitude_msl_m * 1e2);
+	uint32_t iAlt = static_cast<uint32_t>(s_port_subscription_data->vehicle_gps_position_sub.get().receiver.altitude_msl * 1e2);
 	sPort_send_data(uart, SMARTPORT_ID_GPS_ALT, iAlt);
 }
 
@@ -277,7 +277,7 @@ void sPort_send_GPS_TIME(int uart)
 	static int date = 0;
 
 	/* send formatted frame */
-	time_t time_gps = s_port_subscription_data->vehicle_gps_position_sub.get().time_utc_usec / 1000000ULL;
+	time_t time_gps = s_port_subscription_data->vehicle_gps_position_sub.get().receiver.time_utc_usec / 1000000ULL;
 	struct tm *tm_gps = gmtime(&time_gps);
 
 	if (date) {
@@ -321,8 +321,8 @@ void sPort_send_NAV_STATE(int uart)
 void sPort_send_GPS_FIX(int uart)
 {
 	/* send data */
-	uint32_t satcount = (int)(s_port_subscription_data->vehicle_gps_position_sub.get().satellites_used);
-	uint32_t fixtype = (int)(s_port_subscription_data->vehicle_gps_position_sub.get().fix_type);
+	uint32_t satcount = (int)(s_port_subscription_data->vehicle_gps_position_sub.get().receiver.satellites_used);
+	uint32_t fixtype = (int)(s_port_subscription_data->vehicle_gps_position_sub.get().receiver.fix_type);
 	uint32_t t2 = satcount * 10 + fixtype;
 	sPort_send_data(uart, SMARTPORT_ID_DIY_GPSFIX, t2);
 }
@@ -336,6 +336,6 @@ void sPort_send_flight_mode(int uart)
 
 void sPort_send_GPS_info(int uart)
 {
-	const sensor_gps_s &gps = s_port_subscription_data->vehicle_gps_position_sub.get();
-	sPort_send_data(uart, FRSKY_ID_TEMP2, gps.satellites_used * 10 + gps.fix_type);
+	const vehicle_gnss_s &gps = s_port_subscription_data->vehicle_gps_position_sub.get();
+	sPort_send_data(uart, FRSKY_ID_TEMP2, gps.receiver.satellites_used * 10 + gps.receiver.fix_type);
 }

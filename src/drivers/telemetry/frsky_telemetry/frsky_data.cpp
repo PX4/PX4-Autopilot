@@ -57,7 +57,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_status.h>
 
 #include <drivers/drv_hrt.h>
@@ -71,7 +71,7 @@ struct frsky_subscription_data_s {
 	uORB::SubscriptionData<vehicle_air_data_s> vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::SubscriptionData<vehicle_local_position_s> vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<vehicle_global_position_s> vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
-	uORB::SubscriptionData<sensor_gps_s> vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::SubscriptionData<vehicle_gnss_s> vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
 	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 };
 
@@ -180,8 +180,8 @@ void frsky_send_frame1(int uart)
 	int16_t telem_flight_mode = get_telemetry_flight_mode(subscription_data->vehicle_status_sub.get().nav_state);
 	frsky_send_data(uart, FRSKY_ID_TEMP1, telem_flight_mode); // send flight mode as TEMP1. This matches with OpenTX & APM
 
-	const sensor_gps_s &gps = subscription_data->vehicle_gps_position_sub.get();
-	frsky_send_data(uart, FRSKY_ID_TEMP2, gps.satellites_used * 10 + gps.fix_type);
+	const vehicle_gnss_s &gps = subscription_data->vehicle_gps_position_sub.get();
+	frsky_send_data(uart, FRSKY_ID_TEMP2, gps.receiver.satellites_used * 10 + gps.receiver.fix_type);
 
 	frsky_send_startstop(uart);
 }
@@ -204,7 +204,7 @@ void frsky_send_frame2(int uart)
 	const vehicle_global_position_s &gpos = subscription_data->vehicle_global_position_sub.get();
 	const vehicle_local_position_s &lpos = subscription_data->vehicle_local_position_sub.get();
 	const battery_status_s &battery_status = subscription_data->battery_status_sub.get();
-	const sensor_gps_s &gps = subscription_data->vehicle_gps_position_sub.get();
+	const vehicle_gnss_s &gps = subscription_data->vehicle_gps_position_sub.get();
 
 	/* send formatted frame */
 	float course = 0, lat = 0, lon = 0, speed = 0, alt = 0;
@@ -227,7 +227,7 @@ void frsky_send_frame2(int uart)
 	}
 
 	if (gps.timestamp != 0 && hrt_absolute_time() < gps.timestamp + 20000) {
-		time_t time_gps = gps.time_utc_usec / 1000000ULL;
+		time_t time_gps = gps.receiver.time_utc_usec / 1000000ULL;
 		struct tm *tm_gps = gmtime(&time_gps);
 
 		sec    = tm_gps->tm_sec;
@@ -264,7 +264,7 @@ void frsky_send_frame2(int uart)
 void frsky_send_frame3(int uart)
 {
 	/* send formatted frame */
-	time_t time_gps = subscription_data->vehicle_gps_position_sub.get().time_utc_usec / 1000000ULL;
+	time_t time_gps = subscription_data->vehicle_gps_position_sub.get().receiver.time_utc_usec / 1000000ULL;
 
 	struct tm *tm_gps = gmtime(&time_gps);
 	uint16_t hour_min = (tm_gps->tm_min << 8) | (tm_gps->tm_hour & 0xff);
