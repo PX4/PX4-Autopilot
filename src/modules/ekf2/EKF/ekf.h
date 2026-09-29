@@ -940,8 +940,9 @@ private:
 	bool isGnssPosResetAllowed() const;
 
 	// After velocity and position fusion both stop, a restart waits for the GNSS health time while disarmed on the
-	// ground, where the checks are strict, otherwise for a tenth of it and at least a second. Same timing as when the
-	// stop reset the checks, computed here so the EKF does not depend on the checker's state.
+	// ground, where the checks are strict, otherwise for a tenth of it and at least a second. The duration follows the
+	// current armed/in-air state, so arming during a ground hold-off shortens the remainder to the in-flight value.
+	// Computed here so the EKF does not depend on the checker's state.
 	uint64_t gnssRestartHoldOffUs() const
 	{
 		const bool disarmed_on_ground = !_control_status.flags.armed && !_control_status.flags.in_air;
