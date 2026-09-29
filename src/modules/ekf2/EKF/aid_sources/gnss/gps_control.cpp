@@ -96,7 +96,8 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				_gnss_vel_limit_skip_count++;
 			}
 
-			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
+			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos
+						|| _control_status.flags.gps_hgt;
 			const bool gnss_checks_pass_timeout = isTimedOut(_time_last_gnss_checks_pass_us, _params.reset_timeout_max);
 
 			if (using_gnss && gnss_checks_pass_timeout) {

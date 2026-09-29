@@ -259,6 +259,28 @@ TEST_F(EkfGpsTest, gpsHgtToBaroFallback)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 }
 
+TEST_F(EkfGpsTest, gnssHeightOnlyStopsWhenChecksFail)
+{
+	// GIVEN: GNSS height fusion is active in flight while position and velocity fusion are disabled
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	_ekf_wrapper.disableGpsFusion();
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator.runSeconds(2);
+	ASSERT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	// WHEN: the receiver fails the in-flight checks for longer than the fusion timeout
+	_sensor_simulator._gps.setFixType(2);
+	_sensor_simulator.runSeconds(8);
+
+	// THEN: height fusion stops instead of staying latched on a receiver whose samples are skipped
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+}
+
 TEST_F(EkfGpsTest, altitudeDrift)
 {
 	// GIVEN: a drifting GNSS altitude
