@@ -105,7 +105,8 @@
 
 #if defined(CONFIG_EKF2_GNSS)
 # include <uORB/topics/estimator_gps_status.h>
-# include <uORB/topics/sensor_gps.h>
+# include <uORB/topics/sensor_gnss.h>
+# include <uORB/topics/vehicle_gnss.h>
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -505,7 +506,7 @@ private:
 
 	float _last_gnss_hgt_bias_published{};
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
 
 	uORB::PublicationMulti<estimator_bias_s> _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
 	uORB::PublicationMulti<estimator_gps_status_s> _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
