@@ -57,6 +57,8 @@
 class MissionFeasibilityGeofenceTest : public navigator_test::GeofenceTestBase
 {
 protected:
+	using navigator_test::GeofenceTestBase::GeofenceTestBase;
+
 	static constexpr float kAltitude = 500.f;
 
 	void SetUp() override
@@ -225,6 +227,26 @@ TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceAcceptsPositionsAndCommandOnlyM
 {
 	EXPECT_TRUE(missionFeasible({waypoint({0.f, 100.f}), waypoint({0.f, 5000.f})}));
 	EXPECT_TRUE(missionFeasible({changeSpeed()}));
+}
+
+// Home sits next to the antimeridian.
+class AntimeridianMissionGeofenceTest : public MissionFeasibilityGeofenceTest
+{
+protected:
+	AntimeridianMissionGeofenceTest() : MissionFeasibilityGeofenceTest(47.0, 179.999) {}
+};
+
+TEST_F(AntimeridianMissionGeofenceTest, ShortLegMayCrossTheAntimeridian)
+{
+	// About 150 m across the antimeridian.
+	const mission_item_s west = navigator_test::makePositionItem(47.0, 179.999, kAltitude);
+	const mission_item_s east = navigator_test::makePositionItem(47.0, -179.999, kAltitude);
+	EXPECT_TRUE(missionFeasible({west, east}));
+	EXPECT_FALSE(logContains("geofence path check unavailable"));
+	// An exclusion zone between the waypoint and the antimeridian still blocks the leg.
+	ASSERT_TRUE(loadFence(polygon(false, {{-20.f, 20.f}, {20.f, 20.f}, {20.f, 60.f}, {-20.f, 60.f}})));
+	EXPECT_FALSE(missionFeasible({west, east}));
+	expectPathViolation(2);
 }
 
 struct MissionBatchCase {
