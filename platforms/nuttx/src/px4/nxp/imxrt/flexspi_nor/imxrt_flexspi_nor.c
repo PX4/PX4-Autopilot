@@ -44,53 +44,37 @@
 #include <nuttx/semaphore.h>
 #include <arch/irq.h>
 
-#include <px4_arch/imxrt_flexspi_nor_flash.h>
-#include <px4_arch/imxrt_romapi.h>
+#include <px4_arch/imxrt_flexspi_nor.h>
+#include <px4_arch/imxrt_romapi.h>    /* after the FlexSPI config types it depends on */
 
-#include "hardware/rt117x/imxrt117x_memorymap.h"
-#include "imxrt_flexspi_nor_l0.h"
-
-#define FLEXSPI_NOR_INSTANCE  1u    /* FlexSPI1 */
-#define FLEXSPI_NOR_SECTORS   (FLEXSPI_NOR_TOTAL_SIZE / FLEXSPI_NOR_SECTOR_SIZE)
-
-extern struct flexspi_nor_config_s g_bootConfig;
-
+/* The ROM API keeps shared state, and an AHB read anywhere stalls while any region is busy */
 static sem_t g_exclsem = SEM_INITIALIZER(1);
-static uint8_t g_blank[FLEXSPI_NOR_SECTORS / 8];    /* set: sector known blank */
 
-static inline uint32_t device_sector(const struct flexspi_nor_region_s *region, uint32_t sector)
+static inline bool blank_get(const struct imxrt_flexspi_nor_region_s *region, uint32_t sector)
 {
-	return region->offset / FLEXSPI_NOR_SECTOR_SIZE + sector;
+	return region->blank[sector / 8] & (1u << (sector % 8));
 }
 
-static inline bool blank_get(const struct flexspi_nor_region_s *region, uint32_t sector)
+static inline void blank_set(struct imxrt_flexspi_nor_region_s *region, uint32_t sector, bool blank)
 {
-	const uint32_t s = device_sector(region, sector);
-	return g_blank[s / 8] & (1u << (s % 8));
-}
-
-static inline void blank_set(const struct flexspi_nor_region_s *region, uint32_t sector, bool blank)
-{
-	const uint32_t s = device_sector(region, sector);
-
 	if (blank) {
-		g_blank[s / 8] |= 1u << (s % 8);
+		region->blank[sector / 8] |= 1u << (sector % 8);
 
 	} else {
-		g_blank[s / 8] &= ~(1u << (s % 8));
+		region->blank[sector / 8] &= ~(1u << (sector % 8));
 	}
 }
 
 /* Caller holds g_exclsem */
-static bool sector_blank(const struct flexspi_nor_region_s *region, uint32_t sector)
+static bool sector_blank(struct imxrt_flexspi_nor_region_s *region, uint32_t sector)
 {
 	if (blank_get(region, sector)) {
 		return true;
 	}
 
-	const uint32_t *p = (const uint32_t *)(uintptr_t)(region->ahb + sector * FLEXSPI_NOR_SECTOR_SIZE);
+	const uint32_t *p = (const uint32_t *)(uintptr_t)(region->ahb + sector * IMXRT_FLEXSPI_NOR_SECTOR_SIZE);
 
-	for (unsigned i = 0; i < FLEXSPI_NOR_SECTOR_SIZE / sizeof(uint32_t); i++) {
+	for (unsigned i = 0; i < IMXRT_FLEXSPI_NOR_SECTOR_SIZE / sizeof(uint32_t); i++) {
 		if (p[i] != 0xffffffffu) {
 			return false;
 		}
@@ -102,26 +86,27 @@ static bool sector_blank(const struct flexspi_nor_region_s *region, uint32_t sec
 
 /* ClearCache: the ROM routines leave the AHB prefetch buffers stale */
 locate_code(".ramfunc")
-static uint32_t rom_program_page(uint32_t offset, const uint32_t *src)
+static uint32_t rom_program_page(uint32_t instance, struct flexspi_nor_config_s *config, uint32_t offset,
+				 const uint32_t *src)
 {
 	cpsid();
-	uint32_t status = ROM_FLEXSPI_NorFlash_ProgramPage(FLEXSPI_NOR_INSTANCE, &g_bootConfig, offset, src);
-	ROM_FLEXSPI_NorFlash_ClearCache(FLEXSPI_NOR_INSTANCE);
+	uint32_t status = ROM_FLEXSPI_NorFlash_ProgramPage(instance, config, offset, src);
+	ROM_FLEXSPI_NorFlash_ClearCache(instance);
 	cpsie();
 	return status;
 }
 
 locate_code(".ramfunc")
-static uint32_t rom_erase_sector(uint32_t offset)
+static uint32_t rom_erase_sector(uint32_t instance, struct flexspi_nor_config_s *config, uint32_t offset)
 {
 	cpsid();
-	uint32_t status = ROM_FLEXSPI_NorFlash_Erase(FLEXSPI_NOR_INSTANCE, &g_bootConfig, offset, FLEXSPI_NOR_SECTOR_SIZE);
-	ROM_FLEXSPI_NorFlash_ClearCache(FLEXSPI_NOR_INSTANCE);
+	uint32_t status = ROM_FLEXSPI_NorFlash_Erase(instance, config, offset, IMXRT_FLEXSPI_NOR_SECTOR_SIZE);
+	ROM_FLEXSPI_NorFlash_ClearCache(instance);
 	cpsie();
 	return status;
 }
 
-static void invalidate(const struct flexspi_nor_region_s *region, uint32_t offset, size_t len)
+static void invalidate(const struct imxrt_flexspi_nor_region_s *region, uint32_t offset, size_t len)
 {
 #ifdef CONFIG_ARMV7M_DCACHE
 	const uintptr_t start = (uintptr_t)region->ahb + offset;
@@ -129,22 +114,23 @@ static void invalidate(const struct flexspi_nor_region_s *region, uint32_t offse
 #endif
 }
 
-int flexspi_nor_l0_init(struct flexspi_nor_region_s *region, const char *program_name,
-			const char *erase_name, const char *erase_skip_name)
+int imxrt_flexspi_nor_init(struct imxrt_flexspi_nor_region_s *region, const char *program_name,
+			   const char *erase_name, const char *erase_skip_name)
 {
 	if (region->ahb != NULL) {
 		return -EALREADY;
 	}
 
-	if (region->size == 0 ||
-	    region->size > FLEXSPI_NOR_TOTAL_SIZE ||
-	    region->offset % FLEXSPI_NOR_SECTOR_SIZE != 0 ||
-	    region->size % FLEXSPI_NOR_SECTOR_SIZE != 0 ||
-	    region->offset > FLEXSPI_NOR_TOTAL_SIZE - region->size) {
+	if (region->config == NULL || region->ahb_base == 0 ||
+	    region->size == 0 ||
+	    region->size / IMXRT_FLEXSPI_NOR_SECTOR_SIZE > IMXRT_FLEXSPI_NOR_MAX_SECTORS ||
+	    region->offset % IMXRT_FLEXSPI_NOR_SECTOR_SIZE != 0 ||
+	    region->size % IMXRT_FLEXSPI_NOR_SECTOR_SIZE != 0 ||
+	    region->offset > UINT32_MAX - region->size) {
 		return -EINVAL;
 	}
 
-	region->ahb = (const uint8_t *)(uintptr_t)(IMXRT_FLEXSPI1_CIPHER_BASE + region->offset);
+	region->ahb = (const uint8_t *)(region->ahb_base + region->offset);
 	region->perf_program = perf_alloc(PC_ELAPSED, program_name);
 	region->perf_erase = perf_alloc(PC_ELAPSED, erase_name);
 	region->perf_erase_skip = perf_alloc(PC_COUNT, erase_skip_name);
@@ -152,7 +138,7 @@ int flexspi_nor_l0_init(struct flexspi_nor_region_s *region, const char *program
 	return 0;
 }
 
-ssize_t flexspi_nor_l0_read(struct flexspi_nor_region_s *region, uint32_t offset, void *dst, size_t len)
+ssize_t imxrt_flexspi_nor_read(struct imxrt_flexspi_nor_region_s *region, uint32_t offset, void *dst, size_t len)
 {
 	if (region->ahb == NULL) {
 		return -EINVAL;
@@ -173,10 +159,11 @@ ssize_t flexspi_nor_l0_read(struct flexspi_nor_region_s *region, uint32_t offset
 	return (ssize_t)len;
 }
 
-ssize_t flexspi_nor_l0_program(struct flexspi_nor_region_s *region, uint32_t offset, const void *src, size_t len)
+ssize_t imxrt_flexspi_nor_program(struct imxrt_flexspi_nor_region_s *region, uint32_t offset, const void *src,
+				  size_t len)
 {
 	if (region->ahb == NULL || (uintptr_t)src % 4 != 0 ||
-	    offset % FLEXSPI_NOR_PAGE_SIZE != 0 || len % FLEXSPI_NOR_PAGE_SIZE != 0) {
+	    offset % IMXRT_FLEXSPI_NOR_PAGE_SIZE != 0 || len % IMXRT_FLEXSPI_NOR_PAGE_SIZE != 0) {
 		return -EINVAL;
 	}
 
@@ -194,7 +181,8 @@ ssize_t flexspi_nor_l0_program(struct flexspi_nor_region_s *region, uint32_t off
 		return ret;
 	}
 
-	for (uint32_t s = offset / FLEXSPI_NOR_SECTOR_SIZE; s <= (offset + len - 1) / FLEXSPI_NOR_SECTOR_SIZE; s++) {
+	for (uint32_t s = offset / IMXRT_FLEXSPI_NOR_SECTOR_SIZE; s <= (offset + len - 1) / IMXRT_FLEXSPI_NOR_SECTOR_SIZE;
+	     s++) {
 		blank_set(region, s, false);
 	}
 
@@ -203,14 +191,15 @@ ssize_t flexspi_nor_l0_program(struct flexspi_nor_region_s *region, uint32_t off
 
 	while (written < len) {
 		perf_begin(region->perf_program);
-		uint32_t status = rom_program_page(region->offset + offset + written, (const uint32_t *)(uintptr_t)(p + written));
+		uint32_t status = rom_program_page(region->instance, region->config, region->offset + offset + written,
+						   (const uint32_t *)(uintptr_t)(p + written));
 		perf_end(region->perf_program);
 
 		if (status != 0) {
 			break;
 		}
 
-		written += FLEXSPI_NOR_PAGE_SIZE;
+		written += IMXRT_FLEXSPI_NOR_PAGE_SIZE;
 	}
 
 	invalidate(region, offset, written);
@@ -218,13 +207,13 @@ ssize_t flexspi_nor_l0_program(struct flexspi_nor_region_s *region, uint32_t off
 	return (ssize_t)written;
 }
 
-int flexspi_nor_l0_erase(struct flexspi_nor_region_s *region, uint32_t sector, uint32_t nsectors)
+int imxrt_flexspi_nor_erase(struct imxrt_flexspi_nor_region_s *region, uint32_t sector, uint32_t nsectors)
 {
 	if (region->ahb == NULL) {
 		return -EINVAL;
 	}
 
-	const uint32_t region_sectors = region->size / FLEXSPI_NOR_SECTOR_SIZE;
+	const uint32_t region_sectors = region->size / IMXRT_FLEXSPI_NOR_SECTOR_SIZE;
 
 	if (nsectors > region_sectors || sector > region_sectors - nsectors) {
 		return -EIO;
@@ -243,10 +232,11 @@ int flexspi_nor_l0_erase(struct flexspi_nor_region_s *region, uint32_t sector, u
 		}
 
 		perf_begin(region->perf_erase);
-		uint32_t status = rom_erase_sector(region->offset + s * FLEXSPI_NOR_SECTOR_SIZE);
+		uint32_t status = rom_erase_sector(region->instance, region->config,
+						   region->offset + s * IMXRT_FLEXSPI_NOR_SECTOR_SIZE);
 		perf_end(region->perf_erase);
 
-		invalidate(region, s * FLEXSPI_NOR_SECTOR_SIZE, FLEXSPI_NOR_SECTOR_SIZE);
+		invalidate(region, s * IMXRT_FLEXSPI_NOR_SECTOR_SIZE, IMXRT_FLEXSPI_NOR_SECTOR_SIZE);
 
 		if (status != 0) {
 			ret = -EIO;
@@ -260,5 +250,26 @@ int flexspi_nor_l0_erase(struct flexspi_nor_region_s *region, uint32_t sector, u
 	nxsem_post(&g_exclsem);
 	return ret;
 }
+
+static ssize_t storage_read(void *ctx, uint32_t offset, void *dst, size_t len)
+{
+	return imxrt_flexspi_nor_read(ctx, offset, dst, len);
+}
+
+static ssize_t storage_program(void *ctx, uint32_t offset, const void *src, size_t len)
+{
+	return imxrt_flexspi_nor_program(ctx, offset, src, len);
+}
+
+static int storage_erase(void *ctx, uint32_t sector, uint32_t nsectors)
+{
+	return imxrt_flexspi_nor_erase(ctx, sector, nsectors);
+}
+
+const struct px4_flash_storage_ops_s g_imxrt_flexspi_nor_storage_ops = {
+	.read = storage_read,
+	.program = storage_program,
+	.erase = storage_erase,
+};
 
 #endif /* CONFIG_BOARD_FLEXSPI_NOR_L0 */

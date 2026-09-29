@@ -32,15 +32,17 @@
  ****************************************************************************/
 
 /*
- * Region-relative read, program and erase over the FlexSPI1 boot NOR via the
- * ROM API, from .ramfunc with interrupts masked, one page or one sector per
- * window. Exclusion is device wide. Regions come from flash_layout.h.
+ * Region-relative read, program and erase over a FlexSPI NOR the CPU executes
+ * from, via the i.MX RT ROM API, from .ramfunc with interrupts masked, one
+ * page or one sector per window. The board supplies the FlexSPI instance, the
+ * AHB (XIP) base and the ROM configuration the device was brought up with.
+ * Exclusion is device wide. Requires ARCH_RAMFUNCS and ARCH_RAMVECTORS.
  *
- * Constraints L0 cannot enforce:
+ * Constraints this layer cannot enforce:
  * - Masking is PRIMASK, not BASEPRI: zero-latency handlers execute from the
  *   busy flash.
- * - DMA is not masked. No descriptor may reference the XIP window
- *   (0x30000000-0x34000000) while an operation can be in flight.
+ * - DMA is not masked. No descriptor may reference the XIP window while an
+ *   operation can be in flight.
  * - Nothing else programs or erases this NOR.
  * - The D-cache is write-through over the AHB window: invalidate-only suffices.
  * - Reads use the AHB mapping, program and erase physical offsets: invalid for
@@ -59,32 +61,49 @@
 #include <sys/types.h>
 
 #include <perf/perf_counter.h>
+#include <px4_arch/imxrt_flexspi_nor_flash.h>
+#include <px4_platform/flash_storage.h>
 
-#include "flash_layout.h"
+__BEGIN_DECLS
+
+#define IMXRT_FLEXSPI_NOR_PAGE_SIZE     256u
+#define IMXRT_FLEXSPI_NOR_SECTOR_SIZE   4096u
+#define IMXRT_FLEXSPI_NOR_MAX_SECTORS   16384u    /* 64 MiB; bounds the blank bitmap */
 
 /* perf_alloc() keeps the pointer: names must be literals */
-#define FLEXSPI_NOR_L0_PERF(prefix) \
+#define IMXRT_FLEXSPI_NOR_PERF(prefix) \
 	(prefix ": program"), (prefix ": erase"), (prefix ": erase blank skip")
 
-struct flexspi_nor_region_s {
-	uint32_t offset;        /* sector aligned */
-	uint32_t size;          /* sector multiple */
+struct imxrt_flexspi_nor_region_s {
+	/* set by the board */
+	uint32_t instance;                          /* FlexSPI instance the device is on */
+	uintptr_t ahb_base;                         /* AHB (XIP) base of the device */
+	struct flexspi_nor_config_s *config;        /* ROM API configuration in use for the device */
+	uint32_t offset;                            /* sector aligned */
+	uint32_t size;                              /* sector multiple */
 
-	/* set by flexspi_nor_l0_init() */
+	/* set by imxrt_flexspi_nor_init() */
 	const uint8_t *ahb;
 	perf_counter_t perf_program;
 	perf_counter_t perf_erase;
 	perf_counter_t perf_erase_skip;
+	uint8_t blank[IMXRT_FLEXSPI_NOR_MAX_SECTORS / 8];   /* set: sector known blank */
 };
 
 /* -EINVAL on bad geometry, -EALREADY if bound; other calls fail until this succeeds */
-int flexspi_nor_l0_init(struct flexspi_nor_region_s *region, const char *program_name,
-			const char *erase_name, const char *erase_skip_name);
+int imxrt_flexspi_nor_init(struct imxrt_flexspi_nor_region_s *region, const char *program_name,
+			   const char *erase_name, const char *erase_skip_name);
 
-ssize_t flexspi_nor_l0_read(struct flexspi_nor_region_s *region, uint32_t offset, void *dst, size_t len);
+ssize_t imxrt_flexspi_nor_read(struct imxrt_flexspi_nor_region_s *region, uint32_t offset, void *dst, size_t len);
 
 /* offset and len page multiples, src word aligned, target erased; returns bytes programmed */
-ssize_t flexspi_nor_l0_program(struct flexspi_nor_region_s *region, uint32_t offset, const void *src, size_t len);
+ssize_t imxrt_flexspi_nor_program(struct imxrt_flexspi_nor_region_s *region, uint32_t offset, const void *src,
+				  size_t len);
 
 /* Blank sectors are skipped; yields between erases */
-int flexspi_nor_l0_erase(struct flexspi_nor_region_s *region, uint32_t sector, uint32_t nsectors);
+int imxrt_flexspi_nor_erase(struct imxrt_flexspi_nor_region_s *region, uint32_t sector, uint32_t nsectors);
+
+/* Flash storage backend over a region; ctx is the struct imxrt_flexspi_nor_region_s */
+extern const struct px4_flash_storage_ops_s g_imxrt_flexspi_nor_storage_ops;
+
+__END_DECLS

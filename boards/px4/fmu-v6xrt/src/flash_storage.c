@@ -31,37 +31,49 @@
  *
  ****************************************************************************/
 
-/*
- * FlexSPI1 boot NOR partitioning (64 MiB octal NOR, XIP at 0x30000000):
- *
- *   0x30000000  boot_partition       128 KiB
- *   0x30020000  slot0_partition      8 MiB - 128 KiB   running image
- *   0x30800000  slot1_partition      8 MiB - 128 KiB
- *   0x30FE0000  scratch_partition    128 KiB
- *   0x31000000  storage_partition    46 MiB            littlefs
- *   0x33E00000  reserved             2 MiB
- *   0x34000000  end of device
- *
- * The storage edges are fixed once formatted (block_count lives in the
- * superblock and NuttX never grows it): moving either wipes deployed volumes.
- */
+/* littlefs over storage_partition of the FlexSPI1 boot NOR at /fs/flash */
 
-#pragma once
+#include <nuttx/config.h>
 
-#define FLEXSPI_NOR_SECTOR_SIZE         4096u
-#define FLEXSPI_NOR_BLOCK_SIZE          (64u * 1024u)
-#define FLEXSPI_NOR_TOTAL_SIZE          (64u * 1024u * 1024u)
+#ifdef CONFIG_BOARD_FLASH_STORAGE
 
-#define FLASH_PARTITION_DEVICE_SIZE     FLEXSPI_NOR_TOTAL_SIZE
-#define FLASH_PARTITION_SECTOR_SIZE     FLEXSPI_NOR_SECTOR_SIZE
-#define FLASH_PARTITION_BLOCK_SIZE      FLEXSPI_NOR_BLOCK_SIZE
+#include <syslog.h>
 
-#define FLASH_BOOT_PARTITION_SIZE       (128u * 1024u)
-#define FLASH_SLOT_PARTITION_SIZE       (8u * 1024u * 1024u - FLASH_BOOT_PARTITION_SIZE)
-#define FLASH_SCRATCH_PARTITION_SIZE    (128u * 1024u)
-#define FLASH_STORAGE_PARTITION_SIZE    (46u * 1024u * 1024u)
+#include <px4_arch/imxrt_flexspi_nor.h>
+#include <px4_platform/flash_storage.h>
 
-#include <px4_platform/flash_partitions.h>
+#include "board_config.h"
+#include "hw_config.h"
+#include "hardware/rt117x/imxrt117x_memorymap.h"
 
-_Static_assert(FLASH_STORAGE_PARTITION_OFFSET == 0x01000000u, "storage_partition must stay at 0x31000000");
-_Static_assert(FLASH_RESERVED_SIZE == 2u * 1024u * 1024u, "reserved tail must stay 2 MiB");
+extern struct flexspi_nor_config_s g_bootConfig;
+
+/* Filled at init so both stay in .bss: the region carries a 2 KiB blank bitmap */
+static struct imxrt_flexspi_nor_region_s g_region;
+static struct px4_flash_storage_s g_storage;
+
+int fmuv6xrt_flash_storage_initialize(void)
+{
+	g_region.instance = 1;
+	g_region.ahb_base = IMXRT_FLEXSPI1_CIPHER_BASE;
+	g_region.config = &g_bootConfig;
+	g_region.offset = FLASH_STORAGE_PARTITION_OFFSET;
+	g_region.size = FLASH_STORAGE_PARTITION_SIZE;
+
+	int ret = imxrt_flexspi_nor_init(&g_region, IMXRT_FLEXSPI_NOR_PERF("flash_storage"));
+
+	if (ret < 0) {
+		syslog(LOG_ERR, "[boot] Bad flash storage region: %d\n", ret);
+		return ret;
+	}
+
+	g_storage.ops = &g_imxrt_flexspi_nor_storage_ops;
+	g_storage.ctx = &g_region;
+	g_storage.size = FLASH_STORAGE_PARTITION_SIZE;
+	g_storage.page_size = IMXRT_FLEXSPI_NOR_PAGE_SIZE;
+	g_storage.sector_size = IMXRT_FLEXSPI_NOR_SECTOR_SIZE;
+
+	return px4_flash_storage_register(&g_storage, "/dev/nor", "/fs/flash");
+}
+
+#endif /* CONFIG_BOARD_FLASH_STORAGE */

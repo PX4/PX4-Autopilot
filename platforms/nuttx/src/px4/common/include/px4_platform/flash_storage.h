@@ -32,36 +32,45 @@
  ****************************************************************************/
 
 /*
- * FlexSPI1 boot NOR partitioning (64 MiB octal NOR, XIP at 0x30000000):
- *
- *   0x30000000  boot_partition       128 KiB
- *   0x30020000  slot0_partition      8 MiB - 128 KiB   running image
- *   0x30800000  slot1_partition      8 MiB - 128 KiB
- *   0x30FE0000  scratch_partition    128 KiB
- *   0x31000000  storage_partition    46 MiB            littlefs
- *   0x33E00000  reserved             2 MiB
- *   0x34000000  end of device
- *
- * The storage edges are fixed once formatted (block_count lives in the
- * superblock and NuttX never grows it): moving either wipes deployed volumes.
+ * Flash storage: an MTD device over a flash region mounted as littlefs, for
+ * boards whose filesystem shares the die the CPU executes from. The board
+ * supplies the region geometry and a backend (read, program, erase); this
+ * layer provides the MTD surface, the mount, and refuses program and erase
+ * while the vehicle is armed (CONFIG_BOARD_FLASH_STORAGE_ARMED_READONLY).
  */
 
 #pragma once
 
-#define FLEXSPI_NOR_SECTOR_SIZE         4096u
-#define FLEXSPI_NOR_BLOCK_SIZE          (64u * 1024u)
-#define FLEXSPI_NOR_TOTAL_SIZE          (64u * 1024u * 1024u)
+#include <stddef.h>
+#include <stdint.h>
+#include <sys/types.h>
 
-#define FLASH_PARTITION_DEVICE_SIZE     FLEXSPI_NOR_TOTAL_SIZE
-#define FLASH_PARTITION_SECTOR_SIZE     FLEXSPI_NOR_SECTOR_SIZE
-#define FLASH_PARTITION_BLOCK_SIZE      FLEXSPI_NOR_BLOCK_SIZE
+#include <nuttx/mtd/mtd.h>
+#include <perf/perf_counter.h>
 
-#define FLASH_BOOT_PARTITION_SIZE       (128u * 1024u)
-#define FLASH_SLOT_PARTITION_SIZE       (8u * 1024u * 1024u - FLASH_BOOT_PARTITION_SIZE)
-#define FLASH_SCRATCH_PARTITION_SIZE    (128u * 1024u)
-#define FLASH_STORAGE_PARTITION_SIZE    (46u * 1024u * 1024u)
+__BEGIN_DECLS
 
-#include <px4_platform/flash_partitions.h>
+struct px4_flash_storage_ops_s {
+	ssize_t (*read)(void *ctx, uint32_t offset, void *dst, size_t len);
+	ssize_t (*program)(void *ctx, uint32_t offset, const void *src, size_t len);   /* page multiples, target erased */
+	int (*erase)(void *ctx, uint32_t sector, uint32_t nsectors);
+};
 
-_Static_assert(FLASH_STORAGE_PARTITION_OFFSET == 0x01000000u, "storage_partition must stay at 0x31000000");
-_Static_assert(FLASH_RESERVED_SIZE == 2u * 1024u * 1024u, "reserved tail must stay 2 MiB");
+struct px4_flash_storage_s {
+	struct mtd_dev_s mtd;                          /* first: the MTD handle is the device */
+
+	/* set by the board */
+	const struct px4_flash_storage_ops_s *ops;
+	void *ctx;
+	uint32_t size;
+	uint32_t page_size;
+	uint32_t sector_size;
+
+	/* set by px4_flash_storage_register() */
+	perf_counter_t refused;
+};
+
+/* Registers the MTD device at devpath and mounts it as littlefs at mountpoint with autoformat */
+int px4_flash_storage_register(struct px4_flash_storage_s *dev, const char *devpath, const char *mountpoint);
+
+__END_DECLS

@@ -33,7 +33,7 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_BOARD_FLEXSPI_FLASH_STORAGE_ARMED_READONLY
+#ifdef CONFIG_BOARD_FLASH_STORAGE_ARMED_READONLY
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
@@ -50,4 +50,4 @@ extern "C" bool flash_storage_armed(void)
 	return armed_sub.copy(&armed) && armed.armed;
 }
 
-#endif /* CONFIG_BOARD_FLEXSPI_FLASH_STORAGE_ARMED_READONLY */
+#endif /* CONFIG_BOARD_FLASH_STORAGE_ARMED_READONLY */

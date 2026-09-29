@@ -72,9 +72,7 @@ else()
 		timer_config.cpp
 		usb.c
 		imxrt_flexspi_fram.c
-		imxrt_flexspi_storage.c
-		flash_storage_armed.cpp
-		imxrt_flexspi_nor_l0.c
+		flash_storage.c
 		imxrt_flexspi_nor_boot.c
 		imxrt_flexspi_nor_flash.c
 		imxrt_clockconfig.c
@@ -97,4 +95,8 @@ else()
 			perf
 			px4_layer
 	)
+
+	if(CONFIG_BOARD_FLASH_STORAGE)
+		target_link_libraries(drivers_board PRIVATE arch_flexspi_nor platform_flash_storage)
+	endif()
 endif()

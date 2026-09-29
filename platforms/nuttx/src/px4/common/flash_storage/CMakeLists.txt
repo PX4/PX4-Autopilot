@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,22 +31,7 @@
 #
 ############################################################################
 
-
-add_subdirectory(adc)
-add_subdirectory(../imxrt/board_critmon board_critmon)
-add_subdirectory(../imxrt/board_hw_info board_hw_info)
-add_subdirectory(../imxrt/board_reset board_reset)
-add_subdirectory(../imxrt/romapi romapi)
-if(CONFIG_BOARD_FLEXSPI_NOR_L0)
-	add_subdirectory(../imxrt/flexspi_nor flexspi_nor)
-endif()
-add_subdirectory(../imxrt/hrt hrt)
-add_subdirectory(../imxrt/led_pwm led_pwm)
-add_subdirectory(../imxrt/io_pins io_pins)
-add_subdirectory(../imxrt/tone_alarm tone_alarm)
-add_subdirectory(../imxrt/version version)
-add_subdirectory(../imxrt/spi spi)
-add_subdirectory(../imxrt/dshot dshot)
-
-add_subdirectory(px4io_serial)
-add_subdirectory(ssarc)
+px4_add_library(platform_flash_storage
+	flash_storage.c
+	flash_storage_armed.cpp
+)

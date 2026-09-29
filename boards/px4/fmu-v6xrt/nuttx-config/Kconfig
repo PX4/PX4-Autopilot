@@ -63,9 +63,10 @@ config BOARD_FLEXSPI_NOR_L0
 	depends on BOARD_BOOTLOADER_FIXUP && ARCH_RAMVECTORS
 
 	---help---
-		Region read, program and erase over the boot NOR. Selected by consumers.
+		Region read, program and erase over the boot NOR via the ROM API
+		(platforms/nuttx/src/px4/nxp/imxrt/flexspi_nor). Selected by consumers.
 
-config BOARD_FLEXSPI_FLASH_STORAGE
+config BOARD_FLASH_STORAGE
 	bool "Expose the unused boot NOR as a filesystem"
 	default n
 	depends on BOARD_BOOTLOADER_FIXUP && ARCH_RAMVECTORS
@@ -74,14 +75,15 @@ config BOARD_FLEXSPI_FLASH_STORAGE
 	select MTD
 
 	---help---
-		MTD driver over the boot NOR above the firmware image, mounted as
-		littlefs at /fs/flash. Program and erase run from RAM with interrupts
-		disabled: the CPU executes in place from the same device.
+		littlefs over storage_partition of the boot NOR at /fs/flash
+		(platforms/nuttx/src/px4/common/flash_storage). Program and erase run
+		from RAM with interrupts disabled: the CPU executes in place from the
+		same device.
 
-config BOARD_FLEXSPI_FLASH_STORAGE_ARMED_READONLY
+config BOARD_FLASH_STORAGE_ARMED_READONLY
 	bool "Refuse flash storage writes while armed"
 	default y
-	depends on BOARD_FLEXSPI_FLASH_STORAGE
+	depends on BOARD_FLASH_STORAGE
 
 	---help---
 		Program and erase on the flash storage device return EBUSY while the
