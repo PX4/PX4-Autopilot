@@ -445,7 +445,7 @@
 *(.text._ZN24ManualVelocitySmoothingZC1Ev) /* itcm-check-ignore */
 *(.text._ZN3ADC6sampleEj)
 *(.text._ZNK3Ekf22isTerrainEstimateValidEv)
-*(.text._ZN15EstimatorChecks23setModeRequirementFlagsERK7ContextbbbRK24vehicle_local_position_sRK12sensor_gps_sR16failsafe_flags_sR6Report)
+*(.text._ZN15EstimatorChecks23setModeRequirementFlagsERK7ContextbbbRK24vehicle_local_position_sRK14vehicle_gnss_sR16failsafe_flags_sR6Report)
 *(.text._ZN11ControlMath11addIfNotNanERff)
 *(.text._ZN9Commander21checkForMissionUpdateEv)
 *(.text._Z8set_tunei)

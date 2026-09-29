@@ -38,7 +38,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/param.h>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 // to run: make tests TESTFILTER=gnssRedundancyChecks
 
@@ -69,22 +69,22 @@ public:
 		param_reset(param_find("COM_GNSSLOSS_ACT"));
 
 		// Set lever arms so expected_d = 0.70m, enabling the "too close" direction of divergence detection.
-		float v = 0.35f;  param_set(param_find("SENS_GPS0_OFFX"), &v);
-		v = -0.35f;       param_set(param_find("SENS_GPS1_OFFX"), &v);
+		float v = 0.35f;  param_set(param_find("SENS_GNSS0_OFFX"), &v);
+		v = -0.35f;       param_set(param_find("SENS_GNSS1_OFFX"), &v);
 
 		// Claim uORB instances 0 and 1 before the check subscribes on first copy().
-		sensor_gps_s empty{};
+		sensor_gnss_s empty{};
 		_gps0_pub.publish(empty);
 		_gps1_pub.publish(empty);
 	}
 
-	sensor_gps_s makeGps(double lat, double lon, float eph = 0.02f, uint8_t fix_type = 6)
+	sensor_gnss_s makeGps(double lat, double lon, float eph = 0.02f, uint8_t fix_type = 6)
 	{
-		sensor_gps_s gps{};
+		sensor_gnss_s gps{};
 		gps.timestamp     = hrt_absolute_time();
 		gps.device_id     = 1;
-		gps.latitude_deg  = lat;
-		gps.longitude_deg = lon;
+		gps.latitude      = lat;
+		gps.longitude     = lon;
 		gps.eph           = eph;
 		gps.fix_type      = fix_type;
 		return gps;
@@ -106,8 +106,8 @@ public:
 		_health_warning_gps = (reporter.healthResults().warning | reporter.healthResults().error) & health_component_t::gps;
 	}
 
-	uORB::PublicationMulti<sensor_gps_s> _gps0_pub{ORB_ID(sensor_gps)};
-	uORB::PublicationMulti<sensor_gps_s> _gps1_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_s> _gps0_pub{ORB_ID(sensor_gnss)};
+	uORB::PublicationMulti<sensor_gnss_s> _gps1_pub{ORB_ID(sensor_gnss)};
 	failsafe_flags_s  _failsafe_flags{};
 	bool              _health_warning_gps{false};
 	GnssRedundancyChecks _check;
@@ -211,7 +211,7 @@ TEST_F(GnssRedundancyChecksTest, DroppedBelowPeakSetsHealthWarning)
 	EXPECT_FALSE(_health_warning_gps); // both present, no warning
 
 	// GPS1 disappears.
-	sensor_gps_s gone{};
+	sensor_gnss_s gone{};
 	_gps1_pub.publish(gone); // device_id = 0 → treated as absent
 	runCheck();
 	EXPECT_TRUE(_health_warning_gps);

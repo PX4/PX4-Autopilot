@@ -48,10 +48,10 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	bool gps_online[GPS_MAX_INSTANCES] {};
 	bool gps_has_fix[GPS_MAX_INSTANCES] {};
 	uint8_t fixed_count = 0;
-	sensor_gps_s fixed_gps[GPS_MAX_INSTANCES] {};
+	sensor_gnss_s fixed_gps[GPS_MAX_INSTANCES] {};
 
 	for (int i = 0; i < GPS_MAX_INSTANCES; i++) {
-		sensor_gps_s gps{};
+		sensor_gnss_s gps{};
 
 		if (_sensor_gps_sub[i].copy(&gps)
 		    && (gps.device_id != 0)
@@ -76,8 +76,8 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 
 	if (fixed_count >= 2) {
 		float north, east;
-		get_vector_to_next_waypoint(fixed_gps[0].latitude_deg, fixed_gps[0].longitude_deg,
-					    fixed_gps[1].latitude_deg, fixed_gps[1].longitude_deg,
+		get_vector_to_next_waypoint(fixed_gps[0].latitude, fixed_gps[0].longitude,
+					    fixed_gps[1].latitude, fixed_gps[1].longitude,
 					    &north, &east);
 		const float separation_m = Vector2f(north, east).length();
 

@@ -36,7 +36,7 @@
 #include "../Common.hpp"
 #include <lib/hysteresis/hysteresis.h>
 #include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 class GnssRedundancyChecks : public HealthAndArmingCheckBase
 {
@@ -48,7 +48,7 @@ public:
 
 private:
 	static constexpr int GPS_MAX_INSTANCES = 2;
-	uORB::SubscriptionMultiArray<sensor_gps_s, GPS_MAX_INSTANCES> _sensor_gps_sub{ORB_ID::sensor_gps};
+	uORB::SubscriptionMultiArray<sensor_gnss_s, GPS_MAX_INSTANCES> _sensor_gps_sub{ORB_ID::sensor_gnss};
 
 	uint8_t _peak_fixed_count{0};
 	systemlib::Hysteresis _divergence_hysteresis;
@@ -57,9 +57,9 @@ private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::SYS_HAS_NUM_GNSS>) _param_sys_has_num_gnss,
 					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act,
-					(ParamFloat<px4::params::SENS_GPS0_OFFX>) _param_sens_gps0_offx,
-					(ParamFloat<px4::params::SENS_GPS0_OFFY>) _param_sens_gps0_offy,
-					(ParamFloat<px4::params::SENS_GPS1_OFFX>) _param_sens_gps1_offx,
-					(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy
+					(ParamFloat<px4::params::SENS_GNSS0_OFFX>) _param_sens_gps0_offx,
+					(ParamFloat<px4::params::SENS_GNSS0_OFFY>) _param_sens_gps0_offy,
+					(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_sens_gps1_offx,
+					(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_sens_gps1_offy
 				       )
 };
