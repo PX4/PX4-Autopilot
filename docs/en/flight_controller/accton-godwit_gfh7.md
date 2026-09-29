@@ -41,7 +41,25 @@ for more information.
 - Static power consumption: 110 mA at 5 V
 - microSD card for blackbox data logging
 
+### Voltage Ratings
 
+The board has an internal voltage sensor and connections on the ESC connector for an external current sensor.
+
+- The voltage sensor handles up to 4-12 S LiPo batteries.
+
+### Normal Operation Maximum Ratings
+
+Under these conditions all power sources will be used in this order to power the system:
+
+1. **POWER** inputs (12V to 48V)
+2. **USB** input (4.75V to 5.25V)
+
+### Absolute Maximum Ratings
+
+Under these conditions the system will not draw any power (will not be operational), but will remain intact.
+
+1. **POWER** input (operational range 12V to 48V, 0V to 12V undamaged)
+2. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
 
 ### **External ports**
 
