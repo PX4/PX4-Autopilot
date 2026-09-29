@@ -52,7 +52,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -104,7 +104,7 @@ bool _send_mag = false;
 bool _send_distance = false;
 
 uORB::Publication<battery_status_s>				_battery_pub{ORB_ID(battery_status)};
-uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
+uORB::PublicationMulti<sensor_gnss_s>			_sensor_gps_pub{ORB_ID(sensor_gnss)};
 uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 uORB::Publication<vehicle_odometry_s>			_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
@@ -1181,7 +1181,7 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 	mavlink_hil_gps_t hil_gps;
 	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
-	sensor_gps_s gps{};
+	sensor_gnss_s gps{};
 
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
@@ -1191,13 +1191,13 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 
 	gps.device_id = device_id.devid;
 
-	gps.latitude_deg = hil_gps.lat * 1e-7;
-	gps.longitude_deg = hil_gps.lon * 1e-7;
-	gps.altitude_msl_m = hil_gps.alt * 1e-3;
-	gps.altitude_ellipsoid_m = hil_gps.alt * 1e-3;
+	gps.latitude = hil_gps.lat * 1e-7;
+	gps.longitude = hil_gps.lon * 1e-7;
+	gps.altitude_msl = hil_gps.alt * 1e-3;
+	gps.altitude_ellipsoid = hil_gps.alt * 1e-3;
 
-	gps.s_variance_m_s = 0.25f;
-	gps.c_variance_rad = 0.5f;
+	gps.speed_accuracy = 0.25f;
+	gps.course_accuracy = 0.5f;
 
 	gps.satellites_used = hil_gps.satellites_visible;
 	gps.fix_type = hil_gps.fix_type;
@@ -1232,17 +1232,17 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 	gps.hdop = 0; // TODO
 	gps.vdop = 0; // TODO
 
-	gps.noise_per_ms = 0;
+	gps.noise = 0;
 	gps.automatic_gain_control = 0;
 	gps.jamming_indicator = 0;
 	gps.jamming_state = 0;
 	gps.spoofing_state = 0;
 
-	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
-	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
-	gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
-	gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
-	gps.cog_rad = ((hil_gps.cog == 65535) ? (float)NAN : matrix::wrap_2pi(math::radians(
+	gps.ground_speed = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
+	gps.vel_north = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+	gps.vel_east = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+	gps.vel_down = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+	gps.course = ((hil_gps.cog == 65535) ? (float)NAN : matrix::wrap_2pi(math::radians(
 				hil_gps.cog * 1e-2f))); // cdeg -> rad
 	gps.vel_ned_valid = true;
 

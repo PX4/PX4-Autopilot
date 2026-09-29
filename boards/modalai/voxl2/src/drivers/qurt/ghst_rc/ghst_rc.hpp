@@ -49,7 +49,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_status.h>
 
 #define GHST_MAX_NUM_CHANNELS			(16)
@@ -114,7 +114,7 @@ private:
 	static uint32_t baudrate;
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 
