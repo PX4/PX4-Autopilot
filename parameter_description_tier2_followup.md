@@ -2,7 +2,7 @@
 
 Follow-up to the parameter `short`/`long` description trim. These parameters were **left unchanged** in that pass because trimming them further would risk losing substance — each needs a maintainer's judgement. A few also flag likely pre-existing errors in the current descriptions (noted inline).
 
-Total candidates: 82
+Total candidates: 81
 
 
 ## `src/drivers/actuators/voxl_esc/voxl_esc_params.yaml`
@@ -486,15 +486,6 @@ Total candidates: 82
 - why further pruning is possible: The interaction between ">0 skips heading check for normal waypoints" and the forced-heading timeout is the tricky part. The first sentence could be tighter.
 - aggressive proposal: ">0: skip heading check for normal waypoints; wait this long for forced-heading waypoints (e.g. VTOL forward transition). For VTOLs with limited yaw authority. -1: disabled."
 - substance at risk: The current phrasing separates the two behaviors (forced-heading timeout vs. normal waypoint skip) clearly; merging them risks ambiguity about which behavior applies when.
-
-
-## `src/modules/navigator/navigator_params.yaml`
-
-### NAV_MIN_LTR_ALT — src/modules/navigator/navigator_params.yaml
-- current long length: ~175 chars
-- why further pruning is possible: First sentence is still long; "e.g. via RC switch" could be dropped as an example.
-- aggressive proposal: "Min altitude above Home in Loiter/Hold when entered without altitude. Does not apply to mission loiters or reposition setpoints. Negative: disabled."
-- substance at risk: The "e.g. via RC switch" is a useful concrete example for users trying to understand when this applies vs. not.
 
 
 ## `src/modules/navigator/rtl_params.yaml`
