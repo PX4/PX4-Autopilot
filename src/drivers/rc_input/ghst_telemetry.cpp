@@ -104,30 +104,30 @@ bool GHSTTelemetry::send_battery_status()
 
 bool GHSTTelemetry::send_gps1_status()
 {
-	sensor_gps_s vehicle_gps_position;
+	vehicle_gnss_s vehicle_gps_position;
 
 	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 		return false;
 	}
 
-	int32_t latitude = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7));        // 1e-7 degrees
-	int32_t longitude = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7));      // 1e-7 degrees
-	uint16_t altitude = static_cast<int16_t>(round(vehicle_gps_position.altitude_msl_m));           // meters
+	int32_t latitude = static_cast<int32_t>(round(vehicle_gps_position.receiver.latitude * 1e7));        // 1e-7 degrees
+	int32_t longitude = static_cast<int32_t>(round(vehicle_gps_position.receiver.longitude * 1e7));      // 1e-7 degrees
+	uint16_t altitude = static_cast<int16_t>(round(vehicle_gps_position.receiver.altitude_msl));         // meters
 
 	return ghst_send_telemetry_gps1_status(_uart_fd, latitude, longitude, altitude);
 }
 
 bool GHSTTelemetry::send_gps2_status()
 {
-	sensor_gps_s vehicle_gps_position;
+	vehicle_gnss_s vehicle_gps_position;
 
 	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 		return false;
 	}
 
-	uint16_t ground_speed = (uint16_t)(vehicle_gps_position.vel_d_m_s / 3.6f * 10.f);
-	uint16_t ground_course = (uint16_t)(math::degrees(vehicle_gps_position.cog_rad) * 100.f);
-	uint8_t num_sats = vehicle_gps_position.satellites_used;
+	uint16_t ground_speed = (uint16_t)(vehicle_gps_position.receiver.vel_down / 3.6f * 10.f);
+	uint16_t ground_course = (uint16_t)(math::degrees(vehicle_gps_position.receiver.course) * 100.f);
+	uint8_t num_sats = vehicle_gps_position.receiver.satellites_used;
 
 	// TBD: Can these be computed in a RC telemetry driver?
 	uint16_t home_dist = 0;
