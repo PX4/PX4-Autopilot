@@ -245,8 +245,21 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GNSS_POS);
 		const bool ekf_gps_check_fail = estimator_status.gps_check_fail_flags > 0;
 
+		const hrt_abstime now = hrt_absolute_time();
+
+		// The flags describe only the newest sample, while EKF2 keeps rejecting samples for a while
+		// after one failed and keeps fusing for longer still, so the check that kept GNSS out may
+		// have passed again by the time the position goes. Each check is remembered for a while after
+		// it last failed, on its own, so one that keeps failing doesn't keep the others alive.
+		for (int i = 0; i < kNumGnssChecks; i++) {
+			if (estimator_status.gps_check_fail_flags & (1 << i)) {
+				_last_gnss_check_fail_time_us[i] = estimator_status.timestamp;
+			}
+		}
+
 		if (ekf_gps_fusion) {
 			reporter.setIsPresent(health_component_t::gps); // should be based on the sensor data directly
+			_last_gnss_fusion_time_us = now;
 		}
 
 		if (context.isArmed()) {
@@ -682,6 +695,45 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 	}
 }
 
+void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Report &reporter,
+		const hrt_abstime &now, const sensor_gps_s &vehicle_gps_position) const
+{
+	// In flight only, and only when GNSS was in use. Without GNSS in the loop neither a failing
+	// receiver check nor a silent receiver says anything about why the estimate went.
+	if (!context.isArmed() || (now > _last_gnss_fusion_time_us + kGnssRecentlyFusedTimeout)) {
+		return;
+	}
+
+	uint16_t failed_checks = 0;
+
+	for (int i = 0; i < kNumGnssChecks; i++) {
+		if ((_last_gnss_check_fail_time_us[i] != 0) && (now <= _last_gnss_check_fail_time_us[i] + kGnssRecentlyFusedTimeout)) {
+			failed_checks |= 1 << i;
+		}
+	}
+
+	// EKF2 runs the checks only on new samples, so a receiver that stopped keeps the flags of
+	// its last sample. The silence is the reason then, and it is tested first.
+	if ((vehicle_gps_position.timestamp == 0) || (now > vehicle_gps_position.timestamp + kGnssDataTimeout)) {
+		/* EVENT
+		 * @description
+		 * The receiver had stopped delivering samples when the local position estimate became invalid.
+		 */
+		events::send(events::ID("check_estimator_position_lost_gnss_no_data"), events::Log::Error,
+			     "Local position lost, no GNSS data");
+
+	} else if (failed_checks != 0) {
+		/* EVENT
+		 * @description
+		 * The GNSS quality checks that failed in the run up to the local position estimate becoming invalid.
+		 * In flight EKF2 checks the fix type, the horizontal, vertical and speed accuracy, spoofing and jamming.
+		 */
+		events::send<events::px4::enums::gnss_check_fail_t>(events::ID("check_estimator_position_lost_gnss_reason"),
+				events::Log::Error, "Local position lost, GNSS check failed: {1}",
+				static_cast<events::px4::enums::gnss_check_fail_t>(failed_checks));
+	}
+}
+
 void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &reporter,
 		const vehicle_local_position_s &lpos) const
 {
@@ -805,9 +857,15 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		}
 	}
 
+	const bool local_position_was_valid = !failsafe_flags.local_position_invalid;
+
 	failsafe_flags.local_position_invalid =
 		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold, lpos.timestamp,
 				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
+
+	if (local_position_was_valid && failsafe_flags.local_position_invalid) {
+		reportGnssReasonForPositionLoss(context, reporter, now, vehicle_gps_position);
+	}
 
 
 	// In some modes we assume that the operator will compensate for the drift so we do not need to check the position error
