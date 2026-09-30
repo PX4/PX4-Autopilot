@@ -109,6 +109,41 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 }
 
+TEST_F(EkfExternalVisionTest, inAirYawResetIncreasesGyroBiasZVariance)
+{
+	// GIVEN: EV yaw fusion is active and gyro bias covariance has converged below the reset value
+	_ekf_wrapper.setMagFuseTypeNone();
+	_sensor_simulator._vio.setPositionFrameToLocalNED();
+	_sensor_simulator.runSeconds(_tilt_align_time);
+
+	_ekf_wrapper.enableExternalVisionHeadingFusion();
+	_sensor_simulator.startExternalVision();
+	_sensor_simulator.runSeconds(2.f);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
+
+	const float reset_gyro_bias_variance = sq(_ekf->getParamHandle()->ekf2_gbias_init);
+	const float initial_gyro_bias_z_variance = _ekf->getGyroBiasVariance()(2);
+	ASSERT_LT(initial_gyro_bias_z_variance, reset_gyro_bias_variance);
+
+	// WHEN: EV yaw fusion rejects an in-flight heading jump long enough to trigger a reset
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+
+	const float vision_yaw = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(45.f));
+	_sensor_simulator._vio.setOrientation(Quatf(Eulerf(0.f, 0.f, vision_yaw)));
+	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+	_sensor_simulator.runSeconds(1.2f);
+
+	// THEN: the yaw reset is used as failure recovery
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), vision_yaw, math::radians(1.f));
+
+	// AND: the z gyro bias variance is bumped so EV yaw measurements can correct it again
+	const float gyro_bias_z_variance = _ekf->getGyroBiasVariance()(2);
+	EXPECT_GT(gyro_bias_z_variance, initial_gyro_bias_z_variance);
+	EXPECT_GT(gyro_bias_z_variance, 0.5f * reset_gyro_bias_variance);
+}
+
 TEST_F(EkfExternalVisionTest, visionVelocityReset)
 {
 	_sensor_simulator.runSeconds(_tilt_align_time);

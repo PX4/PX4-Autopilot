@@ -249,8 +249,13 @@ bool Ekf::resetYawToGnss(const float gnss_yaw, const float gnss_yaw_offset)
 	// the sensors module has already rotated the GNSS yaw measurement from the baseline into the body frame
 	const float measured_yaw = gnss_yaw;
 
+	const float yaw_change = fabsf(wrap_pi(measured_yaw - getEulerYaw(_state.quat_nominal)));
 	const float yaw_variance = sq(fmaxf(_params.gnss_heading_noise, 1.e-2f));
 	resetQuatStateYaw(measured_yaw, yaw_variance);
+
+	if (_control_status.flags.in_air && (yaw_change > kYawResetGyroBiasCovThreshold)) {
+		resetGyroBiasZCov();
+	}
 
 	return true;
 }
