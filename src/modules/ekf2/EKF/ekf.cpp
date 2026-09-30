@@ -93,8 +93,9 @@ void Ekf::reset()
 	_fault_status.value = 0;
 
 #if defined(CONFIG_EKF2_GNSS)
-	_gnss_checks.resetHard();
-	_time_last_gnss_checks_pass_us = 0;
+	_gnss_usable = false;
+	_gnss_checks_passed_reported = false;
+	_time_last_gnss_sample_accepted_us = 0;
 	_time_last_gnss_fusion_stop_us = 0;
 #endif // CONFIG_EKF2_GNSS
 	_local_origin_alt = NAN;
@@ -277,8 +278,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
 
 	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
-	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt,
-				static_cast<uint64_t>(imu_delayed.delta_vel_dt * 1e6f));
+	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
 }
 
 bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const double longitude, const float altitude,

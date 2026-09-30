@@ -419,8 +419,7 @@ TEST_F(EkfGpsHeadingTest, continuesWhenPositionQualityPoor)
 TEST_F(EkfGpsHeadingTest, flaggedReceiver)
 {
 	// GIVEN: the spoofing and jamming checks enabled and a good heading from a receiver reporting spoofing
-	_ekf->getParamHandle()->ekf2_gps_check |= (1 << GnssChecks::paramBit(estimator_status_s::GPS_CHECK_FAIL_SPOOFED))
-			| (1 << GnssChecks::paramBit(estimator_status_s::GPS_CHECK_FAIL_JAMMED));
+	_ekf->getParamHandle()->gnss_check |= vehicle_gnss_s::CHECK_SPOOFED | vehicle_gnss_s::CHECK_JAMMED;
 	const float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(20.f));
 	_sensor_simulator._gnss_yaw.setYaw(gps_heading);
 	_sensor_simulator._gnss_yaw.setSpoofed(true);

@@ -73,26 +73,39 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	if (_gps_data_ready) {
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
-		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
+		// The sensors module stamps each sample with its check result
+		_gnss_usable = gnss_sample.usable;
 
-		if (_gnss_checks.run(gnss_sample, _time_delayed_us)) {
-			_time_last_gnss_checks_pass_us = _time_delayed_us;
+		if (gnss_sample.usable && !_gnss_checks_passed_reported) {
+			// First time checks are passing, latching.
+			_information_events.flags.gps_checks_passed = true;
+			_gnss_checks_passed_reported = true;
+		}
 
-			if (_gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
-				// First time checks are passing, latching.
-				_information_events.flags.gps_checks_passed = true;
-			}
+		// Each axis of the velocity state is constrained to EKF2_VEL_LIM, so a sample beyond it cannot be fused
+		const bool vel_within_limit = gnss_sample.vel.isAllFinite()
+					      && (gnss_sample.vel.abs().max() <= _params.ekf2_vel_lim);
+
+		if (gnss_sample.usable && vel_within_limit) {
+			_time_last_gnss_sample_accepted_us = _time_delayed_us;
 
 		} else {
 			// Skip this sample
 			_gps_data_ready = false;
 
-			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
-			const bool gnss_checks_pass_timeout = isTimedOut(_time_last_gnss_checks_pass_us, _params.reset_timeout_max);
+			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos
+						|| _control_status.flags.gps_hgt;
+			const bool gnss_sample_accepted_timeout = isTimedOut(_time_last_gnss_sample_accepted_us, _params.reset_timeout_max);
 
-			if (using_gnss && gnss_checks_pass_timeout) {
+			if (using_gnss && gnss_sample_accepted_timeout) {
 				stopGnssFusion();
-				ECL_WARN("GNSS quality poor - stopping use");
+
+				if (gnss_sample.usable) {
+					ECL_WARN("GNSS velocity above limit - stopping use");
+
+				} else {
+					ECL_WARN("GNSS quality poor - stopping use");
+				}
 			}
 		}
 
@@ -138,8 +151,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_fault
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed()
-			&& isGnssRestartHoldOffElapsed();
+	const bool starting_conditions_passing = continuing_conditions_passing && isGnssRestartHoldOffElapsed();
 
 	if (_control_status.flags.gnss_vel) {
 		if (continuing_conditions_passing) {
@@ -196,9 +208,8 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed()
-			&& isGnssRestartHoldOffElapsed();
-	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gnss_checks.passed() && isGnssRestartHoldOffElapsed();
+	const bool starting_conditions_passing = continuing_conditions_passing && isGnssRestartHoldOffElapsed();
+	const bool gpos_init_conditions_passing = gnss_pos_enabled && isGnssRestartHoldOffElapsed();
 
 	if (_control_status.flags.gnss_pos) {
 		if (continuing_conditions_passing) {
@@ -340,7 +351,7 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 				   && (aid_src.test_ratio[0] < 1.f) && (aid_src.test_ratio[1] < 1.f); // vx & vy accepted
 
 	if (bad_acc_vz_rejected
-	    && (gnss_sample.sacc < _params.ekf2_req_sacc)
+	    && (gnss_sample.sacc < _params.gnss_req_sacc)
 	   ) {
 		const float innov_limit = innovation_gate * sqrtf(aid_src.innovation_variance[2]);
 		aid_src.innovation[2] = math::constrain(aid_src.innovation[2], -innov_limit, innov_limit);
@@ -389,7 +400,7 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 	const Vector2f vel_xy(aid_src_vel.observation);
 
 	if ((vel_var > 0.f)
-	    && (vel_accuracy < _params.ekf2_req_sacc)
+	    && (vel_accuracy < _params.gnss_req_sacc)
 	    && vel_xy.isAllFinite()) {
 
 		_yawEstimator.fuseVelocity(vel_xy, vel_accuracy, _control_status.flags.in_air);
