@@ -386,13 +386,13 @@ bool GZBridge::subscribeNavsat(bool required)
 	uint8_t count = math::min(_MAX_GNSS_SENSORS, static_cast<uint8_t>(_sim_gz_en_gps.get()));
 
 	for (uint8_t i = 0; i < _MAX_GNSS_SENSORS; i++) {
-		std::string gps_topic;
+		std::string gnss_topic;
 
 		if (i == 0) {
-			gps_topic = buildBaseTopic() + "navsat_sensor/navsat";
+			gnss_topic = buildBaseTopic() + "navsat_sensor/navsat";
 
 		} else {
-			gps_topic = buildBaseTopic() + "navsat_sensor_" + std::to_string(i) + "/navsat";
+			gnss_topic = buildBaseTopic() + "navsat_sensor_" + std::to_string(i) + "/navsat";
 		}
 
 		// Pass GPS index in the callback
@@ -400,17 +400,17 @@ bool GZBridge::subscribeNavsat(bool required)
 			navSatCallback(msg, i);
 		};
 
-		if (!_node.Subscribe(gps_topic, callback)) {
+		if (!_node.Subscribe(gnss_topic, callback)) {
 			// Only fail if instance 0 fails and it's marked as required
 			if (i == 0 && required) {
-				PX4_ERR("failed to subscribe to primary GPS topic: %s", gps_topic.c_str());
+				PX4_ERR("failed to subscribe to primary GPS topic: %s", gnss_topic.c_str());
 				return false;
 			}
 
-			if (i < count) { PX4_WARN("GPS instance %d topic not found: %s", i, gps_topic.c_str()); }
+			if (i < count) { PX4_WARN("GPS instance %d topic not found: %s", i, gnss_topic.c_str()); }
 
 		} else {
-			PX4_INFO("Subscribed to GPS[%d]: %s", i, gps_topic.c_str());
+			PX4_INFO("Subscribed to GPS[%d]: %s", i, gnss_topic.c_str());
 		}
 	}
 
@@ -750,34 +750,34 @@ float GZBridge::generate_wgn()
 void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude,
 			   float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index)
 {
-	_gps_pos_noise_n[instance_index] = _pos_markov_time * _gps_pos_noise_n[instance_index] +
-					   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
-					   0.02f * _gps_pos_noise_n[instance_index];
+	_gnss_pos_noise_n[instance_index] = _pos_markov_time * _gnss_pos_noise_n[instance_index] +
+					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+					    0.02f * _gnss_pos_noise_n[instance_index];
 
-	_gps_pos_noise_e[instance_index] = _pos_markov_time * _gps_pos_noise_e[instance_index] +
-					   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
-					   0.02f * _gps_pos_noise_e[instance_index];
+	_gnss_pos_noise_e[instance_index] = _pos_markov_time * _gnss_pos_noise_e[instance_index] +
+					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+					    0.02f * _gnss_pos_noise_e[instance_index];
 
-	_gps_pos_noise_d[instance_index] = _pos_markov_time * _gps_pos_noise_d[instance_index] +
-					   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
-					   0.02f * _gps_pos_noise_d[instance_index];
+	_gnss_pos_noise_d[instance_index] = _pos_markov_time * _gnss_pos_noise_d[instance_index] +
+					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
+					    0.02f * _gnss_pos_noise_d[instance_index];
 
-	latitude += math::degrees((double)_gps_pos_noise_n[instance_index] / CONSTANTS_RADIUS_OF_EARTH);
-	longitude += math::degrees((double)_gps_pos_noise_e[instance_index] / CONSTANTS_RADIUS_OF_EARTH);
-	altitude += (double)_gps_pos_noise_d[instance_index];
+	latitude += math::degrees((double)_gnss_pos_noise_n[instance_index] / CONSTANTS_RADIUS_OF_EARTH);
+	longitude += math::degrees((double)_gnss_pos_noise_e[instance_index] / CONSTANTS_RADIUS_OF_EARTH);
+	altitude += (double)_gnss_pos_noise_d[instance_index];
 
-	_gps_vel_noise_n[instance_index] = _vel_markov_time * _gps_vel_noise_n[instance_index] +
-					   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+	_gnss_vel_noise_n[instance_index] = _vel_markov_time * _gnss_vel_noise_n[instance_index] +
+					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
 
-	_gps_vel_noise_e[instance_index] = _vel_markov_time * _gps_vel_noise_e[instance_index] +
-					   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+	_gnss_vel_noise_e[instance_index] = _vel_markov_time * _gnss_vel_noise_e[instance_index] +
+					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
 
-	_gps_vel_noise_d[instance_index] = _vel_markov_time * _gps_vel_noise_d[instance_index] +
-					   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+	_gnss_vel_noise_d[instance_index] = _vel_markov_time * _gnss_vel_noise_d[instance_index] +
+					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
 
-	vel_north += _gps_vel_noise_n[instance_index];
-	vel_east += _gps_vel_noise_e[instance_index];
-	vel_down += _gps_vel_noise_d[instance_index];
+	vel_north += _gnss_vel_noise_n[instance_index];
+	vel_east += _gnss_vel_noise_e[instance_index];
+	vel_down += _gnss_vel_noise_d[instance_index];
 }
 
 void GZBridge::navSatCallback(const gz::msgs::NavSat &msg, uint8_t instance_index)
@@ -791,7 +791,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg, uint8_t instance_inde
 	const uint64_t timestamp = hrt_absolute_time();
 	_failure_config.update();
 
-	// initialize gps position
+	// initialize gnss position
 	if (!_pos_ref.isInitialized()) {
 		_pos_ref.initReference(msg.latitude_deg(), msg.longitude_deg(), timestamp);
 		_alt_ref = msg.altitude();
@@ -806,13 +806,13 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg, uint8_t instance_inde
 	float vel_down = -msg.velocity_up();
 
 	if (instance_index == 0) {
-		vehicle_global_position_s gps_truth{};
-		gps_truth.timestamp = timestamp;
-		gps_truth.timestamp_sample = timestamp;
-		gps_truth.lat = latitude;
-		gps_truth.lon = longitude;
-		gps_truth.alt = altitude;
-		_gpos_ground_truth_pub.publish(gps_truth);
+		vehicle_global_position_s gnss_truth{};
+		gnss_truth.timestamp = timestamp;
+		gnss_truth.timestamp_sample = timestamp;
+		gnss_truth.lat = latitude;
+		gnss_truth.lon = longitude;
+		gnss_truth.alt = altitude;
+		_gpos_ground_truth_pub.publish(gnss_truth);
 	}
 
 	// Apply noise model (based on ublox F9P)
