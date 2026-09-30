@@ -40,5 +40,6 @@ px4_add_module(
 	MODULE_CONFIG
 		airspeed_selector_params.yaml
 	DEPENDS
+		sensor_calibration
 		wind_estimator
 )
