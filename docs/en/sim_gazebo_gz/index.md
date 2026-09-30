@@ -263,6 +263,10 @@ gst-launch-1.0 -v udpsrc port=5600 \
   ! rtph264depay ! avdec_h264 ! videoconvert ! autovideosink sync=false
 ```
 
+#### Multi-Sensor Simulation
+
+It is possible to simulate multiple sensors in Gazebo, which can be useful for testing failover and multi-EKF. To do so, sensors added in the model sdf file should follow the exact same convention as primary sensors but with _1, _2 added at the end of their name. Supported sensor type for multi sensors are : GNSS, IMU, BAROMETER, and MAGNETOMETER. To activate multiple sensors on GZBridge side, use [SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS), [SIM_GZ_EN_IMU](../advanced_config/parameter_reference.md#SIM_GZ_EN_IMU), [SIM_GZ_EN_MAG](../advanced_config/parameter_reference.md#SIM_GZ_EN_MAG), [SIM_GZ_EN_BARO](../advanced_config/parameter_reference.md#SIM_GZ_EN_BARO)
+
 #### Multi-Vehicle Simulation
 
 In a multi-vehicle simulation, each vehicle instance streams to a separate port starting from `5600` — i.e. `5600`, `5601`, `5602`, and so on. If an instance (other than the first, which acts as the Gazebo world host) is restarted, it resumes streaming on its originally assigned port.
