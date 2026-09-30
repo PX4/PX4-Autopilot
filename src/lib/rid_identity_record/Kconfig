@@ -1,0 +1,6 @@
+menuconfig BOARD_ODID_RID_IDENTITY
+	bool "Open Drone ID RID identity verification"
+	default n
+	---help---
+		Enable RID Basic ID identity verification for Open Drone ID.
+		The storage backend and verification policy are implementation-defined.
