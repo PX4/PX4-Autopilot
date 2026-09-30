@@ -36,14 +36,19 @@
  * @file rpm_simulator.cpp
  * Simple app for publishing RPM messages with custom value.
  *
- * Usage: rpm_simulator <rpm_value>
+ * Usage: rpm_simulator <rpm_value> [duration_s]
  *  rpm_simulator 344.2
+ *  rpm_simulator 344.2 10   # keep republishing for 10s (uORB::Publication
+ *                           # unadvertises on destruction, so a single-shot
+ *                           # publish disappears again as soon as this
+ *                           # command returns)
  *
  * @author ThunderFly s.r.o., Roman Dvorak <dvorakroman@thunderfly.cz>
  */
 
 #include <px4_platform_common/px4_config.h>
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/posix.h>
 
 #include <uORB/Publication.hpp>
 #include <uORB/topics/rpm.h>
@@ -52,8 +57,8 @@ extern "C" __EXPORT int rpm_simulator_main(int argc, char *argv[]);
 int rpm_simulator_main(int argc, char *argv[])
 {
 	// check input
-	if (argc != 2) {
-		PX4_INFO("Usage: rpm_simulator <published RPM>");
+	if (argc < 2) {
+		PX4_INFO("Usage: rpm_simulator <published RPM> [duration_s]");
 		PX4_INFO("Exit. Without publishing any message.");
 		return 0;
 	}
@@ -61,16 +66,26 @@ int rpm_simulator_main(int argc, char *argv[])
 	rpm_s rpm{};
 
 	uORB::Publication<rpm_s> rpm_pub{ORB_ID(rpm)};
-	uint64_t timestamp_us = hrt_absolute_time();
 	float frequency = atof(argv[1]);
+	float duration_s = (argc >= 3) ? (float)atof(argv[2]) : 0.f;
 
 	// prpepare RPM data message
-	rpm.timestamp = timestamp_us;
+	rpm.timestamp = hrt_absolute_time();
 	rpm.rpm_estimate = frequency;
 
 	// Publish data and let the user know what was published
 	rpm_pub.publish(rpm);
 	print_message(ORB_ID(rpm), rpm);
+
+	if (duration_s > 0.f) {
+		const hrt_abstime end = hrt_absolute_time() + (hrt_abstime)(duration_s * 1e6f);
+
+		while (hrt_absolute_time() < end) {
+			px4_usleep(100000);
+			rpm.timestamp = hrt_absolute_time();
+			rpm_pub.publish(rpm);
+		}
+	}
 
 	return 0;
 }
