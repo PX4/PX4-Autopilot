@@ -240,6 +240,9 @@ void VehicleGPSPosition::Run()
 				gnss_output.receiver.timestamp_sample = pps_timestamp;
 			}
 
+			gnss_output.selected_instance = _gps_blending.getSelectedGps();
+			gnss_output.selection_count = _gps_blending.getSelectionCount();
+
 			// The selected receiver's checker ran on this sample
 			const GnssChecks &checks = _gnss_checks[_gps_blending.getSelectedGps()];
 			gnss_output.usable = checks.passed();

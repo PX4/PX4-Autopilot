@@ -204,6 +204,7 @@ struct gnssSample {
 	bool        jammed{};     ///< true if GNSS data is jammed
 	Vector3f    pos_body{};   ///< position of GPS antenna in body frame (m)
 	bool        usable{};     ///< the sample passes the GNSS checks of the sensors module
+	uint8_t     selection_count{}; ///< increments when the sensors module selects another receiver
 };
 
 struct gnssYawSample {

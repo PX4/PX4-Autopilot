@@ -1,6 +1,6 @@
 # Selected GNSS solution
 #
-# Published by the sensors module for every sample of the selected receiver, usable or not, with the check result for that sample.
+# Published by the sensors module for every sample of the selected receiver, usable or not, with the selection state and the check result for that sample.
 # Heading is on vehicle_gnss_heading.
 
 uint64 timestamp        # [us] Time since system start
@@ -9,6 +9,10 @@ uint64 timestamp_sample # [us] Measurement time, delay corrected. Use this rathe
 SensorGnss receiver # The selected receiver's sensor_gnss sample with the corrected timestamp_sample
 
 float32[3] antenna_offset # [m] [@frame FRD] Antenna position of the selected receiver
+
+# Selection state
+uint8 selected_instance # [-] sensor_gnss instance of the selected receiver
+uint8 selection_count   # [-] Increments when the selected receiver changes
 
 # Check result for this sample
 bool usable                 # Sample may be used: the receiver has passed its checks for long enough

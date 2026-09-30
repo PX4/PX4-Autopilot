@@ -79,6 +79,14 @@ void GpsBlending::update(uint64_t hrt_now_us)
 	_output_antenna_offset = _antenna_offset[gps_select_index];
 	_is_new_output_data_available =  _gps_updated[gps_select_index];
 
+	if (_is_new_output_data_available) {
+		if ((_output_instance >= 0) && (_output_instance != _selected_gps)) {
+			_selection_count++;
+		}
+
+		_output_instance = _selected_gps;
+	}
+
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 		// clear updated flags
 		_gps_updated[i] = false;

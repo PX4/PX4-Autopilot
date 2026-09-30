@@ -2653,6 +2653,7 @@ void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 					     vehicle_gnss.antenna_offset[1],
 					     vehicle_gnss.antenna_offset[2]),
 			.usable = vehicle_gnss.usable,
+			.selection_count = vehicle_gnss.selection_count,
 		};
 
 		_ekf.setGpsData(gnss_sample);
