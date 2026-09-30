@@ -842,8 +842,9 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 
-	// air data aiding active
-	if ((_control_status.flags.fuse_aspd && isRecent(_aid_src_airspeed.time_last_fuse, _params.no_aid_timeout_max))
+	// MC air data cannot provide dead-reckoning aiding.
+	if ((_control_status.flags.fixed_wing || _control_status.flags.in_transition)
+	    && (_control_status.flags.fuse_aspd && isRecent(_aid_src_airspeed.time_last_fuse, _params.no_aid_timeout_max))
 	    && (_control_status.flags.fuse_beta && isRecent(_aid_src_sideslip.time_last_fuse, _params.no_aid_timeout_max))
 	   ) {
 		// wind_dead_reckoning: no other aiding but air data

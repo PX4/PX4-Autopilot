@@ -551,6 +551,11 @@ private:
 	static constexpr uint64_t _kAccelHorizLpfTimeConstant = 1000000; // 1 s
 	AlphaFilter<Vector2f> _accel_horiz_lpf{_kAccelHorizLpfTimeConstant}; ///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
 
+#if defined(CONFIG_EKF2_AIRSPEED)
+	static constexpr uint64_t _kAspdMcLatAccelLpfTimeConstant = 1000000; // 1 s
+	AlphaFilter<float> _aspd_mc_lat_accel_lpf{_kAspdMcLatAccelLpfTimeConstant}; ///< Filtered body-Y specific force (m/sec**2)
+#endif // CONFIG_EKF2_AIRSPEED
+
 #if defined(CONFIG_EKF2_WIND)
 	static constexpr uint64_t _kHeightRateLpfTimeConstant = 10000000; // 10 s
 	AlphaFilter<float> _height_rate_lpf{_kHeightRateLpfTimeConstant};
