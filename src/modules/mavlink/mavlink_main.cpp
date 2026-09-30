@@ -588,6 +588,12 @@ Mavlink::component_was_seen(int system_id, int component_id, Mavlink &self)
 	return false;
 }
 
+static bool target_is_us_or_broadcast(int target_system_id, int target_component_id)
+{
+	return (target_system_id == 0 || target_system_id == mavlink_system.sysid)
+	       && (target_component_id == 0 || target_component_id == mavlink_system.compid);
+}
+
 void
 Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 {
@@ -606,6 +612,16 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
 			target_component_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_component_ofs]);
 		}
+	}
+
+	// SETUP_SIGNING must never be forwarded (MAVLink spec requirement).
+	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		if (!target_is_us_or_broadcast(target_system_id, target_component_id)) {
+			mavlink_log_warning(&self->_mavlink_log_pub, "MAVLink signing: SETUP_SIGNING for %d/%d not forwarded",
+					    target_system_id, target_component_id);
+		}
+
+		return;
 	}
 
 	// Avoid locking/iteration when there is no instance to forward to.
@@ -1181,8 +1197,16 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	 *  NOTE: this is called from the receiver thread
 	 */
 
-	// SETUP_SIGNING must never be forwarded to other links (MAVLink spec requirement).
-	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+	if (msg->msgid != MAVLINK_MSG_ID_SETUP_SIGNING) {
+		return;
+	}
+
+	// Only apply SETUP_SIGNING if it is meant for us. It is never forwarded,
+	// forward_message() drops it and warns if it was meant for someone else.
+	mavlink_setup_signing_t setup_signing;
+	mavlink_msg_setup_signing_decode(msg, &setup_signing);
+
+	if (target_is_us_or_broadcast(setup_signing.target_system, setup_signing.target_component)) {
 		// Reject signing changes while armed
 		vehicle_status_s vehicle_status{};
 
@@ -1223,9 +1247,15 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 				}
 			}
 		}
-
-		return;
 	}
+}
+
+void
+Mavlink::forward_if_enabled(const mavlink_message_t *msg)
+{
+	/*
+	 *  NOTE: this is called from the receiver thread
+	 */
 
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
@@ -1456,11 +1486,46 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 void
 Mavlink::pass_message(const mavlink_message_t *msg)
 {
-	/* size is 12 bytes plus variable payload */
-	int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
+	// Queue the frame as it came in, so checksum and signature stay valid.
+	// mavlink_msg_to_send_buffer() can't be used because it trims the payload
+	// again, which would break the checksum of an untrimmed frame.
+	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+	size_t size = 0;
+
+	buf[size++] = msg->magic;
+	buf[size++] = msg->len;
+
+	if (msg->magic == MAVLINK_STX_MAVLINK1) {
+		buf[size++] = msg->seq;
+		buf[size++] = msg->sysid;
+		buf[size++] = msg->compid;
+		buf[size++] = msg->msgid & 0xFF;
+
+	} else {
+		buf[size++] = msg->incompat_flags;
+		buf[size++] = msg->compat_flags;
+		buf[size++] = msg->seq;
+		buf[size++] = msg->sysid;
+		buf[size++] = msg->compid;
+		buf[size++] = msg->msgid & 0xFF;
+		buf[size++] = (msg->msgid >> 8) & 0xFF;
+		buf[size++] = (msg->msgid >> 16) & 0xFF;
+	}
+
+	memcpy(&buf[size], _MAV_PAYLOAD(msg), msg->len);
+	size += msg->len;
+
+	buf[size++] = msg->ck[0];
+	buf[size++] = msg->ck[1];
+
+	if (msg->magic != MAVLINK_STX_MAVLINK1 && (msg->incompat_flags & MAVLINK_IFLAG_SIGNED)) {
+		memcpy(&buf[size], msg->signature, MAVLINK_SIGNATURE_BLOCK_LEN);
+		size += MAVLINK_SIGNATURE_BLOCK_LEN;
+	}
+
 	LockGuard lg{_message_buffer_mutex};
 
-	if (!_message_buffer.push_back(reinterpret_cast<const uint8_t *>(msg), size)) {
+	if (!_message_buffer.push_back(buf, size)) {
 		perf_count(_forwarding_error_perf);
 	}
 }
@@ -1644,6 +1709,7 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"EXTENDED_SYS_STATE", 1.0f},
 	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
 	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
 	{"GIMBAL_MANAGER_STATUS", 0.5f},
 	{"GLOBAL_POSITION_SENSOR", 5.0f},
 	{"GLOBAL_POSITION_INT", 5.0f},
@@ -1728,6 +1794,7 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"EXTENDED_SYS_STATE", 5.0f},
 	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
 	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
 	{"GIMBAL_MANAGER_STATUS", 0.5f},
 	{"GLOBAL_POSITION_INT", 50.0f},
 #if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
@@ -1781,6 +1848,7 @@ constexpr StreamRateDefault streams_mode_gimbal[] = {
 	// Note: streams requiring low latency come first
 	{"AUTOPILOT_STATE_FOR_GIMBAL_DEVICE", 20.0f},
 	{"GIMBAL_DEVICE_SET_ATTITUDE", 20.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 20.0f},
 };
 
 constexpr StreamRateDefault streams_mode_extvision[] = {
@@ -1985,6 +2053,7 @@ constexpr StreamRateDefault streams_mode_onboard_low_bandwidth[] = {
 	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
 	{"GIMBAL_MANAGER_STATUS", 0.5f},
 	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
 	{"ESC_INFO", 1.0f},
 	{"ESC_STATUS", 5.0f},
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
@@ -2059,6 +2128,7 @@ constexpr StreamRateDefault streams_mode_low_bandwidth[] = {
 	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
 	{"GIMBAL_MANAGER_STATUS", 0.5f},
 	{"GIMBAL_DEVICE_SET_ATTITUDE", 2.0f},
+	{"GIMBAL_MANAGER_SET_PITCHYAW", 2.0f},
 	{"ESC_INFO", 1.0f},
 	{"ESC_STATUS", 1.0f},
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
@@ -2819,19 +2889,22 @@ Mavlink::task_main(int argc, char *argv[])
 		/* pass messages from other instances */
 		if (get_forwarding_on()) {
 
-			mavlink_message_t msg;
+			uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 			size_t available_bytes;
 			{
 				// We only send one message at a time, not to put too much strain on a
 				// link from forwarded messages.
 				LockGuard lg{_message_buffer_mutex};
-				available_bytes = _message_buffer.pop_front(reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+				available_bytes = _message_buffer.pop_front(buf, sizeof(buf));
 				// We need to make sure to release the lock here before sending the
 				// bytes out via IP or UART which could potentially take longer.
 			}
 
 			if (available_bytes > 0) {
-				resend_message(&msg);
+				// Send the frame unchanged, sequence number, checksum and signature included.
+				send_start(available_bytes);
+				send_bytes(buf, available_bytes);
+				send_finish();
 			}
 		}
 
@@ -3451,7 +3524,9 @@ Mavlink::display_status()
 	printf("\t  tx rate mult: %.3f\n", (double)_rate_mult);
 	printf("\t  tx rate max: %i B/s\n", _datarate);
 	printf("\t  rx: %.1f B/s\n", (double)_tstatus.rx_rate_avg);
-	printf("\t  rx loss: %.1f%%\n", (double)_tstatus.rx_message_lost_rate);
+	printf("\t  rx loss: %.1f%%\n", (double)_tstatus.rx_message_lost_rate * 100.0);
+	printf("\t  rx unknown messages: %" PRIu32 "\n", _tstatus.rx_unknown_message_count);
+	printf("\t  rx bad signatures: %" PRIu32 "\n", _tstatus.rx_bad_signature_count);
 
 #if !defined(CONSTRAINED_FLASH)
 	_receiver.print_detailed_rx_stats();

@@ -684,46 +684,58 @@ trajectory_setpoint_s MulticopterPositionControl::generateFailsafeSetpoint(const
 void MulticopterPositionControl::adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position,
 		trajectory_setpoint_s &setpoint)
 {
-	if ((setpoint.timestamp != 0) && (setpoint.timestamp < vehicle_local_position.timestamp)) {
-		if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
-			setpoint.velocity[0] += vehicle_local_position.delta_vxy[0];
-			setpoint.velocity[1] += vehicle_local_position.delta_vxy[1];
-		}
+	const bool setpoint_predates_reset = (setpoint.timestamp != 0) && (setpoint.timestamp < vehicle_local_position.timestamp);
 
-		if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
-			setpoint.velocity[2] += vehicle_local_position.delta_vz;
-		}
-
-		if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
+	if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
+		if (setpoint_predates_reset) {
 			setpoint.position[0] += vehicle_local_position.delta_xy[0];
 			setpoint.position[1] += vehicle_local_position.delta_xy[1];
 		}
 
-		if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
+		_goto_control.ekfResetHandlerPosition(Vector3f(vehicle_local_position.x, vehicle_local_position.y, NAN));
+		_xy_reset_counter = vehicle_local_position.xy_reset_counter;
+	}
+
+	if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
+		if (setpoint_predates_reset) {
 			setpoint.position[2] += vehicle_local_position.delta_z;
 		}
 
-		if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
-			setpoint.yaw = wrap_pi(setpoint.yaw + vehicle_local_position.delta_heading);
-		}
+		_goto_control.ekfResetHandlerPosition(Vector3f(NAN, NAN, vehicle_local_position.z));
+		_z_reset_counter = vehicle_local_position.z_reset_counter;
 	}
 
 	if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
+		if (setpoint_predates_reset) {
+			setpoint.velocity[0] += vehicle_local_position.delta_vxy[0];
+			setpoint.velocity[1] += vehicle_local_position.delta_vxy[1];
+		}
+
 		_vel_xy_lp_filter.reset(_vel_xy_lp_filter.getState() + Vector2f(vehicle_local_position.delta_vxy));
 		_vel_xy_notch_filter.reset();
+		_goto_control.ekfResetHandlerVelocity(Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, NAN));
+		_vxy_reset_counter = vehicle_local_position.vxy_reset_counter;
 	}
 
 	if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
+		if (setpoint_predates_reset) {
+			setpoint.velocity[2] += vehicle_local_position.delta_vz;
+		}
+
 		_vel_z_lp_filter.reset(_vel_z_lp_filter.getState() + vehicle_local_position.delta_vz);
 		_vel_z_notch_filter.reset();
+		_goto_control.ekfResetHandlerVelocity(Vector3f(NAN, NAN, vehicle_local_position.vz));
+		_vz_reset_counter = vehicle_local_position.vz_reset_counter;
 	}
 
-	// save latest reset counters
-	_vxy_reset_counter = vehicle_local_position.vxy_reset_counter;
-	_vz_reset_counter = vehicle_local_position.vz_reset_counter;
-	_xy_reset_counter = vehicle_local_position.xy_reset_counter;
-	_z_reset_counter = vehicle_local_position.z_reset_counter;
-	_heading_reset_counter = vehicle_local_position.heading_reset_counter;
+	if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
+		if (setpoint_predates_reset) {
+			setpoint.yaw = wrap_pi(setpoint.yaw + vehicle_local_position.delta_heading);
+		}
+
+		_goto_control.ekfResetHandlerHeading(vehicle_local_position.delta_heading);
+		_heading_reset_counter = vehicle_local_position.heading_reset_counter;
+	}
 }
 
 int MulticopterPositionControl::task_spawn(int argc, char *argv[])

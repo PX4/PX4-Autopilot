@@ -87,6 +87,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/yaw_estimator_status.h>
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -104,7 +105,8 @@
 
 #if defined(CONFIG_EKF2_GNSS)
 # include <uORB/topics/estimator_gps_status.h>
-# include <uORB/topics/sensor_gps.h>
+# include <uORB/topics/sensor_gnss.h>
+# include <uORB/topics/vehicle_gnss.h>
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -225,7 +227,10 @@ private:
 	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
-	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps);
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	void UpdateGnssYawSample();
+# endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -242,6 +247,7 @@ private:
 #endif // CONFIG_EKF2_RANGING_BEACON
 
 	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateFusionControlFromReplay();
 
 	// Used to check, save and use learned accel/gyro/mag biases
 	struct InFlightCalibration {
@@ -407,6 +413,8 @@ private:
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _estimator_fusion_control_sub{ORB_ID(estimator_fusion_control)}; ///< replay mode input
+	bool _fusion_control_from_replay{false};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	enum SensEn : uint16_t {
@@ -498,7 +506,7 @@ private:
 
 	float _last_gnss_hgt_bias_published{};
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
 	uORB::PublicationMulti<estimator_bias_s> _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
 	uORB::PublicationMulti<estimator_gps_status_s> _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
@@ -511,6 +519,7 @@ private:
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	hrt_abstime _status_gnss_yaw_pub_last {0};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
+	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
@@ -579,7 +588,6 @@ private:
 
 		// Used by EKF-GSF experimental yaw estimator
 		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas,
-		(ParamFloat<px4::params::EKF2_GPS_YAW_OFF>) _param_ekf2_gps_yaw_off,
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)

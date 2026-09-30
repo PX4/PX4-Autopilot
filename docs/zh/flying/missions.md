@@ -31,8 +31,7 @@ For more information see the [QGroundControl User Guide](https://docs.qgroundcon
 PX4进行了一些基本的健全性检查确定任务是否可行。
 For example, whether the mission is close enough to the vehicle, if the mission will conflict with a geofence, or if a mission landing pattern is required but is not present.
 
-检查是在任务上传上传或者任务运行之前立即运行。
-如果检查失败，将通知用户不能启动任务。
+检查是在任务上传上传或者任务运行之前立即运行。如果检查失败，将通知用户不能启动任务。
 
 For more detail on the checks and possible actions, see: [Mission Mode (FW) > Mission Feasibility Checks](../flight_modes_fw/mission.md#mission-feasibility-checks) and [Mission Mode (MC) > Mission Feasibility Checks](../flight_modes_mc/mission.md#mission-feasibility-checks).
 
@@ -72,7 +71,6 @@ For more information see: [Package Delivery Mission](../flying/package_delivery_
 
 ## 飞行任务
 
-任务上传后，切换到飞行视图。
-任务将显示为一条航线，这样可以方便跟踪（在此视图中无法修改）。
+任务上传后，切换到飞行视图。任务将显示为一条航线，这样可以方便跟踪（在此视图中无法修改）。
 
 ![flying-mission](../../assets/flying/flying_mission.jpg)

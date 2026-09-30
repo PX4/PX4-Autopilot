@@ -1,62 +1,51 @@
 #!/usr/bin/env bash
+#
+# Make sure the git submodules are ready to build, before any build starts:
+#
+#   at the commit PX4 records   nothing to do
+#   missing                     fetch it
+#   at another commit           warn and build it as it is (an error in CI)
+#
+# A submodule at another commit is never reset: that is how changes to a
+# submodule are developed and tested. Set GIT_SUBMODULES_ARE_EVIL to skip
+# the check entirely.
 
-function check_git_submodule {
+[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && exit 0
 
-# The .git exists in a submodule if init and update have been done.
-if [[ -f $1"/.git" || -d $1"/.git" ]]; then
+cd "$(dirname "$0")/.." || exit 1
 
-	# always update within CI environment or configuring withing VSCode CMake where you can't interact
-	if [ "$CI" == "true" ] || [ -n "${VSCODE_PID+set}" ] || [ -n "${CLION_IDE+set}" ]; then
-		git submodule --quiet sync --recursive -- $1
-		git submodule --quiet update --init --recursive --jobs=8 -- $1  || true
-		git submodule --quiet sync --recursive -- $1
-		git submodule --quiet update --init --recursive --jobs=8 -- $1
-		exit 0
-	fi
+# nothing to check outside a git checkout, e.g. a source archive
+git rev-parse --is-inside-work-tree > /dev/null 2>&1 || exit 0
 
-	SUBMODULE_STATUS=$(git submodule summary "$1")
-	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
-	if ! [[ -z "$STATUSRETVAL" ]]; then
-		echo -e "\033[33mWarning: $1 submodule has uncommitted changes:\033[0m"
-		echo -e "$SUBMODULE_STATUS"
-		echo ""
-		echo -e "To update submodules to the expected version, run:"
-		echo -e "   \033[94mgit submodule sync --recursive && git submodule update --init --recursive\033[0m"
-		echo ""
-	fi
-else
-	git submodule --quiet sync --recursive --quiet -- $1
-	git submodule --quiet update --init --recursive -- $1  || true
-	git submodule --quiet sync --recursive --quiet -- $1
-	git submodule --quiet update --init --recursive -- $1
-fi
-
+# Fetch the missing submodules of one repository ('-' in git submodule status),
+# naming only those so submodules at another commit are left alone. Run in
+# PX4 and then, through foreach, in every submodule, which reaches nested
+# submodules missing inside a submodule someone changed.
+fetch_missing='
+	missing=$(git submodule status | sed -n "s/^-[0-9a-f]* \([^ ]*\).*/\1/p")
+	[ -z "$missing" ] || {
+		echo "Fetching submodules in ${displaypath:-.}:" $missing
+		git submodule --quiet sync --recursive -- $missing &&
+		git submodule --quiet update --init --recursive --jobs 8 -- $missing
+	}'
+eval "$fetch_missing" && git submodule --quiet foreach --recursive "$fetch_missing" || {
+	echo -e "\033[31mError: could not fetch submodules\033[0m"
+	exit 1
 }
 
-# If called with a path then respect $GIT_SUBMODULES_ARE_EVIL but do normal processing
-if [ "$#" != "0" ]; then
-	# called with a path then process only that path but respect $GIT_SUBMODULES_ARE_EVIL
-	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
-		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
-		exit 0
-	}
-
-	check_git_submodule $1
-
-else
-
-	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
-		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
-		echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping All submodule checking!"
-		exit 0
-	}
-
-	submodules=$(git submodule status | awk '{ print $2 }')
-	for i in $submodules;
-	do
-		check_git_submodule $i
-	done
-
+# '+' at another commit, 'U' merge conflict
+changed=$(git submodule status --recursive | sed -n "s/^[+U][0-9a-f]* \([^ ]*\).*/   \1/p")
+if [ -n "$changed" ]; then
+	if [ "$CI" = "true" ]; then
+		echo -e "\033[31mError: submodules not at the commit PX4 records:\033[0m"
+	else
+		echo -e "\033[33mWarning: building submodules not at the commit PX4 records:\033[0m"
+	fi
+	echo "$changed"
+	echo "To check out the recorded commits, run:"
+	echo -e "   \033[94mgit submodule sync --recursive && git submodule update --init --recursive\033[0m"
+	# CI must build exactly what the commit under test records
+	[ "$CI" = "true" ] && exit 1
 fi
 
 exit 0

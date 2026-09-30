@@ -239,7 +239,10 @@ void EKF2::AdvertiseTopics()
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
-	_estimator_fc_pub.advertise();
+
+	if (!_replay_mode) {
+		_estimator_fc_pub.advertise();
+	}
 
 	if (_multi_mode) {
 		// only force advertise these in multi mode to ensure consistent uORB instance numbering
@@ -808,7 +811,10 @@ void EKF2::Run()
 		UpdateFlowSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
-		UpdateGpsSample(ekf2_timestamps);
+		UpdateGnssSample(ekf2_timestamps);
+# if defined(CONFIG_EKF2_GNSS_YAW)
+		UpdateGnssYawSample();
+# endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		UpdateMagSample(ekf2_timestamps);
@@ -820,6 +826,7 @@ void EKF2::Run()
 		UpdateRangingBeaconSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGING_BEACON
 		UpdateSystemFlagsSample(ekf2_timestamps);
+		UpdateFusionControlFromReplay();
 
 		// run the EKF update and output
 		const hrt_abstime ekf_update_start = hrt_absolute_time();
@@ -901,7 +908,7 @@ void EKF2::VerifyParams()
 	    && (_param_ekf2_mag_type.get() != MagFuseType::INIT)
 	   ) {
 
-		mavlink_log_critical(&_mavlink_log_pub, "EKF2_MAG_TYPE invalid, resetting to default");
+		mavlink_log_critical(&_mavlink_log_pub, "EKF2_MAG_TYPE invalid, resetting to default\t");
 		/* EVENT
 		 * @description <param>EKF2_MAG_TYPE</param> is set to {1:.0}.
 		 */
@@ -958,14 +965,14 @@ void EKF2::VerifyParams()
 
 #if defined(CONFIG_EKF2_GNSS)
 	{
-		int32_t gps_delay_ms = 0;
+		int32_t gnss_delay_ms = 0;
 
-		if (param_get(param_find("SENS_GPS0_DELAY"), &gps_delay_ms) == PX4_OK) {
-			delay_max = math::max(delay_max, static_cast<float>(gps_delay_ms));
+		if (param_get(param_find("SENS_GNSS0_DELAY"), &gnss_delay_ms) == PX4_OK) {
+			delay_max = math::max(delay_max, static_cast<float>(gnss_delay_ms));
 		}
 
-		if (param_get(param_find("SENS_GPS1_DELAY"), &gps_delay_ms) == PX4_OK) {
-			delay_max = math::max(delay_max, static_cast<float>(gps_delay_ms));
+		if (param_get(param_find("SENS_GNSS1_DELAY"), &gnss_delay_ms) == PX4_OK) {
+			delay_max = math::max(delay_max, static_cast<float>(gnss_delay_ms));
 		}
 	}
 #endif // CONFIG_EKF2_GNSS
@@ -999,7 +1006,7 @@ void EKF2::VerifyParams()
 
 void EKF2::initFusionControl()
 {
-	if (!_prev_armed) {
+	if (!_prev_armed && !_fusion_control_from_replay) {
 
 		const int32_t sens_en = _param_ekf2_sens_en.get();
 
@@ -1184,12 +1191,6 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 
 		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 		att.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-		_attitude_pub.publish(att);
-
-	}  else if (_replay_mode) {
-		// in replay mode we have to tell the replay module not to wait for an update
-		// we do this by publishing an attitude with zero timestamp
-		vehicle_attitude_s att{};
 		_attitude_pub.publish(att);
 	}
 }
@@ -1396,17 +1397,20 @@ void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
 
 	estimator_gps_status.checks_passed = _ekf.gps_checks_passed();
 
-	estimator_gps_status.check_fail_gps_fix          = _ekf.gps_check_fail_status_flags().fix;
-	estimator_gps_status.check_fail_min_sat_count    = _ekf.gps_check_fail_status_flags().nsats;
-	estimator_gps_status.check_fail_max_pdop         = _ekf.gps_check_fail_status_flags().pdop;
-	estimator_gps_status.check_fail_max_horz_err     = _ekf.gps_check_fail_status_flags().hacc;
-	estimator_gps_status.check_fail_max_vert_err     = _ekf.gps_check_fail_status_flags().vacc;
-	estimator_gps_status.check_fail_max_spd_err      = _ekf.gps_check_fail_status_flags().sacc;
-	estimator_gps_status.check_fail_max_horz_drift   = _ekf.gps_check_fail_status_flags().hdrift;
-	estimator_gps_status.check_fail_max_vert_drift   = _ekf.gps_check_fail_status_flags().vdrift;
-	estimator_gps_status.check_fail_max_horz_spd_err = _ekf.gps_check_fail_status_flags().hspeed;
-	estimator_gps_status.check_fail_max_vert_spd_err = _ekf.gps_check_fail_status_flags().vspeed;
-	estimator_gps_status.check_fail_spoofed_gps      = _ekf.gps_check_fail_status_flags().spoofed;
+	const uint16_t fail_flags = _ekf.gps_check_fail_flags();
+	auto failed = [fail_flags](uint8_t check) { return (fail_flags & (1u << check)) != 0; };
+
+	estimator_gps_status.check_fail_gps_fix          = failed(estimator_status_s::GPS_CHECK_FAIL_GPS_FIX);
+	estimator_gps_status.check_fail_min_sat_count    = failed(estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT);
+	estimator_gps_status.check_fail_max_pdop         = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP);
+	estimator_gps_status.check_fail_max_horz_err     = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR);
+	estimator_gps_status.check_fail_max_vert_err     = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR);
+	estimator_gps_status.check_fail_max_spd_err      = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR);
+	estimator_gps_status.check_fail_max_horz_drift   = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT);
+	estimator_gps_status.check_fail_max_vert_drift   = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT);
+	estimator_gps_status.check_fail_max_horz_spd_err = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR);
+	estimator_gps_status.check_fail_max_vert_spd_err = failed(estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR);
+	estimator_gps_status.check_fail_spoofed_gps      = failed(estimator_status_s::GPS_CHECK_FAIL_SPOOFED);
 
 	estimator_gps_status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_gps_status_pub.publish(estimator_gps_status);
@@ -1949,7 +1953,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_GNSS)
 	// only report enabled GPS check failures
-	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value & _ekf.gps_check_fail_status_enabled_mask();
+	status.gps_check_fail_flags = _ekf.gps_check_fail_flags() & _ekf.gps_checks_enabled();
 #endif // CONFIG_EKF2_GNSS
 
 	status.control_mode_flags = _ekf.control_status().value;
@@ -2019,6 +2023,10 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 {
+	if (_replay_mode) {
+		return;
+	}
+
 	estimator_fusion_control_s msg{};
 	msg.gps_intended[0] = _fc.gps.intended();
 	msg.of_intended     = _fc.of.intended();
@@ -2614,61 +2622,46 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_GNSS)
-void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
+void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF GPS message
-	sensor_gps_s vehicle_gps_position;
+	vehicle_gnss_s vehicle_gnss;
 
-	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+	if (_vehicle_gnss_sub.update(&vehicle_gnss)) {
 
 		Vector3f vel_ned;
 
-		if (vehicle_gps_position.vel_ned_valid) {
-			vel_ned = Vector3f(vehicle_gps_position.vel_n_m_s,
-					   vehicle_gps_position.vel_e_m_s,
-					   vehicle_gps_position.vel_d_m_s);
+		if (vehicle_gnss.receiver.vel_ned_valid) {
+			vel_ned = Vector3f(vehicle_gnss.receiver.vel_north,
+					   vehicle_gnss.receiver.vel_east,
+					   vehicle_gnss.receiver.vel_down);
 
 		} else {
 			return; //TODO: change and set to NAN
 		}
 
-		if (fabsf(_param_ekf2_gps_yaw_off.get()) > 0.f) {
-			if (!PX4_ISFINITE(vehicle_gps_position.heading_offset) && PX4_ISFINITE(vehicle_gps_position.heading)) {
-				// Apply offset
-				float yaw_offset = matrix::wrap_pi(math::radians(_param_ekf2_gps_yaw_off.get()));
-				vehicle_gps_position.heading_offset = yaw_offset;
-				vehicle_gps_position.heading = matrix::wrap_pi(vehicle_gps_position.heading - yaw_offset);
-			}
-		}
-
-		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
-		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
+		const float altitude_amsl = static_cast<float>(vehicle_gnss.receiver.altitude_msl);
+		const float altitude_ellipsoid = static_cast<float>(vehicle_gnss.receiver.altitude_ellipsoid);
 
 		// timestamp_sample is corrected by the sensors module (per-receiver delay or PPS)
-		const bool timestamp_corrected = vehicle_gps_position.timestamp_sample > 0
-						 && vehicle_gps_position.timestamp_sample != vehicle_gps_position.timestamp;
-
 		gnssSample gnss_sample{
-			.time_us = timestamp_corrected ? vehicle_gps_position.timestamp_sample : vehicle_gps_position.timestamp,
-			.lat = vehicle_gps_position.latitude_deg,
-			.lon = vehicle_gps_position.longitude_deg,
+			.time_us = vehicle_gnss.timestamp_sample,
+			.lat = vehicle_gnss.receiver.latitude,
+			.lon = vehicle_gnss.receiver.longitude,
 			.alt = altitude_amsl,
 			.vel = vel_ned,
-			.hacc = vehicle_gps_position.eph,
-			.vacc = vehicle_gps_position.epv,
-			.sacc = vehicle_gps_position.s_variance_m_s,
-			.fix_type = vehicle_gps_position.fix_type,
-			.nsats = vehicle_gps_position.satellites_used,
-			.pdop = sqrtf(vehicle_gps_position.hdop *vehicle_gps_position.hdop
-				      + vehicle_gps_position.vdop * vehicle_gps_position.vdop),
-			.yaw = vehicle_gps_position.heading, //TODO: move to different message
-			.yaw_acc = vehicle_gps_position.heading_accuracy,
-			.yaw_offset = vehicle_gps_position.heading_offset,
-			.spoofed = vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED,
-			.jammed = vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_DETECTED,
-			.pos_body = Vector3f(vehicle_gps_position.antenna_offset_x,
-					     vehicle_gps_position.antenna_offset_y,
-					     vehicle_gps_position.antenna_offset_z),
+			.hacc = vehicle_gnss.receiver.eph,
+			.vacc = vehicle_gnss.receiver.epv,
+			.sacc = vehicle_gnss.receiver.speed_accuracy,
+			.fix_type = vehicle_gnss.receiver.fix_type,
+			.nsats = vehicle_gnss.receiver.satellites_used,
+			.pdop = sqrtf(vehicle_gnss.receiver.hdop *vehicle_gnss.receiver.hdop
+				      + vehicle_gnss.receiver.vdop * vehicle_gnss.receiver.vdop),
+			.spoofed = vehicle_gnss.receiver.spoofing_state == sensor_gnss_s::SPOOFING_STATE_DETECTED,
+			.jammed = vehicle_gnss.receiver.jamming_state == sensor_gnss_s::JAMMING_STATE_DETECTED,
+			.pos_body = Vector3f(vehicle_gnss.antenna_offset[0],
+					     vehicle_gnss.antenna_offset[1],
+					     vehicle_gnss.antenna_offset[2]),
 		};
 
 		_ekf.setGpsData(gnss_sample);
@@ -2688,6 +2681,27 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 	}
 }
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+void EKF2::UpdateGnssYawSample()
+{
+	vehicle_gnss_heading_s gnss_heading;
+
+	if (_vehicle_gnss_heading_sub.update(&gnss_heading)) {
+
+		gnssYawSample gnss_yaw_sample{
+			.time_us = (gnss_heading.timestamp_sample > 0) ? gnss_heading.timestamp_sample : gnss_heading.timestamp,
+			.yaw = gnss_heading.heading,
+			.yaw_acc = gnss_heading.heading_accuracy,
+			.yaw_offset = PX4_ISFINITE(gnss_heading.heading_offset) ? gnss_heading.heading_offset : 0.f,
+			.spoofed = gnss_heading.spoofing_state == sensor_gnss_s::SPOOFING_STATE_DETECTED,
+			.jammed = gnss_heading.jamming_state == sensor_gnss_s::JAMMING_STATE_DETECTED,
+		};
+
+		_ekf.setGnssYawData(gnss_yaw_sample);
+	}
+}
+#endif // CONFIG_EKF2_GNSS_YAW
 
 float EKF2::altEllipsoidToAmsl(float ellipsoid_alt) const
 {
@@ -2821,6 +2835,8 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 			_prev_armed = armed;
 
+			flags.armed = armed;
+
 			// initially set in_air from arming_state (will be overridden if land detector is available)
 			flags.in_air = armed;
 
@@ -2862,6 +2878,32 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 		}
 
 		_ekf.setSystemFlagData(flags);
+	}
+}
+
+void EKF2::UpdateFusionControlFromReplay()
+{
+	if (!_replay_mode) {
+		return;
+	}
+
+	estimator_fusion_control_s fc;
+
+	if (_estimator_fusion_control_sub.update(&fc)) {
+		_fc.gps.enabled    = fc.gps_intended[0];
+		_fc.of.enabled     = fc.of_intended;
+		_fc.ev.enabled     = fc.ev_intended;
+
+		for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
+			_fc.agp[i].enabled = fc.agp_intended[i];
+		}
+
+		_fc.baro.enabled   = fc.baro_intended;
+		_fc.rng.enabled    = fc.rng_intended;
+		_fc.mag.enabled    = fc.mag_intended;
+		_fc.aspd.enabled   = fc.aspd_intended;
+		_fc.rngbcn.enabled = fc.rngbcn_intended;
+		_fusion_control_from_replay = true;
 	}
 }
 

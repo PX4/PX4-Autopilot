@@ -98,7 +98,7 @@ bool OpticalFlowSensor::Load(const sdf::Sensor &_sdf)
 	}
 
 	// Assume pinhole camera and 1:1 aspect ratio
-	float focal_length = (image_width / 2.0f) / tan(hfov / 2.0f);
+	const float focal_length = (image_width / 2.0f) / tanf(hfov / 2.0f);
 	_optical_flow = std::make_shared<OpticalFlowOpenCV>(focal_length, focal_length,
 			update_rate, image_width, image_height);
 

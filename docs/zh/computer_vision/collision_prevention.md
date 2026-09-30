@@ -116,8 +116,7 @@ The _sensor delay_ for distance sensors connected directly to the flight control
 对于外部视觉系统，传感器延迟可能高达 0.2秒。
 
 Vehicle _velocity setpoint tracking delay_ can be measured by flying at full speed in [Position mode](../flight_modes_mc/position.md), then commanding a stop.
-然后可以从日志中测量实际速度和速度设置值之间的延迟。
-跟踪延迟通常在 0.1 至 0.5秒之间，取决于机身尺寸和调试情况。
+然后可以从日志中测量实际速度和速度设置值之间的延迟。跟踪延迟通常在 0.1 至 0.5秒之间，取决于机身尺寸和调试情况。
 
 :::tip
 If vehicle speed oscillates as it approaches the obstacle (i.e. it slows down, speeds up, slows down) the delay is set too high.

@@ -187,7 +187,9 @@ void VehicleAirData::Run()
 						}
 					}
 
-					if (_selected_sensor_sub_index < 0) {
+					// callbacks are only cleared on a selection change, which never comes while every
+					// sensor is disabled, so a disabled one must not drive Run() at its sample rate
+					if ((_selected_sensor_sub_index < 0) && (_priority[uorb_index] > 0)) {
 						_sensor_sub[uorb_index].registerCallback();
 					}
 
@@ -515,27 +517,27 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 	static constexpr float kDeltaOffsetTolerance = 4.f;
 	static constexpr uint64_t kLpfWindow = 2_s;
 
-	sensor_gps_s gps_pos;
+	vehicle_gnss_s vehicle_gnss;
 
-	if (!_vehicle_gps_position_sub.update(&gps_pos)) {
+	if (!_vehicle_gnss_sub.update(&vehicle_gnss)) {
 		return false;
 	}
 
 	const float pressure_sealevel = _param_sens_baro_qnh.get() * 100.0f;
 	const float baro_pressure = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
-	const float target_altitude = static_cast<float>(gps_pos.altitude_msl_m);
+	const float target_altitude = static_cast<float>(vehicle_gnss.receiver.altitude_msl);
 
 	const float delta_alt =  getAltitudeFromPressure(baro_pressure, pressure_sealevel) - target_altitude;
 	bool gnss_baro_offset_stable = false;
 
-	if (gps_pos.epv > kEpvReq || _t_first_gnss_sample == 0) {
+	if (vehicle_gnss.receiver.epv > kEpvReq || _t_first_gnss_sample == 0) {
 		_calibration_t_first = 0;
-		_t_first_gnss_sample = gps_pos.timestamp;
+		_t_first_gnss_sample = vehicle_gnss.timestamp;
 		return false;
 	}
 
 	if (_calibration_t_first == 0) {
-		_calibration_t_first = gps_pos.timestamp;
+		_calibration_t_first = vehicle_gnss.timestamp;
 		_delta_baro_gnss_lpf.setParameters(_calibration_t_first - _t_first_gnss_sample, kLpfWindow);
 		_delta_baro_gnss_lpf.reset(delta_alt);
 
@@ -543,10 +545,10 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 		_delta_baro_gnss_lpf.update(delta_alt);
 	}
 
-	if (gps_pos.timestamp - _calibration_t_first > kLpfWindow && !PX4_ISFINITE(_baro_gnss_offset_t1)) {
+	if (vehicle_gnss.timestamp - _calibration_t_first > kLpfWindow && !PX4_ISFINITE(_baro_gnss_offset_t1)) {
 		_baro_gnss_offset_t1 = _delta_baro_gnss_lpf.getState();
 
-	} else if (gps_pos.timestamp - _calibration_t_first > 2 * kLpfWindow && PX4_ISFINITE(_baro_gnss_offset_t1)) {
+	} else if (vehicle_gnss.timestamp - _calibration_t_first > 2 * kLpfWindow && PX4_ISFINITE(_baro_gnss_offset_t1)) {
 		if (fabsf(_delta_baro_gnss_lpf.getState() - _baro_gnss_offset_t1) > kDeltaOffsetTolerance) {
 			_baro_gnss_offset_t1 = NAN;
 			_calibration_t_first = 0;

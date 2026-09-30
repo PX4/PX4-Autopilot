@@ -39,6 +39,10 @@
 
 const char *const UavcanBatteryBridge::NAME = "battery";
 
+// Number of per-cell voltages battery_status can carry
+static constexpr uint8_t kMaxCellCount = sizeof(battery_status_s::voltage_cell_v)
+		/ sizeof(battery_status_s::voltage_cell_v[0]);
+
 void UavcanBatteryBridge::publishBattery(int node_id, uint8_t instance)
 {
 	_failure_config.update();
@@ -199,7 +203,7 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 
 	_batt_update_mod[instance] = BatteryDataType::RawAux;
 
-	_battery_status[instance].cell_count = math::min((uint8_t)msg.voltage_cell.size(), (uint8_t)14);
+	_battery_status[instance].cell_count = math::min((uint8_t)msg.voltage_cell.size(), kMaxCellCount);
 	_battery_status[instance].cycle_count = msg.cycle_count;
 	_battery_status[instance].over_discharge_count = msg.over_discharge_count;
 	// ArduPilot BatteryInfoAux convention: nominal_voltage == 0 means "not provided"
@@ -266,7 +270,9 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	_battery_status[instance].max_error = msg.max_error;
 	_battery_status[instance].over_discharge_count = msg.over_discharge_count;
 	_battery_status[instance].connected = true;
-	_battery_status[instance].cell_count = msg.cell_count;
+	// cell_count comes from the node and bounds the per-cell copy below, so clamp it to what
+	// voltage_cell_v can hold, as the BatteryInfoAux handler above already does.
+	_battery_status[instance].cell_count = math::min(msg.cell_count, kMaxCellCount);
 	_battery_status[instance].source = battery_status_s::SOURCE_EXTERNAL;
 	_node_ids[instance] = msg.getSrcNodeID().get();
 	_battery_status[instance].id = msg.getSrcNodeID().get();

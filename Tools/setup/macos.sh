@@ -6,15 +6,18 @@
 ## Installs:
 ##	- Common dependencies and tools for building PX4
 ##	- Cross compilers for building hardware targets using NuttX
-##	- With --sim-tools: Gazebo Harmonic and jMAVSim simulation stack
+##	- With --sim-tools: Gazebo Harmonic simulation stack
 ##
-## --sim-tools pins the osrf/simulation tap to gz-tap-pin.txt so Gazebo
-## installs from bottles even while OSRF has them pulled.
+## --sim-tools installs Gazebo from the locked conda-forge environment in
+## macos/pixi.toml, and loads it with the Python venv.
 ##
 ## Homebrew 4.5+ no longer auto-resolves cross-tap dependencies, so
 ## every tap and package is listed explicitly here rather than hidden
 ## behind meta-formulae. See PX4/homebrew-px4#104 for background.
 ##
+
+# Abort on the first failing command.
+set -e
 
 # script directory
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
@@ -34,6 +37,20 @@ do
 	fi
 done
 
+# Leave a checkout that is already there. `brew tap` on one would try to
+# unshallow it, and CI has already checked these repos out at a commit.
+brew_tap() {
+	local name="$1"
+	local user="${name%%/*}"
+	local repo="${name#*/}"
+	local path
+	path="$(brew --repo)/Library/Taps/${user}/homebrew-${repo}"
+	if [[ -d "${path}/.git" ]]; then
+		return 0
+	fi
+	brew tap "$name"
+}
+
 echo "[macos.sh] Installing the development dependencies for the PX4 Autopilot"
 
 if ! command -v brew &> /dev/null
@@ -50,7 +67,7 @@ fi
 # "installed from the discoteq/discoteq tap but you are trying to install
 # it from homebrew/core" on machines that still have it tapped.
 if brew tap | grep -q '^discoteq/discoteq$'; then
-	brew uninstall flock 2>/dev/null
+	brew uninstall flock 2>/dev/null || true
 	brew untap discoteq/discoteq
 fi
 
@@ -60,13 +77,14 @@ fi
 #
 # - osx-cross/arm: arm-gcc-bin@13 (ARM cross-compiler)
 # - PX4/px4:       fastdds, genromfs, kconfig-frontends (PX4-specific)
-brew tap osx-cross/arm
-brew tap PX4/px4
-
+#
 # Homebrew 6.0+ refuses to load formulae from third-party taps unless they
-# are explicitly trusted ("Refusing to load formula ... from untrusted tap").
-# Trust each tap non-interactively before installing from it. Without this,
-# `brew install` aborts before pouring any package (including ccache).
+# are explicitly trusted ("Refusing to load formula ... from untrusted tap"),
+# and recent versions validate every formula of a tap while tapping it. An
+# untrusted tap therefore fails with "Cannot tap ...: invalid syntax in tap!",
+# so the taps must be trusted *before* they are tapped. `brew trust` works on
+# a tap that is not installed yet. Without the taps, `brew install` aborts
+# on the first PX4/px4 formula before pouring any package (including ccache).
 # `brew trust` only exists on Homebrew 6.0+; guard it so older versions,
 # which don't gate untrusted taps, skip it silently.
 if brew trust --help &> /dev/null; then
@@ -74,10 +92,12 @@ if brew trust --help &> /dev/null; then
 	brew trust PX4/px4
 fi
 
+brew_tap osx-cross/arm
+brew_tap PX4/px4
+
 # Package list. This replaces the px4-dev meta-formula, which is kept
 # as a deprecated no-op upstream. See PX4/homebrew-px4 for history.
 PX4_BREW_PACKAGES=(
-	ant
 	astyle
 	bash-completion
 	ccache
@@ -95,7 +115,7 @@ PX4_BREW_PACKAGES=(
 
 if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
 	echo "[macos.sh] Re-installing PX4 toolchain dependencies"
-	brew doctor
+	brew doctor || true # warnings are informational here
 	brew reinstall "${PX4_BREW_PACKAGES[@]}"
 else
 	echo "[macos.sh] Installing PX4 toolchain dependencies"
@@ -123,56 +143,17 @@ fi
 
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then
-	# Simulation packages. This replaces the px4-sim / px4-sim-gazebo
-	# meta-formulae, which declared cross-tap dependencies that
-	# Homebrew 4.5+ no longer auto-resolves. Same migration pattern as
-	# the toolchain block above. See PX4/homebrew-px4#104 for the
-	# px4-dev precedent.
-	#
-	# osrf/simulation: gz-harmonic (Gazebo Harmonic meta-formula)
-	brew tap osrf/simulation
-
-	# OSRF drops the gz bottle blocks within minutes of a breaking
-	# homebrew-core dependency bump and rebuilds them days later, so an
-	# unpinned tap compiles Gazebo from source for a large part of the
-	# year. Pin unconditionally so dev machines get the same fast, binary
-	# install as CI. See gz-tap-pin.txt.
-	GZ_TAP_PIN=$(grep -v '^#' "${DIR}/gz-tap-pin.txt" | tr -d '[:space:]')
-	if [[ -n $GZ_TAP_PIN ]]; then
-		GZ_TAP_DIR=$(brew --repo osrf/simulation)
-		echo "[macos.sh] Pinning osrf/simulation to ${GZ_TAP_PIN}"
-		# brew taps are shallow clones, so the pinned commit has to be
-		# fetched by SHA before it can be checked out.
-		git -C "$GZ_TAP_DIR" fetch --quiet origin "$GZ_TAP_PIN" 2>/dev/null
-		if git -C "$GZ_TAP_DIR" checkout --quiet "$GZ_TAP_PIN"; then
-			# `brew update` walks local taps and would reset the pin.
-			# homebrew-core resolves through the JSON API, not this
-			# clone, so nothing else goes stale.
-			export HOMEBREW_NO_AUTO_UPDATE=1
-		else
-			echo "[macos.sh] WARNING: could not pin osrf/simulation to ${GZ_TAP_PIN}," \
-				"continuing on tap HEAD (gz may build from source)"
-		fi
-	fi
-
-	# Homebrew 6.0+ refuses to load formulae from untrusted third-party
-	# taps (see the toolchain trust block above). Without this, the
-	# gz-harmonic install aborts and the script still exits successfully,
-	# leaving the simulation stack silently missing.
-	if brew trust --help &> /dev/null; then
-		brew trust osrf/simulation
-	fi
-
-	# opencv@4: the unversioned formula is OpenCV 5, which PX4-OpticalFlow
-	# does not build against.
+	# Gazebo and everything the gz modules link against (OpenCV for
+	# PX4-OpticalFlow, GStreamer for the camera plugin) come from the
+	# locked conda-forge environment in macos/pixi.toml instead of
+	# Homebrew. conda-forge never removes or rebuilds a published
+	# package, so the lock keeps installing the same gz, protobuf and
+	# abseil binaries. See macos/pixi.toml.
 	PX4_SIM_BREW_PACKAGES=(
 		exiftool
 		glog
 		graphviz
-		gstreamer
-		opencv@4
-		osrf/simulation/gz-harmonic
-		protobuf
+		pixi
 	)
 
 	if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
@@ -183,17 +164,46 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		brew install "${PX4_SIM_BREW_PACKAGES[@]}"
 	fi
 
+	PIXI_MANIFEST="${DIR}/macos/pixi.toml"
+	echo "[macos.sh] Installing Gazebo from ${PIXI_MANIFEST}"
+	pixi install --locked --manifest-path "$PIXI_MANIFEST"
+
+	# Load the Gazebo environment with the venv, so developers keep a
+	# single activation step. This is written by hand rather than taken
+	# from `pixi shell-hook`, which exports the PATH of the shell running
+	# this script instead of prepending to the user's, and sources every
+	# package's bash completions. The activate.d scripts set the paths
+	# the gz CLI (ruby gems) and renderer (OGRE) need. CMake needs the
+	# prefix spelled out: the gz config files are found through PATH, but
+	# the find_path(zmq.hpp) in gz-cmake's FindCPPZMQ is not. The env
+	# ships its own python, so the venv's bin goes back in front of it
+	# afterwards.
+	GZ_ENV_SCRIPT="$VENV_DIR/bin/px4-gz-env.sh"
+	cat > "$GZ_ENV_SCRIPT" <<-EOF
+		export CONDA_PREFIX="${DIR}/macos/.pixi/envs/default"
+		export PATH="\$CONDA_PREFIX/bin:\$PATH"
+		export CMAKE_PREFIX_PATH="\$CONDA_PREFIX\${CMAKE_PREFIX_PATH:+:\$CMAKE_PREFIX_PATH}"
+		for f in "\$CONDA_PREFIX"/etc/conda/activate.d/*.sh; do
+			. "\$f"
+		done
+		unset f
+	EOF
+	GZ_ENV_MARKER="# px4: load the Gazebo environment"
+	if ! grep -qF "$GZ_ENV_MARKER" "$VENV_DIR/bin/activate"; then
+		cat >> "$VENV_DIR/bin/activate" <<-EOF
+
+		$GZ_ENV_MARKER
+		. "\$VIRTUAL_ENV/bin/px4-gz-env.sh"
+		PATH="\$VIRTUAL_ENV/bin:\$PATH"
+		export PATH
+		EOF
+	fi
+
 	# XQuartz is required for Gazebo GUI display on macOS.
 	if ! brew list --cask xquartz &> /dev/null; then
 		echo "[macos.sh] Installing XQuartz (required for Gazebo display)"
-		brew install --cask xquartz
-	fi
-
-	# jMAVSim requires a JDK (Java 17 LTS recommended)
-	if ! brew ls --versions openjdk@17 > /dev/null; then
-		echo "[macos.sh] Installing OpenJDK 17 (required for jMAVSim)"
-		brew install openjdk@17
-		sudo ln -sfn $(brew --prefix openjdk@17)/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
+		# XQuartz is not in the pinned package repos.
+		env -u HOMEBREW_NO_INSTALL_FROM_API brew install --cask xquartz
 	fi
 fi
 

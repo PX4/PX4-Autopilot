@@ -145,7 +145,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_constraints", 1000);
 	add_topic("vehicle_control_mode");
 	add_topic("vehicle_global_position", 200);
-	add_topic("vehicle_gps_position", 100);
+	add_topic("vehicle_gnss_heading", 100);
+	add_topic("vehicle_gnss", 100);
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
@@ -240,7 +241,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("distance_sensor", 1000, 2);
 	add_optional_topic_multi("sensor_accel", 1000, 4);
 	add_topic_multi("sensor_baro", 1000, 4);
-	add_topic_multi("sensor_gps", 1000, 2);
+	add_topic_multi("sensor_gnss", 1000, 2);
 	add_topic_multi("sensor_gnss_relative", 1000, 1);
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
@@ -340,6 +341,7 @@ void LoggedTopics::add_debug_topics()
 	add_topic("sensor_preflight_mag", 500);
 	add_topic("actuator_test", 500);
 	add_topic("neural_control", 50);
+	add_topic("task_stack_info");
 }
 
 void LoggedTopics::add_estimator_replay_topics()
@@ -354,7 +356,8 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
-	add_topic("vehicle_gps_position");
+	add_topic("vehicle_gnss_heading");
+	add_topic("vehicle_gnss");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
@@ -362,6 +365,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("ranging_beacon");
 	add_topic_multi("aux_global_position");
 	add_topic_multi("distance_sensor");
+	add_topic("estimator_fusion_control", 200);
 }
 
 void LoggedTopics::add_thermal_calibration_topics()
@@ -415,7 +419,7 @@ void LoggedTopics::add_high_rate_sensors_topics()
 	add_topic_multi("distance_sensor", 10, 4);
 	add_topic_multi("sensor_baro", 10, 4);
 	add_topic_multi("sensor_optical_flow", 10, 2);
-	add_topic_multi("sensor_gps", 10, 4);
+	add_topic_multi("sensor_gnss", 10, 4);
 	add_topic_multi("sensor_gnss_relative", 10, 1);
 	add_topic_multi("sensor_mag", 10, 4);
 	add_topic("estimator_aid_src_baro_hgt", 10);

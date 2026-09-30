@@ -60,7 +60,7 @@ You are welcome to add and contribute missing classes.
 #### Виконавець Режимів
 
 Виконавець режимів - це необов'язковий компонент для розкладання режимів.
-Наприклад, виконавець режимів для індивідуальної доставки вантажу або режиму обстеження може спочатку ініціювати злет, потім переключитися на індивідуальний режим, і коли він завершиться, ініціювати повернення на базу (RTL).
+For example, the mode executor for a custom payload delivery or survey mode might first trigger a take-off, then switch to the custom mode, and when that completes trigger a Return.
 
 Зокрема, він має наступні властивості:
 
@@ -736,8 +736,8 @@ This makes it independent of startup ordering in case of multiple external modes
 
 ### Заміна внутрішнього режиму
 
-Зовнішній режим може замінити існуючий внутрішній режим, наприклад, режим Повернення (RTL).
-При цьому кожного разу, коли вибирається RTL (через користувача або ситуацію аварійного виклику), замість внутрішнього режиму використовується зовнішній. Внутрішній режим використовується лише як резервний випадок.
+An external mode can replace an existing internal mode, such as [Return](../flight_modes/return.md) mode.
+By doing so, whenever it gets selected (through the user or a failsafe situation), the external mode is used instead of the internal one.
 Внутрішній режим використовується лише як резервний випадок, коли зовнішній стає недоступним або відмовляє.
 
 Замінений режим можна встановити в налаштуваннях конструктора ModeBase:

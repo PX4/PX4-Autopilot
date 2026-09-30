@@ -418,7 +418,7 @@ hrt_abstime SbgEcom::time_diff(hrt_abstime first_timestamp, hrt_abstime second_t
 	       (second_timestamp - first_timestamp);
 }
 
-void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *ref_sbg_data, void *user_arg)
+void SbgEcom::handleLogGnssPosVel(SbgEComMsgId msg, const SbgEComLogUnion *ref_sbg_data, void *user_arg)
 {
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	uint8_t type;
@@ -446,11 +446,6 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		gnss_data->vel_timestamp = time_now_us;
 		break;
 
-	case SBG_ECOM_LOG_GPS1_HDT:
-		gnss_data->gps_hdt = ref_sbg_data->gpsHdtData;
-		gnss_data->hdt_received = true;
-		gnss_data->hdt_timestamp = time_now_us;
-		break;
 	}
 
 	if (gnss_data->pos_received && gnss_data->vel_received) {
@@ -475,74 +470,74 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 			return;
 		}
 
-		// publish sensor_gps
-		sensor_gps_s sensor_gps{};
+		// publish sensor_gnss
+		sensor_gnss_s sensor_gnss{};
 
-		sensor_gps.timestamp = time_now_us;
-		sensor_gps.timestamp_sample = gnss_data->gps_pos.timeStamp;
+		sensor_gnss.timestamp = time_now_us;
+		sensor_gnss.timestamp_sample = gnss_data->gps_pos.timeStamp;
 
-		sensor_gps.device_id = instance->get_device_id();
+		sensor_gnss.device_id = instance->get_device_id();
 
-		sensor_gps.latitude_deg = gnss_data->gps_pos.latitude;
-		sensor_gps.longitude_deg = gnss_data->gps_pos.longitude;
-		sensor_gps.altitude_msl_m = gnss_data->gps_pos.altitude;
-		sensor_gps.altitude_ellipsoid_m = gnss_data->gps_pos.altitude +
-						  static_cast<double>(gnss_data->gps_pos.undulation);
+		sensor_gnss.latitude = gnss_data->gps_pos.latitude;
+		sensor_gnss.longitude = gnss_data->gps_pos.longitude;
+		sensor_gnss.altitude_msl = gnss_data->gps_pos.altitude;
+		sensor_gnss.altitude_ellipsoid = gnss_data->gps_pos.altitude +
+						 static_cast<double>(gnss_data->gps_pos.undulation);
 
-		sensor_gps.s_variance_m_s = sqrt(pow(gnss_data->gps_vel.velocityAcc[0], 2) +
-						 pow(gnss_data->gps_vel.velocityAcc[1], 2) +
-						 pow(gnss_data->gps_vel.velocityAcc[2], 2));
-		sensor_gps.c_variance_rad = math::radians(gnss_data->gps_vel.courseAcc);
+		sensor_gnss.speed_accuracy = sqrt(pow(gnss_data->gps_vel.velocityAcc[0], 2) +
+						  pow(gnss_data->gps_vel.velocityAcc[1], 2) +
+						  pow(gnss_data->gps_vel.velocityAcc[2], 2));
+		sensor_gnss.course_accuracy = math::radians(gnss_data->gps_vel.courseAcc);
 
 		type = sbgEComLogGnssPosGetType(&gnss_data->gps_pos);
 
 		switch (type) {
 		case SBG_ECOM_GNSS_POS_TYPE_NO_SOLUTION:
-			sensor_gps.fix_type = 0;
+			sensor_gnss.fix_type = 0;
 			break;
 
 		case SBG_ECOM_GNSS_POS_TYPE_PSRDIFF:
 		case SBG_ECOM_GNSS_POS_TYPE_SBAS:
-			sensor_gps.fix_type = 4;
+			sensor_gnss.fix_type = 4;
 			break;
 
 		case SBG_ECOM_GNSS_POS_TYPE_RTK_FLOAT:
-			sensor_gps.fix_type = 5;
+			sensor_gnss.fix_type = 5;
 			break;
 
 		case SBG_ECOM_GNSS_POS_TYPE_RTK_INT:
-			sensor_gps.fix_type = 6;
+			sensor_gnss.fix_type = 6;
 			break;
 
 		default:
-			sensor_gps.fix_type = 3;
+			sensor_gnss.fix_type = 3;
 			break;
 		}
 
-		sensor_gps.eph = sqrt(pow(gnss_data->gps_pos.longitudeAccuracy, 2) +
-				      pow(gnss_data->gps_pos.latitudeAccuracy, 2));
-		sensor_gps.epv = gnss_data->gps_pos.altitudeAccuracy;
+		sensor_gnss.eph = sqrt(pow(gnss_data->gps_pos.longitudeAccuracy, 2) +
+				       pow(gnss_data->gps_pos.latitudeAccuracy, 2));
+		sensor_gnss.epv = gnss_data->gps_pos.altitudeAccuracy;
 
-		sensor_gps.hdop = sensor_gps.eph;
-		sensor_gps.vdop = sensor_gps.epv;
+		sensor_gnss.hdop = sensor_gnss.eph;
+		sensor_gnss.vdop = sensor_gnss.epv;
 
 		state = sbgEComLogGnssPosGetIfmStatus(&gnss_data->gps_pos);
 
 		switch (state) {
 		case SBG_ECOM_GNSS_IFM_STATUS_UNKNOWN:
-			sensor_gps.jamming_state = 0;
+			sensor_gnss.jamming_state = 0;
 			break;
 
 		case SBG_ECOM_GNSS_IFM_STATUS_CLEAN:
-			sensor_gps.jamming_state = 1;
+			sensor_gnss.jamming_state = 1;
 			break;
 
 		case SBG_ECOM_GNSS_IFM_STATUS_MITIGATED:
-			sensor_gps.jamming_state = 2;
+			sensor_gnss.jamming_state = 2;
 			break;
 
 		case SBG_ECOM_GNSS_IFM_STATUS_CRITICAL:
-			sensor_gps.jamming_state = 3;
+			sensor_gnss.jamming_state = 3;
 			break;
 		}
 
@@ -550,53 +545,37 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 
 		switch (spoofing) {
 		case SBG_ECOM_GNSS_SPOOFING_STATUS_UNKNOWN:
-			sensor_gps.spoofing_state = 0;
+			sensor_gnss.spoofing_state = 0;
 			break;
 
 		case SBG_ECOM_GNSS_SPOOFING_STATUS_CLEAN:
-			sensor_gps.spoofing_state = 1;
+			sensor_gnss.spoofing_state = 1;
 			break;
 
 		case SBG_ECOM_GNSS_SPOOFING_STATUS_SINGLE:
-			sensor_gps.spoofing_state = 2;
+			sensor_gnss.spoofing_state = 2;
 			break;
 
 		case SBG_ECOM_GNSS_SPOOFING_STATUS_MULTIPLE:
-			sensor_gps.spoofing_state = 3;
+			sensor_gnss.spoofing_state = 3;
 			break;
 		}
 
-		sensor_gps.vel_m_s = sqrt(pow(gnss_data->gps_vel.velocity[0], 2) +
-					  pow(gnss_data->gps_vel.velocity[1], 2) +
-					  pow(gnss_data->gps_vel.velocity[2], 2));
-		sensor_gps.vel_n_m_s = gnss_data->gps_vel.velocity[0];
-		sensor_gps.vel_e_m_s = gnss_data->gps_vel.velocity[1];
-		sensor_gps.vel_d_m_s = gnss_data->gps_vel.velocity[2];
-		sensor_gps.vel_ned_valid = true;
+		sensor_gnss.ground_speed = sqrt(pow(gnss_data->gps_vel.velocity[0], 2) +
+						pow(gnss_data->gps_vel.velocity[1], 2) +
+						pow(gnss_data->gps_vel.velocity[2], 2));
+		sensor_gnss.vel_north = gnss_data->gps_vel.velocity[0];
+		sensor_gnss.vel_east = gnss_data->gps_vel.velocity[1];
+		sensor_gnss.vel_down = gnss_data->gps_vel.velocity[2];
+		sensor_gnss.vel_ned_valid = true;
 
-		sensor_gps.cog_rad = math::radians(gnss_data->gps_vel.course);
+		sensor_gnss.course = math::radians(gnss_data->gps_vel.course);
 
-		sensor_gps.timestamp_time_relative = sensor_gps.timestamp_sample - time_now_us;
-		sensor_gps.time_utc_usec = 0;
+		sensor_gnss.timestamp_time_relative = sensor_gnss.timestamp_sample - time_now_us;
+		sensor_gnss.time_utc_usec = 0;
 
-		sensor_gps.satellites_used = gnss_data->gps_pos.numSvUsed;
-		sensor_gps.heading = NAN;
-		sensor_gps.heading_offset = NAN;
-		sensor_gps.heading_accuracy = NAN;
-
-		if (gnss_data->hdt_received) {
-			const hrt_abstime hdt_time = gnss_data->hdt_timestamp;
-
-			if ((time_diff(time_now_us, hdt_time) < max_time_diff) &&
-			    (time_diff(pos_time, hdt_time) < max_time_diff) &&
-			    (time_diff(vel_time, hdt_time) < max_time_diff) &&
-			    sbgEComLogGnssHdtHeadingIsValid(&gnss_data->gps_hdt)) {
-				sensor_gps.heading = math::radians(gnss_data->gps_hdt.heading);
-				sensor_gps.heading_accuracy = math::radians(gnss_data->gps_hdt.headingAccuracy);
-			}
-		}
-
-		instance->_sensor_gps_pub.publish(sensor_gps);
+		sensor_gnss.satellites_used = gnss_data->gps_pos.numSvUsed;
+		instance->_sensor_gnss_pub.publish(sensor_gnss);
 		perf_count(instance->_gnss_pub_interval_perf);
 
 		// Reset the consumed position and velocity samples.
@@ -647,9 +626,8 @@ SbgErrorCode SbgEcom::onLogReceived(SbgEComHandle *handle, SbgEComClass msg_clas
 
 		case SBG_ECOM_LOG_GPS1_POS:
 		case SBG_ECOM_LOG_GPS1_VEL:
-		case SBG_ECOM_LOG_GPS1_HDT:
 			if (mode == SBG_MODE_GNSS || mode == SBG_MODE_INS) {
-				instance->handleLogGnssPosVelHdt(msg, ref_sbg_data, user_arg);
+				instance->handleLogGnssPosVel(msg, ref_sbg_data, user_arg);
 			}
 
 			break;

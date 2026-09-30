@@ -11,8 +11,7 @@ If you have multiple controllers and you want to define their priority see [Manu
 
 ## 绑定接收机
 
-在你校准遥控器之前，遥控器的发射机和接收机需要绑定（对频）。
-发射机和接收机对频的方法各有不同（请参照您使用的遥控器的说明书）
+在你校准遥控器之前，遥控器的发射机和接收机需要绑定（对频）。发射机和接收机对频的方法各有不同（请参照您使用的遥控器的说明书）
 提醒：如果您使用的是 Spektrum 的接收机，
 提醒：如果您使用的是 FrSky 的接收机，您可以在发射机上进行绑定（对频），下面是介绍。
 
@@ -123,8 +122,7 @@ AUX passthrough channels allow you to control arbitrary optional hardware from y
 To use the AUX passthrough channels:
 
 1. 映射2个遥控器控制来隔离通道。
-2. 如下所示，依次映射这些通道到端口 AUX1 和 AUX2。
-   设置后，保存到自驾仪。
+2. 如下所示，依次映射这些通道到端口 AUX1 和 AUX2。设置后，保存到自驾仪。
 
    ![AUX1 and AUX2 RC passthrough channels](../../assets/qgc/setup/radio/radio_additional_setup_aux_passthrough_channels.jpg)
 
