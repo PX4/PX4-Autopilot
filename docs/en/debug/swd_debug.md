@@ -53,6 +53,7 @@ The debug port location and pinouts for a subset of current autopilots are linke
 | [Holybro Kakute H7](../flight_controller/kakuteh7.md#debug-port)                     | SWD pads and system console               |
 | [Holybro Kakute H7 mini](../flight_controller/kakuteh7mini.md#debug-port)            | SWD pads and system console               |
 | [Holybro Kakute H7 V2](../flight_controller/kakuteh7v2.md#debug-port)                | SWD pads and system console               |
+| [Agam MegH7](../flight_controller/agam_megh7.md#debug_port)                          | SWD pads (no system console)              |
 | [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md#debug_port)              | [Pixhawk Debug Full](#pixhawk-debug-full) |
 | [CUAV X25-SUPER](../flight_controller/cuav_x25-super.md#debug_port)                  | [Pixhawk Debug Mini]                      |
 | [CUAV X25-EVO](../flight_controller/cuav_x25-evo.md#debug_port)                      | [Pixhawk Debug Mini]                      |
