@@ -127,7 +127,7 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 			continue; // Skip unmapped ESC status entries
 		}
 
-		const bool esc_telemetry_timeout = now > esc_status.esc[esc_index].timestamp + ESC_TIMEOUT_US;
+		const bool esc_telemetry_timeout = now > esc_status.esc[esc_index].timestamp + ESC_OFFLINE_TIMEOUT_US;
 		const bool is_offline = (esc_status.esc_online_flags & (1 << esc_index)) == 0;
 
 		// Set failure bits for this motor
@@ -379,7 +379,7 @@ void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const
 		const int all_escs_armed_mask = (1 << limited_esc_count) - 1;
 		const bool is_all_escs_armed = (all_escs_armed_mask == esc_status.esc_armed_flags);
 
-		_esc_arm_hysteresis.set_hysteresis_time_from(false, ESC_TIMEOUT_US);
+		_esc_arm_hysteresis.set_hysteresis_time_from(false, ESC_ARMING_TIMEOUT_US);
 		_esc_arm_hysteresis.set_state_and_update(!is_all_escs_armed, now);
 
 		if (_esc_arm_hysteresis.get_state()) {
