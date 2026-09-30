@@ -4,7 +4,7 @@ parameters:
   definitions:
     NAV_LOITER_RAD:
       description:
-        short: Loiter radius (FW)
+        short: FW Loiter radius
         long: Default for fixed-wing loiters, e.g. in Hold mode. Positive values loiter
           clockwise, negative values counter-clockwise.
       type: float
@@ -28,7 +28,7 @@ parameters:
       increment: 0.5
     NAV_FW_ALT_RAD:
       description:
-        short: Altitude acceptance Radius (FW)
+        short: FW Altitude acceptance radius
       type: float
       default: 10.0
       unit: m
@@ -38,7 +38,7 @@ parameters:
       increment: 0.5
     NAV_FW_ALTL_RAD:
       description:
-        short: Altitude acceptance radius before landing (FW)
+        short: FW Altitude acceptance radius before landing
         long: FW acceptance alt for last waypoint before landing.
           Usually smaller than NAV_FW_ALT_RAD: accuracy matters more near the ground.
       type: float
@@ -49,7 +49,7 @@ parameters:
       decimal: 1
     NAV_MC_ALT_RAD:
       description:
-        short: Altitude acceptance radius (MC)
+        short: MC Altitude acceptance radius
       type: float
       default: 0.8
       unit: m
