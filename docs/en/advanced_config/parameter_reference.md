@@ -31104,6 +31104,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Velocity limit.
 
+Each axis of the velocity state is constrained to this magnitude. GNSS and external vision velocity samples beyond it are not fused.
+
+
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  | 299792458 |  | 100 | m/s | &nbsp;
