@@ -403,7 +403,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 	// The field is in tesla and in the sensor's FLU frame if the Magnetometer system is loaded with
 	// use_units_gauss=false and use_earth_frame_ned=false (server.config, gz-sim >= 8.6).
 	// Other setups (standalone gz, older gz-sim, worlds with their own systems) still get the legacy
-	// output: gauss, with the field mirrored in the world frame.
+	// output: gauss, with the NED field components placed on the ENU world axes.
 	// Earth's field is 2.2e-5 to 6.7e-5 T (0.22 to 0.67 G), so a magnitude above 1e-2 can only be gauss.
 	const gz::math::Vector3d field(msg.field_tesla().x(), msg.field_tesla().y(), msg.field_tesla().z());
 
@@ -411,7 +411,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 		static bool legacy_warned = false;
 
 		if (!legacy_warned) {
-			PX4_WARN("gz magnetometer is in legacy mode (gauss, mirrored frame), heading will be wrong. "
+			PX4_WARN("gz magnetometer is in legacy mode (gauss, NED components on ENU axes), heading will be wrong. "
 				 "Set use_units_gauss and use_earth_frame_ned to false for the Magnetometer system");
 			legacy_warned = true;
 		}
