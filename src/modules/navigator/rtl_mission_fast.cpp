@@ -157,14 +157,7 @@ void RtlMissionFast::setActiveMissionItems()
 			handleLanding(new_work_item_type, next_mission_items, num_found_items);
 
 		} else {
-			// convert mission item to a simple waypoint, keep loiter to alt
-			if (_mission_item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			}
-
-			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0.0f;
-
+			makeRtlPositionItem(_mission_item);
 		}
 
 		if (num_found_items > 0) {
