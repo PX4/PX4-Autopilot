@@ -210,6 +210,14 @@ public:
 		_home_pos_sub.update();
 		return hasValidMission();
 	}
+
+	// parameters are read on a parameter update notification, which the tests do not publish
+	void updateParamsForTest() { updateParams(); }
+
+	// the return type is re-decided every few seconds of inactive time, which a test does not have
+	void decideRtlTypeForTest() { setRtlTypeAndDestination(); }
+
+	RtlType rtlTypeForTest() const { return _rtl_type; }
 };
 
 template <typename RtlMissionType>
@@ -227,14 +235,25 @@ public:
 		this->_mission.count = static_cast<int32_t>(_mission_store.itemCount());
 	}
 
+	// RTL::on_activation() refreshes the mode's mission copy right before it activates the mode
 	void activateForTest()
 	{
 		this->_vehicle_status_sub.update();
+		this->refreshMission();
 		this->on_activation();
+	}
+
+	// what on_inactive() records while the vehicle flies a mission: the item and the mission it belongs to
+	void setPriorMissionIndexForTest(int32_t index, uint32_t mission_id)
+	{
+		this->_mission_index_prior_rtl = index;
+		this->_mission_id_prior_rtl = mission_id;
 	}
 
 	uint16_t activeNavCommand() const { return this->_mission_item.nav_cmd; }
 	bool isClimbing() const { return this->_work_item_type == RtlMissionType::WorkItemType::WORK_ITEM_TYPE_CLIMB; }
+	const mission_item_s &activeItem() const { return this->_mission_item; }
+	bool activeItemValid() const { return this->_is_current_planned_mission_item_valid; }
 
 protected:
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
@@ -410,6 +429,25 @@ protected:
 		} else {
 			orb_publish(ORB_ID(vehicle_land_detected), _land_detected_pub, &land_detected);
 		}
+	}
+
+	// the items of one mission, in the dataman slot the mission header names
+	void writeMissionToDataman(dm_item_t slot, const std::vector<mission_item_s> &items)
+	{
+		for (size_t index = 0; index < items.size(); index++) {
+			mission_item_s item = items[index];
+			ASSERT_TRUE(_dataman_client.writeSync(slot, index, reinterpret_cast<uint8_t *>(&item), sizeof(item)));
+		}
+	}
+
+	// what the mission module reports once it has checked a mission
+	void setMissionResultValid(const mission_s &mission)
+	{
+		mission_result_s *result = _navigator.get_mission_result();
+		result->valid = true;
+		result->mission_id = mission.mission_id;
+		result->geofence_id = mission.geofence_id;
+		result->home_position_counter = 0;
 	}
 
 	void publishWind(float windspeed_north, float windspeed_east)
@@ -1338,41 +1376,194 @@ TEST_F(RTLTest, DirectMissionLandUsesMissionPublishedBeforeActivation)
 	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_DO_LAND_START);
 }
 
-// WHY: the fast mission RTL modes read the mission at activation the same way.
-// WHAT: a mission published after the last inactive cycle is the one used at activation.
-TEST_F(RTLTest, MissionFastUsesMissionPublishedBeforeActivation)
+// Two waypoints at the given offsets north of the base position
+static std::vector<mission_item_s> makeTwoWaypointMission(float first_north_m, float second_north_m)
 {
-	mission_s stale{};
-	stale.timestamp = hrt_absolute_time();
-	stale.mission_id = 7;
-	stale.current_seq = 0;
-	stale.land_start_index = -1;
-	stale.land_index = -1;
-	stale.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
-
-	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
-	mission_item_s first = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	const PositionYawSetpoint first_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, first_north_m, 0.f,
+			kAlt);
+	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, second_north_m, 0.f,
+			kAlt);
+	mission_item_s first = makeSafePointItem(first_position.lat, first_position.lon, kAlt, NAV_FRAME_GLOBAL,
+			       NAV_CMD_WAYPOINT);
 	first.autocontinue = true;
 	mission_item_s second = makeSafePointItem(second_position.lat, second_position.lon, kAlt, NAV_FRAME_GLOBAL,
 				NAV_CMD_WAYPOINT);
 	second.autocontinue = true;
+	return {first, second};
+}
 
+static mission_s makeMissionHeader(uint32_t mission_id, int32_t current_seq, uint16_t count)
+{
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = mission_id;
+	mission.current_seq = current_seq;
+	mission.count = count;
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+	return mission;
+}
+
+// WHY: the fast mission RTL modes read the mission at activation the same way.
+// WHAT: the items of a mission published after the last inactive cycle are the ones flown at
+// activation, not the items of the copy the mode was holding. One case for the forward and one for the
+// reverse variant, in one test because the RTL test binary is at the dataman client id limit.
+TEST_F(RTLTest, MissionFastUsesMissionPublishedBeforeActivation)
+{
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
 	publishLandDetected(false);
 	_navigator.get_mission_result()->valid = true;
 
-	RtlMissionFastTestPeer mission_fast{&_navigator, stale};
-	mission_fast.loadTestMission({first, second});
+	auto fliesThePublishedMission = [&](auto & mission_fast) {
+		// the copy the mode holds: two waypoints north of the vehicle
+		mission_fast.loadTestMission(makeTwoWaypointMission(200.f, 400.f));
 
-	mission_s fresh = stale;
-	fresh.timestamp = hrt_absolute_time();
-	fresh.mission_id = 8;
-	fresh.count = 2;
-	publishMission(fresh);
+		// GIVEN: a newer mission with different waypoints is published after the mode last ran inactive
+		const std::vector<mission_item_s> fresh_items = makeTwoWaypointMission(1000.f, 1200.f);
+		mission_fast.loadTestMission(fresh_items);
+		publishMission(makeMissionHeader(8, 0, 2));
+
+		// WHEN: the mode is activated on the next cycle
+		mission_fast.activateForTest();
+
+		// THEN: it flies the closest item of the published mission
+		EXPECT_EQ(mission_fast.mission().mission_id, 8u);
+		EXPECT_EQ(mission_fast.activeNavCommand(), NAV_CMD_WAYPOINT);
+		EXPECT_DOUBLE_EQ(mission_fast.activeItem().lat, fresh_items[0].lat);
+		EXPECT_DOUBLE_EQ(mission_fast.activeItem().lon, fresh_items[0].lon);
+	};
+
+	RtlMissionFastTestPeer mission_fast{&_navigator, makeMissionHeader(7, 0, 2)};
+	fliesThePublishedMission(mission_fast);
+
+	RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, makeMissionHeader(7, 0, 2)};
+	fliesThePublishedMission(mission_fast_reverse);
+}
+
+// WHY: when the return is triggered out of a mission, the fast variant continues with the item the
+// vehicle was flying towards. That index was recorded from the mission of the last inactive cycle.
+// WHAT: with the same mission still current, the recorded item is flown, not the closest one.
+TEST_F(RTLTest, MissionFastResumesAfterThePriorItemOfTheSameMission)
+{
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlMissionFastTestPeer mission_fast{&_navigator, makeMissionHeader(7, 0, 2)};
+	const std::vector<mission_item_s> items = makeTwoWaypointMission(200.f, 400.f);
+	mission_fast.loadTestMission(items);
+
+	// GIVEN: the vehicle was flying towards item 1 of mission 7 when the return was triggered, and
+	// mission 7 is published again with its cursor moved
+	mission_fast.setPriorMissionIndexForTest(1, 7);
+	publishMission(makeMissionHeader(7, 0, 2));
 
 	mission_fast.activateForTest();
 
-	EXPECT_EQ(mission_fast.mission().mission_id, fresh.mission_id);
-	EXPECT_EQ(mission_fast.activeNavCommand(), NAV_CMD_WAYPOINT);
+	// THEN: the mode continues with that item, not with the closest one
+	EXPECT_TRUE(mission_fast.activeItemValid());
+	EXPECT_DOUBLE_EQ(mission_fast.activeItem().lat, items[1].lat);
+	EXPECT_DOUBLE_EQ(mission_fast.activeItem().lon, items[1].lon);
+}
+
+// WHY: the recorded index belongs to the mission it was read from. Applied to a mission that arrived
+// since, it points at an unrelated item, or past the end of a shorter mission.
+// WHAT: when the mission id changed across the refresh, the index is dropped and the closest item of
+// the new mission is flown instead.
+TEST_F(RTLTest, MissionFastDropsThePriorIndexWhenTheMissionChanged)
+{
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	// the vehicle was flying item 1 of a three item mission
+	RtlMissionFastTestPeer mission_fast{&_navigator, makeMissionHeader(7, 1, 3)};
+	mission_fast.setPriorMissionIndexForTest(1, 7);
+
+	// GIVEN: a two item mission replaced it before the return activated
+	const std::vector<mission_item_s> fresh_items = makeTwoWaypointMission(1000.f, 1200.f);
+	mission_fast.loadTestMission(fresh_items);
+	publishMission(makeMissionHeader(8, 0, 2));
+
+	mission_fast.activateForTest();
+
+	// THEN: the closest item of the new mission is flown, not the item after index 1, which the new
+	// mission does not have
+	EXPECT_TRUE(mission_fast.activeItemValid());
+	EXPECT_EQ(mission_fast.mission().current_seq, 0);
+	EXPECT_DOUBLE_EQ(mission_fast.activeItem().lat, fresh_items[0].lat);
+	EXPECT_DOUBLE_EQ(mission_fast.activeItem().lon, fresh_items[0].lon);
+}
+
+// WHY: the return controller decides the return type and the avoidance destination from the mission
+// copy its mission mode holds, and then activates that mode. The mode reads the mission topic on its
+// inactive and active cycles but not on the cycle that activates it, so the controller refreshes the
+// mode's copy first and everything on that cycle works from one snapshot.
+// WHAT: a mission published after the controller's last inactive cycle is the one the return flies.
+TEST_F(RTLTest, ReturnActivationFliesTheMissionPublishedSinceTheLastInactiveCycle)
+{
+	int32_t rtl_type = 2; // RTL_TYPE_MISSION_FAST, follows the mission to its landing, so it needs a land start
+	param_set(param_find("RTL_TYPE"), &rtl_type);
+	RTLTestPeer &rtl = _rtl;
+	rtl.updateParamsForTest();
+
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+
+	auto make_mission = [&](uint32_t mission_id, dm_item_t slot, float waypoint_north_m, float land_north_m) {
+		const PositionYawSetpoint waypoint_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon,
+				waypoint_north_m, 0.f, kAlt);
+		const PositionYawSetpoint land_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, land_north_m, 0.f,
+				kAlt);
+		mission_item_s waypoint = makeSafePointItem(waypoint_position.lat, waypoint_position.lon, kAlt, NAV_FRAME_GLOBAL,
+					  NAV_CMD_WAYPOINT);
+		waypoint.autocontinue = true;
+		mission_item_s land = makeSafePointItem(land_position.lat, land_position.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND);
+		land.autocontinue = true;
+		writeMissionToDataman(slot, {waypoint, land_start, land});
+
+		mission_s mission = makeMissionHeader(mission_id, 0, 3);
+		mission.mission_dataman_id = slot;
+		mission.land_start_index = 1;
+		mission.land_index = 2;
+		return mission;
+	};
+
+	// the controller ran inactive with mission 7, a waypoint 4 km north of the vehicle, and prepared
+	// the mission fast mode from it
+	const mission_s stale = make_mission(7, DM_KEY_WAYPOINTS_OFFBOARD_1, 4000.f, 5000.f);
+	publishMission(stale);
+	setMissionResultValid(stale);
+	rtl.on_inactive();
+	rtl.decideRtlTypeForTest();
+	ASSERT_EQ(rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_FAST);
+
+	// GIVEN: mission 8 replaced it before the return activated, with a waypoint 1 km north
+	const mission_s fresh = make_mission(8, DM_KEY_WAYPOINTS_OFFBOARD_0, 1000.f, 6000.f);
+	publishMission(fresh);
+	setMissionResultValid(fresh);
+
+	// WHEN: the return activates
+	rtl.on_activation();
+
+	// THEN: it flies to mission 8's waypoint, neither mission 7's nor a loiter where it is
+	const PositionYawSetpoint fresh_waypoint = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt);
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	EXPECT_TRUE(current.valid);
+	EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	EXPECT_NEAR(current.lat, fresh_waypoint.lat, 1e-7);
+	EXPECT_NEAR(current.lon, fresh_waypoint.lon, 1e-7);
+
+	// the dataman is shared by every case in this binary, so leave the mission slots as they were found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
 }
