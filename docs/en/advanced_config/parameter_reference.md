@@ -44737,7 +44737,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Max motor RPM for neural network normalization.
 
-The maximum RPM of the motors. Used to normalize the output of the neural network
+The maximum RPM of the motors. Used to normalize the output of the neural network. Has to be above MC_NN_MIN_RPM. Together with MC_NN_THRST_COEF it sets the part of the action range the motor can reproduce, which the module reports at startup.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -44752,7 +44752,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Min motor RPM for neural network normalization.
 
-The minimum RPM of the motors. Used to normalize the output of the neural network
+The minimum RPM of the motors. Used to normalize the output of the neural network. Actions that ask for less than this idle the motor.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -44772,7 +44772,7 @@ Thrust coefficient of the motors. Used to normalize the output of the neural net
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 5.0 |  | 1.2 |  | &nbsp;
+&nbsp; | 0.01 | 5.0 |  | 1.2 |  | &nbsp;
 
 </div>
 
