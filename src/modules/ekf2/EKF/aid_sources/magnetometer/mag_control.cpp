@@ -75,6 +75,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			stopMagFusion();
 
 			_mag_lpf.reset(mag_sample.mag);
+			_mag_lpf_time_last_us = mag_sample.time_us;
 			_mag_counter = 1;
 
 			if (!_control_status.flags.in_air && !_control_status.flags.yaw_manual) {
@@ -84,7 +85,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			}
 
 		} else {
-			_mag_lpf.update(mag_sample.mag);
+			// the filter runs once per magnetometer sample, not once per EKF update
+			_mag_lpf.update(mag_sample.mag, mag_sample.time_us - _mag_lpf_time_last_us);
+			_mag_lpf_time_last_us = mag_sample.time_us;
 			_mag_counter++;
 		}
 
