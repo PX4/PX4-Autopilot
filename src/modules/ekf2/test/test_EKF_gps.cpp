@@ -364,8 +364,8 @@ TEST_F(EkfGpsTest, gnssIntermittentSaccFailureDisablesFusion)
 	// Each good sample passes runInitialFixChecks() but run() still returns false because
 	// the last failure is too recent (min_health_time_us = 10s not satisfied).
 	// The fusion must therefore never actually fuse any data.
-	const float bad_sacc = 5.0f;   // fails gnss_req_sacc (default 1.0 m/s)
-	const float good_sacc = 0.2f;  // passes gnss_req_sacc
+	const float bad_sacc = 5.0f;   // fails the checks' req_sacc (1.0 m/s in the simulator)
+	const float good_sacc = 0.2f;  // passes it
 
 	for (int i = 0; i < 4; i++) {
 		gnssSample gps_data = _sensor_simulator._gps.getData();

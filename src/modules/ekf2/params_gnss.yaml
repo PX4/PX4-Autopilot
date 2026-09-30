@@ -78,3 +78,27 @@ parameters:
       unit: m/s
       max: 100.0
       decimal: 1
+    EKF2_REQ_GPS_H:
+      description:
+        short: GNSS fusion restart and heading reset wait
+        long: After EKF2 stops GNSS velocity and position fusion, it restarts it only
+          after this time while disarmed on the ground, and after a tenth of it, at
+          least 1 s, otherwise. After a GNSS heading failure, a yaw reset to the GNSS
+          heading also waits this long. The GNSS checks use GNSS_REQ_TIME.
+      type: float
+      default: 10.0
+      min: 0.1
+      decimal: 1
+      unit: s
+    EKF2_REQ_SACC:
+      description:
+        short: GNSS speed accuracy for vertical velocity and yaw estimator
+        long: Below this speed accuracy EKF2 trusts the GNSS vertical velocity while the
+          accelerometer clips, and feeds the GNSS velocity to the EKF-GSF yaw estimator.
+          The GNSS checks use GNSS_REQ_SACC.
+      type: float
+      default: 0.5
+      min: 0.5
+      max: 5.0
+      unit: m/s
+      decimal: 2

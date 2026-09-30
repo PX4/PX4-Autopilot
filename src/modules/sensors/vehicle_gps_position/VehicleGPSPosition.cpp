@@ -362,6 +362,16 @@ void VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 	heading_out.baseline_length = sample.baseline_length;
 	heading_out.jamming_state = sample.jamming_state;
 	heading_out.spoofing_state = sample.spoofing_state;
+
+	// The heading receiver's spoofing and jamming reports gate the heading under the same GNSS_CHECK bits as the
+	// position; its other checks don't apply, as the heading is a separate observation
+	const int32_t check_mask = _param_gnss_check.get();
+	const bool spoofed = (sample.spoofing_state == sensor_gnss_s::SPOOFING_STATE_DETECTED)
+			     && (check_mask & vehicle_gnss_s::CHECK_SPOOFED);
+	const bool jammed = (sample.jamming_state == sensor_gnss_s::JAMMING_STATE_DETECTED)
+			    && (check_mask & vehicle_gnss_s::CHECK_JAMMED);
+	heading_out.usable = !spoofed && !jammed;
+
 	heading_out.timestamp = hrt_absolute_time();
 	_vehicle_gnss_heading_pub.publish(heading_out);
 }

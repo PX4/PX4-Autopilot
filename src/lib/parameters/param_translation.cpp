@@ -388,13 +388,11 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			{"EKF2_GPS_CHECK", "GNSS_CHECK"},
 			{"EKF2_REQ_EPH", "GNSS_REQ_EPH"},
 			{"EKF2_REQ_EPV", "GNSS_REQ_EPV"},
-			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
 			{"EKF2_REQ_NSATS", "GNSS_REQ_NSATS"},
 			{"EKF2_REQ_PDOP", "GNSS_REQ_PDOP"},
 			{"EKF2_REQ_HDRIFT", "GNSS_REQ_HDRIFT"},
 			{"EKF2_REQ_VDRIFT", "GNSS_REQ_VDRIFT"},
 			{"EKF2_REQ_FIX", "GNSS_REQ_FIX"},
-			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
 		};
 
 		for (const auto &rename : kRenames) {
@@ -402,6 +400,26 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				strcpy(node->name, rename[1]);
 				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
 				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-09-30: EKF2_REQ_SACC and EKF2_REQ_GPS_H stay EKF2 parameters for EKF2's own thresholds and waits, while the
+	// GNSS checks use GNSS_REQ_SACC and GNSS_REQ_TIME. A value tuned before the checks moved applied to both, so it is
+	// copied to the check parameter. Parameters are exported sorted by name, so a GNSS_* value saved alongside is
+	// imported after this and takes precedence.
+	{
+		static constexpr const char *kCopies[][2] {
+			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
+			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
+		};
+
+		for (const auto &copy : kCopies) {
+			if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp(copy[0], node->name) == 0)) {
+				const float value = static_cast<float>(node->d);
+				param_set(param_find(copy[1]), &value);
+				PX4_INFO("copying %s -> %s", copy[0], copy[1]);
+				return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 			}
 		}
 	}

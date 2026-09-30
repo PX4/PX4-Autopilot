@@ -46,7 +46,6 @@
 #include "estimator_interface.h"
 
 #if defined(CONFIG_EKF2_GNSS)
-# include <uORB/topics/vehicle_gnss.h>
 # include "yaw_estimator/EKFGSF_yaw.h"
 #endif // CONFIG_EKF2_GNSS
 
