@@ -56100,8 +56100,8 @@ The secondary instance is then only used if the primary one times out.
 
 To select a DroneCAN GPS, set this to the node ID.
 
-The primary receiver is reported in the GPS_RAW_INT MAVLink
-message and the secondary in GPS2_RAW.
+GPS_RAW_INT reports the preferred receiver, or without one the first receiver
+to publish, and GPS2_RAW the other one. Neither follows the selection.
 
 
 
