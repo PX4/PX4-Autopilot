@@ -105,7 +105,6 @@ private:
 	// return the square of two floating point numbers
 	static constexpr float sq(float var) { return var * var; }
 
-	uint8_t _init_retries{5};
 	void sensorCallback(VnUartPacket *packet);
 
 	DEFINE_PARAMETERS(
