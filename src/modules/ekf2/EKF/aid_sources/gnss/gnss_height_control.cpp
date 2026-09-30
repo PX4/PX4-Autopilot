@@ -96,13 +96,31 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
+		// The new receiver can report a height offset from the previous one (correction source, geoid model)
+		const bool receiver_changed = (gps_sample.selection_count != _gnss_hgt_selection_count);
+		_gnss_hgt_selection_count = gps_sample.selection_count;
+
 		const bool altitude_initialisation_conditions_passing = common_conditions_passing
 				&& !PX4_ISFINITE(_local_origin_alt)
 				&& _params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS)
 				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 		if (_control_status.flags.gps_hgt) {
-			if (continuing_conditions_passing) {
+			if (continuing_conditions_passing && receiver_changed) {
+				if ((_height_sensor_ref == HeightSensor::GNSS) && isGnssHgtResetAllowed()) {
+					ECL_INFO("GNSS receiver changed, resetting height");
+					_information_events.flags.reset_hgt_to_gps = true;
+					resetAltitudeTo(measurement, measurement_var);
+					bias_est.reset();
+
+				} else {
+					// Keep the height estimate: the offset to the new receiver goes into the bias
+					bias_est.setBias(-_gpos.altitude() + measurement);
+				}
+
+				resetAidSourceStatusZeroInnovation(aid_src);
+
+			} else if (continuing_conditions_passing) {
 
 				// update the bias estimator before updating the main filter but after
 				// using its current state to compute the vertical position innovation

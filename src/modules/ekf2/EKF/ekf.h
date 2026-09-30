@@ -625,6 +625,10 @@ private:
 
 	uint64_t _time_last_gnss_hgt_rejected{0};
 
+	// selection_count of the last GNSS sample used by the position and height control, to detect a receiver change
+	uint8_t _gnss_pos_selection_count{0};
+	uint8_t _gnss_hgt_selection_count{0};
+
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	estimator_aid_source1d_s _aid_src_gnss_yaw {};
 	uint64_t _time_last_gnss_yaw_fail_us{0}; ///< last fusion failure or spoofing/jamming report of the heading receiver

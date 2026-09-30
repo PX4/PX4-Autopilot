@@ -2630,6 +2630,19 @@ void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 			return; //TODO: change and set to NAN
 		}
 
+		// Receivers report positions in the frame of their correction source: count the changes of the selected
+		// receiver so that the EKF resets to the new one. A receiver without a device_id can't be told apart.
+		const uint32_t device_id = vehicle_gnss.receiver.device_id;
+
+		if (device_id != 0) {
+			if ((_device_id_gnss != 0) && (device_id != _device_id_gnss)) {
+				PX4_DEBUG("%d - GNSS receiver changed %" PRIu32 " -> %" PRIu32, _instance, _device_id_gnss, device_id);
+				_gnss_selection_count++;
+			}
+
+			_device_id_gnss = device_id;
+		}
+
 		const float altitude_amsl = static_cast<float>(vehicle_gnss.receiver.altitude_msl);
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gnss.receiver.altitude_ellipsoid);
 
@@ -2653,6 +2666,7 @@ void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 					     vehicle_gnss.antenna_offset[1],
 					     vehicle_gnss.antenna_offset[2]),
 			.usable = vehicle_gnss.usable,
+			.selection_count = _gnss_selection_count,
 		};
 
 		_ekf.setGpsData(gnss_sample);

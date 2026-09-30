@@ -211,8 +211,23 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 	const bool starting_conditions_passing = continuing_conditions_passing && isGnssRestartHoldOffElapsed();
 	const bool gpos_init_conditions_passing = gnss_pos_enabled && isGnssRestartHoldOffElapsed();
 
+	// The new receiver can report a position offset from the previous one (different correction source)
+	const bool receiver_changed = (_gps_sample_delayed.selection_count != _gnss_pos_selection_count);
+	_gnss_pos_selection_count = _gps_sample_delayed.selection_count;
+
 	if (_control_status.flags.gnss_pos) {
-		if (continuing_conditions_passing) {
+		if (continuing_conditions_passing && receiver_changed) {
+			if (isGnssPosResetAllowed()) {
+				ECL_INFO("GNSS receiver changed, resetting position");
+				resetHorizontalPositionToGnss(aid_src);
+
+			} else {
+				// Another source constrains the position: restart once the new receiver is consistent with it
+				ECL_WARN("GNSS receiver changed, restarting position fusion");
+				stopGnssPosFusion();
+			}
+
+		} else if (continuing_conditions_passing) {
 			fuseHorizontalPosition(aid_src);
 
 			const bool fusion_timeout = isTimedOut(aid_src.time_last_fuse, _params.reset_timeout_max);
