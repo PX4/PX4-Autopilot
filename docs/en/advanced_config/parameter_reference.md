@@ -26223,7 +26223,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Arming without GNSS configuration.
 
 Configures whether arming is allowed without GNSS, for modes that require a global position
-(specifically, in those modes when a check defined by EKF2_GPS_CHECK fails).
+(specifically, in those modes when a check defined by GNSS_CHECK fails).
 The settings deny arming and warn, allow arming and warn, or silently allow arming.
 
 
@@ -28594,7 +28594,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## EKF2
 
-<div class="param-group" style="--param-count: 163">
+<div class="param-group" style="--param-count: 153">
 
 <div class="param">
 
@@ -29644,37 +29644,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_GPS_CHECK (`INT32`) {#EKF2_GPS_CHECK}
-
-Integer bitmask controlling GPS checks.
-
-Each threshold value is defined by the parameter indicated next to the check. Drift and offset checks only run when the vehicle is on ground and stationary. The spoofing and jamming checks also apply to the receiver providing the GNSS heading.
-
-
-**Bitmask:**
-
-- `0`: Sat count (EKF2_REQ_NSATS)
-- `1`: PDOP (EKF2_REQ_PDOP)
-- `2`: EPH (EKF2_REQ_EPH)
-- `3`: EPV (EKF2_REQ_EPV)
-- `4`: Speed accuracy (EKF2_REQ_SACC)
-- `5`: Horizontal position drift (EKF2_REQ_HDRIFT)
-- `6`: Vertical position drift (EKF2_REQ_VDRIFT)
-- `7`: Horizontal speed offset (EKF2_REQ_HDRIFT)
-- `8`: Vertical speed offset (EKF2_REQ_VDRIFT)
-- `9`: Spoofing
-- `10`: GPS fix type (EKF2_REQ_FIX)
-- `11`: Jamming
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 4095 |  | 2047 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### EKF2_GPS_CTRL (`INT32`) {#EKF2_GPS_CTRL}
 
 GNSS sensor aiding.
@@ -30506,131 +30475,6 @@ EKF prediction period in microseconds. This should ideally be an integer multipl
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 1000 | 20000 |  | 10000 | us | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_EPH (`FLOAT`) {#EKF2_REQ_EPH}
-
-Required EPH to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 100 |  | 3.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_EPV (`FLOAT`) {#EKF2_REQ_EPV}
-
-Required EPV to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 100 |  | 5.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_FIX (`INT32`) {#EKF2_REQ_FIX}
-
-Required GPS fix.
-
-Minimum GPS fix type required for GPS usage.
-
-
-**Values:**
-
-- `0`: No fix required
-- `2`: 2D fix
-- `3`: 3D fix
-- `4`: RTCM code differential
-- `5`: RTK float
-- `6`: RTK fixed
-- `8`: Extrapolated
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 3 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_GPS_H (`FLOAT`) {#EKF2_REQ_GPS_H}
-
-Required GPS health time on startup.
-
-Minimum continuous period without GPS failure required to mark a healthy GPS status. It can be reduced to speed up initialization, but it's recommended to keep this unchanged for a vehicle.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | 0.1 |  |  | 10.0 | s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_HDRIFT (`FLOAT`) {#EKF2_REQ_HDRIFT}
-
-Maximum horizontal drift speed to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 1.0 |  | 0.1 | m/s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_NSATS (`INT32`) {#EKF2_REQ_NSATS}
-
-Required satellite count to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 4 | 12 |  | 6 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_PDOP (`FLOAT`) {#EKF2_REQ_PDOP}
-
-Maximum PDOP to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 1.5 | 5.0 |  | 2.5 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_SACC (`FLOAT`) {#EKF2_REQ_SACC}
-
-Required speed accuracy to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.5 | 5.0 |  | 0.5 | m/s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_VDRIFT (`FLOAT`) {#EKF2_REQ_VDRIFT}
-
-Maximum vertical drift speed to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 1.5 |  | 0.2 | m/s | &nbsp;
 
 </div>
 
@@ -52272,7 +52116,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 254">
+<div class="param-group" style="--param-count: 264">
 
 <div class="param">
 
@@ -52428,6 +52272,162 @@ Use SENS_MAG_SIDES instead
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | 63 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_CHECK (`INT32`) {#GNSS_CHECK}
+
+Integer bitmask controlling GNSS checks.
+
+Each threshold value is defined by the parameter indicated next to the check. Drift and offset checks only run when the vehicle is on ground and stationary. The spoofing and jamming checks also apply to the receiver providing the GNSS heading.
+
+
+**Bitmask:**
+
+- `0`: Sat count (GNSS_REQ_NSATS)
+- `1`: PDOP (GNSS_REQ_PDOP)
+- `2`: EPH (GNSS_REQ_EPH)
+- `3`: EPV (GNSS_REQ_EPV)
+- `4`: Speed accuracy (GNSS_REQ_SACC)
+- `5`: Horizontal position drift (GNSS_REQ_HDRIFT)
+- `6`: Vertical position drift (GNSS_REQ_VDRIFT)
+- `7`: Horizontal speed offset (GNSS_REQ_HDRIFT)
+- `8`: Vertical speed offset (GNSS_REQ_VDRIFT)
+- `9`: Spoofing
+- `10`: GNSS fix type (GNSS_REQ_FIX)
+- `11`: Jamming
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 4095 |  | 2047 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_EPH (`FLOAT`) {#GNSS_REQ_EPH}
+
+Required EPH to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 100 |  | 3.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_EPV (`FLOAT`) {#GNSS_REQ_EPV}
+
+Required EPV to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 100 |  | 5.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_FIX (`INT32`) {#GNSS_REQ_FIX}
+
+Required GNSS fix.
+
+Minimum GNSS fix type required for GNSS usage.
+
+
+**Values:**
+
+- `0`: No fix required
+- `2`: 2D fix
+- `3`: 3D fix
+- `4`: RTCM code differential
+- `5`: RTK float
+- `6`: RTK fixed
+- `8`: Extrapolated
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 3 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_HDRIFT (`FLOAT`) {#GNSS_REQ_HDRIFT}
+
+Maximum horizontal drift speed to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 1.0 |  | 0.1 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_NSATS (`INT32`) {#GNSS_REQ_NSATS}
+
+Required satellite count to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 4 | 12 |  | 6 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_PDOP (`FLOAT`) {#GNSS_REQ_PDOP}
+
+Maximum PDOP to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.5 | 5.0 |  | 2.5 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_SACC (`FLOAT`) {#GNSS_REQ_SACC}
+
+Required speed accuracy to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 5.0 |  | 0.5 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_TIME (`FLOAT`) {#GNSS_REQ_TIME}
+
+Required GNSS health time on startup.
+
+Minimum continuous period without GNSS failure required to mark a healthy GNSS status. It can be reduced to speed up initialization, but it's recommended to keep this unchanged for a vehicle.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 |  |  | 10.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_VDRIFT (`FLOAT`) {#GNSS_REQ_VDRIFT}
+
+Maximum vertical drift speed to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 1.5 |  | 0.2 | m/s | &nbsp;
 
 </div>
 

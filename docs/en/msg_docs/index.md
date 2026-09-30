@@ -125,7 +125,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorBias3d](EstimatorBias3d.md)
 - [EstimatorEventFlags](EstimatorEventFlags.md)
 - [EstimatorFusionControl](EstimatorFusionControl.md)
-- [EstimatorGpsStatus](EstimatorGpsStatus.md)
 - [EstimatorInnovations](EstimatorInnovations.md)
 - [EstimatorSelectorStatus](EstimatorSelectorStatus.md)
 - [EstimatorSensorBias](EstimatorSensorBias.md) — Sensor readings and in-run biases in SI-unit form. Sensor readings are compensated for static offsets,. scale errors, in-run bias and thermal drift (if thermal compensation is enabled and available).
@@ -271,6 +270,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorTemp](SensorTemp.md)
 - [SensorUwb](SensorUwb.md) — Ultra-wideband (UWB) distance sensor.
 - [SensorsStatus](SensorsStatus.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
+- [SensorsStatusGnss](SensorsStatusGnss.md) — Per-receiver GNSS health and check diagnostics.
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
