@@ -74,25 +74,37 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
 		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
+		const bool checks_passed = _gnss_checks.run(gnss_sample, _time_delayed_us);
 
-		if (_gnss_checks.run(gnss_sample, _time_delayed_us)) {
+		if (checks_passed && _gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
+			// First time checks are passing, latching.
+			_information_events.flags.gps_checks_passed = true;
+		}
+
+		// Each axis of the velocity state is constrained to EKF2_VEL_LIM, so a sample beyond it cannot be fused
+		const bool vel_within_limit = gnss_sample.vel.isAllFinite()
+					      && (gnss_sample.vel.abs().max() <= _params.ekf2_vel_lim);
+
+		if (checks_passed && vel_within_limit) {
 			_time_last_gnss_checks_pass_us = _time_delayed_us;
-
-			if (_gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
-				// First time checks are passing, latching.
-				_information_events.flags.gps_checks_passed = true;
-			}
 
 		} else {
 			// Skip this sample
 			_gps_data_ready = false;
 
-			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
+			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos
+						|| _control_status.flags.gps_hgt;
 			const bool gnss_checks_pass_timeout = isTimedOut(_time_last_gnss_checks_pass_us, _params.reset_timeout_max);
 
 			if (using_gnss && gnss_checks_pass_timeout) {
 				stopGnssFusion();
-				ECL_WARN("GNSS quality poor - stopping use");
+
+				if (checks_passed) {
+					ECL_WARN("GNSS velocity above limit - stopping use");
+
+				} else {
+					ECL_WARN("GNSS quality poor - stopping use");
+				}
 			}
 		}
 
