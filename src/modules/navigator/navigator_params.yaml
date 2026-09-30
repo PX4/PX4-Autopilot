@@ -40,7 +40,7 @@ parameters:
       description:
         short: FW Altitude acceptance radius before landing
         long: FW acceptance alt for last waypoint before landing.
-          Usually smaller than NAV_FW_ALT_RAD: accuracy matters more near the ground.
+          Usually smaller than NAV_FW_ALT_RAD; accuracy matters more near the ground.
       type: float
       default: 5.0
       unit: m
