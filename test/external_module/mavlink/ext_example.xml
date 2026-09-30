@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<mavlink>
+	<include>common.xml</include>
+	<version>3</version>
+	<dialect>0</dialect>
+	<messages>
+		<message id="61000" name="EXT_EXAMPLE_PING">
+			<description>Request; the vehicle answers with EXT_EXAMPLE_PONG carrying the same seq and payload.</description>
+			<field type="uint8_t" name="target_system">System ID</field>
+			<field type="uint8_t" name="target_component">Component ID</field>
+			<field type="uint32_t" name="seq">Echoed in the reply</field>
+			<field type="uint8_t[16]" name="payload">Echoed in the reply</field>
+		</message>
+		<message id="61001" name="EXT_EXAMPLE_PONG">
+			<description>Reply to EXT_EXAMPLE_PING, sent once on every running link.</description>
+			<field type="uint32_t" name="seq">seq of the request</field>
+			<field type="uint32_t" name="payload_sum">Sum of the request payload bytes</field>
+			<field type="uint8_t[16]" name="payload">payload of the request</field>
+		</message>
+		<message id="61002" name="EXT_EXAMPLE_STATUS">
+			<description>Counters, 2 Hz by default; rate set per link with SET_MESSAGE_INTERVAL.</description>
+			<field type="uint32_t" name="pings_received">EXT_EXAMPLE_PING messages handled</field>
+			<field type="uint32_t" name="pongs_sent">EXT_EXAMPLE_PONG messages sent, summed over links</field>
+			<field type="uint32_t" name="status_seq">Incremented per EXT_EXAMPLE_STATUS sent on any link</field>
+		</message>
+	</messages>
+</mavlink>
