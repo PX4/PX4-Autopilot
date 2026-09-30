@@ -516,3 +516,43 @@ TEST_F(GpsBlendingTest, dualReceiverUTCTime)
 	// THEN: The average of the two timestamps should be used
 	EXPECT_EQ(gps_blending.getOutputGpsData().time_utc_usec, 1700000000000500ULL);
 }
+
+TEST_F(GpsBlendingTest, disabledBlendingPreservesSelectedReceiverRate)
+{
+	GpsBlending selector;
+	selector.setPrimaryInstance(-1);
+	sensor_gps_s slow = getDefaultGpsData();
+	sensor_gps_s fast = slow;
+	slow.fix_type = 5;
+	fast.fix_type = 6;
+	unsigned published = 0;
+
+	// Ten seconds warm-up, then ten seconds at 1 Hz Float versus 5 Hz Fixed.
+	for (unsigned step = 0; step < 100; ++step) {
+		_time_now_us += 200_ms;
+		fast.timestamp = _time_now_us;
+		selector.setGpsData(fast, 1);
+
+		if (step % 5 == 0) {
+			slow.timestamp = _time_now_us;
+			selector.setGpsData(slow, 0);
+		}
+
+		selector.update(_time_now_us);
+		EXPECT_EQ(selector.getSelectedGps(), 1);
+
+		if (step >= 50 && selector.isNewOutputDataAvailable()) {
+			++published;
+		}
+	}
+
+	EXPECT_EQ(published, 50u);
+
+	// Disabled blending must still discard a timed-out higher-fix receiver.
+	_time_now_us += GpsBlending::GPS_TIMEOUT_US + 1;
+	slow.timestamp = _time_now_us;
+	selector.setGpsData(slow, 0);
+	selector.update(_time_now_us);
+	EXPECT_EQ(selector.getSelectedGps(), 0);
+	EXPECT_TRUE(selector.isNewOutputDataAvailable());
+}

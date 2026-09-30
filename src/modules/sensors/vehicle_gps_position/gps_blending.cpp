@@ -164,6 +164,11 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 		_np_gps_suitable_for_blending++;
 	}
 
+	// If blending is disabled, skip the blend timing gate below so single-receiver selection is held up
+	if (!_blend_use_spd_acc && !_blend_use_hpos_acc && !_blend_use_vpos_acc) {
+		return false;
+	}
+
 	// Find the receiver that is last be updated
 	uint64_t max_us = 0; // newest non-zero system time of arrival of a GPS message
 	uint64_t min_us = -1; // oldest non-zero system time of arrival of a GPS message
