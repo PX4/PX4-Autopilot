@@ -265,7 +265,15 @@ gst-launch-1.0 -v udpsrc port=5600 \
 
 #### Multi-Sensor Simulation
 
-It is possible to simulate multiple sensors in Gazebo, which can be useful for testing failover and multi-EKF. To do so, sensors added in the model sdf file should follow the exact same convention as primary sensors but with _1, _2 added at the end of their name. Supported sensor type for multi sensors are : GNSS, IMU, BAROMETER, and MAGNETOMETER. To activate multiple sensors on GZBridge side, use [SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS), [SIM_GZ_EN_IMU](../advanced_config/parameter_reference.md#SIM_GZ_EN_IMU), [SIM_GZ_EN_MAG](../advanced_config/parameter_reference.md#SIM_GZ_EN_MAG), [SIM_GZ_EN_BARO](../advanced_config/parameter_reference.md#SIM_GZ_EN_BARO)
+Gazebo can simulate multple sensor instancs for GNSS, IMU, barometer and magnetometer, which is useful for testing failover and multi-EKF.
+
+To support additional sensors they must first be added in the model sdf file following the same convention as primary sensors, but with `_1`, `_2` added at the end of their name.
+
+Then use the appropriate parameter below to specify the number of sensors to enable:
+- [SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS)
+- [SIM_GZ_EN_IMU](../advanced_config/parameter_reference.md#SIM_GZ_EN_IMU)
+- [SIM_GZ_EN_MAG](../advanced_config/parameter_reference.md#SIM_GZ_EN_MAG)
+- [SIM_GZ_EN_BARO](../advanced_config/parameter_reference.md#SIM_GZ_EN_BARO)
 
 #### Multi-Vehicle Simulation
 
