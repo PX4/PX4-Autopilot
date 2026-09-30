@@ -317,8 +317,8 @@ void Navigator::run()
 		}
 
 		/* gps updated */
-		if (_gps_pos_sub.updated()) {
-			_gps_pos_sub.copy(&_gps_pos);
+		if (_vehicle_gnss_sub.updated()) {
+			_vehicle_gnss_sub.copy(&_vehicle_gnss);
 		}
 
 		/* global position updated */
@@ -1205,12 +1205,12 @@ void Navigator::geofence_breach_check()
 
 		// relying on raw gps is questionable already, but at least check the basics
 		const bool raw_gps_valid =
-			hrt_elapsed_time(&_gps_pos.timestamp) < 2_s && _gps_pos.fix_type >= 2;
+			hrt_elapsed_time(&_vehicle_gnss.timestamp) < 2_s && _vehicle_gnss.receiver.fix_type >= 2;
 
 		if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
-			current_latitude = _gps_pos.latitude_deg;
-			current_longitude = _gps_pos.longitude_deg;
-			current_altitude = _gps_pos.altitude_msl_m;
+			current_latitude = _vehicle_gnss.receiver.latitude;
+			current_longitude = _vehicle_gnss.receiver.longitude;
+			current_altitude = _vehicle_gnss.receiver.altitude_msl;
 
 			have_valid_position_for_breach_check = raw_gps_valid;
 		}

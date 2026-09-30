@@ -258,6 +258,9 @@ jobs:
         with:
           name: px4_${{matrix.group}}_build_artifacts
           path: artifacts/
+          # Long enough for PR authors to download a build, and for the
+          # artifacts job below to copy push and tag builds to S3.
+          retention-days: 1
 
       - uses: ./.github/actions/save-ccache
         if: success()

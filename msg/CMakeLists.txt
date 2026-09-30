@@ -206,10 +206,10 @@ set(msg_files
 	SensorBaro.msg
 	SensorCombined.msg
 	SensorCorrection.msg
+	SensorGnss.msg
 	SensorGnssRelative.msg
 	SensorGnssRf.msg
 	SensorGnssStatus.msg
-	SensorGps.msg
 	SensorGyro.msg
 	SensorGyroFft.msg
 	SensorGyroFifo.msg
@@ -242,6 +242,7 @@ set(msg_files
 	VehicleAirData.msg
 	VehicleConstraints.msg
 	VehicleControlMode.msg
+	VehicleGnss.msg
 	VehicleGnssHeading.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg

@@ -36,15 +36,12 @@
 using matrix::Vector3f;
 using namespace time_literals;
 
-template<px4::params ParamEnable, px4::params ParamGainMin>
-GainCompression3dT<ParamEnable, ParamGainMin>::GainCompression3dT(ModuleParams *parent) : ModuleParams(parent)
+GainCompression3d::GainCompression3d()
 {
-	updateParams();
 	_gain_compression_pub.advertise();
 }
 
-template<px4::params ParamEnable, px4::params ParamGainMin>
-void GainCompression3dT<ParamEnable, ParamGainMin>::reset()
+void GainCompression3d::reset()
 {
 	for (unsigned i = 0; i < 3; i++) {
 		_compression_gains[i].reset();
@@ -53,20 +50,16 @@ void GainCompression3dT<ParamEnable, ParamGainMin>::reset()
 	_gains.setOne();
 }
 
-template<px4::params ParamEnable, px4::params ParamGainMin>
-void GainCompression3dT<ParamEnable, ParamGainMin>::updateParams()
+void GainCompression3d::setCompressionGainMin(const float gain_min)
 {
-	ModuleParams::updateParams();
-
 	for (unsigned i = 0; i < 3; i++) {
-		_compression_gains[i].setCompressionGainMin(_param_gc_gain_min.get());
+		_compression_gains[i].setCompressionGainMin(gain_min);
 	}
 }
 
-template<px4::params ParamEnable, px4::params ParamGainMin>
-void GainCompression3dT<ParamEnable, ParamGainMin>::update(const Vector3f &input, const float dt)
+void GainCompression3d::update(const Vector3f &input, const float dt)
 {
-	if (!_param_gc_en.get()) {
+	if (!_enabled) {
 		reset();
 		return;
 	}
@@ -98,9 +91,6 @@ void GainCompression3dT<ParamEnable, ParamGainMin>::update(const Vector3f &input
 		_time_last_publication = now;
 	}
 }
-
-template class GainCompression3dT<px4::params::FW_GC_EN, px4::params::FW_GC_GAIN_MIN>;
-template class GainCompression3dT<px4::params::MC_GC_EN, px4::params::MC_GC_GAIN_MIN>;
 
 float GainCompression::update(const float input, const float dt)
 {

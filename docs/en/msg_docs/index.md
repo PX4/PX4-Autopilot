@@ -45,7 +45,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleAttitudeSetpoint](VehicleAttitudeSetpoint.md)
 - [VehicleCommand](VehicleCommand.md) — Vehicle Command uORB message. Used for commanding a mission / action / etc. Follows the MAVLink COMMAND_INT / COMMAND_LONG definition.
 - [VehicleCommandAck](VehicleCommandAck.md) — Vehicle Command Acknowledgement uORB message.
-- [VehicleGlobalPosition](VehicleGlobalPosition.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
+- [VehicleGlobalPosition](VehicleGlobalPosition.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gnss). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 - [VehicleLandDetected](VehicleLandDetected.md)
 - [VehicleLocalPosition](VehicleLocalPosition.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 - [VehicleOdometry](VehicleOdometry.md) — Vehicle odometry data.
@@ -255,11 +255,11 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorBaro](SensorBaro.md) — Barometer sensor.
 - [SensorCombined](SensorCombined.md) — Sensor readings in SI-unit form. These fields are scaled and offset-compensated where possible and do not. change with board revisions and sensor updates.
 - [SensorCorrection](SensorCorrection.md) — Sensor corrections in SI-unit form for the voted sensor.
+- [SensorGnss](SensorGnss.md) — GNSS receiver report, position in WGS84.
 - [SensorGnssRelative](SensorGnssRelative.md) — GNSS relative positioning information in NED frame. The NED frame is defined as the local topological system at the reference station.
 - [SensorGnssRf](SensorGnssRf.md) — GNSS RF status.
 - [SensorGnssSpectrum](SensorGnssSpectrum.md) — GNSS spectrum analysis.
 - [SensorGnssStatus](SensorGnssStatus.md) — Gnss quality indicators.
-- [SensorGps](SensorGps.md) — GPS position in WGS84 coordinates. the field 'timestamp' is for the position & velocity (microseconds).
 - [SensorGyro](SensorGyro.md)
 - [SensorGyroFft](SensorGyroFft.md)
 - [SensorGyroFifo](SensorGyroFifo.md)
@@ -292,6 +292,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleAirData](VehicleAirData.md) — Vehicle air data.
 - [VehicleConstraints](VehicleConstraints.md) — Local setpoint constraints in NED frame. setting something to NaN means that no limit is provided.
 - [VehicleControlMode](VehicleControlMode.md) — Defines which controllers should run.
+- [VehicleGnss](VehicleGnss.md) — Selected GNSS solution.
 - [VehicleGnssHeading](VehicleGnssHeading.md) — GNSS heading from a dual-antenna or moving-baseline receiver, published by the sensors module from sensor_gnss_relative. Only headings whose reported baseline matches the configured SENS_GNSSn_HDG baseline are published. Consumed by EKF2. independently from position/velocity.
 - [VehicleImu](VehicleImu.md) — IMU readings in SI-unit form.
 - [VehicleImuStatus](VehicleImuStatus.md)

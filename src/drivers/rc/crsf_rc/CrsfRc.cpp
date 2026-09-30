@@ -323,15 +323,15 @@ void CrsfRc::Run()
 				break;
 
 			case 1:
-				sensor_gps_s sensor_gps;
+				vehicle_gnss_s vehicle_gnss;
 
-				if (_vehicle_gps_position_sub.update(&sensor_gps)) {
-					int32_t latitude = static_cast<int32_t>(round(sensor_gps.latitude_deg * 1e7));
-					int32_t longitude = static_cast<int32_t>(round(sensor_gps.longitude_deg * 1e7));
-					uint16_t groundspeed = sensor_gps.vel_m_s * 3.6f * 10.f;   // 0.1 km/h
-					uint16_t gps_heading = math::degrees(matrix::wrap_2pi(sensor_gps.cog_rad)) * 100.f;
-					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m) + 1000;   // meters + 1000 offset
-					uint8_t num_satellites = sensor_gps.satellites_used;
+				if (_vehicle_gnss_sub.update(&vehicle_gnss)) {
+					int32_t latitude = static_cast<int32_t>(round(vehicle_gnss.receiver.latitude * 1e7));
+					int32_t longitude = static_cast<int32_t>(round(vehicle_gnss.receiver.longitude * 1e7));
+					uint16_t groundspeed = vehicle_gnss.receiver.ground_speed * 3.6f * 10.f;   // 0.1 km/h
+					uint16_t gps_heading = math::degrees(matrix::wrap_2pi(vehicle_gnss.receiver.course)) * 100.f;
+					uint16_t altitude = static_cast<int16_t>(vehicle_gnss.receiver.altitude_msl) + 1000;   // meters + 1000 offset
+					uint8_t num_satellites = vehicle_gnss.receiver.satellites_used;
 					this->SendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
 				}
 

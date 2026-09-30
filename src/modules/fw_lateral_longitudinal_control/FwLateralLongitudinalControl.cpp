@@ -190,12 +190,12 @@ void FwLateralLongitudinalControl::Run()
 
 		update_control_state(now);
 
-		if (_control_mode_sub.get().flag_control_manual_enabled && _control_mode_sub.get().flag_control_altitude_enabled
-		    && _local_pos.z_reset_counter != _z_reset_counter) {
-			if (_control_mode_sub.get().flag_control_altitude_enabled && _local_pos.z_reset_counter != _z_reset_counter) {
-				// make TECS accept step in altitude and demanded altitude
-				_tecs.handle_alt_step(_long_control_state.altitude_msl, _long_control_state.height_rate);
-			}
+		if (_local_pos.z_reset_counter != _z_reset_counter) {
+			// The AMSL altitude estimate jumped without the vehicle moving, either because the estimator reset
+			// its vertical position or because it moved the altitude of the local frame origin. Carry the step
+			// over to the TECS altitude reference, which is an AMSL state and would otherwise keep tracking the
+			// altitude the vehicle was at before the jump.
+			_tecs.handle_alt_step(_long_control_state.altitude_msl, _long_control_state.height_rate);
 		}
 
 		const bool should_run = (_control_mode_sub.get().flag_control_position_enabled ||
