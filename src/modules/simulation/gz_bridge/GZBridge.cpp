@@ -383,9 +383,9 @@ bool GZBridge::subscribeAirPressure(bool required)
 
 bool GZBridge::subscribeNavsat(bool required)
 {
-	uint8_t count = math::min(_MAX_GPS_SENSORS, static_cast<uint8_t>(_sim_gz_en_gps.get()));
+	uint8_t count = math::min(_MAX_GNSS_SENSORS, static_cast<uint8_t>(_sim_gz_en_gps.get()));
 
-	for (uint8_t i = 0; i < _MAX_GPS_SENSORS; i++) {
+	for (uint8_t i = 0; i < _MAX_GNSS_SENSORS; i++) {
 		std::string gps_topic;
 
 		if (i == 0) {
@@ -782,7 +782,7 @@ void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude
 
 void GZBridge::navSatCallback(const gz::msgs::NavSat &msg, uint8_t instance_index)
 {
-	uint8_t count = math::min(_MAX_GPS_SENSORS, static_cast<uint8_t>(_sim_gz_en_gps.get()));
+	uint8_t count = math::min(_MAX_GNSS_SENSORS, static_cast<uint8_t>(_sim_gz_en_gps.get()));
 
 	if (instance_index >= count) {
 		return;
