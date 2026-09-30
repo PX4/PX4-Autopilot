@@ -12,7 +12,7 @@
 #define INTERFACE_USB          1
 #define INTERFACE_USB_CONFIG   "/dev/ttyACM0"
 #define INTERFACE_USART        1
-#define INTERFACE_USART_CONFIG "/dev/ttyS0,1500000" /* UART7: TEL1 */
+#define INTERFACE_USART_CONFIG "/dev/ttyS0,115200"
 
 #define BOOT_DELAY_ADDRESS     0x000001a0
 #define BOARD_TYPE             7122
