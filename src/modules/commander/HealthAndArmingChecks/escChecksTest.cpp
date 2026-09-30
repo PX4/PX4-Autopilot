@@ -130,6 +130,7 @@ TEST_F(EscChecksTest, EscOnlineInsideOfflineTimeout)
 // Right after arming the ESCs have not reported armed yet, which must not fail before the arming timeout
 TEST_F(EscChecksTest, EscsNotYetArmedTolerated)
 {
+	static_assert(EscChecks::ESC_ARMING_TIMEOUT_US > EscChecks::ESC_OFFLINE_TIMEOUT_US, "arming timeout must outlast the offline timeout");
 	publishWithStaleEsc(-1, 0, 0b0000); // all fresh, none armed yet
 	runCheck(true);
 	EXPECT_FALSE(_failsafe_flags.fd_esc_arming_failure);

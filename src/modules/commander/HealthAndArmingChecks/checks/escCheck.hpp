@@ -55,8 +55,9 @@ public:
 	// An ESC whose last telemetry report is older than this is reported offline
 	static constexpr hrt_abstime ESC_OFFLINE_TIMEOUT_US = 400_ms;
 
-	// Time all ESCs get to report armed after PX4 arms before "Not all ESCs are armed" fires.
-	static constexpr hrt_abstime ESC_ARMING_TIMEOUT_US = 400_ms;
+	// Time an ESC may report disarmed while PX4 is armed, e.g. right after arming, before "Not all ESCs are armed" fires
+	// VertiQ ESCs over DroneCAN reliably report being armed after 800-890 ms
+	static constexpr hrt_abstime ESC_ARMING_TIMEOUT_US = 900_ms;
 
 private:
 	uint16_t checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
