@@ -14,3 +14,4 @@ float32 baseline_length       # antenna baseline length reported by the receiver
 
 uint8 jamming_state           # jamming_state of the receiver providing the heading, values as in SensorGnss (0: Unknown, 1: OK, 2: Mitigated, 3: Detected)
 uint8 spoofing_state          # spoofing_state of the receiver providing the heading, values as in SensorGnss (0: Unknown, 1: OK, 2: Mitigated, 3: Detected)
+bool usable                   # heading may be used: its receiver reports no spoofing or jamming that the enabled checks reject

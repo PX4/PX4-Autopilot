@@ -211,8 +211,7 @@ struct gnssYawSample {
 	float       yaw{};        ///< yaw angle from dual antenna GNSS (rad, [-PI, PI])
 	float       yaw_acc{};    ///< 1-std yaw error (rad); NAN if not provided
 	float       yaw_offset{}; ///< yaw of the antenna baseline in the body frame (rad)
-	bool        spoofed{};    ///< true if the receiver providing the heading reports spoofing
-	bool        jammed{};     ///< true if the receiver providing the heading reports jamming
+	bool        usable{};     ///< the sensors module found no spoofing or jamming report of the heading receiver that its checks reject
 };
 
 struct magSample {
@@ -380,8 +379,7 @@ struct parameters {
 	float ekf2_gps_p_gate{5.0f};            ///< GPS horizontal position innovation consistency gate size (STD)
 	float ekf2_gps_v_gate{5.0f};            ///< GPS velocity innovation consistency gate size (STD)
 
-	int32_t gnss_check{1045};               ///< GNSS checks enabled, for the heading receiver's spoofing and jamming
-	float gnss_req_sacc{1.0f};              ///< speed accuracy below which GNSS velocity feeds the yaw estimator (m/s)
+	float ekf2_req_sacc{1.0f};              ///< speed accuracy below which GNSS vertical velocity is trusted while the accelerometer clips and GNSS velocity feeds the yaw estimator (m/s)
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
