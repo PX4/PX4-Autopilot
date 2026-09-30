@@ -37,6 +37,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/param.h>
+#include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/esc_status.h>
 
@@ -109,7 +110,7 @@ public:
 // An ESC report older than ESC_OFFLINE_TIMEOUT_US marks the ESC offline, blocks arming, and sets the motor failure mask
 TEST_F(EscChecksTest, EscOfflineAfterOfflineTimeout)
 {
-	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US + 10_ms);
+	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US + 50_ms);
 	runCheck();
 	EXPECT_FALSE(_can_arm);
 	EXPECT_TRUE(_health_error_escs);
@@ -119,7 +120,7 @@ TEST_F(EscChecksTest, EscOfflineAfterOfflineTimeout)
 
 TEST_F(EscChecksTest, EscOnlineInsideOfflineTimeout)
 {
-	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US - 10_ms);
+	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US - 50_ms);
 	runCheck();
 	EXPECT_TRUE(_can_arm);
 	EXPECT_FALSE(_health_error_escs);
@@ -133,7 +134,36 @@ TEST_F(EscChecksTest, EscsNotYetArmedTolerated)
 	static_assert(EscChecks::ESC_ARMING_TIMEOUT_US > EscChecks::ESC_OFFLINE_TIMEOUT_US, "arming timeout must outlast the offline timeout");
 	publishWithStaleEsc(-1, 0, 0b0000); // all fresh, none armed yet
 	runCheck(true);
+	px4_usleep(EscChecks::ESC_ARMING_TIMEOUT_US - 50_ms);
+	publishWithStaleEsc(-1, 0, 0b0000);
+	runCheck(true);
 	EXPECT_FALSE(_failsafe_flags.fd_esc_arming_failure);
 	EXPECT_FALSE(_check.getEscArmStatus());
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
+}
+
+// ESCs still not reporting armed once the arming timeout passed triggers the ESC arming failure
+TEST_F(EscChecksTest, EscsNotArmedFailAfterArmingTimeout)
+{
+	publishWithStaleEsc(-1, 0, 0b0000); // all fresh, none armed yet
+	runCheck(true);
+	px4_usleep(EscChecks::ESC_ARMING_TIMEOUT_US + 50_ms);
+	publishWithStaleEsc(-1, 0, 0b1011); // ESC 3 still not armed
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.fd_esc_arming_failure);
+	EXPECT_TRUE(_check.getEscArmStatus());
+	EXPECT_TRUE(_health_error_escs);
+}
+
+// A stale ESC is ignored when COM_ARM_CHK_ESCS is disabled
+TEST_F(EscChecksTest, EscOfflineIgnoredWithChecksDisabled)
+{
+	const int32_t zero = 0;
+	param_set_no_notification(param_find("COM_ARM_CHK_ESCS"), &zero);
+	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US + 50_ms);
+	runCheck();
+	EXPECT_TRUE(_can_arm);
+	EXPECT_FALSE(_health_error_escs);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
 }
