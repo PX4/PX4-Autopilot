@@ -204,8 +204,8 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 | USART3 | /dev/ttyS2 | GPS1   | `GPS`                                       |
 | UART4  | /dev/ttyS3 | RC     | `ELRS`                                      |
 | UART5  | /dev/ttyS4 | TEL1   | `SBUS` (RX, S.BUS by default), `A-VTX` (TX) |
-| UART7  | /dev/ttyS5 | TEL4   | `TELEM`                                     |
-| UART8  | /dev/ttyS6 | TEL3   | `D-VTX`                                     |
+| UART7  | /dev/ttyS6 | TEL4   | `TELEM`                                     |
+| UART8  | /dev/ttyS7 | TEL3   | `D-VTX`                                     |
 
 No ports have flow control.
 
