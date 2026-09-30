@@ -78,13 +78,13 @@ void Ekf::controlGnssYawFusion(const imuSample &imu_delayed)
 	const bool is_gnss_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push,
 			2 * GNSS_YAW_MAX_INTERVAL);
 
-	// The heading receiver's own spoofing and jamming state, under the same EKF2_GPS_CHECK bits and with the same
+	// The heading receiver's own spoofing and jamming state, under the same GNSS_CHECK bits and with the same
 	// effect as for position: its samples aren't fused, fusion stops once none has been for the reset timeout, and a
 	// reset waits for the GNSS health time. The position checks themselves don't gate the heading: it is a separate
 	// observation, often from a separate receiver.
 	const bool is_heading_receiver_flagged =
-		(gnss_yaw_sample.spoofed && _gnss_checks.isCheckEnabled(estimator_status_s::GPS_CHECK_FAIL_SPOOFED))
-		|| (gnss_yaw_sample.jammed && _gnss_checks.isCheckEnabled(estimator_status_s::GPS_CHECK_FAIL_JAMMED));
+		(gnss_yaw_sample.spoofed && (_params.gnss_check & vehicle_gnss_s::CHECK_SPOOFED))
+		|| (gnss_yaw_sample.jammed && (_params.gnss_check & vehicle_gnss_s::CHECK_JAMMED));
 
 	if (is_heading_receiver_flagged) {
 		_time_last_gnss_yaw_fail_us = _time_delayed_us;

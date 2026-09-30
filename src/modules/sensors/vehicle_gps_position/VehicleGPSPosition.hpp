@@ -49,6 +49,10 @@
 #include <uORB/topics/sensor_gnss_relative.h>
 #include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/pps_capture.h>
+#include <uORB/topics/sensors_status_gnss.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
+#include <lib/gnss/gnss_checks.hpp>
 
 #include "GnssHeadingBaseline.hpp"
 #include "gps_blending.hpp"
@@ -74,6 +78,8 @@ private:
 	void Run() override;
 
 	void ParametersUpdate(bool force = false);
+	void UpdateVehicleState();
+	void PublishStatus();
 
 	// define max number of GPS receivers supported
 	static constexpr int GPS_MAX_RECEIVERS = 2;
@@ -127,6 +133,10 @@ private:
 	};
 
 	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	uORB::Publication<sensors_status_gnss_s> _sensors_status_gnss_pub{ORB_ID(sensors_status_gnss)};
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 	uORB::Publication<vehicle_gnss_heading_s> _vehicle_gnss_heading_pub {ORB_ID(vehicle_gnss_heading)};
@@ -148,6 +158,16 @@ private:
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	GpsBlending _gps_blending;
+
+	GnssChecks _gnss_checks[GPS_MAX_RECEIVERS] {};
+	uint32_t _receiver_device_id[GPS_MAX_RECEIVERS] {};
+	hrt_abstime _receiver_timestamp[GPS_MAX_RECEIVERS] {};
+	uint32_t _selected_device_id{0};
+
+	// The checks run the strict thresholds while disarmed on the ground and the drift checks only at rest
+	bool _armed{false};
+	bool _in_air{false};
+	bool _at_rest{false};
 	PpsTimeSync _pps_time_sync;
 
 	GpsParamSlot _gnss_param_slots[GPS_MAX_RECEIVERS] {};
@@ -173,7 +193,17 @@ private:
 		(ParamFloat<px4::params::SENS_GNSS1_AUXZ>) _param_sens_gnss1_auxz,
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 		(ParamInt<px4::params::SENS_GNSS0_DELAY>) _param_sens_gnss0_delay,
-		(ParamInt<px4::params::SENS_GNSS1_DELAY>) _param_sens_gnss1_delay
+		(ParamInt<px4::params::SENS_GNSS1_DELAY>) _param_sens_gnss1_delay,
+		(ParamInt<px4::params::GNSS_CHECK>) _param_gnss_check,
+		(ParamInt<px4::params::GNSS_REQ_NSATS>) _param_gnss_req_nsats,
+		(ParamFloat<px4::params::GNSS_REQ_PDOP>) _param_gnss_req_pdop,
+		(ParamFloat<px4::params::GNSS_REQ_EPH>) _param_gnss_req_eph,
+		(ParamFloat<px4::params::GNSS_REQ_EPV>) _param_gnss_req_epv,
+		(ParamFloat<px4::params::GNSS_REQ_SACC>) _param_gnss_req_sacc,
+		(ParamFloat<px4::params::GNSS_REQ_HDRIFT>) _param_gnss_req_hdrift,
+		(ParamFloat<px4::params::GNSS_REQ_VDRIFT>) _param_gnss_req_vdrift,
+		(ParamInt<px4::params::GNSS_REQ_FIX>) _param_gnss_req_fix,
+		(ParamFloat<px4::params::GNSS_REQ_TIME>) _param_gnss_req_time
 	)
 };
 }; // namespace sensors
