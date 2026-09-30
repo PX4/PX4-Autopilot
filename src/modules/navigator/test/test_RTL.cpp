@@ -42,6 +42,7 @@
 
 #include <cmath>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <drivers/drv_hrt.h>
@@ -233,6 +234,7 @@ public:
 	}
 
 	uint16_t activeNavCommand() const { return this->_mission_item.nav_cmd; }
+	bool isClimbing() const { return this->_work_item_type == RtlMissionType::WorkItemType::WORK_ITEM_TYPE_CLIMB; }
 
 protected:
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
@@ -521,6 +523,109 @@ TEST_F(RTLTest, DirectMissionLandKeepsVtolInMulticopterMode)
 
 	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_DO_LAND_START);
 }
+
+class RTLClimbUpdateTest : public RTLTest, public ::testing::WithParamInterface<std::tuple<bool, uint8_t>> {};
+
+TEST_P(RTLClimbUpdateTest, KeepsPendingClimbAcrossCursorUpdates)
+{
+	const bool is_vtol = std::get<0>(GetParam());
+	const uint8_t vehicle_type = std::get<1>(GetParam());
+	const float return_alt = kAlt + 60.f;
+	publishVehicleStatus(is_vtol, vehicle_type);
+	publishLandDetected(false);
+	_navigator.get_vstatus()->is_vtol = is_vtol;
+	_navigator.get_vstatus()->vehicle_type = vehicle_type;
+	_navigator.get_land_detected()->landed = false;
+	_navigator.get_mission_result()->valid = true;
+
+	auto setAltitude = [&](float alt) {
+		publishGlobalPosition(kBaseLat, kBaseLon, alt);
+		_navigator.get_global_position()->lat = kBaseLat;
+		_navigator.get_global_position()->lon = kBaseLon;
+		_navigator.get_global_position()->alt = alt;
+	};
+	setAltitude(kAlt);
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+	const auto first_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 30.f);
+	mission_item_s first = makeSafePointItem(first_position.lat, first_position.lon, first_position.alt,
+			       NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = first;
+	second.lat += 0.001;
+	mission_item_s land = second;
+	land.nav_cmd = NAV_CMD_LAND;
+	std::vector<mission_item_s> items{land_start, first, second, land};
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.count = items.size();
+	mission.land_start_index = 0;
+	mission.land_index = 3;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	for (size_t i = 0; i < items.size(); ++i) {
+		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_1, i,
+						      reinterpret_cast<uint8_t *>(&items[i]), sizeof(items[i])));
+	}
+
+	publishMission(mission);
+	RtlDirectMissionLandTestPeer rtl{&_navigator, mission};
+	rtl.loadTestMission(items);
+	rtl.setRtlAlt(return_alt);
+	rtl.run(false);
+	rtl.run(true);
+	ASSERT_TRUE(rtl.isClimbing());
+
+	// Real mission-topic updates must preserve the climb and accept the new cursor.
+	for (int32_t index : {1, 2, 1}) {
+		mission.current_seq = index;
+		mission.timestamp = hrt_absolute_time();
+		publishMission(mission);
+		rtl.run(true);
+		EXPECT_EQ(rtl.mission().current_seq, index);
+		EXPECT_TRUE(rtl.isClimbing());
+		const auto &setpoint = _navigator.get_position_setpoint_triplet()->current;
+		EXPECT_TRUE(setpoint.valid);
+		EXPECT_NEAR(setpoint.lat, kBaseLat, 1e-9);
+		EXPECT_NEAR(setpoint.lon, kBaseLon, 1e-9);
+		EXPECT_FLOAT_EQ(setpoint.alt, return_alt);
+	}
+
+	// Reaching the climb altitude resumes the selected item without skipping it.
+	setAltitude(return_alt);
+	rtl.run(true);
+	EXPECT_FALSE(rtl.isClimbing());
+	EXPECT_EQ(rtl.mission().current_seq, 1);
+	EXPECT_NEAR(_navigator.get_position_setpoint_triplet()->current.lat, first.lat, 1e-9);
+	rtl.run(true);
+	EXPECT_EQ(rtl.mission().current_seq, 1);
+
+	// A later cursor update below the return altitude must not restart the initial climb.
+	setAltitude(kAlt);
+	mission.current_seq = 2;
+	mission.timestamp = hrt_absolute_time();
+	publishMission(mission);
+	rtl.run(true);
+	EXPECT_FALSE(rtl.isClimbing());
+	EXPECT_NEAR(_navigator.get_position_setpoint_triplet()->current.lat, second.lat, 1e-9);
+
+	// Re-entering RTL recomputes the requirement from the current altitude.
+	rtl.run(false);
+	rtl.run(true);
+	EXPECT_TRUE(rtl.isClimbing());
+	rtl.run(false);
+	setAltitude(return_alt + 10.f);
+	rtl.run(true);
+	EXPECT_FALSE(rtl.isClimbing());
+}
+
+INSTANTIATE_TEST_SUITE_P(VehicleTypes, RTLClimbUpdateTest,
+			 ::testing::Combine(::testing::Bool(),
+					 ::testing::Values(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
+							 vehicle_status_s::VEHICLE_TYPE_FIXED_WING)));
 
 // WHY: No land point means no usable approach bearing.
 // WHAT: The chooser should return an invalid loiter.
