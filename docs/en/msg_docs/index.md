@@ -293,7 +293,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleConstraints](VehicleConstraints.md) — Local setpoint constraints in NED frame. setting something to NaN means that no limit is provided.
 - [VehicleControlMode](VehicleControlMode.md) — Defines which controllers should run.
 - [VehicleGnss](VehicleGnss.md) — Selected GNSS solution.
-- [VehicleGnssHeading](VehicleGnssHeading.md) — GNSS heading from a dual-antenna or moving-baseline receiver, published by the sensors module from sensor_gnss_relative. Only headings whose reported baseline matches the configured SENS_GNSSn_HDG baseline are published. Consumed by EKF2. independently from position/velocity.
+- [VehicleGnssHeading](VehicleGnssHeading.md) — GNSS heading from a dual-antenna or moving-baseline receiver.
 - [VehicleImu](VehicleImu.md) — IMU readings in SI-unit form.
 - [VehicleImuStatus](VehicleImuStatus.md)
 - [VehicleLocalPositionSetpoint](VehicleLocalPositionSetpoint.md) — Local position setpoint in NED frame. Telemetry of PID position controller to monitor tracking. NaN means the state was not controlled.

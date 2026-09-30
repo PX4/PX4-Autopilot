@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                                        | Type     | Unit [Frame] | Range/Enum | Description                                                 |
-| ------------------------------------------- | -------- | ------------ | ---------- | ----------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp         | `uint64` |              |            | time since system start (microseconds) at PPS capture event |
-| <a id="fld_rtc_timestamp"></a>rtc_timestamp | `uint64` |              |            | Corrected GPS UTC timestamp at PPS capture event            |
-| <a id="fld_"></a>                           | `uint8`  |              |            | Increments when PPS dt < 50ms                               |
+| Name                                        | Type     | Unit [Frame] | Range/Enum | Description                                                      |
+| ------------------------------------------- | -------- | ------------ | ---------- | ---------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp         | `uint64` |              |            | time since system start (microseconds) at PPS capture event      |
+| <a id="fld_rtc_timestamp"></a>rtc_timestamp | `uint64` |              |            | Corrected GPS UTC timestamp at PPS capture event                 |
+| <a id="fld_"></a>                           | `uint8`  |              |            | Count of PPS pulses that arrived too soon after the previous one |
 
 ## Source Message
 
@@ -23,7 +23,7 @@ pageClass: is-wide-page
 ```c
 uint64 timestamp			  # time since system start (microseconds) at PPS capture event
 uint64 rtc_timestamp		# Corrected GPS UTC timestamp at PPS capture event
-uint8  pps_rate_exceeded_counter # Increments when PPS dt < 50ms
+uint8  pps_rate_exceeded_counter # Count of PPS pulses that arrived too soon after the previous one
 ```
 
 :::
