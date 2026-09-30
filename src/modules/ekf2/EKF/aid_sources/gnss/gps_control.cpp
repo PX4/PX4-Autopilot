@@ -87,7 +87,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 					      && (gnss_sample.vel.abs().max() <= _params.ekf2_vel_lim);
 
 		if (gnss_sample.usable && vel_within_limit) {
-			_time_last_gnss_checks_pass_us = _time_delayed_us;
+			_time_last_gnss_sample_accepted_us = _time_delayed_us;
 
 		} else {
 			// Skip this sample
@@ -95,9 +95,9 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos
 						|| _control_status.flags.gps_hgt;
-			const bool gnss_checks_pass_timeout = isTimedOut(_time_last_gnss_checks_pass_us, _params.reset_timeout_max);
+			const bool gnss_sample_accepted_timeout = isTimedOut(_time_last_gnss_sample_accepted_us, _params.reset_timeout_max);
 
-			if (using_gnss && gnss_checks_pass_timeout) {
+			if (using_gnss && gnss_sample_accepted_timeout) {
 				stopGnssFusion();
 
 				if (gnss_sample.usable) {

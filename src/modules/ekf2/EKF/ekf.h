@@ -612,7 +612,7 @@ private:
 	// height sensor status
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
-	uint64_t _time_last_gnss_checks_pass_us{0}; ///< last delayed-horizon time a GNSS sample passed the checks and the velocity limit (us)
+	uint64_t _time_last_gnss_sample_accepted_us{0}; ///< last delayed-horizon time a GNSS sample was usable and within the velocity limit (us)
 	bool _gnss_usable{false};                   ///< the latest GNSS sample at the fusion time horizon was usable
 	bool _gnss_checks_passed_reported{false};   ///< gps_checks_passed was reported since the last reset
 	uint64_t _time_last_gnss_fusion_stop_us{0}; ///< when GNSS velocity and position fusion were last both stopped
