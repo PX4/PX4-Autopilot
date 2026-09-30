@@ -53,7 +53,7 @@ public:
 	Gps(std::shared_ptr<Ekf> ekf);
 	~Gps();
 
-	// Sets both the health time of the checks (GNSS_REQ_TIME) and the EKF's waits (EKF2_REQ_GPS_H)
+	// Sets both the health time of the checks (GNSS_REQ_TIME) and the EKF's own GNSS waits
 	void setMinRequiredGnssHealthTime(uint64_t time_us);
 	void setCheckMask(int32_t check_mask);
 	void setData(const gnssSample &gps);

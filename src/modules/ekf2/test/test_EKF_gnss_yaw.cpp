@@ -432,7 +432,7 @@ TEST_F(EkfGpsHeadingTest, unusableHeading)
 	_sensor_simulator._gnss_yaw.setUsable(true);
 	_sensor_simulator.runSeconds(5);
 
-	// THEN: the heading is trusted for a reset only after EKF2_REQ_GPS_H (10 s)
+	// THEN: the heading is trusted for a reset only after the GNSS health time (10 s)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	_sensor_simulator.runSeconds(6);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
