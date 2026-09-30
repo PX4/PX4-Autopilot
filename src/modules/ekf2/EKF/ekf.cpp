@@ -454,6 +454,10 @@ void Ekf::updateParameters()
 
 	_aux_global_position.paramsUpdated();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW) && defined(MODULE_NAME)
+	_flow_aiding.updateParams();
+#endif // CONFIG_EKF2_OPTICAL_FLOW && MODULE_NAME
 }
 
 template<typename T>
@@ -580,7 +584,11 @@ void Ekf::print_status()
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	printRingBuffer("flow buffer", _flow_buffer);
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		printRingBuffer("flow buffer", _flow_aiding.source(i)._buffer);
+	}
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)

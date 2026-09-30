@@ -34,7 +34,7 @@ param set-default EKF2_GPS_CTRL 0
 param set-default EKF2_HGT_REF 0
 param set-default EKF2_EVP_NOISE 0.05
 param set-default EKF2_EVA_NOISE 0.05
-param set-default EKF2_OF_CTRL 1
+param set-default EKF2_OF0_CTRL 1
 
 # LPE: Flow-only mode
 param set-default LPE_FUSION 242
@@ -45,7 +45,7 @@ param set-default LPE_FAKE_ORIGIN 1
 
 param set-default MPC_ALT_MODE 2
 
-param set-default SENS_FLOW_ROT 6
-param set-default SENS_FLOW_MINHGT 0.7
-param set-default SENS_FLOW_MAXHGT 15
-param set-default SENS_FLOW_MAXR 2.5
+param set-default SENS_FLOW0_ROT 6
+param set-default SENS_FLOW0_HMIN 0.7
+param set-default SENS_FLOW0_HMAX 15
+param set-default SENS_FLOW0_MAXR 2.5
