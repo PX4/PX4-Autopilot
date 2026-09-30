@@ -347,11 +347,35 @@ bool GZBridge::subscribeAirspeed(bool required)
 
 bool GZBridge::subscribeAirPressure(bool required)
 {
-	std::string air_pressure_topic = buildBaseTopic() + "air_pressure_sensor/air_pressure";
+	uint8_t count = math::min(_MAX_BARO_SENSORS, static_cast<uint8_t>(_sim_gz_en_baro.get()));
 
-	if (!_node.Subscribe(air_pressure_topic, &GZBridge::airPressureCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", air_pressure_topic.c_str());
-		return required ? false : true;
+	for (uint8_t i = 0; i < _MAX_BARO_SENSORS; i++) {
+		std::string baro_topic;
+
+		if (i == 0) {
+			baro_topic = buildBaseTopic() + "air_pressure_sensor/air_pressure";
+
+		} else {
+			baro_topic = buildBaseTopic() + "air_pressure_sensor_" + std::to_string(i) + "/air_pressure";
+		}
+
+		// Pass Barometer index in the callback
+		std::function<void(const gz::msgs::FluidPressure &)> callback = [this, i](const gz::msgs::FluidPressure & msg) {
+			airPressureCallback(msg, i);
+		};
+
+		if (!_node.Subscribe(baro_topic, callback)) {
+			// Only fail if instance 0 fails and it's marked as required
+			if (i == 0 && required) {
+				PX4_ERR("failed to subscribe to primary Barometer topic: %s", baro_topic.c_str());
+				return false;
+			}
+
+			if (i < count) { PX4_WARN("Barometer instance %d topic not found: %s", i, baro_topic.c_str()); }
+
+		} else {
+			PX4_INFO("Subscribed to Barometer[%d]: %s", i, baro_topic.c_str());
+		}
 	}
 
 	return true;
@@ -476,10 +500,17 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg, uint8_t i
 	_px4_mag[instance_index].update(timestamp, -msg.field_tesla().y(), -msg.field_tesla().x(), msg.field_tesla().z());
 }
 
-void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
+void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg, uint8_t instance_index)
 {
-	_px4_baro.set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
-	_px4_baro.update(hrt_absolute_time(), msg.pressure());
+	// Bounds check and safety guard
+	uint8_t count = math::min(_MAX_BARO_SENSORS, static_cast<uint8_t>(_sim_gz_en_baro.get()));
+
+	if (instance_index >= count) {
+		return;
+	}
+
+	_px4_baro[instance_index].set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
+	_px4_baro[instance_index].update(hrt_absolute_time(), msg.pressure());
 }
 
 void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
