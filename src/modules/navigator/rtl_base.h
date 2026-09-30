@@ -56,6 +56,13 @@ public:
 
 	virtual void setRtlAlt(float alt) { (void)alt;};
 
+	/**
+	 * @brief Read a mission published since the last cycle. Called by the return controller on the
+	 * cycle that activates this mode, so the return type, the avoidance destination and the mode's
+	 * activation all work from the same copy.
+	 */
+	void refreshMission() { updateMavlinkMission(); }
+
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
