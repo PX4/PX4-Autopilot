@@ -11,8 +11,15 @@ SensorGnss receiver # The selected receiver's sensor_gnss sample with the correc
 float32[3] antenna_offset # [m] [@frame FRD] Antenna position of the selected receiver
 
 # Selection state
-uint8 selected_instance # [-] sensor_gnss instance of the selected receiver
-uint8 selection_count   # [-] Increments when the selected receiver changes
+uint8 selected_instance       # [-] sensor_gnss instance of the selected receiver
+uint8 selection_count         # [-] Increments when the selected receiver changes
+uint8 selection_reason        # [@enum SELECTION] Why this receiver is selected
+uint8 SELECTION_PREFERRED = 0 # The preferred receiver
+uint8 SELECTION_ONLY      = 1 # No other receiver has published
+uint8 SELECTION_RANKED    = 2 # No receiver is preferred, and no other one is clearly more accurate
+uint8 SELECTION_TIMEOUT   = 3 # The previously selected or the preferred receiver stopped publishing
+uint8 SELECTION_UNHEALTHY = 4 # The previously selected or the preferred receiver failed its checks or delivered samples late, continuously or often
+uint8 SELECTION_ACCURACY  = 5 # Reports a clearly better accuracy than the previously selected receiver
 
 # Check result for this sample
 bool usable                 # Sample may be used: the receiver has passed its checks for long enough

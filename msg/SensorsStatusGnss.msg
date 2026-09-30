@@ -11,6 +11,7 @@ uint8 MAX_RECEIVERS = 4 # Length of the per-receiver arrays
 uint32[4] device_ids                 # [-] One entry per receiver, 0 where unused
 int8[4] order                        # [-] Fixed position of the receiver: 0 for the preferred one, otherwise for the first to publish, then in order of first publication. Changes only with the preference, -1 until the receiver publishes
 bool[4] healthy                      # Publishing, and has passed its checks for long enough
+float32[4] availability              # [-] Fraction of recent time the receiver passed its checks, 0 to 1
 uint16[4] failed_checks              # [-] Bitmask of the enabled checks that failed, VehicleGnss CHECK_* bits
 bool[4] strict                       # The pre-flight thresholds apply rather than the relaxed in-flight ones
 float32[4] drift_rate_horizontal     # [m/s] Horizontal position drift rate at rest

@@ -55,7 +55,7 @@
 #include <lib/gnss/gnss_checks.hpp>
 
 #include "GnssHeadingBaseline.hpp"
-#include "gps_blending.hpp"
+#include "GnssSelector.hpp"
 #include "PpsTimeSync.hpp"
 
 using namespace time_literals;
@@ -83,8 +83,8 @@ private:
 
 	// define max number of GPS receivers supported
 	static constexpr int GPS_MAX_RECEIVERS = 2;
-	static_assert(GPS_MAX_RECEIVERS == GpsBlending::GPS_MAX_RECEIVERS_BLEND,
-		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
+	static_assert(GPS_MAX_RECEIVERS == GnssSelector::GNSS_MAX_RECEIVERS,
+		      "GPS_MAX_RECEIVERS must match to GNSS_MAX_RECEIVERS");
 
 	static constexpr hrt_abstime kDefaultDelay{110_ms}; // matches SENS_GNSS*_DELAY default
 	static constexpr hrt_abstime kHeadingSourceTimeout{3_s};
@@ -101,10 +101,10 @@ private:
 	// SENS_GNSSn_* slot for a receiver, by device_id or (when no IDs are configured) by sensor_gnss instance
 	const GpsParamSlot *findParamSlot(uint32_t device_id, int instance) const;
 
-	// sensor_gnss instance of the receiver SENS_GNSS_PRIME designates, -1 for none or not yet published
+	// sensor_gnss instance of the receiver SENS_GNSS_PRIME designates, or of the moving base with -1; -1 for none
 	int resolvePreferredInstance() const;
 
-	// SENS_GNSS_PRIME names a receiver, whether or not it has published yet
+	// SENS_GNSS_PRIME names a receiver, or a moving base pair is configured, whether or not it has published yet
 	bool hasConfiguredPreference() const;
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
@@ -159,11 +159,13 @@ private:
 	} _heading_source{};
 
 	bool _heading_unconfigured_reported{false};
+
+	int _moving_base_slot{-1}; ///< SENS_GNSSn_* slot of the moving base of a moving base pair, or -1
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
-	GpsBlending _gps_blending;
+	GnssSelector _gnss_selector;
 
 	GnssChecks _gnss_checks[GPS_MAX_RECEIVERS] {};
 	uint32_t _receiver_device_id[GPS_MAX_RECEIVERS] {};
@@ -173,7 +175,8 @@ private:
 	uint8_t _first_publication[GPS_MAX_RECEIVERS] {}; ///< 1 for the first receiver to publish, 2 for the next, 0 before
 	uint8_t _receivers_published{0};
 
-	// The checks run the strict thresholds while disarmed on the ground and the drift checks only at rest
+	// The checks run the strict thresholds while disarmed on the ground and the drift checks only at rest; while armed,
+	// the selection holds a return to the preferred receiver longer
 	bool _armed{false};
 	bool _in_air{false};
 	bool _at_rest{false};
