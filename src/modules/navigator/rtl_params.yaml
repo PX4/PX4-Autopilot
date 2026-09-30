@@ -80,7 +80,8 @@ parameters:
     RTL_CONE_ANG:
       description:
         short: Half-angle of the return mode altitude cone
-        long: Centred on the destination.
+        long: Half-angle of a cone centered around the destination position.
+          Affects the altitude at which the vehicle returns.
       type: enum
       values:
         0: No cone, always climb to RTL_RETURN_ALT above destination.
@@ -106,8 +107,8 @@ parameters:
     RTL_LOITER_RAD:
       description:
         short: Loiter radius for return descent
-        long: Used for the loiter at the return destination (where VTOLs transition), unless
-          the landing approach sets its own radius.
+        long: Default loiter radius for descent to RTL_DESCEND_ALT if not set in landing approach.
+          Set to safe altitude for VTOL transitions.
       type: float
       default: 80.0
       unit: m
