@@ -1,4 +1,5 @@
 #define _BSD_SOURCE
+#define SCHED_PRIORITY_VNAV 220
 
 #include "vn/xplat/thread.h"
 
@@ -88,8 +89,7 @@ VnError VnThread_startNew(VnThread *thread, VnThread_StartRoutine startRoutine, 
 	// priority
 	struct sched_param param;
 	pthread_attr_getschedparam(&attr, &param);
-	// Hardcode priority so repeated inits on failure don't preempt other px4 tasks
-	param.sched_priority = 220;
+	param.sched_priority = SCHED_PRIORITY_VNAV;
 	pthread_attr_setschedparam(&attr, &param);
 
 	errorCode = pthread_create(
