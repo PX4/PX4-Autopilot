@@ -82,6 +82,7 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 
 	// update the states and covariance using sequential fusion
 	bool fused[3] {};
+	VectorState state_correction;
 
 	for (uint8_t index = 0; index <= 2; index++) {
 		// Calculate Kalman gains and observation jacobians
@@ -92,17 +93,9 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			sym::ComputeGravityYInnovVarAndH(state_vector, P, measurement_var, &_aid_src_gravity.innovation_variance[index], &H);
 
-			// recalculate innovation using the updated state
-			_aid_src_gravity.innovation[index] = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f,
-							     -1.f))(index) - measurement(index);
-
 		} else if (index == 2) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			sym::ComputeGravityZInnovVarAndH(state_vector, P, measurement_var, &_aid_src_gravity.innovation_variance[index], &H);
-
-			// recalculate innovation using the updated state
-			_aid_src_gravity.innovation[index] = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f,
-							     -1.f))(index) - measurement(index);
 		}
 
 		VectorState K = P * H / _aid_src_gravity.innovation_variance[index];
@@ -111,12 +104,14 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 
 		if (_control_status.flags.gravity_vector && !_aid_src_gravity.innovation_rejected && !accel_clipping) {
 
-			fused[index] = measurementUpdate(K, H,
-							 _aid_src_gravity.observation_variance[index], _aid_src_gravity.innovation[index]);
+			fused[index] = measurementUpdate(K, H, _aid_src_gravity.observation_variance[index],
+							 _aid_src_gravity.innovation[index], state_correction);
 		}
 	}
 
 	if (fused[0] && fused[1] && fused[2]) {
+		applyStateCorrection(state_correction);
+
 		_aid_src_gravity.fused = true;
 		_aid_src_gravity.time_last_fuse = imu.time_us;
 

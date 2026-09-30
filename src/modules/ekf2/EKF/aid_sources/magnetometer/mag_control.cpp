@@ -238,7 +238,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 					// declination angle over time.
 					const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
 					const bool update_tilt = _control_status.flags.mag_3D;
-					fuseMag(mag_sample.mag, R_MAG, H, aid_src, update_all_states, update_tilt);
+					fuseMag(R_MAG, H, aid_src, update_all_states, update_tilt);
 
 					// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 					if (update_all_states && update_tilt) {
@@ -319,7 +319,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 					_control_status.flags.mag = true;
 
 				} else {
-					if (fuseMag(mag_sample.mag, R_MAG, H, aid_src)) {
+					if (fuseMag(R_MAG, H, aid_src)) {
 						ECL_INFO("starting %s fusion", AID_SRC_NAME);
 						_control_status.flags.mag = true;
 					}
