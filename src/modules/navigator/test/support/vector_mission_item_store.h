@@ -97,15 +97,19 @@ public:
 		_write_failure_indices.clear();
 	}
 
+	/** Check write eligibility without changing the stored item. */
+	bool canWriteItem(int32_t index) const
+	{
+		return index >= 0
+		       && static_cast<std::size_t>(index) < _items.size()
+		       && std::find(_write_failure_indices.begin(), _write_failure_indices.end(), index)
+		       == _write_failure_indices.end();
+	}
+
 	/** Return false for injected failures and out-of-range indices; otherwise store the item. */
 	bool writeItem(int32_t index, const mission_item_s &mission_item)
 	{
-		if (std::find(_write_failure_indices.begin(), _write_failure_indices.end(), index)
-		    != _write_failure_indices.end()) {
-			return false;
-		}
-
-		if (index < 0 || index >= static_cast<int32_t>(_items.size())) {
+		if (!canWriteItem(index)) {
 			return false;
 		}
 

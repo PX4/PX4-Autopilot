@@ -68,11 +68,15 @@ public:
 		return _mission_store.loadItem(index, mission_item);
 	}
 
-	// the store mirrors every write so a later load sees it, and an injected failure stops the
-	// write before it reaches dataman
+	// Reject injected failures before writing dataman, then mirror only successful writes.
 	bool writeMissionItemToCache(int32_t index, mission_item_s &mission_item) override
 	{
-		return _mission_store.writeItem(index, mission_item) && MissionBase::writeMissionItemToCache(index, mission_item);
+		if (!_mission_store.canWriteItem(index)
+		    || !MissionBase::writeMissionItemToCache(index, mission_item)) {
+			return false;
+		}
+
+		return _mission_store.writeItem(index, mission_item);
 	}
 
 	void loadTestMission(const std::vector<mission_item_s> &items)
