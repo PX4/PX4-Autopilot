@@ -114,7 +114,8 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 					bias_est.reset();
 
 				} else {
-					// Keep the height estimate: the offset to the new receiver goes into the bias
+					// Keep the height estimate: the offset to the new receiver goes into the bias. With GNSS as the
+					// height reference the bias isn't estimated, so that offset stays until the next height reset
 					bias_est.setBias(-_gpos.altitude() + measurement);
 				}
 

@@ -504,8 +504,6 @@ private:
 	float _last_gnss_hgt_bias_published{};
 
 	uint16_t _gnss_failed_checks{0}; ///< failed_checks of the latest vehicle_gnss sample
-	uint32_t _device_id_gnss{0}; ///< last selected receiver, receivers without a device_id excluded
-	uint8_t _gnss_selection_count{0};
 
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
