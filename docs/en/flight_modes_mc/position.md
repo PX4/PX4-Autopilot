@@ -31,7 +31,7 @@ While very rare on a well calibrated vehicle, sometimes there may be problems wi
 - If the vehicle does not stop moving horizontally:
   - You can still land under control in [Altitude mode](../flight_modes_mc/altitude.md).
     The approach is the same as above, except that you must manually ensure that the vehicle stays above the landing spot using the roll and pitch stick.
-  - After landing check GPS and magnetometer orientation, calibration.
+  - After landing check GNSS and magnetometer orientation, calibration.
 - If the vehicle does not detect the ground/landing and disarm:
   - After the vehicle is on the ground switch to [Stabilized mode](../flight_modes_mc/manual_stabilized.md) keeping the throttle stick low, and manually disarm using a gesture or other command.
     Alternatively you can also use the kill switch when the vehicle is already on the ground.
@@ -92,7 +92,7 @@ All the parameters in the [Multicopter Position Control](../advanced_config/para
 ### Position Loss/Safety
 
 Position mode is dependent on having an acceptable position estimate.
-If the estimate falls below acceptable levels, for example due to GPS loss, this may trigger a [Position (GPS) Loss Failsafe](../config/safety.md#position-loss-failsafe).
+If the estimate falls below acceptable levels, for example due to GNSS loss, this may trigger a [Position (GNSS) Loss Failsafe](../config/safety.md#position-loss-failsafe).
 Depending on configuration, whether you have a remote control, and whether there is an adequate altitude estimate, PX4 may switch to altitude mode, manual mode, land mode or terminate.
 
 ## See Also

@@ -473,7 +473,7 @@ void EKF2::Run()
 		AdvertiseTopics();
 
 #if defined(CONFIG_EKF2_GNSS)
-		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
+		_ekf.set_min_required_gnss_health_time(_param_ekf2_req_gps_h.get() * 1_s);
 #endif // CONFIG_EKF2_GNSS
 
 		const matrix::Vector3f imu_pos_body(_param_ekf2_imu_pos_x.get(),
@@ -1009,7 +1009,7 @@ void EKF2::initFusionControl()
 
 		const int32_t sens_en = _param_ekf2_sens_en.get();
 
-		_fc.gps.enabled    = sens_en & SensEn::GPS0;
+		_fc.gps.enabled    = sens_en & SensEn::GNSS0;
 		_fc.of.enabled     = sens_en & SensEn::OF;
 		_fc.ev.enabled     = sens_en & SensEn::EV;
 
@@ -1079,7 +1079,7 @@ void EKF2::syncSensEnParam()
 {
 	int32_t sens_en = 0;
 
-	if (_fc.gps.enabled)    { sens_en |= SensEn::GPS0; }
+	if (_fc.gps.enabled)    { sens_en |= SensEn::GNSS0; }
 
 	if (_fc.of.enabled)     { sens_en |= SensEn::OF; }
 
@@ -1213,11 +1213,11 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 #if defined(CONFIG_EKF2_GNSS)
 void EKF2::PublishGnssHgtBias(const hrt_abstime &timestamp)
 {
-	if (_ekf.get_gps_sample_delayed().time_us != 0) {
-		const BiasEstimator::status &status = _ekf.getGpsHgtBiasEstimatorStatus();
+	if (_ekf.get_gnss_sample_delayed().time_us != 0) {
+		const BiasEstimator::status &status = _ekf.getGnssHgtBiasEstimatorStatus();
 
 		if (fabsf(status.bias - _last_gnss_hgt_bias_published) > 1e-6f) {
-			_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_gps_sample_delayed().time_us, timestamp));
+			_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_gnss_sample_delayed().time_us, timestamp));
 
 			_last_gnss_hgt_bias_published = status.bias;
 		}
@@ -1332,7 +1332,7 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 		vehicle_global_position_s global_pos{};
 		global_pos.timestamp_sample = timestamp;
 
-		// Position GPS / WGS84 frame
+		// Position GNSS / WGS84 frame
 		const LatLonAlt lla = _ekf.getLatLonAlt();
 		global_pos.lat = lla.latitude_deg();
 		global_pos.lon = lla.longitude_deg();
@@ -1385,7 +1385,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	innovations.timestamp_sample = _ekf.time_delayed_us();
 
 #if defined(CONFIG_EKF2_GNSS)
-	// GPS
+	// GNSS
 	innovations.gps_hvel[0] = _ekf.aid_src_gnss_vel().innovation[0];
 	innovations.gps_hvel[1] = _ekf.aid_src_gnss_vel().innovation[1];
 	innovations.gps_vvel    = _ekf.aid_src_gnss_vel().innovation[2];
@@ -1478,7 +1478,7 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	test_ratios.timestamp_sample = _ekf.time_delayed_us();
 
 #if defined(CONFIG_EKF2_GNSS)
-	// GPS
+	// GNSS
 	test_ratios.gps_hvel[0] = _ekf.aid_src_gnss_vel().test_ratio[0];
 	test_ratios.gps_hvel[1] = _ekf.aid_src_gnss_vel().test_ratio[1];
 	test_ratios.gps_vvel    = _ekf.aid_src_gnss_vel().test_ratio[2];
@@ -1571,7 +1571,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	variances.timestamp_sample = _ekf.time_delayed_us();
 
 #if defined(CONFIG_EKF2_GNSS)
-	// GPS
+	// GNSS
 	variances.gps_hvel[0] = _ekf.aid_src_gnss_vel().innovation_variance[0];
 	variances.gps_hvel[1] = _ekf.aid_src_gnss_vel().innovation_variance[1];
 	variances.gps_vvel    = _ekf.aid_src_gnss_vel().innovation_variance[2];
@@ -1692,7 +1692,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.z_valid = _ekf.isLocalVerticalPositionValid() || _ekf.isLocalVerticalVelocityValid();
 	lpos.v_z_valid = _ekf.isLocalVerticalVelocityValid() || _ekf.isLocalVerticalPositionValid();
 
-	// Position of local NED origin in GPS / WGS84 frame
+	// Position of local NED origin in GNSS / WGS84 frame
 	if (_ekf.global_origin_valid()) {
 		lpos.ref_timestamp = _ekf.global_origin().getProjectionReferenceTimestamp();
 		lpos.ref_lat = _ekf.global_origin().getProjectionReferenceLat(); // Reference point latitude in degrees
@@ -2591,7 +2591,7 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 #if defined(CONFIG_EKF2_GNSS)
 void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 {
-	// EKF GPS message
+	// EKF GNSS message
 	vehicle_gnss_s vehicle_gnss;
 
 	if (_vehicle_gnss_sub.update(&vehicle_gnss)) {
@@ -2634,7 +2634,7 @@ void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 			.selection_count = vehicle_gnss.selection_count,
 		};
 
-		_ekf.setGpsData(gnss_sample);
+		_ekf.setGnssData(gnss_sample);
 
 		const float geoid_height = altitude_ellipsoid - altitude_amsl;
 

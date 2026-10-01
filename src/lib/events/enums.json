@@ -181,7 +181,7 @@
                         },
                         "8": {
                             "name": "gps",
-                            "description": "GPS"
+                            "description": "GNSS"
                         },
                         "16": {
                             "name": "optical_flow",

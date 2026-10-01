@@ -172,7 +172,7 @@ static unsigned progress_percentage(mag_worker_data_t *worker_data)
 
 static float get_sphere_radius()
 {
-	// if GPS is available use real field intensity from world magnetic model
+	// if GNSS is available use real field intensity from world magnetic model
 	uORB::SubscriptionMultiArray<vehicle_gnss_s, 3> gnss_subs{ORB_ID::vehicle_gnss};
 
 	for (auto &gnss_sub : gnss_subs) {
@@ -180,7 +180,7 @@ static float get_sphere_radius()
 
 		if (gnss_sub.copy(&gnss)) {
 			if (hrt_elapsed_time(&gnss.timestamp) < 100_s && (gnss.receiver.fix_type >= 2) && (gnss.receiver.eph < 1000)) {
-				// magnetic field data returned by the geo library using the current GPS position
+				// magnetic field data returned by the geo library using the current GNSS position
 				return get_mag_strength_gauss(gnss.receiver.latitude, gnss.receiver.longitude);
 			}
 		}
@@ -1027,7 +1027,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 			     float latitude_deg, float longitude_deg)
 {
 	// magnetometer quick calibration
-	//  if GPS available use world magnetic model to zero mag offsets
+	//  if GNSS available use world magnetic model to zero mag offsets
 	bool mag_earth_available = false;
 
 	if (PX4_ISFINITE(latitude_deg) && PX4_ISFINITE(longitude_deg)) {
@@ -1047,11 +1047,11 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 	}
 
 	if (!mag_earth_available) {
-		calibration_log_critical(mavlink_log_pub, "GPS required for mag quick cal");
+		calibration_log_critical(mavlink_log_pub, "GNSS required for mag quick cal");
 		return PX4_ERROR;
 
 	} else {
-		// magnetic field data returned by the geo library using the current GPS position
+		// magnetic field data returned by the geo library using the current GNSS position
 		const float declination_rad = math::radians(get_mag_declination_degrees(latitude_deg, longitude_deg));
 		const float inclination_rad = math::radians(get_mag_inclination_degrees(latitude_deg, longitude_deg));
 		const float field_strength_gauss = get_mag_strength_gauss(latitude_deg, longitude_deg);

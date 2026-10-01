@@ -394,23 +394,23 @@ FailsafeBase::ActionOptions Failsafe::fromGnssLossActParam(int param_value)
 {
 	ActionOptions options{};
 
-	switch (gps_redundancy_failsafe_mode(param_value)) {
-	case gps_redundancy_failsafe_mode::Warning:
+	switch (gnss_redundancy_failsafe_mode(param_value)) {
+	case gnss_redundancy_failsafe_mode::Warning:
 	default:
 		options.action = Action::Warn;
 		break;
 
-	case gps_redundancy_failsafe_mode::Return_mode:
+	case gnss_redundancy_failsafe_mode::Return_mode:
 		options.action = Action::RTL;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case gps_redundancy_failsafe_mode::Land_mode:
+	case gnss_redundancy_failsafe_mode::Land_mode:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case gps_redundancy_failsafe_mode::Terminate:
+	case gnss_redundancy_failsafe_mode::Terminate:
 		options.allow_user_takeover = UserTakeoverAllowed::Never;
 		options.action = Action::Terminate;
 		options.clear_condition = ClearCondition::Never;

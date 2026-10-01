@@ -61,8 +61,8 @@
 #define CONFIG_CYPHAL_BMS_SUBSCRIBER 0
 #endif
 
-#ifndef CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
-#define CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER 0
+#ifndef CONFIG_CYPHAL_UORB_SENSOR_GNSS_SUBSCRIBER
+#define CONFIG_CYPHAL_UORB_SENSOR_GNSS_SUBSCRIBER 0
 #endif
 
 /* Preprocessor calculation of Subscribers count */
@@ -72,7 +72,7 @@
 	8 * CONFIG_CYPHAL_ESC_CONTROLLER + \
 	CONFIG_CYPHAL_GNSS_SUBSCRIBER_1 + \
 	CONFIG_CYPHAL_BMS_SUBSCRIBER + \
-	CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
+	CONFIG_CYPHAL_UORB_SENSOR_GNSS_SUBSCRIBER
 
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
@@ -244,7 +244,7 @@ private:
 			0
 		},
 #endif
-#if CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
+#if CONFIG_CYPHAL_UORB_SENSOR_GNSS_SUBSCRIBER
 		{
 			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{

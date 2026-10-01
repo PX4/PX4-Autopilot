@@ -7,8 +7,8 @@ This feature requires _QGroundControl_ running on a laptop/PC and a vehicle with
 ::: info
 Some RTK GNSS setups can provide yaw/heading information, as an alternative to the compass:
 
-- [RTK GPS Heading with Dual u-blox F9P](../gps_compass/u-blox_f9p_heading.md).
-- GPS directly output yaw (see table below).
+- [RTK GNSS Heading with Dual u-blox F9P](../gps_compass/u-blox_f9p_heading.md).
+- GNSS directly output yaw (see table below).
 
 :::
 
@@ -20,7 +20,7 @@ The RTK compatible devices below that are expected to work with PX4 (it omits di
 The table indicates devices that also output yaw, and that can provide yaw when two on-vehicle units are used.
 It also highlights devices that connect via the CAN bus, and those which support PPK (Post-Processing Kinematic).
 
-| Device                                                                                                             |         GPS          | Compass  | [DroneCAN] |              [GPS Yaw]              | PPK |
+| Device                                                                                                             |         GNSS         | Compass  | [DroneCAN] |              [GNSS Yaw]             | PPK |
 | :----------------------------------------------------------------------------------------------------------------- | :------------------: | :------: | :--------: | :---------------------------------: | :-: |
 | [ARK G5 RTK GPS](../dronecan/ark_g5_rtk_gps.md)                                                                    |    [mosaic-G5 P3]    | IIS2MDC  |     ✓      |                                     |     |
 | [ARK G5 RTK HEADING GPS](../dronecan/ark_g5_rtk_heading_gps.md)                                                    |   [mosaic-G5 P3H]    | IIS2MDC  |     ✓      | [Heading Capability][mosaic-G5 P3H] |     |
@@ -78,7 +78,7 @@ Notes:
 
 - ✓ or a specific part number indicate that a features is supported, while ✘ or empty show that the feature is not supported.
   "?" indicates "unknown".
-- Where possible and relevant the part name is used (i.e. ✓ in the GPS column indicates that a GPS module is present but the part is not known).
+- Where possible and relevant the part name is used (i.e. ✓ in the GNSS column indicates that a GNSS module is present but the part is not known).
 - Some RTK modules can only be used in a particular role (base or rover), while others can be used interchangeably.
 - The list may omit some discontinued hardware that is still supported.
   For example [CubePilot Here+ RTK GPS](../gps_compass/rtk_gps_hex_hereplus.md) is discontinued and may be removed from the list in a future release.
@@ -94,7 +94,7 @@ In addition you will need:
 - A vehicle with a WiFi or Telemetry radio link to the laptop.
 
 ::: info
-_QGroundControl_ with a base module can theoretically enable RTK GPS for multiple vehicles/rover modules.
+_QGroundControl_ with a base module can theoretically enable RTK GNSS for multiple vehicles/rover modules.
 At time of writing this use case has not been tested.
 :::
 
@@ -104,7 +104,7 @@ At time of writing this use case has not been tested.
 
 The connection method and cables/connectors required depends on the selected RTK module (and on the [flight controller](../flight_controller/index.md)).
 
-Most are connected via the flight controller's GPS port, in the same way as any other GPS module.
+Most are connected via the flight controller's GPS port, in the same way as any other GNSS module.
 Some are connected to the [CAN](../can/index.md) bus (i.e. using [DroneCAN](../dronecan/index.md)).
 
 See [documentation for the selected device](#supported-devices), general [GNSS Hardware/Configuration Setup](../gps_compass/index.md#hardware-setup), and [DroneCAN](../dronecan/index.md) for more information on wiring and configuration.
@@ -116,7 +116,7 @@ The base module must not be moved while it is being used.
 
 :::tip
 Choose a position where the base module won't need to be moved, has a clear view of the sky, and is well separated from any buildings.
-Often it is helpful to elevate the base GPS, by using a tripod or mounting it on a roof.
+Often it is helpful to elevate the base GNSS receiver, by using a tripod or mounting it on a roof.
 :::
 
 #### Telemetry Radio/WiFi
@@ -128,15 +128,15 @@ This should be set by default, but if not, follow the [MAVLink2 configuration in
 
 ### RTK Connection Process
 
-The RTK GPS connection is essentially plug and play:
+The RTK GNSS connection is essentially plug and play:
 
-1. Start _QGroundControl_ and attach the base RTK GPS via USB to the ground station.
+1. Start _QGroundControl_ and attach the base RTK GNSS via USB to the ground station.
    The device is recognized automatically.
 1. Start the vehicle and make sure it is connected to _QGroundControl_.
 
    :::tip
-   _QGroundControl_ displays an RTK GPS status icon in the top icon bar while an RTK GPS device is connected (in addition to the normal GPS status icon).
-   The icon is red while RTK is being set up, and then changes to white once RTK GPS is active.
+   _QGroundControl_ displays an RTK GNSS status icon in the top icon bar while an RTK GNSS device is connected (in addition to the normal GNSS status icon).
+   The icon is red while RTK is being set up, and then changes to white once RTK GNSS is active.
    You can click the icon to see the current state and RTK accuracy.
    :::
 
@@ -145,24 +145,24 @@ The RTK GPS connection is essentially plug and play:
    Survey-In is a startup procedure to get an accurate position estimate of the base station.
    The process typically takes several minutes (it ends after reaching the minimum time and accuracy specified in the [RTK settings](#rtk-gps-settings)).
 
-   You can track the progress by clicking the RTK GPS status icon.
+   You can track the progress by clicking the RTK GNSS status icon.
 
    ![survey-in](../../assets/qgc/setup/rtk/qgc_rtk_survey-in.png)
 
 1. Once Survey-in completes:
-   - The RTK GPS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
+   - The RTK GNSS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
 
      ![RTK streaming](../../assets/qgc/setup/rtk/qgc_rtk_streaming.png)
 
-   - Vehicle GPS switches to RTK mode.
-     The new mode is displayed in the _normal_ GPS status icon (`3D RTK GPS Lock`):
+   - Vehicle GNSS switches to RTK mode.
+     The new mode is displayed in the _normal_ GNSS status icon (`3D RTK GPS Lock`):
 
-     ![RTK GPS Status](../../assets/qgc/setup/rtk/qgc_rtk_gps_status.png)
+     ![RTK GNSS Status](../../assets/qgc/setup/rtk/qgc_rtk_gps_status.png)
 
-### Configuring GPS as Yaw/Heading Source
+### Configuring GNSS as Yaw/Heading Source {#configuring-gps-as-yaw-heading-source}
 
-GPS can be used as a source for yaw fusion when using a single device with two antenna where _yaw output is supported by the device_, or when using some [RTK GPS Setups with Dual u-blox F9P](../gps_compass/u-blox_f9p_heading.md).
-Using GPS as a heading source has the benefit that yaw calculations are not impacted by magnetic interference.
+GNSS can be used as a source for yaw fusion when using a single device with two antenna where _yaw output is supported by the device_, or when using some [RTK GNSS Setups with Dual u-blox F9P](../gps_compass/u-blox_f9p_heading.md).
+Using GNSS as a heading source has the benefit that yaw calculations are not impacted by magnetic interference.
 
 Both approaches work comparing the time taken for a GNSS signal to reach two separated antennas.
 Antennas should be at least 30 cm apart (check the manufacturer's documentation).
@@ -200,13 +200,13 @@ If using this feature, all other configuration should be setup up as normal (e.g
 
 The following settings may need to be changed (using _QGroundControl_).
 
-#### RTK GPS settings
+#### RTK GNSS settings {#rtk-gps-settings}
 
-The RTK GPS settings are specified in the _QGroundControl_ [General Settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/general.html#rtk_gps) (**SettingsView > General Settings > RTK GPS**).
+The RTK GNSS settings are specified in the _QGroundControl_ [General Settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/general.html#rtk_gps) (**SettingsView > General Settings > RTK GPS**).
 
-![RTK GPS Setup](../../assets/qgc/setup/rtk/settings_view_general_rtk_gps.jpg)
+![RTK GNSS Setup](../../assets/qgc/setup/rtk/settings_view_general_rtk_gps.jpg)
 
-These settings define the minimum duration and minimum accuracy for completing the RTK GPS setup process (known as "Survey-In).
+These settings define the minimum duration and minimum accuracy for completing the RTK GNSS setup process (known as "Survey-In).
 
 :::tip
 You can save and reuse a base position in order to save time: perform Survey-In once, select _Use Specified Base Position_ and press **Save Current Base Position** to copy in the values for the last survey.
@@ -225,7 +225,7 @@ To ensure MAVLink2 is used:
 
 #### Tuning
 
-You may also need to tune some parameters as the default parameters are tuned assuming a GPS accuracy in the order of meters, not centimeters.
+You may also need to tune some parameters as the default parameters are tuned assuming a GNSS accuracy in the order of meters, not centimeters.
 For example, you can decrease [EKF2_GPS_V_NOISE](../advanced_config/parameter_reference.md#EKF2_GPS_V_NOISE) and [EKF2_GPS_P_NOISE](../advanced_config/parameter_reference.md#EKF2_GPS_P_NOISE) to 0.2.
 
 #### Dual Receivers
@@ -241,6 +241,6 @@ A switch between the receivers moves the position estimate by the offset between
 
 ## Further Information
 
-- [RTK-GPS (PX4-Integration)](../advanced/rtk_gps.md): Developer information about integrating RTK-GPS support into PX4.
+- [RTK-GNSS (PX4-Integration)](../advanced/rtk_gps.md): Developer information about integrating RTK-GNSS support into PX4.
 - [u-blox Diagnostics with u-center](../gps_compass/u-center.md): bench-check RTCM reception and fix status on a u-blox rover/base.
 - [Real Time Kinematic](https://en.wikipedia.org/wiki/Real_Time_Kinematic) (Wikipedia)

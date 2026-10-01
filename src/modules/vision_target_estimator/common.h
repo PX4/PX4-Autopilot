@@ -153,11 +153,11 @@ static constexpr float sq(float var) { return var * var; }
 
 union SensorFusionMaskU {
 	struct {
-		uint16_t use_target_gps_pos   : 1;  ///< bit 0
-		uint16_t use_uav_gps_vel      : 1;  ///< bit 1
+		uint16_t use_target_gnss_pos   : 1;  ///< bit 0
+		uint16_t use_uav_gnss_vel      : 1;  ///< bit 1
 		uint16_t use_vision_pos       : 1;  ///< bit 2
 		uint16_t use_mission_pos      : 1;  ///< bit 3
-		uint16_t use_target_gps_vel   : 1;  ///< bit 4
+		uint16_t use_target_gnss_vel   : 1;  ///< bit 4
 		uint16_t use_home_pos         : 1;  ///< bit 5
 		uint16_t reserved             : 10; ///< bits 6..15 (future use)
 	} flags;

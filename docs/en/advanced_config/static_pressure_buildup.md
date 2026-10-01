@@ -14,8 +14,8 @@ Before "fixing" the problem you should first check that the Z setpoint tracks th
 :::
 
 ::: info
-While it is possible to remove the barometer from the altitude estimate (i.e. only use altitude from the GPS), this is not recommended.
-GPS is inaccurate in many environments, and particularly in urban environments where you have signal reflections off buildings.
+While it is possible to remove the barometer from the altitude estimate (i.e. only use altitude from the GNSS receiver), this is not recommended.
+GNSS is inaccurate in many environments, and particularly in urban environments where you have signal reflections off buildings.
 :::
 
 ## Airflow Analysis

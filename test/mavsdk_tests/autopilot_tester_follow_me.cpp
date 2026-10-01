@@ -189,7 +189,7 @@ void AutopilotTesterFollowMe::connect(const std::string uri)
 void AutopilotTesterFollowMe::straight_line_test(const bool stream_velocity)
 {
 	// CONFIGURATION for the test
-	const unsigned location_update_rate = 1; // [Hz] How often the GPS location update samples are generated
+	const unsigned location_update_rate = 1; // [Hz] How often the GNSS location update samples are generated
 	const float position_error_tolerance = 11.0f; // [m] Position error tolerance in both X and Y direction
 	const float follow_me_height_setting = 10.0f; // [m] Height above home position where the Drone will follow from
 
@@ -395,7 +395,7 @@ void AutopilotTesterFollowMe::rc_adjustment_test()
 	config.follow_angle_deg = follow_angle_setting;
 	CHECK(FollowMe::Result::Success == _follow_me->set_config(config));
 
-	// [deg] Get a single sample of target's GPS coordinate
+	// [deg] Get a single sample of target's GNSS coordinate
 	const std::array<double, 3> target_global_coordinate = target_simulator.get_position_global_ground_truth();
 
 	// Set TargetLocation as the sample to simulate a stationary target for a controlled RC adjustment test

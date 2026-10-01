@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Test code for the GPS receiver selection logic
+ * Test code for the GNSS receiver selection logic
  * Run this test only using make tests TESTFILTER=GnssSelector
  *
  */
@@ -49,9 +49,9 @@ public:
 	void runSeconds(float duration_s, GnssSelector &selector, sensor_gnss_s &gnss_data, int instance);
 	void runSeconds(float duration_s, GnssSelector &selector, sensor_gnss_s &gnss_data0, sensor_gnss_s &gnss_data1);
 
-	// Runs both receivers at 10 Hz, except that gps0 only publishes every gps0_divider-th step
-	void runSecondsSlowGps0(float duration_s, GnssSelector &selector, sensor_gnss_s &gnss_data0, sensor_gnss_s &gnss_data1,
-				int gps0_divider);
+	// Runs both receivers at 10 Hz, except that gnss0 only publishes every gnss0_divider-th step
+	void runSecondsSlowGnss0(float duration_s, GnssSelector &selector, sensor_gnss_s &gnss_data0, sensor_gnss_s &gnss_data1,
+				 int gnss0_divider);
 
 	uint64_t _time_now_us{1000000};
 
@@ -107,17 +107,17 @@ void GnssSelectorTest::runSeconds(float duration_s, GnssSelector &selector, sens
 void GnssSelectorTest::runSeconds(float duration_s, GnssSelector &selector, sensor_gnss_s &gnss_data0,
 				  sensor_gnss_s &gnss_data1)
 {
-	runSecondsSlowGps0(duration_s, selector, gnss_data0, gnss_data1, 1);
+	runSecondsSlowGnss0(duration_s, selector, gnss_data0, gnss_data1, 1);
 }
 
-void GnssSelectorTest::runSecondsSlowGps0(float duration_s, GnssSelector &selector, sensor_gnss_s &gnss_data0,
-		sensor_gnss_s &gnss_data1, int gps0_divider)
+void GnssSelectorTest::runSecondsSlowGnss0(float duration_s, GnssSelector &selector, sensor_gnss_s &gnss_data0,
+		sensor_gnss_s &gnss_data1, int gnss0_divider)
 {
 	const float dt = 0.1;
 	const uint64_t dt_us = static_cast<uint64_t>(dt * 1e6f);
 
 	for (int k = 0; k < lroundf(duration_s / dt); k++) {
-		if ((k % gps0_divider) == 0) {
+		if ((k % gnss0_divider) == 0) {
 			selector.setGnssData(gnss_data0, _checks_passed[0], _meets_requirements[0], 0);
 		}
 
@@ -206,7 +206,7 @@ TEST_F(GnssSelectorTest, preferredWhateverTheOtherReports)
 {
 	GnssSelector selector;
 
-	// GIVEN: gps0 preferred, only gps1 publishing
+	// GIVEN: gnss0 preferred, only gnss1 publishing
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
@@ -216,7 +216,7 @@ TEST_F(GnssSelectorTest, preferredWhateverTheOtherReports)
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_ONLY);
 
-	// WHEN: gps0 starts publishing and passes its checks
+	// WHEN: gnss0 starts publishing and passes its checks
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	gnss_data0.timestamp = gnss_data1.timestamp;
 
@@ -227,7 +227,7 @@ TEST_F(GnssSelectorTest, preferredWhateverTheOtherReports)
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_PREFERRED);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: gps1 reports a better fix type and accuracy
+	// WHEN: gnss1 reports a better fix type and accuracy
 	gnss_data1.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
 	gnss_data1.eph = 0.02f;
 	gnss_data1.epv = 0.03f;
@@ -243,7 +243,7 @@ TEST_F(GnssSelectorTest, timeoutSwitchesImmediately)
 {
 	GnssSelector selector;
 
-	// GIVEN: gps0 preferred and selected
+	// GIVEN: gnss0 preferred and selected
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -253,7 +253,7 @@ TEST_F(GnssSelectorTest, timeoutSwitchesImmediately)
 
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 
-	// WHEN: gps0 stops publishing
+	// WHEN: gnss0 stops publishing
 	runSeconds(1.5f, selector, gnss_data1, 1);
 
 	// THEN: it is kept until it times out, without output
@@ -267,7 +267,7 @@ TEST_F(GnssSelectorTest, timeoutSwitchesImmediately)
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_TIMEOUT);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: gps0 publishes again
+	// WHEN: gnss0 publishes again
 	gnss_data0.timestamp = gnss_data1.timestamp;
 
 	runSeconds(0.2f, selector, gnss_data0, gnss_data1);
@@ -282,7 +282,7 @@ TEST_F(GnssSelectorTest, timeoutToFailingReceiver)
 {
 	GnssSelector selector;
 
-	// GIVEN: gps0 preferred, both receivers failing their checks
+	// GIVEN: gnss0 preferred, both receivers failing their checks
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -295,7 +295,7 @@ TEST_F(GnssSelectorTest, timeoutToFailingReceiver)
 	// THEN: the preferred receiver is kept
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 
-	// WHEN: gps0 stops publishing
+	// WHEN: gnss0 stops publishing
 	runSeconds(2.5f, selector, gnss_data1, 1);
 
 	// THEN: the receiver that still publishes is selected, so that its samples keep coming
@@ -308,7 +308,7 @@ TEST_F(GnssSelectorTest, continuousFailure)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle using gps0, the preferred receiver
+	// GIVEN: an armed vehicle using gnss0, the preferred receiver
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -317,7 +317,7 @@ TEST_F(GnssSelectorTest, continuousFailure)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps0 fails its checks
+	// WHEN: gnss0 fails its checks
 	_checks_passed[0] = false;
 
 	runSeconds(1.5f, selector, gnss_data0, gnss_data1);
@@ -336,7 +336,7 @@ TEST_F(GnssSelectorTest, continuousFailureWithFlakyStandby)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle using gps0, the preferred receiver, and gps1 that failed its checks for 5 s
+	// GIVEN: an armed vehicle using gnss0, the preferred receiver, and gnss1 that failed its checks for 5 s
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -350,13 +350,13 @@ TEST_F(GnssSelectorTest, continuousFailureWithFlakyStandby)
 
 	EXPECT_LT(selector.getAvailability(1), 0.7f);
 
-	// WHEN: gps1 recovers as gps0 fails its checks
+	// WHEN: gnss1 recovers as gnss0 fails its checks
 	_checks_passed[0] = false;
 	_checks_passed[1] = true;
 
 	runSeconds(2.5f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps1 replaces it after the same 2 s, although it was recently less available than gps0
+	// THEN: gnss1 replaces it after the same 2 s, although it was recently less available than gnss0
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_UNHEALTHY);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
@@ -366,7 +366,7 @@ TEST_F(GnssSelectorTest, noReturnToFailedReceiverOnSingleSample)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle without a preferred receiver that left gps0 for gps1, which failed recently itself
+	// GIVEN: an armed vehicle without a preferred receiver that left gnss0 for gnss1, which failed recently itself
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
@@ -381,7 +381,7 @@ TEST_F(GnssSelectorTest, noReturnToFailedReceiverOnSingleSample)
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 
-	// WHEN: gps0 passes a single sample every second, still more available than gps1
+	// WHEN: gnss0 passes a single sample every second, still more available than gnss1
 	for (int cycle = 0; cycle < 10; cycle++) {
 		_checks_passed[0] = true;
 		runSeconds(0.1f, selector, gnss_data0, gnss_data1);
@@ -389,7 +389,7 @@ TEST_F(GnssSelectorTest, noReturnToFailedReceiverOnSingleSample)
 		runSeconds(0.9f, selector, gnss_data0, gnss_data1);
 	}
 
-	// THEN: gps1 is kept
+	// THEN: gnss1 is kept
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 }
@@ -398,7 +398,7 @@ TEST_F(GnssSelectorTest, intermittentFailure)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle using gps0, the preferred receiver
+	// GIVEN: an armed vehicle using gnss0, the preferred receiver
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -407,7 +407,7 @@ TEST_F(GnssSelectorTest, intermittentFailure)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps0 fails one sample every 1.5 s, which makes it unusable for 1 s each time: it never fails continuously
+	// WHEN: gnss0 fails one sample every 1.5 s, which makes it unusable for 1 s each time: it never fails continuously
 	// for long, but only a third of its samples can be fused
 	for (int cycle = 0; cycle < 10; cycle++) {
 		_checks_passed[0] = false;
@@ -426,7 +426,7 @@ TEST_F(GnssSelectorTest, occasionalFailureDoesNotSwitch)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle using gps0, the preferred receiver
+	// GIVEN: an armed vehicle using gnss0, the preferred receiver
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -435,7 +435,7 @@ TEST_F(GnssSelectorTest, occasionalFailureDoesNotSwitch)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps0 fails one sample every 10 s, unusable 10% of the time
+	// WHEN: gnss0 fails one sample every 10 s, unusable 10% of the time
 	for (int cycle = 0; cycle < 6; cycle++) {
 		_checks_passed[0] = false;
 		runSeconds(1.f, selector, gnss_data0, gnss_data1);
@@ -452,7 +452,7 @@ TEST_F(GnssSelectorTest, rateCollapse)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle using gps0, the preferred receiver, both at 10 Hz
+	// GIVEN: an armed vehicle using gnss0, the preferred receiver, both at 10 Hz
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -461,12 +461,12 @@ TEST_F(GnssSelectorTest, rateCollapse)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps0 drops to 1 Hz, its samples still passing their checks
-	runSecondsSlowGps0(1.5f, selector, gnss_data0, gnss_data1, 10);
+	// WHEN: gnss0 drops to 1 Hz, its samples still passing their checks
+	runSecondsSlowGnss0(1.5f, selector, gnss_data0, gnss_data1, 10);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 
-	runSecondsSlowGps0(1.5f, selector, gnss_data0, gnss_data1, 10);
+	runSecondsSlowGnss0(1.5f, selector, gnss_data0, gnss_data1, 10);
 
 	// THEN: it has failed, as every sample is late
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
@@ -477,7 +477,7 @@ TEST_F(GnssSelectorTest, halfRateStillUsable)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle using gps0, the preferred receiver, both at 10 Hz
+	// GIVEN: an armed vehicle using gnss0, the preferred receiver, both at 10 Hz
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -486,9 +486,9 @@ TEST_F(GnssSelectorTest, halfRateStillUsable)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps0 drops to 5 Hz, or has a single 1 s gap
-	runSecondsSlowGps0(20.f, selector, gnss_data0, gnss_data1, 2);
-	runSecondsSlowGps0(1.f, selector, gnss_data0, gnss_data1, 20);
+	// WHEN: gnss0 drops to 5 Hz, or has a single 1 s gap
+	runSecondsSlowGnss0(20.f, selector, gnss_data0, gnss_data1, 2);
+	runSecondsSlowGnss0(1.f, selector, gnss_data0, gnss_data1, 20);
 	runSeconds(10.f, selector, gnss_data0, gnss_data1);
 
 	// THEN: it is kept
@@ -500,7 +500,7 @@ TEST_F(GnssSelectorTest, bothFailingKeepsSelection)
 {
 	GnssSelector selector;
 
-	// GIVEN: two receivers without a preferred one, gps0 selected
+	// GIVEN: two receivers without a preferred one, gnss0 selected
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
@@ -523,7 +523,7 @@ TEST_F(GnssSelectorTest, noReturnToFailedPreferred)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle that failed over from gps0, the preferred receiver
+	// GIVEN: an armed vehicle that failed over from gnss0, the preferred receiver
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -537,21 +537,21 @@ TEST_F(GnssSelectorTest, noReturnToFailedPreferred)
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 
-	// WHEN: gps0 passes its checks again
+	// WHEN: gnss0 passes its checks again
 	_checks_passed[0] = true;
 
 	runSeconds(30.f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps1 is kept, as gps0 is likely to fail again
+	// THEN: gnss1 is kept, as gnss0 is likely to fail again
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: gps1 fails its checks
+	// WHEN: gnss1 fails its checks
 	_checks_passed[1] = false;
 
 	runSeconds(2.5f, selector, gnss_data0, gnss_data1);
 
-	// THEN: the selection returns to gps0
+	// THEN: the selection returns to gnss0
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_PREFERRED);
 	EXPECT_EQ(selector.getSelectionCount(), 2);
@@ -561,7 +561,7 @@ TEST_F(GnssSelectorTest, preferredStartingWhileArmed)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle using gps1, as gps0, the preferred receiver, didn't publish yet
+	// GIVEN: an armed vehicle using gnss1, as gnss0, the preferred receiver, didn't publish yet
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
@@ -571,7 +571,7 @@ TEST_F(GnssSelectorTest, preferredStartingWhileArmed)
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 
-	// WHEN: gps0 starts publishing and passes its checks
+	// WHEN: gnss0 starts publishing and passes its checks
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	gnss_data0.timestamp = gnss_data1.timestamp;
 
@@ -591,7 +591,7 @@ TEST_F(GnssSelectorTest, preferredReturnAfterDisarm)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle that failed over from gps0, the preferred receiver, which passes its checks again
+	// GIVEN: an armed vehicle that failed over from gnss0, the preferred receiver, which passes its checks again
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -607,12 +607,12 @@ TEST_F(GnssSelectorTest, preferredReturnAfterDisarm)
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 
-	// WHEN: the vehicle disarms while gps0 is still clearly less available
+	// WHEN: the vehicle disarms while gnss0 is still clearly less available
 	selector.setArmed(false);
 
 	runSeconds(0.2f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps0 is selected at once
+	// THEN: gnss0 is selected at once
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_PREFERRED);
 	EXPECT_EQ(selector.getSelectionCount(), 2);
@@ -622,7 +622,7 @@ TEST_F(GnssSelectorTest, preferredSelectedWhileDisarmed)
 {
 	GnssSelector selector;
 
-	// GIVEN: gps0 preferred, only gps1 publishing
+	// GIVEN: gnss0 preferred, only gnss1 publishing
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
@@ -632,14 +632,14 @@ TEST_F(GnssSelectorTest, preferredSelectedWhileDisarmed)
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_ONLY);
 
-	// WHEN: gps0 publishes, but hasn't passed its checks yet
+	// WHEN: gnss0 publishes, but hasn't passed its checks yet
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	gnss_data0.timestamp = gnss_data1.timestamp;
 	_checks_passed[0] = false;
 
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 
-	// THEN: it is selected, so that the vehicle doesn't take off on gps1
+	// THEN: it is selected, so that the vehicle doesn't take off on gnss1
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_PREFERRED);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
@@ -649,7 +649,7 @@ TEST_F(GnssSelectorTest, preferredSelectedWhileDisarmed)
 
 	runSeconds(0.2f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps0 has failed, and gps1 replaces it
+	// THEN: gnss0 has failed, and gnss1 replaces it
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_UNHEALTHY);
 	EXPECT_EQ(selector.getSelectionCount(), 2);
@@ -660,7 +660,7 @@ TEST_F(GnssSelectorTest, preferenceRemoved)
 {
 	GnssSelector selector;
 
-	// GIVEN: the selection moved to gps1, the preferred receiver, once it published
+	// GIVEN: the selection moved to gnss1, the preferred receiver, once it published
 	selector.setPreferredInstance(1);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -679,7 +679,7 @@ TEST_F(GnssSelectorTest, preferenceRemoved)
 
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps1 is kept, as the other one is no more accurate
+	// THEN: gnss1 is kept, as the other one is no more accurate
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_RANKED);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
@@ -689,7 +689,7 @@ TEST_F(GnssSelectorTest, rankedIgnoresFloatSatellitesAndRate)
 {
 	GnssSelector selector;
 
-	// GIVEN: two receivers without a preferred one, gps1 selected
+	// GIVEN: two receivers without a preferred one, gnss1 selected
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
@@ -698,16 +698,16 @@ TEST_F(GnssSelectorTest, rankedIgnoresFloatSatellitesAndRate)
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 
-	// WHEN: gps0 reports an RTK float solution, more satellites and a better accuracy, and gps1 publishes at twice
-	// gps0's rate
+	// WHEN: gnss0 reports an RTK float solution, more satellites and a better accuracy, and gnss1 publishes at twice
+	// gnss0's rate
 	gnss_data0.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FLOAT;
 	gnss_data0.satellites_used = gnss_data1.satellites_used + 10;
 	gnss_data0.eph = 0.1f;
 	gnss_data0.epv = 0.2f;
 
-	runSecondsSlowGps0(20.f, selector, gnss_data0, gnss_data1, 2);
+	runSecondsSlowGnss0(20.f, selector, gnss_data0, gnss_data1, 2);
 
-	// THEN: gps1 is kept, none of them ranks a receiver higher
+	// THEN: gnss1 is kept, none of them ranks a receiver higher
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_RANKED);
 	EXPECT_EQ(selector.getSelectionCount(), 0);
@@ -717,7 +717,7 @@ TEST_F(GnssSelectorTest, rankedSwitchOnFailure)
 {
 	GnssSelector selector;
 
-	// GIVEN: two receivers without a preferred one, gps0 selected
+	// GIVEN: two receivers without a preferred one, gnss0 selected
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
@@ -726,7 +726,7 @@ TEST_F(GnssSelectorTest, rankedSwitchOnFailure)
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_RANKED);
 
-	// WHEN: gps0 fails its checks
+	// WHEN: gnss0 fails its checks
 	_checks_passed[0] = false;
 
 	runSeconds(3.f, selector, gnss_data0, gnss_data1);
@@ -736,12 +736,12 @@ TEST_F(GnssSelectorTest, rankedSwitchOnFailure)
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_UNHEALTHY);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: gps0 passes them again
+	// WHEN: gnss0 passes them again
 	_checks_passed[0] = true;
 
 	runSeconds(30.f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps1 is kept, as gps0 doesn't rank higher
+	// THEN: gnss1 is kept, as gnss0 doesn't rank higher
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 }
@@ -750,14 +750,14 @@ TEST_F(GnssSelectorTest, rankedRequirements)
 {
 	GnssSelector selector;
 
-	// GIVEN: two receivers without a preferred one, gps0 selected, on an armed vehicle
+	// GIVEN: two receivers without a preferred one, gnss0 selected, on an armed vehicle
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps0 no longer meets the accuracy requirements, which gps1 does
+	// WHEN: gnss0 no longer meets the accuracy requirements, which gnss1 does
 	_meets_requirements[0] = false;
 
 	runSeconds(9.5f, selector, gnss_data0, gnss_data1);
@@ -771,21 +771,21 @@ TEST_F(GnssSelectorTest, rankedRequirements)
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_REQUIREMENTS);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: gps0 meets them again
+	// WHEN: gnss0 meets them again
 	_meets_requirements[0] = true;
 
 	runSeconds(20.f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps1 is kept, as gps0 doesn't rank higher
+	// THEN: gnss1 is kept, as gnss0 doesn't rank higher
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: gps1 no longer meets them
+	// WHEN: gnss1 no longer meets them
 	_meets_requirements[1] = false;
 
 	runSeconds(10.5f, selector, gnss_data0, gnss_data1);
 
-	// THEN: the selection moves back to gps0, which ranked lower but never failed
+	// THEN: the selection moves back to gnss0, which ranked lower but never failed
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_REQUIREMENTS);
 	EXPECT_EQ(selector.getSelectionCount(), 2);
@@ -795,7 +795,7 @@ TEST_F(GnssSelectorTest, rankedHoldRestarts)
 {
 	GnssSelector selector;
 
-	// GIVEN: two receivers without a preferred one, gps0 selected, on an armed vehicle, and gps0 not meeting the
+	// GIVEN: two receivers without a preferred one, gnss0 selected, on an armed vehicle, and gnss0 not meeting the
 	// accuracy requirements
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
@@ -804,7 +804,7 @@ TEST_F(GnssSelectorTest, rankedHoldRestarts)
 	selector.setArmed(true);
 	_meets_requirements[0] = false;
 
-	// WHEN: gps1 meets them for 9 s at a time
+	// WHEN: gnss1 meets them for 9 s at a time
 	for (int cycle = 0; cycle < 5; cycle++) {
 		_meets_requirements[1] = true;
 		runSeconds(9.f, selector, gnss_data0, gnss_data1);
@@ -812,7 +812,7 @@ TEST_F(GnssSelectorTest, rankedHoldRestarts)
 		runSeconds(0.2f, selector, gnss_data0, gnss_data1);
 	}
 
-	// THEN: gps0 is kept
+	// THEN: gnss0 is kept
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionCount(), 0);
 }
@@ -821,14 +821,14 @@ TEST_F(GnssSelectorTest, rankedRtkFixed)
 {
 	GnssSelector selector;
 
-	// GIVEN: two receivers without a preferred one, gps0 selected, on an armed vehicle
+	// GIVEN: two receivers without a preferred one, gnss0 selected, on an armed vehicle
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps1 gets an RTK fixed solution
+	// WHEN: gnss1 gets an RTK fixed solution
 	gnss_data1.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
 
 	runSeconds(10.5f, selector, gnss_data0, gnss_data1);
@@ -838,18 +838,18 @@ TEST_F(GnssSelectorTest, rankedRtkFixed)
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_RTK_FIXED);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: gps0 gets one too, reporting a better accuracy
+	// WHEN: gnss0 gets one too, reporting a better accuracy
 	gnss_data0.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
 	gnss_data0.eph = 0.01f;
 	gnss_data0.epv = 0.015f;
 
 	runSeconds(20.f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps1 is kept
+	// THEN: gnss1 is kept
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: gps1 drops to RTK float
+	// WHEN: gnss1 drops to RTK float
 	gnss_data1.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FLOAT;
 
 	runSeconds(10.5f, selector, gnss_data0, gnss_data1);
@@ -864,19 +864,19 @@ TEST_F(GnssSelectorTest, rankedRtkFixedNeedsRequirements)
 {
 	GnssSelector selector;
 
-	// GIVEN: two receivers without a preferred one, gps0 selected
+	// GIVEN: two receivers without a preferred one, gnss0 selected
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 
-	// WHEN: gps1 reports an RTK fixed solution, but doesn't meet the accuracy requirements
+	// WHEN: gnss1 reports an RTK fixed solution, but doesn't meet the accuracy requirements
 	gnss_data1.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
 	_meets_requirements[1] = false;
 
 	runSeconds(20.f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps0 is kept
+	// THEN: gnss0 is kept
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionCount(), 0);
 }
@@ -885,7 +885,7 @@ TEST_F(GnssSelectorTest, rankedNoReturnToFailedReceiver)
 {
 	GnssSelector selector;
 
-	// GIVEN: two receivers without a preferred one, gps0 selected with an RTK fixed solution, on an armed vehicle
+	// GIVEN: two receivers without a preferred one, gnss0 selected with an RTK fixed solution, on an armed vehicle
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 	gnss_data0.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
@@ -895,7 +895,7 @@ TEST_F(GnssSelectorTest, rankedNoReturnToFailedReceiver)
 
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 
-	// WHEN: gps0 fails its checks, then recovers
+	// WHEN: gnss0 fails its checks, then recovers
 	_checks_passed[0] = false;
 	runSeconds(3.f, selector, gnss_data0, gnss_data1);
 
@@ -904,7 +904,7 @@ TEST_F(GnssSelectorTest, rankedNoReturnToFailedReceiver)
 	_checks_passed[0] = true;
 	runSeconds(30.f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps1 is kept, although gps0 ranks higher
+	// THEN: gnss1 is kept, although gnss0 ranks higher
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
@@ -913,7 +913,7 @@ TEST_F(GnssSelectorTest, rankedNoReturnToFailedReceiver)
 
 	runSeconds(1.5f, selector, gnss_data0, gnss_data1);
 
-	// THEN: gps0 ranks again, with the shorter hold time
+	// THEN: gnss0 ranks again, with the shorter hold time
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 
 	runSeconds(1.f, selector, gnss_data0, gnss_data1);
@@ -927,7 +927,7 @@ TEST_F(GnssSelectorTest, noOutputWithoutNewData)
 {
 	GnssSelector selector;
 
-	// GIVEN: two receivers, gps1 selected as it published first
+	// GIVEN: two receivers, gnss1 selected as it published first
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
@@ -960,7 +960,7 @@ TEST_F(GnssSelectorTest, availability)
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
-	// GIVEN: gps1 hasn't passed its checks yet
+	// GIVEN: gnss1 hasn't passed its checks yet
 	_checks_passed[1] = false;
 
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
@@ -969,7 +969,7 @@ TEST_F(GnssSelectorTest, availability)
 	EXPECT_FLOAT_EQ(selector.getAvailability(0), 1.f);
 	EXPECT_FLOAT_EQ(selector.getAvailability(1), 0.f);
 
-	// WHEN: gps0 fails its checks for one time constant
+	// WHEN: gnss0 fails its checks for one time constant
 	_checks_passed[0] = false;
 
 	runSeconds(10.f, selector, gnss_data0, gnss_data1);

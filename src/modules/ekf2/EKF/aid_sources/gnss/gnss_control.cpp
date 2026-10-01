@@ -32,14 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file gps_control.cpp
+ * @file gnss_control.cpp
  * Control functions for ekf GNSS fusion
  */
 
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
-void Ekf::controlGpsFusion(const imuSample &imu_delayed)
+void Ekf::controlGnssFusion(const imuSample &imu_delayed)
 {
 	_fc.gps.available = (_params.ekf2_gps_ctrl != 0);
 
@@ -47,7 +47,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	controlGnssYawFusion(imu_delayed);
 #endif // CONFIG_EKF2_GNSS_YAW
 
-	if (!_gps_buffer) {
+	if (!_gnss_buffer) {
 		stopGnssFusion();
 		return;
 	}
@@ -65,13 +65,13 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		return;
 	}
 
-	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
+	_gnss_intermittent = !isNewestSampleRecent(_time_last_gnss_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 	// check for arrival of new sensor data at the fusion time horizon
-	_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
+	_gnss_data_ready = _gnss_buffer->pop_first_older_than(imu_delayed.time_us, &_gnss_sample_delayed);
 
-	if (_gps_data_ready) {
-		const gnssSample &gnss_sample = _gps_sample_delayed;
+	if (_gnss_data_ready) {
+		const gnssSample &gnss_sample = _gnss_sample_delayed;
 
 		// The sensors module stamps each sample with its check result
 		_gnss_usable = gnss_sample.usable;
@@ -93,7 +93,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		} else {
 			// Skip this sample
-			_gps_data_ready = false;
+			_gnss_data_ready = false;
 			_gnss_fusion_state = gnss_sample.usable ? GnssFusionState::VelLimit : GnssFusionState::Unusable;
 
 			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos
@@ -116,13 +116,13 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		updateGnssVel(imu_delayed, gnss_sample, _aid_src_gnss_vel);
 
 	} else if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) {
-		if (!isNewestSampleRecent(_time_last_gps_buffer_push, _params.reset_timeout_max)) {
+		if (!isNewestSampleRecent(_time_last_gnss_buffer_push, _params.reset_timeout_max)) {
 			stopGnssFusion();
 			ECL_WARN("GNSS data stopped");
 		}
 	}
 
-	if (_gps_data_ready) {
+	if (_gnss_data_ready) {
 		controlGnssYawEstimator(_aid_src_gnss_vel);
 
 		bool do_vel_pos_reset = false;
@@ -215,8 +215,8 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 	const bool gpos_init_conditions_passing = gnss_pos_enabled && isGnssRestartHoldOffElapsed();
 
 	// The new receiver can report a position offset from the previous one (different correction source)
-	const bool receiver_changed = (_gps_sample_delayed.selection_count != _gnss_pos_selection_count);
-	_gnss_pos_selection_count = _gps_sample_delayed.selection_count;
+	const bool receiver_changed = (_gnss_sample_delayed.selection_count != _gnss_pos_selection_count);
+	_gnss_pos_selection_count = _gnss_sample_delayed.selection_count;
 
 	if (_control_status.flags.gnss_pos) {
 		if (continuing_conditions_passing && receiver_changed) {
@@ -347,14 +347,14 @@ void Ekf::updateGnssFusionState()
 	if (!_fc.gps.intended()) {
 		_gnss_fusion_state = GnssFusionState::Inactive;
 
-	} else if (!isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL)) {
+	} else if (!isNewestSampleRecent(_time_last_gnss_buffer_push, 2 * GNSS_MAX_INTERVAL)) {
 		_gnss_fusion_state = GnssFusionState::NoData;
 
 	} else if (sample_accepted) {
 		_gnss_fusion_state = acceptedGnssSampleFusionState();
 	}
 
-	// Otherwise no sample reached the fusion time horizon, or controlGpsFusion() skipped it and set the state
+	// Otherwise no sample reached the fusion time horizon, or controlGnssFusion() skipped it and set the state
 }
 
 GnssFusionState Ekf::acceptedGnssSampleFusionState() const
@@ -431,7 +431,7 @@ void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s 
 	const LatLonAlt measurement_corrected = measurement + (-pos_offset_earth);
 	const Vector2f innovation = (_gpos - measurement_corrected).xy();
 
-	// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
+	// relax the upper observation noise limit which prevents bad GNSS perturbing the position estimate
 	float pos_noise = math::max(gnss_sample.hacc, _params.ekf2_gps_p_noise);
 
 	if (!isOtherSourceOfHorizontalAidingThan(_control_status.flags.gnss_pos)) {
@@ -494,7 +494,7 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 		    && !_control_status.flags.yaw_align
 		    && _control_status.flags.tilt_align) {
 			if (resetYawToEKFGSF()) {
-				ECL_INFO("GPS yaw aligned using IMU");
+				ECL_INFO("GNSS yaw aligned using IMU");
 			}
 		}
 	}
@@ -507,10 +507,10 @@ bool Ekf::tryYawEmergencyReset()
 	/* A rapid reset to the yaw emergency estimate is performed if horizontal velocity innovation checks continuously
 	 * fails while the difference between the yaw emergency estimator and the yaw estimate is large.
 	 * This enables recovery from a bad yaw estimate. A reset is not performed if the fault condition was
-	 * present before flight to prevent triggering due to GPS glitches or other sensor errors.
+	 * present before flight to prevent triggering due to GNSS glitches or other sensor errors.
 	 */
 	if (resetYawToEKFGSF()) {
-		ECL_WARN("GPS emergency yaw reset");
+		ECL_WARN("GNSS emergency yaw reset");
 
 		// in-flight yaw rescue is a signal that gyro_bias_z could be wrong
 		// bump its variance so new observations will correct it faster
@@ -566,7 +566,7 @@ void Ekf::stopGnssFusion()
 {
 	stopGnssVelFusion();
 	stopGnssPosFusion();
-	stopGpsHgtFusion();
+	stopGnssHgtFusion();
 
 	_yawEstimator.reset();
 	_time_yaw_estimator_activated_us = 0;

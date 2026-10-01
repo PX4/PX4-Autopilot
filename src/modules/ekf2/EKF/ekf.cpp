@@ -574,7 +574,7 @@ void Ekf::print_status()
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	printRingBuffer("gps buffer", _gps_buffer);
+	printRingBuffer("gnss buffer", _gnss_buffer);
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)

@@ -643,7 +643,7 @@ float Ekf::getMagDeclination()
 
 bool Ekf::updateWorldMagneticModel(const double latitude_deg, const double longitude_deg)
 {
-	// set the magnetic field data returned by the geo library using the current GPS position
+	// set the magnetic field data returned by the geo library using the current GNSS position
 	const float declination_rad = math::radians(get_mag_declination_degrees(latitude_deg, longitude_deg));
 	const float inclination_rad = math::radians(get_mag_inclination_degrees(latitude_deg, longitude_deg));
 	const float strength_gauss = get_mag_strength_gauss(latitude_deg, longitude_deg);

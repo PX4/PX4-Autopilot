@@ -135,7 +135,7 @@ void Ekf::controlGnssYawFusion(const imuSample &imu_delayed)
 
 				// A reset takes the heading as is, so after a fusion failure or a spoofing or jamming report the
 				// receiver gets the GNSS health time to recover before it is trusted again
-				const bool reset_allowed = isTimedOut(_time_last_gnss_yaw_fail_us, _min_gps_health_time_us);
+				const bool reset_allowed = isTimedOut(_time_last_gnss_yaw_fail_us, _min_gnss_health_time_us);
 
 				// Reset before starting the fusion
 				if (reset_allowed && resetYawToGnss(gnss_yaw_sample.yaw, gnss_yaw_sample.yaw_offset)) {

@@ -86,10 +86,10 @@ TEST_F(EkfFakePosTest, testFakePosStopGnss)
 {
 	_ekf->set_vehicle_at_rest(false);
 	_ekf->set_constant_pos(true);
-	_sensor_simulator.startGps();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(12);
 
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().constant_pos);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().fake_pos);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().valid_fake_pos);

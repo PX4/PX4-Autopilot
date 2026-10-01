@@ -132,13 +132,13 @@ void PPSCapture::Run()
 
 	sensor_gnss_s sensor_gnss;
 
-	const uint32_t gps_device_id = static_cast<uint32_t>(_param_pps_cap_gps_id.get());
+	const uint32_t gnss_device_id = static_cast<uint32_t>(_param_pps_cap_gps_id.get());
 
 	for (auto &sub : _sensor_gnss_subs) {
 		if (sub.update(&sensor_gnss)) {
-			if (gps_device_id == 0 || sensor_gnss.device_id == gps_device_id) {
-				_last_gps_utc_timestamp = sensor_gnss.time_utc_usec;
-				_last_gps_timestamp = sensor_gnss.timestamp;
+			if (gnss_device_id == 0 || sensor_gnss.device_id == gnss_device_id) {
+				_last_gnss_utc_timestamp = sensor_gnss.time_utc_usec;
+				_last_gnss_timestamp = sensor_gnss.timestamp;
 				break;
 			}
 		}
@@ -148,21 +148,21 @@ void PPSCapture::Run()
 	pps_capture.timestamp = _hrt_timestamp;
 	pps_capture.pps_rate_exceeded_counter = _pps_rate_exceeded_counter;
 	// GPS UTC time when the GPIO interrupt was triggered
-	// Last UTC time received from the GPS + elapsed time to the PPS interrupt
-	uint64_t gps_utc_time = _last_gps_utc_timestamp + (_hrt_timestamp - _last_gps_timestamp);
+	// Last UTC time received from the GNSS receiver + elapsed time to the PPS interrupt
+	uint64_t gnss_utc_time = _last_gnss_utc_timestamp + (_hrt_timestamp - _last_gnss_timestamp);
 
 	// (For ubx F9P) The rising edge of the PPS pulse is aligned to the top of second GPS time base.
 	// So, remove the fraction of second and shift to the next second. The interrupt is triggered
 	// before the matching timestamp is received via a UART message, which means the last received GPS time is always
 	// behind.
-	pps_capture.rtc_timestamp = gps_utc_time - (gps_utc_time % USEC_PER_SEC) + USEC_PER_SEC;
+	pps_capture.rtc_timestamp = gnss_utc_time - (gnss_utc_time % USEC_PER_SEC) + USEC_PER_SEC;
 
 	_pps_capture_pub.publish(pps_capture);
 
 	if (_pps_rate_failure.load()) {
-		mavlink_log_warning(&_mavlink_log_pub, "Hardware fault: GPS PPS disabled\t");
+		mavlink_log_warning(&_mavlink_log_pub, "Hardware fault: GNSS PPS disabled\t");
 		events::send(events::ID("pps_capture_pps_rate_exceeded"),
-			     events::Log::Error, "Hardware fault: GPS PPS disabled");
+			     events::Log::Error, "Hardware fault: GNSS PPS disabled");
 		_pps_rate_failure.store(false);
 	}
 }

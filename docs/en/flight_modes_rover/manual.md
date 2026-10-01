@@ -29,7 +29,7 @@ The manual modes provide progressively increasing levels of autopilot support fo
 | [Manual](#manual-mode)                 | Directly map stick input to motor command.                               | Directly map stick input to steering angle/speed difference.                                                                                                                                      | None.                                           |
 | [Acro](#acro-mode)                     | Directly map stick input to motor command.                               | Stick input creates a yaw rate setpoint for the control system to regulate.                                                                                                                       | yaw rate.                                       |
 | [Stabilized](#stabilized-mode)         | Directly map stick input to motor commands.                              | Stick input creates a yaw rate setpoint for the control system to regulate. If this setpoint is zero (stick is centered) the control system will maintain the current yaw (heading) of the rover. | Yaw rate and yaw.                               |
-| [Position](#position-mode)             | Stick input creates a speed setpoint for the control system to regulate. | Stick input creates a yaw rate setpoint for the control system to regulate. If this setpoint is zero (stick is centered) the control system will keep the rover driving in a straight line.       | yaw rate, yaw, speed and global position (GPS). |
+| [Position](#position-mode)             | Stick input creates a speed setpoint for the control system to regulate. | Stick input creates a yaw rate setpoint for the control system to regulate. If this setpoint is zero (stick is centered) the control system will keep the rover driving in a straight line.       | yaw rate, yaw, speed and global position (GNSS). |
 | [Manual Parking](#manual-parking-mode) | Directly map scaled down stick input to motor command.                   | Ackermann: Directly map stick input to steering angle. Differential/Mecanum: Each stick directly maps to the motor command of one side of the rover.                                              | None.                                           |
 
 :::
@@ -89,7 +89,7 @@ This mode requires a yaw rate, yaw, speed and global position estimate.
 
 This is the manual mode with the most autopilot support.
 The vehicle regulates its yaw rate and speed to a setpoint.
-If the yaw rate setpoint is zero, the controller will remember the GPS coordinates and yaw (heading) of the vehicle and use those to construct a line that the rover will then follow (course control).
+If the yaw rate setpoint is zero, the controller will remember the GNSS coordinates and yaw (heading) of the vehicle and use those to construct a line that the rover will then follow (course control).
 This offers the highest amount of disturbance rejection, which leads to the best straight line driving behavior.
 
 | Rover Type   | Left stick up/down                                                                                            | Left stick left/right                                                                                                                          | Right stick left/right                                                                                                                         |

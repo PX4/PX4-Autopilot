@@ -60,7 +60,7 @@ if DRIVERS_CYPHAL
             bool "uORB actuator_outputs publisher"
             default n
 
-        config CYPHAL_UORB_SENSOR_GPS_PUBLISHER
+        config CYPHAL_UORB_SENSOR_GNSS_PUBLISHER
             bool "uORB sensor_gnss publisher"
             default n
 
@@ -84,7 +84,7 @@ if DRIVERS_CYPHAL
             bool "BMS Subscriber"
             default n
 
-        config CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
+        config CYPHAL_UORB_SENSOR_GNSS_SUBSCRIBER
             bool "uORB sensor_gnss Subscriber"
             default n
     endmenu
