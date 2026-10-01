@@ -18,7 +18,7 @@ TAG-E writes position, altitude and camera attitude into the EXIF and XMP of eve
 
 ## Wiring
 
-Connect TAG-E's IO-B connector to a TELEM port on the flight controller (e.g. `TELEM1` or `TELEM2`), and TAG-E's USB-C port to the camera.
+Connect TAG-E's IO-B connector to an unused serial port on the flight controller, such as `TELEM2`, and TAG-E's USB-C port to the camera.
 TAG-E needs a 5V supply able to deliver at least 2A.
 
 Pinouts are in the [TAG-E pinout manual](https://airpixel.cz/docs/tag-e-pinouts/).
@@ -26,15 +26,16 @@ Pinouts are in the [TAG-E pinout manual](https://airpixel.cz/docs/tag-e-pinouts/
 ## PX4 Configuration
 
 TAG-E uses the component ID `MAV_COMP_ID_CAMERA` (100).
-Configure the MAVLink instance on the port it is connected to (`MAV_1_*` or `MAV_2_*`):
+Configure an unused MAVLink instance for the port it is connected to.
+The table below shows the settings for `TELEM2` using the `MAV_1_*` parameters (if using another port or instance, set the corresponding unused `MAV_n_*` parameters and the baud rate parameter for that port):
 
-| Parameter                                                                                     | Value                  |
-| --------------------------------------------------------------------------------------------- | ---------------------- |
-| [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)                        | `TELEM 1` or `TELEM 2` |
-| [SER_TEL1_BAUD](../advanced_config/parameter_reference.md#SER_TEL1_BAUD) (or `SER_TEL2_BAUD`) | `921600`               |
-| [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)                            | `Onboard`              |
-| [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE)                            | `0`                    |
-| [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD)                      | `Enabled`              |
+| Parameter                                                                | Value     |
+| ------------------------------------------------------------------------ | --------- |
+| [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)   | `TELEM 2` |
+| [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD) | `921600`  |
+| [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)       | `Onboard` |
+| [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE)       | `0`       |
+| [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) | `Enabled` |
 
 Reboot the flight controller.
 When the camera is online, the TAG-E LED turns green and the camera panel appears in _QGroundControl_.
