@@ -28,14 +28,14 @@ if MODULES_SENSORS
         bool "Include vehicle acceleration"
         default y
 
-    config SENSORS_VEHICLE_GPS_POSITION
-        bool "Include vehicle gps position"
+    config SENSORS_VEHICLE_GNSS
+        bool "Include vehicle GNSS"
         default y
 
     config SENSORS_VEHICLE_GNSS_HEADING
         bool "Include vehicle GNSS heading"
         default y if EKF2_GNSS_YAW || DRIVERS_INS_MICROSTRAIN
-        depends on SENSORS_VEHICLE_GPS_POSITION
+        depends on SENSORS_VEHICLE_GNSS
 
     config SENSORS_VEHICLE_MAGNETOMETER
         bool "Include vehicle magnetometer"
