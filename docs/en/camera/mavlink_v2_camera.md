@@ -63,7 +63,7 @@ PX4 allows the following subset of [Camera Protocol v2](https://mavlink.io/en/se
 
 PX4 re-emits the camera commands found in missions as MAVLink commands.
 The system id of the emitted commands is the same as the ID of the autopilot.
-The component ID of the emitted commands is the target camera `id` param of the mission item, falling back to `MAV_COMP_ID_CAMERA` (100) if it is not set.
+From PX4 v2.0 (main) the component ID of the emitted commands is the target camera `id` param of the mission item, falling back to `MAV_COMP_ID_CAMERA` (100) if it is not set.
 
 ::: info
 PX4 v1.16 to v1.18 only respect the target camera `id` for `MAV_CMD_IMAGE_START_CAPTURE`, `MAV_CMD_IMAGE_STOP_CAPTURE`, `MAV_CMD_SET_CAMERA_MODE` and `MAV_CMD_SET_CAMERA_SOURCE`.
