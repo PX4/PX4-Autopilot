@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# board specific extras
+#------------------------------------------------------------------------------
+
+cubered_bridge_secondary start
