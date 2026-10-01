@@ -52,6 +52,8 @@ This consists of two build variants:
 - `px4_fmu-v6x_bootloader_secureboot` — the secure bootloader, with ed25519 verification enabled, and the upstream _test public key_ baked in.
 - `px4_fmu-v6x_secureboot` — PX4 firmware, with TOC and automatic signing.
 
+The same two variants exist for the [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md#secure-boot) (`agam_fmu-v6xrt`).
+
 The steps are:
 
 1. Build and flash the secure bootloader (one-time, via SWD)
@@ -132,6 +134,9 @@ To enable secure boot up on a board that doesn't already have a `secureboot` var
 - `BOOTLOADER_USE_SECURITY` + `BOOTLOADER_SIGNING_ALGORITHM` + `BOARD_IMAGE_TOC_OFFSET` defines in the board's `hw_config.h`, gated on `PX4_CRYPTO`.
 
 The fmu-v6x variant files are kept small and self-contained for exactly this reason — they are intended to be copied as a starting point.
+
+The first TOC entry must start at `APP_LOAD_ADDRESS`.
+On boards where the image starts with a boot header ahead of the vector table, such as i.MX RT, the entry therefore starts at the header and not at the vectors (see `boards/agam/fmu-v6xrt/src/toc.c`).
 
 ## See Also
 
