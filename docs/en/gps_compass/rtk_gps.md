@@ -190,6 +190,8 @@ Configure the slot of the receiver that reports the heading, matched by [SENS_GN
 [EKF2_GPS_CTRL]: ../advanced_config/parameter_reference.md#EKF2_GPS_CTRL
 [fc_orientation]: ../config/flight_controller_orientation.md#calculating-orientation
 
+With [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) at `Auto` (default), the moving base of a moving base pair is the [primary receiver](../gps_compass/index.md#multiple-receivers) for position.
+
 :::tip
 If using this feature, all other configuration should be setup up as normal (e.g. [RTK Positioning](../gps_compass/rtk_gps.md#positioning-setup-configuration)).
 :::
@@ -228,8 +230,9 @@ For example, you can decrease [EKF2_GPS_V_NOISE](../advanced_config/parameter_re
 
 #### Dual Receivers
 
-A second GPS receiver can be used as a backup (either RTK or non RTK).
-See the [Using PX4's Navigation Filter (EKF2) > GPS](../advanced_config/tuning_the_ecl_ekf.md#gps) section.
+A second receiver, RTK or not, can back up an RTK receiver.
+Set [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) to the RTK receiver, or leave it at `Auto`, which [moves to the receiver](../gps_compass/index.md#multiple-receivers) with an RTK fixed solution when both meet the accuracy requirements.
+A switch between the receivers moves the position estimate by the offset between their solutions, which for an RTK receiver includes the error of the base position.
 
 <!--
 - Video demonstration would be nice.
