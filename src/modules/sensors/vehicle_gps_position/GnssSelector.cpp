@@ -146,8 +146,8 @@ void GnssSelector::updateReceiverTimeouts(uint64_t hrt_now_us)
 
 void GnssSelector::updateAvailability(uint64_t hrt_now_us)
 {
-	// Updates run whenever a receiver publishes, so a longer gap means that none did. It is weighted as one second,
-	// so that the first sample after it doesn't overwrite the history.
+	// A gap longer than a second means that updates stalled. It is weighted as one second, so that the update after it
+	// doesn't overwrite the history.
 	uint64_t dt_us = 0;
 
 	if ((_time_last_update_us > 0) && (hrt_now_us > _time_last_update_us)) {

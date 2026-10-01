@@ -119,6 +119,7 @@ public:
 	}
 	const Vector3f &getOutputAntennaOffset() const { return _output_antenna_offset; }
 
+	// Also call it periodically while no receiver publishes, so that receivers time out and lose availability
 	void update(uint64_t hrt_now_us);
 
 	bool isNewOutputDataAvailable() const { return _is_new_output_data_available; }
