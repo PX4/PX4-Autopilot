@@ -56,8 +56,10 @@ parameters:
     MC_ACRO_SUPEXPO:
       description:
         short: Acro mode roll, pitch super expo factor
-        long: Refines the stick input curve shape set by MC_ACRO_EXPO. Set to 0 to disable. 0.7 gives an intuitive stick feel, and
-          at 0.95 only stick positions near the maxima have an effect.
+        long: Refines the stick input curve shape set by MC_ACRO_EXPO.
+          0.7 gives an intuitive stick feel.
+          Set to 0 to disable.
+          At 0.95 only stick positions near the maxima have an effect.
       type: float
       default: 0.0
       min: 0

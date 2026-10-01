@@ -4,7 +4,7 @@ parameters:
   definitions:
     MC_ROLLRATE_P:
       description:
-        short: Roll rate P gain
+        short: Roll rate proportional gain
         long: Control output for an angular speed error of 1 rad/s.
       type: float
       default: 0.15
@@ -15,7 +15,7 @@ parameters:
     MC_ROLLRATE_I:
       description:
         short: Roll rate I gain
-        long: Compensates for static thrust difference or centre of gravity offset.
+        long: Compensate for static thrust difference or centre of gravity offset.
       type: float
       default: 0.2
       min: 0.0
@@ -33,8 +33,8 @@ parameters:
       increment: 0.01
     MC_ROLLRATE_D:
       description:
-        short: Roll rate D gain
-        long: Small values reduce fast oscillations, but too large a value brings them back.
+        short: Roll rate differential gain
+        long: Small values reduce fast oscillations. Large values may bring them back.
       type: float
       default: 0.003
       min: 0.0
@@ -68,7 +68,7 @@ parameters:
       increment: 0.0005
     MC_PITCHRATE_P:
       description:
-        short: Pitch rate P gain
+        short: Pitch rate proportional gain
         long: Control output for an angular speed error of 1 rad/s.
       type: float
       default: 0.15
@@ -78,8 +78,8 @@ parameters:
       increment: 0.01
     MC_PITCHRATE_I:
       description:
-        short: Pitch rate I gain
-        long: Compensates for static thrust difference or centre of gravity offset.
+        short: Pitch rate integral gain
+        long: Compensate for static thrust difference or centre of gravity offset.
       type: float
       default: 0.2
       min: 0.0
@@ -97,8 +97,8 @@ parameters:
       increment: 0.01
     MC_PITCHRATE_D:
       description:
-        short: Pitch rate D gain
-        long: Small values reduce fast oscillations, but too large a value brings them back.
+        short: Pitch rate differential gain
+        long: Small values reduce fast oscillations. Large values may bring them back.
       type: float
       default: 0.003
       min: 0.0
@@ -131,7 +131,7 @@ parameters:
       increment: 0.0005
     MC_YAWRATE_P:
       description:
-        short: Yaw rate P gain
+        short: Yaw rate proportional gain
         long: Control output for an angular speed error of 1 rad/s.
       type: float
       default: 0.2
@@ -141,7 +141,7 @@ parameters:
       increment: 0.01
     MC_YAWRATE_I:
       description:
-        short: Yaw rate I gain
+        short: Yaw rate integral gain
         long: Compensates for static thrust difference or centre of gravity offset.
       type: float
       default: 0.1
@@ -151,7 +151,7 @@ parameters:
     MC_YR_INT_LIM:
       description:
         short: Yaw rate integrator limit
-        long: Increase to give the integrator more authority to counteract disturbances, or reduce to improve
+        long: Increase to give the integrator more authority to counteract disturbances. Reduce to improve
           settling time after large yaw moment trim changes.
       type: float
       default: 0.3
@@ -160,8 +160,8 @@ parameters:
       increment: 0.01
     MC_YAWRATE_D:
       description:
-        short: Yaw rate D gain
-        long: Small values reduce fast oscillations, but too large a value brings them back.
+        short: Yaw rate differential gain
+        long: Small values reduce fast oscillations. Large values may bring them back.
       type: float
       default: 0.0
       min: 0.0
