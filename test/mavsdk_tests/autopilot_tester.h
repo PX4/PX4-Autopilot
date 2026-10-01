@@ -177,6 +177,13 @@ public:
 		CHECK(_param->set_param_int(param, value) == Param::Result::Success);
 	}
 
+	int32_t get_param_int(const std::string &param)
+	{
+		const std::pair<Param::Result, int32_t> result = _param->get_param_int(param);
+		CHECK(result.first == Param::Result::Success);
+		return result.second;
+	}
+
 	template<typename Rep, typename Period>
 	void sleep_for(std::chrono::duration<Rep, Period> duration)
 	{

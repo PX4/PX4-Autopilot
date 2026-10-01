@@ -112,7 +112,7 @@ bool PrecTakeoffTask::updateHomeReference(const bool report_distance_warning)
 
 	vehicle_gnss_s gnss;
 
-	if (!_vehicle_gnss_sub.copy(&gnss) || gnss.receiver.fix_type < sensor_gnss_s::FIX_TYPE_3D
+	if (!_vehicle_gnss_sub.copy(&gnss) || !gnss.usable
 	    || gnss.timestamp_sample == 0 || gnss.timestamp_sample > now
 	    || now - gnss.timestamp_sample >= kGnssDataTimeoutUs
 	    || !PX4_ISFINITE(gnss.receiver.latitude) || !PX4_ISFINITE(gnss.receiver.longitude)) {
