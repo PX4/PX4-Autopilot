@@ -67,11 +67,6 @@ Product information and availability are provided on the [Accton-IoT Godwit GFH7
 
 ## Pinouts {#pinouts}
 
-The top face has two unpopulated five-pad test/debug groups for manufacturing, debugging, or hardware verification:
-R V G C D: STM32H753 (H7) test/debug pads.
-R C D G V: OSD co-processor test/debug pads.
-They are not general user interfaces. Do not connect wiring or apply power, and do not use them as GPIO, UART, or I2C interfaces. Individual pad nets and functions are not publicly defined.
-
 Refer to the [Godwit GFH7 product page](https://www.accton-iot.com/godwit/g-fh7.html) and the [Godwit GFH7 datasheet](https://www.accton-iot.com/godwit/assets/doc/DS-Godwit%20FPV%20G-FH7.pdf) for the latest board information and interface definition.
 
 ![GFH7 Pin Definition](../../assets/flight_controller/accton-godwit/gfh7/pin_definition.png "Accton Godwit GFH7 Pin Definition")
@@ -100,6 +95,7 @@ Under these conditions all power sources will be used in this order to power the
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
 1. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
+2. **Battery** input (operational range 13V to 50.4V. The maximum voltage the VBAT input can withstand without damage is 65V.)
 
 ## Interface Summary {#interface_summary}
 
@@ -222,6 +218,26 @@ make accton-godwit_gfh7_default
 ```
 
 ## Debug Port {#debug_port}
+
+The top face has two unpopulated five-pad test/debug groups for manufacturing, debugging, or hardware verification:
+R V G C D: STM32H753 (H7) test/debug pad group is the FMU SWD interface.
+| Pad |  Signal    | Voltage |
+| --- | ---------- | ------- |
+|  R  | ST_RST_L   | 3.3V    |
+|  V  | VDD3V3     | 3.3V    |
+|  G  | GND        | GND     |
+|  C  | FMU_SWCLK  | 3.3V    |
+|  D  | FMU_SWDIO  | 3.3V    |
+
+R C D G V: OSD co-processor test/debug pad group is the OSD SWD interface.
+| Pad |  Signal    | Voltage |
+| --- | ---------- | ------- |
+|  R  | OSD_NRST   | 3.3V    |
+|  V  | VDD3V3     | 3.3V    |
+|  G  | GND        | GND     |
+|  C  | G431_SWCLK | 3.3V    |
+|  D  | G431_SWDIO | 3.3V    |
+They are not general user interfaces. Do not connect wiring or apply power, and do not use them as GPIO, UART, or I2C interfaces. Individual pad nets and functions are not publicly defined.
 
 The default firmware does not provide a serial [System Console](../debug/system_console.md).
 Use the [MAVLink Shell](../debug/mavlink_shell.md) over USB or a telemetry link instead.
