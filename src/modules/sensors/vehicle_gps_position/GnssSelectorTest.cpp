@@ -39,11 +39,8 @@
 
 #include <cmath>
 #include <gtest/gtest.h>
-#include <matrix/matrix/math.hpp>
 
 #include "GnssSelector.hpp"
-
-using matrix::Vector3f;
 
 class GnssSelectorTest : public ::testing::Test
 {
@@ -138,12 +135,12 @@ TEST_F(GnssSelectorTest, noData)
 	GnssSelector selector;
 
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
-	EXPECT_FALSE(selector.isNewOutputDataAvailable());
+	EXPECT_FALSE(selector.selectedHasNewSample());
 
 	selector.update(_time_now_us);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
-	EXPECT_FALSE(selector.isNewOutputDataAvailable());
+	EXPECT_FALSE(selector.selectedHasNewSample());
 }
 
 TEST_F(GnssSelectorTest, singleReceiver)
@@ -161,14 +158,14 @@ TEST_F(GnssSelectorTest, singleReceiver)
 	selector.update(_time_now_us);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
-	EXPECT_TRUE(selector.isNewOutputDataAvailable());
+	EXPECT_TRUE(selector.selectedHasNewSample());
 
 	// BUT IF: a second update is called without data
 	selector.update(_time_now_us);
 
 	// THEN: no new data should be available
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
-	EXPECT_FALSE(selector.isNewOutputDataAvailable());
+	EXPECT_FALSE(selector.selectedHasNewSample());
 }
 
 TEST_F(GnssSelectorTest, timeoutWithoutAnyPublisher)
@@ -188,9 +185,8 @@ TEST_F(GnssSelectorTest, timeoutWithoutAnyPublisher)
 		selector.update(_time_now_us);
 	}
 
-	// THEN: it has timed out and its availability fell
-	EXPECT_FALSE(selector.isNewOutputDataAvailable());
-	EXPECT_EQ(selector.getOutputGnssData().timestamp, 0u);
+	// THEN: its availability fell
+	EXPECT_FALSE(selector.selectedHasNewSample());
 	EXPECT_LT(selector.getAvailability(0), 0.8f);
 
 	// WHEN: it publishes again
@@ -200,7 +196,7 @@ TEST_F(GnssSelectorTest, timeoutWithoutAnyPublisher)
 	runSeconds(0.1f, selector, gnss_data, 0);
 
 	// THEN: its output resumes, and its availability keeps the outage
-	EXPECT_TRUE(selector.isNewOutputDataAvailable());
+	EXPECT_TRUE(selector.selectedHasNewSample());
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_LT(selector.getAvailability(0), 0.8f);
 }
@@ -261,7 +257,7 @@ TEST_F(GnssSelectorTest, timeoutSwitchesImmediately)
 
 	// THEN: it is kept until it times out, without output
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
-	EXPECT_FALSE(selector.isNewOutputDataAvailable());
+	EXPECT_FALSE(selector.selectedHasNewSample());
 
 	runSeconds(1.f, selector, gnss_data1, 1);
 
@@ -307,7 +303,7 @@ TEST_F(GnssSelectorTest, timeoutToFailingReceiver)
 
 	// THEN: the receiver that still publishes is selected, so that its samples keep coming
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
-	EXPECT_TRUE(selector.isNewOutputDataAvailable());
+	EXPECT_TRUE(selector.selectedHasNewSample());
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_TIMEOUT);
 }
 
@@ -871,59 +867,6 @@ TEST_F(GnssSelectorTest, rankedAccuracyNeedsVertical)
 	EXPECT_EQ(selector.getSelectionCount(), 0);
 }
 
-TEST_F(GnssSelectorTest, singleReceiverAntennaOffset)
-{
-	GnssSelector selector;
-
-	sensor_gnss_s gnss_data = getDefaultGnssData();
-
-	const Vector3f offset0(0.1f, 0.0f, -0.05f);
-	selector.setAntennaOffset(offset0, 1);
-
-	selector.setGnssData(gnss_data, true, 1);
-	selector.update(_time_now_us);
-
-	_time_now_us += 200e3;
-	gnss_data.timestamp = _time_now_us - 10e3;
-	selector.setGnssData(gnss_data, true, 1);
-	selector.update(_time_now_us);
-
-	EXPECT_EQ(selector.getSelectedInstance(), 1);
-	EXPECT_TRUE(selector.isNewOutputDataAvailable());
-
-	const Vector3f &out = selector.getOutputAntennaOffset();
-	EXPECT_FLOAT_EQ(out(0), offset0(0));
-	EXPECT_FLOAT_EQ(out(1), offset0(1));
-	EXPECT_FLOAT_EQ(out(2), offset0(2));
-}
-
-TEST_F(GnssSelectorTest, failoverAntennaOffset)
-{
-	GnssSelector selector;
-
-	selector.setPreferredInstance(0);
-
-	const Vector3f offset0(0.1f, 0.0f, 0.0f);
-	const Vector3f offset1(-0.1f, 0.0f, 0.0f);
-	selector.setAntennaOffset(offset0, 0);
-	selector.setAntennaOffset(offset1, 1);
-
-	// Only secondary available
-	sensor_gnss_s gnss_data1 = getDefaultGnssData();
-	runSeconds(10.f, selector, gnss_data1, 1);
-
-	EXPECT_EQ(selector.getSelectedInstance(), 1);
-	EXPECT_FLOAT_EQ(selector.getOutputAntennaOffset()(0), offset1(0));
-
-	// Now the preferred receiver publishes
-	sensor_gnss_s gnss_data0 = getDefaultGnssData();
-	gnss_data0.timestamp = gnss_data1.timestamp;
-	runSeconds(1.f, selector, gnss_data0, gnss_data1);
-
-	EXPECT_EQ(selector.getSelectedInstance(), 0);
-	EXPECT_FLOAT_EQ(selector.getOutputAntennaOffset()(0), offset0(0));
-}
-
 TEST_F(GnssSelectorTest, noOutputWithoutNewData)
 {
 	GnssSelector selector;
@@ -943,13 +886,13 @@ TEST_F(GnssSelectorTest, noOutputWithoutNewData)
 	selector.update(_time_now_us);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
-	EXPECT_TRUE(selector.isNewOutputDataAvailable());
+	EXPECT_TRUE(selector.selectedHasNewSample());
 
 	// WHEN: an update runs without new data from either receiver
 	selector.update(_time_now_us);
 
 	// THEN: no output is reported. The updated flag of the receiver that isn't selected must be cleared as well
-	EXPECT_FALSE(selector.isNewOutputDataAvailable());
+	EXPECT_FALSE(selector.selectedHasNewSample());
 }
 
 TEST_F(GnssSelectorTest, availability)

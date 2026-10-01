@@ -48,18 +48,13 @@ GnssSelector::GnssSelector()
 
 void GnssSelector::update(uint64_t hrt_now_us)
 {
-	_is_new_output_data_available = false;
-
 	updateReceiverTimeouts(hrt_now_us);
 	updateAvailability(hrt_now_us);
 
-	const int selected = selectReceiver(hrt_now_us);
+	_selected_instance = selectReceiver(hrt_now_us);
+	_selected_has_new_sample = _updated[_selected_instance];
 
-	_selected_instance = selected;
-	_output_antenna_offset = _antenna_offset[selected];
-	_is_new_output_data_available =  _updated[selected];
-
-	if (_is_new_output_data_available) {
+	if (_selected_has_new_sample) {
 		if ((_output_instance >= 0) && (_output_instance != _selected_instance)) {
 			_selection_count++;
 		}
@@ -68,9 +63,8 @@ void GnssSelector::update(uint64_t hrt_now_us)
 	}
 
 	for (uint8_t i = 0; i < GNSS_MAX_RECEIVERS; i++) {
-		// clear updated flags
 		_updated[i] = false;
-		_time_prev_us[i] = _gnss_state[i].timestamp;
+		_time_prev_us[i] = _sample[i].timestamp;
 	}
 }
 
@@ -107,39 +101,31 @@ uint8_t GnssSelector::getSelectionReason() const
 void GnssSelector::updateReceiverTimeouts(uint64_t hrt_now_us)
 {
 	for (uint8_t i = 0; i < GNSS_MAX_RECEIVERS; i++) {
-		const uint64_t timestamp = _gnss_state[i].timestamp;
+		const uint64_t timestamp = _sample[i].timestamp;
+		UpdateInterval &interval = _interval[i];
 
 		if (timestamp > _time_prev_us[i]) {
 			// the first sample of a receiver has no previous one to compute an interval from
 			if ((_time_prev_us[i] > 0) && (timestamp - _time_prev_us[i] < GNSS_TIMEOUT_US)) {
 				const uint64_t interval_us = timestamp - _time_prev_us[i];
-				_sample_late[i] = interval_us > lateIntervalUs(i);
+				interval.late = interval_us > lateIntervalUs(i);
 
 				const float dt = 1e-6f * interval_us;
-				_interval_s[i] = (_interval_s[i] > 0.f)
-						 ? _interval_s[i] + dt / (INTERVAL_TIME_CONSTANT_S + dt) * (dt - _interval_s[i])
-						 : dt;
+				interval.filtered_s = (interval.filtered_s > 0.f)
+						      ? interval.filtered_s + dt / (INTERVAL_TIME_CONSTANT_S + dt) * (dt - interval.filtered_s)
+						      : dt;
 
-				if (_interval_samples[i] < INTERVAL_SETTLE_SAMPLES) {
-					_interval_samples[i]++;
+				if (interval.samples < INTERVAL_SETTLE_SAMPLES) {
+					interval.samples++;
 
 				} else {
-					_usual_interval_s[i] = (_usual_interval_s[i] > 0.f) ? math::min(_usual_interval_s[i], _interval_s[i])
-							       : _interval_s[i];
+					interval.usual_s = (interval.usual_s > 0.f) ? math::min(interval.usual_s, interval.filtered_s)
+							   : interval.filtered_s;
 				}
 			}
 
 		} else if ((timestamp > 0) && (hrt_now_us >= timestamp + GNSS_TIMEOUT_US)) {
-			// Timed out - kill the stored fix for this receiver. It may come back at another rate.
-			_gnss_state[i].timestamp = 0;
-			_gnss_state[i].fix_type = 0;
-			_gnss_state[i].satellites_used = 0;
-			_gnss_state[i].vel_ned_valid = 0;
-			_checks_passed[i] = false;
-			_interval_s[i] = 0.f;
-			_interval_samples[i] = 0;
-			_usual_interval_s[i] = 0.f;
-			_sample_late[i] = false;
+			resetReceiver(i);
 		}
 	}
 }
@@ -183,8 +169,8 @@ void GnssSelector::updateAvailability(uint64_t hrt_now_us)
 
 hrt_abstime GnssSelector::lateIntervalUs(int instance) const
 {
-	if (_usual_interval_s[instance] > 0.f) {
-		return math::constrain(static_cast<hrt_abstime>(LATE_INTERVAL_RATIO * _usual_interval_s[instance] * 1e6f),
+	if (_interval[instance].usual_s > 0.f) {
+		return math::constrain(static_cast<hrt_abstime>(LATE_INTERVAL_RATIO * _interval[instance].usual_s * 1e6f),
 				       LATE_MIN_US, GNSS_TIMEOUT_US);
 	}
 
@@ -193,17 +179,17 @@ hrt_abstime GnssSelector::lateIntervalUs(int instance) const
 
 bool GnssSelector::isUsable(int instance, uint64_t hrt_now_us) const
 {
-	if (isSilent(instance) || !_checks_passed[instance] || _sample_late[instance]) {
+	if (isSilent(instance) || !_sample[instance].checks_passed || _interval[instance].late) {
 		return false;
 	}
 
-	return hrt_now_us <= _gnss_state[instance].timestamp + lateIntervalUs(instance);
+	return hrt_now_us <= _sample[instance].timestamp + lateIntervalUs(instance);
 }
 
 bool GnssSelector::isMoreAccurate(int instance, int than) const
 {
-	const sensor_gnss_s &a = _gnss_state[instance];
-	const sensor_gnss_s &b = _gnss_state[than];
+	const Sample &a = _sample[instance];
+	const Sample &b = _sample[than];
 
 	// A receiver that doesn't report its accuracy isn't compared
 	if (!(a.eph > 0.f) || !(a.epv > 0.f) || !(b.eph > 0.f) || !(b.epv > 0.f)) {

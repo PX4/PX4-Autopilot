@@ -39,18 +39,16 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
-#include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/defines.h>
 #include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/vehicle_gnss.h>
 
-using matrix::Vector3f;
-
 using namespace time_literals;
 
 /*
- * Selects the receiver whose samples vehicle_gnss carries. Every switch resets the EKF2 position, so the selection only
- * leaves a receiver that failed, returns to the preferred one, or moves to a clearly more accurate one after a hold.
+ * Selects the receiver whose samples vehicle_gnss carries; the caller keeps the samples and publishes the selected
+ * receiver's. Every switch makes EKF2 reset or restart its GNSS position, so the selection only leaves a receiver that
+ * failed, returns to the preferred one, or moves to a clearly more accurate one after a hold.
  *
  * A receiver is usable while its latest sample passed its checks and it delivers samples at its usual rate. It has
  * failed when it had no usable sample for FAIL_TIME_US, which covers a lost fix, sustained check failures, a receiver
@@ -103,8 +101,7 @@ public:
 	void setGnssData(const sensor_gnss_s &gnss_data, bool checks_passed, uint8_t instance)
 	{
 		if (instance < GNSS_MAX_RECEIVERS) {
-			_gnss_state[instance] = gnss_data;
-			_checks_passed[instance] = checks_passed;
+			_sample[instance] = {gnss_data.timestamp, gnss_data.eph, gnss_data.epv, checks_passed};
 			_updated[instance] = true;
 			_has_published[instance] = true;
 		}
@@ -113,20 +110,16 @@ public:
 	// -1 for no preferred receiver
 	void setPreferredInstance(int instance) { _preferred_instance = instance; }
 	void setArmed(bool armed) { _armed = armed; }
-	void setAntennaOffset(const Vector3f &offset, uint8_t instance)
-	{
-		if (instance < GNSS_MAX_RECEIVERS) { _antenna_offset[instance] = offset; }
-	}
-	const Vector3f &getOutputAntennaOffset() const { return _output_antenna_offset; }
 
 	// Also call it periodically while no receiver publishes, so that receivers time out and lose availability
 	void update(uint64_t hrt_now_us);
 
-	bool isNewOutputDataAvailable() const { return _is_new_output_data_available; }
-	const sensor_gnss_s &getOutputGnssData() const { return _gnss_state[_selected_instance]; }
 	int getSelectedInstance() const { return _selected_instance; }
 
-	// Increments when the output changes to another receiver, which steps the position that consumers see
+	// The selected receiver delivered a sample since the previous update, for the caller to publish
+	bool selectedHasNewSample() const { return _selected_has_new_sample; }
+
+	// Increments when the published samples change to another receiver, which steps the position that consumers see
 	uint8_t getSelectionCount() const { return _selection_count; }
 
 	// Why the selected receiver is selected, as vehicle_gnss_s::SELECTION_*
@@ -138,15 +131,38 @@ public:
 	}
 
 private:
-	// Track each receiver's update interval, and drop the stored fix of a receiver that stopped publishing
+	// What the selection uses of a receiver's latest sample
+	struct Sample {
+		uint64_t timestamp{0}; ///< 0 when never published or timed out
+		float eph{0.f};
+		float epv{0.f};
+		bool checks_passed{false};
+	};
+
+	struct UpdateInterval {
+		float filtered_s{0.f}; ///< 0 until measured
+		uint8_t samples{0};
+		float usual_s{0.f};    ///< 0 until settled
+		bool late{false};      ///< the latest sample came late
+	};
+
+	// Track each receiver's update interval, and reset a receiver that stopped publishing
 	void updateReceiverTimeouts(uint64_t hrt_now_us);
+
+	// A receiver that timed out may come back at another rate. Its availability and the time it was last usable are
+	// kept, so that the outage counts against it.
+	void resetReceiver(int instance)
+	{
+		_sample[instance] = {};
+		_interval[instance] = {};
+	}
 
 	void updateAvailability(uint64_t hrt_now_us);
 
 	int selectReceiver(uint64_t hrt_now_us);
 
 	// Never published, or timed out
-	bool isSilent(int instance) const { return _gnss_state[instance].timestamp == 0; }
+	bool isSilent(int instance) const { return _sample[instance].timestamp == 0; }
 
 	// The latest sample passed its checks and neither it nor the next one is late
 	bool isUsable(int instance, uint64_t hrt_now_us) const;
@@ -169,8 +185,8 @@ private:
 	// No switch led to the selected receiver: it was the first one selected
 	static constexpr uint8_t REASON_INITIAL = UINT8_MAX;
 
-	sensor_gnss_s _gnss_state[GNSS_MAX_RECEIVERS] {};
-	bool _checks_passed[GNSS_MAX_RECEIVERS] {};
+	Sample _sample[GNSS_MAX_RECEIVERS] {};
+	UpdateInterval _interval[GNSS_MAX_RECEIVERS] {};
 	bool _updated[GNSS_MAX_RECEIVERS] {};
 	bool _has_published[GNSS_MAX_RECEIVERS] {};
 	bool _has_passed[GNSS_MAX_RECEIVERS] {};
@@ -181,13 +197,9 @@ private:
 	uint64_t _time_usable_since_us[GNSS_MAX_RECEIVERS] {}; ///< start of the current usable period, 0 while unusable
 
 	uint64_t _time_prev_us[GNSS_MAX_RECEIVERS] {};  ///< timestamp of the previous sample, to detect new data
-	float _interval_s[GNSS_MAX_RECEIVERS] {};        ///< filtered update interval, 0 until measured
-	uint8_t _interval_samples[GNSS_MAX_RECEIVERS] {};
-	float _usual_interval_s[GNSS_MAX_RECEIVERS] {};  ///< 0 until settled
-	bool _sample_late[GNSS_MAX_RECEIVERS] {};
 
 	int _selected_instance{0};
-	int _output_instance{-1};                         ///< receiver of the last output, -1 before the first one
+	int _output_instance{-1};                         ///< receiver of the last published sample, -1 before the first one
 	uint8_t _selection_count{0};
 	uint8_t _selection_reason{REASON_INITIAL};
 	int _preferred_instance{-1};
@@ -196,8 +208,5 @@ private:
 	uint64_t _switch_candidate_since_us{0};
 	bool _armed{false};
 
-	bool _is_new_output_data_available{false};
-
-	Vector3f _antenna_offset[GNSS_MAX_RECEIVERS] {};
-	Vector3f _output_antenna_offset {};
+	bool _selected_has_new_sample{false};
 };
