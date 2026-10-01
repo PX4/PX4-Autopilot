@@ -97,13 +97,42 @@ Once it prints `Bridge running`, point any tool that expects a serial connection
 Run it with `-h` for the full list of options.
 
 For `esc*` ports the UART baud rate is fixed at 19200 (the bitbang limit) and `--port-baud` is ignored.
-To switch to a different device while the bridge is running, type `SWITCH <device_id>` and press Enter.
 
 Developers can create their own bridge application in another language if needed, following the protocol described below.
 Data written to the PTY would be sent as `SERIAL_CONTROL` messages with `SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE` set, and incoming `SERIAL_CONTROL` reply messages (with `FLAG_REPLY` set) would be written back to the PTY.
 
 To initialise the passthrough, the bridge should send one `SERIAL_CONTROL` message with the target device ID, the desired UART baud rate in the `baudrate` field, and `count=0` (no payload), then wait approximately 2 seconds for PX4 to spawn the passthrough task before sending real traffic.
 For ESC bitbang mode (device IDs 20–27), the bridge must first set `PASSTHRU_EN=1` via `PARAM_SET`, confirm the `PARAM_VALUE` acknowledgement, send `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN`, and wait for the FMU heartbeat to return before sending the init message — this ensures the DShot/PWM drivers are not running when the bitbang driver takes over the ESC signal pins.
+
+### Switching Devices at Runtime
+
+The bridge reads commands from its standard input, so that a host tool that launches it as a subprocess can change the target device without restarting the bridge.
+This is mainly intended for tools that work through several ESCs in sequence, such as flashing or configuring each ESC channel in turn.
+
+To switch, write a line in the following form to the bridge's stdin (or type it and press Enter when running it interactively):
+
+```text
+SWITCH <device_id>
+```
+
+`<device_id>` is the numeric [device ID](#device-ids) (for example `SWITCH 21` for ESC channel 1), not the `--port` name.
+Lines that are not valid `SWITCH` commands are ignored.
+
+When a valid command is received, the bridge:
+
+1. Prints `Switching to device <device_id>`.
+2. Sends a `SERIAL_CONTROL` init message (`count=0`) for the new device, using the same UART baud rate the bridge was started with.
+3. Forwards all further PTY traffic to the new device, and discards replies that still arrive from the previous device.
+
+The PTY path does not change, so the host tool can keep its serial port open across the switch.
+
+Note the following when using `SWITCH`:
+
+- The bridge does not wait after sending the init message.
+  Allow some time for PX4 to stop the previous instance and start the new one (up to 100 ms for ESC channels) before sending data.
+- The baud rate is not changed, so switching between ESC channels (19200 baud) works as expected, but switching between ESC and `telem*`/`gps*` targets keeps the original baud rate.
+- `--setup` is only applied at startup.
+  `PASSTHRU_EN` must already be enabled before you switch to an ESC channel.
 
 ## Configuration
 
