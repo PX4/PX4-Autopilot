@@ -1207,10 +1207,12 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	mavlink_msg_setup_signing_decode(msg, &setup_signing);
 
 	if (target_is_us_or_broadcast(setup_signing.target_system, setup_signing.target_component)) {
-		// Reject signing changes while armed
+		// Reject signing changes while armed. This runs on the receiver
+		// thread, so use a local subscription instead of _vehicle_status_sub.
+		uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
 		vehicle_status_s vehicle_status{};
 
-		if (_vehicle_status_sub.copy(&vehicle_status)
+		if (vehicle_status_sub.copy(&vehicle_status)
 		    && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 			send_statustext_critical("MAVLink signing: rejected while armed");
 			return;
@@ -1292,9 +1294,12 @@ Mavlink::send_statustext_emergency(const char *string)
 bool
 Mavlink::send_autopilot_capabilities()
 {
+	// Called from both the main and the receiver thread (REQUEST_MESSAGE),
+	// so use a local subscription instead of _vehicle_status_sub.
+	uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
 	vehicle_status_s status;
 
-	if (_vehicle_status_sub.copy(&status)) {
+	if (vehicle_status_sub.copy(&status)) {
 		mavlink_autopilot_version_t msg{};
 
 		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
