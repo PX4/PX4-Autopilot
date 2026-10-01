@@ -14,7 +14,7 @@ parameters:
       increment: 0.01
     MC_ROLLRATE_I:
       description:
-        short: Roll rate I gain
+        short: Roll rate integral gain
         long: Compensate for static thrust difference or centre of gravity offset.
       type: float
       default: 0.2
