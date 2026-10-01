@@ -258,6 +258,21 @@ void AutopilotTesterGnss::wait_for_mode_other_than(Telemetry::FlightMode mode, s
 	static_cast<double>(timeout.count())));
 }
 
+void AutopilotTesterGnss::check_switch_events(unsigned count)
+{
+	unsigned switches = 0;
+
+	for (const GnssFailover::EventRecord &event : _gnss->events()) {
+		if ((event.vehicle_time_us >= _mark.vehicle_time_us) && (event.name == "px4/gnss_receiver_switched")) {
+			// The event names the new receiver and the reason
+			CHECK(!event.message.empty());
+			switches++;
+		}
+	}
+
+	CHECK(switches == count);
+}
+
 void AutopilotTesterGnss::check_log(const std::string &checks)
 {
 	// The tests run from the source tree root, where the report lives

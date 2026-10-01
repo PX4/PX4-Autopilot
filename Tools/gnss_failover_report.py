@@ -26,6 +26,13 @@ SELECTION_REASONS = {0: 'preferred', 1: 'only', 2: 'ranked', 3: 'timeout', 4: 'u
 FAILURE_REASONS = {3, 4}
 RANKING_REASONS = {5, 6}
 
+# estimator_status_flags.gnss_fusion_state
+GNSS_FUSION_FUSED = 0
+GNSS_FUSION_NO_DATA = 1
+GNSS_FUSION_UNUSABLE = 2
+# The state a GNSS failure type leaves while the failed receiver is still selected
+FUSION_STATE_OF_FAILURE = {'off': GNSS_FUSION_NO_DATA, 'wrong': GNSS_FUSION_UNUSABLE}
+
 NAV_STATE_AUTO_LOITER = 4
 ARMING_STATE_ARMED = 2
 GNSS_HEIGHT_REFERENCE = 1  # EKF2_HGT_REF
@@ -89,6 +96,17 @@ def changes(times, values):
     """(time, previous, new) for every change of a value"""
     idx = np.where(np.diff(values.astype(np.int64)) != 0)[0] + 1
     return [(times[i], values[i - 1], values[i]) for i in idx]
+
+
+def event_id(name):
+    """PX4 event ID of an autopilot event name (events::ID())"""
+    value = 0x811c9dc5
+    for c in name.encode():
+        value = ((value ^ c) * 0x01000193) & 0xffffffff
+    return (value & 0xffffff) | (1 << 24)
+
+
+EVENT_RECEIVER_SWITCHED = event_id('gnss_receiver_switched')
 
 
 def reason_name(reason):
@@ -240,9 +258,9 @@ def lever_arm_offset(log, instance, t):
     return rotation @ offset
 
 
-def receiver_offset(log, from_instance, to_instance, t):
-    """NED offset of to_instance's position from from_instance's last sample before t, after lever arms. The other
-    receiver's nearest sample is moved to the same measurement time with its velocity."""
+def antenna_offset(log, from_instance, to_instance, t):
+    """NED offset of to_instance's antenna position from from_instance's last sample before t. The other receiver's
+    nearest sample is moved to the same measurement time with its velocity."""
     a = log.topic('sensor_gnss', from_instance)
     b = log.topic('sensor_gnss', to_instance)
     if a is None or b is None:
@@ -254,12 +272,30 @@ def receiver_offset(log, from_instance, to_instance, t):
     j = int(np.argmin(np.abs(b['timestamp_sample'].astype(np.float64) - t_sample)))
     dt = (t_sample - float(b['timestamp_sample'][j])) * 1e-6
     lat_a = a['latitude'][i]
-    antenna_offset = np.array([
+    return np.array([
         math.radians(b['latitude'][j] - lat_a) * EARTH_RADIUS_M + b['vel_north'][j] * dt,
         math.radians(b['longitude'][j] - a['longitude'][i]) * EARTH_RADIUS_M * math.cos(math.radians(lat_a))
         + b['vel_east'][j] * dt,
         -(b['altitude_msl'][j] - a['altitude_msl'][i]) + b['vel_down'][j] * dt])
-    return antenna_offset - lever_arm_offset(log, to_instance, t) + lever_arm_offset(log, from_instance, t)
+
+
+def receiver_offset(log, from_instance, to_instance, t):
+    """NED offset of to_instance's position from from_instance's last sample before t, after lever arms. The other
+    receiver's nearest sample is moved to the same measurement time with its velocity."""
+    offset = antenna_offset(log, from_instance, to_instance, t)
+    if offset is None:
+        return None
+    return offset - lever_arm_offset(log, to_instance, t) + lever_arm_offset(log, from_instance, t)
+
+
+def expected_inconsistency(log, selected, other, t):
+    """How far the other receiver disagrees with the selected one without attitude: the horizontal distance between
+    their positions less the horizontal distance between their antennas"""
+    offset = antenna_offset(log, selected, other, t)
+    if offset is None:
+        return None
+    antennas = [np.array([log.param(f'SENS_GNSS{i}_OFF{axis}', t, 0.) for axis in 'XY']) for i in (selected, other)]
+    return abs(math.hypot(offset[0], offset[1]) - float(np.linalg.norm(antennas[1] - antennas[0])))
 
 
 def resets_between(log, t_start, t_end):
@@ -368,7 +404,7 @@ def grade_failure(log, vehicle, result, name, window):
     if math.isfinite(t_end):
         grade_heading_recovery(log, result, name, t_inject, t_end, t_end + 2 * SETTLE_S)
 
-    grade_reporting(log, result, name, t_inject, t_switch)
+    grade_reporting(log, result, name, window, t_switch, standby, failed_unusable=first[2] in FAILURE_REASONS)
 
 
 def grade_heading(log, result, name, t_start, t_end):
@@ -408,16 +444,51 @@ def grade_heading_recovery(log, result, name, t_inject, t_recover, t_end):
                f'{resumed[0] - t_recover:.1f} s after recovery' if resumed else 'not resumed', 'heading')
 
 
-def grade_reporting(log, result, name, t_inject, t_switch):
-    """Loss reporting: why GNSS wasn't fused between the failure and the switch"""
+def grade_reporting(log, result, name, window, t_switch, standby, failed_unusable):
+    """Loss reporting: the switch event, why GNSS wasn't fused until the switch, the receivers' inconsistency"""
+    t_inject = window['start']
+
+    events = log.topic('event')
+    if events is None:
+        result.add(name, 'one receiver switch event', None, 'no events in this log', 'reporting')
+    else:
+        times = log.seconds(events['timestamp'])
+        sel = (times >= t_inject) & (times <= t_switch + RESET_AFTER_SWITCH_S)
+        count = int(np.sum(events['id'][sel] == EVENT_RECEIVER_SWITCHED))
+        result.add(name, 'one receiver switch event', count == 1, f'{count} gnss_receiver_switched events',
+                   'reporting')
+
     flags = log.topic('estimator_status_flags')
     if flags is None or 'gnss_fusion_state' not in flags:
         result.add(name, 'gnss_fusion_state reports the gap', None, 'not in this log', 'reporting')
     else:
         times = log.seconds(flags['timestamp'])
-        sel = (times >= t_inject) & (times <= t_switch + RESET_AFTER_SWITCH_S)
+        sel = (times >= t_inject) & (times <= t_switch)
         states = sorted({int(s) for s in flags['gnss_fusion_state'][sel]})
-        result.add(name, 'gnss_fusion_state reports the gap', any(s != 0 for s in states), f'states {states}',
+
+        # A receiver that stays usable (a lower ranking, a late but fused sample) or drops out for less than the
+        # no-data time leaves nothing to report
+        wanted = FUSION_STATE_OF_FAILURE.get(window['type']) if failed_unusable and window['toggles'] == 1 else None
+        result.add(name, 'gnss_fusion_state reports the gap', (wanted in states) if wanted is not None else None,
+                   f'states {states}' + (f', expected {wanted}' if wanted is not None else ''), 'reporting')
+        after = value_at(times, flags['gnss_fusion_state'], t_switch + SETTLE_S)
+        result.add(name, 'GNSS fused again after the switch', after == GNSS_FUSION_FUSED, f'state {after}', 'reporting')
+
+    status = log.topic('sensors_status_gnss')
+    expected = expected_inconsistency(log, window['instance'], standby, t_inject)
+    if status is None or f'inconsistency[{standby}]' not in status:
+        result.add(name, 'inconsistency matches the receivers', None, 'not in this log', 'reporting')
+    elif expected is not None:
+        # The failed receiver may stop publishing, so the last value before the switch is from before the failure
+        times = log.seconds(status['timestamp'])
+        values = status[f'inconsistency[{standby}]']
+        before = [v for t, v in zip(times, values) if t_inject - SWITCH_DEADLINE_S <= t < t_switch and np.isfinite(v)]
+        ok = bool(before) and abs(before[-1] - expected) < RESET_TOLERANCE_M
+        result.add(name, 'inconsistency matches the receivers', ok,
+                   (f'{before[-1]:.2f} m' if before else 'none before the switch') + f', expected {expected:.2f} m',
+                   'reporting')
+        selected_after = value_at(times, values, t_switch + RESET_AFTER_SWITCH_S)
+        result.add(name, 'inconsistency 0 for the new selection', selected_after == 0., f'{selected_after}',
                    'reporting')
 
 
