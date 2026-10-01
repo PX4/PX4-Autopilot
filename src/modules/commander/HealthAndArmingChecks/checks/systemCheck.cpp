@@ -111,7 +111,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			/* EVENT
 			* @description
 			* <profile name="dev">
-			* This check can be configured via <param>CBRK_IO_SAFETY</param> parameter.
+			* This check can be configured via <param>COM_SAFETY_MODE</param> parameter.
 			* </profile>
 			*/
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_safety_button"),
@@ -125,7 +125,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			/* EVENT
 			* @description
 			* <profile name="dev">
-			* This check can be configured via <param>CBRK_IO_SAFETY</param> parameter.
+			* This check can be configured via <param>COM_SAFETY_MODE</param> parameter.
 			* </profile>
 			*/
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_safety"),

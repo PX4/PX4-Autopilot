@@ -213,6 +213,12 @@ private:
 	static void onFailsafeNotifyUserTrampoline(void *arg);
 	void onFailsafeNotifyUser();
 
+	enum class PrearmedMode {
+		DISABLED = 0,
+		WHEN_SAFETY_OFF = 1,
+		ALWAYS = 2
+	};
+
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 
@@ -340,6 +346,7 @@ private:
 		(ParamBool<px4::params::COM_HOME_IN_AIR>)   _param_com_home_in_air,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,
 		(ParamInt<px4::params::COM_PREARM_MODE>)    _param_com_prearm_mode,
+		(ParamInt<px4::params::COM_SAFETY_MODE>)    _param_com_safety_mode,
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
