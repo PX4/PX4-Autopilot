@@ -72,9 +72,23 @@ private:
 	 */
 	void updateHeadingToRoi();
 
+	/**
+	 * Move the hold position along with a reset of the position estimate, such as a switch of the GNSS receiver, so that
+	 * the vehicle stays where it is
+	 */
+	void followPositionResets();
+
+	void storePositionResetState();
+
 	bool _loiter_at_last_link_position_executed{false};
 
 	hrt_abstime _reposition_yaw_timestamp{0}; ///< time of the last reposition with an explicit yaw, 0 if none
+
+	bool _follow_position_resets{false}; ///< false while flying to a reposition target
+	uint8_t _xy_reset_counter{0};
+	uint8_t _z_reset_counter{0};
+	uint64_t _ref_timestamp{0}; ///< of the local position origin, which moves without moving the global position
+	float _ref_alt{NAN};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::NAV_LTR_LAST_DL>) _param_nav_ltr_last_dl,
