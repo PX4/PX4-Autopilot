@@ -37,6 +37,7 @@
 #include "gnss_failover.h"
 
 #include <array>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 
@@ -93,8 +94,13 @@ public:
 	// Receiver switch events (gnss_receiver_switched) since mark()
 	void check_switch_events(unsigned count);
 
-	// Downloads the flight's log and grades these check groups of Tools/gnss_failover_report.py on it
-	void check_log(const std::string &checks);
+	enum class LogSource {
+		Rootfs,  // read from the SITL rootfs (--px4-rootfs) when given, else downloaded
+		Download // downloaded over MAVLink, as the gnss_failover companion tool does
+	};
+
+	// Grades these check groups of Tools/gnss_failover_report.py on the log of the flight under test, after landing
+	void check_log(const std::string &checks, LogSource source = LogSource::Rootfs);
 
 	void start_mission_leg(double leg_length_m, float altitude_m);
 	void wait_for_mission_finished(std::chrono::seconds timeout);
@@ -107,8 +113,15 @@ public:
 private:
 	std::array<float, 3> receiver_bias(int instance);
 
+	// The closed log in the SITL rootfs that covers the first mark(), empty if there is none
+	std::string rootfs_flight_log();
+
 	std::unique_ptr<GnssFailover> _gnss;
 	std::mutex _gnss_mutex; ///< events arrive from a MAVSDK thread, possibly before _gnss exists
+
+	// Logs written before connect() belong to another test case
+	std::filesystem::file_time_type _connected_at{};
+	int64_t _first_mark_us{0};
 
 	struct Mark {
 		unsigned reset_count{0};

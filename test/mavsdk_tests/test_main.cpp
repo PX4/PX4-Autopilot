@@ -68,6 +68,20 @@ int main(int argc, char **argv)
 
 		}
 
+		if (argv_string == "--px4-rootfs") {
+			if (argc > i + 1) {
+				px4_rootfs = argv[i + 1];
+				remove_argv(argc, argv, i);
+				remove_argv(argc, argv, i);
+				--i;
+
+			} else {
+				std::cerr << "No PX4 rootfs supplied" << std::endl;
+				usage(argv[0]);
+				return -1;
+			}
+		}
+
 		if (argv_string == "--speed-factor") {
 			if (argc > i + 1) {
 				try {
@@ -108,7 +122,8 @@ int main(int argc, char **argv)
 void usage(const std::string &bin_name)
 {
 	std::cout << std::endl
-		  << "Usage : " << bin_name << " [--url CONNECTION_URL] [--speed-factor SPEED_FACTOR] [catch2 arguments]\n"
+		  << "Usage : " << bin_name
+		  << " [--url CONNECTION_URL] [--speed-factor SPEED_FACTOR] [--px4-rootfs DIR] [catch2 arguments]\n"
 		  << "\n"
 		  << "  --url          Connection URL format should be :\n"
 		  << "                   For TCP : tcp://[server_host][:server_port]\n"
@@ -117,6 +132,9 @@ void usage(const std::string &bin_name)
 		  << "                 For example, to connect to the simulator use URL: udp://:14540\n"
 		  << "\n"
 		  << "  --speed-factor Speed factor to compare against, for information only\n"
+		  << "\n"
+		  << "  --px4-rootfs   Working directory of a PX4 SITL on this host, where tests read its logs\n"
+		  << "                 instead of downloading them\n"
 		  << std::flush;
 }
 

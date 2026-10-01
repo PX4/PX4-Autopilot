@@ -58,6 +58,7 @@
 
 extern std::string connection_url;
 extern std::optional<float> speed_factor;
+extern std::string px4_rootfs; // empty when PX4 doesn't run on this host
 
 using namespace mavsdk;
 using namespace mavsdk::geometry;

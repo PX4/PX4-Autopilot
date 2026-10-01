@@ -273,6 +273,9 @@ TEST_CASE("GNSS failover - standby receiver off", "[gnss_failover]")
 	tester.check_switch_events(0);
 	CHECK(tester.gnss().position_ok());
 	tester.clear(ALL);
+
+	// The other cases read the log from the SITL rootfs; this short flight keeps the companion tool's download covered
+	tester.check_log("selection,reset", AutopilotTesterGnss::LogSource::Download);
 }
 
 TEST_CASE("GNSS failover - total loss and recovery on the standby", "[gnss_failover]")
