@@ -514,7 +514,7 @@ parameters:
       type: enum
       values:
         0: Disabled
-        1: When safety is off
+        1: When safety off
         2: Always
       default: 0
     COM_SAFETY_MODE:
