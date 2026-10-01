@@ -11,7 +11,7 @@ import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from pyulog import ULog
 
-from analysis.post_processing import magnetic_field_estimates_from_states, get_gps_check_fail_flags
+from analysis.post_processing import magnetic_field_estimates_from_states, get_gnss_failed_checks
 from plotting.data_plots import TimeSeriesPlot, InnovationPlot, ControlModeSummaryPlot, \
     CheckFlagsPlot
 from analysis.detectors import PreconditionError
@@ -78,7 +78,13 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
     except:
         raise PreconditionError('could not find innovation data')
 
-    gps_fail_flags = get_gps_check_fail_flags(estimator_status)
+    try:
+        vehicle_gnss = ulog.get_dataset('vehicle_gnss').data
+        gps_fail_flags = get_gnss_failed_checks(vehicle_gnss)
+        gnss_time = 1e-6 * vehicle_gnss['timestamp']
+    except:
+        gps_fail_flags = None
+        print('could not find vehicle_gnss, the GNSS check failures are not plotted')
 
     status_time = 1e-6 * estimator_status['timestamp']
     status_flags_time = 1e-6 * estimator_status_flags['timestamp']
@@ -240,18 +246,19 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
         data_plot.save()
         data_plot.close()
 
-        # gps_check_fail_flags summary
-        data_plot = CheckFlagsPlot(
-            status_time, gps_fail_flags,
-            [['nsat_fail', 'pdop_fail', 'herr_fail', 'verr_fail', 'gfix_fail', 'serr_fail'],
-             ['hdrift_fail', 'vdrift_fail', 'hspd_fail', 'veld_diff_fail']],
-            x_label='time (sec)', y_lim=(-0.1, 1.1), y_labels=['failed', 'failed'],
-            sub_titles=['GPS Direct Output Check Failures', 'GPS Derived Output Check Failures'],
-            legend=[['N sats', 'PDOP', 'horiz pos error', 'vert pos error', 'fix type',
-                     'speed error'], ['horiz drift', 'vert drift', 'horiz speed',
-                                      'vert vel inconsistent']], annotate=False, pdf_handle=pdf_pages)
-        data_plot.save()
-        data_plot.close()
+        # failed checks of the selected GNSS receiver
+        if gps_fail_flags is not None:
+            data_plot = CheckFlagsPlot(
+                gnss_time, gps_fail_flags,
+                [['nsat_fail', 'pdop_fail', 'herr_fail', 'verr_fail', 'gfix_fail', 'serr_fail'],
+                 ['hdrift_fail', 'vdrift_fail', 'hspd_fail', 'veld_diff_fail']],
+                x_label='time (sec)', y_lim=(-0.1, 1.1), y_labels=['failed', 'failed'],
+                sub_titles=['GPS Direct Output Check Failures', 'GPS Derived Output Check Failures'],
+                legend=[['N sats', 'PDOP', 'horiz pos error', 'vert pos error', 'fix type',
+                         'speed error'], ['horiz drift', 'vert drift', 'horiz speed',
+                                          'vert vel inconsistent']], annotate=False, pdf_handle=pdf_pages)
+            data_plot.save()
+            data_plot.close()
 
         # filter reported accuracy
         data_plot = CheckFlagsPlot(
