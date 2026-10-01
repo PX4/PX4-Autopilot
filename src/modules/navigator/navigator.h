@@ -175,12 +175,28 @@ public:
 	void set_mission_result_updated() { _mission_result_updated = true; }
 
 	/**
+	 * Where an axis of the reposition target comes from. Hold moves a target taken from the vehicle position along
+	 * with a reset of the position estimate and keeps a commanded one.
+	 */
+	enum class RepositionSource : uint8_t {
+		Command,	///< commanded position
+		Vehicle,	///< current vehicle position
+		Setpoint	///< kept from the current position setpoint
+	};
+
+	struct RepositionSources {
+		RepositionSource xy{RepositionSource::Command};
+		RepositionSource z{RepositionSource::Command};
+	};
+
+	/**
 	 * Getters
 	 */
 	home_position_s             *get_home_position() { return &_home_pos; }
 	mission_result_s            *get_mission_result() { return &_mission_result; }
 	position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
+	RepositionSources           *get_reposition_sources() { return &_reposition_sources; }
 	position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
 	vehicle_global_position_s   *get_global_position() { return &_global_pos; }
 	vehicle_land_detected_s     *get_land_detected() { return &_land_detected; }
@@ -410,6 +426,7 @@ private:
 	navigator_status_s				_navigator_status{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
 	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
+	RepositionSources				_reposition_sources{};	/**< where the reposition target comes from */
 	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
 
