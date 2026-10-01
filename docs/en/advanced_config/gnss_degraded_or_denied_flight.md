@@ -71,6 +71,16 @@ To enable the mode:
    - [COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS) - set to `0`
    - [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) - set to default.
 
+## Loss Reporting
+
+While armed, an event reports when EKF2 stops fusing GNSS and when it starts again.
+If the local position becomes invalid shortly after GNSS was last fused, one event names the receiver and the reason EKF2 stopped fusing it: no data, failed [quality checks](../advanced_config/tuning_the_ecl_ekf.md#gnss-performance-requirements), rejection by the estimator, or velocity above [EKF2_VEL_LIM](../advanced_config/parameter_reference.md#EKF2_VEL_LIM).
+The reason is logged as [`estimator_status_flags.gnss_fusion_state`](../advanced_config/tuning_the_ecl_ekf.md#gps-quality-checks).
+
+In dead-reckoning mode the position can stay valid on the other sources, and then only the fusion stop is reported.
+With two receivers, a failed receiver is [replaced](../gps_compass/index.md#multiple-receivers) after about 2 s, before EKF2 stops GNSS position fusion, and an event reports the switch.
+[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) and [COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) set the [failsafe action](../config/safety.md#gnss-check-failsafe) when a receiver fails.
+
 ## See Also
 
 - [GNSS Fault Detection](../advanced_config/tuning_the_ecl_ekf.md#gnss-fault-detection) in _Using PX4's Navigation Filter (EKF2)_
