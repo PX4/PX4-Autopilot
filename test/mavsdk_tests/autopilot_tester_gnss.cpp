@@ -37,8 +37,11 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <thread>
 #include <unistd.h>
 
 namespace
@@ -55,6 +58,25 @@ constexpr float NO_YAW_JUMP_RAD = 0.035f; // 2 deg
 
 constexpr double LOG_DOWNLOAD_TIMEOUT_S = 120.;
 
+// The logger closes the file shortly after the disarm; a size that holds this long means it is done
+constexpr auto LOG_CLOSED_STABLE_TIME = std::chrono::seconds(2);
+constexpr auto LOG_CLOSED_TIMEOUT = std::chrono::seconds(60);
+
+// ULog header: 7 magic bytes, a version byte, then the log start time [us] since boot
+bool ulog_start_time(const std::filesystem::path &path, uint64_t &start_us)
+{
+	static constexpr char MAGIC[7] = {'U', 'L', 'o', 'g', 0x01, 0x12, 0x35};
+	char header[16];
+	std::ifstream file(path, std::ios::binary);
+
+	if (!file.read(header, sizeof(header)) || (memcmp(header, MAGIC, sizeof(MAGIC)) != 0)) {
+		return false;
+	}
+
+	memcpy(&start_us, header + 8, sizeof(start_us));
+	return true;
+}
+
 } // namespace
 
 void AutopilotTesterGnss::connect(const std::string uri)
@@ -67,6 +89,7 @@ void AutopilotTesterGnss::connect(const std::string uri)
 		}
 	});
 
+	_connected_at = std::filesystem::file_time_type::clock::now();
 	AutopilotTester::connect(uri);
 
 	{
@@ -118,6 +141,11 @@ void AutopilotTesterGnss::mark()
 	_mark.reset_index = _gnss->resets().size();
 	_mark.vehicle_time_us = _gnss->vehicle_time_us();
 	_mark.ground_truth = getTelemetry()->ground_truth();
+
+	if (_first_mark_us == 0) {
+		_first_mark_us = _mark.vehicle_time_us;
+	}
+
 	REQUIRE(std::isfinite(_mark.ground_truth.latitude_deg));
 
 	_gnss->record("mark");
@@ -273,21 +301,84 @@ void AutopilotTesterGnss::check_switch_events(unsigned count)
 	CHECK(switches == count);
 }
 
-void AutopilotTesterGnss::check_log(const std::string &checks)
+std::string AutopilotTesterGnss::rootfs_flight_log()
+{
+	namespace fs = std::filesystem;
+
+	// A case that arms again starts another log, so the newest file isn't necessarily the flight under test: take the
+	// latest log that started before the first mark
+	fs::path best;
+	uint64_t best_start_us = 0;
+	std::error_code error;
+
+	for (const fs::directory_entry &entry : fs::recursive_directory_iterator(px4_rootfs,
+			fs::directory_options::skip_permission_denied, error)) {
+		uint64_t start_us = 0;
+
+		if (entry.is_regular_file() && (entry.path().extension() == ".ulg")
+		    && (entry.last_write_time() >= _connected_at) && ulog_start_time(entry.path(), start_us)
+		    && ((_first_mark_us == 0) || (start_us <= static_cast<uint64_t>(_first_mark_us)))
+		    && (best.empty() || (start_us > best_start_us))) {
+			best = entry.path();
+			best_start_us = start_us;
+		}
+	}
+
+	if (best.empty()) {
+		std::cout << time_str() << "No log of this flight in " << px4_rootfs << std::endl;
+		return {};
+	}
+
+	// The logger closes the file after the disarm; until then its size keeps changing
+	const auto deadline = std::chrono::steady_clock::now() + LOG_CLOSED_TIMEOUT;
+	auto size = fs::file_size(best, error);
+	auto stable_since = std::chrono::steady_clock::now();
+
+	while (std::chrono::steady_clock::now() - stable_since < LOG_CLOSED_STABLE_TIME) {
+		if (std::chrono::steady_clock::now() > deadline) {
+			std::cout << time_str() << "Log " << best << " still grows " << LOG_CLOSED_TIMEOUT.count()
+				  << " s after landing" << std::endl;
+			return {};
+		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(250));
+		const auto current = fs::file_size(best, error);
+
+		if (current != size) {
+			size = current;
+			stable_since = std::chrono::steady_clock::now();
+		}
+	}
+
+	return best.string();
+}
+
+void AutopilotTesterGnss::check_log(const std::string &checks, LogSource source)
 {
 	// The tests run from the source tree root, where the report lives
 	const std::string report = "Tools/gnss_failover_report.py";
 	REQUIRE(std::filesystem::exists(report));
 
-	const std::string path = (std::filesystem::temp_directory_path() / ("gnss_failover_" + std::to_string(getpid())
-				  + ".ulg")).string();
-	REQUIRE(_gnss->download_last_log(path, LOG_DOWNLOAD_TIMEOUT_S));
+	std::string path;
+	bool downloaded = false;
+
+	if ((source == LogSource::Rootfs) && !px4_rootfs.empty()) {
+		path = rootfs_flight_log();
+		REQUIRE(!path.empty());
+
+	} else {
+		path = (std::filesystem::temp_directory_path() / ("gnss_failover_" + std::to_string(getpid()) + ".ulg")).string();
+		REQUIRE(_gnss->download_last_log(path, LOG_DOWNLOAD_TIMEOUT_S));
+		downloaded = true;
+	}
 
 	const std::string command = "python3 " + report + " --checks " + checks + " " + path;
 	std::cout << time_str() << command << std::endl;
 	CHECK(std::system(command.c_str()) == 0);
 
-	std::filesystem::remove(path);
+	if (downloaded) {
+		std::filesystem::remove(path);
+	}
 }
 
 void AutopilotTesterGnss::start_mission_leg(double leg_length_m, float altitude_m)

@@ -42,6 +42,7 @@
 
 std::string connection_url {"udp://"};
 std::optional<float> speed_factor {std::nullopt};
+std::string px4_rootfs {};
 
 AutopilotTester::AutopilotTester() :
 	_real_time_report_thread([this]()
