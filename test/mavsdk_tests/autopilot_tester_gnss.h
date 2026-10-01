@@ -90,6 +90,9 @@ public:
 
 	void wait_for_mode_other_than(mavsdk::Telemetry::FlightMode mode, std::chrono::seconds timeout);
 
+	// Downloads the flight's log and grades these check groups of Tools/gnss_failover_report.py on it
+	void check_log(const std::string &checks);
+
 	void start_mission_leg(double leg_length_m, float altitude_m);
 	void wait_for_mission_finished(std::chrono::seconds timeout);
 

@@ -36,7 +36,10 @@
 #include "math_helpers.h"
 
 #include <cmath>
+#include <cstdlib>
+#include <filesystem>
 #include <iostream>
+#include <unistd.h>
 
 namespace
 {
@@ -49,6 +52,8 @@ constexpr float RESET_JUMP_TOLERANCE_M = 0.5f;
 constexpr float NO_JUMP_M = 0.3f;
 
 constexpr float NO_YAW_JUMP_RAD = 0.035f; // 2 deg
+
+constexpr double LOG_DOWNLOAD_TIMEOUT_S = 120.;
 
 } // namespace
 
@@ -251,6 +256,23 @@ void AutopilotTesterGnss::wait_for_mode_other_than(Telemetry::FlightMode mode, s
 {
 	REQUIRE(_gnss->wait_until([this, mode]() { return getTelemetry()->flight_mode() != mode; },
 	static_cast<double>(timeout.count())));
+}
+
+void AutopilotTesterGnss::check_log(const std::string &checks)
+{
+	// The tests run from the source tree root, where the report lives
+	const std::string report = "Tools/gnss_failover_report.py";
+	REQUIRE(std::filesystem::exists(report));
+
+	const std::string path = (std::filesystem::temp_directory_path() / ("gnss_failover_" + std::to_string(getpid())
+				  + ".ulg")).string();
+	REQUIRE(_gnss->download_last_log(path, LOG_DOWNLOAD_TIMEOUT_S));
+
+	const std::string command = "python3 " + report + " --checks " + checks + " " + path;
+	std::cout << time_str() << command << std::endl;
+	CHECK(std::system(command.c_str()) == 0);
+
+	std::filesystem::remove(path);
 }
 
 void AutopilotTesterGnss::start_mission_leg(double leg_length_m, float altitude_m)

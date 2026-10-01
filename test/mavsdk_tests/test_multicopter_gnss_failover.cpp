@@ -462,6 +462,7 @@ TEST_CASE("GNSS failover - dual antenna heading receiver off", "[gnss_failover]"
 
 	check_heading_source_off(tester);
 	finish(tester);
+	tester.check_log("heading");
 }
 
 TEST_CASE("GNSS failover - moving base off", "[gnss_failover]")
@@ -474,6 +475,7 @@ TEST_CASE("GNSS failover - moving base off", "[gnss_failover]")
 
 	check_heading_source_off(tester);
 	finish(tester);
+	tester.check_log("heading");
 }
 
 TEST_CASE("GNSS failover - dual antenna heading receiver recovers", "[gnss_failover]")
@@ -493,4 +495,5 @@ TEST_CASE("GNSS failover - dual antenna heading receiver recovers", "[gnss_failo
 	CHECK(tester.resets_since_mark() == 0);
 
 	finish(tester);
+	tester.check_log("heading");
 }
