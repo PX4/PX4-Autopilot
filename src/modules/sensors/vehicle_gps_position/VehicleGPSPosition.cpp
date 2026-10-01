@@ -279,6 +279,10 @@ void VehicleGPSPosition::Run()
 		// A receiver that stopped publishing still has to time out and lose availability when no other one publishes
 		_gnss_selector.update(hrt_absolute_time());
 		PublishStatus();
+
+	} else if (hasConfiguredPreference()) {
+		// A configured primary is reported offline even when no receiver ever published
+		PublishStatus();
 	}
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
@@ -465,6 +469,11 @@ void VehicleGPSPosition::PublishStatus()
 	}
 
 	const int selected = _published_instance;
+
+	if (hasConfiguredPreference()) {
+		const int primary = resolvePreferredInstance();
+		status.primary_offline = (primary < 0) || !publishing[primary];
+	}
 
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		const GnssChecks &checks = _gnss_checks[i];

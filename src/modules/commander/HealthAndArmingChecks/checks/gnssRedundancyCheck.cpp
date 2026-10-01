@@ -165,4 +165,19 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 					      "GPS receivers disagree by {1:.1}m",
 					      (double)divergence_m);
 	}
+
+	// The selection falls back to another receiver, so like any other receiver the primary blocks arming only when
+	// SYS_HAS_NUM_GNSS counts it
+	if (!context.isArmed() && status_valid && status.primary_offline) {
+		/* EVENT
+		 * @description
+		 * Another receiver, if any, is used until the primary one publishes.
+		 *
+		 * <profile name="dev">
+		 * The primary receiver is set with <param>SENS_GNSS_PRIME</param>, or is the moving base of a moving base pair.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(NavModes::None, health_component_t::gps, events::ID("check_gnss_primary_offline"),
+					    events::Log::Warning, "Primary GNSS receiver offline");
+	}
 }
