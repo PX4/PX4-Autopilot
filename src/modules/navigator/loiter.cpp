@@ -60,6 +60,10 @@ Loiter::on_activation()
 	_reposition_yaw_timestamp = 0;
 	storePositionResetState();
 
+	// the previous mode's setpoint counts as a commanded target when a reposition keeps it
+	_follow_xy_resets = false;
+	_follow_z_resets = false;
+
 	if (_navigator->get_reposition_triplet()->current.valid
 	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
 		reposition();
@@ -156,7 +160,8 @@ Loiter::set_loiter_position(const position_setpoint_s &reference_setpoint)
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	// Hold keeps the vehicle where it is, also when it continues a loiter it was already on
-	_follow_position_resets = true;
+	_follow_xy_resets = true;
+	_follow_z_resets = true;
 
 	if (_navigator->get_land_detected()->landed) {
 		_mission_item.nav_cmd = NAV_CMD_IDLE;
@@ -206,9 +211,18 @@ Loiter::reposition()
 	struct position_setpoint_triplet_s *rep = _navigator->get_reposition_triplet();
 
 	if (rep->current.valid) {
-		// set loiter position based on reposition command, a target that a reset of the estimate doesn't move
+		// set loiter position based on reposition command. A commanded target stays through a reset of the estimate,
+		// one taken from the vehicle position moves with it, and a kept setpoint keeps its behavior.
 		_reposition_yaw_timestamp = PX4_ISFINITE(rep->current.yaw) ? rep->current.timestamp : 0;
-		_follow_position_resets = false;
+		const Navigator::RepositionSources &sources = *_navigator->get_reposition_sources();
+
+		if (sources.xy != Navigator::RepositionSource::Setpoint) {
+			_follow_xy_resets = (sources.xy == Navigator::RepositionSource::Vehicle);
+		}
+
+		if (sources.z != Navigator::RepositionSource::Setpoint) {
+			_follow_z_resets = (sources.z == Navigator::RepositionSource::Vehicle);
+		}
 
 		// convert mission item to current setpoint
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -226,6 +240,7 @@ Loiter::reposition()
 		_navigator->reset_position_setpoint(rep->previous);
 		_navigator->reset_position_setpoint(rep->current);
 		_navigator->reset_position_setpoint(rep->next);
+		*_navigator->get_reposition_sources() = {};
 	}
 }
 
@@ -240,15 +255,16 @@ Loiter::followPositionResets()
 	const bool lat_lon_origin_moved = (local_pos.ref_timestamp != _ref_timestamp);
 	const bool alt_origin_moved = !(fabsf(local_pos.ref_alt - _ref_alt) < FLT_EPSILON);
 
-	if (_follow_position_resets && current.valid) {
-		if ((local_pos.xy_reset_counter != _xy_reset_counter) && !lat_lon_origin_moved
+	if (current.valid) {
+		if (_follow_xy_resets && (local_pos.xy_reset_counter != _xy_reset_counter) && !lat_lon_origin_moved
 		    && PX4_ISFINITE(local_pos.delta_xy[0]) && PX4_ISFINITE(local_pos.delta_xy[1])) {
 			add_vector_to_global_position(current.lat, current.lon, local_pos.delta_xy[0], local_pos.delta_xy[1],
 						      &current.lat, &current.lon);
 			updated = true;
 		}
 
-		if ((local_pos.z_reset_counter != _z_reset_counter) && !alt_origin_moved && PX4_ISFINITE(local_pos.delta_z)) {
+		if (_follow_z_resets && (local_pos.z_reset_counter != _z_reset_counter) && !alt_origin_moved
+		    && PX4_ISFINITE(local_pos.delta_z)) {
 			current.alt -= local_pos.delta_z;
 			updated = true;
 		}
