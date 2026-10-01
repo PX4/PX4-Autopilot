@@ -35,6 +35,7 @@
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 
+#include <lib/mathlib/math/Limits.hpp>
 #include <parameters/param.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_gnss.h>
@@ -134,6 +135,78 @@ bool process_battery(const Config &config, uint8_t instance, battery_status_s &b
 	return true;
 }
 
+namespace
+{
+
+int32_t param_int(param_t handle, int32_t fallback)
+{
+	int32_t value = fallback;
+	param_get(handle, &value);
+	return value;
+}
+
+float param_float(param_t handle)
+{
+	float value = 0.f;
+	param_get(handle, &value);
+	return value;
+}
+
+void apply_gnss_wrong(sensor_gnss_s &sensor_gnss)
+{
+	static const param_t fix_type_handle = param_find("SYS_FAIL_GPS_WRG");
+	static const param_t eph_handle = param_find("SYS_FAIL_GPS_EPH");
+	static const param_t epv_handle = param_find("SYS_FAIL_GPS_EPV");
+	static const param_t speed_accuracy_handle = param_find("SYS_FAIL_GPS_SAC");
+	static const param_t satellites_handle = param_find("SYS_FAIL_GPS_SAT");
+	static const param_t jamming_state_handle = param_find("SYS_FAIL_GPS_JAM");
+	static const param_t spoofing_state_handle = param_find("SYS_FAIL_GPS_SPF");
+
+	const int32_t fix_type = param_int(fix_type_handle, sensor_gnss_s::FIX_TYPE_2D);
+
+	if (fix_type > 0) {
+		sensor_gnss.fix_type = static_cast<uint8_t>(fix_type);
+	}
+
+	const float eph = param_float(eph_handle);
+
+	if (eph > 0.f) {
+		sensor_gnss.eph = eph;
+	}
+
+	const float epv = param_float(epv_handle);
+
+	if (epv > 0.f) {
+		sensor_gnss.epv = epv;
+	}
+
+	const float speed_accuracy = param_float(speed_accuracy_handle);
+
+	if (speed_accuracy > 0.f) {
+		sensor_gnss.speed_accuracy = speed_accuracy;
+	}
+
+	const int32_t satellites = param_int(satellites_handle, 0);
+
+	if (satellites > 0) {
+		sensor_gnss.satellites_used = static_cast<uint8_t>(math::min(satellites, static_cast<int32_t>(UINT8_MAX)));
+	}
+
+	const int32_t jamming_state = param_int(jamming_state_handle, sensor_gnss_s::JAMMING_STATE_UNKNOWN);
+
+	if (jamming_state != sensor_gnss_s::JAMMING_STATE_UNKNOWN) {
+		sensor_gnss.jamming_state = static_cast<uint8_t>(jamming_state);
+	}
+
+	const int32_t spoofing_state = param_int(spoofing_state_handle, sensor_gnss_s::SPOOFING_STATE_UNKNOWN);
+
+	if (spoofing_state != sensor_gnss_s::SPOOFING_STATE_UNKNOWN) {
+		sensor_gnss.spoofing_state = static_cast<uint8_t>(spoofing_state);
+	}
+}
+
+} // namespace
+
 bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &sensor_gnss,
 		  Stuck<sensor_gnss_s> &stuck)
 {
@@ -145,21 +218,25 @@ bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &se
 		return false;
 	}
 
-	if (mode == Mode::Wrong) {
-		static const param_t fix_type_handle = param_find("SYS_FAIL_GPS_WRG");
+	if (mode != Mode::Slow) {
+		stuck.slow_count = 0;
+	}
 
-		int32_t fix_type = sensor_gnss_s::FIX_TYPE_2D;
-		param_get(fix_type_handle, &fix_type);
-		sensor_gnss.fix_type = (uint8_t)fix_type;
+	switch (mode) {
+	case Mode::Wrong:
+		apply_gnss_wrong(sensor_gnss);
+		break;
 
-		static const param_t jamming_state_handle = param_find("SYS_FAIL_GPS_JAM");
-
-		int32_t jamming_state = sensor_gnss_s::JAMMING_STATE_UNKNOWN;
-		param_get(jamming_state_handle, &jamming_state);
-
-		if (jamming_state != sensor_gnss_s::JAMMING_STATE_UNKNOWN) {
-			sensor_gnss.jamming_state = (uint8_t)jamming_state;
+	case Mode::Slow: {
+			static const param_t divider_handle = param_find("SYS_FAIL_GPS_DIV");
+			const int32_t divider = math::max(param_int(divider_handle, 1), static_cast<int32_t>(1));
+			const bool pass = (stuck.slow_count == 0);
+			stuck.slow_count = (stuck.slow_count + 1) % divider;
+			return pass;
 		}
+
+	default:
+		break;
 	}
 
 	return true;
