@@ -35,7 +35,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data
 
-- **Input voltage:** up to 12S LiPo
+- **Input voltage:** 4S to 12S LiPo
 - **Current draw:** 110 mA at 5 V (static)
 - **BEC output:** 5 V/3 A and 12 V/3 A (supports power-saving mode)
 - **Power monitoring:** one analog input (battery voltage and current)
@@ -84,25 +84,22 @@ Onboard BECs supply 5 V/3 A and 12 V/3 A to peripherals.
 Battery voltage monitoring is configured by default ([BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) is set to `17.0`).
 Current monitoring depends on the ESC's current sensor, so you must set [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) as described in [Battery and Power Module Setup](../config/battery.md).
 
-### Voltage Ratings
+## Voltage Ratings {#voltage_ratings}
 
-The board has an internal voltage sensor and connections on the ESC connector for an external current sensor.
-
-- The voltage sensor handles up to 4-12 S LiPo batteries.
+The board can be powered from the battery input (`VBAT` pins on the `ESC` connector) or from USB.
 
 ### Normal Operation Maximum Ratings
 
 Under these conditions all power sources will be used in this order to power the system:
 
-1. **POWER** inputs (12V to 48V)
+1. **Battery** input (4S to 12S LiPo)
 2. **USB** input (4.75V to 5.25V)
 
 ### Absolute Maximum Ratings
 
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
-1. **POWER** input (operational range 12V to 48V, 0V to 12V undamaged)
-2. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
+1. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
 
 ## Interface Summary {#interface_summary}
 
