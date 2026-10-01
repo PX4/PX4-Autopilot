@@ -99,50 +99,32 @@ INA228::~INA228()
 
 INA228::Timing INA228::computeTiming()
 {
-	int32_t adc_config = ADCCONFIG_DEFAULT;
-	param_get(param_find("INA228_CONFIG"), &adc_config);
+	int32_t rate_hz = DEFAULT_RATE_HZ;
+	param_get(param_find("INA228_RATE"), &rate_hz);
 
-	uint16_t mode = (adc_config >> MODE_SHIFT) & 0xf;
+	const RatePreset *preset = nullptr;
+	const RatePreset *default_preset = &RATE_PRESETS[0];
 
-	// Bus voltage and shunt (current) must both be converted, otherwise the
-	// registers we publish from are never updated.
-	if (adc_config < 0 || adc_config > UINT16_MAX || (mode & (MODE_BUS | MODE_SHUNT)) != (MODE_BUS | MODE_SHUNT)) {
-		PX4_ERR("INA228_CONFIG 0x%04" PRIX32 " invalid (16 bit, bus and shunt enabled), using 0x%04X",
-			static_cast<uint32_t>(adc_config), ADCCONFIG_DEFAULT);
-		adc_config = ADCCONFIG_DEFAULT;
-		mode = (adc_config >> MODE_SHIFT) & 0xf;
+	for (const RatePreset &p : RATE_PRESETS) {
+		if (p.rate_hz == rate_hz) {
+			preset = &p;
+		}
+
+		if (p.rate_hz == DEFAULT_RATE_HZ) {
+			default_preset = &p;
+		}
+	}
+
+	if (preset == nullptr) {
+		PX4_ERR("INA228_RATE %" PRId32 " not supported, using %u Hz", rate_hz, DEFAULT_RATE_HZ);
+		preset = default_preset;
 	}
 
 	Timing t{};
-	t.adc_config = static_cast<uint16_t>(adc_config);
-	t.triggered = !(mode & MODE_CONTINUOUS);
-	t.temperature_enabled = (mode & MODE_TEMP);
-
-	// Enabled channels are converted in sequence and the sequence is repeated AVG times (datasheet §7.3.4).
-	uint32_t sequence_us = CONVERSION_TIME_US[(adc_config >> VBUSCT_SHIFT) & 0x7]
-			       + CONVERSION_TIME_US[(adc_config >> VSHCT_SHIFT) & 0x7];
-
-	if (t.temperature_enabled) {
-		sequence_us += CONVERSION_TIME_US[(adc_config >> VTCT_SHIFT) & 0x7];
-	}
-
-	t.conversion_us = AVERAGES[(adc_config >> AVG_SHIFT) & 0x7] * sequence_us;
-
-	// Worst case with the internal oscillator running slow.
-	t.conversion_max_us = static_cast<uint32_t>(ceilf(t.conversion_us * OSCILLATOR_TOLERANCE));
-
-	if (t.triggered) {
-		// Each tick triggers the next conversion and reads the previous one, so a conversion
-		// has to finish before the next tick triggers again.
-		t.min_interval_us = t.conversion_max_us + WAKEUP_TIME_US + TRIGGER_MARGIN_US;
-
-	} else {
-		// Poll no faster than the device produces samples so every read is a fresh one.
-		t.min_interval_us = t.conversion_max_us;
-	}
-
-	t.interval_us = math::max(SAMPLE_INTERVAL_US, t.min_interval_us);
-
+	t.adc_config = preset->adc_config;
+	t.conversion_us = conversionTimeUs(t.adc_config);
+	t.conversion_max_us = conversionTimeMaxUs(t.adc_config);
+	t.interval_us = 1'000'000 / preset->rate_hz;
 	return t;
 }
 
@@ -214,7 +196,7 @@ void INA228::RunImpl()
 		}
 
 	case State::CONFIGURE: {
-			// In triggered mode the ADCCONFIG write also starts the first conversion.
+			// The ADCCONFIG write also triggers the first conversion.
 			const bool ok = (probe() == PX4_OK) &&
 					(registerWrite(Register::SHUNT_CAL, _shunt_calibration) == PX4_OK) &&
 					(registerWrite(Register::CONFIG, _config_value) == PX4_OK) &&
@@ -233,9 +215,8 @@ void INA228::RunImpl()
 			_state = State::MEASURE;
 
 			// The first tick comes one interval later, when the first conversion is complete
-			// (interval >= worst-case conversion time in both modes). Continuous mode gets
-			// extra margin since the device is not synchronised to us.
-			ScheduleOnInterval(_timing.interval_us, _timing.triggered ? _timing.interval_us : _timing.interval_us + 5_ms);
+			// (interval >= worst-case conversion time, checked at compile time).
+			ScheduleOnInterval(_timing.interval_us, _timing.interval_us);
 			return;
 		}
 
@@ -285,30 +266,26 @@ void INA228::RunImpl()
 
 int INA228::collect()
 {
-	if (_timing.triggered) {
-		// Ticks are on a fixed hrt grid, so a tick after a late one comes early. Triggering
-		// before the previous conversion is done would restart it and we would read (and
-		// publish) the one before it again.
-		if (hrt_elapsed_time(&_trigger_time) < _timing.conversion_max_us + WAKEUP_TIME_US) {
-			perf_count(_not_ready_perf);
-			return -EAGAIN;
-		}
+	// Ticks are on a fixed hrt grid, so a tick after a late one comes early. Triggering
+	// before the previous conversion is done would restart it and we would read (and
+	// publish) the one before it again.
+	if (hrt_elapsed_time(&_trigger_time) < _timing.conversion_max_us + WAKEUP_TIME_US) {
+		perf_count(_not_ready_perf);
+		return -EAGAIN;
 	}
 
 	perf_begin(_sample_perf);
 
-	// Triggered mode: start the next conversion first. The result registers keep the previous,
-	// completed conversion until the new one finishes (datasheet §7.3.4), so reading them right
-	// after the trigger returns the sample triggered one tick ago. This gives a fixed sample
-	// latency and the full tick for the conversion.
-	if (_timing.triggered) {
-		if (registerWrite(Register::ADCCONFIG, _timing.adc_config) != PX4_OK) {
-			perf_end(_sample_perf);
-			return PX4_ERROR;
-		}
-
-		_trigger_time = hrt_absolute_time();
+	// Start the next conversion first. The result registers keep the previous, completed
+	// conversion until the new one finishes (datasheet §7.3.4), so reading them right after
+	// the trigger returns the sample triggered one tick ago. This gives a fixed sample latency
+	// and the full tick for the conversion.
+	if (registerWrite(Register::ADCCONFIG, _timing.adc_config) != PX4_OK) {
+		perf_end(_sample_perf);
+		return PX4_ERROR;
 	}
+
+	_trigger_time = hrt_absolute_time();
 
 	int32_t bus_voltage = 0;
 	int32_t current = 0;
@@ -316,14 +293,13 @@ int INA228::collect()
 
 	const bool reads_ok = (registerRead24(Register::VS_BUS, bus_voltage) == PX4_OK)
 			      && (registerRead24(Register::CURRENT, current) == PX4_OK)
-			      && (!_timing.temperature_enabled || registerRead(Register::DIETEMP, temperature) == PX4_OK);
+			      && (registerRead(Register::DIETEMP, temperature) == PX4_OK);
 
 	if (reads_ok) {
 		_battery.setConnected(true);
 		_battery.updateVoltage(static_cast<float>(bus_voltage) * V_LSB);
 		_battery.updateCurrent(static_cast<float>(current) * _current_lsb);
-		_battery.updateTemperature(_timing.temperature_enabled ?
-					   static_cast<float>(static_cast<int16_t>(temperature)) * T_LSB : NAN);
+		_battery.updateTemperature(static_cast<float>(static_cast<int16_t>(temperature)) * T_LSB);
 		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 	}
 
@@ -356,11 +332,10 @@ int INA228::checkConfigurationRotating()
 	} checks[] = {
 		{ Register::CONFIG, _config_value },
 		{ Register::SHUNT_CAL, _shunt_calibration },
-		{ Register::ADCCONFIG, _timing.adc_config },
 	};
 
-	// In triggered mode ADCCONFIG is rewritten every tick anyway.
-	const uint8_t num_checks = _timing.triggered ? 2 : 3;
+	// ADCCONFIG is not checked: it is rewritten every tick to trigger the next conversion.
+	const uint8_t num_checks = sizeof(checks) / sizeof(checks[0]);
 
 	const auto &check = checks[_next_reg_to_check];
 	uint16_t actual = 0;
@@ -465,17 +440,9 @@ void INA228::print_status()
 	}
 
 	PX4_INFO("state: %s", state_str);
-	PX4_INFO("ADC_CONFIG: 0x%04X (%s), %" PRIu32 " us per sample",
-		 _timing.adc_config, _timing.triggered ? "triggered" : "continuous", _timing.conversion_us);
-	PX4_INFO("sample interval: %" PRIu32 " us (min %" PRIu32 ")", _timing.interval_us, _timing.min_interval_us);
-
-	if (_timing.triggered) {
-		PX4_INFO("readback CONFIG: 0x%04X, SHUNT_CAL: 0x%04X", _last_readback[0], _last_readback[1]);
-
-	} else {
-		PX4_INFO("readback CONFIG: 0x%04X, SHUNT_CAL: 0x%04X, ADC_CONFIG: 0x%04X",
-			 _last_readback[0], _last_readback[1], _last_readback[2]);
-	}
+	PX4_INFO("sample interval: %" PRIu32 " us, ADC_CONFIG: 0x%04X (triggered, %" PRIu32 " us per sample)",
+		 _timing.interval_us, _timing.adc_config, _timing.conversion_us);
+	PX4_INFO("readback CONFIG: 0x%04X, SHUNT_CAL: 0x%04X", _last_readback[0], _last_readback[1]);
 
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -523,10 +490,11 @@ Multiple instances can run simultaneously on separate buses or different I2C add
 If the device is not powered at startup, pass `-k` (keep_running) and the driver
 will retry initialization every 500 ms so the battery can be plugged in later.
 
-The ADC setup comes from `INA228_CONFIG` (written to the ADC_CONFIG register). The device
-is read every 100 ms, or slower if one averaged sample takes longer, so every read returns
-a new sample. The configuration registers are read back periodically and rewritten if the
-device was reset (e.g. by a brown-out while plugging the battery).
+The sample rate is set by `INA228_RATE` (10, 20, 50 or 100 Hz); each rate uses a fixed ADC
+setup with the longest integration time that fits. Every sample is triggered by the driver, so the
+latency from the measurement to the publication is the same for every sample. The
+configuration registers are read back periodically and rewritten if the device was reset
+(e.g. by a brown-out while plugging the battery).
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("ina228", "driver");

@@ -9,29 +9,27 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
-    INA228_CONFIG:
+    INA228_RATE:
       description:
-        short: INA228 Power Monitor ADC config
+        short: INA228 Power Monitor sample rate
         long: |-
-          Value written to the ADC_CONFIG register. It sets which channels are
-          converted, the conversion time per channel, the averaging and whether
-          the ADC runs continuously or is triggered by the driver for each sample.
+          Rate at which the device is sampled and battery_status is published.
+          Each sample is triggered by the driver, so the delay between the
+          measurement and its publication is constant.
 
-          Bits 15-12 MODE: 1..7 triggered, 9..15 continuous; bit 0 bus voltage,
-          bit 1 shunt voltage, bit 2 temperature (bus and shunt are required).
-          Bits 11-9 VBUSCT, 8-6 VSHCT, 5-3 VTCT: conversion time
-          0..7 = 50, 84, 150, 280, 540, 1052, 2074, 4120 us.
-          Bits 2-0 AVG: 0..7 = 1, 4, 16, 64, 128, 256, 512, 1024 samples.
-
-          One output sample takes AVG x (sum of the enabled conversion times).
-          The driver reads the device every 100 ms, or slower if one sample takes
-          longer. Default 63779 (0xF923): continuous, 103.68 ms per sample.
-      type: int32
-      default: 63779
-      min: 0
-      max: 65535
-      decimal: 1
-      increment: 1
+          Each rate uses the longest integration time (conversion time x
+          averaging) that fits in one interval, with at least 540 us per bus
+          and shunt conversion, so higher rates have more noise per sample
+          (about 3x at 100 Hz compared to 10 Hz). Averaged down to 10 Hz the
+          noise is about the same.
+          At 100 Hz one device takes about 21 % of a 100 kHz I2C bus.
+      type: enum
+      values:
+        10: 10 Hz
+        20: 20 Hz
+        50: 50 Hz
+        100: 100 Hz
+      default: 10
       reboot_required: true
     INA228_CURRENT:
       description:

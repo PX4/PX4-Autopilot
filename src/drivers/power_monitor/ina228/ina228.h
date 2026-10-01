@@ -62,21 +62,14 @@ static constexpr float SHUNT_CAL_K = 13107.2e6f; // shunt-cal scaling constant
 static constexpr float ADCRANGE_LOW_V_SENSE = 0.04096f; // ±40.96 mV
 static constexpr uint16_t SHUNT_CAL_MAX = 0x7fff; // SHUNT_CAL is a 15 bit field
 
-// Default ADC_CONFIG: continuous, 540us conversion per channel x 3 channels x 64-sample average
-// = 103.68 ms per output sample.
-static constexpr uint16_t ADCCONFIG_DEFAULT = 0xF923;
-
 // ADC timing (datasheet §7.3.4, §6.5)
 static constexpr uint16_t CONVERSION_TIME_US[8] = {50, 84, 150, 280, 540, 1052, 2074, 4120};
 static constexpr uint16_t AVERAGES[8] = {1, 4, 16, 64, 128, 256, 512, 1024};
-static constexpr float OSCILLATOR_TOLERANCE = 1.01f; // ±1 % over temperature
 static constexpr hrt_abstime WAKEUP_TIME_US = 60; // from shutdown, triggered mode only
-// Triggered mode: the next trigger (the start of the next tick) must not land before the
-// previous conversion is done, or it restarts that conversion and the output freezes.
-// Covers tick-to-tick scheduling jitter and the duration of the trigger write itself.
+// The next trigger (the start of the next tick) must not land before the previous conversion
+// is done, or it restarts that conversion and the output freezes. Covers tick-to-tick
+// scheduling jitter and the duration of the trigger write itself.
 static constexpr hrt_abstime TRIGGER_MARGIN_US = 500;
-// Nominal sample interval, stretched if the ADC setup needs longer per sample.
-static constexpr uint32_t SAMPLE_INTERVAL_US = 100'000;
 
 // Recovery / robustness timing
 static constexpr hrt_abstime INIT_RETRY_INTERVAL_US = 500_ms;
@@ -105,14 +98,72 @@ enum CONFIG_BIT : uint16_t {
 
 // ADC_CONFIG register fields
 static constexpr uint16_t MODE_SHIFT = 12;
-static constexpr uint16_t MODE_CONTINUOUS = 0x8; // MODE bit 3: 1 = continuous, 0 = triggered
-static constexpr uint16_t MODE_BUS = 0x1; // MODE bit 0: bus voltage enabled
-static constexpr uint16_t MODE_SHUNT = 0x2; // MODE bit 1: shunt voltage enabled
-static constexpr uint16_t MODE_TEMP = 0x4; // MODE bit 2: temperature enabled
+static constexpr uint16_t MODE_TRIGGERED_ALL = 0x7; // triggered bus voltage, shunt voltage and temperature
 static constexpr uint16_t VBUSCT_SHIFT = 9;
 static constexpr uint16_t VSHCT_SHIFT = 6;
 static constexpr uint16_t VTCT_SHIFT = 3;
 static constexpr uint16_t AVG_SHIFT = 0;
+
+// Index into CONVERSION_TIME_US / AVERAGES
+enum ConversionTime : uint16_t { CT_50US, CT_84US, CT_150US, CT_280US, CT_540US, CT_1052US, CT_2074US, CT_4120US };
+enum Averages : uint16_t { AVG_1, AVG_4, AVG_16, AVG_64, AVG_128, AVG_256, AVG_512, AVG_1024 };
+
+static constexpr uint16_t adcConfig(ConversionTime bus_and_shunt_ct, Averages avg)
+{
+	// Temperature uses the shortest conversion time: it only adds to the sample time.
+	return static_cast<uint16_t>((MODE_TRIGGERED_ALL << MODE_SHIFT) | (bus_and_shunt_ct << VBUSCT_SHIFT)
+				     | (bus_and_shunt_ct << VSHCT_SHIFT) | (CT_50US << VTCT_SHIFT) | (avg << AVG_SHIFT));
+}
+
+// Nominal time for one averaged sample: the enabled channels are converted in sequence and
+// the sequence is repeated AVG times (datasheet §7.3.4).
+static constexpr uint32_t conversionTimeUs(uint16_t adc_config)
+{
+	return AVERAGES[(adc_config >> AVG_SHIFT) & 0x7] * (CONVERSION_TIME_US[(adc_config >> VBUSCT_SHIFT) & 0x7]
+			+ CONVERSION_TIME_US[(adc_config >> VSHCT_SHIFT) & 0x7]
+			+ CONVERSION_TIME_US[(adc_config >> VTCT_SHIFT) & 0x7]);
+}
+
+// Worst case with the internal oscillator running 1 % slow.
+static constexpr uint32_t conversionTimeMaxUs(uint16_t adc_config)
+{
+	return (conversionTimeUs(adc_config) * 101 + 99) / 100;
+}
+
+// INA228_RATE options. Bus voltage and current always get the same conversion time (at least
+// 540 us), and each rate uses the longest integration time (conversion time x averaging) whose
+// conversion still fits in one sample interval.
+struct RatePreset {
+	uint8_t rate_hz;
+	uint16_t adc_config;
+};
+
+static constexpr RatePreset RATE_PRESETS[] = {
+	{10, adcConfig(CT_540US, AVG_64)}, // 72.32 ms per sample, same bus/shunt integration time as the old default
+	{20, adcConfig(CT_1052US, AVG_16)}, // 34.46 ms
+	{50, adcConfig(CT_540US, AVG_16)}, // 18.08 ms
+	{100, adcConfig(CT_1052US, AVG_4)}, // 8.62 ms
+};
+
+static constexpr uint8_t DEFAULT_RATE_HZ = 10;
+
+static constexpr bool presetFits(const RatePreset &p)
+{
+	return conversionTimeMaxUs(p.adc_config) + WAKEUP_TIME_US + TRIGGER_MARGIN_US <= 1'000'000u / p.rate_hz;
+}
+
+static constexpr bool allPresetsFit()
+{
+	for (const RatePreset &p : RATE_PRESETS) {
+		if (!presetFits(p)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static_assert(allPresetsFit(), "INA228 conversion does not fit in the sample interval");
 
 // DEVICE_ID register field accessor
 static constexpr uint16_t DEVICE_ID_MASK = 0xfff0u;
@@ -146,16 +197,13 @@ private:
 		MEASURE, // steady-state: (trigger,) read VS_BUS / CURRENT / DIETEMP, publish, repeat
 	};
 
-	// Sampling setup derived from INA228_CONFIG. Computed before the Battery member is
+	// Sampling setup derived from INA228_RATE. Computed before the Battery member is
 	// constructed, because Battery needs the sample interval.
 	struct Timing {
 		uint16_t adc_config;
-		bool triggered;
-		bool temperature_enabled;
 		uint32_t conversion_us; // nominal time for one averaged output sample
 		uint32_t conversion_max_us; // conversion_us with the oscillator running slow
-		uint32_t min_interval_us; // shortest interval this ADC_CONFIG supports
-		uint32_t interval_us; // effective sample interval
+		uint32_t interval_us; // sample interval
 	};
 
 	static Timing computeTiming();
@@ -183,7 +231,7 @@ private:
 
 	uint8_t _next_reg_to_check{0};
 	hrt_abstime _last_config_check{0};
-	uint16_t _last_readback[3] {}; // CONFIG, SHUNT_CAL, ADCCONFIG
+	uint16_t _last_readback[2] {}; // CONFIG, SHUNT_CAL
 	hrt_abstime _trigger_time{0}; // when the last triggered conversion was started
 
 	// Configuration computed from params
