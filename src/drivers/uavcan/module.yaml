@@ -146,6 +146,7 @@ actuator_output:
           label: "Signed Cmd\n(non-motor)"
           index_offset: -1
           show_as: bitset
+          advanced: true
       num_channels: 12
     - param_prefix: UAVCAN_SV
       group_label: 'Servos'

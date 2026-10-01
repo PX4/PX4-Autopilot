@@ -82,6 +82,7 @@ bool GZMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned 
 		// Encode armed outputs only; a stopped channel sits at the disarmed value and must
 		// not be inverted to full reverse.
 		if ((_signed_mask & (1u << i)) && !_mixing_output.isMotor(i)
+		    && !_mixing_output.armed().termination
 		    && outputs[i] > (float)_mixing_output.disarmedValue(i)) {
 			const float min_i = (float)_mixing_output.minValue(i);
 			const float max_i = (float)_mixing_output.maxValue(i);

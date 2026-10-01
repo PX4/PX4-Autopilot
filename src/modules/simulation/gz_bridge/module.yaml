@@ -24,6 +24,7 @@ actuator_output:
           label: "Signed Cmd\n(non-motor)"
           index_offset: -1
           show_as: bitset
+          advanced: true
       num_channels: *max_num_motors
     - param_prefix: SIM_GZ_SV
       group_label: 'Servos'

@@ -1204,18 +1204,13 @@ bool UavcanMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsig
 		// would need.
 		uint32_t reversible = mixingOutput().reversibleOutputs();
 
-		// UAVCAN_EC_SIGNED bits on motor channels are ignored: a unidirectional motor arrives remapped to
-		// [-1, 1], so a signed encoding would command full reverse at zero thrust.
-		for (unsigned i = 0; i < output_array_size; i++) {
-			if ((_signed_mask & (1u << i)) && mixingOutput().isFunctionSet(i) && !mixingOutput().isMotor(i)) {
-				reversible |= (1u << i);
-			}
-		}
+		reversible |= _signed_non_motor_mask;
 
 		for (unsigned i = 0; i < output_array_size; i++) {
-			// Encode armed outputs only; a stopped channel sits at the disarmed value and must
-			// not be inverted to full reverse (the disarmed < min invariant is not guaranteed).
-			if ((reversible & (1u << i)) && outputs[i] > (float)mixingOutput().disarmedValue(i)) {
+			// Preserve configured failsafe values for signed non-motor channels during termination.
+			if ((reversible & (1u << i))
+			    && (!mixingOutput().armed().termination || !(_signed_non_motor_mask & (1u << i)))
+			    && outputs[i] > (float)mixingOutput().disarmedValue(i)) {
 				const float min_i = (float)mixingOutput().minValue(i);
 				const float max_i = (float)mixingOutput().maxValue(i);
 				outputs[i] = math::interpolate(outputs[i], min_i, max_i, -max_i, max_i);
@@ -1239,6 +1234,7 @@ void UavcanMixingInterfaceESC::Run()
 void UavcanMixingInterfaceESC::mixerChanged()
 {
 	int rotor_count = 0;
+	_signed_non_motor_mask = 0;
 
 	for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
 		rotor_count += _mixing_output.isFunctionSet(i);
@@ -1249,6 +1245,9 @@ void UavcanMixingInterfaceESC::mixerChanged()
 
 		if ((_signed_mask & (1u << i)) && _mixing_output.isMotor(i)) {
 			PX4_WARN("UAVCAN_EC_SIGNED bit %u ignored: ESC %u is a motor, use CA_R_REV", i, i + 1);
+
+		} else if ((_signed_mask & (1u << i)) && _mixing_output.isFunctionSet(i)) {
+			_signed_non_motor_mask |= (1u << i);
 		}
 	}
 

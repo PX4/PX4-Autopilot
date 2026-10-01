@@ -153,6 +153,7 @@ private:
 	UavcanEscController &_esc_controller;
 	MixingOutput _mixing_output{"UAVCAN_EC", UavcanEscController::MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uint32_t _signed_mask{0};
+	uint32_t _signed_non_motor_mask{0};
 };
 
 /**
