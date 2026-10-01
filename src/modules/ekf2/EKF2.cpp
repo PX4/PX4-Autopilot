@@ -49,38 +49,6 @@ static px4::atomic<EKF2Selector *> _ekf2_selector {nullptr};
 #endif // CONFIG_EKF2_MULTI_INSTANCE
 
 #if defined(CONFIG_EKF2_GNSS)
-// estimator_status reports the failed GNSS checks in its own bit order, which commander and the logs read
-static uint16_t toEstimatorStatusCheckFlags(uint16_t failed_checks)
-{
-	static constexpr struct {
-		uint16_t check;
-		uint8_t bit;
-	} kCheckBits[] {
-		{vehicle_gnss_s::CHECK_FIX,     estimator_status_s::GPS_CHECK_FAIL_GPS_FIX},
-		{vehicle_gnss_s::CHECK_NSATS,   estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT},
-		{vehicle_gnss_s::CHECK_PDOP,    estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP},
-		{vehicle_gnss_s::CHECK_EPH,     estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR},
-		{vehicle_gnss_s::CHECK_EPV,     estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR},
-		{vehicle_gnss_s::CHECK_SACC,    estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR},
-		{vehicle_gnss_s::CHECK_HDRIFT,  estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT},
-		{vehicle_gnss_s::CHECK_VDRIFT,  estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT},
-		{vehicle_gnss_s::CHECK_HSPEED,  estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR},
-		{vehicle_gnss_s::CHECK_VSPEED,  estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR},
-		{vehicle_gnss_s::CHECK_SPOOFED, estimator_status_s::GPS_CHECK_FAIL_SPOOFED},
-		{vehicle_gnss_s::CHECK_JAMMED,  estimator_status_s::GPS_CHECK_FAIL_JAMMED},
-	};
-
-	uint16_t flags = 0;
-
-	for (const auto &check_bit : kCheckBits) {
-		if (failed_checks & check_bit.check) {
-			flags |= 1u << check_bit.bit;
-		}
-	}
-
-	return flags;
-}
-
 static_assert(static_cast<uint8_t>(GnssFusionState::Fused) == estimator_status_flags_s::GNSS_FUSION_FUSED);
 static_assert(static_cast<uint8_t>(GnssFusionState::NoData) == estimator_status_flags_s::GNSS_FUSION_NO_DATA);
 static_assert(static_cast<uint8_t>(GnssFusionState::Unusable) == estimator_status_flags_s::GNSS_FUSION_UNUSABLE);
@@ -1941,16 +1909,6 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
 
-#if defined(CONFIG_EKF2_GNSS)
-
-	// Only while GNSS fusion is enabled, as when EKF2 ran the checks itself: commander turns a failure into a pre-arm
-	// failure, and a receiver EKF2 ignores must not cause one
-	if (_param_ekf2_gps_ctrl.get() != 0) {
-		status.gps_check_fail_flags = toEstimatorStatusCheckFlags(_gnss_failed_checks);
-	}
-
-#endif // CONFIG_EKF2_GNSS
-
 	status.control_mode_flags = _ekf.control_status().value;
 	status.filter_fault_flags = _ekf.fault_status().value;
 
@@ -2638,7 +2596,6 @@ void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 
 	if (_vehicle_gnss_sub.update(&vehicle_gnss)) {
 
-		_gnss_failed_checks = vehicle_gnss.failed_checks;
 
 		Vector3f vel_ned;
 

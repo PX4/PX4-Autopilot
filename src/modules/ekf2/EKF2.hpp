@@ -504,8 +504,6 @@ private:
 
 	float _last_gnss_hgt_bias_published{};
 
-	uint16_t _gnss_failed_checks{0}; ///< failed_checks of the latest vehicle_gnss sample
-
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
 	uORB::PublicationMulti<estimator_bias_s> _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
