@@ -36,6 +36,7 @@
 #include <mavsdk/mavsdk.h>
 #include <mavsdk/plugins/events/events.h>
 #include <mavsdk/plugins/failure/failure.h>
+#include <mavsdk/plugins/log_files/log_files.h>
 #include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
 #include <mavsdk/plugins/param/param.h>
 #include <mavsdk/plugins/telemetry/telemetry.h>
@@ -161,6 +162,9 @@ public:
 	// Modes the vehicle was in during [since_us, now]
 	std::vector<mavsdk::Telemetry::FlightMode> modes_since(int64_t since_us) const;
 
+	// Downloads the newest log on the vehicle, false on failure or after timeout_s of host time
+	bool download_last_log(const std::string &path, double timeout_s);
+
 	// Every injection, acknowledgement and observed change, one CSV line each: wall time, vehicle time, what
 	void set_record(std::ostream *record) { _record = record; }
 	void record(const std::string &what);
@@ -180,6 +184,7 @@ private:
 	std::unique_ptr<mavsdk::Telemetry> _telemetry;
 	std::unique_ptr<mavsdk::MavlinkPassthrough> _passthrough;
 	std::unique_ptr<mavsdk::Events> _events;
+	std::unique_ptr<mavsdk::LogFiles> _log_files;
 
 	mavsdk::MavlinkPassthrough::MessageHandle _odometry_handle{};
 	mavsdk::MavlinkPassthrough::MessageHandle _gps_raw_int_handle{};

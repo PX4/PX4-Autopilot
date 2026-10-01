@@ -35,6 +35,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <future>
 #include <sstream>
 #include <thread>
 
@@ -115,7 +116,8 @@ GnssFailover::GnssFailover(std::shared_ptr<System> system, bool subscribe_events
 	_failure(new Failure(system)),
 	_param(new Param(system)),
 	_telemetry(new Telemetry(system)),
-	_passthrough(new MavlinkPassthrough(system))
+	_passthrough(new MavlinkPassthrough(system)),
+	_log_files(new LogFiles(system))
 {
 	_odometry_handle = _passthrough->subscribe_message(MAVLINK_MSG_ID_ODOMETRY, [this](const mavlink_message_t &message) {
 		handle_odometry(message);
@@ -596,6 +598,43 @@ std::vector<Telemetry::FlightMode> GnssFailover::modes_since(int64_t since_us) c
 	}
 
 	return modes;
+}
+
+bool GnssFailover::download_last_log(const std::string &path, double timeout_s)
+{
+	const std::pair<LogFiles::Result, std::vector<LogFiles::Entry>> entries = _log_files->get_entries();
+
+	if (entries.first != LogFiles::Result::Success || entries.second.empty()) {
+		record("log download: no log entries");
+		return false;
+	}
+
+	// Log IDs follow the logs' order, so the highest is the newest
+	LogFiles::Entry newest = entries.second.front();
+
+	for (const LogFiles::Entry &entry : entries.second) {
+		if (entry.id > newest.id) {
+			newest = entry;
+		}
+	}
+
+	auto promise = std::make_shared<std::promise<LogFiles::Result>>();
+	auto done = std::make_shared<std::atomic<bool>>(false);
+	std::future<LogFiles::Result> future = promise->get_future();
+
+	_log_files->download_log_file_async(newest, path, [promise, done](LogFiles::Result result, LogFiles::ProgressData) {
+		if (result != LogFiles::Result::Next && !done->exchange(true)) {
+			promise->set_value(result);
+		}
+	});
+
+	const bool finished = future.wait_for(std::chrono::duration<double>(timeout_s)) == std::future_status::ready;
+	const LogFiles::Result result = finished ? future.get() : LogFiles::Result::Timeout;
+
+	std::ostringstream text;
+	text << "log download of " << newest.date << " (" << newest.size_bytes << " bytes): " << result;
+	record(text.str());
+	return result == LogFiles::Result::Success;
 }
 
 void GnssFailover::record(const std::string &what)
