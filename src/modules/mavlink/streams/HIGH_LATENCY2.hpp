@@ -43,6 +43,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/fixed_wing_lateral_guidance_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/position_controller_status.h>
@@ -336,6 +337,15 @@ private:
 		if (_pos_ctrl_status_sub.update(&pos_ctrl_status)) {
 			uint16_t target_distance;
 			convert_limit_safe(pos_ctrl_status.wp_dist * 0.1f, target_distance);
+			msg->target_distance = target_distance;
+			return true;
+		}
+
+		fixed_wing_lateral_guidance_status_s fw_lateral_guidance_status;
+
+		if (_fw_lateral_guidance_status_sub.update(&fw_lateral_guidance_status)) {
+			uint16_t target_distance;
+			convert_limit_safe(fw_lateral_guidance_status.wp_dist * 0.1f, target_distance);
 			msg->target_distance = target_distance;
 			return true;
 		}
@@ -672,6 +682,7 @@ private:
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription _pos_ctrl_status_sub{ORB_ID(position_controller_status)};
+	uORB::Subscription _fw_lateral_guidance_status_sub{ORB_ID(fixed_wing_lateral_guidance_status)};
 	uORB::Subscription _geofence_sub{ORB_ID(geofence_result)};
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
