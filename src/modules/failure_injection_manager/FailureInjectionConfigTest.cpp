@@ -447,6 +447,119 @@ TEST(FailureInjectionConfig, ProcessGnssRecoveryUsesLiveSample)
 	EXPECT_DOUBLE_EQ(recovered.latitude, 48.0);
 }
 
+TEST(FailureInjectionConfig, ProcessGnssWrongOverridesQualityFields)
+{
+	param_control_autosave(false);
+
+	const int32_t unchanged = 0;
+	const float eph = 60.f;
+	const float epv = 70.f;
+	const float speed_accuracy = 12.f;
+	const int32_t satellites = 3;
+	const int32_t spoofing = sensor_gnss_s::SPOOFING_STATE_DETECTED;
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &unchanged), 0);
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_EPH"), &eph), 0);
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_EPV"), &epv), 0);
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_SAC"), &speed_accuracy), 0);
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_SAT"), &satellites), 0);
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_SPF"), &spoofing), 0);
+
+	Config config;
+	config.set(make_config(GPS, 0x1, WRONG));
+
+	Stuck<sensor_gnss_s> stuck;
+	const sensor_gnss_s truth = clean_gnss();
+	sensor_gnss_s gnss = truth;
+
+	EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
+
+	EXPECT_EQ(gnss.fix_type, truth.fix_type);
+	EXPECT_FLOAT_EQ(gnss.eph, eph);
+	EXPECT_FLOAT_EQ(gnss.epv, epv);
+	EXPECT_FLOAT_EQ(gnss.speed_accuracy, speed_accuracy);
+	EXPECT_EQ(gnss.satellites_used, satellites);
+	EXPECT_EQ(gnss.spoofing_state, sensor_gnss_s::SPOOFING_STATE_DETECTED);
+	EXPECT_EQ(gnss.jamming_state, truth.jamming_state);
+	EXPECT_DOUBLE_EQ(gnss.latitude, truth.latitude);
+	EXPECT_DOUBLE_EQ(gnss.longitude, truth.longitude);
+
+	for (const char *name : {"SYS_FAIL_GPS_WRG", "SYS_FAIL_GPS_EPH", "SYS_FAIL_GPS_EPV", "SYS_FAIL_GPS_SAC", "SYS_FAIL_GPS_SAT", "SYS_FAIL_GPS_SPF"}) {
+		param_reset(param_find(name));
+	}
+}
+
+TEST(FailureInjectionConfig, ProcessGnssWrongDefaultsLeaveQualityFields)
+{
+	param_control_autosave(false);
+
+	for (const char *name : {"SYS_FAIL_GPS_WRG", "SYS_FAIL_GPS_EPH", "SYS_FAIL_GPS_EPV", "SYS_FAIL_GPS_SAC", "SYS_FAIL_GPS_SAT", "SYS_FAIL_GPS_JAM", "SYS_FAIL_GPS_SPF"}) {
+		param_reset(param_find(name));
+	}
+
+	Config config;
+	config.set(make_config(GPS, 0x1, WRONG));
+
+	Stuck<sensor_gnss_s> stuck;
+	const sensor_gnss_s truth = clean_gnss();
+	sensor_gnss_s gnss = truth;
+
+	EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
+
+	// Only the default 2D fix is injected
+	EXPECT_EQ(gnss.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_2D);
+	EXPECT_FLOAT_EQ(gnss.eph, truth.eph);
+	EXPECT_FLOAT_EQ(gnss.epv, truth.epv);
+	EXPECT_FLOAT_EQ(gnss.speed_accuracy, truth.speed_accuracy);
+	EXPECT_EQ(gnss.satellites_used, truth.satellites_used);
+	EXPECT_EQ(gnss.jamming_state, truth.jamming_state);
+	EXPECT_EQ(gnss.spoofing_state, truth.spoofing_state);
+}
+
+TEST(FailureInjectionConfig, ProcessGnssSlowPassesOneSampleInN)
+{
+	param_control_autosave(false);
+
+	const int32_t divider = 3;
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_DIV"), &divider), 0);
+
+	Config config;
+	config.set(make_config(GPS, 0x1, failure_injection_s::FAILURE_TYPE_SLOW));
+
+	Stuck<sensor_gnss_s> stuck;
+	int passed = 0;
+
+	for (int i = 0; i < 9; i++) {
+		sensor_gnss_s gnss = clean_gnss();
+		const bool pass = process_gnss(config, 0, gnss, stuck);
+
+		// The first sample passes, so the rate drops as soon as the injection starts
+		EXPECT_EQ(pass, (i % divider) == 0) << "sample " << i;
+		passed += pass ? 1 : 0;
+	}
+
+	EXPECT_EQ(passed, 3);
+
+	// The other receiver keeps its rate
+	Stuck<sensor_gnss_s> stuck_1;
+
+	for (int i = 0; i < 3; i++) {
+		sensor_gnss_s gnss = clean_gnss();
+		EXPECT_TRUE(process_gnss(config, 1, gnss, stuck_1));
+	}
+
+	// Clearing the injection restores every sample, and a new injection starts with a passing sample
+	config.set(failure_injection_s{});
+	sensor_gnss_s gnss = clean_gnss();
+	EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
+	EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
+
+	config.set(make_config(GPS, 0x1, failure_injection_s::FAILURE_TYPE_SLOW));
+	EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
+	EXPECT_FALSE(process_gnss(config, 0, gnss, stuck));
+
+	param_reset(param_find("SYS_FAIL_GPS_DIV"));
+}
+
 // ===========================================================================
 // process_esc(): ESC Off / Wrong on the multi-instance esc_status
 // ===========================================================================
