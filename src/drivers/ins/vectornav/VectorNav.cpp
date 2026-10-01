@@ -711,7 +711,6 @@ void VectorNav::Run()
 		if (!_connected) {
 			if (init()) {
 				_connected = true;
-
 			}
 		}
 
