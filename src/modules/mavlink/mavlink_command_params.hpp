@@ -110,6 +110,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  400, 0x03, 0x03 }, // COMPONENT_ARM_DISARM:        p1:arm,p2:force
 	{  420, 0x0F, 0x0F }, // INJECT_FAILURE:              p1:unit,p2:type,p3:instance,p4:instance bitmask
 	{  530, 0x03, 0x03 }, // SET_CAMERA_MODE:             p1:camera_id,p2:mode
+	{  531, 0x07, 0x07 }, // SET_CAMERA_ZOOM:             p1:zoom_type,p2:value,p3:camera_id
 	{  532, 0x07, 0x07 }, // SET_CAMERA_FOCUS:            p1:focus_type,p2:value,p3:camera_id
 	{  534, 0x07, 0x07 }, // SET_CAMERA_SOURCE:           p1:camera_id,p2:primary,p3:secondary
 	{  611, 0x00, 0x70 }, // DO_SET_GLOBAL_ORIGIN:        cmd:p5-7:lat/lon/alt (not a mission item)
