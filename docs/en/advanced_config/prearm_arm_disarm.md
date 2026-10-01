@@ -92,13 +92,13 @@ The feature is configured using the following timeouts.
 | <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Time-out for auto disarm if too slow to takeoff. Default: 10s (-1 to disable). |
 
 By default, the vehicle keeps safety off after disarming.
-If [COM_FORCE_SAFETY](#COM_FORCE_SAFETY) is set to `1`, safety is re-enabled on disarm, so it must be turned off again (by switch or MAVLink command, depending on `COM_SAFETY_MODE`) before the next arming.
+If [COM_FORCE_SAFETY](#COM_FORCE_SAFETY) is set to `1`, safety is re-enabled on disarm, so it must be turned off again (by switch or MAVLink command, depending on [COM_SAFETY_MODE](#COM_SAFETY_MODE)) before the next arming.
 In modes that pre-arm when safety is turned off, this also exits the pre-armed state.
-This has no effect when `COM_SAFETY_MODE` is set to `0`.
+This parameter has no effect when `COM_SAFETY_MODE` is set to `0`.
 
 | Parameter                                                                                                   | Description                                                                    |
 | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| <a id="COM_FORCE_SAFETY"></a>[COM_FORCE_SAFETY](../advanced_config/parameter_reference.md#COM_FORCE_SAFETY) | Force safety when the vehicle disarms. Default: `0` (Disabled).                |
+| <a id="COM_FORCE_SAFETY"></a>[COM_FORCE_SAFETY](../advanced_config/parameter_reference.md#COM_FORCE_SAFETY) | Re-enable safety when the vehicle disarms. Default: `0` (Disabled).                |
 
 ## Auto-Arming on Boot
 
