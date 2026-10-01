@@ -178,6 +178,7 @@ private:
 		uint16_t	stream_seq_number;
 		uint8_t		stream_target_system_id;
 		uint8_t         stream_target_component_id;
+		uint8_t		stream_chunk_size;	///< Bytes per burst packet; 0 means kMaxDataLength
 		unsigned	stream_chunk_transmitted;
 		ParamPckFile	param;			///< virtual parameter file, open instead of fd
 	};

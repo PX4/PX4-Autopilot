@@ -690,13 +690,17 @@ MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t
 	}
 
 	PX4_DEBUG("FTP: burst offset:%" PRIu32, payload->offset);
-	// Setup for streaming sends
+	// Setup for streaming sends. size is the requested burst payload length.
+	// 0 means "full payload" (same as ArduPilot); never exceed kMaxDataLength.
 	_session_info.stream_download = true;
 	_session_info.stream_offset = payload->offset;
 	_session_info.stream_chunk_transmitted = 0;
 	_session_info.stream_seq_number = payload->seq_number + 1;
 	_session_info.stream_target_system_id = target_system_id;
 	_session_info.stream_target_component_id = target_component_id;
+	_session_info.stream_chunk_size = (payload->size == 0 || payload->size > kMaxDataLength)
+					  ? kMaxDataLength
+					  : payload->size;
 
 	return kErrNone;
 }
@@ -1163,7 +1167,10 @@ void MavlinkFTP::send()
 
 		PX4_DEBUG("stream send: offset %" PRIu32, _session_info.stream_offset);
 
-		const int bytes_read = _read_session(payload->offset, &payload->data[0], kMaxDataLength);
+		const uint8_t chunk = _session_info.stream_chunk_size == 0
+				      ? kMaxDataLength
+				      : _session_info.stream_chunk_size;
+		const int bytes_read = _read_session(payload->offset, &payload->data[0], chunk);
 
 		if (bytes_read < 0) {
 			error_code = kErrFailErrno;
