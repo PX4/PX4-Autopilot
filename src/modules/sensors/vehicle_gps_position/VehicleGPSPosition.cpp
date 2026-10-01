@@ -319,7 +319,7 @@ void VehicleGPSPosition::UpdateGnssHeading()
 		}
 
 		sample.device_id = gnss_rel.device_id;
-		sample.heading = gnss_rel.heading_valid ? gnss_rel.heading : NAN;
+		sample.heading = (gnss_rel.heading_valid && !movingBaseSilent(slot)) ? gnss_rel.heading : NAN;
 		sample.heading_accuracy = gnss_rel.heading_accuracy;
 		sample.baseline_length = gnss_rel.position_length;
 		sample.baseline_down = gnss_rel.position[2];
@@ -588,6 +588,25 @@ const VehicleGPSPosition::GpsParamSlot *VehicleGPSPosition::findParamSlot(uint32
 }
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+bool VehicleGPSPosition::movingBaseSilent(const GpsParamSlot *slot) const
+{
+	// A moving base rover measures its heading against the moving base, so a moving base that stopped publishing takes
+	// the heading with it. One that never published may be wired to the rover only, and isn't held against it. With two
+	// slots, a slot other than the moving base's is the rover's.
+	if ((_moving_base_slot < 0) || (slot == nullptr) || (slot == &_gnss_param_slots[_moving_base_slot])) {
+		return false;
+	}
+
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if ((_latest_sample[i].timestamp != 0)
+		    && (findParamSlot(_latest_sample[i].device_id, i) == &_gnss_param_slots[_moving_base_slot])) {
+			return hrt_absolute_time() >= _latest_sample[i].timestamp + GnssSelector::GNSS_TIMEOUT_US;
+		}
+	}
+
+	return false;
+}
+
 int VehicleGPSPosition::findGnssInstance(uint32_t device_id) const
 {
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
