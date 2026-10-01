@@ -346,6 +346,8 @@ TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const Alt
 	// Calculate specific energy rate demands in units of (m**2/sec**3)
 	specific_energy_rates.spe_rate.setpoint = control_setpoint.altitude_rate_setpoint *
 			CONSTANTS_ONE_G; // potential energy rate of change
+
+	// d/dt(0.5 V^2) = V * dV/dt: use measured TAS, not the TAS setpoint, to keep the airspeed loop linear
 	specific_energy_rates.ske_rate.setpoint = input.tas *
 			control_setpoint.tas_rate_setpoint; // kinetic energy rate of change
 
