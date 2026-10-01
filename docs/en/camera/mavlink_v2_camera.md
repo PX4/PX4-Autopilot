@@ -67,8 +67,7 @@ The first four commands are addressed to [MAV_COMP_ID_CAMERA (100)](https://mavl
 The camera mode, zoom, and focus, commands are sent to a component with id of [MAV_COMP_ID_ALL](https://mavlink.io/en/messages/common.html#MAV_COMP_ID_ALL).
 
 :::info
-PX4 currently ignores the target camera `id` in [MAV_CMD_IMAGE_START_CAPTURE](https://mavlink.io/en/messages/common.html#MAV_CMD_IMAGE_START_CAPTURE) and other camera messages.
-See [PX4-Autopilot#23083](https://github.com/PX4/PX4-Autopilot/issues/23083).
+PX4 v1.16 and later respect the target camera `id` in [MAV_CMD_IMAGE_START_CAPTURE](https://mavlink.io/en/messages/common.html#MAV_CMD_IMAGE_START_CAPTURE), `MAV_CMD_IMAGE_STOP_CAPTURE`, and `MAV_CMD_SET_CAMERA_SOURCE` in missions (falling back to a component ID of 100 if it is not set).
 :::
 
 <!--
