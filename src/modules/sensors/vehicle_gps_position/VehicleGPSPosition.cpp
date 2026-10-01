@@ -221,7 +221,7 @@ void VehicleGPSPosition::Run()
 				_first_publication[i] = ++_receivers_published;
 			}
 
-			_gnss_selector.setGnssData(gnss_data, checks_passed, i);
+			_gnss_selector.setGnssData(gnss_data, checks_passed, _gnss_checks[i].meetsRequirements(), i);
 
 			if (!_sensor_gnss_sub[i].registered()) {
 				_sensor_gnss_sub[i].registerCallback();

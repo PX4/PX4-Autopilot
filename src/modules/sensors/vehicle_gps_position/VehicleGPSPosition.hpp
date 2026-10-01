@@ -174,8 +174,8 @@ private:
 	uint8_t _first_publication[GPS_MAX_RECEIVERS] {}; ///< 1 for the first receiver to publish, 2 for the next, 0 before
 	uint8_t _receivers_published{0};
 
-	// The checks run the strict thresholds while disarmed on the ground and the drift checks only at rest; while armed,
-	// the selection holds a return to the preferred receiver longer
+	// The checks run the strict thresholds while disarmed on the ground and the drift checks only at rest; while
+	// disarmed, the selection stays on the preferred receiver
 	bool _armed{false};
 	bool _in_air{false};
 	bool _at_rest{false};

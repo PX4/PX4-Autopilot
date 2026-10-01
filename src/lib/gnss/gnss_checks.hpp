@@ -83,6 +83,11 @@ public:
 	// The last run applied the strict thresholds: never passed yet, or disarmed on the ground
 	bool strict() const { return _strict; }
 
+	// The last sample is within the strict fix type, eph, epv and speed accuracy thresholds enabled in the check mask,
+	// whichever thresholds the run applied. In flight the checks relax, but a receiver that still meets these is the
+	// better one to navigate on. Satellite count, PDOP and drift aren't evaluated in flight.
+	bool meetsRequirements() const { return _meets_requirements; }
+
 	// Failed checks, as vehicle_gnss_s::CHECK_* bits
 	uint16_t getFailFlags() const { return _fail_flags; }
 
@@ -151,6 +156,7 @@ private:
 	bool _initial_checks_passed{false};
 	bool _strict{true};
 	bool _passed{false};
+	bool _meets_requirements{false};
 
 	Params _params{};
 };
