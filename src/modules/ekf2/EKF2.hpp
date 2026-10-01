@@ -461,6 +461,7 @@ private:
 
 	uint64_t _filter_control_status{0};
 	uint32_t _filter_fault_status{0};
+	uint8_t _gnss_fusion_state{estimator_status_flags_s::GNSS_FUSION_INACTIVE};
 
 	uint32_t _filter_control_status_changes{0};
 	uint32_t _filter_fault_status_changes{0};

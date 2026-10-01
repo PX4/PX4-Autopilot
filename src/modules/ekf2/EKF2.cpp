@@ -80,6 +80,13 @@ static uint16_t toEstimatorStatusCheckFlags(uint16_t failed_checks)
 
 	return flags;
 }
+
+static_assert(static_cast<uint8_t>(GnssFusionState::Fused) == estimator_status_flags_s::GNSS_FUSION_FUSED);
+static_assert(static_cast<uint8_t>(GnssFusionState::NoData) == estimator_status_flags_s::GNSS_FUSION_NO_DATA);
+static_assert(static_cast<uint8_t>(GnssFusionState::Unusable) == estimator_status_flags_s::GNSS_FUSION_UNUSABLE);
+static_assert(static_cast<uint8_t>(GnssFusionState::Rejected) == estimator_status_flags_s::GNSS_FUSION_REJECTED);
+static_assert(static_cast<uint8_t>(GnssFusionState::VelLimit) == estimator_status_flags_s::GNSS_FUSION_VEL_LIMIT);
+static_assert(static_cast<uint8_t>(GnssFusionState::Inactive) == estimator_status_flags_s::GNSS_FUSION_INACTIVE);
 #endif // CONFIG_EKF2_GNSS
 
 EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
@@ -2073,6 +2080,18 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		_filter_fault_status_changes++;
 	}
 
+#if defined(CONFIG_EKF2_GNSS)
+	const uint8_t gnss_fusion_state = static_cast<uint8_t>(_ekf.getGnssFusionState());
+#else
+	const uint8_t gnss_fusion_state = estimator_status_flags_s::GNSS_FUSION_INACTIVE;
+#endif // CONFIG_EKF2_GNSS
+
+	// Commander names the reason when the position goes, so a change can't wait for the next periodic update
+	if (gnss_fusion_state != _gnss_fusion_state) {
+		update = true;
+		_gnss_fusion_state = gnss_fusion_state;
+	}
+
 	if (update) {
 		estimator_status_flags_s status_flags{};
 		status_flags.timestamp_sample = _ekf.time_delayed_us();
@@ -2141,6 +2160,8 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.fs_bad_optflow_y         = _ekf.fault_status_flags().bad_optflow_Y;
 		status_flags.fs_bad_acc_vertical      = _ekf.fault_status_flags().bad_acc_vertical;
 		status_flags.fs_bad_acc_clipping      = _ekf.fault_status_flags().bad_acc_clipping;
+
+		status_flags.gnss_fusion_state = gnss_fusion_state;
 
 		status_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_status_flags_pub.publish(status_flags);

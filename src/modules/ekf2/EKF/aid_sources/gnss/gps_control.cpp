@@ -86,12 +86,15 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		const bool vel_within_limit = gnss_sample.vel.isAllFinite()
 					      && (gnss_sample.vel.abs().max() <= _params.ekf2_vel_lim);
 
-		if (gnss_sample.usable && vel_within_limit) {
+		_gnss_sample_accepted = gnss_sample.usable && vel_within_limit;
+
+		if (_gnss_sample_accepted) {
 			_time_last_gnss_sample_accepted_us = _time_delayed_us;
 
 		} else {
 			// Skip this sample
 			_gps_data_ready = false;
+			_gnss_fusion_state = gnss_sample.usable ? GnssFusionState::VelLimit : GnssFusionState::Unusable;
 
 			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos
 						|| _control_status.flags.gps_hgt;
@@ -334,6 +337,51 @@ bool Ekf::isGnssPosResetAllowed() const
 	}
 
 	return allowed;
+}
+
+void Ekf::updateGnssFusionState()
+{
+	const bool sample_accepted = _gnss_sample_accepted;
+	_gnss_sample_accepted = false;
+
+	if (!_fc.gps.intended()) {
+		_gnss_fusion_state = GnssFusionState::Inactive;
+
+	} else if (!isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL)) {
+		_gnss_fusion_state = GnssFusionState::NoData;
+
+	} else if (sample_accepted) {
+		_gnss_fusion_state = acceptedGnssSampleFusionState();
+	}
+
+	// Otherwise no sample reached the fusion time horizon, or controlGpsFusion() skipped it and set the state
+}
+
+GnssFusionState Ekf::acceptedGnssSampleFusionState() const
+{
+	// Navigation needs the horizontal observations, so the height counts only when nothing else is used
+	const bool hpos_enabled = _params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::HPOS);
+	const bool vel_enabled = _params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL);
+	const bool horizontal = hpos_enabled || vel_enabled;
+
+	const bool fused = horizontal ? (_aid_src_gnss_pos.fused || _aid_src_gnss_vel.fused) : _aid_src_gnss_hgt.fused;
+
+	if (fused) {
+		return GnssFusionState::Fused;
+	}
+
+	const bool aligned = !horizontal || (_control_status.flags.tilt_align && _control_status.flags.yaw_align);
+
+	if (!aligned || _control_status.flags.gnss_fault || _control_status.flags.gnss_hgt_fault) {
+		return GnssFusionState::Inactive;
+	}
+
+	const bool rejected = horizontal
+			      ? ((hpos_enabled && _aid_src_gnss_pos.innovation_rejected) || (vel_enabled && _aid_src_gnss_vel.innovation_rejected))
+			      : _aid_src_gnss_hgt.innovation_rejected;
+
+	// Not rejected: waiting for the restart hold-off, or the aid source can't start
+	return rejected ? GnssFusionState::Rejected : GnssFusionState::Inactive;
 }
 
 void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src)

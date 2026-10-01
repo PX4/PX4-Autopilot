@@ -68,3 +68,12 @@ bool fs_bad_optflow_x         #  7 - true if fusion of the optical flow X axis h
 bool fs_bad_optflow_y         #  8 - true if fusion of the optical flow Y axis has encountered a numerical error
 bool fs_bad_acc_vertical      # 10 - true if bad vertical accelerometer data has been detected
 bool fs_bad_acc_clipping      # 11 - true if delta velocity data contains clipping (asymmetric railing)
+
+# GNSS fusion
+uint8 gnss_fusion_state         # [@enum GNSS_FUSION] Why the latest GNSS sample was or was not fused. Horizontal position and velocity count, height only when it is the only GNSS observation in use
+uint8 GNSS_FUSION_FUSED     = 0 # Fused
+uint8 GNSS_FUSION_NO_DATA   = 1 # No recent sample
+uint8 GNSS_FUSION_UNUSABLE  = 2 # The sample is marked not usable
+uint8 GNSS_FUSION_REJECTED  = 3 # Innovation outside the gate
+uint8 GNSS_FUSION_VEL_LIMIT = 4 # Velocity above the limit of the velocity states
+uint8 GNSS_FUSION_INACTIVE  = 5 # Not in use: disabled, not aligned, waiting to restart, or GNSS declared faulty
