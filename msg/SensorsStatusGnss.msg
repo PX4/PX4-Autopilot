@@ -12,6 +12,7 @@ uint32[4] device_ids                 # [-] One entry per receiver, 0 where unuse
 int8[4] order                        # [-] Fixed position of the receiver: 0 for the preferred one, otherwise for the first to publish, then in order of first publication. Changes only with the preference, -1 until the receiver publishes
 bool[4] healthy                      # Publishing, and has passed its checks for long enough
 float32[4] availability              # [-] Fraction of recent time the receiver passed its checks and published at its usual rate, 0 to 1
+float32[4] inconsistency             # [m] [@invalid NaN] Absolute difference between the horizontal distance to the selected receiver's position at the time of its sample and the horizontal distance between their antennas. 0 for the selected receiver
 uint16[4] failed_checks              # [-] Bitmask of the enabled checks that failed, VehicleGnss CHECK_* bits
 bool[4] strict                       # The pre-flight thresholds apply rather than the relaxed in-flight ones
 float32[4] drift_rate_horizontal     # [m/s] Horizontal position drift rate at rest
