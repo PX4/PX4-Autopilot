@@ -8,32 +8,13 @@ parameters:
         SENS_GNSS_PRIME:
             description:
                 short: Multi GPS primary instance
-                long: |
-                    Preferred GPS receiver instance. To select a DroneCAN GPS, set this to the node ID.
-
-                    The preferred receiver is used whatever fix type or accuracy another
-                    receiver reports. The selection leaves it when it fails: no sample that
-                    passes its checks (GNSS_CHECK) and arrives at its usual rate for 2 seconds,
-                    or clearly fewer such samples recently than the other receiver. It returns
-                    to the preferred receiver once that one passes again, after 10 seconds
-                    while armed.
-
-                    Set to -1 for no preference. A receiver that fails is left the same way, and
-                    the selection also moves, after 5 seconds, to a receiver that reports at most
-                    half the horizontal position accuracy (eph) and no worse vertical accuracy
-                    (epv), below 5 cm counting as equal. If one slot is a moving base rover
-                    (SENS_GNSSn_HDG), the moving base is preferred instead.
-
-                    Every switch resets the EKF2 position to the new receiver.
-
-                    GPS_RAW_INT reports the preferred receiver, or without one the first receiver
-                    to publish, and GPS2_RAW the other one. Neither follows the selection.
+                long: "The primary receiver is used regardless of what the other receiver reports. If it fails its checks (GNSS_CHECK) or stops publishing, the other receiver is used until it recovers. With Auto, the moving base of a moving base pair (SENS_GNSSn_HDG) is the primary. Without a moving base pair, the receiver reporting clearly better accuracy is used. To make a DroneCAN receiver the primary, set its node ID (2 to 127). GPS_RAW_INT reports the primary receiver, or the first receiver to publish if there is no primary."
             type: int32
             default: -1
             min: -1
             max: 127
             values:
-                -1: Auto (equal priority)
+                -1: Auto
                 0: Main serial GPS
                 1: Secondary serial GPS
         SENS_GNSS${i}_ID:
