@@ -40,6 +40,8 @@
 
 #include "sensor.h"
 
+#include <lib/gnss/gnss_checks.hpp>
+
 namespace sensor_simulator
 {
 namespace sensor
@@ -51,6 +53,9 @@ public:
 	Gps(std::shared_ptr<Ekf> ekf);
 	~Gps();
 
+	// Sets both the health time of the checks (GNSS_REQ_TIME) and the EKF's waits (EKF2_REQ_GPS_H)
+	void setMinRequiredGnssHealthTime(uint64_t time_us);
+	void setCheckMask(int32_t check_mask);
 	void setData(const gnssSample &gps);
 	void stepHeightByMeters(const float hgt_change);
 	void stepHorizontalPositionByMeters(const Vector2f hpos_change);
@@ -73,6 +78,10 @@ private:
 
 	gnssSample _gps_data{};
 	Vector3f _gps_pos_rate{};
+
+	// The sensors module's checks, which set usable on every sample
+	GnssChecks _checks{};
+	GnssChecks::Params _check_params{};
 };
 
 } // namespace sensor

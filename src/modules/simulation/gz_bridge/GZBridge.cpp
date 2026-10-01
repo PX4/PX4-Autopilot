@@ -400,10 +400,33 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 
 	_px4_mag.set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
 
-	// FIXME: once we're on jetty or later
-	// The magnetometer plugin publishes in units of gauss and in a weird left handed coordinate system
-	// https://github.com/gazebosim/gz-sim/pull/2460
-	_px4_mag.update(timestamp, -msg.field_tesla().y(), -msg.field_tesla().x(), msg.field_tesla().z());
+	// The field is in tesla and in the sensor's FLU frame if the Magnetometer system is loaded with
+	// use_units_gauss=false and use_earth_frame_ned=false (server.config, gz-sim >= 8.6).
+	// Other setups (standalone gz, older gz-sim, worlds with their own systems) still get the legacy
+	// output: gauss, with the NED field components placed on the ENU world axes.
+	// Earth's field is 2.2e-5 to 6.7e-5 T (0.22 to 0.67 G), so a magnitude above 1e-2 can only be gauss.
+	const gz::math::Vector3d field(msg.field_tesla().x(), msg.field_tesla().y(), msg.field_tesla().z());
+
+	if (field.Length() > 1e-2) {
+		static bool legacy_warned = false;
+
+		if (!legacy_warned) {
+			PX4_WARN("gz magnetometer is in legacy mode (gauss, NED components on ENU axes), heading will be wrong. "
+				 "Set use_units_gauss and use_earth_frame_ned to false for the Magnetometer system");
+			legacy_warned = true;
+		}
+
+		_px4_mag.update(timestamp, -field.Y(), -field.X(), field.Z());
+		return;
+	}
+
+	// Rotate FLU to FRD like the IMU and convert tesla to gauss
+	static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
+	static constexpr double TESLA_TO_GAUSS = 1e4;
+
+	const gz::math::Vector3d field_frd = q_FLU_to_FRD.RotateVector(field) * TESLA_TO_GAUSS;
+
+	_px4_mag.update(timestamp, field_frd.X(), field_frd.Y(), field_frd.Z());
 }
 
 void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)

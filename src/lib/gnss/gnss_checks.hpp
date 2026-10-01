@@ -31,92 +31,74 @@
  *
  ****************************************************************************/
 
-#ifndef EKF_GNSS_CHECKS_H
-#define EKF_GNSS_CHECKS_H
+#ifndef GNSS_CHECKS_H
+#define GNSS_CHECKS_H
 
 #include <lib/geo/geo.h>
-#include <uORB/topics/estimator_status.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
+#include <uORB/topics/vehicle_gnss.h>
 
-#include "../../common.h"
+struct gnssChecksSample {
+	uint64_t time_us{};     ///< measurement time (us)
+	double lat{};           ///< latitude (deg)
+	double lon{};           ///< longitude (deg)
+	float alt{};            ///< altitude above MSL (m)
+	matrix::Vector3f vel{}; ///< NED velocity (m/s)
+	float hacc{};           ///< 1-std horizontal position error (m)
+	float vacc{};           ///< 1-std vertical position error (m)
+	float sacc{};           ///< 1-std speed error (m/s)
+	uint8_t fix_type{};     ///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: RTK float, 6: RTK fixed
+	uint8_t nsats{};        ///< number of satellites used
+	float pdop{};           ///< position dilution of precision
+	bool spoofed{};         ///< the receiver reports spoofing
+	bool jammed{};          ///< the receiver reports jamming
+};
 
-namespace estimator
-{
 class GnssChecks final
 {
 public:
-	GnssChecks(int32_t &check_mask, int32_t &ekf2_req_nsats, float &ekf2_req_pdop, float &ekf2_req_eph, float &ekf2_req_epv,
-		   float &ekf2_req_sacc, float &ekf2_req_hdrift, float &ekf2_req_vdrift, int32_t &ekf2_req_fix,
-		   uint32_t &min_health_time_us, filter_control_status_u &control_status):
-		_params{check_mask, ekf2_req_nsats, ekf2_req_pdop, ekf2_req_eph, ekf2_req_epv, ekf2_req_sacc, ekf2_req_hdrift, ekf2_req_vdrift, ekf2_req_fix, min_health_time_us},
-		_control_status(control_status)
-	{};
+	struct Params {
+		int32_t check_mask{2047};
+		int32_t req_nsats{6};
+		float req_pdop{2.5f};
+		float req_eph{3.f};
+		float req_epv{5.f};
+		float req_sacc{0.5f};
+		float req_hdrift{0.1f};
+		float req_vdrift{0.2f};
+		int32_t req_fix{3};
+		uint64_t min_health_time_us{10'000'000};
+	};
 
-	void resetHard()
-	{
-		_initial_checks_passed = false;
-		reset();
-	}
+	void setParams(const Params &params) { _params = params; }
 
 	/*
-	 * Return true if the GNSS solution quality is adequate.
+	 * Return true if the GNSS solution quality is adequate. The strict checks apply until the first pass and again
+	 * whenever the vehicle is disarmed on the ground; the drift checks run only at rest on the ground.
 	*/
-	bool run(const gnssSample &gnss, uint64_t time_us);
+	bool run(const gnssChecksSample &gnss, bool armed, bool in_air, bool vehicle_at_rest);
 	bool passed() const { return _passed; }
-	bool initialChecksPassed() const { return _initial_checks_passed; }
 
-	static constexpr uint8_t kNumChecks = estimator_status_s::GPS_CHECK_FAIL_JAMMED + 1;
+	// The last run applied the strict thresholds: never passed yet, or disarmed on the ground
+	bool strict() const { return _strict; }
 
-	// Indexed by estimator_status_s::GPS_CHECK_FAIL_*
+	// Failed checks, as vehicle_gnss_s::CHECK_* bits
 	uint16_t getFailFlags() const { return _fail_flags; }
 
-	// The checks enabled in EKF2_GPS_CHECK, indexed by estimator_status_s::GPS_CHECK_FAIL_*
-	uint16_t getEnabledChecks() const;
+	// The checks enabled in GNSS_CHECK, as vehicle_gnss_s::CHECK_* bits
+	uint16_t getEnabledChecks() const { return static_cast<uint16_t>(_params.check_mask) & kAllChecks; }
 
 	float horizontal_position_drift_rate_m_s() const { return _horizontal_position_drift_rate_m_s; }
 	float vertical_position_drift_rate_m_s() const { return _vertical_position_drift_rate_m_s; }
 	float filtered_horizontal_velocity_m_s() const { return _filtered_horizontal_velocity_m_s; }
 
-	static constexpr uint8_t kNoParamBit = 31;
-
-	// EKF2_GPS_CHECK bit of an estimator_status_s::GPS_CHECK_FAIL_* check. The two orders differ, and saved parameters,
-	// logs and events each depend on one of them, so neither can be reordered.
-	static constexpr uint8_t paramBit(uint8_t check)
-	{
-		switch (check) {
-		case estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT:    return 0;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP:         return 1;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR:     return 2;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR:     return 3;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR:      return 4;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT:   return 5;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT:   return 6;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR: return 7;
-
-		case estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR: return 8;
-
-		case estimator_status_s::GPS_CHECK_FAIL_SPOOFED:          return 9;
-
-		case estimator_status_s::GPS_CHECK_FAIL_GPS_FIX:          return 10;
-
-		case estimator_status_s::GPS_CHECK_FAIL_JAMMED:           return 11;
-
-		default:                                                  return kNoParamBit;
-		}
-	}
-
-	bool isCheckEnabled(uint8_t check) const
-	{
-		return (static_cast<uint32_t>(_params.check_mask) & (1u << paramBit(check))) != 0;
-	}
-
 private:
+	static constexpr uint16_t kAllChecks = vehicle_gnss_s::CHECK_NSATS | vehicle_gnss_s::CHECK_PDOP | vehicle_gnss_s::CHECK_EPH
+					       | vehicle_gnss_s::CHECK_EPV | vehicle_gnss_s::CHECK_SACC | vehicle_gnss_s::CHECK_HDRIFT
+					       | vehicle_gnss_s::CHECK_VDRIFT | vehicle_gnss_s::CHECK_HSPEED | vehicle_gnss_s::CHECK_VSPEED
+					       | vehicle_gnss_s::CHECK_SPOOFED | vehicle_gnss_s::CHECK_FIX | vehicle_gnss_s::CHECK_JAMMED;
+
 	// A receiver that has not passed for this long qualifies from scratch again, as after a failure. 7 s is the
 	// outage after which the EKF stops using GNSS, and after which it used to reset these checks.
 	static constexpr uint64_t kPassTimeoutUs = 7'000'000;
@@ -136,12 +118,12 @@ private:
 		       : (uint64_t)_params.min_health_time_us;
 	}
 
-	void setFail(uint8_t check, bool failed);
+	void setFail(uint16_t check, bool failed);
 	bool enabledChecksPass(uint16_t checks) const { return (_fail_flags & checks & getEnabledChecks()) == 0; }
 
-	bool runSimplifiedChecks(const gnssSample &gnss);
-	bool runInitialFixChecks(const gnssSample &gnss);
-	void runOnGroundGnssChecks(const gnssSample &gnss);
+	bool runSimplifiedChecks(const gnssChecksSample &gnss);
+	bool runInitialFixChecks(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
+	void runOnGroundGnssChecks(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
 
 	void clearDriftChecks();
 	void resetDriftFilters();
@@ -160,31 +142,17 @@ private:
 	MapProjection lat_lon_prev{};
 	float _alt_prev{0.0f};
 
-	Vector3f _lat_lon_alt_deriv_filt{};
-	Vector2f _vel_ne_filt{};
+	matrix::Vector3f _lat_lon_alt_deriv_filt{};
+	matrix::Vector2f _vel_ne_filt{};
 
 	float _vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
 	uint64_t _time_last_fail_us{0};
 	uint64_t _time_last_pass_us{0};
 	bool _initial_checks_passed{false};
+	bool _strict{true};
 	bool _passed{false};
 
-	struct Params {
-		const int32_t &check_mask;
-		const int32_t &ekf2_req_nsats;
-		const float &ekf2_req_pdop;
-		const float &ekf2_req_eph;
-		const float &ekf2_req_epv;
-		const float &ekf2_req_sacc;
-		const float &ekf2_req_hdrift;
-		const float &ekf2_req_vdrift;
-		const int32_t &ekf2_req_fix;
-		const uint32_t &min_health_time_us;
-	};
-
-	const Params _params;
-	const filter_control_status_u &_control_status;
+	Params _params{};
 };
-}; // namespace estimator
 
-#endif // !EKF_GNSS_CHECKS_H
+#endif // !GNSS_CHECKS_H

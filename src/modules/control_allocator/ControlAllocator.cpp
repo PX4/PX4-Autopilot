@@ -725,7 +725,7 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now)
 
 	} else {
 		// Square wave output
-		const float elapsed_in_period = fmodf(static_cast<float>(now) / 1_s, period_sec);
+		const float elapsed_in_period = fmodf(static_cast<float>(now) * 1e-6f, period_sec);
 		const float ice_shedding_output = elapsed_in_period < ICE_SHEDDING_ON_SEC ? ICE_SHEDDING_OUTPUT : 0.0f;
 
 		return ice_shedding_output;

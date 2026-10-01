@@ -235,6 +235,65 @@ TEST_F(EkfGpsTest, resetToGpsPosition)
 			    previous_position + simulated_position_change, 1e-2f));
 }
 
+TEST_F(EkfGpsTest, receiverChangeResetsPosition)
+{
+	// GIVEN: EKF that fuses GNSS position, with GNSS as the height reference
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+
+	const Vector3f previous_position = _ekf->getPosition();
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	// WHEN: another receiver is selected, which reports an offset position
+	gnssSample gps_data = _sensor_simulator._gps.getData();
+	gps_data.selection_count++;
+	_sensor_simulator._gps.setData(gps_data);
+
+	const Vector3f simulated_position_change(2.f, -1.f, -0.5f);
+	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f(simulated_position_change));
+	_sensor_simulator._gps.stepHeightByMeters(-simulated_position_change(2));
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the position is reset once to the new receiver
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isHorizontalPositionResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+	EXPECT_TRUE(isEqual(_ekf->getPosition(), previous_position + simulated_position_change, 0.1f));
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+}
+
+TEST_F(EkfGpsTest, receiverChangeKeepsBaroHeight)
+{
+	// GIVEN: EKF that fuses GNSS position and height, with baro as the height reference
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	const float previous_height = _ekf->getPosition()(2);
+	const float previous_gnss_hgt_bias = _ekf->getGpsHgtBiasEstimatorStatus().bias;
+
+	// WHEN: another receiver is selected, which reports an offset height
+	gnssSample gps_data = _sensor_simulator._gps.getData();
+	gps_data.selection_count++;
+	_sensor_simulator._gps.setData(gps_data);
+
+	const float simulated_height_change = 2.f;
+	_sensor_simulator._gps.stepHeightByMeters(simulated_height_change);
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the height estimate is kept and the offset goes into the GNSS height bias
+	EXPECT_NEAR(_ekf->getPosition()(2), previous_height, 0.05f);
+	EXPECT_NEAR(_ekf->getGpsHgtBiasEstimatorStatus().bias, previous_gnss_hgt_bias + simulated_height_change, 0.1f);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+}
+
 TEST_F(EkfGpsTest, gpsHgtToBaroFallback)
 {
 	// GIVEN: EKF that fuses GPS and flow, and in GPS height mode
@@ -364,8 +423,8 @@ TEST_F(EkfGpsTest, gnssIntermittentSaccFailureDisablesFusion)
 	// Each good sample passes runInitialFixChecks() but run() still returns false because
 	// the last failure is too recent (min_health_time_us = 10s not satisfied).
 	// The fusion must therefore never actually fuse any data.
-	const float bad_sacc = 5.0f;   // fails ekf2_req_sacc (default 1.0 m/s)
-	const float good_sacc = 0.2f;  // passes ekf2_req_sacc
+	const float bad_sacc = 5.0f;   // fails the checks' req_sacc (1.0 m/s in the simulator)
+	const float good_sacc = 0.2f;  // passes it
 
 	for (int i = 0; i < 4; i++) {
 		gnssSample gps_data = _sensor_simulator._gps.getData();
@@ -390,7 +449,7 @@ TEST_F(EkfGpsTest, velocityAboveLimitIsNotFused)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
-	_ekf->getParamHandle()->ekf2_gps_check = 0;
+	_sensor_simulator._gps.setCheckMask(0);
 
 	// WHEN: the receiver reports a velocity above EKF2_VEL_LIM (100 m/s by default)
 	_sensor_simulator._gps.setVelocity(Vector3f(150.f, 0.f, 0.f));
@@ -420,7 +479,7 @@ TEST_F(EkfGpsTest, invalidVelocityIsSkipped)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
-	_ekf->getParamHandle()->ekf2_gps_check = 0;
+	_sensor_simulator._gps.setCheckMask(0);
 	const float velocity_limit = _ekf->getParamHandle()->ekf2_vel_lim;
 	const Vector3f invalid_velocities[] {
 		{velocity_limit + 1.f, 0.f, 0.f},

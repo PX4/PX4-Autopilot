@@ -7,6 +7,18 @@ namespace sensor
 
 Gps::Gps(std::shared_ptr<Ekf> ekf): Sensor(ekf)
 {
+	// The defaults the EKF used before the checks moved to the sensors module
+	_check_params.check_mask = 1045;
+	_check_params.req_nsats = 6;
+	_check_params.req_pdop = 2.f;
+	_check_params.req_eph = 5.f;
+	_check_params.req_epv = 8.f;
+	_check_params.req_sacc = 1.f;
+	_check_params.req_hdrift = 0.3f;
+	_check_params.req_vdrift = 0.5f;
+	_check_params.req_fix = 3;
+	_check_params.min_health_time_us = 10'000'000;
+	_checks.setParams(_check_params);
 }
 
 Gps::~Gps()
@@ -27,7 +39,38 @@ void Gps::send(const uint64_t time)
 		stepHeightByMeters(-_gps_pos_rate(2) * dt);
 	}
 
+	gnssChecksSample sample{};
+	sample.time_us = _gps_data.time_us;
+	sample.lat = _gps_data.lat;
+	sample.lon = _gps_data.lon;
+	sample.alt = _gps_data.alt;
+	sample.vel = _gps_data.vel;
+	sample.hacc = _gps_data.hacc;
+	sample.vacc = _gps_data.vacc;
+	sample.sacc = _gps_data.sacc;
+	sample.fix_type = _gps_data.fix_type;
+	sample.nsats = _gps_data.nsats;
+	sample.pdop = _gps_data.pdop;
+	sample.spoofed = _gps_data.spoofed;
+	sample.jammed = _gps_data.jammed;
+
+	const auto &control_status = _ekf->control_status_flags();
+	_gps_data.usable = _checks.run(sample, control_status.armed, control_status.in_air, control_status.vehicle_at_rest);
+
 	_ekf->setGpsData(_gps_data);
+}
+
+void Gps::setMinRequiredGnssHealthTime(uint64_t time_us)
+{
+	_check_params.min_health_time_us = time_us;
+	_checks.setParams(_check_params);
+	_ekf->set_min_required_gps_health_time(time_us);
+}
+
+void Gps::setCheckMask(int32_t check_mask)
+{
+	_check_params.check_mask = check_mask;
+	_checks.setParams(_check_params);
 }
 
 void Gps::setData(const gnssSample &gps)
