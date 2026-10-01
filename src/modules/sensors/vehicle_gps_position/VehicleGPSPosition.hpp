@@ -122,8 +122,8 @@ private:
 	void UpdateGnssHeading();
 	void handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot);
 
-	// sensor_gnss instance publishing this device_id, or -1, with its latest sample in gnss_data (zeroed when not found)
-	int findGnssInstance(uint32_t device_id, sensor_gnss_s &gnss_data);
+	// sensor_gnss instance publishing this device_id, or -1
+	int findGnssInstance(uint32_t device_id) const;
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
@@ -168,8 +168,7 @@ private:
 	GnssSelector _gnss_selector;
 
 	GnssChecks _gnss_checks[GPS_MAX_RECEIVERS] {};
-	uint32_t _receiver_device_id[GPS_MAX_RECEIVERS] {};
-	hrt_abstime _receiver_timestamp[GPS_MAX_RECEIVERS] {};
+	sensor_gnss_s _latest_sample[GPS_MAX_RECEIVERS] {}; ///< timestamp_sample corrected, timestamp 0 until it publishes
 	uint32_t _selected_device_id{0};
 	int8_t _preferred_instance{-1};
 	uint8_t _first_publication[GPS_MAX_RECEIVERS] {}; ///< 1 for the first receiver to publish, 2 for the next, 0 before
