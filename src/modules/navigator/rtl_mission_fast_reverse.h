@@ -70,12 +70,10 @@ private:
 	MissionTraversalType traversalType() const override { return MissionTraversalType::IgnoreDoJump; }
 	void handleLanding(WorkItemType &new_work_item_type);
 
-protected:
-	// what the vehicle was flying when the return was triggered, and the mission that index belongs to
+	// Mission target recorded before RTL and the mission it belongs to.
 	int32_t _mission_index_prior_rtl{INT32_C(-1)};
 	uint32_t _mission_id_prior_rtl{0};
 
-private:
 	bool _in_landing_phase{false};
 
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */

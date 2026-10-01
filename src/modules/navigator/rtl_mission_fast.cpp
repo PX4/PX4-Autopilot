@@ -66,8 +66,7 @@ void RtlMissionFast::on_activation()
 {
 	_home_pos_sub.update();
 
-	// The index the vehicle was flying before the return belongs to the mission it was read from. If
-	// another mission has arrived since, it says nothing about that one.
+	// Discard the saved index if the mission was replaced.
 	if (_mission.mission_id != _mission_id_prior_rtl) {
 		_mission_index_prior_rtl = INT32_C(-1);
 	}

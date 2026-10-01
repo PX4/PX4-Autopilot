@@ -243,13 +243,6 @@ public:
 		this->on_activation();
 	}
 
-	// what on_inactive() records while the vehicle flies a mission: the item and the mission it belongs to
-	void setPriorMissionIndexForTest(int32_t index, uint32_t mission_id)
-	{
-		this->_mission_index_prior_rtl = index;
-		this->_mission_id_prior_rtl = mission_id;
-	}
-
 	uint16_t activeNavCommand() const { return this->_mission_item.nav_cmd; }
 	bool isClimbing() const { return this->_work_item_type == RtlMissionType::WorkItemType::WORK_ITEM_TYPE_CLIMB; }
 	const mission_item_s &activeItem() const { return this->_mission_item; }
@@ -386,12 +379,14 @@ protected:
 		}
 	}
 
-	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type)
+	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type,
+				  uint8_t nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL)
 	{
 		vehicle_status_s status{};
 		status.timestamp = hrt_absolute_time();
 		status.is_vtol = is_vtol;
 		status.vehicle_type = vehicle_type;
+		status.nav_state = nav_state;
 
 		if (_vehicle_status_pub == nullptr) {
 			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -448,6 +443,16 @@ protected:
 		result->mission_id = mission.mission_id;
 		result->geofence_id = mission.geofence_id;
 		result->home_position_counter = 0;
+	}
+
+	// Record the mission target through the normal inactive cycle before switching to RTL.
+	template <typename Mode>
+	void flyMissionThenTriggerReturn(Mode &mode, const mission_s &mission)
+	{
+		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+		publishMission(mission);
+		mode.on_inactive();
+		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 	}
 
 	void publishWind(float windspeed_north, float windspeed_east)
@@ -1323,12 +1328,8 @@ TEST_F(RTLTest, MakeVtolLandApproachPointRejectsInvalidInput)
 	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_radius, kAlt).isValid());
 }
 
-// WHY: the mission subscription is refreshed on inactive and active cycles but not on the cycle
-// that activates the mode, so a mission published since the last inactive cycle was read from a
-// stale copy. With an outdated copy that has no land start, the direct mission land RTL saw no
-// valid mission at all (#27817).
-// WHAT: a mission with a land start published after the mode's last inactive cycle is used at
-// activation.
+// WHY: activation skips the inactive update, so a cached mission can miss a newly published land start.
+// WHAT: direct mission landing uses the land start published since its last inactive cycle.
 TEST_F(RTLTest, DirectMissionLandUsesMissionPublishedBeforeActivation)
 {
 	mission_s stale{};
@@ -1405,10 +1406,9 @@ static mission_s makeMissionHeader(uint32_t mission_id, int32_t current_seq, uin
 	return mission;
 }
 
-// WHY: the fast mission RTL modes read the mission at activation the same way.
-// WHAT: the items of a mission published after the last inactive cycle are the ones flown at
-// activation, not the items of the copy the mode was holding. One case for the forward and one for the
-// reverse variant, in one test because the RTL test binary is at the dataman client id limit.
+// WHY: both fast RTL modes can hold a stale mission when activation begins.
+// WHAT: both fly the mission published since the last inactive cycle. They share a fixture because
+// dataman client IDs are not reused and this binary is close to the limit.
 TEST_F(RTLTest, MissionFastUsesMissionPublishedBeforeActivation)
 {
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
@@ -1442,68 +1442,81 @@ TEST_F(RTLTest, MissionFastUsesMissionPublishedBeforeActivation)
 	fliesThePublishedMission(mission_fast_reverse);
 }
 
-// WHY: when the return is triggered out of a mission, the fast variant continues with the item the
-// vehicle was flying towards. That index was recorded from the mission of the last inactive cycle.
-// WHAT: with the same mission still current, the recorded item is flown, not the closest one.
-TEST_F(RTLTest, MissionFastResumesAfterThePriorItemOfTheSameMission)
+// WHY: the recorded target is valid only for its original mission, even if that mission's cursor changes.
+// WHAT: both RTL directions keep it for the same mission and select the closest waypoint after replacement.
+// The cases share a fixture because dataman client IDs are not reused.
+TEST_F(RTLTest, MissionFastModesKeepThePriorIndexOnlyForTheSameMission)
 {
-	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
 	publishLandDetected(false);
 	_navigator.get_mission_result()->valid = true;
 
-	RtlMissionFastTestPeer mission_fast{&_navigator, makeMissionHeader(7, 0, 2)};
-	const std::vector<mission_item_s> items = makeTwoWaypointMission(200.f, 400.f);
-	mission_fast.loadTestMission(items);
+	{
+		SCOPED_TRACE("same mission");
+		publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
 
-	// GIVEN: the vehicle was flying towards item 1 of mission 7 when the return was triggered, and
-	// mission 7 is published again with its cursor moved
-	mission_fast.setPriorMissionIndexForTest(1, 7);
-	publishMission(makeMissionHeader(7, 0, 2));
+		RtlMissionFastTestPeer mission_fast{&_navigator, makeMissionHeader(7, 1, 2)};
+		const std::vector<mission_item_s> items = makeTwoWaypointMission(200.f, 400.f);
+		mission_fast.loadTestMission(items);
 
-	mission_fast.activateForTest();
+		// GIVEN: the vehicle was flying towards item 1 when RTL was triggered, then the cursor moved
+		flyMissionThenTriggerReturn(mission_fast, makeMissionHeader(7, 1, 2));
+		publishMission(makeMissionHeader(7, 0, 2));
 
-	// THEN: the mode continues with that item, not with the closest one
-	EXPECT_TRUE(mission_fast.activeItemValid());
-	EXPECT_DOUBLE_EQ(mission_fast.activeItem().lat, items[1].lat);
-	EXPECT_DOUBLE_EQ(mission_fast.activeItem().lon, items[1].lon);
+		mission_fast.activateForTest();
+
+		// THEN: forward RTL keeps target 1, not the closest item 0
+		EXPECT_TRUE(mission_fast.activeItemValid());
+		EXPECT_DOUBLE_EQ(mission_fast.activeItem().lat, items[1].lat);
+		EXPECT_DOUBLE_EQ(mission_fast.activeItem().lon, items[1].lon);
+
+		// GIVEN: reverse RTL starts between the waypoints, closer to item 1
+		const PositionYawSetpoint vehicle = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
+		publishGlobalPosition(vehicle.lat, vehicle.lon, kAlt);
+		RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, makeMissionHeader(7, 1, 2)};
+		mission_fast_reverse.loadTestMission(items);
+		flyMissionThenTriggerReturn(mission_fast_reverse, makeMissionHeader(7, 1, 2));
+		publishMission(makeMissionHeader(7, 0, 2));
+
+		mission_fast_reverse.activateForTest();
+
+		// THEN: reverse RTL goes back to item 0, before the recorded target 1
+		EXPECT_TRUE(mission_fast_reverse.activeItemValid());
+		EXPECT_EQ(mission_fast_reverse.mission().current_seq, 0);
+		EXPECT_DOUBLE_EQ(mission_fast_reverse.activeItem().lat, items[0].lat);
+		EXPECT_DOUBLE_EQ(mission_fast_reverse.activeItem().lon, items[0].lon);
+	}
+
+	{
+		SCOPED_TRACE("replacement mission");
+		publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+
+		const std::vector<mission_item_s> fresh_items = makeTwoWaypointMission(1000.f, 1200.f);
+		auto dropsThePriorIndex = [&](auto & mode, const mission_s & prior_mission) {
+			flyMissionThenTriggerReturn(mode, prior_mission);
+
+			// GIVEN: a two-item mission replaced the recorded mission before RTL activated
+			mode.loadTestMission(fresh_items);
+			publishMission(makeMissionHeader(8, 0, 2));
+
+			mode.activateForTest();
+
+			// THEN: choose the closest item 0; reusing the saved index would select item 1
+			EXPECT_TRUE(mode.activeItemValid());
+			EXPECT_EQ(mode.mission().current_seq, 0);
+			EXPECT_DOUBLE_EQ(mode.activeItem().lat, fresh_items[0].lat);
+			EXPECT_DOUBLE_EQ(mode.activeItem().lon, fresh_items[0].lon);
+		};
+
+		RtlMissionFastTestPeer mission_fast{&_navigator, makeMissionHeader(7, 1, 3)};
+		dropsThePriorIndex(mission_fast, makeMissionHeader(7, 1, 3));
+
+		RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, makeMissionHeader(7, 2, 3)};
+		dropsThePriorIndex(mission_fast_reverse, makeMissionHeader(7, 2, 3));
+	}
 }
 
-// WHY: the recorded index belongs to the mission it was read from. Applied to a mission that arrived
-// since, it points at an unrelated item, or past the end of a shorter mission.
-// WHAT: when the mission id changed across the refresh, the index is dropped and the closest item of
-// the new mission is flown instead.
-TEST_F(RTLTest, MissionFastDropsThePriorIndexWhenTheMissionChanged)
-{
-	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
-	publishLandDetected(false);
-	_navigator.get_mission_result()->valid = true;
-
-	// the vehicle was flying item 1 of a three item mission
-	RtlMissionFastTestPeer mission_fast{&_navigator, makeMissionHeader(7, 1, 3)};
-	mission_fast.setPriorMissionIndexForTest(1, 7);
-
-	// GIVEN: a two item mission replaced it before the return activated
-	const std::vector<mission_item_s> fresh_items = makeTwoWaypointMission(1000.f, 1200.f);
-	mission_fast.loadTestMission(fresh_items);
-	publishMission(makeMissionHeader(8, 0, 2));
-
-	mission_fast.activateForTest();
-
-	// THEN: the closest item of the new mission is flown, not the item after index 1, which the new
-	// mission does not have
-	EXPECT_TRUE(mission_fast.activeItemValid());
-	EXPECT_EQ(mission_fast.mission().current_seq, 0);
-	EXPECT_DOUBLE_EQ(mission_fast.activeItem().lat, fresh_items[0].lat);
-	EXPECT_DOUBLE_EQ(mission_fast.activeItem().lon, fresh_items[0].lon);
-}
-
-// WHY: the return controller decides the return type and the avoidance destination from the mission
-// copy its mission mode holds, and then activates that mode. The mode reads the mission topic on its
-// inactive and active cycles but not on the cycle that activates it, so the controller refreshes the
-// mode's copy first and everything on that cycle works from one snapshot.
-// WHAT: a mission published after the controller's last inactive cycle is the one the return flies.
+// WHY: the controller must refresh an existing mode's mission before destination selection and activation.
+// WHAT: a mission replaced after the last inactive cycle supplies the waypoint flown on RTL activation.
 TEST_F(RTLTest, ReturnActivationFliesTheMissionPublishedSinceTheLastInactiveCycle)
 {
 	int32_t rtl_type = 2; // RTL_TYPE_MISSION_FAST, follows the mission to its landing, so it needs a land start

@@ -142,9 +142,8 @@ void RTL::on_activation()
 	_home_pos_sub.update();
 	_wind_sub.update();
 
-	// The mission return modes read the mission topic on their inactive and active cycles but not
-	// on the cycle that activates them. The return type, the avoidance planner destination and the
-	// mode's activation below all read that copy, so refresh it once here and they see one snapshot.
+	// Activation skips the mode's inactive update,
+	// refresh its mission before destination selection.
 	if (_rtl_mission_type_handle) {
 		_rtl_mission_type_handle->refreshMission();
 	}
