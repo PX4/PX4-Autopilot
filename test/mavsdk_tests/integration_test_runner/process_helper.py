@@ -363,7 +363,8 @@ class TestRunnerMavsdk(Runner):
                  mavlink_connection: str,
                  speed_factor: float,
                  verbose: bool,
-                 build_dir: str):
+                 build_dir: str,
+                 px4_rootfs: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "mavsdk_tests"
         self.cwd = workspace_dir
@@ -375,6 +376,7 @@ class TestRunnerMavsdk(Runner):
                          "mavsdk_tests/mavsdk_tests"),
                      "--url", mavlink_connection,
                      "--speed-factor", str(speed_factor),
+                     "--px4-rootfs", px4_rootfs,
                      case]
 
 class TestRunnerRos(Runner):

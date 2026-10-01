@@ -70,6 +70,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("external_ins_local_position");
 	add_topic("esc_status", 100);
 	add_topic("failure_detector_status", 100);
+	add_optional_topic("failure_injection");
 	add_topic("failsafe_flags");
 	add_optional_topic("follow_target", 500);
 	add_optional_topic("follow_target_estimator", 200);

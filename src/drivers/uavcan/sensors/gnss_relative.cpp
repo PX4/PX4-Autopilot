@@ -87,5 +87,38 @@ void UavcanGnssRelativeBridge::rel_pos_heading_sub_cb(const
 
 	sensor_gnss_relative.timestamp = hrt_absolute_time();
 
+	// The heading fails with the receiver. Its sensor_gnss instance is looked up only while a failure is injected.
+	_failure_config.update();
+	const int8_t channel = get_channel_index_for_node(msg.getSrcNodeID().get());
+
+	if (channel >= 0) {
+		failure_injection::Mode mode = failure_injection::Mode::Ok;
+
+		if (_failure_config.any_active()) {
+			const int instance = gnss_instance(sensor_gnss_relative.device_id);
+
+			if (instance >= 0) {
+				mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, instance + 1);
+			}
+		}
+
+		if (!failure_injection::process(mode, sensor_gnss_relative, _stuck[channel])) {
+			return;
+		}
+	}
+
 	publish(msg.getSrcNodeID().get(), &sensor_gnss_relative);
+}
+
+int UavcanGnssRelativeBridge::gnss_instance(uint32_t device_id)
+{
+	for (int i = 0; i < _sensor_gnss_sub.size(); i++) {
+		sensor_gnss_s sensor_gnss;
+
+		if (_sensor_gnss_sub[i].copy(&sensor_gnss) && (sensor_gnss.device_id == device_id)) {
+			return i;
+		}
+	}
+
+	return -1;
 }

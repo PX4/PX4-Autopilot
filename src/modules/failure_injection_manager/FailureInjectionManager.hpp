@@ -106,7 +106,13 @@ private:
 		// Consumed via param_find() in failure_injection::process_XXXX(); registered
 		// here so it is marked used and shows up in the GCS parameter list.
 		(ParamInt<px4::params::SYS_FAIL_GPS_WRG>) _param_sys_fail_gps_wrg,
+		(ParamFloat<px4::params::SYS_FAIL_GPS_EPH>) _param_sys_fail_gps_eph,
+		(ParamFloat<px4::params::SYS_FAIL_GPS_EPV>) _param_sys_fail_gps_epv,
+		(ParamFloat<px4::params::SYS_FAIL_GPS_SAC>) _param_sys_fail_gps_sac,
+		(ParamInt<px4::params::SYS_FAIL_GPS_SAT>) _param_sys_fail_gps_sat,
 		(ParamInt<px4::params::SYS_FAIL_GPS_JAM>) _param_sys_fail_gps_jam,
+		(ParamInt<px4::params::SYS_FAIL_GPS_SPF>) _param_sys_fail_gps_spf,
+		(ParamInt<px4::params::SYS_FAIL_GPS_DIV>) _param_sys_fail_gps_div,
 		(ParamInt<px4::params::SYS_FAIL_BAT_LVL>) _param_sys_fail_bat_lvl
 	)
 };
