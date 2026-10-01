@@ -2,7 +2,7 @@
 
 Follow-up to the parameter `short`/`long` description trim. These parameters were **left unchanged** in that pass because trimming them further would risk losing substance — each needs a maintainer's judgement. A few also flag likely pre-existing errors in the current descriptions (noted inline).
 
-Total candidates: 81
+Total candidates: 78
 
 
 ## `src/drivers/actuators/voxl_esc/voxl_esc_params.yaml`
@@ -453,30 +453,6 @@ Total candidates: 81
 - why further pruning is possible: The long references "MPC_POS_MODE\n1 just deceleration\n4 not used, use MPC_ACC_HOR instead". Mode 1 does not exist in the enum values (only 0 and 4), making this likely stale documentation from a removed mode. The text is cryptic and could be rewritten.
 - aggressive proposal: "In MPC_POS_MODE 0 (Direct velocity): deceleration only. In MPC_POS_MODE 4 (Acceleration based): not used — set MPC_ACC_HOR instead."
 - substance at risk: "1 just deceleration" may intentionally reference a removed mode that still has behavioral meaning, or it may be a bug. Rewriting without confirming the code behavior risks losing a real constraint.
-
-
-## `src/modules/mc_rate_control/mc_acro_params.yaml`
-
-### MC_ACRO_SUPEXPO / MC_ACRO_SUPEXPOY — src/modules/mc_rate_control/mc_acro_params.yaml
-- current long length: ~100 chars each (after trim)
-- why further pruning is possible: the 0.7 example entry could be removed as mid-range guidance
-- aggressive proposal: "Refines curve shape set by MC_ACRO_EXPO.\n0: pure expo\n0.95: very strong, near-maxima effect only"
-- substance at risk: the 0.7 example ("reasonable enhancement for intuitive stick feel") provides a useful practical starting point; without it users only have the extremes
-
-
-## `src/modules/mc_rate_control/mc_rate_control_params.yaml`
-
-### MC_BAT_SCALE_EN — src/modules/mc_rate_control/mc_rate_control_params.yaml
-- current long length: 199 chars
-- why further pruning is possible: the concrete example ("e.g. 0.5 at both 100% and 60% charge") can be removed
-- aggressive proposal: "Compensates for battery voltage drop to normalize performance across the operating range, keeping hover throttle constant with reduced max acceleration at lower charge."
-- substance at risk: the numerical example (0.5 throttle at 100% and 60%) illustrates "constant hover throttle" concretely; removing it means users must infer the behavior without a reference point
-
-### MC_ROLLRATE_K / MC_PITCHRATE_K / MC_YAWRATE_K — src/modules/mc_rate_control/mc_rate_control_params.yaml
-- current long length: ~170 chars each (after trim)
-- why further pruning is possible: the code-block formula occupies ~90 chars; the ideal/parallel distinction could be compressed further
-- aggressive proposal: remove the code block entirely, keep only "Global gain scaling all PID terms. Set MC_*RATE_P=1 for ideal form; MC_*RATE_K=1 for parallel form."
-- substance at risk: the formula is the clearest way to show exactly how K scales P, I, D; removing it loses the precise mathematical relationship
 
 
 ## `src/modules/navigator/mission_params.yaml`
