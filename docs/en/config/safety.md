@@ -153,6 +153,7 @@ This is intended for operations where a switch to Hold on manual control loss is
 
 If Hold cannot be entered (for example without a valid position estimate), the normal failsafe takes over and escalates from there (Return, Land, Descend, or Terminate as applicable).
 Manual control loss in any non-manual (auto/offboard) mode is ignored with this setting.
+If another failsafe would fall back to a manual mode while manual control is lost, for example an Offboard loss with [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT) set to Position mode, the vehicle switches to Hold instead.
 
 ## Data Link Loss Failsafe
 
