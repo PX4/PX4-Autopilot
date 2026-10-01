@@ -87,6 +87,13 @@ void finish(AutopilotTesterGnss &tester)
 	tester.wait_until_disarmed(180s);
 }
 
+// Lands, then grades why GNSS wasn't fused until the switch and the receivers' inconsistency in the log
+void finish_and_check_reporting(AutopilotTesterGnss &tester)
+{
+	finish(tester);
+	tester.check_log("reporting");
+}
+
 GnssFailover::Injection wrong_injection(int instance, const GnssFailover::WrongPayload &payload)
 {
 	GnssFailover::Injection injection{};
@@ -108,6 +115,7 @@ void check_failover_in_hold(AutopilotTesterGnss &tester, const GnssFailover::Inj
 	tester.sleep_for(10s);
 
 	CHECK(tester.resets_since_mark() == 1);
+	tester.check_switch_events(1);
 	tester.check_switch_reset(RECEIVER_S, RECEIVER_B, false);
 	tester.check_position_and_mode_kept(mavsdk::Telemetry::FlightMode::Hold);
 }
@@ -128,7 +136,7 @@ TEST_CASE("GNSS failover - selected receiver off in Hold", "[gnss_failover]")
 	tester.check_held_horizontally(HELD_HORIZONTAL_M);
 	tester.check_held_vertically(HELD_VERTICAL_M);
 
-	finish(tester);
+	finish_and_check_reporting(tester);
 }
 
 TEST_CASE("GNSS failover - selected receiver loses its 3D fix in Hold", "[gnss_failover]")
@@ -139,7 +147,7 @@ TEST_CASE("GNSS failover - selected receiver loses its 3D fix in Hold", "[gnss_f
 	GnssFailover::WrongPayload payload{};
 	payload.fix_type = 2;
 	check_failover_in_hold(tester, wrong_injection(SELECTED, payload));
-	finish(tester);
+	finish_and_check_reporting(tester);
 }
 
 TEST_CASE("GNSS failover - selected receiver off on a mission leg", "[gnss_failover]")
@@ -157,13 +165,14 @@ TEST_CASE("GNSS failover - selected receiver off on a mission leg", "[gnss_failo
 	tester.sleep_for(5s);
 
 	CHECK(tester.resets_since_mark() == 1);
+	tester.check_switch_events(1);
 	tester.check_switch_reset(RECEIVER_S, RECEIVER_B, false);
 	tester.check_position_and_mode_kept(mavsdk::Telemetry::FlightMode::Mission);
 
 	tester.wait_for_mission_finished(120s);
 	CHECK(tester.resets_since_mark() == 1);
 
-	finish(tester);
+	finish_and_check_reporting(tester);
 }
 
 TEST_CASE("GNSS failover - height reset with GNSS as the height reference", "[gnss_failover]")
@@ -180,11 +189,12 @@ TEST_CASE("GNSS failover - height reset with GNSS as the height reference", "[gn
 
 	// Horizontal and vertical reset, and the altitude setpoint follows the vertical one
 	CHECK(tester.resets_since_mark() == 2);
+	tester.check_switch_events(1);
 	tester.check_switch_reset(RECEIVER_S, RECEIVER_B, true);
 	tester.check_held_vertically(HELD_VERTICAL_M);
 	tester.check_position_and_mode_kept(mavsdk::Telemetry::FlightMode::Hold);
 
-	finish(tester);
+	finish_and_check_reporting(tester);
 }
 
 TEST_CASE("GNSS failover - return to the primary receiver on disarm", "[gnss_failover]")
@@ -214,8 +224,10 @@ TEST_CASE("GNSS failover - return to the primary receiver on disarm", "[gnss_fai
 	tester.wait_for_resets(1, 5s);
 	tester.sleep_for(2s);
 	CHECK(tester.resets_since_mark() == 1);
+	tester.check_switch_events(1);
 	tester.check_switch_reset(RECEIVER_B, RECEIVER_S, false);
 	tester.clear(ALL);
+	tester.check_log("reporting");
 }
 
 TEST_CASE("GNSS failover - no return without a preferred receiver", "[gnss_failover]")
@@ -258,6 +270,7 @@ TEST_CASE("GNSS failover - standby receiver off", "[gnss_failover]")
 	// The estimate stays on S throughout the landing
 	tester.wait_until_disarmed(120s);
 	CHECK(tester.resets_since_mark() == 0);
+	tester.check_switch_events(0);
 	CHECK(tester.gnss().position_ok());
 	tester.clear(ALL);
 }
@@ -316,6 +329,7 @@ TEST_CASE("GNSS failover - selected receiver toggling at 1 Hz", "[gnss_failover]
 	tester.mark();
 	tester.sleep_for(NO_RETURN_WATCH);
 	CHECK(tester.resets_since_mark() == 0);
+	tester.check_switch_events(0);
 
 	finish(tester);
 }
@@ -330,7 +344,7 @@ TEST_CASE("GNSS failover - selected receiver off without a preferred receiver", 
 	injection.type = mavsdk::Failure::FailureType::Off;
 	injection.instance = SELECTED;
 	check_failover_in_hold(tester, injection);
-	finish(tester);
+	finish_and_check_reporting(tester);
 }
 
 TEST_CASE("GNSS failover - selected receiver horizontal accuracy above the relaxed gate", "[gnss_failover]")
@@ -342,7 +356,7 @@ TEST_CASE("GNSS failover - selected receiver horizontal accuracy above the relax
 	payload.fix_type = 0; // unchanged
 	payload.eph = 60.f;   // relaxed in-flight gate: 50 m
 	check_failover_in_hold(tester, wrong_injection(SELECTED, payload));
-	finish(tester);
+	finish_and_check_reporting(tester);
 }
 
 TEST_CASE("GNSS failover - selected receiver speed accuracy above the relaxed gate", "[gnss_failover]")
@@ -354,7 +368,7 @@ TEST_CASE("GNSS failover - selected receiver speed accuracy above the relaxed ga
 	payload.fix_type = 0;           // unchanged
 	payload.speed_accuracy = 12.f;  // relaxed in-flight gate: 10 m/s
 	check_failover_in_hold(tester, wrong_injection(SELECTED, payload));
-	finish(tester);
+	finish_and_check_reporting(tester);
 }
 
 TEST_CASE("GNSS failover - ranking moves to a receiver that meets the requirements in flight", "[gnss_failover]")
@@ -377,6 +391,7 @@ TEST_CASE("GNSS failover - ranking moves to a receiver that meets the requiremen
 	tester.wait_for_resets(1, 6s);
 	tester.sleep_for(5s);
 	CHECK(tester.resets_since_mark() == 1);
+	tester.check_switch_events(1);
 	tester.check_switch_reset(RECEIVER_S, RECEIVER_B, false);
 	tester.check_position_and_mode_kept(mavsdk::Telemetry::FlightMode::Hold);
 
@@ -396,6 +411,7 @@ TEST_CASE("GNSS failover - ranking moves to an RTK fixed receiver while disarmed
 	tester.mark();
 	tester.inject(wrong_injection(STANDBY, payload));
 	tester.wait_for_resets(1, RANKING_HOLD_DISARMED + 4s);
+	tester.check_switch_events(1);
 	tester.check_switch_reset(RECEIVER_S, RECEIVER_B, false);
 
 	// The selection stays on B while it is the only RTK fixed receiver
@@ -421,6 +437,7 @@ TEST_CASE("GNSS failover - selected receiver update rate collapses while disarme
 	tester.mark();
 	tester.inject(injection);
 	tester.wait_for_resets(1, SWITCH_TIMEOUT);
+	tester.check_switch_events(1);
 	tester.check_switch_reset(RECEIVER_S, RECEIVER_B, false);
 	tester.clear(SELECTED);
 }
@@ -443,6 +460,7 @@ void check_heading_source_off(AutopilotTesterGnss &tester)
 	tester.sleep_for(10s);
 
 	CHECK(tester.resets_since_mark() == 1);
+	tester.check_switch_events(1);
 	tester.check_switch_reset(RECEIVER_S, RECEIVER_B, false);
 	tester.check_no_yaw_reset_since_mark();
 	tester.check_position_and_mode_kept(mavsdk::Telemetry::FlightMode::Hold);
@@ -462,7 +480,7 @@ TEST_CASE("GNSS failover - dual antenna heading receiver off", "[gnss_failover]"
 
 	check_heading_source_off(tester);
 	finish(tester);
-	tester.check_log("heading");
+	tester.check_log("heading,reporting");
 }
 
 TEST_CASE("GNSS failover - moving base off", "[gnss_failover]")
@@ -475,7 +493,7 @@ TEST_CASE("GNSS failover - moving base off", "[gnss_failover]")
 
 	check_heading_source_off(tester);
 	finish(tester);
-	tester.check_log("heading");
+	tester.check_log("heading,reporting");
 }
 
 TEST_CASE("GNSS failover - dual antenna heading receiver recovers", "[gnss_failover]")
@@ -495,5 +513,5 @@ TEST_CASE("GNSS failover - dual antenna heading receiver recovers", "[gnss_failo
 	CHECK(tester.resets_since_mark() == 0);
 
 	finish(tester);
-	tester.check_log("heading");
+	tester.check_log("heading,reporting");
 }

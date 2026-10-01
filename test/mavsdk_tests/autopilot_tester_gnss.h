@@ -90,6 +90,9 @@ public:
 
 	void wait_for_mode_other_than(mavsdk::Telemetry::FlightMode mode, std::chrono::seconds timeout);
 
+	// Receiver switch events (gnss_receiver_switched) since mark()
+	void check_switch_events(unsigned count);
+
 	// Downloads the flight's log and grades these check groups of Tools/gnss_failover_report.py on it
 	void check_log(const std::string &checks);
 
