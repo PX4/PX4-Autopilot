@@ -8,7 +8,7 @@ parameters:
         SENS_GNSS_PRIME:
             description:
                 short: Multi GPS primary instance
-                long: "The primary receiver is used regardless of what the other receiver reports. If it fails its checks (GNSS_CHECK) or stops publishing, the other receiver is used until it recovers. With Auto, the moving base of a moving base pair (SENS_GNSSn_HDG) is the primary. Without a moving base pair, the receiver reporting clearly better accuracy is used. To make a DroneCAN receiver the primary, set its node ID (2 to 127). GPS_RAW_INT reports the primary receiver, or the first receiver to publish if there is no primary."
+                long: "The primary receiver is used regardless of what the other receiver reports, and always while disarmed. If it fails its checks (GNSS_CHECK) or stops publishing in flight, the other receiver is used for the rest of the flight, unless that one fails too. With Auto, the moving base of a moving base pair (SENS_GNSSn_HDG) is the primary. Without a moving base pair, a receiver that meets the accuracy requirements (GNSS_REQ_*) is preferred, then one with an RTK fixed solution. To make a DroneCAN receiver the primary, set its node ID (2 to 127). GPS_RAW_INT reports the primary receiver, or the first receiver to publish if there is no primary."
             type: int32
             default: -1
             min: -1

@@ -48,16 +48,19 @@ using namespace time_literals;
 /*
  * Selects the receiver whose samples vehicle_gnss carries; the caller keeps the samples and publishes the selected
  * receiver's. Every switch makes EKF2 reset or restart its GNSS position, so the selection only leaves a receiver that
- * failed, returns to the preferred one, or moves to a clearly more accurate one after a hold.
+ * failed, or moves to the preferred one or to a higher ranked one after a hold.
  *
  * A receiver is usable while its latest sample passed its checks and it delivers samples at its usual rate. It has
  * failed when it had no usable sample for FAIL_TIME_US, which covers a lost fix, sustained check failures, a receiver
  * that stopped publishing and an update rate that collapsed. Intermittent failures are caught by the availability:
- * the fraction of recent time it was usable.
+ * the fraction of recent time it was usable. While armed, a receiver that was left because it failed is selected again
+ * only when the selected one fails, as one that failed is likely to fail again in the same flight.
  *
- * With a preferred receiver, reported accuracy never matters: a moving-base rover reports a better accuracy while
- * being the worse position source. Without one, a receiver is more accurate when its reported eph is at most half the
- * selected one's and its epv is no worse, both raised to a floor below which RTK receivers tie.
+ * While disarmed the preferred receiver is selected whenever it publishes: a vehicle whose preferred receiver fails its
+ * checks shouldn't take off on the other one. In flight it is kept while usable, whatever the other one reports: a
+ * moving-base rover reports a better fix and accuracy while being the worse position source. Without a preferred
+ * receiver, receivers rank by meeting the accuracy requirements and then by an RTK fixed solution, and smaller
+ * differences in reported accuracy never switch.
  */
 class GnssSelector
 {
@@ -71,17 +74,14 @@ public:
 	// A single failed sample makes a receiver unusable for about a second in flight, which costs it 0.1 availability
 	// with this time constant; a receiver usable a third of the time costs the margin within a few seconds
 	static constexpr hrt_abstime AVAILABILITY_TIME_CONSTANT_US = 10_s;
-	// A usable receiver whose availability is higher by this margin replaces the selected one. Returns and accuracy
-	// switches accept half of it, so that a receiver hovering at the margin doesn't flap.
+	// A usable receiver whose availability is higher by this margin replaces the selected one. Moves to the preferred
+	// or a higher ranked receiver accept half of it, so that the selected receiver doesn't take over again right after.
 	static constexpr float AVAILABILITY_MARGIN = 0.2f;
 
-	// While armed, the checks relax and pass after a second, so the preferred receiver has to prove itself this long
-	// before the selection returns to it. While disarmed the strict checks already required GNSS_REQ_TIME.
-	static constexpr hrt_abstime RETURN_HOLD_ARMED_US = 10_s;
-
-	static constexpr hrt_abstime ACCURACY_HOLD_US = 5_s;
-	static constexpr float ACCURACY_RATIO = 0.5f;
-	static constexpr float ACCURACY_FLOOR = 0.05f; // [m]
+	// How long a receiver must rank higher, or while armed be preferred and usable, before the selection moves to it.
+	// While armed the checks relax and pass after a second; while disarmed the strict checks require GNSS_REQ_TIME.
+	static constexpr hrt_abstime SWITCH_HOLD_ARMED_US = 10_s;
+	static constexpr hrt_abstime SWITCH_HOLD_DISARMED_US = 2_s;
 
 	// A sample is late when its interval exceeds this many times the receiver's usual interval, and at least
 	// LATE_MIN_US. Every sample of a receiver whose rate collapsed below a third is late.
@@ -97,11 +97,13 @@ public:
 	GnssSelector();
 	~GnssSelector() = default;
 
-	// checks_passed is the result of the receiver's own GnssChecks for this sample
-	void setGnssData(const sensor_gnss_s &gnss_data, bool checks_passed, uint8_t instance)
+	// checks_passed and meets_requirements are the results of the receiver's own GnssChecks for this sample
+	void setGnssData(const sensor_gnss_s &gnss_data, bool checks_passed, bool meets_requirements, uint8_t instance)
 	{
 		if (instance < GNSS_MAX_RECEIVERS) {
-			_sample[instance] = {gnss_data.timestamp, gnss_data.eph, gnss_data.epv, checks_passed};
+			_sample[instance] = {gnss_data.timestamp, checks_passed, meets_requirements,
+					     gnss_data.fix_type == sensor_gnss_s::FIX_TYPE_RTK_FIXED
+					    };
 			_updated[instance] = true;
 			_has_published[instance] = true;
 		}
@@ -109,7 +111,16 @@ public:
 
 	// -1 for no preferred receiver
 	void setPreferredInstance(int instance) { _preferred_instance = instance; }
-	void setArmed(bool armed) { _armed = armed; }
+	void setArmed(bool armed)
+	{
+		_armed = armed;
+
+		if (!armed) {
+			for (bool &failed : _failed_while_armed) {
+				failed = false;
+			}
+		}
+	}
 
 	// Also call it periodically while no receiver publishes, so that receivers time out and lose availability
 	void update(uint64_t hrt_now_us);
@@ -134,9 +145,9 @@ private:
 	// What the selection uses of a receiver's latest sample
 	struct Sample {
 		uint64_t timestamp{0}; ///< 0 when never published or timed out
-		float eph{0.f};
-		float epv{0.f};
 		bool checks_passed{false};
+		bool meets_requirements{false};
+		bool rtk_fixed{false};
 	};
 
 	struct UpdateInterval {
@@ -175,12 +186,31 @@ private:
 		       || (hrt_now_us >= _time_last_usable_us[instance] + FAIL_TIME_US);
 	}
 
-	bool isMoreAccurate(int instance, int than) const;
+	// Without a preferred receiver the selection moves to a receiver that ranks higher, and at least meets the accuracy
+	// requirements
+	enum Rank : int8_t {
+		RANK_UNUSABLE = -1,
+		RANK_USABLE = 0,
+		RANK_REQUIREMENTS = 1, ///< meets the accuracy requirements
+		RANK_RTK_FIXED = 2,    ///< meets the accuracy requirements with an RTK fixed solution
+	};
+
+	Rank rank(int instance, uint64_t hrt_now_us) const;
+
+	// The selected receiver wouldn't take over again right after a switch to instance on availability
+	bool isComparablyAvailable(int instance) const
+	{
+		return _availability[instance].getState()
+		       >= _availability[_selected_instance].getState() - 0.5f * AVAILABILITY_MARGIN;
+	}
 
 	bool hasPreferred() const { return (_preferred_instance >= 0) && (_preferred_instance < GNSS_MAX_RECEIVERS); }
 
 	// Records the vehicle_gnss_s::SELECTION_* reason for switching to instance
 	int switchTo(int instance, uint8_t reason);
+
+	// Switches away from the selected receiver because it failed
+	int failOver(int instance, uint8_t reason);
 
 	// No switch led to the selected receiver: it was the first one selected
 	static constexpr uint8_t REASON_INITIAL = UINT8_MAX;
@@ -204,9 +234,10 @@ private:
 	uint8_t _selection_reason{REASON_INITIAL};
 	int _preferred_instance{-1};
 
-	int _switch_candidate{-1};                        ///< more accurate receiver, waiting for the hold time
+	int _switch_candidate{-1};                        ///< higher ranked receiver, waiting for the hold time
 	uint64_t _switch_candidate_since_us{0};
 	bool _armed{false};
+	bool _failed_while_armed[GNSS_MAX_RECEIVERS] {}; ///< left because it failed, until disarmed
 
 	bool _selected_has_new_sample{false};
 };
