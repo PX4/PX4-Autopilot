@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -131,7 +131,7 @@ private:
 	// angular velocity filters
 	math::LowPassFilter2p<float> _lp_filter_velocity[3] {};
 
-	// static notch filters (IMU_GYRO_NF0_* .. IMU_GYRO_NF1_*)
+	// static notch filters (IMU_GYRO_NF${i}_*), has to match num_notch_filters in imu_gyro_parameters.yaml
 	static constexpr int NUM_NOTCH_FILTERS = 2;
 
 	math::NotchFilter<float> _notch_filter_velocity[NUM_NOTCH_FILTERS][3] {};
@@ -194,13 +194,74 @@ private:
 		(ParamFloat<px4::params::IMU_GYRO_DNF_MIN>) _param_imu_gyro_dnf_min,
 #endif // !CONSTRAINED_FLASH
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
-		(ParamFloat<px4::params::IMU_GYRO_NF0_FRQ>) _param_imu_gyro_nf0_frq,
-		(ParamFloat<px4::params::IMU_GYRO_NF0_BW>) _param_imu_gyro_nf0_bw,
-		(ParamFloat<px4::params::IMU_GYRO_NF1_FRQ>) _param_imu_gyro_nf1_frq,
-		(ParamFloat<px4::params::IMU_GYRO_NF1_BW>) _param_imu_gyro_nf1_bw,
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
 		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff
 	)
+};
+
+/*
+ * Compile time parameter lookup helpers
+ *
+ * Instanced parameters like IMU_GYRO_NF${i}_FRQ are generated from imu_gyro_parameters.yaml and can't be listed in
+ * DEFINE_PARAMETERS() by index. These helpers search the generated px4::parameters list by name at compile time to get
+ * the parameter handles and allow static_asserts that the number of instances in the yaml matches NUM_NOTCH_FILTERS.
+ * Nothing of this is evaluated at runtime.
+ */
+
+// returns the remainder of str after prefix, nullptr if str doesn't start with prefix
+constexpr const char *skipPrefix(const char *str, const char *prefix)
+{
+	while (*prefix != '\0') {
+		if (*str++ != *prefix++) {
+			return nullptr;
+		}
+	}
+
+	return str;
+}
+
+// compile time lookup of the float parameter <prefix><instance><suffix> (single digit instance), PARAM_INVALID if it doesn't exist
+constexpr param_t findFloatParamInstance(const char *prefix, int instance, const char *suffix)
+{
+	constexpr param_t param_count = sizeof(px4::parameters) / sizeof(px4::parameters[0]);
+
+	for (param_t handle = 0; handle < param_count; handle++) {
+		const char *rest = skipPrefix(px4::parameters[handle].name, prefix);
+
+		if ((instance >= 0) && (instance <= 9) && rest && (*rest == '0' + instance)) {
+			rest = skipPrefix(rest + 1, suffix);
+
+			if (rest && (*rest == '\0') && (px4::parameters_type[handle] == PARAM_TYPE_FLOAT)) {
+				return handle;
+			}
+		}
+	}
+
+	return PARAM_INVALID;
+}
+
+// handles of the float parameters <prefix>0<suffix> .. <prefix>N-1<suffix>, looked up at compile time
+template<int N>
+struct FloatParamInstances {
+	constexpr FloatParamInstances(const char *prefix, const char *suffix)
+	{
+		for (int i = 0; i < N; i++) {
+			handle[i] = findFloatParamInstance(prefix, i, suffix);
+		}
+	}
+
+	constexpr bool allFound() const
+	{
+		for (int i = 0; i < N; i++) {
+			if (handle[i] == PARAM_INVALID) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	param_t handle[N] {};
 };
 
 } // namespace sensors
