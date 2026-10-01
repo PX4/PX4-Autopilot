@@ -6,7 +6,7 @@ The [attitude tuning](attitude_tuning.md) must've already been completed before 
 
 ::: info
 To tune we will be using the manual [Position mode](../flight_modes_rover/manual.md#position-mode).
-This mode requires a global position estimate (GPS) and tuning of some parameters that go beyond the velocity controller.
+This mode requires a global position estimate (GNSS) and tuning of some parameters that go beyond the velocity controller.
 If you use a custom external flight mode that controls velocity but does not require a global position estimate you can ignore the [manual position mode parameters](#manual-position-mode-parameters).
 :::
 

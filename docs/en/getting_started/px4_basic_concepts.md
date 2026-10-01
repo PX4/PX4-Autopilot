@@ -203,7 +203,7 @@ PX4 does not _require_ a manual control system for autonomous flight modes.
 
 Vehicles may include a _safety switch_ that must be engaged before the vehicle can be [armed](#arming-and-disarming) (when armed, motors are powered and propellers can turn).
 
-This switch is almost always integrated into the [GPS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [buzzer](#buzzer) and [UI LED](#leds).
+This switch is almost always integrated into the [GNSS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [buzzer](#buzzer) and [UI LED](#leds).
 
 The switch may be disabled by default, though this depends on the particular flight controller and airframe configuration.
 You can disable/enable use of the switch with the [CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY) parameter.
@@ -217,7 +217,7 @@ Many argue that it is safer for users never to approach a powered system, even t
 
 Vehicles commonly include a buzzer for providing audible notification of vehicle state and readiness to fly (see [Tune meanings](../getting_started/tunes.md)).
 
-This buzzer is almost always integrated into the [GPS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [safety switch](#safety-switch) and [UI LED](#leds).
+This buzzer is almost always integrated into the [GNSS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [safety switch](#safety-switch) and [UI LED](#leds).
 You can disable the notification tunes using the parameter [CBRK_BUZZER](../advanced_config/parameter_reference.md#CBRK_BUZZER).
 
 ### LEDs
@@ -225,7 +225,7 @@ You can disable the notification tunes using the parameter [CBRK_BUZZER](../adva
 Vehicles should have a superbright [UI RGB LED](../getting_started/led_meanings.md#ui-led) that indicates the current readiness for flight.
 
 Historically this was included in the flight controller board.
-On more recent flight controllers this is almost always an [I2C peripheral](../sensor_bus/i2c_general.md) integrated into the [GPS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [safety switch](#safety-switch) and [buzzer](#buzzer).
+On more recent flight controllers this is almost always an [I2C peripheral](../sensor_bus/i2c_general.md) integrated into the [GNSS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [safety switch](#safety-switch) and [buzzer](#buzzer).
 
 ### Data/Telemetry Radios
 
@@ -317,7 +317,7 @@ Modes are special operational states that provide different types/levels of vehi
 
 _Autonomous modes_ are fully controlled by the autopilot, and require no pilot/remote control input.
 These are used, for example, to automate common tasks like takeoff, returning to the home position, and landing.
-Other autonomous modes execute pre-programmed missions, follow a GPS beacon, or accept commands from an offboard computer or ground station.
+Other autonomous modes execute pre-programmed missions, follow a GNSS beacon, or accept commands from an offboard computer or ground station.
 
 _Manual modes_ are controlled by the user (via the RC control sticks/joystick) with assistance from the autopilot.
 Different manual modes enable different flight characteristics - for example, some modes enable acrobatic tricks,

@@ -6,7 +6,7 @@ Test that external vision (VIO) works as expected
 
 ## Preflight
 
-Disconnect all GPS / compasses and ensure vehicle is using VIO for navigation
+Disconnect all GNSS / compasses and ensure vehicle is using VIO for navigation
 
 Ensure that the drone can go into [Altitude](../flight_modes_mc/altitude.md) / [Position](../flight_modes_mc/position.md) mode while still on the ground
 

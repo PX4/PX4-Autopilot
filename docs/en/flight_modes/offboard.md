@@ -24,7 +24,7 @@ The stream should be active before switching to Offboard mode, and PX4 will trig
 
 ::: info
 
-- This mode requires position or pose/attitude information - e.g. GPS, optical flow, visual-inertial odometry, mocap, etc. depending on the type of offboard setpoints that the external controller sends.
+- This mode requires position or pose/attitude information - e.g. GNSS, optical flow, visual-inertial odometry, mocap, etc. depending on the type of offboard setpoints that the external controller sends.
 - Manual control is disabled except to change modes (you can also fly without any manual controller at all by setting the parameter [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) to `4: Disable manual control`).
 - The vehicle must already be receiving a stream of MAVLink setpoint messages or ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) messages before arming in offboard mode or switching to offboard mode when flying.
 - The vehicle will exit Offboard mode if MAVLink setpoint messages or `OffboardControlMode` messages stop being received for longer than the timeout configured by [COM_OF_LOSS_T](#COM_OF_LOSS_T).

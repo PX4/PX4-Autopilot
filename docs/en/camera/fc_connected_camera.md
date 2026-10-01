@@ -17,7 +17,7 @@ This timestamp can be used for several purposes, including: timestamping photos 
 The camera can be connected to different outputs, including PWM outputs, GPIO outputs, and a Seagull MAP2 via PWM outputs.
 
 Cameras can also (optionally) signal PX4 at the exact moment that a photo/frame is taken using a [camera capture pin](#camera-capture-configuration) that is attached to their hot shoe.
-This allows more precise mapping of images to GPS position for geotagging, or the right IMU sample for VIO synchronization, etc.
+This allows more precise mapping of images to GNSS position for geotagging, or the right IMU sample for VIO synchronization, etc.
 
 <!-- Camera trigger driver: https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger -->
 <!-- Camera capture driver: https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_capture -->
@@ -149,7 +149,7 @@ The full list of parameters pertaining to the camera trigger module can be found
 ## Camera Capture Configuration
 
 Cameras can also (optionally) use a camera capture pin to signal the exact moment when a photo/frame is taken.
-This allows more precise mapping of images to GPS position for geotagging, or the right IMU sample for VIO synchronization, etc.
+This allows more precise mapping of images to GNSS position for geotagging, or the right IMU sample for VIO synchronization, etc.
 
 Camera capture/feedback is enabled in PX4 by setting [CAM_CAP_FBACK = 1](../advanced_config/parameter_reference.md#CAM_CAP_FBACK).
 The pin used for camera capture is then set in the _QGroundControl_ [Actuators](../config/actuators.md) configuration screen by assigning the `Camera_Capture` function on any FMU output.

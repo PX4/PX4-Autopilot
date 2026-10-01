@@ -1,11 +1,11 @@
-# RTK GPS Heading with Dual u-blox F9P
+# RTK GNSS Heading with Dual u-blox F9P
 
-Two u-blox F9P [RTK GPS](../gps_compass/rtk_gps.md) modules mounted on a vehicle can be used to accurately compute a heading angle (i.e. an alternative to compass-based heading estimation).
-The two GPS devices in this scenario are referred to as the _Moving Base_ and _Rover_.
+Two u-blox F9P [RTK GNSS](../gps_compass/rtk_gps.md) modules mounted on a vehicle can be used to accurately compute a heading angle (i.e. an alternative to compass-based heading estimation).
+The two GNSS devices in this scenario are referred to as the _Moving Base_ and _Rover_.
 
 ## Supported Devices
 
-This feature works on F9P devices that support CAN or expose the GPS UART2 port.
+This feature works on F9P devices that support CAN or expose the GNSS UART2 port.
 
 The following devices are supported:
 
@@ -29,34 +29,34 @@ Ideally the two antennas should be identical, on the same level/horizontal plane
 
 - The application note does not state the minimal required separation between modules (50cm has been used in test vehicles running PX4).
 - The antennas can be positioned as needed, but the heading baseline must be configured:
-  [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source).
+  [RTK GNSS > GNSS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source).
 
 ### UART Setup
 
-- The UART2 of the GPS devices need to be connected together (TXD2 of the "Moving Base" to RXD2 of the "Rover")
-- Connect UART1 on each of the GPS to (separate) unused UART's on the autopilot, and configure both of them as GPS with baudrate set to `Auto`.
+- The UART2 of the GNSS devices need to be connected together (TXD2 of the "Moving Base" to RXD2 of the "Rover")
+- Connect UART1 on each of the GNSS receivers to (separate) unused UART's on the autopilot, and configure both of them as GNSS with baudrate set to `Auto`.
   The mapping is as follows:
-  - Main GPS = Rover
-  - Secondary GPS = Moving Base
+  - Main GNSS = Rover
+  - Secondary GNSS = Moving Base
 - Set [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `Heading` (1)
 - Set [GPS_UBX_BAUD1](../advanced_config/parameter_reference.md#GPS_UBX_BAUD1) if a UART1 rate other than the default is required (0 keeps 115200). Use a higher rate for high update rates or when RTCM is sent on UART1 ([GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) 3/4), and a lower rate on long serial cables.
 - Set [GPS_UBX_BAUD2](../advanced_config/parameter_reference.md#GPS_UBX_BAUD2) if a UART2 rate other than the default (230400) is required. UART2 carries RTCM between the modules in this setup.
-- [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter bit 3 must be set (see [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
-- Set [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) to `Moving base rover` for the rover's slot, and the antenna offsets of both receivers (see [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
+- [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter bit 3 must be set (see [RTK GNSS > GNSS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
+- Set [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) to `Moving base rover` for the rover's slot, and the antenna offsets of both receivers (see [RTK GNSS > GNSS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
 - Leave [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) at `Auto`: the Moving Base is then the [primary receiver](../gps_compass/index.md#multiple-receivers).
-- Reboot and wait until both devices have GPS reception.
-  `gps status` should then show the Main GPS going into RTK mode, which means the heading angle is available.
+- Reboot and wait until both devices have GNSS reception.
+  `gps status` should then show the Main GNSS going into RTK mode, which means the heading angle is available.
 
 ### CAN Setup
 
 Refer to the CAN RTK GPS documentation for each specific device for the setup instructions (such as [ARK RTK GPS > Setting Up Moving Baseline & GPS Heading](../dronecan/ark_rtk_gps.md#setting-up-moving-baseline-gps-heading))
 
 ::: info
-If using RTK with a fixed base station the secondary GPS will show the RTK state w.r.t. the base station.
+If using RTK with a fixed base station the secondary GNSS receiver will show the RTK state w.r.t. the base station.
 :::
 
 ## Further Information
 
 - [ZED-F9P Moving base applications (Application note)](https://content.u-blox.com/sites/default/files/documents/ZED-F9P-MovingBase_AppNote_UBX-19009093.pdf) - General setup/instructions.
 - [u-blox Diagnostics with u-center](../gps_compass/u-center.md) - UART2 diagnostic mode (not available with heading/moving-base modes, which already use UART2 for RTCM).
-- [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)
+- [RTK GNSS > GNSS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)
