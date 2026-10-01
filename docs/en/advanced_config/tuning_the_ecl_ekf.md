@@ -728,11 +728,23 @@ For a binary pass/fail summary for each sensor, refer to innovation_check_flags 
 
 ### GPS Quality Checks
 
-The EKF applies a number of GPS quality checks before commencing GPS aiding.
-These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
-The pass/fail status for these checks is logged in [VehicleGnss](../msg_docs/VehicleGnss.md) `failed_checks` for the selected receiver, and in [SensorsStatusGnss](../msg_docs/SensorsStatusGnss.md) `failed_checks` for each receiver.
-This integer will be zero when all required GPS checks have passed.
-If the EKF is not commencing GPS alignment, check the value of the integer against the `CHECK_*` bits in [VehicleGnss](../msg_docs/VehicleGnss.md), and why the EKF does not fuse the samples in [EstimatorStatusFlags](../msg_docs/EstimatorStatusFlags.md) `gnss_fusion_state`.
+The sensors module runs the [quality checks](#gnss-performance-requirements).
+`vehicle_gnss.failed_checks` holds the checks that the selected receiver's sample failed, in [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) bit order, and `sensors_status_gnss.failed_checks` those of every receiver.
+
+`estimator_status_flags.gnss_fusion_state` gives the reason EKF2 fused the latest GNSS sample or not.
+Horizontal position and velocity count, and height only when [EKF2_GPS_CTRL] enables GNSS height alone.
+
+| Value | Name                    | Meaning                                                                                                       |
+| ----- | ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 0     | `GNSS_FUSION_FUSED`     | Fused                                                                                                         |
+| 1     | `GNSS_FUSION_NO_DATA`   | No sample for 1 s                                                                                             |
+| 2     | `GNSS_FUSION_UNUSABLE`  | The sample failed its quality checks                                                                          |
+| 3     | `GNSS_FUSION_REJECTED`  | Innovation outside the gate                                                                                   |
+| 4     | `GNSS_FUSION_VEL_LIMIT` | Velocity above [EKF2_VEL_LIM]                                                                                 |
+| 5     | `GNSS_FUSION_INACTIVE`  | Not in use: disabled in [EKF2_GPS_CTRL], tilt or yaw not aligned, waiting to restart, or GNSS declared faulty |
+
+[EKF2_VEL_LIM]: ../advanced_config/parameter_reference.md#EKF2_VEL_LIM
+[EKF2_GPS_CTRL]: ../advanced_config/parameter_reference.md#EKF2_GPS_CTRL
 
 ### EKF Numerical Errors
 
