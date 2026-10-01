@@ -145,11 +145,9 @@ class SerialBridge:
                     break
                 if not data:
                     continue
-                for i in range(0, len(data), MAX_PAYLOAD):
-                    chunk = data[i:i + MAX_PAYLOAD]
-                    send_serial_control(self.mav, self.device, self.port_baud, chunk)
-                    if self.verbose:
-                        print(f"  PTY -> MAVLink: {len(chunk)} bytes: {chunk.hex(' ')}")
+                send_serial_control(self.mav, self.device, self.port_baud, data)
+                if self.verbose:
+                    print(f"  PTY -> MAVLink: {len(data)} bytes: {data.hex(' ')}")
         except Exception as e:
             print(f"ERROR: pty_to_mavlink crashed: {e}", file=sys.stderr)
         finally:
