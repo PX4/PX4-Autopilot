@@ -73,6 +73,39 @@ public:
 	}
 };
 
+TEST_F(EkfExternalVisionTest, visionNedBiasSurvivesYawAlignmentLoss)
+{
+	_sensor_simulator.runSeconds(_tilt_align_time);
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(12.f);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	_sensor_simulator._vio.setPositionFrameToLocalNED();
+	_sensor_simulator._vio.setPosition(Vector3f(10.f, -5.f, 0.f));
+	_ekf_wrapper.enableExternalVisionPositionFusion();
+	_sensor_simulator.startExternalVision();
+	_sensor_simulator.runSeconds(5.f);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingExternalVisionPositionFusion());
+	const Vector3f before = _ekf->getPosition();
+
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(3.f);
+	_sensor_simulator.stopExternalVision();
+	_sensor_simulator.runSeconds(3.f);
+	_sensor_simulator._mag.stop();
+	_sensor_simulator.runSeconds(2.f);
+	ASSERT_FALSE(_ekf->control_status_flags().yaw_align);
+	_sensor_simulator.startExternalVision();
+	_sensor_simulator.runSeconds(0.5f);
+	ASSERT_FALSE(_ekf_wrapper.isIntendingExternalVisionPositionFusion());
+	_sensor_simulator._mag.start();
+	_sensor_simulator.runSeconds(2.f);
+	ASSERT_TRUE(_ekf->control_status_flags().yaw_align);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingExternalVisionPositionFusion());
+	EXPECT_NEAR(_ekf->getPosition()(0), before(0), 0.2f);
+	EXPECT_NEAR(_ekf->getPosition()(1), before(1), 0.2f);
+}
+
 TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 {
 	_sensor_simulator.runSeconds(_tilt_align_time); // Let the tilt align

@@ -416,40 +416,63 @@ TEST_F(EkfGpsHeadingTest, continuesWhenPositionQualityPoor)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 }
 
-TEST_F(EkfGpsHeadingTest, flaggedReceiver)
+TEST_F(EkfGpsHeadingTest, unusableHeading)
 {
-	// GIVEN: the spoofing and jamming checks enabled and a good heading from a receiver reporting spoofing
-	_ekf->getParamHandle()->gnss_check |= vehicle_gnss_s::CHECK_SPOOFED | vehicle_gnss_s::CHECK_JAMMED;
+	// GIVEN: a good heading that the sensors module marks unusable, as its receiver reports spoofing
 	const float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(20.f));
 	_sensor_simulator._gnss_yaw.setYaw(gps_heading);
-	_sensor_simulator._gnss_yaw.setSpoofed(true);
+	_sensor_simulator._gnss_yaw.setUsable(false);
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
-	_sensor_simulator.runSeconds(2);
+	_sensor_simulator.runSeconds(4);
 
 	// THEN: the heading is not used
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 
-	// WHEN: the receiver reports jamming instead, then clears the flag
-	_sensor_simulator._gnss_yaw.setSpoofed(false);
-	_sensor_simulator._gnss_yaw.setJammed(true);
-	_sensor_simulator.runSeconds(2);
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-	_sensor_simulator._gnss_yaw.setJammed(false);
+	// WHEN: the heading becomes usable again
+	_sensor_simulator._gnss_yaw.setUsable(true);
 	_sensor_simulator.runSeconds(5);
 
-	// THEN: like the position checks, the heading is trusted for a reset only after the GNSS health time (10s)
+	// THEN: the heading is trusted for a reset only after EKF2_REQ_GPS_H (10 s)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	_sensor_simulator.runSeconds(6);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 	checkConvergence(gps_heading, 0.5f);
 
-	// WHEN: the receiver reports spoofing while its heading is fused
-	_sensor_simulator._gnss_yaw.setSpoofed(true);
+	// WHEN: the heading becomes unusable while it is fused
+	_sensor_simulator._gnss_yaw.setUsable(false);
 	_sensor_simulator.runSeconds(8);
 
 	// THEN: like position fusion, the fusion stops after the reset timeout
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+}
+
+TEST_F(EkfGpsHeadingTest, inaccurateHeadingDoesNotReset)
+{
+	// GIVEN: a receiver still resolving its baseline, reporting a heading 30 deg off with a 1 rad accuracy
+	const float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(30.f));
+	_sensor_simulator._gnss_yaw.setYaw(gps_heading);
+	_sensor_simulator._gnss_yaw.setYawAccuracy(1.f);
+	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+	_sensor_simulator.runSeconds(4);
+
+	// THEN: GNSS yaw fusion doesn't start, so yaw isn't reset to it
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
+
+	// WHEN: the reported accuracy drops below 15 deg
+	const float yaw_acc = math::radians(10.f);
+	_sensor_simulator._gnss_yaw.setYawAccuracy(yaw_acc);
+
+	for (int i = 0; (i < 100) && (_ekf_wrapper.getQuaternionResetCounter() == initial_quat_reset_counter); i++) {
+		_sensor_simulator.runMicroseconds(10000);
+	}
+
+	// THEN: fusion starts with a reset to the heading, as uncertain as the reported accuracy
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
+	checkConvergence(gps_heading, 0.5f);
+	EXPECT_NEAR(_ekf->getYawVar(), yaw_acc * yaw_acc, 0.1f * yaw_acc * yaw_acc);
 }
 
 TEST_F(EkfGpsHeadingTest, fusesAtOwnRate)

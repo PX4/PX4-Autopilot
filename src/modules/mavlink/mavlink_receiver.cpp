@@ -2759,10 +2759,11 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	gnss.jamming_state = 0;
 	gnss.spoofing_state = 0;
 
-	gnss.ground_speed = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
 	gnss.vel_north = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
 	gnss.vel_east = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
 	gnss.vel_down = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+	gnss.ground_speed = (hil_gps.vel == UINT16_MAX) ? matrix::Vector2f(gnss.vel_north, gnss.vel_east).norm() :
+			    (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
 	gnss.course = ((hil_gps.cog == 65535) ? (float)NAN : matrix::wrap_2pi(math::radians(
 				hil_gps.cog * 1e-2f))); // cdeg -> rad
 	gnss.vel_ned_valid = true;

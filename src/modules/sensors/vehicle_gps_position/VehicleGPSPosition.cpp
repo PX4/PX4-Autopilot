@@ -35,11 +35,24 @@
 
 #include <px4_platform_common/log.h>
 #include <lib/geo/geo.h>
-#include <lib/gnss/SensorGpsSelector.hpp>
+#include <lib/drivers/device/Device.hpp>
 #include <lib/mathlib/mathlib.h>
 
 namespace sensors
 {
+
+// SENS_GNSS_PRIME values 2-127 designate a DroneCAN receiver by node ID
+static bool nodeIdMatches(int32_t gnss_prime, uint32_t device_id)
+{
+	if ((gnss_prime < 2) || (gnss_prime > 127)) {
+		return false;
+	}
+
+	device::Device::DeviceId id{};
+	id.devid = device_id;
+
+	return (id.devid_s.bus_type == device::Device::DeviceBusType_UAVCAN) && (id.devid_s.address == gnss_prime);
+}
 
 static gnssChecksSample toChecksSample(const sensor_gnss_s &gnss)
 {
@@ -209,10 +222,14 @@ void VehicleGPSPosition::Run()
 			_receiver_device_id[i] = gnss_data.device_id;
 			_receiver_timestamp[i] = gnss_data.timestamp;
 
+			if (_first_publication[i] == 0) {
+				_first_publication[i] = ++_receivers_published;
+			}
+
 			_gps_blending.setAntennaOffset(antenna_offset, i);
 			_gps_blending.setGnssData(gnss_data, i);
 
-			if (SensorGpsSelector::node_id_matches(gnss_prime, gnss_data.device_id)) {
+			if (nodeIdMatches(gnss_prime, gnss_data.device_id)) {
 				_gps_blending.setPrimaryInstance(i);
 			}
 
@@ -223,6 +240,7 @@ void VehicleGPSPosition::Run()
 	}
 
 	if (any_gnss_updated) {
+		_preferred_instance = resolvePreferredInstance();
 		_gps_blending.update(hrt_absolute_time());
 
 		if (_gps_blending.isNewOutputDataAvailable()) {
@@ -239,6 +257,9 @@ void VehicleGPSPosition::Run()
 				// PPS provided a correction — use it instead of the per-receiver delay
 				gnss_output.receiver.timestamp_sample = pps_timestamp;
 			}
+
+			gnss_output.selected_instance = _gps_blending.getSelectedGps();
+			gnss_output.selection_count = _gps_blending.getSelectionCount();
 
 			// The selected receiver's checker ran on this sample
 			const GnssChecks &checks = _gnss_checks[_gps_blending.getSelectedGps()];
@@ -362,6 +383,16 @@ void VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 	heading_out.baseline_length = sample.baseline_length;
 	heading_out.jamming_state = sample.jamming_state;
 	heading_out.spoofing_state = sample.spoofing_state;
+
+	// The heading receiver's spoofing and jamming reports gate the heading under the same GNSS_CHECK bits as the
+	// position; its other checks don't apply, as the heading is a separate observation
+	const int32_t check_mask = _param_gnss_check.get();
+	const bool spoofed = (sample.spoofing_state == sensor_gnss_s::SPOOFING_STATE_DETECTED)
+			     && (check_mask & vehicle_gnss_s::CHECK_SPOOFED);
+	const bool jammed = (sample.jamming_state == sensor_gnss_s::JAMMING_STATE_DETECTED)
+			    && (check_mask & vehicle_gnss_s::CHECK_JAMMED);
+	heading_out.usable = !spoofed && !jammed;
+
 	heading_out.timestamp = hrt_absolute_time();
 	_vehicle_gnss_heading_pub.publish(heading_out);
 }
@@ -387,11 +418,29 @@ void VehicleGPSPosition::UpdateVehicleState()
 
 void VehicleGPSPosition::PublishStatus()
 {
-	static_assert(GPS_MAX_RECEIVERS <= (sizeof(sensors_status_gnss_s::device_ids) / sizeof(sensors_status_gnss_s::device_ids[0])),
-		      "sensors_status_gnss has too few receiver entries");
+	static_assert(GPS_MAX_RECEIVERS <= sensors_status_gnss_s::MAX_RECEIVERS, "sensors_status_gnss has too few receiver entries");
+	static_assert(sensors_status_gnss_s::MAX_RECEIVERS == (sizeof(sensors_status_gnss_s::order) / sizeof(
+				sensors_status_gnss_s::order[0])), "MAX_RECEIVERS must match the array length");
 
 	sensors_status_gnss_s status{};
 	status.device_id_selected = _selected_device_id;
+
+	// An operator reads GPS_RAW_INT and GPS2_RAW as fixed receivers, so the order doesn't follow the selection: the
+	// preferred receiver first, the others as they first published. A configured preference keeps position 0 free
+	// until its receiver publishes.
+	for (int8_t &order : status.order) {
+		order = -1;
+	}
+
+	int8_t next_order = hasConfiguredPreference() ? 1 : 0;
+
+	for (uint8_t publication = 1; publication <= _receivers_published; publication++) {
+		for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+			if (_first_publication[i] == publication) {
+				status.order[i] = (i == _preferred_instance) ? 0 : next_order++;
+			}
+		}
+	}
 
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -410,6 +459,28 @@ void VehicleGPSPosition::PublishStatus()
 
 	status.timestamp = hrt_absolute_time();
 	_sensors_status_gnss_pub.publish(status);
+}
+
+int VehicleGPSPosition::resolvePreferredInstance() const
+{
+	const int gnss_prime = _param_sens_gnss_prime.get();
+
+	if (math::isInRange(gnss_prime, 0, GPS_MAX_RECEIVERS - 1)) {
+		return gnss_prime;
+	}
+
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if ((_receiver_device_id[i] != 0) && nodeIdMatches(gnss_prime, _receiver_device_id[i])) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+bool VehicleGPSPosition::hasConfiguredPreference() const
+{
+	return _param_sens_gnss_prime.get() != -1;
 }
 
 const VehicleGPSPosition::GpsParamSlot *VehicleGPSPosition::findParamSlot(uint32_t device_id, int instance) const

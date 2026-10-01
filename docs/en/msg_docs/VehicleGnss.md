@@ -6,21 +6,23 @@ pageClass: is-wide-page
 
 Selected GNSS solution.
 
-Published by the sensors module for every sample of the selected receiver, usable or not, with the check result for that sample.
+Published by the sensors module for every sample of the selected receiver, usable or not, with the selection state and the check result for that sample.
 Heading is on vehicle_gnss_heading.
 
 **TOPICS:** vehicle_gnss
 
 ## Fields
 
-| Name                                              | Type         | Unit [Frame] | Range/Enum      | Description                                                                                                   |
-| ------------------------------------------------- | ------------ | ------------ | --------------- | ------------------------------------------------------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp               | `uint64`     | us           |                 | Time since system start                                                                                       |
-| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     | us           |                 | Measurement time, delay corrected. Use this rather than receiver.timestamp_sample, which holds the same value |
-| <a id="fld_receiver"></a>receiver                 | `SensorGnss` |              |                 | The selected receiver's sensor_gnss sample with the corrected timestamp_sample                                |
-| <a id="fld_antenna_offset"></a>antenna_offset     | `float32[3]` | m [FRD]      |                 | Antenna position of the selected receiver                                                                     |
-| <a id="fld_usable"></a>usable                     | `bool`       |              |                 | Sample may be used: the receiver has passed its checks for long enough                                        |
-| <a id="fld_failed_checks"></a>failed_checks       | `uint16`     |              | [CHECK](#CHECK) | Bitmask of the enabled checks that failed                                                                     |
+| Name                                                | Type         | Unit [Frame] | Range/Enum      | Description                                                                                                   |
+| --------------------------------------------------- | ------------ | ------------ | --------------- | ------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                 | `uint64`     | us           |                 | Time since system start                                                                                       |
+| <a id="fld_timestamp_sample"></a>timestamp_sample   | `uint64`     | us           |                 | Measurement time, delay corrected. Use this rather than receiver.timestamp_sample, which holds the same value |
+| <a id="fld_receiver"></a>receiver                   | `SensorGnss` |              |                 | The selected receiver's sensor_gnss sample with the corrected timestamp_sample                                |
+| <a id="fld_antenna_offset"></a>antenna_offset       | `float32[3]` | m [FRD]      |                 | Antenna position of the selected receiver                                                                     |
+| <a id="fld_selected_instance"></a>selected_instance | `uint8`      |              |                 | sensor_gnss instance of the selected receiver                                                                 |
+| <a id="fld_selection_count"></a>selection_count     | `uint8`      |              |                 | Increments when the selected receiver changes                                                                 |
+| <a id="fld_usable"></a>usable                       | `bool`       |              |                 | Sample may be used: the receiver has passed its checks for long enough                                        |
+| <a id="fld_failed_checks"></a>failed_checks         | `uint16`     |              | [CHECK](#CHECK) | Bitmask of the enabled checks that failed                                                                     |
 
 ## Enums
 
@@ -52,7 +54,7 @@ Used in field(s): [failed_checks](#fld_failed_checks)
 ```c
 # Selected GNSS solution
 #
-# Published by the sensors module for every sample of the selected receiver, usable or not, with the check result for that sample.
+# Published by the sensors module for every sample of the selected receiver, usable or not, with the selection state and the check result for that sample.
 # Heading is on vehicle_gnss_heading.
 
 uint64 timestamp        # [us] Time since system start
@@ -61,6 +63,10 @@ uint64 timestamp_sample # [us] Measurement time, delay corrected. Use this rathe
 SensorGnss receiver # The selected receiver's sensor_gnss sample with the corrected timestamp_sample
 
 float32[3] antenna_offset # [m] [@frame FRD] Antenna position of the selected receiver
+
+# Selection state
+uint8 selected_instance # [-] sensor_gnss instance of the selected receiver
+uint8 selection_count   # [-] Increments when the selected receiver changes
 
 # Check result for this sample
 bool usable                 # Sample may be used: the receiver has passed its checks for long enough

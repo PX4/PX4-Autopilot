@@ -46,7 +46,6 @@
 #include "estimator_interface.h"
 
 #if defined(CONFIG_EKF2_GNSS)
-# include <uORB/topics/vehicle_gnss.h>
 # include "yaw_estimator/EKFGSF_yaw.h"
 #endif // CONFIG_EKF2_GNSS
 
@@ -578,11 +577,12 @@ private:
 	Vector3f _ref_body_rate{};
 
 	Vector2f _flow_vel_body{};                      ///< velocity from corrected flow measurement (body frame)(m/s)
-	AlphaFilter<Vector2f> _flow_vel_body_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
+	AlphaFilter<Vector2f> _flow_vel_body_lpf{_kSensorLpfTimeConstant}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
 	uint32_t _flow_counter{0};                      ///< number of flow samples read for initialization
 
 	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
-	AlphaFilter<Vector2f> _flow_rate_compensated_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};
+	AlphaFilter<Vector2f> _flow_rate_compensated_lpf{_kSensorLpfTimeConstant};
+	uint64_t _flow_lpf_time_last_us{0};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -624,6 +624,10 @@ private:
 	estimator_aid_source3d_s _aid_src_gnss_vel{};
 
 	uint64_t _time_last_gnss_hgt_rejected{0};
+
+	// selection_count of the last GNSS sample used by the position and height control, to detect a receiver change
+	uint8_t _gnss_pos_selection_count{0};
+	uint8_t _gnss_hgt_selection_count{0};
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	estimator_aid_source1d_s _aid_src_gnss_yaw {};
@@ -667,7 +671,8 @@ private:
 
 	estimator_aid_source3d_s _aid_src_mag{};
 
-	AlphaFilter<Vector3f> _mag_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered magnetometer measurement for instant reset (Gauss)
+	AlphaFilter<Vector3f> _mag_lpf{_kSensorLpfTimeConstant};	///< filtered magnetometer measurement for instant reset (Gauss)
+	uint64_t _mag_lpf_time_last_us{0};
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
 
 	// Variables used to control activation of post takeoff functionality

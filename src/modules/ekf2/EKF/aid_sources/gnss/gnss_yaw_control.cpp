@@ -78,21 +78,26 @@ void Ekf::controlGnssYawFusion(const imuSample &imu_delayed)
 	const bool is_gnss_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push,
 			2 * GNSS_YAW_MAX_INTERVAL);
 
-	// The heading receiver's own spoofing and jamming state, under the same GNSS_CHECK bits and with the same
-	// effect as for position: its samples aren't fused, fusion stops once none has been for the reset timeout, and a
-	// reset waits for the GNSS health time. The position checks themselves don't gate the heading: it is a separate
+	// The sensors module marks a heading unusable when its receiver reports spoofing or jamming, with the same effect
+	// as for position: its samples aren't fused, fusion stops once none has been for the reset timeout, and a reset
+	// waits for the GNSS health time. The position checks themselves don't gate the heading: it is a separate
 	// observation, often from a separate receiver.
-	const bool is_heading_receiver_flagged =
-		(gnss_yaw_sample.spoofed && (_params.gnss_check & vehicle_gnss_s::CHECK_SPOOFED))
-		|| (gnss_yaw_sample.jammed && (_params.gnss_check & vehicle_gnss_s::CHECK_JAMMED));
+	const bool is_heading_receiver_flagged = !gnss_yaw_sample.usable;
 
 	if (is_heading_receiver_flagged) {
 		_time_last_gnss_yaw_fail_us = _time_delayed_us;
 	}
 
+	// A receiver still resolving its baseline can report a heading with an accuracy of tens of degrees. Starting may
+	// reset yaw to it, so hold it to the bar the yaw estimator must meet before a reset. Not every receiver reports an
+	// accuracy.
+	const bool is_gnss_yaw_accurate = !PX4_ISFINITE(gnss_yaw_sample.yaw_acc)
+					  || (gnss_yaw_sample.yaw_acc < _params.EKFGSF_yaw_err_max);
+
 	const bool starting_conditions_passing = continuing_conditions_passing
 			&& !is_gnss_yaw_data_intermittent
-			&& !is_heading_receiver_flagged;
+			&& !is_heading_receiver_flagged
+			&& is_gnss_yaw_accurate;
 
 	if (_control_status.flags.gnss_yaw) {
 		if (continuing_conditions_passing) {
@@ -249,7 +254,9 @@ bool Ekf::resetYawToGnss(const float gnss_yaw, const float gnss_yaw_offset)
 	// the sensors module has already rotated the GNSS yaw measurement from the baseline into the body frame
 	const float measured_yaw = gnss_yaw;
 
-	const float yaw_variance = sq(fmaxf(_params.gnss_heading_noise, 1.e-2f));
+	// Take the variance updateGnssYaw() derived from this sample's reported accuracy, so the reset is no more confident
+	// than the measurement
+	const float yaw_variance = fmaxf(_aid_src_gnss_yaw.observation_variance, sq(1.e-2f));
 	resetQuatStateYaw(measured_yaw, yaw_variance);
 
 	return true;
