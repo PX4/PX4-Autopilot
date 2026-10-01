@@ -130,6 +130,9 @@ public:
 		// Capture any GPS health issue regardless of log level (Warning or Error).
 		_health_warning_gps = (reporter.healthResults().warning | reporter.healthResults().error) & health_component_t::gps;
 		_can_arm_all_modes = reporter.armingCheckResults().can_arm == NavModes::All;
+		_arming_warning_gps = reporter.armingCheckResults().warning & health_component_t::gps;
+		_arming_error_gps = reporter.armingCheckResults().error & health_component_t::gps;
+		_can_arm = reporter.armingCheckResults().can_arm;
 	}
 
 	void setGnssLossAct(int32_t com_gnssloss_act)
@@ -160,6 +163,9 @@ public:
 	failsafe_flags_s  _failsafe_flags{};
 	bool              _health_warning_gps{false};
 	bool              _can_arm_all_modes{false};
+	bool              _arming_warning_gps{false};
+	bool              _arming_error_gps{false};
+	NavModes          _can_arm{NavModes::None};
 	GnssRedundancyChecks _check;
 };
 
@@ -385,4 +391,25 @@ TEST_F(GnssRedundancyChecksTest, StaleStatusDoesNotCount)
 	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON));
 	runCheck();
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+}
+
+// A configured primary receiver that is not publishing is a warning before arming, not a reason to refuse it.
+TEST_F(GnssRedundancyChecksTest, PrimaryOfflineWarnsBeforeArming)
+{
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON));
+	runCheck();
+	ASSERT_FALSE(_arming_warning_gps);
+	const NavModes can_arm = _can_arm;
+
+	_status.primary_offline = true;
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON));
+	runCheck();
+	EXPECT_TRUE(_arming_warning_gps);
+	EXPECT_FALSE(_arming_error_gps);
+	EXPECT_EQ(_can_arm, can_arm);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+
+	// in flight the switch away from it is reported instead
+	runCheck(true);
+	EXPECT_FALSE(_arming_warning_gps);
 }
