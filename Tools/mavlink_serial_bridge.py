@@ -113,12 +113,14 @@ def setup_passthrough(mav):
     )
     print("Reboot command sent. Waiting for FMU to come back online...")
     time.sleep(2)  # Give the FMU time to start rebooting
-    while True:
-        hb = mav.recv_match(type='HEARTBEAT', blocking=True, timeout=30)
-        if hb is None:
-            raise TimeoutError("FMU did not come back online within 30 seconds")
-        if hb.get_srcSystem() == mav.target_system and hb.get_srcComponent() == mav.target_component:
+    # Overall deadline: heartbeats from other components must not keep the wait alive
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        hb = mav.recv_match(type='HEARTBEAT', blocking=True, timeout=deadline - time.monotonic())
+        if hb and hb.get_srcSystem() == mav.target_system and hb.get_srcComponent() == mav.target_component:
             break
+    else:
+        raise TimeoutError("FMU did not come back online within 30 seconds")
     print("FMU back online")
 
 
