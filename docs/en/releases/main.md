@@ -27,6 +27,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ## Major Changes
 
 - **[Motor failure recovery for hexarotors](../config/motor_failure_recovery.md).** On a detected single motor failure the control allocator removes the failed motor and, on a hexarotor, additionally stops ([CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1`) or reverses (`2`) the motor opposite it, recovering the yaw authority that is otherwise lost. Reversing keeps the opposite motor in the allocation and needs a reverse-capable ESC; the reverse thrust the allocator expects from a forward propeller is set with [CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) (default `0.4`). Disabled by default. ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
+- **[GNSS receiver selection](../gps_compass/index.md#multiple-receivers).** The sensors module checks every receiver and passes one of them to EKF2. While disarmed the primary receiver ([SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME)) is selected whenever it publishes, and in flight it is kept until it fails; without a primary receiver, the selection moves to a receiver that meets the `GNSS_REQ_*` accuracy requirements, and then to one with an RTK fixed solution. A receiver fails after 2 s without a usable sample, or when it is usable markedly less often than the other one, and is not selected again before disarm unless the other one fails. EKF2 resets its horizontal position to the new receiver, and the sensors module reports each switch and its reason as an event. `GPS_RAW_INT` and `GPS2_RAW` stream one receiver each for the whole session and do not follow the selection. ([PX4-Autopilot#28939](https://github.com/PX4/PX4-Autopilot/pull/28939), [PX4-Autopilot#28940](https://github.com/PX4/PX4-Autopilot/pull/28940), [PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798), [PX4-Autopilot#28954](https://github.com/PX4/PX4-Autopilot/pull/28954))
 
 ## Upgrade Guide
 
@@ -43,10 +44,21 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   ROS 2 applications must subscribe to `/fmu/out/vehicle_gnss` (`px4_msgs/msg/VehicleGnss`) instead of `/fmu/out/vehicle_gps_position` (`px4_msgs/msg/SensorGps`).
   Read the timestamps from the top level of `VehicleGnss`: only `timestamp` and `timestamp_sample` are converted to ROS time, while `receiver.timestamp` and `receiver.timestamp_sample` stay on the PX4 boot clock.
   `timestamp` is now when the sensors module published the sample; use `timestamp_sample` for the measurement time.
-  `SENS_GPS_MASK`, `SENS_GPS_TAU`, `SENS_GPS_PRIME` and `SENS_GPSn_ID/OFFX/OFFY/OFFZ/DELAY` are now `SENS_GNSS_*` and `SENS_GNSSn_*` (the driver `GPS_*` and `EKF2_*` parameters are unchanged).
+  `SENS_GPS_PRIME` and `SENS_GPSn_ID/OFFX/OFFY/OFFZ/DELAY` are now `SENS_GNSS_PRIME` and `SENS_GNSSn_*` (the driver `GPS_*` parameters are unchanged).
   Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them.
   The log analysis scripts in the tree read both the old and the new names.
   The uORB-over-Cyphal registers are renamed from `uorb.sensor_gps` to `uorb.sensor_gnss` (`uavcan.sub.uorb.sensor_gnss.0.id`, `uavcan.pub.uorb.sensor_gnss.0.id`); `UCAN1_UORB_GPS` and `UCAN1_UORB_GPS_P` are unchanged. ([PX4-Autopilot#24399](https://github.com/PX4/PX4-Autopilot/pull/24399))
+- **GNSS blending is removed.** `SENS_GPS_MASK` and `SENS_GPS_TAU` no longer exist: EKF2 fuses one [selected receiver](../gps_compass/index.md#multiple-receivers). ([PX4-Autopilot#28921](https://github.com/PX4/PX4-Autopilot/pull/28921))
+- **The GNSS quality checks moved from EKF2 to the sensors module**, which runs them for every receiver.
+  `EKF2_GPS_CHECK` and `EKF2_REQ_EPH/EPV/NSATS/PDOP/HDRIFT/VDRIFT/FIX` are now [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and [`GNSS_REQ_*`](../advanced_config/tuning_the_ecl_ekf.md#gnss-performance-requirements), and saved values are migrated.
+  [EKF2_REQ_SACC](../advanced_config/parameter_reference.md#EKF2_REQ_SACC) and [EKF2_REQ_GPS_H](../advanced_config/parameter_reference.md#EKF2_REQ_GPS_H) remain for EKF2's own threshold and wait; a saved value is also copied to [GNSS_REQ_SACC](../advanced_config/parameter_reference.md#GNSS_REQ_SACC) and [GNSS_REQ_TIME](../advanced_config/parameter_reference.md#GNSS_REQ_TIME).
+  `estimator_gps_status` is removed: the check result of each sample is `vehicle_gnss.usable` and `vehicle_gnss.failed_checks`, and that of each receiver is on `sensors_status_gnss`. ([PX4-Autopilot#28520](https://github.com/PX4/PX4-Autopilot/pull/28520), [PX4-Autopilot#28935](https://github.com/PX4/PX4-Autopilot/pull/28935))
+- **[SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) defaults to `-1` (Auto)** instead of `0`.
+  With Auto the moving base of a moving base pair is the primary receiver; without one, the receivers rank by the accuracy requirements and an RTK fixed solution.
+  Set it to `0` to keep the main serial receiver as the primary. ([PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
+- **`estimator_status.gps_check_fail_flags` is removed**, with its `GPS_CHECK_FAIL_*` constants.
+  Read `vehicle_gnss.failed_checks` or `sensors_status_gnss.failed_checks` instead, whose bits follow [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK). ([PX4-Autopilot#28954](https://github.com/PX4/PX4-Autopilot/pull/28954))
+- **SIH simulates a second GNSS receiver only with [SIM_GNSS_NUM](../advanced_config/parameter_reference.md#SIM_GNSS_NUM) set to `2`**, no longer when `SENS_GNSS1_OFFX` or `SENS_GNSS1_OFFY` is non-zero. ([PX4-Autopilot#28955](https://github.com/PX4/PX4-Autopilot/pull/28955))
 
 ## Other changes
 
@@ -58,7 +70,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Common
 
-- The unit and functional test suite builds, links and runs on macOS (`make tests`), and `px4_poll()` timeouts on macOS wait for their full duration instead of returning at once. The blended GPS timestamp is accumulated in double and rounded once instead of truncating each weighted term. ([PX4-Autopilot#28516](https://github.com/PX4/PX4-Autopilot/pull/28516))
+- The unit and functional test suite builds, links and runs on macOS (`make tests`), and `px4_poll()` timeouts on macOS wait for their full duration instead of returning at once. ([PX4-Autopilot#28516](https://github.com/PX4/PX4-Autopilot/pull/28516))
 - The AlphaFilter library takes its sample interval and time constant in microseconds, and the float seconds overloads are removed, so a value in the wrong unit no longer compiles. Out-of-tree code that constructs the filter with seconds needs updating. ([PX4-Autopilot#28421](https://github.com/PX4/PX4-Autopilot/pull/28421))
 
 ### Control
@@ -75,6 +87,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   - Command handling is centralized behind a dedicated failure-injection manager module.
   - Multiple sensor instances can be failed simultaneously via a bitmask, and failures can be triggered from an RC switch.
   - Changed default behaviour of injected WRONG failure for Batteries, to publish a wrong level, and not stop publishing
+  - GNSS `wrong` can also set the reported eph, epv, speed accuracy, satellite count and spoofing state (`SYS_FAIL_GPS_EPH`, `_EPV`, `_SAC`, `_SAT`, `_SPF`), and [SYS_FAIL_GPS_WRG](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_WRG) `0` leaves the fix type unchanged. GNSS `slow` publishes one sample in [SYS_FAIL_GPS_DIV](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_DIV). GNSS failures also apply to the receiver's heading. ([PX4-Autopilot#28955](https://github.com/PX4/PX4-Autopilot/pull/28955))
+- The [GNSS check failsafe](../config/safety.md#gnss-check-failsafe) counts the receivers that pass their quality checks, not those with a 3D fix. ([PX4-Autopilot#28520](https://github.com/PX4/PX4-Autopilot/pull/28520))
+- The divergence test of the [GNSS check failsafe](../config/safety.md#gnss-check-failsafe) compares each receiver with the selected one, using the distance the sensors module publishes after removing the antenna separation (`sensors_status_gnss.inconsistency`). Before arming, a configured primary GNSS receiver that is not publishing raises the warning `Primary GNSS receiver offline`, which does not block arming. ([PX4-Autopilot#28954](https://github.com/PX4/PX4-Autopilot/pull/28954))
+- The home position, the geofence with [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE) set to GPS, and the precision takeoff home check take only GNSS samples that passed the quality checks (`vehicle_gnss.usable`). ([PX4-Autopilot#28954](https://github.com/PX4/PX4-Autopilot/pull/28954))
 - [Motor failure recovery](../config/motor_failure_recovery.md) for hexarotors: on a single motor failure the control allocator removes the failed motor and additionally stops ([CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1`) or reverses (`2`) the motor opposite it to recover the lost yaw authority. Mode `2` requires a reverse-capable ESC and models the reverse thrust of a forward propeller with the new [CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) (default `0.4`). Reversible motor outputs on DroneCAN are now sent as signed `RawCommand` values (negative is reverse). ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
 - Added `RTL_TYPE=6` for battery-aware home priority return ([PX4-Autopilot#26968](https://github.com/PX4/PX4-Autopilot/pull/26968)).
   Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point.
@@ -82,20 +98,24 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Estimation
 
-- EKF2 fuses dual-antenna GNSS heading from its own topic, `vehicle_gnss_heading`, at the heading's rate and measurement time instead of with each position sample. GNSS yaw fusion is gated on the heading itself (its baseline checks, and the spoofing and jamming state of the receiver providing it under [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK), which stop it like position fusion), not on the position checks, and it keeps running when position and velocity fusion stop. `GPS_RAW_INT` and `GPS2_RAW` report the body-frame heading of the receiver that provides it. ([PX4-Autopilot#27102](https://github.com/PX4/PX4-Autopilot/pull/27102))
+- EKF2 fuses dual-antenna GNSS heading from its own topic, `vehicle_gnss_heading`, at the heading's rate and measurement time instead of with each position sample. GNSS yaw fusion is gated on the heading itself (its baseline checks, and the spoofing and jamming state of the receiver providing it under [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK), which stop it like position fusion), not on the position checks, and it keeps running when position and velocity fusion stop. `GPS_RAW_INT` and `GPS2_RAW` report the body-frame heading of the receiver that provides it. ([PX4-Autopilot#27102](https://github.com/PX4/PX4-Autopilot/pull/27102))
+- EKF2 publishes why it fused the latest GNSS sample or not as [`estimator_status_flags.gnss_fusion_state`](../advanced_config/tuning_the_ecl_ekf.md#gps-quality-checks). When the local position is lost in flight, one event names the receiver and that reason. ([PX4-Autopilot#28873](https://github.com/PX4/PX4-Autopilot/pull/28873), [PX4-Autopilot#28954](https://github.com/PX4/PX4-Autopilot/pull/28954))
+- EKF2 skips GNSS samples with a velocity component above [EKF2_VEL_LIM](../advanced_config/parameter_reference.md#EKF2_VEL_LIM), in flight too, instead of failing a pre-flight GNSS check on it. ([PX4-Autopilot#28663](https://github.com/PX4/PX4-Autopilot/pull/28663))
 
 ### Sensors
 
 - Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
+- The heading of a moving base rover is dropped while its moving base publishes no data. ([PX4-Autopilot#28955](https://github.com/PX4/PX4-Autopilot/pull/28955))
 
 ### Simulation
 
 - jMAVSim has been removed in favour of [SIH](../sim_sih/index.md) with the [Hawkeye](../sim_hawkeye/index.md) visualizer. See the [Upgrade Guide](#upgrade-guide).
 - Gazebo: the GNSS failure injection commands (`failure gps off`, `stuck` and `wrong`) now apply to the NavSat data published by the gz bridge, consistent with the other simulator paths. ([PX4-Autopilot#28398](https://github.com/PX4/PX4-Autopilot/pull/28398))
+- SIH simulates each GNSS receiver with its own noise and position error ([SIM_GNSS0_BIAS_N](../advanced_config/parameter_reference.md#SIM_GNSS0_BIAS_N), `_E`, `_D`), and a GNSS heading for a receiver with [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) set. ([PX4-Autopilot#28955](https://github.com/PX4/PX4-Autopilot/pull/28955))
 
 ### Debug & Logging
 
-- TBD
+- [`Tools/gnss_failover_report.py`](../debug/failure_injection.md#log-report) grades the GNSS failure injections in a ULog (receiver switch, estimator resets, position validity and reporting), and the [`gnss_failover`](../debug/failure_injection.md#companion-computer-tool) companion tool injects one GNSS failure in flight. `failure_injection` is logged. ([PX4-Autopilot#28955](https://github.com/PX4/PX4-Autopilot/pull/28955))
 
 ### Ethernet
 
@@ -107,7 +127,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### MAVLink
 
-- TBD
+- `HIGH_LATENCY2` sets its GPS failure flag while EKF2 has no GNSS data or rejects the samples as unusable or above the velocity limit (`gnss_fusion_state`), and its estimator failure flag no longer includes GNSS check failures. ([PX4-Autopilot#28954](https://github.com/PX4/PX4-Autopilot/pull/28954))
 
 ### RC
 

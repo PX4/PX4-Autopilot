@@ -41,7 +41,7 @@ The QGC Arming Checks UI is available in the QGC Daily Build (QGC v4.2.0 and lat
 ## Flight Logs
 
 Preflight errors are also reported in _QGroundControl_ as `PREFLIGHT FAIL` messages.
-The `vehicle_gnss.failed_checks` field [in the logs](../getting_started/flight_reporting.md) shows which GPS quality checks the selected receiver fails, and `sensors_status_gnss.failed_checks` those of each receiver.
+The `vehicle_gnss.failed_checks` field [in the logs](../getting_started/flight_reporting.md) shows which GPS quality checks the selected receiver fails, and `sensors_status_gnss.failed_checks` those of each receiver, in [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) bit order.
 
 Note that the [Arming Check Report](#qgc-arming-check-report) is a much easier way to determine reasons for failure, but the logs may be useful in versions prior to PX4 v1.14.
 

@@ -267,8 +267,8 @@ No tuning is required.
 GPS measurements will be used for position and velocity if the following conditions are met:
 
 - GPS use is enabled via setting of the [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter.
-- GPS quality checks have passed.
-  These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
+- The sample passed the [quality checks](#gnss-performance-requirements) (`vehicle_gnss.usable`).
+- No velocity component exceeds [EKF2_VEL_LIM](../advanced_config/parameter_reference.md#EKF2_VEL_LIM).
 
 For more details about the configuration of height sources, [click here](#height).
 
@@ -299,54 +299,45 @@ Once the vehicle has performed sufficient horizontal movement to make the yaw ob
 
 #### Dual Receivers
 
-Data from GPS receivers can be blended using an algorithm that weights data based on reported accuracy (this works best if both receivers output data at the same rate and use the same accuracy).
-The mechanism also provides automatic failover if data from a receiver is lost (it allows, for example, a standard GPS to be used as a backup to a more accurate RTK receiver).
-This is controlled by the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter.
-
-The [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set by default to disable blending and always use the first receiver, so it will have to be set to select which receiver accuracy metrics are used to decide how much each receiver output contributes to the blended solution.
-Where different receiver models are used, it is important that the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set to a value that uses accuracy metrics that are supported by both receivers.
-For example do not set bit position 0 to `true` unless the drivers for both receivers publish values in the `speed_accuracy` field of the `sensor_gnss` message that are comparable.
-This can be difficult with receivers from different manufacturers due to the different way that accuracy is defined, e.g. CEP vs 1-sigma, etc.
-
-The following items should be checked during setup:
-
-- Verify that data for the second receiver is present.
-  This will be logged as `sensor_gnss_1` and can also be checked when connected via the _nsh console_ using the command `listener sensor_gnss -i 1`.
-  The [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) parameter will need to be set correctly.
-- Check the `speed_accuracy`, `eph` and `epv` data from each receiver and decide which accuracy metrics can be used.
-  If both receivers output sensible `speed_accuracy` and `eph` data, and GPS vertical position is not being used directly for navigation, then setting [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 3 is recommended.
-  Where only `eph` data is available and both receivers do not output `speed_accuracy` data, set [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 2.
-  Bit position 2 would only be set if the GPS had been selected as the reference height source with the [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) parameter and both receivers output sensible `epv` data.
-- The output from the blended receiver data is logged as `vehicle_gnss`, and can be checked whilst connect via the nsh terminal using the command `listener vehicle_gnss`.
-- Where receivers output at different rates, the blended output will be at the rate of slower receiver.
-  Where possible receivers should be configured to output at the same rate.
+EKF2 fuses the receiver that the sensors module [selects](../gps_compass/index.md#multiple-receivers).
+When the selection changes, EKF2 resets its horizontal position to the new receiver.
+Where [GNSS Fault Detection](#gnss-fault-detection) allows no position reset, EKF2 stops GNSS position fusion instead and restarts it once the new receiver agrees with the estimate.
+If GNSS height fusion is running at the switch, EKF2 also resets its height when GNSS is the height reference ([EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF)), and otherwise takes the height offset of the new receiver into the GNSS height bias.
+The resets are counted in `vehicle_local_position.xy_reset_counter` and `z_reset_counter`.
 
 #### GNSS Performance Requirements
 
-For the ECL to accept GNSS data for navigation, certain minimum requirements need to be satisfied over a period of time, defined by [GNSS_REQ_TIME](../advanced_config/parameter_reference.md#GNSS_REQ_TIME) (10 seconds by default).
+The sensors module checks every sample of each receiver, and EKF2 fuses a sample only if it passed.
+[GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) enables each check.
 
-Minima are defined in the [GNSS*REQ*\*](../advanced_config/parameter_reference.md#GNSS_REQ_EPH) parameters and each check can be enabled/disabled using the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) parameter.
+The strict thresholds apply while the vehicle is disarmed on the ground, and to a receiver until it has passed them for [GNSS_REQ_TIME](../advanced_config/parameter_reference.md#GNSS_REQ_TIME).
+Otherwise the relaxed thresholds apply, and after a failure the checks must pass again for a tenth of `GNSS_REQ_TIME` (at least 1 s).
 
-The table below shows the different metrics directly reported or calculated from the GNSS data, and the minimum required values for the data to be used by ECL.
-In addition, the _Average Value_ column shows typical values that might reasonably be obtained from a standard GNSS module (e.g. u-blox M8 series) - i.e. values that are considered good/acceptable.
+| Check                      | Strict                                                 | Relaxed       |
+| -------------------------- | ------------------------------------------------------ | ------------- |
+| Fix type                   | ≥&nbsp;[GNSS_REQ_FIX] (3D)                             | ≥&nbsp;3D     |
+| eph                        | ≤&nbsp;[GNSS_REQ_EPH] (3 m)                            | ≤&nbsp;50 m   |
+| epv                        | ≤&nbsp;[GNSS_REQ_EPV] (5 m)                            | ≤&nbsp;50 m   |
+| Speed accuracy             | ≤&nbsp;[GNSS_REQ_SACC] (0.5 m/s)                       | ≤&nbsp;10 m/s |
+| Satellites                 | ≥&nbsp;[GNSS_REQ_NSATS] (6)                            | -             |
+| PDOP                       | ≤&nbsp;[GNSS_REQ_PDOP] (2.5)                           | -             |
+| Horizontal drift and speed | ≤&nbsp;[GNSS_REQ_HDRIFT] (0.1 m/s), landed and at rest | -             |
+| Vertical drift and speed   | ≤&nbsp;[GNSS_REQ_VDRIFT] (0.2 m/s), landed and at rest | -             |
+| Spoofing, jamming          | Not detected by the receiver                           | Not detected  |
 
-| Metric               | Minimum required                                                                          | Average Value | Units | Notes                                                                                                                                       |
-| -------------------- | ----------------------------------------------------------------------------------------- | ------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| eph                  | <&nbsp;3 ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH))         | 0.8           | m     | Standard deviation of horizontal position error                                                                                             |
-| epv                  | <&nbsp;5 ([GNSS_REQ_EPV](../advanced_config/parameter_reference.md#GNSS_REQ_EPV))         | 1.5           | m     | Standard deviation of vertical position error                                                                                               |
-| Number of satellites | ≥6&nbsp;([GNSS_REQ_NSATS](../advanced_config/parameter_reference.md#GNSS_REQ_NSATS))      | 14            | -     |
-| sacc                 | <&nbsp;0.5 ([GNSS_REQ_SACC](../advanced_config/parameter_reference.md#GNSS_REQ_SACC))     | 0.2           | m/s   | Standard deviation of horizontal speed error                                                                                                |
-| fix type             | ≥&nbsp;3                                                                                  | 4             | -     | 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time Kinematic, float, 6: Real-Time Kinematic, fixed, 8: Extrapolated |
-| PDOP                 | <&nbsp;2.5 ([GNSS_REQ_PDOP](../advanced_config/parameter_reference.md#GNSS_REQ_PDOP))     | 1.0           | -     | Position dilution of precision                                                                                                              |
-| hpos drift rate      | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01          | m/s   | Drift rate calculated from reported GNSS position (when stationary).                                                                        |
-| vpos drift rate      | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02          | m/s   | Drift rate calculated from reported GNSS altitude (when stationary).                                                                        |
-| hspd                 | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01          | m/s   | Filtered magnitude of reported GNSS horizontal velocity.                                                                                    |
-| vspd                 | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02          | m/s   | Filtered magnitude of reported GNSS vertical velocity.                                                                                      |
+<!-- links used in table above -->
 
-::: info
-The `hpos_drift_rate`, `vpos_drift_rate` and `hspd` are calculated over a period of 10 seconds and published in the `ekf2_gps_drift` topic.
-Note that `ekf2_gps_drift` is not logged!
-:::
+[GNSS_REQ_FIX]: ../advanced_config/parameter_reference.md#GNSS_REQ_FIX
+[GNSS_REQ_EPH]: ../advanced_config/parameter_reference.md#GNSS_REQ_EPH
+[GNSS_REQ_EPV]: ../advanced_config/parameter_reference.md#GNSS_REQ_EPV
+[GNSS_REQ_SACC]: ../advanced_config/parameter_reference.md#GNSS_REQ_SACC
+[GNSS_REQ_NSATS]: ../advanced_config/parameter_reference.md#GNSS_REQ_NSATS
+[GNSS_REQ_PDOP]: ../advanced_config/parameter_reference.md#GNSS_REQ_PDOP
+[GNSS_REQ_HDRIFT]: ../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT
+[GNSS_REQ_VDRIFT]: ../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT
+
+The fix type, eph, epv and speed accuracy thresholds of the strict checks also [rank the receivers](../gps_compass/index.md#multiple-receivers) in flight.
+`sensors_status_gnss` carries each receiver's failed checks, whether the strict thresholds apply, and the drift rates (filtered over 10 s).
 
 #### GNSS Fault Detection
 
@@ -737,11 +728,23 @@ For a binary pass/fail summary for each sensor, refer to innovation_check_flags 
 
 ### GPS Quality Checks
 
-The EKF applies a number of GPS quality checks before commencing GPS aiding.
-These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
-The pass/fail status for these checks is logged in [VehicleGnss](../msg_docs/VehicleGnss.md) `failed_checks` for the selected receiver, and in [SensorsStatusGnss](../msg_docs/SensorsStatusGnss.md) `failed_checks` for each receiver.
-This integer will be zero when all required GPS checks have passed.
-If the EKF is not commencing GPS alignment, check the value of the integer against the `CHECK_*` bits in [VehicleGnss](../msg_docs/VehicleGnss.md), and why the EKF does not fuse the samples in [EstimatorStatusFlags](../msg_docs/EstimatorStatusFlags.md) `gnss_fusion_state`.
+The sensors module runs the [quality checks](#gnss-performance-requirements).
+`vehicle_gnss.failed_checks` holds the checks that the selected receiver's sample failed, in [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) bit order, and `sensors_status_gnss.failed_checks` those of every receiver.
+
+`estimator_status_flags.gnss_fusion_state` gives the reason EKF2 fused the latest GNSS sample or not.
+Horizontal position and velocity count, and height only when [EKF2_GPS_CTRL] enables GNSS height alone.
+
+| Value | Name                    | Meaning                                                                                                       |
+| ----- | ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 0     | `GNSS_FUSION_FUSED`     | Fused                                                                                                         |
+| 1     | `GNSS_FUSION_NO_DATA`   | No sample for 1 s                                                                                             |
+| 2     | `GNSS_FUSION_UNUSABLE`  | The sample failed its quality checks                                                                          |
+| 3     | `GNSS_FUSION_REJECTED`  | Innovation outside the gate                                                                                   |
+| 4     | `GNSS_FUSION_VEL_LIMIT` | Velocity above [EKF2_VEL_LIM]                                                                                 |
+| 5     | `GNSS_FUSION_INACTIVE`  | Not in use: disabled in [EKF2_GPS_CTRL], tilt or yaw not aligned, waiting to restart, or GNSS declared faulty |
+
+[EKF2_VEL_LIM]: ../advanced_config/parameter_reference.md#EKF2_VEL_LIM
+[EKF2_GPS_CTRL]: ../advanced_config/parameter_reference.md#EKF2_GPS_CTRL
 
 ### EKF Numerical Errors
 
