@@ -59,7 +59,7 @@ bool GeofenceAvoidancePlanner::init(int max_nodes)
 		_visited_buffer = new bool[max_nodes];
 		_path = new matrix::Vector2d[max_nodes + 1];
 
-		if (_best_distance && _distances && _next_node_buffer && _visited_buffer && _path
+		if (_best_distance && _distances && _next_node_buffer && _visited_buffer != nullptr && _path
 		    && _polygons.allocate(max_nodes)) {
 			_max_nodes = max_nodes;
 

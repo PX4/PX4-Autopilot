@@ -54,7 +54,7 @@ bool PlannerPolygons::allocate(int max_nodes)
 		_y_cm = new int32_t[max_nodes];
 		_node_not_on_optimal_path = new bool[max_nodes];
 
-		if (_x_cm && _y_cm && _node_not_on_optimal_path) {
+		if (_x_cm != nullptr && _y_cm != nullptr && _node_not_on_optimal_path != nullptr) {
 			_max_nodes = max_nodes;
 
 		} else {
