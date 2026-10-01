@@ -1677,8 +1677,11 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			// or if COM_PREARM_MODE is not set to accept mavlink commands
 			const bool accept_mavlink_prearm = ((PrearmedMode)_param_com_prearm_mode.get() != PrearmedMode::SAFETY_BUTTON);
 
-			if (isArmed() || !accept_mavlink_prearm) {
+			if (isArmed()) {
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+
+			} else if (!accept_mavlink_prearm) {
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 
 			} else {
 				int commanded_state = (int)cmd.param1;
