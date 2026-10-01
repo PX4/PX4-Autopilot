@@ -171,6 +171,40 @@ TEST_F(GnssSelectorTest, singleReceiver)
 	EXPECT_FALSE(selector.isNewOutputDataAvailable());
 }
 
+TEST_F(GnssSelectorTest, timeoutWithoutAnyPublisher)
+{
+	GnssSelector selector;
+
+	// GIVEN: a single receiver that is usable
+	sensor_gnss_s gnss_data = getDefaultGnssData();
+
+	runSeconds(5.f, selector, gnss_data, 0);
+
+	EXPECT_FLOAT_EQ(selector.getAvailability(0), 1.f);
+
+	// WHEN: it stops publishing, and the selector keeps updating without samples
+	for (int k = 0; k < 10; k++) {
+		_time_now_us += 300e3;
+		selector.update(_time_now_us);
+	}
+
+	// THEN: it has timed out and its availability fell
+	EXPECT_FALSE(selector.isNewOutputDataAvailable());
+	EXPECT_EQ(selector.getOutputGnssData().timestamp, 0u);
+	EXPECT_LT(selector.getAvailability(0), 0.8f);
+
+	// WHEN: it publishes again
+	_time_now_us += 100e3;
+	gnss_data.timestamp = _time_now_us - 10e3;
+
+	runSeconds(0.1f, selector, gnss_data, 0);
+
+	// THEN: its output resumes, and its availability keeps the outage
+	EXPECT_TRUE(selector.isNewOutputDataAvailable());
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+	EXPECT_LT(selector.getAvailability(0), 0.8f);
+}
+
 TEST_F(GnssSelectorTest, preferredWhateverTheOtherReports)
 {
 	GnssSelector selector;

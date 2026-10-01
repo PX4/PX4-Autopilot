@@ -270,6 +270,11 @@ void VehicleGPSPosition::Run()
 		}
 
 		PublishStatus();
+
+	} else if (_receivers_published > 0) {
+		// A receiver that stopped publishing still has to time out and lose availability when no other one publishes
+		_gnss_selector.update(hrt_absolute_time());
+		PublishStatus();
 	}
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
