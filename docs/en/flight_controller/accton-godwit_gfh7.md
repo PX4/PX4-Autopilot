@@ -213,6 +213,8 @@ Most users will not need to build this firmware (from PX4 v2.0).
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
+The board ships with the PX4 bootloader.
+
 To [build PX4](../dev_setup/building_px4.md) for this target from source:
 
 ```sh
