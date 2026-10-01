@@ -213,12 +213,16 @@ protected:
 	mavsdk::Action *getAction() const { return _action.get();}
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
+	mavsdk::Mission *getMission() const { return _mission.get();}
 	mavsdk::MissionRaw *getMissionRaw() const { return _mission_raw.get();}
 	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
 	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
 	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
 	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
 	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
+
+	// Called for every event after connect(), from a MAVSDK thread; set it before connect()
+	void set_event_callback(std::function<void(const Events::Event &)> callback) { _event_callback = std::move(callback); }
 
 	const Telemetry::GroundTruth &getHome()
 	{
@@ -327,4 +331,5 @@ private:
 	std::thread _real_time_report_thread {};
 
 	mavsdk::Events::EventsHandle _events_handle{};
+	std::function<void(const Events::Event &)> _event_callback{};
 };
