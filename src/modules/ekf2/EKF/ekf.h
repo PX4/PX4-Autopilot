@@ -405,6 +405,8 @@ public:
 
 	bool gps_checks_passed() const { return _gnss_usable; };
 
+	GnssFusionState getGnssFusionState() const { return _gnss_fusion_state; }
+
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 
 	const auto &aid_src_gnss_hgt() const { return _aid_src_gnss_hgt; }
@@ -616,6 +618,9 @@ private:
 	bool _gnss_usable{false};                   ///< the latest GNSS sample at the fusion time horizon was usable
 	bool _gnss_checks_passed_reported{false};   ///< gps_checks_passed was reported since the last reset
 	uint64_t _time_last_gnss_fusion_stop_us{0}; ///< when GNSS velocity and position fusion were last both stopped
+
+	GnssFusionState _gnss_fusion_state{GnssFusionState::NoData};
+	bool _gnss_sample_accepted{false}; ///< a sample reached the fusion time horizon in this update and was not skipped
 
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 
@@ -942,6 +947,10 @@ private:
 	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
 	bool isGnssVelResetAllowed() const;
 	bool isGnssPosResetAllowed() const;
+
+	// After every GNSS observation of the update had its turn, height included
+	void updateGnssFusionState();
+	GnssFusionState acceptedGnssSampleFusionState() const;
 
 	// After velocity and position fusion both stop, a restart waits for the GNSS health time while disarmed on the
 	// ground, where the checks are strict, otherwise for a tenth of it and at least a second. The duration follows the

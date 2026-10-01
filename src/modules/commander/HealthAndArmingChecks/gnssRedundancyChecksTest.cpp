@@ -37,6 +37,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/param.h>
+#include <px4_platform_common/time.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/sensor_gnss.h>
@@ -52,12 +53,10 @@
 static constexpr double BASE_LAT = 47.397742;
 static constexpr double BASE_LON = 8.545594;
 
-// With GPS0 at +35cm X and GPS1 at -35cm X, expected_d = 0.70m.
-// With RTK eph = 0.02m: gate = 3 * sqrt(0.02² + 0.02²) ≈ 0.085m.
-// AGREEING_LAT puts GPS1 ~0.70m north of GPS0 so separation ≈ expected_d.
-// DIVERGING_FAR_LAT puts GPS1 ~2.0m north, well outside the gate.
-static constexpr double AGREEING_LAT     = BASE_LAT + 6.3e-6;  // ~0.70m north
-static constexpr double DIVERGING_FAR_LAT = BASE_LAT + 1.8e-5; // ~2.0m north
+// The sensors module reports how far the receivers disagree after their lever arms. With RTK eph = 0.02 m the gate is
+// 3 * sqrt(0.02² + 0.02²) ≈ 0.085 m.
+static constexpr float AGREEING_M = 0.01f;
+static constexpr float DIVERGING_FAR_M = 1.3f;
 
 class GnssRedundancyChecksTest : public ::testing::Test
 {
@@ -70,9 +69,12 @@ public:
 		param_reset(param_find("SYS_HAS_NUM_GNSS"));
 		param_reset(param_find("COM_GNSSLOSS_ACT"));
 
-		// Set lever arms so expected_d = 0.70m, enabling the "too close" direction of divergence detection.
-		float v = 0.35f;  param_set(param_find("SENS_GNSS0_OFFX"), &v);
-		v = -0.35f;       param_set(param_find("SENS_GNSS1_OFFX"), &v);
+		// Receiver 0 is the selected one
+		_status.device_id_selected = 1;
+
+		for (float &inconsistency : _status.inconsistency) {
+			inconsistency = NAN;
+		}
 
 		// Claim uORB instances 0 and 1 before the check subscribes on first copy().
 		sensor_gnss_s empty{};
@@ -92,15 +94,16 @@ public:
 		return gnss;
 	}
 
-	// Publish a receiver and the sensors module's status for it, healthy with a 3D fix. Instances 0 and 1 get device IDs
-	// 1 and 2.
-	void publishGnss(int instance, sensor_gnss_s gnss)
+	// Publish a receiver and the sensors module's status for it, healthy with a 3D fix, and how far it disagrees with
+	// the selected receiver 0. Instances 0 and 1 get device IDs 1 and 2.
+	void publishGnss(int instance, sensor_gnss_s gnss, float inconsistency = 0.f)
 	{
 		gnss.device_id = instance + 1;
 		(instance == 0 ? _gnss0_pub : _gnss1_pub).publish(gnss);
 
 		_status.device_ids[instance] = gnss.device_id;
 		_status.healthy[instance] = (gnss.fix_type >= 3);
+		_status.inconsistency[instance] = (instance == 0) ? 0.f : inconsistency;
 		_status.timestamp = hrt_absolute_time();
 		_status_pub.publish(_status);
 	}
@@ -119,6 +122,9 @@ public:
 		_check.checkAndReport(context, reporter);
 		// Capture any GPS health issue regardless of log level (Warning or Error).
 		_health_warning_gps = (reporter.healthResults().warning | reporter.healthResults().error) & health_component_t::gps;
+		_arming_warning_gps = reporter.armingCheckResults().warning & health_component_t::gps;
+		_arming_error_gps = reporter.armingCheckResults().error & health_component_t::gps;
+		_can_arm = reporter.armingCheckResults().can_arm;
 	}
 
 	uORB::PublicationMulti<sensor_gnss_s> _gnss0_pub{ORB_ID(sensor_gnss)};
@@ -127,6 +133,9 @@ public:
 	sensors_status_gnss_s _status{};
 	failsafe_flags_s  _failsafe_flags{};
 	bool              _health_warning_gps{false};
+	bool              _arming_warning_gps{false};
+	bool              _arming_error_gps{false};
+	NavModes          _can_arm{NavModes::None};
 	GnssRedundancyChecks _check;
 };
 
@@ -146,25 +155,21 @@ TEST_F(GnssRedundancyChecksTest, SingleGpsNoFailsafe)
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 }
 
-// Two receivers at expected lever-arm separation → no divergence.
+// Two receivers that agree after their lever arms → no divergence.
 TEST_F(GnssRedundancyChecksTest, TwoGpsAgreeingNoFlags)
 {
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
-	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), AGREEING_M);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 	EXPECT_FALSE(_health_warning_gps);
 }
 
-// Two receivers at the same position while a 0.70m lever arm is configured →
-// divergence detected (separation = 0, expected_d = 0.70m, deviation = 0.70m >> gate).
-// This exercises the "too close" direction of the improved check.
-TEST_F(GnssRedundancyChecksTest, TwoGpsTooCloseDivergenceDetected)
+// Two receivers that disagree → hysteresis timer starts but has not elapsed on first call.
+TEST_F(GnssRedundancyChecksTest, TwoGpsDivergingFarNotYetSustained)
 {
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
-	publishGnss(1, makeGnss(BASE_LAT, BASE_LON));
-
-	// First call starts the hysteresis timer, no flag yet.
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), DIVERGING_FAR_M);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 
@@ -173,34 +178,78 @@ TEST_F(GnssRedundancyChecksTest, TwoGpsTooCloseDivergenceDetected)
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 }
 
-// Two receivers too far apart → hysteresis timer starts but has not elapsed on first call.
-TEST_F(GnssRedundancyChecksTest, TwoGpsDivergingFarNotYetSustained)
+// A sustained divergence warns, and with SYS_HAS_NUM_GNSS = 2 it sets gnss_lost.
+TEST_F(GnssRedundancyChecksTest, SustainedDivergenceSetsGnssLost)
 {
+	int required = 2;
+	param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
-	publishGnss(1, makeGnss(DIVERGING_FAR_LAT, BASE_LON));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), DIVERGING_FAR_M);
+	runCheck();
+	ASSERT_FALSE(_failsafe_flags.gnss_lost);
+
+	px4_usleep(2100000);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), DIVERGING_FAR_M);
+	runCheck();
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+	EXPECT_TRUE(_health_warning_gps);
+}
+
+// The gate scales with the reported accuracy.
+TEST_F(GnssRedundancyChecksTest, InaccurateReceiversMayDisagreeMore)
+{
+	int required = 2;
+	param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+
+	// eph 1 m each: gate = 3 * sqrt(2) ≈ 4.2 m
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON, 1.f));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON, 1.f), DIVERGING_FAR_M);
+	runCheck();
+	px4_usleep(2100000);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON, 1.f));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON, 1.f), DIVERGING_FAR_M);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+	EXPECT_FALSE(_health_warning_gps);
 }
 
 // After divergence the receivers recover → hysteresis resets, no flag.
 TEST_F(GnssRedundancyChecksTest, TwoGpsDivergingClearsOnRecovery)
 {
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
-	publishGnss(1, makeGnss(DIVERGING_FAR_LAT, BASE_LON));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), DIVERGING_FAR_M);
 	runCheck();
 
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
-	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), AGREEING_M);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 	EXPECT_FALSE(_health_warning_gps);
+}
+
+// An unknown inconsistency is no divergence.
+TEST_F(GnssRedundancyChecksTest, UnknownInconsistencyNotADivergence)
+{
+	int required = 2;
+	param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), NAN);
+	runCheck();
+	px4_usleep(2100000);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), NAN);
+	runCheck();
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 }
 
 // A receiver that fails its checks is not counted → no divergence check triggered.
 TEST_F(GnssRedundancyChecksTest, FixTypeBelow3NotCounted)
 {
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON, 0.02f, 6));
-	publishGnss(1, makeGnss(DIVERGING_FAR_LAT, BASE_LON, 0.02f, 2));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON, 0.02f, 2), DIVERGING_FAR_M);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 	EXPECT_FALSE(_health_warning_gps);
@@ -223,7 +272,7 @@ TEST_F(GnssRedundancyChecksTest, BelowRequiredSetsGnssLost)
 TEST_F(GnssRedundancyChecksTest, DroppedBelowPeakSetsHealthWarning)
 {
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
-	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON));
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), AGREEING_M);
 	runCheck();
 	EXPECT_FALSE(_health_warning_gps); // both present, no warning
 
@@ -266,4 +315,25 @@ TEST_F(GnssRedundancyChecksTest, StaleStatusDoesNotCount)
 	_gnss0_pub.publish(makeGnss(BASE_LAT, BASE_LON));
 	runCheck();
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+}
+
+// A configured primary receiver that is not publishing is a warning before arming, not a reason to refuse it.
+TEST_F(GnssRedundancyChecksTest, PrimaryOfflineWarnsBeforeArming)
+{
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON));
+	runCheck();
+	ASSERT_FALSE(_arming_warning_gps);
+	const NavModes can_arm = _can_arm;
+
+	_status.primary_offline = true;
+	publishGnss(1, makeGnss(BASE_LAT, BASE_LON));
+	runCheck();
+	EXPECT_TRUE(_arming_warning_gps);
+	EXPECT_FALSE(_arming_error_gps);
+	EXPECT_EQ(_can_arm, can_arm);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+
+	// in flight the switch away from it is reported instead
+	runCheck(true);
+	EXPECT_FALSE(_arming_warning_gps);
 }

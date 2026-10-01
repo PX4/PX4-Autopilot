@@ -7,34 +7,26 @@ from typing import Tuple
 
 import numpy as np
 
-def get_gps_check_fail_flags(estimator_status: dict) -> dict:
+def get_gnss_failed_checks(vehicle_gnss: dict) -> dict:
     """
-    :param estimator_status:
-    :return:
+    :param vehicle_gnss: the selected receiver's samples
+    :return: one array per check, 1 where the check failed
     """
-    gps_fail_flags = dict()
+    # vehicle_gnss CHECK_* bits
+    check_bits = {
+        'nsat_fail': 0,
+        'pdop_fail': 1,
+        'herr_fail': 2,
+        'verr_fail': 3,
+        'serr_fail': 4,
+        'hdrift_fail': 5,
+        'vdrift_fail': 6,
+        'hspd_fail': 7,
+        'veld_diff_fail': 8,
+        'gfix_fail': 10,
+    }
 
-    # 0 : insufficient fix type (no 3D solution)
-    # 1 : minimum required sat count fail
-    # 2 : maximum allowed PDOP fail
-    # 3 : maximum allowed horizontal position error fail
-    # 4 : maximum allowed vertical position error fail
-    # 5 : maximum allowed speed error fail
-    # 6 : maximum allowed horizontal position drift fail
-    # 7 : maximum allowed vertical position drift fail
-    # 8 : maximum allowed horizontal speed fail
-    # 9 : maximum allowed vertical velocity discrepancy fail
-    gps_fail_flags['gfix_fail'] = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['nsat_fail'] = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['pdop_fail'] = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['herr_fail'] = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['verr_fail'] = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['serr_fail'] = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['hdrift_fail'] = ((2 ** 6 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['vdrift_fail'] = ((2 ** 7 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['hspd_fail'] = ((2 ** 8 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['veld_diff_fail'] = ((2 ** 9 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    return gps_fail_flags
+    return {name: ((2 ** bit & vehicle_gnss['failed_checks']) > 0) * 1 for name, bit in check_bits.items()}
 
 
 def magnetic_field_estimates_from_states(estimator_states: dict) -> Tuple[float, float, float]:

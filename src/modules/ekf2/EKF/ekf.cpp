@@ -97,6 +97,8 @@ void Ekf::reset()
 	_gnss_checks_passed_reported = false;
 	_time_last_gnss_sample_accepted_us = 0;
 	_time_last_gnss_fusion_stop_us = 0;
+	_gnss_fusion_state = GnssFusionState::NoData;
+	_gnss_sample_accepted = false;
 #endif // CONFIG_EKF2_GNSS
 	_local_origin_alt = NAN;
 

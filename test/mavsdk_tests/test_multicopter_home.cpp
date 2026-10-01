@@ -50,10 +50,14 @@ TEST_CASE("SIH: home yaw captured when local position invalid", "[sih_home_yaw]"
 	tester.sleep_for(10s);
 	const float ground_yaw_deg = tester.get_attitude_euler().yaw_deg;
 
-	// Degraded GPS: good enough for the home position, too few sats for EKF fusion -> local position
+	// A GPS fix the estimator doesn't use: home is set from the receiver's usable samples while the local position
 	// stays invalid. This is the exact condition under which the buggy code leaves home.yaw at 0.
-	tester.set_param_int("SIM_GPS_USED", 5);
-	tester.sleep_for(6s);
+	static constexpr int32_t kSensEnGnss0 = 1;
+	tester.set_param_int("EKF2_SENS_EN", tester.get_param_int("EKF2_SENS_EN") & ~kSensEnGnss0);
+	tester.set_param_int("SIM_GPS_USED", 10);
+
+	// The receiver's samples are usable once its checks passed for GNSS_REQ_TIME (10 s by default)
+	tester.sleep_for(15s);
 
 	const mavlink_home_position_t home = tester.get_home_position();
 	// Copy out of the packed message struct before forming a float* for the conversion helper.

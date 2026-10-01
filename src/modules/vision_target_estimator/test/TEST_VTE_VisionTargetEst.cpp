@@ -337,8 +337,7 @@ protected:
 		ASSERT_TRUE(_home_position_pub->publish(msg));
 	}
 
-	void publishUavGnssAt(double lat, double lon, float alt_amsl, hrt_abstime timestamp,
-			      uint8_t fix_type = sensor_gnss_s::FIX_TYPE_3D)
+	void publishUavGnssAt(double lat, double lon, float alt_amsl, hrt_abstime timestamp, bool usable = true)
 	{
 		vehicle_gnss_s msg{};
 		msg.timestamp = timestamp;
@@ -346,7 +345,8 @@ protected:
 		msg.receiver.latitude = lat;
 		msg.receiver.longitude = lon;
 		msg.receiver.altitude_msl = static_cast<double>(alt_amsl);
-		msg.receiver.fix_type = fix_type;
+		msg.receiver.fix_type = usable ? sensor_gnss_s::FIX_TYPE_3D : sensor_gnss_s::FIX_TYPE_NONE;
+		msg.usable = usable;
 		ASSERT_TRUE(_uav_gnss_pub->publish(msg));
 	}
 
@@ -974,7 +974,7 @@ TEST_F(VisionTargetEstTest, NewTaskClearsPreviousGnssBiasReference)
 }
 
 // WHY: Stale position data or a distant home could identify the wrong pad.
-// WHAT: Accept home only while landed and within 5 m of a recent 3D GNSS fix.
+// WHAT: Accept home only while landed and within 5 m of a recent usable GNSS sample.
 TEST_F(VisionTargetEstTest, PrecisionTakeoffHomeReferenceRequiresLandedAndNearby)
 {
 	const double lat = 47.0;
@@ -990,12 +990,12 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffHomeReferenceRequiresLandedAndNearby
 	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
 	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
 
-	// GIVEN: Landed with a nearby home, but an invalid GNSS fix.
+	// GIVEN: Landed with a nearby home, but a GNSS sample that is not usable.
 	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
 	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
-	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs), sensor_gnss_s::FIX_TYPE_NONE);
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs), false);
 
-	// THEN: The invalid fix cannot validate the home-to-vehicle distance.
+	// THEN: The sample cannot validate the home-to-vehicle distance.
 	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
 	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
 

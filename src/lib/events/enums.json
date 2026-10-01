@@ -346,56 +346,90 @@
                 },
                 "gnss_check_fail_t": {
                     "type": "uint16_t",
-                    "description": "Bitfield of failing GNSS quality checks, the bit numbers of estimator_status.gps_check_fail_flags",
+                    "description": "Bitfield of failing GNSS receiver checks, the bits of vehicle_gnss.failed_checks",
                     "is_bitfield": true,
                     "entries": {
                         "1": {
-                            "name": "fix",
-                            "description": "Fix too low"
-                        },
-                        "2": {
                             "name": "nsats",
                             "description": "Not enough satellites"
                         },
-                        "4": {
+                        "2": {
                             "name": "pdop",
                             "description": "PDOP too high"
                         },
-                        "8": {
+                        "4": {
                             "name": "hacc",
                             "description": "Horizontal position error too high"
                         },
-                        "16": {
+                        "8": {
                             "name": "vacc",
                             "description": "Vertical position error too high"
                         },
-                        "32": {
+                        "16": {
                             "name": "sacc",
                             "description": "Speed accuracy too low"
                         },
-                        "64": {
+                        "32": {
                             "name": "hdrift",
                             "description": "Horizontal position drift too high"
                         },
-                        "128": {
+                        "64": {
                             "name": "vdrift",
                             "description": "Vertical position drift too high"
                         },
-                        "256": {
+                        "128": {
                             "name": "hspeed",
                             "description": "Horizontal speed drift too high"
                         },
-                        "512": {
+                        "256": {
                             "name": "vspeed",
                             "description": "Vertical speed drift too high"
                         },
-                        "1024": {
+                        "512": {
                             "name": "spoofed",
                             "description": "Signal spoofed"
+                        },
+                        "1024": {
+                            "name": "fix",
+                            "description": "Fix too low"
                         },
                         "2048": {
                             "name": "jammed",
                             "description": "Signal jammed"
+                        }
+                    }
+                },
+                "gnss_selection_reason_t": {
+                    "type": "uint8_t",
+                    "description": "Why the sensors module selected a GNSS receiver, the values of vehicle_gnss.selection_reason",
+                    "entries": {
+                        "0": {
+                            "name": "preferred",
+                            "description": "Preferred receiver"
+                        },
+                        "1": {
+                            "name": "only",
+                            "description": "Only receiver"
+                        },
+                        "2": {
+                            "name": "ranked",
+                            "description": "No receiver ranks higher"
+                        },
+                        "3": {
+                            "name": "timeout",
+                            "description": "Previous receiver stopped publishing"
+                        },
+                        "4": {
+                            "name": "unhealthy",
+                            "description": "Previous receiver failed its checks or was late"
+                        },
+                        "5": {
+                            "name": "requirements",
+                            "description": "Meets the accuracy requirements, the previous receiver didn't"
+                        },
+                        "6": {
+                            "name": "rtk_fixed",
+                            "description": "RTK fixed, the previous receiver wasn't"
                         }
                     }
                 },

@@ -532,3 +532,124 @@ TEST_F(EkfGpsTest, velocityAtLimitIsNotSkipped)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 	EXPECT_GT(_ekf->aid_src_gnss_vel().time_last_fuse, time_last_vel_fuse);
 }
+
+TEST_F(EkfGpsTest, fusionStateWhileFused)
+{
+	// GIVEN: an EKF that fuses GNSS
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// THEN: every sample is fused
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Fused);
+}
+
+TEST_F(EkfGpsTest, fusionStateNamesUnusableSamples)
+{
+	// WHEN: the sensors module marks the samples not usable
+	_sensor_simulator._gps.setFixType(0);
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the samples are skipped as unusable, also once the fusion stopped
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Unusable);
+	_sensor_simulator.runSeconds(8);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Unusable);
+
+	// AND WHEN: the samples are usable again, after the strict checks' health time on the ground
+	_sensor_simulator._gps.setFixType(3);
+	_sensor_simulator.runSeconds(12);
+
+	// THEN: they are fused again
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Fused);
+}
+
+TEST_F(EkfGpsTest, fusionStateNamesMissingData)
+{
+	// WHEN: the receiver stops
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(0.5);
+
+	// THEN: the samples still in the buffer were fused
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Fused);
+
+	// AND: there is no data once the newest sample is a second old
+	_sensor_simulator.runSeconds(1);
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::NoData);
+
+	// AND WHEN: the receiver comes back before the fusion stopped
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: its samples are fused again
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Fused);
+}
+
+TEST_F(EkfGpsTest, fusionStateNamesTheVelocityLimit)
+{
+	// GIVEN: an airborne EKF that fuses GPS with the optional quality checks disabled
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator._gps.setCheckMask(0);
+
+	// WHEN: the receiver reports a velocity above EKF2_VEL_LIM
+	_sensor_simulator._gps.setVelocity(Vector3f(150.f, 0.f, 0.f));
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the samples are skipped for their velocity
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::VelLimit);
+}
+
+TEST_F(EkfGpsTest, fusionStateNamesRejectedSamples)
+{
+	// GIVEN: an airborne EKF that fuses GNSS
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator.runSeconds(1);
+	ASSERT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Fused);
+
+	// WHEN: the receiver's position and velocity both jump away from the estimate
+	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f(500.f, 0.f));
+	_sensor_simulator._gps.setVelocity(Vector3f(20.f, 0.f, 0.f));
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the samples are rejected by the innovation gates
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Rejected);
+
+	// AND: once the fusion timed out, the estimate is reset to them and they are fused again
+	_sensor_simulator.runSeconds(8);
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Fused);
+}
+
+TEST_F(EkfGpsTest, fusionStateNamesADeclaredFault)
+{
+	// GIVEN: an EKF in dead reckoning mode that fuses GNSS and airspeed in flight
+	_ekf_wrapper.setGnssDeadReckonMode();
+	_sensor_simulator._gps.setVelocity(Vector3f(1.f, 0.5f, 0.f));
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->set_is_fixed_wing(true);
+	_sensor_simulator.startAirspeedSensor();
+	_sensor_simulator._airspeed.setData(15.f, 15.f);
+	_sensor_simulator.runSeconds(1);
+
+	// WHEN: the receiver's position jumps, which the airspeed lets the EKF reject
+	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f(500.f, -1.f));
+	_sensor_simulator.runSeconds(15);
+
+	// THEN: GNSS is declared faulty and its samples are no longer used
+	EXPECT_TRUE(_ekf_wrapper.isGnssFaultDetected());
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Inactive);
+}
+
+TEST_F(EkfGpsTest, fusionStateWhileDisabled)
+{
+	// WHEN: the GNSS fusion is disabled
+	_ekf_wrapper.setGpsEnabled(false);
+	_sensor_simulator.runSeconds(0.2);
+
+	// THEN: GNSS is inactive, whatever the samples are
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Inactive);
+	_sensor_simulator._gps.setFixType(0);
+	_sensor_simulator.runSeconds(1);
+	EXPECT_EQ(_ekf->getGnssFusionState(), GnssFusionState::Inactive);
+}

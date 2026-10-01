@@ -37,6 +37,7 @@
 #include <lib/geo/geo.h>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/mathlib/mathlib.h>
+#include <px4_platform_common/events.h>
 
 namespace sensors
 {
@@ -240,11 +241,7 @@ void VehicleGPSPosition::Run()
 			vehicle_gnss_s gnss_output{};
 			gnss_output.receiver = _latest_sample[selected];
 
-			const GpsParamSlot *slot = findParamSlot(gnss_output.receiver.device_id, selected);
-
-			if (slot) {
-				slot->offset.copyTo(gnss_output.antenna_offset);
-			}
+			antennaOffset(selected).copyTo(gnss_output.antenna_offset);
 
 			const uint64_t pps_timestamp = _pps_time_sync.correct_gnss_timestamp(gnss_output.receiver.timestamp,
 						       gnss_output.receiver.time_utc_usec);
@@ -267,7 +264,13 @@ void VehicleGPSPosition::Run()
 			gnss_output.timestamp = hrt_absolute_time();
 			_vehicle_gnss_pub.publish(gnss_output);
 
+			if ((_published_instance >= 0) && (gnss_output.selection_count != _published_selection_count)) {
+				reportSwitch(_published_instance, selected, gnss_output.selection_reason);
+			}
+
 			_selected_device_id = gnss_output.receiver.device_id;
+			_published_instance = selected;
+			_published_selection_count = gnss_output.selection_count;
 		}
 
 		PublishStatus();
@@ -275,6 +278,10 @@ void VehicleGPSPosition::Run()
 	} else if (_receivers_published > 0) {
 		// A receiver that stopped publishing still has to time out and lose availability when no other one publishes
 		_gnss_selector.update(hrt_absolute_time());
+		PublishStatus();
+
+	} else if (hasConfiguredPreference()) {
+		// A configured primary is reported offline even when no receiver ever published
 		PublishStatus();
 	}
 
@@ -451,14 +458,37 @@ void VehicleGPSPosition::PublishStatus()
 
 	const hrt_abstime now = hrt_absolute_time();
 
+	bool publishing[GPS_MAX_RECEIVERS] {};
+
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		publishing[i] = (_latest_sample[i].timestamp != 0) && (now < _latest_sample[i].timestamp + GnssSelector::GNSS_TIMEOUT_US);
+	}
+
+	for (float &inconsistency : status.inconsistency) {
+		inconsistency = NAN;
+	}
+
+	const int selected = _published_instance;
+
+	if (hasConfiguredPreference()) {
+		const int primary = resolvePreferredInstance();
+		status.primary_offline = (primary < 0) || !publishing[primary];
+	}
+
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		const GnssChecks &checks = _gnss_checks[i];
 		const sensor_gnss_s &sample = _latest_sample[i];
-		const bool publishing = (sample.timestamp != 0) && (now < sample.timestamp + GnssSelector::GNSS_TIMEOUT_US);
 
 		status.device_ids[i] = sample.device_id;
-		status.healthy[i] = publishing && checks.passed();
+		status.healthy[i] = publishing[i] && checks.passed();
 		status.availability[i] = _gnss_selector.getAvailability(i);
+
+		if ((selected >= 0) && publishing[selected] && publishing[i]) {
+			status.inconsistency[i] = (i == selected) ? 0.f
+						  : gnss_inconsistency::horizontalInconsistency(_latest_sample[selected], antennaOffset(selected), sample,
+								  antennaOffset(i));
+		}
+
 		status.failed_checks[i] = checks.getFailFlags() & checks.getEnabledChecks();
 		status.strict[i] = checks.strict();
 		status.drift_rate_horizontal[i] = checks.horizontal_position_drift_rate_m_s();
@@ -468,6 +498,31 @@ void VehicleGPSPosition::PublishStatus()
 
 	status.timestamp = hrt_absolute_time();
 	_sensors_status_gnss_pub.publish(status);
+}
+
+void VehicleGPSPosition::reportSwitch(int previous, int selected, uint8_t reason) const
+{
+	// A failed receiver is a warning; a return to the preferred or a more accurate receiver is not
+	const bool failure = (reason == vehicle_gnss_s::SELECTION_TIMEOUT) || (reason == vehicle_gnss_s::SELECTION_UNHEALTHY);
+
+	/* EVENT
+	 * @description
+	 * The estimator uses the new receiver from now on.
+	 *
+	 * <profile name="dev">
+	 * Set a preferred receiver with <param>SENS_GNSS_PRIME</param>.
+	 * </profile>
+	 */
+	events::send<uint8_t, events::px4::enums::gnss_selection_reason_t, uint8_t>(events::ID("gnss_receiver_switched"),
+	{failure ? events::Log::Warning : events::Log::Info, events::LogInternal::Info},
+	"Switched from GNSS {3} to GNSS {1}: {2}", static_cast<uint8_t>(selected),
+	static_cast<events::px4::enums::gnss_selection_reason_t>(reason), static_cast<uint8_t>(previous));
+}
+
+matrix::Vector3f VehicleGPSPosition::antennaOffset(int instance) const
+{
+	const GpsParamSlot *slot = findParamSlot(_latest_sample[instance].device_id, instance);
+	return slot ? slot->offset : matrix::Vector3f{};
 }
 
 int VehicleGPSPosition::resolvePreferredInstance() const

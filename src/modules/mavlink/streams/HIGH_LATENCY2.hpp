@@ -43,6 +43,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/position_controller_status.h>
@@ -306,6 +307,7 @@ private:
 			if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
 				if (estimator_selector_status.primary_instance != _estimator_status_sub.get_instance()) {
 					_estimator_status_sub.ChangeInstance(estimator_selector_status.primary_instance);
+					_estimator_status_flags_sub.ChangeInstance(estimator_selector_status.primary_instance);
 				}
 			}
 		}
@@ -313,13 +315,17 @@ private:
 		estimator_status_s estimator_status;
 
 		if (_estimator_status_sub.update(&estimator_status)) {
-			if (estimator_status.gps_check_fail_flags > 0 ||
-			    estimator_status.filter_fault_flags > 0) {
-
+			if (estimator_status.filter_fault_flags > 0) {
 				msg->failure_flags |= HL_FAILURE_FLAG_ESTIMATOR;
 			}
 
-			if (estimator_status.gps_check_fail_flags > 0) {
+			// The estimator intends to use GNSS, but the receiver stopped or delivers samples it can't use
+			estimator_status_flags_s estimator_status_flags;
+
+			if (_estimator_status_flags_sub.copy(&estimator_status_flags)
+			    && ((estimator_status_flags.gnss_fusion_state == estimator_status_flags_s::GNSS_FUSION_NO_DATA)
+				|| (estimator_status_flags.gnss_fusion_state == estimator_status_flags_s::GNSS_FUSION_UNUSABLE)
+				|| (estimator_status_flags.gnss_fusion_state == estimator_status_flags_s::GNSS_FUSION_VEL_LIMIT))) {
 				msg->failure_flags |= HL_FAILURE_FLAG_GPS;
 			}
 
@@ -671,6 +677,7 @@ private:
 	uORB::Subscription _attitude_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
+	uORB::Subscription _estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
 	uORB::Subscription _pos_ctrl_status_sub{ORB_ID(position_controller_status)};
 	uORB::Subscription _geofence_sub{ORB_ID(geofence_result)};
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
