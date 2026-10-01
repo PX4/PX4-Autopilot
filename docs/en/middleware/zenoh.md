@@ -19,6 +19,14 @@ The Zenoh-based middleware consists of a client running on PX4 and a Zenoh route
 The router acts as a broker and discovery service, enabling PX4 to publish and subscribe to topics in the global Zenoh data space.
 This allows seamless integration with ROS 2 nodes using [`rmw_zenoh`](https://github.com/ros2/rmw_zenoh), and supports flexible deployment across distributed systems.
 
+::: warning
+The Zenoh transport is unauthenticated and reaches uORB directly, so the Zenoh network must be kept isolated.
+Connect the flight controller to the companion over a dedicated Ethernet cable, not over a shared or wireless network.
+A direct cable is not enough on its own: the router republishes into the Zenoh network, so the router must also not be reachable from other networks.
+If the data has to leave the companion, securing it is up to the integrator.
+See [Security](../security/index.md) for more.
+:::
+
 ![Architecture PX4 Zenoh-Pico with ROS 2](../../assets/middleware/zenoh/architecture-px4-zenoh.svg)
 
 The client is the _PX4 Zenoh-Pico Node_ referred to above, which is implemented in the [PX4 `zenoh` module](../modules/modules_driver.md#zenoh).

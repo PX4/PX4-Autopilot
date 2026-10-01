@@ -296,9 +296,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif /* CONFIG_MMCSD */
 
-	/* Configure the SPIX_SYNC output */
-	spix_sync_servo_init(BOARD_SPIX_SYNC_FREQ);
-	spix_sync_servo_set(0, 150);
+	/* SPIX_SYNC is the IIM-42653 CLKIN on IMU pin 9. On FMUM 1 that pin is the
+	 * LSM6DSV32X INT2 push-pull output, so driving it fights the IMU. */
+	if (GET_HW_FMUM_ID() == ARKFPV_0) {
+		spix_sync_servo_init(BOARD_SPIX_SYNC_FREQ);
+		spix_sync_servo_set(0, 150);
+	}
 
 	return OK;
 }

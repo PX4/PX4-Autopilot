@@ -1,144 +1,102 @@
-# NOTE: this workflow is now running on Dronecode / PX4 AWS account.
-# - If you want to keep the tests running in GitHub Actions you need to uncomment the "runs-on: ubuntu-latest" lines
-#   and comment the "runs-on: [runs-on,runner=..." lines.
-# - If you would like to duplicate this setup try setting up "RunsOn" on your own AWS account try https://runs-on.com
-
 name: ROS Integration Tests
 
 on:
   push:
-    branches:
-    - 'main'
-    paths-ignore:
-      - 'docs/**'
+    branches: [main]
+    paths-ignore: ['docs/**']
   pull_request:
-    branches:
-      - '**'
-    paths-ignore:
-      - 'docs/**'
+    branches: ['**']
+    paths-ignore: ['docs/**']
+  workflow_dispatch:
+    inputs:
+      px4_ros2_ref:
+        description: 'Interface-library commit SHA; empty uses Tools/ros2/ros2.repos'
+        type: string
+        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      image: px4io/px4-dev-ros2-galactic:2021-09-08
-      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+      image: ghcr.io/px4/px4-dev-ros2:main-jazzy@sha256:975ade27fd951721bc1ca96519b004998358fa289d27b8c967548b8ab83d8689
+    defaults:
+      run:
+        shell: bash
     env:
       PX4_SBOM_DISABLE: 1
+      CMAKE_BUILD_PARALLEL_LEVEL: 8
     steps:
-    - uses: runs-on/action@v2
-    - uses: actions/checkout@v6
-      with:
-        fetch-depth: 1
-    - name: Configure Git Safe Directory
-      run: git config --system --add safe.directory '*'
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
-    - name: Update ROS Keys
-      run: |
-        sudo rm /etc/apt/sources.list.d/ros2.list && \
-        sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+      - name: Configure checkout ownership
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-    - name: Install gazebo
-      run: |
-        apt update && apt install -y gazebo11 libgazebo11-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer-plugins-base1.0-dev
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-ros-integration-jazzy-${{ runner.arch }}
+          max-size: 1G
 
-    - uses: ./.github/actions/setup-ccache
-      id: ccache
-      with:
-        cache-key-prefix: ccache-ros-integration
-        max-size: 400M
+      - name: Test ROS runner arguments
+        run: python3 -m unittest discover -s test -p 'test_ros_test_runner.py'
 
-    - name: Cache - Restore Micro-XRCE-DDS Agent
-      id: cache-xrce-agent
-      uses: actions/cache@v5
-      with:
-        path: /opt/Micro-XRCE-DDS-Agent
-        key: xrce-agent-v2.2.1-fastdds-2.8.2-galactic-2021-09-08
+      - name: Build PR firmware
+        run: |
+          git rev-parse HEAD
+          make px4_sitl_sih
+          test -x build/px4_sitl_sih/bin/px4
 
-    - name: Build - Micro-XRCE-DDS Agent (v2.2.1)
-      if: steps.cache-xrce-agent.outputs.cache-hit != 'true'
-      run: |
-        cd /opt
-        git clone --recursive https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
-        cd Micro-XRCE-DDS-Agent
-        git checkout v2.2.1 # recent versions require cmake 3.22, but px4-dev-ros2-galactic:2021-09-08 is on 3.16
-        sed -i 's/_fastdds_tag 2.8.x/_fastdds_tag 2.8.2/g' CMakeLists.txt
-        mkdir build
-        cd build
-        cmake ..
-        make -j2
+      - name: Prepare matching ROS sources
+        env:
+          PX4_ROS2_REF: ${{ inputs.px4_ros2_ref }}
+        run: |
+          python3 Tools/ros2/prepare_workspace.py /opt/px4_ros2_ci "$PX4_ROS2_REF"
 
-    - name: Cache - Restore PX4 ROS 2 Interface Library Workspace
-      id: cache-px4-ros2-ws
-      uses: actions/cache@v5
-      with:
-        path: /opt/px4_ws
-        # Bump 'v1' when the cached workspace layout changes in a way
-        # that is not captured by the message/service hash below.
-        key: px4-ros2-ws-v1-galactic-2021-09-08-${{ hashFiles('msg/*.msg', 'msg/versioned/*.msg', 'srv/*.srv') }}
+      - name: Build ROS workspace
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          cd /opt/px4_ros2_ci
+          sudo apt-get update -qq
+          rosdep update --rosdistro jazzy
+          rosdep install --from-paths src --ignore-src --rosdistro jazzy -y
+          colcon build --symlink-install --executor sequential --cmake-args \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          colcon test --packages-select px4_ros2_cpp --ctest-args -R unit_tests
+          colcon test-result --verbose
 
-    - name: Build - PX4 ROS 2 Interface Library
-      if: steps.cache-px4-ros2-ws.outputs.cache-hit != 'true'
-      shell: bash
-      run: |
-        PX4_DIR="$(pwd)"
-        . /opt/ros/galactic/setup.bash
-        mkdir -p /opt/px4_ws/src
-        cd /opt/px4_ws/src
-        # On a PR, target the branch we're merging into (main or release/X.Y).
-        # On a direct push, fall back to the branch we're running on.
-        BRANCH="${GITHUB_BASE_REF:-$GITHUB_REF_NAME}"
-        REPO_URL="https://github.com/Auterion/px4-ros2-interface-lib.git"
-        if git ls-remote --heads "$REPO_URL" "$BRANCH" | grep -q "$BRANCH"; then
-          echo "Cloning px4-ros2-interface-lib with matching branch: $BRANCH"
-          git clone --recursive --branch "$BRANCH" "$REPO_URL"
-        else
-          echo "Branch '$BRANCH' not found in px4-ros2-interface-lib, using default (main)"
-          git clone --recursive "$REPO_URL"
-        fi
-        # Ignore python packages due to compilation issue (can be enabled when updating ROS)
-        touch px4-ros2-interface-lib/px4_ros2_py/COLCON_IGNORE || true
-        touch px4-ros2-interface-lib/examples/python/COLCON_IGNORE || true
-        cd ..
-        # Copy messages to ROS workspace
-        "${PX4_DIR}/Tools/copy_to_ros_ws.sh" "$(pwd)"
-        rm -rf src/translation_node src/px4_msgs_old
-        colcon build --symlink-install
+      - name: Run SIH integration tests
+        run: |
+          source /opt/px4_ros2_ci/install/setup.bash
+          test/ros_test_runner.py --verbose --model quadx --force-color \
+            --config-file test/ros_tests/config-sih.json \
+            --build-dir build/px4_sitl_sih \
+            --px4-ros2-interface-lib-build-dir /opt/px4_ros2_ci/build/px4_ros2_cpp \
+            --log-dir logs/ros-sih
+        timeout-minutes: 45
 
-    - uses: ./.github/actions/build-gazebo-sitl
+      - uses: ./.github/actions/save-ccache
+        if: always() && steps.ccache.outcome == 'success'
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
 
-    - name: Core dump settings
-      run: |
-        ulimit -c unlimited
-        echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
-
-    - name: Run tests
-      shell: bash
-      run: |
-        . /opt/px4_ws/install/setup.bash
-        # The Agent is started (and restarted between tests) by ros_test_runner.py
-        # so DDS graph state from a previous PX4 instance does not leak into the
-        # next test. Make the Agent binary discoverable on PATH.
-        export PATH="/opt/Micro-XRCE-DDS-Agent/build:$PATH"
-        test/ros_test_runner.py --verbose --model iris --force-color
-      timeout-minutes: 45
-
-    - uses: ./.github/actions/save-ccache
-      if: always()
-      with:
-        cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
-
-    - name: Upload failed logs
-      if: failure()
-      uses: actions/upload-artifact@v7
-      with:
-        name: failed-logs.zip
-        path: |
-          logs/**/**/**/*.log
-          logs/**/**/**/*.ulg
-          build/px4_sitl_default/tmp_ros_tests/rootfs/fs/log/**/*.ulg
+      - name: Upload failed logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ros-integration-failed-logs
+          path: |
+            logs/**/**/**/*.log
+            logs/**/**/**/*.ulg
+            build/px4_sitl_sih/tmp_ros_tests/rootfs/fs/log/**/*.ulg
+            /opt/px4_ros2_ci/log

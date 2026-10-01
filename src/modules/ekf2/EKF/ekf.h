@@ -46,7 +46,6 @@
 #include "estimator_interface.h"
 
 #if defined(CONFIG_EKF2_GNSS)
-# include "aid_sources/gnss/gnss_checks.hpp"
 # include "yaw_estimator/EKFGSF_yaw.h"
 #endif // CONFIG_EKF2_GNSS
 
@@ -404,11 +403,7 @@ public:
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
 
-	const GnssChecks::gps_check_fail_status_u &gps_check_fail_status() const { return _gnss_checks.getFailStatus(); }
-	const decltype(GnssChecks::gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gnss_checks.getFailStatus().flags; }
-	uint16_t gps_check_fail_status_enabled_mask() const { return _gnss_checks.getEnabledChecksFailStatusMask(); }
-
-	bool gps_checks_passed() const { return _gnss_checks.passed(); };
+	bool gps_checks_passed() const { return _gnss_usable; };
 
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 
@@ -549,11 +544,11 @@ private:
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
 
-	static constexpr uint64_t _kAccelHorizLpfTimeConstant = 1000000; // 1 s
+	static constexpr float _kAccelHorizLpfTimeConstant = 1.f;
 	AlphaFilter<Vector2f> _accel_horiz_lpf{_kAccelHorizLpfTimeConstant}; ///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
 
 #if defined(CONFIG_EKF2_WIND)
-	static constexpr uint64_t _kHeightRateLpfTimeConstant = 10000000; // 10 s
+	static constexpr float _kHeightRateLpfTimeConstant = 10.f;
 	AlphaFilter<float> _height_rate_lpf{_kHeightRateLpfTimeConstant};
 #endif // CONFIG_EKF2_WIND
 
@@ -582,11 +577,12 @@ private:
 	Vector3f _ref_body_rate{};
 
 	Vector2f _flow_vel_body{};                      ///< velocity from corrected flow measurement (body frame)(m/s)
-	AlphaFilter<Vector2f> _flow_vel_body_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
+	AlphaFilter<Vector2f> _flow_vel_body_lpf{_kSensorLpfTimeConstant}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
 	uint32_t _flow_counter{0};                      ///< number of flow samples read for initialization
 
 	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
-	AlphaFilter<Vector2f> _flow_rate_compensated_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};
+	AlphaFilter<Vector2f> _flow_rate_compensated_lpf{_kSensorLpfTimeConstant};
+	uint64_t _flow_lpf_time_last_us{0};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -616,6 +612,11 @@ private:
 	// height sensor status
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
+	uint64_t _time_last_gnss_sample_accepted_us{0}; ///< last delayed-horizon time a GNSS sample was usable and within the velocity limit (us)
+	bool _gnss_usable{false};                   ///< the latest GNSS sample at the fusion time horizon was usable
+	bool _gnss_checks_passed_reported{false};   ///< gps_checks_passed was reported since the last reset
+	uint64_t _time_last_gnss_fusion_stop_us{0}; ///< when GNSS velocity and position fusion were last both stopped
+
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 
 	estimator_aid_source1d_s _aid_src_gnss_hgt{};
@@ -624,8 +625,13 @@ private:
 
 	uint64_t _time_last_gnss_hgt_rejected{0};
 
+	// selection_count of the last GNSS sample used by the position and height control, to detect a receiver change
+	uint8_t _gnss_pos_selection_count{0};
+	uint8_t _gnss_hgt_selection_count{0};
+
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	estimator_aid_source1d_s _aid_src_gnss_yaw {};
+	uint64_t _time_last_gnss_yaw_fail_us{0}; ///< last fusion failure or spoofing/jamming report of the heading receiver
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
@@ -643,15 +649,15 @@ private:
 
 	// Variables used by the initial filter alignment
 	bool _is_first_imu_sample{true};
-	static constexpr uint64_t _kSensorLpfTimeConstant = 90000; // 90 ms
-	AlphaFilter<Vector3f> _accel_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered accelerometer measurement used to align tilt (m/s/s)
-	AlphaFilter<Vector3f> _gyro_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
+	static constexpr float _kSensorLpfTimeConstant = 0.09f;
+	AlphaFilter<Vector3f> _accel_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered accelerometer measurement used to align tilt (m/s/s)
+	AlphaFilter<Vector3f> _gyro_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	estimator_aid_source1d_s _aid_src_baro_hgt {};
 
 	// Variables used to perform in flight resets and switch between height sources
-	AlphaFilter<float> _baro_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered barometric height measurement (m)
+	AlphaFilter<float> _baro_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered barometric height measurement (m)
 	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation
 
 	HeightBiasEstimator _baro_b_est{HeightSensor::BARO, _height_sensor_ref};
@@ -660,12 +666,13 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// used by magnetometer fusion mode selection
-	AlphaFilter<float> _mag_heading_innov_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};
+	AlphaFilter<float> _mag_heading_innov_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};
 	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
 
 	estimator_aid_source3d_s _aid_src_mag{};
 
-	AlphaFilter<Vector3f> _mag_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered magnetometer measurement for instant reset (Gauss)
+	AlphaFilter<Vector3f> _mag_lpf{_kSensorLpfTimeConstant};	///< filtered magnetometer measurement for instant reset (Gauss)
+	uint64_t _mag_lpf_time_last_us{0};
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
 
 	// Variables used to control activation of post takeoff functionality
@@ -935,6 +942,22 @@ private:
 	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
 	bool isGnssVelResetAllowed() const;
 	bool isGnssPosResetAllowed() const;
+
+	// After velocity and position fusion both stop, a restart waits for the GNSS health time while disarmed on the
+	// ground, where the checks are strict, otherwise for a tenth of it and at least a second. The duration follows the
+	// current armed/in-air state, so arming during a ground hold-off shortens the remainder to the in-flight value.
+	// Computed here so the EKF does not depend on the checker's state.
+	uint64_t gnssRestartHoldOffUs() const
+	{
+		const bool disarmed_on_ground = !_control_status.flags.armed && !_control_status.flags.in_air;
+		return disarmed_on_ground ? (uint64_t)_min_gps_health_time_us
+		       : math::max((uint64_t)1e6, (uint64_t)(_min_gps_health_time_us / 10));
+	}
+
+	bool isGnssRestartHoldOffElapsed() const
+	{
+		return isTimedOut(_time_last_gnss_fusion_stop_us, gnssRestartHoldOffUs());
+	}
 	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
 	bool tryYawEmergencyReset();
 	void resetVelocityToGnss(estimator_aid_source3d_s &aid_src);
@@ -945,7 +968,7 @@ private:
 	bool isGnssHgtResetAllowed();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	void controlGnssYawFusion(const gnssSample &gps_sample);
+	void controlGnssYawFusion(const imuSample &imu_delayed);
 	void stopGnssYawFusion();
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
@@ -955,7 +978,7 @@ private:
 	// return true if the reset was successful
 	bool resetYawToGnss(float gnss_yaw, float gnss_yaw_offset);
 
-	void updateGnssYaw(const gnssSample &gps_sample);
+	void updateGnssYaw(const gnssYawSample &gnss_yaw_sample);
 
 # endif // CONFIG_EKF2_GNSS_YAW
 
@@ -968,6 +991,10 @@ private:
 
 	// yaw estimator instance
 	EKFGSF_yaw _yawEstimator{};
+
+	uint64_t _time_yaw_estimator_activated_us{0};
+	bool _yaw_estimator_was_active_in_air{false};
+	bool _yaw_estimator_restarted_in_air{false};
 
 #endif // CONFIG_EKF2_GNSS
 
@@ -1086,8 +1113,8 @@ private:
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	HeightBiasEstimator _ev_hgt_b_est {HeightSensor::EV, _height_sensor_ref};
 	PositionBiasEstimator _ev_pos_b_est{PositionSensor::EV, _position_sensor_ref};
-	static constexpr uint64_t _kQuatErrorLpfTimeConstant = 10000000; // 10 s
-	AlphaFilter<Quatf> _ev_q_error_filt{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kQuatErrorLpfTimeConstant};
+	static constexpr float _kQuatErrorLpfTimeConstant = 10.f;
+	AlphaFilter<Quatf> _ev_q_error_filt{_dt_ekf_avg, _kQuatErrorLpfTimeConstant};
 	bool _ev_q_error_initialized{false};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 

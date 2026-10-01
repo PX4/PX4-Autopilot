@@ -447,6 +447,8 @@ ControlAllocator::Run()
 			}
 
 			_control_allocation[i]->clipActuatorSetpoint();
+
+			check_allocation_health(i);
 		}
 	}
 
@@ -635,6 +637,23 @@ ControlAllocator::handle_stopped_motors(const hrt_abstime now)
 }
 
 void
+ControlAllocator::check_allocation_health(int matrix_index)
+{
+	const uint8_t dropped_axes = _control_allocation[matrix_index]->getDroppedAxes();
+
+	if (dropped_axes != _dropped_axes_reported[matrix_index]) {
+		_dropped_axes_reported[matrix_index] = dropped_axes;
+
+		if (dropped_axes != 0) {
+			PX4_WARN("Control allocation %i: dropped dependent control axes 0x%x", matrix_index, dropped_axes);
+
+		} else {
+			PX4_INFO("Control allocation %i: all control axes restored", matrix_index);
+		}
+	}
+}
+
+void
 ControlAllocator::publish_control_allocator_status(int matrix_index)
 {
 	control_allocator_status_s control_allocator_status{};
@@ -706,7 +725,7 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now)
 
 	} else {
 		// Square wave output
-		const float elapsed_in_period = fmodf(static_cast<float>(now) / 1_s, period_sec);
+		const float elapsed_in_period = fmodf(static_cast<float>(now) * 1e-6f, period_sec);
 		const float ice_shedding_output = elapsed_in_period < ICE_SHEDDING_ON_SEC ? ICE_SHEDDING_OUTPUT : 0.0f;
 
 		return ice_shedding_output;
@@ -1031,6 +1050,10 @@ int ControlAllocator::print_status()
 
 		printf("\n");
 		PX4_INFO("  Configured actuators: %i", num_configured);
+
+		if (_control_allocation[i]->getDroppedAxes() != 0) {
+			PX4_INFO("  Dropped control axes: 0x%x", _control_allocation[i]->getDroppedAxes());
+		}
 	}
 
 	if (_handled_motor_failure_bitmask) {

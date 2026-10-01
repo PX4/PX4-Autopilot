@@ -32,13 +32,9 @@ The board should be placed in a ziplock/anti-static bag containing a silica pack
 The bag/silica is to prevent condensation from forming on the board.
 :::
 
-它可以在没有商业级环境房间的情况下进行校准。
-可以使用内部空间很小的泡沫塑料盒来创造一个简单的环境容器。
-这允许自驾仪将空气相对快速地自加热（确保盒子有一个小孔以平衡容器内外压力，但仍然能够在容器内加热）。
+它可以在没有商业级环境房间的情况下进行校准。可以使用内部空间很小的泡沫塑料盒来创造一个简单的环境容器。这允许自驾仪将空气相对快速地自加热（确保盒子有一个小孔以平衡容器内外压力，但仍然能够在容器内加热）。
 
-使用这种设置可以将电路板加热到约 70C 。
-经验表明，许多普通电路板可以加热到这个温度不会产生不良副作用。
-如有疑问，请与制造商核实安全操作的温度范围。
+使用这种设置可以将电路板加热到约 70C 。经验表明，许多普通电路板可以加热到这个温度不会产生不良副作用。如有疑问，请与制造商核实安全操作的温度范围。
 
 :::tip
 To check the status of the onboard thermal calibration use the MAVlink console (or NuttX console) to check the reported internal temp from the sensor.
@@ -61,8 +57,8 @@ To perform and onboard calibration:
 
 1. 确保在校准前设置机架类型，否则在设置飞控板时校准参数将丢失。
 2. Power the board and set the `SYS_CAL_*` parameters to 1 to enable calibration of the required sensors at the next startup. [^1]
-3. Set the [SYS_CAL_TDEL](../advanced_config/parameter_reference.md#SYS_CAL_TDEL) parameter to the number of degrees of temperature rise required for the onboard calibrator to complete. 如果此参数太小，则校准将提前完成，并且校准的温度范围将不足以在电路板完全预热时进行补偿。 如果此参数设置得太大，则板载校准器将永远不会完成。 在设置此参数时，应考虑到电路板自加热导致的温度升高。 如果传感器的温升量未知，则应使用板外校准方法。
-4. Set the [SYS_CAL_TMIN](../advanced_config/parameter_reference.md#SYS_CAL_TMIN) parameter to the lowest temperature data that you want the calibrator to use. 更低的冷却温度能够用于减少冷却时间，同时保持对校准最低温度的控制。 如果校准器温度低于此参数设置的值，则不会使用传感器的数据。
+3. Set the [SYS_CAL_TDEL](../advanced_config/parameter_reference.md#SYS_CAL_TDEL) parameter to the number of degrees of temperature rise required for the onboard calibrator to complete. 如果此参数太小，则校准将提前完成，并且校准的温度范围将不足以在电路板完全预热时进行补偿。如果此参数设置得太大，则板载校准器将永远不会完成。在设置此参数时，应考虑到电路板自加热导致的温度升高。如果传感器的温升量未知，则应使用板外校准方法。
+4. Set the [SYS_CAL_TMIN](../advanced_config/parameter_reference.md#SYS_CAL_TMIN) parameter to the lowest temperature data that you want the calibrator to use. 更低的冷却温度能够用于减少冷却时间，同时保持对校准最低温度的控制。如果校准器温度低于此参数设置的值，则不会使用传感器的数据。
 5. Set the [SYS_CAL_TMAX](../advanced_config/parameter_reference.md#SYS_CAL_TMAX) parameter to the highest starting sensor temperature that should be accepted by the calibrator. 如果起始温度高于此参数设置的值，校准将退出并报告错误。 Note that if the variation in measured temperature between different sensors exceeds the gap between `SYS_CAL_TMAX` and `SYS_CAL_TMIN`, then it will be impossible for the calibration to start.
 6. Remove power and cold soak the board to below the starting temperature specified by the `SYS_CAL_TMIN` parameter. 请注意，在校准开始之前启动过程有10秒的延迟，以允许所有传感器稳定，并且传感器在此期间会内部发热。
 7. Keeping the board stationary[^2], apply power and warm to a temperature high enough to achieve the temperature rise specified by the `SYS_CAL_TDEL` parameter. 校准期间，完成百分比将打印到系统控制台。 [^3]
@@ -104,7 +100,7 @@ To perform an offboard calibration:
 
 11. After parameters have finished loading, set `SDLOG_MODE` to 1 to re-enable normal logging and remove power.
 
-12. Power the board and perform a normal accelerometer sensor calibration using _QGroundControl_. 重要的是，此步骤在飞控板处于校准温度范围内进行。 此步骤后的首次飞行之前，应重新启动电路板，因为突然的偏置变化会扰乱导航估计器，并且某些参数直到下次启动时才会被使用它们的算法加载。
+12. Power the board and perform a normal accelerometer sensor calibration using _QGroundControl_. 重要的是，此步骤在飞控板处于校准温度范围内进行。此步骤后的首次飞行之前，应重新启动电路板，因为突然的偏置变化会扰乱导航估计器，并且某些参数直到下次启动时才会被使用它们的算法加载。
 
 ## Implementation Detail {#implementation}
 

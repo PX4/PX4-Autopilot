@@ -949,7 +949,7 @@ TEST_F(RouteSegmentCursorTest, IgnoresInvalidAndUnreadableItemsAfterLand)
 		};
 
 		if (!fail_tail_load) {
-			mission[3].lat = NAN;
+			mission[3].lat = static_cast<double>(NAN);
 		}
 
 		VectorProvider provider = makeRouteProvider(mission);
@@ -1199,7 +1199,7 @@ INSTANTIATE_TEST_SUITE_P(
 	InvalidVehiclePositions,
 	MissionRouteProjectionInvalidVehiclePositionTest,
 	::testing::Values(
-		InvalidVehiclePositionCase{"NonFinite", NAN, kBaseLon},
+		InvalidVehiclePositionCase{"NonFinite", static_cast<double>(NAN), kBaseLon},
 		InvalidVehiclePositionCase{"NullIsland", 0.0, 0.0},
 		InvalidVehiclePositionCase{"LatitudeOutOfRange", 91.0, kBaseLon},
 		InvalidVehiclePositionCase{"LongitudeOutOfRange", kBaseLat, 181.0}

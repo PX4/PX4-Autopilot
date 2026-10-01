@@ -200,12 +200,19 @@ struct gnssSample {
 	uint8_t     fix_type{};   ///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time
 	uint8_t     nsats{};      ///< number of satellites used
 	float       pdop{};       ///< position dilution of precision
-	float       yaw{};        ///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
-	float       yaw_acc{};    ///< 1-std yaw error (rad)
-	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
 	bool        spoofed{};    ///< true if GNSS data is spoofed
 	bool        jammed{};     ///< true if GNSS data is jammed
 	Vector3f    pos_body{};   ///< position of GPS antenna in body frame (m)
+	bool        usable{};     ///< the sample passes the GNSS checks of the sensors module
+	uint8_t     selection_count{}; ///< increments when the sensors module selects another receiver
+};
+
+struct gnssYawSample {
+	uint64_t    time_us{};    ///< timestamp of the measurement (uSec)
+	float       yaw{};        ///< yaw angle from dual antenna GNSS (rad, [-PI, PI])
+	float       yaw_acc{};    ///< 1-std yaw error (rad); NAN if not provided
+	float       yaw_offset{}; ///< yaw of the antenna baseline in the body frame (rad)
+	bool        usable{};     ///< the sensors module found no spoofing or jamming report of the heading receiver that its checks reject
 };
 
 struct magSample {
@@ -276,6 +283,7 @@ struct rangingBeaconSample {
 
 struct systemFlagUpdate {
 	uint64_t time_us{};
+	bool armed{false};
 	bool at_rest{false};
 	bool in_air{true};
 	bool is_fixed_wing{false};
@@ -372,17 +380,7 @@ struct parameters {
 	float ekf2_gps_p_gate{5.0f};            ///< GPS horizontal position innovation consistency gate size (STD)
 	float ekf2_gps_v_gate{5.0f};            ///< GPS velocity innovation consistency gate size (STD)
 
-	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
-	// good enough to set a local origin and commence aiding
-	int32_t ekf2_gps_check{1045};             ///< bitmask used to control which GPS quality checks are used
-	float ekf2_req_eph{5.0f};               ///< maximum acceptable horizontal position error (m)
-	float ekf2_req_epv{8.0f};               ///< maximum acceptable vertical position error (m)
-	float ekf2_req_sacc{1.0f};              ///< maximum acceptable speed error (m/s)
-	int32_t ekf2_req_nsats{6};              ///< minimum acceptable satellite count
-	float ekf2_req_pdop{2.0f};              ///< maximum acceptable position dilution of precision
-	float ekf2_req_hdrift{0.3f};            ///< maximum acceptable horizontal drift speed (m/s)
-	float ekf2_req_vdrift{0.5f};            ///< maximum acceptable vertical drift speed (m/s)
-	int32_t ekf2_req_fix{3};                ///< minimum acceptable GPS fix type
+	float ekf2_req_sacc{1.0f};              ///< speed accuracy below which GNSS vertical velocity is trusted while the accelerometer clips and GNSS velocity feeds the yaw estimator (m/s)
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
@@ -393,6 +391,7 @@ struct parameters {
 	float ekf2_gsf_tas{15.0f};              ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	const unsigned EKFGSF_reset_delay{1000000}; ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};     ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
+	const unsigned EKFGSF_min_active_time{10'000'000}; ///< Minimum period of continuous EKF-GSF velocity fusion after an in-flight restart
 
 #endif // CONFIG_EKF2_GNSS
 
@@ -635,6 +634,7 @@ uint64_t gnss_hgt_fault              :
 		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
 		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
 		uint64_t rngbcn_fusion           : 1; ///< 50 - true when ranging beacon position fusion is active
+		uint64_t armed                   : 1; ///< 51 - true when the vehicle is armed
 
 	} flags;
 	uint64_t value;

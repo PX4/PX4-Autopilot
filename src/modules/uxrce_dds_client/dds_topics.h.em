@@ -34,6 +34,9 @@ import os
 // 4ms ~= 250Hz.
 #define UXRCE_DEFAULT_POLL_INTERVAL_MS 4
 
+// Timeout for the Agent to acknowledge buffered data requests.
+#define UXRCE_REQUEST_DATA_TIMEOUT_MS 1000
+
 typedef bool (*UcdrSerializeMethod)(const void* data, ucdrBuffer& buf, int64_t time_offset);
 
 static constexpr int max_topic_size = 512;
@@ -93,12 +96,12 @@ struct SendTopicsSubs {
 
 	uint32_t num_payload_sent{};
 
-	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
+	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
 	void update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace);
 	void reset();
 };
 
-bool SendTopicsSubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace) {
+bool SendTopicsSubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrObjectId participant_id, const char *client_namespace) {
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		if (fds[idx].events == 0) {
 			fds[idx].fd = orb_subscribe_multi(send_subscriptions[idx].orb_meta, send_subscriptions[idx].orb_instance);
@@ -218,7 +221,8 @@ struct RcvTopicsPubs {
 
 	uint32_t num_payload_received{};
 
-	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
+	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
+	bool request_data(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_in_stream_id);
 };
 
 @[if subscriptions or subscriptions_multi]@
@@ -231,7 +235,7 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 
 	switch (object_id.id) {
 @[    for idx, sub in enumerate(subscriptions)]@
-	case @(idx)+ (65535U / 32U) + 1: {
+	case data_reader_id(@(idx)): {
 			@(sub['simple_base_type'])_s data;
 
 			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
@@ -243,7 +247,7 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 
 @[    end for]@
 @[    for idx, sub in enumerate(subscriptions_multi)]@
-	case @(idx + len(subscriptions))+ (65535U / 32U) + 1: {
+	case data_reader_id(@(idx + len(subscriptions))): {
 			@(sub['simple_base_type'])_s data;
 
 			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
@@ -282,14 +286,14 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 }
 @[end if]@
 
-bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace)
+bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrObjectId participant_id, const char *client_namespace)
 {
 @[    for idx, sub in enumerate(subscriptions)]@
 	{
 			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['simple_base_type']))) * 2; // use a bit larger queue size than internal
 			uint32_t message_version = get_message_version<@(sub['simple_base_type'])_s>();
 
-			if (!create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth)) {
+			if (!create_data_reader(session, reliable_out_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth)) {
 				return false;
 			}
 	}
@@ -299,7 +303,7 @@ bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id
 			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['topic_simple']))) * @(sub.get('max_instances', 2)); // scale queue for multiple sources
 			uint32_t message_version = get_message_version<@(sub['simple_base_type'])_s>();
 
-			if (!create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx + len(subscriptions)), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth)) {
+			if (!create_data_reader(session, reliable_out_stream_id, participant_id, @(idx + len(subscriptions)), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth)) {
 				return false;
 			}
 	}
@@ -307,6 +311,43 @@ bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id
 
 @[    if subscriptions or subscriptions_multi]@
 	uxr_set_topic_callback(session, on_topic_update, this);
+@[    end if]@
+
+	return true;
+}
+
+bool RcvTopicsPubs::request_data(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_in_stream_id)
+{
+@[    if subscriptions or subscriptions_multi]@
+	uxrDeliveryControl delivery_control{};
+	delivery_control.max_samples = UXR_MAX_SAMPLES_UNLIMITED;
+
+	// For each data reader: build its ID, then buffer a READ_DATA request for it
+	for (uint16_t index = 0; index < @(len(subscriptions) + len(subscriptions_multi)); ++index) {
+		uxrObjectId datareader_id = uxr_object_id(data_reader_id(index), UXR_DATAREADER_ID);
+
+		// Buffer is full: no slot for this request
+		if (uxr_buffer_request_data(session, reliable_out_stream_id, datareader_id, best_effort_in_stream_id,
+					    &delivery_control) == UXR_INVALID_REQUEST_ID) {
+			// Flush and wait for the Agent's ACK: only that frees a history slot
+			if (!uxr_run_session_until_confirm_delivery(session, UXRCE_REQUEST_DATA_TIMEOUT_MS)) {
+				PX4_ERR("request data: delivery not confirmed at reader %u", index);
+				return false;
+			}
+
+			// Retry: buffer the same request now that a slot is free
+			if (uxr_buffer_request_data(session, reliable_out_stream_id, datareader_id, best_effort_in_stream_id,
+						    &delivery_control) == UXR_INVALID_REQUEST_ID) {
+				PX4_ERR("request data failed for reader %u", index);
+				return false;
+			}
+		}
+	}
+
+	// Flush and wait for ack
+	if (!uxr_run_session_until_confirm_delivery(session, UXRCE_REQUEST_DATA_TIMEOUT_MS)) {
+		PX4_WARN("request data: delivery not confirmed for all readers");
+	}
 @[    end if]@
 
 	return true;

@@ -2053,7 +2053,7 @@ float FixedWingModeManager::rollAngleToLateralAccel(float roll_body) const
 void FixedWingModeManager::control_backtransition_heading_hold()
 {
 	if (!PX4_ISFINITE(_backtrans_heading)) {
-		_backtrans_heading = _local_pos.heading;
+		_backtrans_heading = _yaw;
 	}
 
 	fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
@@ -2202,6 +2202,7 @@ FixedWingModeManager::Run()
 				_pos_sp_triplet.current.lat = static_cast<double>(NAN);
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
+				_pos_sp_triplet.current.course = NAN;
 				_pos_sp_triplet.current.gliding_enabled = false;
 
 				if (PX4_ISFINITE(trajectory_setpoint.position[0]) && PX4_ISFINITE(trajectory_setpoint.position[1])) {

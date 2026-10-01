@@ -56,8 +56,8 @@
 #include <uORB/topics/fiducial_marker_pos_report.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/target_gnss.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vte_bias_init_status.h>
 #include <uORB/topics/vte_position.h>
 #include <uORB/topics/vte_aid_source3d.h>
@@ -354,7 +354,7 @@ private:
 	bool processObsVision(TargetObs &obs);
 
 	/* UAV GPS data */
-	bool updateUavGpsData();
+	bool updateUavGnssData();
 	bool isUavGpsPositionValid();
 	bool isUavGpsVelocityValid();
 	bool processObsGNSSPosMission(TargetObs &obs);
@@ -375,7 +375,7 @@ private:
 	void resetObservations();
 	bool shouldEmitWarning(hrt_abstime &last_warn);
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _fiducial_marker_pos_report_sub{ORB_ID(fiducial_marker_pos_report)};
 	uORB::Subscription _target_gnss_sub{ORB_ID(target_gnss)};
 

@@ -37,6 +37,16 @@ parameters:
       max: 1000
       unit: Hz
       reboot_required: true
+    UAVCAN_QUIRKS:
+      description:
+        short: DroneCAN device quirks bitmask
+        long: |
+          Enables workarounds for non-compliant DroneCAN devices. See PX4 docs for details.
+      type: bitmask
+      bit:
+        0: Hobbywing 1-based esc_index
+      default: 0
+      reboot_required: true
     UAVCAN_LGT_NUM:
       description:
         short: Number of UAVCAN lights to configure

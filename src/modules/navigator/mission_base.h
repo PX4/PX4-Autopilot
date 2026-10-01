@@ -380,7 +380,7 @@ protected:
 	 * @brief Traversal mode used by this navigation mode when walking position items.
 	 *
 	 * Mission mode follows active DO_JUMP control flow by default. Derived modes such as
-	 * mission-based RTL can override this to walk the geometric mission path instead.
+	 * mission-based Return can override this to walk the geometric mission path instead.
 	 * Traversal helpers use this policy unless the caller explicitly overrides it.
 	 */
 	virtual MissionTraversalType traversalType() const
@@ -403,6 +403,15 @@ protected:
 	 * @return true if the item was loaded successfully
 	 */
 	virtual bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item);
+
+	/**
+	 * @brief Write a mission item to the dataman mission storage.
+	 *
+	 * @param[in] index Index of the mission item
+	 * @param[in] mission_item The item to store
+	 * @return true if the item was written successfully
+	 */
+	virtual bool writeMissionItemToCache(int32_t index, mission_item_s &mission_item);
 
 	/**
 	 * @brief Find the next position mission item.
@@ -452,6 +461,13 @@ protected:
 	uORB::SubscriptionData<vehicle_global_position_s> _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
 	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item}; /**< Navigator mission item publication*/
 	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)}; /**< Mission publication*/
+
+	/**
+	 * @brief Update mission subscription
+	 *
+	 */
+	void updateMavlinkMission();
+
 private:
 	/**
 	 * @brief Maximum number of jump mission items iterations
@@ -463,12 +479,6 @@ private:
 	 *
 	 */
 	virtual void updateDatamanCache();
-	/**
-	 * @brief Update mission subscription
-	 *
-	 */
-	void updateMavlinkMission();
-
 	/**
 	 * @brief Load a mission item according to the requested mission traversal type.
 	 */

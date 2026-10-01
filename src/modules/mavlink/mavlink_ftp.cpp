@@ -346,6 +346,12 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
 
 	// clear any not used payload data to correctly trim mavlink ftp message reply
+	if (payload->size > kMaxDataLength) {
+		// Should not happen: every producer bounds itself. Clamp rather than let the
+		// subtraction below wrap into a memset of the whole address space.
+		payload->size = kMaxDataLength;
+	}
+
 	memset(&payload->data[payload->size], 0, kMaxDataLength - payload->size);
 
 	// keep a copy of the last sent response ((n)ack), so that if it gets lost and the GCS resends the request,
@@ -397,6 +403,22 @@ void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
 	dst[dst_len - 1] = '\0';
 }
 
+/// @brief stat()s an entry of the directory in _work_buffer1, leaving size and mtime untouched on failure
+void
+MavlinkFTP::_statDirent(const char *name, uint32_t &size, uint32_t &mtime)
+{
+	int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s/%s", _work_buffer1, name);
+
+	if ((ret > 0) && (ret < _work_buffer2_len)) {
+		struct stat st;
+
+		if (stat(_work_buffer2, &st) == 0) {
+			size = st.st_size;
+			mtime = st.st_mtime;
+		}
+	}
+}
+
 /// @brief Responds to a List command
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
@@ -441,9 +463,14 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 
 			if (_our_errno) {
 				PX4_WARN("readdir failed: %s", strerror(_our_errno));
-				payload->data[offset++] = kDirentSkip;
-				*((char *)&payload->data[offset]) = '\0';
-				offset++;
+
+				// Room for the identifier and the null terminator, as in the entry loop below
+				if ((offset + 2) <= kMaxDataLength) {
+					payload->data[offset++] = kDirentSkip;
+					*((char *)&payload->data[offset]) = '\0';
+					offset++;
+				}
+
 				errorCode = kErrFailErrno;
 
 			} else if (offset == 0) {
@@ -471,18 +498,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 #endif
 				// For files we get the file size as well
 				direntType = kDirentFile;
-				int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s/%s", _work_buffer1, result->d_name);
-				bool buf_is_ok = ((ret > 0) && (ret < _work_buffer2_len));
-
-				if (buf_is_ok) {
-					struct stat st;
-
-					if (stat(_work_buffer2, &st) == 0) {
-						fileSize = st.st_size;
-						fileTime = st.st_mtime;
-					}
-				}
-
+				_statDirent(result->d_name, fileSize, fileTime);
 				break;
 			}
 
@@ -498,6 +514,12 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 
 			} else {
 				direntType = kDirentDir;
+
+				if (include_time) {
+					// Directories have no meaningful size, but do have a modification time
+					_statDirent(result->d_name, fileSize, fileTime);
+					fileSize = 0;
+				}
 			}
 
 			break;
@@ -511,25 +533,25 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 			// Skip send only dirent identifier
 			_work_buffer2[0] = '\0';
 
-		} else if (direntType == kDirentFile) {
-			// Files send filename and file length, optionally followed by the modification time
-			int ret;
+		} else if (include_time) {
+			// ListDirectoryWithTime: every entry is <name>\t<size>\t<mtime>, directories with size 0
+			int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32 "\t%" PRIu32, result->d_name, fileSize,
+					   fileTime);
 
-			if (include_time) {
-				ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32 "\t%" PRIu32, result->d_name, fileSize, fileTime);
-
-			} else {
-				ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32, result->d_name, fileSize);
+			if (!((ret > 0) && (ret < _work_buffer2_len))) {
+				_work_buffer2[_work_buffer2_len - 1] = '\0';
 			}
 
-			bool buf_is_ok = ((ret > 0) && (ret < _work_buffer2_len));
+		} else if (direntType == kDirentFile) {
+			// ListDirectory: files send <name>\t<size>
+			int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32, result->d_name, fileSize);
 
-			if (!buf_is_ok) {
+			if (!((ret > 0) && (ret < _work_buffer2_len))) {
 				_work_buffer2[_work_buffer2_len - 1] = '\0';
 			}
 
 		} else {
-			// Everything else just sends name
+			// ListDirectory: directories send only the name, existing clients take the whole string as the name
 			strncpy(_work_buffer2, result->d_name, _work_buffer2_len);
 			_work_buffer2[_work_buffer2_len - 1] = '\0';
 		}
@@ -591,9 +613,10 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 		}
 
 		// CreateFile and OpenFileWO create or truncate the file as part of the open, so the
-		// effect lands before any write arrives and has to be authorized here.
-		if ((oflag & (O_WRONLY | O_RDWR | O_CREAT | O_TRUNC)) != 0
-		    && !_validatePathIsWritable(_work_buffer1)) {
+		// effect lands before any write arrives and has to be authorized here. Test the
+		// access mode rather than the individual flags: on NuttX O_RDONLY is a bit and
+		// O_RDWR is O_RDONLY | O_WRONLY, so a read-only open would match O_RDWR.
+		if (for_write && !_validatePathIsWritable(_work_buffer1)) {
 			return kErrFailFileProtected;
 		}
 

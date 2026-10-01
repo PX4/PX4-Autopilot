@@ -151,10 +151,13 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 
 	if (arming_gesture) {
 		_yaw_setpoint_stabilized = NAN;
+		_stick_yaw.resetYawspeed();
 	}
 
 	const float yaw = Eulerf(q).psi();
-	const float yaw_stick_input = Sticks::expoDeadzone(_manual_control_setpoint.yaw, .6f, _param_man_deadzone.get());
+	const float yaw_stick_input = arming_gesture
+				      ? 0.f
+				      : Sticks::expoDeadzone(_manual_control_setpoint.yaw, .6f, _param_man_deadzone.get());
 	_stick_yaw.generateYawSetpoint(attitude_setpoint.yaw_sp_move_rate, _yaw_setpoint_stabilized, yaw_stick_input, yaw, dt,
 				       _unaided_heading);
 
@@ -168,10 +171,8 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 	 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
 	 * points to, and changes of the stick input are linear.
 	 */
-	const hrt_abstime dt_us = static_cast<hrt_abstime>(dt * 1e6f);
-	const hrt_abstime man_tilt_tau_us = static_cast<hrt_abstime>(math::max(_param_mc_man_tilt_tau.get(), 0.f) * 1e6f);
-	_man_roll_input_filter.setParameters(dt_us, man_tilt_tau_us);
-	_man_pitch_input_filter.setParameters(dt_us, man_tilt_tau_us);
+	_man_roll_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
+	_man_pitch_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
 
 	// we want to fly towards the direction of (roll, pitch)
 	Vector2f v = Vector2f(_man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max),
@@ -272,7 +273,14 @@ MulticopterAttitudeControl::Run()
 				_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
 
 				const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-				_spooled_up = armed && hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s;
+
+				if (!armed) {
+					_spooled_up = false;
+
+				} else if (!_spooled_up) {
+					// Keep the spool-up state latched until disarm.
+					_spooled_up = hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s;
+				}
 			}
 		}
 

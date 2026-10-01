@@ -132,47 +132,6 @@
             }
         },
         {
-            "name": "SITL (jmavsim_iris SYS_AUTOSTART=10017)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${command:cmake.launchTargetPath}",
-            "args": [
-                "${workspaceFolder}/ROMFS/px4fmu_common"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${command:cmake.buildDirectory}/rootfs",
-            "environment": [
-                {
-                    "name": "PX4_SYS_AUTOSTART",
-                    "value": "10017"
-                }
-            ],
-            "postDebugTask": "jmavsim kill",
-            "linux": {
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    },
-                    {
-                        "description": "PX4 ignore wq signals",
-                        "text": "handle SIGCONT nostop noprint nopass",
-                        "ignoreFailures": true
-                    }
-                ]
-            },
-            "osx": {
-                "MIMode": "lldb",
-                "setupCommands": [
-                    {
-                        "text": "pro hand -p true -s false -n false SIGCONT",
-                    }
-                ]
-            }
-        },
-        {
             "name": "SITL (shell)",
             "type": "cppdbg",
             "request": "launch",

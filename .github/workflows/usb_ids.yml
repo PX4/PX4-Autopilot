@@ -1,0 +1,42 @@
+name: Dronecode USB ID Registry
+
+on:
+  pull_request:
+    branches:
+      - '**'
+    # Keep in sync with TOOLING in Tools/ci/usb_ids_runner.py
+    paths:
+      - 'boards/*/*/nuttx-config/*/defconfig'
+      - '.github/workflows/usb_ids.yml'
+      - 'Tools/ci/check_usb_ids.py'
+      - 'Tools/ci/test_check_usb_ids.py'
+      - 'Tools/ci/test_usb_ids_runner.py'
+      - 'Tools/ci/usb_ids_runner.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Board USB VID/PID must be registered
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # the PR merge commit and its base parent, to diff the PR locally
+          fetch-depth: 2
+
+      - name: Install PyYAML
+        run: pip install pyyaml --break-system-packages
+
+      - name: Test the USB ID checker and runner
+        working-directory: Tools/ci
+        run: python3 -m unittest -v test_check_usb_ids test_usb_ids_runner
+
+      - name: Check USB IDs against the Dronecode registry
+        run: python3 Tools/ci/usb_ids_runner.py

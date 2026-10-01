@@ -18,7 +18,6 @@ parameters:
         long: |-
           Set to 1 to reset parameters on next system startup (setting defaults).
           Platform-specific values are used if available.
-          RC* parameters are preserved.
       type: enum
       values:
         0: Keep parameters
@@ -139,7 +138,7 @@ parameters:
         short: Control if the vehicle has a GPS
         long: |-
           Disable this if the system has no GPS.
-          If disabled, the sensors hub will not process sensor_gps,
+          If disabled, the sensors hub will not process sensor_gnss,
           and GPS will not be available for the rest of the system.
       type: boolean
       default: 1
@@ -151,9 +150,9 @@ parameters:
           0: No minimum receiver count required. Position divergence between two receivers
           and loss of a GNSS receiver still produce a warning but never trigger the
           COM_GNSSLOSS_ACT failsafe action.
-          1-N: Require the presence of N GNSS receivers for arming and during flight.
+          1-N: Require the presence of N GNSS receivers for arming.
           If the active count drops below this value in flight, COM_GNSSLOSS_ACT is triggered.
-          When set to 2, position divergence between the two receivers also triggers COM_GNSSLOSS_ACT.
+          When set to 2, position divergence between the two receivers also blocks arming when not armed and triggers COM_GNSSLOSS_ACT in flight.
       type: int32
       default: 0
       min: 0

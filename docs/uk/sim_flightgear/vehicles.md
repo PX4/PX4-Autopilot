@@ -10,10 +10,6 @@ This simulator is [community supported and maintained](../simulation/community_s
 This topic lists/displays the vehicles supported by the PX4 [FlightGear](../sim_flightgear/index.md) simulation, and the `make` commands required to run them (the commands are run from terminal in the **PX4-Autopilot** directory).
 Підтримувані типи: літак, автогир та ровер (існують конкретні рамки в межах цих типів).
 
-:::tip
-For the full list of build targets run `make px4_sitl list_vmd_make_targets` (filter out those that start with `flightgear_`).
-:::
-
 :::info
 The [FlightGear](../sim_flightgear/index.md) page shows how to install and use FlightGear in more detail (this page is a summary of vehicle-specific features).
 :::
