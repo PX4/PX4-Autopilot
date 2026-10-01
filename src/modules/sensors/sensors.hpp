@@ -75,7 +75,7 @@
 #endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-# include "vehicle_gps_position/VehicleGPSPosition.hpp"
+# include "vehicle_gnss/VehicleGnss.hpp"
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
@@ -122,7 +122,7 @@ private:
 
 	void		InitializeVehicleAirData();
 
-	void		InitializeVehicleGPSPosition();
+	void		InitializeVehicleGnss();
 
 	void		InitializeVehicleIMU();
 
@@ -240,7 +240,7 @@ private:
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-	VehicleGPSPosition *_vehicle_gps_position {nullptr};
+	VehicleGnss *_vehicle_gnss {nullptr};
 	uint8_t _n_gnss{0};
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 

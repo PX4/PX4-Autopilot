@@ -49,7 +49,7 @@ param set-default MIS_TAKEOFF_ALT 25
 param set-default MIS_TKO_LAND_REQ 2
 
 #
-# FW takeoff acceleration can easily exceed ublox GPS 2G default.
+# FW takeoff acceleration can easily exceed ublox GNSS 2G default.
 #
 param set-default GPS_UBX_DYNMODEL 8
 

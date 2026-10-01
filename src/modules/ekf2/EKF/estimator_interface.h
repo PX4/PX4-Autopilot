@@ -85,9 +85,9 @@ public:
 	void setIMUData(const imuSample &imu_sample);
 
 #if defined(CONFIG_EKF2_GNSS)
-	void setGpsData(const gnssSample &gnss_sample);
+	void setGnssData(const gnssSample &gnss_sample);
 
-	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
+	const gnssSample &get_gnss_sample_delayed() const { return _gnss_sample_delayed; }
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	void setGnssYawData(const gnssYawSample &gnss_yaw_sample);
@@ -224,7 +224,7 @@ public:
 	 * Warning: does not tell if the selected source is
 	 * active, use isOnlyActiveSourceOfHorizontalAiding() for this
 	 *
-	 * The flags considered are opt_flow, gps, ev_vel and ev_pos
+	 * The flags considered are opt_flow, gnss, ev_vel and ev_pos
 	 *
 	 * @param aiding_flag a flag in _control_status.flags
 	 * @return true if an other source than aiding_flag is active
@@ -234,7 +234,7 @@ public:
 	bool isOtherSourceOfHorizontalVelocityAidingThan(bool aiding_flag) const;
 
 	// Return true if at least one source of horizontal aiding is active
-	// the flags considered are opt_flow, gps, ev_vel and ev_pos
+	// the flags considered are opt_flow, gnss, ev_vel and ev_pos
 	bool isHorizontalAidingActive() const;
 	bool isHorizontalPositionAidingActive() const;
 	bool isVerticalAidingActive() const;
@@ -399,12 +399,12 @@ protected:
 	float _local_origin_alt{NAN};
 
 #if defined(CONFIG_EKF2_GNSS)
-	TimestampedRingBuffer<gnssSample> *_gps_buffer {nullptr};
-	uint64_t _time_last_gps_buffer_push{0};
+	TimestampedRingBuffer<gnssSample> *_gnss_buffer {nullptr};
+	uint64_t _time_last_gnss_buffer_push{0};
 
-	gnssSample _gps_sample_delayed{};
+	gnssSample _gnss_sample_delayed{};
 
-	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
+	uint32_t _min_gnss_health_time_us{10000000}; ///< GNSS is marked as healthy only after this amount of time
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	TimestampedRingBuffer<gnssYawSample> *_gnss_yaw_buffer {nullptr};
@@ -467,11 +467,11 @@ protected:
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	uint64_t _wmm_mag_time_last_checked {0}; // time WMM update last checked by mag control
 
-	float _wmm_declination_rad{NAN};        // magnetic declination returned by the geo library using the last valid GPS position (rad)
-	float _wmm_inclination_rad{NAN};        // magnetic inclination returned by the geo library using the last valid GPS position (rad)
-	float _wmm_field_strength_gauss{NAN};   // magnetic strength returned by the geo library using the last valid GPS position (Gauss)
+	float _wmm_declination_rad{NAN};        // magnetic declination returned by the geo library using the last valid GNSS position (rad)
+	float _wmm_inclination_rad{NAN};        // magnetic inclination returned by the geo library using the last valid GNSS position (rad)
+	float _wmm_field_strength_gauss{NAN};   // magnetic strength returned by the geo library using the last valid GNSS position (Gauss)
 
-	Vector3f _wmm_earth_field_gauss{};      // expected magnetic field vector from the last valid GPS position (Gauss)
+	Vector3f _wmm_earth_field_gauss{};      // expected magnetic field vector from the last valid GNSS position (Gauss)
 
 	float _mag_inclination{NAN};
 	float _mag_strength{NAN};

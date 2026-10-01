@@ -27,7 +27,7 @@ fi
 /bin/echo "Starting simulated sensor drivers on DSP"
 qshell simulator_sih start
 qshell sensor_baro_sim start
-qshell sensor_gps_sim start
+qshell sensor_gnss_sim start
 qshell sensor_mag_sim start
 qshell pwm_out_sim start
 

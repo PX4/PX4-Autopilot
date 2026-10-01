@@ -50,7 +50,7 @@ if(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-	add_subdirectory(vehicle_gps_position)
+	add_subdirectory(vehicle_gnss)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
@@ -62,7 +62,7 @@ if(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-	set(GNSS_HEADING_PARAMS vehicle_gps_position/params_heading.yaml)
+	set(GNSS_HEADING_PARAMS vehicle_gnss/params_heading.yaml)
 endif()
 
 px4_add_module(
@@ -77,7 +77,7 @@ px4_add_module(
 		Integrator.hpp
 	MODULE_CONFIG
 		module.yaml
-		vehicle_gps_position/module.yaml
+		vehicle_gnss/module.yaml
 		${GNSS_HEADING_PARAMS}
 		sensor_params.yaml
 		sensor_params_flow.yaml
@@ -107,7 +107,7 @@ if(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-	target_link_libraries(modules__sensors PRIVATE vehicle_gps_position)
+	target_link_libraries(modules__sensors PRIVATE vehicle_gnss)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)

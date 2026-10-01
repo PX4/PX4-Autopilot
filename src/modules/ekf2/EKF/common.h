@@ -103,7 +103,7 @@ enum class VelocityFrame : uint8_t {
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 enum GeoDeclinationMask : uint8_t {
 	// Bit locations for ekf2_decl_type
-	USE_GEO_DECL  = (1 << 0), ///< set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
+	USE_GEO_DECL  = (1 << 0), ///< set to true to use the declination from the geo library when the GNSS position becomes available, set to false to always use the EKF2_MAG_DECL value
 	SAVE_GEO_DECL = (1 << 1) ///< set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
 };
 
@@ -212,7 +212,7 @@ struct gnssSample {
 	float       pdop{};       ///< position dilution of precision
 	bool        spoofed{};    ///< true if GNSS data is spoofed
 	bool        jammed{};     ///< true if GNSS data is jammed
-	Vector3f    pos_body{};   ///< position of GPS antenna in body frame (m)
+	Vector3f    pos_body{};   ///< position of GNSS antenna in body frame (m)
 	bool        usable{};     ///< the sample passes the GNSS checks of the sensors module
 	uint8_t     selection_count{}; ///< increments when the sensors module selects another receiver
 };
@@ -362,7 +362,7 @@ struct parameters {
 	float ekf2_baro_delay {0.0f};           ///< barometer height measurement delay relative to the IMU (mSec)
 	float ekf2_baro_noise{2.0f};            ///< observation noise for barometric height fusion (m)
 	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
-	float ekf2_baro_gate{5.0f};             ///< barometric and GPS height innovation consistency gate size (STD)
+	float ekf2_baro_gate{5.0f};             ///< barometric and GNSS height innovation consistency gate size (STD)
 
 	float ekf2_gnd_eff_dz{5.0f};            ///< Size of deadzone applied to negative baro innovations when ground effect compensation is active (m)
 	float ekf2_gnd_max_hgt{0.5f};           ///< Height above ground at which baro ground effect becomes insignificant (m)
@@ -384,11 +384,11 @@ struct parameters {
 	int32_t ekf2_gps_ctrl {static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
 	int32_t ekf2_gps_mode {static_cast<int32_t>(GnssMode::kAuto)};
 	// position and velocity fusion
-	float ekf2_gps_v_noise{0.5f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
-	float ekf2_gps_p_noise{0.5f};           ///< minimum allowed observation noise for gps position fusion (m)
-	float gps_hgt_bias_nsd{0.13f};          ///< process noise for gnss height bias estimation (m/s/sqrt(Hz))
-	float ekf2_gps_p_gate{5.0f};            ///< GPS horizontal position innovation consistency gate size (STD)
-	float ekf2_gps_v_gate{5.0f};            ///< GPS velocity innovation consistency gate size (STD)
+	float ekf2_gps_v_noise{0.5f};           ///< minimum allowed observation noise for gnss velocity fusion (m/sec)
+	float ekf2_gps_p_noise{0.5f};           ///< minimum allowed observation noise for gnss position fusion (m)
+	float gnss_hgt_bias_nsd{0.13f};          ///< process noise for gnss height bias estimation (m/s/sqrt(Hz))
+	float ekf2_gps_p_gate{5.0f};            ///< GNSS horizontal position innovation consistency gate size (STD)
+	float ekf2_gps_v_gate{5.0f};            ///< GNSS velocity innovation consistency gate size (STD)
 
 	float ekf2_req_sacc{1.0f};              ///< speed accuracy below which GNSS vertical velocity is trusted while the accelerometer clips and GNSS velocity feeds the yaw estimator (m/s)
 
@@ -590,7 +590,7 @@ union filter_control_status_u {
 		uint64_t baro_hgt                : 1; ///< 9 - true when baro data is being fused
 uint64_t rng_hgt                 :
 		1; ///< 10 - true when range finder data is being fused for height aiding
-		uint64_t gps_hgt                 : 1; ///< 11 - true when GPS altitude is being fused
+		uint64_t gps_hgt                 : 1; ///< 11 - true when GNSS altitude is being fused
 		uint64_t ev_pos                  : 1; ///< 12 - true when local position data fusion from external vision is intended
 		uint64_t ev_yaw                  : 1; ///< 13 - true when yaw data from external vision measurements fusion is intended
 		uint64_t ev_hgt                  : 1; ///< 14 - true when height data from external vision measurements is being fused
@@ -605,7 +605,7 @@ uint64_t gnd_effect              :
 uint64_t rng_stuck               :
 		1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
 uint64_t gnss_yaw                 :
-		1; ///< 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
+		1; ///< 22 - true when yaw (not ground course) data fusion from a GNSS receiver is intended
 		uint64_t mag_aligned_in_flight   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
 uint64_t ev_vel                  :
 		1; ///< 24 - true when local frame velocity data fusion from external vision measurements is intended
@@ -653,16 +653,16 @@ uint64_t gnss_hgt_fault              :
 // define structure used to communicate information events
 union information_event_status_u {
 	struct {
-		bool gps_checks_passed          : 1; ///< 0 - true when gps quality checks are passing passed
-		bool reset_vel_to_gps           : 1; ///< 1 - true when the velocity states are reset to the gps measurement
+		bool gps_checks_passed          : 1; ///< 0 - true when gnss quality checks are passing passed
+		bool reset_vel_to_gps           : 1; ///< 1 - true when the velocity states are reset to the gnss measurement
 		bool reset_vel_to_flow          : 1; ///< 2 - true when the velocity states are reset using the optical flow measurement
 		bool reset_vel_to_vision        : 1; ///< 3 - true when the velocity states are reset to the vision system measurement
 		bool reset_vel_to_zero          : 1; ///< 4  - true when the velocity states are reset to zero
 		bool reset_pos_to_last_known    : 1; ///< 5 - true when the position states are reset to the last known position
-		bool reset_pos_to_gps           : 1; ///< 6 - true when the position states are reset to the gps measurement
+		bool reset_pos_to_gps           : 1; ///< 6 - true when the position states are reset to the gnss measurement
 		bool reset_pos_to_vision        : 1; ///< 7 - true when the position states are reset to the vision system measurement
 bool starting_gps_fusion        :
-		1; ///< 8 - true when the filter starts using gps measurements to correct the state estimates
+		1; ///< 8 - true when the filter starts using gnss measurements to correct the state estimates
 bool starting_vision_pos_fusion :
 		1; ///< 9 - true when the filter starts using vision system position measurements to correct the state estimates
 bool starting_vision_vel_fusion :
@@ -670,9 +670,9 @@ bool starting_vision_vel_fusion :
 bool starting_vision_yaw_fusion :
 		1; ///< 11 - true when the filter starts using vision system yaw  measurements to correct the state estimates
 bool yaw_aligned_to_imu_gps     :
-		1; ///< 12 - true when the filter resets the yaw to an estimate derived from IMU and GPS data
+		1; ///< 12 - true when the filter resets the yaw to an estimate derived from IMU and GNSS data
 		bool reset_hgt_to_baro          : 1; ///< 13 - true when the vertical position state is reset to the baro measurement
-		bool reset_hgt_to_gps           : 1; ///< 14 - true when the vertical position state is reset to the gps measurement
+		bool reset_hgt_to_gps           : 1; ///< 14 - true when the vertical position state is reset to the gnss measurement
 		bool reset_hgt_to_rng           : 1; ///< 15 - true when the vertical position state is reset to the rng measurement
 		bool reset_hgt_to_ev            : 1; ///< 16 - true when the vertical position state is reset to the ev measurement
 bool reset_pos_to_ext_obs       :

@@ -144,7 +144,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	checkInnovationsPreflight(context, reporter, estimator_status, required_groups);
 	checkMagneticInterferencePreflight(context, reporter, estimator_status, required_groups);
 
-	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
+	// If GNSS aiding is required, declare fault condition if the required GNSS quality checks are failing
 	if (_param_sys_has_gps.get()) {
 		checkGnssFusion(context, reporter, estimator_status, estimator_status_flags, vehicle_gnss);
 	}
@@ -302,7 +302,7 @@ void EstimatorChecks::reportGnssFusionChange(const Context &context, Report &rep
 {
 	if (context.isArmed()) {
 
-		if (_gps_was_fused && !gnss_fused) {
+		if (_gnss_was_fused && !gnss_fused) {
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_warning(reporter.mavlink_log_pub(), "GNSS data fusion stopped\t");
 			}
@@ -312,7 +312,7 @@ void EstimatorChecks::reportGnssFusionChange(const Context &context, Report &rep
 			events::send(events::ID("check_estimator_gnss_fusion_stopped"), {log_level, events::LogInternal::Info},
 				     "GNSS data fusion stopped");
 
-		} else if (!_gps_was_fused && gnss_fused) {
+		} else if (!_gnss_was_fused && gnss_fused) {
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_info(reporter.mavlink_log_pub(), "GNSS data fusion started\t");
@@ -323,7 +323,7 @@ void EstimatorChecks::reportGnssFusionChange(const Context &context, Report &rep
 		}
 	}
 
-	_gps_was_fused = gnss_fused;
+	_gnss_was_fused = gnss_fused;
 }
 
 void EstimatorChecks::reportGnssInterference(Report &reporter, uint16_t failed_checks)

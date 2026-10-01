@@ -212,7 +212,7 @@ SeptentrioDriver::SeptentrioDriver(const char *device_path, Instance instance, u
 		_rtcm_decoder = new rtcm::Decoder();
 	}
 
-	set_device_type(DRV_GPS_DEVTYPE_SBF);
+	set_device_type(DRV_GNSS_DEVTYPE_SBF);
 
 	reset_gnss_state_message();
 }
@@ -1134,7 +1134,7 @@ int SeptentrioDriver::process_message()
 					break;
 				}
 
-				// Check boundaries and invalidate GPS velocities
+				// Check boundaries and invalidate GNSS velocities
 				if (pvt_geodetic.vn <= k_dnu_f4_value || pvt_geodetic.ve <= k_dnu_f4_value || pvt_geodetic.vu <= k_dnu_f4_value) {
 					_sensor_gnss.vel_ned_valid = false;
 				}
@@ -1199,7 +1199,7 @@ int SeptentrioDriver::process_message()
 					epoch = mktime(&timeinfo);
 
 					if (epoch > k_gps_epoch_secs) {
-						// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
+						// FMUv2+ boards have a hardware RTC, but GNSS helps us to configure it
 						// and control its drift. Since we rely on the HRT for our monotonic
 						// clock, updating it from time to time is safe.
 
