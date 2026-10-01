@@ -113,7 +113,9 @@ Then in order to enable the subscription in DroneCAN, enable the following PX4 a
 - [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE): Set to `1` to enable DroneCAN in PX4
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): Set to `15` to enable Dual antenna heading.
 - [UAVCAN_SUB_GPS_R](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS_R): Set to `1` to enable subscription to GNSS relative.
-- [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG): `Moving base rover` for the rover's slot, matched by [SENS_GNSSn_ID](../advanced_config/parameter_reference.md#SENS_GNSS0_ID), with the antenna offsets [SENS_GNSSn_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX) of both F9Ps set (see [heading baseline](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source))
+- [SENS_GNSS0_ID](../advanced_config/parameter_reference.md#SENS_GNSS0_ID) and [SENS_GNSS1_ID](../advanced_config/parameter_reference.md#SENS_GNSS1_ID): the device IDs of the two F9Ps.
+- [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG): `Moving base rover` for the rover's slot, with the antenna offsets [SENS_GNSSn_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX) of both F9Ps set (see [heading baseline](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
+  With [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) at `Auto` (default), the moving base is then the [primary receiver](../gps_compass/index.md#multiple-receivers).
 
 Once these params are enabled and the F9Ps are mounted to the airframe (assuming valid RTK fix) the LED's on both F9Ps should turn green.
 

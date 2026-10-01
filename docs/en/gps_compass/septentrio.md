@@ -121,6 +121,7 @@ It is important that the antennas are positioned at least 30 cm apart for a stab
 In a normal setup, the main antenna is behind the auxiliary one.
 With a dual-antenna receiver, set [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) to `Dual antenna`, [SENS_GNSSn_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX) to the position of the main antenna and [SENS_GNSSn_AUXX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_AUXX) to that of the auxiliary antenna.
 With two receivers, set `SENS_GNSSn_HDG` to `Moving base rover` in the rover's slot and `SENS_GNSSn_OFFX/Y/Z` of both receivers.
+With [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) at `Auto` (default), the moving base is then the [primary receiver](../gps_compass/index.md#multiple-receivers).
 
 ## Logging
 
