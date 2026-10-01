@@ -51,11 +51,52 @@ on:
       - 'release/**'
     paths-ignore:
       - 'docs/**'
+  # Pull requests skip this workflow when no changed file can affect a
+  # firmware build. Later patterns win, so build inputs living under an
+  # ignored directory are re-included at the end.
   pull_request:
     branches:
       - '**'
-    paths-ignore:
-      - 'docs/**'
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!*.md'
+      - '!CITATION.cff'
+      - '!codecov.yml'
+      - '!.editorconfig'
+      - '!.clang-tidy'
+      - '!.dockerignore'
+      - '!.agents/**'
+      - '!.claude/**'
+      - '!.devcontainer/**'
+      - '!.vscode/**'
+      - '!.github/**'
+      - '!launch/**'
+      - '!test/**'
+      - '!test_data/**'
+      - '!Tools/astyle/**'
+      - '!Tools/bench_test/**'
+      - '!Tools/ci/**'
+      - '!Tools/HIL/**'
+      - '!Tools/Matlab/**'
+      - '!Tools/msg/generate_msg_docs.py'
+      - '!Tools/packaging/containers/**'
+      - '!Tools/setup/**'
+      # Build inputs under the ignored paths above
+      - '.github/workflows/build_all_targets.yml'
+      - '.github/runs-on.yml'
+      - '.github/actions/setup-ccache/**'
+      - '.github/actions/save-ccache/**'
+      - 'Tools/ci/build_all_config.yml'
+      - 'Tools/ci/build_all_runner.py'
+      - 'Tools/ci/check_elf_imports.py'
+      - 'Tools/ci/filter_cold_seeders.py'
+      - 'Tools/ci/generate_board_targets_json.py'
+      - 'Tools/ci/generate_sbom.py'
+      - 'Tools/ci/license-overrides.yaml'
+      - 'Tools/ci/package_build_artifacts.sh'
+      - 'Tools/ci/test_build_all_runner.py'
+      - 'Tools/ci/test_generate_board_targets_json.py'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
