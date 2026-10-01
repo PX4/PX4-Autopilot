@@ -760,6 +760,7 @@ private:
 
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gnss_s> _stuck;
+	failure_injection::Stuck<sensor_gnss_relative_s> _stuck_relative;
 
 	// Data about update frequencies of various bits of information like received data rate...
 	hrt_abstime _current_interval_start_time {0};      ///< Start time of the current update measurement interval in us
