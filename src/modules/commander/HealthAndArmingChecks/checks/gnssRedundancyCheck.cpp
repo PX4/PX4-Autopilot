@@ -122,19 +122,19 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Configure the minimum required GPS count with <param>SYS_HAS_NUM_GNSS</param>.
+				 * Configure the minimum required GNSS count with <param>SYS_HAS_NUM_GNSS</param>.
 				 * Configure the failsafe action with <param>COM_GNSSLOSS_ACT</param>.
 				 * </profile>
 				 */
 				reporter.healthFailure<uint8_t>(nav_modes, health_component_t::gps,
 								events::ID("check_gnss_receiver_offline"),
-								log_level, "GPS {1} offline", (uint8_t)i);
+								log_level, "GNSS {1} offline", (uint8_t)i);
 
 			} else if (!gnss_healthy[i]) {
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Configure the minimum required GPS count with <param>SYS_HAS_NUM_GNSS</param>.
+				 * Configure the minimum required GNSS count with <param>SYS_HAS_NUM_GNSS</param>.
 				 * Configure the failsafe action with <param>COM_GNSSLOSS_ACT</param>.
 				 * </profile>
 				 */
@@ -162,7 +162,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		reporter.healthFailure<float>(nav_modes, health_component_t::gps,
 					      events::ID("check_gps_position_divergence"),
 					      log_level,
-					      "GPS receivers disagree by {1:.1}m",
+					      "GNSS receivers disagree by {1:.1}m",
 					      (double)divergence_m);
 	}
 

@@ -397,7 +397,7 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 	const char *message = nullptr;
 
 	if (failed_checks & vehicle_gnss_s::CHECK_FIX) {
-		message = "Preflight%s: GPS fix too low";
+		message = "Preflight%s: GNSS fix too low";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -406,10 +406,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_fix_too_low"),
-					    log_level, "GPS fix too low");
+					    log_level, "GNSS fix too low");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_NSATS) {
-		message = "Preflight%s: not enough GPS Satellites";
+		message = "Preflight%s: not enough GNSS Satellites";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -418,10 +418,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_num_sats_too_low"),
-					    log_level, "Not enough GPS Satellites");
+					    log_level, "Not enough GNSS Satellites");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_PDOP) {
-		message = "Preflight%s: GPS PDOP too high";
+		message = "Preflight%s: GNSS PDOP too high";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -430,10 +430,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_pdop_too_high"),
-					    log_level, "GPS PDOP too high");
+					    log_level, "GNSS PDOP too high");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_EPH) {
-		message = "Preflight%s: GPS Horizontal Pos Error too high";
+		message = "Preflight%s: GNSS Horizontal Pos Error too high";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -442,10 +442,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_hor_pos_err_too_high"),
-					    log_level, "GPS Horizontal Position Error too high");
+					    log_level, "GNSS Horizontal Position Error too high");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_EPV) {
-		message = "Preflight%s: GPS Vertical Pos Error too high";
+		message = "Preflight%s: GNSS Vertical Pos Error too high";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -454,10 +454,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_vert_pos_err_too_high"),
-					    log_level, "GPS Vertical Position Error too high");
+					    log_level, "GNSS Vertical Position Error too high");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_SACC) {
-		message = "Preflight%s: GPS Speed Accuracy too low";
+		message = "Preflight%s: GNSS Speed Accuracy too low";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -466,10 +466,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_speed_acc_too_low"),
-					    log_level, "GPS Speed Accuracy too low");
+					    log_level, "GNSS Speed Accuracy too low");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_HDRIFT) {
-		message = "Preflight%s: GPS Horizontal Pos Drift too high";
+		message = "Preflight%s: GNSS Horizontal Pos Drift too high";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -478,10 +478,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_hor_pos_drift_too_high"),
-					    log_level, "GPS Horizontal Position Drift too high");
+					    log_level, "GNSS Horizontal Position Drift too high");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_VDRIFT) {
-		message = "Preflight%s: GPS Vertical Pos Drift too high";
+		message = "Preflight%s: GNSS Vertical Pos Drift too high";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -490,10 +490,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_vert_pos_drift_too_high"),
-					    log_level, "GPS Vertical Position Drift too high");
+					    log_level, "GNSS Vertical Position Drift too high");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_HSPEED) {
-		message = "Preflight%s: GPS Hor Speed Drift too high";
+		message = "Preflight%s: GNSS Hor Speed Drift too high";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -502,10 +502,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_hor_speed_drift_too_high"),
-					    log_level, "GPS Horizontal Speed Drift too high");
+					    log_level, "GNSS Horizontal Speed Drift too high");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_VSPEED) {
-		message = "Preflight%s: GPS Vert Speed Drift too high";
+		message = "Preflight%s: GNSS Vert Speed Drift too high";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -514,10 +514,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_vert_speed_drift_too_high"),
-					    log_level, "GPS Vertical Speed Drift too high");
+					    log_level, "GNSS Vertical Speed Drift too high");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_SPOOFED) {
-		message = "Preflight%s: GPS signal spoofed";
+		message = "Preflight%s: GNSS signal spoofed";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -526,10 +526,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_spoofed"),
-					    log_level, "GPS signal spoofed");
+					    log_level, "GNSS signal spoofed");
 
 	} else if (failed_checks & vehicle_gnss_s::CHECK_JAMMED) {
-		message = "Preflight%s: GPS signal jammed";
+		message = "Preflight%s: GNSS signal jammed";
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -538,10 +538,10 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_jammed"),
-					    log_level, "GPS signal jammed");
+					    log_level, "GNSS signal jammed");
 
 	} else if (rejected) {
-		message = "Preflight%s: Estimator not using GPS";
+		message = "Preflight%s: Estimator not using GNSS";
 		/* EVENT
 		 * @description
 		 * The receiver passes its checks, but the estimator rejects its samples: they disagree with the estimate,
@@ -549,16 +549,16 @@ void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_not_fusing"),
-					    log_level, "Estimator not using GPS");
+					    log_level, "Estimator not using GNSS");
 
 	} else {
 		// if we land here there was a new flag added and the code not updated. Show a generic message.
-		message = "Preflight%s: Poor GPS Quality";
+		message = "Preflight%s: Poor GNSS Quality";
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_generic"),
-					    log_level, "Poor GPS Quality");
+					    log_level, "Poor GNSS Quality");
 	}
 
 	if (reporter.mavlink_log_pub()) {
@@ -724,10 +724,10 @@ void EstimatorChecks::checkGnss(const Context &context, Report &reporter, const 
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_jamming_critical"),
-					    events::Log::Notice, "GPS jamming detected");
+					    events::Log::Notice, "GNSS jamming detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_warning(reporter.mavlink_log_pub(), "GPS jamming detected\t");
+			mavlink_log_warning(reporter.mavlink_log_pub(), "GNSS jamming detected\t");
 		}
 	}
 }

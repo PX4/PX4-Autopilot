@@ -4,7 +4,7 @@ parameters:
   definitions:
     SENS_EN_GPSSIM:
       description:
-        short: Enable simulated GPS instance
+        short: Enable simulated GNSS instance
       type: enum
       values:
         0: Disabled
@@ -17,7 +17,7 @@ parameters:
   definitions:
     SIM_GPS_USED:
       description:
-        short: simulated GPS number of satellites used
+        short: simulated GNSS number of satellites used
       type: int32
       default: 10
       min: 0
