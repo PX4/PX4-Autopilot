@@ -1,10 +1,11 @@
 # CyberCraft CyberX-v10
 
+<Badge type="tip" text="main (PX4 v2.0)" />
+
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
+Contact the [manufacturer](http://int.woocoo.vip/) for hardware support or compliance issues.
 :::
-
-## Introduction
 
 The CyberX-v10 is an advanced autopilot manufactured by [CyberCraft International Limited](http://int.woocoo.vip/).
 
@@ -17,90 +18,82 @@ It brings you ultimate performance, stability, and reliability in every aspect.
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Technical Specification
+## Specifications {#specifications}
 
-### Processors & Sensors
+### Processor {#processor}
 
-- FMU Processor: STM32H743IIK6
-  - 32 Bit Arm® Cortex®-M7, 400MHz, 2MB Flash, 1MB RAM
-- IO Processor: STM32F103
-  - 32 Bit Arm® Cortex®-M3, 72MHz, 128KB Flash, 20KB SRAM
-- On-board sensors
-  - Accel/Gyro: BMI088
-  - Accel/Gyro: ICM-42688-P
-  - Accel/Gyro: ICM-20689
-  - Mag: IST8310
-  - Barometer: BMP581, ICP-20100
+- **Main FMU processor:** STM32H743IIK6 (32 Bit Arm® Cortex®-M7, 400MHz, 2MB Flash, 1MB RAM)
+- **IO processor:** STM32F103 (32 Bit Arm® Cortex®-M3, 72MHz, 128KB Flash, 20KB SRAM)
 
-### Interfaces
+### Sensors {#sensors}
 
-- 16x PWM Servo Outputs (8 IO + 8 FMU)
-- 1x Dedicated RC Input for Spektrum / DSM and SBUS
-- 1x Analog/PWM RSSI Input
-- 2x Telemetry Ports (`TEL1` and `TEL2`, with full flow control)
-- 6x UART Ports (`TEL1`/`TEL2` with flow control) plus dedicated RC input
-- 2x GPS Ports
-  - 2x Basic GPS Ports (with I2C, `GPS1` and `GPS2`)
-- 1x USB Port (Type-C)
-- 1x Ethernet Port
-  - Transformer application
-  - 100Mbps
-- 2x I2C Bus Ports
-- 1x SPI Bus
-  - 2x Chip Select Lines
-- 2x CAN Ports
-- 2x Power Input Ports
-  - ADC Power Input
-  - I2C Power Input
-- 2x AD Ports
-  - Analog Input (3.3V)
-  - Analog Input (6.6V)
-- 1x Dedicated Debug Port
-  - FMU Debug
-  - IO Debug
-- 1x microSD card slot
+- **IMU:** ICM-20689 (SPI1), BMI088 (SPI3), ICM-42688-P (SPI4)
+- **Barometer:** BMP581 (SPI2), ICP-20100 (I2C4)
+- **Magnetometer:** IST8310 (I2C3)
 
-### Dimensions
+### Interfaces {#interfaces}
 
-- Size: 83mm x 57mm x 15.1mm
-- Weight: 72.4g
+- **PWM outputs:** 16 (8 IO + 8 FMU)
+- **Serial ports:** 6 (`GPS1`, `GPS2`, `TEL1`, `TEL2`, `Uart5`, `Uart8`), `TEL1` and `TEL2` with flow control
+- **I2C buses:** 4 (I2C1 and I2C2 on the `GPS1` and `GPS2` ports; I2C3 and I2C4 shared between on-board sensors and the `I2C3` and `I2C4` ports)
+- **SPI buses:** 6, of which SPI6 is external with 2 chip select lines
+- **CAN buses:** 2 (`CAN1`, `CAN2`)
+- **Ethernet:** 100Mbps, with transformer
+- **USB:** Type-C
+- **RC input:** Dedicated RC input for Spektrum / DSM and SBUS
+- **RSSI input:** 1 analog/PWM
+- **Analog inputs:** 2 on the `ADC` port (3.3V and 6.6V)
+- **Power inputs:** 2 (`PWR1` ADC, `PWR2` I2C)
+- **Parameter storage:** FRAM (FM25V02A) on SPI5
+- **SD card:** microSD card slot
+- **Debug port:** 1 (`DEBUG`, FMU and IO debug)
 
-## Purchase Channels {#store}
+### Electrical Data {#electrical_data}
+
+- **Max input voltage:** 5.5V
+- **USB power input:** 4.75 ~ 5.25V
+- **Output current limits:** `TEL1` and `TEL2` combined 1.5A; all other ports combined 1.5A
+
+### Mechanical Data {#mechanical_data}
+
+- **Size:** 83mm x 57mm x 15.1mm
+- **Weight:** 72.4g
+
+## Where to Buy {#store}
 
 Order from [CyberCraft International Limited](http://int.woocoo.vip/).
 
-## Radio Control
+## Pinouts {#pinouts}
 
-A Radio Control (RC) system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+![CyberX-v10 line drawing showing the connector end](../../assets/flight_controller/cyberx_v10/cyberx_v10_left.png)
 
-You will need to select a compatible transmitter/receiver and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
+![CyberX-v10 line drawing showing the servo rail end](../../assets/flight_controller/cyberx_v10/cyberx_v10_right.png)
 
-Spektrum/DSM receivers connect to the DSM/SBUS RC input.
-PPM or SBUS receivers connect to the RCIN input port.
-CRSF receivers must be wired to a spare UART port on the flight controller.
-You can then bind the transmitter and receiver together.
+![CyberX-v10 pinout diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_pinout.png)
 
-## Serial Port Mapping
+## Power {#power}
 
-| UART   | Device     | Port    |
-| ------ | ---------- | ------- |
-| USART1 | /dev/ttyS0 | `GPS1`  |
-| USART2 | /dev/ttyS1 | `TEL1`  |
-| USART3 | /dev/ttyS2 | `TEL2`  |
-| UART4  | /dev/ttyS3 | `GPS2`  |
-| UART5  | /dev/ttyS4 | `Uart5` |
-| USART6 | /dev/ttyS5 | PX4IO   |
-| UART7  | /dev/ttyS6 | EXT2    |
-| UART8  | /dev/ttyS7 | RC      |
+The board has connectors for 2 power monitors.
 
-## PWM Output
+- `PWR1` -- ADC
+- `PWR2` -- I2C
+
+The board is configured by default for an analog power monitor on `PWR1`.
+An INA228 I2C power monitor (address 0x40) on `PWR2` is also started by default.
+Other I2C power monitors, such as the INA226 or INA238, must be started manually.
+
+The default PDB included with the v10 is analog and must be connected to `PWR1`.
+
+See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to configure the battery and power monitor.
+
+## PWM Outputs {#pwm_outputs}
 
 The CyberX-v10 supports up to 16 PWM outputs.
 The first 8 outputs (labelled `M1` to `M8`) are controlled by the dedicated STM32F103 IO controller.
 The remaining 8 outputs (labelled `M9` to `M16`) are the "auxiliary" outputs directly attached to the STM32H743 FMU.
 
 All 16 outputs support normal PWM.
-The FMU outputs `M9` to `M14` support DShot.
+The FMU outputs `M9` to `M14` support [DShot](../peripherals/dshot.md).
 The IO outputs `M1` to `M8`, and the FMU outputs `M15` and `M16` (no DMA), do not support DShot.
 Outputs `M9` and `M11` support bi-directional DShot.
 
@@ -119,29 +112,78 @@ The 8 FMU PWM outputs are in 3 groups:
 Channels within the same group need to use the same output rate.
 If any channel in a group uses DShot then all channels in the group need to use DShot.
 
-## Electrical Data
+## Ethernet {#ethernet}
 
-- Voltage Ratings:
-  - Max input voltage: 5.5V
-  - USB Power Input: 4.75 ~ 5.25V
-- Current Ratings:
-  - `TEL1` and `TEL2` combined output current limiter: 1.5A
-  - All other ports combined output current limiter: 1.5A
+The board has a 100Mbps Ethernet port with an on-board transformer, on the 4-pin `ETH` connector (TX+, TX-, RX+, RX-).
 
-## Battery Monitoring
+MAVLink is enabled on Ethernet by default ([MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG) is set to `1000`), broadcasting on UDP port 14550.
+See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for how to configure the network.
 
-The board has connectors for 2 power monitors.
+## SD Card (Optional) {#sd_card}
 
-- `PWR1` -- ADC
-- `PWR2` -- I2C
+The board has a microSD card slot, on the side of the case beside the `USB` and `DEBUG` ports.
+SD cards are used for [log files and for storing missions](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
 
-The board is configured by default for an analog power monitor on `PWR1`.
-An INA228 I2C power monitor (address 0x40) on `PWR2` is also started by default.
-Other I2C power monitors, such as the INA226 or INA238, must be started manually.
+## Serial Port Mapping {#serial_port_mapping}
 
-The default PDB included with the v10 is analog and must be connected to `PWR1`.
+| UART   | Device     | Port               | Flow Control |
+| ------ | ---------- | ------------------ | ------------ |
+| USART1 | /dev/ttyS0 | `GPS1`             | No           |
+| USART2 | /dev/ttyS1 | `TEL1`             | Yes          |
+| USART3 | /dev/ttyS2 | `TEL2`             | Yes          |
+| UART4  | /dev/ttyS3 | `GPS2`             | No           |
+| UART5  | /dev/ttyS4 | `Uart5`            | No           |
+| USART6 | /dev/ttyS5 | PX4IO              | No           |
+| UART7  | /dev/ttyS6 | EXT2               | No           |
+| UART8  | /dev/ttyS7 | `Uart8` (RC input) | No           |
 
-## Building Firmware
+## Assembly {#assembly}
+
+### Radio Control {#radio_control}
+
+A Radio Control (RC) system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
+
+Spektrum/DSM receivers connect to the DSM/SBUS RC input.
+PPM or SBUS receivers connect to the RCIN input port.
+If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#connecting-receivers).
+CRSF receivers must be wired to a spare UART port on the flight controller.
+You can then bind the transmitter and receiver together.
+
+### GPS & Compass {#gps_compass}
+
+PX4 supports GPS modules connected to the GPS ports listed below.
+GPS modules should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction marker pointing towards the front of the vehicle.
+
+The GPS ports are:
+
+- `GPS1`: 6-pin port with UART and I2C (for an external compass).
+- `GPS2`: 6-pin port with UART and I2C (for an external compass).
+
+The GPS ports do not include safety switch, LED or buzzer pins.
+These are on the separate `SW+BUZ` port.
+
+The board has an on-board IST8310 magnetometer.
+
+### Telemetry Radios (Optional) {#telemetry}
+
+[Telemetry radios](../telemetry/index.md) may be used to communicate and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
+
+The vehicle-based radio should be connected to the `TEL1` or `TEL2` port.
+If connected to `TEL1`, no further configuration is required.
+The other radio is connected to your ground station computer or mobile device (usually by USB).
+
+### CAN {#can}
+
+The board has two CAN ports, `CAN1` and `CAN2`, which can be used for [DroneCAN](../dronecan/index.md) peripherals.
+
+## Building Firmware {#building_firmware}
+
+::: tip
+Most users will not need to build this firmware from PX4 v2.0.
+It will be pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
+:::
 
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
@@ -149,9 +191,11 @@ To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 make cyberx_v10_default
 ```
 
-## Debug Port
+## Debug Port {#debug_port}
 
-The debug port uses a 6-pin JST GH (1.25mm pitch) connector.
+The `DEBUG` port provides the [SWD interface](../debug/swd_debug.md) for both the FMU and the IO processor.
+It uses a 6-pin JST GH (1.25mm pitch) connector with the pinout below, which is not a [Pixhawk Debug](../debug/swd_debug.md#pixhawk-standard-debug-ports) port.
+The port does not include the [PX4 System Console](../debug/system_console.md) UART.
 
 | Pin     | Signal    | Voltage |
 | ------- | --------- | ------- |
@@ -161,14 +205,6 @@ The debug port uses a 6-pin JST GH (1.25mm pitch) connector.
 | 4 (blk) | IO_SWDIO  | +3.3V   |
 | 5 (blk) | IO_SWCLK  | +3.3V   |
 | 6 (blk) | GND       | GND     |
-
-## Pinouts
-
-![CyberX-v10 line drawing showing the connector end](../../assets/flight_controller/cyberx_v10/cyberx_v10_left.png)
-
-![CyberX-v10 line drawing showing the servo rail end](../../assets/flight_controller/cyberx_v10/cyberx_v10_right.png)
-
-![CyberX-v10 pinout diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_pinout.png)
 
 ## Supported Platforms / Airframes
 
