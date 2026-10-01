@@ -41,12 +41,11 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/button_event.h>
 
-enum class PrearmedMode {
-	DISABLED = 0,
-	SAFETY_BUTTON_OR_MAVLINK = 1,
-	ALWAYS = 2,
-	SAFETY_BUTTON = 3,
-	MAVLINK = 4
+enum class SafetyMode {
+	ALWAYS_OFF = 0,
+	BUTTON_OR_MAVLINK = 1,
+	BUTTON_ONLY = 2,
+	MAVLINK_ONLY = 3
 };
 class Safety
 {
