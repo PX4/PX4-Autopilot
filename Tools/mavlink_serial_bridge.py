@@ -42,6 +42,9 @@ SERIAL_CONTROL_FLAG_EXCLUSIVE = 4
 
 MAX_PAYLOAD = 70
 
+# pymavlink is not thread-safe; hold this for every mav access from the bridge threads
+MAV_LOCK = threading.Lock()
+
 PORT_MAP = {
     'telem1': 0,
     'telem2': 1,
@@ -64,14 +67,15 @@ def send_serial_control(mav, device, port_baud, data=b''):
     """Send a SERIAL_CONTROL message with the RESPOND|EXCLUSIVE flags used throughout the bridge."""
     # pymavlink needs all 70 entries; MAVLink 2 trims trailing zeros on the wire
     payload = list(data) + [0] * (MAX_PAYLOAD - len(data))
-    mav.mav.serial_control_send(
-        device=device,
-        flags=SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE,
-        timeout=0,
-        baudrate=port_baud,
-        count=len(data),
-        data=payload,
-    )
+    with MAV_LOCK:
+        mav.mav.serial_control_send(
+            device=device,
+            flags=SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE,
+            timeout=0,
+            baudrate=port_baud,
+            count=len(data),
+            data=payload,
+        )
 
 
 def setup_passthrough(mav):
@@ -143,6 +147,8 @@ class SerialBridge:
                     data = os.read(self.master_fd, MAX_PAYLOAD)
                 except OSError:
                     break
+                if self.stop.is_set():  # wake-up byte from shutdown, don't forward
+                    break
                 if not data:
                     continue
                 send_serial_control(self.mav, self.device, self.port_baud, data)
@@ -157,7 +163,8 @@ class SerialBridge:
         """Receive SERIAL_CONTROL FLAG_REPLY messages, write immediately to PTY."""
         try:
             while not self.stop.is_set():
-                msg = self.mav.recv_match(type='SERIAL_CONTROL', blocking=False)
+                with MAV_LOCK:
+                    msg = self.mav.recv_match(type='SERIAL_CONTROL', blocking=False)
                 if msg is None:
                     # Nothing buffered (locally or at the OS level) right now —
                     # block until the connection's fd has more data.
