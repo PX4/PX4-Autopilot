@@ -109,7 +109,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### MAVLink
 
-- TBD
+- Camera commands in missions are now all sent to the camera component set in the mission item's target camera ID parameter, falling back to `MAV_COMP_ID_CAMERA` (100) if it is not set. `MAV_CMD_SET_CAMERA_ZOOM` can now be uploaded in missions. See [Camera Commands in Missions](../camera/mavlink_v2_camera.md#camera-commands-in-missions).
 
 ### RC
 

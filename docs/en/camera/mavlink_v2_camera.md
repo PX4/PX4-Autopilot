@@ -63,14 +63,14 @@ PX4 allows the following subset of [Camera Protocol v2](https://mavlink.io/en/se
 
 PX4 re-emits the camera commands found in missions as MAVLink commands.
 The system id of the emitted commands is the same as the ID of the autopilot.
-The component ID of the commands can vary.
+The component ID of the emitted commands is the target camera `id` param of the mission item, falling back to `MAV_COMP_ID_CAMERA` (100) if it is not set.
 
-PX4 v1.16 respects the target camera `id` param in missions for the following commands (falling back to a component ID of `MAV_COMP_ID_CAMERA` (100) if it is not set): `MAV_CMD_IMAGE_START_CAPTURE`, `MAV_CMD_IMAGE_STOP_CAPTURE`, `MAV_CMD_SET_CAMERA_MODE`, `MAV_CMD_SET_CAMERA_SOURCE`.
+::: info
+PX4 v1.16 to v1.18 only respect the target camera `id` for `MAV_CMD_IMAGE_START_CAPTURE`, `MAV_CMD_IMAGE_STOP_CAPTURE`, `MAV_CMD_SET_CAMERA_MODE` and `MAV_CMD_SET_CAMERA_SOURCE`.
+`MAV_CMD_VIDEO_START_CAPTURE` and `MAV_CMD_VIDEO_STOP_CAPTURE` are always sent to `MAV_COMP_ID_CAMERA`, and `MAV_CMD_SET_CAMERA_ZOOM` and `MAV_CMD_SET_CAMERA_FOCUS` are always sent to [MAV_COMP_ID_ALL](https://mavlink.io/en/messages/common.html#MAV_COMP_ID_ALL).
+:::
 
-The value is ignored for other commands:
-
-- `MAV_CMD_VIDEO_START_CAPTURE` and `MAV_CMD_VIDEO_STOP_CAPTURE`: sent unconditionally to the component with ID of `MAV_COMP_ID_CAMERA` (the camera ID param is ignored)
-- `MAV_CMD_SET_CAMERA_ZOOM` and `MAV_CMD_SET_CAMERA_FOCUS`: sent unconditionally to [MAV_COMP_ID_ALL](https://mavlink.io/en/messages/common.html#MAV_COMP_ID_ALL) (the camera ID param is ignored)
+The camera trigger commands [MAV_CMD_DO_TRIGGER_CONTROL](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_TRIGGER_CONTROL), [MAV_CMD_DO_SET_CAM_TRIGG_DIST](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_CAM_TRIGG_DIST) and [MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL) are also sent to the target camera `id` if it is set, and are otherwise sent to all components.
 
 <!--
 List of all supported commands in missions in:
@@ -88,7 +88,7 @@ MissionBlock::issue_command(const mission_item_s &item) =>  https://github.com/P
 
 Publishing command:
 void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)  => https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp#L1395
-  For camera commands set to vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
+  For camera commands set vehicle_command.target_component to the camera id param, or 100 (MAV_COMP_ID_CAMERA) if not set
   All others just get published as-is
 -->
 
