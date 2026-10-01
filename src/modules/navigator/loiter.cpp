@@ -57,6 +57,7 @@ Loiter::on_activation()
 	// an already-established loiter (used by set_loiter_position()).
 	const position_setpoint_s previous_setpoint = _navigator->get_position_setpoint_triplet()->current;
 	_navigator->reset_triplets();
+	storePositionResetState();
 
 	if (_navigator->get_reposition_triplet()->current.valid
 	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
@@ -74,6 +75,8 @@ Loiter::on_activation()
 void
 Loiter::on_active()
 {
+	followPositionResets();
+
 	if (_navigator->get_reposition_triplet()->current.valid
 	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
 		reposition();
@@ -112,6 +115,9 @@ Loiter::set_loiter_position(const position_setpoint_s &reference_setpoint)
 	}
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	// Hold keeps the vehicle where it is, also when it continues a loiter it was already on
+	_follow_position_resets = true;
 
 	if (_navigator->get_land_detected()->landed) {
 		_mission_item.nav_cmd = NAV_CMD_IDLE;
@@ -161,7 +167,8 @@ Loiter::reposition()
 	struct position_setpoint_triplet_s *rep = _navigator->get_reposition_triplet();
 
 	if (rep->current.valid) {
-		// set loiter position based on reposition command
+		// set loiter position based on reposition command, a target that a reset of the estimate doesn't move
+		_follow_position_resets = false;
 
 		// convert mission item to current setpoint
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -180,4 +187,46 @@ Loiter::reposition()
 		_navigator->reset_position_setpoint(rep->current);
 		_navigator->reset_position_setpoint(rep->next);
 	}
+}
+
+void
+Loiter::followPositionResets()
+{
+	const vehicle_local_position_s &local_pos = *_navigator->get_local_position();
+	position_setpoint_s &current = _navigator->get_position_setpoint_triplet()->current;
+	bool updated = false;
+
+	// A moved origin also counts as a reset of the local position, but the global position the setpoint is in stays
+	const bool lat_lon_origin_moved = (local_pos.ref_timestamp != _ref_timestamp);
+	const bool alt_origin_moved = !(fabsf(local_pos.ref_alt - _ref_alt) < FLT_EPSILON);
+
+	if (_follow_position_resets && current.valid) {
+		if ((local_pos.xy_reset_counter != _xy_reset_counter) && !lat_lon_origin_moved
+		    && PX4_ISFINITE(local_pos.delta_xy[0]) && PX4_ISFINITE(local_pos.delta_xy[1])) {
+			add_vector_to_global_position(current.lat, current.lon, local_pos.delta_xy[0], local_pos.delta_xy[1],
+						      &current.lat, &current.lon);
+			updated = true;
+		}
+
+		if ((local_pos.z_reset_counter != _z_reset_counter) && !alt_origin_moved && PX4_ISFINITE(local_pos.delta_z)) {
+			current.alt -= local_pos.delta_z;
+			updated = true;
+		}
+	}
+
+	storePositionResetState();
+
+	if (updated) {
+		_navigator->set_position_setpoint_triplet_updated();
+	}
+}
+
+void
+Loiter::storePositionResetState()
+{
+	const vehicle_local_position_s &local_pos = *_navigator->get_local_position();
+	_xy_reset_counter = local_pos.xy_reset_counter;
+	_z_reset_counter = local_pos.z_reset_counter;
+	_ref_timestamp = local_pos.ref_timestamp;
+	_ref_alt = local_pos.ref_alt;
 }
