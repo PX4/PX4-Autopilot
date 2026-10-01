@@ -107,6 +107,9 @@ void RoverMecanum::Run()
 		reset();
 		_mecanum_act_control.stopVehicle();
 		_was_armed = false;
+
+	} else {
+		_mecanum_act_control.stopVehicle();
 	}
 
 	// reschedule backup

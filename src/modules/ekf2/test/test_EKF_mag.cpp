@@ -68,7 +68,7 @@ public:
 
 TEST_F(EkfMagTest, fusionStartWithReset)
 {
-	_ekf->set_min_required_gps_health_time(5e6);
+	_sensor_simulator._gps.setMinRequiredGnssHealthTime(5e6);
 	// GIVEN: some meaningful mag data
 	const float mag_heading = M_PI_F / 3.f;
 	const float incl = 63.1f;
@@ -313,7 +313,7 @@ TEST_F(EkfMagTest, manualYawSurvivesWithGnssAidingOnly)
 	_sensor_simulator._mag.setData(Vector3f(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading), 0.4f));
 	_sensor_simulator.runSeconds(_init_duration_s);
 
-	_ekf->set_min_required_gps_health_time(1e6);
+	_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
 	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator.startGps();
 	_sensor_simulator.runSeconds(10.f);
@@ -492,4 +492,46 @@ TEST_F(EkfMagTest, magFaultCleared)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion()); // because in-flight alignment is required
+}
+
+TEST_F(EkfMagTest, inFlightResetUsesCurrentFieldAtLowMagRate)
+{
+	// GIVEN: a magnetometer at a realistic 15 Hz, much slower than the EKF update rate
+	_sensor_simulator._mag.setRateHz(15);
+
+	const auto mag_from_heading = [](float heading) {
+		return Vector3f(0.2f * cosf(heading), -0.2f * sinf(heading), 0.4f);
+	};
+
+	_sensor_simulator._mag.setData(mag_from_heading(0.f));
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+
+	// WHEN: the vehicle climbs at 1 m/s, and the field seen by the sensor rotates by 20 degrees
+	// (as when the vehicle pitches during takeoff) just before the in-flight reset at 1.5 m
+	const float new_heading = radians(20.f);
+	float baro_height = _sensor_simulator._baro.getData();
+	bool field_changed = false;
+	int iterations = 0;
+
+	while (!_ekf->control_status_flags().mag_aligned_in_flight && (iterations++ < 1000)) {
+		baro_height += 0.01f;
+		_sensor_simulator._baro.setData(baro_height);
+		_sensor_simulator.runMicroseconds(10000);
+
+		if (!field_changed && (_ekf->getHagl() > 1.f)) {
+			_sensor_simulator._mag.setData(mag_from_heading(new_heading));
+			field_changed = true;
+		}
+	}
+
+	ASSERT_TRUE(field_changed);
+	ASSERT_TRUE(_ekf->control_status_flags().mag_aligned_in_flight);
+
+	// THEN: the reset used the field measured shortly before, not a stale one
+	// (a filter that lags by ~0.6 s leaves a ~9 degree error here)
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), new_heading, radians(2.f))
+			<< "Yaw after reset: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
 }

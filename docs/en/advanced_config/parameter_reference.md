@@ -26223,7 +26223,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Arming without GNSS configuration.
 
 Configures whether arming is allowed without GNSS, for modes that require a global position
-(specifically, in those modes when a check defined by EKF2_GPS_CHECK fails).
+(specifically, in those modes when a check defined by GNSS_CHECK fails).
 The settings deny arming and warn, allow arming and warn, or silently allow arming.
 
 
@@ -28594,7 +28594,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## EKF2
 
-<div class="param-group" style="--param-count: 163">
+<div class="param-group" style="--param-count: 155">
 
 <div class="param">
 
@@ -29644,37 +29644,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_GPS_CHECK (`INT32`) {#EKF2_GPS_CHECK}
-
-Integer bitmask controlling GPS checks.
-
-Each threshold value is defined by the parameter indicated next to the check. Drift and offset checks only run when the vehicle is on ground and stationary. The spoofing and jamming checks also apply to the receiver providing the GNSS heading.
-
-
-**Bitmask:**
-
-- `0`: Sat count (EKF2_REQ_NSATS)
-- `1`: PDOP (EKF2_REQ_PDOP)
-- `2`: EPH (EKF2_REQ_EPH)
-- `3`: EPV (EKF2_REQ_EPV)
-- `4`: Speed accuracy (EKF2_REQ_SACC)
-- `5`: Horizontal position drift (EKF2_REQ_HDRIFT)
-- `6`: Vertical position drift (EKF2_REQ_VDRIFT)
-- `7`: Horizontal speed offset (EKF2_REQ_HDRIFT)
-- `8`: Vertical speed offset (EKF2_REQ_VDRIFT)
-- `9`: Spoofing
-- `10`: GPS fix type (EKF2_REQ_FIX)
-- `11`: Jamming
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 4095 |  | 2047 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### EKF2_GPS_CTRL (`INT32`) {#EKF2_GPS_CTRL}
 
 GNSS sensor aiding.
@@ -30511,102 +30480,16 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_REQ_EPH (`FLOAT`) {#EKF2_REQ_EPH}
-
-Required EPH to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 100 |  | 3.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_EPV (`FLOAT`) {#EKF2_REQ_EPV}
-
-Required EPV to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 100 |  | 5.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_FIX (`INT32`) {#EKF2_REQ_FIX}
-
-Required GPS fix.
-
-Minimum GPS fix type required for GPS usage.
-
-
-**Values:**
-
-- `0`: No fix required
-- `2`: 2D fix
-- `3`: 3D fix
-- `4`: RTCM code differential
-- `5`: RTK float
-- `6`: RTK fixed
-- `8`: Extrapolated
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 3 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### EKF2_REQ_GPS_H (`FLOAT`) {#EKF2_REQ_GPS_H}
 
-Required GPS health time on startup.
+GNSS fusion restart and heading reset wait.
 
-Minimum continuous period without GPS failure required to mark a healthy GPS status. It can be reduced to speed up initialization, but it's recommended to keep this unchanged for a vehicle.
+After EKF2 stops GNSS velocity and position fusion, it restarts it only after this time while disarmed on the ground, and after a tenth of it, at least 1 s, otherwise. After a GNSS heading failure, a yaw reset to the GNSS heading also waits this long. The GNSS checks use GNSS_REQ_TIME.
 
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | 0.1 |  |  | 10.0 | s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_HDRIFT (`FLOAT`) {#EKF2_REQ_HDRIFT}
-
-Maximum horizontal drift speed to use GPS.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 1.0 |  | 0.1 | m/s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_NSATS (`INT32`) {#EKF2_REQ_NSATS}
-
-Required satellite count to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 4 | 12 |  | 6 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_PDOP (`FLOAT`) {#EKF2_REQ_PDOP}
-
-Maximum PDOP to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 1.5 | 5.0 |  | 2.5 |  | &nbsp;
+&nbsp; | 0.1 |  |  | 10.0 | s | &nbsp;
 
 </div>
 
@@ -30614,23 +30497,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### EKF2_REQ_SACC (`FLOAT`) {#EKF2_REQ_SACC}
 
-Required speed accuracy to use GPS.
+GNSS speed accuracy for vertical velocity and yaw estimator.
+
+Below this speed accuracy EKF2 trusts the GNSS vertical velocity while the accelerometer clips, and feeds the GNSS velocity to the EKF-GSF yaw estimator. The GNSS checks use GNSS_REQ_SACC.
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.5 | 5.0 |  | 0.5 | m/s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_VDRIFT (`FLOAT`) {#EKF2_REQ_VDRIFT}
-
-Maximum vertical drift speed to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 1.5 |  | 0.2 | m/s | &nbsp;
 
 </div>
 
@@ -31103,6 +30977,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 ### EKF2_VEL_LIM (`FLOAT`) {#EKF2_VEL_LIM}
 
 Velocity limit.
+
+Each axis of the velocity state is constrained to this magnitude. GNSS and external vision velocity samples beyond it are not fused.
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -41945,10 +41822,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_ACC_RAD (`FLOAT`) {#NAV_ACC_RAD}
 
-Acceptance Radius.
+Acceptance radius.
 
-Default acceptance radius, overridden by acceptance radius of waypoint if set.
-For fixed-wing and rovers, the high level controllers output their own acceptance radius. Those values are used instead only when above this parameter.
+Overridden by a waypoint's own acceptance radius, if set. For fixed-wing and rovers, the controller's acceptance radius is used instead when it is larger.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -41978,10 +41854,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_FW_ALTL_RAD (`FLOAT`) {#NAV_FW_ALTL_RAD}
 
-FW Altitude Acceptance Radius before a landing.
+FW Altitude acceptance radius before landing.
 
-Altitude acceptance used for the last waypoint before a fixed-wing landing. This is usually smaller
-than the standard vertical acceptance because close to the ground higher accuracy is required.
+FW acceptance alt for last waypoint before landing. Usually smaller than NAV_FW_ALT_RAD; accuracy matters more near the ground.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -41994,10 +41869,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_FW_ALT_RAD (`FLOAT`) {#NAV_FW_ALT_RAD}
 
-FW Altitude Acceptance Radius.
-
-Acceptance radius for fixedwing altitude.
-
+FW Altitude acceptance radius.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -42009,12 +41881,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_LOITER_RAD (`FLOAT`) {#NAV_LOITER_RAD}
 
-Loiter radius (FW only).
+FW Loiter radius.
 
-Default value of loiter radius in fixed-wing mode (e.g. for Loiter mode).
-
-The direction of the loiter can be set via the sign: A positive value for
-clockwise, negative for counter-clockwise.
+Default for fixed-wing loiters, e.g. in Hold mode. Positive values loiter clockwise, negative values counter-clockwise.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42029,10 +41898,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Loiter at last GCS heartbeat position on data link loss.
 
-When the data link is lost and this setting is enabled,
-the vehicle will loiter at the position where the last GCS
-heartbeat was received rather than at its current position.
-Only applies to Hold mode during failsafe actions.
+If disabled, the vehicle loiters at its current position. Only applies to Hold mode during failsafe actions.
 
 
 **Values:**
@@ -42050,10 +41916,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_MC_ALT_RAD (`FLOAT`) {#NAV_MC_ALT_RAD}
 
-MC Altitude Acceptance Radius.
-
-Acceptance radius for multicopter altitude.
-
+MC Altitude acceptance radius.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -42067,12 +41930,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Minimum height above ground during Mission and Return.
 
-Minimum height above ground the vehicle is allowed to descend to during Mission and Return,
-excluding landing commands.
-Requires a distance sensor to be set up.
-Note: only prevents the vehicle from descending further, but does not force it to climb.
-
-Set to a negative value to disable.
+Minimum height AGL in Return and Mission (excluding landing commands). Requires a distance sensor. Stops further descent but doesn't force a climb. Set to -1 to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42085,12 +41943,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_MIN_LTR_ALT (`FLOAT`) {#NAV_MIN_LTR_ALT}
 
-Minimum Loiter altitude.
+Minimum loiter altitude.
 
-This is the minimum altitude above Home the system will always obey in Loiter (Hold) mode if switched into this
-mode without specifying an altitude (e.g. through Loiter switch on RC).
-Doesn't affect Loiters that are part of Missions or that are entered through a reposition setpoint ("Go to").
-Set to a negative value to disable.
+Altitude above Home used when Hold mode is entered without an altitude, e.g. from an RC switch. Doesn't apply to mission loiters or reposition ("Go to") setpoints. Set to -1 to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42103,10 +41958,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_TRAFF_AVOID (`INT32`) {#NAV_TRAFF_AVOID}
 
-Set traffic avoidance action.
+Traffic avoidance action (Xtrack only).
 
-Action requested for a crosstrack traffic conflict.
-Runtime changes apply on later conflict level transitions.
+Changes take effect at the next cross-track conflict level transition.
 
 
 **Values:**
@@ -44883,7 +44737,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Max motor RPM for neural network normalization.
 
-The maximum RPM of the motors. Used to normalize the output of the neural network
+The maximum RPM of the motors. Used to normalize the output of the neural network. Has to be above MC_NN_MIN_RPM. Together with MC_NN_THRST_COEF it sets the part of the action range the motor can reproduce, which the module reports at startup.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -44898,7 +44752,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Min motor RPM for neural network normalization.
 
-The minimum RPM of the motors. Used to normalize the output of the neural network
+The minimum RPM of the motors. Used to normalize the output of the neural network. Actions that ask for less than this idle the motor.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -44918,7 +44772,7 @@ Thrust coefficient of the motors. Used to normalize the output of the neural net
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 5.0 |  | 1.2 |  | &nbsp;
+&nbsp; | 0.01 | 5.0 |  | 1.2 |  | &nbsp;
 
 </div>
 
@@ -48013,8 +47867,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Force VTOL approach landing on Return.
 
-Only consider home/rally points as return destinations if they have a VTOL approach loiter.
-A VTOL approach loiter is a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude.
+Only home and rally points with a VTOL approach loiter (a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude) are used as return destinations.
 
 
 **Values:**
@@ -48034,8 +47887,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Half-angle of the return mode altitude cone.
 
-Defines the half-angle of a cone centered around the destination position that
-affects the altitude at which the vehicle returns.
+Half-angle of a cone centered around the destination position. Affects the altitude at which the vehicle returns.
 
 
 **Values:**
@@ -48060,9 +47912,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return mode loiter altitude.
 
-Descend to this altitude (above destination position) after return, and wait for time defined in RTL_LAND_DELAY.
-Land (i.e. slowly descend) from this altitude if autolanding allowed.
-VTOLs do transition to hover in this altitude above the landing point.
+After returning, the vehicle descends to this altitude above the destination and waits RTL_LAND_DELAY, then lands if autolanding is allowed. VTOLs transition to hover at this altitude.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48077,8 +47927,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return mode delay.
 
-Delay before landing (after initial descent) in Return mode.
-If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
+Delay after the descent to RTL_DESCEND_ALT, before landing. Set to -1 to loiter at RTL_DESCEND_ALT without landing.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48093,7 +47942,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Loiter radius for return descent.
 
-Set the radius for loitering to a safe altitude for VTOL transition.
+Default loiter radius for descent to RTL_DESCEND_ALT if not set in landing approach. Set to safe altitude for VTOL transitions.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48108,10 +47957,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Min distance for return cone altitude calculation.
 
-Horizontal radius from return point within which special rules for return mode apply
-
-The return altitude will be calculated based on RTL_CONE_ANG parameter.
-The yaw setpoint will switch to the one defined by corresponding waypoint.
+Within this horizontal distance of the destination, the return altitude comes from RTL_CONE_ANG and the yaw setpoint switches to the destination's yaw.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48126,8 +47972,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return precision land mode.
 
-Use precision landing during the landing phase of Return mode.
-This setting does not apply for return destinations planned as part of a mission.
+Doesn't apply to return destinations planned in a mission.
 
 
 **Values:**
@@ -48149,9 +47994,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return mode return altitude.
 
-Default minimum altitude above destination (e.g. home, safe point, landing pattern) for return flight.
-The vehicle will climb to this altitude when Return mode is engaged, unless it currently is flying higher already.
-This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
+Minimum altitude above the destination (home, rally point or landing pattern) during return. The vehicle climbs to it unless already higher. Adjusted by RTL_MIN_DIST and RTL_CONE_ANG.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48166,8 +48009,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return time estimate safety margin factor.
 
-Safety factor that is used to scale the actual return time estimate.
-Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48182,8 +48024,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return time estimate safety margin offset.
 
-Margin that is added to the time estimate, after it has already been scaled
-Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -52269,7 +52110,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 254">
+<div class="param-group" style="--param-count: 264">
 
 <div class="param">
 
@@ -52425,6 +52266,162 @@ Use SENS_MAG_SIDES instead
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | 63 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_CHECK (`INT32`) {#GNSS_CHECK}
+
+Integer bitmask controlling GNSS checks.
+
+Each threshold value is defined by the parameter indicated next to the check. Drift and offset checks only run when the vehicle is on ground and stationary. The spoofing and jamming checks also apply to the receiver providing the GNSS heading.
+
+
+**Bitmask:**
+
+- `0`: Sat count (GNSS_REQ_NSATS)
+- `1`: PDOP (GNSS_REQ_PDOP)
+- `2`: EPH (GNSS_REQ_EPH)
+- `3`: EPV (GNSS_REQ_EPV)
+- `4`: Speed accuracy (GNSS_REQ_SACC)
+- `5`: Horizontal position drift (GNSS_REQ_HDRIFT)
+- `6`: Vertical position drift (GNSS_REQ_VDRIFT)
+- `7`: Horizontal speed offset (GNSS_REQ_HDRIFT)
+- `8`: Vertical speed offset (GNSS_REQ_VDRIFT)
+- `9`: Spoofing
+- `10`: GNSS fix type (GNSS_REQ_FIX)
+- `11`: Jamming
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 4095 |  | 2047 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_EPH (`FLOAT`) {#GNSS_REQ_EPH}
+
+Required EPH to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 100 |  | 3.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_EPV (`FLOAT`) {#GNSS_REQ_EPV}
+
+Required EPV to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 100 |  | 5.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_FIX (`INT32`) {#GNSS_REQ_FIX}
+
+Required GNSS fix.
+
+Minimum GNSS fix type required for GNSS usage.
+
+
+**Values:**
+
+- `0`: No fix required
+- `2`: 2D fix
+- `3`: 3D fix
+- `4`: RTCM code differential
+- `5`: RTK float
+- `6`: RTK fixed
+- `8`: Extrapolated
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 3 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_HDRIFT (`FLOAT`) {#GNSS_REQ_HDRIFT}
+
+Maximum horizontal drift speed to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 1.0 |  | 0.1 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_NSATS (`INT32`) {#GNSS_REQ_NSATS}
+
+Required satellite count to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 4 | 12 |  | 6 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_PDOP (`FLOAT`) {#GNSS_REQ_PDOP}
+
+Maximum PDOP to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.5 | 5.0 |  | 2.5 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_SACC (`FLOAT`) {#GNSS_REQ_SACC}
+
+Required speed accuracy to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 5.0 |  | 0.5 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_TIME (`FLOAT`) {#GNSS_REQ_TIME}
+
+Required GNSS health time on startup.
+
+Minimum continuous period without GNSS failure required to mark a healthy GNSS status. It can be reduced to speed up initialization, but it's recommended to keep this unchanged for a vehicle.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 |  |  | 10.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_VDRIFT (`FLOAT`) {#GNSS_REQ_VDRIFT}
+
+Maximum vertical drift speed to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 1.5 |  | 0.2 | m/s | &nbsp;
 
 </div>
 
@@ -56103,8 +56100,8 @@ The secondary instance is then only used if the primary one times out.
 
 To select a DroneCAN GPS, set this to the node ID.
 
-The primary receiver is reported in the GPS_RAW_INT MAVLink
-message and the secondary in GPS2_RAW.
+GPS_RAW_INT reports the preferred receiver, or without one the first receiver
+to publish, and GPS2_RAW the other one. Neither follows the selection.
 
 
 
@@ -66151,8 +66148,7 @@ Leave at Generic unless your VTX is listed.
 **Values:**
 
 - `0`: Generic
-- `5120`: Peak THOR T67
-- `10240`: Rush MAX SOLO
+- `5120`: Peak THOR - T35, T67, T78, T89
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only

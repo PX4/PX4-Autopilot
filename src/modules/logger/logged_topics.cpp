@@ -127,6 +127,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("sensor_correction");
 	add_optional_topic("sensor_gyro_fft", 50);
 	add_topic("sensor_selection");
+	add_topic("sensors_status_gnss", 200);
 	add_topic("sensors_status_imu", 200);
 	add_optional_topic("spoilers_setpoint", 1000);
 	add_topic("system_power", 500);

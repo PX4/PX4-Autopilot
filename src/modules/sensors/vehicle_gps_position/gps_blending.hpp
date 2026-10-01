@@ -78,6 +78,9 @@ public:
 	const sensor_gnss_s &getOutputGnssData() const { return _gnss_state[_selected_gps]; }
 	int getSelectedGps() const { return _selected_gps; }
 
+	// Increments when the output changes to another receiver, which steps the position that consumers see
+	uint8_t getSelectionCount() const { return _selection_count; }
+
 private:
 	// Drop the stored fix of a receiver that stopped publishing, and track whether the primary one is publishing
 	void updateReceiverTimeouts(uint64_t hrt_now_us);
@@ -85,6 +88,8 @@ private:
 	sensor_gnss_s _gnss_state[GPS_MAX_RECEIVERS_BLEND] {}; ///< internal state data for the physical GPS
 	bool _gps_updated[GPS_MAX_RECEIVERS_BLEND] {};
 	int _selected_gps{0};
+	int _output_instance{-1}; ///< receiver of the last output, -1 before the first one
+	uint8_t _selection_count{0};
 	int _primary_instance{0}; ///< if -1, there is no primary isntance and the best receiver is used // TODO: use device_id
 	bool _primary_instance_available{false};
 
