@@ -152,3 +152,9 @@ More information about camera manager and companion computer setups can be found
 - [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Tutorial for integrating with the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini-gimbal-camera) using a MAVSDK-based camera manager running on a Raspberry Pi companion computer.
 - [Using a Companion Computer with Pixhawk Controllers](../companion_computer/pixhawk_companion.md)
 - [Companion Computers > Companion Computer Software](../companion_computer/index.md#companion-computer-software): In particular note [MAVLink-Router](https://github.com/mavlink-router/mavlink-router), which you can setup to route MAVLink traffic between a serial port and an IP link (or other camera manager interface).
+
+## Camera Manager Devices
+
+The following devices implement the MAVLink camera protocol (act as a camera manager):
+
+- [AirPixel TAG-E](../camera/airpixel_tag_e.md) - Camera controller and EXIF/XMP geotagger for the Sony ILX-LR1.
