@@ -154,6 +154,7 @@ static constexpr bool presetFits(const RatePreset &p)
 
 static constexpr bool allPresetsFit()
 {
+	// NOLINTNEXTLINE(readability-use-anyofallof) std::all_of is not constexpr before C++20
 	for (const RatePreset &p : RATE_PRESETS) {
 		if (!presetFits(p)) {
 			return false;
