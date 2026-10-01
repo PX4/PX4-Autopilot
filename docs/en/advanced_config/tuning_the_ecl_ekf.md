@@ -739,9 +739,9 @@ For a binary pass/fail summary for each sensor, refer to innovation_check_flags 
 
 The EKF applies a number of GPS quality checks before commencing GPS aiding.
 These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
-The pass/fail status for these checks is logged in the [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).gps_check_fail_flags message.
+The pass/fail status for these checks is logged in [VehicleGnss](../msg_docs/VehicleGnss.md) `failed_checks` for the selected receiver, and in [SensorsStatusGnss](../msg_docs/SensorsStatusGnss.md) `failed_checks` for each receiver.
 This integer will be zero when all required GPS checks have passed.
-If the EKF is not commencing GPS alignment, check the value of the integer against the bitmask definition `gps_check_fail_flags` in [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).
+If the EKF is not commencing GPS alignment, check the value of the integer against the `CHECK_*` bits in [VehicleGnss](../msg_docs/VehicleGnss.md), and why the EKF does not fuse the samples in [EstimatorStatusFlags](../msg_docs/EstimatorStatusFlags.md) `gnss_fusion_state`.
 
 ### EKF Numerical Errors
 
@@ -758,7 +758,7 @@ To prevent this, every covariance and state update step contains the following e
 - An upper limit is applied to state variances.
 - Symmetry is forced on the covariance matrix.
 
-After re-tuning the filter, particularly re-tuning that involve reducing the noise variables, the value of `estimator_status.gps_check_fail_flags` should be checked to ensure that it remains zero.
+After re-tuning the filter, particularly re-tuning that involve reducing the noise variables, the value of `estimator_status.filter_fault_flags` should be checked to ensure that it remains zero.
 
 ## What should I do if the height estimate is diverging?
 
