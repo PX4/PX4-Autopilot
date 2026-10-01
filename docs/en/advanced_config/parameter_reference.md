@@ -26722,7 +26722,7 @@ the estimated time it takes to reach the return destination.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  | 1 | 0 |  | &nbsp;
+&nbsp; |  |  | 1 | 1 |  | &nbsp;
 
 </div>
 
