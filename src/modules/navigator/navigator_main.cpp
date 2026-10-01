@@ -1203,9 +1203,8 @@ void Navigator::geofence_breach_check()
 					     && hrt_elapsed_time(&_global_pos.timestamp) < 1_s;
 		bool have_valid_position_for_breach_check = global_position_valid;
 
-		// relying on raw gps is questionable already, but at least check the basics
-		const bool raw_gps_valid =
-			hrt_elapsed_time(&_vehicle_gnss.timestamp) < 2_s && _vehicle_gnss.receiver.fix_type >= 2;
+		// relying on raw gps is questionable already, but at least take only samples the estimator would fuse
+		const bool raw_gps_valid = hrt_elapsed_time(&_vehicle_gnss.timestamp) < 2_s && _vehicle_gnss.usable;
 
 		if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
 			current_latitude = _vehicle_gnss.receiver.latitude;
