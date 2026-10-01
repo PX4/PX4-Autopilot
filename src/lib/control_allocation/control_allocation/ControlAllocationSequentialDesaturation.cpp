@@ -49,7 +49,7 @@ ControlAllocationSequentialDesaturation::allocate()
 
 	_prev_actuator_sp = _actuator_sp;
 
-	mix(_param_mc_airmode_lim.get(), _param_mc_airmode_yaw_lim.get());
+	mix(_param_mc_airmode_lim.get(), _param_mc_airmode_yaw.get());
 }
 
 void ControlAllocationSequentialDesaturation::desaturateActuators(
@@ -96,6 +96,29 @@ void ControlAllocationSequentialDesaturation::desaturateActuators(
 	}
 }
 
+void ControlAllocationSequentialDesaturation::desaturateYaw(ActuatorVector &actuator_sp, const ActuatorVector &yaw)
+{
+	// A gain k along the yaw column turns the delivered yaw command into yaw_sp + k. Keep it
+	// between yaw_sp and 0.
+	const float yaw_sp = _control_sp(ControlAxis::YAW) - _control_trim(ControlAxis::YAW);
+	const float gain_min = fminf(-yaw_sp, 0.f);
+	const float gain_max = fmaxf(-yaw_sp, 0.f);
+
+	const float gain = fmaxf(gain_min, fminf(gain_max, computeDesaturationGain(yaw, actuator_sp)));
+
+	for (int i = 0; i < _num_actuators; i++) {
+		actuator_sp(i) += gain * yaw(i);
+	}
+
+	// Same half-step refinement as desaturateActuators, within what is left of the range.
+	const float refinement = fmaxf(gain_min - gain, fminf(gain_max - gain, 0.5f * computeDesaturationGain(yaw,
+				       actuator_sp)));
+
+	for (int i = 0; i < _num_actuators; i++) {
+		actuator_sp(i) += refinement * yaw(i);
+	}
+}
+
 float ControlAllocationSequentialDesaturation::computeDesaturationGain(const ActuatorVector &desaturation_vector,
 		const ActuatorVector &actuator_sp)
 {
@@ -129,6 +152,29 @@ float ControlAllocationSequentialDesaturation::computeDesaturationGain(const Act
 	return k_min + k_max;
 }
 
+float ControlAllocationSequentialDesaturation::computeWorstSaturation(const ActuatorVector &desaturation_vector,
+		const ActuatorVector &actuator_sp)
+{
+	float worst = 0.f;
+
+	for (int i = 0; i < _num_actuators; i++) {
+		// Same weak-effectiveness cutoff as computeDesaturationGain
+		if (fabsf(desaturation_vector(i)) < 0.2f) {
+			continue;
+		}
+
+		if (actuator_sp(i) < _actuator_min(i)) {
+			worst = fmaxf(worst, fabsf((_actuator_min(i) - actuator_sp(i)) / desaturation_vector(i)));
+		}
+
+		if (actuator_sp(i) > _actuator_max(i)) {
+			worst = fmaxf(worst, fabsf((_actuator_max(i) - actuator_sp(i)) / desaturation_vector(i)));
+		}
+	}
+
+	return worst;
+}
+
 bool ControlAllocationSequentialDesaturation::yawReducesAirmodeThrust()
 {
 	ActuatorVector thrust_z;
@@ -147,16 +193,22 @@ bool ControlAllocationSequentialDesaturation::yawReducesAirmodeThrust()
 		thrust_z(i) = _mix(i, ControlAxis::THRUST_Z);
 	}
 
-	const float gain_no_yaw = computeDesaturationGain(thrust_z, mixed_no_yaw);
-	const float gain_with_yaw = computeDesaturationGain(thrust_z, mixed_with_yaw);
+	// Compare the worst violation, not computeDesaturationGain(): when the most saturated outputs on
+	// the two bounds spin in opposite directions, yaw moves both by the same amount and their gains
+	// cancel, so that sum is an exact tie across whole regions of commands and float rounding would
+	// pick the path.
+	const float worst_no_yaw = computeWorstSaturation(thrust_z, mixed_no_yaw);
+	const float worst_with_yaw = computeWorstSaturation(thrust_z, mixed_with_yaw);
 
-	return fabsf(gain_with_yaw) < fabsf(gain_no_yaw);
+	return worst_with_yaw < worst_no_yaw - YAW_FOLD_MIN_IMPROVEMENT;
 }
 
 void
-ControlAllocationSequentialDesaturation::mix(float roll_pitch_limit, float yaw_limit)
+ControlAllocationSequentialDesaturation::mix(float roll_pitch_limit, bool yaw_airmode)
 {
-	bool yaw_in_sum = (yaw_limit > 0.f);
+	// Yaw airmode spends the roll_pitch_limit budget, so without a budget it has nothing to do and
+	// roll_pitch_limit == 0 stays airmode disabled regardless of yaw_airmode.
+	bool yaw_in_sum = yaw_airmode && (roll_pitch_limit > 0.f);
 
 	// Deferred-yaw regime: fold yaw into the pre-thrust sum when that lets the thrust step relieve
 	// the saturating actuator instead of over-adding collective (see yawReducesAirmodeThrust).
@@ -187,6 +239,12 @@ ControlAllocationSequentialDesaturation::mix(float roll_pitch_limit, float yaw_l
 
 	desaturateActuators(_actuator_sp, thrust_z, roll_pitch_limit);
 
+	if (yaw_in_sum) {
+		// Yaw is already in the sum and is the least important axis: give it up first, before
+		// roll/pitch, and without the MINIMUM_YAW_MARGIN inflation.
+		desaturateYaw(_actuator_sp, yaw);
+	}
+
 	if (roll_pitch_limit < 1.f) {
 		// Reduce roll/pitch acceleration if any saturation remains; at roll_pitch_limit == 1
 		// these passes are skipped so the full-airmode endpoint stays exact.
@@ -194,12 +252,7 @@ ControlAllocationSequentialDesaturation::mix(float roll_pitch_limit, float yaw_l
 		desaturateActuators(_actuator_sp, pitch);
 	}
 
-	if (yaw_in_sum) {
-		// Yaw is already in the sum; deprioritize it relative to roll/pitch by desaturating
-		// without the MINIMUM_YAW_MARGIN inflation, capping any upward gain at yaw_limit.
-		desaturateActuators(_actuator_sp, yaw, yaw_limit);
-
-	} else {
+	if (!yaw_in_sum) {
 		// Add yaw to outputs.
 		for (int i = 0; i < _num_actuators; i++) {
 			_actuator_sp(i) += _mix(i, ControlAxis::YAW) * (_control_sp(ControlAxis::YAW) - _control_trim(ControlAxis::YAW));

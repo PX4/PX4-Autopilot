@@ -47,7 +47,7 @@
 *(.text._ZN26MulticopterPositionControl3RunEv.part.0)
 *(.text.pthread_mutex_take)
 *(.text._ZN14ImuDownSampler6updateERKN9estimator9imuSampleE)
-*(.text._ZN39ControlAllocationSequentialDesaturation3mixEff)
+*(.text._ZN39ControlAllocationSequentialDesaturation3mixEfb)
 *(.text._ZN16ControlAllocator25publish_actuator_controlsEv.part.0)
 *(.text._ZN9ICM42688P7RunImplEv)
 *(.text._ZN4uORB12Subscription9subscribeEv)
