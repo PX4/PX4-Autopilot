@@ -124,4 +124,9 @@
 #  define BOOT_DEVICES_FILTER_ONUSB USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
 #endif
 
+/* Last: asserts the bootloader erase window against the NOR layout */
+#ifndef __ASSEMBLY__
+#  include "flash_layout.h"
+#endif
+
 #endif /* HW_CONFIG_H_ */

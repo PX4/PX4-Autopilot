@@ -39,6 +39,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
@@ -73,12 +74,15 @@ static int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size);
 static inline unsigned int time_fsync(int fd);
 
 static const char *BENCHMARK_FILE = PX4_STORAGEDIR"/benchmark.tmp";
+#define BENCHMARK_FILE_NAME "/benchmark.tmp"
 
 static void usage()
 {
-	PRINT_MODULE_DESCRIPTION("Test the speed of an SD Card");
+	PRINT_MODULE_DESCRIPTION("Test the speed of an SD Card or any other mounted filesystem");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("sd_bench", "command");
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "<dir>",
+					"Directory to benchmark (default=" PX4_STORAGEDIR ")", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 4096, 4, 1000000, "Block size for each read/write", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 5, 1, 1000, "Number of runs", true);
 	PRINT_MODULE_USAGE_PARAM_INT('d', 2000, 1, 100000, "Duration of a run in ms", true);
@@ -104,9 +108,16 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 	cfg.unaligned = 0;
 	uint8_t *block = nullptr;
 	uint8_t *block_alloc = nullptr;
+	const char *bench_dir = nullptr;
+	char bench_file_buf[64];
+	const char *bench_file = BENCHMARK_FILE;
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:ksuUv", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "p:b:r:d:ksuUv", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+		case 'p':
+			bench_dir = myoptarg;
+			break;
+
 		case 'b':
 			block_size = strtol(myoptarg, nullptr, 0);
 			break;
@@ -151,10 +162,28 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 		return -1;
 	}
 
-	int bench_fd = open(BENCHMARK_FILE, O_CREAT | (verify ? O_RDWR : O_WRONLY) | O_TRUNC, PX4_O_MODE_666);
+	if (bench_dir != nullptr) {
+		// strip a trailing '/' so the result is not '//benchmark.tmp'
+		size_t dir_len = strlen(bench_dir);
+
+		while (dir_len > 1 && bench_dir[dir_len - 1] == '/') {
+			--dir_len;
+		}
+
+		int len = snprintf(bench_file_buf, sizeof(bench_file_buf), "%.*s" BENCHMARK_FILE_NAME, (int)dir_len, bench_dir);
+
+		if (len < 0 || len >= (int)sizeof(bench_file_buf)) {
+			PX4_ERR("Directory path too long: %s", bench_dir);
+			return -1;
+		}
+
+		bench_file = bench_file_buf;
+	}
+
+	int bench_fd = open(bench_file, O_CREAT | (verify ? O_RDWR : O_WRONLY) | O_TRUNC, PX4_O_MODE_666);
 
 	if (bench_fd < 0) {
-		PX4_ERR("Can't open benchmark file %s", BENCHMARK_FILE);
+		PX4_ERR("Can't open benchmark file %s", bench_file);
 		return -1;
 	}
 
@@ -189,6 +218,7 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 		block[i] = (uint8_t)i;
 	}
 
+	PX4_INFO("Benchmarking %s", bench_file);
 	PX4_INFO("Using block size = %i bytes, sync=%i", block_size, (int)cfg.synchronized);
 	write_test(bench_fd, &cfg, block, block_size);
 
@@ -202,7 +232,7 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 	close(bench_fd);
 
 	if (!keep) {
-		unlink(BENCHMARK_FILE);
+		unlink(bench_file);
 	}
 
 	return 0;
