@@ -327,6 +327,8 @@ void UavcanNode::busevent_signal_trampoline()
 static void cb_reboot(const uavcan::TimerEvent &)
 {
 	watchdog_pet();
+	// Params persist only through the deferred autosave, which board_reset() does not wait for
+	param_save_default(true);
 	board_reset(0);
 }
 
@@ -613,10 +615,13 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 {
 	bool handleRestartRequest(uavcan::NodeID request_source) override
 	{
-		PX4_INFO("UAVCAN: Restarting by request from %i\n", int(request_source.get()));
-		usleep(20 * 1000 * 1000);
-		board_reset(0);
-		return true; // Will never be executed BTW
+		PX4_INFO("UAVCAN: Restarting by request from %i", int(request_source.get()));
+
+		// The response is only sent after this returns, so reset from a timer
+		UavcanNode *node = UavcanNode::instance();
+		node->_reset_timer.setCallback(cb_reboot);
+		node->_reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
+		return true;
 	}
 } restart_request_handler;
 
