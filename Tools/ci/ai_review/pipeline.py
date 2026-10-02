@@ -9,6 +9,7 @@ import dataclasses
 import fnmatch
 import json
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -149,7 +150,8 @@ def run(s: Settings) -> Dict[str, Any]:
     """Run the whole pipeline. Returns the report data it also writes."""
     s.work_dir.mkdir(parents=True, exist_ok=True)
     pr = context.gather(s.repo, s.pr_number)
-    usage: Dict[str, Any] = {'changed_lines': pr.changed_lines}
+    usage: Dict[str, Any] = {'changed_lines': pr.changed_lines,
+                             'started': time.monotonic()}
 
     # Every PR is reviewed regardless of size; only one made entirely of
     # generated files (lock files, translations) has nothing to review.
@@ -193,6 +195,12 @@ def run(s: Settings) -> Dict[str, Any]:
     return data
 
 
+def _stamp_wall_time(usage: Dict[str, Any]) -> None:
+    started = usage.pop('started', None)
+    if isinstance(started, float):
+        usage['wall_seconds'] = round(time.monotonic() - started, 1)
+
+
 def refused(s: Settings, pr: context.PrContext, e: agent.AgentRefusal,
             usage: Dict[str, Any]) -> Dict[str, Any]:
     """The reviewer model declined: no review, and say exactly why.
@@ -203,8 +211,9 @@ def refused(s: Settings, pr: context.PrContext, e: agent.AgentRefusal,
     """
     usage['refused'] = {'model': e.model, 'category': e.category,
                         'request_id': e.request_id}
+    _stamp_wall_time(usage)
     artifact = render.write_refusal(s.out_dir, pr.number, pr.head_sha, e,
-                                    s.model_label)
+                                    s.model_label, usage)
     report = render.refusal_report(e, artifact, usage)
     (s.work_dir / 'report.md').write_text(report, encoding='utf-8')
     (s.work_dir / 'usage.json').write_text(json.dumps(usage, indent=2))
@@ -240,8 +249,10 @@ def finish(s: Settings, pr_number: int, head_sha: str, diff_text: str,
     head_files = route.load_head_files(
         s.checkout, sorted({f.path for f, _ in pairs if f.path}))
     routed = route.route(pairs, diff_map, head_files)
+    _stamp_wall_time(usage)
     artifact = render.write_artifact(s.out_dir, pr_number, head_sha, routed,
-                                     model_summary, s.model_label, checklist)
+                                     model_summary, s.model_label, checklist,
+                                     usage)
     usage.update(sandbox_stats(s.work_dir / SANDBOX_LOG))
     report = render.report_markdown(routed, artifact, usage, checklist)
     (s.work_dir / 'report.md').write_text(report, encoding='utf-8')
