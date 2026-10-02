@@ -85,6 +85,36 @@ public:
 	}
 };
 
+TEST_F(EkfHeightFusionTest, visionResetPreservesFallbackDatum)
+{
+	_ekf_wrapper.setBaroHeightRef();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_sensor_simulator.runSeconds(1.f);
+	auto vision = _sensor_simulator._vio.dataAtRest();
+	vision.pos_frame = PositionFrame::LOCAL_FRAME_NED;
+	vision.pos(2) = 10.f;
+	_sensor_simulator._vio.setData(vision);
+	_ekf_wrapper.enableExternalVisionHeightFusion();
+	_sensor_simulator.runSeconds(5.f);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
+	ASSERT_EQ(_ekf->getHeightSensorRef(), HeightSensor::BARO);
+
+	_sensor_simulator.stopBaro();
+	_sensor_simulator.runSeconds(5.f);
+	ASSERT_EQ(_ekf->getHeightSensorRef(), HeightSensor::EV);
+	const float before = _ekf->getPosition()(2);
+	vision.reset_counter++;
+	_sensor_simulator._vio.setData(vision);
+	_sensor_simulator.runSeconds(0.2f);
+	EXPECT_NEAR(_ekf->getPosition()(2), before, 0.1f);
+
+	vision.pos(2) += 2.f;
+	vision.reset_counter++;
+	_sensor_simulator._vio.setData(vision);
+	_sensor_simulator.runSeconds(0.2f);
+	EXPECT_NEAR(_ekf->getPosition()(2), before + 2.f, 0.1f);
+}
+
 TEST_F(EkfHeightFusionTest, noAiding)
 {
 	EXPECT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());

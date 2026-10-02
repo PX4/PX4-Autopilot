@@ -116,8 +116,8 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 
 					if (_height_sensor_ref == HeightSensor::EV) {
 						_information_events.flags.reset_hgt_to_ev = true;
-						resetAltitudeTo(-measurement, measurement_var);
-						bias_est.reset();
+						resetAltitudeTo(-measurement + bias_est.getBias(), measurement_var + bias_est.getBiasVar());
+						bias_est.setBias(_gpos.altitude() + measurement);
 
 					} else {
 						bias_est.setBias(_gpos.altitude() + measurement);
