@@ -8,22 +8,13 @@ parameters:
         SENS_GNSS_PRIME:
             description:
                 short: Multi GPS primary instance
-                long: |
-                    Preferred GPS receiver instance.
-                    The GPS selection logic waits until the primary receiver is available to
-                    send data to the EKF even if a secondary instance is already available.
-                    The secondary instance is then only used if the primary one times out.
-
-                    To select a DroneCAN GPS, set this to the node ID.
-
-                    GPS_RAW_INT reports the preferred receiver, or without one the first receiver
-                    to publish, and GPS2_RAW the other one. Neither follows the selection.
+                long: "The primary receiver is used regardless of what the other receiver reports, and always while disarmed. If it fails its checks (GNSS_CHECK) or stops publishing in flight, the other receiver is used for the rest of the flight, unless that one fails too. With Auto, the moving base of a moving base pair (SENS_GNSSn_HDG) is the primary. Without a moving base pair, a receiver that meets the accuracy requirements (GNSS_REQ_*) is preferred, then one with an RTK fixed solution. To make a DroneCAN receiver the primary, set its node ID (2 to 127). GPS_RAW_INT reports the primary receiver, or the first receiver to publish if there is no primary."
             type: int32
-            default: 0
+            default: -1
             min: -1
             max: 127
             values:
-                -1: Auto (equal priority)
+                -1: Auto
                 0: Main serial GPS
                 1: Secondary serial GPS
         SENS_GNSS${i}_ID:

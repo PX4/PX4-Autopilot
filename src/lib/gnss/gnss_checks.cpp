@@ -96,6 +96,13 @@ bool GnssChecks::run(const gnssChecksSample &gnss, bool armed, bool in_air, bool
 		_time_last_pass_us = gnss.time_us;
 	}
 
+	// Same comparisons as the strict checks
+	const uint16_t enabled_checks = getEnabledChecks();
+	_meets_requirements = (!(enabled_checks & vehicle_gnss_s::CHECK_FIX) || !(gnss.fix_type < _params.req_fix))
+			      && (!(enabled_checks & vehicle_gnss_s::CHECK_EPH) || !(gnss.hacc > _params.req_eph))
+			      && (!(enabled_checks & vehicle_gnss_s::CHECK_EPV) || !(gnss.vacc > _params.req_epv))
+			      && (!(enabled_checks & vehicle_gnss_s::CHECK_SACC) || !(gnss.sacc > _params.req_sacc));
+
 	return _passed;
 }
 
