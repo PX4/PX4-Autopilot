@@ -54,6 +54,7 @@
 #include <dronecan/remoteid/System.hpp>
 #include <dronecan/remoteid/ArmStatus.hpp>
 #include <dronecan/remoteid/OperatorID.hpp>
+#include <lib/open_drone_id/odid_bid_storage.hpp>
 
 #include <px4_platform_common/module_params.h>
 
@@ -105,5 +106,14 @@ private:
 	using ArmStatusBinder = uavcan::MethodBinder < UavcanRemoteIDController *,
 	      void (UavcanRemoteIDController::*)(const uavcan::ReceivedDataStructure<dronecan::remoteid::ArmStatus> &) >;
 
+	// Cached configuration (set during init, requires reboot to change)
+	uint8_t _odid_bid_src{0};
+
+	open_drone_id::BidLockInfo _odid_bid_lock_info{};
+	bool _odid_bid_lock_loaded{false};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::ODID_BID_SRC>) _param_odid_bid_src
+	)
 	uavcan::Subscriber<dronecan::remoteid::ArmStatus, ArmStatusBinder> _uavcan_sub_arm_status;
 };
