@@ -1207,10 +1207,8 @@ bool UavcanMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsig
 		reversible |= _signed_non_motor_mask;
 
 		for (unsigned i = 0; i < output_array_size; i++) {
-			// Preserve configured failsafe values for signed non-motor channels during termination.
-			if ((reversible & (1u << i))
-			    && (!mixingOutput().armed().termination || !(_signed_non_motor_mask & (1u << i)))
-			    && outputs[i] > (float)mixingOutput().disarmedValue(i)) {
+			// Encode reversible outputs above the disarmed value.
+			if ((reversible & (1u << i)) && outputs[i] > (float)mixingOutput().disarmedValue(i)) {
 				const float min_i = (float)mixingOutput().minValue(i);
 				const float max_i = (float)mixingOutput().maxValue(i);
 				outputs[i] = math::interpolate(outputs[i], min_i, max_i, -max_i, max_i);

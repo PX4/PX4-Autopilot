@@ -79,10 +79,8 @@ bool GZMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned 
 	// Signed non-motor channels (SIM_GZ_EC_SIGNED): send reverse as a negative value,
 	// mirroring the UAVCAN ESC driver.
 	for (unsigned i = 0; i < active_output_count; i++) {
-		// Encode armed outputs only; a stopped channel sits at the disarmed value and must
-		// not be inverted to full reverse.
+		// Encode reversible outputs above the disarmed value.
 		if ((_signed_mask & (1u << i)) && !_mixing_output.isMotor(i)
-		    && !_mixing_output.armed().termination
 		    && outputs[i] > (float)_mixing_output.disarmedValue(i)) {
 			const float min_i = (float)_mixing_output.minValue(i);
 			const float max_i = (float)_mixing_output.maxValue(i);

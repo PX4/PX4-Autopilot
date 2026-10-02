@@ -55,6 +55,7 @@ parameters:
           Actuator Set or Servo) to send signed RawCommand values from -MAX (full
           reverse) to +MAX (full forward), with 0 as neutral. Keep MIN at its default
           of 1 so full reverse remains distinct from disarmed and failsafe values of 0.
+          Failsafe values use the same MIN/MAX-to-signed mapping as normal outputs.
       type: bitmask
       bit:
         0: ESC1

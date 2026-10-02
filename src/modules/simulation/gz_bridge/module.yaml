@@ -86,6 +86,7 @@ parameters:
               via Actuator Set or Servo) to send values from -MAX (full reverse) to +MAX
               (full forward), with 0 as neutral. For signed channels, keep DISARMED at 0,
               set MIN to 1, and use FAILSAFE 0 for neutral failsafe behavior.
+              Failsafe values use the same MIN/MAX-to-signed mapping as normal outputs.
               Mirrors UAVCAN_EC_SIGNED.
           type: bitmask
           bit:
