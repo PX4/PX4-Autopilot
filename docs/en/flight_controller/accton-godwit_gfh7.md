@@ -151,6 +151,8 @@ An external compass (usually built into the GPS module) is recommended over the 
 
 ### Telemetry Radios (Optional) {#telemetry}
 
+Connect the radio to the TELEM connector (PX4 port TELEM1).
+
 Telemetry radios are used to provide a wireless data link between the vehicle and a ground control station (GCS) like QGroundControl. This allows you to monitor flight data, change missions in real-time, and receive inflying status updates.
 See [Telemetry Radios](../telemetry/index.md)
 
@@ -196,9 +198,9 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 | USART2 | /dev/ttyS1 | EXT2   | `T2`/`R2` solder pads                       |
 | USART3 | /dev/ttyS2 | GPS1   | `GPS`                                       |
 | UART4  | /dev/ttyS3 | RC     | `ELRS`                                      |
-| UART5  | /dev/ttyS4 | TEL1   | `SBUS` (RX, S.BUS by default), `A-VTX` (TX) |
-| UART7  | /dev/ttyS6 | TEL4   | `TELEM`                                     |
-| UART8  | /dev/ttyS7 | TEL3   | `D-VTX`                                     |
+| UART5  | /dev/ttyS4 |        | `SBUS` (RX, S.BUS by default), `A-VTX` (TX) |
+| UART7  | /dev/ttyS5 | TEL1   | `TELEM`                                     |
+| UART8  | /dev/ttyS6 | TEL3   | `D-VTX`                                     |
 
 No ports have flow control.
 
