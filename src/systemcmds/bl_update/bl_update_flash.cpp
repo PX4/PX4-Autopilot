@@ -130,12 +130,15 @@ Result flash(const char *path)
 	}
 
 	const size_t file_size = s.st_size;
-	size_t image_size = file_size;
 
+	/* up_progmem_write() rejects a size that is not a multiple of its
+	 * program unit, and by then the old bootloader is erased. */
 #if defined(PAGE_SIZE_MATTERS)
-	const size_t page_size = up_progmem_pagesize(0) - 1;
-	image_size = (file_size + page_size) & ~page_size;
+	const size_t align_mask = up_progmem_pagesize(0) - 1;
+#else
+	const size_t align_mask = sizeof(uint32_t) - 1;
 #endif
+	const size_t image_size = (file_size + align_mask) & ~align_mask;
 
 	uint8_t *buf = (uint8_t *)malloc(image_size);
 
@@ -206,10 +209,10 @@ const char *result_str(Result result)
 		return "not a bootloader image";
 
 	case Result::EraseFailed:
-		return "flash erase failed";
+		return "flash erase failed, retry before rebooting";
 
 	case Result::ProgramFailed:
-		return "flash program failed";
+		return "flash program failed, retry before rebooting";
 
 	case Result::VerifyFailed:
 		return "verify failed, retry before rebooting";
