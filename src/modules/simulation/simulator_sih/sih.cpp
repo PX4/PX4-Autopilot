@@ -749,12 +749,6 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 		gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
 	}
 
-	// propellers spinning slowly on the ground shake the frame
-	if (_T_B.longerThan(FLT_EPSILON) && _grounded && (_sih_gnd_vib.get() > 0.f)) {
-		const float vib = _sih_gnd_vib.get();
-		accel_noise += noiseGauss3f(vib, vib, vib);
-	}
-
 	Vector3f specific_force_B = R_E2B * _specific_force_E;
 	Vector3f accel = specific_force_B + accel_noise;
 

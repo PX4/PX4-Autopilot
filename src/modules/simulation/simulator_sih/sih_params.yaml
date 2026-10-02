@@ -297,19 +297,6 @@ parameters:
       min: 0.0
       max: 100.0
       decimal: 1
-    SIH_GND_VIB:
-      description:
-        short: Accelerometer vibration on the ground
-        long: |-
-          Extra Gaussian accelerometer noise (standard deviation, each axis) added while
-          the motors spin and the vehicle is on the ground, to mimic large propellers
-          rocking the frame at low speed before liftoff. Set to 0 to disable.
-      type: float
-      default: 0.0
-      unit: m/s^2
-      min: 0.0
-      max: 30.0
-      decimal: 1
     SIH_F_T_MAX:
       description:
         short: Forward thruster max thrust (N)
