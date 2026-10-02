@@ -26,6 +26,22 @@ The ground station-based radio is connected via USB (essentially plug-n-play).
 
 The vehicle-based radio is connected to the flight-controller's `TELEM1` port, and typically requires no further configuration.
 
+## Link Throughput
+
+The serial baudrate says little about what a SiK link carries over the air.
+At 57600 baud with the common 64 kbps air rate, a radio carries roughly 2000 B/s with error
+correction enabled and about twice that without.
+
+[MAV_0_RATE](../advanced_config/parameter_reference.md#MAV_0_RATE) caps what PX4 sends on
+`TELEM1`. Setting it above what the link carries does not make telemetry faster: the radio
+drops packets instead, which shows up as MAVLink loss and makes parameter and log downloads
+slow or unreliable. Lower it if you see loss.
+
+Two AT commands report the radio's own limits: `ATI5` lists the settings, including
+`S2:AIR_SPEED` and `S5:ECC`, and `ATI6` reports `max_data_packet_length` - the largest
+MAVLink packet the radio sends in one piece. Error correction roughly halves both the
+throughput and that packet size.
+
 ## Firmware Update
 
 Hardware sourced from most [vendors](#vendors) should come pre-configured with the latest firmware.
