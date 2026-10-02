@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+# Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -36,10 +36,15 @@ px4_add_module(
 	SRCS
 		TF02PRO.cpp
 		TF02PRO.hpp
+		TF02PRO_UART.cpp
+		TF02PRO_UART.hpp
+		tf02pro_parser.cpp
+		tf02pro_parser.h
 		tf02pro_main.cpp
 	MODULE_CONFIG
+		module.yaml
 		parameters.yaml
 	DEPENDS
 		drivers_rangefinder
 		px4_work_queue
-	)
+)
