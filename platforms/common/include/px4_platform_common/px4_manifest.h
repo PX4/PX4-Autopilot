@@ -61,6 +61,9 @@ typedef struct  {
 #if defined(CONFIG_MTD_MX25L)
 		SPI_DRIVER_MX25L   = 1,  /* Macronix MX25L NOR flash */
 #endif
+#if defined(CONFIG_MTD_W25)
+		SPI_DRIVER_W25     = 2,  /* Winbond W25 NOR flash */
+#endif
 	} spi_driver;
 
 	uint32_t devid;
