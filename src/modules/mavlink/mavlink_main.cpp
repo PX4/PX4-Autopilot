@@ -326,13 +326,13 @@ bool Mavlink::set_channel()
 	case 3:
 		_channel = MAVLINK_COMM_3;
 		return true;
-#ifdef MAVLINK_COMM_4
+#if MAVLINK_COMM_NUM_BUFFERS > 4
 
 	case 4:
 		_channel = MAVLINK_COMM_4;
 		return true;
 #endif
-#ifdef MAVLINK_COMM_5
+#if MAVLINK_COMM_NUM_BUFFERS > 5
 
 	case 5:
 		_channel = MAVLINK_COMM_5;
