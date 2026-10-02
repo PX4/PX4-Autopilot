@@ -60,7 +60,7 @@ public:
 	virtual ~ActuatorEffectivenessTiltrotorVTOL() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
-
+	
 	int numMatrices() const override { return 2; }
 
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
