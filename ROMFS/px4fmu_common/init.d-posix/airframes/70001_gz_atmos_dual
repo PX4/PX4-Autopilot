@@ -26,7 +26,7 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=atmos_dual}
 
 # Simulation parameters
 param set-default SIM_GZ_EN 1
-param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_MAGSIM 0
 param set-default COM_RC_IN_MODE 1
 
 # disable attitude failure detection
