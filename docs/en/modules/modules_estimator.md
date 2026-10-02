@@ -113,3 +113,26 @@ mc_hover_thrust_estimator <command> [arguments...]
 
    status        print status info
 ```
+
+## wind_estimator_3d
+
+Source: [modules/wind_estimator_3d](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/wind_estimator_3d)
+
+### Description
+
+wind_estimator_3d is a 3D wind estimator for fixed-wing vehicles, based on a simple aerodynamic model of the
+airframe. It requires the airframe-specific parameters `FW_W_MASS`, `FW_W_AREA`, `FW_W_CY_B`, `FW_W_CL_0` and
+`FW_W_CL_A`, for which PX4 does not currently provide an automated identification pipeline: they must be obtained
+externally (e.g. wind-tunnel testing, CFD, or manual system identification) and entered by hand.
+
+### Usage {#wind_estimator_3d_usage}
+
+```
+wind_estimator_3d <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
+```

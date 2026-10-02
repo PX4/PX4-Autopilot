@@ -1,0 +1,12 @@
+menuconfig MODULES_WIND_ESTIMATOR_3D
+	bool "wind_estimator_3d"
+	default n
+	---help---
+		Enable support for wind_estimator_3d
+
+menuconfig USER_WIND_ESTIMATOR_3D
+	bool "wind_estimator_3d running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_WIND_ESTIMATOR_3D
+	---help---
+		Put wind_estimator_3d in userspace memory
