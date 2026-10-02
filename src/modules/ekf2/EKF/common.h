@@ -203,6 +203,8 @@ struct gnssSample {
 	bool        spoofed{};    ///< true if GNSS data is spoofed
 	bool        jammed{};     ///< true if GNSS data is jammed
 	Vector3f    pos_body{};   ///< position of GPS antenna in body frame (m)
+	bool        usable{};     ///< the sample passes the GNSS checks of the sensors module
+	uint8_t     selection_count{}; ///< increments when the sensors module selects another receiver
 };
 
 struct gnssYawSample {
@@ -210,8 +212,7 @@ struct gnssYawSample {
 	float       yaw{};        ///< yaw angle from dual antenna GNSS (rad, [-PI, PI])
 	float       yaw_acc{};    ///< 1-std yaw error (rad); NAN if not provided
 	float       yaw_offset{}; ///< yaw of the antenna baseline in the body frame (rad)
-	bool        spoofed{};    ///< true if the receiver providing the heading reports spoofing
-	bool        jammed{};     ///< true if the receiver providing the heading reports jamming
+	bool        usable{};     ///< the sensors module found no spoofing or jamming report of the heading receiver that its checks reject
 };
 
 struct magSample {
@@ -379,17 +380,7 @@ struct parameters {
 	float ekf2_gps_p_gate{5.0f};            ///< GPS horizontal position innovation consistency gate size (STD)
 	float ekf2_gps_v_gate{5.0f};            ///< GPS velocity innovation consistency gate size (STD)
 
-	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
-	// good enough to set a local origin and commence aiding
-	int32_t ekf2_gps_check{1045};             ///< bitmask used to control which GPS quality checks are used
-	float ekf2_req_eph{5.0f};               ///< maximum acceptable horizontal position error (m)
-	float ekf2_req_epv{8.0f};               ///< maximum acceptable vertical position error (m)
-	float ekf2_req_sacc{1.0f};              ///< maximum acceptable speed error (m/s)
-	int32_t ekf2_req_nsats{6};              ///< minimum acceptable satellite count
-	float ekf2_req_pdop{2.0f};              ///< maximum acceptable position dilution of precision
-	float ekf2_req_hdrift{0.3f};            ///< maximum acceptable horizontal drift speed (m/s)
-	float ekf2_req_vdrift{0.5f};            ///< maximum acceptable vertical drift speed (m/s)
-	int32_t ekf2_req_fix{3};                ///< minimum acceptable GPS fix type
+	float ekf2_req_sacc{1.0f};              ///< speed accuracy below which GNSS vertical velocity is trusted while the accelerometer clips and GNSS velocity feeds the yaw estimator (m/s)
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion

@@ -41,7 +41,6 @@
 #include <vector>
 #include <mutex>
 #include <map>
-#include <regex>
 
 // Gazebo Transport includes
 #include <gz/transport/Node.hh>

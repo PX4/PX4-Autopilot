@@ -391,3 +391,34 @@ TEST_F(EkfFlowTest, deadReckoning)
 	EXPECT_NEAR(lpos_after_reset(1), lpos_before_reset(1), 1e-3);
 	EXPECT_NEAR(lpos_after_reset(2), lpos_before_reset(2) + (altitude_new - altitude_ref_prev), 1e-3);
 }
+
+TEST_F(EkfFlowTest, filteredFlowVelocityTimeConstantAtLowFlowRate)
+{
+	// GIVEN: a flow sensor at 10 Hz, much slower than the EKF update rate
+	_sensor_simulator._flow.setRateHz(10);
+	startRangeFinderFusion(5.f);
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator.runSeconds(2.f);
+
+	_sensor_simulator._flow.setData(_sensor_simulator._flow.dataAtRest());
+	_ekf_wrapper.enableFlowFusion();
+	_sensor_simulator.startFlow();
+	_sensor_simulator.runSeconds(2.f);
+
+	// WHEN: the flow rate steps to a new value, and the filter settles
+	flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
+	flow_sample.flow_rate = Vector2f(0.2f, 0.f);
+	_sensor_simulator._flow.setData(flow_sample);
+	_sensor_simulator.runSeconds(0.6f);
+	const float vel_after_step = _ekf->getFilteredFlowVelBody()(1);
+
+	_sensor_simulator.runSeconds(5.f);
+	const float vel_settled = _ekf->getFilteredFlowVelBody()(1);
+	ASSERT_GT(vel_settled, 0.1f);
+
+	// THEN: after six samples the filter (time constant 90 ms) is close to its final value
+	// (with the filter stepped for the EKF interval instead, it would be at about half)
+	EXPECT_GT(vel_after_step, 0.85f * vel_settled)
+			<< "after step " << vel_after_step << ", settled " << vel_settled;
+}

@@ -125,7 +125,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorBias3d](EstimatorBias3d.md)
 - [EstimatorEventFlags](EstimatorEventFlags.md)
 - [EstimatorFusionControl](EstimatorFusionControl.md)
-- [EstimatorGpsStatus](EstimatorGpsStatus.md)
 - [EstimatorInnovations](EstimatorInnovations.md)
 - [EstimatorSelectorStatus](EstimatorSelectorStatus.md)
 - [EstimatorSensorBias](EstimatorSensorBias.md) — Sensor readings and in-run biases in SI-unit form. Sensor readings are compensated for static offsets,. scale errors, in-run bias and thermal drift (if thermal compensation is enabled and available).
@@ -271,6 +270,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorTemp](SensorTemp.md)
 - [SensorUwb](SensorUwb.md) — Ultra-wideband (UWB) distance sensor.
 - [SensorsStatus](SensorsStatus.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
+- [SensorsStatusGnss](SensorsStatusGnss.md) — Per-receiver GNSS health and check diagnostics.
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
@@ -293,7 +293,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleConstraints](VehicleConstraints.md) — Local setpoint constraints in NED frame. setting something to NaN means that no limit is provided.
 - [VehicleControlMode](VehicleControlMode.md) — Defines which controllers should run.
 - [VehicleGnss](VehicleGnss.md) — Selected GNSS solution.
-- [VehicleGnssHeading](VehicleGnssHeading.md) — GNSS heading from a dual-antenna or moving-baseline receiver, published by the sensors module from sensor_gnss_relative. Only headings whose reported baseline matches the configured SENS_GNSSn_HDG baseline are published. Consumed by EKF2. independently from position/velocity.
+- [VehicleGnssHeading](VehicleGnssHeading.md) — GNSS heading from a dual-antenna or moving-baseline receiver.
 - [VehicleImu](VehicleImu.md) — IMU readings in SI-unit form.
 - [VehicleImuStatus](VehicleImuStatus.md)
 - [VehicleLocalPositionSetpoint](VehicleLocalPositionSetpoint.md) — Local position setpoint in NED frame. Telemetry of PID position controller to monitor tracking. NaN means the state was not controlled.

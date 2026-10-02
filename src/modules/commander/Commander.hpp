@@ -128,6 +128,7 @@ public:
 
 private:
 	bool isArmed() const { return (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED); }
+	bool isTerminated() const { return (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION); }
 	static ModeChangeSource getSourceFromCommand(const vehicle_command_s &cmd);
 
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);

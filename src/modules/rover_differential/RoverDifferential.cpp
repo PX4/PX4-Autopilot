@@ -107,6 +107,9 @@ void RoverDifferential::Run()
 		reset();
 		_differential_act_control.stopVehicle();
 		_was_armed = false;
+
+	} else {
+		_differential_act_control.stopVehicle();
 	}
 
 	// reschedule backup
