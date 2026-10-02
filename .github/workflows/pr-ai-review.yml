@@ -1,0 +1,221 @@
+name: AI PR Review
+
+# Automated review of a pull request by Claude on Amazon Bedrock. See
+# Tools/ci/ai_review/README.md for the pipeline and the trust model.
+#
+# Pilot stage. Triggers:
+# - manual dispatch with a PR number;
+# - a comment on a pull request consisting only of `!ai-review` (optionally
+#   `!ai-review model=sonnet effort=high`) from someone with write,
+#   maintain or admin access to the repository. The gate job checks the
+#   commenter's permission through the API before anything else runs.
+# The review is posted on the PR as a COMMENT review by
+# pr-review-poster.yml (never approve or request changes), replacing the
+# previous one from this workflow; the full report also goes to the job
+# summary and the ai-review-report artifact. The triggering comment gets
+# 👀 when accepted, then 🚀 or 😕 when the review finishes.
+#
+# Credentials: the review job assumes the px4-ai-review IAM role through
+# GitHub OIDC. That role's trust policy only accepts this file running
+# from refs/heads/main in PX4/PX4-Autopilot (issue_comment and
+# workflow_dispatch both run it from there). Renaming or moving this file
+# requires updating the trust policy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to review
+        required: true
+        type: number
+      model:
+        description: Reviewer model (default = Tools/ci/ai_review/models.json)
+        type: choice
+        options: [default, opus, sonnet]
+        default: default
+      effort:
+        description: Reviewer effort (default = models.json)
+        type: choice
+        options: [default, medium, high, xhigh, max]
+        default: default
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+env:
+  CLAUDE_CODE_VERSION: 2.1.287
+  # Sandbox for code the model writes to check its math: px4-dev, pinned
+  SANDBOX_IMAGE: ghcr.io/px4/px4-dev:v1.18.0-beta2@sha256:8e61e75c975673e4ff6846c05f2e67a9c6658c596a4758f5d5fe6ea6c5b9062f
+
+jobs:
+  gate:
+    name: Check trigger and permission
+    # Every PR comment fires issue_comment; only ones that mention the
+    # command get as far as a runner. trigger.py does the real checks.
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event.issue.pull_request
+          && contains(github.event.comment.body, '!ai-review'))
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write   # react to the triggering comment
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+      pr: ${{ steps.decide.outputs.pr }}
+      model: ${{ steps.decide.outputs.model }}
+      effort: ${{ steps.decide.outputs.effort }}
+      comment_id: ${{ steps.decide.outputs.comment_id }}
+    steps:
+      - uses: runs-on/action@v2
+      - name: Checkout review tooling
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: Tools/ci
+      - name: Decide
+        id: decide
+        working-directory: Tools/ci
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+          INPUT_MODEL: ${{ inputs.model }}
+          INPUT_EFFORT: ${{ inputs.effort }}
+        run: python3 -m ai_review trigger
+
+  review:
+    name: Review PR #${{ needs.gate.outputs.pr }}
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    concurrency:
+      group: ${{ github.workflow }}-${{ needs.gate.outputs.pr }}
+      cancel-in-progress: true
+    # The reviewer's own budget grows with PR size (up to about 70 min for
+    # the largest PRs), plus validators; no PR is skipped for being large.
+    timeout-minutes: 150
+    steps:
+      - uses: runs-on/action@v2
+
+      # Trusted code and prompts, from the branch this workflow runs on.
+      - name: Checkout review tooling
+        uses: actions/checkout@v6
+        with:
+          path: base
+          persist-credentials: false
+          sparse-checkout: |
+            AGENTS.md
+            .agents/skills/review-pr
+            .github/instructions
+            Tools/ci
+          sparse-checkout-cone-mode: false
+
+      # The PR itself, as data for the agent to read. Never built or run.
+      # Full history without blobs, so git log/blame work for the history
+      # check while fetching only the file contents actually read.
+      - name: Checkout PR head
+        uses: actions/checkout@v6
+        with:
+          path: pr
+          ref: refs/pull/${{ needs.gate.outputs.pr }}/head
+          persist-credentials: false
+          fetch-depth: 0
+          filter: blob:none
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install Claude Code
+        run: npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+
+      # Install gVisor as the sandbox runtime, block the EC2 metadata
+      # service so the runner's instance role is unreachable for the rest
+      # of the job, and prove the sandbox has no network. Fails closed.
+      - name: Harden runner
+        working-directory: base/Tools/ci
+        run: >-
+          python3 -m ai_review harden --checkout "$GITHUB_WORKSPACE/pr"
+          --sandbox-image "$SANDBOX_IMAGE" --sandbox-runtime runsc
+
+      - name: Configure AWS from OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::810743298831:role/px4-ai-review
+          aws-region: us-west-2
+
+      - name: Run review
+        working-directory: base/Tools/ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ needs.gate.outputs.pr }}
+          MODEL: ${{ needs.gate.outputs.model }}
+          EFFORT: ${{ needs.gate.outputs.effort }}
+        run: >-
+          python3 -m ai_review run --pr "$PR_NUMBER" --model "$MODEL"
+          --effort "$EFFORT" --trusted-root "$GITHUB_WORKSPACE/base"
+          --checkout "$GITHUB_WORKSPACE/pr"
+          --work-dir "$GITHUB_WORKSPACE/ai-review-work"
+          --out-dir "$GITHUB_WORKSPACE/pr-review"
+          --sandbox-image "$SANDBOX_IMAGE" --sandbox-runtime runsc
+
+      # Picked up by pr-review-poster.yml, which validates it and posts a
+      # COMMENT review (never approve or request changes).
+      - name: Upload pr-review artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-review
+          path: |
+            pr-review/manifest.json
+            pr-review/comments.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Upload review report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-review-report
+          path: |
+            ai-review-work/findings.json
+            ai-review-work/report.md
+            ai-review-work/usage.json
+            ai-review-work/sandbox-calls.jsonl
+            pr-review/manifest.json
+            pr-review/comments.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+  finish:
+    name: Report back on the comment
+    needs: [gate, review]
+    if: >-
+      always() && needs.gate.outputs.run == 'true'
+      && needs.gate.outputs.comment_id != '0'
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: runs-on/action@v2
+      - name: Checkout review tooling
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: Tools/ci
+      - name: React
+        working-directory: Tools/ci
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_ID: ${{ needs.gate.outputs.comment_id }}
+          RESULT: ${{ needs.review.result == 'success' && 'rocket' || 'confused' }}
+        run: python3 -m ai_review react "$COMMENT_ID" "$RESULT"
