@@ -149,9 +149,10 @@ bool GyroFFT::init()
 			arm_float_to_q15(&hanning_value, &_hanning_window[n], 1);
 		}
 
-		if (!SensorSelectionUpdate(true)) {
-			ScheduleDelayed(500_ms);
-		}
+		// Do the initial sensor selection in Run() on the work queue. Selecting here
+		// registers a callback that can trigger Run() while the selection is
+		// still being written from this thread.
+		ScheduleNow();
 
 		return true;
 	}
