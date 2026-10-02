@@ -1591,8 +1591,12 @@ Mavlink::update_rate_mult()
 		mavlink_ulog_streaming_rate_inv = 1.0f - _mavlink_ulog->current_data_rate();
 	}
 
-	/* scale up and down as the link permits */
-	float bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+	/* scale up and down as the link permits, nothing to scale without variable rate streams */
+	float bandwidth_mult = 1.0f;
+
+	if (rate > 0.0f) {
+		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+	}
 
 	/* Reduce rate while sending parameters in low bandwidth mode */
 	if (sending_parameters() && _mode == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH) {
