@@ -37,7 +37,7 @@
  * STM32F4 & STM32F7 bootloader update tool.
  */
 
-#include "bl_update_flash.h"
+#include <lib/bl_update/bl_update_flash.h>
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>

@@ -48,7 +48,7 @@ extern "C" __attribute__((weak)) const char *board_get_uavcan_hw_name(void)
 #include <lib/version/version.h>
 
 #if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
-#include <bl_update_flash.h>
+#include <lib/bl_update/bl_update_flash.h>
 #endif // CONFIG_SYSTEMCMDS_BL_UPDATE
 
 #if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
