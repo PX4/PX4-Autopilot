@@ -87,8 +87,25 @@ def checklist_line(checklist: Dict[str, ChecklistEntry]) -> str:
     return ' · '.join(cells)
 
 
+def cost_line(usage: Optional[Dict[str, Any]], model_name: str) -> str:
+    """'Cost: $1.23 · Claude Opus 5.5 · 4 model calls · 7 min'.
+
+    Claude Code's own estimate at list prices; on Bedrock it matched a
+    recomputation from token counts to the cent.
+    """
+    if not usage or 'cost_usd' not in usage:
+        return ''
+    parts = [f'Cost: ${usage["cost_usd"]:.2f}', model_name,
+             f'{usage.get("calls", 0)} model call(s)']
+    seconds = usage.get('wall_seconds')
+    if isinstance(seconds, (int, float)):
+        parts.append(f'{max(1, round(seconds / 60))} min')
+    return ' · '.join(parts)
+
+
 def summary(routed: Routed, model_summary: str, model_name: str,
-            checklist: Optional[Dict[str, ChecklistEntry]] = None) -> str:
+            checklist: Optional[Dict[str, ChecklistEntry]] = None,
+            usage: Optional[Dict[str, Any]] = None) -> str:
     parts = [f'**Automated review** ({model_name}): {routed.verdict}.']
     if model_summary.strip():
         parts += ['', model_summary.strip()]
@@ -103,9 +120,11 @@ def summary(routed: Routed, model_summary: str, model_name: str,
                   f'<summary>{len(routed.collapsed)} more finding(s) '
                   'worth checking (lower confidence or outside the '
                   'diff)</summary>', '', items, '', '</details>']
+    cost = cost_line(usage, model_name)
     parts += ['', f'<sub>Written by an AI model and checked by a second, '
               f'independent pass. It can be wrong; maintainers decide. '
-              f'[How this review works]({README_URL})</sub>']
+              f'[How this review works]({README_URL})'
+              + (f'<br>{cost}' if cost else '') + '</sub>']
     text = '\n'.join(parts)
     if len(text.encode('utf-8')) > SUMMARY_LIMIT:
         text = text.encode('utf-8')[:SUMMARY_LIMIT - 200].decode(
@@ -127,7 +146,8 @@ def find_leaks(texts: Iterable[str], secrets: Iterable[str]) -> List[str]:
 
 def write_artifact(out_dir: Path, pr_number: int, commit_sha: str,
                    routed: Routed, model_summary: str, model_name: str,
-                   checklist: Optional[Dict[str, ChecklistEntry]] = None
+                   checklist: Optional[Dict[str, ChecklistEntry]] = None,
+                   usage: Optional[Dict[str, Any]] = None
                    ) -> Dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
@@ -135,7 +155,8 @@ def write_artifact(out_dir: Path, pr_number: int, commit_sha: str,
         'marker': MARKER,
         'event': 'COMMENT',
         'commit_sha': commit_sha,
-        'summary': summary(routed, model_summary, model_name, checklist),
+        'summary': summary(routed, model_summary, model_name, checklist,
+                           usage),
         # a review with only a summary is still a review; and each run
         # replaces the previous one instead of piling up
         'post_without_comments': True,
@@ -147,7 +168,8 @@ def write_artifact(out_dir: Path, pr_number: int, commit_sha: str,
     return {'manifest': manifest, 'comments': body}
 
 
-def refusal_summary(e: Any, model_name: str) -> str:
+def refusal_summary(e: Any, model_name: str,
+                    usage: Optional[Dict[str, Any]] = None) -> str:
     """Review body when the model declined: not a review, with the reason.
 
     The reason is the model provider's own text, passed through verbatim
@@ -163,19 +185,22 @@ def refusal_summary(e: Any, model_name: str) -> str:
              'This is usually a false positive from the provider\'s safety '
              'classifier, not a judgement about the PR. A maintainer can '
              're-run the review or review it by hand.', '',
-             f'<sub>[How this review works]({README_URL})</sub>']
+             f'<sub>[How this review works]({README_URL})'
+             + (f'<br>{cost_line(usage, model_name)}'
+                if cost_line(usage, model_name) else '') + '</sub>']
     return '\n'.join(lines)
 
 
 def write_refusal(out_dir: Path, pr_number: int, commit_sha: str, e: Any,
-                  model_name: str) -> Dict[str, Any]:
+                  model_name: str,
+                  usage: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
         'pr_number': pr_number,
         'marker': MARKER,
         'event': 'COMMENT',
         'commit_sha': commit_sha,
-        'summary': refusal_summary(e, model_name),
+        'summary': refusal_summary(e, model_name, usage),
         # the notice must reach the PR even though there are no findings
         'post_without_comments': True,
         'supersede_previous': True,

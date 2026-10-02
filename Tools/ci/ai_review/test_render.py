@@ -78,6 +78,27 @@ class TestRender(unittest.TestCase):
             self.assertEqual(len(comments), 1)
 
 
+class TestCostLine(unittest.TestCase):
+
+    def test_cost_in_review_footer(self) -> None:
+        usage = {'cost_usd': 7.4239, 'calls': 12, 'wall_seconds': 1290.0}
+        text = render.summary(route.Routed(), '', 'Claude Opus 5.5',
+                              usage=usage)
+        self.assertIn('Cost: $7.42 · Claude Opus 5.5 · 12 model call(s) · '
+                      '22 min', text)
+
+    def test_no_usage_no_cost_line(self) -> None:
+        self.assertEqual(render.cost_line(None, 'm'), '')
+        self.assertNotIn('Cost:', render.summary(route.Routed(), '', 'm'))
+
+    def test_refusal_shows_what_was_spent(self) -> None:
+        from ai_review import agent
+        e = agent.AgentRefusal('m', 'declined', 'cyber', 'req')
+        text = render.refusal_summary(e, 'm', {'cost_usd': 0.01,
+                                               'calls': 0})
+        self.assertIn('Cost: $0.01', text)
+
+
 class TestLeaks(unittest.TestCase):
 
     def test_detects_secret(self) -> None:
