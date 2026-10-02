@@ -996,19 +996,19 @@ bool Logger::handle_event_updates(uint32_t &total_bytes)
 	bool data_written = false;
 
 	while (_event_subscription.updated()) {
-		event_s *orb_event = (event_s *)(_msg_buffer + sizeof(ulog_message_data_s));
-		_event_subscription.copy(orb_event);
+		// Copy into an aligned struct first: the message data in _msg_buffer is
+		// not necessarily aligned for event_s.
+		event_s orb_event;
+		_event_subscription.copy(&orb_event);
+		uint8_t *const msg_data = _msg_buffer + sizeof(ulog_message_data_s);
 
-		// Important: we can only access single-byte values in orb_event (it's not necessarily aligned)
-		if (events::internalLogLevel(orb_event->log_levels) == events::LogLevelInternal::Disabled) {
+		if (events::internalLogLevel(orb_event.log_levels) == events::LogLevelInternal::Disabled) {
 			++_event_sequence_offset; // skip this event
 
 		} else {
 			// adjust sequence number
-			uint16_t updated_sequence;
-			memcpy(&updated_sequence, &orb_event->event_sequence, sizeof(updated_sequence));
-			updated_sequence -= _event_sequence_offset;
-			memcpy(&orb_event->event_sequence, &updated_sequence, sizeof(updated_sequence));
+			orb_event.event_sequence -= _event_sequence_offset;
+			memcpy(msg_data, &orb_event, sizeof(orb_event));
 
 			size_t msg_size = sizeof(ulog_message_data_s) + _event_subscription.get_topic()->o_size_no_padding;
 			uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
@@ -1031,11 +1031,10 @@ bool Logger::handle_event_updates(uint32_t &total_bytes)
 			}
 
 			// mission log: only warnings or higher
-			if (events::internalLogLevel(orb_event->log_levels) <= events::LogLevelInternal::Warning) {
+			if (events::internalLogLevel(orb_event.log_levels) <= events::LogLevelInternal::Warning) {
 				if (_writer.is_started(LogType::Mission)) {
-					memcpy(&updated_sequence, &orb_event->event_sequence, sizeof(updated_sequence));
-					updated_sequence -= _event_sequence_offset_mission;
-					memcpy(&orb_event->event_sequence, &updated_sequence, sizeof(updated_sequence));
+					orb_event.event_sequence -= _event_sequence_offset_mission;
+					memcpy(msg_data, &orb_event, sizeof(orb_event));
 
 					if (write_message(LogType::Mission, _msg_buffer, msg_size)) {
 						data_written = true;
@@ -1073,7 +1072,7 @@ void Logger::publish_logger_status()
 
 				status.is_logging = true;
 				status.total_written_kb = kb_written;
-				status.write_rate_kb_s = kb_written / seconds;
+				status.write_rate_kb_s = (seconds > FLT_EPSILON) ? kb_written / seconds : 0.f;
 				status.dropouts = _statistics[i].write_dropouts;
 				status.message_gaps = _message_gaps;
 				status.buffer_used_bytes = buffer_fill_count_file;

@@ -88,12 +88,13 @@ private:
 					break;
 				}
 
-				msg.current_distance = dist_sensor.current_distance * 1e2f; // m to cm
+				// clamp to the field ranges, converting an out-of-range float is undefined
+				msg.current_distance = math::constrain(dist_sensor.current_distance * 1e2f, 0.f, (float)UINT16_MAX); // m to cm
 				msg.id               = i;
-				msg.max_distance     = dist_sensor.max_distance * 1e2f;     // m to cm
-				msg.min_distance     = dist_sensor.min_distance * 1e2f;     // m to cm
+				msg.max_distance     = math::constrain(dist_sensor.max_distance * 1e2f, 0.f, (float)UINT16_MAX);     // m to cm
+				msg.min_distance     = math::constrain(dist_sensor.min_distance * 1e2f, 0.f, (float)UINT16_MAX);     // m to cm
 				msg.orientation      = dist_sensor.orientation;
-				msg.covariance       = dist_sensor.variance * 1e4f;         // m^2 to cm^2
+				msg.covariance       = math::constrain(dist_sensor.variance * 1e4f, 0.f, (float)UINT8_MAX);         // m^2 to cm^2
 				msg.horizontal_fov   = dist_sensor.h_fov;
 				msg.vertical_fov     = dist_sensor.v_fov;
 				msg.quaternion[0]    = dist_sensor.q[0];

@@ -326,13 +326,13 @@ bool Mavlink::set_channel()
 	case 3:
 		_channel = MAVLINK_COMM_3;
 		return true;
-#ifdef MAVLINK_COMM_4
+#if MAVLINK_COMM_NUM_BUFFERS > 4
 
 	case 4:
 		_channel = MAVLINK_COMM_4;
 		return true;
 #endif
-#ifdef MAVLINK_COMM_5
+#if MAVLINK_COMM_NUM_BUFFERS > 5
 
 	case 5:
 		_channel = MAVLINK_COMM_5;
@@ -1207,10 +1207,12 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	mavlink_msg_setup_signing_decode(msg, &setup_signing);
 
 	if (target_is_us_or_broadcast(setup_signing.target_system, setup_signing.target_component)) {
-		// Reject signing changes while armed
+		// Reject signing changes while armed. This runs on the receiver
+		// thread, so use a local subscription instead of _vehicle_status_sub.
+		uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
 		vehicle_status_s vehicle_status{};
 
-		if (_vehicle_status_sub.copy(&vehicle_status)
+		if (vehicle_status_sub.copy(&vehicle_status)
 		    && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 			send_statustext_critical("MAVLink signing: rejected while armed");
 			return;
@@ -1292,9 +1294,12 @@ Mavlink::send_statustext_emergency(const char *string)
 bool
 Mavlink::send_autopilot_capabilities()
 {
+	// Called from both the main and the receiver thread (REQUEST_MESSAGE),
+	// so use a local subscription instead of _vehicle_status_sub.
+	uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
 	vehicle_status_s status;
 
-	if (_vehicle_status_sub.copy(&status)) {
+	if (vehicle_status_sub.copy(&status)) {
 		mavlink_autopilot_version_t msg{};
 
 		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
@@ -1586,8 +1591,12 @@ Mavlink::update_rate_mult()
 		mavlink_ulog_streaming_rate_inv = 1.0f - _mavlink_ulog->current_data_rate();
 	}
 
-	/* scale up and down as the link permits */
-	float bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+	/* scale up and down as the link permits, nothing to scale without variable rate streams */
+	float bandwidth_mult = 1.0f;
+
+	if (rate > 0.0f) {
+		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+	}
 
 	/* Reduce rate while sending parameters in low bandwidth mode */
 	if (sending_parameters() && _mode == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH) {
