@@ -100,14 +100,14 @@ private:
 
 	// Log request list
 	bool create_log_list_file();
-	void write_entries_to_file(FILE *f, const char *dir);
+	void write_entries_to_file(FILE *f, const char *dir, const char *prefix = nullptr);
 	void send_log_entry(uint32_t size, uint32_t time_utc);
 
 	// Log request data
 	bool log_entry_from_id(uint16_t log_id, LogEntry *entry);
 
 	// Log erase
-	void delete_all_logs(const char *dir, unsigned depth = 0);
+	void delete_all_logs(const char *dir, const char *prefix = nullptr, unsigned depth = 0);
 
 
 private:

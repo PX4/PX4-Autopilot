@@ -35,6 +35,7 @@
 #include "mavlink_main.h"
 #include <dirent.h>
 #include <sys/stat.h>
+#include <time.h>
 
 static_assert(PX4_MAX_FILEPATH_SCANF < PX4_MAX_FILEPATH,
 	      "sscanf width specifier must be less than filepath buffer size");
@@ -43,6 +44,7 @@ static constexpr int MAX_BYTES_BURST = 256 * 1024;
 static const char *kLogListFilePath = PX4_STORAGEDIR "/logdata.txt";
 static const char *kLogListFilePathTemp = PX4_STORAGEDIR "/$log$.txt";
 static const char *kLogDir = PX4_STORAGEDIR "/log";
+static const char *kHardfaultLogPrefix = "fault_";
 
 /**
  * The log messages all carry target ids. On a link shared with other vehicles an unfiltered
@@ -373,6 +375,7 @@ void MavlinkLogHandler::handle_log_erase(const mavlink_message_t *msg)
 	unlink(kLogListFilePathTemp);
 
 	delete_all_logs(kLogDir);
+	delete_all_logs(PX4_STORAGEDIR, kHardfaultLogPrefix);
 }
 
 bool MavlinkLogHandler::create_log_list_file()
@@ -434,6 +437,9 @@ bool MavlinkLogHandler::create_log_list_file()
 		write_entries_to_file(temp_fp, dirpath);
 	}
 
+	// List the hardfault logs after the ULogs
+	write_entries_to_file(temp_fp, PX4_STORAGEDIR, kHardfaultLogPrefix);
+
 	fclose(temp_fp);
 	closedir(dp);
 
@@ -448,7 +454,7 @@ bool MavlinkLogHandler::create_log_list_file()
 	return true;
 }
 
-void MavlinkLogHandler::write_entries_to_file(FILE *fp, const char *dir)
+void MavlinkLogHandler::write_entries_to_file(FILE *fp, const char *dir, const char *prefix)
 {
 	DIR *dp = opendir(dir);
 	struct dirent *result = nullptr;
@@ -463,6 +469,11 @@ void MavlinkLogHandler::write_entries_to_file(FILE *fp, const char *dir)
 
 		if (result->d_type != PX4LOG_REGULAR_FILE) {
 			// Skip non files
+			continue;
+		}
+
+		if (prefix && strncmp(result->d_name, prefix, strlen(prefix)) != 0) {
+			// Skip files without the prefix
 			continue;
 		}
 
@@ -482,9 +493,19 @@ void MavlinkLogHandler::write_entries_to_file(FILE *fp, const char *dir)
 			continue;
 		}
 
+		uint32_t time_utc = filestat.st_mtime;
+		struct tm time {};
+
+		if (sscanf(result->d_name, "fault_%d_%d_%d_%d_%d_%d", &time.tm_year, &time.tm_mon, &time.tm_mday,
+			   &time.tm_hour, &time.tm_min, &time.tm_sec) == 6) {
+			time.tm_year -= 1900;
+			time.tm_mon -= 1;
+			time_utc = timegm(&time);
+		}
+
 		// Write to file using format:
 		// [ time ] [ size_bytes ] [ filepath ]
-		fprintf(fp, "%u %u %s\n", unsigned(filestat.st_mtime), unsigned(filestat.st_size), filepath);
+		fprintf(fp, "%u %u %s\n", unsigned(time_utc), unsigned(filestat.st_size), filepath);
 		_num_logs++;
 	}
 
@@ -538,7 +559,7 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 	return found_entry;
 }
 
-void MavlinkLogHandler::delete_all_logs(const char *dir, unsigned depth)
+void MavlinkLogHandler::delete_all_logs(const char *dir, const char *prefix, unsigned depth)
 {
 	// Log structure is log/yyyy-mm-dd/file.ulg (2 levels). Cap recursion to prevent stack overflow.
 	static constexpr unsigned MAX_DEPTH = 3;
@@ -562,6 +583,11 @@ void MavlinkLogHandler::delete_all_logs(const char *dir, unsigned depth)
 			continue;
 		}
 
+		// With a prefix only the matching files are deleted, directories are left untouched
+		if (prefix && (result->d_type != PX4LOG_REGULAR_FILE || strncmp(result->d_name, prefix, strlen(prefix)) != 0)) {
+			continue;
+		}
+
 		char filepath[PX4_MAX_FILEPATH];
 		int ret = snprintf(filepath, sizeof(filepath), "%s/%s", dir, result->d_name);
 		bool path_is_ok = (ret > 0) && (ret < (int)sizeof(filepath));
@@ -571,7 +597,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir, unsigned depth)
 		}
 
 		if (result->d_type == PX4LOG_DIRECTORY) {
-			delete_all_logs(filepath, depth + 1);
+			delete_all_logs(filepath, prefix, depth + 1);
 
 			if (rmdir(filepath)) {
 				PX4_DEBUG("Error removing %s", filepath);
