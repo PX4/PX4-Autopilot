@@ -121,8 +121,12 @@ void VehicleOpticalFlow::Run()
 		}
 
 
+		// quality 0 marks a frame the sensor rejected: it consumed its window but carries no flow
+		const bool rejected = (sensor_optical_flow.quality == 0);
+
 		const hrt_abstime timestamp_oldest = sensor_optical_flow.timestamp_sample - sensor_optical_flow.integration_timespan_us;
-		const hrt_abstime timestamp_newest = sensor_optical_flow.timestamp;
+		// never integrate past the end of the flow window; the rest belongs to the next frame
+		const hrt_abstime timestamp_newest = sensor_optical_flow.timestamp_sample;
 
 		// delta angle
 		//  - from sensor_optical_flow if available, otherwise use synchronized sensor_gyro if available
@@ -133,10 +137,14 @@ void VehicleOpticalFlow::Run()
 			if (!PX4_ISFINITE(delta_angle(2))) {
 				// Some sensors only provide X and Y angular rates, rotate them but place back the NAN on the Z axis
 				delta_angle(2) = 0.f;
-				_delta_angle += _flow_rotation * delta_angle;
+
+				if (!rejected) {
+					_delta_angle += _flow_rotation * delta_angle;
+				}
+
 				_delta_angle(2) = NAN;
 
-			} else {
+			} else if (!rejected) {
 				_delta_angle += _flow_rotation * delta_angle;
 			}
 
@@ -164,7 +172,9 @@ void VehicleOpticalFlow::Run()
 			uint32_t delta_angle_dt;
 
 			if (_gyro_integrator.reset(delta_angle, delta_angle_dt)) {
-				_delta_angle += delta_angle;
+				if (!rejected) {
+					_delta_angle += delta_angle;
+				}
 
 			} else {
 				// force integrator reset
@@ -201,13 +211,21 @@ void VehicleOpticalFlow::Run()
 		}
 
 		_flow_timestamp_sample_last = sensor_optical_flow.timestamp_sample;
-		_flow_integral(0) += sensor_optical_flow.pixel_flow[0];
-		_flow_integral(1) += sensor_optical_flow.pixel_flow[1];
 
-		_integration_timespan_us += sensor_optical_flow.integration_timespan_us;
+		if (rejected) {
+			// keep the time so the publication cadence holds, but never let a blind
+			// frame's zeros dilute the flow of the good frames around it
+			_rejected_timespan_us += sensor_optical_flow.integration_timespan_us;
 
-		_quality_sum += sensor_optical_flow.quality;
-		_accumulated_count++;
+		} else {
+			_flow_integral(0) += sensor_optical_flow.pixel_flow[0];
+			_flow_integral(1) += sensor_optical_flow.pixel_flow[1];
+
+			_integration_timespan_us += sensor_optical_flow.integration_timespan_us;
+
+			_quality_sum += sensor_optical_flow.quality;
+			_accumulated_count++;
+		}
 
 		bool publish = true;
 
@@ -215,7 +233,7 @@ void VehicleOpticalFlow::Run()
 			const float interval_us = 1e6f / _param_sens_flow_rate.get();
 
 			// don't allow publishing faster than SENS_FLOW_RATE
-			if (_integration_timespan_us < interval_us) {
+			if (_integration_timespan_us + _rejected_timespan_us < interval_us) {
 				publish = false;
 			}
 		}
@@ -230,9 +248,18 @@ void VehicleOpticalFlow::Run()
 			_flow_integral.copyTo(vehicle_optical_flow.pixel_flow);
 			_delta_angle.copyTo(vehicle_optical_flow.delta_angle);
 
-			vehicle_optical_flow.integration_timespan_us = _integration_timespan_us;
+			if (_accumulated_count > 0) {
+				vehicle_optical_flow.integration_timespan_us = _integration_timespan_us;
 
-			vehicle_optical_flow.quality = _quality_sum / _accumulated_count;
+				// blind frames already left the flow and the timespan; the quality of what
+				// remains is the mean quality of the frames that produced it
+				vehicle_optical_flow.quality = static_cast<uint8_t>(_quality_sum / _accumulated_count);
+
+			} else {
+				// every frame in the window was rejected: report the window blind
+				vehicle_optical_flow.integration_timespan_us = _rejected_timespan_us;
+				vehicle_optical_flow.quality = 0;
+			}
 
 			if (_distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {
 				vehicle_optical_flow.distance_m = _distance_sum / _distance_sum_count;
@@ -281,7 +308,7 @@ void VehicleOpticalFlow::Run()
 			_vehicle_optical_flow_pub.publish(vehicle_optical_flow);
 
 			// vehicle_optical_flow_vel if distance is available (for logging)
-			if (_distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {
+			if (_accumulated_count > 0 && _distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {
 				const float range = _distance_sum / _distance_sum_count;
 
 				vehicle_optical_flow_vel_s flow_vel{};
@@ -472,6 +499,7 @@ void VehicleOpticalFlow::ClearAccumulatedData()
 	// clear accumulated data
 	_flow_integral.zero();
 	_integration_timespan_us = 0;
+	_rejected_timespan_us = 0;
 
 	_delta_angle.zero();
 
