@@ -62,7 +62,9 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      issues: write   # react to the triggering comment
+      # reacting to a comment on a pull request needs pull-requests, not
+      # issues, permission
+      pull-requests: write
     outputs:
       run: ${{ steps.decide.outputs.run }}
       pr: ${{ steps.decide.outputs.pr }}
@@ -204,7 +206,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      issues: write
+      pull-requests: write   # react to the triggering comment
     steps:
       - uses: runs-on/action@v2
       - name: Checkout review tooling
