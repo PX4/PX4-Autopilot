@@ -43,6 +43,7 @@
 #include "navigation.h"
 
 #include <ctype.h>
+#include <string.h>
 #if defined(__PX4_NUTTX)
 #include <nuttx/crc32.h>
 #else
@@ -55,6 +56,112 @@
 #include <lib/geofence/geofence_utils.h>
 #include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
+
+// Great circles approximate the straight local lines used by guidance; fence edges are straight in lat/lon.
+// A straight lat/lon line at heading h has geodesic curvature tan(lat) * sin(h) * (1 + cos(h)^2) / R, tan(lat) / R
+// along a parallel (https://en.wikipedia.org/wiki/Geodesic_curvature), so over a length L it strays at most
+// curvature * L^2 / 8 from the great circle (https://en.wikipedia.org/wiki/Sagitta_(geometry)). Long paths are
+// therefore checked in pieces.
+static constexpr double kMaxHeadingFactor = 1.09; // max of sin(h) * (1 + cos(h)^2) = 4 * sqrt(6) / 9
+static constexpr double kMaxPieceBow = 2.0; // [m] within GNSS and tracking errors, which missions must clear anyway
+static constexpr unsigned kMaxPathPieces = 255;
+static constexpr double kHalfPi = M_PI / 2.0; // M_PI_2 is not available on every platform
+
+// Zero means the path cannot be approximated within the subdivision budget.
+static uint8_t pathPieces(const Geofence::PathCheck &path)
+{
+	const float distance = get_distance_to_next_waypoint(path.start(0), path.start(1), path.end(0), path.end(1));
+	const double half_angle = static_cast<double>(distance) / (2.0 * CONSTANTS_RADIUS_OF_EARTH);
+	// Every point of the arc lies within half its length of an endpoint. Endpoint latitudes alone
+	// underestimate curvature when the path bows towards a pole.
+	const double max_lat = math::radians(math::max(fabs(path.start(0)), fabs(path.end(0)))) + half_angle;
+
+	if (!PX4_ISFINITE(max_lat) || max_lat >= kHalfPi) {
+		return 0;
+	}
+
+	// Normalized linear interpolation is not equally spaced along the arc. Its longest piece is
+	// at most 2 * R * tan(half_angle) / pieces, so use that length when choosing the piece count.
+	const double length_bound = 2.0 * CONSTANTS_RADIUS_OF_EARTH * tan(half_angle);
+	const double bow = kMaxHeadingFactor * length_bound * length_bound * tan(max_lat) / (8.0 * CONSTANTS_RADIUS_OF_EARTH);
+	const double pieces = ceil(sqrt(bow / kMaxPieceBow));
+
+	if (!PX4_ISFINITE(pieces) || pieces > kMaxPathPieces) {
+		return 0;
+	}
+
+	return static_cast<uint8_t>(math::max(pieces, 1.0));
+}
+
+static matrix::Vector3d unitVector(const matrix::Vector2d &lat_lon)
+{
+	const double lat = math::radians(lat_lon(0));
+	const double lon = math::radians(lat_lon(1));
+	return matrix::Vector3d(cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat));
+}
+
+// Compare a path and a fence edge in one continuous longitude range, so paths may cross the antimeridian.
+// Fence edges never cross it: the loader rejects them, since the point check could not handle them either.
+static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, const matrix::Vector2d &edge_start,
+			    const matrix::Vector2d &edge_end)
+{
+	// Take the short way around, e.g. a path from 179 to -179 deg runs from 179 to 181 deg.
+	matrix::Vector2d path_end = path.end;
+
+	if (fabs(path_end(1) - path.start(1)) > 180.0) {
+		path_end(1) += path_end(1) < path.start(1) ? 360.0 : -360.0;
+	}
+
+	// Move the edge by whole turns to the copy nearest the path, e.g. an edge at -179.5 deg moves to 180.5 deg.
+	// Away from the antimeridian the shift is zero.
+	const double path_middle = 0.5 * (path.start(1) + path_end(1));
+	const double edge_middle = 0.5 * (edge_start(1) + edge_end(1));
+	const double shift = 360.0 * round((edge_middle - path_middle) / 360.0);
+	const matrix::Vector2d shifted_start{edge_start(0), edge_start(1) - shift};
+	const matrix::Vector2d shifted_end{edge_end(0), edge_end(1) - shift};
+
+	if (pieces == 1) {
+		return geofence_utils::segmentsIntersectInclusive(path.start, path_end, shifted_start, shifted_end);
+	}
+
+	// The whole arc's bow is at most pieces^2 * kMaxPieceBow. Expand the latitude bounds by that
+	// distance to skip distant edges cheaply. Longitude stays between the unwrapped endpoints
+	// because pathPieces() excludes arcs that could reach a pole.
+	const double margin_lat = math::degrees(pieces * pieces * kMaxPieceBow / CONSTANTS_RADIUS_OF_EARTH);
+
+	if (math::max(path.start(0), path_end(0)) + margin_lat < math::min(shifted_start(0), shifted_end(0))
+	    || math::min(path.start(0), path_end(0)) - margin_lat > math::max(shifted_start(0), shifted_end(0))
+	    || math::max(path.start(1), path_end(1)) < math::min(shifted_start(1), shifted_end(1))
+	    || math::min(path.start(1), path_end(1)) > math::max(shifted_start(1), shifted_end(1))) {
+		return false;
+	}
+
+	// Split along the great circle, approximating the local straight line near the EKF origin.
+	const matrix::Vector3d start_unit = unitVector(path.start);
+	const matrix::Vector3d end_unit = unitVector(path_end);
+	matrix::Vector2d piece_start = path.start;
+
+	for (unsigned k = 1; k <= pieces; ++k) {
+		matrix::Vector2d piece_end = path_end;
+
+		if (k < pieces) {
+			const double t = static_cast<double>(k) / pieces;
+			const matrix::Vector3d interpolated = start_unit * (1.0 - t) + end_unit * t;
+			const double lon = math::degrees(atan2(interpolated(1), interpolated(0)));
+			const double lat = math::degrees(atan2(interpolated(2),
+							       sqrt(interpolated(0) * interpolated(0) + interpolated(1) * interpolated(1))));
+			piece_end = {lat, path.start(1) + matrix::wrap(lon - path.start(1), -180.0, 180.0)};
+		}
+
+		if (geofence_utils::segmentsIntersectInclusive(piece_start, piece_end, shifted_start, shifted_end)) {
+			return true;
+		}
+
+		piece_start = piece_end;
+	}
+
+	return false;
+}
 
 static uint32_t crc32_for_fence_point(const mission_fence_point_s &fence_point, uint32_t prev_crc32)
 {
@@ -101,17 +208,11 @@ void Geofence::run()
 
 	case DatamanState::UpdateRequestWait:
 
-		if (_initiate_fence_updated) {
+		if (_initiate_fence_updated || (_fence_retry_time != 0 && hrt_absolute_time() >= _fence_retry_time)) {
 			_initiate_fence_updated = false;
+			_fence_retry_time = 0;
 			_dataman_state	= DatamanState::Read;
-
-			geofence_status_s status{};
-			status.timestamp = hrt_absolute_time();
-			status.geofence_id = _opaque_id;
-			status.status = geofence_status_s::GF_STATUS_LOADING;
-
-			_geofence_status_pub.publish(status);
-
+			_publishStatus(geofence_status_s::GF_STATUS_LOADING);
 		}
 
 		break;
@@ -119,7 +220,7 @@ void Geofence::run()
 	case DatamanState::Read:
 
 		_dataman_state = DatamanState::ReadWait;
-		success = _dataman_client.readAsync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&_stats),
+		success = _dataman_client.readAsync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&_stats_read),
 						    sizeof(mission_stats_entry_s));
 
 		if (!success) {
@@ -134,6 +235,11 @@ void Geofence::run()
 		_dataman_client.update();
 
 		if (_dataman_client.lastOperationCompleted(success)) {
+
+			if (success) {
+				// A failed response also overwrites the read buffer, so adopt it only now.
+				_stats = _stats_read;
+			}
 
 			if (!success) {
 				_error_state = DatamanState::ReadWait;
@@ -153,7 +259,7 @@ void Geofence::run()
 					if (_dataman_cache.size() != _stats.num_items) {
 						PX4_ERR("cache size %i does not match %i items", _dataman_cache.size(), static_cast<int>(_stats.num_items));
 						_clearFence();
-						_finishFenceUpdate(false);
+						_finishFenceUpdate(LoadResult::ReadFailed);
 						break;
 					}
 				}
@@ -167,13 +273,10 @@ void Geofence::run()
 			} else {
 				_dataman_state = DatamanState::UpdateRequestWait;
 				_fence_loaded = true;
-
-				geofence_status_s status{};
-				status.timestamp = hrt_absolute_time();
-				status.geofence_id = _opaque_id;
-				status.status = geofence_status_s::GF_STATUS_READY;
-
-				_geofence_status_pub.publish(status);
+				_fence_load_failures = 0;
+				_reportFenceRecovered();
+				_path_check_ready = !_initiate_fence_updated;
+				_publishStatus(geofence_status_s::GF_STATUS_READY);
 			}
 		}
 
@@ -192,6 +295,8 @@ void Geofence::run()
 	case DatamanState::Error:
 		PX4_ERR("Geofence update failed! state: %" PRIu8, static_cast<uint8_t>(_error_state));
 		_dataman_state = DatamanState::UpdateRequestWait;
+		_scheduleFenceRetry();
+		_publishStatus(geofence_status_s::GF_STATUS_FAILED);
 		break;
 
 	default:
@@ -203,24 +308,82 @@ void Geofence::run()
 void Geofence::updateFence()
 {
 	_initiate_fence_updated = true;
+	// A new request restarts the retry budget of a failed load.
+	_fence_retry_time = 0;
+	_fence_load_failures = 0;
+	// Keep the current fence for point checks while update metadata is read; path checks must wait.
+	_path_check_ready = false;
 }
 
-void Geofence::_finishFenceUpdate(bool success)
+void Geofence::_finishFenceUpdate(LoadResult result)
 {
+	const bool success = result == LoadResult::Loaded;
 	_dataman_state = DatamanState::UpdateRequestWait;
 	_fence_loaded = success;
+	_path_check_ready = success && !_initiate_fence_updated;
 
-	if (!success) {
+	if (success) {
+		_fence_load_failures = 0;
+		_reportFenceRecovered();
+
+	} else if (result == LoadResult::ReadFailed) {
+		_scheduleFenceRetry();
+
+	} else {
+		// Invalid fence data is reported where it is found and not retried.
+		_failure_report = FailureReport::NoFence;
+	}
+
+	_publishStatus(success ? geofence_status_s::GF_STATUS_READY : geofence_status_s::GF_STATUS_FAILED);
+	_geofence_updated = true;
+}
+
+void Geofence::_scheduleFenceRetry()
+{
+	// Report the first failure, and a later one that also drops the previous fence.
+	const FailureReport report = isEmpty() ? FailureReport::NoFence : FailureReport::PreviousFenceActive;
+
+	if (_fence_load_failures == 0 || report > _failure_report) {
+		_failure_report = report;
 		_reportFenceLoadFailure();
 	}
 
+	if (_fence_load_failures < kMaxFenceLoadRetries) {
+		// Back off 1 s, 2 s, 4 s before giving up.
+		_fence_retry_time = hrt_absolute_time() + (kFenceRetryDelay << _fence_load_failures);
+		++_fence_load_failures;
+		PX4_WARN("Geofence load failed, retry %u of %u", static_cast<unsigned>(_fence_load_failures),
+			 static_cast<unsigned>(kMaxFenceLoadRetries));
+
+	} else {
+		_fence_retry_time = 0;
+	}
+}
+
+void Geofence::_reportFenceRecovered()
+{
+	if (_failure_report != FailureReport::None) {
+		_failure_report = FailureReport::None;
+
+		if (isEmpty()) {
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence loaded, no fence configured\t");
+			events::send(events::ID("navigator_geofence_empty_load_recovered"), events::Log::Info,
+				     "Geofence loaded, no fence configured");
+
+		} else {
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence loaded, fence is active\t");
+			events::send(events::ID("navigator_geofence_load_recovered"), events::Log::Info, "Geofence loaded, fence is active");
+		}
+	}
+}
+
+void Geofence::_publishStatus(uint8_t status_value)
+{
 	geofence_status_s status{};
 	status.timestamp = hrt_absolute_time();
 	status.geofence_id = _opaque_id;
-	status.status = success ? geofence_status_s::GF_STATUS_READY : geofence_status_s::GF_STATUS_FAILED;
+	status.status = status_value;
 	_geofence_status_pub.publish(status);
-
-	_geofence_updated = true;
 }
 
 void Geofence::_clearFence()
@@ -232,12 +395,27 @@ void Geofence::_clearFence()
 
 void Geofence::_reportFenceLoadFailure()
 {
+	if (!isEmpty()) {
+		// The metadata read failed before the old fence was touched, so it keeps protecting.
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence update failed, previous fence still active\t");
+		events::send(events::ID("navigator_geofence_update_failed"), {events::Log::Critical, events::LogInternal::Warning},
+			     "Geofence update failed, previous fence still active");
+		return;
+	}
+
 	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence load failed, fence is not active\t");
 	events::send(events::ID("navigator_geofence_load_failed"), {events::Log::Critical, events::LogInternal::Warning},
 		     "Geofence load failed, fence is not active");
 }
 
-bool Geofence::_updateFence()
+void Geofence::_reportInvalidFence(unsigned index)
+{
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence item %u invalid, fence is not active\t", index + 1);
+	events::send<uint16_t>(events::ID("navigator_geofence_invalid_item"), {events::Log::Critical, events::LogInternal::Warning},
+			       "Geofence item {1} invalid, fence is not active", static_cast<uint16_t>(index + 1));
+}
+
+Geofence::LoadResult Geofence::_updateFence()
 {
 	mission_fence_point_s mission_fence_point;
 
@@ -247,17 +425,13 @@ bool Geofence::_updateFence()
 
 	while (current_seq < _dataman_cache.size()) {
 
-		bool success = _dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), current_seq,
-						       reinterpret_cast<uint8_t *>(&mission_fence_point),
-						       sizeof(mission_fence_point_s));
-
-		if (!success) {
+		if (!_readFencePoint(current_seq, mission_fence_point)) {
 			PX4_ERR("loadWait failed, seq: %i", current_seq);
 			// A fragment of a fence is worse than none: missing inclusion polygons permit
 			// positions the fence excluded, missing exclusion polygons open up areas it
 			// protected, and it still looks to the operator like a fence is loaded.
 			_clearFence();
-			return false;
+			return LoadResult::ReadFailed;
 		}
 
 		const bool is_circle_area = mission_fence_point.nav_cmd == NAV_CMD_FENCE_CIRCLE_INCLUSION
@@ -272,12 +446,15 @@ bool Geofence::_updateFence()
 		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
 		case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
 		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
-		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
-			if (!is_circle_area && mission_fence_point.vertex_count == 0) {
-				++current_seq; // avoid endless loop
-				PX4_ERR("Polygon with 0 vertices. Skipping");
+		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION: {
+				// Point and path checks must agree on what a valid fence is.
+				const LoadResult validity = _validateFenceArea(current_seq, mission_fence_point);
 
-			} else {
+				if (validity != LoadResult::Loaded) {
+					_clearFence();
+					return validity;
+				}
+
 				if (_polygons) {
 					// resize: this is somewhat inefficient, but we do not expect there to be many polygons
 					PolygonInfo *new_polygons = new PolygonInfo[_num_polygons + 1];
@@ -296,7 +473,7 @@ bool Geofence::_updateFence()
 				if (!_polygons) {
 					PX4_ERR("alloc failed");
 					_clearFence();
-					return false;
+					return LoadResult::ReadFailed;
 				}
 
 				PolygonInfo &polygon = _polygons[_num_polygons];
@@ -334,7 +511,81 @@ bool Geofence::_updateFence()
 		}
 	}
 
-	return true;
+	return LoadResult::Loaded;
+}
+
+Geofence::LoadResult Geofence::_validateFenceArea(unsigned index, const mission_fence_point_s &first)
+{
+	const bool is_circle = first.nav_cmd == NAV_CMD_FENCE_CIRCLE_INCLUSION
+			       || first.nav_cmd == NAV_CMD_FENCE_CIRCLE_EXCLUSION;
+	const unsigned vertex_count = first.vertex_count;
+
+	if (!_fencePointValid(first)
+	    || (is_circle && !(PX4_ISFINITE(first.circle_radius) && first.circle_radius > 0.f))
+	    || (!is_circle && (vertex_count < 3 || index + vertex_count > static_cast<unsigned>(_dataman_cache.size())))) {
+		_reportInvalidFence(index);
+		return LoadResult::Invalid;
+	}
+
+	if (is_circle) {
+		return LoadResult::Loaded;
+	}
+
+	// Every vertex must belong to this polygon, and no edge may wrap around the antimeridian.
+	mission_fence_point_s vertex;
+	double previous_lon = first.lon;
+
+	for (unsigned v = 1; v <= vertex_count; ++v) {
+		double lon = first.lon; // the closing edge returns to the first vertex
+
+		if (v < vertex_count) {
+			if (!_readFencePoint(index + v, vertex)) {
+				PX4_ERR("loadWait failed, seq: %u", index + v);
+				return LoadResult::ReadFailed;
+			}
+
+			if (!_fencePointValid(vertex) || vertex.nav_cmd != first.nav_cmd || vertex.vertex_count != first.vertex_count) {
+				_reportInvalidFence(index + v);
+				return LoadResult::Invalid;
+			}
+
+			lon = vertex.lon;
+		}
+
+		if (fabs(lon - previous_lon) > 180.0) {
+			_reportInvalidFence(index + (v % vertex_count));
+			return LoadResult::Invalid;
+		}
+
+		previous_lon = lon;
+	}
+
+	return LoadResult::Loaded;
+}
+
+bool Geofence::_fencePointValid(const mission_fence_point_s &point) const
+{
+	if (!PX4_ISFINITE(point.lat) || !PX4_ISFINITE(point.lon) || fabs(point.lat) > 90.0 || fabs(point.lon) > 180.0) {
+		return false;
+	}
+
+	switch (point.frame) {
+	case NAV_FRAME_GLOBAL:
+	case NAV_FRAME_GLOBAL_INT:
+	case NAV_FRAME_GLOBAL_RELATIVE_ALT:
+	case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+bool Geofence::_readFencePoint(unsigned index, mission_fence_point_s &point)
+{
+	return index < static_cast<unsigned>(_dataman_cache.size())
+	       && _dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), index,
+					  reinterpret_cast<uint8_t *>(&point), sizeof(point));
 }
 
 bool Geofence::checkHomeRequirementsForGeofence(const PolygonInfo &polygon)
@@ -382,6 +633,185 @@ bool Geofence::checkPointAgainstAllGeofences(double lat, double lon, float altit
 	const bool inside_fence = isCloserThanMaxDistToHome(lat, lon, altitude) && isBelowMaxAltitude(altitude)
 				  && isInsidePolygonOrCircle(lat, lon, altitude);
 	return inside_fence;
+}
+
+bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results)
+{
+	if (!results || num_paths == 0 || num_paths > MAX_PATH_CHECKS) {
+		return false;
+	}
+
+	const bool success = paths && _path_check_ready && checkPaths(paths, num_paths, results);
+
+	if (!success) {
+		memset(results, 0, num_paths * sizeof(bool));
+	}
+
+	return success;
+}
+
+bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results)
+{
+	uint8_t pieces[MAX_PATH_CHECKS];
+	bool pieces_calculated = false;
+
+	for (size_t i = 0; i < num_paths; ++i) {
+		const auto &start = paths[i].start;
+		const auto &end = paths[i].end;
+
+		if (!start.isAllFinite() || !end.isAllFinite()
+		    || fabs(start(0)) > 90.0 || fabs(end(0)) > 90.0
+		    || fabs(start(1)) > 180.0 || fabs(end(1)) > 180.0) {
+			return false;
+		}
+
+		results[i] = true;
+	}
+
+	for (int p = 0; p < _num_polygons; ++p) {
+		const PolygonInfo &polygon = _polygons[p];
+
+		switch (polygon.fence_type) {
+		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
+		case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
+			if (!checkCirclePaths(polygon, paths, num_paths, results)) {
+				return false;
+			}
+
+			break;
+
+		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
+		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
+			if (!pieces_calculated) {
+				for (size_t i = 0; i < num_paths; ++i) {
+					pieces[i] = pathPieces(paths[i]);
+
+					if (pieces[i] == 0) {
+						return false;
+					}
+				}
+
+				pieces_calculated = true;
+			}
+
+			if (!checkPolygonPaths(polygon, paths, pieces, num_paths, results)) {
+				return false;
+			}
+
+			break;
+
+		default:
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Geofence::readPathFencePoint(unsigned index, mission_fence_point_s &point)
+{
+	return _readFencePoint(index, point) && _fencePointValid(point);
+}
+
+bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces,
+				 size_t num_paths, bool *results)
+{
+	if (polygon.vertex_count < 3 || polygon.dataman_index + polygon.vertex_count > _dataman_cache.size()) {
+		return false;
+	}
+
+	mission_fence_point_s point{};
+
+	if (!readPathFencePoint(polygon.dataman_index, point)
+	    || point.nav_cmd != polygon.fence_type || point.vertex_count != polygon.vertex_count) {
+		return false;
+	}
+
+	const matrix::Vector2d first{point.lat, point.lon};
+	matrix::Vector2d previous = first;
+
+	// Read each vertex once, then reuse the first vertex to close the polygon.
+	for (unsigned v = 1; v <= polygon.vertex_count; ++v) {
+		matrix::Vector2d next = first;
+
+		if (v < polygon.vertex_count) {
+			if (!readPathFencePoint(polygon.dataman_index + v, point)
+			    || point.nav_cmd != polygon.fence_type || point.vertex_count != polygon.vertex_count) {
+				return false;
+			}
+
+			next = matrix::Vector2d {point.lat, point.lon};
+		}
+
+		if (fabs(next(1) - previous(1)) > 180.0) {
+			return false;
+		}
+
+		for (size_t i = 0; i < num_paths; ++i) {
+			if (results[i] && pathTouchesEdge(paths[i], pieces[i], previous, next)) {
+				results[i] = false;
+			}
+		}
+
+		previous = next;
+	}
+
+	return true;
+}
+
+bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results)
+{
+	mission_fence_point_s point{};
+
+	if (!readPathFencePoint(polygon.dataman_index, point) || point.nav_cmd != polygon.fence_type
+	    || !PX4_ISFINITE(point.circle_radius) || point.circle_radius <= 0.f) {
+		return false;
+	}
+
+	if (!_projection_reference.isInitialized()) {
+		_projection_reference.initReference(paths[0].start(0), paths[0].start(1), hrt_absolute_time());
+	}
+
+	matrix::Vector2f center;
+	_projection_reference.project(point.lat, point.lon, center(0), center(1));
+	const double radius = static_cast<double>(point.circle_radius);
+	const double radius_squared = radius * radius;
+	const float point_radius_squared = point.circle_radius * point.circle_radius;
+
+	for (size_t i = 0; i < num_paths; ++i) {
+		if (!results[i]) {
+			continue;
+		}
+
+		matrix::Vector2f start, end;
+		_projection_reference.project(paths[i].start(0), paths[i].start(1), start(0), start(1));
+		_projection_reference.project(paths[i].end(0), paths[i].end(1), end(0), end(1));
+
+		if (!center.isAllFinite() || !start.isAllFinite() || !end.isAllFinite()) {
+			return false;
+		}
+
+		const matrix::Vector2d a = matrix::Vector2d(start) - matrix::Vector2d(center);
+		const matrix::Vector2d b = matrix::Vector2d(end) - matrix::Vector2d(center);
+		// Match insideCircle() at each endpoint.
+		const bool start_inside = (start - center).norm_squared() < point_radius_squared;
+		const bool end_inside = (end - center).norm_squared() < point_radius_squared;
+
+		if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
+			// The double checks reject boundary contact rounded inside by the float point check.
+			results[i] = start_inside && end_inside && a.norm_squared() < radius_squared && b.norm_squared() < radius_squared;
+
+		} else if (start_inside || end_inside) {
+			results[i] = false;
+
+		} else {
+			const double distance_squared = geofence_utils::pointToSegmentDistanceSquared(
+								matrix::Vector2d(center), matrix::Vector2d(start), matrix::Vector2d(end));
+			results[i] = distance_squared > radius_squared;
+		}
+	}
+
+	return true;
 }
 
 bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
