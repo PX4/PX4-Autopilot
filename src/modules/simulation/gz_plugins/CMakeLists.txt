@@ -70,10 +70,10 @@ if (gz-transport_FOUND)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PX4_GZ_PLUGIN_OUTPUT_DIR})
 
     # Add our plugins as subdirectories.
-    # OpenCV 5 dropped opencv2/core/types_c.h, which PX4-OpticalFlow's
-    # klt_feature_tracker still includes. Until that submodule is ported,
-    # skip the plugin so an optional sim target does not fail the SITL build
-    # (PX4/PX4-Autopilot#28657). OpenCV remains required when present below 5.
+    # OpenCV stays required for gz_plugins (pre-existing). Only optical_flow
+    # is conditional: OpenCV 5 dropped opencv2/core/types_c.h, which
+    # PX4-OpticalFlow's klt_feature_tracker still includes, so skip that one
+    # plugin until the submodule is ported (PX4/PX4-Autopilot#28657).
     find_package(OpenCV REQUIRED COMPONENTS core imgproc)
     set(_px4_gz_plugin_targets
         MovingPlatformController
@@ -84,11 +84,13 @@ if (gz-transport_FOUND)
         MotorFailurePlugin
         AirSpeedPlugin
     )
-    if (OpenCV_VERSION_MAJOR LESS 5)
+    # Empty/unset OpenCV_VERSION must not pass the gate: VERSION_LESS is
+    # false for an empty string, which would silently skip the plugin.
+    if (OpenCV_VERSION AND OpenCV_VERSION VERSION_LESS 5)
         add_subdirectory(optical_flow)
         list(APPEND _px4_gz_plugin_targets OpticalFlowSystem)
     else()
-        message(STATUS "Skipping gz optical_flow plugin: OpenCV ${OpenCV_VERSION} removed the legacy C API used by PX4-OpticalFlow")
+        message(WARNING "Skipping gz optical_flow plugin: OpenCV ${OpenCV_VERSION} removed the legacy C API used by PX4-OpticalFlow. Use OpenCV 4 to build it (macOS: Tools/setup/macos.sh installs a locked OpenCV 4). server.config still names libOpticalFlowSystem.so, so Gazebo will log a failed plugin load until that config is conditional; it is harmless.")
     endif()
     add_subdirectory(template_plugin)
     add_subdirectory(gstreamer)
