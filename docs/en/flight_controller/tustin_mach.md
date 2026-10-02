@@ -47,7 +47,7 @@ The order below describes the board connectors, not the view into a mating cable
 
 ### Connector Side
 
-![Photograph of the Tustin MACH connector side showing the two ESC headers and peripheral connector locations](../../assets/flight_controller/tustin_mach/connector_side.webp)
+![Photograph of the Tustin MACH connector side showing the two ESC headers and peripheral connector locations](../../assets/flight_controller/tustin_mach/connector_side.png)
 
 | Connector           | Signal Order                                        |
 | ------------------- | --------------------------------------------------- |
