@@ -33,15 +33,14 @@
 
 #pragma once
 
-#include "data_validator/DataValidatorGroup.hpp"
+#include "OpticalFlowAccumulator.hpp"
+#include "OpticalFlowGyroFeed.hpp"
 #include "RingBuffer.hpp"
 
-#include <Integrator.hpp>
-
+#include <lib/conversion/rotation.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
-#include <lib/sensor_calibration/Gyroscope.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -52,9 +51,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_optical_flow.h>
-#include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_optical_flow.h>
 #include <uORB/topics/vehicle_optical_flow_vel.h>
@@ -78,15 +75,11 @@ protected:
 	int _distance_sensor_selected{-1}; // because we can have several distance sensor instances with different orientations
 
 private:
-	void ClearAccumulatedData();
-	void UpdateSensorGyro();
+	void ClearDistance();
 
 	void Run() override;
 
 	void ParametersUpdate();
-	void SensorCorrectionsUpdate(bool force = false);
-
-	static constexpr int MAX_SENSOR_COUNT = 3;
 
 	uORB::Publication<vehicle_optical_flow_s> _vehicle_optical_flow_pub{ORB_ID(vehicle_optical_flow)};
 	uORB::Publication<vehicle_optical_flow_vel_s> _vehicle_optical_flow_vel_pub{ORB_ID(vehicle_optical_flow_vel)};
@@ -98,47 +91,22 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_flow_sub{this, ORB_ID(sensor_optical_flow)};
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub{this, ORB_ID(sensor_gyro)};
-	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
 
-	sensors::IntegratorConing _gyro_integrator{};
-
-	hrt_abstime _gyro_timestamp_sample_last{0};
-
-	calibration::Gyroscope _gyro_calibration{};
+	OpticalFlowAccumulator _accumulator{};
+	OpticalFlowGyroFeed _gyro_feed{this};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
-	matrix::Dcmf _flow_rotation{matrix::eye<float, 3>()};
-
-	hrt_abstime _flow_timestamp_sample_last{0};
-	matrix::Vector2f _flow_integral{};
-	matrix::Vector3f _delta_angle{};
-	uint32_t _integration_timespan_us{};
-	uint32_t _rejected_timespan_us{};
 	float _distance_sum{NAN};
 	uint8_t _distance_sum_count{0};
-	uint16_t _quality_sum{0};
-	uint8_t _accumulated_count{0};
 
 	hrt_abstime _last_range_sensor_update{0};
-
-	bool _delta_angle_available{false};
-
-	struct gyroSample {
-		uint64_t time_us{}; ///< timestamp of the measurement (uSec)
-		matrix::Vector3f data{};
-		float dt{0.f};
-	};
 
 	struct rangeSample {
 		uint64_t time_us{}; ///< timestamp of the measurement (uSec)
 		float data{};
 	};
 
-	// A polled zero-motion flow sample ends one frame period before the poll and spans up to the
-	// backup interval, so at 1 kHz the integration window can start ~47 ms before the sample arrives.
-	RingBuffer<gyroSample, 64> _gyro_buffer{};
 	RingBuffer<rangeSample, 5> _range_buffer{};
 
 	DEFINE_PARAMETERS(
