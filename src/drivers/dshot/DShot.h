@@ -106,7 +106,11 @@ private:
 	DShot operator=(const DShot &) = delete;
 
 	bool initialize_dshot();
-	void init_telemetry(const char *device, bool swap_rxtx);
+	/**
+	 * Initialize serial telemetry and the ESC settings handlers.
+	 * @return false if the request has to be retried later
+	 */
+	bool init_telemetry(const char *device, bool swap_rxtx);
 
 	// Map output channel to motor index [0..DSHOT_MAX_MOTORS-1], or -1 if not a motor
 	int motor_index_from_output(int output_channel) const
@@ -181,8 +185,6 @@ private:
 	uint8_t _bdshot_edt_attempts[DSHOT_MAX_MOTORS] = {};
 	hrt_abstime _bdshot_edt_last_request[DSHOT_MAX_MOTORS] = {};
 	bool _armed_prev = false;
-
-	uint16_t _settings_requested_mask = 0;
 
 	// Array of timestamps indicating when the telemetry came online
 	hrt_abstime _serial_telem_online_timestamps[DSHOT_MAX_MOTORS] = {};
