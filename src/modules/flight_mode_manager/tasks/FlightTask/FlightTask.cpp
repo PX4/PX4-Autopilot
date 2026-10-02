@@ -22,6 +22,10 @@ void FlightTask::reActivate()
 	// Preserve vertical velocity while on the ground to allow descending by stick for reliable land detection
 	trajectory_setpoint_s setpoint_preserve_vertical{empty_trajectory_setpoint};
 	setpoint_preserve_vertical.velocity[2] = _velocity_setpoint(2);
+	// Start from zero acceleration, the estimate is dominated by prop vibration before liftoff
+	setpoint_preserve_vertical.acceleration[0] = 0.f;
+	setpoint_preserve_vertical.acceleration[1] = 0.f;
+	setpoint_preserve_vertical.acceleration[2] = 0.f;
 	activate(setpoint_preserve_vertical);
 }
 
