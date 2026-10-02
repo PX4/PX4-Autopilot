@@ -72,6 +72,22 @@ const struct flexspi_nor_config_s g_flash_config = {
 	.reserve2[0] = 0x7008200,
 };
 
+/* Macronix MX25UM51345G, 512 Mb, run at 200 MHz in octal DTR (8D-8D-8D).
+ *
+ * The flash powers up in 1-pad SPI, so the boot ROM runs one setup command
+ * from this config: sequence 6 writes configuration register 2 at address 0
+ * with value 2, which switches the flash to octal DTR. The dummy cycles need
+ * no command, the default of 20 already allows 200 MHz.
+ *
+ * Rules this part puts on the octal DTR sequences below:
+ *
+ *   - a second command byte must follow the opcode (the command extension).
+ *     This part wants the inverted opcode, so 0xEE sends 0x11.
+ *   - an address is always 4 bytes.
+ *   - FlexSPI counts dummy cycles in half cycles, so the operand is twice the
+ *     number of cycles the datasheet asks for.
+ */
+
 const struct flexspi_nor_config_s g_flash_fast_config = {
 	.memConfig =
 	{
@@ -110,27 +126,27 @@ const struct flexspi_nor_config_s g_flash_fast_config = {
 			[0 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, DUMMY_DDR, FLEXSPI_8PAD, 0x28),//0xb3288b20,
 			[0 + 2] = FLEXSPI_LUT_SEQ(READ_DDR, FLEXSPI_8PAD, 0x04, STOP_EXE, FLEXSPI_1PAD, 0x00), //0xa704,
 
-			/* Read status */
+			/* Read status (0x05) in octal DTR, 4-byte address, 4 dummy cycles */
 			[4 * 2 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0x05, CMD_DDR, FLEXSPI_8PAD, 0xfa),
-			[4 * 2 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, DUMMY_DDR, FLEXSPI_8PAD, 0x04),
+			[4 * 2 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, DUMMY_DDR, FLEXSPI_8PAD, 0x08),
 			[4 * 2 + 2] = FLEXSPI_LUT_SEQ(READ_DDR, FLEXSPI_8PAD, 0x04, STOP_EXE, FLEXSPI_1PAD, 0x00),
 
-			/* Write enable SPI *///06h
+			/* Write enable (0x06) in SPI */
 			[4 * 3 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x06, STOP_EXE, FLEXSPI_1PAD, 0x00),//0x00000406,
 
-			/* Write enable OPI SPI *///06h
+			/* Write enable (0x06) in octal DTR */
 			[4 * 4 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0x06, CMD_DDR, FLEXSPI_8PAD, 0xF9),
 
-			/* Erase sector */
+			/* Erase 4 KB sector (0x21) */
 			[4 * 5 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0x21, CMD_DDR, FLEXSPI_8PAD, 0xDE),
 			[4 * 5 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, STOP_EXE, FLEXSPI_1PAD, 0x00),
 
-			/*Write Configuration Register 2 =01, Enable OPI DDR mode*/ //72H +32bit address + CR20x00000000 = 0x01
+			/* Write configuration register 2 (0x72) at address 0: switch SPI to octal DTR */
 			[4 * 6 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x72, CMD_SDR, FLEXSPI_1PAD, 0x00),//0x04000472,
 			[4 * 6 + 1] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x00, CMD_SDR, FLEXSPI_1PAD, 0x00),//0x04000400,
 			[4 * 6 + 2] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x00, WRITE_SDR, FLEXSPI_1PAD, 0x01),//0x20010400,
 
-			/*Page program*/
+			/* Page program (0x12) */
 			[4 * 9 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0x12, CMD_DDR, FLEXSPI_8PAD, 0xED),//0x87ed8712,
 			[4 * 9 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, WRITE_DDR, FLEXSPI_8PAD, 0x04),//0xa3048b20,
 		},
