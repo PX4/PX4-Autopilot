@@ -83,6 +83,7 @@ The binary can then be flashed to the microcontroller using your favorite SWD/JT
 
 The `canbootloader` build also writes the binary to `boards/<vendor>/<board>/extras/<vendor>_<board>_bootloader.bin`.
 When that file exists, the `default` build additionally produces `<vendor>_<board>_default_with_bootloader.bin`: bootloader and application in one image, flashed at `0x08000000` (`st-flash write <file> 0x8000000`).
+The image spans the parameter sectors, so flashing it resets the node's parameters.
 
 Boards with `CONFIG_SYSTEMCMDS_BL_UPDATE=y` embed that bootloader in the application firmware and rewrite the bootloader within about 2 seconds of [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) being set, without rebooting.
 From the flight controller's [MAVLink Shell](../debug/mavlink_shell.md):
