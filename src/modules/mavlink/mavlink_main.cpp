@@ -1154,7 +1154,15 @@ void Mavlink::init_udp()
 	PX4_DEBUG("Setting up UDP with port %hu", _network_port);
 
 	_myaddr.sin_family = AF_INET;
-	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	// Honor the loopback-only intent of "-n lo" when binding the socket.
+	if (_interface_name && strcmp(_interface_name, "lo") == 0) {
+		_myaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+	} else {
+		_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	}
+
 	_myaddr.sin_port = htons(_network_port);
 
 	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
