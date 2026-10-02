@@ -30,12 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+# Not every arch provides the IWDG helper; where it exists, pet it
+# while the scheduler is locked for erase/program.
+if(TARGET arch_watchdog_iwdg)
+	set(bl_update_watchdog_flags -DBL_UPDATE_WATCHDOG)
+	set(bl_update_watchdog_deps arch_watchdog_iwdg)
+endif()
+
 px4_add_module(
 	MODULE systemcmds__bl_update
 	MAIN bl_update
 	STACK_MAIN 4096
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
+		${bl_update_watchdog_flags}
 	SRCS
 		bl_update.cpp
+	DEPENDS
+		${bl_update_watchdog_deps}
 )

@@ -54,6 +54,12 @@
 
 #include <nuttx/progmem.h>
 
+#if defined(BL_UPDATE_WATCHDOG)
+#  include <drivers/drv_watchdog.h>
+#else
+#  define watchdog_pet()
+#endif
+
 #if defined(CONFIG_ARCH_CHIP_STM32H7)
 #  define BL_FILE_SIZE_LIMIT	128*1024
 #  define STM_RAM_BASE        STM32_AXISRAM_BASE
@@ -183,7 +189,11 @@ extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 	const size_t page = 0;
 	uint8_t *base = (uint8_t *) PX4_FLASH_BASE;
 
+	/* The IWDG may already be running (CAN nodes start it in the bootloader)
+	 * and nothing else gets to pet it while the scheduler is locked. */
+	watchdog_pet();
 	ssize_t size = up_progmem_eraseblock(page);
+	watchdog_pet();
 
 	if (size != BL_FILE_SIZE_LIMIT)
 	{
@@ -195,6 +205,7 @@ extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 	/* now program the bootloader - speed is not critical so use x8 mode */
 
 	size = up_progmem_write((size_t) base, buf, image_size);
+	watchdog_pet();
 
 	if (size != image_size)
 	{
