@@ -613,10 +613,18 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 {
 	bool handleRestartRequest(uavcan::NodeID request_source) override
 	{
-		PX4_INFO("UAVCAN: Restarting by request from %i\n", int(request_source.get()));
-		usleep(20 * 1000 * 1000);
-		board_reset(0);
-		return true; // Will never be executed BTW
+		UavcanNode *node = UavcanNode::instance();
+
+		if (node == nullptr) {
+			return false;
+		}
+
+		PX4_INFO("UAVCAN: Restarting by request from %i", int(request_source.get()));
+
+		// The response is only sent after this returns, so reset from a timer
+		node->_reset_timer.setCallback(cb_reboot);
+		node->_reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
+		return true;
 	}
 } restart_request_handler;
 
