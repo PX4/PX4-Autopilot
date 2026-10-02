@@ -1072,7 +1072,7 @@ void Logger::publish_logger_status()
 
 				status.is_logging = true;
 				status.total_written_kb = kb_written;
-				status.write_rate_kb_s = kb_written / seconds;
+				status.write_rate_kb_s = (seconds > FLT_EPSILON) ? kb_written / seconds : 0.f;
 				status.dropouts = _statistics[i].write_dropouts;
 				status.message_gaps = _message_gaps;
 				status.buffer_used_bytes = buffer_fill_count_file;
