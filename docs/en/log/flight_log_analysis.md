@@ -118,6 +118,20 @@ Source code and downloads are available on [Github](https://github.com/PlotJuggl
 
 See [Log Analysis using Plot Juggler](../log/plotjuggler_log_analysis.md) for an introduction.
 
+### PX4 ULog Viewer (VS Code Extension)
+
+[PX4 ULog Viewer](https://github.com/anilkir/vscode-ulog-viewer) opens ULog files (`.ulg`, `.ulog`) directly in VS Code, Cursor, and other VS Code-compatible editors. Logs are parsed locally and never leave your machine.
+
+Key features:
+
+- Plot any field of any logged uORB topic in time-synchronized panels.
+- Replay the flight on a 2D map with a HUD of key flight data.
+- Browse parameters (including in-flight changes), log metadata, messages, and raw ULog file structure.
+
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=anilkir.vscode-ulog-viewer) or the [Open VSX Registry](https://open-vsx.org/extension/anilkir/vscode-ulog-viewer).
+
+![PX4 Ulog Viewer](../../assets/flight_log_analysis/vscode-ulog-viewer/vscode-ulog-viewer.gif)
+
 ### PX4Tools
 
 [PX4Tools](https://github.com/dronecrew/px4tools) is a log analysis toolbox for the PX4 autopilot written in Python.
