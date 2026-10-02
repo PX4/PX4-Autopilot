@@ -254,6 +254,63 @@ parameters:
       type: float
       default: -1.0
       unit: m
+    SIH_TERR_EN:
+      description:
+        short: Procedural terrain under the vehicle
+        long: |-
+          0 keeps the flat ground at the reference altitude. 1 replaces it
+          with hills computed from SIH_TERR_SEED, SIH_TERR_AMP and
+          SIH_TERR_WAVELEN. The ground contact and the downward distance sensor
+          read the same surface. The height is zero at home in both modes,
+          so the vehicle spawns on the ground.
+      type: enum
+      values:
+        0: Flat ground
+        1: Hills
+      default: 0
+    SIH_TERR_AMP:
+      description:
+        short: Terrain amplitude
+        long: |-
+          Vertical amplitude of the hills in meters. The default gives a
+          world a multirotor can fly a low terrain following leg over. 0
+          gives flat ground with SIH_TERR_EN still set to 1.
+      type: float
+      default: 5.0
+      unit: m
+      min: 0.0
+      max: 2000.0
+      decimal: 2
+      increment: 1.0
+    SIH_TERR_WAVELEN:
+      description:
+        short: Terrain base wavelength
+        long: |-
+          Wavelength of the largest hills in meters. Each octave halves it.
+      type: float
+      default: 200.0
+      unit: m
+      min: 10.0
+      max: 10000.0
+      decimal: 0
+      increment: 10.0
+    SIH_TERR_SEED:
+      description:
+        short: Terrain seed
+        long: The same seed gives the same hills on every boot.
+      type: int32
+      default: 0
+    SIH_TERR_OCT:
+      description:
+        short: Terrain noise octaves
+        long: |-
+          Number of noise layers summed into the terrain. Each layer halves
+          the wavelength of the last, so more octaves means finer detail and
+          more work per height sample.
+      type: int32
+      default: 6
+      min: 1
+      max: 9
     SIH_T_TAU:
       description:
         short: thruster time constant tau
