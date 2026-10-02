@@ -163,3 +163,11 @@ px4_add_module(
 		# within libuavcan
 		uavcan
 	)
+
+# bl_update_flash is defined by systemcmds/bl_update, which is configured after
+# this module, so it is linked here rather than through DEPENDS.
+if(CONFIG_SYSTEMCMDS_BL_UPDATE)
+	target_link_libraries(drivers__uavcannode PRIVATE bl_update_flash)
+	target_compile_definitions(drivers__uavcannode PRIVATE
+		UAVCANNODE_BOOTLOADER_FILE="/etc/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
+endif()

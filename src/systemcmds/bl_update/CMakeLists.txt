@@ -30,22 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+px4_add_library(bl_update_flash bl_update_flash.cpp)
+target_include_directories(bl_update_flash PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(bl_update_flash PRIVATE -Wno-cast-align)
+
 # Not every arch provides the IWDG helper; where it exists, pet it
 # while the scheduler is locked for erase/program.
 if(TARGET arch_watchdog_iwdg)
-	set(bl_update_watchdog_flags -DBL_UPDATE_WATCHDOG)
-	set(bl_update_watchdog_deps arch_watchdog_iwdg)
+	target_compile_definitions(bl_update_flash PRIVATE BL_UPDATE_WATCHDOG)
+	target_link_libraries(bl_update_flash PRIVATE arch_watchdog_iwdg)
 endif()
 
 px4_add_module(
 	MODULE systemcmds__bl_update
 	MAIN bl_update
 	STACK_MAIN 4096
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
-		${bl_update_watchdog_flags}
 	SRCS
 		bl_update.cpp
 	DEPENDS
-		${bl_update_watchdog_deps}
+		bl_update_flash
 )
