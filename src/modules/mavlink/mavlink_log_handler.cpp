@@ -35,6 +35,7 @@
 #include "mavlink_main.h"
 #include <dirent.h>
 #include <sys/stat.h>
+#include <time.h>
 
 static_assert(PX4_MAX_FILEPATH_SCANF < PX4_MAX_FILEPATH,
 	      "sscanf width specifier must be less than filepath buffer size");
@@ -55,6 +56,84 @@ static bool targeted_at_us(uint8_t target_system, uint8_t target_component)
 	       && (target_component == 0
 		   || target_component == mavlink_system.compid
 		   || target_component == MAV_COMP_ID_ALL);
+}
+
+// Hardfault logs are stored in the storage root as fault_<time>.log
+static bool is_hardfault_log(const char *name)
+{
+	return strncmp(name, "fault_", 6) == 0 && strcmp(name + strlen(name) - 4, ".log") == 0;
+}
+
+static int write_hardfault_entries_to_file(FILE *fp, int first_id, orb_advert_t *mavlink_log_pub)
+{
+	DIR *dp = opendir(PX4_STORAGEDIR);
+
+	if (!dp) {
+		return 0;
+	}
+
+	int num_entries = 0;
+	struct dirent *result = nullptr;
+
+	while ((result = readdir(dp))) {
+		if (result->d_type != PX4LOG_REGULAR_FILE || !is_hardfault_log(result->d_name)) {
+			continue;
+		}
+
+		char filepath[PX4_MAX_FILEPATH];
+		int ret = snprintf(filepath, sizeof(filepath), "%s/%s", PX4_STORAGEDIR, result->d_name);
+		struct stat filestat;
+
+		if (ret <= 0 || ret >= (int)sizeof(filepath) || stat(filepath, &filestat) != 0) {
+			continue;
+		}
+
+		// The name contains the crash time in UTC
+		uint32_t time_utc = filestat.st_mtime;
+		struct tm crash_time {};
+
+		if (sscanf(result->d_name, "fault_%d_%d_%d_%d_%d_%d", &crash_time.tm_year, &crash_time.tm_mon,
+			   &crash_time.tm_mday, &crash_time.tm_hour, &crash_time.tm_min, &crash_time.tm_sec) == 6) {
+			crash_time.tm_year -= 1900;
+			crash_time.tm_mon -= 1;
+			time_utc = timegm(&crash_time);
+		}
+
+		fprintf(fp, "%u %u %s\n", unsigned(time_utc), unsigned(filestat.st_size), filepath);
+
+		// The log protocol has no file names
+		mavlink_log_info(mavlink_log_pub, "Log %d [HARD_FAULT] %s", first_id + num_entries, result->d_name);
+		num_entries++;
+	}
+
+	closedir(dp);
+	return num_entries;
+}
+
+static void delete_hardfault_logs()
+{
+	DIR *dp = opendir(PX4_STORAGEDIR);
+
+	if (!dp) {
+		return;
+	}
+
+	struct dirent *result = nullptr;
+
+	while ((result = readdir(dp))) {
+		if (result->d_type != PX4LOG_REGULAR_FILE || !is_hardfault_log(result->d_name)) {
+			continue;
+		}
+
+		char filepath[PX4_MAX_FILEPATH];
+		int ret = snprintf(filepath, sizeof(filepath), "%s/%s", PX4_STORAGEDIR, result->d_name);
+
+		if (ret > 0 && ret < (int)sizeof(filepath)) {
+			unlink(filepath);
+		}
+	}
+
+	closedir(dp);
 }
 
 MavlinkLogHandler::MavlinkLogHandler(Mavlink &mavlink)
@@ -141,18 +220,10 @@ void MavlinkLogHandler::state_listing()
 		return;
 	}
 
-	DIR *dp = opendir(kLogDir);
-
-	if (!dp) {
-		PX4_DEBUG("No logs available");
-		return;
-	}
-
 	FILE *fp = fopen(kLogListFilePath, "r");
 
 	if (!fp) {
 		PX4_DEBUG("Failed to open log list file");
-		closedir(dp);
 		return;
 	}
 
@@ -189,7 +260,6 @@ void MavlinkLogHandler::state_listing()
 		if (_mavlink.get_free_tx_buf() <= MAVLINK_PACKET_SIZE || bytes_sent >= MAX_BYTES_BURST) {
 			_list_request.file_index = ftell(fp);
 			fclose(fp);
-			closedir(dp);
 			perf_end(_listing_elapsed);
 			return;
 		}
@@ -198,7 +268,6 @@ void MavlinkLogHandler::state_listing()
 	perf_end(_listing_elapsed);
 
 	fclose(fp);
-	closedir(dp);
 
 	_list_request.current_id = 0;
 	_list_request.file_index = 0;
@@ -373,6 +442,7 @@ void MavlinkLogHandler::handle_log_erase(const mavlink_message_t *msg)
 	unlink(kLogListFilePathTemp);
 
 	delete_all_logs(kLogDir);
+	delete_hardfault_logs();
 }
 
 bool MavlinkLogHandler::create_log_list_file()
@@ -383,25 +453,19 @@ bool MavlinkLogHandler::create_log_list_file()
 	unlink(kLogListFilePath);
 	_num_logs = 0;
 
-	DIR *dp = opendir(kLogDir);
-
-	if (!dp) {
-		PX4_DEBUG("No logs available");
-		return false;
-	}
-
 	FILE *temp_fp = fopen(kLogListFilePathTemp, "w");
 
 	if (!temp_fp) {
 		PX4_DEBUG("Failed to create temp file");
-		closedir(dp);
 		return false;
 	}
 
+	// The log/ directory does not exist when the logger only streams over MAVLink
+	DIR *dp = opendir(kLogDir);
 	struct dirent *result = nullptr;
 
 	// Iterate over the log/ directory which contains subdirectories formatted: yyyy-mm-dd
-	while (1) {
+	while (dp) {
 		result = readdir(dp);
 
 		if (!result) {
@@ -434,8 +498,14 @@ bool MavlinkLogHandler::create_log_list_file()
 		write_entries_to_file(temp_fp, dirpath);
 	}
 
+	if (dp) {
+		closedir(dp);
+	}
+
+	// After the ULogs, so that the ULog ids stay the same
+	_num_logs += write_hardfault_entries_to_file(temp_fp, _num_logs, _mavlink.get_mavlink_log_pub());
+
 	fclose(temp_fp);
-	closedir(dp);
 
 	// Rename temp file to data file
 	if (rename(kLogListFilePathTemp, kLogListFilePath)) {
