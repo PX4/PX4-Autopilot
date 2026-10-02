@@ -83,8 +83,11 @@
 #define FLASH_BASED_PARAMS
 
 #define BOARD_ADC_BRICK_VALID (true)
-#define RC_SERIAL_PORT "/dev/ttyS3"
-#define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
+
+#if !defined(CONFIG_UART4_SERIAL_CONSOLE)
+# define RC_SERIAL_PORT "/dev/ttyS3"
+# define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
+#endif
 
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO, \
