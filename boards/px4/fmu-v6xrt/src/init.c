@@ -176,6 +176,14 @@ struct flexspi_nor_config_s g_bootConfig;
 
 extern const struct flexspi_nor_config_s g_flash_fast_config_is25wx512m;
 
+/* Part name of the flash we booted from, set by imxrt_octl_flash_initialize */
+static const char *g_flash_type;
+
+const char *board_get_flash_type_name(void)
+{
+	return g_flash_type;
+}
+
 /* JEDEC ID (RDID 0x9F): manufacturer | type << 8 | density << 16 */
 #define JEDEC_ID_MASK         0xffffffu
 #define JEDEC_ID_ISSI         0x1A5B9Du /* IS25WX512M; anything else is the MX25UM51345G */
@@ -249,6 +257,8 @@ void imxrt_octl_flash_initialize(void)
 	}
 
 	if (fast_config != NULL) {
+		g_flash_type = (fast_config == &g_flash_fast_config_is25wx512m) ? "IS25WX512M" : "MX25UM51345G";
+
 		/* Keep the bootloader's setup, just record the config for the ROM API. */
 		memcpy((struct flexspi_nor_config_s *)&g_bootConfig, fast_config,
 		       sizeof(struct flexspi_nor_config_s));
@@ -281,6 +291,7 @@ void imxrt_octl_flash_initialize(void)
 	ROM_FLEXSPI_NorFlash_Init(instance, (struct flexspi_nor_config_s *)&g_bootConfig);
 
 	fast_config = imxrt_octl_flash_select();
+	g_flash_type = (fast_config == &g_flash_fast_config_is25wx512m) ? "IS25WX512M" : "MX25UM51345G";
 
 	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, fast_config,
 	       sizeof(struct flexspi_nor_config_s));
