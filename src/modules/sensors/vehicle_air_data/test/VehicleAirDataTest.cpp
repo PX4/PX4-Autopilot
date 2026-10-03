@@ -41,12 +41,18 @@
 
 #include <drivers/drv_hrt.h>
 #include <hrt_work.h>
+#include <lib/geo/geo.h>
 #include <parameters/param.h>
 #include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/wind.h>
 #include <uORB/uORBManager.hpp>
 
 class VehicleAirDataTest : public ::testing::Test
@@ -97,6 +103,13 @@ public:
 	}
 
 	static void setParam(const char *name, int32_t value)
+	{
+		const param_t handle = param_find(name);
+		ASSERT_NE(handle, PARAM_INVALID) << name;
+		ASSERT_EQ(param_set_no_notification(handle, &value), 0) << name;
+	}
+
+	static void setParam(const char *name, float value)
 	{
 		const param_t handle = param_find(name);
 		ASSERT_NE(handle, PARAM_INVALID) << name;
@@ -177,3 +190,58 @@ TEST_F(VehicleAirDataTest, BarometerDisabledFromBootDoesNotDriveRun)
 	EXPECT_EQ(module.priority(0), 75);
 	EXPECT_TRUE(module.callbackRegistered(0));
 }
+
+#if defined(CONFIG_SENSORS_BARO_COMPENSATION)
+TEST_F(VehicleAirDataTest, CompensationCorrectsPublishedAltitude)
+{
+	// flying forward at 10 m/s through still air with the port reading high, and hovering at half
+	// thrust with the propellers pulling the pressure down further
+	setPriority(0, 75);
+	setParam("SENS_BARO_K_XP", -0.4f);
+	setParam("SENS_BARO_K_T", -20.f);
+
+	VehicleAirDataTestable module;
+	publishParameterUpdate();
+
+	uORB::Publication<wind_s> wind_pub{ORB_ID(wind)};
+	uORB::Publication<vehicle_local_position_s> local_position_pub{ORB_ID(vehicle_local_position)};
+	uORB::Publication<vehicle_attitude_s> attitude_pub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<vehicle_thrust_setpoint_s> thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+
+	runFor(module, 1500_ms, [&]() {
+		const hrt_abstime now = hrt_absolute_time();
+
+		wind_s wind{};
+		wind.timestamp = now;
+		wind_pub.publish(wind);
+
+		vehicle_local_position_s local_position{};
+		local_position.timestamp = now;
+		local_position.xy_valid = true;
+		local_position.v_xy_valid = true;
+		local_position.vx = 10.f;
+		local_position_pub.publish(local_position);
+
+		vehicle_attitude_s attitude{};
+		attitude.timestamp = now;
+		attitude.q[0] = 1.f;
+		attitude_pub.publish(attitude);
+
+		vehicle_thrust_setpoint_s thrust_setpoint{};
+		thrust_setpoint.timestamp = now;
+		thrust_setpoint.xyz[2] = -0.5f;
+		thrust_setpoint_pub.publish(thrust_setpoint);
+
+		publishSample(0, kPressurePa);
+	});
+
+	uORB::Subscription air_data_sub{ORB_ID(vehicle_air_data)};
+	vehicle_air_data_s air_data{};
+	ASSERT_TRUE(air_data_sub.copy(&air_data));
+
+	const float expected_correction = -20.f * 0.5f + 0.5f * -0.4f * 10.f * 10.f / CONSTANTS_ONE_G;
+	EXPECT_NEAR(air_data.baro_alt_correction, expected_correction, 1e-3f);
+	// standard pressure at the default QNH is 0 m before the correction
+	EXPECT_NEAR(air_data.baro_alt_meter, expected_correction, 1e-2f);
+}
+#endif // CONFIG_SENSORS_BARO_COMPENSATION

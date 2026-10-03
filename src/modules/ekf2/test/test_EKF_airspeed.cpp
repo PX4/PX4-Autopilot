@@ -102,7 +102,7 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 
 	const Vector3f vel = _ekf->getVelocity();
 	const Vector2f vel_wind_earth = _ekf->getWindVelocity();
-	const float height_before_pressure_correction = _ekf->getPosition()(2);
+	const float height = _ekf->getPosition()(2);
 
 	const Dcmf R_to_earth_sim(_quat_sim);
 	EXPECT_TRUE(matrix::isEqual(vel, simulated_velocity_earth));
@@ -112,27 +112,7 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	EXPECT_NEAR(vel_wind_earth(0), vel_wind_expected(0), 1e-1f);
 	EXPECT_NEAR(vel_wind_earth(1), vel_wind_expected(1), 1e-1f);
 
-	EXPECT_NEAR(height_before_pressure_correction, 0.0f, 1e-5f);
-
-	// Apply height correction
-	const float ekf2_pcoef_xp = 1.0f;
-	const float ekf2_pcoef_yp = -1.0f;	// not used as wind direction is along x axis
-	parameters *_params = _ekf->getParamHandle();
-	_params->ekf2_pcoef_xp = ekf2_pcoef_xp;
-	_params->ekf2_pcoef_yp = ekf2_pcoef_yp;
-	float expected_height_difference = 0.5f * ekf2_pcoef_xp * airspeed_body(0) * airspeed_body(
-			0) / CONSTANTS_ONE_G;
-
-	_ekf->set_vehicle_at_rest(false);
-	_sensor_simulator.runSeconds(20);
-
-	const float height_after_pressure_correction = _ekf->getPosition()(2);
-	// height increase means that state z decrease due to z axis pointing down
-	const float expected_height_after_pressure_correction = height_before_pressure_correction -
-			expected_height_difference;
-
-	EXPECT_NEAR(height_after_pressure_correction, expected_height_after_pressure_correction, 1e-2f);
-
+	EXPECT_NEAR(height, 0.0f, 1e-5f);
 }
 
 TEST_F(EkfAirspeedTest, testResetWindUsingAirspeed)

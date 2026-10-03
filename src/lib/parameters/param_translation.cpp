@@ -424,5 +424,25 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-10-02: baro static pressure compensation moved from EKF2 to the sensors module
+	{
+		static constexpr const char *kRenames[][2] {
+			{"EKF2_PCOEF_XP", "SENS_BARO_K_XP"},
+			{"EKF2_PCOEF_XN", "SENS_BARO_K_XN"},
+			{"EKF2_PCOEF_YP", "SENS_BARO_K_YP"},
+			{"EKF2_PCOEF_YN", "SENS_BARO_K_YN"},
+			{"EKF2_PCOEF_Z", "SENS_BARO_K_Z"},
+			{"EKF2_ASPD_MAX", "SENS_BARO_K_VMAX"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }
