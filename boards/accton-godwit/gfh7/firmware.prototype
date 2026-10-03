@@ -1,0 +1,13 @@
+{
+    "board_id": 7122,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the Accton Godwit GFH7 flight controller",
+    "image": "",
+    "build_time": 0,
+    "summary": "Accton-Godwit-GFH7",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1835008,
+    "git_identity": "",
+    "board_revision": 0
+}

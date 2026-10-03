@@ -18,6 +18,7 @@ The boards in this category are:
 
 - [3DR Control N1](../flight_controller/3dr_ctrl-n1.md)
 - [Accton Godwit GA1](../flight_controller/accton-godwit_ga1.md)
+- [Accton Godwit GFH7](../flight_controller/accton-godwit_gfh7.md)
 - [AEDROX AEDROXH7](../flight_controller/aedrox_aedroxh7.md)
 - [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md)
 - [AirMind MindPX](../flight_controller/mindpx.md)
