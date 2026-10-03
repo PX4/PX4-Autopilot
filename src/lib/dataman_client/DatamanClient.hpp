@@ -187,6 +187,12 @@ private:
 	/* Synchronous response/request handler */
 	bool syncHandler(const dataman_request_s &request, dataman_response_s &response,
 			 const hrt_abstime &start_time, hrt_abstime timeout);
+
+	/**
+	 * Same, but sending the request through the given publication
+	 */
+	bool syncHandler(uORB::Publication<dataman_request_s> &request_pub, const dataman_request_s &request,
+			 dataman_response_s &response, const hrt_abstime &start_time, hrt_abstime timeout);
 	/* Drain any queued stale replies before a new request starts. */
 	void clearPendingResponse();
 

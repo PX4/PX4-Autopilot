@@ -76,6 +76,23 @@ DatamanClient::DatamanClient()
 
 DatamanClient::~DatamanClient()
 {
+	// Hand the ID back so dataman can give it to the next client. This goes through the
+	// synchronous handler, since the request topic holds one message and the handler keeps
+	// republishing until dataman answers. It also goes through a publication of its own.
+	// Unadvertising any client's publication marks the request topic as not advertised for
+	// every subscriber, so dataman would never see a request sent through the publication
+	// this client has held since it was created, and a fresh one advertises the topic again.
+	if ((_client_id != CLIENT_ID_NOT_SET) && orb_sub_valid(_dataman_response_sub)) {
+		dataman_request_s request{};
+		request.timestamp = hrt_absolute_time();
+		request.request_type = DM_RELEASE_ID;
+		request.client_id = _client_id;
+
+		dataman_response_s response{};
+		uORB::Publication<dataman_request_s> release_pub{ORB_ID(dataman_request)};
+		syncHandler(release_pub, request, response, request.timestamp, 100_ms);
+	}
+
 	perf_free(_sync_perf);
 
 	if (orb_sub_valid(_dataman_response_sub)) {
@@ -86,13 +103,19 @@ DatamanClient::~DatamanClient()
 bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_response_s &response,
 				const hrt_abstime &start_time, hrt_abstime timeout)
 {
+	return syncHandler(_dataman_request_pub, request, response, start_time, timeout);
+}
+
+bool DatamanClient::syncHandler(uORB::Publication<dataman_request_s> &request_pub, const dataman_request_s &request,
+				dataman_response_s &response, const hrt_abstime &start_time, hrt_abstime timeout)
+{
 	bool response_received = false;
 	int32_t ret = 0;
 	hrt_abstime time_elapsed = hrt_elapsed_time(&start_time);
 	perf_begin(_sync_perf);
 	clearPendingResponse();
 
-	_dataman_request_pub.publish(request);
+	request_pub.publish(request);
 
 	while (!response_received && (time_elapsed < timeout)) {
 
@@ -106,7 +129,7 @@ bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_respon
 		} else if (ret == 0) {
 
 			// No response received, send new request
-			_dataman_request_pub.publish(request);
+			request_pub.publish(request);
 
 		} else {
 
