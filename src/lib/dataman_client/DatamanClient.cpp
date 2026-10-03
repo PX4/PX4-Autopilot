@@ -41,7 +41,7 @@ DatamanClient::DatamanClient()
 {
 	_sync_perf = perf_alloc(PC_ELAPSED, "DatamanClient: sync");
 
-	_dataman_request_pub.advertise();
+	_dataman_request_advert = orb_advertise(ORB_ID(dataman_request), nullptr);
 	_dataman_response_sub = orb_subscribe(ORB_ID(dataman_response));
 
 	if (!orb_sub_valid(_dataman_response_sub)) {
@@ -51,9 +51,6 @@ DatamanClient::DatamanClient()
 		// make sure we don't get any stale response by doing an orb_copy
 		dataman_response_s response{};
 		orb_copy(ORB_ID(dataman_response), _dataman_response_sub, &response);
-
-		_fds.fd = _dataman_response_sub;
-		_fds.events = POLLIN;
 
 		hrt_abstime timestamp = hrt_absolute_time();
 
@@ -76,21 +73,24 @@ DatamanClient::DatamanClient()
 
 DatamanClient::~DatamanClient()
 {
-	// Hand the ID back so dataman can give it to the next client. This goes through the
-	// synchronous handler, since the request topic holds one message and the handler keeps
-	// republishing until dataman answers. It also goes through a publication of its own.
-	// Unadvertising any client's publication marks the request topic as not advertised for
-	// every subscriber, so dataman would never see a request sent through the publication
-	// this client has held since it was created, and a fresh one advertises the topic again.
-	if ((_client_id != CLIENT_ID_NOT_SET) && orb_sub_valid(_dataman_response_sub)) {
-		dataman_request_s request{};
-		request.timestamp = hrt_absolute_time();
-		request.request_type = DM_RELEASE_ID;
-		request.client_id = _client_id;
+	// Hand the ID back so dataman can give it to the next client. A client can be destroyed from another task
+	// than the one that created it, mavlink stop does that, and on NuttX a subscription is a file descriptor of
+	// the task that opened it, so the answer is awaited on a subscription opened here. The handler sends the
+	// request again every 100 ms, so the release gets three tries before the client gives up on it.
+	if (_client_id != CLIENT_ID_NOT_SET) {
+		const orb_sub_t response_sub = orb_subscribe(ORB_ID(dataman_response));
 
-		dataman_response_s response{};
-		uORB::Publication<dataman_request_s> release_pub{ORB_ID(dataman_request)};
-		syncHandler(release_pub, request, response, request.timestamp, 100_ms);
+		if (orb_sub_valid(response_sub)) {
+			dataman_request_s request{};
+			request.timestamp = hrt_absolute_time();
+			request.request_type = DM_RELEASE_ID;
+			request.client_id = _client_id;
+
+			dataman_response_s response{};
+			syncHandler(request, response, request.timestamp, 300_ms, response_sub);
+
+			orb_unsubscribe(response_sub);
+		}
 	}
 
 	perf_free(_sync_perf);
@@ -103,11 +103,11 @@ DatamanClient::~DatamanClient()
 bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_response_s &response,
 				const hrt_abstime &start_time, hrt_abstime timeout)
 {
-	return syncHandler(_dataman_request_pub, request, response, start_time, timeout);
+	return syncHandler(request, response, start_time, timeout, _dataman_response_sub);
 }
 
-bool DatamanClient::syncHandler(uORB::Publication<dataman_request_s> &request_pub, const dataman_request_s &request,
-				dataman_response_s &response, const hrt_abstime &start_time, hrt_abstime timeout)
+bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_response_s &response,
+				const hrt_abstime &start_time, hrt_abstime timeout, orb_sub_t response_sub)
 {
 	bool response_received = false;
 	int32_t ret = 0;
@@ -115,12 +115,16 @@ bool DatamanClient::syncHandler(uORB::Publication<dataman_request_s> &request_pu
 	perf_begin(_sync_perf);
 	clearPendingResponse();
 
-	request_pub.publish(request);
+	px4_pollfd_struct_t fds{};
+	fds.fd = response_sub;
+	fds.events = POLLIN;
+
+	publishRequest(request);
 
 	while (!response_received && (time_elapsed < timeout)) {
 
 		uint32_t timeout_ms = 100;
-		ret = px4_poll(&_fds, 1, timeout_ms);
+		ret = px4_poll(&fds, 1, timeout_ms);
 
 		if (ret < 0) {
 			PX4_ERR("px4_poll returned error: %" PRIu32, ret);
@@ -129,15 +133,15 @@ bool DatamanClient::syncHandler(uORB::Publication<dataman_request_s> &request_pu
 		} else if (ret == 0) {
 
 			// No response received, send new request
-			request_pub.publish(request);
+			publishRequest(request);
 
 		} else {
 
 			bool updated = false;
-			orb_check(_dataman_response_sub, &updated);
+			orb_check(response_sub, &updated);
 
 			if (updated) {
-				orb_copy(ORB_ID(dataman_response), _dataman_response_sub, &response);
+				orb_copy(ORB_ID(dataman_response), response_sub, &response);
 
 				if (response.client_id == request.client_id) {
 
@@ -280,6 +284,17 @@ bool DatamanClient::clearSync(dm_item_t item, hrt_abstime timeout)
 	return success;
 }
 
+void DatamanClient::publishRequest(const dataman_request_s &request)
+{
+	if (_dataman_request_advert == nullptr) {
+		_dataman_request_advert = orb_advertise(ORB_ID(dataman_request), nullptr);
+	}
+
+	if (_dataman_request_advert != nullptr) {
+		orb_publish(ORB_ID(dataman_request), _dataman_request_advert, &request);
+	}
+}
+
 void DatamanClient::clearPendingResponse()
 {
 	if (_dataman_response_sub < 0) {
@@ -334,7 +349,7 @@ bool DatamanClient::readAsync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 
 		_state = State::RequestSent;
 
-		_dataman_request_pub.publish(request);
+		publishRequest(request);
 
 		success = true;
 	}
@@ -380,7 +395,7 @@ bool DatamanClient::writeAsync(dm_item_t item, uint32_t index, uint8_t *buffer, 
 
 		_state = State::RequestSent;
 
-		_dataman_request_pub.publish(request);
+		publishRequest(request);
 
 		success = true;
 	}
@@ -415,7 +430,7 @@ bool DatamanClient::clearAsync(dm_item_t item)
 		_active_request.index = request.index;
 		_state = State::RequestSent;
 
-		_dataman_request_pub.publish(request);
+		publishRequest(request);
 
 		success = true;
 	}
@@ -479,7 +494,7 @@ void DatamanClient::update()
 					memcpy(request.data, _active_request.buffer, _active_request.length);
 				}
 
-				_dataman_request_pub.publish(request);
+				publishRequest(request);
 
 				_state = State::RequestSent;
 			}

@@ -711,8 +711,6 @@ task_main(int argc, char *argv[])
 		g_func_counts[i] = 0;
 	}
 
-	memset(g_client_ids_in_use, 0, sizeof(g_client_ids_in_use));
-
 	g_task_should_exit.store(false);
 
 	uORB::Publication<dataman_response_s> dataman_response_pub{ORB_ID(dataman_response)};
