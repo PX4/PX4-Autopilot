@@ -1,0 +1,26 @@
+menuconfig DRIVERS_IMU_TDK_TDK_DIRECT
+	bool "TDK direct-register SPI FIFO family"
+	default n
+	help
+	  Shared SPI six-axis implementation. All commands require an exact -T model.
+	  Original drivers remain available for comparison.
+
+if DRIVERS_IMU_TDK_TDK_DIRECT
+
+config TDK_DIRECT_MPU6500
+	bool "MPU6500"
+	default y
+
+config TDK_DIRECT_ICM20608G
+	bool "ICM20608G"
+	default y
+
+config TDK_DIRECT_ICM20689
+	bool "ICM20689"
+	default y
+
+config TDK_DIRECT_IAM20680HP
+	bool "IAM20680HP"
+	default y
+
+endif # DRIVERS_IMU_TDK_TDK_DIRECT

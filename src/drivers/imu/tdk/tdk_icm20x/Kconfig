@@ -1,0 +1,18 @@
+menuconfig DRIVERS_IMU_TDK_TDK_ICM20X
+	bool "TDK ICM20x banked SPI FIFO family"
+	default n
+
+if DRIVERS_IMU_TDK_TDK_ICM20X
+
+config TDK_ICM20X_ICM20649
+	bool "ICM20649"
+	default y
+
+config TDK_ICM20X_ICM20948
+	bool "ICM20948 six-axis SPI only"
+	default n
+	help
+	  Does not provide AK09916, auxiliary I2C or passthrough functionality.
+	  Keep the original driver wherever these functions are required.
+
+endif # DRIVERS_IMU_TDK_TDK_ICM20X
