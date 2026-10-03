@@ -97,9 +97,7 @@ void VehicleOpticalFlow::Run()
 
 	UpdateDistanceSensor();
 
-	if (_accumulator.gyroRequired()) {
-		_gyro_feed.update(_accumulator);
-	}
+	_gyro_feed.update(_accumulator);
 
 	sensor_optical_flow_s sensor_optical_flow;
 

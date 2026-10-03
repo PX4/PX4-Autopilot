@@ -65,6 +65,14 @@ void OpticalFlowGyroFeed::stop()
 
 void OpticalFlowGyroFeed::update(OpticalFlowAccumulator &accumulator)
 {
+	if (!accumulator.gyroRequired()) {
+		// the sensor integrates its own gyro: stop waking the work item on every gyro batch
+		_sensor_gyro_sub.unregisterCallback();
+		return;
+	}
+
+	_sensor_gyro_sub.registerCallback();
+
 	if (_sensor_selection_sub.updated()) {
 		sensor_selection_s sensor_selection{};
 		_sensor_selection_sub.copy(&sensor_selection);

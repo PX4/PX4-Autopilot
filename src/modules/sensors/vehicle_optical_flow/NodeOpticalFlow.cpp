@@ -75,9 +75,7 @@ void NodeOpticalFlow::Run()
 {
 	perf_begin(_cycle_perf);
 
-	if (_accumulator.gyroRequired()) {
-		_gyro_feed.update(_accumulator);
-	}
+	_gyro_feed.update(_accumulator);
 
 	sensor_optical_flow_s sensor_optical_flow;
 
