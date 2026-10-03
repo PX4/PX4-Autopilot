@@ -55,6 +55,21 @@
 
 #include <arch/board/board.h>
 
+#ifdef CONFIG_IMXRT_RPTUN
+/* CM4 remote: ELF built from ../cm4 into the ROMFS and loaded by rptun.
+ * NXP's SDK links the CM4 at its code TCM, copies the image through the LMEM
+ * backdoor window and releases the core with the boot vector on that alias;
+ * memmap.h fixes the same layout for both cores.
+ */
+#include "../cm4/memmap.h"
+#define BOARD_RPMSG_CPUNAME  "cm4"
+#define BOARD_CM4_FIRMWARE   "/etc/extras/cm4_rpmsg.elf"
+__BEGIN_DECLS
+int board_rpmsg_initialize(void);
+int board_rpmsg_status(void);
+__END_DECLS
+#endif
+
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
