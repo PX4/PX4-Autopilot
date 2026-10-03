@@ -79,6 +79,10 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 		_time_bad_quality_us = _sample.quality == 0 ? current_time_us : _time_bad_quality_us;
 
 		if (!isQualityOk(current_time_us) || !isTiltOk() || !isDataInRange()) {
+			if (isTiltOk() && isNoReturn()) {
+				updateFogCheck(_rng_valid_max_val, _sample.time_us);
+			}
+
 			return;
 		}
 
@@ -115,6 +119,12 @@ inline bool SensorRangeFinder::isSampleOutOfDate(uint64_t current_time_us) const
 inline bool SensorRangeFinder::isDataInRange() const
 {
 	return (_sample.rng >= _rng_valid_min_val) && (_sample.rng <= _rng_valid_max_val);
+}
+
+inline bool SensorRangeFinder::isNoReturn() const
+{
+	// Drivers report a negative distance when no target is detected within the sensor range
+	return _sample.rng < 0.f;
 }
 
 void SensorRangeFinder::updateStuckCheck()
