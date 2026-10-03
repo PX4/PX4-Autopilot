@@ -311,7 +311,7 @@ public:
 	 * @brief Initialization of the state.
 	 *
 	 */
-	void initialize(const Setpoint &setpoint, const Input &input, Param &param, const Flag &flag);
+	void initialize(const Setpoint &setpoint, const Input &input, const Param &param, const Flag &flag);
 	/**
 	 * @brief Update state and output.
 	 *
@@ -321,7 +321,7 @@ public:
 	 * @param[in] param is the current parameter set.
 	 * @param[in] flag is the current activated flags.
 	 */
-	void update(float dt, const Setpoint &setpoint, const Input &input, Param &param, const Flag &flag);
+	void update(float dt, const Setpoint &setpoint, const Input &input, const Param &param, const Flag &flag);
 	/**
 	 * @brief Reset the control loop integrals.
 	 *
@@ -595,13 +595,6 @@ public:
 	const DebugOutput &getStatus() const { return _debug_status; }
 
 	/**
-	 * Get the current airspeed status
-	 *
-	 * @return true if airspeed is enabled for control
-	 */
-	bool airspeed_sensor_enabled() { return _control_flag.airspeed_enabled; }
-
-	/**
 	 * Set the airspeed enable state
 	 */
 	void enable_airspeed(bool enabled) { _control_flag.airspeed_enabled = enabled; }
@@ -670,8 +663,8 @@ public:
 		_altitude_reference_model.initialize(init_state);
 	}
 
-	float get_pitch_setpoint() {return _control.getPitchSetpoint();}
-	float get_throttle_setpoint() {return _control.getThrottleSetpoint();}
+	float get_pitch_setpoint() const {return _control.getPitchSetpoint();}
+	float get_throttle_setpoint() const {return _control.getThrottleSetpoint();}
 
 	/**
 	 * Returns the altitude tracking time constant
@@ -681,8 +674,7 @@ public:
 		return 1.0f / math::max(_control_param.altitude_error_gain, 0.01f);
 	}
 
-	uint64_t timestamp() { return _update_timestamp; }
-	float get_underspeed_ratio() { return _control.getRatioUndersped(); }
+	float get_underspeed_ratio() const { return _control.getRatioUndersped(); }
 
 private:
 	/**
