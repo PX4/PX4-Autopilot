@@ -75,8 +75,9 @@ MissionBase::updateDatamanCache()
 	if ((_mission.count > 0) && (_mission.current_seq != _load_mission_index)) {
 
 		const int32_t start_index = math::constrain(_mission.current_seq, int32_t{0}, int32_t(_mission.count) - 1);
-		const int32_t end_index = math::constrain(start_index + _dataman_cache_size_signed, int32_t{0},
-					  int32_t(_mission.count) - 1);
+		// exclusive, so that the items at both ends of the mission get cached as well
+		const int32_t end_index = math::constrain(start_index + _dataman_cache_size_signed, int32_t{-1},
+					  int32_t(_mission.count));
 
 		for (int32_t index = start_index; index != end_index; index += math::signNoZero(_dataman_cache_size_signed)) {
 
@@ -99,7 +100,7 @@ void MissionBase::updateMavlinkMission()
 		const bool mission_data_changed = checkMissionDataChanged(new_mission);
 
 		if (new_mission.current_seq < 0) {
-			new_mission.current_seq = math::constrain(_mission.current_seq, int32_t{0},
+			new_mission.current_seq = math::constrain(_mission.current_seq, int32_t{-1},
 						  static_cast<int32_t>(new_mission.count) - 1);
 		}
 
@@ -273,6 +274,7 @@ MissionBase::on_active()
 
 	updateMavlinkMission();
 	updateDatamanCache();
+	updateNextVelocityConstraint();
 	updateMissionAltAfterHomeChanged();
 
 	/* Check the mission */
@@ -516,6 +518,9 @@ MissionBase::set_mission_items()
 {
 	bool set_end_of_mission{false};
 
+	// the triplet is rebuilt, a walk pending for the previous one is obsolete
+	_next_velocity_constraint_hit_cache_miss = false;
+
 	if (_is_current_planned_mission_item_valid && _mission_type == MissionType::MISSION_TYPE_MISSION && isMissionValid()) {
 		/* By default set the mission item to the current planned mission item. Depending on request, it can be altered. */
 		if (loadCurrentMissionItem()) {
@@ -753,6 +758,230 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 		((fabsf(p1->cruising_throttle - p2->cruising_throttle) < FLT_EPSILON) || (!PX4_ISFINITE(p1->cruising_throttle)
 				&& !PX4_ISFINITE(p2->cruising_throttle))));
 
+}
+
+bool MissionBase::isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index,
+		int32_t following_index, bool &cache_miss)
+{
+	cache_miss = false;
+
+	// Anything but a plain waypoint (loiter, land, takeoff) is a place the vehicle comes to a stop at.
+	// A plain waypoint is only passed at speed if it holds no time and the mission continues by itself,
+	// same criteria as brake_for_hold in Mission::setActiveMissionItems().
+	if (item.nav_cmd != NAV_CMD_WAYPOINT
+	    || !item.autocontinue
+	    || get_time_inside(item) > FLT_EPSILON
+	    || item_has_timeout(item)) {
+		return false;
+	}
+
+	if (following_index == item_index) {
+		return false;
+	}
+
+	// The following position item was found skipping all non-position items in between. Any of those
+	// that makes the vehicle wait at the waypoint (delay, payload command with timeout, transition) or
+	// that redirects the mission (jump) means the waypoint is not simply flown through.
+	const int32_t step = (following_index > item_index) ? 1 : -1;
+	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+
+	// The number of items in between is not bounded, so read them from the cache only: a timeout here
+	// would turn this into one blocking dataman read per item. A miss is treated like an item that
+	// stops the vehicle, which just falls back to not carrying speed through the waypoint.
+	for (int32_t index = item_index + step; index != following_index; index += step) {
+		mission_item_s item_in_between;
+		const bool success = _dataman_cache.loadWait(mission_dataman_id, index,
+				     reinterpret_cast<uint8_t *>(&item_in_between), sizeof(item_in_between));
+
+		if (!success) {
+			cache_miss = true;
+			return false;
+		}
+
+		if (item_in_between.nav_cmd == NAV_CMD_DELAY
+		    || item_in_between.nav_cmd == NAV_CMD_DO_JUMP
+		    || item_in_between.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
+		    || item_has_timeout(item_in_between)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool MissionBase::findCachedPositionItem(int32_t start_index, bool direction_backward, int32_t &following_index,
+		mission_item_s &following_item, bool &cache_miss)
+{
+	const int32_t step = direction_backward ? -1 : 1;
+	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+	cache_miss = false;
+
+	for (int32_t index = start_index + step; (index >= 0) && (index < _mission.count); index += step) {
+		if (!_dataman_cache.loadWait(mission_dataman_id, index, reinterpret_cast<uint8_t *>(&following_item),
+					     sizeof(following_item))) {
+			cache_miss = true;
+			return false;
+		}
+
+		if (mission_item_contains_position(following_item)) {
+			following_index = index;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+math::trajectory::VehicleDynamicLimits MissionBase::trajectoryLimitsFor(const position_setpoint_s &current) const
+{
+	math::trajectory::VehicleDynamicLimits limits = _navigator->get_multicopter_trajectory_limits();
+
+	// same choice as FlightTaskAuto: the cruise speed of the setpoint it flies, when it carries one
+	if (PX4_ISFINITE(current.cruising_speed) && (current.cruising_speed > FLT_EPSILON)) {
+		limits.max_speed_xy = current.cruising_speed;
+	}
+
+	return limits;
+}
+
+static bool trajectoryLimitsEqual(const math::trajectory::VehicleDynamicLimits &a,
+				  const math::trajectory::VehicleDynamicLimits &b)
+{
+	// the inputs of the walk, the acceptance radii come from the items and the setpoint
+	return (fabsf(a.max_acc_xy - b.max_acc_xy) < FLT_EPSILON)
+	       && (fabsf(a.max_jerk - b.max_jerk) < FLT_EPSILON)
+	       && (fabsf(a.max_speed_xy - b.max_speed_xy) < FLT_EPSILON)
+	       && (fabsf(a.max_acc_xy_radius_scale - b.max_acc_xy_radius_scale) < FLT_EPSILON);
+}
+
+void MissionBase::setNextVelocityConstraint(const position_setpoint_s &current, const mission_item_s &next_item,
+		int32_t next_index, position_setpoint_s &next, bool direction_backward)
+{
+	// Remember the inputs, the walk is repeated by updateNextVelocityConstraint() if it ends on a cache
+	// miss or the limits change
+	_next_velocity_constraint_hit_cache_miss = false;
+	_dataman_cache_loading_since_constraint = false;
+	_next_velocity_constraint_item = next_item;
+	_next_velocity_constraint_index = next_index;
+	_next_velocity_constraint_backward = direction_backward;
+	_next_velocity_constraint_limits = trajectoryLimitsFor(current);
+
+	// Only the multicopter trajectory planner consumes the constraint, leave it unknown otherwise
+	// (same vehicle type source as get_time_inside(), which the stop criteria depend on)
+	if (_navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    || !next.valid || !current.valid || !PX4_ISFINITE(current.lat) || !PX4_ISFINITE(current.lon)) {
+		return;
+	}
+
+	math::trajectory::VehicleDynamicLimits limits = _next_velocity_constraint_limits;
+
+	// Beyond the distance needed by the same braking model used below, a stop cannot limit cruise speed.
+	const float horizon = math::trajectory::computeBrakingDistanceFromVelocity(limits.max_speed_xy, limits.max_jerk,
+			      limits.max_acc_xy, 2.f * limits.max_acc_xy);
+
+	// Bounded by the dataman cache, only cached items are read, a miss ends the walk like a stop would.
+	static constexpr size_t kMaxWaypoints = 10;
+	matrix::Vector3f waypoints[kMaxWaypoints];
+	float acceptance_radii[kMaxWaypoints];
+
+	// Local frame with next at the origin, altitude is not part of the horizontal speed planning
+	const MapProjection projection(next_item.lat, next_item.lon);
+	waypoints[0].setZero();
+	acceptance_radii[0] = next.acceptance_radius;
+	size_t num_waypoints = 1;
+	float path_length = 0.f;
+
+	int32_t item_index = next_index;
+	mission_item_s item = next_item;
+
+	while ((num_waypoints < kMaxWaypoints) && (path_length < horizon)) {
+		int32_t following_index;
+		mission_item_s following_item;
+		bool cache_miss = false;
+
+		if (!findCachedPositionItem(item_index, direction_backward, following_index, following_item, cache_miss)
+		    || !isFlownThroughWithoutStopping(item, item_index, following_index, cache_miss)) {
+			// A miss stands for "unknown", the vehicle may well fly through: worth another walk once the
+			// items are cached. Only a miss in the mission ahead is a candidate, the mission ending or a
+			// stop are final.
+			_next_velocity_constraint_hit_cache_miss = cache_miss;
+			break;
+		}
+
+		const matrix::Vector2f following_xy = projection.project(following_item.lat, following_item.lon);
+		waypoints[num_waypoints] = matrix::Vector3f(following_xy(0), following_xy(1), 0.f);
+		acceptance_radii[num_waypoints] = get_acceptance_radius_for_item(following_item);
+		path_length += (waypoints[num_waypoints] - waypoints[num_waypoints - 1]).norm();
+		num_waypoints++;
+
+		item_index = following_index;
+		item = following_item;
+	}
+
+	if (num_waypoints < 2) {
+		// the vehicle stops at next
+		matrix::Vector3f().copyTo(next.velocity_constraint);
+		return;
+	}
+
+	// Speed the vehicle may have when leaving next along the path, assuming a stop at the last waypoint reached
+	const float speed_leaving_next = math::trajectory::computeXYSpeedFromWaypoints(waypoints, num_waypoints,
+					 matrix::Vector3f{}, limits, acceptance_radii);
+
+	// The turn at next itself, from the current setpoint onto the segment after next. The planner evaluates
+	// this turn again with its own limits, including it here covers a segment after next shorter than the
+	// acceptance radius, whose length the planner does not know.
+	const matrix::Vector2f current_xy = projection.project(current.lat, current.lon);
+	limits.xy_accept_rad = acceptance_radii[0];
+	const float speed_at_next = math::trajectory::computeXYSpeedAtWaypoint(matrix::Vector3f(current_xy(0), current_xy(1),
+				    0.f), waypoints[0], waypoints[1], speed_leaving_next, limits);
+
+	const matrix::Vector2f direction_after_next = matrix::Vector2f((waypoints[1] - waypoints[0]).xy()).unit_or_zero();
+	matrix::Vector3f(direction_after_next(0) * speed_at_next, direction_after_next(1) * speed_at_next,
+			 0.f).copyTo(next.velocity_constraint);
+}
+
+void MissionBase::updateNextVelocityConstraint()
+{
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	bool repeat_walk = false;
+
+	if (_next_velocity_constraint_hit_cache_miss) {
+		if (_dataman_cache.isLoading()) {
+			_dataman_cache_loading_since_constraint = true;
+
+		} else if (_dataman_cache_loading_since_constraint) {
+			// Without anything new in the cache the walk would end on the same miss. This also holds for a
+			// miss beyond what the cache covers, so the walk is repeated once per cache load, not every cycle.
+			repeat_walk = true;
+		}
+	}
+
+	// The planner already flies with the new limits, a constraint made with the old ones may allow a speed
+	// the path after next no longer supports
+	const math::trajectory::VehicleDynamicLimits limits = trajectoryLimitsFor(pos_sp_triplet->current);
+
+	if (!trajectoryLimitsEqual(limits, _next_velocity_constraint_limits)) {
+		repeat_walk = true;
+	}
+
+	if (!repeat_walk) {
+		return;
+	}
+
+	// Only for the setpoint the walk was made for, another path may have changed the triplet since
+	if (!pos_sp_triplet->next.valid
+	    || (fabs(pos_sp_triplet->next.lat - _next_velocity_constraint_item.lat) > DBL_EPSILON)
+	    || (fabs(pos_sp_triplet->next.lon - _next_velocity_constraint_item.lon) > DBL_EPSILON)) {
+		_next_velocity_constraint_hit_cache_miss = false;
+		// nothing to repeat for these limits either
+		_next_velocity_constraint_limits = limits;
+		return;
+	}
+
+	setNextVelocityConstraint(pos_sp_triplet->current, _next_velocity_constraint_item, _next_velocity_constraint_index,
+				  pos_sp_triplet->next, _next_velocity_constraint_backward);
+	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void

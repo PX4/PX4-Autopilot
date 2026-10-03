@@ -70,6 +70,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/telemetry_status.h>
 
+#include <lib/motion_planning/TrajectoryConstraints.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
@@ -236,6 +237,17 @@ public:
 	float get_default_acceptance_radius() const;
 
 	/**
+	 * Dynamic limits the multicopter trajectory generator plans with, for predicting its speed along the mission.
+	 * The acceptance radius is the default one, the speed the cruise speed of the current mode.
+	 */
+	math::trajectory::VehicleDynamicLimits get_multicopter_trajectory_limits() const;
+
+	/**
+	 * Read the parameters from storage, including the trajectory limits mirrored from the position controller
+	 */
+	void params_update();
+
+	/**
 	 * Get the acceptance radius
 	 *
 	 * @return the distance at which the next waypoint should be used
@@ -353,6 +365,11 @@ public:
 
 	void preproject_stop_point(double &lat, double &lon);
 
+	/**
+	 * [m] Distance a multicopter needs to brake to a stop from the given horizontal speed
+	 */
+	float get_multicopter_braking_distance(float speed) const;
+
 	void stop_capturing_images();
 	void disable_camera_trigger();
 
@@ -458,10 +475,14 @@ private:
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
 	param_t _handle_mpc_jerk_auto{PARAM_INVALID};
 	param_t _handle_mpc_acc_hor{PARAM_INVALID};
+	param_t _handle_mpc_xy_cruise{PARAM_INVALID};
+	param_t _handle_mpc_xy_traj_p{PARAM_INVALID};
 
 	float _param_back_trans_dec_mss{0.f};
 	float _param_mpc_jerk_auto{4.f}; 	/**< initialized with the default jerk auto value to prevent division by 0 if the parameter is accidentally set to 0 */
 	float _param_mpc_acc_hor{3.f};		/**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
+	float _param_mpc_xy_cruise{5.f};	/**< initialized with the default cruise speed, used when the mode has no cruise speed */
+	float _param_mpc_xy_traj_p{0.5f};	/**< initialized with the default trajectory gain, scales the acceleration allowed in a turn */
 
 	float _cruising_speed_current_mode{-1.0f};
 	float _mission_throttle{NAN};
@@ -474,9 +495,6 @@ private:
 
 	// timer to trigger a delayed set gimbal neutral command
 	hrt_abstime _gimbal_neutral_activation_time{UINT64_MAX};
-
-	// update subscriptions
-	void params_update();
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers

@@ -37,3 +37,5 @@ px4_add_library(FlightTaskAuto
 
 target_link_libraries(FlightTaskAuto PUBLIC FlightTask FlightTaskUtility Sticks StickYaw WeatherVane)
 target_include_directories(FlightTaskAuto PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+px4_add_functional_gtest(SRC FlightTaskAutoTest.cpp LINKLIBS FlightTaskAuto CollisionPrevention geo)

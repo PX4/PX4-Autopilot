@@ -200,10 +200,16 @@ bool FlightTaskAuto::update()
 		waypoints[0] = _position;
 	}
 
+	// Velocity the navigator allows when leaving the next waypoint, so the planner does not have to assume a stop there
+	Vector3f velocity_after_next = _next_velocity_constraint;
+
 	if (isTargetModified()) {
 		// In case the target has been modified, we take this as the next waypoints
 		waypoints[2] = _position_setpoint;
+		velocity_after_next.setNaN();
 	}
+
+	_position_smoothing.setNextVelocityConstraint(velocity_after_next, _next_acceptance_radius);
 
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == int32_t(yaw_mode::towards_waypoint_yaw_first)
 					       && !_yaw_sp_aligned;
@@ -412,6 +418,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	if (!position_setpoint_triplet.current.valid || !PX4_ISFINITE(position_setpoint_triplet.current.alt)) {
 		// Best we can do is to just set all waypoints to current state
 		_triplet_previous = _triplet_current = _triplet_next = _position;
+		_next_velocity_constraint.setNaN();
 		_type = WaypointType::loiter;
 		_yaw_setpoint = _yaw;
 		_yawspeed_setpoint = NAN;
@@ -513,6 +520,18 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 		}
 
 		_next_was_valid = position_setpoint_triplet.next.valid;
+	}
+
+	// The velocity constraint of next is taken over independently of the waypoints: the navigator republishes the
+	// triplet with only the constraint changed once it knows more of the mission after next. Without a usable next
+	// waypoint the constraint is meaningless, unknown makes the planner assume a stop.
+	_next_velocity_constraint.setNaN();
+	_next_acceptance_radius = _target_acceptance_radius;
+
+	if ((_type != WaypointType::loiter) && _isFinite(position_setpoint_triplet.next) && position_setpoint_triplet.next.valid) {
+		// NED direction, no projection needed
+		_next_velocity_constraint = Vector3f(position_setpoint_triplet.next.velocity_constraint);
+		_next_acceptance_radius = position_setpoint_triplet.next.acceptance_radius;
 	}
 
 	// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)

@@ -174,6 +174,8 @@ Navigator::Navigator() :
 
 	_handle_mpc_jerk_auto = param_find("MPC_JERK_AUTO");
 	_handle_mpc_acc_hor = param_find("MPC_ACC_HOR");
+	_handle_mpc_xy_cruise = param_find("MPC_XY_CRUISE");
+	_handle_mpc_xy_traj_p = param_find("MPC_XY_TRAJ_P");
 
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_mission_sub = orb_subscribe(ORB_ID(mission));
@@ -216,6 +218,14 @@ void Navigator::params_update()
 
 	if (_handle_mpc_acc_hor != PARAM_INVALID) {
 		param_get(_handle_mpc_acc_hor, &_param_mpc_acc_hor);
+	}
+
+	if (_handle_mpc_xy_cruise != PARAM_INVALID) {
+		param_get(_handle_mpc_xy_cruise, &_param_mpc_xy_cruise);
+	}
+
+	if (_handle_mpc_xy_traj_p != PARAM_INVALID) {
+		param_get(_handle_mpc_xy_traj_p, &_param_mpc_xy_traj_p);
 	}
 
 	_mission.set_command_timeout(_param_mis_command_tout.get());
@@ -1398,6 +1408,7 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.course = NAN;
 	sp.loiter_radius = get_default_loiter_rad();
 	sp.acceptance_radius = get_default_acceptance_radius();
+	matrix::Vector3f(NAN, NAN, NAN).copyTo(sp.velocity_constraint);
 	sp.cruising_speed = get_cruising_speed();
 	sp.cruising_throttle = get_cruising_throttle();
 	sp.valid = false;
@@ -1414,6 +1425,20 @@ float Navigator::get_cruising_throttle()
 	} else {
 		return NAN;
 	}
+}
+
+math::trajectory::VehicleDynamicLimits Navigator::get_multicopter_trajectory_limits() const
+{
+	math::trajectory::VehicleDynamicLimits limits{};
+	limits.z_accept_rad = _param_nav_mc_alt_rad.get();
+	limits.xy_accept_rad = get_default_acceptance_radius();
+	limits.max_acc_xy = _param_mpc_acc_hor;
+	limits.max_jerk = _param_mpc_jerk_auto;
+	// same choice as FlightTaskAuto: the cruise speed requested by the mode, else the parameter
+	limits.max_speed_xy = (_cruising_speed_current_mode > FLT_EPSILON) ? _cruising_speed_current_mode : _param_mpc_xy_cruise;
+	limits.max_acc_xy_radius_scale = _param_mpc_xy_traj_p;
+
+	return limits;
 }
 
 float Navigator::get_acceptance_radius() const
@@ -1857,11 +1882,14 @@ void Navigator::preproject_stop_point(double &lat, double &lon)
 
 	const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
 
-	const float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
-			_param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
-
 	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
-					   multirotor_braking_distance, &lat, &lon);
+					   get_multicopter_braking_distance(velocity_hor_abs), &lat, &lon);
+}
+
+float Navigator::get_multicopter_braking_distance(float speed) const
+{
+	return math::trajectory::computeBrakingDistanceFromVelocity(speed, _param_mpc_jerk_auto, _param_mpc_acc_hor,
+			0.6f * _param_mpc_jerk_auto);
 }
 
 void Navigator::mode_completed(uint8_t nav_state, uint8_t result)
