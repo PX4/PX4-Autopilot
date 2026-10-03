@@ -114,6 +114,12 @@ private:
 	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 	hrt_abstime _time_position_control_enabled{0};
 
+	// Velocity limits decaying from a speed higher than maximum after a control mode change to the configured maximum
+	float _vel_limit_xy{NAN};
+	float _vel_limit_up{NAN};
+	float _vel_limit_down{NAN};
+	hrt_abstime _time_vel_limit_reset{0};
+
 	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
 	trajectory_setpoint_s _last_valid_setpoint{PositionControl::empty_trajectory_setpoint};
 	vehicle_control_mode_s _vehicle_control_mode{};
