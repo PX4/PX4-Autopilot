@@ -175,7 +175,7 @@ public:
 	 * @param[in] dt is the update interval in [s].
 	 * @param[in] setpoint are the desired setpoints.
 	 * @param[in] altitude is the altitude amsl in [m].
-	 * @param[in] height_rate is the height rate setpoint in [m/s].
+	 * @param[in] height_rate is the current height rate in [m/s].
 	 * @param[in] param are the reference model parameters.
 	 */
 	void update(float dt, const AltitudeReferenceState &setpoint, float altitude, float height_rate, const Param &param);
@@ -307,6 +307,10 @@ public:
 	/**
 	 * @brief Initialization of the state.
 	 *
+	 * @param[in] setpoint is the current setpoint struct.
+	 * @param[in] input is the current input measurements.
+	 * @param[in] param is the current parameter set.
+	 * @param[in] flag is the current activated flags.
 	 */
 	void initialize(const Setpoint &setpoint, const Input &input, const Param &param, const Flag &flag);
 	/**
@@ -521,6 +525,7 @@ private:
 	 * @param dt is the update time interval in [s].
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rate is the calculated specific energy.
+	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 */
 	void _calcThrottleControl(float dt, const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rate,
@@ -625,12 +630,15 @@ public:
 
 	/**
 	 * Set the airspeed enable state
+	 *
+	 * @param[in] enabled is true if the airspeed measurement is used for control.
 	 */
 	void enable_airspeed(bool enabled) { _control_flag.airspeed_enabled = enabled; }
 
 	/**
 	 * @brief Update the control loop calculations
 	 *
+	 * @param[in] input is the current vehicle state, setpoints and limits.
 	 */
 	void update(const Input &input);
 
@@ -679,6 +687,9 @@ public:
 	 *
 	 * If the estimation system resets the height in one discrete step this
 	 * will gracefully even out the reset over time.
+	 *
+	 * @param[in] altitude is the altitude amsl after the reset [m].
+	 * @param[in] altitude_rate is the current altitude rate [m/s].
 	 */
 	void handle_alt_step(float altitude, float altitude_rate)
 	{
@@ -706,6 +717,7 @@ private:
 	/**
 	 * @brief Initialize the control parameters
 	 *
+	 * @param[in] input is the current vehicle state, setpoints and limits.
 	 */
 	void initControlParams(const Input &input);
 
@@ -723,6 +735,7 @@ private:
 	/**
 	 * @brief Initialize the control loop
 	 *
+	 * @param[in] input is the current vehicle state, setpoints and limits.
 	 */
 	void initialize(const Input &input);
 
