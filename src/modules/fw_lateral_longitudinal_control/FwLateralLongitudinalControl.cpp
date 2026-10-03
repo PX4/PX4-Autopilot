@@ -409,21 +409,27 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
 	const float airspeed_rate_estimate = 0.f;
 
-	_tecs.update(_long_control_state.altitude_msl,
-		     alt_sp,
-		     airspeed_sp,
-		     _long_control_state.airspeed_eas,
-		     _long_control_state.eas2tas,
-		     throttle_min,
-		     throttle_max,
-		     throttle_trim_compensated,
-		     pitch_min_rad - radians(_param_fw_psp_off.get()),
-		     pitch_max_rad - radians(_param_fw_psp_off.get()),
-		     desired_max_climbrate,
-		     desired_max_sinkrate,
-		     airspeed_rate_estimate,
-		     _long_control_state.height_rate,
-		     hgt_rate_sp);
+	// PX4 disables -Wmissing-field-initializers globally; enable it here so a field left out of TECS::Input fails the build
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wmissing-field-initializers"
+	_tecs.update(TECS::Input {
+		.altitude = _long_control_state.altitude_msl,
+		.altitude_rate = _long_control_state.height_rate,
+		.altitude_setpoint = alt_sp,
+		.altitude_rate_setpoint = hgt_rate_sp,
+		.equivalent_airspeed = _long_control_state.airspeed_eas,
+		.speed_deriv_forward = airspeed_rate_estimate,
+		.equivalent_airspeed_setpoint = airspeed_sp,
+		.eas_to_tas = _long_control_state.eas2tas,
+		.throttle_min = throttle_min,
+		.throttle_max = throttle_max,
+		.throttle_trim = throttle_trim_compensated,
+		.pitch_min = pitch_min_rad - radians(_param_fw_psp_off.get()),
+		.pitch_max = pitch_max_rad - radians(_param_fw_psp_off.get()),
+		.target_climbrate = desired_max_climbrate,
+		.target_sinkrate = desired_max_sinkrate,
+	});
+#pragma GCC diagnostic pop
 
 	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_compensated, now);
 
