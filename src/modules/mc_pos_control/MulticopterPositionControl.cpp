@@ -434,7 +434,7 @@ void MulticopterPositionControl::Run()
 
 		_trajectory_setpoint_sub.update(&_setpoint);
 
-		adjustSetpointForEKFResets(vehicle_local_position, _setpoint);
+		adjustSetpointForEKFResets(vehicle_local_position, _setpoint, _last_valid_setpoint);
 
 		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 			// set failsafe setpoint if there hasn't been a new
@@ -577,8 +577,8 @@ void MulticopterPositionControl::Run()
 
 				// Initial update failed - Try fallback if within timeout
 				if (now < _last_valid_setpoint.timestamp + 200_ms) {
-					// Use last valid setpoint
-					adjustSetpointForEKFResets(vehicle_local_position, _last_valid_setpoint);
+					// Use last valid setpoint. It was already moved into the current estimate
+					// frame above, at the same time as _setpoint.
 					_control.setInputSetpoint(_last_valid_setpoint);
 				}
 
@@ -682,35 +682,51 @@ trajectory_setpoint_s MulticopterPositionControl::generateFailsafeSetpoint(const
 }
 
 void MulticopterPositionControl::adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position,
-		trajectory_setpoint_s &setpoint)
+		trajectory_setpoint_s &setpoint, trajectory_setpoint_s &fallback_setpoint)
 {
-	const bool setpoint_predates_reset = (setpoint.timestamp != 0) && (setpoint.timestamp < vehicle_local_position.timestamp);
+	auto apply_reset_deltas = [&](trajectory_setpoint_s & setpoint_to_adjust) {
+		if ((setpoint_to_adjust.timestamp != 0) && (setpoint_to_adjust.timestamp < vehicle_local_position.timestamp)) {
+			if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
+				setpoint_to_adjust.position[0] += vehicle_local_position.delta_xy[0];
+				setpoint_to_adjust.position[1] += vehicle_local_position.delta_xy[1];
+			}
+
+			if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
+				setpoint_to_adjust.position[2] += vehicle_local_position.delta_z;
+			}
+
+			if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
+				setpoint_to_adjust.velocity[0] += vehicle_local_position.delta_vxy[0];
+				setpoint_to_adjust.velocity[1] += vehicle_local_position.delta_vxy[1];
+			}
+
+			if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
+				setpoint_to_adjust.velocity[2] += vehicle_local_position.delta_vz;
+			}
+
+			if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
+				setpoint_to_adjust.yaw = wrap_pi(setpoint_to_adjust.yaw + vehicle_local_position.delta_heading);
+			}
+		}
+	};
+
+	apply_reset_deltas(setpoint);
+
+	// The stored fallback has to move in the same cycle. The counters are latched below, so a
+	// later call would find nothing changed and would leave it in the pre reset frame.
+	apply_reset_deltas(fallback_setpoint);
 
 	if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
-		if (setpoint_predates_reset) {
-			setpoint.position[0] += vehicle_local_position.delta_xy[0];
-			setpoint.position[1] += vehicle_local_position.delta_xy[1];
-		}
-
 		_goto_control.ekfResetHandlerPosition(Vector3f(vehicle_local_position.x, vehicle_local_position.y, NAN));
 		_xy_reset_counter = vehicle_local_position.xy_reset_counter;
 	}
 
 	if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
-		if (setpoint_predates_reset) {
-			setpoint.position[2] += vehicle_local_position.delta_z;
-		}
-
 		_goto_control.ekfResetHandlerPosition(Vector3f(NAN, NAN, vehicle_local_position.z));
 		_z_reset_counter = vehicle_local_position.z_reset_counter;
 	}
 
 	if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
-		if (setpoint_predates_reset) {
-			setpoint.velocity[0] += vehicle_local_position.delta_vxy[0];
-			setpoint.velocity[1] += vehicle_local_position.delta_vxy[1];
-		}
-
 		_vel_xy_lp_filter.reset(_vel_xy_lp_filter.getState() + Vector2f(vehicle_local_position.delta_vxy));
 		_vel_xy_notch_filter.reset();
 		_goto_control.ekfResetHandlerVelocity(Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, NAN));
@@ -718,10 +734,6 @@ void MulticopterPositionControl::adjustSetpointForEKFResets(const vehicle_local_
 	}
 
 	if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
-		if (setpoint_predates_reset) {
-			setpoint.velocity[2] += vehicle_local_position.delta_vz;
-		}
-
 		_vel_z_lp_filter.reset(_vel_z_lp_filter.getState() + vehicle_local_position.delta_vz);
 		_vel_z_notch_filter.reset();
 		_goto_control.ekfResetHandlerVelocity(Vector3f(NAN, NAN, vehicle_local_position.vz));
@@ -729,10 +741,6 @@ void MulticopterPositionControl::adjustSetpointForEKFResets(const vehicle_local_
 	}
 
 	if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
-		if (setpoint_predates_reset) {
-			setpoint.yaw = wrap_pi(setpoint.yaw + vehicle_local_position.delta_heading);
-		}
-
 		_goto_control.ekfResetHandlerHeading(vehicle_local_position.delta_heading);
 		_heading_reset_counter = vehicle_local_position.heading_reset_counter;
 	}
