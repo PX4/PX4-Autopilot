@@ -76,5 +76,6 @@ Notes:
 
 ## See Also
 
+- [Static Pressure Buildup](../advanced_config/static_pressure_buildup.md)
 - [Baro driver source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer)
 - [Modules Reference: Baro (Driver)](../modules/modules_driver_baro.md) documentation.

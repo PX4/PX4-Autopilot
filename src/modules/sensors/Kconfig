@@ -20,6 +20,11 @@ if MODULES_SENSORS
         bool "Include vehicle air data"
         default y
 
+    config SENSORS_BARO_COMPENSATION
+        bool "Include barometer static pressure and thrust compensation"
+        default y
+        depends on SENSORS_VEHICLE_AIR_DATA
+
     config SENSORS_VEHICLE_ANGULAR_VELOCITY
         bool "Include vehicle angular velocity"
         default y
