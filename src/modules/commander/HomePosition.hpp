@@ -79,6 +79,7 @@ private:
 	bool hasMovedFromCurrentHomeLocation();
 	bool isGpsPositionFusionEnabled();
 	void setHomePosValid();
+	void resetHomeAltitudeCorrection();
 	void updateHomePositionYaw(float yaw);
 
 	static void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos);
