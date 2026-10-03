@@ -74,7 +74,6 @@ Set the following parameters in _QGroundControl_:
 
 - Enable [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to 2 for dynamic node allocation.
 - Enable [UAVCAN_SUB_RNG](../advanced_config/parameter_reference.md#UAVCAN_SUB_RNG).
-- Set [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX) to `50`.
 - Set [EKF2_RNG_QLTY_T](../advanced_config/parameter_reference.md#EKF2_RNG_QLTY_T) to `0.2`.
 - Set [UAVCAN_RNG_MIN](../advanced_config/parameter_reference.md#UAVCAN_RNG_MIN) to `0.08`.
 - Set [UAVCAN_RNG_MAX](../advanced_config/parameter_reference.md#UAVCAN_RNG_MAX) to `50`.
@@ -89,7 +88,6 @@ If connecting via a UART set the following parameters in _QGroundControl_:
 - Set [MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD) to `0` (off).
 - Set [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) to `7` or `13` to (Minimal or Low Bandwidth) to reduce memory usage.
 - Set `SER_XXX_BAUD` to `115200`, where `XXX` is specific to the port you are using (such as [SER_GPS2_BAUD](../advanced_config/parameter_reference.md#SER_GPS2_BAUD)).
-- Set [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX) to `50`.
 - Set [EKF2_RNG_QLTY_T](../advanced_config/parameter_reference.md#EKF2_RNG_QLTY_T) to `0.2`.
 
 ## See Also
