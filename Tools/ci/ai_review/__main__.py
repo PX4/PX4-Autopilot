@@ -204,6 +204,12 @@ def parser() -> argparse.ArgumentParser:
     rct.add_argument('content', choices=['eyes', 'rocket', 'confused'])
     rct.set_defaults(func=lambda a: trigger.main(
         ['react', a.comment_id, a.content]))
+    sts = sub.add_parser('status', help='set the final commit status on the '
+                         'PR head from the review job result')
+    sts.add_argument('sha')
+    sts.add_argument('result')
+    sts.set_defaults(func=lambda a: trigger.main(
+        ['status', a.sha, a.result]))
 
     chk = sub.add_parser('models-check', help='send a one-token request to '
                          'every model in models.json with the current '
