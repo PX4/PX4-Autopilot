@@ -47,6 +47,7 @@ using math::max;
 using math::min;
 
 static inline constexpr bool TIMESTAMP_VALID(float dt) { return (PX4_ISFINITE(dt) && dt > FLT_EPSILON);}
+static inline constexpr bool fastDescendFullyEngaged(float fast_descend) { return 1.f - fast_descend < FLT_EPSILON; }
 
 void TECSAirspeedFilter::initialize(const float equivalent_airspeed, const float equivalent_airspeed_trim,
 				    const bool airspeed_sensor_available)
@@ -521,7 +522,7 @@ void TECSControl::_calcThrottleControl(float dt, const STERateLimit &limit,
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rates, param)};
 	float throttle_setpoint{param.throttle_min};
 
-	if (1.f - param.fast_descend < FLT_EPSILON) {
+	if (fastDescendFullyEngaged(param.fast_descend)) {
 		// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending
 		throttle_setpoint = param.throttle_min;
 
@@ -737,7 +738,7 @@ void TECS::update(float altitude, float hgt_setpoint, float EAS_setpoint, float 
 		_airspeed_filter.update(dt, airspeed_input, _airspeed_filter_param, _control_flag.airspeed_enabled);
 
 		// Update Reference model submodule
-		if (1.f - _fast_descend < FLT_EPSILON) {
+		if (fastDescendFullyEngaged(_fast_descend)) {
 			// Reset the altitude reference model, while we are in fast descend.
 			const TECSAltitudeReferenceModel::AltitudeReferenceState init_state{
 				.alt = altitude,
@@ -795,8 +796,8 @@ void TECS::_setFastDescend(const float alt_setpoint, const float alt)
 					      static_cast<float>(FAST_DESCEND_RAMP_UP_TIME)), 0.f, 1.f);
 
 	} else if (PX4_ISFINITE(alt_setpoint) && (_fast_descend > FLT_EPSILON) && (_fast_descend_alt_err > FLT_EPSILON)) {
-		// Were in fast descend, scale it down. up until 5m above target altitude
-		_fast_descend = constrain((alt - alt_setpoint - 5.f) / _fast_descend_alt_err, 0.f, 1.f);
+		// Were in fast descend, scale it down until FAST_DESCEND_HEIGHT_MARGIN above target altitude
+		_fast_descend = constrain((alt - alt_setpoint - FAST_DESCEND_HEIGHT_MARGIN) / _fast_descend_alt_err, 0.f, 1.f);
 		_enabled_fast_descend_timestamp = 0U;
 
 	} else {
