@@ -588,6 +588,29 @@ public:
 		float height_rate_direct;
 		float fast_descend;
 	};
+
+	/**
+	 * @brief Vehicle state, setpoints and limits for one control update.
+	 *
+	 */
+	struct Input {
+		float altitude;				///< Current altitude amsl [m].
+		float altitude_rate;			///< Current altitude rate [m/s].
+		float altitude_setpoint;		///< Altitude setpoint amsl [m], NAN if not set.
+		float altitude_rate_setpoint{NAN};	///< Altitude rate setpoint [m/s], NAN if not set.
+		float equivalent_airspeed;		///< Current equivalent airspeed [m/s].
+		float speed_deriv_forward;		///< Current forward acceleration, used as true airspeed rate [m/s²].
+		float equivalent_airspeed_setpoint;	///< Equivalent airspeed setpoint [m/s].
+		float eas_to_tas;			///< Conversion factor from equivalent to true airspeed [-].
+		float throttle_min;			///< Normalized throttle lower limit.
+		float throttle_max;			///< Normalized throttle upper limit.
+		float throttle_trim;			///< Normalized throttle required to fly level at the airspeed setpoint.
+		float pitch_min;			///< Minimal pitch angle below trim [rad].
+		float pitch_max;			///< Maximum pitch angle above trim [rad].
+		float target_climbrate;			///< Climb rate the reference model targets [m/s].
+		float target_sinkrate;			///< Sink rate the reference model targets [m/s].
+	};
+
 public:
 	TECS() = default;
 	~TECS() = default;
@@ -609,10 +632,7 @@ public:
 	 * @brief Update the control loop calculations
 	 *
 	 */
-	void update(float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
-		    float eas_to_tas, float throttle_min, float throttle_setpoint_max,
-		    float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
-		    float target_sinkrate, float speed_deriv_forward, float hgt_rate, float hgt_rate_sp = NAN);
+	void update(const Input &input);
 
 	void resetIntegrals()
 	{
@@ -687,8 +707,7 @@ private:
 	 * @brief Initialize the control parameters
 	 *
 	 */
-	void initControlParams(float target_climbrate, float target_sinkrate, float eas_to_tas, float pitch_limit_max,
-			       float pitch_limit_min, float throttle_min, float throttle_setpoint_max, float throttle_trim);
+	void initControlParams(const Input &input);
 
 	/**
 	 * @brief calculate true airspeed setpoint
@@ -705,8 +724,7 @@ private:
 	 * @brief Initialize the control loop
 	 *
 	 */
-	void initialize(const float altitude, const float altitude_rate, const float equivalent_airspeed,
-			float eas_to_tas);
+	void initialize(const Input &input);
 
 	TECSControl 			_control;			///< Control submodule.
 	TECSAirspeedFilter 		_airspeed_filter;		///< Airspeed filter submodule.
