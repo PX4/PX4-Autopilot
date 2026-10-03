@@ -1,0 +1,9 @@
+menuconfig SYSTEMCMDS_SERIAL_CONFIG
+	bool "serial_config"
+	default n
+	depends on PLATFORM_NUTTX && ARCH_CHIP_STM32H7
+	---help---
+		Apply SER_*_SWAP before starting an automatically configured serial service.
+		Currently supported on STM32H7, where the UART driver preserves SWAP across
+		close/reopen. The NuttX configuration must enable STM32H7_USART_SWAP.
+		This command does not run a background task.

@@ -156,6 +156,8 @@ parser.add_argument('--all-ports', action='store_true',
                     help='Generate output for all known ports (params file only)')
 parser.add_argument('--constrained-flash', action='store_true',
                     help='Reduce verbosity in ROMFS scripts to reduce flash size')
+parser.add_argument('--serial-config', action='store_true',
+                    help='Enable serial_config startup settings and parameters')
 parser.add_argument('--rc-dir', type=str, action='store',
                     help='ROMFS output directory', default=None)
 parser.add_argument('--params-file', type=str, action='store',
@@ -175,6 +177,7 @@ rc_serial_port_template = 'rc.serial_port.jinja'
 serial_params_output_file = args.params_file
 serial_params_template = 'serial_params.c.jinja'
 generate_for_all_ports = args.all_ports
+serial_config_enabled = args.serial_config or generate_for_all_ports
 constrained_flash = args.constrained_flash
 ethernet_supported = args.ethernet
 
@@ -320,6 +323,7 @@ if rc_serial_output_dir is not None:
         with open(rc_serial_port_output_file, 'w') as fid:
             fid.write(template.render(serial_devices=serial_devices,
                 ethernet_configuration=ethernet_configuration,
+                serial_config_enabled=serial_config_enabled,
                 constrained_flash=constrained_flash))
 
 # parameter definitions
@@ -329,4 +333,5 @@ if serial_params_output_file is not None:
     with open(serial_params_output_file, 'w') as fid:
         fid.write(template.render(serial_devices=serial_devices,
             ethernet_configuration=ethernet_configuration,
+            serial_config_enabled=serial_config_enabled,
             commands=commands, serial_ports=serial_ports))
