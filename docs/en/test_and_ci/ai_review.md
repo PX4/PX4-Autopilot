@@ -17,7 +17,7 @@ A request from anyone else is ignored.
 
 ## Starting a Review
 
-Post a comment on the pull request that contains only this text:
+Post a comment on the open pull request that contains only this text:
 
 ```txt
 !ai-review
@@ -34,6 +34,9 @@ To pick the model or the effort level, add options on the same line:
 
 - `model`: `opus` (the default) or `sonnet`.
 - `effort`: `low`, `medium`, `high`, `xhigh` (the default) or `max`.
+
+Both options apply to the first review pass only.
+The second pass that confirms findings always uses Claude Opus at `high` effort (set in `Tools/ci/ai_review/models.json`), and its cost is included in the total.
 
 Within a few seconds your comment gets a 👀 reaction, which means the review has started.
 When it finishes, the comment gets 🚀, or 😕 if the run failed.
@@ -62,14 +65,15 @@ For an example, see [PR #28901](https://github.com/PX4/PX4-Autopilot/pull/28901)
 The review is always a comment.
 It never approves a pull request or requests changes: maintainers decide.
 
-Running the review again on the same pull request replaces the previous review, which is marked as superseded.
+Running the review again on the same pull request collapses the previous review's summary and marks it as superseded.
+Its inline comments stay on the pull request and may refer to an older commit.
 
 If the model's safety filter declines to review a pull request, which occasionally happens, the bot posts that no review was done and quotes the reason it was given.
 
 ## Cost
 
 Each review is billed to the PX4 project.
-So far, reviews have cost between about $0.60 for a small change and $5 to $8 for a large board addition with Claude Opus, and roughly an eighth of that with Claude Sonnet.
+So far, reviews have cost between about $0.60 for a small change and $5 to $8 for a large board addition with Claude Opus, and less with Claude Sonnet.
 The exact cost is shown at the bottom of every review.
 
 Claude Sonnet is faster and cheaper, but in testing it missed real problems that Claude Opus found, so Opus is the default.
