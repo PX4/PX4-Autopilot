@@ -446,13 +446,34 @@ void CameraStream::gstThreadFunc()
 	g_object_set(G_OBJECT(capsFilter), "caps", rateCaps, NULL);
 	gst_caps_unref(rateCaps);
 
+	// Pin the encoder input to I420, so that the profile no longer depends on
+	// which encoder was selected. x264enc lists Y444 first among its accepted
+	// formats, so an unconstrained videoconvert feeds it 4:4:4 and it emits
+	// High 4:4:4; nvh264enc lists NV12 first and yields 4:2:0. Left free, the
+	// same world streams a different profile depending on the host, and the
+	// 4:4:4 one is rejected by hardware decoders and by the Jetson encoder.
+	GstElement *formatFilter = gst_element_factory_make("capsfilter", nullptr);
+	GstCaps *formatCaps =
+		gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "I420", NULL);
+	g_object_set(G_OBJECT(formatFilter), "caps", formatCaps, NULL);
+	gst_caps_unref(formatCaps);
+
+	if (!capsFilter || !formatFilter) {
+		gzerr << "Failed to create GStreamer caps filters" << std::endl;
+		gst_object_unref(_pipeline);
+		g_main_loop_unref(_gstLoop);
+		_pipeline = nullptr;
+		_gstLoop = nullptr;
+		return;
+	}
+
 	// Add elements to pipeline
 	gst_bin_add_many(GST_BIN(_pipeline), _source, queue1, videoRate, capsFilter,
-			 converter, queue2, encoder, payloader, sink, nullptr);
+			 converter, formatFilter, queue2, encoder, payloader, sink, nullptr);
 
 	// Link elements
 	if (!gst_element_link_many(_source, queue1, videoRate, capsFilter, converter,
-				   queue2, encoder, payloader, sink, nullptr)) {
+				   formatFilter, queue2, encoder, payloader, sink, nullptr)) {
 		gzerr << "Failed to link GStreamer elements" << std::endl;
 		gst_object_unref(_pipeline);
 		g_main_loop_unref(_gstLoop);
