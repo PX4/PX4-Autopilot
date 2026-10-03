@@ -155,7 +155,6 @@ param set-default CAL_MAG1_ID 197644
 param set-default CAL_MAG1_PRIO 50
 
 param set-default SENS_BOARD_X_OFF 0.000001
-param set-default SENS_DPRES_OFF 0.001
 
 param set-default BAT1_N_CELLS 4
 
