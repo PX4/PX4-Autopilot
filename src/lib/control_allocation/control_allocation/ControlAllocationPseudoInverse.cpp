@@ -66,7 +66,15 @@ void
 ControlAllocationPseudoInverse::updatePseudoInverse()
 {
 	if (_mix_update_needed) {
-		matrix::geninv(_effectiveness, _mix);
+		// the pseudo-inverse squares the condition number of the effectiveness matrix: the 6x6 kernel needs double
+		if (!matrix::geninvMixedPrecision(_effectiveness, _mix)) {
+			// _mix untouched: keep previous allocation
+			_effectiveness_inversion_failed = true;
+			_mix_update_needed = false;
+			return;
+		}
+
+		_effectiveness_inversion_failed = false;
 
 		if (!_metric_allocation) {
 			if (_normalization_needs_update && !_had_actuator_failure) {
