@@ -153,7 +153,6 @@ public:
 	struct Param {
 		float target_climbrate;	///< The target climbrate in [m/s].
 		float target_sinkrate;	///< The target sinkrate in [m/s].
-		float jerk_max;		///< Magnitude of the maximum jerk allowed [m/s³].
 		float vert_accel_limit;	///< Magnitude of the maximum vertical acceleration allowed [m/s²].
 		float max_climb_rate;	///< Climb rate produced by max allowed throttle [m/s].
 		float max_sink_rate;	///< Maximum sink rate (with min throttle, max speed) [m/s].
@@ -197,6 +196,8 @@ public:
 
 
 private:
+	static constexpr float JERK_MAX = 1000.f;	///< Magnitude of the maximum jerk allowed [m/s³].
+
 	// State
 	VelocitySmoothing
 	_alt_control_traj_generator;		///< Generates altitude rate and altitude setpoint trajectory when altitude is commanded.
@@ -735,7 +736,6 @@ private:
 	TECSAltitudeReferenceModel::Param _reference_param{
 		.target_climbrate = 2.0f,
 		.target_sinkrate = 2.0f,
-		.jerk_max = 1000.0f,
 		.vert_accel_limit = 0.0f,
 		.max_climb_rate = 2.0f,
 		.max_sink_rate = 2.0f,
