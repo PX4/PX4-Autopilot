@@ -39,6 +39,16 @@
 #include <uORB/Subscription.hpp>
 
 #include <lib/parameters/param.h>
+#include <sys/boardctl.h>
+#include <cerrno>
+
+#if defined(CONFIG_BOARDCTL_RESET)
+// Functional tests do not run the SITL main that implements process restart.
+int boardctl(unsigned int, uintptr_t)
+{
+	return -ENOSYS;
+}
+#endif
 
 int main(int argc, char **argv)
 {

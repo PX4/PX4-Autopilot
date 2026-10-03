@@ -3,3 +3,12 @@ menuconfig MODULES_MC_AUTOTUNE_ATTITUDE_CONTROL
 	default n
 	---help---
 		Enable support for mc_autotune_attitude_control
+
+config MC_AUTOTUNE_EXPERIMENTAL
+	bool "Experimental response-verified MC autotune"
+	depends on MODULES_MC_AUTOTUNE_ATTITUDE_CONTROL
+	default n
+	---help---
+		Select the experimental response-verification method instead of standard
+		MC autotune. Requires additional FLASH and approximately 35 KiB of heap.
+		Only one implementation is included in the firmware.
