@@ -46,8 +46,8 @@ using math::constrain;
 using math::max;
 using math::min;
 
-static inline constexpr bool TIMESTAMP_VALID(float dt) { return (PX4_ISFINITE(dt) && dt > FLT_EPSILON);}
-static inline constexpr bool fastDescendFullyEngaged(float fast_descend) { return 1.f - fast_descend < FLT_EPSILON; }
+static constexpr bool isValidTimeStep(float dt) { return (PX4_ISFINITE(dt) && dt > FLT_EPSILON);}
+static constexpr bool fastDescendFullyEngaged(float fast_descend) { return 1.f - fast_descend < FLT_EPSILON; }
 
 void TECSAirspeedFilter::initialize(const float equivalent_airspeed, const float equivalent_airspeed_trim,
 				    const bool airspeed_sensor_available)
@@ -66,7 +66,7 @@ void TECSAirspeedFilter::update(const float dt, const Input &input, const Param 
 				const bool airspeed_sensor_available)
 {
 	// Input checking
-	if (!TIMESTAMP_VALID(dt)) {
+	if (!isValidTimeStep(dt)) {
 		// Do not update the states.
 		return;
 	}
@@ -127,7 +127,7 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 					float height_rate, const Param &param)
 {
 	// Input checks
-	if (!TIMESTAMP_VALID(dt)) {
+	if (!isValidTimeStep(dt)) {
 		// Do not update the states.
 		return;
 	}
@@ -143,7 +143,7 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 	// Altitude setpoint reference
 	_alt_control_traj_generator.setMaxJerk(JERK_MAX);
 	_alt_control_traj_generator.setMaxAccel(param.vert_accel_limit);
-	_alt_control_traj_generator.setMaxVel(fmax(param.max_climb_rate, param.max_sink_rate));
+	_alt_control_traj_generator.setMaxVel(fmaxf(param.max_climb_rate, param.max_sink_rate));
 
 	// XXX: this is a bit risky.. .alt_rate here could be NAN (by interface design) - and is only ok to input to the
 	// setVelSpFeedback() method because it calls the reset in the logic below when it is NAN.
@@ -219,7 +219,7 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
 
-	AltitudePitchControl control_setpoint;
+	OuterLoopSetpoints control_setpoint;
 
 	control_setpoint.tas_setpoint = setpoint.tas_setpoint;
 
@@ -257,14 +257,14 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 			 const Flag &flag)
 {
 	// Input checking
-	if (!TIMESTAMP_VALID(dt)) {
+	if (!isValidTimeStep(dt)) {
 		// Do not update the states and output.
 		return;
 	}
 
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
 
-	AltitudePitchControl control_setpoint;
+	OuterLoopSetpoints control_setpoint;
 
 	control_setpoint.tas_setpoint = setpoint.tas_setpoint;
 	control_setpoint.tas_rate_setpoint = _calcAirspeedControlOutput(setpoint, input, limit, param, flag);
@@ -332,7 +332,7 @@ float TECSControl::_calcAltitudeControlOutput(const Setpoint &setpoint, const In
 	return altitude_rate_output;
 }
 
-TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint,
+TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint,
 		const Input &input) const
 {
 	SpecificEnergyRates specific_energy_rates;
@@ -520,13 +520,10 @@ void TECSControl::_calcThrottleControl(float dt, const STERateLimit &limit,
 	_ste_rate_estimate_filter.setParameters(dt, param.ste_rate_time_const);
 	_ste_rate_estimate_filter.update(STE_rate_estimate_raw);
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rates, param)};
+	// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending
 	float throttle_setpoint{param.throttle_min};
 
-	if (fastDescendFullyEngaged(param.fast_descend)) {
-		// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending
-		throttle_setpoint = param.throttle_min;
-
-	} else {
+	if (!fastDescendFullyEngaged(param.fast_descend)) {
 		_calcThrottleControlUpdate(dt, limit, ste_rate, param, flag);
 		throttle_setpoint = (1.f - param.fast_descend) * _calcThrottleControlOutput(limit, ste_rate, param,
 				    flag) + param.fast_descend * param.throttle_min;
@@ -717,12 +714,12 @@ void TECS::update(float altitude, float hgt_setpoint, float EAS_setpoint, float 
 			  throttle_setpoint_max, throttle_trim);
 
 	if (dt < DT_MIN) {
-		// Update intervall too small, do not update. Assume constant states/output in this case.
+		// Update interval too small, do not update. Assume constant states/output in this case.
 		return;
 	}
 
 	if (dt > DT_MAX || _update_timestamp == 0UL) {
-		// Update time intervall too large, can't guarantee sanity of state updates anymore. reset the control loop.
+		// Update time interval too large, can't guarantee sanity of state updates anymore. reset the control loop.
 		initialize(altitude, hgt_rate, equivalent_airspeed, eas_to_tas);
 
 	} else {
@@ -796,7 +793,7 @@ void TECS::_setFastDescend(const float alt_setpoint, const float alt)
 					      static_cast<float>(FAST_DESCEND_RAMP_UP_TIME)), 0.f, 1.f);
 
 	} else if (PX4_ISFINITE(alt_setpoint) && (_fast_descend > FLT_EPSILON) && (_fast_descend_alt_err > FLT_EPSILON)) {
-		// Were in fast descend, scale it down until FAST_DESCEND_HEIGHT_MARGIN above target altitude
+		// We're in fast descend, scale it down until FAST_DESCEND_HEIGHT_MARGIN above target altitude
 		_fast_descend = constrain((alt - alt_setpoint - FAST_DESCEND_HEIGHT_MARGIN) / _fast_descend_alt_err, 0.f, 1.f);
 		_enabled_fast_descend_timestamp = 0U;
 

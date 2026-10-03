@@ -112,7 +112,7 @@ public:
 
 private:
 	// States
-	AirspeedFilterState _airspeed_state{.speed = 0.0f, .speed_rate = 0.0f};	///< Complimentary filter state
+	AirspeedFilterState _airspeed_state{.speed = 0.0f, .speed_rate = 0.0f};	///< Complementary filter state
 
 	// Steady-state Kalman gains for the 2-state (airspeed, airspeed_rate) complementary filter.
 	//
@@ -188,7 +188,7 @@ public:
 	AltitudeReferenceState getAltitudeReference() const;
 
 	/**
-	 * @brief Get the Height Rate Setpoint directly from the velocity trajector generator
+	 * @brief Get the Height Rate Setpoint directly from the velocity trajectory generator
 	 *
 	 * @return float direct height rate setpoint [m/s]
 	 */
@@ -283,7 +283,7 @@ public:
 	};
 
 	/**
-	 * @brief Givent current measurement from the UAS.
+	 * @brief Given current measurement from the UAS.
 	 *
 	 */
 	struct Input {
@@ -312,7 +312,7 @@ public:
 	/**
 	 * @brief Update state and output.
 	 *
-	 * @param[in] dt is the update time intervall in [s].
+	 * @param[in] dt is the update time interval in [s].
 	 * @param[in] setpoint is the current setpoint struct.
 	 * @param[in] input is the current input measurements.
 	 * @param[in] param is the current parameter set.
@@ -325,27 +325,27 @@ public:
 	 */
 	void resetIntegrals();
 	/**
-	 * @brief Get the percent of the undersped.
+	 * @brief Get the underspeed ratio.
 	 *
-	 * @return Ratio of detected undersped [0,1].
+	 * @return Ratio of detected underspeed [0,1].
 	 */
-	float getRatioUndersped() const {return _ratio_undersped;};
+	float getUnderspeedRatio() const {return _ratio_undersped;}
 	/**
 	 * @brief Get the throttle setpoint.
 	 *
 	 * @return throttle setpoint.
 	 */
-	float getThrottleSetpoint() const {return _throttle_setpoint;};
+	float getThrottleSetpoint() const {return _throttle_setpoint;}
 	/**
 	 * @brief Get the pitch setpoint.
 	 *
 	 * @return The commanded pitch angle above trim in [rad].
 	 */
-	float getPitchSetpoint() const {return _pitch_setpoint;};
+	float getPitchSetpoint() const {return _pitch_setpoint;}
 	/**
 	 * @brief Get the Debug Output
 	 *
-	 * @return the debug outpus struct.
+	 * @return the debug output struct.
 	 */
 	const DebugOutput &getDebugOutput() const { return _debug_output; }
 
@@ -384,10 +384,10 @@ private:
 	};
 
 	/**
-	 * @brief Controlled altitude and pitch setpoints.
+	 * @brief Altitude rate and airspeed setpoints from the outer loops, from which the energy rate setpoints follow.
 	 *
 	 */
-	struct AltitudePitchControl {
+	struct OuterLoopSetpoints {
 		float altitude_rate_setpoint;	///< Controlled altitude rate setpoint [m/s].
 		float tas_rate_setpoint;	///< Controlled true airspeed rate setpoint [m/s²].
 		float tas_setpoint; 		///< Controller true airspeed setpoint [m/s]
@@ -404,16 +404,16 @@ private:
 
 private:
 	/**
-	 * @brief Get control error from etpoint and estimate
+	 * @brief Get control error from setpoint and estimate
 	 *
 	 * @param val is the current control setpoint and estimate.
 	 * @return error value
 	 */
-	static inline constexpr float _getControlError(TECSControl::ControlValues val) {return (val.setpoint - val.estimate);};
+	static constexpr float _getControlError(TECSControl::ControlValues val) {return (val.setpoint - val.estimate);}
 	/**
 	 * @brief Calculate specific total energy rate limits.
 	 *
-	 * @param[in] param are the control parametes.
+	 * @param[in] param are the control parameters.
 	 * @return Specific total energy rate limits in [m²/s³].
 	 */
 	STERateLimit _calculateTotalEnergyRateLimit(const Param &param) const;
@@ -448,11 +448,11 @@ private:
 	/**
 	 * @brief Calculate specific energy rates.
 	 *
-	 * @param control_setpoint is the controlles altitude and airspeed rate setpoints.
+	 * @param control_setpoint is the controlled altitude and airspeed rate setpoints.
 	 * @param input is the current input measurement of the UAS.
 	 * @return Specific energy rates in [m²/s³].
 	 */
-	SpecificEnergyRates _calcSpecificEnergyRates(const AltitudePitchControl &control_setpoint, const Input &input) const;
+	SpecificEnergyRates _calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint, const Input &input) const;
 	/**
 	 * @brief Detect underspeed.
 	 *
@@ -472,7 +472,7 @@ private:
 	/**
 	 * @brief Calculate pitch control.
 	 *
-	 * @param dt is the update time intervall in [s].
+	 * @param dt is the update time interval in [s].
 	 * @param input is the current input measurement of the UAS.
 	 * @param specific_energy_rate is the calculated specific energy.
 	 * @param param is the control parameters.
@@ -496,7 +496,7 @@ private:
 	 * @brief Calculate the pitch control update function.
 	 * Update the states of the pitch control (pitch integrator).
 	 *
-	 * @param dt is the update time intervall in [s].
+	 * @param dt is the update time interval in [s].
 	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
 	 * @param param is the control parameters.
@@ -518,7 +518,7 @@ private:
 	/**
 	 * @brief Update controlled throttle setpoint.
 	 *
-	 * @param dt is the update time intervall in [s].
+	 * @param dt is the update time interval in [s].
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rate is the calculated specific energy.
 	 * @param flag is the control flags.
@@ -541,7 +541,7 @@ private:
 	 * @brief Calculate the throttle control update function.
 	 * Update the throttle control states (throttle integrator).
 	 *
-	 * @param dt is the update time intervall in [s].
+	 * @param dt is the update time interval in [s].
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param ste_rate is the specific total energy rates in [m²/s³].
 	 * @param param is the control parameters.
@@ -557,7 +557,7 @@ private:
 	 * @param ste_rate is the specific total energy rates in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
-	 * @return throttle setpoin in [0,1].
+	 * @return throttle setpoint in [0,1].
 	 */
 	float _calcThrottleControlOutput(const STERateLimit &limit, const ControlValues &ste_rate, const Param &param,
 					 const Flag &flag) const;
@@ -619,40 +619,40 @@ public:
 		_control.resetIntegrals();
 	}
 
-	void set_detect_underspeed_enabled(bool enabled) { _control_flag.detect_underspeed_enabled = enabled; };
+	void set_detect_underspeed_enabled(bool enabled) { _control_flag.detect_underspeed_enabled = enabled; }
 
 	// setters for parameters
 
-	void set_integrator_gain_throttle(float gain) { _control_param.integrator_gain_throttle = gain;};
-	void set_integrator_gain_pitch(float gain) { _control_param.integrator_gain_pitch = gain; };
+	void set_integrator_gain_throttle(float gain) { _control_param.integrator_gain_throttle = gain;}
+	void set_integrator_gain_pitch(float gain) { _control_param.integrator_gain_pitch = gain; }
 
-	void set_max_sink_rate(float max_sink_rate) { _control_param.max_sink_rate = max_sink_rate; _reference_param.max_sink_rate = max_sink_rate; };
-	void set_min_sink_rate(float min_sink_rate) { _control_param.min_sink_rate = min_sink_rate; };
-	void set_max_climb_rate(float climb_rate) { _control_param.max_climb_rate = climb_rate; _reference_param.max_climb_rate = climb_rate; };
+	void set_max_sink_rate(float max_sink_rate) { _control_param.max_sink_rate = max_sink_rate; _reference_param.max_sink_rate = max_sink_rate; }
+	void set_min_sink_rate(float min_sink_rate) { _control_param.min_sink_rate = min_sink_rate; }
+	void set_max_climb_rate(float climb_rate) { _control_param.max_climb_rate = climb_rate; _reference_param.max_climb_rate = climb_rate; }
 
-	void set_altitude_rate_ff(float altitude_rate_ff) { _control_param.altitude_setpoint_gain_ff = altitude_rate_ff; };
-	void set_altitude_error_time_constant(float time_const) { _control_param.altitude_error_gain = 1.0f / math::max(time_const, 0.1f); };
-	void set_fast_descend_altitude_error(float altitude_error) { _fast_descend_alt_err = altitude_error; };
+	void set_altitude_rate_ff(float altitude_rate_ff) { _control_param.altitude_setpoint_gain_ff = altitude_rate_ff; }
+	void set_altitude_error_time_constant(float time_const) { _control_param.altitude_error_gain = 1.0f / math::max(time_const, 0.1f); }
+	void set_fast_descend_altitude_error(float altitude_error) { _fast_descend_alt_err = altitude_error; }
 
 	void set_equivalent_airspeed_min(float airspeed) { _equivalent_airspeed_min = airspeed; }
 	void set_equivalent_airspeed_max(float airspeed) { _equivalent_airspeed_max = airspeed; }
 	void set_equivalent_airspeed_trim(float airspeed) { _control_param.equivalent_airspeed_trim = airspeed; _airspeed_filter_param.equivalent_airspeed_trim = airspeed; }
 
 	void set_pitch_damping(float damping) { _control_param.pitch_damping_gain = damping; }
-	void set_vertical_accel_limit(float limit) { _reference_param.vert_accel_limit = limit; _control_param.vert_accel_limit = limit; };
+	void set_vertical_accel_limit(float limit) { _reference_param.vert_accel_limit = limit; _control_param.vert_accel_limit = limit; }
 
-	void set_speed_weight(float weight) { _control_param.pitch_speed_weight = weight; };
-	void set_airspeed_error_time_constant(float time_const) { _control_param.airspeed_error_gain = 1.0f / math::max(time_const, 0.1f); };
+	void set_speed_weight(float weight) { _control_param.pitch_speed_weight = weight; }
+	void set_airspeed_error_time_constant(float time_const) { _control_param.airspeed_error_gain = 1.0f / math::max(time_const, 0.1f); }
 
-	void set_throttle_damp(float throttle_damp) { _control_param.throttle_damping_gain = throttle_damp; };
-	void set_throttle_slewrate(float slewrate) { _control_param.throttle_slewrate = slewrate; };
+	void set_throttle_damp(float throttle_damp) { _control_param.throttle_damping_gain = throttle_damp; }
+	void set_throttle_slewrate(float slewrate) { _control_param.throttle_slewrate = slewrate; }
 
-	void set_roll_throttle_compensation(float compensation) { _control_param.load_factor_correction = compensation; };
-	void set_load_factor(float load_factor) { _control_param.load_factor = load_factor; };
+	void set_roll_throttle_compensation(float compensation) { _control_param.load_factor_correction = compensation; }
+	void set_load_factor(float load_factor) { _control_param.load_factor = load_factor; }
 
-	void set_ste_rate_time_const(float time_const) { _control_param.ste_rate_time_const = time_const; };
+	void set_ste_rate_time_const(float time_const) { _control_param.ste_rate_time_const = time_const; }
 
-	void set_seb_rate_ff_gain(float ff_gain) { _control_param.seb_rate_ff = ff_gain; };
+	void set_seb_rate_ff_gain(float ff_gain) { _control_param.seb_rate_ff = ff_gain; }
 
 	/**
 	 * Handle the altitude reset
@@ -680,7 +680,7 @@ public:
 		return 1.0f / math::max(_control_param.altitude_error_gain, 0.01f);
 	}
 
-	float get_underspeed_ratio() const { return _control.getRatioUndersped(); }
+	float get_underspeed_ratio() const { return _control.getUnderspeedRatio(); }
 
 private:
 	/**
