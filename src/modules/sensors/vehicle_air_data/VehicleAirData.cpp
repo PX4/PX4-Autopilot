@@ -303,6 +303,11 @@ void VehicleAirData::Run()
 						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
 						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
 
+						float altitude_correction = 0.f;
+#if defined(CONFIG_SENSORS_BARO_COMPENSATION)
+						altitude_correction = StaticPressureCorrection(time_now_us);
+#endif // CONFIG_SENSORS_BARO_COMPENSATION
+
 						// calculate air density
 						const float air_density = getDensityFromPressureAndTemp(pressure_pa, ambient_temperature);
 
@@ -310,7 +315,8 @@ void VehicleAirData::Run()
 						vehicle_air_data_s out{};
 						out.timestamp_sample = timestamp_sample;
 						out.baro_device_id = _calibration[instance].device_id();
-						out.baro_alt_meter = altitude;
+						out.baro_alt_meter = altitude + altitude_correction;
+						out.baro_alt_correction = altitude_correction;
 						out.ambient_temperature = ambient_temperature;
 						out.temperature_source = static_cast<uint8_t>(temperature_source);
 						out.baro_pressure_pa = pressure_pa;
@@ -510,6 +516,43 @@ void VehicleAirData::PrintStatus()
 		}
 	}
 }
+
+#if defined(CONFIG_SENSORS_BARO_COMPENSATION)
+float VehicleAirData::StaticPressureCorrection(const hrt_abstime &time_now_us)
+{
+	if ((fabsf(_param_sens_baro_k_xp.get()) < FLT_EPSILON) && (fabsf(_param_sens_baro_k_xn.get()) < FLT_EPSILON)
+	    && (fabsf(_param_sens_baro_k_yp.get()) < FLT_EPSILON) && (fabsf(_param_sens_baro_k_yn.get()) < FLT_EPSILON)
+	    && (fabsf(_param_sens_baro_k_z.get()) < FLT_EPSILON)) {
+		return 0.f;
+	}
+
+	wind_s wind;
+	vehicle_local_position_s local_position;
+	vehicle_attitude_s attitude;
+
+	// the estimator only publishes wind while it has an estimate, so a stale sample means the airspeed is unknown
+	if (!_wind_sub.copy(&wind) || (time_now_us - wind.timestamp > 1_s)
+	    || !_vehicle_local_position_sub.copy(&local_position) || !local_position.xy_valid || !local_position.v_xy_valid
+	    || !_vehicle_attitude_sub.copy(&attitude)) {
+		return 0.f;
+	}
+
+	const Vector3f airspeed_earth(local_position.vx - wind.windspeed_north, local_position.vy - wind.windspeed_east,
+				      local_position.vz);
+	const Vector3f airspeed_body = Quatf(attitude.q).rotateVectorInverse(airspeed_earth);
+
+	// the port's sensitivity differs between the positive and negative directions of each body axis
+	const Vector3f pcoef(airspeed_body(0) >= 0.f ? _param_sens_baro_k_xp.get() : _param_sens_baro_k_xn.get(),
+			     airspeed_body(1) >= 0.f ? _param_sens_baro_k_yp.get() : _param_sens_baro_k_yn.get(),
+			     _param_sens_baro_k_z.get());
+
+	const float airspeed_max_sq = _param_sens_baro_k_vmax.get() * _param_sens_baro_k_vmax.get();
+	const Vector3f airspeed_sq = matrix::min(airspeed_body.emult(airspeed_body), airspeed_max_sq);
+
+	// pressure error = pcoef * dynamic pressure, which as an altitude error is independent of the air density
+	return 0.5f * airspeed_sq.dot(pcoef) / CONSTANTS_ONE_G;
+}
+#endif // CONFIG_SENSORS_BARO_COMPENSATION
 
 bool VehicleAirData::BaroGNSSAltitudeOffset()
 {
