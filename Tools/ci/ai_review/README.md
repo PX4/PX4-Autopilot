@@ -25,6 +25,12 @@ in either of two ways:
 - **Run the workflow manually** (Actions, AI PR Review, Run workflow) with
   the PR number.
 
+Either way, the PR head gets an "AI PR Review" commit status linking to
+the run: pending while it works, then success or error. The workflow runs
+from `main`, so without it the review would not show among the PR's
+checks. The status is informational and must never be made a required
+check.
+
 ## Pipeline
 
 1. **Gather** (`context.py`): PR metadata, linked issues, commits, CI

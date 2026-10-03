@@ -1,5 +1,7 @@
-"""Only people with write access may start a review from a comment, and a
-malformed command must never start a default review by accident."""
+"""Only people with write access may start a review from a comment, a
+malformed command must never start a default review by accident, and a
+cancelled run must not overwrite the status of the review that replaced
+it."""
 
 import os
 import tempfile
@@ -24,14 +26,24 @@ def event(body: str = '!ai-review', login: str = 'alice',
 
 class FakeApi:
 
-    def __init__(self, permission: Optional[str]) -> None:
+    def __init__(self, permission: Optional[str],
+                 statuses: Optional[List[Dict[str, Any]]] = None) -> None:
         self.permission = permission
+        self.statuses = statuses or []
         self.calls: List[Tuple[str, str]] = []
+        self.posted: List[Dict[str, Any]] = []
 
     def __call__(self, method: str, path: str,
                  body: Optional[Dict[str, Any]]) -> Any:
         self.calls.append((method, path))
-        return {'permission': self.permission}
+        if path.endswith('/permission'):
+            return {'permission': self.permission}
+        if '/pulls/' in path:
+            return {'head': {'sha': 'abc123'}}
+        if method == 'GET' and path.endswith('/statuses'):
+            return self.statuses
+        self.posted.append(body or {})
+        return None
 
 
 def decide(ev: Dict[str, Any], permission: Optional[str] = 'write',
@@ -87,8 +99,12 @@ class TestDecide(unittest.TestCase):
         api = FakeApi('write')
         trigger.decide('issue_comment', event(login='bob'), {}, ALIASES, api,
                        'PX4/PX4-Autopilot')
-        self.assertEqual(api.calls, [
-            ('GET', 'repos/PX4/PX4-Autopilot/collaborators/bob/permission')])
+        self.assertEqual(api.calls[0], (
+            'GET', 'repos/PX4/PX4-Autopilot/collaborators/bob/permission'))
+
+    def test_accepted_run_resolves_the_head_commit(self) -> None:
+        # the status must land on the commit being reviewed
+        self.assertEqual(decide(event()).head_sha, 'abc123')
 
     def test_ignored_events(self) -> None:
         cases = [(event(on_pr=False), 'not on a pull request'),
@@ -116,6 +132,24 @@ class TestDecide(unittest.TestCase):
             text = open(path).read()
         self.assertIn('run=true\n', text)
         self.assertIn('pr=42\n', text)
+
+
+class TestStatus(unittest.TestCase):
+    RUN = 'https://github.com/r/actions/runs/1'
+
+    def test_final_status_replaces_this_runs_pending(self) -> None:
+        api = FakeApi(None, [{'context': trigger.STATUS_CONTEXT,
+                              'target_url': self.RUN}])
+        trigger.set_status(api, 'r', 'abc123', 'success', 'done', self.RUN,
+                           only_if_ours=True)
+        self.assertEqual(api.posted[0]['state'], 'success')
+
+    def test_cancelled_run_leaves_a_newer_review_alone(self) -> None:
+        api = FakeApi(None, [{'context': trigger.STATUS_CONTEXT,
+                              'target_url': 'https://github.com/r/runs/2'}])
+        trigger.set_status(api, 'r', 'abc123', 'error', 'cancelled',
+                           self.RUN, only_if_ours=True)
+        self.assertEqual(api.posted, [])
 
 
 if __name__ == '__main__':

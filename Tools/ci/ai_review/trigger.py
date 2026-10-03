@@ -9,8 +9,14 @@ Two ways in:
   maintain or admin. author_association is not used: an organization
   member can have read-only access to this repository.
 
-Writes the decision to $GITHUB_OUTPUT as run, pr, model, effort,
-comment_id and reason. Invoked by pr-ai-review.yml; never runs PR code.
+Writes the decision to $GITHUB_OUTPUT as run, pr, head_sha, model,
+effort, comment_id and reason. Invoked by pr-ai-review.yml; never runs PR
+code.
+
+An accepted run also sets an "AI PR Review" commit status on the PR head,
+linking to the run, so it shows in the PR's checks while it works: the
+run itself is a default-branch workflow and would not appear there
+otherwise. The status is informational, never a required check.
 """
 
 import json
@@ -19,7 +25,7 @@ import re
 import sys
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Callable, Dict, Mapping, Optional
 
 from .models import EFFORTS
@@ -28,6 +34,13 @@ from .models import EFFORTS
 COMMAND_RE = re.compile(r'!ai-review(?P<args>(?:[ \t]+\S+)*)')
 ARG_RE = re.compile(r'^(model|effort)=([a-z0-9-]+)$')
 WRITE_PERMISSIONS = ('admin', 'maintain', 'write')
+STATUS_CONTEXT = 'AI PR Review'
+# review job result -> (commit status state, description)
+OUTCOMES = {
+    'success': ('success', 'Review finished; posted on the PR'),
+    'failure': ('error', 'Review failed; see the run'),
+    'cancelled': ('error', 'Review cancelled'),
+}
 
 Api = Callable[[str, str, Optional[Dict[str, Any]]], Any]
 
@@ -37,6 +50,7 @@ class Decision:
     run: bool
     reason: str
     pr: int = 0
+    head_sha: str = ''
     model: str = 'default'
     effort: str = 'default'
     comment_id: int = 0
@@ -44,6 +58,7 @@ class Decision:
     def outputs(self) -> Dict[str, str]:
         return {'run': 'true' if self.run else 'false',
                 'reason': self.reason, 'pr': str(self.pr),
+                'head_sha': self.head_sha,
                 'model': self.model, 'effort': self.effort,
                 'comment_id': str(self.comment_id)}
 
@@ -76,6 +91,16 @@ def parse_command(body: str, aliases: Any) -> Optional[Dict[str, str]]:
 def decide(event_name: str, event: Mapping[str, Any],
            inputs: Mapping[str, str], aliases: Any, api: Api,
            repo: str) -> Decision:
+    d = _decide(event_name, event, inputs, aliases, api, repo)
+    if not d.run:
+        return d
+    pull = api('GET', f'repos/{repo}/pulls/{d.pr}', None) or {}
+    return replace(d, head_sha=(pull.get('head') or {}).get('sha') or '')
+
+
+def _decide(event_name: str, event: Mapping[str, Any],
+            inputs: Mapping[str, str], aliases: Any, api: Api,
+            repo: str) -> Decision:
     if event_name == 'workflow_dispatch':
         try:
             pr = int(inputs.get('pr_number', ''))
@@ -120,7 +145,7 @@ def write_outputs(decision: Decision, path: Optional[str]) -> None:
 
 
 def _client_api() -> Api:
-    """The two GitHub REST calls this module needs, stdlib only."""
+    """The few GitHub REST calls this module needs, stdlib only."""
     token = os.environ['GITHUB_TOKEN']
 
     def api(method: str, path: str, body: Optional[Dict[str, Any]]) -> Any:
@@ -154,6 +179,36 @@ def react(api: Api, repo: str, comment_id: int, content: str) -> None:
               file=sys.stderr)
 
 
+def set_status(api: Api, repo: str, sha: str, state: str, description: str,
+               run_url: str, only_if_ours: bool = False) -> None:
+    """Best-effort commit status on the PR head; never fails a run.
+
+    With only_if_ours, the status is left alone when the latest one for
+    this context links to another run: a newer review of the same commit
+    has taken over, and this run being cancelled must not overwrite it.
+    """
+    if not sha:
+        return
+    try:
+        if only_if_ours:
+            latest = next((st for st in api(
+                'GET', f'repos/{repo}/commits/{sha}/statuses', None) or []
+                if st.get('context') == STATUS_CONTEXT), None)
+            if latest and latest.get('target_url') != run_url:
+                return
+        api('POST', f'repos/{repo}/statuses/{sha}',
+            {'state': state, 'context': STATUS_CONTEXT,
+             'description': description[:140], 'target_url': run_url})
+    except RuntimeError as e:
+        print(f'warning: could not set the commit status: {e}',
+              file=sys.stderr)
+
+
+def _run_url(repo: str) -> str:
+    server = os.environ.get('GITHUB_SERVER_URL', 'https://github.com')
+    return f'{server}/{repo}/actions/runs/{os.environ["GITHUB_RUN_ID"]}'
+
+
 def main(argv: Any = None) -> int:
     from .models import load
     args = sys.argv[1:] if argv is None else argv
@@ -161,6 +216,12 @@ def main(argv: Any = None) -> int:
     if args and args[0] == 'react':
         # react <comment_id> <content>
         react(_client_api(), repo, int(args[1] or 0), args[2])
+        return 0
+    if args and args[0] == 'status':
+        # status <sha> <result of the review job>
+        state, description = OUTCOMES.get(args[2], OUTCOMES['failure'])
+        set_status(_client_api(), repo, args[1], state, description,
+                   _run_url(repo), only_if_ours=True)
         return 0
     with open(os.environ['GITHUB_EVENT_PATH'], encoding='utf-8') as fh:
         event = json.load(fh)
@@ -171,4 +232,6 @@ def main(argv: Any = None) -> int:
     write_outputs(decision, os.environ.get('GITHUB_OUTPUT'))
     if decision.run:
         react(_client_api(), repo, decision.comment_id, 'eyes')
+        set_status(_client_api(), repo, decision.head_sha, 'pending',
+                   f'Reviewing: {decision.reason}', _run_url(repo))
     return 0

@@ -13,7 +13,9 @@ name: AI PR Review
 # pr-review-poster.yml (never approve or request changes), replacing the
 # previous one from this workflow; the full report also goes to the job
 # summary and the ai-review-report artifact. The triggering comment gets
-# 👀 when accepted, then 🚀 or 😕 when the review finishes.
+# 👀 when accepted, then 🚀 or 😕 when the review finishes. The PR head
+# also gets an "AI PR Review" commit status linking to the run, so the
+# review shows among the PR's checks (informational, never required).
 #
 # Credentials: the review job assumes the px4-ai-review IAM role through
 # GitHub OIDC. That role's trust policy only accepts this file running
@@ -65,9 +67,11 @@ jobs:
       # reacting to a comment on a pull request needs pull-requests, not
       # issues, permission
       pull-requests: write
+      statuses: write        # "AI PR Review" status on the PR head
     outputs:
       run: ${{ steps.decide.outputs.run }}
       pr: ${{ steps.decide.outputs.pr }}
+      head_sha: ${{ steps.decide.outputs.head_sha }}
       model: ${{ steps.decide.outputs.model }}
       effort: ${{ steps.decide.outputs.effort }}
       comment_id: ${{ steps.decide.outputs.comment_id }}
@@ -197,16 +201,15 @@ jobs:
           retention-days: 30
 
   finish:
-    name: Report back on the comment
+    name: Report back on the PR
     needs: [gate, review]
-    if: >-
-      always() && needs.gate.outputs.run == 'true'
-      && needs.gate.outputs.comment_id != '0'
+    if: always() && needs.gate.outputs.run == 'true'
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
     timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: write   # react to the triggering comment
+      statuses: write        # final "AI PR Review" status on the PR head
     steps:
       - uses: runs-on/action@v2
       - name: Checkout review tooling
@@ -214,7 +217,15 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: Tools/ci
+      - name: Status
+        working-directory: Tools/ci
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ needs.gate.outputs.head_sha }}
+          RESULT: ${{ needs.review.result }}
+        run: python3 -m ai_review status "$HEAD_SHA" "$RESULT"
       - name: React
+        if: needs.gate.outputs.comment_id != '0'
         working-directory: Tools/ci
         env:
           GITHUB_TOKEN: ${{ github.token }}
