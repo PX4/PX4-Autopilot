@@ -710,9 +710,12 @@ void TECS::update(const Input &input)
 		return;
 	}
 
+	float true_airspeed_setpoint;
+
 	if (dt > DT_MAX || _update_timestamp == 0UL) {
 		// Update time interval too large, can't guarantee sanity of state updates anymore. reset the control loop.
 		initialize(input);
+		true_airspeed_setpoint = calcTrueAirspeedSetpoint(input.eas_to_tas, input.equivalent_airspeed_setpoint);
 
 	} else {
 		/* Check if we want to fast descend. On fast descend, we set the throttle to min, and use the altitude control
@@ -744,7 +747,8 @@ void TECS::update(const Input &input)
 		TECSControl::Setpoint control_setpoint;
 		control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
 		control_setpoint.altitude_rate_setpoint_direct = _altitude_reference_model.getHeightRateSetpointDirect();
-		control_setpoint.tas_setpoint = calcTrueAirspeedSetpoint(input.eas_to_tas, input.equivalent_airspeed_setpoint);
+		true_airspeed_setpoint = calcTrueAirspeedSetpoint(input.eas_to_tas, input.equivalent_airspeed_setpoint);
+		control_setpoint.tas_setpoint = true_airspeed_setpoint;
 
 		const TECSAirspeedFilter::AirspeedFilterState airspeed_state{_airspeed_filter.getState()};
 		const TECSControl::Input control_input{ .altitude = input.altitude,
@@ -756,7 +760,7 @@ void TECS::update(const Input &input)
 	}
 
 	_debug_status.control = _control.getDebugOutput();
-	_debug_status.true_airspeed_sp = calcTrueAirspeedSetpoint(input.eas_to_tas, input.equivalent_airspeed_setpoint);
+	_debug_status.true_airspeed_sp = true_airspeed_setpoint;
 	const TECSAirspeedFilter::AirspeedFilterState airspeed_state{_airspeed_filter.getState()};
 	const TECSAltitudeReferenceModel::AltitudeReferenceState altitude_reference{_altitude_reference_model.getAltitudeReference()};
 	_debug_status.true_airspeed_filtered = input.eas_to_tas * airspeed_state.speed;
