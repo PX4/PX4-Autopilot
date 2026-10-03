@@ -409,8 +409,7 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
 	const float airspeed_rate_estimate = 0.f;
 
-	_tecs.update(_long_control_state.pitch_rad - radians(_param_fw_psp_off.get()),
-		     _long_control_state.altitude_msl,
+	_tecs.update(_long_control_state.altitude_msl,
 		     alt_sp,
 		     airspeed_sp,
 		     _long_control_state.airspeed_eas,
@@ -671,7 +670,6 @@ void FwLateralLongitudinalControl::updateAttitude() {
 		}
 
 		const Eulerf euler_angles(R);
-		_long_control_state.pitch_rad = euler_angles.theta();
 		_yaw = euler_angles.psi();
 
 		_load_factor_from_bank_angle = 1.0f / max(cosf(euler_angles.phi()), FLT_EPSILON);
