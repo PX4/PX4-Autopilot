@@ -61,6 +61,7 @@
 #if defined(CONFIG_SENSORS_BARO_COMPENSATION)
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/wind.h>
 #endif // CONFIG_SENSORS_BARO_COMPENSATION
 
@@ -105,6 +106,7 @@ private:
 #if defined(CONFIG_SENSORS_BARO_COMPENSATION)
 	// altitude error of the static pressure port from the airflow around the vehicle, needs the estimator's wind
 	float StaticPressureCorrection(const hrt_abstime &time_now_us);
+	float CurrentThrust(const hrt_abstime &time_now_us);
 #endif // CONFIG_SENSORS_BARO_COMPENSATION
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
@@ -132,6 +134,7 @@ private:
 	// the airspeed at the port comes from the estimator's velocity, wind and attitude
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 #endif // CONFIG_SENSORS_BARO_COMPENSATION
 
@@ -148,6 +151,7 @@ private:
 	uint64_t _timestamp_sample_sum[MAX_SENSOR_COUNT] {0};
 	float _data_sum[MAX_SENSOR_COUNT] {};
 	float _temperature_sum[MAX_SENSOR_COUNT] {};
+	float _thrust_sum[MAX_SENSOR_COUNT] {}; // thrust accumulated alongside the pressure samples it was applied during
 	int _data_sum_count[MAX_SENSOR_COUNT] {};
 	hrt_abstime _last_publication_timestamp[MAX_SENSOR_COUNT] {};
 
@@ -180,7 +184,8 @@ private:
 		(ParamFloat<px4::params::SENS_BARO_K_YP>) _param_sens_baro_k_yp,
 		(ParamFloat<px4::params::SENS_BARO_K_YN>) _param_sens_baro_k_yn,
 		(ParamFloat<px4::params::SENS_BARO_K_Z>) _param_sens_baro_k_z,
-		(ParamFloat<px4::params::SENS_BARO_K_VMAX>) _param_sens_baro_k_vmax
+		(ParamFloat<px4::params::SENS_BARO_K_VMAX>) _param_sens_baro_k_vmax,
+		(ParamFloat<px4::params::SENS_BARO_K_T>) _param_sens_baro_k_t
 #endif // CONFIG_SENSORS_BARO_COMPENSATION
 	)
 };

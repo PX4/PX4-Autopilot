@@ -69,3 +69,18 @@ parameters:
       max: 50.0
       unit: m/s
       decimal: 1
+    SENS_BARO_K_T:
+      description:
+        short: Baro altitude correction per unit vertical thrust
+        long: |-
+          Compensates the static pressure change the propellers induce at the
+          barometer, proportional to the vertical thrust setpoint magnitude:
+          altitude += SENS_BARO_K_T * |thrust_z|. Negative if the baro altitude
+          rises with thrust. Identify from a hover log with
+          Tools/baro_compensation/baro_thrust_calibration.py.
+      type: float
+      default: 0.0
+      min: -30.0
+      max: 30.0
+      unit: m
+      decimal: 1
