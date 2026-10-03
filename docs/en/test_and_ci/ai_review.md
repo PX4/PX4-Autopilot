@@ -38,6 +38,8 @@ To pick the model or the effort level, add options on the same line:
 Within a few seconds your comment gets a 👀 reaction, which means the review has started.
 When it finishes, the comment gets 🚀, or 😕 if the run failed.
 A review takes about 5 to 15 minutes, depending on the size of the PR.
+While it runs, an "AI PR Review" entry in the PR's checks shows its progress and links to the workflow run.
+This check is informational and never blocks a merge.
 
 You can also start a review from the **Actions** tab: open the [AI PR Review](https://github.com/PX4/PX4-Autopilot/actions/workflows/pr-ai-review.yml) workflow, select **Run workflow** and enter the PR number.
 
