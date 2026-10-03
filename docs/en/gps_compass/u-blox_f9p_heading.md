@@ -31,6 +31,10 @@ Ideally the two antennas should be identical, on the same level/horizontal plane
 - The antennas can be positioned as needed, but the heading baseline must be configured:
   [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source).
 
+::: info
+A moving base and its rover must run at the same navigation rate, and u-blox limits a moving base to 5 Hz. In the moving base modes ([GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) 1 to 4) the driver sets 5 Hz on both receivers whatever their model, so leave [GPS_UBX_RATE](../advanced_config/parameter_reference.md#GPS_UBX_RATE) at `0`. A rover running faster than its base has no time-matched base observations for the extra epochs and reports no heading for them.
+:::
+
 ### UART Setup
 
 - The UART2 of the GPS devices need to be connected together (TXD2 of the "Moving Base" to RXD2 of the "Rover")
