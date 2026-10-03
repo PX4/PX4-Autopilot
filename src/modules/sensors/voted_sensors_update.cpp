@@ -133,6 +133,14 @@ void VotedSensorsUpdate::parametersUpdate()
 				}
 			}
 		}
+
+		// VehicleIMU stops publishing an IMU as soon as either of its sensors is disabled, so the
+		// voter cannot learn the new priority from a sample. Told directly, it drops the IMU from
+		// the selection without a failover, and the timeout that follows is not one either.
+		if (!imuEnabled(uorb_index)) {
+			_accel.voter.set_priority(uorb_index, 0);
+			_gyro.voter.set_priority(uorb_index, 0);
+		}
 	}
 }
 
@@ -143,8 +151,7 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	for (int uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
 		vehicle_imu_s imu_report;
 
-		if ((_accel.priority[uorb_index] > 0) && (_gyro.priority[uorb_index] > 0)
-		    && _vehicle_imu_sub[uorb_index].update(&imu_report)) {
+		if (imuEnabled(uorb_index) && _vehicle_imu_sub[uorb_index].update(&imu_report)) {
 
 			// copy corresponding vehicle_imu_status for accel & gyro error counts
 			vehicle_imu_status_s imu_status{};
@@ -413,14 +420,14 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 			sensors_status_imu_s::gyro_inconsistency_rad_s[0])), "check sensors_status_imu accel_inconsistency_m_s_s size");
 
 	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-		if ((_accel_device_id[i] != 0) && (_accel.priority[i] > 0)) {
+		if ((_accel_device_id[i] != 0) && imuEnabled(i)) {
 			status.accel_device_ids[i] = _accel_device_id[i];
 			status.accel_inconsistency_m_s_s[i] = _accel_diff[i].norm();
 			status.accel_healthy[i] = (_accel.voter.get_sensor_state(i) == DataValidator::ERROR_FLAG_NO_ERROR);
 			status.accel_priority[i] = _accel.voter.get_sensor_priority(i);
 		}
 
-		if ((_gyro_device_id[i] != 0) && (_gyro.priority[i] > 0)) {
+		if ((_gyro_device_id[i] != 0) && imuEnabled(i)) {
 			status.gyro_device_ids[i] = _gyro_device_id[i];
 			status.gyro_inconsistency_rad_s[i] = _gyro_diff[i].norm();
 			status.gyro_healthy[i] = (_gyro.voter.get_sensor_state(i) == DataValidator::ERROR_FLAG_NO_ERROR);
@@ -453,7 +460,7 @@ void VotedSensorsUpdate::calcAccelInconsistency()
 	uint8_t accel_count = 0;
 
 	for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
-		if ((_accel_device_id[sensor_index] != 0) && (_accel.priority[sensor_index] > 0)) {
+		if ((_accel_device_id[sensor_index] != 0) && imuEnabled(sensor_index)) {
 			accel_count++;
 			accel_all[sensor_index] = Vector3f{_last_sensor_data[sensor_index].accelerometer_m_s2};
 			accel_mean += accel_all[sensor_index];
@@ -464,7 +471,7 @@ void VotedSensorsUpdate::calcAccelInconsistency()
 		accel_mean /= accel_count;
 
 		for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
-			if ((_accel_device_id[sensor_index] != 0) && (_accel.priority[sensor_index] > 0)) {
+			if ((_accel_device_id[sensor_index] != 0) && imuEnabled(sensor_index)) {
 				_accel_diff[sensor_index] = 0.95f * _accel_diff[sensor_index] + 0.05f * (accel_all[sensor_index] - accel_mean);
 			}
 		}
@@ -478,7 +485,7 @@ void VotedSensorsUpdate::calcGyroInconsistency()
 	uint8_t gyro_count = 0;
 
 	for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
-		if ((_gyro_device_id[sensor_index] != 0) && (_gyro.priority[sensor_index] > 0)) {
+		if ((_gyro_device_id[sensor_index] != 0) && imuEnabled(sensor_index)) {
 			gyro_count++;
 			gyro_all[sensor_index] = Vector3f{_last_sensor_data[sensor_index].gyro_rad};
 			gyro_mean += gyro_all[sensor_index];
@@ -489,7 +496,7 @@ void VotedSensorsUpdate::calcGyroInconsistency()
 		gyro_mean /= gyro_count;
 
 		for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
-			if ((_gyro_device_id[sensor_index] != 0) && (_gyro.priority[sensor_index] > 0)) {
+			if ((_gyro_device_id[sensor_index] != 0) && imuEnabled(sensor_index)) {
 				_gyro_diff[sensor_index] = 0.95f * _gyro_diff[sensor_index] + 0.05f * (gyro_all[sensor_index] - gyro_mean);
 			}
 		}

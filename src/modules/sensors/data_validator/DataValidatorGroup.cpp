@@ -375,3 +375,19 @@ uint8_t DataValidatorGroup::get_sensor_priority(unsigned index)
 	// sensor index not found
 	return 0;
 }
+
+void DataValidatorGroup::set_priority(unsigned index, uint8_t priority)
+{
+	DataValidator *next = _first;
+	unsigned i = 0;
+
+	while (next != nullptr) {
+		if (i == index) {
+			next->set_priority(priority);
+			return;
+		}
+
+		next = next->sibling();
+		i++;
+	}
+}

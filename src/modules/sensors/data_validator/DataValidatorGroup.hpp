@@ -112,6 +112,14 @@ public:
 	uint8_t get_sensor_priority(unsigned index);
 
 	/**
+	 * Set the priority of a specific sensor without new data, for a sensor that has stopped
+	 * publishing. A priority of 0 excludes it from selection, and leaving it is not a failover.
+	 * @param index		Sensor index
+	 * @param priority	The new priority
+	 */
+	void set_priority(unsigned index, uint8_t priority);
+
+	/**
 	 * Print the validator value
 	 *
 	 */
