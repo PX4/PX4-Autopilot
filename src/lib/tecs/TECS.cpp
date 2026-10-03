@@ -217,19 +217,12 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 {
 	resetIntegrals();
 
+	// Initialization always goes through the altitude loop, even if a direct height rate setpoint is given
+	Setpoint altitude_loop_setpoint{setpoint};
+	altitude_loop_setpoint.altitude_rate_setpoint_direct = NAN;
+
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
-
-	OuterLoopSetpoints control_setpoint;
-
-	control_setpoint.tas_setpoint = setpoint.tas_setpoint;
-
-	control_setpoint.tas_rate_setpoint = _calcAirspeedControlOutput(setpoint, input, limit, param, flag);
-
-	control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
-
-	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
-
-	_detectUnderspeed(input, param, flag);
+	const SpecificEnergyRates specific_energy_rate{_updateOuterLoops(altitude_loop_setpoint, input, limit, param, flag)};
 
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rate)};
@@ -249,8 +242,6 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 	_debug_output.energy_balance_rate_estimate = seb_rate.estimate;
 	_debug_output.energy_balance_rate_sp = seb_rate.setpoint;
 	_debug_output.pitch_integrator = _pitch_integ_state;
-	_debug_output.altitude_rate_control = control_setpoint.altitude_rate_setpoint;
-	_debug_output.true_airspeed_derivative_control = control_setpoint.tas_rate_setpoint;
 }
 
 void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &input, const Param &param,
@@ -263,7 +254,16 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 	}
 
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
+	const SpecificEnergyRates specific_energy_rate{_updateOuterLoops(setpoint, input, limit, param, flag)};
 
+	_calcPitchControl(dt, input, specific_energy_rate, param, flag);
+
+	_calcThrottleControl(dt, limit, specific_energy_rate, param, flag);
+}
+
+TECSControl::SpecificEnergyRates TECSControl::_updateOuterLoops(const Setpoint &setpoint, const Input &input,
+		const STERateLimit &limit, const Param &param, const Flag &flag)
+{
 	OuterLoopSetpoints control_setpoint;
 
 	control_setpoint.tas_setpoint = setpoint.tas_setpoint;
@@ -278,16 +278,14 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 		control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
 	}
 
-	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
+	const SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
 
 	_detectUnderspeed(input, param, flag);
 
-	_calcPitchControl(dt, input, specific_energy_rate, param, flag);
-
-	_calcThrottleControl(dt, limit, specific_energy_rate, param, flag);
-
 	_debug_output.altitude_rate_control = control_setpoint.altitude_rate_setpoint;
 	_debug_output.true_airspeed_derivative_control = control_setpoint.tas_rate_setpoint;
+
+	return specific_energy_rate;
 }
 
 TECSControl::STERateLimit TECSControl::_calculateTotalEnergyRateLimit(const Param &param) const

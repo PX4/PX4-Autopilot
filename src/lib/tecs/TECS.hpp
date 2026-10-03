@@ -450,6 +450,20 @@ private:
 	 */
 	float _calcAltitudeControlOutput(const Setpoint &setpoint, const Input &input, const Param &param) const;
 	/**
+	 * @brief Run the airspeed and altitude outer loops and the underspeed detection.
+	 *
+	 * Uses the direct height rate setpoint if it is finite, the altitude loop otherwise.
+	 *
+	 * @param setpoint is the control setpoints.
+	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @return Specific energy rates in [m²/s³].
+	 */
+	SpecificEnergyRates _updateOuterLoops(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+					      const Param &param, const Flag &flag);
+	/**
 	 * @brief Calculate specific energy rates.
 	 *
 	 * @param control_setpoint is the controlled altitude and airspeed rate setpoints.
