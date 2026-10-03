@@ -819,6 +819,9 @@ void Navigator::run()
 				_takeoff.setLoiterPosition(matrix::Vector2d(cmd.param5, cmd.param6));
 				_takeoff.setLoiterAltitudeAmsl(cmd.param7);
 
+				// Fixed-wing: a finite yaw field is the course to hold after the climbout instead of loitering
+				_takeoff.setHoldCourse(PX4_ISFINITE(cmd.param4) ? matrix::wrap_pi(math::radians(cmd.param4)) : NAN);
+
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
