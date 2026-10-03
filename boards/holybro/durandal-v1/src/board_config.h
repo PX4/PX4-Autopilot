@@ -178,6 +178,8 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS  10
+/* Capture channels (6-10) run from this index to the end */
+#define DIRECT_PWM_FIRST_CAPTURE_CHANNEL  5
 
 #define BOARD_NUM_IO_TIMERS 4
 
