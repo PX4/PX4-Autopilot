@@ -652,21 +652,20 @@ void TECSControl::resetIntegrals()
 	_throttle_integ_state = 0.0f;
 }
 
-void TECS::initControlParams(float target_climbrate, float target_sinkrate, float eas_to_tas, float pitch_limit_max,
-			     float pitch_limit_min, float throttle_min, float throttle_setpoint_max, float throttle_trim)
+void TECS::initControlParams(const Input &input)
 {
 	// Update parameters from input
 	// Reference model
-	_reference_param.target_climbrate = target_climbrate;
-	_reference_param.target_sinkrate = target_sinkrate;
+	_reference_param.target_climbrate = input.target_climbrate;
+	_reference_param.target_sinkrate = input.target_sinkrate;
 	// Control
-	_control_param.tas_min = eas_to_tas * _equivalent_airspeed_min;
-	_control_param.tas_max = eas_to_tas * _equivalent_airspeed_max;
-	_control_param.pitch_max = pitch_limit_max;
-	_control_param.pitch_min = pitch_limit_min;
-	_control_param.throttle_trim = throttle_trim;
-	_control_param.throttle_max = throttle_setpoint_max;
-	_control_param.throttle_min = throttle_min;
+	_control_param.tas_min = input.eas_to_tas * _equivalent_airspeed_min;
+	_control_param.tas_max = input.eas_to_tas * _equivalent_airspeed_max;
+	_control_param.pitch_max = input.pitch_max;
+	_control_param.pitch_min = input.pitch_min;
+	_control_param.throttle_trim = input.throttle_trim;
+	_control_param.throttle_max = input.throttle_max;
+	_control_param.throttle_min = input.throttle_min;
 }
 
 float TECS::calcTrueAirspeedSetpoint(float eas_to_tas, float eas_setpoint)
@@ -674,25 +673,24 @@ float TECS::calcTrueAirspeedSetpoint(float eas_to_tas, float eas_setpoint)
 	return lerp(eas_to_tas * eas_setpoint, _control_param.tas_max, _fast_descend);
 }
 
-void TECS::initialize(const float altitude, const float altitude_rate, const float equivalent_airspeed,
-		      float eas_to_tas)
+void TECS::initialize(const Input &input)
 {
 	// Init subclasses
-	TECSAltitudeReferenceModel::AltitudeReferenceState current_state{.alt = altitude,
-			.alt_rate = altitude_rate};
+	TECSAltitudeReferenceModel::AltitudeReferenceState current_state{.alt = input.altitude,
+			.alt_rate = input.altitude_rate};
 	_altitude_reference_model.initialize(current_state);
-	_airspeed_filter.initialize(equivalent_airspeed, _airspeed_filter_param.equivalent_airspeed_trim,
+	_airspeed_filter.initialize(input.equivalent_airspeed, _airspeed_filter_param.equivalent_airspeed_trim,
 				    _control_flag.airspeed_enabled);
 
 	TECSControl::Setpoint control_setpoint;
 	control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
 	control_setpoint.altitude_rate_setpoint_direct =
 		control_setpoint.altitude_reference.alt_rate; // init to reference altitude rate
-	control_setpoint.tas_setpoint = equivalent_airspeed * eas_to_tas;
+	control_setpoint.tas_setpoint = input.equivalent_airspeed * input.eas_to_tas;
 
-	const TECSControl::Input control_input{ .altitude = altitude,
-						.altitude_rate = altitude_rate,
-						.tas = eas_to_tas * equivalent_airspeed,
+	const TECSControl::Input control_input{ .altitude = input.altitude,
+						.altitude_rate = input.altitude_rate,
+						.tas = input.eas_to_tas * input.equivalent_airspeed,
 						.tas_rate = 0.0f};
 
 	_control.initialize(control_setpoint, control_input, _control_param, _control_flag);
@@ -701,17 +699,13 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 	_enabled_fast_descend_timestamp = 0U;
 }
 
-void TECS::update(float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
-		  float eas_to_tas, float throttle_min, float throttle_setpoint_max,
-		  float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
-		  float target_sinkrate, const float speed_deriv_forward, float hgt_rate, float hgt_rate_sp)
+void TECS::update(const Input &input)
 {
 	// Calculate the time since last update (seconds)
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = static_cast<float>(now - _update_timestamp) * 1e-6f;
 
-	initControlParams(target_climbrate, target_sinkrate, eas_to_tas, pitch_limit_max, pitch_limit_min, throttle_min,
-			  throttle_setpoint_max, throttle_trim);
+	initControlParams(input);
 
 	if (dt < DT_MIN) {
 		// Update interval too small, do not update. Assume constant states/output in this case.
@@ -720,17 +714,17 @@ void TECS::update(float altitude, float hgt_setpoint, float EAS_setpoint, float 
 
 	if (dt > DT_MAX || _update_timestamp == 0UL) {
 		// Update time interval too large, can't guarantee sanity of state updates anymore. reset the control loop.
-		initialize(altitude, hgt_rate, equivalent_airspeed, eas_to_tas);
+		initialize(input);
 
 	} else {
 		/* Check if we want to fast descend. On fast descend, we set the throttle to min, and use the altitude control
 		loop to control the speed to the maximum airspeed. */
-		_setFastDescend(hgt_setpoint, altitude);
+		_setFastDescend(input.altitude_setpoint, input.altitude);
 		_control_param.fast_descend = _fast_descend;
 
 		// Update airspeedfilter submodule
-		const TECSAirspeedFilter::Input airspeed_input{ .equivalent_airspeed = equivalent_airspeed,
-				.equivalent_airspeed_rate = speed_deriv_forward / eas_to_tas};
+		const TECSAirspeedFilter::Input airspeed_input{ .equivalent_airspeed = input.equivalent_airspeed,
+				.equivalent_airspeed_rate = input.speed_deriv_forward / input.eas_to_tas};
 
 		_airspeed_filter.update(dt, airspeed_input, _airspeed_filter_param, _control_flag.airspeed_enabled);
 
@@ -738,37 +732,37 @@ void TECS::update(float altitude, float hgt_setpoint, float EAS_setpoint, float 
 		if (fastDescendFullyEngaged(_fast_descend)) {
 			// Reset the altitude reference model, while we are in fast descend.
 			const TECSAltitudeReferenceModel::AltitudeReferenceState init_state{
-				.alt = altitude,
-				.alt_rate = hgt_rate};
+				.alt = input.altitude,
+				.alt_rate = input.altitude_rate};
 			_altitude_reference_model.initialize(init_state);
 
 		} else {
-			const TECSAltitudeReferenceModel::AltitudeReferenceState setpoint{ .alt = hgt_setpoint,
-					.alt_rate = hgt_rate_sp};
+			const TECSAltitudeReferenceModel::AltitudeReferenceState setpoint{ .alt = input.altitude_setpoint,
+					.alt_rate = input.altitude_rate_setpoint};
 
-			_altitude_reference_model.update(dt, setpoint, altitude, hgt_rate, _reference_param);
+			_altitude_reference_model.update(dt, setpoint, input.altitude, input.altitude_rate, _reference_param);
 		}
 
 		TECSControl::Setpoint control_setpoint;
 		control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
 		control_setpoint.altitude_rate_setpoint_direct = _altitude_reference_model.getHeightRateSetpointDirect();
-		control_setpoint.tas_setpoint = calcTrueAirspeedSetpoint(eas_to_tas, EAS_setpoint);
+		control_setpoint.tas_setpoint = calcTrueAirspeedSetpoint(input.eas_to_tas, input.equivalent_airspeed_setpoint);
 
 		const TECSAirspeedFilter::AirspeedFilterState airspeed_state{_airspeed_filter.getState()};
-		const TECSControl::Input control_input{ .altitude = altitude,
-							.altitude_rate = hgt_rate,
-							.tas = eas_to_tas * airspeed_state.speed,
-							.tas_rate = eas_to_tas * airspeed_state.speed_rate};
+		const TECSControl::Input control_input{ .altitude = input.altitude,
+							.altitude_rate = input.altitude_rate,
+							.tas = input.eas_to_tas * airspeed_state.speed,
+							.tas_rate = input.eas_to_tas * airspeed_state.speed_rate};
 
 		_control.update(dt, control_setpoint, control_input, _control_param, _control_flag);
 	}
 
 	_debug_status.control = _control.getDebugOutput();
-	_debug_status.true_airspeed_sp = calcTrueAirspeedSetpoint(eas_to_tas, EAS_setpoint);
+	_debug_status.true_airspeed_sp = calcTrueAirspeedSetpoint(input.eas_to_tas, input.equivalent_airspeed_setpoint);
 	const TECSAirspeedFilter::AirspeedFilterState airspeed_state{_airspeed_filter.getState()};
 	const TECSAltitudeReferenceModel::AltitudeReferenceState altitude_reference{_altitude_reference_model.getAltitudeReference()};
-	_debug_status.true_airspeed_filtered = eas_to_tas * airspeed_state.speed;
-	_debug_status.true_airspeed_derivative = eas_to_tas * airspeed_state.speed_rate;
+	_debug_status.true_airspeed_filtered = input.eas_to_tas * airspeed_state.speed;
+	_debug_status.true_airspeed_derivative = input.eas_to_tas * airspeed_state.speed_rate;
 	_debug_status.altitude_reference = altitude_reference.alt;
 	_debug_status.height_rate_reference = altitude_reference.alt_rate;
 	_debug_status.height_rate_direct = _altitude_reference_model.getHeightRateSetpointDirect();
