@@ -39,5 +39,19 @@ if MODULES_SENSORS
     config SENSORS_VEHICLE_OPTICAL_FLOW
         bool "Include vehicle optical flow"
         default y
+        depends on !SENSORS_NODE_OPTICAL_FLOW
+
+    config SENSORS_NODE_OPTICAL_FLOW
+        bool "Include optical flow for a CAN sensor node"
+        default n
+        ---help---
+            Pairs each flow frame with the node gyro and aggregates frames for the bus.
+            Has no parameters: the flight controller owns the flow configuration.
+
+    config SENSORS_NODE_OPTICAL_FLOW_RATE
+        int "Node optical flow publication rate (Hz)"
+        default 70
+        range 1 1000
+        depends on SENSORS_NODE_OPTICAL_FLOW
 
 endif #MODULES_SENSORS

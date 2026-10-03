@@ -57,8 +57,12 @@ if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 	add_subdirectory(vehicle_magnetometer)
 endif()
 
-if(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+if(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW OR CONFIG_SENSORS_NODE_OPTICAL_FLOW)
 	add_subdirectory(vehicle_optical_flow)
+endif()
+
+if(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+	set(OPTICAL_FLOW_PARAMS sensor_params_flow.yaml)
 endif()
 
 px4_add_module(
@@ -75,7 +79,7 @@ px4_add_module(
 		module.yaml
 		vehicle_gps_position/module.yaml
 		sensor_params.yaml
-		sensor_params_flow.yaml
+		${OPTICAL_FLOW_PARAMS}
 		sensor_params_mag.yaml
 	DEPENDS
 		conversion
@@ -111,4 +115,8 @@ endif()
 
 if(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 	target_link_libraries(modules__sensors PRIVATE vehicle_optical_flow)
+endif()
+
+if(CONFIG_SENSORS_NODE_OPTICAL_FLOW)
+	target_link_libraries(modules__sensors PRIVATE node_optical_flow)
 endif()

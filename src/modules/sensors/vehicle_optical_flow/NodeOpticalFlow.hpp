@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,64 +31,47 @@
  *
  ****************************************************************************/
 
+
 #pragma once
 
 #include "OpticalFlowAccumulator.hpp"
 #include "OpticalFlowGyroFeed.hpp"
-#include "RingBuffer.hpp"
 
-#include <lib/conversion/rotation.h>
-#include <lib/mathlib/math/Limits.hpp>
-#include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_optical_flow.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_optical_flow.h>
-#include <uORB/topics/vehicle_optical_flow_vel.h>
 
 namespace sensors
 {
 
-class VehicleOpticalFlow : public ModuleParams, public px4::ScheduledWorkItem
+/**
+ * Optical flow on a CAN sensor node: pairs each frame with the node's gyro and
+ * aggregates frames to a fixed rate for the bus.
+ *
+ * Rotation, scale, limits and timing are vehicle configuration and belong to
+ * the flight controller, so this class has no parameters.
+ */
+class NodeOpticalFlow : public px4::ScheduledWorkItem
 {
 public:
-	VehicleOpticalFlow();
-	~VehicleOpticalFlow() override;
+	NodeOpticalFlow();
+	~NodeOpticalFlow() override;
 
 	bool Start();
 	void Stop();
 
 	void PrintStatus();
 
-protected:
-	void UpdateDistanceSensor();
-	int _distance_sensor_selected{-1}; // because we can have several distance sensor instances with different orientations
-
 private:
-	void ClearDistance();
-
 	void Run() override;
 
-	void ParametersUpdate();
+	static constexpr uint32_t kPublishIntervalUs = 1'000'000 / CONFIG_SENSORS_NODE_OPTICAL_FLOW_RATE;
 
 	uORB::Publication<vehicle_optical_flow_s> _vehicle_optical_flow_pub{ORB_ID(vehicle_optical_flow)};
-	uORB::Publication<vehicle_optical_flow_vel_s> _vehicle_optical_flow_vel_pub{ORB_ID(vehicle_optical_flow_vel)};
-
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
-
-	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
-
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_flow_sub{this, ORB_ID(sensor_optical_flow)};
 
@@ -96,26 +79,6 @@ private:
 	OpticalFlowGyroFeed _gyro_feed{this};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-
-	float _distance_sum{NAN};
-	uint8_t _distance_sum_count{0};
-
-	hrt_abstime _last_range_sensor_update{0};
-
-	struct rangeSample {
-		uint64_t time_us{}; ///< timestamp of the measurement (uSec)
-		float data{};
-	};
-
-	RingBuffer<rangeSample, 5> _range_buffer{};
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_FLOW_ROT>) _param_sens_flow_rot,
-		(ParamFloat<px4::params::SENS_FLOW_MINHGT>) _param_sens_flow_minhgt,
-		(ParamFloat<px4::params::SENS_FLOW_MAXHGT>) _param_sens_flow_maxhgt,
-		(ParamFloat<px4::params::SENS_FLOW_MAXR>) _param_sens_flow_maxr,
-		(ParamFloat<px4::params::SENS_FLOW_RATE>) _param_sens_flow_rate,
-		(ParamFloat<px4::params::SENS_FLOW_SCALE>) _param_sens_flow_scale
-	)
 };
-}; // namespace sensors
+
+} // namespace sensors
