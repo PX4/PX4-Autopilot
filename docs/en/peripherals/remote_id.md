@@ -148,7 +148,17 @@ There is no need to explicitly enable Remote ID (supported Remote ID messages ar
 <Badge type="tip" text="PX4 v1.18" />
 
 The [COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) parameter configures both the arming check and the in-flight failsafe action when the Remote ID system is missing or unhealthy.
-For more information see [Remote ID Failsafe](http://localhost:5173/px4_user_guide/en/config/safety#remote-id-failsafe) in _Safety Configuration_.
+For more information see [Remote ID Failsafe](../config/safety.md#remote-id-failsafe) in _Safety Configuration_.
+
+For a DroneCAN Remote ID module, set `COM_ARM_ODID` to `2` to require a ready module during normal arming checks.
+PX4 checks the module's `dronecan.remoteid.ArmStatus` messages: only `GOOD_TO_ARM` is healthy, and a status older than three seconds is treated as a lost connection.
+This setting does not trigger an in-flight return, landing, or flight termination when the module fails.
+Existing exceptions to preflight checks, such as the short RC-switch re-arming grace period, still apply.
+
+Once a DroneCAN Remote ID status has been received, PX4 uses that source until the flight controller restarts, even if the module subsequently disconnects.
+MAVLink Remote ID heartbeats cannot override a DroneCAN fault or lost connection.
+If no DroneCAN Remote ID status has been received, PX4 continues to use MAVLink Remote ID heartbeats.
+This supports a single Remote ID module; it does not monitor multiple DroneCAN Remote ID modules independently.
 
 ## Module Broadcast Testing
 
