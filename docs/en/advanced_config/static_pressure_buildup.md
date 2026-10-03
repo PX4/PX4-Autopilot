@@ -36,6 +36,8 @@ Aim for a barometer altitude drop of less than 2 metres at maximum horizontal sp
 After modifying the hardware, you can then use the [SENS_BARO_K\_\*](../advanced_config/parameter_reference.md#SENS_BARO_K_XN) parameters to tune for expected barometer variation based on relative air velocity.
 For more information see [Using PX4's Navigation Filter (EKF2) > Correction for Static Pressure Position Error](../advanced_config/tuning_the_ecl_ekf.md#correction-for-static-pressure-position-error).
 
+Pressure changes caused by the propellers themselves are compensated separately, see [Barometer Thrust Compensation](../advanced_config/barometer_thrust_compensation.md).
+
 ::: info
 The approach works well if the relationship between the error due to static pressure and the velocity varies linearly.
 If the vehicle has a more complex aerodynamic model it will be less effective.
@@ -43,4 +45,5 @@ If the vehicle has a more complex aerodynamic model it will be less effective.
 
 ## See Also
 
+- [Barometer Thrust Compensation](../advanced_config/barometer_thrust_compensation.md)
 - [OEM/Factory Configuration](../advanced_config/oem.md)

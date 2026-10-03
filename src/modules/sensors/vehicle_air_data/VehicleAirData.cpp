@@ -144,6 +144,11 @@ void VehicleAirData::Run()
 
 	const bool parameter_update = ParametersUpdate();
 
+	float thrust_z = 0.f;
+#if defined(CONFIG_SENSORS_BARO_COMPENSATION)
+	thrust_z = CurrentThrust(time_now_us);
+#endif // CONFIG_SENSORS_BARO_COMPENSATION
+
 	estimator_status_flags_s estimator_status_flags;
 	const bool estimator_status_flags_updated = _estimator_status_flags_sub.update(&estimator_status_flags);
 
@@ -219,6 +224,7 @@ void VehicleAirData::Run()
 				_timestamp_sample_sum[uorb_index] += report.timestamp_sample;
 				_data_sum[uorb_index] += pressure_corrected;
 				_temperature_sum[uorb_index] += report.temperature;
+				_thrust_sum[uorb_index] += thrust_z;
 				_data_sum_count[uorb_index]++;
 
 				_last_data[uorb_index] = pressure_corrected;
@@ -305,7 +311,8 @@ void VehicleAirData::Run()
 
 						float altitude_correction = 0.f;
 #if defined(CONFIG_SENSORS_BARO_COMPENSATION)
-						altitude_correction = StaticPressureCorrection(time_now_us);
+						altitude_correction = StaticPressureCorrection(time_now_us)
+								      + _param_sens_baro_k_t.get() * (_thrust_sum[instance] / _data_sum_count[instance]);
 #endif // CONFIG_SENSORS_BARO_COMPENSATION
 
 						// calculate air density
@@ -338,6 +345,7 @@ void VehicleAirData::Run()
 					_timestamp_sample_sum[instance] = 0;
 					_data_sum[instance] = 0;
 					_temperature_sum[instance] = 0;
+					_thrust_sum[instance] = 0;
 					_data_sum_count[instance] = 0;
 				}
 			}
@@ -551,6 +559,23 @@ float VehicleAirData::StaticPressureCorrection(const hrt_abstime &time_now_us)
 
 	// pressure error = pcoef * dynamic pressure, which as an altitude error is independent of the air density
 	return 0.5f * airspeed_sq.dot(pcoef) / CONSTANTS_ONE_G;
+}
+
+float VehicleAirData::CurrentThrust(const hrt_abstime &time_now_us)
+{
+	if (fabsf(_param_sens_baro_k_t.get()) < FLT_EPSILON) {
+		return 0.f;
+	}
+
+	vehicle_thrust_setpoint_s thrust_setpoint;
+
+	// NAN means the motors are stopped, a stale setpoint that the controller is not running
+	if (_vehicle_thrust_setpoint_sub.copy(&thrust_setpoint) && PX4_ISFINITE(thrust_setpoint.xyz[2])
+	    && (time_now_us - thrust_setpoint.timestamp < 500_ms)) {
+		return fabsf(thrust_setpoint.xyz[2]);
+	}
+
+	return 0.f;
 }
 #endif // CONFIG_SENSORS_BARO_COMPENSATION
 

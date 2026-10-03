@@ -255,6 +255,9 @@ Tuning parameters:
 - [SENS_BARO_K_Z](../advanced_config/parameter_reference.md#SENS_BARO_K_Z)
 - [SENS_BARO_K_VMAX](../advanced_config/parameter_reference.md#SENS_BARO_K_VMAX)
 
+Pressure errors induced by the propellers are compensated separately, see [Barometer Thrust Compensation](../advanced_config/barometer_thrust_compensation.md).
+Identify that first: in forward flight the thrust and airspeed errors are correlated, so tune the coefficients above with [SENS_BARO_K_T](../advanced_config/parameter_reference.md#SENS_BARO_K_T) already applied.
+
 #### Barometer bias compensation
 
 A barometer at a constant altitude is subject to drift in its measurements due to changes in the ambient pressure environment or variations of the sensor temperature.

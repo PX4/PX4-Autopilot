@@ -51,6 +51,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/wind.h>
 #include <uORB/uORBManager.hpp>
 
@@ -193,9 +194,11 @@ TEST_F(VehicleAirDataTest, BarometerDisabledFromBootDoesNotDriveRun)
 #if defined(CONFIG_SENSORS_BARO_COMPENSATION)
 TEST_F(VehicleAirDataTest, CompensationCorrectsPublishedAltitude)
 {
-	// flying forward at 10 m/s through still air with the port reading high
+	// flying forward at 10 m/s through still air with the port reading high, and hovering at half
+	// thrust with the propellers pulling the pressure down further
 	setPriority(0, 75);
 	setParam("SENS_BARO_K_XP", -0.4f);
+	setParam("SENS_BARO_K_T", -20.f);
 
 	VehicleAirDataTestable module;
 	publishParameterUpdate();
@@ -203,6 +206,7 @@ TEST_F(VehicleAirDataTest, CompensationCorrectsPublishedAltitude)
 	uORB::Publication<wind_s> wind_pub{ORB_ID(wind)};
 	uORB::Publication<vehicle_local_position_s> local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::Publication<vehicle_attitude_s> attitude_pub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<vehicle_thrust_setpoint_s> thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 
 	runFor(module, 1500_ms, [&]() {
 		const hrt_abstime now = hrt_absolute_time();
@@ -223,6 +227,11 @@ TEST_F(VehicleAirDataTest, CompensationCorrectsPublishedAltitude)
 		attitude.q[0] = 1.f;
 		attitude_pub.publish(attitude);
 
+		vehicle_thrust_setpoint_s thrust_setpoint{};
+		thrust_setpoint.timestamp = now;
+		thrust_setpoint.xyz[2] = -0.5f;
+		thrust_setpoint_pub.publish(thrust_setpoint);
+
 		publishSample(0, kPressurePa);
 	});
 
@@ -230,7 +239,7 @@ TEST_F(VehicleAirDataTest, CompensationCorrectsPublishedAltitude)
 	vehicle_air_data_s air_data{};
 	ASSERT_TRUE(air_data_sub.copy(&air_data));
 
-	const float expected_correction = 0.5f * -0.4f * 10.f * 10.f / CONSTANTS_ONE_G;
+	const float expected_correction = -20.f * 0.5f + 0.5f * -0.4f * 10.f * 10.f / CONSTANTS_ONE_G;
 	EXPECT_NEAR(air_data.baro_alt_correction, expected_correction, 1e-3f);
 	// standard pressure at the default QNH is 0 m before the correction
 	EXPECT_NEAR(air_data.baro_alt_meter, expected_correction, 1e-2f);
