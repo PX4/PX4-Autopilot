@@ -2192,6 +2192,12 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 	mavlink_tunnel_t mavlink_tunnel;
 	mavlink_msg_tunnel_decode(msg, &mavlink_tunnel);
 
+	// The payload is forwarded to a device, so a message meant for another vehicle on the
+	// same link must not be written to this one's bus.
+	if (!evaluate_target_ok(0, mavlink_tunnel.target_system, mavlink_tunnel.target_component)) {
+		return;
+	}
+
 	if (mavlink_tunnel.payload_length > sizeof(mavlink_tunnel.payload)) {
 		// The payload buffer is a fixed 128 bytes while payload_length is a uint8_t, so a
 		// sender can advertise more data than the message can carry. Drop such a message
@@ -3586,9 +3592,10 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	memcpy(gimbal_information.vendor_name, gimbal_device_info_msg.vendor_name, sizeof(gimbal_information.vendor_name));
 	memcpy(gimbal_information.model_name, gimbal_device_info_msg.model_name, sizeof(gimbal_information.model_name));
 	memcpy(gimbal_information.custom_name, gimbal_device_info_msg.custom_name, sizeof(gimbal_information.custom_name));
-	gimbal_device_info_msg.vendor_name[sizeof(gimbal_device_info_msg.vendor_name) - 1] = '\0';
-	gimbal_device_info_msg.model_name[sizeof(gimbal_device_info_msg.model_name) - 1] = '\0';
-	gimbal_device_info_msg.custom_name[sizeof(gimbal_device_info_msg.custom_name) - 1] = '\0';
+	// Terminate the published fields, not the decoded message we are about to discard
+	gimbal_information.vendor_name[sizeof(gimbal_information.vendor_name) - 1] = '\0';
+	gimbal_information.model_name[sizeof(gimbal_information.model_name) - 1] = '\0';
+	gimbal_information.custom_name[sizeof(gimbal_information.custom_name) - 1] = '\0';
 
 	gimbal_information.firmware_version = gimbal_device_info_msg.firmware_version;
 	gimbal_information.hardware_version = gimbal_device_info_msg.hardware_version;

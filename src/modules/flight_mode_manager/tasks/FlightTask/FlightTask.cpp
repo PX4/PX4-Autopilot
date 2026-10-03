@@ -22,6 +22,8 @@ void FlightTask::reActivate()
 	// Preserve vertical velocity while on the ground to allow descending by stick for reliable land detection
 	trajectory_setpoint_s setpoint_preserve_vertical{empty_trajectory_setpoint};
 	setpoint_preserve_vertical.velocity[2] = _velocity_setpoint(2);
+	// Start from zero acceleration to make sure no accelration measurement driven by vibration gets used on the ground
+	matrix::Vector3f(0.f, 0.f, 0.f).copyTo(setpoint_preserve_vertical.acceleration);
 	activate(setpoint_preserve_vertical);
 }
 

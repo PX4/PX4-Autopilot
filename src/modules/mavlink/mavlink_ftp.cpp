@@ -305,6 +305,12 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	}
 
 	// clear any not used payload data to correctly trim mavlink ftp message reply
+	if (payload->size > kMaxDataLength) {
+		// Should not happen: every producer bounds itself. Clamp rather than let the
+		// subtraction below wrap into a memset of the whole address space.
+		payload->size = kMaxDataLength;
+	}
+
 	memset(&payload->data[payload->size], 0, kMaxDataLength - payload->size);
 
 	PX4_DEBUG("FTP: %s seq_number: %" PRIu16, payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
@@ -405,9 +411,14 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 
 			if (_our_errno) {
 				PX4_WARN("readdir failed: %s", strerror(_our_errno));
-				payload->data[offset++] = kDirentSkip;
-				*((char *)&payload->data[offset]) = '\0';
-				offset++;
+
+				// Room for the identifier and the null terminator, as in the entry loop below
+				if ((offset + 2) <= kMaxDataLength) {
+					payload->data[offset++] = kDirentSkip;
+					*((char *)&payload->data[offset]) = '\0';
+					offset++;
+				}
+
 				errorCode = kErrFailErrno;
 
 			} else if (offset == 0) {
@@ -528,6 +539,14 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 		return kErrFailFileProtected;
 	}
 
+	// CreateFile and OpenFileWO create or truncate the file as part of the open, so the
+	// effect lands before any write arrives and has to be authorized here. Test the
+	// access mode rather than the individual flags: on NuttX O_RDONLY is a bit and
+	// O_RDWR is O_RDONLY | O_WRONLY, so a read-only open would match O_RDWR.
+	if ((oflag & O_ACCMODE) != O_RDONLY && !_validatePathIsWritable(_work_buffer1)) {
+		return kErrFailFileProtected;
+	}
+
 	PX4_DEBUG("FTP: open '%s'", _work_buffer1);
 
 	uint32_t fileSize = 0;
@@ -638,9 +657,9 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 		return kErrInvalidSession;
 	}
 
-	if (!_validatePathIsWritable(_work_buffer1)) {
-		return kErrFailFileProtected;
-	}
+	// The path is authorized in _workOpen(), which is where the descriptor this writes to
+	// was bound. Re-checking here would validate _work_buffer1, a scratch buffer any
+	// intervening request overwrites, rather than the path behind _session_info.fd.
 
 	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
 		// Unable to see to the specified location
