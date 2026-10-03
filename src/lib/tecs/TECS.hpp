@@ -417,16 +417,24 @@ private:
 	 */
 	STERateLimit _calculateTotalEnergyRateLimit(const Param &param) const;
 	/**
+	 * @brief Gain from specific total energy rate error to throttle.
+	 *
+	 * @param[in] limit is the specific total energy rate limits in [m²/s³].
+	 * @return throttle per specific total energy rate [s³/m²].
+	 */
+	static float _steRateToThrottle(const STERateLimit &limit) { return 1.0f / (limit.STE_rate_max - limit.STE_rate_min); }
+	/**
 	 * @brief calculate airspeed control proportional output.
 	 *
 	 * @param setpoint is the control setpoints.
 	 * @param input	is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param param	is the control parameters.
 	 * @param flag	is the control flags.
 	 * @return controlled airspeed rate setpoint in [m/s²].
 	 */
-	float _calcAirspeedControlOutput(const Setpoint &setpoint, const Input &input, const Param &param,
-					 const Flag &flag) const;
+	float _calcAirspeedControlOutput(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+					 const Param &param, const Flag &flag) const;
 	/**
 	 * @brief calculate altitude control proportional output.
 	 *
@@ -510,11 +518,12 @@ private:
 	 * @brief Update controlled throttle setpoint.
 	 *
 	 * @param dt is the update time intervall in [s].
+	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rate is the calculated specific energy.
 	 * @param flag is the control flags.
 	 */
-	void _calcThrottleControl(float dt, const SpecificEnergyRates &specific_energy_rate, const Param &param,
-				  const Flag &flag);
+	void _calcThrottleControl(float dt, const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rate,
+				  const Param &param, const Flag &flag);
 
 	/**
 	 * @brief Calculate throttle control specific total energy
