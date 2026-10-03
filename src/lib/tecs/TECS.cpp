@@ -42,10 +42,6 @@
 
 #include <px4_platform_common/defines.h>
 
-#include "matrix/Matrix.hpp"
-#include "matrix/Vector2.hpp"
-#include <mathlib/math/Functions.hpp>
-
 using math::constrain;
 using math::max;
 using math::min;
@@ -71,7 +67,6 @@ void TECSAirspeedFilter::update(const float dt, const Input &input, const Param 
 	// Input checking
 	if (!TIMESTAMP_VALID(dt)) {
 		// Do not update the states.
-		PX4_WARN("Time intervall is not valid.");
 		return;
 	}
 
@@ -133,7 +128,6 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 	// Input checks
 	if (!TIMESTAMP_VALID(dt)) {
 		// Do not update the states.
-		PX4_WARN("Time intervall is not valid.");
 		return;
 	}
 
@@ -264,7 +258,6 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 	// Input checking
 	if (!TIMESTAMP_VALID(dt)) {
 		// Do not update the states and output.
-		PX4_WARN("Time intervall is not valid.");
 		return;
 	}
 

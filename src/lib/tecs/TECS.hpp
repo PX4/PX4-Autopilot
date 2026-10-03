@@ -43,10 +43,6 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
-
-#include <uORB/Publication.hpp>
-#include <uORB/topics/tecs_status.h>
-#include <uORB/uORB.h>
 #include <motion_planning/VelocitySmoothing.hpp>
 #include <motion_planning/ManualVelocitySmoothingZ.hpp>
 
