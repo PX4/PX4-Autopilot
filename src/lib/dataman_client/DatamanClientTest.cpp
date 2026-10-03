@@ -51,6 +51,13 @@
 
 extern "C" int dataman_main(int argc, char *argv[]);
 
+// Reads the ID dataman handed a client, which nothing else exposes
+class DatamanClientTestPeer
+{
+public:
+	static uint8_t clientId(const DatamanClient &client) { return client._client_id; }
+};
+
 class DatamanClientTest : public ::testing::Test
 {
 protected:
@@ -94,14 +101,20 @@ TEST_F(DatamanClientTest, IdsAreReusedAfterAClientIsDestroyed)
 	}
 }
 
-// WHAT: an ID is only handed back once its client is gone, so clients alive together all have one.
-TEST_F(DatamanClientTest, ClientsAliveTogetherAllHaveIds)
+// WHAT: an ID is only handed back once its client is gone, so clients alive together all have one, and no two of
+// them share it. Replies are matched on the client ID, so a shared one would let two clients take each other's.
+TEST_F(DatamanClientTest, ClientsAliveTogetherAllHaveDistinctIds)
 {
 	std::vector<std::unique_ptr<DatamanClient>> clients;
+	bool id_seen[UINT8_MAX + 1] {};
 
 	for (int i = 0; i < 200; i++) {
 		clients.push_back(std::make_unique<DatamanClient>());
 		ASSERT_TRUE(canWrite(*clients.back(), static_cast<uint8_t>(i))) << "client " << i << " did not get an ID";
+
+		const uint8_t id = DatamanClientTestPeer::clientId(*clients.back());
+		ASSERT_FALSE(id_seen[id]) << "client " << i << " got ID " << static_cast<int>(id) << " which is in use";
+		id_seen[id] = true;
 	}
 
 	clients.clear();
@@ -110,4 +123,21 @@ TEST_F(DatamanClientTest, ClientsAliveTogetherAllHaveIds)
 		clients.push_back(std::make_unique<DatamanClient>());
 		ASSERT_TRUE(canWrite(*clients.back(), static_cast<uint8_t>(i))) << "second round client " << i << " did not get an ID";
 	}
+}
+
+// WHY: a uORB node has a single advertised flag, so when one client unadvertised its request publication on
+// destruction, dataman stopped seeing the requests of every client still alive until a new client advertised
+// the topic again. On a vehicle that happened whenever a mavlink instance was stopped.
+// WHAT: a client keeps working after another one has been created and destroyed.
+TEST_F(DatamanClientTest, ARequestStillReachesDatamanAfterAnotherClientIsDestroyed)
+{
+	DatamanClient survivor;
+	ASSERT_TRUE(canWrite(survivor, 1));
+
+	{
+		DatamanClient passer_by;
+		ASSERT_TRUE(canWrite(passer_by, 2));
+	}
+
+	EXPECT_TRUE(canWrite(survivor, 3)) << "the surviving client's request was not answered";
 }
