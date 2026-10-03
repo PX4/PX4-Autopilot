@@ -218,7 +218,7 @@ void TECSAltitudeReferenceModel::initialize(const AltitudeReferenceState &state)
 	_velocity_control_traj_generator.reset(0.f, init_state_alt_rate, init_state_alt);
 }
 
-void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param &param, const Flag &flag)
+void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const Param &param, const Flag &flag)
 {
 	resetIntegrals();
 
@@ -258,7 +258,8 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 	_debug_output.true_airspeed_derivative_control = control_setpoint.tas_rate_setpoint;
 }
 
-void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &input, Param &param, const Flag &flag)
+void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &input, const Param &param,
+			 const Flag &flag)
 {
 	// Input checking
 	if (!TIMESTAMP_VALID(dt)) {
