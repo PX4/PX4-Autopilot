@@ -641,13 +641,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				  (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND) &&
 				  !_land_detected_sub.get().landed;
 
-	/* ignore yaw for landing items */
-	/* XXX: if specified heading for landing is desired we could add another step before the descent
-		* that aligns the vehicle first */
-	if (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
-		_mission_item.yaw = NAN;
-	}
-
 	/* move to land wp as fixed wing */
 	if (needs_vtol_landing) {
 		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
@@ -657,6 +650,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			/* use current mission item as next position item */
 			num_found_items = 1u;
 			next_mission_items[0u] = _mission_item;
+			next_mission_items[0u].yaw = NAN;
 
 			float altitude = _global_pos_sub.get().alt;
 
@@ -670,6 +664,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
 			_mission_item.vtol_back_transition = true;
+			_mission_item.yaw = NAN;
 
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 		}
@@ -693,7 +688,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 
 			/* use current mission item as next position item */
 			num_found_items = 1u;
-			next_mission_items[0u] = _mission_item;
+			next_mission_items[0u] = _mission_item; // contains NAV_CMD_LAND
 
 			/*
 				* Ignoring waypoint altitude:
@@ -708,6 +703,41 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 				altitude = pos_sp_triplet->current.alt;
 			}
+
+			_mission_item.altitude = altitude;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.autocontinue = true;
+			_mission_item.yaw = NAN;
+
+			// have to reset here because these field were used in set_vtol_transition_item
+			_mission_item.time_inside = 0.f;
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+
+			// make previous setpoint invalid, such that there will be no prev-current line following.
+			// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
+			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
+
+			_navigator->activate_set_gimbal_neutral_timer(hrt_absolute_time());
+
+		} else if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
+			   !do_need_move_to_item() &&
+			   PX4_ISFINITE(_mission_item.yaw) &&
+			   (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT ||
+			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
+			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
+
+			float altitude = _global_pos_sub.get().alt;
+
+			if (pos_sp_triplet->current.valid
+			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+				altitude = pos_sp_triplet->current.alt;
+			}
+
+			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND;
+
+			num_found_items = 1u;
+			next_mission_items[0u] = _mission_item; // contains NAV_CMD_LAND
 
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
