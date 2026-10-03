@@ -45,7 +45,6 @@
 #include <matrix/math.hpp>
 
 #include <dataman/dataman.h>
-#include <px4_platform_common/px4_config.h> // CONFIG_NAVIGATOR_GEOFENCE_MAX_NODES
 
 namespace geofence_utils
 {
@@ -209,14 +208,9 @@ class PlannerPolygons
 {
 public:
 
-	// By default, limit to 100 nodes, which was found to limit the full update
-	// on geofence / margin change to about 20 ms. Lower for weaker or RAM-constrained boards.
-
-#ifndef CONFIG_NAVIGATOR_GEOFENCE_MAX_NODES
-#define CONFIG_NAVIGATOR_GEOFENCE_MAX_NODES 100
-#endif
-
-	static constexpr int kMaxNodes = CONFIG_NAVIGATOR_GEOFENCE_MAX_NODES;
+	// Default node capacity. 100 nodes was found to limit the full update
+	// on geofence / margin change to about 20 ms.
+	static constexpr int kDefaultMaxNodes = 100;
 	static constexpr int kMaxPolygons = 16;
 	static constexpr int kCircleApproxVertices = 8;
 
@@ -225,7 +219,7 @@ public:
 	//  - kMaxPolygons-1 circles (most nodes per dataman item)
 	//  - one remaining polygon using all remaining fence points, with max amount of split vertices
 	//  - 1 destination slot
-	// If kMaxNodes > kMaxNodesForAnyStorableFence, we always have enough space.
+	// If the allocated node capacity >= kMaxNodesForAnyStorableFence, we always have enough space.
 	// Otherwise we may fail with AddResult::BudgetExceeded.
 	static constexpr int kMaxNodesForAnyStorableFence =
 		(kMaxPolygons - 1) * kCircleApproxVertices
@@ -235,20 +229,34 @@ public:
 	// Return code specifying why a polygon was not added.
 	enum class AddResult {
 		Success,
-		BudgetExceeded,  // node or polygon buffer full (kMaxNodes / kMaxPolygons)
+		BudgetExceeded,  // node or polygon buffer full (allocated node capacity / kMaxPolygons)
 		OutOfRange,      // vertex or circle extent outside usable fixed-point range
 		Degenerate,      // <3 vertices, zero-length/antiparallel edge, self-intersecting, empty circle, negative margin
 	};
 
-	PlannerPolygons() { reset(); }
+	explicit PlannerPolygons(int max_nodes = kDefaultMaxNodes) { allocate(max_nodes); }
+	~PlannerPolygons() { freeBuffers(); }
+
+	PlannerPolygons(const PlannerPolygons &) = delete;
+	PlannerPolygons &operator=(const PlannerPolygons &) = delete;
+
+	// (Re-)allocate the node buffers for max_nodes nodes (including the destination slot) and reset.
+	// Returns false if the allocation failed, in which case the capacity is 0 and every add fails.
+	bool allocate(int max_nodes);
 
 	// Slot 0 is always reserved for the destination; polygon vertices start at index 1.
 	void reset()
 	{
+		_num_polygons = 0;
+
+		if (_max_nodes < 1) {
+			_num_nodes = 0;
+			return;
+		}
+
 		_num_nodes = 1;
 		_x_cm[0] = 0;
 		_y_cm[0] = 0;
-		_num_polygons = 0;
 		_node_not_on_optimal_path[0] = false;
 	}
 
@@ -294,8 +302,11 @@ public:
 	float edgeCost(int a, int b) const;
 
 private:
-	int32_t _x_cm[kMaxNodes];
-	int32_t _y_cm[kMaxNodes];
+	void freeBuffers();
+
+	int _max_nodes{0};
+	int32_t *_x_cm{nullptr};
+	int32_t *_y_cm{nullptr};
 
 	struct PolygonInfo {
 		int start_index;
@@ -316,7 +327,7 @@ private:
 	 *   (A -> just before B -> just after B -> C)
 	 * and so it cannot be globally optimal.
 	 */
-	bool _node_not_on_optimal_path[kMaxNodes];
+	bool *_node_not_on_optimal_path{nullptr};
 	int _num_nodes{0};
 
 	/**
@@ -378,7 +389,7 @@ private:
 inline bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
 		const matrix::Vector2f *vertices, int num_vertices, bool is_inclusion_zone)
 {
-	PlannerPolygons polys;
+	PlannerPolygons polys{maxVerticesAfterSplitting(num_vertices) + 1};
 
 	if (polys.addPolygon(vertices, num_vertices, is_inclusion_zone) != PlannerPolygons::AddResult::Success) {
 		return false;

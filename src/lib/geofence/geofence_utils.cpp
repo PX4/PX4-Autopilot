@@ -45,9 +45,46 @@ int32_t metersToCm(float m) { return roundf(m * CM_PER_M); }
 } // namespace
 
 
+bool PlannerPolygons::allocate(int max_nodes)
+{
+	freeBuffers();
+
+	if (max_nodes > 0) {
+		_x_cm = new int32_t[max_nodes];
+		_y_cm = new int32_t[max_nodes];
+		_node_not_on_optimal_path = new bool[max_nodes];
+
+		if (_x_cm != nullptr && _y_cm != nullptr && _node_not_on_optimal_path != nullptr) {
+			_max_nodes = max_nodes;
+
+		} else {
+			freeBuffers();
+		}
+	}
+
+	reset();
+
+	return _max_nodes == max_nodes;
+}
+
+void PlannerPolygons::freeBuffers()
+{
+	delete[] _x_cm;
+	delete[] _y_cm;
+	delete[] _node_not_on_optimal_path;
+	_x_cm = nullptr;
+	_y_cm = nullptr;
+	_node_not_on_optimal_path = nullptr;
+	_max_nodes = 0;
+}
+
 void PlannerPolygons::setNode(int idx, const matrix::Vector2f &p)
 {
-	idx = math::constrain(idx, 0, kMaxNodes - 1);
+	if (_max_nodes < 1) {
+		return;
+	}
+
+	idx = math::constrain(idx, 0, _max_nodes - 1);
 
 	_x_cm[idx] = metersToCm(p(0));
 	_y_cm[idx] = metersToCm(p(1));
@@ -56,7 +93,7 @@ void PlannerPolygons::setNode(int idx, const matrix::Vector2f &p)
 PlannerPolygons::AddResult PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
 		bool is_inclusion_zone, float margin)
 {
-	if (_num_polygons >= kMaxPolygons || _num_nodes + num_vertices > kMaxNodes) {
+	if (_num_polygons >= kMaxPolygons || _num_nodes + num_vertices > _max_nodes) {
 		return AddResult::BudgetExceeded;
 	}
 
@@ -157,7 +194,7 @@ PlannerPolygons::AddResult PlannerPolygons::addPolygon(const matrix::Vector2f *v
 
 		// If we do not have enough space, do not split the vertex.
 		// This never happens if the planner-internal node buffer is 2x the original buffer.
-		const bool space_for_split_vertices = _num_nodes + out_idx + 1 < kMaxNodes;
+		const bool space_for_split_vertices = _num_nodes + out_idx + 1 < _max_nodes;
 
 		if (corner_convex && angle_sharp && margin_nonzero && space_for_split_vertices) {
 
@@ -221,7 +258,7 @@ PlannerPolygons::AddResult PlannerPolygons::addApproxCircle(const matrix::Vector
 	// planner into all controllers, which would then have to also fly
 	// loiter segments, not just pure waypoint sequences.
 
-	if (_num_polygons >= kMaxPolygons || _num_nodes + kCircleApproxVertices > kMaxNodes) {
+	if (_num_polygons >= kMaxPolygons || _num_nodes + kCircleApproxVertices > _max_nodes) {
 		return AddResult::BudgetExceeded;
 	}
 
@@ -476,6 +513,10 @@ bool PlannerPolygons::setDestination(const matrix::Vector2f &p)
 
 matrix::Vector2f PlannerPolygons::getDestination() const
 {
+	if (_max_nodes < 1) {
+		return matrix::Vector2f{NAN, NAN};
+	}
+
 	return node(destIndex());
 }
 
