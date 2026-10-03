@@ -2129,10 +2129,17 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 		return;
 	}
 
-	const LockGuard lg{_mavlink.get_shell_mutex()};
-	MavlinkShell *shell = _mavlink.get_shell();
+	MavlinkShell *shell;
+
+	{
+		const LockGuard lg{_mavlink.get_shell_mutex()};
+		shell = _mavlink.get_shell();
+	}
 
 	if (shell) {
+		// Only this thread creates and deletes the shell, so it can be used without the lock.
+		// Do not hold the lock while writing: the write blocks while a shell pipe is full, and
+		// the output pipe is drained by Mavlink::handleMavlinkShellOutput(), which needs the lock.
 		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
 		if (serial_control_mavlink.count > 0 && serial_control_mavlink.count <= sizeof(serial_control_mavlink.data)) {
 			shell->setTargetID(msg->sysid, msg->compid);
@@ -2141,6 +2148,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 
 		// if no response requested, assume the shell is no longer used
 		if ((serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_RESPOND) == 0) {
+			const LockGuard lg{_mavlink.get_shell_mutex()};
 			_mavlink.close_shell();
 		}
 	}
