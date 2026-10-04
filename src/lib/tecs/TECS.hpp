@@ -222,8 +222,9 @@ public:
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
 		float tas_min;				///< True airspeed demand lower limit [m/s].
 		float tas_max;				///< True airspeed demand upper limit [m/s].
-		float pitch_max;			///< Maximum pitch angle above trim allowed in [rad].
-		float pitch_min;			///< Minimal pitch angle below trim allowed in [rad].
+		float pitch_max;			///< Maximum absolute pitch angle setpoint [rad].
+		float pitch_min;			///< Minimum absolute pitch angle setpoint [rad].
+		float level_flight_pitch;		///< Pitch angle in level flight at trim airspeed, fed forward at zero climb angle [rad].
 		float throttle_trim;		///< Normalized throttle required to fly level at calibrated airspeed setpoint [0,1]
 		float throttle_max;			///< Normalized throttle upper limit.
 		float throttle_min;			///< Normalized throttle lower limit.
@@ -268,7 +269,7 @@ public:
 		float total_energy_rate_sp;			///< Total energy rate setpoint [m²/s³].
 		float energy_balance_rate_estimate;		///< Energy balance rate estimate [m²/s³].
 		float energy_balance_rate_sp;			///< Energy balance rate setpoint [m²/s³].
-		float pitch_integrator;				///< Pitch control integrator state [-].
+		float pitch_integrator;				///< Pitch control integrator state, a correction added to the pitch setpoint [rad].
 		float throttle_integrator;			///< Throttle control integrator state [-].
 	};
 
@@ -343,7 +344,7 @@ public:
 	/**
 	 * @brief Get the pitch setpoint.
 	 *
-	 * @return The commanded pitch angle above trim in [rad].
+	 * @return The commanded absolute pitch angle [rad].
 	 */
 	float getPitchSetpoint() const {return _pitch_setpoint;}
 	/**
@@ -539,7 +540,7 @@ private:
 	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
 	 * @param param is the control parameters.
-	 * @return pitch setpoint angle above trim [rad].
+	 * @return absolute pitch setpoint [rad].
 	 */
 	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param) const;
 
@@ -599,7 +600,7 @@ private:
 
 	// Output
 	DebugOutput _debug_output;				///< Debug output.
-	float _pitch_setpoint{0.0f};				///< Controlled pitch setpoint above trim [rad].
+	float _pitch_setpoint{0.0f};				///< Controlled absolute pitch setpoint [rad].
 	float _throttle_setpoint{0.0f};				///< Controlled throttle setpoint [0,1].
 	float _ratio_undersped{0.0f};				///< A continuous representation of how "undersped" the TAS is [0,1]
 };
@@ -634,8 +635,8 @@ public:
 		float throttle_min;			///< Normalized throttle lower limit.
 		float throttle_max;			///< Normalized throttle upper limit.
 		float throttle_trim;			///< Normalized throttle required to fly level at the airspeed setpoint.
-		float pitch_min;			///< Minimal pitch angle below trim [rad].
-		float pitch_max;			///< Maximum pitch angle above trim [rad].
+		float pitch_min;			///< Minimum absolute pitch angle setpoint [rad].
+		float pitch_max;			///< Maximum absolute pitch angle setpoint [rad].
 		float target_climbrate;			///< Climb rate the reference model targets [m/s].
 		float target_sinkrate;			///< Sink rate the reference model targets [m/s].
 	};
@@ -661,6 +662,9 @@ public:
 
 	/**
 	 * @brief Update the control loop calculations
+	 *
+	 * All pitch angles, including the pitch limits and the resulting pitch setpoint, are absolute: the angle of the
+	 * body x-axis above the horizon.
 	 *
 	 * @param[in] input is the current vehicle state, setpoints and limits.
 	 */
@@ -711,6 +715,11 @@ public:
 	void set_seb_rate_ff_gain(float ff_gain) { _control_param.seb_rate_ff = ff_gain; }
 
 	/**
+	 * Set the pitch angle in level flight at trim airspeed [rad], fed forward as the pitch at zero climb angle
+	 */
+	void set_level_flight_pitch(float pitch) { _control_param.level_flight_pitch = pitch; }
+
+	/**
 	 * Handle the altitude reset
 	 *
 	 * If the estimation system resets the height in one discrete step this
@@ -728,6 +737,9 @@ public:
 		_altitude_reference_model.initialize(init_state);
 	}
 
+	/**
+	 * Returns the absolute pitch setpoint [rad]
+	 */
 	float get_pitch_setpoint() const {return _control.getPitchSetpoint();}
 	float get_throttle_setpoint() const {return _control.getThrottleSetpoint();}
 
@@ -808,6 +820,7 @@ private:
 		.tas_max = 20.0f,
 		.pitch_max = 0.5f,
 		.pitch_min = -0.5f,
+		.level_flight_pitch = 0.f,
 		.throttle_trim = 0.0f,
 		.throttle_max = 1.0f,
 		.throttle_min = 0.1f,

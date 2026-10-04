@@ -55,6 +55,7 @@ TECSControl::Param makeParam()
 	param.tas_max = 30.f;
 	param.pitch_max = radians(15.f);
 	param.pitch_min = radians(-15.f);
+	param.level_flight_pitch = 0.f;
 	param.throttle_trim = 0.5f;
 	param.throttle_max = 1.f;
 	param.throttle_min = 0.f;
@@ -694,4 +695,61 @@ TEST(TECSControlTest, LoadFactorCorrectionAddsThrottle)
 	control_banked.initialize(makeSetpoint(), input, banked, flag);
 
 	EXPECT_GT(control_banked.getThrottleSetpoint(), control_level.getThrottleSetpoint());
+}
+
+// The level-flight pitch is fed forward: it shifts the pitch command by exactly its value while unconstrained.
+TEST(TECSControlTest, LevelFlightPitchIsFedForward)
+{
+	TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+	const TECSControl::Input input = makeInput();
+
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 102.f; // small climb demand, well inside the pitch limits
+
+	TECSControl control_without;
+	control_without.initialize(setpoint, input, param, flag);
+
+	param.level_flight_pitch = radians(4.f);
+	TECSControl control_with;
+	control_with.initialize(setpoint, input, param, flag);
+
+	EXPECT_NEAR(control_with.getPitchSetpoint() - control_without.getPitchSetpoint(), radians(4.f), 1e-6f);
+}
+
+// Pitch limits are absolute: a level-flight pitch above the maximum pitch must not lift the command past it.
+TEST(TECSControlTest, PitchLimitsAreAbsolute)
+{
+	TECSControl::Param param = makeParam();
+	param.level_flight_pitch = radians(10.f);
+	param.pitch_max = radians(5.f);
+	const TECSControl::Flag flag = makeFlag();
+	const TECSControl::Input input = makeInput();
+
+	TECSControl control;
+	control.initialize(makeSetpoint(), input, param, flag);
+	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
+
+	for (int i = 0; i < 100; i++) {
+		control.update(kDt, makeSetpoint(), input, param, flag);
+		EXPECT_LE(control.getPitchSetpoint(), param.pitch_max) << "update " << i;
+	}
+
+	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
+}
+
+// A non-finite demand falls back to the integrator on top of the level-flight pitch, not to the bare integrator.
+TEST(TECSControlTest, NonFiniteDemandFallsBackToLevelFlightPitch)
+{
+	TECSControl::Param param = makeParam();
+	param.level_flight_pitch = radians(4.f);
+	const TECSControl::Flag flag = makeFlag();
+
+	TECSControl::Setpoint bad_setpoint = makeSetpoint();
+	bad_setpoint.tas_setpoint = NAN;
+
+	TECSControl control;
+	control.initialize(bad_setpoint, makeInput(), param, flag); // integrator reset to zero
+
+	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.level_flight_pitch);
 }

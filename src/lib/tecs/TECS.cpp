@@ -488,17 +488,19 @@ float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValu
 				    param.seb_rate_ff *
 				    seb_rate.setpoint;
 
-	// Convert the specific energy balance rate correction to a target pitch angle. This calculation assumes:
+	// Convert the specific energy balance rate correction to a climb angle and add the level-flight pitch, the angle
+	// of attack at zero climb angle, to get the absolute pitch setpoint. This calculation assumes:
 	// a) The climb angle follows pitch angle with a lag that is small enough not to destabilise the control loop.
-	// b) The offset between climb angle and pitch angle (angle of attack) is constant, excluding the effect of
-	// pitch transients due to control action or turbulence.
-	float pitch_setpoint_unc = SEB_rate_correction / _climbAngleToSebRate(input, param) + _pitch_integ_state;
+	// b) The offset between climb angle and pitch angle (angle of attack) is constant and equal to the level-flight
+	// pitch, excluding the effect of pitch transients due to control action or turbulence.
+	float pitch_setpoint_unc = SEB_rate_correction / _climbAngleToSebRate(input, param) + _pitch_integ_state
+				   + param.level_flight_pitch;
 
 	// Guard against a non-finite feedforward/damping contribution (e.g. seb_rate going NaN on the energy/speed
 	// side when exiting offboard velocity mode). constrain() does not reject NaN, so fall back to the integrator
 	// state, which is kept finite by _calcPitchControlUpdate, to avoid latching a NaN pitch demand.
 	if (!PX4_ISFINITE(pitch_setpoint_unc)) {
-		pitch_setpoint_unc = _pitch_integ_state;
+		pitch_setpoint_unc = _pitch_integ_state + param.level_flight_pitch;
 	}
 
 	return constrain(pitch_setpoint_unc, param.pitch_min, param.pitch_max);
