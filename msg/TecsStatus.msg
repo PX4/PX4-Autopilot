@@ -21,10 +21,10 @@ float32 total_energy_balance_rate_sp	# Energy balance rate setpoint [m^2/s^3]
 float32 total_energy_balance_rate	# Energy balance rate estimate [m^2/s^3]
 
 float32 throttle_integ			# Throttle integrator value [-]
-float32 pitch_integ			# Pitch integrator value [rad]
+float32 pitch_integ			# Pitch integrator value [rad], a correction added to the pitch setpoint rather than a pitch angle
 
 float32 throttle_sp			# Current throttle setpoint [-]
-float32 pitch_sp_rad			# Current pitch setpoint [rad]
+float32 pitch_sp_rad			# Current pitch setpoint [rad], absolute: angle of the fixed-wing body x-axis above the horizon, FW_PSP_OFF included
 float32 throttle_trim			# estimated throttle value [0,1] required to fly level at equivalent_airspeed_sp in the current atmospheric conditions
 
 float32 underspeed_ratio		# 0: no underspeed, 1: maximal underspeed. Controller takes measures to avoid stall proportional to ratio if >0.

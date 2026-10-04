@@ -23,4 +23,4 @@ float32 calibrated_ground_minus_wind_m_s # [m/s] [@invalid NaN] CAS calculated f
 float32 calibraded_airspeed_synth_m_s # [m/s] [@invalid NaN] Synthetic airspeed
 float32 airspeed_derivative_filtered # [m/s^2] Filtered indicated airspeed derivative
 float32 throttle_filtered # [-] Filtered fixed-wing throttle
-float32 pitch_filtered # [rad] Filtered pitch
+float32 pitch_filtered # [rad] Filtered absolute pitch angle of the fixed-wing body x-axis above the horizon
