@@ -138,6 +138,23 @@ config BOARD_ETHERNET
     help
         flag to indicate that ethernet is enabled
 
+config BOARD_RPMSG
+    bool "Remote core over rpmsg"
+    depends on PLATFORM_NUTTX
+    help
+        flag to indicate that the board registers a remote core with NuttX
+        rptun and ships its image; gates remote_core and the modules built
+        on it. The board defines BOARD_RPMSG_CPUNAME and provides
+        board_rpmsg_initialize() and board_rpmsg_status()
+
+config BOARD_CM4_APP
+    string "Remote core application"
+    depends on BOARD_RPMSG
+    default "basic"
+    help
+        application built into the remote core image, a directory under
+        boards/<vendor>/<board>/cm4/apps/
+
 config BOARD_CRYPTO
     bool "Crypto support"
     help

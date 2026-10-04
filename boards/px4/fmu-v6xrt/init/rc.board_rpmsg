@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# rpmsg variant: bring up the CM4 before flight modules
+#------------------------------------------------------------------------------
+
+remote_core start

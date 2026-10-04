@@ -645,6 +645,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	imxrt_caninitialize(3);
 #endif
 
+#ifdef CONFIG_IMXRT_RPTUN
+
+	if (board_rpmsg_initialize() != OK) {
+		syslog(LOG_ERR, "[boot] CM4 rptun init failed\n");
+	}
+
+#endif
+
 #endif /* !defined(BOOTLOADER) */
 
 	return ret;

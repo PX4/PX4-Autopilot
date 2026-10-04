@@ -137,6 +137,14 @@ if(CONFIG_NET)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_net)
 endif()
 
+if(CONFIG_OPENAMP)
+	list(APPEND nuttx_libs nuttx_openamp)
+	# rpmsg users outside the link group pull OpenAMP objects on a late pass;
+	# libmetal then needs drivers (addrenv), libc and sched after it again.
+	target_link_libraries(nuttx_drivers INTERFACE nuttx_openamp)
+	target_link_libraries(nuttx_openamp INTERFACE nuttx_drivers nuttx_c nuttx_sched nuttx_mm)
+endif()
+
 file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})
 
 # only in the cygwin environment: convert absolute linker script path to mixed windows (C:/...)

@@ -213,6 +213,11 @@ add_nuttx_dir(sched sched y -D__KERNEL__ all)
 add_nuttx_dir(xx libs/libxx n "" all)
 add_nuttx_dir(crypto crypto y -D__KERNEL__ all)
 
+if(CONFIG_OPENAMP)
+	# OpenAMP + libmetal are fetched and patched by nuttx/openamp/Makefile
+	add_nuttx_dir(openamp openamp y -D__KERNEL__ all)
+endif()
+
 if (NOT CONFIG_BUILD_FLAT)
 	add_nuttx_dir(arch arch/${CONFIG_ARCH}/src n "" arch)
 	add_dependencies(nuttx_arch_build nuttx_karch_build) # can't build these in parallel
