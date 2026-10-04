@@ -148,6 +148,13 @@ void VotedSensorsUpdate::disableImu(uint8_t index)
 	// the selection without a failover, and the timeout that follows is not one either.
 	_accel.voter.set_sensor_priority(index, 0);
 	_gyro.voter.set_sensor_priority(index, 0);
+
+	// forget its last sample, so once it is enabled again it only comes back into the status
+	// and the inconsistency check with data VehicleIMU published after that
+	_accel_device_id[index] = 0;
+	_gyro_device_id[index] = 0;
+	_accel_diff[index].zero();
+	_gyro_diff[index].zero();
 }
 
 void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
@@ -155,9 +162,17 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
 	for (int uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
+		// a disabled IMU is still read, so that nothing it published around the disable is left in
+		// the subscription to be taken for a fresh sample once it is enabled again. A slot without
+		// both sensors behind it is skipped, since a topic instance nobody advertised is searched
+		// for on every read.
+		if (!imuEnabled(uorb_index) && !(_accel.advertised[uorb_index] && _gyro.advertised[uorb_index])) {
+			continue;
+		}
+
 		vehicle_imu_s imu_report;
 
-		if (imuEnabled(uorb_index) && _vehicle_imu_sub[uorb_index].update(&imu_report)) {
+		if (_vehicle_imu_sub[uorb_index].update(&imu_report) && imuEnabled(uorb_index)) {
 
 			// copy corresponding vehicle_imu_status for accel & gyro error counts
 			vehicle_imu_status_s imu_status{};
