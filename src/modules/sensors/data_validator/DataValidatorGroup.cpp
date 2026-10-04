@@ -376,7 +376,7 @@ uint8_t DataValidatorGroup::get_sensor_priority(unsigned index)
 	return 0;
 }
 
-void DataValidatorGroup::set_priority(unsigned index, uint8_t priority)
+void DataValidatorGroup::set_sensor_priority(unsigned index, uint8_t priority)
 {
 	DataValidator *next = _first;
 	unsigned i = 0;

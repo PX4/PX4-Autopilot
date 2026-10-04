@@ -138,8 +138,8 @@ void VotedSensorsUpdate::parametersUpdate()
 		// voter cannot learn the new priority from a sample. Told directly, it drops the IMU from
 		// the selection without a failover, and the timeout that follows is not one either.
 		if (!imuEnabled(uorb_index)) {
-			_accel.voter.set_priority(uorb_index, 0);
-			_gyro.voter.set_priority(uorb_index, 0);
+			_accel.voter.set_sensor_priority(uorb_index, 0);
+			_gyro.voter.set_sensor_priority(uorb_index, 0);
 		}
 	}
 }

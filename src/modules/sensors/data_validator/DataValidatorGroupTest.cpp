@@ -359,7 +359,7 @@ TEST_F(DataValidatorGroupTest, settingPriorityToZeroWithoutDataIsNotAFailover)
 
 	// the selected sensor is disabled and stops publishing in the same moment, so the new
 	// priority cannot arrive with a sample
-	_group->set_priority(idx0, 0);
+	_group->set_sensor_priority(idx0, 0);
 	EXPECT_EQ(0, _group->get_sensor_priority(idx0));
 
 	for (int i = 0; i < 5; i++) {

@@ -117,7 +117,7 @@ public:
 	 * @param index		Sensor index
 	 * @param priority	The new priority
 	 */
-	void set_priority(unsigned index, uint8_t priority);
+	void set_sensor_priority(unsigned index, uint8_t priority);
 
 	/**
 	 * Print the validator value
