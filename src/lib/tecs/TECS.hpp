@@ -673,7 +673,11 @@ public:
 	void set_max_climb_rate(float climb_rate) { _control_param.max_climb_rate = climb_rate; _reference_param.max_climb_rate = climb_rate; }
 
 	void set_altitude_rate_ff(float altitude_rate_ff) { _control_param.altitude_setpoint_gain_ff = altitude_rate_ff; }
-	void set_altitude_error_time_constant(float time_const) { _control_param.altitude_error_gain = 1.0f / math::max(time_const, 0.1f); }
+	void set_altitude_error_time_constant(float time_const)
+	{
+		_altitude_error_time_constant = math::max(time_const, 0.1f);
+		_control_param.altitude_error_gain = 1.0f / _altitude_error_time_constant;
+	}
 	void set_fast_descend_altitude_error(float altitude_error) { _fast_descend_alt_err = altitude_error; }
 
 	void set_equivalent_airspeed_min(float airspeed) { _equivalent_airspeed_min = airspeed; }
@@ -720,10 +724,7 @@ public:
 	/**
 	 * Returns the altitude tracking time constant
 	 */
-	float get_altitude_error_time_constant() const
-	{
-		return 1.0f / math::max(_control_param.altitude_error_gain, 0.01f);
-	}
+	float get_altitude_error_time_constant() const { return _altitude_error_time_constant; }
 
 	float get_underspeed_ratio() const { return _control.getUnderspeedRatio(); }
 
@@ -761,6 +762,7 @@ private:
 
 	float _equivalent_airspeed_min{10.0f};				///< equivalent airspeed demand lower limit (m/sec)
 	float _equivalent_airspeed_max{20.0f};				///< equivalent airspeed demand upper limit (m/sec)
+	float _altitude_error_time_constant{5.f};			///< Altitude error time constant, inverse of altitude_error_gain [s].
 	float _fast_descend_alt_err{-1.f};	 				///< Altitude difference between current altitude to altitude setpoint needed to descend with higher airspeed [m].
 	float _fast_descend{0.f};					///< Value for fast descend in [0,1]. continuous value used to flatten the high speed value out when close to target altitude.
 	hrt_abstime _enabled_fast_descend_timestamp{0U};		///< timestamp at activation of fast descend mode
