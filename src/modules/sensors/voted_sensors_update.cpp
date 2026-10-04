@@ -365,8 +365,10 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 					_last_error_message = now;
 				}
 
-				// reduce priority of failed sensor to the minimum
-				sensor.priority[failover_index] = 1;
+				// reduce priority of failed sensor to the minimum, without re-enabling a disabled one
+				if (sensor.priority[failover_index] > 0) {
+					sensor.priority[failover_index] = 1;
+				}
 			}
 		}
 
