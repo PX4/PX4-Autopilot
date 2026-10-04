@@ -680,15 +680,19 @@ void TECS::initialize(const Input &input)
 	_airspeed_filter.initialize(input.equivalent_airspeed, _airspeed_filter_param.equivalent_airspeed_trim,
 				    _control_flag.airspeed_enabled);
 
+	// Seed the controller from the filter, which falls back to trim airspeed without a valid measurement,
+	// so the controller sees the same airspeed on reset as on every following update
+	const float true_airspeed = input.eas_to_tas * _airspeed_filter.getState().speed;
+
 	TECSControl::Setpoint control_setpoint;
 	control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
 	control_setpoint.altitude_rate_setpoint_direct =
 		control_setpoint.altitude_reference.alt_rate; // init to reference altitude rate
-	control_setpoint.tas_setpoint = input.equivalent_airspeed * input.eas_to_tas;
+	control_setpoint.tas_setpoint = true_airspeed;
 
 	const TECSControl::Input control_input{ .altitude = input.altitude,
 						.altitude_rate = input.altitude_rate,
-						.tas = input.eas_to_tas * input.equivalent_airspeed,
+						.tas = true_airspeed,
 						.tas_rate = 0.0f};
 
 	_control.initialize(control_setpoint, control_input, _control_param, _control_flag);
