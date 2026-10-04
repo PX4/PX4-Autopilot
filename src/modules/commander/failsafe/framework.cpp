@@ -722,7 +722,8 @@ bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode
 		(!status_flags.auto_mission_missing || ((status_flags.mode_req_mission & mode_mask) == 0)) &&
 		(!status_flags.offboard_control_signal_lost || ((status_flags.mode_req_offboard_signal & mode_mask) == 0)) &&
 		(!status_flags.home_position_invalid || ((status_flags.mode_req_home_position & mode_mask) == 0)) &&
-		((status_flags.mode_req_other & mode_mask) == 0);
+		((status_flags.mode_req_other & mode_mask) == 0) &&
+		((status_flags.mode_not_supported & mode_mask) == 0);
 }
 
 bool FailsafeBase::deferFailsafes(bool enabled, int timeout_s)
