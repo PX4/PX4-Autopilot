@@ -71,6 +71,12 @@ public:
 	static int32_t gyroPriority(const VotedSensorsUpdate &voter, int index) { return voter._gyro.priority[index]; }
 	static uint8_t accelVoterPriority(VotedSensorsUpdate &voter, int index) { return voter._accel.voter.get_sensor_priority(index); }
 	static uint8_t gyroVoterPriority(VotedSensorsUpdate &voter, int index) { return voter._gyro.voter.get_sensor_priority(index); }
+	static int32_t defaultPriority() { return VotedSensorsUpdate::DEFAULT_PRIORITY; }
+	static void setTimeout(VotedSensorsUpdate &voter, uint32_t timeout_us)
+	{
+		voter._accel.voter.set_timeout(timeout_us);
+		voter._gyro.voter.set_timeout(timeout_us);
+	}
 };
 
 } // namespace sensors
@@ -97,13 +103,20 @@ private:
 class VotedSensorsUpdateTest : public ::testing::Test
 {
 public:
-	static constexpr int kImuCount = 3;
+	static constexpr int kImuCount = 4;
 
-	// IMU i publishes on instance i of every topic and is calibrated in slots CAL_ACCi and CAL_GYROi
-	static constexpr uint32_t kAccelIds[kImuCount] {0x2a3b01, 0x2a3b02, 0x2a3b03};
-	static constexpr uint32_t kGyroIds[kImuCount] {0x2c3d01, 0x2c3d02, 0x2c3d03};
+	// IMU i publishes on instance i of every topic and is calibrated in slots CAL_ACCi and CAL_GYROi.
+	// No test ever publishes IMU 2. uORB keeps the last sample of an instance for the rest of the
+	// process, and the boot test needs an instance the voter has never seen a sample from.
+	static constexpr uint32_t kAccelIds[kImuCount] {0x2a3b01, 0x2a3b02, 0x2a3b03, 0x2a3b04};
+	static constexpr uint32_t kGyroIds[kImuCount] {0x2c3d01, 0x2c3d02, 0x2c3d03, 0x2c3d04};
 
 	static constexpr uint32_t kSampleDtUs = 10000;
+
+	// the voter times a sensor out after 40 ms and the test thread publishes every 10 ms, so a
+	// scheduler stall on a loaded runner would read as a sensor timeout. Every scenario leaves a
+	// sensor silent for 300 ms or more, so a longer timeout changes nothing they test.
+	static constexpr uint32_t kVoterTimeoutUs = 200000;
 
 	// uORB nodes outlive a manager restart, so the suite brings the manager up once and keeps its topics
 	static void SetUpTestSuite()
@@ -208,6 +221,7 @@ public:
 	template<typename Feed>
 	static void start(VotedSensorsUpdate &voter, Feed feed)
 	{
+		Peer::setTimeout(voter, kVoterTimeoutUs);
 		feed();
 		voter.parametersUpdate();
 		pollFor(voter, 300_ms, feed);
@@ -244,16 +258,16 @@ public:
 constexpr uint32_t VotedSensorsUpdateTest::kAccelIds[];
 constexpr uint32_t VotedSensorsUpdateTest::kGyroIds[];
 uORB::PublicationMulti<sensor_accel_s> VotedSensorsUpdateTest::_sensor_accel_pubs[kImuCount] {
-	{ORB_ID(sensor_accel)}, {ORB_ID(sensor_accel)}, {ORB_ID(sensor_accel)}
+	{ORB_ID(sensor_accel)}, {ORB_ID(sensor_accel)}, {ORB_ID(sensor_accel)}, {ORB_ID(sensor_accel)}
 };
 uORB::PublicationMulti<sensor_gyro_s> VotedSensorsUpdateTest::_sensor_gyro_pubs[kImuCount] {
-	{ORB_ID(sensor_gyro)}, {ORB_ID(sensor_gyro)}, {ORB_ID(sensor_gyro)}
+	{ORB_ID(sensor_gyro)}, {ORB_ID(sensor_gyro)}, {ORB_ID(sensor_gyro)}, {ORB_ID(sensor_gyro)}
 };
 uORB::PublicationMulti<vehicle_imu_s> VotedSensorsUpdateTest::_vehicle_imu_pubs[kImuCount] {
-	{ORB_ID(vehicle_imu)}, {ORB_ID(vehicle_imu)}, {ORB_ID(vehicle_imu)}
+	{ORB_ID(vehicle_imu)}, {ORB_ID(vehicle_imu)}, {ORB_ID(vehicle_imu)}, {ORB_ID(vehicle_imu)}
 };
 uORB::PublicationMulti<vehicle_imu_status_s> VotedSensorsUpdateTest::_vehicle_imu_status_pubs[kImuCount] {
-	{ORB_ID(vehicle_imu_status)}, {ORB_ID(vehicle_imu_status)}, {ORB_ID(vehicle_imu_status)}
+	{ORB_ID(vehicle_imu_status)}, {ORB_ID(vehicle_imu_status)}, {ORB_ID(vehicle_imu_status)}, {ORB_ID(vehicle_imu_status)}
 };
 
 TEST_F(VotedSensorsUpdateTest, DisablingTheSelectedImuHandsOverWithoutAFailover)
@@ -387,69 +401,230 @@ TEST_F(VotedSensorsUpdateTest, ReEnablingAnImuMakesItSelectableAgain)
 		publishImu(1, 9.8f);
 	});
 
-	setPriority(0, 0, 0);
-	voter.parametersUpdate();
-	pollFor(voter, 300_ms, [&]() { publishImu(1, 9.8f); });
-
 	sensor_selection_s selection{};
 	ASSERT_TRUE(readSelection(selection));
-	ASSERT_EQ(selection.accel_device_id, kAccelIds[1]);
+	ASSERT_EQ(selection.accel_device_id, kAccelIds[0]);
 
-	// enabled again at the higher priority, VehicleIMU resumes publishing it
-	setPriority(0, 75, 75);
+	// IMU 1 is disabled while IMU 0 stays selected, so nothing else changes in the voter.
+	// VehicleIMU runs a cycle behind and publishes one more sample of it.
+	setPriority(1, 0, 0);
 	voter.parametersUpdate();
-	drainLogs();
+	publishImu(1, 9.8f);
 
-	pollFor(voter, 600_ms, [&]() {
-		publishImu(0, 9.8f);
-		publishImu(1, 9.8f);
-	});
+	pollFor(voter, 300_ms, [&]() { publishImu(0, 9.8f); });
 
-	ASSERT_TRUE(readSelection(selection));
-	EXPECT_EQ(selection.accel_device_id, kAccelIds[0]);
-	EXPECT_EQ(selection.gyro_device_id, kGyroIds[0]);
-	EXPECT_EQ(Peer::accelFailoverCount(voter), 0u) << "preferring a higher priority is not a failure";
-	EXPECT_EQ(Peer::gyroFailoverCount(voter), 0u);
-	EXPECT_EQ(drainLogs(), "");
-	EXPECT_EQ(Peer::accelPriority(voter, 0), 75);
-	EXPECT_EQ(Peer::accelVoterPriority(voter, 0), 75);
-
-	sensors_status_imu_s status{};
-	ASSERT_TRUE(readStatus(status));
-	EXPECT_EQ(status.accel_device_ids[0], kAccelIds[0]);
-	EXPECT_EQ(status.accel_device_ids[1], kAccelIds[1]);
-}
-
-TEST_F(VotedSensorsUpdateTest, AnImuDisabledAtBootIsNeverSelected)
-{
-	// IMU 1 is disabled before the voter ever sees it and never publishes, IMU 2 sits after it
-	setPriority(0, 75, 75);
-	setPriority(2, 50, 50);
-
-	ImuSubscriptionOwner owner;
-	VotedSensorsUpdate voter(false, owner.subs);
-
-	start(voter, [&]() {
-		publishImu(0, 9.8f);
-		publishImu(2, 9.8f);
-	});
-
-	sensor_selection_s selection{};
 	ASSERT_TRUE(readSelection(selection));
 	ASSERT_EQ(selection.accel_device_id, kAccelIds[0]);
 	ASSERT_EQ(Peer::accelFailoverCount(voter), 0u);
 
 	sensors_status_imu_s status{};
 	ASSERT_TRUE(readStatus(status));
-	EXPECT_EQ(status.accel_device_ids[1], 0u);
-	EXPECT_EQ(status.accel_device_ids[2], kAccelIds[2]);
+	ASSERT_EQ(status.accel_device_ids[1], 0u);
 
-	// IMU 0 really fails, so the voter has to hand over to IMU 2 past the disabled one
-	pollFor(voter, 600_ms, [&]() { publishImu(2, 9.8f); });
+	// enabled again above IMU 0. VehicleIMU takes up to a second to notice and resume publishing,
+	// and the vehicle moves in the meantime.
+	setPriority(1, 90, 90);
+	voter.parametersUpdate();
+	drainLogs();
+
+	float accel_z = 9.8f;
+	pollFor(voter, 300_ms, [&]() {
+		accel_z += 0.05f;
+		publishImu(0, accel_z);
+	});
 
 	ASSERT_TRUE(readSelection(selection));
-	EXPECT_EQ(selection.accel_device_id, kAccelIds[2]);
-	EXPECT_EQ(selection.gyro_device_id, kGyroIds[2]);
+	EXPECT_EQ(selection.accel_device_id, kAccelIds[0]) << "nothing current from IMU 1 yet";
+
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.accel_device_ids[1], 0u) << "without fresh data the IMU is not back in the status";
+	EXPECT_LT(status.accel_inconsistency_m_s_s[0], 0.01f) << "the live IMU is not compared against the frozen sample";
+
+	// VehicleIMU resumes publishing it
+	pollFor(voter, 600_ms, [&]() {
+		publishImu(0, accel_z);
+		publishImu(1, accel_z);
+	});
+
+	ASSERT_TRUE(readSelection(selection));
+	EXPECT_EQ(selection.accel_device_id, kAccelIds[1]);
+	EXPECT_EQ(selection.gyro_device_id, kGyroIds[1]);
+	EXPECT_EQ(Peer::accelFailoverCount(voter), 0u) << "preferring a higher priority is not a failure";
+	EXPECT_EQ(Peer::gyroFailoverCount(voter), 0u);
+	EXPECT_EQ(drainLogs(), "");
+	EXPECT_EQ(Peer::accelPriority(voter, 1), 90);
+	EXPECT_EQ(Peer::accelVoterPriority(voter, 1), 90);
+
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.accel_device_ids[0], kAccelIds[0]);
+	EXPECT_EQ(status.accel_device_ids[1], kAccelIds[1]);
+	EXPECT_LT(status.accel_inconsistency_m_s_s[1], 0.01f);
+}
+
+TEST_F(VotedSensorsUpdateTest, AnImuDisabledAtBootIsNeverSelected)
+{
+	// IMU 2 is disabled before the voter ever sees it and never publishes, so the voter has no
+	// sample to read its priority from and it stays at the default. IMU 3 sits after it.
+	setPriority(0, 75, 75);
+	setPriority(3, 50, 50);
+
+	ImuSubscriptionOwner owner;
+	VotedSensorsUpdate voter(false, owner.subs);
+
+	start(voter, [&]() {
+		publishImu(0, 9.8f);
+		publishImu(3, 9.8f);
+	});
+
+	sensor_selection_s selection{};
+	ASSERT_TRUE(readSelection(selection));
+	ASSERT_EQ(selection.accel_device_id, kAccelIds[0]);
+	ASSERT_EQ(Peer::accelFailoverCount(voter), 0u);
+	ASSERT_EQ(Peer::accelPriority(voter, 2), Peer::defaultPriority()) << "never published, so its priority was never read";
+
+	sensors_status_imu_s status{};
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.accel_device_ids[2], 0u);
+	EXPECT_EQ(status.accel_device_ids[3], kAccelIds[3]);
+
+	// IMU 0 really fails, so the voter has to hand over to IMU 3 past the disabled one
+	pollFor(voter, 600_ms, [&]() { publishImu(3, 9.8f); });
+
+	ASSERT_TRUE(readSelection(selection));
+	EXPECT_EQ(selection.accel_device_id, kAccelIds[3]);
+	EXPECT_EQ(selection.gyro_device_id, kGyroIds[3]);
 	EXPECT_EQ(Peer::accelFailoverCount(voter), 1u) << "a sensor that stopped is a real failure";
 	EXPECT_NE(drainLogs(), "") << "a real failure is reported";
+}
+
+TEST_F(VotedSensorsUpdateTest, DisablingAnImuWhileArmedHandsOverWithoutAFailover)
+{
+	setPriority(0, 75, 75);
+	setPriority(1, 50, 50);
+
+	ImuSubscriptionOwner owner;
+	VotedSensorsUpdate voter(false, owner.subs);
+
+	start(voter, [&]() {
+		publishImu(0, 9.8f);
+		publishImu(1, 9.8f);
+	});
+
+	sensor_selection_s selection{};
+	ASSERT_TRUE(readSelection(selection));
+	ASSERT_EQ(selection.accel_device_id, kAccelIds[0]);
+	drainLogs();
+
+	// the operator disables IMU 0 in flight. VehicleIMU stops publishing it all the same, so the
+	// voter has to follow while armed.
+	setPriority(0, 0, 0);
+	voter.parametersUpdate(true);
+
+	pollFor(voter, 600_ms, [&]() { publishImu(1, 9.8f); });
+
+	ASSERT_TRUE(readSelection(selection));
+	EXPECT_EQ(selection.accel_device_id, kAccelIds[1]);
+	EXPECT_EQ(selection.gyro_device_id, kGyroIds[1]);
+	EXPECT_EQ(Peer::accelFailoverCount(voter), 0u) << "a disable in flight is not a failure";
+	EXPECT_EQ(Peer::gyroFailoverCount(voter), 0u);
+	EXPECT_EQ(drainLogs(), "");
+	EXPECT_EQ(Peer::accelPriority(voter, 0), 0);
+	EXPECT_EQ(Peer::accelVoterPriority(voter, 0), 0);
+
+	sensors_status_imu_s status{};
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.accel_device_id_primary, kAccelIds[1]);
+	EXPECT_EQ(status.accel_device_ids[0], 0u) << "the IMU disabled in flight is gone from the status";
+	EXPECT_EQ(status.gyro_device_ids[0], 0u);
+}
+
+TEST_F(VotedSensorsUpdateTest, APriorityChangeWhileArmedWaitsForDisarm)
+{
+	setPriority(0, 75, 75);
+	setPriority(1, 50, 50);
+
+	ImuSubscriptionOwner owner;
+	VotedSensorsUpdate voter(false, owner.subs);
+
+	auto feed = [&]() {
+		publishImu(0, 9.8f);
+		publishImu(1, 9.8f);
+	};
+
+	start(voter, feed);
+
+	sensor_selection_s selection{};
+	ASSERT_TRUE(readSelection(selection));
+	ASSERT_EQ(selection.accel_device_id, kAccelIds[0]);
+
+	// IMU 1 is put above IMU 0 in flight, which is not the moment to change the selection
+	setPriority(1, 90, 90);
+	voter.parametersUpdate(true);
+	pollFor(voter, 300_ms, feed);
+
+	ASSERT_TRUE(readSelection(selection));
+	EXPECT_EQ(selection.accel_device_id, kAccelIds[0]) << "a priority change in flight waits for disarm";
+	EXPECT_EQ(Peer::accelPriority(voter, 1), 50);
+	EXPECT_EQ(Peer::gyroPriority(voter, 1), 50);
+
+	// disarmed, the change is read and the higher priority wins without a failover
+	voter.parametersUpdate();
+	pollFor(voter, 300_ms, feed);
+
+	ASSERT_TRUE(readSelection(selection));
+	EXPECT_EQ(selection.accel_device_id, kAccelIds[1]);
+	EXPECT_EQ(selection.gyro_device_id, kGyroIds[1]);
+	EXPECT_EQ(Peer::accelPriority(voter, 1), 90);
+	EXPECT_EQ(Peer::accelFailoverCount(voter), 0u);
+	EXPECT_EQ(Peer::gyroFailoverCount(voter), 0u);
+	EXPECT_EQ(drainLogs(), "");
+}
+
+TEST_F(VotedSensorsUpdateTest, ReEnablingAnImuWhileArmedWaitsForDisarm)
+{
+	setPriority(0, 75, 75);
+	setPriority(1, 50, 50);
+
+	ImuSubscriptionOwner owner;
+	VotedSensorsUpdate voter(false, owner.subs);
+
+	auto feed = [&]() {
+		publishImu(0, 9.8f);
+		publishImu(1, 9.8f);
+	};
+
+	start(voter, feed);
+
+	setPriority(0, 0, 0);
+	voter.parametersUpdate(true);
+	pollFor(voter, 300_ms, [&]() { publishImu(1, 9.8f); });
+
+	sensor_selection_s selection{};
+	ASSERT_TRUE(readSelection(selection));
+	ASSERT_EQ(selection.accel_device_id, kAccelIds[1]);
+
+	// enabled again in flight. VehicleIMU resumes publishing it, but a sensor joins the vote on the ground.
+	setPriority(0, 75, 75);
+	voter.parametersUpdate(true);
+	pollFor(voter, 300_ms, feed);
+
+	ASSERT_TRUE(readSelection(selection));
+	EXPECT_EQ(selection.accel_device_id, kAccelIds[1]) << "an IMU enabled in flight stays out until disarm";
+
+	sensors_status_imu_s status{};
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.accel_device_ids[0], 0u);
+
+	// disarmed, it comes back at its priority
+	voter.parametersUpdate();
+	pollFor(voter, 300_ms, feed);
+
+	ASSERT_TRUE(readSelection(selection));
+	EXPECT_EQ(selection.accel_device_id, kAccelIds[0]);
+	EXPECT_EQ(Peer::accelPriority(voter, 0), 75);
+	EXPECT_EQ(Peer::accelFailoverCount(voter), 0u);
+	EXPECT_EQ(drainLogs(), "");
+
+	ASSERT_TRUE(readStatus(status));
+	EXPECT_EQ(status.accel_device_ids[0], kAccelIds[0]);
 }
