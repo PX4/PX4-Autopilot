@@ -43,9 +43,9 @@ namespace mode_util
 /**
  * @return Bitmask with all valid modes
  */
-static inline uint32_t getValidNavStates()
+static inline uint32_t getValidNavStates(uint32_t mode_not_supported = 0)
 {
-	return (1u << vehicle_status_s::NAVIGATION_STATE_MANUAL) |
+	return ((1u << vehicle_status_s::NAVIGATION_STATE_MANUAL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ALTCTL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING) |
@@ -65,7 +65,7 @@ static inline uint32_t getValidNavStates()
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
+	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)) & ~mode_not_supported;
 
 	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "update valid nav states");
 }
