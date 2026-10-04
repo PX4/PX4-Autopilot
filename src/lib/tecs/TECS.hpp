@@ -720,10 +720,7 @@ public:
 	/**
 	 * Returns the altitude tracking time constant
 	 */
-	float get_altitude_error_time_constant() const
-	{
-		return 1.0f / math::max(_control_param.altitude_error_gain, 0.01f);
-	}
+	float get_altitude_error_time_constant() const { return 1.0f / _control_param.altitude_error_gain; }
 
 	float get_underspeed_ratio() const { return _control.getUnderspeedRatio(); }
 
