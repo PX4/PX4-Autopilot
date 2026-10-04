@@ -114,7 +114,10 @@ function(px4_add_functional_gtest)
 		                                              uorb_msgs
 		                                              fuzztest::fuzztest # Do not use link_fuzztest() here because that
 				                                      # also links to fuzztest_gtest_main
-		                                              test_stubs)  # put test_stubs last
+		                                              uORB
+		                                              test_stubs)
+
+
 
 		target_compile_definitions(${TESTNAME} PRIVATE MODULE_NAME="${TESTNAME}")
 
