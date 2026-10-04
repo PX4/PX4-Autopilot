@@ -736,7 +736,8 @@ void ModeManagement::checkConfigOverrides()
 	}
 }
 
-void ModeManagement::getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask, const failsafe_flags_s &failsafe_flags) const
+void ModeManagement::getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask,
+				   const failsafe_flags_s &failsafe_flags) const
 {
 	valid_nav_state_mask = mode_util::getValidNavStates(failsafe_flags.mode_not_supported);
 	can_set_nav_state_mask = valid_nav_state_mask
