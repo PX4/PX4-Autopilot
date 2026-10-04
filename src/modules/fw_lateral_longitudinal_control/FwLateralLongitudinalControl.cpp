@@ -121,6 +121,7 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
+	_tecs.set_level_flight_pitch(radians(_param_fw_psp_off.get()));
 
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 
@@ -234,11 +235,9 @@ void FwLateralLongitudinalControl::Run()
 						       now
 					       );
 
-			// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
-			// so it has to be added back here.
 			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_direct)
 				   ?  _long_control_sp.pitch_direct
-				   : _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
+				   : _tecs.get_pitch_setpoint();
 
 			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
 				      _tecs.get_throttle_setpoint();
@@ -424,8 +423,8 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 		.throttle_min = throttle_min,
 		.throttle_max = throttle_max,
 		.throttle_trim = throttle_trim_compensated,
-		.pitch_min = pitch_min_rad - radians(_param_fw_psp_off.get()),
-		.pitch_max = pitch_max_rad - radians(_param_fw_psp_off.get()),
+		.pitch_min = pitch_min_rad,
+		.pitch_max = pitch_max_rad,
 		.target_climbrate = desired_max_climbrate,
 		.target_sinkrate = desired_max_sinkrate,
 	});
@@ -536,9 +535,7 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 	tecs_status.pitch_integ = debug_output.control.pitch_integrator;
 	tecs_status.throttle_sp = _tecs.get_throttle_setpoint();
 
-	// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
-	// so it has to be added back here.
-	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
+	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
 	tecs_status.throttle_trim = throttle_trim;
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;
