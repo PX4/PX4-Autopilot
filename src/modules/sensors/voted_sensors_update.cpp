@@ -73,11 +73,14 @@ void VotedSensorsUpdate::initializeSensors()
 	initSensorClass(_accel, MAX_SENSOR_COUNT);
 }
 
-void VotedSensorsUpdate::parametersUpdate()
+void VotedSensorsUpdate::parametersUpdate(bool armed)
 {
 	_parameter_update = true;
 
-	updateParams();
+	// the voter's own parameters are not read in flight, the priorities below are
+	if (!armed) {
+		updateParams();
+	}
 
 	// run through all IMUs
 	for (uint8_t uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
@@ -92,22 +95,7 @@ void VotedSensorsUpdate::parametersUpdate()
 
 			if (accel_cal_index >= 0) {
 				// found matching CAL_ACCx_PRIO
-				int32_t accel_priority_old = _accel.priority_configured[uorb_index];
-
-				_accel.priority_configured[uorb_index] = calibration::GetCalibrationParamInt32("ACC", "PRIO", accel_cal_index);
-
-				if (accel_priority_old != _accel.priority_configured[uorb_index]) {
-					if (_accel.priority_configured[uorb_index] == 0) {
-						// disabled
-						_accel.priority[uorb_index] = 0;
-
-					} else {
-						// change relative priority to incorporate any sensor faults
-						int priority_change = _accel.priority_configured[uorb_index] - accel_priority_old;
-						_accel.priority[uorb_index] = math::constrain(_accel.priority[uorb_index] + priority_change, static_cast<int32_t>(1),
-									      static_cast<int32_t>(100));
-					}
-				}
+				updatePriority(_accel, uorb_index, calibration::GetCalibrationParamInt32("ACC", "PRIO", accel_cal_index), armed);
 			}
 
 			// find corresponding configured gyro priority
@@ -115,33 +103,51 @@ void VotedSensorsUpdate::parametersUpdate()
 
 			if (gyro_cal_index >= 0) {
 				// found matching CAL_GYROx_PRIO
-				int32_t gyro_priority_old = _gyro.priority_configured[uorb_index];
-
-				_gyro.priority_configured[uorb_index] = calibration::GetCalibrationParamInt32("GYRO", "PRIO", gyro_cal_index);
-
-				if (gyro_priority_old != _gyro.priority_configured[uorb_index]) {
-					if (_gyro.priority_configured[uorb_index] == 0) {
-						// disabled
-						_gyro.priority[uorb_index] = 0;
-
-					} else {
-						// change relative priority to incorporate any sensor faults
-						int priority_change = _gyro.priority_configured[uorb_index] - gyro_priority_old;
-						_gyro.priority[uorb_index] = math::constrain(_gyro.priority[uorb_index] + priority_change, static_cast<int32_t>(1),
-									     static_cast<int32_t>(100));
-					}
-				}
+				updatePriority(_gyro, uorb_index, calibration::GetCalibrationParamInt32("GYRO", "PRIO", gyro_cal_index), armed);
 			}
 		}
 
-		// VehicleIMU stops publishing an IMU as soon as either of its sensors is disabled, so the
-		// voter cannot learn the new priority from a sample. Told directly, it drops the IMU from
-		// the selection without a failover, and the timeout that follows is not one either.
 		if (!imuEnabled(uorb_index)) {
-			_accel.voter.set_sensor_priority(uorb_index, 0);
-			_gyro.voter.set_sensor_priority(uorb_index, 0);
+			disableImu(uorb_index);
 		}
 	}
+}
+
+void VotedSensorsUpdate::updatePriority(SensorData &sensor, uint8_t index, int32_t priority_configured, bool armed)
+{
+	const int32_t priority_old = sensor.priority_configured[index];
+
+	if (priority_configured == priority_old) {
+		return;
+	}
+
+	// VehicleIMU stops publishing a disabled IMU armed or not, so a disable has to take effect in
+	// flight. Every other change waits for disarm, the same as the magnetometer priorities.
+	if (armed && (priority_configured != 0)) {
+		return;
+	}
+
+	sensor.priority_configured[index] = priority_configured;
+
+	if (priority_configured == 0) {
+		// disabled
+		sensor.priority[index] = 0;
+
+	} else {
+		// change relative priority to incorporate any sensor faults
+		const int32_t priority_change = priority_configured - priority_old;
+		sensor.priority[index] = math::constrain(sensor.priority[index] + priority_change, static_cast<int32_t>(1),
+					 static_cast<int32_t>(100));
+	}
+}
+
+void VotedSensorsUpdate::disableImu(uint8_t index)
+{
+	// VehicleIMU stops publishing an IMU as soon as either of its sensors is disabled, so the
+	// voter cannot learn the new priority from a sample. Told directly, it drops the IMU from
+	// the selection without a failover, and the timeout that follows is not one either.
+	_accel.voter.set_sensor_priority(index, 0);
+	_gyro.voter.set_sensor_priority(index, 0);
 }
 
 void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)

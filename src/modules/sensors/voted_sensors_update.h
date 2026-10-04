@@ -88,8 +88,9 @@ public:
 	/**
 	 * call this whenever parameters got updated. Make sure to have initializeSensors() called at least
 	 * once before calling this.
+	 * @param armed	while armed only a disable takes effect, every other priority change waits for disarm
 	 */
-	void parametersUpdate();
+	void parametersUpdate(bool armed = false);
 
 	/**
 	 * read new sensor data
@@ -122,6 +123,16 @@ private:
 	};
 
 	void initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max);
+
+	/**
+	 * Apply a configured priority (CAL_xxx_PRIO) to one sensor of one IMU
+	 */
+	void updatePriority(SensorData &sensor, uint8_t index, int32_t priority_configured, bool armed);
+
+	/**
+	 * Take an IMU out of the vote without a failover
+	 */
+	void disableImu(uint8_t index);
 
 	/**
 	 * Poll IMU for updated data.
