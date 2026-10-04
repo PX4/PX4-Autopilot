@@ -522,16 +522,26 @@ private:
 	void _calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate, const Param &param);
 
 	/**
+	 * @brief Derivative of the specific energy balance rate with respect to the climb angle.
+	 *
+	 * Uses the filtered true airspeed, which is trim airspeed without a valid measurement, floored at the minimum
+	 * airspeed so the conversion stays well conditioned at low or invalid airspeed.
+	 *
+	 * @param input is the current input measurement of the UAS.
+	 * @param param is the control parameters.
+	 * @return climb angle to specific energy balance rate gain in [m²/s³/rad].
+	 */
+	static float _climbAngleToSebRate(const Input &input, const Param &param);
+
+	/**
 	 * @brief Calculate the pitch control output function.
 	 *
 	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
 	 * @param param is the control parameters.
-	 * @param flag is the control flags.
 	 * @return pitch setpoint angle above trim [rad].
 	 */
-	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
-				      const Flag &flag) const;
+	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param) const;
 
 	/**
 	 * @brief Update controlled throttle setpoint.
