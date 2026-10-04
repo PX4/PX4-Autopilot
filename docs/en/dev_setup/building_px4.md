@@ -284,10 +284,10 @@ make list_config_targets
 
 **VIEWER_MODEL_DEBUGGER_WORLD:**
 
-- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `jmavsim`, `none` <!-- , ?airsim -->
+- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `none` <!-- , ?airsim -->
 
   :::tip
-  `none` can be used if you want to launch PX4 and wait for a simulator (jmavsim, Gazebo, Gazebo Classic, or some other simulator).
+  `none` can be used if you want to launch PX4 and wait for a simulator (Gazebo, Gazebo Classic, or some other simulator).
   For example, `make px4_sitl none_iris` launches PX4 without a simulator (but with the iris airframe).
   :::
 
@@ -307,7 +307,7 @@ make list_config_targets
 - You can use three underscores if you want to specify a default value between two other settings.
   For example, `gazebo-classic___gdb` is equivalent to `gazebo-classic_iris_gdb`.
 - You can use a `none` value for `VIEWER_MODEL_DEBUGGER` to start PX4 and wait for a simulator.
-  For example start PX4 using `make px4_sitl_default none` and jMAVSim using `./Tools/simulation/jmavsim/jmavsim_run.sh -l`.
+  For example start PX4 using `make px4_sitl_default none` and then start your simulator.
 
 :::
 

@@ -56,7 +56,7 @@ RUN chmod +x /opt/px4/bin/px4-entrypoint.sh
 ENV PX4_SIM_MODEL=sihsim_quadx
 ENV HOME=/root
 
-# MAVLink (QGC, MAVSDK), DDS (ROS 2), jMAVSim/viewer display
+# MAVLink (QGC, MAVSDK), DDS (ROS 2), Hawkeye viewer display
 EXPOSE 14550/udp 14540/udp 19410/udp 8888/udp
 
 WORKDIR /root

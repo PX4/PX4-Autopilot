@@ -908,8 +908,6 @@
       - [FlightGear Simulation](/sim_flightgear/index.md)
         - [FlightGear Vehicles](/sim_flightgear/vehicles.md)
         - [Multi-Vehicle Sim with FlightGear](/sim_flightgear/multi_vehicle.md)
-      - [jMAVSim Simulation](/sim_jmavsim/index.md)
-        - [Multi-Vehicle Sim with JMAVSim](/sim_jmavsim/multi_vehicle.md)
       - [JSBSim Simulation](/sim_jsbsim/index.md)
       - [PteroSim Simulation](/sim_pterosim/index.md)
       - [RotorPy Simulation](/sim_rotorpy/index.md)
