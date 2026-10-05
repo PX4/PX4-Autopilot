@@ -101,8 +101,7 @@ Mission::on_activation()
 	// runs the same guard again, but after this reset the second call can no longer change the index.
 	const bool restarting_mission = _system_disarmed_while_inactive && _mission_has_been_activated
 					&& _mission.count > 0
-					&& ((_mission.current_seq + 1 == _mission.count)
-					    || _navigator->get_mission_result()->finished);
+					&& (_mission.current_seq + 1 == _mission.count);
 	checkMissionRestart();
 
 	if (restarting_mission) {

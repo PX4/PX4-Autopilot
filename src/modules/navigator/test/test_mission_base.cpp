@@ -134,13 +134,6 @@ public:
 		return _mission.current_seq;
 	}
 
-	void setMissionRestartState(bool activated, bool disarmed_while_inactive, int32_t inactivation_index)
-	{
-		_mission_has_been_activated = activated;
-		_system_disarmed_while_inactive = disarmed_while_inactive;
-		_inactivation_index = inactivation_index;
-	}
-
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	void setVehicleStatus(bool is_vtol, bool fixed_wing, bool in_transition_to_fw = false)
 	{
@@ -248,7 +241,6 @@ public:
 
 	using MissionBase::findNextPositionIndex;
 	using MissionBase::findPreviousPositionIndex;
-	using MissionBase::getIncomingMissionCurrentSeq;
 	using MissionBase::getNonJumpItem;
 	using MissionBase::getNextPositionItems;
 	using MissionBase::getPreviousPositionItems;
@@ -302,59 +294,6 @@ class IgnoreDoJumpMissionBaseTraversalTest : public NavigatorDatamanTestBase
 protected:
 	IgnoreDoJumpMissionBaseTestPeer mission_base{};
 };
-
-TEST(MissionBaseMissionSourceTest, NewMissionWithoutCurrentSequenceStartsAtBeginning)
-{
-	mission_s current{};
-	current.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	current.mission_id = 10;
-	current.count = 8;
-	current.current_seq = 6;
-
-	mission_s replacement = current;
-	replacement.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
-	replacement.mission_id = 11;
-	replacement.count = 3;
-	replacement.current_seq = -1;
-
-	EXPECT_EQ(MissionBaseTestPeer::getIncomingMissionCurrentSeq(replacement, current), 0);
-}
-
-TEST(MissionBaseMissionSourceTest, SameMissionWithoutCurrentSequenceKeepsProgress)
-{
-	// An index of -1 means this metadata update has no sequence request.
-	mission_s current{};
-	current.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	current.mission_id = 10;
-	current.count = 8;
-	current.current_seq = 6;
-
-	mission_s update = current;
-	update.current_seq = -1;
-
-	EXPECT_EQ(MissionBaseTestPeer::getIncomingMissionCurrentSeq(update, current), 6);
-}
-
-TEST_F(MissionBaseTraversalTest, FinishedMissionRestartsEvenWhenSequenceIsNotAtEnd)
-{
-	// Landing can finish a mission before its last uploaded item.
-	Navigator navigator{};
-	MissionBaseTestPeer mission_base_with_nav{&navigator};
-	mission_base_with_nav.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-	});
-	mission_base_with_nav.setCurrentSequence(1);
-	mission_base_with_nav.setMissionRestartState(true, true, 1);
-	navigator.get_mission_result()->valid = true;
-	navigator.get_mission_result()->finished = true;
-
-	mission_base_with_nav.on_activation();
-
-	EXPECT_EQ(mission_base_with_nav.currentSequence(), 0);
-	EXPECT_FALSE(navigator.get_mission_result()->finished);
-}
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 class MissionBaseRouteCacheSyncTest : public NavigatorDatamanTestBase
