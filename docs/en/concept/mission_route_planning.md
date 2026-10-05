@@ -124,6 +124,7 @@ It does not model transition duration or turning dynamics.
 #### Direct Fallback and Route Deviations {#route-following-fallback}
 
 Direct fallback reselects the destination using [RTL_TYPE=3](../flight_modes/return.md#rtl_type_3): home, an eligible rally point or a mission landing pattern.
+When route planning is available in the firmware, a critical message reports a direct fallback when Return starts or while it is active.
 The destination can differ from the SRP goal, and the vehicle can fly outside the mission corridor to reach it.
 The direct-RTL climb and landing approach still apply; selecting a mission landing pattern means flying directly to that pattern before following it.
 

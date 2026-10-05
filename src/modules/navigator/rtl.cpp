@@ -170,6 +170,9 @@ void RTL::on_activation()
 	}
 
 	setRtlTypeAndDestination();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	reportRouteFallback();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	switch (_rtl_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:
@@ -226,6 +229,7 @@ void RTL::on_active()
 	    && !routePlanSourceStillValid()) {
 		stopAndDeleteRtlMissionType(routePlanMissionMatches(_mission_sub.get()));
 		setRtlTypeAndDestination();
+		reportRouteFallback();
 	}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -320,6 +324,15 @@ bool RTL::routePlanSourceStillValid() const
 bool RTL::routePlanMissionMatches(const mission_s &mission) const
 {
 	return _route_safe_point.missionMatches(mission);
+}
+
+void RTL::reportRouteFallback() const
+{
+	if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && _rtl_type != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: mission route unavailable, flying directly\t");
+		events::send(events::ID("rtl_route_unavailable"), {events::Log::Critical, events::LogInternal::Warning},
+			     "Return: mission route unavailable, flying directly");
+	}
 }
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
