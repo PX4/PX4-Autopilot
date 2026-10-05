@@ -74,9 +74,9 @@
 # include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
 #endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS)
 # include "vehicle_gnss/VehicleGnss.hpp"
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+#endif // CONFIG_SENSORS_VEHICLE_GNSS
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 # include "vehicle_magnetometer/VehicleMagnetometer.hpp"
@@ -239,10 +239,10 @@ private:
 	uint8_t _n_mag{0};
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS)
 	VehicleGnss *_vehicle_gnss {nullptr};
 	uint8_t _n_gnss{0};
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+#endif // CONFIG_SENSORS_VEHICLE_GNSS
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 	VehicleOpticalFlow *_vehicle_optical_flow {nullptr};
@@ -253,9 +253,9 @@ private:
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS)
 		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+#endif // CONFIG_SENSORS_VEHICLE_GNSS
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
