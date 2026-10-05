@@ -49,6 +49,7 @@
 #define MAVLINK_SECRET_KEY_LENGTH 32 ///< size of key in bytes
 
 #include "mavlink_receiver.h"
+#include "mavlink_signing_storage.h"
 
 class Mavlink;
 
@@ -70,7 +71,8 @@ public:
 		NOT_SETUP_SIGNING = 0,  ///< Message was not SETUP_SIGNING
 		KEY_ACCEPTED,           ///< New key provisioned successfully
 		SIGNING_DISABLED,       ///< Signing disabled via signed blank key
-		BLANK_KEY_REJECTED      ///< Blank key rejected (unsigned or signing not active)
+		BLANK_KEY_REJECTED,     ///< Blank key rejected (unsigned or signing not active)
+		STORAGE_ERROR           ///< Key state could not be committed to persistent storage
 	};
 
 	/**
@@ -86,9 +88,14 @@ public:
 	void reload_key();
 
 	/**
-	 * Stores the key and timestamp from memory to file
+	 * Capture a checkpoint while the caller holds the instance send lock.
 	 */
-	void write_key_and_timestamp();
+	bool prepare_checkpoint(MavlinkSigningStorage::State &state);
+
+	/**
+	 * Persist a previously captured checkpoint without holding the send lock.
+	 */
+	MavlinkSigningStorage::Result checkpoint(const MavlinkSigningStorage::State &state);
 
 	/**
 	 * Checks whether an unsigned message should be accepted
@@ -104,11 +111,14 @@ private:
 	mavlink_status_t *_mavlink_status{nullptr};
 
 	bool _is_signing_initialized{false};
+	MavlinkSigningStorage _storage{MAVLINK_SECRET_FILE};
 
 	/**
 	 * Wire or unwire the signing struct into the mavlink status based on key state.
 	 */
 	void _update_signing_state();
+	void _apply_state(const MavlinkSigningStorage::State &state);
+	uint64_t _current_timestamp() const;
 };
 
 

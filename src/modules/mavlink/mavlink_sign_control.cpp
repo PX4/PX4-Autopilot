@@ -39,7 +39,10 @@
  */
 
 #include "mavlink_sign_control.h"
+#include <px4_platform_common/time.h>
+#include <algorithm>
 #include <sys/stat.h>
+#include <time.h>
 
 static mavlink_signing_streams_t global_mavlink_signing_streams = {};
 
@@ -74,27 +77,16 @@ void MavlinkSignControl::start(int instance_id, mavlink_status_t *mavlink_status
 		PX4_ERR("failed creating module storage dir: %s (%i)", MAVLINK_FOLDER_PATH, errno);
 
 	} else {
-		int fd = ::open(MAVLINK_SECRET_FILE, O_RDONLY);
+		MavlinkSigningStorage::State stored{};
+		const MavlinkSigningStorage::Result result = _storage.load(stored);
 
-		if (fd == -1) {
-			if (errno != ENOENT) {
-				PX4_ERR("failed opening mavlink secret key file: %s (%i)", MAVLINK_SECRET_FILE, errno);
-			}
+		if (result == MavlinkSigningStorage::Result::Loaded) {
+			const MavlinkSigningStorage::State state = MavlinkSigningStorage::reconcile(
+						{}, false, stored, _current_timestamp());
+			_apply_state(state);
 
-		} else {
-			ssize_t bytes_read = ::read(fd, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
-
-			if (bytes_read == MAVLINK_SECRET_KEY_LENGTH) {
-				bytes_read = ::read(fd, &_mavlink_signing.timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
-
-				if (bytes_read == MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH) {
-					if (_mavlink_signing.timestamp != 0 || !is_array_all_zeros(_mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH)) {
-						_is_signing_initialized = true;
-					}
-				}
-			}
-
-			close(fd);
+		} else if (result != MavlinkSigningStorage::Result::NotFound) {
+			PX4_ERR("failed reading mavlink secret key file: %s (%i)", MAVLINK_SECRET_FILE, errno);
 		}
 	}
 
@@ -132,22 +124,29 @@ MavlinkSignControl::SetupSigningResult MavlinkSignControl::check_for_signing(con
 			return BLANK_KEY_REJECTED;
 		}
 
-		memset(_mavlink_signing.secret_key, 0, MAVLINK_SECRET_KEY_LENGTH);
-		_mavlink_signing.timestamp = 0;
-		_is_signing_initialized = false;
+		MavlinkSigningStorage::State state{};
 
-		_update_signing_state();
-		write_key_and_timestamp();
+		if (_storage.replace(state) != MavlinkSigningStorage::Result::Updated) {
+			PX4_ERR("failed disabling mavlink signing in storage: %s (%i)", MAVLINK_SECRET_FILE, errno);
+			return STORAGE_ERROR;
+		}
+
+		_apply_state(state);
 
 		return SIGNING_DISABLED;
 	}
 
-	memcpy(_mavlink_signing.secret_key, setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
-	_mavlink_signing.timestamp = setup_signing.initial_timestamp;
-	_is_signing_initialized = true;
+	MavlinkSigningStorage::State state{};
+	memcpy(state.secret_key, setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+	state.timestamp = setup_signing.initial_timestamp;
+	state.timestamp = std::max(state.timestamp, _current_timestamp());
 
-	_update_signing_state();
-	write_key_and_timestamp();
+	if (_storage.replace(state) != MavlinkSigningStorage::Result::Updated) {
+		PX4_ERR("failed storing mavlink signing key: %s (%i)", MAVLINK_SECRET_FILE, errno);
+		return STORAGE_ERROR;
+	}
+
+	_apply_state(state);
 
 	return KEY_ACCEPTED;
 }
@@ -158,32 +157,26 @@ void MavlinkSignControl::reload_key()
 		return;
 	}
 
-	_is_signing_initialized = false;
+	MavlinkSigningStorage::State current{};
+	memcpy(current.secret_key, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+	current.timestamp = _mavlink_signing.timestamp;
 
-	int fd = ::open(MAVLINK_SECRET_FILE, O_RDONLY);
+	MavlinkSigningStorage::State stored{};
+	const MavlinkSigningStorage::Result result = _storage.load(stored);
 
-	if (fd != -1) {
-		ssize_t bytes_read = ::read(fd, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+	if (result == MavlinkSigningStorage::Result::Loaded) {
+		const MavlinkSigningStorage::State state = MavlinkSigningStorage::reconcile(
+					current, _is_signing_initialized, stored, _current_timestamp());
+		_apply_state(state);
 
-		if (bytes_read == MAVLINK_SECRET_KEY_LENGTH) {
-			bytes_read = ::read(fd, &_mavlink_signing.timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
+	} else {
+		MavlinkSigningStorage::State disabled{};
+		_apply_state(disabled);
 
-			if (bytes_read == MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH) {
-				if (_mavlink_signing.timestamp != 0 || !is_array_all_zeros(_mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH)) {
-					_is_signing_initialized = true;
-				}
-			}
+		if (result != MavlinkSigningStorage::Result::NotFound) {
+			PX4_ERR("failed reloading mavlink signing key: %s (%i)", MAVLINK_SECRET_FILE, errno);
 		}
-
-		close(fd);
 	}
-
-	if (!_is_signing_initialized) {
-		memset(_mavlink_signing.secret_key, 0, MAVLINK_SECRET_KEY_LENGTH);
-		_mavlink_signing.timestamp = 0;
-	}
-
-	_update_signing_state();
 }
 
 void MavlinkSignControl::_update_signing_state()
@@ -200,24 +193,21 @@ void MavlinkSignControl::_update_signing_state()
 	}
 }
 
-void MavlinkSignControl::write_key_and_timestamp()
+bool MavlinkSignControl::prepare_checkpoint(MavlinkSigningStorage::State &state)
 {
-	int fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_600);
-
-	if (fd == -1) {
-		if (errno != ENOENT) {
-			PX4_ERR("failed opening mavlink secret key file for writing: %s (%i)", MAVLINK_SECRET_FILE, errno);
-		}
-
-	} else {
-		ssize_t bytes_write = ::write(fd, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
-
-		if (bytes_write == MAVLINK_SECRET_KEY_LENGTH) {
-			bytes_write = ::write(fd, &_mavlink_signing.timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
-		}
-
-		close(fd);
+	if (!_is_signing_initialized) {
+		return false;
 	}
+
+	_mavlink_signing.timestamp = std::max(_mavlink_signing.timestamp, _current_timestamp());
+	memcpy(state.secret_key, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+	state.timestamp = _mavlink_signing.timestamp;
+	return true;
+}
+
+MavlinkSigningStorage::Result MavlinkSignControl::checkpoint(const MavlinkSigningStorage::State &state)
+{
+	return _storage.checkpoint(state);
 }
 
 bool MavlinkSignControl::accept_unsigned(uint32_t message_id)
@@ -244,4 +234,23 @@ bool MavlinkSignControl::is_array_all_zeros(uint8_t arr[], size_t size)
 	}
 
 	return true;
+}
+
+void MavlinkSignControl::_apply_state(const MavlinkSigningStorage::State &state)
+{
+	memcpy(_mavlink_signing.secret_key, state.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+	_mavlink_signing.timestamp = state.timestamp;
+	_is_signing_initialized = MavlinkSigningStorage::is_enabled(state);
+	_update_signing_state();
+}
+
+uint64_t MavlinkSignControl::_current_timestamp() const
+{
+	struct timespec ts {};
+
+	if (px4_clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+		return 0;
+	}
+
+	return MavlinkSigningStorage::timestamp_from_unix_time(ts.tv_sec, ts.tv_nsec);
 }
