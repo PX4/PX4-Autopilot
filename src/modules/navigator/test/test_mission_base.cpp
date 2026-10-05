@@ -44,6 +44,7 @@
 
 #include "mission_base.h"
 #include "navigator.h"
+#include "support/event_recorder.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
 #include "support/navigator_dataman_test.h"
@@ -52,6 +53,7 @@
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
+#include <px4_platform_common/events.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
@@ -2109,14 +2111,23 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinUsesShortestLoopExit)
 	primeNavigatorState();
 
 	mission.on_inactive();
+	navigator_test::EventRecorder events;
+
+	// An intentional skip is not a planning failure, even while the cache is loading.
+	EXPECT_FALSE(mission.trySetRouteJoinOnActivation(true));
+	EXPECT_FALSE(events.sent(events::ID("mission_route_rejoin_unavailable")));
+
 	EXPECT_FALSE(mission.trySetRouteJoinOnActivation(false));
 	EXPECT_EQ(mission.currentSequenceForTest(), 0);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	// The skipped join is reported, not only logged.
+	EXPECT_TRUE(events.sent(events::ID("mission_route_rejoin_unavailable")));
 
 	updateRouteCacheUntilReady(mission_state);
 	mission.on_inactive();
 
 	ASSERT_TRUE(mission.trySetRouteJoinOnActivation(false));
+	EXPECT_FALSE(events.sent(events::ID("mission_route_rejoin_unavailable")));
 
 	// Rejoin targets WP2 with a valid JOIN_ROUTE work item and no VTOL transition.
 	EXPECT_EQ(mission.currentSequenceForTest(), 2);

@@ -137,17 +137,26 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 		return false;
 	}
 
+	// Mission continues as without MIS_ROUTE_JOIN; tell the operator the join was skipped.
+	const auto fall_back = [this](const char *reason) {
+		PX4_WARN("Mission route rejoin unavailable: %s", reason);
+		mavlink_log_warning(_navigator->get_mavlink_log_pub(), "Route rejoin unavailable, flying to current item\t");
+		events::send(events::ID("mission_route_rejoin_unavailable"), events::Log::Warning,
+			     "Route rejoin unavailable, flying to current item");
+		return false;
+	};
+
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 
 	if (!mission_route_cache.missionItemsReady(_mission)) {
-		return false;
+		return fall_back("route cache not ready");
 	}
 
 	const vehicle_global_position_s &global_position = _global_pos_sub.get();
 
 	if (!PX4_ISFINITE(global_position.lat) || !PX4_ISFINITE(global_position.lon)
 	    || !PX4_ISFINITE(global_position.alt)) {
-		return false;
+		return fall_back(mission_route::failureReasonString(mission_route::FailureReason::kNoValidGlobalPos));
 	}
 
 	const vehicle_status_s &vehicle_status = _vehicle_status_sub.get();
@@ -177,13 +186,11 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 	const mission_route::FailureReason failure_reason = planner.planMissionResumeJoin(request, join_plan);
 
 	if (failure_reason != mission_route::FailureReason::kNone) {
-		PX4_WARN("Mission route rejoin unavailable: %s", mission_route::failureReasonString(failure_reason));
-		return false;
+		return fall_back(mission_route::failureReasonString(failure_reason));
 	}
 
 	if (!join_plan.valid() || join_plan.first_mission_item_index >= _mission.count) {
-		PX4_ERR("Mission route rejoin failed to build a valid join plan");
-		return false;
+		return fall_back("invalid join plan");
 	}
 
 	_active_jump_anchor = join_plan.active_jump_anchor;
