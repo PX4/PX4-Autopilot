@@ -730,16 +730,16 @@ void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Re
 		 * The receiver had stopped delivering samples when the local position estimate became invalid.
 		 */
 		events::send(events::ID("check_estimator_position_lost_gnss_no_data"), events::Log::Error,
-			     "Local position lost, no GNSS data");
+			     "Local position lost, no GPS data");
 
 	} else if (failed_checks != 0) {
 		/* EVENT
 		 * @description
-		 * The GNSS quality checks that failed in the run up to the local position estimate becoming invalid.
+		 * The GPS quality checks that failed in the run up to the local position estimate becoming invalid.
 		 * In flight EKF2 checks the fix type, the horizontal, vertical and speed accuracy, spoofing and jamming.
 		 */
 		events::send<events::px4::enums::gnss_check_fail_t>(events::ID("check_estimator_position_lost_gnss_reason"),
-				events::Log::Error, "Local position lost, GNSS check failed: {1}",
+				events::Log::Error, "Local position lost, GPS check failed: {1}",
 				static_cast<events::px4::enums::gnss_check_fail_t>(failed_checks));
 	}
 }
