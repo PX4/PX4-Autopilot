@@ -131,7 +131,7 @@ __EXPORT void stm32_boardinitialize(void)
 
 	board_clock_outputs_initialize();
 
-	/* USB OTG_FS with physical VBUS sense on PA9. */
+	/* USB OTG_FS. VBUS is not sensed on this board, see board_config.h. */
 	stm32_usbinitialize();
 }
 

@@ -59,7 +59,10 @@
 #define GPIO_HW_VER1      /* PC15 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTC|GPIO_PIN15)
 #define GPIO_PHY_RST_SAFE /* PD15 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN15)
 
-/* No physical USB VBUS sense; PA9 is an unconnected test point. */
+/* USB VBUS is not sensed: PA9 is a test point and the VBUS sense resistor
+ * (R114) is not fitted. The pull-up keeps PA9 high, so PX4 treats USB as
+ * always attached.
+ */
 #define BOARD_USB_VBUS_SENSE_DISABLED 1
 #define GPIO_OTGFS_VBUS /* PA9 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
 #define BOARD_ADC_USB_CONNECTED (1)
