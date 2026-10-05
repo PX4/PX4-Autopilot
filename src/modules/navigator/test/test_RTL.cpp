@@ -246,6 +246,17 @@ public:
 
 	RtlType rtlTypeForTest() const { return _rtl_type; }
 
+	void evaluateReturnTypeForTest(int32_t rtl_type)
+	{
+		_param_rtl_type.set(rtl_type);
+		_global_pos_sub.update();
+		_vehicle_status_sub.update();
+		_mission_sub.update();
+		_home_pos_sub.update();
+		_wind_sub.update();
+		setRtlTypeAndDestination();
+	}
+
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	void activateReturnTypeForTest(int32_t rtl_type)
 	{
@@ -677,6 +688,40 @@ TEST_F(RTLTest, MissionValidityMatchesMissionAndFeasibilityInputs)
 	mission_result->home_position_counter = home_update_count;
 	EXPECT_TRUE(_rtl.hasValidMissionForTest());
 }
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+TEST_F(RTLTest, ReturnTypeChangesDiscardPreviousApproachStatus)
+{
+	// This also runs without the full mission cache: approach status must not depend on that feature.
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+	const ApproachGeometry geometry = makeApproachGeometry();
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+
+	for (const bool approach_at_home : {true, false}) {
+		publishHomePosition(approach_at_home ? geometry.land :
+				    makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
+
+		// Mission-fast types do not inspect approaches; rally-only Return does not inspect home.
+		for (const int32_t rtl_type : {2, 4, 5}) {
+			SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << rtl_type << ", approach at home=" << approach_at_home);
+			loadSafePointsIntoRouteCache({
+				makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
+				makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
+			});
+
+			_rtl.evaluateReturnTypeForTest(3);
+			ASSERT_TRUE(rtl_status_sub.update());
+			ASSERT_TRUE(rtl_status_sub.get().has_vtol_approach);
+
+			loadSafePointsIntoRouteCache({});
+			_rtl.evaluateReturnTypeForTest(rtl_type);
+			ASSERT_TRUE(rtl_status_sub.update());
+			EXPECT_FALSE(rtl_status_sub.get().has_vtol_approach);
+		}
+	}
+}
+#endif
 
 TEST_F(RTLTest, DirectMissionLandStartsWithCurrentMission)
 {
@@ -1488,7 +1533,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 // WHY: Each rally point owns the loiters that follow it.
 // WHAT: Scanning should stop at the next rally point.
-TEST_F(RTLTest, GetVtolLandApproachesAtSafePointStopsAtNextRallyPoint)
+TEST(RtlLandingApproachTest, GetVtolLandApproachesAtSafePointStopsAtNextRallyPoint)
 {
 	// GIVEN: One block with two loiters, then a new rally point.
 	const PositionYawSetpoint land_1 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -1519,7 +1564,7 @@ TEST_F(RTLTest, GetVtolLandApproachesAtSafePointStopsAtNextRallyPoint)
 
 // WHY: The result array has a fixed size.
 // WHAT: Extra loiters should be ignored once it is full.
-TEST_F(RTLTest, GetVtolLandApproachesAtSafePointCapsApproachCount)
+TEST(RtlLandingApproachTest, GetVtolLandApproachesAtSafePointCapsApproachCount)
 {
 	// GIVEN: More valid loiters than the block can hold.
 	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -1555,7 +1600,7 @@ TEST_F(RTLTest, GetVtolLandApproachesAtSafePointCapsApproachCount)
 
 // WHY: A rally point can own an empty block.
 // WHAT: Another rally point right after it should keep the block empty.
-TEST_F(RTLTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockBeforeNextRallyPoint)
+TEST(RtlLandingApproachTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockBeforeNextRallyPoint)
 {
 	// GIVEN: A rally point followed immediately by another rally point.
 	const PositionYawSetpoint land_1 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -1579,7 +1624,7 @@ TEST_F(RTLTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockBeforeNextRally
 
 // WHY: End-of-mission is the other empty-block case.
 // WHAT: A final rally point should also return zero approaches.
-TEST_F(RTLTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockAtMissionEnd)
+TEST(RtlLandingApproachTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockAtMissionEnd)
 {
 	// GIVEN: A mission that ends with a rally point.
 	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -1597,7 +1642,7 @@ TEST_F(RTLTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockAtMissionEnd)
 	EXPECT_EQ(countValidApproaches(scanned_block), 0);
 }
 
-TEST_F(RTLTest, IndexedLandApproachQueriesRequireValidRallyAnchor)
+TEST(RtlLandingApproachTest, IndexedLandApproachQueriesRequireValidRallyAnchor)
 {
 	const mission_item_s approach = makeLandApproachItem(kBaseLat, kBaseLon, kAlt + 30.f, kApproachRadius);
 	VectorProvider provider({
@@ -1625,7 +1670,7 @@ TEST_F(RTLTest, IndexedLandApproachQueriesRequireValidRallyAnchor)
 	EXPECT_TRUE(mission_route::getVtolLandApproachesAtSafePointIndex(provider, 1, kAlt).isAnyApproachValid());
 }
 
-TEST_F(RTLTest, IndexedLandApproachQueriesRequireReadableRallyAnchor)
+TEST(RtlLandingApproachTest, IndexedLandApproachQueriesRequireReadableRallyAnchor)
 {
 	VectorProvider provider({
 		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL),
@@ -1643,7 +1688,7 @@ TEST_F(RTLTest, IndexedLandApproachQueriesRequireReadableRallyAnchor)
  * @brief Read-failure cases while scanning a safe-point approach block.
  */
 class GetVtolLandApproachesAtSafePointReadFailureTest :
-	public RTLTest,
+	public ::testing::Test,
 	public ::testing::WithParamInterface<ReadFailureCase>
 {
 };
@@ -1948,7 +1993,7 @@ ExtractValidSafePointPositionCase{
 
 // WHY: Approach altitude can be absolute or relative.
 // WHAT: Relative altitude should add home altitude; absolute altitude should not.
-TEST_F(RTLTest, MakeVtolLandApproachPointConvertsRelativeAndAbsoluteAltitude)
+TEST(RtlLandingApproachTest, MakeVtolLandApproachPointConvertsRelativeAndAbsoluteAltitude)
 {
 	// GIVEN: Absolute and relative loiter items in both MAVLink frame variants.
 	const PositionYawSetpoint absolute_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 40.f, 0.f, 530.f);
@@ -1994,7 +2039,7 @@ TEST_F(RTLTest, MakeVtolLandApproachPointConvertsRelativeAndAbsoluteAltitude)
 	EXPECT_NEAR(relative_int_point.loiter_radius_m, kApproachRadius, 0.01f);
 }
 
-TEST_F(RTLTest, MakeVtolLandApproachPointRejectsInvalidInput)
+TEST(RtlLandingApproachTest, MakeVtolLandApproachPointRejectsInvalidInput)
 {
 	const mission_item_s invalid_latitude = makeLandApproachItem(91.0, kBaseLon, kAlt, kApproachRadius);
 	const mission_item_s invalid_longitude = makeLandApproachItem(kBaseLat, 181.0, kAlt, kApproachRadius);
