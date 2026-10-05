@@ -138,7 +138,7 @@ Options that apply to all simulators are covered in the top level [Simulation](.
 
 ### Simulating Sensor/Hardware Failure
 
-[Simulate Failsafes](../simulation/failsafes.md) explains how to trigger safety failsafes like GPS failure and battery drain.
+[Simulate Failsafes](../simulation/failsafes.md) explains how to trigger safety failsafes like GNSS failure and battery drain.
 
 ### Headless Mode
 
@@ -234,15 +234,15 @@ The current default world is [PX4-Autopilot/Tools/simulation/gazebo-classic/sitl
 This can cause difficulty when using a distance sensor.
 If there are unexpected results we recommend you change the model in **iris.model** from `uneven_ground` to `asphalt_plane`.
 
-### Simulating GPS Noise
+### Simulating GNSS Noise {#simulating-gps-noise}
 
-Gazebo Classic can simulate GPS noise that is similar to that typically found in real systems (otherwise reported GPS values will be noise-free/perfect).
-This is useful when working on applications that might be impacted by GPS noise - e.g. precision positioning.
+Gazebo Classic can simulate GNSS noise that is similar to that typically found in real systems (otherwise reported GNSS values will be noise-free/perfect).
+This is useful when working on applications that might be impacted by GNSS noise - e.g. precision positioning.
 
-GPS noise is enabled if the target vehicle's SDF file contains a value for the `gpsNoise` element (i.e. it has the line: `<gpsNoise>true</gpsNoise>`).
+GNSS noise is enabled if the target vehicle's SDF file contains a value for the `gpsNoise` element (i.e. it has the line: `<gpsNoise>true</gpsNoise>`).
 It is enabled by default in many vehicle SDF files: **solo.sdf**, **iris.sdf**, **standard_vtol.sdf**, **delta_wing.sdf**, **plane.sdf**, **typhoon_h480**, **tailsitter.sdf**.
 
-To enable/disable GPS noise:
+To enable/disable GNSS noise:
 
 1. Build any gazebo target in order to generate SDF files (for all vehicles).
    For example:
@@ -265,12 +265,12 @@ To enable/disable GPS noise:
    </plugin>
    ```
 
-   - If it is present, GPS is enabled.
+   - If it is present, GNSS is enabled.
      You can disable it by deleting the line: `<gpsNoise>true</gpsNoise>`
-   - If it is not present, GPS is disabled.
+   - If it is not present, GNSS is disabled.
      You can enable it by adding the `gpsNoise` element to the `gps_plugin` section (as shown above).
 
-The next time you build/restart Gazebo Classic it will use the new GPS noise setting.
+The next time you build/restart Gazebo Classic it will use the new GNSS noise setting.
 
 ## Loading a Specific World
 
@@ -299,14 +299,14 @@ If the loaded world does not align with the map, you may need to [set the world 
 
 ## Set World Location
 
-The vehicle gets spawned very close to the origin of the world model at some simulated GPS location.
+The vehicle gets spawned very close to the origin of the world model at some simulated GNSS location.
 
 ::: info
 The vehicle is not spawned exactly at the Gazebo origin (0,0,0), but using a slight offset, which can highlight a number of common coding issues.
 :::
 
 If using a world that recreates a real location (e.g. a particular airport) this can result in a very obvious mismatch between what is displayed in the simulated world, and what is shown on the ground station map.
-To overcome this problem you can set the location of the world origin to the GPS coordinates where it would be in "real life".
+To overcome this problem you can set the location of the world origin to the GNSS coordinates where it would be in "real life".
 
 ::: info
 You can also set a [Custom Takeoff Location](#custom_takeoff_location) that does the same thing.

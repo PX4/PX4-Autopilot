@@ -16,7 +16,7 @@ While not technically correct for pre-armed vehicles, it is "safe".
 Users can control progression though these states using a [safety switch](../getting_started/px4_basic_concepts.md#safety-switch) on the vehicle (optional) _and_ an [arming switch/button](#arm_disarm_switch), [arming gesture](#arm_disarm_gestures), or _MAVLink command_ on the ground controller:
 
 - A _safety switch_ is a control _on the vehicle_ that must be engaged before the vehicle can be armed, and which may also prevent prearming (depending on the configuration).
-  Commonly the safety switch is integrated into a GPS unit, but it may also be a separate physical component.
+  Commonly the safety switch is integrated into a GNSS receiver, but it may also be a separate physical component.
 
   :::warning
   A vehicle that is armed is potentially dangerous.
@@ -123,7 +123,7 @@ Arming is prevented if:
 - The vehicle has a [safety switch](../getting_started/px4_basic_concepts.md#safety-switch) that has not been engaged.
 - The vehicle has a [remote ID](../peripherals/remote_id.md) that is unhealthy or otherwise not ready
 - A VTOL vehicle is in fixed-wing mode ([by default](../advanced_config/parameter_reference.md#CBRK_VTOLARMING)).
-- The current mode requires an adequate global position estimate but the vehicle does not have GPS lock.
+- The current mode requires an adequate global position estimate but the vehicle does not have GNSS lock.
 - Many more (see [arming/disarming safety settings](../config/safety.md#arming-disarming-settings) for more information).
 
 The current failed checks can be viewed in QGroundControl (v4.2.0 and later) [Arming Check Report](../flying/pre_flight_checks.md#qgc-arming-check-report) (see also [Fly View > Toolbar > Flight Status](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view_toolbar.html#flight-status)).

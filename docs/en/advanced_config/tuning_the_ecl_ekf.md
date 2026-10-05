@@ -149,7 +149,7 @@ Three axis body fixed magnetometer data at a minimum rate of 5Hz is required to 
 ::: info
 
 - The magnetometer **biases** are only observable while the drone is rotating
-- The true heading is observable when the vehicle is accelerating (linear acceleration) while absolute position or velocity measurements are fused (e.g. GPS).
+- The true heading is observable when the vehicle is accelerating (linear acceleration) while absolute position or velocity measurements are fused (e.g. GNSS).
   This means that magnetometer heading measurements are optional after initialization if those conditions are met often enough to constrain the heading drift (caused by gyro bias).
 
 :::
@@ -172,14 +172,14 @@ Magnetometer data fusion can be configured using [EKF2_MAG_TYPE](../advanced_con
 5. None:
    - Magnetometer data is never used.
      This is useful when the data can never be trusted (e.g.: high current close to the sensor, external anomalies).
-   - The estimator will use other sources of heading: [GPS heading](#yaw-measurements) or external vision.
-   - When using GPS measurements without another source of heading, the heading can only be initialized after sufficient horizontal acceleration.
+   - The estimator will use other sources of heading: [GNSS heading](#yaw-measurements) or external vision.
+   - When using GNSS measurements without another source of heading, the heading can only be initialized after sufficient horizontal acceleration.
      See [Estimate yaw from vehicle movement](#yaw-from-gps-velocity) below.
 6. Init only:
    - Magnetometer data is only used to initialize the heading estimate.
      This is useful when the data can be used before arming but not afterwards (e.g.: high current after the vehicle is armed).
    - After initialization, the heading is constrained using other observations.
-   - Unlike mag type `None`, when combined with GPS measurements, this method allows position controlled modes to run directly during takeoff.
+   - Unlike mag type `None`, when combined with GNSS measurements, this method allows position controlled modes to run directly during takeoff.
 
 The following selection tree can be used to select the right option:
 
@@ -187,7 +187,7 @@ The following selection tree can be used to select the right option:
 
 ### Height
 
-A source of height data - GPS, barometric pressure, range finder, external vision or a combination of those at a minimum rate of 5Hz is required.
+A source of height data - GNSS, barometric pressure, range finder, external vision or a combination of those at a minimum rate of 5Hz is required.
 
 If none of the selected measurements are present, the EKF will not start.
 When these measurements have been detected, the EKF will initialise the states and complete the tilt and yaw alignment.
@@ -264,9 +264,9 @@ No tuning is required.
 
 #### Position and Velocity Measurements
 
-GPS measurements will be used for position and velocity if the following conditions are met:
+GNSS measurements will be used for position and velocity if the following conditions are met:
 
-- GPS use is enabled via setting of the [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter.
+- GNSS use is enabled via setting of the [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter.
 - The sample passed the [quality checks](#gnss-performance-requirements) (`vehicle_gnss.usable`).
 - No velocity component exceeds [EKF2_VEL_LIM](../advanced_config/parameter_reference.md#EKF2_VEL_LIM).
 
@@ -274,15 +274,15 @@ For more details about the configuration of height sources, [click here](#height
 
 #### Yaw Measurements
 
-Dual-antenna and moving base GNSS receivers (see [GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)) can be used to provide a heading measurement that replaces the use of magnetometer data.
+Dual-antenna and moving base GNSS receivers (see [GNSS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)) can be used to provide a heading measurement that replaces the use of magnetometer data.
 This can be a significant advantage when operating in an environment where large magnetic anomalies are present, or at latitudes here the earth's magnetic field has a high inclination.
-Use of GPS yaw measurements is enabled by setting bit position 3 to 1 (adding 8) in the [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter.
+Use of GNSS yaw measurements is enabled by setting bit position 3 to 1 (adding 8) in the [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter.
 
-#### Yaw From GPS Velocity
+#### Yaw From GNSS Velocity {#yaw-from-gps-velocity}
 
 The EKF runs an additional multi-hypothesis filter internally that uses multiple 3-state Extended Kalman Filters (EKF's) whose states are NE velocity and yaw angle.
 These individual yaw angle estimates are then combined using a Gaussian Sum Filter (GSF).
-The individual 3-state EKF's use IMU and GPS horizontal velocity data (plus optional airspeed data) and do not rely on any prior knowledge of the yaw angle or magnetometer measurements.
+The individual 3-state EKF's use IMU and GNSS horizontal velocity data (plus optional airspeed data) and do not rely on any prior knowledge of the yaw angle or magnetometer measurements.
 This provides a backup to the yaw from the main filter and is used to reset the yaw for the main 24-state EKF when a post-takeoff loss of navigation indicates that the yaw estimate from the magnetometer is bad.
 This will result in an `Emergency yaw reset - magnetometer use stopped` message information message at the GCS.
 
@@ -293,9 +293,9 @@ The variance for the GSF yaw estimate is in the `yaw_variance` field.
 All angles are in radians.
 Weightings applied by the GSF to the individual 3-state EKF outputs are in the`weight` fields.
 
-This also makes it possible to operate without any magnetometer data or dual antenna GPS receiver for yaw provided some horizontal movement after takeoff can be performed to enable the yaw to become observable.
+This also makes it possible to operate without any magnetometer data or dual antenna GNSS receiver for yaw provided some horizontal movement after takeoff can be performed to enable the yaw to become observable.
 To use this feature, set [EKF2_MAG_TYPE](../advanced_config/parameter_reference.md#EKF2_MAG_TYPE) to `none` (5) to disable magnetometer use.
-Once the vehicle has performed sufficient horizontal movement to make the yaw observable, the main 24-state EKF will align it's yaw to the GSF estimate and commence use of GPS.
+Once the vehicle has performed sufficient horizontal movement to make the yaw observable, the main 24-state EKF will align it's yaw to the GSF estimate and commence use of GNSS.
 
 #### Dual Receivers
 
@@ -343,7 +343,7 @@ The fix type, eph, epv and speed accuracy thresholds of the strict checks also [
 
 PX4's GNSS fault detection protects against malicious or erroneous GNSS signals using selective fusion control based on measurement validation.
 
-The fault detection logic depends on the GPS mode, and also operates differently for horizontal position and altitude measurements.
+The fault detection logic depends on the GNSS mode, and also operates differently for horizontal position and altitude measurements.
 The mode is set using the [EKF2_GPS_MODE](../advanced_config/parameter_reference.md#EKF2_GPS_MODE) parameter:
 
 - **Automatic (`0`)** (Default): Assumes that GNSS is generally reliable and is likely to be recovered.
@@ -492,7 +492,7 @@ Tuning parameters:
 
 ### Airspeed
 
-Equivalent Airspeed (EAS) data can be used to estimate wind velocity and reduce drift when GPS is lost by setting [EKF2_ARSP_THR](../advanced_config/parameter_reference.md#EKF2_ARSP_THR) to a positive value.
+Equivalent Airspeed (EAS) data can be used to estimate wind velocity and reduce drift when GNSS is lost by setting [EKF2_ARSP_THR](../advanced_config/parameter_reference.md#EKF2_ARSP_THR) to a positive value.
 Airspeed data will be used when it exceeds the threshold set by a positive value for [EKF2_ARSP_THR](../advanced_config/parameter_reference.md#EKF2_ARSP_THR) and the vehicle type is not rotary wing.
 
 ### Synthetic Sideslip
@@ -570,7 +570,7 @@ For this reason, no claims for accuracy relative to the legacy combination of `a
 - The ecl EKF is able to fuse data from sensors with different time delays and data rates in a mathematically consistent way which improves accuracy during dynamic maneuvers once time delay parameters are set correctly.
 - The ecl EKF is capable of fusing a large range of different sensor types.
 - The ecl EKF detects and reports statistically significant inconsistencies in sensor data, assisting with diagnosis of sensor errors.
-- For fixed-wing operation, the ecl EKF estimates wind speed with or without an airspeed sensor and is able to use the estimated wind in combination with airspeed measurements and sideslip assumptions to extend the dead-reckoning time available if GPS is lost in flight.
+- For fixed-wing operation, the ecl EKF estimates wind speed with or without an airspeed sensor and is able to use the estimated wind in combination with airspeed measurements and sideslip assumptions to extend the dead-reckoning time available if GNSS is lost in flight.
 - The ecl EKF estimates 3-axis accelerometer bias which improves accuracy for tailsitters and other vehicles that experience large attitude changes between flight phases.
 - The federated architecture (combined attitude and position/velocity estimation) means that attitude estimation benefits from all sensor measurements.
   This should provide the potential for improved attitude estimation if tuned correctly.
@@ -726,7 +726,7 @@ Test levels are available in [EstimatorStatus](https://github.com/PX4/PX4-Autopi
 
 For a binary pass/fail summary for each sensor, refer to innovation_check_flags in [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).
 
-### GPS Quality Checks
+### GNSS Quality Checks {#gps-quality-checks}
 
 The sensors module runs the [quality checks](#gnss-performance-requirements).
 `vehicle_gnss.failed_checks` holds the checks that the selected receiver's sample failed, in [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) bit order, and `sensors_status_gnss.failed_checks` those of every receiver.
@@ -765,7 +765,7 @@ After re-tuning the filter, particularly re-tuning that involve reducing the noi
 
 ## What should I do if the height estimate is diverging?
 
-The most common cause of EKF height diverging away from GPS and altimeter measurements during flight is clipping and/or aliasing of the IMU measurements caused by vibration.
+The most common cause of EKF height diverging away from GNSS and altimeter measurements during flight is clipping and/or aliasing of the IMU measurements caused by vibration.
 If this is occurring, then the following signs should be evident in the data
 
 - [EstimatorInnovations](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorInnovations.msg).vel_pos_innov\[2\] and [EstimatorInnovations](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorInnovations.msg).vel_pos_innov\[5\] will both have the same sign.
@@ -784,7 +784,7 @@ The EKF can be made more resistant to vibration induced height divergence by mak
 - Increase the value of [EKF2_ACC_NOISE](../advanced_config/parameter_reference.md#EKF2_ACC_NOISE) to 0.5 initially.
   If divergence is still occurring, increase in further increments of 0.1 but do not go above 1.0
 
-Note that the effect of these changes will make the EKF more sensitive to errors in GPS vertical velocity and barometric pressure.
+Note that the effect of these changes will make the EKF more sensitive to errors in GNSS vertical velocity and barometric pressure.
 
 ## What should I do if the position estimate is diverging?
 
@@ -792,18 +792,18 @@ The most common causes of position divergence are:
 
 - High vibration levels.
   - Fix by improving mechanical isolation of the autopilot.
-  - Increasing the value of [EKF2_ACC_NOISE](../advanced_config/parameter_reference.md#EKF2_ACC_NOISE) and [EKF2_GYR_NOISE](../advanced_config/parameter_reference.md#EKF2_GYR_NOISE) can help, but does make the EKF more vulnerable to GPS glitches.
+  - Increasing the value of [EKF2_ACC_NOISE](../advanced_config/parameter_reference.md#EKF2_ACC_NOISE) and [EKF2_GYR_NOISE](../advanced_config/parameter_reference.md#EKF2_GYR_NOISE) can help, but does make the EKF more vulnerable to GNSS glitches.
 - Large gyro bias offsets.
   - Fix by re-calibrating the gyro.
     Check for excessive temperature sensitivity (&gt; 3 deg/sec bias change during warm-up from a cold start and replace the sensor if affected of insulate to slow the rate of temperature change.
 - Bad yaw alignment
   - Check the magnetometer calibration and alignment.
   - Check the heading shown QGC is within 15 deg truth
-- Poor GPS accuracy
+- Poor GNSS accuracy
   - Check for interference
   - Improve separation and shielding
-  - Check flying location for GPS signal obstructions and reflectors \(nearby tall buildings\)
-- Loss of GPS
+  - Check flying location for GNSS signal obstructions and reflectors \(nearby tall buildings\)
+- Loss of GNSS
 
 Determining which of these is the primary cause requires a methodical approach to analysis of the EKF log data:
 
@@ -811,7 +811,7 @@ Determining which of these is the primary cause requires a methodical approach t
 - Plot the horizontal position innovation test ratio - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).pos_test_ratio
 - Plot the height innovation test ratio - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).hgt_test_ratio
 - Plot the magnetometer innovation test ratio - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).mag_test_ratio
-- Plot the GPS receiver reported speed accuracy - [SensorGnss.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorGnss.msg).speed_accuracy
+- Plot the GNSS receiver reported speed accuracy - [SensorGnss.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorGnss.msg).speed_accuracy
 - Plot the IMU delta angle state estimates - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).states\[10\], states\[11\] and states\[12\]
 - Plot the EKF internal high frequency vibration metrics:
   - Delta angle coning vibration - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).vibe\[0\]
@@ -851,41 +851,41 @@ Pre-flight checks performed by the commander should prevent arming if the positi
 
 ### Determination of Poor Yaw Accuracy
 
-Bad yaw alignment causes a velocity test ratio that increases rapidly when the vehicle starts moving due inconsistency in the direction of velocity calculated by the inertial nav and the GPS measurement.
+Bad yaw alignment causes a velocity test ratio that increases rapidly when the vehicle starts moving due inconsistency in the direction of velocity calculated by the inertial nav and the GNSS measurement.
 Magnetometer innovations are slightly affected.
 Height is normally unaffected.
 
 \(insert example plots showing bad yaw alignment here\)
 
-### Determination of Poor GPS Accuracy
+### Determination of Poor GNSS Accuracy {#determination-of-poor-gps-accuracy}
 
-Poor GPS accuracy is normally accompanied by a rise in the reported velocity error of the receiver in conjunction with a rise in innovations.
+Poor GNSS accuracy is normally accompanied by a rise in the reported velocity error of the receiver in conjunction with a rise in innovations.
 Transient errors due to multipath, obscuration and interference are more common causes.
-Here is an example of a temporary loss of GPS accuracy where the multi-rotor started drifting away from its loiter location and had to be corrected using the sticks.
+Here is an example of a temporary loss of GNSS accuracy where the multi-rotor started drifting away from its loiter location and had to be corrected using the sticks.
 The rise in [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).vel_test_ratio to greater than 1 indicates the GPs velocity was inconsistent with other measurements and has been rejected.
 
-![GPS glitch - test ratios](../../assets/ecl/gps_glitch_-_test_ratios.png)
+![GNSS glitch - test ratios](../../assets/ecl/gps_glitch_-_test_ratios.png)
 
-This is accompanied with rise in the GPS receivers reported velocity accuracy which indicates that it was likely a GPS error.
+This is accompanied with rise in the GNSS receivers reported velocity accuracy which indicates that it was likely a GNSS error.
 
-![GPS Glitch - reported receiver accuracy](../../assets/ecl/gps_glitch_-_reported_receiver_accuracy.png)
+![GNSS Glitch - reported receiver accuracy](../../assets/ecl/gps_glitch_-_reported_receiver_accuracy.png)
 
-If we also look at the GPS horizontal velocity innovations and innovation variances, we can see the large spike in North velocity innovation that accompanies this GPS 'glitch' event.
+If we also look at the GNSS horizontal velocity innovations and innovation variances, we can see the large spike in North velocity innovation that accompanies this GNSS 'glitch' event.
 
-![GPS Glitch - velocity innovations](../../assets/ecl/gps_glitch_-_velocity_innovations.png)
+![GNSS Glitch - velocity innovations](../../assets/ecl/gps_glitch_-_velocity_innovations.png)
 
-### Determination of GPS Data Loss
+### Determination of GNSS Data Loss {#determination-of-gps-data-loss}
 
-Loss of GPS data will be shown by the velocity and position innovation test ratios 'flat-lining'.
-If this occurs, check the other GPS status data in `vehicle_gnss` for further information.
+Loss of GNSS data will be shown by the velocity and position innovation test ratios 'flat-lining'.
+If this occurs, check the other GNSS status data in `vehicle_gnss` for further information.
 
-The following plot shows the NED GPS velocity innovations `ekf2_innovations_0.vel_pos_innov[0 ... 2]`, the GPS NE position innovations `ekf2_innovations_0.vel_pos_innov[3 ... 4]` and the Baro vertical position innovation `ekf2_innovations_0.vel_pos_innov[5]` generated from a simulated VTOL flight using SITL Gazebo.
+The following plot shows the NED GNSS velocity innovations `ekf2_innovations_0.vel_pos_innov[0 ... 2]`, the GNSS NE position innovations `ekf2_innovations_0.vel_pos_innov[3 ... 4]` and the Baro vertical position innovation `ekf2_innovations_0.vel_pos_innov[5]` generated from a simulated VTOL flight using SITL Gazebo.
 
-The simulated GPS was made to lose lock at 73 seconds.
-Note the NED velocity innovations and NE position innovations 'flat-line' after GPS is lost.
-Note that after 10 seconds without GPS data, the EKF reverts back to a static position mode using the last known position and the NE position innovations start to change again.
+The simulated GNSS receiver was made to lose lock at 73 seconds.
+Note the NED velocity innovations and NE position innovations 'flat-line' after GNSS is lost.
+Note that after 10 seconds without GNSS data, the EKF reverts back to a static position mode using the last known position and the NE position innovations start to change again.
 
-![GPS Data Loss - in SITL](../../assets/ecl/gps_data_loss_-_velocity_innovations.png)
+![GNSS Data Loss - in SITL](../../assets/ecl/gps_data_loss_-_velocity_innovations.png)
 
 ### Barometer Ground Effect Compensation
 

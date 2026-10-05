@@ -201,7 +201,7 @@ Key features:
 
 - Native support for ULog, ROS bag, Journalctl, and other common robotics log formats.
 - AI Chat and Agents for accelerated debug, triage, summarization, and flight analysis using natural language.
-- Automatic detection of common PX4 flight issues such as high vibration, GPS degradation, estimator failures, and log errors.
+- Automatic detection of common PX4 flight issues such as high vibration, GNSS degradation, estimator failures, and log errors.
 - SDK and query APIs to search and aggregate data across flights and fleets.
 - Actions and Triggers to automate custom post-flight analysis and generate reports.
 - Interactive visualization for time-series data, maps, events, and console logs.

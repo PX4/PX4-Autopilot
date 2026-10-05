@@ -63,11 +63,11 @@ This can be used to test multi-battery behaviour, for example one battery deplet
 ## Sensor/System Failure
 
 [Failure injection](../debug/failure_injection.md) can be used to simulate different types of failures in many sensors and systems.
-For example, this can be used to simulate absent or intermittent GPS, RC signal that has stopped or got stuck on a particular value, failure of the avoidance system, and much more.
+For example, this can be used to simulate absent or intermittent GNSS, RC signal that has stopped or got stuck on a particular value, failure of the avoidance system, and much more.
 
 Failure injection is gated by the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-For example, to simulate GPS failure, enter the following commands on the SITL instance _pxh shell_:
+For example, to simulate GNSS failure, enter the following commands on the SITL instance _pxh shell_:
 
 ```sh
 # Turn (all) GPS off (no position reported, as for a dead receiver)
@@ -86,5 +86,5 @@ failure gps ok
 :::tip
 To test receiver failover and the [GNSS redundancy failsafe](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) in SIH, simulate a second receiver with [SIM_GNSS_NUM](../advanced_config/parameter_reference.md#SIM_GNSS_NUM) `2`.
 Each receiver has its own noise and a constant position error set by [SIM_GNSSx_BIAS_N](../advanced_config/parameter_reference.md#SIM_GNSS1_BIAS_N), `_E` and `_D`, and reports its antenna at [SENS_GNSSx_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX), `_OFFY` and `_OFFZ`.
-You can then fail an individual receiver with the `-i` flag (`-i 0` = all instances, `-i 1` = first GPS, `-i 2` = second), for example `failure gps wrong -i 2`.
+You can then fail an individual receiver with the `-i` flag (`-i 0` = all instances, `-i 1` = first GNSS, `-i 2` = second), for example `failure gps wrong -i 2`.
 :::

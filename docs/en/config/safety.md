@@ -39,7 +39,7 @@ Note that different types of failsafe may not support all of these actions.
 [pwm_aux_failn]: ../advanced_config/parameter_reference.md#PWM_AUX_FAIL1
 
 If multiple failsafes are triggered, the more severe action is taken.
-For example if both RC and GPS are lost, and manual control loss is set to [Return mode](#act_return) and GCS link loss to [Land](#act_land), Land is executed.
+For example if both RC and GNSS are lost, and manual control loss is set to [Return mode](#act_return) and GCS link loss to [Land](#act_land), Land is executed.
 
 :::tip
 The exact behavior when different failsafes are triggered can be tested with the [Failsafe State Machine Simulation](safety_simulation.md).
@@ -207,7 +207,7 @@ The following settings also apply, but are not displayed in the QGC UI.
 
 | Setting                                                            | Parameter                                                                    | Description                                                                             |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | Set whether position source is estimated global position or direct from the GPS device. |
+| <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | Set whether position source is estimated global position or direct from the GNSS device. |
 | <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Enables/Disables flight termination action (disabled by default).                       |
 
 ## Position Estimation Failsafes
@@ -216,7 +216,7 @@ This section describes failsafes related to the quality of the vehicle's positio
 
 ### Position Loss Failsafe
 
-The _Position Loss Failsafe_ is triggered if the quality of the PX4 position estimate falls below acceptable levels (this might be caused by GPS loss) while in a mode that requires an acceptable position estimate.
+The _Position Loss Failsafe_ is triggered if the quality of the PX4 position estimate falls below acceptable levels (this might be caused by GNSS loss) while in a mode that requires an acceptable position estimate.
 
 ### Position Loss Failsafe Trigger
 
@@ -279,7 +279,7 @@ Triggers on either of:
 - **Position divergence**: a receiver passing its checks disagrees with the selected receiver by more than three times their combined eph, after the distance between their antennas ([SENS_GNSS0_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS1_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX)) is removed (`sensors_status_gnss.inconsistency`). Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
 
 At least a warning is emitted, additional failsafe actions can be configured using [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT).
-Loss of a single GPS when none are required is handled by other GPS health checks.
+Loss of a single GNSS receiver when none are required is handled by other GNSS health checks.
 
 | Parameter                                                                                                   | Description                                                                                                    |
 | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -540,7 +540,7 @@ These parameters can be used to set conditions that prevent arming.
 | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_ARMABLE"></a>[COM_ARMABLE](../advanced_config/parameter_reference.md#COM_ARMABLE)                | Enable arming (at all). `0`: Disabled, `1`: Enabled (default).                                                                                                                                             |
 | <a id="COM_ARM_BAT_MIN"></a>[COM_ARM_BAT_MIN](../advanced_config/parameter_reference.md#COM_ARM_BAT_MIN)    | Minimum battery level for arming. `0`: Disabled (default). Values: `0`-`0.9`,                                                                                                                              |
-| <a id="COM_ARM_WO_GPS"></a>[COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS)       | Enable arming without GPS. `0`: Disabled, `1`: Enabled (default).                                                                                                                                          |
+| <a id="COM_ARM_WO_GPS"></a>[COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS)       | Enable arming without GNSS. `0`: Disabled, `1`: Enabled (default).                                                                                                                                         |
 | <a id="COM_ARM_MIS_REQ"></a>[COM_ARM_MIS_REQ](../advanced_config/parameter_reference.md#COM_ARM_MIS_REQ)    | Require valid mission to arm. `0`: Disabled (default), `1`: Enabled .                                                                                                                                      |
 | <a id="COM_ARM_AUTH_REQ"></a>[COM_ARM_AUTH_REQ](../advanced_config/parameter_reference.md#COM_ARM_AUTH_REQ) | Requires arm authorisation from an external (MAVLink) system. Flag to allow arming (at all). `1`: Enabled, `0`: Disabled (default). Associated configuration parameters are prefixed with `COM_ARM_AUTH_`. |
 | <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID)             | Remote ID arming check and in-flight failsafe. `0`: Disabled (default), `1`: Warning only, `2`: Error only, `3`: Return, `4`: Land, `5`: Terminate. See [Remote ID Failsafe](#remote-id-failsafe).         |
