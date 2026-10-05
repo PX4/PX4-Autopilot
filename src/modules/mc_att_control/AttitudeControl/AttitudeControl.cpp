@@ -62,16 +62,30 @@ void AttitudeControl::setRefModelFrequency(float omega_n)
 	_kq      = _omega_n * _omega_n;
 }
 
+static bool isValidAttitude(const Quatf &q)
+{
+	// A zero or non-finite quaternion has no attitude: normalizing it gives NaN
+	return q.isAllFinite() && (q.norm() > 1e-3f);
+}
+
 void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
 {
+	// The reference model integrates from its previous state, so a single invalid setpoint would make
+	// it NaN until reboot. Keep tracking the last valid reference instead.
+	if (!isValidAttitude(qd)) {
+		return;
+	}
+
 	Quatf qd_normalized = qd;
 	qd_normalized.normalize();
 
-	if (_ref_initialized && dt > 0.f) {
+	const bool ref_valid = _q_ref.isAllFinite() && _omega_correction.isAllFinite();
+
+	if (_ref_initialized && ref_valid && (dt > 0.f) && PX4_ISFINITE(dt)) {
 		propagateReferenceModel(qd_normalized, yawspeed_setpoint, dt);
 
 	} else {
-		// First call (or dt out of range): snap reference to the current setpoint.
+		// First call, dt out of range or invalid reference: snap reference to the current setpoint.
 		_q_ref = qd_normalized;
 		_omega_correction.zero();
 		_omega_command.zero();
@@ -127,6 +141,10 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 
 void AttitudeControl::adaptAttitudeSetpoint(const Quatf &q_delta)
 {
+	if (!isValidAttitude(q_delta)) {
+		return;
+	}
+
 	// Apply the world-frame delta to the reference attitude. _omega_correction and _omega_command are
 	// in the reference body frame and physically invariant under a world relabeling.
 	_q_ref = qmul(q_delta, _q_ref);

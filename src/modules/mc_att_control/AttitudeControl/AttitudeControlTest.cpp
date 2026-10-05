@@ -433,3 +433,60 @@ TEST_F(AttitudeControlFeedforwardTest, FractionalGainScalesAnticipation)
 	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(2), 0.f, 1e-3f);
 }
+
+TEST_F(AttitudeControlFeedforwardTest, InvalidSetpointKeepsLastReference)
+{
+	// GIVEN: a settled reference on a tilted setpoint, vehicle level
+	const Quatf q_d(AxisAnglef(Vector3f(0.1f, 0.f, 0.f)));
+
+	for (int i = 0; i < kSettleSteps; i++) {
+		_attitude_control.setAttitudeSetpoint(q_d, 0.f, (i == 0) ? -1.f : kDt);
+	}
+
+	const Vector3f rate_setpoint_valid = _attitude_control.update(Quatf());
+	ASSERT_TRUE(rate_setpoint_valid.isAllFinite());
+	ASSERT_GT(rate_setpoint_valid.norm(), 0.1f);
+
+	// WHEN: one zero quaternion setpoint and one NaN quaternion setpoint arrive
+	_attitude_control.setAttitudeSetpoint(Quatf(0.f, 0.f, 0.f, 0.f), 0.f, kDt);
+	const Vector3f rate_setpoint_zero = _attitude_control.update(Quatf());
+	_attitude_control.setAttitudeSetpoint(Quatf(NAN, 0.f, 0.f, 0.f), 0.f, kDt);
+	const Vector3f rate_setpoint_nan = _attitude_control.update(Quatf());
+
+	// THEN: they are ignored, the controller keeps tracking the last valid reference
+	EXPECT_TRUE(rate_setpoint_zero.isAllFinite());
+	EXPECT_TRUE(rate_setpoint_nan.isAllFinite());
+	EXPECT_NEAR((rate_setpoint_zero - rate_setpoint_valid).norm(), 0.f, 1e-5f);
+	EXPECT_NEAR((rate_setpoint_nan - rate_setpoint_valid).norm(), 0.f, 1e-5f);
+
+	// WHEN: valid setpoints resume with a new attitude
+	const Quatf q_d_new(AxisAnglef(Vector3f(0.f, -0.2f, 0.f)));
+
+	for (int i = 0; i < kSettleSteps; i++) {
+		_attitude_control.setAttitudeSetpoint(q_d_new, 0.f, kDt);
+	}
+
+	// THEN: the reference converges on the new setpoint
+	EXPECT_TRUE(_attitude_control.getReferenceAttitude().isAllFinite());
+	EXPECT_NEAR(_attitude_control.update(q_d_new).norm(), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, InvalidHeadingResetIsIgnored)
+{
+	// GIVEN: a settled reference
+	const Quatf q_d(AxisAnglef(Vector3f(0.f, 0.f, 0.5f)));
+
+	for (int i = 0; i < kSettleSteps; i++) {
+		_attitude_control.setAttitudeSetpoint(q_d, 0.f, (i == 0) ? -1.f : kDt);
+	}
+
+	const Quatf q_ref = _attitude_control.getReferenceAttitude();
+
+	// WHEN: an estimator reset delivers an invalid delta rotation
+	_attitude_control.adaptAttitudeSetpoint(Quatf(0.f, 0.f, 0.f, 0.f));
+	_attitude_control.adaptAttitudeSetpoint(Quatf(NAN, NAN, NAN, NAN));
+
+	// THEN: the reference is unchanged
+	EXPECT_EQ(_attitude_control.getReferenceAttitude(), q_ref);
+	EXPECT_TRUE(_attitude_control.update(Quatf()).isAllFinite());
+}
