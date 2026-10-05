@@ -71,6 +71,85 @@ public:
 	gnssChecksSample _sample{};
 };
 
+TEST_F(GnssChecksTest, passesAfterHealthTime)
+{
+	// WHEN: a receiver passes the strict checks on the ground
+	runSeconds(0.5f, false, false);
+
+	// THEN: it passes once they held for the health time
+	EXPECT_FALSE(_checks.passed());
+
+	runSeconds(1.f, false, false);
+
+	EXPECT_TRUE(_checks.passed());
+	EXPECT_TRUE(_checks.strict());
+}
+
+TEST_F(GnssChecksTest, relaxedOnlyAfterStrictPass)
+{
+	// GIVEN: a receiver that starts publishing in flight, within the relaxed thresholds only
+	_sample.hacc = 10.f;
+
+	// WHEN: it publishes for longer than the health time
+	runSeconds(5.f, true, true);
+
+	// THEN: the strict checks still apply, and it doesn't pass
+	EXPECT_FALSE(_checks.passed());
+	EXPECT_TRUE(_checks.strict());
+
+	// WHEN: it meets the strict thresholds for the health time
+	_sample.hacc = 1.f;
+	runSeconds(1.5f, true, true);
+
+	// THEN: it passes, and the relaxed checks apply from then on
+	EXPECT_TRUE(_checks.passed());
+	EXPECT_FALSE(_checks.strict());
+
+	_sample.hacc = 10.f;
+	runSeconds(1.f, true, true);
+
+	EXPECT_TRUE(_checks.passed());
+}
+
+TEST_F(GnssChecksTest, relaxedWhileArmedOnGround)
+{
+	// GIVEN: a receiver that passed the strict checks, on a vehicle that armed and hasn't taken off
+	runSeconds(2.f, false, false);
+	runSeconds(1.f, true, false);
+
+	// WHEN: its accuracy degrades beyond the strict threshold but within the relaxed one
+	_sample.hacc = 10.f;
+	runSeconds(1.f, true, false);
+
+	// THEN: it still passes
+	EXPECT_TRUE(_checks.passed());
+	EXPECT_FALSE(_checks.strict());
+	EXPECT_FALSE(_checks.meetsRequirements());
+}
+
+TEST_F(GnssChecksTest, requirementsPerSample)
+{
+	// GIVEN: a receiver that passed the strict checks, then took off
+	runSeconds(2.f, false, false);
+	runSeconds(1.f, true, true);
+
+	// WHEN: a single sample has too few satellites for the strict checks
+	_sample.nsats = 4;
+	runSeconds(0.1f, true, true);
+
+	// THEN: that sample doesn't meet the requirements, but still passes, and isn't reported as failing
+	EXPECT_FALSE(_checks.meetsRequirements());
+	EXPECT_TRUE(_checks.passed());
+	EXPECT_EQ(_checks.getFailFlags(), 0);
+
+	// WHEN: the next sample has enough again
+	_sample.nsats = 10;
+	runSeconds(0.1f, true, true);
+
+	// THEN: it meets them at once; the selection holds its own
+	EXPECT_TRUE(_checks.meetsRequirements());
+}
+
 TEST_F(GnssChecksTest, requirementsInFlight)
 {
 	// GIVEN: a receiver that passed the strict checks, then took off
