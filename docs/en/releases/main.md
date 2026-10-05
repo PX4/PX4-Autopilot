@@ -47,6 +47,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them.
   The log analysis scripts in the tree read both the old and the new names.
   The uORB-over-Cyphal registers are renamed from `uorb.sensor_gps` to `uorb.sensor_gnss` (`uavcan.sub.uorb.sensor_gnss.0.id`, `uavcan.pub.uorb.sensor_gnss.0.id`); `UCAN1_UORB_GPS` and `UCAN1_UORB_GPS_P` are unchanged. ([PX4-Autopilot#24399](https://github.com/PX4/PX4-Autopilot/pull/24399))
+- **The primary GNSS receiver defaults to Auto.**
+  [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) now defaults to `-1` (Auto) instead of `0`, and saved values are not changed: with Auto the moving base of a moving base pair is the primary receiver, and without one, a receiver that meets the accuracy requirements ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH) and the other `GNSS_REQ_*` parameters) is used, then one with an RTK fixed solution.
+  To keep preferring the receiver on the main serial port, set `SENS_GNSS_PRIME` to `0`.
+  In flight the primary receiver is now also left when it hasn't met the accuracy requirements for 10 s while the other receiver has. ([PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
 
 ## Other changes
 
