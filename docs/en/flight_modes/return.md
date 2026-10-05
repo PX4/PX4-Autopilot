@@ -227,7 +227,7 @@ This can leave the mission corridor and change the destination; see the [fallbac
 After a fixed-wing system failure, VTOL vehicles keep the selected route in multicopter mode and skip front transitions while the failure is latched.
 Route-following legs do not use geofence avoidance.
 
-See [Mission Route Planning](../concept/mission_route_planning.md) for configuration, fallback behavior, and limitations.
+See [Mission Route Planning](../concept/mission_route_planning.md) for configuration, fallback behaviour, and limitations.
 
 ## Geofence Awareness {#geofence_awareness}
 
