@@ -95,6 +95,7 @@ public:
 	bool init();
 
 private:
+	friend class TemperatureCompensationModuleTestPeer;
 
 	void Run() override;
 
