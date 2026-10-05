@@ -59,33 +59,24 @@ bool GnssChecks::run(const gnssChecksSample &gnss, bool armed, bool in_air, bool
 		_time_last_fail_us = gnss.time_us;
 	}
 
-	// Run strict checks while disarmed on the ground
-	if (!armed && !in_air) {
-		_initial_checks_passed = false;
+	_strict = true;
+	_passed = false;
+
+	// always run the strict checks for the receiver selection algorithm
+	_meets_requirements = runInitialFixChecks(gnss, in_air, vehicle_at_rest)
+			      && isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs());
+
+	if (_meets_requirements) {
+		_passed = true;
 	}
 
-	_passed = false;
-	_strict = !_initial_checks_passed;
-
-	if (_initial_checks_passed) {
+	// relax the checks when flying for EKF fusion: allow the vehicle to continue in degraded conditions
+	else if (armed && in_air) {
+		_strict = false;
 		clearDriftChecks();
 
 		if (runSimplifiedChecks(gnss)) {
-			_passed = isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs());
-
-		} else {
-			_time_last_fail_us = gnss.time_us;
-		}
-
-	} else {
-		if (runInitialFixChecks(gnss, in_air, vehicle_at_rest)) {
-			if (isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs())) {
-				_initial_checks_passed = true;
-				_passed = true;
-			}
-
-		} else {
-			_time_last_fail_us = gnss.time_us;
+			_passed = isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs(true));
 		}
 	}
 
@@ -94,14 +85,10 @@ bool GnssChecks::run(const gnssChecksSample &gnss, bool armed, bool in_air, bool
 
 	if (_passed) {
 		_time_last_pass_us = gnss.time_us;
-	}
 
-	// Same comparisons as the strict checks
-	const uint16_t enabled_checks = getEnabledChecks();
-	_meets_requirements = (!(enabled_checks & vehicle_gnss_s::CHECK_FIX) || !(gnss.fix_type < _params.req_fix))
-			      && (!(enabled_checks & vehicle_gnss_s::CHECK_EPH) || !(gnss.hacc > _params.req_eph))
-			      && (!(enabled_checks & vehicle_gnss_s::CHECK_EPV) || !(gnss.vacc > _params.req_epv))
-			      && (!(enabled_checks & vehicle_gnss_s::CHECK_SACC) || !(gnss.sacc > _params.req_sacc));
+	} else {
+		_time_last_fail_us = gnss.time_us;
+	}
 
 	return _passed;
 }
