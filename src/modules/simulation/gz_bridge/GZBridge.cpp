@@ -662,37 +662,37 @@ float GZBridge::generate_wgn()
 	return X;
 }
 
-void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude,
-			   float &vel_north, float &vel_east, float &vel_down)
+void GZBridge::addGnssNoise(double &latitude, double &longitude, double &altitude,
+			    float &vel_north, float &vel_east, float &vel_down)
 {
-	_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
-			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
-			   0.02f * _gps_pos_noise_n;
+	_gnss_pos_noise_n = _pos_markov_time * _gnss_pos_noise_n +
+			    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+			    0.02f * _gnss_pos_noise_n;
 
-	_gps_pos_noise_e = _pos_markov_time * _gps_pos_noise_e +
-			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
-			   0.02f * _gps_pos_noise_e;
+	_gnss_pos_noise_e = _pos_markov_time * _gnss_pos_noise_e +
+			    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+			    0.02f * _gnss_pos_noise_e;
 
-	_gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
-			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
-			   0.02f * _gps_pos_noise_d;
+	_gnss_pos_noise_d = _pos_markov_time * _gnss_pos_noise_d +
+			    _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
+			    0.02f * _gnss_pos_noise_d;
 
-	latitude += math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
-	longitude += math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
-	altitude += (double)_gps_pos_noise_d;
+	latitude += math::degrees((double)_gnss_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
+	longitude += math::degrees((double)_gnss_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
+	altitude += (double)_gnss_pos_noise_d;
 
-	_gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
-			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+	_gnss_vel_noise_n = _vel_markov_time * _gnss_vel_noise_n +
+			    _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
 
-	_gps_vel_noise_e = _vel_markov_time * _gps_vel_noise_e +
-			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+	_gnss_vel_noise_e = _vel_markov_time * _gnss_vel_noise_e +
+			    _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
 
-	_gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
-			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+	_gnss_vel_noise_d = _vel_markov_time * _gnss_vel_noise_d +
+			    _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
 
-	vel_north += _gps_vel_noise_n;
-	vel_east += _gps_vel_noise_e;
-	vel_down += _gps_vel_noise_d;
+	vel_north += _gnss_vel_noise_n;
+	vel_east += _gnss_vel_noise_e;
+	vel_down += _gnss_vel_noise_d;
 }
 
 void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
@@ -700,7 +700,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	const uint64_t timestamp = hrt_absolute_time();
 	_failure_config.update();
 
-	// initialize gps position
+	// initialize gnss position
 	if (!_pos_ref.isInitialized()) {
 		_pos_ref.initReference(msg.latitude_deg(), msg.longitude_deg(), timestamp);
 		_alt_ref = msg.altitude();
@@ -714,23 +714,23 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	float vel_east = msg.velocity_east();
 	float vel_down = -msg.velocity_up();
 
-	vehicle_global_position_s gps_truth{};
+	vehicle_global_position_s gnss_truth{};
 
-	// Publish GPS groundtruth
-	gps_truth.timestamp = timestamp;
-	gps_truth.timestamp_sample = timestamp;
-	gps_truth.lat = latitude;
-	gps_truth.lon = longitude;
-	gps_truth.alt = altitude;
-	_gpos_ground_truth_pub.publish(gps_truth);
+	// Publish GNSS groundtruth
+	gnss_truth.timestamp = timestamp;
+	gnss_truth.timestamp_sample = timestamp;
+	gnss_truth.lat = latitude;
+	gnss_truth.lon = longitude;
+	gnss_truth.alt = altitude;
+	_gpos_ground_truth_pub.publish(gnss_truth);
 
 	// Apply noise model (based on ublox F9P)
-	addGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
+	addGnssNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
 
 	// Device ID
 	device::Device::DeviceId id{};
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	id.devid_s.devtype = DRV_GNSS_DEVTYPE_SIM;
 	id.devid_s.bus = 1;
 	id.devid_s.address = 1;
 

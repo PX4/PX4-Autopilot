@@ -129,7 +129,7 @@ protected:
 	void restartTimedOutEstimators();
 	// Collect inputs, downsample acceleration, and tick the enabled estimators once per cycle.
 	void updateEstimators();
-	void updatePosEst(const matrix::Vector3f &gps_pos_offset_ned,
+	void updatePosEst(const matrix::Vector3f &gnss_pos_offset_ned,
 			  const matrix::Vector3f &vel_offset_ned,
 			  const bool vel_offset_updated,
 			  uint32_t acc_sample_count);
@@ -160,7 +160,7 @@ protected:
 	void stopYawEst();
 	// Reads the latest attitude (required) and acceleration (optional) and rotates body-frame inputs to NED.
 	bool pollEstimatorInput(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att,
-				matrix::Vector3f &gps_pos_offset,
+				matrix::Vector3f &gnss_pos_offset,
 				matrix::Vector3f &vel_offset_ned,
 				bool vel_offset_updated, bool &acc_valid);
 
@@ -209,12 +209,12 @@ protected:
 	bool _vte_position_enabled{false};
 	hrt_abstime _last_update_pos{0};
 
-	matrix::Vector3f _gps_pos_offset_xyz{};
-	bool _gps_pos_is_offset{false};
+	matrix::Vector3f _gnss_pos_offset_xyz{};
+	bool _gnss_pos_is_offset{false};
 
 	bool updateGnssAntennaOffset();
 	// Compute the body-frame velocity bias caused by the GNSS antenna lever arm during rotation.
-	bool computeGpsVelocityOffset(matrix::Vector3f &vel_offset_body);
+	bool computeGnssVelocityOffset(matrix::Vector3f &vel_offset_body);
 	bool pollLocalPose(LocalPose &local_pose);
 
 	// Returns true once per `interval`, advancing `last_time` to now on each successful gate.

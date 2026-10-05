@@ -95,7 +95,7 @@ private:
 
 			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_UAVCAN;
 			device_id.devid_s.address = msg.getSrcNodeID().get();
-			device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
+			device_id.devid_s.devtype = DRV_GNSS_DEVTYPE_UAVCAN;
 
 			moving_baseline.device_id = device_id.devid;
 

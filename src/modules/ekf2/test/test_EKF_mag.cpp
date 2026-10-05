@@ -68,7 +68,7 @@ public:
 
 TEST_F(EkfMagTest, fusionStartWithReset)
 {
-	_sensor_simulator._gps.setMinRequiredGnssHealthTime(5e6);
+	_sensor_simulator._gnss.setMinRequiredGnssHealthTime(5e6);
 	// GIVEN: some meaningful mag data
 	const float mag_heading = M_PI_F / 3.f;
 	const float incl = 63.1f;
@@ -86,8 +86,8 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 	// AND WHEN: GNSS fusion starts
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(6);
 
 	// THEN: the earth mag field is reset to the WMM
@@ -154,7 +154,7 @@ TEST_F(EkfMagTest, noInitLargeInclination)
 	_ekf_wrapper.enableMagInclinationCheck();
 	// To prevent an early pass of the inclination check, "force WMM" must be set
 	_ekf_wrapper.enableMagCheckForceWMM();
-	_sensor_simulator.startGps();
+	_sensor_simulator.startGnss();
 	Vector3f mag_data(0.4f, 0.f, 0.f);
 	_sensor_simulator._mag.setData(mag_data);
 
@@ -188,7 +188,7 @@ TEST_F(EkfMagTest, suddenInclinationChange)
 {
 	_ekf_wrapper.enableMagInclinationCheck();
 	_ekf_wrapper.enableMagCheckForceWMM();
-	_sensor_simulator.startGps();
+	_sensor_simulator.startGnss();
 
 	// GIVEN: some meaningful mag data
 	const float mag_heading = -M_PI_F / 7.f;
@@ -313,9 +313,9 @@ TEST_F(EkfMagTest, manualYawSurvivesWithGnssAidingOnly)
 	_sensor_simulator._mag.setData(Vector3f(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading), 0.4f));
 	_sensor_simulator.runSeconds(_init_duration_s);
 
-	_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	_sensor_simulator._gnss.setMinRequiredGnssHealthTime(1e6);
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(10.f);
 
 	ASSERT_TRUE(_ekf->control_status_flags().gnss_vel);
@@ -460,8 +460,8 @@ TEST_F(EkfMagTest, magFaultCleared)
 {
 	// GIVEN: biased mag data
 	_sensor_simulator._mag.setBias(Vector3f(-0.3f, 0.2f, 0.f));
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(11);
 
 	// THEN: the initial heading is incorrect

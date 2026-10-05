@@ -322,7 +322,7 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang
 
 bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, const float vel_accuracy)
 {
-	// set observation variance from accuracy estimate supplied by GPS and apply a sanity check minimum
+	// set observation variance from accuracy estimate supplied by GNSS and apply a sanity check minimum
 	const float vel_obs_var = sq(fmaxf(vel_accuracy, 0.01f));
 
 	// calculate velocity observation innovations

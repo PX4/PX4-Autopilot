@@ -102,8 +102,8 @@ public:
 	/** Feed the latest EKF2 local NED position. Used to publish the absolute target pose. */
 	void setLocalPosition(const matrix::Vector3f &xyz, bool valid, hrt_abstime timestamp);
 
-	/** Configure the antenna→CoM position offset in NED. @p gps_is_offset gates its use. */
-	void setGpsPosOffset(const matrix::Vector3f &xyz, bool gps_is_offset);
+	/** Configure the antenna→CoM position offset in NED. @p gnss_is_offset gates its use. */
+	void setGnssPosOffset(const matrix::Vector3f &xyz, bool gnss_is_offset);
 
 	/** Configure the antenna→CoM velocity offset in NED (e.g. yaw-rate * lever-arm). */
 	void setVelOffset(const matrix::Vector3f &xyz);
@@ -145,7 +145,7 @@ public:
 	bool fusionEnabled() const
 	{
 		return _vte_aid_mask.flags.use_vision_pos
-		       || _vte_aid_mask.flags.use_target_gps_pos
+		       || _vte_aid_mask.flags.use_target_gnss_pos
 		       || _vte_aid_mask.flags.use_mission_pos;
 	}
 
@@ -179,10 +179,10 @@ private:
 
 	// Observation types used by the estimator. Keep ordering stable for array indexing.
 	enum class ObsType : uint8_t {
-		kTargetGpsPos,
-		kMissionGpsPos,
-		kUavGpsVel,
-		kTargetGpsVel,
+		kTargetGnssPos,
+		kMissionGnssPos,
+		kUavGnssVel,
+		kTargetGnssVel,
 		kFiducialMarker,
 		kTypeCount
 	};
@@ -214,11 +214,11 @@ private:
 
 	union ObsValidMaskU {
 		struct {
-			uint8_t fuse_target_gps_pos : 1; ///< bit0: target GPS position ready to be fused
-			uint8_t fuse_uav_gps_vel    : 1; ///< bit1: UAV GPS velocity ready to be fused
+			uint8_t fuse_target_gnss_pos : 1; ///< bit0: target GNSS position ready to be fused
+			uint8_t fuse_uav_gnss_vel    : 1; ///< bit1: UAV GNSS velocity ready to be fused
 			uint8_t fuse_vision         : 1; ///< bit2: vision relative-position ready to be fused
 			uint8_t fuse_mission_pos    : 1; ///< bit3: mission position ready to be fused
-			uint8_t fuse_target_gps_vel : 1; ///< bit4: target GPS velocity ready to be fused
+			uint8_t fuse_target_gnss_vel : 1; ///< bit4: target GNSS velocity ready to be fused
 			uint8_t reserved            : 3; ///< bits5..7: reserved for future use
 		} flags;
 
@@ -234,8 +234,8 @@ private:
 	bool initEstimator(const AxisEstimatorStates &state_init);
 	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc, float dt);
-	float getMinGpsVelVar() const;
-	float getMinGpsPosVar() const;
+	float getMinGnssVelVar() const;
+	float getMinGnssPosVar() const;
 	float getBiasAveragingThreshold() const;
 	hrt_abstime getBiasAveragingTimeoutUs() const;
 
@@ -252,7 +252,7 @@ private:
 	inline bool hasNewPositionSensorData(const ObsValidMaskU &fusion_mask) const
 	{
 		return fusion_mask.flags.fuse_mission_pos ||
-		       fusion_mask.flags.fuse_target_gps_pos ||
+		       fusion_mask.flags.fuse_target_gnss_pos ||
 		       fusion_mask.flags.fuse_vision;
 	}
 
@@ -353,20 +353,20 @@ private:
 	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose);
 	bool processObsVision(TargetObs &obs);
 
-	/* UAV GPS data */
+	/* UAV GNSS data */
 	bool updateUavGnssData();
-	bool isUavGpsPositionValid();
-	bool isUavGpsVelocityValid();
+	bool isUavGnssPositionValid();
+	bool isUavGnssVelocityValid();
 	bool processObsGNSSPosMission(TargetObs &obs);
 	bool processObsGNSSVelUav(TargetObs &obs) const;
 
-	/* Target GPS data */
-	bool isTargetGpsPositionValid(const target_gnss_s &target_gnss);
-	bool isTargetGpsVelocityValid(const target_gnss_s &target_gnss);
+	/* Target GNSS data */
+	bool isTargetGnssPositionValid(const target_gnss_s &target_gnss);
+	bool isTargetGnssVelocityValid(const target_gnss_s &target_gnss);
 	bool processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs);
 #if defined(CONFIG_VTEST_MOVING)
 	bool processObsGNSSVelTarget(const target_gnss_s &target_gnss, TargetObs &obs) const;
-	void updateTargetGpsVelocity(const target_gnss_s &target_gnss);
+	void updateTargetGnssVelocity(const target_gnss_s &target_gnss);
 #endif // CONFIG_VTEST_MOVING
 
 	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const TargetObs &target_pos_obs);
@@ -398,7 +398,7 @@ private:
 	};
 
 	GlobalPose _mission_land_position{};
-	GlobalPose _uav_gps_position{};
+	GlobalPose _uav_gnss_position{};
 
 	struct VelStamped {
 		hrt_abstime timestamp = 0;
@@ -407,16 +407,16 @@ private:
 		float uncertainty = 0.f;
 	};
 
-	VelStamped _uav_gps_vel{};
+	VelStamped _uav_gnss_vel{};
 
 	Vector3fStamped _local_position{};
 	Vector3fStamped _local_velocity{};
 	Vector3fStamped _pos_rel_gnss{};
 	Vector3fStamped _velocity_offset_ned{};
-	Vector3fStamped _gps_pos_offset_ned{};
+	Vector3fStamped _gnss_pos_offset_ned{};
 
 #if defined(CONFIG_VTEST_MOVING)
-	Vector3fStamped _target_gps_vel {};
+	Vector3fStamped _target_gnss_vel {};
 #endif // CONFIG_VTEST_MOVING
 
 	static constexpr hrt_abstime kInitialBiasLpfTimeConstant{300_ms};
@@ -430,7 +430,7 @@ private:
 		AlphaFilter<matrix::Vector3f> initial_lpf{kInitialBiasLpfTimeConstant};
 	};
 
-	bool _gps_pos_is_offset{false};
+	bool _gnss_pos_is_offset{false};
 	BiasState _bias{};
 	PreBiasReference _pre_bias_reference{PreBiasReference::kUnknown};
 
@@ -441,11 +441,11 @@ private:
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
-	hrt_abstime _uav_gps_vel_warn_last{0};
-	hrt_abstime _target_gps_vel_warn_last{0};
+	hrt_abstime _uav_gnss_vel_warn_last{0};
+	hrt_abstime _target_gnss_vel_warn_last{0};
 	hrt_abstime _vision_pos_warn_last{0};
-	hrt_abstime _uav_gps_pos_warn_last{0};
-	hrt_abstime _target_gps_pos_warn_last{0};
+	hrt_abstime _uav_gnss_pos_warn_last{0};
+	hrt_abstime _target_gnss_pos_warn_last{0};
 	hrt_abstime _mission_pos_warn_last{0};
 	hrt_abstime _mission_pos_status_warn_last{0};
 	hrt_abstime _init_vel_warn_last{0};

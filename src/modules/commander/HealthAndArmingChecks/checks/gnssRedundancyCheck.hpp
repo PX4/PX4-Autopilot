@@ -49,10 +49,10 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	static constexpr int GPS_MAX_INSTANCES = 2;
-	static_assert(GPS_MAX_INSTANCES <= (int)(sizeof(sensors_status_gnss_s::device_ids) / sizeof(
+	static constexpr int GNSS_MAX_INSTANCES = 2;
+	static_assert(GNSS_MAX_INSTANCES <= (int)(sizeof(sensors_status_gnss_s::device_ids) / sizeof(
 				sensors_status_gnss_s::device_ids[0])), "sensors_status_gnss has too few receiver entries");
-	uORB::SubscriptionMultiArray<sensor_gnss_s, GPS_MAX_INSTANCES> _sensor_gnss_sub{ORB_ID::sensor_gnss};
+	uORB::SubscriptionMultiArray<sensor_gnss_s, GNSS_MAX_INSTANCES> _sensor_gnss_sub{ORB_ID::sensor_gnss};
 	uORB::Subscription _sensors_status_gnss_sub{ORB_ID(sensors_status_gnss)};
 
 	uint8_t _peak_healthy_count{0};

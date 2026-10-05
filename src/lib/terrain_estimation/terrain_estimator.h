@@ -50,7 +50,7 @@
 * It's assumed that the laser points down vertically if the vehicle is in it's neutral pose.
 * The predict(...) function will do a state prediciton based on accelerometer inputs. It also
 * considers accelerometer bias.
-* The measurement_update(...) function does a measurement update based on range finder and gps
+* The measurement_update(...) function does a measurement update based on range finder and gnss
 * velocity measurements. Both functions should always be called together when there is new
 * acceleration data available.
 * The is_valid() function provides information whether the estimate is valid.
@@ -93,7 +93,7 @@ private:
 		float var_p_z;
 		float var_p_vz;
 		float var_lidar;
-		float var_gps_vz;
+		float var_gnss_vz;
 	} _params;
 	*/
 

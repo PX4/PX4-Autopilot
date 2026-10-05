@@ -310,8 +310,8 @@ uint16_t VisionTargetEst::adjustAidMask(const int input_vte_aid_mask)
 
 #endif // CONFIG_VTEST_MOVING
 
-	if (new_aid_mask.flags.use_target_gps_pos && new_aid_mask.flags.use_mission_pos) {
-		PX4_WARN("VTE invalid aid mask: both target GPS and %s enabled.", reference_name);
+	if (new_aid_mask.flags.use_target_gnss_pos && new_aid_mask.flags.use_mission_pos) {
+		PX4_WARN("VTE invalid aid mask: both target GNSS and %s enabled.", reference_name);
 		PX4_WARN("Disabling %s fusion.", reference_name);
 		new_aid_mask.flags.use_mission_pos = false;
 	}
@@ -325,13 +325,13 @@ void VisionTargetEst::printAidMask()
 
 	if (_vte_aid_mask.flags.use_vision_pos) {PX4_DEBUG("    vision relative position fusion enabled");}
 
-	if (_vte_aid_mask.flags.use_target_gps_pos) {PX4_DEBUG("    target GPS position fusion enabled");}
+	if (_vte_aid_mask.flags.use_target_gnss_pos) {PX4_DEBUG("    target GNSS position fusion enabled");}
 
-	if (_vte_aid_mask.flags.use_target_gps_vel) {PX4_DEBUG("    target GPS velocity fusion enabled");}
+	if (_vte_aid_mask.flags.use_target_gnss_vel) {PX4_DEBUG("    target GNSS velocity fusion enabled");}
 
 	if (_vte_aid_mask.flags.use_mission_pos) {PX4_DEBUG("    pad reference position fusion enabled");}
 
-	if (_vte_aid_mask.flags.use_uav_gps_vel) {PX4_DEBUG("    UAV GPS velocity fusion enabled");}
+	if (_vte_aid_mask.flags.use_uav_gnss_vel) {PX4_DEBUG("    UAV GNSS velocity fusion enabled");}
 
 	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion for the current task. Modify VTE_AID_MASK");}
 }
@@ -496,15 +496,15 @@ void VisionTargetEst::updateEstimators()
 		updateGnssAntennaOffset();
 
 		matrix::Vector3f vel_offset_body{};
-		const bool vel_offset_updated = computeGpsVelocityOffset(vel_offset_body);
+		const bool vel_offset_updated = computeGnssVelocityOffset(vel_offset_body);
 
 		matrix::Vector3f vehicle_acc_ned{};
 		matrix::Quaternionf q_att{};
-		matrix::Vector3f gps_pos_offset_ned{};
+		matrix::Vector3f gnss_pos_offset_ned{};
 		matrix::Vector3f vel_offset_ned = vel_offset_body;
 		bool acc_valid = false;
 
-		if (pollEstimatorInput(vehicle_acc_ned, q_att, gps_pos_offset_ned, vel_offset_ned, vel_offset_updated,
+		if (pollEstimatorInput(vehicle_acc_ned, q_att, gnss_pos_offset_ned, vel_offset_ned, vel_offset_updated,
 				       acc_valid)) {
 			_last_att = q_att;
 
@@ -522,7 +522,7 @@ void VisionTargetEst::updateEstimators()
 			const uint32_t acc_sample_count = _acc_sample_count;
 
 			if ((acc_sample_count > 0) && updateWhenIntervalElapsed(_last_update_pos, kPosUpdatePeriodUs)) {
-				updatePosEst(gps_pos_offset_ned, vel_offset_ned, vel_offset_updated, acc_sample_count);
+				updatePosEst(gnss_pos_offset_ned, vel_offset_ned, vel_offset_updated, acc_sample_count);
 				resetAccDownsample();
 			}
 		}
@@ -536,7 +536,7 @@ void VisionTargetEst::updateEstimators()
 	perf_end(_cycle_perf);
 }
 
-void VisionTargetEst::updatePosEst(const matrix::Vector3f &gps_pos_offset_ned,
+void VisionTargetEst::updatePosEst(const matrix::Vector3f &gnss_pos_offset_ned,
 				   const matrix::Vector3f &vel_offset_ned,
 				   const bool vel_offset_updated,
 				   const uint32_t acc_sample_count)
@@ -556,7 +556,7 @@ void VisionTargetEst::updatePosEst(const matrix::Vector3f &gps_pos_offset_ned,
 		_vte_position.setLocalPosition(local_pose.xyz, local_pose.pos_valid, local_pose.timestamp);
 	}
 
-	_vte_position.setGpsPosOffset(gps_pos_offset_ned, _gps_pos_is_offset);
+	_vte_position.setGnssPosOffset(gnss_pos_offset_ned, _gnss_pos_is_offset);
 
 	if (vel_offset_updated) {
 		_vte_position.setVelOffset(vel_offset_ned);
@@ -592,9 +592,9 @@ void VisionTargetEst::publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sa
 	_vte_input_pub.publish(vte_input_report);
 }
 
-bool VisionTargetEst::computeGpsVelocityOffset(matrix::Vector3f &vel_offset_body)
+bool VisionTargetEst::computeGnssVelocityOffset(matrix::Vector3f &vel_offset_body)
 {
-	if (!_gps_pos_is_offset) {
+	if (!_gnss_pos_is_offset) {
 		return false;
 	}
 
@@ -604,9 +604,9 @@ bool VisionTargetEst::computeGpsVelocityOffset(matrix::Vector3f &vel_offset_body
 		return false;
 	}
 
-	// If the GPS antenna is not at the center of mass, when the drone rotates around the center of mass, the GPS will record a velocity.
+	// If the GNSS antenna is not at the center of mass, when the drone rotates around the center of mass, the GNSS receiver will record a velocity.
 	const matrix::Vector3f ang_vel = matrix::Vector3f(vehicle_angular_velocity.xyz);
-	vel_offset_body = ang_vel % _gps_pos_offset_xyz; // Get extra velocity from drone's rotation
+	vel_offset_body = ang_vel % _gnss_pos_offset_xyz; // Get extra velocity from drone's rotation
 
 	return true;
 }
@@ -619,14 +619,14 @@ bool VisionTargetEst::updateGnssAntennaOffset()
 		return false;
 	}
 
-	_gps_pos_offset_xyz = matrix::Vector3f(vehicle_gnss.antenna_offset[0],
-					       vehicle_gnss.antenna_offset[1],
-					       vehicle_gnss.antenna_offset[2]);
+	_gnss_pos_offset_xyz = matrix::Vector3f(vehicle_gnss.antenna_offset[0],
+						vehicle_gnss.antenna_offset[1],
+						vehicle_gnss.antenna_offset[2]);
 
-	static constexpr float kMinGpsOffsetM = 0.01f; // Consider GNSS not offset below 1cm
-	_gps_pos_is_offset = (fabsf(_gps_pos_offset_xyz(0)) > kMinGpsOffsetM)
-			     || (fabsf(_gps_pos_offset_xyz(1)) > kMinGpsOffsetM)
-			     || (fabsf(_gps_pos_offset_xyz(2)) > kMinGpsOffsetM);
+	static constexpr float kMinGnssOffsetM = 0.01f; // Consider GNSS not offset below 1cm
+	_gnss_pos_is_offset = (fabsf(_gnss_pos_offset_xyz(0)) > kMinGnssOffsetM)
+			      || (fabsf(_gnss_pos_offset_xyz(1)) > kMinGnssOffsetM)
+			      || (fabsf(_gnss_pos_offset_xyz(2)) > kMinGnssOffsetM);
 
 	return true;
 }
@@ -655,7 +655,7 @@ bool VisionTargetEst::pollLocalPose(LocalPose &local_pose)
 }
 
 bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned, matrix::Quaternionf &quat_att,
-		matrix::Vector3f &gps_pos_offset_ned, matrix::Vector3f &vel_offset_ned,
+		matrix::Vector3f &gnss_pos_offset_ned, matrix::Vector3f &vel_offset_ned,
 		const bool vel_offset_updated, bool &acc_valid)
 {
 	vehicle_attitude_s vehicle_attitude{};
@@ -691,15 +691,15 @@ bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned, matr
 	}
 
 	/* Rotate position and velocity offset into ned frame */
-	if (_gps_pos_is_offset) {
-		gps_pos_offset_ned = quat_att.rotateVector(_gps_pos_offset_xyz);
+	if (_gnss_pos_is_offset) {
+		gnss_pos_offset_ned = quat_att.rotateVector(_gnss_pos_offset_xyz);
 
 		if (vel_offset_updated) {
 			vel_offset_ned = quat_att.rotateVector(vel_offset_ned);
 		}
 
 	} else {
-		gps_pos_offset_ned.setAll(0.f);
+		gnss_pos_offset_ned.setAll(0.f);
 		vel_offset_ned.setAll(0.f);
 	}
 
@@ -742,12 +742,12 @@ int VisionTargetEst::print_status()
 		 static_cast<unsigned>(_param_vte_aid_mask.get()), static_cast<unsigned>(_vte_aid_mask.value));
 	PX4_INFO("  vision pos: %s, target gps pos: %s, mission land pos: %s, home pos: %s",
 		 yes_no(configured_aid_mask.flags.use_vision_pos),
-		 yes_no(configured_aid_mask.flags.use_target_gps_pos),
+		 yes_no(configured_aid_mask.flags.use_target_gnss_pos),
 		 yes_no(configured_aid_mask.flags.use_mission_pos),
 		 yes_no(configured_aid_mask.flags.use_home_pos));
 	PX4_INFO("  uav gps vel: %s, target gps vel: %s",
-		 yes_no(configured_aid_mask.flags.use_uav_gps_vel),
-		 yes_no(configured_aid_mask.flags.use_target_gps_vel));
+		 yes_no(configured_aid_mask.flags.use_uav_gnss_vel),
+		 yes_no(configured_aid_mask.flags.use_target_gnss_vel));
 
 	PX4_INFO("position vte: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s",
 		 yes_no(_param_vte_pos_en.get()),

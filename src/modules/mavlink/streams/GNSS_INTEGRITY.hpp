@@ -58,12 +58,12 @@ public:
 	}
 
 private:
-	static constexpr int GPS_MAX_RECEIVERS = 2;
+	static constexpr int GNSS_MAX_RECEIVERS = 2;
 
 	explicit MavlinkStreamGNSSIntegrity(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
-	uORB::SubscriptionMultiArray<sensor_gnss_status_s, GPS_MAX_RECEIVERS> _sensor_gnss_status_sub{ORB_ID::sensor_gnss_status};
+	uORB::SubscriptionMultiArray<sensor_gnss_status_s, GNSS_MAX_RECEIVERS> _sensor_gnss_status_sub{ORB_ID::sensor_gnss_status};
 
 	bool send() override
 	{
@@ -83,7 +83,7 @@ private:
 			msg.gnss_signal_quality = UINT8_MAX;
 			msg.post_processing_quality = UINT8_MAX;
 
-			for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+			for (int i = 0; i < GNSS_MAX_RECEIVERS; i++) {
 				sensor_gnss_status_s sensor_gnss_status{};
 
 				if (_sensor_gnss_status_sub[i].copy(&sensor_gnss_status)) {

@@ -65,7 +65,7 @@ public:
 		_sensor_simulator._rng.setData(0.1f, 100);
 		_sensor_simulator._rng.setLimits(0.1f, 25.f);
 
-		_sensor_simulator.startGps();
+		_sensor_simulator.startGnss();
 		_sensor_simulator.startBaro();
 		_sensor_simulator.startRangeFinder();
 
@@ -74,10 +74,10 @@ public:
 
 		// Enable fusion for all height sources
 		_ekf_wrapper.enableBaroHeightFusion();
-		_ekf_wrapper.enableGpsHeightFusion();
+		_ekf_wrapper.enableGnssHeightFusion();
 		_ekf_wrapper.enableRangeHeightFusion();
 
-		// Give EKF time for GPS
+		// Give EKF time for GNSS
 		_sensor_simulator.runSeconds(20);
 	}
 };
@@ -87,7 +87,7 @@ TEST_F(EkfGroundedTest, rangeFinderOnGround)
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::RANGE);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 
 	float distance = 0.17f;
 	_sensor_simulator._rng.setData(distance, 100);

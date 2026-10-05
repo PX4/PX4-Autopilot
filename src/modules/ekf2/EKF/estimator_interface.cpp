@@ -47,7 +47,7 @@
 EstimatorInterface::~EstimatorInterface()
 {
 #if defined(CONFIG_EKF2_GNSS)
-	delete _gps_buffer;
+	delete _gnss_buffer;
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	delete _gnss_yaw_buffer;
 # endif // CONFIG_EKF2_GNSS_YAW
@@ -165,20 +165,20 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
+void EstimatorInterface::setGnssData(const gnssSample &gnss_sample)
 {
 	if (!_initialised) {
 		return;
 	}
 
 	// Allocate the required buffer size if not previously done
-	if (_gps_buffer == nullptr) {
-		_gps_buffer = new TimestampedRingBuffer<gnssSample>(_obs_buffer_length);
+	if (_gnss_buffer == nullptr) {
+		_gnss_buffer = new TimestampedRingBuffer<gnssSample>(_obs_buffer_length);
 
-		if (_gps_buffer == nullptr || !_gps_buffer->valid()) {
-			delete _gps_buffer;
-			_gps_buffer = nullptr;
-			printBufferAllocationFailed("GPS");
+		if (_gnss_buffer == nullptr || !_gnss_buffer->valid()) {
+			delete _gnss_buffer;
+			_gnss_buffer = nullptr;
+			printBufferAllocationFailed("GNSS");
 			return;
 		}
 	}
@@ -186,17 +186,17 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 	const int64_t time_us = gnss_sample.time_us
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
-	if (time_us >= static_cast<int64_t>(_gps_buffer->get_newest().time_us + _min_obs_interval_us)) {
+	if (time_us >= static_cast<int64_t>(_gnss_buffer->get_newest().time_us + _min_obs_interval_us)) {
 
 		gnssSample gnss_sample_new(gnss_sample);
 
 		gnss_sample_new.time_us = time_us;
 
-		_gps_buffer->push(gnss_sample_new);
-		_time_last_gps_buffer_push = _time_latest_us;
+		_gnss_buffer->push(gnss_sample_new);
+		_time_last_gnss_buffer_push = _time_latest_us;
 
 	} else {
-		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us,
+		ECL_WARN("GNSS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gnss_buffer->get_newest().time_us,
 			 _min_obs_interval_us);
 	}
 }

@@ -48,9 +48,9 @@
 
 using namespace time_literals;
 
-static constexpr float kHomePositionGPSRequiredEPH = 5.f;
-static constexpr float kHomePositionGPSRequiredEPV = 10.f;
-static constexpr float kHomePositionGPSRequiredEVH = 1.f;
+static constexpr float kHomePositionGNSSRequiredEPH = 5.f;
+static constexpr float kHomePositionGNSSRequiredEPV = 10.f;
+static constexpr float kHomePositionGNSSRequiredEVH = 1.f;
 static constexpr int32_t kGpsCtrlHorizontalAndAltitude = (1 << 0) | (1 << 1);
 static constexpr int32_t kHeightReferenceGnss = 1;
 static constexpr float kMinHomePositionChangeEPH = 1.f;
@@ -76,7 +76,7 @@ public:
 
 private:
 	bool hasMovedFromCurrentHomeLocation();
-	bool isGpsPositionFusionEnabled();
+	bool isGnssPositionFusionEnabled();
 	void setHomePosValid();
 	void updateHomePositionYaw(float yaw);
 
@@ -94,12 +94,12 @@ private:
 	uORB::SubscriptionData<vehicle_land_detected_s>	_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
-	uint64_t _last_gps_timestamp{0};
+	uint64_t _last_gnss_timestamp{0};
 	uint64_t _last_baro_timestamp{0};
 	AlphaFilter<float> _lpf_baro{kLpfBaroTimeConst};
-	float _gps_vel_integral{NAN};
+	float _gnss_vel_integral{NAN};
 	float _home_altitude_offset_applied{0.f};
-	float _baro_gps_static_offset{0.f};
+	float _baro_gnss_static_offset{0.f};
 	uint64_t _takeoff_time{0};
 
 	uORB::PublicationData<home_position_s>			_home_position_pub{ORB_ID(home_position)};
@@ -107,12 +107,12 @@ private:
 	uint8_t							_heading_reset_counter{0};
 	bool							_valid{false};
 	const failsafe_flags_s					&_failsafe_flags;
-	bool							_gps_position_for_home_valid{false};
-	double							_gps_lat{0};
-	double							_gps_lon{0};
-	double							_gps_alt{0};
-	float							_gps_eph{0.f};
-	float							_gps_epv{0.f};
+	bool							_gnss_position_for_home_valid{false};
+	double							_gnss_lat{0};
+	double							_gnss_lon{0};
+	double							_gnss_alt{0};
+	float							_gnss_eph{0.f};
+	float							_gnss_epv{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en
