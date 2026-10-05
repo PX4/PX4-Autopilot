@@ -652,16 +652,61 @@ TEST_F(GnssSelectorTest, preferredReturnsOnceMeetingRequirements)
 
 	// WHEN: gps0 meets them again, for example after the corrections came back
 	_meets_requirements[0] = true;
-	runSeconds(9.5f, selector, gnss_data0, gnss_data1);
+	runSeconds(19.5f, selector, gnss_data0, gnss_data1);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 
 	runSeconds(1.f, selector, gnss_data0, gnss_data1);
 
-	// THEN: the selection returns to it after the hold time, as it never failed
+	// THEN: the selection returns to it, as it never failed, after twice the hold time
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_PREFERRED);
 	EXPECT_EQ(selector.getSelectionCount(), 2);
+}
+
+TEST_F(GnssSelectorTest, rankSwitchHoldDoubles)
+{
+	GnssSelector selector;
+
+	// GIVEN: an armed vehicle using gps0, the preferred receiver
+	selector.setPreferredInstance(0);
+
+	sensor_gnss_s gnss_data0 = getDefaultGnssData();
+	sensor_gnss_s gnss_data1 = getDefaultGnssData();
+
+	runSeconds(5.f, selector, gnss_data0, gnss_data1);
+	selector.setArmed(true);
+
+	// WHEN: gps0 meets the requirements for 15 s, then misses them for 15 s, for 2 minutes
+	for (int cycle = 0; cycle < 4; cycle++) {
+		_meets_requirements[0] = false;
+		runSeconds(15.f, selector, gnss_data0, gnss_data1);
+		_meets_requirements[0] = true;
+		runSeconds(15.f, selector, gnss_data0, gnss_data1);
+	}
+
+	// THEN: the selection left it once; with the 10 s hold it would have switched twice per cycle
+	EXPECT_EQ(selector.getSelectedInstance(), 1);
+	EXPECT_EQ(selector.getSelectionCount(), 1);
+
+	// WHEN: it meets them through the doubled hold
+	runSeconds(10.f, selector, gnss_data0, gnss_data1);
+
+	// THEN: the selection returns to it
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+	EXPECT_EQ(selector.getSelectionCount(), 2);
+
+	// WHEN: the vehicle disarms and arms again
+	selector.setArmed(false);
+	runSeconds(1.f, selector, gnss_data0, gnss_data1);
+	selector.setArmed(true);
+
+	// THEN: the hold is back to 10 s
+	_meets_requirements[0] = false;
+	runSeconds(10.5f, selector, gnss_data0, gnss_data1);
+
+	EXPECT_EQ(selector.getSelectedInstance(), 1);
+	EXPECT_EQ(selector.getSelectionCount(), 3);
 }
 
 TEST_F(GnssSelectorTest, preferredReturnAfterDisarm)
@@ -860,9 +905,13 @@ TEST_F(GnssSelectorTest, rankedRequirements)
 	// WHEN: gps1 no longer meets them
 	_meets_requirements[1] = false;
 
-	runSeconds(10.5f, selector, gnss_data0, gnss_data1);
+	runSeconds(19.5f, selector, gnss_data0, gnss_data1);
 
-	// THEN: the selection moves back to gps0, which ranked lower but never failed
+	// THEN: the selection moves back to gps0, which ranked lower but never failed, after twice the hold time
+	EXPECT_EQ(selector.getSelectedInstance(), 1);
+
+	runSeconds(1.f, selector, gnss_data0, gnss_data1);
+
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_REQUIREMENTS);
 	EXPECT_EQ(selector.getSelectionCount(), 2);
@@ -929,9 +978,9 @@ TEST_F(GnssSelectorTest, rankedRtkFixed)
 	// WHEN: gps1 drops to RTK float
 	gnss_data1.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FLOAT;
 
-	runSeconds(10.5f, selector, gnss_data0, gnss_data1);
+	runSeconds(20.5f, selector, gnss_data0, gnss_data1);
 
-	// THEN: the RTK fixed receiver is selected
+	// THEN: the RTK fixed receiver is selected, after twice the hold time
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_RTK_FIXED);
 	EXPECT_EQ(selector.getSelectionCount(), 2);

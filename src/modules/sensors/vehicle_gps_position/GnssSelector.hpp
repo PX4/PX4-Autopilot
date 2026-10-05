@@ -83,9 +83,11 @@ public:
 	static constexpr float AVAILABILITY_MARGIN = 0.2f;
 
 	// How long a receiver must rank higher before the selection moves to it. While disarmed a receiver is usable only
-	// once the strict checks held for GNSS_REQ_TIME.
+	// once the strict checks held for GNSS_REQ_TIME. While armed the hold doubles with every such switch, so that
+	// receivers going in and out of the requirements for longer than the hold can't keep resetting EKF2.
 	static constexpr hrt_abstime SWITCH_HOLD_ARMED_US = 10_s;
 	static constexpr hrt_abstime SWITCH_HOLD_DISARMED_US = 2_s;
+	static constexpr uint8_t SWITCH_HOLD_MAX_DOUBLINGS = 4;
 
 	// A sample is late when its interval exceeds this many times the receiver's usual interval, and at least
 	// LATE_MIN_US. Every sample of a receiver whose rate collapsed below a third is late.
@@ -123,6 +125,8 @@ public:
 			for (bool &failed : _failed_while_armed) {
 				failed = false;
 			}
+
+			_rank_switches_while_armed = 0;
 		}
 	}
 
@@ -251,6 +255,7 @@ private:
 	int _switch_candidate{-1};                        ///< higher ranked receiver, waiting for the hold time
 	uint64_t _switch_candidate_since_us{0};
 	bool _armed{false};
+	uint8_t _rank_switches_while_armed{0};
 	bool _failed_while_armed[GNSS_MAX_RECEIVERS] {}; ///< left because it failed, until disarmed
 
 	bool _selected_has_new_sample{false};
