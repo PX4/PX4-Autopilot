@@ -66,6 +66,7 @@ The board can be bought from:
 
 ## Connectors
 
+All the plug-and-play connectors are on the bottom of the board.
 The `GPS`, `TELEM`, `CAN` and `RX` connectors are JST-GH 1.25 mm.
 The `ESC`, `DIGI VTX`, `SPI4`, `I2C4` and `B/LD` connectors are JST-SH 1.0 mm.
 Signal pins are 3.3 V.
@@ -84,7 +85,7 @@ Signal pins are 3.3 V.
 | I2C4       | JST-SH 4-pin | External I2C                                      |
 | B/LD       | JST-SH 4-pin | Buzzer and addressable LED strip                  |
 
-The same signals are also broken out as solder pads on the bottom of the board, along with the analog camera and VTX pads, the analog inputs `RSS`, `A1` and `A2`, and the spare user IO pads `P2`, `P3`, `C13`, `C14` and `C15`.
+The top of the board breaks the same signals out as solder pads, along with the analog camera and VTX pads, the analog inputs `RSS`, `A1` and `A2`, and the spare user IO pads `P2`, `P3`, `C13`, `C14` and `C15`.
 
 ::: info
 The buzzer and LED strip outputs are powered from the 5 V BEC, so neither is active when the board is powered from USB alone.
@@ -336,7 +337,7 @@ The NSH shell is available over USB through the [MAVLink Shell](../debug/mavlink
 
 ### SWD
 
-The [SWD interface](../debug/swd_debug.md) (JTAG) pins are exposed as the two pads marked `D` and `C` beneath the boxed `SW` label on the bottom of the board:
+The [SWD interface](../debug/swd_debug.md) (JTAG) pins are exposed as the two pads marked `D` and `C` beneath the boxed `SW` label on the top of the board:
 
 - `SWDIO`: pad marked `D`
 - `SWCLK`: pad marked `C`
