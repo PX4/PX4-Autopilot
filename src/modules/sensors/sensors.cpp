@@ -294,8 +294,14 @@ void Sensors::adc_poll()
 					if (voltage > 0.4f) {
 						const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale;
 
+						// the analogue sensor is not on a bus, but it still needs an identity so that it
+						// can hold a calibration slot like any other airspeed sensor
+						device::Device::DeviceId device_id{};
+						device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_ANALOG;
+
 						differential_pressure_s diff_pres{};
 						diff_pres.timestamp_sample = adc.timestamp;
+						diff_pres.device_id = device_id.devid;
 						diff_pres.differential_pressure_pa = diff_pres_pa_raw;
 						diff_pres.temperature = NAN;
 						diff_pres.timestamp = hrt_absolute_time();

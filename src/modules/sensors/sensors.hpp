@@ -58,6 +58,7 @@
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 # include <drivers/drv_sensor.h>
+# include <lib/drivers/device/Device.hpp>
 # include <drivers/drv_adc.h>
 # include <uORB/topics/differential_pressure.h>
 # include "vehicle_airspeed/VehicleAirspeed.hpp"
