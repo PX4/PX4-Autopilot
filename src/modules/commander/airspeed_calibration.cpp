@@ -72,6 +72,7 @@ struct AirspeedSensor {
 	uORB::SubscriptionData<differential_pressure_s> sub{ORB_ID(differential_pressure)};
 	uint32_t device_id{0};
 	float offset{0.f};
+	int instance{0};
 	bool connected{false};
 };
 
@@ -138,12 +139,14 @@ static int collect_zero_offsets(orb_advert_t *mavlink_log_pub, const hrt_abstime
 }
 
 /** Store (or clear, with an offset of 0) the zero offset of one sensor. */
-static bool save_offset(uint32_t device_id, float offset)
+static bool save_offset(uint32_t device_id, float offset, int instance)
 {
 	calibration::DifferentialPressure calibration{device_id};
 	calibration.set_offset(offset);
 
-	return calibration.ParametersSave();
+	// claim the slot matching the sensor instance, as the other sensor calibrations do, so that
+	// recalibrating reuses a slot instead of consuming a new one every time
+	return calibration.ParametersSave(instance, true);
 }
 
 /**
@@ -151,7 +154,7 @@ static bool save_offset(uint32_t device_id, float offset)
  */
 static void clear_offset(const AirspeedSensor &sensor)
 {
-	save_offset(sensor.device_id, 0.f);
+	save_offset(sensor.device_id, 0.f, sensor.instance);
 
 	param_notify_changes();
 }
@@ -255,6 +258,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (sub.advertised() && sub.get().timestamp != 0) {
 			sensors[num_sensors].sub.ChangeInstance(i);
+			sensors[num_sensors].instance = i;
 			sensors[num_sensors].device_id = sub.get().device_id;
 			sensors[num_sensors].connected = true;
 			num_sensors++;
@@ -279,7 +283,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	for (int i = 0; i < num_sensors; i++) {
-		if (!save_offset(sensors[i].device_id, sensors[i].offset)) {
+		if (!save_offset(sensors[i].device_id, sensors[i].offset, sensors[i].instance)) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 			return PX4_ERROR;
 		}
