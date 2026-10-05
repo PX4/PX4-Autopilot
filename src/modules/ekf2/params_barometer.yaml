@@ -22,7 +22,7 @@ parameters:
       decimal: 1
     EKF2_BARO_GATE:
       description:
-        short: Gate size for barometric and GPS height fusion
+        short: Gate size for barometric and GNSS height fusion
         long: Sets the number of standard deviations used by the innovation consistency
           test.
       type: float
