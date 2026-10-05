@@ -129,7 +129,7 @@ The direct-RTL climb and landing approach still apply; selecting a mission landi
 
 Fallback occurs when:
 
-- Route planning is compiled out (`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0`).
+- Route planning is compiled out (`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0`); a pre-arm warning reports this when `RTL_TYPE=7` is set.
 - The current mission has no valid feasibility result, including while validation is pending or the result belongs to a previous mission, home position or geofence.
 - The complete mission or rally-point cache is unavailable, still loading/reloading or does not match the current source. This includes missions exceeding the configured full-cache capacity.
 - The planner cannot produce a valid join and return path: for example, required position/index/parameter inputs are invalid, required mission data cannot be read, or no usable rally point or mission endpoint can be reached through the route.
