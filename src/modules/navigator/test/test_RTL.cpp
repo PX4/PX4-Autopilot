@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/wind.h>
+#include <px4_platform_common/events.h>
 
 #include "navigator.h"
 #include "rtl.h"
@@ -64,6 +65,7 @@
 #include "rtl_mission_safe_point_follow.h"
 #include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
+#include "support/event_recorder.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
 #include "support/vector_mission_item_store.h"
@@ -1083,15 +1085,20 @@ TEST_F(RTLTest, RouteSafePointReturnPromotesWhenCacheBecomesReady)
 	publishMission(mission);
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
 	setMissionResultValid(mission);
+	navigator_test::EventRecorder events;
+	_rtl.evaluateInactiveRouteSafePointReturnForTest();
+	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 
 	_rtl.activateRouteSafePointReturnForTest();
 
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	EXPECT_FALSE(_rtl.routePlanSourceStillValidForTest());
+	EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
 
 	_rtl.forceRouteRetryForTest();
 	_rtl.run(true);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] {
 		return cache.missionItemsReady(mission) && cache.safePointsReady();
@@ -1103,6 +1110,7 @@ TEST_F(RTLTest, RouteSafePointReturnPromotesWhenCacheBecomesReady)
 
 	_rtl.run(true);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
+	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 
 TEST_F(RTLTest, RouteSafePointReturnWaitsForMissionValidation)
@@ -1249,8 +1257,10 @@ TEST_F(RTLTest, RouteSafePointReturnPreservesLoopAnchorWhenSafePointReloadStarts
 	publishMission(mission);
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt));
 	setMissionResultValid(mission);
+	navigator_test::EventRecorder events;
 	_rtl.activateRouteSafePointReturnForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 
 	mission_route::ActiveJumpAnchor loop_segment{};
 	loop_segment.jump_item_index = 3;
@@ -1276,10 +1286,13 @@ TEST_F(RTLTest, RouteSafePointReturnPreservesLoopAnchorWhenSafePointReloadStarts
 	_rtl.run(true);
 
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
 	const mission_route::ActiveJumpAnchor preserved_loop = _rtl.lastRouteLoopSegmentForTest();
 	EXPECT_EQ(preserved_loop.jump_item_index, loop_segment.jump_item_index);
 	EXPECT_TRUE(preserved_loop.valid());
 
+	_rtl.run(true);
+	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 
 TEST_F(RTLTest, RouteSafePointReturnKeepsCommittedLandingHandlers)
@@ -1298,8 +1311,10 @@ TEST_F(RTLTest, RouteSafePointReturnKeepsCommittedLandingHandlers)
 	publishMission(mission);
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
 	setMissionResultValid(mission);
+	navigator_test::EventRecorder events;
 	_rtl.activateRouteSafePointReturnForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 
 	mission_item_s updated = mission_items[0];
 	updated.altitude += 1.f;
@@ -1348,10 +1363,13 @@ TEST_F(RTLTest, RouteSafePointExecutorInitFailureUsesDirectFallbackSelection)
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
 	setMissionResultValid(mission);
 	_rtl.failNextRouteExecutorInitForTest();
+	navigator_test::EventRecorder events;
 
 	_rtl.activateRouteSafePointReturnForTest();
 
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	// Leaving the mission corridor is reported to the operator.
+	EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
 	ASSERT_TRUE(rtl_status_sub.update());
 	EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
 	EXPECT_EQ(rtl_status_sub.get().safe_point_index, UINT8_MAX);
@@ -1360,6 +1378,7 @@ TEST_F(RTLTest, RouteSafePointExecutorInitFailureUsesDirectFallbackSelection)
 	_rtl.forceRouteRetryForTest();
 	_rtl.run(true);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 #endif
 
