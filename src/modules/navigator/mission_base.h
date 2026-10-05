@@ -354,10 +354,6 @@ protected:
 	/** Allow normal Mission modes to restore persistent action commands on activation. */
 	virtual bool shouldReplayMissionActionItems() const { return true; }
 
-	/** Resolve an unspecified sequence without carrying progress into a replacement mission. */
-	static int32_t getIncomingMissionCurrentSeq(const mission_s &incoming_mission,
-			const mission_s &current_mission);
-
 	/**
 	 * Update mission topic
 	 */
