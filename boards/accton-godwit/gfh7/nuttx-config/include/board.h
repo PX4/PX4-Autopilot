@@ -374,7 +374,7 @@
  *
  *      OTG_FS_DM                          PA11
  *      OTG_FS_DP                          PA12
- *      VBUS                               PA9
+ *      VBUS                               PA9 (not sensed, R114 not fitted)
  */
 
 /* Board provides GPIO or other Hardware for signaling to timing analyzer */
