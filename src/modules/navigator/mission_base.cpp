@@ -1109,29 +1109,6 @@ bool MissionBase::joinRouteTransitionStillRequired() const
 	       && _route_join_context.transition_action != VtolTransitionAction::kNone
 	       && !(_route_join_context.transition_action == VtolTransitionAction::kFrontTransition && frontTransitionInhibited());
 }
-
-float MissionBase::computeFrontTransitionAlignmentYaw(int32_t current_target_index)
-{
-	if (_navigator == nullptr) {
-		return NAN;
-	}
-
-	const auto *global_position = _navigator->get_global_position();
-
-	if (global_position == nullptr || !PX4_ISFINITE(global_position->lat) || !PX4_ISFINITE(global_position->lon)) {
-		return NAN;
-	}
-
-	mission_item_s alignment_target{};
-
-	if (!loadMissionItemFromCache(current_target_index, alignment_target)
-	    || !mission_item_contains_position(alignment_target)) {
-		return NAN;
-	}
-
-	return get_bearing_to_next_waypoint(global_position->lat, global_position->lon,
-					    alignment_target.lat, alignment_target.lon);
-}
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 void
