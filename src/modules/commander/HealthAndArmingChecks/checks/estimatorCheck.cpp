@@ -755,7 +755,7 @@ void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Re
 		 * The receiver had stopped delivering samples when the local position estimate became invalid.
 		 */
 		events::send<uint8_t>(events::ID("check_estimator_position_lost_gnss_no_data"), events::Log::Error,
-				      "Local position lost, no data from GNSS {1}", receiver);
+				      "Local position lost, no data from GPS {1}", receiver);
 
 	} else if (state == estimator_status_flags_s::GNSS_FUSION_UNUSABLE) {
 		uint16_t failed_checks = 0;
@@ -776,7 +776,7 @@ void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Re
 		 * </profile>
 		 */
 		events::send<uint8_t, events::px4::enums::gnss_check_fail_t>(events::ID("check_estimator_position_lost_gnss_reason"),
-				events::Log::Error, "Local position lost, GNSS {1} check failed: {2}", receiver,
+				events::Log::Error, "Local position lost, GPS {1} check failed: {2}", receiver,
 				static_cast<events::px4::enums::gnss_check_fail_t>(failed_checks));
 
 	} else if (rejected) {
@@ -786,7 +786,7 @@ void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Re
 		 * reset to them while another source constrained the position.
 		 */
 		events::send<uint8_t>(events::ID("check_estimator_position_lost_gnss_rejected"), events::Log::Error,
-				      "Local position lost, GNSS {1} rejected by the estimator", receiver);
+				      "Local position lost, GPS {1} rejected by the estimator", receiver);
 
 	} else if (state == estimator_status_flags_s::GNSS_FUSION_VEL_LIMIT) {
 		/* EVENT
@@ -796,7 +796,7 @@ void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Re
 		 * </profile>
 		 */
 		events::send<uint8_t>(events::ID("check_estimator_position_lost_gnss_vel_limit"), events::Log::Error,
-				      "Local position lost, GNSS {1} velocity above the limit", receiver);
+				      "Local position lost, GPS {1} velocity above the limit", receiver);
 	}
 }
 
