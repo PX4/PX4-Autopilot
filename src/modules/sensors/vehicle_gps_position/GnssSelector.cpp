@@ -118,10 +118,6 @@ void GnssSelector::updateReceiverTimeouts(uint64_t hrt_now_us)
 
 				if (interval.samples < INTERVAL_SETTLE_SAMPLES) {
 					interval.samples++;
-
-				} else {
-					interval.usual_s = (interval.usual_s > 0.f) ? math::min(interval.usual_s, interval.filtered_s)
-							   : interval.filtered_s;
 				}
 			}
 
@@ -170,8 +166,8 @@ void GnssSelector::updateAvailability(uint64_t hrt_now_us)
 
 hrt_abstime GnssSelector::lateIntervalUs(int instance) const
 {
-	if (_interval[instance].usual_s > 0.f) {
-		return math::constrain(static_cast<hrt_abstime>(LATE_INTERVAL_RATIO * _interval[instance].usual_s * 1e6f),
+	if (_interval[instance].samples >= INTERVAL_SETTLE_SAMPLES) {
+		return math::constrain(static_cast<hrt_abstime>(LATE_INTERVAL_RATIO * _interval[instance].filtered_s * 1e6f),
 				       LATE_MIN_US, GNSS_TIMEOUT_US);
 	}
 

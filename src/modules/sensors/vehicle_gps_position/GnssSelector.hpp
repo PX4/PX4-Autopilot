@@ -50,10 +50,10 @@ using namespace time_literals;
  * receiver's. Every switch makes EKF2 reset or restart its GNSS position, so short changes in either receiver ride
  * through a hold before the selection moves.
  *
- * A receiver is usable while its latest sample passed its checks and it delivers samples at its usual rate. It has
- * failed when it had no usable sample for FAIL_TIME_US, which covers a lost fix, sustained check failures, a receiver
- * that stopped publishing and an update rate that collapsed. Intermittent failures are caught by the availability:
- * the fraction of recent time it was usable. A failed receiver is replaced at once. While armed, a receiver that was
+ * A receiver is usable while its latest sample passed its checks and came without a gap in its output. It has failed
+ * when it had no usable sample for FAIL_TIME_US, which covers a lost fix, sustained check failures, a receiver that
+ * stopped publishing and an update rate that dropped below about 1 Hz. Intermittent failures are caught by the
+ * availability: the fraction of recent time it was usable. A failed receiver is replaced at once. While armed, a receiver that was
  * left because it failed is selected again only when the selected one fails, as one that failed is likely to fail
  * again in the same flight.
  *
@@ -89,12 +89,14 @@ public:
 	static constexpr hrt_abstime SWITCH_HOLD_DISARMED_US = 2_s;
 	static constexpr uint8_t SWITCH_HOLD_MAX_DOUBLINGS = 4;
 
-	// A sample is late when its interval exceeds this many times the receiver's usual interval, and at least
-	// LATE_MIN_US. Every sample of a receiver whose rate collapsed below a third is late.
+	// A sample is late, a gap in the receiver's output, when its interval exceeds this many times the receiver's recent
+	// interval, and at least LATE_MIN_US. The recent interval follows a lower rate within a sample, as receivers slow
+	// down for reasons that don't make their samples worse, such as processing corrections: only the first sample at
+	// the lower rate is late. Below about 1 Hz, the first two intervals at the lower rate add up to FAIL_TIME_US.
 	static constexpr float LATE_INTERVAL_RATIO = 3.f;
 	static constexpr hrt_abstime LATE_MIN_US = 300_ms;
-	// The usual interval is the shortest the interval filter reached after this many samples. The filter weights
-	// intervals by their duration, so that samples delivered in bursts don't shorten it.
+	// The recent interval filter is used once it has this many samples. It weights intervals by their duration, so
+	// that samples delivered in bursts don't shorten it.
 	static constexpr float INTERVAL_TIME_CONSTANT_S = 1.f;
 	static constexpr uint8_t INTERVAL_SETTLE_SAMPLES = 10;
 
@@ -163,8 +165,7 @@ private:
 
 	struct UpdateInterval {
 		float filtered_s{0.f}; ///< 0 until measured
-		uint8_t samples{0};
-		float usual_s{0.f};    ///< 0 until settled
+		uint8_t samples{0};    ///< up to INTERVAL_SETTLE_SAMPLES
 		bool late{false};      ///< the latest sample came late
 	};
 

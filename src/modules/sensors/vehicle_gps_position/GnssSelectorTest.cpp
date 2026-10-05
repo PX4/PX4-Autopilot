@@ -454,6 +454,28 @@ TEST_F(GnssSelectorTest, occasionalFailureDoesNotSwitch)
 	EXPECT_EQ(selector.getSelectionCount(), 0);
 }
 
+TEST_F(GnssSelectorTest, lowerRateLearned)
+{
+	GnssSelector selector;
+
+	// GIVEN: an armed vehicle using gps0, the preferred receiver, both at 10 Hz
+	selector.setPreferredInstance(0);
+
+	sensor_gnss_s gnss_data0 = getDefaultGnssData();
+	sensor_gnss_s gnss_data1 = getDefaultGnssData();
+
+	runSeconds(5.f, selector, gnss_data0, gnss_data1);
+	selector.setArmed(true);
+
+	// WHEN: gps0 drops to 1 Hz for good, its samples still passing their checks
+	runSecondsSlowGps0(30.f, selector, gnss_data0, gnss_data1, 10);
+
+	// THEN: it is kept, as only its first sample at 1 Hz is late
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+	EXPECT_EQ(selector.getSelectionCount(), 0);
+	EXPECT_GT(selector.getAvailability(0), 0.9f);
+}
+
 TEST_F(GnssSelectorTest, rateCollapse)
 {
 	GnssSelector selector;
@@ -467,14 +489,10 @@ TEST_F(GnssSelectorTest, rateCollapse)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps0 drops to 1 Hz, its samples still passing their checks
-	runSecondsSlowGps0(1.5f, selector, gnss_data0, gnss_data1, 10);
+	// WHEN: gps0 drops to 0.7 Hz, its samples still passing their checks
+	runSecondsSlowGps0(3.f, selector, gnss_data0, gnss_data1, 14);
 
-	EXPECT_EQ(selector.getSelectedInstance(), 0);
-
-	runSecondsSlowGps0(1.5f, selector, gnss_data0, gnss_data1, 10);
-
-	// THEN: it has failed, as every sample is late
+	// THEN: it has failed, as it had no usable sample for 2 s before its rate was learned
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_UNHEALTHY);
 }
