@@ -182,6 +182,12 @@ public:
 		MissionBase::on_active();
 	}
 
+	void setDisarmedSinceActivationForTest()
+	{
+		_mission_has_been_activated = true;
+		_system_disarmed_while_inactive = true;
+	}
+
 	void runBaseActivationForTest()
 	{
 		MissionBase::on_activation();
@@ -1243,6 +1249,35 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, VtolForecastUsesEachRouteLegModeAn
 	const auto landing_estimate = follower.calc_rtl_time_estimate();
 	ASSERT_TRUE(landing_estimate.valid);
 	EXPECT_NEAR(landing_estimate.time_estimate, flightTime(0.f, 100.f), 0.03f);
+}
+
+TEST_F(RtlMissionSafePointFollowEstimateTest, ActivationAfterDisarmKeepsRouteTargetOnLastItem)
+{
+	// A later flight's Return must not restart the uploaded mission at item 0.
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
+	};
+	mission_route::RtlRoutePlan plan{};
+	plan.goal_type = mission_route::GoalType::kSafePoint;
+	plan.safe_point_index = 0;
+	plan.goal_position = {kBaseLat, kBaseLon, kAlt - 30.f};
+	plan.join_position = {items[2].lat - 0.0001, items[2].lon, kAlt};
+	plan.first_mission_item_index = 2;
+	plan.branch_off_mission_item_index = 0;
+	plan.branch_off_position = {items[0].lat, items[0].lon, kAlt};
+	plan.direction_reversed = true;
+	follower.setGlobalPositionForTest({items[2].lat - 0.0002, items[2].lon, kAlt});
+	follower.loadTestMission(items);
+	follower.configurePlanForTest(plan);
+	follower.prepareActiveMissionForTest(72, plan.first_mission_item_index);
+	follower.setDisarmedSinceActivationForTest();
+
+	follower.on_activation();
+
+	EXPECT_EQ(follower.currentSequenceForTest(), plan.first_mission_item_index);
+	EXPECT_TRUE(follower.joiningRouteForTest());
 }
 
 TEST_F(RtlMissionSafePointFollowEstimateTest, FwFailureReleasesPendingTransitionsAndKeepsRouteTargets)
