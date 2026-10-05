@@ -16,9 +16,9 @@
 
 void board_clock_outputs_initialize(void)
 {
-	/* Supply the STM32G431 with the unscaled 16 MHz HSE on PA8/MCO1. */
-	stm32_configgpio(GPIO_MCO1);
-	stm32_mco1config(RCC_CFGR_MCO1_HSE, RCC_CFGR_MCO1PRE(0));
+	/* PA8/MCO1 is left unused: the STM32G431 OSD co-processor runs from its
+	 * own crystal (X2), and R80, which would route MCO1 to it, is not fitted.
+	 */
 
 	/* ICM-42688-P CLKIN: 240 MHz / (15 * 500) = 32 kHz on TIM4_CH3/PD14. */
 	modifyreg32(STM32_RCC_APB1LENR, 0, RCC_APB1LENR_TIM4EN);
