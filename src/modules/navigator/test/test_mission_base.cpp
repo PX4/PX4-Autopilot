@@ -1494,6 +1494,11 @@ public:
 
 	using Mission::trySetRouteJoinOnActivation;
 	void setJumpAnchorForTest(mission_route::ActiveJumpAnchor anchor) { _active_jump_anchor = anchor; }
+	void setDisarmedSinceActivationForTest()
+	{
+		_mission_has_been_activated = true;
+		_system_disarmed_while_inactive = true;
+	}
 	using MissionBase::VtolTransitionAction;
 	using MissionBase::RouteJoinContext;
 	using MissionBase::WorkItemType;
@@ -2034,6 +2039,94 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinUsesShortestLoopExit)
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 	EXPECT_TRUE(mission.joinContextForTest().valid());
 	EXPECT_EQ(mission.joinTransitionActionForTest(), MissionTestPeer::VtolTransitionAction::kNone);
+}
+
+TEST_F(MissionRouteJoinTest, DisarmBetweenActivationsKeepsJoinOnLastItem)
+{
+	// The restart check runs before the join; a join onto the last item must not restart the mission.
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+	};
+	writeMissionItems(items);
+	writeSafePointState(0, 51);
+
+	mission_s mission_state{};
+	mission_state.timestamp = hrt_absolute_time();
+	mission_state.current_seq = 1;
+	mission_state.land_start_index = -1;
+	mission_state.land_index = -1;
+	mission_state.mission_id = 51;
+	mission_state.safe_points_id = 51;
+	mission_state.count = items.size();
+	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+	publishMission(mission_state);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 10.f, kBaseAlt));
+	publishLocalPosition();
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	primeNavigatorState();
+	updateRouteCacheUntilReady(mission_state);
+	mission.on_inactive();
+	markMissionResultValid();
+	mission.setDisarmedSinceActivationForTest();
+
+	mission.on_activation();
+
+	EXPECT_EQ(mission.currentSequenceForTest(), 3);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+	EXPECT_TRUE(mission.joinContextForTest().valid());
+}
+
+TEST_F(MissionRouteJoinTest, RestartedMissionStartsAtFirstItemWithoutJoin)
+{
+	// A mission finished before the disarm flies again from item 0, even when airborne near its end.
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+	};
+	writeMissionItems(items);
+	writeSafePointState(0, 52);
+
+	mission_s mission_state{};
+	mission_state.timestamp = hrt_absolute_time();
+	mission_state.current_seq = 3;
+	mission_state.land_start_index = -1;
+	mission_state.land_index = -1;
+	mission_state.mission_id = 52;
+	mission_state.safe_points_id = 52;
+	mission_state.count = items.size();
+	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+	publishMission(mission_state);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 10.f, kBaseAlt));
+	publishLocalPosition();
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	primeNavigatorState();
+	updateRouteCacheUntilReady(mission_state);
+	mission.on_inactive();
+	markMissionResultValid();
+	mission.setDisarmedSinceActivationForTest();
+
+	mission.on_activation();
+
+	EXPECT_EQ(mission.currentSequenceForTest(), 0);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
 }
 
 // Rejoining near the landing segment keeps the vehicle altitude instead of forcing a climb.

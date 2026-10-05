@@ -89,11 +89,11 @@ private:
 	/**
 	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
 	 *
-	 * @param resume_mission_on_previous True when the camera-trigger resume logic will rewind the
-	 *                                   mission index, in which case joining must not interfere.
+	 * @param keep_mission_index True when activation must not move the mission index, e.g. after a
+	 *                           restart or when the camera-trigger resume will rewind it.
 	 * @return true if a join route was armed, false to fall back to the legacy direct-to-item behavior.
 	 */
-	bool trySetRouteJoinOnActivation(bool resume_mission_on_previous);
+	bool trySetRouteJoinOnActivation(bool keep_mission_index);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**

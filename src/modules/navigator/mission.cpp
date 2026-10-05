@@ -97,19 +97,19 @@ Mission::on_activation()
 	_vehicle_status_sub.update();
 	_land_detected_sub.update();
 
-	// The rejoin planning below needs the restarted current_seq immediately. MissionBase::on_activation()
-	// runs the same guard again, but after this reset the second call can no longer change the index.
-	const bool restarting_mission = _system_disarmed_while_inactive && _mission_has_been_activated
-					&& _mission.count > 0
-					&& (_mission.current_seq + 1 == _mission.count);
-	checkMissionRestart();
+	// Restart before planning the join. MissionBase::on_activation() must not restart again once the
+	// join has selected its target, which can be the last item.
+	const bool restarted = checkMissionRestart();
 
-	if (restarting_mission) {
+	if (restarted) {
 		_active_jump_anchor = {};
 	}
 
+	_system_disarmed_while_inactive = false;
+
+	// A restarted mission starts at its first item, a camera-trigger resume at its previous position.
 	const bool resume_mission_on_previous = (_inactivation_index > 0) && cameraWasTriggering();
-	trySetRouteJoinOnActivation(resume_mission_on_previous);
+	trySetRouteJoinOnActivation(restarted || resume_mission_on_previous);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	MissionBase::on_activation();
@@ -123,11 +123,11 @@ void Mission::onMissionUpdate(bool has_mission_items_changed)
 	MissionBase::onMissionUpdate(has_mission_items_changed);
 }
 
-bool Mission::trySetRouteJoinOnActivation(const bool resume_mission_on_previous)
+bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 {
 	resetJoinRouteState();
 
-	if (resume_mission_on_previous
+	if (keep_mission_index
 	    || (_param_mis_route_join.get() == 0)
 	    || (_work_item_type != WorkItemType::WORK_ITEM_TYPE_DEFAULT)
 	    || _land_detected_sub.get().landed
