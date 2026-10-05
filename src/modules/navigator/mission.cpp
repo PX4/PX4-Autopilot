@@ -544,6 +544,9 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 			next.valid = false;
 		}
 
+		// Publish the changed next waypoint even when a back transition delays alignment.
+		_navigator->set_position_setpoint_triplet_updated();
+
 		startVtolTransition(command, &target, WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF, false);
 		return;
 	}

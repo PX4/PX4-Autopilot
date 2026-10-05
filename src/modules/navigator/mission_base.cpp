@@ -902,9 +902,14 @@ bool MissionBase::updateVtolTransition()
 		}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-		triplet.current.yaw = NAN;
-		_navigator->set_position_setpoint_triplet_updated();
 		set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+
+		// Only the alignment yaw changes, publish once instead of every cycle.
+		if (PX4_ISFINITE(triplet.current.yaw)) {
+			triplet.current.yaw = NAN;
+			_navigator->set_position_setpoint_triplet_updated();
+		}
+
 		return false;
 	}
 
