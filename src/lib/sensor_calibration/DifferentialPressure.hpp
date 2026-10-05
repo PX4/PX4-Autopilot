@@ -45,7 +45,7 @@ namespace calibration
 class DifferentialPressure
 {
 public:
-	static constexpr int MAX_SENSOR_COUNT = 3; ///< matches MAX_NUM_AIRSPEED_SENSORS in the airspeed selector
+	static constexpr int MAX_SENSOR_COUNT = 3; ///< also the airspeed selector's sensor limit
 
 	static constexpr const char *SensorString() { return "DPRES"; }
 

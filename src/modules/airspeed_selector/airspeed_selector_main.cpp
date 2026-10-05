@@ -43,6 +43,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/airspeed/airspeed.h>
+#include <lib/sensor_calibration/DifferentialPressure.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
@@ -104,7 +105,7 @@ private:
 
 	void Run() override;
 
-	static constexpr int MAX_NUM_AIRSPEED_SENSORS = 3; /**< Support max 3 airspeed sensors */
+	static constexpr int MAX_NUM_AIRSPEED_SENSORS = calibration::DifferentialPressure::MAX_SENSOR_COUNT;
 	enum class AirspeedSource : int {
 		DISABLED = -1,
 		GROUND_MINUS_WIND,
