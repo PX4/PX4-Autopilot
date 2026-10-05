@@ -76,12 +76,6 @@ bool MissionBase::vehicleInFwLikeState(const vehicle_status_s &vehicle_status)
 	return vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
 	       || vehicle_status.in_transition_to_fw;
 }
-
-uint8_t MissionBase::missionStartVtolState() const
-{
-	return _navigator != nullptr ? _navigator->getMissionVtolStateOnUpload()
-	       : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
-}
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 void
@@ -1553,17 +1547,51 @@ bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previo
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 uint8_t MissionBase::getVtolStateAtMissionIndex(int32_t anchor_index)
 {
-	uint8_t vtol_state = missionStartVtolState();
+	uint8_t vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+	if (anchor_index < 0 || anchor_index >= _mission.count) {
+		return vtol_state;
+	}
+
+	bool lookback_complete = true;
+	bool anchor_is_landing = false;
 
 	for (int32_t index = anchor_index; index >= 0; --index) {
 		mission_item_s mission_item{};
 
 		if (!loadMissionItemFromCache(index, mission_item)) {
 			PX4_ERR("Failed to read mission item %d for VTOL state", static_cast<int>(index));
+			lookback_complete = false;
 			continue;
 		}
 
+		if (index == anchor_index) {
+			anchor_is_landing = mission_route::isLandingCmd(mission_item.nav_cmd);
+		}
+
 		if (mission_route::updateVtolStateFromMissionItem(mission_item, vtol_state)) {
+			return vtol_state;
+		}
+	}
+
+	if (!lookback_complete || anchor_is_landing) {
+		return vtol_state;
+	}
+
+	// Match route planning: a future FT implies MC before it, a future BT implies FW.
+	// Ignore DO_JUMP repeats and targets, scanning as if all repeats were consumed.
+	for (int32_t index = anchor_index + 1; index < _mission.count; ++index) {
+		mission_item_s mission_item{};
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			break;
+		}
+
+		if (mission_route::isTakeoffCmd(mission_item.nav_cmd) || mission_route::isLandingCmd(mission_item.nav_cmd)) {
+			break;
+		}
+
+		if (mission_route::updateVtolStateFromMissionItem(mission_item, vtol_state, true)) {
 			break;
 		}
 	}

@@ -167,10 +167,11 @@ bool isIndexInProjectionSegment(const Segment &segment, int32_t mission_index, b
  * @brief Required VEHICLE_VTOL_STATE on one segment: the last explicit transition or implicit
  * VTOL_TAKEOFF front transition before its target waypoint. Jump edges use the state before
  * DO_JUMP, overridden by transitions between the jump target and its resolved waypoint.
- * Falls back to @p vtol_state_on_mission_upload if no transition is found or the segment is invalid.
+ * If no preceding mode command exists, infer the opposite mode from the next transition in
+ * nominal order, ignoring DO_JUMP targets and repeat counts. Lookahead stops at a landing,
+ * takeoff or failed read. Returns VEHICLE_VTOL_STATE_UNDEFINED when unresolved or the segment is invalid.
  */
-uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
-			    uint8_t vtol_state_on_mission_upload);
+uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment);
 
 class MissionRouteProjection
 {

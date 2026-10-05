@@ -166,7 +166,6 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 	request.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	request.in_transition_to_fw = vehicle_status.in_transition_to_fw;
 	request.is_vtol = vehicle_status.is_vtol;
-	request.vtol_state_on_mission_upload = missionStartVtolState();
 
 	if (local_position != nullptr && local_position->v_xy_valid) {
 		request.velocity_north_m_s = local_position->vx;

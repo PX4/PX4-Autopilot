@@ -521,11 +521,10 @@ protected:
 				       MissionTraversalType traversal_type);
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/** Reconstruct the expected VTOL state at a mission position anchor. */
+	/** Resolve the VTOL state at a mission position anchor, using lookahead only without a preceding mode. */
 	uint8_t getVtolStateAtMissionIndex(int32_t anchor_index);
 
 	static bool vehicleInFwLikeState(const vehicle_status_s &vehicle_status);
-	virtual uint8_t missionStartVtolState() const;
 
 	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed);
 

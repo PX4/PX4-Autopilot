@@ -44,6 +44,7 @@
 #include "mission_item_utils.h"
 
 #include <px4_platform_common/log.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 namespace mission_route
 {
@@ -110,9 +111,9 @@ bool isTakeoffCmd(uint16_t nav_cmd)
 	return nav_cmd == NAV_CMD_TAKEOFF || nav_cmd == NAV_CMD_VTOL_TAKEOFF;
 }
 
-bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t &state)
+bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t &state, bool before_transition)
 {
-	if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+	if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF && !before_transition) {
 		state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 		return true;
 	}
@@ -128,7 +129,13 @@ bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t 
 
 		if (target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
 		    || target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-			state = target_state;
+			if (before_transition) {
+				state = target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+					? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+			} else {
+				state = target_state;
+			}
 		}
 	}
 

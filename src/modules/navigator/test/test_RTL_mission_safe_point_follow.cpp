@@ -116,7 +116,7 @@ public:
 	void configurePlanForTest(const mission_route::RtlRoutePlan &plan, int32_t land_index = -1)
 	{
 		_mission.land_index = land_index;
-		configureRoute(plan, {}, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
+		configureRoute(plan, {});
 	}
 
 	const mission_item_s &currentMissionItemForTest() const { return _mission_item; }
@@ -1098,6 +1098,100 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, InactiveReverseForecastHonorsCurre
 	const auto estimate = follower.calc_rtl_time_estimate();
 	ASSERT_TRUE(estimate.valid);
 	EXPECT_NEAR(estimate.time_estimate, flightTime(300.f, 100.f), 0.02f);
+}
+
+TEST_F(RtlMissionSafePointFollowEstimateTest, PrefixLegExecutionUsesModeBeforeFirstTransition)
+{
+	for (bool prefix_fixed_wing : {false, true}) {
+		for (bool reverse : {false, true}) {
+			SCOPED_TRACE(::testing::Message() << "prefix_fixed_wing=" << prefix_fixed_wing << ", reverse=" << reverse);
+			const std::vector<mission_item_s> items{
+				makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+				makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+				makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+				makeVtolTransitionItem(prefix_fixed_wing ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
+						       : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+			};
+			follower.loadTestMission(items);
+			const int32_t current_index = reverse ? 2 : 1;
+			const int32_t vehicle_index = reverse ? 2 : 0;
+			follower.prepareActiveMissionForTest(73, current_index);
+			follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+			follower.setSafePointSelectionForTest(reverse, -1);
+			follower.setVtolFailureForTest(false);
+			follower.setVehicleStatusForTest(true, !prefix_fixed_wing, false);
+			follower.setGlobalPositionForTest({items[vehicle_index].lat, items[vehicle_index].lon, kAlt});
+			uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+			vehicle_command_s command{};
+
+			while (command_sub.update(&command)) {}
+
+			// Forward transitions precede a target; reverse transitions follow the reached target.
+			if (reverse) {
+				ASSERT_TRUE(follower.advanceStageForTest());
+
+			} else {
+				follower.publishActiveMissionItemsForTest();
+			}
+
+			ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
+			ASSERT_TRUE(follower.transitionActiveForTest());
+			EXPECT_EQ(follower.currentSequenceForTest(), current_index);
+
+			if (prefix_fixed_wing) {
+				EXPECT_FALSE(command_sub.updated());
+				const float expected_yaw = get_bearing_to_next_waypoint(items[vehicle_index].lat, items[vehicle_index].lon,
+							   items[1].lat, items[1].lon);
+				EXPECT_NEAR(navigator.get_position_setpoint_triplet()->current.yaw, expected_yaw, 1e-4f);
+				navigator.get_local_position()->heading_good_for_control = true;
+				navigator.get_local_position()->heading = expected_yaw;
+				follower.runActiveCycleForTest();
+			}
+
+			ASSERT_TRUE(command_sub.update(&command));
+			EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+			EXPECT_FLOAT_EQ(command.param1, prefix_fixed_wing ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+					: vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+		}
+	}
+}
+
+TEST_F(RtlMissionSafePointFollowEstimateTest, PrefixLegForecastUsesModeBeforeFirstTransition)
+{
+	for (bool prefix_fixed_wing : {false, true}) {
+		for (bool reverse : {false, true}) {
+			SCOPED_TRACE(::testing::Message() << "prefix_fixed_wing=" << prefix_fixed_wing << ", reverse=" << reverse);
+			follower.loadTestMission({
+				makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 100.f),
+				makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 100.f),
+				makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 100.f),
+				makeVtolTransitionItem(prefix_fixed_wing ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
+						       : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+			});
+			mission_route::RtlRoutePlan plan{};
+			plan.goal_type = mission_route::GoalType::kSafePoint;
+			plan.safe_point_index = 0;
+			plan.direction_reversed = reverse;
+			plan.first_mission_item_index = reverse ? 2 : 0;
+			plan.join_position = makePositionFromOffset(kBaseLat, kBaseLon, reverse ? 200.f : 0.f, 0.f, kAlt + 100.f);
+			plan.branch_off_mission_item_index = reverse ? 0 : 2;
+			plan.branch_off_position = makePositionFromOffset(kBaseLat, kBaseLon, reverse ? 50.f : 150.f, 0.f, kAlt + 100.f);
+			plan.goal_position = makePositionFromOffset(kBaseLat, kBaseLon, reverse ? 50.f : 150.f, 100.f, kAlt);
+			follower.configurePlanForTest(plan);
+			follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+			follower.setCurrentSequenceForTest(1);
+			follower.setVehicleStatusForTest(true, !prefix_fixed_wing, false);
+			follower.setGlobalPositionForTest(plan.join_position);
+			follower.setArrivalParametersForTest(0.f, 30.f, 60.f);
+			const auto estimate = follower.calc_rtl_time_estimate();
+			ASSERT_TRUE(estimate.valid);
+			// Both directions cover 150 m of route and 100 m to the goal, before any transition command.
+			const float expected_time = prefix_fixed_wing
+						    ? flightTime(250.f, 70.f, true) + flightTime(0.f, 30.f)
+						    : flightTime(250.f, 100.f);
+			EXPECT_NEAR(estimate.time_estimate, expected_time, 0.03f);
+		}
+	}
 }
 
 TEST_F(RtlMissionSafePointFollowEstimateTest, VtolForecastUsesEachRouteLegModeAndMcFinalDescent)

@@ -237,7 +237,6 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 					: loiter_point_s{};
 	_direction_reversed = plan.direction_reversed;
 	_active_jump_anchor = plan.active_jump_anchor;
-	evaluation.vtol_state_on_mission_upload = request.vtol_state_on_mission_upload;
 	_source = {
 		.mission_id = mission.mission_id,
 		.mission_generation = mission_view.generation,
@@ -303,7 +302,6 @@ mission_route::RtlRouteRequest RtlRouteSafePoint::buildPlannerRequest(const miss
 	request.is_fixed_wing = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 	request.in_transition_to_fw = vehicle_status.in_transition_to_fw;
 	request.is_vtol = vehicle_status.is_vtol;
-	request.vtol_state_on_mission_upload = _navigator->getMissionVtolStateOnUpload();
 	request.require_vtol_approach = vehicle_status.is_vtol && request.is_fixed_wing && require_vtol_approach;
 
 	const vehicle_local_position_s *local_position = _navigator->get_local_position();
