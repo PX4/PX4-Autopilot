@@ -248,7 +248,8 @@ bool GnssSelector::isBetterReplacement(int instance, int other, uint64_t hrt_now
 
 hrt_abstime GnssSelector::switchHoldUs() const
 {
-	return _armed ? SWITCH_HOLD_ARMED_US : SWITCH_HOLD_DISARMED_US;
+	return _armed ? (SWITCH_HOLD_ARMED_US << math::min(_rank_switches_while_armed, SWITCH_HOLD_MAX_DOUBLINGS))
+	       : SWITCH_HOLD_DISARMED_US;
 }
 
 int GnssSelector::switchTo(int instance, uint8_t reason)
@@ -345,6 +346,10 @@ int GnssSelector::selectReceiver(uint64_t hrt_now_us)
 
 	if (hrt_now_us < _switch_candidate_since_us + switchHoldUs()) {
 		return current;
+	}
+
+	if (_armed) {
+		_rank_switches_while_armed++;
 	}
 
 	if (candidate == preferred) {
