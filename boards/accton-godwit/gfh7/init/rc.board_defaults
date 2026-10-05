@@ -8,5 +8,11 @@ param set-default BAT1_V_DIV    17.0
 # Enable the SPI1 MAX7456-compatible OSD in NTSC mode.
 param set-default OSD_ATXXXX_CFG 1
 
+# S.BUS receiver on the SBUS connector (UART5): 300 = RC port.
+param set-default RC_SBUS_PRT_CFG 300
+
+# ESC telemetry on the ESC connector (USART1, RX only): 401 = EXT2 port.
+param set-default DSHOT_TEL_CFG 401
+
 # Start all populated NeoPixels; PB10 is not exposed as a motor output.
 neopixel start
