@@ -368,6 +368,7 @@ If a new Return is requested, the vehicle flies straight to the rally point (`R`
 | `RTL_FW_UTURN_PEN` | Additional distance cost for a fixed-wing reversal during route-following Return. | 4000 m  |
 
 `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` must be greater than zero and large enough for the entire uploaded mission.
+The parameters above only exist in firmware built with a non-zero cache size.
 SITL defaults to 500 mission items.
 An oversized mission can still be flown in Mission mode, but smart rejoin and route-following Return cannot use it.
 See [Safe-Point Batching](#safe-point-batching) for the rally-point batch configuration and memory tradeoff.

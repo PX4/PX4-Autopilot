@@ -50,7 +50,9 @@
 #include "rtl_direct_mission_land.h"
 #include "rtl_mission_fast.h"
 #include "rtl_mission_fast_reverse.h"
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 #include "rtl_route_safe_point.h"
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -121,11 +123,13 @@ private:
 	 */
 	bool reverseIsFurther() const;
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	bool routePlanMissionMatches(const mission_s &mission) const;
 	bool routePlanSourceStillValid() const;
 	static DestinationType routePlanDestinationType(mission_route::GoalType goal_type);
 	void applyRouteSafePointFallback(RtlType &new_rtl_type, DestinationType &destination_type,
 					 PositionYawSetpoint &destination, uint8_t &safe_point_index);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	void setRtlTypeAndDestination();
 
@@ -140,14 +144,12 @@ private:
 	 *
 	 */
 	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
-	void findRtlDestinationForType(int rtl_type, DestinationType &destination_type,
-				       PositionYawSetpoint &destination, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Find return destination if only safe points are considered
 	 *
 	 */
-	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index, int rtl_type);
+	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
@@ -182,6 +184,7 @@ private:
 	RtlBase *_rtl_mission_type_handle{nullptr};
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	RtlMissionSafePointFollow *_route_follower {nullptr}; ///< Same executor; lifetime owned through _rtl_mission_type_handle.
+	RtlRouteSafePoint _route_safe_point{this, _navigator};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	RtlType _rtl_type {RtlType::RTL_DIRECT};
 	uint32_t _mission_land_failure_mission_id{0};
@@ -194,7 +197,6 @@ private:
 	bool _one_rally_point_has_land_approach{false}; ///< Flag if a rally point has a land approach defined
 
 	RtlDirect _rtl_direct;
-	RtlRouteSafePoint _route_safe_point;
 
 	bool _enforce_rtl_alt{false};
 
