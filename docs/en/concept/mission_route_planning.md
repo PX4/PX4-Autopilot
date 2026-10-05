@@ -48,7 +48,7 @@ If the branch-in lands on an active [`DO_JUMP` loop segment](#vehicle-projection
 - once repeats are exhausted, the planner picks whichever loop exit gives the shorter **total** path on to the mission end: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the mission end lies near the loop start it may rewind most of the loop rather than finish it.
 
 The projection search margin is set by [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST) (multicopter) and [MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST) (fixed-wing).
-If a join cannot be planned, Mission mode resumes without the smart join.
+If a join cannot be planned, Mission mode resumes without the smart join and reports a warning.
 This can happen while the mission is still loading into the [route cache](../advanced/mission_route_cache.md).
 After pausing a camera-trigger survey, smart route rejoin can select a branch-in point that conflicts with the return to the previous survey waypoint.
 Use `MIS_ROUTE_JOIN=0` for missions that rely on camera-trigger survey resume.
