@@ -151,7 +151,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 
 		/* EVENT
 		 * @description
-		 * Two GNSS receivers report positions that are inconsistent with their reported accuracy.
+		 * Two GPS receivers report positions that are inconsistent with their reported accuracy.
 		 *
 		 * <profile name="dev">
 		 * Configure the failsafe action with <param>COM_GNSSLOSS_ACT</param>.

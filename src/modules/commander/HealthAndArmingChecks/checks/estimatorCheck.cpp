@@ -285,22 +285,22 @@ void EstimatorChecks::reportGnssFusionChange(const Context &context, Report &rep
 
 		if (_gps_was_fused && !gnss_fused) {
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_warning(reporter.mavlink_log_pub(), "GNSS data fusion stopped\t");
+				mavlink_log_warning(reporter.mavlink_log_pub(), "GPS data fusion stopped\t");
 			}
 
 			// only report this failure as critical if not already in a local position invalid state
 			events::Log log_level = reporter.failsafeFlags().local_position_invalid ? events::Log::Info : events::Log::Error;
 			events::send(events::ID("check_estimator_gnss_fusion_stopped"), {log_level, events::LogInternal::Info},
-				     "GNSS data fusion stopped");
+				     "GPS data fusion stopped");
 
 		} else if (!_gps_was_fused && gnss_fused) {
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_info(reporter.mavlink_log_pub(), "GNSS data fusion started\t");
+				mavlink_log_info(reporter.mavlink_log_pub(), "GPS data fusion started\t");
 			}
 
 			events::send(events::ID("check_estimator_gnss_fusion_started"), {events::Log::Info, events::LogInternal::Info},
-				     "GNSS data fusion started");
+				     "GPS data fusion started");
 		}
 	}
 
@@ -314,11 +314,11 @@ void EstimatorChecks::reportGnssInterference(Report &reporter, uint16_t gps_chec
 
 	if (spoofed && !_gnss_spoofed) {
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS signal spoofed\t");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS signal spoofed\t");
 		}
 
 		events::send(events::ID("check_estimator_gnss_warning_spoofing"), {events::Log::Alert, events::LogInternal::Info},
-			     "GNSS signal spoofed");
+			     "GPS signal spoofed");
 	}
 
 	_gnss_spoofed = spoofed;
@@ -327,11 +327,11 @@ void EstimatorChecks::reportGnssInterference(Report &reporter, uint16_t gps_chec
 
 	if (jammed && !_gnss_jammed) {
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS signal jammed\t");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS signal jammed\t");
 		}
 
 		events::send(events::ID("check_estimator_gnss_warning_jamming"), {events::Log::Alert, events::LogInternal::Info},
-			     "GNSS signal jammed");
+			     "GPS signal jammed");
 	}
 
 	_gnss_jammed = jammed;
@@ -658,10 +658,10 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_gnss_fault"),
-					    events::Log::Critical, "GNSS heading not reliable");
+					    events::Log::Critical, "GPS heading not reliable");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS heading not reliable - Land now!\t");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS heading not reliable - Land now!\t");
 		}
 	}
 
