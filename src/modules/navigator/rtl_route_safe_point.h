@@ -74,7 +74,6 @@ public:
 		bool any_safe_point_has_land_approach{false};
 		mission_route::RtlRoutePlan plan{};
 		loiter_point_s goal_land_approach{};
-		uint8_t vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
 		PositionYawSetpoint destination{static_cast<double>(NAN), static_cast<double>(NAN), NAN, NAN};
 		uint8_t safe_point_index{UINT8_MAX};
 	};
