@@ -285,6 +285,9 @@ void RtlMissionSafePointFollow::on_activation()
 		}
 	}
 
+	// Return never restarts the uploaded mission after a disarm.
+	_system_disarmed_while_inactive = false;
+
 	MissionBase::on_activation();
 }
 
