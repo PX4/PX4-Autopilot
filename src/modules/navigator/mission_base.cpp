@@ -1159,7 +1159,7 @@ MissionBase::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 	_navigator->set_mission_result_updated();
 }
 
-void
+bool
 MissionBase::checkMissionRestart()
 {
 	if (_system_disarmed_while_inactive && _mission_has_been_activated && (_mission.count > 0U)
@@ -1170,7 +1170,10 @@ MissionBase::checkMissionRestart()
 		resetMissionJumpCounter();
 		_navigator->reset_cruising_speed();
 		_navigator->reset_vroi();
+		return true;
 	}
+
+	return false;
 }
 
 void
