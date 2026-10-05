@@ -113,13 +113,17 @@ void MissionBase::updateMavlinkMission()
 	mission_s new_mission;
 	_mission_sub.update(&new_mission);
 
-	new_mission.current_seq = getIncomingMissionCurrentSeq(new_mission, _mission);
-	const bool mission_items_changed = (new_mission.mission_dataman_id != _mission.mission_dataman_id)
-					   || (new_mission.mission_id != _mission.mission_id)
-					   || (new_mission.count != _mission.count);
+	const bool mission_items_changed = (new_mission.mission_id != _mission.mission_id);
 	const bool geofence_changed = (new_mission.geofence_id != _mission.geofence_id);
+	// count and land indices only change together with the mission ID.
 	const bool mission_data_changed = mission_items_changed
+					  || (new_mission.mission_dataman_id != _mission.mission_dataman_id)
 					  || (new_mission.current_seq != _mission.current_seq);
+
+	if (new_mission.current_seq < 0) {
+		new_mission.current_seq = math::constrain(_mission.current_seq, int32_t{0},
+					  static_cast<int32_t>(new_mission.count) - 1);
+	}
 
 	_mission = new_mission;
 
@@ -134,25 +138,6 @@ void MissionBase::updateMavlinkMission()
 	}
 
 	_is_current_planned_mission_item_valid = isMissionValid();
-}
-
-int32_t MissionBase::getIncomingMissionCurrentSeq(const mission_s &incoming_mission,
-		const mission_s &current_mission)
-{
-	if (incoming_mission.current_seq >= 0) {
-		return incoming_mission.current_seq;
-	}
-
-	const bool mission_definition_changed = (incoming_mission.mission_dataman_id != current_mission.mission_dataman_id)
-						|| (incoming_mission.mission_id != current_mission.mission_id)
-						|| (incoming_mission.count != current_mission.count);
-
-	if (mission_definition_changed || incoming_mission.count <= 0) {
-		return 0;
-	}
-
-	return math::constrain(current_mission.current_seq, int32_t{0},
-			       static_cast<int32_t>(incoming_mission.count) - 1);
 }
 
 void MissionBase::onMissionUpdate(bool has_mission_items_changed)
@@ -680,8 +665,6 @@ bool MissionBase::shouldReportMissionItemReached() const
 {
 	switch (_work_item_type) {
 	case WorkItemType::WORK_ITEM_TYPE_CLIMB:
-	case WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION:
-	case WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	case WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE:
 	case WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN:
@@ -1149,11 +1132,8 @@ MissionBase::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 void
 MissionBase::checkMissionRestart()
 {
-	const bool reached_mission_end = ((_mission.current_seq + 1) == _mission.count);
-	const bool mission_finished = _navigator->get_mission_result()->finished;
-
 	if (_system_disarmed_while_inactive && _mission_has_been_activated && (_mission.count > 0U)
-	    && (reached_mission_end || mission_finished)) {
+	    && ((_mission.current_seq + 1) == _mission.count)) {
 		setMissionIndex(0);
 		_inactivation_index = -1; // reset
 		_is_current_planned_mission_item_valid = isMissionValid();
