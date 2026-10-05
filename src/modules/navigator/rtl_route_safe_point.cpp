@@ -38,9 +38,6 @@
  */
 
 #include "rtl_route_safe_point.h"
-
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
 #include "mission_route_cache.h"
 #include "mission_route_land_approaches.h"
 #include "mission_route_planner.h"
@@ -261,11 +258,6 @@ void RtlRouteSafePoint::recordExecutorProgress(const mission_route::ActiveJumpAn
 	_active_jump_anchor = active_jump_anchor;
 }
 
-void RtlRouteSafePoint::clearExecutorProgress()
-{
-	_active_jump_anchor = {};
-}
-
 uint32_t RtlRouteSafePoint::missionGeneration() const
 {
 	return _source.mission_generation;
@@ -332,23 +324,3 @@ loiter_point_s RtlRouteSafePoint::selectGoalLandApproach(const mission_route::Pr
 	return approaches.isAnyApproachValid()
 	       ? mission_route::chooseBestLandingApproach(approaches, wind_direction) : loiter_point_s{};
 }
-
-#else // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE == 0
-
-// Route-following RTL is compiled out: every query reports the feature as unavailable.
-RtlRouteSafePoint::RtlRouteSafePoint(ModuleParams *, Navigator *) {}
-void RtlRouteSafePoint::reset() {}
-bool RtlRouteSafePoint::supportsVehicle(const vehicle_status_s &) const { return false; }
-bool RtlRouteSafePoint::inputsReady(const mission_s &) const { return false; }
-bool RtlRouteSafePoint::missionMatches(const mission_s &) const { return false; }
-bool RtlRouteSafePoint::sourceStillValid(const mission_s &) const { return false; }
-bool RtlRouteSafePoint::evaluationPending(const mission_s &) const { return false; }
-bool RtlRouteSafePoint::retryReady(const mission_s &) const { return false; }
-RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &, const vehicle_status_s &,
-		const vehicle_global_position_s &, const home_position_s &, const wind_s &, bool, bool, bool) { return {}; }
-void RtlRouteSafePoint::recordExecutorProgress(const mission_route::ActiveJumpAnchor &) {}
-void RtlRouteSafePoint::clearExecutorProgress() {}
-uint32_t RtlRouteSafePoint::missionGeneration() const { return 0; }
-mission_route::ActiveJumpAnchor RtlRouteSafePoint::activeJumpAnchor() const { return {}; }
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE

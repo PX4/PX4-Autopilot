@@ -58,13 +58,10 @@ class Provider;
 } // namespace mission_route
 
 /**
- * Optional route-safe-point planning and source-coherency state for RTL.
- * With the full mission cache compiled out, every method reports the feature as unavailable.
+ * Route-safe-point planning and source-coherency state for RTL type 7.
+ * Only built with the full mission cache.
  */
-class RtlRouteSafePoint
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	: public ModuleParams
-#endif
+class RtlRouteSafePoint : public ModuleParams
 {
 public:
 	struct Evaluation {
@@ -102,13 +99,11 @@ public:
 
 	/** Retain the flown jump anchor through a temporary fallback. */
 	void recordExecutorProgress(const mission_route::ActiveJumpAnchor &active_jump_anchor);
-	void clearExecutorProgress();
 
 	uint32_t missionGeneration() const;
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const;
 
 private:
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	/** Identity of the cache contents used by the last successful plan. */
 	struct SourceSnapshot {
 		uint32_t mission_id{0};
@@ -150,5 +145,4 @@ private:
 		(ParamFloat<px4::params::RTL_RP_SEG_DIST>) _param_rtl_rp_seg_dist,
 		(ParamFloat<px4::params::RTL_FW_UTURN_PEN>) _param_rtl_fw_uturn_pen
 	)
-#endif
 };
