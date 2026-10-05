@@ -74,7 +74,6 @@ set(NAVIGATOR_SOURCES
 	rtl_direct_mission_land.cpp
 	rtl_mission_fast.cpp
 	rtl_mission_fast_reverse.cpp
-	rtl_route_safe_point.cpp
 	takeoff.cpp
 	land.cpp
 	precland.cpp
@@ -92,11 +91,6 @@ set(NAVIGATOR_DEPENDS
 
 if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
 	list(APPEND NAVIGATOR_SOURCES mission_route_geofence.cpp)
-endif()
-
-if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
-	list(APPEND NAVIGATOR_SOURCES rtl_mission_safe_point_follow.cpp)
-	list(APPEND NAVIGATOR_DEPENDS navigator_mission_route_planner)
 endif()
 
 if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
@@ -124,6 +118,12 @@ set(NAVIGATOR_MODULE_CONFIG
 
 if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
 	list(APPEND NAVIGATOR_MODULE_CONFIG geofence_avoidance_params.yaml)
+endif()
+
+if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
+	list(APPEND NAVIGATOR_SOURCES rtl_mission_safe_point_follow.cpp rtl_route_safe_point.cpp)
+	list(APPEND NAVIGATOR_DEPENDS navigator_mission_route_planner)
+	list(APPEND NAVIGATOR_MODULE_CONFIG mission_route_params.yaml)
 endif()
 
 if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
