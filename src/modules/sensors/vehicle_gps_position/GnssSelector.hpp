@@ -197,11 +197,11 @@ private:
 
 	Rank rank(int instance, uint64_t hrt_now_us) const;
 
-	// The selected receiver wouldn't take over again right after a switch to instance on availability
-	bool isComparablyAvailable(int instance) const
+	// Is instance A similarly or better available than instance B ? (Note: order matters)
+	bool isComparablyAvailable(int instance_a, int instance_b) const
 	{
-		return _availability[instance].getState()
-		       >= _availability[_selected_instance].getState() - 0.5f * AVAILABILITY_MARGIN;
+		return _availability[instance_a].getState()
+		       >= _availability[instance_b].getState() - 0.5f * AVAILABILITY_MARGIN;
 	}
 
 	bool hasPreferred() const { return (_preferred_instance >= 0) && (_preferred_instance < GNSS_MAX_RECEIVERS); }
@@ -234,8 +234,6 @@ private:
 	uint8_t _selection_reason{REASON_INITIAL};
 	int _preferred_instance{-1};
 
-	int _switch_candidate{-1};                        ///< higher ranked receiver, waiting for the hold time
-	uint64_t _switch_candidate_since_us{0};
 	bool _armed{false};
 	bool _failed_while_armed[GNSS_MAX_RECEIVERS] {}; ///< left because it failed, until disarmed
 
