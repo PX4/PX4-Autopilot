@@ -186,9 +186,9 @@ With two receivers, the sensors module [checks each one](../advanced_config/tuni
   A receiver whose availability is 0.2 below that of another usable receiver is replaced by it.
 - While armed, a receiver that was replaced because it failed is selected again only when the selected one fails.
 
-Each switch [resets the EKF2 position](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers) to the new receiver and raises an event such as `Switched from GNSS 0 to GNSS 1: Previous receiver stopped publishing`, a warning when the previous receiver failed.
+Each switch [resets the EKF2 position](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers) to the new receiver and raises an event such as `Switched from GPS 0 to GPS 1: Previous receiver stopped publishing`, a warning when the previous receiver failed.
 `listener vehicle_gnss` shows the selected receiver (`selected_instance`) and the reason (`selection_reason`).
-Before arming, a configured primary receiver that is not publishing raises the warning `Primary GNSS receiver offline`; a missing receiver blocks arming only when [SYS_HAS_NUM_GNSS] counts it.
+Before arming, a configured primary receiver that is not publishing raises the warning `Primary GPS offline`; a missing receiver blocks arming only when [SYS_HAS_NUM_GNSS] counts it.
 
 `GPS_RAW_INT` streams the primary receiver, or without one the first receiver to publish, and `GPS2_RAW` the other one.
 Neither follows the selection.
