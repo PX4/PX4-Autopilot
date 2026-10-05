@@ -92,8 +92,13 @@ Before a front transition, it waits for any back transition to finish, holds its
 It advances the route after the transition completes.
 An ongoing front transition may finish when route-following Return is activated; direct fallback cancels it.
 
-PX4 determines each leg's mode from the VTOL mode recorded when it first receives the mission and any preceding transition commands.
-This starting mode is not saved across reboots; a transition in progress is recorded as multicopter mode.
+PX4 determines each leg's mode from the closest preceding `MAV_CMD_NAV_VTOL_TAKEOFF` (fixed-wing) or `MAV_CMD_DO_VTOL_TRANSITION` command.
+When no preceding command defines the mode, PX4 looks ahead in the nominal mission order: a front transition implies multicopter mode before it, and a back transition implies fixed-wing mode before it.
+A preceding command always takes priority, including when two front transitions or two back transitions follow one another.
+Lookahead passes `DO_JUMP` commands as if their repeats were exhausted, continuing to the next mission item without following the jump target or changing the repeat count.
+It stops at a landing, takeoff, or unreadable item; if no mode can be inferred, the vehicle keeps its current mode.
+This mode selection applies to smart mission rejoin and route-following Return, including its time estimate.
+Normal Mission execution continues to execute the uploaded transition commands.
 :::
 
 At a rally point or mission takeoff endpoint, the vehicle first approaches at the altitude held when leaving the route.

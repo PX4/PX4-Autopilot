@@ -144,16 +144,10 @@ int32_t GoalSelection::branchOffIndex() const
 
 bool PlannerParameters::validForVehicleProjection() const
 {
-	const bool vtol_upload_state_valid =
-		vtol_state_on_mission_upload == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED
-		|| vtol_state_on_mission_upload == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
-		|| vtol_state_on_mission_upload == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-
 	// home_altitude_amsl is intentionally not checked: NAN is valid for absolute-altitude missions.
 	return PX4_ISFINITE(vehicle_projection_search_dist_m) && vehicle_projection_search_dist_m >= 0.f
 	       && PX4_ISFINITE(nav_acceptance_radius_m) && nav_acceptance_radius_m >= 0.f
-	       && PX4_ISFINITE(fw_u_turn_penalty_m) && fw_u_turn_penalty_m >= 0.f
-	       && vtol_upload_state_valid;
+	       && PX4_ISFINITE(fw_u_turn_penalty_m) && fw_u_turn_penalty_m >= 0.f;
 }
 
 bool PlannerParameters::validForRtlRoute() const

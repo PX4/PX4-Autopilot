@@ -64,8 +64,7 @@ public:
 	bool isLanding() override { return isExecutingGoalStage(); }
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const override { return _active_jump_anchor; }
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
-	void configureRoute(const mission_route::RtlRoutePlan &plan, const loiter_point_s &goal_land_approach,
-			    uint8_t vtol_state_on_mission_upload);
+	void configureRoute(const mission_route::RtlRoutePlan &plan, const loiter_point_s &goal_land_approach);
 
 private:
 	friend class RtlMissionSafePointFollowTestPeer;
@@ -177,7 +176,6 @@ private:
 	/** @brief Load a mission item through MissionRouteCache instead of MissionBase's local cache. */
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override;
 	bool isMissionValid() const override;
-	uint8_t missionStartVtolState() const override { return _vtol_state_on_mission_upload; }
 	bool shouldAcceptMissionUpdates() override { return false; }
 	bool shouldReplayMissionActionItems() const override { return false; }
 
@@ -185,7 +183,6 @@ private:
 	uORB::SubscriptionData<vtol_vehicle_status_s> _vtol_status_sub{ORB_ID(vtol_vehicle_status)};
 	mission_item_s _goal_mission_land_item{};
 	bool _goal_mission_land_item_valid{false};
-	uint8_t _vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
 	PlanState _state{};
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};
 	loiter_point_s _goal_land_approach{};

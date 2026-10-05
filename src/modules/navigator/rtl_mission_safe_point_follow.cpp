@@ -112,11 +112,10 @@ bool RtlMissionSafePointFollow::loadMissionItemFromCache(int32_t index, mission_
 }
 
 void RtlMissionSafePointFollow::configureRoute(const mission_route::RtlRoutePlan &plan,
-		const loiter_point_s &goal_land_approach, uint8_t vtol_state_on_mission_upload)
+		const loiter_point_s &goal_land_approach)
 {
 	_plan = plan;
 	_goal_land_approach = goal_land_approach;
-	_vtol_state_on_mission_upload = vtol_state_on_mission_upload;
 	// Keep the endpoint command while landing helpers temporarily replace _mission_item,
 	// and after the route source may be replaced during the committed landing stage.
 	_goal_mission_land_item_valid = goalIsMissionLanding()
@@ -734,8 +733,8 @@ void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet
 		const position_setpoint_s &current_setpoint_copy)
 {
 	const bool branch_off_target_active = currentTargetIsBranchOff();
-	// The planner resolved the first segment using its actual jump source and
-	// upload state. Its join action is authoritative until that target is reached.
+	// The planner resolved the first segment from its actual jump source.
+	// Its join action is authoritative until that target is reached.
 	const bool segment_entry_transition_context = _mission.current_seq != _plan.first_mission_item_index
 			&& (branch_off_target_active || !_plan.direction_reversed);
 	const mission_route::VtolTransitionAction transition_action = segment_entry_transition_context
