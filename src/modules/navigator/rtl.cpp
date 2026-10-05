@@ -116,6 +116,7 @@ void RTL::on_inactive()
 
 void RTL::on_inactivation()
 {
+	// Deactivate the executors now rather than in the next on_inactive(), e.g. before a quick reactivation.
 	if (_rtl_mission_type_handle) {
 		_rtl_mission_type_handle->run(false);
 	}
@@ -521,14 +522,11 @@ void RTL::setRtlTypeAndDestination()
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	if (should_init_mission_type && !initRtlMissionType(new_rtl_type, rtl_alt)) {
-		PX4_ERR("RTL executor init failed, falling back to direct RTL");
-		const bool route_init_failed = new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
-		new_rtl_type = RtlType::RTL_DIRECT;
-
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
-		if (route_init_failed) {
+		if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
 			// Use the route fallback destination, which can be a mission landing.
+			PX4_ERR("route RTL executor init failed, using direct fallback");
 			const bool direct_was_active = _rtl_direct.isActive();
 
 			if (direct_was_active) {
@@ -549,11 +547,14 @@ void RTL::setRtlTypeAndDestination()
 			}
 
 		} else {
+			PX4_ERR("RTL executor init failed, falling back to direct RTL");
+			new_rtl_type = RtlType::RTL_DIRECT;
 			_route_safe_point.reset();
 		}
 
 #else
-		(void)route_init_failed;
+		PX4_ERR("RTL executor init failed, falling back to direct RTL");
+		new_rtl_type = RtlType::RTL_DIRECT;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	}
 
@@ -732,6 +733,7 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index)
 {
 	// Route-following Return falls back to the type 3 selection, also on boards built without it.
+	// findClosestSafePoint() only distinguishes types 5 and 6, so it needs no mapping.
 	int32_t rtl_type = _param_rtl_type.get();
 
 	if (rtl_type == RTL_TYPE_ROUTE_SAFE_POINT) {
