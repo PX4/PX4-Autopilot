@@ -82,6 +82,9 @@ RTL::RTL(Navigator *navigator) :
 RTL::~RTL()
 {
 	stopAndDeleteRtlMissionType(false);
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	perf_free(_route_evaluate_perf);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
 
 void RTL::on_inactive()
@@ -380,9 +383,11 @@ void RTL::setRtlTypeAndDestination()
 	} else if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT) {
 		const mission_s &mission = _mission_sub.get();
 
+		perf_begin(_route_evaluate_perf);
 		route_evaluation = _route_safe_point.evaluate(mission, _vehicle_status_sub.get(),
 				   _global_pos_sub.get(), _home_pos_sub.get(), _wind_sub.get(),
 				   hasValidMission(), isActive(), _param_rtl_appr_force.get() == 1);
+		perf_end(_route_evaluate_perf);
 
 		_home_has_land_approach = route_evaluation.home_has_land_approach;
 		_one_rally_point_has_land_approach = route_evaluation.any_safe_point_has_land_approach;
