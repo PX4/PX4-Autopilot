@@ -53,7 +53,7 @@ if(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 	add_subdirectory(vehicle_angular_velocity)
 endif()
 
-if(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+if(CONFIG_SENSORS_VEHICLE_GNSS)
 	add_subdirectory(vehicle_gnss)
 endif()
 
@@ -110,7 +110,7 @@ if(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 	target_link_libraries(modules__sensors PRIVATE vehicle_angular_velocity)
 endif()
 
-if(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+if(CONFIG_SENSORS_VEHICLE_GNSS)
 	target_link_libraries(modules__sensors PRIVATE vehicle_gnss)
 endif()
 
