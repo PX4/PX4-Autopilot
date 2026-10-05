@@ -76,6 +76,9 @@ Refer to the [Godwit GFH7 product page](https://www.accton-iot.com/godwit/g-fh7.
 The board is powered from the battery through the `VBAT` pins on the `ESC` connector, which also carries the ESC's battery current signal (`CURRENT` pin).
 Onboard BECs supply 5 V/3 A and 12 V/3 A to peripherals.
 
+The 12 V output is on at boot.
+To switch it from your transmitter, assign an RC switch to [RC_MAP_PAY_SW](../advanced_config/parameter_reference.md#RC_MAP_PAY_SW): the 12 V output then stays off until the switch is set to on.
+
 Battery voltage monitoring is configured by default ([BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) is set to `17.0`).
 Current monitoring depends on the ESC's current sensor, so you must set [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) as described in [Battery and Power Module Setup](../config/battery.md).
 
@@ -131,8 +134,9 @@ See [Radio Control Systems](../getting_started/rc_transmitter_receiver.md) for h
 
 The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
 
-- `SBUS` (UART5): S.BUS is enabled on this port by default.
-- `ELRS` (UART4, the PX4 `RC` port): for CRSF/ExpressLRS receivers. Set [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) to `Radio Controller` to enable it.
+- `SBUS` (UART5, the PX4 `RC` port): S.BUS is enabled on this port by default ([RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) is set to `Radio Controller`).
+- `ELRS` (UART4, PX4 port `TELEM/SERIAL 4`): for CRSF/ExpressLRS receivers.
+  Set [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) to `TELEM/SERIAL 4` to enable it, and set `RC_SBUS_PRT_CFG` to `Disabled` if no S.BUS receiver is connected.
 
 Other protocols are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to.
 Only one protocol can be active on a port.
@@ -194,13 +198,16 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 
 | UART   | Device     | Port   | Connector                                   |
 | ------ | ---------- | ------ | ------------------------------------------- |
-| USART1 | /dev/ttyS0 | TEL2   | `ESC` (ESC telemetry, RX only)              |
-| USART2 | /dev/ttyS1 | EXT2   | `T2`/`R2` solder pads                       |
+| USART1 | /dev/ttyS0 | EXT2   | `ESC` (ESC telemetry, RX only)              |
+| USART2 | /dev/ttyS1 | TEL2   | `T2`/`R2` solder pads                       |
 | USART3 | /dev/ttyS2 | GPS1   | `GPS`                                       |
-| UART4  | /dev/ttyS3 | RC     | `ELRS`                                      |
-| UART5  | /dev/ttyS4 |        | `SBUS` (RX, S.BUS by default), `A-VTX` (TX) |
+| UART4  | /dev/ttyS3 | TEL4   | `ELRS`                                      |
+| UART5  | /dev/ttyS4 | RC     | `SBUS` (RX, S.BUS by default), `A-VTX` (TX) |
 | UART7  | /dev/ttyS5 | TEL1   | `TELEM`                                     |
 | UART8  | /dev/ttyS6 | TEL3   | `D-VTX`                                     |
+
+`EXT2` is receive-only, so it can't be used for MAVLink or other two-way protocols.
+It reads [ESC telemetry](../peripherals/dshot.md#esc-telemetry) from the `ESC` connector ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) is set to `EXT2` by default).
 
 No ports have flow control.
 
@@ -244,7 +251,7 @@ They are not general user interfaces. Do not connect wiring or apply power, and 
 The default firmware does not provide a serial [System Console](../debug/system_console.md).
 Use the [MAVLink Shell](../debug/mavlink_shell.md) over USB or a telemetry link instead.
 
-The debug build enables the system console on UART4 (the `ELRS` connector), which is then not available for an RC receiver:
+The debug build enables the system console on UART4 (the `ELRS` connector), so `TELEM/SERIAL 4` is not available in that build (S.BUS on the `SBUS` connector still works):
 
 ```sh
 make accton-godwit_gfh7_debug
