@@ -52,6 +52,7 @@
 #include "rtl_mission_fast_reverse.h"
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 #include "rtl_route_safe_point.h"
+#include <lib/perf/perf_counter.h>
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 #include <uORB/Publication.hpp>
@@ -185,6 +186,7 @@ private:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	RtlMissionSafePointFollow *_route_follower {nullptr}; ///< Same executor; lifetime owned through _rtl_mission_type_handle.
 	RtlRouteSafePoint _route_safe_point{this, _navigator};
+	perf_counter_t _route_evaluate_perf{perf_alloc(PC_ELAPSED, "navigator: rtl route evaluate")};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	RtlType _rtl_type {RtlType::RTL_DIRECT};
 	uint32_t _mission_land_failure_mission_id{0};
