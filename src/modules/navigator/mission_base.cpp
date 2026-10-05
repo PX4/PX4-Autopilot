@@ -866,24 +866,39 @@ void MissionBase::startVtolTransition(const mission_item_s &command, const missi
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	reset_mission_item_reached();
-	updateVtolTransition();
+
+	if (updateVtolTransition()) {
+		// Already in the commanded mode: report the item until on_active() completes it.
+		if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
+			set_mission_result();
+		}
+
+		publish_navigator_mission_item();
+	}
 }
 
 bool MissionBase::updateVtolTransition()
 {
+	const vehicle_status_s &status = _vehicle_status_sub.get();
 	const bool front_transition = int(_vtol_transition.command.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-	const bool in_back_transition = _vehicle_status_sub.get().in_transition_mode
-					&& !_vehicle_status_sub.get().in_transition_to_fw;
-	const bool command_issued = _work_item_type == _vtol_transition.completion_work;
+	const bool in_back_transition = status.in_transition_mode && !status.in_transition_to_fw;
+	const bool in_commanded_mode = front_transition
+				       ? status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+				       : status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !status.in_transition_mode;
 
-	if (front_transition && frontTransitionInhibited()) {
+	const bool command_issued = _work_item_type == _vtol_transition.completion_work;
+	// Takeoff preparation also decides whether its waypoint still needs to be flown.
+	const bool complete_without_command = in_commanded_mode
+					      && _vtol_transition.completion_work != WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
+
+	if (complete_without_command || (front_transition && frontTransitionInhibited())) {
 		_mission_item = _vtol_transition.command;
 		_work_item_type = _vtol_transition.completion_work;
 		return true;
 	}
 
 	if (command_issued) {
-		return !_vehicle_status_sub.get().in_transition_mode && is_mission_item_reached_or_completed();
+		return !status.in_transition_mode && is_mission_item_reached_or_completed();
 	}
 
 	position_setpoint_triplet_s &triplet = *_navigator->get_position_setpoint_triplet();
@@ -909,8 +924,8 @@ bool MissionBase::updateVtolTransition()
 	}
 
 	const bool needs_alignment = !_land_detected_sub.get().landed
-				     && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-				     && !_vehicle_status_sub.get().in_transition_to_fw
+				     && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+				     && !status.in_transition_to_fw
 				     && mission_item_contains_position(_vtol_transition.target)
 				     && PX4_ISFINITE(_vtol_transition.target.lat) && PX4_ISFINITE(_vtol_transition.target.lon);
 

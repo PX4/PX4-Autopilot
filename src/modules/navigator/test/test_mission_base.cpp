@@ -1872,12 +1872,12 @@ TEST_F(MissionRouteJoinTest, NominalTransitionsShareAlignmentAndPreserveCommandP
 		EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
 	}
 
-	// Nominal commands are still issued when already in the requested mode.
+	// A nominal transition already in the requested mode completes without a redundant command.
 	prepareExecution(mission, {front_transition, target}, ++mission_id);
-	ASSERT_TRUE(command_sub.update(&command));
-	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	EXPECT_FALSE(command_sub.updated());
 	mission.on_active();
 	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
 
 	// A nominal immediate BT keeps its uploaded parameter and waits for stable MC.
 	auto back_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
@@ -1980,6 +1980,66 @@ TEST_F(MissionRouteJoinTest, VtolTakeoffKeepsItsWaypointOnlyWhenMovementRemains)
 			EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
 		}
 	}
+}
+
+TEST_F(MissionRouteJoinTest, ManualFrontTransitionDuringAlignmentCompletesWithoutCommand)
+{
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto target = makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	auto transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	transition.autocontinue = true;
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(position);
+	publishLocalPosition(M_PI_2_F);
+	publishLandDetected(false);
+	publishHomePosition(position);
+	primeNavigatorState();
+	prepareExecution(mission, {transition, target}, 130);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	primeNavigatorState();
+	mission.on_active();
+
+	EXPECT_FALSE(command_sub.updated());
+	EXPECT_FALSE(mission.transitionActiveForTest());
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_current, 1);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
+}
+
+TEST_F(MissionRouteJoinTest, TransitionAlreadyInModeIsReportedAsCurrentItem)
+{
+	// A transition that needs no command still becomes the current item, and holds there without autocontinue.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = false;
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(position);
+	publishLocalPosition();
+	publishLandDetected(false);
+	publishHomePosition(position);
+	primeNavigatorState();
+	prepareExecution(mission, {makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), front_transition,
+				   makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt)
+				  }, 140);
+	ASSERT_EQ(mission.currentSequenceForTest(), 0);
+
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_current, 1);
+
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_current, 1);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 1);
 }
 
 // Rejoin picks the closest loop exit of a DO_JUMP mission, not the first iteration.
