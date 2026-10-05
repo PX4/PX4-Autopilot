@@ -452,9 +452,6 @@ protected:
 	/** Publish or advance an active route-join work item. */
 	bool handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_triplet,
 				      const position_setpoint_s &current_setpoint_copy);
-
-	/** Bearing used to align a front transition with the selected route target. */
-	float computeFrontTransitionAlignmentYaw(int32_t current_target_index);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
