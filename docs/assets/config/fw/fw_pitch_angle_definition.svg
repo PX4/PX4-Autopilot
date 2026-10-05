@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" width="760" height="420" font-family="Helvetica, Arial, sans-serif">
+  <rect width="760" height="420" fill="#ffffff"/>
+
+  <text x="24" y="34" font-size="15" font-weight="bold" fill="#212529">Fixed-wing pitch angle θ and FW_PSP_OFF</text>
+  <text x="24" y="54" font-size="12" fill="#868e96">Side view, nose to the right. Angles are exaggerated.</text>
+
+  <!-- horizon -->
+  <line x1="30" y1="215" x2="730" y2="215" stroke="#adb5bd" stroke-width="1.5" stroke-dasharray="10 7"/>
+  <text x="36" y="206" font-size="12" fill="#868e96">Horizon</text>
+
+  <!-- velocity in level flight, along the horizon -->
+  <line x1="380" y1="215" x2="704" y2="215" stroke="#495057" stroke-width="2.5"/>
+  <path d="M 704 209 L 718 215 L 704 221 Z" fill="#495057"/>
+  <text x="590" y="237" font-size="12" fill="#495057">Velocity in level flight</text>
+
+  <!-- aircraft, pitched up by θ = 12° about the centre of gravity (380, 215) -->
+  <g transform="rotate(-12 380 215)">
+    <g transform="translate(380 215)">
+      <!-- line-art light aircraft, centre of gravity at the origin, nose along +x -->
+      <g fill="#ffffff" stroke="#343a40" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+        <!-- vertical tail with dorsal fin, swept back -->
+        <path d="M -128 -18 C -150 -22 -168 -36 -180 -64 L -196 -65 C -199 -45 -200 -25 -201 -9 Z"/>
+        <line x1="-189" y1="-64" x2="-191" y2="-12"/>
+        <!-- fuselage -->
+        <path d="M -201 -9 L -176 -13 C -120 -20 -64 -27 -32 -32 C -16 -39 0 -42 20 -42 L 54 -41 C 72 -38 86 -28 100 -19 L 148 -15 C 155 -14 158 -11 158 -8 L 158 9 C 157 12 152 14 146 14 L 102 18 C 60 22 0 23 -42 19 C -100 13 -160 4 -201 -2 Z"/>
+        <!-- cabin windows -->
+        <path d="M 22 -37 L 52 -37 C 62 -36 75 -29 86 -22 L 22 -22 Z"/>
+        <path d="M -24 -30 C -12 -35 0 -37 14 -37 L 14 -22 L -20 -22 Z"/>
+        <!-- engine cowling joint and air intake -->
+        <line x1="134" y1="-16" x2="134" y2="15"/>
+        <path d="M 142 10 L 152 10 L 152 13"/>
+        <!-- low wing with flap line -->
+        <path d="M -62 11 C -42 2 42 1 78 8 C 44 15 -40 17 -62 11 Z"/>
+        <line x1="-44" y1="12" x2="-18" y2="13"/>
+        <!-- horizontal stabiliser -->
+        <path d="M -206 -5 C -195 -10 -170 -10 -148 -7 C -170 -3 -195 -2 -206 -5 Z"/>
+        <!-- spinner and two-blade propeller -->
+        <path d="M 158 -8 C 172 -7 181 -3 185 0 C 181 3 172 7 158 9 Z"/>
+        <path d="M 181 -3 C 185 -22 185 -46 181 -60 C 177 -46 177 -22 181 -3 Z"/>
+        <path d="M 181 3 C 185 22 185 46 181 60 C 177 46 177 22 181 3 Z"/>
+      </g>
+
+      <!-- body frame: x forward -->
+      <line x1="0" y1="0" x2="248" y2="0" stroke="#4c6ef5" stroke-width="2.5"/>
+      <path d="M 248 -6 L 262 0 L 248 6 Z" fill="#4c6ef5"/>
+      <!-- body frame: z down -->
+      <line x1="0" y1="0" x2="0" y2="118" stroke="#4c6ef5" stroke-width="2.5"/>
+      <path d="M -6 118 L 0 132 L 6 118 Z" fill="#4c6ef5"/>
+      <!-- body frame: y into the page (right wing) -->
+      <circle cx="0" cy="0" r="8" fill="#ffffff" stroke="#4c6ef5" stroke-width="2"/>
+      <line x1="-5" y1="-5" x2="5" y2="5" stroke="#4c6ef5" stroke-width="2"/>
+      <line x1="-5" y1="5" x2="5" y2="-5" stroke="#4c6ef5" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- body axis labels (outside the rotated group so the text stays level) -->
+  <text x="648" y="156" font-size="13" font-weight="bold" fill="#4c6ef5">x</text>
+  <text x="662" y="156" font-size="12" fill="#4c6ef5">forward</text>
+  <text x="418" y="350" font-size="13" font-weight="bold" fill="#4c6ef5">z</text>
+  <text x="432" y="350" font-size="12" fill="#4c6ef5">down</text>
+  <text x="236" y="286" font-size="13" font-weight="bold" fill="#4c6ef5">y</text>
+  <text x="250" y="286" font-size="12" fill="#4c6ef5">right wing, into the page</text>
+  <line x1="340" y1="275" x2="373" y2="224" stroke="#4c6ef5" stroke-width="1.2" stroke-dasharray="4 3"/>
+
+  <!-- pitch angle θ between the horizon and the body x-axis -->
+  <path d="M 610 215 A 230 230 0 0 0 605.0 167.2" fill="none" stroke="#d9480f" stroke-width="2.5"/>
+  <text x="618" y="200" font-size="16" font-weight="bold" fill="#d9480f">θ</text>
+
+  <!-- explanation -->
+  <text x="24" y="382" font-size="12" fill="#212529"><tspan font-weight="bold" fill="#d9480f">θ</tspan> (pitch): angle of the body x-axis above the horizon. PX4 pitch setpoints and pitch limits are θ.</text>
+  <text x="24" y="404" font-size="12" fill="#212529"><tspan font-weight="bold">FW_PSP_OFF</tspan>: θ in level flight at trim airspeed. TECS adds the commanded climb angle to it.</text>
+</svg>
