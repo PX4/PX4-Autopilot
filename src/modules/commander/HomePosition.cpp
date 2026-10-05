@@ -385,12 +385,12 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 		const hrt_abstime now = hrt_absolute_time();
 		const bool time_valid = now < (vehicle_gnss.timestamp + 1_s);
-		const bool fix_valid = vehicle_gnss.receiver.fix_type >= kHomePositionGPSRequiredFixType;
 		const bool eph_valid = vehicle_gnss.receiver.eph < kHomePositionGPSRequiredEPH;
 		const bool epv_valid = vehicle_gnss.receiver.epv < kHomePositionGPSRequiredEPV;
 		const bool evh_valid = vehicle_gnss.receiver.speed_accuracy < kHomePositionGPSRequiredEVH;
 
-		_gps_position_for_home_valid = time_valid && fix_valid && eph_valid && epv_valid && evh_valid
+		// Home needs a sample the estimator would fuse, and on top of that the accuracy above
+		_gps_position_for_home_valid = time_valid && vehicle_gnss.usable && eph_valid && epv_valid && evh_valid
 					       && isGpsPositionFusionEnabled();
 
 		if (_param_com_home_en.get() && _gps_position_for_home_valid && _last_gps_timestamp != 0 && _last_baro_timestamp != 0

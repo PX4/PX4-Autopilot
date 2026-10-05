@@ -155,6 +155,16 @@ enum class GnssMode : uint8_t {
 	kDeadReckoning = 1   	///< Reset on fusion timeout if no source of velocity is availabl
 };
 
+// Why the latest GNSS sample was or was not fused, with the values of estimator_status_flags GNSS_FUSION_*
+enum class GnssFusionState : uint8_t {
+	Fused    = 0,
+	NoData   = 1, ///< no sample within the data timeout
+	Unusable = 2, ///< the sensors module marked the sample not usable
+	Rejected = 3, ///< innovation outside the gate
+	VelLimit = 4, ///< velocity above EKF2_VEL_LIM
+	Inactive = 5  ///< not intended, not aligned, waiting to restart, or a GNSS fault is declared
+};
+
 enum class RngCtrl : uint8_t {
 	DISABLED    = 0,
 	CONDITIONAL = 1,

@@ -140,6 +140,10 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 	controlHeightFusion(imu_delayed);
 
+#if defined(CONFIG_EKF2_GNSS)
+	updateGnssFusionState();
+#endif // CONFIG_EKF2_GNSS
+
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	controlGravityFusion(imu_delayed);
 #endif // CONFIG_EKF2_GRAVITY_FUSION

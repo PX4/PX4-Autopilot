@@ -461,6 +461,7 @@ private:
 
 	uint64_t _filter_control_status{0};
 	uint32_t _filter_fault_status{0};
+	uint8_t _gnss_fusion_state{estimator_status_flags_s::GNSS_FUSION_INACTIVE};
 
 	uint32_t _filter_control_status_changes{0};
 	uint32_t _filter_fault_status_changes{0};
@@ -502,8 +503,6 @@ private:
 	hrt_abstime _status_gnss_vel_pub_last{0};
 
 	float _last_gnss_hgt_bias_published{};
-
-	uint16_t _gnss_failed_checks{0}; ///< failed_checks of the latest vehicle_gnss sample
 
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
