@@ -171,6 +171,7 @@ private:
 	void		InitializeVehicleAirspeed();
 
 	VehicleAirspeed *_vehicle_airspeed_list[calibration::DifferentialPressure::MAX_SENSOR_COUNT] {};
+	uint8_t _n_diff_pres{0};
 
 # ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	uORB::Subscription _adc_report_sub {ORB_ID(adc_report)};

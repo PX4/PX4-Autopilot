@@ -243,6 +243,10 @@ int Sensors::parameters_update()
 	InitializeVehicleAirData();
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+	InitializeVehicleAirspeed();
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
+
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 	InitializeVehicleGPSPosition();
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
@@ -479,6 +483,16 @@ void Sensors::Run()
 
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+		const int n_diff_pres = orb_group_count(ORB_ID(differential_pressure));
+
+		if (n_diff_pres != _n_diff_pres) {
+			_n_diff_pres = n_diff_pres;
+			updated = true;
+		}
+
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
+
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 		const int n_gnss = orb_group_count(ORB_ID(sensor_gnss));
 
@@ -551,7 +565,6 @@ void Sensors::Run()
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	// check analog airspeed
 	adc_poll();
-	InitializeVehicleAirspeed();
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 	// backup schedule as a watchdog timeout
