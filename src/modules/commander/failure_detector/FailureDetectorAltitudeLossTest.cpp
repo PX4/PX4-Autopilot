@@ -61,7 +61,8 @@ public:
 	}
 
 	// Publish position and setpoint, then run the detector. Returns the alt flag state.
-	bool update(float lpos_z, float lpos_sp_z, float delta_z = 0.f, uint8_t z_reset_counter = 0, float lpos_sp_vz = 0.f)
+	bool update(float lpos_z, float lpos_sp_z, float delta_z = 0.f, uint8_t z_reset_counter = 0, float lpos_sp_vz = 0.f,
+		    bool publish_setpoint = true)
 	{
 		// Each update represents 1s of flight for integrating the commanded vertical velocity
 		_timestamp += 1_s;
@@ -74,11 +75,13 @@ public:
 		lpos.z_reset_counter = z_reset_counter;
 		_lpos_pub.publish(lpos);
 
-		vehicle_local_position_setpoint_s lpos_sp{};
-		lpos_sp.timestamp = hrt_absolute_time();
-		lpos_sp.z = lpos_sp_z;
-		lpos_sp.vz = lpos_sp_vz;
-		_lpos_sp_pub.publish(lpos_sp);
+		if (publish_setpoint) {
+			vehicle_local_position_setpoint_s lpos_sp{};
+			lpos_sp.timestamp = _timestamp;
+			lpos_sp.z = lpos_sp_z;
+			lpos_sp.vz = lpos_sp_vz;
+			_lpos_sp_pub.publish(lpos_sp);
+		}
 
 		vehicle_status_s status{};
 		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
@@ -96,6 +99,12 @@ public:
 	bool updateVelocity(float lpos_z, float lpos_sp_vz)
 	{
 		return update(lpos_z, NAN, 0.f, 0, lpos_sp_vz);
+	}
+
+	// Update the position only, the last published setpoint becomes stale
+	bool updatePositionOnly(float lpos_z)
+	{
+		return update(lpos_z, NAN, 0.f, 0, NAN, false);
 	}
 
 private:
@@ -256,4 +265,14 @@ TEST_F(FailureDetectorAltitudeLossTest, TriggerOnDropDuringVelocityHoldAfterDesc
 	EXPECT_FALSE(updateVelocity(-104.f, -2.f));  // climb again, ref = -104
 	EXPECT_FALSE(updateVelocity(-104.f, 0.f));   // hold, ref = -104
 	EXPECT_TRUE(updateVelocity(-98.f, 0.f));     // fall, drop = 6m, triggers
+}
+
+TEST_F(FailureDetectorAltitudeLossTest, TriggerOnDropWithStaleDescentSetpoint)
+{
+	// Position control stops publishing while a 3m/s descent is commanded: the stale
+	// descent must not keep lowering the reference and mask the altitude loss.
+	EXPECT_FALSE(updateVelocity(-100.f, 3.f));  // ref = -100
+	EXPECT_FALSE(updateVelocity(-97.f, 3.f));   // ref = -97
+	EXPECT_FALSE(updatePositionOnly(-94.f));    // setpoint stale, ref stays at -97, drop = 3m
+	EXPECT_TRUE(updatePositionOnly(-91.f));     // drop = 6m, triggers
 }
