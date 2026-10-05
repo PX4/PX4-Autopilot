@@ -130,6 +130,8 @@ private:
 	static DestinationType routePlanDestinationType(mission_route::GoalType goal_type);
 	void applyRouteSafePointFallback(RtlType &new_rtl_type, DestinationType &destination_type,
 					 PositionYawSetpoint &destination, uint8_t &safe_point_index);
+	/** Warn when RTL_TYPE 7 flies a direct fallback, which can leave the mission corridor. */
+	void reportRouteFallback() const;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	void setRtlTypeAndDestination();
