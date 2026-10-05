@@ -533,8 +533,7 @@ void RTL::setRtlTypeAndDestination()
 
 	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _route_follower) {
 		// A refreshed plan must also configure a reused executor before estimating or activating it.
-		_route_follower->configureRoute(route_evaluation.plan, route_evaluation.goal_land_approach,
-						route_evaluation.vtol_state_on_mission_upload);
+		_route_follower->configureRoute(route_evaluation.plan, route_evaluation.goal_land_approach);
 	}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE

@@ -232,30 +232,6 @@ void Navigator::params_update()
 	_mission.set_command_timeout(_param_mis_command_tout.get());
 }
 
-void Navigator::updateMissionVtolStateOnUpload(const mission_s &mission)
-{
-	if (_mission_vtol_source_received
-	    && _mission_vtol_source_id == mission.mission_id
-	    && _mission_vtol_source_count == mission.count
-	    && _mission_vtol_source_dataman_id == mission.mission_dataman_id) {
-		return;
-	}
-
-	_mission_vtol_source_received = true;
-	_mission_vtol_source_id = mission.mission_id;
-	_mission_vtol_source_count = mission.count;
-	_mission_vtol_source_dataman_id = mission.mission_dataman_id;
-	_mission_vtol_state_on_upload = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
-
-	if (mission.count > 0 && _vstatus.timestamp != 0 && _vstatus.is_vtol) {
-		// A transition in progress is treated as MC, matching the planner's upload-state contract.
-		_mission_vtol_state_on_upload = _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-						&& !_vstatus.in_transition_mode
-						? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
-						: vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-	}
-}
-
 void Navigator::run()
 {
 
@@ -330,7 +306,6 @@ void Navigator::run()
 
 		if (fds[2].revents & POLLIN) {
 			if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == PX4_OK) {
-				updateMissionVtolStateOnUpload(mission);
 				mission_received = true;
 
 				if (mission.geofence_id != geofence_id) {

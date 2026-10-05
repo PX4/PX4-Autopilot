@@ -218,15 +218,6 @@ private:
 };
 #endif
 
-class NavigatorMissionStateTestPeer
-{
-public:
-	static void observeMission(Navigator &navigator, const mission_s &mission)
-	{
-		navigator.updateMissionVtolStateOnUpload(mission);
-	}
-};
-
 class RTLTestPeer : public RTL
 {
 public:
@@ -844,60 +835,6 @@ INSTANTIATE_TEST_SUITE_P(VehicleTypes, RTLClimbUpdateTest,
 					 ::testing::Values(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
 							 vehicle_status_s::VEHICLE_TYPE_FIXED_WING)));
 
-TEST_F(RTLTest, MissionUploadVtolStateSurvivesProgressAndSafePointUpdates)
-{
-	vehicle_status_s &status = *_navigator.get_vstatus();
-	status.timestamp = hrt_absolute_time();
-	status.is_vtol = true;
-	status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-	mission_s mission{};
-	mission.mission_id = 42;
-	mission.count = 5;
-	NavigatorMissionStateTestPeer::observeMission(_navigator, mission);
-	EXPECT_EQ(_navigator.getMissionVtolStateOnUpload(), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-
-	status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
-	mission.current_seq = 3;
-	++mission.safe_points_id;
-	++mission.geofence_id;
-	NavigatorMissionStateTestPeer::observeMission(_navigator, mission);
-	EXPECT_EQ(_navigator.getMissionVtolStateOnUpload(), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-
-	++mission.mission_id;
-	NavigatorMissionStateTestPeer::observeMission(_navigator, mission);
-	EXPECT_EQ(_navigator.getMissionVtolStateOnUpload(), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-
-	status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-	++mission.mission_dataman_id;
-	NavigatorMissionStateTestPeer::observeMission(_navigator, mission);
-	EXPECT_EQ(_navigator.getMissionVtolStateOnUpload(), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-
-	mission.count = 0;
-	NavigatorMissionStateTestPeer::observeMission(_navigator, mission);
-	EXPECT_EQ(_navigator.getMissionVtolStateOnUpload(), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
-}
-
-TEST_F(RTLTest, MissionUploadedDuringVtolTransitionStartsInMc)
-{
-	vehicle_status_s &status = *_navigator.get_vstatus();
-	status.timestamp = hrt_absolute_time();
-	status.is_vtol = true;
-	status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-	status.in_transition_mode = true;
-	mission_s mission{};
-	mission.count = 5;
-	NavigatorMissionStateTestPeer::observeMission(_navigator, mission);
-	EXPECT_EQ(_navigator.getMissionVtolStateOnUpload(), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-}
-
-TEST_F(RTLTest, MissionUploadWithoutVehicleStatusLeavesVtolStateUnknown)
-{
-	mission_s mission{};
-	mission.count = 5;
-	NavigatorMissionStateTestPeer::observeMission(_navigator, mission);
-	EXPECT_EQ(_navigator.getMissionVtolStateOnUpload(), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
-}
-
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 TEST_F(RTLTest, BatteryAwareReturnTypePreservesDirectSelection)
 {
@@ -1214,7 +1151,6 @@ TEST_P(RtlVtolActivationTest, KeepsRouteAfterVtolFailure)
 			     GetParam() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC);
 	uORB::Subscription status_sub{ORB_ID(vehicle_status)};
 	ASSERT_TRUE(status_sub.copy(_navigator.get_vstatus()));
-	NavigatorMissionStateTestPeer::observeMission(_navigator, mission);
 	publishLandDetected(false);
 	setMissionResultValid(mission);
 
@@ -1224,6 +1160,8 @@ TEST_P(RtlVtolActivationTest, KeepsRouteAfterVtolFailure)
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
 	EXPECT_TRUE(_rtl.routePlanForTest().valid());
 	EXPECT_TRUE(_rtl.routeHasLandApproachForTest());
+	// Plain waypoints define no leg mode, so the join keeps the current one.
+	EXPECT_EQ(_rtl.routePlanForTest().vtol_transition_action, mission_route::VtolTransitionAction::kNone);
 
 	// Quadchute changes the flight mode, not the selected return route.
 	RtlBase *const follower = _rtl.missionExecutorForTest();

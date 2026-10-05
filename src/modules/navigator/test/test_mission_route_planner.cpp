@@ -1483,15 +1483,14 @@ static std::vector<mission_item_s> missionWithTransitions()
 	};
 }
 
-// The segment state comes from the last DO_VTOL_TRANSITION before it, else the upload state.
+// A preceding transition defines the mode; an undefined prefix uses the next transition.
 TEST_F(MissionRoutePlannerTest, VtolStateForSegmentUsesLastTransitionBeforeSegment)
 {
 	VectorProvider provider = makeRouteProvider(missionWithTransitions(), {});
 
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(0, 1), kVtolMc), kVtolMc);
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(0, 1), kVtolUndefined), kVtolUndefined);
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(1, 3), kVtolMc), kVtolFw);
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 5), kVtolFw), kVtolMc);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(0, 1)), kVtolMc);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(1, 3)), kVtolFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 5)), kVtolMc);
 }
 
 // Loop jump segments use the state reached before DO_JUMP, including the route to its source.
@@ -1507,18 +1506,19 @@ TEST_F(MissionRoutePlannerTest, VtolStateForSegmentLoopUsesStateBeforeJump)
 	};
 	VectorProvider provider = makeRouteProvider(mission, {});
 
-	// Anchoring on the loop end (item 1) would miss the transition at 3 and return the MC upload state.
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(4, 1, 5), kVtolMc), kVtolFw);
+	// The first pass uses MC before the front transition; the loop retains its source mode.
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(0, 1)), kVtolMc);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(4, 1, 5)), kVtolFw);
 }
 
-// Invalid or out-of-range segments fall back to the upload state.
-TEST_F(MissionRoutePlannerTest, VtolStateForSegmentFallsBackForInvalidSegments)
+// Invalid or out-of-range segments have no defined mode.
+TEST_F(MissionRoutePlannerTest, VtolStateForSegmentIsUndefinedForInvalidSegments)
 {
 	VectorProvider provider = makeRouteProvider(missionWithTransitions(), {});
 
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, mission_route::Segment{}, kVtolMc), kVtolMc);
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 99), kVtolFw), kVtolFw);
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 1, 99), kVtolFw), kVtolFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, mission_route::Segment{}), kVtolUndefined);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 99)), kVtolUndefined);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 1, 99)), kVtolUndefined);
 }
 
 // An unreadable item is skipped and the scan continues toward the route start.
@@ -1528,7 +1528,7 @@ TEST_F(MissionRoutePlannerTest, VtolStateForSegmentSkipsUnreadableItems)
 	provider.setMissionLoadFailures({4});
 
 	// The back transition at 4 is unreadable, so the front transition at 2 wins.
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 5), kVtolMc), kVtolFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 5)), kVtolFw);
 }
 
 // U-turn penalty mission (straight north, rallies behind and ahead), with an optional
@@ -1556,7 +1556,6 @@ TEST_F(MissionRoutePlannerTest, VtolUturnPenaltyAcrossTransitionStates)
 		bool is_fixed_wing;
 		bool in_transition_to_fw;
 		uint8_t transition_target; // kVtolUndefined = no transition item in the mission
-		uint8_t upload_state;
 		int expected_safe_point_index;
 		bool expected_reversed;
 		mission_route::VtolTransitionAction expected_action;
@@ -1566,21 +1565,21 @@ TEST_F(MissionRoutePlannerTest, VtolUturnPenaltyAcrossTransitionStates)
 
 	const VtolUturnCase cases[] = {
 		// FW on an MC segment: no penalty (a u-turn would BT + FT, then re-BT at the segment).
-		{"FwOnMcSegmentSkipsPenalty", true, true, false, kVtolMc, kVtolUndefined, 0, true, Action::kBackTransition},
+		{"FwOnMcSegmentSkipsPenalty", true, true, false, kVtolMc, 0, true, Action::kBackTransition},
 		// Transitioning to FW toward an MC segment: same skip as FW.
-		{"TransitionToFwOnMcSegmentSkipsPenalty", true, false, true, kVtolMc, kVtolUndefined, 0, true, Action::kBackTransition},
+		{"TransitionToFwOnMcSegmentSkipsPenalty", true, false, true, kVtolMc, 0, true, Action::kBackTransition},
 		// MC never u-turns and needs no transition for an MC segment.
-		{"McOnMcSegmentNoPenaltyNoAction", true, false, false, kVtolMc, kVtolUndefined, 0, true, Action::kNone},
+		{"McOnMcSegmentNoPenaltyNoAction", true, false, false, kVtolMc, 0, true, Action::kNone},
 		// MC toward a FW segment: still no penalty, the front transition comes at branch-in.
-		{"McOnFwSegmentRequestsFrontTransition", true, false, false, kVtolFw, kVtolUndefined, 0, true, Action::kFrontTransition},
-		// No transition items: the MC upload state drives the same result.
-		{"McWithMcUploadStateNoAction", true, false, false, kVtolUndefined, kVtolMc, 0, true, Action::kNone},
+		{"McOnFwSegmentRequestsFrontTransition", true, false, false, kVtolFw, 0, true, Action::kFrontTransition},
+		// Without transition items, the vehicle stays in MC and keeps the closest route.
+		{"McWithUndefinedSegmentStateNoAction", true, false, false, kVtolUndefined, 0, true, Action::kNone},
 		// FW on a FW segment: penalty applies, nothing to transition.
-		{"FwOnFwSegmentKeepsPenalty", true, true, false, kVtolFw, kVtolUndefined, 1, false, Action::kNone},
+		{"FwOnFwSegmentKeepsPenalty", true, true, false, kVtolFw, 1, false, Action::kNone},
 		// Unknown segment state never suppresses the penalty or requests a transition.
-		{"FwWithUnknownSegmentStateKeepsPenalty", true, true, false, kVtolUndefined, kVtolUndefined, 1, false, Action::kNone},
+		{"FwWithUnknownSegmentStateKeepsPenalty", true, true, false, kVtolUndefined, 1, false, Action::kNone},
 		// Non-VTOL: the segment state stays unresolved, so transition items change nothing.
-		{"NonVtolKeepsPenaltyOnMcSegment", false, true, false, kVtolMc, kVtolUndefined, 1, false, Action::kNone},
+		{"NonVtolKeepsPenaltyOnMcSegment", false, true, false, kVtolMc, 1, false, Action::kNone},
 	};
 
 	for (const VtolUturnCase &test_case : cases) {
@@ -1595,7 +1594,6 @@ TEST_F(MissionRoutePlannerTest, VtolUturnPenaltyAcrossTransitionStates)
 		request.is_vtol = test_case.is_vtol;
 		request.is_fixed_wing = test_case.is_fixed_wing;
 		request.in_transition_to_fw = test_case.in_transition_to_fw;
-		request.vtol_state_on_mission_upload = test_case.upload_state;
 		request.velocity_north_m_s = 15.f;
 		request.velocity_east_m_s = 0.f;
 		mission_route::RtlRoutePlan plan{};
@@ -1630,7 +1628,48 @@ TEST_F(MissionRoutePlannerTest, MissionResumePlanRequestsFrontTransitionOnFwSegm
 	EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kNone);
 }
 
-// VTOL takeoff already performs the front transition even when the mission was uploaded in MC.
+// Returning to the initial route prefix restores the mode before its first transition.
+TEST_F(MissionRoutePlannerTest, MissionAndRtlJoinInferModeBeforeFirstTransition)
+{
+	for (const uint8_t transition_target : {kVtolFw, kVtolMc}) {
+		SCOPED_TRACE(static_cast<int>(transition_target));
+		TestPlanner planner({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+			makeVtolTransitionItem(transition_target),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+		}, {
+			makeSafePointFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt),
+		});
+		const mission_route::Position vehicle_position =
+			makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 20.f, kAlt);
+		const bool is_fixed_wing = transition_target == kVtolFw;
+		const auto expected_action = is_fixed_wing ? mission_route::VtolTransitionAction::kBackTransition :
+					     mission_route::VtolTransitionAction::kFrontTransition;
+		mission_route::MissionResumeRequest resume_request = makeMissionResumeRequest(vehicle_position, 1);
+		resume_request.is_vtol = true;
+		resume_request.is_fixed_wing = is_fixed_wing;
+		mission_route::MissionResumePlan resume_plan{};
+
+		ASSERT_EQ(planner.planMissionResumeJoin(resume_request, resume_plan), mission_route::FailureReason::kNone);
+		ASSERT_TRUE(resume_plan.valid());
+		EXPECT_EQ(resume_plan.first_mission_item_index, 1);
+		EXPECT_EQ(resume_plan.vtol_transition_action, expected_action);
+
+		mission_route::RtlRouteRequest rtl_request = makeRtlRouteRequest(vehicle_position, 1);
+		rtl_request.is_vtol = true;
+		rtl_request.is_fixed_wing = is_fixed_wing;
+		mission_route::RtlRoutePlan rtl_plan{};
+
+		ASSERT_EQ(planner.planRtlRoute(rtl_request, rtl_plan), mission_route::FailureReason::kNone);
+		ASSERT_TRUE(rtl_plan.valid());
+		EXPECT_FALSE(rtl_plan.fly_direct_to_goal);
+		EXPECT_EQ(rtl_plan.first_mission_item_index, 1);
+		EXPECT_EQ(rtl_plan.vtol_transition_action, expected_action);
+	}
+}
+
+// VTOL takeoff defines the following segments as FW.
 TEST_F(MissionRoutePlannerTest, MissionResumeAfterVtolTakeoffKeepsFw)
 {
 	std::vector<mission_item_s> mission = uturn_penalty_dataset::mission();
@@ -1640,32 +1679,11 @@ TEST_F(MissionRoutePlannerTest, MissionResumeAfterVtolTakeoffKeepsFw)
 		makeMissionResumeRequest(uturn_penalty_dataset::vehiclePosition(), 1);
 	request.is_vtol = true;
 	request.is_fixed_wing = true;
-	request.vtol_state_on_mission_upload = kVtolMc;
 	mission_route::MissionResumePlan plan{};
 
 	ASSERT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNone);
 	ASSERT_TRUE(plan.valid());
 	EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kNone);
-}
-
-// Transition states are not settled configurations: the consumer must resolve them to MC or FW.
-TEST_F(MissionRoutePlannerTest, RejectsMidTransitionVtolUploadState)
-{
-	TestPlanner planner(uturn_penalty_dataset::mission(), uturn_penalty_dataset::safePoints());
-
-	mission_route::RtlRouteRequest rtl_request =
-		makeRtlRouteRequest(uturn_penalty_dataset::vehiclePosition(), 1);
-	rtl_request.vtol_state_on_mission_upload = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW;
-	mission_route::RtlRoutePlan rtl_plan{};
-
-	EXPECT_EQ(planner.planRtlRoute(rtl_request, rtl_plan), mission_route::FailureReason::kInvalidRequest);
-
-	mission_route::MissionResumeRequest resume_request =
-		makeMissionResumeRequest(uturn_penalty_dataset::vehiclePosition(), 1);
-	resume_request.vtol_state_on_mission_upload = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC;
-	mission_route::MissionResumePlan resume_plan{};
-
-	EXPECT_EQ(planner.planMissionResumeJoin(resume_request, resume_plan), mission_route::FailureReason::kInvalidRequest);
 }
 
 // On the corner mission, MC picks the closest rally in reverse (rally 1).

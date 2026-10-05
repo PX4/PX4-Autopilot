@@ -652,18 +652,19 @@ static bool isCurrentInitialTakeoffStack(const Segment &segment, float along_rou
 	       && mission_index == segment.start.idx && along_route_m <= 0.f && segment_length_m <= 0.f;
 }
 
-uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
-			    uint8_t vtol_state_on_mission_upload)
+uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment)
 {
 	const int mission_count = provider.missionCount();
 
 	if (!segment.valid() || mission_count <= 0
 	    || segment.start.idx >= mission_count || segment.end.idx >= mission_count
 	    || segment.jump_item_index >= mission_count) {
-		return vtol_state_on_mission_upload;
+		return vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
 	}
 
-	uint8_t state = vtol_state_on_mission_upload;
+	uint8_t state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+	bool lookback_complete = true;
 
 	// The last transition in an executed command range determines the state, if there is one.
 	auto resolve_state_in_range = [&](int32_t first_index, int32_t end_index) {
@@ -672,6 +673,7 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
 
 			if (!provider.loadMissionItem(i, mission_item)) {
 				PX4_WARN("VTOL state: item %d read failed", static_cast<int>(i));
+				lookback_complete = false;
 				continue;
 			}
 
@@ -704,7 +706,30 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment,
 	}
 
 	// Include every command between the source waypoint and DO_JUMP when there was no target transition.
-	resolve_state_in_range(0, segment.isLoop() ? segment.jump_item_index : segment.end.idx);
+	if (resolve_state_in_range(0, segment.isLoop() ? segment.jump_item_index : segment.end.idx)
+	    || !lookback_complete) {
+		return state;
+	}
+
+	// Only an undefined prefix uses lookahead, in nominal order even when RTL flies in reverse.
+	// Ignore DO_JUMP repeats and targets, scanning as if all repeats were consumed.
+	for (int32_t index = segment.end.idx; index < mission_count; ++index) {
+		mission_item_s mission_item{};
+
+		if (!provider.loadMissionItem(index, mission_item)) {
+			break;
+		}
+
+		// Do not infer a mode from another takeoff or landing section.
+		if (isTakeoffCmd(mission_item.nav_cmd) || isLandingCmd(mission_item.nav_cmd)) {
+			break;
+		}
+
+		if (updateVtolStateFromMissionItem(mission_item, state, true)) {
+			break;
+		}
+	}
+
 	return state;
 }
 
