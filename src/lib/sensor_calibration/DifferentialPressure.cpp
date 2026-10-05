@@ -185,7 +185,7 @@ bool DifferentialPressure::ParametersSave(int desired_calibration_index, bool fo
 		return success;
 	}
 
-	// FindAvailableCalibrationIndex() searches a fixed four slots, but differential pressure only defines three
+	// index 3 is possible: FindAvailableCalibrationIndex() searches four slots, we define three
 	PX4_ERR("%s %" PRIu32 " no free calibration slot (got %" PRIi8 ")", SensorString(), _device_id, _calibration_index);
 
 	return false;
