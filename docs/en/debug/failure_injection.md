@@ -35,7 +35,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 
 ::: info
 
-- `gps` failures on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
+- `gps` failures on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GNSS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
 - `gps` failures apply to the addressed receiver's heading as well (`sensor_gnss_relative`), so `gps off` on a dual-antenna receiver also stops its heading.
   A moving-base rover's heading is dropped while its moving base is silent, whether that receiver failed or was injected `off`.
 - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
@@ -49,7 +49,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 :::
 
 Sensors delivered through the shared driver layer (IMU, magnetometer, barometer, rangefinder via the `PX4*` sensor wrappers) support `off`/`stuck` in every environment that uses that layer — including the Gazebo and SIH sensor simulators, which feed synthesized measurements through the same wrappers.
-The remaining gaps are backend-specific: GPS and airspeed are handled by dedicated simulator code (see the GPS and airspeed notes in the info box above), SIH does not simulate an injectable airspeed.
+The remaining gaps are backend-specific: GNSS and airspeed are handled by dedicated simulator code (see the GNSS receiver and airspeed notes in the info box above), SIH does not simulate an injectable airspeed.
 Components not listed (`optical_flow`, `servo`, `avoidance`, `rc_signal`, `mavlink_signal`) are rejected everywhere (`MAV_RESULT_UNSUPPORTED`); see the note below on NACK behaviour.
 
 ::: info
@@ -110,7 +110,7 @@ where:
   Example: `-m 0x5` targets instances 1 and 3.
 
 ::: info
-GPS implements the `off`, `stuck`, `wrong` and `slow` failure modes; the other failure types have no effect on it.
+GNSS implements the `off`, `stuck`, `wrong` and `slow` failure modes; the other failure types have no effect on it.
 `gps wrong` leaves the reported position untouched and reports the fields set by these parameters; `0` (`Unchanged`) keeps the receiver's own value:
 
 | Parameter                   | Reported field                   |
@@ -153,9 +153,9 @@ It is used in [PX4 Integration Testing](../test_and_ci/integration_testing_mavsd
 
 The plugin API is a direct mapping of the failure command shown above, with a few additional error signals related to the connection.
 
-## Example: GPS
+## Example: GNSS {#example-gps}
 
-To test the GPS failsafe by stopping GPS:
+To test the GNSS failsafe by stopping GNSS:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 2. Enter the following commands on the MAVLink console or SITL _pxh shell_:

@@ -2,7 +2,7 @@
 
 <img src="../../assets/site/difficulty_easy.png" title="Easy to fly" width="30px" />&nbsp;<img src="../../assets/site/remote_control.svg" title="Manual/Remote control required" width="30px" />&nbsp;<img src="../../assets/site/altitude_icon.svg" title="Altitude required (e.g. Baro, Rangefinder)" width="30px" />
 
-The _Altitude_ flight mode is the safest and easiest non-GPS manual mode.
+The _Altitude_ flight mode is the safest and easiest non-GNSS manual mode.
 It makes it easier for pilots to control vehicle altitude, and in particular to reach and maintain a fixed altitude.
 The mode will not attempt to hold the vehicle course against wind.
 Airspeed is actively controlled if an airspeed sensor is installed.
@@ -41,7 +41,7 @@ The vehicle course is not maintained, and can drift due to wind.
   - Yaw stick adds an additional yaw rate setpoint (added to the one calculated by the autopilot to maintain coordinated flight).
     Can be used to manually change the side slip of the vehicle.
 - Manual control input is required (such as RC control, joystick).
-- An altitude measurement source is required (usually barometer or GPS)
+- An altitude measurement source is required (usually barometer or GNSS)
 
 <!-- AUTO-GENERATED: mode_requirements_fixed_wing_altctl -->
 

@@ -10,7 +10,7 @@ Ensure that the drone's optical flow sensor is mounted more than an inch off of 
 
 Ensure that [MPC_THR_MIN](../advanced_config/parameter_reference.md#MPC_THR_MIN) is tuned correctly for landing
 
-Disconnect all GPS / compasses and ensure vehicle is using optical flow for navigation
+Disconnect all GNSS / compasses and ensure vehicle is using optical flow for navigation
 ([Setup Information here](../sensor/optical_flow.md))
 
 Ensure there are no other sources of positioning besides optical flow

@@ -11,7 +11,7 @@ The specification requires that UAVs broadcast data such as: real-time location/
 
 PX4 works with Remote ID modules that target the FAA [standard Remote ID rules](https://www.faa.gov/uas/getting_started/remote_id).
 These are designed to be integrated into the vehicle, and broadcast Open Drone ID messages (Open Drone ID is an open source implementation of Remote ID) using id, position, and other information that is supplied by an autopilot.
-The "standard rules" modules enable less restrictive operation than "broadcast rules" modules, which are standalone modules with an integrated GPS that do not have any communication with the autopilot.
+The "standard rules" modules enable less restrictive operation than "broadcast rules" modules, which are standalone modules with an integrated GNSS that do not have any communication with the autopilot.
 
 ## Supported Hardware
 

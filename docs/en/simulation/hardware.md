@@ -20,7 +20,7 @@ Two simulation approaches are available, controlled by the [SYS_HITL](../advance
 | Communication     | MAVLink HIL messages                | uORB (internal)                                      |
 | External process  | Required                            | Not required                                         |
 | Setup complexity  | Higher                              | Lower                                                |
-| Sensor simulation | Camera, lidar, etc. (via simulator) | IMU, GPS, baro, mag, airspeed only                   |
+| Sensor simulation | Camera, lidar, etc. (via simulator) | IMU, GNSS, baro, mag, airspeed only                  |
 | Vehicle types     | Quadcopter, Standard VTOL           | Quad, Hex, FW, VTOL Tailsitter, Standard VTOL, Rover |
 
 ## When to Use Which

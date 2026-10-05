@@ -137,7 +137,7 @@ The following requirements must be met to arm in this mode, or to switch to this
 ### IR Sensor/Beacon Setup
 
 The IR sensor/landing beacon solution requires an [IR-LOCK Sensor](https://irlock.com/products/ir-lock-sensor-precision-landing-kit) and downward facing [distance sensor](../sensor/rangefinders.md) connected to the flight controller, and an IR beacon as a target (e.g. [IR-LOCK MarkOne](https://irlock.com/collections/ir-markers)).
-This enables landing with a precision of roughly 10 cm (GPS precision, by contrast, may be as large as several meters).
+This enables landing with a precision of roughly 10 cm (GNSS precision, by contrast, may be as large as several meters).
 
 Install the IR-LOCK sensor by following the [official guide](https://irlock.readme.io/docs/getting-started).
 Ensure that the sensor's x axis is aligned with the vehicle's y axis and the sensor's y axis aligned with the vehicle's -x direction (this is the case if the camera is pitched down 90 degrees from facing forward).

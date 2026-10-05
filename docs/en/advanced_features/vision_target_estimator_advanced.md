@@ -361,7 +361,7 @@ Symptoms and fixes (visible on `vte_position.rel_pos` overlaid with the matching
 | Symptom                                                                                                           | Likely cause              | Fix                                                                                                                                                                                                                                                           |
 | ----------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Staircase between fusions**: state drifts away from the observation between samples, snaps back at each fusion. | `VTE_ACC_D_UNC` too low.  | Raise `VTE_ACC_D_UNC`. First check `vte_input.acc_xyz` for a persistent bias (attitude/gravity leakage, lever-arm error, real vehicle acceleration); raising process noise does not remove the bias itself.                                                   |
-| **State copies the per-sample jitter** of the measurement, vehicle oscillates near the ground.                    | `VTE_ACC_D_UNC` too high. | Lower `VTE_ACC_D_UNC`, or raise the measurement-noise floor of the chased sensor ([VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE) for vision, [VTE_GPS_P_NOISE](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE) for GPS). |
+| **State copies the per-sample jitter** of the measurement, vehicle oscillates near the ground.                    | `VTE_ACC_D_UNC` too high. | Lower `VTE_ACC_D_UNC`, or raise the measurement-noise floor of the chased sensor ([VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE) for vision, [VTE_GPS_P_NOISE](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE) for GNSS). |
 
 After every change, `vte_aid_*.innovation` should look like zero-mean white noise rather than ramping with one sign or carrying a persistent offset.
 
@@ -655,7 +655,7 @@ This keeps the lookahead positive at touchdown so the vehicle keeps tracking the
 
 ### Gazebo Simulation
 
-The moving-target SITL setup reuses the same `land_pad.sdf` model as the static configuration, so the upstream pipeline (camera, marker plugin, GPS plugin, mavlink bridge) is identical: see [SITL Simulation Pipeline](#sitl-simulation-pipeline) for the static-target walkthrough.
+The moving-target SITL setup reuses the same `land_pad.sdf` model as the static configuration, so the upstream pipeline (camera, marker plugin, GNSS plugin, mavlink bridge) is identical: see [SITL Simulation Pipeline](#sitl-simulation-pipeline) for the static-target walkthrough.
 Build with `CONFIG_VTEST_MOVING=y` so the estimator tracks the target velocity, then edit `Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/land_pad/land_pad.sdf` to enable pad motion through the `libgazebo_random_velocity_plugin.so` plugin.
 
 ::: details Click here for details on how to configure pad motion
@@ -848,7 +848,7 @@ What this plot tells you:
 
 1. **Vision is the dominant source throughout the descent.**
    The two observation variances never cross: vision is more precise than the mission GNSS at every altitude in this flight.
-   This is intentional because the GPS module on the vehicle is not RTK-grade and the reported variance reflects that.
+   This is intentional because the GNSS module on the vehicle is not RTK-grade and the reported variance reflects that.
    If your receiver is more precise, retune [VTE_GPS_P_NOISE](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE) so the floor does not throw away its confidence.
 2. **Higher altitudes have noisier vision.**
    At the start of the descent vision is noisier and `vte_position.rel_pos[0]` deviates from individual vision samples.
@@ -1145,10 +1145,10 @@ The pipeline has four stages:
    Marker visibility is controlled by `Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/land_pad/land_pad.sdf`: the `<visual><box><size>` element sets the rendered Aruco square (the `<collision>` size is independent and just controls the physical pad).
    The `<pose>` element on the `<model name="land_pad">` block places the pad in the world.
    Its last value is the pad yaw in radians (for example `<pose>0.0 0.0 0.06 0 0 0.7</pose>` rotates the pad by 0.7 rad, about 40 deg), which is the easiest way to exercise the orientation filter in SITL.
-2. **Target GPS**: the `gps_target` model included from `land_pad.sdf` runs the standard Gazebo GPS plugin.
+2. **Target GPS**: the `gps_target` model included from `land_pad.sdf` runs the standard Gazebo GNSS plugin.
    Tune the noise floors directly in `Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/gps/gps.sdf` (the `<noise>` blocks for horizontal/vertical position and velocity).
 3. **Mavlink bridge**: `gazebo_mavlink_interface.cpp` connects the two plugins to the autopilot.
-   `targetRelativeCallback()` packs the marker into a `TARGET_RELATIVE` mavlink message, and `TargetGpsCallback()` packs the GPS sample into `TARGET_ABSOLUTE`.
+   `targetRelativeCallback()` packs the marker into a `TARGET_RELATIVE` mavlink message, and `TargetGpsCallback()` packs the GNSS sample into `TARGET_ABSOLUTE`.
 4. **PX4 side**: `SimulatorMavlink::handle_message_target_relative()` and `handle_message_target_absolute()` decode the mavlink messages back into `fiducial_marker_pos_report` and `target_gnss` (or directly into `landing_target_pose` when `VTE_EN=0`).
    From there the filter sees exactly the same topics it would on real hardware, so anything you tune at the sensor level reproduces faithfully end to end.
 

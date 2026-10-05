@@ -3,7 +3,7 @@
 <img src="../../assets/site/difficulty_easy.png" title="Easy to fly" width="30px" />&nbsp;<img src="../../assets/site/remote_control.svg" title="Manual/Remote control required" width="30px" />&nbsp;<img src="../../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" />
 
 _Cruise mode_ (also shown as _Position_ in some tools) is the easiest and safest manual mode.
-It is supported on vehicles that have a position estimate (e.g. GPS).
+It is supported on vehicles that have a position estimate (e.g. GNSS).
 It makes it easier for pilots to control vehicle altitude, and in particular to reach and maintain a fixed altitude.
 The mode will hold the vehicle's course against wind.
 Airspeed is actively controlled if an airspeed sensor is installed.
@@ -35,7 +35,7 @@ Airspeed is also stabilized if an airspeed sensor is present.
   - Yaw stick adds an additional yaw rate setpoint (added to the one calculated by the autopilot to maintain coordinated flight).
     Can be used to manually change the side slip of the vehicle.
 - Manual control input is required (such as RC control, joystick).
-- An altitude measurement source is required (usually barometer or GPS)
+- An altitude measurement source is required (usually barometer or GNSS)
 
 <!-- AUTO-GENERATED: mode_requirements_fixed_wing_posctl -->
 
