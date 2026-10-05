@@ -558,10 +558,6 @@ void RTL::setRtlTypeAndDestination()
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	}
 
-	if (new_rtl_type != RtlType::RTL_DIRECT && _rtl_mission_type_handle) {
-		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
-	}
-
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
 	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _route_follower) {
