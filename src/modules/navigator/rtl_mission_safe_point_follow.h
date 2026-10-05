@@ -188,7 +188,7 @@ private:
 	loiter_point_s _goal_land_approach{};
 	float _goal_arrival_alt{NAN};
 	RtlTimeEstimator _rtl_time_estimator; /**< Time estimator consistent with other RTL modes. */
-	perf_counter_t _calc_rtl_time_estimate_perf{perf_alloc(PC_ELAPSED, "rtl_route_calc_time_est")};
+	perf_counter_t _calc_rtl_time_estimate_perf{perf_alloc(PC_ELAPSED, "navigator: rtl route time estimate")};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		RtlBase,
