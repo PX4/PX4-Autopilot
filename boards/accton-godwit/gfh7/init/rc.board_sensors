@@ -18,6 +18,4 @@ dps310 -I -b 1 -a 119 -8 start
 # Rotation 6 = ROTATION_YAW_270.  The driver already flips z.
 ist8310 -I -b 1 -a 12 -R 6 start
 
-sbus_rc start -d /dev/ttyS4
-
 board_adc start

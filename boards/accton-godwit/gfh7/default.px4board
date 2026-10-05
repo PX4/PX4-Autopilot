@@ -10,11 +10,19 @@ CONFIG_BOARD_COMPILE_DEFINITIONS="-DUSE_S_RGB_LED_DMA"
 CONFIG_BOARD_UAVCAN_INTERFACES=1
 CONFIG_BOARD_ROMFSROOT="px4fmu_common"
 CONFIG_BOARD_ETHERNET=n
-CONFIG_BOARD_SERIAL_TEL2="/dev/ttyS0"
-CONFIG_BOARD_SERIAL_EXT2="/dev/ttyS1"
+# USART1: ESC connector telemetry pin (RX only), ESC telemetry
+CONFIG_BOARD_SERIAL_EXT2="/dev/ttyS0"
+# USART2: T2/R2 pads
+CONFIG_BOARD_SERIAL_TEL2="/dev/ttyS1"
+# USART3: GPS connector
 CONFIG_BOARD_SERIAL_GPS1="/dev/ttyS2"
-CONFIG_BOARD_SERIAL_RC="/dev/ttyS3"
+# UART4: ELRS connector
+CONFIG_BOARD_SERIAL_TEL4="/dev/ttyS3"
+# UART5: SBUS connector (RX), A-VTX connector (TX)
+CONFIG_BOARD_SERIAL_RC="/dev/ttyS4"
+# UART7: TELEM connector
 CONFIG_BOARD_SERIAL_TEL1="/dev/ttyS5"
+# UART8: D-VTX connector
 CONFIG_BOARD_SERIAL_TEL3="/dev/ttyS6"
 
 # ============================================================================
