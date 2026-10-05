@@ -71,6 +71,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/rtl_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -174,6 +175,11 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	uORB::Subscription _rtl_status_sub {ORB_ID(rtl_status)};
+	rtl_status_s _rtl_status{};
+	bool _route_rtl_prev{false};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	uORB::Publication<normalized_unsigned_setpoint_s>	_flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s>	_spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
@@ -240,7 +246,7 @@ private:
 	void		action_request_poll();
 
 	void		vehicle_cmd_poll();
-	bool routeRtlFrontTransitionAllowed() const;
+	bool routeRtlFrontTransitionAllowed(bool require_current_return);
 
 	void 		parameters_update();
 
@@ -248,7 +254,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VT_TYPE>) _param_vt_type,
-		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
 		(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld,
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd
 	)
