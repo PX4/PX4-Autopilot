@@ -37,23 +37,63 @@
 #include "vtol_type.h"
 #include <parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+#include <uORB/topics/action_request.h>
 #include <uORB/topics/vehicle_command_ack.h>
+
+// Route-following Return only exists with the full mission cache.
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+static constexpr bool kRouteRtlSupported = true;
+#else
+static constexpr bool kRouteRtlSupported = false;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+static constexpr uint8_t kRouteRtl = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT;
+static constexpr uint8_t kDirectRtl = rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT;
+static constexpr uint8_t kMissionRtl = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION;
 
 class VtolAttitudeControlTestPeer : public VtolAttitudeControl
 {
 public:
 	~VtolAttitudeControlTestPeer() override { delete _vtol_type; _vtol_type = nullptr; }
 
-	void configure(int32_t rtl_type, uint8_t nav_state, bool failed)
+	void configure(uint8_t rtl_type, uint8_t nav_state, bool failed)
 	{
 		vehicle_command_s command{};
 
 		while (_vehicle_cmd_sub.update(&command)) {}
 
-		_param_rtl_type.set(rtl_type);
+		publishRtlType(rtl_type);
 		_vehicle_status.nav_state = nav_state;
 		_nav_state_prev = nav_state;
 		_vtol_vehicle_status.fixed_wing_system_failure = failed;
+	}
+
+	void publishRtlType(uint8_t rtl_type, hrt_abstime timestamp = hrt_absolute_time())
+	{
+		rtl_status_s rtl_status{};
+		rtl_status.timestamp = timestamp;
+		rtl_status.rtl_type = rtl_type;
+		_rtl_status_pub.publish(rtl_status);
+	}
+
+	void publishNavState(uint8_t nav_state, hrt_abstime nav_state_timestamp = hrt_absolute_time())
+	{
+		vehicle_status_s status{};
+		status.timestamp = hrt_absolute_time();
+		status.nav_state = nav_state;
+		status.nav_state_timestamp = nav_state_timestamp;
+		_vehicle_status_pub.publish(status);
+		vehicle_status_poll();
+	}
+
+	void requestFrontTransitionFromAction()
+	{
+		action_request_s action_request{};
+		action_request.timestamp = hrt_absolute_time();
+		action_request.action = action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING;
+		_action_request_pub.publish(action_request);
+		action_request_poll();
+		_vtol_type->update_vtol_state();
 	}
 
 	void requestFrontTransition(bool external)
@@ -79,16 +119,19 @@ public:
 		ASSERT_EQ(_vtol_type->get_mode(), mode::TRANSITION_TO_FW);
 	}
 
-	void enterRtl(bool failed)
+	void enterRtl(bool failed, hrt_abstime nav_state_timestamp = hrt_absolute_time())
 	{
 		_vtol_vehicle_status.fixed_wing_system_failure = failed;
-		vehicle_status_s status{};
-		status.timestamp = hrt_absolute_time();
-		status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
-		uORB::Publication<vehicle_status_s> publisher{ORB_ID(vehicle_status)};
-		publisher.publish(status);
-		vehicle_status_poll();
+		publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, nav_state_timestamp);
 	}
+
+	void pollVehicleStatus() { vehicle_status_poll(); }
+
+private:
+	// Keep the topics advertised while the controller polls them.
+	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
+	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
+	uORB::Publication<action_request_s> _action_request_pub{ORB_ID(action_request)};
 };
 
 class VtolRtlTransitionTest : public ::testing::Test
@@ -107,7 +150,7 @@ protected:
 
 struct FrontTransitionCase {
 	const char *name;
-	int32_t rtl_type;
+	uint8_t rtl_type;
 	bool external;
 	bool failed;
 	uint8_t nav_state;
@@ -135,27 +178,86 @@ TEST_P(VtolRtlFrontTransitionTest, OnlyHealthyInternalSrpCommandsCanFrontTransit
 }
 
 INSTANTIATE_TEST_SUITE_P(CommandPolicy, VtolRtlFrontTransitionTest, ::testing::Values(
-				 FrontTransitionCase{"HealthySrp", 7, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, true},
-				 FrontTransitionCase{"ExternalSrp", 7, true, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
-				 FrontTransitionCase{"FailedSrp", 7, false, true, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
-				 FrontTransitionCase{"DirectRtl", 0, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
-				 FrontTransitionCase{"MissionRtl", 2, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
-				 FrontTransitionCase{"Takeoff", 7, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, false},
-				 FrontTransitionCase{"Land", 7, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND, false},
-				 FrontTransitionCase{"Orbit", 7, false, false, vehicle_status_s::NAVIGATION_STATE_ORBIT, false},
-				 FrontTransitionCase{"Mission", 0, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, true}),
+				 FrontTransitionCase{"HealthySrp", kRouteRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, kRouteRtlSupported},
+				 FrontTransitionCase{"ExternalSrp", kRouteRtl, true, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
+				 FrontTransitionCase{"FailedSrp", kRouteRtl, false, true, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
+				 FrontTransitionCase{"DirectRtl", kDirectRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
+				 FrontTransitionCase{"MissionRtl", kMissionRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
+				 FrontTransitionCase{"Takeoff", kRouteRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, false},
+				 FrontTransitionCase{"Land", kRouteRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND, false},
+				 FrontTransitionCase{"Orbit", kRouteRtl, false, false, vehicle_status_s::NAVIGATION_STATE_ORBIT, false},
+				 FrontTransitionCase{"Mission", kDirectRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, true}),
 [](const ::testing::TestParamInfo<FrontTransitionCase> &test_info) { return test_info.param.name; });
 
 TEST_F(VtolRtlTransitionTest, RtlEntryPreservesFrontTransitionOnlyForHealthySrp)
 {
 	// The command can arrive before the controller observes AUTO_RTL.
-	for (int32_t rtl_type : {0, 7}) {
+	for (uint8_t rtl_type : {kDirectRtl, kRouteRtl}) {
 		for (bool failed : {false, true}) {
 			VtolAttitudeControlTestPeer controller;
 			controller.configure(rtl_type, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false);
 			controller.startFrontTransition();
 			controller.enterRtl(failed);
-			EXPECT_EQ(controller.is_fixed_wing_requested(), rtl_type == 7 && !failed);
+			EXPECT_EQ(controller.is_fixed_wing_requested(), kRouteRtlSupported && rtl_type == kRouteRtl && !failed);
 		}
 	}
+}
+
+TEST_F(VtolRtlTransitionTest, RouteRtlFallbackAbortsFrontTransition)
+{
+	// A route-following Return that falls back to direct Return no longer keeps the front transition.
+	VtolAttitudeControlTestPeer controller;
+	controller.configure(kRouteRtl, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false);
+	controller.startFrontTransition();
+	controller.enterRtl(false);
+	EXPECT_EQ(controller.is_fixed_wing_requested(), kRouteRtlSupported);
+
+	controller.publishRtlType(kDirectRtl);
+	controller.pollVehicleStatus();
+	EXPECT_FALSE(controller.is_fixed_wing_requested());
+}
+
+TEST_F(VtolRtlTransitionTest, CommandsNeedTheTypeOfTheCurrentReturn)
+{
+	// A command racing the mode switch must not pass on the estimate published before Return started.
+	VtolAttitudeControlTestPeer controller;
+	const hrt_abstime now = hrt_absolute_time();
+	controller.configure(kRouteRtl, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false);
+	controller.publishRtlType(kRouteRtl, now);
+	controller.enterRtl(false, now + 1);
+	controller.requestFrontTransition(false);
+	EXPECT_FALSE(controller.is_fixed_wing_requested());
+
+	controller.publishRtlType(kRouteRtl, now + 2);
+	controller.requestFrontTransition(false);
+	EXPECT_EQ(controller.is_fixed_wing_requested(), kRouteRtlSupported);
+}
+
+TEST_F(VtolRtlTransitionTest, RouteFallbackOutsideReturnKeepsFrontTransition)
+{
+	// Only a Return that falls back aborts the transition, not the same status change during Mission.
+	VtolAttitudeControlTestPeer controller;
+	controller.configure(kRouteRtl, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false);
+	controller.publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+	controller.startFrontTransition();
+	controller.publishRtlType(kDirectRtl);
+	controller.pollVehicleStatus();
+	EXPECT_TRUE(controller.is_fixed_wing_requested());
+}
+
+TEST_F(VtolRtlTransitionTest, ManualFrontTransitionInDirectReturnSurvivesStatusUpdates)
+{
+	// As on main, a transition requested by the pilot during direct Return is not aborted later.
+	VtolAttitudeControlTestPeer controller;
+	controller.configure(kDirectRtl, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false);
+	controller.enterRtl(false);
+	controller.requestFrontTransitionFromAction();
+	ASSERT_TRUE(controller.is_fixed_wing_requested());
+
+	for (int i = 0; i < 2; ++i) {
+		controller.publishRtlType(kDirectRtl);
+		controller.pollVehicleStatus();
+	}
+
+	EXPECT_TRUE(controller.is_fixed_wing_requested());
 }
