@@ -222,6 +222,7 @@ VTOL vehicles follow the flight mode required by each route leg, including rever
 
 A complete mission cache is required.
 If route planning is unavailable, Navigator falls back to the direct destination selection of `RTL_TYPE=3`.
+Firmware built without route planning shows a pre-arm warning when `RTL_TYPE=7` is set.
 This can leave the mission corridor and change the destination; see the [fallback conditions](../concept/mission_route_planning.md#route-following-fallback).
 After a fixed-wing system failure, VTOL vehicles keep the selected route in multicopter mode and skip front transitions while the failure is latched.
 Route-following legs do not use geofence avoidance.
