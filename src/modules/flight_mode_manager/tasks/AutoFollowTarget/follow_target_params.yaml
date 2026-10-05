@@ -49,14 +49,14 @@ parameters:
           Maintain altitude or track target's altitude. When maintaining the altitude,
           the drone can crash into terrain when the target moves uphill. When tracking
           the target's altitude, the follow altitude FLW_TGT_HT should be high enough
-          to prevent terrain collisions due to GPS inaccuracies of the target.
+          to prevent terrain collisions due to GNSS inaccuracies of the target.
       type: enum
       values:
         0: '2D Tracking: Maintain constant altitude relative to home and track XY
           position only'
         1: '2D + Terrain: Maintain constant altitude relative to terrain below and
           track XY position'
-        2: '3D Tracking: Track target''s altitude (be aware that GPS altitude bias
+        2: '3D Tracking: Track target''s altitude (be aware that GNSS altitude bias
           usually makes this useless)'
       default: 0
     FLW_TGT_MAX_VEL:

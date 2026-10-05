@@ -132,7 +132,7 @@ parameters:
       description:
         short: Bias random-walk process noise
         long: |-
-          Process-noise spectral density of the GPS/vision bias random walk. The
+          Process-noise spectral density of the GNSS/vision bias random walk. The
           1-sigma expected bias change over a time t is sqrt(VTE_BIAS_UNC * t) (e.g.
           for the 0.001 default, ~3 cm after 1 s, ~10 cm after 10 s, ~32 cm after
           100 s).
@@ -174,9 +174,9 @@ parameters:
       decimal: 3
     VTE_BIA_UNC_IN:
       description:
-        short: Initial GPS bias uncertainty
+        short: Initial GNSS bias uncertainty
         long: |-
-          Initial variance of the bias between the GPS on the target and the GPS on the drone.
+          Initial variance of the bias between the GNSS receiver on the target and the GNSS receiver on the drone.
           Changes while the estimator is running are picked up immediately by the module but only take effect
           the next time the estimator initializes or resets.
           Once the filter is running, the steady-state bias variance is governed by VTE_BIAS_UNC
@@ -264,9 +264,9 @@ parameters:
       decimal: 3
     VTE_GPS_V_NOISE:
       description:
-        short: Minimum standard deviation for GPS velocity observations
+        short: Minimum standard deviation for GNSS velocity observations
         long: |-
-          Lower bound on the standard deviation used when fusing GPS velocity. The
+          Lower bound on the standard deviation used when fusing GNSS velocity. The
           estimator squares this value and clamps the per-sample observation variance
           to max(reported_variance, VTE_GPS_V_NOISE^2). The floor only takes effect when
           the sensor under-reports its own noise; if the reported variance is already
@@ -279,9 +279,9 @@ parameters:
       decimal: 2
     VTE_GPS_P_NOISE:
       description:
-        short: Minimum standard deviation for GPS position observations
+        short: Minimum standard deviation for GNSS position observations
         long: |-
-          Lower bound on the standard deviation used when fusing GPS position (target or
+          Lower bound on the standard deviation used when fusing GNSS position (target or
           mission landing waypoint). The estimator squares this value and clamps the
           per-sample observation variance to max(reported_variance, VTE_GPS_P_NOISE^2).
           The floor only takes effect when the sensor under-reports its own noise.

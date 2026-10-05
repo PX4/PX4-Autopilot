@@ -633,7 +633,7 @@ uint64_t VehicleGnss::resolveSampleTimestamp(uint64_t driver_timestamp_sample, u
 
 void VehicleGnss::PrintStatus()
 {
-	PX4_INFO_RAW("[vehicle_gnss] selected GPS: %d\n", _gnss_selector.getSelectedInstance());
+	PX4_INFO_RAW("[vehicle_gnss] selected GNSS receiver: %d\n", _gnss_selector.getSelectedInstance());
 }
 
 }; // namespace sensors
