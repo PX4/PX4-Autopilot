@@ -6,7 +6,7 @@ PX4 supports Global Navigation Satellite Systems (GNSS) such as GPS, GLONASS, Ga
 Up to two GPS modules can be connected using either a UART or the CAN bus:
 
 - A primary [GNSS module](../gps_compass/#supported-gnss) that usually also includes a [compass/magnetometer](../gps_compass/magnetometer.md), [buzzer](../getting_started/px4_basic_concepts.md#buzzer), [safety switch](../getting_started/px4_basic_concepts.md#safety-switch), and [UI LED](../getting_started/led_meanings.md#ui-led).
-- An optional secondary GNSS/compass module that is used as a fallback.
+- An optional secondary GNSS/compass module; PX4 [selects](#multiple-receivers) which receiver it uses.
   This may include a buzzer, safety switch, LEDs, but these are not used by PX4.
 
 ![GPS + Compass](../../assets/hardware/gps/gps_compass.jpg)
@@ -157,14 +157,57 @@ The following steps show how to configure a secondary GPS on the `GPS 2` port in
 
    ![QGC Serial Baudrate Example](../../assets/peripherals/qgc_serial_baudrate_example.png)
 
-After setting up the second GPS port:
-
-1. Configure the ECL/EKF2 estimator to blend data from both GPS systems.
-   For detailed instructions see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
+PX4 then [selects](#multiple-receivers) one of the two receivers.
 
 ### DroneCAN GNSS Configuration
 
 [DroneCAN](../dronecan/index.md#supported-hardware) GNSS configuration is covered in the linked document (and in the documentation for specific modules).
+
+### Multiple Receivers
+
+With two receivers, the sensors module [checks each one](../advanced_config/tuning_the_ecl_ekf.md#gnss-performance-requirements) and passes one of them to EKF2.
+[SENS_GNSS_PRIME] sets the primary receiver:
+
+| SENS_GNSS_PRIME      | Primary receiver                                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `-1`: Auto (default) | The moving base of a moving base pair ([SENS_GNSSn_HDG] of the other receiver is `Moving base rover`), otherwise none |
+| `0`, `1`             | The main or secondary serial receiver                                                                                 |
+| `2` to `127`         | The DroneCAN receiver with this node ID                                                                               |
+
+- While disarmed, the primary receiver is selected whenever it publishes, even while it fails its checks.
+- While armed, the primary receiver is kept whatever the other one reports, until it fails.
+  A primary receiver that was not selected yet, for example because it started publishing after arming, is selected once it has been usable for 10 s.
+- Without a primary receiver, the selection moves to a receiver that meets the accuracy requirements when the selected one doesn't, or that meets them with an RTK fixed solution when the selected one doesn't have one.
+  The requirements are [GNSS_REQ_FIX], [GNSS_REQ_EPH], [GNSS_REQ_EPV] and [GNSS_REQ_SACC], where enabled in [GNSS_CHECK], and apply in flight too.
+  The other receiver must keep its advantage for 10 s while armed, or 2 s while disarmed.
+- A receiver has failed after 2 s without a usable sample: failed checks, no data, or an update rate below a third of its usual rate.
+  Any usable receiver replaces it.
+- Intermittent failures lower a receiver's availability, the fraction of the last 10 s or so in which it was usable (`sensors_status_gnss.availability`).
+  A receiver whose availability is 0.2 below that of another usable receiver is replaced by it.
+- While armed, a receiver that was replaced because it failed is selected again only when the selected one fails.
+
+Each switch [resets the EKF2 position](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers) to the new receiver and raises an event such as `Switched from GPS 0 to GPS 1: Previous receiver stopped publishing`, a warning when the previous receiver failed.
+`listener vehicle_gnss` shows the selected receiver (`selected_instance`) and the reason (`selection_reason`).
+Before arming, a configured primary receiver that is not publishing raises the warning `Primary GPS offline`; a missing receiver blocks arming only when [SYS_HAS_NUM_GNSS] counts it.
+
+`GPS_RAW_INT` streams the primary receiver, or without one the first receiver to publish, and `GPS2_RAW` the other one.
+Neither follows the selection.
+A primary receiver that never publishes leaves `GPS_RAW_INT` empty.
+
+The per-receiver settings `SENS_GNSS0_*` and `SENS_GNSS1_*` (antenna offsets, delay, heading) apply to the receiver whose device ID is in [SENS_GNSSn_ID] (`device_id` in `listener sensor_gnss`).
+With both IDs at 0, `SENS_GNSSn_*` applies to `sensor_gnss` instance `n`, which only serial receivers keep from boot to boot.
+
+<!-- links used above -->
+
+[SENS_GNSS_PRIME]: ../advanced_config/parameter_reference.md#SENS_GNSS_PRIME
+[SENS_GNSSn_HDG]: ../advanced_config/parameter_reference.md#SENS_GNSS0_HDG
+[SENS_GNSSn_ID]: ../advanced_config/parameter_reference.md#SENS_GNSS0_ID
+[GNSS_CHECK]: ../advanced_config/parameter_reference.md#GNSS_CHECK
+[GNSS_REQ_FIX]: ../advanced_config/parameter_reference.md#GNSS_REQ_FIX
+[GNSS_REQ_EPH]: ../advanced_config/parameter_reference.md#GNSS_REQ_EPH
+[GNSS_REQ_EPV]: ../advanced_config/parameter_reference.md#GNSS_REQ_EPV
+[GNSS_REQ_SACC]: ../advanced_config/parameter_reference.md#GNSS_REQ_SACC
+[SYS_HAS_NUM_GNSS]: ../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS
 
 ### Configuring GPS as Yaw/Heading Source
 
