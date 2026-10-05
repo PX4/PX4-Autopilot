@@ -1187,7 +1187,7 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
 	device_id.devid_s.bus = 1;
 	device_id.devid_s.address = msg->sysid;
-	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	device_id.devid_s.devtype = DRV_GNSS_DEVTYPE_SIM;
 
 	gnss.device_id = device_id.devid;
 

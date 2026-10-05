@@ -65,7 +65,7 @@ public:
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 
-		_sensor_simulator.startGps();
+		_sensor_simulator.startGnss();
 
 		_sensor_simulator._rng.setData(1.f, 100);
 		_sensor_simulator._rng.setLimits(0.1f, 9.f);
@@ -88,26 +88,26 @@ public:
 TEST_F(EkfHeightFusionTest, noAiding)
 {
 	EXPECT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingRangeHeightFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 }
 
 TEST_F(EkfHeightFusionTest, baroRef)
 {
-	// GIVEN: baro reference with GPS and range height fusion
+	// GIVEN: baro reference with GNSS and range height fusion
 	_ekf_wrapper.setBaroHeightRef();
 	_ekf_wrapper.enableBaroHeightFusion();
 	_sensor_simulator.runSeconds(0.1);
 
-	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 	_ekf_wrapper.enableRangeHeightFusion();
 	/* _ekf_wrapper.enableExternalVisionHeightFusion(); */ //TODO: this currently sets the reference to EV
 	_sensor_simulator.runSeconds(1);
 
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 
@@ -122,8 +122,8 @@ TEST_F(EkfHeightFusionTest, baroRef)
 	const BiasEstimator::status &baro_status = _ekf->getBaroBiasEstimatorStatus();
 	/* EXPECT_EQ(status.bias, _sensor_simulator._baro.getData()); */ // This is the real bias, but the estimator isn't running so the status isn't updated
 	EXPECT_EQ(baro_status.bias, 0.f);
-	const BiasEstimator::status &gps_status = _ekf->getGpsHgtBiasEstimatorStatus();
-	EXPECT_NEAR(gps_status.bias, _sensor_simulator._gps.getData().alt - _sensor_simulator._baro.getData(), 0.2f);
+	const BiasEstimator::status &gnss_status = _ekf->getGnssHgtBiasEstimatorStatus();
+	EXPECT_NEAR(gnss_status.bias, _sensor_simulator._gnss.getData().alt - _sensor_simulator._baro.getData(), 0.2f);
 
 	const float terrain = _ekf->getTerrainVertPos();
 	EXPECT_NEAR(terrain, -baro_increment, 1.2f);
@@ -135,45 +135,45 @@ TEST_F(EkfHeightFusionTest, baroRef)
 	_sensor_simulator._baro.setData(_sensor_simulator._baro.getData() + 200.f);
 	_sensor_simulator.runSeconds(10);
 
-	// THEN: the baro is stopped and the GPS takes the role of the height reference
+	// THEN: the baro is stopped and the GNSS takes the role of the height reference
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
 	EXPECT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 
-	// AND WHEN: the gps height increases
-	const float gps_increment = 1.f;
-	_sensor_simulator._gps.stepHeightByMeters(gps_increment);
+	// AND WHEN: the gnss height increases
+	const float gnss_increment = 1.f;
+	_sensor_simulator._gnss.stepHeightByMeters(gnss_increment);
 	_sensor_simulator.runSeconds(60);
 
-	// THEN: the GPS bias stays constant
-	EXPECT_EQ(gps_status.bias, _ekf->getGpsHgtBiasEstimatorStatus().bias);
-	// the estimated height follows the GPS height
-	EXPECT_NEAR(_ekf->getPosition()(2), -(baro_increment + gps_increment), 0.3f);
+	// THEN: the GNSS bias stays constant
+	EXPECT_EQ(gnss_status.bias, _ekf->getGnssHgtBiasEstimatorStatus().bias);
+	// the estimated height follows the GNSS height
+	EXPECT_NEAR(_ekf->getPosition()(2), -(baro_increment + gnss_increment), 0.3f);
 	// and the range finder bias is adjusted to follow the new reference
 	const float terrain2 = _ekf->getTerrainVertPos();
-	EXPECT_NEAR(terrain2, -(baro_increment + gps_increment), 1.3f);
+	EXPECT_NEAR(terrain2, -(baro_increment + gnss_increment), 1.3f);
 }
 
-TEST_F(EkfHeightFusionTest, gpsRef)
+TEST_F(EkfHeightFusionTest, gnssRef)
 {
-	// GIVEN: GPS reference, baro and range height fusion
-	_ekf_wrapper.setGpsHeightRef();
+	// GIVEN: GNSS reference, baro and range height fusion
+	_ekf_wrapper.setGnssHeightRef();
 	_ekf_wrapper.enableBaroHeightFusion();
-	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 	_ekf_wrapper.enableRangeHeightFusion();
 	_sensor_simulator.runSeconds(1);
 
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 
 	const float baro_initial = _sensor_simulator._baro.getData();
 
 	const BiasEstimator::status &baro_status_initial = _ekf->getBaroBiasEstimatorStatus();
-	const float baro_rel_initial = baro_initial - _sensor_simulator._gps.getData().alt;
+	const float baro_rel_initial = baro_initial - _sensor_simulator._gnss.getData().alt;
 	EXPECT_NEAR(baro_status_initial.bias, baro_rel_initial, 0.6f);
 
 	// AND WHEN: the baro data increases
@@ -182,7 +182,7 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	_sensor_simulator.runSeconds(100);
 
 	// THEN: the height estimate is temporarily biased but then converges back to
-	// the GPS height value and the baro gets its bias estimated
+	// the GNSS height value and the baro gets its bias estimated
 	EXPECT_NEAR(_ekf->getPosition()(2), 0.f, 1.f);
 	const BiasEstimator::status &baro_status = _ekf->getBaroBiasEstimatorStatus();
 	EXPECT_NEAR(baro_status.bias, baro_rel_initial + baro_increment, 1.3f);
@@ -190,136 +190,136 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	const float terrain = _ekf->getTerrainVertPos();
 	EXPECT_NEAR(terrain, 0.f, 1.1f); // TODO: why?
 
-	// BUT WHEN: the GPS jumps by a lot
-	const float gps_step = 100.f;
-	_sensor_simulator._gps.stepHeightByMeters(gps_step);
+	// BUT WHEN: the GNSS jumps by a lot
+	const float gnss_step = 100.f;
+	_sensor_simulator._gnss.stepHeightByMeters(gnss_step);
 	_sensor_simulator.runSeconds(10);
 
-	// THEN: the height is reset to the new GPS altitude and all the bias estimates are updated accordingly
-	EXPECT_NEAR(_ekf->getPosition()(2), -gps_step, 1.f);
+	// THEN: the height is reset to the new GNSS altitude and all the bias estimates are updated accordingly
+	EXPECT_NEAR(_ekf->getPosition()(2), -gnss_step, 1.f);
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
-	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_rel_initial + baro_increment - gps_step, 0.2f);
+	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_rel_initial + baro_increment - gnss_step, 0.2f);
 
 	// and the innovations are close to zero
 	EXPECT_NEAR(_ekf->aid_src_baro_hgt().innovation, 0.f, 0.2f);
 	EXPECT_NEAR(_ekf->aid_src_rng_hgt().innovation, 0.f, 0.2f);
 }
 
-TEST_F(EkfHeightFusionTest, gpsHeightFusionStopsWhenGpsNotEnabled)
+TEST_F(EkfHeightFusionTest, gnssHeightFusionStopsWhenGnssNotEnabled)
 {
-	// GIVEN: GPS reference with GPS height fusion active
-	_ekf_wrapper.setGpsHeightRef();
-	_ekf_wrapper.enableGpsHeightFusion();
+	// GIVEN: GNSS reference with GNSS height fusion active
+	_ekf_wrapper.setGnssHeightRef();
+	_ekf_wrapper.enableGnssHeightFusion();
 	_sensor_simulator.runSeconds(1);
 
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 
-	// WHEN: GPS is no longer intended at runtime without a new GNSS sample
-	_sensor_simulator.stopGps();
-	_ekf_wrapper.setGpsEnabled(false);
+	// WHEN: GNSS is no longer intended at runtime without a new GNSS sample
+	_sensor_simulator.stopGnss();
+	_ekf_wrapper.setGnssEnabled(false);
 	_sensor_simulator.runSeconds(0.1);
 
-	// THEN: GPS height fusion stops and does not restart while GPS is disabled
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	// THEN: GNSS height fusion stops and does not restart while GNSS is disabled
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	_sensor_simulator.runSeconds(0.1);
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 
-	// AND WHEN: GPS is intended again
-	_sensor_simulator.startGps();
-	_ekf_wrapper.setGpsEnabled(true);
+	// AND WHEN: GNSS is intended again
+	_sensor_simulator.startGnss();
+	_ekf_wrapper.setGnssEnabled(true);
 	_sensor_simulator.runSeconds(10);
 
-	// THEN: GPS height fusion can restart
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	// THEN: GNSS height fusion can restart
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 }
 
-TEST_F(EkfHeightFusionTest, gpsHeightFusionContinuesThroughHorizontalStop)
+TEST_F(EkfHeightFusionTest, gnssHeightFusionContinuesThroughHorizontalStop)
 {
 	// GIVEN: GNSS height and horizontal fusion active
-	_ekf_wrapper.setGpsHeightRef();
-	_ekf_wrapper.enableGpsHeightFusion();
-	_ekf_wrapper.enableGpsFusion();
+	_ekf_wrapper.setGnssHeightRef();
+	_ekf_wrapper.enableGnssHeightFusion();
+	_ekf_wrapper.enableGnssFusion();
 	_sensor_simulator.runSeconds(1);
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 
 	// WHEN: horizontal GNSS fusion stops while the GNSS checks keep passing
-	_ekf_wrapper.disableGpsFusion();
+	_ekf_wrapper.disableGnssFusion();
 	const uint64_t time_stopped = _sensor_simulator.getTime();
 	_sensor_simulator.runSeconds(0.5);
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssFusion());
 
 	// THEN: height fusion continues, both during the horizontal restart hold-off (1 s) and after it
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_GT(_ekf->aid_src_gnss_hgt().time_last_fuse, time_stopped);
 	_sensor_simulator.runSeconds(1.5);
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 }
 
-TEST_F(EkfHeightFusionTest, gpsRefNoAltFusion)
+TEST_F(EkfHeightFusionTest, gnssRefNoAltFusion)
 {
 	// GIVEN: GNSS alt reference but not selected as an aiding source
-	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.setGnssHeightRef();
 	_ekf_wrapper.enableBaroHeightFusion();
-	_ekf_wrapper.disableGpsHeightFusion();
+	_ekf_wrapper.disableGnssHeightFusion();
 	_ekf_wrapper.enableRangeHeightFusion();
 	_sensor_simulator.runSeconds(1);
 
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO); // Fallback to baro as GNSS alt is disabled
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 
 	// THEN: the altitude estimate is initialised using GNSS altitude
-	EXPECT_NEAR(_ekf->getLatLonAlt().altitude(), _sensor_simulator._gps.getData().alt, 1.f);
+	EXPECT_NEAR(_ekf->getLatLonAlt().altitude(), _sensor_simulator._gnss.getData().alt, 1.f);
 	// We cannot check the value of the bias estimate as the status is only updatad when the bias estimator is
 	// active. Since the estimator had a baro fallback, the baro bias estimate is not actively updated.
-	// EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, _sensor_simulator._baro.getData() - _sensor_simulator._gps.getData().alt, 0.2f);
+	// EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, _sensor_simulator._baro.getData() - _sensor_simulator._gnss.getData().alt, 0.2f);
 }
 
-TEST_F(EkfHeightFusionTest, gpsRefDeadReckoningStopRestart)
+TEST_F(EkfHeightFusionTest, gnssRefDeadReckoningStopRestart)
 {
 	// GIVEN: GNSS altitude as the configured height reference, dead-reckoning
 	// GNSS mode, fusing both GNSS and baro height
-	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.setGnssHeightRef();
 	_ekf_wrapper.setGnssDeadReckonMode();
 	_ekf_wrapper.enableBaroHeightFusion();
-	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 	_sensor_simulator.runSeconds(10);
 
 	// THEN: GNSS is the reference and the baro bias is estimated against it
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 
-	const float baro_rel = _sensor_simulator._baro.getData() - _sensor_simulator._gps.getData().alt;
+	const float baro_rel = _sensor_simulator._baro.getData() - _sensor_simulator._gnss.getData().alt;
 	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_rel, 0.6f);
 
 	// WHEN: GNSS height fusion stops (no more data)
-	_sensor_simulator.stopGps();
+	_sensor_simulator.stopGnss();
 	_sensor_simulator.runSeconds(10);
 
 	// THEN: the reference falls back to baro (checkHeightSensorRefFallback) and,
 	// since baro is now the reference, the baro bias estimator goes inactive
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 
 	// WHEN: GNSS data comes back (consistent with the current estimate, so
 	// fusion can start without a reset)
-	_sensor_simulator.startGps();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(10);
 
 	// THEN: GNSS height fusion restarts and, since it could start without a
 	// reset, GNSS regains the height reference privilege
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
 
 	// AND: the baro bias estimator becomes active again and tracks the
@@ -327,39 +327,39 @@ TEST_F(EkfHeightFusionTest, gpsRefDeadReckoningStopRestart)
 	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_rel, 0.6f);
 }
 
-TEST_F(EkfHeightFusionTest, gpsRefDeadReckoningStopRestartInconsistent)
+TEST_F(EkfHeightFusionTest, gnssRefDeadReckoningStopRestartInconsistent)
 {
 	// GIVEN: GNSS altitude as the configured height reference, dead-reckoning
 	// GNSS mode, fusing both GNSS and baro height
-	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.setGnssHeightRef();
 	_ekf_wrapper.setGnssDeadReckonMode();
 	_ekf_wrapper.enableBaroHeightFusion();
-	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 	_sensor_simulator.runSeconds(10);
 
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 
 	// WHEN: GNSS height fusion stops (no more data)
-	_sensor_simulator.stopGps();
+	_sensor_simulator.stopGnss();
 	_sensor_simulator.runSeconds(10);
 
 	// THEN: the reference falls back to baro
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	const float frozen_baro_bias = _ekf->getBaroBiasEstimatorStatus().bias;
 
 	// WHEN: GNSS data comes back but disagrees strongly with the (baro-defined)
 	// estimate, so its innovation is rejected and fusion cannot start cleanly
-	_sensor_simulator._gps.stepHeightByMeters(50.f);
-	_sensor_simulator.startGps();
+	_sensor_simulator._gnss.stepHeightByMeters(50.f);
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(10);
 
 	// THEN: because a reset to GNSS is not allowed in dead-reckoning mode while
 	// baro is still aiding, and the measurement cannot be fused without a reset,
 	// GNSS height fusion does NOT restart and baro remains the reference
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
 
 	// AND: the baro bias estimator stays inactive, so its reported bias is frozen
@@ -368,10 +368,10 @@ TEST_F(EkfHeightFusionTest, gpsRefDeadReckoningStopRestartInconsistent)
 
 TEST_F(EkfHeightFusionTest, baroRefFailOver)
 {
-	// GIVEN: baro reference with GPS and range height fusion
+	// GIVEN: baro reference with GNSS and range height fusion
 	_ekf_wrapper.setBaroHeightRef();
 	_ekf_wrapper.enableBaroHeightFusion();
-	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 	_ekf_wrapper.enableRangeHeightFusion();
 
 	_sensor_simulator.runSeconds(0.1);
@@ -382,7 +382,7 @@ TEST_F(EkfHeightFusionTest, baroRefFailOver)
 	_sensor_simulator.runSeconds(10);
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
 
-	_sensor_simulator.stopGps();
+	_sensor_simulator.stopGnss();
 	_sensor_simulator.runSeconds(10);
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::RANGE);
 
@@ -391,18 +391,18 @@ TEST_F(EkfHeightFusionTest, baroRefFailOver)
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::UNKNOWN);
 }
 
-TEST_F(EkfHeightFusionTest, gpsRefFailOver)
+TEST_F(EkfHeightFusionTest, gnssRefFailOver)
 {
-	// GIVEN: baro reference with GPS and range height fusion
+	// GIVEN: baro reference with GNSS and range height fusion
 	_sensor_simulator.startBaro();
-	_sensor_simulator.startGps();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.startRangeFinder();
-	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.setGnssHeightRef();
 	_ekf_wrapper.enableBaroHeightFusion();
-	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 	_ekf_wrapper.enableRangeHeightFusion();
 
-	// The GPS takes time to start, use baro at first
+	// The GNSS takes time to start, use baro at first
 	_sensor_simulator.runSeconds(0.1);
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
 
@@ -411,7 +411,7 @@ TEST_F(EkfHeightFusionTest, gpsRefFailOver)
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
 
 	// And switch to the fallback sources once the current reference fails
-	_sensor_simulator.stopGps();
+	_sensor_simulator.stopGnss();
 	_sensor_simulator.runSeconds(10);
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
 
@@ -424,17 +424,17 @@ TEST_F(EkfHeightFusionTest, gpsRefFailOver)
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::UNKNOWN);
 }
 
-TEST_F(EkfHeightFusionTest, gpsRefAllHgtFailReset)
+TEST_F(EkfHeightFusionTest, gnssRefAllHgtFailReset)
 {
 	// GIVEN: EKF that fuses GNSS (reference) and baro
 	_sensor_simulator.startBaro();
-	_sensor_simulator.startGps();
-	_ekf_wrapper.setGpsHeightRef();
+	_sensor_simulator.startGnss();
+	_ekf_wrapper.setGnssHeightRef();
 	_ekf_wrapper.enableBaroHeightFusion();
-	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 
 	_sensor_simulator.runSeconds(11);
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
 
@@ -445,7 +445,7 @@ TEST_F(EkfHeightFusionTest, gpsRefAllHgtFailReset)
 
 	// WHEN:
 	const float gnss_height_step = 10.f;
-	_sensor_simulator._gps.stepHeightByMeters(gnss_height_step);
+	_sensor_simulator._gnss.stepHeightByMeters(gnss_height_step);
 
 	const float baro_height_step = 5.f;
 	_sensor_simulator._baro.setData(_sensor_simulator._baro.getData() + baro_height_step);
@@ -453,7 +453,7 @@ TEST_F(EkfHeightFusionTest, gpsRefAllHgtFailReset)
 
 	// THEN: then the fusion of both sensors starts to fail and the height is reset to the
 	// reference sensor (GNSS)
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 
 	const Vector3f new_position = _ekf->getPosition();
@@ -469,13 +469,13 @@ TEST_F(EkfHeightFusionTest, baroRefAllHgtFailReset)
 {
 	// GIVEN: EKF that fuses GNSS and baro (reference)
 	_sensor_simulator.startBaro();
-	_sensor_simulator.startGps();
+	_sensor_simulator.startGnss();
 	_ekf_wrapper.setBaroHeightRef();
 	_ekf_wrapper.enableBaroHeightFusion();
-	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 
 	_sensor_simulator.runSeconds(11);
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
 
@@ -486,7 +486,7 @@ TEST_F(EkfHeightFusionTest, baroRefAllHgtFailReset)
 
 	// WHEN:
 	const float gnss_height_step = 10.f;
-	_sensor_simulator._gps.stepHeightByMeters(gnss_height_step);
+	_sensor_simulator._gnss.stepHeightByMeters(gnss_height_step);
 
 	const float baro_height_step = 5.f;
 	_sensor_simulator._baro.setData(_sensor_simulator._baro.getData() + baro_height_step);
@@ -494,7 +494,7 @@ TEST_F(EkfHeightFusionTest, baroRefAllHgtFailReset)
 
 	// THEN: then the fusion of both sensors starts to fail and the height is reset to the
 	// reference sensor (baro)
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 
 	const Vector3f new_position = _ekf->getPosition();
@@ -521,7 +521,7 @@ TEST_F(EkfHeightFusionTest, rngRefOnlyHeightSource)
 
 	ASSERT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 	ASSERT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	ASSERT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	ASSERT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 	ASSERT_EQ(_ekf->getNumberOfActiveVerticalPositionAidingSources(), 1);
 	ASSERT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::RANGE);
@@ -556,7 +556,7 @@ TEST_F(EkfHeightFusionTest, rngRefWithBaroControl)
 
 	ASSERT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 	ASSERT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	ASSERT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	ASSERT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 	ASSERT_EQ(_ekf->getNumberOfActiveVerticalPositionAidingSources(), 2);
 	ASSERT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::RANGE);
@@ -590,7 +590,7 @@ TEST_F(EkfHeightFusionTest, rngKeepsBaroFaultDetectionAlive)
 
 	ASSERT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 	ASSERT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
-	ASSERT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	ASSERT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 	ASSERT_FALSE(_ekf->control_status_flags().baro_fault);
 
@@ -643,11 +643,11 @@ TEST_F(EkfHeightFusionTest, rngTerrainOnlyIsNotAHeightSource)
 TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 {
 	_sensor_simulator.startBaro();
-	_sensor_simulator.startGps();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.startRangeFinder();
-	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.setGnssHeightRef();
 	_ekf_wrapper.enableBaroHeightFusion();
-	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 	_ekf_wrapper.enableRangeHeightFusion();
 	_sensor_simulator.runSeconds(10);
 

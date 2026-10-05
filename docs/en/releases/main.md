@@ -48,6 +48,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them.
   The log analysis scripts in the tree read both the old and the new names.
   The uORB-over-Cyphal registers are renamed from `uorb.sensor_gps` to `uorb.sensor_gnss` (`uavcan.sub.uorb.sensor_gnss.0.id`, `uavcan.pub.uorb.sensor_gnss.0.id`); `UCAN1_UORB_GPS` and `UCAN1_UORB_GPS_P` are unchanged. ([PX4-Autopilot#24399](https://github.com/PX4/PX4-Autopilot/pull/24399))
+- **The `sensor_gps_sim` and `fake_gps` modules are renamed to `sensor_gnss_sim` and `fake_gnss`**, and their board options to `CONFIG_MODULES_SIMULATION_SENSOR_GNSS_SIM` and `CONFIG_EXAMPLES_FAKE_GNSS`.
+  Update custom startup scripts that start them and out-of-tree board configurations that enable them; an old board option is ignored and the module is left out of the build.
+  Parameters, uORB topics and fields, event names and the `gps` driver keep their names. ([PX4-Autopilot#28957](https://github.com/PX4/PX4-Autopilot/pull/28957))
 - **GNSS blending is removed.** `SENS_GPS_MASK` and `SENS_GPS_TAU` no longer exist: EKF2 fuses one [selected receiver](../gps_compass/index.md#multiple-receivers). ([PX4-Autopilot#28921](https://github.com/PX4/PX4-Autopilot/pull/28921))
 - **The GNSS quality checks moved from EKF2 to the sensors module**, which runs them for every receiver.
   `EKF2_GPS_CHECK` and `EKF2_REQ_EPH/EPV/NSATS/PDOP/HDRIFT/VDRIFT/FIX` are now [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and [`GNSS_REQ_*`](../advanced_config/tuning_the_ecl_ekf.md#gnss-performance-requirements), and saved values are migrated.

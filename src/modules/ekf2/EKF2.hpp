@@ -416,8 +416,8 @@ private:
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	enum SensEn : uint16_t {
-		GPS0   = 1 << 0,
-		GPS1   = 1 << 1,
+		GNSS0   = 1 << 0,
+		GNSS1   = 1 << 1,
 		OF     = 1 << 2,
 		EV     = 1 << 3,
 		AGP0   = 1 << 4,

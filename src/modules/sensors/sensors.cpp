@@ -117,9 +117,9 @@ Sensors::~Sensors()
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 
-	if (_vehicle_gps_position) {
-		_vehicle_gps_position->Stop();
-		delete _vehicle_gps_position;
+	if (_vehicle_gnss) {
+		_vehicle_gnss->Stop();
+		delete _vehicle_gnss;
 	}
 
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
@@ -248,7 +248,7 @@ int Sensors::parameters_update()
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-	InitializeVehicleGPSPosition();
+	InitializeVehicleGnss();
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
@@ -418,14 +418,14 @@ void Sensors::InitializeVehicleAirData()
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-void Sensors::InitializeVehicleGPSPosition()
+void Sensors::InitializeVehicleGnss()
 {
 	if (_param_sys_has_gps.get()) {
-		if (_vehicle_gps_position == nullptr) {
-			_vehicle_gps_position = new VehicleGPSPosition();
+		if (_vehicle_gnss == nullptr) {
+			_vehicle_gnss = new VehicleGnss();
 
-			if (_vehicle_gps_position) {
-				_vehicle_gps_position->Start();
+			if (_vehicle_gnss) {
+				_vehicle_gnss->Start();
 			}
 		}
 	}
@@ -719,9 +719,9 @@ int Sensors::print_status()
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 
-	if (_vehicle_gps_position) {
+	if (_vehicle_gnss) {
 		PX4_INFO_RAW("\n");
-		_vehicle_gps_position->PrintStatus();
+		_vehicle_gnss->PrintStatus();
 	}
 
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION

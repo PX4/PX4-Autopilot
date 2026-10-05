@@ -172,7 +172,7 @@ void UavcanRemoteIDController::send_location()
 			if (vehicle_gnss.receiver.vel_ned_valid) {
 				const matrix::Vector3f vel_ned{vehicle_gnss.receiver.vel_north, vehicle_gnss.receiver.vel_east, vehicle_gnss.receiver.vel_down};
 
-				// direction: calculate GPS course over ground angle
+				// direction: calculate GNSS course over ground angle
 				const float course = atan2f(vel_ned(1), vel_ned(0));
 				const int course_deg = roundf(math::degrees(matrix::wrap_2pi(course)));
 				msg.direction = math::constrain(100 * course_deg, 0, 35999); // 0 - 35999 centi-degrees

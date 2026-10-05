@@ -46,22 +46,22 @@ bool EkfWrapper::isIntendingBaroHeightFusion() const
 	return _ekf->control_status_flags().baro_hgt;
 }
 
-void EkfWrapper::setGpsHeightRef()
+void EkfWrapper::setGnssHeightRef()
 {
 	_ekf_params->ekf2_hgt_ref = static_cast<int32_t>(HeightSensor::GNSS);
 }
 
-void EkfWrapper::enableGpsHeightFusion()
+void EkfWrapper::enableGnssHeightFusion()
 {
 	_ekf_params->ekf2_gps_ctrl |= static_cast<int32_t>(GnssCtrl::VPOS);
 }
 
-void EkfWrapper::disableGpsHeightFusion()
+void EkfWrapper::disableGnssHeightFusion()
 {
 	_ekf_params->ekf2_gps_ctrl &= ~static_cast<int32_t>(GnssCtrl::VPOS);
 }
 
-bool EkfWrapper::isIntendingGpsHeightFusion() const
+bool EkfWrapper::isIntendingGnssHeightFusion() const
 {
 	return _ekf->control_status_flags().gps_hgt;
 }
@@ -128,22 +128,22 @@ bool EkfWrapper::isIntendingAirspeedFusion() const
 	return _ekf->control_status_flags().fuse_aspd;
 }
 
-void EkfWrapper::enableGpsFusion()
+void EkfWrapper::enableGnssFusion()
 {
 	_ekf_params->ekf2_gps_ctrl |= static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL);
 }
 
-void EkfWrapper::disableGpsFusion()
+void EkfWrapper::disableGnssFusion()
 {
 	_ekf_params->ekf2_gps_ctrl &= ~(static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL));
 }
 
-void EkfWrapper::setGpsEnabled(bool enabled)
+void EkfWrapper::setGnssEnabled(bool enabled)
 {
 	_fc->gps.enabled = enabled;
 }
 
-bool EkfWrapper::isIntendingGpsFusion() const
+bool EkfWrapper::isIntendingGnssFusion() const
 {
 	return _ekf->control_status_flags().gnss_vel || _ekf->control_status_flags().gnss_pos;
 }
@@ -158,17 +158,17 @@ void EkfWrapper::setGnssDeadReckonMode()
 	_ekf_params->ekf2_gps_mode = static_cast<int32_t>(GnssMode::kDeadReckoning);
 }
 
-void EkfWrapper::enableGpsHeadingFusion()
+void EkfWrapper::enableGnssHeadingFusion()
 {
 	_ekf_params->ekf2_gps_ctrl |= static_cast<int32_t>(GnssCtrl::YAW);
 }
 
-void EkfWrapper::disableGpsHeadingFusion()
+void EkfWrapper::disableGnssHeadingFusion()
 {
 	_ekf_params->ekf2_gps_ctrl &= ~static_cast<int32_t>(GnssCtrl::YAW);
 }
 
-bool EkfWrapper::isIntendingGpsHeadingFusion() const
+bool EkfWrapper::isIntendingGnssHeadingFusion() const
 {
 	return _ekf->control_status_flags().gnss_yaw;
 }

@@ -316,7 +316,7 @@ void Navigator::run()
 			continue;
 		}
 
-		/* gps updated */
+		/* gnss updated */
 		if (_vehicle_gnss_sub.updated()) {
 			_vehicle_gnss_sub.copy(&_vehicle_gnss);
 		}
@@ -1203,15 +1203,15 @@ void Navigator::geofence_breach_check()
 					     && hrt_elapsed_time(&_global_pos.timestamp) < 1_s;
 		bool have_valid_position_for_breach_check = global_position_valid;
 
-		// relying on raw gps is questionable already, but at least take only samples the estimator would fuse
-		const bool raw_gps_valid = hrt_elapsed_time(&_vehicle_gnss.timestamp) < 2_s && _vehicle_gnss.usable;
+		// relying on raw gnss is questionable already, but at least take only samples the estimator would fuse
+		const bool raw_gnss_valid = hrt_elapsed_time(&_vehicle_gnss.timestamp) < 2_s && _vehicle_gnss.usable;
 
-		if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
+		if (_geofence.getSource() == Geofence::GF_SOURCE_GNSS) {
 			current_latitude = _vehicle_gnss.receiver.latitude;
 			current_longitude = _vehicle_gnss.receiver.longitude;
 			current_altitude = _vehicle_gnss.receiver.altitude_msl;
 
-			have_valid_position_for_breach_check = raw_gps_valid;
+			have_valid_position_for_breach_check = raw_gnss_valid;
 		}
 
 		if (!have_valid_position_for_breach_check) {

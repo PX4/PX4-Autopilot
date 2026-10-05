@@ -129,7 +129,7 @@ private:
 	hrt_abstime	_last_lpos_relaxed_fail_time_us{0};	///< Last time that the relaxed local position validity recovery check failed (usec)
 	hrt_abstime	_last_lvel_fail_time_us{0};	///< Last time that the local velocity validity recovery check failed (usec)
 
-	bool _gps_was_fused{false};
+	bool _gnss_was_fused{false};
 	hrt_abstime _last_gnss_fusion_time_us{0};
 
 	// when each GNSS quality check last failed, indexed by its bit in vehicle_gnss.failed_checks

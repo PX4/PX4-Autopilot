@@ -1,0 +1,5 @@
+menuconfig EXAMPLES_FAKE_GNSS
+	bool "fake_gnss"
+	default n
+	---help---
+		Enable support for fake_gnss

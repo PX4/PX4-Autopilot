@@ -162,7 +162,7 @@ void AutopilotTester::set_height_source(AutopilotTester::HeightSource height_sou
 		CHECK(_param->set_param_int("EKF2_HGT_REF", 0) == Param::Result::Success);
 		break;
 
-	case HeightSource::Gps:
+	case HeightSource::Gnss:
 		CHECK(_param->set_param_int("EKF2_HGT_REF", 1) == Param::Result::Success);
 	}
 }
@@ -301,7 +301,7 @@ void AutopilotTester::execute_mission()
 	wait_for_mission_finished(std::chrono::seconds(500));
 }
 
-void AutopilotTester::execute_mission_and_lose_gps()
+void AutopilotTester::execute_mission_and_lose_gnss()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
@@ -695,7 +695,7 @@ void AutopilotTester::fly_forward_in_altctl()
 void AutopilotTester::fly_forward_in_offboard_attitude()
 {
 	// This test does not depend on valid position estimate.
-	// Wait for raw gps & stable attitude estimate
+	// Wait for raw gnss & stable attitude estimate
 	CHECK(poll_condition_with_timeout(
 	[this]() {
 		auto attitude = _telemetry->attitude_euler();

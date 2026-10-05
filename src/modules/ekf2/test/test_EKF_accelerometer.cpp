@@ -130,12 +130,12 @@ TEST_F(EkfAccelerometerTest, imuFallingDetectionBaroOnly)
 TEST_F(EkfAccelerometerTest, imuFallingDetectionBaroGnssVel)
 {
 	// GIVEN: Baro and GNSS velocity fusion
-	_sensor_simulator.startGps();
-	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGnss();
+	_ekf_wrapper.enableGnssFusion();
 	_sensor_simulator.runSeconds(15);
 
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 
 	// AND: an accelerometer with a really large Z bias
 	const float bias = CONSTANTS_ONE_G;
@@ -156,15 +156,15 @@ TEST_F(EkfAccelerometerTest, imuFallingDetectionBaroGnssVel)
 TEST_F(EkfAccelerometerTest, imuFallingDetectionGnssOnly)
 {
 	// GIVEN: GNSS height and velocity fusion
-	_sensor_simulator.startGps();
-	_ekf_wrapper.enableGpsFusion();
-	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.startGnss();
+	_ekf_wrapper.enableGnssFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 	_ekf_wrapper.disableBaroHeightFusion();
 	_sensor_simulator.runSeconds(15);
 
 	EXPECT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 
 	// AND: an accelerometer with a really large Z bias
 	const float bias = CONSTANTS_ONE_G;

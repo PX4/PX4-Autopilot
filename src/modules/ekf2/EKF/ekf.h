@@ -400,14 +400,14 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// set minimum continuous period without GPS fail required to mark a healthy GPS status
-	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
+	// set minimum continuous period without GNSS fail required to mark a healthy GNSS status
+	void set_min_required_gnss_health_time(uint32_t time_us) { _min_gnss_health_time_us = time_us; }
 
-	bool gps_checks_passed() const { return _gnss_usable; };
+	bool gnss_checks_passed() const { return _gnss_usable; };
 
 	GnssFusionState getGnssFusionState() const { return _gnss_fusion_state; }
 
-	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
+	const BiasEstimator::status &getGnssHgtBiasEstimatorStatus() const { return _gnss_hgt_b_est.getStatus(); }
 
 	const auto &aid_src_gnss_hgt() const { return _aid_src_gnss_hgt; }
 	const auto &aid_src_gnss_pos() const { return _aid_src_gnss_pos; }
@@ -609,10 +609,10 @@ private:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	bool _gps_data_ready {false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
+	bool _gnss_data_ready {false};	///< true when new GNSS data has fallen behind the fusion time horizon and is available to be fused
 
 	// height sensor status
-	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
+	bool _gnss_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	uint64_t _time_last_gnss_sample_accepted_us{0}; ///< last delayed-horizon time a GNSS sample was usable and within the velocity limit (us)
 	bool _gnss_usable{false};                   ///< the latest GNSS sample at the fusion time horizon was usable
@@ -622,7 +622,7 @@ private:
 	GnssFusionState _gnss_fusion_state{GnssFusionState::NoData};
 	bool _gnss_sample_accepted{false}; ///< a sample reached the fusion time horizon in this update and was not skipped
 
-	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
+	HeightBiasEstimator _gnss_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 
 	estimator_aid_source1d_s _aid_src_gnss_hgt{};
 	estimator_aid_source2d_s _aid_src_gnss_pos{};
@@ -936,8 +936,8 @@ private:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// control fusion of GPS observations
-	void controlGpsFusion(const imuSample &imu_delayed);
+	// control fusion of GNSS observations
+	void controlGnssFusion(const imuSample &imu_delayed);
 	void controlGnssVelFusion(estimator_aid_source3d_s &aid_src, bool force_reset);
 	void controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool force_reset);
 	void stopGnssFusion();
@@ -959,8 +959,8 @@ private:
 	uint64_t gnssRestartHoldOffUs() const
 	{
 		const bool disarmed_on_ground = !_control_status.flags.armed && !_control_status.flags.in_air;
-		return disarmed_on_ground ? (uint64_t)_min_gps_health_time_us
-		       : math::max((uint64_t)1e6, (uint64_t)(_min_gps_health_time_us / 10));
+		return disarmed_on_ground ? (uint64_t)_min_gnss_health_time_us
+		       : math::max((uint64_t)1e6, (uint64_t)(_min_gnss_health_time_us / 10));
 	}
 
 	bool isGnssRestartHoldOffElapsed() const
@@ -972,18 +972,18 @@ private:
 	void resetVelocityToGnss(estimator_aid_source3d_s &aid_src);
 	void resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src);
 
-	void controlGnssHeightFusion(const gnssSample &gps_sample);
-	void stopGpsHgtFusion();
+	void controlGnssHeightFusion(const gnssSample &gnss_sample);
+	void stopGnssHgtFusion();
 	bool isGnssHgtResetAllowed();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	void controlGnssYawFusion(const imuSample &imu_delayed);
 	void stopGnssYawFusion();
 
-	// fuse the yaw angle obtained from a dual antenna GPS unit
+	// fuse the yaw angle obtained from a dual antenna GNSS receiver
 	void fuseGnssYaw(float antenna_yaw_offset);
 
-	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
+	// reset the quaternions states using the yaw angle obtained from a dual antenna GNSS receiver
 	// return true if the reset was successful
 	bool resetYawToGnss(float gnss_yaw, float gnss_yaw_offset);
 
