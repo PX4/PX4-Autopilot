@@ -47,20 +47,24 @@ using namespace time_literals;
 
 /*
  * Selects the receiver whose samples vehicle_gnss carries; the caller keeps the samples and publishes the selected
- * receiver's. Every switch makes EKF2 reset or restart its GNSS position, so the selection only leaves a receiver that
- * failed, or moves to the preferred one or to a higher ranked one after a hold.
+ * receiver's. Every switch makes EKF2 reset or restart its GNSS position, so short changes in either receiver ride
+ * through a hold before the selection moves.
  *
  * A receiver is usable while its latest sample passed its checks and it delivers samples at its usual rate. It has
  * failed when it had no usable sample for FAIL_TIME_US, which covers a lost fix, sustained check failures, a receiver
  * that stopped publishing and an update rate that collapsed. Intermittent failures are caught by the availability:
- * the fraction of recent time it was usable. While armed, a receiver that was left because it failed is selected again
- * only when the selected one fails, as one that failed is likely to fail again in the same flight.
+ * the fraction of recent time it was usable. A failed receiver is replaced at once. While armed, a receiver that was
+ * left because it failed is selected again only when the selected one fails, as one that failed is likely to fail
+ * again in the same flight.
  *
- * While disarmed the preferred receiver is selected whenever it publishes: a vehicle whose preferred receiver fails its
- * checks shouldn't take off on the other one. In flight it is kept while usable, whatever the other one reports: a
- * moving-base rover reports a better fix and accuracy while being the worse position source. Without a preferred
- * receiver, receivers rank by meeting the accuracy requirements and then by an RTK fixed solution, and smaller
- * differences in reported accuracy never switch.
+ * Receivers rank by being usable, then by meeting the accuracy requirements (the strict checks), then, without a
+ * preferred receiver, by an RTK fixed solution. A receiver that meets the requirements replaces the selected one when
+ * it ranks higher through the hold time. The preferred receiver ranks above another one of the same rank that meets
+ * the requirements: it is kept while it meets them, whatever the other one reports, and left when it hasn't met them
+ * through the hold while the other one has. A moving-base rover reports a better fix and accuracy while being the
+ * worse position source, so an RTK fixed solution never outranks the preferred receiver. While disarmed the preferred
+ * receiver is selected whenever it publishes: a vehicle whose preferred receiver fails its checks shouldn't take off
+ * on the other one.
  */
 class GnssSelector
 {
@@ -78,8 +82,8 @@ public:
 	// or a higher ranked receiver accept half of it, so that the selected receiver doesn't take over again right after.
 	static constexpr float AVAILABILITY_MARGIN = 0.2f;
 
-	// How long a receiver must rank higher, or while armed be preferred and usable, before the selection moves to it.
-	// While armed the checks relax and pass after a second; while disarmed the strict checks require GNSS_REQ_TIME.
+	// How long a receiver must rank higher before the selection moves to it. While disarmed a receiver is usable only
+	// once the strict checks held for GNSS_REQ_TIME.
 	static constexpr hrt_abstime SWITCH_HOLD_ARMED_US = 10_s;
 	static constexpr hrt_abstime SWITCH_HOLD_DISARMED_US = 2_s;
 
@@ -134,7 +138,7 @@ public:
 	uint8_t getSelectionCount() const { return _selection_count; }
 
 	// Why the selected receiver is selected, as vehicle_gnss_s::SELECTION_*
-	uint8_t getSelectionReason() const;
+	uint8_t getSelectionReason() const { return _selection_reason; }
 
 	float getAvailability(int instance) const
 	{
@@ -172,6 +176,8 @@ private:
 
 	int selectReceiver(uint64_t hrt_now_us);
 
+	uint8_t selectionReason() const;
+
 	// Never published, or timed out
 	bool isSilent(int instance) const { return _sample[instance].timestamp == 0; }
 
@@ -186,18 +192,25 @@ private:
 		       || (hrt_now_us >= _time_last_usable_us[instance] + FAIL_TIME_US);
 	}
 
-	// Without a preferred receiver the selection moves to a receiver that ranks higher, and at least meets the accuracy
-	// requirements
 	enum Rank : int8_t {
 		RANK_UNUSABLE = -1,
 		RANK_USABLE = 0,
 		RANK_REQUIREMENTS = 1, ///< meets the accuracy requirements
-		RANK_RTK_FIXED = 2,    ///< meets the accuracy requirements with an RTK fixed solution
+		RANK_RTK_FIXED = 2,    ///< meets the accuracy requirements with an RTK fixed solution, without a preferred receiver
 	};
 
 	Rank rank(int instance, uint64_t hrt_now_us) const;
 
-	// Is instance A similarly or better available than instance B ? (Note: order matters)
+	// Ranks higher, or ranks the same, meets the requirements and is the preferred receiver
+	bool outranks(int instance, int other, uint64_t hrt_now_us) const;
+
+	// The receiver to replace the current one with, -1 if none: any one that publishes, or only usable ones
+	int bestReplacement(int current, bool usable_only, uint64_t hrt_now_us) const;
+	bool isBetterReplacement(int instance, int other, uint64_t hrt_now_us) const;
+
+	hrt_abstime switchHoldUs() const;
+
+	// instance isn't clearly less available than other, so that other wouldn't take over again right after a switch
 	bool isComparablyAvailable(int instance_a, int instance_b) const
 	{
 		return _availability[instance_a].getState()
@@ -231,9 +244,12 @@ private:
 	int _selected_instance{0};
 	int _output_instance{-1};                         ///< receiver of the last published sample, -1 before the first one
 	uint8_t _selection_count{0};
-	uint8_t _selection_reason{REASON_INITIAL};
+	uint8_t _switch_reason{REASON_INITIAL};          ///< why the last switch happened
+	uint8_t _selection_reason{vehicle_gnss_s::SELECTION_ONLY};
 	int _preferred_instance{-1};
 
+	int _switch_candidate{-1};                        ///< higher ranked receiver, waiting for the hold time
+	uint64_t _switch_candidate_since_us{0};
 	bool _armed{false};
 	bool _failed_while_armed[GNSS_MAX_RECEIVERS] {}; ///< left because it failed, until disarmed
 
