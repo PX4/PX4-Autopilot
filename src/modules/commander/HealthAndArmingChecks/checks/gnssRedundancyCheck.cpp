@@ -178,6 +178,6 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps, events::ID("check_gnss_primary_offline"),
-					    events::Log::Warning, "Primary GNSS receiver offline");
+					    events::Log::Warning, "Primary GPS offline");
 	}
 }

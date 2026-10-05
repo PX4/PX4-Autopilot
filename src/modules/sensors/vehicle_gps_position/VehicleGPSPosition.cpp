@@ -515,7 +515,7 @@ void VehicleGPSPosition::reportSwitch(int previous, int selected, uint8_t reason
 	 */
 	events::send<uint8_t, events::px4::enums::gnss_selection_reason_t, uint8_t>(events::ID("gnss_receiver_switched"),
 	{failure ? events::Log::Warning : events::Log::Info, events::LogInternal::Info},
-	"Switched from GNSS {3} to GNSS {1}: {2}", static_cast<uint8_t>(selected),
+	"Switched from GPS {3} to GPS {1}: {2}", static_cast<uint8_t>(selected),
 	static_cast<events::px4::enums::gnss_selection_reason_t>(reason), static_cast<uint8_t>(previous));
 }
 
