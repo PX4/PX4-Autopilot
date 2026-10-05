@@ -302,6 +302,7 @@
 *(.text.imxrt_progressep)
 *(.text.imxrt_gpio_configinput)
 *(.text._ZN17FlightModeManager26generateTrajectorySetpointEfRK24vehicle_local_position_s)
+*(.text._ZN7sensors15VehicleAirspeed3RunEv)
 *(.text._ZN21MavlinkStreamAttitude4sendEv)
 *(.text._ZN4EKF220UpdateMagCalibrationERKy)
 *(.text._ZN22MavlinkStreamEfiStatus8get_sizeEv)
