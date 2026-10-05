@@ -276,6 +276,16 @@ MissionBase::on_activation()
 	}
 
 	checkClimbRequired(_mission.current_seq);
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// The join waypoint already flies to the route altitude, the rest is climbed along the route.
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
+		_mission_init_climb_altitude_amsl = NAN;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	set_mission_items();
 
 	_mission_activation_index = _mission.current_seq;

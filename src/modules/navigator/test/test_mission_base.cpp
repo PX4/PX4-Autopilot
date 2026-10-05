@@ -2214,6 +2214,67 @@ TEST_F(MissionRouteJoinTest, DisarmBetweenActivationsKeepsJoinOnLastItem)
 	EXPECT_TRUE(mission.joinContextForTest().valid());
 }
 
+TEST_F(MissionRouteJoinTest, JoinOnAscendingSegmentFollowsRouteWithoutVerticalClimb)
+{
+	// The branch-in carries the interpolated route altitude; the target altitude is reached along the segment.
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt + 40.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kBaseAlt + 40.f),
+	};
+	writeMissionItems(items);
+	writeSafePointState(0, 61);
+
+	mission_s mission_state{};
+	mission_state.timestamp = hrt_absolute_time();
+	mission_state.current_seq = 2;
+	mission_state.land_start_index = -1;
+	mission_state.land_index = -1;
+	mission_state.mission_id = 61;
+	mission_state.safe_points_id = 61;
+	mission_state.count = items.size();
+	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+	publishMission(mission_state);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kBaseAlt));
+	publishLocalPosition();
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	primeNavigatorState();
+	updateRouteCacheUntilReady(mission_state);
+	mission.on_inactive();
+	markMissionResultValid();
+
+	mission.on_activation();
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+	ASSERT_EQ(mission.currentSequenceForTest(), 2);
+	const mission_route::Position join = mission.joinContextForTest().projection;
+	EXPECT_GT(join.alt, kBaseAlt + 1.f);
+	EXPECT_LT(join.alt, kBaseAlt + 39.f);
+	const auto &join_setpoint = _navigator.get_position_setpoint_triplet()->current;
+	ASSERT_TRUE(join_setpoint.valid);
+	EXPECT_DOUBLE_EQ(join_setpoint.lat, join.lat);
+	EXPECT_DOUBLE_EQ(join_setpoint.lon, join.lon);
+	EXPECT_FLOAT_EQ(join_setpoint.alt, join.alt);
+
+	publishGlobalPosition(join);
+	primeNavigatorState();
+	mission.on_active();
+
+	const auto &triplet = *_navigator.get_position_setpoint_triplet();
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_DOUBLE_EQ(triplet.current.lat, items[2].lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, items[2].lon);
+	EXPECT_FLOAT_EQ(triplet.current.alt, items[2].altitude);
+	EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+}
+
 TEST_F(MissionRouteJoinTest, RestartedMissionStartsAtFirstItemWithoutJoin)
 {
 	// A mission finished before the disarm flies again from item 0, even when airborne near its end.
