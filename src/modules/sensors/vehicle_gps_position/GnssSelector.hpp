@@ -144,6 +144,9 @@ public:
 	// Why the selected receiver is selected, as vehicle_gnss_s::SELECTION_*
 	uint8_t getSelectionReason() const { return _selection_reason; }
 
+	// The latest sample passed its checks and neither it nor the next one is late
+	bool isUsable(int instance, uint64_t hrt_now_us) const;
+
 	float getAvailability(int instance) const
 	{
 		return ((instance >= 0) && (instance < GNSS_MAX_RECEIVERS)) ? _availability[instance].getState() : 0.f;
@@ -185,8 +188,6 @@ private:
 	// Never published, or timed out
 	bool isSilent(int instance) const { return _sample[instance].timestamp == 0; }
 
-	// The latest sample passed its checks and neither it nor the next one is late
-	bool isUsable(int instance, uint64_t hrt_now_us) const;
 
 	hrt_abstime lateIntervalUs(int instance) const;
 
