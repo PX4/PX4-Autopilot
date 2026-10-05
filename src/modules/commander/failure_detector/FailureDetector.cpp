@@ -203,7 +203,13 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 			_alt_loss_ref_z = lpos.z;
 		}
 
-		_alt_loss_ref_z += math::max(lpos_sp.vz, 0.f) * dt;
+		// A stale setpoint must not keep lowering the reference, as that could mask a real altitude loss.
+		const bool setpoint_fresh = lpos.timestamp < lpos_sp.timestamp + _alt_loss_setpoint_timeout;
+
+		if (setpoint_fresh) {
+			_alt_loss_ref_z += math::max(lpos_sp.vz, 0.f) * dt;
+		}
+
 		_alt_loss_ref_z = math::min(_alt_loss_ref_z, lpos.z);
 		reference_valid = true;
 	}
