@@ -454,10 +454,9 @@ void VehicleGPSPosition::PublishStatus()
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		const GnssChecks &checks = _gnss_checks[i];
 		const sensor_gnss_s &sample = _latest_sample[i];
-		const bool publishing = (sample.timestamp != 0) && (now < sample.timestamp + GnssSelector::GNSS_TIMEOUT_US);
 
 		status.device_ids[i] = sample.device_id;
-		status.healthy[i] = publishing && checks.passed();
+		status.healthy[i] = _gnss_selector.isUsable(i, now);
 		status.availability[i] = _gnss_selector.getAvailability(i);
 		status.failed_checks[i] = checks.getFailFlags() & checks.getEnabledChecks();
 		status.strict[i] = checks.strict();
