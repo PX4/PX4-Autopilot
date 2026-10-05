@@ -96,7 +96,8 @@ For more information about mission planning, see:
 ## Smart Route Rejoin
 
 Enable [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) to rejoin the uploaded route when activating Mission mode while airborne.
-See [Mission Route Planning](../concept/mission_route_planning.md) for behavior and requirements.
+The parameter only exists in firmware built with the mission route cache.
+See [Mission Route Planning](../concept/mission_route_planning.md) for behaviour and requirements.
 
 ## Mission Feasibility Checks
 

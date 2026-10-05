@@ -372,7 +372,7 @@ If a new Return is requested, the vehicle flies straight to the rally point (`R`
 The parameters above only exist in firmware built with a non-zero cache size.
 SITL defaults to 500 mission items.
 An oversized mission can still be flown in Mission mode, but smart rejoin and route-following Return cannot use it.
-See [Safe-Point Batching](#safe-point-batching) for the rally-point batch configuration and memory tradeoff.
+See [Safe-Point Batching](#safe-point-batching) for the rally-point batch configuration and memory trade-off.
 
 ::: details Firmware Configuration: Safe-Point Batching
 
