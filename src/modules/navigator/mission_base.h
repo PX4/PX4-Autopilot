@@ -338,8 +338,9 @@ protected:
 
 	/**
 	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
+	 * @return true if the mission was reset
 	 */
-	void checkMissionRestart();
+	bool checkMissionRestart();
 
 	/**
 	 * @brief Check if the camera was triggering
