@@ -110,10 +110,18 @@ void VtolAttitudeControl::vehicle_status_poll()
 {
 	_vehicle_status_sub.copy(&_vehicle_status);
 
-	// Route-following Return can retain an ongoing front transition.
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-	    && _nav_state_prev != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL && _vtol_type->get_mode() == mode::TRANSITION_TO_FW
-	    && !routeRtlFrontTransitionAllowed()) {
+	// abort front transition when Return is triggered
+	bool abort_front_transition = _nav_state_prev != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// Route-following Return keeps it, until Return falls back to another type.
+	const bool route_rtl = routeRtlFrontTransitionAllowed(false);
+	abort_front_transition = (abort_front_transition || _route_rtl_prev) && !route_rtl;
+	_route_rtl_prev = route_rtl;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL && abort_front_transition
+	    && _vtol_type->get_mode() == mode::TRANSITION_TO_FW) {
 		_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 	}
 
@@ -147,12 +155,17 @@ void VtolAttitudeControl::action_request_poll()
 	}
 }
 
-bool VtolAttitudeControl::routeRtlFrontTransitionAllowed() const
+bool VtolAttitudeControl::routeRtlFrontTransitionAllowed(bool require_current_return)
 {
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	static constexpr int RTL_TYPE_ROUTE_SAFE_POINT = 7;
-	return _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && !_vtol_vehicle_status.fixed_wing_system_failure;
+	// Navigator publishes the Return type it actually runs, including direct fallbacks.
+	_rtl_status_sub.update(&_rtl_status);
+	// Commands need the type selected for this Return, not the estimate published before it started.
+	const bool current = !require_current_return || _rtl_status.timestamp >= _vehicle_status.nav_state_timestamp;
+	return current && _rtl_status.rtl_type == rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT
+	       && !_vtol_vehicle_status.fixed_wing_system_failure;
 #else
+	(void)require_current_return;
 	return false;
 #endif
 }
@@ -173,7 +186,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 			    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
 			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
 			     || (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-				 && (vehicle_command.from_external || !routeRtlFrontTransitionAllowed()))
+				 && (vehicle_command.from_external || !routeRtlFrontTransitionAllowed(true)))
 			     ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
 
 				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
