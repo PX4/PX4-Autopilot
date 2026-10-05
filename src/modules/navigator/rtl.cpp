@@ -540,15 +540,6 @@ void RTL::setRtlTypeAndDestination()
 
 	_rtl_type = new_rtl_type;
 
-	if (isActive() && _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT
-	    && new_rtl_type != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _vehicle_status_sub.get().in_transition_to_fw) {
-		// The controller retains front transition for type 7; a direct fallback must cancel it.
-		vehicle_command_s command{};
-		command.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
-		command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		_navigator->publish_vehicle_command(command);
-	}
-
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	// Update destination of geofence avoidance planner. Depending on the
