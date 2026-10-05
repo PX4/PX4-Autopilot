@@ -1228,7 +1228,9 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 			return;
 		}
 
-		MavlinkSignControl::SetupSigningResult result = _sign_control.check_for_signing(msg);
+		lock_send();
+		const MavlinkSignControl::SetupSigningResult result = _sign_control.check_for_signing(msg);
+		unlock_send();
 
 		switch (result) {
 		case MavlinkSignControl::KEY_ACCEPTED:

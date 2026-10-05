@@ -74,6 +74,8 @@ public:
 	Result load(State &state) const;
 	Result replace(const State &state) const;
 	Result checkpoint(const State &state) const;
+	Result reconcile_and_replace(const State &requested, const State &current, bool current_enabled,
+				     uint64_t system_timestamp, State &persisted) const;
 
 	static bool is_enabled(const State &state);
 	static bool keys_equal(const State &lhs, const State &rhs);

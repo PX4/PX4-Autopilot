@@ -151,6 +151,40 @@ MavlinkSigningStorage::Result MavlinkSigningStorage::checkpoint(const State &sta
 	return result;
 }
 
+MavlinkSigningStorage::Result MavlinkSigningStorage::reconcile_and_replace(const State &requested,
+		const State &current, bool current_enabled, uint64_t system_timestamp, State &persisted) const
+{
+	pthread_mutex_lock(&storage_mutex);
+
+	State stored{};
+	const Result load_result = load_unlocked(stored);
+
+	if (load_result != Result::Loaded && load_result != Result::NotFound) {
+		pthread_mutex_unlock(&storage_mutex);
+		return load_result;
+	}
+
+	State next = requested;
+
+	if (current_enabled && keys_equal(requested, current)) {
+		next.timestamp = std::max(next.timestamp, current.timestamp);
+	}
+
+	if (load_result == Result::Loaded && keys_equal(requested, stored)) {
+		next.timestamp = std::max(next.timestamp, stored.timestamp);
+	}
+
+	next.timestamp = std::max(next.timestamp, system_timestamp);
+	const Result result = write_atomic_unlocked(next);
+
+	if (result == Result::Updated) {
+		persisted = next;
+	}
+
+	pthread_mutex_unlock(&storage_mutex);
+	return result;
+}
+
 bool MavlinkSigningStorage::is_enabled(const State &state)
 {
 	if (state.timestamp != 0) {

@@ -57,7 +57,11 @@ class MavlinkSignControl
 {
 
 public:
-	MavlinkSignControl();
+	using TimestampProvider = uint64_t (*)();
+
+	explicit MavlinkSignControl(const char *storage_path = MAVLINK_SECRET_FILE,
+				    TimestampProvider timestamp_provider = nullptr,
+				    const MavlinkSigningStorage::FileOperations *file_operations = nullptr);
 	~MavlinkSignControl();
 
 	/**
@@ -78,6 +82,8 @@ public:
 	/**
 	 * Checks whether the message is SETUP_SIGNING, and if yes, updates local key.
 	 * Enables or disables signing based on whether the new key is valid.
+	 * The caller must hold the instance send lock while this method snapshots and
+	 * replaces the live signing state.
 	 */
 	SetupSigningResult check_for_signing(const mavlink_message_t *msg);
 
@@ -111,7 +117,8 @@ private:
 	mavlink_status_t *_mavlink_status{nullptr};
 
 	bool _is_signing_initialized{false};
-	MavlinkSigningStorage _storage{MAVLINK_SECRET_FILE};
+	MavlinkSigningStorage _storage;
+	TimestampProvider _timestamp_provider{nullptr};
 
 	/**
 	 * Wire or unwire the signing struct into the mavlink status based on key state.

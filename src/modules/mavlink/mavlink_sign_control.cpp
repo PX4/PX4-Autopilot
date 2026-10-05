@@ -55,7 +55,10 @@ static const uint32_t unsigned_messages[] = {
 	MAVLINK_MSG_ID_COLLISION
 };
 
-MavlinkSignControl::MavlinkSignControl()
+MavlinkSignControl::MavlinkSignControl(const char *storage_path,
+				       TimestampProvider timestamp_provider,
+				       const MavlinkSigningStorage::FileOperations *file_operations) :
+	_storage(storage_path, file_operations), _timestamp_provider(timestamp_provider)
 {
 }
 
@@ -136,17 +139,23 @@ MavlinkSignControl::SetupSigningResult MavlinkSignControl::check_for_signing(con
 		return SIGNING_DISABLED;
 	}
 
-	MavlinkSigningStorage::State state{};
-	memcpy(state.secret_key, setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
-	state.timestamp = setup_signing.initial_timestamp;
-	state.timestamp = std::max(state.timestamp, _current_timestamp());
+	MavlinkSigningStorage::State requested{};
+	memcpy(requested.secret_key, setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+	requested.timestamp = setup_signing.initial_timestamp;
 
-	if (_storage.replace(state) != MavlinkSigningStorage::Result::Updated) {
+	MavlinkSigningStorage::State current{};
+	memcpy(current.secret_key, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+	current.timestamp = _mavlink_signing.timestamp;
+
+	MavlinkSigningStorage::State persisted{};
+
+	if (_storage.reconcile_and_replace(requested, current, _is_signing_initialized,
+					   _current_timestamp(), persisted) != MavlinkSigningStorage::Result::Updated) {
 		PX4_ERR("failed storing mavlink signing key: %s (%i)", MAVLINK_SECRET_FILE, errno);
 		return STORAGE_ERROR;
 	}
 
-	_apply_state(state);
+	_apply_state(persisted);
 
 	return KEY_ACCEPTED;
 }
@@ -246,6 +255,10 @@ void MavlinkSignControl::_apply_state(const MavlinkSigningStorage::State &state)
 
 uint64_t MavlinkSignControl::_current_timestamp() const
 {
+	if (_timestamp_provider != nullptr) {
+		return _timestamp_provider();
+	}
+
 	struct timespec ts {};
 
 	if (px4_clock_gettime(CLOCK_REALTIME, &ts) != 0) {
