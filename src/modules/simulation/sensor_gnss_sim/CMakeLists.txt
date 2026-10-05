@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,23 +31,16 @@
 #
 ############################################################################
 
-px4_add_library(vehicle_gps_position
-	VehicleGPSPosition.cpp
-	VehicleGPSPosition.hpp
-	GnssHeadingBaseline.hpp
-	GnssInconsistency.hpp
-	GnssSelector.cpp
-	GnssSelector.hpp
-	PpsTimeSync.cpp
-	PpsTimeSync.hpp
-)
-target_link_libraries(vehicle_gps_position
-	PRIVATE
-		geo
-		gnss_checks
+px4_add_module(
+	MODULE modules__simulation__sensor_gnss_sim
+	MAIN sensor_gnss_sim
+	COMPILE_FLAGS
+	SRCS
+		SensorGnssSim.cpp
+		SensorGnssSim.hpp
+	MODULE_CONFIG
+		parameters.yaml
+	DEPENDS
+		failure_injection
 		px4_work_queue
-)
-
-px4_add_unit_gtest(SRC GnssSelectorTest.cpp LINKLIBS vehicle_gps_position)
-px4_add_unit_gtest(SRC GnssHeadingBaselineTest.cpp)
-px4_add_unit_gtest(SRC GnssInconsistencyTest.cpp LINKLIBS geo)
+	)

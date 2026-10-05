@@ -108,7 +108,7 @@ public:
 		_status_pub.publish(_status);
 	}
 
-	// Run the check and store results in _failsafe_flags and _health_warning_gps.
+	// Run the check and store results in _failsafe_flags and _health_warning_gnss.
 	void runCheck(bool armed = false)
 	{
 		vehicle_status_s status{};
@@ -120,10 +120,10 @@ public:
 		_failsafe_flags = {};
 		Report reporter{_failsafe_flags, 0};
 		_check.checkAndReport(context, reporter);
-		// Capture any GPS health issue regardless of log level (Warning or Error).
-		_health_warning_gps = (reporter.healthResults().warning | reporter.healthResults().error) & health_component_t::gps;
-		_arming_warning_gps = reporter.armingCheckResults().warning & health_component_t::gps;
-		_arming_error_gps = reporter.armingCheckResults().error & health_component_t::gps;
+		// Capture any GNSS health issue regardless of log level (Warning or Error).
+		_health_warning_gnss = (reporter.healthResults().warning | reporter.healthResults().error) & health_component_t::gps;
+		_arming_warning_gnss = reporter.armingCheckResults().warning & health_component_t::gps;
+		_arming_error_gnss = reporter.armingCheckResults().error & health_component_t::gps;
 		_can_arm = reporter.armingCheckResults().can_arm;
 	}
 
@@ -132,23 +132,23 @@ public:
 	uORB::Publication<sensors_status_gnss_s> _status_pub{ORB_ID(sensors_status_gnss)};
 	sensors_status_gnss_s _status{};
 	failsafe_flags_s  _failsafe_flags{};
-	bool              _health_warning_gps{false};
-	bool              _arming_warning_gps{false};
-	bool              _arming_error_gps{false};
+	bool              _health_warning_gnss{false};
+	bool              _arming_warning_gnss{false};
+	bool              _arming_error_gnss{false};
 	NavModes          _can_arm{NavModes::None};
 	GnssRedundancyChecks _check;
 };
 
-// No GPS data → no flags.
-TEST_F(GnssRedundancyChecksTest, NoGpsNoFlags)
+// No GNSS data → no flags.
+TEST_F(GnssRedundancyChecksTest, NoGnssNoFlags)
 {
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
-	EXPECT_FALSE(_health_warning_gps);
+	EXPECT_FALSE(_health_warning_gnss);
 }
 
 // One receiver fixed, SYS_HAS_NUM_GNSS not configured → no failsafe.
-TEST_F(GnssRedundancyChecksTest, SingleGpsNoFailsafe)
+TEST_F(GnssRedundancyChecksTest, SingleGnssNoFailsafe)
 {
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
 	runCheck();
@@ -156,17 +156,17 @@ TEST_F(GnssRedundancyChecksTest, SingleGpsNoFailsafe)
 }
 
 // Two receivers that agree after their lever arms → no divergence.
-TEST_F(GnssRedundancyChecksTest, TwoGpsAgreeingNoFlags)
+TEST_F(GnssRedundancyChecksTest, TwoGnssAgreeingNoFlags)
 {
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
 	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), AGREEING_M);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
-	EXPECT_FALSE(_health_warning_gps);
+	EXPECT_FALSE(_health_warning_gnss);
 }
 
 // Two receivers that disagree → hysteresis timer starts but has not elapsed on first call.
-TEST_F(GnssRedundancyChecksTest, TwoGpsDivergingFarNotYetSustained)
+TEST_F(GnssRedundancyChecksTest, TwoGnssDivergingFarNotYetSustained)
 {
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
 	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), DIVERGING_FAR_M);
@@ -194,7 +194,7 @@ TEST_F(GnssRedundancyChecksTest, SustainedDivergenceSetsGnssLost)
 	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), DIVERGING_FAR_M);
 	runCheck();
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
-	EXPECT_TRUE(_health_warning_gps);
+	EXPECT_TRUE(_health_warning_gnss);
 }
 
 // The gate scales with the reported accuracy.
@@ -212,11 +212,11 @@ TEST_F(GnssRedundancyChecksTest, InaccurateReceiversMayDisagreeMore)
 	publishGnss(1, makeGnss(BASE_LAT, BASE_LON, 1.f), DIVERGING_FAR_M);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
-	EXPECT_FALSE(_health_warning_gps);
+	EXPECT_FALSE(_health_warning_gnss);
 }
 
 // After divergence the receivers recover → hysteresis resets, no flag.
-TEST_F(GnssRedundancyChecksTest, TwoGpsDivergingClearsOnRecovery)
+TEST_F(GnssRedundancyChecksTest, TwoGnssDivergingClearsOnRecovery)
 {
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
 	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), DIVERGING_FAR_M);
@@ -226,7 +226,7 @@ TEST_F(GnssRedundancyChecksTest, TwoGpsDivergingClearsOnRecovery)
 	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), AGREEING_M);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
-	EXPECT_FALSE(_health_warning_gps);
+	EXPECT_FALSE(_health_warning_gnss);
 }
 
 // An unknown inconsistency is no divergence.
@@ -252,7 +252,7 @@ TEST_F(GnssRedundancyChecksTest, FixTypeBelow3NotCounted)
 	publishGnss(1, makeGnss(BASE_LAT, BASE_LON, 0.02f, 2), DIVERGING_FAR_M);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
-	EXPECT_FALSE(_health_warning_gps);
+	EXPECT_FALSE(_health_warning_gnss);
 }
 
 // SYS_HAS_NUM_GNSS = 2, COM_GNSSLOSS_ACT > 0, only one receiver fixed → gnss_lost.
@@ -264,7 +264,7 @@ TEST_F(GnssRedundancyChecksTest, BelowRequiredSetsGnssLost)
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
 	runCheck();
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
-	EXPECT_TRUE(_health_warning_gps);
+	EXPECT_TRUE(_health_warning_gnss);
 }
 
 // After seeing two fixed receivers, losing one emits a health warning
@@ -274,13 +274,13 @@ TEST_F(GnssRedundancyChecksTest, DroppedBelowPeakSetsHealthWarning)
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
 	publishGnss(1, makeGnss(BASE_LAT, BASE_LON), AGREEING_M);
 	runCheck();
-	EXPECT_FALSE(_health_warning_gps); // both present, no warning
+	EXPECT_FALSE(_health_warning_gnss); // both present, no warning
 
 	// GPS1 disappears.
 	sensor_gnss_s gone{};
 	_gnss1_pub.publish(gone); // device_id = 0 → treated as absent
 	runCheck();
-	EXPECT_TRUE(_health_warning_gps);
+	EXPECT_TRUE(_health_warning_gnss);
 	EXPECT_FALSE(_failsafe_flags.gnss_lost); // no failsafe without COM_GNSSLOSS_ACT + below_required
 }
 
@@ -322,18 +322,18 @@ TEST_F(GnssRedundancyChecksTest, PrimaryOfflineWarnsBeforeArming)
 {
 	publishGnss(1, makeGnss(BASE_LAT, BASE_LON));
 	runCheck();
-	ASSERT_FALSE(_arming_warning_gps);
+	ASSERT_FALSE(_arming_warning_gnss);
 	const NavModes can_arm = _can_arm;
 
 	_status.primary_offline = true;
 	publishGnss(1, makeGnss(BASE_LAT, BASE_LON));
 	runCheck();
-	EXPECT_TRUE(_arming_warning_gps);
-	EXPECT_FALSE(_arming_error_gps);
+	EXPECT_TRUE(_arming_warning_gnss);
+	EXPECT_FALSE(_arming_error_gnss);
 	EXPECT_EQ(_can_arm, can_arm);
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 
 	// in flight the switch away from it is reported instead
 	runCheck(true);
-	EXPECT_FALSE(_arming_warning_gps);
+	EXPECT_FALSE(_arming_warning_gnss);
 }

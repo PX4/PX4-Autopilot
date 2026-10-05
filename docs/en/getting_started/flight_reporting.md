@@ -24,7 +24,7 @@ You can also host a [private Flight Review server](../dev_log/log_encryption.md#
 Upload the log file to the online [Flight Review](https://logs.px4.io/) tool.
 After upload you'll be emailed a link to the analysis page for the log.
 
-[Log Analysis using Flight Review](../log/flight_review.md) explains how to interpret the plots, and can help you to verify/reject the causes of common problems: excessive vibration, poor PID tuning, saturated controllers, imbalanced vehicles, GPS noise, etc.
+[Log Analysis using Flight Review](../log/flight_review.md) explains how to interpret the plots, and can help you to verify/reject the causes of common problems: excessive vibration, poor PID tuning, saturated controllers, imbalanced vehicles, GNSS noise, etc.
 
 ::: info
 There are many other great tools for visualising and analysing PX4 Logs.

@@ -482,7 +482,7 @@
 *(.text._ZN15ArchPX4IOSerial19_do_rx_dma_callbackEbi)
 *(.text._ZN15ArchPX4IOSerial10_abort_dmaEv)
 *(.text._ZNK15PositionControl24getLocalPositionSetpointER33vehicle_local_position_setpoint_s)
-*(.text._ZN3Ekf16controlGpsFusionERKN9estimator9imuSampleE)
+*(.text._ZN3Ekf17controlGnssFusionERKN9estimator9imuSampleE)
 *(.text._ZN23MavlinkStreamRCChannels8get_sizeEv)
 *(.text._ZN20MavlinkStreamESCInfo8get_sizeEv)
 *(.text._ZNK6matrix6VectorIfLj2EE4normEv)

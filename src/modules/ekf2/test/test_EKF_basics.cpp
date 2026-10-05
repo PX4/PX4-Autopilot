@@ -148,15 +148,15 @@ TEST_F(EkfBasicsTest, convergesToZero)
 	EXPECT_TRUE(matrix::isEqual(gyro_bias, ref, 0.001f));
 }
 
-TEST_F(EkfBasicsTest, gpsFusion)
+TEST_F(EkfBasicsTest, gnssFusion)
 {
 	// GIVEN: initialized EKF with default IMU, baro and mag input for
-	// WHEN: setting GPS measurements for 11s, minimum GPS health time is set to 10 sec
+	// WHEN: setting GNSS measurements for 11s, minimum GNSS health time is set to 10 sec
 
-	_sensor_simulator.startGps();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(11);
 
-	// THEN: EKF should fuse GPS, but no other position sensor
+	// THEN: EKF should fuse GNSS, but no other position sensor
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().tilt_align);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().yaw_align);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().gnss_pos);
@@ -188,19 +188,19 @@ TEST_F(EkfBasicsTest, gpsFusion)
 
 TEST_F(EkfBasicsTest, gravityIsStandardBeforeGlobalPosition)
 {
-	// GIVEN: an initialized EKF with IMU/baro/mag but NO GPS (no global position yet)
+	// GIVEN: an initialized EKF with IMU/baro/mag but NO GNSS (no global position yet)
 	// THEN: the prediction gravity stays at the standard constant default
 	EXPECT_FLOAT_EQ(_ekf->getGravityMss(), CONSTANTS_ONE_G);
 }
 
 TEST_F(EkfBasicsTest, gravityStaysStandardNearEquator)
 {
-	// GIVEN: GPS fixed within 1 deg of the equator
-	_sensor_simulator.setGpsLatitude(0.5);
-	_sensor_simulator.startGps();
+	// GIVEN: GNSS fixed within 1 deg of the equator
+	_sensor_simulator.setGnssLatitude(0.5);
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(11);
 
-	// THEN: GPS is fused but the latitude is within the recompute threshold of the
+	// THEN: GNSS is fused but the latitude is within the recompute threshold of the
 	// 0-reference, so gravity remains the standard constant (matches legacy behavior)
 	ASSERT_EQ(1, (int) _ekf->control_status_flags().gnss_pos);
 	EXPECT_FLOAT_EQ(_ekf->getGravityMss(), CONSTANTS_ONE_G);
@@ -208,8 +208,8 @@ TEST_F(EkfBasicsTest, gravityStaysStandardNearEquator)
 
 TEST_F(EkfBasicsTest, gravityUpdatesAtHighLatitude)
 {
-	// GIVEN: GPS fixed at the simulator default latitude (47.3566094 deg)
-	_sensor_simulator.startGps();
+	// GIVEN: GNSS fixed at the simulator default latitude (47.3566094 deg)
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(11);
 
 	// THEN: gravity is re-evaluated to the latitude-dependent Somigliana value
@@ -222,12 +222,12 @@ TEST_F(EkfBasicsTest, gravityUpdatesAtHighLatitude)
 TEST_F(EkfBasicsTest, accelBiasEstimation)
 {
 	// GIVEN: initialized EKF with default IMU, baro and mag input
-	// WHEN: Added more sensor measurements with accel bias and gps measurements
+	// WHEN: Added more sensor measurements with accel bias and gnss measurements
 	const Vector3f accel_bias_sim = {0.0f, 0.0f, 0.1f};
 
-	_sensor_simulator.startGps();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.setImuBias(accel_bias_sim, Vector3f(0.0f, 0.0f, 0.0f));
-	_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
+	_sensor_simulator._gnss.setMinRequiredGnssHealthTime(1e6);
 	_sensor_simulator.runSeconds(60);
 
 	const Vector3f pos = _ekf->getPosition();
@@ -247,19 +247,19 @@ TEST_F(EkfBasicsTest, accelBiasEstimation)
 			<< "gyro_bias = " << gyro_bias(0) << ", " << gyro_bias(1) << ", " << gyro_bias(2);
 }
 
-TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_initialized)
+TEST_F(EkfBasicsTest, reset_ekf_global_origin_gnss_initialized)
 {
 	_latitude_new  = 15.0000005;
 	_longitude_new = 115.0000005;
 	_altitude_new  = 100.0;
 
-	_sensor_simulator.startGps();
-	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.startGnss();
+	_ekf_wrapper.enableGnssHeightFusion();
 
-	_sensor_simulator.setGpsLatitude(_latitude_new);
-	_sensor_simulator.setGpsLongitude(_longitude_new);
-	_sensor_simulator.setGpsAltitude(_altitude_new);
-	_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
+	_sensor_simulator.setGnssLatitude(_latitude_new);
+	_sensor_simulator.setGnssLongitude(_longitude_new);
+	_sensor_simulator.setGnssAltitude(_altitude_new);
+	_sensor_simulator._gnss.setMinRequiredGnssHealthTime(1e6);
 	_sensor_simulator.runSeconds(1);
 	_sensor_simulator.runSeconds(5);
 
@@ -297,7 +297,7 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_initialized)
 	EXPECT_NEAR(_ekf->aid_src_gnss_vel().test_ratio[2], 0.f, 0.02f);
 }
 
-TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_uninitialized)
+TEST_F(EkfBasicsTest, reset_ekf_global_origin_gnss_uninitialized)
 {
 	_ekf->getEkfGlobalOrigin(_origin_time, _latitude, _longitude, _altitude);
 

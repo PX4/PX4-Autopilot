@@ -40,7 +40,7 @@ set(SRCS
 	imu.cpp
 	mag.cpp
 	baro.cpp
-	gps.cpp
+	gnss.cpp
 	gnss_yaw.cpp
 	flow.cpp
 	range_finder.cpp

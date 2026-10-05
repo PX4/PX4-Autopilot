@@ -154,7 +154,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 
 #endif
 
-	// GPS
+	// GNSS
 #if defined(CONFIG_UAVCAN_SENSOR_GNSS)
 	int32_t uavcan_sub_gps = 1;
 	param_get(param_find("UAVCAN_SUB_GPS"), &uavcan_sub_gps);
@@ -165,7 +165,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 
 #endif
 
-	// GPS relative
+	// GNSS relative
 #if defined(CONFIG_UAVCAN_SENSOR_GNSS_RELATIVE)
 	int32_t uavcan_sub_gps_rel = 1;
 	param_get(param_find("UAVCAN_SUB_GPS_R"), &uavcan_sub_gps_rel);

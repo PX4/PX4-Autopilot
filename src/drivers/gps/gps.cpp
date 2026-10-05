@@ -1028,7 +1028,7 @@ GPS::run()
 
 				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_sensor_gnss, _p_report_sat_info, settings);
 
-				set_device_type(DRV_GPS_DEVTYPE_UBX);
+				set_device_type(DRV_GNSS_DEVTYPE_UBX);
 				break;
 			}
 
@@ -1037,35 +1037,35 @@ GPS::run()
 
 		case gps_driver_mode_t::MTK:
 			_helper = new GPSDriverMTK(&GPS::callback, this, &_sensor_gnss);
-			set_device_type(DRV_GPS_DEVTYPE_MTK);
+			set_device_type(DRV_GNSS_DEVTYPE_MTK);
 			break;
 #endif // CONFIG_GPS_MTK
 #if defined(CONFIG_GPS_ASHTECH)
 
 		case gps_driver_mode_t::ASHTECH:
 			_helper = new GPSDriverAshtech(&GPS::callback, this, &_sensor_gnss, _p_report_sat_info);
-			set_device_type(DRV_GPS_DEVTYPE_ASHTECH);
+			set_device_type(DRV_GNSS_DEVTYPE_ASHTECH);
 			break;
 #endif // CONFIG_GPS_ASHTECH
 #if defined(CONFIG_GPS_EMLIDREACH)
 
 		case gps_driver_mode_t::EMLIDREACH:
 			_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_sensor_gnss, _p_report_sat_info);
-			set_device_type(DRV_GPS_DEVTYPE_EMLID_REACH);
+			set_device_type(DRV_GNSS_DEVTYPE_EMLID_REACH);
 			break;
 #endif // CONFIG_GPS_EMLIDREACH
 #if defined(CONFIG_GPS_FEMTOMES)
 
 		case gps_driver_mode_t::FEMTOMES:
 			_helper = new GPSDriverFemto(&GPS::callback, this, &_sensor_gnss, _p_report_sat_info);
-			set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
+			set_device_type(DRV_GNSS_DEVTYPE_FEMTOMES);
 			break;
 #endif // CONFIG_GPS_FEMTOMES
 #if defined(CONFIG_GPS_NMEA)
 
 		case gps_driver_mode_t::NMEA:
 			_helper = new GPSDriverNMEA(&GPS::callback, this, &_sensor_gnss, _p_report_sat_info);
-			set_device_type(DRV_GPS_DEVTYPE_NMEA);
+			set_device_type(DRV_GNSS_DEVTYPE_NMEA);
 			break;
 #endif // CONFIG_GPS_NMEA
 
@@ -1119,41 +1119,41 @@ GPS::run()
 				_helper->resetUpdateRates();
 
 				// populate specific ublox model
-				if (get_device_type() == DRV_GPS_DEVTYPE_UBX) {
+				if (get_device_type() == DRV_GNSS_DEVTYPE_UBX) {
 					GPSDriverUBX *driver_ubx = (GPSDriverUBX *)_helper;
 
 					switch (driver_ubx->board()) {
 					case GPSDriverUBX::Board::u_blox6:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_6);
+						set_device_type(DRV_GNSS_DEVTYPE_UBX_6);
 						break;
 
 					case GPSDriverUBX::Board::u_blox7:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_7);
+						set_device_type(DRV_GNSS_DEVTYPE_UBX_7);
 						break;
 
 					case GPSDriverUBX::Board::u_blox8:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_8);
+						set_device_type(DRV_GNSS_DEVTYPE_UBX_8);
 						break;
 
 					case GPSDriverUBX::Board::u_blox9:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_9);
+						set_device_type(DRV_GNSS_DEVTYPE_UBX_9);
 						break;
 
 					case GPSDriverUBX::Board::u_blox9_F9P_L1L2:
 					case GPSDriverUBX::Board::u_blox9_F9P_L1L5:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_F9P);
+						set_device_type(DRV_GNSS_DEVTYPE_UBX_F9P);
 						break;
 
 					case GPSDriverUBX::Board::u_blox10_L1L5:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_10);
+						set_device_type(DRV_GNSS_DEVTYPE_UBX_10);
 						break;
 
 					case GPSDriverUBX::Board::u_blox_X20:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_20);
+						set_device_type(DRV_GNSS_DEVTYPE_UBX_20);
 						break;
 
 					default:
-						set_device_type(DRV_GPS_DEVTYPE_UBX);
+						set_device_type(DRV_GNSS_DEVTYPE_UBX);
 						break;
 					}
 				}

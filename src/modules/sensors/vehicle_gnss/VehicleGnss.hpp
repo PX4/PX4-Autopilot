@@ -63,12 +63,12 @@ using namespace time_literals;
 
 namespace sensors
 {
-class VehicleGPSPosition : public ModuleParams, public px4::ScheduledWorkItem
+class VehicleGnss : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 
-	VehicleGPSPosition();
-	~VehicleGPSPosition() override;
+	VehicleGnss();
+	~VehicleGnss() override;
 
 	bool Start();
 	void Stop();
@@ -88,16 +88,16 @@ private:
 	// Antenna position of a receiver, body frame (m), 0 without a SENS_GNSSn_* slot
 	matrix::Vector3f antennaOffset(int instance) const;
 
-	// define max number of GPS receivers supported
-	static constexpr int GPS_MAX_RECEIVERS = 2;
-	static_assert(GPS_MAX_RECEIVERS == GnssSelector::GNSS_MAX_RECEIVERS,
-		      "GPS_MAX_RECEIVERS must match to GNSS_MAX_RECEIVERS");
+	// define max number of GNSS receivers supported
+	static constexpr int GNSS_MAX_RECEIVERS = 2;
+	static_assert(GNSS_MAX_RECEIVERS == GnssSelector::GNSS_MAX_RECEIVERS,
+		      "must match GnssSelector::GNSS_MAX_RECEIVERS");
 
 	static constexpr hrt_abstime kDefaultDelay{110_ms}; // matches SENS_GNSS*_DELAY default
 	static constexpr hrt_abstime kHeadingSourceTimeout{3_s};
 	static constexpr hrt_abstime kHeadingSettleTime{1_s};
 
-	struct GpsParamSlot {
+	struct GnssParamSlot {
 		uint32_t device_id{0};
 		matrix::Vector3f offset{};
 		hrt_abstime delay_us{kDefaultDelay};
@@ -106,7 +106,7 @@ private:
 	};
 
 	// SENS_GNSSn_* slot for a receiver, by device_id or (when no IDs are configured) by sensor_gnss instance
-	const GpsParamSlot *findParamSlot(uint32_t device_id, int instance) const;
+	const GnssParamSlot *findParamSlot(uint32_t device_id, int instance) const;
 
 	// sensor_gnss instance of the receiver SENS_GNSS_PRIME designates, or of the moving base with -1; -1 for none
 	int resolvePreferredInstance() const;
@@ -127,13 +127,13 @@ private:
 	};
 
 	void UpdateGnssHeading();
-	void handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot);
+	void handleHeadingSample(const HeadingSample &sample, const GnssParamSlot *slot);
 
 	// sensor_gnss instance publishing this device_id, or -1
 	int findGnssInstance(uint32_t device_id) const;
 
 	// The receiver in this slot is a moving base rover whose moving base stopped publishing
-	bool movingBaseSilent(const GpsParamSlot *slot) const;
+	bool movingBaseSilent(const GnssParamSlot *slot) const;
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
@@ -143,7 +143,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::SubscriptionCallbackWorkItem _sensor_gnss_sub[GPS_MAX_RECEIVERS] {	/**< sensor data subscription */
+	uORB::SubscriptionCallbackWorkItem _sensor_gnss_sub[GNSS_MAX_RECEIVERS] {	/**< sensor data subscription */
 		{this, ORB_ID(sensor_gnss), 0},
 		{this, ORB_ID(sensor_gnss), 1},
 	};
@@ -157,7 +157,7 @@ private:
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 	uORB::Publication<vehicle_gnss_heading_s> _vehicle_gnss_heading_pub {ORB_ID(vehicle_gnss_heading)};
 
-	uORB::SubscriptionCallbackWorkItem _sensor_gnss_relative_sub[GPS_MAX_RECEIVERS] {
+	uORB::SubscriptionCallbackWorkItem _sensor_gnss_relative_sub[GNSS_MAX_RECEIVERS] {
 		{this, ORB_ID(sensor_gnss_relative), 0},
 		{this, ORB_ID(sensor_gnss_relative), 1},
 	};
@@ -177,13 +177,13 @@ private:
 
 	GnssSelector _gnss_selector;
 
-	GnssChecks _gnss_checks[GPS_MAX_RECEIVERS] {};
-	sensor_gnss_s _latest_sample[GPS_MAX_RECEIVERS] {}; ///< timestamp_sample corrected, timestamp 0 until it publishes
+	GnssChecks _gnss_checks[GNSS_MAX_RECEIVERS] {};
+	sensor_gnss_s _latest_sample[GNSS_MAX_RECEIVERS] {}; ///< timestamp_sample corrected, timestamp 0 until it publishes
 	uint32_t _selected_device_id{0};
 	int8_t _published_instance{-1}; ///< receiver of the last vehicle_gnss sample, -1 before the first one
 	uint8_t _published_selection_count{0};
 	int8_t _preferred_instance{-1};
-	uint8_t _first_publication[GPS_MAX_RECEIVERS] {}; ///< 1 for the first receiver to publish, 2 for the next, 0 before
+	uint8_t _first_publication[GNSS_MAX_RECEIVERS] {}; ///< 1 for the first receiver to publish, 2 for the next, 0 before
 	uint8_t _receivers_published{0};
 
 	// The checks run the strict thresholds while disarmed on the ground and the drift checks only at rest; while
@@ -193,7 +193,7 @@ private:
 	bool _at_rest{false};
 	PpsTimeSync _pps_time_sync;
 
-	GpsParamSlot _gnss_param_slots[GPS_MAX_RECEIVERS] {};
+	GnssParamSlot _gnss_param_slots[GNSS_MAX_RECEIVERS] {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_GNSS_PRIME>) _param_sens_gnss_prime,

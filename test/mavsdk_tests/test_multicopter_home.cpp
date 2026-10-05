@@ -36,7 +36,7 @@
 
 #include "autopilot_tester.h"
 
-// Reproduces the stale home-yaw bug: when home is first set from a raw-GPS fix while the local position
+// Reproduces the stale home-yaw bug: when home is first set from a raw-GNSS fix while the local position
 // estimate is invalid, home.yaw must still end up at the true ground heading.
 TEST_CASE("SIH: home yaw captured when local position invalid", "[sih_home_yaw]")
 {
@@ -45,12 +45,12 @@ TEST_CASE("SIH: home yaw captured when local position invalid", "[sih_home_yaw]"
 	AutopilotTester tester;
 	tester.connect(connection_url);
 
-	// No GPS fix yet: wait for the magnetometer heading to align and settle, so that no later heading
+	// No GNSS fix yet: wait for the magnetometer heading to align and settle, so that no later heading
 	// reset can refresh home.yaw and mask the bug.
 	tester.sleep_for(10s);
 	const float ground_yaw_deg = tester.get_attitude_euler().yaw_deg;
 
-	// A GPS fix the estimator doesn't use: home is set from the receiver's usable samples while the local position
+	// A GNSS fix the estimator doesn't use: home is set from the receiver's usable samples while the local position
 	// stays invalid. This is the exact condition under which the buggy code leaves home.yaw at 0.
 	static constexpr int32_t kSensEnGnss0 = 1;
 	tester.set_param_int("EKF2_SENS_EN", tester.get_param_int("EKF2_SENS_EN") & ~kSensEnGnss0);

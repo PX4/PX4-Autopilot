@@ -5,7 +5,7 @@ SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
 	_airspeed(ekf),
 	_baro(ekf),
 	_flow(ekf),
-	_gps(ekf),
+	_gnss(ekf),
 	_gnss_yaw(ekf),
 	_imu(ekf),
 	_mag(ekf),
@@ -64,7 +64,7 @@ void SensorSimulator::loadSensorDataFromFile(std::string file_name)
 			sensor_sample.sensor_type = sensor_info::measurement_t::BARO;
 
 		} else if (!sensor_type.compare("gps")) {
-			sensor_sample.sensor_type = sensor_info::measurement_t::GPS;
+			sensor_sample.sensor_type = sensor_info::measurement_t::GNSS;
 
 		} else if (!sensor_type.compare("airspeed")) {
 			sensor_sample.sensor_type = sensor_info::measurement_t::AIRSPEED;
@@ -105,9 +105,9 @@ void SensorSimulator::loadSensorDataFromFile(std::string file_name)
 
 			sensor_sample.sensor_data[i] = std::stod(value_string);
 
-			if (sensor_sample.sensor_type == sensor_info::measurement_t::GPS) {
+			if (sensor_sample.sensor_type == sensor_info::measurement_t::GNSS) {
 				if (i == 1 || i == 2) {
-					// GPS lat/lon was previously stored as a scaled integer
+					// GNSS lat/lon was previously stored as a scaled integer
 					sensor_sample.sensor_data[i] = sensor_sample.sensor_data[i] * 1e-7;
 				}
 			}
@@ -127,7 +127,7 @@ void SensorSimulator::setSensorRateToDefault()
 	_imu.setRateHz(200);
 	_mag.setRateHz(80);
 	_baro.setRateHz(80);
-	_gps.setRateHz(5);
+	_gnss.setRateHz(5);
 	_gnss_yaw.setRateHz(5);
 	_flow.setRateHz(50);
 	_rng.setRateHz(30);
@@ -140,7 +140,7 @@ void SensorSimulator::setSensorDataToDefault()
 	_airspeed.setData(0.0f, 0.0f);
 	_baro.setData(122.2f);
 	_flow.setData(_flow.dataAtRest());
-	_gps.setData(_gps.getDefaultGpsData());
+	_gnss.setData(_gnss.getDefaultGnssData());
 	_imu.setData(Vector3f{0.0f, 0.0f, -CONSTANTS_ONE_G}, Vector3f{0.0f, 0.0f, 0.0f});
 	_mag.setData(Vector3f{0.218f, 0.f, 0.43f});
 	_rng.setData(0.2f, 100);
@@ -184,7 +184,7 @@ void SensorSimulator::updateSensors()
 	_imu.update(_time);
 	_mag.update(_time);
 	_baro.update(_time);
-	_gps.update(_time);
+	_gnss.update(_time);
 	_gnss_yaw.update(_time);
 	_flow.update(_time);
 	_rng.update(_time);
@@ -267,13 +267,13 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 	} else if (sample.sensor_type == sensor_info::measurement_t::BARO) {
 		_baro.setData((float) sample.sensor_data[0]);
 
-	} else if (sample.sensor_type == sensor_info::measurement_t::GPS) {
-		_gps.setAltitude(sample.sensor_data[0]);
-		_gps.setLatitude(sample.sensor_data[1]);
-		_gps.setLongitude(sample.sensor_data[2]);
-		_gps.setVelocity(Vector3f((float) sample.sensor_data[3],
-					  (float) sample.sensor_data[4],
-					  (float) sample.sensor_data[5]));
+	} else if (sample.sensor_type == sensor_info::measurement_t::GNSS) {
+		_gnss.setAltitude(sample.sensor_data[0]);
+		_gnss.setLatitude(sample.sensor_data[1]);
+		_gnss.setLongitude(sample.sensor_data[2]);
+		_gnss.setVelocity(Vector3f((float) sample.sensor_data[3],
+					   (float) sample.sensor_data[4],
+					   (float) sample.sensor_data[5]));
 
 	} else if (sample.sensor_type == sensor_info::measurement_t::AIRSPEED) {
 		_airspeed.setData((float) sample.sensor_data[0], (float) sample.sensor_data[1]);
@@ -396,27 +396,27 @@ void SensorSimulator::setSensorDataFromTrajectory()
 		_flow.setData(flow_sample);
 	}
 
-	if (_gps.isRunning()) {
-		/* _gps.setAltitude(); */
-		/* _gps.setLatitude(); */
-		/* _gps.setLongitude(); */
-		_gps.setVelocity(vel_world);
+	if (_gnss.isRunning()) {
+		/* _gnss.setAltitude(); */
+		/* _gnss.setLatitude(); */
+		/* _gnss.setLongitude(); */
+		_gnss.setVelocity(vel_world);
 	}
 }
 
-void SensorSimulator::setGpsLatitude(const double latitude)
+void SensorSimulator::setGnssLatitude(const double latitude)
 {
-	_gps.setLatitude(latitude);
+	_gnss.setLatitude(latitude);
 }
 
-void SensorSimulator::setGpsLongitude(const double longitude)
+void SensorSimulator::setGnssLongitude(const double longitude)
 {
-	_gps.setLongitude(longitude);
+	_gnss.setLongitude(longitude);
 }
 
-void SensorSimulator::setGpsAltitude(const float altitude)
+void SensorSimulator::setGnssAltitude(const float altitude)
 {
-	_gps.setAltitude(altitude);
+	_gnss.setAltitude(altitude);
 }
 
 void SensorSimulator::setImuBias(Vector3f accel_bias, Vector3f gyro_bias)

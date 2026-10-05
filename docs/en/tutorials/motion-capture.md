@@ -36,8 +36,8 @@ When creating the rigid body in the motion capture software, remember to first a
 
 ## Estimator Choice
 
-EKF2 is recommended for GPS-enabled systems (LPE is deprecated, and hence no longer supported or maintained).
-The Q-Estimator is recommended if you don't have GPS, as it works without a magnetometer or barometer.
+EKF2 is recommended for GNSS-enabled systems (LPE is deprecated, and hence no longer supported or maintained).
+The Q-Estimator is recommended if you don't have GNSS, as it works without a magnetometer or barometer.
 
 See [Switching State Estimators](../advanced/switching_state_estimators.md) for more information.
 

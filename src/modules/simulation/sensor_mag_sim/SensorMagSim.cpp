@@ -131,7 +131,7 @@ void SensorMagSim::Run()
 		if (_vehicle_global_position_sub.copy(&gpos)) {
 			if (gpos.eph < 1000) {
 
-				// magnetic field data returned by the geo library using the current GPS position
+				// magnetic field data returned by the geo library using the current GNSS position
 				const float declination_rad = math::radians(get_mag_declination_degrees(gpos.lat, gpos.lon));
 				const float inclination_rad = math::radians(get_mag_inclination_degrees(gpos.lat, gpos.lon));
 				const float field_strength_gauss = get_mag_strength_gauss(gpos.lat, gpos.lon);

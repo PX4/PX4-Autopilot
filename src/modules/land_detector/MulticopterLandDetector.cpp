@@ -267,7 +267,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	const bool close_to_ground_or_skipped_check = _is_close_to_ground() || skip_close_to_ground_check;
 	_land_detected.close_to_ground_or_skipped_check &= close_to_ground_or_skipped_check;
 
-	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
+	// TODO: we need an accelerometer based check for vertical movement for flying without GNSS
 	return !_armed ||
 	       (close_to_ground_or_skipped_check && ground_contact
 		&& !_horizontal_movement && !vertical_movement);
