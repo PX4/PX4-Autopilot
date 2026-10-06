@@ -3,8 +3,6 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-param set-default COM_SAFETY_MODE 1
-
 neopixel start
 safety_button start
 tone_alarm start

@@ -1525,15 +1525,15 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if ((int)(cmd.param7) == 1) {
 					/* do esc calibration */
 					if (check_battery_disconnected(&_mavlink_log_pub)) {
-						answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
-
 						if (!_safety.isSafetyOff()) {
+							answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 							const char *safety_message = _safety.isButtonAvailable() ? "Press safety button" : "Turn safety off";
 							mavlink_log_critical(&_mavlink_log_pub, "ESC calibration denied! %s first\t", safety_message);
 							events::send(events::ID("commander_esc_calibration_denied"), events::Log::Critical,
 								     "ESCs calibration denied");
 
 						} else {
+							answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 							_vehicle_status.calibration_enabled = true;
 							_actuator_armed.in_esc_calibration_mode = true;
 							_worker_thread.startTask(WorkerThread::Request::ESCCalibration);
@@ -1689,8 +1689,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				} else if (commanded_state == vehicle_command_s::SAFETY_SAFE) {
-					_safety.activateSafety();
-					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					if (_safety.isSafetyDisabled()) {
+						// COM_SAFETY_MODE 0 keeps safety off, so turning it on would be a no-op
+						answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+
+					} else {
+						_safety.activateSafety();
+						answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					}
 
 				} else {
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);

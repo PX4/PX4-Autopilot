@@ -3,7 +3,6 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-param set-default COM_SAFETY_MODE 1
 param set-default CANNODE_SUB_MBD 1
 param set-default CANNODE_SUB_RTCM 1
 param set-default MBE_ENABLE 0

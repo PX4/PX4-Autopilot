@@ -37,7 +37,6 @@
 
 #include "Safety.hpp"
 #include <lib/parameters/param.h>
-#include <circuit_breaker/circuit_breaker.h>
 
 using namespace time_literals;
 

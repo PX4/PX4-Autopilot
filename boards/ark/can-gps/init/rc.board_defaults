@@ -3,7 +3,6 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-param set-default COM_SAFETY_MODE 1
 param set-default MBE_ENABLE 0
 param set-default SENS_IMU_CLPNOTI 0
 

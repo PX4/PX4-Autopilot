@@ -167,7 +167,7 @@ Additionally, the [COM_PREARM_MODE](#COM_PREARM_MODE) parameter defines when/if 
 
 The sections below detail the startup sequences for the different configurations of [COM_SAFETY_MODE](#COM_SAFETY_MODE) and [COM_PREARM_MODE](#COM_PREARM_MODE).
 
-### COM_SAFETY_MODE=Always off (Default) and and COM_PREARM_MODE=Disabled (Default)
+### COM_SAFETY_MODE=Always off (Default) and COM_PREARM_MODE=Disabled (Default)
 
 The default configuration does not impose any additional safety measures. Arming is possible as soon as the rest of the system is ready.
 
@@ -232,20 +232,10 @@ The startup sequence is:
 
 ### Parameters
 
-| Parameter                                                                                                | Description                                                                                                                                                        |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="COM_SAFETY_MODE"></a>[COM_SAFETY_MODE](../advanced_config/parameter_reference.md#COM_SAFETY_MODE)    |           Condition to turn safety off. Vehicle arming is prevented for as long as safety is on.
-
-          0: Always off.
-          1: Safety can be turned off either by pressing a physical safety switch, or by sending a MAV_CMD_DO_SET_SAFETY_SWITCH_STATE command.
-          2: Safety can only be turned off by pressing a physical safety switch. MAV_CMD_DO_SET_SAFETY_SWITCH_STATE commands are rejected.
-          3: Safety can only be turned off by sending a MAV_CMD_DO_SET_SAFETY_SWITCH_STATE command. Any physical switch is ignored. |
-| <a id="COM_PREARM_MODE"></a>[COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) |           Condition to enter the prearmed state, an intermediate state between disarmed and armed
-          in which non-throttling actuators are active.
-
-          0: Never prearmed.
-          1: Prearmed when safety is off (COM_SAFETY_MODE)
-          2: Always prearmed. |
+| Parameter                                                                                                | Description                                                                            |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| <a id="COM_SAFETY_MODE"></a>[COM_SAFETY_MODE](../advanced_config/parameter_reference.md#COM_SAFETY_MODE) | Condition to turn safety off. Vehicle arming is prevented for as long as safety is on. |
+| <a id="COM_PREARM_MODE"></a>[COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) | Condition to enter the prearmed state.                                                 |
 
 <!-- Discussion:
 https://github.com/PX4/PX4-Autopilot/pull/12806#discussion_r318337567
