@@ -395,6 +395,36 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, DeferredYawFoldStableAc
 	}
 }
 
+// Same tie on a fine throttle sweep: pitch authority must not jump between full and zero for tiny
+// throttle changes.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, DeferredYawFoldStableOnFineSweep)
+{
+	setAirmodeParams(0.5f, false); // LIM > 0, yaw airmode off: yawReducesAirmodeThrust() decides the fold
+
+	int pitch_lost = 0;
+	int switches = 0;
+	bool prev_lost = false;
+
+	for (int k = 0; k <= 2000; k++) {
+		const float thrust = 0.40f + k * 0.0001f;
+		const Vector4f out = allocate(0.f, 3.f, 2.4f, -thrust); // large pitch + yaw
+		const float pitch_allocated = out(0) - out(1) - out(2) + out(3);
+		const bool lost = pitch_allocated < 1.f; // full authority here is 2.0
+
+		if (lost) {
+			pitch_lost++;
+		}
+
+		if (k > 0 && lost != prev_lost) {
+			switches++;
+		}
+
+		prev_lost = lost;
+	}
+
+	EXPECT_EQ(switches, 0) << "pitch lost in " << pitch_lost << " / 2001 samples, " << switches << " switches";
+}
+
 // MC_AIRMODE_LIM = 0 is airmode disabled whatever MC_AIRMODE_YAW says: yaw airmode spends the
 // limit's thrust budget, so without one it must not move yaw into the initial sum either (which
 // would, for example, give up collective for yaw at full throttle).
