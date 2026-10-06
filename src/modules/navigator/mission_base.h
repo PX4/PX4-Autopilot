@@ -336,6 +336,9 @@ protected:
 	/** Handle changes to mission contents or the externally selected sequence. */
 	virtual void onMissionUpdate(bool has_mission_items_changed);
 
+	/** Notify the mode when an active DO_JUMP is skipped because its counter could not be saved. */
+	virtual void onMissionJumpSkipped(int32_t jump_index) { (void)jump_index; }
+
 	/**
 	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
 	 * @return true if the mission was reset
