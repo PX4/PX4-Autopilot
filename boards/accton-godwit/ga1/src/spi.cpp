@@ -46,8 +46,11 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM6DSV, SPI::CS{GPIO::PortI, GPIO::Pin9}),
 	}, {GPIO::PortI, GPIO::Pin11}),
 	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
+		// On this socket only INT2 (pin 9) reaches the MCU (PA10); INT1 goes to a test point.
+		// The icm42688p and icm45686 drivers signal data ready on INT1, so they are polled.
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}),
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortH, GPIO::Pin5}),
+		// icm56686 is started with -2 to route its FIFO interrupt to INT2.
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM56686, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
 		initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM6DSV, SPI::CS{GPIO::PortH, GPIO::Pin5}),
 	}, {GPIO::PortF, GPIO::Pin4}),
