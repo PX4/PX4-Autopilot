@@ -212,6 +212,7 @@ bool MavlinkSignControl::prepare_checkpoint(MavlinkSigningStorage::State &state)
 	if (current_timestamp > _mavlink_signing.timestamp) {
 		_mavlink_signing.timestamp = current_timestamp;
 	}
+
 	memcpy(state.secret_key, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
 	state.timestamp = _mavlink_signing.timestamp;
 	return true;
