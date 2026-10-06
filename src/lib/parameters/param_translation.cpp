@@ -276,5 +276,16 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-10-06: translate MC_AIRMODE_YLIM float to MC_AIRMODE_YAW boolean
+	{
+		if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp("MC_AIRMODE_YLIM", node->name) == 0)) {
+			node->i32 = (node->d > 0.0) ? 1 : 0;
+			node->type = bson_type_t::BSON_INT32;
+			strcpy(node->name, "MC_AIRMODE_YAW");
+			PX4_INFO("migrating %s -> %s", "MC_AIRMODE_YLIM", "MC_AIRMODE_YAW");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }
