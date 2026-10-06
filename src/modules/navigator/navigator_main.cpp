@@ -366,6 +366,11 @@ void Navigator::run()
 		_takeoff_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 
+		// Commands and geofence Hold can reuse the current loiter center. Correct it before they copy it.
+		if (_navigation_mode == &_loiter) {
+			_loiter.followPositionResets();
+		}
+
 		// Handle Vehicle commands
 		int vehicle_command_updates = 0;
 
@@ -451,10 +456,13 @@ void Navigator::run()
 						rep->current.yaw = NAN;
 					}
 
+					_reposition_sources.z = PX4_ISFINITE(cmd.param7) ? RepositionSource::Command : RepositionSource::Vehicle;
+
 					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 						// Position change with optional altitude change
 						rep->current.lat = cmd.param5;
 						rep->current.lon = cmd.param6;
+						_reposition_sources.xy = RepositionSource::Command;
 
 						if (PX4_ISFINITE(cmd.param7)) {
 							rep->current.alt = cmd.param7;
@@ -465,8 +473,10 @@ void Navigator::run()
 
 					} else if (PX4_ISFINITE(cmd.param7) || PX4_ISFINITE(cmd.param4)) {
 						// Position is not changing, thus we keep the setpoint
-						rep->current.lat = PX4_ISFINITE(curr->current.lat) ? curr->current.lat : get_global_position()->lat;
-						rep->current.lon = PX4_ISFINITE(curr->current.lon) ? curr->current.lon : get_global_position()->lon;
+						const bool keep_position = curr->current.valid && PX4_ISFINITE(curr->current.lat) && PX4_ISFINITE(curr->current.lon);
+						rep->current.lat = keep_position ? curr->current.lat : get_global_position()->lat;
+						rep->current.lon = keep_position ? curr->current.lon : get_global_position()->lon;
+						_reposition_sources.xy = keep_position ? RepositionSource::Setpoint : RepositionSource::Vehicle;
 
 						if (PX4_ISFINITE(cmd.param7)) {
 							rep->current.alt = cmd.param7;
@@ -478,6 +488,8 @@ void Navigator::run()
 
 					} else {
 						// All three set to NaN - pause vehicle
+						// a pause holds where the vehicle is, also when it continues an established loiter
+						_reposition_sources.xy = RepositionSource::Vehicle;
 						rep->current.alt = get_global_position()->alt;
 
 						// If the vehicle is already established on a circular loiter (orbit), keep that
@@ -623,11 +635,14 @@ void Navigator::run()
 						rep->current.yaw = NAN;
 
 						// Position is not changing, thus we keep the setpoint
-						rep->current.lat = PX4_ISFINITE(curr->current.lat) ? curr->current.lat : get_global_position()->lat;
-						rep->current.lon = PX4_ISFINITE(curr->current.lon) ? curr->current.lon : get_global_position()->lon;
+						const bool keep_position = curr->current.valid && PX4_ISFINITE(curr->current.lat) && PX4_ISFINITE(curr->current.lon);
+						rep->current.lat = keep_position ? curr->current.lat : get_global_position()->lat;
+						rep->current.lon = keep_position ? curr->current.lon : get_global_position()->lon;
 
 						// set the altitude corresponding to command
 						rep->current.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
+						_reposition_sources.xy = keep_position ? RepositionSource::Setpoint : RepositionSource::Vehicle;
+						_reposition_sources.z = PX4_ISFINITE(cmd.param1) ? RepositionSource::Command : RepositionSource::Vehicle;
 
 						if (PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > FLT_EPSILON) {
 							rep->current.loiter_radius = curr->current.loiter_radius;
@@ -716,6 +731,10 @@ void Navigator::run()
 					rep->current.lat = position_setpoint.lat;
 					rep->current.lon = position_setpoint.lon;
 					rep->current.alt = position_setpoint.alt;
+					// Keep the horizontal target fixed if either coordinate is commanded.
+					_reposition_sources.xy = (PX4_ISFINITE(cmd.param5) || PX4_ISFINITE(cmd.param6)) ? RepositionSource::Command
+								 : RepositionSource::Vehicle;
+					_reposition_sources.z = PX4_ISFINITE(cmd.param7) ? RepositionSource::Command : RepositionSource::Vehicle;
 
 					rep->current.valid = true;
 					rep->current.timestamp = hrt_absolute_time();
@@ -768,6 +787,10 @@ void Navigator::run()
 					rep->current.lat = position_setpoint.lat;
 					rep->current.lon = position_setpoint.lon;
 					rep->current.alt = position_setpoint.alt;
+					// Keep the horizontal target fixed if either coordinate is commanded.
+					_reposition_sources.xy = (PX4_ISFINITE(cmd.param5) || PX4_ISFINITE(cmd.param6)) ? RepositionSource::Command
+								 : RepositionSource::Vehicle;
+					_reposition_sources.z = PX4_ISFINITE(cmd.param7) ? RepositionSource::Command : RepositionSource::Vehicle;
 
 					rep->current.valid = true;
 					rep->current.timestamp = hrt_absolute_time();
@@ -1294,6 +1317,7 @@ void Navigator::geofence_breach_check()
 				rep->current.lat = loiter_center_lat;
 				rep->current.lon = loiter_center_lon;
 				rep->current.alt = _global_pos.alt;
+				_reposition_sources = {RepositionSource::Vehicle, RepositionSource::Vehicle};
 				rep->current.valid = true;
 				rep->current.loiter_radius = get_default_loiter_rad();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;

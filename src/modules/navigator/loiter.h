@@ -44,6 +44,7 @@
 #include "mission_block.h"
 
 #include <px4_platform_common/module_params.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 class Loiter : public MissionBlock, public ModuleParams
 {
@@ -54,6 +55,9 @@ public:
 	void on_activation() override;
 	void on_active() override;
 	void on_inactive() override;
+
+	/** Update Hold before Navigator copies its setpoint into a reposition request. */
+	void followPositionResets();
 
 private:
 	/**
@@ -68,6 +72,24 @@ private:
 	void set_loiter_position(const position_setpoint_s &reference_setpoint);
 
 	bool _loiter_at_last_link_position_executed{false};
+
+	bool _follow_xy_resets{false}; ///< false for a commanded target, which stays through a reset of the estimate
+	bool _follow_z_resets{false};
+
+	struct PositionResetState {
+		uint8_t xy_reset_counter{0};
+		uint8_t z_reset_counter{0};
+		uint64_t ref_timestamp{0}; ///< of the local position origin, which moves without moving the global position
+		float ref_alt{NAN};
+
+		void update(const vehicle_local_position_s &local_pos)
+		{
+			xy_reset_counter = local_pos.xy_reset_counter;
+			z_reset_counter = local_pos.z_reset_counter;
+			ref_timestamp = local_pos.ref_timestamp;
+			ref_alt = local_pos.ref_alt;
+		}
+	} _position_reset_state{};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::NAV_LTR_LAST_DL>) _param_nav_ltr_last_dl
