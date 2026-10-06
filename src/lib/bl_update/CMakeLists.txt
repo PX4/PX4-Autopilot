@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE systemcmds__bl_update
-	MAIN bl_update
-	STACK_MAIN 4096
-	SRCS
-		bl_update.cpp
-	DEPENDS
-		bl_update_flash
-)
+
+if(CONFIG_SYSTEMCMDS_BL_UPDATE)
+	px4_add_library(bl_update_flash bl_update_flash.cpp)
+	target_compile_options(bl_update_flash PRIVATE -Wno-cast-align)
+
+	# CAN nodes run with the IWDG their bootloader started, and nothing else
+	# pets it while the scheduler is locked for erase and program. Matched on
+	# the chip because the platform targets are configured after src/lib.
+	if("${PX4_CHIP}" MATCHES "^stm32f[47]$")
+		target_compile_definitions(bl_update_flash PRIVATE BL_UPDATE_WATCHDOG)
+		target_link_libraries(bl_update_flash PRIVATE arch_watchdog_iwdg)
+	endif()
+endif()

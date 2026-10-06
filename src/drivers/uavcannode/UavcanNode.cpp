@@ -47,6 +47,10 @@ extern "C" __attribute__((weak)) const char *board_get_uavcan_hw_name(void)
 #include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+#include <lib/bl_update/bl_update_flash.h>
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
+
 #if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
 #include <errno.h>
 #endif // CONFIG_UAVCANNODE_COMMAND_SHELL
@@ -459,6 +463,18 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	fill_node_info();
 
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+	// Only setting SYS_BL_UPDATE while running triggers an update, never a
+	// value left over from before this boot.
+	int32_t bl_update = 0;
+
+	if (param_get(_param_sys_bl_update, &bl_update) == PX4_OK && bl_update != 0) {
+		bl_update = 0;
+		param_set(_param_sys_bl_update, &bl_update);
+	}
+
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
+
 	if (_fw_update_listner.start(BeginFirmwareUpdateCallBack(this, &UavcanNode::cb_beginfirmware_update)) < 0) {
 		PX4_ERR("firmware update listener start failed");
 		return PX4_ERROR;
@@ -610,6 +626,22 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	return 1;
 }
 
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+void UavcanNode::update_bootloader()
+{
+	// The bootloader only runs at reset, so no reboot is needed. The result
+	// goes out over CAN through the log_message forwarding in Run().
+	const bl_update::Result result = bl_update::flash(UAVCANNODE_BOOTLOADER_FILE);
+
+	if (result == bl_update::Result::Updated || result == bl_update::Result::Unchanged) {
+		PX4_INFO("%s", bl_update::result_str(result));
+
+	} else {
+		PX4_ERR("bootloader update failed: %s", bl_update::result_str(result));
+	}
+}
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
+
 // Restart handler
 class RestartRequestHandler: public uavcan::IRestartRequestHandler
 {
@@ -728,7 +760,29 @@ void UavcanNode::Run()
 		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
+
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+		int32_t bl_update = 0;
+
+		if (param_get(_param_sys_bl_update, &bl_update) == PX4_OK && bl_update != 0) {
+			bl_update = 0;
+			param_set(_param_sys_bl_update, &bl_update);
+
+			// let the param set response and the autosave go out before flashing stalls everything
+			_bootloader_update_time = hrt_absolute_time() + 1_s;
+		}
+
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
 	}
+
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+
+	if (_bootloader_update_time != 0 && hrt_absolute_time() >= _bootloader_update_time) {
+		_bootloader_update_time = 0;
+		update_bootloader();
+	}
+
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
 
 	_node.spinOnce();
 
