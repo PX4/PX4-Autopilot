@@ -379,10 +379,10 @@ uint16_t Battery::determineFaults()
 
 void Battery::computeScale()
 {
-	_scale = _params.v_charged / _cell_voltage_filter_v.getState();
+	const float cell_voltage = _cell_voltage_filter_v.getState();
 
-	if (PX4_ISFINITE(_scale)) {
-		_scale = math::constrain(_scale, 1.f, 1.3f); // Allow at most 30% compensation
+	if (cell_voltage > FLT_EPSILON) {
+		_scale = math::constrain(_params.v_charged / cell_voltage, 1.f, 1.3f); // Allow at most 30% compensation
 
 	} else {
 		_scale = 1.f;

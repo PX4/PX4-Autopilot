@@ -140,7 +140,7 @@ if (gz-transport_FOUND)
 	# Setup the environment variables: PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
 	# @ONLY disables ${VAR} substitution so that shell $VAR references in the
 	# template are passed through untouched.
-	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh @ONLY)
+	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/gz_env.sh @ONLY)
 
 else()
 	# Fallback targets with helpful error messages when Gazebo deps are missing.

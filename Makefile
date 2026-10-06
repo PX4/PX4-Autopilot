@@ -485,7 +485,7 @@ tests_vtest_moving:
 
 # This target builds the neural configuration, the only one that enables mc_nn_control.
 tests_neural:
-	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),RescaleAction))
+	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),RescaleAction|NnControl)")
 	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
 	$(eval ARGS += test_results)
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
