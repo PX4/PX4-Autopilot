@@ -153,7 +153,7 @@ void GnssSelector::updateAvailability(uint64_t hrt_now_us)
 		}
 
 		if (usable && !_has_passed[i]) {
-			// A receiver first passes after the pre-flight health time of its checks, which already proves it
+			// A receiver first passes after the strict checks held for GNSS_REQ_TIME, which already proves it
 			_availability[i].reset(1.f);
 			_has_passed[i] = true;
 
@@ -188,11 +188,11 @@ GnssSelector::Rank GnssSelector::rank(int instance, uint64_t hrt_now_us) const
 		return RANK_UNUSABLE;
 	}
 
-	if (!_sample[instance].meets_requirements) {
+	if (!_sample[instance].passed_strict) {
 		return RANK_USABLE;
 	}
 
-	return (_sample[instance].rtk_fixed && !hasPreferred()) ? RANK_RTK_FIXED : RANK_REQUIREMENTS;
+	return (_sample[instance].rtk_fixed && !hasPreferred()) ? RANK_RTK_FIXED : RANK_STRICT;
 }
 
 int GnssSelector::bestReplacement(int current, bool usable_only, uint64_t hrt_now_us) const
@@ -257,9 +257,9 @@ bool GnssSelector::isBetterReceiver(int instance, int other, uint64_t hrt_now_us
 		return instance_rank > other_rank;
 	}
 
-	// The preferred receiver is better only while it meets the requirements: when neither does, moving to it is a
+	// The preferred receiver is better only while it passes the strict checks: when neither does, moving to it is a
 	// reset for nothing
-	if (hasPreferred() && (instance_rank >= RANK_REQUIREMENTS)
+	if (hasPreferred() && (instance_rank >= RANK_STRICT)
 	    && ((instance == _preferred_instance) || (other == _preferred_instance))) {
 		return instance == _preferred_instance;
 	}
@@ -365,8 +365,8 @@ int GnssSelector::selectReceiver(uint64_t hrt_now_us)
 	} else if (best_rank == RANK_RTK_FIXED) {
 		switch_reason = vehicle_gnss_s::SELECTION_RTK_FIXED;
 
-	} else if (best_rank == RANK_REQUIREMENTS) {
-		switch_reason = vehicle_gnss_s::SELECTION_REQUIREMENTS;
+	} else if (best_rank == RANK_STRICT) {
+		switch_reason = vehicle_gnss_s::SELECTION_STRICT;
 	}
 
 	return switchTo(best_candidate, switch_reason);

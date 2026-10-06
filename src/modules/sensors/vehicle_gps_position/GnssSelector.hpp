@@ -56,12 +56,12 @@ using namespace time_literals;
  * armed it is selected again only when the selected one fails, as one that failed is likely to fail again in the same
  * flight. Intermittent failures are caught by the availability: the fraction of recent time a receiver was usable.
  *
- * Receivers rank by being usable, then by meeting the accuracy requirements (the strict checks), then, without a
+ * Receivers rank by being usable, then by passing the strict checks (GNSS_REQ_* and the other pre-arm thresholds), then, without a
  * preferred receiver, by an RTK fixed solution. The selection moves to the best receiver once it has been clearly
  * better than the selected one through the hold time. A receiver more available by AVAILABILITY_MARGIN is better
- * whatever its rank; otherwise the higher rank is better, then the preferred receiver while it meets the requirements.
- * So the preferred receiver is kept while it meets them, whatever the other one reports, and left when it hasn't met
- * them through the hold while the other one has. A moving-base rover reports a better fix and accuracy while being the
+ * whatever its rank; otherwise the higher rank is better, then the preferred receiver while it passes the strict checks.
+ * So the preferred receiver is kept while it passes them, whatever the other one reports, and left when it has failed
+ * them through the hold while the other one passed them. A moving-base rover reports a better fix and accuracy while being the
  * worse position source, so an RTK fixed solution never outranks the preferred receiver. While disarmed the preferred
  * receiver is selected whenever it publishes: a vehicle whose preferred receiver fails its checks shouldn't take off
  * on the other one.
@@ -84,7 +84,7 @@ public:
 
 	// How long a receiver must rank higher before the selection moves to it. While disarmed a receiver is usable only
 	// once the strict checks held for GNSS_REQ_TIME. While armed the hold doubles with every such switch, so that
-	// receivers going in and out of the requirements for longer than the hold can't keep resetting EKF2.
+	// receivers passing and failing the strict checks for longer than the hold can't keep resetting EKF2.
 	static constexpr hrt_abstime SWITCH_HOLD_ARMED_US = 10_s;
 	static constexpr hrt_abstime SWITCH_HOLD_DISARMED_US = 2_s;
 	static constexpr uint8_t SWITCH_HOLD_MAX_DOUBLINGS = 4;
@@ -105,11 +105,11 @@ public:
 	GnssSelector();
 	~GnssSelector() = default;
 
-	// checks_passed and meets_requirements are the results of the receiver's own GnssChecks for this sample
-	void setGnssData(const sensor_gnss_s &gnss_data, bool checks_passed, bool meets_requirements, uint8_t instance)
+	// checks_passed and passed_strict are the results of the receiver's own GnssChecks for this sample
+	void setGnssData(const sensor_gnss_s &gnss_data, bool checks_passed, bool passed_strict, uint8_t instance)
 	{
 		if (instance < GNSS_MAX_RECEIVERS) {
-			_sample[instance] = {gnss_data.timestamp, checks_passed, meets_requirements,
+			_sample[instance] = {gnss_data.timestamp, checks_passed, passed_strict,
 					     gnss_data.fix_type == sensor_gnss_s::FIX_TYPE_RTK_FIXED
 					    };
 			_updated[instance] = true;
@@ -159,7 +159,7 @@ private:
 	struct Sample {
 		uint64_t timestamp{0}; ///< 0 when never published or timed out
 		bool checks_passed{false};
-		bool meets_requirements{false};
+		bool passed_strict{false};
 		bool rtk_fixed{false};
 	};
 
@@ -201,8 +201,8 @@ private:
 	enum Rank : int8_t {
 		RANK_UNUSABLE = -1,
 		RANK_USABLE = 0,
-		RANK_REQUIREMENTS = 1, ///< meets the accuracy requirements
-		RANK_RTK_FIXED = 2,    ///< meets the accuracy requirements with an RTK fixed solution, without a preferred receiver
+		RANK_STRICT = 1,       ///< passes the strict checks
+		RANK_RTK_FIXED = 2,    ///< passes the strict checks with an RTK fixed solution, without a preferred receiver
 	};
 
 	Rank rank(int instance, uint64_t hrt_now_us) const;

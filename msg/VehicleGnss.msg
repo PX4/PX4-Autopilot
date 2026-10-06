@@ -19,12 +19,14 @@ uint8 SELECTION_ONLY         = 1 # No other receiver has published
 uint8 SELECTION_RANKED       = 2 # No receiver is preferred, and no other one ranks higher
 uint8 SELECTION_TIMEOUT      = 3 # The previously selected or the preferred receiver stopped publishing
 uint8 SELECTION_UNHEALTHY    = 4 # The previously selected or the preferred receiver failed its checks or delivered samples late, continuously or often
-uint8 SELECTION_REQUIREMENTS = 5 # Meets the accuracy requirements, which the previously selected receiver didn't
-uint8 SELECTION_RTK_FIXED    = 6 # Has an RTK fixed solution, which the previously selected receiver didn't, and both meet the accuracy requirements
+uint8 SELECTION_STRICT       = 5 # Passes the strict checks, which the previously selected receiver didn't
+uint8 SELECTION_RTK_FIXED    = 6 # Has an RTK fixed solution, which the previously selected receiver didn't, and both pass the strict checks
 
-# Check result for this sample
-bool usable                 # Sample may be used: the receiver has passed its checks for long enough
-uint16 failed_checks        # [@enum CHECK] Bitmask of the enabled checks that failed
+# Check result for this sample. The strict checks are the GNSS_REQ_* thresholds, satellite count, PDOP and drift at rest on the ground; the relaxed checks are fixed, looser limits on fix type, accuracy, spoofing and jamming.
+bool usable                  # Sample may be used: the checks that decide it have passed without a failure for long enough
+bool strict                  # The strict checks decide usable: they haven't passed since the vehicle was disarmed on the ground, or they pass. Otherwise the relaxed checks decide
+uint16 failed_strict_checks  # [@enum CHECK] Enabled checks this sample fails at the strict thresholds, evaluated on every sample
+uint16 failed_relaxed_checks # [@enum CHECK] Enabled checks this sample fails at the relaxed thresholds, evaluated on every sample
 uint16 CHECK_NSATS   = 1    # Too few satellites
 uint16 CHECK_PDOP    = 2    # Position dilution of precision too high
 uint16 CHECK_EPH     = 4    # Horizontal position accuracy too low

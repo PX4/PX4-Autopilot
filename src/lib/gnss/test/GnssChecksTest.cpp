@@ -98,7 +98,7 @@ TEST_F(GnssChecksTest, relaxedOnlyAfterStrictPass)
 	EXPECT_FALSE(_checks.passed());
 	EXPECT_TRUE(_checks.strict());
 
-	// WHEN: it meets the strict thresholds for the health time
+	// WHEN: it passes the strict checks for the health time
 	_sample.hacc = 1.f;
 	runSeconds(1.5f, true, true);
 
@@ -126,10 +126,10 @@ TEST_F(GnssChecksTest, relaxedWhileArmedOnGround)
 	// THEN: it still passes
 	EXPECT_TRUE(_checks.passed());
 	EXPECT_FALSE(_checks.strict());
-	EXPECT_FALSE(_checks.meetsRequirements());
+	EXPECT_FALSE(_checks.passedStrict());
 }
 
-TEST_F(GnssChecksTest, requirementsPerSample)
+TEST_F(GnssChecksTest, strictFailureOfOneSample)
 {
 	// GIVEN: a receiver that passed the strict checks, then took off
 	runSeconds(2.f, false, false);
@@ -139,20 +139,21 @@ TEST_F(GnssChecksTest, requirementsPerSample)
 	_sample.nsats = 4;
 	runSeconds(0.1f, true, true);
 
-	// THEN: that sample doesn't meet the requirements, but still passes, and isn't reported as failing
-	EXPECT_FALSE(_checks.meetsRequirements());
+	// THEN: that sample doesn't pass the strict checks, but still passes the relaxed ones that decide
+	EXPECT_FALSE(_checks.passedStrict());
 	EXPECT_TRUE(_checks.passed());
-	EXPECT_EQ(_checks.getFailFlags(), 0);
+	EXPECT_EQ(_checks.getStrictFailFlags(), vehicle_gnss_s::CHECK_NSATS);
+	EXPECT_EQ(_checks.getRelaxedFailFlags(), 0);
 
 	// WHEN: the next sample has enough again
 	_sample.nsats = 10;
 	runSeconds(0.1f, true, true);
 
-	// THEN: it meets them again at once, as only a failure of the relaxed checks restarts the required pass duration
-	EXPECT_TRUE(_checks.meetsRequirements());
+	// THEN: it passes them again at once, as only a failure of the relaxed checks restarts the required pass duration
+	EXPECT_TRUE(_checks.passedStrict());
 }
 
-TEST_F(GnssChecksTest, requirementsInFlight)
+TEST_F(GnssChecksTest, strictInFlight)
 {
 	// GIVEN: a receiver that passed the strict checks, then took off
 	runSeconds(2.f, false, false);
@@ -160,19 +161,19 @@ TEST_F(GnssChecksTest, requirementsInFlight)
 
 	EXPECT_TRUE(_checks.passed());
 	EXPECT_TRUE(_checks.strict());
-	EXPECT_TRUE(_checks.meetsRequirements());
+	EXPECT_TRUE(_checks.passedStrict());
 
-	// WHEN: its accuracy degrades beyond the strict threshold but within the relaxed in-flight one
+	// WHEN: its accuracy degrades beyond the strict threshold but within the relaxed one
 	_sample.hacc = 10.f;
 	runSeconds(1.f, true, true);
 
-	// THEN: it still passes, but no longer meets the requirements
+	// THEN: it still passes, but no longer passes the strict checks
 	EXPECT_TRUE(_checks.passed());
 	EXPECT_FALSE(_checks.strict());
-	EXPECT_FALSE(_checks.meetsRequirements());
+	EXPECT_FALSE(_checks.passedStrict());
 }
 
-TEST_F(GnssChecksTest, requirementsFixType)
+TEST_F(GnssChecksTest, strictFixType)
 {
 	// GIVEN: a DGPS fix required, and a receiver that passed the strict checks, then took off
 	GnssChecks::Params params{};
@@ -183,18 +184,18 @@ TEST_F(GnssChecksTest, requirementsFixType)
 	runSeconds(20.f, false, false);
 	runSeconds(1.f, true, true);
 
-	EXPECT_TRUE(_checks.meetsRequirements());
+	EXPECT_TRUE(_checks.passedStrict());
 
-	// WHEN: it drops to a 3D fix, which the in-flight checks accept
+	// WHEN: it drops to a 3D fix, which the relaxed checks accept
 	_sample.fix_type = 3;
 	runSeconds(1.f, true, true);
 
-	// THEN: it no longer meets the requirements
+	// THEN: it no longer passes the strict checks
 	EXPECT_TRUE(_checks.passed());
-	EXPECT_FALSE(_checks.meetsRequirements());
+	EXPECT_FALSE(_checks.passedStrict());
 }
 
-TEST_F(GnssChecksTest, requirementsFollowCheckMask)
+TEST_F(GnssChecksTest, strictFollowsCheckMask)
 {
 	// GIVEN: the horizontal accuracy check disabled
 	GnssChecks::Params params{};
@@ -205,13 +206,13 @@ TEST_F(GnssChecksTest, requirementsFollowCheckMask)
 	_sample.hacc = 10.f;
 	runSeconds(15.f, false, false);
 
-	// THEN: the requirements are met
-	EXPECT_TRUE(_checks.meetsRequirements());
+	// THEN: it passes the strict checks
+	EXPECT_TRUE(_checks.passedStrict());
 
 	// WHEN: the speed accuracy exceeds its enabled threshold
 	_sample.sacc = 1.f;
 	runSeconds(1.f, false, false);
 
 	// THEN: they aren't
-	EXPECT_FALSE(_checks.meetsRequirements());
+	EXPECT_FALSE(_checks.passedStrict());
 }
