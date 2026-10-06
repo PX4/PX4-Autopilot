@@ -40,7 +40,9 @@ class GnssChecksTest : public ::testing::Test
 public:
 	void SetUp() override
 	{
-		setParams(GnssChecks::Params{});
+		GnssChecks::Params params{};
+		params.min_health_time_us = 1'000'000;
+		setParams(params);
 
 		_sample.lat = 47.0;
 		_sample.lon = 9.0;
@@ -55,7 +57,6 @@ public:
 
 	void setParams(GnssChecks::Params params)
 	{
-		params.min_health_time_us = 1'000'000;
 		_checks.setParams(params);
 	}
 
@@ -179,7 +180,7 @@ TEST_F(GnssChecksTest, requirementsFixType)
 	setParams(params);
 	_sample.fix_type = 4;
 
-	runSeconds(2.f, false, false);
+	runSeconds(20.f, false, false);
 	runSeconds(1.f, true, true);
 
 	EXPECT_TRUE(_checks.meetsRequirements());
@@ -202,7 +203,7 @@ TEST_F(GnssChecksTest, requirementsFollowCheckMask)
 
 	// WHEN: the horizontal accuracy exceeds its threshold
 	_sample.hacc = 10.f;
-	runSeconds(1.5f, false, false);
+	runSeconds(15.f, false, false);
 
 	// THEN: the requirements are met
 	EXPECT_TRUE(_checks.meetsRequirements());
