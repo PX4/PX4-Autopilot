@@ -448,7 +448,7 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 
 		set_align_mission_item(&_mission_item, &next_mission_items[0u]);
 
-		/* set position setpoint to target during the transition */
+		/* hold position and align heading towards the next waypoint */
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	}
 
