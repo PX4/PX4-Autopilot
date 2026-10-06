@@ -36,6 +36,7 @@
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/geo/geo.h>
+#include <lib/mathlib/mathlib.h>
 
 using namespace matrix;
 
@@ -111,6 +112,12 @@ void SensorGpsSim::Run()
 	updateFailureConfig();
 	const bool rtk = updateRtcmCorrections();
 
+	vehicle_attitude_s attitude;
+
+	if (_vehicle_attitude_sub.update(&attitude)) {
+		_attitude = matrix::Quatf(attitude.q);
+	}
+
 	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()) {
 
 		vehicle_local_position_s lpos{};
@@ -119,113 +126,184 @@ void SensorGpsSim::Run()
 		vehicle_global_position_s gpos{};
 		_vehicle_global_position_sub.copy(&gpos);
 
-		// Correlated Markov process position noise (matching GZBridge model)
-		_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
-				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude;
+		const Dcmf body_to_ned{_attitude};
+		const int receivers = math::constrain(static_cast<int>(_sim_gnss_num.get()), 1, GPS_MAX_INSTANCES);
 
-		_gps_pos_noise_e = _pos_markov_time * _gps_pos_noise_e +
-				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude;
+		const Vector3f biases[GPS_MAX_INSTANCES] {
+			{_param_sim_gnss0_bias_n.get(), _param_sim_gnss0_bias_e.get(), _param_sim_gnss0_bias_d.get()},
+			{_param_sim_gnss1_bias_n.get(), _param_sim_gnss1_bias_e.get(), _param_sim_gnss1_bias_d.get()},
+		};
 
-		_gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
-				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f;
+		for (int instance = 0; instance < receivers; instance++) {
+			ReceiverNoise &noise = _noise[instance];
 
-		const double latitude = gpos.lat + math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
-		const double longitude = gpos.lon + math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
-		const double altitude = (double)(gpos.alt + _gps_pos_noise_d);
+			// Correlated Markov process position noise (matching GZBridge model)
+			noise.position(0) = _pos_markov_time * noise.position(0) + _pos_random_walk * generate_wgn() * _pos_noise_amplitude;
+			noise.position(1) = _pos_markov_time * noise.position(1) + _pos_random_walk * generate_wgn() * _pos_noise_amplitude;
+			noise.position(2) = _pos_markov_time * noise.position(2)
+					    + _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f;
 
-		_gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
-				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+			noise.velocity(0) = _vel_markov_time * noise.velocity(0) + _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+			noise.velocity(1) = _vel_markov_time * noise.velocity(1) + _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+			noise.velocity(2) = _vel_markov_time * noise.velocity(2)
+					    + _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
 
-		_gps_vel_noise_e = _vel_markov_time * _gps_vel_noise_e +
-				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+			// The antenna sits at its lever arm from the centre of gravity, and the receiver reports it with its own error
+			const Vector3f position_error = body_to_ned * antennaOffset(instance) + biases[instance] + noise.position;
 
-		_gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
-				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+			const double latitude = gpos.lat + math::degrees((double)position_error(0) / CONSTANTS_RADIUS_OF_EARTH);
+			const double longitude = gpos.lon + math::degrees((double)position_error(1) / CONSTANTS_RADIUS_OF_EARTH)
+						 / cos(math::radians(gpos.lat));
+			const double altitude = (double)(gpos.alt - position_error(2));
 
-		const Vector3f gps_vel = Vector3f{lpos.vx + _gps_vel_noise_n, lpos.vy + _gps_vel_noise_e, lpos.vz + _gps_vel_noise_d};
+			const Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noise.velocity;
 
-		// device id
-		device::Device::DeviceId device_id;
-		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-		device_id.devid_s.bus = 0;
-		device_id.devid_s.address = 0;
-		device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+			// device id
+			device::Device::DeviceId device_id;
+			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+			device_id.devid_s.bus = 0;
+			device_id.devid_s.address = instance;
+			device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
 
-		sensor_gnss_s sensor_gnss{};
+			sensor_gnss_s sensor_gnss{};
 
-		if (_sim_gps_used.get() >= 4) {
-			// fix: RTK fixed while corrections are flowing, 3D otherwise
-			sensor_gnss.fix_type = rtk ? sensor_gnss_s::FIX_TYPE_RTK_FIXED : sensor_gnss_s::FIX_TYPE_3D;
-			sensor_gnss.speed_accuracy = 0.4f;
-			sensor_gnss.course_accuracy = 0.1f;
-			sensor_gnss.eph = rtk ? 0.02f : 0.9f;
-			sensor_gnss.epv = rtk ? 0.04f : 1.78f;
-			sensor_gnss.hdop = 0.7f;
-			sensor_gnss.vdop = 1.1f;
+			if (_sim_gps_used.get() >= 4) {
+				// fix: RTK fixed while corrections are flowing, 3D otherwise
+				sensor_gnss.fix_type = rtk ? sensor_gnss_s::FIX_TYPE_RTK_FIXED : sensor_gnss_s::FIX_TYPE_3D;
+				sensor_gnss.speed_accuracy = 0.4f;
+				sensor_gnss.course_accuracy = 0.1f;
+				sensor_gnss.eph = rtk ? 0.02f : 0.9f;
+				sensor_gnss.epv = rtk ? 0.04f : 1.78f;
+				sensor_gnss.hdop = 0.7f;
+				sensor_gnss.vdop = 1.1f;
 
-		} else {
-			// no fix
-			sensor_gnss.fix_type = 0; // No fix
-			sensor_gnss.speed_accuracy = 100.f;
-			sensor_gnss.course_accuracy = 100.f;
-			sensor_gnss.eph = 100.f;
-			sensor_gnss.epv = 100.f;
-			sensor_gnss.hdop = 100.f;
-			sensor_gnss.vdop = 100.f;
-		}
+			} else {
+				// no fix
+				sensor_gnss.fix_type = 0; // No fix
+				sensor_gnss.speed_accuracy = 100.f;
+				sensor_gnss.course_accuracy = 100.f;
+				sensor_gnss.eph = 100.f;
+				sensor_gnss.epv = 100.f;
+				sensor_gnss.hdop = 100.f;
+				sensor_gnss.vdop = 100.f;
+			}
 
-		sensor_gnss.timestamp_sample = gpos.timestamp_sample;
-		sensor_gnss.time_utc_usec = 0;
-		sensor_gnss.device_id = device_id.devid;
-		sensor_gnss.latitude = latitude; // Latitude in degrees
-		sensor_gnss.longitude = longitude; // Longitude in degrees
-		sensor_gnss.altitude_msl = altitude; // Altitude in meters above MSL
-		sensor_gnss.altitude_ellipsoid = altitude;
-		sensor_gnss.noise = 0;
-		sensor_gnss.jamming_indicator = 0;
-		sensor_gnss.ground_speed = sqrtf(gps_vel(0) * gps_vel(0) + gps_vel(1) * gps_vel(1)); // GPS ground speed, (metres/sec)
-		sensor_gnss.vel_north = gps_vel(0);
-		sensor_gnss.vel_east = gps_vel(1);
-		sensor_gnss.vel_down = gps_vel(2);
-		sensor_gnss.course = atan2(gps_vel(1),
-					   gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
-		sensor_gnss.timestamp_time_relative = 0;
-		sensor_gnss.automatic_gain_control = 0;
-		sensor_gnss.jamming_state = 0;
-		sensor_gnss.spoofing_state = 0;
-		sensor_gnss.vel_ned_valid = true;
-		sensor_gnss.satellites_used = _sim_gps_used.get();
+			sensor_gnss.timestamp_sample = gpos.timestamp_sample;
+			sensor_gnss.time_utc_usec = 0;
+			sensor_gnss.device_id = device_id.devid;
+			sensor_gnss.latitude = latitude; // Latitude in degrees
+			sensor_gnss.longitude = longitude; // Longitude in degrees
+			sensor_gnss.altitude_msl = altitude; // Altitude in meters above MSL
+			sensor_gnss.altitude_ellipsoid = altitude;
+			sensor_gnss.noise = 0;
+			sensor_gnss.jamming_indicator = 0;
+			sensor_gnss.ground_speed = sqrtf(gps_vel(0) * gps_vel(0) + gps_vel(1) * gps_vel(1)); // GPS ground speed, (metres/sec)
+			sensor_gnss.vel_north = gps_vel(0);
+			sensor_gnss.vel_east = gps_vel(1);
+			sensor_gnss.vel_down = gps_vel(2);
+			sensor_gnss.course = atan2(gps_vel(1),
+						   gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
+			sensor_gnss.timestamp_time_relative = 0;
+			sensor_gnss.automatic_gain_control = 0;
+			sensor_gnss.jamming_state = 0;
+			sensor_gnss.spoofing_state = 0;
+			sensor_gnss.vel_ned_valid = true;
+			sensor_gnss.satellites_used = _sim_gps_used.get();
 
-		publishWithFailures(0, sensor_gnss, _sensor_gnss_pub);
-
-		const float gnss1_offx = _param_gnss1_offx.get();
-		const float gnss1_offy = _param_gnss1_offy.get();
-
-		if (fabsf(gnss1_offx) > 0.f || fabsf(gnss1_offy) > 0.f) {
-			sensor_gnss_s gnss1 = sensor_gnss;
-
-			device_id.devid_s.address = 1;
-			gnss1.device_id = device_id.devid;
-
-			gnss1.latitude  = latitude  + (double)gnss1_offx / CONSTANTS_RADIUS_OF_EARTH * (180.0 / M_PI);
-			gnss1.longitude = longitude + (double)gnss1_offy / CONSTANTS_RADIUS_OF_EARTH * (180.0 / M_PI) / cos(latitude * M_PI / 180.0);
-
-			publishWithFailures(1, gnss1, _sensor_gnss_pub2);
+			publishWithFailures(instance, sensor_gnss);
+			publishRelativeHeading(instance, sensor_gnss, body_to_ned);
 		}
 	}
 
 	perf_end(_loop_perf);
 }
 
-void SensorGpsSim::publishWithFailures(int instance, sensor_gnss_s gnss, uORB::PublicationMulti<sensor_gnss_s> &pub)
+void SensorGpsSim::publishWithFailures(int instance, sensor_gnss_s gnss)
 {
+	uORB::PublicationMulti<sensor_gnss_s> &pub = _sensor_gnss_pub[instance];
 	gnss.timestamp = hrt_absolute_time();
 
-	if (!failure_injection::process_gnss(_failure_config, instance, gnss, _stuck[instance])) {
+	if (!failure_injection::process_gnss(_failure_config, pub.get_instance(), gnss, _stuck[instance])) {
 		return;
 	}
 
 	pub.publish(gnss);
+}
+
+Vector3f SensorGpsSim::antennaOffset(int instance) const
+{
+	if (instance == 0) {
+		return {_param_gnss0_offx.get(), _param_gnss0_offy.get(), _param_gnss0_offz.get()};
+	}
+
+	return {_param_gnss1_offx.get(), _param_gnss1_offy.get(), _param_gnss1_offz.get()};
+}
+
+void SensorGpsSim::publishRelativeHeading(int instance, const sensor_gnss_s &gnss, const Dcmf &body_to_ned)
+{
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+	static constexpr int32_t HEADING_MOVING_BASE_ROVER = 1;
+	static constexpr int32_t HEADING_DUAL_ANTENNA = 2;
+
+	const int32_t heading_setup = (instance == 0) ? _param_gnss0_hdg.get() : _param_gnss1_hdg.get();
+	Vector3f baseline{};
+
+	if (heading_setup == HEADING_MOVING_BASE_ROVER) {
+		baseline = antennaOffset(instance) - antennaOffset(1 - instance);
+
+	} else if (heading_setup == HEADING_DUAL_ANTENNA) {
+		const Vector3f aux_antenna = (instance == 0)
+					     ? Vector3f{_param_gnss0_auxx.get(), _param_gnss0_auxy.get(), _param_gnss0_auxz.get()}
+					     : Vector3f{_param_gnss1_auxx.get(), _param_gnss1_auxy.get(), _param_gnss1_auxz.get()};
+		baseline = aux_antenna - antennaOffset(instance);
+
+	} else {
+		return;
+	}
+
+	const float baseline_length = baseline.norm();
+
+	if (baseline_length < FLT_EPSILON) {
+		return;
+	}
+
+	const Vector3f relative_position = body_to_ned * baseline + noiseGauss3f(_baseline_noise, _baseline_noise,
+					   _baseline_noise);
+	const bool valid = gnss.fix_type >= sensor_gnss_s::FIX_TYPE_3D;
+
+	sensor_gnss_relative_s relative{};
+	relative.timestamp_sample = gnss.timestamp_sample;
+	relative.device_id = gnss.device_id;
+	relative.relative_position_valid = valid;
+	relative.carrier_solution_fixed = valid;
+	relative.gnss_fix_ok = valid;
+	relative.heading_valid = valid;
+	relative.moving_base_mode = (heading_setup == HEADING_MOVING_BASE_ROVER);
+	relative_position.copyTo(relative.position);
+	relative.position_accuracy[0] = _baseline_noise;
+	relative.position_accuracy[1] = _baseline_noise;
+	relative.position_accuracy[2] = _baseline_noise;
+	relative.position_length = relative_position.norm();
+	relative.accuracy_length = _baseline_noise;
+	relative.heading = atan2f(relative_position(1), relative_position(0));
+	relative.heading_accuracy = _baseline_noise / baseline_length;
+
+	uORB::PublicationMulti<sensor_gnss_s> &gnss_pub = _sensor_gnss_pub[instance];
+	relative.timestamp = hrt_absolute_time();
+
+	// The heading fails with its receiver
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
+					gnss_pub.get_instance(), relative, _stuck_relative[instance])) {
+		return;
+	}
+
+	_sensor_gnss_relative_pub[instance].publish(relative);
+
+#else
+	(void)instance;
+	(void)gnss;
+	(void)body_to_ned;
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 }
 
 void SensorGpsSim::updateFailureConfig()

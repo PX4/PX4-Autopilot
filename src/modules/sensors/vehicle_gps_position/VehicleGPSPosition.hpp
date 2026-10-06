@@ -131,6 +131,9 @@ private:
 
 	// sensor_gnss instance publishing this device_id, or -1
 	int findGnssInstance(uint32_t device_id) const;
+
+	// The receiver in this slot is a moving base rover whose moving base stopped publishing
+	bool movingBaseSilent(const GpsParamSlot *slot) const;
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,

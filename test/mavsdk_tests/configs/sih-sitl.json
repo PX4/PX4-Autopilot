@@ -28,6 +28,19 @@
             }
         },
         {
+            "model": "quadx",
+            "test_filter": "[gnss_failover]",
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_SIM_GNSS_NUM": 2,
+                "PX4_PARAM_SIM_GNSS1_BIAS_N": 1.5,
+                "PX4_PARAM_SIM_GNSS1_BIAS_E": 1.0,
+                "PX4_PARAM_SIM_GNSS1_BIAS_D": -1.5,
+                "PX4_PARAM_SENS_GNSS0_OFFX": 0.2,
+                "PX4_PARAM_SENS_GNSS1_OFFX": -0.2
+            }
+        },
+        {
             "model": "hex",
             "test_filter": "[motor_failure_injection]",
             "timeout_min": 15
