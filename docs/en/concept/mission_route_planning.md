@@ -54,6 +54,10 @@ After pausing a camera-trigger survey, smart route rejoin can select a branch-in
 Use `MIS_ROUTE_JOIN=0` for missions that rely on camera-trigger survey resume.
 Selecting a mission item explicitly cancels a pending smart join.
 
+When the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
+This lets a paused multicopter descent resume without a front transition to restore the approach's fixed-wing state.
+After moving outside that radius, for example with GoTo, resuming Mission uses normal smart route rejoin, including reaching the route altitude before any required front transition.
+
 When a VTOL rejoin requires a front transition, the vehicle follows this sequence:
 
 1. Fly to the branch-in waypoint.
