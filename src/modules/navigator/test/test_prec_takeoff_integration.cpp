@@ -57,6 +57,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/prec_takeoff_status.h>
+#include <uORB/topics/takeoff_status.h>
 #include <uORB/uORBManager.hpp>
 
 #include <memory>
@@ -96,8 +97,16 @@ protected:
 	{
 		const int32_t enabled = precision_enabled ? 1 : 0;
 		ASSERT_EQ(param_set_no_notification(_param, &enabled), 0);
+		// These mode tests drive the climb after the controller's takeoff ramp. Seed the subscription
+		// before construction because the fixture does not run Navigator's subscription-update loop.
+		// landed=true below still produces the initial TAKEOFF setpoint.
+		takeoff_status_s takeoff_status{};
+		takeoff_status.timestamp = hrt_absolute_time();
+		takeoff_status.takeoff_state = takeoff_status_s::TAKEOFF_STATE_FLIGHT;
+		ASSERT_TRUE(_takeoff_status_pub.publish(takeoff_status));
 		_navigator = std::make_unique<Navigator>();
 		ASSERT_EQ(_navigator->get_prec_takeoff()->enabled(), precision_enabled);
+		ASSERT_EQ(_navigator->get_takeoff_state(), takeoff_status_s::TAKEOFF_STATE_FLIGHT);
 
 		auto &global_pos = *_navigator->get_global_position();
 		global_pos.timestamp = hrt_absolute_time();
@@ -157,6 +166,7 @@ protected:
 
 	std::unique_ptr<Navigator> _navigator;
 	uORB::Publication<landing_target_pose_s> _target_pub{ORB_ID(landing_target_pose)};
+	uORB::Publication<takeoff_status_s> _takeoff_status_pub{ORB_ID(takeoff_status)};
 	uORB::Subscription _status_sub{ORB_ID(prec_takeoff_status)};
 	param_t _param{PARAM_INVALID};
 	int32_t _param_backup{0};
@@ -366,8 +376,30 @@ TEST_F(PrecTakeoffIntegrationTest, MissionTakeoffCorrectionPreservesPlannedDesti
 	global_pos.alt = kTakeoffAltitude;
 	ASSERT_TRUE(global_pos_pub.publish(global_pos));
 	mission.on_active();
+	ASSERT_TRUE(PX4_ISFINITE(sp.yaw));
+	EXPECT_NEAR(sp.yaw, get_bearing_to_next_waypoint(global_pos.lat, global_pos.lon,
+			planned_takeoff.lat, planned_takeoff.lon), 1e-4f);
+
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
+
 	_navigator->get_local_position()->heading = sp.yaw;
 	mission.on_active();
+	ASSERT_TRUE(command_sub.update(&command));
+	ASSERT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+	ASSERT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+
+	// Respond to Navigator's command, first with FT in progress and then with completed FW flight.
+	vehicle_status.in_transition_mode = true;
+	vehicle_status.in_transition_to_fw = true;
+	ASSERT_TRUE(vehicle_status_pub.publish(vehicle_status));
+	mission.on_active();
+	EXPECT_EQ(_navigator->get_mission_result()->seq_current, 0);
+	EXPECT_FALSE(command_sub.updated());
+	vehicle_status.in_transition_mode = false;
+	vehicle_status.in_transition_to_fw = false;
 	vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 	ASSERT_TRUE(vehicle_status_pub.publish(vehicle_status));
 	mission.on_active();
@@ -378,6 +410,8 @@ TEST_F(PrecTakeoffIntegrationTest, MissionTakeoffCorrectionPreservesPlannedDesti
 	EXPECT_DOUBLE_EQ(sp.lat, planned_takeoff.lat);
 	EXPECT_DOUBLE_EQ(sp.lon, planned_takeoff.lon);
 	EXPECT_FLOAT_EQ(sp.alt, planned_takeoff.altitude);
+	EXPECT_EQ(_navigator->get_mission_result()->seq_current, 0);
+	EXPECT_FALSE(command_sub.updated());
 	EXPECT_FALSE(_navigator->get_mission_result()->finished);
 
 	mission_item_s stored_takeoff{};

@@ -81,6 +81,22 @@ private:
 
 	bool setNextMissionItem() override;
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	friend class MissionTestPeer;
+
+	void onMissionUpdate(bool has_mission_items_changed) override;
+	void onMissionJumpSkipped(int32_t jump_index) override;
+
+	/**
+	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
+	 *
+	 * @param keep_mission_index True when activation must not move the mission index, e.g. after a
+	 *                           restart or when the camera-trigger resume will rewind it.
+	 * @return true if a join route was armed, false to fall back to the legacy direct-to-item behavior.
+	 */
+	bool trySetRouteJoinOnActivation(bool keep_mission_index);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff
 	 */
@@ -100,8 +116,22 @@ private:
 
 	void handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[], size_t &num_found_items);
 
-	void handleVtolTransition(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
-				  size_t &num_found_items);
+	bool handleVtolTransition(const mission_item_s next_mission_items[], size_t num_found_items);
+	void prepareVtolTransitionItem(bool aligning) override;
 
 	bool _need_mission_save{false};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/**
+	 * The last DO_JUMP edge flown in normal mission execution. Nominal progress is already implied
+	 * by current_seq; only an active loop must survive the jump so rejoin replans stay anchored on it.
+	 */
+	mission_route::ActiveJumpAnchor _active_jump_anchor{};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MIS_ROUTE_JOIN>)    _param_mis_route_join,
+		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist,
+		(ParamFloat<px4::params::MIS_FW_SEG_DIST>) _param_mis_fw_seg_dist
+	)
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 };

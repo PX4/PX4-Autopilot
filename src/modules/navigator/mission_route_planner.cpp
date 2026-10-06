@@ -100,7 +100,6 @@ PlannerConfig makeCommonPlannerConfig(const RequestT &request)
 	config.parameters.nav_acceptance_radius_m = request.acceptance_radius_m;
 	config.parameters.home_altitude_amsl = request.home_altitude_amsl;
 	config.parameters.fw_u_turn_penalty_m = request.fw_u_turn_penalty_m;
-	config.parameters.vtol_state_on_mission_upload = request.vtol_state_on_mission_upload;
 	config.active_jump_anchor = request.active_jump_anchor;
 	config.state.is_flying_reverse = request.current_route_direction_reversed;
 	config.state.is_vtol = request.is_vtol;
@@ -862,7 +861,7 @@ FailureReason buildProjectionContext(const Provider &provider, const PlannerConf
 	// Only VTOLs read the segment state: the u-turn check and plan assembly use it.
 	if (config.state.is_vtol) {
 		projection_context.projected_segment_vtol_state = vtolStateForSegment(provider,
-				projection_context.route_projection.segment, config.parameters.vtol_state_on_mission_upload);
+				projection_context.route_projection.segment);
 	}
 
 	return FailureReason::kNone;
