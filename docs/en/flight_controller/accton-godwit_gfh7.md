@@ -71,6 +71,12 @@ Refer to the [Godwit GFH7 product page](https://www.accton-iot.com/godwit/g-fh7.
 
 ![GFH7 Pin Definition](../../assets/flight_controller/accton-godwit/gfh7/pin_definition.png "Accton Godwit GFH7 Pin Definition")
 
+### Block Diagram {#block_diagram}
+
+The block diagram below shows the main components (sensors and power supply) and how they connect to the STM32H753 FMU.
+
+![Accton Godwit GFH7 block diagram: the STM32H753 FMU with its IMUs, barometer, magnetometer, OSD co-processor, power supply (battery input, 12 V and 5 V BECs, 3.3 V LDO), and connectors](../../assets/flight_controller/accton-godwit/gfh7/block_diagram.svg "Accton Godwit GFH7 Block Diagram")
+
 ## Power {#power}
 
 The board is powered from the battery through the `VBAT` pins on the `ESC` connector, which also carries the ESC's battery current signal (`CURRENT` pin).
