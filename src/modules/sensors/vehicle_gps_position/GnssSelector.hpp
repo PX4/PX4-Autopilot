@@ -52,16 +52,16 @@ using namespace time_literals;
  *
  * A receiver is usable while its latest sample passed its checks and came without a gap in its output. It has failed
  * when it had no usable sample for FAIL_TIME_US, which covers a lost fix, sustained check failures, a receiver that
- * stopped publishing and an update rate that dropped below about 1 Hz. Intermittent failures are caught by the
- * availability: the fraction of recent time it was usable. A failed receiver is replaced at once. While armed, a receiver that was
- * left because it failed is selected again only when the selected one fails, as one that failed is likely to fail
- * again in the same flight.
+ * stopped publishing and an update rate that dropped below about 1 Hz. A failed receiver is replaced at once, and while
+ * armed it is selected again only when the selected one fails, as one that failed is likely to fail again in the same
+ * flight. Intermittent failures are caught by the availability: the fraction of recent time a receiver was usable.
  *
  * Receivers rank by being usable, then by meeting the accuracy requirements (the strict checks), then, without a
- * preferred receiver, by an RTK fixed solution. A receiver that meets the requirements replaces the selected one when
- * it ranks higher through the hold time. The preferred receiver ranks above another one of the same rank that meets
- * the requirements: it is kept while it meets them, whatever the other one reports, and left when it hasn't met them
- * through the hold while the other one has. A moving-base rover reports a better fix and accuracy while being the
+ * preferred receiver, by an RTK fixed solution. The selection moves to the best receiver once it has been clearly
+ * better than the selected one through the hold time. A receiver more available by AVAILABILITY_MARGIN is better
+ * whatever its rank; otherwise the higher rank is better, then the preferred receiver while it meets the requirements.
+ * So the preferred receiver is kept while it meets them, whatever the other one reports, and left when it hasn't met
+ * them through the hold while the other one has. A moving-base rover reports a better fix and accuracy while being the
  * worse position source, so an RTK fixed solution never outranks the preferred receiver. While disarmed the preferred
  * receiver is selected whenever it publishes: a vehicle whose preferred receiver fails its checks shouldn't take off
  * on the other one.
@@ -207,12 +207,14 @@ private:
 
 	Rank rank(int instance, uint64_t hrt_now_us) const;
 
-	// The receiver to replace the current one with in case the current is failing, -1 if none: any one that publishes, or only usable ones
+	// The receiver to replace a failed or silent current one with, -1 if none: any one that publishes, or only usable
+	// ones
 	int bestReplacement(int current, bool usable_only, uint64_t hrt_now_us) const;
 
-	// Find the best receiver available, -1 if none is usable
+	// The best usable receiver, possibly the selected one, -1 if none
 	int bestCandidate(uint64_t hrt_now_us) const;
 
+	// instance is better than other. The margin applies to the availability that decides between otherwise equal ones.
 	bool isBetterReceiver(int instance, int other, uint64_t hrt_now_us, float tiebreaker_availability_margin = 0.f) const;
 
 	hrt_abstime switchHoldUs() const;

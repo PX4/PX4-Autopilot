@@ -242,13 +242,14 @@ bool GnssSelector::isBetterReceiver(int instance, int other, uint64_t hrt_now_us
 	const Rank instance_rank = rank(instance, hrt_now_us);
 	const Rank other_rank = rank(other, hrt_now_us);
 
-	// A receiver that has previously failed is not considered better for as long as the other hasn't failed
+	// A receiver that failed while armed is never better than a usable one that didn't
 	if (other_rank >= RANK_USABLE && !_failed_while_armed[other] && _failed_while_armed[instance]) {
 		return false;
 	}
 
-	// A receiver that is significantly more available is better (priority over having a better rank and over preferred receiver too)
-	if (instance_rank >= RANK_USABLE && _availability[instance].getState() > _availability[other].getState() + AVAILABILITY_MARGIN) {
+	// One that is clearly more available is better whatever its rank, as something is wrong with the other one
+	if (instance_rank >= RANK_USABLE
+	    && _availability[instance].getState() > _availability[other].getState() + AVAILABILITY_MARGIN) {
 		return true;
 	}
 
@@ -256,11 +257,13 @@ bool GnssSelector::isBetterReceiver(int instance, int other, uint64_t hrt_now_us
 		return instance_rank > other_rank;
 	}
 
-	if (hasPreferred() && ((instance == _preferred_instance) || (other == _preferred_instance))) {
+	// The preferred receiver is better only while it meets the requirements: when neither does, moving to it is a
+	// reset for nothing
+	if (hasPreferred() && (instance_rank >= RANK_REQUIREMENTS)
+	    && ((instance == _preferred_instance) || (other == _preferred_instance))) {
 		return instance == _preferred_instance;
 	}
 
-	// Tiebreak: if everything else is the same, decide on highest availability
 	return _availability[instance].getState() > _availability[other].getState() + tiebreaker_availability_margin;
 }
 
@@ -320,9 +323,8 @@ int GnssSelector::selectReceiver(uint64_t hrt_now_us)
 		}
 	}
 
-	// A receiver that meets the requirements and outranks the selected one through the hold time replaces it, so that
-	// shorter changes in either one ride through. A receiver that failed while armed doesn't count, so that the
-	// selection doesn't move back to it until the selected one fails.
+	// The best receiver replaces the selected one once it has been clearly better through the hold time, so that
+	// shorter changes in either one ride through
 	const int best_candidate = bestCandidate(hrt_now_us);
 
 	if (best_candidate < 0 || best_candidate == current) {

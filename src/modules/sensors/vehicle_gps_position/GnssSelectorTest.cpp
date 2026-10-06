@@ -682,6 +682,33 @@ TEST_F(GnssSelectorTest, preferredReturnsOnceMeetingRequirements)
 	EXPECT_EQ(selector.getSelectionCount(), 2);
 }
 
+TEST_F(GnssSelectorTest, preferredNotRetakenWhileMissingRequirements)
+{
+	GnssSelector selector;
+
+	// GIVEN: an armed vehicle that left gps0, the preferred receiver, as it didn't meet the requirements
+	selector.setPreferredInstance(0);
+
+	sensor_gnss_s gnss_data0 = getDefaultGnssData();
+	sensor_gnss_s gnss_data1 = getDefaultGnssData();
+
+	runSeconds(5.f, selector, gnss_data0, gnss_data1);
+	selector.setArmed(true);
+
+	_meets_requirements[0] = false;
+	runSeconds(10.5f, selector, gnss_data0, gnss_data1);
+
+	EXPECT_EQ(selector.getSelectedInstance(), 1);
+
+	// WHEN: gps1 doesn't meet them either
+	_meets_requirements[1] = false;
+	runSeconds(60.f, selector, gnss_data0, gnss_data1);
+
+	// THEN: gps1 is kept, as moving back to gps0 gains nothing
+	EXPECT_EQ(selector.getSelectedInstance(), 1);
+	EXPECT_EQ(selector.getSelectionCount(), 1);
+}
+
 TEST_F(GnssSelectorTest, rankSwitchHoldDoubles)
 {
 	GnssSelector selector;
