@@ -34482,7 +34482,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Geofence
 
-<div class="param-group" style="--param-count: 4">
+<div class="param-group" style="--param-count: 5">
 
 <div class="param">
 
@@ -34507,6 +34507,27 @@ which will kill the vehicle on violation of the fence.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 5 |  | 2 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GF_AVOID_NODES (`INT32`) {#GF_AVOID_NODES}
+
+Max graph nodes for geofence avoidance in Return.
+
+Maximum number of geofence vertices the Return geofence avoidance planner can use.
+Circles use 8 vertices each, polygons their vertex count plus extra vertices for sharp corners.
+If the fence needs more vertices, Return flies directly and ignores the geofence.
+Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number
+(about 2 * N^2 bytes, e.g. 20 kB for 100 nodes).
+The maximum of 200 is sufficient for any fence that can be stored.
+Set to 0 to disable geofence avoidance in Return.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 200 |  | 100 |  | &nbsp;
 
 </div>
 
