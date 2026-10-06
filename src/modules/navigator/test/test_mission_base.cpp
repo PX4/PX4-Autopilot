@@ -2430,8 +2430,8 @@ TEST_F(MissionRouteJoinTest, RestartedMissionStartsAtFirstItemWithoutJoin)
 	EXPECT_FALSE(mission.joinContextForTest().valid());
 }
 
-// Rejoining near the landing segment keeps the vehicle altitude instead of forcing a climb.
-TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSkipsAltitudeRequirement)
+// A join selecting a nearby landing executes that item directly, even if the old cursor was elsewhere.
+TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSelectsLandWithoutJoin)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
@@ -2440,7 +2440,7 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSkipsAltitudeRequireme
 	std::vector<mission_item_s> mission_items = {
 		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kBaseAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 120.f, 0.f, kBaseAlt - 10.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt - 10.f),
 	};
 
 	writeMissionItems(mission_items);
@@ -2448,7 +2448,7 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSkipsAltitudeRequireme
 
 	mission_s mission_state{};
 	mission_state.timestamp = hrt_absolute_time();
-	mission_state.current_seq = 2;
+	mission_state.current_seq = 1;
 	mission_state.land_start_index = 2;
 	mission_state.land_index = 2;
 	mission_state.mission_id = 23;
@@ -2460,26 +2460,202 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSkipsAltitudeRequireme
 	publishMission(mission_state);
 
 	const mission_route::Position vehicle_position =
-		makePositionFromOffset(kBaseLat, kBaseLon, 118.f, 0.f, kBaseAlt - 6.f);
+		makePositionFromOffset(kBaseLat, kBaseLon, 298.f, 0.f, kBaseAlt - 6.f);
 
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	publishLandDetected(false);
 	publishGlobalPosition(vehicle_position);
 	publishLocalPosition(0.f, 8.f, 0.f);
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -100.f, 0.f, kBaseAlt));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -100.f, 0.f, kBaseAlt - 10.f));
 	primeNavigatorState();
 
 	updateRouteCacheUntilReady(mission_state);
 	mission.on_inactive();
+	markMissionResultValid();
 
-	ASSERT_TRUE(mission.trySetRouteJoinOnActivation(false));
+	mission.on_activation();
 
-	// Rejoin targets the land item and keeps the vehicle altitude (skip_altitude_requirement).
+	// Keep the planner's selected landing index and let normal FW landing handling execute it.
 	EXPECT_EQ(mission.currentSequenceForTest(), 2);
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
-	EXPECT_TRUE(mission.joinContextForTest().valid());
-	EXPECT_TRUE(mission.joinContextForTest().skip_altitude_requirement);
-	EXPECT_NEAR(mission.joinContextForTest().projection.alt, vehicle_position.alt, 0.01f);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
+	const auto &sp = _navigator.get_position_setpoint_triplet()->current;
+	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_DOUBLE_EQ(sp.lat, mission_items[2].lat);
+	EXPECT_DOUBLE_EQ(sp.lon, mission_items[2].lon);
+
+	// A VTOL arriving in FW must still back-transition through normal landing handling.
+	mission.on_inactivation();
+	mission_items[0].nav_cmd = NAV_CMD_VTOL_TAKEOFF;
+	mission_items[2].nav_cmd = NAV_CMD_VTOL_LAND;
+	writeMissionItems(mission_items);
+	++mission_state.mission_id;
+	publishMission(mission_state);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	primeNavigatorState();
+	updateRouteCacheUntilReady(mission_state);
+	mission.on_inactive();
+	uORB::Subscription commands{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (commands.update(&command)) {}
+
+	mission.on_activation();
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND);
+	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	EXPECT_FLOAT_EQ(sp.alt, vehicle_position.alt);
+	mission.on_active();
+	bool back_transition_sent = false;
+
+	while (commands.update(&command)) {
+		if (command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+			EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+			back_transition_sent = true;
+		}
+	}
+
+	EXPECT_TRUE(back_transition_sent);
+	EXPECT_NE(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	primeNavigatorState();
+	mission.on_active();
+	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+}
+
+TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	uORB::Subscription commands{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+	const float descent_altitude = kBaseAlt + 2.f;
+	const float approach_altitude = kBaseAlt + 50.f;
+	uint32_t mission_id = 431;
+
+	for (bool is_vtol : {false, true}) {
+		// Resume at LAND, inside its radius, just outside it, or after a GoTo near an earlier leg.
+		for (int resume_location = 0; resume_location < 4; ++resume_location) {
+			SCOPED_TRACE(::testing::Message() << "VTOL=" << is_vtol << ", resume_location=" << resume_location);
+			auto takeoff = makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, approach_altitude);
+			auto land = makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt);
+
+			if (is_vtol) {
+				takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
+				land.nav_cmd = NAV_CMD_VTOL_LAND;
+			}
+
+			// VTOL_LAND's internal BT is absent from the uploaded route, which still implies FW.
+			const std::vector<mission_item_s> items{
+				takeoff, makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, approach_altitude), land
+			};
+			writeMissionItems(items);
+			writeSafePointState(0, ++mission_id);
+			mission_s state{};
+			state.timestamp = hrt_absolute_time();
+			state.current_seq = 2;
+			state.land_start_index = -1;
+			state.land_index = 2;
+			state.mission_id = mission_id;
+			state.safe_points_id = mission_id;
+			state.count = items.size();
+			state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+			state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+			state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+			publishMission(state);
+			publishVehicleStatus(is_vtol, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			_vehicle_status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+			_vehicle_status_pub.publish(_vehicle_status);
+			publishLandDetected(false);
+			publishGlobalPosition({land.lat, land.lon, descent_altitude});
+			publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt));
+			publishLocalPosition();
+			primeNavigatorState();
+			updateRouteCacheUntilReady(state);
+			mission.on_inactive();
+			markMissionResultValid();
+			mission.beginItemForTest(MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+			auto &sp = _navigator.get_position_setpoint_triplet()->current;
+			ASSERT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+
+			mission.on_inactivation();
+
+			if (resume_location == 3) {
+				publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 50.f, descent_altitude));
+
+			} else {
+				const float radius_fraction = resume_location == 0 ? 0.f : (resume_location == 1 ? 0.5f : 1.5f);
+				publishGlobalPosition(makePositionFromOffset(land.lat, land.lon,
+						      -radius_fraction * _navigator.get_acceptance_radius(), 0.f, descent_altitude));
+			}
+
+			primeNavigatorState();
+			mission.on_inactive();
+
+			while (commands.update(&command)) {}
+
+			mission.on_activation();
+			EXPECT_FALSE(mission.transitionActiveForTest());
+			const bool near_land = resume_location < 2;
+			const int32_t target_index = resume_location == 3 ? 1 : 2;
+			EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+
+			if (near_land) {
+				EXPECT_FALSE(mission.joinContextForTest().valid());
+				EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+				EXPECT_DOUBLE_EQ(sp.lat, land.lat);
+				EXPECT_DOUBLE_EQ(sp.lon, land.lon);
+
+			} else {
+				ASSERT_TRUE(mission.joinContextForTest().valid());
+				EXPECT_FALSE(mission.joinContextForTest().skip_altitude_requirement);
+				EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+				EXPECT_FLOAT_EQ(sp.alt, approach_altitude);
+				EXPECT_FLOAT_EQ(mission.joinContextForTest().projection.alt, approach_altitude);
+				EXPECT_EQ(mission.joinTransitionActionForTest(), is_vtol ? MissionTestPeer::VtolTransitionAction::kFrontTransition
+					  : MissionTestPeer::VtolTransitionAction::kNone);
+				// Reach the join horizontally while remaining at the paused descent altitude.
+				const auto &join = mission.joinContextForTest().projection;
+				publishGlobalPosition({join.lat, join.lon, descent_altitude});
+				primeNavigatorState();
+			}
+
+			for (int i = 0; i < 3; ++i) {
+				mission.on_active();
+				EXPECT_EQ(mission.workItemTypeForTest(), near_land ? MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT
+					  : MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+				EXPECT_EQ(sp.type, near_land ? position_setpoint_s::SETPOINT_TYPE_LAND : position_setpoint_s::SETPOINT_TYPE_POSITION);
+				EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+			}
+
+			while (commands.update(&command)) {
+				EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+			}
+
+			if (is_vtol && !near_land) {
+				// The FT is still available, but only after climbing to the route and aligning.
+				const auto join = mission.joinContextForTest().projection;
+				const float yaw = get_bearing_to_next_waypoint(join.lat, join.lon, items[target_index].lat, items[target_index].lon);
+				publishGlobalPosition(join);
+				publishLocalPosition(yaw);
+				primeNavigatorState();
+				mission.on_active();
+				mission.on_active();
+				bool front_transition_sent = false;
+
+				while (commands.update(&command)) {
+					if (command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+						EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+						front_transition_sent = true;
+					}
+				}
+
+				EXPECT_TRUE(front_transition_sent);
+				EXPECT_FLOAT_EQ(sp.alt, approach_altitude);
+			}
+		}
+	}
 }
 
 class MissionRouteJoinTransitionTest : public MissionRouteJoinTest, public ::testing::WithParamInterface<bool> {};

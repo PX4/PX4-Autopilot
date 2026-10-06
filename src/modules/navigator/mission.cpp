@@ -204,6 +204,13 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 	_active_jump_anchor = join_plan.active_jump_anchor;
 	setMissionIndex(join_plan.first_mission_item_index);
 	_is_current_planned_mission_item_valid = isMissionValid();
+
+	// In nominal flight, this means the selected landing is already within acceptance radius.
+	// As in route Return, execute the landing directly instead of restoring the approach's VTOL state.
+	if (join_plan.use_current_altitude) {
+		return false;
+	}
+
 	setupJoinRoute(join_plan.join_position, join_plan.use_current_altitude, join_plan.vtol_transition_action);
 
 	PX4_INFO("Mission route join: target=%d rev=%u vtol=%u skip_alt=%u",
