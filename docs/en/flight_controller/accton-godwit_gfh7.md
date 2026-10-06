@@ -53,7 +53,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **SD card:** microSD slot
 - **ADC inputs:** 3 (battery voltage, battery current, and analog RSSI)
 - **OSD:** analog (AT7456-compatible)
-- **Other:** 2 LED indicators, buzzer, video input, and video output
+- **Other:** 2 LED indicators, buzzer, [IMU heater](#imu_heater), video input, and video output
 
 ### Mechanical Data
 
@@ -134,9 +134,10 @@ See [Radio Control Systems](../getting_started/rc_transmitter_receiver.md) for h
 
 The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
 
-- `SBUS` (UART5, the PX4 `RC` port): S.BUS is enabled on this port by default ([RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) is set to `Radio Controller`).
-- `ELRS` (UART4, PX4 port `TELEM/SERIAL 4`): for CRSF/ExpressLRS receivers.
-  Set [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) to `TELEM/SERIAL 4` to enable it, and set `RC_SBUS_PRT_CFG` to `Disabled` if no S.BUS receiver is connected.
+- `ELRS` (UART4, PX4 port `TELEM/SERIAL 4`): CRSF/ExpressLRS is enabled on this port by default ([RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) is set to `TELEM/SERIAL 4`).
+  [CRSF telemetry](../telemetry/crsf_telemetry.md) to the transmitter is also enabled by default ([RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN)).
+- `SBUS` (UART5, the PX4 `RC` port): for S.BUS receivers.
+  To use it, set [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller` and `RC_CRSF_PRT_CFG` to `Disabled`.
 
 Other protocols are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to.
 Only one protocol can be active on a port.
@@ -194,17 +195,27 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 
 ![Godwit GFH7 SD Card](../../assets/flight_controller/accton-godwit/gfh7/sdcard.png "Godwit GFH7 SD Card")
 
+## IMU Heater {#imu_heater}
+
+The board has a resistive IMU heater, which draws up to 67 mA (0.33 W) from the 5 V supply.
+
+The heater is off by default.
+To enable it, set [SENS_EN_THERMAL](../advanced_config/parameter_reference.md#SENS_EN_THERMAL) to `1` and reboot.
+The target temperature is set by [HEATER1_TEMP](../advanced_config/parameter_reference.md#HEATER1_TEMP), which this board sets to 45 °C.
+
+If you enable the heater, run the [accelerometer calibration](../config/accelerometer.md) only after `heater status` (in the [MAVLink Shell](../debug/mavlink_shell.md)) shows that the sensor temperature has reached the set temperature.
+
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device     | Port   | Connector                                   |
-| ------ | ---------- | ------ | ------------------------------------------- |
-| USART1 | /dev/ttyS0 | EXT2   | `ESC` (ESC telemetry, RX only)              |
-| USART2 | /dev/ttyS1 | TEL2   | `T2`/`R2` solder pads                       |
-| USART3 | /dev/ttyS2 | GPS1   | `GPS`                                       |
-| UART4  | /dev/ttyS3 | TEL4   | `ELRS`                                      |
-| UART5  | /dev/ttyS4 | RC     | `SBUS` (RX, S.BUS by default), `A-VTX` (TX) |
-| UART7  | /dev/ttyS5 | TEL1   | `TELEM`                                     |
-| UART8  | /dev/ttyS6 | TEL3   | `D-VTX`                                     |
+| UART   | Device     | Port | Connector                      |
+| ------ | ---------- | ---- | ------------------------------ |
+| USART1 | /dev/ttyS0 | EXT2 | `ESC` (ESC telemetry, RX only) |
+| USART2 | /dev/ttyS1 | TEL2 | `T2`/`R2` solder pads          |
+| USART3 | /dev/ttyS2 | GPS1 | `GPS`                          |
+| UART4  | /dev/ttyS3 | TEL4 | `ELRS` (CRSF by default)       |
+| UART5  | /dev/ttyS4 | RC   | `SBUS` (RX), `A-VTX` (TX)      |
+| UART7  | /dev/ttyS5 | TEL1 | `TELEM`                        |
+| UART8  | /dev/ttyS6 | TEL3 | `D-VTX`                        |
 
 `EXT2` is receive-only, so it can't be used for MAVLink or other two-way protocols.
 It reads [ESC telemetry](../peripherals/dshot.md#esc-telemetry) from the `ESC` connector ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) is set to `EXT2` by default).
@@ -251,11 +262,14 @@ They are not general user interfaces. Do not connect wiring or apply power, and 
 The default firmware does not provide a serial [System Console](../debug/system_console.md).
 Use the [MAVLink Shell](../debug/mavlink_shell.md) over USB or a telemetry link instead.
 
-The debug build enables the system console on UART4 (the `ELRS` connector), so `TELEM/SERIAL 4` is not available in that build (S.BUS on the `SBUS` connector still works):
+The debug build enables the system console on UART4 (the `ELRS` connector):
 
 ```sh
 make accton-godwit_gfh7_debug
 ```
+
+`TELEM/SERIAL 4` is not available in that build, so an ELRS receiver can't be used.
+To use an S.BUS receiver on the `SBUS` connector instead, set [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller`.
 
 ## Further Information {#further_information}
 
