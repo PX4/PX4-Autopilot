@@ -57,7 +57,7 @@ Loiter::on_activation()
 	// an already-established loiter (used by set_loiter_position()).
 	const position_setpoint_s previous_setpoint = _navigator->get_position_setpoint_triplet()->current;
 	_navigator->reset_triplets();
-	storePositionResetState();
+	_position_reset_state.update(*_navigator->get_local_position());
 
 	// the previous mode's setpoint counts as a commanded target when a reposition keeps it
 	_follow_xy_resets = false;
@@ -212,37 +212,27 @@ Loiter::followPositionResets()
 	bool updated = false;
 
 	// A moved origin also counts as a reset of the local position, but the global position the setpoint is in stays
-	const bool lat_lon_origin_moved = (local_pos.ref_timestamp != _ref_timestamp);
-	const bool alt_origin_moved = !(fabsf(local_pos.ref_alt - _ref_alt) < FLT_EPSILON);
+	const bool lat_lon_origin_moved = (local_pos.ref_timestamp != _position_reset_state.ref_timestamp);
+	const bool alt_origin_moved = !(fabsf(local_pos.ref_alt - _position_reset_state.ref_alt) < FLT_EPSILON);
 
 	if (current.valid) {
-		if (_follow_xy_resets && (local_pos.xy_reset_counter != _xy_reset_counter) && !lat_lon_origin_moved
+		if (_follow_xy_resets && (local_pos.xy_reset_counter != _position_reset_state.xy_reset_counter) && !lat_lon_origin_moved
 		    && PX4_ISFINITE(local_pos.delta_xy[0]) && PX4_ISFINITE(local_pos.delta_xy[1])) {
 			add_vector_to_global_position(current.lat, current.lon, local_pos.delta_xy[0], local_pos.delta_xy[1],
 						      &current.lat, &current.lon);
 			updated = true;
 		}
 
-		if (_follow_z_resets && (local_pos.z_reset_counter != _z_reset_counter) && !alt_origin_moved
+		if (_follow_z_resets && (local_pos.z_reset_counter != _position_reset_state.z_reset_counter) && !alt_origin_moved
 		    && PX4_ISFINITE(local_pos.delta_z)) {
 			current.alt -= local_pos.delta_z;
 			updated = true;
 		}
 	}
 
-	storePositionResetState();
+	_position_reset_state.update(local_pos);
 
 	if (updated) {
 		_navigator->set_position_setpoint_triplet_updated();
 	}
-}
-
-void
-Loiter::storePositionResetState()
-{
-	const vehicle_local_position_s &local_pos = *_navigator->get_local_position();
-	_xy_reset_counter = local_pos.xy_reset_counter;
-	_z_reset_counter = local_pos.z_reset_counter;
-	_ref_timestamp = local_pos.ref_timestamp;
-	_ref_alt = local_pos.ref_alt;
 }
