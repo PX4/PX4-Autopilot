@@ -53,8 +53,8 @@ ICM56686::ICM56686(const I2CSPIDriverConfig &config) :
 	_drdy_gpio(config.drdy_gpio),
 	_fifo_interrupt_config0(config.custom1 == 2 ? Register::BANK_0::INT2_CONFIG0 : Register::BANK_0::INT1_CONFIG0),
 	_fifo_interrupt_config2(config.custom1 == 2 ? Register::BANK_0::INT2_CONFIG2 : Register::BANK_0::INT1_CONFIG2),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external)
 {
 	if (_fifo_interrupt_config0 == Register::BANK_0::INT2_CONFIG0) {
 		for (auto &reg_cfg : _register_cfg) {
