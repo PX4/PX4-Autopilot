@@ -17,6 +17,9 @@ param set-default RC_CRSF_PRT_CFG 104
 # Send CRSF telemetry (battery, GPS, attitude, flight mode) back to the transmitter.
 param set-default RC_CRSF_TEL_EN 1
 
+# Boot into Stabilized mode instead of Hold: 15 = Stabilized.
+param set-default COM_FLTMODE_BOOT 15
+
 # ESC telemetry on the ESC connector (USART1, RX only): 401 = EXT2 port.
 param set-default DSHOT_TEL_CFG 401
 
