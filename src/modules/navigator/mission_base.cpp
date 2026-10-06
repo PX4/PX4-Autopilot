@@ -1414,6 +1414,7 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 					// The repetition cannot be counted, so following the jump would repeat it on
 					// every pass over this item. Continue with the item after the jump instead.
 					follow_jump = false;
+					onMissionJumpSkipped(new_mission_index);
 				}
 			}
 

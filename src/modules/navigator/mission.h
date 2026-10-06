@@ -85,6 +85,7 @@ private:
 	friend class MissionTestPeer;
 
 	void onMissionUpdate(bool has_mission_items_changed) override;
+	void onMissionJumpSkipped(int32_t jump_index) override;
 
 	/**
 	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.

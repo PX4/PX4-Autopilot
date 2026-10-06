@@ -1580,6 +1580,14 @@ public:
 
 	using Mission::trySetRouteJoinOnActivation;
 	void setJumpAnchorForTest(mission_route::ActiveJumpAnchor anchor) { _active_jump_anchor = anchor; }
+	const mission_route::ActiveJumpAnchor &jumpAnchorForTest() const { return _active_jump_anchor; }
+	bool advanceMissionForTest() { return setNextMissionItem(); }
+	void setWriteFailureIndexForTest(int32_t index) { _write_failure_index = index; }
+	bool writeMissionItemToCache(int32_t index, mission_item_s &item) override
+	{
+		return index != _write_failure_index && MissionBase::writeMissionItemToCache(index, item);
+	}
+
 	void setDisarmedSinceActivationForTest()
 	{
 		_mission_has_been_activated = true;
@@ -1609,6 +1617,9 @@ public:
 	int32_t currentSequenceForTest() const { return _mission.current_seq; }
 	const RouteJoinContext &joinContextForTest() const { return _route_join_context; }
 	VtolTransitionAction joinTransitionActionForTest() const { return _route_join_context.transition_action; }
+
+private:
+	int32_t _write_failure_index{-1};
 };
 
 /**
@@ -2134,6 +2145,91 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinUsesShortestLoopExit)
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 	EXPECT_TRUE(mission.joinContextForTest().valid());
 	EXPECT_EQ(mission.joinTransitionActionForTest(), MissionTestPeer::VtolTransitionAction::kNone);
+}
+
+// Mission and smart rejoin must agree on whether a DO_JUMP was actually followed.
+TEST_F(MissionRouteJoinTest, NominalJumpAnchorMatchesStoredCounterAndRouteRejoin)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 200.f, kBaseAlt),
+		makeDoJump(0, 2, 0),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kBaseAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 500.f, 200.f, kBaseAlt - 20.f),
+	};
+	writeSafePointState(0, 51);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	// Both the loop edge and the post-loop segment are nearby. Continuity must select
+	// the segment actually being flown, rather than the jump predicted before its write.
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 205.f, 190.f, kBaseAlt));
+	publishLocalPosition();
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt - 20.f));
+	primeNavigatorState();
+
+	for (bool fail_write : {false, true}) {
+		SCOPED_TRACE(fail_write);
+		writeMissionItems(items);
+		mission_s state{};
+		state.timestamp = hrt_absolute_time();
+		state.current_seq = 2;
+		state.land_start_index = 5;
+		state.land_index = 5;
+		state.mission_id = fail_write ? 52 : 51;
+		state.safe_points_id = 51;
+		state.count = items.size();
+		state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+		state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+		publishMission(state);
+		updateRouteCacheUntilReady(state);
+		mission.on_inactive();
+		markMissionResultValid();
+		mission.beginItemForTest(MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+		mission.setWriteFailureIndexForTest(fail_write ? 3 : -1);
+
+		ASSERT_EQ(mission.currentSequenceForTest(), 2);
+		ASSERT_TRUE(mission.advanceMissionForTest());
+		EXPECT_EQ(mission.currentSequenceForTest(), fail_write ? 4 : 0);
+		EXPECT_EQ(mission.jumpAnchorForTest().jump_item_index, fail_write ? -1 : 3);
+		mission_item_s stored_jump{};
+		ASSERT_TRUE(_dataman_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 3,
+						     reinterpret_cast<uint8_t *>(&stored_jump), sizeof(stored_jump)));
+		EXPECT_EQ(stored_jump.do_jump_current_count, fail_write ? 0 : 1);
+
+		ASSERT_TRUE(mission.trySetRouteJoinOnActivation(false));
+		EXPECT_EQ(mission.currentSequenceForTest(), fail_write ? 4 : 0);
+		EXPECT_EQ(mission.jumpAnchorForTest().jump_item_index, fail_write ? -1 : 3);
+		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+		EXPECT_TRUE(mission.joinContextForTest().valid());
+	}
+
+	// A successful jump can land on another jump whose write fails. Keep the anchor
+	// of the first jump: skipping the second still reaches the first jump's position target.
+	prepareExecution(mission, {
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
+		makeDoJump(0, 2, 0),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kBaseAlt),
+		makeDoJump(1, 2, 0),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 100.f, kBaseAlt),
+	}, 53);
+	ASSERT_TRUE(mission.set_current_mission_index(3));
+	mission.setWriteFailureIndexForTest(1);
+
+	ASSERT_TRUE(mission.advanceMissionForTest());
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+	EXPECT_EQ(mission.jumpAnchorForTest().jump_item_index, 4);
+	mission_item_s stored_jump{};
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 4,
+					     reinterpret_cast<uint8_t *>(&stored_jump), sizeof(stored_jump)));
+	EXPECT_EQ(stored_jump.do_jump_current_count, 1);
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 1,
+					     reinterpret_cast<uint8_t *>(&stored_jump), sizeof(stored_jump)));
+	EXPECT_EQ(stored_jump.do_jump_current_count, 0);
 }
 
 TEST_F(MissionRouteJoinTest, ResumingBeforeFirstFrontTransitionRequestsBackTransition)

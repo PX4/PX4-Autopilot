@@ -123,6 +123,14 @@ void Mission::onMissionUpdate(bool has_mission_items_changed)
 	MissionBase::onMissionUpdate(has_mission_items_changed);
 }
 
+void Mission::onMissionJumpSkipped(int32_t jump_index)
+{
+	// Drop only the skipped edge: an earlier successful jump in a chain can still be active.
+	if (_active_jump_anchor.jump_item_index == jump_index) {
+		_active_jump_anchor = {};
+	}
+}
+
 bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 {
 	resetJoinRouteState();
