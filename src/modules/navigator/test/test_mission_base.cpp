@@ -81,6 +81,10 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
+/* EVENT
+ * @skip-file
+ */
+
 class MissionBaseTestPeer : public MissionBase
 {
 public:
