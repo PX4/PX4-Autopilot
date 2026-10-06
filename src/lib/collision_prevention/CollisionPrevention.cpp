@@ -100,6 +100,20 @@ void CollisionPrevention::modifySetpoint(Vector2f &setpoint_accel, const Vector2
 	_updateObstacleData();
 	_calculateConstrainedSetpoint(setpoint_accel, setpoint_vel);
 
+	// report when collision prevention alters the pilot's setpoint, at most once per second
+	if (_obstacle_data_present && (setpoint_accel - original_setpoint).norm() > 0.01f
+	    && getElapsedTime(&_last_limit_message) > 1_s) {
+		// bearing of the closest obstacle, clockwise from the nose
+		const float bearing_rad = wrap_2pi(atan2f(_closest_dist_dir(1), _closest_dist_dir(0)) - _vehicle_yaw);
+		const int16_t bearing_deg = static_cast<int16_t>(lroundf(math::degrees(bearing_rad)) % 360);
+
+		mavlink_log_info(&_mavlink_log_pub, "Obstacle at %.1f m, %d deg CW from nose, limiting speed\t",
+				 (double)_closest_dist, bearing_deg);
+		events::send<float, int16_t>(events::ID("col_prev_limiting"), {events::Log::Info, events::LogInternal::Info},
+					     "Obstacle at {1:.1m}, {2} deg CW from nose, limiting speed", _closest_dist, bearing_deg);
+		_last_limit_message = getTime();
+	}
+
 	// publish constraints
 	collision_constraints_s	constraints{};
 	original_setpoint.copyTo(constraints.original_setpoint);
