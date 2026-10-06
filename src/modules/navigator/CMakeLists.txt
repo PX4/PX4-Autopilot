@@ -112,6 +112,10 @@ set(NAVIGATOR_MODULE_CONFIG
 	rtl_params.yaml
 	vtol_takeoff_params.yaml)
 
+if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
+	list(APPEND NAVIGATOR_MODULE_CONFIG geofence_avoidance_params.yaml)
+endif()
+
 if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 	list(APPEND NAVIGATOR_SOURCES prec_takeoff.cpp)
 	list(APPEND NAVIGATOR_MODULE_CONFIG prec_takeoff_params.yaml)
