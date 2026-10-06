@@ -76,6 +76,10 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mavlink_log.h>
 
+/* EVENT
+ * @skip-file
+ */
+
 class MissionBaseTestPeer : public MissionBase
 {
 public:
