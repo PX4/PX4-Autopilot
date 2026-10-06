@@ -260,6 +260,9 @@
 
 #define DRV_INS_DEVTYPE_SBG		0xEC
 
+#define DRV_GAS_DEVTYPE_DFROBOT_GAS 0xF0
+
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
