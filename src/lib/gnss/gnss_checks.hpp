@@ -80,11 +80,13 @@ public:
 	bool run(const gnssChecksSample &gnss, bool armed, bool in_air, bool vehicle_at_rest);
 	bool passed() const { return _passed; }
 
-	// The last run applied the strict thresholds: never passed yet, or disarmed on the ground
+	// The strict checks decided the last run: never passed yet, disarmed on the ground, or passing them
 	bool strict() const { return _strict; }
 
-	// The last sample passed the strict checks enabled in the check mask, whichever checks decided passed(). Drift is
-	// evaluated only at rest on the ground. Unlike passed(), it holds no pass duration: the selection applies its own.
+	// The last sample passed the strict checks enabled in the check mask, and no check that decided passed() failed for
+	// the required pass duration. Once the relaxed checks apply, a sample that fails only the strict ones doesn't restart
+	// that duration, so that a single one doesn't drop the receiver's rank for GNSS_REQ_TIME: the selection's own hold
+	// rides through it. Drift is evaluated only at rest on the ground.
 	bool meetsRequirements() const { return _meets_requirements; }
 
 	// Failed checks, as vehicle_gnss_s::CHECK_* bits

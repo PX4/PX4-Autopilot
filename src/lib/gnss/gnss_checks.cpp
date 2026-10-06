@@ -70,7 +70,8 @@ bool GnssChecks::run(const gnssChecksSample &gnss, bool armed, bool in_air, bool
 	// The strict checks run on every sample, also once the relaxed ones apply, as the selection compares receivers on
 	// them in flight
 	const bool passes_strict_checks = runInitialFixChecks(gnss, in_air, vehicle_at_rest);
-	_meets_requirements = passes_strict_checks && isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs());
+	_meets_requirements = passes_strict_checks
+			      && isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs());
 
 	if (_meets_requirements) {
 		_initial_checks_passed = true;

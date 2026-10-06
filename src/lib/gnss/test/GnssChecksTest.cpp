@@ -148,7 +148,7 @@ TEST_F(GnssChecksTest, requirementsPerSample)
 	_sample.nsats = 10;
 	runSeconds(0.1f, true, true);
 
-	// THEN: it meets them at once; the selection holds its own
+	// THEN: it meets them again at once, as only a failure of the relaxed checks restarts the required pass duration
 	EXPECT_TRUE(_checks.meetsRequirements());
 }
 
