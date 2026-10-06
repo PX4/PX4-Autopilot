@@ -14,5 +14,10 @@ param set-default RC_SBUS_PRT_CFG 300
 # ESC telemetry on the ESC connector (USART1, RX only): 401 = EXT2 port.
 param set-default DSHOT_TEL_CFG 401
 
+# Heater (PE3) is supported but off by default. Set SENS_EN_THERMAL to 1 to enable it.
+param set-default SENS_EN_THERMAL 0
+# Heater target temperature (degC).
+param set-default HEATER1_TEMP 45
+
 # Start all populated NeoPixels; PB10 is not exposed as a motor output.
 neopixel start

@@ -76,7 +76,13 @@
 #define GPIO_TONE_ALARM_GPIO GPIO_TONE_ALARM_IDLE
 
 /* Board controls. */
-#define GPIO_HEATER       /* PE3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN3)
+/* Heater: PE3 high turns on low-side N-MOSFET Q2. The gate has a pull-down
+ * and the pin starts low, so the heater is off through reset and boot.
+ */
+#define GPIO_HEATER_OUTPUT
+#define HEATER_NUM        1
+#define GPIO_HEATER1_OUTPUT /* PE3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN3)
+#define HEATER1_OUTPUT_EN(on_true) px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, (on_true))
 /* 12 V BEC enable, active low: PC12 high turns Q3 on and the 12 V output off.
  * The pin starts low, so 12 V is on at boot.
  */
@@ -120,7 +126,7 @@
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO, \
 		GPIO_CAN1_TX, GPIO_CAN1_RX, \
-		GPIO_HEATER, GPIO_n12V_EN, GPIO_TONE_ALARM_IDLE, \
+		GPIO_HEATER1_OUTPUT, GPIO_n12V_EN, GPIO_TONE_ALARM_IDLE, \
 		GPIO_HW_VER0, GPIO_HW_VER1, GPIO_PHY_RST_SAFE \
 	}
 
