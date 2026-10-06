@@ -120,7 +120,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gps_p_noise(_params->ekf2_gps_p_noise),
 	_param_ekf2_gps_p_gate(_params->ekf2_gps_p_gate),
 	_param_ekf2_gps_v_gate(_params->ekf2_gps_v_gate),
-	_param_ekf2_req_sacc(_params->ekf2_req_sacc),
 	_param_ekf2_gsf_tas(_params->ekf2_gsf_tas),
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -498,7 +497,7 @@ void EKF2::Run()
 		AdvertiseTopics();
 
 #if defined(CONFIG_EKF2_GNSS)
-		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
+		_ekf.set_gnss_yaw_reset_wait(_param_ekf2_gps_yaw_rst.get() * 1_s);
 #endif // CONFIG_EKF2_GNSS
 
 		const matrix::Vector3f imu_pos_body(_param_ekf2_imu_pos_x.get(),
@@ -2653,6 +2652,7 @@ void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 					     vehicle_gnss.antenna_offset[1],
 					     vehicle_gnss.antenna_offset[2]),
 			.usable = vehicle_gnss.usable,
+			.sacc_passes_strict = !(vehicle_gnss.failed_strict_checks & vehicle_gnss_s::CHECK_SACC),
 			.selection_count = vehicle_gnss.selection_count,
 		};
 

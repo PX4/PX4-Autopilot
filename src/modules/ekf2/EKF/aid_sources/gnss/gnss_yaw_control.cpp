@@ -79,8 +79,8 @@ void Ekf::controlGnssYawFusion(const imuSample &imu_delayed)
 			2 * GNSS_YAW_MAX_INTERVAL);
 
 	// The sensors module marks a heading unusable when its receiver reports spoofing or jamming, with the same effect
-	// as for position: its samples aren't fused, fusion stops once none has been for the reset timeout, and a reset
-	// waits for the GNSS health time. The position checks themselves don't gate the heading: it is a separate
+	// as for position: its samples aren't fused and fusion stops once none has been for the reset timeout; a reset
+	// also waits for EKF2_GPS_YAW_RST. The position checks themselves don't gate the heading: it is a separate
 	// observation, often from a separate receiver.
 	const bool is_heading_receiver_flagged = !gnss_yaw_sample.usable;
 
@@ -134,8 +134,8 @@ void Ekf::controlGnssYawFusion(const imuSample &imu_delayed)
 			    || !isNorthEastAidingActive()) {
 
 				// A reset takes the heading as is, so after a fusion failure or a spoofing or jamming report the
-				// receiver gets the GNSS health time to recover before it is trusted again
-				const bool reset_allowed = isTimedOut(_time_last_gnss_yaw_fail_us, _min_gps_health_time_us);
+				// receiver gets time to recover before it is trusted again
+				const bool reset_allowed = isTimedOut(_time_last_gnss_yaw_fail_us, _gnss_yaw_reset_wait_us);
 
 				// Reset before starting the fusion
 				if (reset_allowed && resetYawToGnss(gnss_yaw_sample.yaw, gnss_yaw_sample.yaw_offset)) {

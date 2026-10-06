@@ -204,6 +204,7 @@ struct gnssSample {
 	bool        jammed{};     ///< true if GNSS data is jammed
 	Vector3f    pos_body{};   ///< position of GPS antenna in body frame (m)
 	bool        usable{};     ///< the sample passes the GNSS checks of the sensors module
+	bool        sacc_passes_strict{}; ///< the speed accuracy passes the strict check (GNSS_REQ_SACC), also in flight, or that check is disabled
 	uint8_t     selection_count{}; ///< increments when the sensors module selects another receiver
 };
 
@@ -380,7 +381,6 @@ struct parameters {
 	float ekf2_gps_p_gate{5.0f};            ///< GPS horizontal position innovation consistency gate size (STD)
 	float ekf2_gps_v_gate{5.0f};            ///< GPS velocity innovation consistency gate size (STD)
 
-	float ekf2_req_sacc{1.0f};              ///< speed accuracy below which GNSS vertical velocity is trusted while the accelerometer clips and GNSS velocity feeds the yaw estimator (m/s)
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
