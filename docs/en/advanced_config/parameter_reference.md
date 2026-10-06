@@ -59469,7 +59469,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Bootloader update.
 
-If enabled, update the bootloader on the next boot.
+If enabled, update the bootloader on the next boot. DroneCAN nodes
+update within about 2 seconds of it being set, without rebooting.
 
 WARNING: do not cut the power during an update process, otherwise you will
 have to recover using some alternative method (e.g. JTAG).
