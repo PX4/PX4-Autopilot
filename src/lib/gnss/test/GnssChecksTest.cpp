@@ -103,12 +103,13 @@ TEST_F(GnssChecksTest, relaxedOnlyAfterStrictPass)
 
 	// THEN: it passes, and the relaxed checks apply from then on
 	EXPECT_TRUE(_checks.passed());
-	EXPECT_FALSE(_checks.strict());
+	EXPECT_TRUE(_checks.strict());
 
 	_sample.hacc = 10.f;
 	runSeconds(1.f, true, true);
 
 	EXPECT_TRUE(_checks.passed());
+	EXPECT_FALSE(_checks.strict());
 }
 
 TEST_F(GnssChecksTest, relaxedWhileArmedOnGround)
@@ -157,7 +158,7 @@ TEST_F(GnssChecksTest, requirementsInFlight)
 	runSeconds(1.f, true, true);
 
 	EXPECT_TRUE(_checks.passed());
-	EXPECT_FALSE(_checks.strict());
+	EXPECT_TRUE(_checks.strict());
 	EXPECT_TRUE(_checks.meetsRequirements());
 
 	// WHEN: its accuracy degrades beyond the strict threshold but within the relaxed in-flight one
@@ -166,6 +167,7 @@ TEST_F(GnssChecksTest, requirementsInFlight)
 
 	// THEN: it still passes, but no longer meets the requirements
 	EXPECT_TRUE(_checks.passed());
+	EXPECT_FALSE(_checks.strict());
 	EXPECT_FALSE(_checks.meetsRequirements());
 }
 
@@ -200,7 +202,7 @@ TEST_F(GnssChecksTest, requirementsFollowCheckMask)
 
 	// WHEN: the horizontal accuracy exceeds its threshold
 	_sample.hacc = 10.f;
-	runSeconds(1.f, false, false);
+	runSeconds(1.5f, false, false);
 
 	// THEN: the requirements are met
 	EXPECT_TRUE(_checks.meetsRequirements());

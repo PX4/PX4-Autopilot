@@ -64,31 +64,33 @@ bool GnssChecks::run(const gnssChecksSample &gnss, bool armed, bool in_air, bool
 		_initial_checks_passed = false;
 	}
 
-	// The strict checks run on every sample, also once the relaxed ones apply, as the selection compares receivers on
-	// them in flight
-	_meets_requirements = runInitialFixChecks(gnss, in_air, vehicle_at_rest);
-
 	_passed = false;
 	_strict = !_initial_checks_passed;
 
-	if (_initial_checks_passed) {
+	// The strict checks run on every sample, also once the relaxed ones apply, as the selection compares receivers on
+	// them in flight
+	const bool passes_strict_checks = runInitialFixChecks(gnss, in_air, vehicle_at_rest);
+	_meets_requirements = passes_strict_checks && isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs());
+
+	if (_meets_requirements) {
+		_initial_checks_passed = true;
+		_passed = true;
+		_strict = true;
+	}
+
+	if (_initial_checks_passed && !_passed) {
 		// Only the relaxed checks decide and are reported; the strict result is in meetsRequirements()
 		_fail_flags &= kSimplifiedChecks;
+		_strict = false;
 
 		if (runSimplifiedChecks(gnss)) {
-			_passed = isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs());
+			_passed = isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs(true));
 
 		} else {
 			_time_last_fail_us = gnss.time_us;
 		}
 
-	} else if (_meets_requirements) {
-		if (isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs())) {
-			_initial_checks_passed = true;
-			_passed = true;
-		}
-
-	} else {
+	} else if (!passes_strict_checks) {
 		_time_last_fail_us = gnss.time_us;
 	}
 
