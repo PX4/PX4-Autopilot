@@ -83,13 +83,12 @@ uint8_t GnssSelector::selectionReason() const
 		return vehicle_gnss_s::SELECTION_ONLY;
 	}
 
-	if (hasPreferred() && (_selected_instance == _preferred_instance)) {
-		return vehicle_gnss_s::SELECTION_PREFERRED;
+	if (_switch_reason != REASON_INITIAL) {
+		return _switch_reason;
 	}
 
-	// A return to a receiver that is no longer preferred explains nothing, as after the first selection
-	if ((_switch_reason != REASON_INITIAL) && (_switch_reason != vehicle_gnss_s::SELECTION_PREFERRED)) {
-		return _switch_reason;
+	if (hasPreferred() && (_selected_instance == _preferred_instance)) {
+		return vehicle_gnss_s::SELECTION_PREFERRED;
 	}
 
 	if (hasPreferred()) {
@@ -196,18 +195,6 @@ GnssSelector::Rank GnssSelector::rank(int instance, uint64_t hrt_now_us) const
 	return (_sample[instance].rtk_fixed && !hasPreferred()) ? RANK_RTK_FIXED : RANK_REQUIREMENTS;
 }
 
-bool GnssSelector::outranks(int instance, int other, uint64_t hrt_now_us) const
-{
-	const Rank instance_rank = rank(instance, hrt_now_us);
-	const Rank other_rank = rank(other, hrt_now_us);
-
-	if (instance_rank != other_rank) {
-		return instance_rank > other_rank;
-	}
-
-	return (instance_rank >= RANK_REQUIREMENTS) && hasPreferred() && (instance == _preferred_instance);
-}
-
 int GnssSelector::bestReplacement(int current, bool usable_only, uint64_t hrt_now_us) const
 {
 	int best = -1;
@@ -217,7 +204,7 @@ int GnssSelector::bestReplacement(int current, bool usable_only, uint64_t hrt_no
 			continue;
 		}
 
-		if ((best < 0) || isBetterReplacement(i, best, hrt_now_us)) {
+		if ((best < 0) || isBetterReceiver(i, best, hrt_now_us)) {
 			best = i;
 		}
 	}
@@ -225,11 +212,45 @@ int GnssSelector::bestReplacement(int current, bool usable_only, uint64_t hrt_no
 	return best;
 }
 
-bool GnssSelector::isBetterReplacement(int instance, int other, uint64_t hrt_now_us) const
+int GnssSelector::bestCandidate(uint64_t hrt_now_us) const
 {
-	// By rank, which puts usable receivers first, then the preferred receiver, then the more available one
+	int best = -1;
+
+	for (int i = 0; i < GNSS_MAX_RECEIVERS; i++) {
+		if (!isUsable(i, hrt_now_us)) {
+			continue;
+		}
+
+		if ((best < 0) || isBetterReceiver(i, best, hrt_now_us, AVAILABILITY_MARGIN)) {
+			best = i;
+		}
+	}
+
+	return best;
+}
+
+bool GnssSelector::isBetterReceiver(int instance, int other, uint64_t hrt_now_us, float tiebreaker_availability_margin) const
+{
+	if (instance < 0) {
+		return false;
+	}
+
+	if (other < 0) {
+		return true;
+	}
+
 	const Rank instance_rank = rank(instance, hrt_now_us);
 	const Rank other_rank = rank(other, hrt_now_us);
+
+	// A receiver that has previously failed is not considered better for as long as the other hasn't failed
+	if (other_rank >= RANK_USABLE && !_failed_while_armed[other] && _failed_while_armed[instance]) {
+		return false;
+	}
+
+	// A receiver that is significantly more available is better (priority over having a better rank and over preferred receiver too)
+	if (instance_rank >= RANK_USABLE && _availability[instance].getState() > _availability[other].getState() + AVAILABILITY_MARGIN) {
+		return true;
+	}
 
 	if (instance_rank != other_rank) {
 		return instance_rank > other_rank;
@@ -239,7 +260,8 @@ bool GnssSelector::isBetterReplacement(int instance, int other, uint64_t hrt_now
 		return instance == _preferred_instance;
 	}
 
-	return _availability[instance].getState() > _availability[other].getState();
+	// Tiebreak: if everything else is the same, decide on highest availability
+	return _availability[instance].getState() > _availability[other].getState() + tiebreaker_availability_margin;
 }
 
 hrt_abstime GnssSelector::switchHoldUs() const
@@ -298,44 +320,24 @@ int GnssSelector::selectReceiver(uint64_t hrt_now_us)
 		}
 	}
 
-	// Intermittent failures never add up to FAIL_TIME_US, but cost availability. The replacement must have been usable
-	// for FAIL_TIME_US, or a receiver that just failed would come straight back on its first usable sample.
-	const float current_availability = _availability[current].getState();
-	int healthier = -1;
-
-	for (int i = 0; i < GNSS_MAX_RECEIVERS; i++) {
-		if ((i != current) && isUsable(i, hrt_now_us)
-		    && (hrt_now_us >= _time_usable_since_us[i] + FAIL_TIME_US)
-		    && (_availability[i].getState() > current_availability + AVAILABILITY_MARGIN)
-		    && ((healthier < 0) || (_availability[i].getState() > _availability[healthier].getState()))) {
-			healthier = i;
-		}
-	}
-
-	if (healthier >= 0) {
-		return failOver(healthier, vehicle_gnss_s::SELECTION_UNHEALTHY);
-	}
-
 	// A receiver that meets the requirements and outranks the selected one through the hold time replaces it, so that
 	// shorter changes in either one ride through. A receiver that failed while armed doesn't count, so that the
 	// selection doesn't move back to it until the selected one fails.
-	int candidate = -1;
+	const int best_candidate = bestCandidate(hrt_now_us);
 
-	for (int i = 0; i < GNSS_MAX_RECEIVERS; i++) {
-		if ((i != current) && !_failed_while_armed[i] && (rank(i, hrt_now_us) >= RANK_REQUIREMENTS)
-		    && outranks(i, current, hrt_now_us) && isComparablyAvailable(i, current)
-		    && ((candidate < 0) || outranks(i, candidate, hrt_now_us))) {
-			candidate = i;
-		}
-	}
-
-	if (candidate < 0) {
+	if (best_candidate < 0 || best_candidate == current) {
 		_switch_candidate = -1;
 		return current;
 	}
 
-	if (candidate != _switch_candidate) {
-		_switch_candidate = candidate;
+	// Only switch if the best candidate is significantly better
+	if (!isBetterReceiver(best_candidate, current, hrt_now_us, AVAILABILITY_MARGIN)) {
+		_switch_candidate = -1;
+		return current;
+	}
+
+	if (best_candidate != _switch_candidate) {
+		_switch_candidate = best_candidate;
 		_switch_candidate_since_us = hrt_now_us;
 		return current;
 	}
@@ -348,10 +350,22 @@ int GnssSelector::selectReceiver(uint64_t hrt_now_us)
 		_rank_switches_while_armed++;
 	}
 
-	if (candidate == preferred) {
-		return switchTo(candidate, vehicle_gnss_s::SELECTION_PREFERRED);
+	if (best_candidate == preferred) {
+		return switchTo(best_candidate, vehicle_gnss_s::SELECTION_PREFERRED);
 	}
 
-	return switchTo(candidate, (rank(current, hrt_now_us) >= RANK_REQUIREMENTS) ? vehicle_gnss_s::SELECTION_RTK_FIXED
-			: vehicle_gnss_s::SELECTION_REQUIREMENTS);
+	uint8_t switch_reason = vehicle_gnss_s::SELECTION_RANKED;
+	Rank best_rank = rank(best_candidate, hrt_now_us);
+
+	if (_availability[best_candidate].getState() > _availability[current].getState() + AVAILABILITY_MARGIN) {
+		switch_reason = vehicle_gnss_s::SELECTION_UNHEALTHY;
+
+	} else if (best_rank == RANK_RTK_FIXED) {
+		switch_reason = vehicle_gnss_s::SELECTION_RTK_FIXED;
+
+	} else if (best_rank == RANK_REQUIREMENTS) {
+		switch_reason = vehicle_gnss_s::SELECTION_REQUIREMENTS;
+	}
+
+	return switchTo(best_candidate, switch_reason);
 }

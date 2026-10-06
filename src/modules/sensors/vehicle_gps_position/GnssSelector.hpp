@@ -207,21 +207,15 @@ private:
 
 	Rank rank(int instance, uint64_t hrt_now_us) const;
 
-	// Ranks higher, or ranks the same, meets the requirements and is the preferred receiver
-	bool outranks(int instance, int other, uint64_t hrt_now_us) const;
-
-	// The receiver to replace the current one with, -1 if none: any one that publishes, or only usable ones
+	// The receiver to replace the current one with in case the current is failing, -1 if none: any one that publishes, or only usable ones
 	int bestReplacement(int current, bool usable_only, uint64_t hrt_now_us) const;
-	bool isBetterReplacement(int instance, int other, uint64_t hrt_now_us) const;
+
+	// Find the best receiver available, -1 if none is usable
+	int bestCandidate(uint64_t hrt_now_us) const;
+
+	bool isBetterReceiver(int instance, int other, uint64_t hrt_now_us, float tiebreaker_availability_margin = 0.f) const;
 
 	hrt_abstime switchHoldUs() const;
-
-	// instance isn't clearly less available than other, so that other wouldn't take over again right after a switch
-	bool isComparablyAvailable(int instance_a, int instance_b) const
-	{
-		return _availability[instance_a].getState()
-		       >= _availability[instance_b].getState() - 0.5f * AVAILABILITY_MARGIN;
-	}
 
 	bool hasPreferred() const { return (_preferred_instance >= 0) && (_preferred_instance < GNSS_MAX_RECEIVERS); }
 
