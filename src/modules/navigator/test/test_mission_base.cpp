@@ -79,6 +79,10 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 
+/* EVENT
+ * @skip-file
+ */
+
 class MissionBaseTestPeer : public MissionBase
 {
 public:

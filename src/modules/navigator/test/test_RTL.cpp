@@ -77,6 +77,10 @@
 #include "support/mission_route_test_helpers.h"
 #include "support/vector_mission_item_store.h"
 
+/* EVENT
+ * @skip-file
+ */
+
 namespace
 {
 
