@@ -73,24 +73,25 @@ fi
 # alternate keeps this true even when the two sockets have different parts.
 # This also matches the ArduPilot GA1 hwdef, where the SPI2 IMU is INSTANCE:0.
 #
-# Each socket may be populated with ICM-42688P, ICM-45686, ICM-56686, or
-# LSM6DSV32X. Unpopulated start attempts fail probe and are ignored.
-# LSM6DSV rotations differ from the Invensense parts because ST defines the die
-# axes with Y and Z inverted on the same footprint (same delta as px4_fmu-v6c,
-# where icm42688p -R 6 pairs with lsm6dsv -R 26).
+# Each socket may be populated with ICM-42688P, ICM-45686, ICM-56686, or an
+# LSM6DSV-family part (LSM6DSV32X, LSM6DSK320X). Unpopulated start attempts
+# fail probe and are ignored.
+# The lsm6dsv driver flips y & z like the Invensense drivers (since #27625), so
+# every part on a socket uses the same rotation (px4_fmu-v6c also pairs
+# icm42688p -R 6 with lsm6dsv -R 6).
 
 # SPI2 socket (heated position)
 icm42688p -R 6 -s -b 2 start
 icm45686 -R 6 -s -b 2 start
 # This footprint routes the ICM56686 FIFO interrupt through INT2.
 icm56686 -2 -R 6 -s -b 2 start
-lsm6dsv -R 26 -s -b 2 start
+lsm6dsv -R 6 -s -b 2 start
 
 # SPI1 socket
 icm42688p -R 14 -s -b 1 start
 icm45686 -R 14 -s -b 1 start
 icm56686 -R 14 -s -b 1 start
-lsm6dsv -R 6 -s -b 1 start
+lsm6dsv -R 14 -s -b 1 start
 
 # Internal SPI BMI088
 bmi088 -A -R 4 -s start

@@ -40,9 +40,9 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM56686, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-		// LSM6DSV32X is an alternate on the Invensense footprint. Declared without DRDY
-		// (polled) because the ST INT1 pad mapping on this footprint is unconfirmed;
-		// the driver falls back to scheduled FIFO reads when drdy_gpio == 0.
+		// An LSM6DSV-family part (LSM6DSV32X, LSM6DSK320X) is an alternate on the Invensense
+		// footprint. Declared without DRDY (polled) because the ST INT1 pad mapping on this
+		// footprint is unconfirmed; the driver falls back to scheduled FIFO reads when drdy_gpio == 0.
 		initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM6DSV, SPI::CS{GPIO::PortI, GPIO::Pin9}),
 	}, {GPIO::PortI, GPIO::Pin11}),
 	initSPIBus(SPI::Bus::SPI2, {
