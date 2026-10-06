@@ -151,7 +151,6 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_fault
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && isGnssRestartHoldOffElapsed();
 
 	if (_control_status.flags.gnss_vel) {
 		if (continuing_conditions_passing) {
@@ -174,7 +173,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 		}
 
 	} else {
-		if (starting_conditions_passing) {
+		if (continuing_conditions_passing) {
 			bool fused = false;
 
 			const bool do_reset = force_reset || !_control_status_prev.flags.yaw_align;
@@ -208,8 +207,6 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && isGnssRestartHoldOffElapsed();
-	const bool gpos_init_conditions_passing = gnss_pos_enabled && isGnssRestartHoldOffElapsed();
 
 	// The new receiver can report a position offset from the previous one (different correction source)
 	const bool receiver_changed = (_gps_sample_delayed.selection_count != _gnss_pos_selection_count);
@@ -248,7 +245,7 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 		}
 
 	} else {
-		if (starting_conditions_passing) {
+		if (continuing_conditions_passing) {
 			bool fused = false;
 
 			const bool do_reset = force_reset || !_control_status_prev.flags.yaw_align;
@@ -262,8 +259,7 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 
 			bool reset = false;
 
-			if ((!fused && isGnssPosResetAllowed())
-			    || (gpos_init_conditions_passing && !_local_origin_lat_lon.isInitialized())) {
+			if ((!fused && isGnssPosResetAllowed()) || !_local_origin_lat_lon.isInitialized()) {
 				resetHorizontalPositionToGnss(aid_src);
 				reset = true;
 			}
@@ -275,7 +271,7 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 				_control_status.flags.gnss_fault = false;
 			}
 
-		} else if (gpos_init_conditions_passing && !_local_origin_lat_lon.isInitialized()) {
+		} else if (gnss_pos_enabled && !_local_origin_lat_lon.isInitialized()) {
 			resetHorizontalPositionToGnss(aid_src);
 		}
 	}
@@ -359,14 +355,14 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 			      getVelocityVariance() + vel_obs_var,  // innovation variance
 			      innovation_gate);                     // innovation gate
 
-	// vz special case if there is bad vertical acceleration data, then don't reject measurement if GNSS reports velocity accuracy is acceptable,
-	// but limit innovation to prevent spikes that could destabilise the filter
+	// vz special case if there is bad vertical acceleration data, then don't reject measurement if the GNSS speed accuracy
+	// passes the strict check, but limit innovation to prevent spikes that could destabilise the filter
 	bool bad_acc_vz_rejected = _fault_status.flags.bad_acc_vertical
 				   && (aid_src.test_ratio[2] > 1.f)                                   // vz rejected
 				   && (aid_src.test_ratio[0] < 1.f) && (aid_src.test_ratio[1] < 1.f); // vx & vy accepted
 
 	if (bad_acc_vz_rejected
-	    && (gnss_sample.sacc < _params.ekf2_req_sacc)
+	    && gnss_sample.sacc_passes_strict
 	   ) {
 		const float innov_limit = innovation_gate * sqrtf(aid_src.innovation_variance[2]);
 		aid_src.innovation[2] = math::constrain(aid_src.innovation[2], -innov_limit, innov_limit);
@@ -415,7 +411,7 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 	const Vector2f vel_xy(aid_src_vel.observation);
 
 	if ((vel_var > 0.f)
-	    && (vel_accuracy < _params.ekf2_req_sacc)
+	    && _gps_sample_delayed.sacc_passes_strict
 	    && vel_xy.isAllFinite()) {
 
 		_yawEstimator.fuseVelocity(vel_xy, vel_accuracy, _control_status.flags.in_air);
@@ -530,9 +526,6 @@ void Ekf::stopGnssVelFusion()
 		ECL_INFO("stopping GNSS velocity fusion");
 		_control_status.flags.gnss_vel = false;
 
-		if (!_control_status.flags.gnss_pos) {
-			_time_last_gnss_fusion_stop_us = _time_delayed_us;
-		}
 	}
 }
 
@@ -542,9 +535,6 @@ void Ekf::stopGnssPosFusion()
 		ECL_INFO("stopping GNSS position fusion");
 		_control_status.flags.gnss_pos = false;
 
-		if (!_control_status.flags.gnss_vel) {
-			_time_last_gnss_fusion_stop_us = _time_delayed_us;
-		}
 	}
 }
 

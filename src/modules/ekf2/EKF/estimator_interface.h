@@ -404,7 +404,7 @@ protected:
 
 	gnssSample _gps_sample_delayed{};
 
-	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
+	uint32_t _gnss_yaw_reset_wait_us{10000000};
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	TimestampedRingBuffer<gnssYawSample> *_gnss_yaw_buffer {nullptr};
