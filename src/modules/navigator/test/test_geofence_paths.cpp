@@ -868,6 +868,40 @@ TEST_F(AntimeridianGeofenceTest, ShortPathsMayCrossTheAntimeridian)
 	}
 }
 
+TEST_F(AntimeridianGeofenceTest, MultiPiecePathsMayCrossTheAntimeridian)
+{
+	// This 30 km leg needs several pieces and bows about 19 m north of the straight lat/lon line.
+	const Geofence::PathCheck leg{{47.0, 179.8}, {47.0, -179.8}};
+	const Geofence::PathCheck paths[] {leg, {leg.end, leg.start}};
+	const MapProjection projection(leg.start(0), leg.start(1));
+	const matrix::Vector2f end = projection.project(leg.end(0), leg.end(1));
+	const matrix::Vector2f corners[] {{-3.f, -3.f}, {3.f, -3.f}, {3.f, 3.f}, {-3.f, 3.f}};
+
+	// Put small squares on either side of the longitude wrap, away from the endpoints.
+	for (float fraction : {0.25f, 0.75f}) {
+		SCOPED_TRACE(fraction);
+
+		for (float north_offset : {0.f, -10.f}) {
+			SCOPED_TRACE(north_offset);
+			const matrix::Vector2f centre = end * fraction + matrix::Vector2f{north_offset, 0.f};
+			FencePoints points = exclusionSquare();
+
+			for (size_t i = 0; i < points.size(); ++i) {
+				projection.reproject(centre(0) + corners[i](0), centre(1) + corners[i](1), points[i].lat, points[i].lon);
+				points[i].lon = matrix::wrap(points[i].lon, -180.0, 180.0);
+			}
+
+			ASSERT_TRUE(loadFence(points));
+			EXPECT_TRUE(_fence.checkPointAgainstAllGeofences(leg.start(0), leg.start(1), 500.f));
+			EXPECT_TRUE(_fence.checkPointAgainstAllGeofences(leg.end(0), leg.end(1), 500.f));
+			bool clear[2] {};
+			ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+			EXPECT_EQ(clear[0], north_offset < 0.f);
+			EXPECT_EQ(clear[1], north_offset < 0.f);
+		}
+	}
+}
+
 TEST_F(GeofenceTest, LongPathsFollowTheFlownLine)
 {
 	const MapProjection projection(_reference(0), _reference(1));
