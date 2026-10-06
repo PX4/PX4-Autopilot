@@ -74,23 +74,27 @@ public:
 	void setParams(const Params &params) { _params = params; }
 
 	/*
-	 * Return true if the GNSS solution quality is adequate. The strict checks apply until the first pass and again
-	 * whenever the vehicle is disarmed on the ground; the drift checks run only at rest on the ground.
+	 * Return true if the sample may be used. The strict checks (the GNSS_REQ_* thresholds, satellite count, PDOP, and
+	 * drift at rest on the ground) decide until they pass and again whenever the vehicle is disarmed on the ground. The
+	 * relaxed checks (fixed, looser limits) decide otherwise while the strict ones fail. Both run on every sample.
 	*/
 	bool run(const gnssChecksSample &gnss, bool armed, bool in_air, bool vehicle_at_rest);
 	bool passed() const { return _passed; }
 
-	// The strict checks decided the last run: never passed yet, disarmed on the ground, or passing them
+	// The strict checks decided the last run: they haven't passed since the vehicle was disarmed on the ground, or they
+	// pass
 	bool strict() const { return _strict; }
 
-	// The last sample passed the strict checks enabled in the check mask, and no check that decided passed() failed for
-	// the required pass duration. Once the relaxed checks apply, a sample that fails only the strict ones doesn't restart
-	// that duration, so that a single one doesn't drop the receiver's rank for GNSS_REQ_TIME: the selection's own hold
-	// rides through it. Drift is evaluated only at rest on the ground.
-	bool meetsRequirements() const { return _meets_requirements; }
+	// The last sample passed the strict checks, and no check that decided passed() failed for the required pass
+	// duration. Once the relaxed checks decide, a sample that fails only the strict ones doesn't restart that duration,
+	// so that a single one doesn't drop the receiver's rank for GNSS_REQ_TIME: the selection's own hold rides through it.
+	bool passedStrict() const { return _passed_strict; }
 
-	// Failed checks, as vehicle_gnss_s::CHECK_* bits
-	uint16_t getFailFlags() const { return _fail_flags; }
+	// The enabled checks the last sample failed at the strict thresholds, as vehicle_gnss_s::CHECK_* bits
+	uint16_t getStrictFailFlags() const { return _strict_fail_flags & getEnabledChecks(); }
+
+	// The enabled checks the last sample failed at the relaxed thresholds, as vehicle_gnss_s::CHECK_* bits
+	uint16_t getRelaxedFailFlags() const { return _relaxed_fail_flags & getEnabledChecks(); }
 
 	// The checks enabled in GNSS_CHECK, as vehicle_gnss_s::CHECK_* bits
 	uint16_t getEnabledChecks() const { return static_cast<uint16_t>(_params.check_mask) & kAllChecks; }
@@ -118,17 +122,17 @@ private:
 	}
 
 	// How long the checks must pass after a failure before passed() is true
-	uint64_t getRequiredPassDurationUs(const bool simplified = false) const
+	uint64_t getRequiredPassDurationUs(bool relaxed) const
 	{
-		return simplified ? math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10)
+		return relaxed ? math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10)
 		       : (uint64_t)_params.min_health_time_us;
 	}
 
-	void setFail(uint16_t check, bool failed);
-	bool enabledChecksPass(uint16_t checks) const { return (_fail_flags & checks & getEnabledChecks()) == 0; }
+	static void setFail(uint16_t &fail_flags, uint16_t check, bool failed);
+	bool enabledChecksPass(uint16_t fail_flags, uint16_t checks) const { return (fail_flags & checks & getEnabledChecks()) == 0; }
 
-	bool runSimplifiedChecks(const gnssChecksSample &gnss);
-	bool runInitialFixChecks(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
+	bool runRelaxedChecks(const gnssChecksSample &gnss);
+	bool runStrictChecks(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
 	void runOnGroundGnssChecks(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
 
 	void clearDriftChecks();
@@ -139,7 +143,8 @@ private:
 		return (timestamp_to_check_us == 0) || (timestamp_to_check_us + timeout_period < now_us);
 	}
 
-	uint16_t _fail_flags{0};
+	uint16_t _strict_fail_flags{0};
+	uint16_t _relaxed_fail_flags{0};
 
 	float _horizontal_position_drift_rate_m_s{NAN};
 	float _vertical_position_drift_rate_m_s{NAN};
@@ -154,10 +159,10 @@ private:
 	float _vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
 	uint64_t _time_last_fail_us{0};
 	uint64_t _time_last_pass_us{0};
-	bool _initial_checks_passed{false};
+	bool _strict_passed_since_disarm{false};
 	bool _strict{true};
 	bool _passed{false};
-	bool _meets_requirements{false};
+	bool _passed_strict{false};
 
 	Params _params{};
 };

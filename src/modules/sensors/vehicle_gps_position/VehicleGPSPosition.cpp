@@ -221,7 +221,7 @@ void VehicleGPSPosition::Run()
 				_first_publication[i] = ++_receivers_published;
 			}
 
-			_gnss_selector.setGnssData(gnss_data, checks_passed, _gnss_checks[i].meetsRequirements(), i);
+			_gnss_selector.setGnssData(gnss_data, checks_passed, _gnss_checks[i].passedStrict(), i);
 
 			if (!_sensor_gnss_sub[i].registered()) {
 				_sensor_gnss_sub[i].registerCallback();
@@ -261,7 +261,9 @@ void VehicleGPSPosition::Run()
 			// The selected receiver's checker ran on this sample
 			const GnssChecks &checks = _gnss_checks[selected];
 			gnss_output.usable = checks.passed();
-			gnss_output.failed_checks = checks.getFailFlags() & checks.getEnabledChecks();
+			gnss_output.strict = checks.strict();
+			gnss_output.failed_strict_checks = checks.getStrictFailFlags();
+			gnss_output.failed_relaxed_checks = checks.getRelaxedFailFlags();
 
 			gnss_output.timestamp_sample = gnss_output.receiver.timestamp_sample;
 			gnss_output.timestamp = hrt_absolute_time();
@@ -458,7 +460,8 @@ void VehicleGPSPosition::PublishStatus()
 		status.device_ids[i] = sample.device_id;
 		status.healthy[i] = _gnss_selector.isUsable(i, now);
 		status.availability[i] = _gnss_selector.getAvailability(i);
-		status.failed_checks[i] = checks.getFailFlags() & checks.getEnabledChecks();
+		status.failed_strict_checks[i] = checks.getStrictFailFlags();
+		status.failed_relaxed_checks[i] = checks.getRelaxedFailFlags();
 		status.strict[i] = checks.strict();
 		status.drift_rate_horizontal[i] = checks.horizontal_position_drift_rate_m_s();
 		status.drift_rate_vertical[i] = checks.vertical_position_drift_rate_m_s();

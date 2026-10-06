@@ -2617,7 +2617,7 @@ void EKF2::UpdateGnssSample(ekf2_timestamps_s &ekf2_timestamps)
 
 	if (_vehicle_gnss_sub.update(&vehicle_gnss)) {
 
-		_gnss_failed_checks = vehicle_gnss.failed_checks;
+		_gnss_failed_checks = vehicle_gnss.strict ? vehicle_gnss.failed_strict_checks : vehicle_gnss.failed_relaxed_checks;
 
 		Vector3f vel_ned;
 

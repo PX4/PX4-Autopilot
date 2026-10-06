@@ -57,7 +57,7 @@ public:
 
 	// Results of each receiver's checks, which the sensors module passes along with every sample
 	bool _checks_passed[2] {true, true};
-	bool _meets_requirements[2] {true, true};
+	bool _passed_strict[2] {true, true};
 };
 
 sensor_gnss_s GnssSelectorTest::getDefaultGnssData()
@@ -96,7 +96,7 @@ void GnssSelectorTest::runSeconds(float duration_s, GnssSelector &selector, sens
 	const uint64_t dt_us = static_cast<uint64_t>(dt * 1e6f);
 
 	for (int k = 0; k < lroundf(duration_s / dt); k++) {
-		selector.setGnssData(gnss_data, _checks_passed[instance], _meets_requirements[instance], instance);
+		selector.setGnssData(gnss_data, _checks_passed[instance], _passed_strict[instance], instance);
 		selector.update(_time_now_us);
 
 		_time_now_us += dt_us;
@@ -118,10 +118,10 @@ void GnssSelectorTest::runSecondsSlowGps0(float duration_s, GnssSelector &select
 
 	for (int k = 0; k < lroundf(duration_s / dt); k++) {
 		if ((k % gps0_divider) == 0) {
-			selector.setGnssData(gnss_data0, _checks_passed[0], _meets_requirements[0], 0);
+			selector.setGnssData(gnss_data0, _checks_passed[0], _passed_strict[0], 0);
 		}
 
-		selector.setGnssData(gnss_data1, _checks_passed[1], _meets_requirements[1], 1);
+		selector.setGnssData(gnss_data1, _checks_passed[1], _passed_strict[1], 1);
 
 		selector.update(_time_now_us);
 
@@ -611,7 +611,7 @@ TEST_F(GnssSelectorTest, preferredStartingWhileArmed)
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 }
 
-TEST_F(GnssSelectorTest, preferredLeftWhenNotMeetingRequirements)
+TEST_F(GnssSelectorTest, preferredLeftWhenFailingStrict)
 {
 	GnssSelector selector;
 
@@ -626,9 +626,9 @@ TEST_F(GnssSelectorTest, preferredLeftWhenNotMeetingRequirements)
 
 	// WHEN: gps0 passes only the relaxed checks for less than the hold time, a few times
 	for (int cycle = 0; cycle < 5; cycle++) {
-		_meets_requirements[0] = false;
+		_passed_strict[0] = false;
 		runSeconds(9.f, selector, gnss_data0, gnss_data1);
-		_meets_requirements[0] = true;
+		_passed_strict[0] = true;
 		runSeconds(0.2f, selector, gnss_data0, gnss_data1);
 	}
 
@@ -636,8 +636,8 @@ TEST_F(GnssSelectorTest, preferredLeftWhenNotMeetingRequirements)
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionCount(), 0);
 
-	// WHEN: it doesn't meet the requirements through the hold time, while gps1 does
-	_meets_requirements[0] = false;
+	// WHEN: it fails the strict checks through the hold time, while gps1 passes them
+	_passed_strict[0] = false;
 	runSeconds(9.5f, selector, gnss_data0, gnss_data1);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
@@ -646,15 +646,15 @@ TEST_F(GnssSelectorTest, preferredLeftWhenNotMeetingRequirements)
 
 	// THEN: the selection moves to gps1
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
-	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_REQUIREMENTS);
+	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_STRICT);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 }
 
-TEST_F(GnssSelectorTest, preferredReturnsOnceMeetingRequirements)
+TEST_F(GnssSelectorTest, preferredReturnsOncePassingStrict)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle that left gps0, the preferred receiver, as it didn't meet the requirements
+	// GIVEN: an armed vehicle that left gps0, the preferred receiver, as it failed the strict checks
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -663,13 +663,13 @@ TEST_F(GnssSelectorTest, preferredReturnsOnceMeetingRequirements)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	_meets_requirements[0] = false;
+	_passed_strict[0] = false;
 	runSeconds(10.5f, selector, gnss_data0, gnss_data1);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 
-	// WHEN: gps0 meets them again, for example after the corrections came back
-	_meets_requirements[0] = true;
+	// WHEN: gps0 passes them again, for example after the corrections came back
+	_passed_strict[0] = true;
 	runSeconds(19.5f, selector, gnss_data0, gnss_data1);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
@@ -682,11 +682,11 @@ TEST_F(GnssSelectorTest, preferredReturnsOnceMeetingRequirements)
 	EXPECT_EQ(selector.getSelectionCount(), 2);
 }
 
-TEST_F(GnssSelectorTest, preferredNotRetakenWhileMissingRequirements)
+TEST_F(GnssSelectorTest, preferredNotRetakenWhileFailingStrict)
 {
 	GnssSelector selector;
 
-	// GIVEN: an armed vehicle that left gps0, the preferred receiver, as it didn't meet the requirements
+	// GIVEN: an armed vehicle that left gps0, the preferred receiver, as it failed the strict checks
 	selector.setPreferredInstance(0);
 
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
@@ -695,13 +695,13 @@ TEST_F(GnssSelectorTest, preferredNotRetakenWhileMissingRequirements)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	_meets_requirements[0] = false;
+	_passed_strict[0] = false;
 	runSeconds(10.5f, selector, gnss_data0, gnss_data1);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 
-	// WHEN: gps1 doesn't meet them either
-	_meets_requirements[1] = false;
+	// WHEN: gps1 fails them too
+	_passed_strict[1] = false;
 	runSeconds(60.f, selector, gnss_data0, gnss_data1);
 
 	// THEN: gps1 is kept, as moving back to gps0 gains nothing
@@ -722,11 +722,11 @@ TEST_F(GnssSelectorTest, rankSwitchHoldDoubles)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps0 meets the requirements for 15 s, then misses them for 15 s, for 2 minutes
+	// WHEN: gps0 passes the strict checks for 15 s, then fails them for 15 s, for 2 minutes
 	for (int cycle = 0; cycle < 4; cycle++) {
-		_meets_requirements[0] = false;
+		_passed_strict[0] = false;
 		runSeconds(15.f, selector, gnss_data0, gnss_data1);
-		_meets_requirements[0] = true;
+		_passed_strict[0] = true;
 		runSeconds(15.f, selector, gnss_data0, gnss_data1);
 	}
 
@@ -734,7 +734,7 @@ TEST_F(GnssSelectorTest, rankSwitchHoldDoubles)
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: it meets them through the doubled hold
+	// WHEN: it passes them through the doubled hold
 	runSeconds(10.f, selector, gnss_data0, gnss_data1);
 
 	// THEN: the selection returns to it
@@ -747,7 +747,7 @@ TEST_F(GnssSelectorTest, rankSwitchHoldDoubles)
 	selector.setArmed(true);
 
 	// THEN: the hold is back to 10 s
-	_meets_requirements[0] = false;
+	_passed_strict[0] = false;
 	runSeconds(10.5f, selector, gnss_data0, gnss_data1);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
@@ -914,7 +914,7 @@ TEST_F(GnssSelectorTest, rankedSwitchOnFailure)
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 }
 
-TEST_F(GnssSelectorTest, rankedRequirements)
+TEST_F(GnssSelectorTest, rankedStrict)
 {
 	GnssSelector selector;
 
@@ -925,8 +925,8 @@ TEST_F(GnssSelectorTest, rankedRequirements)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps0 no longer meets the accuracy requirements, which gps1 does
-	_meets_requirements[0] = false;
+	// WHEN: gps0 no longer passes the strict checks, which gps1 does
+	_passed_strict[0] = false;
 
 	runSeconds(9.5f, selector, gnss_data0, gnss_data1);
 
@@ -936,11 +936,11 @@ TEST_F(GnssSelectorTest, rankedRequirements)
 	runSeconds(1.f, selector, gnss_data0, gnss_data1);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
-	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_REQUIREMENTS);
+	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_STRICT);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: gps0 meets them again
-	_meets_requirements[0] = true;
+	// WHEN: gps0 passes them again
+	_passed_strict[0] = true;
 
 	runSeconds(20.f, selector, gnss_data0, gnss_data1);
 
@@ -948,8 +948,8 @@ TEST_F(GnssSelectorTest, rankedRequirements)
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 
-	// WHEN: gps1 no longer meets them
-	_meets_requirements[1] = false;
+	// WHEN: gps1 no longer passes them
+	_passed_strict[1] = false;
 
 	runSeconds(19.5f, selector, gnss_data0, gnss_data1);
 
@@ -959,7 +959,7 @@ TEST_F(GnssSelectorTest, rankedRequirements)
 	runSeconds(1.f, selector, gnss_data0, gnss_data1);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
-	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_REQUIREMENTS);
+	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_STRICT);
 	EXPECT_EQ(selector.getSelectionCount(), 2);
 }
 
@@ -967,20 +967,20 @@ TEST_F(GnssSelectorTest, rankedHoldRestarts)
 {
 	GnssSelector selector;
 
-	// GIVEN: two receivers without a preferred one, gps0 selected, on an armed vehicle, and gps0 not meeting the
-	// accuracy requirements
+	// GIVEN: two receivers without a preferred one, gps0 selected, on an armed vehicle, and gps0 failing the strict
+	// checks
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
-	_meets_requirements[0] = false;
+	_passed_strict[0] = false;
 
-	// WHEN: gps1 meets them for 9 s at a time
+	// WHEN: gps1 passes them for 9 s at a time
 	for (int cycle = 0; cycle < 5; cycle++) {
-		_meets_requirements[1] = true;
+		_passed_strict[1] = true;
 		runSeconds(9.f, selector, gnss_data0, gnss_data1);
-		_meets_requirements[1] = false;
+		_passed_strict[1] = false;
 		runSeconds(0.2f, selector, gnss_data0, gnss_data1);
 	}
 
@@ -1055,7 +1055,7 @@ TEST_F(GnssSelectorTest, rankedRtkFixedFlickerDoesNotSwitch)
 	EXPECT_EQ(selector.getSelectionCount(), 0);
 }
 
-TEST_F(GnssSelectorTest, rankedRtkFixedNeedsRequirements)
+TEST_F(GnssSelectorTest, rankedRtkFixedNeedsStrict)
 {
 	GnssSelector selector;
 
@@ -1065,9 +1065,9 @@ TEST_F(GnssSelectorTest, rankedRtkFixedNeedsRequirements)
 
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 
-	// WHEN: gps1 reports an RTK fixed solution, but doesn't meet the accuracy requirements
+	// WHEN: gps1 reports an RTK fixed solution, but fails the strict checks
 	gnss_data1.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
-	_meets_requirements[1] = false;
+	_passed_strict[1] = false;
 
 	runSeconds(20.f, selector, gnss_data0, gnss_data1);
 
