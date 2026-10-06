@@ -33,8 +33,6 @@
 
 #include "ICM56686.hpp"
 
-#include <cstdlib>
-
 using namespace time_literals;
 
 static constexpr int16_t combine(const uint8_t high, const uint8_t low)
@@ -374,8 +372,11 @@ bool ICM56686::Configure()
 
 	success &= RegisterConfigure(Register::BANK_0::PWR_MGMT0);
 
+	// data is published from the 16 bit FIFO fields (data[19:4]), which always span the full range
 	_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
 	_px4_gyro.set_range(math::radians(4000.f));
+	_px4_accel.set_scale(32.f * CONSTANTS_ONE_G / 32768.f);
+	_px4_gyro.set_scale(math::radians(4000.f / 32768.f));
 
 	return success;
 }
@@ -702,50 +703,27 @@ bool ICM56686::FIFOReset()
 
 void ICM56686::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
-	// In high resolution mode the accel data is 19 bit at the configured UI filter bandwidth of
-	// ODR/2 (the LSB is always zero), so dropping the LSB is lossless and doubles the headroom
-	// before the batch has to be scaled down: 2^18 / 32 g = 8192 LSB/g.
-	static constexpr float ACCEL_SCALE{CONSTANTS_ONE_G / 8192.f};
-
-	// A rotation of up to 45 degrees can make a component sqrt(2) longer, so the raw samples have
-	// to stay well inside the int16 range to avoid false clipping, plus a bit of margin.
-	static constexpr int32_t SAFE_RAW_LIMIT{static_cast<int32_t>(INT16_MAX * M_SQRT1_2_F) - 100};
-
-	// Shift applied to the whole batch if any sample exceeds the limit, 2^18 >> 4 still fits.
-	static constexpr uint8_t SCALE_SHIFT{4};
-
-	uint8_t shift{0};
-
-	for (int i = 0; i < samples; i++) {
-		if ((std::abs(FIFO::accelX(fifo[i]) / 2) > SAFE_RAW_LIMIT)
-		    || (std::abs(FIFO::accelY(fifo[i]) / 2) > SAFE_RAW_LIMIT)
-		    || (std::abs(FIFO::accelZ(fifo[i]) / 2) > SAFE_RAW_LIMIT)) {
-			shift = SCALE_SHIFT;
-			break;
-		}
-	}
-
-	const int32_t divider = 2 * (1 << shift);
-
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.dt = FIFO_SAMPLE_DT;
 
 	for (int i = 0; i < samples; i++) {
-		const int32_t x = FIFO::accelX(fifo[i]);
-		const int32_t y = FIFO::accelY(fifo[i]);
-		const int32_t z = FIFO::accelZ(fifo[i]);
+		// The 16 bit FIFO fields hold data[19:4] of the 20 bit high resolution sample, which always
+		// spans the full range (scale set in Configure()). The extension nibble is unused so the
+		// published scale stays constant instead of toggling with batch content.
+		const int16_t x = FIFO::accelX(fifo[i]);
+		const int16_t y = FIFO::accelY(fifo[i]);
+		const int16_t z = FIFO::accelZ(fifo[i]);
 
 		if ((x != FIFO::INVALID_SAMPLE) && (y != FIFO::INVALID_SAMPLE) && (z != FIFO::INVALID_SAMPLE)) {
 			// the sensor frame is +x forward, +y left, +z up, flip y & z for the FRD board frame
-			accel.x[accel.samples] = x / divider;
-			accel.y[accel.samples] = -(y / divider);
-			accel.z[accel.samples] = -(z / divider);
+			accel.x[accel.samples] = x;
+			accel.y[accel.samples] = math::negate(y);
+			accel.z[accel.samples] = math::negate(z);
 			accel.samples++;
 		}
 	}
 
-	_px4_accel.set_scale(ACCEL_SCALE * (1 << shift));
 	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
 				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
 
@@ -756,49 +734,27 @@ void ICM56686::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 
 void ICM56686::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
 {
-	// In high resolution mode the gyro data is 20 bit: 2^19 / 4000 dps = 131.1 LSB/dps.
-	static constexpr float GYRO_SCALE{4000.f / 524288.f};
-
-	// A rotation of up to 45 degrees can make a component sqrt(2) longer, so the raw samples have
-	// to stay well inside the int16 range to avoid false clipping, plus a bit of margin.
-	static constexpr int32_t SAFE_RAW_LIMIT{static_cast<int32_t>(INT16_MAX * M_SQRT1_2_F) - 100};
-
-	// Shift applied to the whole batch if any sample exceeds the limit. 2^19 >> 5 still fits, a
-	// shift of 4 would overflow the int16 samples at full scale.
-	static constexpr uint8_t SCALE_SHIFT{5};
-
-	uint8_t shift{0};
-
-	for (int i = 0; i < samples; i++) {
-		if ((std::abs(FIFO::gyroX(fifo[i])) > SAFE_RAW_LIMIT)
-		    || (std::abs(FIFO::gyroY(fifo[i])) > SAFE_RAW_LIMIT)
-		    || (std::abs(FIFO::gyroZ(fifo[i])) > SAFE_RAW_LIMIT)) {
-			shift = SCALE_SHIFT;
-			break;
-		}
-	}
-
-	const int32_t divider = 1 << shift;
-
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.dt = FIFO_SAMPLE_DT;
 
 	for (int i = 0; i < samples; i++) {
-		const int32_t x = FIFO::gyroX(fifo[i]);
-		const int32_t y = FIFO::gyroY(fifo[i]);
-		const int32_t z = FIFO::gyroZ(fifo[i]);
+		// The 16 bit FIFO fields hold data[19:4] of the 20 bit high resolution sample, which always
+		// spans the full range (scale set in Configure()). The extension nibble is unused so the
+		// published scale stays constant instead of toggling with batch content.
+		const int16_t x = FIFO::gyroX(fifo[i]);
+		const int16_t y = FIFO::gyroY(fifo[i]);
+		const int16_t z = FIFO::gyroZ(fifo[i]);
 
 		if ((x != FIFO::INVALID_SAMPLE) && (y != FIFO::INVALID_SAMPLE) && (z != FIFO::INVALID_SAMPLE)) {
 			// the sensor frame is +x forward, +y left, +z up, flip y & z for the FRD board frame
-			gyro.x[gyro.samples] = x / divider;
-			gyro.y[gyro.samples] = -(y / divider);
-			gyro.z[gyro.samples] = -(z / divider);
+			gyro.x[gyro.samples] = x;
+			gyro.y[gyro.samples] = math::negate(y);
+			gyro.z[gyro.samples] = math::negate(z);
 			gyro.samples++;
 		}
 	}
 
-	_px4_gyro.set_scale(math::radians(GYRO_SCALE) * (1 << shift));
 	_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
 				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
 

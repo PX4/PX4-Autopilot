@@ -250,72 +250,54 @@ static_assert(sizeof(DATA) == 20);
 // The FIFO count reports the number of unread frames, a full 2K FIFO holds this many.
 static constexpr uint16_t MAX_FRAMES = SIZE / sizeof(DATA);
 
-// A sample of exactly negative full scale marks invalid sensor data.
-static constexpr int32_t INVALID_SAMPLE = -524288;
+// A 20 bit sample of exactly negative full scale (-524288) marks invalid sensor data, its 16 bit
+// field (data[19:4]) reads INT16_MIN.
+static constexpr int16_t INVALID_SAMPLE = INT16_MIN;
 static constexpr int16_t INVALID_TEMPERATURE = INT16_MIN;
 
 static constexpr uint8_t HEADER = Bit6 | Bit5 | Bit4 | Bit3;
 static constexpr uint8_t HEADER_MASK = Bit7 | Bit6 | Bit5 | Bit4 | Bit3 | Bit2;
 
-static constexpr uint8_t accelNibble(const uint8_t extension)
+static constexpr int16_t field16(const uint8_t high, const uint8_t low)
 {
-	return (extension >> 4) & 0x0F;
+	return static_cast<int16_t>((static_cast<uint16_t>(high) << 8) | low);
 }
 
-static constexpr uint8_t gyroNibble(const uint8_t extension)
+static_assert(field16(0x7F, 0xFF) == INT16_MAX);
+static_assert(field16(0x80, 0x00) == INVALID_SAMPLE);
+static_assert(field16(0xFF, 0xFF) == -1);
+
+// The sensor data is byte swapped, SREG_DATA_ENDIAN_SEL selects little endian. In high resolution
+// mode each 16 bit field holds data[19:4] of the 20 bit sample, which always spans the full range,
+// and the highres_* bytes hold the data[3:0] extension nibbles, which are not used.
+static constexpr int16_t accelX(const DATA &sample)
 {
-	return extension & 0x0F;
+	return field16(sample.accel_x_h, sample.accel_x_l);
 }
 
-static constexpr int32_t reassemble20Bit(const uint8_t high, const uint8_t low, const uint8_t lowest)
+static constexpr int16_t accelY(const DATA &sample)
 {
-	uint32_t value = (static_cast<uint32_t>(high) << 12)
-			 | (static_cast<uint32_t>(low) << 4)
-			 | (lowest & 0x0F);
-
-	if (value & (1u << 19)) {
-		value |= 0xFFF00000u;
-	}
-
-	return static_cast<int32_t>(value);
+	return field16(sample.accel_y_h, sample.accel_y_l);
 }
 
-static_assert(accelNibble(0xA5) == 0x0A);
-static_assert(gyroNibble(0xA5) == 0x05);
-static_assert(reassemble20Bit(0x00, 0x00, 0x00) == 0);
-static_assert(reassemble20Bit(0x7F, 0xFF, 0x0F) == 524287);
-static_assert(reassemble20Bit(0x80, 0x00, 0x00) == INVALID_SAMPLE);
-static_assert(reassemble20Bit(0xFF, 0xFF, 0x0F) == -1);
-
-// The sensor data is byte swapped, SREG_DATA_ENDIAN_SEL selects little endian.
-static constexpr int32_t accelX(const DATA &sample)
+static constexpr int16_t accelZ(const DATA &sample)
 {
-	return reassemble20Bit(sample.accel_x_h, sample.accel_x_l, accelNibble(sample.highres_x));
+	return field16(sample.accel_z_h, sample.accel_z_l);
 }
 
-static constexpr int32_t accelY(const DATA &sample)
+static constexpr int16_t gyroX(const DATA &sample)
 {
-	return reassemble20Bit(sample.accel_y_h, sample.accel_y_l, accelNibble(sample.highres_y));
+	return field16(sample.gyro_x_h, sample.gyro_x_l);
 }
 
-static constexpr int32_t accelZ(const DATA &sample)
+static constexpr int16_t gyroY(const DATA &sample)
 {
-	return reassemble20Bit(sample.accel_z_h, sample.accel_z_l, accelNibble(sample.highres_z));
+	return field16(sample.gyro_y_h, sample.gyro_y_l);
 }
 
-static constexpr int32_t gyroX(const DATA &sample)
+static constexpr int16_t gyroZ(const DATA &sample)
 {
-	return reassemble20Bit(sample.gyro_x_h, sample.gyro_x_l, gyroNibble(sample.highres_x));
-}
-
-static constexpr int32_t gyroY(const DATA &sample)
-{
-	return reassemble20Bit(sample.gyro_y_h, sample.gyro_y_l, gyroNibble(sample.highres_y));
-}
-
-static constexpr int32_t gyroZ(const DATA &sample)
-{
-	return reassemble20Bit(sample.gyro_z_h, sample.gyro_z_l, gyroNibble(sample.highres_z));
+	return field16(sample.gyro_z_h, sample.gyro_z_l);
 }
 
 } // namespace FIFO
