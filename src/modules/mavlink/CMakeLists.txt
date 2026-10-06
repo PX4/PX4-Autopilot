@@ -180,6 +180,7 @@ px4_add_unit_gtest(SRC MavlinkSigningStorageTest.cpp
 	LINKLIBS
 		mavlink_c
 	)
+add_dependencies(unit-MavlinkSigningStorage parameters_header)
 
 if(CONFIG_NET AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	target_link_libraries(modules__mavlink PRIVATE nuttx_apps) # netlib_get_ipv4netmask

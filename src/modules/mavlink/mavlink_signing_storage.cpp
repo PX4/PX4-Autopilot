@@ -33,7 +33,6 @@
 
 #include "mavlink_signing_storage.h"
 
-#include <algorithm>
 #include <cerrno>
 #include <climits>
 #include <cstdio>
@@ -46,6 +45,11 @@ namespace
 {
 
 pthread_mutex_t storage_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+uint64_t max_timestamp(uint64_t lhs, uint64_t rhs)
+{
+	return lhs > rhs ? lhs : rhs;
+}
 
 int file_open(const char *path, int flags, mode_t mode)
 {
@@ -167,14 +171,14 @@ MavlinkSigningStorage::Result MavlinkSigningStorage::reconcile_and_replace(const
 	State next = requested;
 
 	if (current_enabled && keys_equal(requested, current)) {
-		next.timestamp = std::max(next.timestamp, current.timestamp);
+		next.timestamp = max_timestamp(next.timestamp, current.timestamp);
 	}
 
 	if (load_result == Result::Loaded && keys_equal(requested, stored)) {
-		next.timestamp = std::max(next.timestamp, stored.timestamp);
+		next.timestamp = max_timestamp(next.timestamp, stored.timestamp);
 	}
 
-	next.timestamp = std::max(next.timestamp, system_timestamp);
+	next.timestamp = max_timestamp(next.timestamp, system_timestamp);
 	const Result result = write_atomic_unlocked(next);
 
 	if (result == Result::Updated) {
@@ -215,10 +219,10 @@ MavlinkSigningStorage::State MavlinkSigningStorage::reconcile(const State &curre
 	}
 
 	if (current_enabled && keys_equal(current, stored)) {
-		result.timestamp = std::max(result.timestamp, current.timestamp);
+		result.timestamp = max_timestamp(result.timestamp, current.timestamp);
 	}
 
-	result.timestamp = std::max(result.timestamp, system_timestamp);
+	result.timestamp = max_timestamp(result.timestamp, system_timestamp);
 	return result;
 }
 
