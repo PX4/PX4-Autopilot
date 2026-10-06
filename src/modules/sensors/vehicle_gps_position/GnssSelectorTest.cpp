@@ -577,7 +577,7 @@ TEST_F(GnssSelectorTest, noReturnToFailedPreferred)
 
 	// THEN: the selection returns to gps0
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
-	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_PREFERRED);
+	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_UNHEALTHY);
 	EXPECT_EQ(selector.getSelectionCount(), 2);
 }
 
@@ -820,8 +820,9 @@ TEST_F(GnssSelectorTest, preferenceRemoved)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 
 	// THEN: gps1 is kept, as the other one is no more accurate
+	// No update on SelectionReason because no switch happening
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
-	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_RANKED);
+	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_PREFERRED);
 	EXPECT_EQ(selector.getSelectionCount(), 1);
 }
 
