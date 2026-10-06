@@ -96,9 +96,9 @@ If [COM_FORCE_SAFETY](#COM_FORCE_SAFETY) is set to `1`, safety is re-enabled on 
 In modes that pre-arm when safety is turned off, this also exits the pre-armed state.
 This parameter has no effect when `COM_SAFETY_MODE` is set to `0`.
 
-| Parameter                                                                                                   | Description                                                                    |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| <a id="COM_FORCE_SAFETY"></a>[COM_FORCE_SAFETY](../advanced_config/parameter_reference.md#COM_FORCE_SAFETY) | Re-enable safety when the vehicle disarms. Default: `0` (Disabled).                |
+| Parameter                                                                                                   | Description                                                         |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| <a id="COM_FORCE_SAFETY"></a>[COM_FORCE_SAFETY](../advanced_config/parameter_reference.md#COM_FORCE_SAFETY) | Re-enable safety when the vehicle disarms. Default: `0` (Disabled). |
 
 ## Auto-Arming on Boot
 
@@ -182,7 +182,7 @@ The startup sequence is:
 
 ### COM_SAFETY_MODE=Safety switch (physical or virtual via MAVLink) and COM_PREARM_MODE=When safety off
 
-This configuration lets you use either the safety switch or a MAVLink command [MAV_CMD_DO_SET_SAFETY_SWITCH_STATE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SAFETY_SWITCH_STATE) to turn safety off. Note that sending the corresponding MAVLink command with SAFETY_SWITCH_STATE_SAFE also lets you turn safety back on, but the physical switch does *not* allow to go back to a safe state.
+This configuration lets you use either the safety switch or a MAVLink command [MAV_CMD_DO_SET_SAFETY_SWITCH_STATE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SAFETY_SWITCH_STATE) to turn safety off. Note that sending the corresponding MAVLink command with SAFETY_SWITCH_STATE_SAFE also lets you turn safety back on, but the physical switch does _not_ allow to go back to a safe state.
 
 The startup sequence is:
 
@@ -198,7 +198,7 @@ The startup sequence is:
 
 ### COM_SAFETY_MODE=Physical safety switch only and COM_PREARM_MODE=When safety off
 
-When safety mode is `Physical safety switch only`, you must press the safety switch to turn safety off. Note that pressing the safety switch again does *not* allow to go back to a safe state.
+When safety mode is `Physical safety switch only`, you must press the safety switch to turn safety off. Note that pressing the safety switch again does _not_ allow to go back to a safe state.
 The MAVLink command is rejected.
 
 The startup sequence is:
