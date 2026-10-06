@@ -43,7 +43,7 @@ namespace
 constexpr uint16_t kDriftChecks = vehicle_gnss_s::CHECK_HDRIFT | vehicle_gnss_s::CHECK_VDRIFT
 				  | vehicle_gnss_s::CHECK_HSPEED | vehicle_gnss_s::CHECK_VSPEED;
 
-// nsats and PDOP keep their last pre-flight result, so a check enabled in flight must not fail on it.
+// The checks that apply while armed, once the strict ones passed
 constexpr uint16_t kSimplifiedChecks = vehicle_gnss_s::CHECK_FIX | vehicle_gnss_s::CHECK_EPH | vehicle_gnss_s::CHECK_EPV
 				       | vehicle_gnss_s::CHECK_SACC | vehicle_gnss_s::CHECK_SPOOFED | vehicle_gnss_s::CHECK_JAMMED;
 }
@@ -67,26 +67,31 @@ bool GnssChecks::run(const gnssChecksSample &gnss, bool armed, bool in_air, bool
 	_passed = false;
 	_strict = !_initial_checks_passed;
 
-	if (_initial_checks_passed) {
-		clearDriftChecks();
+	// The strict checks run on every sample, also once the relaxed ones apply, as the selection compares receivers on
+	// them in flight
+	const bool passes_strict_checks = runInitialFixChecks(gnss, in_air, vehicle_at_rest);
+	_meets_requirements = passes_strict_checks && isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs());
+
+	if (_meets_requirements) {
+		_initial_checks_passed = true;
+		_passed = true;
+		_strict = true;
+	}
+
+	if (_initial_checks_passed && !_passed) {
+		// Only the relaxed checks decide and are reported; the strict result is in meetsRequirements()
+		_fail_flags &= kSimplifiedChecks;
+		_strict = false;
 
 		if (runSimplifiedChecks(gnss)) {
-			_passed = isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs());
+			_passed = isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs(true));
 
 		} else {
 			_time_last_fail_us = gnss.time_us;
 		}
 
-	} else {
-		if (runInitialFixChecks(gnss, in_air, vehicle_at_rest)) {
-			if (isTimedOut(_time_last_fail_us, gnss.time_us, getRequiredPassDurationUs())) {
-				_initial_checks_passed = true;
-				_passed = true;
-			}
-
-		} else {
-			_time_last_fail_us = gnss.time_us;
-		}
+	} else if (!passes_strict_checks) {
+		_time_last_fail_us = gnss.time_us;
 	}
 
 	lat_lon_prev.initReference(gnss.lat, gnss.lon, gnss.time_us);

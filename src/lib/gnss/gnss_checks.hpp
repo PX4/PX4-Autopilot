@@ -83,6 +83,10 @@ public:
 	// The last run applied the strict thresholds: never passed yet, or disarmed on the ground
 	bool strict() const { return _strict; }
 
+	// The last sample passed the strict checks enabled in the check mask, whichever checks decided passed(). Drift is
+	// evaluated only at rest on the ground. Unlike passed(), it holds no pass duration: the selection applies its own.
+	bool meetsRequirements() const { return _meets_requirements; }
+
 	// Failed checks, as vehicle_gnss_s::CHECK_* bits
 	uint16_t getFailFlags() const { return _fail_flags; }
 
@@ -112,9 +116,9 @@ private:
 	}
 
 	// How long the checks must pass after a failure before passed() is true
-	uint64_t getRequiredPassDurationUs() const
+	uint64_t getRequiredPassDurationUs(const bool simplified = false) const
 	{
-		return _initial_checks_passed ? math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10)
+		return simplified ? math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10)
 		       : (uint64_t)_params.min_health_time_us;
 	}
 
@@ -151,6 +155,7 @@ private:
 	bool _initial_checks_passed{false};
 	bool _strict{true};
 	bool _passed{false};
+	bool _meets_requirements{false};
 
 	Params _params{};
 };
