@@ -97,6 +97,12 @@ extern "C" int mcp23009_main(int argc, char *argv[])
 		return ThisDriver::module_status(iterator);
 	}
 
+	if (!strcmp(verb, "write")) {
+		cli.custom1 = 0;
+		cli.custom2 = mcp_config.state;
+		return ThisDriver::module_custom_method(cli, iterator);
+	}
+
 	MCP230XX::print_usage();
 	return -1;
 }
