@@ -116,9 +116,9 @@ private:
 	}
 
 	// How long the checks must pass after a failure before passed() is true
-	uint64_t getRequiredPassDurationUs() const
+	uint64_t getRequiredPassDurationUs(const bool simplified = false) const
 	{
-		return _initial_checks_passed ? math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10)
+		return simplified ? math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10)
 		       : (uint64_t)_params.min_health_time_us;
 	}
 
