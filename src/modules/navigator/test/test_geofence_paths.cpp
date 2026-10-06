@@ -37,7 +37,9 @@
 
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
+#include <unistd.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mavlink_log.h>
@@ -226,6 +228,57 @@ TEST_F(GeofenceTest, EmptyFenceIsAvailableOnlyAfterLoading)
 	EXPECT_TRUE(clear[0]);
 	EXPECT_TRUE(clear[1]);
 }
+
+class GeofenceFileTest : public GeofenceTest, public ::testing::WithParamInterface<dm_item_t>
+{
+protected:
+	~GeofenceFileTest() override { unlink(_filename); }
+
+	char _filename[sizeof("/tmp/px4_geofence_XXXXXX")] {"/tmp/px4_geofence_XXXXXX"};
+};
+
+TEST_P(GeofenceFileTest, ImportedFenceAndSubsequentRefreshBecomeReady)
+{
+	const int fd = mkstemp(_filename);
+	ASSERT_GE(fd, 0);
+	const char contents[] = "0 1000\n46.999 7.999\n47.001 7.999\n47.001 8.001\n46.999 8.001\n";
+	const ssize_t written = write(fd, contents, sizeof(contents) - 1);
+	const int closed = close(fd);
+	ASSERT_EQ(written, static_cast<ssize_t>(sizeof(contents) - 1));
+	ASSERT_EQ(closed, 0);
+
+	// Import must finish reading the current bank before choosing the inactive one.
+	mission_stats_entry_s stats{};
+	stats.dataman_id = GetParam();
+	stats.opaque_id = ++runtime().next_fence_id;
+	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
+					      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+	ASSERT_EQ(_fence.loadFromFile(_filename), PX4_OK);
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_FENCE_POINTS_STATE, 0,
+					     reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+	EXPECT_EQ(stats.dataman_id, GetParam() == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0);
+	EXPECT_EQ(stats.num_items, 4);
+	_fence_id = stats.opaque_id;
+	ASSERT_TRUE(waitForFence());
+	EXPECT_FALSE(_fence.isEmpty());
+
+	// One path stays inside the imported inclusion polygon; the other leaves it.
+	const Geofence::PathCheck paths[] {path({0.f, -20.f}, {0.f, 20.f}), path({0.f, 0.f}, {0.f, 200.f})};
+	bool clear[2] {};
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_FALSE(clear[1]);
+
+	// The same client must remain usable for later asynchronous metadata reads.
+	_fence.updateFence();
+	ASSERT_TRUE(waitForFence());
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_FALSE(clear[1]);
+}
+
+INSTANTIATE_TEST_SUITE_P(StoredBanks, GeofenceFileTest,
+			 ::testing::Values(DM_KEY_FENCE_POINTS_0, DM_KEY_FENCE_POINTS_1));
 
 struct InvalidBatchCase {
 	const char *name;

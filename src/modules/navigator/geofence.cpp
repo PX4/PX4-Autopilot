@@ -1004,9 +1004,9 @@ Geofence::loadFromFile(const char *filename)
 	const char commentChar = '#';
 	int ret_val = PX4_ERROR;
 
-	mission_stats_entry_s stat;
+	mission_stats_entry_s stat{};
 	{
-		const bool success = _dataman_client.readAsync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stat),
+		const bool success = _dataman_client.readSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stat),
 				     sizeof(mission_stats_entry_s));
 
 		if (!success) {
