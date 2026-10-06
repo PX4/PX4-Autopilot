@@ -8,8 +8,14 @@ param set-default BAT1_V_DIV    17.0
 # Enable the SPI1 MAX7456-compatible OSD in NTSC mode.
 param set-default OSD_ATXXXX_CFG 1
 
-# S.BUS receiver on the SBUS connector (UART5): 300 = RC port.
-param set-default RC_SBUS_PRT_CFG 300
+# S.BUS receiver on the SBUS connector (UART5) disabled: ELRS is the RC input.
+param set-default RC_SBUS_PRT_CFG 0
+
+# ELRS (CRSF) receiver on the ELRS connector (UART4): 104 = TEL4 port.
+# The debug build has no TEL4 port (UART4 is the NuttX console), so CRSF does not start there.
+param set-default RC_CRSF_PRT_CFG 104
+# Send CRSF telemetry (battery, GPS, attitude, flight mode) back to the transmitter.
+param set-default RC_CRSF_TEL_EN 1
 
 # ESC telemetry on the ESC connector (USART1, RX only): 401 = EXT2 port.
 param set-default DSHOT_TEL_CFG 401
