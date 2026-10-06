@@ -149,6 +149,9 @@ Other protocols are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/param
 Only one protocol can be active on a port.
 PPM receivers are not supported.
 
+The vehicle boots in Stabilized mode ([multicopter](../flight_modes_mc/manual_stabilized.md), [fixed-wing](../flight_modes_fw/stabilized.md)) instead of the PX4 default of Hold mode ([COM_FLTMODE_BOOT](../advanced_config/parameter_reference.md#COM_FLTMODE_BOOT) is set to `Stabilized`).
+A flight mode switch, if you assign one with [RC_MAP_FLTMODE](../advanced_config/parameter_reference.md#RC_MAP_FLTMODE), overrides this.
+
 ![GFH7 Radio](../../assets/flight_controller/accton-godwit/gfh7/radio.png "Accton Godwit GFH7 Radio")
 
 ### GPS & Compass {#gps_compass}
