@@ -120,33 +120,51 @@ bool DifferentialPressure::ParametersLoad()
 	return false;
 }
 
-bool DifferentialPressure::AdoptUnclaimedCalibration()
+bool DifferentialPressure::AdoptLegacyOffset()
 {
 	if ((_device_id == 0) || calibrated()) {
 		return false;
 	}
 
-	// only slot 0 can hold a legacy offset, and only while no sensor has claimed it
-	static constexpr int kLegacyIndex = 0;
-
-	int32_t slot_device_id = GetCalibrationParamInt32(SensorString(), "ID", kLegacyIndex);
-
-	if (slot_device_id != 0) {
+	// slot 0 must still be free, otherwise another sensor already owns the legacy offset
+	if (GetCalibrationParamInt32(SensorString(), "ID", kLegacyIndex) != 0) {
 		return false;
 	}
 
-	const float slot_offset = GetCalibrationParamFloat(SensorString(), "OFF", kLegacyIndex);
+	float legacy_offset = 0.f;
 
-	if (!PX4_ISFINITE(slot_offset) || (fabsf(slot_offset) < FLT_EPSILON)) {
+	if (param_get(param_find(kLegacyOffsetParam), &legacy_offset) != PX4_OK) {
 		return false;
 	}
 
-	_offset = slot_offset;
+	if (!PX4_ISFINITE(legacy_offset) || (fabsf(legacy_offset) < FLT_EPSILON)) {
+		return false;
+	}
+
+	_offset = legacy_offset;
 	_calibration_index = kLegacyIndex;
 
-	PX4_INFO("%s %" PRIu32 " adopted migrated offset %.3f Pa", SensorString(), _device_id, (double)_offset);
+	PX4_INFO("%s %" PRIu32 " adopted %s %.3f Pa", SensorString(), _device_id, kLegacyOffsetParam, (double)_offset);
 
 	return true;
+}
+
+void DifferentialPressure::UpdateLegacyOffset() const
+{
+	// keep SENS_DPRES_OFF in step with slot 0 so that ground stations reading it can still tell
+	// whether airspeed has been calibrated
+	if (_calibration_index != kLegacyIndex) {
+		return;
+	}
+
+	const param_t handle = param_find(kLegacyOffsetParam);
+
+	if (handle == PARAM_INVALID) {
+		return;
+	}
+
+	float offset = _offset;
+	param_set_no_notification(handle, &offset);
 }
 
 void DifferentialPressure::Reset()
@@ -181,6 +199,8 @@ bool DifferentialPressure::ParametersSave(int desired_calibration_index, bool fo
 		bool success = true;
 		success &= SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
 		success &= SetCalibrationParam(SensorString(), "OFF", _calibration_index, _offset);
+
+		UpdateLegacyOffset();
 
 		return success;
 	}

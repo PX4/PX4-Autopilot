@@ -77,16 +77,22 @@ public:
 	void ParametersUpdate();
 
 	/**
-	 * Assign the imported SENS_DPRES_OFF calibration to the first sensor using slot 0.
+	 * Take over the offset left in SENS_DPRES_OFF, using slot 0.
 	 * Does nothing if slot 0 is already claimed.
 	 *
-	 * @return true if the slot was adopted (the caller should save)
+	 * @return true if the offset was adopted (the caller should save)
 	 */
-	bool AdoptUnclaimedCalibration();
+	bool AdoptLegacyOffset();
+
+	/** mirror slot 0's offset into SENS_DPRES_OFF for ground stations that still read it */
+	void UpdateLegacyOffset() const;
 
 	void Reset();
 
 private:
+	static constexpr int kLegacyIndex{0};
+	static constexpr const char *kLegacyOffsetParam{"SENS_DPRES_OFF"};
+
 	float _offset{0};
 
 	int8_t _calibration_index{-1};

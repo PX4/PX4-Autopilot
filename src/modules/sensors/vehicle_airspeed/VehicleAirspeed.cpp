@@ -106,8 +106,9 @@ void VehicleAirspeed::Run()
 		if (_calibration.device_id() != diff_pres.device_id) {
 			_calibration.set_device_id(diff_pres.device_id);
 
-			// take over a calibration migrated from the old global SENS_DPRES_OFF, if any
-			if (_calibration.AdoptUnclaimedCalibration()) {
+			// the global SENS_DPRES_OFF only ever applied to the first sensor, so only that one
+			// may take it over
+			if ((_instance == 0) && _calibration.AdoptLegacyOffset()) {
 				_calibration.ParametersSave();
 				param_notify_changes();
 			}

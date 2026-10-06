@@ -2,6 +2,18 @@ module_name: sensors
 parameters:
 - group: Sensor Calibration
   definitions:
+    SENS_DPRES_OFF:
+      description:
+        short: Differential pressure sensor offset of the first airspeed sensor
+        long: |-
+          The offset (zero-reading) in Pascal of the sensor holding calibration slot 0.
+
+          Kept as a mirror of CAL_DPRES0_OFF so that ground stations can still detect whether
+          airspeed has been calibrated. The firmware applies CAL_DPRESx_OFF, not this value.
+      category: System
+      type: float
+      default: 0.0
+      volatile: true
     SENS_DPRES_REV:
       description:
         short: Reverse differential pressure sensor readings
