@@ -163,6 +163,22 @@ Elevator control on the other hand is energy conservative, and is thus used for 
 
 $$\dot{B} = \gamma - \frac{\dot{V_T}}{g}$$
 
+#### Speed and Altitude Weighting
+
+[FW_T_SPDWEIGHT](../advanced_config/parameter_reference.md#FW_T_SPDWEIGHT) sets how the pitch loop weights speed errors against height errors in the energy balance.
+A value of 0 controls height only, which is also used when flying without an airspeed sensor.
+A value of 2 controls speed only, which is intended for gliders.
+The default of 1 weights both equally.
+
+Pitch only trades altitude for speed up to the trim airspeed ([FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)).
+For an airspeed setpoint above trim, the pitch loop aims for trim airspeed (or the current airspeed, if it is already faster) and leaves any further acceleration to the throttle.
+If the throttle saturates at [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX), the vehicle holds its altitude and settles at a lower airspeed instead of descending to gain speed.
+An airspeed above the setpoint is still corrected with pitch.
+
+This limit is faded out as the speed weight goes from 1 to 2, so with a weight of 2 pitch alone tracks the full airspeed setpoint.
+Gliders, which have no throttle to accelerate with, should therefore use `FW_T_SPDWEIGHT` = 2.
+The speed weight is also raised towards 2 automatically during underspeed recovery and fast descend, which therefore still use pitch to reach their airspeed setpoint.
+
 ## Fixed-Wing Attitude Controller
 
 ### Setpoint modificaiton

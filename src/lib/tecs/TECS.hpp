@@ -222,6 +222,7 @@ public:
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
 		float tas_min;				///< True airspeed demand lower limit [m/s].
 		float tas_max;				///< True airspeed demand upper limit [m/s].
+		float tas_trim;				///< True airspeed trim [m/s].
 		float pitch_max;			///< Maximum absolute pitch angle setpoint [rad].
 		float pitch_min;			///< Minimum absolute pitch angle setpoint [rad].
 		float level_flight_pitch;		///< Pitch angle in level flight at trim airspeed, fed forward at zero climb angle [rad].
@@ -489,17 +490,31 @@ private:
 	 */
 	SpecificEnergyWeighting _updateSpeedAltitudeWeights(const Param &param, const Flag &flag);
 	/**
+	 * @brief Calculate the specific kinetic energy rate setpoint used by the pitch loop.
+	 *
+	 * @param setpoint is the control setpoints.
+	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @param weight is the weighting use of the potential and kinetic energy.
+	 * @return specific kinetic energy rate setpoint in [m²/s³].
+	 */
+	float _calcPitchControlSkeRateSetpoint(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+					       const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const;
+	/**
 	 * @brief Calculate pitch control.
 	 *
 	 * @param dt is the update time interval in [s].
+	 * @param setpoint is the control setpoints.
 	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rate is the calculated specific energy.
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 */
-	void _calcPitchControl(float dt, const Input &input, const SpecificEnergyRates &specific_energy_rate,
-			       const Param &param,
-			       const Flag &flag);
+	void _calcPitchControl(float dt, const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+			       const SpecificEnergyRates &specific_energy_rate, const Param &param, const Flag &flag);
 
 	/**
 	 * @brief Calculate pitch control specific energy balance rates.
@@ -818,6 +833,7 @@ private:
 		.equivalent_airspeed_trim = 15.0f,
 		.tas_min = 10.0f,
 		.tas_max = 20.0f,
+		.tas_trim = 15.0f,
 		.pitch_max = 0.5f,
 		.pitch_min = -0.5f,
 		.level_flight_pitch = 0.f,
