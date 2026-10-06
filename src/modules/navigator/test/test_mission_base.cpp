@@ -72,6 +72,10 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mavlink_log.h>
 
+/* EVENT
+ * @skip-file
+ */
+
 class MissionBaseTestPeer : public MissionBase
 {
 public:
