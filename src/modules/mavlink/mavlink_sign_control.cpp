@@ -40,7 +40,6 @@
 
 #include "mavlink_sign_control.h"
 #include <px4_platform_common/time.h>
-#include <algorithm>
 #include <sys/stat.h>
 #include <time.h>
 
@@ -208,7 +207,11 @@ bool MavlinkSignControl::prepare_checkpoint(MavlinkSigningStorage::State &state)
 		return false;
 	}
 
-	_mavlink_signing.timestamp = std::max(_mavlink_signing.timestamp, _current_timestamp());
+	const uint64_t current_timestamp = _current_timestamp();
+
+	if (current_timestamp > _mavlink_signing.timestamp) {
+		_mavlink_signing.timestamp = current_timestamp;
+	}
 	memcpy(state.secret_key, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
 	state.timestamp = _mavlink_signing.timestamp;
 	return true;
