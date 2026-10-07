@@ -103,6 +103,12 @@ float PositionSmoothing::_getMaxXYSpeed(const Vector3f(&waypoints)[3]) const
 	// the turn at the next waypoint is evaluated with its own acceptance radius, the target with the one of the target
 	const float acceptance_radii[3] = {_target_acceptance_radius, _target_acceptance_radius, _next_acceptance_radius};
 
+	// The target only counts as reached once its altitude is, until then the vehicle has to stop there
+	// horizontally instead of passing it and coming back
+	if (fabsf(waypoints[1](2) - pos_traj(2)) > _vertical_acceptance_radius) {
+		return math::trajectory::computeXYSpeedFromWaypoints(pos_to_waypoints, 2, Vector3f{}, config, acceptance_radii);
+	}
+
 	// A non-finite constraint means the speed after the next waypoint is unknown, so a stop there is assumed
 	const Vector3f velocity_after_next = _next_velocity_constraint.isAllFinite() ? _next_velocity_constraint : Vector3f{};
 
