@@ -35,3 +35,9 @@ px4_add_library(failure_detector
 	FailureDetector.cpp
 	FailureInjector.cpp
 )
+
+px4_add_functional_gtest(SRC FailureDetectorTest.cpp
+	EXTRA_SRCS
+		${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/test_stubs/stub_daemon.cpp
+	LINKLIBS failure_detector hysteresis uORB
+)
