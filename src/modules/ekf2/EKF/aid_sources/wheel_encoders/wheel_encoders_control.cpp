@@ -74,17 +74,17 @@ void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample)
 	const float R_val = fmaxf(_params.ekf2_wheel_noise, 1e-3f);
 	const Vector2f R(R_val, R_val);
 
-	float innov_var[2];
+	matrix::Vector2f innov_var;
 	VectorState Hx, Hy;
 
-	sym::ComputeWheelVelInnovVarAndH(_state.vector(), P, R, innov_var, &Hx, &Hy);
+	sym::ComputeWheelVelInnovVarAndH(_state.vector(), P, R, &innov_var, &Hx, &Hy);
 
 	updateAidSourceStatus(_aid_src_wheel_encoders,
 			      sample.time_us,
 			      meas_vel,
 			      R,
 			      innovation,
-			      Vector2f(innov_var[0], innov_var[1]),
+			      innov_var,
 			      _params.ekf2_wheel_gate);
 
 	if (_aid_src_wheel_encoders.innovation_rejected) {
@@ -92,18 +92,18 @@ void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample)
 	}
 
 	// Fuse Vx
-	VectorState Kx = P * Hx / innov_var[0];
+	VectorState Kx = (P * Hx) * (1.0f / _aid_src_wheel_encoders.innovation_variance[0]);
 	measurementUpdate(Kx, Hx, R(0), innovation(0));
 
 	// Fuse Vy
-	VectorState Ky = P * Hy / innov_var[1];
+	VectorState Ky = (P * Hy) * (1.0f / _aid_src_wheel_encoders.innovation_variance[1]);
 	measurementUpdate(Ky, Hy, R(1), innovation(1));
 
 	_aid_src_wheel_encoders.fused = true;
 	_aid_src_wheel_encoders.time_last_fuse = _time_delayed_us;
 	_time_last_hor_vel_fuse = _time_delayed_us;
 
-	if (!_control_status.flags.fuse_weel) {
+	if (!_control_status.flags.fuse_wheel) {
 		ECL_INFO("starting wheel encoder fusion");
 		_control_status.flags.fuse_wheel = true;
 	}
