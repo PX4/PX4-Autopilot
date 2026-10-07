@@ -95,7 +95,7 @@ jobs:
 
     # Two clang build directories, prepared one after the other so their
     # configures never fetch submodules at the same time:
-    #   - build/px4_sitl_default-clang-test:  configure-only, BUILD_TESTING=ON
+    #   - build/px4_sitl_default-clang-test:  configure + generated headers only, BUILD_TESTING=ON
     #     (used by clang-tidy-diff-18.py so test files are in the
     #      compilation database with resolved gtest/fuzztest includes)
     #   - build/px4_sitl_default-clang:       full build, BUILD_TESTING=OFF
@@ -103,6 +103,18 @@ jobs:
     #      changed production code)
     - name: Configure clang SITL with tests
       run: make px4_sitl_default-clang-test
+
+    # The test build dir is never built, so generate its headers (uORB
+    # topics, events, parameters, mavlink, ...). Without them every TU
+    # stops at a missing include and clang-tidy-diff reports on the
+    # half-parsed AST, e.g. events::send<T>(...) as a chained comparison.
+    - name: Generate headers for clang SITL with tests
+      working-directory: build/px4_sitl_default-clang-test
+      shell: bash
+      run: |
+        ninja -t targets all \
+          | awk -F': ' '$2 == "CUSTOM_COMMAND" && $1 ~ /\.(h|hpp)$/ && $1 !~ /^\// {print $1}' \
+          | xargs -r ninja
 
     - name: Build clang SITL
       run: make -j$(nproc) px4_sitl_default-clang
