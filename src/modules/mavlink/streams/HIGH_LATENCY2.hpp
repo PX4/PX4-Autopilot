@@ -287,7 +287,8 @@ private:
 				updated = true;
 				_batteries[i].connected = battery.connected;
 
-				if (battery.warning > battery_status_s::WARNING_LOW) {
+				if (battery.warning > battery_status_s::WARNING_LOW
+				    && battery.warning != battery_status_s::WARNING_CHARGING) {
 					msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
 				}
 			}
