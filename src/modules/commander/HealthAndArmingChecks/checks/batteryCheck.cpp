@@ -138,8 +138,12 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		if (battery.connected) {
 			++num_connected_batteries;
 
-			if (battery.warning > worst_warning) {
-				worst_warning = battery.warning;
+			// charging is a state, not a severity, so it must not outrank or latch over a real warning
+			const uint8_t warning = (battery.warning == battery_status_s::WARNING_CHARGING) ?
+						battery_status_s::WARNING_NONE : battery.warning;
+
+			if (warning > worst_warning) {
+				worst_warning = warning;
 			}
 
 			if (battery.remaining < worst_battery_remaining) {

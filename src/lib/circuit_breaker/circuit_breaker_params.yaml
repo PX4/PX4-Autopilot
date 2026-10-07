@@ -14,17 +14,6 @@ parameters:
       default: 0
       min: 0
       max: 894281
-    CBRK_IO_SAFETY:
-      description:
-        short: Circuit breaker for IO safety
-        long: |-
-          Setting this parameter to 22027 will disable IO safety.
-          WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
-      category: Developer
-      type: int32
-      default: 22027
-      min: 0
-      max: 22027
     CBRK_FLIGHTTERM:
       description:
         short: Circuit breaker for flight termination
