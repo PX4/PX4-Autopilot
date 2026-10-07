@@ -1032,6 +1032,40 @@ TEST_F(GnssSelectorTest, rankedRtkFixed)
 	EXPECT_EQ(selector.getSelectionCount(), 2);
 }
 
+TEST_F(GnssSelectorTest, higherRankedWaitsForAvailabilityRecovery)
+{
+	GnssSelector selector;
+
+	// GIVEN: two receivers without a preferred one, gps0 selected, and gps1 recently failing its checks
+	sensor_gnss_s gnss_data0 = getDefaultGnssData();
+	sensor_gnss_s gnss_data1 = getDefaultGnssData();
+
+	runSeconds(5.f, selector, gnss_data0, gnss_data1);
+	_checks_passed[1] = false;
+	runSeconds(5.f, selector, gnss_data0, gnss_data1);
+
+	ASSERT_EQ(selector.getSelectedInstance(), 0);
+	ASSERT_GT(selector.getAvailability(0), selector.getAvailability(1) + GnssSelector::AVAILABILITY_MARGIN);
+
+	// WHEN: gps1 recovers with an RTK fixed solution for longer than the disarmed switch hold
+	_checks_passed[1] = true;
+	gnss_data1.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
+	runSeconds(2.5f, selector, gnss_data0, gnss_data1);
+
+	// THEN: gps0 is kept, as gps1 still has substantially worse availability despite its higher rank
+	ASSERT_GT(selector.getAvailability(0), selector.getAvailability(1) + GnssSelector::AVAILABILITY_MARGIN);
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+	EXPECT_EQ(selector.getSelectionCount(), 0);
+
+	// WHEN: gps1 stays usable long enough to recover its availability and complete the switch hold
+	runSeconds(20.f, selector, gnss_data0, gnss_data1);
+
+	// THEN: its higher rank wins
+	EXPECT_EQ(selector.getSelectedInstance(), 1);
+	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_RTK_FIXED);
+	EXPECT_EQ(selector.getSelectionCount(), 1);
+}
+
 TEST_F(GnssSelectorTest, rankedRtkFixedFlickerDoesNotSwitch)
 {
 	GnssSelector selector;
