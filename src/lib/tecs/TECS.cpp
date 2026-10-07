@@ -711,6 +711,7 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 	control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
 	control_setpoint.altitude_rate_setpoint_direct =
 		_altitude_reference_model.getAltitudeReference().alt_rate; // init to reference altitude rate
+	control_setpoint.tas_setpoint = equivalent_airspeed * eas_to_tas;
 
 	const TECSControl::Input control_input{ .altitude = altitude,
 						.altitude_rate = altitude_rate,
@@ -774,6 +775,7 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		TECSControl::Setpoint control_setpoint;
 		control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
 		control_setpoint.altitude_rate_setpoint_direct = _altitude_reference_model.getHeightRateSetpointDirect();
+		control_setpoint.tas_setpoint = calcTrueAirspeedSetpoint(eas_to_tas, EAS_setpoint);
 
 		const TECSControl::Input control_input{ .altitude = altitude,
 							.altitude_rate = hgt_rate,
