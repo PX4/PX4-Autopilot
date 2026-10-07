@@ -307,6 +307,8 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	}
 
 	_battery_status[instance].faults = faults;
+	_battery_status[instance].flags = (msg.status_flags & cuav::equipment::power::CBAT::STATUS_FLAG_CHARGING) ?
+					  (1 << battery_status_s::FLAG_CHARGING) : 0;
 
 	publishBattery(msg.getSrcNodeID().get(), instance);
 
