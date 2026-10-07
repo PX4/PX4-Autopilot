@@ -155,15 +155,17 @@ def fetch_pull_request_files(client, repo, pr_number):
 
 
 def fetch_posted_comment_keys(client, repo, pr_number):
-    """Return the (path, body) of every review comment the bot already
-    posted on the PR.
+    """Return the (path, line, body) of every review comment the bot
+    already posted on the PR.
 
     COMMENT reviews cannot be dismissed, so without this every push posts
-    the same findings again.
+    the same findings again. GitHub moves `line` to the current head and
+    sets it to null once the comment is outdated, so a finding that only
+    moved still matches, and one whose comment went outdated posts again.
     """
     path = 'repos/{}/pulls/{}/comments'.format(repo, pr_number)
     return {
-        (c.get('path'), c.get('body'))
+        (c.get('path'), c.get('line'), c.get('body'))
         for c in client.paginated(path)
         if (c.get('user') or {}).get('login') == BOT_LOGIN
     }
@@ -555,7 +557,8 @@ def main(argv=None):
 
     if comments:
         posted = fetch_posted_comment_keys(client, args.repo, args.pr_number)
-        comments = [c for c in comments if (c['path'], c['body']) not in posted]
+        comments = [c for c in comments
+                    if (c['path'], c['line'], c['body']) not in posted]
         print('{} not already posted on the PR'.format(len(comments)))
 
     manifest = {
