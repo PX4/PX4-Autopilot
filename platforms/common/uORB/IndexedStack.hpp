@@ -41,8 +41,21 @@ private:
  * int8_t for shared memory / communication between processes
  */
 
+/* Pre-allocated item storage. With S == 0 the items are allocated dynamically
+ * and no storage is needed. An empty zero-length array would still impose the
+ * alignment of T on the containing object.
+ */
+
+template<class T, int8_t S>
+struct IndexedStackStorage {
+	T _item[S];
+};
+
+template<class T>
+struct IndexedStackStorage<T, 0> {};
+
 template<class T, typename H, int8_t S>
-class IndexedStack
+class IndexedStack : private IndexedStackStorage<T, S>
 {
 public:
 	friend class IndexedStackHandle<T, H, S>;
@@ -130,7 +143,7 @@ private:
 		return ret;
 	}
 
-	T *peek(int8_t handle) { return &_item[handle]; }
+	T *peek(int8_t handle) { return &this->_item[handle]; }
 	T *peek(void *handle) { return static_cast<T *>(handle); }
 	static bool handle_valid(int8_t handle) { return handle >= 0; }
 	static bool handle_valid(void *handle) { return handle != nullptr; }
@@ -139,5 +152,4 @@ private:
 
 	H _head;
 	H _free_head;
-	T _item[S];
 };
