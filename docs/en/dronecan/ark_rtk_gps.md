@@ -123,7 +123,9 @@ For more information see [Rover and Fixed Base](../dronecan/index.md#rover-and-f
 
 The simplest way to set up moving baseline and GPS heading with two ARK RTK GPS modules is via CAN, though it can be done via UART to reduce traffic on the CAN bus if desired.
 
-Note that a heading is only output if the Rover is in RTX Fixed mode. It will not output a heading in RTK Float.
+Note that a heading is only output if the Rover is in RTK Fixed mode. It will not output a heading in RTK Float.
+
+Both modules run at 5 Hz in the moving base modes, the u-blox maximum for a moving base, because a rover must share its base's navigation rate. The node firmware sets this, so leave [GPS_UBX_RATE](../advanced_config/parameter_reference.md#GPS_UBX_RATE) at `0`.
 
 Setup via CAN:
 

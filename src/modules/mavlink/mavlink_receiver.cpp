@@ -438,8 +438,15 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		_parameters_manager.handle_message(msg);
 
 	} else {
-		if (hrt_elapsed_time(&_mavlink.get_first_start_time()) > 20_s) {
-			PX4_ERR("system boot did not complete in 20 seconds");
+#if defined(__PX4_POSIX)
+		// startup runs in real time while lockstep sim time can run faster, so allow more time when sped up
+		static const hrt_abstime boot_timeout = getenv("PX4_SIM_SPEED_FACTOR") ? 40_s : 20_s;
+#else
+		static constexpr hrt_abstime boot_timeout = 20_s;
+#endif
+
+		if (hrt_elapsed_time(&_mavlink.get_first_start_time()) > boot_timeout) {
+			PX4_ERR("system boot did not complete in %d seconds", (int)(boot_timeout / 1_s));
 			_mavlink.set_boot_complete();
 		}
 	}

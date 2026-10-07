@@ -70,7 +70,9 @@ private:
 	MissionTraversalType traversalType() const override { return MissionTraversalType::IgnoreDoJump; }
 	void handleLanding(WorkItemType &new_work_item_type);
 
+	// Mission target recorded before RTL and the mission it belongs to.
 	int32_t _mission_index_prior_rtl{INT32_C(-1)};
+	uint32_t _mission_id_prior_rtl{0};
 
 	bool _in_landing_phase{false};
 
