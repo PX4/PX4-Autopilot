@@ -12,5 +12,8 @@ float32[3] pos_est      # Estimated target NED position (m)
 float32[3] vel_est      # Estimated target NED velocity (m/s)
 float32[3] acc_est      # Estimated target NED acceleration (m^2/s)
 
+uint8 pos_reset_counter # [-] Increments when the position estimate moves to a new local frame
+float32[3] delta_pos    # [m] [@frame NED] Shift of the position estimate at the latest reset
+
 uint64 prediction_count
 uint64 fusion_count
