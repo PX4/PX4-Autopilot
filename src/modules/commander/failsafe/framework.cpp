@@ -609,6 +609,12 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 
 		returned_state.cause = Cause::Generic;
 
+		// If descend is not supported (e.g. for rovers), safely disarm instead of terminating
+		if (status_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_DESCEND)) {
+			selected_action = Action::Disarm;
+			break;
+		}
+
 	// fallthrough
 	case Action::Terminate:
 		selected_action = Action::Terminate;

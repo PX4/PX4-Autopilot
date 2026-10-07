@@ -168,6 +168,10 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_DESCEND, flags.mode_req_attitude);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_DESCEND, flags.mode_req_prevent_arming);
 
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_DESCEND, flags.mode_not_supported);
+	}
+
 	// NAVIGATION_STATE_TERMINATION
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_TERMINATION, flags.mode_req_prevent_arming);
 
@@ -231,6 +235,10 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 
 	} else {
 		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_position);
+	}
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_not_supported);
 	}
 
 	// NAVIGATION_STATE_EXTERNALx: handled outside
