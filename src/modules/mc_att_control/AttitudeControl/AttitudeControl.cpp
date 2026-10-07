@@ -68,12 +68,12 @@ static bool isValidAttitude(const Quatf &q)
 	return q.isAllFinite() && (q.norm() > 1e-3f);
 }
 
-void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
+bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
 {
 	// The reference model integrates from its previous state, so a single invalid setpoint would make
 	// it NaN until reboot. Keep tracking the last valid reference instead.
 	if (!isValidAttitude(qd)) {
-		return;
+		return false;
 	}
 
 	Quatf qd_normalized = qd;
@@ -91,6 +91,8 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		_omega_command.zero();
 		_ref_initialized = true;
 	}
+
+	return true;
 }
 
 void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawspeed_setpoint, const float dt)
