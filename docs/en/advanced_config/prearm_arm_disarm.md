@@ -182,7 +182,7 @@ The startup sequence is:
 
 ### COM_SAFETY_MODE=Safety switch (physical or virtual via MAVLink) and COM_PREARM_MODE=When safety off
 
-This configuration lets you use either the safety switch or a MAVLink command [MAV_CMD_DO_SET_SAFETY_SWITCH_STATE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SAFETY_SWITCH_STATE) to turn safety off. Note that sending the corresponding MAVLink command with SAFETY_SWITCH_STATE_SAFE also lets you turn safety back on, but the physical switch does _not_ allow to go back to a safe state.
+This configuration lets you use either the safety switch or a MAVLink command [MAV_CMD_DO_SET_SAFETY_SWITCH_STATE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SAFETY_SWITCH_STATE) to turn safety off. Note that sending the corresponding MAVLink command with SAFETY*SWITCH_STATE_SAFE also lets you turn safety back on, but the physical switch does \_not* allow to go back to a safe state.
 
 The startup sequence is:
 
