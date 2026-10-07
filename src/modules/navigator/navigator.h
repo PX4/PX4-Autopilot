@@ -243,11 +243,6 @@ public:
 	math::trajectory::VehicleDynamicLimits get_multicopter_trajectory_limits() const;
 
 	/**
-	 * Read the parameters from storage, including the trajectory limits mirrored from the position controller
-	 */
-	void params_update();
-
-	/**
 	 * Get the acceptance radius
 	 *
 	 * @return the distance at which the next waypoint should be used
@@ -382,6 +377,12 @@ public:
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
 private:
+	friend class MissionVelocityConstraintTest;
+
+	/**
+	 * Read the parameters from storage, including the trajectory limits mirrored from the position controller
+	 */
+	void params_update();
 
 	orb_sub_t _local_pos_sub{ORB_SUB_INVALID};
 	orb_sub_t _mission_sub{ORB_SUB_INVALID};

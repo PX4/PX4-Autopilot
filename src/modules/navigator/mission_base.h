@@ -545,12 +545,16 @@ protected:
 
 	// State of the last walk in setNextVelocityConstraint(), to repeat it once the dataman cache is loaded or
 	// the limits changed
-	bool _next_velocity_constraint_hit_cache_miss{false};	/**< the walk ended on a cache miss, not on a stop */
-	bool _dataman_cache_loading_since_constraint{false};	/**< the cache has loaded since the walk, a repeat can get further */
-	mission_item_s _next_velocity_constraint_item{};	/**< mission item the next setpoint was made from */
-	int32_t _next_velocity_constraint_index{-1};		/**< index of that item in the mission */
-	bool _next_velocity_constraint_backward{false};		/**< the walk follows the mission backwards */
-	math::trajectory::VehicleDynamicLimits _next_velocity_constraint_limits{};	/**< limits the walk planned with */
+	struct NextVelocityConstraintState {
+		bool hit_cache_miss{false};		/**< the walk ended on a cache miss, not on a stop */
+		bool dataman_cache_loading_since{false};	/**< the cache has loaded since the walk, a repeat can get further */
+		mission_item_s item{};			/**< mission item the next setpoint was made from */
+		int32_t index{-1};			/**< index of that item in the mission */
+		bool backward{false};			/**< the walk follows the mission backwards */
+		math::trajectory::VehicleDynamicLimits limits{};	/**< limits the walk planned with */
+	};
+
+	NextVelocityConstraintState _next_velocity_constraint_state{};
 
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/

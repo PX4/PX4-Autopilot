@@ -146,7 +146,7 @@ public:
 
 	bool cacheIsLoading() const { return _dataman_cache.isLoading(); }
 
-	bool walkWaitsForCache() const { return _next_velocity_constraint_hit_cache_miss; }
+	bool walkWaitsForCache() const { return _next_velocity_constraint_state.hit_cache_miss; }
 
 	bool isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index, int32_t following_index)
 	{

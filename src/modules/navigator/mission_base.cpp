@@ -519,7 +519,7 @@ MissionBase::set_mission_items()
 	bool set_end_of_mission{false};
 
 	// the triplet is rebuilt, a walk pending for the previous one is obsolete
-	_next_velocity_constraint_hit_cache_miss = false;
+	_next_velocity_constraint_state.hit_cache_miss = false;
 
 	if (_is_current_planned_mission_item_valid && _mission_type == MissionType::MISSION_TYPE_MISSION && isMissionValid()) {
 		/* By default set the mission item to the current planned mission item. Depending on request, it can be altered. */
@@ -823,7 +823,7 @@ bool MissionBase::findCachedPositionItem(int32_t start_index, bool direction_bac
 
 	for (int32_t index = start_index + step; (index >= 0) && (index < _mission.count); index += step) {
 		if (!_dataman_cache.loadWait(mission_dataman_id, index, reinterpret_cast<uint8_t *>(&following_item),
-					     sizeof(following_item))) {
+					     sizeof(following_item), 0)) {
 			cache_miss = true;
 			return false;
 		}
@@ -864,12 +864,12 @@ void MissionBase::setNextVelocityConstraint(const position_setpoint_s &current, 
 {
 	// Remember the inputs, the walk is repeated by updateNextVelocityConstraint() if it ends on a cache
 	// miss or the limits change
-	_next_velocity_constraint_hit_cache_miss = false;
-	_dataman_cache_loading_since_constraint = false;
-	_next_velocity_constraint_item = next_item;
-	_next_velocity_constraint_index = next_index;
-	_next_velocity_constraint_backward = direction_backward;
-	_next_velocity_constraint_limits = trajectoryLimitsFor(current);
+	_next_velocity_constraint_state.hit_cache_miss = false;
+	_next_velocity_constraint_state.dataman_cache_loading_since = false;
+	_next_velocity_constraint_state.item = next_item;
+	_next_velocity_constraint_state.index = next_index;
+	_next_velocity_constraint_state.backward = direction_backward;
+	_next_velocity_constraint_state.limits = trajectoryLimitsFor(current);
 
 	// Only the multicopter trajectory planner consumes the constraint, leave it unknown otherwise
 	// (same vehicle type source as get_time_inside(), which the stop criteria depend on)
@@ -878,11 +878,14 @@ void MissionBase::setNextVelocityConstraint(const position_setpoint_s &current, 
 		return;
 	}
 
-	math::trajectory::VehicleDynamicLimits limits = _next_velocity_constraint_limits;
+	math::trajectory::VehicleDynamicLimits limits = _next_velocity_constraint_state.limits;
+
+	// Acceleration change from +a to -a, matching computeMaxSpeedFromDistance().
+	const float max_acceleration_change = 2.f * limits.max_acc_xy;
 
 	// Beyond the distance needed by the same braking model used below, a stop cannot limit cruise speed.
 	const float horizon = math::trajectory::computeBrakingDistanceFromVelocity(limits.max_speed_xy, limits.max_jerk,
-			      limits.max_acc_xy, 2.f * limits.max_acc_xy);
+			      limits.max_acc_xy, max_acceleration_change);
 
 	// Bounded by the dataman cache, only cached items are read, a miss ends the walk like a stop would.
 	static constexpr size_t kMaxWaypoints = 10;
@@ -909,7 +912,7 @@ void MissionBase::setNextVelocityConstraint(const position_setpoint_s &current, 
 			// A miss stands for "unknown", the vehicle may well fly through: worth another walk once the
 			// items are cached. Only a miss in the mission ahead is a candidate, the mission ending or a
 			// stop are final.
-			_next_velocity_constraint_hit_cache_miss = cache_miss;
+			_next_velocity_constraint_state.hit_cache_miss = cache_miss;
 			break;
 		}
 
@@ -951,11 +954,11 @@ void MissionBase::updateNextVelocityConstraint()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	bool repeat_walk = false;
 
-	if (_next_velocity_constraint_hit_cache_miss) {
+	if (_next_velocity_constraint_state.hit_cache_miss) {
 		if (_dataman_cache.isLoading()) {
-			_dataman_cache_loading_since_constraint = true;
+			_next_velocity_constraint_state.dataman_cache_loading_since = true;
 
-		} else if (_dataman_cache_loading_since_constraint) {
+		} else if (_next_velocity_constraint_state.dataman_cache_loading_since) {
 			// Without anything new in the cache the walk would end on the same miss. This also holds for a
 			// miss beyond what the cache covers, so the walk is repeated once per cache load, not every cycle.
 			repeat_walk = true;
@@ -966,7 +969,7 @@ void MissionBase::updateNextVelocityConstraint()
 	// the path after next no longer supports
 	const math::trajectory::VehicleDynamicLimits limits = trajectoryLimitsFor(pos_sp_triplet->current);
 
-	if (!trajectoryLimitsEqual(limits, _next_velocity_constraint_limits)) {
+	if (!trajectoryLimitsEqual(limits, _next_velocity_constraint_state.limits)) {
 		repeat_walk = true;
 	}
 
@@ -976,16 +979,16 @@ void MissionBase::updateNextVelocityConstraint()
 
 	// Only for the setpoint the walk was made for, another path may have changed the triplet since
 	if (!pos_sp_triplet->next.valid
-	    || (fabs(pos_sp_triplet->next.lat - _next_velocity_constraint_item.lat) > DBL_EPSILON)
-	    || (fabs(pos_sp_triplet->next.lon - _next_velocity_constraint_item.lon) > DBL_EPSILON)) {
-		_next_velocity_constraint_hit_cache_miss = false;
+	    || (fabs(pos_sp_triplet->next.lat - _next_velocity_constraint_state.item.lat) > DBL_EPSILON)
+	    || (fabs(pos_sp_triplet->next.lon - _next_velocity_constraint_state.item.lon) > DBL_EPSILON)) {
+		_next_velocity_constraint_state.hit_cache_miss = false;
 		// nothing to repeat for these limits either
-		_next_velocity_constraint_limits = limits;
+		_next_velocity_constraint_state.limits = limits;
 		return;
 	}
 
-	setNextVelocityConstraint(pos_sp_triplet->current, _next_velocity_constraint_item, _next_velocity_constraint_index,
-				  pos_sp_triplet->next, _next_velocity_constraint_backward);
+	setNextVelocityConstraint(pos_sp_triplet->current, _next_velocity_constraint_state.item, _next_velocity_constraint_state.index,
+				  pos_sp_triplet->next, _next_velocity_constraint_state.backward);
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
