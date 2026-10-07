@@ -265,10 +265,10 @@ R C D G V: OSD co-processor test/debug pad group is the OSD SWD interface.
 | Pad |  Signal    | Voltage |
 | --- | ---------- | ------- |
 |  R  | OSD_NRST   | 3.3V    |
-|  V  | VDD3V3     | 3.3V    |
-|  G  | GND        | GND     |
 |  C  | G431_SWCLK | 3.3V    |
 |  D  | G431_SWDIO | 3.3V    |
+|  G  | GND        | GND     |
+|  V  | VDD3V3     | 3.3V    |
 
 They are not general user interfaces: only connect an SWD debug probe to them, and do not apply power to them or use them as GPIO, UART, or I2C interfaces.
 
