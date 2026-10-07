@@ -44,6 +44,8 @@
 
 #include "mission.h"
 #include "navigator.h"
+#include "rtl_mission_fast.h"
+#include "rtl_mission_fast_reverse.h"
 #include "support/navigator_dataman_test.h"
 
 #include <dataman_client/DatamanClient.hpp>
@@ -55,42 +57,64 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_status.h>
 
+#include <utility>
 #include <vector>
 
 using matrix::Vector3f;
 
-class MissionVelocityConstraintTestPeer : public Mission
+/* Access to the walk of any mission mode, so each test checks the stop criteria of the mode that flies */
+template<class Mode>
+class VelocityConstraintTestPeer : public Mode
 {
 public:
-	explicit MissionVelocityConstraintTestPeer(Navigator *navigator) : Mission(navigator) {}
+	template<typename... Args>
+	explicit VelocityConstraintTestPeer(Args &&... args) : Mode(std::forward<Args>(args)...) {}
 
 	void useMissionDataman(dm_item_t dataman_id, int32_t count)
 	{
-		_mission.mission_dataman_id = static_cast<uint8_t>(dataman_id);
-		_mission.count = count;
+		this->_mission.mission_dataman_id = static_cast<uint8_t>(dataman_id);
+		this->_mission.count = count;
 	}
 
 	/* The lookahead only reads items from the cache, so prime it the way updateDatamanCache() does. */
 	void cacheItems(dm_item_t dataman_id, int32_t count)
 	{
-		_dataman_cache.invalidate();
+		this->_dataman_cache.invalidate();
 
 		for (int32_t index = 0; index < count; index++) {
-			_dataman_cache.load(dataman_id, static_cast<uint32_t>(index));
+			this->_dataman_cache.load(dataman_id, static_cast<uint32_t>(index));
 		}
 
 		const hrt_abstime start = hrt_absolute_time();
 
-		while (_dataman_cache.isLoading() && (hrt_elapsed_time(&start) < 1_s)) {
-			_dataman_cache.update();
+		while (this->_dataman_cache.isLoading() && (hrt_elapsed_time(&start) < 1_s)) {
+			this->_dataman_cache.update();
 			px4_usleep(1000);
 		}
 	}
 
 	void dropCachedItems()
 	{
-		_dataman_cache.invalidate();
+		this->_dataman_cache.invalidate();
 	}
+
+	using Mode::setNextVelocityConstraint;
+	using MissionBlock::mission_item_to_position_setpoint;
+};
+
+/* The RTL modes fly the mission from position item to position item with their own stop criteria. The
+ * fast-reverse cache only holds 5 items, so the RTL missions below stay within that. */
+template<class Mode>
+class RtlVelocityConstraintTestPeer : public VelocityConstraintTestPeer<Mode>
+{
+public:
+	explicit RtlVelocityConstraintTestPeer(Navigator *navigator) : VelocityConstraintTestPeer<Mode>(navigator, mission_s{}) {}
+};
+
+class MissionVelocityConstraintTestPeer : public VelocityConstraintTestPeer<Mission>
+{
+public:
+	explicit MissionVelocityConstraintTestPeer(Navigator *navigator) : VelocityConstraintTestPeer<Mission>(navigator) {}
 
 	/* Make the mission runnable, the way the mission topic and the feasibility checker would */
 	void setMissionRunnable(dm_item_t dataman_id, int32_t count)
@@ -129,9 +153,6 @@ public:
 		bool cache_miss{false};
 		return Mission::isFlownThroughWithoutStopping(item, item_index, following_index, cache_miss);
 	}
-
-	using Mission::setNextVelocityConstraint;
-	using MissionBlock::mission_item_to_position_setpoint;
 };
 
 static constexpr double kOriginLat{47.0};
@@ -211,23 +232,36 @@ protected:
 							      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
 		}
 
-		_mission.useMissionDataman(kMissionDataman, static_cast<int32_t>(items.size()));
-		_mission.cacheItems(kMissionDataman, static_cast<int32_t>(items.size()));
+		useMission(_mission, items);
 	}
 
-	/* Run the navigator side for a triplet made of items[current_index] and items[next_index] */
-	Vector3f constraintFor(const std::vector<mission_item_s> &items, int32_t current_index, int32_t next_index,
-			       bool direction_backward = false)
+	/* Point a mode at the mission written by writeMission() and cache it */
+	template<class Peer>
+	void useMission(Peer &peer, const std::vector<mission_item_s> &items)
+	{
+		peer.useMissionDataman(kMissionDataman, static_cast<int32_t>(items.size()));
+		peer.cacheItems(kMissionDataman, static_cast<int32_t>(items.size()));
+	}
+
+	/* Run the navigator side of the given mode for a triplet made of items[current_index] and items[next_index] */
+	template<class Peer>
+	Vector3f constraintFor(Peer &peer, const std::vector<mission_item_s> &items, int32_t current_index,
+			       int32_t next_index, bool direction_backward = false)
 	{
 		position_setpoint_s current{};
 		position_setpoint_s next{};
-		_mission.mission_item_to_position_setpoint(items[current_index], &current);
-		_mission.mission_item_to_position_setpoint(items[next_index], &next);
+		peer.mission_item_to_position_setpoint(items[current_index], &current);
+		peer.mission_item_to_position_setpoint(items[next_index], &next);
 		EXPECT_FALSE(PX4_ISFINITE(next.velocity_constraint[0])) << "constraint must start out unknown";
 
-		_mission.setNextVelocityConstraint(current, items[next_index], next_index, next, direction_backward);
+		peer.setNextVelocityConstraint(current, items[next_index], next_index, next, direction_backward);
 
 		return Vector3f(next.velocity_constraint);
+	}
+
+	Vector3f constraintFor(const std::vector<mission_item_s> &items, int32_t current_index, int32_t next_index)
+	{
+		return constraintFor(_mission, items, current_index, next_index);
 	}
 
 	float cruiseSpeed() const { return _navigator.get_multicopter_trajectory_limits().max_speed_xy; }
@@ -388,17 +422,6 @@ TEST_F(MissionVelocityConstraintTest, HarmlessCommandBetweenPositionItemsIsFlown
 
 	// THEN: the waypoint is still flown through
 	EXPECT_TRUE(_mission.isFlownThroughWithoutStopping(items[0], 0, 2));
-}
-
-TEST_F(MissionVelocityConstraintTest, ItemsInBetweenAreCheckedWhenFlyingBackwards)
-{
-	// GIVEN: a mission flown backwards (reverse RTL), with a delay between the two position items
-	const std::vector<mission_item_s> items{makeWaypoint(), makeCommand(NAV_CMD_DELAY), makeWaypoint()};
-	writeMission(items);
-
-	// THEN: the delay is found in between and stops the vehicle, a plain waypoint after it is flown through
-	EXPECT_FALSE(_mission.isFlownThroughWithoutStopping(items[2], 2, 0));
-	EXPECT_TRUE(_mission.isFlownThroughWithoutStopping(items[2], 2, 1));
 }
 
 TEST_F(MissionVelocityConstraintTest, UncachedItemInBetweenStopsTheVehicle)
@@ -738,17 +761,121 @@ TEST_F(MissionVelocityConstraintTest, FixedWingLeavesTheConstraintUnknown)
 	EXPECT_FALSE(constraint.isAllFinite());
 }
 
-TEST_F(MissionVelocityConstraintTest, WalkFollowsTheMissionBackwards)
+/* ---------------------------------------------------------------------------------------------------------
+ * RTL: each mode flies the mission with its own stop criteria
+ * -------------------------------------------------------------------------------------------------------*/
+
+class RtlVelocityConstraintTest : public MissionVelocityConstraintTest
 {
-	// GIVEN: a straight mission flown backwards, from the last waypoint towards the first
+protected:
+	/* Each test creates only the mode it needs: dataman hands out at most 255 client ids per process and
+	 * never takes them back, a mode on every test of the suite would run out of them. */
+
+	/* Straight line north with a delay between the second and the third waypoint, spaced so that only a
+	 * stop at WP1 or WP2 can limit the speed there: WP0, WP1, DELAY, WP2, WP3 */
+	std::vector<mission_item_s> missionWithDelay()
+	{
+		const float spacing = 2.f * _navigator.get_multicopter_braking_distance(cruiseSpeed());
+		return {makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeCommand(NAV_CMD_DELAY),
+			makeWaypointAt(kNorth, 2.f * spacing), makeWaypointAt(kNorth, 3.f * spacing)};
+	}
+};
+
+TEST_F(RtlVelocityConstraintTest, MissionStopsForADelayAfterNext)
+{
+	// GIVEN: the mission with a delay after WP1
+	const std::vector<mission_item_s> items = missionWithDelay();
+	writeMission(items);
+
+	// WHEN: the mission flies from WP0 to WP1
+	const Vector3f constraint = constraintFor(_mission, items, 0, 1);
+
+	// THEN: the vehicle stops at WP1 to wait for the delay
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_FLOAT_EQ(constraint.norm(), 0.f);
+}
+
+TEST_F(RtlVelocityConstraintTest, FastRtlFliesThroughADelayAfterNext)
+{
+	// GIVEN: the mission with a delay after WP1
+	const std::vector<mission_item_s> items = missionWithDelay();
+	writeMission(items);
+	RtlVelocityConstraintTestPeer<RtlMissionFast> rtl{&_navigator};
+	useMission(rtl, items);
+
+	// WHEN: fast RTL flies from WP0 to WP1
+	const Vector3f constraint = constraintFor(rtl, items, 0, 1);
+
+	// THEN: fast RTL skips the delay, the vehicle leaves WP1 at cruise speed heading north
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), cruiseSpeed(), 1e-3f);
+	EXPECT_NEAR(constraint(0), cruiseSpeed(), 1e-3f);
+}
+
+TEST_F(RtlVelocityConstraintTest, FastReverseRtlFliesThroughADelayAfterNext)
+{
+	// GIVEN: the mission with a delay after WP1, flown backwards
+	const std::vector<mission_item_s> items = missionWithDelay();
+	writeMission(items);
+	RtlVelocityConstraintTestPeer<RtlMissionFastReverse> rtl{&_navigator};
+	useMission(rtl, items);
+
+	// WHEN: fast-reverse RTL flies from WP3 to WP2
+	const Vector3f constraint = constraintFor(rtl, items, 4, 3, true);
+
+	// THEN: fast-reverse RTL skips the delay, the vehicle leaves WP2 at cruise speed heading south
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), cruiseSpeed(), 1e-3f);
+	EXPECT_NEAR(constraint(0), -cruiseSpeed(), 1e-3f);
+}
+
+TEST_F(RtlVelocityConstraintTest, FastRtlStopsAtALandingAsNext)
+{
+	// GIVEN: the mission with WP1 turned into a landing
+	std::vector<mission_item_s> items = missionWithDelay();
+	items[1].nav_cmd = NAV_CMD_LAND;
+	writeMission(items);
+	RtlVelocityConstraintTestPeer<RtlMissionFast> rtl{&_navigator};
+	useMission(rtl, items);
+
+	// WHEN: fast RTL flies from WP0 to the landing
+	const Vector3f constraint = constraintFor(rtl, items, 0, 1);
+
+	// THEN: the flight ends there, the vehicle stops
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_FLOAT_EQ(constraint.norm(), 0.f);
+}
+
+TEST_F(RtlVelocityConstraintTest, FastReverseRtlStopsAtATakeoffAsNext)
+{
+	// GIVEN: the mission with WP2 turned into a takeoff
+	std::vector<mission_item_s> items = missionWithDelay();
+	items[3].nav_cmd = NAV_CMD_TAKEOFF;
+	writeMission(items);
+	RtlVelocityConstraintTestPeer<RtlMissionFastReverse> rtl{&_navigator};
+	useMission(rtl, items);
+
+	// WHEN: fast-reverse RTL flies from WP3 to the takeoff
+	const Vector3f constraint = constraintFor(rtl, items, 4, 3, true);
+
+	// THEN: flying backwards the landing starts at the takeoff, the vehicle stops
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_FLOAT_EQ(constraint.norm(), 0.f);
+}
+
+TEST_F(RtlVelocityConstraintTest, WalkFollowsTheMissionBackwards)
+{
+	// GIVEN: a straight mission flown backwards by fast-reverse RTL, from the last waypoint towards the first
 	const float spacing = 30.f;
 	const std::vector<mission_item_s> items{
 		makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeWaypointAt(kNorth, 2.f * spacing),
 		makeWaypointAt(kNorth, 3.f * spacing)};
 	writeMission(items);
+	RtlVelocityConstraintTestPeer<RtlMissionFastReverse> rtl{&_navigator};
+	useMission(rtl, items);
 
-	// WHEN: the vehicle flies from the last to the third waypoint
-	const Vector3f constraint = constraintFor(items, 3, 2, true);
+	// WHEN: fast-reverse RTL flies from the last to the third waypoint
+	const Vector3f constraint = constraintFor(rtl, items, 3, 2, true);
 
 	// THEN: it may leave the third waypoint at cruise speed, heading south
 	ASSERT_TRUE(constraint.isAllFinite());
