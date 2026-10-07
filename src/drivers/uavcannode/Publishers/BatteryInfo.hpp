@@ -120,7 +120,7 @@ public:
 				status_flags |= uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
 			}
 
-			if (battery.warning == battery_status_s::WARNING_CHARGING) {
+			if (battery.flags & (1 << battery_status_s::FLAG_CHARGING)) {
 				status_flags |= uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING;
 			}
 

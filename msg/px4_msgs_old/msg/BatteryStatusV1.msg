@@ -4,7 +4,7 @@
 # These are populated from power module and smart battery device drivers, and one battery updated from MAVLink.
 # Battery instance information is also logged and streamed in MAVLink telemetry.
 
-uint32 MESSAGE_VERSION = 2
+uint32 MESSAGE_VERSION = 1
 uint8 MAX_INSTANCES = 3
 
 uint64 timestamp # [us] Time since system start
@@ -41,12 +41,14 @@ float32 max_cell_voltage_delta # [V] Max difference between individual cell volt
 bool is_powering_off # Power off event imminent indication, false if unknown
 bool is_required # Set if the battery is explicitly required before arming
 
-uint8 warning # [@enum WARNING] Current battery warning, ordered by severity
+uint8 warning # [@enum WARNING] Current battery warning
 uint8 WARNING_NONE = 0 # No battery low voltage warning active
 uint8 WARNING_LOW = 1 # Low voltage warning
 uint8 WARNING_CRITICAL = 2 # Critical voltage, return / abort immediately
 uint8 WARNING_EMERGENCY = 3 # Immediate landing required
 uint8 WARNING_FAILED = 4 # Battery has failed completely
+uint8 WARNING_UNHEALTHY = 6 # Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field
+uint8 WARNING_CHARGING = 7 # Battery is charging and no other warning applies. A state, not a severity: do not compare it by value
 
 uint16 faults # [@enum FAULT] Smart battery supply status/fault flags (bitmask) for health indication
 uint8 FAULT_DEEP_DISCHARGE = 0 # Battery has deep discharged
@@ -61,9 +63,6 @@ uint8 FAULT_INCOMPATIBLE_MODEL = 8 # Battery model is not supported by the syste
 uint8 FAULT_HARDWARE_FAILURE = 9 # Hardware problem
 uint8 FAULT_FAILED_TO_ARM = 10 # Battery had a problem while arming
 uint8 FAULT_COUNT = 11 # Counter. Keep this as last element
-
-uint16 flags # [@enum FLAG] Battery state flags (bitmask). States, not faults or warnings
-uint8 FLAG_CHARGING = 0 # (1 << 0) Battery is charging
 
 float32 full_charge_capacity_wh # [Wh] Compensated battery capacity
 float32 remaining_capacity_wh # [Wh] [@invalid NaN] Compensated battery capacity remaining

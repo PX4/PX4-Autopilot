@@ -50,6 +50,7 @@ class BatteryChecksTest : public ::testing::Test
 {
 public:
 	static constexpr int kBatteryCount = 2;
+	static constexpr uint16_t kCharging = 1 << battery_status_s::FLAG_CHARGING;
 
 	// advertised once for the whole suite so they keep instances 0 and 1
 	static void SetUpTestSuite()
@@ -68,7 +69,7 @@ public:
 		publish(1, battery_status_s::WARNING_NONE);
 	}
 
-	static void publish(int index, uint8_t warning)
+	static void publish(int index, uint8_t warning, uint16_t flags = 0)
 	{
 		battery_status_s battery{};
 		battery.timestamp = hrt_absolute_time();
@@ -76,6 +77,7 @@ public:
 		battery.remaining = 0.5f;
 		battery.time_remaining_s = NAN;
 		battery.warning = warning;
+		battery.flags = flags;
 		_battery_pubs[index].publish(battery);
 	}
 
@@ -106,7 +108,7 @@ uORB::PublicationMulti<battery_status_s> BatteryChecksTest::_battery_pubs[kBatte
 // a charging pack must not hide another pack's emergency
 TEST_F(BatteryChecksTest, ChargingDoesNotOutrankAnEmergency)
 {
-	publish(0, battery_status_s::WARNING_CHARGING);
+	publish(0, battery_status_s::WARNING_NONE, kCharging);
 	publish(1, battery_status_s::WARNING_EMERGENCY);
 	runCheck(true);
 	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_EMERGENCY);
@@ -115,16 +117,16 @@ TEST_F(BatteryChecksTest, ChargingDoesNotOutrankAnEmergency)
 // charging when the vehicle arms, on a dock for example, must not latch and block a later low battery
 TEST_F(BatteryChecksTest, ChargingAtArmingDoesNotLatchOverALaterWarning)
 {
-	publish(0, battery_status_s::WARNING_CHARGING);
+	publish(0, battery_status_s::WARNING_NONE, kCharging);
 	runCheck(false);
 	runCheck(true);
 	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
 
-	publish(0, battery_status_s::WARNING_LOW);
+	publish(0, battery_status_s::WARNING_LOW, kCharging);
 	runCheck(true);
 	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_LOW);
 
-	publish(0, battery_status_s::WARNING_CRITICAL);
+	publish(0, battery_status_s::WARNING_CRITICAL, kCharging);
 	runCheck(true);
 	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_CRITICAL);
 }
@@ -132,7 +134,7 @@ TEST_F(BatteryChecksTest, ChargingAtArmingDoesNotLatchOverALaterWarning)
 // a charging pack on its own is no warning and doesn't stop arming
 TEST_F(BatteryChecksTest, ChargingAloneIsNoWarning)
 {
-	publish(0, battery_status_s::WARNING_CHARGING);
+	publish(0, battery_status_s::WARNING_NONE, kCharging);
 	runCheck(false);
 	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
 	EXPECT_TRUE(_can_arm);

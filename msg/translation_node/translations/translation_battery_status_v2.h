@@ -1,20 +1,20 @@
 /****************************************************************************
- * Copyright (c) 2025 PX4 Development Team.
+ * Copyright (c) 2026 PX4 Development Team.
  * SPDX-License-Identifier: BSD-3-Clause
  ****************************************************************************/
 #pragma once
 
-// Translate BatteryStatus v0 <--> v1
-#include <px4_msgs_old/msg/battery_status_v0.hpp>
+// Translate BatteryStatus v1 <--> v2
 #include <px4_msgs_old/msg/battery_status_v1.hpp>
+#include <px4_msgs/msg/battery_status.hpp>
 
-class BatteryStatusV1Translation {
+class BatteryStatusV2Translation {
 public:
-	using MessageOlder = px4_msgs_old::msg::BatteryStatusV0;
-	static_assert(MessageOlder::MESSAGE_VERSION == 0);
+	using MessageOlder = px4_msgs_old::msg::BatteryStatusV1;
+	static_assert(MessageOlder::MESSAGE_VERSION == 1);
 
-	using MessageNewer = px4_msgs_old::msg::BatteryStatusV1;
-	static_assert(MessageNewer::MESSAGE_VERSION == 1);
+	using MessageNewer = px4_msgs::msg::BatteryStatus;
+	static_assert(MessageNewer::MESSAGE_VERSION == 2);
 
 	static constexpr const char* kTopic = "fmu/out/battery_status";
 
@@ -35,7 +35,6 @@ public:
 		msg_newer.capacity = msg_older.capacity;
 		msg_newer.cycle_count = msg_older.cycle_count;
 		msg_newer.average_time_to_empty = msg_older.average_time_to_empty;
-		// The serial number moved to the battery_info message and is char[32] instead of uint16
 		msg_newer.manufacture_date = msg_older.manufacture_date;
 		msg_newer.state_of_health = msg_older.state_of_health;
 		msg_newer.max_error = msg_older.max_error;
@@ -62,6 +61,17 @@ public:
 		msg_newer.voltage_prediction = msg_older.voltage_prediction;
 		msg_newer.prediction_error = msg_older.prediction_error;
 		msg_newer.estimation_covariance_norm = msg_older.estimation_covariance_norm;
+
+		// v1 overloaded warning with two states; the cause of UNHEALTHY is already in faults
+		msg_newer.flags = 0;
+
+		if (msg_older.warning == MessageOlder::WARNING_CHARGING) {
+			msg_newer.warning = MessageNewer::WARNING_NONE;
+			msg_newer.flags |= 1 << MessageNewer::FLAG_CHARGING;
+
+		} else if (msg_older.warning == MessageOlder::WARNING_UNHEALTHY) {
+			msg_newer.warning = MessageNewer::WARNING_NONE;
+		}
 	}
 
 	static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
@@ -81,7 +91,6 @@ public:
 		msg_older.capacity = msg_newer.capacity;
 		msg_older.cycle_count = msg_newer.cycle_count;
 		msg_older.average_time_to_empty = msg_newer.average_time_to_empty;
-		msg_older.serial_number = 0; // The serial number moved to the battery_info message and is char[32] instead of uint16
 		msg_older.manufacture_date = msg_newer.manufacture_date;
 		msg_older.state_of_health = msg_newer.state_of_health;
 		msg_older.max_error = msg_newer.max_error;
@@ -108,7 +117,12 @@ public:
 		msg_older.voltage_prediction = msg_newer.voltage_prediction;
 		msg_older.prediction_error = msg_newer.prediction_error;
 		msg_older.estimation_covariance_norm = msg_newer.estimation_covariance_norm;
+
+		// v1 reported charging in warning only while there was no real warning
+		if ((msg_newer.warning == MessageNewer::WARNING_NONE) && (msg_newer.flags & (1 << MessageNewer::FLAG_CHARGING))) {
+			msg_older.warning = MessageOlder::WARNING_CHARGING;
+		}
 	}
 };
 
-REGISTER_TOPIC_TRANSLATION_DIRECT(BatteryStatusV1Translation);
+REGISTER_TOPIC_TRANSLATION_DIRECT(BatteryStatusV2Translation);

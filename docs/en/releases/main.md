@@ -47,6 +47,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them.
   The log analysis scripts in the tree read both the old and the new names.
   The uORB-over-Cyphal registers are renamed from `uorb.sensor_gps` to `uorb.sensor_gnss` (`uavcan.sub.uorb.sensor_gnss.0.id`, `uavcan.pub.uorb.sensor_gnss.0.id`); `UCAN1_UORB_GPS` and `UCAN1_UORB_GPS_P` are unchanged. ([PX4-Autopilot#24399](https://github.com/PX4/PX4-Autopilot/pull/24399))
+- **`BatteryStatus` is now version 2.** `warning` holds only the ordered severities `WARNING_NONE` to `WARNING_FAILED`: `WARNING_CHARGING` is replaced by `FLAG_CHARGING` in the new `flags` bitmask, and `WARNING_UNHEALTHY` is removed because `faults` already lists the causes. The [message translation node](../ros2/px4_ros2_msg_translation_node.md) translates between versions 1 and 2 for ROS 2 applications.
 
 ## Other changes
 

@@ -85,7 +85,9 @@ private:
 
 				switch (battery_status.warning) {
 				case (battery_status_s::WARNING_NONE):
-					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_OK;
+					// charge_state holds a single value, so any warning takes precedence over charging
+					bat_msg.charge_state = (battery_status.flags & (1 << battery_status_s::FLAG_CHARGING)) ?
+							       MAV_BATTERY_CHARGE_STATE_CHARGING : MAV_BATTERY_CHARGE_STATE_OK;
 					break;
 
 				case (battery_status_s::WARNING_LOW):
@@ -102,14 +104,6 @@ private:
 
 				case (battery_status_s::WARNING_FAILED):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_FAILED;
-					break;
-
-				case (battery_status_s::WARNING_UNHEALTHY):
-					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNHEALTHY;
-					break;
-
-				case (battery_status_s::WARNING_CHARGING):
-					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_CHARGING;
 					break;
 
 				default:
