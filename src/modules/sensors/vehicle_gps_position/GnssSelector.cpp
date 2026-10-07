@@ -248,9 +248,15 @@ bool GnssSelector::isBetterReceiver(int instance, int other, uint64_t hrt_now_us
 	}
 
 	// One that is clearly more available is better whatever its rank, as something is wrong with the other one
-	if (instance_rank >= RANK_USABLE
-	    && _availability[instance].getState() > _availability[other].getState() + AVAILABILITY_MARGIN) {
+	const float instance_availability = _availability[instance].getState();
+	const float other_availability = _availability[other].getState();
+
+	if (instance_rank >= RANK_USABLE && (instance_availability > other_availability + AVAILABILITY_MARGIN)) {
 		return true;
+	}
+
+	if (other_rank >= RANK_USABLE && (other_availability > instance_availability + AVAILABILITY_MARGIN)) {
+		return false;
 	}
 
 	if (instance_rank != other_rank) {
@@ -264,7 +270,7 @@ bool GnssSelector::isBetterReceiver(int instance, int other, uint64_t hrt_now_us
 		return instance == _preferred_instance;
 	}
 
-	return _availability[instance].getState() > _availability[other].getState() + tiebreaker_availability_margin;
+	return instance_availability > other_availability + tiebreaker_availability_margin;
 }
 
 hrt_abstime GnssSelector::switchHoldUs() const
