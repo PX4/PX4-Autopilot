@@ -1,0 +1,884 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file test_mission_velocity_constraint.cpp
+ *
+ * Tests for the velocity constraint the navigator puts on the next setpoint: the gate deciding whether the
+ * vehicle really flies through a waypoint instead of stopping at it, the walk along the mission that
+ * derives how fast the vehicle may leave the next waypoint, and the repeat of that walk once the dataman
+ * cache has been filled after activation.
+ */
+
+#include <gtest/gtest.h>
+
+#include "mission.h"
+#include "navigator.h"
+#include "rtl_mission_fast.h"
+#include "rtl_mission_fast_reverse.h"
+#include "support/navigator_dataman_test.h"
+
+#include <dataman_client/DatamanClient.hpp>
+#include <drivers/drv_hrt.h>
+#include <lib/geo/geo.h>
+#include <mathlib/math/TrajMath.hpp>
+#include <parameters/param.h>
+#include <px4_platform_common/posix.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/vehicle_status.h>
+
+#include <utility>
+#include <vector>
+
+using matrix::Vector3f;
+
+/* Access to the walk of any mission mode, so each test checks the stop criteria of the mode that flies */
+template<class Mode>
+class VelocityConstraintTestPeer : public Mode
+{
+public:
+	template<typename... Args>
+	explicit VelocityConstraintTestPeer(Args &&... args) : Mode(std::forward<Args>(args)...) {}
+
+	void useMissionDataman(dm_item_t dataman_id, int32_t count)
+	{
+		this->_mission.mission_dataman_id = static_cast<uint8_t>(dataman_id);
+		this->_mission.count = count;
+	}
+
+	/* The lookahead only reads items from the cache, so prime it the way updateDatamanCache() does. */
+	void cacheItems(dm_item_t dataman_id, int32_t count)
+	{
+		this->_dataman_cache.invalidate();
+
+		for (int32_t index = 0; index < count; index++) {
+			this->_dataman_cache.load(dataman_id, static_cast<uint32_t>(index));
+		}
+
+		const hrt_abstime start = hrt_absolute_time();
+
+		while (this->_dataman_cache.isLoading() && (hrt_elapsed_time(&start) < 1_s)) {
+			this->_dataman_cache.update();
+			px4_usleep(1000);
+		}
+	}
+
+	void dropCachedItems()
+	{
+		this->_dataman_cache.invalidate();
+	}
+
+	using Mode::setNextVelocityConstraint;
+	using MissionBlock::mission_item_to_position_setpoint;
+};
+
+/* The RTL modes fly the mission from position item to position item with their own stop criteria. The
+ * fast-reverse cache only holds 5 items, so the RTL missions below stay within that. */
+template<class Mode>
+class RtlVelocityConstraintTestPeer : public VelocityConstraintTestPeer<Mode>
+{
+public:
+	explicit RtlVelocityConstraintTestPeer(Navigator *navigator) : VelocityConstraintTestPeer<Mode>(navigator, mission_s{}) {}
+};
+
+class MissionVelocityConstraintTestPeer : public VelocityConstraintTestPeer<Mission>
+{
+public:
+	explicit MissionVelocityConstraintTestPeer(Navigator *navigator) : VelocityConstraintTestPeer<Mission>(navigator) {}
+
+	/* Make the mission runnable, the way the mission topic and the feasibility checker would */
+	void setMissionRunnable(dm_item_t dataman_id, int32_t count)
+	{
+		useMissionDataman(dataman_id, count);
+		_mission.current_seq = 0;
+		_mission.timestamp = hrt_absolute_time();
+		_is_current_planned_mission_item_valid = true;
+		_navigator->get_mission_result()->valid = true;
+	}
+
+	/* The base activation: sets the triplet before the cache is filled. Mission::on_activation() would first
+	 * rerun the feasibility checker, which needs a home position and geofence status the test does not have. */
+	void activate()
+	{
+		// on_inactive() keeps the vehicle status current before an activation in flight
+		_vehicle_status_sub.update();
+		MissionBase::on_activation();
+	}
+
+	using Mission::on_active;
+
+	/* Advance the mission to the given item and rebuild the triplet, the way reaching a waypoint does */
+	void advanceTo(int32_t index)
+	{
+		setMissionIndex(index);
+		set_mission_items();
+	}
+
+	bool cacheIsLoading() const { return _dataman_cache.isLoading(); }
+
+	bool walkWaitsForCache() const { return _next_velocity_constraint_state.hit_cache_miss; }
+
+	bool isFlownThroughWithoutStopping(const mission_item_s &item, int32_t item_index, int32_t following_index)
+	{
+		bool cache_miss{false};
+		return Mission::isFlownThroughWithoutStopping(item, item_index, following_index, cache_miss);
+	}
+};
+
+static constexpr double kOriginLat{47.0};
+static constexpr double kOriginLon{8.0};
+
+static mission_item_s makeWaypoint(double lat = kOriginLat, double lon = kOriginLon)
+{
+	mission_item_s item{};
+	item.nav_cmd = NAV_CMD_WAYPOINT;
+	item.autocontinue = true;
+	item.lat = lat;
+	item.lon = lon;
+	item.altitude = 100.f;
+	return item;
+}
+
+/* Plain waypoint at the given distance and bearing from the origin */
+static mission_item_s makeWaypointAt(float bearing_rad, float distance_m)
+{
+	double lat{0.0};
+	double lon{0.0};
+	waypoint_from_heading_and_distance(kOriginLat, kOriginLon, bearing_rad, distance_m, &lat, &lon);
+	return makeWaypoint(lat, lon);
+}
+
+static mission_item_s makeCommand(uint16_t nav_cmd)
+{
+	mission_item_s item{};
+	item.nav_cmd = nav_cmd;
+	item.autocontinue = true;
+	return item;
+}
+
+class MissionVelocityConstraintTest : public NavigatorDatamanTestBase
+{
+protected:
+	static constexpr dm_item_t kMissionDataman{DM_KEY_WAYPOINTS_OFFBOARD_0};
+	static constexpr float kNorth{0.f};
+	static constexpr float kEast{M_PI_F / 2.f};
+
+	void SetUp() override
+	{
+		ASSERT_TRUE(_dataman_client.clearSync(kMissionDataman));
+		/* get_time_inside() only holds a plain waypoint for a rotary wing, same as brake_for_hold, and the
+		 * constraint is only produced for a rotary wing. */
+		_navigator.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		/* The mission reads the vehicle type for brake_for_hold from its own subscription */
+		vehicle_status_s vehicle_status{};
+		vehicle_status.timestamp = hrt_absolute_time();
+		vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		_vehicle_status_pub.publish(vehicle_status);
+	}
+
+	void TearDown() override
+	{
+		for (const param_t handle : _changed_params) {
+			param_reset(handle);
+		}
+	}
+
+	/* Change a parameter in flight, the way a parameter set from the ground station reaches the navigator */
+	void setParam(const char *name, float value)
+	{
+		const param_t handle = param_find(name);
+		ASSERT_NE(handle, PARAM_INVALID) << name;
+		ASSERT_EQ(param_set(handle, &value), 0) << name;
+		_changed_params.push_back(handle);
+		_navigator.params_update();
+	}
+
+	void writeMission(const std::vector<mission_item_s> &items)
+	{
+		for (size_t index = 0; index < items.size(); index++) {
+			mission_item_s item = items[index];
+			ASSERT_TRUE(_dataman_client.writeSync(kMissionDataman, static_cast<uint32_t>(index),
+							      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
+		}
+
+		useMission(_mission, items);
+	}
+
+	/* Point a mode at the mission written by writeMission() and cache it */
+	template<class Peer>
+	void useMission(Peer &peer, const std::vector<mission_item_s> &items)
+	{
+		peer.useMissionDataman(kMissionDataman, static_cast<int32_t>(items.size()));
+		peer.cacheItems(kMissionDataman, static_cast<int32_t>(items.size()));
+	}
+
+	/* Run the navigator side of the given mode for a triplet made of items[current_index] and items[next_index] */
+	template<class Peer>
+	Vector3f constraintFor(Peer &peer, const std::vector<mission_item_s> &items, int32_t current_index,
+			       int32_t next_index, bool direction_backward = false)
+	{
+		position_setpoint_s current{};
+		position_setpoint_s next{};
+		peer.mission_item_to_position_setpoint(items[current_index], &current);
+		peer.mission_item_to_position_setpoint(items[next_index], &next);
+		EXPECT_FALSE(PX4_ISFINITE(next.velocity_constraint[0])) << "constraint must start out unknown";
+
+		peer.setNextVelocityConstraint(current, items[next_index], next_index, next, direction_backward);
+
+		return Vector3f(next.velocity_constraint);
+	}
+
+	Vector3f constraintFor(const std::vector<mission_item_s> &items, int32_t current_index, int32_t next_index)
+	{
+		return constraintFor(_mission, items, current_index, next_index);
+	}
+
+	float cruiseSpeed() const { return _navigator.get_multicopter_trajectory_limits().max_speed_xy; }
+
+	/* Speed the planner may have at a waypoint from which it has to stop within the given distance */
+	float speedToStopWithin(float distance_m) const
+	{
+		const math::trajectory::VehicleDynamicLimits limits = _navigator.get_multicopter_trajectory_limits();
+		return math::trajectory::computeMaxSpeedFromDistance(limits.max_jerk, limits.max_acc_xy, distance_m, 0.f);
+	}
+
+	/* Write the mission to dataman without caching anything, and make it runnable */
+	void writeRunnableMission(const std::vector<mission_item_s> &items)
+	{
+		for (size_t index = 0; index < items.size(); index++) {
+			mission_item_s item = items[index];
+			ASSERT_TRUE(_dataman_client.writeSync(kMissionDataman, static_cast<uint32_t>(index),
+							      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
+		}
+
+		_mission.setMissionRunnable(kMissionDataman, static_cast<int32_t>(items.size()));
+		_mission.dropCachedItems();
+	}
+
+	/* Run navigator cycles until the dataman cache has been filled for the current sequence */
+	void runActiveUntilCacheLoaded()
+	{
+		const hrt_abstime start = hrt_absolute_time();
+
+		do {
+			_mission.on_active();
+			px4_usleep(1000);
+		} while (_mission.cacheIsLoading() && (hrt_elapsed_time(&start) < 2_s));
+
+		ASSERT_FALSE(_mission.cacheIsLoading()) << "dataman cache did not finish loading";
+	}
+
+	Vector3f nextConstraint() { return Vector3f(_navigator.get_position_setpoint_triplet()->next.velocity_constraint); }
+
+	/* Activate the mission and let the cache fill, so the published constraint is the one for the whole path */
+	void activateAndLoadCache(const std::vector<mission_item_s> &items)
+	{
+		writeRunnableMission(items);
+		_navigator.get_global_position()->alt = items[0].altitude;
+		_mission.activate();
+		runActiveUntilCacheLoaded();
+	}
+
+	DatamanClient _dataman_client{};
+	Navigator _navigator{};
+	MissionVelocityConstraintTestPeer _mission{&_navigator};
+	std::vector<param_t> _changed_params{};
+	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
+};
+
+/* ---------------------------------------------------------------------------------------------------------
+ * Gate: does the vehicle fly through the waypoint
+ * -------------------------------------------------------------------------------------------------------*/
+
+TEST_F(MissionVelocityConstraintTest, PlainWaypointIsFlownThrough)
+{
+	// GIVEN: two consecutive plain waypoints
+	const std::vector<mission_item_s> items{makeWaypoint(), makeWaypoint()};
+	writeMission(items);
+
+	// THEN: the first one is passed at speed
+	EXPECT_TRUE(_mission.isFlownThroughWithoutStopping(items[0], 0, 1));
+}
+
+TEST_F(MissionVelocityConstraintTest, WaypointWithTimeInsideStopsTheVehicle)
+{
+	// GIVEN: a waypoint the vehicle has to hold at
+	std::vector<mission_item_s> items{makeWaypoint(), makeWaypoint()};
+	items[0].time_inside = 5.f;
+	writeMission(items);
+
+	// THEN: the vehicle must be able to stop there
+	EXPECT_FALSE(_mission.isFlownThroughWithoutStopping(items[0], 0, 1));
+}
+
+TEST_F(MissionVelocityConstraintTest, WaypointWithoutAutocontinueStopsTheVehicle)
+{
+	// GIVEN: a waypoint the mission does not continue past by itself
+	std::vector<mission_item_s> items{makeWaypoint(), makeWaypoint()};
+	items[0].autocontinue = false;
+	writeMission(items);
+
+	// THEN: stop
+	EXPECT_FALSE(_mission.isFlownThroughWithoutStopping(items[0], 0, 1));
+}
+
+TEST_F(MissionVelocityConstraintTest, LoiterStopsTheVehicle)
+{
+	// GIVEN: a loiter item instead of a plain waypoint
+	std::vector<mission_item_s> items{makeCommand(NAV_CMD_LOITER_TIME_LIMIT), makeWaypoint()};
+	items[0].time_inside = 10.f;
+	writeMission(items);
+
+	// THEN: stop
+	EXPECT_FALSE(_mission.isFlownThroughWithoutStopping(items[0], 0, 1));
+}
+
+TEST_F(MissionVelocityConstraintTest, LandingStopsTheVehicle)
+{
+	// GIVEN: a landing instead of a plain waypoint
+	const std::vector<mission_item_s> items{makeCommand(NAV_CMD_LAND), makeWaypoint()};
+	writeMission(items);
+
+	// THEN: stop
+	EXPECT_FALSE(_mission.isFlownThroughWithoutStopping(items[0], 0, 1));
+}
+
+TEST_F(MissionVelocityConstraintTest, DelayBetweenPositionItemsStopsTheVehicle)
+{
+	// GIVEN: a delay between the waypoint and the following position item
+	const std::vector<mission_item_s> items{makeWaypoint(), makeCommand(NAV_CMD_DELAY), makeWaypoint()};
+	writeMission(items);
+
+	// THEN: stop, the vehicle waits at the waypoint
+	EXPECT_FALSE(_mission.isFlownThroughWithoutStopping(items[0], 0, 2));
+}
+
+TEST_F(MissionVelocityConstraintTest, VtolTransitionBetweenPositionItemsStopsTheVehicle)
+{
+	// GIVEN: a transition between the waypoint and the following position item
+	const std::vector<mission_item_s> items{makeWaypoint(), makeCommand(NAV_CMD_DO_VTOL_TRANSITION), makeWaypoint()};
+	writeMission(items);
+
+	// THEN: stop
+	EXPECT_FALSE(_mission.isFlownThroughWithoutStopping(items[0], 0, 2));
+}
+
+TEST_F(MissionVelocityConstraintTest, DoJumpBetweenPositionItemsStopsTheVehicle)
+{
+	// GIVEN: a jump between the waypoint and the following position item, which may redirect the mission
+	const std::vector<mission_item_s> items{makeWaypoint(), makeCommand(NAV_CMD_DO_JUMP), makeWaypoint()};
+	writeMission(items);
+
+	// THEN: stop, the following item is not necessarily the one the jump leads to
+	EXPECT_FALSE(_mission.isFlownThroughWithoutStopping(items[0], 0, 2));
+}
+
+TEST_F(MissionVelocityConstraintTest, PayloadCommandWithTimeoutBetweenPositionItemsStopsTheVehicle)
+{
+	// GIVEN: a payload command the vehicle waits for between the waypoint and the following position item
+	const std::vector<mission_item_s> items{makeWaypoint(), makeCommand(NAV_CMD_DO_GRIPPER), makeWaypoint()};
+	writeMission(items);
+
+	// THEN: stop
+	EXPECT_FALSE(_mission.isFlownThroughWithoutStopping(items[0], 0, 2));
+}
+
+TEST_F(MissionVelocityConstraintTest, HarmlessCommandBetweenPositionItemsIsFlownThrough)
+{
+	// GIVEN: a command that does not hold the vehicle between the waypoint and the following position item
+	const std::vector<mission_item_s> items{makeWaypoint(), makeCommand(NAV_CMD_DO_CHANGE_SPEED), makeWaypoint()};
+	writeMission(items);
+
+	// THEN: the waypoint is still flown through
+	EXPECT_TRUE(_mission.isFlownThroughWithoutStopping(items[0], 0, 2));
+}
+
+TEST_F(MissionVelocityConstraintTest, UncachedItemInBetweenStopsTheVehicle)
+{
+	// GIVEN: an item in between that is not in the dataman cache
+	const std::vector<mission_item_s> items{makeWaypoint(), makeCommand(NAV_CMD_DO_CHANGE_SPEED), makeWaypoint()};
+	writeMission(items);
+	_mission.dropCachedItems();
+
+	// THEN: the cache miss is treated like an item that stops the vehicle
+	EXPECT_FALSE(_mission.isFlownThroughWithoutStopping(items[0], 0, 2));
+}
+
+/* ---------------------------------------------------------------------------------------------------------
+ * Constraint: how fast may the vehicle leave the next waypoint
+ * -------------------------------------------------------------------------------------------------------*/
+
+TEST_F(MissionVelocityConstraintTest, StraightMissionAllowsCruiseSpeedThroughNext)
+{
+	// GIVEN: a straight line of waypoints heading north, spaced further apart than the braking distance
+	const float spacing = 2.f * _navigator.get_multicopter_braking_distance(cruiseSpeed());
+	const std::vector<mission_item_s> items{
+		makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeWaypointAt(kNorth, 2.f * spacing),
+		makeWaypointAt(kNorth, 3.f * spacing)};
+	writeMission(items);
+
+	// WHEN: the vehicle flies from the first to the second waypoint
+	const Vector3f constraint = constraintFor(items, 0, 1);
+
+	// THEN: it may leave the next waypoint at cruise speed, heading north
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), cruiseSpeed(), 1e-3f);
+	EXPECT_NEAR(constraint(0), cruiseSpeed(), 1e-3f);
+	EXPECT_NEAR(constraint(1), 0.f, 1e-3f);
+	EXPECT_FLOAT_EQ(constraint(2), 0.f);
+}
+
+TEST_F(MissionVelocityConstraintTest, CloseWaypointsAreNoStopOnAStraightPathOnceTheCacheIsLoaded)
+{
+	// GIVEN: a survey-like entry: the next waypoint only a few metres past the first one on a straight line
+	// that continues far beyond, all of them within the acceptance radius of each other. The mission is
+	// activated with an empty dataman cache, as on the first activation or after a mission upload.
+	const float spacing = 2.f;
+	const float horizon = _navigator.get_multicopter_braking_distance(cruiseSpeed());
+	const std::vector<mission_item_s> items{
+		makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeWaypointAt(kNorth, 2.f * spacing),
+		makeWaypointAt(kNorth, 2.f * spacing + 2.f * horizon)};
+	writeRunnableMission(items);
+	// at the mission altitude already, so no climb is inserted before the first waypoint
+	_navigator.get_global_position()->alt = items[0].altitude;
+
+	// WHEN: the mission is activated, which sets the triplet before the cache is filled
+	_mission.activate();
+
+	// THEN: only the items read synchronously for the triplet are cached, the walk ends on the miss at the
+	// fourth item and can only assume a stop at the third, the safe fallback
+	Vector3f constraint = nextConstraint();
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_LT(constraint.norm(), cruiseSpeed());
+	EXPECT_NEAR(constraint.norm(), speedToStopWithin(spacing), 1e-2f);
+	EXPECT_TRUE(_mission.walkWaitsForCache());
+
+	// WHEN: the mode runs and the cache gets filled for the current sequence
+	runActiveUntilCacheLoaded();
+
+	// THEN: the walk was repeated, went past the close waypoints and lets the vehicle carry cruise speed
+	// through next, without the mission having advanced
+	constraint = nextConstraint();
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), cruiseSpeed(), 1e-3f);
+	EXPECT_FALSE(_mission.walkWaitsForCache());
+}
+
+TEST_F(MissionVelocityConstraintTest, StopAfterActivationIsNotRevisitedOnceTheCacheIsLoaded)
+{
+	// GIVEN: the next waypoint is followed by one the vehicle holds at, close enough to limit the speed at next
+	std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 32.f),
+					  makeWaypointAt(kNorth, 200.f)};
+	items[2].time_inside = 5.f;
+	writeRunnableMission(items);
+	_navigator.get_global_position()->alt = items[0].altitude;
+
+	// WHEN: the mission is activated and the cache gets filled
+	_mission.activate();
+	const Vector3f constraint_on_activation = nextConstraint();
+	runActiveUntilCacheLoaded();
+
+	// THEN: the walk ended on a real stop, the loaded cache changes nothing
+	ASSERT_TRUE(constraint_on_activation.isAllFinite());
+	EXPECT_NEAR(constraint_on_activation.norm(), speedToStopWithin(2.f), 1e-2f);
+	EXPECT_FALSE(_mission.walkWaitsForCache());
+	EXPECT_FLOAT_EQ(nextConstraint().norm(), constraint_on_activation.norm());
+}
+
+/* ---------------------------------------------------------------------------------------------------------
+ * Stop between the current and the next setpoint
+ * -------------------------------------------------------------------------------------------------------*/
+
+TEST_F(MissionVelocityConstraintTest, DelayAfterCurrentInvalidatesNext)
+{
+	// GIVEN: a straight mission with a delay right after the first waypoint
+	const std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeCommand(NAV_CMD_DELAY),
+						makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 300.f)};
+
+	// WHEN: the mission is activated, the vehicle flying to the first waypoint
+	activateAndLoadCache(items);
+
+	// THEN: next is invalid, so the vehicle brakes to a stop at the first waypoint instead of flying through it
+	EXPECT_FALSE(_navigator.get_position_setpoint_triplet()->next.valid);
+}
+
+TEST_F(MissionVelocityConstraintTest, DelayAfterNextStillStopsOnceNextBecomesCurrent)
+{
+	// GIVEN: a straight mission with a delay after the second waypoint
+	const std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f),
+						makeCommand(NAV_CMD_DELAY), makeWaypointAt(kNorth, 60.f), makeWaypointAt(kNorth, 300.f)};
+	activateAndLoadCache(items);
+
+	// THEN: on the approach, the walk sees the delay and requests a stop at next
+	ASSERT_TRUE(_navigator.get_position_setpoint_triplet()->next.valid);
+	ASSERT_TRUE(nextConstraint().isAllFinite());
+	EXPECT_FLOAT_EQ(nextConstraint().norm(), 0.f);
+
+	// WHEN: the second waypoint becomes current
+	_mission.advanceTo(1);
+
+	// THEN: the stop is not lost, next is invalid
+	EXPECT_FALSE(_navigator.get_position_setpoint_triplet()->next.valid);
+}
+
+TEST_F(MissionVelocityConstraintTest, HarmlessCommandAfterCurrentKeepsNext)
+{
+	// GIVEN: a straight mission with a command that does not hold the vehicle right after the first waypoint
+	const std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeCommand(NAV_CMD_DO_CHANGE_SPEED),
+						makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 300.f)};
+
+	// WHEN: the mission is activated
+	activateAndLoadCache(items);
+
+	// THEN: next stays valid, the vehicle flies through the first waypoint as before
+	EXPECT_TRUE(_navigator.get_position_setpoint_triplet()->next.valid);
+}
+
+/* ---------------------------------------------------------------------------------------------------------
+ * Repeat of the walk when the limits it planned with change
+ * -------------------------------------------------------------------------------------------------------*/
+
+TEST_F(MissionVelocityConstraintTest, LowerCruiseSpeedParameterRecomputesTheConstraint)
+{
+	// GIVEN: a straight mission that lets the vehicle carry cruise speed through next, active with the cache loaded
+	const float spacing = 2.f * _navigator.get_multicopter_braking_distance(cruiseSpeed());
+	const std::vector<mission_item_s> items{
+		makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeWaypointAt(kNorth, 2.f * spacing),
+		makeWaypointAt(kNorth, 3.f * spacing)};
+	activateAndLoadCache(items);
+	const float cruise_speed_before = cruiseSpeed();
+	ASSERT_NEAR(nextConstraint().norm(), cruise_speed_before, 1e-3f);
+
+	// WHEN: the cruise speed parameter is lowered in flight and the mode runs, without the mission advancing
+	setParam("MPC_XY_CRUISE", 0.5f * cruise_speed_before);
+	_mission.on_active();
+
+	// THEN: the constraint follows the new cruise speed instead of allowing the old one
+	ASSERT_NEAR(cruiseSpeed(), 0.5f * cruise_speed_before, 1e-3f) << "the navigator must see the new parameter";
+	const Vector3f constraint = nextConstraint();
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), cruiseSpeed(), 1e-3f);
+	EXPECT_NEAR(constraint(0), cruiseSpeed(), 1e-3f);
+}
+
+TEST_F(MissionVelocityConstraintTest, LowerAccelerationParameterRecomputesTheConstraint)
+{
+	// GIVEN: the path turns by 90 degrees at next, active with the cache loaded
+	std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f)};
+	double lat{0.0};
+	double lon{0.0};
+	waypoint_from_heading_and_distance(items[1].lat, items[1].lon, kEast, 200.f, &lat, &lon);
+	items.push_back(makeWaypoint(lat, lon));
+	activateAndLoadCache(items);
+	const Vector3f constraint_before = nextConstraint();
+	ASSERT_TRUE(constraint_before.isAllFinite());
+	ASSERT_GT(constraint_before.norm(), 0.f);
+
+	// WHEN: the horizontal acceleration limit is reduced in flight and the mode runs
+	const float acceleration_before = _navigator.get_multicopter_trajectory_limits().max_acc_xy;
+	setParam("MPC_ACC_HOR", acceleration_before / 3.f);
+	_mission.on_active();
+
+	// THEN: the turn allows less speed with the new limit, and the constraint matches a walk made with it
+	const Vector3f constraint = nextConstraint();
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_LT(constraint.norm(), constraint_before.norm());
+	EXPECT_NEAR(constraint.norm(), constraintFor(items, 0, 1).norm(), 1e-3f);
+}
+
+TEST_F(MissionVelocityConstraintTest, SpeedCommandRecomputesTheConstraint)
+{
+	// GIVEN: a straight mission at cruise speed, active with the cache loaded and no speed set by the mission
+	const float spacing = 2.f * _navigator.get_multicopter_braking_distance(cruiseSpeed());
+	const std::vector<mission_item_s> items{
+		makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeWaypointAt(kNorth, 2.f * spacing),
+		makeWaypointAt(kNorth, 3.f * spacing)};
+	activateAndLoadCache(items);
+	ASSERT_NEAR(nextConstraint().norm(), cruiseSpeed(), 1e-3f);
+
+	// WHEN: a lower speed is commanded, the way DO_CHANGE_SPEED reaches the navigator, and the mode runs
+	const float commanded_speed = 0.5f * cruiseSpeed();
+	_navigator.set_cruising_speed(commanded_speed);
+	_mission.on_active();
+
+	// THEN: the constraint follows the commanded speed
+	const Vector3f constraint = nextConstraint();
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), commanded_speed, 1e-3f);
+}
+
+TEST_F(MissionVelocityConstraintTest, UnchangedLimitsLeaveTheConstraintAlone)
+{
+	// GIVEN: the next waypoint is followed by a stop, the constraint is below cruise, active with the cache loaded
+	std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 32.f),
+					  makeWaypointAt(kNorth, 200.f)};
+	items[2].time_inside = 5.f;
+	activateAndLoadCache(items);
+	const Vector3f constraint_before = nextConstraint();
+	ASSERT_TRUE(constraint_before.isAllFinite());
+
+	// WHEN: the mode keeps running with the same limits, and the triplet's next setpoint is nudged so a repeated
+	// walk would no longer match it
+	_navigator.get_position_setpoint_triplet()->next.velocity_constraint[0] = 100.f;
+	_mission.on_active();
+	_mission.on_active();
+
+	// THEN: no walk was repeated, the published constraint is left untouched
+	EXPECT_FLOAT_EQ(nextConstraint()(0), 100.f);
+	EXPECT_FLOAT_EQ(nextConstraint()(1), constraint_before(1));
+}
+
+TEST_F(MissionVelocityConstraintTest, ShortLastSegmentLimitsTheSpeedLeavingNext)
+{
+	// GIVEN: after the next waypoint the mission ends a few metres further
+	const float last_segment = 2.f;
+	const std::vector<mission_item_s> items{
+		makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 30.f + last_segment)};
+	writeMission(items);
+
+	// WHEN: the vehicle flies from the first to the second waypoint
+	const Vector3f constraint = constraintFor(items, 0, 1);
+
+	// THEN: it may only leave next as fast as a stop at the end of the short segment allows
+	const math::trajectory::VehicleDynamicLimits limits = _navigator.get_multicopter_trajectory_limits();
+	const float expected = math::trajectory::computeMaxSpeedFromDistance(limits.max_jerk, limits.max_acc_xy,
+			       last_segment, 0.f);
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_GT(constraint.norm(), 0.f);
+	EXPECT_LT(constraint.norm(), cruiseSpeed());
+	EXPECT_NEAR(constraint.norm(), expected, 1e-2f);
+}
+
+TEST_F(MissionVelocityConstraintTest, CornerAfterNextLimitsTheSpeedAndSetsTheDirection)
+{
+	// GIVEN: the path turns by 90 degrees at the next waypoint, then continues east for a long way
+	const float spacing = 30.f;
+	std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing)};
+	double lat{0.0};
+	double lon{0.0};
+	waypoint_from_heading_and_distance(items[1].lat, items[1].lon, kEast, 200.f, &lat, &lon);
+	items.push_back(makeWaypoint(lat, lon));
+	writeMission(items);
+
+	// WHEN: the vehicle flies from the first to the second waypoint
+	const Vector3f constraint = constraintFor(items, 0, 1);
+
+	// THEN: the turn at next limits the speed below cruise, and the constraint points east, along the segment
+	// after next
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_GT(constraint.norm(), 0.f);
+	EXPECT_LT(constraint.norm(), cruiseSpeed());
+	EXPECT_NEAR(constraint(0), 0.f, 1e-2f);
+	EXPECT_GT(constraint(1), 0.f);
+}
+
+TEST_F(MissionVelocityConstraintTest, StopAtNextGivesZeroConstraint)
+{
+	// GIVEN: the next waypoint has a hold time
+	std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 60.f)};
+	items[1].time_inside = 5.f;
+	writeMission(items);
+
+	// WHEN: the vehicle flies from the first to the second waypoint
+	const Vector3f constraint = constraintFor(items, 0, 1);
+
+	// THEN: the vehicle stops at next, which is a known zero, not an unknown
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_FLOAT_EQ(constraint.norm(), 0.f);
+}
+
+TEST_F(MissionVelocityConstraintTest, EndOfMissionAfterNextGivesZeroConstraint)
+{
+	// GIVEN: the next waypoint is the last one
+	const std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f)};
+	writeMission(items);
+
+	// WHEN: the vehicle flies from the first to the second waypoint
+	const Vector3f constraint = constraintFor(items, 0, 1);
+
+	// THEN: stop
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_FLOAT_EQ(constraint.norm(), 0.f);
+}
+
+TEST_F(MissionVelocityConstraintTest, CacheMissAfterNextGivesZeroConstraint)
+{
+	// GIVEN: a straight mission whose items are not in the dataman cache
+	const std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 60.f)};
+	writeMission(items);
+	_mission.dropCachedItems();
+
+	// WHEN: the vehicle flies from the first to the second waypoint
+	const Vector3f constraint = constraintFor(items, 0, 1);
+
+	// THEN: the walk ends at next and treats it as a stop, the safe assumption
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_FLOAT_EQ(constraint.norm(), 0.f);
+}
+
+TEST_F(MissionVelocityConstraintTest, FixedWingLeavesTheConstraintUnknown)
+{
+	// GIVEN: a straight mission flown by a fixed wing
+	const std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 60.f)};
+	writeMission(items);
+	_navigator.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+	// WHEN: the vehicle flies from the first to the second waypoint
+	const Vector3f constraint = constraintFor(items, 0, 1);
+
+	// THEN: only the multicopter trajectory planner consumes it, nothing is produced
+	EXPECT_FALSE(constraint.isAllFinite());
+}
+
+/* ---------------------------------------------------------------------------------------------------------
+ * RTL: each mode flies the mission with its own stop criteria
+ * -------------------------------------------------------------------------------------------------------*/
+
+class RtlVelocityConstraintTest : public MissionVelocityConstraintTest
+{
+protected:
+	/* Each test creates only the mode it needs: dataman hands out at most 255 client ids per process and
+	 * never takes them back, a mode on every test of the suite would run out of them. */
+
+	/* Straight line north with a delay between the second and the third waypoint, spaced so that only a
+	 * stop at WP1 or WP2 can limit the speed there: WP0, WP1, DELAY, WP2, WP3 */
+	std::vector<mission_item_s> missionWithDelay()
+	{
+		const float spacing = 2.f * _navigator.get_multicopter_braking_distance(cruiseSpeed());
+		return {makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeCommand(NAV_CMD_DELAY),
+			makeWaypointAt(kNorth, 2.f * spacing), makeWaypointAt(kNorth, 3.f * spacing)};
+	}
+};
+
+TEST_F(RtlVelocityConstraintTest, MissionStopsForADelayAfterNext)
+{
+	// GIVEN: the mission with a delay after WP1
+	const std::vector<mission_item_s> items = missionWithDelay();
+	writeMission(items);
+
+	// WHEN: the mission flies from WP0 to WP1
+	const Vector3f constraint = constraintFor(_mission, items, 0, 1);
+
+	// THEN: the vehicle stops at WP1 to wait for the delay
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_FLOAT_EQ(constraint.norm(), 0.f);
+}
+
+TEST_F(RtlVelocityConstraintTest, FastRtlFliesThroughADelayAfterNext)
+{
+	// GIVEN: the mission with a delay after WP1
+	const std::vector<mission_item_s> items = missionWithDelay();
+	writeMission(items);
+	RtlVelocityConstraintTestPeer<RtlMissionFast> rtl{&_navigator};
+	useMission(rtl, items);
+
+	// WHEN: fast RTL flies from WP0 to WP1
+	const Vector3f constraint = constraintFor(rtl, items, 0, 1);
+
+	// THEN: fast RTL skips the delay, the vehicle leaves WP1 at cruise speed heading north
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), cruiseSpeed(), 1e-3f);
+	EXPECT_NEAR(constraint(0), cruiseSpeed(), 1e-3f);
+}
+
+TEST_F(RtlVelocityConstraintTest, FastReverseRtlFliesThroughADelayAfterNext)
+{
+	// GIVEN: the mission with a delay after WP1, flown backwards
+	const std::vector<mission_item_s> items = missionWithDelay();
+	writeMission(items);
+	RtlVelocityConstraintTestPeer<RtlMissionFastReverse> rtl{&_navigator};
+	useMission(rtl, items);
+
+	// WHEN: fast-reverse RTL flies from WP3 to WP2
+	const Vector3f constraint = constraintFor(rtl, items, 4, 3, true);
+
+	// THEN: fast-reverse RTL skips the delay, the vehicle leaves WP2 at cruise speed heading south
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), cruiseSpeed(), 1e-3f);
+	EXPECT_NEAR(constraint(0), -cruiseSpeed(), 1e-3f);
+}
+
+TEST_F(RtlVelocityConstraintTest, FastRtlStopsAtALandingAsNext)
+{
+	// GIVEN: the mission with WP1 turned into a landing
+	std::vector<mission_item_s> items = missionWithDelay();
+	items[1].nav_cmd = NAV_CMD_LAND;
+	writeMission(items);
+	RtlVelocityConstraintTestPeer<RtlMissionFast> rtl{&_navigator};
+	useMission(rtl, items);
+
+	// WHEN: fast RTL flies from WP0 to the landing
+	const Vector3f constraint = constraintFor(rtl, items, 0, 1);
+
+	// THEN: the flight ends there, the vehicle stops
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_FLOAT_EQ(constraint.norm(), 0.f);
+}
+
+TEST_F(RtlVelocityConstraintTest, FastReverseRtlStopsAtATakeoffAsNext)
+{
+	// GIVEN: the mission with WP2 turned into a takeoff
+	std::vector<mission_item_s> items = missionWithDelay();
+	items[3].nav_cmd = NAV_CMD_TAKEOFF;
+	writeMission(items);
+	RtlVelocityConstraintTestPeer<RtlMissionFastReverse> rtl{&_navigator};
+	useMission(rtl, items);
+
+	// WHEN: fast-reverse RTL flies from WP3 to the takeoff
+	const Vector3f constraint = constraintFor(rtl, items, 4, 3, true);
+
+	// THEN: flying backwards the landing starts at the takeoff, the vehicle stops
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_FLOAT_EQ(constraint.norm(), 0.f);
+}
+
+TEST_F(RtlVelocityConstraintTest, WalkFollowsTheMissionBackwards)
+{
+	// GIVEN: a straight mission flown backwards by fast-reverse RTL, from the last waypoint towards the first
+	const float spacing = 30.f;
+	const std::vector<mission_item_s> items{
+		makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, spacing), makeWaypointAt(kNorth, 2.f * spacing),
+		makeWaypointAt(kNorth, 3.f * spacing)};
+	writeMission(items);
+	RtlVelocityConstraintTestPeer<RtlMissionFastReverse> rtl{&_navigator};
+	useMission(rtl, items);
+
+	// WHEN: fast-reverse RTL flies from the last to the third waypoint
+	const Vector3f constraint = constraintFor(rtl, items, 3, 2, true);
+
+	// THEN: it may leave the third waypoint at cruise speed, heading south
+	ASSERT_TRUE(constraint.isAllFinite());
+	EXPECT_NEAR(constraint.norm(), cruiseSpeed(), 1e-3f);
+	EXPECT_LT(constraint(0), 0.f);
+}

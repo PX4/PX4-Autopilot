@@ -246,3 +246,78 @@ TEST_F(PositionSmoothingTest, doesNotDriftPastUnreachedWaypoint)
 	// Without the fix the look-ahead marches down the extended leg and this grows unbounded.
 	EXPECT_LT(max_distance_past_target, 10.f) << "Vehicle drifted too far past the unreached waypoint\n";
 }
+
+TEST_F(PositionSmoothingTest, nextVelocityConstraintAllowsCarryingSpeedThroughNext)
+{
+	// GIVEN: a straight line with the next waypoint right behind the target (e.g. survey entry point),
+	// the vehicle close enough to the target that stopping at next requires braking already
+	const Vector3f START{17.f, 0.f, 0.f};
+	const Vector3f TARGET{20.f, 0.f, 0.f};
+	const Vector3f NEXT{21.f, 0.f, 0.f};
+	Vector3f waypoints[3] = {START, TARGET, NEXT};
+	PositionSmoothing::PositionSmoothingSetpoints out;
+
+	// WHEN: the velocity after the next waypoint is unknown
+	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	_position_smoothing.setNextVelocityConstraint(Vector3f{NAN, NAN, NAN}, TARGET_ACCEPTANCE_RADIUS);
+	_position_smoothing.generateSetpoints(START, waypoints, Vector3f{}, 0.02f, false, out);
+	const float speed_unknown = Vector2f(out.unsmoothed_velocity).norm();
+
+	// THEN: the planner has to assume a stop at next and slows down already for the target
+	EXPECT_LT(speed_unknown, CRUISE_SPEED);
+
+	// WHEN: the vehicle is known to stop at the next waypoint
+	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	_position_smoothing.setNextVelocityConstraint(Vector3f{}, TARGET_ACCEPTANCE_RADIUS);
+	_position_smoothing.generateSetpoints(START, waypoints, Vector3f{}, 0.02f, false, out);
+	const float speed_stop = Vector2f(out.unsmoothed_velocity).norm();
+
+	// THEN: same result
+	EXPECT_FLOAT_EQ(speed_stop, speed_unknown);
+
+	// WHEN: the vehicle may leave the next waypoint at cruise speed along the same line
+	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	_position_smoothing.setNextVelocityConstraint(Vector3f{CRUISE_SPEED, 0.f, 0.f}, TARGET_ACCEPTANCE_RADIUS);
+	_position_smoothing.generateSetpoints(START, waypoints, Vector3f{}, 0.02f, false, out);
+	const float speed_through = Vector2f(out.unsmoothed_velocity).norm();
+
+	// THEN: the vehicle may pass both waypoints at cruise speed
+	EXPECT_GT(speed_through, speed_unknown);
+	EXPECT_FLOAT_EQ(speed_through, CRUISE_SPEED);
+}
+
+// Climb to a waypoint that is passed in a straight line: the navigator only accepts it once its altitude is
+// reached, so the vehicle must not overshoot it horizontally while it is still climbing.
+TEST_F(PositionSmoothingTest, doesNotPassTargetBeforeItsAltitudeIsReached)
+{
+	const int N_ITER = 1500; // 30 s at 50 Hz
+	const float DELTA_T = 0.02f;
+
+	// GIVEN: a 30 m climb over 20 m horizontally (NED, z down), the path continuing straight after the target,
+	// and a next velocity constraint allowing cruise speed through it
+	const Vector3f PREV{0.f, 0.f, -10.f};
+	const Vector3f TARGET{20.f, 0.f, -40.f};
+	const Vector3f NEXT{23.f, 0.f, -40.f};
+	Vector3f waypoints[3] = {PREV, TARGET, NEXT};
+
+	_position_smoothing.setMaxVelocityZ(2.f); // the climb takes much longer than the horizontal leg
+	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, PREV);
+	_position_smoothing.setNextVelocityConstraint(Vector3f{CRUISE_SPEED, 0.f, 0.f}, TARGET_ACCEPTANCE_RADIUS);
+
+	Vector3f position = PREV;
+	PositionSmoothing::PositionSmoothingSetpoints out;
+	bool altitude_reached = false;
+	float max_distance_past_target = 0.f;
+
+	// WHEN: the vehicle flies towards the target, which the navigator keeps until its altitude is reached
+	for (int i = 0; (i < N_ITER) && !altitude_reached; i++) {
+		_position_smoothing.generateSetpoints(position, waypoints, Vector3f{}, DELTA_T, false, out);
+		position = out.position;
+		max_distance_past_target = fmaxf(max_distance_past_target, position(0) - TARGET(0));
+		altitude_reached = fabsf(position(2) - TARGET(2)) < VERTICAL_ACCEPTANCE_RADIUS;
+	}
+
+	// THEN: the vehicle waits horizontally at the target until it has climbed, it does not pass it
+	EXPECT_TRUE(altitude_reached) << "Vehicle never reached the target altitude\n";
+	EXPECT_LT(max_distance_past_target, TARGET_ACCEPTANCE_RADIUS) << "Vehicle passed the target while still climbing\n";
+}

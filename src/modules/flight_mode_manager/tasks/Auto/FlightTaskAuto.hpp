@@ -135,6 +135,8 @@ protected:
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
+	matrix::Vector3f _next_velocity_constraint{NAN, NAN, NAN}; ///< velocity the navigator allows when leaving the next waypoint, NAN if unknown
+	float _next_acceptance_radius{0.f}; ///< acceptance radius of the next waypoint
 
 	float _yaw_setpoint_previous{NAN}; /**< Used because _yaw_setpoint is overwritten in multiple places */
 	float _triplet_yaw{NAN}; /**< Last yaw from position_setpoint_triplet, to detect navigator changes */
