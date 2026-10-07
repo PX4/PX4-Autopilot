@@ -2056,7 +2056,7 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.mag_active    = cs.mag;
 	msg.aspd_active   = cs.fuse_aspd;
 	msg.rngbcn_active = cs.rngbcn_fusion;
-	msg.wheel_active  = cs.wheel_fusion;
+	msg.wheel_active  = cs.fuse_wheel;
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 	{

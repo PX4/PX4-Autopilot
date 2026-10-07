@@ -37,9 +37,9 @@
 
 void Ekf::controlWheelEncoderFusion(const imuSample &imu_delayed)
 {
-	_fc.wheel_encoders.available = (_params.ekf2_wheel_ctrl != 0);
+	_fc.wheel.available = (_params.ekf2_wheel_ctrl != 0);
 
-	if (!_wheel_encoder_buffer || !_fc.wheel_encoders.intended()) {
+	if (!_wheel_encoder_buffer || !_fc.wheel.intended()) {
 		stopWheelEncoderFusion();
 		return;
 	}
@@ -52,7 +52,7 @@ void Ekf::controlWheelEncoderFusion(const imuSample &imu_delayed)
 		fuseWheelEncoders(sample_delayed);
 	}
 
-	if (_control_status.flags.wheel_encoders_fusion
+	if (_control_status.flags.fuse_wheel
 	    && isTimedOut(_aid_src_wheel_encoders.time_last_fuse, 2 * WHEEL_MAX_INTERVAL)) {
 		stopWheelEncoderFusion();
 	}
@@ -103,12 +103,12 @@ void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample)
 	_aid_src_wheel_encoders.time_last_fuse = _time_delayed_us;
 	_time_last_hor_vel_fuse = _time_delayed_us;
 
-	if (!_control_status.flags.wheel_encoders_fusion) {
+	if (!_control_status.flags.fuse_weel) {
 		ECL_INFO("starting wheel encoder fusion");
-		_control_status.flags.wheel_encoders_fusion = true;
+		_control_status.flags.fuse_wheel = true;
 	}
 }
 void Ekf::stopWheelEncoderFusion()
 {
-	_control_status.flags.wheel_encoders_fusion = false;
+	_control_status.flags.fuse_wheel = false;
 }

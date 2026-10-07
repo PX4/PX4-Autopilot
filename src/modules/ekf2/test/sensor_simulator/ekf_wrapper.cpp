@@ -14,6 +14,7 @@ EkfWrapper::EkfWrapper(std::shared_ptr<Ekf> ekf):
 	_fc->mag.enabled = true;
 	_fc->aspd.enabled = true;
 	_fc->rngbcn.enabled = true;
+	_fc->wheel.enabled = true;
 
 	for (int i = 0; i < MAX_AGP_INSTANCES; i++) {
 		_fc->agp[i].enabled = true;

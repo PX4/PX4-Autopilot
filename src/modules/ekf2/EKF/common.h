@@ -79,6 +79,9 @@ static constexpr uint64_t MAG_MAX_INTERVAL      =
 static constexpr uint64_t RNGBC_MAX_INTERVAL    =
 	5000e3;  ///< Maximum allowable time interval between ranging beacon measurements (uSec)
 
+static constexpr uint64_t WHEEL_MAX_INTERVAL    =
+	5000e3;  ///< Maximum allowable time interval between ranging beacon measurements (uSec)
+
 // bad accelerometer detection and mitigation
 static constexpr uint64_t BADACC_PROBATION =
 	3e6; ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
@@ -651,7 +654,7 @@ uint64_t gnss_hgt_fault              :
 		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
 		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
 		uint64_t rngbcn_fusion           : 1; ///< 50 - true when ranging beacon position fusion is active
-		uint64_t wheel_fusion           : 1; ///< 50 - true when wheel encoder fusion is active
+		uint64_t fuse_wheel              : 1; ///< 50 - true when wheel encoder fusion is active
 		uint64_t armed                   : 1; ///< 51 - true when the vehicle is armed
 
 	} flags;

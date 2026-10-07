@@ -1002,6 +1002,12 @@ private:
 	void stopRangingBeaconFusion();
 #endif // CONFIG_EKF2_RANGING_BEACON
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	void controlWheelEncoderFusion(const imuSample &imu_delayed);
+	void fuseWheelEncoders(const wheelEncoderSample &sample);
+	void stopWheelEncoderFusion();
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control fusion of magnetometer observations
 	void controlMagFusion(const imuSample &imu_sample);
