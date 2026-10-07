@@ -779,34 +779,39 @@ bool MissionBase::isFlownThroughWithoutStopping(const mission_item_s &item, int3
 		return false;
 	}
 
-	// The following position item was found skipping all non-position items in between. Any of those
-	// that makes the vehicle wait at the waypoint (delay, payload command with timeout, transition) or
-	// that redirects the mission (jump) means the waypoint is not simply flown through.
+	// The following position item was found skipping the items in between without following jumps, so a
+	// jump redirects the mission away from it. The number of items in between is not bounded, so read them
+	// from the cache only: a timeout here would turn this into one blocking dataman read per item.
+	return !hasStopBetween(item_index, following_index, true, 0, cache_miss);
+}
+
+bool MissionBase::hasStopBetween(int32_t item_index, int32_t following_index, bool jump_is_stop,
+				 hrt_abstime timeout, bool &cache_miss)
+{
+	cache_miss = false;
+
 	const int32_t step = (following_index > item_index) ? 1 : -1;
 	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
 
-	// The number of items in between is not bounded, so read them from the cache only: a timeout here
-	// would turn this into one blocking dataman read per item. A miss is treated like an item that
-	// stops the vehicle, which just falls back to not carrying speed through the waypoint.
 	for (int32_t index = item_index + step; index != following_index; index += step) {
 		mission_item_s item_in_between;
 		const bool success = _dataman_cache.loadWait(mission_dataman_id, index,
-				     reinterpret_cast<uint8_t *>(&item_in_between), sizeof(item_in_between));
+				     reinterpret_cast<uint8_t *>(&item_in_between), sizeof(item_in_between), timeout);
 
 		if (!success) {
 			cache_miss = true;
-			return false;
+			return true;
 		}
 
 		if (item_in_between.nav_cmd == NAV_CMD_DELAY
-		    || item_in_between.nav_cmd == NAV_CMD_DO_JUMP
+		    || (jump_is_stop && (item_in_between.nav_cmd == NAV_CMD_DO_JUMP))
 		    || item_in_between.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 		    || item_has_timeout(item_in_between)) {
-			return false;
+			return true;
 		}
 	}
 
-	return true;
+	return false;
 }
 
 bool MissionBase::findCachedPositionItem(int32_t start_index, bool direction_backward, int32_t &following_index,

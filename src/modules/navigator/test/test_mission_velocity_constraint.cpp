@@ -52,6 +52,7 @@
 #include <mathlib/math/TrajMath.hpp>
 #include <parameters/param.h>
 #include <px4_platform_common/posix.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_status.h>
 
 #include <vector>
@@ -105,10 +106,19 @@ public:
 	 * rerun the feasibility checker, which needs a home position and geofence status the test does not have. */
 	void activate()
 	{
+		// on_inactive() keeps the vehicle status current before an activation in flight
+		_vehicle_status_sub.update();
 		MissionBase::on_activation();
 	}
 
 	using Mission::on_active;
+
+	/* Advance the mission to the given item and rebuild the triplet, the way reaching a waypoint does */
+	void advanceTo(int32_t index)
+	{
+		setMissionIndex(index);
+		set_mission_items();
+	}
 
 	bool cacheIsLoading() const { return _dataman_cache.isLoading(); }
 
@@ -168,6 +178,12 @@ protected:
 		/* get_time_inside() only holds a plain waypoint for a rotary wing, same as brake_for_hold, and the
 		 * constraint is only produced for a rotary wing. */
 		_navigator.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		/* The mission reads the vehicle type for brake_for_hold from its own subscription */
+		vehicle_status_s vehicle_status{};
+		vehicle_status.timestamp = hrt_absolute_time();
+		vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		_vehicle_status_pub.publish(vehicle_status);
 	}
 
 	void TearDown() override
@@ -264,6 +280,7 @@ protected:
 	Navigator _navigator{};
 	MissionVelocityConstraintTestPeer _mission{&_navigator};
 	std::vector<param_t> _changed_params{};
+	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
 };
 
 /* ---------------------------------------------------------------------------------------------------------
@@ -474,6 +491,55 @@ TEST_F(MissionVelocityConstraintTest, StopAfterActivationIsNotRevisitedOnceTheCa
 	EXPECT_NEAR(constraint_on_activation.norm(), speedToStopWithin(2.f), 1e-2f);
 	EXPECT_FALSE(_mission.walkWaitsForCache());
 	EXPECT_FLOAT_EQ(nextConstraint().norm(), constraint_on_activation.norm());
+}
+
+/* ---------------------------------------------------------------------------------------------------------
+ * Stop between the current and the next setpoint
+ * -------------------------------------------------------------------------------------------------------*/
+
+TEST_F(MissionVelocityConstraintTest, DelayAfterCurrentInvalidatesNext)
+{
+	// GIVEN: a straight mission with a delay right after the first waypoint
+	const std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeCommand(NAV_CMD_DELAY),
+						makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 300.f)};
+
+	// WHEN: the mission is activated, the vehicle flying to the first waypoint
+	activateAndLoadCache(items);
+
+	// THEN: next is invalid, so the vehicle brakes to a stop at the first waypoint instead of flying through it
+	EXPECT_FALSE(_navigator.get_position_setpoint_triplet()->next.valid);
+}
+
+TEST_F(MissionVelocityConstraintTest, DelayAfterNextStillStopsOnceNextBecomesCurrent)
+{
+	// GIVEN: a straight mission with a delay after the second waypoint
+	const std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeWaypointAt(kNorth, 30.f),
+						makeCommand(NAV_CMD_DELAY), makeWaypointAt(kNorth, 60.f), makeWaypointAt(kNorth, 300.f)};
+	activateAndLoadCache(items);
+
+	// THEN: on the approach, the walk sees the delay and requests a stop at next
+	ASSERT_TRUE(_navigator.get_position_setpoint_triplet()->next.valid);
+	ASSERT_TRUE(nextConstraint().isAllFinite());
+	EXPECT_FLOAT_EQ(nextConstraint().norm(), 0.f);
+
+	// WHEN: the second waypoint becomes current
+	_mission.advanceTo(1);
+
+	// THEN: the stop is not lost, next is invalid
+	EXPECT_FALSE(_navigator.get_position_setpoint_triplet()->next.valid);
+}
+
+TEST_F(MissionVelocityConstraintTest, HarmlessCommandAfterCurrentKeepsNext)
+{
+	// GIVEN: a straight mission with a command that does not hold the vehicle right after the first waypoint
+	const std::vector<mission_item_s> items{makeWaypointAt(kNorth, 0.f), makeCommand(NAV_CMD_DO_CHANGE_SPEED),
+						makeWaypointAt(kNorth, 30.f), makeWaypointAt(kNorth, 300.f)};
+
+	// WHEN: the mission is activated
+	activateAndLoadCache(items);
+
+	// THEN: next stays valid, the vehicle flies through the first waypoint as before
+	EXPECT_TRUE(_navigator.get_position_setpoint_triplet()->next.valid);
 }
 
 /* ---------------------------------------------------------------------------------------------------------

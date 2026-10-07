@@ -249,8 +249,21 @@ void Mission::setActiveMissionItems()
 		// which makes the FlightTask disregard the next position
 		// TODO: Setting the next waypoint's validity flag to handle braking / correct waypoint behavior
 		// seems hacky, handle this more properly.
+		// Same for a delay, transition or timeout item between the current and the next position item.
+		// Only checked without a jump back in between and for the items the mission really holds, takeoff
+		// and landing work items replace the next item without its index.
+		bool stop_before_next = false;
+
+		if ((new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) && (num_found_items >= 1u)
+		    && (next_mission_items_index[0u] > _mission.current_seq)) {
+			bool cache_miss{false};
+			stop_before_next = hasStopBetween(_mission.current_seq, next_mission_items_index[0u], false,
+							  MAX_DATAMAN_LOAD_WAIT, cache_miss);
+		}
+
 		const bool brake_for_hold = _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-					    && (get_time_inside(_mission_item) > FLT_EPSILON || item_has_timeout(_mission_item));
+					    && (get_time_inside(_mission_item) > FLT_EPSILON || item_has_timeout(_mission_item)
+						|| stop_before_next);
 
 		if (_mission_item.autocontinue && !brake_for_hold) {
 			/* try to process next mission item */

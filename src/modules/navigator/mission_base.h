@@ -394,6 +394,22 @@ protected:
 			bool &cache_miss);
 
 	/**
+	 * @brief Check whether a non-position item between two position items stops the vehicle
+	 *
+	 * Delays, VTOL transitions and items with a timeout make the vehicle wait at the position item
+	 * before them. An item that cannot be read counts as a stop, the safe assumption.
+	 *
+	 * @param item_index index of the position item the vehicle flies to first
+	 * @param following_index index of the position item it flies to after that
+	 * @param jump_is_stop also count a DO_JUMP as a stop, for a caller that does not follow jumps
+	 * @param timeout maximum time to wait for an item that is not cached, 0 reads the dataman cache only
+	 * @param[out] cache_miss true if the answer is true only because an item could not be read
+	 * @return true if the vehicle stops at the item at item_index because of an item in between
+	 */
+	bool hasStopBetween(int32_t item_index, int32_t following_index, bool jump_is_stop, hrt_abstime timeout,
+			    bool &cache_miss);
+
+	/**
 	 * @brief Fill the velocity constraint of the next setpoint from the mission after it
 	 *
 	 * Walks the position items after next, until one the vehicle stops at, a cache miss (treated
