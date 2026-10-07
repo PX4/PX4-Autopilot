@@ -151,6 +151,13 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 wind estimation support.
 
+menuconfig EKF2_WHEEL_ENCODERS
+depends on MODULES_EKF2
+	bool "wheel encoder support"
+	default y
+	---help---
+		EKF2 wheel encoder support.
+
 menuconfig USER_EKF2
 	bool "ekf2 running as userspace module"
 	default n

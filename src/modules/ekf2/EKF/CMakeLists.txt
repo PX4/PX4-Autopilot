@@ -139,10 +139,7 @@ if(CONFIG_EKF2_TERRAIN)
 endif()
 
 if(CONFIG_EKF2_WHEEL_ENCODERS)
-	list(APPEND EKF_SRCS
-		EKF/aid_sources/wheel_encoders/wheel_encoders_control.cpp
-		EKF/aid_sources/wheel_encoders/wheel_encoders_fusion.cpp
-	)
+	list(APPEND EKF_SRCS aid_sources/wheel_encoders/wheel_encoders_control.cpp)
 endif()
 
 if(CONFIG_EKF2_WIND)
