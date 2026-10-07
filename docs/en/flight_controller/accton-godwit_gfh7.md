@@ -249,7 +249,9 @@ make accton-godwit_gfh7_default
 ## Debug Port {#debug_port}
 
 The top face has two unpopulated five-pad test/debug groups for manufacturing, debugging, or hardware verification:
+
 R V G C D: STM32H753 (H7) test/debug pad group is the FMU SWD interface.
+
 | Pad |  Signal    | Voltage |
 | --- | ---------- | ------- |
 |  R  | ST_RST_L   | 3.3V    |
@@ -259,6 +261,7 @@ R V G C D: STM32H753 (H7) test/debug pad group is the FMU SWD interface.
 |  D  | FMU_SWDIO  | 3.3V    |
 
 R C D G V: OSD co-processor test/debug pad group is the OSD SWD interface.
+
 | Pad |  Signal    | Voltage |
 | --- | ---------- | ------- |
 |  R  | OSD_NRST   | 3.3V    |
@@ -266,7 +269,8 @@ R C D G V: OSD co-processor test/debug pad group is the OSD SWD interface.
 |  G  | GND        | GND     |
 |  C  | G431_SWCLK | 3.3V    |
 |  D  | G431_SWDIO | 3.3V    |
-They are not general user interfaces. Do not connect wiring or apply power, and do not use them as GPIO, UART, or I2C interfaces. Individual pad nets and functions are not publicly defined.
+
+They are not general user interfaces: only connect an SWD debug probe to them, and do not apply power to them or use them as GPIO, UART, or I2C interfaces.
 
 The default firmware does not provide a serial [System Console](../debug/system_console.md).
 Use the [MAVLink Shell](../debug/mavlink_shell.md) over USB or a telemetry link instead.
