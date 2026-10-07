@@ -50,6 +50,10 @@ class FlightTaskManualAltitude : public FlightTask
 public:
 	FlightTaskManualAltitude() = default;
 	virtual ~FlightTaskManualAltitude() = default;
+
+	static constexpr uint8_t kRequiredInputs = PositionZ | VelocityZ | Heading | ManualControl;
+	uint8_t requiredInputs() const override { return kRequiredInputs; }
+
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	bool updateInitialize() override;
 	bool update() override;
@@ -64,6 +68,7 @@ protected:
 	virtual void _updateXYSetpoint();
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
 	bool _checkTakeoff() override;
+	bool _manualControlAvailable() override { return _sticks.isAvailable(); }
 	void _updateConstraintsFromEstimator();
 
 	/**
@@ -77,7 +82,6 @@ protected:
 	StickTiltXY _stick_tilt_xy{this};
 	StickYaw _stick_yaw{this};
 
-	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
 	bool _terrain_hold{false}; /**< MPC_ALT_MODE=2 sub-state: true when latched onto ground distance while stationary. Input to the terrain-following gate. */
 	bool _z_setpoint_from_terrain{false}; /**< Output of _terrainFollowing() for this iteration: true iff it produced a finite _position_setpoint(2). */
 
