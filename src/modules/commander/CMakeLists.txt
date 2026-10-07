@@ -80,3 +80,5 @@ px4_add_module(
 
 px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)
 px4_add_functional_gtest(SRC ModeManagementTest.cpp LINKLIBS modules__commander)
+
+px4_add_functional_gtest(SRC UserModeIntentionSQETest.cpp EXTRA_SRCS UserModeIntention.cpp LINKLIBS health_and_arming_checks mode_util hysteresis sensor_calibration ArmAuthorization)

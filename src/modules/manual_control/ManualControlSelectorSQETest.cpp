@@ -201,7 +201,7 @@ TEST(SQEManualControlSelector, TC_C_36_PriorityRcThenMavlinkAscending)
 //   P=!current.valid  Q=isRc(in)  R=isRc(current)  S=isMavlink(in)  T=(in <= current source)
 //   P : (none,RC)=T            vs (cur M1,RC)=F
 //   Q : (cur RC,RC)=T          vs (cur RC,UNKNOWN)=F   [only Q/S differ, in no longer RC or MAVLink]
-//   R : (cur RC,M0)=T [S&&R]   vs (cur M1,RC)=F        (R changes with Q fixed false/true respectively)
+//   R : (cur RC,RC)=T [P=F,Q=T,R=T,S=F] vs (cur M1,RC)=F [P=F,Q=T,R=F,S=F]   (only R differs, S=F masks T)
 //   S : (cur M1,M0)=T          vs (cur M1,UNKNOWN)=F
 //   T : (cur M1,M1)=T          vs (cur M1,M2)=F
 TEST(SQEManualControlSelector, TC_C_37_PriorityMavlinkAscendingThenRc)
