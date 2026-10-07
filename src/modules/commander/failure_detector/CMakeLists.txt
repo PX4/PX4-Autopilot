@@ -39,17 +39,5 @@ px4_add_library(failure_detector
 px4_add_functional_gtest(SRC FailureDetectorTest.cpp
 	EXTRA_SRCS
 		${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/test_stubs/stub_daemon.cpp
-	LINKLIBS failure_detector hysteresis
+	LINKLIBS failure_detector hysteresis uORB
 )
-
-target_compile_options(failure_detector PRIVATE --coverage -fprofile-arcs -ftest-coverage -O0 -fno-inline)
-target_link_options(failure_detector PRIVATE --coverage)
-target_compile_options(functional-FailureDetector PRIVATE --coverage -fprofile-arcs -ftest-coverage -O0 -fno-inline)
-target_link_options(functional-FailureDetector PRIVATE --coverage)
-
-
-
-
-
-
-

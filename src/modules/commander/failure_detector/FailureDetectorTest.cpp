@@ -413,7 +413,16 @@ TEST_F(FailureDetectorTest, MotorUndercurrent_MCDC_Pair_C_False_TimedOut)
 	_esc_status_pub.publish(esc);
 	detector.update(vehicle_status, control_mode);
 
-	// Undercurrent branch evaluates to (T && T && F) -> False
+	// Undercurrent branch evaluates to (T && T && F) -> False: timer never started
+	// Fresh telemetry resumes after stale period: clears timeout flag, undercurrent was never flagged
+	now = hrt_absolute_time();
+	esc.timestamp = now;
+	esc.esc[0].timestamp = now;
+	esc.esc[0].esc_current = 2.0f;
+	_esc_status_pub.publish(esc);
+	detector.update(vehicle_status, control_mode);
+
+	EXPECT_FALSE(detector.getStatusFlags().motor);
 }
 
 /* =========================================================================
@@ -958,4 +967,35 @@ TEST_F(FailureDetectorTest, ImbalancedPropeller_MismatchedDeviceId_InstanceSearc
 	// Instance search succeeds and finds matching instance 1
 	EXPECT_FALSE(detector.getStatusFlags().imbalanced_prop);
 }
+
+// TC-A-25: Imbalanced Propeller Selected ID Matches No Instance (FailureDetector.cpp:205-210)
+TEST_F(FailureDetectorTest, ImbalancedPropeller_MismatchedDeviceId_NoInstanceMatch)
+{
+	setParamInt("FD_IMB_PROP_THR", 5);
+
+	FailureDetectorTestable detector;
+	detector.updateParams();
+
+	vehicle_status_s vehicle_status{};
+	vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
+
+	vehicle_control_mode_s control_mode{};
+	control_mode.flag_control_attitude_enabled = true;
+
+	// Selected accelerometer ID is 99999 (does not match any registered instance)
+	sensor_selection_s selection{};
+	selection.accel_device_id = 99999;
+	_sensor_selection_pub.publish(selection);
+
+	vehicle_imu_status_s imu{};
+	imu.accel_device_id = 22222;
+	imu.timestamp = hrt_absolute_time();
+	_imu_status_pub.publish(imu);
+
+	detector.update(vehicle_status, control_mode);
+
+	// ChangeInstance(i) returns false for nonexistent instances, executing continue at line 209
+	EXPECT_FALSE(detector.getStatusFlags().imbalanced_prop);
+}
+
 
