@@ -1,0 +1,30 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_WHEEL_CTRL:
+      description:
+        short: Enable wheel encoder control
+        long: If this parameter is enabled then the estimator will make use of the
+          wheel encoder measurements to estimate its velocity.
+      type: boolean
+      default: 1
+    EKF2_WHEEL_NOISE:
+      description:
+        short: Wheel encoder noise
+        long: Reported noise from wheel encoder
+      type: float
+      min: 0.01
+      max: 5.0
+      unit: m
+      default: 0.01
+    EKF2_WHEEL_GATE:
+      description:
+        short: Gate size for wheel encoder fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1

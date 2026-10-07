@@ -159,6 +159,10 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	updateTerrainValidity();
 #endif // CONFIG_EKF2_TERRAIN
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	controlWheelEncoderFusion(imu_delayed);
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 	_zero_velocity_update.update(*this, imu_delayed);
 
 	if (_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias)) {

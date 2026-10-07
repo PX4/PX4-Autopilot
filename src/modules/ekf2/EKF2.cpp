@@ -1050,6 +1050,7 @@ void EKF2::initFusionControl()
 		_fc.mag.enabled    = sens_en & SensEn::MAG;
 		_fc.aspd.enabled   = sens_en & SensEn::ASPD;
 		_fc.rngbcn.enabled = sens_en & SensEn::RNGBCN;
+		_fc.wheel.enabled  = sens_en & SensEn::WHEEL;
 	}
 }
 
@@ -2044,6 +2045,7 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.mag_intended    = _fc.mag.intended();
 	msg.aspd_intended   = _fc.aspd.intended();
 	msg.rngbcn_intended = _fc.rngbcn.intended();
+	msg.wheel_intended  = _fc.wheel.intended();
 
 	const auto &cs = _ekf.control_status_flags();
 	msg.gps_active[0] = cs.gnss_pos || cs.gps_hgt || cs.gnss_vel || cs.gnss_yaw;
@@ -2054,6 +2056,7 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.mag_active    = cs.mag;
 	msg.aspd_active   = cs.fuse_aspd;
 	msg.rngbcn_active = cs.rngbcn_fusion;
+	msg.wheel_active  = cs.wheel_fusion;
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 	{

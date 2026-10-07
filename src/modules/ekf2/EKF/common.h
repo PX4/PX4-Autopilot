@@ -321,6 +321,7 @@ struct FusionControl {
 	FusionSensor mag;
 	FusionSensor aspd;
 	FusionSensor rngbcn;
+	FusionSensor wheel;
 };
 
 struct parameters {
@@ -553,6 +554,13 @@ struct parameters {
 	float ekf2_rngbc_gate{5.f};            ///< ranging beacon fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_RANGING_BEACON
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	// ranging beacon fusion
+	int32_t ekf2_wheel_ctrl{0};            ///< wheel encoder fusion control (0=disabled, 1=enabled)
+	float ekf2_wheel_noise{0.01f};           ///< wheel encoder measurement noise (m)
+	float ekf2_wheel_gate{5.f};            ///< wheel encoder fusion innovation consistency gate size (STD)
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 };
 
 union fault_status_u {
@@ -643,6 +651,7 @@ uint64_t gnss_hgt_fault              :
 		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
 		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
 		uint64_t rngbcn_fusion           : 1; ///< 50 - true when ranging beacon position fusion is active
+		uint64_t wheel_fusion           : 1; ///< 50 - true when wheel encoder fusion is active
 		uint64_t armed                   : 1; ///< 51 - true when the vehicle is armed
 
 	} flags;
