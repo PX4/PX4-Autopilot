@@ -37,11 +37,23 @@ if(px4_git_included)
 endif(px4_git_included)
 set(px4_git_included true)
 
+# Check all submodules once per configure, whether the build started from
+# make, an IDE or CMake directly.
+execute_process(
+	COMMAND Tools/check_submodules.sh
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	RESULT_VARIABLE check_submodules_result
+	)
+if(NOT check_submodules_result EQUAL 0)
+	message(FATAL_ERROR "Tools/check_submodules.sh failed")
+endif()
+
 #=============================================================================
 #
 #	px4_add_git_submodule
 #
-#	This function add a git submodule target.
+#	This function adds a target for a git submodule, which
+#	Tools/check_submodules.sh has already checked out.
 #
 #	Usage:
 #		px4_add_git_submodule(TARGET <target> PATH <path>)
@@ -62,30 +74,5 @@ function(px4_add_git_submodule)
 		REQUIRED TARGET PATH
 		ARGN ${ARGN})
 
-	set(REL_PATH)
-
-	if(IS_ABSOLUTE ${PATH})
-		file(RELATIVE_PATH REL_PATH ${PX4_SOURCE_DIR} ${PATH})
-	else()
-		file(RELATIVE_PATH REL_PATH ${PX4_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${PATH})
-	endif()
-
-	execute_process(
-		COMMAND Tools/check_submodules.sh ${REL_PATH}
-		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-		)
-
-	string(REPLACE "/" "_" NAME ${PATH})
-	string(REPLACE "." "_" NAME ${NAME})
-
-	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/git_init_${NAME}.stamp
-		COMMAND Tools/check_submodules.sh ${REL_PATH}
-		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/git_init_${NAME}.stamp
-		DEPENDS ${PX4_SOURCE_DIR}/.gitmodules ${PATH}/.git
-		COMMENT "git submodule ${REL_PATH}"
-		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-		USES_TERMINAL
-		)
-
-	add_custom_target(${TARGET} DEPENDS git_init_${NAME}.stamp)
+	add_custom_target(${TARGET})
 endfunction()

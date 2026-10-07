@@ -103,7 +103,7 @@
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -282,7 +282,25 @@ private:
 	void schedule_tune(const char *tune);
 
 	void update_message_statistics(const mavlink_message_t &message);
-	void update_rx_stats(const mavlink_message_t &message);
+	/**
+	 * @param add_component false to only update components which were already seen
+	 */
+	void update_rx_stats(const mavlink_message_t &message, bool add_component);
+
+	enum class FrameCheck {
+		Incomplete,   ///< no complete frame yet
+		Ok,           ///< valid, handle and forward
+		ForwardOnly,  ///< not in our dialect, can't be handled but can be forwarded
+		BadSignature, ///< signature missing or not valid with our key, drop
+		Invalid,      ///< bad CRC, drop
+	};
+
+	FrameCheck check_frame(uint8_t framing, const mavlink_message_t &message);
+
+	/**
+	 * Reset the parser after a rejected frame, same as mavlink_parse_char() does.
+	 */
+	void reset_parser_after_rejected_frame(uint8_t c);
 
 	void publish_hil_battery();
 	void publish_rtcm_corrections(const uint8_t *data, size_t len);
@@ -334,6 +352,8 @@ private:
 
 	uint64_t _total_received_counter{0};                            ///< The total number of successfully received messages
 	uint64_t _total_lost_counter{0};                                ///< Total messages lost during transmission.
+	uint32_t _unknown_message_counter{0};                           ///< Messages not in our dialect
+	uint32_t _bad_signature_counter{0};                             ///< Messages with missing or invalid signature
 
 	uint8_t _mavlink_status_last_buffer_overrun{0};
 	uint8_t _mavlink_status_last_parse_error{0};
@@ -412,7 +432,7 @@ private:
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 	uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
-	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_s>			_sensor_gnss_pub{ORB_ID(sensor_gnss)};
 	uORB::PublicationMulti<sensor_optical_flow_s>           _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 	gnss::GpsRtcmMessageAssembler				_gps_rtcm_message_assembler {};
 

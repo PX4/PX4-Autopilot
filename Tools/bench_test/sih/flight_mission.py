@@ -101,7 +101,7 @@ def wait_disarmed(mav, timeout):
                            timeout=max(0.1, deadline - time.monotonic()))
         if m is None:
             continue
-        if m.get_srcSystem() != mav.target_system or m.get_srcComponent() != 1:
+        if not px4bench.is_from_target(mav, m):
             continue
         if not (m.base_mode & MAV_MODE_FLAG_SAFETY_ARMED):
             return time.monotonic() - start
@@ -124,7 +124,7 @@ def save_params(report, mav, label):
     and the board came back on the SIH airframe).
     """
     shell = MavlinkShell(mav)
-    if not shell.open(timeout=5):
+    if not shell.open():
         report.fail(label, 'could not open nsh shell for param save')
         return False
     try:
@@ -241,7 +241,7 @@ def fly(report, mav, shell, alt, report_dir):
         out = shell_cmd(report, shell, 'commander arm', 'arm_cmd')
         if out is None:
             return False
-        hb = mav.recv_match(type='HEARTBEAT', blocking=True, timeout=3)
+        hb = px4bench.wait_heartbeat(mav, timeout=3)
         if hb is not None and (hb.base_mode & MAV_MODE_FLAG_SAFETY_ARMED):
             armed = True
         else:
@@ -309,10 +309,10 @@ def download_flight_log(report, mav, report_dir):
     truth for post-flight verification, so fetch it on failure too (it is
     the post-mortem). Best effort; a missing log is a FAIL, not a crash.
     """
-    from pymavlink import mavftp
+    from px4bench.ftp import mavftp
     try:
         ftp = mavftp.MAVFTP(mav, target_system=mav.target_system,
-                            target_component=1)
+                            target_component=mav.target_component)
         dirs = [e.name for e in bench_ftp.ftp_list(ftp, LOG_ROOT)
                 if e.is_dir and not e.name.startswith('.')]
         if not dirs:
@@ -392,8 +392,9 @@ def main():
     # a firmware nsh task plus its two pipes). enter_sih() reboots the board
     # below, so this session cannot be reused past the probe anyway.
     probe_shell = MavlinkShell(mav)
-    if not probe_shell.open(timeout=5):
-        report.fail('sih_probe', 'nsh shell did not respond within 5s')
+    if not probe_shell.open():
+        report.fail('sih_probe', 'nsh shell did not respond within {:.0f}s'.format(
+            px4bench.SHELL_OPEN_TIMEOUT))
         return report.finish()
     try:
         present, probe_out = px4bench.shell_command_exists(
@@ -429,7 +430,7 @@ def main():
         # One shell session for the whole flight, torn down in finally so an
         # error path never leaks the firmware nsh task.
         shell = MavlinkShell(mav)
-        if not shell.open(timeout=5):
+        if not shell.open():
             report.fail('shell', 'could not open nsh shell')
             return report.finish()
         try:

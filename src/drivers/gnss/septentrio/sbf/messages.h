@@ -79,6 +79,7 @@ enum class BlockID : uint16_t {
 	DOP            = 4001,
 	PVTGeodetic    = 4007,
 	ReceiverStatus = 4014,
+	BaseVectorGeod = 4028,
 	QualityInd     = 4082,
 	RFStatus       = 4092,
 	GALAuthStatus  = 4245,
@@ -87,6 +88,8 @@ enum class BlockID : uint16_t {
 	GEOIonoDelay   = 5933,
 	AttEuler       = 5938,
 	AttCovEuler    = 5939,
+	AuxAntPositions = 5942,
+	EndOfAtt       = 5943,
 };
 
 #pragma pack(push, 1)
@@ -360,6 +363,54 @@ struct AttCovEuler {
 	float cov_headpitch;
 	float cov_headroll;
 	float cov_pitchroll;
+};
+
+/// First sub-block of BaseVectorGeod: the vector from the rover to its (moving) base.
+struct VectorInfoGeod {
+	uint8_t nr_sv;
+	uint8_t error;
+	uint8_t mode_type: 4; ///< PVTGeodetic::ModeType
+	uint8_t mode_reserved: 4;
+	uint8_t misc;
+	double delta_east;
+	double delta_north;
+	double delta_up;
+	float delta_ve;
+	float delta_vn;
+	float delta_vu;
+	uint16_t azimuth;
+	int16_t elevation;
+	uint16_t reference_id;
+	uint16_t corr_age;
+	uint32_t signal_info;
+};
+
+struct BaseVectorGeod {
+	uint8_t n;
+	uint8_t sb_length;
+	VectorInfoGeod vector_info_geod;
+};
+
+/// First sub-block of AuxAntPositions: the position of the first auxiliary antenna relative to the main antenna.
+struct AuxAntPosSub {
+	static constexpr uint8_t k_ambiguity_fixed {0};
+	static constexpr uint8_t k_ambiguity_float {1};
+	uint8_t nr_sv;
+	uint8_t error;
+	uint8_t ambiguity_type;
+	uint8_t aux_ant_id;
+	double delta_east;
+	double delta_north;
+	double delta_up;
+	double east_vel;
+	double north_vel;
+	double up_vel;
+};
+
+struct AuxAntPositions {
+	uint8_t n;
+	uint8_t sb_length;
+	AuxAntPosSub aux_ant_pos_sub;
 };
 
 #pragma pack(pop)

@@ -405,6 +405,15 @@ protected:
 	virtual bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item);
 
 	/**
+	 * @brief Write a mission item to the dataman mission storage.
+	 *
+	 * @param[in] index Index of the mission item
+	 * @param[in] mission_item The item to store
+	 * @return true if the item was written successfully
+	 */
+	virtual bool writeMissionItemToCache(int32_t index, mission_item_s &mission_item);
+
+	/**
 	 * @brief Find the next position mission item.
 	 *
 	 * Walks forward through the mission starting at @p start_index.
@@ -433,6 +442,7 @@ protected:
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
 	bool _mission_checked{false};				/**< Flag indicating if the mission has been checked by the mission validator*/
+	bool _mission_check_pending{false}; /**< Retry a check deferred while the geofence was unavailable. */
 	bool _system_disarmed_while_inactive{false};		/**< Flag indicating if the system has been disarmed while mission is inactive*/
 	mission_s _mission;					/**< Currently active mission*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
@@ -452,6 +462,13 @@ protected:
 	uORB::SubscriptionData<vehicle_global_position_s> _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
 	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item}; /**< Navigator mission item publication*/
 	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)}; /**< Mission publication*/
+
+	/**
+	 * @brief Update mission subscription
+	 *
+	 */
+	void updateMavlinkMission();
+
 private:
 	/**
 	 * @brief Maximum number of jump mission items iterations
@@ -463,12 +480,6 @@ private:
 	 *
 	 */
 	virtual void updateDatamanCache();
-	/**
-	 * @brief Update mission subscription
-	 *
-	 */
-	void updateMavlinkMission();
-
 	/**
 	 * @brief Load a mission item according to the requested mission traversal type.
 	 */

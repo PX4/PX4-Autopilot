@@ -257,12 +257,13 @@ set(OPTIONAL_BOARD_EXTRAS)
 file(GLOB OPTIONAL_BOARD_EXTRAS ${PX4_BOARD_DIR}/extras/*)
 
 # bootloader (optional)
-#  - if systemcmds/bl_update included and board bootloader available then generate rc.board_bootloader_upgrade and copy bootloader binary
+#  - if systemcmds/bl_update included and board bootloader available then copy bootloader binary
+#  - and generate rc.board_bootloader_upgrade for px4fmu_common, the only rcS that runs it
 #  - otherwise remove bootloader binary from extras in final ROMFS
 foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 	file(RELATIVE_PATH extra_file_base_name ${PX4_BOARD_DIR}/extras/ ${board_extra_file})
 	if(${extra_file_base_name} MATCHES "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
-		if(CONFIG_SYSTEMCMDS_BL_UPDATE)
+		if(CONFIG_SYSTEMCMDS_BL_UPDATE AND ("${config_romfs_root}" STREQUAL "px4fmu_common"))
 			# generate rc.board_bootloader_upgrade
 			set(BOARD_FIRMWARE_BIN "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
 			message(STATUS "ROMFS:  Adding platforms/nuttx/init/rc.board_bootloader_upgrade -> /etc/init.d/rc.board_bootloader_upgrade")
@@ -288,7 +289,7 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			list(APPEND extras_dependencies
 				rc.board_bootloader_upgrade.stamp
 			)
-		else()
+		elseif(NOT CONFIG_SYSTEMCMDS_BL_UPDATE)
 			# remove bootloader from extras
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()
@@ -320,53 +321,6 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 	endif()
 
 endforeach()
-
-
-
-if(config_uavcan_peripheral_firmware)
-
-	include(ExternalProject)
-
-	foreach(uavcan_peripheral_config ${config_uavcan_peripheral_firmware})
-		# include the UAVCAN peripheral binaries in ROMFS
-		message(STATUS "ROMFS:  Adding UAVCAN peripheral ${uavcan_peripheral_config} -> /etc/uavcan/fw/")
-
-		# ExternalProject_Add() with GIT_SUBMODULES "" initializes no submodules.
-		cmake_policy(SET CMP0097 NEW)
-
-		include(ExternalProject)
-
-		ExternalProject_Add(build_${uavcan_peripheral_config}
-			GIT_REPOSITORY ${CMAKE_SOURCE_DIR}
-			GIT_TAG ${PX4_GIT_TAG}
-			GIT_SUBMODULES ""
-			DOWNLOAD_NO_PROGRESS true
-			CMAKE_ARGS -DCONFIG=${uavcan_peripheral_config}
-			INSTALL_COMMAND ""
-			USES_TERMINAL_BUILD true
-			BUILD_ALWAYS 1
-		)
-
-		ExternalProject_Get_Property(build_${uavcan_peripheral_config} BINARY_DIR)
-
-		add_custom_command(
-			OUTPUT
-				${romfs_gen_root_dir}/uavcan/fw/_${uavcan_board_id}.bin
-				${uavcan_peripheral_config}.stamp
-			COMMAND ${CMAKE_COMMAND} -E make_directory ${romfs_gen_root_dir}/uavcan/fw/
-			COMMAND ${CMAKE_COMMAND} -E copy ${BINARY_DIR}/deploy/*.bin ${romfs_gen_root_dir}/uavcan/fw/
-			COMMAND ls -lsa ${romfs_gen_root_dir}/uavcan/fw/
-			COMMAND ${CMAKE_COMMAND} -E touch ${uavcan_peripheral_config}.stamp
-			DEPENDS
-				build_${uavcan_peripheral_config}
-			COMMENT "ROMFS: copying ${uavcan_peripheral_config}"
-		)
-
-		list(APPEND extras_dependencies
-			${uavcan_peripheral_config}.stamp
-		)
-	endforeach()
-endif()
 
 list(APPEND extras_dependencies
 	${config_romfs_extra_dependencies}
@@ -418,10 +372,19 @@ if("${CONFIG_FS_CROMFS}" STREQUAL "y")
 		WORKING_DIRECTORY ${NUTTX_DIR}/tools
 	)
 
+	# gencromfs writes its intermediate data to fixed names in /tmp
+	# (/tmp/gencromfs-000000, ...), so two builds generating a ROMFS at the
+	# same time corrupt each other's nsh_romfsimg.c. Serialize it where flock
+	# exists (Linux), which covers concurrent CI builds on one runner.
+	find_program(FLOCK_PROGRAM flock)
+	if(FLOCK_PROGRAM)
+		set(gencromfs_lock ${FLOCK_PROGRAM} /tmp/gencromfs.lock)
+	endif()
+
 	# create nsh_romfsimg.c
 	add_custom_command(OUTPUT nsh_romfsimg.c
 		COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
-		COMMAND ${CMAKE_BINARY_DIR}/gencromfs ${romfs_gen_root_dir} nsh_romfsimg.c
+		COMMAND ${gencromfs_lock} ${CMAKE_BINARY_DIR}/gencromfs ${romfs_gen_root_dir} nsh_romfsimg.c
 		DEPENDS
 			${CMAKE_BINARY_DIR}/gencromfs
 			romfs_pruned.stamp

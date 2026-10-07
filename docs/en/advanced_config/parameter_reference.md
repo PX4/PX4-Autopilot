@@ -24771,14 +24771,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 1 idle current overwrite.
 
-This parameter allows to overwrite the current measured during
-idle (unarmed) state with a user-defined constant value (expressed in amperes).
-When the system is armed, the measured current is used. This is useful
-because on certain ESCs current measurements are inaccurate in case of no load.
-Negative values are ignored and will cause the measured current to be used.
-The default value of 0 disables the overwrite, in which case the measured value
-is always used.
-
+While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -24846,17 +24839,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 1 monitoring source.
 
-This parameter controls the source of battery data. The value 'Power Module / Analog'
-means that measurements are expected to come from either analog (ADC) inputs
-or an I2C power monitor (e.g. INA226). Analog inputs are voltage and current
-measurements read from the board's ADC channels, typically from an onboard
-voltage divider and current shunt, or an external analog power module.
-I2C power monitors are digital sensors on the I2C bus.
-If the value is set to 'External' then the system expects to receive MAVLink
-or CAN battery status messages, or the battery data is published by an external driver.
-If the value is set to 'ESCs', the battery information are taken from the esc_status message.
-This requires the ESC to provide both voltage as well as current (via ESC telemetry).
-
+Power Module / Analog: board ADC inputs (onboard or external analog power module) or an I2C power monitor (e.g. INA226).
+External: MAVLink or CAN battery status messages, or an external driver.
+ESCs: esc_status from ESC telemetry; requires voltage and current.
 
 
 **Values:**
@@ -24899,13 +24884,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Full cell voltage.
 
 Defines the voltage where a single cell of the battery is considered full.
-For a more accurate estimate set this below the nominal voltage of e.g. 4.2V
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  | 0.01 | 4.05 | V | &nbsp;
+&check; |  |  | 0.01 | 4.2 | V | &nbsp;
 
 </div>
 
@@ -25023,14 +25007,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 2 idle current overwrite.
 
-This parameter allows to overwrite the current measured during
-idle (unarmed) state with a user-defined constant value (expressed in amperes).
-When the system is armed, the measured current is used. This is useful
-because on certain ESCs current measurements are inaccurate in case of no load.
-Negative values are ignored and will cause the measured current to be used.
-The default value of 0 disables the overwrite, in which case the measured value
-is always used.
-
+While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -25098,17 +25075,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 2 monitoring source.
 
-This parameter controls the source of battery data. The value 'Power Module / Analog'
-means that measurements are expected to come from either analog (ADC) inputs
-or an I2C power monitor (e.g. INA226). Analog inputs are voltage and current
-measurements read from the board's ADC channels, typically from an onboard
-voltage divider and current shunt, or an external analog power module.
-I2C power monitors are digital sensors on the I2C bus.
-If the value is set to 'External' then the system expects to receive MAVLink
-or CAN battery status messages, or the battery data is published by an external driver.
-If the value is set to 'ESCs', the battery information are taken from the esc_status message.
-This requires the ESC to provide both voltage as well as current (via ESC telemetry).
-
+Power Module / Analog: board ADC inputs (onboard or external analog power module) or an I2C power monitor (e.g. INA226).
+External: MAVLink or CAN battery status messages, or an external driver.
+ESCs: esc_status from ESC telemetry; requires voltage and current.
 
 
 **Values:**
@@ -25151,13 +25120,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Full cell voltage.
 
 Defines the voltage where a single cell of the battery is considered full.
-For a more accurate estimate set this below the nominal voltage of e.g. 4.2V
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  | 0.01 | 4.05 | V | &nbsp;
+&check; |  |  | 0.01 | 4.2 | V | &nbsp;
 
 </div>
 
@@ -25239,14 +25207,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 3 idle current overwrite.
 
-This parameter allows to overwrite the current measured during
-idle (unarmed) state with a user-defined constant value (expressed in amperes).
-When the system is armed, the measured current is used. This is useful
-because on certain ESCs current measurements are inaccurate in case of no load.
-Negative values are ignored and will cause the measured current to be used.
-The default value of 0 disables the overwrite, in which case the measured value
-is always used.
-
+While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -25314,17 +25275,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 3 monitoring source.
 
-This parameter controls the source of battery data. The value 'Power Module / Analog'
-means that measurements are expected to come from either analog (ADC) inputs
-or an I2C power monitor (e.g. INA226). Analog inputs are voltage and current
-measurements read from the board's ADC channels, typically from an onboard
-voltage divider and current shunt, or an external analog power module.
-I2C power monitors are digital sensors on the I2C bus.
-If the value is set to 'External' then the system expects to receive MAVLink
-or CAN battery status messages, or the battery data is published by an external driver.
-If the value is set to 'ESCs', the battery information are taken from the esc_status message.
-This requires the ESC to provide both voltage as well as current (via ESC telemetry).
-
+Power Module / Analog: board ADC inputs (onboard or external analog power module) or an I2C power monitor (e.g. INA226).
+External: MAVLink or CAN battery status messages, or an external driver.
+ESCs: esc_status from ESC telemetry; requires voltage and current.
 
 
 **Values:**
@@ -25348,13 +25301,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Full cell voltage.
 
 Defines the voltage where a single cell of the battery is considered full.
-For a more accurate estimate set this below the nominal voltage of e.g. 4.2V
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  | 0.01 | 4.05 | V | &nbsp;
+&check; |  |  | 0.01 | 4.2 | V | &nbsp;
 
 </div>
 
@@ -25792,7 +25744,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Circuit Breaker
 
-<div class="param-group" style="--param-count: 7">
+<div class="param-group" style="--param-count: 6">
 
 <div class="param">
 
@@ -25827,22 +25779,6 @@ and takeoff failure detection safety logic.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 0 | 121212 |  | 121212 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### CBRK_IO_SAFETY (`INT32`) {#CBRK_IO_SAFETY}
-
-Circuit breaker for IO safety.
-
-Setting this parameter to 22027 will disable IO safety.
-WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 22027 |  | 22027 |  | &nbsp;
 
 </div>
 
@@ -25922,7 +25858,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Commander
 
-<div class="param-group" style="--param-count: 74">
+<div class="param-group" style="--param-count: 75">
 
 <div class="param">
 
@@ -26271,7 +26207,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Arming without GNSS configuration.
 
 Configures whether arming is allowed without GNSS, for modes that require a global position
-(specifically, in those modes when a check defined by EKF2_GPS_CHECK fails).
+(specifically, in those modes when a check defined by GNSS_CHECK fails).
 The settings deny arming and warn, allow arming and warn, or silently allow arming.
 
 
@@ -26770,7 +26706,7 @@ the estimated time it takes to reach the return destination.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  | 1 | 0 |  | &nbsp;
+&nbsp; |  |  | 1 | 1 |  | &nbsp;
 
 </div>
 
@@ -26801,10 +26737,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### COM_FORCE_SAFETY (`INT32`) {#COM_FORCE_SAFETY}
 
-Enable force safety.
-
-Force safety when the vehicle disarms
-
+Re-enable safety when the vehicle disarms.
 
 **Values:**
 
@@ -27280,11 +27213,15 @@ Condition to enter prearmed mode.
 Condition to enter the prearmed state, an intermediate state between disarmed and armed
 in which non-throttling actuators are active.
 
+0: Never prearmed.
+1: Prearmed when safety is off (COM_SAFETY_MODE)
+2: Always prearmed.
+
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Safety button
+- `1`: When safety off
 - `2`: Always
 
 
@@ -27363,28 +27300,15 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Manual control input source configuration.
 
-Selects stick input selection behavior:
-either a traditional remote control receiver (RC) or a MAVLink joystick (MANUAL_CONTROL message)
-
-Priority sources are immediately switched to whenever they get valid.
-
-0 RC only. Requires valid RC calibration.
-1 MAVLink only. RC and related checks are disabled.
-2 Switches only if current source becomes invalid.
-3 Locks to the first valid source until reboot.
-4 Ignores all sources.
-5 RC priority, then MAVLink (lower instance before higher)
-6 MAVLink priority (lower instance before higher), then RC
-7 RC priority, then MAVLink (higher instance before lower)
-8 MAVLink priority (higher instance before lower), then RC
+RC receiver or MAVLink joystick (MANUAL_CONTROL). Priority modes switch to a higher-priority source as soon as it becomes valid. MAVL 1 is the lower MAVLink instance.
 
 
 **Values:**
 
-- `0`: RC only
-- `1`: MAVLink only
+- `0`: RC only (requires RC calibration)
+- `1`: MAVLink only (disables RC checks)
 - `2`: RC or MAVLink with fallback
-- `3`: RC or MAVLink keep first
+- `3`: RC or MAVLink keep first until reboot
 - `4`: Disable manual control
 - `5`: Prio: RC > MAVL 1 > MAVL 2
 - `6`: Prio: MAVL 1 > MAVL 2 > RC
@@ -27412,6 +27336,34 @@ Ensure the value is not set lower than the update interval of the RC or Joystick
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 35 | 0.1 | 0.5 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### COM_SAFETY_MODE (`INT32`) {#COM_SAFETY_MODE}
+
+Condition to turn safety off.
+
+Vehicle arming is prevented for as long as safety is on.
+
+0: Always off.
+1: Safety can be turned off either by pressing a physical safety switch, or by sending a MAV_CMD_DO_SET_SAFETY_SWITCH_STATE command.
+2: Safety can only be turned off by pressing a physical safety switch. MAV_CMD_DO_SET_SAFETY_SWITCH_STATE commands are rejected.
+3: Safety can only be turned off by sending a MAV_CMD_DO_SET_SAFETY_SWITCH_STATE command. Any physical switch is ignored.
+
+
+**Values:**
+
+- `0`: Always off
+- `1`: Safety switch (physical or virtual via MAVLink)
+- `2`: Physical safety switch only
+- `3`: MAVLink only
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
 
 </div>
 
@@ -27937,7 +27889,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### UCAN1_UORB_GPS (`INT32`) {#UCAN1_UORB_GPS}
 
-sensor_gps uORB over Cyphal subscription port ID.
+sensor_gnss uORB over Cyphal subscription port ID.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -27949,7 +27901,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### UCAN1_UORB_GPS_P (`INT32`) {#UCAN1_UORB_GPS_P}
 
-sensor_gps uORB over Cyphal publication port ID.
+sensor_gnss uORB over Cyphal publication port ID.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -28655,7 +28607,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## EKF2
 
-<div class="param-group" style="--param-count: 164">
+<div class="param-group" style="--param-count: 155">
 
 <div class="param">
 
@@ -29299,7 +29251,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 X-axis ballistic coefficient used for multi-rotor wind estimation.
 
-This parameter controls the prediction of drag produced by bluff body drag along the forward/reverse axis when flying a multi-copter which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter. Set this parameter to zero to turn off the bluff body drag model for this axis.
+Bluff body drag along the forward/reverse axis, which scales with speed squared. Rotor drag is set by EKF2_MCOEF. Only used when EKF2_DRAG_CTRL is enabled. Set to 0 to disable for this axis.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -29314,7 +29266,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Y-axis ballistic coefficient used for multi-rotor wind estimation.
 
-This parameter controls the prediction of drag produced by bluff body drag along the right/left axis when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter. Set this parameter to zero to turn off the bluff body drag model for this axis.
+Bluff body drag along the right/left axis, which scales with speed squared. Rotor drag is set by EKF2_MCOEF. Only used when EKF2_DRAG_CTRL is enabled. Set to 0 to disable for this axis.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -29705,37 +29657,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_GPS_CHECK (`INT32`) {#EKF2_GPS_CHECK}
-
-Integer bitmask controlling GPS checks.
-
-Each threshold value is defined by the parameter indicated next to the check. Drift and offset checks only run when the vehicle is on ground and stationary.
-
-
-**Bitmask:**
-
-- `0`: Sat count (EKF2_REQ_NSATS)
-- `1`: PDOP (EKF2_REQ_PDOP)
-- `2`: EPH (EKF2_REQ_EPH)
-- `3`: EPV (EKF2_REQ_EPV)
-- `4`: Speed accuracy (EKF2_REQ_SACC)
-- `5`: Horizontal position drift (EKF2_REQ_HDRIFT)
-- `6`: Vertical position drift (EKF2_REQ_VDRIFT)
-- `7`: Horizontal speed offset (EKF2_REQ_HDRIFT)
-- `8`: Vertical speed offset (EKF2_REQ_VDRIFT)
-- `9`: Spoofing
-- `10`: GPS fix type (EKF2_REQ_FIX)
-- `11`: Jamming
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 4095 |  | 2047 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### EKF2_GPS_CTRL (`INT32`) {#EKF2_GPS_CTRL}
 
 GNSS sensor aiding.
@@ -29829,18 +29750,6 @@ Measurement noise for GNSS velocity.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.01 | 5.0 |  | 0.3 | m/s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_GPS_YAW_OFF (`FLOAT`) {#EKF2_GPS_YAW_OFF}
-
-Heading/Yaw offset for dual antenna GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 360.0 |  | 0.0 | deg | &nbsp;
 
 </div>
 
@@ -30213,7 +30122,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Propeller momentum drag coefficient for multi-rotor wind estimation.
 
-This parameter controls the prediction of drag produced by the propellers when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed not speed squared and is produced because some of the air velocity normal to the propeller axis of rotation is lost when passing through the rotor disc. This  changes the momentum of the flow which creates a drag reaction force. When comparing un-ducted propellers of the same diameter, the effect is roughly proportional to the area of the propeller blades when viewed side on and changes with propeller selection. Momentum drag is significantly higher for ducted rotors. To account for the drag produced by the body which scales with speed squared, see documentation for the EKF2_BCOEF_X and EKF2_BCOEF_Y parameters. Set this parameter to zero to turn off the momentum drag model for both axis.
+Propeller momentum drag, which scales with speed, not speed squared. For unducted propellers of equal diameter, roughly proportional to blade area seen side-on; much higher for ducted rotors. Body drag is set by EKF2_BCOEF_X and EKF2_BCOEF_Y. Only used when EKF2_DRAG_CTRL is enabled. Set to 0 to disable for both axes.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -30584,102 +30493,16 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_REQ_EPH (`FLOAT`) {#EKF2_REQ_EPH}
-
-Required EPH to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 100 |  | 3.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_EPV (`FLOAT`) {#EKF2_REQ_EPV}
-
-Required EPV to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 100 |  | 5.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_FIX (`INT32`) {#EKF2_REQ_FIX}
-
-Required GPS fix.
-
-Minimum GPS fix type required for GPS usage.
-
-
-**Values:**
-
-- `0`: No fix required
-- `2`: 2D fix
-- `3`: 3D fix
-- `4`: RTCM code differential
-- `5`: RTK float
-- `6`: RTK fixed
-- `8`: Extrapolated
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 3 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### EKF2_REQ_GPS_H (`FLOAT`) {#EKF2_REQ_GPS_H}
 
-Required GPS health time on startup.
+GNSS fusion restart and heading reset wait.
 
-Minimum continuous period without GPS failure required to mark a healthy GPS status. It can be reduced to speed up initialization, but it's recommended to keep this unchanged for a vehicle.
+After EKF2 stops GNSS velocity and position fusion, it restarts it only after this time while disarmed on the ground, and after a tenth of it, at least 1 s, otherwise. After a GNSS heading failure, a yaw reset to the GNSS heading also waits this long. The GNSS checks use GNSS_REQ_TIME.
 
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | 0.1 |  |  | 10.0 | s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_HDRIFT (`FLOAT`) {#EKF2_REQ_HDRIFT}
-
-Maximum horizontal drift speed to use GPS.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 1.0 |  | 0.1 | m/s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_NSATS (`INT32`) {#EKF2_REQ_NSATS}
-
-Required satellite count to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 4 | 12 |  | 6 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_PDOP (`FLOAT`) {#EKF2_REQ_PDOP}
-
-Maximum PDOP to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 1.5 | 5.0 |  | 2.5 |  | &nbsp;
+&nbsp; | 0.1 |  |  | 10.0 | s | &nbsp;
 
 </div>
 
@@ -30687,23 +30510,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### EKF2_REQ_SACC (`FLOAT`) {#EKF2_REQ_SACC}
 
-Required speed accuracy to use GPS.
+GNSS speed accuracy for vertical velocity and yaw estimator.
+
+Below this speed accuracy EKF2 trusts the GNSS vertical velocity while the accelerometer clips, and feeds the GNSS velocity to the EKF-GSF yaw estimator. The GNSS checks use GNSS_REQ_SACC.
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.5 | 5.0 |  | 0.5 | m/s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_VDRIFT (`FLOAT`) {#EKF2_REQ_VDRIFT}
-
-Maximum vertical drift speed to use GPS.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 1.5 |  | 0.2 | m/s | &nbsp;
 
 </div>
 
@@ -30806,7 +30620,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Range sensor height aiding.
 
-WARNING: Range finder measurements are less reliable and can experience unexpected errors. For these reasons, if accurate control of height relative to ground is required, it is recommended to use the MPC_ALT_MODE parameter instead, unless baro errors are severe enough to cause problems with landing and takeoff. If this parameter is enabled then the estimator will make use of the range finder measurements to estimate its height in addition to other height sources (if activated). Range sensor aiding can be enabled (i.e.: always use) or set in "conditional" mode. Conditional mode: This enables the range finder to be used during low speed (< EKF2_RNG_A_VMAX) and low altitude (< EKF2_RNG_A_HMAX) operation, eg takeoff and landing, where baro interference from rotor wash is excessive and can corrupt EKF state estimates. It is intended to be used where a vertical takeoff and landing is performed, and horizontal flight does not occur until above EKF2_RNG_A_HMAX.
+WARNING: range finders are less reliable and can have unexpected errors. For accurate height above ground, use MPC_ALT_MODE instead, unless baro errors cause problems at takeoff and landing. Fuses range as an additional height source. Conditional mode only fuses it below EKF2_RNG_A_VMAX speed and EKF2_RNG_A_HMAX height, where rotor wash corrupts the baro; for vertical takeoff and landing with no horizontal flight below EKF2_RNG_A_HMAX.
 
 
 **Values:**
@@ -31176,6 +30990,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 ### EKF2_VEL_LIM (`FLOAT`) {#EKF2_VEL_LIM}
 
 Velocity limit.
+
+Each axis of the velocity state is constrained to this magnitude. GNSS and external vision velocity samples beyond it are not fused.
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -33812,9 +33629,8 @@ GPS Wrong-failure fix type.
 GNSS fix type reported by the addressed receiver while a GPS 'wrong'
 failure injection is active. The reported position is left untouched.
 The default 2D fix is rejected by the estimator, which requires a 3D
-fix, and makes the GNSS redundancy check report a lost fix, while the
-receiver stays eligible for GPS blending. Values above 3D fix report a
-better solution than the receiver really has.
+fix, and makes the GNSS redundancy check report a lost fix. Values above
+3D fix report a better solution than the receiver really has.
 
 
 **Values:**
@@ -34112,7 +33928,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## GPS
 
-<div class="param-group" style="--param-count: 24">
+<div class="param-group" style="--param-count: 23">
 
 <div class="param">
 
@@ -34636,33 +34452,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### GPS_YAW_OFFSET (`FLOAT`) {#GPS_YAW_OFFSET}
-
-Heading/Yaw offset for dual antenna GPS.
-
-Heading offset angle for dual antenna GPS setups that support heading estimation.
-
-Set this to 0 if the antennas are parallel to the forward-facing direction
-of the vehicle and the rover (or Unicore primary) antenna is in front.
-
-The offset angle increases clockwise.
-
-Set this to 90 if the rover (or Unicore primary, or Septentrio Mosaic Aux)
-antenna is placed on the right side of the vehicle and the moving base
-antenna is on the left side.
-
-(Note: the Unicore primary antenna is the one connected on the right as seen
-from the top).
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 360 |  | 0.0 | deg | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### PPS_CAP_ENABLE (`INT32`) {#PPS_CAP_ENABLE}
 
 PPS capture enable.
@@ -34691,8 +34480,8 @@ Device ID of the GPS receiver that emits the PPS signal captured on the
 configured PWM input pin. When set to 0 (default), the first available
 GPS instance is used.
 
-The device ID can be obtained from the sensor_gps publication
-(e.g. via listener sensor_gps).
+The device ID can be obtained from the sensor_gnss publication
+(e.g. via listener sensor_gnss).
 
 
 
@@ -34706,7 +34495,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Geofence
 
-<div class="param-group" style="--param-count: 4">
+<div class="param-group" style="--param-count: 5">
 
 <div class="param">
 
@@ -34731,6 +34520,27 @@ which will kill the vehicle on violation of the fence.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 5 |  | 2 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GF_AVOID_NODES (`INT32`) {#GF_AVOID_NODES}
+
+Max graph nodes for geofence avoidance in Return.
+
+Maximum number of geofence vertices the Return geofence avoidance planner can use.
+Circles use 8 vertices each, polygons their vertex count plus extra vertices for sharp corners.
+If the fence needs more vertices, Return flies directly and ignores the geofence.
+Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number
+(about 2 * N^2 bytes, e.g. 20 kB for 100 nodes).
+The maximum of 200 is sufficient for any fence that can be stored.
+Set to 0 to disable geofence avoidance in Return.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 200 |  | 100 |  | &nbsp;
 
 </div>
 
@@ -42046,10 +41856,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_ACC_RAD (`FLOAT`) {#NAV_ACC_RAD}
 
-Acceptance Radius.
+Acceptance radius.
 
-Default acceptance radius, overridden by acceptance radius of waypoint if set.
-For fixed-wing and rovers, the high level controllers output their own acceptance radius. Those values are used instead only when above this parameter.
+Overridden by a waypoint's own acceptance radius, if set. For fixed-wing and rovers, the controller's acceptance radius is used instead when it is larger.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42079,10 +41888,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_FW_ALTL_RAD (`FLOAT`) {#NAV_FW_ALTL_RAD}
 
-FW Altitude Acceptance Radius before a landing.
+FW Altitude acceptance radius before landing.
 
-Altitude acceptance used for the last waypoint before a fixed-wing landing. This is usually smaller
-than the standard vertical acceptance because close to the ground higher accuracy is required.
+FW acceptance alt for last waypoint before landing. Usually smaller than NAV_FW_ALT_RAD; accuracy matters more near the ground.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42095,10 +41903,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_FW_ALT_RAD (`FLOAT`) {#NAV_FW_ALT_RAD}
 
-FW Altitude Acceptance Radius.
-
-Acceptance radius for fixedwing altitude.
-
+FW Altitude acceptance radius.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -42110,12 +41915,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_LOITER_RAD (`FLOAT`) {#NAV_LOITER_RAD}
 
-Loiter radius (FW only).
+FW Loiter radius.
 
-Default value of loiter radius in fixed-wing mode (e.g. for Loiter mode).
-
-The direction of the loiter can be set via the sign: A positive value for
-clockwise, negative for counter-clockwise.
+Default for fixed-wing loiters, e.g. in Hold mode. Positive values loiter clockwise, negative values counter-clockwise.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42130,10 +41932,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Loiter at last GCS heartbeat position on data link loss.
 
-When the data link is lost and this setting is enabled,
-the vehicle will loiter at the position where the last GCS
-heartbeat was received rather than at its current position.
-Only applies to Hold mode during failsafe actions.
+If disabled, the vehicle loiters at its current position. Only applies to Hold mode during failsafe actions.
 
 
 **Values:**
@@ -42151,10 +41950,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_MC_ALT_RAD (`FLOAT`) {#NAV_MC_ALT_RAD}
 
-MC Altitude Acceptance Radius.
-
-Acceptance radius for multicopter altitude.
-
+MC Altitude acceptance radius.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -42168,12 +41964,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Minimum height above ground during Mission and Return.
 
-Minimum height above ground the vehicle is allowed to descend to during Mission and Return,
-excluding landing commands.
-Requires a distance sensor to be set up.
-Note: only prevents the vehicle from descending further, but does not force it to climb.
-
-Set to a negative value to disable.
+Minimum height AGL in Return and Mission (excluding landing commands). Requires a distance sensor. Stops further descent but doesn't force a climb. Set to -1 to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42186,12 +41977,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_MIN_LTR_ALT (`FLOAT`) {#NAV_MIN_LTR_ALT}
 
-Minimum Loiter altitude.
+Minimum loiter altitude.
 
-This is the minimum altitude above Home the system will always obey in Loiter (Hold) mode if switched into this
-mode without specifying an altitude (e.g. through Loiter switch on RC).
-Doesn't affect Loiters that are part of Missions or that are entered through a reposition setpoint ("Go to").
-Set to a negative value to disable.
+Altitude above Home used when Hold mode is entered without an altitude, e.g. from an RC switch. Doesn't apply to mission loiters or reposition ("Go to") setpoints. Set to -1 to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42204,10 +41992,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### NAV_TRAFF_AVOID (`INT32`) {#NAV_TRAFF_AVOID}
 
-Set traffic avoidance action.
+Traffic avoidance action (Xtrack only).
 
-Action requested for a crosstrack traffic conflict.
-Runtime changes apply on later conflict level transitions.
+Changes take effect at the next cross-track conflict level transition.
 
 
 **Values:**
@@ -43596,18 +43383,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Thrust curve mapping in Stabilized Mode.
 
-Defines how the throttle stick is mapped to collective thrust in Stabilized mode.
-
-Rescale to hover thrust estimate:
-Stick input is linearly rescaled, such that a centered throttle stick corresponds to the hover thrust estimator's output.
-
-No rescale:
-Directly map the stick 1:1 to the output.
-Can be useful with very low hover thrust which leads to much distortion and the upper half getting sensitive.
-
-Rescale to hover thrust parameter:
-Similar to rescaling to the hover thrust estimate, but it uses the hover thrust parameter value (see MPC_THR_HOVER) instead of estimated value.
-With MPC_THR_HOVER 0.5 it's equivalent to No rescale.
+Rescale to estimate: stick is rescaled linearly so center stick gives the hover thrust estimate.
+No rescale: stick maps 1:1 to thrust; useful with very low hover thrust, where rescaling distorts the curve and makes the upper half sensitive.
+Rescale to parameter: as Rescale to estimate, but uses MPC_THR_HOVER; with MPC_THR_HOVER 0.5 same as No rescale.
 
 
 **Values:**
@@ -44525,7 +44303,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Multicopter Rate Control
 
-<div class="param-group" style="--param-count: 20">
+<div class="param-group" style="--param-count: 22">
 
 <div class="param">
 
@@ -44548,6 +44326,44 @@ it will still be 0.5 at 60% battery.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MC_GC_EN (`INT32`) {#MC_GC_EN}
+
+Enable rate gain compression.
+
+Dynamically reduces the rate controller output gain when an oscillation
+(limit cycle) is detected on the torque setpoint, e.g. caused by too high gains.
+The gain recovers to 1.0 once the oscillation stops.
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MC_GC_GAIN_MIN (`FLOAT`) {#MC_GC_GAIN_MIN}
+
+Compression gain lower limit.
+
+The range of the compression gain is between this parameter and 1.0
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.01 | 0.3 |  | &nbsp;
 
 </div>
 
@@ -44955,7 +44771,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Max motor RPM for neural network normalization.
 
-The maximum RPM of the motors. Used to normalize the output of the neural network
+The maximum RPM of the motors. Used to normalize the output of the neural network. Has to be above MC_NN_MIN_RPM. Together with MC_NN_THRST_COEF it sets the part of the action range the motor can reproduce, which the module reports at startup.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -44970,7 +44786,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Min motor RPM for neural network normalization.
 
-The minimum RPM of the motors. Used to normalize the output of the neural network
+The minimum RPM of the motors. Used to normalize the output of the neural network. Actions that ask for less than this idle the motor.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -44990,7 +44806,7 @@ Thrust coefficient of the motors. Used to normalize the output of the neural net
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 5.0 |  | 1.2 |  | &nbsp;
+&nbsp; | 0.01 | 5.0 |  | 1.2 |  | &nbsp;
 
 </div>
 
@@ -48085,8 +47901,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Force VTOL approach landing on Return.
 
-Only consider home/rally points as return destinations if they have a VTOL approach loiter.
-A VTOL approach loiter is a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude.
+Only home and rally points with a VTOL approach loiter (a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude) are used as return destinations.
 
 
 **Values:**
@@ -48106,8 +47921,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Half-angle of the return mode altitude cone.
 
-Defines the half-angle of a cone centered around the destination position that
-affects the altitude at which the vehicle returns.
+Half-angle of a cone centered around the destination position. Affects the altitude at which the vehicle returns.
 
 
 **Values:**
@@ -48132,9 +47946,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return mode loiter altitude.
 
-Descend to this altitude (above destination position) after return, and wait for time defined in RTL_LAND_DELAY.
-Land (i.e. slowly descend) from this altitude if autolanding allowed.
-VTOLs do transition to hover in this altitude above the landing point.
+After returning, the vehicle descends to this altitude above the destination and waits RTL_LAND_DELAY, then lands if autolanding is allowed. VTOLs transition to hover at this altitude.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48149,8 +47961,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return mode delay.
 
-Delay before landing (after initial descent) in Return mode.
-If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
+Delay after the descent to RTL_DESCEND_ALT, before landing. Set to -1 to loiter at RTL_DESCEND_ALT without landing.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48165,7 +47976,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Loiter radius for return descent.
 
-Set the radius for loitering to a safe altitude for VTOL transition.
+Default loiter radius for descent to RTL_DESCEND_ALT if not set in landing approach. Set to safe altitude for VTOL transitions.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48180,10 +47991,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Min distance for return cone altitude calculation.
 
-Horizontal radius from return point within which special rules for return mode apply
-
-The return altitude will be calculated based on RTL_CONE_ANG parameter.
-The yaw setpoint will switch to the one defined by corresponding waypoint.
+Within this horizontal distance of the destination, the return altitude comes from RTL_CONE_ANG and the yaw setpoint switches to the destination's yaw.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48198,8 +48006,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return precision land mode.
 
-Use precision landing during the landing phase of Return mode.
-This setting does not apply for return destinations planned as part of a mission.
+Doesn't apply to return destinations planned in a mission.
 
 
 **Values:**
@@ -48221,9 +48028,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return mode return altitude.
 
-Default minimum altitude above destination (e.g. home, safe point, landing pattern) for return flight.
-The vehicle will climb to this altitude when Return mode is engaged, unless it currently is flying higher already.
-This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
+Minimum altitude above the destination (home, rally point or landing pattern) during return. The vehicle climbs to it unless already higher. Adjusted by RTL_MIN_DIST and RTL_CONE_ANG.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48238,8 +48043,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return time estimate safety margin factor.
 
-Safety factor that is used to scale the actual return time estimate.
-Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -48254,8 +48058,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Return time estimate safety margin offset.
 
-Margin that is added to the time estimate, after it has already been scaled
-Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -49150,7 +48953,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Maximum number of log directories to keep.
 
-If greater than 0, the oldest log directories are deleted at log start to keep the total directory count at or below this value. This cleanup is orthogonal to the free-space cleanup driven by SDLOG_ROTATE and SDLOG_MAX_SIZE, and is useful for capping log usage by count independent of available disk size (e.g. in SITL). A value of 0 disables this count-based cleanup.
+At log start, oldest log directories are deleted to stay within this count. Independent of SDLOG_ROTATE and SDLOG_MAX_SIZE, e.g. to cap logs by count in SITL. Set to 0 to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -49210,7 +49013,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Mission Log.
 
-If enabled, a small additional "mission" log file will be written to the SD card. The log contains just those messages that are useful for tasks like generating flight statistics and geotagging. The different modes can be used to further reduce the logged data (and thus the log file size). For example, choose geotagging mode to only log data required for geotagging. Note that the normal/full log is still created, and contains all the data in the mission log (and more).
+Writes a small extra log with only the messages needed for flight statistics and geotagging. The full log is still written and contains all of this data.
 
 
 **Values:**
@@ -49232,7 +49035,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Logging Mode.
 
-Determines when to start and stop logging. By default, logging is started when arming the system, and stopped when disarming. Note: The logging start/end points that can be configured here only apply to SD logging. The mavlink backend is started/stopped independently of these points.
+Only applies to SD card logging; MAVLink logging starts and stops independently.
 
 
 **Values:**
@@ -49254,24 +49057,24 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SDLOG_PROFILE (`INT32`) {#SDLOG_PROFILE}
 
-Logging topic profile (integer bitmask).
+Logging topic profile.
 
-This integer bitmask controls the set and rates of logged topics. The default allows for general log analysis while keeping the log file size reasonably small. Enabling multiple sets leads to higher bandwidth requirements and larger log files. Set bits true to enable: 0 : Default set (used for general log analysis) 1 : Full rate estimator (EKF2) replay topics 2 : Topics for thermal calibration (high rate raw IMU and Baro sensor data) 3 : Topics for system identification (high rate actuator control and IMU data) 4 : Full rates for analysis of fast maneuvers (RC, attitude, rates and actuators) 5 : Debugging topics (debug_*.msg topics, for custom code) 6 : Topics for sensor comparison (low rate raw IMU, Baro and magnetometer data) 7 : Topics for computer vision and collision prevention 8 : Raw FIFO high-rate IMU (Gyro) 9 : Raw FIFO high-rate IMU (Accel) 10: Logging of mavlink tunnel message (useful for payload communication debugging)
+Each additional set increases bandwidth and log size.
 
 
 **Bitmask:**
 
 - `0`: Default set (general log analysis)
-- `1`: Estimator replay (EKF2)
-- `2`: Thermal calibration
-- `3`: System identification
-- `4`: High rate
-- `5`: Debug
-- `6`: Sensor comparison
+- `1`: Estimator replay (EKF2, full rate)
+- `2`: Thermal calibration (high-rate raw IMU and baro)
+- `3`: System identification (high-rate actuator and IMU)
+- `4`: High rate (RC, attitude, rates and actuators)
+- `5`: Debug (debug_*.msg topics)
+- `6`: Sensor comparison (low-rate raw IMU, baro and mag)
 - `7`: Computer Vision and Avoidance
 - `8`: Raw FIFO high-rate IMU (Gyro)
 - `9`: Raw FIFO high-rate IMU (Accel)
-- `10`: Mavlink tunnel message logging
+- `10`: Mavlink tunnel message logging (payload debugging)
 - `11`: High rate sensors
 
 
@@ -49287,7 +49090,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Maximum disk usage percentage.
 
-Maximum percentage of disk space that logs may occupy during operation, including while writing a new log file. For example, a value of 90 means at least 10% of disk is always kept free, even while writing. A value of 100 lets logs fill the disk completely. A value of 0 disables space-based cleanup entirely. At log start, oldest logs are deleted as needed to maintain this guarantee, accounting for the next file write of up to SDLOG_MAX_SIZE. Cleanup always happens at log start (not boot) so logs can be downloaded via FTP before deletion.
+The limit includes the log being written. Oldest logs are deleted at log start (not boot), leaving room for a file of up to SDLOG_MAX_SIZE, so logs can be downloaded before deletion. 100 lets logs fill the disk. Set to 0 to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -52341,7 +52144,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 248">
+<div class="param-group" style="--param-count: 264">
 
 <div class="param">
 
@@ -52497,6 +52300,162 @@ Use SENS_MAG_SIDES instead
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | 63 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_CHECK (`INT32`) {#GNSS_CHECK}
+
+Integer bitmask controlling GNSS checks.
+
+Each threshold value is defined by the parameter indicated next to the check. Drift and offset checks only run when the vehicle is on ground and stationary. The spoofing and jamming checks also apply to the receiver providing the GNSS heading.
+
+
+**Bitmask:**
+
+- `0`: Sat count (GNSS_REQ_NSATS)
+- `1`: PDOP (GNSS_REQ_PDOP)
+- `2`: EPH (GNSS_REQ_EPH)
+- `3`: EPV (GNSS_REQ_EPV)
+- `4`: Speed accuracy (GNSS_REQ_SACC)
+- `5`: Horizontal position drift (GNSS_REQ_HDRIFT)
+- `6`: Vertical position drift (GNSS_REQ_VDRIFT)
+- `7`: Horizontal speed offset (GNSS_REQ_HDRIFT)
+- `8`: Vertical speed offset (GNSS_REQ_VDRIFT)
+- `9`: Spoofing
+- `10`: GNSS fix type (GNSS_REQ_FIX)
+- `11`: Jamming
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 4095 |  | 2047 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_EPH (`FLOAT`) {#GNSS_REQ_EPH}
+
+Required EPH to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 100 |  | 3.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_EPV (`FLOAT`) {#GNSS_REQ_EPV}
+
+Required EPV to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 100 |  | 5.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_FIX (`INT32`) {#GNSS_REQ_FIX}
+
+Required GNSS fix.
+
+Minimum GNSS fix type required for GNSS usage.
+
+
+**Values:**
+
+- `0`: No fix required
+- `2`: 2D fix
+- `3`: 3D fix
+- `4`: RTCM code differential
+- `5`: RTK float
+- `6`: RTK fixed
+- `8`: Extrapolated
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 3 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_HDRIFT (`FLOAT`) {#GNSS_REQ_HDRIFT}
+
+Maximum horizontal drift speed to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 1.0 |  | 0.1 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_NSATS (`INT32`) {#GNSS_REQ_NSATS}
+
+Required satellite count to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 4 | 12 |  | 6 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_PDOP (`FLOAT`) {#GNSS_REQ_PDOP}
+
+Maximum PDOP to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.5 | 5.0 |  | 2.5 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_SACC (`FLOAT`) {#GNSS_REQ_SACC}
+
+Required speed accuracy to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 5.0 |  | 0.5 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_TIME (`FLOAT`) {#GNSS_REQ_TIME}
+
+Required GNSS health time on startup.
+
+Minimum continuous period without GNSS failure required to mark a healthy GNSS status. It can be reduced to speed up initialization, but it's recommended to keep this unchanged for a vehicle.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 |  |  | 10.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_VDRIFT (`FLOAT`) {#GNSS_REQ_VDRIFT}
+
+Maximum vertical drift speed to use GNSS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 1.5 |  | 0.2 | m/s | &nbsp;
 
 </div>
 
@@ -55826,12 +55785,63 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS0_DELAY (`INT32`) {#SENS_GPS0_DELAY}
+### SENS_GNSS0_AUXX (`FLOAT`) {#SENS_GNSS0_AUXX}
+
+GNSS 0 auxiliary antenna X position.
+
+Forward axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS0_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_AUXY (`FLOAT`) {#SENS_GNSS0_AUXY}
+
+GNSS 0 auxiliary antenna Y position.
+
+Right axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS0_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_AUXZ (`FLOAT`) {#SENS_GNSS0_AUXZ}
+
+GNSS 0 auxiliary antenna Z position.
+
+Down axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS0_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_DELAY (`INT32`) {#SENS_GNSS0_DELAY}
 
 GPS 0 measurement delay.
 
 GPS measurement delay relative to IMU measurements.
-Matched to physical GPS receiver via SENS_GPS0_ID.
+Matched to physical GPS receiver via SENS_GNSS0_ID.
 Only applied when the GPS driver does not provide its own
 timestamp_sample correction.
 
@@ -55845,7 +55855,37 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS0_ID (`INT32`) {#SENS_GPS0_ID}
+### SENS_GNSS0_HDG (`INT32`) {#SENS_GNSS0_HDG}
+
+GNSS 0 heading setup.
+
+How the receiver in slot 0 (matched via SENS_GNSS0_ID) measures its dual antenna heading.
+The heading is the bearing of the baseline between two antennas, and is only used when the
+baseline length the receiver reports is within 20% of the configured one.
+Moving base rover: this receiver is the rover of a moving base pair, the moving base is the
+receiver in the other slot. The baseline runs from the moving base's antenna to this
+receiver's antenna (SENS_GNSSn_OFFX/Y/Z of both slots).
+Dual antenna: this receiver has two antennas. The baseline runs from its main antenna
+(SENS_GNSS0_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS0_AUXX/Y/Z).
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Moving base rover
+- `2`: Dual antenna
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS0_ID (`INT32`) {#SENS_GNSS0_ID}
 
 GPS 0 device ID.
 
@@ -55863,12 +55903,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS0_OFFX (`FLOAT`) {#SENS_GPS0_OFFX}
+### SENS_GNSS0_OFFX (`FLOAT`) {#SENS_GNSS0_OFFX}
 
 GPS 0 antenna X position.
 
 Forward axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS0_ID.
+Matched to physical GPS receiver via SENS_GNSS0_ID.
 
 
 
@@ -55880,12 +55920,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS0_OFFY (`FLOAT`) {#SENS_GPS0_OFFY}
+### SENS_GNSS0_OFFY (`FLOAT`) {#SENS_GNSS0_OFFY}
 
 GPS 0 antenna Y position.
 
 Right axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS0_ID.
+Matched to physical GPS receiver via SENS_GNSS0_ID.
 
 
 
@@ -55897,12 +55937,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS0_OFFZ (`FLOAT`) {#SENS_GPS0_OFFZ}
+### SENS_GNSS0_OFFZ (`FLOAT`) {#SENS_GNSS0_OFFZ}
 
 GPS 0 antenna Z position.
 
 Down axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS0_ID.
+Matched to physical GPS receiver via SENS_GNSS0_ID.
 
 
 
@@ -55914,12 +55954,63 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS1_DELAY (`INT32`) {#SENS_GPS1_DELAY}
+### SENS_GNSS1_AUXX (`FLOAT`) {#SENS_GNSS1_AUXX}
+
+GNSS 1 auxiliary antenna X position.
+
+Forward axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS1_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS1_AUXY (`FLOAT`) {#SENS_GNSS1_AUXY}
+
+GNSS 1 auxiliary antenna Y position.
+
+Right axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS1_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS1_AUXZ (`FLOAT`) {#SENS_GNSS1_AUXZ}
+
+GNSS 1 auxiliary antenna Z position.
+
+Down axis relative to vehicle centre of gravity, of the receiver's second antenna.
+Used when SENS_GNSS1_HDG is Dual antenna.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS1_DELAY (`INT32`) {#SENS_GNSS1_DELAY}
 
 GPS 1 measurement delay.
 
 GPS measurement delay relative to IMU measurements.
-Matched to physical GPS receiver via SENS_GPS1_ID.
+Matched to physical GPS receiver via SENS_GNSS1_ID.
 Only applied when the GPS driver does not provide its own
 timestamp_sample correction.
 
@@ -55933,7 +56024,37 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS1_ID (`INT32`) {#SENS_GPS1_ID}
+### SENS_GNSS1_HDG (`INT32`) {#SENS_GNSS1_HDG}
+
+GNSS 1 heading setup.
+
+How the receiver in slot 1 (matched via SENS_GNSS1_ID) measures its dual antenna heading.
+The heading is the bearing of the baseline between two antennas, and is only used when the
+baseline length the receiver reports is within 20% of the configured one.
+Moving base rover: this receiver is the rover of a moving base pair, the moving base is the
+receiver in the other slot. The baseline runs from the moving base's antenna to this
+receiver's antenna (SENS_GNSSn_OFFX/Y/Z of both slots).
+Dual antenna: this receiver has two antennas. The baseline runs from its main antenna
+(SENS_GNSS1_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS1_AUXX/Y/Z).
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Moving base rover
+- `2`: Dual antenna
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_GNSS1_ID (`INT32`) {#SENS_GNSS1_ID}
 
 GPS 1 device ID.
 
@@ -55951,12 +56072,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS1_OFFX (`FLOAT`) {#SENS_GPS1_OFFX}
+### SENS_GNSS1_OFFX (`FLOAT`) {#SENS_GNSS1_OFFX}
 
 GPS 1 antenna X position.
 
 Forward axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS1_ID.
+Matched to physical GPS receiver via SENS_GNSS1_ID.
 
 
 
@@ -55968,12 +56089,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS1_OFFY (`FLOAT`) {#SENS_GPS1_OFFY}
+### SENS_GNSS1_OFFY (`FLOAT`) {#SENS_GNSS1_OFFY}
 
 GPS 1 antenna Y position.
 
 Right axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS1_ID.
+Matched to physical GPS receiver via SENS_GNSS1_ID.
 
 
 
@@ -55985,12 +56106,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS1_OFFZ (`FLOAT`) {#SENS_GPS1_OFFZ}
+### SENS_GNSS1_OFFZ (`FLOAT`) {#SENS_GNSS1_OFFZ}
 
 GPS 1 antenna Z position.
 
 Down axis relative to vehicle centre of gravity.
-Matched to physical GPS receiver via SENS_GPS1_ID.
+Matched to physical GPS receiver via SENS_GNSS1_ID.
 
 
 
@@ -56002,71 +56123,25 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_GPS_MASK (`INT32`) {#SENS_GPS_MASK}
-
-Multi GPS Blending Control Mask.
-
-Set bits in the following positions to set which GPS accuracy metrics will
-be used to calculate the blending weight. Set to zero to disable and always
-used first GPS instance.
-
-
-
-**Bitmask:**
-
-- `0`: use speed accuracy
-- `1`: use hpos accuracy
-- `2`: use vpos accuracy
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 7 |  | 7 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SENS_GPS_PRIME (`INT32`) {#SENS_GPS_PRIME}
+### SENS_GNSS_PRIME (`INT32`) {#SENS_GNSS_PRIME}
 
 Multi GPS primary instance.
 
-When no blending is active, this defines the preferred GPS receiver instance.
+Preferred GPS receiver instance.
 The GPS selection logic waits until the primary receiver is available to
 send data to the EKF even if a secondary instance is already available.
 The secondary instance is then only used if the primary one times out.
 
 To select a DroneCAN GPS, set this to the node ID.
 
-The primary receiver is reported in the GPS_RAW_INT MAVLink
-message and the secondary in GPS2_RAW.
-
-This parameter has no effect on the EKF GPS selection if
-blending is active.
+GPS_RAW_INT reports the preferred receiver, or without one the first receiver
+to publish, and GPS2_RAW the other one. Neither follows the selection.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | -1 | 127 |  | 0 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SENS_GPS_TAU (`FLOAT`) {#SENS_GPS_TAU}
-
-Multi GPS Blending Time Constant.
-
-Sets the longest time constant that will be applied to the calculation of GPS
-position and height offsets used to correct data from multiple GPS data for
-steady state position differences.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 1.0 | 100.0 |  | 10.0 | s | &nbsp;
 
 </div>
 
@@ -57420,7 +57495,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Septentrio
 
-<div class="param-group" style="--param-count: 15">
+<div class="param-group" style="--param-count: 13">
 
 <div class="param">
 
@@ -57622,27 +57697,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SEP_PITCH_OFFS (`FLOAT`) {#SEP_PITCH_OFFS}
-
-Pitch offset for dual antenna GPS.
-
-Vertical offsets can be compensated for by adjusting the Pitch offset.
-
-Note that this can be interpreted as the "roll" angle in case the antennas are aligned along the perpendicular axis.
-This occurs in situations where the two antenna ARPs may not be exactly at the same height in the vehicle reference frame.
-Since pitch is defined as the right-handed rotation about the vehicle Y axis,
-a situation where the main antenna is mounted lower than the aux antenna (assuming the default antenna setup) will result in a positive pitch.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | -90 | 90 |  | 0 | deg | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### SEP_PORT1_CFG (`INT32`) {#SEP_PORT1_CFG}
 
 Serial Configuration for GPS Port.
@@ -57761,30 +57815,6 @@ Set this to another value if the default stream is already used for another purp
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 1 | 10 |  | 1 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### SEP_YAW_OFFS (`FLOAT`) {#SEP_YAW_OFFS}
-
-Heading/Yaw offset for dual antenna GPS.
-
-Heading offset angle for dual antenna GPS setups that support heading estimation.
-
-Set this to 0 if the antennas are parallel to the forward-facing direction
-of the vehicle and the rover antenna is in front.
-
-The offset angle increases clockwise.
-
-Set this to 90 if the rover antenna is placed on the
-right side of the vehicle and the moving base antenna is on the left side.
-
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | -360 | 360 |  | 0 | deg | &nbsp;
 
 </div>
 
@@ -59452,7 +59482,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Bootloader update.
 
-If enabled, update the bootloader on the next boot.
+If enabled, update the bootloader on the next boot. DroneCAN nodes
+update within about 2 seconds of it being set, without rebooting.
 
 WARNING: do not cut the power during an update process, otherwise you will
 have to recover using some alternative method (e.g. JTAG).
@@ -59665,7 +59696,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Control if the vehicle has a GPS.
 
 Disable this if the system has no GPS.
-If disabled, the sensors hub will not process sensor_gps,
+If disabled, the sensors hub will not process sensor_gnss,
 and GPS will not be available for the rest of the system.
 
 
@@ -59739,9 +59770,9 @@ Control if and how many GNSS receivers are required.
 0: No minimum receiver count required. Position divergence between two receivers
 and loss of a GNSS receiver still produce a warning but never trigger the
 COM_GNSSLOSS_ACT failsafe action.
-1-N: Require the presence of N GNSS receivers for arming and during flight.
+1-N: Require the presence of N GNSS receivers for arming.
 If the active count drops below this value in flight, COM_GNSSLOSS_ACT is triggered.
-When set to 2, position divergence between the two receivers also triggers COM_GNSSLOSS_ACT.
+When set to 2, position divergence between the two receivers also blocks arming when not armed and triggers COM_GNSSLOSS_ACT in flight.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -63379,10 +63410,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 UAVCAN mode.
 
-0 - UAVCAN disabled.
-1 - Enables support for UAVCAN sensors without dynamic node ID allocation and firmware update.
-2 - Enables support for UAVCAN sensors with dynamic node ID allocation and firmware update.
-3 - Enables support for UAVCAN sensors and actuators with dynamic node ID allocation and firmware update. Also sets the motor control outputs to UAVCAN.
+Automatic Config adds dynamic node ID allocation and firmware update.
 
 
 **Values:**
@@ -66155,8 +66183,7 @@ Leave at Generic unless your VTX is listed.
 **Values:**
 
 - `0`: Generic
-- `5120`: Peak THOR T67
-- `10240`: Rush MAX SOLO
+- `5120`: Peak THOR - T35, T67, T78, T89
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only

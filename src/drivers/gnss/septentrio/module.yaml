@@ -54,26 +54,6 @@ parameters:
           2: 20 Hz
           3: 25 Hz
         reboot_required: true
-      SEP_YAW_OFFS:
-        description:
-          short: Heading/Yaw offset for dual antenna GPS
-          long: |
-            Heading offset angle for dual antenna GPS setups that support heading estimation.
-
-            Set this to 0 if the antennas are parallel to the forward-facing direction
-            of the vehicle and the rover antenna is in front.
-
-            The offset angle increases clockwise.
-
-            Set this to 90 if the rover antenna is placed on the
-            right side of the vehicle and the moving base antenna is on the left side.
-        type: float
-        decimal: 3
-        default: 0
-        min: -360
-        max: 360
-        unit: deg
-        reboot_required: true
       SEP_SAT_INFO:
         description:
           short: Enable sat info
@@ -81,23 +61,6 @@ parameters:
             Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
         type: boolean
         default: 0
-        reboot_required: true
-      SEP_PITCH_OFFS:
-        description:
-          short: Pitch offset for dual antenna GPS
-          long: |
-            Vertical offsets can be compensated for by adjusting the Pitch offset.
-
-            Note that this can be interpreted as the "roll" angle in case the antennas are aligned along the perpendicular axis.
-            This occurs in situations where the two antenna ARPs may not be exactly at the same height in the vehicle reference frame.
-            Since pitch is defined as the right-handed rotation about the vehicle Y axis,
-            a situation where the main antenna is mounted lower than the aux antenna (assuming the default antenna setup) will result in a positive pitch.
-        type: float
-        decimal: 3
-        default: 0
-        min: -90
-        max: 90
-        unit: deg
         reboot_required: true
       SEP_DUMP_COMM:
         description:

@@ -2,12 +2,10 @@
 
 无论对于模拟器还是硬件目标设备，PX4固件可以在控制台或者IDE中从源码构建
 
-若要使用[模拟器](../simulation/index.md)，或需要修改PX4并创建自定义构建，则必须自行构建PX4。
-如果您只想在实际硬件上试试 PX4，那么可以使用 QGroundControl[烧录预构建的二进制文件](../config/firmware.md)(无需跟着下面的指导)。
+若要使用[模拟器](../simulation/index.md)，或需要修改PX4并创建自定义构建，则必须自行构建PX4。如果您只想在实际硬件上试试 PX4，那么可以使用 QGroundControl[烧录预构建的二进制文件](../config/firmware.md)(无需跟着下面的指导)。
 
 :::info
-在跟着这些指导之前，你必须先为主机操作系统和目标硬件安装 [开发者工具链](../dev_setup/dev_env.md)。
-如果您在跟着这些步骤操作后有任何问题，请参阅下面的 [故障排除](#troubleshooting)。
+在跟着这些指导之前，你必须先为主机操作系统和目标硬件安装 [开发者工具链](../dev_setup/dev_env.md)。如果您在跟着这些步骤操作后有任何问题，请参阅下面的 [故障排除](#troubleshooting)。
 :::
 
 ## 下载 PX4 源代码
@@ -23,15 +21,13 @@ git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 注意，您可能在[安装开发工具链](../dev_setup/dev_env.md)时已经完成了这项操作
 
 :::info
-你只需要执行它就能够得到最新的代码。
-如果需要，您也可以[获取特定版本的源代码](../contribute/git_examples.md#get-a-specific-release)。
+你只需要执行它就能够得到最新的代码。如果需要，您也可以[获取特定版本的源代码](../contribute/git_examples.md#get-a-specific-release)。
 [[GIT 示例](../contribute/git_examples.md) 提供了更多的信息，用于发布版本并对 PX4 作出贡献。
 :::
 
 ## 初次构建（使用模拟器）
 
-首先我们要用控制台环境来构建一个模拟器目标
-这使我们能够在转移到真正的硬件和 IDE 之前验证系统设置。
+首先我们要用控制台环境来构建一个模拟器目标这使我们能够在转移到真正的硬件和 IDE 之前验证系统设置。
 
 导航到 **PX4-Autopilot** 目录并使用以下命令启动 [Gazebo SITL](../sim_gazebo_gz/index.md)：
 
@@ -44,8 +40,7 @@ make px4_sitl gz_x500
 ![PX4 控制台](../../assets/toolchain/console_gazebo.png)
 
 :::info
-您可能需要在继续之前启动 _QGroundControl_ ，因为默认的 PX4 配置需要在起飞前进行地面控制连接。
-可以[从这里下载](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html)。
+您可能需要在继续之前启动 _QGroundControl_ ，因为默认的 PX4 配置需要在起飞前进行地面控制连接。可以[从这里下载](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html)。
 :::
 
 可以通过键入以下命令（如上方控制台中所示）来控制飞行器。
@@ -60,9 +55,7 @@ pxh> commander takeoff
 
 无人机可以通过输入 `Commander land` 来着陆，整个模拟可以通过 **CTRL+C** (或输入 `shutdown` )来停止。
 
-与地面站一起飞模拟器更接近飞机的实际运行。
-在飞机飞行时（Takeoff飞行模式），单击地图上的某个位置并启用滑块。
-这将重新定位飞机。
+与地面站一起飞模拟器更接近飞机的实际运行。在飞机飞行时（Takeoff飞行模式），单击地图上的某个位置并启用滑块。这将重新定位飞机。
 
 ![QGroundControl GoTo](../../assets/toolchain/qgc_goto.jpg)
 
@@ -96,12 +89,10 @@ From the PX4-Autopilot directory:
 [954/954] Creating /home/youruser/src/PX4-Autopilot/build/px4_fmu-v4_default/px4_fmu-v4_default.px4
 ```
 
-构建目标 `px4_fmu-v4` 的第一部分表示目标飞行控制器固件的硬件。
-后缀（此处为`_default`）表示固件的_配置_，例如支持或省略特定功能。
+构建目标 `px4_fmu-v4` 的第一部分表示目标飞行控制器固件的硬件。后缀（此处为`_default`）表示固件的_配置_，例如支持或省略特定功能。
 
 :::info
-`_default` 后缀是可选的。
-例如，`make px4_fmu-v5` 和 `px4_fmu-v5_default` 都会生成相同的固件。
+`_default` 后缀是可选的。例如，`make px4_fmu-v5` 和 `px4_fmu-v5_default` 都会生成相同的固件。
 :::
 
 以下列表显示了[Pixhawk标准](../flight_controller/autopilot_pixhawk_standard.md)飞行控制板的构建命令：
@@ -156,8 +147,7 @@ From the PX4-Autopilot directory:
 
 ### 将固件烧录到飞控板
 
-在 make 命令后添加 `upload`，通过USB将编译后的二进制文件上传至 autopilot 硬件。
-例如
+在 make 命令后添加 `upload`，通过USB将编译后的二进制文件上传至 autopilot 硬件。例如
 
 ```sh
 make px4_fmu-v4_default upload
@@ -175,8 +165,7 @@ Rebooting.
 ```
 
 :::tip
-在 WSL2 上开发时不支持此操作。
-参见[ Windows 开发环境 (WSL2-基于) > 烧录主板](../dev_setup/dev_env_windows_wsl.md#flash-a-flight-control-board)。
+在 WSL2 上开发时不支持此操作。参见[ Windows 开发环境 (WSL2-基于) > 烧录主板](../dev_setup/dev_env_windows_wsl.md#flash-a-flight-control-board)。
 :::
 
 ## 其他飞控板
@@ -191,15 +180,13 @@ make list_config_targets
 
 ## 用图形界面 IDE 编译
 
-[VSCode](../dev_setup/vscode.md是官方支持 (且推荐) 的  用于 PX4 开发的 IDE。
-它很容易设置，可以用于编译模拟和硬件环境的 PX4。
+[VSCode](../dev_setup/vscode.md是官方支持 (且推荐) 的  用于 PX4 开发的 IDE。它很容易设置，可以用于编译模拟和硬件环境的 PX4。
 
 ## 故障处理
 
 ### 常规构建错误
 
-许多构建问题是由不匹配的子模块或未完全清理的构建环境引起的。
-更新子模块并进行 `distclean` 可以修复这些类型的错误：
+许多构建问题是由不匹配的子模块或未完全清理的构建环境引起的。更新子模块并进行 `distclean` 可以修复这些类型的错误：
 
 ```sh
 git submodule update --recursive
@@ -208,14 +195,12 @@ make distclean
 
 ### 闪存溢出了 XXX 字节
 
-`region 'flash' overflowed by XXXX bytes` 错误表明固件对目标硬件平台太大了。
-这对于`make px4_fmu-v2_default` 构建是常见的，它的 flash 大小被限制在 1MB。
+`region 'flash' overflowed by XXXX bytes` 错误表明固件对目标硬件平台太大了。这对于`make px4_fmu-v2_default` 构建是常见的，它的 flash 大小被限制在 1MB。
 
 如果您正在构建_vanilla_master 分支，最可能的原因是使用不支持的 GCC版本。
 In this case, install the `gcc-arm-none-eabi` package from the current Ubuntu LTS as described in the [Developer Toolchain](../dev_setup/dev_env.md) instructions.
 
-如果在构建自己的分支，您可能已将固件大小增加到超过1MB的限制。
-在这种情况下，您需要从构建中删除您不需要的任何驱动程序/模块。
+如果在构建自己的分支，您可能已将固件大小增加到超过1MB的限制。在这种情况下，您需要从构建中删除您不需要的任何驱动程序/模块。
 
 ### macOS：打开文件过多错误
 
@@ -247,8 +232,7 @@ To apply it to every new terminal, add the `ulimit` line to `~/.zshrc` as descri
 
 ### macOS Catalina：运行cmake时出现问题
 
-对于 macOS Catalina 10.15.1 ，在尝试使用 _cmake _ 构建模拟器时可能会遇到问题。
-如果您在这个平台上遇到构建问题，请尝试在终端中运行以下命令：
+对于 macOS Catalina 10.15.1 ，在尝试使用 _cmake _ 构建模拟器时可能会遇到问题。如果您在这个平台上遇到构建问题，请尝试在终端中运行以下命令：
 
 ```sh
 xcode-select --install
@@ -303,38 +287,32 @@ make list_config_targets
 
 **VIEWER_MODEL_DEBUGER_WORLD:**
 
-- **VIEWER:** 这是启动和连接的模拟器 ("查看器") : `gz`, `gzebo`, `jmavsim`, `none` <!-- , ?airsim -->
+- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `none` <!-- , ?airsim -->
 
   :::tip
-  `none` 可以用于启动PX4并等待模拟器(jmavsim, Gazebo, Gazebo Classic, 或其他模拟器)。
+  `none` can be used if you want to launch PX4 and wait for a simulator (Gazebo, Gazebo Classic, or some other simulator).
   例如，`make px4_sitl none_iris` 在没有模拟器的情况下启动 PX4 (但使用 iris 机架)。
 
 :::
 
-- MODEL:要使用的 载具 模型（例如 iris (default)、rover、tailsitter 等），该模型将由模拟器加载。
-  环境变量 `PX4_SIM_MODEL` 将被设置为选中的模型，然后在[启动脚本](../simulation/index.md#startup-scripts)中使用以选择适当的参数。
+- MODEL:要使用的 载具 模型（例如 iris (default)、rover、tailsitter 等），该模型将由模拟器加载。环境变量 `PX4_SIM_MODEL` 将被设置为选中的模型，然后在[启动脚本](../simulation/index.md#startup-scripts)中使用以选择适当的参数。
 
 - **DEBUGER:** 调试器使用: `none` (_default_), `ide`, `gdb`, `lldb`, `ddd`, `valgrind`, `callgrind`.
   更多信息请参阅[模拟调试](../debug/simulation_debugging.md)。
 
 - **WORLD**: (仅限Gazebo Classic).
-  设置加载的世界（[PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds](https://github.com/PX4/PX4-SITL_gazebo-classic/tree/main/worlds)）。
-  默认为 [empty.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/empty.world)。
-  欲了解更多信息，请参阅[Gazebo Classic > 加载特定世界](../sim_gazebo_classic/index.md#loading-a-specific-world)。
+  设置加载的世界（[PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds](https://github.com/PX4/PX4-SITL_gazebo-classic/tree/main/worlds)）。默认为 [empty.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/empty.world)。欲了解更多信息，请参阅[Gazebo Classic > 加载特定世界](../sim_gazebo_classic/index.md#loading-a-specific-world)。
 
 ::: info
 
-- `CONFIGURATION_TARGET`和`VIEWER_MODEBUGER`中的大多数值都有默认值，因此是可选的。
-  例如，`gazebo-classic`等于`gazebo-classic_iris`或`gazebo-classic_iris_none`。
-- 如果要在其他两个设置之间指定默认值，可以使用三个下划线。
-  例如，`gazebo-classic___gdb`相当于`gazebo-classic_iris_gdb`。
+- `CONFIGURATION_TARGET`和`VIEWER_MODEBUGER`中的大多数值都有默认值，因此是可选的。例如，`gazebo-classic`等于`gazebo-classic_iris`或`gazebo-classic_iris_none`。
+- 如果要在其他两个设置之间指定默认值，可以使用三个下划线。例如，`gazebo-classic___gdb`相当于`gazebo-classic_iris_gdb`。
 - 你可以使用 "none" 值为 "VIEWER_MODEBUGER" 来启动 PX4 并等待模拟器。
-  例如，使用 `make px4_sitl_default none` 和 jMAVSim 使用 `./Tools/simulation/jmavsim/jmavsim_run.sh -l` 启动 PX4。
+  For example start PX4 using `make px4_sitl_default none` and then start your simulator.
 
 :::
 
-`VENDOR_MODEL_VARIANT`选项映射为 [/boards](https://github.com/PX4/PX4-Autopilot/tree/main/boards) 目录下的 PX4 源树中的特殊_px4board_ 配置文件。
-具体而言，`VENDOR_MODEL_VARIANT` 映射到配置文件 **boards/VENDOR/MODEL/VARIANT.px4board**
+`VENDOR_MODEL_VARIANT`选项映射为 [/boards](https://github.com/PX4/PX4-Autopilot/tree/main/boards) 目录下的 PX4 源树中的特殊_px4board_ 配置文件。具体而言，`VENDOR_MODEL_VARIANT` 映射到配置文件 **boards/VENDOR/MODEL/VARIANT.px4board**
 （例如 `px4_fmu-v5_default` 对应 [boards/px4/fmu-v5/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/default.px4board)）。
 
 其他 make 目标在相关章节中讨论：

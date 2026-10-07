@@ -93,15 +93,33 @@ jobs:
         apt-get update
         apt-get install -y --no-install-recommends libclang-rt-18-dev
 
-    # `make clang-ci` prepares both clang build directories:
+    # Two clang build directories, prepared one after the other so their
+    # configures never fetch submodules at the same time:
+    #   - build/px4_sitl_default-clang-test:  configure + generated headers only, BUILD_TESTING=ON
+    #     (used by clang-tidy-diff-18.py so test files are in the
+    #      compilation database with resolved gtest/fuzztest includes)
     #   - build/px4_sitl_default-clang:       full build, BUILD_TESTING=OFF
     #     (used by run-clang-tidy-pr.py for whole-file analysis of
     #      changed production code)
-    #   - build/px4_sitl_default-clang-test:  configure-only, BUILD_TESTING=ON
-    #     (used by clang-tidy-diff-18.py so test files are in the
-    #      compilation database with resolved gtest/fuzztest includes)
+    - name: Configure clang SITL with tests
+      run: make px4_sitl_default-clang-test
+
+    # The test build dir is never built, so generate its headers (uORB
+    # topics, events, parameters, mavlink, ...). Without them every TU
+    # stops at a missing include and clang-tidy-diff reports on the
+    # half-parsed AST, e.g. events::send<T>(...) as a chained comparison.
+    # fuzztest's json_grammar.h is skipped: generating it builds abseil
+    # and the antlr4 runtime, and no PX4 code includes it.
+    - name: Generate headers for clang SITL with tests
+      working-directory: build/px4_sitl_default-clang-test
+      shell: bash
+      run: |
+        ninja -t targets all \
+          | awk -F': ' '$2 == "CUSTOM_COMMAND" && $1 ~ /\.(h|hpp)$/ && $1 !~ /^(\/|test\/fuzztest\/)/ {print $1}' \
+          | xargs -r ninja
+
     - name: Build clang SITL
-      run: make -j$(nproc) clang-ci
+      run: make -j$(nproc) px4_sitl_default-clang
 
     - name: Run Clang-Tidy Analysis
       run: python3 Tools/ci/run-clang-tidy-pr.py origin/${{ github.base_ref }}
@@ -122,9 +140,13 @@ jobs:
           --build-dir build/px4_sitl_default-clang-test \
           --base-ref origin/${{ github.base_ref }} \
           --out pr-review/diff.patch
+        # The -checks list turns checks off for these comments only; the
+        # gating run above keeps them. Here they also lint test code, where
+        # they flag gtest fixtures and binary packet buffers.
         if [ -s pr-review/diff.patch ]; then
           clang-tidy-diff-18.py -p1 \
             -path build/px4_sitl_default-clang-test \
+            -checks=-cppcoreguidelines-virtual-class-destructor,-readability-suspicious-call-argument,-bugprone-not-null-terminated-result \
             -export-fixes pr-review/fixes.yml \
             -j0 < pr-review/diff.patch || true
         else

@@ -186,6 +186,9 @@ private:
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMAX>) _param_fw_dtrim_y_vmax,
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMIN>) _param_fw_dtrim_y_vmin,
 
+		(ParamBool<px4::params::FW_GC_EN>) _param_fw_gc_en,
+		(ParamFloat<px4::params::FW_GC_GAIN_MIN>) _param_fw_gc_gain_min,
+
 		(ParamFloat<px4::params::FW_MAN_P_SC>) _param_fw_man_p_sc,
 		(ParamFloat<px4::params::FW_MAN_R_SC>) _param_fw_man_r_sc,
 		(ParamFloat<px4::params::FW_MAN_Y_SC>) _param_fw_man_y_sc,
@@ -218,7 +221,7 @@ private:
 	)
 
 	RateControl _rate_control; ///< class for rate control calculations
-	GainCompression3d _gain_compression{this};
+	GainCompression3d _gain_compression;
 
 	void updateActuatorControlsStatus(float dt);
 
