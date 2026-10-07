@@ -272,6 +272,9 @@ protected:
 	// Last target estimator timestamp to handle timeout filter reset
 	uint64_t _last_valid_target_estimator_timestamp{0};
 
+	// Last seen estimator frame reset, to move the filtered target position with the estimate
+	uint8_t _target_pos_reset_counter{0};
+
 	// Second Order Filter to calculate kinematically feasible target position
 	SecondOrderReferenceModel<matrix::Vector3f> _target_position_velocity_filter;
 
