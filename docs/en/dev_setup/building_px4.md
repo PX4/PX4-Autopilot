@@ -170,6 +170,27 @@ You can also list all configuration targets using the command:
 make list_config_targets
 ```
 
+## Submodules
+
+PX4 pulls a number of libraries (NuttX, MAVLink, and others) in as git submodules.
+Each build checks them once when it configures:
+
+| Submodule state                         | Local build               | CI (`CI=true`)       |
+| --------------------------------------- | ------------------------- | -------------------- |
+| At the commit PX4 records               | Builds                    | Builds               |
+| Missing                                 | Fetched, then builds      | Fetched, then builds |
+| At another commit (e.g. you changed it) | Warns, builds it as it is | Fails                |
+
+A submodule at another commit is never reset, so you can develop and test changes to a submodule (for example a NuttX upgrade) in place.
+The build warns about it every time, and you are responsible for keeping it in the state you want.
+To check out the commits PX4 records (for example after switching branches), run:
+
+```sh
+git submodule sync --recursive && git submodule update --init --recursive
+```
+
+Set `GIT_SUBMODULES_ARE_EVIL=1` to skip the check entirely and manage submodules yourself.
+
 ## Compiling in a Graphical IDE
 
 [VSCode](../dev_setup/vscode.md) is the officially supported (and recommended) IDE for PX4 development.
@@ -284,10 +305,10 @@ make list_config_targets
 
 **VIEWER_MODEL_DEBUGGER_WORLD:**
 
-- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `jmavsim`, `none` <!-- , ?airsim -->
+- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `none` <!-- , ?airsim -->
 
   :::tip
-  `none` can be used if you want to launch PX4 and wait for a simulator (jmavsim, Gazebo, Gazebo Classic, or some other simulator).
+  `none` can be used if you want to launch PX4 and wait for a simulator (Gazebo, Gazebo Classic, or some other simulator).
   For example, `make px4_sitl none_iris` launches PX4 without a simulator (but with the iris airframe).
   :::
 
@@ -307,7 +328,7 @@ make list_config_targets
 - You can use three underscores if you want to specify a default value between two other settings.
   For example, `gazebo-classic___gdb` is equivalent to `gazebo-classic_iris_gdb`.
 - You can use a `none` value for `VIEWER_MODEL_DEBUGGER` to start PX4 and wait for a simulator.
-  For example start PX4 using `make px4_sitl_default none` and jMAVSim using `./Tools/simulation/jmavsim/jmavsim_run.sh -l`.
+  For example start PX4 using `make px4_sitl_default none` and then start your simulator.
 
 :::
 

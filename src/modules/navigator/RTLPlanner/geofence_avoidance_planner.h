@@ -35,7 +35,7 @@
 
 /**
  * @file geofence_avoidance_planner.h
- * Ensures vehicle waypoints during RTL and autonomous modes remain
+ * Ensures vehicle waypoints during Return and autonomous modes remain
  * inside inclusion fences and outside exclusion fences.
  */
 
@@ -51,17 +51,36 @@ public:
 	GeofenceAvoidancePlanner() = default;
 	~GeofenceAvoidancePlanner();
 
+	GeofenceAvoidancePlanner(const GeofenceAvoidancePlanner &) = delete;
+	GeofenceAvoidancePlanner &operator=(const GeofenceAvoidancePlanner &) = delete;
+
+	/**
+	 * Allocate the planner buffers for up to max_nodes graph nodes (including the destination).
+	 * RAM usage is quadratic, replanning time cubic in max_nodes. max_nodes is limited to
+	 * kMaxNodesForAnyStorableFence, since more nodes can never be used.
+	 *
+	 * @param max_nodes Node budget. 0 disables the planner.
+	 * @return false if the allocation failed. The planner is disabled in that case.
+	 */
+	bool init(int max_nodes);
+
+	/**
+	 * True if the planner has been allocated with a non-zero node budget.
+	 */
+	bool enabled() const { return _max_nodes > 0; }
+
 	/**
 	 * Result of the latest graph build & dijkstra run.
 	 * Is converted to user-facing warning in navigator_main.
 	 */
 	enum class Status {
 		Success,                     // No error
+		Disabled,                    // Planner disabled (node budget 0) -- avoidance not applicable.
 		NoFence,                     // No fence polygons -- avoidance not applicable.
 		DijkstraFailed,              // Dijkstra solve exited due to invalid input data.
 		DestinationInvalid,          // Destination lat/lon non-finite, out of [-90,90]/[-180,180], or out of fixed-point range (internal).
 		DestinationBreachesGeofence, // Destination breaches geofence
-		BudgetExceeded,              // Node/polygon storage budget exceeded (should not normally happen, see static_assert).
+		BudgetExceeded,              // Node/polygon storage budget exceeded (node budget below kMaxNodesForAnyStorableFence).
 		OutOfRange,                  // A zone's vertex/extent fell outside the usable fixed-point range.
 		Degenerate,                  // A zone was degenerate (< 3 vertices, self-intersecting, antiparallel/zero-length edge, empty circle, negative margin).
 	};
@@ -71,9 +90,20 @@ public:
 	void resetStatus() { _status = Status::Success; }
 
 	/**
+	 * Node budget currently allocated (0 if disabled).
+	 */
+	int maxNodes() const { return _max_nodes; }
+
+	/**
+	 * Worst-case number of graph nodes (including the destination) the latest fence
+	 * passed to updateGraphFromGeofence() needs. Compare against maxNodes() on Status::BudgetExceeded.
+	 */
+	int requiredNodes() const { return _required_nodes; }
+
+	/**
 	 * True if the latest updateStartAndFillPath() found neither a routed path nor a direct
 	 * line to the destination -- the caller will fly directly and ignore geofences.
-	 * Stays false when no fence is loaded (Status::NoFence), as there is nothing to avoid.
+	 * Stays false when no fence is loaded (Status::NoFence) or the planner is disabled (Status::Disabled).
 	 */
 	bool needsStraightLineFallback() const { return _straight_line_fallback; }
 
@@ -135,16 +165,18 @@ public:
 
 private:
 
-	static constexpr int kMaxNodes = geofence_utils::PlannerPolygons::kMaxNodes;
-	static constexpr int num_distances_in_graph = kMaxNodes * (kMaxNodes - 1) / 2;
+	void freeBuffers();
 
-	float _best_distance[kMaxNodes];
-	float _distances[num_distances_in_graph];
-	int _next_node_buffer[kMaxNodes];
-	bool _visited_buffer[kMaxNodes];
+	int _max_nodes{0};
+	int _required_nodes{0};
 
-	// Stored flat path. Worst case: 1 anchor + kMaxNodes DAG vertices.
-	matrix::Vector2d _path[kMaxNodes + 1];
+	float *_best_distance{nullptr};    // [_max_nodes]
+	float *_distances{nullptr};        // [_max_nodes * (_max_nodes - 1) / 2]
+	int *_next_node_buffer{nullptr};   // [_max_nodes]
+	bool *_visited_buffer{nullptr};    // [_max_nodes]
+
+	// Stored flat path. Worst case: 1 anchor + _max_nodes DAG vertices.
+	matrix::Vector2d *_path{nullptr};  // [_max_nodes + 1]
 	int _path_length{0};
 	int _path_cursor{0};
 
@@ -154,11 +186,11 @@ private:
 	//  - Stores polygons plus safety margin in fixed-point (for robust geometry calculations)
 	//  - Abstracts away geometry, provides edge cost between any two nodes
 	//  - Updated on updateGraphFromGeofence (through updatePolygonsFromGeofence), otherwise read only
-	geofence_utils::PlannerPolygons _polygons;
+	geofence_utils::PlannerPolygons _polygons{0};
 
 	bool _polygons_healthy{false};
 	bool _destination_healthy{false};
-	Status _status{Status::NoFence};
+	Status _status{Status::Disabled};
 	bool _straight_line_fallback{false};
 
 	// Most recent in-fence position passed to updateStartAndFillPath. Used

@@ -61,6 +61,10 @@ if(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 	add_subdirectory(vehicle_optical_flow)
 endif()
 
+if(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+	set(GNSS_HEADING_PARAMS vehicle_gps_position/params_heading.yaml)
+endif()
+
 px4_add_module(
 	MODULE modules__sensors
 	MAIN sensors
@@ -74,6 +78,7 @@ px4_add_module(
 	MODULE_CONFIG
 		module.yaml
 		vehicle_gps_position/module.yaml
+		${GNSS_HEADING_PARAMS}
 		sensor_params.yaml
 		sensor_params_flow.yaml
 		sensor_params_mag.yaml

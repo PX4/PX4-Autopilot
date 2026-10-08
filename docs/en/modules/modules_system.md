@@ -155,9 +155,9 @@ commander <command> [arguments...]
    transition    VTOL transition
 
    mode          Change flight mode
-     manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow
-                 |auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|aut
-                 o:land|auto:precland|ext1 Flight mode
+     manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|manual_parkin
+                 g|position:slow|auto:mission|auto:loiter|auto:course|auto:rtl|a
+                 uto:takeoff|auto:land|auto:precland|ext1 Flight mode
 
    pair
 

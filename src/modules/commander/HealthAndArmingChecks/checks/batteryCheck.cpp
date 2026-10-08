@@ -138,8 +138,12 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		if (battery.connected) {
 			++num_connected_batteries;
 
-			if (battery.warning > worst_warning) {
-				worst_warning = battery.warning;
+			// charging is a state, not a severity, so it must not outrank or latch over a real warning
+			const uint8_t warning = (battery.warning == battery_status_s::WARNING_CHARGING) ?
+						battery_status_s::WARNING_NONE : battery.warning;
+
+			if (warning > worst_warning) {
+				worst_warning = warning;
 			}
 
 			if (battery.remaining < worst_battery_remaining) {
@@ -302,7 +306,7 @@ void BatteryChecks::rtlEstimateCheck(const Context &context, Report &reporter, f
 {
 	rtl_time_estimate_s rtl_time_estimate;
 
-	// Compare estimate of RTL time to estimate of remaining flight time
+	// Compare estimate of return time to estimate of remaining flight time
 	// add hysteresis: if already in the condition, only get out of it if the remaining flight time is significantly higher again
 	const float hysteresis_factor = reporter.failsafeFlags().battery_low_remaining_time ? 1.1f : 1.0f;
 

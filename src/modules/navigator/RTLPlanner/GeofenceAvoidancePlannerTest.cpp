@@ -65,6 +65,11 @@ private:
 class GeofenceAvoidancePlannerTest : public ::testing::Test
 {
 public:
+	void SetUp() override
+	{
+		ASSERT_TRUE(_planner.init(geofence_utils::PlannerPolygons::kMaxNodesForAnyStorableFence));
+	}
+
 	GeofenceAvoidancePlanner _planner;
 };
 
@@ -96,6 +101,69 @@ TEST_F(GeofenceAvoidancePlannerTest, DirectPathNoFence)
 
 	ASSERT_EQ(num_waypoints, 0);
 	EXPECT_FALSE(_planner.needsStraightLineFallback());
+}
+
+namespace
+{
+// Exclusion zone between start and destination, see PathAroundExclusionZone.
+const matrix::Vector2<double> kExclusionStart(47.3559582, 8.5192064);
+const matrix::Vector2<double> kExclusionDestination(47.3546153, 8.5193195);
+const matrix::Vector2<double> kExclusionVertices[] = {
+	{47.3552420, 8.5192293},
+	{47.3555843, 8.5201174},
+	{47.3551382, 8.5209143},
+	{47.3550828, 8.5171901},
+};
+} // namespace
+
+TEST(GeofenceAvoidancePlannerInitTest, ZeroNodesDisablesPlanner)
+{
+	GeofenceAvoidancePlanner planner;
+	EXPECT_TRUE(planner.init(0));
+	EXPECT_FALSE(planner.enabled());
+
+	FakeGeofence fake(kExclusionVertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	planner.updateGraphFromGeofence(fake, 0.f);
+	planner.updateDestination(kExclusionDestination);
+
+	EXPECT_EQ(planner.updateStartAndFillPath(kExclusionStart), 0);
+	EXPECT_EQ(planner.status(), GeofenceAvoidancePlanner::Status::Disabled);
+	EXPECT_FALSE(planner.hasMore());
+	// Disabled on purpose, flying directly is not a fallback
+	EXPECT_FALSE(planner.needsStraightLineFallback());
+}
+
+TEST(GeofenceAvoidancePlannerInitTest, NodeBudgetTooSmallForFence)
+{
+	GeofenceAvoidancePlanner planner;
+	ASSERT_TRUE(planner.init(4)); // 4 fence vertices + destination slot needed
+	EXPECT_TRUE(planner.enabled());
+
+	FakeGeofence fake(kExclusionVertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	planner.updateGraphFromGeofence(fake, 0.f);
+	EXPECT_EQ(planner.status(), GeofenceAvoidancePlanner::Status::BudgetExceeded);
+	EXPECT_EQ(planner.maxNodes(), 4);
+	EXPECT_GT(planner.requiredNodes(), planner.maxNodes());
+
+	planner.updateDestination(kExclusionDestination);
+	EXPECT_EQ(planner.updateStartAndFillPath(kExclusionStart), 0);
+	EXPECT_TRUE(planner.needsStraightLineFallback());
+}
+
+TEST(GeofenceAvoidancePlannerInitTest, NodeBudgetClampedAndReinit)
+{
+	GeofenceAvoidancePlanner planner;
+	// Budgets above what any storable fence needs are clamped
+	EXPECT_TRUE(planner.init(geofence_utils::PlannerPolygons::kMaxNodesForAnyStorableFence + 1));
+	EXPECT_TRUE(planner.enabled());
+
+	// Re-init with a working budget plans around the zone
+	ASSERT_TRUE(planner.init(16));
+
+	FakeGeofence fake(kExclusionVertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	planner.updateGraphFromGeofence(fake, 0.f);
+	planner.updateDestination(kExclusionDestination);
+	EXPECT_EQ(planner.updateStartAndFillPath(kExclusionStart), 2);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)

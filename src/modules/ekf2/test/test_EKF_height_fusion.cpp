@@ -236,6 +236,29 @@ TEST_F(EkfHeightFusionTest, gpsHeightFusionStopsWhenGpsNotEnabled)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
 }
 
+TEST_F(EkfHeightFusionTest, gpsHeightFusionContinuesThroughHorizontalStop)
+{
+	// GIVEN: GNSS height and horizontal fusion active
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.runSeconds(1);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// WHEN: horizontal GNSS fusion stops while the GNSS checks keep passing
+	_ekf_wrapper.disableGpsFusion();
+	const uint64_t time_stopped = _sensor_simulator.getTime();
+	_sensor_simulator.runSeconds(0.5);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// THEN: height fusion continues, both during the horizontal restart hold-off (1 s) and after it
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_GT(_ekf->aid_src_gnss_hgt().time_last_fuse, time_stopped);
+	_sensor_simulator.runSeconds(1.5);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+}
+
 TEST_F(EkfHeightFusionTest, gpsRefNoAltFusion)
 {
 	// GIVEN: GNSS alt reference but not selected as an aiding source

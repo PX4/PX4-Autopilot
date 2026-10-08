@@ -162,11 +162,12 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 		_battery_status[instance].cell_count = 1;
 	}
 
-	if (msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING) {
-		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
+	_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
 
-	} else {
-		_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
+	// charging is reported only while there is no real warning, so it never hides a low battery
+	if ((msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING)
+	    && (_battery_status[instance].warning == battery_status_s::WARNING_NONE)) {
+		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
 	}
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
@@ -339,7 +340,9 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 	_battery_status[instance].id = msg.battery_id;
 
-	if (msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING) {
+	// charging is reported only while there is no real warning, so it never hides a low battery
+	if ((msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING)
+	    && (_battery_status[instance].warning == battery_status_s::WARNING_NONE)) {
 		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
 	}
 

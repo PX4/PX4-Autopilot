@@ -43,6 +43,10 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
 	_fc.gps.available = (_params.ekf2_gps_ctrl != 0);
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
+	controlGnssYawFusion(imu_delayed);
+#endif // CONFIG_EKF2_GNSS_YAW
+
 	if (!_gps_buffer) {
 		stopGnssFusion();
 		return;
@@ -69,24 +73,39 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	if (_gps_data_ready) {
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
-		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
+		// The sensors module stamps each sample with its check result
+		_gnss_usable = gnss_sample.usable;
 
-		if (_gnss_checks.run(gnss_sample, _time_delayed_us)) {
-			if (_gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
-				// First time checks are passing, latching.
-				_information_events.flags.gps_checks_passed = true;
-			}
+		if (gnss_sample.usable && !_gnss_checks_passed_reported) {
+			// First time checks are passing, latching.
+			_information_events.flags.gps_checks_passed = true;
+			_gnss_checks_passed_reported = true;
+		}
+
+		// Each axis of the velocity state is constrained to EKF2_VEL_LIM, so a sample beyond it cannot be fused
+		const bool vel_within_limit = gnss_sample.vel.isAllFinite()
+					      && (gnss_sample.vel.abs().max() <= _params.ekf2_vel_lim);
+
+		if (gnss_sample.usable && vel_within_limit) {
+			_time_last_gnss_sample_accepted_us = _time_delayed_us;
 
 		} else {
 			// Skip this sample
 			_gps_data_ready = false;
 
-			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
-			const bool gnss_checks_pass_timeout = isTimedOut(_gnss_checks.getLastPassUs(), _params.reset_timeout_max);
+			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos
+						|| _control_status.flags.gps_hgt;
+			const bool gnss_sample_accepted_timeout = isTimedOut(_time_last_gnss_sample_accepted_us, _params.reset_timeout_max);
 
-			if (using_gnss && gnss_checks_pass_timeout) {
+			if (using_gnss && gnss_sample_accepted_timeout) {
 				stopGnssFusion();
-				ECL_WARN("GNSS quality poor - stopping use");
+
+				if (gnss_sample.usable) {
+					ECL_WARN("GNSS velocity above limit - stopping use");
+
+				} else {
+					ECL_WARN("GNSS quality poor - stopping use");
+				}
 			}
 		}
 
@@ -101,11 +120,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	}
 
 	if (_gps_data_ready) {
-#if defined(CONFIG_EKF2_GNSS_YAW)
-		const gnssSample &gnss_sample = _gps_sample_delayed;
-		controlGnssYawFusion(gnss_sample);
-#endif // CONFIG_EKF2_GNSS_YAW
-
 		controlGnssYawEstimator(_aid_src_gnss_vel);
 
 		bool do_vel_pos_reset = false;
@@ -137,7 +151,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_fault
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
+	const bool starting_conditions_passing = continuing_conditions_passing && isGnssRestartHoldOffElapsed();
 
 	if (_control_status.flags.gnss_vel) {
 		if (continuing_conditions_passing) {
@@ -194,11 +208,26 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_hgt_fault;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
-	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gnss_checks.passed();
+	const bool starting_conditions_passing = continuing_conditions_passing && isGnssRestartHoldOffElapsed();
+	const bool gpos_init_conditions_passing = gnss_pos_enabled && isGnssRestartHoldOffElapsed();
+
+	// The new receiver can report a position offset from the previous one (different correction source)
+	const bool receiver_changed = (_gps_sample_delayed.selection_count != _gnss_pos_selection_count);
+	_gnss_pos_selection_count = _gps_sample_delayed.selection_count;
 
 	if (_control_status.flags.gnss_pos) {
-		if (continuing_conditions_passing) {
+		if (continuing_conditions_passing && receiver_changed) {
+			if (isGnssPosResetAllowed()) {
+				ECL_INFO("GNSS receiver changed, resetting position");
+				resetHorizontalPositionToGnss(aid_src);
+
+			} else {
+				// Another source constrains the position: restart once the new receiver is consistent with it
+				ECL_WARN("GNSS receiver changed, restarting position fusion");
+				stopGnssPosFusion();
+			}
+
+		} else if (continuing_conditions_passing) {
 			fuseHorizontalPosition(aid_src);
 
 			const bool fusion_timeout = isTimedOut(aid_src.time_last_fuse, _params.reset_timeout_max);
@@ -487,16 +516,9 @@ void Ekf::resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src)
 
 void Ekf::stopGnssFusion()
 {
-	if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) {
-		_gnss_checks.reset();
-	}
-
 	stopGnssVelFusion();
 	stopGnssPosFusion();
 	stopGpsHgtFusion();
-#if defined(CONFIG_EKF2_GNSS_YAW)
-	stopGnssYawFusion();
-#endif // CONFIG_EKF2_GNSS_YAW
 
 	_yawEstimator.reset();
 	_time_yaw_estimator_activated_us = 0;
@@ -508,9 +530,8 @@ void Ekf::stopGnssVelFusion()
 		ECL_INFO("stopping GNSS velocity fusion");
 		_control_status.flags.gnss_vel = false;
 
-		//TODO: what if gnss yaw or height is used?
 		if (!_control_status.flags.gnss_pos) {
-			_gnss_checks.reset();
+			_time_last_gnss_fusion_stop_us = _time_delayed_us;
 		}
 	}
 }
@@ -521,9 +542,8 @@ void Ekf::stopGnssPosFusion()
 		ECL_INFO("stopping GNSS position fusion");
 		_control_status.flags.gnss_pos = false;
 
-		//TODO: what if gnss yaw or height is used?
 		if (!_control_status.flags.gnss_vel) {
-			_gnss_checks.reset();
+			_time_last_gnss_fusion_stop_us = _time_delayed_us;
 		}
 	}
 }

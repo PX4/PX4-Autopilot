@@ -63,6 +63,9 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	// NAVIGATION_STATE_MANUAL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_MANUAL, flags.mode_req_manual_control);
 
+	// NAVIGATION_STATE_MANUAL_PARKING
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING, flags.mode_req_manual_control);
+
 	// NAVIGATION_STATE_ALTCTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_attitude);

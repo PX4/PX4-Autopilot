@@ -12,8 +12,7 @@ These modes behave identically in flight, but have different arming requirements
 
 When sticks are outside the centre, the roll and pitch sticks control the _angle_ of the vehicle (attitude) around the respective axes, the yaw stick controls the rate of rotation above the horizontal plane, and the throttle controls altitude/speed.
 
-一旦释放摇杆，它们将会返回中心停顿区。
-一旦横滚和俯仰摇杆居中，多旋翼无人机将平稳并停止运动。
+一旦释放摇杆，它们将会返回中心停顿区。一旦横滚和俯仰摇杆居中，多旋翼无人机将平稳并停止运动。
 The vehicle will then hover in place/maintain altitude - provided it is properly balanced, throttle is set appropriately (see [below](#parameters)), and no external forces are applied (e.g. wind).
 飞行器将朝着任何风的方向漂移，您必须控制油门以保持高度。
 
@@ -29,8 +28,7 @@ RC mode where centered sticks level vehicle.
 
 飞手的输入通过横滚和俯仰角度以及偏航角速率指令传递给自驾仪。
 Throttle is rescaled (see [below](#parameters)) and passed directly to control allocation.
-自动驾驶仪控制着飞机的姿态角，这意味着当 RC 摇杆居中时自驾仪调整飞机的滚转和俯仰角为零（从而实现飞机姿态的改平）。
-自动驾驶仪不能补偿由于风（或其他来源）引起的漂移。
+自动驾驶仪控制着飞机的姿态角，这意味着当 RC 摇杆居中时自驾仪调整飞机的滚转和俯仰角为零（从而实现飞机姿态的改平）。自动驾驶仪不能补偿由于风（或其他来源）引起的漂移。
 
 - Centered sticks:
   - Roll/Pitch sticks level vehicle.

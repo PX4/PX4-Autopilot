@@ -400,10 +400,33 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 
 	_px4_mag.set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
 
-	// FIXME: once we're on jetty or later
-	// The magnetometer plugin publishes in units of gauss and in a weird left handed coordinate system
-	// https://github.com/gazebosim/gz-sim/pull/2460
-	_px4_mag.update(timestamp, -msg.field_tesla().y(), -msg.field_tesla().x(), msg.field_tesla().z());
+	// The field is in tesla and in the sensor's FLU frame if the Magnetometer system is loaded with
+	// use_units_gauss=false and use_earth_frame_ned=false (server.config, gz-sim >= 8.6).
+	// Other setups (standalone gz, older gz-sim, worlds with their own systems) still get the legacy
+	// output: gauss, with the NED field components placed on the ENU world axes.
+	// Earth's field is 2.2e-5 to 6.7e-5 T (0.22 to 0.67 G), so a magnitude above 1e-2 can only be gauss.
+	const gz::math::Vector3d field(msg.field_tesla().x(), msg.field_tesla().y(), msg.field_tesla().z());
+
+	if (field.Length() > 1e-2) {
+		static bool legacy_warned = false;
+
+		if (!legacy_warned) {
+			PX4_WARN("gz magnetometer is in legacy mode (gauss, NED components on ENU axes), heading will be wrong. "
+				 "Set use_units_gauss and use_earth_frame_ned to false for the Magnetometer system");
+			legacy_warned = true;
+		}
+
+		_px4_mag.update(timestamp, -field.Y(), -field.X(), field.Z());
+		return;
+	}
+
+	// Rotate FLU to FRD like the IMU and convert tesla to gauss
+	static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
+	static constexpr double TESLA_TO_GAUSS = 1e4;
+
+	const gz::math::Vector3d field_frd = q_FLU_to_FRD.RotateVector(field) * TESLA_TO_GAUSS;
+
+	_px4_mag.update(timestamp, field_frd.X(), field_frd.Y(), field_frd.Z());
 }
 
 void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
@@ -711,56 +734,53 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	id.devid_s.bus = 1;
 	id.devid_s.address = 1;
 
-	sensor_gps_s sensor_gps{};
+	sensor_gnss_s sensor_gnss{};
 
 	if (_sim_gps_used.get() >= 4) {
 		// fix
-		sensor_gps.fix_type = 3; // 3D fix
-		sensor_gps.s_variance_m_s = 0.4f;
-		sensor_gps.c_variance_rad = 0.1f;
-		sensor_gps.eph = 0.9f;
-		sensor_gps.epv = 1.78f;
-		sensor_gps.hdop = 0.7f;
-		sensor_gps.vdop = 1.1f;
+		sensor_gnss.fix_type = 3; // 3D fix
+		sensor_gnss.speed_accuracy = 0.4f;
+		sensor_gnss.course_accuracy = 0.1f;
+		sensor_gnss.eph = 0.9f;
+		sensor_gnss.epv = 1.78f;
+		sensor_gnss.hdop = 0.7f;
+		sensor_gnss.vdop = 1.1f;
 
 	} else {
 		// no fix
-		sensor_gps.fix_type = 0; // No fix
-		sensor_gps.s_variance_m_s = 100.f;
-		sensor_gps.c_variance_rad = 100.f;
-		sensor_gps.eph = 100.f;
-		sensor_gps.epv = 100.f;
-		sensor_gps.hdop = 100.f;
-		sensor_gps.vdop = 100.f;
+		sensor_gnss.fix_type = 0; // No fix
+		sensor_gnss.speed_accuracy = 100.f;
+		sensor_gnss.course_accuracy = 100.f;
+		sensor_gnss.eph = 100.f;
+		sensor_gnss.epv = 100.f;
+		sensor_gnss.hdop = 100.f;
+		sensor_gnss.vdop = 100.f;
 	}
 
-	sensor_gps.timestamp = timestamp;
-	sensor_gps.timestamp_sample = timestamp;
-	sensor_gps.time_utc_usec = 0;
-	sensor_gps.device_id = id.devid;
-	sensor_gps.latitude_deg = latitude;
-	sensor_gps.longitude_deg = longitude;
-	sensor_gps.altitude_msl_m = altitude;
-	sensor_gps.altitude_ellipsoid_m = altitude;
-	sensor_gps.noise_per_ms = 0;
-	sensor_gps.jamming_indicator = 0;
-	sensor_gps.vel_m_s = sqrtf(vel_north * vel_north + vel_east * vel_east);
-	sensor_gps.vel_n_m_s = vel_north;
-	sensor_gps.vel_e_m_s = vel_east;
-	sensor_gps.vel_d_m_s = vel_down;
-	sensor_gps.cog_rad = atan2(vel_east, vel_north);
-	sensor_gps.timestamp_time_relative = 0;
-	sensor_gps.heading = NAN;
-	sensor_gps.heading_offset = NAN;
-	sensor_gps.heading_accuracy = 0;
-	sensor_gps.automatic_gain_control = 0;
-	sensor_gps.jamming_state = 0;
-	sensor_gps.spoofing_state = 0;
-	sensor_gps.vel_ned_valid = true;
-	sensor_gps.satellites_used = _sim_gps_used.get();
+	sensor_gnss.timestamp = timestamp;
+	sensor_gnss.timestamp_sample = timestamp;
+	sensor_gnss.time_utc_usec = 0;
+	sensor_gnss.device_id = id.devid;
+	sensor_gnss.latitude = latitude;
+	sensor_gnss.longitude = longitude;
+	sensor_gnss.altitude_msl = altitude;
+	sensor_gnss.altitude_ellipsoid = altitude;
+	sensor_gnss.noise = 0;
+	sensor_gnss.jamming_indicator = 0;
+	sensor_gnss.ground_speed = sqrtf(vel_north * vel_north + vel_east * vel_east);
+	sensor_gnss.vel_north = vel_north;
+	sensor_gnss.vel_east = vel_east;
+	sensor_gnss.vel_down = vel_down;
+	sensor_gnss.course = atan2(vel_east, vel_north);
+	sensor_gnss.timestamp_time_relative = 0;
+	sensor_gnss.automatic_gain_control = 0;
+	sensor_gnss.jamming_state = 0;
+	sensor_gnss.spoofing_state = 0;
+	sensor_gnss.vel_ned_valid = true;
+	sensor_gnss.satellites_used = _sim_gps_used.get();
 
-	if (failure_injection::process_gnss(_failure_config, _sensor_gps_pub.get_instance(), sensor_gps, _gps_stuck)) {
-		_sensor_gps_pub.publish(sensor_gps);
+	if (failure_injection::process_gnss(_failure_config, _sensor_gnss_pub.get_instance(), sensor_gnss, _gnss_stuck)) {
+		_sensor_gnss_pub.publish(sensor_gnss);
 	}
 }
 

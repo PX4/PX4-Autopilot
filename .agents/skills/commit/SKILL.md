@@ -36,9 +36,7 @@ invent one.**
    is the user's DCO certification of changes they have reviewed: never
    commit with `-s` work the user has not seen.
 6. Add new commits rather than amending pushed ones, and never force-push
-   unless the user asks or the branch is being rebased. PRs are squash-merged,
-   so the branch history costs nothing on `main` and shows reviewers the
-   decision chain.
+   unless the user asks or the branch is being rebased.
 7. If the branch has an upstream (`git rev-parse --abbrev-ref @{u}`), push.
 8. If the branch has an open PR (`gh pr view --json state,body`), update its
    description with `gh pr edit --body` when the commit changes what the

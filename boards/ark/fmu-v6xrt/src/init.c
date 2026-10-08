@@ -165,6 +165,12 @@ __EXPORT void board_on_reset(int status)
 	}
 }
 
+/* This board is fitted with one flash type, see g_flash_fast_config */
+const char *board_get_flash_type_name(void)
+{
+	return "MX25UM51345G";
+}
+
 #if defined(CONFIG_BOARD_BOOTLOADER_FIXUP)
 /****************************************************************************
  * Name: imxrt_octl_flash_initialize

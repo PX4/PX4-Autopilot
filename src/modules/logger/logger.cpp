@@ -163,12 +163,12 @@ int Logger::custom_command(int argc, char *argv[])
 #endif
 
 	if (!strcmp(argv[0], "on")) {
-		get_instance<Logger>(desc)->set_arm_override(true);
+		get_instance<Logger>(desc)->set_manual_logging(true);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "off")) {
-		get_instance<Logger>(desc)->set_arm_override(false);
+		get_instance<Logger>(desc)->set_manual_logging(false);
 		return 0;
 	}
 
@@ -996,19 +996,19 @@ bool Logger::handle_event_updates(uint32_t &total_bytes)
 	bool data_written = false;
 
 	while (_event_subscription.updated()) {
-		event_s *orb_event = (event_s *)(_msg_buffer + sizeof(ulog_message_data_s));
-		_event_subscription.copy(orb_event);
+		// Copy into an aligned struct first: the message data in _msg_buffer is
+		// not necessarily aligned for event_s.
+		event_s orb_event;
+		_event_subscription.copy(&orb_event);
+		uint8_t *const msg_data = _msg_buffer + sizeof(ulog_message_data_s);
 
-		// Important: we can only access single-byte values in orb_event (it's not necessarily aligned)
-		if (events::internalLogLevel(orb_event->log_levels) == events::LogLevelInternal::Disabled) {
+		if (events::internalLogLevel(orb_event.log_levels) == events::LogLevelInternal::Disabled) {
 			++_event_sequence_offset; // skip this event
 
 		} else {
 			// adjust sequence number
-			uint16_t updated_sequence;
-			memcpy(&updated_sequence, &orb_event->event_sequence, sizeof(updated_sequence));
-			updated_sequence -= _event_sequence_offset;
-			memcpy(&orb_event->event_sequence, &updated_sequence, sizeof(updated_sequence));
+			orb_event.event_sequence -= _event_sequence_offset;
+			memcpy(msg_data, &orb_event, sizeof(orb_event));
 
 			size_t msg_size = sizeof(ulog_message_data_s) + _event_subscription.get_topic()->o_size_no_padding;
 			uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
@@ -1031,11 +1031,10 @@ bool Logger::handle_event_updates(uint32_t &total_bytes)
 			}
 
 			// mission log: only warnings or higher
-			if (events::internalLogLevel(orb_event->log_levels) <= events::LogLevelInternal::Warning) {
+			if (events::internalLogLevel(orb_event.log_levels) <= events::LogLevelInternal::Warning) {
 				if (_writer.is_started(LogType::Mission)) {
-					memcpy(&updated_sequence, &orb_event->event_sequence, sizeof(updated_sequence));
-					updated_sequence -= _event_sequence_offset_mission;
-					memcpy(&orb_event->event_sequence, &updated_sequence, sizeof(updated_sequence));
+					orb_event.event_sequence -= _event_sequence_offset_mission;
+					memcpy(msg_data, &orb_event, sizeof(orb_event));
 
 					if (write_message(LogType::Mission, _msg_buffer, msg_size)) {
 						data_written = true;
@@ -1073,7 +1072,7 @@ void Logger::publish_logger_status()
 
 				status.is_logging = true;
 				status.total_written_kb = kb_written;
-				status.write_rate_kb_s = kb_written / seconds;
+				status.write_rate_kb_s = (seconds > FLT_EPSILON) ? kb_written / seconds : 0.f;
 				status.dropouts = _statistics[i].write_dropouts;
 				status.message_gaps = _message_gaps;
 				status.buffer_used_bytes = buffer_fill_count_file;
@@ -1130,6 +1129,23 @@ bool Logger::start_stop_logging()
 {
 	bool updated = false;
 	bool desired_state = false;
+	int command = _manual_logging_command.load();
+	const bool manual_command_received = command != (int)ManualLoggingCommand::None
+					     && _manual_logging_command.compare_exchange(&command, (int)ManualLoggingCommand::None);
+
+	if (manual_command_received) {
+		_manual_start_override = command == (int)ManualLoggingCommand::Start;
+		_manual_stop_active = command == (int)ManualLoggingCommand::Stop
+				      && (_manual_stop_active || _writer.is_started(LogType::Full, LogWriter::BackendFile));
+
+		// Suspend boot-to-shutdown logging when its current log is stopped, otherwise it would restart
+		// immediately. Resume continuous logging with the next log.
+		// arm_until_shutdown needs no special handling: it resumes on its own on the next arming.
+		if (_manual_stop_active && _log_mode == LogMode::boot_until_shutdown && !_continuous_log_stopped) {
+			_continuous_log_stopped = true;
+			PX4_INFO("continuous log stopped, logging will resume on the next arming");
+		}
+	}
 
 	if (_log_mode == LogMode::rc_aux1) {
 		// aux1-based logging
@@ -1148,12 +1164,12 @@ bool Logger::start_stop_logging()
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 			const bool armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 			const bool full_log_continues =
-				_log_mode == LogMode::boot_until_shutdown ||
+				(_log_mode == LogMode::boot_until_shutdown && !_continuous_log_stopped) ||
 				(_log_mode == LogMode::arm_until_shutdown && _prev_file_log_start_state);
 
 			if (full_log_continues) {
 				if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
-					if (armed || _manually_logging_override.load()) {
+					if (armed || _manual_start_override) {
 						if (_writer.is_started(LogType::Full, LogWriter::BackendFile)) {
 							start_log_file(LogType::Mission);
 						}
@@ -1174,10 +1190,21 @@ bool Logger::start_stop_logging()
 		}
 	}
 
-	desired_state = desired_state || _manually_logging_override.load();
+	if (manual_command_received) {
+		updated = true;
+	}
+
+	// Suppress automatic restarts until the current arming or AUX logging condition ends.
+	if (updated && !manual_command_received && !desired_state && _manual_stop_active) {
+		_manual_stop_active = false;
+	}
+
+	desired_state = (desired_state || _manual_start_override) && !_manual_stop_active;
+	const bool state_changed = _prev_file_log_start_state != desired_state;
+	const bool stop_requested = manual_command_received && _manual_stop_active;
 
 	// only start/stop if this is a state transition
-	if (updated && _prev_file_log_start_state != desired_state) {
+	if (updated && (state_changed || stop_requested)) {
 		_prev_file_log_start_state = desired_state;
 
 		if (desired_state) {
@@ -1186,6 +1213,7 @@ bool Logger::start_stop_logging()
 				stop_log_file(LogType::Full);
 			}
 
+			_continuous_log_stopped = false;
 			start_log_file(LogType::Full);
 
 			if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
