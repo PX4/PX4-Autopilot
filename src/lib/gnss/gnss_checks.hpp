@@ -159,7 +159,7 @@ private:
 	float _vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
 	uint64_t _time_last_fail_us{0};
 	uint64_t _time_last_pass_us{0};
-	bool _strict_passed_since_disarm{false};
+	bool _initial_strict_checks_passed{false};
 	bool _strict{true};
 	bool _passed{false};
 	bool _passed_strict{false};
