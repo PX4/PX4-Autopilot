@@ -628,6 +628,8 @@ TEST_P(MissionGeofenceEndLoiterTest, ChecksTheLoiterAfterTheLastPosition)
 	}
 
 	items.push_back(last);
+	// End-of-mission loiter belongs to the last position, even with trailing command items.
+	items.push_back(changeSpeed());
 	EXPECT_EQ(missionFeasible(items), test.feasible);
 
 	if (!test.feasible) {

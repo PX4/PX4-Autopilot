@@ -114,6 +114,7 @@ public:
 	 * For a connected chain, checking the first point is enough if all preceding paths pass.
 	 * Check anchors and paths against the same loaded fence; check Home and altitude limits separately.
 	 * Uses cached fence data only. Paths may cross the antimeridian.
+	 * Call serially from Navigator; scratch storage is shared between Geofence instances.
 	 * Polygon checks approximate great-circle paths with a 2 m subdivision target; this is not a clearance margin.
 	 * Great circles approximate local guidance near the EKF origin. Paths that could reach a pole or exceed
 	 * the subdivision budget are unavailable when polygon fences are loaded.
