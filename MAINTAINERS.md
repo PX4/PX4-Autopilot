@@ -18,7 +18,7 @@ See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/ma
 | Beniamino Pozzan | ROS 2 | [@beniaminopozzan](https://github.com/beniaminopozzan) | beniaminopozzan | <beniamino.pozzan@gmail.com>
 | Matthias Grob | Multirotor | [@MaEtUgR](https://github.com/MaEtUgR) | maetugr |
 | Silvan Fuhrer | Fixed-Wing / VTOL | [@sfuhrer](https://github.com/sfuhrer) | sfuhrer |
-| Michael Fritsche | Rover | [@Frigiii](https://github.com/Frigiii) |  |
+| Michael Fritsche | Rover | [@Frigiii](https://github.com/Frigiii) | frigiii |
 | Pedro Roque | Spacecraft | [@Pedro-Roque](https://github.com/Pedro-Roque) | .pedroroque | <roque@caltech.edu>
 | Balduin Dettling | VTOL | [@mbjd](https://github.com/mbjd) | m_balduin_jd |
 | Mahima Yoga | Fixed-Wing | [@mahima-yoga](https://github.com/mahima-yoga) | myoga_78681 |
