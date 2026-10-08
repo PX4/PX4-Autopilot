@@ -192,7 +192,9 @@ protected:
 	 */
 	void reset();
 
-	filter_gains_s _filter_gains;
+	// zero so that the first update computes the gains, update_filter_gains() skips them when the
+	// responsiveness it finds already matches the parameter
+	filter_gains_s _filter_gains{};
 	filter_states_s _filter_states;
 
 	MapProjection _reference_position{};
