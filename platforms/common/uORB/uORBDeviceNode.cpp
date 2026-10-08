@@ -50,14 +50,36 @@
 
 #if defined(__PX4_NUTTX)
 #include <nuttx/arch.h>
+#include <nuttx/kmalloc.h>
 #include <nuttx/mm/mm.h>
 #include <px4_platform/micro_hal.h>
 #endif
 
 #include <px4_platform_common/mmap.h>
+#include <px4_platform_common/posix.h>
 #include <px4_platform_common/sem.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
+
+#if defined(CONFIG_BUILD_FLAT) || defined(CONFIG_BUILD_PROTECTED) || defined(POSIX_SHM_DISABLED)
+inline static uint8_t *allocate_payload(size_t size)
+{
+#ifdef CONFIG_BUILD_PROTECTED
+	return static_cast<uint8_t *>(kumm_memalign(PX4_ARCH_DCACHE_ALIGNMENT, size));
+#else
+	return static_cast<uint8_t *>(px4_cache_aligned_alloc(size));
+#endif
+}
+
+inline static void free_payload(uint8_t *payload)
+{
+#ifdef CONFIG_BUILD_PROTECTED
+	kumm_free(payload);
+#else
+	free(payload);
+#endif
+}
+#endif
 
 #ifndef CONFIG_FS_SHMFS_VFS_PATH
 #define CONFIG_FS_SHMFS_VFS_PATH "/dev/shm"
@@ -599,9 +621,21 @@ uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance) :
 	}
 }
 
+#ifdef CONFIG_BUILD_PROTECTED
+void *uORB::DeviceNode::EventWaitItem::operator new (size_t size) noexcept
+{
+	return kumm_malloc(size);
+}
+
+void uORB::DeviceNode::EventWaitItem::operator delete (void *ptr) noexcept
+{
+	kumm_free(ptr);
+}
+#endif
+
 uORB::DeviceNode::~DeviceNode()
 {
-#if defined(CONFIG_BUILD_FLAT)
+#if defined(CONFIG_BUILD_FLAT) || defined(CONFIG_BUILD_PROTECTED)
 
 	// Delete all the allocated free callback items.
 	// There should not be any left in use, since the node is
@@ -615,6 +649,10 @@ uORB::DeviceNode::~DeviceNode()
 		handle = callbacks.pop_free();
 	}
 
+#endif
+
+#if defined(CONFIG_BUILD_FLAT) || defined(CONFIG_BUILD_PROTECTED) || defined(POSIX_SHM_DISABLED)
+	free_payload(_payload);
 #endif
 	px4_sem_destroy(&_lock);
 	px4_sem_destroy(&_cb_lock);
@@ -687,6 +725,22 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 
 	/* Perform an atomic copy. */
 	lock();
+
+#if defined(CONFIG_BUILD_FLAT) || defined(CONFIG_BUILD_PROTECTED) || defined(POSIX_SHM_DISABLED)
+
+	if (_payload == nullptr) {
+		const size_t data_size = o_size * o_queue;
+		_payload = allocate_payload(data_size);
+
+		if (_payload == nullptr) {
+			unlock();
+			return -ENOMEM;
+		}
+
+		memset(_payload, 0, data_size);
+	}
+
+#endif
 
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation.fetch_add(1);
@@ -794,7 +848,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t &handle, const 
 	ret = devnode->write((const char *)data, meta, handle);
 
 	if (ret != (int)meta->o_size) {
-		errno = EIO;
+		errno = ret == -ENOMEM ? ENOMEM : EIO;
 		return PX4_ERROR;
 	}
 
@@ -915,7 +969,7 @@ int16_t uORB::DeviceNode::process_add_subscription(orb_advert_t &handle)
 
 	// Snapshot the most recent sample under the node lock, then send it outside
 	// the critical section (mirroring copy()). The buffer is allocated before
-	// taking the lock because dynamic allocation is not allowed under it on NuttX.
+	// taking the lock to keep the critical section short.
 	uint8_t *snapshot = (uint8_t *)malloc(meta->o_size);
 
 	if (snapshot == nullptr) {
@@ -1001,8 +1055,7 @@ uORB::DeviceNode::_register_callback(uORB::SubscriptionCallback *cb_sub,
 
 	EventWaitItem *item = callbacks.peek(cb_handle);
 
-#ifdef CONFIG_BUILD_FLAT
-	/* With flat mode it is OK to allocate more items for the list */
+#if defined(CONFIG_BUILD_FLAT) || defined(CONFIG_BUILD_PROTECTED)
 
 	if (!item) {
 		item = new EventWaitItem;

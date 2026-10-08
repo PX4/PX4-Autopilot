@@ -40,8 +40,8 @@ private:
 
 
 /* The actual implementation of the list. This supports two types of handles;
- * void * for NuttX flat build / single process environment
- * int8_t for shared memory / communication between processes
+ * void * for shared-address-space environments, including NuttX protected builds
+ * int8_t for shared memory mapped at different addresses between processes
  */
 
 /* Pre-allocated item storage. With S == 0 the items are allocated dynamically
