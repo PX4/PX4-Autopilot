@@ -89,6 +89,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/yaw_estimator_status.h>
+#include <uORB/topics/wheel_encoders.h>
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 # include <uORB/topics/airspeed.h>

@@ -1694,8 +1694,8 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_WHEEL_ENCODERS)
 	// wheel encoders
-	variances.innov_var_wheel[0] = _ekf.aid_src_wheel_encoders().innovation_variance[0];
-	variances.innov_var_wheel[1] = _ekf.aid_src_wheel_encoders().innovation_variance[1];
+	variances.wheel[0] = _ekf.aid_src_wheel_encoders().innovation_variance[0];
+	variances.wheel[1] = _ekf.aid_src_wheel_encoders().innovation_variance[1];
 #endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 #if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_RANGE_FINDER)
@@ -2848,9 +2848,6 @@ void EKF2::UpdateWheelEncoderSample(ekf2_timestamps_s &ekf2_timestamps)
 			.dt = 0.01f, // This should ideally be calculated from timestamps
 		};
 		_ekf.setWheelEncoderData(sample);
-
-		ekf2_timestamps.wheel_encoder_timestamp_rel = (int16_t)((int64_t)wheel_encoders.timestamp / 100 -
-				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 }
 
