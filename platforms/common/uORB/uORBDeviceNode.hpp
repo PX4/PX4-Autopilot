@@ -93,6 +93,9 @@ class SubscriptionCallback;
  * Per-object device instance.
  */
 class DeviceNode
+#if defined(CONFIG_BUILD_FLAT)
+	: public ListNode<DeviceNode *>
+#endif
 {
 public:
 	// Open a node, either existing or create a new one
@@ -313,14 +316,26 @@ private:
 	class MappingCache
 	{
 	public:
-		struct MappingCacheListItem {
-			MappingCacheListItem *next;
+#if defined(CONFIG_BUILD_FLAT)
+		using MappingCacheListItem = DeviceNode;
+#else
+		struct MappingCacheListItem : public ListNode<MappingCacheListItem *> {
+			explicit MappingCacheListItem(orb_advert_t node_handle) : handle(node_handle) {}
 			orb_advert_t handle;
 		};
+#endif
 
-		// This list is process specific in kernel build and global in in flat
+		// Flat builds link DeviceNodes directly; other builds allocate process-local entries.
 		static void init();
-		static MappingCacheListItem *list_head() { return cache(); }
+		static MappingCacheListItem *list_head() { return cache().getHead(); }
+		static DeviceNode *item_node(MappingCacheListItem *item)
+		{
+#if defined(CONFIG_BUILD_FLAT)
+			return item;
+#else
+			return node(item->handle);
+#endif
+		}
 		static bool add(const orb_advert_t &handle);
 		static orb_advert_t get(ORB_ID orb_id, uint8_t instance);
 		static orb_advert_t map_node(ORB_ID orb_id, uint8_t instance, int shm_fd);
@@ -330,7 +345,7 @@ private:
 		static void unlock();
 
 	private:
-		static MappingCacheListItem *&cache();
+		static List<MappingCacheListItem *> &cache();
 		static px4_sem_t &cache_lock();
 		static bool &initialized();
 	};

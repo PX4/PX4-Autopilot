@@ -62,10 +62,10 @@
 #define CONFIG_FS_SHMFS_VFS_PATH "/dev/shm"
 #endif
 
-uORB::DeviceNode::MappingCache::MappingCacheListItem *&uORB::DeviceNode::MappingCache::cache()
+List<uORB::DeviceNode::MappingCache::MappingCacheListItem *> &uORB::DeviceNode::MappingCache::cache()
 {
-	// Every subscriber thread has its own list of cached subscriptions
-	static MappingCacheListItem *g_mapping_cache{nullptr};
+	// Process-local in non-flat builds, system-wide in flat builds.
+	static List<MappingCacheListItem *> g_mapping_cache;
 	return g_mapping_cache;
 }
 
@@ -158,10 +158,9 @@ int uORB::DeviceNode::fillStatistics(DeviceNodeStatisticsData **first_node, int 
 
 #if defined(POSIX_SHM_DISABLED) || defined(CONFIG_BUILD_FLAT)
 	MappingCache::lock();
-	MappingCache::MappingCacheListItem *cache_item = MappingCache::list_head();
 
-	while (cache_item != nullptr) {
-		DeviceNode *node = static_cast<DeviceNode *>(cache_item->handle);
+	for (auto *cache_item = MappingCache::list_head(); cache_item != nullptr; cache_item = cache_item->getSibling()) {
+		DeviceNode *node = MappingCache::item_node(cache_item);
 
 		// check if already added
 		cur_node = *first_node;
@@ -175,14 +174,12 @@ int uORB::DeviceNode::fillStatistics(DeviceNodeStatisticsData **first_node, int 
 		}
 
 		if (cur_node) {
-			cache_item = cache_item->next;
 			continue;
 		}
 
 		++num_topics;
 
 		if (!topic_matches_filter(*node, topic_filter, num_filters)) {
-			cache_item = cache_item->next;
 			continue;
 		}
 
@@ -190,8 +187,6 @@ int uORB::DeviceNode::fillStatistics(DeviceNodeStatisticsData **first_node, int 
 			MappingCache::unlock();
 			return -ENOMEM;
 		}
-
-		cache_item = cache_item->next;
 	}
 
 	MappingCache::unlock();
@@ -296,27 +291,33 @@ void uORB::DeviceNode::cleanupStatisticsData(DeviceNodeStatisticsData *first_nod
 orb_advert_t uORB::DeviceNode::MappingCache::get(ORB_ID orb_id, uint8_t instance)
 {
 	lock();
-
-	MappingCacheListItem *item = cache();
-
-	while (item &&
-	       (orb_id != node(item->handle)->id() ||
-		instance != node(item->handle)->get_instance())) {
-		item = item->next;
-	}
-
+	auto *item = cache().find([orb_id, instance](MappingCacheListItem * entry) {
+		const DeviceNode *n = item_node(entry);
+		return n->id() == orb_id && n->get_instance() == instance;
+	});
 	unlock();
 
-	return item != nullptr ? item->handle : ORB_ADVERT_INVALID;
+	return item != nullptr ? item_node(item) : ORB_ADVERT_INVALID;
 }
 
 bool uORB::DeviceNode::MappingCache::add(const orb_advert_t &handle)
 {
 	lock();
-	MappingCacheListItem *item = new MappingCacheListItem{cache(), handle};
+
+#if defined(CONFIG_BUILD_FLAT)
+	DeviceNode *item = node(handle);
+
+	if (cache().find([item](DeviceNode * entry) { return entry == item; })) {
+		unlock();
+		return true;
+	}
+
+#else
+	auto *item = new MappingCacheListItem(handle);
+#endif
 
 	if (item) {
-		cache() = item;
+		cache().add(item);
 	}
 
 	unlock();
@@ -327,21 +328,25 @@ bool uORB::DeviceNode::MappingCache::add(const orb_advert_t &handle)
 #if !defined(POSIX_SHM_DISABLED)
 orb_advert_t uORB::DeviceNode::MappingCache::map_node(ORB_ID orb_id, uint8_t instance, int shm_fd)
 {
-
-	// Check if it is already mapped
-	orb_advert_t handle = get(orb_id, instance);
+	lock();
+	auto *cached_item = cache().find([orb_id, instance](MappingCacheListItem * entry) {
+		const DeviceNode *n = item_node(entry);
+		return n->id() == orb_id && n->get_instance() == instance;
+	});
+	orb_advert_t handle = cached_item != nullptr ? item_node(cached_item) : ORB_ADVERT_INVALID;
 
 	if (orb_advert_valid(handle)) {
+		unlock();
 		return handle;
 	}
-
-	lock();
 
 	// Not mapped yet, map it
 	void *ptr = px4_mmap(nullptr, get_orb_size(orb_id), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd,
 			     0);
 
 	if (ptr != MAP_FAILED) {
+		handle = ptr;
+
 		// In NuttX flat and protected builds we can just drop the mappings
 		// to save some kernel memory. There is no MMU, and the memory is
 		// there until the shm object is unlinked
@@ -349,13 +354,14 @@ orb_advert_t uORB::DeviceNode::MappingCache::map_node(ORB_ID orb_id, uint8_t ins
 		px4_munmap(ptr, get_orb_size(orb_id));
 #endif
 
-		// Create a list item and add to the beginning of the list
-		handle = ptr;
-		MappingCacheListItem *item = new MappingCacheListItem{cache(), handle};
+#if !defined(CONFIG_BUILD_FLAT)
+		auto *item = new MappingCacheListItem(handle);
 
 		if (item) {
-			cache() = item;
+			cache().add(item);
 		}
+
+#endif
 	}
 
 	unlock();
@@ -366,27 +372,20 @@ orb_advert_t uORB::DeviceNode::MappingCache::map_node(ORB_ID orb_id, uint8_t ins
 
 bool uORB::DeviceNode::MappingCache::del(const orb_advert_t &handle)
 {
-	MappingCacheListItem *prev = nullptr;
-
 	lock();
 
-	MappingCacheListItem *item = cache();
+#if defined(CONFIG_BUILD_FLAT)
+	DeviceNode *item = node(handle);
+#else
+	auto *item = cache().find([device_node = node(handle)](MappingCacheListItem * entry) {
+		return item_node(entry) == device_node;
+	});
+#endif
+	const bool removed = cache().remove(item);
 
-	while (item &&
-	       handle != item->handle) {
-		prev = item;
-		item = item->next;
-	}
+#if !defined(CONFIG_BUILD_FLAT)
 
-	if (item != nullptr) {
-		if (prev == nullptr) {
-			// Remove the first item
-			cache() = item->next;
-
-		} else {
-			prev->next = item->next;
-		}
-
+	if (removed) {
 #if defined(POSIX_SHM_DISABLED)
 		free((void *)handle);
 #else
@@ -396,9 +395,11 @@ bool uORB::DeviceNode::MappingCache::del(const orb_advert_t &handle)
 		delete (item);
 	}
 
+#endif
+
 	unlock();
 
-	return item != nullptr ? true : false;
+	return removed;
 }
 
 orb_advert_t uORB::DeviceNode::nodeOpen(const ORB_ID id, const uint8_t instance, bool create)
@@ -499,6 +500,15 @@ orb_advert_t uORB::DeviceNode::nodeOpen(const ORB_ID id, const uint8_t instance,
 		new (node(handle)) uORB::DeviceNode(id, instance);
 	}
 
+#if defined(CONFIG_BUILD_FLAT)
+
+	// Construct before linking: ListNode's constructor initializes the sibling pointer.
+	if (orb_advert_valid(handle)) {
+		MappingCache::add(handle);
+	}
+
+#endif
+
 	return handle;
 
 #endif // defined(POSIX_SHM_DISABLED)
@@ -521,14 +531,26 @@ int uORB::DeviceNode::nodeClose(orb_advert_t &handle)
 #if !defined(POSIX_SHM_DISABLED)
 			char unlink_path[orb_maxpath];
 			node(handle)->mkpath(unlink_path);
-			shm_unlink(unlink_path);
 #endif
 
-			// Uninitialize the node
+#if defined(CONFIG_BUILD_FLAT)
+			// Remove the embedded link while the node is still alive.
+			MappingCache::del(handle);
+#endif
+
+			// Uninitialize the node before releasing its backing memory.
 			node(handle)->~DeviceNode();
 
+#if !defined(POSIX_SHM_DISABLED)
+			shm_unlink(unlink_path);
+#elif defined(CONFIG_BUILD_FLAT)
+			free(handle);
+#endif
+
+#if !defined(CONFIG_BUILD_FLAT)
 			// Delete the mappings for this process
 			MappingCache::del(handle);
+#endif
 		}
 	}
 
