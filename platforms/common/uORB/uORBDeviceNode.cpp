@@ -55,6 +55,7 @@
 #endif
 
 #include <px4_platform_common/mmap.h>
+#include <px4_platform_common/posix.h>
 #include <px4_platform_common/sem.hpp>
 #include <drivers/drv_hrt.h>
 
@@ -615,6 +616,10 @@ uORB::DeviceNode::~DeviceNode()
 	}
 
 #endif
+
+#if defined(CONFIG_BUILD_FLAT) || defined(POSIX_SHM_DISABLED)
+	free(_payload);
+#endif
 	px4_sem_destroy(&_lock);
 	px4_sem_destroy(&_cb_lock);
 }
@@ -686,6 +691,22 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 
 	/* Perform an atomic copy. */
 	lock();
+
+#if defined(CONFIG_BUILD_FLAT) || defined(POSIX_SHM_DISABLED)
+
+	if (_payload == nullptr) {
+		const size_t data_size = o_size * o_queue;
+		_payload = static_cast<uint8_t *>(px4_cache_aligned_alloc(data_size));
+
+		if (_payload == nullptr) {
+			unlock();
+			return -ENOMEM;
+		}
+
+		memset(_payload, 0, data_size);
+	}
+
+#endif
 
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation++;
@@ -773,7 +794,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t &handle, const 
 	ret = devnode->write((const char *)data, meta, handle);
 
 	if (ret != (int)meta->o_size) {
-		errno = EIO;
+		errno = ret == -ENOMEM ? ENOMEM : EIO;
 		return PX4_ERROR;
 	}
 
@@ -894,7 +915,7 @@ int16_t uORB::DeviceNode::process_add_subscription(orb_advert_t &handle)
 
 	// Snapshot the most recent sample under the node lock, then send it outside
 	// the critical section (mirroring copy()). The buffer is allocated before
-	// taking the lock because dynamic allocation is not allowed under it on NuttX.
+	// taking the lock to keep the critical section short.
 	uint8_t *snapshot = (uint8_t *)malloc(meta->o_size);
 
 	if (snapshot == nullptr) {
