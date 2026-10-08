@@ -42,6 +42,7 @@
 
 #include <gtest/gtest.h>
 
+#include "mission.h"
 #include "mission_base.h"
 #include "navigator.h"
 #include "support/mission_route_cache_test_peer.h"
@@ -55,6 +56,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/uORB.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -938,32 +941,6 @@ protected:
 	orb_advert_t _land_detected_pub{nullptr};
 };
 
-// WHY: A VTOL RTL mission landing point is not required to use NAV_CMD_VTOL_LAND -- a plain
-// NAV_CMD_LAND is a valid way to mark the mission landing item. Before this fix, a fixed-wing
-// VTOL reaching such a point never transitioned back to MC and instead tried to fly the
-// fixed-wing-incompatible NAV_CMD_LAND descent as a fixed wing.
-// WHAT: handleLanding() on a fixed-wing VTOL with a NAV_CMD_LAND item routes through
-// WORK_ITEM_TYPE_MOVE_TO_LAND, the same as it already does for NAV_CMD_VTOL_LAND.
-TEST_F(MissionBaseHandleLandingTest, NonVtolLandPointTriggersMoveToLand)
-{
-	// GIVEN: a fixed-wing VTOL arriving at a plain NAV_CMD_LAND mission item straight from a
-	// normal mission item (no climb in between).
-	mission_base._mission_item.nav_cmd = NAV_CMD_LAND;
-	mission_base._work_item_type = MissionBaseHandleLandingTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-	mission_base.updateVehicleState();
-
-	auto new_work_item_type = MissionBaseHandleLandingTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-	mission_item_s next_mission_items[1] {};
-	size_t num_found_items = 0;
-
-	// WHEN: handleLanding() processes the item.
-	mission_base.handleLanding(new_work_item_type, next_mission_items, num_found_items);
-
-	// THEN: the vehicle is routed to move to the land point as fixed wing ahead of the back
-	// transition, instead of continuing straight into the mission item as-is.
-	EXPECT_EQ(new_work_item_type, MissionBaseHandleLandingTestPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND);
-}
-
 // WHY: When RTL needs to climb back up to RTL_RETURN_ALT before flying to the landing point,
 // the mission item preceding the land item is a WORK_ITEM_TYPE_CLIMB item rather than the
 // default one. Before this fix, handleLanding() only started the VTOL landing sequence when
@@ -989,4 +966,214 @@ TEST_F(MissionBaseHandleLandingTest, LandPointAfterReturnAltitudeClimbTriggersMo
 	// THEN: the vehicle still starts the move-to-land sequence instead of skipping the back
 	// transition because the previous work item was a climb rather than the default one.
 	EXPECT_EQ(new_work_item_type, MissionBaseHandleLandingTestPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND);
+}
+
+class MissionTestPeer : public Mission
+{
+public:
+	explicit MissionTestPeer(Navigator *navigator) : Mission(navigator) {}
+
+	using MissionBase::_mission_item;
+	using MissionBase::_work_item_type;
+	using MissionBase::WorkItemType;
+
+	void loadTestMission(const std::vector<mission_item_s> &items)
+	{
+		_mission_store.setItems(items);
+	}
+
+	// Bypasses Mission::on_activation()'s forced MissionFeasibilityChecker run -- that check
+	// needs a much larger harness (home position, geofence, takeoff/landing requirements) to
+	// satisfy and is unrelated to what this test is exercising. MissionBase::on_activation() is
+	// the real, shared activation path (checkClimbRequired() -> set_mission_items() ->
+	// setActiveMissionItems()) that both Mission and the RTL mission-landing modes go through.
+	void activateForTest()
+	{
+		MissionBase::on_activation();
+	}
+
+	uint16_t activeNavCommand() const { return _mission_item.nav_cmd; }
+	bool activeVtolBackTransition() const { return _mission_item.vtol_back_transition; }
+
+protected:
+	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
+	{
+		return _mission_store.loadItem(index, mission_item);
+	}
+
+private:
+	navigator_test::VectorMissionItemStore _mission_store{};
+};
+
+class MissionHandleTakeoffClimbTest : public NavigatorDatamanTestBase
+{
+protected:
+	void TearDown() override
+	{
+		if (_mission_pub != nullptr) {
+			orb_unadvertise(_mission_pub);
+			_mission_pub = nullptr;
+		}
+
+		if (_vehicle_status_pub != nullptr) {
+			orb_unadvertise(_vehicle_status_pub);
+			_vehicle_status_pub = nullptr;
+		}
+
+		if (_global_position_pub != nullptr) {
+			orb_unadvertise(_global_position_pub);
+			_global_position_pub = nullptr;
+		}
+
+		if (_land_detected_pub != nullptr) {
+			orb_unadvertise(_land_detected_pub);
+			_land_detected_pub = nullptr;
+		}
+	}
+
+	void publishMission(const mission_s &mission)
+	{
+		if (_mission_pub == nullptr) {
+			_mission_pub = orb_advertise(ORB_ID(mission), &mission);
+
+		} else {
+			orb_publish(ORB_ID(mission), _mission_pub, &mission);
+		}
+	}
+
+	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type)
+	{
+		vehicle_status_s status{};
+		status.timestamp = hrt_absolute_time();
+		status.is_vtol = is_vtol;
+		status.vehicle_type = vehicle_type;
+
+		if (_vehicle_status_pub == nullptr) {
+			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_status), _vehicle_status_pub, &status);
+		}
+	}
+
+	void publishGlobalPosition(double lat, double lon, float altitude)
+	{
+		vehicle_global_position_s global_position{};
+		global_position.timestamp = hrt_absolute_time();
+		global_position.lat = lat;
+		global_position.lon = lon;
+		global_position.alt = altitude;
+
+		if (_global_position_pub == nullptr) {
+			_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_position);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_global_position), _global_position_pub, &global_position);
+		}
+	}
+
+	void publishLandDetected(bool landed)
+	{
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = hrt_absolute_time();
+		land_detected.landed = landed;
+
+		if (_land_detected_pub == nullptr) {
+			_land_detected_pub = orb_advertise(ORB_ID(vehicle_land_detected), &land_detected);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_land_detected), _land_detected_pub, &land_detected);
+		}
+	}
+
+	static constexpr double kLat = 47.397742;
+	static constexpr double kLon = 8.545594;
+	static constexpr float kLandAlt = 500.f;
+
+	Navigator _navigator{};
+	MissionTestPeer mission_peer{&_navigator};
+
+	orb_advert_t _mission_pub{nullptr};
+	orb_advert_t _vehicle_status_pub{nullptr};
+	orb_advert_t _global_position_pub{nullptr};
+	orb_advert_t _land_detected_pub{nullptr};
+};
+
+// WHY: Resuming a mission in the air (e.g. a stale mission whose remaining item is the landing
+// point) can leave the vehicle below the altitude that item was planned at. Mission::handleTakeoff()
+// inserts a WORK_ITEM_TYPE_CLIMB waypoint to make up the difference before mission.cpp:324
+// re-evaluates the actual mission item. On main, a fixed-wing VTOL that reaches a VTOL_LAND item
+// straight out of that climb never transitions back to MC and flies the
+// fixed-wing-incompatible VTOL_LAND descent as a fixed wing -- this is the path the SDT-325 crash
+// investigation traced the real incident to.
+// WHAT: Driving Mission through a real activation (climb required, climb reached, mission item
+// re-evaluated) with a fixed-wing VTOL and a single VTOL_LAND mission item routes through
+// WORK_ITEM_TYPE_MOVE_TO_LAND (NAV_CMD_WAYPOINT with vtol_back_transition set) instead of flying
+// the land item unmodified.
+TEST_F(MissionHandleTakeoffClimbTest, LandItemAboveVehicleBackTransitionsAfterClimb)
+{
+	mission_item_s land{};
+	land.nav_cmd = NAV_CMD_VTOL_LAND;
+	land.lat = kLat;
+	land.lon = kLon;
+	land.altitude = kLandAlt;
+	land.altitude_is_relative = false;
+	land.autocontinue = true;
+
+	mission_s test_mission{};
+	test_mission.timestamp = hrt_absolute_time();
+	test_mission.mission_id = 1;
+	test_mission.count = 1;
+	test_mission.current_seq = 0;
+	test_mission.land_start_index = -1;
+	test_mission.land_index = -1;
+	test_mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	// Well below the land item's altitude: enough to require a climb (more than the altitude
+	// acceptance radius below target), unlike the real flight the vehicle hasn't moved yet.
+	// Navigator keeps its own copies of vehicle_status/global_position/land_detected (separate
+	// from MissionBase's own subscriptions), so both need to be kept in sync: MissionBase's
+	// handleTakeoff()/handleLanding() read the uORB-published copies, while the generic
+	// is_mission_item_reached_or_completed() distance/altitude checks in mission_block.cpp read
+	// straight off the Navigator object.
+	const float kInitialAlt = kLandAlt - 50.f;
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kLat, kLon, kInitialAlt);
+	publishLandDetected(false);
+	publishMission(test_mission);
+	_navigator.get_mission_result()->valid = true;
+
+	_navigator.get_vstatus()->is_vtol = true;
+	_navigator.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	_navigator.get_land_detected()->landed = false;
+	_navigator.get_global_position()->lat = kLat;
+	_navigator.get_global_position()->lon = kLon;
+	_navigator.get_global_position()->alt = kInitialAlt;
+
+	mission_peer.loadTestMission({land});
+
+	// GIVEN: the mission is resumed in the air, directly on the land item.
+	mission_peer.on_inactive();
+	mission_peer.activateForTest();
+
+	ASSERT_EQ(mission_peer.activeNavCommand(), NAV_CMD_LOITER_TO_ALT);
+	ASSERT_EQ(mission_peer._work_item_type, MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB);
+
+	// First on_active(): the climb's position setpoint altitude (established at the vehicle's
+	// current altitude per the NAV_CMD_LOITER_TO_ALT convention) matches the vehicle's actual
+	// altitude, so it snaps the setpoint to the real target altitude without yet reporting the
+	// item as reached.
+	mission_peer.on_active();
+	ASSERT_EQ(mission_peer.activeNavCommand(), NAV_CMD_LOITER_TO_ALT);
+
+	// WHEN: the climb completes (the vehicle reaches the land item's altitude) and the mission
+	// item is re-evaluated.
+	publishGlobalPosition(kLat, kLon, kLandAlt);
+	_navigator.get_global_position()->alt = kLandAlt;
+	mission_peer.on_active();
+
+	// THEN: the vehicle is routed to move to the land point as fixed wing ahead of the back
+	// transition, instead of flying the raw VTOL_LAND item as fixed wing.
+	EXPECT_EQ(mission_peer.activeNavCommand(), NAV_CMD_WAYPOINT);
+	EXPECT_TRUE(mission_peer.activeVtolBackTransition());
 }

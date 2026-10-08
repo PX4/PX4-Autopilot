@@ -233,6 +233,7 @@ public:
 	}
 
 	uint16_t activeNavCommand() const { return this->_mission_item.nav_cmd; }
+	bool activeVtolBackTransition() const { return this->_mission_item.vtol_back_transition; }
 
 protected:
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
@@ -520,6 +521,83 @@ TEST_F(RTLTest, DirectMissionLandKeepsVtolInMulticopterMode)
 	direct_mission_land.activateForTest();
 
 	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_DO_LAND_START);
+}
+
+// WHY: Not every mission has a dedicated DO_LAND_START item -- when none was uploaded,
+// land_start_index falls back to land_index itself (see mavlink_mission.cpp). RTL then climbs
+// to RTL_RETURN_ALT right in front of the VTOL_LAND item, with no intervening non-position item
+// to reset the work item back to default. Before this fix, a fixed-wing VTOL reaching the land
+// item straight out of that climb never transitioned back to MC and instead flew the
+// fixed-wing-incompatible VTOL_LAND descent as a fixed wing -- this is what happened in the
+// SDT-325 crash investigation.
+// WHAT: RtlDirectMissionLand, activated with a mission whose land_start_index equals land_index
+// and already needing to climb to RTL_RETURN_ALT, still routes the VTOL_LAND item through
+// WORK_ITEM_TYPE_MOVE_TO_LAND (NAV_CMD_WAYPOINT with vtol_back_transition set) instead of flying
+// it unmodified.
+TEST_F(RTLTest, DirectMissionLandWithoutLandStartMarkerBackTransitionsAfterClimb)
+{
+	constexpr float kRtlAlt = kAlt + 20.f;
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.count = 1;
+	mission.current_seq = 0;
+	mission.land_start_index = 0; // no DO_LAND_START uploaded: falls back to land_index.
+	mission.land_index = 0;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	mission_item_s land = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_VTOL_LAND);
+	land.autocontinue = true;
+
+	// Well below RTL_RETURN_ALT: enough to require a climb. Navigator keeps its own copies of
+	// vehicle_status/global_position/land_detected (separate from MissionBase's own
+	// subscriptions), so both need to be kept in sync: MissionBase's handleLanding() reads the
+	// uORB-published copies, while the generic is_mission_item_reached_or_completed()
+	// distance/altitude checks in mission_block.cpp read straight off the Navigator object.
+	const float kInitialAlt = kRtlAlt - 20.f;
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kInitialAlt);
+	publishLandDetected(false);
+	// Republish our own mission on the shared `mission` topic: MissionBase::updateMavlinkMission()
+	// (called from on_active()) copies whatever another test last published there into _mission the
+	// first time it sees it, which would otherwise silently replace the mission passed to the
+	// constructor below with unrelated leftover data from an earlier test in this binary.
+	publishMission(mission);
+	_navigator.get_mission_result()->valid = true;
+
+	_navigator.get_vstatus()->is_vtol = true;
+	_navigator.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	_navigator.get_land_detected()->landed = false;
+	_navigator.get_global_position()->lat = kBaseLat;
+	_navigator.get_global_position()->lon = kBaseLon;
+	_navigator.get_global_position()->alt = kInitialAlt;
+
+	RtlDirectMissionLandTestPeer direct_mission_land{&_navigator, mission};
+	direct_mission_land.loadTestMission({land});
+	direct_mission_land.setRtlAlt(kRtlAlt);
+
+	direct_mission_land.activateForTest();
+
+	// GIVEN: the climb step is active and ends up right in front of the VTOL_LAND item.
+	ASSERT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_LOITER_TO_ALT);
+
+	// First on_active(): the climb's position setpoint altitude (established at the vehicle's
+	// current altitude per the NAV_CMD_LOITER_TO_ALT convention) matches the vehicle's actual
+	// altitude, so it snaps the setpoint to the real target altitude without yet reporting the
+	// item as reached.
+	direct_mission_land.on_active();
+	ASSERT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_LOITER_TO_ALT);
+
+	// WHEN: the climb completes (the vehicle reaches RTL_RETURN_ALT) and the mission item is
+	// re-evaluated.
+	publishGlobalPosition(kBaseLat, kBaseLon, kRtlAlt);
+	_navigator.get_global_position()->alt = kRtlAlt;
+	direct_mission_land.on_active();
+
+	// THEN: the vehicle is routed to move to the land point as fixed wing ahead of the back
+	// transition, instead of flying the raw VTOL_LAND item as fixed wing.
+	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_WAYPOINT);
+	EXPECT_TRUE(direct_mission_land.activeVtolBackTransition());
 }
 
 // WHY: No land point means no usable approach bearing.
