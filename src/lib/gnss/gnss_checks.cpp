@@ -60,7 +60,7 @@ bool GnssChecks::run(const gnssChecksSample &gnss, bool armed, bool in_air, bool
 	}
 
 	if (!armed && !in_air) {
-		_strict_passed_since_disarm = false;
+		_initial_strict_checks_passed = false;
 	}
 
 	// Both sets run on every sample: both are reported, and the selection ranks receivers on the strict one in flight
@@ -73,10 +73,10 @@ bool GnssChecks::run(const gnssChecksSample &gnss, bool armed, bool in_air, bool
 	_strict = true;
 
 	if (_passed_strict) {
-		_strict_passed_since_disarm = true;
+		_initial_strict_checks_passed = true;
 		_passed = true;
 
-	} else if (_strict_passed_since_disarm) {
+	} else if (_initial_strict_checks_passed) {
 		_strict = false;
 
 		if (relaxed_checks_pass) {
