@@ -1718,11 +1718,25 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		mission_item->params[6] = mavlink_mission_item->z;
 
 		switch (mavlink_mission_item->command) {
-		case MAV_CMD_DO_JUMP:
-			mission_item->nav_cmd = NAV_CMD_DO_JUMP;
-			mission_item->do_jump_mission_index = mavlink_mission_item->param1;
-			mission_item->do_jump_current_count = 0;
-			mission_item->do_jump_repeat_count = mavlink_mission_item->param2;
+		case MAV_CMD_DO_JUMP: {
+				// The index and repeat count are integers carried in floats. An index the int16_t field cannot
+				// hold would wrap onto another item (65536 + k -> k), so it is rejected. The repeat count is
+				// saturated to the uint16_t range (a negative or NaN count reads as 0, as the cast gives on the
+				// flight controllers' FPU), so existing missions are accepted as before.
+				const float jump_index = mavlink_mission_item->param1;
+				const float repeat_count = mavlink_mission_item->param2;
+
+				if (!PX4_ISFINITE(jump_index) || jump_index < 0.f || jump_index > static_cast<float>(INT16_MAX)) {
+					return MAV_MISSION_INVALID_PARAM1;
+				}
+
+				mission_item->nav_cmd = NAV_CMD_DO_JUMP;
+				mission_item->do_jump_mission_index = static_cast<int16_t>(jump_index);
+				mission_item->do_jump_current_count = 0;
+				const float repeat_count_saturated = PX4_ISFINITE(repeat_count) ?
+								     math::constrain(repeat_count, 0.f, static_cast<float>(UINT16_MAX)) : 0.f;
+				mission_item->do_jump_repeat_count = static_cast<uint16_t>(repeat_count_saturated);
+			}
 			break;
 
 		case MAV_CMD_NAV_ROI:
