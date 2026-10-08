@@ -408,7 +408,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 
 		// h_fov and q (for ROTATION_CUSTOM) arrive unchecked (e.g. from a MAVLink DISTANCE_SENSOR message): skip a
 		// non-finite field of view or yaw, and limit the field of view to one full turn, so the bin range below is
-		// finite and covers each bin at most once
+		// finite and spans at most one turn around the sensor's yaw
 		if (!PX4_ISFINITE(distance_sensor.h_fov) || !PX4_ISFINITE(sensor_yaw_body_deg)) {
 			return;
 		}
