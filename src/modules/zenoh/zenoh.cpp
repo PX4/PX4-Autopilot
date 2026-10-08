@@ -557,6 +557,12 @@ void ZENOH::run()
 	_sub_count =  _config.getSubCount();
 	px4_pollfd_struct_t pfds[_pub_count];
 
+	// Publishers that fail to set up never get a poll fd assigned, a negative fd makes poll skip them
+	for (i = 0; i < _pub_count; i++) {
+		pfds[i] = {};
+		pfds[i].fd = -1;
+	}
+
 	const int setup_ret = setupSession();
 
 	if (setup_ret < 0) {
@@ -587,15 +593,27 @@ void ZENOH::run()
 		}
 	}
 
+	static constexpr hrt_abstime POLL_ERROR_WARN_INTERVAL = 1000000; // 1 s
+	hrt_abstime last_poll_warn = 0;
+
 	while (!should_exit()) {
 		int pret = px4_poll(pfds, _pub_count, 100);
 
 		if (pret == 0) {
 			//PX4_INFO("Zenoh poll timeout\n");
 
+		} else if (pret < 0) {
+			if (hrt_elapsed_time(&last_poll_warn) >= POLL_ERROR_WARN_INTERVAL) {
+				last_poll_warn = hrt_absolute_time();
+				PX4_ERR("poll error %d", errno);
+			}
+
+			// Back off instead of spinning, a failing poll returns immediately
+			px4_usleep(10000);
+
 		} else {
 			for (i = 0; i < _pub_count; i++) {
-				if (pfds[i].revents & POLLIN) {
+				if (_zenoh_publishers[i] && (pfds[i].revents & POLLIN)) {
 					ret = _zenoh_publishers[i]->update();
 
 					if (ret < 0) {

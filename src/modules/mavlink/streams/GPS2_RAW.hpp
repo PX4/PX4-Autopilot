@@ -34,8 +34,8 @@
 #ifndef GPS2_RAW_HPP
 #define GPS2_RAW_HPP
 
-#include <lib/gnss/SensorGpsSelector.hpp>
 #include <uORB/topics/sensor_gnss.h>
+#include <uORB/topics/sensors_status_gnss.h>
 #include <uORB/topics/vehicle_gnss_heading.h>
 
 using namespace time_literals;
@@ -61,17 +61,29 @@ private:
 
 	uORB::Subscription _sensor_gnss_sub{ORB_ID(sensor_gnss), 1};
 	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
-	SensorGpsSelector _gps_selector{};
+	uORB::Subscription _sensors_status_gnss_sub{ORB_ID(sensors_status_gnss)};
+	int8_t _instance{-1}; ///< sensor_gnss instance to report, fixed by the sensors module
+	static constexpr int8_t kOrder{1}; ///< position of the reported receiver in sensors_status_gnss.order
 	hrt_abstime _last_send_ts {};
 	static constexpr hrt_abstime kNoGpsSendInterval {1_s};
 	static constexpr hrt_abstime kHeadingTimeout {1_s};
 
 	bool send() override
 	{
-		const uint8_t secondary = 1 - _gps_selector.primary_instance();
+		sensors_status_gnss_s status;
 
-		if (secondary != _sensor_gnss_sub.get_instance()) {
-			_sensor_gnss_sub.ChangeInstance(secondary);
+		if (_sensors_status_gnss_sub.update(&status)) {
+			_instance = -1;
+
+			for (int i = 0; i < sensors_status_gnss_s::MAX_RECEIVERS; i++) {
+				if (status.order[i] == kOrder) {
+					_instance = i;
+				}
+			}
+		}
+
+		if ((_instance >= 0) && (_instance != _sensor_gnss_sub.get_instance())) {
+			_sensor_gnss_sub.ChangeInstance(_instance);
 		}
 
 		sensor_gnss_s gnss;
@@ -79,7 +91,7 @@ private:
 		hrt_abstime now{};
 
 		// only report the secondary receiver, never another instance's data
-		if ((_sensor_gnss_sub.get_instance() == secondary) && _sensor_gnss_sub.update(&gnss)) {
+		if ((_instance >= 0) && (_sensor_gnss_sub.get_instance() == _instance) && _sensor_gnss_sub.update(&gnss)) {
 			if (gnss.time_utc_usec <= 0) {
 				msg.time_usec = gnss.timestamp;
 

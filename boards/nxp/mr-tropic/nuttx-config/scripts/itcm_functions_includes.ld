@@ -554,7 +554,6 @@
 *(.text._ZNK15PositionControl19getAttitudeSetpointER27vehicle_attitude_setpoint_s)
 *(.text._ZN4cdev4CDev4pollEP4fileP6pollfdb)
 *(.text._ZN9Commander20offboardControlCheckEv)
-*(.text._ZN4EKF216PublishGpsStatusERKy)
 *(.text._ZN4uORB12SubscriptionaSEOS0_)
 *(.text._ZN15TakeoffHandling18updateTakeoffStateEbbbfbRKy)
 *(.text._ZN10ModeChecks14checkAndReportERK7ContextR6Report)

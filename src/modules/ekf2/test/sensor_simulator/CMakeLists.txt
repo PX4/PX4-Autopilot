@@ -49,4 +49,4 @@ set(SRCS
    )
 
 add_library(ecl_sensor_sim ${SRCS})
-target_link_libraries(ecl_sensor_sim ecl_EKF motion_planning)
+target_link_libraries(ecl_sensor_sim ecl_EKF motion_planning gnss_checks)

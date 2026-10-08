@@ -287,8 +287,7 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 		}
 	}
 
-	_angle_outputs_filtered.setParameters(static_cast<uint64_t>(dt * 1e6f),
-					      static_cast<uint64_t>(math::max(_parameters.mnt_tau, 0.f) * 1e6f));
+	_angle_outputs_filtered.setParameters(dt, _parameters.mnt_tau);
 	matrix::Vector3f filtered_outputs = _angle_outputs_filtered.update(matrix::Vector3f(_angle_outputs));
 
 	for (int i = 0; i < 3; i++) {
