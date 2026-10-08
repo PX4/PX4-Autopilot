@@ -312,7 +312,7 @@ int hrt_ioctl(unsigned int cmd, unsigned long arg);
 #  define DIER_PPM	GTIM_DIER_CC2IE		/* capture interrupt (non-DMA mode) */
 #  define SR_INT_PPM	GTIM_SR_CC2IF		/* capture interrupt (non-DMA mode) */
 #  define SR_OVF_PPM	GTIM_SR_CC2OF		/* capture overflow (non-DMA mode) */
-#  define CCMR1_PPM	2			/* not on TI1/TI2 */
+#  define CCMR1_PPM	(GTIM_CCMR_CCS_CCIN1 << GTIM_CCMR1_CC2S_SHIFT)			/* not on TI1/TI2 */
 #  define CCMR2_PPM	0			/* on TI3, not on TI4 */
 #  define CCER_PPM	(GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP) /* CC2, both edges */
 #  define CCER_PPM_FLIP	GTIM_CCER_CC2P
@@ -331,7 +331,7 @@ int hrt_ioctl(unsigned int cmd, unsigned long arg);
 #  define SR_INT_PPM	GTIM_SR_CC4IF		/* capture interrupt (non-DMA mode) */
 #  define SR_OVF_PPM	GTIM_SR_CC4OF		/* capture overflow (non-DMA mode) */
 #  define CCMR1_PPM	0			/* not on TI1/TI2 */
-#  define CCMR2_PPM	2			/* on TI3, not on TI4 */
+#  define CCMR2_PPM	(GTIM_CCMR_CCS_CCIN1 << GTIM_CCMR2_CC4S_SHIFT)			/* on TI3, not on TI4 */
 #  define CCER_PPM	(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP) /* CC4, both edges */
 #  define CCER_PPM_FLIP	GTIM_CCER_CC4P
 # else
