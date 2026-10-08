@@ -95,7 +95,7 @@ The remaining 8 outputs (labelled `M9` to `M16`) are the "auxiliary" outputs dir
 All 16 outputs support normal PWM.
 The FMU outputs `M9` to `M14` support [DShot](../peripherals/dshot.md).
 The IO outputs `M1` to `M8`, and the FMU outputs `M15` and `M16` (no DMA), do not support DShot.
-Outputs `M9` and `M11` support bi-directional DShot.
+Outputs `M9` to `M14` support [Bidirectional DShot](../peripherals/dshot.md).
 
 The 8 IO PWM outputs are in 3 groups:
 
