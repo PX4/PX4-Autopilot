@@ -455,7 +455,7 @@ int PX4IO::init()
 	uint16_t reg = 0;
 
 	/* get IO's last seen FMU state */
-	ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, &reg, sizeof(reg));
+	ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, &reg, 1);
 
 	if (ret != OK) {
 		return ret;
