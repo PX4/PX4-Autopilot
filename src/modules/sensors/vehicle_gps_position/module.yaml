@@ -16,8 +16,9 @@ parameters:
 
                     To select a DroneCAN GPS, set this to the node ID.
 
-                    GPS_RAW_INT reports the preferred receiver, or without one the first receiver
-                    to publish, and GPS2_RAW the other one. Neither follows the selection.
+                    GPS_RAW_INT reports the preferred receiver, or without one the receiver in
+                    SENS_GNSS0_ID, else the first receiver to publish, and GPS2_RAW the other one.
+                    Neither follows the selection.
             type: int32
             default: 0
             min: -1
@@ -33,6 +34,7 @@ parameters:
                     Device ID of the GPS receiver for antenna offset slot ${i}.
                     Set to 0 to disable this slot. When all slots are 0, offsets are
                     matched by uORB instance index (only reliable for serial GPS).
+                    With SENS_GNSS_PRIME at -1, slot 0 is reported as GPS_RAW_INT and slot 1 as GPS2_RAW.
             category: System
             type: int32
             default: 0
