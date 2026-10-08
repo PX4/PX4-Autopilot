@@ -18,8 +18,8 @@ parameters:
           configured PWM input pin. When set to 0 (default), the first available
           GPS instance is used.
 
-          The device ID can be obtained from the sensor_gps publication
-          (e.g. via listener sensor_gps).
+          The device ID can be obtained from the sensor_gnss publication
+          (e.g. via listener sensor_gnss).
       type: int32
       default: 0
       min: 0

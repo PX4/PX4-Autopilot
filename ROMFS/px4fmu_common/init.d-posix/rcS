@@ -168,6 +168,7 @@ param set-default COM_RC_IN_MODE 1
 
 # Speedup SITL startup
 param set-default EKF2_REQ_GPS_H 0.5
+param set-default GNSS_REQ_TIME 0.5
 
 param set-default IMU_GYRO_FFT_EN 1
 
@@ -297,8 +298,8 @@ navigator start
 uxrce_dds_ns=""
 if [ "$px4_instance" -ne "0" ]
 then
-	# for multi intances setup, add namespace prefix
-	uxrce_dds_ns="-n px4_$px4_instance"
+	# for multi instances setup, add namespace prefix
+	uxrce_dds_ns="-n uav_$px4_instance"
 fi
 if [ "${PX4_UXRCE_DDS_NS+x}" ]; then
 	# Override, as variable is set (empty or not)

@@ -42,9 +42,6 @@ GPS position in WGS84 coordinates. the field 'timestamp' is for the position & v
 | <a id="fld_time_utc_usec"></a>time_utc_usec                     | `uint64`  |                    |            | Timestamp (microseconds, UTC), this is the timestamp which comes from the gps module. It might be unavailable right after cold start, indicated by a value of 0 |
 | <a id="fld_satellites_used"></a>satellites_used                 | `uint8`   |                    |            | Number of satellites used                                                                                                                                       |
 | <a id="fld_system_error"></a>system_error                       | `uint32`  |                    |            | General errors with the connected GPS receiver                                                                                                                  |
-| <a id="fld_heading"></a>heading                                 | `float32` |                    |            | heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])                               |
-| <a id="fld_heading_offset"></a>heading_offset                   | `float32` |                    |            | heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])                                                              |
-| <a id="fld_heading_accuracy"></a>heading_accuracy               | `float32` |                    |            | heading accuracy (rad, [0, 2PI])                                                                                                                                |
 | <a id="fld_rtcm_injection_rate"></a>rtcm_injection_rate         | `float32` |                    |            | RTCM message injection rate Hz                                                                                                                                  |
 | <a id="fld_selected_rtcm_instance"></a>selected_rtcm_instance   | `uint8`   |                    |            | uorb instance that is being used for RTCM corrections                                                                                                           |
 | <a id="fld_corrections_protocol"></a>corrections_protocol       | `uint8`   |                    |            | Protocol of the last correction message the receiver parsed                                                                                                     |
@@ -177,10 +174,6 @@ uint32 SYSTEM_ERROR_EVENT_CONGESTION     = 16
 uint32 SYSTEM_ERROR_CPU_OVERLOAD         = 32
 uint32 SYSTEM_ERROR_OUTPUT_CONGESTION    = 64
 uint32 system_error                      # General errors with the connected GPS receiver
-
-float32 heading			# heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])
-float32 heading_offset		# heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])
-float32 heading_accuracy	# heading accuracy (rad, [0, 2PI])
 
 float32 rtcm_injection_rate	# RTCM message injection rate Hz
 uint8 selected_rtcm_instance	# uorb instance that is being used for RTCM corrections

@@ -51,7 +51,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
@@ -287,7 +287,8 @@ private:
 				updated = true;
 				_batteries[i].connected = battery.connected;
 
-				if (battery.warning > battery_status_s::WARNING_LOW) {
+				if (battery.warning > battery_status_s::WARNING_LOW
+				    && battery.warning != battery_status_s::WARNING_CHARGING) {
 					msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
 				}
 			}
@@ -532,7 +533,7 @@ private:
 		update_tecs_status();
 		update_battery_status();
 		update_local_position();
-		update_gps();
+		update_gnss();
 		update_vehicle_status();
 		update_wind();
 		update_vehicle_air_data();
@@ -579,13 +580,13 @@ private:
 		}
 	}
 
-	void update_gps()
+	void update_gnss()
 	{
-		sensor_gps_s gps;
+		vehicle_gnss_s gnss;
 
-		if (_gps_sub.update(&gps)) {
-			_eph.add_value(gps.eph, _update_rate_filtered);
-			_epv.add_value(gps.epv, _update_rate_filtered);
+		if (_vehicle_gnss_sub.update(&gnss)) {
+			_eph.add_value(gnss.receiver.eph, _update_rate_filtered);
+			_epv.add_value(gnss.receiver.epv, _update_rate_filtered);
 		}
 	}
 
@@ -675,7 +676,7 @@ private:
 	uORB::Subscription _geofence_sub{ORB_ID(geofence_result)};
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _gps_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _mission_result_sub{ORB_ID(mission_result)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};

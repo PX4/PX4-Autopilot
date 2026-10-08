@@ -784,12 +784,31 @@ MissionBase::checkMissionRestart()
 void
 MissionBase::check_mission_valid(bool forced)
 {
-	// Allow forcing it, since we currently not rechecking if parameters have changed.
-	if (forced ||
-	    (_navigator->get_mission_result()->mission_id != _mission.mission_id) ||
-	    (_navigator->get_mission_result()->geofence_id != _mission.geofence_id) ||
-	    (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count)) {
+	const bool mission_changed = _navigator->get_mission_result()->mission_id != _mission.mission_id;
+	const bool inputs_changed = mission_changed
+				    || (_navigator->get_mission_result()->geofence_id != _mission.geofence_id)
+				    || (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count);
 
+	if (_navigator->get_geofence().isFenceUpdatePending()) {
+		// A fence upload reloads the fence for about a second. Keep the last verdict until then
+		// and recheck when it is ready: reporting the mission invalid now would make Commander
+		// treat it as missing and fail over out of Mission mode.
+		_mission_checked = false;
+		_mission_check_pending = true;
+
+		// A mission that was never checked has no verdict to keep.
+		if (mission_changed) {
+			_navigator->get_mission_result()->valid = false;
+			_navigator->set_mission_result_updated();
+		}
+
+		return;
+	}
+
+	// Allow forcing it, since we currently not rechecking if parameters have changed.
+	if (forced || _mission_check_pending || inputs_changed) {
+
+		_mission_check_pending = false;
 		_navigator->get_mission_result()->mission_id = _mission.mission_id;
 		_navigator->get_mission_result()->geofence_id = _mission.geofence_id;
 		_navigator->get_mission_result()->home_position_counter = _navigator->get_home_position()->update_count;
@@ -949,6 +968,7 @@ MissionBase::do_abort_landing()
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
 	vehicle_command.param1 = -1.f; // Default speed
 	vehicle_command.param2 = 1.f; // Modes should switch, not setting this is unsupported
+	vehicle_command.param4 = NAN;
 	vehicle_command.param5 = _mission_item.lat;
 	vehicle_command.param6 = _mission_item.lon;
 	vehicle_command.param7 = alt_sp;
@@ -1035,37 +1055,36 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 				return PX4_ERROR;
 			}
 
-			if ((new_mission.do_jump_current_count < new_mission.do_jump_repeat_count)
-			    && traversal_type == MissionTraversalType::FollowMissionControlFlow) {
-				if (write_jumps) {
-					const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
-					new_mission.do_jump_current_count++;
-					success = _dataman_cache.writeWait(mission_dataman_id, new_mission_index, reinterpret_cast<uint8_t *>(&new_mission),
-									   sizeof(struct mission_item_s));
+			const bool jump_active = (new_mission.do_jump_current_count < new_mission.do_jump_repeat_count)
+						 && traversal_type == MissionTraversalType::FollowMissionControlFlow;
+			bool follow_jump = jump_active;
 
-					if (!success) {
-						/* not supposed to happen unless the datamanager can't access the dataman */
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP waypoint could not be written.\t");
-						events::send(events::ID("mission_failed_to_write_do_jump"), events::Log::Error,
-							     "DO JUMP waypoint could not be written");
-						// Still continue searching for next non jump item.
+			if (jump_active && write_jumps) {
+				new_mission.do_jump_current_count++;
 
-					} else {
-						syncMissionRouteCacheItem(new_mission_index, new_mission);
-					}
-
+				if (writeMissionItemToCache(new_mission_index, new_mission)) {
+					syncMissionRouteCacheItem(new_mission_index, new_mission);
 					report_do_jump_mission_changed(new_mission_index, new_mission.do_jump_repeat_count - new_mission.do_jump_current_count);
-				}
-
-				new_mission_index = new_mission.do_jump_mission_index;
-
-			} else {
-				if (mission_direction_backward) {
-					new_mission_index--;
 
 				} else {
-					new_mission_index++;
+					/* not supposed to happen unless the datamanager can't access the dataman */
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP could not be saved, continuing without the jump.\t");
+					events::send(events::ID("mission_failed_to_write_do_jump"), events::Log::Error,
+						     "DO JUMP could not be saved, continuing without the jump");
+					// The repetition cannot be counted, so following the jump would repeat it on
+					// every pass over this item. Continue with the item after the jump instead.
+					follow_jump = false;
 				}
+			}
+
+			if (follow_jump) {
+				new_mission_index = new_mission.do_jump_mission_index;
+
+			} else if (mission_direction_backward) {
+				new_mission_index--;
+
+			} else {
+				new_mission_index++;
 			}
 
 		} else {
@@ -1116,6 +1135,14 @@ bool MissionBase::loadMissionItemFromCache(int32_t index, mission_item_s &missio
 	       && _dataman_cache.loadWait(static_cast<dm_item_t>(_mission.mission_dataman_id), index,
 					  reinterpret_cast<uint8_t *>(&mission_item), sizeof(mission_item),
 					  MAX_DATAMAN_LOAD_WAIT);
+}
+
+bool MissionBase::writeMissionItemToCache(int32_t index, mission_item_s &mission_item)
+{
+	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+
+	return _dataman_cache.writeWait(mission_dataman_id, static_cast<uint32_t>(index),
+					reinterpret_cast<uint8_t *>(&mission_item), sizeof(mission_item_s));
 }
 
 void MissionBase::syncMissionRouteCacheItem(int32_t index, const mission_item_s &mission_item)
@@ -1383,8 +1410,6 @@ void MissionBase::resetMission()
 
 void MissionBase::resetMissionJumpCounter()
 {
-	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
-
 	for (size_t mission_index = 0u; mission_index < _mission.count; mission_index++) {
 		mission_item_s mission_item;
 
@@ -1401,11 +1426,7 @@ void MissionBase::resetMissionJumpCounter()
 		if (mission_item.nav_cmd == NAV_CMD_DO_JUMP) {
 			mission_item.do_jump_current_count = 0u;
 
-			bool write_success = _dataman_cache.writeWait(mission_dataman_id, mission_index,
-					     reinterpret_cast<uint8_t *>(&mission_item),
-					     sizeof(struct mission_item_s));
-
-			if (!write_success) {
+			if (!writeMissionItemToCache(static_cast<int32_t>(mission_index), mission_item)) {
 				PX4_ERR("Could not write mission item for jump count reset.");
 				break;
 			}
@@ -1581,6 +1602,7 @@ bool MissionBase::canRunMissionFeasibility()
 {
 	return _navigator->home_global_position_valid() && // Need to have a home position checked
 	       _navigator->get_global_position()->timestamp > 0 && // Need to have a position, for first waypoint check
+	       _navigator->get_geofence().isReadyForPathChecks() &&
 	       (_geofence_status_sub.get().timestamp > 0) && // Geofence data must be loaded
 	       (_geofence_status_sub.get().geofence_id == _mission.geofence_id) &&
 	       (_geofence_status_sub.get().status == geofence_status_s::GF_STATUS_READY);

@@ -85,6 +85,9 @@ FixedwingRateControl::parameters_update()
 	_rate_control.setIntegratorLimit(
 		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
 
+	_gain_compression.setEnabled(_param_fw_gc_en.get());
+	_gain_compression.setCompressionGainMin(_param_fw_gc_gain_min.get());
+
 	if (_handle_param_vt_fw_difthr_en != PARAM_INVALID) {
 		param_get(_handle_param_vt_fw_difthr_en, &_param_vt_fw_difthr_en);
 	}
@@ -171,7 +174,7 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 			_airspeed_filter_for_torque_scaling.reset(airspeed);
 
 		} else {
-			airspeed = _airspeed_filter_for_torque_scaling.update(airspeed, static_cast<uint64_t>(dt * 1e6f));
+			airspeed = _airspeed_filter_for_torque_scaling.update(airspeed, dt);
 		}
 
 	} else {

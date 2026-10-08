@@ -53,6 +53,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/parameters/param.h>
+#include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_target_pose.h>
@@ -303,16 +304,28 @@ TEST_F(PrecTakeoffIntegrationTest, MissionTakeoffCorrectionPreservesPlannedDesti
 	uORB::Publication<vehicle_status_s> vehicle_status_pub{ORB_ID(vehicle_status)};
 	uORB::Publication<vehicle_global_position_s> global_pos_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_land_detected_s> land_detected_pub{ORB_ID(vehicle_land_detected)};
-	uORB::Publication<geofence_status_s> geofence_status_pub{ORB_ID(geofence_status)};
 	uORB::Publication<mission_s> mission_pub{ORB_ID(mission)};
 	ASSERT_TRUE(home_pub.publish(home));
 	ASSERT_TRUE(vehicle_status_pub.publish(vehicle_status));
 	ASSERT_TRUE(global_pos_pub.publish(*_navigator->get_global_position()));
 	ASSERT_TRUE(land_detected_pub.publish(*_navigator->get_land_detected()));
-	geofence_status_s geofence_status{};
-	geofence_status.timestamp = hrt_absolute_time();
-	geofence_status.status = geofence_status_s::GF_STATUS_READY;
-	ASSERT_TRUE(geofence_status_pub.publish(geofence_status));
+
+	// Load an empty fence so mission validation sees the completed fence update.
+	DatamanClient dataman;
+	mission_stats_entry_s fence_stats{};
+	fence_stats.dataman_id = DM_KEY_FENCE_POINTS_0;
+	ASSERT_TRUE(dataman.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
+				      reinterpret_cast<uint8_t *>(&fence_stats), sizeof(fence_stats)));
+	Geofence &fence = _navigator->get_geofence();
+	fence.updateFence();
+	const hrt_abstime start = hrt_absolute_time();
+
+	while (!fence.isReadyForPathChecks() && hrt_elapsed_time(&start) < 1_s) {
+		fence.run();
+		px4_usleep(1000);
+	}
+
+	ASSERT_TRUE(fence.isReadyForPathChecks());
 
 	mission_item_s planned_takeoff{};
 	planned_takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
@@ -326,7 +339,6 @@ TEST_F(PrecTakeoffIntegrationTest, MissionTakeoffCorrectionPreservesPlannedDesti
 	planned_land.nav_cmd = NAV_CMD_VTOL_LAND;
 	planned_land.altitude = kGroundAltitude;
 
-	DatamanClient dataman;
 	ASSERT_TRUE(dataman.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 	ASSERT_TRUE(dataman.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
 				      reinterpret_cast<uint8_t *>(&planned_takeoff), sizeof(planned_takeoff)));

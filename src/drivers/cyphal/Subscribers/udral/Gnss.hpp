@@ -73,7 +73,7 @@ public:
 		 * Not mentioned, but should also be included: Dilution of Precision
 		 *   (reg.drone.service.gnss.DilutionOfPrecision.0.1.uavcan)
 		 * For PX4, only the PointStateVarTs, DilutionOfPrecision, and perhaps Time would be needed
-		 * to publish 'sensor_gps'
+		 * to publish 'sensor_gnss'
 		 */
 	};
 

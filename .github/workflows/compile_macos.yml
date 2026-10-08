@@ -6,11 +6,21 @@ on:
     - 'main'
     paths-ignore:
       - 'docs/**'
+  # macOS runners are the most expensive in CI. Pull requests only run this
+  # when they touch the macOS setup; main and the weekly run catch the rest.
   pull_request:
     branches:
       - '**'
-    paths-ignore:
-      - 'docs/**'
+    paths:
+      - 'Tools/setup/macos.sh'
+      - 'Tools/setup/macos_ci_pins.sh'
+      - 'Tools/setup/macos/**'
+      - 'Tools/setup/homebrew-pins.txt'
+      - 'Tools/setup/requirements.txt'
+      - '.github/workflows/compile_macos.yml'
+  schedule:
+    - cron: '0 6 * * 1' # Every Monday at 06:00 UTC
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,14 +36,6 @@ jobs:
         python-version: "3.10"
 
     - uses: actions/checkout@v6
-
-    - name: Cache - Restore Homebrew Packages
-      uses: actions/cache@v5
-      with:
-        path: ~/Library/Caches/Homebrew/downloads
-        key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh', 'Tools/setup/macos_ci_pins.sh', 'Tools/setup/homebrew-pins.txt', 'Tools/setup/protobuf-pin.txt', 'Tools/setup/gz-tap-pin.txt') }}
-        restore-keys: |
-          macos-homebrew-${{ runner.arch }}-
 
     - name: Cache - Restore pip Packages
       uses: actions/cache@v5
@@ -58,10 +60,12 @@ jobs:
       id: ccache
       with:
         cache-key-prefix: ccache-macos-15
-        max-size: 200M
+        max-size: 400M
 
     - name: Build px4_sitl
-      run: make px4_sitl
+      run: |
+        source .venv/bin/activate
+        make px4_sitl
 
     - name: Cache - Stats after px4_sitl
       run: ccache -s
@@ -69,7 +73,13 @@ jobs:
     - name: Build px4_fmu-v5_default
       run: make px4_fmu-v5_default
 
+    # Only non-PR runs save: the 10 GB Actions cache cannot hold an entry for
+    # every PR run, and PRs restore from main's newest entry anyway.
+    - name: Cache - Stats
+      if: always() && github.event_name == 'pull_request'
+      run: ccache -s
+
     - uses: ./.github/actions/save-ccache
-      if: always()
+      if: always() && github.event_name != 'pull_request'
       with:
         cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}

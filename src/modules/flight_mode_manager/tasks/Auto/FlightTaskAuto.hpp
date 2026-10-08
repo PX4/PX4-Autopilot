@@ -198,7 +198,7 @@ private:
 
 	MapProjection _reference_position{}; /**< Class used to project lat/lon setpoint into local frame. */
 	float _reference_altitude{NAN}; /**< Altitude relative to ground. */
-	hrt_abstime _time_stamp_reference{0}; /**< time stamp when last reference update occured. */
+	hrt_abstime _time_stamp_reference{0}; /**< time stamp when last reference update occurred. */
 
 	WeatherVane _weathervane{this}; /**< weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 

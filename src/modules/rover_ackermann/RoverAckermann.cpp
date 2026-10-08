@@ -106,6 +106,9 @@ void RoverAckermann::Run()
 		reset();
 		_ackermann_act_control.stopVehicle();
 		_was_armed = false;
+
+	} else {
+		_ackermann_act_control.stopVehicle();
 	}
 
 	// reschedule backup
@@ -130,6 +133,10 @@ void RoverAckermann::generateSetpoints()
 
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		_manual_mode.manual();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
+		_manual_mode.manualParking();
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
