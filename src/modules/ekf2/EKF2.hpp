@@ -540,6 +540,10 @@ private:
 		(ParamBool<px4::params::EKF2_POS_LOCK>) _param_ekf2_pos_lock,
 		(ParamExtInt<px4::params::EKF2_SENS_EN>) _param_ekf2_sens_en,
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+		(ParamInt<px4::params::EKF2_WHEEL_CTRL>) _param_ekf2_wheel_ctrl,
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
 		_param_ekf2_avel_delay,	///< auxiliary velocity measurement delay relative to the IMU (mSec)
