@@ -277,6 +277,10 @@ void EKF2::AdvertiseTopics()
 	_wind_pub.advertise();
 #endif // CONFIG_EKF2_WIND
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	_estimator_aid_src_wheel_encoders_pub.advertise();
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 #if defined(CONFIG_EKF2_GNSS)
 
 	if (_param_ekf2_gps_ctrl.get()) {
@@ -847,6 +851,9 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 		UpdateRangingBeaconSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGING_BEACON
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+		UpdateWheelEncoderSample(ekf2_timestamps);
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 		UpdateSystemFlagsSample(ekf2_timestamps);
 		UpdateFusionControlFromReplay();
 
@@ -1684,6 +1691,12 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	// beta
 	variances.beta = _ekf.aid_src_sideslip().innovation_variance;
 #endif // CONFIG_EKF2_SIDESLIP
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	// wheel encoders
+	variances.innov_var_wheel[0] = _ekf.aid_src_wheel_encoders().innovation_variance[0];
+	variances.innov_var_wheel[1] = _ekf.aid_src_wheel_encoders().innovation_variance[1];
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 #if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_RANGE_FINDER)
 	// hagl
@@ -2822,6 +2835,24 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+void EKF2::UpdateWheelEncoderSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	wheel_encoders_s wheel_encoders;
+
+	if (_wheel_encoders_sub.update(&wheel_encoders)) {
+		wheelEncoderSample sample{
+			.time_us = wheel_encoders.timestamp,
+			.delta_sr = (float)wheel_encoders.wheel_speed[0],
+			.delta_sl = (float)wheel_encoders.wheel_speed[1],
+			.dt = 0.01f, // This should ideally be calculated from timestamps
+		};
+		_ekf.setWheelEncoderData(sample);
+
+		ekf2_timestamps.wheel_encoder_timestamp_rel = (int16_t)((int64_t)wheel_encoders.timestamp / 100 -
+				(int64_t)ekf2_timestamps.timestamp / 100);
+	}
+}
 
 void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 {

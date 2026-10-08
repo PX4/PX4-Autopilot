@@ -244,6 +244,10 @@ private:
 	void UpdateRangingBeaconSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGING_BEACON
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	void UpdateWheelEncoderSample(ekf2_timestamps_s &ekf2_timestamps);
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateFusionControlFromReplay();
 
@@ -388,6 +392,12 @@ private:
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_sideslip_pub {ORB_ID(estimator_aid_src_sideslip)};
 	hrt_abstime _status_sideslip_pub_last {0};
 #endif // CONFIG_EKF2_SIDESLIP
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	uORB::Subscription _wheel_encoders_sub {ORB_ID(wheel_encoders)};
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_wheel_encoders_pub{ORB_ID(estimator_aid_src_wheel_encoders)};
+	hrt_abstime _status_wheel_encoders_pub_last{0};
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
