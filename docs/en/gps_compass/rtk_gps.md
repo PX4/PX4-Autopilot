@@ -190,6 +190,8 @@ Configure the slot of the receiver that reports the heading, matched by [SENS_GN
 [EKF2_GPS_CTRL]: ../advanced_config/parameter_reference.md#EKF2_GPS_CTRL
 [fc_orientation]: ../config/flight_controller_orientation.md#calculating-orientation
 
+While the "Dual antenna heading" bit is set and no heading reaches the estimator, arming fails in modes that need a position, with the setting that is missing: `SENS_GNSSn_HDG`, the antenna positions, or a baseline that matches them.
+
 :::tip
 If using this feature, all other configuration should be setup up as normal (e.g. [RTK Positioning](../gps_compass/rtk_gps.md#positioning-setup-configuration)).
 :::

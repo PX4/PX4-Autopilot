@@ -40,6 +40,7 @@
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
+#include <uORB/topics/sensors_status_gnss.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -80,6 +81,10 @@ private:
 	void checkMagneticInterferencePreflight(const Context &context, Report &reporter,
 						const estimator_status_s &estimator_status, NavModes required_groups);
 	void checkGnssFusion(const Context &context, Report &reporter, const estimator_status_s &estimator_status);
+
+	// GNSS yaw is enabled but no heading arrives: names the heading setup the sensors module found missing
+	void checkGnssHeading(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
+			      const sensors_status_gnss_s &sensors_status_gnss);
 	void reportGnssFusionChange(const Context &context, Report &reporter, bool gnss_fused);
 	void reportGnssInterference(Report &reporter, uint16_t gps_check_fail_flags);
 	void reportFailedGnssCheckPreflight(Report &reporter, const estimator_status_s &estimator_status, bool gnss_fused);
@@ -118,6 +123,7 @@ private:
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _sensors_status_gnss_sub{ORB_ID(sensors_status_gnss)};
 
 	hrt_abstime	_last_gpos_fail_time_us{0};	///< Last time that the global position validity recovery check failed (usec)
 	hrt_abstime	_last_gpos_relaxed_fail_time_us{0};	///< Last time that the global position relaxed validity recovery check failed (usec)

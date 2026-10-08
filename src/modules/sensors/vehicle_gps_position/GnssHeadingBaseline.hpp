@@ -35,6 +35,7 @@
 
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/defines.h>
+#include <uORB/topics/sensors_status_gnss.h>
 
 namespace sensors
 {
@@ -95,6 +96,35 @@ inline bool baselineConsistent(float configured_length, float reported_length, f
 	// the heading is the bearing of the horizontal projection, which a near vertical baseline doesn't have
 	return !(reported_length * reported_length - reported_down * reported_down
 		 < kMinAntennaSeparation * kMinAntennaSeparation);
+}
+
+/**
+ * How far a heading sample gets towards being used, as sensors_status_gnss_s::HEADING_*: HEADING_SETTLING when it can
+ * be used. Only a valid heading says why it isn't used, since a receiver without one may not be meant to provide it.
+ * @param heading measured heading (rad), NAN when not valid
+ * @param heading_enabled SENS_GNSSn_HDG isn't Disabled in the receiver's slot, false without a slot
+ * @param configured_length length of the slot's configured baseline (m)
+ */
+inline uint8_t sampleState(float heading, bool heading_enabled, float configured_length, float reported_length,
+			   float reported_down)
+{
+	if (!PX4_ISFINITE(heading)) {
+		return sensors_status_gnss_s::HEADING_NONE;
+	}
+
+	if (!heading_enabled) {
+		return sensors_status_gnss_s::HEADING_UNCONFIGURED;
+	}
+
+	if (!(configured_length >= kMinAntennaSeparation)) {
+		return sensors_status_gnss_s::HEADING_NO_BASELINE;
+	}
+
+	if (!baselineConsistent(configured_length, reported_length, reported_down)) {
+		return sensors_status_gnss_s::HEADING_BASELINE_MISMATCH;
+	}
+
+	return sensors_status_gnss_s::HEADING_SETTLING;
 }
 
 } // namespace gnss_heading

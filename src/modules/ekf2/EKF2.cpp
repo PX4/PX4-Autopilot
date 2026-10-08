@@ -1992,6 +1992,11 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	status.pre_flt_fail_mag_field_disturbed = _ekf.control_status_flags().mag_field_disturbed;
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
+	status.pre_flt_fail_gnss_heading_missing = (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::YAW))
+			&& ((_gnss_heading_last_us == 0) || (timestamp > _gnss_heading_last_us + kGnssHeadingTimeout));
+#endif // CONFIG_EKF2_GNSS_YAW
+
 	status.accel_device_id = _device_id_accel;
 #if defined(CONFIG_EKF2_BAROMETER)
 	status.baro_device_id = _device_id_baro;
@@ -2680,6 +2685,7 @@ void EKF2::UpdateGnssYawSample()
 	vehicle_gnss_heading_s gnss_heading;
 
 	if (_vehicle_gnss_heading_sub.update(&gnss_heading)) {
+		_gnss_heading_last_us = gnss_heading.timestamp;
 
 		gnssYawSample gnss_yaw_sample{
 			.time_us = (gnss_heading.timestamp_sample > 0) ? gnss_heading.timestamp_sample : gnss_heading.timestamp,

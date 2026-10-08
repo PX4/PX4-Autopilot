@@ -45,6 +45,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/health_report.h>
+#include <uORB/topics/sensors_status_gnss.h>
 #include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/event.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -106,6 +107,7 @@ public:
 		vehicle_angular_velocity_s rates{};
 		rates.timestamp = hrt_absolute_time();
 		publishAngularVelocity(rates);
+		publishHeadingState(sensors_status_gnss_s::HEADING_NONE);
 
 		drainEvents();
 	}
@@ -119,6 +121,23 @@ public:
 	void publishGlobalPosition(const vehicle_global_position_s &gpos) { _global_position_pub.publish(gpos); }
 	void publishAttitude(const vehicle_attitude_s &attitude) { _attitude_pub.publish(attitude); }
 	void publishAngularVelocity(const vehicle_angular_velocity_s &rates) { _angular_velocity_pub.publish(rates); }
+
+	void publishHeadingState(uint8_t heading_state)
+	{
+		sensors_status_gnss_s status{};
+		status.timestamp = hrt_absolute_time();
+		status.heading_state = heading_state;
+		_sensors_status_gnss_pub.publish(status);
+	}
+
+	void publishHeadingMissing(bool missing)
+	{
+		estimator_status_s status{};
+		status.timestamp = hrt_absolute_time();
+		status.control_mode_flags = 1ULL << estimator_status_s::CS_GNSS_POS;
+		status.pre_flt_fail_gnss_heading_missing = missing;
+		_estimator_status_pub.publish(status);
+	}
 
 	// what the estimator reports: whether it fuses GNSS position, and which receiver checks fail.
 	// An age stands in for a report seen that long ago.
@@ -262,6 +281,7 @@ public:
 	uORB::Publication<vehicle_attitude_s> _attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Publication<vehicle_gnss_s> _receiver_pub{ORB_ID(vehicle_gnss)};
+	uORB::Publication<sensors_status_gnss_s> _sensors_status_gnss_pub{ORB_ID(sensors_status_gnss)};
 	uORB::Subscription _event_sub{ORB_ID(event)};
 
 	health_report_s _report{};
@@ -715,6 +735,46 @@ TEST_F(EstimatorChecksTest, NoHeadingReferenceBlocksArmingOnlyWithAGlobalOrigin)
 	publishLocalPosition(true, 0.5f, false);
 	runCheck(false);
 	EXPECT_FALSE(armingError(health_component_t::local_position_estimate)) << "no heading reference is needed without a global origin";
+}
+
+TEST_F(EstimatorChecksTest, MissingGnssHeadingBlocksArmingOnTheGround)
+{
+	publishHeadingMissing(false);
+	runCheck(false);
+	EXPECT_FALSE(armingError(health_component_t::gps));
+
+	// every reason the sensors module gives blocks arming the same way, only the message differs
+	for (uint8_t state = sensors_status_gnss_s::HEADING_NONE; state <= sensors_status_gnss_s::HEADING_PUBLISHED; state++) {
+		publishHeadingState(state);
+		publishHeadingMissing(true);
+		runCheck(false);
+		EXPECT_TRUE(armingError(health_component_t::gps)) << "heading state " << (int)state;
+	}
+
+	runCheck(true);
+	EXPECT_FALSE(armingError(health_component_t::gps)) << "only judged on the ground";
+
+	setParam("SYS_HAS_GPS", 0);
+	runCheck(false);
+	EXPECT_FALSE(armingError(health_component_t::gps)) << "not without GNSS";
+}
+
+TEST_F(EstimatorChecksTest, MissingGnssHeadingBlocksOnlyTheModesThatNeedAHeading)
+{
+	// only Position mode needs a local position, Takeoff always needs a heading
+	_failsafe_flags.mode_req_local_position = 1u << vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	_failsafe_flags.mode_req_global_position = 0;
+
+	publishHeadingMissing(false);
+	runCheck(false);
+	const uint64_t can_arm = _report.can_arm_mode_flags;
+	ASSERT_TRUE(can_arm & (1u << vehicle_status_s::NAVIGATION_STATE_MANUAL));
+	ASSERT_TRUE(can_arm & (1u << vehicle_status_s::NAVIGATION_STATE_POSCTL));
+
+	publishHeadingMissing(true);
+	runCheck(false);
+	EXPECT_EQ(_report.can_arm_mode_flags, can_arm & ~((1u << vehicle_status_s::NAVIGATION_STATE_POSCTL)
+			| (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF)));
 }
 
 TEST_F(EstimatorChecksTest, PositionFailureImminentIsWarnedOnceWhileDeadReckoning)

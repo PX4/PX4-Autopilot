@@ -44,6 +44,15 @@ EstimatorChecks::EstimatorChecks()
 	_last_lvel_fail_time_us = _last_lpos_fail_time_us;
 }
 
+// Heading is required to arm for all modes that need any form of local position, plus FW AUTO_TAKEOFF
+static NavModes headingRequiredGroups(Report &reporter)
+{
+	return (NavModes)(
+		       reporter.failsafeFlags().mode_req_local_position |
+		       reporter.failsafeFlags().mode_req_local_position_relaxed |
+		       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
+}
+
 void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	vehicle_gnss_s vehicle_gnss;
@@ -136,6 +145,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
 	if (_param_sys_has_gps.get()) {
 		checkGnssFusion(context, reporter, estimator_status);
+
+		sensors_status_gnss_s sensors_status_gnss{};
+		_sensors_status_gnss_sub.copy(&sensors_status_gnss);
+		checkGnssHeading(context, reporter, estimator_status, sensors_status_gnss);
 	}
 }
 
@@ -147,11 +160,7 @@ void EstimatorChecks::checkInnovationsPreflight(const Context &context, Report &
 		return;
 	}
 
-	// Heading is required to arm for all modes that need any form of local position, plus FW AUTO_TAKEOFF
-	const NavModes heading_required_groups = (NavModes)(
-				reporter.failsafeFlags().mode_req_local_position |
-				reporter.failsafeFlags().mode_req_local_position_relaxed |
-				(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
+	const NavModes heading_required_groups = headingRequiredGroups(reporter);
 
 	// Only the first failing innovation is reported
 	if (estimator_status.pre_flt_fail_innov_heading) {
@@ -276,6 +285,82 @@ void EstimatorChecks::checkGnssFusion(const Context &context, Report &reporter, 
 
 	if (!context.isArmed() && (estimator_status.gps_check_fail_flags > 0)) {
 		reportFailedGnssCheckPreflight(reporter, estimator_status, gnss_fused);
+	}
+}
+
+void EstimatorChecks::checkGnssHeading(const Context &context, Report &reporter,
+				       const estimator_status_s &estimator_status, const sensors_status_gnss_s &sensors_status_gnss)
+{
+	if (context.isArmed() || !estimator_status.pre_flt_fail_gnss_heading_missing) {
+		return;
+	}
+
+	// Without the GNSS heading the estimator falls back to another heading source, or has none
+	const NavModes heading_required_groups = headingRequiredGroups(reporter);
+
+	switch (sensors_status_gnss.heading_state) {
+	case sensors_status_gnss_s::HEADING_UNCONFIGURED:
+		/* EVENT
+		 * @description
+		 * A receiver reports a heading, but <param>SENS_GNSS0_HDG</param> or <param>SENS_GNSS1_HDG</param> is Disabled
+		 * for its slot, or no SENS_GNSSn_ID matches it. Set SENS_GNSSn_HDG and the antenna positions.
+		 */
+		reporter.armingCheckFailure(heading_required_groups, health_component_t::gps,
+					    events::ID("check_estimator_gnss_heading_unconfigured"),
+					    events::Log::Error, "GPS heading not configured");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: GPS heading not configured");
+		}
+
+		break;
+
+	case sensors_status_gnss_s::HEADING_NO_BASELINE:
+		/* EVENT
+		 * @description
+		 * SENS_GNSSn_HDG is set, but the antenna positions it measures between are less than 5 cm apart.
+		 * Set SENS_GNSSn_OFFX/Y/Z of both receivers for a moving base, or SENS_GNSSn_AUXX/Y/Z for a dual antenna receiver.
+		 */
+		reporter.armingCheckFailure(heading_required_groups, health_component_t::gps,
+					    events::ID("check_estimator_gnss_heading_no_baseline"),
+					    events::Log::Error, "GPS heading antenna positions not set");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: GPS heading antenna positions not set");
+		}
+
+		break;
+
+	case sensors_status_gnss_s::HEADING_BASELINE_MISMATCH:
+		/* EVENT
+		 * @description
+		 * The baseline length the receiver reports is more than 20% off the one between the configured antenna positions
+		 * (SENS_GNSSn_OFFX/Y/Z, SENS_GNSSn_AUXX/Y/Z).
+		 */
+		reporter.armingCheckFailure(heading_required_groups, health_component_t::gps,
+					    events::ID("check_estimator_gnss_heading_baseline_mismatch"),
+					    events::Log::Error, "GPS heading baseline does not match antenna positions");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: GPS heading baseline does not match antenna positions");
+		}
+
+		break;
+
+	default:
+		/* EVENT
+		 * @description
+		 * GNSS yaw is enabled in <param>EKF2_GPS_CTRL</param>, but no receiver reports a heading.
+		 */
+		reporter.armingCheckFailure(heading_required_groups, health_component_t::gps,
+					    events::ID("check_estimator_gnss_heading_missing"),
+					    events::Log::Error, "No GPS heading");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no GPS heading");
+		}
+
+		break;
 	}
 }
 

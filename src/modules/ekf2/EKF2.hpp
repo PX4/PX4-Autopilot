@@ -518,6 +518,8 @@ private:
 	hrt_abstime _status_gnss_yaw_pub_last {0};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
 	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
+	hrt_abstime _gnss_heading_last_us{0}; ///< publication time of the latest vehicle_gnss_heading
+	static constexpr hrt_abstime kGnssHeadingTimeout{3_s};
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 

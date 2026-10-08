@@ -96,6 +96,7 @@ private:
 		hrt_abstime delay_us{kDefaultDelay};
 		float baseline_length{0.f};  // of the antenna baseline the heading is measured along (m)
 		float heading_offset{0.f};   // yaw of the baseline in the body frame (rad)
+		bool heading_enabled{false}; // SENS_GNSSn_HDG isn't Disabled
 	};
 
 	// SENS_GNSSn_* slot for a receiver, by device_id or (when no IDs are configured) by sensor_gnss instance
@@ -121,6 +122,9 @@ private:
 
 	void UpdateGnssHeading();
 	void handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot);
+
+	// Keeps the furthest sensors_status_gnss_s::HEADING_* state a heading sample reached within kHeadingSourceTimeout
+	void reportHeadingState(uint8_t state, hrt_abstime now);
 
 	// sensor_gnss instance publishing this device_id, or -1, with its latest sample in gnss_data (zeroed when not found)
 	int findGnssInstance(uint32_t device_id, sensor_gnss_s &gnss_data);
@@ -158,7 +162,8 @@ private:
 		hrt_abstime settled_since{0}; // first passing sample since the receiver last had no heading
 	} _heading_source{};
 
-	bool _heading_unconfigured_reported{false};
+	uint8_t _heading_state{sensors_status_gnss_s::HEADING_NONE};
+	hrt_abstime _heading_state_time{0};
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};

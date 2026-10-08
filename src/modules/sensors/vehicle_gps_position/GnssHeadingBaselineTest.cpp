@@ -89,3 +89,22 @@ TEST(GnssHeadingBaseline, NeedsAConfiguredBaseline)
 	EXPECT_FALSE(baselineConsistent(0.f, NAN, NAN));
 	EXPECT_FALSE(baselineConsistent(0.04f, 0.04f, 0.f));
 }
+
+TEST(GnssHeadingBaseline, SampleStateNamesTheMissingSetup)
+{
+	// upgraded from GPS_YAW_OFFSET: the receiver reports a heading, the slot has none
+	EXPECT_EQ(sampleState(0.5f, false, 0.f, 0.35f, 0.f), sensors_status_gnss_s::HEADING_UNCONFIGURED);
+
+	// SENS_GNSSn_HDG set, antenna positions left at 0
+	EXPECT_EQ(sampleState(0.5f, true, 0.f, 0.35f, 0.f), sensors_status_gnss_s::HEADING_NO_BASELINE);
+
+	EXPECT_EQ(sampleState(0.5f, true, 0.35f, 0.6f, 0.f), sensors_status_gnss_s::HEADING_BASELINE_MISMATCH);
+	EXPECT_EQ(sampleState(0.5f, true, 0.35f, 0.35f, 0.f), sensors_status_gnss_s::HEADING_SETTLING);
+}
+
+TEST(GnssHeadingBaseline, SampleStateBlamesNoSetupWithoutAHeading)
+{
+	// a receiver without a heading solution may not be meant to provide one
+	EXPECT_EQ(sampleState(NAN, false, 0.f, NAN, NAN), sensors_status_gnss_s::HEADING_NONE);
+	EXPECT_EQ(sampleState(NAN, true, 0.35f, 0.35f, 0.f), sensors_status_gnss_s::HEADING_NONE);
+}

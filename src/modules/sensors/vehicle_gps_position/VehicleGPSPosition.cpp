@@ -185,6 +185,11 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			_gnss_param_slots[i].heading_offset = atan2f(baselines[i](1), baselines[i](0));
 		}
 
+		_gnss_param_slots[0].heading_enabled = (_param_sens_gnss0_hdg.get() != static_cast<int32_t>
+							(gnss_heading::BaselineType::Disabled));
+		_gnss_param_slots[1].heading_enabled = (_param_sens_gnss1_hdg.get() != static_cast<int32_t>
+							(gnss_heading::BaselineType::Disabled));
+
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 	}
 }
@@ -337,24 +342,16 @@ void VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 		return;
 	}
 
-	const bool configured = slot && (slot->baseline_length >= gnss_heading::kMinAntennaSeparation);
+	const uint8_t state = gnss_heading::sampleState(sample.heading, slot && slot->heading_enabled,
+			      slot ? slot->baseline_length : 0.f, sample.baseline_length, sample.baseline_down);
 
-	if (PX4_ISFINITE(sample.heading) && !configured && !_heading_unconfigured_reported) {
-		PX4_WARN("GNSS heading from %" PRIu32 " not used: set SENS_GNSSn_HDG", sample.device_id);
-		_heading_unconfigured_reported = true;
-	}
-
-	if (!PX4_ISFINITE(sample.heading) || !configured) {
-		if (same_source) {
+	if (state != sensors_status_gnss_s::HEADING_SETTLING) {
+		// A sample whose baseline doesn't match is dropped without restarting the settle
+		if (same_source && (state != sensors_status_gnss_s::HEADING_BASELINE_MISMATCH)) {
 			source.settled_since = 0;
 		}
 
-		return;
-	}
-
-	// A sample whose baseline doesn't match is dropped; the settle restarts only when the receiver itself reports no
-	// heading
-	if (!gnss_heading::baselineConsistent(slot->baseline_length, sample.baseline_length, sample.baseline_down)) {
+		reportHeadingState(state, now);
 		return;
 	}
 
@@ -371,8 +368,11 @@ void VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 	// Headings are published once the receiver has reported a matching one for kHeadingSettleTime, since the first
 	// fixes after it (re)gains its heading are the likeliest to be wrong.
 	if (now < source.settled_since + kHeadingSettleTime) {
+		reportHeadingState(sensors_status_gnss_s::HEADING_SETTLING, now);
 		return;
 	}
+
+	reportHeadingState(sensors_status_gnss_s::HEADING_PUBLISHED, now);
 
 	vehicle_gnss_heading_s heading_out{};
 	heading_out.timestamp_sample = sample.timestamp_sample;
@@ -395,6 +395,17 @@ void VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 
 	heading_out.timestamp = hrt_absolute_time();
 	_vehicle_gnss_heading_pub.publish(heading_out);
+}
+
+void VehicleGPSPosition::reportHeadingState(uint8_t state, hrt_abstime now)
+{
+	// With several receivers reporting, the one whose heading got furthest explains the outcome
+	const bool expired = (now >= _heading_state_time + kHeadingSourceTimeout);
+
+	if (expired || (state >= _heading_state)) {
+		_heading_state = state;
+		_heading_state_time = now;
+	}
 }
 
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
@@ -456,6 +467,14 @@ void VehicleGPSPosition::PublishStatus()
 		status.drift_rate_vertical[i] = checks.vertical_position_drift_rate_m_s();
 		status.speed_horizontal_filtered[i] = checks.filtered_horizontal_velocity_m_s();
 	}
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+
+	if (now < _heading_state_time + kHeadingSourceTimeout) {
+		status.heading_state = _heading_state;
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	status.timestamp = hrt_absolute_time();
 	_sensors_status_gnss_pub.publish(status);

@@ -111,6 +111,7 @@ bool pre_flt_fail_innov_pos_horiz
 bool pre_flt_fail_innov_vel_horiz
 bool pre_flt_fail_innov_vel_vert
 bool pre_flt_fail_mag_field_disturbed
+bool pre_flt_fail_gnss_heading_missing # GNSS yaw is enabled in EKF2_GPS_CTRL, but vehicle_gnss_heading hasn't published for 3 s
 
 uint32 accel_device_id
 uint32 gyro_device_id
