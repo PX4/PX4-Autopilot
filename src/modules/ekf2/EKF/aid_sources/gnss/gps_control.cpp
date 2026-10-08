@@ -151,6 +151,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_fault
 			&& !_control_status.flags.gnss_hgt_fault;
+	const bool starting_conditions_passing = continuing_conditions_passing;
 
 	if (_control_status.flags.gnss_vel) {
 		if (continuing_conditions_passing) {
@@ -173,7 +174,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 		}
 
 	} else {
-		if (continuing_conditions_passing) {
+		if (starting_conditions_passing) {
 			bool fused = false;
 
 			const bool do_reset = force_reset || !_control_status_prev.flags.yaw_align;
@@ -207,6 +208,7 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_hgt_fault;
+	const bool starting_conditions_passing = continuing_conditions_passing;
 
 	// The new receiver can report a position offset from the previous one (different correction source)
 	const bool receiver_changed = (_gps_sample_delayed.selection_count != _gnss_pos_selection_count);
@@ -245,7 +247,7 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 		}
 
 	} else {
-		if (continuing_conditions_passing) {
+		if (starting_conditions_passing) {
 			bool fused = false;
 
 			const bool do_reset = force_reset || !_control_status_prev.flags.yaw_align;
