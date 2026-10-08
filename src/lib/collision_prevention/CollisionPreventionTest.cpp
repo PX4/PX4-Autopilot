@@ -718,6 +718,58 @@ TEST_F(CollisionPreventionTest, addDistanceSensorDataFovNotFinite)
 	}
 }
 
+TEST_F(CollisionPreventionTest, addDistanceSensorDataCustomOrientationNotFinite)
+{
+	// GIVEN: a distance sensor with a custom orientation whose quaternion is not a number
+	TestCollisionPrevention cp;
+	Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	distance_sensor_s distance_sensor {};
+	distance_sensor.min_distance = 0.2f;
+	distance_sensor.max_distance = 20.f;
+	distance_sensor.current_distance = 5.f;
+	distance_sensor.orientation = distance_sensor_s::ROTATION_CUSTOM;
+	distance_sensor.h_fov = math::radians(10.f);
+	distance_sensor.q[0] = NAN;
+	distance_sensor.q[1] = NAN;
+	distance_sensor.q[2] = NAN;
+	distance_sensor.q[3] = NAN;
+
+	uint32_t distances_array_size = sizeof(cp.getObstacleMap().distances) / sizeof(cp.getObstacleMap().distances[0]);
+
+	// WHEN: the data is added to the map
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
+
+	// THEN: the sample is skipped and the map stays empty
+	for (uint32_t i = 0; i < distances_array_size; i++) {
+		EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX) << i;
+	}
+}
+
+TEST_F(CollisionPreventionTest, addObstacleSensorDataIncrementWiderThanFullTurn)
+{
+	// GIVEN: an obstacle message whose increment is wider than a full turn
+	TestCollisionPrevention cp;
+	obstacle_distance_s obstacle_msg {};
+	obstacle_msg.frame = obstacle_msg.MAV_FRAME_BODY_FRD;
+	obstacle_msg.increment = 400.f;
+	obstacle_msg.min_distance = 20;
+	obstacle_msg.max_distance = 2000;
+
+	for (uint32_t i = 0; i < sizeof(obstacle_msg.distances) / sizeof(obstacle_msg.distances[0]); i++) {
+		obstacle_msg.distances[i] = 500;
+	}
+
+	uint32_t distances_array_size = sizeof(cp.getObstacleMap().distances) / sizeof(cp.getObstacleMap().distances[0]);
+
+	// WHEN: the message is added to the map
+	cp.test_addObstacleSensorData(obstacle_msg, 0.f);
+
+	// THEN: the message is skipped and the map stays empty
+	for (uint32_t i = 0; i < distances_array_size; i++) {
+		EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX) << i;
+	}
+}
+
 TEST_F(CollisionPreventionTest, addDistanceSensorDataSlightlyLarger)
 {
 	// GIVEN: a vehicle attitude and a distance sensor message

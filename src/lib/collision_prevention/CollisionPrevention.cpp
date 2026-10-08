@@ -229,6 +229,12 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint_accel
 // TODO this gives false output if the offset is not a multiple of the resolution. to be fixed...
 void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle, const float vehicle_yaw)
 {
+	// increment arrives unchecked (e.g. from a MAVLink OBSTACLE_DISTANCE message) and sets the bin count 360 / increment
+	// used below: it must be a finite angle of at most one full turn
+	if (!PX4_ISFINITE(obstacle.increment) || obstacle.increment <= 0.f || obstacle.increment > 360.f) {
+		return;
+	}
+
 
 	float vehicle_orientation_deg = math::degrees(vehicle_yaw);
 
@@ -400,9 +406,10 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 					    (distance_sensor.orientation), distance_sensor.q);
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
 
-		// h_fov arrives unchecked (e.g. from a MAVLink DISTANCE_SENSOR message): skip a non-finite value and limit
-		// the field of view to one full turn, so the bin range below is finite and covers each bin at most once
-		if (!PX4_ISFINITE(distance_sensor.h_fov)) {
+		// h_fov and q (for ROTATION_CUSTOM) arrive unchecked (e.g. from a MAVLink DISTANCE_SENSOR message): skip a
+		// non-finite field of view or yaw, and limit the field of view to one full turn, so the bin range below is
+		// finite and covers each bin at most once
+		if (!PX4_ISFINITE(distance_sensor.h_fov) || !PX4_ISFINITE(sensor_yaw_body_deg)) {
 			return;
 		}
 
