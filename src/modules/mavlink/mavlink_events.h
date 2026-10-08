@@ -91,6 +91,8 @@ public:
 	bool get_event(uint16_t sequence, Event &event) const;
 
 	int size() const;
+
+	int capacity() const { return _capacity; }
 private:
 	::px4::atomic<uint16_t> _latest_sequence{events::initial_event_sequence};
 

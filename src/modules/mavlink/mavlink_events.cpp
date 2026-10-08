@@ -187,21 +187,37 @@ void SendProtocol::handle_request_event(const mavlink_message_t &msg) const
 	Event e;
 
 	const uint16_t end_sequence = request_event.last_sequence + 1;
+	uint16_t sequence = request_event.first_sequence;
 
-	for (uint16_t sequence = request_event.first_sequence; sequence != end_sequence; ++sequence) {
+	const auto send_unavailable = [&](uint16_t unavailable_sequence) {
+		mavlink_response_event_error_t event_error{};
+		event_error.target_system = msg.sysid;
+		event_error.target_component = msg.compid;
+		event_error.sequence = unavailable_sequence;
+		event_error.sequence_oldest_available = _buffer.get_oldest_sequence_after(unavailable_sequence);
+		event_error.reason = MAV_EVENT_ERROR_REASON_UNAVAILABLE;
+		PX4_DEBUG("Event unavailable (seq=%i oldest=%i)", unavailable_sequence, event_error.sequence_oldest_available);
+		mavlink_msg_response_event_error_send_struct(_mavlink.get_channel(), &event_error);
+	};
+
+	// The buffer holds at most capacity() events, so only the newest capacity() sequences of a request can still be
+	// available. Answer an older part with a single error naming the oldest available sequence, instead of one
+	// lookup and one reply per sequence (up to 65535 for a wrapped range).
+	const uint16_t requested = end_sequence - sequence;
+	const uint16_t answerable = static_cast<uint16_t>(_buffer.capacity());
+
+	if (requested > answerable) {
+		send_unavailable(sequence);
+		sequence = end_sequence - answerable;
+	}
+
+	for (; sequence != end_sequence; ++sequence) {
 		if (_buffer.get_event(sequence, e)) {
 			PX4_DEBUG("sending requested event %i", sequence);
 			send_event(e);
 
 		} else {
-			mavlink_response_event_error_t event_error{};
-			event_error.target_system = msg.sysid;
-			event_error.target_component = msg.compid;
-			event_error.sequence = sequence;
-			event_error.sequence_oldest_available = _buffer.get_oldest_sequence_after(sequence);
-			event_error.reason = MAV_EVENT_ERROR_REASON_UNAVAILABLE;
-			PX4_DEBUG("Event unavailable (seq=%i oldest=%i)", sequence, event_error.sequence_oldest_available);
-			mavlink_msg_response_event_error_send_struct(_mavlink.get_channel(), &event_error);
+			send_unavailable(sequence);
 		}
 	}
 }
