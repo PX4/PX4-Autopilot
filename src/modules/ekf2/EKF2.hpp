@@ -540,10 +540,6 @@ private:
 		(ParamBool<px4::params::EKF2_POS_LOCK>) _param_ekf2_pos_lock,
 		(ParamExtInt<px4::params::EKF2_SENS_EN>) _param_ekf2_sens_en,
 
-#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
-		(ParamInt<px4::params::EKF2_WHEEL_CTRL>) _param_ekf2_wheel_ctrl,
-#endif // CONFIG_EKF2_WHEEL_ENCODERS
-
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
 		_param_ekf2_avel_delay,	///< auxiliary velocity measurement delay relative to the IMU (mSec)
@@ -675,6 +671,13 @@ private:
 		(ParamExtFloat<px4::params::EKF2_RNGBC_DELAY>) _param_ekf2_rngbc_delay,
 		(ParamExtFloat<px4::params::EKF2_RNGBC_NOISE>) _param_ekf2_rngbc_noise,
 		(ParamExtFloat<px4::params::EKF2_RNGBC_GATE>) _param_ekf2_rngbc_gate,
+#endif // CONFIG_EKF2_RANGING_BEACON
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+		// ranging beacon fusion
+		(ParamExtInt<px4::params::EKF2_WHEEL_CTRL>) _param_ekf2_wheel_ctrl,
+		(ParamExtFloat<px4::params::EKF2_WHEEL_NOISE>) _param_ekf2_wheel_noise,
+		(ParamExtFloat<px4::params::EKF2_WHEEL_GATE>) _param_ekf2_wheel_gate,
 #endif // CONFIG_EKF2_RANGING_BEACON
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)

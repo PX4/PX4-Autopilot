@@ -197,6 +197,11 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rngbc_noise(_params->ekf2_rngbc_noise),
 	_param_ekf2_rngbc_gate(_params->ekf2_rngbc_gate),
 #endif // CONFIG_EKF2_RANGING_BEACON
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	_param_ekf2_wheel_ctrl(_params->ekf2_wheel_ctrl),
+	_param_ekf2_wheel_noise(_params->ekf2_wheel_noise),
+	_param_ekf2_wheel_gate(_params->ekf2_wheel_gate),
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	_param_ekf2_ev_delay(_params->ekf2_ev_delay),
 	_param_ekf2_ev_ctrl(_params->ekf2_ev_ctrl),

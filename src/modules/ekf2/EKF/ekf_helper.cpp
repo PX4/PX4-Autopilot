@@ -864,6 +864,25 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		inertial_dead_reckoning = false;
 	}
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+
+	// wheel encoders active
+	if (_control_status.flags.fuse_wheel
+	    && isRecent(_aid_src_wheel_encoders.time_last_fuse, _params.no_aid_timeout_max)
+	   ) {
+		inertial_dead_reckoning = false;
+
+	} else {
+		if (!_control_status.flags.in_air && _fc.wheel.intended()
+		    && isRecent(_aid_src_wheel_encoders.timestamp_sample, _params.no_aid_timeout_max)
+		   ) {
+			// currently parked, but wheel encoder should be possible once vehicle active
+			aiding_expected_in_air = true;
+		}
+	}
+
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	// optical flow active
