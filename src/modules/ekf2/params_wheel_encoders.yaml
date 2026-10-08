@@ -28,3 +28,23 @@ parameters:
       min: 1.0
       unit: SD
       decimal: 1
+    EKF2_WHEEL_RAD:
+      description:
+        short: Wheel radius
+        long: Wheel radius in meters.
+      type: float
+      default: 0.1
+      min: 0.0
+      max: 1.0
+      unit: m
+      decimal: 3
+    EKF2_WHEEL_TRACK:
+      description:
+        short: Wheel track width
+        long: Distance between the center of the two wheels in meters.
+      type: float
+      default: 0.6
+      min: 0.0
+      max: 3.0
+      unit: m
+      decimal: 3

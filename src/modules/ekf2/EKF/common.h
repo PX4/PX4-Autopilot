@@ -557,11 +557,13 @@ struct parameters {
 #endif // CONFIG_EKF2_RANGING_BEACON
 
 #if defined(CONFIG_EKF2_WHEEL_ENCODERS)
-	// ranging beacon fusion
+	// wheel encoder fusion
 	int32_t ekf2_wheel_ctrl{0};            ///< wheel encoder fusion control (0=disabled, 1=enabled)
 	float ekf2_wheel_noise{0.01f};           ///< wheel encoder measurement noise (m)
 	float ekf2_wheel_gate{5.f};            ///< wheel encoder fusion innovation consistency gate size (STD)
-#endif // CONFIG_EKF2_RANGING_BEACON
+	float ekf2_wheel_rad{0.1f};            ///< wheel radius (m)
+	float ekf2_wheel_track{0.6f};          ///< wheel track width (m)
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 };
 

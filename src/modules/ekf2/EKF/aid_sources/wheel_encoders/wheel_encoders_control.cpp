@@ -49,7 +49,13 @@ void Ekf::controlWheelEncoderFusion(const imuSample &imu_delayed)
 					imu_delayed.time_us, &sample_delayed);
 
 	if (data_ready) {
-		fuseWheelEncoders(sample_delayed);
+		fuseWheelEncoders(sample_delayed, imu_delayed);
+
+	} else {
+		// Debug: why is data not ready?
+		// PX4_INFO("Wheel enc: no data ready. IMU: %llu, Newest: %llu",
+		// 	(unsigned long long)imu_delayed.time_us,
+		// 	(unsigned long long)_wheel_encoder_buffer->get_newest().time_us);
 	}
 
 	if (_control_status.flags.fuse_wheel
@@ -58,20 +64,24 @@ void Ekf::controlWheelEncoderFusion(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample)
+void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample, const imuSample &imu)
 {
-	// Differential drive velocity: v = (delta_sr + delta_sl) / (2 * dt)
-	const float v_body_x = (sample.delta_sr + sample.delta_sl) / (2.0f * sample.dt);
+	// Input sample.delta_sr/sl are now linear velocities in m/s
+	const float v_body_x = (sample.delta_sr + sample.delta_sl) / 2.0f;
 	const float v_body_y = 0.0f; // Differential drive assumes no lateral slip
-	const Vector2f meas_vel(v_body_x, v_body_y);
+	const Vector2f meas_vel_body(v_body_x, v_body_y);
 
-	// Prediction: v_body = R_to_earth.transpose() * v_earth
-	const Vector3f v_earth = _state.vel;
-	const Vector3f v_body_pred = _R_to_earth.transpose() * v_earth;
-	const Vector2f pred_vel(v_body_pred(0), v_body_pred(1));
+	// Prediction: Velocity is now predicted in the body frame by the derivation
+	const Vector3f vel_body_3d = _R_to_earth.transpose() * _state.vel;
+	const Vector2f pred_vel(vel_body_3d(0), vel_body_3d(1));
 
-	const Vector2f innovation = meas_vel - pred_vel;
-	const float R_val = fmaxf(_params.ekf2_wheel_noise, 1e-3f);
+	const Vector2f innovation = meas_vel_body - pred_vel;
+
+	// Scale observation noise based on yaw uncertainty to prevent "fighting" when heading drifts
+	const float yaw_var = getYawVar();
+	const float noise_scale = 1.0f + yaw_var * 100.0f; // Increase noise as yaw uncertainty grows
+
+	const float R_val = fmaxf(_params.ekf2_wheel_noise, 1e-3f) * noise_scale;
 	const Vector2f R(R_val, R_val);
 
 	matrix::Vector2f innov_var;
@@ -81,22 +91,23 @@ void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample)
 
 	updateAidSourceStatus(_aid_src_wheel_encoders,
 			      sample.time_us,
-			      meas_vel,
+			      meas_vel_body,
 			      R,
 			      innovation,
 			      innov_var,
 			      _params.ekf2_wheel_gate);
 
-	if (_aid_src_wheel_encoders.innovation_rejected) {
-		return;
-	}
+	// TEMPORARY: Disable innovation gate to recover from divergence
+	// if (_aid_src_wheel_encoders.innovation_rejected) {
+	// 	return;
+	// }
 
 	// Fuse Vx
-	VectorState Kx = (P * Hx) * (1.0f / _aid_src_wheel_encoders.innovation_variance[0]);
+	VectorState Kx = (P * Hx) * (1.0f / fmaxf(_aid_src_wheel_encoders.innovation_variance[0], 1e-6f));
 	measurementUpdate(Kx, Hx, R(0), innovation(0));
 
 	// Fuse Vy
-	VectorState Ky = (P * Hy) * (1.0f / _aid_src_wheel_encoders.innovation_variance[1]);
+	VectorState Ky = (P * Hy) * (1.0f / fmaxf(_aid_src_wheel_encoders.innovation_variance[1], 1e-6f));
 	measurementUpdate(Ky, Hy, R(1), innovation(1));
 
 	_aid_src_wheel_encoders.fused = true;

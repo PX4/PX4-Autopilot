@@ -398,6 +398,7 @@ private:
 	uORB::Subscription _wheel_encoders_sub {ORB_ID(wheel_encoders)};
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_wheel_encoders_pub{ORB_ID(estimator_aid_src_wheel_encoders)};
 	hrt_abstime _status_wheel_encoders_pub_last{0};
+	hrt_abstime _last_wheel_encoder_timestamp{0};
 #endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 	orb_advert_t _mavlink_log_pub{nullptr};
@@ -678,6 +679,8 @@ private:
 		(ParamExtInt<px4::params::EKF2_WHEEL_CTRL>) _param_ekf2_wheel_ctrl,
 		(ParamExtFloat<px4::params::EKF2_WHEEL_NOISE>) _param_ekf2_wheel_noise,
 		(ParamExtFloat<px4::params::EKF2_WHEEL_GATE>) _param_ekf2_wheel_gate,
+		(ParamExtFloat<px4::params::EKF2_WHEEL_TRACK>) _param_ekf2_wheel_track,
+		(ParamExtFloat<px4::params::EKF2_WHEEL_RAD>) _param_ekf2_wheel_rad,
 #endif // CONFIG_EKF2_RANGING_BEACON
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)

@@ -397,26 +397,32 @@ def compute_body_vel_innov_var_h(
     return (innov_var, Hx.T, Hy.T, Hz.T)
 
 def predict_wheel_vel(
-        state: VState
-) -> (sf.V2):
-    # Wheel encoders on a differential drive typically measure longitudinal velocity (Vx)
-    # and implicitly assume lateral velocity (Vy) is zero.
-    vel = state["vel"]
+        state: State
+) -> (sf.V3):
+    # Wheel encoders on a differential drive measure longitudinal velocity.
+    # Predict the velocity in the body frame.
+    # Use laPlace to ensure symbols are fully expanded
     R_to_body = state["quat_nominal"].inverse()
-    vel_body = R_to_body * vel
-    return sf.V2(vel_body[0], vel_body[1])
-
+    vel_body = R_to_body * state["vel"]
+    return vel_body
+#TODO:
 def compute_wheel_vel_innov_var_and_h(
         state: VState,
         P: MTangent,
-        R: sf.V2,
+        R: sf.V3,
 ) -> (sf.V2, VTangent, VTangent):
-    state = vstate_to_state(state)
-    meas_pred = predict_wheel_vel(state)
+    state_sym = vstate_to_state(state)
+    # Use the exact same logic as compute_body_vel_innov_var_h
+    # to guarantee symbolic tracking of rotation.
+    R_to_body = state_sym["quat_nominal"].inverse()
+    vel_body_pred = R_to_body * state_sym["vel"]
+    # Use indices 0 and 1 for the 2D fusion (Vx, Vy)
+    vx_pred = vel_body_pred[0]
+    vy_pred = vel_body_pred[1]
 
     # Jacobian for Vx and Vy
-    Hx = jacobian_chain_rule(meas_pred[0], state)
-    Hy = jacobian_chain_rule(meas_pred[1], state)
+    Hx = jacobian_chain_rule(vx_pred, state_sym)
+    Hy = jacobian_chain_rule(vy_pred, state_sym)
 
     innov_var = sf.V2((Hx * P * Hx.T + R[0])[0,0],
                       (Hy * P * Hy.T + R[1])[0,0])

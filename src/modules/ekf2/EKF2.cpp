@@ -201,6 +201,8 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_wheel_ctrl(_params->ekf2_wheel_ctrl),
 	_param_ekf2_wheel_noise(_params->ekf2_wheel_noise),
 	_param_ekf2_wheel_gate(_params->ekf2_wheel_gate),
+	_param_ekf2_wheel_track(_params->ekf2_wheel_track),
+	_param_ekf2_wheel_rad(_params->ekf2_wheel_rad),
 #endif // CONFIG_EKF2_WHEEL_ENCODERS
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	_param_ekf2_ev_delay(_params->ekf2_ev_delay),
@@ -2857,11 +2859,21 @@ void EKF2::UpdateWheelEncoderSample(ekf2_timestamps_s &ekf2_timestamps)
 	wheel_encoders_s wheel_encoders;
 
 	if (_wheel_encoders_sub.update(&wheel_encoders)) {
+		float dt = 0.01f;
+
+		if (_last_wheel_encoder_timestamp != 0) {
+			dt = (wheel_encoders.timestamp - _last_wheel_encoder_timestamp) / 1e6f;
+		}
+
+		_last_wheel_encoder_timestamp = wheel_encoders.timestamp;
+
+		float wheel_rad = _ekf.getParamHandle()->ekf2_wheel_rad;
+
 		wheelEncoderSample sample{
 			.time_us = wheel_encoders.timestamp,
-			.delta_sr = (float)wheel_encoders.wheel_speed[0],
-			.delta_sl = (float)wheel_encoders.wheel_speed[1],
-			.dt = 0.01f, // This should ideally be calculated from timestamps
+			.delta_sr = (float)wheel_encoders.wheel_speed[0] * wheel_rad,
+			.delta_sl = (float)wheel_encoders.wheel_speed[1] * wheel_rad,
+			.dt = dt,
 		};
 		_ekf.setWheelEncoderData(sample);
 	}

@@ -190,12 +190,12 @@ void Ekf::updateYawManualValidity()
 	const bool heading_observation_fusing = !isTimedOut(_time_last_heading_fuse, _params.no_aid_timeout_max);
 
 	if (!_control_status.flags.yaw_manual || !heading_observation_fusing) {
-		_time_heading_fusion_start = 0;
+		_time_last_heading_fusion_start = 0;
 		return;
 	}
 
-	if (_time_heading_fusion_start == 0) {
-		_time_heading_fusion_start = _time_delayed_us;
+	if (_time_last_heading_fusion_start == 0) {
+		_time_last_heading_fusion_start = _time_delayed_us;
 		return;
 	}
 
@@ -205,7 +205,7 @@ void Ekf::updateYawManualValidity()
 	// protection would only block recovery resets.
 	static constexpr uint64_t kHeadingFusionTimeToClearYawManual = 30'000'000;
 
-	if ((_time_delayed_us - _time_heading_fusion_start) > kHeadingFusionTimeToClearYawManual) {
+	if ((_time_delayed_us - _time_last_heading_fusion_start) > kHeadingFusionTimeToClearYawManual) {
 		_control_status.flags.yaw_manual = false;
 	}
 }
