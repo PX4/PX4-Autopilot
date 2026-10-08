@@ -1093,6 +1093,8 @@ void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_comma
 
 	case vehicle_command_s::FUSION_SOURCE_RNGBCN: sensor = &_fc.rngbcn; break;
 
+	case vehicle_command_s::FUSION_SOURCE_WHEEL:   sensor = &_fc.wheel;   break;
+
 	default: break;
 	}
 
@@ -1134,6 +1136,8 @@ void EKF2::syncSensEnParam()
 	if (_fc.aspd.enabled)   { sens_en |= SensEn::ASPD; }
 
 	if (_fc.rngbcn.enabled) { sens_en |= SensEn::RNGBCN; }
+
+	if (_fc.wheel.enabled) { sens_en |= SensEn::WHEEL; }
 
 	_param_ekf2_sens_en.set(sens_en);
 	_param_ekf2_sens_en.commit_no_notification();
@@ -1228,6 +1232,12 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	PublishAidSourceStatus(timestamp, _ekf.aid_src_optical_flow(), _status_optical_flow_pub_last,
 			       _estimator_aid_src_optical_flow_pub);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	// wheel encoders
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_wheel_encoders(), _status_wheel_encoders_pub_last,
+			       _estimator_aid_src_wheel_encoders_pub);
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
