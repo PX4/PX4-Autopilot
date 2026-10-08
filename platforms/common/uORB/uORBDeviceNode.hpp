@@ -53,7 +53,7 @@
 
 #include "IndexedStack.hpp"
 
-#if defined(CONFIG_BUILD_FLAT)
+#if defined(CONFIG_BUILD_FLAT) || defined(CONFIG_BUILD_PROTECTED)
 #define MAX_EVENT_WAITERS 0 // dynamic
 typedef void *uorb_cb_handle_t;
 #define UORB_INVALID_CB_HANDLE nullptr
@@ -67,8 +67,9 @@ typedef void *uorb_cb_handle_t;
 #define UORB_INVALID_CB_HANDLE (-1)
 typedef int8_t uorb_cb_handle_t;
 #define uorb_cb_handle_valid(x) ((x) >= 0)
-#define CB_ALIVE_MAX_VALUE 50
 #endif
+
+#define CB_ALIVE_MAX_VALUE 50
 
 #define CB_LIST_T struct EventWaitItem, uorb_cb_handle_t, MAX_EVENT_WAITERS
 
@@ -224,7 +225,11 @@ public:
 	const orb_metadata *get_meta() const { return get_orb_meta(_orb_id); }
 
 	size_t get_size() { return get_orb_size(_orb_id); }
+#if defined(CONFIG_BUILD_FLAT) || defined(CONFIG_BUILD_PROTECTED) || defined(POSIX_SHM_DISABLED)
+	static size_t get_orb_size(ORB_ID) { return sizeof(DeviceNode); }
+#else
 	static size_t get_orb_size(ORB_ID id) { return sizeof(DeviceNode) + get_orb_meta(id)->o_size * get_orb_meta(id)->o_queue + data_alignment_padding(); }
+#endif
 
 	ORB_ID id() const { return _orb_id; }
 
@@ -300,6 +305,10 @@ private:
 	px4::atomic<unsigned> _generation{0};  /**< object generation count */
 
 	struct EventWaitItem {
+#ifdef CONFIG_BUILD_PROTECTED
+		static void *operator new (size_t size) noexcept;
+		static void operator delete (void *ptr) noexcept;
+#endif
 		hrt_abstime last_update;
 #ifdef CONFIG_BUILD_FLAT
 		class SubscriptionCallback *subscriber;
@@ -369,7 +378,11 @@ private:
 	void _add_subscriber(unsigned *initial_generation);
 
 	inline static DeviceNode *node(const orb_advert_t &handle) { return static_cast<DeviceNode *>(handle); }
+#if defined(CONFIG_BUILD_FLAT) || defined(CONFIG_BUILD_PROTECTED) || defined(POSIX_SHM_DISABLED)
+	inline static uint8_t *node_data(const orb_advert_t &handle) { return static_cast<DeviceNode *>(handle)->_payload; }
+#else
 	inline static uint8_t *node_data(const orb_advert_t &handle) { return static_cast<DeviceNode *>(handle)->_data + data_alignment_padding(); }
+#endif
 
 	bool _register_callback(SubscriptionCallback *callback_sub, int8_t poll_lock, hrt_abstime last_update,
 				uint32_t interval_us, uorb_cb_handle_t &cb_handle);
@@ -389,9 +402,9 @@ private:
 
 	static constexpr unsigned data_alignment_padding()
 	{
-#ifdef CONFIG_FS_SHMFS_NO_ALIGN
-		/* shm object is not cache-line aligned; padding here would not
-		 * produce a cache-line aligned _data[] anyway. Save the bytes.
+#if defined(CONFIG_BUILD_FLAT) || defined(CONFIG_BUILD_PROTECTED) || defined(POSIX_SHM_DISABLED) || defined(CONFIG_FS_SHMFS_NO_ALIGN)
+		/* Separately allocated payloads are aligned by the allocator. With
+		 * unaligned SHM, padding cannot guarantee inline payload alignment.
 		 */
 		return 0;
 #else
@@ -399,6 +412,10 @@ private:
 		       PX4_ARCH_DCACHE_ALIGNMENT - (sizeof(DeviceNode) % PX4_ARCH_DCACHE_ALIGNMENT) : 0;
 #endif
 	}
+#if defined(CONFIG_BUILD_FLAT) || defined(CONFIG_BUILD_PROTECTED) || defined(POSIX_SHM_DISABLED)
+	uint8_t *_payload {nullptr}; /**< payload queue, allocated on first publish, freed with the node */
+#else
 	uint8_t _data[];
+#endif
 };
 } //namespace uORB
