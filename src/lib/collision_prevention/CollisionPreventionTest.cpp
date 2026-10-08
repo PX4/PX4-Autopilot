@@ -671,6 +671,53 @@ TEST_F(CollisionPreventionTest, addDistanceSensorDataNarrow)
 		}
 	}
 }
+TEST_F(CollisionPreventionTest, addDistanceSensorDataFovWiderThanFullTurn)
+{
+	// GIVEN: a vehicle attitude and a distance sensor whose horizontal field of view is wider than a full turn
+	// (here 30, a value in degrees where radians are expected)
+	TestCollisionPrevention cp;
+	Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	distance_sensor_s distance_sensor {};
+	distance_sensor.min_distance = 0.2f;
+	distance_sensor.max_distance = 20.f;
+	distance_sensor.current_distance = 5.f;
+	distance_sensor.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+	distance_sensor.h_fov = 30.f;
+
+	uint32_t distances_array_size = sizeof(cp.getObstacleMap().distances) / sizeof(cp.getObstacleMap().distances[0]);
+
+	// WHEN: the data is added to the map
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
+
+	// THEN: the field of view is limited to one full turn and every bin is filled
+	for (uint32_t i = 0; i < distances_array_size; i++) {
+		EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 500) << i;
+	}
+}
+
+TEST_F(CollisionPreventionTest, addDistanceSensorDataFovNotFinite)
+{
+	// GIVEN: a vehicle attitude and a distance sensor whose horizontal field of view is not a number
+	TestCollisionPrevention cp;
+	Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	distance_sensor_s distance_sensor {};
+	distance_sensor.min_distance = 0.2f;
+	distance_sensor.max_distance = 20.f;
+	distance_sensor.current_distance = 5.f;
+	distance_sensor.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+	distance_sensor.h_fov = NAN;
+
+	uint32_t distances_array_size = sizeof(cp.getObstacleMap().distances) / sizeof(cp.getObstacleMap().distances[0]);
+
+	// WHEN: the data is added to the map
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
+
+	// THEN: the sample is skipped and the map stays empty
+	for (uint32_t i = 0; i < distances_array_size; i++) {
+		EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX) << i;
+	}
+}
+
 TEST_F(CollisionPreventionTest, addDistanceSensorDataSlightlyLarger)
 {
 	// GIVEN: a vehicle attitude and a distance sensor message

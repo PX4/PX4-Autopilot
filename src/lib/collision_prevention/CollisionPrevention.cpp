@@ -400,9 +400,17 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 					    (distance_sensor.orientation), distance_sensor.q);
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
 
+		// h_fov arrives unchecked (e.g. from a MAVLink DISTANCE_SENSOR message): skip a non-finite value and limit
+		// the field of view to one full turn, so the bin range below is finite and covers each bin at most once
+		if (!PX4_ISFINITE(distance_sensor.h_fov)) {
+			return;
+		}
+
+		const float h_fov = math::constrain(distance_sensor.h_fov, 0.f, M_TWOPI_F);
+
 		// calculate the field of view boundary bin indices
-		int lower_bound = (int)round((sensor_yaw_body_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
-		int upper_bound = (int)round((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
+		int lower_bound = (int)round((sensor_yaw_body_deg  - math::degrees(h_fov / 2.0f)) / BIN_SIZE);
+		int upper_bound = (int)round((sensor_yaw_body_deg  + math::degrees(h_fov / 2.0f)) / BIN_SIZE);
 
 		if (distance_reading < distance_sensor.max_distance) {
 			ObstacleMath::project_distance_on_horizontal_plane(distance_reading, sensor_yaw_body_rad, vehicle_attitude);
