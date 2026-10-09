@@ -61,6 +61,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
@@ -75,6 +76,8 @@ union failure_detector_status_u {
 		uint16_t ext : 1;
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
+		uint16_t impact : 1;
+		uint16_t crash : 1;
 	} flags;
 	uint16_t value {0};
 };
@@ -98,6 +101,10 @@ private:
 				  const vehicle_control_mode_s &vehicle_control_mode);
 	void updateExternalAtsStatus();
 	void updateImbalancedPropStatus();
+	void updateImpactStatus(bool armed);
+
+	// Copy the vehicle_imu_status of the selected accelerometer. Returns false if not available.
+	bool copySelectedImuStatus(vehicle_imu_status_s &imu_status);
 
 	failure_detector_status_u _failure_detector_status{};
 
@@ -105,6 +112,7 @@ private:
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _alt_loss_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
+	systemlib::Hysteresis _crash_no_movement_hysteresis{false};
 
 	float _alt_loss_ref_z{NAN}; // ratcheting NED-z reference for altitude loss detection
 	uint8_t _alt_loss_z_reset_counter{0}; // tracks EKF z resets to avoid false altitude loss triggers
@@ -114,8 +122,11 @@ private:
 	uint32_t _selected_accel_device_id{0};
 	hrt_abstime _imu_status_timestamp_prev{0};
 
+	float _impact_metric_peak{0.f}; // peak of the impact metric since the last status publication
+
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
@@ -136,6 +147,8 @@ private:
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
 		(ParamFloat<px4::params::FD_ALT_LOSS>) _param_fd_alt_loss,
-		(ParamFloat<px4::params::FD_ALT_LOSS_T>) _param_fd_alt_loss_ttri
+		(ParamFloat<px4::params::FD_ALT_LOSS_T>) _param_fd_alt_loss_ttri,
+		(ParamFloat<px4::params::FD_IMPACT_THR>) _param_fd_impact_thr,
+		(ParamFloat<px4::params::FD_IMPACT_T>) _param_fd_impact_ttri
 	)
 };
