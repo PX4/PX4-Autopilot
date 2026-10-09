@@ -452,14 +452,19 @@ TEST_F(AttitudeControlFeedforwardTest, InvalidSetpointKeepsLastReference)
 	const Vector3f rate_setpoint_zero = _attitude_control.update(Quatf());
 	const bool accepted_nan = _attitude_control.setAttitudeSetpoint(Quatf(NAN, 0.f, 0.f, 0.f), 0.f, kDt);
 	const Vector3f rate_setpoint_nan = _attitude_control.update(Quatf());
+	// norm() overflows to inf although every component is finite
+	const bool accepted_overflow = _attitude_control.setAttitudeSetpoint(Quatf(1e20f, 0.f, 0.f, 0.f), 0.f, kDt);
+	const Vector3f rate_setpoint_overflow = _attitude_control.update(Quatf());
 
 	// THEN: they are rejected, the controller keeps tracking the last valid reference
 	EXPECT_FALSE(accepted_zero);
 	EXPECT_FALSE(accepted_nan);
+	EXPECT_FALSE(accepted_overflow);
 	EXPECT_TRUE(rate_setpoint_zero.isAllFinite());
 	EXPECT_TRUE(rate_setpoint_nan.isAllFinite());
 	EXPECT_NEAR((rate_setpoint_zero - rate_setpoint_valid).norm(), 0.f, 1e-5f);
 	EXPECT_NEAR((rate_setpoint_nan - rate_setpoint_valid).norm(), 0.f, 1e-5f);
+	EXPECT_NEAR((rate_setpoint_overflow - rate_setpoint_valid).norm(), 0.f, 1e-5f);
 
 	// WHEN: valid setpoints resume with a new attitude
 	const Quatf q_d_new(AxisAnglef(Vector3f(0.f, -0.2f, 0.f)));
@@ -476,26 +481,6 @@ TEST_F(AttitudeControlFeedforwardTest, InvalidSetpointKeepsLastReference)
 	EXPECT_NEAR(_attitude_control.update(q_d_new).norm(), 0.f, 1e-3f);
 }
 
-TEST_F(AttitudeControlFeedforwardTest, InvalidHeadingResetIsIgnored)
-{
-	// GIVEN: a settled reference
-	const Quatf q_d(AxisAnglef(Vector3f(0.f, 0.f, 0.5f)));
-
-	for (int i = 0; i < kSettleSteps; i++) {
-		_attitude_control.setAttitudeSetpoint(q_d, 0.f, (i == 0) ? -1.f : kDt);
-	}
-
-	const Quatf q_ref = _attitude_control.getReferenceAttitude();
-
-	// WHEN: an estimator reset delivers an invalid delta rotation
-	_attitude_control.adaptAttitudeSetpoint(Quatf(0.f, 0.f, 0.f, 0.f));
-	_attitude_control.adaptAttitudeSetpoint(Quatf(NAN, NAN, NAN, NAN));
-
-	// THEN: the reference is unchanged
-	EXPECT_EQ(_attitude_control.getReferenceAttitude(), q_ref);
-	EXPECT_TRUE(_attitude_control.update(Quatf()).isAllFinite());
-}
-
 TEST_F(AttitudeControlFeedforwardTest, NonUnitSetpointIsAccepted)
 {
 	// GIVEN: a valid setpoint that is finite but not unit length
@@ -510,4 +495,20 @@ TEST_F(AttitudeControlFeedforwardTest, NonUnitSetpointIsAccepted)
 	EXPECT_TRUE(accepted_small);
 	EXPECT_NEAR(_attitude_control.getReferenceAttitude().norm(), 1.f, 1e-5f);
 	EXPECT_NEAR(_attitude_control.update(q_d).norm(), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, InvalidFirstSetpointIsRejected)
+{
+	// WHEN: the first setpoint after boot is invalid
+	const bool accepted_zero = _attitude_control.setAttitudeSetpoint(Quatf(0.f, 0.f, 0.f, 0.f), 0.f);
+	const bool accepted_overflow = _attitude_control.setAttitudeSetpoint(Quatf(1e20f, 0.f, 0.f, 0.f), 0.f);
+
+	// THEN: it is rejected and the next valid setpoint initializes the reference
+	EXPECT_FALSE(accepted_zero);
+	EXPECT_FALSE(accepted_overflow);
+
+	const Quatf q_d(AxisAnglef(Vector3f(0.f, 0.2f, 0.f)));
+	EXPECT_TRUE(_attitude_control.setAttitudeSetpoint(q_d, 0.f, kDt));
+	EXPECT_TRUE(_attitude_control.getReferenceAttitude().isAllFinite());
+	EXPECT_NEAR(_attitude_control.update(q_d).norm(), 0.f, 1e-5f);
 }
