@@ -151,6 +151,12 @@ bool OpticalFlowSensor::Update(const std::chrono::steady_clock::duration &_now)
 	int quality = _optical_flow->calcFlow(_last_image_gray.data, _last_image_timestamp,
 					      _integration_time_us, flow_x, flow_y);
 
+	// calcFlow() returns -1 for frames folded into the next rate-limited output
+	if (quality < 0) {
+		_new_image_available = false;
+		return true;
+	}
+
 	msg.set_integrated_x(flow_x);
 	msg.set_integrated_y(flow_y);
 	msg.set_integration_time_us(_integration_time_us);
