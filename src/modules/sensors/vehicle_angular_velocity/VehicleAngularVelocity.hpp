@@ -50,6 +50,7 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
+#include <uORB/topics/gyro_filter_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gyro_fft.h>
@@ -84,6 +85,7 @@ private:
 	void DisableDynamicNotchEscRpm();
 	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
+	void PublishFilterStatus(const hrt_abstime &timestamp_sample);
 
 	void ResetFilters(const hrt_abstime &time_now_us);
 	void SensorBiasUpdate(bool force = false);
@@ -166,6 +168,12 @@ private:
 	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
 
 	bool _dynamic_notch_fft_available{false};
+
+	// filter status (for log analysis)
+	static constexpr hrt_abstime FILTER_STATUS_PUBLISH_INTERVAL = 10_ms;
+
+	uORB::Publication<gyro_filter_status_s> _gyro_filter_status_pub{ORB_ID(gyro_filter_status)};
+	hrt_abstime _last_filter_status_publish{0};
 #endif // !CONSTRAINED_FLASH
 
 	// angular acceleration filter

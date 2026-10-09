@@ -946,6 +946,8 @@ bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sa
 		angular_velocity.timestamp = hrt_absolute_time();
 		_vehicle_angular_velocity_pub.publish(angular_velocity);
 
+		PublishFilterStatus(timestamp_sample);
+
 		// shift last publish time forward, but don't let it get further behind than the interval
 		_last_publish = math::constrain(_last_publish + _publish_interval_min_us,
 						timestamp_sample - _publish_interval_min_us, timestamp_sample);
@@ -954,6 +956,70 @@ bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sa
 	}
 
 	return false;
+}
+
+void VehicleAngularVelocity::PublishFilterStatus(const hrt_abstime &timestamp_sample)
+{
+#if !defined(CONSTRAINED_FLASH)
+
+	if (timestamp_sample < _last_filter_status_publish + FILTER_STATUS_PUBLISH_INTERVAL) {
+		return;
+	}
+
+	gyro_filter_status_s status{};
+	status.timestamp_sample = timestamp_sample;
+	status.device_id = _selected_sensor_device_id;
+	status.sample_rate_hz = _filter_sample_rate_hz;
+	status.lowpass_cutoff_hz = _lp_filter_velocity[0].get_cutoff_freq();
+
+	status.static_notch_hz[0] = _notch_filter0_velocity[0].getNotchFreq();
+	status.static_notch_hz[1] = _notch_filter1_velocity[0].getNotchFreq();
+	status.static_notch_bandwidth_hz[0] = _notch_filter0_velocity[0].getBandwidth();
+	status.static_notch_bandwidth_hz[1] = _notch_filter1_velocity[0].getBandwidth();
+
+	// ESC RPM notch filters (X axis, the other axes use the same frequencies)
+	static_assert(gyro_filter_status_s::ESC_RPM_NOTCH_ESCS == MAX_NUM_ESCS, "ESC count mismatch");
+	static_assert(sizeof(status.esc_rpm_notch_hz) / sizeof(status.esc_rpm_notch_hz[0])
+		      == gyro_filter_status_s::ESC_RPM_NOTCH_ESCS * gyro_filter_status_s::ESC_RPM_NOTCH_HARMONICS,
+		      "esc_rpm_notch_hz size mismatch");
+
+	if (_dynamic_notch_filter_esc_rpm) {
+		const int harmonics = math::min(_esc_rpm_harmonics, (int)gyro_filter_status_s::ESC_RPM_NOTCH_HARMONICS);
+		status.esc_rpm_notch_harmonics = harmonics;
+		status.esc_rpm_notch_bandwidth_hz = _param_imu_gyro_dnf_bw.get();
+
+		for (int harmonic = 0; harmonic < harmonics; harmonic++) {
+			for (int esc = 0; esc < MAX_NUM_ESCS; esc++) {
+				if (_esc_available[esc]) {
+					status.esc_rpm_notch_hz[harmonic * gyro_filter_status_s::ESC_RPM_NOTCH_ESCS + esc] =
+						_dynamic_notch_filter_esc_rpm[harmonic][0][esc].getNotchFreq();
+				}
+			}
+		}
+	}
+
+	// FFT notch filters
+	if (_dynamic_notch_fft_available) {
+		float *fft_notch_hz[] {status.fft_notch_x_hz, status.fft_notch_y_hz, status.fft_notch_z_hz};
+
+		for (int axis = 0; axis < 3; axis++) {
+			for (int peak = 0; peak < MAX_NUM_FFT_PEAKS; peak++) {
+				const auto &nf = _dynamic_notch_filter_fft[axis][peak];
+				fft_notch_hz[axis][peak] = nf.getNotchFreq();
+
+				if (nf.getNotchFreq() > 0.f) {
+					status.fft_notch_bandwidth_hz = nf.getBandwidth();
+				}
+			}
+		}
+	}
+
+	status.timestamp = hrt_absolute_time();
+	_gyro_filter_status_pub.publish(status);
+
+	_last_filter_status_publish = timestamp_sample;
+
+#endif // !CONSTRAINED_FLASH
 }
 
 void VehicleAngularVelocity::PrintStatus()
