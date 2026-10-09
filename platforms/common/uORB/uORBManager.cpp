@@ -477,8 +477,8 @@ uint8_t uORB::Manager::orb_get_instance(const void *node_handle)
 	return -1;
 }
 
-/* These are optimized by inlining in NuttX Flat build */
-#if !defined(CONFIG_BUILD_FLAT)
+/* Inline in the header except for the NuttX protected build (see uORBManager.hpp) */
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
 unsigned uORB::Manager::updates_available(const void *node_handle, unsigned last_generation)
 {
 	return is_advertised(node_handle) ? static_cast<const uORB::DeviceNode *>(node_handle)->updates_available(

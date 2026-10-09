@@ -450,8 +450,9 @@ public:
 
 	virtual ~Manager();
 
-#if defined(CONFIG_BUILD_FLAT)
-	/* These are optimized by inlining in NuttX Flat build */
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	/* Inline wherever the node is in the caller's address space; only the NuttX
+	 * protected build has to cross into the kernel (uORBManagerUsr.cpp). */
 	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return is_advertised(node_handle) ? static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation) : 0; }
 
 	static bool is_advertised(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->is_advertised(); }
