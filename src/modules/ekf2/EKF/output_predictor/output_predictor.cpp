@@ -93,6 +93,9 @@ void OutputPredictor::alignOutputFilter(const Quatf &quat_state, const Vector3f 
 		_output_buffer[i].pos += pos_delta;
 	}
 
+	// the attitude correction is held in earth frame, which has just been rotated
+	_delta_angle_corr_earth = q_delta.rotateVector(_delta_angle_corr_earth);
+
 	_output_new = _output_buffer.get_newest();
 }
 
@@ -116,7 +119,7 @@ void OutputPredictor::reset()
 	_delta_angle_sum.setIdentity();
 	_delta_angle_sum_dt = 0.f;
 
-	_delta_angle_corr.setZero();
+	_delta_angle_corr_earth.setZero();
 
 	_vel_err_integ.setZero();
 	_pos_err_integ.setZero();
@@ -142,6 +145,9 @@ void OutputPredictor::resetQuaternion(const Quatf &quat_change)
 	// apply the change in attitude quaternion to our newest quaternion estimate
 	// which was already taken out from the output buffer
 	_output_new.quat_nominal = quat_change * _output_new.quat_nominal;
+
+	// the attitude correction is held in earth frame, which has just been rotated
+	_delta_angle_corr_earth = quat_change.rotateVector(_delta_angle_corr_earth);
 }
 
 void OutputPredictor::resetHorizontalVelocityTo(const Vector2f &delta_horz_vel)
@@ -189,7 +195,10 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 	// correct delta angle and delta velocity for bias offsets
 	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
 	const Vector3f delta_angle_bias_scaled = _gyro_bias * delta_angle_dt;
-	const Vector3f delta_angle_corrected(delta_angle - delta_angle_bias_scaled + _delta_angle_corr);
+	// The attitude correction was computed in the body frame at the delayed fusion time horizon and is held in
+	// earth frame. Express it in the current body frame: the vehicle may have turned a lot since then.
+	const Vector3f delta_angle_corr = _output_new.quat_nominal.rotateVectorInverse(_delta_angle_corr_earth);
+	const Vector3f delta_angle_corrected(delta_angle - delta_angle_bias_scaled + delta_angle_corr);
 
 	const Vector3f delta_vel_bias_scaled = _accel_bias * delta_velocity_dt;
 	const Vector3f delta_velocity_corrected(delta_velocity - delta_vel_bias_scaled);
@@ -307,7 +316,10 @@ void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
 
 	// calculate a corrrection to the delta angle
 	// that will cause the INS to track the EKF quaternions
-	_delta_angle_corr = delta_ang_error * att_gain;
+	// delta_ang_error is in the body frame at the fusion time horizon. Applying it unchanged in the body frame at
+	// the current time horizon turns it by the yaw rate times the delay, which makes this loop unstable
+	// above about 61 degrees (e.g. 7 rad/s at 150 ms delay). Hold it in earth frame instead.
+	_delta_angle_corr_earth = output_delayed.quat_nominal.rotateVector(delta_ang_error * att_gain);
 	_output_tracking_error(0) = delta_ang_error.norm();
 
 	/*
