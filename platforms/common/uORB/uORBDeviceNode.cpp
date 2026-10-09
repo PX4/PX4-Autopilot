@@ -204,10 +204,14 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* Mark at least one data has been published */
 	_data_valid = true;
 
+	// Snapshot under the lock: poll() setup registers and self-checks under it too.
+	const bool notify_pollers = has_poll_waiters();
+
 	ATOMIC_LEAVE;
 
-	/* notify any poll waiters */
-	poll_notify(POLLIN);
+	if (notify_pollers) {
+		poll_notify(POLLIN);
+	}
 
 	return _meta->o_size;
 }
