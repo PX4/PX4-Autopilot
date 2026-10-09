@@ -59,7 +59,7 @@ class UnitTest;
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *>
+class uORB::DeviceNode final : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *>
 {
 public:
 	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path);
