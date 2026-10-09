@@ -142,10 +142,10 @@ bool Ekf::setAltOrigin(const float altitude, const float vpos_var)
 	} else {
 		const float delta_origin_alt = altitude - _local_origin_alt;
 		_local_origin_alt = altitude;
-		updateVerticalPositionResetStatus(-delta_origin_alt);
+		updateVerticalPositionResetStatus(delta_origin_alt);
 
 #if defined(CONFIG_EKF2_TERRAIN)
-		updateTerrainResetStatus(-delta_origin_alt);
+		updateTerrainResetStatus(delta_origin_alt);
 #endif // CONFIG_EKF2_TERRAIN
 	}
 

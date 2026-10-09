@@ -662,7 +662,20 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 	const float baro_bias_prev = _ekf->getBaroBiasEstimatorStatus().bias;
 
 	const float alt_increment = 4478.f;
+	const float pos_z_prev = _ekf->getPosition()(2);
+	const float terrain_prev = _ekf->getTerrainVertPos();
 	_ekf->setEkfGlobalOrigin(lat, lon, alt + alt_increment);
+
+	// The reported reset deltas must match the actual jump of the local estimates,
+	// consumers (e.g. position controller) shift their references with them
+	float delta_z;
+	float delta_terrain;
+	uint8_t reset_counter;
+	_ekf->get_posD_reset(&delta_z, &reset_counter);
+	_ekf->get_hagl_reset(&delta_terrain, &reset_counter);
+	EXPECT_NEAR(delta_z, _ekf->getPosition()(2) - pos_z_prev, 0.01f);
+	EXPECT_NEAR(delta_terrain, _ekf->getTerrainVertPos() - terrain_prev, 0.01f);
+
 	_sensor_simulator.runSeconds(10);
 
 	// The origin moves up by some altitude, the current position (down) is then higher
