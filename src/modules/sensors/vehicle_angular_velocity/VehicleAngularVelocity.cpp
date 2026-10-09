@@ -968,14 +968,6 @@ void VehicleAngularVelocity::PublishFilterStatus(const hrt_abstime &timestamp_sa
 
 	gyro_filter_status_s status{};
 	status.timestamp_sample = timestamp_sample;
-	status.device_id = _selected_sensor_device_id;
-	status.sample_rate_hz = _filter_sample_rate_hz;
-	status.lowpass_cutoff_hz = _lp_filter_velocity[0].get_cutoff_freq();
-
-	status.static_notch_hz[0] = _notch_filter0_velocity[0].getNotchFreq();
-	status.static_notch_hz[1] = _notch_filter1_velocity[0].getNotchFreq();
-	status.static_notch_bandwidth_hz[0] = _notch_filter0_velocity[0].getBandwidth();
-	status.static_notch_bandwidth_hz[1] = _notch_filter1_velocity[0].getBandwidth();
 
 	// ESC RPM notch filters (X axis, the other axes use the same frequencies)
 	static_assert(gyro_filter_status_s::ESC_RPM_NOTCH_ESCS == MAX_NUM_ESCS, "ESC count mismatch");
@@ -985,8 +977,6 @@ void VehicleAngularVelocity::PublishFilterStatus(const hrt_abstime &timestamp_sa
 
 	if (_dynamic_notch_filter_esc_rpm) {
 		const int harmonics = math::min(_esc_rpm_harmonics, (int)gyro_filter_status_s::ESC_RPM_NOTCH_HARMONICS);
-		status.esc_rpm_notch_harmonics = harmonics;
-		status.esc_rpm_notch_bandwidth_hz = _param_imu_gyro_dnf_bw.get();
 
 		for (int harmonic = 0; harmonic < harmonics; harmonic++) {
 			for (int esc = 0; esc < MAX_NUM_ESCS; esc++) {
@@ -1004,12 +994,7 @@ void VehicleAngularVelocity::PublishFilterStatus(const hrt_abstime &timestamp_sa
 
 		for (int axis = 0; axis < 3; axis++) {
 			for (int peak = 0; peak < MAX_NUM_FFT_PEAKS; peak++) {
-				const auto &nf = _dynamic_notch_filter_fft[axis][peak];
-				fft_notch_hz[axis][peak] = nf.getNotchFreq();
-
-				if (nf.getNotchFreq() > 0.f) {
-					status.fft_notch_bandwidth_hz = nf.getBandwidth();
-				}
+				fft_notch_hz[axis][peak] = _dynamic_notch_filter_fft[axis][peak].getNotchFreq();
 			}
 		}
 	}
