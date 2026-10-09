@@ -96,6 +96,7 @@ private:
 		hrt_abstime delay_us{kDefaultDelay};
 		float baseline_length{0.f};  // of the antenna baseline the heading is measured along (m)
 		float heading_offset{0.f};   // yaw of the baseline in the body frame (rad)
+		bool heading_enabled{false}; // SENS_GNSSn_HDG isn't Disabled
 	};
 
 	// SENS_GNSSn_* slot for a receiver, by device_id or (when no IDs are configured) by sensor_gnss instance
@@ -159,6 +160,7 @@ private:
 	} _heading_source{};
 
 	bool _heading_unconfigured_reported{false};
+	bool _heading_no_baseline_reported{false};
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
