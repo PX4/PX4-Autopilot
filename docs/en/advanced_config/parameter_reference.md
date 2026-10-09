@@ -58569,7 +58569,42 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Simulation
 
-<div class="param-group" style="--param-count: 8">
+<div class="param-group" style="--param-count: 9">
+
+<div class="param">
+
+### SIM_GZ_EC_SIGNED (`INT32`) {#SIM_GZ_EC_SIGNED}
+
+Signed command for non-motor ESC channels.
+
+For motors, use CA_R_REV; bits set here for motor channels are ignored. Select simulated ESC channels assigned a non-motor function (e.g. Peripheral via Actuator Set or Servo) to send values from -MAX (full reverse) to +MAX (full forward), with 0 as neutral. For signed channels, keep DISARMED at 0, set MIN to 1, and use FAILSAFE 0 for neutral failsafe behavior. Failsafe values use the same MIN/MAX-to-signed mapping as normal outputs. Mirrors UAVCAN_EC_SIGNED.
+
+
+**Bitmask:**
+
+- `0`: ESC1
+- `1`: ESC2
+- `2`: ESC3
+- `3`: ESC4
+- `4`: ESC5
+- `5`: ESC6
+- `6`: ESC7
+- `7`: ESC8
+- `8`: ESC9
+- `9`: ESC10
+- `10`: ESC11
+- `11`: ESC12
+- `12`: ESC13
+- `13`: ESC14
+- `14`: ESC15
+- `15`: ESC16
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 65535 |  | 0 |  | &nbsp;
+
+</div>
 
 <div class="param">
 
@@ -63130,7 +63165,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## UAVCAN
 
-<div class="param-group" style="--param-count: 49">
+<div class="param-group" style="--param-count: 50">
 
 <div class="param">
 
@@ -63401,6 +63436,37 @@ Maximum fuel capacity of fuel tank 3.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 0.0 | 100000.0 | 0.1 | 15.0 | liters | &nbsp;
+
+</div>
+
+<div class="param">
+
+### UAVCAN_EC_SIGNED (`INT32`) {#UAVCAN_EC_SIGNED}
+
+Signed command for non-motor ESC channels.
+
+For motors, use CA_R_REV; bits set here for motor channels are ignored. Select ESC channels assigned a non-motor function (e.g. Peripheral via Actuator Set or Servo) to send signed RawCommand values from -MAX (full reverse) to +MAX (full forward), with 0 as neutral. Keep MIN at its default of 1 so full reverse remains distinct from disarmed and failsafe values of 0. Failsafe values use the same MIN/MAX-to-signed mapping as normal outputs.
+
+
+**Bitmask:**
+
+- `0`: ESC1
+- `1`: ESC2
+- `2`: ESC3
+- `3`: ESC4
+- `4`: ESC5
+- `5`: ESC6
+- `6`: ESC7
+- `7`: ESC8
+- `8`: ESC9
+- `9`: ESC10
+- `10`: ESC11
+- `11`: ESC12
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 4095 |  | 0 |  | &nbsp;
 
 </div>
 
