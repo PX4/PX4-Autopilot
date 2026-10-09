@@ -170,6 +170,17 @@ Navigator::Navigator() :
 		}
 	}
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	// Node budget is fixed until reboot, as the planner buffers are allocated once here.
+	int32_t gf_avoid_nodes = 0;
+	param_get(param_find("GF_AVOID_NODES"), &gf_avoid_nodes);
+
+	if (!_geofence_avoidance_planner.init(gf_avoid_nodes)) {
+		PX4_ERR("geofence avoidance alloc failed (%" PRId32 " nodes), disabled", gf_avoid_nodes);
+	}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 
 	_handle_mpc_jerk_auto = param_find("MPC_JERK_AUTO");
@@ -1134,8 +1145,23 @@ void Navigator::run()
 			// Add granularity with more status values / user messages if needed.
 
 			switch (planner_status) {
+			case PlannerStatus::BudgetExceeded:
+				// Fence is valid, but larger than the node budget configured with GF_AVOID_NODES
+				mavlink_log_warning(&_mavlink_log_pub, "Geofence too large for Return avoidance (needs %d of %d nodes), Return will fly directly\t",
+						    _geofence_avoidance_planner.requiredNodes(), _geofence_avoidance_planner.maxNodes());
+				/* EVENT
+				 * @description
+				 * The geofence needs more graph nodes than configured with <param>GF_AVOID_NODES</param>.
+				 * Return will fly directly to its destination, ignoring the geofence.
+				 * Increase <param>GF_AVOID_NODES</param> to at least the required count (reboot required),
+				 * or set it to 0 to disable geofence avoidance in Return.
+				 */
+				events::send<uint16_t, uint16_t>(events::ID("rtl_avoidance_budget_exceeded"), {events::Log::Warning, events::LogInternal::Info},
+								 "Geofence too large for Return avoidance (needs {1} of {2} nodes), Return will fly directly",
+								 (uint16_t)_geofence_avoidance_planner.requiredNodes(), (uint16_t)_geofence_avoidance_planner.maxNodes());
+				break;
+
 			// Failure in building fence graph / path. Collapse to one generic user message. Add granularity if needed.
-			case PlannerStatus::BudgetExceeded: // TODO make this more specific now that it is more likely
 			case PlannerStatus::OutOfRange:
 			case PlannerStatus::Degenerate:
 			case PlannerStatus::DijkstraFailed:

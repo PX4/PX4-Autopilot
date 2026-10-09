@@ -148,7 +148,8 @@ public:
 	}
 
 	const T &getState() const { return _filter_state; }
-	float getCutoffFreq() const { return 1.f / (M_TWOPI_F * _time_constant); }
+	// a time constant of 0 means no filtering, i.e. an infinite cutoff frequency
+	float getCutoffFreq() const { return (_time_constant > FLT_EPSILON) ? 1.f / (M_TWOPI_F * _time_constant) : INFINITY; }
 
 	// delete mixing seconds with microseconds explicitly -> better compiler error
 	AlphaFilter(uint64_t sample_interval_us, float time_constant_s) = delete;

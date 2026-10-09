@@ -257,12 +257,13 @@ set(OPTIONAL_BOARD_EXTRAS)
 file(GLOB OPTIONAL_BOARD_EXTRAS ${PX4_BOARD_DIR}/extras/*)
 
 # bootloader (optional)
-#  - if systemcmds/bl_update included and board bootloader available then generate rc.board_bootloader_upgrade and copy bootloader binary
+#  - if systemcmds/bl_update included and board bootloader available then copy bootloader binary
+#  - and generate rc.board_bootloader_upgrade for px4fmu_common, the only rcS that runs it
 #  - otherwise remove bootloader binary from extras in final ROMFS
 foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 	file(RELATIVE_PATH extra_file_base_name ${PX4_BOARD_DIR}/extras/ ${board_extra_file})
 	if(${extra_file_base_name} MATCHES "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
-		if(CONFIG_SYSTEMCMDS_BL_UPDATE)
+		if(CONFIG_SYSTEMCMDS_BL_UPDATE AND ("${config_romfs_root}" STREQUAL "px4fmu_common"))
 			# generate rc.board_bootloader_upgrade
 			set(BOARD_FIRMWARE_BIN "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
 			message(STATUS "ROMFS:  Adding platforms/nuttx/init/rc.board_bootloader_upgrade -> /etc/init.d/rc.board_bootloader_upgrade")
@@ -288,7 +289,7 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			list(APPEND extras_dependencies
 				rc.board_bootloader_upgrade.stamp
 			)
-		else()
+		elseif(NOT CONFIG_SYSTEMCMDS_BL_UPDATE)
 			# remove bootloader from extras
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()

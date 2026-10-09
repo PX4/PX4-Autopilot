@@ -25744,7 +25744,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Circuit Breaker
 
-<div class="param-group" style="--param-count: 7">
+<div class="param-group" style="--param-count: 6">
 
 <div class="param">
 
@@ -25779,22 +25779,6 @@ and takeoff failure detection safety logic.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 0 | 121212 |  | 121212 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### CBRK_IO_SAFETY (`INT32`) {#CBRK_IO_SAFETY}
-
-Circuit breaker for IO safety.
-
-Setting this parameter to 22027 will disable IO safety.
-WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 22027 |  | 22027 |  | &nbsp;
 
 </div>
 
@@ -25874,7 +25858,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Commander
 
-<div class="param-group" style="--param-count: 74">
+<div class="param-group" style="--param-count: 75">
 
 <div class="param">
 
@@ -26753,10 +26737,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### COM_FORCE_SAFETY (`INT32`) {#COM_FORCE_SAFETY}
 
-Enable force safety.
-
-Force safety when the vehicle disarms
-
+Re-enable safety when the vehicle disarms.
 
 **Values:**
 
@@ -27232,11 +27213,15 @@ Condition to enter prearmed mode.
 Condition to enter the prearmed state, an intermediate state between disarmed and armed
 in which non-throttling actuators are active.
 
+0: Never prearmed.
+1: Prearmed when safety is off (COM_SAFETY_MODE)
+2: Always prearmed.
+
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Safety button
+- `1`: When safety off
 - `2`: Always
 
 
@@ -27351,6 +27336,34 @@ Ensure the value is not set lower than the update interval of the RC or Joystick
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 35 | 0.1 | 0.5 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### COM_SAFETY_MODE (`INT32`) {#COM_SAFETY_MODE}
+
+Condition to turn safety off.
+
+Vehicle arming is prevented for as long as safety is on.
+
+0: Always off.
+1: Safety can be turned off either by pressing a physical safety switch, or by sending a MAV_CMD_DO_SET_SAFETY_SWITCH_STATE command.
+2: Safety can only be turned off by pressing a physical safety switch. MAV_CMD_DO_SET_SAFETY_SWITCH_STATE commands are rejected.
+3: Safety can only be turned off by sending a MAV_CMD_DO_SET_SAFETY_SWITCH_STATE command. Any physical switch is ignored.
+
+
+**Values:**
+
+- `0`: Always off
+- `1`: Safety switch (physical or virtual via MAVLink)
+- `2`: Physical safety switch only
+- `3`: MAVLink only
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
 
 </div>
 
@@ -34482,7 +34495,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Geofence
 
-<div class="param-group" style="--param-count: 4">
+<div class="param-group" style="--param-count: 5">
 
 <div class="param">
 
@@ -34507,6 +34520,27 @@ which will kill the vehicle on violation of the fence.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 5 |  | 2 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GF_AVOID_NODES (`INT32`) {#GF_AVOID_NODES}
+
+Max graph nodes for geofence avoidance in Return.
+
+Maximum number of geofence vertices the Return geofence avoidance planner can use.
+Circles use 8 vertices each, polygons their vertex count plus extra vertices for sharp corners.
+If the fence needs more vertices, Return flies directly and ignores the geofence.
+Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number
+(about 2 * N^2 bytes, e.g. 20 kB for 100 nodes).
+The maximum of 200 is sufficient for any fence that can be stored.
+Set to 0 to disable geofence avoidance in Return.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 200 |  | 100 |  | &nbsp;
 
 </div>
 
@@ -59448,7 +59482,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Bootloader update.
 
-If enabled, update the bootloader on the next boot.
+If enabled, update the bootloader on the next boot. DroneCAN nodes
+update within about 2 seconds of it being set, without rebooting.
 
 WARNING: do not cut the power during an update process, otherwise you will
 have to recover using some alternative method (e.g. JTAG).
