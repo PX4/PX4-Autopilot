@@ -155,6 +155,35 @@ else()
 	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.bin)
 endif()
 
+if(CONFIG_BOARD_MCUBOOT_IMGTOOL_ARGS)
+	# Build ${PX4_CONFIG}.signed.bin next to the plain .bin: the image with
+	# the MCUboot header and TLV trailer the on-target bootloader accepts.
+	execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import imgtool"
+		RESULT_VARIABLE _imgtool_missing OUTPUT_QUIET ERROR_QUIET)
+	if(_imgtool_missing)
+		message(WARNING "imgtool is not installed, ${PX4_CONFIG}.signed.bin will not be built "
+			"(pip3 install imgtool, or re-run Tools/setup/ubuntu.sh)")
+	else()
+		set(_mcuboot_bin ${PX4_BINARY_DIR}/${PX4_CONFIG}.signed.bin)
+		separate_arguments(_imgtool_args NATIVE_COMMAND "${CONFIG_BOARD_MCUBOOT_IMGTOOL_ARGS}")
+		# The signing key stays out of the board file: BOARD_MCUBOOT_KEY in the
+		# environment at configure time adds it, relative to the repo root.
+		if(DEFINED ENV{BOARD_MCUBOOT_KEY})
+			list(APPEND _imgtool_args --key $ENV{BOARD_MCUBOOT_KEY})
+		endif()
+		add_custom_command(OUTPUT ${_mcuboot_bin}
+			COMMAND ${PYTHON_EXECUTABLE} -m imgtool.main sign
+				--version ${PX4_VERSION_MAJOR}.${PX4_VERSION_MINOR}.${PX4_VERSION_PATCH}
+				${_imgtool_args}
+				${PX4_BINARY_DIR}/${PX4_CONFIG}.bin ${_mcuboot_bin}
+			DEPENDS ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
+			COMMENT "Creating ${PX4_CONFIG}.signed.bin for MCUboot"
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+		)
+		add_custom_target(px4_mcuboot_image ALL DEPENDS ${_mcuboot_bin})
+	endif()
+endif()
+
 if (NOT CONFIG_BUILD_FLAT)
 
 	target_link_libraries(nuttx_karch
@@ -432,7 +461,7 @@ if (CONFIG_INTELHEX_BINARY)
 endif()
 
 # create .px4 with parameter and airframe metadata
-if (TARGET parameters_xml AND TARGET airframes_xml)
+if (TARGET parameters_xml AND TARGET airframes_xml AND EXISTS ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype)
 
 	string(REPLACE ".elf" ".px4" fw_package ${PX4_BINARY_DIR}/${FW_NAME})
 
