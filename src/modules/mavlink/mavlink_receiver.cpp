@@ -1861,6 +1861,16 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		const bool thrust = !(type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE);
 		const bool has_thrust = thrust || thrust_body;
 
+		const matrix::Quatf q{attitude_target.q};
+		const float q_norm = q.norm();
+
+		if (attitude && (!PX4_ISFINITE(q_norm) || (q_norm < 1e-3f))) {
+			// Drop the whole message, including the offboard heartbeat, so the offboard loss failsafe
+			// still triggers if a companion only sends unusable attitudes.
+			// Keep in sync with the check in AttitudeControl::setAttitudeSetpoint().
+			return;
+		}
+
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
 
@@ -1875,7 +1885,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		if (attitude && has_thrust) {
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 
-			const matrix::Quatf q{attitude_target.q};
 			q.copyTo(attitude_setpoint.q_d);
 
 			// TODO: review use case

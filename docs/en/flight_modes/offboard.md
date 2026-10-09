@@ -310,6 +310,7 @@ The following MAVLink messages and their particular fields and field values are 
   - The following input combinations are supported:
     - Attitude/orientation (`SET_ATTITUDE_TARGET.q`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
     - Body rate (`SET_ATTITUDE_TARGET` `.body_roll_rate` ,`.body_pitch_rate`, `.body_yaw_rate`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
+  - A message with attitude enabled and a zero or non-finite `q` (norm below 0.001) is ignored as a whole and does not count as the offboard signal.
 
 ### Fixed-wing
 
@@ -362,6 +363,7 @@ The following MAVLink messages and their particular fields and field values are 
   - The following input combinations are supported:
     - Attitude/orientation (`SET_ATTITUDE_TARGET.q`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
     - Body rate (`SET_ATTITUDE_TARGET` `.body_roll_rate` ,`.body_pitch_rate`, `.body_yaw_rate`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
+  - A message with attitude enabled and a zero or non-finite `q` (norm below 0.001) is ignored as a whole and does not count as the offboard signal.
 
 ### Rover
 
