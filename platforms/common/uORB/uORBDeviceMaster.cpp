@@ -454,8 +454,10 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance)
 {
+	const ORB_ID id = static_cast<ORB_ID>(meta->o_id);
+
 	for (uORB::DeviceNode *node : _node_list) {
-		if ((strcmp(node->get_name(), meta->o_name) == 0) && (node->get_instance() == instance)) {
+		if ((node->id() == id) && (node->get_instance() == instance)) {
 			return node;
 		}
 	}
