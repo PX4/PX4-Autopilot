@@ -182,6 +182,5 @@ if(CONFIG_MODULES_SPACECRAFT)
 	px4_add_romfs_files(
 		# [70000, 70999] Spacecraft
 		70000_atmos
-		70001_atmos_dual
 	)
 endif()
