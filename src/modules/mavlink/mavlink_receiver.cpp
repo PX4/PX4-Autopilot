@@ -1867,6 +1867,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		if (attitude && (!PX4_ISFINITE(q_norm) || (q_norm < 1e-3f))) {
 			// Drop the whole message, including the offboard heartbeat, so the offboard loss failsafe
 			// still triggers if a companion only sends unusable attitudes.
+			// Keep in sync with the check in AttitudeControl::setAttitudeSetpoint().
 			return;
 		}
 

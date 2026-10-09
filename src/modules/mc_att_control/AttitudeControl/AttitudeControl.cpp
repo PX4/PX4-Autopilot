@@ -67,6 +67,8 @@ bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 	// The reference model integrates from its previous state, so a single invalid setpoint would make
 	// it NaN until reboot. Keep tracking the last valid reference instead.
 	// A zero, non-finite or overflowing quaternion has no attitude: normalizing it gives NaN or zero.
+	// Keep in sync with handle_message_set_attitude_target() in mavlink_receiver.cpp, which drops
+	// these messages so they do not keep offboard alive.
 	const float qd_norm = qd.norm();
 
 	if (!PX4_ISFINITE(qd_norm) || (qd_norm < 1e-3f)) {

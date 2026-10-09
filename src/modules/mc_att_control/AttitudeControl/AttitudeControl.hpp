@@ -84,7 +84,7 @@ public:
 	 * @param qd desired vehicle attitude setpoint
 	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
 	 * @param dt [s] time since previous setpoint
-	 * @return false if qd is zero or its norm is not finite, in which case it is ignored
+	 * @return false if the norm of qd is below 1e-3 or not finite, in which case it is ignored
 	 */
 	bool setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint, const float dt = -1.f);
 
