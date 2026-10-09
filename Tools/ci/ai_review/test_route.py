@@ -1,6 +1,6 @@
 """Routing is the confidence policy: these tests pin which findings may
-appear inline, which go to the collapsed summary, and when a one-click
-suggestion block is offered."""
+appear inline, which are listed in the review body, which stay in the
+report, and when a one-click suggestion block is offered."""
 
 import unittest
 from typing import Any, Dict, List
@@ -25,7 +25,8 @@ HEAD = {'src/a.cpp': ['void f() {', '  x = 2;', '  y = 3;', '}', '']}
 def make(**over: Any) -> Finding:
     data: Dict[str, Any] = dict(
         path='src/a.cpp', line=2, start_line=None, severity='concern',
-        title='t', body='b', trigger='when', suggestion='Use 1.',
+        kind='code', title='t', comment='c', body='b', trigger='when',
+        suggestion='Use 1.',
         replacement=None, uncertainty='', rule=None)
     data.update(over)
     return Finding(**data)
@@ -54,13 +55,41 @@ class TestRoute(unittest.TestCase):
         self.assertEqual((len(r.inline), len(r.collapsed)), (0, 0))
         self.assertEqual(len(r.dropped), 1)
 
-    def test_medium_confidence_and_nits_are_collapsed(self) -> None:
-        r = self.run_route([(make(), keep('medium')),
-                            (make(path='src/b.cpp', severity='nit'),
-                             keep())])
+    def test_medium_confidence_is_collapsed(self) -> None:
+        r = self.run_route([(make(), keep('medium'))])
         self.assertEqual(len(r.inline), 0)
-        self.assertEqual(len(r.collapsed), 2)
+        self.assertEqual(len(r.collapsed), 1)
         self.assertEqual(r.verdict, route.VERDICT_CLEAN)
+
+    def test_nits_are_never_posted(self) -> None:
+        r = self.run_route([(make(severity='nit'), keep()),
+                            (make(path=None, line=None, severity='nit'),
+                             keep()),
+                            (make(kind='process', severity='nit'), keep())])
+        self.assertEqual((len(r.inline), len(r.before_merge),
+                          len(r.collapsed), len(r.process)), (0, 0, 0, 0))
+        self.assertEqual([p.note for p in r.dropped], ['nit'] * 3)
+
+    def test_process_findings_never_set_the_verdict(self) -> None:
+        f = make(path=None, line=None, kind='process', severity='blocker')
+        r = self.run_route([(f, keep())])
+        self.assertEqual(len(r.process), 1)
+        self.assertEqual(len(r.before_merge), 0)
+        self.assertEqual(r.verdict, route.VERDICT_CLEAN)
+        self.assertEqual(r.reason, '')
+
+    def test_process_low_confidence_and_cap(self) -> None:
+        f = make(path=None, line=None, kind='process')
+        pairs = [(f, keep('low'))] + [(f, keep())] * (route.MAX_PROCESS + 1)
+        r = self.run_route(pairs)
+        self.assertEqual(len(r.process), route.MAX_PROCESS)
+        self.assertEqual(len(r.dropped), 2)
+
+    def test_reason_is_the_most_severe_posted_title(self) -> None:
+        r = self.run_route([(make(title='inline concern'), keep()),
+                            (make(path=None, line=None, severity='blocker',
+                                  title='pr blocker'), keep())])
+        self.assertEqual(r.reason, 'pr blocker')
 
     def test_verify_only_suggestion_is_not_inline(self) -> None:
         r = self.run_route([(make(suggestion='Please verify this.'),
