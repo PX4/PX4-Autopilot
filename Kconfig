@@ -168,6 +168,21 @@ config BOARD_SECUREBOOT_KEY
         The environment variable BOARD_SECUREBOOT_KEY overrides this
         value at build time.
 
+config BOARD_MCUBOOT_IMGTOOL_ARGS
+    string "MCUboot imgtool sign arguments"
+    help
+        When set, imgtool sign runs over the built .bin and writes
+        <config>.signed.bin next to it, the image with the MCUboot
+        header and TLV trailer the on-target bootloader expects. The
+        value is passed verbatim to imgtool sign: header size, slot
+        size, alignment and padding. It must match the MCUboot build
+        on the target and the board linker script. A signing key is
+        not part of this value; set BOARD_MCUBOOT_KEY in the
+        environment when configuring the build to pass one (relative
+        paths resolve from the repo root). Requires the imgtool Python
+        package (Tools/setup/requirements.txt); without it CMake warns
+        and skips the signed image.
+
 config BOARD_PROTECTED
     bool "Memory protection"
     help
