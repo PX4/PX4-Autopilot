@@ -67,13 +67,14 @@ bool SubscriptionIntervalBase<ATOMIC>::copy(void *dst)
 		const hrt_abstime now = hrt_absolute_time();
 		const uint32_t interval_us = _interval_us.load();
 
-		// make sure we don't set a timestamp before the timer started counting (now - interval_us would wrap because it's unsigned)
-		if (now > interval_us) {
-			// shift last update time forward, but don't let it get further behind than the interval
-			_last_update.store(math::constrain(_last_update.load() + interval_us, now - interval_us, now));
+		// Without an interval the constrain() below collapses to `now`, so skip the
+		// _last_update read. now - interval_us must not wrap either (unsigned).
+		if ((interval_us == 0) || (now <= interval_us)) {
+			_last_update.store(now);
 
 		} else {
-			_last_update.store(now);
+			// shift last update time forward, but don't let it get further behind than the interval
+			_last_update.store(math::constrain(_last_update.load() + interval_us, now - interval_us, now));
 		}
 
 		return true;
