@@ -18,6 +18,7 @@ float32 gyro_raw_rate_hz        # full raw sensor sample rate (Hz)
 float32 accel_vibration_metric  # high frequency vibration level in the accelerometer data (m/s/s)
 float32 gyro_vibration_metric   # high frequency vibration level in the gyro data (rad/s)
 float32 delta_angle_coning_metric # average IMU delta angle coning correction (rad^2)
+float32 accel_impact_metric     # peak norm of the specific force averaged over a short sliding window (~20 ms) since last publication, used for impact detection (m/s^2)
 
 float32[3] mean_accel           # average accelerometer readings since last publication
 float32[3] mean_gyro            # average gyroscope readings since last publication

@@ -114,3 +114,34 @@ parameters:
       max: 5.0
       unit: s
       decimal: 2
+    FD_IMPACT_THR:
+      description:
+        short: Impact detection threshold
+        long: |-
+          Impact detection based on the accelerometer of the selected IMU: the specific force is averaged
+          over a short window (about 20 ms) and compared against this threshold while armed and not landed.
+
+          An impact raises a warning (fd_impact). If the vehicle then does not move for @FD_IMPACT_T seconds
+          without being detected as landed, a crash warning is raised (fd_crash). Both flags are latched until disarm.
+          No automatic action is taken.
+
+          Setting this parameter to 0 disables the check.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 300.0
+      unit: m/s^2
+      decimal: 0
+      increment: 5
+    FD_IMPACT_T:
+      description:
+        short: Crash detection time after an impact
+        long: |-
+          Seconds without vertical, horizontal or rotational movement (as checked by the land detector)
+          after an impact before a crash is declared, if the vehicle is not detected as landed.
+      type: float
+      default: 2.0
+      min: 0.0
+      max: 10.0
+      unit: s
+      decimal: 1
