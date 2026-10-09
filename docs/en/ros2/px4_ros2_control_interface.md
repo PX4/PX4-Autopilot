@@ -1,6 +1,6 @@
 # PX4 ROS 2 Control Interface
 
-<Badge type="tip" text="PX4 v1.15" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.15" />
 
 :::warning Experimental
 At the time of writing, parts of the PX4 ROS 2 Control Interface are experimental, and hence subject to change:
