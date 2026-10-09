@@ -91,6 +91,7 @@ private:
 		std::atomic<bool> removed{true};
 
 		TimedWait *next{nullptr}; ///< linked list
+		TimedWait *signal_next{nullptr}; ///< temporary list used by set_absolute_time() to signal outside _timed_waits_mutex
 	};
 
 	LockstepComponents _components;
@@ -98,7 +99,8 @@ private:
 	std::atomic<uint64_t> _time_us{0};
 
 	TimedWait *_timed_waits{nullptr}; ///< head of linked list
-	std::mutex _timed_waits_mutex;   ///< protects _timed_waits linked list
-	std::mutex _broadcast_mutex;     ///< protects the broadcast phase in set_absolute_time()
+	std::mutex _timed_waits_mutex;
+	std::mutex
+	_signaling_mutex; ///< held by set_absolute_time() across its signal phase; waiters block on it during the dance to prevent use-after-free of their stack-local passed_lock/passed_cond
 	std::atomic<bool> _setting_time{false}; ///< true if set_absolute_time() is currently being executed
 };
