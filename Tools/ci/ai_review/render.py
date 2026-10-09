@@ -28,18 +28,12 @@ README_URL = ('https://github.com/PX4/PX4-Autopilot/blob/main/'
 
 
 def _label(severity: str) -> str:
-    return severity.capitalize()
+    return 'Blocker' if severity == 'blocker' else 'Must-fix'
 
 
 def comment_body(p: Placed) -> str:
     f = p.finding
-    parts = [f'**{_label(f.severity)}: {f.title}**', '', f.body, '',
-             f'**When it happens:** {f.trigger}',
-             f'**Suggested fix:** {f.suggestion}']
-    if f.uncertainty.strip():
-        parts.append(f'**Not certain:** {f.uncertainty}')
-    if f.rule:
-        parts.append(f'**Rule:** {f.rule}')
+    parts = [f'**{_label(f.severity)}:** {f.comment}']
     if p.replacement is not None:
         parts += ['', '```suggestion', p.replacement, '```']
     parts += ['', FINDING_TAG]
@@ -59,32 +53,12 @@ def comments(routed: Routed) -> List[Dict[str, Any]]:
     return out
 
 
-def _collapsed_item(p: Placed) -> str:
+def _item(p: Placed, note: bool = False) -> str:
     f = p.finding
-    where = '' if f.pr_level else f' `{f.where}`'
-    lines = [f'- **{_label(f.severity)}** ({p.verdict.confidence} '
-             f'confidence){where}: {f.title}',
-             f'  {f.body}',
-             f'  *Suggested fix:* {f.suggestion}']
-    if f.uncertainty.strip():
-        lines.append(f'  *Not certain:* {f.uncertainty}')
-    return '\n'.join(lines)
-
-
-def _before_merge_item(p: Placed) -> str:
-    f = p.finding
-    lines = [f'- **{_label(f.severity)}: {f.title}**', f'  {f.body}',
-             f'  *What to do:* {f.suggestion}']
-    if f.uncertainty.strip():
-        lines.append(f'  *Not certain:* {f.uncertainty}')
-    return '\n'.join(lines)
-
-
-def checklist_line(checklist: Dict[str, ChecklistEntry]) -> str:
-    marks = {'ok': '✅', 'gap': '⚠️', 'not_applicable': '➖'}
-    cells = [f'{marks[checklist[k].status]} {CHECKLIST_LABELS[k]}'
-             for k in CHECKLIST_ITEMS if k in checklist]
-    return ' · '.join(cells)
+    where = '' if f.pr_level else f'`{f.where}`: '
+    blocker = '**Blocker:** ' if f.severity == 'blocker' else ''
+    why = f' ({p.note})' if note and p.note else ''
+    return f'- {where}{blocker}{f.comment}{why}'
 
 
 def cost_line(usage: Optional[Dict[str, Any]], model_name: str) -> str:
@@ -103,32 +77,36 @@ def cost_line(usage: Optional[Dict[str, Any]], model_name: str) -> str:
     return ' · '.join(parts)
 
 
-def summary(routed: Routed, model_summary: str, model_name: str,
-            checklist: Optional[Dict[str, ChecklistEntry]] = None,
-            usage: Optional[Dict[str, Any]] = None) -> str:
-    parts = [f'**Automated review** ({model_name}): {routed.verdict}.']
-    if model_summary.strip():
-        parts += ['', model_summary.strip()]
-    if checklist:
-        parts += ['', checklist_line(checklist)]
-    if routed.before_merge:
-        parts += ['', '**Before merge**', '']
-        parts += [_before_merge_item(p) for p in routed.before_merge]
-    if routed.collapsed:
-        items = '\n'.join(_collapsed_item(p) for p in routed.collapsed)
-        parts += ['', '<details>',
-                  f'<summary>{len(routed.collapsed)} more finding(s) '
-                  'worth checking (lower confidence or outside the '
-                  'diff)</summary>', '', items, '', '</details>']
+def summary(routed: Routed, model_name: str,
+            usage: Optional[Dict[str, Any]] = None,
+            report_url: str = '') -> str:
+    """The review body: verdict, then one line per posted finding.
+
+    The model's summary, the checklist, nits and each finding's evidence
+    are left to the job-summary report, linked from the footer.
+    """
+    head = f'**AI review: {routed.verdict}.**'
+    if routed.reason:
+        head += f' {routed.reason}'
+    parts = [head]
+    for title, items, note in (('Must-fix', routed.before_merge, False),
+                               ('Worth checking', routed.collapsed, True),
+                               ('Process', routed.process, False)):
+        if items:
+            parts += ['', f'**{title}**']
+            parts += [_item(p, note) for p in items]
+    links = [f'[How this review works]({README_URL})']
+    if report_url:
+        links.append(f'[Full report]({report_url})')
     cost = cost_line(usage, model_name)
-    parts += ['', f'<sub>Written by an AI model and checked by a second, '
-              f'independent pass. It can be wrong; maintainers decide. '
-              f'[How this review works]({README_URL})'
-              + (f'<br>{cost}' if cost else '') + '</sub>']
+    parts += ['', f'<sub>{model_name}, checked by a second, independent '
+              f'pass. It can be wrong; maintainers decide. '
+              + ' · '.join(links) + (f'<br>{cost}' if cost else '')
+              + '</sub>']
     text = '\n'.join(parts)
     if len(text.encode('utf-8')) > SUMMARY_LIMIT:
         text = text.encode('utf-8')[:SUMMARY_LIMIT - 200].decode(
-            'utf-8', 'ignore') + '\n\n(truncated)\n\n</details>'
+            'utf-8', 'ignore') + '\n\n(truncated)'
     return text
 
 
@@ -145,18 +123,16 @@ def find_leaks(texts: Iterable[str], secrets: Iterable[str]) -> List[str]:
 
 
 def write_artifact(out_dir: Path, pr_number: int, commit_sha: str,
-                   routed: Routed, model_summary: str, model_name: str,
-                   checklist: Optional[Dict[str, ChecklistEntry]] = None,
-                   usage: Optional[Dict[str, Any]] = None
-                   ) -> Dict[str, Any]:
+                   routed: Routed, model_name: str,
+                   usage: Optional[Dict[str, Any]] = None,
+                   report_url: str = '') -> Dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
         'pr_number': pr_number,
         'marker': MARKER,
         'event': 'COMMENT',
         'commit_sha': commit_sha,
-        'summary': summary(routed, model_summary, model_name, checklist,
-                           usage),
+        'summary': summary(routed, model_name, usage, report_url),
         # a review with only a summary is still a review; and each run
         # replaces the previous one instead of piling up
         'post_without_comments': True,
@@ -219,15 +195,35 @@ def refusal_report(e: Any, artifact: Dict[str, Any],
         '### Review body', '', artifact['manifest']['summary'], '']) + '\n'
 
 
+def _details(placement: str, p: Placed) -> List[str]:
+    f = p.finding
+    lines = [f'#### {placement}: {f.severity}, {f.kind}, `{f.where}`: '
+             f'{f.title}', '',
+             f'- **Posted text:** {f.comment}',
+             f'- **Evidence:** {f.body}',
+             f'- **When it happens:** {f.trigger}',
+             f'- **Suggested fix:** {f.suggestion}']
+    if f.uncertainty.strip():
+        lines.append(f'- **Not certain:** {f.uncertainty}')
+    if f.rule:
+        lines.append(f'- **Rule:** {f.rule}')
+    lines.append(f'- **Validator** ({p.verdict.confidence} confidence): '
+                 f'{p.verdict.reason}')
+    if p.note:
+        lines.append(f'- **Why {placement.lower()}:** {p.note}')
+    return lines + ['']
+
+
 def report_markdown(routed: Routed, artifact: Dict[str, Any],
-                    usage: Dict[str, Any],
+                    usage: Dict[str, Any], model_summary: str = '',
                     checklist: Optional[Dict[str, ChecklistEntry]] = None
                     ) -> str:
-    """Job-summary report: what would be posted, plus what was dropped."""
+    """Job-summary report: what was posted, then every finding in full."""
     lines = ['## AI review (pilot report)', '',
              f'Verdict: **{routed.verdict}**. Inline: {len(routed.inline)},'
-             f' before merge: {len(routed.before_merge)}, collapsed: '
-             f'{len(routed.collapsed)}, dropped: {len(routed.dropped)}.',
+             f' must-fix: {len(routed.before_merge)}, worth checking: '
+             f'{len(routed.collapsed)}, process: {len(routed.process)}, '
+             f'not posted: {len(routed.dropped)}.',
              '',
              f'Cost estimate: ${usage.get("cost_usd", 0):.2f} over '
              f'{usage.get("calls", 0)} model call(s). Findings rejected '
@@ -240,16 +236,22 @@ def report_markdown(routed: Routed, artifact: Dict[str, Any],
              '### Inline comments', '']
     for c in artifact['comments']:
         lines += [f'#### `{c["path"]}:{c["line"]}`', '', c['body'], '']
+    if model_summary.strip():
+        lines += ['### Model summary', '', model_summary.strip(), '']
     if checklist:
-        lines += ['### Checklist notes', '']
+        lines += ['### Checklist', '']
         for k in CHECKLIST_ITEMS:
             if k in checklist:
                 e = checklist[k]
                 lines.append(f'- **{CHECKLIST_LABELS[k]}** ({e.status}): '
                              f'{e.note}')
         lines.append('')
-    if routed.dropped:
-        lines += ['### Dropped', '']
-        for f, why in routed.dropped:
-            lines.append(f'- `{f.where}` {f.title}: {why}')
+    lines += ['### All findings', '']
+    for placement, items in (('Inline', routed.inline),
+                             ('Must-fix', routed.before_merge),
+                             ('Worth checking', routed.collapsed),
+                             ('Process', routed.process),
+                             ('Not posted', routed.dropped)):
+        for p in items:
+            lines += _details(placement, p)
     return '\n'.join(lines) + '\n'

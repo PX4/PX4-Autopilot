@@ -96,7 +96,8 @@ class TestRender(unittest.TestCase):
                     'finding': {
                         'path': 'src/modules/ekf2/a.cpp', 'line': 2,
                         'start_line': None, 'severity': 'blocker',
-                        'title': 'Wrong value', 'body': 'b', 'trigger': 't',
+                        'kind': 'code', 'title': 'Wrong value',
+                        'comment': 'Restore 1.', 'body': 'b', 'trigger': 't',
                         'suggestion': 'Restore 1.', 'replacement': '  x = 1;',
                         'uncertainty': '', 'rule': None},
                     'verdict': {'keep': True, 'confidence': 'high',
@@ -112,7 +113,7 @@ class TestRender(unittest.TestCase):
             self.assertEqual(len(comments), 1)
             self.assertIn('```suggestion', comments[0]['body'])
             manifest = json.loads((t / 'out/manifest.json').read_text())
-            self.assertIn('blocking issues', manifest['summary'])
+            self.assertIn("don't merge", manifest['summary'])
 
 
 if __name__ == '__main__':

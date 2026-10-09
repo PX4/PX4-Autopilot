@@ -35,6 +35,8 @@ class Settings:
     reviewer: agent.AgentConfig
     validator: agent.AgentConfig
     model_label: str
+    # the Actions run whose job summary holds the full report
+    report_url: str = ''
 
 
 def matching_instructions(trusted_root: Path, files: List[str]) -> List[Path]:
@@ -251,10 +253,10 @@ def finish(s: Settings, pr_number: int, head_sha: str, diff_text: str,
     routed = route.route(pairs, diff_map, head_files)
     _stamp_wall_time(usage)
     artifact = render.write_artifact(s.out_dir, pr_number, head_sha, routed,
-                                     model_summary, s.model_label, checklist,
-                                     usage)
+                                     s.model_label, usage, s.report_url)
     usage.update(sandbox_stats(s.work_dir / SANDBOX_LOG))
-    report = render.report_markdown(routed, artifact, usage, checklist)
+    report = render.report_markdown(routed, artifact, usage, model_summary,
+                                    checklist)
     (s.work_dir / 'report.md').write_text(report, encoding='utf-8')
     (s.work_dir / 'usage.json').write_text(json.dumps(usage, indent=2))
     return {'routed': routed, 'artifact': artifact, 'report': report,
