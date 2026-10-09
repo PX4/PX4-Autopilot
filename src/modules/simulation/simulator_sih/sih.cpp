@@ -749,11 +749,13 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 		gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
 	}
 
+	update_motor_vibration(time_now_us);
+
 	Vector3f specific_force_B = R_E2B * _specific_force_E;
-	Vector3f accel = specific_force_B + accel_noise;
+	Vector3f accel = specific_force_B + accel_noise + _accel_vibration;
 
 	const Vector3f earth_spin_rate_B = R_E2B * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE);
-	Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
+	Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise + _gyro_vibration;
 
 	// update IMU every iteration
 	if (!_accel_blocked) {
@@ -762,6 +764,59 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 
 	if (!_gyro_blocked) {
 		_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+	}
+}
+
+void Sih::update_motor_vibration(const hrt_abstime &time_now_us)
+{
+	// Rotor imbalance shakes the frame at the rotation frequency of each motor and its harmonics,
+	// with a force growing with the square of the rotor speed (amplitude normalized to 100 Hz).
+	static constexpr float harmonic_amplitudes[] {1.f, 0.5f, 0.25f};
+	static constexpr float reference_rotation_hz = 100.f;
+
+	const float dt = (_vibration_time != 0) ? math::min((time_now_us - _vibration_time) * 1e-6f, 0.1f) : 0.f;
+	_vibration_time = time_now_us;
+
+	_gyro_vibration.zero();
+	_accel_vibration.zero();
+
+	const float gyro_amplitude = _sih_gyro_vibration.get();
+	const float accel_amplitude = _sih_accel_vibration.get();
+
+	if (gyro_amplitude <= 0.f && accel_amplitude <= 0.f) {
+		return;
+	}
+
+	const int motor_count = math::min((int)_esc_status.esc_count, (int)esc_status_s::CONNECTED_ESC_MAX);
+	float rotation_sum_sq = 0.f;
+
+	for (int motor = 0; motor < motor_count; motor++) {
+		const float rotation_hz = fabsf((float)_esc_status.esc[motor].esc_rpm) / 60.f;
+		_vibration_phase[motor] = fmodf(_vibration_phase[motor] + 2.f * M_PI_F * rotation_hz * dt, 2.f * M_PI_F);
+
+		float signal = 0.f;
+
+		for (int harmonic = 0; harmonic < (int)(sizeof(harmonic_amplitudes) / sizeof(harmonic_amplitudes[0])); harmonic++) {
+			signal += harmonic_amplitudes[harmonic] * sinf((harmonic + 1) * _vibration_phase[motor]);
+		}
+
+		const float rotation_sq = (rotation_hz / reference_rotation_hz) * (rotation_hz / reference_rotation_hz);
+		rotation_sum_sq += rotation_sq;
+
+		// each motor shakes the frame in its own direction: the gyro mostly about the axes in the rotor plane,
+		// the accelerometer along the rotor plane and the thrust axis
+		const float direction = M_PI_F / 4.f + 2.f * M_PI_F * motor / motor_count;
+		_gyro_vibration += Vector3f(cosf(direction), sinf(direction), 0.3f) * (gyro_amplitude * rotation_sq * signal);
+		_accel_vibration += Vector3f(sinf(direction), cosf(direction), 1.f) * (accel_amplitude * rotation_sq * signal);
+	}
+
+	// broadband vibration from the airflow and the frame
+	if (motor_count > 0) {
+		const float broadband = 0.3f * rotation_sum_sq / motor_count;
+		_gyro_vibration += noiseGauss3f(broadband * gyro_amplitude, broadband * gyro_amplitude,
+						broadband * gyro_amplitude);
+		_accel_vibration += noiseGauss3f(broadband * accel_amplitude, broadband * accel_amplitude,
+						 broadband * accel_amplitude);
 	}
 }
 
