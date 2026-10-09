@@ -33,13 +33,14 @@
 
 #include <string.h>
 
+#include "uORBTest_Bench.hpp"
 #include "uORBTest_UnitTest.hpp"
 
 extern "C" { __EXPORT int uorb_tests_main(int argc, char *argv[]); }
 
 static void usage()
 {
-	PX4_INFO("Usage: uorb_tests [latency_test]");
+	PX4_INFO("Usage: uorb_tests [latency_test|bench]");
 }
 
 int
@@ -68,6 +69,10 @@ uorb_tests_main(int argc, char *argv[])
 	if (argc > 1 && !strcmp(argv[1], "latency_test")) {
 		uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 		return t.latency_test(true);
+	}
+
+	if (argc > 1 && !strcmp(argv[1], "bench")) {
+		return uORBTest::bench();
 	}
 
 	usage();
