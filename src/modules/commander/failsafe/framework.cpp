@@ -612,7 +612,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		// If descend is not supported (e.g. for rovers), safely disarm instead of terminating.
 		// However, if the user explicitly configured the position failsafe action to Terminate, honor it.
 		if ((status_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_DESCEND))
-			&& _param_com_pos_fs_act.get() != (int32_t)PositionFailsafeAction::Terminate) {
+		    && _param_com_pos_fs_act.get() != (int32_t)PositionFailsafeAction::Terminate) {
 			selected_action = Action::Disarm;
 			break;
 		}
