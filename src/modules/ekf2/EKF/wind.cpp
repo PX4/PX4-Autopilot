@@ -42,7 +42,8 @@
 void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
 		float wind_direction_accuracy)
 {
-	if (!_control_status.flags.in_air) {
+	// a non-finite speed or direction has no wind to reset to (cos(NaN) would make the wind states NaN)
+	if (!_control_status.flags.in_air && PX4_ISFINITE(wind_speed) && PX4_ISFINITE(wind_direction)) {
 
 		const float wind_speed_constrained = math::max(wind_speed, 0.0f);
 		const float wind_direction_var = sq(wind_direction_accuracy);

@@ -297,6 +297,28 @@ TEST_F(EkfAirspeedTest, testAirspeedDeadReckoningLatLonAltReset)
 	EXPECT_TRUE(reset_logging_checker.isHorizontalPositionResetCounterIncreasedBy(2));
 }
 
+TEST_F(EkfAirspeedTest, testExternalWindResetNonFiniteIgnored)
+{
+	// WHEN: an external wind reset arrives before flight with a non-finite direction or speed
+	_ekf->resetWindToExternalObservation(NAN, math::radians(-90.f), 2.f, math::radians(20.f));
+	_ekf->resetWindToExternalObservation(4.5f, NAN, 2.f, math::radians(20.f));
+
+	// THEN: the wind state stays finite
+	EXPECT_TRUE(_ekf->getWindVelocity().isAllFinite());
+
+	// AND: it stays finite, as does the velocity, once flying with airspeed fusion
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->set_is_fixed_wing(true);
+	_ekf_wrapper.enableBetaFusion();
+	_sensor_simulator.startAirspeedSensor();
+	_sensor_simulator._airspeed.setData(25.f, 25.f);
+	_sensor_simulator.runSeconds(1);
+
+	EXPECT_TRUE(_ekf->getWindVelocity().isAllFinite());
+	EXPECT_TRUE(_ekf->getVelocity().isAllFinite());
+}
+
 TEST_F(EkfAirspeedTest, testExternalWindResetOnGround)
 {
 	// WHEN: an external wind reset is performed before flight
