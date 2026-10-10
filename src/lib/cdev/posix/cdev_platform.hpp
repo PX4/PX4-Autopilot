@@ -4,10 +4,21 @@
 #include <inttypes.h>
 #include <string.h>
 
+#if defined(__PX4_ZEPHYR)
+#include <zephyr/irq.h>
+
+// The node lock masks the interrupts, as on NuttX: with a semaphore, a low priority thread
+// preempted while it copies a topic would block the higher priority threads that use it
+#define ATOMIC_ENTER unsigned int atomic_key = irq_lock()
+#define ATOMIC_LEAVE irq_unlock(atomic_key)
+#define ATOMIC_PAUSE irq_unlock(atomic_key)
+#define ATOMIC_RESUME atomic_key = irq_lock()
+#else
 #define ATOMIC_ENTER lock()
 #define ATOMIC_LEAVE unlock()
 #define ATOMIC_PAUSE
 #define ATOMIC_RESUME
+#endif
 
 namespace cdev
 {
