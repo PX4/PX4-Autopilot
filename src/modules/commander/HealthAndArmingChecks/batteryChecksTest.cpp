@@ -68,11 +68,11 @@ public:
 		publish(1, battery_status_s::WARNING_NONE);
 	}
 
-	static void publish(int index, uint8_t warning)
+	static void publish(int index, uint8_t warning, bool connected = true)
 	{
 		battery_status_s battery{};
 		battery.timestamp = hrt_absolute_time();
-		battery.connected = true;
+		battery.connected = connected;
 		battery.remaining = 0.5f;
 		battery.time_remaining_s = NAN;
 		battery.warning = warning;
@@ -136,4 +136,33 @@ TEST_F(BatteryChecksTest, ChargingAloneIsNoWarning)
 	runCheck(false);
 	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
 	EXPECT_TRUE(_can_arm);
+}
+
+// a pack that disconnects in flight raises a critical warning over a lower one, and it must not
+// hold back another pack's later emergency
+TEST_F(BatteryChecksTest, DisconnectedPackIsCriticalAndDoesNotHoldBackALaterEmergency)
+{
+	runCheck(false);
+	runCheck(true);
+
+	publish(0, battery_status_s::WARNING_LOW);
+	publish(1, battery_status_s::WARNING_NONE, false);
+	runCheck(true);
+	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_CRITICAL);
+
+	publish(0, battery_status_s::WARNING_EMERGENCY);
+	runCheck(true);
+	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_EMERGENCY);
+}
+
+// a pack that disconnects in flight must not hide another pack's emergency
+TEST_F(BatteryChecksTest, DisconnectedPackDoesNotHideAnotherPacksEmergency)
+{
+	runCheck(false);
+	runCheck(true);
+
+	publish(0, battery_status_s::WARNING_EMERGENCY);
+	publish(1, battery_status_s::WARNING_NONE, false);
+	runCheck(true);
+	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_EMERGENCY);
 }
