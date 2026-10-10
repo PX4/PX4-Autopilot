@@ -133,7 +133,7 @@ public:
 		return missionChecked();
 	}
 
-	bool missionChecked() const { return _mission_checked; }
+	bool missionChecked() const { return _mission_check_state == MissionCheckState::Complete; }
 
 	using MissionBase::findNextPositionIndex;
 	using MissionBase::findPreviousPositionIndex;
@@ -455,7 +455,7 @@ class MissionActivationTestPeer : public Mission
 {
 public:
 	using Mission::Mission;
-	bool missionChecked() const { return _mission_checked; }
+	bool missionChecked() const { return _mission_check_state == MissionCheckState::Complete; }
 	void setActiveMissionItems() override { ++mission_items_set_count; }
 	unsigned mission_items_set_count{0};
 };
