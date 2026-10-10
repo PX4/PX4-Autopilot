@@ -188,6 +188,8 @@ config BOARD_PROTECTED
     help
         Enable memory protection via MPU/MMU
 
+osource "boards/$(VENDOR)/$(MODEL)/Kconfig"
+
 menu "Serial ports"
 
     config BOARD_SERIAL_URT6
