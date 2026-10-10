@@ -160,6 +160,20 @@ constexpr Rotor kOctoX[] = {{0.46f, 0.19f, -0.05f}, {-0.46f, -0.19f, -0.05f}, {0
 	{-0.19f, 0.46f, -0.05f}
 };
 
+// Lift rotors of 10043_sihsim_standard_vtol plus its pusher (rotor 4) at the given height (NED, meters)
+Matrix<float, 6, 16> standardVtol(float pusher_pz)
+{
+	constexpr float ct = 6.5f;
+	constexpr Rotor kLift[] = {{0.2f, 0.2f, 0.05f}, {-0.2f, -0.2f, 0.05f}, {0.2f, -0.2f, -0.05f}, {-0.2f, 0.2f, -0.05f}};
+	Matrix<float, 6, 16> effectiveness = planarRotors(kLift, 4);
+
+	// thrust along x; off the center of gravity it also pitches (position x thrust)
+	effectiveness(1, 4) = ct * pusher_pz;
+	effectiveness(3, 4) = ct;
+
+	return effectiveness;
+}
+
 } // namespace
 
 TEST(ControlAllocationPseudoInverseTest, DropDependentAxesKeepsIndependentGeometries)
@@ -241,5 +255,33 @@ TEST(ControlAllocationPseudoInverseTest, DroppedAxisIsUnallocatedOthersExact)
 
 	for (int i = 0; i < 16; i++) {
 		EXPECT_LT(fabsf(method.getActuatorSetpoint()(i)), 0.01f) << "actuator " << i;
+	}
+}
+
+TEST(ControlAllocationPseudoInverseTest, PusherOffsetKeepsThrustScale)
+{
+	// A pusher above or below the center of gravity also pitches, so the lift rotors get thrust x mix entries to
+	// cancel that. The pusher alone must still set the thrust x scale, or its output runs ahead of the setpoint.
+	for (const float pusher_pz : {0.f, -0.02f, -0.05f, 0.1f}) {
+		ControlAllocationPseudoInverse method;
+		Vector<float, 16> actuator_trim;
+		Vector<float, 16> linearization_point;
+		method.setEffectivenessMatrix(standardVtol(pusher_pz), actuator_trim, linearization_point, 5, true);
+
+		Vector<float, 6> control_sp;
+		control_sp(ControlAllocation::THRUST_X) = 0.5f;
+		method.setControlSetpoint(control_sp);
+		method.allocate();
+		EXPECT_NEAR(method.getActuatorSetpoint()(4), 0.5f, 1e-3f) << "pusher_pz " << pusher_pz;
+
+		// hover thrust scale is unchanged
+		control_sp.setZero();
+		control_sp(ControlAllocation::THRUST_Z) = -0.5f;
+		method.setControlSetpoint(control_sp);
+		method.allocate();
+
+		for (int i = 0; i < 4; i++) {
+			EXPECT_NEAR(method.getActuatorSetpoint()(i), 0.5f, 1e-3f) << "pusher_pz " << pusher_pz << " rotor " << i;
+		}
 	}
 }
