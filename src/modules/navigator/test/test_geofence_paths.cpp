@@ -175,13 +175,106 @@ INSTANTIATE_TEST_SUITE_P(Paths, GeofencePathTest, ::testing::Values(
 	return test_info.param.name;
 });
 
+struct LoiterFenceCase {
+	const char *name;
+	bool circle_fence;
+	bool inclusion;
+};
+
+class GeofenceLoiterTest : public navigator_test::GeofenceTestBase,
+	public ::testing::WithParamInterface<LoiterFenceCase>
+{
+public:
+	GeofenceLoiterTest() : GeofenceTestBase(0.0, 0.0) {}
+
+protected:
+	void SetUp() override { ASSERT_TRUE(resetFence()); }
+};
+
+TEST_P(GeofenceLoiterTest, ChecksCircleClearanceInMixedBatch)
+{
+	const LoiterFenceCase &test = GetParam();
+	FencePoints points;
+
+	// Each fence has its nearest boundary 75 m from the circle centre at Home.
+	if (test.circle_fence) {
+		points = circle(test.inclusion, {0.f, test.inclusion ? -25.f : 100.f}, test.inclusion ? 100.f : 25.f);
+
+	} else if (test.inclusion) {
+		points = polygon(true, {{-75.f, -75.f}, {75.f, -75.f}, {75.f, 75.f}, {-75.f, 75.f}});
+
+	} else {
+		points = polygon(false, {{-25.f, 75.f}, {25.f, 75.f}, {25.f, 125.f}, {-25.f, 125.f}});
+	}
+
+	ASSERT_TRUE(loadFence(points));
+	const auto center = position(0.f, 0.f);
+	// Check a point, a clear circle, boundary contact, and a circle that encloses the entire exclusion.
+	const Geofence::PathCheck paths[] {{center, center}, {center, center, 50.f}, {center, center, 75.f}, {center, center, 150.f}};
+	bool clear[4] {};
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 4, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_TRUE(clear[1]);
+	EXPECT_FALSE(clear[2]);
+	EXPECT_FALSE(clear[3]);
+}
+
+INSTANTIATE_TEST_SUITE_P(LoiterFences, GeofenceLoiterTest, ::testing::Values(
+				 LoiterFenceCase{"InclusionPolygon", false, true},
+				 LoiterFenceCase{"ExclusionPolygon", false, false},
+				 LoiterFenceCase{"InclusionCircle", true, true},
+				 LoiterFenceCase{"ExclusionCircle", true, false}),
+			 [](const ::testing::TestParamInfo<LoiterFenceCase> &test_info)
+{
+	return test_info.param.name;
+});
+
+TEST_F(GeofenceTest, CircleClearanceUsesMetresAtItsLatitude)
+{
+	// At 47 degrees latitude, the short east/west clearance needs longitude scaling.
+	ASSERT_TRUE(loadFence(polygon(true, {{-1000.f, -100.f}, {1000.f, -100.f}, {1000.f, 100.f}, {-1000.f, 100.f}})));
+	const auto center = position(0.f, 0.f);
+	const Geofence::PathCheck paths[] {{center, center, 90.f}, {center, center, 110.f}};
+	bool clear[2] {};
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_FALSE(clear[1]);
+}
+
+struct InvalidRadiusCase {
+	const char *name;
+	float radius;
+};
+
+class InvalidGeofenceRadiusTest : public GeofenceTest, public ::testing::WithParamInterface<InvalidRadiusCase> {};
+
+TEST_P(InvalidGeofenceRadiusTest, RejectsWholeBatch)
+{
+	ASSERT_TRUE(loadFence({}));
+	Geofence::PathCheck paths[] {path({0.f, 0.f}, {100.f, 0.f}), path({100.f, 0.f}, {100.f, 0.f})};
+	paths[1].end_radius = GetParam().radius;
+	bool clear[2] {true, true};
+	EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_FALSE(clear[0]);
+	EXPECT_FALSE(clear[1]);
+}
+
+INSTANTIATE_TEST_SUITE_P(InvalidRadii, InvalidGeofenceRadiusTest, ::testing::Values(
+				 InvalidRadiusCase{"Negative", -1.f},
+				 InvalidRadiusCase{"NaN", NAN},
+				 InvalidRadiusCase{"Infinite", INFINITY}),
+			 [](const ::testing::TestParamInfo<InvalidRadiusCase> &test_info)
+{
+	return test_info.param.name;
+});
+
 TEST_F(GeofenceTest, FullBatchMatchesIndividualChecks)
 {
-	ASSERT_TRUE(loadFence(exclusionSquare()));
+	ASSERT_TRUE(loadFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX)));
 	std::array<Geofence::PathCheck, Geofence::MAX_PATH_CHECKS> paths;
 	std::array<bool, Geofence::MAX_PATH_CHECKS> clear{};
 
-	// Alternate between crossing the square and passing 10 m north of it.
+	// Alternate between crossing the full-size polygon and passing 10 m north of it.
 	for (size_t i = 0; i < paths.size(); ++i) {
 		const float north = i % 2 == 0 ? 0.f : 60.f;
 		paths[i] = path({north, 100.f}, {north, 500.f});
@@ -271,6 +364,17 @@ TEST_P(GeofenceFileTest, ImportedFenceAndSubsequentRefreshBecomeReady)
 
 	// The same client must remain usable for later asynchronous metadata reads.
 	_fence.updateFence();
+	ASSERT_TRUE(waitForFence());
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_FALSE(clear[1]);
+
+	// Importing identical contents preserves the fence ID but switches the storage bank.
+	ASSERT_EQ(_fence.loadFromFile(_filename), PX4_OK);
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_FENCE_POINTS_STATE, 0,
+					     reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+	EXPECT_EQ(stats.opaque_id, _fence_id);
+	EXPECT_EQ(stats.dataman_id, GetParam());
 	ASSERT_TRUE(waitForFence());
 	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
 	EXPECT_TRUE(clear[0]);
@@ -413,29 +517,10 @@ struct InvalidFenceCase {
 
 class InvalidGeofenceBatchTest : public GeofenceTest, public ::testing::WithParamInterface<InvalidFenceCase> {};
 
-TEST_P(InvalidGeofenceBatchTest, RejectsWholeBatch)
+TEST_F(GeofenceTest, PolygonVertexCountExceedingCacheRejectsBatch)
 {
-	FencePoints points = exclusionSquare();
-	ASSERT_TRUE(loadFence(points));
-
-	if (GetParam().fault == InvalidFenceData::VertexCount) {
-		GeofenceTestPeer::setVertexCount(_fence, 5);
-
-	} else {
-		mission_fence_point_s &point = points.back();
-
-		if (GetParam().fault == InvalidFenceData::Longitude) {
-			point.lon = NAN;
-
-		} else if (GetParam().fault == InvalidFenceData::Frame) {
-			point.frame = NAV_FRAME_LOCAL_NED;
-
-		} else {
-			point.nav_cmd = NAV_CMD_WAYPOINT;
-		}
-
-		ASSERT_TRUE(GeofenceTestPeer::replaceCachedPoint(_fence, points.size() - 1, point));
-	}
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	GeofenceTestPeer::setVertexCount(_fence, 5);
 
 	const Geofence::PathCheck paths[] {path({100.f, 100.f}, {100.f, 500.f}), path({0.f, 100.f}, {0.f, 500.f})};
 	bool clear[2] {true, true};
@@ -865,6 +950,29 @@ TEST_F(AntimeridianGeofenceTest, ShortPathsMayCrossTheAntimeridian)
 		ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
 		EXPECT_EQ(clear[0], test.clear);
 		EXPECT_EQ(clear[1], test.clear);
+	}
+}
+
+TEST_F(AntimeridianGeofenceTest, LoiterRadiusCrossesTheAntimeridian)
+{
+	for (double side : {-1.0, 1.0}) {
+		SCOPED_TRACE(side);
+		const matrix::Vector2d center{47.0, side * 179.999};
+		const Geofence::PathCheck paths[] {{center, center, 90.f}, {center, center, 120.f}};
+		// The nearest edge across the antimeridian is about 99 m from the centre.
+		ASSERT_TRUE(loadFence(exclusionAt(47.0, -side * 179.9995)));
+		ASSERT_TRUE(_fence.checkPointAgainstAllGeofences(center(0), center(1), 500.f));
+		bool clear[2] {};
+		ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_TRUE(clear[0]);
+		EXPECT_FALSE(clear[1]);
+
+		// Shift both edge vertices together: independently wrapping them can turn this
+		// distant edge across the centre's antipodal longitude into a nearby edge.
+		ASSERT_TRUE(loadFence(exclusionAt(47.0, -side * 0.001)));
+		ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_TRUE(clear[0]);
+		EXPECT_TRUE(clear[1]);
 	}
 }
 

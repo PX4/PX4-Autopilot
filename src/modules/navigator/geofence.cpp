@@ -65,7 +65,14 @@
 static constexpr double kMaxHeadingFactor = 1.09; // max of sin(h) * (1 + cos(h)^2) = 4 * sqrt(6) / 9
 static constexpr double kMaxPieceBow = 2.0; // [m] within GNSS and tracking errors, which missions must clear anyway
 static constexpr unsigned kMaxPathPieces = 255;
+// Reuse each generated path piece across several edges with a small, fixed scratch buffer.
+static constexpr unsigned kPathEdgeBatchSize = 8;
 static constexpr double kHalfPi = M_PI / 2.0; // M_PI_2 is not available on every platform
+
+struct PathEdgeBatch {
+	matrix::Vector2d vertices[kPathEdgeBatchSize + 1];
+	double longitude_shifts[kPathEdgeBatchSize];
+};
 
 // Zero means the path cannot be approximated within the subdivision budget.
 static uint8_t pathPieces(const Geofence::PathCheck &path)
@@ -100,11 +107,18 @@ static matrix::Vector3d unitVector(const matrix::Vector2d &lat_lon)
 	return matrix::Vector3d(cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat));
 }
 
-// Compare a path and a fence edge in one continuous longitude range, so paths may cross the antimeridian.
-// Fence edges never cross it: the loader rejects them, since the point check could not handle them either.
-static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, const matrix::Vector2d &edge_start,
-			    const matrix::Vector2d &edge_end)
+static double edgeLongitudeShift(const matrix::Vector2d &start, const matrix::Vector2d &end, double reference_lon)
 {
+	return 360.0 * round((0.5 * (start(1) + end(1)) - reference_lon) / 360.0);
+}
+
+// Compare a path and a batch of consecutive edges in one continuous longitude range.
+// Fence edges never cross it: the loader rejects them, since the point check could not handle them either.
+static bool pathTouchesEdges(const Geofence::PathCheck &path, unsigned pieces, PathEdgeBatch &batch,
+			     unsigned num_edges)
+{
+	const auto &vertices = batch.vertices;
+	auto &shifts = batch.longitude_shifts;
 	// Take the short way around, e.g. a path from 179 to -179 deg runs from 179 to 181 deg.
 	matrix::Vector2d path_end = path.end;
 
@@ -112,27 +126,38 @@ static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, co
 		path_end(1) += path_end(1) < path.start(1) ? 360.0 : -360.0;
 	}
 
-	// Move the edge by whole turns to the copy nearest the path, e.g. an edge at -179.5 deg moves to 180.5 deg.
-	// Away from the antimeridian the shift is zero.
 	const double path_middle = 0.5 * (path.start(1) + path_end(1));
-	const double edge_middle = 0.5 * (edge_start(1) + edge_end(1));
-	const double shift = 360.0 * round((edge_middle - path_middle) / 360.0);
-	const matrix::Vector2d shifted_start{edge_start(0), edge_start(1) - shift};
-	const matrix::Vector2d shifted_end{edge_end(0), edge_end(1) - shift};
-
-	if (pieces == 1) {
-		return geofence_utils::segmentsIntersectInclusive(path.start, path_end, shifted_start, shifted_end);
-	}
-
 	// The whole arc's bow is at most pieces^2 * kMaxPieceBow. Expand the latitude bounds by that
 	// distance to skip distant edges cheaply. Longitude stays between the unwrapped endpoints
 	// because pathPieces() excludes arcs that could reach a pole.
 	const double margin_lat = math::degrees(pieces * pieces * kMaxPieceBow / CONSTANTS_RADIUS_OF_EARTH);
+	unsigned candidates = 0;
 
-	if (math::max(path.start(0), path_end(0)) + margin_lat < math::min(shifted_start(0), shifted_end(0))
-	    || math::min(path.start(0), path_end(0)) - margin_lat > math::max(shifted_start(0), shifted_end(0))
-	    || math::max(path.start(1), path_end(1)) < math::min(shifted_start(1), shifted_end(1))
-	    || math::min(path.start(1), path_end(1)) > math::max(shifted_start(1), shifted_end(1))) {
+	for (unsigned edge = 0; edge < num_edges; ++edge) {
+		// Move each complete edge to the copy nearest the path, preserving its longitude span.
+		shifts[edge] = edgeLongitudeShift(vertices[edge], vertices[edge + 1], path_middle);
+		const matrix::Vector2d shifted_start{vertices[edge](0), vertices[edge](1) - shifts[edge]};
+		const matrix::Vector2d shifted_end{vertices[edge + 1](0), vertices[edge + 1](1) - shifts[edge]};
+
+		if (pieces == 1) {
+			if (geofence_utils::segmentsIntersectInclusive(path.start, path_end, shifted_start, shifted_end)) {
+				return true;
+			}
+
+			continue;
+		}
+
+		if (math::max(path.start(0), path_end(0)) + margin_lat < math::min(shifted_start(0), shifted_end(0))
+		    || math::min(path.start(0), path_end(0)) - margin_lat > math::max(shifted_start(0), shifted_end(0))
+		    || math::max(path.start(1), path_end(1)) < math::min(shifted_start(1), shifted_end(1))
+		    || math::min(path.start(1), path_end(1)) > math::max(shifted_start(1), shifted_end(1))) {
+			continue;
+		}
+
+		candidates |= 1u << edge;
+	}
+
+	if (candidates == 0) {
 		return false;
 	}
 
@@ -153,11 +178,42 @@ static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, co
 			piece_end = {lat, path.start(1) + matrix::wrap(lon - path.start(1), -180.0, 180.0)};
 		}
 
-		if (geofence_utils::segmentsIntersectInclusive(piece_start, piece_end, shifted_start, shifted_end)) {
-			return true;
+		for (unsigned edge = 0; edge < num_edges; ++edge) {
+			if (candidates & (1u << edge)) {
+				const matrix::Vector2d shifted_start{vertices[edge](0), vertices[edge](1) - shifts[edge]};
+				const matrix::Vector2d shifted_end{vertices[edge + 1](0), vertices[edge + 1](1) - shifts[edge]};
+
+				if (geofence_utils::segmentsIntersectInclusive(piece_start, piece_end, shifted_start, shifted_end)) {
+					return true;
+				}
+			}
 		}
 
 		piece_start = piece_end;
+	}
+
+	return false;
+}
+
+static bool pathEndTouchesEdges(const Geofence::PathCheck &path, const matrix::Vector2d *vertices, unsigned num_edges)
+{
+	// Fixed metre-per-degree scales keep the fence edges straight in a frame centred on the loiter.
+	const matrix::Vector2d &center = path.end;
+	const double north_scale = math::radians(1.0) * CONSTANTS_RADIUS_OF_EARTH;
+	const double east_scale = north_scale * cos(math::radians(center(0)));
+	const double radius = static_cast<double>(path.end_radius);
+	const double radius_squared = radius * radius;
+
+	for (unsigned edge = 0; edge < num_edges; ++edge) {
+		const double shift = edgeLongitudeShift(vertices[edge], vertices[edge + 1], center(1));
+		const matrix::Vector2d a{(vertices[edge](0) - center(0)) *north_scale,
+					 (vertices[edge](1) - shift - center(1)) *east_scale};
+		const matrix::Vector2d b{(vertices[edge + 1](0) - center(0)) *north_scale,
+					 (vertices[edge + 1](1) - shift - center(1)) *east_scale};
+
+		if (geofence_utils::pointToSegmentDistanceSquared(matrix::Vector2d {}, a, b) <= radius_squared) {
+			return true;
+		}
 	}
 
 	return false;
@@ -236,17 +292,16 @@ void Geofence::run()
 
 		if (_dataman_client.lastOperationCompleted(success)) {
 
-			if (success) {
-				// A failed response also overwrites the read buffer, so adopt it only now.
-				_stats = _stats_read;
-			}
-
 			if (!success) {
 				_error_state = DatamanState::ReadWait;
 				_dataman_state = DatamanState::Error;
 
-			} else if (_opaque_id != _stats.opaque_id || !_fence_loaded) {
+			} else if (!_fence_loaded || _opaque_id != _stats_read.opaque_id
+				   || _stats.dataman_id != _stats_read.dataman_id || _stats.num_items != _stats_read.num_items) {
 
+				// A failed response also overwrites the read buffer. Adopt it only on success,
+				// and reload when the cache's storage bank changes even if the fence ID does not.
+				_stats = _stats_read;
 				_opaque_id = _stats.opaque_id;
 				_fence_loaded = false;
 
@@ -660,6 +715,7 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 		const auto &end = paths[i].end;
 
 		if (!start.isAllFinite() || !end.isAllFinite()
+		    || !PX4_ISFINITE(paths[i].end_radius) || paths[i].end_radius < 0.f
 		    || fabs(start(0)) > 90.0 || fabs(end(0)) > 90.0
 		    || fabs(start(1)) > 180.0 || fabs(end(1)) > 180.0) {
 			return false;
@@ -729,31 +785,45 @@ bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *pa
 
 	const matrix::Vector2d first{point.lat, point.lon};
 	matrix::Vector2d previous = first;
+	// These synchronous checks run serially in Navigator, like the mission path batch.
+	// Keep the shared scratch buffer off Navigator's small task stack.
+	static PathEdgeBatch batch{};
+	auto &vertices = batch.vertices;
 
-	// Read each vertex once, then reuse the first vertex to close the polygon.
-	for (unsigned v = 1; v <= polygon.vertex_count; ++v) {
-		matrix::Vector2d next = first;
+	// Read each vertex once. Small edge batches reuse path subdivision and loiter scales
+	// while keeping the temporary vertex buffer bounded independently of the fence size.
+	for (unsigned v = 1; v <= polygon.vertex_count;) {
+		vertices[0] = previous;
+		unsigned num_edges = 0;
 
-		if (v < polygon.vertex_count) {
-			if (!readPathFencePoint(polygon.dataman_index + v, point)
-			    || point.nav_cmd != polygon.fence_type || point.vertex_count != polygon.vertex_count) {
+		while (num_edges < kPathEdgeBatchSize && v <= polygon.vertex_count) {
+			matrix::Vector2d next = first;
+
+			if (v < polygon.vertex_count) {
+				if (!readPathFencePoint(polygon.dataman_index + v, point)
+				    || point.nav_cmd != polygon.fence_type || point.vertex_count != polygon.vertex_count) {
+					return false;
+				}
+
+				next = matrix::Vector2d {point.lat, point.lon};
+			}
+
+			if (fabs(next(1) - vertices[num_edges](1)) > 180.0) {
 				return false;
 			}
 
-			next = matrix::Vector2d {point.lat, point.lon};
-		}
-
-		if (fabs(next(1) - previous(1)) > 180.0) {
-			return false;
+			vertices[++num_edges] = next;
+			++v;
 		}
 
 		for (size_t i = 0; i < num_paths; ++i) {
-			if (results[i] && pathTouchesEdge(paths[i], pieces[i], previous, next)) {
+			if (results[i] && (pathTouchesEdges(paths[i], pieces[i], batch, num_edges)
+					   || (paths[i].end_radius > 0.f && pathEndTouchesEdges(paths[i], vertices, num_edges)))) {
 				results[i] = false;
 			}
 		}
 
-		previous = next;
+		previous = vertices[num_edges];
 	}
 
 	return true;
@@ -796,10 +866,13 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 		// Match insideCircle() at each endpoint.
 		const bool start_inside = (start - center).norm_squared() < point_radius_squared;
 		const bool end_inside = (end - center).norm_squared() < point_radius_squared;
+		const double end_radius = static_cast<double>(paths[i].end_radius);
 
 		if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
 			// The double checks reject boundary contact rounded inside by the float point check.
-			results[i] = start_inside && end_inside && a.norm_squared() < radius_squared && b.norm_squared() < radius_squared;
+			const double remaining_radius = radius - end_radius;
+			results[i] = start_inside && end_inside && a.norm_squared() < radius_squared
+				     && remaining_radius > 0.0 && b.norm_squared() < remaining_radius * remaining_radius;
 
 		} else if (start_inside || end_inside) {
 			results[i] = false;
@@ -807,14 +880,15 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 		} else {
 			const double distance_squared = geofence_utils::pointToSegmentDistanceSquared(
 								matrix::Vector2d(center), matrix::Vector2d(start), matrix::Vector2d(end));
-			results[i] = distance_squared > radius_squared;
+			const double clearance = radius + end_radius;
+			results[i] = distance_squared > radius_squared && b.norm_squared() > clearance * clearance;
 		}
 	}
 
 	return true;
 }
 
-bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
+bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude, float radius)
 {
 	bool inside_fence = true;
 
@@ -826,7 +900,7 @@ bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 		get_distance_to_point_global_wgs84(lat, lon, altitude, _navigator->get_home_position()->lat,
 						   _navigator->get_home_position()->lon, _navigator->get_home_position()->alt, &dist_xy, &dist_z);
 
-		inside_fence = dist_xy < _param_gf_max_hor_dist.get();
+		inside_fence = dist_xy + radius < _param_gf_max_hor_dist.get();
 	}
 
 	return inside_fence;
