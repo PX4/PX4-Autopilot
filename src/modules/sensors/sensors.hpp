@@ -241,7 +241,7 @@ private:
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 	VehicleGPSPosition *_vehicle_gps_position {nullptr};
-	uint8_t _n_gps{0};
+	uint8_t _n_gnss{0};
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)

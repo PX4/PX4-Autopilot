@@ -36,9 +36,8 @@
 using matrix::Vector3f;
 using namespace time_literals;
 
-GainCompression3d::GainCompression3d(ModuleParams *parent) : ModuleParams(parent)
+GainCompression3d::GainCompression3d()
 {
-	updateParams();
 	_gain_compression_pub.advertise();
 }
 
@@ -47,28 +46,27 @@ void GainCompression3d::reset()
 	for (unsigned i = 0; i < 3; i++) {
 		_compression_gains[i].reset();
 	}
+
+	_gains.setOne();
 }
 
-void GainCompression3d::updateParams()
+void GainCompression3d::setCompressionGainMin(const float gain_min)
 {
-	ModuleParams::updateParams();
-
 	for (unsigned i = 0; i < 3; i++) {
-		_compression_gains[i].setCompressionGainMin(_param_fw_gc_gain_min.get());
+		_compression_gains[i].setCompressionGainMin(gain_min);
 	}
 }
 
 void GainCompression3d::update(const Vector3f &input, const float dt)
 {
-	if (!_param_fw_gc_en.get()) {
+	if (!_enabled) {
 		reset();
-		_gains.setOne();
 		return;
 	}
 
 	Vector3f hpf;
 	Vector3f lpf;
-	const float sample_freq = 1.f / math::constrain(dt, 1e-3f, 100e-3f);
+	const float sample_freq = 1.f / math::constrain(dt, 0.125e-3f, 100e-3f); // supports rate loops up to 8kHz
 
 	for (unsigned i = 0; i < 3; i++) {
 		_compression_gains[i].setLpfCutoffFrequency(sample_freq, _kLpfCutoffFrequency);
@@ -98,6 +96,12 @@ float GainCompression::update(const float input, const float dt)
 {
 	if (!PX4_ISFINITE(input)) {
 		return _compression_gain;
+	}
+
+	if (!_input_initialized) {
+		// seed the high-pass filter to avoid detecting a step on the first sample after a reset
+		_input_prev = input;
+		_input_initialized = true;
 	}
 
 	_hpf = _alpha_hpf * _hpf + _alpha_hpf * (input - _input_prev);

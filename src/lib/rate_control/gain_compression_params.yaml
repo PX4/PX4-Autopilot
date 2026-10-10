@@ -17,3 +17,24 @@ parameters:
       max: 1.0
       increment: 0.01
       decimal: 2
+- group: Multicopter Rate Control
+  definitions:
+    MC_GC_EN:
+      description:
+        short: Enable rate gain compression
+        long: |
+          Dynamically reduces the rate controller output gain when an oscillation
+          (limit cycle) is detected on the torque setpoint, e.g. caused by too high gains.
+          The gain recovers to 1.0 once the oscillation stops.
+      type: boolean
+      default: 0
+    MC_GC_GAIN_MIN:
+      description:
+        short: Compression gain lower limit
+        long: The range of the compression gain is between this parameter and 1.0
+      type: float
+      default: 0.3
+      min: 0.0
+      max: 1.0
+      increment: 0.01
+      decimal: 2

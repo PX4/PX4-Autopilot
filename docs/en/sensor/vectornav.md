@@ -112,7 +112,7 @@ The VectorNav driver always publishes the unit's data to the following UOrb topi
 - [sensor_gyro](../msg_docs/SensorGyro.md)
 - [sensor_mag](../msg_docs/SensorMag.md)
 - [sensor_baro](../msg_docs/SensorBaro.md)
-- [sensor_gps](../msg_docs/SensorGps.md)
+- [sensor_gnss](../msg_docs/SensorGnss.md)
 
 and, if enabled as an external INS, publishes:
 

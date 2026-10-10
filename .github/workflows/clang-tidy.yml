@@ -93,15 +93,19 @@ jobs:
         apt-get update
         apt-get install -y --no-install-recommends libclang-rt-18-dev
 
-    # `make clang-ci` prepares both clang build directories:
-    #   - build/px4_sitl_default-clang:       full build, BUILD_TESTING=OFF
-    #     (used by run-clang-tidy-pr.py for whole-file analysis of
-    #      changed production code)
+    # Two clang build directories, prepared one after the other so their
+    # configures never fetch submodules at the same time:
     #   - build/px4_sitl_default-clang-test:  configure-only, BUILD_TESTING=ON
     #     (used by clang-tidy-diff-18.py so test files are in the
     #      compilation database with resolved gtest/fuzztest includes)
+    #   - build/px4_sitl_default-clang:       full build, BUILD_TESTING=OFF
+    #     (used by run-clang-tidy-pr.py for whole-file analysis of
+    #      changed production code)
+    - name: Configure clang SITL with tests
+      run: make px4_sitl_default-clang-test
+
     - name: Build clang SITL
-      run: make -j$(nproc) clang-ci
+      run: make -j$(nproc) px4_sitl_default-clang
 
     - name: Run Clang-Tidy Analysis
       run: python3 Tools/ci/run-clang-tidy-pr.py origin/${{ github.base_ref }}

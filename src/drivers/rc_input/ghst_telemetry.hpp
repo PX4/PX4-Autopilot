@@ -44,7 +44,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <drivers/drv_hrt.h>
 
 /**
@@ -73,7 +73,7 @@ private:
 	bool send_gps1_status();
 	bool send_gps2_status();
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 
 	int _uart_fd;

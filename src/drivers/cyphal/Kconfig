@@ -61,7 +61,7 @@ if DRIVERS_CYPHAL
             default n
 
         config CYPHAL_UORB_SENSOR_GPS_PUBLISHER
-            bool "uORB sensor_gps publisher"
+            bool "uORB sensor_gnss publisher"
             default n
 
     endmenu
@@ -85,7 +85,7 @@ if DRIVERS_CYPHAL
             default n
 
         config CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
-            bool "uORB sensor_gps Subscriber"
+            bool "uORB sensor_gnss Subscriber"
             default n
     endmenu
 

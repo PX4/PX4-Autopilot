@@ -56,6 +56,9 @@ public:
 
 	virtual void setRtlAlt(float alt) { (void)alt;};
 
+	/** Refresh the cached mission before RTL selects the destination and activates this mode. */
+	void refreshMission() { updateMavlinkMission(); }
+
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE

@@ -445,7 +445,7 @@ check_newlines:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_daa_crosstrack tests_vtest_moving tests_coverage tests_mission tests_mission_coverage tests_offboard
+.PHONY: tests tests_daa_crosstrack tests_vtest_moving tests_neural tests_coverage tests_mission tests_mission_coverage tests_offboard
 .PHONY: rostest python_coverage
 
 tests:
@@ -472,6 +472,15 @@ tests_vtest_moving:
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
 	$(eval UBSAN_OPTIONS += color=always)
 	$(call cmake-build,px4_sitl_vtest-moving)
+
+# This target builds the neural configuration, the only one that enables mc_nn_control.
+tests_neural:
+	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),RescaleAction|NnControl)")
+	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_neural)
 
 # work around lcov bug #316; remove once lcov is fixed (see https://github.com/linux-test-project/lcov/issues/316)
 LCOBUG = --ignore-errors mismatch,negative
@@ -534,7 +543,7 @@ python_coverage:
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
-.PHONY: scan-build px4_sitl_default-clang px4_sitl_default-clang-test clang-ci clang-tidy clang-tidy-fix
+.PHONY: scan-build px4_sitl_default-clang px4_sitl_default-clang-test clang-tidy clang-tidy-fix
 .PHONY: cppcheck shellcheck_all validate_module_configs
 
 scan-build:
@@ -560,17 +569,6 @@ px4_sitl_default-clang:
 px4_sitl_default-clang-test:
 	@mkdir -p "$(SRC_DIR)"/build/px4_sitl_default-clang-test
 	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang-test && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_TESTING=ON
-
-# CI-oriented target that prepares both clang build directories used by
-# the Static Analysis workflow:
-#   - px4_sitl_default-clang:       full build, BUILD_TESTING=OFF.
-#       Used by `make clang-tidy` (push-to-main) and run-clang-tidy-pr.py.
-#   - px4_sitl_default-clang-test:  configure-only, BUILD_TESTING=ON.
-#       Used by clang-tidy-diff-18.py so test files are in the
-#       compilation database with resolved gtest/fuzztest includes.
-# Running one target ensures both dirs exist before any clang-tidy
-# variant runs, and keeps the workflow free of raw cmake invocations.
-clang-ci: px4_sitl_default-clang px4_sitl_default-clang-test
 
 # Paths to exclude from clang-tidy (auto-generated from .gitmodules + manual additions):
 # - All submodules (external code we consume, not edit)

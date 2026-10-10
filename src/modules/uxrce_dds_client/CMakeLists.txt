@@ -61,11 +61,6 @@ else()
 		set(cxx_flags_with_includes "${cxx_flags_with_includes} -I${dir}")
 	endforeach()
 
-	# GCC 14 promotes implicit function declarations to hard errors; the
-	# client's POSIX UDP transport (compiled but never linked on NuttX)
-	# trips this via getaddrinfo/freeaddrinfo
-	set(c_flags_with_includes "${c_flags_with_includes} -Wno-error=implicit-function-declaration")
-
 	set(lib_dir ${CMAKE_INSTALL_LIBDIR})
 	if("${lib_dir}" STREQUAL "")
 		set(lib_dir "lib")
@@ -73,6 +68,13 @@ else()
 
 	if(PX4_PLATFORM STREQUAL "nuttx")
 		set(c_flags_with_includes "${c_flags_with_includes} -Wno-cast-align -D__PX4_NUTTX")
+	endif()
+
+	# Match UXRCE_DDS_CLIENT_UDP in uxrce_dds_client.h: NuttX targets without networking have no UDP transport
+	if(PX4_PLATFORM STREQUAL "nuttx" AND NOT CONFIG_NET)
+		set(uclient_profile_udp OFF)
+	else()
+		set(uclient_profile_udp ON)
 	endif()
 
 	include(ExternalProject)
@@ -90,7 +92,7 @@ else()
 			-DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
 			-DUCLIENT_PIC:BOOL=OFF
 			-DUCLIENT_PROFILE_TCP:BOOL=OFF
-			-DUCLIENT_PROFILE_UDP:BOOL=ON
+			-DUCLIENT_PROFILE_UDP:BOOL=${uclient_profile_udp}
 			-DUCLIENT_PROFILE_SERIAL:BOOL=ON
 			-DUCLIENT_PROFILE_DISCOVERY:BOOL=OFF
 			-DUCLIENT_PROFILE_CUSTOM_TRANSPORT:BOOL=OFF

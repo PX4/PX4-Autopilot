@@ -118,6 +118,7 @@ Vector4f MecanumActControl::computeInverseKinematics(float throttle_body_x, floa
 
 void MecanumActControl::stopVehicle()
 {
+	_timestamp = hrt_absolute_time();
 	actuator_motors_s actuator_motors{};
 	actuator_motors.reversible_flags = _param_r_rev.get();
 	actuator_motors.control[0] = 0.f;

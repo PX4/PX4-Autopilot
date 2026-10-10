@@ -2,8 +2,7 @@
 
 [Failsafes](../config/safety.md) define the safe limits/conditions under which you can safely use PX4, and the action that will be performed if a failsafe is triggered (for example, landing, holding position, or returning to a specified point).
 
-在 SITL 中，默认情况下会禁用某一些故障，以便方便模拟使用。
-本主题说明如何在实际世界中尝试 SITL 仿真之前测试安全关键行为。
+在 SITL 中，默认情况下会禁用某一些故障，以便方便模拟使用。本主题说明如何在实际世界中尝试 SITL 仿真之前测试安全关键行为。
 
 :::info
 You can also test failsafes using [HITL simulation](../simulation/hitl.md).
