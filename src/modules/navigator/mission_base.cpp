@@ -126,13 +126,7 @@ void MissionBase::onMissionUpdate(bool has_mission_items_changed)
 		_dataman_cache.invalidate();
 		_load_mission_index = -1;
 
-		if (canRunMissionFeasibility()) {
-			_mission_checked = true;
-			check_mission_valid();
-
-		} else {
-			_mission_checked = false;
-		}
+		check_mission_valid();
 	}
 
 	if (isActive()) {
@@ -157,15 +151,13 @@ MissionBase::on_inactive()
 	_land_detected_sub.update();
 	_vehicle_status_sub.update();
 	_global_pos_sub.update();
-	_geofence_status_sub.update();
 
 	parameters_update();
 
 	updateMavlinkMission();
 
 	/* Check the mission */
-	if (!_mission_checked && canRunMissionFeasibility()) {
-		_mission_checked = true;
+	if (!_mission_checked) {
 		check_mission_valid();
 		_is_current_planned_mission_item_valid = isMissionValid();
 	}
@@ -267,7 +259,6 @@ MissionBase::on_active()
 	_land_detected_sub.update();
 	_vehicle_status_sub.update();
 	_global_pos_sub.update();
-	_geofence_status_sub.update();
 
 	parameters_update();
 
@@ -276,12 +267,14 @@ MissionBase::on_active()
 	updateMissionAltAfterHomeChanged();
 
 	/* Check the mission */
-	if (!_mission_checked && canRunMissionFeasibility()) {
-		_mission_checked = true;
+	if (!_mission_checked) {
 		check_mission_valid();
 		_is_current_planned_mission_item_valid = isMissionValid();
-		update_mission();
-		set_mission_items();
+
+		if (_mission_checked) {
+			update_mission();
+			set_mission_items();
+		}
 	}
 
 	// check if heading alignment is necessary, and add it to the current mission item if necessary
@@ -789,24 +782,33 @@ MissionBase::check_mission_valid(bool forced)
 				    || (_navigator->get_mission_result()->geofence_id != _mission.geofence_id)
 				    || (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count);
 
+	// A replaced mission must not inherit the previous verdict.
+	if (mission_changed && _navigator->get_mission_result()->valid) {
+		_navigator->get_mission_result()->valid = false;
+		_navigator->set_mission_result_updated();
+	}
+
 	if (_navigator->get_geofence().isFenceUpdatePending()) {
 		// A fence upload reloads the fence for about a second. Keep the last verdict until then
 		// and recheck when it is ready: reporting the mission invalid now would make Commander
 		// treat it as missing and fail over out of Mission mode.
 		_mission_checked = false;
 		_mission_check_pending = true;
-
-		// A mission that was never checked has no verdict to keep.
-		if (mission_changed) {
-			_navigator->get_mission_result()->valid = false;
-			_navigator->set_mission_result_updated();
-		}
-
 		return;
 	}
 
+	if (!forced) {
+		_geofence_status_sub.update();
+
+		if (!canRunMissionFeasibility()) {
+			_mission_checked = false;
+			return;
+		}
+	}
+
 	// Allow forcing it, since we currently not rechecking if parameters have changed.
-	if (forced || _mission_check_pending || inputs_changed) {
+	// A failed fence must be rejected even when the cached IDs match.
+	if (forced || _mission_check_pending || inputs_changed || !_navigator->get_geofence().isReadyForPathChecks()) {
 
 		_mission_check_pending = false;
 		_navigator->get_mission_result()->mission_id = _mission.mission_id;
@@ -827,6 +829,8 @@ MissionBase::check_mission_valid(bool forced)
 		}
 
 	}
+
+	_mission_checked = true;
 }
 
 void
@@ -1012,6 +1016,7 @@ bool MissionBase::isMissionValid() const
 	    (_mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ||
 	     _mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) &&
 	    (_mission.timestamp != 0u) &&
+	    (_navigator->get_mission_result()->mission_id == _mission.mission_id) &&
 	    (_navigator->get_mission_result()->valid)) {
 		ret_val = true;
 	}
@@ -1600,12 +1605,13 @@ bool MissionBase::checkMissionDataChanged(const mission_s &new_mission)
 
 bool MissionBase::canRunMissionFeasibility()
 {
+	// A failed fence load is final: skip the fence match and let the checker reject the mission.
 	return _navigator->home_global_position_valid() && // Need to have a home position checked
 	       _navigator->get_global_position()->timestamp > 0 && // Need to have a position, for first waypoint check
-	       _navigator->get_geofence().isReadyForPathChecks() &&
-	       (_geofence_status_sub.get().timestamp > 0) && // Geofence data must be loaded
-	       (_geofence_status_sub.get().geofence_id == _mission.geofence_id) &&
-	       (_geofence_status_sub.get().status == geofence_status_s::GF_STATUS_READY);
+	       (!_navigator->get_geofence().isReadyForPathChecks() ||
+		((_geofence_status_sub.get().timestamp > 0) && // Geofence data must be loaded
+		 (_geofence_status_sub.get().geofence_id == _mission.geofence_id) &&
+		 (_geofence_status_sub.get().status == geofence_status_s::GF_STATUS_READY)));
 }
 
 void MissionBase::updateMissionAltAfterHomeChanged()
