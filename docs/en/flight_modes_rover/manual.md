@@ -22,6 +22,17 @@ The manual modes provide progressively increasing levels of autopilot support fo
 | [Position](manual.md#position-mode)             | + Maintains the course (best mode for driving a straight line).<br>+ Maintains speed against disturbances, e.g. when driving up a hill.<br>+ Allows maximum speed to be limited.                                                                    |
 | [Manual Parking](manual.md#manual-parking-mode) | Reduced throttle for precise maneuvering in tight spaces. Differential and mecanum rovers are driven tank-style, using one stick per side. Ackermann vehicles are controlled in the same way as they are in manual mode, but with reduced throttle. |
 
+### Failsafe Fallback Sequence
+If a rover loses navigation (e.g., GPS loss) while in an autonomous or semi-autonomous mode like **Position** mode, it will safely cascade down through the available manual modes to maintain as much control as possible without attempting to use unsupported multicopter modes (like Altitude).
+
+The failure cascade sequence with a manual controller available is:
+**Position -> Stabilized -> Acro -> Manual**
+
+If manual control input is not available, the fallback cascade continues to:
+**Hold -> RTL -> Disarm**
+
+*Note: If the failsafe system attempts to force the rover into an unsupported `Descend` state, the rover will safely bypass termination and automatically fall back to the action defined by the `COM_POS_FS_ACT` parameter.*
+
 ::: details Overview mode mapping to control effect
 
 | Mode                                   | Speed                                                                    | Turning                                                                                                                                                                                           | Required measurements                           |

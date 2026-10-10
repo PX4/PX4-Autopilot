@@ -45,6 +45,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/config_overrides.h>
+#include <uORB/topics/failsafe_flags.h>
 
 #include <lib/modes/ui.hpp>
 #include "UserModeIntention.hpp"
@@ -164,7 +165,7 @@ public:
 
 	void printStatus() const;
 
-	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask) const;
+	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask, const failsafe_flags_s &failsafe_flags) const;
 
 	bool currentModeAcceptsOffboardSetpoints(uint8_t nav_state) const;
 
@@ -231,9 +232,9 @@ public:
 
 	void printStatus() const {}
 
-	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask) const
+	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask, const failsafe_flags_s &failsafe_flags) const
 	{
-		valid_nav_state_mask = mode_util::getValidNavStates();
+		valid_nav_state_mask = mode_util::getValidNavStates(failsafe_flags.mode_not_supported);
 		can_set_nav_state_mask = valid_nav_state_mask & ~(1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION);
 	}
 

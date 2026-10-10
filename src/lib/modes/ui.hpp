@@ -43,29 +43,29 @@ namespace mode_util
 /**
  * @return Bitmask with all valid modes
  */
-static inline uint32_t getValidNavStates()
+static inline uint32_t getValidNavStates(uint32_t mode_not_supported = 0)
 {
-	return (1u << vehicle_status_s::NAVIGATION_STATE_MANUAL) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_ALTCTL) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_POSCTL) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_ACRO) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_OFFBOARD) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_STAB) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_DESCEND) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
+	return ((1u << vehicle_status_s::NAVIGATION_STATE_MANUAL) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_ALTCTL) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_POSCTL) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_ACRO) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_OFFBOARD) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_STAB) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_DESCEND) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_ORBIT) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)) & ~mode_not_supported;
 
 	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "update valid nav states");
 }
