@@ -1,0 +1,59 @@
+name: Zephyr
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  twister:
+    name: Twister
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          path: PX4-Autopilot
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Set up the west workspace and the Zephyr SDK
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: PX4-Autopilot
+          manifest-file-name: platforms/zephyr/west.yml
+          toolchains: arm-zephyr-eabi
+
+      - name: Run twister
+        run: west twister -T PX4-Autopilot/platforms/zephyr -p mps2/an386 --inline-logs
+
+      - name: Upload twister results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: twister-out
+          path: |
+            twister-out/twister.json
+            twister-out/**/build.log
+            twister-out/**/handler.log
+          retention-days: 7
