@@ -81,7 +81,7 @@
 #error The non-standard CRTSCTS define is incorrect. Fix this in the OS or replace with (CRTS_IFLOW | CCTS_OFLOW)
 #endif
 
-#ifdef CONFIG_NET
+#if defined(CONFIG_NET) || defined(CONFIG_NETWORKING)
 #define MAVLINK_NET_ADDED_STACK PX4_STACK_ADJUSTED(350)
 #else
 #define MAVLINK_NET_ADDED_STACK 0
@@ -1009,6 +1009,13 @@ void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 }
 
 #ifdef MAVLINK_UDP
+#if defined(__PX4_ZEPHYR)
+void Mavlink::find_broadcast_address()
+{
+	// the network interfaces cannot be listed through the socket API
+	PX4_WARN("no broadcast address");
+}
+#else
 void Mavlink::find_broadcast_address()
 {
 	struct ifconf ifconf;
@@ -1150,6 +1157,7 @@ const in_addr Mavlink::query_netmask_addr(const int socket_fd, const ifreq &ifre
 
 	return ((struct sockaddr_in *)&netmask_ifreq.ifr_addr)->sin_addr;
 }
+#endif
 
 const in_addr Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr)
 {
@@ -2353,6 +2361,8 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 int
 Mavlink::task_main(int argc, char *argv[])
 {
+#if !defined(__PX4_ZEPHYR)
+
 	// If stdin, stdout and/or stderr file descriptors (0, 1, 2)
 	// are not open when mavlink module starts (as might be the case for USB auto-start),
 	// use default /dev/null so that these numbers are not used by other other files.
@@ -2383,6 +2393,8 @@ Mavlink::task_main(int argc, char *argv[])
 			close(tmp);
 		}
 	}
+
+#endif
 
 	pthread_mutex_init(&_tstatus_mutex, nullptr);
 	pthread_mutex_init(&_radio_status_mutex, nullptr);

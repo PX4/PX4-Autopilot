@@ -70,7 +70,7 @@
 #include <lib/drivers/device/Device.hpp> // For DeviceId union
 #include <containers/LockGuard.hpp>
 
-#ifdef CONFIG_NET
+#if defined(CONFIG_NET) || defined(CONFIG_NETWORKING)
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 1360
 #else
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 0
@@ -3930,10 +3930,10 @@ MavlinkReceiver::run()
 	// poll timeout in ms. Also defines the max update frequency of the mission & param manager, etc.
 	const int timeout = 10;
 
-#if defined(__PX4_POSIX)
+#if defined(__PX4_POSIX) && !defined(__PX4_ZEPHYR)
 	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
 	uint8_t buf[1600 * 5];
-#elif defined(CONFIG_NET)
+#elif defined(CONFIG_NET) || defined(CONFIG_NETWORKING)
 	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
 	uint8_t buf[1000];
 #else
