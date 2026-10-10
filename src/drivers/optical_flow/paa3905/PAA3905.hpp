@@ -106,7 +106,7 @@ private:
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME": false motion report")};
+	perf_counter_t _false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME": frame below tracking floor")};
 	perf_counter_t _mode_change_bright_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change bright (0)")};
 	perf_counter_t _mode_change_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change low light (1)")};
 	perf_counter_t _mode_change_super_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change super low light (2)")};
@@ -118,8 +118,6 @@ private:
 	hrt_abstime _last_challenging_surface_warning{0};
 	hrt_abstime _timestamp_sample_last{0};
 
-	int16_t _delta_x_raw_prev{0};
-	int16_t _delta_y_raw_prev{0};
 	uint32_t _shutter_prev{0};
 	uint8_t _quality_prev{0};
 	uint8_t _raw_data_sum_prev{0};
@@ -131,7 +129,8 @@ private:
 	bool _motion_interrupt_enabled{false};
 
 	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_0 / 2};
-	static constexpr uint32_t kBackupScheduleIntervalUs{SAMPLE_INTERVAL_MODE_2}; // longest expected interval
+	// longer than the longest frame period, so a backup read never lands just ahead of the MOTION edge
+	static constexpr uint32_t kBackupScheduleIntervalUs{SAMPLE_INTERVAL_MODE_2 + SAMPLE_INTERVAL_MODE_2 / 4};
 
 	Mode _mode{Mode::LowLight};
 

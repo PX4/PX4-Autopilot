@@ -35,20 +35,20 @@ parameters:
     EKF2_OF_N_MIN:
       description:
         short: Optical flow minimum noise
-        long: Measurement noise for the optical flow sensor when it's reported quality
-          metric is at the maximum
+        long: Measurement noise for the optical flow sensor when reported quality
+          is at EKF2_OF_QMAX.
       type: float
-      default: 0.15
+      default: 0.2
       min: 0.05
       unit: rad/s
       decimal: 2
     EKF2_OF_N_MAX:
       description:
         short: Optical flow maximum noise
-        long: Measurement noise for the optical flow sensor when it's reported quality
-          metric is at the minimum
+        long: Measurement noise for the optical flow sensor when reported quality
+          is at EKF2_OF_QMIN.
       type: float
-      default: 0.5
+      default: 1.0
       min: 0.05
       unit: rad/s
       decimal: 2
@@ -56,10 +56,24 @@ parameters:
       description:
         short: In air optical flow minimum quality
         long: Optical Flow data will only be used in air if the sensor reports a
-          quality metric >= EKF2_OF_QMIN
+          quality metric >= EKF2_OF_QMIN. The PixArt drivers (PMW3901, PAW3902,
+          PAA3905) report raw SQUAL; below 60 the chip reports noise in every
+          lighting mode.
       type: int32
-      default: 1
+      default: 60
       min: 0
+      max: 255
+    EKF2_OF_QMAX:
+      description:
+        short: Optical flow quality at minimum noise
+        long: |-
+          Quality at which observation noise reaches EKF2_OF_N_MIN. Between
+          EKF2_OF_QMIN and this value the noise is interpolated linearly onto
+          EKF2_OF_N_MAX..EKF2_OF_N_MIN. The PixArt PAA3905's SQUAL rarely
+          exceeds 120; 255 restores the historical ramp.
+      type: int32
+      default: 120
+      min: 1
       max: 255
     EKF2_OF_QMIN_GND:
       description:

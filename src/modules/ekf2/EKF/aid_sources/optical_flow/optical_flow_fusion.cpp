@@ -162,15 +162,9 @@ float Ekf::calcOptFlowMeasVar(const flowSample &flow_sample) const
 	const float R_LOS_best = fmaxf(_params.ekf2_of_n_min, 0.05f);
 	const float R_LOS_worst = fmaxf(_params.ekf2_of_n_max, 0.05f);
 
-	// calculate a weighting that varies between 1 when flow quality is best and 0 when flow quality is worst
-	float weighting = (255.f - (float)_params.ekf2_of_qmin);
-
-	if (weighting >= 1.f) {
-		weighting = math::constrain((float)(flow_sample.quality - _params.ekf2_of_qmin) / weighting, 0.f, 1.f);
-
-	} else {
-		weighting = 0.0f;
-	}
+	const float qmin = static_cast<float>(_params.ekf2_of_qmin);
+	const float qmax = math::max(static_cast<float>(_params.ekf2_of_qmax), qmin + 1.f);
+	const float weighting = math::constrain((static_cast<float>(flow_sample.quality) - qmin) / (qmax - qmin), 0.f, 1.f);
 
 	// take the weighted average of the observation noise for the best and wort flow quality
 	const float R_LOS = sq(R_LOS_best * weighting + R_LOS_worst * (1.f - weighting));
