@@ -308,5 +308,41 @@ constexpr hrt_abstime operator ""_us(unsigned long long microseconds)
 
 } /* namespace time_literals */
 
+/** Integer frequency literals expressed in Hz, not periods; conversion to time must be explicit. */
+namespace frequency_literals
+{
+
+/**
+ * @brief Express an integer frequency in the common base unit.
+ * @param[in] hertz Frequency in Hz.
+ * @return Frequency in integer Hz.
+ */
+constexpr uint64_t operator ""_Hz(unsigned long long hertz)
+{
+	return uint64_t(hertz);
+}
+
+/**
+ * @brief Convert an integer kilohertz literal to Hz.
+ * @param[in] kilohertz Frequency in kHz; must not exceed UINT64_MAX / 1000.
+ * @return Frequency in integer Hz.
+ */
+constexpr uint64_t operator ""_kHz(unsigned long long kilohertz)
+{
+	return uint64_t(kilohertz * 1000ULL);
+}
+
+/**
+ * @brief Convert an integer megahertz literal to Hz.
+ * @param[in] megahertz Frequency in MHz; must not exceed UINT64_MAX / 1000000.
+ * @return Frequency in integer Hz.
+ */
+constexpr uint64_t operator ""_MHz(unsigned long long megahertz)
+{
+	return uint64_t(megahertz * 1000000ULL);
+}
+
+} /* namespace frequency_literals */
+
 
 #endif /* __cplusplus */

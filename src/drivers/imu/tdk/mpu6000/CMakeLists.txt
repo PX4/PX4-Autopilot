@@ -1,0 +1,16 @@
+px4_add_module(
+	MODULE drivers__imu__tdk__mpu6000
+	MAIN mpu6000
+	SRCS
+		mpu6000_main.cpp
+		TdkMpu6000.cpp
+		TdkMpu6000Initialization.cpp
+	DEPENDS
+		px4_work_queue
+		drivers_accelerometer
+		drivers_gyroscope
+)
+
+# Keep acquisition optimized for throughput; CLI, startup and configuration tables use
+# the board's default optimization level, including debug/sanitizer builds.
+set_source_files_properties(TdkMpu6000.cpp PROPERTIES COMPILE_FLAGS "${MAX_CUSTOM_OPT_LEVEL}")
