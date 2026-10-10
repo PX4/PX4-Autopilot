@@ -236,10 +236,6 @@ MissionBase::on_activation()
 		// Only replay speed changes immediately if we are not resuming the mission at the previous position item.
 		// Otherwise it must be handled in the on_active() method once we reach the previous position item.
 		replayCachedSpeedChangeItems();
-		_speed_replayed_on_activation = true;
-
-	} else {
-		_speed_replayed_on_activation = false;
 	}
 
 	checkClimbRequired(_mission.current_seq);
@@ -304,25 +300,20 @@ MissionBase::on_active()
 	}
 
 	// Replay camera mode commands immediately upon mission resume
-	if (haveCachedCameraModeItems()) {
-		replayCachedCameraModeItems();
-	}
+	replayCachedCameraModeItems();
 
 	// Replay cached gimbal commands immediately upon mission resume, but only after the vehicle has reached the final target altitude
-	if (haveCachedGimbalItems() && _work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
 		replayCachedGimbalItems();
 	}
 
-	// Replay cached trigger commands once the last mission waypoint is re-reached after the mission resume
+	// Replay cached trigger and deferred speed commands after reaching the mission's resume waypoint.
 	if (_mission.current_seq > _mission_activation_index) {
-		// replay trigger commands
 		if (cameraWasTriggering()) {
 			replayCachedTriggerItems();
 		}
-	}
 
-	if (!_speed_replayed_on_activation && _mission.current_seq > _mission_activation_index) {
-		// replay speed change items if not already done on mission (re-)activation
+		// Replaying clears the cached command, so subsequent cycles have nothing to repeat.
 		replayCachedSpeedChangeItems();
 	}
 
@@ -1494,17 +1485,6 @@ void MissionBase::resetItemCache()
 	_last_gimbal_control_item = {};
 	_last_camera_mode_item = {};
 	_last_camera_trigger_item = {};
-}
-
-bool MissionBase::haveCachedGimbalItems()
-{
-	return _last_gimbal_configure_item.nav_cmd > 0 ||
-	       _last_gimbal_control_item.nav_cmd > 0;
-}
-
-bool MissionBase::haveCachedCameraModeItems()
-{
-	return _last_camera_mode_item.nav_cmd > 0;
 }
 
 bool MissionBase::cameraWasTriggering()
