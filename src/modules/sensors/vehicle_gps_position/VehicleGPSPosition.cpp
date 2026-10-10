@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "VehicleGPSPosition.hpp"
+#include "GnssReceiverOrder.hpp"
 
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
@@ -453,21 +454,30 @@ void VehicleGPSPosition::PublishStatus()
 	sensors_status_gnss_s status{};
 	status.device_id_selected = _selected_device_id;
 
-	// An operator reads GPS_RAW_INT and GPS2_RAW as fixed receivers, so the order doesn't follow the selection: the
-	// preferred receiver first, the others as they first published. A configured preference keeps position 0 free
-	// until its receiver publishes.
-	for (int8_t &order : status.order) {
-		order = -1;
-	}
+	int8_t slot[GPS_MAX_RECEIVERS];
+	bool slot_configured[GPS_MAX_RECEIVERS];
 
-	int8_t next_order = hasConfiguredPreference() ? 1 : 0;
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		slot[i] = -1;
+		slot_configured[i] = (_gnss_param_slots[i].device_id != 0);
 
-	for (uint8_t publication = 1; publication <= _receivers_published; publication++) {
-		for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
-			if (_first_publication[i] == publication) {
-				status.order[i] = (i == _preferred_instance) ? 0 : next_order++;
+		for (int k = 0; (k < GPS_MAX_RECEIVERS) && (slot[i] < 0); k++) {
+			if ((_gnss_param_slots[k].device_id != 0) && (_gnss_param_slots[k].device_id == _receiver_device_id[i])) {
+				slot[i] = k;
 			}
 		}
+	}
+
+	int8_t order[GPS_MAX_RECEIVERS];
+	gnss_order::receiverOrder(_first_publication, slot, slot_configured, _preferred_instance, hasConfiguredPreference(),
+				  order);
+
+	for (int8_t &position : status.order) {
+		position = -1;
+	}
+
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		status.order[i] = order[i];
 	}
 
 	const hrt_abstime now = hrt_absolute_time();
