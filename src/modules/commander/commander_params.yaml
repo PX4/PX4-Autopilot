@@ -507,16 +507,37 @@ parameters:
         long: |-
           Condition to enter the prearmed state, an intermediate state between disarmed and armed
           in which non-throttling actuators are active.
+
+          0: Never prearmed.
+          1: Prearmed when safety is off (COM_SAFETY_MODE)
+          2: Always prearmed.
       type: enum
       values:
         0: Disabled
-        1: Safety button
+        1: When safety off
         2: Always
       default: 0
+    COM_SAFETY_MODE:
+      description:
+        short: Condition to turn safety off
+        long: |-
+          Condition to turn safety off. Vehicle arming is prevented for as long as safety is on.
+
+          0: Always off.
+          1: Safety can be turned off either by pressing a physical safety switch, or by sending a MAV_CMD_DO_SET_SAFETY_SWITCH_STATE command.
+          2: Safety can only be turned off by pressing a physical safety switch. MAV_CMD_DO_SET_SAFETY_SWITCH_STATE commands are rejected.
+          3: Safety can only be turned off by sending a MAV_CMD_DO_SET_SAFETY_SWITCH_STATE command. Any physical switch is ignored.
+      type: enum
+      values:
+        0: Always off
+        1: Safety switch (physical or virtual via MAVLink)
+        2: Physical safety switch only
+        3: MAVLink only
+      default: 0
+      reboot_required: true
     COM_FORCE_SAFETY:
       description:
-        short: Enable force safety
-        long: Force safety when the vehicle disarms
+        short: Re-enable safety when the vehicle disarms
       type: boolean
       default: 0
     COM_CPU_MAX:
