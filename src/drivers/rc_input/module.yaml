@@ -7,6 +7,8 @@ parameters:
                 short: RC input protocol
                 long: |
                     Select your RC input protocol or auto to scan.
+                    None disables this driver and leaves the UART available for other protocols.
+                    Also disable RC_PORT_CONFIG to release its serial port assignment.
             category: System
             type: enum
             values:
@@ -22,6 +24,7 @@ parameters:
             min: -1
             max: 7
             default: -1
+            reboot_required: true
 
 serial_config:
     - command: set RC_INPUT_ARGS "-d ${SERIAL_DEV}"
