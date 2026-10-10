@@ -55,7 +55,7 @@
 //
 // On POSIX/SITL we always use real atomics: ThreadSanitizer needs them to stay
 // clean, native 64-bit atomics are cheap there, and we don't care about the
-// overhead. On flight hardware (NuttX/QURT) these are single-writer diagnostic
+// overhead. On flight hardware (NuttX/QURT/Zephyr) these are single-writer diagnostic
 // counters, and a 64-bit atomic lowers to a locked (interrupt-disabling)
 // sequence on Cortex-M (~2x cost on this hot path). There a concurrent reader
 // can at worst observe an off-by-one torn read of a 64-bit field, which is
@@ -64,7 +64,7 @@
 // PerfVar mirrors the subset of the px4::atomic API used below so the call
 // sites are identical in both configurations; on embedded the accessors are
 // trivial and inline to bare loads/stores.
-#if defined(__PX4_POSIX) || defined(__SANITIZE_THREAD__)
+#if (defined(__PX4_POSIX) && !defined(__PX4_ZEPHYR)) || defined(__SANITIZE_THREAD__)
 template <typename T> using PerfVar = px4::atomic<T>;
 #else
 template <typename T>
