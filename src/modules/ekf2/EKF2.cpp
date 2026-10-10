@@ -1056,6 +1056,18 @@ void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_comma
 {
 	ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
+	// The source, instance and enable flag are integers carried in floats. A value the integer types cannot hold has
+	// no meaning: the casts are undefined and in practice alias a valid choice (source 256 or NaN, MAVLink's value for
+	// an unused parameter, reads as GPS, and a NaN enable flag as "disable"), so such a command is denied.
+	const bool source_valid = PX4_ISFINITE(cmd.param1) && (cmd.param1 > -1.f) && (cmd.param1 < 256.f);
+	const bool instance_valid = !PX4_ISFINITE(cmd.param2) || ((cmd.param2 > -1.f) && (cmd.param2 < 256.f));
+	const bool enable_valid = PX4_ISFINITE(cmd.param3) && (cmd.param3 > -1.f) && (cmd.param3 < 2.f);
+
+	if (!source_valid || !instance_valid || !enable_valid) {
+		ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+		return;
+	}
+
 	const uint8_t sensor_type = static_cast<uint8_t>(cmd.param1);
 	const uint8_t instance = PX4_ISFINITE(cmd.param2) ? static_cast<uint8_t>(cmd.param2) : 0;
 	const bool enable = (static_cast<int32_t>(cmd.param3) == 1);
