@@ -99,7 +99,7 @@ warning: The PWM output ports are not powered by the POWER port. The output rail
 
 **Voltage monitoring**
 
-The board has connectors for 2 power monitors.
+The board has connectors for two power monitors.
 
 - `PWR1` -- ADC
 - `PWR2` -- I2C
@@ -160,7 +160,7 @@ SD cards are used for [log files and for storing missions](../getting_started/px
 | UART4  | /dev/ttyS3 | `GPS2`             | No           |
 | UART5  | /dev/ttyS4 | `Uart5`            | No           |
 | USART6 | /dev/ttyS5 | PX4IO              | No           |
-| UART7  | /dev/ttyS6 | EXT2               | No           |
+| UART7  | /dev/ttyS6 | Debug (Reserved)   | No           |
 | UART8  | /dev/ttyS7 | `Uart8` (RC input) | No           |
 
 ## Assembly {#assembly}
