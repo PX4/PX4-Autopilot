@@ -1,0 +1,49 @@
+# Quadcopter flown by the simulator in hardware (SIH), as airframe 1100
+param set-default MAV_TYPE 2
+param set-default IMU_GYRO_RATEMAX 800
+param set-default RTL_RETURN_ALT 30
+param set-default RTL_DESCEND_ALT 10
+param set-default EKF2_RNG_FOG 1
+param set-default SYS_HITL 2
+param set-default SIH_VEHICLE_TYPE 0
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR2_PX 1
+param set-default CA_ROTOR2_PY -1
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 1
+param set-default CA_ROTOR3_KM -0.05
+param set-default HIL_ACT_FUNC1 101
+param set-default HIL_ACT_FUNC2 102
+param set-default HIL_ACT_FUNC3 103
+param set-default HIL_ACT_FUNC4 104
+param set-default CBRK_SUPPLY_CHK 894281
+param set-default COM_RC_IN_MODE 4
+ver all
+dataman start -r
+battery_simulator start
+rc_update start
+manual_control start
+sensors start -h
+simulator_sih start
+sensor_baro_sim start
+sensor_mag_sim start
+sensor_gps_sim start
+commander start -h
+pwm_out_sim start -m hil
+ekf2 start
+control_allocator start
+mc_rate_control start
+mc_att_control start
+mc_hover_thrust_estimator start
+flight_mode_manager start
+mc_pos_control start
+land_detector start multicopter
+navigator start
+# ground station on the QEMU host
+mavlink start -u 14556 -o 14550 -t 10.0.2.2 -r 400000
+mavlink boot_complete

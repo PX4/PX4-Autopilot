@@ -17,3 +17,15 @@ tests:
       regex:
         - "HW arch: ZEPHYR_GENERIC"
         - "OS: Zephyr"
+  px4.app.sih:
+    platform_allow:
+      - mps2/an386
+    integration_platforms:
+      - mps2/an386
+    extra_args:
+      - FILE_SUFFIX=sih
+    timeout: 600
+    harness: pytest
+    harness_config:
+      pytest_root:
+        - "pytest/test_sih.py"

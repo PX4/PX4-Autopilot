@@ -51,6 +51,7 @@ unset(PX4_CONFIG_FILE CACHE)
 set(PX4_GIT_SUBMODULES
 	src/lib/events/libevents
 	src/lib/heatshrink/heatshrink
+	src/modules/mavlink/mavlink
 )
 
 zephyr_include_directories(include)

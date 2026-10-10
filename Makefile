@@ -270,7 +270,7 @@ updateconfig:
 
 # Zephyr targets, built with west in a Zephyr workspace (see platforms/zephyr)
 # --------------------------------------------------------------------
-.PHONY: zephyr zephyr_qemu zephyr_tests
+.PHONY: zephyr zephyr_qemu zephyr_sih zephyr_tests
 
 ZEPHYR_BOARD ?= mps2/an386
 ZEPHYR_BUILD_DIR = $(SRC_DIR)/build/zephyr_$(subst /,_,$(ZEPHYR_BOARD))
@@ -280,6 +280,9 @@ zephyr:
 
 zephyr_qemu:
 	@west build -b mps2/an386 -d "$(SRC_DIR)/build/zephyr_mps2_an386" "$(SRC_DIR)/platforms/zephyr/app" -t run
+
+zephyr_sih:
+	@west build -b mps2/an386 -d "$(SRC_DIR)/build/zephyr_mps2_an386_sih" "$(SRC_DIR)/platforms/zephyr/app" -t run -- -DFILE_SUFFIX=sih
 
 zephyr_tests:
 	@west twister -T "$(SRC_DIR)/platforms/zephyr" -p mps2/an386 -O "$(SRC_DIR)/build/zephyr_twister"
