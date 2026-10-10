@@ -709,7 +709,8 @@ UavcanNode::Run()
 
 		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
 			PX4_ERR("Invalid Node ID %" PRId32, node_id);
-			::exit(1);
+			ScheduleClear();
+			return;
 		}
 
 		// CAN bitrate
