@@ -34,9 +34,6 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/micro_hal.h>
 #include <px4_platform_common/log.h>
-#include <imxrt_flexio.h>
-#include <hardware/imxrt_flexio.h>
-#include <imxrt_periphclks.h>
 #include <px4_arch/dshot.h>
 #include <px4_arch/io_timer.h>
 #include <drivers/drv_dshot.h>
@@ -46,16 +43,42 @@
 
 #include "arm_internal.h"
 
+/* FlexIO DShot / bidirectional DShot driver shared by i.MX RT and i.MX9 */
+
+#if defined(CONFIG_ARCH_CHIP_IMXRT)
+#include <imxrt_flexio.h>
+#include <imxrt_periphclks.h>
+
+#if defined(IOMUX_PULL_UP_47K)
+#define IOMUX_PULL_UP IOMUX_PULL_UP_47K
+#endif
+
 #define FLEXIO_BASE			IMXRT_FLEXIO1_BASE
+#define FLEXIO_OFFSET(reg)		IMXRT_FLEXIO_##reg##_OFFSET
+#define FLEXIO_IRQ			IMXRT_IRQ_FLEXIO1
+
+static inline void flexio_clock_enable(void) { imxrt_clockall_flexio1(); }
+static inline void dshot_pin_config(const dshot_conf_t *conf) { imxrt_config_gpio(conf->pinmux | IOMUX_PULL_UP); }
+static inline bool dshot_pin_unused(const dshot_conf_t *conf) { return conf->pinmux == 0; }
+#else /* i.MX9 */
+#include <imx9_flexio.h>
+#include <imx9_clockconfig.h>
+
+#define FLEXIO_BASE			IMX9_FLEXIO1_BASE
+#define FLEXIO_OFFSET(reg)		IMX9_FLEXIO_##reg##_OFFSET
+#define FLEXIO_IRQ			IMX9_IRQ_FLEXIO1
+
+static inline void flexio_clock_enable(void) { imx9_configure_clock(FLEXIO1_CLK_ROOT_SYS_PLL1_DFS1_DIV2_CLK | CLOCK_DIV(3), true); }
+static inline void dshot_pin_config(const dshot_conf_t *conf) { imx9_iomux_configure(conf->pinmux); }
+/* Pad control registers never sit at offset 0, so a zero padregoff marks an unset pinmux */
+static inline bool dshot_pin_unused(const dshot_conf_t *conf) { return conf->pinmux.padcfg.padregoff == 0; }
+#endif
+
 #define DSHOT_TIMERS			FLEXIO_SHIFTBUFNIS_COUNT
 #define DSHOT_THROTTLE_POSITION		5u
 #define DSHOT_TELEMETRY_POSITION	4u
 #define NIBBLES_SIZE 			4u
 #define DSHOT_NUMBER_OF_NIBBLES		3u
-
-#if defined(IOMUX_PULL_UP_47K)
-#define IOMUX_PULL_UP IOMUX_PULL_UP_47K
-#endif
 
 static const uint32_t gcr_decode[32] = {
 	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
@@ -142,42 +165,42 @@ static inline void flexio_putreg32(uint32_t value, uint32_t offset)
 
 static inline void enable_shifter_status_interrupts(uint32_t mask)
 {
-	flexio_modifyreg32(IMXRT_FLEXIO_SHIFTSIEN_OFFSET, 0, mask);
+	flexio_modifyreg32(FLEXIO_OFFSET(SHIFTSIEN), 0, mask);
 }
 
 static inline void disable_shifter_status_interrupts(uint32_t mask)
 {
-	flexio_modifyreg32(IMXRT_FLEXIO_SHIFTSIEN_OFFSET, mask, 0);
+	flexio_modifyreg32(FLEXIO_OFFSET(SHIFTSIEN), mask, 0);
 }
 
 static inline uint32_t get_shifter_status_flags(void)
 {
-	return flexio_getreg32(IMXRT_FLEXIO_SHIFTSTAT_OFFSET);
+	return flexio_getreg32(FLEXIO_OFFSET(SHIFTSTAT));
 }
 
 static inline void clear_shifter_status_flags(uint32_t mask)
 {
-	flexio_putreg32(mask, IMXRT_FLEXIO_SHIFTSTAT_OFFSET);
+	flexio_putreg32(mask, FLEXIO_OFFSET(SHIFTSTAT));
 }
 
 static inline void enable_timer_status_interrupts(uint32_t mask)
 {
-	flexio_modifyreg32(IMXRT_FLEXIO_TIMIEN_OFFSET, 0, mask);
+	flexio_modifyreg32(FLEXIO_OFFSET(TIMIEN), 0, mask);
 }
 
 static inline void disable_timer_status_interrupts(uint32_t mask)
 {
-	flexio_modifyreg32(IMXRT_FLEXIO_TIMIEN_OFFSET, mask, 0);
+	flexio_modifyreg32(FLEXIO_OFFSET(TIMIEN), mask, 0);
 }
 
 static inline uint32_t get_timer_status_flags(void)
 {
-	return flexio_getreg32(IMXRT_FLEXIO_TIMSTAT_OFFSET);
+	return flexio_getreg32(FLEXIO_OFFSET(TIMSTAT));
 }
 
 static inline void clear_timer_status_flags(uint32_t mask)
 {
-	flexio_putreg32(mask, IMXRT_FLEXIO_TIMSTAT_OFFSET);
+	flexio_putreg32(mask, FLEXIO_OFFSET(TIMSTAT));
 }
 
 static inline void flexio_dshot_set_tcmp(uint32_t channel)
@@ -194,17 +217,17 @@ static void flexio_dshot_output(uint32_t channel)
 	bool inverted = dshot_inst[channel].bdshot;
 
 	/* Disable timer, TIMCFG and TIMCMP may only be written while it is disabled */
-	flexio_putreg32(0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
+	flexio_putreg32(0, FLEXIO_OFFSET(TIMCTL0) + channel * 0x4);
 
 	/* Disable Shifter */
-	flexio_putreg32(0, IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
+	flexio_putreg32(0, FLEXIO_OFFSET(SHIFTCTL0) + channel * 0x4);
 
 	/* No start bit, stop bit low */
 	flexio_putreg32(FLEXIO_SHIFTCFG_INSRC(FLEXIO_SHIFTER_INPUT_FROM_PIN) |
 			FLEXIO_SHIFTCFG_PWIDTH(0) |
 			FLEXIO_SHIFTCFG_SSTOP(FLEXIO_SHIFTER_STOP_BIT_LOW) |
 			FLEXIO_SHIFTCFG_SSTART(FLEXIO_SHIFTER_START_BIT_DISABLED_LOAD_DATA_ON_ENABLE),
-			IMXRT_FLEXIO_SHIFTCFG0_OFFSET + channel * 0x4);
+			FLEXIO_OFFSET(SHIFTCFG0) + channel * 0x4);
 
 	/* Transmit mode, output to FXIO pin, inverted output for bdshot */
 	flexio_putreg32(FLEXIO_SHIFTCTL_TIMSEL(channel) |
@@ -213,7 +236,7 @@ static void flexio_dshot_output(uint32_t channel)
 			FLEXIO_SHIFTCTL_PINSEL(pin) |
 			FLEXIO_SHIFTCTL_PINPOL(inverted) |
 			FLEXIO_SHIFTCTL_SMOD(FLEXIO_SHIFTER_MODE_TRANSMIT),
-			IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
+			FLEXIO_OFFSET(SHIFTCTL0) + channel * 0x4);
 
 	/* Start transmitting on trigger, disable on compare */
 	flexio_putreg32(FLEXIO_TIMCFG_TIMOUT(FLEXIO_TIMER_OUTPUT_ONE_NOT_AFFECTED_BY_RESET) |
@@ -223,9 +246,9 @@ static void flexio_dshot_output(uint32_t channel)
 			FLEXIO_TIMCFG_TIMENA(FLEXIO_TIMER_ENABLE_ON_TRIGGER_HIGH) |
 			FLEXIO_TIMCFG_TSTOP(FLEXIO_TIMER_STOP_BIT_DISABLED) |
 			FLEXIO_TIMCFG_TSTART(FLEXIO_TIMER_START_BIT_DISABLED),
-			IMXRT_FLEXIO_TIMCFG0_OFFSET + channel * 0x4);
+			FLEXIO_OFFSET(TIMCFG0) + channel * 0x4);
 
-	flexio_putreg32(dshot_tcmp, IMXRT_FLEXIO_TIMCMP0_OFFSET + channel * 0x4);
+	flexio_putreg32(dshot_tcmp, FLEXIO_OFFSET(TIMCMP0) + channel * 0x4);
 
 	/* Baud mode, Trigger on shifter write */
 	flexio_putreg32(FLEXIO_TIMCTL_TRGSEL((4 * channel) + 1) |
@@ -235,7 +258,7 @@ static void flexio_dshot_output(uint32_t channel)
 			FLEXIO_TIMCTL_PINSEL(0) |
 			FLEXIO_TIMCTL_PINPOL(FLEXIO_PIN_ACTIVE_LOW) |
 			FLEXIO_TIMCTL_TIMOD(FLEXIO_TIMER_MODE_DUAL8_BIT_BAUD_BIT),
-			IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
+			FLEXIO_OFFSET(TIMCTL0) + channel * 0x4);
 }
 
 // Shifter receives from the FXIO pin. The timer is enabled by the first edge of the response and
@@ -245,14 +268,14 @@ static void flexio_dshot_receive(uint32_t channel)
 	uint32_t pin = timer_io_channels[channel].dshot.flexio_pin;
 
 	/* Transmit done, disable timer and reconfigure to receive */
-	flexio_putreg32(0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
+	flexio_putreg32(0, FLEXIO_OFFSET(TIMCTL0) + channel * 0x4);
 
 	/* Input data from pin, no start/stop bit */
 	flexio_putreg32(FLEXIO_SHIFTCFG_INSRC(FLEXIO_SHIFTER_INPUT_FROM_PIN) |
 			FLEXIO_SHIFTCFG_PWIDTH(0) |
 			FLEXIO_SHIFTCFG_SSTOP(FLEXIO_SHIFTER_STOP_BIT_DISABLE) |
 			FLEXIO_SHIFTCFG_SSTART(FLEXIO_SHIFTER_START_BIT_DISABLED_LOAD_DATA_ON_SHIFT),
-			IMXRT_FLEXIO_SHIFTCFG0_OFFSET + channel * 0x4);
+			FLEXIO_OFFSET(SHIFTCFG0) + channel * 0x4);
 
 	/* Shifter receive mode, on FXIO pin input */
 	flexio_putreg32(FLEXIO_SHIFTCTL_TIMSEL(channel) |
@@ -261,7 +284,7 @@ static void flexio_dshot_receive(uint32_t channel)
 			FLEXIO_SHIFTCTL_PINSEL(pin) |
 			FLEXIO_SHIFTCTL_PINPOL(FLEXIO_PIN_ACTIVE_LOW) |
 			FLEXIO_SHIFTCTL_SMOD(FLEXIO_SHIFTER_MODE_RECEIVE),
-			IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
+			FLEXIO_OFFSET(SHIFTCTL0) + channel * 0x4);
 
 	/* Make sure there are no shifter flags high from transmission, they would read as a completed frame */
 	clear_shifter_status_flags(1u << channel);
@@ -274,9 +297,9 @@ static void flexio_dshot_receive(uint32_t channel)
 			FLEXIO_TIMCFG_TIMENA(FLEXIO_TIMER_ENABLE_ON_TRIGGER_BOTH_EDGE) |
 			FLEXIO_TIMCFG_TSTOP(FLEXIO_TIMER_STOP_BIT_ENABLE_ON_TIMER_DISABLE) |
 			FLEXIO_TIMCFG_TSTART(FLEXIO_TIMER_START_BIT_ENABLED),
-			IMXRT_FLEXIO_TIMCFG0_OFFSET + channel * 0x4);
+			FLEXIO_OFFSET(TIMCFG0) + channel * 0x4);
 
-	flexio_putreg32(dshot_inst[channel].bdshot_tcmp, IMXRT_FLEXIO_TIMCMP0_OFFSET + channel * 0x4);
+	flexio_putreg32(dshot_inst[channel].bdshot_tcmp, FLEXIO_OFFSET(TIMCMP0) + channel * 0x4);
 
 	/* Trigger on FXIO pin transition, Baud mode. The timer pin is the channel pin so TIMRST
 	 * resynchronizes the baud counter on every falling edge of the response; a baud-mode reset
@@ -288,20 +311,20 @@ static void flexio_dshot_receive(uint32_t channel)
 			FLEXIO_TIMCTL_PINSEL(pin) |
 			FLEXIO_TIMCTL_PINPOL(FLEXIO_PIN_ACTIVE_LOW) |
 			FLEXIO_TIMCTL_TIMOD(FLEXIO_TIMER_MODE_DUAL8_BIT_BAUD_BIT),
-			IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
+			FLEXIO_OFFSET(TIMCTL0) + channel * 0x4);
 }
 
 // The shifter has loaded a full 21-bit frame into its buffer. Reading it clears the status flag.
 static void bdshot_latch_response(uint32_t channel)
 {
-	dshot_inst[channel].raw_response = flexio_getreg32(IMXRT_FLEXIO_SHIFTBUFBIS0_OFFSET + channel * 0x4);
+	dshot_inst[channel].raw_response = flexio_getreg32(FLEXIO_OFFSET(SHIFTBUFBIS0) + channel * 0x4);
 	dshot_inst[channel].state = BDSHOT_RECEIVE_COMPLETE;
 }
 
 static int flexio_irq_handler(int irq, void *context, void *arg)
 {
 	// A status flag whose interrupt is masked belongs to a phase that already completed
-	uint32_t pending = get_shifter_status_flags() & flexio_getreg32(IMXRT_FLEXIO_SHIFTSIEN_OFFSET);
+	uint32_t pending = get_shifter_status_flags() & flexio_getreg32(FLEXIO_OFFSET(SHIFTSIEN));
 
 	for (uint32_t channel = 0; pending != 0 && channel < DSHOT_TIMERS; channel++) {
 		uint32_t bit = 1u << channel;
@@ -318,14 +341,14 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 
 		if (ch->state == DSHOT_START) {
 			ch->state = DSHOT_12BIT_FIFO;
-			flexio_putreg32(ch->irq_data, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
+			flexio_putreg32(ch->irq_data, FLEXIO_OFFSET(SHIFTBUF0) + channel * 0x4);
 
 		} else if (ch->state == BDSHOT_RECEIVE) {
 			bdshot_latch_response(channel);
 		}
 	}
 
-	pending = get_timer_status_flags() & flexio_getreg32(IMXRT_FLEXIO_TIMIEN_OFFSET);
+	pending = get_timer_status_flags() & flexio_getreg32(FLEXIO_OFFSET(TIMIEN));
 
 	for (uint32_t channel = 0; pending != 0 && channel < DSHOT_TIMERS; channel++) {
 		uint32_t bit = 1u << channel;
@@ -590,11 +613,11 @@ static void bdshot_process_response(uint32_t channel)
 int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned dshot_pwm_freq, bool edt_enable)
 {
 	/* Clock FlexIO peripheral */
-	imxrt_clockall_flexio1();
+	flexio_clock_enable();
 
 	/* Reset FlexIO peripheral, before the driver state so a stale IRQ has nothing to service */
-	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET, 0, FLEXIO_CTRL_SWRST_MASK);
-	flexio_putreg32(0, IMXRT_FLEXIO_CTRL_OFFSET);
+	flexio_modifyreg32(FLEXIO_OFFSET(CTRL), 0, FLEXIO_CTRL_SWRST_MASK);
+	flexio_putreg32(0, FLEXIO_OFFSET(CTRL));
 
 	memset((void *)dshot_inst, 0, sizeof(dshot_inst));
 	bdshot_ready_mask = 0;
@@ -609,7 +632,7 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 	_bdshot_busy_us = (16u * 1000000u) / dshot_pwm_freq + 30u + (21u * 4u * 1000000u) / (5u * dshot_pwm_freq) + 50u;
 
 	/* Initialize FlexIO peripheral */
-	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET,
+	flexio_modifyreg32(FLEXIO_OFFSET(CTRL),
 			   (FLEXIO_CTRL_DOZEN_MASK |
 			    FLEXIO_CTRL_DBGE_MASK |
 			    FLEXIO_CTRL_FASTACC_MASK |
@@ -619,8 +642,8 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 			    FLEXIO_CTRL_FLEXEN(0)));
 
 	/* FlexIO IRQ handling */
-	irq_attach(IMXRT_IRQ_FLEXIO1, flexio_irq_handler, 0);
-	up_enable_irq(IMXRT_IRQ_FLEXIO1);
+	irq_attach(FLEXIO_IRQ, flexio_irq_handler, 0);
+	up_enable_irq(FLEXIO_IRQ);
 
 	uint32_t dshot_mask = 0;
 
@@ -632,7 +655,7 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 		}
 
 		// board does not configure dshot on this pin
-		if (channel >= DSHOT_TIMERS || timer_io_channels[channel].dshot.pinmux == 0) {
+		if (channel >= DSHOT_TIMERS || dshot_pin_unused(&timer_io_channels[channel].dshot)) {
 			// Cannot capture, so it must never hold up DShot.cpp's all-channels-ready wait
 			bdshot_ready_mask |= bit & bdshot_channel_mask;
 			PX4_WARN("no FlexIO DShot on output %u", channel);
@@ -641,7 +664,7 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 
 		volatile dshot_channel_t *ch = &dshot_inst[channel];
 
-		imxrt_config_gpio(timer_io_channels[channel].dshot.pinmux | IOMUX_PULL_UP);
+		dshot_pin_config(&timer_io_channels[channel].dshot);
 
 		ch->bdshot = (bdshot_channel_mask & bit) != 0;
 
@@ -657,7 +680,7 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 		dshot_mask |= bit;
 	}
 
-	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET, 0, FLEXIO_CTRL_FLEXEN_MASK);
+	flexio_modifyreg32(FLEXIO_OFFSET(CTRL), 0, FLEXIO_CTRL_FLEXEN_MASK);
 
 	return dshot_mask;
 }
@@ -822,7 +845,7 @@ void up_dshot_trigger(void)
 		if (tx_mask & (1u << channel)) {
 			dshot_inst[channel].state = DSHOT_START;
 			dshot_inst[channel].tx_started = now;
-			flexio_putreg32(dshot_inst[channel].data_seg1, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
+			flexio_putreg32(dshot_inst[channel].data_seg1, FLEXIO_OFFSET(SHIFTBUF0) + channel * 0x4);
 		}
 	}
 
@@ -909,8 +932,8 @@ int up_dshot_arm(bool armed)
 
 		for (uint32_t channel = 0; channel < DSHOT_TIMERS; channel++) {
 			if (mask & (1u << channel)) {
-				flexio_putreg32(0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
-				flexio_putreg32(0, IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
+				flexio_putreg32(0, FLEXIO_OFFSET(TIMCTL0) + channel * 0x4);
+				flexio_putreg32(0, FLEXIO_OFFSET(SHIFTCTL0) + channel * 0x4);
 			}
 		}
 

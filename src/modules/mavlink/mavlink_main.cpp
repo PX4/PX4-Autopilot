@@ -782,6 +782,15 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CON
 	cfmakeraw(&uart_config);
 #endif
 
+	if (_raw_mode) {
+		/* no input/output processing, 8N1, no modem control; keep the baud rate */
+		memset(&uart_config, 0, sizeof(uart_config));
+		uart_config.c_cflag = CS8 | CREAD | CLOCAL;
+		uart_config.c_cc[VMIN] = 1;
+		cfsetispeed(&uart_config, speed);
+		cfsetospeed(&uart_config, speed);
+	}
+
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
 		PX4_WARN("ERR SET CONF %s\n", uart_name);
 		::close(_uart_fd);
@@ -2366,7 +2375,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:F:fswxzZp", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:F:fswxzZpa", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
@@ -2598,6 +2607,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'Z':
 			_flow_control = FLOW_CONTROL_OFF;
+			break;
+
+		case 'a':
+			_raw_mode = true;
 			break;
 
 		default:
@@ -3952,6 +3965,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('z', "Force hardware flow control always on", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('Z', "Force hardware flow control always off", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "UART Raw mode", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
 

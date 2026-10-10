@@ -375,10 +375,8 @@ if(EXISTS ${BOARD_DEFCONFIG})
 		set(config_romfs_root ${ROMFSROOT} CACHE INTERNAL "ROMFS root" FORCE)
 	endif()
 
-	# ADDITIONAL INIT
-	if(ADDITIONAL_INIT)
-		set(config_additional_init ${ADDITIONAL_INIT} CACHE INTERNAL "additional init" FORCE)
-	endif()
+	# ADDITIONAL INIT (set unconditionally so clearing the option takes effect in an existing build)
+	set(config_additional_init "${ADDITIONAL_INIT}" CACHE INTERNAL "additional init" FORCE)
 
 	if(UAVCAN_INTERFACES)
 		set(config_uavcan_num_ifaces ${UAVCAN_INTERFACES} CACHE INTERNAL "UAVCAN interfaces" FORCE)

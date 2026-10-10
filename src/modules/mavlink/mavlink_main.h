@@ -623,6 +623,7 @@ private:
 	bool			_udp_initialised{false};
 
 	FLOW_CONTROL_MODE	_flow_control_mode{Mavlink::FLOW_CONTROL_OFF};
+	bool			_raw_mode{false};
 
 	uint64_t		_last_write_success_time{0};
 	uint64_t		_last_write_try_time{0};
