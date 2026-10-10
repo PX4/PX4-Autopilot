@@ -187,7 +187,7 @@ private:
 	float _delta_vel_dt{};			// duration of delta velocity integration (s)
 
 	// output predictor states
-	matrix::Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
+	matrix::Vector3f _delta_angle_corr_earth{};	///< delta angle correction vector, earth frame (rad)
 	matrix::Vector3f _vel_err_integ{};	///< integral of velocity tracking error (m)
 	matrix::Vector3f _pos_err_integ{};	///< integral of position tracking error (m.s)
 
