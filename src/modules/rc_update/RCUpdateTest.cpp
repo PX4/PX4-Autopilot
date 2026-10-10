@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+#include <cstdint>
 #include "rc_update.h"
 
 using namespace rc_update;
@@ -178,6 +179,34 @@ TEST_F(RCUpdateTest, ModeSlotUnassigned)
 	// THEN: we receive no mode slot
 	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	EXPECT_EQ(manual_control_switches_sub.get().mode_slot, 0); // manual_control_switches_s::MODE_SLOT_NONE
+}
+
+TEST_F(RCUpdateTest, ModeSlotChannelOutOfRange)
+{
+	// GIVEN: a mode switch channel mapped beyond the available channel count
+	_param_rc_map_fltmode.set(99);
+	_param_rc_map_fltmode.commit();
+	_rc_update.updateParams();
+
+	// WHEN: we update the switches two times to pass the simple outlier protection
+	_rc_update.UpdateManualSwitches(0);
+	_rc_update.UpdateManualSwitches(0);
+
+	// THEN: the out-of-range mapping is ignored (no out-of-bounds channel access)
+	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
+	EXPECT_EQ(manual_control_switches_sub.get().mode_slot, 0); // manual_control_switches_s::MODE_SLOT_NONE
+}
+
+TEST(RCUpdateParamConversionTest, FloatToInt32RoundsAndClamps)
+{
+	// Nominal values round to the nearest integer instead of storing raw float bytes
+	EXPECT_EQ(float_to_param_int32(2.f), 2);
+	EXPECT_EQ(float_to_param_int32(2.6f), 3);
+	EXPECT_EQ(float_to_param_int32(-3.4f), -3);
+
+	// Out-of-range values are clamped into the representable INT32 range (no UB)
+	EXPECT_EQ(float_to_param_int32(1e20f), 2147483520);
+	EXPECT_EQ(float_to_param_int32(-1e20f), INT32_MIN);
 }
 
 TEST_F(RCUpdateTest, ModeSlotSwitchAllValues)
