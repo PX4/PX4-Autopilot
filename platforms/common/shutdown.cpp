@@ -317,6 +317,14 @@ static void shutdown_worker(void *arg)
 #if defined(CONFIG_BOARDCTL_RESET)
 int px4_reboot_request(reboot_request_t request, uint32_t delay_us)
 {
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+
+	// SITL can restart the process, but has no bootloader.
+	if (request != REBOOT_REQUEST) {
+		return -ENOTSUP;
+	}
+
+#endif
 	int ret;
 
 	ret = pthread_mutex_lock(&shutdown_mutex);
