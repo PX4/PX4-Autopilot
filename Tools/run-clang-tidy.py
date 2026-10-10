@@ -65,7 +65,7 @@ def find_compilation_database(path):
 
 
 def get_tidy_invocation(f, clang_tidy_binary, checks, tmpdir, build_path,
-                        header_filter, extra_arg, extra_arg_before):
+                        header_filter, extra_arg, extra_arg_before, db_dir):
   """Gets a command line for clang-tidy."""
   start = [clang_tidy_binary]
   if header_filter is not None:
@@ -86,7 +86,7 @@ def get_tidy_invocation(f, clang_tidy_binary, checks, tmpdir, build_path,
       start.append('-extra-arg=%s' % arg)
   for arg in extra_arg_before:
       start.append('-extra-arg-before=%s' % arg)
-  start.append('-p=' + build_path)
+  start.append('-p=' + db_dir)
   start.append(f)
   return start
 
@@ -101,13 +101,14 @@ def apply_fixes(args, tmpdir):
   shutil.rmtree(tmpdir)
 
 
-def run_tidy(args, tmpdir, build_path, queue):
+def run_tidy(args, tmpdir, build_path, db_dir, queue):
   """Takes filenames out of queue and runs clang-tidy on them."""
   while True:
     name = queue.get()
     invocation = get_tidy_invocation(name, args.clang_tidy_binary, args.checks,
                                      tmpdir, build_path, args.header_filter,
-                                     args.extra_arg, args.extra_arg_before)
+                                     args.extra_arg, args.extra_arg_before,
+                                     db_dir)
 
     try:
       subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
@@ -182,7 +183,23 @@ def main():
 
   # Load the database and extract all files.
   database = json.load(open(os.path.join(build_path, db_path)))
-  files = [entry['file'] for entry in database]
+
+  # Keep one compile command per source file. A file built into several
+  # targets (eg ekf2 sources: modules__ekf2 and the ecl_EKF library) is
+  # otherwise analysed once per target inside a single clang-tidy process.
+  seen = set()
+  unique_entries = []
+  for entry in database:
+    if entry['file'] not in seen:
+      seen.add(entry['file'])
+      unique_entries.append(entry)
+
+  files = [entry['file'] for entry in unique_entries]
+
+  # clang-tidy reads the database itself, so hand it the deduplicated copy
+  db_dir = tempfile.mkdtemp()
+  with open(os.path.join(db_dir, db_path), 'w') as db_file:
+    json.dump(unique_entries, db_file)
 
   max_task = args.j
   if max_task == 0:
@@ -201,7 +218,7 @@ def main():
     queue = Queue.Queue(max_task)
     for _ in range(max_task):
       t = threading.Thread(target=run_tidy,
-                           args=(args, tmpdir, build_path, queue))
+                           args=(args, tmpdir, build_path, db_dir, queue))
       t.daemon = True
       t.start()
 
@@ -221,11 +238,14 @@ def main():
     print('\nCtrl-C detected, goodbye.')
     if args.fix:
       shutil.rmtree(tmpdir)
+    shutil.rmtree(db_dir)
     os.kill(0, 9)
 
   if args.fix:
     print('Applying fixes ...')
     apply_fixes(args, tmpdir)
+
+  shutil.rmtree(db_dir)
 
   global tidy_failures
   if tidy_failures > 0:
