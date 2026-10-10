@@ -89,6 +89,8 @@
 #define MAX_DATA_RATE                  10000000        ///< max data rate in bytes/s
 #define MAIN_LOOP_DELAY                10000           ///< 100 Hz @ 1000 bytes/s data rate
 
+static constexpr hrt_abstime MAVLINK_SIGNING_CHECKPOINT_INTERVAL = 60_s;
+
 static pthread_mutex_t mavlink_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t mavlink_event_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<int> mavlink_instance_count {0};
@@ -1226,7 +1228,9 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 			return;
 		}
 
-		MavlinkSignControl::SetupSigningResult result = _sign_control.check_for_signing(msg);
+		lock_send();
+		const MavlinkSignControl::SetupSigningResult result = _sign_control.check_for_signing(msg);
+		unlock_send();
 
 		switch (result) {
 		case MavlinkSignControl::KEY_ACCEPTED:
@@ -1239,6 +1243,10 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 
 		case MavlinkSignControl::BLANK_KEY_REJECTED:
 			send_statustext_critical("MAVLink signing: blank key rejected");
+			break;
+
+		case MavlinkSignControl::STORAGE_ERROR:
+			send_statustext_critical("MAVLink signing: key storage failed");
 			break;
 
 		default:
@@ -2792,6 +2800,22 @@ Mavlink::task_main(int argc, char *argv[])
 	while (!should_exit()) {
 		/* main loop */
 		px4_usleep(_main_loop_delay);
+		const hrt_abstime t = hrt_absolute_time();
+
+		if (t - _last_signing_checkpoint >= MAVLINK_SIGNING_CHECKPOINT_INTERVAL) {
+			MavlinkSigningStorage::State signing_state{};
+
+			lock_send();
+			const bool signing_active = _sign_control.prepare_checkpoint(signing_state);
+			unlock_send();
+
+			if (signing_active
+			    && _sign_control.checkpoint(signing_state) == MavlinkSigningStorage::Result::IoError) {
+				PX4_WARN("failed checkpointing mavlink signing timestamp: %s (%i)", MAVLINK_SECRET_FILE, errno);
+			}
+
+			_last_signing_checkpoint = t;
+		}
 
 		if (!should_transmit()) {
 			check_requested_subscriptions();
@@ -2803,8 +2827,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 		perf_count(_loop_interval_perf);
 		perf_begin(_loop_perf);
-
-		const hrt_abstime t = hrt_absolute_time();
 
 		update_rate_mult();
 

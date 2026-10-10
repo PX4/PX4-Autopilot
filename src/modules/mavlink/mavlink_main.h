@@ -627,6 +627,7 @@ private:
 	uint64_t		_last_write_success_time{0};
 	uint64_t		_last_write_try_time{0};
 	uint64_t		_mavlink_start_time{0};
+	hrt_abstime		_last_signing_checkpoint{0};
 	// Touched by both the main mavlink thread (mavlink_update_parameters)
 	// and the receiver thread (auto-upgrade to v2 on first incoming v2 packet).
 	// Atomic so concurrent reads/writes are race-free without taking lock_send().
