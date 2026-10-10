@@ -88,6 +88,7 @@ private:
 
 	inline void UpdateAccelVibrationMetrics(const matrix::Vector3f &acceleration);
 	inline void UpdateGyroVibrationMetrics(const matrix::Vector3f &angular_velocity);
+	inline void UpdateAccelImpactMetric(const matrix::Vector3f &delta_velocity, uint32_t dt_us);
 
 	void SensorCalibrationUpdate();
 	void SensorCalibrationSaveAccel();
@@ -149,6 +150,21 @@ private:
 
 	matrix::Vector3f _acceleration_prev{};     // acceleration from the previous IMU measurement for vibration metrics
 	matrix::Vector3f _angular_velocity_prev{}; // angular velocity from the previous IMU measurement for vibration metrics
+
+	// Impact metric: sliding window sum of the integrated delta velocity covering ~kAccelImpactWindowUs
+	static constexpr uint32_t kAccelImpactWindowUs{20000};
+	static constexpr uint8_t kAccelImpactBufferSize{20}; // enough for IMU_INTEG_RATE up to 1000 Hz
+
+	struct DeltaVelocitySample {
+		matrix::Vector3f delta_velocity{};
+		uint32_t dt_us{0};
+	};
+
+	DeltaVelocitySample _accel_impact_buffer[kAccelImpactBufferSize] {};
+	matrix::Vector3f _accel_impact_dv_sum{};
+	uint32_t _accel_impact_dt_sum{0};
+	uint8_t _accel_impact_samples{0};
+	uint8_t _accel_impact_index{0};
 
 	vehicle_imu_status_s _status{};
 
