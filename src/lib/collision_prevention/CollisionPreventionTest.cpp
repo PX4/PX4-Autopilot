@@ -886,6 +886,37 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_attitude)
 	}
 }
 
+TEST_F(CollisionPreventionTest, addObstacleSensorData_bodyframe_fine_increment)
+{
+	// GIVEN: a body-frame obstacle message at a 1 degree increment: its 72 distances cover 0 to 72 degrees
+	TestCollisionPrevention cp;
+	obstacle_distance_s obstacle_msg {};
+	obstacle_msg.frame = obstacle_msg.MAV_FRAME_BODY_FRD;
+	obstacle_msg.increment = 1.f;
+	obstacle_msg.min_distance = 20;
+	obstacle_msg.max_distance = 2000;
+	obstacle_msg.angle_offset = 0.f;
+
+	for (int i = 0; i < static_cast<int>(sizeof(obstacle_msg.distances) / sizeof(obstacle_msg.distances[0])); i++) {
+		obstacle_msg.distances[i] = 500;
+	}
+
+	// WHEN: we add the obstacle data
+	cp.test_addObstacleSensorData(obstacle_msg, 0.f);
+
+	// THEN: only the bins the 72 distances cover are filled; 360 / increment = 360 elements must not be read
+	int distances_array_size = sizeof(cp.getObstacleMap().distances) / sizeof(cp.getObstacleMap().distances[0]);
+
+	for (int i = 0; i < distances_array_size; i++) {
+		if (i <= 14) {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 500) << i;
+
+		} else {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX) << i;
+		}
+	}
+}
+
 TEST_F(CollisionPreventionTest, addObstacleSensorData_offset_bodyframe)
 {
 	// GIVEN: a vehicle attitude and obstacle distance message
