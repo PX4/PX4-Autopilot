@@ -35,14 +35,23 @@
 #include <px4_daemon/server_io.h>
 
 #include <sys/boardctl.h>
+#include <sys/statfs.h>
+#include <sys/termios.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <zephyr/fs/fs.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/reboot.h>
+
+#if defined(CONFIG_NET_SOCKETS)
+#include <arpa/inet.h>
+#endif
 
 __BEGIN_DECLS
 
@@ -55,6 +64,96 @@ int boardctl(unsigned int cmd, uintptr_t arg)
 	}
 
 	return -ENOTSUP;
+}
+
+// only the existence of the file is checked
+int access(const char *pathname, int mode)
+{
+	struct stat st;
+	return stat(pathname, &st);
+}
+
+int truncate(const char *path, off_t length)
+{
+	const int fd = open(path, O_WRONLY);
+
+	if (fd < 0) {
+		return -1;
+	}
+
+	const int ret = ftruncate(fd, length);
+	close(fd);
+	return ret;
+}
+
+#if defined(CONFIG_NET_SOCKETS)
+int inet_aton(const char *cp, struct in_addr *inp)
+{
+	return inet_pton(AF_INET, cp, inp) == 1;
+}
+#endif
+
+int statfs(const char *path, struct statfs *buf)
+{
+	struct fs_statvfs stat;
+	const int ret = fs_statvfs(path, &stat);
+
+	if (ret != 0) {
+		errno = -ret;
+		return -1;
+	}
+
+	buf->f_bsize = stat.f_frsize;
+	buf->f_blocks = stat.f_blocks;
+	buf->f_bfree = stat.f_bfree;
+	buf->f_bavail = stat.f_bfree;
+	return 0;
+}
+
+speed_t cfgetispeed(const struct termios *termios_p)
+{
+	return termios_p->c_ispeed;
+}
+
+speed_t cfgetospeed(const struct termios *termios_p)
+{
+	return termios_p->c_ospeed;
+}
+
+int cfsetispeed(struct termios *termios_p, speed_t speed)
+{
+	termios_p->c_ispeed = speed;
+	return 0;
+}
+
+int cfsetospeed(struct termios *termios_p, speed_t speed)
+{
+	termios_p->c_ospeed = speed;
+	return 0;
+}
+
+int tcdrain(int fd)
+{
+	errno = ENOTTY;
+	return -1;
+}
+
+int tcflush(int fd, int queue_selector)
+{
+	errno = ENOTTY;
+	return -1;
+}
+
+int tcgetattr(int fd, struct termios *termios_p)
+{
+	errno = ENOTTY;
+	return -1;
+}
+
+int tcsetattr(int fd, int optional_actions, const struct termios *termios_p)
+{
+	errno = ENOTTY;
+	return -1;
 }
 
 int dprintf(int fd, const char *format, ...)

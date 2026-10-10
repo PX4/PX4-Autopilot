@@ -33,12 +33,15 @@
 
 #pragma once
 
-// <zephyr/kernel.h> is included here, and its struct device conflicts with namespace device in C++.
-// As visibility.h includes this header first, PX4 C++ files always see struct zephyr_device, and can't
-// use the Zephyr device drivers: C files can.
+// The Zephyr headers that declare struct device, the kernel and networking ones, are included here, as it conflicts
+// with namespace device in C++. As visibility.h includes this header first, PX4 C++ files always see struct
+// zephyr_device, and can't use the Zephyr device drivers: C files can.
 #ifdef __cplusplus
 #define device zephyr_device
 #include_next <pthread.h>
+#if defined(CONFIG_NET_SOCKETS)
+#include <zephyr/net/socket.h>
+#endif
 #undef device
 #else
 #include_next <pthread.h>

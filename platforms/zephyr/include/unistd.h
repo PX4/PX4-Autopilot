@@ -37,4 +37,18 @@
 
 #ifndef F_OK
 #define F_OK 0
+#define X_OK 1
+#define W_OK 2
+#define R_OK 4
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int access(const char *pathname, int mode);
+int truncate(const char *path, off_t length);
+
+#ifdef __cplusplus
+}
 #endif
