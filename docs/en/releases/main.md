@@ -56,6 +56,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - [DroneCAN ESCs](../dronecan/escs.md) no longer need to set `UAVCAN_PUB_ARM` as `ArmingStatus` is published automatically whenever `UAVCAN_ENABLE` is `3` (ESC output enabled). ([PX4-Autopilot#28364](https://github.com/PX4/PX4-Autopilot/pull/28364))
 - [DroneCAN ESC](../dronecan/escs.md) channels assigned a non-motor function (e.g. _Peripheral via Actuator Set_) can be driven bidirectionally via `UAVCAN_EC_SIGNED` (signed RawCommand, 0 = neutral). Motors continue to use `CA_R_REV`. ([PX4-Autopilot#26903](https://github.com/PX4/PX4-Autopilot/pull/26903))
+- [DroneCAN](../dronecan/index.md) batteries that set the charging flag in `BatteryInfo` now report a charging state, shown in MAVLink `BATTERY_STATUS.charge_state`, while the pack has no low, critical or emergency warning. Charging does not count as a battery warning, so it does not affect the [battery level failsafe](../config/safety.md#battery-level-failsafe) or the arming checks. ([PX4-Autopilot#28422](https://github.com/PX4/PX4-Autopilot/pull/28422), [PX4-Autopilot#29012](https://github.com/PX4/PX4-Autopilot/pull/29012))
 - [Serial Passthrough](../uart/serial_passthrough.md): new reference [bridge application](../uart/serial_passthrough.md#bridge-application), `Tools/mavlink_serial_bridge.py`, exposes a flight controller serial port or ESC signal pin as a virtual serial port on a Linux/macOS host, so ESC configuration and GPS tools can connect to it over MAVLink.
   ([PX4-Autopilot#28782: feat(tools): add mavlink_serial_bridge.py reference bridge application](https://github.com/PX4/PX4-Autopilot/pull/28782))
 
@@ -87,11 +88,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - EKF2 fuses dual-antenna GNSS heading from its own topic, `vehicle_gnss_heading`, at the heading's rate and measurement time instead of with each position sample. GNSS yaw fusion is gated on the heading itself (its baseline checks, and the spoofing and jamming state of the receiver providing it under [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK), which stop it like position fusion), not on the position checks, and it keeps running when position and velocity fusion stop. `GPS_RAW_INT` and `GPS2_RAW` report the body-frame heading of the receiver that provides it. ([PX4-Autopilot#27102](https://github.com/PX4/PX4-Autopilot/pull/27102))
 - When the local position estimate is lost in flight because of GNSS, commander now reports the reason as an event: either the receiver checks that failed, or that the receiver stopped sending data. The ground station and the log show the cause ahead of the "GNSS data fusion stopped" message. ([PX4-Autopilot#28873](https://github.com/PX4/PX4-Autopilot/pull/28873))
+- EKF2 now caps the GNSS height observation noise at [EKF2_NOAID_NOISE](../advanced_config/parameter_reference.md#EKF2_NOAID_NOISE) only when no other height source is fused. With a barometer or another height source, a GNSS height with a poor reported vertical accuracy is no longer fused as more accurate than the receiver reports. ([PX4-Autopilot#29058](https://github.com/PX4/PX4-Autopilot/pull/29058))
 
 ### Sensors
 
 - Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
-- Disabling the selected magnetometer at runtime (setting its [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO) to `0`) now hands over to the next magnetometer without a sensor failure report, and a magnetometer disabled at boot no longer prevents those after it from being selected. ([PX4-Autopilot#28750](https://github.com/PX4/PX4-Autopilot/pull/28750))
+- Disabling the selected IMU at runtime (setting its [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO) or [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO) to `0`) now hands over to the next IMU without a sensor failure report, including while armed. A re-enabled IMU only reappears in `sensors_status_imu` and the IMU consistency check once it publishes new data. ([PX4-Autopilot#28811](https://github.com/PX4/PX4-Autopilot/pull/28811))
 
 ### Simulation
 
