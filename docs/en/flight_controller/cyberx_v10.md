@@ -4,10 +4,10 @@
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
-Contact the [manufacturer](http://int.woocoo.vip/) for hardware support or compliance issues.
+Contact the [manufacturer](https://int.woocoo.vip/) for hardware support or compliance issues.
 :::
 
-The CyberX-v10 is an advanced autopilot manufactured by [CyberCraft International Limited](http://int.woocoo.vip/).
+The CyberX-v10 is an advanced autopilot manufactured by [CyberCraft International Limited](https://int.woocoo.vip/).
 
 The autopilot is recommended for commercial system integration, but is also suitable for academic research and other applications.
 It brings you ultimate performance, stability, and reliability in every aspect.
@@ -50,7 +50,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Max input voltage:** 5.5V
+- **Max input voltage:** 5.7V
 - **USB power input:** 4.75 ~ 5.25V
 - **Output current limits:** `TEL1` and `TEL2` combined 1.5A; all other ports combined 1.5A
 
@@ -61,7 +61,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-Order from [CyberCraft International Limited](http://int.woocoo.vip/).
+Order from [CyberCraft International Limited](https://int.woocoo.vip/).
 
 ## Pinouts {#pinouts}
 
@@ -71,7 +71,33 @@ Order from [CyberCraft International Limited](http://int.woocoo.vip/).
 
 ![CyberX-v10 pinout diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_pinout.png)
 
+![CyberX-v10 per-connector tables](../../assets/flight_controller/cyberx_v10/cyberx_v10_connector.png)
+
 ## Power {#power}
+
+## Voltage Ratings
+
+CyberX-v10 can be triple-redundant on the power supply if three power sources are supplied.
+The three power rails are: **PWR1**, **PWR2** and **USB**.
+
+**Normal Operation Maximum Ratings**
+
+Under these conditions all power sources will be used in this order to power the system:
+
+1. **PWR1** and **PWR2** inputs (4.75V to 5.5V)
+2. **USB** input (4.75V to 5.25V)
+
+**Absolute Maximum Ratings**
+
+Under these conditions the system will not draw any power (will not be operational), but will remain intact.
+
+1. **PWR1** and **PWR2** inputs (operational range 4.7V to 5.7V, 0V to 10V undamaged)
+2. **USB input** (operational range 4.7V to 5.7V, 0V to 6V undamaged)
+3. **Servo input:** `MOTOR` pin of **FMU PWM OUT** and **I/O PWM OUT** (0V to 42V undamaged)
+
+warning: The PWM output ports are not powered by the POWER port. The output rail must be separately powered if it needs to power servos or other hardware.
+
+**Voltage monitoring**
 
 The board has connectors for 2 power monitors.
 
@@ -88,13 +114,13 @@ See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to c
 
 ## PWM Outputs {#pwm_outputs}
 
-The CyberX-v10 supports up to 16 PWM outputs.
+The cyberx_v10 supports up to 16 PWM outputs.
 The first 8 outputs (labelled `M1` to `M8`) are controlled by the dedicated STM32F103 IO controller.
 The remaining 8 outputs (labelled `M9` to `M16`) are the "auxiliary" outputs directly attached to the STM32H743 FMU.
 
 All 16 outputs support normal PWM.
 The FMU outputs `M9` to `M14` support [DShot](../peripherals/dshot.md).
-The IO outputs `M1` to `M8`, and the FMU outputs `M15` and `M16` (no DMA), do not support DShot.
+The IO outputs `M1` to `M8`, and the FMU outputs `M15` and `M16` (no DMA), PWM-only.
 Outputs `M9` to `M14` support [Bidirectional DShot](../peripherals/dshot.md).
 
 The 8 IO PWM outputs are in 3 groups:
@@ -145,8 +171,9 @@ A Radio Control (RC) system is required if you want to manually control your veh
 
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-Spektrum/DSM receivers connect to the DSM/SBUS RC input.
-PPM or SBUS receivers connect to the RCIN input port.
+SBUS receivers connect to the `S.Bin` port.
+PPM receivers connect to the `RCin` pin on the servo rail.
+Spektrum/DSM and CRSF receivers connect to the `Uart8` port.
 If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#connecting-receivers).
 CRSF receivers must be wired to a spare UART port on the flight controller.
 You can then bind the transmitter and receiver together.
