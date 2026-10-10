@@ -1412,7 +1412,10 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	int interval = 0;
 
 	if (rate > 0.000001f) {
-		interval = (1000000.0f / rate);
+		// a rate below ~0.00047 Hz (e.g. from SET_MESSAGE_INTERVAL) gives more microseconds than an int holds:
+		// clamp to the slowest representable interval instead of converting out of range
+		const float interval_us = 1000000.0f / rate;
+		interval = (interval_us < static_cast<float>(INT32_MAX)) ? static_cast<int>(interval_us) : INT32_MAX;
 
 	} else if (rate < 0.0f) {
 		interval = -1;
