@@ -858,6 +858,25 @@ Commander::~Commander()
 	perf_free(_preflight_check_perf);
 }
 
+// A DO_SET_MODE field is an integer carried in a float. A finite value outside (-1, 256) has no uint8_t value: the
+// cast is undefined and in practice aliases a valid mode (264 -> 8), so it is rejected. A non-finite (unused) field
+// reads as 0, as the plain cast gave in practice.
+static bool mode_field_to_uint8(float value, uint8_t &out)
+{
+	if (!PX4_ISFINITE(value)) {
+		out = 0;
+		return true;
+	}
+
+	if (value <= -1.f || value >= 256.f) {
+		out = 0;
+		return false;
+	}
+
+	out = static_cast<uint8_t>(value);
+	return true;
+}
+
 bool
 Commander::handle_command(const vehicle_command_s &cmd)
 {
@@ -928,14 +947,23 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_MODE: {
-			uint8_t base_mode = (uint8_t)cmd.param1;
-			uint8_t custom_main_mode = (uint8_t)cmd.param2;
-			uint8_t custom_sub_mode = (uint8_t)cmd.param3;
+			uint8_t base_mode = 0;
+			uint8_t custom_main_mode = 0;
+			uint8_t custom_sub_mode = 0;
+			bool mode_fields_valid = mode_field_to_uint8(cmd.param1, base_mode);
+			mode_fields_valid = mode_field_to_uint8(cmd.param2, custom_main_mode) && mode_fields_valid;
+			mode_fields_valid = mode_field_to_uint8(cmd.param3, custom_sub_mode) && mode_fields_valid;
 
 			uint8_t desired_nav_state = vehicle_status_s::NAVIGATION_STATE_MAX;
 			transition_result_t main_ret = TRANSITION_NOT_CHANGED;
 
-			if (base_mode & VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED) {
+			if (!mode_fields_valid) {
+				main_ret = TRANSITION_DENIED;
+				mavlink_log_critical(&_mavlink_log_pub, "Unsupported mode parameter\t");
+				events::send(events::ID("commander_unsupported_mode_param"), events::Log::Error,
+					     "Unsupported mode parameter");
+
+			} else if (base_mode & VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED) {
 				/* use autopilot-specific mode */
 				if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
@@ -1097,8 +1125,11 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM: {
 
 			// Adhere to MAVLink specs, but base on knowledge that these fundamentally encode ints
-			// for logic state parameters
-			const int8_t arming_action = static_cast<int8_t>(lroundf(cmd.param1));
+			// for logic state parameters. Narrow to int8_t only a value that fits: 256 and 257 would
+			// otherwise wrap to DISARM and ARM, and a non-finite param1 has no integer value.
+			const float arming_param = roundf(cmd.param1);
+			const bool arming_param_fits = PX4_ISFINITE(arming_param) && (arming_param >= INT8_MIN) && (arming_param <= INT8_MAX);
+			const int8_t arming_action = arming_param_fits ? static_cast<int8_t>(arming_param) : -1;
 
 			if (arming_action != vehicle_command_s::ARMING_ACTION_ARM
 			    && arming_action != vehicle_command_s::ARMING_ACTION_DISARM) {
