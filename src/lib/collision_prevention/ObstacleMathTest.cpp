@@ -212,6 +212,19 @@ TEST(ObstacleMathTest, WrapBin)
 
 	// THEN: the wrapped bin index should be wrapped back to the end
 	EXPECT_EQ(wrapped_bin, 71);
+
+	// GIVEN: a negative bin index more than one full turn below zero
+	bin = -73;
+	bin_count = 72;
+
+	// WHEN: we wrap it
+	wrapped_bin = ObstacleMath::wrap_bin(bin, bin_count);
+
+	// THEN: the wrapped bin index should still be within [0, bin_count)
+	EXPECT_EQ(wrapped_bin, 71);
+	EXPECT_EQ(ObstacleMath::wrap_bin(-144, 72), 0);
+	EXPECT_EQ(ObstacleMath::wrap_bin(-145, 72), 71);
+	EXPECT_EQ(ObstacleMath::wrap_bin(1000, 72), 64);
 }
 
 TEST(ObstacleMathTest, HandleMissedBins)
