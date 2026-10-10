@@ -70,7 +70,7 @@ if(px4_git_dir AND "$ENV{GIT_SUBMODULES_ARE_EVIL}" STREQUAL "")
 	endif()
 endif()
 execute_process(
-	COMMAND Tools/check_submodules.sh
+	COMMAND Tools/check_submodules.sh ${PX4_GIT_SUBMODULES}
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	RESULT_VARIABLE check_submodules_result
 	)
