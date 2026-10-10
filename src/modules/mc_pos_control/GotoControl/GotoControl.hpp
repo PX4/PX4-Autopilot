@@ -108,6 +108,7 @@ public:
 	void setParamMpcYawrautoAcc(const float param_mpc_yawrauto_acc) { _yaw_acceleration_max = math::radians(param_mpc_yawrauto_acc); }
 	void setParamMpcZVAutoDn(const float param_mpc_z_v_auto_dn) { _param_mpc_z_v_auto_dn = param_mpc_z_v_auto_dn; }
 	void setParamMpcZVAutoUp(const float param_mpc_z_v_auto_up) { _param_mpc_z_v_auto_up = param_mpc_z_v_auto_up; }
+	void setParamMpcAutoStrLeg(const bool param_mpc_auto_str_leg) { _position_smoothing.setCoupledXYZSpeed(param_mpc_auto_str_leg); }
 
 private:
 	/**

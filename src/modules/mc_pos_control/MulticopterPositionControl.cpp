@@ -207,6 +207,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 		_goto_control.setParamMpcYawrautoAcc(_param_mpc_yawrauto_acc.get());
 		_goto_control.setParamMpcZVAutoDn(_param_mpc_z_v_auto_dn.get());
 		_goto_control.setParamMpcZVAutoUp(_param_mpc_z_v_auto_up.get());
+		_goto_control.setParamMpcAutoStrLeg(_param_mpc_auto_str_leg.get());
 
 		// Check that the design parameters are inside the absolute maximum constraints
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {

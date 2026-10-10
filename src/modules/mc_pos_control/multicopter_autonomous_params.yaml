@@ -148,3 +148,17 @@ parameters:
       max: 10
       decimal: 1
       increment: 0.1
+    MPC_AUTO_STR_LEG:
+      description:
+        short: Couple horizontal and vertical speed in autonomous modes
+        long: |-
+          If enabled, the horizontal and vertical speed towards the next waypoint
+          are scaled together so that a leg that changes altitude is flown as a
+          straight line, and the slower axis limits the other one.
+
+          If disabled, horizontal and vertical speed are limited independently:
+          the vehicle flies at full horizontal and vertical speed, so the altitude
+          change finishes before (or after) the horizontal leg and the path is
+          not straight.
+      type: boolean
+      default: 1

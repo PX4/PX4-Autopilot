@@ -246,3 +246,89 @@ TEST_F(PositionSmoothingTest, doesNotDriftPastUnreachedWaypoint)
 	// Without the fix the look-ahead marches down the extended leg and this grows unbounded.
 	EXPECT_LT(max_distance_past_target, 10.f) << "Vehicle drifted too far past the unreached waypoint\n";
 }
+
+class PositionSmoothingCoupledSpeedTest : public ::testing::Test
+{
+public:
+	// A descending leg: 100 m horizontal, 50 m down (NED), 6 m/s XY, 1.5 m/s Z
+	static constexpr float XY_SPEED = 6.f;
+	static constexpr float Z_SPEED = 1.5f;
+	const Vector3f START{0.f, 0.f, 0.f};
+	const Vector3f TARGET{100.f, 0.f, 50.f};
+
+	PositionSmoothing _position_smoothing;
+
+	PositionSmoothingCoupledSpeedTest()
+	{
+		_position_smoothing.setMaxJerk(MAX_JERK);
+		_position_smoothing.setMaxAcceleration({MAX_ACCELERATION, MAX_ACCELERATION, MAX_ACCELERATION});
+		_position_smoothing.setMaxVelocity({XY_SPEED, XY_SPEED, Z_SPEED});
+		_position_smoothing.setMaxAllowedHorizontalError(MAX_ALLOWED_HOR_ERR);
+		_position_smoothing.setVerticalAcceptanceRadius(VERTICAL_ACCEPTANCE_RADIUS);
+		_position_smoothing.setCruiseSpeed(XY_SPEED);
+		_position_smoothing.setHorizontalTrajectoryGain(HORIZONTAL_TRAJECTORY_GAIN);
+		_position_smoothing.setTargetAcceptanceRadius(TARGET_ACCEPTANCE_RADIUS);
+
+		_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	}
+
+	PositionSmoothing::PositionSmoothingSetpoints firstSetpoint()
+	{
+		Vector3f waypoints[3] = {START, TARGET, TARGET};
+		PositionSmoothing::PositionSmoothingSetpoints out;
+		_position_smoothing.generateSetpoints(START, waypoints, Vector3f{0.f, 0.f, 0.f}, 0.02f, false, out);
+		return out;
+	}
+
+	// Fly the leg and return the largest vertical distance from the straight line
+	float flyLegMaxAltitudeError()
+	{
+		Vector3f waypoints[3] = {START, TARGET, TARGET};
+		Vector3f position = START;
+		PositionSmoothing::PositionSmoothingSetpoints out;
+		const float slope = (TARGET(2) - START(2)) / (TARGET - START).xy().norm();
+		float max_error = 0.f;
+
+		for (int i = 0; i < 5000 && (TARGET - position).norm() > 0.1f; i++) {
+			_position_smoothing.generateSetpoints(position, waypoints, Vector3f{0.f, 0.f, 0.f}, 0.02f, false, out);
+			position = out.position;
+			const float z_on_line = START(2) + slope * (position - START).xy().norm();
+			max_error = fmaxf(max_error, fabsf(position(2) - z_on_line));
+		}
+
+		EXPECT_LT((TARGET - position).norm(), 0.1f) << "Did not reach the target\n";
+		return max_error;
+	}
+};
+
+TEST_F(PositionSmoothingCoupledSpeedTest, coupledSpeedPointsAlongTheLeg)
+{
+	_position_smoothing.setCoupledXYZSpeed(true);
+	const Vector3f vel = firstSetpoint().unsmoothed_velocity;
+
+	// Parallel to the leg: vz / |vxy| equals the leg slope, the slower Z axis limits XY
+	EXPECT_NEAR(vel(2) / vel.xy().norm(), 0.5f, 1e-3f);
+	EXPECT_NEAR(vel(2), Z_SPEED, 1e-3f);
+	EXPECT_NEAR(vel.xy().norm(), 2.f * Z_SPEED, 1e-3f);
+}
+
+TEST_F(PositionSmoothingCoupledSpeedTest, decoupledSpeedUsesBothLimits)
+{
+	_position_smoothing.setCoupledXYZSpeed(false);
+	const Vector3f vel = firstSetpoint().unsmoothed_velocity;
+
+	EXPECT_NEAR(vel.xy().norm(), XY_SPEED, 1e-3f);
+	EXPECT_NEAR(vel(2), Z_SPEED, 1e-3f);
+}
+
+TEST_F(PositionSmoothingCoupledSpeedTest, coupledSpeedFliesAStraightLeg)
+{
+	_position_smoothing.setCoupledXYZSpeed(true);
+	EXPECT_LT(flyLegMaxAltitudeError(), 1.f);
+}
+
+TEST_F(PositionSmoothingCoupledSpeedTest, decoupledSpeedBendsTheLeg)
+{
+	_position_smoothing.setCoupledXYZSpeed(false);
+	EXPECT_GT(flyLegMaxAltitudeError(), 10.f);
+}

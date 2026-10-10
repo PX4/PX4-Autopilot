@@ -375,6 +375,19 @@ public:
 	}
 
 	/**
+	 * @brief Choose how the horizontal and vertical speed towards a 3D target are limited.
+	 * Often set to param MPC_AUTO_STR_LEG.
+	 *
+	 * @param coupled true: scale one 3D velocity so both limits hold and a leg that changes
+	 *                altitude is flown as a straight line. false: limit horizontal and vertical
+	 *                speed independently, each at its own maximum.
+	 */
+	inline void setCoupledXYZSpeed(bool coupled)
+	{
+		_coupled_xyz_speed = coupled;
+	}
+
+	/**
 	 * @brief Set the current position in the trajectory to the given value.
 	 * Any coordinate with NAN will not be set
 	 *
@@ -428,6 +441,7 @@ private:
 	float _cruise_speed{0.f};
 	float _horizontal_trajectory_gain{0.f};
 	float _target_acceptance_radius{0.f};
+	bool _coupled_xyz_speed{true};
 
 
 	/* Internal state */
