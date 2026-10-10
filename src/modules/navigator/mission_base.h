@@ -278,8 +278,10 @@ protected:
 	bool isMissionValid() const;
 
 	/**
-	 * @brief Check whether a mission is ready to go
-	 * @param[in] forced flag if the check has to be run irregardles of any updates.
+	 * Update the verdict in mission_result.valid and the _mission_checked flag.
+	 * Unless forced, the checks wait for Home, position and the mission's fence.
+	 * A pending fence load defers the check (even if forced).
+	 * @param[in] forced Check now even with unchanged inputs or without Home or position.
 	 */
 	void check_mission_valid(bool forced = false);
 
