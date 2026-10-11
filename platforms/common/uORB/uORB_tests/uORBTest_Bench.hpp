@@ -38,8 +38,9 @@ namespace uORBTest
 
 /**
  * Run the uORB hot-path micro-benchmarks and print ns/op per case.
+ * @param populate create a node for every topic first, like a running system
  * @return 0 on success
  */
-int bench();
+int bench(bool populate);
 
 } // namespace uORBTest

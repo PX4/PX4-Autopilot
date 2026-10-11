@@ -54,6 +54,7 @@
 #include <uORB/topics/orb_test.h>
 #include <uORB/topics/orb_test_large.h>
 #include <uORB/topics/orb_test_medium.h>
+#include <uORB/topics/uORBTopics.hpp>
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/log.h>
@@ -135,11 +136,30 @@ size_t heap_used() { return 0; }
 
 } // namespace
 
-int uORBTest::bench()
+int uORBTest::bench(bool populate)
 {
 	constexpr unsigned N_POLL = 200000;	// no-data checks
 	constexpr unsigned N_PUBLISH = 20000;	// publish and copy loops
 	constexpr unsigned N_LOOKUP = 20000;	// node lookups
+
+	if (populate) {
+		// Give every topic a node, as on a running system, so lookups walk a
+		// realistic list. Subscribing creates the node without advertising it.
+		const size_t heap_before = heap_used();
+		unsigned nodes = 0;
+		const orb_metadata *const *topics = orb_get_topics();
+
+		for (size_t i = 0; i < orb_topics_count(); i++) {
+			const orb_sub_t sub = orb_subscribe(topics[i]);
+
+			if (orb_sub_valid(sub)) {
+				nodes++;
+				orb_unsubscribe(sub);
+			}
+		}
+
+		PX4_INFO_RAW("populated: %u topic nodes, heap +%zu B\n", nodes, heap_used() - heap_before);
+	}
 
 	PX4_INFO_RAW("uORB bench: %u repetitions per case, ns/op\n", REPETITIONS);
 	PX4_INFO_RAW("  %-44s %8s %8s\n", "case", "min", "median");
