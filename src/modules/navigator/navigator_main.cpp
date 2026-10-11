@@ -930,6 +930,13 @@ void Navigator::run()
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI:
 				case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
 					_vroi.mode = cmd.param1;
+
+					if (_vroi.mode == vehicle_command_s::VEHICLE_ROI_LOCATION) {
+						_vroi.lat = cmd.param5;
+						_vroi.lon = cmd.param6;
+						_vroi.alt = cmd.param7;
+					}
+
 					break;
 
 				case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
