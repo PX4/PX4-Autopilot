@@ -128,6 +128,8 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 								log_level, "GPS {1} offline", (uint8_t)i);
 
 			} else if (!gnss_healthy[i]) {
+				// The event keeps the name it had when only a lost fix triggered it: the event ID is
+				// a hash of the name.
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
@@ -136,8 +138,8 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 				 * </profile>
 				 */
 				reporter.healthFailure<uint8_t>(nav_modes, health_component_t::gps,
-								events::ID("check_gnss_receiver_unhealthy"),
-								log_level, "GNSS {1} fails its checks", (uint8_t)i);
+								events::ID("check_gnss_receiver_no_fix"),
+								log_level, "GPS {1} fails its checks", (uint8_t)i);
 			}
 		}
 	}
@@ -149,7 +151,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 
 		/* EVENT
 		 * @description
-		 * Two GNSS receivers report positions that are inconsistent with their reported accuracy.
+		 * Two GPS receivers report positions that are inconsistent with their reported accuracy.
 		 *
 		 * <profile name="dev">
 		 * Configure the failsafe action with <param>COM_GNSSLOSS_ACT</param>.
