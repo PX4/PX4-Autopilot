@@ -194,7 +194,9 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation.fetch_add(1);
 
-	memcpy(_data + (_meta->o_size * (generation % _meta->o_queue)), buffer, _meta->o_size);
+	// depth-one topics always use slot 0: skip the division
+	const size_t offset = (_meta->o_queue > 1) ? (_meta->o_size * (generation % _meta->o_queue)) : 0;
+	memcpy(_data + offset, buffer, _meta->o_size);
 
 	// callbacks
 	for (auto item : _callbacks) {
