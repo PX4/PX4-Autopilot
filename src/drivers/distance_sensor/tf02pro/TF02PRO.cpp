@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,8 +30,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 #include "TF02PRO.hpp"
+
+#if defined(CONFIG_I2C)
 
 /**
  * @brief Construct a new TF02PRO::TF02PRO object
@@ -67,8 +68,7 @@ TF02PRO::~TF02PRO()
 void TF02PRO::start()
 {
 	_collect_phase = false;
-
-	ScheduleDelayed(5);  // 5 us
+	ScheduleDelayed(5); // 5 us
 }
 
 /**
@@ -98,24 +98,26 @@ int TF02PRO::init()
  *
  * @return int
  * @Note
- *   Receive Frame
- *   Byte0: 0x59, frame header, same for each frame
- *   Byte1: 0x59, frame header, same for each frame
- *   Byte2: Dist_L distance value low 8 bits
- *   Byte3: Dist_H distance value high 8 bits
- *   Byte4: Strength_L low 8 bits
- *   Byte5: Strength_H high 8 bits
- *   Byte6: Temp_L low 8 bits
- *   Byte7: Temp_H high 8 bits
- *   Byte8: Checksum is the lower 8 bits of the cumulative sum of the number of the first 8 bytes
+ * Receive Frame
+ * Byte0: 0x59, frame header, same for each frame
+ * Byte1: 0x59, frame header, same for each frame
+ * Byte2: Dist_L distance value low 8 bits
+ * Byte3: Dist_H distance value high 8 bits
+ * Byte4: Strength_L low 8 bits
+ * Byte5: Strength_H high 8 bits
+ * Byte6: Temp_L low 8 bits
+ * Byte7: Temp_H high 8 bits
+ * Byte8: Checksum is the lower 8 bits of the cumulative sum of the number of the first 8 bytes
  *
  */
 int TF02PRO::collect()
 {
 	uint8_t recv_data[9] {};
+
 	perf_begin(_sample_perf);
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
+
 	int ret = transfer(nullptr, 0, recv_data, sizeof(recv_data));
 
 	if (ret < 0) {
@@ -130,7 +132,6 @@ int TF02PRO::collect()
 
 	if (strength >= 60u && distance_mm < 45000u) {
 		float distance_m = float(distance_mm) * 1e-3f;
-
 		_px4_rangefinder.update(timestamp_sample, distance_m);
 	}
 
@@ -146,7 +147,6 @@ int TF02PRO::collect()
 int TF02PRO::measure()
 {
 	uint8_t obtain_Data_mm[5] = {0x5A, 0x05, 0x00, 0x06, 0x65};
-
 	int ret = transfer(obtain_Data_mm, sizeof(obtain_Data_mm), nullptr, 0);
 
 	if (ret != PX4_OK) {
@@ -179,7 +179,6 @@ void TF02PRO::RunImpl()
 	}
 
 	_collect_phase = true;
-
 	ScheduleDelayed(_interval);
 }
 
@@ -193,3 +192,5 @@ void TF02PRO::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
+
+#endif
