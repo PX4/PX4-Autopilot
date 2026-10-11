@@ -194,6 +194,7 @@ px4_add_module(
 		drivers_rangefinder
 		led
 		mixer_module
+		open_drone_id
 		tunes
 		version
 
