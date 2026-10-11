@@ -62,7 +62,7 @@ Course::on_activation()
 
 	_navigator->reset_cruising_speed();
 
-	update_setpoint_triplet();
+	publishCourseHoldSetpoint(_course, _altitude);
 }
 
 void
@@ -79,44 +79,6 @@ Course::set_course(float course_rad)
 	}
 
 	_course = course_rad;
-	update_setpoint_triplet();
+	publishCourseHoldSetpoint(_course, _altitude);
 	return true;
-}
-
-void
-Course::update_setpoint_triplet()
-{
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	pos_sp_triplet->previous.valid = false;
-
-	pos_sp_triplet->current.valid = true;
-	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-	pos_sp_triplet->current.alt = _altitude;
-
-	// Course mode: control ground track.
-	// lat/lon are not used for course guidance but FixedWingModeManager::set_control_mode_current() requires
-	// PX4_ISFINITE(lat) && PX4_ISFINITE(lon) to classify the setpoint as valid and enter FW_POSCTRL_MODE_AUTO.
-	// Use current position if available (including during dead-reckoning), otherwise dummy values.
-	if (_navigator->get_local_position()->xy_global) {
-		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
-		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
-
-	} else {
-		pos_sp_triplet->current.lat = 0.0;
-		pos_sp_triplet->current.lon = 0.0;
-	}
-
-	pos_sp_triplet->current.yaw = NAN;
-	pos_sp_triplet->current.course = _course;
-
-	pos_sp_triplet->current.cruising_speed = _navigator->get_cruising_speed();
-	pos_sp_triplet->current.cruising_throttle = NAN;
-	pos_sp_triplet->current.loiter_radius = NAN;
-	pos_sp_triplet->current.acceptance_radius = _navigator->get_acceptance_radius();
-	pos_sp_triplet->current.timestamp = hrt_absolute_time();
-
-	pos_sp_triplet->next.valid = false;
-
-	_navigator->set_position_setpoint_triplet_updated();
 }

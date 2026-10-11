@@ -52,18 +52,22 @@ public:
 
 	void on_activation() override;
 	void on_active() override;
+	void on_inactivation() override;
 
 	void setLoiterPosition(matrix::Vector2d loiter_location) { _loiter_position_lat_lon = loiter_location; }
 	void setLoiterAltitudeAmsl(const float height_m) { _loiter_altitude_msl = height_m; }
+	void setHoldCourse(const float course_rad) { _hold_course = course_rad; }
 
 private:
 
 	enum class fw_takeoff_state {
 		CLIMBOUT = 0,
-		GO_TO_LOITER
+		GO_TO_LOITER,
+		HOLD_COURSE
 	} _fw_takeoff_state;
 
 	void set_takeoff_position();
 	matrix::Vector2d _loiter_position_lat_lon{static_cast<double>(NAN), static_cast<double>(NAN)};
 	float _loiter_altitude_msl{NAN};
+	float _hold_course{NAN};	///< [rad] course to hold after the climbout instead of loitering, NaN = loiter
 };

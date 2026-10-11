@@ -60,14 +60,9 @@ public:
 	 */
 	bool set_course(float course_rad);
 
-	void set_altitude(float alt_amsl) { _altitude = alt_amsl; update_setpoint_triplet(); }
+	void set_altitude(float alt_amsl) { _altitude = alt_amsl; publishCourseHoldSetpoint(_course, _altitude); }
 
 private:
-	/**
-	 * Update the position setpoint triplet to fly the current course.
-	 */
-	void update_setpoint_triplet();
-
 	float _course{0.f};		///< [rad] current course bearing (ground track)
 	float _altitude{0.f};		///< [m] AMSL altitude setpoint
 };

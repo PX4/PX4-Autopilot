@@ -807,6 +807,43 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 }
 
 void
+MissionBlock::publishCourseHoldSetpoint(const float course_rad, const float altitude_amsl)
+{
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	pos_sp_triplet->previous.valid = false;
+
+	pos_sp_triplet->current.valid = true;
+	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+	pos_sp_triplet->current.alt = altitude_amsl;
+
+	// lat/lon are not used for course guidance but FixedWingModeManager::set_control_mode_current() requires
+	// PX4_ISFINITE(lat) && PX4_ISFINITE(lon) to classify the setpoint as valid and enter FW_POSCTRL_MODE_AUTO.
+	// Use current position if available (including during dead-reckoning), otherwise dummy values.
+	if (_navigator->get_local_position()->xy_global) {
+		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
+		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
+
+	} else {
+		pos_sp_triplet->current.lat = 0.0;
+		pos_sp_triplet->current.lon = 0.0;
+	}
+
+	pos_sp_triplet->current.yaw = NAN;
+	pos_sp_triplet->current.course = course_rad;
+
+	pos_sp_triplet->current.cruising_speed = _navigator->get_cruising_speed();
+	pos_sp_triplet->current.cruising_throttle = NAN;
+	pos_sp_triplet->current.loiter_radius = NAN;
+	pos_sp_triplet->current.acceptance_radius = _navigator->get_acceptance_radius();
+	pos_sp_triplet->current.timestamp = hrt_absolute_time();
+
+	pos_sp_triplet->next.valid = false;
+
+	_navigator->set_position_setpoint_triplet_updated();
+}
+
+void
 MissionBlock::set_land_item(struct mission_item_s *item)
 {
 	/* VTOL transition to RW before landing */
