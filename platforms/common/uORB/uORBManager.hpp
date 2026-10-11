@@ -440,7 +440,25 @@ public:
 
 	static uint8_t orb_get_queue_size(const void *node_handle);
 
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	/* Inline wherever the node is in the caller's address space (see updates_available below). */
+	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated)
+	{
+		DeviceNode *node = static_cast<DeviceNode *>(node_handle);
+
+		if (!node->is_advertised()) {
+			return false;
+		}
+
+		if (only_if_updated && !node->updates_available(generation)) {
+			return false;
+		}
+
+		return node->copy(dst, generation);
+	}
+#else
 	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated);
+#endif
 
 	static bool register_callback(void *node_handle, SubscriptionCallback *callback_sub);
 
