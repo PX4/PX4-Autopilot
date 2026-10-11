@@ -308,10 +308,11 @@ void CameraStream::gstThreadFunc()
 	bool tryCuda = _useCuda;
 
 	while (!_stopRequested) {
-		bool error = runPipeline(tryCuda);
+		bool usedNvenc = false;
+		const bool error = runPipeline(tryCuda, usedNvenc);
 
-		if (error && tryCuda && !_stopRequested) {
-			// NVENC can fail at runtime
+		// NVENC can be present but fail on the first frame. Any other failure would recur with x264.
+		if (error && usedNvenc && !_stopRequested) {
 			gzwarn << "GStreamer pipeline failed with NVIDIA encoder; retrying with software (x264) encoder" << std::endl;
 			tryCuda = false;
 			continue;
@@ -324,7 +325,7 @@ void CameraStream::gstThreadFunc()
 }
 
 //////////////////////////////////////////////////
-bool CameraStream::runPipeline(bool useCuda)
+bool CameraStream::runPipeline(bool useCuda, bool &usedNvenc)
 {
 	_pipeline = gst_pipeline_new(nullptr);
 
@@ -355,6 +356,7 @@ bool CameraStream::runPipeline(bool useCuda)
 
 	if (useCuda) {
 		encoder = gst_element_factory_make("nvautogpuh264enc", nullptr);
+		usedNvenc = (encoder != nullptr);
 
 		if (encoder) {
 			// Higher quality NVIDIA encoder settings

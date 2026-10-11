@@ -103,7 +103,7 @@ private:
 	void gstThreadFunc();
 
 	// Returns true on error, false on a normal stop.
-	bool runPipeline(bool useCuda);
+	bool runPipeline(bool useCuda, bool &usedNvenc);
 };
 
 
