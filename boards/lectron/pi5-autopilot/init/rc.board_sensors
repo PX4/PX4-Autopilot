@@ -1,0 +1,74 @@
+#!/bin/sh
+#
+# Lectron Pi5 Autopilot specific board sensors init
+#------------------------------------------------------------------------------
+set HAVE_PM2 yes
+set INA_CONFIGURED no
+
+if mft query -q -k MFT -s MFT_PM2 -v 0
+then
+	set HAVE_PM2 no
+fi
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+# Start battery_status before other sensors (rcS logic bug with BAT1_SOURCE=1)
+battery_status start
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+
+if [ $INA_CONFIGURED = no ]
+then
+	# INA226, INA228, INA238 auto-start
+	i2c_launcher start -b 1
+	if [ $HAVE_PM2 = yes ]
+	then
+		i2c_launcher start -b 2
+	fi
+fi
+
+# Lectron Pi5 Autopilot Custom Sensor Configuration
+
+# SPI1: ICM-42670-P (FMU Board)
+# Driver Y-axis negation removed, using R=0
+icm42670p -s -b 1 -R 0 start
+
+# SPI2: ICM-42670-P (Sensor Board)
+# Rotated CW 90° (YAW 90°) - driver handles Y & Z negation
+icm42670p -s -b 2 -R 6 start
+
+# SPI3: BMI270 (6-axis IMU)
+# Rotated 180° (YAW 180°) - Driver compensates for axis orientation
+bmi270 -s -b 3 -R 4 start
+
+
+# Internal magnetometer on I2c: BMM350 on I2C4
+bmm350 -I -b 4 start
+
+# Possible internal Baro on I2C4 (BMP390)
+if param compare SENS_INT_BARO_EN 1
+then
+	bmp388 -I -b 4 -a 0x77 start
+fi
+
+bmp388 -X -b 2 -a 0x77 start
+
+
+unset INA_CONFIGURED
+unset HAVE_PM2
