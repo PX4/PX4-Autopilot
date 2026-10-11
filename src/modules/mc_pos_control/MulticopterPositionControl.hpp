@@ -254,10 +254,9 @@ private:
 	 * @brief adjust existing (or older) setpoint with any EKF reset deltas and update the local counters
 	 *
 	 * @param[in] vehicle_local_position struct containing EKF reset deltas and counters
-	 * @param[out] setpoint trajectory setpoint struct to be adjusted
-	 * @param[out] fallback_setpoint the stored last valid setpoint, adjusted with the same
-	 *             deltas because it is applied later in the same cycle, after the counters
-	 *             below have been latched
+	 * @param[in,out] setpoint trajectory setpoint struct to be adjusted
+	 * @param[in,out] fallback_setpoint stored last valid setpoint, adjusted here because this
+	 *                call latches the reset counters
 	 */
 	void adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position,
 					trajectory_setpoint_s &setpoint, trajectory_setpoint_s &fallback_setpoint);

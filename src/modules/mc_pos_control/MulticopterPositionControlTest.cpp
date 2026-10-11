@@ -34,10 +34,10 @@
 /**
  * @file MulticopterPositionControlTest.cpp
  *
- * When the estimator selector hands over to another instance it publishes the
- * shift it applied to the local position estimate. The setpoint has to move by
- * the same amount, otherwise the controller reads the shift as tracking error
- * and flies the vehicle to correct for something that never moved.
+ * An estimator reset steps the local position estimate and publishes the delta.
+ * The setpoint has to move by the same delta, otherwise the controller reads the
+ * step as tracking error and flies the vehicle to correct for something that
+ * never moved.
  */
 
 #include <gtest/gtest.h>
@@ -97,7 +97,6 @@ public:
 					       const vehicle_local_position_s &vehicle_local_position,
 					       trajectory_setpoint_s &setpoint)
 	{
-		// the cases that do not care about the fallback pass a throwaway one
 		trajectory_setpoint_s unused_fallback{};
 		controller.adjustSetpointForEKFResets(vehicle_local_position, setpoint, unused_fallback);
 	}
@@ -235,7 +234,6 @@ protected:
 	MulticopterPositionControl *_controller{nullptr};
 };
 
-// WHY: with no reset the setpoint is the commanded one and must be passed through.
 TEST_F(MulticopterPositionControlTest, NoResetLeavesTheSetpointAlone)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -250,8 +248,6 @@ TEST_F(MulticopterPositionControlTest, NoResetLeavesTheSetpointAlone)
 	EXPECT_FLOAT_EQ(setpoint.yaw, original.yaw);
 }
 
-// WHY: this is the selector handover case. The estimate moved by delta_z, so the
-// setpoint has to move with it or the controller sees a step in its own error.
 TEST_F(MulticopterPositionControlTest, VerticalResetShiftsTheSetpointByTheSameDelta)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -269,7 +265,6 @@ TEST_F(MulticopterPositionControlTest, VerticalResetShiftsTheSetpointByTheSameDe
 	EXPECT_FLOAT_EQ(setpoint.position[1], 20.f);
 }
 
-// WHY: a horizontal handover shifts north and east together.
 TEST_F(MulticopterPositionControlTest, HorizontalResetShiftsTheSetpointByTheSameDelta)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -286,7 +281,6 @@ TEST_F(MulticopterPositionControlTest, HorizontalResetShiftsTheSetpointByTheSame
 	EXPECT_FLOAT_EQ(setpoint.position[2], -30.f);
 }
 
-// WHY: velocity setpoints ride through a velocity reset the same way.
 TEST_F(MulticopterPositionControlTest, VelocityResetShiftsTheVelocitySetpoint)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -305,9 +299,7 @@ TEST_F(MulticopterPositionControlTest, VelocityResetShiftsTheVelocitySetpoint)
 	EXPECT_FLOAT_EQ(setpoint.velocity[2], 3.75f);
 }
 
-// WHY: the counters are latched after the first pass, so a second pass on the same
-// sample must not apply the shift again. Applying it twice would walk the setpoint
-// away by one delta on every cycle for as long as the counter stayed put.
+// Without the latch the setpoint would move by another delta on every cycle.
 TEST_F(MulticopterPositionControlTest, SameResetIsNotAppliedTwice)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -324,8 +316,7 @@ TEST_F(MulticopterPositionControlTest, SameResetIsNotAppliedTwice)
 	EXPECT_FLOAT_EQ(setpoint.position[2], after_first);
 }
 
-// WHY: a setpoint that is newer than the estimate sample was produced after the
-// reset was already accounted for, so shifting it again would double count.
+// A setpoint newer than the estimate sample was produced in the post-reset frame.
 TEST_F(MulticopterPositionControlTest, SetpointNewerThanTheEstimateIsNotShifted)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -340,8 +331,7 @@ TEST_F(MulticopterPositionControlTest, SetpointNewerThanTheEstimateIsNotShifted)
 	EXPECT_FLOAT_EQ(setpoint.position[2], -30.f);
 }
 
-// WHY: an empty setpoint has nothing to shift, and the counters still have to be
-// latched so the next real setpoint is not shifted by a reset it never saw.
+// Otherwise the next real setpoint would be shifted by a reset that predates it.
 TEST_F(MulticopterPositionControlTest, UnsetSetpointIsNotShiftedAndStillLatchesTheCounter)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -359,8 +349,6 @@ TEST_F(MulticopterPositionControlTest, UnsetSetpointIsNotShiftedAndStillLatchesT
 	EXPECT_FLOAT_EQ(setpoint.position[2], -30.f);
 }
 
-// WHY: a heading reset wraps, so the shifted yaw has to come back inside +-pi rather
-// than drifting outside it.
 TEST_F(MulticopterPositionControlTest, HeadingResetShiftsYawAndWraps)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -376,8 +364,7 @@ TEST_F(MulticopterPositionControlTest, HeadingResetShiftsYawAndWraps)
 	EXPECT_NEAR(setpoint.yaw, -0.283185307f, 1e-6f);
 }
 
-// WHY: the guard is a strict less than, so a setpoint stamped at the same time as the
-// estimate sample is not older than it and must not be shifted.
+// The guard is a strict less-than: a setpoint stamped with the sample does not predate it.
 TEST_F(MulticopterPositionControlTest, SetpointStampedWithTheEstimateIsNotShifted)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -392,8 +379,7 @@ TEST_F(MulticopterPositionControlTest, SetpointStampedWithTheEstimateIsNotShifte
 	EXPECT_FLOAT_EQ(setpoint.position[2], -30.f);
 }
 
-// WHY: skipping the shift must still latch the counter, otherwise the next setpoint
-// would be shifted by a reset that happened before it existed.
+// Otherwise the next setpoint would be shifted by a reset that happened before it existed.
 TEST_F(MulticopterPositionControlTest, SkippedShiftStillLatchesTheCounter)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -412,9 +398,7 @@ TEST_F(MulticopterPositionControlTest, SkippedShiftStillLatchesTheCounter)
 	EXPECT_FLOAT_EQ(older.position[2], -30.f);
 }
 
-// WHY: an instance handover moves every state at once, so all five counters can change
-// in a single sample. Each axis has to take its own delta and nothing may be double
-// counted across axes.
+// A switch to another estimator instance changes all five counters in one sample.
 TEST_F(MulticopterPositionControlTest, AllCountersChangingInOneSampleShiftEveryAxis)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -444,9 +428,7 @@ TEST_F(MulticopterPositionControlTest, AllCountersChangingInOneSampleShiftEveryA
 	EXPECT_FLOAT_EQ(setpoint.yaw, 0.75f);
 }
 
-// WHY: the controller filters the measured velocity. If the estimate steps and the filter
-// state stays behind, the filtered velocity carries a step the vehicle never flew, so the
-// filter has to be moved by the same delta as the state it tracks.
+// If the filter state stayed behind, the filtered velocity would carry a step the vehicle never flew.
 TEST_F(MulticopterPositionControlTest, VelocityResetCarriesTheVelocityFilterState)
 {
 	MulticopterPositionControlTestPeer::setVelocityFilterState(*_controller, matrix::Vector2f(4.f, -2.f), 1.f);
@@ -468,9 +450,8 @@ TEST_F(MulticopterPositionControlTest, VelocityResetCarriesTheVelocityFilterStat
 	EXPECT_FLOAT_EQ(MulticopterPositionControlTestPeer::velocityFilterStateZ(*_controller), 1.25f);
 }
 
-// WHY: the filter reset sits outside the timestamp guard on purpose. The guard is about
-// whether a setpoint predates the reset, which says nothing about the measured velocity,
-// so a setpoint newer than the estimate must still leave the filters corrected.
+// The timestamp guard decides whether a setpoint predates the reset, which says nothing
+// about the measured velocity the filters track.
 TEST_F(MulticopterPositionControlTest, FilterStateIsCarriedEvenWhenTheSetpointShiftIsSkipped)
 {
 	MulticopterPositionControlTestPeer::setVelocityFilterState(*_controller, matrix::Vector2f(4.f, -2.f), 1.f);
@@ -499,10 +480,7 @@ TEST_F(MulticopterPositionControlTest, FilterStateIsCarriedEvenWhenTheSetpointSh
 	EXPECT_FLOAT_EQ(MulticopterPositionControlTestPeer::velocityFilterStateZ(*_controller), 1.25f);
 }
 
-// WHY: Run() adjusts the incoming setpoint and stores a fallback for the case where the
-// control update rejects it. Both describe the same frame, so a reset has to move both in
-// the same cycle. The counters are latched once, so anything not shifted here is never
-// shifted at all.
+// The counters are latched once per reset, so a fallback not shifted in this call is never shifted.
 TEST_F(MulticopterPositionControlTest, FallbackSetpointIsShiftedInTheSameCycleAsTheCurrentOne)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -523,8 +501,6 @@ TEST_F(MulticopterPositionControlTest, FallbackSetpointIsShiftedInTheSameCycleAs
 	EXPECT_FLOAT_EQ(last_valid.position[1], 16.5f);
 }
 
-// WHY: the fallback is stored across cycles, so a reset already applied to it must not be
-// applied again on the next sample.
 TEST_F(MulticopterPositionControlTest, FallbackSetpointIsNotShiftedTwice)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -543,8 +519,7 @@ TEST_F(MulticopterPositionControlTest, FallbackSetpointIsNotShiftedTwice)
 	EXPECT_FLOAT_EQ(last_valid.position[2], -31.5f);
 }
 
-// WHY: the fallback carries its own timestamp, so it gets the same guard as any other
-// setpoint rather than inheriting the decision made for the current one.
+// The two setpoints carry different timestamps, so each needs its own guard decision.
 TEST_F(MulticopterPositionControlTest, FallbackSetpointHonoursItsOwnTimestampGuard)
 {
 	vehicle_local_position_s local_position = makeLocalPosition();
@@ -561,8 +536,6 @@ TEST_F(MulticopterPositionControlTest, FallbackSetpointHonoursItsOwnTimestampGua
 	EXPECT_FLOAT_EQ(last_valid.position[2], -30.f);
 }
 
-// WHY: two setpoints are adjusted in one call but there was only one reset, so the velocity
-// filter must move by one delta, not two.
 TEST_F(MulticopterPositionControlTest, VelocityFilterMovesOnceWhenBothSetpointsAreAdjusted)
 {
 	MulticopterPositionControlTestPeer::setVelocityFilterState(*_controller, matrix::Vector2f(4.f, -2.f), 1.f);
@@ -585,9 +558,7 @@ TEST_F(MulticopterPositionControlTest, VelocityFilterMovesOnceWhenBothSetpointsA
 	EXPECT_FLOAT_EQ(MulticopterPositionControlTestPeer::velocityFilterStateZ(*_controller), 1.25f);
 }
 
-// WHY: the cases above hand the helper a fallback of their own. This one drives Run(), so
-// the fallback the controller actually stores has to move with the reset, and the controller
-// has to fly the moved one when the setpoint of the same cycle is unusable.
+// The cases above pass the helper their own fallback; this one checks the fallback Run() stores and flies.
 TEST_F(MulticopterPositionControlTest, RunMovesTheStoredFallbackWithAResetAndFliesIt)
 {
 	uORB::Publication<vehicle_control_mode_s> control_mode_pub{ORB_ID(vehicle_control_mode)};

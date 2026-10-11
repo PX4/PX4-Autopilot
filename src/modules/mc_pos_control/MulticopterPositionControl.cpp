@@ -577,8 +577,7 @@ void MulticopterPositionControl::Run()
 
 				// Initial update failed - Try fallback if within timeout
 				if (now < _last_valid_setpoint.timestamp + 200_ms) {
-					// Use last valid setpoint. It was already moved into the current estimate
-					// frame above, at the same time as _setpoint.
+					// Already moved into the current estimate frame by adjustSetpointForEKFResets()
 					_control.setInputSetpoint(_last_valid_setpoint);
 				}
 
@@ -712,8 +711,8 @@ void MulticopterPositionControl::adjustSetpointForEKFResets(const vehicle_local_
 
 	apply_reset_deltas(setpoint);
 
-	// The stored fallback has to move in the same cycle. The counters are latched below, so a
-	// later call would find nothing changed and would leave it in the pre reset frame.
+	// The counters are latched below, so a later call would find nothing changed and leave the
+	// stored fallback in the pre-reset frame.
 	apply_reset_deltas(fallback_setpoint);
 
 	if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
