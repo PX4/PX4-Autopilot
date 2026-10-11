@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,358 +31,227 @@
  *
  ****************************************************************************/
 
-/**
- * @file ina228.h
- *
- */
-
 #pragma once
 
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
 #include <drivers/device/i2c.h>
-#include <lib/perf/perf_counter.h>
-#include <battery/battery.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
+#include <lib/battery/battery.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_config.h>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
-/* Configuration Constants */
-#define INA228_BASEADDR 	                    0x45 /* 7-bit address. 8-bit address is 0x45 */
-// If initialization is forced (with the -f flag on the command line), but it fails, the drive will try again to
-// connect to the INA228 every this many microseconds
-#define INA228_INIT_RETRY_INTERVAL_US			500000
+namespace ina228
+{
 
-/* INA228 Registers addresses */
-#define INA228_REG_CONFIG                    (0x00)
-#define INA228_REG_ADCCONFIG                 (0x01)
-#define INA228_REG_SHUNTCAL                  (0x02)
-#define INA228_REG_SHUNTTEMPCO               (0x03)
-#define INA228_REG_VSHUNT                    (0x04)
-#define INA228_REG_VSBUS                     (0x05)
-#define INA228_REG_DIETEMP                   (0x06)
-#define INA228_REG_CURRENT                   (0x07)
-#define INA228_REG_POWER                     (0x08)
-#define INA228_REG_ENERGY                    (0x09)
-#define INA228_REG_CHARGE                    (0x0a)
-#define INA228_REG_DIAG_ALRT                 (0x0b)
-#define INA228_REG_SOVL                      (0x0c)
-#define INA228_REG_SUVL                      (0x0d)
-#define INA228_REG_BOVL                      (0x0e)
-#define INA228_REG_BUVL                      (0x0f)
-#define INA228_REG_TEMP_LIMIT                (0x10)
-#define INA228_REG_TPWR_LIMIT                (0x11)
-#define INA228_MANUFACTURER_ID               (0x3e)
-#define INA228_DEVICE_ID                     (0x3f)
+static constexpr uint32_t BUS_CLOCK_HZ = 100'000;
 
-#define INA228_MFG_ID_TI                     (0x5449) // TI
-#define INA228_MFG_DIE                       (0x228) // INA228
+static constexpr uint16_t MANFID = 0x5449;
+static constexpr uint16_t DIEID = 0x228;
 
-/* INA228 Configuration (CONFIG) 16-bit Register (Address = 0h) [reset = 0h] */
-#define INA228_ADCRANGE_SHIFTS               (4)
-#define INA228_ADCRANGE_MASK                 (1 << INA228_ADCRANGE_SHIFTS)
-#  define INA228_ADCRANGE_LOW                (1 << INA228_ADCRANGE_SHIFTS) // ± 40.96 mV
-#  define INA228_ADCRANGE_HIGH               (0 << INA228_ADCRANGE_SHIFTS) // ±163.84 mV
-#define INA228_TEMPCOMP_SHIFTS               (5)
-#define INA228_TEMPCOMP_MASK                 (1 << INA228_TEMPCOMP_SHIFTS)
-#  define INA228_TEMPCOMP_ENABLE             (1 << INA228_TEMPCOMP_SHIFTS)
-#  define INA228_TEMPCOMP_DISABLE            (0 << INA228_TEMPCOMP_SHIFTS)
+// Measurement scaling (from datasheet SLYS021A)
+static constexpr float V_LSB = 195.3125e-6f; // V per LSB (VBUS, 20 bit)
+static constexpr float T_LSB = 7.8125e-3f; // °C per LSB (DIETEMP)
+static constexpr float CURRENT_LSB_DIV = 524288.f; // current_lsb = max_current / 2^19
+static constexpr float SHUNT_CAL_K = 13107.2e6f; // shunt-cal scaling constant
+static constexpr float ADCRANGE_LOW_V_SENSE = 0.04096f; // ±40.96 mV
+static constexpr uint16_t SHUNT_CAL_MAX = 0x7fff; // SHUNT_CAL is a 15 bit field
 
-#define INA228_CONVDLY_SHIFTS                (6)
-#define INA228_CONVDLY_MASK                  (0xff << INA228_CONVDLY_SHIFTS)
-#  define INA228_CONVDLY2MS(n)               ((n)  << INA228_CONVDLY_SHIFTS)
+// ADC timing (datasheet §7.3.4, §6.5)
+static constexpr uint16_t CONVERSION_TIME_US[8] = {50, 84, 150, 280, 540, 1052, 2074, 4120};
+static constexpr uint16_t AVERAGES[8] = {1, 4, 16, 64, 128, 256, 512, 1024};
+static constexpr hrt_abstime WAKEUP_TIME_US = 60; // from shutdown, triggered mode only
+// The next trigger (the start of the next tick) must not land before the previous conversion
+// is done, or it restarts that conversion and the output freezes. Covers tick-to-tick
+// scheduling jitter and the duration of the trigger write itself.
+static constexpr hrt_abstime TRIGGER_MARGIN_US = 500;
 
-#define INA228_RSTACC_SHIFTS                 (14)
-#define INA228_RSTACC_MASK                   (1 << INA228_RSTACC_SHIFTS)
-#  define INA228_RSTACC_CLEAR                (1 << INA228_RSTACC_SHIFTS)
-#  define INA228_RSTACC_NORMAL               (0 << INA228_RSTACC_SHIFTS)
+// Recovery / robustness timing
+static constexpr hrt_abstime INIT_RETRY_INTERVAL_US = 500_ms;
+static constexpr hrt_abstime RESET_DELAY_US = 1_ms; // datasheet specifies 300us. Give some margin
+static constexpr hrt_abstime DISCONNECT_DEBOUNCE_US = 2_s;
+static constexpr hrt_abstime CONFIG_CHECK_INTERVAL_US = 100_ms;
 
-#define INA228_RST_SHIFTS                    (15)
-#define INA228_RST_MASK                      (1 << INA228_RST_SHIFTS)
-#  define INA228_RST_RESET                   (1 << INA228_RST_SHIFTS)
-#  define INA228_RST_NORMAL                  (0 << INA228_RST_SHIFTS)
+// Register map (subset used by this driver)
+enum class Register : uint8_t {
+	CONFIG = 0x00,
+	ADCCONFIG = 0x01,
+	SHUNT_CAL = 0x02,
+	VS_BUS = 0x05,
+	DIETEMP = 0x06,
+	CURRENT = 0x07,
+	MANUFACTURER_ID = 0x3e,
+	DEVICE_ID = 0x3f,
+};
 
-/* INA228 ADC Configuration (ADC_CONFIG) 16-bit  Register (Address = 1h) [reset = FB68h] */
+// CONFIG register bits
+enum CONFIG_BIT : uint16_t {
+	RST = (1u << 15),
+	RANGE_HIGH = (0u << 4), // ±163.84 mV — used when R_SHUNT * I_MAX > 40.96 mV
+	RANGE_LOW = (1u << 4), // ±40.96 mV
+};
 
-#define INA228_MODE_SHIFTS                   (12)
-#define INA228_MODE_MASK                     (0xf << INA228_MODE_SHIFTS)
-#define INA228_MODE_SHUTDOWN_TRIG            (0 << INA228_MODE_SHIFTS)
-#define INA228_MODE_BUS_TRIG                 (1 << INA228_MODE_SHIFTS)
-#define INA228_MODE_SHUNT_TRIG               (2 << INA228_MODE_SHIFTS)
-#define INA228_MODE_SHUNT_BUS_TRIG           (3 << INA228_MODE_SHIFTS)
-#define INA228_MODE_TEMP_TRIG                (4 << INA228_MODE_SHIFTS)
-#define INA228_MODE_TEMP_BUS_TRIG            (5 << INA228_MODE_SHIFTS)
-#define INA228_MODE_TEMP_SHUNT_TRIG          (6 << INA228_MODE_SHIFTS)
-#define INA228_MODE_TEMP_SHUNT_BUS_TRIG      (7 << INA228_MODE_SHIFTS)
+// ADC_CONFIG register fields
+static constexpr uint16_t MODE_SHIFT = 12;
+static constexpr uint16_t MODE_TRIGGERED_ALL = 0x7; // triggered bus voltage, shunt voltage and temperature
+static constexpr uint16_t VBUSCT_SHIFT = 9;
+static constexpr uint16_t VSHCT_SHIFT = 6;
+static constexpr uint16_t VTCT_SHIFT = 3;
+static constexpr uint16_t AVG_SHIFT = 0;
 
-#define INA228_MODE_SHUTDOWN_CONT            (8 << INA228_MODE_SHIFTS)
-#define INA228_MODE_BUS_CONT                 (9 << INA228_MODE_SHIFTS)
-#define INA228_MODE_SHUNT_CONT               (10 << INA228_MODE_SHIFTS)
-#define INA228_MODE_SHUNT_BUS_CONT           (11 << INA228_MODE_SHIFTS)
-#define INA228_MODE_TEMP_CONT                (12 << INA228_MODE_SHIFTS)
-#define INA228_MODE_TEMP_BUS_CONT            (13 << INA228_MODE_SHIFTS)
-#define INA228_MODE_TEMP_SHUNT_CONT          (14 << INA228_MODE_SHIFTS)
-#define INA228_MODE_TEMP_SHUNT_BUS_CONT      (15 << INA228_MODE_SHIFTS)
+// Index into CONVERSION_TIME_US / AVERAGES
+enum ConversionTime : uint16_t { CT_50US, CT_84US, CT_150US, CT_280US, CT_540US, CT_1052US, CT_2074US, CT_4120US };
+enum Averages : uint16_t { AVG_1, AVG_4, AVG_16, AVG_64, AVG_128, AVG_256, AVG_512, AVG_1024 };
 
-#define INA228_VBUSCT_SHIFTS                 (9)
-#define INA228_VBUSCT_MASK                   (7 << INA228_VBUSCT_SHIFTS)
-#define INA228_VBUSCT_50US                   (0 << INA228_VBUSCT_SHIFTS)
-#define INA228_VBUSCT_84US                   (1 << INA228_VBUSCT_SHIFTS)
-#define INA228_VBUSCT_150US                  (2 << INA228_VBUSCT_SHIFTS)
-#define INA228_VBUSCT_280US                  (3 << INA228_VBUSCT_SHIFTS)
-#define INA228_VBUSCT_540US                  (4 << INA228_VBUSCT_SHIFTS)
-#define INA228_VBUSCT_1052US                 (5 << INA228_VBUSCT_SHIFTS)
-#define INA228_VBUSCT_2074US                 (6 << INA228_VBUSCT_SHIFTS)
-#define INA228_VBUSCT_4170US                 (7 << INA228_VBUSCT_SHIFTS)
+static constexpr uint16_t adcConfig(ConversionTime bus_and_shunt_ct, Averages avg)
+{
+	// Temperature uses the shortest conversion time: it only adds to the sample time.
+	return static_cast<uint16_t>((MODE_TRIGGERED_ALL << MODE_SHIFT) | (bus_and_shunt_ct << VBUSCT_SHIFT)
+				     | (bus_and_shunt_ct << VSHCT_SHIFT) | (CT_50US << VTCT_SHIFT) | (avg << AVG_SHIFT));
+}
 
-#define INA228_VSHCT_SHIFTS                  (6)
-#define INA228_VSHCT_MASK                    (7 << INA228_VSHCT_SHIFTS)
-#define INA228_VSHCT_50US                    (0 << INA228_VSHCT_SHIFTS)
-#define INA228_VSHCT_84US                    (1 << INA228_VSHCT_SHIFTS)
-#define INA228_VSHCT_150US                   (2 << INA228_VSHCT_SHIFTS)
-#define INA228_VSHCT_280US                   (3 << INA228_VSHCT_SHIFTS)
-#define INA228_VSHCT_540US                   (4 << INA228_VSHCT_SHIFTS)
-#define INA228_VSHCT_1052US                  (5 << INA228_VSHCT_SHIFTS)
-#define INA228_VSHCT_2074US                  (6 << INA228_VSHCT_SHIFTS)
-#define INA228_VSHCT_4170US                  (7 << INA228_VSHCT_SHIFTS)
+// Nominal time for one averaged sample: the enabled channels are converted in sequence and
+// the sequence is repeated AVG times (datasheet §7.3.4).
+static constexpr uint32_t conversionTimeUs(uint16_t adc_config)
+{
+	return AVERAGES[(adc_config >> AVG_SHIFT) & 0x7] * (CONVERSION_TIME_US[(adc_config >> VBUSCT_SHIFT) & 0x7]
+			+ CONVERSION_TIME_US[(adc_config >> VSHCT_SHIFT) & 0x7]
+			+ CONVERSION_TIME_US[(adc_config >> VTCT_SHIFT) & 0x7]);
+}
 
-#define INA228_VTCT_SHIFTS                   (3)
-#define INA228_VTCT_MASK                     (7 << INA228_VTCT_SHIFTS)
-#define INA228_VTCT_50US                     (0 << INA228_VTCT_SHIFTS)
-#define INA228_VTCT_84US                     (1 << INA228_VTCT_SHIFTS)
-#define INA228_VTCT_150US                    (2 << INA228_VTCT_SHIFTS)
-#define INA228_VTCT_280US                    (3 << INA228_VTCT_SHIFTS)
-#define INA228_VTCT_540US                    (4 << INA228_VTCT_SHIFTS)
-#define INA228_VTCT_1052US                   (5 << INA228_VTCT_SHIFTS)
-#define INA228_VTCT_2074US                   (6 << INA228_VTCT_SHIFTS)
-#define INA228_VTCT_4170US                   (7 << INA228_VTCT_SHIFTS)
+// Worst case with the internal oscillator running 1 % slow.
+static constexpr uint32_t conversionTimeMaxUs(uint16_t adc_config)
+{
+	return (conversionTimeUs(adc_config) * 101 + 99) / 100;
+}
 
-#define INA228_AVERAGES_SHIFTS               (0)
-#define INA228_AVERAGES_MASK                 (7 << INA228_AVERAGES_SHIFTS)
-#define INA228_AVERAGES_1                    (0 << INA228_AVERAGES_SHIFTS)
-#define INA228_AVERAGES_4                    (1 << INA228_AVERAGES_SHIFTS)
-#define INA228_AVERAGES_16                   (2 << INA228_AVERAGES_SHIFTS)
-#define INA228_AVERAGES_64                   (3 << INA228_AVERAGES_SHIFTS)
-#define INA228_AVERAGES_128                  (4 << INA228_AVERAGES_SHIFTS)
-#define INA228_AVERAGES_256                  (5 << INA228_AVERAGES_SHIFTS)
-#define INA228_AVERAGES_512                  (6 << INA228_AVERAGES_SHIFTS)
-#define INA228_AVERAGES_1024                 (7 << INA228_AVERAGES_SHIFTS)
+// INA228_RATE options. Bus voltage and current always get the same conversion time (at least
+// 540 us), and each rate uses the longest integration time (conversion time x averaging) whose
+// conversion still fits in one sample interval.
+struct RatePreset {
+	uint8_t rate_hz;
+	uint16_t adc_config;
+};
 
-#define INA228_ADCCONFIG (INA228_MODE_TEMP_SHUNT_BUS_CONT | INA228_VBUSCT_540US | INA228_VSHCT_540US | INA228_VTCT_540US |INA228_AVERAGES_64)
+static constexpr RatePreset RATE_PRESETS[] = {
+	{10, adcConfig(CT_540US, AVG_64)}, // 72.32 ms per sample, same bus/shunt integration time as the old default
+	{20, adcConfig(CT_1052US, AVG_16)}, // 34.46 ms
+	{50, adcConfig(CT_540US, AVG_16)}, // 18.08 ms
+	{100, adcConfig(CT_1052US, AVG_4)}, // 8.62 ms
+};
 
-/* INA228 Shunt Calibration (SHUNT_CAL) 16-bit Register (Address = 2h) [reset = 1000h] */
+static constexpr uint8_t DEFAULT_RATE_HZ = 10;
 
-#define INA228_CURRLSB_SHIFTS                (0)
-#define INA228_CURRLSB_MASK                  (0x7fff << INA228_CURRLSB_SHIFTS)
+static constexpr bool presetFits(const RatePreset &p)
+{
+	return conversionTimeMaxUs(p.adc_config) + WAKEUP_TIME_US + TRIGGER_MARGIN_US <= 1'000'000u / p.rate_hz;
+}
 
-/* INA228 Shunt Temperature Coefficient (SHUNT_TEMPCO) 16-bit Register (Address = 3h) [reset = 0h] */
+static constexpr bool allPresetsFit()
+{
+	// NOLINTNEXTLINE(readability-use-anyofallof) std::all_of is not constexpr before C++20
+	for (const RatePreset &p : RATE_PRESETS) {
+		if (!presetFits(p)) {
+			return false;
+		}
+	}
 
-#define INA228_TEMPCO_SHIFTS                 (0)
-#define INA228_TEMPCO_MASK                   (0x1fff << INA228_TEMPCO_SHIFTS)
+	return true;
+}
 
-/* INA228 Shunt Voltage Measurement (VSHUNT) 24-bit Register (Address = 4h) [reset = 0h] */
+static_assert(allPresetsFit(), "INA228 conversion does not fit in the sample interval");
 
-#define INA228_VSHUNT_SHIFTS                 (4)
-#define INA228_VSHUNT_MASK                   (UINT32_C(0xffffff) << INA228_VSHUNT_SHIFTS)
+// DEVICE_ID register field accessor
+static constexpr uint16_t DEVICE_ID_MASK = 0xfff0u;
+static inline constexpr uint16_t deviceId(uint16_t v) { return (v & DEVICE_ID_MASK) >> 4; }
 
-/* INA228 Bus Voltage Measurement (VBUS) 24-bit Register (Address = 5h) [reset = 0h] */
+} // namespace ina228
 
-#define INA228_VBUS_SHIFTS                   (4)
-#define INA228_VBUS_MASK                     (UINT32_C(0xffffff) << INA228_VBUS_SHIFTS)
-
-/* INA228 Temperature Measurement (DIETEMP) 16-bit Register (Address = 6h) [reset = 0h] */
-
-#define INA228_DIETEMP_SHIFTS                (0)
-#define INA228_DIETEMP_MASK                  (0xffff << INA228_DIETEMP_SHIFTS)
-
-/* INA228 Current Result (CURRENT) 24-bit Register (Address = 7h) [reset = 0h] */
-
-#define INA228_CURRENT_SHIFTS                (4)
-#define INA228_CURRENT_MASK                  (UINT32_C(0xffffff) << INA228_CURRENT_SHIFTS)
-
-/* INA228 Power Result (POWER) 24-bit Register (Address = 8h) [reset = 0h] */
-
-#define INA228_POWER_SHIFTS                  (0)
-#define INA228_POWER_MASK                    (UINT32_C(0xffffff) << INA228_POWER_SHIFTS)
-
-/* INA228 Energy Result (ENERGY) 40-bit Register (Address = 9h) [reset = 0h] */
-
-#define INA228_ENERGY_SHIFTS                  (0)
-#define INA228_ENERGY_MASK                    (UINT64_C(0xffffffffff) << INA228_ENERGY_SHIFTS)
-
-/* INA228 Charge Result (CHARGE) 40-bit Register (Address = Ah) [reset = 0h] */
-
-#define INA228_CHARGE_SHIFTS                 (0)
-#define INA228_CHARGE_MASK                   (UINT64_C(0xffffffffff) << INA228_CHARGE_SHIFTS)
-
-
-/* INA228 Diagnostic Flags and Alert (DIAG_ALRT) 16-bit Register (Address = Bh) [reset = 0001h] */
-
-#define INA228_MEMSTAT                       (1 << 0)  // This bit is set to 0 if a checksum error is detected in the device trim memory space
-#define INA228_CNVRF                         (1 << 1)  // This bit is set to 1 if the conversion is completed. When ALATCH =1 this bit is cleared by reading the register or starting a new triggered conversion.
-#define INA228_POL                           (1 << 2)  // This bit is set to 1 if the power measurement exceeds the threshold limit in the power limit register.
-#define INA228_BUSUL                         (1 << 3)  // This bit is set to 1 if the bus voltage measurement falls below the threshold limit in the bus under-limit register.
-#define INA228_BUSOL                         (1 << 4)  // This bit is set to 1 if the bus voltage measurement exceeds the threshold limit in the bus over-limit register.
-#define INA228_SHNTUL                        (1 << 5)  // This bit is set to 1 if the shunt voltage measurement falls below the threshold limit in the shunt under-limit register
-#define INA228_SHNTOL                        (1 << 6)  // This bit is set to 1 if the shunt voltage measurement exceeds the threshold limit in the shunt over-limit register.
-#define INA228_TMPOL                         (1 << 7)  // This bit is set to 1 if the temperature measurement exceeds the threshold limit in the temperature over-limit register.
-#define INA228_MATHOF                        (1 << 9)  // This bit is set to 1 if an arithmetic operation resulted in an overflow error.
-#define INA228_CHARGEOF                      (1 << 10) // This bit indicates the health of the CHARGE register. If the 40 bit CHARGE register has overflowed this bit is set to 1.
-#define INA228_ENERGYOF                      (1 << 11) // This bit indicates the health of the ENERGY register. If the 40 bit ENERGY register has overflowed this bit is set to 1.
-#define INA228_APOL                          (1 << 12) // Alert Polarity bit sets the Alert pin polarity.
-#define INA228_SLOWALER                      (1 << 13) // ALERT function is asserted on the completed averaged value.  This gives the flexibility to delay the ALERT after the averaged value.
-#define INA228_CNVR                          (1 << 14) // Setting this bit high configures the Alert pin to be asserted when the Conversion Ready Flag (bit 1) is asserted, indicating that a conversion cycle has completed
-#define INA228_ALATCH                        (1 << 15) // When the Alert Latch Enable bit is set to Transparent mode, the Alert pin and Flag bit reset to the idle state when the fault has been
-// cleared. When the Alert Latch Enable bit is set to Latch mode, the Alert pin and Alert Flag bit remain active following a fault until
-// the DIAG_ALRT Register has been read.
-
-/* Shunt Overvoltage Threshold (SOVL) 16-bit Register (Address = Ch) [reset = 7FFFh] */
-
-#define INA228_SOVL_SHIFTS                   (0)
-#define INA228_SOVL_MASK                     (0xffff << INA228_SOVL_SHIFTS)
-
-/* Shunt Undervoltage Threshold (SUVL) 16-bit Register (Address = Dh) [reset = 8000h] */
-
-#define INA228_SUVL_SHIFTS                   (0)
-#define INA228_SUVL_MASK                     (0xffff << INA228_SUVL_SHIFTS)
-
-/* Bus Overvoltage Threshold (BOVL) 16-bit Register (Address = Eh) [reset = 7FFFh] */
-
-#define INA228_BOVL_SHIFTS                   (0)
-#define INA228_BOVL_MASK                     (0xffff << INA228_BOVL_SHIFTS)
-
-/* Bus Undervoltage Threshold (BUVL) 16-bit Register (Address = Fh) [reset = 0h] */
-
-#define INA228_BUVL_SHIFTS                   (0)
-#define INA228_BUVL_MASK                     (0xffff << INA228_BUVL_SHIFTS)
-
-/* Temperature Over-Limit Threshold (TEMP_LIMIT) 16-bit Register (Address = 10h) [reset = 7FFFh */
-
-#define INA228_TEMP_LIMIT_SHIFTS             (0)
-#define INA228_TEMP_LIMIT_MASK               (0xffff << INA228_TEMP_LIMIT_SHIFTS)
-
-/* Power Over-Limit Threshold (PWR_LIMIT) 16-bit Register (Address = 11h) [reset = FFFFh] */
-
-#define INA228_POWER_LIMIT_SHIFTS            (0)
-#define INA228_POWER_LIMIT_MASK              (0xffff << INA228_POWER_LIMIT_SHIFTS)
-
-/* Manufacturer ID (MANUFACTURER_ID) 16-bit Register (Address = 3Eh) [reset = 5449h] */
-
-/* Device ID (DEVICE_ID) 16-bit Register (Address = 3Fh) [reset = 2280h] */
-
-#define INA228_DEVICE_REV_ID_SHIFTS          (0)
-#define INA228_DEVICE_REV_ID_MASK            (0xf << INA228_DEVICE_REV_ID_SHIFTS)
-#define INA228_DEVICEREV_ID(v)               (((v) & INA228_DEVICE_REV_ID_MASK) >> INA228_DEVICE_REV_ID_SHIFTS)
-#define INA228_DEVICE_ID_SHIFTS              (4)
-#define INA228_DEVICE_ID_MASK                (0xfff << INA228_DEVICE_ID_SHIFTS)
-#define INA228_DEVICEID(v)                   (((v) & INA228_DEVICE_ID_MASK) >> INA228_DEVICE_ID_SHIFTS)
-
-
-
-#define INA228_SAMPLE_FREQUENCY_HZ           10
-#define INA228_SAMPLE_INTERVAL_US            (1_s / INA228_SAMPLE_FREQUENCY_HZ)
-#define INA228_CONVERSION_INTERVAL           (INA228_SAMPLE_INTERVAL_US - 7)
-#define DN_MAX                               524288.0f  /* 2^19 */
-#define INA228_CONST                         13107.2e6f  /* is an internal fixed value used to ensure scaling is maintained properly  */
-#define INA228_VSCALE                        1.95e-04f  /* LSB of voltage is 195.3125 uV/LSB */
-#define INA228_TSCALE                        7.8125e-03f /* LSB of temperature is 7.8125 mDegC/LSB */
-
-#define INA228_ADCRANGE_LOW_V_SENSE          0.04096f // ± 40.96 mV
-
-#define swap16(w)                            __builtin_bswap16((w))
-#define swap32(d)                            __builtin_bswap32((d))
-#define swap64(q)                            __builtin_bswap64((q))
 
 class INA228 : public device::I2C, public ModuleParams, public I2CSPIDriver<INA228>
 {
 public:
 	INA228(const I2CSPIDriverConfig &config, int battery_index);
-	virtual ~INA228();
+	~INA228() override;
 
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
-	void	RunImpl();
+	int init() override;
+	void RunImpl();
 
-	int 		  init() override;
-
-	/**
-	 * Tries to call the init() function. If it fails, then it will schedule to retry again in
-	 * INA228_INIT_RETRY_INTERVAL_US microseconds. It will keep retrying at this interval until initialization succeeds.
-	 *
-	 * @return PX4_OK if initialization succeeded on the first try. Negative value otherwise.
-	 */
-	int force_init();
-
-	/**
-	* Diagnostics - print some basic information about the driver.
-	*/
-	void				      print_status() override;
+	void print_status() override;
 
 protected:
-	int	  		probe() override;
+	int probe() override;
 
 private:
-	bool			        _sensor_ok{false};
-	unsigned                        _measure_interval{0};
-	bool			        _collect_phase{false};
-	bool 					_initialized{false};
+	enum class State : uint8_t {
+		UNINITIALIZED, // I2C::init() not yet called successfully — retry until it does
+		RESET, // soft-reset the device, then transition to CONFIGURE
+		CONFIGURE, // write SHUNT_CAL / CONFIG / ADCCONFIG, then transition to MEASURE
+		MEASURE, // steady-state: (trigger,) read VS_BUS / CURRENT / DIETEMP, publish, repeat
+	};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
-	perf_counter_t 		_collection_errors;
-	perf_counter_t 		_measure_errors;
+	// Sampling setup derived from INA228_RATE. Computed before the Battery member is
+	// constructed, because Battery needs the sample interval.
+	struct Timing {
+		uint16_t adc_config;
+		uint32_t conversion_us; // nominal time for one averaged output sample
+		uint32_t conversion_max_us; // conversion_us with the oscillator running slow
+		uint32_t interval_us; // sample interval
+	};
 
-	int32_t           _bus_voltage{0};
-	int64_t           _power{0};
-	int32_t           _current{0};
-	int16_t           _temperature{0};
-	int32_t           _shunt{0};
-	int16_t           _cal{0};
-	int16_t           _range{INA228_ADCRANGE_HIGH};
-	bool              _mode_triggered{false};
+	static Timing computeTiming();
 
-	uint16_t          _config{INA228_ADCCONFIG};
-	float             _current_lsb{0.f};
-	float             _power_lsb{25.0f * _current_lsb};
+	int collect();
+	void enterReset();
+	void enterConfigure();
 
-	Battery 		  _battery;
+	// Rotates through the configuration registers, one per call. Returns PX4_OK,
+	// -EIO if the read fails, or -EBADMSG if the value doesn't match what we wrote
+	// (the device has been reset behind our back).
+	int checkConfigurationRotating();
+
+	int registerRead(ina228::Register reg, uint16_t &value);
+	int registerRead24(ina228::Register reg, int32_t &value);
+	int registerWrite(ina228::Register reg, uint16_t value);
+
+	// --- State -------------------------------------------------------------
+	const Timing _timing;
+	Battery _battery;
+
+	State _state{State::UNINITIALIZED};
+	uint16_t _consecutive_failures{0};
+	uint16_t _max_consecutive_failures{1};
+
+	uint8_t _next_reg_to_check{0};
+	hrt_abstime _last_config_check{0};
+	uint16_t _last_readback[2] {}; // CONFIG, SHUNT_CAL
+	hrt_abstime _trigger_time{0}; // when the last triggered conversion was started
+
+	// Configuration computed from params
+	float _current_lsb{0.f};
+	uint16_t _shunt_calibration{0};
+	uint16_t _config_value{0}; // CONFIG register value we wrote
+
+	// Perf counters
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
+	perf_counter_t _collection_errors;
+	perf_counter_t _bad_register_perf;
+	perf_counter_t _reinit_perf;
+	perf_counter_t _not_ready_perf;
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uint8_t _connected{0};
-	// returns state unchanged
-	bool setConnected(bool state);
-
-	int read(uint8_t address, int16_t &data);
-	int write(uint8_t address, int16_t data);
-
-	int read(uint8_t address, uint16_t &data);
-	int write(uint8_t address, uint16_t data);
-
-	int read(uint8_t address, int32_t &data);
-	int write(uint8_t address, int32_t data);
-
-	int read(uint8_t address, int64_t &data);
-	int write(uint8_t address, int64_t data);
-
-	/**
-	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
-	*/
-	void				      start();
-
-	int					     measure();
-	int					     collect();
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::INA228_CURRENT>) _param_ina228_current,
 		(ParamFloat<px4::params::INA228_SHUNT>) _param_ina228_shunt
 	);
-
 };
