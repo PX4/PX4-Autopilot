@@ -35,7 +35,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/out/vehicle_command_ack`           | [px4_msgs::msg::VehicleCommandAck](../msg_docs/VehicleCommandAck.md)                   |                       |
 | `/fmu/out/vehicle_control_mode`          | [px4_msgs::msg::VehicleControlMode](../msg_docs/VehicleControlMode.md)                 | 50.0  |
 | `/fmu/out/vehicle_global_position`       | [px4_msgs::msg::VehicleGlobalPosition](../msg_docs/VehicleGlobalPosition.md)           | 50.0  |
-| `/fmu/out/vehicle_gps_position`          | [px4_msgs::msg::SensorGps](../msg_docs/SensorGps.md)                                   | 50.0  |
+| `/fmu/out/vehicle_gnss`                  | [px4_msgs::msg::VehicleGnss](../msg_docs/VehicleGnss.md)                               | 50.0  |
 | `/fmu/out/vehicle_land_detected`         | [px4_msgs::msg::VehicleLandDetected](../msg_docs/VehicleLandDetected.md)               | 5.0   |
 | `/fmu/out/vehicle_local_position`        | [px4_msgs::msg::VehicleLocalPosition](../msg_docs/VehicleLocalPosition.md)             | 50.0  |
 | `/fmu/out/vehicle_odometry`              | [px4_msgs::msg::VehicleOdometry](../msg_docs/VehicleOdometry.md)                       | 100.0 |
@@ -149,7 +149,6 @@ See messages
 - [EstimatorBias3d](../msg_docs/EstimatorBias3d.md)
 - [EstimatorEventFlags](../msg_docs/EstimatorEventFlags.md)
 - [EstimatorFusionControl](../msg_docs/EstimatorFusionControl.md)
-- [EstimatorGpsStatus](../msg_docs/EstimatorGpsStatus.md)
 - [EstimatorInnovations](../msg_docs/EstimatorInnovations.md)
 - [EstimatorSelectorStatus](../msg_docs/EstimatorSelectorStatus.md)
 - [EstimatorSensorBias](../msg_docs/EstimatorSensorBias.md)
@@ -271,6 +270,7 @@ See messages
 - [SensorAirflow](../msg_docs/SensorAirflow.md)
 - [SensorBaro](../msg_docs/SensorBaro.md)
 - [SensorCorrection](../msg_docs/SensorCorrection.md)
+- [SensorGnss](../msg_docs/SensorGnss.md)
 - [SensorGnssRelative](../msg_docs/SensorGnssRelative.md)
 - [SensorGnssRf](../msg_docs/SensorGnssRf.md)
 - [SensorGnssSpectrum](../msg_docs/SensorGnssSpectrum.md)
@@ -285,6 +285,7 @@ See messages
 - [SensorTemp](../msg_docs/SensorTemp.md)
 - [SensorUwb](../msg_docs/SensorUwb.md)
 - [SensorsStatus](../msg_docs/SensorsStatus.md)
+- [SensorsStatusGnss](../msg_docs/SensorsStatusGnss.md)
 - [SensorsStatusImu](../msg_docs/SensorsStatusImu.md)
 - [SystemPower](../msg_docs/SystemPower.md)
 - [TakeoffStatus](../msg_docs/TakeoffStatus.md)
@@ -306,6 +307,7 @@ See messages
 - [VehicleCommandAckV0](../msg_docs/VehicleCommandAckV0.md)
 - [VehicleConstraints](../msg_docs/VehicleConstraints.md)
 - [VehicleGlobalPositionV0](../msg_docs/VehicleGlobalPositionV0.md)
+- [VehicleGnssHeading](../msg_docs/VehicleGnssHeading.md)
 - [VehicleImu](../msg_docs/VehicleImu.md)
 - [VehicleImuStatus](../msg_docs/VehicleImuStatus.md)
 - [VehicleLocalPositionSetpoint](../msg_docs/VehicleLocalPositionSetpoint.md)

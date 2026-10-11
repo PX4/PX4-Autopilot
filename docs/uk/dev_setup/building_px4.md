@@ -189,6 +189,27 @@ Build commands for other boards are given the [board-specific flight controller 
 make list_config_targets
 ```
 
+## Submodules
+
+PX4 pulls a number of libraries (NuttX, MAVLink, and others) in as git submodules.
+Each build checks them once when it configures:
+
+| Submodule state                                                                            | Local build               | CI (`CI=true`) |
+| ------------------------------------------------------------------------------------------ | ------------------------- | --------------------------------- |
+| At the commit PX4 records                                                                  | Builds                    | Builds                            |
+| Missing                                                                                    | Fetched, then builds      | Fetched, then builds              |
+| At another commit (e.g. you changed it) | Warns, builds it as it is | Fails                             |
+
+A submodule at another commit is never reset, so you can develop and test changes to a submodule (for example a NuttX upgrade) in place.
+The build warns about it every time, and you are responsible for keeping it in the state you want.
+To check out the commits PX4 records (for example after switching branches), run:
+
+```sh
+git submodule sync --recursive && git submodule update --init --recursive
+```
+
+Set `GIT_SUBMODULES_ARE_EVIL=1` to skip the check entirely and manage submodules yourself.
+
 ## Компіляція в графічному IDE
 
 [VSCode](../dev_setup/vscode.md) is the officially supported (and recommended) IDE for PX4 development.
