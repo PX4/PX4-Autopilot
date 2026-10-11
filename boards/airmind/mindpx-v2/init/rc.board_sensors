@@ -8,11 +8,17 @@ board_adc start
 # Internal I2C bus
 hmc5883 -T -I -R 12 start
 qmc5883l -I -R 6 start
+qmc5883p -I -R 2 start
+ist8310 -I -R 4 start
+dps310 -I start -a 119
 
-mpu6000 -s -R 2 start
+# Internal SPI
 mpu6500 -s -R 2 start
 lsm303d -s -R 10 start
 l3gd20 -s -R 14 start
 
-# Internal SPI
+# iim42652 -s -R 0 start
+bmi270 -s -R 6 start
+lsm6dsv -s -R 8 start
+
 ms5611 -s start
