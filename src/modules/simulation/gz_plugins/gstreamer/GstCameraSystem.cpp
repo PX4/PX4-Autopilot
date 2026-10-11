@@ -477,17 +477,6 @@ bool CameraStream::runPipeline(bool useCuda, bool &usedNvenc)
 		return true;
 	}
 
-	// A pipeline with sinks changes state asynchronously; verify it completes.
-	GstStateChangeReturn scr = gst_element_get_state(_pipeline, nullptr, nullptr, 5 * GST_SECOND);
-
-	if (scr == GST_STATE_CHANGE_FAILURE) {
-		gzerr << "GStreamer pipeline failed to reach PLAYING state" << std::endl;
-		gst_element_set_state(_pipeline, GST_STATE_NULL);
-		gst_object_unref(_pipeline);
-		_pipeline = nullptr;
-		return true;
-	}
-
 	gzdbg << "GStreamer pipeline started, streaming to "
 	      << (_useRtmp ? _rtmpLocation
 		  : (_udpHost + ":" + std::to_string(_udpPort)))
