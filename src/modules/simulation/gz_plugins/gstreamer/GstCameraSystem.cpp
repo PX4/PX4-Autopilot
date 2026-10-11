@@ -254,11 +254,6 @@ void CameraStream::stop()
 	if (_gstThread.joinable()) {
 		_gstThread.join();
 	}
-
-	if (_pipeline) {
-		gst_element_set_state(_pipeline, GST_STATE_NULL);
-		gst_object_unref(_pipeline);
-	}
 }
 
 CameraStream::~CameraStream()
@@ -502,8 +497,8 @@ bool CameraStream::runPipeline(bool useCuda)
 	_running = true;
 	bool pipelineError = false;
 
-	// Process frames
-	while (_running && !pipelineError) {
+	// Not _running: a stop() during pipeline setup clears it before it is set above.
+	while (!_stopRequested && !pipelineError) {
 		// Drain pending bus messages
 		if (bus) {
 			GstMessage *busMsg;
