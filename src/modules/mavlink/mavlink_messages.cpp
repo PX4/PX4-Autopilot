@@ -159,7 +159,6 @@
 # include "streams/GIMBAL_DEVICE_INFORMATION.hpp"
 # include "streams/GPS2_RAW.hpp"
 # include "streams/HIGH_LATENCY2.hpp"
-# include "streams/LINK_NODE_STATUS.hpp"
 # include "streams/NAMED_VALUE_FLOAT.hpp"
 # include "streams/ODOMETRY.hpp"
 # include "streams/SCALED_PRESSURE2.hpp"
@@ -504,9 +503,6 @@ static constexpr StreamListItem streams_list[] = {
 #if defined(GPS_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamGPSStatus>(),
 #endif // GPS_STATUS_HPP
-#if defined(LINK_NODE_STATUS_HPP)
-	create_stream_list_item<MavlinkStreamLinkNodeStatus>(),
-#endif // LINK_NODE_STATUS_HPP
 #if defined(STORAGE_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamStorageInformation>(),
 #endif // STORAGE_INFORMATION_HPP
