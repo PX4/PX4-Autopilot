@@ -106,8 +106,6 @@ bool FlightTaskAuto::updateInitialize()
 
 	// require valid reference and valid target
 	ret = ret && _evaluateGlobalReference() && _evaluatePositionSetpointTriplet();
-	// require valid position
-	ret = ret && _position.isAllFinite() && _velocity.isAllFinite();
 
 	return ret;
 }

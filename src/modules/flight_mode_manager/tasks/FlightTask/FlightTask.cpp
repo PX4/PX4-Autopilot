@@ -37,6 +37,32 @@ void FlightTask::initEkfResetCounters()
 	_reset_counters.heading = _sub_vehicle_local_position.get().heading_reset_counter;
 }
 
+uint8_t FlightTask::availableInputs(const vehicle_local_position_s &local_position, bool home_altitude_valid,
+				    bool manual_control_available, hrt_abstime now)
+{
+	uint8_t inputs = 0;
+
+	if ((now - local_position.timestamp) < _timeout) {
+		inputs |= LocalPosition;
+
+		if (local_position.xy_valid) { inputs |= PositionXY; }
+
+		if (local_position.v_xy_valid) { inputs |= VelocityXY; }
+
+		if (local_position.z_valid) { inputs |= PositionZ; }
+
+		if (local_position.v_z_valid) { inputs |= VelocityZ; }
+
+		if (PX4_ISFINITE(local_position.heading)) { inputs |= Heading; }
+	}
+
+	if (manual_control_available) { inputs |= ManualControl; }
+
+	if (home_altitude_valid) { inputs |= HomeAltitude; }
+
+	return inputs;
+}
+
 bool FlightTask::updateInitialize()
 {
 	_time_stamp_current = hrt_absolute_time();
@@ -46,10 +72,15 @@ bool FlightTask::updateInitialize()
 	_sub_vehicle_local_position.update();
 	_sub_home_position.update();
 
+	_available_inputs = availableInputs(_sub_vehicle_local_position.get(), _sub_home_position.get().valid_alt,
+					    _manualControlAvailable(), _time_stamp_current);
+
 	_evaluateVehicleLocalPosition();
 	_evaluateVehicleLocalPositionSetpoint();
 	_evaluateDistanceToGround();
-	return true;
+
+	const uint8_t required_inputs = requiredInputs();
+	return (_available_inputs & required_inputs) == required_inputs;
 }
 
 bool FlightTask::update()
@@ -127,42 +158,33 @@ void FlightTask::_evaluateVehicleLocalPosition()
 	_yaw = NAN;
 	_dist_to_bottom = NAN;
 
-	// Only use vehicle-local-position topic fields if the topic is received within a certain timestamp
-	if ((_time_stamp_current - _sub_vehicle_local_position.get().timestamp) < _timeout) {
-
-		// yaw
-		_yaw = _sub_vehicle_local_position.get().heading;
+	if (_available_inputs & LocalPosition) {
 		_unaided_yaw = _sub_vehicle_local_position.get().unaided_heading;
 		_is_yaw_good_for_control = _sub_vehicle_local_position.get().heading_good_for_control;
 
-		// position
-		if (_sub_vehicle_local_position.get().xy_valid) {
+		if (_available_inputs & Heading) {
+			_yaw = _sub_vehicle_local_position.get().heading;
+		}
+
+		if (_available_inputs & PositionXY) {
 			_position(0) = _sub_vehicle_local_position.get().x;
 			_position(1) = _sub_vehicle_local_position.get().y;
 		}
 
-		if (_sub_vehicle_local_position.get().z_valid) {
+		if (_available_inputs & PositionZ) {
 			_position(2) = _sub_vehicle_local_position.get().z;
 		}
 
-		// velocity
-		if (_sub_vehicle_local_position.get().v_xy_valid) {
+		// acceleration is the velocity derivative in EKF2, so it is available whenever velocity is
+		if (_available_inputs & VelocityXY) {
 			_velocity(0) = _sub_vehicle_local_position.get().vx;
 			_velocity(1) = _sub_vehicle_local_position.get().vy;
-		}
-
-		if (_sub_vehicle_local_position.get().v_z_valid) {
-			_velocity(2) = _sub_vehicle_local_position.get().vz;
-		}
-
-		// acceleration is calculated as the velocity derivative in EKF2,
-		// if velocity is available acceleration values are available
-		if (_sub_vehicle_local_position.get().v_xy_valid) {
 			_acceleration(0) = _sub_vehicle_local_position.get().ax;
 			_acceleration(1) = _sub_vehicle_local_position.get().ay;
 		}
 
-		if (_sub_vehicle_local_position.get().v_z_valid) {
+		if (_available_inputs & VelocityZ) {
+			_velocity(2) = _sub_vehicle_local_position.get().vz;
 			_acceleration(2) = _sub_vehicle_local_position.get().az;
 		}
 
