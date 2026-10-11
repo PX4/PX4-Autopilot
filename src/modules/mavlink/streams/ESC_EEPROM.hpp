@@ -34,7 +34,9 @@
 #ifndef ESC_EEPROM_HPP
 #define ESC_EEPROM_HPP
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/esc_eeprom_read.h>
+#include <uORB/topics/esc_status.h>
 
 class MavlinkStreamEscEeprom : public MavlinkStream
 {
@@ -57,11 +59,24 @@ private:
 
 	uORB::Subscription _esc_eeprom_read_sub{ORB_ID(esc_eeprom_read)};
 
-	bool emit_message(bool force)
-	{
-		esc_eeprom_read_s eeprom = {};
+	// The driver republishes every cached dump each second for the log. Forward each read once per link: a new
+	// read (boot, reconnect, save, ESC_REQUEST_EEPROM) changes timestamp_sample, and a link that comes up later
+	// still gets every ESC from the next republish.
+	hrt_abstime _sent_timestamp_sample[esc_status_s::CONNECTED_ESC_MAX] {};
 
-		if (_esc_eeprom_read_sub.update(&eeprom) || force) {
+	bool send() override
+	{
+		bool sent = false;
+		esc_eeprom_read_s eeprom;
+
+		while (_esc_eeprom_read_sub.update(&eeprom)) {
+			if (eeprom.index >= esc_status_s::CONNECTED_ESC_MAX
+			    || eeprom.timestamp_sample == _sent_timestamp_sample[eeprom.index]) {
+				continue;
+			}
+
+			_sent_timestamp_sample[eeprom.index] = eeprom.timestamp_sample;
+
 			mavlink_esc_eeprom_t msg = {};
 			msg.firmware = eeprom.firmware;
 			msg.esc_index = eeprom.index;
@@ -72,18 +87,11 @@ private:
 			msg.length = copy_len;
 
 			mavlink_msg_esc_eeprom_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
+			sent = true;
 		}
 
-		return false;
+		return sent;
 	}
-
-	bool send() override
-	{
-		return emit_message(false);
-	}
-
 };
 
 #endif // ESC_EEPROM_HPP
