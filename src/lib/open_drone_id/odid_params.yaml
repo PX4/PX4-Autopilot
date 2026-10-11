@@ -8,7 +8,11 @@ parameters:
         long: |-
           Selects how the Open Drone ID UAS ID is sourced.
 
-          In locked mode, the first received Basic ID UAS ID is expected to be stored persistently and reused on subsequent boots.
+          In locked mode, the first valid serial-number Basic ID is stored persistently
+          and bound to the board UID. Later boots reuse it only when the record and UID
+          are valid. Records from the older format without a UID require explicit
+          reprovisioning. UID binding detects copied records but does not authenticate
+          the serial number.
       type: enum
       values:
         0: PX4 board GUID legacy fallback
