@@ -33,8 +33,7 @@
 
 #include "CanardHandle.hpp"
 
-#include <net/if.h>
-#include <sys/ioctl.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <px4_platform_common/log.h>
@@ -87,11 +86,13 @@ CanardHandle::CanardHandle(uint32_t node_id, const size_t capacity, const size_t
 
 CanardHandle::~CanardHandle()
 {
-	_can_interface->close();
-	delete _can_interface;
-	_can_interface = nullptr;
+	if (_can_interface) {
+		_can_interface->close();
+		delete _can_interface;
+		_can_interface = nullptr;
+	}
 
-	delete static_cast<uint8_t *>(_cyphal_heap);
+	free(_cyphal_heap);
 	_cyphal_heap = nullptr;
 
 }
