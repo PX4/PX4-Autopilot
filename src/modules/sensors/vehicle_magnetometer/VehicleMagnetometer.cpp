@@ -497,33 +497,36 @@ void VehicleMagnetometer::Run()
 					_priority[uorb_index] = _calibration[uorb_index].priority();
 				}
 
-				if (_calibration[uorb_index].enabled()) {
-
-					if (!was_advertised) {
-						if (uorb_index > 0) {
-							/* the first always exists, but for each further sensor, add a new validator */
-							if (!_voter.add_new_validator()) {
-								PX4_ERR("failed to add validator for %s %i", _calibration[uorb_index].SensorString(), uorb_index);
-							}
+				if (!was_advertised) {
+					if (uorb_index > 0) {
+						/* the first always exists, but for each further sensor, add a new validator */
+						if (!_voter.add_new_validator()) {
+							PX4_ERR("failed to add validator for %s %i", _calibration[uorb_index].SensorString(), uorb_index);
 						}
-
-						if (_selected_sensor_sub_index < 0) {
-							_sensor_sub[uorb_index].registerCallback();
-						}
-
-						ParametersUpdate(true);
 					}
 
-					const Vector3f vect{_calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z}) - _calibration_estimator_bias[uorb_index]};
+					// callbacks are only cleared on a selection change, which never comes while every
+					// sensor is disabled, so a disabled one must not drive Run() at its sample rate
+					if ((_selected_sensor_sub_index < 0) && (_priority[uorb_index] > 0)) {
+						_sensor_sub[uorb_index].registerCallback();
+					}
 
-					float mag_array[3] {vect(0), vect(1), vect(2)};
-					_voter.put(uorb_index, report.timestamp, mag_array, report.error_count, _priority[uorb_index]);
+					ParametersUpdate(true);
+				}
 
+				const Vector3f vect{_calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z}) - _calibration_estimator_bias[uorb_index]};
+
+				float mag_array[3] {vect(0), vect(1), vect(2)};
+
+				// a priority of 0 keeps the sensor tracked but excluded from selection
+				_voter.put(uorb_index, report.timestamp, mag_array, report.error_count, _priority[uorb_index]);
+
+				_last_data[uorb_index] = vect;
+
+				if (_calibration[uorb_index].enabled()) {
 					_timestamp_sample_sum[uorb_index] += report.timestamp_sample;
 					_data_sum[uorb_index] += vect;
 					_data_sum_count[uorb_index]++;
-
-					_last_data[uorb_index] = vect;
 
 					updated[uorb_index] = true;
 				}
@@ -535,22 +538,28 @@ void VehicleMagnetometer::Run()
 	int best_index = 0;
 	_voter.get_best(time_now_us, &best_index);
 
-	if (best_index >= 0) {
-		// handle selection change (don't process on same iteration as parameter update)
-		if ((_selected_sensor_sub_index != best_index) && !parameter_update) {
-			// clear all registered callbacks
-			for (auto &sub : _sensor_sub) {
-				sub.unregisterCallback();
-			}
+	// handle selection change (don't process on same iteration as parameter update)
+	// best_index is -1 when every magnetometer is disabled, which has to clear the selection
+	if ((_selected_sensor_sub_index != best_index) && !parameter_update) {
+		// clear all registered callbacks
+		for (auto &sub : _sensor_sub) {
+			sub.unregisterCallback();
+		}
 
-			if (_param_sens_mag_mode.get()) {
-				if (_selected_sensor_sub_index >= 0) {
-					PX4_INFO("%s switch from #%" PRId8 " -> #%d", _calibration[_selected_sensor_sub_index].SensorString(),
-						 _selected_sensor_sub_index, best_index);
-				}
-			}
+		if (_param_sens_mag_mode.get() && (_selected_sensor_sub_index >= 0)) {
+			if (best_index >= 0) {
+				PX4_INFO("%s switch from #%" PRId8 " -> #%d", _calibration[_selected_sensor_sub_index].SensorString(),
+					 _selected_sensor_sub_index, best_index);
 
-			_selected_sensor_sub_index = best_index;
+			} else {
+				PX4_INFO("%s #%" PRId8 " deselected, no magnetometer available",
+					 _calibration[_selected_sensor_sub_index].SensorString(), _selected_sensor_sub_index);
+			}
+		}
+
+		_selected_sensor_sub_index = best_index;
+
+		if (_selected_sensor_sub_index >= 0) {
 			_sensor_sub[_selected_sensor_sub_index].registerCallback();
 		}
 	}
@@ -677,8 +686,10 @@ void VehicleMagnetometer::CheckFailover(const hrt_abstime &time_now_us)
 					_last_error_message = time_now_us;
 				}
 
-				// reduce priority of failed sensor to the minimum
-				_priority[failover_index] = 1;
+				// reduce priority of failed sensor to the minimum, without re-enabling a disabled one
+				if (_priority[failover_index] > 0) {
+					_priority[failover_index] = 1;
+				}
 			}
 		}
 
@@ -732,44 +743,60 @@ void VehicleMagnetometer::calcMagInconsistency()
 
 void VehicleMagnetometer::UpdateStatus()
 {
-	if (_selected_sensor_sub_index >= 0) {
-		sensors_status_s sensors_status{};
-		sensors_status.device_id_primary = _calibration[_selected_sensor_sub_index].device_id();
+	sensors_status_s sensors_status{};
+	sensors_status.device_id_primary = (_selected_sensor_sub_index >= 0) ?
+					   _calibration[_selected_sensor_sub_index].device_id() : 0;
 
-		matrix::Vector3f mean{};
-		int sensor_count = 0;
+	matrix::Vector3f mean{};
+	int sensor_count = 0;
+	int known_count = 0;
 
-		for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
-			if ((_calibration[sensor_index].device_id() != 0) && (_calibration[sensor_index].enabled())) {
+	for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
+		if (_calibration[sensor_index].device_id() != 0) {
+			known_count++;
+
+			// the mean is the reference the inconsistency is measured against, so only
+			// the sensors actually eligible for use contribute to it
+			if (_calibration[sensor_index].enabled()) {
 				sensor_count++;
 				mean += _last_data[sensor_index];
 			}
 		}
+	}
 
-		if (sensor_count > 0) {
-			mean /= sensor_count;
-		}
+	if (known_count == 0) {
+		return;
+	}
 
-		for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
-			if (_calibration[sensor_index].device_id() != 0) {
+	if (sensor_count > 0) {
+		mean /= sensor_count;
+	}
 
+	for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
+		if (_calibration[sensor_index].device_id() != 0) {
+
+			if (sensor_count > 0) {
 				_sensor_diff[sensor_index] = 0.95f * _sensor_diff[sensor_index] + 0.05f * (_last_data[sensor_index] - mean);
-
-				sensors_status.device_ids[sensor_index] = _calibration[sensor_index].device_id();
 				sensors_status.inconsistency[sensor_index] = _sensor_diff[sensor_index].norm();
-				sensors_status.healthy[sensor_index] = (_voter.get_sensor_state(sensor_index) == DataValidator::ERROR_FLAG_NO_ERROR);
-				sensors_status.priority[sensor_index] = _voter.get_sensor_priority(sensor_index);
-				sensors_status.enabled[sensor_index] = _calibration[sensor_index].enabled();
-				sensors_status.external[sensor_index] = _calibration[sensor_index].external();
 
 			} else {
+				// with nothing enabled there is no reference to measure against
 				sensors_status.inconsistency[sensor_index] = NAN;
 			}
-		}
 
-		sensors_status.timestamp = hrt_absolute_time();
-		_sensors_status_mag_pub.publish(sensors_status);
+			sensors_status.device_ids[sensor_index] = _calibration[sensor_index].device_id();
+			sensors_status.healthy[sensor_index] = (_voter.get_sensor_state(sensor_index) == DataValidator::ERROR_FLAG_NO_ERROR);
+			sensors_status.priority[sensor_index] = _voter.get_sensor_priority(sensor_index);
+			sensors_status.enabled[sensor_index] = _calibration[sensor_index].enabled();
+			sensors_status.external[sensor_index] = _calibration[sensor_index].external();
+
+		} else {
+			sensors_status.inconsistency[sensor_index] = NAN;
+		}
 	}
+
+	sensors_status.timestamp = hrt_absolute_time();
+	_sensors_status_mag_pub.publish(sensors_status);
 }
 
 void VehicleMagnetometer::PrintStatus()
