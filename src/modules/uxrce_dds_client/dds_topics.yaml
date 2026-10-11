@@ -123,6 +123,10 @@ publications:
     type: px4_msgs::msg::InputRc
     rate_limit: 10.
 
+  - topic: /fmu/out/wheel_encoders
+    type: px4_msgs::msg::WheelEncoders
+    rate_limit: 10.
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
