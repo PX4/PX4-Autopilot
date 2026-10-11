@@ -120,6 +120,19 @@ TEST(TestLatLonAlt, fromAndToECEF)
 	}
 }
 
+TEST(TestLatLonAlt, northMeterRoundTrip)
+{
+	// A 1 km north step must come back as ~1 km. The old meridian radius used
+	// (1 - e^2 sin^2 phi)^(5/2) instead of ^(3/2), which stretched north by
+	// ~0.34% at 45 deg (~3.4 m per km).
+	LatLonAlt lla(45.0, 8.0, 400.f);
+	const Vector3f step(1000.f, 0.f, 0.f);
+	const Vector3f back = (lla + step) - lla;
+
+	EXPECT_NEAR(back(0), 1000.f, 0.05f);
+	EXPECT_NEAR(back(1), 0.f, 1e-3f);
+}
+
 TEST(TestLatLonAlt, somiglianaGravity)
 {
 	// Somigliana normal-gravity reference values (m/s^2)

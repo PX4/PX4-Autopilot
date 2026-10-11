@@ -107,7 +107,8 @@ void LatLonAlt::computeRadiiOfCurvature(const double latitude, double &meridian_
 {
 	const double tmp = 1.0 - pow(Wgs84::eccentricity * sin(latitude), 2);
 	const double sqrt_tmp = std::sqrt(tmp);
-	meridian_radius_of_curvature = Wgs84::meridian_radius_of_curvature_numerator / (tmp * tmp * sqrt_tmp);
+	// M = a(1-e^2) / (1 - e^2 sin^2(phi))^(3/2) = numerator / (tmp * sqrt(tmp))
+	meridian_radius_of_curvature = Wgs84::meridian_radius_of_curvature_numerator / (tmp * sqrt_tmp);
 	transverse_radius_of_curvature = Wgs84::equatorial_radius / sqrt_tmp;
 }
 
