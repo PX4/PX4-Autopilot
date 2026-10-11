@@ -162,6 +162,9 @@ bool Sensors::init()
 int Sensors::parameters_update()
 {
 	if (_armed) {
+		// in flight only an IMU disable takes effect, the rest is read once disarmed
+		_voted_sensors_update.parametersUpdate(true);
+		_parameter_update_deferred = true;
 		return 0;
 	}
 
@@ -520,6 +523,12 @@ void Sensors::Run()
 		if (_vcontrol_mode_sub.copy(&vcontrol_mode)) {
 			_armed = vcontrol_mode.flag_armed;
 		}
+	}
+
+	// parameters that changed in flight were only applied as far as an IMU disable
+	if (!_armed && _parameter_update_deferred) {
+		_parameter_update_deferred = false;
+		parameters_update();
 	}
 
 	// keep adding sensors as long as we are not armed,

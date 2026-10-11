@@ -110,6 +110,12 @@ public:
 	uint8_t priority() const { return _priority; }
 
 	/**
+	 * Set the priority of this validator without new data
+	 * @param priority	the new priority, 0 excludes the sensor from selection
+	 */
+	void set_priority(uint8_t priority) { _priority = priority; }
+
+	/**
 	 * Get the error state of this validator
 	 * @return		the bitmask with the error status
 	 */
