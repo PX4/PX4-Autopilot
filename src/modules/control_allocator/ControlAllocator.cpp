@@ -651,6 +651,12 @@ ControlAllocator::check_allocation_health(int matrix_index)
 			PX4_INFO("Control allocation %i: all control axes restored", matrix_index);
 		}
 	}
+
+	if (_control_allocation[matrix_index]->effectivenessInversionFailed()
+	    && !_inversion_failure_reported[matrix_index]) {
+		_inversion_failure_reported[matrix_index] = true;
+		PX4_ERR("Control allocation %i: effectiveness inversion failed, keeping previous", matrix_index);
+	}
 }
 
 void

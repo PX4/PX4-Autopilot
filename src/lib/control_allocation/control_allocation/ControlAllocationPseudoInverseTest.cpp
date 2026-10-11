@@ -221,6 +221,7 @@ TEST(ControlAllocationPseudoInverseTest, DroppedAxisIsUnallocatedOthersExact)
 	control_sp(ControlAllocation::YAW) = 1.f;
 	method.setControlSetpoint(control_sp);
 	method.allocate();
+	EXPECT_FALSE(method.effectivenessInversionFailed());
 	const Vector<float, 16> no_actuation;
 	EXPECT_EQ(method.getActuatorSetpoint(), no_actuation);
 	EXPECT_FLOAT_EQ(method.getAllocatedControl()(ControlAllocation::YAW), 0.f);
