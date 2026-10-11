@@ -33,6 +33,12 @@
 
 px4_add_library(open_drone_id
 	odid_bid_storage.cpp
+	odid_identity.cpp
 )
 
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/odid_params.yaml)
+
+px4_add_unit_gtest(SRC OdidIdentityTest.cpp
+	EXTRA_SRCS ${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/lib_crc32.c
+	LINKLIBS open_drone_id
+)
