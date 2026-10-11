@@ -63,6 +63,7 @@ typedef enum {
 	DM_WRITE,			///< Write index for given item
 	DM_READ,			///< Read index for given item
 	DM_CLEAR,			///< Clear all index for given item
+	DM_RELEASE_ID,		///< Hand a client ID back so it can be given to the next client
 	DM_NUMBER_OF_FUNCS
 } dm_function_t;
 

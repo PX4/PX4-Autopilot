@@ -150,7 +150,36 @@ static constexpr size_t g_per_item_size_with_hdr[DM_KEY_NUM_KEYS] = {
 /* Table of offset for index 0 of each item type */
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
-static uint8_t dataman_clients_count = 1;
+/* Client IDs handed out and not yet released. ID 0 means not set, so it is never handed out. */
+static uint32_t g_client_ids_in_use[(UINT8_MAX + 1) / 32];
+
+static uint8_t
+client_id_allocate()
+{
+	for (unsigned id = 1; id < UINT8_MAX; id++) {
+		const uint32_t bit = 1u << (id % 32);
+
+		if ((g_client_ids_in_use[id / 32] & bit) == 0) {
+			g_client_ids_in_use[id / 32] |= bit;
+			return id;
+		}
+	}
+
+	return 0;
+}
+
+static bool
+client_id_release(uint8_t id)
+{
+	const uint32_t bit = 1u << (id % 32);
+
+	if ((id == 0) || (id == UINT8_MAX) || ((g_client_ids_in_use[id / 32] & bit) == 0)) {
+		return false;
+	}
+
+	g_client_ids_in_use[id / 32] &= ~bit;
+	return true;
+}
 
 static perf_counter_t _dm_read_perf{nullptr};
 static perf_counter_t _dm_write_perf{nullptr};
@@ -751,17 +780,26 @@ task_main(int argc, char *argv[])
 
 				switch (request.request_type) {
 
-				case DM_GET_ID:
-					if (dataman_clients_count < UINT8_MAX) {
-						response.client_id = dataman_clients_count++;
-						/* Send the timestamp of the request over the data buffer so that the "dataman client"
-						 * can distinguish whether the request was made by it. */
-						memcpy(response.data, &request.timestamp, sizeof(hrt_abstime));
+				case DM_GET_ID: {
+						const uint8_t client_id = client_id_allocate();
 
-					} else {
-						PX4_ERR("Max Dataman clients reached!");
+						if (client_id != 0) {
+							response.client_id = client_id;
+							/* Send the timestamp of the request over the data buffer so that the "dataman client"
+							 * can distinguish whether the request was made by it. */
+							memcpy(response.data, &request.timestamp, sizeof(hrt_abstime));
+
+						} else {
+							PX4_ERR("Max Dataman clients reached!");
+						}
 					}
 
+					break;
+
+				case DM_RELEASE_ID:
+					g_func_counts[DM_RELEASE_ID]++;
+					response.status = client_id_release(request.client_id) ? dataman_response_s::STATUS_SUCCESS :
+							  dataman_response_s::STATUS_FAILURE_ID_ERR;
 					break;
 
 				case DM_WRITE:

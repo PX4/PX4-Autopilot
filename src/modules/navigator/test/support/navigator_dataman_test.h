@@ -134,6 +134,10 @@ public:
 
 		const hrt_abstime start_time = hrt_absolute_time();
 
+		px4_pollfd_struct_t fds{};
+		fds.fd = client._dataman_response_sub;
+		fds.events = POLLIN;
+
 		do {
 			client.update();
 
@@ -151,7 +155,7 @@ public:
 			const hrt_abstime remaining = timeout - elapsed;
 			const uint32_t timeout_ms = (remaining >= kPollChunkUs) ? 100U :
 						    (remaining > 1000) ? static_cast<uint32_t>(remaining / 1000) : 1U;
-			const int32_t ret = px4_poll(&client._fds, 1, timeout_ms);
+			const int32_t ret = px4_poll(&fds, 1, timeout_ms);
 
 			if (ret < 0) {
 				PX4_ERR("px4_poll returned error: %" PRIi32, ret);
