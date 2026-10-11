@@ -67,6 +67,31 @@ namespace navigator
 Navigator *g_navigator;
 }
 
+namespace
+{
+constexpr uint8_t COMPONENT_ID_ALL = 0; // MAV_COMP_ID_ALL
+constexpr uint8_t COMPONENT_ID_CAMERA = 100; // MAV_COMP_ID_CAMERA
+
+/**
+ * Target component for a camera command from the camera id param of a mission item.
+ *
+ * @param camera_id Camera id param (1 to 255)
+ * @param fallback Component id used if the camera id is not set
+ */
+uint8_t camera_target_component(float camera_id, uint8_t fallback)
+{
+	if (PX4_ISFINITE(camera_id)) {
+		const long id = lroundf(camera_id);
+
+		if (id > 0 && id <= UINT8_MAX) {
+			return static_cast<uint8_t>(id);
+		}
+	}
+
+	return fallback;
+}
+} // namespace
+
 #if CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 namespace
 {
@@ -1679,12 +1704,13 @@ void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)
 	vehicle_command.confirmation = false;
 	vehicle_command.from_external = false;
 
-	int target_camera_component_id;
-
 	// The camera commands are not processed on the autopilot but will be
 	// sent to the mavlink links to other components.
+	// The target component is the camera id set in the mission item, if any.
 	switch (vehicle_command.command) {
 	case NAV_CMD_IMAGE_START_CAPTURE:
+		// Target id from param 1 (read before the params are overwritten below)
+		vehicle_command.target_component = camera_target_component(vehicle_command.param1, COMPONENT_ID_CAMERA);
 
 		if (static_cast<int>(vehicle_command.param3) == 1) {
 			// When sending a single capture we need to include the sequence number, thus camera_trigger needs to handle this command
@@ -1701,63 +1727,49 @@ void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)
 			// We are only capturing multiple if param3 is 0 or > 1.
 			// For multiple pictures the sequence number does not need to be included, thus there is no need to go through camera_trigger
 			_is_capturing_images = true;
-		}
-
-		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
-
-		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vehicle_command.target_component = target_camera_component_id;
-
-		} else {
-			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
+			_capturing_camera_component_id = vehicle_command.target_component;
 		}
 
 		break;
 
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
 		_is_capturing_images = false;
-		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
-
-		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vehicle_command.target_component = target_camera_component_id;
-
-		} else {
-			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
-		}
-
+		vehicle_command.target_component = camera_target_component(vehicle_command.param1, COMPONENT_ID_CAMERA);
 		break;
 
 	case NAV_CMD_SET_CAMERA_MODE:
-		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
-
-		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vehicle_command.target_component = target_camera_component_id;
-
-		} else {
-			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
-		}
-
+	case NAV_CMD_SET_CAMERA_SOURCE:
+		// Target id from param 1
+		vehicle_command.target_component = camera_target_component(vehicle_command.param1, COMPONENT_ID_CAMERA);
 		break;
 
-	case NAV_CMD_SET_CAMERA_SOURCE:
-		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
-
-		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vehicle_command.target_component = target_camera_component_id;
-
-		} else {
-			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
-		}
-
+	case NAV_CMD_VIDEO_STOP_CAPTURE:
+		// Target id from param 2
+		vehicle_command.target_component = camera_target_component(vehicle_command.param2, COMPONENT_ID_CAMERA);
 		break;
 
 	case NAV_CMD_VIDEO_START_CAPTURE:
-	case NAV_CMD_VIDEO_STOP_CAPTURE:
-		vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
+	case NAV_CMD_SET_CAMERA_ZOOM:
+	case NAV_CMD_SET_CAMERA_FOCUS:
+		// Target id from param 3
+		vehicle_command.target_component = camera_target_component(vehicle_command.param3, COMPONENT_ID_CAMERA);
+		break;
+
+	// The trigger commands are also handled by camera_trigger on the autopilot,
+	// so they are broadcast unless a camera id is set.
+	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
+		// Target id from param 3
+		vehicle_command.target_component = camera_target_component(vehicle_command.param3, COMPONENT_ID_ALL);
+		break;
+
+	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+	case NAV_CMD_DO_TRIGGER_CONTROL:
+		// Target id from param 4
+		vehicle_command.target_component = camera_target_component(vehicle_command.param4, COMPONENT_ID_ALL);
 		break;
 
 	default:
-		vehicle_command.target_component = 0;
+		vehicle_command.target_component = COMPONENT_ID_ALL;
 		break;
 	}
 
@@ -1834,7 +1846,7 @@ Navigator::stop_capturing_images()
 	if (_is_capturing_images) {
 		vehicle_command_s vehicle_command{};
 		vehicle_command.command = NAV_CMD_IMAGE_STOP_CAPTURE;
-		vehicle_command.param1 = 0.f;
+		vehicle_command.param1 = _capturing_camera_component_id; // Camera that was started
 		publish_vehicle_command(vehicle_command);
 
 		// _is_capturing_images is reset inside publish_vehicle_command.
