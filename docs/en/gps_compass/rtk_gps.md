@@ -22,6 +22,9 @@ It also highlights devices that connect via the CAN bus, and those which support
 
 | Device                                                                                                             |         GPS          | Compass  | [DroneCAN] |              [GPS Yaw]              | PPK |
 | :----------------------------------------------------------------------------------------------------------------- | :------------------: | :------: | :--------: | :---------------------------------: | :-: |
+| [ArduSimple simpleRTK2B Budget](../dronecan/ardusimple-simplertk2b-budget.md)                                      |         F9P          |          |            |                                     |     |
+| [ArduSimple simpleRTK3B Pro](../dronecan/ardusimple-simplertk3b-pro.md)                                            |      Mosaic-X5       |          |            |                                     |     |
+| [ArduSimple simpleRTK3B Compass](../dronecan/ardusimple-simplertk3b-compass.md)                                    |        UM982         |    ✓     |            |       [Unicore Dual Antenna]        |     |
 | [ARK G5 RTK GPS](../dronecan/ark_g5_rtk_gps.md)                                                                    |    [mosaic-G5 P3]    | IIS2MDC  |     ✓      |                                     |     |
 | [ARK G5 RTK HEADING GPS](../dronecan/ark_g5_rtk_heading_gps.md)                                                    |   [mosaic-G5 P3H]    | IIS2MDC  |     ✓      | [Heading Capability][mosaic-G5 P3H] |     |
 | [ARK RTK GPS](../dronecan/ark_rtk_gps.md)                                                                          |         F9P          |  BMM150  |     ✓      |             [Dual F9P]              |     |
