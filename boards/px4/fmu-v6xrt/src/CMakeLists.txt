@@ -72,6 +72,7 @@ else()
 		timer_config.cpp
 		usb.c
 		imxrt_flexspi_fram.c
+		flash_storage.c
 		imxrt_flexspi_nor_boot.c
 		imxrt_flexspi_nor_flash.c
 		imxrt_clockconfig.c
@@ -91,6 +92,11 @@ else()
 			drivers__led # drv_led_start
 			nuttx_arch # sdio
 			nuttx_drivers # sdio
+			perf
 			px4_layer
 	)
+
+	if(CONFIG_BOARD_FLASH_STORAGE)
+		target_link_libraries(drivers_board PRIVATE arch_flexspi_nor platform_flash_storage)
+	endif()
 endif()
