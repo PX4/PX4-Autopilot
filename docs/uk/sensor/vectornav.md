@@ -118,7 +118,7 @@ Definitions for all commands and registers referenced in this section can be fou
 - [датчик_гіроскопа](../msg_docs/SensorGyro.md)
 - [sensor_mag](../msg_docs/SensorMag.md)
 - [sensor_baro](../msg_docs/SensorBaro.md)
-- [sensor_gps](../msg_docs/SensorGps.md)
+- [sensor_gnss](../msg_docs/SensorGnss.md)
 
 і, якщо увімкнено як зовнішнє INS, публікує:
 
