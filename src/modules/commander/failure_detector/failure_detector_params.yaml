@@ -95,7 +95,11 @@ parameters:
       description:
         short: Altitude loss threshold for termination and parachute deployment
         long: |-
-          Maximum altitude loss below the setpoint allowed before the vehicle terminates and deploys the parachute. Set to 0 to disable.
+          Maximum altitude loss allowed before the vehicle terminates and deploys the parachute. Set to 0 to disable.
+
+          With an altitude setpoint, the loss is measured below the highest altitude reached while under the setpoint.
+          Without one (e.g. throttle stick deflected), it is measured below the highest altitude reached, lowered
+          only by the commanded descent rate.
       type: float
       default: 0.0
       min: 0.0

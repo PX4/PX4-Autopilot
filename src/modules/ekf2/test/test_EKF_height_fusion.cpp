@@ -662,7 +662,20 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 	const float baro_bias_prev = _ekf->getBaroBiasEstimatorStatus().bias;
 
 	const float alt_increment = 4478.f;
+	const float pos_z_prev = _ekf->getPosition()(2);
+	const float hagl_prev = _ekf->getHagl();
+	const uint8_t hagl_reset_count_prev = _ekf->get_hagl_reset_count();
 	_ekf->setEkfGlobalOrigin(lat, lon, alt + alt_increment);
+
+	// The local z jump must be reported so consumers (e.g. position controller) can shift their references.
+	// HAGL and terrain altitude are independent of the origin and must not report a reset.
+	float delta_z;
+	uint8_t z_reset_counter;
+	_ekf->get_posD_reset(&delta_z, &z_reset_counter);
+	EXPECT_NEAR(delta_z, _ekf->getPosition()(2) - pos_z_prev, 0.01f);
+	EXPECT_NEAR(_ekf->getHagl(), hagl_prev, 0.01f);
+	EXPECT_EQ(_ekf->get_hagl_reset_count(), hagl_reset_count_prev);
+
 	_sensor_simulator.runSeconds(10);
 
 	// The origin moves up by some altitude, the current position (down) is then higher
