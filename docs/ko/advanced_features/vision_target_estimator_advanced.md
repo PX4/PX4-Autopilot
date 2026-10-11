@@ -14,7 +14,7 @@ It documents the system architecture of the Vision Target Estimator, and outline
 The module has three layers: a scheduler, a task layer, and two independent estimators.
 
 - `VisionTargetEst` (`src/modules/vision_target_estimator/VisionTargetEst.cpp`) owns the work-queue task.
-  Its main loop subscribes to vehicle inputs (`vehicle_attitude`, `vehicle_acceleration`, `vehicle_local_position`, `vehicle_gps_position`, and angular rates).
+  Its main loop subscribes to vehicle inputs (`vehicle_attitude`, `vehicle_acceleration`, `vehicle_local_position`, `vehicle_gnss`, and angular rates).
   It downsamples acceleration, publishes [`vte_input`](../msg_docs/VteInput.md), and forwards the samples to the position and orientation filters every 20 ms (50 Hz).
   It also holds the task registry and the generic logic for task dispatch, estimator start/stop, idle scheduling, and timeout handling.
 - `tasks/VteTask.h` defines the task interface and the `VTE_TASK_MASK` bit constants.
@@ -153,7 +153,7 @@ After every change, watch `vte_aid_*.innovation`: a healthy filter has zero-mean
 
 ### Between Observation Sources
 
-How much the filter trusts vision relative to GNSS at any given moment is decided by the per-sample **observation variance** each sensor reports ([`fiducial_marker_pos_report.cov_rel_pos`](../msg_docs/FiducialMarkerPosReport.md), `sensor_gps.eph`, `sensor_gps.epv`, [`target_gnss.s_acc_m_s`](../msg_docs/TargetGnss.md)).
+How much the filter trusts vision relative to GNSS at any given moment is decided by the per-sample **observation variance** each sensor reports ([`fiducial_marker_pos_report.cov_rel_pos`](../msg_docs/FiducialMarkerPosReport.md), `vehicle_gnss.receiver.eph`, `vehicle_gnss.receiver.epv`, [`target_gnss.s_acc_m_s`](../msg_docs/TargetGnss.md)).
 The bias-initialization section above explained how the two _frames_ are reconciled.
 This part covers how trust is split between sources within a single fusion step.
 
@@ -740,7 +740,7 @@ Two additional fields make latency tractable without manual timestamp arithmetic
 
 - Vision: `fiducial_marker_pos_report` / `fiducial_marker_yaw_report`
 - GNSS on the target: `target_gnss`
-- Vehicle GNSS: `sensor_gps` (used to convert absolute GNSS measurements to relative vehicle-carried NED measurements)
+- Vehicle GNSS: `vehicle_gnss` (used to convert absolute GNSS measurements to relative vehicle-carried NED measurements)
 - Mission position: cached from `navigator_mission_item`, with `position_setpoint_triplet` as a fallback when a valid LAND setpoint is available there first
 - `vehicle_local_position` and `vehicle_attitude` (used for frame transforms and timeout checks)
 
@@ -1015,7 +1015,7 @@ See [Filter observability](#filter-observability) for the underlying reason: vis
 - **Top row (relative position)**: `vte_position.rel_pos[0]` overlaid with `vte_aid_fiducial_marker.observation[0]`.
   The state stays close to the last vision sample for roughly 3 seconds after the dropout (the time it takes the residual $v^{uav}$ to integrate to a visible offset), then drifts by about 60 cm over the next 7 seconds.
   When vision returns, the state snaps back by ~60 cm in a single innovation, which is the accumulated drift.
-- **Bottom row (UAV velocity)**: `vte_position.vel_uav[0]`, `vehicle_local_position.vx`, and `sensor_gps.vel_n_m_s`.
+- **Bottom row (UAV velocity)**: `vte_position.vel_uav[0]`, `vehicle_local_position.vx`, and `sensor_gnss.vel_north`.
   The three traces agree while vision is fused.
   As soon as vision drops, the filter estimate diverges by about 0.1 m/s from the EKF2 and GNSS references.
   That ~0.1 m/s gap over 7 seconds is the position drift observed in the top row.
@@ -1027,7 +1027,7 @@ Vehicle GNSS velocity is now fused as $z = v^{uav}$, which gives the velocity st
 
 - **Top row (relative position)**: `vte_position.rel_pos[0]` properly follows the expected trend through the dropout.
   The correction on vision recovery is small (in this run, from 0.26 m to 0.24 m, i.e. 2 cm), which is within the vision noise level rather than a real drift.
-- **Bottom row (UAV velocity)**: `vte_position.vel_uav[0]` now tracks `vehicle_local_position.vx` and `sensor_gps.vel_n_m_s` for the full dropout, because GNSS velocity continues to constrain the state when no vision sample is available.
+- **Bottom row (UAV velocity)**: `vte_position.vel_uav[0]` now tracks `vehicle_local_position.vx` and `sensor_gnss.vel_north` for the full dropout, because GNSS velocity continues to constrain the state when no vision sample is available.
 
 ![VTEST dropout, vision and GNSS velocity](../../assets/vision_target_estimator/vtest_dropout_vision_and_gnss_vel.png)
 

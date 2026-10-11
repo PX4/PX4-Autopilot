@@ -8,7 +8,7 @@ Clang 주소 새니타이저는 정렬(버스) 오류 및 분할 오류와 같�
 
 ```sh
 make clean # only required on first address sanitizer run after a normal build
-PX4_ASAN=1 make px4_sitl jmavsim
+PX4_ASAN=1 make px4_sitl_sih sihsim_quadx
 ```
 
 ## Valgrind
@@ -26,7 +26,7 @@ sudo apt-get install valgrind
 SITL 시뮬레이션 중에 valgrind를 사용하려면:
 
 ```sh
-make px4_sitl_default jmavsim___valgrind
+make px4_sitl_default gazebo-classic___valgrind
 ```
 
 ## Launch Gazebo Classic SITL Without Debugger
@@ -36,7 +36,7 @@ By default SITL is launched without a debugger attached when using any simulator
 ```sh
 make px4_sitl_default gz
 make px4_sitl_default gazebo-classic
-make px4_sitl_default jmavsim
+make px4_sitl_sih sihsim_quadx
 ```
 
 For Gazebo Classic (only) you can also start the simulator with a debugger attached.

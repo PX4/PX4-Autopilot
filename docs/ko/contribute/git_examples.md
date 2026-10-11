@@ -280,7 +280,13 @@ git checkout <branch name>
 
 ### 분기된 저장소로 강제 푸시
 
-첫 번째 풀 요청후에, PX4 커뮤니티의 사람들이 변경 사항을 검토합니다. 대부분의 경우 검토에 따라 로컬 지점을 수정하여야 함을 의미합니다. After changing the files locally, the feature branch needs to be rebased again with the most recent upstream/main. 그러나, 리베이스 후에는 더 이상 기능 분기를 분기된 저장소에 직접 푸시할 수 없지만, 대신 강제 푸시를 사용하여야 합니다.
+After you open a PR, people from the PX4 community will review your changes.
+대부분의 경우 검토에 따라 로컬 지점을 수정하여야 함을 의미합니다.
+Add the fixes as new commits and push them normally.
+Do not amend or squash commits that are already pushed: a force push erases the history a reviewer has read, and they can no longer see what changed since their last review.
+
+A force push is only needed after the feature branch has been rebased on the most recent upstream/main, for example to resolve merge conflicts.
+Keep the existing commits when rebasing, where possible:
 
 ```sh
 git push --force-with-lease origin <your feature branch name>
