@@ -123,6 +123,13 @@ public:
 
 	static int        unadvertise(orb_advert_t handle);
 
+	/**
+	 * Publish data known to match this node's topic; the typed Publication
+	 * wrappers guarantee that. The static publish() validates first.
+	 * @return PX4_OK, or PX4_ERROR with errno set
+	 */
+	int publish_data(const void *data);
+
 #ifdef CONFIG_ORB_COMMUNICATOR
 	/**
 	 * processes a request for topic advertisement from remote
