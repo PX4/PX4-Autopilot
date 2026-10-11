@@ -941,6 +941,9 @@ void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const 
 	} else {
 		_long_configuration.speed_weight = _param_t_spdweight.get();
 	}
+
+	// the landing sets this to scale the TECS altitude time constant by FW_LND_THRTC_SC
+	_long_configuration.enforce_low_height_condition = configuration_in.enforce_low_height_condition;
 }
 
 extern "C" __EXPORT int fw_lat_lon_control_main(int argc, char *argv[])
