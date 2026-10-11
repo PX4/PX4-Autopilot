@@ -210,6 +210,29 @@ parameters:
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
+        # Differential pressure (airspeed) calibration
+        CAL_DPRES${i}_ID:
+            description:
+                short: Differential pressure sensor ${i} calibration device ID
+                long: Device ID of the differential pressure sensor this calibration applies to.
+            category: System
+            type: int32
+            default: 0
+            num_instances: 3
+            instance_start: 0
+
+        CAL_DPRES${i}_OFF:
+            description:
+                short: Differential pressure sensor ${i} offset
+                long: The zero-reading of this differential pressure sensor, in Pascal.
+            category: System
+            type: float
+            default: 0.0
+            decimal: 3
+            volatile: true
+            num_instances: 3
+            instance_start: 0
+
         # Gyroscope calibration
         CAL_GYRO${i}_ID:
             description:
