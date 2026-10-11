@@ -102,6 +102,11 @@ jobs:
             See .github/workflows/checks.yml for more details
 
       - name: Check for EKF functional changes
+        # Same fork limitation as the auto-commit above. On a fork the regenerated
+        # baselines cannot be pushed, and the container's float output does not
+        # match the committed CSVs bit-for-bit (2026-10-11, #29072). Same-repo
+        # PRs still fail here if a real functional change remains after auto-commit.
+        if: github.event.pull_request.head.repo.full_name == github.repository
         run: git diff --exit-code
         working-directory: src/modules/ekf2/test/change_indication
 
