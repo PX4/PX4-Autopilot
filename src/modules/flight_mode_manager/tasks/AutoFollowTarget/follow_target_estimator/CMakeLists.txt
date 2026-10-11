@@ -42,3 +42,5 @@ target_link_libraries(follow_target_estimator
 		mathlib
 		px4_work_queue
 )
+
+px4_add_functional_gtest(SRC TargetEstimatorTest.cpp LINKLIBS follow_target_estimator geo)

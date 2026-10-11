@@ -168,6 +168,12 @@ protected:
 	void prediction_update(float deltatime);
 
 	/**
+	 * Move the filter states into the current local position reference frame when that reference moved,
+	 * for example after an estimator switch, so the estimate doesn't jump with the frame
+	 */
+	void shift_states_to_current_reference();
+
+	/**
 	 * Get current LAT/LON/ALT estimate of target
 	 *
 	 * @return Current position estimate of target as latitude / longitude / altitude vector
@@ -186,10 +192,15 @@ protected:
 	 */
 	void reset();
 
-	filter_gains_s _filter_gains;
+	// zero so that the first update computes the gains, update_filter_gains() skips them when the
+	// responsiveness it finds already matches the parameter
+	filter_gains_s _filter_gains{};
 	filter_states_s _filter_states;
 
 	MapProjection _reference_position{};
+	float _state_ref_alt{NAN};		// reference altitude the filter states are expressed against [m]
+	uint8_t _pos_reset_counter{0};		// bumped when the position states were carried over to a new frame
+	matrix::Vector3f _delta_pos{};		// shift the position states got at the last reset [m]
 	vehicle_local_position_s _vehicle_local_position{};
 
 	hrt_abstime _last_iteration_timestamp{0};

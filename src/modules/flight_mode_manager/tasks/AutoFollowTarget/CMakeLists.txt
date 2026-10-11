@@ -40,3 +40,6 @@ set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOUR
 
 target_link_libraries(FlightTaskAutoFollowTarget PUBLIC FlightTaskAuto follow_target_estimator)
 target_include_directories(FlightTaskAutoFollowTarget PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# the task's own libraries before geo and the platform, the Linux linker resolves static archives in order
+px4_add_functional_gtest(SRC FlightTaskAutoFollowTargetTest.cpp LINKLIBS FlightTaskAutoFollowTarget FlightTask follow_target_estimator geo)

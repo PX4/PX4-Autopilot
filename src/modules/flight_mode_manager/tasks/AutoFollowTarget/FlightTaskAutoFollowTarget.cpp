@@ -131,6 +131,17 @@ void FlightTaskAutoFollowTarget::updateTargetPositionVelocityFilter(const follow
 						TARGET_ESTIMATOR_TIMEOUT_US);
 	_last_valid_target_estimator_timestamp = follow_target_estimator.timestamp;
 
+	if (follow_target_estimator.pos_reset_counter != _target_pos_reset_counter) {
+		// the estimate was carried over to a new local frame, move the filtered position and its stored
+		// input sample with it
+		_target_pos_reset_counter = follow_target_estimator.pos_reset_counter;
+		const Vector3f target_position = _target_position_velocity_filter.getState() + Vector3f(follow_target_estimator.delta_pos);
+
+		if (target_position.isAllFinite()) {
+			_target_position_velocity_filter.reset(target_position, _target_position_velocity_filter.getRate());
+		}
+	}
+
 	if (!_target_position_velocity_filter.getState().isAllFinite()
 	    || !_target_position_velocity_filter.getRate().isAllFinite() || target_estimator_timed_out) {
 		_target_position_velocity_filter.reset(pos_ned_est, vel_ned_est);
