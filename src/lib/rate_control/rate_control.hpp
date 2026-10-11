@@ -87,6 +87,13 @@ public:
 	void setNegativeSaturationFlag(size_t axis, bool is_saturated);
 
 	/**
+	 * Set the torque the control allocator was not able to deliver.
+	 *
+	 * @param unallocated_torque control_allocator_status.unallocated_torque
+	 */
+	void setUnallocatedTorque(const matrix::Vector3f &unallocated_torque) { _unallocated_torque = unallocated_torque; }
+
+	/**
 	 * Run one control loop cycle calculation
 	 * @param rate estimation of the current vehicle angular rate
 	 * @param rate_sp desired vehicle angular rate setpoint
@@ -100,7 +107,11 @@ public:
 	 * Set the integral term to 0 to prevent windup
 	 * @see _rate_int
 	 */
-	void resetIntegral() { _rate_int.zero(); }
+	void resetIntegral()
+	{
+		_rate_int.zero();
+		_unallocated_torque.zero();
+	}
 
 	/**
 	 * Set the integral term to 0 for specific axes
@@ -111,6 +122,7 @@ public:
 	{
 		if (axis < 3) {
 			_rate_int(axis) = 0.f;
+			_unallocated_torque(axis) = 0.f;
 		}
 	}
 
@@ -122,6 +134,13 @@ public:
 
 private:
 	void updateIntegral(matrix::Vector3f &rate_error, const float dt);
+
+	/**
+	 * Integrator bounds for one axis, lowered on the refused side by the torque the control
+	 * allocator was not able to deliver
+	 * @param axis 0 roll, 1 pitch, 2 yaw
+	 */
+	void getIntegratorLimits(int axis, float &upper, float &lower) const;
 
 	// Gains
 	matrix::Vector3f _gain_p; ///< rate control proportional gain for all axes x, y, z
@@ -136,4 +155,5 @@ private:
 	// Feedback from control allocation
 	matrix::Vector<bool, 3> _control_allocator_saturation_negative;
 	matrix::Vector<bool, 3> _control_allocator_saturation_positive;
+	matrix::Vector3f _unallocated_torque; ///< torque the control allocator was not able to deliver
 };
