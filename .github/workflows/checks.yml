@@ -87,6 +87,10 @@ jobs:
           cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       - name: Auto-update EKF change indication baselines
+        # Fork PRs run with the fork as origin. The action fetches origin/<head>
+        # and exits 128 when that branch exists only on the fork (Unit Tests
+        # 2026-10-11, invalid reference: bartok9/fix-meridian-radius-29071).
+        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           file_pattern: 'src/modules/ekf2/test/change_indication/*.csv'
