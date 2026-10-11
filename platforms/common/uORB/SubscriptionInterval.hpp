@@ -147,6 +147,15 @@ public:
 	 */
 	bool copy(void *dst);
 
+	/**
+	 * The same three, taking the caller's current time instead of reading the
+	 * clock. For loops that already hold hrt_absolute_time(): a copy no longer
+	 * costs a second clock read. `now` must not be older than the last update.
+	 */
+	bool updated(hrt_abstime now);
+	bool update(void *dst, hrt_abstime now);
+	bool copy(void *dst, hrt_abstime now);
+
 	bool		valid() const { return _subscription.valid(); }
 
 	uint8_t		get_instance() const { return _subscription.get_instance(); }
@@ -188,6 +197,34 @@ protected:
 		return hrt_elapsed_time(&last_update) >= interval_us;
 	}
 
+	bool interval_elapsed(hrt_abstime now) const
+	{
+		const uint32_t interval_us = _interval_us.load();
+
+		if (interval_us == 0) {
+			return true;
+		}
+
+		const hrt_abstime last_update = _last_update.load();
+		return (now >= last_update) && (now - last_update >= interval_us);
+	}
+
+	// Advance _last_update after a copy at `now`: step forward by one interval,
+	// but never fall more than an interval behind `now` or get ahead of it.
+	void mark_updated(hrt_abstime now)
+	{
+		const uint32_t interval_us = _interval_us.load();
+
+		// Without an interval the constrain() below collapses to `now`, so skip the
+		// _last_update read. now - interval_us must not wrap either (unsigned).
+		if ((interval_us == 0) || (now <= interval_us)) {
+			_last_update.store(now);
+
+		} else {
+			_last_update.store(math::constrain(_last_update.load() + interval_us, now - interval_us, now));
+		}
+	}
+
 	Subscription	_subscription;
 	subscription_interval_detail::storage_t<ATOMIC, uint64_t>	_last_update{0};	// last subscription update in microseconds
 	subscription_interval_detail::storage_t<ATOMIC, uint32_t>	_interval_us{0};	// maximum update interval in us
@@ -208,8 +245,14 @@ using SubscriptionIntervalAtomic = SubscriptionIntervalBase<true>;
 extern template bool SubscriptionIntervalBase<false>::updated();
 extern template bool SubscriptionIntervalBase<false>::update(void *dst);
 extern template bool SubscriptionIntervalBase<false>::copy(void *dst);
+extern template bool SubscriptionIntervalBase<false>::updated(hrt_abstime now);
+extern template bool SubscriptionIntervalBase<false>::update(void *dst, hrt_abstime now);
+extern template bool SubscriptionIntervalBase<false>::copy(void *dst, hrt_abstime now);
 extern template bool SubscriptionIntervalBase<true>::updated();
 extern template bool SubscriptionIntervalBase<true>::update(void *dst);
 extern template bool SubscriptionIntervalBase<true>::copy(void *dst);
+extern template bool SubscriptionIntervalBase<true>::updated(hrt_abstime now);
+extern template bool SubscriptionIntervalBase<true>::update(void *dst, hrt_abstime now);
+extern template bool SubscriptionIntervalBase<true>::copy(void *dst, hrt_abstime now);
 
 } // namespace uORB

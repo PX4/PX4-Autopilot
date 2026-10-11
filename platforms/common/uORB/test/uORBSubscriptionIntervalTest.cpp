@@ -119,5 +119,56 @@ TEST_F(uORBSubscriptionIntervalTest, intervalGatesUpdates)
 	EXPECT_FALSE(sub.updated());
 }
 
+TEST_F(uORBSubscriptionIntervalTest, callerTimestampGatesWithoutClockReads)
+{
+	static constexpr uint32_t interval_us = 200000;
+
+	uORB::SubscriptionInterval sub{ORB_ID(orb_test), interval_us};
+	orb_test_s msg{};
+
+	// Synthetic timeline, well past boot so the schedule alignment behaves as in flight.
+	hrt_abstime now = 10000000;
+
+	publish(1);
+	EXPECT_TRUE(sub.update(&msg, now));
+	publish(2);
+	EXPECT_TRUE(sub.update(&msg, now));	// first copy only aligned the schedule
+	EXPECT_EQ(msg.val, 2);
+
+	publish(3);
+	EXPECT_FALSE(sub.updated(now + interval_us / 2));
+	EXPECT_FALSE(sub.update(&msg, now + interval_us / 2));
+	EXPECT_EQ(msg.val, 2);
+
+	now += interval_us;
+	EXPECT_TRUE(sub.updated(now));
+	EXPECT_TRUE(sub.update(&msg, now));
+	EXPECT_EQ(msg.val, 3);
+
+	// Elapsed interval alone never reports an update.
+	EXPECT_FALSE(sub.updated(now + 10 * interval_us));
+
+	// A `now` older than the last update is not an elapsed interval.
+	publish(4);
+	EXPECT_FALSE(sub.updated(now - 1));
+	EXPECT_TRUE(sub.updated(now + interval_us));
+}
+
+TEST_F(uORBSubscriptionIntervalTest, callerTimestampWithoutIntervalReportsEveryPublication)
+{
+	uORB::SubscriptionInterval sub{ORB_ID(orb_test)};
+	orb_test_s msg{};
+	const hrt_abstime now = 10000000;
+
+	publish(1);
+	EXPECT_TRUE(sub.update(&msg, now));
+	EXPECT_EQ(msg.val, 1);
+	EXPECT_FALSE(sub.updated(now));
+
+	publish(2);
+	EXPECT_TRUE(sub.copy(&msg, now));
+	EXPECT_EQ(msg.val, 2);
+}
+
 } // namespace test
 } // namespace uORB
