@@ -113,7 +113,11 @@ def run_tidy(args, tmpdir, build_path, db_dir, queue):
     try:
       subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
     except subprocess.CalledProcessError as e:
-      sys.stdout.write(f'failed on {name} --> {" ".join(invocation)}\n')
+      # db_dir is deleted on exit, so print a command that still reproduces
+      # the failure afterwards
+      repro = ['-p=' + build_path if arg == '-p=' + db_dir else arg
+               for arg in invocation]
+      sys.stdout.write(f'failed on {name} --> {" ".join(repro)}\n')
       # Now run again to see the actual output
       subprocess.call(invocation, stdin=None)
       global tidy_failures
