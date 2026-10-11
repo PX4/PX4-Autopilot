@@ -36,6 +36,7 @@ http://clang.llvm.org/docs/HowToSetupToolingForLLVM.html
 from __future__ import print_function
 
 import argparse
+import atexit
 import json
 import multiprocessing
 import os
@@ -202,6 +203,7 @@ def main():
 
   # clang-tidy reads the database itself, so hand it the deduplicated copy
   db_dir = tempfile.mkdtemp()
+  atexit.register(shutil.rmtree, db_dir, ignore_errors=True)
   with open(os.path.join(db_dir, db_path), 'w') as db_file:
     json.dump(unique_entries, db_file)
 
@@ -212,6 +214,7 @@ def main():
   tmpdir = None
   if args.fix:
     tmpdir = tempfile.mkdtemp()
+    atexit.register(shutil.rmtree, tmpdir, ignore_errors=True)
 
   # Build up a big regexy filter from all command line arguments.
   file_name_re = re.compile('(' + ')|('.join(args.files) + ')')
@@ -240,6 +243,7 @@ def main():
     # This is a sad hack. Unfortunately subprocess goes
     # bonkers with ctrl-c and we start forking merrily.
     print('\nCtrl-C detected, goodbye.')
+    # SIGKILL skips the atexit cleanup
     if args.fix:
       shutil.rmtree(tmpdir)
     shutil.rmtree(db_dir)
@@ -248,8 +252,6 @@ def main():
   if args.fix:
     print('Applying fixes ...')
     apply_fixes(args, tmpdir)
-
-  shutil.rmtree(db_dir)
 
   global tidy_failures
   if tidy_failures > 0:
