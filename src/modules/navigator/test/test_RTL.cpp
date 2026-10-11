@@ -244,6 +244,7 @@ public:
 	}
 
 	uint16_t activeNavCommand() const { return this->_mission_item.nav_cmd; }
+	bool activeVtolBackTransition() const { return this->_mission_item.vtol_back_transition; }
 	bool isClimbing() const { return this->_work_item_type == RtlMissionType::WorkItemType::WORK_ITEM_TYPE_CLIMB; }
 	const mission_item_s &activeItem() const { return this->_mission_item; }
 	bool activeItemValid() const { return this->_is_current_planned_mission_item_valid; }
@@ -667,6 +668,66 @@ TEST_P(RTLClimbUpdateTest, KeepsPendingClimbAcrossCursorUpdates)
 	setAltitude(return_alt + 10.f);
 	rtl.run(true);
 	EXPECT_FALSE(rtl.isClimbing());
+
+	if (is_vtol && vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		// WHY: Not every mission has a dedicated DO_LAND_START item -- when none was uploaded,
+		// land_start_index falls back to land_index itself (see mavlink_mission.cpp). RTL then
+		// climbs to RTL_RETURN_ALT right in front of the VTOL_LAND item, with no intervening
+		// non-position item to reset the work item back to default. Before the fix, a
+		// fixed-wing VTOL reaching the land item straight out of that climb never transitioned
+		// back to MC and instead flew the fixed-wing-incompatible VTOL_LAND descent as a fixed
+		// wing -- this is what happened in the SDT-325 crash investigation.
+		// WHAT: reusing this fixture's RtlDirectMissionLand instance (rather than a new TEST_F
+		// with its own Navigator/DatamanClient) for a mission whose land_start_index equals
+		// land_index: the fixed-wing+VTOL case, already needing to climb to RTL_RETURN_ALT,
+		// still routes the VTOL_LAND item through WORK_ITEM_TYPE_MOVE_TO_LAND (NAV_CMD_WAYPOINT
+		// with vtol_back_transition set) instead of flying it unmodified. This binary is already
+		// at the dataman client id limit (see the commit message of
+		// 6ef56206f6af24c47d39abe4ca5351f9453b367f), so a new fixture per scenario is not an
+		// option here.
+		const float kNoLandStartRtlAlt = return_alt + 20.f;
+		mission_item_s land_without_marker = makeSafePointItem(kBaseLat, kBaseLon, kNoLandStartRtlAlt,
+						     NAV_FRAME_GLOBAL, NAV_CMD_VTOL_LAND);
+		land_without_marker.autocontinue = true;
+
+		mission_s mission_without_land_start{};
+		mission_without_land_start.timestamp = hrt_absolute_time();
+		mission_without_land_start.count = 1;
+		mission_without_land_start.current_seq = 0;
+		mission_without_land_start.land_start_index = 0; // no DO_LAND_START uploaded.
+		mission_without_land_start.land_index = 0;
+		mission_without_land_start.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+		publishMission(mission_without_land_start);
+		rtl.loadTestMission({land_without_marker});
+		rtl.setRtlAlt(kNoLandStartRtlAlt);
+
+		// Well below RTL_RETURN_ALT: enough to require a climb.
+		setAltitude(kNoLandStartRtlAlt - 20.f);
+		rtl.run(false);
+		rtl.run(true);
+
+		// GIVEN: the climb step is active and ends up right in front of the VTOL_LAND item.
+		ASSERT_TRUE(rtl.isClimbing());
+		ASSERT_EQ(rtl.activeNavCommand(), NAV_CMD_LOITER_TO_ALT);
+
+		// First run(): the climb's position setpoint altitude (established at the vehicle's
+		// current altitude per the NAV_CMD_LOITER_TO_ALT convention) matches the vehicle's
+		// actual altitude, so it snaps the setpoint to the real target altitude without yet
+		// reporting the item as reached.
+		rtl.run(true);
+		ASSERT_TRUE(rtl.isClimbing());
+
+		// WHEN: the climb completes (the vehicle reaches RTL_RETURN_ALT) and the mission item is
+		// re-evaluated.
+		setAltitude(kNoLandStartRtlAlt);
+		rtl.run(true);
+
+		// THEN: the vehicle is routed to move to the land point as fixed wing ahead of the back
+		// transition, instead of flying the raw VTOL_LAND item as fixed wing.
+		EXPECT_EQ(rtl.activeNavCommand(), NAV_CMD_WAYPOINT);
+		EXPECT_TRUE(rtl.activeVtolBackTransition());
+	}
 }
 
 INSTANTIATE_TEST_SUITE_P(VehicleTypes, RTLClimbUpdateTest,
