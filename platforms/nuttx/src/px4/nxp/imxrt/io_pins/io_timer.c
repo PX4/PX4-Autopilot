@@ -423,7 +423,7 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 	return rv;
 }
 
-static int timer_set_rate(unsigned timer, unsigned rate)
+static int timer_set_val(unsigned timer, uint16_t val)
 {
 	int channels = get_timer_channels(timer);
 
@@ -433,7 +433,7 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 		if ((1 << channel) & channels) {
 			rMCTRL(channels_timer(channel)) |= (timer_io_channels[channel].sub_module_bits >> MCTRL_LDOK_SHIFT) << MCTRL_CLDOK_SHIFT
 							   ;
-			rVAL1(channels_timer(channel), timer_io_channels[channel].sub_module) = (BOARD_PWM_FREQ / rate) - 1;
+			rVAL1(channels_timer(channel), timer_io_channels[channel].sub_module) = val;
 			rMCTRL(channels_timer(channel)) |= timer_io_channels[channel].sub_module_bits;
 
 		}
@@ -441,6 +441,16 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 
 	px4_leave_critical_section(flags);
 	return 0;
+}
+
+static int timer_set_max_timer_rate(unsigned timer)
+{
+	return timer_set_val(timer, UINT16_MAX);
+}
+
+static int timer_set_rate(unsigned timer, unsigned rate)
+{
+	return timer_set_val(timer, (BOARD_PWM_FREQ / rate) - 1);
 }
 
 static inline void io_timer_set_oneshot_mode(unsigned timer)
@@ -658,7 +668,12 @@ int io_timer_set_pwm_rate(unsigned timer, unsigned rate)
 			io_timer_set_PWM_mode(timer);
 		}
 
-		timer_set_rate(timer, rate);
+		if (PWM_RATE_TIMER_MAX == rate) {
+			timer_set_max_timer_rate(timer);
+
+		} else {
+			timer_set_rate(timer, rate);
+		}
 	}
 
 	return OK;
