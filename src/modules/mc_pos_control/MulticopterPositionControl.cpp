@@ -502,7 +502,8 @@ void MulticopterPositionControl::Run()
 			const bool flying                    = (_takeoff.getTakeoffState() >= TakeoffState::flight);
 			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
-			// Ignore value of MPC_ACC_DECOUPLE on ground
+			// Same condition as the [0, 0, 100] idle setpoint below: coupled, it points body_z down
+			// and limitTilt commands full tilt
 			_control.decoupleHorizontalAndVecticalAcceleration(_param_mpc_acc_decouple.get() || not_taken_off || flying_but_ground_contact);
 
 			if (!flying) {
