@@ -44,38 +44,70 @@
 namespace uORB
 {
 
+SubscriptionCallback::SubscriptionCallback(const orb_metadata *meta, uint32_t interval_us, uint8_t instance) :
+	SubscriptionIntervalAtomic(meta, interval_us, instance)
+{
+}
+
+SubscriptionCallback::~SubscriptionCallback()
+{
+	unregisterCallback();
+}
+
+bool SubscriptionCallback::ChangeInstance(uint8_t instance)
+{
+	bool ret = false;
+
+	if (instance != get_instance()) {
+		const bool reg = registered();
+
+		if (reg) {
+			unregisterCallback();
+		}
+
+		if (_subscription.ChangeInstance(instance)) {
+			ret = true;
+		}
+
+		if (reg) {
+			registerCallback();
+		}
+
+	} else {
+		// already on desired index
+		return true;
+	}
+
+	return ret;
+}
+
 bool SubscriptionCallback::registerCallback()
 {
-	if (!_registered) {
-		if (_subscription.get_node() && Manager::register_callback(_subscription.get_node(), this)) {
-			// registered
-			_registered = true;
-
-		} else {
-			// force topic creation by subscribing with old API
-			orb_sub_t fd = orb_subscribe_multi(_subscription.get_topic(), _subscription.get_instance());
-
-			// try to register callback again
-			if (_subscription.subscribe()) {
-				if (_subscription.get_node() && Manager::register_callback(_subscription.get_node(), this)) {
-					_registered = true;
-				}
-			}
-
-			orb_unsubscribe(fd);
+	if (!orb_advert_valid(_subscription.get_node())) {
+		// force topic creation
+		if (!_subscription.subscribe(true)) {
+			return false;
 		}
 	}
 
-	return _registered;
+	return Manager::registerCallback(_subscription.get_node(), this, _last_update.load(), _interval_us.load(), _cb_handle);
 }
 
 void SubscriptionCallback::unregisterCallback()
 {
-	if (_subscription.get_node()) {
-		Manager::unregister_callback(_subscription.get_node(), this);
-	}
+	Manager::unregisterCallback(_subscription.get_node(), this, _cb_handle);
+}
 
-	_registered = false;
+SubscriptionCallbackWorkItem::SubscriptionCallbackWorkItem(px4::WorkItem *work_item, const orb_metadata *meta,
+		uint8_t instance) :
+	SubscriptionCallback(meta, 0, instance),	// interval 0
+	_work_item(work_item)
+{
+}
+
+SubscriptionPollable::SubscriptionPollable(const orb_metadata *meta, uint32_t interval_us, uint8_t instance) :
+	SubscriptionInterval(meta, interval_us, instance)
+{
 }
 
 } // namespace uORB

@@ -45,6 +45,7 @@
 
 @{
 topics_count = len(all_topics)
+max_topic_name_length = max([len(topic_name) for topic_name in all_topics])
 }@
 
 #pragma once
@@ -55,6 +56,8 @@ topics_count = len(all_topics)
 
 static constexpr size_t ORB_TOPICS_COUNT{@(topics_count)};
 static constexpr size_t orb_topics_count() { return ORB_TOPICS_COUNT; }
+static constexpr size_t ORB_MAX_TOPIC_NAME_LENGTH{@(max_topic_name_length)};
+static constexpr size_t ORB_MAX_TOPIC_NODE_NAME_LENGTH{ORB_MAX_TOPIC_NAME_LENGTH + 1};
 
 /*
  * Returns array of topics metadata

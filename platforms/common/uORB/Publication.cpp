@@ -47,7 +47,7 @@ namespace uORB
 
 PublicationBase::~PublicationBase()
 {
-	if (_handle != nullptr) {
+	if (orb_advert_valid(_handle)) {
 		// don't automatically unadvertise queued publications (eg vehicle_command)
 		if (Manager::orb_get_queue_size(_handle) == 1) {
 			unadvertise();

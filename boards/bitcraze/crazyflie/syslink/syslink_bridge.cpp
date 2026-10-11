@@ -70,22 +70,6 @@ SyslinkBridge::init()
 	return ret;
 }
 
-pollevent_t
-SyslinkBridge::poll_state(struct file *filp)
-{
-	pollevent_t state = 0;
-
-	if (!_readbuffer.empty()) {
-		state |= POLLIN;
-	}
-
-	if (_link->_writebuffer.space() > 0) {
-		state |= POLLOUT;
-	}
-
-	return state;
-}
-
 ssize_t
 SyslinkBridge::read(struct file *filp, char *buffer, size_t buflen)
 {
@@ -158,5 +142,4 @@ void
 SyslinkBridge::pipe_message(crtp_message_t *msg)
 {
 	_readbuffer.force(msg, sizeof(msg->size) + msg->size);
-	poll_notify(POLLIN);
 }
