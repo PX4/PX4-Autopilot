@@ -151,6 +151,7 @@ public:
 			msg.timestamp = hrt_absolute_time();
 			int instance = -1;
 			_handles[i] = orb_advertise_multi(ORB_ID(orb_test), &msg, &instance);
+			_ok = _ok && (_handles[i] != nullptr);
 			_instances[i] = (_handles[i] != nullptr) ? static_cast<uint8_t>(instance) : 0;
 		}
 	}
@@ -164,22 +165,14 @@ public:
 		}
 	}
 
-	bool ok() const
-	{
-		for (auto handle : _handles) {
-			if (handle == nullptr) {
-				return false;
-			}
-		}
-
-		return true;
-	}
+	bool ok() const { return _ok; }
 
 	uint8_t instance(unsigned i) const { return _instances[i % IDLE_TOPICS]; }
 
 private:
 	orb_advert_t _handles[IDLE_TOPICS] {};
 	uint8_t _instances[IDLE_TOPICS] {};
+	bool _ok{true};
 };
 
 // What a module does with its parameter_update-style subscriptions each iteration.
@@ -399,81 +392,96 @@ int uORBTest::flight(unsigned seconds)
 	int ret = -1;
 
 	// Each stage starts before the next one is wired to its output instance.
-	if ((idle == nullptr) || !idle->ok() || (source == nullptr) || !source->advertise()) {
+	bool ok = (idle != nullptr) && idle->ok() && (source != nullptr) && source->advertise();
+
+	if (!ok) {
 		PX4_ERR("source: advertise failed");
+	}
 
-	} else if (((rate = new RateStage("rate filter", px4::wq_configurations::rate_ctrl, ORB_ID(orb_test_medium),
-					  source->instance(), ORB_ID::orb_test_medium, *idle, 3)) == nullptr) || !rate->start()) {
-		PX4_ERR("rate filter: start failed");
+	if (ok) {
+		rate = new RateStage("rate filter", px4::wq_configurations::rate_ctrl, ORB_ID(orb_test_medium), source->instance(),
+				     ORB_ID::orb_test_medium, *idle, 3);
+		ok = (rate != nullptr) && rate->start();
 
-	} else if (((control = new ControlStage("rate control", px4::wq_configurations::rate_ctrl, ORB_ID(orb_test_medium),
-						rate->out_instance(), ORB_ID::orb_test, *idle, 3)) == nullptr) || !control->start()) {
-		PX4_ERR("rate control: start failed");
+		if (!ok) {
+			PX4_ERR("rate filter: start failed");
+		}
+	}
 
-	} else {
-		bool consumers_ok = true;
+	if (ok) {
+		control = new ControlStage("rate control", px4::wq_configurations::rate_ctrl, ORB_ID(orb_test_medium),
+					   rate->out_instance(), ORB_ID::orb_test, *idle, 3);
+		ok = (control != nullptr) && control->start();
 
+		if (!ok) {
+			PX4_ERR("rate control: start failed");
+		}
+	}
+
+	if (ok) {
 		for (unsigned i = 0; i < FAN_OUT; i++) {
 			const px4::wq_config_t &wq = (i % 2 == 0) ? px4::wq_configurations::nav_and_controllers :
 						     px4::wq_configurations::hp_default;
 			consumers[i] = new Consumer(consumer_names[i], wq, ORB_ID(orb_test_medium), rate->out_instance(), ORB_ID::INVALID,
 						    *idle, 2);
-			consumers_ok = consumers_ok && (consumers[i] != nullptr) && consumers[i]->start();
+			ok = ok && (consumers[i] != nullptr) && consumers[i]->start();
 		}
 
 		poller = new Poller(ORB_ID(orb_test), control->out_instance());
+		ok = ok && (poller != nullptr);
 
-		if (!consumers_ok || (poller == nullptr)) {
+		if (!ok) {
 			PX4_ERR("consumers: start failed");
-
-		} else {
-			poller->start();
-			source->start();
-			px4_usleep(WARMUP_MS * 1000);
-
-			g_recording.store(true);
-			const float load_during = average_load(seconds * 1000);
-			g_recording.store(false);
-
-			source->stop();
-			px4_usleep(DRAIN_MS * 1000);
-			rate->stop();
-			control->stop();
-
-			for (auto *c : consumers) {
-				c->stop();
-			}
-
-			poller->stop();
-			px4_usleep(DRAIN_MS * 1000);
-
-			unsigned spurious = rate->spurious_polls() + control->spurious_polls();
-
-			for (auto *c : consumers) {
-				spurious += c->spurious_polls();
-			}
-
-			PX4_INFO_RAW("  %-20s %8s %6s %6s %6s %6s %6s\n", "stage", "samples", "missed", "Hz", "mean", "p99", "max");
-			PX4_INFO_RAW("  %-20s %8" PRIu32 " %6s %6" PRIu32 "\n", "source", source->published(), "-",
-				     source->published() / seconds);
-			rate->stats().print(rate->name(), seconds);
-			control->stats().print(control->name(), seconds);
-
-			for (auto *c : consumers) {
-				c->stats().print(c->name(), seconds);
-			}
-
-			poller->stats().print("poller (sample age)", seconds, false);
-			PX4_INFO_RAW("  %-20s %8u\n", "spurious idle polls", spurious);
-			print_load("cpu load before", load_before);
-			print_load("cpu load during", load_during);
-
-			if (load_before >= 0.f && load_during >= 0.f) {
-				PX4_INFO_RAW("  %-20s %+7.1f%%\n", "cpu load delta", (double)((load_during - load_before) * 100.f));
-			}
-
-			ret = (spurious == 0) ? 0 : -1;
 		}
+	}
+
+	if (ok) {
+		poller->start();
+		source->start();
+		px4_usleep(WARMUP_MS * 1000);
+
+		g_recording.store(true);
+		const float load_during = average_load(seconds * 1000);
+		g_recording.store(false);
+
+		source->stop();
+		px4_usleep(DRAIN_MS * 1000);
+		rate->stop();
+		control->stop();
+
+		for (auto *c : consumers) {
+			c->stop();
+		}
+
+		poller->stop();
+		px4_usleep(DRAIN_MS * 1000);
+
+		unsigned spurious = rate->spurious_polls() + control->spurious_polls();
+
+		for (auto *c : consumers) {
+			spurious += c->spurious_polls();
+		}
+
+		PX4_INFO_RAW("  %-20s %8s %6s %6s %6s %6s %6s\n", "stage", "samples", "missed", "Hz", "mean", "p99", "max");
+		PX4_INFO_RAW("  %-20s %8" PRIu32 " %6s %6" PRIu32 "\n", "source", source->published(), "-",
+			     source->published() / seconds);
+		rate->stats().print(rate->name(), seconds);
+		control->stats().print(control->name(), seconds);
+
+		for (auto *c : consumers) {
+			c->stats().print(c->name(), seconds);
+		}
+
+		poller->stats().print("poller (sample age)", seconds, false);
+		PX4_INFO_RAW("  %-20s %8u\n", "spurious idle polls", spurious);
+		print_load("cpu load before", load_before);
+		print_load("cpu load during", load_during);
+
+		if (load_before >= 0.f && load_during >= 0.f) {
+			PX4_INFO_RAW("  %-20s %+7.1f%%\n", "cpu load delta", (double)((load_during - load_before) * 100.f));
+		}
+
+		ret = (spurious == 0) ? 0 : -1;
 	}
 
 	// Stop everything before anything is deleted: no stage may run or stay registered while a peer goes away.

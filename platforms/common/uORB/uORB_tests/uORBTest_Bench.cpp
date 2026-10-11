@@ -96,6 +96,10 @@ Result run(const char *name, unsigned iterations, Op op)
 {
 	uint64_t ns_per_op[REPETITIONS];
 
+	if (iterations == 0) {
+		return {name, 0, 0};
+	}
+
 	for (unsigned rep = 0; rep < REPETITIONS; rep++) {
 		const hrt_abstime start = hrt_absolute_time();
 
