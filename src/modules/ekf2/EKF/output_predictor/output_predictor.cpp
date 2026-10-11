@@ -294,10 +294,46 @@ void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
 	// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
 	const Quatf q_error((quat_state.inversed() * output_delayed.quat_nominal).normalized());
 
-	// convert the quaternion delta to a delta angle
-	const float scalar = (q_error(0) >= 0.0f) ? -2.f : 2.f;
+	// q and -q describe the same attitude; take the branch with theta in [0, pi] so the
+	// correction is the short way round. AxisAngle() below does not do this itself.
+	Quatf q_err_shortest(q_error);
 
-	const Vector3f delta_ang_error{scalar * q_error(1), scalar * q_error(2), scalar * q_error(3)};
+	if (q_err_shortest(0) < 0.f) {
+		q_err_shortest = -q_err_shortest;
+	}
+
+	/*
+	 * Extract the delta angle exactly, as theta * axis, rather than with the small-angle
+	 * 2 * vec = 2 * sin(theta / 2) * axis. Both are monotonic over theta in [0, pi], so
+	 * this is not a correctness fix - it is a deliberate gain change at large errors.
+	 * d/dtheta of 2 * sin(theta / 2) is cos(theta / 2), which falls to 0.71 at theta = 90
+	 * deg and 0.26 at 150 deg, so the approximation loses restoring authority precisely
+	 * where the error is largest: it under-corrects by 10% at 90 deg and 26% at 150 deg,
+	 * stretching recovery from a large attitude error over more iterations. The exact
+	 * angle holds unit gain across the whole range. Below 10 deg the two agree to within
+	 * 0.15%, so normal operation is unaffected.
+	 */
+	Vector3f delta_ang_error = -Vector3f(AxisAnglef(q_err_shortest));
+
+	/*
+	 * That error is expressed in the body frame AT THE DELAYED FUSION HORIZON, but
+	 * _delta_angle_corr is added to delta angles sampled at the CURRENT time. Under spin
+	 * the body frame rotates between the two instants - 2.07 rad at 20 rad/s over the
+	 * default 100 ms horizon - so the correction is applied about an axis that has since
+	 * turned away from the one the error was measured on. Restricted to the roll/pitch
+	 * plane the correction's projection onto the true error goes as cos(r * tau), so the
+	 * loop's feedback turns from negative to positive past r * tau = pi / 2, i.e. above
+	 * r = 15.7 rad/s at the default delay, and the output attitude diverges while the
+	 * EKF's own solution stays correct.
+	 *
+	 * Rotate the error into the current body frame before applying it. Both quaternions
+	 * are INS attitudes, so their relative rotation is the vehicle's own turn across the
+	 * horizon - no constant-rate assumption. Identity when the vehicle is not rotating,
+	 * which is why this never showed on conventional flight profiles.
+	 */
+	const Quatf q_delayed_to_now((_output_new.quat_nominal.inversed() *
+				      output_delayed.quat_nominal).normalized());
+	delta_ang_error = Dcmf(q_delayed_to_now) * delta_ang_error;
 
 	// calculate a gain that provides tight tracking of the estimator attitude states and
 	// adjust for changes in time delay to maintain consistent damping ratio of ~0.7
