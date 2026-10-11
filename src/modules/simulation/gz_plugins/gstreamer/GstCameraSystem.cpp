@@ -487,6 +487,7 @@ bool CameraStream::runPipeline(bool useCuda, bool &usedNvenc)
 
 	_running = true;
 	bool pipelineError = false;
+	bool warnedUndersized = false;
 
 	// Not _running: a stop() during pipeline setup clears it before it is set above.
 	while (!_stopRequested && !pipelineError) {
@@ -502,7 +503,7 @@ bool CameraStream::runPipeline(bool useCuda, bool &usedNvenc)
 				if (GST_MESSAGE_TYPE(busMsg) == GST_MESSAGE_ERROR) {
 					gst_message_parse_error(busMsg, &gerr, &dbgInfo);
 					gzerr << "GStreamer pipeline error from ["
-					      << GST_OBJECT_NAME(busMsg->src) << "]: "
+					      << GST_MESSAGE_SRC_NAME(busMsg) << "]: "
 					      << (gerr ? gerr->message : "unknown")
 					      << (dbgInfo ? (std::string(" (") + dbgInfo + ")") : "")
 					      << std::endl;
@@ -511,7 +512,7 @@ bool CameraStream::runPipeline(bool useCuda, bool &usedNvenc)
 				} else {
 					gst_message_parse_warning(busMsg, &gerr, &dbgInfo);
 					gzwarn << "GStreamer warning from ["
-					       << GST_OBJECT_NAME(busMsg->src) << "]: "
+					       << GST_MESSAGE_SRC_NAME(busMsg) << "]: "
 					       << (gerr ? gerr->message : "unknown")
 					       << std::endl;
 				}
@@ -533,8 +534,12 @@ bool CameraStream::runPipeline(bool useCuda, bool &usedNvenc)
 
 			// Skip undersized frames: the memcpy below would read OOB.
 			if (_currentFrame.data().size() < size) {
-				gzwarn << "Skipping camera frame: got " << _currentFrame.data().size()
-				       << " bytes, expected " << size << std::endl;
+				if (!warnedUndersized) {
+					gzwarn << "Skipping camera frames: got " << _currentFrame.data().size()
+					       << " bytes, expected " << size << std::endl;
+					warnedUndersized = true;
+				}
+
 				_newFrameAvailable = false;
 				lock.unlock();
 				std::this_thread::sleep_for(std::chrono::milliseconds(5));
