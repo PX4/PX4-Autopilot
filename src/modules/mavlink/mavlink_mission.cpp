@@ -1707,8 +1707,19 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			 * alignment, so we can just swap float for int32_t. */
 			const mavlink_mission_item_int_t *item_int
 				= reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
-			mission_item->params[4] = ((double)item_int->x);
-			mission_item->params[5] = ((double)item_int->y);
+
+			if (mavlink_mission_item->command == MAV_CMD_DO_SET_ACTUATOR) {
+				// Actuator values are scaled by 1e7 in MISSION_ITEM_INT regardless of
+				// frame; store the native -1..1 value, mirroring vehicle_command_s
+				// param5/param6 in mavlink_receiver.cpp. The "not used" sentinel
+				// applies independently per field.
+				mission_item->params[4] = (float)mavlink_cmd_params::decode_scaled_int32_field(item_int->x, 1e7);
+				mission_item->params[5] = (float)mavlink_cmd_params::decode_scaled_int32_field(item_int->y, 1e7);
+
+			} else {
+				mission_item->params[4] = ((double)item_int->x);
+				mission_item->params[5] = ((double)item_int->y);
+			}
 
 		} else {
 			mission_item->params[4] = (double)mavlink_mission_item->x;
@@ -1831,8 +1842,18 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			mavlink_mission_item_int_t *item_int =
 				reinterpret_cast<mavlink_mission_item_int_t *>(mavlink_mission_item);
 
-			item_int->x = round(mission_item->params[4]);
-			item_int->y = round(mission_item->params[5]);
+			if (mavlink_mission_item->command == MAV_CMD_DO_SET_ACTUATOR) {
+				// Actuator values are scaled by 1e7 in MISSION_ITEM_INT regardless of
+				// frame. NaN, or a value whose 1e7-scaled magnitude overflows int32_t,
+				// maps to INT32_MAX ("not used") instead of invoking undefined behavior
+				// by casting it to int32_t directly.
+				item_int->x = mavlink_cmd_params::encode_scaled_int32_field(mission_item->params[4], 1e7);
+				item_int->y = mavlink_cmd_params::encode_scaled_int32_field(mission_item->params[5], 1e7);
+
+			} else {
+				item_int->x = round(mission_item->params[4]);
+				item_int->y = round(mission_item->params[5]);
+			}
 
 		} else {
 			mavlink_mission_item->x = (float)mission_item->params[4];
@@ -1850,6 +1871,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_DO_CHANGE_SPEED:
 		case NAV_CMD_DO_SET_HOME:
 		case NAV_CMD_DO_LAND_START:
+		case NAV_CMD_DO_SET_ACTUATOR:
 		case NAV_CMD_DO_TRIGGER_CONTROL:
 		case NAV_CMD_DO_DIGICAM_CONTROL:
 		case NAV_CMD_IMAGE_START_CAPTURE:
