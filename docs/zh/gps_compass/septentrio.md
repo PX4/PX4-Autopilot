@@ -119,8 +119,8 @@ To switch rover and base in the moving base setup, switch `SEP_PORT1_CFG` and `S
 
 It is important that the antennas are positioned at least 30 cm apart for a stable heading result.
 In a normal setup, the main antenna is behind the auxiliary one.
-If another setup is used, the [SEP_YAW_OFFS](../advanced_config/parameter_reference.md#SEP_YAW_OFFS) value needs to be changed accordingly.
-If the antennas are not at the same height, the [SEP_PITCH_OFFS](../advanced_config/parameter_reference.md#SEP_PITCH_OFFS) value needs to be changed.
+With a dual-antenna receiver, set [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) to `Dual antenna`, [SENS_GNSSn_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX) to the position of the main antenna and [SENS_GNSSn_AUXX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_AUXX) to that of the auxiliary antenna.
+With two receivers, set `SENS_GNSSn_HDG` to `Moving base rover` in the rover's slot and `SENS_GNSSn_OFFX/Y/Z` of both receivers.
 
 ## 日志
 

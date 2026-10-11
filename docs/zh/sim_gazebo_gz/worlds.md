@@ -30,7 +30,7 @@ This is used in conjunction with the [x500_mono_cam_down](../sim_gazebo_gz/vehic
 
 Baylands world surrounded by water.
 
-[PX4-gazebo-models/main/worlds/bayland.sdf](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/baylands.sdf)
+[PX4-gazebo-models/main/worlds/baylands.sdf](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/baylands.sdf)
 
 ![Screenshot of Baylands world](../../assets/simulation/gazebo/worlds/baylands.png)
 

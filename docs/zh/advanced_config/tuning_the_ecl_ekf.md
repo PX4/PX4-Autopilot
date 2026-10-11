@@ -223,13 +223,15 @@ EKF2 模块将误差建模为一个机体固定的椭球体，该椭球体指定
 如果满足以下条件，将使用 GPS 测量进行位置和速度估计：
 
 - 通过设置 [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) 参数启用 GPS 使用。
-- GPS 质量检查已通过。这些检查由 [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) 和 `EKF2_REQ_*` 参数控制。
+- GPS 质量检查已通过。
+  These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
 
 有关高度源配置的更多详细信息，请 [点击这里](#height)。
 
 #### 偏航角测量
 
-某些 GPS 接收机，例如 [Trimble MB-Two RTK GPS 接收机](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two)，可用于提供航向测量，以替代磁力计数据的使用。当在存在大型磁异常的环境中或在地球磁场倾角较大的纬度地区运行时，这可能是一个显著的优势。通过将 [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) 参数中的第 3 位设置为 1（加 8）来启用 GPS 偏航测量。
+Dual-antenna and moving base GNSS receivers (see [GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)) can be used to provide a heading measurement that replaces the use of magnetometer data.
+当在存在大型磁异常的环境中或在地球磁场倾角较大的纬度地区运行时，这可能是一个显著的优势。通过将 [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) 参数中的第 3 位设置为 1（加 8）来启用 GPS 偏航测量。
 
 #### 从 GPS 速度数据获取偏航角
 
@@ -244,38 +246,46 @@ GSF 应用于各个 3 状态 EKF 输出的权重位于 `weight` 字段中。
 
 #### 双 GPS 接收器
 
-可以使用一种算法混合来自 GPS 接收机的数据，该算法根据报告的精度对数据进行加权（如果两个接收机以相同的速率输出数据并使用相同的精度，效果最佳）。如果来自接收机的数据丢失，该机制还提供自动故障转移（例如，它允许使用标准 GPS 作为更精确的 RTK 接收机的备份）。这由 [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) 参数控制。
+可以使用一种算法混合来自 GPS 接收机的数据，该算法根据报告的精度对数据进行加权（如果两个接收机以相同的速率输出数据并使用相同的精度，效果最佳）。如果来自接收机的数据丢失，该机制还提供自动故障转移（例如，它允许使用标准 GPS 作为更精确的 RTK 接收机的备份）。
+This is controlled by the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter.
 
-[SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) 参数默认设置为禁用混合并始终使用第一个接收机，因此必须设置它以选择使用哪些接收机精度指标来决定每个接收机输出对混合解算的贡献程度。当使用不同的接收机型号时，重要的是将 [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) 参数设置为两个接收机都支持的精度指标值。例如，除非两个接收机的驱动程序都在 `vehicle_gps_position` 消息的 `s_variance_m_s` 字段中发布可比较的值，否则不要将第 0 位设置为 `true`。由于不同制造商定义精度的方式不同（例如 CEP 与 1-sigma 等），这对于来自不同制造商的接收机可能很困难。
+The [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set by default to disable blending and always use the first receiver, so it will have to be set to select which receiver accuracy metrics are used to decide how much each receiver output contributes to the blended solution.
+Where different receiver models are used, it is important that the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set to a value that uses accuracy metrics that are supported by both receivers.
+For example do not set bit position 0 to `true` unless the drivers for both receivers publish values in the `speed_accuracy` field of the `sensor_gnss` message that are comparable.
+由于不同制造商定义精度的方式不同（例如 CEP 与 1-sigma 等），这对于来自不同制造商的接收机可能很困难。
 
 设置期间应检查以下项目：
 
-- 验证第二个接收机的数据是否存在。这将记录为 `vehicle_gps_position_1`，也可以在连接 _nsh console_ 时使用命令 `listener vehicle_gps_position -i 1` 进行检查。
+- 验证第二个接收机的数据是否存在。
+  This will be logged as `sensor_gnss_1` and can also be checked when connected via the _nsh console_ using the command `listener sensor_gnss -i 1`.
   [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) 参数需要正确设置。
-- 检查来自每个接收机的 `s_variance_m_s`、`eph` 和 `epv` 数据，并决定可以使用哪些精度指标。如果两个接收机都输出合理的 `s_variance_m_s` 和 `eph` 数据，并且 GPS 垂直位置未直接用于导航，则建议将 [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) 设置为 3。如果只有 `eph` 数据可用，且两个接收机都不输出 `s_variance_m_s` 数据，则将 [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) 设置为 2。只有当 GPS 已通过 [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) 参数被选为参考高度源，且两个接收机都输出合理的 `epv` 数据时，第 2 位才会被置位。
-- 混合接收机数据的输出记录为 `ekf_gps_position`，可以在连接 nsh 终端时使用命令 `listener ekf_gps_position` 进行检查。
+- Check the `speed_accuracy`, `eph` and `epv` data from each receiver and decide which accuracy metrics can be used.
+  If both receivers output sensible `speed_accuracy` and `eph` data, and GPS vertical position is not being used directly for navigation, then setting [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 3 is recommended.
+  Where only `eph` data is available and both receivers do not output `speed_accuracy` data, set [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 2.
+  只有当 GPS 已通过 [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) 参数被选为参考高度源，且两个接收机都输出合理的 `epv` 数据时，第 2 位才会被置位。
+- The output from the blended receiver data is logged as `vehicle_gnss`, and can be checked whilst connect via the nsh terminal using the command `listener vehicle_gnss`.
 - 若各接收机输出速率不同，融合后的输出速率将与速率较慢的接收机保持一致。在可能的情况下，接收机应配置为以相同的速率输出。
 
 #### GNSS 性能要求
 
-为了让 ECL 接受 GNSS 数据进行导航，需要在一段时间内满足某些最低要求，该时间由 [EKF2_REQ_GPS_H](../advanced_config/parameter_reference.md#EKF2_REQ_GPS_H) 定义（默认为 10 秒）。
+For the ECL to accept GNSS data for navigation, certain minimum requirements need to be satisfied over a period of time, defined by [GNSS_REQ_TIME](../advanced_config/parameter_reference.md#GNSS_REQ_TIME) (10 seconds by default).
 
-最小值在 [EKF&#x32;_&#x52;EQ_\*](../advanced_config/parameter_reference.md#EKF2_REQ_EPH) 参数中定义，并且可以使用 [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) 参数启用/禁用每个检查。
+Minima are defined in the [GNS&#x53;_&#x52;EQ_\*](../advanced_config/parameter_reference.md#GNSS_REQ_EPH) parameters and each check can be enabled/disabled using the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) parameter.
 
 下表列出了直接从 GNSS 数据中报告或计算的不同指标，以及 ECL 使用这些数据所需满足的最低要求值。此外，_平均值 (Average Value)_ 列显示了可能从标准 GNSS 模块（例如 u-blox M8 系列）合理获得的典型值 - 即被认为良好/可接受的值。
 
-| 指标 (Metric)     | 最低要求                                                                                                                                                                                                             | 平均值 (Average Value) | 单位 (Units) | 备注                                                                                                                                                                                                                                            |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| eph                                | <&nbsp;3 ([EKF2_REQ_EPH](../advanced_config/parameter_reference.md#EKF2_REQ_EPH))                      | 0.8                    | 米                             | 水平位置误差的标准偏差                                                                                                                                                                                                                                   |
-| epv                                | <&nbsp;5 ([EKF2_REQ_EPH](../advanced_config/parameter_reference.md#EKF2_REQ_EPV))                      | 1.5                    | 米                             | 垂直位置误差的标准偏差                                                                                                                                                                                                                                   |
-| 卫星数量                               | ≥&nbsp;6 ([EKF2_REQ_EPH](../advanced_config/parameter_reference.md#EKF2_REQ_NSATS))                                             | 14                                     | -                             |                                                                                                                                                                                                                                               |
-| sacc                               | <&nbsp;0.5 ([EKF2_REQ_EPH](../advanced_config/parameter_reference.md#EKF2_REQ_SACC))   | 0.2                    | 米/秒                           | 水平速度误差的标准偏差                                                                                                                                                                                                                                   |
-| 定位类型 (fix type) | ≥&nbsp;3                                                                                                                                                                                     | 4                                      | -                             | 0-1: 无定位, 2: 2D 定位, 3: 3D 定位, 4: RTCM 码差分, 5: 实时动态 (RTK) 浮点解, 6: 实时动态 (RTK) 固定解, 8: 外推值 |
-| 位置精度衰減因子(PDOP)  | <&nbsp;2.5 ([EKF2_REQ_EPH](../advanced_config/parameter_reference.md#EKF2_REQ_PDOP))   | 1.0                    | -                             | 位置精度衰减                                                                                                                                                                                                                                        |
-| hpos 漂移率                           | <&nbsp;0.1 ([EKF2_REQ_EPH](../advanced_config/parameter_reference.md#EKF2_REQ_HDRIFT)) | 0.01                   | 米/秒                           | 静止时基于 GNSS 位置计算的漂移率。                                                                                                                                                                                                                          |
-| vpos 漂移率                           | <&nbsp;0.2 ([EKF2_REQ_EPH](../advanced_config/parameter_reference.md#EKF2_REQ_VDRIFT)) | 0.02                   | 米/秒                           | 静止时基于 GNSS 高度计算的漂移率。                                                                                                                                                                                                                          |
-| hspd                               | <&nbsp;0.1 ([EKF2_REQ_EPH](../advanced_config/parameter_reference.md#EKF2_REQ_HDRIFT)) | 0.01                   | 米/秒                           | 报告的 GNSS 水平速度的滤波幅值。                                                                                                                                                                                                                           |
-| 报告的 GNSS 垂直速度的滤波幅值。                | <&nbsp;0.2 ([EKF2_REQ_EPH](../advanced_config/parameter_reference.md#EKF2_REQ_VDRIFT)) | 0.02                   | 米/秒                           | 所报告的全球导航卫星系统垂直速度的滤波量级。                                                                                                                                                                                                                        |
+| 指标 (Metric)     | 最低要求                                                                                                                                                                                                                | 平均值 (Average Value) | 单位 (Units) | 备注                                                                                                                                                                                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| eph                                | <&nbsp;3 ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH))                         | 0.8                    | 米                             | 水平位置误差的标准偏差                                                                                                                                                                                                                                   |
+| epv                                | <&nbsp;5 ([GNSS_REQ_EPV](../advanced_config/parameter_reference.md#GNSS_REQ_EPV))                         | 1.5                    | 米                             | 垂直位置误差的标准偏差                                                                                                                                                                                                                                   |
+| 卫星数量                               | ≥6&nbsp;([GNSS_REQ_NSATS](../advanced_config/parameter_reference.md#GNSS_REQ_NSATS))                                               | 14                                     | -                             |                                                                                                                                                                                                                                               |
+| sacc                               | <&nbsp;0.5 ([GNSS_REQ_SACC](../advanced_config/parameter_reference.md#GNSS_REQ_SACC))     | 0.2                    | 米/秒                           | 水平速度误差的标准偏差                                                                                                                                                                                                                                   |
+| 定位类型 (fix type) | ≥&nbsp;3                                                                                                                                                                                        | 4                                      | -                             | 0-1: 无定位, 2: 2D 定位, 3: 3D 定位, 4: RTCM 码差分, 5: 实时动态 (RTK) 浮点解, 6: 实时动态 (RTK) 固定解, 8: 外推值 |
+| 位置精度衰減因子(PDOP)  | <&nbsp;2.5 ([GNSS_REQ_PDOP](../advanced_config/parameter_reference.md#GNSS_REQ_PDOP))     | 1.0                    | -                             | 位置精度衰减                                                                                                                                                                                                                                        |
+| hpos 漂移率                           | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01                   | 米/秒                           | 静止时基于 GNSS 位置计算的漂移率。                                                                                                                                                                                                                          |
+| vpos 漂移率                           | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02                   | 米/秒                           | 静止时基于 GNSS 高度计算的漂移率。                                                                                                                                                                                                                          |
+| hspd                               | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01                   | 米/秒                           | 报告的 GNSS 水平速度的滤波幅值。                                                                                                                                                                                                                           |
+| 报告的 GNSS 垂直速度的滤波幅值。                | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02                   | 米/秒                           | 所报告的全球导航卫星系统垂直速度的滤波量级。                                                                                                                                                                                                                        |
 
 :::info
 `hpos_drift_rate`、`vpos_drift_rate` 和 `hspd` 是在 10 秒的时间段内计算的，并在 `ekf2_gps_drift` 主题中发布。注意 `ekf2_gps_drift` 不会被记录！
@@ -627,7 +637,9 @@ EKF 包含针对严重条件状态和协方差更新的内部错误检查。请�
 
 ### GPS 数据质量检查
 
-EKF 在开始 GPS 辅助前会执行一系列 GPS 质量检查。这些检查由 [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) 和 `EKF2_REQ_*` 参数控制。这些检查的通过/失败状态记录在 [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg) 的 `gps_check_fail_flags` 字段中。当所有所需的 GPS 检查通过后，此整数将为零。如果 EKF 未启动 GPS 对齐，请将该整数与 [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg) 中 `gps_check_fail_flags` 的位掩码定义进行对比。
+EKF 在开始 GPS 辅助前会执行一系列 GPS 质量检查。
+These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
+这些检查的通过/失败状态记录在 [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg) 的 `gps_check_fail_flags` 字段中。当所有所需的 GPS 检查通过后，此整数将为零。如果 EKF 未启动 GPS 对齐，请将该整数与 [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg) 中 `gps_check_fail_flags` 的位掩码定义进行对比。
 
 ### EKF 数值误差
 
@@ -687,7 +699,7 @@ EKF 对其所有计算使用单精度浮点运算，并使用一阶近似来推�
 - 绘制水平位置创新测试比值 - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).pos_test_ratio
 - 绘制高度创新测试比值 - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).hgt_test_ratio
 - 绘制磁力计创新测试比值 - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).mag_test_ratio
-- 绘制 GPS 接收机报告的速度精度 - [SensorGps.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorGps.msg).s_variance_m_s
+- Plot the GPS receiver reported speed accuracy - [SensorGnss.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorGnss.msg).speed_accuracy
 - 绘制 IMU 增量角状态估计 - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).states\[10\]、states\[11\] 和 states\[12\]
 - 绘制 EKF 内部高频振动指标：
   - 增量角锥形振动 - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).vibe\[0\]
@@ -741,7 +753,8 @@ GPS 数据精度差通常伴随着接收器报告的速度误差的增加以及�
 
 ### 确定 GPS 数据的丢失
 
-GPS 数据丢失会表现为速度与位置创新测试比值“贴平(flat-lining)”。出现该情况时，请检查 `vehicle_gps_position` 中的其他 GPS 状态数据。
+GPS 数据丢失会表现为速度与位置创新测试比值“贴平(flat-lining)”。
+If this occurs, check the other GPS status data in `vehicle_gnss` for further information.
 
 下图显示了使用 SITL Gazebo 模拟 VTOL 飞行生成的 NED GPS 速度新息 `ekf2_innovations_0.vel_pos_innov[0 ... 2]`、GPS NE 位置新息 `ekf2_innovations_0.vel_pos_innov[3 ... 4]` 以及气压垂直位置新息 `ekf2_innovations_0.vel_pos_innov[5]`。
 

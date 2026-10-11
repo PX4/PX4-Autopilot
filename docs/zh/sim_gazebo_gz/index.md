@@ -359,7 +359,7 @@ See [Simulation > Environment Configuration](../simulation/index.md#environment-
 The PX4 Gazebo worlds and models databases [can be found on GitHub here](https://github.com/PX4/PX4-gazebo-models).
 
 :::info
-`gz_env.sh.in` is compiled and made available in `$PX4_DIR/build/px4_sitl_default/rootfs/gz_env.sh`
+`gz_env.sh.in` is compiled and made available in `$PX4_DIR/build/px4_sitl_default/gz_env.sh`
 :::
 
 ### 示例
