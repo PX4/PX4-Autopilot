@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "uORBTest_Bench.hpp"
@@ -40,7 +41,7 @@ extern "C" { __EXPORT int uorb_tests_main(int argc, char *argv[]); }
 
 static void usage()
 {
-	PX4_INFO("Usage: uorb_tests [latency_test|bench [populate]]");
+	PX4_INFO("Usage: uorb_tests [latency_test|bench [populate]|flight [seconds]]");
 }
 
 int
@@ -73,6 +74,17 @@ uorb_tests_main(int argc, char *argv[])
 
 	if (argc > 1 && !strcmp(argv[1], "bench")) {
 		return uORBTest::bench(argc > 2 && !strcmp(argv[2], "populate"));
+	}
+
+	if (argc > 1 && !strcmp(argv[1], "flight")) {
+		const int seconds = (argc > 2) ? atoi(argv[2]) : 10;
+
+		if (seconds < 1 || seconds > 120) {
+			PX4_ERR("seconds must be 1..120");
+			return -EINVAL;
+		}
+
+		return uORBTest::flight(seconds);
 	}
 
 	usage();

@@ -38,5 +38,6 @@ px4_add_module(
 	SRCS
 		uORB_tests_main.cpp
 		uORBTest_Bench.cpp
+		uORBTest_Flight.cpp
 		uORBTest_UnitTest.cpp
 	)

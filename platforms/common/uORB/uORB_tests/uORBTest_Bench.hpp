@@ -43,4 +43,11 @@ namespace uORBTest
  */
 int bench(bool populate);
 
+/**
+ * Run a synthetic sensor-to-actuator pipeline at flight rates for the given
+ * duration and print per-stage latency, missed samples and CPU load.
+ * @return 0 on success
+ */
+int flight(unsigned seconds);
+
 } // namespace uORBTest
