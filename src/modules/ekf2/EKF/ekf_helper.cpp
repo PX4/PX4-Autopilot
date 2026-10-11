@@ -135,12 +135,14 @@ bool Ekf::setAltOrigin(const float altitude, const float vpos_var)
 		 (double)altitude);
 
 	if (!PX4_ISFINITE(_local_origin_alt) && isLocalVerticalPositionValid()) {
+		// the altitude moves by the same amount as the origin, so the local height and HAGL don't change
 		const float local_alt_prev = _gpos.altitude();
 		_local_origin_alt = altitude;
-		resetAltitudeTo(local_alt_prev + _local_origin_alt);
+		moveAltitudeTo(local_alt_prev + _local_origin_alt);
 
 	} else {
-		const float delta_origin_alt = altitude - _local_origin_alt;
+		// the local height used 0 for an unset origin altitude
+		const float delta_origin_alt = altitude - getEkfGlobalOriginAltitude();
 		_local_origin_alt = altitude;
 		updateVerticalPositionResetStatus(delta_origin_alt);
 	}
@@ -223,16 +225,23 @@ bool Ekf::initialiseAltitudeTo(const float altitude, const float vpos_var)
 	}
 
 	if (!PX4_ISFINITE(_local_origin_alt)) {
+		// until the origin has an altitude, the altitude is the local height
 		const float local_alt_prev = _gpos.altitude();
 
 		if (isLocalVerticalPositionValid()) {
+			// the origin takes the whole altitude change, so the local height and HAGL don't move
 			_local_origin_alt = altitude - local_alt_prev;
 
 		} else {
+			// the local height restarts at 0; HAGL doesn't move
 			_local_origin_alt = altitude;
+			updateVerticalPositionResetStatus(local_alt_prev);
 		}
 
 		ECL_INFO("Origin alt=%.3f", (double)_local_origin_alt);
+		moveAltitudeTo(altitude, vpos_var);
+
+		return true;
 	}
 
 	resetAltitudeTo(altitude, vpos_var);
