@@ -1,0 +1,65 @@
+# Builds SITL with the out-of-tree example in test/external_module and drives its
+# MAVLink handler, one-shot send and stream, so refactors of the mavlink module
+# cannot silently break the extension points.
+
+name: External Module Test
+
+on:
+  push:
+    branches:
+    - 'main'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+    - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    name: SITL with out-of-tree MAVLink module
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    container:
+      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    env:
+      PX4_SBOM_DISABLE: 1
+
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - name: Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-sitl-external-module
+          max-size: 350M
+
+      - name: Build PX4 SITL with the example external module
+        shell: bash
+        run: make px4_sitl_default EXTERNAL_MODULES_LOCATION=$(pwd)/test/external_module
+
+      - uses: ./.github/actions/save-ccache
+        if: always()
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+      - name: Run external module MAVLink test
+        run: test/external_module/test_ext_mavlink_example.py --build-dir build/px4_sitl_default --verbose
+        timeout-minutes: 10
+
+      - name: Upload PX4 log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: external-module-px4-log
+          path: build/px4_sitl_default/ext_module_test/px4.log

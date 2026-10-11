@@ -56,25 +56,46 @@ add_custom_command(
 add_custom_target(mavlink_c_generate_uavionix DEPENDS ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h)
 set_source_files_properties(${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h PROPERTIES GENERATED true)
 
-# generate the primary dialect
+# generate the primary dialect; an external dialect is staged into the build tree by px4_add_external_mavlink_dialect()
+# and needs the upstream definitions copied next to it once the submodule is checked out
+get_property(MAVLINK_DIALECT_DIR GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT_DIR)
+set(MAVLINK_DIALECT_STAGE_TARGET)
+if(MAVLINK_DIALECT_DIR)
+	get_property(MAVLINK_EXTERNAL_DIALECT GLOBAL PROPERTY PX4_EXTERNAL_MAVLINK_DIALECT)
+	add_custom_target(mavlink_stage_external_dialect
+		COMMAND ${CMAKE_COMMAND}
+			-DUPSTREAM_DIR=${MAVLINK_GIT_DIR}/message_definitions/v1.0
+			-DSTAGING_DIR=${MAVLINK_DIALECT_DIR}
+			-DDIALECT=${MAVLINK_EXTERNAL_DIALECT}
+			-P ${PX4_SOURCE_DIR}/cmake/px4_stage_external_mavlink_dialect.cmake
+		DEPENDS git_mavlink_v2
+		COMMENT "Staging upstream MAVLink definitions for external dialect ${MAVLINK_EXTERNAL_DIALECT}"
+	)
+	set(MAVLINK_DIALECT_STAGE_TARGET mavlink_stage_external_dialect)
+else()
+	set(MAVLINK_DIALECT_DIR ${MAVLINK_GIT_DIR}/message_definitions/v1.0)
+endif()
+file(RELATIVE_PATH MAVLINK_DIALECT_DIR_RELATIVE ${CMAKE_SOURCE_DIR} ${MAVLINK_DIALECT_DIR})
+
 add_custom_command(
 	OUTPUT ${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${CONFIG_MAVLINK_DIALECT}.h
 	COMMAND
 		${PYTHON_EXECUTABLE} ${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
 			--lang C --wire-protocol 2.0
 			--output ${MAVLINK_LIBRARY_DIR}
-			${MAVLINK_GIT_DIR}/message_definitions/v1.0/${CONFIG_MAVLINK_DIALECT}.xml > ${CMAKE_CURRENT_BINARY_DIR}/mavgen_${CONFIG_MAVLINK_DIALECT}.log
+			${MAVLINK_DIALECT_DIR}/${CONFIG_MAVLINK_DIALECT}.xml > ${CMAKE_CURRENT_BINARY_DIR}/mavgen_${CONFIG_MAVLINK_DIALECT}.log
 	DEPENDS
 		git_mavlink_v2
+		${MAVLINK_DIALECT_STAGE_TARGET}
 		${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
-		${MAVLINK_GIT_DIR}/message_definitions/v1.0/${CONFIG_MAVLINK_DIALECT}.xml
+		${MAVLINK_DIALECT_DIR}/${CONFIG_MAVLINK_DIALECT}.xml
 		${BOARD_DEFCONFIG}
 
 		# generate after uAvionix
 		mavlink_c_generate_uavionix
 		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h
 
-	COMMENT "Generating Mavlink ${CONFIG_MAVLINK_DIALECT}: ${MAVLINK_GIT_DIR_RELATIVE}/message_definitions/v1.0/${CONFIG_MAVLINK_DIALECT}.xml"
+	COMMENT "Generating Mavlink ${CONFIG_MAVLINK_DIALECT}: ${MAVLINK_DIALECT_DIR_RELATIVE}/${CONFIG_MAVLINK_DIALECT}.xml"
 )
 add_custom_target(mavlink_c_generate DEPENDS ${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${CONFIG_MAVLINK_DIALECT}.h)
 set_source_files_properties(${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${CONFIG_MAVLINK_DIALECT}.h PROPERTIES GENERATED true)
@@ -97,12 +118,22 @@ target_include_directories(mavlink_c
 		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}
 )
 
+# Out-of-tree module extension points, compiled only when external modules are built
+# so firmware without them is byte-identical
+set(MAVLINK_EXT_SRCS)
+set(MAVLINK_EXT_FLAGS)
+if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
+	set(MAVLINK_EXT_SRCS mavlink_ext_handler.cpp mavlink_ext_stream.cpp)
+	set(MAVLINK_EXT_FLAGS -DMAVLINK_EXTERNAL_MODULES)
+endif()
+
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
 	COMPILE_FLAGS
 		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
 		#-DDEBUG_BUILD
+		${MAVLINK_EXT_FLAGS}
 	SRCS
 		mavlink.c
 		mavlink_command_sender.cpp
@@ -125,6 +156,7 @@ px4_add_module(
 		MavlinkStatustextHandler.cpp
 		open_drone_id_translations.cpp
 		tune_publisher.cpp
+		${MAVLINK_EXT_SRCS}
 	MODULE_CONFIG
 		module.yaml
 		mavlink_params.yaml
