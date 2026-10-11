@@ -395,16 +395,26 @@ void MulticopterPositionControl::Run()
 		_sample_interval_s.update(dt);
 
 		if (_vehicle_control_mode_sub.updated()) {
-			const bool previous_position_control_enabled = _vehicle_control_mode.flag_multicopter_position_control_enabled;
+			const vehicle_control_mode_s previous = _vehicle_control_mode;
 
 			if (_vehicle_control_mode_sub.copy(&_vehicle_control_mode)) {
-				if (!previous_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
+				if (!previous.flag_multicopter_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					_time_position_control_enabled = _vehicle_control_mode.timestamp;
 
-				} else if (previous_position_control_enabled && !_vehicle_control_mode.flag_multicopter_position_control_enabled) {
+				} else if (previous.flag_multicopter_position_control_enabled && !_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					// clear existing setpoint when controller is no longer active
 					_setpoint = PositionControl::empty_trajectory_setpoint;
 					_control.setInputSetpoint(_setpoint);
+				}
+
+				// Restart the decaying velocity limits when the controlled axes change e.g. altitude to position or VTOL back transition
+				if ((previous.flag_multicopter_position_control_enabled != _vehicle_control_mode.flag_multicopter_position_control_enabled)
+				    || (previous.flag_control_velocity_enabled != _vehicle_control_mode.flag_control_velocity_enabled)
+				    || (previous.flag_control_climb_rate_enabled != _vehicle_control_mode.flag_control_climb_rate_enabled)) {
+					_vel_limit_xy = NAN;
+					_vel_limit_up = NAN;
+					_vel_limit_down = NAN;
+					_time_vel_limit_reset = _vehicle_control_mode.timestamp;
 				}
 			}
 		}
@@ -521,10 +531,8 @@ void MulticopterPositionControl::Run()
 						     ? _param_mpc_tiltmax_lnd.get() : _param_mpc_tiltmax_air.get();
 			_control.setTiltLimit(_tilt_limit_slew_rate.update(math::radians(tilt_limit_deg), dt));
 
-			const float speed_up = _takeoff.updateRamp(dt,
-					       PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());
-			const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down :
-						 _param_mpc_z_vel_max_dn.get();
+			const float speed_up = PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get();
+			const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down : _param_mpc_z_vel_max_dn.get();
 
 			// Allow ramping from zero thrust on takeoff
 			const float minimum_thrust = flying ? _param_mpc_thr_min.get() : 0.f;
@@ -536,10 +544,34 @@ void MulticopterPositionControl::Run()
 				max_speed_xy = math::min(max_speed_xy, vehicle_local_position.vxy_max);
 			}
 
-			_control.setVelocityLimits(
-				max_speed_xy,
-				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
-				math::max(speed_down, 0.f));
+			float limit_speed_up = math::min(speed_up, _param_mpc_z_vel_max_up.get());
+			float limit_speed_down = math::max(speed_down, 0.f);
+
+			// When changing mode flying faster than the limit, allow braking with a decaying limit to
+			// avoid a large velocity error from clamping alone driving the integrator against the brake.
+			// The limit starts at the measured speed, holds while the jerk limited braking builds up and then
+			// ramps down open loop, so it doesn't interfere with the brake but is guaranteed to reach the configured limit.
+			const auto decayingLimit = [&](float & ramp, float measured_speed, float limit) {
+				if (PX4_ISFINITE(ramp)) {
+					if (vehicle_local_position.timestamp_sample > _time_vel_limit_reset + 1_s) {
+						ramp = math::max(ramp - 5.f * dt, 0.f);
+					}
+
+				} else {
+					ramp = PX4_ISFINITE(measured_speed) ? math::max(measured_speed, 0.f) : 0.f;
+				}
+
+				return math::max(limit, ramp);
+			};
+
+			const Vector2f velocity_xy(states.velocity);
+			max_speed_xy = decayingLimit(_vel_limit_xy, velocity_xy.norm(), max_speed_xy);
+			limit_speed_up = decayingLimit(_vel_limit_up, -states.velocity(2), limit_speed_up);
+			limit_speed_down = decayingLimit(_vel_limit_down, states.velocity(2), limit_speed_down);
+
+			limit_speed_up = _takeoff.updateRamp(dt, limit_speed_up); // Takeoff ramp goes last to not be overridden
+
+			_control.setVelocityLimits(max_speed_xy, limit_speed_up, limit_speed_down);
 
 			_control.setInputSetpoint(_setpoint);
 
