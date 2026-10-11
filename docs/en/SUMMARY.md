@@ -952,6 +952,7 @@
       - [Fuzz Tests](test_and_ci/fuzz_tests.md)
     - [Sanitizers](test_and_ci/sanitizers.md)
     - [Continuous Integration](test_and_ci/continous_integration.md)
+    - [AI Pull Request Review](test_and_ci/ai_review.md)
     - [Integration Testing](test_and_ci/integration_testing.md)
       - [MAVSDK Integration Testing](test_and_ci/integration_testing_mavsdk.md)
       - [PX4 ROS 2 Interface Library Integration Testing](test_and_ci/integration_testing_px4_ros2_interface.md)
