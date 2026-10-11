@@ -70,7 +70,7 @@ BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface) :
 
 	_interface->init();
 	// unseal() here to allow an external config script to write to protected flash.
-	// This is neccessary to avoid bus errors due to using standard i2c mode instead of SMbus mode.
+	// This is necessary to avoid bus errors due to using standard i2c mode instead of SMbus mode.
 	// The external config script should then seal() the device.
 	unseal();
 }
@@ -130,7 +130,7 @@ void BATT_SMBUS::RunImpl()
 
 	new_report.current_average_a = average_current;
 
-	// If current is high, turn under voltage protection off. This is neccessary to prevent
+	// If current is high, turn under voltage protection off. This is necessary to prevent
 	// a battery from cutting off while flying with high current near the end of the packs capacity.
 	set_undervoltage_protection(average_current);
 

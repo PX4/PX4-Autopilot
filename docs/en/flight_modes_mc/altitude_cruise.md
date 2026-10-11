@@ -34,6 +34,19 @@ A manual mode that is similar to [Altitude mode](../flight_modes_mc/altitude.md)
 - Manual control input is required (such as RC control, joystick) to enter this mode. Other than in all other manual modes, it's though possible to disable the manual control loss failsafe by setting the corresponding flag in [COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT). In that case the current altitude, tilt and heading are kept until the manual control link is regained or the mode is exited.
   It is highly recommended to only disable the manual control loss failsafe for this mode if there is a stable data link connection to the vehicle at all times, and to enable the data link loss failsafe through [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT).
 
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_altitude_cruise -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_altitude_cruise -->
+
 ## Parameters
 
 Most of the relevant parameters are already covered in the corresponding section in the [Altitude mode](../flight_modes_mc/altitude.md). Here a list of parameters of particular importance for Altitude Cruise.

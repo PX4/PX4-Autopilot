@@ -44,6 +44,19 @@ static const char *kLogListFilePath = PX4_STORAGEDIR "/logdata.txt";
 static const char *kLogListFilePathTemp = PX4_STORAGEDIR "/$log$.txt";
 static const char *kLogDir = PX4_STORAGEDIR "/log";
 
+/**
+ * The log messages all carry target ids. On a link shared with other vehicles an unfiltered
+ * LOG_ERASE deletes this vehicle's logs too, and a listing request for one vehicle is
+ * answered by all of them. Zero is the broadcast value for both fields.
+ */
+static bool targeted_at_us(uint8_t target_system, uint8_t target_component)
+{
+	return (target_system == 0 || target_system == mavlink_system.sysid)
+	       && (target_component == 0
+		   || target_component == mavlink_system.compid
+		   || target_component == MAV_COMP_ID_ALL);
+}
+
 MavlinkLogHandler::MavlinkLogHandler(Mavlink &mavlink)
 	: _mavlink(mavlink)
 {}
@@ -248,6 +261,10 @@ void MavlinkLogHandler::handle_log_request_list(const mavlink_message_t *msg)
 	mavlink_log_request_list_t request;
 	mavlink_msg_log_request_list_decode(msg, &request);
 
+	if (!targeted_at_us(request.target_system, request.target_component)) {
+		return;
+	}
+
 	if (!create_log_list_file()) {
 		return;
 	}
@@ -270,6 +287,10 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 
 	mavlink_log_request_data_t request;
 	mavlink_msg_log_request_data_decode(msg, &request);
+
+	if (!targeted_at_us(request.target_system, request.target_component)) {
+		return;
+	}
 
 	if (request.id >= _num_logs) {
 		PX4_DEBUG("Requested log %" PRIu16 " but we only have %u", request.id, _num_logs);
@@ -323,11 +344,25 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 
 void MavlinkLogHandler::handle_log_request_end(const mavlink_message_t *msg)
 {
+	mavlink_log_request_end_t request;
+	mavlink_msg_log_request_end_decode(msg, &request);
+
+	if (!targeted_at_us(request.target_system, request.target_component)) {
+		return;
+	}
+
 	_state = LogHandlerState::Idle;
 }
 
 void MavlinkLogHandler::handle_log_erase(const mavlink_message_t *msg)
 {
+	mavlink_log_erase_t request;
+	mavlink_msg_log_erase_decode(msg, &request);
+
+	if (!targeted_at_us(request.target_system, request.target_component)) {
+		return;
+	}
+
 	if (_current_entry.fp) {
 		fclose(_current_entry.fp);
 		_current_entry.fp = nullptr;

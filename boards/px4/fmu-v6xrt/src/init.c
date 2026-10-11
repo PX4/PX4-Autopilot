@@ -47,16 +47,18 @@
 
 #include "board_config.h"
 
-#include <barriers.h>
+#include <arch/barriers.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 #include <debug.h>
 #include <errno.h>
 #include <syslog.h>
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
+#include <nuttx/irq.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sdio.h>
@@ -172,58 +174,351 @@ __EXPORT void board_on_reset(int status)
  ****************************************************************************/
 struct flexspi_nor_config_s g_bootConfig;
 
+extern const struct flexspi_nor_config_s g_flash_fast_config_is25wx512m;
+
+/* Part name of the flash we booted from, set by imxrt_octl_flash_initialize */
+static const char *g_flash_type;
+
+const char *board_get_flash_type_name(void)
+{
+	return g_flash_type;
+}
+
+/* JEDEC ID (RDID 0x9F): manufacturer | type << 8 | density << 16 */
+#define JEDEC_ID_MASK         0xffffffu
+#define JEDEC_ID_ISSI         0x1A5B9Du /* IS25WX512M; anything else is the MX25UM51345G */
+
+#define RDID_LUT_INDEX 4u   /* LUT sequence 1 (4 words per sequence) */
+#define RDID_SPIN      200000u
+
+/* Read the JEDEC ID with an IP command (the ROM only installs the read
+ * sequence) and pick the matching fast config, Macronix by default.
+ */
+locate_code(".ramfunc")
+static const struct flexspi_nor_config_s *imxrt_octl_flash_select(void)
+{
+	struct flexspi_type_s *flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
+
+	flexspi->LUTKEY = 0x5AF05AF0u;
+	flexspi->LUTCR = FLEXSPI_LUTCR_UNLOCK_MASK;
+	flexspi->LUT[RDID_LUT_INDEX] =
+		FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x9F, READ_SDR, FLEXSPI_1PAD, 0x04);
+	flexspi->LUTKEY = 0x5AF05AF0u;
+	flexspi->LUTCR = FLEXSPI_LUTCR_LOCK_MASK;
+
+	flexspi->INTR = FLEXSPI_INTR_IPCMDDONE_MASK | FLEXSPI_INTR_IPCMDERR_MASK |
+			FLEXSPI_INTR_IPCMDGE_MASK | FLEXSPI_INTR_AHBCMDERR_MASK;
+	flexspi->IPRXFCR |= FLEXSPI_IPRXFCR_CLRIPRXF_MASK;
+	flexspi->IPCR0 = 0;   /* RDID has no address phase */
+	flexspi->IPCR1 = FLEXSPI_IPCR1_IDATSZ(4) | FLEXSPI_IPCR1_ISEQID(1) | FLEXSPI_IPCR1_ISEQNUM(0);
+	flexspi->IPCMD |= FLEXSPI_IPCMD_TRG_MASK;
+
+	for (uint32_t spin = RDID_SPIN; spin--;) {
+		uint32_t intr = flexspi->INTR;
+
+		if (intr & FLEXSPI_INTR_IPCMDERR_MASK) {
+			break;
+		}
+
+		if (intr & FLEXSPI_INTR_IPCMDDONE_MASK) {
+			uint32_t jedec = flexspi->RFDR[0] & JEDEC_ID_MASK;
+			flexspi->INTR = FLEXSPI_INTR_IPRXWA_MASK;
+
+			if (jedec == JEDEC_ID_ISSI) {
+				return &g_flash_fast_config_is25wx512m;
+			}
+
+			break;
+		}
+	}
+
+	return &g_flash_fast_config;
+}
 
 locate_code(".ramfunc")
 void imxrt_octl_flash_initialize(void)
 {
 	const uint32_t instance =  1;
-
-
-	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, &g_flash_fast_config,
-	       sizeof(struct flexspi_nor_config_s));
-	g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
+	struct flexspi_type_s *flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
+	const struct flexspi_nor_config_s *fast_config = NULL;
 
 	ROM_API_Init();
+
+	/* Runs in both boot stages. The bootloader finds the flash in 1-pad SPI
+	 * as the ROM left it and switches it to octal DDR; the app then finds the
+	 * octal read sequence in LUT[0] and must keep it, since the part no longer
+	 * accepts 1-pad commands.
+	 */
+	if (flexspi->LUT[0] == g_flash_fast_config_is25wx512m.memConfig.lookupTable[0]) {
+		fast_config = &g_flash_fast_config_is25wx512m;
+
+	} else if (flexspi->LUT[0] == g_flash_fast_config.memConfig.lookupTable[0]) {
+		fast_config = &g_flash_fast_config;
+	}
+
+	if (fast_config != NULL) {
+		g_flash_type = (fast_config == &g_flash_fast_config_is25wx512m) ? "IS25WX512M" : "MX25UM51345G";
+
+		/* Keep the bootloader's setup, just record the config for the ROM API. */
+		memcpy((struct flexspi_nor_config_s *)&g_bootConfig, fast_config,
+		       sizeof(struct flexspi_nor_config_s));
+		g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
+
+		/* Only reads from here on: shorten the IS25WX512M chip select gap
+		 * to its read minimum, 12 ns tSHSL1 (hold counts serial clocks,
+		 * setup serial root clocks). The bootloader keeps the erase and
+		 * program value.
+		 */
+		if (fast_config == &g_flash_fast_config_is25wx512m) {
+			const uint32_t idle = FLEXSPI_STS0_ARBIDLE_MASK | FLEXSPI_STS0_SEQIDLE_MASK;
+
+			for (uint32_t spin = 200000u; spin-- && (flexspi->STS0 & idle) != idle;) {
+			}
+
+			flexspi->MCR0 |= FLEXSPI_MCR0_MDIS_MASK;
+			flexspi->FLSHCR1[0] = (flexspi->FLSHCR1[0] & ~(FLEXSPI_FLSHCR1_TCSH_MASK | FLEXSPI_FLSHCR1_TCSS_MASK)) |
+					      FLEXSPI_FLSHCR1_TCSH(2) | FLEXSPI_FLSHCR1_TCSS(1);
+			flexspi->MCR0 &= ~FLEXSPI_MCR0_MDIS_MASK;
+		}
+
+		return;
+	}
+
+	/* 1-pad SPI first so RDID can run, then the part's fast config. */
+	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, &g_flash_config,
+	       sizeof(struct flexspi_nor_config_s));
+	g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
+	ROM_FLEXSPI_NorFlash_Init(instance, (struct flexspi_nor_config_s *)&g_bootConfig);
+
+	fast_config = imxrt_octl_flash_select();
+	g_flash_type = (fast_config == &g_flash_fast_config_is25wx512m) ? "IS25WX512M" : "MX25UM51345G";
+
+	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, fast_config,
+	       sizeof(struct flexspi_nor_config_s));
+	g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
 
 	ROM_FLEXSPI_NorFlash_Init(instance, (struct flexspi_nor_config_s *)&g_bootConfig);
 	ROM_FLEXSPI_NorFlash_ClearCache(1);
 
-	ARM_DSB();
-	ARM_ISB();
-	ARM_DMB();
+	arm_dsb();
+	arm_isb();
+	arm_dmb();
 }
 #endif
+
+/****************************************************************************
+ * FlexSPI DLL / DQS read-strobe calibration
+ *
+ * Corrects the ROM-provided DLL delay by finding the valid DQS sampling range
+ * and selecting its midpoint for reliable flash reads.
+ ****************************************************************************/
+
+#define DLL_SPIN     200000u
+#define DLL_WORDS    128u                         /* 512 B reference pattern */
+#define DLL_CHUNK    16u                          /* 64 B per read command, < 128 B RX FIFO */
+#define DLL_LOCK     (FLEXSPI_STS2_ASLVLOCK_MASK | FLEXSPI_STS2_AREFLOCK_MASK)
+#define DLL_IDLE     (FLEXSPI_STS0_ARBIDLE_MASK | FLEXSPI_STS0_SEQIDLE_MASK)
+#define DLL_SETTLE   4000u                        /* post-lock settle; ERR011377 needs >=100 NOPs, this is well beyond */
+#define DLL_CODE_LO  1u                           /* skip SLVDLYTARGET=0 (sub-cell, degenerate) */
+#define DLL_PAT(i)   ((uint32_t)(((uint32_t)(i) * 2654435761u) ^ 0xa5a55a5aul))
+#define DLL_P8(i)    DLL_PAT(i), DLL_PAT((i) + 1), DLL_PAT((i) + 2), DLL_PAT((i) + 3), \
+	DLL_PAT((i) + 4), DLL_PAT((i) + 5), DLL_PAT((i) + 6), DLL_PAT((i) + 7)
+#define DLL_P64(i)   DLL_P8(i), DLL_P8((i) + 8), DLL_P8((i) + 16), DLL_P8((i) + 24), \
+	DLL_P8((i) + 32), DLL_P8((i) + 40), DLL_P8((i) + 48), DLL_P8((i) + 56)
+
+/* Known reference pattern, kept in flash so reading it back tests each delay */
+static const uint32_t g_dll_train[DLL_WORDS] __attribute__((aligned(32))) = {
+	DLL_P64(0), DLL_P64(64)
+};
+
+struct dll_cal_result_s {
+	uint32_t magic;         /* 'DLLC' when populated */
+	uint32_t sts2_entry;    /* STS2 as left by the ROM (pre-calibration snapshot) */
+	uint16_t passmask;      /* bit N set => delay code N read back correctly */
+	int8_t   chosen;        /* selected delay code, or -1 on ROM fallback */
+};
+
+struct dll_cal_result_s g_dll_cal;
+
+/* Write DLLCR[0] (port A) using the NXP DLL-update sequence and return true
+ * once it locks. Runs from RAM: it disables the flash we execute from, so no
+ * flash access may occur across the call.
+ */
+locate_code(".ramfunc")
+static bool imxrt_dll_write(struct flexspi_type_s *flexspi, uint32_t dllcr)
+{
+	uint32_t spin = DLL_SPIN;
+
+	while (spin-- && (flexspi->STS0 & DLL_IDLE) != DLL_IDLE) {
+	}
+
+	flexspi->MCR0 |= FLEXSPI_MCR0_MDIS_MASK;   /* stop mode before touching DLLCR */
+	arm_dsb();
+	arm_isb();
+	flexspi->DLLCR[0] = dllcr;
+	flexspi->MCR0 &= ~FLEXSPI_MCR0_MDIS_MASK;  /* exit stop -> DLL re-locks (no SWRESET) */
+
+	if (dllcr & FLEXSPI_DLLCR_DLLEN_MASK) {
+		for (spin = DLL_SPIN; spin-- && (flexspi->STS2 & DLL_LOCK) != DLL_LOCK;) {
+		}
+
+		if ((flexspi->STS2 & DLL_LOCK) != DLL_LOCK) {
+			return false;   /* never locked */
+		}
+	}
+
+	for (volatile uint32_t d = DLL_SETTLE; d--;) {  /* settle delay line (ERR011377) */
+	}
+
+	return true;
+}
+
+/* Read the reference pattern back with a direct command (not the execute-in-
+ * place fetch path) and return true only if every word matches.
+ */
+locate_code(".ramfunc")
+static bool imxrt_dll_read_matches(struct flexspi_type_s *flexspi, uint32_t sfar_base)
+{
+	for (uint32_t word = 0; word < DLL_WORDS; word += DLL_CHUNK) {
+		const uint32_t bytes = DLL_CHUNK * 4u;
+		uint32_t spin;
+
+		flexspi->INTR = FLEXSPI_INTR_IPCMDDONE_MASK | FLEXSPI_INTR_IPCMDERR_MASK |
+				FLEXSPI_INTR_IPCMDGE_MASK | FLEXSPI_INTR_AHBCMDERR_MASK;
+		flexspi->IPRXFCR |= FLEXSPI_IPRXFCR_CLRIPRXF_MASK;
+		flexspi->IPCR0 = sfar_base + word * 4u;
+		flexspi->IPCR1 = FLEXSPI_IPCR1_IDATSZ(bytes) | FLEXSPI_IPCR1_ISEQID(0) |
+				 FLEXSPI_IPCR1_ISEQNUM(0);            /* read seq at LUT index 0 */
+		flexspi->IPCMD |= FLEXSPI_IPCMD_TRG_MASK;
+
+		bool done = false;
+
+		for (spin = DLL_SPIN; spin--;) {
+			uint32_t intr = flexspi->INTR;
+
+			if (intr & FLEXSPI_INTR_IPCMDERR_MASK) {
+				return false;
+			}
+
+			if (intr & FLEXSPI_INTR_IPCMDDONE_MASK) {
+				done = true;
+				break;
+			}
+		}
+
+		if (!done) {
+			return false;
+		}
+
+		for (spin = DLL_SPIN; spin-- &&
+		     ((flexspi->IPRXFSTS & FLEXSPI_IPRXFSTS_FILL_MASK) >> FLEXSPI_IPRXFSTS_FILL_SHIFT) * 8u < bytes;) {
+		}
+
+		for (uint32_t j = 0; j < DLL_CHUNK; j++) {
+			if (flexspi->RFDR[j] != DLL_PAT(word + j)) {
+				return false;
+			}
+		}
+
+		flexspi->INTR = FLEXSPI_INTR_IPRXWA_MASK;   /* pop the FIFO */
+	}
+
+	return true;
+}
+
+/* Middle of the widest run of passing delay codes, or -1 if none. RAM-resident. */
+locate_code(".ramfunc")
+static int imxrt_dll_center(uint16_t mask)
+{
+	int best_start = -1, best_len = 0, run = 0;
+
+	for (int i = 0; mask >> i; i++) {
+		if (mask & (1u << i)) {
+			if (++run > best_len) {
+				best_len = run;
+				best_start = i - run + 1;
+			}
+
+		} else {
+			run = 0;
+		}
+	}
+
+	return (best_start < 0) ? -1 : best_start + best_len / 2;
+}
+
+/* Best-effort DLL calibration; on anything unexpected it keeps the ROM DLL. */
+locate_code(".ramfunc")
+static void imxrt_flexspi_dll_calibrate(struct flexspi_type_s *flexspi)
+{
+	irqstate_t flags = up_irq_save();
+
+	const uint32_t rom_dllcr = flexspi->DLLCR[0];
+	const uint32_t rxclksrc = (flexspi->MCR0 & FLEXSPI_MCR0_RXCLKSRC_MASK) >> FLEXSPI_MCR0_RXCLKSRC_SHIFT;
+
+	g_dll_cal.magic = 0x444c4c43ul;   /* 'DLLC' */
+	g_dll_cal.sts2_entry = flexspi->STS2;
+	g_dll_cal.passmask = 0;
+	g_dll_cal.chosen = -1;
+
+	/* Only calibrate when reads are sampled by the flash's DQS strobe */
+	if (rxclksrc == kFlexSPIReadSampleClk_ExternalInputFromDqsPad) {
+		const uint32_t sfar = (uint32_t)(uintptr_t)&g_dll_train[0] - IMXRT_FLEXSPI1_CIPHER_BASE;
+
+		for (uint32_t code = DLL_CODE_LO; code < 16u; code++) {
+			if (imxrt_dll_write(flexspi, FLEXSPI_DLLCR_DLLEN(1) | FLEXSPI_DLLCR_SLVDLYTARGET(code)) &&
+			    imxrt_dll_read_matches(flexspi, sfar)) {
+				g_dll_cal.passmask |= (uint16_t)(1u << code);
+			}
+		}
+
+		int chosen = imxrt_dll_center(g_dll_cal.passmask);
+
+		if (chosen >= 0 &&
+		    imxrt_dll_write(flexspi, FLEXSPI_DLLCR_DLLEN(1) | FLEXSPI_DLLCR_SLVDLYTARGET((uint32_t)chosen))) {
+			g_dll_cal.chosen = (int8_t)chosen;
+
+		} else {
+			imxrt_dll_write(flexspi, rom_dllcr);   /* no window: restore ROM */
+		}
+	}
+
+	up_irq_restore(flags);
+}
 
 locate_code(".ramfunc")
 void imxrt_flash_setup_prefetch_partition(void)
 {
+	struct flexspi_type_s *flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
+
+	imxrt_flexspi_dll_calibrate(flexspi);
+
 	putreg32((uint32_t)&_srodata, IMXRT_FLEXSPI1_AHBBUFREGIONSTART0);
 	putreg32((uint32_t)&_erodata, IMXRT_FLEXSPI1_AHBBUFREGIONEND0);
 	putreg32((uint32_t)&_stext, IMXRT_FLEXSPI1_AHBBUFREGIONSTART1);
 	putreg32((uint32_t)&_etext, IMXRT_FLEXSPI1_AHBBUFREGIONEND1);
 
-	struct flexspi_type_s *g_flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
 	/* RODATA */
-	g_flexspi->AHBRXBUFCR0[0] = FLEXSPI_AHBRXBUFCR0_BUFSZ(128) |
-				    FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
-				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
-				    FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
+	flexspi->AHBRXBUFCR0[0] = FLEXSPI_AHBRXBUFCR0_BUFSZ(128) |
+				  FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
+				  FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
+				  FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
 
 
 	/* All Text */
-	g_flexspi->AHBRXBUFCR0[1] = FLEXSPI_AHBRXBUFCR0_BUFSZ(380) |
-				    FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
-				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
-				    FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
+	flexspi->AHBRXBUFCR0[1] = FLEXSPI_AHBRXBUFCR0_BUFSZ(380) |
+				  FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
+				  FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
+				  FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
 	/* Reset CR7 from rom init */
-	g_flexspi->AHBRXBUFCR0[7] = FLEXSPI_AHBRXBUFCR0_BUFSZ(0) |
-				    FLEXSPI_AHBRXBUFCR0_MSTRID(0) |
-				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
-				    FLEXSPI_AHBRXBUFCR0_REGIONEN(0);
+	flexspi->AHBRXBUFCR0[7] = FLEXSPI_AHBRXBUFCR0_BUFSZ(0) |
+				  FLEXSPI_AHBRXBUFCR0_MSTRID(0) |
+				  FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
+				  FLEXSPI_AHBRXBUFCR0_REGIONEN(0);
 
-	ARM_DSB();
-	ARM_ISB();
-	ARM_DMB();
+	arm_dsb();
+	arm_isb();
+	arm_dmb();
 }
 
 
@@ -244,6 +539,12 @@ __EXPORT void imxrt_boardinitialize(void)
 #if defined(CONFIG_BOARD_BOOTLOADER_FIXUP)
 	imxrt_octl_flash_initialize();
 #endif
+
+	/* The ROM flash init leaves a pull-down on the DQS pad; it corrupts octal
+	 * DDR reads on the IS25WX512M, so float it like the data pads.
+	 */
+	const uint32_t dqs_pad = IMXRT_IOMUXC_BASE + IMXRT_PADCTL_GPIO_SD_B2_05_OFFSET;
+	putreg32((getreg32(dqs_pad) & ~PADCTL_SD_B2_PULL_MASK) | PADCTL_SD_B2_PULL_NONE, dqs_pad);
 
 	imxrt_flash_setup_prefetch_partition();
 
@@ -343,6 +644,25 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
 
+	/* Report the FlexSPI DLL calibration result captured during early board
+	 * init (see imxrt_flexspi_dll_calibrate()). Logged here, not there, so it
+	 * does not corrupt the early console before syslog is serialized.
+	 */
+	if (g_dll_cal.magic == 0x444c4c43ul) {
+		struct flexspi_type_s *flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
+		uint32_t dllcr = flexspi->DLLCR[0];
+		uint32_t sts2 = flexspi->STS2;
+		uint32_t delay = (sts2 & FLEXSPI_STS2_ASLVSEL_MASK) >> FLEXSPI_STS2_ASLVSEL_SHIFT;
+		uint32_t rom_delay = (g_dll_cal.sts2_entry & FLEXSPI_STS2_ASLVSEL_MASK) >> FLEXSPI_STS2_ASLVSEL_SHIFT;
+		bool locked = (sts2 & DLL_LOCK) == DLL_LOCK;
+		syslog(LOG_INFO,
+		       "[boot] FlexSPI DLL: chosen code %d, passmask 0x%04x, sample delay %" PRIu32
+		       " cells (ROM %" PRIu32 "), %s [dllcr 0x%04" PRIx32 "]\n",
+		       g_dll_cal.chosen, g_dll_cal.passmask, delay, rom_delay,
+		       g_dll_cal.chosen < 0 ? "ROM fallback" : (locked ? "locked" : "NO LOCK"),
+		       dllcr);
+	}
+
 	/* Step 3 reset the SE550
 	 * Power it down, prevetn back feeding
 	 * and let it settle
@@ -408,7 +728,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
-#ifdef CONFIG_BOARD_CRASHDUMP
+#ifdef CONFIG_BOARD_CRASHDUMP_CUSTOM
 
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_RED);

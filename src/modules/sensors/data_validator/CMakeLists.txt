@@ -37,3 +37,6 @@ px4_add_library(data_validator
 	DataValidatorGroup.cpp
 	DataValidatorGroup.hpp
 )
+
+px4_add_unit_gtest(SRC DataValidatorTest.cpp EXTRA_SRCS DataValidatorTestStubs.cpp LINKLIBS data_validator)
+px4_add_unit_gtest(SRC DataValidatorGroupTest.cpp EXTRA_SRCS DataValidatorTestStubs.cpp LINKLIBS data_validator)

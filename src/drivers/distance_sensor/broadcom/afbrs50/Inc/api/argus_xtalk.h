@@ -86,6 +86,37 @@ typedef union argus_cal_xtalk_table_t {
 
 } argus_cal_xtalk_table_t;
 
+/*!***************************************************************************
+ * @brief   The configuration of the shot noise monitor task.
+ *****************************************************************************/
+typedef struct argus_cfg_xtm_t {
+	/*! Enables the crosstalk monitoring feature. */
+	bool Enabled;
+
+	/*! The weight for the exponentially moving average (EMA) that is used to
+	 *  smooth the crosstalk offset values. */
+	uq0_8_t EMAWeight;
+
+	/*! The maximum temperature offset (in Kelvin) that invalidates the last
+	 *  crosstalk offset calculation value. */
+	uint8_t MaxTemperatureOffset;
+
+	/*! The amplitude threshold for the crosstalk monitor that causes the
+	 *  crosstalk offset calculation to start if the maximum amplitude of all
+	 *  pixels falls below the specified threshold. */
+	uq12_4_t HighAmplitudeThreshold;
+
+	/*! The amplitude threshold for the crosstalk monitor that causes the
+	 *  crosstalk offset calculation to stop if the maximum amplitude of all
+	 *  pixels grows above the specified threshold. */
+	uq12_4_t LowAmplitudeThreshold;
+
+	/*! The amplitude threshold for the crosstalk monitor that causes the
+	 * crosstalk offset calculation to stop if the maximum pixel amplitude of
+	 * all passive pixels is below the specified threshold. */
+	uq12_4_t PassiveAmplitudeThreshold;
+
+} argus_cfg_xtm_t;
 
 /*!***************************************************************************
  * @brief   Electrical Pixel-To-Pixel Crosstalk Compensation Parameters.

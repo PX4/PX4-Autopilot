@@ -67,7 +67,7 @@ if MODULES_ZENOH
             select ZENOH_PUBSUB_VEHICLE_ATTITUDE
             select ZENOH_PUBSUB_VEHICLE_CONTROL_MODE
             select ZENOH_PUBSUB_VEHICLE_GLOBAL_POSITION
-            select ZENOH_PUBSUB_SENSOR_GPS
+            select ZENOH_PUBSUB_VEHICLE_GNSS
             select ZENOH_PUBSUB_VEHICLE_LOCAL_POSITION
             select ZENOH_PUBSUB_VEHICLE_ODOMETRY
             select ZENOH_PUBSUB_VEHICLE_STATUS
@@ -91,4 +91,6 @@ if MODULES_ZENOH
 
 endif
 
-rsource "Kconfig.topics"
+# Kconfig.topics is generated into the build tree (see cmake/kconfig.cmake), not
+# committed to source. It is sourced here by absolute path via an env variable.
+source "$(ZENOH_KCONFIG_TOPICS)"

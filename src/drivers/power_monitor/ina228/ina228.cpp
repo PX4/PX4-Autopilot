@@ -51,21 +51,8 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index) :
 	_measure_errors(perf_alloc(PC_COUNT, "ina228_measurement_err")),
 	_battery(battery_index, this, INA228_SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE)
 {
-	float fvalue = MAX_CURRENT;
-	_max_current = fvalue;
-	param_t ph = param_find("INA228_CURRENT");
-
-	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
-		_max_current = fvalue;
-	}
-
-	fvalue = INA228_SHUNT;
-	_rshunt = fvalue;
-	ph = param_find("INA228_SHUNT");
-
-	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
-		_rshunt = fvalue;
-	}
+	const float max_current = _param_ina228_current.get();
+	const float rshunt = _param_ina228_shunt.get();
 
 	// According to page 8.2.2.1, page 36/48 of the INA228 interface datasheet (Rev. A),
 	// the requirement is: R_SHUNT < V_SENSE_MAX / I_MAX
@@ -73,7 +60,7 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index) :
 	// and so if V_SENSE_MAX is bigger, we need to use the bigger ADC range to avoid
 	// the device from capping the measured current.
 
-	const float v_sense_max = _rshunt * _max_current;
+	const float v_sense_max = rshunt * max_current;
 
 	if (v_sense_max > INA228_ADCRANGE_LOW_V_SENSE) {
 		_range = INA228_ADCRANGE_HIGH;
@@ -82,7 +69,7 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index) :
 		_range = INA228_ADCRANGE_LOW;
 	}
 
-	ph = param_find("INA228_CONFIG");
+	param_t ph = param_find("INA228_CONFIG");
 	int32_t value = INA228_ADCCONFIG;
 	_config = (uint16_t)value;
 
@@ -94,7 +81,7 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index) :
 			  ((INA228_MODE_TEMP_SHUNT_BUS_TRIG & INA228_MODE_MASK) >>
 			   INA228_MODE_SHIFTS);
 
-	_current_lsb = _max_current / DN_MAX;
+	_current_lsb = max_current / DN_MAX;
 	_power_lsb = 3.2f * _current_lsb;
 
 	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
@@ -222,7 +209,7 @@ INA228::init()
 
 	write(INA228_REG_CONFIG, (uint16_t)(INA228_RST_RESET | _range));
 
-	_cal = INA228_CONST * _current_lsb * _rshunt;
+	_cal = INA228_CONST * _current_lsb * _param_ina228_shunt.get();
 
 	if (_range == INA228_ADCRANGE_LOW) {
 		_cal *= 4;

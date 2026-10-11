@@ -110,6 +110,12 @@ public:
 	uint8_t priority() const { return _priority; }
 
 	/**
+	 * Set the priority of this validator without new data
+	 * @param priority	the new priority, 0 excludes the sensor from selection
+	 */
+	void set_priority(uint8_t priority) { _priority = priority; }
+
+	/**
 	 * Get the error state of this validator
 	 * @return		the bitmask with the error status
 	 */
@@ -154,6 +160,13 @@ public:
 	uint32_t get_timeout() const { return _timeout_interval; }
 
 	/**
+	 * Get the equal count threshold
+	 *
+	 * @return The number of equal values before considering the sensor stale
+	 */
+	uint32_t get_equal_value_threshold() const { return _value_equal_count_threshold; }
+
+	/**
 	 * Data validator error states
 	 */
 	static constexpr uint32_t ERROR_FLAG_NO_ERROR = (0x00000000U);
@@ -162,6 +175,9 @@ public:
 	static constexpr uint32_t ERROR_FLAG_TIMEOUT = (0x00000001U << 2);
 	static constexpr uint32_t ERROR_FLAG_HIGH_ERRCOUNT = (0x00000001U << 3);
 	static constexpr uint32_t ERROR_FLAG_HIGH_ERRDENSITY = (0x00000001U << 4);
+
+	static const constexpr unsigned VALUE_EQUAL_COUNT_DEFAULT =
+		100; /**< if the sensor value is the same (accumulated also between axes) this many times, flag it */
 
 private:
 	uint32_t _error_mask{ERROR_FLAG_NO_ERROR}; /**< sensor error state */
@@ -191,8 +207,6 @@ private:
 	static const constexpr unsigned NORETURN_ERRCOUNT =
 		10000; /**< if the error count reaches this value, return sensor as invalid */
 	static const constexpr float ERROR_DENSITY_WINDOW = 100.0f; /**< window in measurement counts for errors */
-	static const constexpr unsigned VALUE_EQUAL_COUNT_DEFAULT =
-		100; /**< if the sensor value is the same (accumulated also between axes) this many times, flag it */
 
 	/* we don't want this class to be copied */
 	DataValidator(const DataValidator &) = delete;

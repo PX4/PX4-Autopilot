@@ -415,7 +415,7 @@ void PGA460::print_device_status()
 		}
 
 		if (status_flags2 & 1 << 6) {
-			PX4_INFO("Thermal shutdown has occured");
+			PX4_INFO("Thermal shutdown has occurred");
 		}
 	}
 }

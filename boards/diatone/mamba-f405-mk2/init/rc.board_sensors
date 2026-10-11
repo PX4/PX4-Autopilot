@@ -24,4 +24,4 @@ then
 	fi
 fi
 
-bmp280 -X -b 2 start
+bmp280 -I -b 2 start

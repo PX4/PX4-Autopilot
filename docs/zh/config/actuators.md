@@ -46,8 +46,7 @@ The UI is customised for the selected airframe:
 
 The motor geometry section lets you set the number of motors, the relative position, and other properties of each motor.
 
-多旋翼机架几何设置提供了一个图显示每一个电机的x，y相对位置。
-参见 <a href="../airframes/airframe_reference.md">机架构型参考</a>以更广泛的了解其他机架构型的电机位置。
+多旋翼机架几何设置提供了一个图显示每一个电机的x，y相对位置。参见 <a href="../airframes/airframe_reference.md">机架构型参考</a>以更广泛的了解其他机架构型的电机位置。
 For example, `Tilted-by` and `axis` are only relevant for [Tiltrotor VTOL](#motor-geometry-vtol-tiltrotor) and [Standard VTOL](#motor-geometry-standard-vtol) vehicles, respectively.
 
 The geometry configuration for multicopter airframes provides a diagram showing the relative x,y positions for each of the motors.
@@ -132,7 +131,9 @@ If bidiectional motors are used, make sure to select the **Reversible** checkbox
 
 ![Reversible](../../assets/config/actuators/qgc_geometry_reversible_marked.png)
 
-Note that you will need to also ensure that the ESC associated with bidirectional motors is configured appropriately (e.g. 3D mode enabled for DShot ESCs, which can be achieved via [DShot commands](../peripherals/dshot.md#commands)).
+Note that you will also need to ensure that the ESC associated with bidirectional motors is configured appropriately.
+For DShot ESC you will need to enable 3D mode using [DShot commands](../peripherals/dshot.md#commands).
+For DroneCAN ESC you will need [firmware that supports reversal](../dronecan/escs.md#reversible-motors) and an appropriate configuration.
 
 ### Control Surfaces Geometry
 

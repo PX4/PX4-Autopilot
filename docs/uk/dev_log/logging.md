@@ -52,7 +52,7 @@ _Developers_ can further configure what information is logged via the [logger](.
 
 ### Конфігурація SD-карти
 
-The list of logged topics can also be customized with a file on the SD card: `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
+The list of logged topics can also be customized with a file on the SD card: `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/etc/logging/logger_topics.txt`).
 
 Each topic to be logged is listed on a separate line, with the following format:
 
@@ -118,7 +118,7 @@ This ensures that stale logs from a different time mode are cleaned up before cu
 ## Обмеження розміру файлу
 
 Максимальний розмір файлу залежить від файлової системи та ОС.
-Розмір обмеження на NuttX наразі становить близько 2 ГБ.
+The size limit on NuttX is currently around 4GB.
 
 ## Відключення
 

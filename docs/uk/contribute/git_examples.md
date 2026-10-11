@@ -8,7 +8,7 @@
 
 - [Sign up](https://github.com/signup) for github if you haven't already
 
-- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo))
+- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/pull-requests/how-tos/work-with-forks/fork-a-repo))
 
 - Клонуйте ваш форкнутий репозиторій на локальний комп'ютер
 
@@ -292,7 +292,7 @@ If a conflict occurs during a `git rebase`, please refer to [this guide](https:/
 
 ### Pull merge conflicts
 
-If a conflict occurs during a `git pull`, please refer to [this guide](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line#competing-line-change-merge-conflicts).
+If a conflict occurs during a `git pull`, please refer to [this guide](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/resolving-a-merge-conflict-using-the-command-line#competing-line-change-merge-conflicts).
 
 ### Помилка збірки через застарілі git теги
 

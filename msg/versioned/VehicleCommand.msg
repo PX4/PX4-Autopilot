@@ -66,6 +66,7 @@ uint16 VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL=214 # Mission command to set TRIG_I
 uint16 VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT=220 # Mission command to control a camera or antenna mount, using a quaternion as reference. |q1 - quaternion param #1, w (1 in null-rotation)|q2 - quaternion param #2, x (0 in null-rotation)|q3 - quaternion param #3, y (0 in null-rotation)|q4 - quaternion param #4, z (0 in null-rotation)|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GUIDED_MASTER=221 # Set id of master controller. |System ID|Component ID|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GUIDED_LIMITS=222 # Set limits for external control. |[s] Timeout - maximum time that external controller will be allowed to control vehicle. 0 means no timeout|[m] Absolute altitude min(AMSL) - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit|[m] Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit|[m] Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit|Unused|Unused|Unused|
+uint16 VEHICLE_CMD_DO_SET_MISSION_CURRENT = 224 # Set the mission item with sequence number seq as current item and emit MISSION_CURRENT (whether or not the mission mode is active). ACKs FAILED if seq is out of range or there is no current mission item. |Mission sequence value to set, -1 for the current mission item (use to reset jump counters without changing the current item)|Reset repeat/jump counters and clear mission complete flag (1=true,0=false; default:0)|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_LAST = 240 # NOP - This command is only used to mark the upper limit of the DO commands in the enumeration. |Unused|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_PREFLIGHT_CALIBRATION = 241 # Trigger calibration. This command will be only accepted if in pre-flight mode. See MAVLink spec MAV_CMD_PREFLIGHT_CALIBRATION.
 uint16 PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION = 3# Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration.
@@ -102,7 +103,7 @@ uint16 VEHICLE_CMD_LOGGING_START = 2510 # Start streaming ULog data.
 uint16 VEHICLE_CMD_LOGGING_STOP = 2511 # Stop streaming ULog data.
 uint16 VEHICLE_CMD_CONTROL_HIGH_LATENCY = 2600 # Control starting/stopping transmitting data over the high latency link.
 uint16 VEHICLE_CMD_DO_VTOL_TRANSITION = 3000 # Command VTOL transition.
-uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300 # Command safety on/off. |1 to activate safety, 0 to deactivate safety and allow control surface movements|Unused|Unused|Unused|Unused|Unused|Unused|
+uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300 # Command safety on/off. |SAFETY_SAFE (0) to activate safety, SAFETY_DANGEROUS (1) to deactivate safety and allow non-throttling actuator movement|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001 # Request arm authorization.
 uint16 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001 # Prepare a payload deployment in the flight plan.
 uint16 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002 # Control a pre-programmed payload deployment.
@@ -171,6 +172,13 @@ uint8 FAILURE_UNIT_SYSTEM_SERVO = 102
 uint8 FAILURE_UNIT_SYSTEM_AVOIDANCE = 103
 uint8 FAILURE_UNIT_SYSTEM_RC_SIGNAL = 104
 uint8 FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL = 105
+uint8 FAILURE_UNIT_SYSTEM_ESC = 106
+uint8 FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE = 107
+uint8 FAILURE_UNIT_DATALINK_LTE = 150
+uint8 FAILURE_UNIT_DATALINK_WIFI = 151
+uint8 FAILURE_UNIT_DATALINK_TELEM_RADIO = 152
+uint8 FAILURE_UNIT_BUS_CAN = 200
+uint8 FAILURE_UNIT_BUS_I2C = 201
 
 uint8 FAILURE_TYPE_OK = 0
 uint8 FAILURE_TYPE_OFF = 1
@@ -180,6 +188,7 @@ uint8 FAILURE_TYPE_WRONG = 4
 uint8 FAILURE_TYPE_SLOW = 5
 uint8 FAILURE_TYPE_DELAYED = 6
 uint8 FAILURE_TYPE_INTERMITTENT = 7
+uint8 FAILURE_TYPE_DRIFT = 8
 
 # Used as param1 in DO_CHANGE_SPEED command.
 uint8 SPEED_TYPE_AIRSPEED = 0
@@ -210,9 +219,9 @@ int8 ARMING_ACTION_ARM = 1
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
 
-# Used as param1 in DO_SET_SAFETY_SWITCH_STATE command.
-uint8 SAFETY_OFF = 0
-uint8 SAFETY_ON = 1
+# Used as param1 in DO_SET_SAFETY_SWITCH_STATE command (matches MAVLink SAFETY_SWITCH_STATE enum).
+uint8 SAFETY_SAFE = 0 # Activate safety (MAVLink SAFETY_SWITCH_STATE_SAFE)
+uint8 SAFETY_DANGEROUS = 1 # Deactivate safety (MAVLink SAFETY_SWITCH_STATE_DANGEROUS)
 
 # param1 in VEHICLE_CMD_ACTUATOR_GROUP_TEST (matches MAVLink ACTUATOR_TEST_GROUP enum)
 uint8 ACTUATOR_TEST_GROUP_ROLL_TORQUE = 0

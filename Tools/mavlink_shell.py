@@ -191,11 +191,10 @@ def main():
                         cur_history_index = len(command_history)
                     mav_serialport.write(cur_line+'\n')
                     cur_line = ''
-                elif ord(ch) == 8: # backspace
+                elif ord(ch) == 8 or ord(ch) == 127: # backspace (BS or DEL)
                     if len(cur_line) > 0:
                         erase_last_n_chars(1)
                         cur_line = cur_line[:-1]
-                        sys.stdout.write(ch)
                 elif ord(ch) == 27:
                     ch = ubuf_stdin.read(1).decode('utf8') # skip one
                     ch = ubuf_stdin.read(1).decode('utf8')

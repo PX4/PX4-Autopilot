@@ -30,8 +30,7 @@ Users can control progression though these states using a [safety switch](../get
 
 - 也可以通过地面站发送 MAVLink 命令来解锁/锁定载具。
 
-如果在解锁后的一段时间内没有起飞，和如果着陆后没有手动锁定， PX4 会自动锁定载具。
-这减少了解锁的载具在地面上的时间。
+如果在解锁后的一段时间内没有起飞，和如果着陆后没有手动锁定， PX4 会自动锁定载具。这减少了解锁的载具在地面上的时间。
 
 PX4 allows you to configure how pre-arming, arming and disarming work using parameters (which can be edited in _QGroundControl_ via the [parameter editor](../advanced_config/parameters.md)), as described in the following sections.
 

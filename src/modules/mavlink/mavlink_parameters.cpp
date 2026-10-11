@@ -99,7 +99,7 @@ MavlinkParametersManager::update_observed_camera_components()
 		if (is_dronecan_node_online(comp_id)) {
 			_camera_cannode_collision_warned_mask |= warn_bit;
 			mavlink_log_warning(_mavlink.get_mavlink_log_pub(),
-					    "CAN node %u blocked by MAV camera (reassign ID)\t",
+					    "CAN node %u blocked by MAV camera (reassign ID)",
 					    comp_id);
 		}
 	}

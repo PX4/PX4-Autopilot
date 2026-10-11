@@ -86,6 +86,7 @@
 #include "uavcan_servers.hpp"
 
 #include <lib/drivers/device/Device.hpp>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/perf/perf_counter.h>
 
@@ -102,7 +103,9 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/can_interface_status.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/dronecan_node_status.h>
+#include <uORB/topics/uavcan_firmware_update.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
@@ -127,7 +130,12 @@ public:
 	UavcanMixingInterfaceESC(pthread_mutex_t &node_mutex, UavcanEscController &esc_controller)
 		: OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::uavcan),
 		  _node_mutex(node_mutex),
-		  _esc_controller(esc_controller) {}
+		  _esc_controller(esc_controller)
+	{
+		int32_t signed_mask = 0;
+		param_get(param_find("UAVCAN_EC_SIGNED"), &signed_mask);
+		_signed_mask = static_cast<uint32_t>(signed_mask);
+	}
 
 	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
@@ -144,6 +152,8 @@ private:
 	pthread_mutex_t &_node_mutex;
 	UavcanEscController &_esc_controller;
 	MixingOutput _mixing_output{"UAVCAN_EC", UavcanEscController::MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	uint32_t _signed_mask{0};
+	uint32_t _signed_non_motor_mask{0};
 };
 
 /**
@@ -240,6 +250,8 @@ private:
 	void publish_can_interface_statuses();
 	void publish_node_statuses();
 
+	void apply_can_failure_injection();
+
 	int		print_params(uavcan::protocol::param::GetSet::Response &resp);
 	int		get_set_param(int nodeid, const char *name, uavcan::protocol::param::GetSet::Request &req);
 	void 		update_params();
@@ -299,6 +311,8 @@ private:
 	perf_counter_t			_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t			_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 
+	failure_injection::Config	_failure_config;			///< active failure-injection config
+
 	void handle_time_sync(const uavcan::TimerEvent &);
 
 	typedef uavcan::MethodBinder<UavcanNode *, void (UavcanNode::*)(const uavcan::TimerEvent &)> TimerCallback;
@@ -320,9 +334,12 @@ private:
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vcmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _param_request_sub{ORB_ID(uavcan_parameter_request)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<uavcan_firmware_update_s> _fw_update_pub{ORB_ID(uavcan_firmware_update)};
+	bool _fw_update_pending_last{false};
 
 	orb_advert_t _can_status_pub_handles[UAVCAN_NUM_IFACES] = {nullptr};
 

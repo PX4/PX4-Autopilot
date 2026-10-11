@@ -41,9 +41,11 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <memory>
 
 #include <drivers/drv_hrt.h>
+#include <lib/geo/geo.h>
 #include <parameters/param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -52,16 +54,17 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vte_input.h>
 #include <uORB/uORBManager.hpp>
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/prec_land_status.h>
+#include <uORB/topics/prec_takeoff_status.h>
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <matrix/Quaternion.hpp>
 #include <matrix/Vector.hpp>
@@ -137,6 +140,7 @@ public:
 	using vte::VisionTargetEst::_last_update_pos;
 	using vte::VisionTargetEst::_orientation_estimator_running;
 	using vte::VisionTargetEst::_prec_land_task;
+	using vte::VisionTargetEst::_prec_takeoff_task;
 	using vte::VisionTargetEst::_vte_orientation;
 	using vte::VisionTargetEst::_position_estimator_running;
 	using vte::VisionTargetEst::_vehicle_acc_body;
@@ -144,7 +148,7 @@ public:
 	using vte::VisionTargetEst::_vehicle_acceleration_sub;
 	using vte::VisionTargetEst::_vehicle_angular_velocity_sub;
 	using vte::VisionTargetEst::_vehicle_attitude_sub;
-	using vte::VisionTargetEst::_vehicle_gps_position_sub;
+	using vte::VisionTargetEst::_vehicle_gnss_sub;
 	using vte::VisionTargetEst::_vehicle_local_position_sub;
 	using vte::VisionTargetEst::_vte_orientation_enabled;
 	using vte::VisionTargetEst::_vte_position;
@@ -165,7 +169,7 @@ public:
 	using vte::VisionTargetEst::startYawEst;
 	using vte::VisionTargetEst::stopPosEst;
 	using vte::VisionTargetEst::stopYawEst;
-	using vte::VisionTargetEst::updateGpsAntennaOffset;
+	using vte::VisionTargetEst::updateGnssAntennaOffset;
 	using vte::VisionTargetEst::updateEstimators;
 	using vte::VisionTargetEst::updateParams;
 	using vte::VisionTargetEst::updateTaskTopics;
@@ -185,6 +189,24 @@ public:
 
 	void setPrecLandActive(bool active) { _prec_land_task._is_in_prec_land = active; }
 	bool isPrecLandActive() const { return _prec_land_task._is_in_prec_land; }
+
+	void setCurrentTaskToPrecTakeoff() { _current_task_ptr = &_prec_takeoff_task; }
+	bool isCurrentTaskPrecTakeoff() const { return _current_task_ptr == &_prec_takeoff_task; }
+	void setPrecTakeoffActive(bool active) { _prec_takeoff_task._is_taking_off = active; }
+	bool isPrecTakeoffActive() const { return _prec_takeoff_task._is_taking_off; }
+	bool updatePrecTakeoffHomeReference() { return _prec_takeoff_task.updateHomeReference(); }
+	bool precTakeoffHomeReferenceValid() const { return _prec_takeoff_task._home_ref.valid; }
+	double precTakeoffHomeReferenceLat() const { return _prec_takeoff_task._home_ref.lat_deg; }
+	void seedPrecTakeoffPositionReference() { _prec_takeoff_task.onPosEstStart(_vte_position); }
+	void setCachedMissionPosition(double lat, double lon, float alt) { _vte_position.setMissionPosition(lat, lon, alt); }
+	bool missionPositionValid() const { return _vte_position._mission_land_position.valid; }
+	bool missionPositionMatches(double lat, double lon, float alt) const
+	{
+		return _vte_position._mission_land_position.valid
+		       && std::fabs(_vte_position._mission_land_position.lat_deg - lat) < 1e-9
+		       && std::fabs(_vte_position._mission_land_position.lon_deg - lon) < 1e-9
+		       && std::fabs(_vte_position._mission_land_position.alt_m - alt) < 1e-6f;
+	}
 };
 
 class VisionTargetEstTest : public ::testing::Test
@@ -211,13 +233,14 @@ protected:
 		_attitude_pub = std::make_unique<uORB::Publication<vehicle_attitude_s>>(ORB_ID(vehicle_attitude));
 		_accel_pub = std::make_unique<uORB::Publication<vehicle_acceleration_s>>(ORB_ID(vehicle_acceleration));
 		_ang_vel_pub = std::make_unique<uORB::Publication<vehicle_angular_velocity_s>>(ORB_ID(vehicle_angular_velocity));
-		_uav_gps_pub = std::make_unique<uORB::Publication<sensor_gps_s>>(ORB_ID(vehicle_gps_position));
+		_uav_gnss_pub = std::make_unique<uORB::Publication<vehicle_gnss_s>>(ORB_ID(vehicle_gnss));
 		_home_position_pub = std::make_unique<uORB::Publication<home_position_s>>(ORB_ID(home_position));
 		_navigator_mission_item_pub = std::make_unique<uORB::Publication<navigator_mission_item_s>>(ORB_ID(navigator_mission_item));
 		_pos_sp_triplet_pub = std::make_unique<uORB::Publication<position_setpoint_triplet_s>>(ORB_ID(position_setpoint_triplet));
 		_land_detected_pub = std::make_unique<uORB::Publication<vehicle_land_detected_s>>(ORB_ID(vehicle_land_detected));
 #if !defined(CONSTRAINED_FLASH)
 		_prec_land_status_pub = std::make_unique<uORB::Publication<prec_land_status_s>>(ORB_ID(prec_land_status));
+		_prec_takeoff_status_pub = std::make_unique<uORB::Publication<prec_takeoff_status_s>>(ORB_ID(prec_takeoff_status));
 #endif
 
 		_vte_input_sub = std::make_unique<uORB::SubscriptionData<vte_input_s>>(ORB_ID(vte_input));
@@ -233,13 +256,14 @@ protected:
 
 		_vte_input_sub.reset();
 #if !defined(CONSTRAINED_FLASH)
+		_prec_takeoff_status_pub.reset();
 		_prec_land_status_pub.reset();
 #endif
 		_land_detected_pub.reset();
 		_pos_sp_triplet_pub.reset();
 		_navigator_mission_item_pub.reset();
 		_home_position_pub.reset();
-		_uav_gps_pub.reset();
+		_uav_gnss_pub.reset();
 		_ang_vel_pub.reset();
 		_accel_pub.reset();
 		_attitude_pub.reset();
@@ -286,10 +310,10 @@ protected:
 		ASSERT_TRUE(_ang_vel_pub->publish(msg));
 	}
 
-	void publishUavGps(const matrix::Vector3f &antenna_offset, hrt_abstime timestamp)
+	void publishUavGnss(const matrix::Vector3f &antenna_offset, hrt_abstime timestamp)
 	{
-		ASSERT_TRUE(vte_test::publishUavGps(*_uav_gps_pub, 47.0, 8.0, 500.f, 0.5f, 0.5f,
-						    matrix::Vector3f{}, 0.1f, true, timestamp, antenna_offset));
+		ASSERT_TRUE(vte_test::publishUavGnss(*_uav_gnss_pub, 47.0, 8.0, 500.f, 0.5f, 0.5f,
+						     matrix::Vector3f{}, 0.1f, true, timestamp, antenna_offset));
 	}
 
 	void publishHomePosition(float alt_amsl, hrt_abstime timestamp)
@@ -298,6 +322,32 @@ protected:
 		msg.timestamp = timestamp;
 		msg.alt = alt_amsl;
 		ASSERT_TRUE(_home_position_pub->publish(msg));
+	}
+
+	void publishHomePosition(double lat, double lon, float alt_amsl, hrt_abstime timestamp, bool manual_home = false)
+	{
+		home_position_s msg{};
+		msg.timestamp = timestamp;
+		msg.lat = lat;
+		msg.lon = lon;
+		msg.alt = alt_amsl;
+		msg.valid_hpos = true;
+		msg.valid_alt = true;
+		msg.manual_home = manual_home;
+		ASSERT_TRUE(_home_position_pub->publish(msg));
+	}
+
+	void publishUavGnssAt(double lat, double lon, float alt_amsl, hrt_abstime timestamp,
+			      uint8_t fix_type = sensor_gnss_s::FIX_TYPE_3D)
+	{
+		vehicle_gnss_s msg{};
+		msg.timestamp = timestamp;
+		msg.timestamp_sample = timestamp;
+		msg.receiver.latitude = lat;
+		msg.receiver.longitude = lon;
+		msg.receiver.altitude_msl = static_cast<double>(alt_amsl);
+		msg.receiver.fix_type = fix_type;
+		ASSERT_TRUE(_uav_gnss_pub->publish(msg));
 	}
 
 	void publishNavigatorMissionItem(const navigator_mission_item_s &mission_item)
@@ -326,6 +376,14 @@ protected:
 		msg.state = state;
 		ASSERT_TRUE(_prec_land_status_pub->publish(msg));
 	}
+
+	void publishPrecTakeoffStatus(uint8_t state, hrt_abstime timestamp)
+	{
+		prec_takeoff_status_s msg{};
+		msg.timestamp = timestamp;
+		msg.state = state;
+		ASSERT_TRUE(_prec_takeoff_status_pub->publish(msg));
+	}
 #endif
 
 	void flushInternalSubscriptions()
@@ -333,7 +391,7 @@ protected:
 		vte_test::flushSubscription<vehicle_attitude_s>(_vte->_vehicle_attitude_sub);
 		vte_test::flushSubscription<vehicle_acceleration_s>(_vte->_vehicle_acceleration_sub);
 		vte_test::flushSubscription<vehicle_angular_velocity_s>(_vte->_vehicle_angular_velocity_sub);
-		vte_test::flushSubscription<sensor_gps_s>(_vte->_vehicle_gps_position_sub);
+		vte_test::flushSubscription<vehicle_gnss_s>(_vte->_vehicle_gnss_sub);
 		vte_test::flushSubscription<vehicle_local_position_s>(_vte->_vehicle_local_position_sub);
 		vte_test::flushSubscription<home_position_s>(_vte->_prec_land_task._home_position_sub);
 		vte_test::flushSubscription<navigator_mission_item_s>(_vte->_prec_land_task._navigator_mission_item_sub);
@@ -341,20 +399,25 @@ protected:
 		vte_test::flushSubscription<vehicle_land_detected_s>(_vte->_prec_land_task._vehicle_land_detected_sub);
 #if !defined(CONSTRAINED_FLASH)
 		vte_test::flushSubscription<prec_land_status_s>(_vte->_prec_land_task._prec_land_status_sub);
+		vte_test::flushSubscription<prec_takeoff_status_s>(_vte->_prec_takeoff_task._prec_takeoff_status_sub);
 #endif
+		vte_test::flushSubscription<home_position_s>(_vte->_prec_takeoff_task._home_position_sub);
+		vte_test::flushSubscription<vehicle_gnss_s>(_vte->_prec_takeoff_task._vehicle_gnss_sub);
+		vte_test::flushSubscription<vehicle_land_detected_s>(_vte->_prec_takeoff_task._vehicle_land_detected_sub);
 	}
 
 	std::unique_ptr<VisionTargetEstTestable> _vte;
 	std::unique_ptr<uORB::Publication<vehicle_attitude_s>> _attitude_pub;
 	std::unique_ptr<uORB::Publication<vehicle_acceleration_s>> _accel_pub;
 	std::unique_ptr<uORB::Publication<vehicle_angular_velocity_s>> _ang_vel_pub;
-	std::unique_ptr<uORB::Publication<sensor_gps_s>> _uav_gps_pub;
+	std::unique_ptr<uORB::Publication<vehicle_gnss_s>> _uav_gnss_pub;
 	std::unique_ptr<uORB::Publication<home_position_s>> _home_position_pub;
 	std::unique_ptr<uORB::Publication<navigator_mission_item_s>> _navigator_mission_item_pub;
 	std::unique_ptr<uORB::Publication<position_setpoint_triplet_s>> _pos_sp_triplet_pub;
 	std::unique_ptr<uORB::Publication<vehicle_land_detected_s>> _land_detected_pub;
 #if !defined(CONSTRAINED_FLASH)
 	std::unique_ptr<uORB::Publication<prec_land_status_s>> _prec_land_status_pub;
+	std::unique_ptr<uORB::Publication<prec_takeoff_status_s>> _prec_takeoff_status_pub;
 #endif
 
 	std::unique_ptr<uORB::SubscriptionData<vte_input_s>> _vte_input_sub;
@@ -381,6 +444,54 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskResolvesConflicts)
 	EXPECT_FALSE(adjusted_mask.flags.use_mission_pos);
 }
 
+// WHY: Home must only feed the estimator during precision takeoff, and only when bit 5 is set.
+// WHAT: Check the task-dependent mapping of bit 3 / bit 5 onto the mission position path.
+TEST_F(VisionTargetEstTest, AdjustAidMaskMapsHomePositionForPrecisionTakeoff)
+{
+	vte::SensorFusionMaskU home_only{};
+	home_only.flags.use_home_pos = 1;
+	vte::SensorFusionMaskU mission_only{};
+	mission_only.flags.use_mission_pos = 1;
+	vte::SensorFusionMaskU adjusted{};
+
+	// GIVEN: No task is active.
+	_vte->clearCurrentTask();
+
+	// THEN: Only the mission land point bit enables the absolute reference (never on moving-target builds).
+	adjusted.value = _vte->adjustAidMask(home_only.value);
+	EXPECT_FALSE(adjusted.flags.use_mission_pos);
+	EXPECT_FALSE(adjusted.flags.use_home_pos);
+	adjusted.value = _vte->adjustAidMask(mission_only.value);
+#if defined(CONFIG_VTEST_MOVING)
+	EXPECT_FALSE(adjusted.flags.use_mission_pos);
+#else
+	EXPECT_TRUE(adjusted.flags.use_mission_pos);
+#endif
+
+	// GIVEN: Precision takeoff is the active task.
+	_vte->setCurrentTaskToPrecTakeoff();
+
+	// THEN: Only the home bit enables the absolute reference.
+	adjusted.value = _vte->adjustAidMask(mission_only.value);
+	EXPECT_FALSE(adjusted.flags.use_mission_pos);
+	adjusted.value = _vte->adjustAidMask(home_only.value);
+	EXPECT_FALSE(adjusted.flags.use_home_pos);
+#if defined(CONFIG_VTEST_MOVING)
+	EXPECT_FALSE(adjusted.flags.use_mission_pos);
+#else
+	EXPECT_TRUE(adjusted.flags.use_mission_pos);
+#endif
+
+	// GIVEN: Target GNSS position is enabled as well.
+	home_only.flags.use_target_gps_pos = 1;
+
+	// THEN: Target GNSS wins, home is dropped.
+	adjusted.value = _vte->adjustAidMask(home_only.value);
+	EXPECT_TRUE(adjusted.flags.use_target_gps_pos);
+	EXPECT_FALSE(adjusted.flags.use_mission_pos);
+	EXPECT_FALSE(adjusted.flags.use_home_pos);
+}
+
 #if defined(CONFIG_VTEST_MOVING)
 // WHY: Moving-target builds cannot use a static mission landing point as a target position source.
 // WHAT: Enable mission-position aiding by itself and expect adjustAidMask() to clear it.
@@ -396,26 +507,26 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskDisablesMissionPositionForMovingTarget)
 }
 #endif
 
-// WHY: The active GPS antenna offset comes from vehicle_gps_position
+// WHY: The active GPS antenna offset comes from vehicle_gnss
 // WHAT: Publish non-zero then zero antenna offsets and verify the cached lever arm tracks the topic output.
-TEST_F(VisionTargetEstTest, UpdateGpsAntennaOffsetTracksVehicleGpsPosition)
+TEST_F(VisionTargetEstTest, UpdateGnssAntennaOffsetTracksVehicleGnss)
 {
 	// GIVEN: The vehicle GPS topic reports a non-zero antenna lever arm.
 	const matrix::Vector3f gps_offset_gt{0.2, -0.015, 3.1};
-	publishUavGps(gps_offset_gt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnss(gps_offset_gt, vte_test::advanceMicroseconds(kStepUs));
 
 	// WHEN: The module refreshes the cached GPS antenna offset.
-	ASSERT_TRUE(_vte->updateGpsAntennaOffset());
+	ASSERT_TRUE(_vte->updateGnssAntennaOffset());
 
 	// THEN: The cached lever arm matches the published GPS offset.
 	EXPECT_TRUE(_vte->_gps_pos_is_offset);
 	expectVectorNear(_vte->_gps_pos_offset_xyz, gps_offset_gt);
 
 	// GIVEN: The next GPS sample reports no antenna offset.
-	publishUavGps(matrix::Vector3f{}, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnss(matrix::Vector3f{}, vte_test::advanceMicroseconds(kStepUs));
 
 	// WHEN: The offset cache is refreshed again.
-	ASSERT_TRUE(_vte->updateGpsAntennaOffset());
+	ASSERT_TRUE(_vte->updateGnssAntennaOffset());
 
 	// THEN: The cached lever arm is cleared.
 	EXPECT_FALSE(_vte->_gps_pos_is_offset);
@@ -782,6 +893,208 @@ TEST_F(VisionTargetEstTest, UpdateTaskTopicsTracksPrecisionLandState)
 	EXPECT_FALSE(_vte->isPrecLandActive());
 }
 #endif
+
+#if !defined(CONSTRAINED_FLASH)
+// WHY: Precision takeoff must run while navigator reports an ongoing takeoff and stop afterwards.
+// WHAT: Publish ONGOING, expect the task to start; publish DONE, expect completion.
+TEST_F(VisionTargetEstTest, PrecisionTakeoffTaskFollowsNavigatorStatus)
+{
+	// GIVEN: Only the precision takeoff task is enabled.
+	_vte->_vte_task_mask = vte::task_bits::kPrecTakeoff;
+	_vte->clearCurrentTask();
+
+	// WHEN: Navigator reports an ongoing precision takeoff.
+	publishPrecTakeoffStatus(prec_takeoff_status_s::PREC_TAKEOFF_STATE_ONGOING, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+
+	// THEN: The task becomes current and is not complete.
+	EXPECT_TRUE(_vte->isPrecTakeoffActive());
+	EXPECT_TRUE(_vte->setNewTaskIfAvailable());
+	EXPECT_TRUE(_vte->isCurrentTaskPrecTakeoff());
+	EXPECT_FALSE(_vte->isCurrentTaskComplete());
+
+	// WHEN: Navigator reports the takeoff altitude is reached.
+	publishPrecTakeoffStatus(prec_takeoff_status_s::PREC_TAKEOFF_STATE_DONE, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+
+	// THEN: The task completes.
+	EXPECT_TRUE(_vte->isCurrentTaskComplete());
+}
+#endif
+
+// WHY: Precision landing has priority when both tasks are requested.
+// WHAT: Mark both ready and verify the landing task is selected.
+TEST_F(VisionTargetEstTest, PrecisionLandTaskHasPriorityOverPrecisionTakeoff)
+{
+	// GIVEN: Both tasks are enabled and ready.
+	_vte->_vte_task_mask = vte::task_bits::kPrecLand | vte::task_bits::kPrecTakeoff;
+	_vte->clearCurrentTask();
+	_vte->setPrecLandActive(true);
+	_vte->setPrecTakeoffActive(true);
+
+	// WHEN: Task availability is checked.
+	EXPECT_TRUE(_vte->setNewTaskIfAvailable());
+
+	// THEN: Precision landing wins.
+	EXPECT_TRUE(_vte->isCurrentTaskPrecLand());
+}
+
+// WHY: A derived GNSS observation belongs to its task even while its timestamp remains recent.
+// WHAT: Switch to takeoff without usable home and verify the previous landing point cannot seed GNSS bias.
+TEST_F(VisionTargetEstTest, NewTaskClearsPreviousGnssBiasReference)
+{
+	ASSERT_TRUE(_vte->_vte_position.init());
+	_vte->_vte_position_enabled = true;
+	vte::SensorFusionMaskU aid_mask{};
+	aid_mask.flags.use_mission_pos = 1;
+	aid_mask.flags.use_vision_pos = 1;
+	_vte->_vte_position.setVteAidMask(aid_mask.value);
+	_vte->setCachedMissionPosition(47.001, 8.0, 500.f);
+	publishUavGnss(matrix::Vector3f{}, vte_test::advanceMicroseconds(kStepUs));
+	_vte->_vte_position.update(matrix::Vector3f{});
+
+	vte_test::advanceMicroseconds(kStepUs);
+	_vte->_vte_task_mask = vte::task_bits::kPrecTakeoff;
+	_vte->setPrecTakeoffActive(true);
+	publishLandDetected(true, 0);
+	ASSERT_TRUE(_vte->setNewTaskIfAvailable());
+	ASSERT_TRUE(_vte->startPosEst());
+	EXPECT_FALSE(_vte->missionPositionValid());
+
+	uORB::Publication<fiducial_marker_pos_report_s> vision_pub{ORB_ID(fiducial_marker_pos_report)};
+	uORB::SubscriptionData<vte_position_s> state_sub{ORB_ID(vte_position)};
+	vte_test::flushSubscription(state_sub);
+	const hrt_abstime timestamp = vte_test::advanceMicroseconds(kStepUs);
+	ASSERT_TRUE(vte_test::publishVisionPos(vision_pub, matrix::Vector3f{}, vte_test::identityQuat(),
+					       matrix::Vector3f{0.01f, 0.01f, 0.01f}, timestamp));
+	_vte->_vte_position.setLocalVelocity(matrix::Vector3f{}, true, timestamp);
+	_vte->_vte_position.update(matrix::Vector3f{});
+	ASSERT_TRUE(state_sub.update());
+	expectVectorArrayNear(state_sub.get().bias, matrix::Vector3f{});
+}
+
+// WHY: Stale position data or a distant home could identify the wrong pad.
+// WHAT: Accept home only while landed and within 5 m of a recent 3D GNSS fix.
+TEST_F(VisionTargetEstTest, PrecisionTakeoffHomeReferenceRequiresLandedAndNearby)
+{
+	const double lat = 47.0;
+	const double lon = 8.0;
+	const float alt = 500.f;
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+
+	// GIVEN: Home matches the vehicle but the vehicle is airborne.
+	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishLandDetected(false, vte_test::advanceMicroseconds(kStepUs));
+
+	// THEN: Home is not accepted.
+	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	// GIVEN: Landed with a nearby home, but an invalid GNSS fix.
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
+	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs), sensor_gnss_s::FIX_TYPE_NONE);
+
+	// THEN: The invalid fix cannot validate the home-to-vehicle distance.
+	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	// GIVEN: The latest GNSS sample is valid but stale.
+	publishUavGnssAt(lat, lon, alt, vte_test::nowUs() - 2_s);
+
+	// THEN: The stale position cannot validate home either.
+	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	// GIVEN: Home is just outside the 5 m limit.
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	double home_lat;
+	double home_lon;
+	waypoint_from_heading_and_distance(lat, lon, 0.f, vte::PrecTakeoffTask::kMaxHomeDistM + 1.f,
+					   &home_lat, &home_lon);
+	publishHomePosition(home_lat, home_lon, alt, vte_test::advanceMicroseconds(kStepUs));
+
+	// THEN: Home is rejected.
+	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	// GIVEN: Home is just inside the limit.
+	waypoint_from_heading_and_distance(lat, lon, 0.f, vte::PrecTakeoffTask::kMaxHomeDistM - 1.f,
+					   &home_lat, &home_lon);
+	publishHomePosition(home_lat, home_lon, alt, vte_test::advanceMicroseconds(kStepUs));
+
+	// THEN: Home is cached as pad reference.
+	EXPECT_TRUE(_vte->updatePrecTakeoffHomeReference());
+	EXPECT_TRUE(_vte->precTakeoffHomeReferenceValid());
+	EXPECT_DOUBLE_EQ(_vte->precTakeoffHomeReferenceLat(), home_lat);
+
+	// GIVEN: A manually assigned home is also nearby.
+	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs), true);
+
+	// THEN: Manual home is accepted.
+	EXPECT_TRUE(_vte->updatePrecTakeoffHomeReference());
+	EXPECT_DOUBLE_EQ(_vte->precTakeoffHomeReferenceLat(), lat);
+}
+
+// WHY: The mission-position cache survives filter resets, so every task must replace it.
+// WHAT: Even with home aiding disabled at activation, precision takeoff seeds its own reference for a later mask change.
+TEST_F(VisionTargetEstTest, PrecisionTakeoffReplacesInactiveHomeAidReference)
+{
+	const double old_lat = 47.1;
+	const double old_lon = 8.1;
+	const float old_alt = 510.f;
+	const double home_lat = 47.0;
+	const double home_lon = 8.0;
+	const float home_alt = 500.f;
+
+	_vte->setCachedMissionPosition(old_lat, old_lon, old_alt);
+	vte::SensorFusionMaskU vision_only{};
+	vision_only.flags.use_vision_pos = 1;
+	_vte->_vte_position.setVteAidMask(vision_only.value);
+	publishLandDetected(true, 0);
+
+	_vte->setPrecTakeoffActive(true);
+	_vte->_prec_takeoff_task.onActivate();
+	_vte->seedPrecTakeoffPositionReference();
+
+	// No usable home must invalidate, rather than retain, the previous task's reference.
+	EXPECT_FALSE(_vte->missionPositionValid());
+
+	publishUavGnssAt(home_lat, home_lon, home_alt, vte_test::advanceMicroseconds(kStepUs));
+	publishHomePosition(home_lat, home_lon, home_alt, vte_test::advanceMicroseconds(kStepUs));
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
+
+	_vte->_prec_takeoff_task.onActivate();
+	_vte->seedPrecTakeoffPositionReference();
+
+	EXPECT_TRUE(_vte->missionPositionMatches(home_lat, home_lon, home_alt));
+}
+
+// WHY: Estimator restarts in flight must reuse the pad reference cached on the ground.
+// WHAT: Activate on the ground, go airborne, verify the cached reference survives.
+TEST_F(VisionTargetEstTest, PrecisionTakeoffActivationCachesHomeReference)
+{
+	const double lat = 47.0;
+	const double lon = 8.0;
+	const float alt = 500.f;
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
+
+	// GIVEN: The task is activated on the ground.
+	_vte->_vte_task_mask = vte::task_bits::kPrecTakeoff;
+	_vte->clearCurrentTask();
+	_vte->setPrecTakeoffActive(true);
+	EXPECT_TRUE(_vte->setNewTaskIfAvailable());
+	EXPECT_TRUE(_vte->precTakeoffHomeReferenceValid());
+
+	// WHEN: The vehicle is airborne and the reference is queried again.
+	publishLandDetected(false, vte_test::advanceMicroseconds(kStepUs));
+	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
+
+	// THEN: The cached reference is kept.
+	EXPECT_TRUE(_vte->precTakeoffHomeReferenceValid());
+}
 
 // WHY: The acceleration downsample must reset after timeout to avoid stale averages.
 // WHAT: Force a timeout and verify the accumulator resets before admitting new samples.

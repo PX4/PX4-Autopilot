@@ -4,9 +4,13 @@
 
 - [Розподіл приводів](../config/actuators.md) — Налаштування виводів керуючого контролера для конкретних функцій та типів ЕСП/сервоприводів.
 
+- [Motor Failure Recovery](../config/motor_failure_recovery.md) — How allocation is reconfigured if a motor fails.
+
 - [ESCs & двигуни](../peripherals/esc_motors.md) — ESCs такі як[DShot](../peripherals/dshot.md) (рекомендовано) та DroneCAN.
 
 - [ESC Калібрування](../advanced_config/esc_calibration.md) — Калібрування для ЕСП зі звичайним PWM (не потрібно для ESC/сервоприводів з DShot/CAN).
+
+- [Internal Combustion Engines](../actuators/internal_combustion_engine.md) — Petrol/nitro engines, including start/stop sequencing and idle RPM control.
 
 ## Дивіться також
 

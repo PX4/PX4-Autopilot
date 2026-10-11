@@ -45,6 +45,11 @@ using namespace time_literals;
 
 #define DSHOT_TELEMETRY_UART_BAUDRATE 115200
 
+// How long an ESC gets to deliver its 10-byte response before we give up on it and poll the next motor.
+// Generous on purpose: an ESC busy commutating can be slow to answer, and abandoning a response that is
+// still on its way costs a full round-robin pass of telemetry rather than a single frame.
+static constexpr hrt_abstime TELEMETRY_RESPONSE_TIMEOUT = 30_ms;
+
 DShotTelemetry::~DShotTelemetry()
 {
 	_uart.close();
@@ -203,7 +208,7 @@ TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 	int bytes = _uart.read(buf, sizeof(buf));
 
 	if (bytes <= 0) {
-		if (elapsed > 5_ms) {
+		if (elapsed > TELEMETRY_RESPONSE_TIMEOUT) {
 			++_num_timeouts;
 
 			// Mark telemetry request as finished
@@ -273,6 +278,8 @@ TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int len
 
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 {
+	// Earlier commands sent with the tlm bit set leave KISS frames in the RX FIFO.
+	_uart.flush();
 	_command_response_motor_index = motor_index;
 	_command_response_command = command;
 	_command_response_start = hrt_absolute_time();
@@ -291,6 +298,10 @@ bool DShotTelemetry::commandResponseStarted()
 
 void DShotTelemetry::startTelemetryRequest()
 {
+	// Discard whatever is still buffered before asking the next ESC. Responses are matched to a motor by
+	// which request was outstanding, not by anything in the frame, so a late response left in the RX FIFO
+	// would decode cleanly as the next motor's and offset every reading by one ESC from then on.
+	_uart.flush();
 	_frame_position = 0;
 	_telemetry_request_start = hrt_absolute_time();
 }

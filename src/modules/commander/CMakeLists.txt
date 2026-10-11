@@ -38,11 +38,18 @@ add_subdirectory(HealthAndArmingChecks)
 add_subdirectory(ModeUtil)
 add_subdirectory(MulticopterThrowLaunch)
 
+set(SRCS)
+
+if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
+	list(APPEND SRCS mag_calibration.cpp)
+endif()
+
 px4_add_module(
 	MODULE modules__commander
 	MAIN commander
 	COMPILE_FLAGS
 	SRCS
+		${SRCS}
 		accelerometer_calibration.cpp
 		airspeed_calibration.cpp
 		baro_calibration.cpp
@@ -56,7 +63,6 @@ px4_add_module(
 		ModeManagement.cpp
 		level_calibration.cpp
 		lm_fit.cpp
-		mag_calibration.cpp
 		rc_calibration.cpp
 		Safety.cpp
 		UserModeIntention.cpp
@@ -79,5 +85,7 @@ px4_add_module(
         atmosphere
 	)
 
-px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)
+if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
+	px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)
+endif()
 px4_add_functional_gtest(SRC ModeManagementTest.cpp LINKLIBS modules__commander)

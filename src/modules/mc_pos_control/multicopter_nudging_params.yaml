@@ -9,7 +9,7 @@ parameters:
           Bitmask to enable pilot override of heading and position during auto modes.
 
           Bit 0 - Yaw nudging: yaw stick rotates the heading in all auto types
-          (takeoff, mission, RTL, hold, landing). The new heading is held until a
+          (takeoff, mission, Return, hold, landing). The new heading is held until a
           mode switch resets it.
 
           Bit 1 - Land nudging: during autonomous landing the pitch/roll sticks move

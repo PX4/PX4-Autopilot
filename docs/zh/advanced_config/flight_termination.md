@@ -22,9 +22,7 @@ Termination may be triggered by:
 - RC termination switch (mapped to an RC channel using [RC_MAP_TERM_SW](../advanced_config/parameter_reference.md#RC_MAP_TERM_SW)).
 - The MAVLink [MAV_CMD_DO_FLIGHTTERMINATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_FLIGHTTERMINATION) MAVLink command from a GCS or companion computer (see [MAVLink Trigger](#mavlink-trigger) below).
 
-飞行终止是无法取消的。
-在飞行终止触发后，您应尽快拔下电池。
-您需要在重启载具或重新上电后才能再次使用。
+飞行终止是无法取消的。在飞行终止触发后，您应尽快拔下电池。您需要在重启载具或重新上电后才能再次使用。
 
 ### Termination Actions
 

@@ -303,8 +303,8 @@ void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 		fusion_mask.flags.fuse_vision = processObsVision(observations[obsIndex(ObsType::kFiducialMarker)]);
 	}
 
-	if (updateUavGpsData()) {
-		if (_vte_aid_mask.flags.use_mission_pos && _mission_land_position.valid) {
+	if (updateUavGnssData()) {
+		if (_vte_aid_mask.flags.use_mission_pos && _mission_land_position.valid && _uav_gps_position.valid) {
 			fusion_mask.flags.fuse_mission_pos = processObsGNSSPosMission(observations[obsIndex(ObsType::kMissionGpsPos)]);
 		}
 
@@ -432,28 +432,28 @@ bool VTEPosition::isUavGpsVelocityValid()
 	return true;
 }
 
-bool VTEPosition::updateUavGpsData()
+bool VTEPosition::updateUavGnssData()
 {
-	sensor_gps_s vehicle_gps_position;
-	const bool vehicle_gps_position_updated = _vehicle_gps_position_sub.update(&vehicle_gps_position);
+	vehicle_gnss_s vehicle_gnss;
+	const bool vehicle_gnss_updated = _vehicle_gnss_sub.update(&vehicle_gnss);
 
-	if (vehicle_gps_position_updated) {
+	if (vehicle_gnss_updated) {
 		// Position
-		_uav_gps_position.lat_deg = vehicle_gps_position.latitude_deg;
-		_uav_gps_position.lon_deg = vehicle_gps_position.longitude_deg;
-		_uav_gps_position.alt_m = (float)vehicle_gps_position.altitude_msl_m;
-		_uav_gps_position.timestamp = vehicle_gps_position.timestamp_sample;
-		_uav_gps_position.eph = vehicle_gps_position.eph;
-		_uav_gps_position.epv = vehicle_gps_position.epv;
+		_uav_gps_position.lat_deg = vehicle_gnss.receiver.latitude;
+		_uav_gps_position.lon_deg = vehicle_gnss.receiver.longitude;
+		_uav_gps_position.alt_m = (float)vehicle_gnss.receiver.altitude_msl;
+		_uav_gps_position.timestamp = vehicle_gnss.timestamp_sample;
+		_uav_gps_position.eph = vehicle_gnss.receiver.eph;
+		_uav_gps_position.epv = vehicle_gnss.receiver.epv;
 		_uav_gps_position.valid = isUavGpsPositionValid();
 
 		// Velocity
-		_uav_gps_vel.timestamp = vehicle_gps_position.timestamp_sample;
-		_uav_gps_vel.xyz(vtest::Axis::x) = vehicle_gps_position.vel_n_m_s;
-		_uav_gps_vel.xyz(vtest::Axis::y) = vehicle_gps_position.vel_e_m_s;
-		_uav_gps_vel.xyz(vtest::Axis::z) = vehicle_gps_position.vel_d_m_s;
-		_uav_gps_vel.uncertainty = vehicle_gps_position.s_variance_m_s;
-		_uav_gps_vel.valid = vehicle_gps_position.vel_ned_valid && isUavGpsVelocityValid();
+		_uav_gps_vel.timestamp = vehicle_gnss.timestamp_sample;
+		_uav_gps_vel.xyz(vtest::Axis::x) = vehicle_gnss.receiver.vel_north;
+		_uav_gps_vel.xyz(vtest::Axis::y) = vehicle_gnss.receiver.vel_east;
+		_uav_gps_vel.xyz(vtest::Axis::z) = vehicle_gnss.receiver.vel_down;
+		_uav_gps_vel.uncertainty = vehicle_gnss.receiver.speed_accuracy;
+		_uav_gps_vel.valid = vehicle_gnss.receiver.vel_ned_valid && isUavGpsVelocityValid();
 
 	} else {
 		// Check if stored data is still valid
@@ -461,7 +461,7 @@ bool VTEPosition::updateUavGpsData()
 		_uav_gps_vel.valid = _uav_gps_vel.valid && isMeasRecent(_uav_gps_vel.timestamp);
 	}
 
-	return vehicle_gps_position_updated;
+	return vehicle_gnss_updated;
 }
 
 #if defined(CONFIG_VTEST_MOVING)
@@ -779,7 +779,7 @@ void VTEPosition::startBiasAveraging(const Vector3f &bias_sample, const hrt_abst
 
 bool VTEPosition::updateBiasAveraging(const Vector3f &bias_sample, const hrt_abstime sample_time)
 {
-	static constexpr float kInitialBiasLpfMinTimeFactor{2.f};
+	static constexpr unsigned kInitialBiasLpfMinTimeFactor{2};
 	static constexpr uint8_t kRequiredStableBiasDeltas{5};
 
 	if (!_bias.averaging_active) {
@@ -796,8 +796,7 @@ bool VTEPosition::updateBiasAveraging(const Vector3f &bias_sample, const hrt_abs
 	const Vector3f filtered_bias_before_update = _bias.initial_lpf.getState();
 	const float bias_delta = (bias_sample - filtered_bias_before_update).norm();
 
-	const float dt = static_cast<float>(sample_time - _bias.last_sample_time) * kMicrosecondsToSeconds;
-	_bias.initial_lpf.update(bias_sample, dt);
+	_bias.initial_lpf.update(bias_sample, sample_time - _bias.last_sample_time);
 	_bias.last_sample_time = sample_time;
 
 	const Vector3f filtered_bias_logged = _bias.initial_lpf.getState();
@@ -812,8 +811,7 @@ bool VTEPosition::updateBiasAveraging(const Vector3f &bias_sample, const hrt_abs
 		_bias.stable_delta_count = 0;
 	}
 
-	const hrt_abstime min_averaging_time_us = static_cast<hrt_abstime>(
-				kInitialBiasLpfMinTimeFactor * kInitialBiasLpfTimeConstantS * 1e6f);
+	const hrt_abstime min_averaging_time_us = kInitialBiasLpfMinTimeFactor * kInitialBiasLpfTimeConstant;
 	const bool min_time_elapsed = (sample_time >= _bias.averaging_start_time)
 				      && ((sample_time - _bias.averaging_start_time) >= min_averaging_time_us);
 	const bool stable = (_bias.stable_delta_count >= kRequiredStableBiasDeltas) && min_time_elapsed;
@@ -1534,7 +1532,7 @@ void VTEPosition::print_status() const
 	PX4_INFO("  position inputs: local pos: %s age %.3f s, local vel: %s age %.3f s",
 		 yes_no(_local_position.valid), age_s(_local_position.timestamp),
 		 yes_no(_local_velocity.valid), age_s(_local_velocity.timestamp));
-	PX4_INFO("    uav gps pos: %s age %.3f s, uav gps vel: %s age %.3f s, mission pos: %s",
+	PX4_INFO("    uav gps pos: %s age %.3f s, uav gps vel: %s age %.3f s, pad reference pos: %s",
 		 yes_no(_uav_gps_position.valid), age_s(_uav_gps_position.timestamp),
 		 yes_no(_uav_gps_vel.valid), age_s(_uav_gps_vel.timestamp),
 		 yes_no(_mission_land_position.valid));

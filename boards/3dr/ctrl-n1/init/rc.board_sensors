@@ -9,8 +9,8 @@ board_adc start
 iim42653 -R 14 -s -b 1 start
 iim42653 -R 14 -s -b 2 start
 
-# Internal DPS310 (barometer)
-dps310 -s -b 6 start
+# Internal DPS368 (barometer)
+dps310 -s -b 6 -8 start
 
 # Internal AK09940A magnetometer
 ak09940a -I -b 1 -R 4 start

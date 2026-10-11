@@ -180,6 +180,10 @@ PX4 видає повідомлення MAVLink [CAMERA_TRIGGER](https://mavlink
 Якщо налаштовано захоплення камерою, використовується відмітка часу від драйвера захоплення камери, в іншому випадку використовується відмітка часу спрацювання.
 :::
 
+PX4 also reports each capture to the ground station as a [CAMERA_IMAGE_CAPTURED](https://mavlink.io/en/messages/common.html#CAMERA_IMAGE_CAPTURED) message.
+This is controlled by [CAM_CAP_REPORT](../advanced_config/parameter_reference.md#CAM_CAP_REPORT), which is enabled by default and only needs to be disabled for cameras that report captures themselves (see [Capture Reporting](../camera/mavlink_v1_camera.md#capture-reporting)).
+Captures are logged for geotagging either way.
+
 ## Тестування функціональності тригера
 
 :::warning

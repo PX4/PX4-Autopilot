@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -42,6 +43,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/failure_injection.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
 
@@ -68,6 +70,7 @@ public:
 
 private:
 	void Run() override;
+	void updateFailureConfig();
 
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
@@ -75,8 +78,14 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 
+	failure_injection::Config _failure_config;
+
+	bool _baro_blocked{false};
+	bool _baro_stuck{false};
 	float _baro_drift_pa_per_sec{0.0};
 	float _baro_drift_pa{0.0};
+	float _last_pressure{0.0f};
+	float _last_temperature{0.0f};
 
 	hrt_abstime _last_update_time{0};
 

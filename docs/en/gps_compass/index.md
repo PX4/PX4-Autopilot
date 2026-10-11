@@ -178,7 +178,7 @@ Compass calibration for an included compass part is covered in: [Compass Configu
 ## GNSS Data Overview
 
 PX4 uses the subset of information that can be provided by most GNSS modules.
-This is written to the [SensorGps](../msg_docs/SensorGps.md) uORB message and used by the estimator as an input to global position estimation.
+This is written to the [SensorGnss](../msg_docs/SensorGnss.md) uORB message, and the selected receiver is passed to the estimator in [VehicleGnss](../msg_docs/VehicleGnss.md) as an input to global position estimation.
 It is also streamed via MAVLink using messages such as [GPS_RAW_INT](https://mavlink.io/en/messages/common.html#GPS_RAW_INT) and [GPS2_RAW](https://mavlink.io/en/messages/common.html#GPS2_RAW).
 
 Some of GNSS terms that are useful for interpreting the data include:
@@ -214,5 +214,6 @@ This behavior prevents large position errors that could occur when the yaw refer
   - [GPS driver](../modules/modules_driver.md#gps)
   - [PPS driver](../modules/modules_driver.md#pps-capture)
   - [DroneCAN Example](../dronecan/index.md)
+  - [u-blox Diagnostics with u-center](../gps_compass/u-center.md)
 - Compass
   - [Driver source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer) (Compasses)

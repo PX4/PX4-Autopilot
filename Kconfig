@@ -221,8 +221,17 @@ endmenu
 menu "File paths"
 
     config BOARD_ROOT_PATH
-        string "PX4 Root file path"
+        string "PX4 storage path (writable: logs, parameters, dataman)"
         default "/fs/microsd"
+
+    config BOARD_FS_ROOT_PATH
+        string "PX4 filesystem root that MAVLink FTP serves"
+        default BOARD_ROOT_PATH
+        help
+            The directory MAVLink FTP treats as its root. Defaults to the storage path,
+            which keeps FTP confined to it. Set it to a parent of the storage path to
+            expose read-only data alongside, as NuttX does by serving / with the SD card
+            mounted under it.
 
     config BOARD_PARAM_FILE
         string "Parameter file"

@@ -4,35 +4,49 @@ pageClass: is-wide-page
 
 # ManualControlSetpoint (UORB message)
 
+Manual control input.
+
+This message provides a representation of manual control input sources,
+such as RC controllers and MAVLink controller (Joystick).
+
+It defines the `manual_control_input` topic to represent each configured input,
+and the `manual_control_setpoint` topic to represent the input that is currently
+in charge of the vehicle (based on parameter COM_RC_IN_MODE).
+`manual_control_setpoint` is the topic that is published to the controllers.
+
+The message includes fields for the roll, pitch, yaw, throttle and flaps, along with auxiliary channels and button states.
+
 **TOPICS:** manual_control_setpoint manual_control_input
 
 ## Fields
 
-| Name                                              | Type      | Unit [Frame] | Range/Enum | Description                                                                                       |
-| ------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp               | `uint64`  |              |            | time since system start (microseconds)                                                            |
-| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`  |              |            | the timestamp of the raw data (microseconds)                                                      |
-| <a id="fld_valid"></a>valid                       | `bool`    |              |            |
-| <a id="fld_data_source"></a>data_source           | `uint8`   |              |            |
-| <a id="fld_roll"></a>roll                         | `float32` |              |            | move right, positive roll rotation, right side down                                               |
-| <a id="fld_pitch"></a>pitch                       | `float32` |              |            | move forward, negative pitch rotation, nose down                                                  |
-| <a id="fld_yaw"></a>yaw                           | `float32` |              |            | positive yaw rotation, clockwise when seen top down                                               |
-| <a id="fld_throttle"></a>throttle                 | `float32` |              |            | move up, positive thrust, -1 is minimum available 0% or -100% +1 is 100% thrust                   |
-| <a id="fld_flaps"></a>flaps                       | `float32` |              |            | position of flaps switch/knob/lever [-1, 1]                                                       |
-| <a id="fld_aux1"></a>aux1                         | `float32` |              |            |
-| <a id="fld_aux2"></a>aux2                         | `float32` |              |            |
-| <a id="fld_aux3"></a>aux3                         | `float32` |              |            |
-| <a id="fld_aux4"></a>aux4                         | `float32` |              |            |
-| <a id="fld_aux5"></a>aux5                         | `float32` |              |            |
-| <a id="fld_aux6"></a>aux6                         | `float32` |              |            |
-| <a id="fld_sticks_moving"></a>sticks_moving       | `bool`    |              |            | manual control override request in an auto or offboard mode, only gets true if feature is enabled |
-| <a id="fld_buttons"></a>buttons                   | `uint16`  |              |            | From uint16 buttons field of Mavlink manual_control message                                       |
+| Name                                                    | Type      | Unit [Frame] | Range/Enum | Description                                                                                       |
+| ------------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                     | `uint64`  |              |            | time since system start (microseconds)                                                            |
+| <a id="fld_timestamp_sample"></a>timestamp_sample       | `uint64`  |              |            | the timestamp of the raw data (microseconds)                                                      |
+| <a id="fld_valid"></a>valid                             | `bool`    |              |            |
+| <a id="fld_data_source"></a>data_source                 | `uint8`   |              |            |
+| <a id="fld_source_system_id"></a>source_system_id       | `uint8`   |              |            | MAVLink system ID of the manual control source (Invalid: 0)                                       |
+| <a id="fld_source_component_id"></a>source_component_id | `uint8`   |              |            | MAVLink component ID of the manual control source (Invalid: 0)                                    |
+| <a id="fld_roll"></a>roll                               | `float32` |              |            | move right, positive roll rotation, right side down                                               |
+| <a id="fld_pitch"></a>pitch                             | `float32` |              |            | move forward, negative pitch rotation, nose down                                                  |
+| <a id="fld_yaw"></a>yaw                                 | `float32` |              |            | positive yaw rotation, clockwise when seen top down                                               |
+| <a id="fld_throttle"></a>throttle                       | `float32` |              |            | move up, positive thrust, -1 is minimum available 0% or -100% +1 is 100% thrust                   |
+| <a id="fld_flaps"></a>flaps                             | `float32` |              |            | position of flaps switch/knob/lever [-1, 1]                                                       |
+| <a id="fld_aux1"></a>aux1                               | `float32` |              |            |
+| <a id="fld_aux2"></a>aux2                               | `float32` |              |            |
+| <a id="fld_aux3"></a>aux3                               | `float32` |              |            |
+| <a id="fld_aux4"></a>aux4                               | `float32` |              |            |
+| <a id="fld_aux5"></a>aux5                               | `float32` |              |            |
+| <a id="fld_aux6"></a>aux6                               | `float32` |              |            |
+| <a id="fld_sticks_moving"></a>sticks_moving             | `bool`    |              |            | manual control override request in an auto or offboard mode, only gets true if feature is enabled |
+| <a id="fld_buttons"></a>buttons                         | `uint16`  |              |            | From uint16 buttons field of Mavlink manual_control message                                       |
 
 ## Constants
 
 | Name                                            | Type     | Value | Description              |
 | ----------------------------------------------- | -------- | ----- | ------------------------ |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 0     |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 1     |
 | <a id="#SOURCE_UNKNOWN"></a> SOURCE_UNKNOWN     | `uint8`  | 0     |
 | <a id="#SOURCE_RC"></a> SOURCE_RC               | `uint8`  | 1     | radio control (input_rc) |
 | <a id="#SOURCE_MAVLINK_0"></a> SOURCE_MAVLINK_0 | `uint8`  | 2     | mavlink instance 0       |
@@ -49,7 +63,19 @@ pageClass: is-wide-page
 ::: details Click here to see original file
 
 ```c
-uint32 MESSAGE_VERSION = 0
+# Manual control input
+#
+# This message provides a representation of manual control input sources,
+# such as RC controllers and MAVLink controller (Joystick).
+#
+# It defines the `manual_control_input` topic to represent each configured input,
+# and the `manual_control_setpoint` topic to represent the input that is currently
+# in charge of the vehicle (based on parameter COM_RC_IN_MODE).
+# `manual_control_setpoint` is the topic that is published to the controllers.
+#
+# The message includes fields for the roll, pitch, yaw, throttle and flaps, along with auxiliary channels and button states.
+
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp                        # time since system start (microseconds)
 uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
@@ -66,6 +92,8 @@ uint8 SOURCE_MAVLINK_4 = 6		# mavlink instance 4
 uint8 SOURCE_MAVLINK_5 = 7		# mavlink instance 5
 
 uint8 data_source
+uint8 source_system_id  # [@invalid 0] MAVLink system ID of the manual control source
+uint8 source_component_id # [@invalid 0] MAVLink component ID of the manual control source
 
 # Any of the channels may not be available and be set to NaN
 # to indicate that it does not contain valid data.

@@ -72,8 +72,9 @@ VTX::~VTX()
 int VTX::init()
 {
 	_param_vtx_device.update();
+	_param_vtx_protocol.update();
 	_device = (_param_vtx_device.get() >> 8);
-	const uint8_t protocol = (_param_vtx_device.get() & 0xff);
+	const uint8_t protocol = _param_vtx_protocol.get();
 
 	if (_protocol == nullptr) {
 		if (protocol == vtx_s::PROTOCOL_TRAMP) {
@@ -323,7 +324,7 @@ void VTX::handle_uorb()
 	strncpy((char *)msg.power_label, vtxtable().power_label(msg.power_level), sizeof(msg.power_label));
 
 	// Workarounds for specific devices
-	if (_device == vtx_s::DEVICE_PEAK_THOR_T67) {
+	if (_device == vtx_s::DEVICE_PEAK_THOR) {
 		// This device always reports pit mode, but still works fine
 		msg.frequency = vtxtable().frequency(_band, _channel);
 		msg.mode = _pit_mode ? vtx_s::MODE_PIT : vtx_s::MODE_NORMAL;
@@ -437,7 +438,8 @@ int VTX::print_status()
 	PX4_INFO("  pit mode: %s", _pit_mode ? "on" : "off");
 
 	if (!(_comms_ok && _protocol && _protocol->print_settings())) {
-		PX4_ERR("%s device not found", _param_vtx_device.get() == 1 ? "Tramp" : "SmartAudio");
+		PX4_ERR("%s device not found",
+			_param_vtx_protocol.get() == vtx_s::PROTOCOL_TRAMP ? "Tramp" : "SmartAudio");
 	}
 
 	perf_print_counter(_perf_cycle);

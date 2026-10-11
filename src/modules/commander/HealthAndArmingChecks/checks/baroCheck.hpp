@@ -38,6 +38,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/sensors_status.h>
 #include <uORB/topics/estimator_status.h>
 #include <lib/sensor_calibration/Barometer.hpp>
 
@@ -50,9 +51,13 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
+	static constexpr int kMaxSensorCount = sizeof(sensors_status_s::device_ids) / sizeof(sensors_status_s::device_ids[0]);
+
+	bool isBaroPrimary(int instance, const sensors_status_s &sensors_status);
 	bool isBaroRequired(int instance);
 
 	uORB::SubscriptionMultiArray<sensor_baro_s, calibration::Barometer::MAX_SENSOR_COUNT> _sensor_baro_sub{ORB_ID::sensor_baro};
+	uORB::Subscription _sensors_status_baro_sub{ORB_ID(sensors_status_baro)};
 	uORB::SubscriptionMultiArray<estimator_status_s> _estimator_status_sub{ORB_ID::estimator_status};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,

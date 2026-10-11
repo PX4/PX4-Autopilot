@@ -18,13 +18,11 @@ PX4 使用并生成人类和机器可读的元数据:
 
 ## 元数据翻译
 
-在 Crowdin 项目 [PX4-Metadata-Translations](https://crowdin.com/project/px4-metadata-translations) 中翻译 PX4 元数据。
-更多关于 PX4 和 Crowdin 信息请参阅[Translation](../contribute/translation.md)。
+在 Crowdin 项目 [PX4-Metadata-Translations](https://crowdin.com/project/px4-metadata-translations) 中翻译 PX4 元数据。更多关于 PX4 和 Crowdin 信息请参阅[Translation](../contribute/translation.md)。
 
 ## 元数据定义
 
-PX4 元数据是在 PX4 源代码及其相关数据中定义的。
-这可以通过在 C/C++ 注释中使用特殊标记来指示元数据字段及其值，或者使用 YAML 文件来完成。
+PX4 元数据是在 PX4 源代码及其相关数据中定义的。这可以通过在 C/C++ 注释中使用特殊标记来指示元数据字段及其值，或者使用 YAML 文件来完成。
 
 更多信息请参阅每种数据类型的章节：
 
@@ -38,13 +36,9 @@ PX4 元数据是在 PX4 源代码及其相关数据中定义的。
 
 每次构建 PX4 时，元数据都会被收集到 JSON 文件中。
 
-对于大多数飞控（因为大多数都有足够的可用 FLASH 存储空间），JSON文件经过 xz 压缩并存储在生成的二进制文件中。
-然后使用 MAVLink [Component Metadata Protocol](https://mavlink.io/en/services/component_information.html)共享该文件。
-使用组件元数据协议确保接收者总是能够为运行在载具的代码获取最新元数据。
-事件元数据也会被添加到日志文件中，允许日志分析工具 (如飞行回放) 使用正确的元数据来显示事件。
+对于大多数飞控（因为大多数都有足够的可用 FLASH 存储空间），JSON文件经过 xz 压缩并存储在生成的二进制文件中。然后使用 MAVLink [Component Metadata Protocol](https://mavlink.io/en/services/component_information.html)共享该文件。使用组件元数据协议确保接收者总是能够为运行在载具的代码获取最新元数据。事件元数据也会被添加到日志文件中，允许日志分析工具 (如飞行回放) 使用正确的元数据来显示事件。
 
-内存受限的飞控二进制文件不会在二进制文件中存储参数元数据，而是引用存储在`px4-travis.s3.amazonaws.com`上的相同数据。
-例如，这适用于[Umnibus F4 SD](../flight_controller/omnibus_f4_sd.md)。
+内存受限的飞控二进制文件不会在二进制文件中存储参数元数据，而是引用存储在`px4-travis.s3.amazonaws.com`上的相同数据。例如，这适用于[Umnibus F4 SD](../flight_controller/omnibus_f4_sd.md)。
 The metadata is uploaded via the [build_all_targets](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/build_all_targets.yml) GitHub CI workflow for all build targets (and hence will only be available once parameters have been merged into main).
 
 :::info
@@ -53,13 +47,9 @@ The metadata is uploaded via the [build_all_targets](https://github.com/PX4/PX4-
 如果在 FLASH 受限板上进行自定义开发，您可以调整此处的 URL 以指向另一台服务器[here](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/component_information/CMakeLists.txt#L41)。
 :::
 
-如果载具上没有显示参数元数据，则使用 `px4-travis.s3.amazonaws.com` 上的元数据。
-它也可以用作后退，以避免对低速遥测链接进行非常缓慢的下载。
+如果载具上没有显示参数元数据，则使用 `px4-travis.s3.amazonaws.com` 上的元数据。它也可以用作后退，以避免对低速遥测链接进行非常缓慢的下载。
 
-用于 CI 构建  `main` 分支的元数据 JSON 文件也拷贝到了 github 仓库：[PX4/PX4-Metadata-Translations](https://github.com/PX4/PX4-Metadata-Translations/)。
-这与Crowdin集成，用于获取翻译，这些翻译存储在 [translated](https://github.com/PX4/PX4-Metadata-Translations/tree/main/translated) 文件夹中，每种语言都有 xz 压缩的翻译文件。
-这些是由载具的组件元数据引用的，并在需要时下载。
-有关更多信息，请参阅 [PX4-Metadata-Translations](https://github.com/PX4/PX4-Metadata-Translations/) 和 [Component Metadata Protocol > Translation](https://mavlink.io/en/services/component_information.html#translation)。
+用于 CI 构建  `main` 分支的元数据 JSON 文件也拷贝到了 github 仓库：[PX4/PX4-Metadata-Translations](https://github.com/PX4/PX4-Metadata-Translations/)。这与Crowdin集成，用于获取翻译，这些翻译存储在 [translated](https://github.com/PX4/PX4-Metadata-Translations/tree/main/translated) 文件夹中，每种语言都有 xz 压缩的翻译文件。这些是由载具的组件元数据引用的，并在需要时下载。有关更多信息，请参阅 [PX4-Metadata-Translations](https://github.com/PX4/PX4-Metadata-Translations/) 和 [Component Metadata Protocol > Translation](https://mavlink.io/en/services/component_information.html#translation)。
 This is orchestrated by the [docs-orchestrator](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/docs-orchestrator.yml) GitHub CI workflow, which also regenerates auto-generated documentation such as parameter reference, airframe reference, and uORB message docs.
 
 :::info
@@ -77,8 +67,7 @@ This is orchestrated by the [docs-orchestrator](https://github.com/PX4/PX4-Autop
 - **Left**: 元数据在不同模快的 `module.yml` 文件中定义。
   `control_allocator` 模块定义几何形状，而每个输出驱动程序则定义其通道集和配置参数。
   [schema file](https://github.com/PX4/PX4-Autopilot/blob/main/validation/module_schema.yaml) 描写了这些 yaml 文件的结构。
-- **Middle**: 在构建时间, 当前构建目标的所有已启用模块的 `module.yml` 文件都会被解析并变成一个驱动程序。 使用 [Tools/module_config/generate_actuators_metadata.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/module_config/generate_actuators_metadata.py)脚本的文件。
-  这里还有[schema file](https://github.com/mavlink/mavlink/blob/master/component_metadata/actuators.schema.json)。
+- **Middle**: 在构建时间, 当前构建目标的所有已启用模块的 `module.yml` 文件都会被解析并变成一个驱动程序。 使用 [Tools/module_config/generate_actuators_metadata.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/module_config/generate_actuators_metadata.py)脚本的文件。这里还有[schema file](https://github.com/mavlink/mavlink/blob/master/component_metadata/actuators.schema.json)。
 - **Right**: 运行时，QGroundControl 通过 MAVLink 组件元数据 API 请求 JSON  文件(上文已经描述)。
 
 ## 更多信息

@@ -8,8 +8,8 @@ The mode will not attempt to hold the vehicle course against wind.
 Airspeed is actively controlled if an airspeed sensor is installed.
 
 :::tip
-_Altitude mode_ is similar to [Position mode](../flight_modes_fw/position.md) in that both modes level the vehicle and maintain altitude when sticks are released.
-The difference is that position mode holds the actual flight path (course) steady against wind, while altitude just holds the heading.
+_Altitude mode_ is similar to [Cruise mode](../flight_modes_fw/cruise.md) in that both modes level the vehicle and maintain altitude when sticks are released.
+The difference is that Cruise mode holds the actual flight path (course) steady against wind, while altitude just holds the heading.
 :::
 
 The vehicle performs a [coordinated turn](https://en.wikipedia.org/wiki/Coordinated_flight) if the roll sticks are non-zero, while the pitch stick controls the rate of ascent/descent.
@@ -42,6 +42,19 @@ The vehicle course is not maintained, and can drift due to wind.
     Can be used to manually change the side slip of the vehicle.
 - Manual control input is required (such as RC control, joystick).
 - An altitude measurement source is required (usually barometer or GPS)
+
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_altctl -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_altctl -->
 
 ## 매개변수
 

@@ -267,7 +267,7 @@ Source: [modules/navigator](https://github.com/PX4/PX4-Autopilot/tree/main/src/m
 ### Description
 
 Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
-takeoff and RTL.
+takeoff and Return.
 It is also responsible for geofence violation checking.
 
 ### Implementation
@@ -287,7 +287,7 @@ navigator <command> [arguments...]
 
    fencefile     load a geofence file from SD card, stored at etc/geofence.txt
 
-   fake_traffic  publishes 24 fake transponder_report_s uORB messages
+   fake_traffic  run synthetic DAA traffic; use 'navigator fake_traffic help'
 
    stop
 

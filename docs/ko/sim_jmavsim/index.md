@@ -24,7 +24,8 @@ jMAVSim can also be used for HITL Simulation ([as shown here](../simulation/hitl
 
 jMAVSim requires JDK 17 or later.
 On Ubuntu and Windows, the [standard development environment setup](../dev_setup/dev_env.md) scripts install all required dependencies including Java.
-On macOS, you need to install Java manually as shown below.
+On macOS, `./Tools/setup/macos.sh --sim-tools` installs a suitable JDK and links it into `/Library/Java/JavaVirtualMachines` (see [macOS Development Environment](../dev_setup/dev_env_mac.md)).
+If you set up without `--sim-tools`, install Java manually as shown below.
 
 ### macOS
 

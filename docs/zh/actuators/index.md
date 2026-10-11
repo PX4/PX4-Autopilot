@@ -4,9 +4,13 @@
 
 - [执行器生成](../config/actuators.md) — 为特定的功能，电调或舵机配置飞控的输出。
 
+- [电机故障恢复](../config/motor_failure_recovery.md) — 电机失效后的动力重新分配。
+
 - [电机电调](../peripherals/esc_motors.md) — 例如 [DShot 电调](../peripherals/dshot.md) (推荐) 和 DroneCAN 电调。
 
 - [电调校准](../advanced_config/esc_calibration.md) — PWM 电调的校准 (DShot/CAN 电调/舵机不需要) 。
+
+- [Internal Combustion Engines](../actuators/internal_combustion_engine.md) — Petrol/nitro engines, including start/stop sequencing and idle RPM control.
 
 ## 另见
 

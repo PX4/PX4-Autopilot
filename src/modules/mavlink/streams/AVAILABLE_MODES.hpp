@@ -93,6 +93,7 @@ private:
 		mavlink_available_modes_t available_modes{};
 		available_modes.mode_index = mode_index;
 		available_modes.number_modes = total_num_modes;
+		available_modes.seq = _dynamic_update_seq;
 		px4_custom_mode custom_mode{get_px4_custom_mode(nav_state)};
 		available_modes.custom_mode = custom_mode.data;
 		const bool cannot_be_selected = (vehicle_status.can_set_nav_states_mask & (1u << nav_state)) == 0;

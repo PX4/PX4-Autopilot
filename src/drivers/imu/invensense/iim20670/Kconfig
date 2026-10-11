@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_INVENSENSE_IIM20670
+	bool "iim20670"
+	default n
+	---help---
+		Enable support for iim20670

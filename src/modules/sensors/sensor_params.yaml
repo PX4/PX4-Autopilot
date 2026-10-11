@@ -188,12 +188,3 @@ parameters:
         1: Publish primary IMU selection
       default: 1
       reboot_required: true
-    SENS_INT_BARO_EN:
-      description:
-        short: Enable internal barometers
-        long: For systems with an external barometer, this should be set to false
-          to make sure that the external is used.
-      category: System
-      type: boolean
-      default: 1
-      reboot_required: true

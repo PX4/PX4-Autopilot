@@ -73,7 +73,7 @@ icm45686 -R 2 -s start
 
 rm3100 -I -b 4 start
 
-bmp581 -b 2 -X -a 0x47 start
+bmp581 -I -b 2 -a 0x47 start
 icp201xx -I -a 0x64 start
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)

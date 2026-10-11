@@ -5,10 +5,14 @@ parameters:
     CANNODE_NODE_ID:
       description:
         short: UAVCAN CAN node ID (0 for dynamic allocation)
+        long: |-
+          Set to 0 (default) to use dynamic node ID allocation (DNA).
+          Set to 1-125 to use a static node ID, which must be unique on the bus.
       type: int32
       default: 0
       min: 0
-      max: 127
+      max: 125
+      reboot_required: true
     CANNODE_BITRATE:
       description:
         short: UAVCAN CAN bus bitrate

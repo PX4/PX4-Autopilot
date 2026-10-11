@@ -27,6 +27,10 @@ param set-default UXRCE_DDS_PTCFG 2
 param set-default UXRCE_DDS_AG_IP 170461697
 param set-default UXRCE_DDS_CFG 1000
 
+# Mount NFS export from the SOM (10.41.10.1)
+param set-default NFS_EN 1
+param set-default NFS_IP 170461697
+
 # Update default IP config if needed
 netman update_default -i eth0
 

@@ -81,7 +81,8 @@ public:
 	 * and storage (object pointer, task ID).
 	 */
 	struct Descriptor {
-		Descriptor(int (*ts)(int, char **), int (*cc)(int, char **), int (*pu)(const char *))
+		// constexpr so the per-module static desc is constant-initialised instead of by static-init code
+		constexpr Descriptor(int (*ts)(int, char **), int (*cc)(int, char **), int (*pu)(const char *))
 			: task_spawn(ts), custom_command(cc), print_usage(pu) {}
 
 		int (*task_spawn)(int argc, char *argv[]);

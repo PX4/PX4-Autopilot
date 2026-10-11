@@ -63,6 +63,12 @@ static constexpr int32_t TIM_CONFIG_BDSHOT150 = -8;
 static constexpr int32_t TIM_CONFIG_BDSHOT300 = -7;
 static constexpr int32_t TIM_CONFIG_BDSHOT600 = -6;
 
+// A 3D ESC reads the range as two halves meeting here: below is reverse, above is forward.
+static constexpr uint16_t DSHOT_3D_SPLIT = 1000;
+// Forward-only channels start at the bottom of the forward half. The DSHOT_MIN idle floor is
+// applied within that half by convert_output_to_3d_scaling(), so it must not be added here.
+static constexpr uint16_t DSHOT_3D_FORWARD_START = DSHOT_3D_SPLIT + 1;
+
 static constexpr uint16_t DSHOT_DISARM_VALUE = 0;
 static constexpr uint16_t DSHOT_MIN_THROTTLE = 1;
 static constexpr uint16_t DSHOT_MAX_THROTTLE = 1999;
@@ -116,6 +122,7 @@ private:
 	void update_motor_outputs(uint16_t *outputs, int num_outputs);
 	void update_motor_commands(int num_outputs);
 	void select_next_command();
+	void clear_edt_confirmation(int motor_index);
 
 	bool set_next_telemetry_index(); // Returns true when the telemetry index has wrapped, indicating all configured motors have been sampled.
 	bool process_serial_telemetry();
@@ -124,10 +131,14 @@ private:
 	void consume_esc_data(const EscData &data);
 
 	uint16_t calculate_output_value(uint16_t raw, int index);
-	uint16_t convert_output_to_3d_scaling(uint16_t output);
+	uint16_t convert_output_to_3d_scaling(uint16_t output, bool reversible);
 
 	void Run() override;
 	void update_params();
+
+	// Per-channel minimums must match how calculate_output_value() encodes each channel.
+	void apply_min_values(uint32_t reversible);
+	void reversibleMaskChanged(uint32_t reversible_mask) override;
 
 	// Mavlink command handlers
 	void handle_vehicle_commands();
@@ -161,7 +172,16 @@ private:
 	uint32_t _serial_telem_online_mask = 0; // Mask indicating telem receive status for serial telem
 	uint32_t _serial_telem_errors[DSHOT_MAX_MOTORS] = {};
 	uint32_t _bdshot_telem_errors[DSHOT_MAX_MOTORS] = {};
-	uint16_t _bdshot_edt_requested_mask = 0;
+
+	// EDT enable is acked with a state/event frame, but any EDT frame proves it took. Retry until one arrives,
+	// giving up until reconnect or disarm so ESCs without EDT do not get a command burst every second.
+	static constexpr int BDSHOT_EDT_MAX_ATTEMPTS = 5;
+	static constexpr hrt_abstime BDSHOT_EDT_RETRY_INTERVAL = 1_s;
+	uint16_t _bdshot_edt_confirmed_mask = 0;
+	uint8_t _bdshot_edt_attempts[DSHOT_MAX_MOTORS] = {};
+	hrt_abstime _bdshot_edt_last_request[DSHOT_MAX_MOTORS] = {};
+	bool _armed_prev = false;
+
 	uint16_t _settings_requested_mask = 0;
 
 	// Array of timestamps indicating when the telemetry came online

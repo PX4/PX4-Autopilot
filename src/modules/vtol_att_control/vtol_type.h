@@ -223,17 +223,17 @@ public:
 	mode get_mode() {return _common_vtol_mode;}
 
 	/**
-	 * @return Minimum front transition time scaled for air density (if available) [s]
+	 * @return Minimum front transition time scaled for air density (if available) and vehicle weight [s]
 	*/
 	float getMinimumFrontTransitionTime() const;
 
 	/**
-	 * @return Front transition timeout scaled for air density (if available) [s]
+	 * @return Front transition timeout scaled for air density (if available) and vehicle weight [s]
 	*/
 	float getFrontTransitionTimeout() const;
 
 	/**
-	* @return Minimum open-loop front transition time scaled for air density (if available) [s]
+	* @return Minimum open-loop front transition time scaled for air density (if available) and vehicle weight [s]
 	*/
 	float getOpenLoopFrontTransitionTime() const;
 
@@ -248,6 +248,12 @@ public:
 	 * @return The calibrated transition airspeed [m/s]
 	 */
 	float getTransitionAirspeed() const;
+
+	/**
+	 *
+	 * @return The target front transition throttle scaled for vehicle weight
+	 */
+	float getFrontTransitionThrottle() const;
 
 	virtual void parameters_update() = 0;
 
@@ -366,9 +372,14 @@ private:
 	void stopBlendingThrottleAfterFrontTransition() { _throttle_blend_start_ts = 0; }
 
 	/**
-	 * @return Transition time scale factor for density.
+	 * @return Transition time scale factor for density and vehicle weight.
 	*/
 	float getFrontTransitionTimeFactor() const;
+
+	/**
+	 * @return Gross weight over base weight ratio, constrained to sane limits.
+	*/
+	float getWeightRatio() const;
 
 };
 

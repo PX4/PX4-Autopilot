@@ -12,8 +12,7 @@ It is much easier to fly than [Manual mode](../flight_modes_fw/manual.md) becaus
 The vehicle climbs/descends based on pitch and throttle input and performs a [coordinated turn](https://en.wikipedia.org/wiki/Coordinated_flight) if the roll stick is non-zero.
 横滚和俯仰是角度控制的（不能上下滚动或循环）。
 
-如果油门降至 0％（电机停止），飞机将滑行。
-为了执行转弯，必须在整个操纵过程中保持命令，因为如果释放横滚摇杆，则飞机将停止转动并自行调平（对于俯仰和偏航命令也是如此）。
+如果油门降至 0％（电机停止），飞机将滑行。为了执行转弯，必须在整个操纵过程中保持命令，因为如果释放横滚摇杆，则飞机将停止转动并自行调平（对于俯仰和偏航命令也是如此）。
 
 The yaw stick can be used to increase/reduce the yaw rate of the vehicle in turns.
 If left at center the controller does the turn coordination by itself, meaning that it will apply the necessary yaw rate for the current roll angle to perform a smooth turn.
@@ -29,13 +28,23 @@ The vehicle course and altitude are not maintained, and can drift due to wind.
 
 - Centered Roll/Pitch/Yaw sticks (inside deadband) put vehicle into straight and level flight.
   The vehicle course and altitude are not maintained, and can drift due to wind.
-- 横滚摇杆控制横滚角度。
-  自动驾驶仪将保持 <a href="https://en.wikipedia.org/wiki/Coordinated_flight">协调飞行</a>。
+- 横滚摇杆控制横滚角度。自动驾驶仪将保持 <a href="https://en.wikipedia.org/wiki/Coordinated_flight">协调飞行</a>。
 - Pitch stick controls pitch angle around the defined offset [FW_PSP_OFF](../advanced_config/parameter_reference.md#FW_PSP_OFF)
 - Throttle stick controls throttle directly.
-- 偏航摇杆操纵会驱动方向舵（指令将被加到自动驾驶仪计算的指令中以维持 <a href="https://en.wikipedia.org/wiki/Coordinated_flight">协调飞行</a>）。
-  这和<a href="../flight_modes/stabilized_fw.md">稳定模式</a>一样。
+- 偏航摇杆操纵会驱动方向舵（指令将被加到自动驾驶仪计算的指令中以维持 <a href="https://en.wikipedia.org/wiki/Coordinated_flight">协调飞行</a>）。这和<a href="../flight_modes/stabilized_fw.md">稳定模式</a>一样。
 - Manual control input is required (such as RC control, joystick).
+
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_stab -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_stab -->
 
 ## 参数
 

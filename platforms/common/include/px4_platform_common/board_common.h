@@ -301,6 +301,18 @@ typedef uint16_t hw_base_id_t;
 #  define GET_HW_BASE_ID()      (HW_BASE_ID(board_get_hw_version()))
 #endif
 
+/* Boards can define HW_INFO_POP_MASK to mark a sub-field of a numeric HW info
+ * value as a population option (eg. which of several sensor variants is
+ * populated).
+ * HW_INFO_POP_SOURCE selects which value that sub-field is taken
+ * from (for example board_get_hw_revision or board_get_hw_version). */
+#if defined(HW_INFO_POP_MASK)
+#  ifndef HW_INFO_POP_SOURCE
+#    define HW_INFO_POP_SOURCE board_get_hw_revision
+#  endif
+#  define GET_HW_POP_ID()      (((unsigned)HW_INFO_POP_SOURCE() & HW_INFO_POP_MASK) >> __builtin_ctz(HW_INFO_POP_MASK))
+#endif
+
 #define HW_INFO_REV_DIGITS    3
 #define HW_INFO_VER_DIGITS    3
 
@@ -496,7 +508,7 @@ static inline bool board_rc_singlewire(const char *device) { return false; }
  *
  *    RC_SERIAL_SWAP_USING_SINGLEWIRE   is defined
  *    RC_SERIAL_SWAP_RXTX               is defined
- *    TIOCSSWAP                         is defined and retuns !OK
+ *    TIOCSSWAP                         is defined and returns !OK
  *    TIOCSSINGLEWIRE                   is defined
  *
  * Input Parameters:
@@ -1122,6 +1134,21 @@ int board_get_px4_guid_formated(char *format_buffer, int size);
 #else
 __EXPORT int board_mcu_version(char *rev, const char **revstr, const char **errata);
 #endif // !defined(BOARD_OVERRIDE_CPU_VERSION)
+
+/************************************************************************************
+ * Name: board_get_flash_type_name
+ *
+ * Description:
+ *   Optional. Boards that identify their external flash at boot provide the part
+ *   name, so it can be reported next to the chip version. Weak: test the symbol
+ *   before calling it, boards that do not identify their flash do not define it.
+ *   Spelled out rather than using NuttX's weak_function, this header is also
+ *   used by builds that do not provide that macro.
+ *
+ * Returned Value:
+ *   The flash part name, or NULL if it is not known
+ */
+__EXPORT const char *board_get_flash_type_name(void) __attribute__((weak));
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 /************************************************************************************

@@ -71,12 +71,17 @@ private:
 				msg.longitude = home.lon * 1e7;
 				msg.altitude  = home.alt * 1e3f;
 
-				msg.x = home.x;
-				msg.y = home.y;
-				msg.z = home.z;
+				msg.x = home.valid_lpos ? home.x : 0.f;
+				msg.y = home.valid_lpos ? home.y : 0.f;
+				msg.z = home.valid_lpos ? home.z : 0.f;
 
-				matrix::Quatf q(matrix::Eulerf(home.roll, home.pitch, home.yaw));
-				q.copyTo(msg.q);
+				if (home.valid_attitude) {
+					const matrix::Quatf q(matrix::Eulerf(home.roll, home.pitch, home.yaw));
+					q.copyTo(msg.q);
+
+				} else {
+					msg.q[0] = msg.q[1] = msg.q[2] = msg.q[3] = NAN;
+				}
 
 				msg.approach_x = 0.f;
 				msg.approach_y = 0.f;

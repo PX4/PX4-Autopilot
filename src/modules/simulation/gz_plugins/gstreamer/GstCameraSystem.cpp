@@ -359,12 +359,16 @@ bool CameraStream::runPipeline(bool useCuda)
 	GstElement *encoder;
 
 	if (useCuda) {
-		encoder = gst_element_factory_make("nvh264enc", nullptr);
+		encoder = gst_element_factory_make("nvautogpuh264enc", nullptr);
 
 		if (encoder) {
-			// set only the widely-supported bitrate.
-			g_object_set(G_OBJECT(encoder),
-				     "bitrate", 4000,
+			// Higher quality NVIDIA encoder settings
+			g_object_set(G_OBJECT(encoder), "bitrate",
+				     4000,                // Increased bitrate for higher quality
+				     "preset", 2,         // Higher quality preset (HP)
+				     "rc-mode", 1,        // Constant bitrate mode
+				     "zerolatency", TRUE, // Reduce latency
+				     "qp-const", 20,      // Lower QP (higher quality)
 				     NULL);
 
 		} else {

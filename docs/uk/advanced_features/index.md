@@ -3,6 +3,7 @@
 Цей розділ містить теми, пов'язані з деякими більш розширеними функціями автопілота PX4:
 
 - [Уникнення повітряного трафіку: ADS-B/FLARM/UTM](../peripherals/adsb_flarm.md)
+- [Detect And Avoid](../advanced_features/detect_and_avoid.md)
 - [Комп'ютерний зір](../computer_vision/index.md)
   - [Попередження зіткнень](../computer_vision/collision_prevention.md) (може використовувати комп'ютер-компаньйон або датчики на польотному контролері)
   - [Захоплення руху (MoCap)](../computer_vision/motion_capture.md)

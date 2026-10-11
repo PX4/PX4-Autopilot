@@ -64,7 +64,7 @@ To support this feature, Gazebo Classic must be launched with the appropriate RO
 首先使用以下命令启动模拟器：
 
 - [posix_sitl.launch](https://github.com/PX4/PX4-Autopilot/blob/main/launch/posix_sitl.launch): plain SITL launch
-- [mavros_posix_sitl.launch](https://github.com/PX4/PX4-Autopilot/blob/main/launch/mavros_posix_sitl.launch): SITL and MAVROS
+- [mavros_posix_sitl.launch](https://github.com/PX4/PX4-Autopilot/blob/daa89a9116ebe3ef1c173c881eb100c4b15f6d60/launch/mavros_posix_sitl.launch): SITL and MAVROS
 
 控制台将如下所示：
 

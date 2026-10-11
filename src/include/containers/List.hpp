@@ -144,6 +144,16 @@ public:
 
 	bool empty() const { return getHead() == nullptr; }
 
+	template<typename Predicate>
+	T find(Predicate pred) const
+	{
+		for (auto n = getHead(); n != nullptr; n = n->getSibling()) {
+			if (pred(n)) { return n; }
+		}
+
+		return nullptr;
+	}
+
 	size_t size() const
 	{
 		size_t sz = 0;

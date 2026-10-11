@@ -55,7 +55,7 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 	if (!_rtl_status_sub.copy(&rtl_status) || rtl_status.safe_point_index == UINT8_MAX) {
 		/* EVENT
 		 * @description
-		 * No rally point is configured. Return will fall back to the current position when RTL is triggered.
+		 * No rally point is configured. Return mode will fall back to the current position when triggered.
 		 * Upload at least one rally point, or change <param>RTL_TYPE</param> to silence this warning.
 		 *
 		 * <profile name="dev">

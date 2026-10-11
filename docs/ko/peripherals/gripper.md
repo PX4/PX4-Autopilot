@@ -17,8 +17,9 @@ There are many different gripper mechanisms ("jaws", "fingers", "electromagnets"
 
 PX4 supports grippers that have simple triggers to hold and release, and that use the following interfaces (see linked documents for details):
 
-- [PWM Servo Gripper](gripper_servo.md) - Grippers connected to autopilot PWM outputs
-- **MAVLink Gripper** (Untested) - Grippers that support the [MAV_CMD_DO_GRIPPER](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_GRIPPER) MAVLink command.
+- [PWM Servo Gripper](../peripherals/gripper_servo.md) — Grippers connected to autopilot PWM outputs.
+- [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md) — EPM grippers controlled using DroneCAN hardpoint commands.
+- **MAVLink Gripper** (Untested) — Grippers that support the [MAV_CMD_DO_GRIPPER](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_GRIPPER) MAVLink command.
 
 ## Using a Gripper
 
@@ -38,9 +39,14 @@ MAVLink applications, such as ground stations, can also control the gripper usin
 
 PX4 gripper support is tied to the package delivery feature, which must be enabled and configured in order to be able to use a gripper.
 
-1. Ensure your board has the Payload Deliverer module enabled: CONFIG_MODULES_PAYLOAD_DELIVERER.
+1. Ensure your board has the Payload Deliverer module enabled:
+
+   ```ini
+   CONFIG_MODULES_PAYLOAD_DELIVERER=y
+   ```
+
 2. Set [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) to match your gripper.
-   For example, set to `Servo` for a [Servo Gripper](gripper_servo.md).
+   Set it to `Binary Grab/Release` for a [Servo Gripper](gripper_servo.md) or [DroneCAN EPM Gripper](../peripherals/gripper_epm.md).
 
 ### Gripper Actuator Mapping
 

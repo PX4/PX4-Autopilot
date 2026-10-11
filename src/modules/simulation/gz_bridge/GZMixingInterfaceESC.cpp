@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "GZMixingInterfaceESC.hpp"
+#include <lib/mathlib/mathlib.h>
 
 bool GZMixingInterfaceESC::init(const std::string &model_name)
 {
@@ -72,6 +73,18 @@ bool GZMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned 
 
 		} else {
 			break;
+		}
+	}
+
+	// Signed non-motor channels (SIM_GZ_EC_SIGNED): send reverse as a negative value,
+	// mirroring the UAVCAN ESC driver.
+	for (unsigned i = 0; i < active_output_count; i++) {
+		// Encode reversible outputs above the disarmed value.
+		if ((_signed_mask & (1u << i)) && !_mixing_output.isMotor(i)
+		    && outputs[i] > (float)_mixing_output.disarmedValue(i)) {
+			const float min_i = (float)_mixing_output.minValue(i);
+			const float max_i = (float)_mixing_output.maxValue(i);
+			outputs[i] = math::interpolate(outputs[i], min_i, max_i, -max_i, max_i);
 		}
 	}
 
@@ -132,7 +145,8 @@ void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuato
 
 	if (esc_status.esc_count > 0) {
 		esc_status.timestamp = hrt_absolute_time();
-		_esc_status_pub.publish(esc_status);
+		_failure_config.update();
+		_esc_status_pub.publish(failure_injection::process_esc(_failure_config, esc_status));
 	}
 
 	pthread_mutex_unlock(&_node_mutex);

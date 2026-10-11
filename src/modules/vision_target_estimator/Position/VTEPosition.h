@@ -56,12 +56,14 @@
 #include <uORB/topics/fiducial_marker_pos_report.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/target_gnss.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vte_bias_init_status.h>
 #include <uORB/topics/vte_position.h>
 #include <uORB/topics/vte_aid_source3d.h>
 #include <vtest_derivation/generated/state.h>
+
+class VisionTargetEstTestable;
 
 namespace vision_target_estimator
 {
@@ -85,8 +87,14 @@ public:
 	/** Drop the estimator state. Cached external inputs (local pos/vel, offsets) are preserved. */
 	void resetFilter();
 
-	/** Cache the precision-land mission waypoint used to build the mission GNSS observation. */
+	/** Cache the task-specific absolute reference used to build the mission GNSS observation. */
 	void setMissionPosition(double lat_deg, double lon_deg, float alt_m);
+	/** Clear the task-specific absolute reference and its cached relative GNSS observation. */
+	void clearMissionPosition()
+	{
+		_mission_land_position = {};
+		_pos_rel_gnss = {};
+	}
 
 	/** Feed the latest EKF2 local NED velocity. Used for init and to compensate GNSS latency. */
 	void setLocalVelocity(const matrix::Vector3f &vel_xyz, bool valid, hrt_abstime timestamp);
@@ -141,6 +149,8 @@ public:
 		       || _vte_aid_mask.flags.use_mission_pos;
 	}
 
+	bool missionPosAidEnabled() const { return _vte_aid_mask.flags.use_mission_pos; }
+
 	void print_status() const;
 
 protected:
@@ -165,6 +175,8 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
+	friend class ::VisionTargetEstTestable;
+
 	// Observation types used by the estimator. Keep ordering stable for array indexing.
 	enum class ObsType : uint8_t {
 		kTargetGpsPos,
@@ -342,7 +354,7 @@ private:
 	bool processObsVision(TargetObs &obs);
 
 	/* UAV GPS data */
-	bool updateUavGpsData();
+	bool updateUavGnssData();
 	bool isUavGpsPositionValid();
 	bool isUavGpsVelocityValid();
 	bool processObsGNSSPosMission(TargetObs &obs);
@@ -363,7 +375,7 @@ private:
 	void resetObservations();
 	bool shouldEmitWarning(hrt_abstime &last_warn);
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _fiducial_marker_pos_report_sub{ORB_ID(fiducial_marker_pos_report)};
 	uORB::Subscription _target_gnss_sub{ORB_ID(target_gnss)};
 
@@ -407,7 +419,7 @@ private:
 	Vector3fStamped _target_gps_vel {};
 #endif // CONFIG_VTEST_MOVING
 
-	static constexpr float kInitialBiasLpfTimeConstantS{0.3f};
+	static constexpr hrt_abstime kInitialBiasLpfTimeConstant{300_ms};
 
 	struct BiasState {
 		bool set{false};
@@ -415,7 +427,7 @@ private:
 		uint8_t stable_delta_count{0};
 		hrt_abstime averaging_start_time{0};
 		hrt_abstime last_sample_time{0};
-		AlphaFilter<matrix::Vector3f> initial_lpf{kInitialBiasLpfTimeConstantS};
+		AlphaFilter<matrix::Vector3f> initial_lpf{kInitialBiasLpfTimeConstant};
 	};
 
 	bool _gps_pos_is_offset{false};

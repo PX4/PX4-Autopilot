@@ -239,7 +239,7 @@
 #endif
 
 #if S_RGB_LED_CHANNEL == 1
-# define SLED_CCER      (CCER_CCnxE << 0) |
+# define SLED_CCER      (CCER_CCnxE << 0)
 # define SLED_CCMR1     GTIM_CCMR1_OC1PE | (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT)
 # define SLED_CCMR2     0
 # define SLED_rCCR      rCCR1

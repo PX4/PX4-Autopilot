@@ -88,8 +88,9 @@ public:
 	/**
 	 * call this whenever parameters got updated. Make sure to have initializeSensors() called at least
 	 * once before calling this.
+	 * @param armed	while armed only a disable takes effect, every other priority change waits for disarm
 	 */
-	void parametersUpdate();
+	void parametersUpdate(bool armed = false);
 
 	/**
 	 * read new sensor data
@@ -103,6 +104,7 @@ public:
 	void setRelativeTimestamps(sensor_combined_s &raw);
 
 private:
+	friend class VotedSensorsUpdateTestPeer;
 
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
 
@@ -117,10 +119,20 @@ private:
 		int32_t priority_configured[MAX_SENSOR_COUNT] {};
 		uint8_t last_best_vote{0}; /**< index of the latest best vote */
 		uint8_t subscription_count{0};
-		bool advertised[MAX_SENSOR_COUNT] {false, false, false};
+		bool advertised[MAX_SENSOR_COUNT] {};
 	};
 
 	void initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max);
+
+	/**
+	 * Apply a configured priority (CAL_xxx_PRIO) to one sensor of one IMU
+	 */
+	void updatePriority(SensorData &sensor, uint8_t index, int32_t priority_configured, bool armed);
+
+	/**
+	 * Take an IMU out of the vote without a failover
+	 */
+	void disableImu(uint8_t index);
 
 	/**
 	 * Poll IMU for updated data.
@@ -135,6 +147,10 @@ private:
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
 	bool checkFailover(SensorData &sensor, const char *sensor_name, events::px4::enums::sensor_type_t sensor_type);
+
+	// VehicleIMU publishes an IMU only while both of its sensors are enabled, so disabling
+	// either one takes the whole IMU out of the vote
+	bool imuEnabled(uint8_t index) const { return (_accel.priority[index] > 0) && (_gyro.priority[index] > 0); }
 
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between each accelerometer vector and the mean of all vectors

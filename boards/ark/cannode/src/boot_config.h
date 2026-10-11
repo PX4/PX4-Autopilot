@@ -70,34 +70,7 @@
 #define OPT_NODE_INFO_RATE_MS           50
 #define OPT_BL_NUMBER_TIMERS            7
 
-/*
- *  This Option set is set to 1 ensure a provider of firmware has an
- *  opportunity update the node's firmware.
- *  This Option is the default policy and can be overridden by
- *  a jumper
- *  When this Policy is set, the node will ignore tboot and
- *  wait indefinitely for a GetNodeInfo request before booting.
- *
- *  OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT is used to allow
- *  the polarity of the jumper to be True Active
- *
- *  wait  OPT_WAIT_FOR_GETNODEINFO  OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO
- *                                                 Jumper
- *   yes           1                       0         x
- *   yes           1                       1       Active
- *   no            1                       1       Not Active
- *   no            0                       0         X
- *   yes           0                       1       Active
- *   no            0                       1       Not Active
- *
- */
 #define OPT_WAIT_FOR_GETNODEINFO                    0
-/* The ARK CANnode uses PH1 for GPIO_BOOT_CONFIG but it is not
- * compatible with px4_arch_gpioread as Port H = 7 which is greater
- * than STM32_NPORTS
- * #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO        0
- */
-#define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 1
 
 #define OPT_ENABLE_WD           1
 
@@ -127,8 +100,3 @@
 /* If this board uses big flash that have large sectors */
 
 #define OPT_USE_YIELD
-
-/* Bootloader Option*****************************************************************
- *
- */
-#define GPIO_GETNODEINFO_JUMPER (GPIO_BOOT_CONFIG & ~GPIO_EXTI)

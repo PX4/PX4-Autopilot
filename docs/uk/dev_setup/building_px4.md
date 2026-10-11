@@ -228,15 +228,22 @@ The build toolchain will then report `Too many open files` for many files, as sh
 arm-none-eabi-ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
 ```
 
-Рішення полягає в збільшенні максимально дозволеної кількості відкритих файлів (наприклад, до 300).
+The solution is to increase the maximum allowed number of open files (to 2048, matching the [macOS setup instructions](../dev_setup/dev_env_mac.md#prerequisites)).
 You can do this in the macOS _Terminal_ for each session:
 
-- Run this script [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh), or
-- Введіть наступну команду:
+- Source this script [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh) (it must be sourced, not executed, to affect your current shell):
 
   ```sh
-  ulimit -S -n 300
+  source Tools/mac_set_ulimit.sh
   ```
+
+- Or enter the command directly:
+
+  ```sh
+  ulimit -S -n 2048
+  ```
+
+To apply it to every new terminal, add the `ulimit` line to `~/.zshrc` as described in the macOS setup.
 
 ### macOS Catalina: Складнощі при використанні cmake
 
@@ -296,10 +303,10 @@ make list_config_targets
 
 **VIEWER_MODEL_DEBUGGER_WORLD:**
 
-- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `jmavsim`, `none` <!-- , ?airsim -->
+- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `none` <!-- , ?airsim -->
 
   :::tip
-  `none` can be used if you want to launch PX4 and wait for a simulator (jmavsim, Gazebo, Gazebo Classic, or some other simulator).
+  `none` can be used if you want to launch PX4 and wait for a simulator (Gazebo, Gazebo Classic, or some other simulator).
   For example, `make px4_sitl none_iris` launches PX4 without a simulator (but with the iris airframe).
 
 :::
@@ -315,15 +322,6 @@ make list_config_targets
   Default is [empty.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/empty.world).
   For more information see [Gazebo Classic > Loading a Specific World](../sim_gazebo_classic/index.md#loading-a-specific-world).
 
-:::tip
-You can get a list of _all_ available `VIEWER_MODEL_DEBUGGER_WORLD` options using the command below:
-
-```sh
-make px4_sitl list_vmd_make_targets
-```
-
-:::
-
 ::: info
 
 - Most of the values in the `CONFIGURATION_TARGET` and `VIEWER_MODEL_DEBUGGER` have defaults, and are hence optional.
@@ -331,7 +329,7 @@ make px4_sitl list_vmd_make_targets
 - Ви можете використати три підкреслювання, якщо хочете вказати значення за замовчуванням між двома іншими налаштуваннями.
   For example, `gazebo-classic___gdb` is equivalent to `gazebo-classic_iris_gdb`.
 - You can use a `none` value for `VIEWER_MODEL_DEBUGGER` to start PX4 and wait for a simulator.
-  For example start PX4 using `make px4_sitl_default none` and jMAVSim using `./Tools/simulation/jmavsim/jmavsim_run.sh -l`.
+  For example start PX4 using `make px4_sitl_default none` and then start your simulator.
 
 :::
 

@@ -98,7 +98,7 @@ This section contains videos that are specific to Tailsitter VTOL (videos that a
 :::
 
 :::tab Skypull
-[Skypull](https://www.skypull.technology/)
+Skypull
 
 ![Skypull SP-1 VTOL QuadTailsitter](../../assets/airframes/vtol/skypull/skypull_sp1.jpg)
 :::

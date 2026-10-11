@@ -48,6 +48,7 @@ static inline uint32_t getValidNavStates()
 	return (1u << vehicle_status_s::NAVIGATION_STATE_MANUAL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ALTCTL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE) |
+	       (1u << vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_POSCTL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) |
@@ -60,6 +61,7 @@ static inline uint32_t getValidNavStates()
 	       (1u << vehicle_status_s::NAVIGATION_STATE_STAB) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) |
+	       (1u << vehicle_status_s::NAVIGATION_STATE_DESCEND) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT) |
@@ -68,7 +70,7 @@ static inline uint32_t getValidNavStates()
 	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "update valid nav states");
 }
 
-const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
+inline const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"Manual",
 	"Altitude",
 	"Position",
@@ -78,7 +80,7 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"Position Slow",
 	"Guided Course",
 	"Altitude Cruise",
-	"9: unallocated",
+	"Manual Parking",
 	"Acro",
 	"11: UNUSED",
 	"Descend",
@@ -101,6 +103,26 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"External 7",
 	"External 8",
 };
+
+/**
+ * @return Human-readable name for a nav_state, taking the vehicle type into account.
+ *
+ * The position control mode is shown as "Cruise" for fixed-wing vehicles (including VTOLs in
+ * forward flight, which report VEHICLE_TYPE_FIXED_WING) and as "Position" for all other types.
+ */
+static inline const char *nav_state_name(uint8_t nav_state, uint8_t vehicle_type)
+{
+	if (nav_state >= vehicle_status_s::NAVIGATION_STATE_MAX) {
+		return "(unknown)";
+	}
+
+	if (nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL
+	    && vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		return "Cruise";
+	}
+
+	return nav_state_names[nav_state];
+}
 
 /**
  * @return returns true for advanced modes

@@ -53,7 +53,7 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_index(index < 1 || index > 9 ? 1 : index),
 	_source(source)
 {
-	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1_s;
+	const float expected_filter_dt = static_cast<float>(sample_interval_us) * 1e-6f;
 	_current_average_filter_a.setParameters(expected_filter_dt, 50.f);
 	_ocv_filter_v.setParameters(expected_filter_dt, 1.f);
 	_cell_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
@@ -208,7 +208,16 @@ void Battery::publishBatteryStatus(const battery_status_s &battery_status)
 void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp)
 {
 	updateBatteryStatus(timestamp);
-	publishBatteryStatus(getBatteryStatus());
+
+	battery_status_s battery_status = getBatteryStatus();
+
+	_failure_config.update();
+
+	if (!failure_injection::process_battery(_failure_config, battery_status.id, battery_status)) {
+		return;
+	}
+
+	publishBatteryStatus(battery_status);
 }
 void Battery::updateDt(const hrt_abstime &timestamp)
 {
@@ -370,10 +379,10 @@ uint16_t Battery::determineFaults()
 
 void Battery::computeScale()
 {
-	_scale = _params.v_charged / _cell_voltage_filter_v.getState();
+	const float cell_voltage = _cell_voltage_filter_v.getState();
 
-	if (PX4_ISFINITE(_scale)) {
-		_scale = math::constrain(_scale, 1.f, 1.3f); // Allow at most 30% compensation
+	if (cell_voltage > FLT_EPSILON) {
+		_scale = math::constrain(_params.v_charged / cell_voltage, 1.f, 1.3f); // Allow at most 30% compensation
 
 	} else {
 		_scale = 1.f;

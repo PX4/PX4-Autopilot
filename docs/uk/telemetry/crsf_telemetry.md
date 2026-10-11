@@ -188,30 +188,35 @@ Express LRS provide Radio System guidance in the [Hardware Selection](https://ww
 
 The supported telemetry messages and their source are listed below (this table is reproduced from the [TBS Crossfire Manual: "Available sensors with OpenTX"](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf)).
 
-| Datapoint | Опис                                                              | Джерела даних                    |
-| --------- | ----------------------------------------------------------------- | -------------------------------- |
-| 1RSS      | Uplink - отримана сила сигналу антени 1 (RSSI) | TBS CROSSFIRE RX                 |
-| 2RSS      | Uplink - отримана сила сигналу антени 2 (RSSI) | TBS CROSSFIRE RX                 |
-| RQly      | Uplink - якість посилання (дійсні пакети)      | TBS CROSSFIRE RX                 |
-| RSNR      | Uplink - відношення сигнал/шум                                    | TBS CROSSFIRE RX                 |
-| RFMD      | Uplink - частота оновлення, 0 = 4Гц, 1 = 50Гц, 2 = 150Гц          | TBS CROSSFIRE RX                 |
-| TPWR      | Uplink - потужність передачі                                      | TBS CROSSFIRE TX                 |
-| TRSS      | Downlink - сила сигналу антени                                    | TBS CROSSFIRE TX                 |
-| TQly      | Downlink - якість посилання (дійсні пакети)    | TBS CROSSFIRE TX                 |
-| TSNR      | Downlink - відношення сигнал/шум                                  | TBS CROSSFIRE TX                 |
-| ANT       | Датчик лише для налагодження                                      | TBS CROSSFIRE TX                 |
-| GPS       | GPS координати                                                    | TBS GPS / FC                     |
-| Alt       | GPS Висоти                                                        | TBS GPS / FC                     |
-| Sats      | Супутники GPS отримано                                            | TBS GPS / FC                     |
-| Hdg       | Магнітна орієнтація                                               | TBS GPS / FC                     |
-| RXBt      | Напруга батареї                                                   | TBS GPS / FC/ CROSSFIRE RX/ CORE |
-| Curr      | Поточне витягування                                               | TBS GPS / FC// CORE              |
-| Capa      | Поточне споживання                                                | TBS GPS / FC/ CORE               |
-| Ptch      | Кут нахилу поля FC                                                | FC                               |
-| Roll      | Кут кочення FC                                                    | FC                               |
-| Yaw       | Кут курсу FC                                                      | FC                               |
-| FM        | Режим польоту                                                     | FC                               |
-| VSPD      | Барометр                                                          | FC                               |
+| Datapoint | Опис                                                               | Джерела даних                    |
+| --------- | ------------------------------------------------------------------ | -------------------------------- |
+| 1RSS      | Uplink - отримана сила сигналу антени 1 (RSSI)  | TBS CROSSFIRE RX                 |
+| 2RSS      | Uplink - отримана сила сигналу антени 2 (RSSI)  | TBS CROSSFIRE RX                 |
+| RQly      | Uplink - якість посилання (дійсні пакети)       | TBS CROSSFIRE RX                 |
+| RSNR      | Uplink - відношення сигнал/шум                                     | TBS CROSSFIRE RX                 |
+| RFMD      | Uplink - частота оновлення, 0 = 4Гц, 1 = 50Гц, 2 = 150Гц           | TBS CROSSFIRE RX                 |
+| TPWR      | Uplink - потужність передачі                                       | TBS CROSSFIRE TX                 |
+| TRSS      | Downlink - сила сигналу антени                                     | TBS CROSSFIRE TX                 |
+| TQly      | Downlink - якість посилання (дійсні пакети)     | TBS CROSSFIRE TX                 |
+| TSNR      | Downlink - відношення сигнал/шум                                   | TBS CROSSFIRE TX                 |
+| ANT       | Датчик лише для налагодження                                       | TBS CROSSFIRE TX                 |
+| GPS       | GPS координати                                                     | TBS GPS / FC                     |
+| Alt       | GPS Висоти                                                         | TBS GPS / FC                     |
+| Sats      | Супутники GPS отримано                                             | TBS GPS / FC                     |
+| Hdg       | Магнітна орієнтація                                                | TBS GPS / FC                     |
+| RXBt      | Напруга батареї                                                    | TBS GPS / FC/ CROSSFIRE RX/ CORE |
+| Curr      | Поточне витягування                                                | TBS GPS / FC// CORE              |
+| Capa      | Поточне споживання                                                 | TBS GPS / FC/ CORE               |
+| Ptch      | Кут нахилу поля FC                                                 | FC                               |
+| Roll      | Кут кочення FC                                                     | FC                               |
+| Yaw       | Кут курсу FC                                                       | FC                               |
+| FM        | Режим польоту                                                      | FC                               |
+| Alt       | Altitude above the local origin (takeoff point) | FC                               |
+| VSpd      | Vertical speed                                                     | FC                               |
+
+:::info
+`GAlt` (in the GPS sensor) is GPS altitude above mean sea level, while `Alt`/`VSpd` are PX4's fused local altitude and climb rate relative to the estimator origin (roughly the takeoff point). PX4 sends these in the CRSF barometric-altitude frame, so despite the frame name the value is not a raw barometer reading. `VSpd` uses the linear vertical-speed form, which requires a recent EdgeTX (2.9+); the altitude displays on EdgeTX 2.7.1 and later.
+:::
 
 ## Дивіться також
 

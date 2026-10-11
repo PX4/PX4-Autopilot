@@ -55,6 +55,7 @@
 #include "mag.h"
 #include "baro.h"
 #include "gps.h"
+#include "gnss_yaw.h"
 #include "flow.h"
 #include "range_finder.h"
 #include "vio.h"
@@ -95,6 +96,9 @@ public:
 	void startGps() { _gps.start(); }
 	void stopGps() { _gps.stop(); }
 
+	void startGnssYaw() { _gnss_yaw.start(); }
+	void stopGnssYaw() { _gnss_yaw.stop(); }
+
 	void startFlow() { _flow.start(); }
 	void stopFlow() { _flow.stop(); }
 
@@ -123,6 +127,7 @@ public:
 	Baro        _baro;
 	Flow        _flow;
 	Gps         _gps;
+	GnssYaw     _gnss_yaw;
 	Imu         _imu;
 	Mag         _mag;
 	RangeFinder _rng;

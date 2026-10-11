@@ -100,7 +100,7 @@ public:
 #endif // __PX4_POSIX
 
 	atomic() = default;
-	explicit atomic(T value) : _value(value) {}
+	explicit constexpr atomic(T value) : _value(value) {}
 
 	/**
 	 * Atomically read the current value

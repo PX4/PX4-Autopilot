@@ -70,7 +70,7 @@ Note that the y-axis scaling is different for different vehicles, but logs from 
 
 #### Examples: Good Vibration
 
-[QAV-R 5" Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md) frame (excellent vibration).
+[QAV-R 5" Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer) frame (excellent vibration).
 
 ![Low vibration QAV-R 5 Racer - FFT plot](../../assets/flight_log_analysis/flight_review/vibrations_good_actuator_controls_fft.png)
 
@@ -106,7 +106,7 @@ Ideally only the lowest part up to a few Hz is yellow, and the rest is mostly gr
 
 #### Examples: Good Vibration
 
-[QAV-R 5" Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md) frame (excellent vibration).
+[QAV-R 5" Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer) frame (excellent vibration).
 
 ![Low vibration QAV-R 5 Racer - spectral density plot](../../assets/flight_log_analysis/flight_review/vibrations_good_spectral.png)
 
@@ -158,7 +158,7 @@ The best way to use this graph is to zoom in a bit to a part where the vehicle i
 
 #### Examples: Good Vibration
 
-[QAV-R 5" Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md) frame (excellent vibration).
+[QAV-R 5" Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer) frame (excellent vibration).
 
 ![Low vibration QAV-R 5 Racer - raw accel. plot](../../assets/flight_log_analysis/flight_review/vibrations_good_accel.png)
 
@@ -380,7 +380,7 @@ The section below groups a few (previously presented) charts by flight/vehicle.
 
 ### QAV-R 5" Racer
 
-These charts are all from the same flight of a [QAV-R 5" Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md).
+These charts are all from the same flight of a [QAV-R 5" Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer).
 
 <!-- https://logs.px4.io/plot_app?log=cd88b091-ec89-457c-85f6-e63e4fa0f51d -->
 

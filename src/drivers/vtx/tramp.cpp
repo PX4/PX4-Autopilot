@@ -50,7 +50,9 @@ int Tramp::get_settings()
 	if (rv != 0) { return rv; }
 
 	px4_usleep(30_ms);
-	return get_temperature();
+	int temperature_data = get_temperature();
+	// ignore temperature data if not available
+	return temperature_data == -ETIMEDOUT ? 0 : temperature_data;
 }
 
 

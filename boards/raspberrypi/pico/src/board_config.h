@@ -91,9 +91,6 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS      4
 
-// Has pwm outputs
-#define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
-
 /*
  * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore

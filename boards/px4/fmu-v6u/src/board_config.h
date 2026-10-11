@@ -264,11 +264,6 @@
 #define RC_SERIAL_SINGLEWIRE
 #define RC_SERIAL_SWAP_RXTX
 
-/* Input Capture Channels. */
-#define INPUT_CAP1_TIMER                  1
-#define INPUT_CAP1_CHANNEL     /* T1C2 */ 2
-#define GPIO_INPUT_CAP1        /*  PE11 */ GPIO_TIM1_CH2IN
-
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
 #define PWMIN_TIMER_CHANNEL    /* T4C2 */ 2

@@ -41,7 +41,7 @@ Battery instance information is also logged and streamed in MAVLink telemetry.
 | <a id="fld_max_cell_voltage_delta"></a>max_cell_voltage_delta   | `float32`     | V                                                                |                                                                               | Max difference between individual cell voltages                                                                                                                |
 | <a id="fld_is_powering_off"></a>is_powering_off                                      | `bool`        |                                                                  |                                                                               | Power off event imminent indication, false if unknown                                                                                                          |
 | <a id="fld_is_required"></a>is_required                                                                   | `bool`        |                                                                  |                                                                               | Set if the battery is explicitly required before arming                                                                                                        |
-| <a id="fld_warning"></a>warning                                                                                                | `uint8`       |                                                                  | [WARNING](#WARNING), [STATE](#STATE)                                          | Current battery warning                                                                                                                                        |
+| <a id="fld_warning"></a>warning                                                                                                | `uint8`       |                                                                  | [WARNING](#WARNING)                                                           | Current battery warning                                                                                                                                        |
 | <a id="fld_faults"></a>faults                                                                                                  | `uint16`      |                                                                  | [FAULT](#FAULT)                                                               | Smart battery supply status/fault flags (bitmask) for health indication                                                                     |
 | <a id="fld_full_charge_capacity_wh"></a>full_charge_capacity_wh | `float32`     | Wh                                                               |                                                                               | Compensated battery capacity                                                                                                                                   |
 | <a id="fld_remaining_capacity_wh"></a>remaining_capacity_wh                          | `float32`     | Wh                                                               |                                                                               | Compensated battery capacity remaining (Invalid: NaN)                                                                       |
@@ -71,22 +71,15 @@ Used in field(s): [source](#fld_source)
 
 Used in field(s): [warning](#fld_warning)
 
-| 명칭                                                                     | 형식      | Value | 설명                                           |
-| ---------------------------------------------------------------------- | ------- | ----- | -------------------------------------------- |
-| <a id="#WARNING_NONE"></a> WARNING_NONE           | `uint8` | 0     | No battery low voltage warning active        |
-| <a id="#WARNING_LOW"></a> WARNING_LOW             | `uint8` | 1     | Low voltage warning                          |
-| <a id="#WARNING_CRITICAL"></a> WARNING_CRITICAL   | `uint8` | 2     | Critical voltage, return / abort immediately |
-| <a id="#WARNING_EMERGENCY"></a> WARNING_EMERGENCY | `uint8` | 3     | Immediate landing required                   |
-| <a id="#WARNING_FAILED"></a> WARNING_FAILED       | `uint8` | 4     | Battery has failed completely                |
-
-### STATE {#STATE}
-
-Used in field(s): [warning](#fld_warning)
-
-| 명칭                                                                 | 형식      | Value | 설명                                                                                                                                                                                   |
-| ------------------------------------------------------------------ | ------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="#STATE_UNHEALTHY"></a> STATE_UNHEALTHY | `uint8` | 6     | Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field |
-| <a id="#STATE_CHARGING"></a> STATE_CHARGING   | `uint8` | 7     | Battery is charging                                                                                                                                                                  |
+| 명칭                                                                     | 형식      | Value | 설명                                                                                                                                                                                   |
+| ---------------------------------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="#WARNING_NONE"></a> WARNING_NONE           | `uint8` | 0     | No battery low voltage warning active                                                                                                                                                |
+| <a id="#WARNING_LOW"></a> WARNING_LOW             | `uint8` | 1     | Low voltage warning                                                                                                                                                                  |
+| <a id="#WARNING_CRITICAL"></a> WARNING_CRITICAL   | `uint8` | 2     | Critical voltage, return / abort immediately                                                                                                                                         |
+| <a id="#WARNING_EMERGENCY"></a> WARNING_EMERGENCY | `uint8` | 3     | Immediate landing required                                                                                                                                                           |
+| <a id="#WARNING_FAILED"></a> WARNING_FAILED       | `uint8` | 4     | Battery has failed completely                                                                                                                                                        |
+| <a id="#WARNING_UNHEALTHY"></a> WARNING_UNHEALTHY | `uint8` | 6     | Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field |
+| <a id="#WARNING_CHARGING"></a> WARNING_CHARGING   | `uint8` | 7     | Battery is charging                                                                                                                                                                  |
 
 ### FAULT {#FAULT}
 
@@ -165,14 +158,14 @@ float32 max_cell_voltage_delta # [V] Max difference between individual cell volt
 bool is_powering_off # Power off event imminent indication, false if unknown
 bool is_required # Set if the battery is explicitly required before arming
 
-uint8 warning # [@enum WARNING STATE] Current battery warning
+uint8 warning # [@enum WARNING] Current battery warning
 uint8 WARNING_NONE = 0 # No battery low voltage warning active
 uint8 WARNING_LOW = 1 # Low voltage warning
 uint8 WARNING_CRITICAL = 2 # Critical voltage, return / abort immediately
 uint8 WARNING_EMERGENCY = 3 # Immediate landing required
 uint8 WARNING_FAILED = 4 # Battery has failed completely
-uint8 STATE_UNHEALTHY = 6 # Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field
-uint8 STATE_CHARGING = 7 # Battery is charging
+uint8 WARNING_UNHEALTHY = 6 # Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field
+uint8 WARNING_CHARGING = 7 # Battery is charging
 
 uint16 faults # [@enum FAULT] Smart battery supply status/fault flags (bitmask) for health indication
 uint8 FAULT_DEEP_DISCHARGE = 0 # Battery has deep discharged

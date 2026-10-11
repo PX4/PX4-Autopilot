@@ -63,9 +63,8 @@ parameters:
       description:
         short: Maximum horizontal acceleration
         long: |-
-          MPC_POS_MODE
-          1 just deceleration
-          4 not used, use MPC_ACC_HOR instead
+          With MPC_POS_MODE=0 it limits deceleration.
+          With MPC_POS_MODE=4 it is unused (see MPC_ACC_HOR).
       type: float
       default: 5.0
       unit: m/s^2

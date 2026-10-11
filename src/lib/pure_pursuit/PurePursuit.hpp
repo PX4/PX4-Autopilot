@@ -49,7 +49,7 @@
  * The lookahead distance is defined as v * k.
  * 	v: Vehicle ground speed [m/s]
  * 	k: Tuning parameter
- * The lookahead distance is further constrained between an upper and lower threshhold.
+ * The lookahead distance is further constrained between an upper and lower threshold.
  * 							C
  * 		  				       /
  * 						    __/__

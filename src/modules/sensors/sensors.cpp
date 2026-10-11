@@ -162,6 +162,9 @@ bool Sensors::init()
 int Sensors::parameters_update()
 {
 	if (_armed) {
+		// in flight only an IMU disable takes effect, the rest is read once disarmed
+		_voted_sensors_update.parametersUpdate(true);
+		_parameter_update_deferred = true;
 		return 0;
 	}
 
@@ -183,13 +186,16 @@ int Sensors::parameters_update()
 	//    this preserves the calibration in the event of a parameter export while the sensor is missing
 	// 2. ensure calibration slots are active for the number of sensors currently available
 	//    this to done to eliminate differences in the active set of parameters before and after sensor calibration
+	//
+	// a missing sensor's internal/external class is unknowable from the device id alone, so pass internal:
+	// only the external branch of ParametersLoad() rewrites CAL_*_ROT, and this pass must stay read-only
 	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 		// sensor_accel
 		{
 			const uint32_t device_id_accel = calibration::GetCalibrationParamInt32("ACC",  "ID", i);
 
 			if (device_id_accel != 0) {
-				calibration::Accelerometer accel_cal(device_id_accel);
+				calibration::Accelerometer accel_cal(device_id_accel, false);
 			}
 
 			uORB::SubscriptionData<sensor_accel_s> sensor_accel_sub{ORB_ID(sensor_accel), i};
@@ -207,7 +213,7 @@ int Sensors::parameters_update()
 			const uint32_t device_id_gyro = calibration::GetCalibrationParamInt32("GYRO", "ID", i);
 
 			if (device_id_gyro != 0) {
-				calibration::Gyroscope gyro_cal(device_id_gyro);
+				calibration::Gyroscope gyro_cal(device_id_gyro, false);
 			}
 
 			uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
@@ -226,7 +232,7 @@ int Sensors::parameters_update()
 			uint32_t device_id_mag = calibration::GetCalibrationParamInt32("MAG",  "ID", i);
 
 			if (device_id_mag != 0) {
-				calibration::Magnetometer mag_cal(device_id_mag);
+				calibration::Magnetometer mag_cal(device_id_mag, false);
 			}
 
 			uORB::SubscriptionData<sensor_mag_s> sensor_mag_sub{ORB_ID(sensor_mag), i};
@@ -519,6 +525,12 @@ void Sensors::Run()
 		}
 	}
 
+	// parameters that changed in flight were only applied as far as an IMU disable
+	if (!_armed && _parameter_update_deferred) {
+		_parameter_update_deferred = false;
+		parameters_update();
+	}
+
 	// keep adding sensors as long as we are not armed,
 	// when not adding sensors poll for param updates
 	if ((!_armed && hrt_elapsed_time(&_last_config_update) > 500_ms) || (_last_config_update == 0)) {
@@ -536,10 +548,10 @@ void Sensors::Run()
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-		const int n_gps = orb_group_count(ORB_ID(sensor_gps));
+		const int n_gnss = orb_group_count(ORB_ID(sensor_gnss));
 
-		if (n_gps != _n_gps) {
-			_n_gps = n_gps;
+		if (n_gnss != _n_gnss) {
+			_n_gnss = n_gnss;
 			updated = true;
 		}
 

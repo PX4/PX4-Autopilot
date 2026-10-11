@@ -21,8 +21,7 @@ For safety reasons, the default gains are set to low values.
 
 - 调整增益时，所有的增益值都应该慢慢增加, 因为增益过大可能会导致危险的振荡!
   一般情况下，每次增益值的调整幅度大约在20%到30%，获得最优增益值后，基于最优值再下调5%到10%。
-- 在修改参数之前务必先着陆。
-  慢慢增加油门，观察振荡的现象。
+- 在修改参数之前务必先着陆。慢慢增加油门，观察振荡的现象。
 - Tune the vehicle around the hovering thrust point, and use the [thrust curve parameter](#thrust-curve) to account for thrust non-linearities or high-thrust oscillations.
 - Optionally enable the high-rate logging profile with the [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) parameter so you can use the log to evaluate the rate and attitude tracking performance (the option can be disabled afterwards).
 
@@ -78,8 +77,7 @@ The _parallel form_ is the simplest form, and is (hence) commonly used in textbo
 
 ##### 标准模式
 
-这种形式在数学上等同于并行形式。 但主要的优点是（即使似乎有点反直觉）将比例增益的调试与积分、微分增益分离开了。
-这意味着一个新的平台通过使用同样大小/推力 无人机的增益，使它更易于调试，只是简单地调整K增益就可正常飞行。
+这种形式在数学上等同于并行形式。 但主要的优点是（即使似乎有点反直觉）将比例增益的调试与积分、微分增益分离开了。这意味着一个新的平台通过使用同样大小/推力 无人机的增益，使它更易于调试，只是简单地调整K增益就可正常飞行。
 
 ![PID_Standard](../../assets/mc_pid_tuning/PID_algorithm_Standard.png)
 
@@ -173,8 +171,7 @@ A well-tuned vehicle in _Acro mode_ will not tilt randomly towards one side, but
 
 #### 日志
 
-看看日志有助于你看看你调的参咋样。
-下面是一份调得比较好的滚转和偏航角速度的日志。
+看看日志有助于你看看你调的参咋样。下面是一份调得比较好的滚转和偏航角速度的日志。
 
 ![roll rate tracking](../../assets/mc_pid_tuning/roll_rate_tracking.png)
 ![yaw rate tracking](../../assets/mc_pid_tuning/yaw_rate_tracking.png)
@@ -191,13 +188,12 @@ You can see that the vehicle overshoots only by a very small amount:
 - Pitch control ([MC_PITCH_P](../advanced_config/parameter_reference.md#MC_PITCH_P))
 - Yaw control ([MC_YAW_P](../advanced_config/parameter_reference.md#MC_YAW_P))
 
-姿态角控制环调起来就容易多了。
-其实大多数时候默认值就够了，完全不用调。
+姿态角控制环调起来就容易多了。其实大多数时候默认值就够了，完全不用调。
 
 To tune the attitude controller, fly in _Stabilized mode_ and increase the **P** gains gradually.
 如果看到有振荡或者超调，就说明增益调得太高了。
 
-下面这几个参数也可以调整 这些参数决定了绕三个轴的最大角速度：
+下面这几个参数也可以调整这些参数决定了绕三个轴的最大角速度：
 
 - Maximum roll rate ([MC_ROLLRATE_MAX](../advanced_config/parameter_reference.md#MC_ROLLRATE_MAX))
 - Maximum pitch rate ([MC_PITCHRATE_MAX](../advanced_config/parameter_reference.md#MC_PITCHRATE_MAX))
@@ -205,8 +201,7 @@ To tune the attitude controller, fly in _Stabilized mode_ and increase the **P**
 
 ### 推力曲线
 
-以上的调整都是在悬停油门的基础上的。
-但当你逐渐增大到满油门时，机体可能又开始振荡了。
+以上的调整都是在悬停油门的基础上的。但当你逐渐增大到满油门时，机体可能又开始振荡了。
 
 To counteract that, adjust the **thrust curve** with the [THR_MDL_FAC](../advanced_config/parameter_reference.md#THR_MDL_FAC) parameter.
 

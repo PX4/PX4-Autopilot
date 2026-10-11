@@ -174,7 +174,7 @@ bool VehicleAcceleration::SensorSelectionUpdate(bool force)
 						// clear bias and corrections
 						_bias.zero();
 
-						_calibration.set_device_id(device_id);
+						_calibration.set_device_id(device_id, sensor_accel_sub.get().is_external);
 
 						CheckAndUpdateFilters();
 

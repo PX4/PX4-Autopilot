@@ -34,4 +34,7 @@
 px4_add_library(performance_model
         PerformanceModel.cpp
 )
+target_link_libraries(performance_model PRIVATE atmosphere geo)
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/performance_model_params.yaml)
+
+px4_add_functional_gtest(SRC PerformanceModelTest.cpp LINKLIBS performance_model)

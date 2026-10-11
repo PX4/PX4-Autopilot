@@ -248,9 +248,9 @@ private:
 		{
 			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
-				return new uORB_over_UAVCAN_Subscriber<sensor_gps_s>(handle, pmgr, ORB_ID(sensor_gps));
+				return new uORB_over_UAVCAN_Subscriber<sensor_gnss_s>(handle, pmgr, ORB_ID(sensor_gnss));
 			},
-			"uorb.sensor_gps",
+			"uorb.sensor_gnss",
 			0
 		},
 #endif
