@@ -2186,7 +2186,7 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_AIRSPEED
 #if defined(CONFIG_EKF2_SIDESLIP)
 		wind.beta_innov = _ekf.aid_src_sideslip().innovation;
-		wind.beta_innov = _ekf.aid_src_sideslip().innovation_variance;
+		wind.beta_innov_var = _ekf.aid_src_sideslip().innovation_variance;
 #endif // CONFIG_EKF2_SIDESLIP
 
 		wind.windspeed_north = wind_vel(0);
