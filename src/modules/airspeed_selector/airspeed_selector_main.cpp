@@ -503,7 +503,9 @@ AirspeedModule::Run()
 				    && fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[scale_index]) >
 				    scale_change_threshold) {
 
-					mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor Nr. %d ASPD_SCALE updated: %.4f --> %.4f", i + 1,
+
+					mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor Nr. %d: ASPD_SCALE_%d updated: %.4f --> %.4f",
+							 i + 1, scale_index + 1,
 							 (double)_param_airspeed_scale[scale_index],
 							 (double)_airspeed_validator[i].get_CAS_scale_validated());
 
