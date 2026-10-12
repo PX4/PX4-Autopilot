@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_PTGL100
+	bool "ptgl100"
+	default n
+	---help---
+		Enable the JRT PTGL-100 UART laser rangefinder driver.

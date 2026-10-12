@@ -287,6 +287,8 @@
 
 #define DRV_MAG_DEVTYPE_AK09940A        0xF2
 
+#define DRV_DIST_DEVTYPE_PTGL100        0xF4
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
