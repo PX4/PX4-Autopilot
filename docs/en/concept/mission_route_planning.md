@@ -23,7 +23,8 @@ After a fixed-wing system failure, Route-following Return keeps the selected rou
 :::
 
 ::: warning
-No geofence or obstacle check is applied to a planned join, route, or branch-off leg.
+The planner checks branch-in, branch-off and direct-to-goal segments against loaded geofences; see [Geofence Checks](#geofence-checks).
+These checks do not cover obstacles, the space needed to turn, or VTOL landing approaches.
 :::
 
 ## How It Works
@@ -137,16 +138,17 @@ Fallback occurs when:
 - Route planning is compiled out (`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0`); a pre-arm warning reports this when `RTL_TYPE=7` is set.
 - The current mission has no valid feasibility result, including while validation is pending or the result belongs to a previous mission, home position or geofence.
 - The complete mission or rally-point cache is unavailable, still loading/reloading or does not match the current source. This includes missions exceeding the configured full-cache capacity.
+- The geofence is loading, unavailable, or cannot check a candidate path.
 - The planner cannot produce a valid join and return path: for example, required position/index/parameter inputs are invalid, required mission data cannot be read, or no usable rally point or mission endpoint can be reached through the route.
 - The result cannot be accepted because its source changed during planning, its plan is invalid, or the selected rally-point index exceeds the supported range.
 - There is insufficient memory to start route following.
 - Vehicle status reports a type other than multicopter or fixed-wing. VTOL hover, forward flight and transitions are supported.
 
-During route following, changes to the mission or rally points trigger replanning.
+During route following, changes to the mission, rally points or geofence trigger replanning.
 If that replan cannot be accepted, the same direct fallback applies.
-Once the destination arrival or landing sequence has begun, changes to the mission or rally points do not replace it.
+Once the destination arrival or landing sequence has begun, these changes do not replace it.
 
-Pending cache or mission-validation inputs are retried on the two-second check once they are ready and the mission is valid, provided landing has not started.
+Pending cache, geofence or mission-validation inputs are retried on the two-second check once they are ready and the mission is valid, provided the destination arrival or landing sequence has not started.
 Other planning or allocation failures do not automatically retry on that timer.
 
 If no rally point is usable, the planner first tries mission takeoff/landing endpoints.
@@ -254,6 +256,32 @@ This is a rare corner case and is accepted.
 
 :::
 
+### Geofence Checks {#geofence-checks}
+
+Before selecting a branch-in or branch-off point, the planner checks the segment between that point and the vehicle or safe point.
+Both ends must be within the permitted area, altitude and distance-from-home limits.
+A segment that touches or crosses an inclusion or exclusion fence boundary is rejected.
+
+The planner checks the candidates retained by [Point Projection](#point-projection), up to three per vehicle or safe point.
+It does not search for replacements.
+If no branch-in candidate passes, smart rejoin or route-following Return uses its existing fallback.
+If no safe point has a usable branch-off, Return can still select a mission takeoff or landing endpoint.
+
+[Route-skip shortcuts](#route-skip-shortcuts) are checked separately because they fly directly to the destination instead of following the checked branch-in and branch-off segments.
+Uploaded mission segments are checked by mission feasibility validation.
+The planner does not find detours around fences or check landing-approach geometry.
+
+When the vehicle already breaches the loaded fence, the planner skips these checks to allow recovery along the route.
+If the fence is unavailable or still loading, the behaviour depends on the flight mode:
+
+- When Mission mode starts, smart rejoin is skipped with a warning and the mission resumes towards its current item.
+  Smart rejoin is not retried during that activation.
+- When Return starts or is still following the mission route, it uses [direct fallback](#route-following-fallback).
+  It retries route planning on the two-second check once the fence and other inputs are ready, provided the destination arrival or landing sequence has not started.
+  An arrival or landing sequence already in progress continues unchanged.
+- When Return is inactive, only background route planning waits for the fence.
+  It retries every two seconds without changing the current flight mode.
+
 ## Vehicle Projection
 
 When a feature needs to rejoin the route, the first step is to project the current vehicle position onto the mission path and choose a "branch-in" point.
@@ -264,6 +292,7 @@ The branch-in point is chosen in three phases:
 **Phase 1: Identifying valid candidates:**
 
 The vehicle is projected onto the route as described in [Point Projection](#point-projection).
+Candidates must pass the [Geofence Checks](#geofence-checks) before selection.
 
 **Phase 2: Selecting the best branch-in point:**
 
@@ -339,6 +368,7 @@ As the planner gathers the safe points to consider, it filters out the ones it c
 
 - Invalid coordinates, unsupported frames, or filtered safe points are skipped.
 - Every remaining safe point gets up to three projections.
+- Branch-off segments must pass the [Geofence Checks](#geofence-checks) before scoring.
 
 Safe-point branch-off candidates on loop segments are more restricted:
 
@@ -356,6 +386,10 @@ After a destination has been selected, the vehicle can skip joining and followin
 - **Endpoint goal**: for a mission `LAND` or `TAKEOFF` goal, the route-ends rule of [Vehicle Projection](#vehicle-projection) Phase 3 applies. When that endpoint is the first item to fly and the vehicle is inside its acceptance radius, the Return skips route following and flies directly to it.
 
 These shortcuts are applied only after selection, so they never change which goal wins the cost comparison.
+The direct segment to the destination must also pass the [Geofence Checks](#geofence-checks).
+If flying straight to the safe point would cross a fence or breach a limit, the vehicle follows the selected route instead.
+For a nearby mission landing or takeoff endpoint, the branch-in point may already count as reached, so following the route could immediately lead to the same rejected segment.
+In that case, the planner rejects the plan and uses the existing fallback.
 
 **Example:** In the image below the vehicle is already on the branch-off leg, after a GoTo or a cancelled Return.
 If a new Return is requested, the vehicle flies straight to the rally point (`R`) instead of flying back to the branch-in point only to branch off again.
@@ -386,6 +420,10 @@ See [Safe-Point Batching](#safe-point-batching) for the rally-point batch config
 Its default is `1` (`32` on testing builds), with a supported range of `1` to `32`.
 More rally points than fit in one batch require additional scans, increasing planning time.
 Increasing the batch size reduces the number of scans but uses more RAM.
+
+Geofence checks use the same candidates and do not scan the mission again.
+A shared static buffer holds up to `min(32, 3 * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE)` segments per check, avoiding heap allocation and large stack buffers.
+Checking segments together lets them reuse the loaded fence geometry.
 
 For firmware builds with enough memory, all supported rally points can be checked in one scan:
 
