@@ -12,7 +12,7 @@ This page describes hardware revision v1.2.
 
 The board has no internal magnetometer, and provides two external I2C buses for a GPS/compass module or other peripherals.
 
-![Agam MegH7](../../assets/flight_controller/agam_megh7/agam_megh7.png)
+![Agam MegH7](../../assets/flight_controller/agam_MegH7/agam_MegH7.png)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -203,6 +203,12 @@ The `A1` and `A2` pads connect directly to the processor, with no voltage divide
 | `A1`  | PC4     | Analog airspeed sensor, enabled by setting [SENS_DPRES_ANSC](../advanced_config/parameter_reference.md#SENS_DPRES_ANSC)                                     |
 | `A2`  | PA4     | Not used                                                                                                                                                    |
 
+## Block Diagram {#block_diagram}
+
+The block diagram below shows the main components and how they connect to the STM32H743VI.
+
+![Agam MegH7 block diagram: the STM32H743VI with its IMU, barometer, OSD, optional dataflash and microSD card, the external connectors and their buses, the motor timer groups, the solder pads, and the power tree from the battery and USB through the 5 V and 10 V BECs to the 3.3 V rail](../../assets/flight_controller/agam_MegH7/block_diagram.svg "Agam MegH7 Block Diagram")
+
 ## Power {#power}
 
 The battery connects either through the `ESC` connector (pin 1 `VBAT`, pin 2 `GND`) or to the `BAT` and `G` pads.
@@ -211,6 +217,36 @@ The board accepts 2S-8S LiPo, and its BECs supply 5 V and 10 V at up to 3 A each
 Battery voltage and current are measured by analog inputs, with current from the ESC's current sensor on `ESC` pin 3.
 PX4 sets [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) to `11` and [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) to `40` by default.
 Set `BAT1_A_PER_V` to match your ESC's current sensor, and see [Battery Estimation Tuning](../config/battery.md) to calibrate both.
+
+## Voltage Ratings {#voltage_ratings}
+
+The board is powered either from the battery, through `ESC` pin 1 or the `BAT` and `G` pads, or from USB.
+Both BECs are step-down SMPS regulators running directly off the battery, and the 3.3 V rail comes from an LDO on the 5 V rail.
+
+**Normal Operation Maximum Ratings**
+
+Under these conditions the board powers normally:
+
+1. Battery input: 6.6 V to 36 V (2S to 8S LiPo recommended)
+2. USB input: 4.75 V to 5.25 V
+
+**Absolute Maximum Ratings**
+
+Under these conditions the board is not damaged, but may not operate:
+
+1. Battery input: 40 V, the input absolute maximum of the BEC regulators
+2. USB input: 6 V, the input absolute maximum of the LDO
+
+::: info
+The BECs are step-down only, with a maximum duty cycle of 92%, so each rail needs headroom above its output voltage.
+The 5 V rail needs roughly 5.5 V in, which 2S clears.
+:::
+
+::: warning
+Anything fed from the 10 V BEC has a narrower input range than the board itself: `DIGI VTX` pin 1, the switched `10V` pad in the analog VTX group, and the unswitched `10V` pad.
+That rail needs roughly 11 V in, so it is unavailable on 2S and marginal on 3S.
+The battery figures above apply to a board with nothing on those outputs; with an HD air unit or an analog VTX fitted, use 4S or above.
+:::
 
 ## PWM Outputs {#pwm_outputs}
 

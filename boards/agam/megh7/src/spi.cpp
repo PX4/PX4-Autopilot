@@ -37,8 +37,9 @@
 
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBusExternal(SPI::Bus::SPI1, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortE, GPIO::Pin11}),
+	// reserved for the optional W25Q128 dataflash; no PX4 driver for it yet
+	initSPIBus(SPI::Bus::SPI1, {
+		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortE, GPIO::Pin11}),
 	}),
 	initSPIBus(SPI::Bus::SPI2, {
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortD, GPIO::Pin11}, SPI::DRDY{GPIO::PortB, GPIO::Pin2}),
@@ -47,7 +48,7 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIDevice(DRV_OSD_DEVTYPE_ATXXXX, SPI::CS{GPIO::PortD, GPIO::Pin10}),
 	}),
 	initSPIBusExternal(SPI::Bus::SPI4, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortB, GPIO::Pin12}),
+		initSPIConfigExternal(SPI::CS{GPIO::PortB, GPIO::Pin12}, SPI::DRDY{GPIO::PortD, GPIO::Pin4}),
 	}),
 };
 

@@ -19,9 +19,6 @@ param set-default SYS_HAS_MAG 0
 # and enable gravity fusion
 param set-default EKF2_IMU_CTRL 7
 
-# the startup tune is not great on a binary output buzzer, so disable it
-param set-default CBRK_BUZZER 782090
-
 param set-default IMU_GYRO_RATEMAX 2000
 
 # Store missions in RAM

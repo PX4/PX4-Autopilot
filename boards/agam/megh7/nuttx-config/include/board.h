@@ -384,10 +384,10 @@
 
 /* SPI
  *
- * SPI1 is MPU6000
- * SPI2 is MAX7456
- * SPI3 is extern with PD4 and PE2 as CS
- * SPI4 is ICM20602
+ * SPI1 is the optional W25Q128 dataflash (CS PE11), not used by PX4
+ * SPI2 is the ICM-45686 IMU (CS PD11, DRDY PB2)
+ * SPI3 is the AT7456E OSD (CS PD10)
+ * SPI4 is the external SPI4 connector (CS PB12, DRDY PD4, EXTI PD3)
  */
 
 #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
