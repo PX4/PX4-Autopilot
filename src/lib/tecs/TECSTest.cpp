@@ -48,6 +48,7 @@ TECSControl::Param makeParam()
 	param.max_sink_rate = 5.f;
 	param.min_sink_rate = 2.f;
 	param.max_climb_rate = 5.f;
+	param.vert_jerk_limit = 10.f;
 	param.vert_accel_limit = 10.f;
 	param.equivalent_airspeed_trim = 15.f;
 	param.tas_min = 10.f;
