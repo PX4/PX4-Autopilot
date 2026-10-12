@@ -489,6 +489,9 @@ private:
 	static constexpr float kGyroBiasVarianceMin{1e-9f};
 	static constexpr float kAccelBiasVarianceMin{1e-9f};
 
+	// tilt uncertainty (rad) above which fake position fusion is started when no other source constrains the tilt
+	static constexpr float kFakePosTiltStdThreshold{math::radians(3.f)};
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	static constexpr float kMagVarianceMin = 1e-6f;
 #endif // CONFIG_EKF2_MAGNETOMETER
