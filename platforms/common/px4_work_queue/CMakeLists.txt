@@ -44,7 +44,3 @@ if(PX4_TESTING)
 endif()
 
 target_compile_options(px4_work_queue PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
-
-# WorkQueueManager starts and joins its thread with px4_task_spawn_cmd() and
-# px4_task_join()
-target_link_libraries(px4_work_queue PRIVATE px4_layer)
