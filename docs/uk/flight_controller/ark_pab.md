@@ -24,7 +24,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopil
 
 - Інтерфейс PAB Board to Board
   - 100 Pin Hirose DF40
-  - 40 Pin Hirose DF40
+  - 50 Pin Hirose DF40
 - Подвійні входи цифрового модуля живлення
   - Вхід 5В
   - Монітор живлення I2C

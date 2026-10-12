@@ -634,9 +634,13 @@ void AFBRS50::run_state_collect()
 
 	_state = STATE::TRIGGER;
 
-	auto elapsed = hrt_elapsed_time(&_trigger_time);
+	// The API refuses a trigger that comes before the frame time has elapsed
+	// (STATUS_ARGUS_POWERLIMIT), costing a quarter-frame retry, and
+	// waitForWake() can return up to one system tick early.
+	const hrt_abstime next_trigger = _measurement_inverval + kTriggerMargin;
+	const hrt_abstime elapsed = hrt_elapsed_time(&_trigger_time);
 
-	_wake_delay = (elapsed > _measurement_inverval) ? 0 : (_measurement_inverval - elapsed);
+	_wake_delay = (elapsed > next_trigger) ? 0 : (next_trigger - elapsed);
 }
 
 void AFBRS50::recoverFromTriggerStall(const char *reason)

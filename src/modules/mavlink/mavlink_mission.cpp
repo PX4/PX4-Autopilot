@@ -1197,9 +1197,17 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			if (ret != PX4_OK) {
 				PX4_DEBUG("WPM: MISSION_ITEM ERROR: seq %u invalid item", wp.seq);
 
-				_mavlink.send_statustext_critical("IGN MISSION_ITEM: Invalid item\t");
-				events::send(events::ID("mavlink_mission_mis_item_invalid"), events::Log::Error,
-					     "Ignoring mission item, invalid item");
+				// INVALID_PARAM1 on a DO_JUMP can only mean its target is not an earlier item.
+				if (wp.command == MAV_CMD_DO_JUMP && ret == MAV_MISSION_INVALID_PARAM1) {
+					_mavlink.send_statustext_critical("Mission rejected: DO_JUMP must target an earlier item\t");
+					events::send<uint16_t>(events::ID("mavlink_mission_jump_not_backward"), events::Log::Error,
+							       "Mission rejected: DO_JUMP {1} must target an earlier item", wp.seq + 1);
+
+				} else {
+					_mavlink.send_statustext_critical("IGN MISSION_ITEM: Invalid item\t");
+					events::send(events::ID("mavlink_mission_mis_item_invalid"), events::Log::Error,
+						     "Ignoring mission item, invalid item");
+				}
 
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, ret);
 				switch_to_idle_state();
@@ -1719,6 +1727,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		switch (mavlink_mission_item->command) {
 		case MAV_CMD_DO_JUMP:
+
+			// Only jumps to an earlier item are supported. Also rejects a NaN target.
+			if (!(mavlink_mission_item->param1 >= 0.f && mavlink_mission_item->param1 < mavlink_mission_item->seq)) {
+				return MAV_MISSION_INVALID_PARAM1;
+			}
+
 			mission_item->nav_cmd = NAV_CMD_DO_JUMP;
 			mission_item->do_jump_mission_index = mavlink_mission_item->param1;
 			mission_item->do_jump_current_count = 0;
