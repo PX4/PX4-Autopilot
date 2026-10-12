@@ -7,7 +7,10 @@ import unittest
 from planner_visualizer.cpp_parser import header_constants, parse_cpp
 from planner_visualizer.generator import cpp_float, generate_cpp
 from planner_visualizer.geometry import offset_to_latlon
-from planner_visualizer.models import Base, Position, Scene, Waypoint, base_from
+from planner_visualizer.models import Base, Fence, Position, Scene, Waypoint, base_from
+from planner_visualizer import planner_cli
+from planner_visualizer.planner_cli import PlanRequest, parse_output
+from planner_visualizer.unit_test import generate_unit_test
 
 BASE = Base(47.397742, 8.545594, 500.0)
 
@@ -94,6 +97,73 @@ class GeneratorTest(unittest.TestCase):
         values = (200.0, 12.5, -10.0, 0.0, -0.01, 0.06)
         self.assertEqual([cpp_float(v) for v in values], ["200.f", "12.5f", "-10.f", "0.f", "0.f", "0.1f"])
 
+    def test_fences_round_trip_without_using_fixture_map_origin(self):
+        scene = make_scene()
+        scene.fences = [
+            Fence(True, [(47.396, 8.544), (47.400, 8.544), (47.400, 8.550), (47.396, 8.550)]),
+            Fence(False, [(47.398, 8.546)], 23.456),
+        ]
+        for base in (BASE, None):
+            with self.subTest(base=base):
+                code = generate_cpp(scene, base)
+                parsed = parse_cpp(code)
+                self.assertEqual(parsed.fences, scene.fences)
+                self.assertEqual(len(parsed.positions), 1)
+                self.assertIn("std::vector<mission_fence_point_s> fence_points", code)
+
+    def test_fence_unit_test_uses_real_checker_and_sets_request_defaults(self):
+        scene = make_scene()
+        scene.fences = [Fence(False, [(47.398, 8.546)], 20.0)]
+        request = PlanRequest(projection_search_distance_m=60.0)
+        result = parse_output("ACTION RTL\nSTATUS FAIL NoValidCandidateFound\nEND\n")
+        code = generate_unit_test(scene, BASE, request, result, "Reject fence crossing")
+        self.assertIn("TEST_F(MissionRouteGeofenceTest, RejectFenceCrossing)", code)
+        self.assertIn("ASSERT_TRUE(loadFence(fence_points));", code)
+        self.assertIn("GeofencePathChecker checker{_fence, vehicle_position};", code)
+        self.assertIn("MissionRoutePlanner planner{provider, &checker};", code)
+        self.assertIn("request.projection_search_distance_m = 60.000f;", code)
+        self.assertIn("request.home_altitude_amsl = 500.000f;", code)
+        self.assertIn("get_home_position()->alt = 500.000f;", code)
+        self.assertNotIn("kBaseLat", code)
+        self.assertNotIn("kAlt", code)
+        self.assertNotIn("TestPlanner", code)
+        self.assertNotIn("makeRtlRouteRequest", code)
+        self.assertEqual(parse_cpp(code).fences, scene.fences)
+
+    def test_fence_export_preserves_points_near_the_boundary(self):
+        from test_planner_cli import make_request, make_scene
+
+        scene = make_scene()
+        vehicle = offset_to_latlon(BASE.lat, BASE.lon, 700, 40.04)
+        center = offset_to_latlon(BASE.lat, BASE.lon, 700, 20)
+        scene.positions = [Position("vehicle_position", *vehicle, 500.049)]
+        scene.fences = [Fence(False, [center], 20.02)]
+        code = generate_cpp(scene, BASE)
+        self.assertNotIn("FromOffset", code)
+        self.assertNotIn("kBaseLat", code)
+        self.assertIn(f"makePositionAbsolute({vehicle[0]:.9f}, {vehicle[1]:.9f}, 500.049f)", code)
+        parsed = parse_cpp(code)
+        request = make_request()
+        # Exactly the same CLI input proves that geometry and velocity survive export.
+        self.assertEqual(planner_cli.encode(parsed, request), planner_cli.encode(scene, request))
+
+    def test_fence_export_runs_the_same_boundary_case_in_the_real_planner(self):
+        from test_planner_cli import make_request, make_scene
+
+        root = planner_cli.repo_root()
+        binary = planner_cli.binary_path(root)
+        if not binary.is_file() or planner_cli.stale_sources(root, binary):
+            self.skipTest("Build the current mission_route_planner_cli to check fence export behavior.")
+        scene = make_scene()
+        scene.positions = [Position("vehicle_position", *offset_to_latlon(BASE.lat, BASE.lon, 700, 40.04), 500.0)]
+        scene.fences = [Fence(False, [offset_to_latlon(BASE.lat, BASE.lon, 700, 20)], 20.02)]
+        request = make_request()
+        original = planner_cli.run(binary, planner_cli.encode(scene, request))
+        exported = parse_cpp(generate_cpp(scene, BASE))
+        restored = planner_cli.run(binary, planner_cli.encode(exported, request))
+        self.assertEqual(original.failure, "NoValidCandidateFound")
+        self.assertEqual(restored.status, original.status)
+
     def test_header_base_is_what_the_generator_defaults_to(self):
         self.assertEqual(base_from(header_constants()), BASE)
 
@@ -105,6 +175,16 @@ class GeneratorTest(unittest.TestCase):
         stubs = """
             #include <vector>
             struct mission_item_s {};
+            struct mission_fence_point_s {
+                double lat, lon;
+                union { unsigned short vertex_count; float circle_radius; };
+                unsigned short nav_cmd;
+                unsigned char frame;
+            };
+            using uint16_t = unsigned short;
+            enum { NAV_FRAME_GLOBAL, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION,
+                   NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION, NAV_CMD_FENCE_CIRCLE_INCLUSION,
+                   NAV_CMD_FENCE_CIRCLE_EXCLUSION };
             namespace mission_route { struct Position { double lat, lon; float alt; }; }
             struct { float velocity_north_m_s, velocity_east_m_s; } request;
             enum { NAV_CMD_WAYPOINT, NAV_CMD_LOITER_TO_ALT };
@@ -121,8 +201,13 @@ class GeneratorTest(unittest.TestCase):
             mission_route::Position makePositionAbsolute(double, double, float) { return {}; }
             mission_route::Position makePositionFromOffset(double, double, float, float, float) { return {}; }
         """
+        scene = make_scene()
+        scene.fences = [
+            Fence(True, [(47.396, 8.544), (47.400, 8.544), (47.400, 8.550)]),
+            Fence(False, [(47.398, 8.546)], 20.0),
+        ]
         body = "\n".join(
-            f"void fixture_{index}() {{\n{generate_cpp(make_scene(), base)}\n}}"
+            f"void fixture_{index}() {{\n{generate_cpp(scene, base)}\n}}"
             for index, base in enumerate((BASE, None))
         )
         result = subprocess.run(

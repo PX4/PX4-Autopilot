@@ -7,7 +7,9 @@ import re
 from typing import Dict, List, Mapping, Optional, Tuple
 
 from .geometry import distance_m, snap_to_grid
-from .models import ITEM_TYPES, MISSION, POSITION, SAFE_POINTS, VEHICLE, Base, Position, Scene, Waypoint
+from .models import (
+    GEOFENCES, ITEM_TYPES, MISSION, POSITION, SAFE_POINTS, VEHICLE, Base, Fence, Position, Scene, Waypoint,
+)
 
 _MAX_UNDO = 100
 # Moves below this are float noise from converting offsets back to lat/lon, not edits.
@@ -33,14 +35,18 @@ class ClickSettings:
     alt: float = 500.0
     cmd: str = "NAV_CMD_WAYPOINT"
     grid_m: float = 0.0
+    fence_inclusion: bool = True
+    fence_radius_m: Optional[float] = None
 
 
 @dataclass
 class Editor:
     points: Points = field(default_factory=_empty_points)
+    fences: List[Fence] = field(default_factory=list)
+    draft_fence: Optional[Fence] = None
     # Request velocity (north, east) in m/s, shown on the vehicle positions.
     velocity: Tuple[float, float] = (0.0, 0.0)
-    history: List[Points] = field(default_factory=list, repr=False)
+    history: List[Tuple[Points, List[Fence], Optional[Fence]]] = field(default_factory=list, repr=False)
     # st_folium reports the same click on every rerun. Remembering the one already
     # turned into a point keeps mode changes, undo and clear from adding it again.
     last_click: Optional[Tuple[float, float]] = None
@@ -70,8 +76,50 @@ class Editor:
         click = self.take_click(event, base, settings.grid_m)
         if click is None:
             return False
+        if item_type == GEOFENCES:
+            return self.add_fence_point(click, settings.fence_inclusion, settings.fence_radius_m)
         cmd = {MISSION: settings.cmd, SAFE_POINTS: "NAV_CMD_RALLY_POINT"}.get(item_type, "")
         return self.add(item_type, Waypoint(click[0], click[1], settings.alt, cmd))
+
+    def add_fence_point(self, point: Tuple[float, float], inclusion: bool, radius_m: Optional[float]) -> bool:
+        """Add a circle center or a draft polygon vertex. Drafts never enter the planning scene."""
+        if radius_m is not None:
+            if self.draft_fence is not None or not math.isfinite(radius_m) or radius_m <= 0:
+                return False
+            fence = Fence(inclusion, [point], radius_m)
+            if fence in self.fences:
+                return False
+            self._checkpoint()
+            self.fences.append(fence)
+        else:
+            draft = self.draft_fence or Fence(inclusion, [])
+            if point in draft.vertices:
+                return False
+            self._checkpoint()
+            self.draft_fence = Fence(draft.inclusion, draft.vertices + [point])
+        return True
+
+    def finish_fence(self) -> bool:
+        if self.draft_fence is None or len(self.draft_fence.vertices) < 3:
+            return False
+        self._checkpoint()
+        self.fences.append(self.draft_fence)
+        self.draft_fence = None
+        return True
+
+    def cancel_fence(self) -> bool:
+        if self.draft_fence is None:
+            return False
+        self._checkpoint()
+        self.draft_fence = None
+        return True
+
+    def remove_fence(self, index: int) -> bool:
+        if not 0 <= index < len(self.fences):
+            return False
+        self._checkpoint()
+        del self.fences[index]
+        return True
 
     def move_to_click(
         self, event: Optional[Mapping], selection: Selection, base: Optional[Base], grid_m: float
@@ -147,27 +195,37 @@ class Editor:
     def undo(self) -> bool:
         if not self.history:
             return False
-        self.points = self.history.pop()
+        self.points, self.fences, self.draft_fence = self.history.pop()
         return True
 
     def clear(self, item_type: Optional[str] = None) -> bool:
-        item_types = (item_type,) if item_type else ITEM_TYPES
-        if not any(self.points[key] for key in item_types):
+        item_types = () if item_type == GEOFENCES else ((item_type,) if item_type else ITEM_TYPES)
+        clear_fences = item_type in (None, GEOFENCES)
+        if not any(self.points[key] for key in item_types) and not (
+            clear_fences and (self.fences or self.draft_fence)
+        ):
             return False
         self._checkpoint()
         for key in item_types:
             self.points[key] = []
+        if clear_fences:
+            self.fences = []
+            self.draft_fence = None
         return True
 
     def count(self, item_type: Optional[str] = None) -> int:
+        if item_type == GEOFENCES:
+            return len(self.fences)
         if item_type:
             return len(self.points[item_type])
-        return sum(len(points) for points in self.points.values())
+        return sum(len(points) for points in self.points.values()) + len(self.fences)
 
     def load(self, scene: Scene) -> None:
         """Replace the items with a parsed scene, so an existing test can be extended."""
         self._checkpoint()
         self.points = _empty_points()
+        self.fences = deepcopy(scene.fences)
+        self.draft_fence = None
         self.points[MISSION] = [item for items in scene.missions.values() for item in items]
         self.points[SAFE_POINTS] = list(scene.safe_points)
         for position in scene.positions:
@@ -179,6 +237,7 @@ class Editor:
     def scene(self) -> Scene:
         """The items as a Scene, named the way the tests name them."""
         scene = Scene()
+        scene.fences = deepcopy(self.fences)
         if self.points[MISSION]:
             scene.missions["mission"] = list(self.points[MISSION])
         scene.safe_points = list(self.points[SAFE_POINTS])
@@ -191,5 +250,5 @@ class Editor:
         return scene
 
     def _checkpoint(self) -> None:
-        self.history.append(deepcopy(self.points))
+        self.history.append(deepcopy((self.points, self.fences, self.draft_fence)))
         del self.history[:-_MAX_UNDO]

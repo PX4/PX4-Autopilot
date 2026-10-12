@@ -1,5 +1,6 @@
 """The bridge to the planner CLI: scenario text, output parsing, staleness and the unit test it writes."""
 
+import math
 import os
 from pathlib import Path
 import stat
@@ -9,7 +10,7 @@ import unittest
 
 from planner_visualizer import planner_cli
 from planner_visualizer.geometry import offset_to_latlon
-from planner_visualizer.models import Base, Position, Scene, Waypoint
+from planner_visualizer.models import Base, Fence, Position, Scene, Waypoint
 from planner_visualizer.planner_cli import PlanRequest
 from planner_visualizer.unit_test import generate_unit_test, test_name
 
@@ -85,9 +86,39 @@ class EncodeTest(unittest.TestCase):
         self.assertIn("SET mission_index 2", lines)
         self.assertIn("SET projection_search_distance_m 60.000", lines)
         self.assertIn("SET is_fixed_wing 0", lines)
-        self.assertIn("SET vtol_state_on_mission_upload UNDEFINED", lines)
         self.assertIn("SET velocity_north_m_s 15.000", lines)
         self.assertEqual(lines[-1], "ACTION RTL")
+
+    def test_inclusion_and_exclusion_polygons_and_circles_are_encoded(self):
+        scene = make_scene()
+        for inclusion in (True, False):
+            scene.fences += [
+                Fence(inclusion, [(47.0, 8.0), (47.1, 8.0), (47.1, 8.1)]),
+                Fence(inclusion, [(47.0, 8.0)], 25.0),
+            ]
+        lines = planner_cli.encode(scene, make_request()).splitlines()
+        for kind in ("INCLUSION", "EXCLUSION"):
+            self.assertIn(
+                f"FENCE_POLYGON {kind} 3 47.000000000 8.000000000 47.100000000 8.000000000 47.100000000 8.100000000",
+                lines,
+            )
+            self.assertIn(f"FENCE_CIRCLE {kind} 47.000000000 8.000000000 25.000", lines)
+
+    def test_malformed_fences_are_rejected_before_running(self):
+        scene = make_scene()
+        invalid_fences = [
+            Fence(False, []),
+            Fence(False, [(47.0, 8.0), (47.1, 8.0)]),
+            Fence(False, [(47.0, 8.0)], -1.0),
+            Fence(False, [(47.0, 8.0)], float("nan")),
+            Fence(False, [(float("nan"), 8.0)], 10.0),
+            Fence(True, [(91.0, 8.0)], 10.0),
+            Fence(True, [(47.0, 8.0), (47.1, 8.1)], 10.0),
+        ]
+        for fence in invalid_fences:
+            with self.subTest(fence=fence), self.assertRaises(ValueError):
+                scene.fences = [fence]
+                planner_cli.encode(scene, make_request())
 
     def test_scenario_needs_items_and_a_vehicle(self):
         with self.assertRaises(ValueError):
@@ -245,6 +276,22 @@ class BinaryTest(unittest.TestCase):
         self.assertEqual(planner_cli.stale_sources(self.root, self.binary), [])
         self.assertEqual(planner_cli.stale_sources(self.root, self.root / "missing"), [])
 
+    def test_geofence_headers_and_build_configuration_make_binary_stale(self):
+        self.write_binary("END\n")
+        old = time.time() - 100
+        os.utime(self.binary, (old, old))
+        paths = [
+            "src/modules/navigator/geofence.h",
+            "src/lib/geofence/geofence_utils.cpp",
+            "src/lib/dataman_client/DatamanClient.hpp",
+            str(planner_cli.BUILD_DIR / "boardconfig"),
+        ]
+        for name in paths:
+            source = self.root / name
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("")
+        self.assertCountEqual(planner_cli.stale_sources(self.root, self.binary), paths)
+
     def test_run_feeds_the_scenario_and_parses_the_answer(self):
         self.write_binary(CLI_OUTPUT)
         result = planner_cli.run(self.binary, planner_cli.encode(make_scene(), make_request()))
@@ -257,6 +304,72 @@ class BinaryTest(unittest.TestCase):
         with self.assertRaises(RuntimeError) as raised:
             planner_cli.run(self.binary, "ACTION RTL\n")
         self.assertIn("no VEHICLE line", str(raised.exception))
+
+
+class RealGeofenceIntegrationTest(unittest.TestCase):
+    """Exercise the production fence loader and checker when the CLI has been built."""
+
+    @classmethod
+    def setUpClass(cls):
+        root = planner_cli.repo_root()
+        cls.binary = planner_cli.binary_path(root)
+        if not cls.binary.is_file() or planner_cli.stale_sources(root, cls.binary):
+            raise unittest.SkipTest("Build the current mission_route_planner_cli to run real-fence checks.")
+
+    def run_scene(self, scene):
+        return planner_cli.run(self.binary, planner_cli.encode(scene, make_request()))
+
+    def test_all_fence_shapes_reject_a_vehicle_segment_crossing_the_boundary(self):
+        vehicle = make_scene().positions[0]
+        cases = [
+            Fence(False, [offset_to_latlon(*BASE, 700, 20)], 5.0),
+            Fence(False, [offset_to_latlon(*BASE, n, e) for n, e in ((690, 10), (710, 10), (710, 30), (690, 30))]),
+            Fence(True, [(vehicle.lat, vehicle.lon)], 5.0),
+            Fence(True, [offset_to_latlon(*BASE, n, e) for n, e in ((690, 30), (710, 30), (710, 50), (690, 50))]),
+        ]
+        self.assertTrue(self.run_scene(make_scene()).ok)
+        for fence in cases:
+            with self.subTest(fence=fence):
+                scene = make_scene()
+                scene.fences = [fence]
+                result = self.run_scene(scene)
+                self.assertFalse(result.ok, result.raw)
+                self.assertEqual(result.failure, "NoValidCandidateFound", result.raw)
+
+    def test_existing_fence_violation_preserves_recovery_behavior(self):
+        scene = make_scene()
+        before = self.run_scene(scene)
+        vehicle = scene.positions[0]
+        scene.fences = [Fence(False, [(vehicle.lat, vehicle.lon)], 50.0)]
+        after = self.run_scene(scene)
+        self.assertTrue(after.ok, after.raw)
+        self.assertEqual(after.plan, before.plan)
+        self.assertIn("segments from the vehicle are not checked", after.raw)
+
+    def test_loader_rejects_unsupported_polygon_instead_of_ignoring_it(self):
+        scene = make_scene()
+        scene.fences = [Fence(False, [(47.0, 179.0), (47.0, -179.0), (48.0, 179.0)])]
+        with self.assertRaisesRegex(RuntimeError, "geofence loader rejected"):
+            self.run_scene(scene)
+
+    def test_cli_rejects_invalid_fence_protocol(self):
+        scenario = planner_cli.encode(make_scene(), make_request())
+        for fence_line in (
+            "FENCE_CIRCLE EXCLUSION 47 8 -1",
+            "FENCE_CIRCLE EXCLUSION 91 8 10",
+            "FENCE_POLYGON INCLUSION 2 47 8 47.1 8.1",
+            "FENCE_POLYGON INCLUSION 3 47 8 47.1 8.1",
+        ):
+            with self.subTest(line=fence_line), self.assertRaisesRegex(RuntimeError, "invalid scenario"):
+                planner_cli.run(self.binary, scenario + fence_line + "\n")
+
+    def test_full_polygon_line_is_not_truncated(self):
+        scene = make_scene()
+        scene.fences = [Fence(False, [
+            offset_to_latlon(*BASE, 1000 + 100 * math.cos(angle), 1000 + 100 * math.sin(angle))
+            for angle in (2 * math.pi * index / 60 for index in range(60))
+        ])]
+        self.assertTrue(self.run_scene(scene).ok)
 
 
 class UnitTestGenerationTest(unittest.TestCase):
@@ -273,7 +386,8 @@ class UnitTestGenerationTest(unittest.TestCase):
         self.assertIn("\tstd::vector<mission_item_s> mission{", code)
         self.assertIn("makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), // 0", code)
         self.assertIn("std::vector<mission_item_s> safe_points{", code)
-        self.assertIn("TestPlanner planner(mission, safe_points);", code)
+        self.assertIn("const auto provider = makeRouteProvider(mission, safe_points);", code)
+        self.assertIn("MissionRoutePlanner planner{provider};", code)
         self.assertIn("makePositionFromOffset(kBaseLat, kBaseLon, 700.f, 40.f, kAlt);", code)
         self.assertIn(
             "mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 2);", code

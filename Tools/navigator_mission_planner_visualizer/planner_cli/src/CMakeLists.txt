@@ -51,6 +51,8 @@ if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE AND PX4_PLATFORM STREQUAL "posix" AN
 	# Same platform libraries as px4_add_functional_gtest(), without gtest.
 	target_link_libraries(mission_route_planner_cli PRIVATE
 		navigator_mission_route
+		modules__navigator
+		modules__dataman
 		px4_layer
 		px4_platform
 		uORB

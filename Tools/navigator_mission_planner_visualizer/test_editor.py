@@ -4,7 +4,9 @@ import unittest
 
 from planner_visualizer.editor import ClickSettings, Editor
 from planner_visualizer.geometry import latlon_to_offset
-from planner_visualizer.models import MISSION, POSITION, SAFE_POINTS, VEHICLE, Base, Position, Scene, Waypoint
+from planner_visualizer.models import (
+    GEOFENCES, MISSION, POSITION, SAFE_POINTS, VEHICLE, Base, Fence, Position, Scene, Waypoint,
+)
 
 BASE = Base(47.397742, 8.545594, 500.0)
 
@@ -84,6 +86,52 @@ class HistoryTest(unittest.TestCase):
         self.assertTrue(editor.undo())
         self.assertFalse(editor.undo())
         self.assertEqual(editor.count(), 0)
+
+
+class FenceTest(unittest.TestCase):
+    def test_polygon_is_only_planned_after_finish_and_undo_restores_draft(self):
+        editor = Editor()
+        settings = ClickSettings(fence_inclusion=False)
+        for event in (click(47, 8), click(47.01, 8), click(47.01, 8.01)):
+            self.assertTrue(editor.add_click(event, GEOFENCES, settings, None))
+            self.assertFalse(editor.add_click(event, GEOFENCES, settings, None))
+            self.assertEqual(editor.scene().fences, [])
+        self.assertTrue(editor.finish_fence())
+        self.assertEqual(editor.scene().fences, [Fence(False, [(47, 8), (47.01, 8), (47.01, 8.01)])])
+        self.assertFalse(editor.scene().is_empty())
+        self.assertEqual(editor.count(GEOFENCES), 1)
+        self.assertTrue(editor.undo())
+        self.assertEqual(editor.scene().fences, [])
+        self.assertEqual(len(editor.draft_fence.vertices), 3)
+        self.assertTrue(editor.undo())
+        self.assertFalse(editor.finish_fence())
+        self.assertTrue(editor.cancel_fence())
+        self.assertIsNone(editor.draft_fence)
+
+    def test_circles_survive_load_delete_clear_and_undo(self):
+        editor = Editor()
+        editor.load(Scene(fences=[Fence(True, [(47, 8)], 200)]))
+        self.assertTrue(editor.add_click(click(), GEOFENCES, ClickSettings(fence_radius_m=50), None))
+        self.assertEqual(editor.count(), 2)
+        self.assertTrue(editor.remove_fence(0))
+        self.assertEqual(editor.scene().fences, [Fence(True, [(47.4, 8.55)], 50)])
+        self.assertTrue(editor.undo())
+        self.assertTrue(editor.clear(GEOFENCES))
+        self.assertTrue(editor.scene().is_empty())
+        self.assertTrue(editor.undo())
+        self.assertEqual(editor.count(), 2)
+        self.assertTrue(editor.clear())
+        self.assertEqual(editor.count(), 0)
+
+    def test_incomplete_fence_can_be_cleared_and_duplicate_vertices_are_ignored(self):
+        editor = Editor()
+        for event in (click(), click(47.41), click()):
+            editor.add_click(event, GEOFENCES, ClickSettings(), None)
+        self.assertEqual(len(editor.draft_fence.vertices), 2)
+        self.assertFalse(editor.finish_fence())
+        self.assertFalse(editor.add_click(click(47.42), GEOFENCES, ClickSettings(fence_radius_m=20), None))
+        self.assertTrue(editor.clear())
+        self.assertIsNone(editor.draft_fence)
 
 
 class SceneTest(unittest.TestCase):
