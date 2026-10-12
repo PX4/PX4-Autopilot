@@ -50,6 +50,7 @@
 #include "navigator.h"
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include "mission_route_geofence.h"
 #include "mission_route_planner.h"
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
@@ -189,7 +190,8 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 		request.velocity_east_m_s = local_position->vy;
 	}
 
-	MissionRoutePlanner planner{mission_route_cache};
+	const mission_route::GeofencePathChecker path_checker{_navigator->get_geofence(), request.vehicle_position};
+	MissionRoutePlanner planner{mission_route_cache, &path_checker};
 	mission_route::MissionResumePlan join_plan{};
 	const mission_route::FailureReason failure_reason = planner.planMissionResumeJoin(request, join_plan);
 

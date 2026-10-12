@@ -43,6 +43,7 @@
 #include "mission_route_projection.h"
 
 #include "mission_item_utils.h"
+#include "mission_route_geofence.h"
 
 #include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
@@ -866,6 +867,12 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 	const float route_length = cursor.routeLength();
 	const int32_t route_end_index = cursor.nominalPositionIndex();
 
+	// Reuse the retained geometric batch; fence checks neither rescan the mission nor refill
+	// the cross-track window. Filter before continuity or path cost can select a candidate.
+	if (_path_checker && !_path_checker->pruneCandidates(batch)) {
+		return FailureReason::kGeofenceUnavailable;
+	}
+
 	bool any_candidate_found = false;
 
 	for (uint8_t i = 0; i < batch.count; ++i) {
@@ -894,11 +901,9 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 	} else if (stats.local_min_found == 0) {
 		return FailureReason::kNoLocalMinFound;
 
-	} else if (stats.valid_candidate_found == 0) {
-		return FailureReason::kNoValidCandidateFound;
 	}
 
-	return FailureReason::kUnknown;
+	return FailureReason::kNoValidCandidateFound;
 }
 
 struct MissionRouteProjection::BranchInSelection {

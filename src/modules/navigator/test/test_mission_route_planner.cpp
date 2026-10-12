@@ -38,9 +38,12 @@
  */
 
 #include "mission_route_planner.h"
+#include "mission_route_geofence.h"
 #include "mission_route_projection.h"
 #include "support/mission_route_test_helpers.h"
 #include "test_mission_route_data.h"
+
+#include <functional>
 
 using navigator_test::route_test_reference::kAlt;
 using navigator_test::route_test_reference::kBaseLat;
@@ -70,6 +73,55 @@ public:
 
 private:
 	mutable int _mission_load_count{0};
+};
+
+class RecordingPathChecker : public mission_route::PathChecker
+{
+public:
+	std::function<bool(const mission_route::ProjectionReference &, const mission_route::RouteProjectionCandidate &)>
+	candidate_clear = [](const auto &, const auto &) { return true; };
+	std::function<bool(const mission_route::ProjectionReferenceBatch &)>
+	batch_available = [](const auto &) { return true; };
+	bool path_available{true};
+	bool path_clear{true};
+	mutable std::vector<unsigned> batch_sizes;
+	mutable unsigned path_checks{0};
+	mutable mission_route::Position checked_start{};
+	mutable mission_route::Position checked_end{};
+
+	bool pruneCandidates(mission_route::ProjectionReferenceBatch &batch) const override
+	{
+		batch_sizes.push_back(batch.count);
+
+		if (!batch_available(batch)) {
+			return false;
+		}
+
+		for (uint8_t i = 0; i < batch.count; ++i) {
+			auto &reference = batch.items[i];
+			auto &buffer = reference.candidate_buffer;
+			uint8_t retained = 0;
+
+			for (uint8_t j = 0; j < buffer.count; ++j) {
+				if (candidate_clear(reference, buffer.candidates[j])) {
+					buffer.candidates[retained++] = buffer.candidates[j];
+				}
+			}
+
+			buffer.count = retained;
+		}
+
+		return true;
+	}
+
+	bool checkPath(const mission_route::Position &start, const mission_route::Position &end, bool &clear) const override
+	{
+		++path_checks;
+		checked_start = start;
+		checked_end = end;
+		clear = path_available && path_clear;
+		return path_available;
+	}
 };
 
 static mission_route::MissionResumeRequest makeMissionResumeRequest(const mission_route::Position &vehicle_position,
@@ -191,6 +243,270 @@ private:
 	VectorProvider _provider;
 	MissionRoutePlanner _planner;
 };
+
+TEST_F(MissionRoutePlannerTest, GeofencePrunesVehicleCandidatesBeforeContinuitySelection)
+{
+	// Two nearby parallel legs: each remains usable when the preferred leg is blocked.
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 1000.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 1000.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission, {});
+	const auto vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 500.f, kAlt);
+
+	for (int32_t blocked_end : {1, 3}) {
+		SCOPED_TRACE(blocked_end);
+		auto request = makeMissionResumeRequest(vehicle, blocked_end);
+		request.projection_search_distance_m = 150.f;
+		mission_route::MissionResumePlan baseline{};
+		ASSERT_EQ(MissionRoutePlanner{provider}.planMissionResumeJoin(request, baseline), mission_route::FailureReason::kNone);
+		ASSERT_EQ(baseline.first_mission_item_index, blocked_end);
+
+		RecordingPathChecker checker;
+		checker.candidate_clear = [blocked_end](const auto &, const auto & candidate) {
+			return candidate.segment.end.idx != blocked_end;
+		};
+		MissionRoutePlanner planner{provider, &checker};
+		mission_route::MissionResumePlan plan{};
+		ASSERT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNone);
+		ASSERT_TRUE(plan.valid());
+		EXPECT_EQ(plan.first_mission_item_index, blocked_end == 1 ? 3 : 1);
+		EXPECT_EQ(checker.batch_sizes, std::vector<unsigned>({1}));
+	}
+}
+
+TEST_F(MissionRoutePlannerTest, GeofenceRejectsAllVehicleCandidatesWithoutRescanning)
+{
+	const std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+	};
+	MissionLoadCountingProvider baseline_provider{mission, {}};
+	const auto request = makeMissionResumeRequest(vehicleOnFirstSegment(), 1);
+	mission_route::MissionResumePlan plan{};
+	ASSERT_EQ(MissionRoutePlanner{baseline_provider}.planMissionResumeJoin(request, plan),
+		  mission_route::FailureReason::kNone);
+
+	RecordingPathChecker checker;
+	checker.candidate_clear = [](const auto &, const auto &) { return false; };
+	MissionLoadCountingProvider provider{mission, {}};
+	MissionRoutePlanner planner{provider, &checker};
+	EXPECT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNoValidCandidateFound);
+	EXPECT_FALSE(plan.valid());
+	EXPECT_LE(provider.missionLoadCount(), baseline_provider.missionLoadCount());
+
+	auto rtl_request = makeRtlRouteRequest(request.vehicle_position, 1);
+	rtl_request.mission_land_index = 2;
+	mission_route::RtlRoutePlan rtl_plan{};
+	EXPECT_EQ(planner.planRtlRoute(rtl_request, rtl_plan), mission_route::FailureReason::kNoValidCandidateFound);
+	EXPECT_FALSE(rtl_plan.valid());
+}
+
+TEST_F(MissionRoutePlannerTest, UnavailableGeofenceRejectsVehicleJoinForMissionAndRtl)
+{
+	const std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission, {});
+	RecordingPathChecker checker;
+	checker.batch_available = [](const auto &) { return false; };
+	MissionRoutePlanner planner{provider, &checker};
+	mission_route::MissionResumePlan mission_plan{};
+	EXPECT_EQ(planner.planMissionResumeJoin(makeMissionResumeRequest(vehicleOnFirstSegment(), 1), mission_plan),
+		  mission_route::FailureReason::kGeofenceUnavailable);
+	EXPECT_FALSE(mission_plan.valid());
+
+	auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	request.mission_land_index = 1;
+	mission_route::RtlRoutePlan rtl_plan{};
+	EXPECT_EQ(planner.planRtlRoute(request, rtl_plan), mission_route::FailureReason::kGeofenceUnavailable);
+	EXPECT_FALSE(rtl_plan.valid());
+}
+
+TEST_F(MissionRoutePlannerTest, GeofencePrunesCheaperSafePointsAcrossBatchesWithoutExtraMissionReads)
+{
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points;
+
+	for (uint16_t i = 0; i < kSafePointBatchSize; ++i) {
+		safe_points.push_back(makeSafePointFromOffset(kBaseLat, kBaseLon, 110.f, 5.f, kAlt));
+	}
+
+	safe_points.push_back(makeSafePointFromOffset(kBaseLat, kBaseLon, 200.f, 20.f, kAlt));
+	const auto vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
+	const auto request = makeRtlRouteRequest(vehicle, 1);
+	MissionLoadCountingProvider baseline_provider{mission, safe_points};
+	mission_route::RtlRoutePlan baseline{};
+	ASSERT_EQ(MissionRoutePlanner{baseline_provider}.planRtlRoute(request, baseline), mission_route::FailureReason::kNone);
+	ASSERT_LT(baseline.safe_point_index, kSafePointBatchSize);
+
+	RecordingPathChecker checker;
+	checker.candidate_clear = [](const auto & reference, const auto &) {
+		return reference.source_index < 0 || reference.source_index >= kSafePointBatchSize;
+	};
+	MissionLoadCountingProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider, &checker};
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, kSafePointBatchSize);
+	EXPECT_EQ(checker.batch_sizes, std::vector<unsigned>({1, kSafePointBatchSize, 1}));
+	EXPECT_LE(provider.missionLoadCount(), baseline_provider.missionLoadCount());
+}
+
+TEST_F(MissionRoutePlannerTest, GeofenceBlockedSafePointsFallBackToMissionLand)
+{
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission,
+	{makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 20.f, kAlt)});
+	RecordingPathChecker checker;
+	checker.candidate_clear = [](const auto & reference, const auto &) { return reference.source_index < 0; };
+	MissionRoutePlanner planner{provider, &checker};
+	auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	request.mission_land_index = 2;
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kMissionLand);
+	EXPECT_EQ(plan.safe_point_index, -1);
+}
+
+TEST_F(MissionRoutePlannerTest, UnavailableLaterGeofenceBatchDiscardsEarlierWinnerAndEndpointFallback)
+{
+	const std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+	};
+	const std::vector<mission_item_s> safe_points(static_cast<size_t>(kSafePointBatchSize) + 1,
+			makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 20.f, kAlt));
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
+	RecordingPathChecker checker;
+	checker.batch_available = [](const auto & batch) {
+		return batch.items[0].source_index < kSafePointBatchSize;
+	};
+	MissionRoutePlanner planner{provider, &checker};
+	auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	request.mission_land_index = 2;
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(MissionRoutePlanner{provider}.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kGeofenceUnavailable);
+	EXPECT_FALSE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kNone);
+	EXPECT_EQ(checker.batch_sizes, std::vector<unsigned>({1, kSafePointBatchSize, 1}));
+}
+
+TEST_F(MissionRoutePlannerTest, GeofenceChecksDirectShortcutFromVehicleToSelectedGoal)
+{
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission,
+	{makeSafePointFromOffset(kBaseLat, kBaseLon, 12.f, 1.f, kAlt)});
+	RecordingPathChecker checker;
+	MissionRoutePlanner planner{provider, &checker};
+	const auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.fly_direct_to_goal);
+	EXPECT_FALSE(plan.geofence_prevents_shortcut);
+	ASSERT_EQ(checker.path_checks, 1u);
+	EXPECT_DOUBLE_EQ(checker.checked_start.lat, request.vehicle_position.lat);
+	EXPECT_DOUBLE_EQ(checker.checked_start.lon, request.vehicle_position.lon);
+	EXPECT_FLOAT_EQ(checker.checked_start.alt, request.vehicle_position.alt);
+	EXPECT_DOUBLE_EQ(checker.checked_end.lat, plan.goal_position.lat);
+	EXPECT_DOUBLE_EQ(checker.checked_end.lon, plan.goal_position.lon);
+	EXPECT_FLOAT_EQ(checker.checked_end.alt, plan.goal_position.alt);
+
+	checker.path_clear = false;
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	EXPECT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_FALSE(plan.fly_direct_to_goal);
+	EXPECT_TRUE(plan.geofence_prevents_shortcut);
+
+	checker.path_available = false;
+	EXPECT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kGeofenceUnavailable);
+	EXPECT_FALSE(plan.valid());
+	EXPECT_FALSE(plan.geofence_prevents_shortcut);
+}
+
+TEST_F(MissionRoutePlannerTest, GeofenceChecksMissionLandingShortcutAtCurrentAltitude)
+{
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt - 50.f),
+	};
+	VectorProvider provider = makeRouteProvider(mission, {});
+	RecordingPathChecker checker;
+	MissionRoutePlanner planner{provider, &checker};
+	const auto vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 95.f, 0.f, kAlt + 75.f);
+	const auto request = makeMissionResumeRequest(vehicle, 1);
+	mission_route::MissionResumePlan plan{};
+	ASSERT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.use_current_altitude);
+	ASSERT_EQ(checker.path_checks, 1u);
+	EXPECT_FLOAT_EQ(checker.checked_start.alt, vehicle.alt);
+	EXPECT_FLOAT_EQ(checker.checked_end.alt, vehicle.alt);
+	EXPECT_DOUBLE_EQ(checker.checked_end.lat, mission[1].lat);
+	EXPECT_DOUBLE_EQ(checker.checked_end.lon, mission[1].lon);
+
+	checker.path_clear = false;
+	EXPECT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNoValidPath);
+	EXPECT_FALSE(plan.valid());
+
+	checker.path_available = false;
+	EXPECT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kGeofenceUnavailable);
+	EXPECT_FALSE(plan.valid());
+}
+
+TEST_F(MissionRoutePlannerTest, BlockedDirectLandingCannotFallBackToAnAlreadyReachedRouteJoin)
+{
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt - 50.f),
+	};
+	VectorProvider provider = makeRouteProvider(mission, {});
+	const auto vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 95.f, 0.f, kAlt + 75.f);
+	auto request = makeRtlRouteRequest(vehicle, 1);
+	request.mission_land_index = 1;
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(MissionRoutePlanner{provider}.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.fly_direct_to_goal);
+	ASSERT_TRUE(plan.use_current_altitude);
+	ASSERT_EQ(plan.goal_type, mission_route::GoalType::kMissionLand);
+
+	// Model an altitude restriction: joining horizontally at current altitude is clear,
+	// but descending to the selected endpoint is blocked. The nearby join cannot detour it.
+	class NoDescentPathChecker : public RecordingPathChecker
+	{
+	public:
+		bool checkPath(const mission_route::Position &start, const mission_route::Position &end, bool &clear) const override
+		{
+			const bool available = RecordingPathChecker::checkPath(start, end, clear);
+			clear = clear && end.alt >= start.alt;
+			return available;
+		}
+	} checker;
+	MissionRoutePlanner planner{provider, &checker};
+	EXPECT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNoValidPath);
+	EXPECT_FALSE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kNone);
+}
 
 // ---- Mission resume join ----
 

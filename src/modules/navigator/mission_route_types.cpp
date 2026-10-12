@@ -267,6 +267,9 @@ const char *failureReasonString(FailureReason failure_reason)
 	case FailureReason::kNoValidCandidateFound:
 		return "NoValidCandidateFound";
 
+	case FailureReason::kGeofenceUnavailable:
+		return "GeofenceUnavailable";
+
 	case FailureReason::kUnknown:
 	default:
 		return "Unknown";

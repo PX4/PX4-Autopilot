@@ -58,7 +58,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 
-#include <cstring>
 #include <tuple>
 #include <vector>
 
@@ -177,20 +176,10 @@ public:
 		_mission_pub_for_test.publish(mission);
 	}
 
-	void runActiveCycleForTest()
-	{
-		MissionBase::on_active();
-	}
-
 	void setDisarmedSinceActivationForTest()
 	{
 		_mission_has_been_activated = true;
 		_system_disarmed_while_inactive = true;
-	}
-
-	void runBaseActivationForTest()
-	{
-		MissionBase::on_activation();
 	}
 
 	void setSafePointSelectionForTest(bool direction_reversed, int32_t branch_off_index)
@@ -429,7 +418,7 @@ TEST_P(RtlReverseFrontTransitionTest, WaitsForBackTransitionAndHeadingBeforeComm
 	while (command_sub.update(&command)) {}
 
 	ASSERT_TRUE(follower.advanceStageForTest());
-	follower.runActiveCycleForTest();
+	follower.on_active();
 
 	if (GetParam()) {
 		EXPECT_EQ(follower.workItemForTest(), RtlMissionSafePointFollowTestPeer::WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
@@ -438,7 +427,7 @@ TEST_P(RtlReverseFrontTransitionTest, WaitsForBackTransitionAndHeadingBeforeComm
 		EXPECT_FALSE(follower.reportsReachedItemForTest());
 		follower.setVehicleStatusForTest(true, false, false);
 		ASSERT_TRUE(follower.missionItemReachedForTest());
-		follower.runActiveCycleForTest();
+		follower.on_active();
 	}
 
 	const auto &triplet = *navigator.get_position_setpoint_triplet();
@@ -455,7 +444,7 @@ TEST_P(RtlReverseFrontTransitionTest, WaitsForBackTransitionAndHeadingBeforeComm
 
 	navigator.get_local_position()->heading = expected_yaw;
 	ASSERT_TRUE(follower.missionItemReachedForTest());
-	follower.runActiveCycleForTest();
+	follower.on_active();
 	ASSERT_TRUE(command_sub.update(&command));
 	EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
@@ -464,11 +453,11 @@ TEST_P(RtlReverseFrontTransitionTest, WaitsForBackTransitionAndHeadingBeforeComm
 
 	follower.setVehicleStatusForTest(true, false, true);
 	EXPECT_FALSE(follower.missionItemReachedForTest());
-	follower.runActiveCycleForTest();
+	follower.on_active();
 	EXPECT_FALSE(command_sub.updated());
 	follower.setVehicleStatusForTest(true, true, false);
 	ASSERT_TRUE(follower.missionItemReachedForTest());
-	follower.runActiveCycleForTest();
+	follower.on_active();
 	EXPECT_EQ(follower.currentSequenceForTest(), 0);
 }
 
@@ -574,7 +563,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, FollowRouteIgnoresExternalCurrentSequ
 	const position_setpoint_s expected_setpoint = navigator.get_position_setpoint_triplet()->current;
 
 	executor_with_nav.publishMissionUpdateForTest(10, 1);
-	executor_with_nav.runActiveCycleForTest();
+	executor_with_nav.on_active();
 
 	EXPECT_EQ(executor_with_nav.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
 	EXPECT_EQ(executor_with_nav.missionIdForTest(), 10u);
@@ -603,8 +592,16 @@ TEST_F(RtlMissionSafePointFollowStageTest, RouteOnlyActivationDoesNotReplayMissi
 		makePositionItem(kBaseLat, kBaseLon, kAlt),
 	};
 	executor_with_nav.loadTestMission(items);
+	mission_route::RtlRoutePlan plan{};
+	plan.goal_type = mission_route::GoalType::kSafePoint;
+	plan.safe_point_index = 0;
+	plan.goal_position = {kBaseLat, kBaseLon, kAlt};
+	plan.join_position = {kBaseLat - 0.0001, kBaseLon, kAlt};
+	plan.first_mission_item_index = 3;
+	plan.branch_off_mission_item_index = 3;
+	plan.branch_off_position = plan.goal_position;
+	executor_with_nav.configurePlanForTest(plan);
 	executor_with_nav.prepareActiveMissionForTest(11, 3);
-	executor_with_nav.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::Idle);
 	executor_with_nav.setVehicleStatusForTest(false, false, false);
 	executor_with_nav.setLandedForTest(false);
 
@@ -613,7 +610,9 @@ TEST_F(RtlMissionSafePointFollowStageTest, RouteOnlyActivationDoesNotReplayMissi
 
 	while (vehicle_command_sub.update(&command)) {}
 
-	executor_with_nav.runBaseActivationForTest();
+	executor_with_nav.on_activation();
+	ASSERT_EQ(executor_with_nav.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	ASSERT_EQ(executor_with_nav.currentSequenceForTest(), 3);
 
 	while (vehicle_command_sub.update(&command)) {
 		EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED);
@@ -648,7 +647,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ApproachAtGoalIgnoresReplacementMissi
 	const position_setpoint_s expected_next = navigator.get_position_setpoint_triplet()->next;
 
 	executor_with_nav.publishMissionUpdateForTest(21, 0);
-	executor_with_nav.runActiveCycleForTest();
+	executor_with_nav.on_active();
 
 	EXPECT_EQ(executor_with_nav.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
 	EXPECT_EQ(executor_with_nav.missionIdForTest(), 20u);
@@ -679,7 +678,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, LandAtGoalIgnoresReplacementMission)
 	const position_setpoint_s expected_setpoint = navigator.get_position_setpoint_triplet()->current;
 
 	executor_with_nav.publishMissionUpdateForTest(31, 0);
-	executor_with_nav.runActiveCycleForTest();
+	executor_with_nav.on_active();
 
 	EXPECT_EQ(executor_with_nav.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
 	EXPECT_EQ(executor_with_nav.missionIdForTest(), 30u);
@@ -1053,9 +1052,16 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, InactiveForecastUsesPlanStartWitho
 	follower.setArrivalParametersForTest(0.f, 30.f, 60.f);
 	// This belongs to the currently active mode, not the hypothetical Return.
 	auto &triplet = *navigator.get_position_setpoint_triplet();
+	triplet = {}; // Finite values allow exact member comparisons without depending on NaNs or padding.
 	triplet.current.valid = true;
 	triplet.current.alt = kAlt + 200.f;
 	const auto triplet_before = triplet;
+	const auto setpoint_fields = [](const position_setpoint_s & sp) {
+		return std::tie(sp.timestamp, sp.valid, sp.type, sp.vx, sp.vy, sp.vz, sp.lat, sp.lon, sp.alt, sp.yaw,
+				sp.loiter_radius, sp.loiter_minor_radius, sp.loiter_direction_counter_clockwise,
+				sp.loiter_orientation, sp.loiter_pattern, sp.acceptance_radius, sp.alt_acceptance_radius,
+				sp.course, sp.cruising_speed, sp.gliding_enabled, sp.cruising_throttle);
+	};
 	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
 	vehicle_command_s command{};
 
@@ -1069,7 +1075,10 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, InactiveForecastUsesPlanStartWitho
 		EXPECT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Idle);
 		EXPECT_EQ(follower.currentSequenceForTest(), 0);
 		EXPECT_FALSE(follower.joiningRouteForTest());
-		EXPECT_EQ(memcmp(&triplet, &triplet_before, sizeof(triplet)), 0);
+		EXPECT_EQ(triplet.timestamp, triplet_before.timestamp);
+		EXPECT_EQ(setpoint_fields(triplet.previous), setpoint_fields(triplet_before.previous));
+		EXPECT_EQ(setpoint_fields(triplet.current), setpoint_fields(triplet_before.current));
+		EXPECT_EQ(setpoint_fields(triplet.next), setpoint_fields(triplet_before.next));
 		EXPECT_FALSE(command_sub.updated());
 	}
 
@@ -1151,7 +1160,7 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, PrefixLegExecutionUsesModeBeforeFi
 				EXPECT_NEAR(navigator.get_position_setpoint_triplet()->current.yaw, expected_yaw, 1e-4f);
 				navigator.get_local_position()->heading_good_for_control = true;
 				navigator.get_local_position()->heading = expected_yaw;
-				follower.runActiveCycleForTest();
+				follower.on_active();
 			}
 
 			ASSERT_TRUE(command_sub.update(&command));
