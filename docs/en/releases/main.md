@@ -128,6 +128,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Multi-Rotor
 
 - The neural network controller (`mc_nn_control`) maps its actions to motor commands over the real motor range, so action -1 idles a motor instead of stopping it and the top of the range no longer runs past full scale, and the three rpm parameters are checked against each other. The module got its first unit tests. ([PX4-Autopilot#28433](https://github.com/PX4/PX4-Autopilot/pull/28433))
+- The neural network controller (`mc_nn_control`) now rejects a model whose input or output shape does not match at load, checks the position and attitude observations each cycle for validity, age and finiteness, and reports a fault on a bad observation or a non finite output instead of stopping one motor. ([PX4-Autopilot#28504](https://github.com/PX4/PX4-Autopilot/pull/28504))
+- The multicopter position controller now moves its stored fallback setpoint along with the current setpoint when the estimator resets its position, velocity or heading, so when the setpoint is unusable at the moment of a reset the controller no longer flies a fallback that is off by the reset. ([PX4-Autopilot#28810](https://github.com/PX4/PX4-Autopilot/pull/28810))
 
 ### VTOL
 
