@@ -119,7 +119,9 @@ float sensor_orientation_to_yaw_offset(const SensorOrientation orientation, cons
 
 int wrap_bin(int bin, int bin_count)
 {
-	return (bin + bin_count) % bin_count;
+	// C++'s % keeps the sign of the dividend, so shift a negative remainder back into [0, bin_count)
+	const int wrapped = bin % bin_count;
+	return (wrapped < 0) ? wrapped + bin_count : wrapped;
 }
 
 float wrap_360(const float angle)

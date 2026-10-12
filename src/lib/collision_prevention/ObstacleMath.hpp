@@ -92,8 +92,8 @@ int get_offset_bin_index(int bin, float bin_width, float angle_offset);
 
 /**
  * Wraps a bin index to the range [0, bin_count)
- * @param bin bin index
- * @param bin_count number of bins
+ * @param bin bin index, any value, negative included
+ * @param bin_count number of bins, must be positive
  */
 int wrap_bin(int bin, int bin_count);
 
