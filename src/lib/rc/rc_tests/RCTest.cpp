@@ -41,6 +41,7 @@ private:
 	bool st24MalformedLengthTest();
 	bool st24Test();
 	bool sumdTest();
+	bool sumd32ChannelsTest();
 };
 
 bool RCTest::run_tests()
@@ -55,6 +56,7 @@ bool RCTest::run_tests()
 	ut_run_test(st24MalformedLengthTest);
 	ut_run_test(st24Test);
 	ut_run_test(sumdTest);
+	ut_run_test(sumd32ChannelsTest);
 
 	return (_tests_failed == 0);
 }
@@ -550,6 +552,51 @@ bool RCTest::sumdTest()
 	}
 
 	ut_test(ret == EOF);
+
+	return true;
+}
+
+bool RCTest::sumd32ChannelsTest()
+{
+	// A valid SUMD frame with the maximum of 32 channels: every channel's two data bytes must fit the packet buffer
+	// and decode to the value sent
+	const unsigned channel_count_sent = SUMD_MAX_CHANNELS;
+	uint8_t frame[SUMD_HEADER_LENGTH + SUMD_MAX_CHANNELS * 2 + 2] {SUMD_HEADER_ID, SUMD_ID_SUMD, (uint8_t)channel_count_sent};
+	unsigned length = SUMD_HEADER_LENGTH;
+
+	for (unsigned i = 0; i < channel_count_sent; i++) {
+		const uint16_t value = 12000 + 8 * i; // 1/8 us units
+		frame[length++] = value >> 8;
+		frame[length++] = value & 0xff;
+	}
+
+	uint16_t crc = 0;
+
+	for (unsigned i = 0; i < length; i++) {
+		crc = sumd_crc16(crc, frame[i]);
+	}
+
+	frame[length++] = crc >> 8;
+	frame[length++] = crc & 0xff;
+
+	uint8_t rssi{};
+	uint8_t rx_count{};
+	uint16_t channel_count{};
+	uint16_t channels[SUMD_MAX_CHANNELS] {};
+	bool failsafe{};
+	int result = 1;
+
+	for (unsigned i = 0; i < length; i++) {
+		result = sumd_decode(frame[i], &rssi, &rx_count, &channel_count, channels, SUMD_MAX_CHANNELS, &failsafe);
+	}
+
+	ut_compare("decoded", result, 0);
+	ut_compare("channel count", channel_count, channel_count_sent);
+
+	// the decoder reorders the first four channels (sent 1, 2, 0, 3); from channel 5 on they come out in order
+	for (unsigned i = 4; i < channel_count_sent; i++) {
+		ut_compare("channel value", channels[i], (12000 + 8 * i) >> 3);
+	}
 
 	return true;
 }
