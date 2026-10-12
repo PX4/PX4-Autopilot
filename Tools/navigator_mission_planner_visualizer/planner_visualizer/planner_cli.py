@@ -6,12 +6,13 @@ traces, one entry per line. See planner_cli/src for its source and the build com
 
 from dataclasses import dataclass, field, fields
 from pathlib import Path
+import math
 import shlex
 import subprocess
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from .geometry import distance_m
-from .models import Position, Scene, Waypoint
+from .models import Fence, Position, Scene, Waypoint
 
 BINARY_NAME = "mission_route_planner_cli"
 BUILD_DIR = Path("build/px4_sitl_test")
@@ -22,11 +23,22 @@ SOURCE_GLOBS = (
     "src/modules/navigator/mission_route_*.h",
     "src/modules/navigator/mission_item_utils.*",
     "src/modules/navigator/navigation.h",
+    "src/modules/navigator/navigator.h",
+    "src/modules/navigator/navigator_main.cpp",
+    "src/modules/navigator/geofence.*",
+    "src/modules/navigator/geofence_params.yaml",
+    "src/modules/navigator/CMakeLists.txt",
+    "src/modules/navigator/Kconfig",
+    "src/lib/geofence/geofence_utils.*",
+    "src/lib/dataman_client/DatamanClient.*",
+    "src/modules/dataman/dataman.*",
+    "boards/px4/sitl/test.px4board",
+    str(BUILD_DIR / "boardconfig"),
+    str(BUILD_DIR / "px4_boardconfig.h"),
     str(CLI_LOCATION / "src" / "*"),
 )
 ACTIONS = ("RTL", "RESUME")
 LAND_COMMANDS = ("NAV_CMD_LAND", "NAV_CMD_VTOL_LAND")
-VTOL_STATES = ("UNDEFINED", "MC", "FW")
 _STRUCTURED_TAGS = ("ACTION", "STATUS", "PLAN", "END")
 
 
@@ -49,7 +61,6 @@ class PlanRequest:
     is_fixed_wing: bool = False
     is_vtol: bool = False
     in_transition_to_fw: bool = False
-    vtol_state_on_mission_upload: str = "UNDEFINED"
     require_vtol_approach: bool = False
 
     def settings(self) -> Dict[str, str]:
@@ -151,6 +162,7 @@ def encode(scene: Scene, request: PlanRequest, vehicle: Optional[Position] = Non
         raise ValueError("The scenario has no vehicle position.")
     lines = [f"ITEM {_cmd_name(item.cmd)} {item.lat:.9f} {item.lon:.9f} {item.alt:.3f}" for item in items]
     lines += [f"RALLY {point.lat:.9f} {point.lon:.9f} {point.alt:.3f}" for point in scene.safe_points]
+    lines += [_encode_fence(fence) for fence in scene.fences]
     lines.append(f"VEHICLE {vehicle.lat:.9f} {vehicle.lon:.9f} {vehicle.alt:.3f}")
     lines += [f"SET {key} {value}" for key, value in request.settings().items()]
     if scene.velocity is not None:
@@ -158,6 +170,24 @@ def encode(scene: Scene, request: PlanRequest, vehicle: Optional[Position] = Non
         lines.append(f"SET velocity_east_m_s {scene.velocity[1]:.3f}")
     lines.append(f"ACTION {request.action}")
     return "\n".join(lines) + "\n"
+
+
+def _encode_fence(fence: Fence) -> str:
+    """Encode geometry only; the PX4 loader validates and checks the actual fence."""
+    kind = "INCLUSION" if fence.inclusion else "EXCLUSION"
+    if not fence.vertices or any(
+        not math.isfinite(lat) or not math.isfinite(lon) or abs(lat) > 90 or abs(lon) > 180
+        for lat, lon in fence.vertices
+    ):
+        raise ValueError("Geofence coordinates must be finite latitude/longitude values.")
+    coordinates = " ".join(f"{lat:.9f} {lon:.9f}" for lat, lon in fence.vertices)
+    if fence.radius_m is not None:
+        if len(fence.vertices) != 1 or not math.isfinite(fence.radius_m) or fence.radius_m <= 0:
+            raise ValueError("A geofence circle needs one center and a positive radius in meters.")
+        return f"FENCE_CIRCLE {kind} {coordinates} {fence.radius_m:.3f}"
+    if len(fence.vertices) < 3:
+        raise ValueError("A geofence polygon needs at least three vertices.")
+    return f"FENCE_POLYGON {kind} {len(fence.vertices)} {coordinates}"
 
 
 def _cmd_name(cmd: str) -> str:
