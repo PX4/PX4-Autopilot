@@ -162,7 +162,7 @@ protected:
 		gnss.receiver.timestamp_sample = now;
 		gnss.receiver.latitude = kLat;
 		gnss.receiver.longitude = kLon;
-		gnss.receiver.altitude_msl = alt;
+		gnss.receiver.altitude_msl = static_cast<double>(alt);
 		gnss.receiver.fix_type = valid ? 3 : 0;
 		gnss.receiver.eph = 1.f;
 		gnss.receiver.epv = 1.f;
