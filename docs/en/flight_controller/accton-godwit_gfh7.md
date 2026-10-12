@@ -234,8 +234,8 @@ No ports have flow control.
 ## Building Firmware {#building_firmware}
 
 ::: tip
-Most users will not need to build this firmware (from PX4 v2.0).
-It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
+Most users will not need to build this firmware once QGroundControl board recognition lands ([qgroundcontrol#15212](https://github.com/mavlink/qgroundcontrol/pull/15212)).
+It will then be pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 The board ships with the PX4 bootloader.
