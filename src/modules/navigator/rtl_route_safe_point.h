@@ -82,10 +82,10 @@ public:
 	bool inputsReady(const mission_s &mission) const;
 	/** Match the uploaded mission independently of safe-point changes, preserving route progress through reloads. */
 	bool missionMatches(const mission_s &mission) const;
-	/** Check the full source identity, cache readiness, mission generation, and safe-point count. */
+	/** Check full source identity, cache and fence readiness, mission generation, and safe-point count. */
 	bool sourceStillValid(const mission_s &mission) const;
 	bool evaluationPending(const mission_s &mission) const;
-	/** Retry a deferred evaluation once cache inputs are ready; the caller still checks mission validity. */
+	/** Retry a deferred evaluation once cache and fence inputs are ready; the caller still checks mission validity. */
 	bool retryReady(const mission_s &mission) const;
 
 	Evaluation evaluate(const mission_s &mission,
@@ -104,16 +104,18 @@ public:
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const;
 
 private:
-	/** Identity of the cache contents used by the last successful plan. */
+	/** Identity of the mission, safe points, and fence used by the last successful plan. */
 	struct SourceSnapshot {
 		uint32_t mission_id{0};
 		uint32_t mission_generation{0};
 		uint32_t safe_points_id{0};
+		uint32_t geofence_id{0};
 		int32_t mission_land_index{-1};
 		uint16_t mission_count{0};
 		uint16_t safe_point_count{0};
 		uint8_t mission_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
 		uint8_t safe_points_dataman_id{DM_KEY_SAFE_POINTS_0};
+		uint8_t fence_dataman_id{DM_KEY_FENCE_POINTS_0};
 		bool valid{false};
 	};
 
@@ -130,7 +132,7 @@ private:
 			const vehicle_status_s &vehicle_status,
 			const home_position_s &home_position,
 			const wind_s &wind);
-	/** Match both uploaded sources without requiring their caches to be ready. */
+	/** Match uploaded mission, safe-point, and fence sources without requiring readiness. */
 	bool sourceMatches(const mission_s &mission) const;
 
 	Navigator *_navigator{nullptr};

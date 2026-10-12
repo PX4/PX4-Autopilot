@@ -39,6 +39,7 @@
 
 #include "rtl_route_safe_point.h"
 #include "mission_route_cache.h"
+#include "mission_route_geofence.h"
 #include "mission_route_land_approaches.h"
 #include "mission_route_planner.h"
 #include "navigator.h"
@@ -104,7 +105,9 @@ bool RtlRouteSafePoint::inputsReady(const mission_s &mission) const
 {
 	const MissionRouteCache &cache = _navigator->get_mission_route_cache();
 	return cache.missionItemsReady(mission) && cache.safePointsReady()
-	       && cache.safePointsId() == mission.safe_points_id;
+	       && cache.safePointsId() == mission.safe_points_id
+	       && _navigator->get_geofence().isReadyForPathChecks()
+	       && !_navigator->get_geofence().isFenceUpdatePending();
 }
 
 bool RtlRouteSafePoint::missionMatches(const mission_s &mission) const
@@ -120,12 +123,15 @@ bool RtlRouteSafePoint::sourceMatches(const mission_s &mission) const
 {
 	return missionMatches(mission)
 	       && mission.safe_points_id == _source.safe_points_id
-	       && mission.safepoint_dataman_id == _source.safe_points_dataman_id;
+	       && mission.safepoint_dataman_id == _source.safe_points_dataman_id
+	       && mission.geofence_id == _source.geofence_id
+	       && mission.fence_dataman_id == _source.fence_dataman_id;
 }
 
 bool RtlRouteSafePoint::sourceStillValid(const mission_s &mission) const
 {
-	if (!sourceMatches(mission)) {
+	if (!sourceMatches(mission) || !_navigator->get_geofence().isReadyForPathChecks()
+	    || _navigator->get_geofence().isFenceUpdatePending()) {
 		return false;
 	}
 
@@ -144,7 +150,9 @@ bool RtlRouteSafePoint::sourceStillValid(const mission_s &mission) const
 bool RtlRouteSafePoint::evaluationPending(const mission_s &mission) const
 {
 	return mission.count <= MissionRouteCache::kMaxFullMissionCacheSize
-	       && !_navigator->get_mission_route_cache().missionItemsReady(mission);
+	       && (!_navigator->get_mission_route_cache().missionItemsReady(mission)
+		   || !_navigator->get_geofence().isReadyForPathChecks()
+		   || _navigator->get_geofence().isFenceUpdatePending());
 }
 
 bool RtlRouteSafePoint::retryReady(const mission_s &mission) const
@@ -203,13 +211,15 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	const uint32_t safe_points_id = cache.safePointsId();
 	const int safe_point_count = cache.safePointCount();
 	const MissionViewProvider provider{cache, mission_view};
-	const MissionRoutePlanner planner{provider};
 	const mission_route::RtlRouteRequest request = buildPlannerRequest(mission, vehicle_status, global_position,
 			home_position, rtl_active, require_vtol_approach);
+	const mission_route::GeofencePathChecker path_checker{_navigator->get_geofence(), request.vehicle_position};
+	const MissionRoutePlanner planner{provider, &path_checker};
 	mission_route::RtlRoutePlan &plan = evaluation.plan;
 	const mission_route::FailureReason failure = planner.planRtlRoute(request, plan);
 
 	if (failure != mission_route::FailureReason::kNone || !plan.valid()) {
+		_waiting_for_inputs = failure == mission_route::FailureReason::kGeofenceUnavailable;
 		PX4_ERR("RTL type 7 plan failed: %s", mission_route::failureReasonString(failure));
 		return evaluation;
 	}
@@ -238,11 +248,13 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 		.mission_id = mission.mission_id,
 		.mission_generation = mission_view.generation,
 		.safe_points_id = safe_points_id,
+		.geofence_id = mission.geofence_id,
 		.mission_land_index = mission.land_index,
 		.mission_count = mission.count,
 		.safe_point_count = static_cast<uint16_t>(safe_point_count),
 		.mission_dataman_id = mission.mission_dataman_id,
 		.safe_points_dataman_id = mission.safepoint_dataman_id,
+		.fence_dataman_id = mission.fence_dataman_id,
 		.valid = true
 	};
 

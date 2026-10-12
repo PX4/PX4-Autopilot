@@ -270,6 +270,10 @@ void RtlMissionSafePointFollow::on_activation()
 	pos_sp_triplet->next.valid = false;
 
 	if (_is_current_planned_mission_item_valid && !_plan.fly_direct_to_goal) {
+		if (_plan.geofence_prevents_shortcut) {
+			PX4_WARN("RTL direct segment breaches geofence; following mission route");
+		}
+
 		// Route Safe Point Return reuses MissionBase's shared JOIN_ROUTE ->
 		// TRANSITION_AFTER_JOIN executor path through RtlBase.
 		setupJoinRoute(_plan.join_position, _plan.use_current_altitude, allowedRouteTransition(_plan.vtol_transition_action));
