@@ -35,6 +35,11 @@ To calibrate the airspeed sensor:
    If they are swapped then the sensor will read a large negative differential pressure when you blow into the tube, and the calibration will abort with an error.
    :::
 
+   ::: info
+   All connected airspeed sensors are calibrated in one run.
+   The zero reading is taken from every sensor at the same time, but you are prompted to blow into each pitot in turn.
+   :::
+
 1. _QGroundControl_ then tells you if the calibration was successful or not.
 
 ## Further Information
