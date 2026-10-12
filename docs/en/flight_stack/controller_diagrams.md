@@ -139,11 +139,15 @@ Taking the derivative with respect to time leads to the total energy rate:
 
 $$\dot{E_T} = m V_T \dot{V_T} + m g \dot{h}$$
 
-From this, the specific energy rate can be formed as:
+Dividing by the mass gives the specific (per unit mass) total energy rate, in m²/s³:
 
-$$\dot{E} = \frac{\dot{E_T}}{mgV_T}  = \frac{\dot{V_T}}{g} + \frac{\dot{h}}{V_T} = \frac{\dot{V_T}}{g} + sin(\gamma)$$
+$$\dot{E_s} = \frac{\dot{E_T}}{m} = V_T \dot{V_T} + g \dot{h}$$
 
-where $\gamma{}$ is the flight plan angle.
+Dividing it further by $g V_T{}$ gives the normalised energy rate, which is dimensionless:
+
+$$\dot{E} = \frac{\dot{E_s}}{g V_T} = \frac{\dot{V_T}}{g} + \frac{\dot{h}}{V_T} = \frac{\dot{V_T}}{g} + sin(\gamma)$$
+
+where $\gamma{}$ is the flight path angle.
 For small $\gamma{}$ we can approximate this as:
 
 $$\dot{E} \approx  \frac{\dot{V_T}}{g} + \gamma$$
@@ -159,9 +163,17 @@ $$\Delta T = mg(\frac{\dot{V_T}}{g} + \gamma)$$
 
 As can be seen, $\Delta T{}$ is proportional to $\dot{E}{}$, and thus the thrust setpoint should be used for total energy control.
 
-Elevator control on the other hand is energy conservative, and is thus used for exchanging potentional energy for kinetic energy and vice versa. To this end, a specific energy balance rate is defined as:
+Elevator control on the other hand is energy conservative, and is thus used for exchanging potential energy for kinetic energy and vice versa.
+To this end, the specific energy balance rate is defined as:
 
-$$\dot{B} = \gamma - \frac{\dot{V_T}}{g}$$
+$$\dot{B_s} = g \dot{h} - V_T \dot{V_T}$$
+
+and its normalised form as:
+
+$$\dot{B} = \frac{\dot{B_s}}{g V_T} \approx \gamma - \frac{\dot{V_T}}{g}$$
+
+TECS computes the energy rates in their specific form (m²/s³).
+It only converts the energy balance rate to its normalised form, an equivalent flight path angle, when forming the pitch setpoint.
 
 ## Fixed-Wing Attitude Controller
 
