@@ -59,12 +59,12 @@ I2CSPIDriverBase *AUAV::instantiate(const I2CSPIDriverConfig &config, const int 
 	return instance;
 }
 
-AUAV::AUAV(const I2CSPIDriverConfig &config, const uint8_t status_byte_expected) :
+AUAV::AUAV(const I2CSPIDriverConfig &config, const uint8_t status_byte) :
 	I2C(config),
 	I2CSPIDriver(config),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors")),
-	_status_byte(status_byte_expected)
+	_status_byte(status_byte)
 {
 	I2C::_retries = 5;
 }
