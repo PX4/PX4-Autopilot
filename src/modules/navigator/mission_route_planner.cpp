@@ -44,6 +44,7 @@
 
 #include "mission_item_utils.h"
 #include "mission_route_land_approaches.h"
+#include "mission_route_geofence.h"
 #include "mission_route_projection.h"
 #include "mission_route_provider.h"
 
@@ -518,8 +519,6 @@ FailureReason selectSafePoint(const Provider &provider,
 {
 	selection = {};
 
-	// TODO: implement geofence-aware pruning: reject safe points and vehicle projections
-	// that would require crossing a geofence boundary.
 	const int safe_point_count = provider.safePointCount();
 
 	if (safe_point_count <= 0) {
@@ -548,6 +547,10 @@ FailureReason selectSafePoint(const Provider &provider,
 
 		RouteDistanceSummary distance_summary{};
 		const FailureReason scan_status = projection.findProjectionCandidates(scan_request, batch, distance_summary);
+
+		if (scan_status == FailureReason::kGeofenceUnavailable) {
+			return scan_status;
+		}
 
 		if (scan_status != FailureReason::kNone) {
 			PX4_DEBUG("Route safe point batch scan failed at offset %d: %s", batch_start_index,
@@ -679,6 +682,10 @@ FailureReason selectBestGoal(const Provider &provider,
 
 	if (safe_point_status == FailureReason::kNone) {
 		return FailureReason::kNone;
+	}
+
+	if (safe_point_status == FailureReason::kGeofenceUnavailable) {
+		return safe_point_status;
 	}
 
 	// No reachable safe point: fall back to the mission end points.
@@ -844,13 +851,14 @@ RtlRoutePlan makeRtlRoutePlan(const ProjectionContext &projection_context, const
 // First stage of both plans: check the anchor, project the vehicle, resolve the segment's VTOL state.
 FailureReason buildProjectionContext(const Provider &provider, const PlannerConfig &config,
 				     const Position &vehicle_position, int32_t mission_index,
-				     ProjectionReferenceBatch &batch, ProjectionContext &projection_context)
+				     ProjectionReferenceBatch &batch, ProjectionContext &projection_context,
+				     const PathChecker *path_checker)
 {
 	if (!config.active_jump_anchor.validForMission(provider.missionCount())) {
 		return FailureReason::kInvalidRequest;
 	}
 
-	const MissionRouteProjection projection{provider};
+	const MissionRouteProjection projection{provider, path_checker};
 	const FailureReason projection_status = projection.collectVehicleProjection(vehicle_position, mission_index,
 						config, batch, projection_context);
 
@@ -869,8 +877,8 @@ FailureReason buildProjectionContext(const Provider &provider, const PlannerConf
 
 } // namespace
 
-MissionRoutePlanner::MissionRoutePlanner(const Provider &provider) :
-	_provider(provider)
+MissionRoutePlanner::MissionRoutePlanner(const Provider &provider, const PathChecker *path_checker) :
+	_provider(provider), _path_checker(path_checker)
 {
 }
 
@@ -886,7 +894,7 @@ FailureReason MissionRoutePlanner::planMissionResumeJoin(const MissionResumeRequ
 
 	ProjectionContext projection_context{};
 	const FailureReason projection_status = buildProjectionContext(_provider, config, request.vehicle_position,
-						request.mission_index, plannerScratchBatch(), projection_context);
+						request.mission_index, plannerScratchBatch(), projection_context, _path_checker);
 
 	if (projection_status != FailureReason::kNone) {
 		return projection_status;
@@ -900,6 +908,23 @@ FailureReason MissionRoutePlanner::planMissionResumeJoin(const MissionResumeRequ
 
 	if (!candidate.valid()) {
 		return FailureReason::kNoValidPath;
+	}
+
+	if (_path_checker && candidate.use_current_altitude) {
+		// Candidate pruning already checked the segment to the projected branch-in point.
+		// Near landing, Mission skips that point and flies to the landing item at current
+		// altitude, so check this different segment too.
+		Position target = path.first_item.position;
+		target.alt = request.vehicle_position.alt;
+		bool clear = false;
+
+		if (!_path_checker->checkPath(request.vehicle_position, target, clear)) {
+			return FailureReason::kGeofenceUnavailable;
+		}
+
+		if (!clear) {
+			return FailureReason::kNoValidPath;
+		}
 	}
 
 	plan = candidate;
@@ -919,14 +944,14 @@ FailureReason MissionRoutePlanner::planRtlRoute(const RtlRouteRequest &request,
 	ProjectionReferenceBatch &reference_batch = plannerScratchBatch();
 	ProjectionContext projection_context{};
 	const FailureReason projection_status = buildProjectionContext(_provider, config, request.vehicle_position,
-						request.mission_index, reference_batch, projection_context);
+						request.mission_index, reference_batch, projection_context, _path_checker);
 
 	if (projection_status != FailureReason::kNone) {
 		return projection_status;
 	}
 
 	// Find the lowest-cost safe point, falling back to mission endpoints if none is usable.
-	const MissionRouteProjection projection{_provider};
+	const MissionRouteProjection projection{_provider, _path_checker};
 	GoalSelection selection{};
 	const FailureReason selection_status = selectBestGoal(_provider, projection, _provider.missionCount(),
 					       request.mission_land_index, projection_context, config,
@@ -937,11 +962,49 @@ FailureReason MissionRoutePlanner::planRtlRoute(const RtlRouteRequest &request,
 	}
 
 	selection.fly_direct_to_goal = canSkipRouteFollowToSelectedGoal(request.vehicle_position, selection, config);
+	bool geofence_prevents_shortcut = false;
 
-	const RtlRoutePlan candidate = makeRtlRoutePlan(projection_context, request.vehicle_position, selection);
+	if (_path_checker && selection.fly_direct_to_goal) {
+		// Pruning checked vehicle-to-branch-in and branch-off-to-safe-point segments.
+		// Flying straight to the goal skips those segments and needs its own check.
+		bool clear = false;
+
+		if (!_path_checker->checkPath(request.vehicle_position, selection.goal_position, clear)) {
+			return FailureReason::kGeofenceUnavailable;
+		}
+
+		if (!clear && selection.goal_type != GoalType::kSafePoint) {
+			// The branch-in point near this landing/takeoff endpoint is already within
+			// acceptance radius. Restoring it would still skip straight to the endpoint.
+			return FailureReason::kNoValidPath;
+		}
+
+		// Keep the checked route if the direct segment fails. Warn when RTL starts
+		// using this plan, rather than during background return-time estimates.
+		geofence_prevents_shortcut = !clear;
+		selection.fly_direct_to_goal = clear;
+	}
+
+	RtlRoutePlan candidate = makeRtlRoutePlan(projection_context, request.vehicle_position, selection);
+	candidate.geofence_prevents_shortcut = geofence_prevents_shortcut;
 
 	if (!candidate.valid()) {
 		return FailureReason::kNoValidPath;
+	}
+
+	if (_path_checker && candidate.use_current_altitude && !candidate.fly_direct_to_goal) {
+		// Pruning checked the branch-in point at the projected mission altitude.
+		// fillRouteJoinPlan changed it to current altitude, so recheck this segment.
+		// Direct-to-goal plans were checked above and do not use the branch-in point.
+		bool clear = false;
+
+		if (!_path_checker->checkPath(request.vehicle_position, candidate.join_position, clear)) {
+			return FailureReason::kGeofenceUnavailable;
+		}
+
+		if (!clear) {
+			return FailureReason::kNoValidPath;
+		}
 	}
 
 	PX4_DEBUG("Route plan to %s target=%d rev=%u direct=%u skip_alt=%u branch_off=%d->%d",

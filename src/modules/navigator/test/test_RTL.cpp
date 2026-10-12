@@ -317,6 +317,7 @@ public:
 	RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
 	int32_t missionSequenceForTest() const { return _mission_sub.get().current_seq; }
 	bool routePlanSourceStillValidForTest() const { return routePlanSourceStillValid(); }
+	bool routePlanMatchesSourceForTest(const mission_s &mission) const { return _route_safe_point.sourceStillValid(mission); }
 	uint32_t routePlanMissionGenerationForTest() const { return _route_safe_point.missionGeneration(); }
 	mission_route::ActiveJumpAnchor lastRouteLoopSegmentForTest() const { return _route_safe_point.activeJumpAnchor(); }
 
@@ -595,6 +596,54 @@ protected:
 	}
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	void startFenceUpdate(mission_s &mission, const std::vector<mission_fence_point_s> &points,
+			      dm_item_t slot = DM_KEY_FENCE_POINTS_0)
+	{
+		for (size_t i = 0; i < points.size(); ++i) {
+			mission_fence_point_s point = points[i];
+			ASSERT_TRUE(_dataman_client.writeSync(slot, static_cast<uint32_t>(i),
+							      reinterpret_cast<uint8_t *>(&point), sizeof(point)));
+		}
+
+		mission_stats_entry_s stats{};
+		stats.num_items = static_cast<uint16_t>(points.size());
+		stats.opaque_id = ++_fence_id;
+		stats.dataman_id = slot;
+		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
+						      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+		mission.geofence_id = stats.opaque_id;
+		mission.fence_dataman_id = slot;
+		mission.timestamp = hrt_absolute_time();
+		_navigator.get_geofence().updateFence();
+	}
+
+	bool finishFenceUpdate()
+	{
+		Geofence &fence = _navigator.get_geofence();
+		const hrt_abstime start = hrt_absolute_time();
+		static constexpr hrt_abstime kFenceLoadTimeoutUs = 1'000'000;
+
+		while ((!fence.isReadyForPathChecks() || fence.isFenceUpdatePending())
+		       && hrt_elapsed_time(&start) < kFenceLoadTimeoutUs) {
+			fence.run();
+			px4_usleep(1000);
+		}
+
+		return fence.isReadyForPathChecks() && !fence.isFenceUpdatePending();
+	}
+
+	static mission_fence_point_s exclusionCircle(float north_m, float east_m, float radius_m)
+	{
+		const auto center = makePositionFromOffset(kBaseLat, kBaseLon, north_m, east_m, kAlt);
+		mission_fence_point_s circle{};
+		circle.nav_cmd = NAV_CMD_FENCE_CIRCLE_EXCLUSION;
+		circle.frame = NAV_FRAME_GLOBAL;
+		circle.lat = center.lat;
+		circle.lon = center.lon;
+		circle.circle_radius = radius_m;
+		return circle;
+	}
+
 	mission_s loadRoutePlanningCache(const std::vector<mission_item_s> &mission_items,
 					 const std::vector<mission_item_s> &safe_points)
 	{
@@ -627,6 +676,8 @@ protected:
 		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 		mission.safe_points_id = ++_safe_points_id;
 		mission.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+		startFenceUpdate(mission, {});
+		EXPECT_TRUE(finishFenceUpdate());
 
 		MissionRouteCache &cache = _navigator.get_mission_route_cache();
 		cache.invalidate();
@@ -666,6 +717,7 @@ protected:
 	DatamanClient _dataman_client{};
 	uint32_t _safe_points_id{0};
 	uint32_t _safe_points_opaque_id{0};
+	uint32_t _fence_id{0};
 };
 
 TEST_F(RTLTest, MissionValidityMatchesMissionAndFeasibilityInputs)
@@ -1069,6 +1121,65 @@ TEST_F(RTLTest, RouteSafePointReturnUsesPlannerAndTracksCacheGeneration)
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
 	EXPECT_EQ(_rtl.routePlanMissionGenerationForTest(), updated_view.generation);
+}
+
+TEST_F(RTLTest, RouteSafePointReturnReplansAfterFenceReplacementFinishesLoading)
+{
+	const std::vector<mission_item_s> mission_items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+	};
+	const std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, -100.f, kAlt),
+	};
+	mission_s mission = loadRoutePlanningCache(mission_items, safe_points);
+	publishMission(mission);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
+	publishLandDetected(false);
+	setMissionResultValid(mission);
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	ASSERT_EQ(_rtl.routePlanForTest().safe_point_index, 0);
+	ASSERT_TRUE(_rtl.routePlanSourceStillValidForTest());
+	const uint32_t mission_generation = _rtl.routePlanMissionGenerationForTest();
+
+	// Either fence identity field changing invalidates a plan, even while the old fence is ready.
+	mission_s changed_source = mission;
+	++changed_source.geofence_id;
+	EXPECT_FALSE(_rtl.routePlanMatchesSourceForTest(changed_source));
+	changed_source = mission;
+	changed_source.fence_dataman_id = DM_KEY_FENCE_POINTS_1;
+	EXPECT_FALSE(_rtl.routePlanMatchesSourceForTest(changed_source));
+	EXPECT_TRUE(_rtl.routePlanMatchesSourceForTest(mission));
+
+	startFenceUpdate(mission, {exclusionCircle(100.f, 50.f, 20.f)}, DM_KEY_FENCE_POINTS_1);
+	ASSERT_TRUE(_navigator.get_geofence().isFenceUpdatePending());
+	EXPECT_FALSE(_rtl.routePlanSourceStillValidForTest());
+	publishMission(mission);
+	setMissionResultValid(mission);
+	_rtl.run(true);
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	_rtl.forceRouteRetryForTest();
+	_rtl.run(true);
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+
+	ASSERT_TRUE(finishFenceUpdate());
+
+	// Both rally positions are allowed; only the nearer segment crosses the exclusion circle.
+	for (const mission_item_s &safe_point : safe_points) {
+		ASSERT_TRUE(_navigator.get_geofence().checkPointAgainstAllGeofences(safe_point.lat, safe_point.lon,
+				safe_point.altitude));
+	}
+
+	_rtl.forceRouteRetryForTest();
+	_rtl.run(true);
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	EXPECT_EQ(_rtl.routePlanForTest().safe_point_index, 1);
+	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
+	EXPECT_EQ(_rtl.routePlanMissionGenerationForTest(), mission_generation);
 }
 
 TEST_F(RTLTest, RouteSafePointReturnPromotesWhenCacheBecomesReady)

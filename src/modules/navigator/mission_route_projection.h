@@ -54,6 +54,8 @@
 namespace mission_route
 {
 
+class PathChecker;
+
 struct ProjectionScanRequest {
 	float home_altitude_amsl{NAN};
 	float xtrack_margin_m{0.f};
@@ -176,7 +178,8 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment);
 class MissionRouteProjection
 {
 public:
-	explicit MissionRouteProjection(const Provider &provider) : _provider(provider) {}
+	explicit MissionRouteProjection(const Provider &provider, const PathChecker *path_checker = nullptr) :
+		_provider(provider), _path_checker(path_checker) {}
 
 	/**
 	 * @brief Scan the mission once and collect projection candidates for every reference point in the batch.
@@ -284,6 +287,7 @@ private:
 				       float home_altitude_amsl, LoopContext &loop_context) const;
 
 	const Provider &_provider;
+	const PathChecker *_path_checker;
 };
 
 } // namespace mission_route

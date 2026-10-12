@@ -83,6 +83,7 @@ enum class FailureReason : uint8_t {
 	kNoLocalMinFound,
 	kPositionItemInvalid,
 	kNoValidCandidateFound,
+	kGeofenceUnavailable,
 	kUnknown
 };
 
@@ -151,7 +152,7 @@ struct MissionResumePlan {
 	Position join_position{};
 	int32_t first_mission_item_index{-1};
 	bool direction_reversed{false};
-	bool use_current_altitude{false}; /**< Use live altitude when publishing the virtual join item. */
+	bool use_current_altitude{false}; /**< Keep current altitude at branch-in near a landing/takeoff endpoint. */
 	ActiveJumpAnchor active_jump_anchor{};
 	VtolTransitionAction vtol_transition_action{VtolTransitionAction::kNone}; /**< Transition to command when joining the route. */
 
@@ -163,7 +164,7 @@ struct RtlRoutePlan {
 	Position join_position{};
 	int32_t first_mission_item_index{-1};
 	bool direction_reversed{false};
-	bool use_current_altitude{false}; /**< Use live altitude when publishing the virtual join item. */
+	bool use_current_altitude{false}; /**< Keep current altitude at branch-in near a landing/takeoff endpoint. */
 	ActiveJumpAnchor active_jump_anchor{};
 	GoalType goal_type{GoalType::kNone};
 	Position goal_position{};
@@ -172,6 +173,7 @@ struct RtlRoutePlan {
 	/** Mission item replaced by branch_off_position: segment end nominally, segment start in reverse. */
 	int32_t branch_off_mission_item_index{-1};
 	bool fly_direct_to_goal{false}; /**< Bypass route following for either a safe point or endpoint goal. */
+	bool geofence_prevents_shortcut{false}; /**< Report why RTL must follow the route when activating this plan. */
 	VtolTransitionAction vtol_transition_action{VtolTransitionAction::kNone}; /**< Transition to command when joining the route. */
 
 	bool valid() const;
