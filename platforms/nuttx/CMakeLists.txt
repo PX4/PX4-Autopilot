@@ -362,6 +362,13 @@ else()
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_c nuttx_mm)
 
+	# RISC-V chips build their startup code as a head object next to libarch,
+	# not into it (see platforms/nuttx/NuttX/CMakeLists.txt).
+	set(NUTTX_HEAD_OBJS)
+	if(CONFIG_ARCH_RISCV)
+		set(NUTTX_HEAD_OBJS ${NUTTX_DIR}/arch/risc-v/src/${CONFIG_ARCH_CHIP}_head.o)
+	endif()
+
 	target_link_libraries(px4 PRIVATE
 
 		-nostartfiles
@@ -378,6 +385,7 @@ else()
 		-Wl,--gc-sections
 
 		-Wl,--start-group
+			${NUTTX_HEAD_OBJS}
 			${nuttx_libs}
 		-Wl,--end-group
 
