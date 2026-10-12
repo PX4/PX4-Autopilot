@@ -119,15 +119,3 @@ Ackermann vehicles are controlled in the same way as they are in manual mode, bu
 ::: info
 This mode has to be assigned to a flight mode switch (see [Flight Mode Configuration](../config/flight_mode.md)) or selected via the ground station.
 :::
-
-## Failsafe Fallback Sequence
-
-If a rover loses navigation (e.g., GPS loss) while in an autonomous or semi-autonomous mode like **Position** mode, it will safely cascade down through the available manual modes to maintain as much control as possible without attempting to use unsupported multicopter modes (like Altitude).
-
-The failure cascade sequence with a manual controller available is:
-**Position -> Stabilized -> Acro -> Manual**
-
-If manual control input is not available, the fallback cascade continues to:
-**Hold -> RTL -> Disarm**
-
-_Note: If the failsafe system attempts to force the rover into an unsupported `Descend` state, the rover will safely bypass termination and automatically fall back to the action defined by the `COM_POS_FS_ACT` parameter._
