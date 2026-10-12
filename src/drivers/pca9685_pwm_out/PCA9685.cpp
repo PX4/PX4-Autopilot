@@ -37,19 +37,15 @@
 #include "PCA9685.h"
 
 
-#ifdef CONFIG_PCA9685_USE_EXTERNAL_CRYSTAL
-#define PCA9685_CLOCK_REFERENCE CONFIG_PCA9685_EXTERNAL_CRYSTAL_FREQ
-#else
-#define PCA9685_CLOCK_REFERENCE CONFIG_PCA9685_INTERNAL_CRYSTAL_FREQ
-#endif
-
 #define PCA9685_DEFAULT_MODE1_CFG PCA9685_MODE1_AI_MASK
 #define PCA9685_DEFAULT_MODE2_CFG PCA9685_MODE2_OUTDRV_MASK
 
 using namespace drv_pca9685_pwm;
 
-PCA9685::PCA9685(int bus, int addr):
+PCA9685::PCA9685(int bus, int addr, bool external_clock, uint32_t clock_frequency):
 	I2C(DRV_PWM_DEVTYPE_PCA9685, MODULE_NAME, bus, addr, 400000),
+	externalClock(external_clock),
+	clockReference(clock_frequency),
 	currentFreq(0.0)
 {
 
@@ -68,11 +64,11 @@ int PCA9685::configure()
 	buf[1] = PCA9685_DEFAULT_MODE1_CFG | PCA9685_MODE1_SLEEP_MASK;  // put into sleep mode
 	int ret = transfer(buf, 2, nullptr, 0);
 
-#ifdef CONFIG_PCA9685_USE_EXTERNAL_CRYSTAL
-	/* EXTCLK is sticky, so writing it once is enough. Its not a problem when its written to 0 later. */
-	buf[1] = PCA9685_DEFAULT_MODE1_CFG | PCA9685_MODE1_SLEEP_MASK | PCA9685_MODE1_EXTCLK_MASK;
-	ret |= transfer(buf, 2, nullptr, 0);
-#endif
+	if (externalClock) {
+		/* EXTCLK is sticky, so writing it once is enough. Its not a problem when its written to 0 later. */
+		buf[1] = PCA9685_DEFAULT_MODE1_CFG | PCA9685_MODE1_SLEEP_MASK | PCA9685_MODE1_EXTCLK_MASK;
+		ret |= transfer(buf, 2, nullptr, 0);
+	}
 
 	buf[0] = PCA9685_REG_MODE2;
 	buf[1] = PCA9685_DEFAULT_MODE2_CFG;
@@ -114,7 +110,7 @@ int PCA9685::registers_check()
 
 int PCA9685::updateFreq(float freq)
 {
-	uint16_t divider = (uint16_t)round((float)PCA9685_CLOCK_REFERENCE / freq / PCA9685_PWM_RES) - 1;
+	uint16_t divider = (uint16_t)round((float)clockReference / freq / PCA9685_PWM_RES) - 1;
 
 	if (divider > 0x00FF) {
 		PX4_ERR("frequency too low");
@@ -126,7 +122,7 @@ int PCA9685::updateFreq(float freq)
 		return PX4_ERROR;
 	}
 
-	currentFreq = (float)PCA9685_CLOCK_REFERENCE / (float)((divider + 1) * 4096);
+	currentFreq = (float)clockReference / (float)((divider + 1) * 4096);
 	PX4_INFO("PCA9685 PWM frequency: target=%.2f real=%.2f", (double)freq, (double)currentFreq);
 
 	return setDivider(divider);

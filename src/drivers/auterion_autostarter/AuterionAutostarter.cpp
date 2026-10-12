@@ -112,6 +112,7 @@ void AuterionAutostarter::try_eeprom_start()
 					case TYPE_PWM_EXPANDER: {
 							EepromBlockPwmExpander block_pwm_expader = decoded_block.block_pwm_expander;
 							uint16_t dev_type = block_pwm_expader.dev_type;
+							set_pwm_expander_clock(block_pwm_expader);
 							ret_val |= start_i2c_driver(_buses[i].bus_number, dev_type, block_pwm_expader.i2c_addr);
 							break;
 						}
@@ -473,6 +474,39 @@ void AuterionAutostarter::set_float_param(const char *param_name, const float pa
 	if (fabsf(current_param_value - param_val) > FLT_EPSILON) {
 		param_set(param_find(param_name), &(param_val));
 	}
+}
+
+void AuterionAutostarter::set_int_param(const char *param_name, const int32_t param_val) const
+{
+	const param_t param = param_find(param_name);
+
+	if (param == PARAM_INVALID) {
+		PX4_WARN("Parameter %s not found", param_name);
+		return;
+	}
+
+	param_set(param, &param_val);
+}
+
+void AuterionAutostarter::set_pwm_expander_clock(const EepromBlockPwmExpander &block) const
+{
+	int32_t external_clock = (block.clock_type == CLOCK_EXTERNAL_GENERIC) ? 1 : 0;
+	int32_t clock_frequency = PCA9685_NOMINAL_CLOCK_FREQ;
+
+	switch (block.clock_freq) {
+	case CLOCK_FREQ_25MHZ:
+		clock_frequency = 25'000'000;
+		break;
+
+	default:
+		/* Unknown frequency: use the internal oscillator, which works on every board */
+		external_clock = 0;
+		PX4_WARN("Unknown PCA9685 clock frequency, using internal oscillator");
+		break;
+	}
+
+	set_int_param("PCA9685_EXT_CLK", external_clock);
+	set_int_param("PCA9685_CLK_FREQ", clock_frequency);
 }
 
 const char *AuterionAutostarter::get_ina_type(const uint16_t dev_type) const

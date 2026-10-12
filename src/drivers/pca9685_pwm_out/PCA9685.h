@@ -91,7 +91,7 @@ namespace drv_pca9685_pwm
 class PCA9685 : public device::I2C
 {
 public:
-	PCA9685(int bus, int addr);
+	PCA9685(int bus, int addr, bool external_clock, uint32_t clock_frequency);
 	~PCA9685() override = default;
 
 	int init() override;
@@ -167,6 +167,8 @@ protected:
 	int writePWM(uint8_t idx, const uint16_t *value, uint8_t num);
 
 private:
+	const bool externalClock;
+	const uint32_t clockReference;
 	float currentFreq;
 };
 
