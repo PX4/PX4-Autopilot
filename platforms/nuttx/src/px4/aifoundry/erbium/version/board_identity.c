@@ -13,9 +13,9 @@
  */
 
 static const uint32_t erbium_uuid[3] = {
-	'E' << 0 | 'R' << 8 | 'B' << 16 | 'I' << 24,
-	'U' << 0 | 'M' << 8 | 'M' << 16 | 'I' << 24,
-	'N' << 0 | 'I' << 8 | 'O' << 16 | 'N' << 24
+	0x49425245, /* "ERBI", little-endian */
+	0x494d4d55, /* "UMMI" */
+	0x4e4f494e  /* "NION" */
 };
 
 #define CPU_UUID_BYTE_FORMAT_ORDER          {3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8}
