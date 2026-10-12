@@ -410,8 +410,8 @@ float TECSControl::_calcPitchControlSkeRateSetpoint(const Setpoint &setpoint, co
 	pitch_control_setpoint.tas_setpoint = lerp(tas_setpoint_capped, setpoint.tas_setpoint,
 					      constrain(weight.ske_weighting - 1.f, 0.f, 1.f));
 
-	return pitch_control_setpoint.tas_setpoint * _calcAirspeedControlOutput(pitch_control_setpoint, input, limit, param,
-			flag);
+	// d/dt(0.5 V^2) = V * dV/dt: the measured airspeed, not the setpoint, keeps the airspeed loop linear
+	return input.tas * _calcAirspeedControlOutput(pitch_control_setpoint, input, limit, param, flag);
 }
 
 void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
