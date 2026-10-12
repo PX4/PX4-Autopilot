@@ -86,7 +86,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Estimation
 
 - EKF2 fuses dual-antenna GNSS heading from its own topic, `vehicle_gnss_heading`, at the heading's rate and measurement time instead of with each position sample. GNSS yaw fusion is gated on the heading itself (its baseline checks, and the spoofing and jamming state of the receiver providing it under [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK), which stop it like position fusion), not on the position checks, and it keeps running when position and velocity fusion stop. `GPS_RAW_INT` and `GPS2_RAW` report the body-frame heading of the receiver that provides it. ([PX4-Autopilot#27102](https://github.com/PX4/PX4-Autopilot/pull/27102))
-- When the local position estimate is lost in flight because of GNSS, commander now reports the reason as an event: either the receiver checks that failed, or that the receiver stopped sending data. The ground station and the log show the cause ahead of the "GNSS data fusion stopped" message. ([PX4-Autopilot#28873](https://github.com/PX4/PX4-Autopilot/pull/28873))
+- When the local position estimate is lost in flight because of GNSS, commander now reports the reason as an event: either the receiver checks that failed, or that the receiver stopped sending data. The ground station and the log show the cause ahead of the "GPS data fusion stopped" message. ([PX4-Autopilot#28873](https://github.com/PX4/PX4-Autopilot/pull/28873))
 
 ### Sensors
 
