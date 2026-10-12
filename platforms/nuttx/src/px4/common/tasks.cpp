@@ -39,6 +39,7 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
 
@@ -71,9 +72,9 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 
 #if !defined(__KERNEL__)
 	/* create the task */
-	int pid = task_create(name, priority, stack_size, entry, argv);
+	int pid = task_create(name, priority, PX4_STACK_ADJUSTED(stack_size), entry, argv);
 #else
-	int pid = kthread_create(name, priority, stack_size, entry, argv);
+	int pid = kthread_create(name, priority, PX4_STACK_ADJUSTED(stack_size), entry, argv);
 #endif
 
 	if (pid > 0) {
