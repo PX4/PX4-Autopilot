@@ -44,6 +44,8 @@
  *   JUMP <target index> <repeats> [current count]
  *   TRANSITION <FW|MC>
  *   RALLY <lat> <lon> <alt>
+ *   FENCE_POLYGON <INCLUSION|EXCLUSION> <count> <lat1> <lon1> ...
+ *   FENCE_CIRCLE <INCLUSION|EXCLUSION> <lat> <lon> <radius_m>
  *   VEHICLE <lat> <lon> <alt>
  *   SET <request field> <value>
  *   ACTION <RTL|RESUME>
@@ -51,18 +53,29 @@
  * @author Jonas Perolini <jonspero@me.com>
  */
 
+#include "geofence.h"
+#include "mission_route_geofence.h"
 #include "mission_route_planner.h"
 #include "mission_route_provider.h"
 #include "mission_route_types.h"
 #include "navigation.h"
+#include "navigator.h"
 
+#include <dataman_client/DatamanClient.hpp>
+#include <parameters/param.h>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/geofence_status.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
+
+extern "C" int dataman_main(int argc, char *argv[]);
 
 using namespace mission_route;
 
@@ -94,6 +107,7 @@ private:
 
 struct Scenario {
 	VectorProvider provider;
+	std::vector<mission_fence_point_s> fence_points;
 	std::string action{"RTL"};
 	bool has_vehicle{false};
 	// Superset of MissionResumeRequest, so one SET table serves both entry points.
@@ -215,8 +229,6 @@ bool setRequestField(RtlRouteRequest &request, const std::string &key, const std
 
 	if (key == "velocity_east_m_s") { request.velocity_east_m_s = number; return true; }
 
-	if (key == "vtol_state_on_mission_upload") { return parseVtolState(value, request.vtol_state_on_mission_upload); }
-
 	if (!parseBool(value, flag)) {
 		return false;
 	}
@@ -234,12 +246,58 @@ bool setRequestField(RtlRouteRequest &request, const std::string &key, const std
 	return false;
 }
 
-bool readScenario(FILE *input, Scenario &scenario, std::string &error)
+bool readFence(std::istringstream &line, bool circle, std::vector<mission_fence_point_s> &points)
 {
-	char buffer[512];
+	std::string type;
+
+	if (!(line >> type) || (type != "INCLUSION" && type != "EXCLUSION")) {
+		return false;
+	}
+
+	unsigned count = 1;
+
+	if (!circle && (!(line >> count) || count < 3 || count > DM_KEY_FENCE_POINTS_MAX)) {
+		return false;
+	}
+
+	if (points.size() + count > DM_KEY_FENCE_POINTS_MAX) {
+		return false;
+	}
+
+	for (unsigned i = 0; i < count; ++i) {
+		mission_fence_point_s point{};
+		point.frame = NAV_FRAME_GLOBAL;
+
+		if (!(line >> point.lat >> point.lon) || !PX4_ISFINITE(point.lat) || !PX4_ISFINITE(point.lon)
+		    || fabs(point.lat) > 90.0 || fabs(point.lon) > 180.0) {
+			return false;
+		}
+
+		if (circle) {
+			point.nav_cmd = type == "INCLUSION" ? NAV_CMD_FENCE_CIRCLE_INCLUSION : NAV_CMD_FENCE_CIRCLE_EXCLUSION;
+
+			if (!(line >> point.circle_radius) || !PX4_ISFINITE(point.circle_radius) || point.circle_radius <= 0.f) {
+				return false;
+			}
+
+		} else {
+			point.nav_cmd = type == "INCLUSION" ? NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION : NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
+			point.vertex_count = static_cast<uint16_t>(count);
+		}
+
+		points.push_back(point);
+	}
+
+	std::string extra;
+	return !(line >> extra);
+}
+
+bool readScenario(std::istream &input, Scenario &scenario, std::string &error)
+{
+	std::string buffer;
 	int line_number = 0;
 
-	while (fgets(buffer, sizeof(buffer), input) != nullptr) {
+	while (std::getline(input, buffer)) {
 		++line_number;
 		std::istringstream line(buffer);
 		std::string tag;
@@ -295,6 +353,9 @@ bool readScenario(FILE *input, Scenario &scenario, std::string &error)
 			if (ok) {
 				scenario.provider.safe_points.push_back(makePositionItem(NAV_CMD_RALLY_POINT, lat, lon, alt));
 			}
+
+		} else if (tag == "FENCE_POLYGON" || tag == "FENCE_CIRCLE") {
+			ok = readFence(line, tag == "FENCE_CIRCLE", scenario.fence_points);
 
 		} else if (tag == "VEHICLE") {
 			Position &vehicle = scenario.request.vehicle_position;
@@ -377,9 +438,9 @@ void printStatus(FailureReason status)
 	}
 }
 
-void runPlanner(const Scenario &scenario)
+void runPlanner(const Scenario &scenario, const PathChecker *checker = nullptr)
 {
-	const MissionRoutePlanner planner{scenario.provider};
+	const MissionRoutePlanner planner{scenario.provider, checker};
 
 	if (scenario.action == "RTL") {
 		RtlRoutePlan plan{};
@@ -394,6 +455,7 @@ void runPlanner(const Scenario &scenario)
 			printPosition("branch_off", plan.branch_off_position);
 			printf("PLAN branch_off_mission_item_index %d\n", static_cast<int>(plan.branch_off_mission_item_index));
 			printf("PLAN fly_direct_to_goal %d\n", static_cast<int>(plan.fly_direct_to_goal));
+			printf("PLAN geofence_prevents_shortcut %d\n", static_cast<int>(plan.geofence_prevents_shortcut));
 		}
 
 		return;
@@ -411,7 +473,6 @@ void runPlanner(const Scenario &scenario)
 	request.is_fixed_wing = source.is_fixed_wing;
 	request.in_transition_to_fw = source.in_transition_to_fw;
 	request.is_vtol = source.is_vtol;
-	request.vtol_state_on_mission_upload = source.vtol_state_on_mission_upload;
 	request.velocity_north_m_s = source.velocity_north_m_s;
 	request.velocity_east_m_s = source.velocity_east_m_s;
 	request.fw_u_turn_penalty_m = source.fw_u_turn_penalty_m;
@@ -425,6 +486,131 @@ void runPlanner(const Scenario &scenario)
 	}
 }
 
+// The host tool uses the same Dataman loader and fence checks as Navigator. RAM
+// storage keeps each invocation independent and never writes a flight data file.
+class GeofenceRuntime
+{
+public:
+	GeofenceRuntime()
+	{
+		uORB::Manager::initialize();
+
+		if (px4::WorkQueueManagerStart() != PX4_OK) {
+			return;
+		}
+
+		param_init();
+		param_control_autosave(false);
+		char name[] = "dataman";
+		char start[] = "start";
+		char ram[] = "-r";
+		char *args[] = {name, start, ram};
+		_started = dataman_main(3, args) == 0;
+	}
+
+	~GeofenceRuntime()
+	{
+		if (_started) {
+			char name[] = "dataman";
+			char stop[] = "stop";
+			char *args[] = {name, stop};
+			dataman_main(2, args);
+		}
+
+		px4::WorkQueueManagerStop();
+	}
+
+	bool started() const { return _started; }
+
+private:
+	bool _started{false};
+};
+
+bool loadFence(const Scenario &scenario, Geofence &fence, DatamanClient &client, std::string &error)
+{
+	for (size_t i = 0; i < scenario.fence_points.size(); ++i) {
+		mission_fence_point_s point = scenario.fence_points[i];
+
+		if (!client.writeSync(DM_KEY_FENCE_POINTS_0, static_cast<uint32_t>(i),
+				      reinterpret_cast<uint8_t *>(&point), sizeof(point))) {
+			error = "could not store geofence point " + std::to_string(i);
+			return false;
+		}
+	}
+
+	mission_stats_entry_s stats{};
+	stats.num_items = static_cast<uint16_t>(scenario.fence_points.size());
+	stats.opaque_id = 1; // One fence set per process.
+	stats.dataman_id = DM_KEY_FENCE_POINTS_0;
+
+	if (!client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(stats))) {
+		error = "could not store geofence metadata";
+		return false;
+	}
+
+	uORB::Subscription status_sub{ORB_ID(geofence_status)};
+	fence.updateFence();
+	const hrt_abstime start = hrt_absolute_time();
+	static constexpr hrt_abstime kLoadTimeout = 2_s;
+
+	while (hrt_elapsed_time(&start) < kLoadTimeout) {
+		fence.run();
+		geofence_status_s status{};
+
+		if (status_sub.update(&status) && status.geofence_id == stats.opaque_id) {
+			if (status.status == geofence_status_s::GF_STATUS_FAILED) {
+				error = "geofence loader rejected the fence";
+				return false;
+			}
+
+			if (status.status == geofence_status_s::GF_STATUS_READY && fence.isReadyForPathChecks()) {
+				return true;
+			}
+		}
+
+		px4_usleep(1000);
+	}
+
+	error = "geofence load timed out";
+	return false;
+}
+
+bool runWithGeofence(const Scenario &scenario, std::string &error)
+{
+	GeofenceRuntime runtime;
+
+	if (!runtime.started()) {
+		error = "could not start Dataman";
+		return false;
+	}
+
+	Navigator navigator;
+	navigator.get_land_detected()->landed = true;
+	home_position_s *home = navigator.get_home_position();
+	home->timestamp = hrt_absolute_time();
+	home->alt = scenario.request.home_altitude_amsl;
+	// The scene supplies Home altitude, but no Home latitude/longitude. Inventing
+	// them from the vehicle would make the upload checks silently discard recovery fences.
+	home->valid_hpos = false;
+	home->valid_alt = PX4_ISFINITE(home->alt);
+	Geofence &fence = navigator.get_geofence();
+	DatamanClient client;
+
+	if (!loadFence(scenario, fence, client, error)) {
+		return false;
+	}
+
+	const Position &vehicle = scenario.request.vehicle_position;
+
+	if (vehicle.valid() && !fence.checkPointAgainstAllGeofences(vehicle.lat, vehicle.lon, vehicle.alt)) {
+		printf("Geofence: vehicle already breaches the fence; segments from the vehicle are not checked.\n");
+	}
+
+	GeofencePathChecker checker{fence, vehicle};
+	runPlanner(scenario, &checker);
+	return true;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -434,13 +620,21 @@ int main(int argc, char **argv)
 	Scenario scenario{};
 	std::string error;
 
-	if (!readScenario(stdin, scenario, error)) {
+	if (!readScenario(std::cin, scenario, error)) {
 		fprintf(stderr, "invalid scenario: %s\n", error.c_str());
 		return 2;
 	}
 
 	printf("ACTION %s\n", scenario.action.c_str());
-	runPlanner(scenario);
+
+	if (scenario.fence_points.empty()) {
+		runPlanner(scenario);
+
+	} else if (!runWithGeofence(scenario, error)) {
+		fprintf(stderr, "geofence unavailable: %s\n", error.c_str());
+		return 3;
+	}
+
 	printf("END\n");
 	return 0;
 }

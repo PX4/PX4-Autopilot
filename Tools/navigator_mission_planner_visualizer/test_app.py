@@ -54,7 +54,39 @@ class AppTest_(unittest.TestCase):
         return next(button for button in self.app.button if button.label == label)
 
     def code(self):
-        return self.app.code[0].value if self.app.code else ""
+        return next((block.value for block in self.app.code if block.language == "cpp"), "")
+
+    def test_click_to_create_polygon_and_circle_with_undo(self):
+        self.app.selectbox(key="item_type").set_value("Geofences").run()
+        self.app.radio(key="fence_type").set_value("Exclusion").run()
+        self.click(47.3995, 8.5458)
+        self.click(47.4013, 8.5456)
+        self.assertTrue(self.button("Finish polygon").disabled)
+        self.assertEqual(self.button("Finish polygon").help, "Click at least 3 vertices first (2 so far).")
+        self.assertTrue(any(caption.value == "An unfinished polygon." for caption in self.app.caption))
+        self.assertEqual(self.app.session_state["editor"].scene().fences, [])
+        self.click(47.4013, 8.5490)
+        self.button("Finish polygon").click().run()
+        editor = self.app.session_state["editor"]
+        self.assertEqual(len(editor.fences), 1)
+        self.assertFalse(editor.fences[0].inclusion)
+        self.assertIsNone(editor.draft_fence)
+        self.assertIn("NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION", self.code())
+        self.app.radio(key="fence_shape").set_value("Circle").run()
+        # Undo finishing the polygon must restore its controls even after switching shape.
+        self.button("Undo").click().run()
+        self.assertEqual(self.app.radio(key="fence_shape").value, "Polygon")
+        self.button("Cancel polygon").click().run()
+        self.app.radio(key="fence_shape").set_value("Circle").run()
+        self.app.radio(key="fence_type").set_value("Inclusion").run()
+        self.app.number_input(key="fence_radius").set_value(150.0).run()
+        self.click(47.4030, 8.5470)
+        self.assertFalse(self.app.exception)
+        self.assertEqual(self.app.session_state["editor"].fences[0].radius_m, 150)
+        self.assertEqual(self.app.session_state["editor"].count(), 1)
+        self.assertIn("NAV_CMD_FENCE_CIRCLE_INCLUSION", self.code())
+        self.button("Delete geofence").click().run()
+        self.assertEqual(self.app.session_state["editor"].count(), 0)
 
     def test_code_follows_the_edits_without_a_button(self):
         self.assertEqual(self.code(), "")
@@ -74,6 +106,10 @@ class AppTest_(unittest.TestCase):
             self.code(),
         )
         self.assertIn("request.velocity_north_m_s = 5.f;", self.code())
+        summary = "2 mission items, 1 vehicle position."
+        self.assertTrue(any(caption.value == summary for caption in self.app.caption))
+        # The per-type clear names exactly what it removes.
+        self.assertEqual(self.button("Clear vehicle positions").help, "Removes all new vehicle positions.")
 
         self.app.radio(key="coordinates").set_value("Absolute lat/lon").run()
         self.assertIn("makePositionItem(47.3995406, 8.5458597, 500.f), // 0", self.code())
@@ -84,6 +120,7 @@ class AppTest_(unittest.TestCase):
         self.button("Clear all new items").click().run()
         self.assertEqual(self.code(), "")
         self.assertTrue(self.button("Clear all new items").disabled)
+        self.assertEqual(self.button("Clear all new items").help, "There are no new items.")
 
     def test_marker_clicks_and_control_changes_add_nothing(self):
         self.click(47.3995, 8.5458)
@@ -108,7 +145,7 @@ class AppTest_(unittest.TestCase):
         )
         self.button("Parse").click().run()
         self.assertFalse(self.app.exception)
-        self.assertEqual(self.app.session_state["parsed"].summary(), "2 mission items, 1 positions")
+        self.assertEqual(self.app.session_state["parsed"].summary(), "2 mission items, 1 position")
         (center_lat, _), zoom = self.app.session_state["view"]
         self.assertAlmostEqual(center_lat, 47.397742 + 0.0044965, places=5)
         self.assertLess(zoom, 16)
@@ -123,6 +160,9 @@ class AppTest_(unittest.TestCase):
         self.assertIsNone(self.app.session_state["parsed"])
         self.assertEqual(self.app.session_state["editor"].count(), 3)
         self.assertTrue(self.button("Load parsed items into the editor").disabled)
+        load = self.button("Load parsed items into the editor")
+        self.assertEqual(load.help, "Parse a test under C++ source first.")
+        self.assertTrue(self.button("Clear parsed").disabled)
 
     def test_recenter_returns_to_the_base_view(self):
         self.app.text_area(key="source").set_value(
@@ -149,26 +189,58 @@ class AppTest_(unittest.TestCase):
         self.assertTrue(any("No mission items" in warning.value for warning in self.app.warning))
         self.assertIsNone(self.app.session_state["parsed"])
 
-    def test_without_the_binary_the_panel_shows_the_build_command(self):
-        root = Path(tempfile.mkdtemp())
-        with patch("planner_visualizer.planner_cli.repo_root", return_value=root):
-            self.app.run()
-        self.assertTrue(any("EXTERNAL_MODULES_LOCATION" in code.value for code in self.app.code))
-        self.assertFalse(any(button.label == "Plan Return" for button in self.app.button))
-
-    def test_planner_flow_runs_the_binary_and_writes_a_test(self):
+    def fake_binary_root(self):
         root = Path(tempfile.mkdtemp())
         (root / "Makefile").write_text("")
         (root / "src/modules/navigator").mkdir(parents=True)
         (root / "build/px4_sitl_test").mkdir(parents=True)
         (root / "build/px4_sitl_test/mission_route_planner_cli").write_text("")
+        return root
+
+    def test_without_the_binary_the_plan_buttons_say_why_they_are_disabled(self):
+        self.app.text_area(key="source").set_value(SOURCE)
+        with patch("planner_visualizer.planner_cli.repo_root", return_value=Path(tempfile.mkdtemp())):
+            self.button("Parse").click().run()
+        self.assertTrue(any("EXTERNAL_MODULES_LOCATION" in code.value for code in self.app.code))
+        for label in ("Plan Return", "Plan Mission rejoin"):
+            with self.subTest(label=label):
+                self.assertTrue(self.button(label).disabled)
+                self.assertIn("planner CLI is not built yet", self.button(label).help)
+        with patch("planner_visualizer.planner_cli.repo_root", return_value=None):
+            self.app.run()
+        self.assertTrue(self.button("Plan Return").disabled)
+        self.assertIn("PX4-Autopilot checkout", self.button("Plan Return").help)
+
+    def test_plan_buttons_say_that_new_items_replace_the_parsed_test(self):
+        with patch("planner_visualizer.planner_cli.repo_root", return_value=self.fake_binary_root()):
+            self.app.text_area(key="source").set_value(SOURCE)
+            self.button("Parse").click().run()
+            self.assertFalse(self.button("Plan Return").disabled)
+            self.app.selectbox(key="item_type").set_value("Vehicle position").run()
+            self.click(47.3995, 8.5458)
+        reason = (
+            "The new items need mission items. While there are new items, the parsed test is not planned."
+        )
+        self.assertTrue(self.button("Plan Mission rejoin").disabled)
+        self.assertEqual(self.button("Plan Mission rejoin").help, reason)
+        # The reason is also shown under the buttons, for readers who do not hover.
+        self.assertTrue(any(caption.value == reason for caption in self.app.caption))
+
+    def test_planner_flow_runs_the_binary_and_writes_a_test(self):
+        root = self.fake_binary_root()
         with patch("planner_visualizer.planner_cli.repo_root", return_value=root), patch(
             "planner_visualizer.planner_cli.run", return_value=parse_output(CLI_OUTPUT)
         ) as run:
             self.app.run()
             self.assertTrue(self.button("Plan Return").disabled)
+            self.assertEqual(
+                self.button("Plan Return").help,
+                "Needs mission items and a vehicle position. Parse a test, or click the map to add them.",
+            )
             self.app.text_area(key="source").set_value(SOURCE)
             self.button("Parse").click().run()
+            self.assertFalse(self.button("Plan Return").disabled)
+            self.assertIn("route-following Return", self.button("Plan Return").help)
             self.app.number_input(key="req_mission_index").set_value(2).run()
             self.button("Plan Return").click().run()
             self.assertFalse(self.app.exception)
@@ -184,7 +256,7 @@ class AppTest_(unittest.TestCase):
             self.assertIn("Route plan to safe_point", code)
 
             self.app.number_input(key="req_rally_margin").set_value(0.0).run()
-            self.assertTrue(any("changed since this plan" in caption.value for caption in self.app.caption))
+            self.assertTrue(any("changed since this plan" in warning.value for warning in self.app.warning))
 
     def test_selected_item_is_edited_from_the_sidebar(self):
         self.click(47.3995, 8.5458)  # mission[0], 200 m north and 20 m east of the base
@@ -238,11 +310,7 @@ class AppTest_(unittest.TestCase):
         self.assertIsNone(self.app.session_state["selected"])
 
     def test_every_vehicle_position_gets_a_plan(self):
-        root = Path(tempfile.mkdtemp())
-        (root / "Makefile").write_text("")
-        (root / "src/modules/navigator").mkdir(parents=True)
-        (root / "build/px4_sitl_test").mkdir(parents=True)
-        (root / "build/px4_sitl_test/mission_route_planner_cli").write_text("")
+        root = self.fake_binary_root()
         source = SOURCE + (
             "const mission_route::Position vehicle_position_2 =\n"
             "\tmakePositionFromOffset(kBaseLat, kBaseLon, 1300.f, 40.f, kAlt);\n"

@@ -6,13 +6,14 @@ whole TEST_F body can be pasted as is.
 
 import ast
 from functools import lru_cache
+import math
 import operator
 from pathlib import Path
 import re
 from typing import Dict, Iterator, List, Optional, Tuple
 
 from .geometry import offset_to_latlon
-from .models import HELPER_HEADER, Position, Scene, Waypoint
+from .models import Fence, HELPER_HEADER, Position, Scene, Waypoint
 
 # Item helpers of mission_route_test_helpers.h and the nav command each one produces.
 ITEM_HELPERS = {
@@ -56,7 +57,7 @@ _OPERATORS = {
 
 
 def parse_cpp(text: str) -> Scene:
-    """Read mission containers, safe points, positions and the request velocity."""
+    """Read mission containers, safe points, positions, fences and request velocity."""
     src = _mask_strings(strip_comments(text or ""))
     constants = resolve_constants(src, header_constants())
     return Scene(
@@ -65,6 +66,7 @@ def parse_cpp(text: str) -> Scene:
         positions=_parse_positions(src, constants),
         velocity=_parse_velocity(src, constants),
         constants=constants,
+        fences=_parse_fences(src, constants),
     )
 
 
@@ -300,6 +302,100 @@ def _parse_safe_points(src: str, constants: Dict[str, float]) -> List[Waypoint]:
     return [point for point in points if point is not None]
 
 
+def _fence(inclusion: bool, vertices, radius=None) -> Optional[Fence]:
+    """Ignore incomplete or invalid geometry instead of drawing a different fence."""
+    if not vertices or any(
+        point is None or not all(math.isfinite(value) for value in point)
+        or not (-90 <= point[0] <= 90 and -180 <= point[1] <= 180)
+        for point in vertices
+    ):
+        return None
+    if radius is None:
+        if len(vertices) < 3:
+            return None
+    elif len(vertices) != 1 or not math.isfinite(radius) or radius <= 0:
+        return None
+    return Fence(inclusion, vertices, radius)
+
+
+def _coordinate_literal(expr: str, constants: Dict[str, float]):
+    """Two or three numeric components in braces; altitude is unused by fences."""
+    match = re.fullmatch(r"(?:Mission::LatLonAlt\s*)?\{([^{}]*)\}", expr.strip())
+    if match is None:
+        return None
+    args = _split_args(match.group(1))
+    values = [resolve_number(arg, constants) for arg in args[:2]]
+    return tuple(values) if len(args) in (2, 3) and None not in values else None
+
+
+def _parse_fences(src: str, constants: Dict[str, float]) -> List[Fence]:
+    fences = []
+    pending = []
+    pending_command, pending_count, pending_start, previous_end = "", 0, 0, 0
+
+    # Generated records encode a polygon as consecutive vertices with the same
+    # command and vertex count. Do not join records from different containers.
+    for _, args, index in _calls(src, ("makeFencePoint",)):
+        if src[previous_end:index].strip(" ,\t\r\n"):
+            pending = []
+        previous_end = _closing_bracket(src, src.index("(", index)) + 1
+        command = re.fullmatch(r"NAV_CMD_FENCE_(POLYGON_VERTEX|CIRCLE)_(INCLUSION|EXCLUSION)", args[0]) if args else None
+        if command is None or len(args) != 5:
+            pending = []
+            continue
+        lat, lon, count, radius = [resolve_number(arg, constants) for arg in args[1:]]
+        coordinate = (lat, lon) if lat is not None and lon is not None else None
+        inclusion = command.group(2) == "INCLUSION"
+        if command.group(1) == "CIRCLE":
+            fence = _fence(inclusion, [coordinate], radius) if radius is not None else None
+            if fence is not None:
+                fences.append((index, fence))
+            pending = []
+            continue
+        if count is None or not math.isfinite(count) or not count.is_integer() or not 3 <= count <= 65535:
+            pending = []
+            continue
+        if not pending or args[0] != pending_command or count != pending_count:
+            pending, pending_command, pending_count, pending_start = [], args[0], count, index
+        pending.append(coordinate)
+        if len(pending) == pending_count:
+            fence = _fence(inclusion, pending)
+            if fence is not None:
+                fences.append((pending_start, fence))
+            pending = []
+
+    # GeofenceTestBase helpers use offsets from (47, 8), independently of the
+    # route test helper's kBaseLat/kBaseLon reference.
+    for helper, args, index in _calls(src, ("polygon", "circle", "exclusionSquare", "exclusionCircle")):
+        reference = (47.0, 8.0)
+        radius = None
+        offsets = []
+        inclusion = False
+        if helper == "exclusionSquare" and not args:
+            offsets = [(-50.0, 250.0), (50.0, 250.0), (50.0, 350.0), (-50.0, 350.0)]
+        elif helper == "exclusionCircle" and len(args) == 3:
+            values = [resolve_number(arg, constants) for arg in args]
+            if None in values:
+                continue
+            offsets, radius = [tuple(values[:2])], values[2]
+            reference = (constants.get("kBaseLat", 47.397742), constants.get("kBaseLon", 8.545594))
+        elif len(args) in (2, 3) and args[0] in ("true", "false"):
+            inclusion = args[0] == "true"
+            if helper == "polygon" and len(args) == 2 and args[1].startswith("{") and args[1].endswith("}"):
+                offsets = [_coordinate_literal(value, constants) for value in _split_args(args[1][1:-1])]
+            elif helper == "circle" and len(args) == 3:
+                offsets, radius = [_coordinate_literal(args[1], constants)], resolve_number(args[2], constants)
+                if radius is None:
+                    continue
+        if not offsets or any(point is None or not all(math.isfinite(value) for value in point) for point in offsets):
+            continue
+        vertices = [offset_to_latlon(*reference, *point) for point in offsets]
+        fence = _fence(inclusion, vertices, radius)
+        if fence is not None:
+            fences.append((index, fence))
+    return [fence for _, fence in sorted(fences, key=lambda entry: entry[0])]
+
+
 def _assigned_name(src: str, index: int) -> Optional[str]:
     """Variable or member receiving the value starting at index, as in `x = <value>`."""
     match = re.search(r"(\w+)\s*=\s*$", src[:index])
@@ -316,6 +412,12 @@ def _parse_positions(src: str, constants: Dict[str, float]) -> List[Position]:
         point = _waypoint(helper, args, "", constants)
         if point is not None:
             add(_assigned_name(src, index), point.lat, point.lon, point.alt)
+
+    for _, args, index in _calls(src, ("routePosition",)):
+        values = [resolve_number(arg, constants) for arg in args]
+        if len(values) in (2, 3) and None not in values and all(math.isfinite(value) for value in values):
+            lat, lon = offset_to_latlon(47.0, 8.0, *values[:2])
+            add(_assigned_name(src, index), lat, lon, values[2] if len(values) == 3 else constants.get("kAltitude", 500.0))
 
     for match in _POSITION_VAR_RE.finditer(src):
         values = [resolve_number(arg, constants) for arg in _split_args(match.group(2))]
