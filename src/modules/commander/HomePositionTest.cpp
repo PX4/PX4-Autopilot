@@ -41,10 +41,10 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -155,18 +155,22 @@ protected:
 		baro.baro_alt_meter = kRefAlt;
 		_baro_pub.publish(baro);
 
-		sensor_gps_s gps{};
-		gps.timestamp = now;
-		gps.latitude_deg = kLat;
-		gps.longitude_deg = kLon;
-		gps.altitude_msl_m = alt;
-		gps.fix_type = valid ? 3 : 0;
-		gps.eph = 1.f;
-		gps.epv = 1.f;
-		gps.s_variance_m_s = 0.1f;
-		gps.vel_ned_valid = true;
-		gps.vel_d_m_s = 0.f;
-		_gps_pub.publish(gps);
+		vehicle_gnss_s gnss{};
+		gnss.timestamp = now;
+		gnss.timestamp_sample = now;
+		gnss.receiver.timestamp = now;
+		gnss.receiver.timestamp_sample = now;
+		gnss.receiver.latitude = kLat;
+		gnss.receiver.longitude = kLon;
+		gnss.receiver.altitude_msl = alt;
+		gnss.receiver.fix_type = valid ? 3 : 0;
+		gnss.receiver.eph = 1.f;
+		gnss.receiver.epv = 1.f;
+		gnss.receiver.speed_accuracy = 0.1f;
+		gnss.receiver.vel_ned_valid = true;
+		gnss.receiver.vel_down = 0.f;
+		gnss.usable = valid;
+		_gnss_pub.publish(gnss);
 
 		_home->update(false, false);
 	}
@@ -210,7 +214,7 @@ protected:
 	uORB::Publication<vehicle_attitude_s> _attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_land_detected_s> _land_pub{ORB_ID(vehicle_land_detected)};
 	uORB::Publication<vehicle_air_data_s> _baro_pub{ORB_ID(vehicle_air_data)};
-	uORB::Publication<sensor_gps_s> _gps_pub{ORB_ID(vehicle_gps_position)};
+	uORB::Publication<vehicle_gnss_s> _gnss_pub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _home_sub{ORB_ID(home_position)};
 };
 
