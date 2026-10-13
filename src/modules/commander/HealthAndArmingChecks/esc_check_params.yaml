@@ -16,20 +16,20 @@ parameters:
       description:
         short: Motor Failure Current/Throttle Scale
         long: |-
-          Determines the slope between expected steady state current and linearized, normalized thrust command.
-          E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
-          FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
+          Determines the slope between expected steady state current and linearized, normalized thrust command [0, 1].
+          The value is the expected steady state current in A at 100% thrust.
+          MOTFAIL_OFF offsets the under- and over-current thresholds from that slope.
       type: float
       default: 35.0
       min: 0.0
       max: 50.0
-      unit: A/%
+      unit: A
       decimal: 2
       increment: 1
     MOTFAIL_OFF:
       description:
         short: Under/over-current motor failure limit offset
-        long: Check is triggered if `abs(FD_ACT_MOT_C2T * thrust - FD_ACT_OFF)` is above this value.
+        long: The check triggers when the ESC current is below `MOTFAIL_C2T * thrust - MOTFAIL_OFF` or above `MOTFAIL_C2T * thrust + MOTFAIL_OFF`.
       type: float
       default: 10.0
       min: 0
