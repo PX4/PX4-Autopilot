@@ -151,14 +151,21 @@
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 
 
-/* High-resolution timer */
-#define HRT_TIMER               2  /* use timer2 for the HRT */
+/* High-resolution timer
+ *
+ * TIM8 so that the PPM capture channel can share the USART6 RX pin
+ */
+#define HRT_TIMER               8  /* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
 
 
-/* RC Serial port */
+/* RC Serial port, with PPM in on the same pin */
 #define RC_SERIAL_PORT          "/dev/ttyS4"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
+
+#define HRT_PPM_CHANNEL         /* T8C2 */ 2  /* use capture/compare channel 2 */
+#define GPIO_PPM_IN             /* PC7 */ GPIO_TIM8_CH2IN_1
+#define RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX  GPIO_USART6_RX
 
 // #define GPIO_RSSI_IN            /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 

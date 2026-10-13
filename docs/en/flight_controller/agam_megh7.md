@@ -135,12 +135,12 @@ PX4 turns it on at boot.
 
 ### RX
 
-| Pin | Signal    | MCU pin |
-| --- | --------- | ------- |
-| 1   | USART6 TX | PC6     |
-| 2   | USART6 RX | PC7     |
-| 3   | +5V       |         |
-| 4   | GND       |         |
+| Pin | Signal          | MCU pin |
+| --- | --------------- | ------- |
+| 1   | USART6 TX       | PC6     |
+| 2   | USART6 RX / PPM | PC7     |
+| 3   | +5V             |         |
+| 4   | GND             |         |
 
 ### CAN {#can_pinout}
 
@@ -292,8 +292,10 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 A remote control (RC) radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 
 Connect the RC receiver to the `RX` port (USART6).
-PX4 detects SBUS, DSM, ST24, SUMD, CRSF and GHST receivers on this port automatically.
-PPM receivers are not supported, and the board cannot power-cycle Spektrum receivers for binding.
+PX4 detects SBUS, DSM, ST24, SUMD, CRSF, GHST and PPM receivers on this port automatically.
+Both USART6 lines are on the connector, so ExpressLRS and Crossfire receivers also get telemetry back to the handset.
+PPM shares the RX pin with the serial input, so only one of the two can be connected at a time.
+The board cannot power-cycle Spektrum receivers for binding.
 
 ::: tip
 To use SBUS from a DJI or Caddx air unit on `DIGI VTX` pin 6 instead, set [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) to `TELEM 3` (see [DIGI VTX](#digi-vtx)).
