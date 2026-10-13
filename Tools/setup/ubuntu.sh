@@ -223,10 +223,10 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	if [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
 		gazebo_packages="gz-harmonic libunwind-dev"
 		echo "[ubuntu.sh] Installing Gazebo Harmonic"
-	else if [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
+	elif [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
 		gazebo_packages="gz-harmonic libunwind-dev"
 		echo "[ubuntu.sh] Installing Gazebo Harmonic"
-	else if [[ "${UBUNTU_RELEASE}" == "26.04" ]]; then
+	elif [[ "${UBUNTU_RELEASE}" == "26.04" ]]; then
 		gazebo_packages="gz-jetty libunwind-dev"
 		echo "[ubuntu.sh] Installing Gazebo Jetty"
 	else
