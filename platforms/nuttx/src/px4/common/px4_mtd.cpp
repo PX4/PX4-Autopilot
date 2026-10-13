@@ -444,6 +444,26 @@ memoryout:
 			goto errout;
 		}
 
+		/* Fit the manifest to the device. A smaller part than the manifest expects (an FM25V01 16 KiB
+		 * FRAM behind the 32 KiB default table) would otherwise get no partition at all and lose
+		 * its parameters: shrink the last partition instead. */
+		{
+			const unsigned long device_blocks = neraseblocks * blkpererase;
+			unsigned long requested_blocks = 0;
+
+			for (part = 0; part < nparts; part++) {
+				requested_blocks += instances[i]->partition_block_counts[part];
+			}
+
+			if (nparts > 0 && requested_blocks > device_blocks) {
+				int &last_count = instances[i]->partition_block_counts[nparts - 1];
+				const unsigned long other_blocks = requested_blocks - last_count;
+				last_count = (other_blocks < device_blocks) ? (int)(device_blocks - other_blocks) : 0;
+				PX4_WARN("%s: manifest asks for %lu blocks, device has %lu: shrunk to %d blocks",
+					 instances[i]->partition_names[nparts - 1], requested_blocks, device_blocks, last_count);
+			}
+		}
+
 		/* Now create MTD FLASH partitions */
 
 		for (offset = 0, part = 0; rv == 0 && part < nparts; offset += instances[i]->partition_block_counts[part], part++) {
