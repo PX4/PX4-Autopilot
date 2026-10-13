@@ -69,9 +69,10 @@ void ActuatorEffectivenessTilts::updateParams()
 		return;
 	}
 
-	_count = count;
+	// The parameter range is not enforced when it is set
+	_count = math::constrain<int>(count, 0, MAX_COUNT);
 
-	for (int i = 0; i < count; i++) {
+	for (int i = 0; i < _count; i++) {
 		param_get(_param_handles[i].control, (int32_t *)&_params[i].control);
 		param_get(_param_handles[i].tilt_direction, (int32_t *)&_params[i].tilt_direction);
 		param_get(_param_handles[i].min_angle, &_params[i].min_angle);
