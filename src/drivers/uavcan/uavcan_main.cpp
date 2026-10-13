@@ -776,11 +776,15 @@ UavcanNode::Run()
 		_node_info_retriever.invalidateAll();
 	}
 
-	// propagate armed state to firmware version checker
-	if (_actuator_armed_sub.updated() && _servers != nullptr) {
+	// track the armed state for the storage commands and the firmware version checker
+	if (_actuator_armed_sub.updated()) {
 		actuator_armed_s actuator_armed{};
 		_actuator_armed_sub.copy(&actuator_armed);
-		_servers->setArmed(actuator_armed.armed || actuator_armed.prearmed);
+		_armed = actuator_armed.armed || actuator_armed.prearmed;
+
+		if (_servers != nullptr) {
+			_servers->setArmed(_armed);
+		}
 	}
 
 	if (_servers != nullptr) {
@@ -981,7 +985,12 @@ UavcanNode::Run()
 
 		uint8_t cmd_ack_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
-		if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE) {
+		if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE && _armed) {
+			// saving or erasing node parameters restarts the nodes; Commander answers the command with
+			// TEMPORARILY_REJECTED while armed
+			PX4_WARN("storage command ignored while armed");
+
+		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE) {
 			acknowledge = true;
 			int command_id = static_cast<int>(cmd.param1 + 0.5f);
 
