@@ -47,6 +47,7 @@ __END_DECLS
 #include <px4_platform_common/posix.h>
 
 #include <errno.h>
+#include <signal.h>
 
 ModuleBase::Descriptor CdcAcmAutostart::desc{task_spawn, custom_command, print_usage};
 
@@ -368,6 +369,23 @@ void CdcAcmAutostart::state_disconnecting()
 {
 	PX4_DEBUG("state_disconnecting");
 
+	// Wait for 'mavlink stop' to finish before serdis tears down the CDC/ACM
+	// driver: until then mavlink can still have /dev/ttyACM0 open.
+	if (_mavlink_stop_pid > 0) {
+		const bool stop_running = (kill(_mavlink_stop_pid, 0) == 0);
+
+		if (stop_running && (hrt_elapsed_time(&_mavlink_stop_time) < 5_s)) {
+			_reschedule_time = 100_ms;
+			return;
+		}
+
+		if (stop_running) {
+			PX4_WARN("mavlink stop on %s did not finish", USB_DEVICE_PATH);
+		}
+
+		_mavlink_stop_pid = -1;
+	}
+
 	close_ttyacm();
 
 	// Disconnect serial
@@ -533,7 +551,8 @@ bool CdcAcmAutostart::start_mavlink()
 void CdcAcmAutostart::stop_mavlink()
 {
 	char *stop_argv[] { (char *)"mavlink", (char *)"stop", (char *)"-d", (char *)USB_DEVICE_PATH, nullptr };
-	execute_process(stop_argv);
+	_mavlink_stop_pid = execute_process(stop_argv);
+	_mavlink_stop_time = hrt_absolute_time();
 }
 
 bool CdcAcmAutostart::start_nsh()
@@ -573,6 +592,11 @@ int CdcAcmAutostart::execute_process(char *const *argv)
 	pid = exec_builtin(argv[0], argv, nullptr, 0);
 
 	sched_unlock();
+
+	if (pid <= 0) {
+		PX4_ERR("exec_builtin(%s %s) failed: %d errno %d", argv[0], argv[1] ? argv[1] : "", pid, errno);
+	}
+
 	return pid;
 }
 
