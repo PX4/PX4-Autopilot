@@ -1,0 +1,21 @@
+module_name: open_drone_id
+parameters:
+- group: Open Drone ID
+  definitions:
+    ODID_BID_SRC:
+      description:
+        short: Open Drone ID UAS ID source
+        long: |-
+          Selects how the Open Drone ID UAS ID is sourced.
+
+          In locked mode, the first valid serial-number Basic ID is stored persistently
+          and bound to the board UID. Later boots reuse it only when the record and UID
+          are valid. Records from the older format without a UID require explicit
+          reprovisioning. UID binding detects copied records but does not authenticate
+          the serial number.
+      type: enum
+      values:
+        0: PX4 board GUID legacy fallback
+        1: Lock first received Basic ID
+      default: 0
+      reboot_required: true

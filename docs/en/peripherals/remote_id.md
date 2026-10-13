@@ -185,6 +185,26 @@ The following Open Drone ID MAVLink messages are not supported in PX4 v1.14 (to 
   Use as condition for vehicle arming, and for Remote ID health check.
 - [OPEN_DRONE_ID_SYSTEM_UPDATE](https://mavlink.io/en/messages/common.html#OPEN_DRONE_ID_SYSTEM_UPDATE) - Subset of `OPEN_DRONE_ID_SYSTEM` that can be sent with information at higher rate.
 
+## Locked Basic ID Storage
+
+On boards with an MTD identity partition, `ODID_BID_SRC=1` stores the first valid serial-number Basic ID received over MAVLink and reuses it for DroneCAN Remote ID after reboot.
+The `tustin_mach_rid` build enables the identity EEPROM and selects this mode by default; saved parameter values take precedence.
+
+Serial numbers must contain 6–20 characters: a four-character manufacturer code, a hexadecimal suffix length (`1`–`F`), and a suffix of that length.
+Only digits and uppercase letters other than `I` and `O` are accepted, and unused bytes in the 20-byte MAVLink field must be zero.
+These checks follow the serial-number structure described in [RFC 9374, section 4.2](https://www.rfc-editor.org/rfc/rfc9374.html#section-4.2); they do not verify manufacturer registration.
+
+The version 2 record in `/fs/mtd_id` includes the board UID and a CRC.
+A record copied from another board, an invalid serial number, or a damaged record is rejected.
+In locked mode, an invalid or missing identity does not fall back to the board GUID for DroneCAN Basic ID.
+UID matching and CRC detect mismatches and corruption; they do not authenticate the serial number or prevent deliberate rewriting, and signature verification is not implemented.
+
+::: warning
+Version 1 records do not contain a UID and are rejected without being overwritten or automatically bound to the current board.
+Upgrading a provisioned device therefore requires an explicit maintenance procedure to back up the old identity, restore the identity record area to its erased state, and provision a valid serial number again.
+Reboot after reprovisioning so all identity consumers reload the record.
+:::
+
 ## Compliance
 
 PX4 may not be compliant with the relevant specifications in version 1.14 (which is why this feature is currently experimental).
