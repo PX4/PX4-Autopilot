@@ -573,11 +573,8 @@ TECSControl::ControlValues TECSControl::_calcThrottleControlSteRate(const STERat
 	ControlValues ste_rate;
 	ste_rate.setpoint = specific_energy_rates.spe_rate.setpoint + specific_energy_rates.ske_rate.setpoint;
 
-	// Adjust the demanded total energy rate to compensate for induced drag rise in turns.
-	// Assume induced drag scales linearly with normal load factor.
-	// The additional normal load factor is given by (1/cos(bank angle) - 1)
-	ste_rate.setpoint += param.load_factor_correction * (param.load_factor - 1.f);
-
+	// The compensation for the induced drag rise in turns is a feed-forward on the predicted throttle
+	// (see _calcThrottleControlOutput), not part of the setpoint the error is formed from.
 	ste_rate.setpoint = constrain(ste_rate.setpoint, limit.STE_rate_min, limit.STE_rate_max);
 	ste_rate.estimate = _ste_rate_estimate_filter.getState();
 
@@ -636,15 +633,23 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 	const float throttle_above_trim_per_ste_rate = (param.throttle_max - param.throttle_trim) / limit.STE_rate_max;
 	const float throttle_below_trim_per_ste_rate = (param.throttle_trim - param.throttle_min) / limit.STE_rate_min;
 
+	// Adjust the demanded total energy rate to compensate for induced drag rise in turns.
+	// Assume induced drag scales linearly with normal load factor.
+	// The additional normal load factor is given by (1/cos(bank angle) - 1)
+	// This is a feed-forward only: it stays out of the control error so that the integrator and the
+	// proportional term do not wind up on it while the vehicle is on its energy setpoint.
+	const float ste_rate_setpoint_ff = constrain(ste_rate.setpoint + param.load_factor_correction *
+					   (param.load_factor - 1.f), limit.STE_rate_min, limit.STE_rate_max);
+
 	float throttle_predicted = 0.0f;
 
-	if (ste_rate.setpoint >= FLT_EPSILON) {
+	if (ste_rate_setpoint_ff >= FLT_EPSILON) {
 		// throttle is between trim and maximum
-		throttle_predicted = param.throttle_trim + ste_rate.setpoint * throttle_above_trim_per_ste_rate;
+		throttle_predicted = param.throttle_trim + ste_rate_setpoint_ff * throttle_above_trim_per_ste_rate;
 
 	} else {
 		// throttle is between trim and minimum
-		throttle_predicted = param.throttle_trim - ste_rate.setpoint * throttle_below_trim_per_ste_rate;
+		throttle_predicted = param.throttle_trim - ste_rate_setpoint_ff * throttle_below_trim_per_ste_rate;
 
 	}
 

@@ -204,3 +204,35 @@ TEST(TECSControlTest, PitchIntegratorSurvivesSustainedNonFiniteInput)
 		EXPECT_TRUE(PX4_ISFINITE(control.getPitchSetpoint()));
 	}
 }
+
+// The roll-to-throttle compensation (FW_T_RLL2THR) is a feed-forward for the induced drag of a turn.
+// It must not enter the energy rate error: a vehicle that is exactly on its energy setpoint would
+// otherwise wind up the throttle integrator and the proportional term for as long as it banks.
+TEST(TECSControlTest, LoadFactorCorrectionIsFeedForwardOnly)
+{
+	TECSControl control;
+	TECSControl::Param param = makeParam();
+	param.load_factor_correction = 15.f;
+	param.load_factor = 1.414f; // 45 degree bank
+	const TECSControl::Flag flag = makeFlag();
+	const TECSControl::Input input = makeInput(); // level and on speed, no rates
+	const TECSControl::Setpoint setpoint = makeSetpoint(); // altitude and speed held
+
+	control.initialize(setpoint, input, param, flag);
+	const float dt = 0.02f;
+
+	for (int i = 0; i < 50; i++) {
+		control.update(dt, setpoint, input, param, flag);
+	}
+
+	const float throttle_after_1s = control.getThrottleSetpoint();
+
+	for (int i = 0; i < 450; i++) {
+		control.update(dt, setpoint, input, param, flag);
+	}
+
+	// the feed-forward lifts the throttle above trim once and holds it; nothing integrates
+	EXPECT_GT(throttle_after_1s, param.throttle_trim);
+	EXPECT_NEAR(control.getThrottleSetpoint(), throttle_after_1s, 1e-3f);
+	EXPECT_NEAR(control.getDebugOutput().throttle_integrator, 0.f, 1e-3f);
+}
