@@ -76,6 +76,14 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		return;
 	}
 
+	// The parameter range is not enforced on the way in; keep the loops below inside _params, as the rotor count is
+	if (_count < 0) {
+		_count = 0;
+
+	} else if (_count > MAX_COUNT) {
+		_count = MAX_COUNT;
+	}
+
 	// Update flap slewrates
 	_flaps_setpoint_with_slewrate.setSlewRate(_param_ca_flap_slew.get());
 

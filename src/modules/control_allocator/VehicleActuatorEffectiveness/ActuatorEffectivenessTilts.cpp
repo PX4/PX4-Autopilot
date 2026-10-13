@@ -69,9 +69,17 @@ void ActuatorEffectivenessTilts::updateParams()
 		return;
 	}
 
+	// The parameter range is not enforced on the way in; keep the loops below inside _params, as the rotor count is
 	_count = count;
 
-	for (int i = 0; i < count; i++) {
+	if (_count < 0) {
+		_count = 0;
+
+	} else if (_count > MAX_COUNT) {
+		_count = MAX_COUNT;
+	}
+
+	for (int i = 0; i < _count; i++) {
 		param_get(_param_handles[i].control, (int32_t *)&_params[i].control);
 		param_get(_param_handles[i].tilt_direction, (int32_t *)&_params[i].tilt_direction);
 		param_get(_param_handles[i].min_angle, &_params[i].min_angle);
