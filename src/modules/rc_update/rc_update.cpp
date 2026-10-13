@@ -189,39 +189,50 @@ void RCUpdate::updateParams()
 	}
 }
 
+// An RC_MAP_* parameter names a channel 1..RC_MAX_CHAN_COUNT or 0 for unassigned. Its range is not enforced on the way
+// in, so anything else is treated as unassigned rather than turned into an index past the channel array.
+static int8_t rc_map_index(int32_t map)
+{
+	if (map >= 1 && map <= input_rc_s::RC_INPUT_MAX_CHANNELS) {
+		return static_cast<int8_t>(map - 1);
+	}
+
+	return -1;
+}
+
 void RCUpdate::update_rc_functions()
 {
 	/* update RC function mappings */
-	_rc.function[rc_channels_s::FUNCTION_THROTTLE] = _param_rc_map_throttle.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_ROLL] = _param_rc_map_roll.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_PITCH] = _param_rc_map_pitch.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_YAW] = _param_rc_map_yaw.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_THROTTLE] = rc_map_index(_param_rc_map_throttle.get());
+	_rc.function[rc_channels_s::FUNCTION_ROLL] = rc_map_index(_param_rc_map_roll.get());
+	_rc.function[rc_channels_s::FUNCTION_PITCH] = rc_map_index(_param_rc_map_pitch.get());
+	_rc.function[rc_channels_s::FUNCTION_YAW] = rc_map_index(_param_rc_map_yaw.get());
 
-	_rc.function[rc_channels_s::FUNCTION_RETURN] = _param_rc_map_return_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_LOITER] = _param_rc_map_loiter_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_OFFBOARD] = _param_rc_map_offb_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_KILLSWITCH] = _param_rc_map_kill_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_TERMINATION] = _param_rc_map_term_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = _param_rc_map_arm_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = _param_rc_map_trans_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_GEAR] = _param_rc_map_gear_sw.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_RETURN] = rc_map_index(_param_rc_map_return_sw.get());
+	_rc.function[rc_channels_s::FUNCTION_LOITER] = rc_map_index(_param_rc_map_loiter_sw.get());
+	_rc.function[rc_channels_s::FUNCTION_OFFBOARD] = rc_map_index(_param_rc_map_offb_sw.get());
+	_rc.function[rc_channels_s::FUNCTION_KILLSWITCH] = rc_map_index(_param_rc_map_kill_sw.get());
+	_rc.function[rc_channels_s::FUNCTION_TERMINATION] = rc_map_index(_param_rc_map_term_sw.get());
+	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = rc_map_index(_param_rc_map_arm_sw.get());
+	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = rc_map_index(_param_rc_map_trans_sw.get());
+	_rc.function[rc_channels_s::FUNCTION_GEAR] = rc_map_index(_param_rc_map_gear_sw.get());
 
-	_rc.function[rc_channels_s::FUNCTION_FLAPS] = _param_rc_map_flaps.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_FLAPS] = rc_map_index(_param_rc_map_flaps.get());
 
-	_rc.function[rc_channels_s::FUNCTION_AUX_1] = _param_rc_map_aux1.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_AUX_2] = _param_rc_map_aux2.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_AUX_3] = _param_rc_map_aux3.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_AUX_4] = _param_rc_map_aux4.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_AUX_5] = _param_rc_map_aux5.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_AUX_6] = _param_rc_map_aux6.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_AUX_1] = rc_map_index(_param_rc_map_aux1.get());
+	_rc.function[rc_channels_s::FUNCTION_AUX_2] = rc_map_index(_param_rc_map_aux2.get());
+	_rc.function[rc_channels_s::FUNCTION_AUX_3] = rc_map_index(_param_rc_map_aux3.get());
+	_rc.function[rc_channels_s::FUNCTION_AUX_4] = rc_map_index(_param_rc_map_aux4.get());
+	_rc.function[rc_channels_s::FUNCTION_AUX_5] = rc_map_index(_param_rc_map_aux5.get());
+	_rc.function[rc_channels_s::FUNCTION_AUX_6] = rc_map_index(_param_rc_map_aux6.get());
 
-	_rc.function[rc_channels_s::FUNCTION_PAYLOAD_POWER] = _param_rc_map_pay_sw.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_PAYLOAD_POWER] = rc_map_index(_param_rc_map_pay_sw.get());
 
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		_rc.function[rc_channels_s::FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
 	}
 
-	_rc.function[rc_channels_s::FUNCTION_ENGAGE_MAIN_MOTOR] = _param_rc_map_eng_mot.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_ENGAGE_MAIN_MOTOR] = rc_map_index(_param_rc_map_eng_mot.get());
 
 	map_flight_modes_buttons();
 }
@@ -564,7 +575,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.timestamp_sample = timestamp_sample;
 
 	// check mode slot (RC_MAP_FLTMODE)
-	if (_param_rc_map_fltmode.get() > 0) {
+	if (rc_map_index(_param_rc_map_fltmode.get()) >= 0) {
 		// number of valid slots
 		static constexpr int num_slots = manual_control_switches_s::MODE_SLOT_NUM;
 
@@ -580,7 +591,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		// and max. Then the right slot is obtained by multiplying with the number of
 		// slots. And finally we add half a slot width to ensure that integer rounding
 		// will take us to the correct final index.
-		const float value = _rc.channels[_param_rc_map_fltmode.get() - 1];
+		const float value = _rc.channels[rc_map_index(_param_rc_map_fltmode.get())];
 		switches.mode_slot = (((((value - slot_min) * num_slots) + slot_width_half) / (slot_max - slot_min)) +
 				      slot_width_half) + 1;
 
