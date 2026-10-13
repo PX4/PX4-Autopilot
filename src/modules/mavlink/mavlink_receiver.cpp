@@ -543,6 +543,21 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 	       && ((target_component == mavlink_system.compid) || (target_component == MAV_COMP_ID_ALL));
 }
 
+/**
+ * A MAVLink message id travels as a float. The stream table is keyed by uint16_t ids, so a value that is
+ * not a number or does not fit is refused rather than narrowed onto another id (65536 would select HEARTBEAT).
+ */
+static bool
+message_id_from_param(float param, int &message_id)
+{
+	if (!PX4_ISFINITE(param) || (param < 0.f) || (param > (float)UINT16_MAX)) {
+		return false;
+	}
+
+	message_id = static_cast<int>(lroundf(param));
+	return true;
+}
+
 void
 MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 {
@@ -745,49 +760,62 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)vehicle_command.command, zero_mask); }
 
-	// The message id is an integer carried in a float and the stream table is keyed by uint16_t ids. An id that is
-	// not a number or does not fit is refused rather than narrowed onto another stream (65536 would select HEARTBEAT).
-	const auto message_id_fits = [](float id) {
-		return PX4_ISFINITE(id) && (id >= 0.f) && (id <= (float)UINT16_MAX);
-	};
-
 	if (vehicle_command.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-		if (!message_id_fits(vehicle_command.param1)
-		    || set_message_interval(static_cast<int>(lroundf(vehicle_command.param1)), vehicle_command.param2, vehicle_command.param3,
-					    vehicle_command.param4, vehicle_command.param7)) {
+		int message_id = 0;
+
+		if (!message_id_from_param(vehicle_command.param1, message_id)
+		    || set_message_interval(message_id, vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
+					    vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
 	} else if (vehicle_command.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
-		if (message_id_fits(vehicle_command.param1)) {
-			get_message_interval(static_cast<int>(lroundf(vehicle_command.param1)));
+		int message_id = 0;
+
+		if (message_id_from_param(vehicle_command.param1, message_id)) {
+			get_message_interval(message_id);
 
 		} else {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
 	} else if (vehicle_command.command == MAV_CMD_REQUEST_MESSAGE) {
+		int requested_id = 0;
 
-		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
+		if (!message_id_from_param(vehicle_command.param1, requested_id)) {
+			// an id that is not a message id is an invalid parameter, as an unknown id is below
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+
+		} else {
+			const uint16_t message_id = static_cast<uint16_t>(requested_id);
 
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 
-		// Translate ESC_EEPROM request into the PX4 internal command so the DShot driver handles it
-		if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
-			vehicle_command_s eeprom_cmd = vehicle_command;
-			eeprom_cmd.command = vehicle_command_s::VEHICLE_CMD_ESC_REQUEST_EEPROM;
-			_cmd_pub.publish(eeprom_cmd);
+			// Translate ESC_EEPROM request into the PX4 internal command so the DShot driver handles it
+			if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
+				vehicle_command_s eeprom_cmd = vehicle_command;
+				eeprom_cmd.command = vehicle_command_s::VEHICLE_CMD_ESC_REQUEST_EEPROM;
+				_cmd_pub.publish(eeprom_cmd);
 
-		} else
+			} else
 #endif
-			if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
-				get_message_interval((int)(vehicle_command.param2 + 0.5f));
+				if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
+					// param2 names the message whose interval is asked for, with the same float-to-id narrowing
+					int interval_id = 0;
 
-			} else {
-				result = handle_request_message_command(message_id,
-									vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
-									vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-			}
+					if (message_id_from_param(vehicle_command.param2, interval_id)) {
+						get_message_interval(interval_id);
+
+					} else {
+						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+					}
+
+				} else {
+					result = handle_request_message_command(message_id,
+										vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
+										vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+				}
+		}
 
 	} else if (vehicle_command.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink.failure_injection_enabled()) {
