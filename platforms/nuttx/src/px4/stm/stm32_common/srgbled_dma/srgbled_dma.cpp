@@ -355,6 +355,10 @@ extern int neopixel_write(neopixel::NeoLEDData *led_data, int number_of_packages
 {
 	uint32_t mask;
 
+	// The caller may hand over fewer packages than the board has LEDs (neopixel start -n N). Read only
+	// those and clock the rest out as off, so the DMA length and the timing stay those of the full chain.
+	const uint32_t packages = (number_of_packages > 0) ? (uint32_t)number_of_packages : 0;
+
 	// DMA in progress let it finish
 
 	while (rCR1 & GTIM_CR1_CEN) {
@@ -365,7 +369,8 @@ extern int neopixel_write(neopixel::NeoLEDData *led_data, int number_of_packages
 
 	for (uint32_t i = 0, leds = 0; i < arraySize(bits) - 1; i++) {
 		mask = 1 << ((BITS_PER_PACKAGE - 1) - (i % BITS_PER_PACKAGE));
-		bits[i] = led_data[leds].data.l & mask ? T1H : T0H;
+		const uint32_t data = (leds < packages) ? led_data[leds].data.l : 0;
+		bits[i] = data & mask ? T1H : T0H;
 
 		if (mask & 1) {
 			leds++;
