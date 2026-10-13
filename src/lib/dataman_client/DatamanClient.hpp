@@ -189,13 +189,15 @@ private:
 			 const hrt_abstime &start_time, hrt_abstime timeout);
 	/* Drain any queued stale replies before a new request starts. */
 	void clearPendingResponse();
+	/* Publish without tying the shared request topic's lifetime to this client. */
+	void publishRequest(const dataman_request_s &request);
 
 	State _state{State::Idle};
 	Request _active_request{};
 	uint8_t _response_status{};
 
 	orb_sub_t _dataman_response_sub{ORB_SUB_INVALID};
-	uORB::Publication<dataman_request_s> _dataman_request_pub{ORB_ID(dataman_request)};
+	orb_advert_t _dataman_request_pub{nullptr};
 
 	px4_pollfd_struct_t _fds;
 
