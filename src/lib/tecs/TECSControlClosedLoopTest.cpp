@@ -607,14 +607,12 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessSteadyStateCruise)
 // SEB_rate_sp / (V * g) asks for twice the demanded climb angle. A feedforward gain of 0.5 cancels this: the vehicle
 // then flies exactly the demanded climb rate, the SEB rate error stays zero, and the altitude error decays first order
 // with FW_T_ALT_TC. As in AltitudeStepDown, the pitch must follow the raw step as fast as the throttle and the demanded
-// sink rate must not exceed FW_T_SINK_MIN. The total energy rate filter (FW_T_STE_R_TC) is disabled, as its lag
-// makes the throttle damping briefly overfund the climb on the step up and speed the vehicle up.
+// sink rate must not exceed FW_T_SINK_MIN.
 
 TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 {
 	disableAirspeed();
 	_params.seb_rate_ff = 0.5f;
-	_params.ste_rate_time_const = 0.f;
 
 	run(10.f);
 
