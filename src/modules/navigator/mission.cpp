@@ -189,6 +189,7 @@ void Mission::setActiveMissionItems()
 						       reinterpret_cast<uint8_t *>(&next_mission_item), sizeof(next_mission_item), MAX_DATAMAN_LOAD_WAIT);
 
 		if (success) {
+			resolveCurrentPositionItem(next_mission_item);
 			next_mission_items[i] = next_mission_item;
 
 		} else {

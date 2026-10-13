@@ -40,6 +40,9 @@
 
 #include "navigation.h"
 
+#include <float.h>
+#include <cmath>
+
 inline bool mission_item_contains_position(const mission_item_s &item)
 {
 	return item.nav_cmd == NAV_CMD_WAYPOINT ||
@@ -50,4 +53,16 @@ inline bool mission_item_contains_position(const mission_item_s &item)
 	       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
 	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
 	       item.nav_cmd == NAV_CMD_VTOL_LAND;
+}
+
+/**
+ * MAV_CMD_NAV_LOITER_TO_ALT with latitude and longitude 0 means "loiter at the current position"
+ * (MAVLink common.xml). The position is only known when the item becomes current, so upload-time
+ * checks must not treat 0,0 as the place the vehicle will fly to.
+ */
+inline bool mission_item_uses_current_position(const mission_item_s &item)
+{
+	return item.nav_cmd == NAV_CMD_LOITER_TO_ALT
+	       && fabs(item.lat) < DBL_EPSILON
+	       && fabs(item.lon) < DBL_EPSILON;
 }

@@ -317,6 +317,15 @@ protected:
 	bool loadCurrentMissionItem();
 
 	/**
+	 * @brief Resolve a LOITER_TO_ALT item without coordinates
+	 *
+	 * MAV_CMD_NAV_LOITER_TO_ALT with latitude and longitude 0 loiters where the vehicle is when the
+	 * item is read. The stored item keeps 0,0 so a mission download returns what was uploaded.
+	 * @param item mission item, resolved in place
+	 */
+	void resolveCurrentPositionItem(mission_item_s &item) const;
+
+	/**
 	 * Set the mission result
 	 */
 	void set_mission_result();

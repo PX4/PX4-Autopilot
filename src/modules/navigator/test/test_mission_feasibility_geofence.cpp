@@ -343,6 +343,24 @@ INSTANTIATE_TEST_SUITE_P(MissionScalarLimits, MissionGeofenceScalarTest, ::testi
 	return test_info.param.name;
 });
 
+TEST_F(MissionFeasibilityGeofenceTest, LoiterAtTheCurrentPositionChecksOnlyItsAltitude)
+{
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+	const float maximum = 150.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum), PX4_OK);
+	_navigator.updateParams();
+
+	// MAV_CMD_NAV_LOITER_TO_ALT with latitude and longitude 0 loiters where the vehicle is, which is
+	// unknown at upload: 0,0 lies far outside the inclusion fence and is not a position to check.
+	mission_item_s loiter = navigator_test::makePositionItem(0.0, 0.0, 100.f, NAV_CMD_LOITER_TO_ALT);
+	loiter.altitude_is_relative = true;
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 100.f}), loiter, waypoint({0.f, 200.f})}));
+
+	loiter.altitude = 200.f;
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 100.f}), loiter, waypoint({0.f, 200.f})}));
+	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 2));
+}
+
 TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceStillChecksHomeLimits)
 {
 	const float maximum = 300.f;

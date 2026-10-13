@@ -632,7 +632,8 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 {
 	if (_param_mis_dist_1wp > FLT_EPSILON &&
 	    (_home_lat_lon.isAllFinite()) &&
-	    mission_item_contains_position(mission_item)) {
+	    mission_item_contains_position(mission_item) &&
+	    !mission_item_uses_current_position(mission_item)) {
 
 		_first_waypoint_found = true;
 
@@ -667,8 +668,8 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 
 bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mission_item)
 {
-	/* check only items with valid lat/lon */
-	if (!mission_item_contains_position(mission_item)) {
+	/* check only items with valid lat/lon; a loiter at the current position has none until it is flown */
+	if (!mission_item_contains_position(mission_item) || mission_item_uses_current_position(mission_item)) {
 		return true;
 	}
 

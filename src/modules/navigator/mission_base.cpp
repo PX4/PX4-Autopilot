@@ -564,8 +564,17 @@ bool MissionBase::loadCurrentMissionItem()
 	// Persist the resolved index (republishes the mission topic only if it actually changed).
 	setMissionIndex(resolved_index);
 	_mission_item = resolved_item;
+	resolveCurrentPositionItem(_mission_item);
 
 	return true;
+}
+
+void MissionBase::resolveCurrentPositionItem(mission_item_s &item) const
+{
+	if (mission_item_uses_current_position(item)) {
+		item.lat = _navigator->get_global_position()->lat;
+		item.lon = _navigator->get_global_position()->lon;
+	}
 }
 
 void MissionBase::setEndOfMissionItems()

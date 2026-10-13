@@ -163,6 +163,19 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		// Geofence function checks against home altitude amsl
 		missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
 
+		if (mission_item_uses_current_position(missionitem)) {
+			// The loiter position is only known in flight, where the fence applies to the vehicle.
+			// The altitude is known now.
+			if (!PX4_ISFINITE(missionitem.altitude) || !geofence.isBelowMaxAltitude(missionitem.altitude)
+			    || !geofence.isWithinAltitudeBand(missionitem.altitude)) {
+				failure = Failure::Waypoint;
+				failed_item = i;
+				break;
+			}
+
+			continue;
+		}
+
 		bool point_valid = PX4_ISFINITE(missionitem.lat) && PX4_ISFINITE(missionitem.lon)
 				   && PX4_ISFINITE(missionitem.altitude)
 				   && fabs(missionitem.lat) <= 90.0 && fabs(missionitem.lon) <= 180.0;

@@ -141,6 +141,9 @@ public:
 	using MissionBase::goToPreviousPositionItem;
 	using MissionBase::MissionTraversalType;
 	using MissionBase::resetMissionJumpCounter;
+	using MissionBase::loadCurrentMissionItem;
+
+	const mission_item_s &currentItem() const { return _mission_item; }
 
 private:
 	navigator_test::VectorMissionItemStore _mission_store{};
@@ -166,6 +169,13 @@ static mission_item_s makePositionItem(double lat, double lon, float altitude)
 	item.lat = lat;
 	item.lon = lon;
 	item.altitude = altitude;
+	return item;
+}
+
+static mission_item_s makeLoiterToAlt(double lat, double lon)
+{
+	mission_item_s item = makePositionItem(lat, lon, kAlt);
+	item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 	return item;
 }
 
@@ -241,7 +251,7 @@ protected:
 						      reinterpret_cast<uint8_t *>(&circle), sizeof(circle)));
 		mission_stats_entry_s stats{};
 		stats.dataman_id = DM_KEY_FENCE_POINTS_0;
-		stats.opaque_id = 1;
+		stats.opaque_id = kFenceId;
 		stats.num_items = 1;
 		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
 						      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
@@ -279,6 +289,35 @@ protected:
 		return _dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
 						 reinterpret_cast<uint8_t *>(&item), sizeof(item));
 	}
+
+	// Store the items as a new mission and run the upload checks on it.
+	bool missionValid(std::vector<mission_item_s> items, uint16_t mission_id)
+	{
+		for (size_t i = 0; i < items.size(); ++i) {
+			if (!_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, static_cast<uint32_t>(i),
+						       reinterpret_cast<uint8_t *>(&items[i]), sizeof(mission_item_s))) {
+				return false;
+			}
+		}
+
+		mission_s mission{};
+		mission.timestamp = hrt_absolute_time();
+		mission.mission_id = mission_id;
+		mission.geofence_id = kFenceId;
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		_mission_base.loadTestMission(items, mission);
+		_mission_base.checkMission(true);
+		return _navigator.get_mission_result()->valid;
+	}
+
+	void setGlobalPosition(float north_m, float east_m)
+	{
+		vehicle_global_position_s *global_position = _navigator.get_global_position();
+		global_position->timestamp = hrt_absolute_time();
+		add_vector_to_global_position(kBaseLat, kBaseLon, north_m, east_m, &global_position->lat, &global_position->lon);
+	}
+
+	static constexpr uint32_t kFenceId = 1;
 
 	DatamanClient _dataman_client{};
 	MissionBaseTestNavigator _navigator{};
@@ -349,6 +388,46 @@ TEST_F(MissionBaseFeasibilityTest, SpentFenceRetriesLetTheCheckReject)
 	_mission_base.checkMission(true);
 	EXPECT_FALSE(_navigator.get_mission_result()->valid);
 	EXPECT_TRUE(_mission_base.missionChecked());
+}
+
+TEST_F(MissionBaseFeasibilityTest, LoiterToAltWithoutCoordinatesLoadsAtTheCurrentPosition)
+{
+	// MAV_CMD_NAV_LOITER_TO_ALT with latitude and longitude 0 loiters where the vehicle is.
+	setGlobalPosition(30.f, 40.f);
+	const vehicle_global_position_s &global_position = *_navigator.get_global_position();
+
+	_mission_base.loadTestMission({makeLoiterToAlt(0.0, 0.0)});
+	ASSERT_TRUE(_mission_base.loadCurrentMissionItem());
+	EXPECT_EQ(_mission_base.currentItem().nav_cmd, NAV_CMD_LOITER_TO_ALT);
+	EXPECT_DOUBLE_EQ(_mission_base.currentItem().lat, global_position.lat);
+	EXPECT_DOUBLE_EQ(_mission_base.currentItem().lon, global_position.lon);
+
+	// The stored item is unchanged, so a mission download returns what was uploaded.
+	mission_item_s stored{};
+	ASSERT_TRUE(_mission_base.loadMissionItemFromCache(0, stored));
+	EXPECT_DOUBLE_EQ(stored.lat, 0.0);
+	EXPECT_DOUBLE_EQ(stored.lon, 0.0);
+}
+
+TEST_F(MissionBaseFeasibilityTest, LoiterToAltWithCoordinatesKeepsThem)
+{
+	setGlobalPosition(30.f, 40.f);
+
+	_mission_base.loadTestMission({makeLoiterToAlt(kBaseLat, kBaseLon)});
+	ASSERT_TRUE(_mission_base.loadCurrentMissionItem());
+	EXPECT_DOUBLE_EQ(_mission_base.currentItem().lat, kBaseLat);
+	EXPECT_DOUBLE_EQ(_mission_base.currentItem().lon, kBaseLon);
+}
+
+TEST_F(MissionBaseFeasibilityTest, LoiterToAltWithoutCoordinatesPassesTheUploadChecks)
+{
+	// 0,0 is thousands of kilometres from home, beyond MIS_DIST_1WP and outside the inclusion fence,
+	// but the loiter happens where the vehicle is when the item becomes current.
+	const mission_item_s waypoint = makePositionItem(kBaseLat, kBaseLon, kAlt);
+	EXPECT_TRUE(missionValid({makeLoiterToAlt(0.0, 0.0), waypoint}, 2));
+
+	// A loiter with coordinates is still checked as a position.
+	EXPECT_FALSE(missionValid({makeLoiterToAlt(0.0, 0.1), waypoint}, 3));
 }
 
 enum class MissionFeasibilityInput { Mission, Geofence, Home };
