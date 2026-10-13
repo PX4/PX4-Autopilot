@@ -419,6 +419,8 @@ ControlAllocator::Run()
 		c[0](5) = _thrust_sp(2);
 
 		if (_num_control_allocation > 1) {
+			// The second instance has no NaN based motor stopping (stopMotorsBasedOnThrustSetpoint only reads the
+			// first thrust setpoint), so a non-finite component here carries no meaning and is zeroed.
 			if (_vehicle_torque_setpoint1_sub.copy(&vehicle_torque_setpoint)) {
 				for (int i = 0; i < 3; i++) {
 					c[1](i) = PX4_ISFINITE(vehicle_torque_setpoint.xyz[i]) ? vehicle_torque_setpoint.xyz[i] : 0.f;
