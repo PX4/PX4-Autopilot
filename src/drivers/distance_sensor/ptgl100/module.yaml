@@ -11,9 +11,7 @@ parameters:
         SENS_PTGL100_ROT:
             description:
                 short: PTGL-100 sensor orientation
-                long: |
-                    Sensor orientation relative to the vehicle body,
-                    using the MAV_SENSOR_ORIENTATION convention.
+                long: Orientation as MAV_SENSOR_ORIENTATION enum.
             type: enum
             values:
                 0: Forward facing
