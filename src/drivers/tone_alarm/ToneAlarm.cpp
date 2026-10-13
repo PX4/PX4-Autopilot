@@ -73,6 +73,14 @@ bool ToneAlarm::Init()
 	return true;
 }
 
+void ToneAlarm::request_stop()
+{
+	ModuleBase::request_stop();
+
+	// Run() is not scheduled while no tune is played
+	ScheduleNow();
+}
+
 void ToneAlarm::InterruptStopNote(void *arg)
 {
 	ToneAlarmInterface::stop_note();
