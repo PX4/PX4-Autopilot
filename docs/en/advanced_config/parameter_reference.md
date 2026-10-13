@@ -45384,8 +45384,8 @@ Select your RC input protocol or auto to scan.
 - `1`: PPM
 - `2`: SBUS
 - `3`: DSM
-- `4`: ST24
-- `5`: SUMD
+- `4`: SUMD
+- `5`: ST24
 - `6`: CRSF
 - `7`: GHST
 
@@ -53284,12 +53284,11 @@ IMU gyro FFT length.
 - `256`: 256
 - `512`: 512
 - `1024`: 1024
-- `4096`: 4096
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 512 | Hz | &nbsp;
+&check; |  |  |  | 512 |  | &nbsp;
 
 </div>
 
