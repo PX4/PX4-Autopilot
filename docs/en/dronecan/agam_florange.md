@@ -48,7 +48,7 @@ Order this module from:
 
 ### Wiring
 
-Connect Agam FloRange to the flight controller's CAN bus.
+Connect Agam FloRange to the flight controller's CAN bus with the provided cable.
 For more information, refer to the [CAN Wiring](../can/index.md#wiring) instructions.
 
 ::: info
