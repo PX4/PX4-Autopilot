@@ -345,6 +345,7 @@ void GRFLaserSerial::grf_get_and_handle_request(const int payload_length, const 
 	}
 
 	int index = 0;
+	int frame_end = 0;
 
 	while (index <= _linebuf_size - payload_length && _crc_valid == false) {
 		bool restart_flag = false;
@@ -455,6 +456,8 @@ void GRFLaserSerial::grf_get_and_handle_request(const int payload_length, const 
 						_parsed_state = GRF_PARSED_STATE::START;
 						_calc_crc = 0;
 						restart_flag = true;
+						// the whole frame: start byte, two flag bytes, data_len payload bytes (id included), two crc bytes
+						frame_end = index + rx_field.data_len + 5;
 						break;
 
 					} else {
@@ -474,11 +477,11 @@ void GRFLaserSerial::grf_get_and_handle_request(const int payload_length, const 
 		index++;
 	}
 
-	// If we parsed successfully, remove the parsed part from the buffer if it is still large enough
-	if (_crc_valid && index + payload_length < _linebuf_size) {
-		unsigned next_after_index = index + payload_length;
-		memmove(&_linebuf[0], &_linebuf[next_after_index], _linebuf_size - next_after_index);
-		_linebuf_size -= next_after_index;
+	// Remove the parsed frame from the buffer, also when it ends the buffer, so it is not parsed and
+	// published again on the next poll and the start byte of the next frame is kept
+	if (_crc_valid && frame_end > 0 && frame_end <= _linebuf_size) {
+		memmove(&_linebuf[0], &_linebuf[frame_end], _linebuf_size - frame_end);
+		_linebuf_size -= frame_end;
 	}
 
 	// The buffer is filled. Either we can't keep up with the stream and/or it contains only invalid data. Reset to try again.
