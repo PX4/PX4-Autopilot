@@ -301,26 +301,27 @@ TEST_F(MissionRouteGeofenceTest, InvalidVehiclePositionDoesNotEnableRecovery)
 	EXPECT_FALSE(clear);
 }
 
-TEST_F(MissionRouteGeofenceTest, ExistingBreachPreservesRecoveryAndCanBeDisabled)
+TEST_F(MissionRouteGeofenceTest, ExistingBreachSkipsOnlyVehicleSegments)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	const Position vehicle = routePosition(0.f, 300.f);
 	GeofencePathChecker recovery{_fence, vehicle};
 	ProjectionReferenceBatch batch{};
-	batch.count = 1;
+	batch.count = 2;
 	batch.items[0].position = vehicle;
 	addCandidate(batch.items[0], routePosition(0.f, 100.f));
+	// A safe point's branch-off segments are still checked during recovery.
+	batch.items[1].position = routePosition(0.f, 100.f);
+	batch.items[1].source_index = 0;
+	addCandidate(batch.items[1], routePosition(0.f, 500.f), 1);
+	addCandidate(batch.items[1], routePosition(100.f, 100.f), 2);
 	ASSERT_TRUE(recovery.pruneCandidates(batch));
 	EXPECT_EQ(batch.items[0].candidate_buffer.count, 1);
+	ASSERT_EQ(batch.items[1].candidate_buffer.count, 1);
+	EXPECT_EQ(batch.items[1].candidate_buffer.candidates[0].segment.start.idx, 2);
 	bool clear = false;
 	ASSERT_TRUE(recovery.checkPath(vehicle, routePosition(0.f, 100.f), clear));
 	EXPECT_TRUE(clear);
-
-	GeofencePathChecker strict{_fence, vehicle, false};
-	ASSERT_TRUE(strict.pruneCandidates(batch));
-	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
-	ASSERT_TRUE(strict.checkPath(vehicle, routePosition(0.f, 100.f), clear));
-	EXPECT_FALSE(clear);
 
 	// Recovery snapshots never authorize paths through an unavailable new fence.
 	_fence.updateFence();

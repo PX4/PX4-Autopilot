@@ -219,7 +219,7 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	const mission_route::FailureReason failure = planner.planRtlRoute(request, plan);
 
 	if (failure != mission_route::FailureReason::kNone || !plan.valid()) {
-		_waiting_for_inputs = failure == mission_route::FailureReason::kGeofenceUnavailable;
+		// Inputs were ready, so a fence check failure here repeats for this scene: do not retry.
 		PX4_ERR("RTL type 7 plan failed: %s", mission_route::failureReasonString(failure));
 		return evaluation;
 	}

@@ -65,13 +65,14 @@ public:
  *
  * Create one checker per planning call. Calls must not overlap because they reuse
  * the same scratch buffer; Navigator calls it from a single task.
- * Checks are skipped for recovery when the vehicle already breaches the loaded
- * fence. Planning must still wait for the fence to finish loading.
+ * When the vehicle already breaches the loaded fence, segments from the vehicle,
+ * including every checkPath() segment, are not checked so it can recover.
+ * Safe point segments still are. Planning must still wait for the fence to finish loading.
  */
 class GeofencePathChecker final : public PathChecker
 {
 public:
-	GeofencePathChecker(Geofence &geofence, const Position &vehicle_position, bool allow_recovery = true);
+	GeofencePathChecker(Geofence &geofence, const Position &vehicle_position);
 
 	bool pruneCandidates(ProjectionReferenceBatch &batch) const override;
 	bool checkPath(const Position &start, const Position &end, bool &clear) const override;

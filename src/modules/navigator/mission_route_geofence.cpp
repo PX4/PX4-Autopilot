@@ -42,8 +42,6 @@
 #include "geofence.h"
 #include "mission_route_projection.h"
 
-#include <new>
-
 namespace mission_route
 {
 namespace
@@ -62,15 +60,6 @@ struct PathBatch {
 	uint8_t valid_masks[kMaxSafePointBatch];
 	size_t count{0};
 };
-
-PathBatch &pathScratchBatch()
-{
-	// Reserve only the configured candidate capacity, capped at the fence API's batch limit.
-	// Keep this off the task stack and in .bss, as for the projection scratch.
-	alignas(PathBatch) static uint8_t storage[sizeof(PathBatch)];
-	static PathBatch *batch = new (storage) PathBatch{};
-	return *batch;
-}
 
 void clearCandidates(ProjectionReferenceBatch &batch)
 {
@@ -101,9 +90,9 @@ bool checkBatch(Geofence &geofence, PathBatch &batch)
 
 } // namespace
 
-GeofencePathChecker::GeofencePathChecker(Geofence &geofence, const Position &vehicle_position, bool allow_recovery) :
+GeofencePathChecker::GeofencePathChecker(Geofence &geofence, const Position &vehicle_position) :
 	_geofence(geofence),
-	_recovering(allow_recovery && geofence.isReadyForPathChecks() && vehicle_position.valid()
+	_recovering(geofence.isReadyForPathChecks() && vehicle_position.valid()
 		    && !geofence.checkPointAgainstAllGeofences(vehicle_position.lat, vehicle_position.lon, vehicle_position.alt))
 {
 }
@@ -130,15 +119,12 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 		}
 	}
 
-	if (_recovering) {
-		return true;
-	}
-
-	PathBatch &paths = pathScratchBatch();
-	paths.count = 0;
+	// One buffer for every call, off the task stack. All-zero defaults keep it in .bss.
+	static PathBatch shared_paths{};
+	shared_paths.count = 0;
 
 	for (uint8_t i = 0; i < batch.count; ++i) {
-		paths.valid_masks[i] = 0;
+		shared_paths.valid_masks[i] = 0;
 	}
 
 	const bool horizontal_fence_empty = _geofence.isEmpty();
@@ -146,6 +132,12 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 	for (uint8_t i = 0; i < batch.count; ++i) {
 		const ProjectionReference &reference = batch.items[i];
 		const Position &anchor = reference.position;
+
+		// Recovery only exempts the vehicle reference; safe point segments are still checked.
+		if (_recovering && reference.source_index < 0) {
+			shared_paths.valid_masks[i] = static_cast<uint8_t>((1U << reference.candidate_buffer.count) - 1U);
+			continue;
+		}
 
 		// First check that this vehicle or safe point is in an allowed area.
 		// A segment entirely inside an exclusion area would cross no boundary.
@@ -164,23 +156,23 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 			}
 
 			if (horizontal_fence_empty) {
-				paths.valid_masks[i] |= 1U << j;
+				shared_paths.valid_masks[i] |= 1U << j;
 				continue;
 			}
 
-			paths.paths[paths.count] = {{anchor.lat, anchor.lon}, {projection.lat, projection.lon}};
-			paths.reference_indices[paths.count] = i;
-			paths.candidate_indices[paths.count] = j;
-			++paths.count;
+			shared_paths.paths[shared_paths.count] = {{anchor.lat, anchor.lon}, {projection.lat, projection.lon}};
+			shared_paths.reference_indices[shared_paths.count] = i;
+			shared_paths.candidate_indices[shared_paths.count] = j;
+			++shared_paths.count;
 
-			if (paths.count == kPathBatchSize && !checkBatch(_geofence, paths)) {
+			if (shared_paths.count == kPathBatchSize && !checkBatch(_geofence, shared_paths)) {
 				clearCandidates(batch);
 				return false;
 			}
 		}
 	}
 
-	if (!checkBatch(_geofence, paths)) {
+	if (!checkBatch(_geofence, shared_paths)) {
 		clearCandidates(batch);
 		return false;
 	}
@@ -192,7 +184,7 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 		uint8_t retained = 0;
 
 		for (uint8_t j = 0; j < candidates.count; ++j) {
-			if (paths.valid_masks[i] & (1U << j)) {
+			if (shared_paths.valid_masks[i] & (1U << j)) {
 				candidates.candidates[retained++] = candidates.candidates[j];
 			}
 		}
