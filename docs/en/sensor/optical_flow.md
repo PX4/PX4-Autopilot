@@ -58,7 +58,7 @@ Reducing the optical flow scale factor can improve the situation.
 ### Agam FloRange
 
 [Agam FloRange](../dronecan/agam_florange.md) is a [DroneCAN](../dronecan/index.md) optical flow sensor, [distance sensor](../sensor/rangefinders.md), and IMU.
-It has a PixArt PAA3905 optical flow sensor, Broadcom AFBR-S50LV85D 30 metre distance sensor, and InvenSense ICM-42688-P 6-Axis IMU.
+It has a PixArt PAA3905 optical flow sensor, Broadcom AFBR-S50LV85D 30-metre distance sensor, and InvenSense ICM-42688-P 6-Axis IMU.
 
 ### ARK Flow & ARK Flow MR
 

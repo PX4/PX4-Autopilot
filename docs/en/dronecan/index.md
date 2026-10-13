@@ -66,7 +66,6 @@ Supported hardware includes (this is not an exhaustive list):
 - Distance sensors
   - [ARK Dist](ark_dist.md)
   - [Ark Dist MR](ark_dist_mr.md)
-  - [ARK Flow](ark_flow.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
   - [Smartmicro Drone Altimeter](smartmicro_t132.md)

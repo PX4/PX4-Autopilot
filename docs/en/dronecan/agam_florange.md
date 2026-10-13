@@ -60,11 +60,11 @@ If more than one module is connected through a CAN splitter, enable termination 
 | Pin | Signal    | Wire  |
 | --- | --------- | ----- |
 | 1   | VCC (+5V) | Red   |
-| 2   | CAN_P     | Black |
-| 3   | CAN_N     | Black |
+| 2   | CAN_H     | Black |
+| 3   | CAN_L     | Black |
 | 4   | GND       | Black |
 
-Twist the VCC/GND and CAN_P/CAN_N wires as pairs to reduce electromagnetic interference and crosstalk, as described in [Cable Wiring Basics > UAVCAN cables](../assembly/cable_wiring.md#uavcan-cables).
+Twist the VCC/GND and CAN_H/CAN_L wires as pairs to reduce electromagnetic interference and crosstalk, as described in [Cable Wiring Basics > UAVCAN cables](../assembly/cable_wiring.md#uavcan-cables).
 
 ### Mounting
 
@@ -77,7 +77,7 @@ Change the parameter appropriately if using a different orientation.
 Agam FloRange runs the [PX4 DroneCAN Firmware](px4_cannode_fw.md).
 It supports firmware updates over the CAN bus and [dynamic node allocation](index.md#node-id-allocation).
 Firmware can also be flashed over SWD using the [Pixhawk Debug Mini](../debug/swd_debug.md#pixhawk-debug-mini) connector, which additionally provides the [System Console](../debug/system_console.md).
-Agam FloRange ships with recent firmware pre-installed, but if you want to build and flash the latest firmware yourself see [PX4 DroneCAN Firmware > Building the Firmware](px4_cannode_fw.md#building-the-firmware).
+Agam FloRange ships with recent firmware pre-installed, but if you want to build and flash the latest firmware yourself, see [PX4 DroneCAN Firmware > Building the Firmware](px4_cannode_fw.md#building-the-firmware).
 
 - Firmware target: `agam_florange_default`
 - Bootloader target: `agam_florange_canbootloader`
@@ -85,7 +85,7 @@ Agam FloRange ships with recent firmware pre-installed, but if you want to build
 ## PX4 Configuration
 
 ::: info
-Agam FloRange will not boot if there is no SD card in the flight controller when powered on.
+Agam FloRange will not boot if the flight controller has no SD card installed when it is powered on.
 :::
 
 ### Enable DroneCAN
@@ -93,7 +93,7 @@ Agam FloRange will not boot if there is no SD card in the flight controller when
 The steps are:
 
 - In _QGroundControl_ set the parameter [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to `2` for dynamic node allocation (or `3` if also using [DroneCAN ESCs](../dronecan/escs.md)) and reboot (see [Finding/Updating Parameters](../advanced_config/parameters.md)).
-- Connect Agam FloRange's CAN to the flight controller's CAN bus.
+- Connect Agam FloRange to the flight controller's CAN bus (see [Wiring](#wiring)).
 
 Once DroneCAN is enabled, the module is detected on boot.
 
@@ -122,14 +122,15 @@ On the module, you may need to configure the following parameters:
 | Parameter                                                                                                | Description                                                                                                     |
 | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID. Set to `0` (default) for dynamic node allocation, or to `1`-`125` for a static node ID.            |
-| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)          | CAN built-in bus termination. Set to `1` if the module is the last node on the CAN bus (see [Wiring](#wiring)). |
+| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)          | Built-in CAN bus termination. Set to `1` if the module is the last node on the CAN bus (see [Wiring](#wiring)). |
 
 ## LED Meanings
 
-- Solid blue indicates normal operation
-- Rapidly blinking blue and red indicates a firmware update
+- Solid blue indicates normal operation.
+- Solid blue and red (both on) indicates a firmware update.
+- Solid red indicates an error, or that the module is waiting for a node ID to be allocated (briefly, on every boot).
 
-If you see a solid red LED there is an error and you should check the following:
+If the red LED stays on, there is an error and you should check the following:
 
 - Make sure the flight controller has an SD card installed.
 - Make sure Agam FloRange has `agam_florange_canbootloader` installed prior to flashing `agam_florange_default`.
