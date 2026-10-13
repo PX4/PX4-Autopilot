@@ -36,6 +36,7 @@
 
 #include "vl53l1x.hpp"
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/time.h>
 
 #define VL53L1X_DELAY                          50000   // delay to reduce CPU usage (us)
 #define VL53L1X_SAMPLE_RATE                    200  // ms, default
@@ -493,8 +494,15 @@ int8_t VL53L1X::VL53L1X_SensorInit()
 
 	status |= VL53L1X_StartRanging();
 
-	while (tmp == 0) {
+	// wait for the first measurement with a bound: CheckForDataReady() leaves the flag untouched on a
+	// bus error, so a sensor that does not answer or never reports data ready would hang the caller
+	for (unsigned attempt = 0; (tmp == 0) && (attempt < 1000); attempt++) {
 		status = VL53L1X_CheckForDataReady(&tmp);
+		px4_usleep(1000);
+	}
+
+	if (tmp == 0) {
+		return -1;
 	}
 
 	status = VL53L1X_ClearInterrupt();
