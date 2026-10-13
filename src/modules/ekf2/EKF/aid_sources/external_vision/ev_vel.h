@@ -45,6 +45,7 @@
 class ExternalVisionVel
 {
 public:
+	__attribute__((noinline))
 	ExternalVisionVel(Ekf &ekf_instance, const extVisionSample &vision_sample, const float ekf2_evv_noise,
 			  const imuSample &imu_sample) : _ekf(ekf_instance), _sample(vision_sample)
 	{

@@ -111,7 +111,7 @@ public:
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
 	float getVerticalPositionDerivative() const { return _output_vert_new.vert_vel - _vel_imu_rel_body_ned(2); }
 
-	LatLonAlt getLatLonAlt() const
+	__attribute__((noinline)) LatLonAlt getLatLonAlt() const
 	{
 		// rotate the position of the IMU relative to the boy origin into earth frame
 		const matrix::Vector3f pos_offset_earth{_R_to_earth_now * _imu_pos_body};

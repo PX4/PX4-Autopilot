@@ -103,6 +103,7 @@ private:
 	// Subscriptions (per estimator instance)
 	struct EstimatorInstance {
 
+		__attribute__((noinline))
 		EstimatorInstance(EKF2Selector *selector, uint8_t i) :
 			estimator_attitude_sub{selector, ORB_ID(estimator_attitude), i},
 			estimator_status_sub{selector, ORB_ID(estimator_status), i},

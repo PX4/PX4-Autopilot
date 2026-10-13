@@ -165,6 +165,7 @@ public:
 	}
 
 	template <size_t Width>
+	__attribute__((noinline))
 	void uncorrelateCovarianceSetVariance(size_t first, const Vector<Type, Width> &vec)
 	{
 		static_assert(Width <= M, "Width bigger than matrix");
@@ -185,6 +186,7 @@ public:
 	}
 
 	template <size_t Width>
+	__attribute__((noinline))
 	void uncorrelateCovarianceSetVariance(size_t first, Type val)
 	{
 		static_assert(Width <= M, "Width bigger than matrix");

@@ -265,6 +265,7 @@ private:
 
 	// publish helper for estimator_aid_source topics
 	template <typename T>
+	__attribute__((noinline))
 	void PublishAidSourceStatus(const hrt_abstime &timestamp, const T &status, hrt_abstime &status_publish_last,
 				    uORB::PublicationMulti<T> &pub)
 	{
