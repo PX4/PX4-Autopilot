@@ -217,13 +217,12 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-				if (checkHaglYawResetReq() && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D
-							       || _control_status.flags.yaw_manual)) {
-					ECL_INFO("reset to %s", AID_SRC_NAME);
-					const bool reset_heading = isHeadingResetToMagAllowed()
-								   && !isNorthEastAidingActive(); // NE aiding makes heading observable
-
-					resetMagStates(_mag_lpf.getState(), reset_heading);
+				if (isMagInFlightAlignmentRequired() && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D
+						|| _control_status.flags.yaw_manual)) {
+					ECL_INFO("%s in-flight alignment", AID_SRC_NAME);
+					// Keep the heading: the EKF recovers from a heading error, but resetting it to a
+					// field disturbed by onboard sources leaves the vehicle with a large heading error
+					resetMagStates(_mag_lpf.getState(), false);
 
 					// record the start time for the magnetic field alignment
 					_control_status.flags.mag_aligned_in_flight = true;
@@ -376,15 +375,13 @@ void Ekf::stopMagFusion()
 	}
 }
 
-bool Ekf::checkHaglYawResetReq() const
+bool Ekf::isMagInFlightAlignmentRequired() const
 {
 #if defined(CONFIG_EKF2_TERRAIN)
 
-	// We need to reset the yaw angle after climbing away from the ground to enable
+	// The mag field states are re-aligned after climbing away from the ground to enable
 	// recovery from ground level magnetic interference.
 	if (_control_status.flags.in_air && _control_status.flags.yaw_align && !_control_status.flags.mag_aligned_in_flight) {
-		// Check if height has increased sufficiently to be away from ground magnetic anomalies
-		// and request a yaw reset if not already requested.
 		static constexpr float mag_anomalies_max_hagl = 1.5f;
 		const bool above_mag_anomalies = (getTerrainVPos() + _gpos.altitude()) > mag_anomalies_max_hagl;
 		return above_mag_anomalies;
