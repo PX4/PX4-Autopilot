@@ -95,9 +95,11 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		// Receivers might report an optimistic eph, so floor it with the minimum GNSS position noise.
 		// EKF2 might not be part of the build, in that case fall back to the EKF2_GPS_P_NOISE default.
 		float eph_min = 0.5f;
+
 		if (_param_ekf2_gps_p_noise_handle != PARAM_INVALID) {
 			param_get(_param_ekf2_gps_p_noise_handle, &eph_min);
 		}
+
 		const float divergence_gate_m = 3.f * Vector2f(math::max(healthy_gnss[0].eph, eph_min),
 						math::max(healthy_gnss[1].eph, eph_min)).length();
 		_divergence_hysteresis.set_state_and_update(divergence_m > divergence_gate_m, hrt_absolute_time());
