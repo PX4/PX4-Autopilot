@@ -115,14 +115,20 @@ void
 SafetyButton::FlashButton()
 {
 #if defined(GPIO_LED_SAFETY)
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		_safety_off = vehicle_status.safety_off;
+	}
+
 	actuator_armed_s armed;
 
 	if (_armed_sub.copy(&armed)) {
-		// Select the appropriate LED flash pattern depending on the current arm state
+		// Select the appropriate LED flash pattern depending on the current safety and arm states
 		LED_PATTERN pattern = LED_PATTERN::FMU_REFUSE_TO_ARM;
 
 		// cycle the blink state machine
-		if (_button_prev_sate) {
+		if (_safety_off) {
 			if (armed.armed) {
 				pattern = LED_PATTERN::IO_FMU_ARMED;
 
