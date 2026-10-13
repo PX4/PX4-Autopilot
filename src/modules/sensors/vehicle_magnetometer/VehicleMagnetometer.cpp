@@ -714,11 +714,13 @@ void VehicleMagnetometer::calcMagInconsistency()
 				// calculate angle to 3D magnetic field vector of the primary sensor
 				Vector3f current_mag{_last_data[i]};
 
-				float angle_error = AxisAnglef(Quatf(current_mag, primary_mag)).angle();
+				const float angle_error = AxisAnglef(Quatf(current_mag, primary_mag)).angle();
 
-				// complementary filter to not fail/pass on single outliers
-				_mag_angle_diff[check_index] *= 0.95f;
-				_mag_angle_diff[check_index] += 0.05f * angle_error;
+				// a zero or non-finite field vector has no angle; a NaN would stay in the filter until reboot
+				if (PX4_ISFINITE(angle_error)) {
+					// complementary filter to not fail/pass on single outliers
+					_mag_angle_diff[check_index] = 0.95f * _mag_angle_diff[check_index] + 0.05f * angle_error;
+				}
 
 				mag_angle_diff_max = math::max(mag_angle_diff_max, _mag_angle_diff[check_index]);
 
@@ -776,7 +778,13 @@ void VehicleMagnetometer::UpdateStatus()
 		if (_calibration[sensor_index].device_id() != 0) {
 
 			if (sensor_count > 0) {
-				_sensor_diff[sensor_index] = 0.95f * _sensor_diff[sensor_index] + 0.05f * (_last_data[sensor_index] - mean);
+				const Vector3f diff = _last_data[sensor_index] - mean;
+
+				// a non-finite sample carries no information and would stay in the filter until reboot
+				if (diff.isAllFinite()) {
+					_sensor_diff[sensor_index] = 0.95f * _sensor_diff[sensor_index] + 0.05f * diff;
+				}
+
 				sensors_status.inconsistency[sensor_index] = _sensor_diff[sensor_index].norm();
 
 			} else {
