@@ -50,6 +50,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - **`DO_JUMP` can only loop back.**
   A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0.
   Missions stored on the vehicle with such jumps must be edited and uploaded again.
+- **`DO_JUMP` repeat counts must fit.**
+  A mission is now rejected if a `DO_JUMP` repeat count is negative, above 65535 or not a number, instead of being narrowed to a different count.
 
 ## Other changes
 
