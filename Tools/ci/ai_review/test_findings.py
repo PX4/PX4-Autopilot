@@ -10,7 +10,8 @@ from ai_review import findings
 def finding(**over: Any) -> Dict[str, Any]:
     base: Dict[str, Any] = {
         'path': 'src/modules/foo/Foo.cpp', 'line': 12, 'start_line': None,
-        'severity': 'concern', 'title': 't', 'body': 'b', 'trigger': 'x',
+        'severity': 'concern', 'kind': 'code', 'title': 't',
+        'comment': 'Clamp dt before integrating.', 'body': 'b', 'trigger': 'x',
         'suggestion': 'Clamp dt to [1 ms, 100 ms] before integrating.',
         'replacement': None, 'uncertainty': '', 'rule': None}
     base.update(over)
@@ -51,6 +52,14 @@ class TestParseFinding(unittest.TestCase):
         with self.assertRaises(findings.ContractError):
             findings.parse_finding(finding(severity='critical'))
 
+    def test_rejects_unknown_kind(self) -> None:
+        with self.assertRaises(findings.ContractError):
+            findings.parse_finding(finding(kind='style'))
+
+    def test_rejects_empty_comment(self) -> None:
+        with self.assertRaises(findings.ContractError):
+            findings.parse_finding(finding(comment=' '))
+
     def test_rejects_oversized_text(self) -> None:
         with self.assertRaises(findings.ContractError):
             findings.parse_finding(finding(body='x' * 5000))
@@ -60,6 +69,11 @@ class TestParseFinding(unittest.TestCase):
         f = findings.parse_finding(finding(title='word ' * 40))
         self.assertLessEqual(len(f.title), findings.MAX_TITLE)
         self.assertTrue(f.title.endswith('…'))
+
+    def test_long_comment_is_shortened_not_rejected(self) -> None:
+        f = findings.parse_finding(finding(comment='word ' * 200))
+        self.assertLessEqual(len(f.comment), findings.MAX_COMMENT)
+        self.assertTrue(f.comment.endswith('…'))
 
     def test_pr_level_finding(self) -> None:
         f = findings.parse_finding(finding(path=None, line=None))

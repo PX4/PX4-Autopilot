@@ -19,6 +19,12 @@ actuator_output:
         min: { min: 0, max: 1000, default: 0 }
         max: { min: 0, max: 1000, default: 1000 }
         failsafe: { min: 0, max: 1000 }
+      custom_params:
+        - name: 'SIGNED'
+          label: "Signed Cmd\n(non-motor)"
+          index_offset: -1
+          show_as: bitset
+          advanced: true
       num_channels: *max_num_motors
     - param_prefix: SIM_GZ_SV
       group_label: 'Servos'
@@ -70,3 +76,35 @@ parameters:
             min: -180.0
             max: 180.0
             default: -45.0
+    - group: Simulation
+      definitions:
+        SIM_GZ_EC_SIGNED:
+          description:
+            short: Signed command for non-motor ESC channels
+            long: For motors, use CA_R_REV; bits set here for motor channels are ignored.
+              Select simulated ESC channels assigned a non-motor function (e.g. Peripheral
+              via Actuator Set or Servo) to send values from -MAX (full reverse) to +MAX
+              (full forward), with 0 as neutral. For signed channels, keep DISARMED at 0,
+              set MIN to 1, and use FAILSAFE 0 for neutral failsafe behavior.
+              Failsafe values use the same MIN/MAX-to-signed mapping as normal outputs.
+              Mirrors UAVCAN_EC_SIGNED.
+          type: bitmask
+          bit:
+            0: ESC1
+            1: ESC2
+            2: ESC3
+            3: ESC4
+            4: ESC5
+            5: ESC6
+            6: ESC7
+            7: ESC8
+            8: ESC9
+            9: ESC10
+            10: ESC11
+            11: ESC12
+            12: ESC13
+            13: ESC14
+            14: ESC15
+            15: ESC16
+          default: 0
+          reboot_required: true

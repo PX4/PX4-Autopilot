@@ -40,10 +40,11 @@ The vehicle can be purchased here: [Crazyflie 2.1](https://store.bitcraze.io/pro
 
 Useful peripheral hardware includes:
 
-- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/products/crazyradio-pa): Wireless communication between _QGroundControl_ and Crazyflie 2.0
+- [Crazyradio 2.0](https://www.bitcraze.io/products/crazyradio-2-0/) 2.4 GHz USB dongle: Wireless communication between _QGroundControl_ and Crazyflie 2.0.
+  This behaves like the [old hardware](https://www.bitcraze.io/products/old-products/crazyradio-pa/) (anecdotally) when running its default "Crazyradio PA emulation" firmware.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): Breakout expansion board for connecting new peripherals.
 - [Flow deck v2](https://store.bitcraze.io/products/flow-deck-v2): Optical flow sensor and a distance sensor for altitude and position control.
-- [Z-ranger deck v2](https://store.bitcraze.io/collections/decks/products/z-ranger-deck-v2): Distance sensor for altitude control (same sensor as the Flow deck).
+- [Z-ranger deck v2](https://www.bitcraze.io/products/old-products/z-ranger-deck-v2/) (Discontinued): Distance sensor for altitude control (same sensor as the Flow deck).
 - [Multi-ranger deck](https://store.bitcraze.io/collections/decks/products/multi-ranger-deck) Multi-direction object detection
 - [Buzzer deck](https://store.bitcraze.io/collections/decks/products/buzzer-deck) Audio feedback on system events, like low battery or charging completed.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): Expansion board that gives you the ability to test new hardware easily without soldering.
