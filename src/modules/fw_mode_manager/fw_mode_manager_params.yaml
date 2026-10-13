@@ -18,12 +18,14 @@ parameters:
     FW_LND_FLALT:
       description:
         short: Landing flare altitude (relative to landing altitude)
-        long: 'NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as
-          the flare altitude'
+        long: |-
+          NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude
+
+          Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
       type: float
       default: 0.5
       unit: m
-      min: 0.0
+      min: -1.0
       decimal: 1
       increment: 0.5
     FW_LND_PARA_EN:
@@ -150,10 +152,12 @@ parameters:
           to trigger the flare.
 
           NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
+
+          Set FW_LND_FLALT or FW_LND_FL_TIME negative to -1 to disable the flare (land on the glide slope at landing airspeed).
       type: float
       default: 1.0
       unit: s
-      min: 0.1
+      min: -1.0
       max: 5.0
       decimal: 1
       increment: 0.1
