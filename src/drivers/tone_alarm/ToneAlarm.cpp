@@ -51,6 +51,8 @@ ToneAlarm::ToneAlarm() :
 
 ToneAlarm::~ToneAlarm()
 {
+	// the end of the note would otherwise be called on the deleted driver
+	hrt_cancel(&_hrt_call);
 	ToneAlarmInterface::stop_note();
 }
 
