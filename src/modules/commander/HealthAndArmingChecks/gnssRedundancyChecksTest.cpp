@@ -218,6 +218,20 @@ TEST_F(GnssRedundancyChecksTest, BelowRequiredSetsGnssLost)
 	EXPECT_TRUE(_health_warning_gps);
 }
 
+// SYS_HAS_NUM_GNSS above GPS_MAX_INSTANCES (the declared maximum is not enforced) counts as the maximum:
+// two healthy receivers satisfy it, and the per-receiver report stays inside its arrays.
+TEST_F(GnssRedundancyChecksTest, RequiredCountAboveMaxIsClamped)
+{
+	int required = 3; // one more than the two receivers the check tracks
+	param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON));
+	runCheck();
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+	EXPECT_FALSE(_health_warning_gps);
+}
+
 // After seeing two fixed receivers, losing one emits a health warning
 // even when SYS_HAS_NUM_GNSS is not set (dropped_below_peak path).
 TEST_F(GnssRedundancyChecksTest, DroppedBelowPeakSetsHealthWarning)
