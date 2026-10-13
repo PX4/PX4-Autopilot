@@ -416,7 +416,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 			/* if heading needs to be reached, the timeout is enabled and we don't make it, abort mission */
 			if (!_waypoint_yaw_reached && _mission_item.force_heading &&
 			    (_navigator->get_yaw_timeout() >= FLT_EPSILON) &&
-			    (now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
+			    (now - _time_wp_reached >= (hrt_abstime)(_navigator->get_yaw_timeout() * 1e6f))) {
 
 				_navigator->set_mission_failure_heading_timeout();
 			}
