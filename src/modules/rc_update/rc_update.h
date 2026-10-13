@@ -66,6 +66,16 @@ namespace rc_update
 {
 
 /**
+ * Convert an RC-tuned value to a well-defined INT32: rounds to nearest and
+ * clamps into the representable INT32 float range so the cast is defined for
+ * any finite input. Callers must reject non-finite values first.
+ */
+inline int32_t float_to_param_int32(float value)
+{
+	return static_cast<int32_t>(math::constrain(roundf(value), -2147483648.f, 2147483520.f));
+}
+
+/**
  ** class RCUpdate
  *
  * Handling of RC updates
