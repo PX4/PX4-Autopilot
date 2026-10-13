@@ -180,6 +180,26 @@ TEST_F(RCUpdateTest, ModeSlotUnassigned)
 	EXPECT_EQ(manual_control_switches_sub.get().mode_slot, 0); // manual_control_switches_s::MODE_SLOT_NONE
 }
 
+TEST_F(RCUpdateTest, ModeSlotMapBeyondChannelsIsUnassigned)
+{
+	// GIVEN: the mode switch is mapped to a channel past the channel array (the parameter range is not enforced)
+	_param_rc_map_fltmode.set(19);
+	_param_rc_map_fltmode.commit();
+	EXPECT_EQ(_param_rc_map_fltmode.get(), 19);
+	_rc_update.updateParams();
+
+	// WHEN: we update the switches two times to pass the simple outlier protection
+	_rc_update.UpdateManualSwitches(0);
+	_rc_update.UpdateManualSwitches(0);
+
+	// THEN: the map counts as unassigned instead of reading beyond the channels
+	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
+	EXPECT_EQ(manual_control_switches_sub.get().mode_slot, manual_control_switches_s::MODE_SLOT_NONE);
+
+	_param_rc_map_fltmode.set(0);
+	_param_rc_map_fltmode.commit();
+}
+
 TEST_F(RCUpdateTest, ModeSlotSwitchAllValues)
 {
 	checkModeSlotSwitch(-1.f, 1); // manual_control_switches_s::MODE_SLOT_1

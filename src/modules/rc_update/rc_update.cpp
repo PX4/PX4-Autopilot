@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -100,7 +100,7 @@ RCUpdate::RCUpdate() :
 	}
 
 	rc_parameter_map_poll(true /* forced */);
-	updateParams(); // Call is needed to populate the _rc.function array
+	updateParams(); // Populates channel calibration and mapping
 
 	_button_pressed_hysteresis.set_hysteresis_time_from(false, 50_ms);
 }
@@ -149,8 +149,6 @@ void RCUpdate::updateParams()
 		param_get(_parameter_handles.rc_map_param[i], &(_parameters.rc_map_param[i]));
 	}
 
-	update_rc_functions();
-
 	_rc_calibrated = _param_rc_chan_cnt.get() > 0
 			 && (_param_rc_map_throttle.get() > 0
 			     || _param_rc_map_roll.get() > 0
@@ -171,9 +169,9 @@ void RCUpdate::updateParams()
 
 	// Center throttle trim when it's set to the minimum to correct for hardcoded QGC RC calibration
 	// See https://github.com/mavlink/qgroundcontrol/commit/0577af2e944a0f53919aeb1367d580f744004b2c
-	const int8_t throttle_channel = _rc.function[rc_channels_s::FUNCTION_THROTTLE];
+	const int8_t throttle_channel = getChannelIndex(Function::Throttle);
 
-	if (throttle_channel >= 0 && throttle_channel < RC_MAX_CHAN_COUNT) {
+	if (throttle_channel >= 0) {
 		const uint16_t throttle_min = _parameters.min[throttle_channel];
 		const uint16_t throttle_trim = _parameters.trim[throttle_channel];
 		const uint16_t throttle_max = _parameters.max[throttle_channel];
@@ -189,41 +187,99 @@ void RCUpdate::updateParams()
 	}
 }
 
-void RCUpdate::update_rc_functions()
+int8_t RCUpdate::getChannelIndex(Function function) const
 {
-	/* update RC function mappings */
-	_rc.function[rc_channels_s::FUNCTION_THROTTLE] = _param_rc_map_throttle.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_ROLL] = _param_rc_map_roll.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_PITCH] = _param_rc_map_pitch.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_YAW] = _param_rc_map_yaw.get() - 1;
+	// An RC_MAP_* parameter names a channel 1..RC_MAX_CHAN_COUNT or 0 for unassigned
+	int32_t map = 0;
 
-	_rc.function[rc_channels_s::FUNCTION_RETURN] = _param_rc_map_return_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_LOITER] = _param_rc_map_loiter_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_OFFBOARD] = _param_rc_map_offb_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_KILLSWITCH] = _param_rc_map_kill_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_TERMINATION] = _param_rc_map_term_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = _param_rc_map_arm_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = _param_rc_map_trans_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_GEAR] = _param_rc_map_gear_sw.get() - 1;
+	switch (function) {
+	case Function::Throttle: map = _param_rc_map_throttle.get(); break;
 
-	_rc.function[rc_channels_s::FUNCTION_FLAPS] = _param_rc_map_flaps.get() - 1;
+	case Function::Roll: map = _param_rc_map_roll.get(); break;
 
-	_rc.function[rc_channels_s::FUNCTION_AUX_1] = _param_rc_map_aux1.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_AUX_2] = _param_rc_map_aux2.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_AUX_3] = _param_rc_map_aux3.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_AUX_4] = _param_rc_map_aux4.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_AUX_5] = _param_rc_map_aux5.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_AUX_6] = _param_rc_map_aux6.get() - 1;
+	case Function::Pitch: map = _param_rc_map_pitch.get(); break;
 
-	_rc.function[rc_channels_s::FUNCTION_PAYLOAD_POWER] = _param_rc_map_pay_sw.get() - 1;
+	case Function::Yaw: map = _param_rc_map_yaw.get(); break;
 
-	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
-		_rc.function[rc_channels_s::FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
+	case Function::Flaps: map = _param_rc_map_flaps.get(); break;
+
+	case Function::Aux1: map = _param_rc_map_aux1.get(); break;
+
+	case Function::Aux2: map = _param_rc_map_aux2.get(); break;
+
+	case Function::Aux3: map = _param_rc_map_aux3.get(); break;
+
+	case Function::Aux4: map = _param_rc_map_aux4.get(); break;
+
+	case Function::Aux5: map = _param_rc_map_aux5.get(); break;
+
+	case Function::Aux6: map = _param_rc_map_aux6.get(); break;
+
+	case Function::Param1:
+	case Function::Param2:
+	case Function::Param3:
+		static_assert(Function::Param3 - Function::Param1 + 1 == rc_parameter_map_s::RC_PARAM_MAP_NCHAN,
+			      "Unexpected number of RC parameter channels");
+		map = _parameters.rc_map_param[function - Function::Param1];
+		break;
+
+	case Function::FlightMode: map = _param_rc_map_fltmode.get(); break;
+
+	case Function::FlightModeButton1:
+	case Function::FlightModeButton2:
+	case Function::FlightModeButton3:
+	case Function::FlightModeButton4:
+	case Function::FlightModeButton5:
+	case Function::FlightModeButton6: {
+			static_assert(Function::FlightModeButton6 - Function::FlightModeButton1 + 1 == manual_control_switches_s::MODE_SLOT_NUM,
+				      "Unexpected number of flight mode button slots");
+
+			// RC_MAP_FLTM_BTN is a channel bitmask, the n-th set bit is the channel of the n-th slot
+			const int32_t flightmode_buttons = _param_rc_map_fltm_btn.get();
+			int slot = function - Function::FlightModeButton1;
+
+			for (uint8_t channel = 0; channel < RC_MAX_CHAN_COUNT; channel++) {
+				if ((flightmode_buttons & (1 << channel)) && (slot-- == 0)) {
+					map = channel + 1;
+					break;
+				}
+			}
+
+			break;
+		}
+
+	case Function::Return: map = _param_rc_map_return_sw.get(); break;
+
+	case Function::Loiter: map = _param_rc_map_loiter_sw.get(); break;
+
+	case Function::Offboard: map = _param_rc_map_offb_sw.get(); break;
+
+	case Function::KillSwitch: map = _param_rc_map_kill_sw.get(); break;
+
+	case Function::Termination: map = _param_rc_map_term_sw.get(); break;
+
+	case Function::ArmSwitch: map = _param_rc_map_arm_sw.get(); break;
+
+	case Function::Transition: map = _param_rc_map_trans_sw.get(); break;
+
+	case Function::Gear: map = _param_rc_map_gear_sw.get(); break;
+
+	case Function::EngageMainMotor: map = _param_rc_map_eng_mot.get(); break;
+
+	case Function::PayloadPower: map = _param_rc_map_pay_sw.get(); break;
+
+	case Function::Failsafe:
+		// 0 means the failsafe threshold applies to the throttle channel
+		map = (_param_rc_map_failsafe.get() > 0) ? _param_rc_map_failsafe.get() : _param_rc_map_throttle.get();
+		break;
 	}
 
-	_rc.function[rc_channels_s::FUNCTION_ENGAGE_MAIN_MOTOR] = _param_rc_map_eng_mot.get() - 1;
+	// Any out of range index gets unassigned
+	if (math::isInRange<int32_t>(map, 1, RC_MAX_CHAN_COUNT)) {
+		return static_cast<int8_t>(map - 1);
+	}
 
-	map_flight_modes_buttons();
+	return -1;
 }
 
 void RCUpdate::rc_parameter_map_poll(bool forced)
@@ -233,7 +289,7 @@ void RCUpdate::rc_parameter_map_poll(bool forced)
 
 		/* update parameter handles to which the RC channels are mapped */
 		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
-			if (_rc.function[rc_channels_s::FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
+			if (getChannelIndex(Function(Function::Param1 + i)) < 0 || !_rc_parameter_map.valid[i]) {
 				/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
 				 * or no request to map this channel to a param has been sent via mavlink
 				 */
@@ -264,26 +320,25 @@ void RCUpdate::rc_parameter_map_poll(bool forced)
 	}
 }
 
-float RCUpdate::get_rc_value(uint8_t func, float min_value, float max_value) const
+float RCUpdate::getChannelValue(Function function) const
 {
-	if (_rc.function[func] >= 0) {
-		return math::constrain(_rc.channels[_rc.function[func]], min_value, max_value);
-	}
-
-	return 0.f;
+	const int8_t index = getChannelIndex(function);
+	return (index >= 0) ? _rc.channels[index] : 0.f;
 }
 
 void RCUpdate::set_params_from_rc()
 {
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
-		if (_rc.function[rc_channels_s::FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
+		const Function function = Function(Function::Param1 + i);
+
+		if (getChannelIndex(function) < 0 || !_rc_parameter_map.valid[i]) {
 			/* This RC channel is not mapped to a RC-Parameter Channel (e.g. RC_MAP_PARAM1 == 0)
 			 * or no request to map this channel to a param has been sent via mavlink
 			 */
 			continue;
 		}
 
-		float rc_val = get_rc_value((rc_channels_s::FUNCTION_PARAM_1 + i), -1.f, 1.f);
+		float rc_val = getChannelValue(function);
 
 		/* Check if the value has changed,
 		 * maybe we need to introduce a more aggressive limit here */
@@ -294,42 +349,6 @@ void RCUpdate::set_params_from_rc()
 						  _rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
 
 			param_set(_parameter_handles.rc_param[i], &param_val);
-		}
-	}
-}
-
-void
-RCUpdate::map_flight_modes_buttons()
-{
-	static_assert(rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + manual_control_switches_s::MODE_SLOT_NUM <= sizeof(
-			      _rc.function) / sizeof(_rc.function[0]), "Unexpected number of RC functions");
-	static_assert(rc_channels_s::FUNCTION_FLTBTN_SLOT_COUNT == manual_control_switches_s::MODE_SLOT_NUM,
-		      "Unexpected number of Flight Modes slots");
-
-	// Reset all the slots to -1
-	for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
-		_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot] = -1;
-	}
-
-	// If the functionality is disabled we don't need to map channels
-	const int flightmode_buttons = _param_rc_map_fltm_btn.get();
-
-	if (flightmode_buttons == 0) {
-		return;
-	}
-
-	uint8_t slot = 0;
-
-	for (uint8_t channel = 0; channel < RC_MAX_CHAN_COUNT; channel++) {
-		if (flightmode_buttons & (1 << channel)) {
-			PX4_DEBUG("Slot %d assigned to channel %d", slot + 1, channel);
-			_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot] = channel;
-			slot++;
-		}
-
-		if (slot >= manual_control_switches_s::MODE_SLOT_NUM) {
-			// we have filled all the available slots
-			break;
 		}
 	}
 }
@@ -420,11 +439,7 @@ void RCUpdate::Run()
 			signal_lost = false;
 
 			/* check failsafe */
-			int8_t fs_ch = _rc.function[_param_rc_map_failsafe.get()]; // get channel mapped to throttle
-
-			if (_param_rc_map_failsafe.get() > 0) { // if not 0, use channel number instead of rc.function mapping
-				fs_ch = _param_rc_map_failsafe.get() - 1;
-			}
+			const int8_t fs_ch = getChannelIndex(Function::Failsafe);
 
 			if (_param_rc_fails_thr.get() > 0 && fs_ch >= 0) {
 				/* failsafe configured */
@@ -521,10 +536,12 @@ void RCUpdate::Run()
 	perf_end(_loop_perf);
 }
 
-switch_pos_t RCUpdate::getRCSwitchOnOffPosition(uint8_t function, float threshold) const
+switch_pos_t RCUpdate::getRCSwitchOnOffPosition(Function function, float threshold) const
 {
-	if (_rc.function[function] >= 0) {
-		float value = 0.5f * _rc.channels[_rc.function[function]] + 0.5f; // Rescale [-1,1] -> [0,1] range
+	const int8_t channel = getChannelIndex(function);
+
+	if (channel >= 0) {
+		float value = 0.5f * _rc.channels[channel] + 0.5f; // Rescale [-1,1] -> [0,1] range
 
 		if (threshold < 0.f) {
 			value = -value;
@@ -536,13 +553,15 @@ switch_pos_t RCUpdate::getRCSwitchOnOffPosition(uint8_t function, float threshol
 	return manual_control_switches_s::SWITCH_POS_NONE;
 }
 
-switch_pos_t RCUpdate::getRCSwitch3WayPosition(uint8_t function, float on_threshold, float mid_threshold) const
+switch_pos_t RCUpdate::getRCSwitch3WayPosition(Function function, float on_threshold, float mid_threshold) const
 {
-	if (_rc.function[function] >= 0) {
+	const int8_t channel = getChannelIndex(function);
+
+	if (channel >= 0) {
 		const bool on_inverted = (on_threshold < 0.f);
 		const bool mid_inverted = (mid_threshold < 0.f);
 
-		const float value = 0.5f * _rc.channels[_rc.function[function]] + 0.5f;
+		const float value = 0.5f * _rc.channels[channel] + 0.5f;
 
 		if (on_inverted ? value < -mid_threshold : value > on_threshold) {
 			return manual_control_switches_s::SWITCH_POS_ON;
@@ -564,7 +583,9 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.timestamp_sample = timestamp_sample;
 
 	// check mode slot (RC_MAP_FLTMODE)
-	if (_param_rc_map_fltmode.get() > 0) {
+	const int8_t flight_mode_channel = getChannelIndex(Function::FlightMode);
+
+	if (flight_mode_channel >= 0) {
 		// number of valid slots
 		static constexpr int num_slots = manual_control_switches_s::MODE_SLOT_NUM;
 
@@ -580,7 +601,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		// and max. Then the right slot is obtained by multiplying with the number of
 		// slots. And finally we add half a slot width to ensure that integer rounding
 		// will take us to the correct final index.
-		const float value = _rc.channels[_param_rc_map_fltmode.get() - 1];
+		const float value = _rc.channels[flight_mode_channel];
 		switches.mode_slot = (((((value - slot_min) * num_slots) + slot_width_half) / (slot_max - slot_min)) +
 				      slot_width_half) + 1;
 
@@ -594,8 +615,8 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 
 		for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
 
-			// If the slot is not in use (-1), get_rc_value() will return 0
-			float value = get_rc_value(rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot, -1.0, 1.0);
+			// If the slot is not in use (-1), getChannelValue() will return 0
+			float value = getChannelValue(Function(Function::FlightModeButton1 + slot));
 
 			// The range goes from -1 to 1, checking that value is greater than 0.5f
 			// corresponds to check that the signal is above 75% of the overall range.
@@ -619,23 +640,20 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		}
 	}
 
-	switches.return_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_RETURN, _param_rc_return_th.get());
-	switches.loiter_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_LOITER, _param_rc_loiter_th.get());
-	switches.offboard_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_OFFBOARD, _param_rc_offb_th.get());
-	switches.kill_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_KILLSWITCH, _param_rc_killswitch_th.get());
-	switches.termination_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_TERMINATION, .75f);
-	switches.arm_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_ARMSWITCH, _param_rc_armswitch_th.get());
-	switches.transition_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_TRANSITION, _param_rc_trans_th.get());
-	switches.gear_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_GEAR, _param_rc_gear_th.get());
-	switches.engage_main_motor_switch =
-		getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_ENGAGE_MAIN_MOTOR, _param_rc_eng_mot_th.get());
+	switches.return_switch = getRCSwitchOnOffPosition(Function::Return, _param_rc_return_th.get());
+	switches.loiter_switch = getRCSwitchOnOffPosition(Function::Loiter, _param_rc_loiter_th.get());
+	switches.offboard_switch = getRCSwitchOnOffPosition(Function::Offboard, _param_rc_offb_th.get());
+	switches.kill_switch = getRCSwitchOnOffPosition(Function::KillSwitch, _param_rc_killswitch_th.get());
+	switches.termination_switch = getRCSwitchOnOffPosition(Function::Termination, .75f);
+	switches.arm_switch = getRCSwitchOnOffPosition(Function::ArmSwitch, _param_rc_armswitch_th.get());
+	switches.transition_switch = getRCSwitchOnOffPosition(Function::Transition, _param_rc_trans_th.get());
+	switches.gear_switch = getRCSwitchOnOffPosition(Function::Gear, _param_rc_gear_th.get());
+	switches.engage_main_motor_switch = getRCSwitchOnOffPosition(Function::EngageMainMotor, _param_rc_eng_mot_th.get());
+	switches.payload_power_switch = getRCSwitch3WayPosition(Function::PayloadPower, _param_rc_payload_th.get(), _param_rc_payload_midth.get());
 #if defined(ATL_MANTIS_RC_INPUT_HACKS)
-	switches.photo_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_3, 0.5f);
-	switches.video_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_4, 0.5f);
+	switches.photo_switch = getRCSwitchOnOffPosition(Function::Aux3, 0.5f);
+	switches.video_switch = getRCSwitchOnOffPosition(Function::Aux4, 0.5f);
 #endif
-
-	switches.payload_power_switch = getRCSwitch3WayPosition(rc_channels_s::FUNCTION_PAYLOAD_POWER,
-					_param_rc_payload_th.get(), _param_rc_payload_midth.get());
 
 	// last 2 switch updates identical within 1 second (simple protection from bad RC data)
 	if ((switches == _manual_switches_previous)
@@ -669,17 +687,17 @@ void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 	manual_control_input.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 	// limit controls
-	manual_control_input.roll = get_rc_value(rc_channels_s::FUNCTION_ROLL,    -1.f, 1.f);
-	manual_control_input.pitch = get_rc_value(rc_channels_s::FUNCTION_PITCH,   -1.f, 1.f);
-	manual_control_input.yaw = get_rc_value(rc_channels_s::FUNCTION_YAW,     -1.f, 1.f);
-	manual_control_input.throttle = get_rc_value(rc_channels_s::FUNCTION_THROTTLE, -1.f, 1.f);
-	manual_control_input.flaps = get_rc_value(rc_channels_s::FUNCTION_FLAPS,   -1.f, 1.f);
-	manual_control_input.aux1  = get_rc_value(rc_channels_s::FUNCTION_AUX_1,   -1.f, 1.f);
-	manual_control_input.aux2  = get_rc_value(rc_channels_s::FUNCTION_AUX_2,   -1.f, 1.f);
-	manual_control_input.aux3  = get_rc_value(rc_channels_s::FUNCTION_AUX_3,   -1.f, 1.f);
-	manual_control_input.aux4  = get_rc_value(rc_channels_s::FUNCTION_AUX_4,   -1.f, 1.f);
-	manual_control_input.aux5  = get_rc_value(rc_channels_s::FUNCTION_AUX_5,   -1.f, 1.f);
-	manual_control_input.aux6  = get_rc_value(rc_channels_s::FUNCTION_AUX_6,   -1.f, 1.f);
+	manual_control_input.roll = getChannelValue(Function::Roll);
+	manual_control_input.pitch = getChannelValue(Function::Pitch);
+	manual_control_input.yaw = getChannelValue(Function::Yaw);
+	manual_control_input.throttle = getChannelValue(Function::Throttle);
+	manual_control_input.flaps = getChannelValue(Function::Flaps);
+	manual_control_input.aux1  = getChannelValue(Function::Aux1);
+	manual_control_input.aux2  = getChannelValue(Function::Aux2);
+	manual_control_input.aux3  = getChannelValue(Function::Aux3);
+	manual_control_input.aux4  = getChannelValue(Function::Aux4);
+	manual_control_input.aux5  = getChannelValue(Function::Aux5);
+	manual_control_input.aux6  = getChannelValue(Function::Aux6);
 	manual_control_input.valid = _rc_calibrated;
 
 	// publish manual_control_input topic

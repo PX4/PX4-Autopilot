@@ -1,5 +1,5 @@
 uint64 timestamp		# time since system start (microseconds)
-uint8 RC_PARAM_MAP_NCHAN = 3 # This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h
+uint8 RC_PARAM_MAP_NCHAN = 3 # This limit is also hardcoded in the enum RCUpdate::Function in rc_update.h
 uint8 PARAM_ID_LEN = 16 # corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN
 
 bool[3] valid		#true for RC-Param channels which are mapped to a param

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -101,11 +101,6 @@ protected:
 	 */
 	void		rc_parameter_map_poll(bool forced = false);
 
-	/**
-	 * update the RC functions. Call this when the parameters change.
-	 */
-	void		update_rc_functions();
-
 	void		UpdateManualControlInput(const hrt_abstime &timestamp_sample);
 	void		UpdateManualSwitches(const hrt_abstime &timestamp_sample);
 
@@ -114,27 +109,67 @@ protected:
 	 */
 	void updateParams() override;
 
+	enum Function : uint8_t {
+		Throttle,
+		Roll,
+		Pitch,
+		Yaw,
+		Flaps,
+		Aux1,
+		Aux2,
+		Aux3,
+		Aux4,
+		Aux5,
+		Aux6,
+		Param1,
+		Param2,
+		Param3,
+		FlightMode,
+		FlightModeButton1,
+		FlightModeButton2,
+		FlightModeButton3,
+		FlightModeButton4,
+		FlightModeButton5,
+		FlightModeButton6,
+		Return,
+		Loiter,
+		Offboard,
+		KillSwitch,
+		Termination,
+		ArmSwitch,
+		Transition,
+		Gear,
+		EngageMainMotor,
+		PayloadPower,
+		Failsafe
+	};
+
 	/**
-	 * Get and limit value for specified RC function. Returns NAN if not mapped.
+	 * Get the channel index the RC_MAP_* parameters assign to a function
+	 *
+	 * @return 0..RC_MAX_CHAN_COUNT-1 or -1 if the function is unassigned or mapped out of range
 	 */
-	float		get_rc_value(uint8_t func, float min_value, float max_value) const;
+	int8_t		getChannelIndex(Function function) const;
+
+	/**
+	 * Get the calibrated value -1..1 of the RC channel of the specified function. Returns 0 if not mapped.
+	 */
+	float		getChannelValue(Function function) const;
 
 	/**
 	 * Get on/off switch position from the RC channel of the specified function
 	 *
-	 * @param function according to rc_channels_s::FUNCTION_XXX
 	 * @param threshold according to RC_XXX_TH parameters, negative means on and off are flipped
 	 */
-	switch_pos_t getRCSwitchOnOffPosition(uint8_t function, float threshold) const;
+	switch_pos_t getRCSwitchOnOffPosition(Function function, float threshold) const;
 
 	/**
 	 * Get 3-way switch position from the RC channel of the specified function
 	 *
-	 * @param function according to rc_channels_s::FUNCTION_XXX
 	 * @param on_threshold according to RC_XXX_TH parameters, negative means comparison is flipped
 	 * @param mid_threshold according to RC_XXX_MIDTH parameters, negative means comparison is flipped
 	 */
-	switch_pos_t getRCSwitch3WayPosition(uint8_t function, float on_threshold, float mid_threshold) const;
+	switch_pos_t getRCSwitch3WayPosition(Function function, float on_threshold, float mid_threshold) const;
 
 	/**
 	 * Update parameters from RC channels if the functionality is activated and the
@@ -142,9 +177,7 @@ protected:
 	 */
 	void		set_params_from_rc();
 
-	void		map_flight_modes_buttons();
-
-	static constexpr uint8_t RC_MAX_CHAN_COUNT{input_rc_s::RC_INPUT_MAX_CHANNELS}; /**< maximum number of r/c channels we handle */
+	static constexpr uint8_t RC_MAX_CHAN_COUNT{input_rc_s::RC_INPUT_MAX_CHANNELS}; ///< maximum number of RC channels
 
 	struct Parameters {
 		uint16_t min[RC_MAX_CHAN_COUNT];
