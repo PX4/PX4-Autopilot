@@ -25,6 +25,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 | [Benewake TFmini] _(disc.)_                 | ToF (IR)        | 0.3 m – 12 m      | UART             | ~    | Discontinued                        |
 | [Garmin LIDAR-Lite v3]                      | ToF (IR laser)  | up to 40 m        | I2C, PWM         | ~    | PX4 caps range to 35 m or less      |
 | [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m        | I2C              | ~    |                                     |
+| [JRT PTGL-100]                              | ToF (laser)     | 0.2 m – 100 m     | UART             | ~    | High update rate (100 Hz)           |
 | [LeddarOne]                                 | ToF (IR)        | 1 cm – 40 m       | UART             | ~    |                                     |
 | [LightWare SF11/C]                          | ToF (IR laser)  | up to ~120 m      | UART, I2C        | ~    |                                     |
 | [LightWare LW20/C]                          | ToF (IR laser)  | up to ~100 m      | I2C              | ~    | Waterproof (IP67) + servo           |
@@ -51,6 +52,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 [Benewake TFmini]: ../sensor/tfmini.md
 [Garmin LIDAR-Lite v3]: ../sensor/lidar_lite.md
 [Holybro ST VL53L1X Lidar]: #holybro-st-vl53l1x-lidar
+[JRT PTGL-100]: ../sensor/ptgl100.md
 [Lanbao PSK-CM8JL65-CC5]: ../sensor/cm8jl65_ir_distance_sensor.md
 [LeddarOne]: ../sensor/leddar_one.md
 [LightWare Lidar]: ../sensor/sfxx_lidar.md
