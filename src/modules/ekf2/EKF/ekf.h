@@ -300,6 +300,9 @@ public:
 	// latitude-dependent gravity magnitude
 	float getGravityMss() const { return _gravity; }
 
+	// latitude-dependent Earth rotation rate in rad/s
+	const Vector3f &getEarthRateNED() const { return _earth_rate_NED; }
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }
 
