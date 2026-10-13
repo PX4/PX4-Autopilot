@@ -453,6 +453,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		case PX4IO_P_SETUP_THERMAL:
 		case PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION:
+		case PX4IO_P_SETUP_VSERVO_SCALE:
 			r_page_setup[offset] = value;
 			break;
 
@@ -537,8 +538,10 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			unsigned counts = adc_measure(ADC_VSERVO);
 
 			if (counts != 0xffff) {
-				// use 3:1 scaling on 3.3V ADC input
+				// 3:1 divider on the 3.3V ADC input (9900 mV full scale), scaled by
+				// PX4IO_P_SETUP_VSERVO_SCALE / 10000 for boards with another divider
 				unsigned mV = counts * 9900 / 4096;
+				mV = mV * r_page_setup[PX4IO_P_SETUP_VSERVO_SCALE] / 10000;
 				r_page_status[PX4IO_P_STATUS_VSERVO] = mV;
 			}
 		}

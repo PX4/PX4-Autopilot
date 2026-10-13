@@ -448,6 +448,15 @@ int PX4IO::init()
 	/* Set safety_off to false when FMU boot*/
 	io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SAFETY_OFF, 0);
 
+#ifdef BOARD_PX4IO_VSERVO_SCALE
+
+	/* servo rail voltage divider of this board, in 1/10000 of the 3:1 reference divider */
+	if (io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VSERVO_SCALE, BOARD_PX4IO_VSERVO_SCALE) != OK) {
+		PX4_WARN("IO firmware does not accept the servo voltage scale");
+	}
+
+#endif
+
 	if (_max_rc_input > input_rc_s::RC_INPUT_MAX_CHANNELS) {
 		_max_rc_input = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}

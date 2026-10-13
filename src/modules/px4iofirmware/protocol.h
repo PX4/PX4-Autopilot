@@ -168,7 +168,7 @@
 #define PX4IO_P_SETUP_PWM_RATES                 2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE           3	/* 'low' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_PWM_ALTRATE               4	/* 'high' PWM frame output rate in Hz */
-#define PX4IO_P_SETUP_VSERVO_SCALE              5	/* hardware rev [2] servo voltage correction factor (float) */
+#define PX4IO_P_SETUP_VSERVO_SCALE              5	/* servo voltage scale in 1/10000 of the 3:1 divider reference (10000 = 9900 mV full scale) */
 #define PX4IO_P_SETUP_DSM                       6	/* DSM bind state */
 enum {							/* DSM bind states */
 	dsm_bind_power_down = 0,
