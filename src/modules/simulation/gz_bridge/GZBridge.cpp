@@ -808,7 +808,7 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 	const gz::math::Vector3d beam_axis = gz::math::Vector3d::UnitX;
 	const gz::math::Vector3d dir = q_sensor.RotateVector(beam_axis);
 
-	auto points_like = [&](const gz::math::Quaterniond &ref) {
+	auto points_like = [&](const gz::math::Quaterniond & ref) {
 		return dir.Dot(ref.RotateVector(beam_axis)) > std::cos(3.0 * M_PI / 180.0);
 	};
 
