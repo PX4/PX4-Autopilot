@@ -1,38 +1,20 @@
 # JRT PTGL-100 Laser Rangefinder
 
-The PTGL-100 is a UART laser rangefinder with a specified measurement range of 0.2–100 m and a measurement rate of 100 Hz.
-The `ptgl100` driver starts continuous measurement and publishes the standard `distance_sensor` topic used by MAVLink and ULog.
-It is included in the Amovlab Flycore default firmware.
+The JRT PTGL-100 is a UART laser rangefinder with a specified measurement range of 0.2–100 m and a measurement rate of 100 Hz.
 
-This driver targets the module configuration confirmed to use 460800 baud, 8N1, with no flow control.
-The driver does not reprogram the module's baud rate.
-The revised protocol specifies an unsigned 24-bit big-endian distance in millimetres, converted to metres as `distance_m = raw / 1000.0`.
+![JRT PTGL-100 laser rangefinder](../../assets/hardware/sensors/ptgl100/ptgl100_hero.jpg)
 
-::: warning
-The revised manual has inconsistent command examples and baud-rate descriptions.
-The driver follows the command table on printed pages 6–7, which gives `0x68` for single measurement and `0x69` for continuous measurement; the example lines still show the old `0x88`/`0x89` commands.
-The specification table lists a factory baud rate of 460800, confirmed for the target module, while the protocol overview still says 115200.
-Confirm the revised commands on the actual module before flight use.
-Old `0x88`/`0x89` measurement replies are rejected to avoid interpreting their different distance format as millimetres.
+::: info
+The rangefinder has been tested on the [Amovlab Flycore](../flight_controller/amovlab_flycore.md), which includes the driver in its default firmware.
 :::
 
-## Protocol
+The module must be set to 460800 baud, 8N1, with no flow control.
+PX4 does not change the module's baud rate.
 
-Frames contain eight bytes and start with `55 AA`.
-The command checksum sums bytes 3–7 (one-based, excluding the header); the reply checksum sums bytes 1–7 (including the header).
-Only the low eight bits of either sum are transmitted.
-
-| Operation              | Command Bytes (Hexadecimal) |
-| ---------------------- | --------------------------- |
-| Single measurement     | `55 AA 68 FF FF FF FF 64`   |
-| Continuous measurement | `55 AA 69 FF FF FF FF 65`   |
-| Stop measurement       | `55 AA 8E FF FF FF FF 8A`   |
-
-A measurement reply is `55 AA CMD STA D_0 D_1 D_2 SUM`.
-`STA = 1` indicates success, and `(D_0 << 16) | (D_1 << 8) | D_2` is the distance in millimetres.
-For example, `55 AA 69 01 01 86 A0 90` represents 100000 mm, published as 100 m.
-The driver starts continuous measurement automatically; self-test (`0x80`) and stop replies are handled separately from measurements.
-The baud-rate configuration command (`0x01`) from the earlier manual is absent from the revision and is not supported by this driver.
+::: warning
+The manufacturer's revised manual is inconsistent about the measurement commands and the factory baud rate (see [Protocol](#protocol)).
+Confirm that your module uses the revised commands and 460800 baud before flight use.
+:::
 
 ## Wiring
 
@@ -55,8 +37,8 @@ Check connector orientation against the module's pinout before applying power.
 ## Configuration
 
 1. Ensure that the wired UART is not mapped to another service, such as MAVLink or GNSS (see [Serial Port Configuration](../peripherals/serial_configuration.md)).
-2. Set `SENS_PTGL100_CFG` to that port in _QGroundControl_ and reboot.
-3. If the sensor is not mounted facing down, set `SENS_PTGL100_ROT` to its mounting direction and reboot.
+2. Set [SENS_PTGL100_CFG](../advanced_config/parameter_reference.md#SENS_PTGL100_CFG) to that port in _QGroundControl_ and reboot.
+3. If the sensor is not mounted facing down, set [SENS_PTGL100_ROT](../advanced_config/parameter_reference.md#SENS_PTGL100_ROT) to its mounting direction and reboot.
 
 For example, select `TELEM 2` (`102`) for a module connected to the Flycore TELEM2 connector.
 The Flycore TELEM2 connector has no VCC pin, so power the module from another source.
@@ -64,6 +46,8 @@ The driver sets 460800 baud directly; no `SER_*_BAUD` change is needed.
 The default port setting is disabled, and the default orientation is downward (`25`).
 
 Other boards can include the driver by enabling `CONFIG_DRIVERS_DISTANCE_SENSOR_PTGL100` in their board configuration.
+
+The configuration that is common to all rangefinders, such as the sensor position offsets used by the estimator, is covered in [Rangefinders > Configuration/Setup](../sensor/rangefinders.md#configuration).
 
 ## Viewing Data
 
@@ -109,7 +93,11 @@ ptgl100 stop
 The device name above corresponds to Flycore TELEM2.
 When stopped, the driver attempts to send the stop measurement command before closing the UART.
 
-## Validation
+## Developer Information
+
+The [ptgl100](../modules/modules_driver_distance_sensor.md#ptgl100) driver starts continuous measurement and publishes the standard `distance_sensor` topic used by MAVLink and ULog.
+
+### Validation
 
 Build the firmware, then configure and run the driver-specific SITL tests with a current CMake installation:
 
@@ -130,3 +118,29 @@ The integration test requires `pexpect`, `pymavlink`, and `pyulog`.
 It uses a pseudo-terminal in a temporary directory and does not require a connected sensor or flight controller.
 
 Hardware acceptance still requires checking 460800-baud communication, orientation, at least two known distances, power-cycle recovery, MAVLink output, and a recorded ULog on the actual Flycore and module.
+
+### Protocol
+
+The driver uses the revised protocol, which specifies an unsigned 24-bit big-endian distance in millimetres, converted to metres as `distance_m = raw / 1000.0`.
+
+The revised manual has inconsistent command examples and baud-rate descriptions:
+
+- The driver follows the command table on printed pages 6–7, which gives `0x68` for single measurement and `0x69` for continuous measurement; the example lines still show the old `0x88`/`0x89` commands.
+  Old `0x88`/`0x89` measurement replies are rejected to avoid interpreting their different distance format as millimetres.
+- The specification table lists a factory baud rate of 460800, confirmed for the target module, while the protocol overview still says 115200.
+
+Frames contain eight bytes and start with `55 AA`.
+The command checksum sums bytes 3–7 (one-based, excluding the header); the reply checksum sums bytes 1–7 (including the header).
+Only the low eight bits of either sum are transmitted.
+
+| Operation              | Command Bytes (Hexadecimal) |
+| ---------------------- | --------------------------- |
+| Single measurement     | `55 AA 68 FF FF FF FF 64`   |
+| Continuous measurement | `55 AA 69 FF FF FF FF 65`   |
+| Stop measurement       | `55 AA 8E FF FF FF FF 8A`   |
+
+A measurement reply is `55 AA CMD STA D_0 D_1 D_2 SUM`.
+`STA = 1` indicates success, and `(D_0 << 16) | (D_1 << 8) | D_2` is the distance in millimetres.
+For example, `55 AA 69 01 01 86 A0 90` represents 100000 mm, published as 100 m.
+The driver starts continuous measurement automatically; self-test (`0x80`) and stop replies are handled separately from measurements.
+The baud-rate configuration command (`0x01`) from the earlier manual is absent from the revision and is not supported by this driver.

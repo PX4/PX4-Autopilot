@@ -142,6 +142,11 @@ It has a sensing range from 1cm to 40m and needs to be connected to a UART/seria
 
 The [Benewake TFmini Lidar](../sensor/tfmini.md) is a tiny, low cost, and low power LIDAR with 12m range.
 
+### JRT PTGL-100
+
+The [JRT PTGL-100](../sensor/ptgl100.md) is a laser rangefinder with a 0.2 m to 100 m range and a 100 Hz measurement rate.
+It must be connected to a UART/serial bus.
+
 ### PSK-CM8JL65-CC5
 
 <Badge type="info" text="Discontinued" />
