@@ -83,7 +83,7 @@ Signal pins are 3.3 V.
 | DIGI VTX   | JST-SH 6-pin | HD video system, with 10 V supply                 |
 | SPI4       | JST-SH 8-pin | External SPI, with interrupt and data-ready lines |
 | I2C4       | JST-SH 4-pin | External I2C                                      |
-| B/LD       | JST-SH 4-pin | Buzzer and addressable LED strip                  |
+| B/LD       | JST-SH 4-pin | Passive buzzer and addressable LED strip          |
 
 The top of the board breaks the same signals out as solder pads, along with the analog camera and VTX pads, the analog inputs `RSS`, `A1` and `A2`, and the spare user IO pads `P2`, `P3`, `C13`, `C14` and `C15`.
 
@@ -186,12 +186,12 @@ PX4 turns it on at boot.
 
 ### B/LD
 
-| Pin | Signal                            | MCU pin |
-| --- | --------------------------------- | ------- |
-| 1   | +5V                               |         |
-| 2   | Buzzer, switched low side (`BZ-`) | PA15    |
-| 3   | LED strip data                    | PA8     |
-| 4   | GND                               |         |
+| Pin | Signal                                    | MCU pin |
+| --- | ----------------------------------------- | ------- |
+| 1   | +5V                                       |         |
+| 2   | Passive buzzer, switched low side (`BZ-`) | PA15    |
+| 3   | LED strip data                            | PA8     |
+| 4   | GND                                       |         |
 
 ### Analog Inputs
 
