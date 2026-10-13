@@ -22,6 +22,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 | [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m            | DroneCAN, UART         | ✔️   |                                     |
 | [Benewake TFmini]                           | ToF (IR laser)  | ~12 m                    | UART                   | ~    |                                     |
 | [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m               | I2C                    | ~    |                                     |
+| [JRT PTGL-100]                              | ToF (laser)     | 0.2 m – 100 m            | UART                   | ~    | High update rate (100 Hz)           |
 | [LeddarOne]                                 | ToF (IR)        | 1 cm – 40 m              | UART                   | ~    |                                     |
 | [Lidar-Lite]                                | ToF (IR laser)  | 5 cm – 40 m              | I2C, PWM               | ~    |                                     |
 | [LightWare SF11/C]                          | ToF (IR laser)  | up to ~120 m             | UART, I2C              | ~    |                                     |
@@ -45,6 +46,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 [ARK DIST MR]: ../dronecan/ark_dist_mr.md
 [Benewake TFmini]: ../sensor/tfmini.md
 [Holybro ST VL53L1X Lidar]: #holybro-st-vl53l1x-lidar
+[JRT PTGL-100]: ../sensor/ptgl100.md
 [Lanbao PSK-CM8JL65-CC5]: ../sensor/cm8jl65_ir_distance_sensor.md
 [LeddarOne]: ../sensor/leddar_one.md
 [Lidar-Lite]: ../sensor/lidar_lite.md
@@ -139,6 +141,11 @@ It has a sensing range from 1cm to 40m and needs to be connected to a UART/seria
 ### TFmini
 
 The [Benewake TFmini Lidar](../sensor/tfmini.md) is a tiny, low cost, and low power LIDAR with 12m range.
+
+### JRT PTGL-100
+
+The [JRT PTGL-100](../sensor/ptgl100.md) is a laser rangefinder with a 0.2 m to 100 m range and a 100 Hz measurement rate.
+It must be connected to a UART/serial bus.
 
 ### PSK-CM8JL65-CC5
 

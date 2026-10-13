@@ -248,6 +248,7 @@
       - [ARK DIST SR (CAN/UART)](dronecan/ark_dist.md)
       - [ARK DIST MR (CAN/UART)](dronecan/ark_dist_mr.md)
       - [Benewake TFmini Lidar](sensor/tfmini.md)
+      - [JRT PTGL-100 Laser Rangefinder](sensor/ptgl100.md)
       - [LeddarOne Lidar](sensor/leddar_one.md)
       - [Lidar-Lite](sensor/lidar_lite.md)
       - [Lightware Lidars (SF/LW/GRF)](sensor/sfxx_lidar.md)
