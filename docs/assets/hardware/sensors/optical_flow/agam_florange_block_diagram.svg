@@ -75,7 +75,7 @@
   <rect class="box" x="240" y="200" width="150" height="70" rx="6"/>
   <text class="name" x="315" y="240">CAN transceiver</text>
   <path class="line" d="M180,235 H240" marker-start="url(#a)" marker-end="url(#a)"/>
-  <text class="lbl" x="185" y="193">CAN_P/CAN_N</text>
+  <text class="lbl" x="185" y="193">CAN_H/CAN_L</text>
   <path class="line" d="M390,235 H450" marker-start="url(#a)" marker-end="url(#a)"/>
   <text class="lbl" x="405" y="227">CAN</text>
 
