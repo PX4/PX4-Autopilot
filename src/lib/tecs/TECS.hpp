@@ -502,6 +502,24 @@ private:
 	float _calcPitchControlSkeRateSetpoint(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
 					       const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const;
 	/**
+	 * @brief Specific energy rates as seen by the pitch loop.
+	 *
+	 * The airspeed setpoint is capped as in _calcPitchControlSkeRateSetpoint, and between trim airspeed and the
+	 * airspeed setpoint the kinetic energy term is removed, so that pitch does not counter the throttle's acceleration.
+	 *
+	 * @param setpoint is the control setpoints.
+	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
+	 * @param specific_energy_rates is the specific energy rates of the outer loops in [m²/s³].
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @param weight is the weighting use of the potential and kinetic energy.
+	 * @return specific energy rates for the pitch loop in [m²/s³].
+	 */
+	SpecificEnergyRates _calcPitchControlEnergyRates(const Setpoint &setpoint, const Input &input,
+			const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates, const Param &param,
+			const Flag &flag, const SpecificEnergyWeighting &weight) const;
+	/**
 	 * @brief Calculate pitch control.
 	 *
 	 * @param dt is the update time interval in [s].

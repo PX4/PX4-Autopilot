@@ -758,8 +758,8 @@ TEST(TECSControlTest, NonFiniteDemandFallsBackToLevelFlightPitch)
 namespace
 {
 
-// Pitch setpoint after holding altitude for a while with the given airspeed and airspeed setpoint.
-float pitchSetpointAtSpeed(float tas, float tas_setpoint, float pitch_speed_weight)
+// Pitch setpoint after holding altitude for a while with the given airspeed, airspeed setpoint and airspeed rate.
+float pitchSetpointAtSpeed(float tas, float tas_setpoint, float pitch_speed_weight, float tas_rate = 0.f)
 {
 	TECSControl control;
 	TECSControl::Param param = makeParam();
@@ -768,6 +768,7 @@ float pitchSetpointAtSpeed(float tas, float tas_setpoint, float pitch_speed_weig
 
 	TECSControl::Input input = makeInput();
 	input.tas = tas;
+	input.tas_rate = tas_rate;
 
 	TECSControl::Setpoint setpoint = makeSetpoint();
 	setpoint.tas_setpoint = tas_setpoint;
@@ -816,6 +817,29 @@ TEST(TECSControlTest, PitchDownToAccelerateAboveTrimWithSpeedPriority)
 
 	// THEN the pitch loop pitches down to accelerate
 	EXPECT_LT(pitch, 0.f);
+}
+
+// Between trim airspeed and the setpoint the throttle alone accelerates the vehicle: the pitch loop must not react to
+// that acceleration, otherwise it pitches up and turns the throttle's energy into height instead of speed.
+TEST(TECSControlTest, NoPitchUpWhileThrottleAcceleratesAboveTrim)
+{
+	// WHEN accelerating between trim airspeed (15 m/s) and the airspeed setpoint, at nominal and altitude priority
+	const float pitch_accelerating = pitchSetpointAtSpeed(18.f, 25.f, 1.f, 1.f);
+	const float pitch_steady = pitchSetpointAtSpeed(18.f, 25.f, 1.f, 0.f);
+
+	// THEN the pitch setpoint is the same as without acceleration
+	EXPECT_NEAR(pitch_accelerating, pitch_steady, 1e-5f);
+}
+
+// Above the airspeed setpoint pitch takes back speed control: an acceleration there is countered with pitch up.
+TEST(TECSControlTest, PitchUpOnAccelerationAboveSetpoint)
+{
+	// WHEN accelerating above the airspeed setpoint
+	const float pitch_accelerating = pitchSetpointAtSpeed(22.f, 20.f, 1.f, 1.f);
+	const float pitch_steady = pitchSetpointAtSpeed(22.f, 20.f, 1.f, 0.f);
+
+	// THEN the pitch loop pitches up more than without acceleration
+	EXPECT_GT(pitch_accelerating, pitch_steady + 1e-3f);
 }
 
 // An overspeed above the airspeed setpoint is still corrected with pitch.

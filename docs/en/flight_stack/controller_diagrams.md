@@ -183,7 +183,8 @@ A value of 2 controls speed only, which is intended for gliders.
 The default of 1 weights both equally.
 
 Pitch only trades altitude for speed up to the trim airspeed ([FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)).
-For an airspeed setpoint above trim, the pitch loop aims for trim airspeed (or the current airspeed, if it is already faster) and leaves any further acceleration to the throttle.
+For an airspeed setpoint above trim, the pitch loop aims for trim airspeed and leaves any further acceleration to the throttle.
+Between trim airspeed and the setpoint, it ignores airspeed and controls height only, so it does not pitch up and turn the throttle's acceleration into height.
 If the throttle saturates at [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX), the vehicle holds its altitude and settles at a lower airspeed instead of descending to gain speed.
 An airspeed above the setpoint is still corrected with pitch.
 
