@@ -78,7 +78,7 @@ enum MAVLINK_WPM_CODES {
 };
 
 static constexpr uint64_t MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT = 5000000; ///< Protocol action timeout in us
-static constexpr uint64_t MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT = 250000; ///< Protocol retry timeout in us
+// The protocol retry timeout is MAV_MIS_RETRY_T (Mavlink::get_mission_retry_timeout())
 
 class Mavlink;
 

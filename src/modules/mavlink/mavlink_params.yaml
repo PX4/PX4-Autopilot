@@ -94,6 +94,19 @@ parameters:
           The main reason for disabling heartbeats to be forwarded is because they confuse dronekit.
       type: boolean
       default: 1
+    MAV_MIS_RETRY_T:
+      description:
+        short: Mission transfer retry timeout
+        long: |-
+          Time without a reply after which a mission transfer resends its last MISSION_REQUEST_INT
+          or the MISSION_COUNT. Increase it on links whose round trip is longer than the default, so the
+          same item is not requested again before the answer arrives.
+      type: float
+      default: 0.25
+      unit: s
+      min: 0.05
+      max: 5.0
+      decimal: 2
     MAV_RADIO_TOUT:
       description:
         short: Timeout in seconds for the RADIO_STATUS reports coming in

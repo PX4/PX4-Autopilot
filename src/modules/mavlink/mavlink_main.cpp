@@ -297,6 +297,7 @@ Mavlink::mavlink_update_parameters()
 	// Refresh atomic snapshots of params read by the receiver thread, so the
 	// receiver doesn't read the (non-atomic) ModuleParams members directly.
 	_use_hil_gps_atomic.store(_param_mav_usehilgps.get());
+	_mission_retry_timeout_us.store(static_cast<uint32_t>(_param_mav_mis_retry_t.get() * 1e6f));
 
 	setProtocolVersion(_param_mav_proto_ver.get());
 

@@ -255,6 +255,9 @@ public:
 	// mavlink_update_parameters().
 	bool			get_use_hil_gps() { return _use_hil_gps_atomic.load(); }
 
+	/** Mission transfer retry timeout in us (MAV_MIS_RETRY_T), readable from the receiver thread */
+	uint32_t		get_mission_retry_timeout() const { return _mission_retry_timeout_us.load(); }
+
 	bool			get_forward_externalsp() { return _param_mav_fwdextsp.get(); }
 
 	bool			get_flow_control_enabled() { return _flow_control_mode; }
@@ -635,6 +638,7 @@ private:
 	// Atomic snapshot of MAV_USEHILGPS, written from the main mavlink thread
 	// in mavlink_update_parameters() and read from the receiver thread.
 	px4::atomic_bool _use_hil_gps_atomic{false};
+	px4::atomic<uint32_t>	_mission_retry_timeout_us{250000};
 
 	px4::atomic<unsigned>	_bytes_tx{0};
 	px4::atomic<unsigned>	_bytes_txerr{0};
@@ -699,6 +703,7 @@ private:
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
+		(ParamFloat<px4::params::MAV_MIS_RETRY_T>)   _param_mav_mis_retry_t,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 		, (ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_injection_enabled

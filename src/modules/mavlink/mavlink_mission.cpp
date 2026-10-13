@@ -632,13 +632,13 @@ MavlinkMissionManager::send()
 		_transfer_in_progress = false;
 
 	} else if (_state == MAVLINK_WPM_STATE_GETLIST && (_time_last_sent > 0)
-		   && hrt_elapsed_time(&_time_last_sent) > MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT) {
+		   && hrt_elapsed_time(&_time_last_sent) > _mavlink.get_mission_retry_timeout()) {
 
 		// try to request item again after timeout
 		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 
 	} else if (_state == MAVLINK_WPM_STATE_SENDLIST && (_time_last_sent > 0)
-		   && hrt_elapsed_time(&_time_last_sent) > MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT
+		   && hrt_elapsed_time(&_time_last_sent) > _mavlink.get_mission_retry_timeout()
 		   && _transfer_seq == 0) {
 
 		// MISSION_COUNT may have been dropped
