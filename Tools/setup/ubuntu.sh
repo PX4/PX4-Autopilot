@@ -8,7 +8,7 @@ set -e
 ## Installs:
 ## - Common dependencies and tools for nuttx, Gazebo
 ## - NuttX toolchain (omit with arg: --no-nuttx)
-## - Gazebo Harmonic simulator (omit with arg: --no-sim-tools)
+## - Gazebo simulator (omit with arg: --no-sim-tools)
 ##
 
 INSTALL_NUTTX="true"
@@ -212,15 +212,27 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		bc \
 		;
 
-	# Gazebo Harmonic installation (Ubuntu 22.04+)
-	echo "[ubuntu.sh] Gazebo (Harmonic) will be installed"
+	# Gazebo installation
+	echo "[ubuntu.sh] Gazebo will be installed"
 	# Add Gazebo binary repository
 	sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
 	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
 	sudo apt-get update -y --quiet
 
 	# Install Gazebo
-	gazebo_packages="gz-harmonic libunwind-dev"
+	if [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
+		gazebo_packages="gz-harmonic libunwind-dev"
+		echo "[ubuntu.sh] Installing Gazebo Harmonic"
+	else if [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
+		gazebo_packages="gz-harmonic libunwind-dev"
+		echo "[ubuntu.sh] Installing Gazebo Harmonic"
+	else if [[ "${UBUNTU_RELEASE}" == "26.04" ]]; then
+		gazebo_packages="gz-jetty libunwind-dev"
+		echo "[ubuntu.sh] Installing Gazebo Jetty"
+	else
+		gazebo_packages="gz-harmonic libunwind-dev"
+		echo "[ubuntu.sh] Installing Gazebo Harmonic"
+	fi
 
 	if [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
 		gazebo_packages="$gazebo_packages cppzmq-dev"
