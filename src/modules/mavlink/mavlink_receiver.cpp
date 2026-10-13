@@ -753,14 +753,14 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	if (vehicle_command.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (!message_id_fits(vehicle_command.param1)
-		    || set_message_interval((int)(vehicle_command.param1 + 0.5f), vehicle_command.param2, vehicle_command.param3,
+		    || set_message_interval(static_cast<int>(lroundf(vehicle_command.param1)), vehicle_command.param2, vehicle_command.param3,
 					    vehicle_command.param4, vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
 	} else if (vehicle_command.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
 		if (message_id_fits(vehicle_command.param1)) {
-			get_message_interval((int)(vehicle_command.param1 + 0.5f));
+			get_message_interval(static_cast<int>(lroundf(vehicle_command.param1)));
 
 		} else {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
