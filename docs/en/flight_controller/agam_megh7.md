@@ -66,6 +66,8 @@ The board can be bought from:
 
 ## Connectors
 
+![Agam MegH7 connector side, with the ESC, GPS, TELEM, RX, CAN, DIGI VTX, SPI4, I2C4 and B/LD connectors](../../assets/flight_controller/agam_MegH7/agam_MegH7_connectors.jpg)
+
 All the plug-and-play connectors are on the bottom of the board.
 The `GPS`, `TELEM`, `CAN` and `RX` connectors are JST-GH 1.25 mm.
 The `ESC`, `DIGI VTX`, `SPI4`, `I2C4` and `B/LD` connectors are JST-SH 1.0 mm.
