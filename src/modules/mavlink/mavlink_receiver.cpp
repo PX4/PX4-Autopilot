@@ -745,14 +745,26 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)vehicle_command.command, zero_mask); }
 
+	// The message id is an integer carried in a float and the stream table is keyed by uint16_t ids. An id that is
+	// not a number or does not fit is refused rather than narrowed onto another stream (65536 would select HEARTBEAT).
+	const auto message_id_fits = [](float id) {
+		return PX4_ISFINITE(id) && (id >= 0.f) && (id <= (float)UINT16_MAX);
+	};
+
 	if (vehicle_command.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-		if (set_message_interval(
-			    (int)(vehicle_command.param1 + 0.5f), vehicle_command.param2, vehicle_command.param3, vehicle_command.param4, vehicle_command.param7)) {
+		if (!message_id_fits(vehicle_command.param1)
+		    || set_message_interval((int)(vehicle_command.param1 + 0.5f), vehicle_command.param2, vehicle_command.param3,
+					    vehicle_command.param4, vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
 	} else if (vehicle_command.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
-		get_message_interval((int)(vehicle_command.param1 + 0.5f));
+		if (message_id_fits(vehicle_command.param1)) {
+			get_message_interval((int)(vehicle_command.param1 + 0.5f));
+
+		} else {
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+		}
 
 	} else if (vehicle_command.command == MAV_CMD_REQUEST_MESSAGE) {
 
