@@ -59,17 +59,18 @@ PX4 дозволяє використовувати наступний підн�
 - [MAV_CMD_SET_CAMERA_MODE](https://mavlink.io/en/messages/common.html#MAV_CMD_SET_CAMERA_MODE)
 - [MAV_CMD_SET_CAMERA_ZOOM](https://mavlink.io/en/messages/common.html#MAV_CMD_SET_CAMERA_ZOOM)
 - [MAV_CMD_SET_CAMERA_FOCUS](https://mavlink.io/en/messages/common.html#MAV_CMD_SET_CAMERA_FOCUS)
+- [MAV_CMD_SET_CAMERA_SOURCE](https://mavlink.io/en/messages/common.html#MAV_CMD_SET_CAMERA_SOURCE)
 
 PX4 відновлює команди камери, знайдені в місіях, як команди MAVLink.
 Системний ідентифікатор випущених команд співпадає з ідентифікатором автопілота.
-Ідентифікатор компонента команд може відрізнятися.
-Перші чотири команди адресовані [MAV_COMP_ID_CAMERA (100)](https://mavlink.io/en/messages/common.html#MAV_COMP_ID_CAMERA) (якщо у камери є цей ідентифікатор компонента, вона виконає вказану команду).
-Режим камери, зум та фокусування, команди надсилаються до компонента з ідентифікатором [MAV_COMP_ID_ALL](https://mavlink.io/en/messages/common.html#MAV_COMP_ID_ALL).
+The component ID of the commands can vary.
 
-:::info
-PX4 в даний час ігнорує ідентифікатор цілі камери `id` в [MAV_CMD_IMAGE_START_CAPTURE](https://mavlink.io/en/messages/common.html#MAV_CMD_IMAGE_START_CAPTURE) та інших повідомленнях камери.
-Див. [PX4-Autopilot#23083](https://github.com/PX4/PX4-Autopilot/issues/23083).
-:::
+PX4 v1.16 respects the target camera `id` param in missions for the following commands (falling back to a component ID of `MAV_COMP_ID_CAMERA` (100) if it is not set): `MAV_CMD_IMAGE_START_CAPTURE`, `MAV_CMD_IMAGE_STOP_CAPTURE`, `MAV_CMD_SET_CAMERA_MODE`, `MAV_CMD_SET_CAMERA_SOURCE`.
+
+The value is ignored for other commands:
+
+- `MAV_CMD_VIDEO_START_CAPTURE` and `MAV_CMD_VIDEO_STOP_CAPTURE`: sent unconditionally to the component with ID of `MAV_COMP_ID_CAMERA` (the camera ID param is ignored)
+- `MAV_CMD_SET_CAMERA_ZOOM` and `MAV_CMD_SET_CAMERA_FOCUS`: sent unconditionally to [MAV_COMP_ID_ALL](https://mavlink.io/en/messages/common.html#MAV_COMP_ID_ALL) (the camera ID param is ignored)
 
 <!--
 List of all supported commands in missions in:
@@ -153,3 +154,9 @@ Camera-specific camera managers:
 - [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Tutorial for integrating with the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini-gimbal-camera) using a MAVSDK-based camera manager running on a Raspberry Pi companion computer.
 - [Використання комп'ютера-компаньйона з контролерами Pixhawk](../companion_computer/pixhawk_companion.md)
 - [Компаньйони комп'ютери > Програмне забезпечення комп'ютера-компаньйона](../companion_computer/index.md#companion-computer-software): Зауважте [MAVLink-Router](https://github.com/mavlink-router/mavlink-router), який можна налаштувати для маршрутизації трафіку MAVLink між послідовним портом та IP-лінком (або іншим інтерфейсом керування камерою).
+
+## Camera Manager Devices
+
+The following devices implement the MAVLink camera protocol (act as a camera manager):
+
+- [AirPixel TAG-E](../camera/airpixel_tag_e.md) - Camera controller and EXIF/XMP geotagger for the Sony ILX-LR1.

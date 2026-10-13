@@ -95,7 +95,7 @@ AFBRS50::AFBRS50():
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_AFBRS50;
 
 	_px4_rangefinder.set_device_id(device_id.devid);
-	_px4_rangefinder.set_device_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 }
 
 AFBRS50::~AFBRS50()

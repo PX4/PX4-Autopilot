@@ -121,6 +121,7 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
+	_tecs.set_level_flight_pitch(radians(_param_fw_psp_off.get()));
 
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 
@@ -234,11 +235,9 @@ void FwLateralLongitudinalControl::Run()
 						       now
 					       );
 
-			// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
-			// so it has to be added back here.
 			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_direct)
 				   ?  _long_control_sp.pitch_direct
-				   : _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
+				   : _tecs.get_pitch_setpoint();
 
 			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
 				      _tecs.get_throttle_setpoint();
@@ -409,22 +408,27 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
 	const float airspeed_rate_estimate = 0.f;
 
-	_tecs.update(_long_control_state.pitch_rad - radians(_param_fw_psp_off.get()),
-		     _long_control_state.altitude_msl,
-		     alt_sp,
-		     airspeed_sp,
-		     _long_control_state.airspeed_eas,
-		     _long_control_state.eas2tas,
-		     throttle_min,
-		     throttle_max,
-		     throttle_trim_compensated,
-		     pitch_min_rad - radians(_param_fw_psp_off.get()),
-		     pitch_max_rad - radians(_param_fw_psp_off.get()),
-		     desired_max_climbrate,
-		     desired_max_sinkrate,
-		     airspeed_rate_estimate,
-		     _long_control_state.height_rate,
-		     hgt_rate_sp);
+	// PX4 disables -Wmissing-field-initializers globally; enable it here so a field left out of TECS::Input fails the build
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wmissing-field-initializers"
+	_tecs.update(TECS::Input {
+		.altitude = _long_control_state.altitude_msl,
+		.altitude_rate = _long_control_state.height_rate,
+		.altitude_setpoint = alt_sp,
+		.altitude_rate_setpoint = hgt_rate_sp,
+		.equivalent_airspeed = _long_control_state.airspeed_eas,
+		.speed_deriv_forward = airspeed_rate_estimate,
+		.equivalent_airspeed_setpoint = airspeed_sp,
+		.eas_to_tas = _long_control_state.eas2tas,
+		.throttle_min = throttle_min,
+		.throttle_max = throttle_max,
+		.throttle_trim = throttle_trim_compensated,
+		.pitch_min = pitch_min_rad,
+		.pitch_max = pitch_max_rad,
+		.target_climbrate = desired_max_climbrate,
+		.target_sinkrate = desired_max_sinkrate,
+	});
+#pragma GCC diagnostic pop
 
 	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_compensated, now);
 
@@ -531,9 +535,7 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 	tecs_status.pitch_integ = debug_output.control.pitch_integrator;
 	tecs_status.throttle_sp = _tecs.get_throttle_setpoint();
 
-	// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
-	// so it has to be added back here.
-	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
+	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
 	tecs_status.throttle_trim = throttle_trim;
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;
@@ -671,7 +673,6 @@ void FwLateralLongitudinalControl::updateAttitude() {
 		}
 
 		const Eulerf euler_angles(R);
-		_long_control_state.pitch_rad = euler_angles.theta();
 		_yaw = euler_angles.psi();
 
 		_load_factor_from_bank_angle = 1.0f / max(cosf(euler_angles.phi()), FLT_EPSILON);
