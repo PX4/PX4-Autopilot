@@ -925,6 +925,7 @@ void Mavlink::send_finish()
 	}
 
 	int ret = -1;
+	int bret = -1;
 
 	// send message to UART
 	if (get_protocol() == Protocol::SERIAL) {
@@ -954,7 +955,7 @@ void Mavlink::send_finish()
 
 			if (_broadcast_address_found && _buf_fill > 0) {
 
-				int bret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+				bret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
 				if (bret <= 0) {
 					if (!_broadcast_failed_warned) {
@@ -971,7 +972,7 @@ void Mavlink::send_finish()
 
 #endif // MAVLINK_UDP
 
-	if (ret == (int)_buf_fill) {
+	if (ret == (int)_buf_fill || bret == (int)_buf_fill) {
 		_tx_message_count.fetch_add(1);
 		count_txbytes(_buf_fill);
 		_last_write_success_time = _last_write_try_time;
