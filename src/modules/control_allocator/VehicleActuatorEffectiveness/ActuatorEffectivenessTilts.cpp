@@ -70,7 +70,14 @@ void ActuatorEffectivenessTilts::updateParams()
 	}
 
 	// The parameter range is not enforced when it is set
-	_count = math::constrain<int>(count, 0, MAX_COUNT);
+	if (count < 0) {
+		count = 0;
+
+	} else if (count > MAX_COUNT) {
+		count = MAX_COUNT;
+	}
+
+	_count = count;
 
 	for (int i = 0; i < _count; i++) {
 		param_get(_param_handles[i].control, (int32_t *)&_params[i].control);
