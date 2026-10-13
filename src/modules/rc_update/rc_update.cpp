@@ -320,15 +320,10 @@ void RCUpdate::rc_parameter_map_poll(bool forced)
 	}
 }
 
-float RCUpdate::get_rc_value(Function function, float min_value, float max_value) const
+float RCUpdate::getChannelValue(Function function) const
 {
-	const int8_t channel = getChannelIndex(function);
-
-	if (channel >= 0) {
-		return math::constrain(_rc.channels[channel], min_value, max_value);
-	}
-
-	return 0.f;
+	const int8_t index = getChannelIndex(function);
+	return (index >= 0) ? _rc.channels[index] : 0.f;
 }
 
 void RCUpdate::set_params_from_rc()
@@ -343,7 +338,7 @@ void RCUpdate::set_params_from_rc()
 			continue;
 		}
 
-		float rc_val = get_rc_value(function, -1.f, 1.f);
+		float rc_val = getChannelValue(function);
 
 		/* Check if the value has changed,
 		 * maybe we need to introduce a more aggressive limit here */
@@ -620,8 +615,8 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 
 		for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
 
-			// If the slot is not in use (-1), get_rc_value() will return 0
-			float value = get_rc_value(Function(Function::FlightModeButton1 + slot), -1.0, 1.0);
+			// If the slot is not in use (-1), getChannelValue() will return 0
+			float value = getChannelValue(Function(Function::FlightModeButton1 + slot));
 
 			// The range goes from -1 to 1, checking that value is greater than 0.5f
 			// corresponds to check that the signal is above 75% of the overall range.
@@ -692,17 +687,17 @@ void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 	manual_control_input.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 	// limit controls
-	manual_control_input.roll = get_rc_value(Function::Roll, -1.f, 1.f);
-	manual_control_input.pitch = get_rc_value(Function::Pitch, -1.f, 1.f);
-	manual_control_input.yaw = get_rc_value(Function::Yaw, -1.f, 1.f);
-	manual_control_input.throttle = get_rc_value(Function::Throttle, -1.f, 1.f);
-	manual_control_input.flaps = get_rc_value(Function::Flaps, -1.f, 1.f);
-	manual_control_input.aux1  = get_rc_value(Function::Aux1, -1.f, 1.f);
-	manual_control_input.aux2  = get_rc_value(Function::Aux2, -1.f, 1.f);
-	manual_control_input.aux3  = get_rc_value(Function::Aux3, -1.f, 1.f);
-	manual_control_input.aux4  = get_rc_value(Function::Aux4, -1.f, 1.f);
-	manual_control_input.aux5  = get_rc_value(Function::Aux5, -1.f, 1.f);
-	manual_control_input.aux6  = get_rc_value(Function::Aux6, -1.f, 1.f);
+	manual_control_input.roll = getChannelValue(Function::Roll);
+	manual_control_input.pitch = getChannelValue(Function::Pitch);
+	manual_control_input.yaw = getChannelValue(Function::Yaw);
+	manual_control_input.throttle = getChannelValue(Function::Throttle);
+	manual_control_input.flaps = getChannelValue(Function::Flaps);
+	manual_control_input.aux1  = getChannelValue(Function::Aux1);
+	manual_control_input.aux2  = getChannelValue(Function::Aux2);
+	manual_control_input.aux3  = getChannelValue(Function::Aux3);
+	manual_control_input.aux4  = getChannelValue(Function::Aux4);
+	manual_control_input.aux5  = getChannelValue(Function::Aux5);
+	manual_control_input.aux6  = getChannelValue(Function::Aux6);
 	manual_control_input.valid = _rc_calibrated;
 
 	// publish manual_control_input topic

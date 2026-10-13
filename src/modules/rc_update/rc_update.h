@@ -152,9 +152,9 @@ protected:
 	int8_t		getChannelIndex(Function function) const;
 
 	/**
-	 * Get and limit value for specified RC function. Returns 0 if not mapped.
+	 * Get the calibrated value -1..1 of the RC channel of the specified function. Returns 0 if not mapped.
 	 */
-	float		get_rc_value(Function function, float min_value, float max_value) const;
+	float		getChannelValue(Function function) const;
 
 	/**
 	 * Get on/off switch position from the RC channel of the specified function
