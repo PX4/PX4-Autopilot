@@ -153,10 +153,14 @@ public:
 	struct Param {
 		float target_climbrate;	///< The target climbrate in [m/s].
 		float target_sinkrate;	///< The target sinkrate in [m/s].
-		float vert_accel_limit;	///< Magnitude of the maximum vertical acceleration allowed [m/s²].
+		float vert_accel_limit;	///< Magnitude of the maximum vertical acceleration the controller allows [m/s²].
 		float max_climb_rate;	///< Climb rate produced by max allowed throttle [m/s].
 		float max_sink_rate;	///< Maximum sink rate (with min throttle, max speed) [m/s].
 	};
+
+	/// Fraction of the controller's vertical acceleration limit the reference trajectory uses, leaving the rest
+	/// for feedback corrections on top of the feedforward.
+	static constexpr float kAccelLimitRatio = 0.75f;
 
 public:
 	TECSAltitudeReferenceModel() = default;

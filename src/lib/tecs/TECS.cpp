@@ -133,16 +133,17 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 	}
 
 	const float current_alt = PX4_ISFINITE(altitude) ? altitude : 0.f;
+	const float vert_accel_limit = kAccelLimitRatio * param.vert_accel_limit;
 
 	_velocity_control_traj_generator.setMaxJerk(JERK_MAX);
-	_velocity_control_traj_generator.setMaxAccelUp(param.vert_accel_limit);
-	_velocity_control_traj_generator.setMaxAccelDown(param.vert_accel_limit);
+	_velocity_control_traj_generator.setMaxAccelUp(vert_accel_limit);
+	_velocity_control_traj_generator.setMaxAccelDown(vert_accel_limit);
 	_velocity_control_traj_generator.setMaxVelUp(param.max_sink_rate); // different convention for FW than for MC
 	_velocity_control_traj_generator.setMaxVelDown(param.max_climb_rate); // different convention for FW than for MC
 
 	// Altitude setpoint reference
 	_alt_control_traj_generator.setMaxJerk(JERK_MAX);
-	_alt_control_traj_generator.setMaxAccel(param.vert_accel_limit);
+	_alt_control_traj_generator.setMaxAccel(vert_accel_limit);
 	_alt_control_traj_generator.setMaxVel(fmaxf(param.max_climb_rate, param.max_sink_rate));
 
 	// XXX: this is a bit risky.. .alt_rate here could be NAN (by interface design) - and is only ok to input to the
@@ -179,7 +180,7 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 
 		float height_rate_target = math::signNoZero<float>(delta_trajectory_to_target_m) *
 					   math::trajectory::computeMaxSpeedFromDistance(
-						   JERK_MAX, param.vert_accel_limit, fabsf(delta_trajectory_to_target_m), 0.f);
+						   JERK_MAX, vert_accel_limit, fabsf(delta_trajectory_to_target_m), 0.f);
 
 		height_rate_target = math::constrain(height_rate_target, -target_sinkrate_m_s, target_climbrate_m_s);
 
