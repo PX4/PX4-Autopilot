@@ -38,12 +38,27 @@ endif(px4_git_included)
 set(px4_git_included true)
 
 # Check all submodules once per configure, whether the build started from
-# make, an IDE or CMake directly.
+# make, an IDE or CMake directly. Builds that configure at the same time check
+# them one at a time: git can't fetch submodules twice at once.
+execute_process(
+	COMMAND git rev-parse --git-common-dir
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	OUTPUT_VARIABLE px4_git_dir
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+	ERROR_QUIET
+	)
+if(px4_git_dir)
+	get_filename_component(px4_git_dir ${px4_git_dir} ABSOLUTE BASE_DIR ${PX4_SOURCE_DIR})
+	file(LOCK ${px4_git_dir}/px4_submodules.lock GUARD FILE TIMEOUT 1800)
+endif()
 execute_process(
 	COMMAND Tools/check_submodules.sh
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	RESULT_VARIABLE check_submodules_result
 	)
+if(px4_git_dir)
+	file(LOCK ${px4_git_dir}/px4_submodules.lock RELEASE)
+endif()
 if(NOT check_submodules_result EQUAL 0)
 	message(FATAL_ERROR "Tools/check_submodules.sh failed")
 endif()
