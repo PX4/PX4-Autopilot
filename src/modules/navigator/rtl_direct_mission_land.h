@@ -63,6 +63,8 @@ public:
 
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
 
+	MissionTraversalType traversalType() const override { return MissionTraversalType::IgnoreDoJump; }
+
 	void setReturnAltMin(bool min) override { _enforce_rtl_alt = min; };
 	void setRtlAlt(float alt) override {_rtl_alt = alt;};
 
