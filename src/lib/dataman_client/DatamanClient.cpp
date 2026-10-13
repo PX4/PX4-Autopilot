@@ -41,7 +41,7 @@ DatamanClient::DatamanClient()
 {
 	_sync_perf = perf_alloc(PC_ELAPSED, "DatamanClient: sync");
 
-	_dataman_request_pub.advertise();
+	_dataman_request_pub = orb_advertise(ORB_ID(dataman_request), nullptr);
 	_dataman_response_sub = orb_subscribe(ORB_ID(dataman_response));
 
 	if (!orb_sub_valid(_dataman_response_sub)) {
@@ -76,11 +76,21 @@ DatamanClient::DatamanClient()
 
 DatamanClient::~DatamanClient()
 {
+	// Never unadvertise: every client shares dataman_request and uORB has one advertised flag per topic.
 	perf_free(_sync_perf);
 
 	if (orb_sub_valid(_dataman_response_sub)) {
 		orb_unsubscribe(_dataman_response_sub);
 	}
+}
+
+void DatamanClient::publishRequest(const dataman_request_s &request)
+{
+	if (_dataman_request_pub == nullptr) {
+		_dataman_request_pub = orb_advertise(ORB_ID(dataman_request), nullptr);
+	}
+
+	orb_publish(ORB_ID(dataman_request), _dataman_request_pub, &request);
 }
 
 bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_response_s &response,
@@ -92,7 +102,7 @@ bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_respon
 	perf_begin(_sync_perf);
 	clearPendingResponse();
 
-	_dataman_request_pub.publish(request);
+	publishRequest(request);
 
 	while (!response_received && (time_elapsed < timeout)) {
 
@@ -106,7 +116,7 @@ bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_respon
 		} else if (ret == 0) {
 
 			// No response received, send new request
-			_dataman_request_pub.publish(request);
+			publishRequest(request);
 
 		} else {
 
@@ -311,7 +321,7 @@ bool DatamanClient::readAsync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 
 		_state = State::RequestSent;
 
-		_dataman_request_pub.publish(request);
+		publishRequest(request);
 
 		success = true;
 	}
@@ -357,7 +367,7 @@ bool DatamanClient::writeAsync(dm_item_t item, uint32_t index, uint8_t *buffer, 
 
 		_state = State::RequestSent;
 
-		_dataman_request_pub.publish(request);
+		publishRequest(request);
 
 		success = true;
 	}
@@ -392,7 +402,7 @@ bool DatamanClient::clearAsync(dm_item_t item)
 		_active_request.index = request.index;
 		_state = State::RequestSent;
 
-		_dataman_request_pub.publish(request);
+		publishRequest(request);
 
 		success = true;
 	}
@@ -456,7 +466,7 @@ void DatamanClient::update()
 					memcpy(request.data, _active_request.buffer, _active_request.length);
 				}
 
-				_dataman_request_pub.publish(request);
+				publishRequest(request);
 
 				_state = State::RequestSent;
 			}
