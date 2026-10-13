@@ -372,7 +372,8 @@ void FwLateralLongitudinalControl::updateControllerConfiguration(hrt_abstime tim
 		_lateral_control_configuration_sub.copy(&configuration_in);
 		_lateral_configuration.timestamp = configuration_in.timestamp;
 
-		if (PX4_ISFINITE(configuration_in.lateral_accel_max)) {
+		// a negative limit would invert the constrain() bounds of the setpoint; treat it like an unset one
+		if (PX4_ISFINITE(configuration_in.lateral_accel_max) && (configuration_in.lateral_accel_max >= 0.f)) {
 			_lateral_configuration.lateral_accel_max = min(configuration_in.lateral_accel_max, tanf(radians(
 						_param_fw_r_lim.get())) * CONSTANTS_ONE_G);
 

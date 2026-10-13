@@ -555,6 +555,10 @@ void FixedwingRateControl::Run()
 			case 5:
 				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux4) ? math::max(_manual_control_setpoint.aux4, 0.f) : 0.f;
 				break;
+
+			case 6:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux5) ? math::max(_manual_control_setpoint.aux5, 0.f) : 0.f;
+				break;
 			}
 
 			normalized_unsigned_setpoint_s spoilers_setpoint;
