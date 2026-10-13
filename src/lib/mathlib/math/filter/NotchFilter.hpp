@@ -216,7 +216,9 @@ protected:
 template<typename T>
 bool NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float bandwidth)
 {
+	// past half the sample rate tan(pi * bandwidth / sample_freq) turns negative and the poles leave the unit circle
 	if ((sample_freq <= 0.f) || (notch_freq <= 0.f) || (bandwidth <= 0.f) || (notch_freq >= sample_freq / 2)
+	    || (bandwidth >= sample_freq / 2)
 	    || !isFinite(sample_freq) || !isFinite(notch_freq) || !isFinite(bandwidth)) {
 
 		disable();

@@ -347,3 +347,17 @@ TEST_F(NotchFilterTest, setCoefficients)
 		EXPECT_EQ(b[i], b_new[i]);
 	}
 }
+
+TEST_F(NotchFilterTest, rejectBandwidthAboveNyquist)
+{
+	// GIVEN: a bandwidth at or above half the sample rate
+	// THEN: the parameters are rejected and the filter is disabled, as for a notch frequency above Nyquist
+	EXPECT_FALSE(_notch_float.setParameters(200.f, 40.f, 100.f));
+	EXPECT_EQ(_notch_float.getBandwidth(), 0.f);
+	EXPECT_EQ(_notch_float.getNotchFreq(), 0.f);
+	EXPECT_FALSE(_notch_float.setParameters(200.f, 40.f, 120.f));
+
+	// AND: a bandwidth below half the sample rate is still accepted
+	EXPECT_TRUE(_notch_float.setParameters(200.f, 40.f, 90.f));
+	EXPECT_EQ(_notch_float.getBandwidth(), 90.f);
+}
