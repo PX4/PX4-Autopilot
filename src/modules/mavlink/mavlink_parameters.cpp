@@ -744,6 +744,14 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 
 bool MavlinkParametersManager::send_uavcan()
 {
+	// a node that never answers must not hold the queue forever: drop its request and move on
+	if (_uavcan_waiting_for_request_response && (_uavcan_open_request_list != nullptr)
+	    && (hrt_elapsed_time(&_uavcan_request_time) > UAVCAN_REQUEST_TIMEOUT)) {
+		PX4_DEBUG("no reply from node %u for parameter request, dropping it", _uavcan_open_request_list->req.node_id);
+		dequeue_uavcan_request();
+		request_next_uavcan_parameter();
+	}
+
 	/* Send parameter values received from the UAVCAN topic */
 	uavcan_parameter_value_s value{};
 
@@ -807,6 +815,7 @@ void MavlinkParametersManager::request_next_uavcan_parameter()
 		_uavcan_parameter_request_pub.publish(req);
 
 		_uavcan_waiting_for_request_response = true;
+		_uavcan_request_time = hrt_absolute_time();
 	}
 }
 
