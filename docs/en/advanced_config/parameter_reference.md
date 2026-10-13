@@ -33024,6 +33024,7 @@ Chose source for manual setting of flaps in manual flight modes.
 - `4`: Aux4
 - `5`: Aux5
 - `6`: Flaps channel
+- `7`: Aux6
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -33282,6 +33283,7 @@ Chose source for manual setting of spoilers in manual flight modes.
 - `4`: Aux3
 - `5`: Aux4
 - `6`: Aux5
+- `7`: Aux6
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
