@@ -383,6 +383,13 @@ ControlAllocator::Run()
 	if (_vehicle_torque_setpoint_sub.update(&vehicle_torque_setpoint)) {
 		_torque_sp = matrix::Vector3f(vehicle_torque_setpoint.xyz);
 
+		// the topic is also written externally; one non-finite component would reach every actuator
+		for (int i = 0; i < 3; i++) {
+			if (!PX4_ISFINITE(_torque_sp(i))) {
+				_torque_sp(i) = 0.f;
+			}
+		}
+
 		do_update = true;
 		_timestamp_sample = vehicle_torque_setpoint.timestamp_sample;
 
@@ -413,15 +420,15 @@ ControlAllocator::Run()
 
 		if (_num_control_allocation > 1) {
 			if (_vehicle_torque_setpoint1_sub.copy(&vehicle_torque_setpoint)) {
-				c[1](0) = vehicle_torque_setpoint.xyz[0];
-				c[1](1) = vehicle_torque_setpoint.xyz[1];
-				c[1](2) = vehicle_torque_setpoint.xyz[2];
+				for (int i = 0; i < 3; i++) {
+					c[1](i) = PX4_ISFINITE(vehicle_torque_setpoint.xyz[i]) ? vehicle_torque_setpoint.xyz[i] : 0.f;
+				}
 			}
 
 			if (_vehicle_thrust_setpoint1_sub.copy(&vehicle_thrust_setpoint)) {
-				c[1](3) = vehicle_thrust_setpoint.xyz[0];
-				c[1](4) = vehicle_thrust_setpoint.xyz[1];
-				c[1](5) = vehicle_thrust_setpoint.xyz[2];
+				for (int i = 0; i < 3; i++) {
+					c[1](3 + i) = PX4_ISFINITE(vehicle_thrust_setpoint.xyz[i]) ? vehicle_thrust_setpoint.xyz[i] : 0.f;
+				}
 			}
 		}
 
