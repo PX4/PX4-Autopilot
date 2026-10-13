@@ -78,7 +78,12 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 	}
 
 	// The parameter range is not enforced when it is set
-	_count = math::constrain<int32_t>(_count, 0, MAX_COUNT);
+	if (_count < 0) {
+		_count = 0;
+
+	} else if (_count > MAX_COUNT) {
+		_count = MAX_COUNT;
+	}
 
 	// Update flap slewrates
 	_flaps_setpoint_with_slewrate.setSlewRate(_param_ca_flap_slew.get());
