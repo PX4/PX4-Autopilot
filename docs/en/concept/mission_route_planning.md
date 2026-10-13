@@ -271,7 +271,8 @@ If no safe point has a usable branch-off, Return can still select a mission take
 Uploaded mission segments are checked by mission feasibility validation.
 The planner does not find detours around fences or check landing-approach geometry.
 
-When the vehicle already breaches the loaded fence, the planner skips these checks to allow recovery along the route.
+When the vehicle already breaches the loaded fence, the planner skips the checks of segments that start at the vehicle, to allow recovery along the route.
+Branch-off segments are still checked, so a breach cannot route the vehicle through a fence on the way to a safe point.
 If the fence is unavailable or still loading, the behaviour depends on the flight mode:
 
 - When Mission mode starts, smart rejoin is skipped with a warning and the mission resumes towards its current item.
@@ -281,6 +282,8 @@ If the fence is unavailable or still loading, the behaviour depends on the fligh
   An arrival or landing sequence already in progress continues unchanged.
 - When Return is inactive, only background route planning waits for the fence.
   It retries every two seconds without changing the current flight mode.
+
+If a loaded fence cannot check a segment, for example a path too long to subdivide, planning fails like any other planning failure: an active Return uses direct fallback and does not retry.
 
 ## Vehicle Projection
 
