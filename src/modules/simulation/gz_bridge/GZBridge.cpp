@@ -805,15 +805,22 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 
 	const float distance = static_cast<float>(msg.ranges()[0]);
 
-	if (q_sensor.Equal(q_front, 0.03)) {
+	const gz::math::Vector3d beam_axis = gz::math::Vector3d::UnitX;
+	const gz::math::Vector3d dir = q_sensor.RotateVector(beam_axis);
+
+	auto points_like = [&](const gz::math::Quaterniond &ref) {
+		return dir.Dot(ref.RotateVector(beam_axis)) > std::cos(3.0 * M_PI / 180.0);
+	};
+
+	if (points_like(q_front)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_FORWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
-	} else if (q_sensor.Equal(q_down, 0.03)) {
+	} else if (points_like(q_down)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_DOWNWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
-	} else if (q_sensor.Equal(q_left, 0.03)) {
+	} else if (points_like(q_left)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_LEFT_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
