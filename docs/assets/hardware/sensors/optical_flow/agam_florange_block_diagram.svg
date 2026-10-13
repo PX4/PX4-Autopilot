@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="980" height="600" viewBox="0 0 980 600" font-family="Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="645" viewBox="0 0 980 645" font-family="Helvetica, Arial, sans-serif">
   <title>Agam FloRange block diagram</title>
   <defs>
     <!-- data/control: solid arrowhead -->
@@ -21,6 +21,7 @@
       .sensor { fill: #eef6ee; stroke: #3f7d3f; stroke-width: 1.5; }
       .conn { fill: #f4f4f4; stroke: #4a5563; stroke-width: 1.5; }
       .pwr { fill: #fbf8f3; stroke: #7a6a58; stroke-width: 1.5; }
+      .title { font-size: 21px; font-weight: bold; fill: #1f2933; }
       .name { font-size: 15px; font-weight: bold; fill: #1f2933; text-anchor: middle; }
       .sub { font-size: 12.5px; fill: #3e4c59; text-anchor: middle; }
       .line { stroke: #4a5563; stroke-width: 1.6; fill: none; }
@@ -33,7 +34,9 @@
       .l2 { font-size: 12px; font-weight: bold; fill: #b38b00; }
     </style>
   </defs>
-  <rect width="980" height="600" fill="#ffffff"/>
+  <rect width="980" height="645" fill="#ffffff"/>
+  <text class="title" x="30" y="32">Agam FloRange</text>
+  <g transform="translate(0,45)">
 
   <!-- 5 V from the CAN connector: SMPS, IR LED, ToF sensor -->
   <path class="v5" d="M105,200 V15 H955 V445 H930" marker-end="url(#p5)"/>
@@ -138,4 +141,5 @@
   <text class="l33" x="178" y="566">3.3 V</text>
   <path class="v2" d="M230,562 H270" marker-end="url(#p2)"/>
   <text class="l2" x="278" y="566">2 V</text>
+  </g>
 </svg>
