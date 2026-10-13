@@ -98,13 +98,21 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		_divergence_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 
-	const bool below_required = (_param_sys_has_num_gnss.get() > 0) && (healthy_count < _param_sys_has_num_gnss.get());
+	// The parameter range is not enforced on the way in; more receivers than GPS_MAX_INSTANCES can never be
+	// satisfied and would index past the arrays above, so treat anything larger as the maximum
+	int required_gnss = _param_sys_has_num_gnss.get();
+
+	if (required_gnss > GPS_MAX_INSTANCES) {
+		required_gnss = GPS_MAX_INSTANCES;
+	}
+
+	const bool below_required = (required_gnss > 0) && (healthy_count < required_gnss);
 	const bool dropped_below_peak = (_peak_healthy_count > 1) && (healthy_count < _peak_healthy_count);
 	const bool act_configured = (_param_com_gnssloss_act.get() > 0);
 
 	// Divergence triggers the failsafe only when the operator explicitly expects two
 	// receivers (SYS_HAS_NUM_GNSS >= 2); otherwise it remains a warning.
-	const bool divergence_triggers_failsafe = _divergence_hysteresis.get_state() && (_param_sys_has_num_gnss.get() >= 2);
+	const bool divergence_triggers_failsafe = _divergence_hysteresis.get_state() && (required_gnss >= 2);
 
 	reporter.failsafeFlags().gnss_lost = below_required || divergence_triggers_failsafe;
 
@@ -112,7 +120,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		const bool block_arming = below_required  && (act_configured || !context.isArmed());
 		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
 		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
-		const int expected = below_required ? _param_sys_has_num_gnss.get() : _peak_healthy_count;
+		const int expected = below_required ? required_gnss : _peak_healthy_count;
 
 		for (int i = 0; i < expected; i++) {
 			if (!gps_online[i]) {
