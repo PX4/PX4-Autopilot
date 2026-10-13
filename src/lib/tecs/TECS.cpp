@@ -331,6 +331,12 @@ float TECSControl::_calcAltitudeControlOutput(const Setpoint &setpoint, const In
 	return altitude_rate_output;
 }
 
+float TECSControl::_airspeedForClimbAngle(const Input &input, const Param &param)
+{
+	// max() returns its second argument for a NaN first one, so a NaN airspeed falls back to the minimum airspeed
+	return max(input.tas, param.tas_min, FLT_EPSILON);
+}
+
 TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint,
 		const Input &input) const
 {
@@ -526,8 +532,7 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 
 float TECSControl::_climbAngleToSebRate(const Input &input, const Param &param)
 {
-	// max() returns its second argument for a NaN first one, so a NaN airspeed falls back to the minimum airspeed
-	return max(input.tas, param.tas_min, FLT_EPSILON) * CONSTANTS_ONE_G;
+	return _airspeedForClimbAngle(input, param) * CONSTANTS_ONE_G;
 }
 
 float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param) const

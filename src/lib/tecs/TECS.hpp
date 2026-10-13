@@ -449,6 +449,19 @@ private:
 	 * @return controlled altitude rate setpoint in [m/s].
 	 */
 	float _calcAltitudeControlOutput(const Setpoint &setpoint, const Input &input, const Param &param) const;
+
+	/**
+	 * @brief Airspeed that maps a climb angle to a climb rate.
+	 *
+	 * The filtered true airspeed, which is trim airspeed without a valid measurement, floored at the minimum
+	 * airspeed so the conversion stays well conditioned at low or invalid airspeed.
+	 *
+	 * @param input is the current input measurement of the UAS.
+	 * @param param is the control parameters.
+	 * @return airspeed in [m/s].
+	 */
+	static float _airspeedForClimbAngle(const Input &input, const Param &param);
+
 	/**
 	 * @brief Run the airspeed and altitude outer loops and the underspeed detection.
 	 *
