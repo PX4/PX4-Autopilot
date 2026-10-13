@@ -206,6 +206,8 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS  11
+/* Capture channels (FMU_CAP1-3) run from this index to the end */
+#define DIRECT_PWM_FIRST_CAPTURE_CHANNEL  8
 
 #define BOARD_HAS_LED_PWM              1
 #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
