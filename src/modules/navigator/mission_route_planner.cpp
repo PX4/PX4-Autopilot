@@ -992,21 +992,6 @@ FailureReason MissionRoutePlanner::planRtlRoute(const RtlRouteRequest &request,
 		return FailureReason::kNoValidPath;
 	}
 
-	if (_path_checker && candidate.use_current_altitude && !candidate.fly_direct_to_goal) {
-		// Pruning checked the branch-in point at the projected mission altitude.
-		// fillRouteJoinPlan changed it to current altitude, so recheck this segment.
-		// Direct-to-goal plans were checked above and do not use the branch-in point.
-		bool clear = false;
-
-		if (!_path_checker->checkPath(request.vehicle_position, candidate.join_position, clear)) {
-			return FailureReason::kGeofenceUnavailable;
-		}
-
-		if (!clear) {
-			return FailureReason::kNoValidPath;
-		}
-	}
-
 	PX4_DEBUG("Route plan to %s target=%d rev=%u direct=%u skip_alt=%u branch_off=%d->%d",
 		  goalTypeString(candidate.goal_type),
 		  static_cast<int>(candidate.first_mission_item_index),
