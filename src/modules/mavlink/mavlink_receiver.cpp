@@ -3949,6 +3949,9 @@ MavlinkReceiver::run()
 			_tune_publisher->publish_next_tune(t);
 		}
 	}
+
+	// Release files opened by this thread while still in its task group (see close_files())
+	_mavlink_log_handler.close_files();
 }
 
 bool MavlinkReceiver::component_was_seen(int system_id, int component_id)
