@@ -5,7 +5,7 @@ Distance sensors provide distance measurement that can be used for [terrain foll
 This section lists the distance sensors supported by PX4 (linked to more detailed documentation), and provides information about the [generic configuration](#configuration) required for all rangefinders, [testing](#testing), and simulation with [Gazebo](#gazebo-simulation) or [Gazebo-Classic](#gazebo-classic-simulation).
 More detailed setup and configuration information is provided in the topics linked below (and sidebar).
 
-<img src="../../assets/hardware/sensors/lidar_lite/lidar_lite_v3.jpg" alt="Lidar Lite V3" width="200px" /><img src="../../assets/hardware/sensors/lidar_lightware/sf11c_120_m.jpg" alt="LightWare SF11/C Lidar" width="200px" /><img src="../../assets/hardware/sensors/optical_flow/ark_flow_distance_sensor.jpg" alt="ARK Flow" width="200px">
+<img src="../../assets/hardware/sensors/lidar_lite/lidar_lite_v3.jpg" alt="LIDAR-Lite v3" width="200px" /><img src="../../assets/hardware/sensors/lidar_lightware/sf11c_120_m.jpg" alt="LightWare SF11/C Lidar" width="200px" /><img src="../../assets/hardware/sensors/optical_flow/ark_flow_distance_sensor.jpg" alt="ARK Flow" width="200px">
 
 ## Supported Rangefinders
 
@@ -21,9 +21,9 @@ There may also be other DroneCAN rangefinders than those listed here.
 | [ARK DIST SR]                               | ToF (850 nm IR) | 8 cm to ~30 m     | DroneCAN, UART   | ✔️   |                                     |
 | [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m     | DroneCAN, UART   | ✔️   |                                     |
 | [Benewake TFmini]                           | ToF (IR laser)  | ~12 m             | UART             | ~    |                                     |
+| [Garmin LIDAR-Lite v3]                      | ToF (IR laser)  | up to 40 m        | I2C, PWM         | ~    | PX4 caps range to 35 m or less      |
 | [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m        | I2C              | ~    |                                     |
 | [LeddarOne]                                 | ToF (IR)        | 1 cm – 40 m       | UART             | ~    |                                     |
-| [Lidar-Lite]                                | ToF (IR laser)  | 5 cm – 40 m       | I2C, PWM         | ~    |                                     |
 | [LightWare SF11/C]                          | ToF (IR laser)  | up to ~120 m      | UART, I2C        | ~    |                                     |
 | [LightWare LW20/C]                          | ToF (IR laser)  | up to ~100 m      | I2C              | ~    | Waterproof (IP67) + servo           |
 | [LightWare SF45/B]                          | ToF (IR laser)  | ~50 m             | UART             | ~    | Rotary lidar (collision prevention) |
@@ -45,10 +45,10 @@ There may also be other DroneCAN rangefinders than those listed here.
 [ARK DIST SR]: ../dronecan/ark_dist.md
 [ARK DIST MR]: ../dronecan/ark_dist_mr.md
 [Benewake TFmini]: ../sensor/tfmini.md
+[Garmin LIDAR-Lite v3]: ../sensor/lidar_lite.md
 [Holybro ST VL53L1X Lidar]: #holybro-st-vl53l1x-lidar
 [Lanbao PSK-CM8JL65-CC5]: ../sensor/cm8jl65_ir_distance_sensor.md
 [LeddarOne]: ../sensor/leddar_one.md
-[Lidar-Lite]: ../sensor/lidar_lite.md
 [LightWare Lidar]: ../sensor/sfxx_lidar.md
 [LightWare SF11/C]: ../sensor/sfxx_lidar.md
 [LightWare LW20/C]: ../sensor/sfxx_lidar.md
@@ -92,10 +92,10 @@ It is the fastest miniature ToF sensor on the market with accurate ranging up to
 
 It comes with a JST GHR 4 pin connector that is compatible with the I2C port on [Pixhawk 4](../flight_controller/pixhawk4.md), [Pixhawk 5X](../flight_controller/pixhawk5x.md), and other flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 
-### Lidar-Lite
+### Garmin LIDAR-Lite
 
-[Lidar-Lite](../sensor/lidar_lite.md) is a compact, high-performance optical distant measurement rangefinder.
-It has a sensor range from (5cm - 40m) and can be connected to either PWM or I2C ports.
+The [Garmin LIDAR-Lite v3](../sensor/lidar_lite.md) is a compact laser time-of-flight rangefinder with a range of up to 40 m (PX4 caps this to 35 m or less).
+It can be connected to either I2C or PWM ports.
 
 ### MaxBotix I2CXL-MaxSonar-EZ
 
