@@ -361,12 +361,13 @@ private:
 	 *
 	 * The node's UAVCAN ID is used as the index into the _param_counts array.
 	 */
-	uint8_t _param_counts[128] {};
+	static constexpr uint16_t MAX_PARAM_INDEX = 8191; ///< uavcan.protocol.param.GetSet index is 13 bits wide
+	uint16_t _param_counts[128] {};
 	bool _count_in_progress{false};
-	uint8_t _count_index{0};
+	uint16_t _count_index{0};
 
 	bool _param_in_progress{false};
-	uint8_t _param_index{0};
+	uint16_t _param_index{0};
 	bool _param_list_in_progress{false};
 	bool _param_list_all_nodes{false};
 	uint8_t _param_list_node_id{1};
