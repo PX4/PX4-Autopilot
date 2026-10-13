@@ -164,7 +164,7 @@
 
   <rect class="blk pwr" x="70" y="1045" width="140" height="46" fill="#fff"/>
   <text class="hdr" x="140" y="1065" text-anchor="middle" font-size="11.5">VBAT 2S-8S</text>
-  <text class="mono" x="140" y="1081" text-anchor="middle">6.6-36V · 40V max</text>
+  <text class="mono" x="140" y="1081" text-anchor="middle">5.5-36V · 40V max</text>
 
   <rect class="blk pwr" x="70" y="1115" width="140" height="46" fill="#fff"/>
   <text class="hdr" x="140" y="1135" text-anchor="middle" font-size="11.5">+5VBUS</text>

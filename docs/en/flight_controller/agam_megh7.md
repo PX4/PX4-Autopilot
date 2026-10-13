@@ -227,7 +227,7 @@ Both BECs are step-down SMPS regulators running directly off the battery, and th
 
 Under these conditions the board powers normally:
 
-1. Battery input: 6.6 V to 36 V (2S to 8S LiPo recommended)
+1. Battery input: 5.5 V to 36 V, with 2S to 8S LiPo recommended (6.6 V to 33.6 V)
 2. USB input: 4.75 V to 5.25 V
 
 **Absolute Maximum Ratings**
@@ -239,7 +239,8 @@ Under these conditions the board is not damaged, but may not operate:
 
 ::: info
 The BECs are step-down only, with a maximum duty cycle of 92%, so each rail needs headroom above its output voltage.
-The 5 V rail needs roughly 5.5 V in, which 2S clears.
+The 5 V rail needs roughly 5.5 V in, which is the lower figure above.
+A 2S pack is flat before it reaches that, so the pack sets the practical floor, not the regulator.
 :::
 
 ::: warning
