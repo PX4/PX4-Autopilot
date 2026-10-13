@@ -98,7 +98,7 @@ parameters:
       default: 0
     FW_LND_FL_PMIN:
       description:
-        short: Flare, minimum pitch
+        short: Flare, minimum absolute pitch
         long: Minimum pitch during landing flare.
       type: float
       default: 2.5
@@ -109,7 +109,7 @@ parameters:
       increment: 0.5
     FW_LND_FL_PMAX:
       description:
-        short: Flare, maximum pitch
+        short: Flare, maximum absolute pitch
         long: Maximum pitch during landing flare.
       type: float
       default: 15.0
@@ -262,7 +262,7 @@ parameters:
   definitions:
     FW_TKO_PITCH_MIN:
       description:
-        short: Minimum pitch during takeoff
+        short: Minimum absolute pitch during takeoff
       type: float
       default: 10.0
       unit: deg
@@ -350,7 +350,7 @@ parameters:
   definitions:
     FW_P_LIM_MIN:
       description:
-        short: Minimum pitch angle setpoint
+        short: Minimum absolute pitch angle setpoint
         long: Applies in any altitude controlled flight mode.
       type: float
       default: -30.0
@@ -361,7 +361,7 @@ parameters:
       increment: 0.5
     FW_P_LIM_MAX:
       description:
-        short: Maximum pitch angle setpoint
+        short: Maximum absolute pitch angle setpoint
         long: Applies in any altitude controlled flight mode.
       type: float
       default: 30.0
