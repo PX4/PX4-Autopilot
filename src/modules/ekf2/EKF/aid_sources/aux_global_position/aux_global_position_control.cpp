@@ -125,6 +125,8 @@ bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 					  Vector2f(ekf.getPositionVariance()) + pos_obs_var,   // innovation variance
 					  math::max(_params.gate, 1.f));                              // innovation gate
 
+		_aid_src.device_id = sample.id;
+
 		const bool starting_conditions = PX4_ISFINITE(sample.latitude) && PX4_ISFINITE(sample.longitude)
 						 && ekf.control_status_flags().yaw_align;
 		const bool continuing_conditions = starting_conditions
