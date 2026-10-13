@@ -147,6 +147,11 @@ It has a sensing range from 1cm to 40m and needs to be connected to a UART/seria
 
 The [Benewake TFmini](../sensor/tfmini.md) LiDAR rangefinders (TFmini-S and TFmini Plus) have a range of 0.1–12 m and connect to a serial port (UART).
 
+### JRT PTGL-100
+
+The [JRT PTGL-100](../sensor/ptgl100.md) is a laser rangefinder with a 0.2 m to 100 m range and a 100 Hz measurement rate.
+It must be connected to a UART/serial bus.
+
 ### PSK-CM8JL65-CC5
 
 <Badge type="info" text="Discontinued" />
