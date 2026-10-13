@@ -62,7 +62,9 @@ public:
 	GenNav _gen_nav;
 
 	static constexpr float kInitialYaw = 1.f;
-	static constexpr double kMotionStart = 20.0;
+	// The zero gyro update averages all its samples, so the gyro bias learned before the
+	// heading is aligned takes this long to fade
+	static constexpr double kMotionStart = 60.0;
 
 	// mirrors the delay Gps::send() subtracts from the sample timestamp
 	static constexpr double kGpsDelay = 0.11;
@@ -209,8 +211,41 @@ TEST_F(EkfGenNavTest, perfectSensorsTrackTruth)
 
 	// THEN: with exact sensors only the filter's own approximations remain. The horizontal
 	// floor comes from GNSS validity times falling 1 ms off the 10 ms fusion grid.
-	EXPECT_LT(max_errors.attitude_deg, 0.15f);
-	EXPECT_LT(max_errors.velocity, 0.015f);
-	EXPECT_LT(max_errors.horizontal_position, 0.05f);
-	EXPECT_LT(max_errors.vertical_position, 0.02f);
+	EXPECT_LT(max_errors.attitude_deg, 0.02f);
+	EXPECT_LT(max_errors.velocity, 0.008f);
+	EXPECT_LT(max_errors.horizontal_position, 0.04f);
+	EXPECT_LT(max_errors.vertical_position, 0.012f);
+}
+
+TEST_F(EkfGenNavTest, inertialDeadReckoning)
+{
+	// GIVEN: the position is known before the first prediction so that the Earth rate is
+	// compensated during the whole alignment, which is done at rest with all aiding sources
+	const LatLonAlt start = _gen_nav.position(0.0);
+	_ekf->resetGlobalPosToExternalObservation(start.latitude_deg(), start.longitude_deg(), start.altitude(), 0.1f, 0.1f, 0);
+
+	// keeps the fake height fallback from resetting the dead-reckoned vertical states
+	_ekf->getParamHandle()->ekf2_noaid_tout = 1'000'000'000;
+
+	run(kMotionStart);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// WHEN: all aiding stops as the vehicle starts moving
+	_sensor_simulator.stopGps();
+	_sensor_simulator.stopBaro();
+	_sensor_simulator._mag.stop();
+
+	const Errors max_errors = run(70.0);
+	EXPECT_TRUE(_ekf->control_status_flags().inertial_dead_reckoning);
+
+	printf("max errors: attitude %.4f deg, velocity %.4f m/s, horizontal %.4f m, vertical %.4f m\n",
+	       (double)max_errors.attitude_deg, (double)max_errors.velocity,
+	       (double)max_errors.horizontal_position, (double)max_errors.vertical_position);
+
+	// THEN: with exact sensors the drift comes from the alignment residuals and the filter's
+	// own approximations
+	EXPECT_LT(max_errors.attitude_deg, 0.005f);
+	EXPECT_LT(max_errors.velocity, 0.016f);
+	EXPECT_LT(max_errors.horizontal_position, 0.35f);
+	EXPECT_LT(max_errors.vertical_position, 0.014f);
 }
