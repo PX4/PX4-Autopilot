@@ -48,6 +48,8 @@ You should also check [ASPD_PRIMARY](../advanced_config/parameter_reference.md#A
 
 ### Multiple Airspeed Sensors
 
+<Badge type="tip" text="main (PX4 v2.0)" /> <Badge type="tip" text="Experimental" />
+
 :::warning Experimental
 Using multiple airspeed sensors is experimental.
 :::
@@ -103,10 +105,13 @@ The specific configuration for sensors that do not have a separate page is liste
 
 Airspeed sensors should be calibrated by following the instructions: [Basic Configuration > Airspeed](../config/airspeed.md).
 
+## Validation
+
 For more advanced validation, configuration and debugging see [Airspeed Validation](../advanced_config/airspeed_validation.md).
 
 ## See Also
 
+- [Airspeed Scale Handling](../config_fw/airspeed_scale_handling)
 - [Using PX4's Navigation Filter (EKF2) > Airspeed](../advanced_config/tuning_the_ecl_ekf.md#airspeed)
 - [Airspeed drivers](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure) (source code)
 - [VTOL Without an Airspeed Sensor](../config_vtol/vtol_without_airspeed_sensor.md)
