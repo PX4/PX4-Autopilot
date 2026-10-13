@@ -17,7 +17,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 
 | Rangefinder                                 | Technology      | Range (min – max)        | Connections            | NDAA | Notes                               |
 | ------------------------------------------- | --------------- | ------------------------ | ---------------------- | ---- | ----------------------------------- |
-| [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar | ~50 m                    | UART                   | ✔️   |                                     |
+| [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar | 0.5 m – 50 m             | UART                   | ~    | All-weather, works over water       |
 | [ARK DIST SR]                               | ToF (850 nm IR) | 8 cm to ~30 m            | DroneCAN, UART         | ✔️   |                                     |
 | [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m            | DroneCAN, UART         | ✔️   |                                     |
 | [Benewake TFmini]                           | ToF (IR laser)  | ~12 m                    | UART                   | ~    |                                     |
@@ -127,9 +127,9 @@ PX4 supports the following models connected via the I2C bus: TeraRanger One, Ter
 
 ### Ainstein US-D1 Standard Radar Altimeter
 
-The _Ainstein_ [US-D1 Standard Radar Altimeter](../sensor/ulanding_radar.md) is compact microwave rangefinder that has been optimised for use on UAVs.
-It has a sensing range of around 50m.
-A particular advantages of this product are that it can operate effectively in all weather conditions and over all terrain types (including water).
+The [Ainstein US-D1 Standard Radar Altimeter](../sensor/ulanding_radar.md) is a compact microwave radar rangefinder with a range of 0.5 m to 50 m and a 100 Hz update rate.
+It can operate effectively in all weather conditions and over all terrain types (including water).
+It must be connected to a UART/serial bus.
 
 ### LeddarOne
 
