@@ -758,8 +758,9 @@ void VehicleMagnetometer::UpdateStatus()
 			known_count++;
 
 			// the mean is the reference the inconsistency is measured against, so only
-			// the sensors actually eligible for use contribute to it
-			if (_calibration[sensor_index].enabled()) {
+			// the sensors actually eligible for use contribute to it; a non-finite sample would
+			// make the mean, and with it every sensor's difference, non-finite
+			if (_calibration[sensor_index].enabled() && _last_data[sensor_index].isAllFinite()) {
 				sensor_count++;
 				mean += _last_data[sensor_index];
 			}
