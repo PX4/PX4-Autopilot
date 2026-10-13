@@ -174,6 +174,7 @@ private:
 		Return_mode = 1,
 		Land_mode = 2,
 		Terminate = 3,
+		Block_arming = 4,
 	};
 
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
