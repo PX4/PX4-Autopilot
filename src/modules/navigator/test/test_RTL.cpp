@@ -67,6 +67,7 @@
 #include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
 #include "support/event_recorder.h"
+#include "support/geofence_test_helpers.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
 #include "support/vector_mission_item_store.h"
@@ -331,6 +332,7 @@ public:
 	int32_t missionSequenceForTest() const { return _mission_sub.get().current_seq; }
 	bool routePlanSourceStillValidForTest() const { return routePlanSourceStillValid(); }
 	bool routePlanMatchesSourceForTest(const mission_s &mission) const { return _route_safe_point.sourceStillValid(mission); }
+	bool routeRetryPendingForTest() const { return _route_safe_point.retryReady(_mission_sub.get()); }
 	uint32_t routePlanMissionGenerationForTest() const { return _route_safe_point.missionGeneration(); }
 	mission_route::ActiveJumpAnchor lastRouteLoopSegmentForTest() const { return _route_safe_point.activeJumpAnchor(); }
 
@@ -661,6 +663,14 @@ protected:
 		circle.lon = center.lon;
 		circle.circle_radius = radius_m;
 		return circle;
+	}
+
+	static mission_fence_point_s exclusionVertex(float north_m, float east_m, uint16_t vertex_count)
+	{
+		mission_fence_point_s vertex = exclusionCircle(north_m, east_m, 0.f);
+		vertex.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
+		vertex.vertex_count = vertex_count;
+		return vertex;
 	}
 
 	mission_s loadRoutePlanningCache(const std::vector<mission_item_s> &mission_items,
@@ -1475,6 +1485,32 @@ TEST_F(RTLTest, RouteSafePointReturnReplansAfterFenceReplacementFinishesLoading)
 	EXPECT_EQ(_rtl.routePlanForTest().safe_point_index, 1);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
 	EXPECT_EQ(_rtl.routePlanMissionGenerationForTest(), mission_generation);
+}
+
+TEST_F(RTLTest, RouteSafePointReturnDoesNotRetryFailedFenceChecksWithLoadedFence)
+{
+	const std::vector<mission_item_s> mission_items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+	mission_s mission = loadRoutePlanningCache(mission_items, {makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt)});
+	const std::vector<mission_fence_point_s> square{
+		exclusionVertex(-10.f, 300.f, 4), exclusionVertex(10.f, 300.f, 4),
+		exclusionVertex(10.f, 320.f, 4), exclusionVertex(-10.f, 320.f, 4),
+	};
+	startFenceUpdate(mission, square);
+	ASSERT_TRUE(finishFenceUpdate());
+	// Point checks still pass, but every path check is unavailable, as for an over-long path.
+	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 3);
+	publishMission(mission);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
+	publishLandDetected(false);
+	setMissionResultValid(mission);
+
+	_rtl.activateRouteSafePointReturnForTest();
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	EXPECT_FALSE(_rtl.routeRetryPendingForTest());
 }
 
 TEST_F(RTLTest, RouteSafePointReturnPromotesWhenCacheBecomesReady)
