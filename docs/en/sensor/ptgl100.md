@@ -4,17 +4,21 @@ The JRT PTGL-100 is a UART laser rangefinder with a specified measurement range 
 
 ![JRT PTGL-100 laser rangefinder](../../assets/hardware/sensors/ptgl100/ptgl100_hero.jpg)
 
+The module must be set to 460800 baud, 8N1, with no flow control.
+PX4 does not change the module's baud rate.
+
 ::: info
 The rangefinder has been tested on the [Amovlab Flycore](../flight_controller/amovlab_flycore.md), which includes the driver in its default firmware.
 :::
-
-The module must be set to 460800 baud, 8N1, with no flow control.
-PX4 does not change the module's baud rate.
 
 ::: warning
 The manufacturer's revised manual is inconsistent about the measurement commands and the factory baud rate (see [Protocol](#protocol)).
 Confirm that your module uses the revised commands and 460800 baud before flight use.
 :::
+
+## Where to Buy
+
+- [JRT PTGL-100](https://example.com/TODO_PRODUCT_PAGE_URL)
 
 ## Wiring
 
@@ -75,7 +79,11 @@ The driver publishes laser type, 0.2–100 m limits, and the selected orientatio
 Signal quality is unknown (`-1`) for in-range measurements and invalid (`0`) for out-of-range values.
 Receiver field of view is left unknown because the manual only specifies beam divergence.
 
-## Diagnostics
+## Developer Information
+
+The [ptgl100](../modules/modules_driver_distance_sensor.md#ptgl100) driver starts continuous measurement and publishes the standard `distance_sensor` topic used by MAVLink and ULog.
+
+### Diagnostics
 
 The driver rejects corrupt frames and does not publish distance bytes from failed measurements.
 During a communication outage it does not repeat an old distance with a new timestamp.
@@ -92,10 +100,6 @@ ptgl100 stop
 
 The device name above corresponds to Flycore TELEM2.
 When stopped, the driver attempts to send the stop measurement command before closing the UART.
-
-## Developer Information
-
-The [ptgl100](../modules/modules_driver_distance_sensor.md#ptgl100) driver starts continuous measurement and publishes the standard `distance_sensor` topic used by MAVLink and ULog.
 
 ### Validation
 
