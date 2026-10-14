@@ -103,17 +103,7 @@ private:
 	// Subscriptions (per estimator instance)
 	struct EstimatorInstance {
 
-		EstimatorInstance(EKF2Selector *selector, uint8_t i) :
-			estimator_attitude_sub{selector, ORB_ID(estimator_attitude), i},
-			estimator_status_sub{selector, ORB_ID(estimator_status), i},
-			estimator_local_position_sub{ORB_ID(estimator_local_position), i},
-			estimator_global_position_sub{ORB_ID(estimator_global_position), i},
-			estimator_odometry_sub{ORB_ID(estimator_odometry), i},
-			estimator_wind_sub{ORB_ID(estimator_wind), i},
-			instance(i)
-		{
-			healthy.set_hysteresis_time_from(false, 1_s);
-		}
+		EstimatorInstance(EKF2Selector *selector, uint8_t i);
 
 		uORB::SubscriptionCallbackWorkItem estimator_attitude_sub;
 		uORB::SubscriptionCallbackWorkItem estimator_status_sub;
