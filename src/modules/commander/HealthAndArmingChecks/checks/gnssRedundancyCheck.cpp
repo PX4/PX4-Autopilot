@@ -110,18 +110,17 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 
 	const bool below_required = (_param_sys_has_num_gnss.get() > 0) && (healthy_count < _param_sys_has_num_gnss.get());
 	const bool dropped_below_peak = (_peak_healthy_count > 1) && (healthy_count < _peak_healthy_count);
-	const bool act_configured = (_param_com_gnssloss_act.get() > 0);
 
 	// Divergence triggers the failsafe only when the operator explicitly expects two
 	// receivers (SYS_HAS_NUM_GNSS >= 2); otherwise it remains a warning.
 	const bool divergence_triggers_failsafe = _divergence_hysteresis.get_state() && (_param_sys_has_num_gnss.get() >= 2);
 
 	reporter.failsafeFlags().gnss_lost = below_required || divergence_triggers_failsafe;
+	const bool block_arming = reporter.failsafeFlags().gnss_lost && (_param_com_gnssloss_act.get() > 0);
+	const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
+	const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
 
 	if (below_required || dropped_below_peak) {
-		const bool block_arming = below_required && act_configured;
-		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
-		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
 		const int expected = below_required ? _param_sys_has_num_gnss.get() : _peak_healthy_count;
 
 		for (int i = 0; i < expected; i++) {
@@ -153,10 +152,6 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	}
 
 	if (_divergence_hysteresis.get_state()) {
-		const bool block_arming = divergence_triggers_failsafe && act_configured;
-		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
-		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
-
 		/* EVENT
 		 * @description
 		 * Two GNSS receivers report positions that are inconsistent with their reported accuracy.
