@@ -40,6 +40,25 @@ parameters:
             max: 85.0
             default: [55.0, 55.0, 55.0]
 
+        HEATER${i}_SLEW:
+            description:
+                short: Heater ${i} power slew rate limit
+                long: |
+                    Maximum change of the heater duty cycle per second, as a fraction of full power.
+                    A fast change in heater power shifts the accelerometer offset of a nearby sensor
+                    for seconds. 0 disables the limit.
+
+            type: float
+            unit: 1/s
+            min: 0
+            max: 10.0
+            decimal: 3
+            increment: 0.001
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0.0, 0.0, 0.0]
+
         HEATER${i}_TEMP_FF:
             description:
                 short: Heater ${i} controller feedforward value

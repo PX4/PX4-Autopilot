@@ -169,6 +169,8 @@ private:
 	uint32_t _sensor_device_id{0};
 
 	float _temperature_last{NAN};
+	float _duty_last{0.f};
+	hrt_abstime _duty_last_update_time{0};
 	float _supply_voltage{NAN};
 	bool _temperature_activation_threshold_met{false};
 	const uint8_t _instance; //! 1-based
@@ -184,6 +186,7 @@ private:
 		param_t temp_src;
 		param_t temp_activation_threshold;
 		param_t nom_v;
+		param_t slew;
 	} _param_handles;
 
 	struct {
@@ -196,6 +199,7 @@ private:
 		int32_t temp_src; // 0 = IMU, 1 = hygrometer
 		float   temp_activation_threshold; // start heating once the temperature drops below this value
 		float   nom_v;    // nominal supply voltage for power limiting (0 = disabled)
+		float   slew;     // duty cycle rate limit in 1/s (0 = disabled)
 	} _params;
 
 };
