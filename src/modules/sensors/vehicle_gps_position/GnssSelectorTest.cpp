@@ -1310,3 +1310,30 @@ TEST_F(GnssSelectorTest, lateSampleDoesNotFail)
 
 	EXPECT_TRUE(selector.isUsable(0, _time_now_us - 100_ms));
 }
+
+TEST_F(GnssSelectorTest, groundOutageDoesNotCountInFlight)
+{
+	GnssSelector selector;
+
+	// GIVEN: gps0, the preferred receiver, was unusable for a minute on the ground and passes its checks again
+	selector.setPreferredInstance(0);
+
+	sensor_gnss_s gnss_data0 = getDefaultGnssData();
+	sensor_gnss_s gnss_data1 = getDefaultGnssData();
+
+	runSeconds(15.f, selector, gnss_data0, gnss_data1);
+	_checks_passed[0] = false;
+	_passed_strict[0] = false;
+	runSeconds(60.f, selector, gnss_data0, gnss_data1);
+	_checks_passed[0] = true;
+	_passed_strict[0] = true;
+	runSeconds(1.f, selector, gnss_data0, gnss_data1);
+
+	// WHEN: the vehicle arms right after
+	selector.setArmed(true);
+	runSeconds(60.f, selector, gnss_data0, gnss_data1);
+
+	// THEN: gps0 stays selected, as availability counts from arming
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+	EXPECT_EQ(selector.getSelectionCount(), 0);
+}

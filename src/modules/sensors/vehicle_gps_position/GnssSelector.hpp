@@ -79,7 +79,8 @@ public:
 	static constexpr hrt_abstime FAIL_TIME_US = 2_s;
 
 	// A single failed sample makes a receiver unusable for about a second in flight, which costs it 0.1 availability
-	// with this time constant; a receiver usable a third of the time costs the margin within a few seconds
+	// with this time constant; a receiver usable a third of the time costs the margin within a few seconds. It counts
+	// from arming, as while disarmed the strict checks keep a receiver unusable for GNSS_REQ_TIME after every failure.
 	static constexpr hrt_abstime AVAILABILITY_TIME_CONSTANT_US = 10_s;
 	// A usable receiver whose availability is higher by this margin replaces the selected one. Moves to the preferred
 	// or a higher ranked receiver accept half of it, so that the selected receiver doesn't take over again right after.
@@ -126,6 +127,14 @@ public:
 	void setPreferredInstance(int instance) { _preferred_instance = instance; }
 	void setArmed(bool armed)
 	{
+		if (armed && !_armed) {
+			for (int i = 0; i < GNSS_MAX_RECEIVERS; i++) {
+				if (_has_passed[i]) {
+					_availability[i].reset(1.f);
+				}
+			}
+		}
+
 		_armed = armed;
 
 		if (!armed) {
