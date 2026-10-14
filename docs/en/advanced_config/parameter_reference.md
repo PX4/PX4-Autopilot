@@ -26760,6 +26760,7 @@ Action the system takes when a GNSS failure is detected during flight.
 Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
 when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
 with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
+The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
 Any value above Warning also blocks arming.
 
 
@@ -26769,6 +26770,7 @@ Any value above Warning also blocks arming.
 - `1`: Return
 - `2`: Land
 - `3`: Terminate
+- `4`: Warning, block arming
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
