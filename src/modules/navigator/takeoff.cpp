@@ -86,9 +86,14 @@ Takeoff::on_active()
 							publishCourseHoldSetpoint(_hold_course, hold_altitude_amsl);
 
 							events::send<float>(events::ID("navigator_takeoff_hold_course"), events::Log::Info,
-									    "Takeoff complete, holding course {1:.0} deg", math::degrees(matrix::wrap_2pi(_hold_course)));
+									    "Takeoff complete, continuing on course {1:.0} deg", math::degrees(matrix::wrap_2pi(_hold_course)));
 
-							_fw_takeoff_state = fw_takeoff_state::HOLD_COURSE;
+							_navigator->get_mission_result()->finished = true;
+							_navigator->set_mission_result_updated();
+
+							_loiter_altitude_msl = NAN; // reset for next takeoff command
+
+							_fw_takeoff_state = fw_takeoff_state::COURSE_HANDOVER;
 							break;
 						}
 
@@ -173,20 +178,9 @@ Takeoff::on_active()
 				break;
 			}
 
-		case fw_takeoff_state::HOLD_COURSE: {
-				if (!_navigator->get_local_position()->v_xy_valid && !_navigator->get_mission_result()->finished) {
-					// the course cannot be tracked anymore, end the mode so that Commander falls back to Hold
-					events::send(events::ID("navigator_takeoff_hold_course_lost_velocity"), events::Log::Warning,
-						     "Velocity estimate lost, ending course hold");
-
-					_navigator->get_mission_result()->finished = true;
-					_navigator->set_mission_result_updated();
-
-					_loiter_altitude_msl = NAN; // reset for next takeoff command
-				}
-
-				break;
-			}
+		case fw_takeoff_state::COURSE_HANDOVER:
+			// flying the course until Commander switches to Guided Course, or to Hold if that is not possible
+			break;
 
 		default:
 			break;

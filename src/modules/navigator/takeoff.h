@@ -63,7 +63,7 @@ private:
 	enum class fw_takeoff_state {
 		CLIMBOUT = 0,
 		GO_TO_LOITER,
-		HOLD_COURSE
+		COURSE_HANDOVER
 	} _fw_takeoff_state;
 
 	void set_takeoff_position();

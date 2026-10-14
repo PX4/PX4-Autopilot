@@ -2,7 +2,7 @@
 
 <img src="../../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" />
 
-The _Takeoff_ flight mode causes the vehicle to take off to a specified height and then enter [Hold mode](../flight_modes_fw/hold.md), or hold a commanded course.
+The _Takeoff_ flight mode causes the vehicle to take off to a specified height and then enter [Hold mode](../flight_modes_fw/hold.md), or [Guided Course mode](../flight_modes_fw/guided_course.md) on a commanded course.
 
 Vehicles are [hand or catapult launched](#catapult-hand-launch) by default, but can also be [configured](#RWTO_TKOFF) to use a [runway takeoff](#runway-takeoff) when supported by the hardware.
 
@@ -34,7 +34,9 @@ Irrespective of the modality, a flight path (starting point and takeoff course) 
 
 - The starting point is the vehicle position when the takeoff mode is first entered.
 - The course is set to the vehicle heading on arming by default.
-  If a valid waypoint latitude/longitude is set the vehicle will instead track towards the waypoint.
+  If a valid waypoint latitude/longitude is set the vehicle will instead track towards the waypoint during the climbout.
+- After the climbout the vehicle enters [Hold mode](../flight_modes_fw/hold.md).
+  If a course is set (`MAV_CMD_NAV_TAKEOFF` param4, or the same field of the [VehicleCommand](../msg_docs/VehicleCommand.md) uORB topic) it instead enters [Guided Course mode](../flight_modes_fw/guided_course.md) on that course.
 - The clearance altitude is set to [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT) by default.
   If a valid waypoint altitude is set is set the vehicle will instead use it as the clearance altitude.
 
@@ -47,10 +49,10 @@ Use it where altitude is a poor measure of when the climbout is done, such as a 
 
 If a valid waypoint target is set, using `MAV_CMD_NAV_TAKEOFF` or the [VehicleCommand](../msg_docs/VehicleCommand.md) uORB topic, the vehicle will instead track towards the waypoint, and enter [Hold mode](../flight_modes_fw/hold.md) after reaching the waypoint altitude (within the acceptance radius).
 
-If a yaw angle is set (`MAV_CMD_NAV_TAKEOFF` param4), the vehicle holds that course over ground at the takeoff altitude after the climbout instead of loitering, and stays in _Takeoff mode_ until another mode is selected.
-The climbout itself still follows the launch direction.
-Holding a course requires a horizontal velocity estimate.
-If there is none when the climbout ends the vehicle loiters instead, and if it is lost while holding the course the vehicle switches to [Hold mode](../flight_modes_fw/hold.md).
+If a course is set in `MAV_CMD_NAV_TAKEOFF` param4 (labelled _Yaw_ in MAVLink), the vehicle enters [Guided Course mode](../flight_modes_fw/guided_course.md) after the climbout instead of Hold mode.
+It continues on that course over ground, at the same altitude Hold mode would use.
+The climbout itself is unchanged, and a waypoint latitude/longitude still steers it.
+If Guided Course mode cannot be entered, for example without a horizontal velocity estimate, the vehicle enters Hold mode instead.
 
 ::: tip
 If the local position is invalid or becomes invalid while executing the takeoff, the controller is not able to track a course setpoint and will instead proceed climbing while keeping the wings level until the clearance altitude is reached.

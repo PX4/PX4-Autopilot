@@ -49,15 +49,29 @@ Course::Course(Navigator *navigator) :
 void
 Course::on_activation()
 {
+	// Snapshot the setpoint the previous mode left before resetting the triplet, so we can continue
+	// a course that is already being flown, for example handed over by the fixed-wing takeoff.
+	const position_setpoint_s previous_setpoint = _navigator->get_position_setpoint_triplet()->current;
+
 	// reset triplets, modes should be explicit about which fields they want to set
 	_navigator->reset_triplets();
 
-	const vehicle_local_position_s *lpos = _navigator->get_local_position();
+	const bool continue_course = previous_setpoint.valid
+				     && previous_setpoint.type == position_setpoint_s::SETPOINT_TYPE_POSITION
+				     && PX4_ISFINITE(previous_setpoint.course);
 
-	_altitude = _navigator->get_global_position()->alt;
+	if (continue_course) {
+		_course = previous_setpoint.course;
+		_altitude = previous_setpoint.alt;
 
-	if (lpos->v_xy_valid) {
-		_course = matrix::wrap_2pi(atan2f(lpos->vy, lpos->vx));
+	} else {
+		const vehicle_local_position_s *lpos = _navigator->get_local_position();
+
+		_altitude = _navigator->get_global_position()->alt;
+
+		if (lpos->v_xy_valid) {
+			_course = matrix::wrap_2pi(atan2f(lpos->vy, lpos->vx));
+		}
 	}
 
 	_navigator->reset_cruising_speed();
