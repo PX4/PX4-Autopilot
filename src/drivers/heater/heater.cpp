@@ -426,6 +426,12 @@ void Heater::Run()
 		_battery_status_last_update_time = hrt_absolute_time();
 	}
 
+	actuator_armed_s actuator_armed;
+
+	if (_actuator_armed_sub.update(&actuator_armed)) {
+		_armed = actuator_armed.armed;
+	}
+
 	float current_temp = NAN;
 	const bool use_hygro = (_params.temp_src == heater_status_s::TEMPERATURE_SOURCE_HYGRO);
 
@@ -486,11 +492,12 @@ void Heater::Run()
 			_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, CONTROLLER_PERIOD_DEFAULT);
 
 			// A fast change in heater power shifts the accelerometer offset for seconds, so the power
-			// demand is rate limited. The supply voltage scaling below still acts immediately.
+			// demand is rate limited while armed. Disarmed, the heater warms up at full power. The supply
+			// voltage scaling below still acts immediately.
 			float duty = static_cast<float>(_controller_time_on_usec) / CONTROLLER_PERIOD_DEFAULT;
 			const hrt_abstime now = hrt_absolute_time();
 
-			if (_params.slew > 0.f) {
+			if (_armed && _params.slew > 0.f) {
 				const float dt = (_duty_last_update_time == 0) ? CONTROLLER_PERIOD_DEFAULT * 1e-6f
 						 : math::constrain((now - _duty_last_update_time) * 1e-6f, 0.f, 1.f);
 				const float max_step = _params.slew * dt;

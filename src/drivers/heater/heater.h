@@ -50,6 +50,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/heater_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
@@ -165,11 +166,13 @@ private:
 	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)};
 	uORB::Subscription _sensor_hygrometer_sub{ORB_ID(sensor_hygrometer)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	uint32_t _sensor_device_id{0};
 
 	float _temperature_last{NAN};
 	float _duty_last{0.f};
+	bool _armed{false};
 	hrt_abstime _duty_last_update_time{0};
 	float _supply_voltage{NAN};
 	bool _temperature_activation_threshold_met{false};
@@ -199,7 +202,7 @@ private:
 		int32_t temp_src; // 0 = IMU, 1 = hygrometer
 		float   temp_activation_threshold; // start heating once the temperature drops below this value
 		float   nom_v;    // nominal supply voltage for power limiting (0 = disabled)
-		float   slew;     // duty cycle rate limit in 1/s (0 = disabled)
+		float   slew;     // duty cycle rate limit while armed in 1/s (0 = disabled)
 	} _params;
 
 };

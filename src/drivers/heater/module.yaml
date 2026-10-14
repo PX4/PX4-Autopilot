@@ -42,11 +42,12 @@ parameters:
 
         HEATER${i}_SLEW:
             description:
-                short: Heater ${i} power slew rate limit
+                short: Heater ${i} power slew rate limit while armed
                 long: |
-                    Maximum change of the heater duty cycle per second, as a fraction of full power.
-                    A fast change in heater power shifts the accelerometer offset of a nearby sensor
-                    for seconds. 0 disables the limit.
+                    Maximum change of the heater duty cycle per second while armed, as a fraction of
+                    full power. A fast change in heater power shifts the accelerometer offset of a
+                    nearby sensor for seconds. Disarmed, the heater is not limited, so it warms up at
+                    full power. 0 disables the limit.
 
             type: float
             unit: 1/s
