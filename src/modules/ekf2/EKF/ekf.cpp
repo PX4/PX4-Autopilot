@@ -233,7 +233,9 @@ bool Ekf::initialiseTilt()
 
 void Ekf::predictState(const imuSample &imu_delayed)
 {
-	if (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)) {
+	if (global_origin_valid()
+	    && (!PX4_ISFINITE(_earth_rate_lat_ref_rad)
+		|| (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)))) {
 		_earth_rate_lat_ref_rad = _gpos.latitude_rad();
 		_earth_rate_NED = calcEarthRateNED((float)_earth_rate_lat_ref_rad);
 		_gravity = LatLonAlt::Wgs84::gravity(_earth_rate_lat_ref_rad);
