@@ -108,13 +108,13 @@ TEST(TestLatLonAlt, subLatLonAlt)
 
 TEST(TestLatLonAlt, fromAndToECEF)
 {
-	for (double lat = -M_PI; lat < M_PI; lat += M_PI / 4.0) {
-		for (double lon = -M_PI; lon < M_PI; lon += M_PI / 4.0) {
+	for (double lat_deg = -90.0; lat_deg <= 90.0; lat_deg += 15.0) {
+		for (double lon_deg = -180.0; lon_deg < 180.0; lon_deg += 45.0) {
 			for (float alt = -500.f; alt < 8000.f; alt += 500.f) {
-				LatLonAlt lla(lat, lon, alt);
+				LatLonAlt lla(lat_deg, lon_deg, alt);
 
 				LatLonAlt res = LatLonAlt::fromEcef(lla.toEcef());
-				EXPECT_TRUE(!(lla - res).longerThan(10e-6f)) << "lat: " << lat << ", lon: " << lon << ", alt: " << alt;
+				EXPECT_TRUE(!(lla - res).longerThan(10e-6f)) << "lat: " << lat_deg << ", lon: " << lon_deg << ", alt: " << alt;
 			}
 		}
 	}
