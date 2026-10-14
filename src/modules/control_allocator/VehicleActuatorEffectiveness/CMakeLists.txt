@@ -31,7 +31,6 @@ px4_add_library(VehicleActuatorEffectiveness
 	RpmControl.cpp
 )
 
-target_compile_options(VehicleActuatorEffectiveness PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 target_include_directories(VehicleActuatorEffectiveness PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(VehicleActuatorEffectiveness
 	PRIVATE
