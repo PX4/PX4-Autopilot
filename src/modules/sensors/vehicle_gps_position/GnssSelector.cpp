@@ -143,13 +143,6 @@ void GnssSelector::updateAvailability(uint64_t hrt_now_us)
 
 		if (usable) {
 			_time_last_usable_us[i] = hrt_now_us;
-
-			if (_time_usable_since_us[i] == 0) {
-				_time_usable_since_us[i] = hrt_now_us;
-			}
-
-		} else {
-			_time_usable_since_us[i] = 0;
 		}
 
 		const bool failed = hasFailed(i, hrt_now_us);

@@ -82,8 +82,7 @@ public:
 	// with this time constant; a receiver usable a third of the time costs the margin within a few seconds. It counts
 	// from arming, as while disarmed the strict checks keep a receiver unusable for GNSS_REQ_TIME after every failure.
 	static constexpr hrt_abstime AVAILABILITY_TIME_CONSTANT_US = 10_s;
-	// A usable receiver whose availability is higher by this margin replaces the selected one. Moves to the preferred
-	// or a higher ranked receiver accept half of it, so that the selected receiver doesn't take over again right after.
+	// A usable receiver more available by this margin is better whatever its rank, as something is wrong with the other
 	static constexpr float AVAILABILITY_MARGIN = 0.2f;
 
 	// How long a receiver must rank higher before the selection moves to it. While disarmed a receiver is usable only
@@ -257,7 +256,6 @@ private:
 	uint64_t _time_last_update_us{0};
 
 	uint64_t _time_last_usable_us[GNSS_MAX_RECEIVERS] {};
-	uint64_t _time_usable_since_us[GNSS_MAX_RECEIVERS] {}; ///< start of the current usable period, 0 while unusable
 	bool _strict_qualified[GNSS_MAX_RECEIVERS] {}; ///< strict checks held for GNSS_REQ_TIME, and it hasn't failed since
 
 	uint64_t _time_prev_us[GNSS_MAX_RECEIVERS] {};  ///< timestamp of the previous sample, to detect new data
