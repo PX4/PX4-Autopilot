@@ -316,7 +316,6 @@ AirspeedModule::init()
 
 		if (_airspeed_subs[i].copy(&airspeed)) {
 			_airspeed_device_id[i] = airspeed.device_id;
-			_time_last_airspeed_update[i] = _time_now_usec;
 		}
 	}
 
