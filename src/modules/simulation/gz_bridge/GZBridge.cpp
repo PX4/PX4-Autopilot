@@ -438,6 +438,7 @@ void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 {
 	const uint64_t timestamp = hrt_absolute_time();
+	_failure_config.update();
 
 	device::Device::DeviceId id{};
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
@@ -453,7 +454,10 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 	_temperature = static_cast<float>(msg.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
 	report.temperature = _temperature;
 	report.pitot_temperature = NAN;
-	_differential_pressure_pub.publish(report);
+
+	if (failure_injection::process_airspeed(_failure_config, 0, report, _airspeed_failure)) {
+		_differential_pressure_pub.publish(report);
+	}
 }
 
 void GZBridge::imuCallback(const gz::msgs::IMU &msg)
