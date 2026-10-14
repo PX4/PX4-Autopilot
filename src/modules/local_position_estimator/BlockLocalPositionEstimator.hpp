@@ -98,7 +98,7 @@ class BlockLocalPositionEstimator : public ModuleBase, public ModuleParams,
 //
 //      flow: vx, vy (flow is in body x, y frame)
 //
-//      gps: px, py, pz, vx, vy, vz (flow is in body x, y frame)
+//      gnss: px, py, pz, vx, vy, vz (flow is in body x, y frame)
 //
 //      lidar: pz (actual measured d*cos(phi)*cos(theta))
 //
@@ -135,13 +135,13 @@ private:
 	enum {Y_lidar_z = 0, n_y_lidar};
 	enum {Y_flow_vx = 0, Y_flow_vy, n_y_flow};
 	enum {Y_sonar_z = 0, n_y_sonar};
-	enum {Y_gps_x = 0, Y_gps_y, Y_gps_z, Y_gps_vx, Y_gps_vy, Y_gps_vz, n_y_gps};
+	enum {Y_gnss_x = 0, Y_gnss_y, Y_gnss_z, Y_gnss_vx, Y_gnss_vy, Y_gnss_vz, n_y_gnss};
 	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
 	enum {Y_land_vx = 0, Y_land_vy, Y_land_agl, n_y_land};
 	enum {Y_target_x = 0, Y_target_y, n_y_target};
 	enum {
-		FUSE_GPS = 1 << 0,
+		FUSE_GNSS = 1 << 0,
 		FUSE_FLOW = 1 << 1,
 		FUSE_VIS_POS = 1 << 2,
 		FUSE_LAND_TARGET = 1 << 3,
@@ -153,7 +153,7 @@ private:
 
 	enum sensor_t {
 		SENSOR_BARO = 1 << 0,
-		SENSOR_GPS = 1 << 1,
+		SENSOR_GNSS = 1 << 1,
 		SENSOR_LIDAR = 1 << 2,
 		SENSOR_FLOW = 1 << 3,
 		SENSOR_SONAR = 1 << 4,
@@ -204,11 +204,11 @@ private:
 	void baroInit();
 	void baroCheckTimeout();
 
-	// gps
-	int  gpsMeasure(Vector<double, n_y_gps> &y);
-	void gpsCorrect();
-	void gpsInit();
-	void gpsCheckTimeout();
+	// gnss
+	int  gnssMeasure(Vector<double, n_y_gnss> &y);
+	void gnssCorrect();
+	void gnssInit();
+	void gnssCheckTimeout();
 
 	// flow
 	int  flowMeasure(Vector<float, n_y_flow> &y);
@@ -310,7 +310,7 @@ private:
 	BlockStats<float, 1> _flowQStats;
 	BlockStats<float, n_y_vision> _visionStats;
 	BlockStats<float, n_y_mocap> _mocapStats;
-	BlockStats<double, n_y_gps> _gpsStats;
+	BlockStats<double, n_y_gnss> _gnssStats;
 	uint16_t _landCount;
 
 	// low pass
@@ -328,7 +328,7 @@ private:
 	uint64_t _time_last_hist;
 	uint64_t _time_last_flow;
 	uint64_t _time_last_baro;
-	uint64_t _time_last_gps;
+	uint64_t _time_last_gnss;
 	uint64_t _time_last_lidar;
 	uint64_t _time_last_sonar;
 	uint64_t _time_init_sonar;
@@ -342,10 +342,10 @@ private:
 	bool _altOriginInitialized;
 	bool _altOriginGlobal; // true when the altitude of the origin is defined wrt a global reference frame
 	float _baroAltOrigin;
-	float _gpsAltOrigin;
+	float _gnssAltOrigin;
 
 	// status
-	bool _receivedGps;
+	bool _receivedGnss;
 	bool _lastArmedState;
 
 	// masks
@@ -355,7 +355,7 @@ private:
 
 	// sensor update flags
 	bool _flowUpdated;
-	bool _gpsUpdated;
+	bool _gnssUpdated;
 	bool _visionUpdated;
 	bool _mocapUpdated;
 	bool _lidarUpdated;
@@ -415,7 +415,7 @@ private:
 		// baro parameters
 		(ParamFloat<px4::params::LPE_BAR_Z>) _param_lpe_bar_z,
 
-		// gps parameters
+		// gnss parameters
 		(ParamFloat<px4::params::LPE_GPS_DELAY>) _param_lpe_gps_delay,
 		(ParamFloat<px4::params::LPE_GPS_XY>) _param_lpe_gps_xy,
 		(ParamFloat<px4::params::LPE_GPS_Z>) _param_lpe_gps_z,

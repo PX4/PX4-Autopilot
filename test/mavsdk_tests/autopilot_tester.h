@@ -86,7 +86,7 @@ public:
 
 	enum class HeightSource {
 		Baro,
-		Gps
+		Gnss
 	};
 
 	enum class RcLossException {
@@ -127,7 +127,7 @@ public:
 	void prepare_square_mission(MissionOptions mission_options);
 	void prepare_straight_mission(MissionOptions mission_options);
 	void execute_mission();
-	void execute_mission_and_lose_gps();
+	void execute_mission_and_lose_gnss();
 	void execute_mission_and_lose_mag();
 	void execute_mission_and_get_mag_stuck();
 	void execute_mission_and_lose_baro();

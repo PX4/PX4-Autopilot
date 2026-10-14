@@ -179,7 +179,7 @@ TEST_CASE("GNSS failover - height reset with GNSS as the height reference", "[gn
 {
 	AutopilotTesterGnss tester;
 	prepare(tester, RECEIVER_S);
-	tester.set_height_source(AutopilotTester::HeightSource::Gps);
+	tester.set_height_source(AutopilotTester::HeightSource::Gnss);
 	tester.takeoff_and_hold(FLIGHT_ALTITUDE_M);
 
 	tester.mark();

@@ -326,7 +326,7 @@ PrecLand::run_state_horizontal_approach()
 
 	slewrate(x, y);
 
-	// XXX need to transform to GPS coords because mc_pos_control only looks at that
+	// XXX need to transform to GNSS coords because mc_pos_control only looks at that
 	_map_ref.reproject(x, y, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 	pos_sp_triplet->current.alt = _approach_alt;
@@ -364,7 +364,7 @@ PrecLand::run_state_descend_above_target()
 
 	const matrix::Vector2f target_position_sp = get_target_position_setpoint();
 
-	// XXX need to transform to GPS coords because mc_pos_control only looks at that
+	// XXX need to transform to GNSS coords because mc_pos_control only looks at that
 	_map_ref.reproject(target_position_sp(0), target_position_sp(1), pos_sp_triplet->current.lat,
 			   pos_sp_triplet->current.lon);
 

@@ -55,7 +55,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-static constexpr float GPS_MESSAGE_STALE_TIMEOUT_MS =
+static constexpr float GNSS_MESSAGE_STALE_TIMEOUT_MS =
 	3000.0f;  	// Duration after which the connection to the target is considered lost
 static constexpr float MINIMUM_TIME_BETWEEN_POS_FUSIONS_MS = 500.0f;
 static constexpr float MINIMUM_TIME_BETWEEN_VEL_FUSIONS_MS = 100.0f;
@@ -155,7 +155,7 @@ protected:
 	/**
 	 * Perform filter update with new follow_target data
 	 *
-	 * @param follow_target GPS data last received from target
+	 * @param follow_target GNSS data last received from target
 	 */
 	void measurement_update(const follow_target_s &follow_target);
 

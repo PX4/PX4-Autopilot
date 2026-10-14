@@ -141,8 +141,8 @@ private:
 
 	static float generate_wgn();
 
-	void addGpsNoise(double &latitude, double &longitude, double &altitude,
-			 float &vel_north, float &vel_east, float &vel_down);
+	void addGnssNoise(double &latitude, double &longitude, double &altitude,
+			  float &vel_north, float &vel_east, float &vel_down);
 
 	uORB::SubscriptionInterval                    _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -188,13 +188,13 @@ private:
 	bool _realtime_clock_set{false};
 	gz::transport::Node _node;
 
-	// GPS noise model
-	float _gps_pos_noise_n = 0.0f;
-	float _gps_pos_noise_e = 0.0f;
-	float _gps_pos_noise_d = 0.0f;
-	float _gps_vel_noise_n = 0.0f;
-	float _gps_vel_noise_e = 0.0f;
-	float _gps_vel_noise_d = 0.0f;
+	// GNSS noise model
+	float _gnss_pos_noise_n = 0.0f;
+	float _gnss_pos_noise_e = 0.0f;
+	float _gnss_pos_noise_d = 0.0f;
+	float _gnss_vel_noise_n = 0.0f;
+	float _gnss_vel_noise_e = 0.0f;
+	float _gnss_vel_noise_d = 0.0f;
 	const float _pos_noise_amplitude = 0.8f;    // Position noise amplitude [m]
 	const float _pos_random_walk = 0.01f;       // Position random walk coefficient
 	const float _pos_markov_time = 0.95f;       // Position Markov process coefficient

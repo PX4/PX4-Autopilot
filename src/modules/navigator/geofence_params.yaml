@@ -23,13 +23,13 @@ parameters:
       description:
         short: Geofence source
         long: |-
-          Select which position source should be used. Selecting GPS instead of global position makes sure that there is
+          Select which position source should be used. Selecting GNSS instead of global position makes sure that there is
           no dependence on the position estimator
-          0 = global position, 1 = GPS
+          0 = global position, 1 = GNSS
       type: enum
       values:
         0: GPOS
-        1: GPS
+        1: GNSS
       default: 0
       min: 0
       max: 1

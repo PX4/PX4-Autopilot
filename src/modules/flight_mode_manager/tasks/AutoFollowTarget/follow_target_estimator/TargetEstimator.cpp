@@ -124,10 +124,10 @@ void TargetEstimator::update()
 	update_filter_gains(_filter_gains);
 
 
-	// Get GPS reference location for NED frame, needed for projection
+	// Get GNSS reference location for NED frame, needed for projection
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 
-	// Perform sensor fusion update if there's a new GPS message from the follow-target
+	// Perform sensor fusion update if there's a new GNSS message from the follow-target
 	prediction_update(deltatime);
 
 	follow_target_s follow_target;
@@ -151,7 +151,7 @@ void TargetEstimator::update()
 
 	// Keep position estimate as the last known position
 	// but stop moving the estimate
-	if (is_stale(GPS_MESSAGE_STALE_TIMEOUT_MS)) {
+	if (is_stale(GNSS_MESSAGE_STALE_TIMEOUT_MS)) {
 		_filter_states.vel_ned_est.setZero();
 		_filter_states.acc_ned_est.setZero();
 	}
@@ -166,7 +166,7 @@ void TargetEstimator::update()
 	follow_target_estimator_s follow_target_estimator{};
 	follow_target_estimator.timestamp = hrt_absolute_time();
 	follow_target_estimator.valid = states_are_finite;
-	follow_target_estimator.stale = is_stale(GPS_MESSAGE_STALE_TIMEOUT_MS);
+	follow_target_estimator.stale = is_stale(GNSS_MESSAGE_STALE_TIMEOUT_MS);
 	follow_target_estimator.last_filter_reset_timestamp = _last_filter_reset_timestamp;
 	follow_target_estimator.lat_est = get_lat_lon_alt_est()(0);
 	follow_target_estimator.lon_est = get_lat_lon_alt_est()(1);
@@ -255,8 +255,8 @@ void TargetEstimator::measurement_update(const follow_target_s &follow_target)
 
 	// Fuse position measurement
 	//
-	// Filter duplicate GPS POS and VEL messages
-	// QGC sends the same GPS coordinates multiple times per second, even though the phone's GPS
+	// Filter duplicate GNSS POS and VEL messages
+	// QGC sends the same GNSS coordinates multiple times per second, even though the phone's GNSS
 	// typically only updates at 1 Hz
 
 	if (measurement_can_be_fused(pos_measured, _pos_measurement_old, _last_position_fusion_timestamp,
@@ -283,7 +283,7 @@ void TargetEstimator::measurement_update(const follow_target_s &follow_target)
 	// Use target's velocity data for update only if
 	// - the last velocity fusion is a while ago to prevent repeated measurements to cause a quick convergence
 	// - the target is considered to be moving. Otherwise it's enough to only update the position
-	// - the GPS velocity measurement from the target is not stale
+	// - the GNSS velocity measurement from the target is not stale
 	// Additionally also wait with first velocity fusion until at least one position fusion has been done (states become finite)
 	if (measurement_can_be_fused(vel_measured, _vel_measurement_old, _last_velocity_fusion_timestamp,
 				     MINIMUM_TIME_BETWEEN_VEL_FUSIONS_MS)) {

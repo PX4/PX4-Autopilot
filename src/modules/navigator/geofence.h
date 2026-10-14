@@ -75,7 +75,7 @@ public:
 	/* Source, corresponding to the param GF_SOURCE */
 	enum {
 		GF_SOURCE_GLOBALPOS = 0,
-		GF_SOURCE_GPS = 1
+		GF_SOURCE_GNSS = 1
 	};
 
 	/**

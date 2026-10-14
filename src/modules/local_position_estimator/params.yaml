@@ -120,7 +120,7 @@ parameters:
       decimal: 2
     LPE_GPS_DELAY:
       description:
-        short: GPS delay compensation
+        short: GNSS delay compensation
       type: float
       default: 0.29
       unit: s
@@ -129,7 +129,7 @@ parameters:
       decimal: 2
     LPE_GPS_XY:
       description:
-        short: Minimum GPS xy standard deviation, uses reported EPH if greater
+        short: Minimum GNSS xy standard deviation, uses reported EPH if greater
       type: float
       default: 1.0
       unit: m
@@ -138,7 +138,7 @@ parameters:
       decimal: 2
     LPE_GPS_Z:
       description:
-        short: Minimum GPS z standard deviation, uses reported EPV if greater
+        short: Minimum GNSS z standard deviation, uses reported EPV if greater
       type: float
       default: 3.0
       unit: m
@@ -147,7 +147,7 @@ parameters:
       decimal: 2
     LPE_GPS_VXY:
       description:
-        short: GPS xy velocity standard deviation
+        short: GNSS xy velocity standard deviation
         long: EPV used if greater than this value.
       type: float
       default: 0.25
@@ -157,7 +157,7 @@ parameters:
       decimal: 3
     LPE_GPS_VZ:
       description:
-        short: GPS z velocity standard deviation
+        short: GNSS z velocity standard deviation
       type: float
       default: 0.25
       unit: m/s
@@ -166,7 +166,7 @@ parameters:
       decimal: 3
     LPE_EPH_MAX:
       description:
-        short: Max EPH allowed for GPS initialization
+        short: Max EPH allowed for GNSS initialization
       type: float
       default: 3.0
       unit: m
@@ -175,7 +175,7 @@ parameters:
       decimal: 3
     LPE_EPV_MAX:
       description:
-        short: Max EPV allowed for GPS initialization
+        short: Max EPV allowed for GNSS initialization
       type: float
       default: 5.0
       unit: m
@@ -298,7 +298,7 @@ parameters:
       max: 1
     LPE_LAT:
       description:
-        short: Local origin latitude for nav w/o GPS
+        short: Local origin latitude for nav w/o GNSS
       type: float
       default: 47.397742
       unit: deg
@@ -307,7 +307,7 @@ parameters:
       decimal: 8
     LPE_LON:
       description:
-        short: Local origin longitude for nav w/o GPS
+        short: Local origin longitude for nav w/o GNSS
       type: float
       default: 8.545594
       unit: deg
@@ -375,7 +375,7 @@ parameters:
         short: Integer bitmask controlling data fusion
         long: |-
           Set bits in the following positions to enable:
-          0 : Set to true to fuse GPS data if available, also requires GPS for altitude init
+          0 : Set to true to fuse GNSS data if available, also requires GNSS for altitude init
           1 : Set to true to fuse optical flow data if available
           2 : Set to true to fuse vision position
           3 : Set to true to enable landing target
@@ -384,10 +384,10 @@ parameters:
           6 : Set to true to enable flow gyro compensation
           7 : Set to true to enable baro fusion
 
-          default (145 - GPS, baro, land detector)
+          default (145 - GNSS, baro, land detector)
       type: bitmask
       bit:
-        0: fuse GPS, requires GPS for alt. init
+        0: fuse GNSS, requires GNSS for alt. init
         1: fuse optical flow
         2: fuse vision position
         3: fuse landing target

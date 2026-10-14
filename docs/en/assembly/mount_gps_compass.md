@@ -11,7 +11,7 @@ The compass should ideally be oriented so that it is upright and the direction m
 
 The diagram below shows the heading marker on the Pixhawk 4 flight controller and compass.
 
-![Connect compass/GPS to Pixhawk 4](../../assets/flight_controller/pixhawk4/pixhawk4_compass_gps.jpg)
+![Connect compass/GNSS to Pixhawk 4](../../assets/flight_controller/pixhawk4/pixhawk4_compass_gps.jpg)
 
 PX4 will automatically detect the orientation for any of these standard orientations during [compass calibration](../config/compass.md) ([by default](../advanced_config/parameter_reference.md#SENS_MAG_AUTOROT)).
 

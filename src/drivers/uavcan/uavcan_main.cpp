@@ -746,7 +746,7 @@ UavcanNode::Run()
 		}
 
 		/* When we have a system wide notion of time update (i.e the transition from the initial
-		 * System RTC setting to the GPS) we would call UAVCAN_DRIVER::clock::setUtc() when that
+		 * System RTC setting to the GNSS receiver) we would call UAVCAN_DRIVER::clock::setUtc() when that
 		 * happens, but for now we use adjustUtc with a correction of the hrt so that the
 		 * time bases are the same
 		 */

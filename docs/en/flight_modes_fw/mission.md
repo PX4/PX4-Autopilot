@@ -7,7 +7,7 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 
 ::: info
 
-- This mode requires a global 3d position estimate (from GPS or inferred from a [local position](../ros/external_position_estimation.md#enabling-auto-modes-with-a-local-position)).
+- This mode requires a global 3d position estimate (from GNSS or inferred from a [local position](../ros/external_position_estimation.md#enabling-auto-modes-with-a-local-position)).
 - The mission will start once the vehicle is armed.
 - This mode is automatic - no user intervention is _required_ to control the vehicle.
 - Sticks/switches can be used to switch out of mission mode on any vehicle.

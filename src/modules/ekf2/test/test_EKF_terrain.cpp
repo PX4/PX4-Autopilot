@@ -73,21 +73,21 @@ public:
 
 	void runFlowAndRngScenario(const float rng_height, const float flow_height)
 	{
-		_sensor_simulator.startGps();
+		_sensor_simulator.startGnss();
 
-		_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
+		_sensor_simulator._gnss.setMinRequiredGnssHealthTime(1e6);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 
-		_ekf_wrapper.enableGpsFusion();
-		_sensor_simulator.runSeconds(1.5); // Run to pass the GPS checks
-		EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+		_ekf_wrapper.enableGnssFusion();
+		_sensor_simulator.runSeconds(1.5); // Run to pass the GNSS checks
+		EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 
 		const Vector3f simulated_velocity(0.5f, -1.0f, 0.f);
 
-		// Configure GPS simulator data
-		_sensor_simulator._gps.setVelocity(simulated_velocity);
-		_sensor_simulator._gps.setPositionRateNED(simulated_velocity);
+		// Configure GNSS simulator data
+		_sensor_simulator._gnss.setVelocity(simulated_velocity);
+		_sensor_simulator._gnss.setPositionRateNED(simulated_velocity);
 
 		// Configure range finder simulator data
 		_sensor_simulator._rng.setData(rng_height, 100);
@@ -206,7 +206,7 @@ TEST_F(EkfTerrainTest, testHeightReset)
 	// WHEN: the baro height is suddenly changed while the range finder keeps fusing height
 	const float new_baro_height = _sensor_simulator._baro.getData() + 50.f;
 	_sensor_simulator._baro.setData(new_baro_height);
-	_sensor_simulator.stopGps(); // prevent from switching to GNSS height
+	_sensor_simulator.stopGnss(); // prevent from switching to GNSS height
 	_sensor_simulator.runSeconds(10);
 
 	// THEN: the range finder still fuses height, so the height is not reset to the faulty baro.

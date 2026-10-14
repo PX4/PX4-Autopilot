@@ -54,7 +54,7 @@ namespace status
 
 void StatusDisplay::set_leds()
 {
-	bool gps_lock_valid = !_failsafe_flags_sub.get().global_position_invalid;
+	bool gnss_lock_valid = !_failsafe_flags_sub.get().global_position_invalid;
 	bool home_position_valid = !_failsafe_flags_sub.get().home_position_invalid;
 	int nav_state = _vehicle_status_sub.get().nav_state;
 
@@ -92,8 +92,8 @@ void StatusDisplay::set_leds()
 		_led_control.color = led_control_s::COLOR_YELLOW;   // TODO fix yellow and purple error
 	}
 
-	// blink if no GPS and home are set
-	if (gps_lock_valid && home_position_valid) {
+	// blink if no GNSS and home are set
+	if (gnss_lock_valid && home_position_valid) {
 		_led_control.mode = led_control_s::MODE_ON;
 
 	} else {
@@ -113,7 +113,7 @@ void StatusDisplay::set_leds()
 	}
 
 	if (nav_state != _old_nav_state
-	    || gps_lock_valid != _old_gps_lock_valid
+	    || gnss_lock_valid != _old_gnss_lock_valid
 	    || home_position_valid != _old_home_position_valid
 	    || _battery_status_sub.get().warning != _old_battery_status_warning) {
 
@@ -124,7 +124,7 @@ void StatusDisplay::set_leds()
 
 	// copy actual state
 	_old_nav_state = nav_state;
-	_old_gps_lock_valid = gps_lock_valid;
+	_old_gnss_lock_valid = gnss_lock_valid;
 	_old_home_position_valid = home_position_valid;
 	_old_battery_status_warning = _battery_status_sub.get().warning;
 }

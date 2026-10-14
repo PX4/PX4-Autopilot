@@ -397,7 +397,7 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	device_id.devid_s.bus = 0;
 	device_id.devid_s.address = hil_gps.id;
-	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	device_id.devid_s.devtype = DRV_GNSS_DEVTYPE_SIM;
 	gnss.device_id = device_id.devid;
 
 	gnss.latitude = hil_gps.lat / 1e7;
@@ -441,8 +441,8 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 	// kept per instance. New publishers are created based on the HIL_GPS ID's being different or not.
 	int instance = -1;
 
-	for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
-		if (_sensor_gnss_pubs[i] && _gps_ids[i] == hil_gps.id) {
+	for (size_t i = 0; i < sizeof(_gnss_ids) / sizeof(_gnss_ids[0]); i++) {
+		if (_sensor_gnss_pubs[i] && _gnss_ids[i] == hil_gps.id) {
 			instance = i;
 			break;
 		}
@@ -454,7 +454,7 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 				return;
 			}
 
-			_gps_ids[i] = hil_gps.id;
+			_gnss_ids[i] = hil_gps.id;
 
 			instance = i;
 			break;

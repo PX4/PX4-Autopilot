@@ -135,11 +135,11 @@ parameters:
       unit: celcius
     SYS_HAS_GPS:
       description:
-        short: Control if the vehicle has a GPS
+        short: Control if the vehicle has a GNSS receiver
         long: |-
-          Disable this if the system has no GPS.
+          Disable this if the system has no GNSS.
           If disabled, the sensors hub will not process sensor_gnss,
-          and GPS will not be available for the rest of the system.
+          and GNSS will not be available for the rest of the system.
       type: boolean
       default: 1
       reboot_required: true

@@ -530,7 +530,7 @@ bool AttitudeEstimatorQ::update(float dt)
 		(_q(0) * _q(0) - _q(1) * _q(1) - _q(2) * _q(2) + _q(3) * _q(3))
 	);
 
-	// If we are not using acceleration compensation based on GPS velocity,
+	// If we are not using acceleration compensation based on GNSS velocity,
 	// fuse accel data only if its norm is close to 1 g (reduces drift).
 	const float accel_norm_sq = _accel.norm_squared();
 	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;

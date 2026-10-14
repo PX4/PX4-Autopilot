@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_SENSOR_GNSS_SIM
+	bool "sensor_gnss_sim"
+	default n
+	---help---
+		Enable support for sensor_gnss_sim

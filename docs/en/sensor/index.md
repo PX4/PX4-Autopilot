@@ -9,10 +9,10 @@ Vehicle state information includes: position/altitude, heading, speed, airspeed,
 
 PX4 _minimally requires_ a gyroscope, accelerometer, magnetometer (compass), and barometer to measure the above states.
 Fixed-wing and VTOL-vehicles _should_ also include an airspeed sensor.
-A GPS or other positioning system is needed to enable all automatic modes, and some manual/assisted modes.
+A GNSS receiver or other positioning system is needed to enable all automatic modes, and some manual/assisted modes.
 
 [Pixhawk Series](../flight_controller/pixhawk_series.md) flight controllers already have the minimum set of sensors (other controller platforms often do too).
-Additional/external sensors can be attached to the controller — an external GPS and compass are recommended, along with an airspeed sensor for VTOL and Fixed wing vehicles.
+Additional/external sensors can be attached to the controller — an external GNSS receiver and compass are recommended, along with an airspeed sensor for VTOL and Fixed wing vehicles.
 
 ## Sensor Topics
 
@@ -38,7 +38,7 @@ Optional:
 - [Distance Sensors (Rangefinders)](../sensor/rangefinders.md) — Measures distance to target.
   Aids landing, object avoidance, and terrain following.
 - [Optical Flow](../sensor/optical_flow.md) — Estimates velocity using a downward facing camera and a downward facing distance sensor.
-  Enables a more accurate position lock than GPS alone, and can be used indoors when no GPS signal is available.
+  Enables a more accurate position lock than GNSS alone, and can be used indoors when no GNSS signal is available.
 - [Tachometers (Revolution Counters)](../sensor/tachometers.md) — Only used for logging.
 
 Primarily for OEMs/Manufacturers:
