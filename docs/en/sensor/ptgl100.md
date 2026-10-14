@@ -1,8 +1,10 @@
 # JRT PTGL-100 Laser Rangefinder
 
-The JRT PTGL-100 is a UART laser rangefinder with a specified measurement range of 0.2–100 m and a measurement rate of 100 Hz.
+The [JRT PTGL-100](mailto:sales@jrt-measure.com) is a UART laser rangefinder with a wavelength of 905±5 nm, a specified measurement range of 0.2–100 m and a measurement rate of 100 Hz.
 
 ![JRT PTGL-100 laser rangefinder](../../assets/hardware/sensors/ptgl100/ptgl100_hero.jpg)
+
+Product rendering from the manufacturer's manual linked below.
 
 The module must be set to 460800 baud, 8N1, with no flow control.
 PX4 does not change the module's baud rate.
@@ -11,32 +13,31 @@ PX4 does not change the module's baud rate.
 The rangefinder has been tested on the [Amovlab Flycore](../flight_controller/amovlab_flycore.md), which includes the driver in its default firmware.
 :::
 
-::: warning
-The manufacturer's revised manual is inconsistent about the measurement commands and the factory baud rate (see [Protocol](#protocol)).
-Confirm that your module uses the revised commands and 460800 baud before flight use.
-:::
+For electrical specifications and protocol details, see JRT's [PTGL-100 User and Maintenance Manual (Chinese)](../../assets/hardware/sensors/ptgl100/ptgl100_manual.pdf).
 
 ## Where to Buy
 
-- [JRT PTGL-100](https://example.com/TODO_PRODUCT_PAGE_URL)
+For PTGL-100 purchasing enquiries, contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com), the sales address listed in the manual.
 
 ## Wiring
 
+The manufacturer's packing list includes one module and one power cable.
+The tested setup uses a GH1.25 connector at the Flycore end and a six-pin SH1.25 connector at the module end.
+
 Connect the module to an unused flight controller UART.
 UART signals use 3.3 V TTL levels.
+The module requires a 3.3–5 V supply.
 
-| Module Pin | Signal | Connection                    |
-| ---------- | ------ | ----------------------------- |
-| 1          | GND    | Flight controller ground      |
-| 2          | VCC    | Suitable 3.3–5 V supply       |
-| 3          | NC     | Leave unconnected             |
-| 4          | TXD    | Flight controller UART RX     |
-| 5          | RXD    | Flight controller UART TX     |
-| 6          | EN     | Hold low for normal operation |
+The Flycore hardware test used the following four connections to [TELEM3](../flight_controller/amovlab_flycore.md#telem3-port):
+
+| Module Signal | Flycore TELEM3 Signal |
+| ------------- | --------------------- |
+| VCC           | VCC                   |
+| GND           | GND                   |
+| TXD           | RX                    |
+| RXD           | TX                    |
 
 Both TX and RX are required because PX4 sends the continuous measurement command.
-The manual specifies that pulling EN high puts the module into low-power mode, in which it does not respond.
-Check connector orientation against the module's pinout before applying power.
 
 ## Configuration
 
@@ -44,8 +45,8 @@ Check connector orientation against the module's pinout before applying power.
 2. Set [SENS_PTGL100_CFG](../advanced_config/parameter_reference.md#SENS_PTGL100_CFG) to that port in _QGroundControl_ and reboot.
 3. If the sensor is not mounted facing down, set [SENS_PTGL100_ROT](../advanced_config/parameter_reference.md#SENS_PTGL100_ROT) to its mounting direction and reboot.
 
-For example, select `TELEM 2` (`102`) for a module connected to the Flycore TELEM2 connector.
-The Flycore TELEM2 connector has no VCC pin, so power the module from another source.
+For example, select `TELEM 3` (`103`) for a module connected to the Flycore TELEM3 connector.
+The TELEM3 VCC and GND connections supply power to the module.
 The driver sets 460800 baud directly; no `SER_*_BAUD` change is needed.
 The default port setting is disabled, and the default orientation is downward (`25`).
 
@@ -76,8 +77,6 @@ No custom MAVLink message or logger topic configuration is needed for a normal s
 For bench recording without arming, start recording with `logger on` while the logger is running.
 
 The driver publishes laser type, 0.2–100 m limits, and the selected orientation.
-Signal quality is unknown (`-1`) for in-range measurements and invalid (`0`) for out-of-range values.
-Receiver field of view is left unknown because the manual only specifies beam divergence.
 
 ## Developer Information
 
@@ -93,15 +92,18 @@ Measurement failure replies count as communication with the module and are repor
 To run the driver manually, after disabling automatic startup:
 
 ```sh
-ptgl100 start -d /dev/ttyS1 -R 25
+ptgl100 start -d /dev/ttyS3 -R 25
 ptgl100 status
 ptgl100 stop
 ```
 
-The device name above corresponds to Flycore TELEM2.
+The device name above corresponds to Flycore TELEM3.
 When stopped, the driver attempts to send the stop measurement command before closing the UART.
 
 ### Validation
+
+Hardware testing with the PTGL-100 module on the Amovlab Flycore has been completed.
+The module was powered through the Flycore TELEM3 VCC and GND connections, with TX and RX connected for UART communication.
 
 Build the firmware, then configure and run the driver-specific SITL tests with a current CMake installation:
 
@@ -121,17 +123,12 @@ python3 src/drivers/distance_sensor/ptgl100/test_ptgl100.py --px4 build/px4_sitl
 The integration test requires `pexpect`, `pymavlink`, and `pyulog`.
 It uses a pseudo-terminal in a temporary directory and does not require a connected sensor or flight controller.
 
-Hardware acceptance still requires checking 460800-baud communication, orientation, at least two known distances, power-cycle recovery, MAVLink output, and a recorded ULog on the actual Flycore and module.
-
 ### Protocol
 
-The driver uses the revised protocol, which specifies an unsigned 24-bit big-endian distance in millimetres, converted to metres as `distance_m = raw / 1000.0`.
+The driver parses an unsigned 24-bit big-endian distance in millimetres, converted to metres as `distance_m = raw / 1000.0`.
 
-The revised manual has inconsistent command examples and baud-rate descriptions:
-
-- The driver follows the command table on printed pages 6–7, which gives `0x68` for single measurement and `0x69` for continuous measurement; the example lines still show the old `0x88`/`0x89` commands.
-  Old `0x88`/`0x89` measurement replies are rejected to avoid interpreting their different distance format as millimetres.
-- The specification table lists a factory baud rate of 460800, confirmed for the target module, while the protocol overview still says 115200.
+The supported measurement commands are `0x68` for single measurement and `0x69` for continuous measurement, as listed in the command table on [printed pages 6–7 (PDF pages 8–9)](../../assets/hardware/sensors/ptgl100/ptgl100_manual.pdf#page=8).
+Measurement replies using `0x88` or `0x89` are rejected.
 
 Frames contain eight bytes and start with `55 AA`.
 The command checksum sums bytes 3–7 (one-based, excluding the header); the reply checksum sums bytes 1–7 (including the header).
@@ -147,4 +144,3 @@ A measurement reply is `55 AA CMD STA D_0 D_1 D_2 SUM`.
 `STA = 1` indicates success, and `(D_0 << 16) | (D_1 << 8) | D_2` is the distance in millimetres.
 For example, `55 AA 69 01 01 86 A0 90` represents 100000 mm, published as 100 m.
 The driver starts continuous measurement automatically; self-test (`0x80`) and stop replies are handled separately from measurements.
-The baud-rate configuration command (`0x01`) from the earlier manual is absent from the revision and is not supported by this driver.
