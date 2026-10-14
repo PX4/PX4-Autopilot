@@ -936,3 +936,33 @@ TEST_F(FailsafeTest, NoNotificationForDisabledFailsafe)
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 	EXPECT_EQ(notifications, notifications_before);
 }
+
+TEST_F(FailsafeTest, RoverUnsupportedDescendToDisarm)
+{
+	FailsafeTester failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
+	hrt_abstime time = 3847124342;
+	bool stick_override_request = false;
+
+	// 1. Simulate a Rover by marking Descend as unsupported
+	failsafe_flags.mode_not_supported |= (1u << vehicle_status_s::NAVIGATION_STATE_DESCEND);
+
+	// 2. Trigger a failure that normally cascades to Hold, then Descend
+	failsafe_flags.mission_failure = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+
+	time += 10_ms;
+	failsafe.update(time, state, false, stick_override_request, failsafe_flags);
+
+	// 3. Advance time past the Hold delay (3+ seconds) to trigger the Descend fallback
+	time += 6_s;
+	failsafe.update(time, state, false, stick_override_request, failsafe_flags);
+
+	// 4. Verify that because Descend is unsupported, the action safely diverted to Disarm
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Disarm);
+}

@@ -178,6 +178,17 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_manual_control);
 	}
 
+	if (reporter.failsafeFlags().mode_not_supported != 0) {
+		/* EVENT
+		 * @description
+		 * The selected mode is not supported by the vehicle type.
+		 */
+		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_not_supported, health_component_t::system,
+					    events::ID("check_modes_not_supported"),
+					    events::Log::Error, "Mode not supported");
+		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_not_supported);
+	}
+
 	if (reporter.failsafeFlags().mode_req_other != 0) {
 		// Here we expect there is already an event reported for the failing check (this is for external modes)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_other);
